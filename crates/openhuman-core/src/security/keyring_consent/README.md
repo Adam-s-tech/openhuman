@@ -37,8 +37,8 @@ so the app never silently drops to local storage without the user agreeing.
   doc comment.
 - `KeyringStatus`: `available`, `failure_reason: Option<KeyringFailureReason>`,
   `active_mode: StorageMode`, `backend_name: String`. `active_mode` is derived
-  from `backend_name` first and availability second (`policy::active_mode_for`)
-  (deriving it from `available` alone previously made every non-`os` backend
+  from `backend_name` first and availability second (`policy::active_mode_for`).
+  Deriving it from `available` alone previously made every non-`os` backend
   report `OsKeyring` (#6076).
 - `ConsentPreference { storage_mode, consented_at_ms }`: the persisted
   decision.
@@ -90,8 +90,8 @@ matches on `keyring::backend_name()`'s identifiers (`"os"`,
 
 ## Used by
 
-- `credentials/profiles/keychain.rs` and `credentials/credential_ref.rs`
-: consent preflight before profile secrets and credential refs touch the
+- `credentials/profiles/keychain.rs` and `credentials/credential_ref.rs`:
+  consent preflight before profile secrets and credential refs touch the
   keyring.
 - `web3/wallet/ops/state.rs`: mnemonic goes to the keychain only on
   `Proceed`.

@@ -214,6 +214,7 @@ A JWT accepted while the backend is unreachable (live `exp`, subject claim) is i
 | Command                                            | Purpose                                        |
 | -------------------------------------------------- | ---------------------------------------------- |
 | `activate_main_window`                             | Show + focus the main window                   |
+| `set_titlebar_for_sidebar`                         | macOS only: switch the main window's title bar style when the sidebar collapses, so the webview keeps spanning the full window |
 | `mascot_window_show` / `mascot_window_hide`        | Toggle the mascot native window                |
 | `notch_window_show` / `notch_window_hide`          | Toggle the notch window                        |
 
