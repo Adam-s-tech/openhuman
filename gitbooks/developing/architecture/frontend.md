@@ -568,12 +568,12 @@ Conventions:
 
 \~45 app-level hooks. Representative examples:
 
-- **`useUser`**: thin wrapper over `useCoreState()`; returns `{ user: snapshot.currentUser, isLoading, error, refetch }`. There is no standalone user store.
-- **`useBackendUrl`**: runtime backend URL resolution (see [Runtime config precedence](frontend.md#runtime-config-precedence)).
-- **`useThreadQueries`**: chat thread fetching.
-- **`useDaemonHealth` / `useDaemonLifecycle`**: core service health.
-- **`useDictationHotkey` / `usePttHotkey`**: global hotkey managers.
-- **`useDeveloperMode`**, **`useMediaQuery`**, **`useEscapeKey`**: UI utilities.
+- `useUser` is a thin wrapper over `useCoreState()`; it returns `{ user: snapshot.currentUser, isLoading, error, refetch }`. There is no standalone user store.
+- `useBackendUrl` resolves the backend URL at runtime (see [Runtime config precedence](frontend.md#runtime-config-precedence)).
+- `useThreadQueries` fetches chat threads.
+- `useDaemonHealth` / `useDaemonLifecycle` track core service health.
+- `useDictationHotkey` / `usePttHotkey` manage global hotkeys.
+- `useDeveloperMode`, `useMediaQuery`, `useEscapeKey` are general UI utilities.
 - Feature hooks: `useFlowRunProgress`, `useWorkflowBuilderChat`, `useConsciousItems`, `useIntelligenceStats`, `useCostDashboard`, ….
 
 Feature-local hooks live next to their feature under `features/*/`.
