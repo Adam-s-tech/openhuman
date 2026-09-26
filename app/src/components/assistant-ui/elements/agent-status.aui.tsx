@@ -50,7 +50,6 @@ export interface AgentStatusStrings {
   done: string;
   failed: string;
   of: string;
-  tasksAriaLabel?: string;
 }
 
 const DEFAULT_STRINGS: AgentStatusStrings = {
@@ -61,7 +60,6 @@ const DEFAULT_STRINGS: AgentStatusStrings = {
   done: 'done',
   failed: 'failed',
   of: 'of',
-  tasksAriaLabel: 'Tasks',
 };
 
 const summarize = (tasks: readonly TaskState[]): TaskSummary => {
