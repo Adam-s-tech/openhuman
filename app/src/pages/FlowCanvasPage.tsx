@@ -1082,35 +1082,42 @@ function FlowEditor({
       variant="primary"
       size="sm"
       analyticsId="flow-canvas-run"
-      iconOnly
       data-testid="flow-canvas-run"
       aria-label={running ? t('flows.editor.running') : t('flows.editor.run')}
-      title={running ? t('flows.editor.running') : t('flows.editor.run')}
+      leadingIcon={running ? <Spinner /> : <PlayIcon />}
       disabled={running}
       onClick={() => setConfirmAction('run')}>
-      <PlayIcon />
+      {running ? t('flows.editor.running') : t('flows.editor.run')}
     </Button>
   );
 
-  // Segmented toggle for the side rail: Copilot | Legend. Clicking the active
-  // segment again collapses the rail (full-width graph). Replaces the old
-  // single copilot on/off button.
+  // Side panel tabs: Copilot | Manual (the node palette). They head the side
+  // panel card itself rather than the page header, so the control sits on the
+  // surface it switches. Collapsing goes through the card's close button; the
+  // canvas toolbar offers the way back while it is closed.
   const sidePanelToggle = (
     <ToggleGroupRoot
       type="single"
       variant="secondary"
       size="sm"
       value={sidePanel ?? ''}
-      onValueChange={next => setSidePanel(next === 'copilot' || next === 'legend' ? next : null)}
+      onValueChange={next => {
+        if (next === 'copilot' || next === 'legend') setSidePanel(next);
+      }}
       aria-label={t('flows.canvas.sidePanelToggle')}
-      className="rounded-lg border border-line bg-surface p-0.5">
+      className="rounded-lg border border-line bg-surface-muted/50 p-0.5">
       <ToggleGroupItem
         value="copilot"
         data-testid="flow-canvas-copilot-toggle"
-        className="border-0">
+        className="gap-1.5 border-0 data-[state=on]:bg-surface data-[state=on]:shadow-xs">
+        <Sparkles className="h-3.5 w-3.5" aria-hidden />
         {t('flows.copilot.open')}
       </ToggleGroupItem>
-      <ToggleGroupItem value="legend" data-testid="flow-canvas-legend-toggle" className="border-0">
+      <ToggleGroupItem
+        value="legend"
+        data-testid="flow-canvas-legend-toggle"
+        className="gap-1.5 border-0 data-[state=on]:bg-surface data-[state=on]:shadow-xs">
+        <Blocks className="h-3.5 w-3.5" aria-hidden />
         {t('flows.canvas.legendTab')}
       </ToggleGroupItem>
     </ToggleGroupRoot>
@@ -1135,27 +1142,24 @@ function FlowEditor({
       )}
       <Button
         type="button"
-        variant="primary"
+        variant="secondary"
         size="sm"
-        iconOnly
         data-testid="flow-editor-save"
         aria-label={saveMeta.saving ? t('flows.editor.saving') : t('flows.editor.save')}
         title={saveMeta.hasErrors ? t('flows.editor.saveBlocked') : t('flows.editor.save')}
+        leadingIcon={saveMeta.saving ? <Spinner /> : <SaveIcon />}
         disabled={!saveMeta.dirty || saveMeta.hasErrors || saveMeta.saving || preview !== null}
         onClick={() => setConfirmAction('save')}>
-        <SaveIcon />
+        {saveMeta.saving ? t('flows.editor.saving') : t('flows.editor.save')}
       </Button>
     </div>
   );
 
-  // Keep the save actions and Run button adjacent; the panel toggle sits apart.
+  // Header actions: the unsaved chip, Save, then Run — the primary action last.
   const headerActions = (
     <div className="flex items-center gap-2">
-      {sidePanelToggle}
-      <div className="flex items-center gap-1.5">
-        {saveActions}
-        {runButton}
-      </div>
+      {saveActions}
+      {runButton}
     </div>
   );
 
@@ -1227,13 +1231,12 @@ function FlowEditor({
         leading={backButton}
         headerAction={headerActions}
         scrollable={false}
-        // The canvas is a single full-bleed surface, so it runs to the content
-        // card's edges instead of floating as an inset rectangle inside it.
-        // The header keeps the gutter, so the title still lines up with every
-        // other page's.
-        bodyFullBleed>
-        <div className="flex h-full w-full">
-          <div className={`relative h-full flex-1 ${hideGraph ? 'hidden' : ''}`}>
+        // No full-bleed: the canvas and the side panel are two framed cards in
+        // the page gutter, like every other page's content.
+      >
+        <div className="flex h-full w-full gap-4">
+          <div
+            className={`relative h-full min-w-0 flex-1 overflow-hidden rounded-xl border border-line-strong ${hideGraph ? 'hidden' : ''}`}>
             <FlowCanvas
               key={`canvas-${canvasVersion}`}
               ref={canvasRef}
@@ -1250,7 +1253,8 @@ function FlowEditor({
               removedNodeIds={preview?.removedNodeIds}
               saveDisabled={preview !== null}
               initialDirty={initialDirty}
-              showPalette={sidePanel === 'legend'}
+              showPalette={false}
+              onOpenPanel={sidePanel === null ? () => setSidePanel('copilot') : undefined}
               savedViewport={viewportRef.current}
               onViewportChange={handleViewportChange}
             />
@@ -1303,8 +1307,41 @@ function FlowEditor({
             )}
           </div>
 
+          {/* Side panel card: Copilot or the node palette ("Manual"), headed by
+              its own tabs and a collapse button. While the copilot builds a
+              brand-new flow (`hideGraph`) it takes the whole body. */}
+          {sidePanel !== null && (
+            <section
+              data-testid="flow-canvas-side-panel"
+              className={`flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-line bg-surface ${
+                hideGraph ? 'flex-1' : 'w-[22rem] shrink-0 xl:w-[26rem]'
+              }`}>
+              <header className="flex items-center justify-between gap-2 border-b border-line px-3 py-2">
+                {sidePanelToggle}
+                {!hideGraph && (
+                  <Button
+                    type="button"
+                    variant="tertiary"
+                    size="sm"
+                    iconOnly
+                    data-testid="flow-canvas-close-panel"
+                    aria-label={t('flows.canvas.closePanel')}
+                    title={t('flows.canvas.closePanel')}
+                    onClick={() => setSidePanel(null)}>
+                    <PanelRightClose className="h-4 w-4" aria-hidden />
+                  </Button>
+                )}
+              </header>
+              <div className="min-h-0 flex-1">
+                {sidePanel === 'legend' && (
+                  <NodePalette
+                    variant="panel"
+                    onAdd={entry => canvasRef.current?.addPaletteEntry(entry)}
+                  />
+                )}
           {copilotOpen && (
             <WorkflowCopilotPanel
+              framed
               // Stable ('copilot') across manual open/close and build-seed
               // navigations (unaffected — those always land on a fresh
               // `FlowEditor` mount already, see `locationKey`'s doc comment).
@@ -1327,6 +1364,9 @@ function FlowEditor({
               onThreadIdChange={handleCopilotThreadId}
               fullWidth={hideGraph}
             />
+          )}
+              </div>
+            </section>
           )}
 
           {/* Both confirms are `ConfirmDialog` now. They were two hand-rolled
