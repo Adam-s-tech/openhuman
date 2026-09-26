@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 
 import type { CostDashboardModelStats } from '../../hooks/useCostDashboard';
+import { cn } from '../../lib/cn';
 import { useT } from '../../lib/i18n/I18nContext';
 import {
   Badge,
@@ -11,7 +12,6 @@ import {
   TableCell,
   TableRow,
 } from '../ui';
-import { cn } from '../../lib/cn';
 import { formatCurrency, formatTokens } from './formatCurrency';
 
 interface ModelCostTableProps {
