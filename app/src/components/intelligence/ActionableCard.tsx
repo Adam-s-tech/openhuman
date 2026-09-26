@@ -374,9 +374,9 @@ export function ActionableCard({
               {isNew && (
                 <>
                   <span className="text-xs text-content-secondary">•</span>
-                  <span className="text-xs bg-sage-500 text-content-inverted px-1.5 py-0.5 rounded-sm font-medium">
+                  <Badge variant="success" dot={false}>
                     {t('actionable.new')}
-                  </span>
+                  </Badge>
                 </>
               )}
             </div>
