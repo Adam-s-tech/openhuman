@@ -44,13 +44,13 @@ appears never to have happened, rather than erroring.
 
 ## Dependencies
 
-- `tinymcp` (`AuditStore`), the write-audit store, opened per workspace by
+- `tinymcp` (`AuditStore`): the write-audit store, opened per workspace by
   `crate::mcp::host`.
 - `tinymcp_bus`: `McpWriteListQuery`, `McpWriteRecord`, `NewMcpWriteRecord`.
 - `crate::mcp::host`: resolves the per-workspace `AuditStore` via
   `for_config`.
 - `crate::core::all` (`RegisteredController`, `ControllerFuture`) and
-  `crate::core` (`ControllerSchema`, `FieldSchema`, `TypeSchema`), the
+  `crate::core` (`ControllerSchema`, `FieldSchema`, `TypeSchema`): the
   controller registration types. Unlike the other RPC domains the handler
   returns a raw `{ "records": [...] }` object, not an `RpcOutcome`.
 
