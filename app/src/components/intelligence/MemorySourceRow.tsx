@@ -219,15 +219,13 @@ export function MemorySourceRow({
                     )}
                   </>
                 ) : (
-                  <span
-                    className="inline-flex items-start gap-1 rounded-md bg-coral-50 px-2 py-0.5 text-xs font-medium text-coral-700 dark:bg-coral-500/10 dark:text-coral-300"
-                    title={result.reason ?? undefined}>
+                  <Badge variant="danger" dot={false} title={result.reason ?? undefined}>
                     <WarnIcon />
                     <span className="wrap-break-word">
                       {t('memorySources.sync.failedLabel')}
                       {result.reason ? `: ${result.reason}` : ''}
                     </span>
-                  </span>
+                  </Badge>
                 )}
               </div>
             )}
