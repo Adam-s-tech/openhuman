@@ -104,5 +104,6 @@ The MCP server enforces `SecurityPolicy::ToolOperation` checks; all tools except
 ## Limitations (v1)
 
 - Vision input is forwarded as native image blocks when pasted images are available to the Claude Code provider. Images that cannot be read are sent as a short text notice.
-- `agentic` runs share the same `Semaphore(4)`; under load a CC turn waits in queue rather than failing fast.
+- Every role routed to `claude-code:` shares the same `MAX_CONCURRENT_TURNS` semaphore; under load a CC turn waits in queue rather than failing fast.
 - Cost accounting from the CLI's `result.total_cost_usd` is captured in the mapper but not yet wired into OpenHuman's billing layer ([`crates/openhuman-core/src/platform/cost/`](../../../crates/openhuman-core/src/platform/cost/)).
+- Linux and Windows run the CLI unconfined; the Seatbelt jail is macOS-only.
