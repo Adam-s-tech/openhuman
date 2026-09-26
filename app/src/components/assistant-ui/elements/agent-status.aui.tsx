@@ -99,7 +99,7 @@ const summaryState = (summary: TaskSummary): AgentState => {
   return summary.failed > 0 ? 'failed' : 'done';
 };
 
-export const summaryLabel = (
+const summaryLabel = (
   summary: TaskSummary,
   strings: AgentStatusStrings = DEFAULT_STRINGS
 ) => {
