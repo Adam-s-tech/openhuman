@@ -53,9 +53,10 @@ pub async fn connect_with_session(manager: &SocketManager) -> Result<SocketState
     log::info!("[socket:rpc] connect_with_session — resolving credentials");
     let config = std::sync::Arc::new(crate::config::rpc::load_config_with_timeout().await?);
     let api_url = crate::api::config::effective_backend_api_url(&config.api_url);
-    let token = crate::api::jwt::get_session_token(&config)
+    // The API key when one is stored, else the session token.
+    let token = crate::security::credentials::session_support::backend_bearer_secret(&config)
         .map_err(|e| format!("failed to read session token: {e}"))?
-        .ok_or("no session token stored — user must log in first")?;
+        .ok_or("no session token stored — user must log in first or set an API key")?;
 
     let provider =
         super::token_provider::token_provider_from_config(std::sync::Arc::clone(&config));

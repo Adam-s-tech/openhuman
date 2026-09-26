@@ -3,7 +3,7 @@
 use serde_json::Value;
 
 use crate::api::config::effective_backend_api_url;
-use crate::api::jwt::get_session_token;
+use crate::security::credentials::session_support::resolve_backend_credential;
 use crate::api::rest::BackendOAuthClient;
 use crate::config::Config;
 use crate::rpc::RpcOutcome;
@@ -15,8 +15,7 @@ pub async fn channel_send_message(
     message: Value,
 ) -> Result<RpcOutcome<Value>, String> {
     let api_url = effective_backend_api_url(&config.api_url);
-    let jwt = get_session_token(config)?
-        .ok_or_else(|| "session JWT required; complete login first".to_string())?;
+    let jwt = resolve_backend_credential(config)?;
 
     log::debug!(
         "[channels] sending message to channel '{}' via {}",
@@ -42,8 +41,7 @@ pub async fn channel_send_reaction(
     reaction: Value,
 ) -> Result<RpcOutcome<Value>, String> {
     let api_url = effective_backend_api_url(&config.api_url);
-    let jwt = get_session_token(config)?
-        .ok_or_else(|| "session JWT required; complete login first".to_string())?;
+    let jwt = resolve_backend_credential(config)?;
 
     log::debug!(
         "[channels] sending reaction to channel '{}' via {}",
@@ -69,8 +67,7 @@ pub async fn channel_create_thread(
     title: &str,
 ) -> Result<RpcOutcome<Value>, String> {
     let api_url = effective_backend_api_url(&config.api_url);
-    let jwt = get_session_token(config)?
-        .ok_or_else(|| "session JWT required; complete login first".to_string())?;
+    let jwt = resolve_backend_credential(config)?;
 
     log::debug!(
         "[channels] creating thread in channel '{}' title='{}' via {}",
@@ -98,8 +95,7 @@ pub async fn channel_update_thread(
     action: &str,
 ) -> Result<RpcOutcome<Value>, String> {
     let api_url = effective_backend_api_url(&config.api_url);
-    let jwt = get_session_token(config)?
-        .ok_or_else(|| "session JWT required; complete login first".to_string())?;
+    let jwt = resolve_backend_credential(config)?;
 
     log::debug!(
         "[channels] updating thread '{}' in channel '{}' action='{}' via {}",
@@ -127,8 +123,7 @@ pub async fn channel_list_threads(
     active: Option<bool>,
 ) -> Result<RpcOutcome<Value>, String> {
     let api_url = effective_backend_api_url(&config.api_url);
-    let jwt = get_session_token(config)?
-        .ok_or_else(|| "session JWT required; complete login first".to_string())?;
+    let jwt = resolve_backend_credential(config)?;
 
     log::debug!(
         "[channels] listing threads in channel '{}' active={:?} via {}",

@@ -183,11 +183,13 @@ pub(super) async fn finalize_channel_reply(
     }
 }
 
-/// Construct the REST client + session JWT shared by every outbound
-/// channel call on this turn. Returns `None` and logs if either is
+/// Construct the REST client + backend credential (API key or session JWT)
+/// shared by every outbound channel call on this turn. Returns `None` and logs if either is
 /// unavailable so the caller can bail quietly.
-pub(super) async fn build_channel_client() -> Option<(crate::api::rest::BackendOAuthClient, String)>
-{
+pub(super) async fn build_channel_client() -> Option<(
+    crate::api::rest::BackendOAuthClient,
+    crate::security::credentials::session_support::BackendCredential,
+)> {
     let config = match crate::config::rpc::load_config_with_timeout().await {
         Ok(c) => c,
         Err(e) => {
@@ -196,14 +198,12 @@ pub(super) async fn build_channel_client() -> Option<(crate::api::rest::BackendO
         }
     };
     let api_url = crate::api::config::effective_backend_api_url(&config.api_url);
-    let jwt = match crate::api::jwt::get_session_token(&config) {
-        Ok(Some(t)) => t,
-        Ok(None) => {
-            tracing::error!("[channel-inbound] no session JWT — cannot send");
-            return None;
-        }
+    let jwt = match crate::security::credentials::session_support::resolve_backend_credential(
+        &config,
+    ) {
+        Ok(credential) => credential,
         Err(e) => {
-            tracing::error!("[channel-inbound] failed to get session token: {}", e);
+            tracing::error!("[channel-inbound] no backend credential — cannot send: {}", e);
             return None;
         }
     };
@@ -227,14 +227,12 @@ pub(super) async fn send_channel_reply(channel: &str, text: &str) {
     };
 
     let api_url = crate::api::config::effective_backend_api_url(&config.api_url);
-    let jwt = match crate::api::jwt::get_session_token(&config) {
-        Ok(Some(t)) => t,
-        Ok(None) => {
-            tracing::error!("[channel-inbound] no session JWT — cannot reply");
-            return;
-        }
+    let jwt = match crate::security::credentials::session_support::resolve_backend_credential(
+        &config,
+    ) {
+        Ok(credential) => credential,
         Err(e) => {
-            tracing::error!("[channel-inbound] failed to get session token: {}", e);
+            tracing::error!("[channel-inbound] no backend credential — cannot reply: {}", e);
             return;
         }
     };

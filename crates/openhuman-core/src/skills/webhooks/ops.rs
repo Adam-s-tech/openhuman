@@ -1,5 +1,4 @@
 use crate::api::config::effective_backend_api_url;
-use crate::api::jwt::get_session_token;
 use crate::api::BackendOAuthClient;
 use crate::config::Config;
 use crate::rpc::RpcOutcome;
@@ -12,17 +11,12 @@ use reqwest::Method;
 use serde_json::Value;
 use std::collections::HashMap;
 
-fn require_token(config: &Config) -> Result<String, String> {
-    get_session_token(config)?
-        .and_then(|v| {
-            let t = v.trim().to_string();
-            if t.is_empty() {
-                None
-            } else {
-                Some(t)
-            }
-        })
-        .ok_or_else(|| "no backend session token; run auth_store_session first".to_string())
+/// The backend credential for `/webhooks/*`: the TinyHumans API key or the
+/// live session JWT.
+fn require_token(
+    config: &Config,
+) -> Result<crate::security::credentials::session_support::BackendCredential, String> {
+    crate::security::credentials::session_support::resolve_backend_credential(config)
 }
 
 async fn get_authed_value(

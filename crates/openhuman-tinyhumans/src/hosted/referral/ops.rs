@@ -7,22 +7,16 @@ use reqwest::Method;
 use serde_json::{json, Map, Value};
 
 use openhuman_core::api::config::effective_backend_api_url;
-use openhuman_core::api::jwt::get_session_token;
 use openhuman_core::api::BackendOAuthClient;
 use openhuman_core::config::Config;
 use openhuman_core::rpc::RpcOutcome;
 
-fn require_token(config: &Config) -> Result<String, String> {
-    get_session_token(config)?
-        .and_then(|v| {
-            let t = v.trim().to_string();
-            if t.is_empty() {
-                None
-            } else {
-                Some(t)
-            }
-        })
-        .ok_or_else(|| "no backend session token; run auth_store_session first".to_string())
+/// The backend credential for `/referral/*`: the TinyHumans API key (it needs
+/// the `account` scope) or the live session JWT.
+fn require_token(
+    config: &Config,
+) -> Result<openhuman_core::security::credentials::session_support::BackendCredential, String> {
+    openhuman_core::security::credentials::session_support::resolve_backend_credential(config)
 }
 
 pub async fn get_stats(config: &Config) -> Result<RpcOutcome<Value>, String> {

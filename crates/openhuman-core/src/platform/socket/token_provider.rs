@@ -67,17 +67,20 @@ pub(super) fn static_token_provider(token: String) -> TokenProvider {
     })
 }
 
-/// Build a provider that reads the latest session token from the profile store
-/// on every call.
+/// Build a provider that reads the latest backend credential from the profile
+/// store on every call: the TinyHumans API key when one is stored, else the
+/// session token. The backend's handshake accepts either as `auth.token`.
 ///
 /// This is the **live-refresh** path used by `handle_connect_with_session`:
 /// when the loop retries after a disconnect it will see any token that was
 /// refreshed or re-stored since the previous attempt.
 pub(crate) fn token_provider_from_config(config: Arc<crate::config::Config>) -> TokenProvider {
     Arc::new(move || {
-        crate::api::jwt::get_session_token(&config)
+        crate::security::credentials::session_support::backend_bearer_secret(&config)
             .map_err(|e| format!("failed to read session token: {e}"))?
-            .ok_or_else(|| "no session token stored — user must log in first".to_string())
+            .ok_or_else(|| {
+                "no session token stored — user must log in first or set an API key".to_string()
+            })
     })
 }
 
