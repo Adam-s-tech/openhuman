@@ -1,27 +1,19 @@
-import { ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 
 import { cn } from '../../../lib/cn';
 import { useT } from '../../../lib/i18n/I18nContext';
-import { findFamily } from '../../../lib/theme/presets';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
   FONT_SIZE_PX,
   type FontSize,
   MAX_FONT_SIZE_PX,
   MIN_FONT_SIZE_PX,
-  selectActiveFamilyId,
-  selectActiveThemeId,
-  selectCustomThemes,
   selectEffectiveFontSizePx,
-  selectThemeVariant,
   setCustomFontSizePx,
   setFontSize,
-  setThemeVariant,
-  type ThemeVariant,
 } from '../../../store/themeSlice';
-import { Button, Card, Field, Slider, ToggleGroupItem, ToggleGroupRoot } from '../../ui';
+import { Card, Slider } from '../../ui';
 import { SettingsNumberField } from '../controls';
 import SettingsPanel from '../layout/SettingsPanel';
 import LayoutSettings from './theme/LayoutSettings';
@@ -38,16 +30,6 @@ const AppearancePanel = () => {
   const { t } = useT();
   const dispatch = useAppDispatch();
   const effectiveFontSizePx = useAppSelector(selectEffectiveFontSizePx);
-  const variant = useAppSelector(selectThemeVariant);
-  const activeFamilyId = useAppSelector(selectActiveFamilyId);
-  const activeThemeId = useAppSelector(selectActiveThemeId);
-  const customThemes = useAppSelector(selectCustomThemes);
-  // Name the theme the user picked (a family like "Classic", or a custom
-  // theme), not the resolved light/dark variant of it.
-  const activeThemeName =
-    customThemes.find(th => th.id === activeThemeId)?.name ??
-    findFamily(activeFamilyId)?.name ??
-    activeThemeId;
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -108,57 +90,9 @@ const AppearancePanel = () => {
     },
   ];
 
-  const VARIANT_OPTIONS: { id: ThemeVariant; label: string }[] = [
-    { id: 'light', label: t('settings.theme.variantLight') },
-    { id: 'dark', label: t('settings.theme.variantDark') },
-    { id: 'system', label: t('settings.theme.variantAuto') },
-  ];
 
   const body = (
     <>
-      {/* Mode + the active theme. Picking and editing themes lives on the
-          Theme Studio page; this row only names the current one and links
-          there, so light/dark stays a one-click setting here. */}
-      <Card title={t('settings.appearance.themeHeading')} data-testid="appearance-theme">
-        <Field
-          label={t('settings.appearance.mode')}
-          control={
-            <ToggleGroupRoot
-              type="single"
-              variant="secondary"
-              size="xs"
-              value={variant}
-              onValueChange={next => {
-                if (next) dispatch(setThemeVariant(next as ThemeVariant));
-              }}
-              aria-label={t('settings.theme.variantAria')}
-              className="overflow-hidden rounded-lg border border-line gap-0 *:rounded-none *:border-0">
-              {VARIANT_OPTIONS.map(opt => (
-                <ToggleGroupItem
-                  key={opt.id}
-                  value={opt.id}
-                  className="h-auto px-2.5 py-1 text-xs font-medium data-[state=on]:bg-primary-500 data-[state=on]:text-content-inverted">
-                  {opt.label}
-                </ToggleGroupItem>
-              ))}
-            </ToggleGroupRoot>
-          }
-        />
-        <Field
-          label={t('settings.appearance.currentTheme')}
-          description={activeThemeName}
-          control={
-            <Button
-              variant="secondary"
-              size="sm"
-              trailingIcon={<ChevronRight className="h-3.5 w-3.5" aria-hidden />}
-              onClick={() => navigate('/settings/theme')}
-              data-testid="appearance-open-theme-studio">
-              {t('settings.theme.title')}
-            </Button>
-          }
-        />
-      </Card>
 
       <Card
         title={t('settings.appearance.fontSizeHeading')}
