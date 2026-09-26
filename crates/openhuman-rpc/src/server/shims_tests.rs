@@ -65,12 +65,13 @@ async fn wait_until_port_released(port: u16) {
 /// dedicated `tests/` binary where global pollution doesn't affect
 /// siblings — tracked as a follow-up.
 ///
-/// To run manually: `cargo test --lib -p openhuman -- --ignored
+/// To run manually: `cargo test --lib -p openhuman-rpc -- --ignored
 /// shutdown_token`.
 #[tokio::test]
 #[ignore = "calls full server bootstrap; leaks process-global state into sibling tests (#1552). Re-cover via integration test."]
 async fn shutdown_token_stops_axum_listener_within_timeout() {
-    let _signed_out_restore = openhuman_core::cron::scheduler_gate::SignedOutTestGuard::set(false);
+    // Ignored and run on its own, so a plain write needs no restore guard.
+    openhuman_core::cron::scheduler_gate::set_signed_out(false);
 
     let workspace = tempfile::tempdir().expect("workspace tempdir");
 

@@ -1,7 +1,11 @@
 //! Test-only helpers shared by the JSON-RPC test modules.
 
 use std::ffi::OsString;
-use std::sync::MutexGuard;
+use std::sync::{Mutex, MutexGuard};
+
+/// Serializes the environment mutations this crate's tests make. Core's own
+/// test lock is private to core's test binary, which is a separate process.
+static TEST_ENV_LOCK: Mutex<()> = Mutex::new(());
 
 pub(crate) struct EnvVarGuard {
     old_values: Vec<(&'static str, Option<OsString>)>,
@@ -10,7 +14,7 @@ pub(crate) struct EnvVarGuard {
 
 impl EnvVarGuard {
     pub(crate) fn set_many(vars: Vec<(&'static str, OsString)>) -> Self {
-        let lock = openhuman_core::config::TEST_ENV_LOCK
+        let lock = TEST_ENV_LOCK
             .lock()
             .expect("test env lock poisoned");
         let mut old_values = Vec::with_capacity(vars.len());

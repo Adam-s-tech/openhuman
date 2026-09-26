@@ -38,7 +38,7 @@ fn ensure_test_rpc_auth() -> String {
         let tmp = tempfile::tempdir().expect("tempdir for token file");
         openhuman_core::core::auth::init_rpc_token(tmp.path()).expect("init rpc auth token for http tests");
     });
-    crate::core::auth::get_rpc_token()
+    openhuman_core::core::auth::get_rpc_token()
         .expect("rpc bearer must be installed after ensure_test_rpc_auth")
         .to_string()
 }
