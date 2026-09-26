@@ -29,7 +29,6 @@ export type SettingsSection =
   | 'agents'
   | 'features'
   | 'crypto'
-  | 'notifications'
   | 'developer';
 
 /**
