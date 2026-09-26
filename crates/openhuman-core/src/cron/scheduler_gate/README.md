@@ -24,7 +24,7 @@ Gates background AI work (memory-tree digests, embeddings, summarisation, triage
 
 From `mod.rs`:
 
-- **Functions** (`gate`): `init_global(&Config)`, `current_policy() -> Policy`, `current_signals() -> Signals`, `wait_for_capacity() -> Option<LlmPermit>`, `is_signed_out() -> bool`, `set_signed_out(bool)`.
+- Functions (`gate`): `init_global(&Config)`, `current_policy() -> Policy`, `current_signals() -> Signals`, `wait_for_capacity() -> Option<LlmPermit>`, `is_signed_out() -> bool`, `set_signed_out(bool)`.
 - Types: `LlmPermit` (RAII semaphore guard, `#[must_use]`), `Policy` (`Aggressive` / `Normal` / `Throttled` / `Paused { reason }`), `PauseReason` (`UserDisabled` / `OnBattery` / `CpuPressure` / `SignedOut` / `Unknown`), `Signals`.
 - Not re-exported but `pub` on `gate`: `update_config(SchedulerGateConfig)`.
 - Test-only: `SignedOutTestGuard` (RAII flag snapshot/restore), `try_acquire_llm_permit`, `available_llm_permits`.

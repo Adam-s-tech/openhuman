@@ -33,7 +33,7 @@ build failing wherever the compiler happens to hit first), the gate lives
 once, here, and every handler reads the same either way.
 
 `tinyconnectors-bus` (`vendor/tinyconnectors/crates/tinyconnectors-bus`,
-declared in `crates/openhuman-core/Cargo.toml` ~486, 496) supplies the member names
+declared in `crates/openhuman-core/Cargo.toml` lines ~486-496) supplies the member names
 (`module_client::methods`) and payload types with no transport and no
 behaviour; it compiles none of the connector itself. A gates-off build can
 still name a member and match on the contract; it just cannot call one.
