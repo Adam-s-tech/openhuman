@@ -61,6 +61,10 @@ const IGNORED_TEXT = new Set([
   // NumberField.tsx range separator — a decorative en-dash entity between
   // {min} and {max}, not translatable content.
   "&#x2013;", // en-dash range separator
+  // AppearancePanel.tsx font-size preview swatch — an aria-hidden visual
+  // specimen glyph (not read by screen readers), meant to render identically
+  // in every locale, not a translated word.
+  "Aa", // font-size preview glyph
 ]);
 const IGNORED_SHORT_TOKENS = new Set([
   "v",
