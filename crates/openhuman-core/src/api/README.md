@@ -64,35 +64,35 @@ or an LLM inference endpoint. Two families are resolved separately because a
 `config.api_url` pointed at a local model runner (Ollama, vLLM, LM Studio)
 only speaks `/v1/chat/completions` and 404s on every other path:
 
-- `effective_api_url` — chat/inference base: non-empty `config.api_url` →
-  `BACKEND_URL`/`VITE_BACKEND_URL` runtime env → the same keys baked in via
-  `option_env!` → environment default. `effective_inference_url` returns an
-  explicit `inference_url` override verbatim, otherwise joins
-  `OPENHUMAN_INFERENCE_PATH` (`/openai/v1/chat/completions`) onto
-  `effective_api_url`.
-- `effective_backend_api_url` — base for all control-plane calls (auth,
-  billing, team, integrations, voice, sockets, …). Skips the user's
+- `effective_api_url`: chat/inference base. Resolution order is non-empty
+  `config.api_url`, then `BACKEND_URL`/`VITE_BACKEND_URL` runtime env, then
+  the same keys baked in via `option_env!`, then the environment default.
+  `effective_inference_url` returns an explicit `inference_url` override
+  verbatim, otherwise joins `OPENHUMAN_INFERENCE_PATH`
+  (`/openai/v1/chat/completions`) onto `effective_api_url`.
+- `effective_backend_api_url`: base for all control-plane calls (auth,
+  billing, team, integrations, voice, sockets, and so on). Skips the user's
   `api_url` override when it `looks_like_local_ai_endpoint`,
   `looks_like_inference_provider_endpoint`, or resolves to a builtin cloud
   provider host (`config::schema::cloud_providers`) and is not the OpenHuman
-  backend itself, so pointing `api_url` at Ollama or `openrouter.ai` doesn't
+  backend itself, so pointing `api_url` at Ollama or `openrouter.ai` does not
   also misroute `/teams/me/usage` and billing calls there. Falls through the
   same env/default chain, passed through `normalize_backend_api_base_url`
-  (`pub(crate)`) which strips an inference-style path from a misconfigured
+  (`pub(crate)`), which strips an inference-style path from a misconfigured
   `BACKEND_URL`.
-- `normalize_api_base_url` — trims whitespace and trailing slashes only; it
+- `normalize_api_base_url`: trims whitespace and trailing slashes only. It
   is a cheap string operation with no URL parsing. `api_url(base, path)` is
   the matching join helper.
-- `DEFAULT_API_BASE_URL` (`https://api.tinyhumans.ai`) /
+- `DEFAULT_API_BASE_URL` (`https://api.tinyhumans.ai`) and
   `DEFAULT_STAGING_API_BASE_URL` (`https://staging-api.tinyhumans.ai`),
   chosen by `default_api_base_url_for_env` from `app_env_from_env`, which
   reads `OPENHUMAN_APP_ENV` / `VITE_OPENHUMAN_APP_ENV` (`APP_ENV_VAR` /
   `VITE_APP_ENV_VAR`) at runtime, then compile time. `api_base_from_env` is
   the separate `BACKEND_URL` / `VITE_BACKEND_URL` lookup; both check each key
   independently so an empty primary never shadows the secondary.
-- `looks_like_local_ai_endpoint` / `looks_like_inference_provider_endpoint` —
-  heuristics documented in-file; both are intentionally tight to avoid
-  misclassifying real custom backends or ephemeral test mock servers.
+- `looks_like_local_ai_endpoint` / `looks_like_inference_provider_endpoint`:
+  heuristics documented in-file. Both are intentionally tight so they do not
+  misclassify real custom backends or ephemeral test mock servers.
 
 ## `jwt.rs`
 
@@ -100,10 +100,10 @@ only speaks `/v1/chat/completions` and 404s on every other path:
 `crate::security::credentials::session_support::get_session_token` (with
 `APP_SESSION_PROVIDER` and `DEFAULT_AUTH_PROFILE_NAME`), so callers keep one
 import path for "where the token lives". Token *parsing* and header
-*formatting* — `bearer_authorization_value`, `decode_jwt_payload`,
-`decode_jwt_exp_unix` — are implemented here (they are pure and the
-credentials store needs them on a core with no backend at all; the SDK keeps
-its own identical copy for hosts). `decode_jwt_exp` wraps the Unix-seconds
+*formatting* (`bearer_authorization_value`, `decode_jwt_payload`,
+`decode_jwt_exp_unix`) are implemented here: they are pure, and the
+credentials store needs them on a core with no backend at all. The SDK keeps
+its own identical copy for hosts. `decode_jwt_exp` wraps the Unix-seconds
 `exp` decoder in the `chrono` type the credentials store uses, so an expired
 token can be rejected locally instead of round-tripping to a guaranteed 401.
 None of them verify the signature; the backend stays the authority.
@@ -119,8 +119,8 @@ lower-cases, truncates to 64 bytes, and returns `None` when nothing survives,
 so the wrapped value can never break `HeaderValue` construction. The
 identity is process-wide (a `OnceLock<RwLock<ProductIdentity>>`), not a
 constructor parameter, because `BackendOAuthClient` is built at dozens of
-call sites across domains. **Call `set_product_identity` once at startup,
-before building any backend client** — `BackendOAuthClient` and
+call sites across domains. Call `set_product_identity` once at startup,
+before building any backend client: `BackendOAuthClient` and
 `IntegrationClient` bake the identity into their default headers at
 construction and do not pick up a later change. A build that never calls
 the setter sends `DEFAULT_PRODUCT_IDENTITY` (`"openhuman"`).
