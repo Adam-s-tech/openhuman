@@ -149,6 +149,7 @@ export const TaskTray: FC<{ className?: string; strings?: AgentStatusStrings }> 
   className,
   strings,
 }) => {
+  const { t } = useT();
   const tasks = useAuiState(s => s.thread.tasks);
   const summary = useMemo(() => summarize(tasks), [tasks]);
   const elapsedMs = useTaskElapsed(
