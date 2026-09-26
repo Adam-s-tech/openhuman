@@ -1207,13 +1207,13 @@ const ComposerAction: FC<{
         {ComposerRightExtras ? <ComposerRightExtras /> : null}
         {onSwitchToMicCloud && (
           <TooltipIconButton
-            tooltip="Voice mode"
+            tooltip={t('composer.voiceMode', 'Voice mode')}
             side="bottom"
             type="button"
             variant="ghost"
             size="icon"
             className="aui-composer-voice-mode text-muted-foreground hover:text-foreground size-7 rounded-full"
-            aria-label="Voice mode"
+            aria-label={t('composer.voiceMode', 'Voice mode')}
             disabled={isRunning}
             onClick={onSwitchToMicCloud}>
             <MicIcon className="size-4" />
