@@ -87,6 +87,8 @@ interface FlowCanvasProps {
    * so non-toggling consumers keep the palette visible.
    */
   showPalette?: boolean;
+  /** Reopen the host's collapsed side panel from the canvas toolbar (editable only). */
+  onOpenPanel?: () => void;
   /** Reports Save-button state up so the host header can render Save/Discard. */
   onSaveMetaChange?: (meta: EditorSaveMeta) => void;
   /**
@@ -163,6 +165,7 @@ const FlowCanvas = forwardRef<EditableFlowCanvasHandle, FlowCanvasProps>(
       saveDisabled,
       initialDirty,
       showPalette = true,
+      onOpenPanel,
       onSaveMetaChange,
       savedViewport,
       onViewportChange,
@@ -185,6 +188,7 @@ const FlowCanvas = forwardRef<EditableFlowCanvasHandle, FlowCanvasProps>(
           saveDisabled={saveDisabled}
           initialDirty={initialDirty}
           showPalette={showPalette}
+          onOpenPanel={onOpenPanel}
           onSaveMetaChange={onSaveMetaChange}
           savedViewport={savedViewport}
           onViewportChange={onViewportChange}
