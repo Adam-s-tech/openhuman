@@ -66,17 +66,17 @@ describe('SandboxSettingsPanel', () => {
     expect(await screen.findByText('Unavailable')).toBeInTheDocument();
   });
 
-  it('renders the backend dropdown with current selection', async () => {
+  it('renders the backend options with current selection', async () => {
     renderWithProviders(<SandboxSettingsPanel />);
     await waitFor(() => expect(mockGet).toHaveBeenCalled());
-    const select = await screen.findByRole('combobox', { name: /backend/i });
-    expect(select).toHaveValue('auto');
+    const autoOption = await screen.findByRole('radio', { name: /auto/i });
+    expect(autoOption).toHaveAttribute('aria-checked', 'true');
   });
 
   it('changing backend persists the selection', async () => {
     renderWithProviders(<SandboxSettingsPanel />);
-    const select = await screen.findByRole('combobox', { name: /backend/i });
-    fireEvent.change(select, { target: { value: 'docker' } });
+    const dockerOption = await screen.findByRole('radio', { name: /^docker$/i });
+    fireEvent.click(dockerOption);
     await waitFor(() =>
       expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({ backend: 'docker' }))
     );

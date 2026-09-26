@@ -52,6 +52,8 @@ async function walk(dir: string, out: string[]): Promise<void> {
   for (const entry of entries) {
     const fullPath = path.join(dir, entry.name);
     if (fullPath.includes('__tests__') || fullPath.includes('/lib/i18n/')) continue;
+    // Dev-only galleries/demos are not shipped; exclude them from the audit.
+    if (fullPath.includes('/pages/dev/')) continue;
     if (entry.isDirectory()) {
       await walk(fullPath, out);
       continue;

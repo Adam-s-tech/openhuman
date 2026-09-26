@@ -34,17 +34,21 @@ describe('LogoutAndClearActions', () => {
     mockClearAllAppData.mockReset().mockResolvedValue(undefined);
   });
 
-  it('renders log out in a Session card and clearing data in a separate danger zone', () => {
+  it('renders log out and clear-data as rows in one Session card, with clearing data visually marked destructive', () => {
     renderActions();
     // The two used to be adjacent rows with the same amber, weight and icon.
-    // Clearing data is now its own card with its own button, so the assertion
-    // checks the split rather than just that both strings exist.
+    // They now share a single Session card, but clearing data keeps its own
+    // destructive-zone wrapper and coral/danger button treatment so it still
+    // doesn't read as a peer of the routine, reversible log-out action.
     expect(screen.getByText('Session')).toBeInTheDocument();
     expect(screen.getByTestId('settings-nav-logout')).toHaveTextContent('Log out');
-    expect(screen.getByText('Danger zone')).toBeInTheDocument();
     expect(screen.getByText('Clear app data')).toBeInTheDocument();
-    expect(screen.getByTestId('account-destructive-zone')).toBeInTheDocument();
-    expect(screen.getByTestId('settings-nav-logout-and-clear')).toHaveTextContent('Clear data');
+    const destructiveZone = screen.getByTestId('account-destructive-zone');
+    expect(destructiveZone).toBeInTheDocument();
+    const clearButton = screen.getByTestId('settings-nav-logout-and-clear');
+    expect(destructiveZone).toContainElement(clearButton);
+    expect(clearButton).toHaveTextContent('Clear data');
+    expect(clearButton).toHaveAttribute('data-tone', 'danger');
   });
 
   it('passes the current snapshot user id + clearSession to clearAllAppData', async () => {

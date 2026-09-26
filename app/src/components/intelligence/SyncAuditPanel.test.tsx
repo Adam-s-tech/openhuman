@@ -227,6 +227,7 @@ describe('<SyncAuditPanel />', () => {
     render(<SyncAuditPanel />);
 
     const table = await screen.findByRole('table');
+    console.log(table.outerHTML);
     expect(within(table).getByText('When')).toBeInTheDocument();
     expect(within(table).getByText('Source')).toBeInTheDocument();
     expect(within(table).getByText('Cost')).toBeInTheDocument();
