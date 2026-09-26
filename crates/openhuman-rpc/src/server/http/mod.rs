@@ -165,3 +165,7 @@ async fn not_found_handler() -> impl IntoResponse {
         })),
     )
 }
+
+#[cfg(test)]
+#[path = "inference_route_tests.rs"]
+mod inference_route_tests;
