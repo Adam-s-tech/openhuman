@@ -77,6 +77,39 @@ pub fn decode_jwt_exp(token: &str) -> Option<DateTime<Utc>> {
     DateTime::<Utc>::from_timestamp(decode_jwt_exp_unix(token)?, 0)
 }
 
+fn user_id_from_object(obj: &serde_json::Map<String, Value>) -> Option<String> {
+    for key in ["id", "_id", "userId"] {
+        if let Some(s) = obj.get(key).and_then(|x| x.as_str()) {
+            let t = s.trim();
+            if !t.is_empty() {
+                return Some(t.to_string());
+            }
+        }
+    }
+    None
+}
+
+/// Best-effort extraction of a user ID from an authenticated profile payload.
+///
+/// This function handles various envelope formats, including raw user objects
+/// or those nested under `data` or `user` keys.
+pub fn user_id_from_profile_payload(payload: &Value) -> Option<String> {
+    let obj = payload.as_object()?;
+    if let Some(data) = obj.get("data").and_then(|v| v.as_object()) {
+        return user_id_from_object(data).or_else(|| {
+            data.get("user")
+                .and_then(|u| u.as_object())
+                .and_then(user_id_from_object)
+        });
+    }
+
+    user_id_from_object(obj).or_else(|| {
+        obj.get("user")
+            .and_then(|u| u.as_object())
+            .and_then(user_id_from_object)
+    })
+}
+
 #[cfg(test)]
 #[path = "jwt_tests.rs"]
 mod tests;
