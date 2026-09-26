@@ -124,7 +124,7 @@ const TaskResult: FC<{ result: unknown }> = ({ result }) =>
     <pre className="m-0 overflow-x-auto whitespace-pre-wrap">{formatUnknownValue(result, 2)}</pre>
   );
 
-export const TaskCard: FC<{ part: TaskPart; className?: string }> = ({ part, className }) => {
+const TaskCard: FC<{ part: TaskPart; className?: string }> = ({ part, className }) => {
   const elapsedMs = useTaskElapsed(
     part.timing,
     part.status.type === 'running' || part.status.type === 'requires-action'
