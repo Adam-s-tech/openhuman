@@ -1,6 +1,6 @@
 # migration
 
-Data-migration helpers that import memory from **other AI assistants' workspaces** (OpenClaw, Hermes Agent) into the current OpenHuman workspace's memory backend. It scans a source workspace for SQLite (`brain.db`) and Markdown memory artifacts, normalizes them into `Memory` entries, backs up the target's existing memory, and writes the imported entries — supporting a `dry_run` plan-only mode and idempotent re-runs (unchanged entries are skipped, conflicts are renamed). Exposes two RPC controllers under the `migrate` namespace.
+Data-migration helpers that import memory from other AI assistants' workspaces (OpenClaw, Hermes Agent) into the current OpenHuman workspace's memory backend. It scans a source workspace for SQLite (`brain.db`) and Markdown memory artifacts, normalizes them into `Memory` entries, backs up the target's existing memory, and writes the imported entries. It supports a `dry_run` plan-only mode and idempotent re-runs (unchanged entries are skipped, conflicts are renamed). It exposes two RPC controllers under the `migrate` namespace.
 
 > Not to be confused with `crate::config::migrations` (plural), which handles internal config **schema** version upgrades. This module migrates **user memory data** from foreign vendors.
 
