@@ -59,6 +59,18 @@ fn compile_time_app_env_values() -> [Option<&'static str>; 2] {
     [None, None]
 }
 
+/// Process-global mutex serialising every test that mutates the app-env or
+/// backend-URL env vars. `std::env` is process-global, so a module-local lock
+/// cannot stop tests in other modules racing on the same vars.
+#[cfg(test)]
+pub(crate) fn env_test_lock() -> std::sync::MutexGuard<'static, ()> {
+    use std::sync::{Mutex, OnceLock};
+    static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+    LOCK.get_or_init(Mutex::default)
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
 #[cfg(test)]
 #[path = "app_env_tests.rs"]
 mod tests;
