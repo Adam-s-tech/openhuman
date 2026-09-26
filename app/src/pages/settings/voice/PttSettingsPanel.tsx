@@ -217,7 +217,9 @@ const PttSettingsPanel = () => {
           </p>
         )}
         {captureError && (
-          <p className="text-xs text-coral-600 dark:text-coral-300" data-testid="ptt-shortcut-error">
+          <p
+            className="text-xs text-coral-600 dark:text-coral-300"
+            data-testid="ptt-shortcut-error">
             {captureError}
           </p>
         )}

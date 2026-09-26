@@ -71,12 +71,8 @@ const ProviderRow = ({
     <div className="min-w-0 flex-1">
       <div className="text-sm font-semibold text-content">{label}</div>
       <div className="mt-1 flex flex-wrap items-center gap-1.5">
-        {capability !== 'tts' && (
-          <Badge variant="neutral">{t('voice.providers.cap.stt')}</Badge>
-        )}
-        {capability !== 'stt' && (
-          <Badge variant="neutral">{t('voice.providers.cap.tts')}</Badge>
-        )}
+        {capability !== 'tts' && <Badge variant="neutral">{t('voice.providers.cap.stt')}</Badge>}
+        {capability !== 'stt' && <Badge variant="neutral">{t('voice.providers.cap.tts')}</Badge>}
         {status}
       </div>
     </div>

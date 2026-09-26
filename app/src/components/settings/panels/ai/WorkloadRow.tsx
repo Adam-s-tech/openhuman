@@ -101,7 +101,8 @@ export const WorkloadRow = ({
         <RouteButton
           providerSlug={provider ? providerSlug : null}
           provider={provider ?? t('settings.ai.routing.selectProvider')}
-          model={model || t('settings.ai.routing.chooseModel')}
+          model={model || null}
+          placeholder={t('settings.ai.routing.chooseModel')}
           onClick={onCustomClick}
         />
       </TableCell>

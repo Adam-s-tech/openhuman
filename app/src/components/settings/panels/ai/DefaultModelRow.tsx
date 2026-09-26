@@ -55,7 +55,8 @@ export const DefaultModelRow = ({
         <RouteButton
           providerSlug="openhuman"
           provider={t('settings.ai.managedSourceLabel')}
-          model={pinned ?? t('settings.ai.routing.defaultModelUnset')}
+          model={pinned}
+          placeholder={t('settings.ai.routing.defaultModelUnset')}
           onClick={() => setPickerOpen(true)}
           data-testid="default-model-change"
         />

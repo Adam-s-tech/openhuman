@@ -5861,6 +5861,9 @@ const en: TranslationMap = {
   'settings.composio.modeManagedDesc':
     'OpenHuman proxies tool calls through our backend (recommended). Auth is brokered; you never paste a Composio API key. Webhooks are fully routed.',
   'settings.composio.routingMode': 'Routing mode',
+  'settings.composio.statusManaged': 'Managed',
+  'settings.composio.statusDirect': 'Direct',
+  'settings.composio.statusNoKey': 'No API key',
   'settings.composio.saveErrorNoKey': 'Failed to save. Direct mode requires a non-empty API key.',
   'settings.composio.invalidApiKey': 'Invalid Composio API key.',
   'settings.composio.saving': 'Saving…',

@@ -14,12 +14,16 @@ export const RouteButton = ({
   providerSlug,
   provider,
   model,
+  placeholder,
   onClick,
   'data-testid': testId,
 }: {
   providerSlug: string | null;
   provider: string;
-  model: string;
+  /** The pinned model id, or null when nothing is pinned. */
+  model: string | null;
+  /** Shown (in the prose face, not mono) when `model` is null. */
+  placeholder: string;
   onClick: () => void;
   'data-testid'?: string;
 }) => (

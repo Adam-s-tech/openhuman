@@ -6,8 +6,16 @@ import {
   openhumanGetComposioTriggerSettings,
   openhumanUpdateComposioTriggerSettings,
 } from '../../../utils/tauriCommands';
-import { Button, Card, CenteredLoadingState, Field, StatusLine, Switch, TextField } from '../../ui';
-import { Spinner } from '../../ui/icons';
+import {
+  Button,
+  Card,
+  CenteredLoadingState,
+  Field,
+  Spinner,
+  StatusLine,
+  Switch,
+  TextField,
+} from '../../ui';
 import SettingsPanel from '../layout/SettingsPanel';
 
 interface ComposioTriagePanelProps {
@@ -94,12 +102,7 @@ const ComposioTriagePanel = ({ embedded = false }: ComposioTriagePanelProps = {}
   return wrap(
     <Card
       title={t('composio.triageTitle')}
-      description={
-        <>
-          {t('composio.triageDesc')} <code className="font-mono">OPENHUMAN_TRIGGER_TRIAGE_DISABLED</code>{' '}
-          {t('composio.envVarOverrides')}
-        </>
-      }
+      description={`${t('composio.triageDesc')} OPENHUMAN_TRIGGER_TRIAGE_DISABLED ${t('composio.envVarOverrides')}`}
       data-testid="composio-triage-card">
       <Field
         htmlFor="switch-triage-disabled"
