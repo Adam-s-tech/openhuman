@@ -115,7 +115,7 @@ const AppearancePanel = () => {
                 title={opt.description}
                 onClick={() => dispatch(setFontSize(opt.id))}
                 className={cn(
-                  'flex flex-col items-center gap-1.5 rounded-xl border px-3 py-3 transition-colors',
+                  'flex flex-col items-center justify-center gap-2 rounded-xl border px-3 py-4 transition-colors',
                   'focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary-500/25',
                   selected
                     ? 'border-primary-500 bg-primary-50 ring-1 ring-primary-500 dark:bg-primary-500/10'
@@ -123,7 +123,7 @@ const AppearancePanel = () => {
                 )}>
                 <span
                   className={cn(
-                    'flex h-9 items-end font-semibold leading-none',
+                    'flex h-8 items-center font-semibold leading-none',
                     opt.glyphClass,
                     selected ? 'text-primary-500' : 'text-content-secondary'
                   )}
