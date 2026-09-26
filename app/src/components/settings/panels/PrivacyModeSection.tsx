@@ -108,7 +108,7 @@ const PrivacyModeSection = () => {
           value={mode ?? undefined}
           onValueChange={next => void handleSelect(next as PrivacyMode)}
           aria-label={t('privacy.mode.title')}
-          className="flex flex-col gap-2"
+          className="grid gap-2 md:grid-cols-3"
           data-testid="privacy-mode-options">
           {MODES.map(({ value, labelKey, descKey, icon: Icon }) => {
             const isSelected = mode === value;

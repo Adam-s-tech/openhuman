@@ -135,7 +135,7 @@ const ToolPolicyDiagnosticsPanel = () => {
 
         <TileGrid columns={2}>
           <Card title={t(`${T}.posture.title`)} className="h-full" divided={false}>
-            <dl className="divide-y divide-line-subtle text-xs">
+            <dl className="divide-y divide-line-subtle pb-1 pt-2 text-xs">
               {posture.map(([label, value, mono]) => (
                 <div key={label} className="flex items-center justify-between gap-3 px-4 py-2">
                   <dt className="text-content-muted">{label}</dt>
