@@ -66,11 +66,13 @@ Requires Docker Desktop or Colima. The repo is bind-mounted so builds persist be
 
 ### Platform detection
 
-`app/test/e2e/helpers/platform.ts` exports:
-
-- `isTauriDriver()`, legacy shim that now always returns `true` for the DOM-capable Chromium session
-- `isMac2()`, legacy shim that now always returns `false`
-- `supportsExecuteScript()`, `true` because the Chromium driver supports `browser.execute()` on every platform
+`app/test/e2e/helpers/platform.ts` now exports two functions, both hardcoded
+to `true`: `isTauriDriver()` and `supportsExecuteScript()`. They date from an
+earlier harness split between an accessibility-tree macOS driver and a
+DOM-based Linux driver. Every session today exposes the WebView DOM and
+supports `browser.execute()`, so specs that still branch on either check
+always take the DOM-capable path. Treat them as compatibility shims, not
+active platform detection.
 
 ### Element helpers
 
