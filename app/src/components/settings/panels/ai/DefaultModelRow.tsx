@@ -10,10 +10,9 @@
 import { useState } from 'react';
 
 import { useT } from '../../../../lib/i18n/I18nContext';
-import Button from '../../../ui/Button';
-import { slugTone } from './aiPanelTypes';
-import { ProviderSwatch } from './ProviderListRow';
+import { TableCell, TableRow } from '../../../ui/Table';
 import { ProviderModelPickerDialog } from './ProviderModelPickerDialog';
+import { RouteButton } from './RouteButton';
 
 /** What the picker opens on when nothing is pinned yet. */
 export const RECOMMENDED_DEFAULT_MODEL = 'openrouter/deepseek/deepseek-v4-flash';
@@ -41,42 +40,25 @@ export const DefaultModelRow = ({
   const pinned = isPinnedManagedModel(value) ? value : null;
 
   return (
-    <li
-      data-slot="workload-row"
-      data-testid="default-model-row"
-      className="flex flex-wrap items-center gap-3 px-4 py-3">
-      <div className="min-w-0 flex-1">
+    <TableRow data-slot="workload-row" data-testid="default-model-row">
+      <TableCell className="py-3 pl-4">
         <div className="flex min-w-0 flex-col gap-0.5">
           <span className="text-sm font-medium text-content">
             {t('settings.ai.routing.defaultModel')}
           </span>
-          <span className="text-xs leading-5 text-content-muted">
+          <span className="text-xs text-content-muted">
             {t('settings.ai.routing.defaultModelDesc')}
           </span>
         </div>
-      </div>
-
-      <Button
-        type="button"
-        variant="secondary"
-        size="xs"
-        data-testid="default-model-change"
-        onClick={() => setPickerOpen(true)}
-        className="h-auto min-w-52 max-w-60 justify-start gap-2 px-3 py-2 text-left">
-        <ProviderSwatch
-          slug="openhuman"
-          label={t('settings.ai.managedSourceLabel')}
-          tone={slugTone('openhuman')}
+      </TableCell>
+      <TableCell className="py-3 pr-4">
+        <RouteButton
+          providerSlug="openhuman"
+          provider={t('settings.ai.managedSourceLabel')}
+          model={pinned ?? t('settings.ai.routing.defaultModelUnset')}
+          onClick={() => setPickerOpen(true)}
+          data-testid="default-model-change"
         />
-        <span className="flex min-w-0 flex-col gap-0.5">
-          <span className="truncate text-[10px] font-medium text-content-muted">
-            {t('settings.ai.managedSourceLabel')}
-          </span>
-          <span className="max-w-full truncate font-mono text-xs text-content">
-            {pinned ?? t('settings.ai.routing.defaultModelUnset')}
-          </span>
-        </span>
-      </Button>
 
       {pickerOpen && (
         <ProviderModelPickerDialog
@@ -92,7 +74,8 @@ export const DefaultModelRow = ({
           }}
         />
       )}
-    </li>
+      </TableCell>
+    </TableRow>
   );
 };
 
