@@ -52,6 +52,9 @@ HTTP client.
   its own `post_json_rpc` / `relay_http_rpc` to reach both the embedded core
   and self-hosted runtimes from the Rust host (see the mixed-content note in
   that file, #3865).
+- `crates/openhuman-app/src/session/link.rs` and `local_data_reset.rs` —
+  build request bodies with `request_body`; `session/link.rs` decodes with
+  `decode_response`.
 - `crates/openhuman-tui/src/cockpit.rs` — `pub use openhuman_rpc::unwrap_rpc;`
   is the TUI's decode point; `controls.rs`, `app.rs` and `state.rs` read RPC
   responses through it.
