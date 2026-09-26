@@ -2,7 +2,6 @@
 
 use serde_json::Value;
 
-use crate::api::config::effective_backend_api_url;
 use crate::security::credentials::jwt::get_session_token;
 use crate::backend::BackendClient;
 use crate::config::Config;
@@ -14,7 +13,7 @@ pub async fn channel_send_message(
     channel: &str,
     message: Value,
 ) -> Result<RpcOutcome<Value>, String> {
-    let api_url = effective_backend_api_url(&config.api_url);
+    let api_url = crate::backend::require_base_url(&config.api_url)?;
     let jwt = get_session_token(config)?
         .ok_or_else(|| "session JWT required; complete login first".to_string())?;
 
@@ -46,7 +45,7 @@ pub async fn channel_send_reaction(
     channel: &str,
     reaction: Value,
 ) -> Result<RpcOutcome<Value>, String> {
-    let api_url = effective_backend_api_url(&config.api_url);
+    let api_url = crate::backend::require_base_url(&config.api_url)?;
     let jwt = get_session_token(config)?
         .ok_or_else(|| "session JWT required; complete login first".to_string())?;
 
@@ -78,7 +77,7 @@ pub async fn channel_create_thread(
     channel: &str,
     title: &str,
 ) -> Result<RpcOutcome<Value>, String> {
-    let api_url = effective_backend_api_url(&config.api_url);
+    let api_url = crate::backend::require_base_url(&config.api_url)?;
     let jwt = get_session_token(config)?
         .ok_or_else(|| "session JWT required; complete login first".to_string())?;
 
@@ -112,7 +111,7 @@ pub async fn channel_update_thread(
     thread_id: &str,
     action: &str,
 ) -> Result<RpcOutcome<Value>, String> {
-    let api_url = effective_backend_api_url(&config.api_url);
+    let api_url = crate::backend::require_base_url(&config.api_url)?;
     let jwt = get_session_token(config)?
         .ok_or_else(|| "session JWT required; complete login first".to_string())?;
 
@@ -146,7 +145,7 @@ pub async fn channel_list_threads(
     channel: &str,
     active: Option<bool>,
 ) -> Result<RpcOutcome<Value>, String> {
-    let api_url = effective_backend_api_url(&config.api_url);
+    let api_url = crate::backend::require_base_url(&config.api_url)?;
     let jwt = get_session_token(config)?
         .ok_or_else(|| "session JWT required; complete login first".to_string())?;
 

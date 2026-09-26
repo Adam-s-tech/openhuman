@@ -28,7 +28,6 @@ use tinyagents_harness::tinyinference_video::{
     VideoRequest,
 };
 
-use crate::api::config::effective_backend_api_url;
 use crate::backend::BackendClient;
 use crate::config::Config;
 use crate::security::credentials::session_support::{
@@ -49,7 +48,7 @@ pub struct MediaGenerators {
 /// Builds generators against the managed backend, or `None` when no backend
 /// transport is installed (a core with no TinyHumans connection).
 pub fn managed_generators(config: &Config) -> Option<MediaGenerators> {
-    let client = match BackendClient::new(&effective_backend_api_url(&config.api_url)) {
+    let client = match BackendClient::new(&crate::backend::require_base_url(&config.api_url)?) {
         Ok(client) => client,
         Err(error) => {
             tracing::debug!(%error, "[media_generation] invalid backend URL; media tools skipped");

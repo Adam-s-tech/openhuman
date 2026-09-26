@@ -47,6 +47,19 @@ pub fn base_url(api_url: &Option<String>) -> Result<String, BackendTransportErro
     Ok(transport.base_url(configured(api_url), BaseUrlPurpose::ControlPlane))
 }
 
+/// [`base_url`] for callers on the JSON-RPC `String` error channel: a missing
+/// transport becomes the `BACKEND_UNAVAILABLE:` sentinel `core::observability`
+/// demotes, so a core without a hosted backend never pages Sentry for it.
+pub fn require_base_url(api_url: &Option<String>) -> Result<String, String> {
+    base_url(api_url).map_err(|error| match error {
+        BackendTransportError::Unavailable => format!(
+            "{} no backend transport installed",
+            crate::core::observability::BACKEND_UNAVAILABLE_PREFIX
+        ),
+        other => other.to_string(),
+    })
+}
+
 /// The backend origin for the managed OpenAI-compatible inference proxy
 /// (chat, embeddings, model listing). Unlike [`base_url`] this honours an
 /// `api_url` override that points at an inference endpoint.

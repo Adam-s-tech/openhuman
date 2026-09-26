@@ -28,7 +28,6 @@ use tinyagents_graph::{GraphLangfuseExporter, GraphObservation};
 use tinyagents_harness::{LangfuseAuth, LangfuseClient, LangfuseTraceConfig};
 use tinyflows::engine::GraphObservation as FlowObservation;
 
-use crate::api::config::effective_backend_api_url;
 use crate::config::Config;
 use crate::flows::FlowRunTrigger;
 use crate::security::credentials::session_support::direct_backend_credential;
@@ -47,7 +46,7 @@ const PUSH_TIMEOUT: Duration = Duration::from_secs(10);
 /// always matches wherever the app's domain calls go (staging, prod, or a
 /// custom `api_url` override).
 fn ingestion_url(config: &Config) -> String {
-    let base = effective_backend_api_url(&config.api_url);
+    let base = crate::backend::require_base_url(&config.api_url)?;
     crate::util::url::join_url(&base, INGESTION_PATH)
 }
 

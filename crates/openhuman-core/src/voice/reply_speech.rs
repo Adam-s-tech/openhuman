@@ -20,7 +20,6 @@ use reqwest::Method;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
-use crate::api::config::effective_backend_api_url;
 use crate::security::credentials::jwt::get_session_token;
 use crate::backend::BackendClient;
 use crate::config::Config;
@@ -169,7 +168,7 @@ pub async fn synthesize_reply(
         })
         .ok_or_else(|| "no backend session token; sign in first".to_string())?;
 
-    let api_url = effective_backend_api_url(&config.api_url);
+    let api_url = crate::backend::require_base_url(&config.api_url)?;
     let client = BackendClient::new(&api_url).map_err(|e| e.to_string())?;
 
     let mut body = serde_json::Map::new();

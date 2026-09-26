@@ -2,7 +2,6 @@
 //! Langfuse exporter: where the ingestion proxy lives, which environment the
 //! resolved host belongs to, and whether that environment may push at all.
 
-use crate::api::config::effective_backend_api_url;
 use crate::config::Config;
 
 use super::LOG_TARGET;
@@ -21,7 +20,7 @@ const INGESTION_PATH: &str = "/telemetry/langfuse/ingestion";
 /// carried with the given absolute path. So the host always matches wherever the
 /// app's domain calls go (staging, prod, or a custom `api_url` override).
 pub(crate) fn ingestion_url(config: &Config) -> String {
-    let base = effective_backend_api_url(&config.api_url);
+    let base = crate::backend::require_base_url(&config.api_url)?;
     crate::util::url::join_url(&base, INGESTION_PATH)
 }
 

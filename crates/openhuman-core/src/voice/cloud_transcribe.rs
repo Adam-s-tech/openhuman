@@ -1,6 +1,5 @@
 //! OpenHuman authentication adapter for hosted speech-to-text.
 
-use crate::api::config::effective_backend_api_url;
 use crate::security::credentials::jwt::get_session_token;
 use crate::backend::BackendClient;
 use crate::config::Config;
@@ -25,7 +24,7 @@ pub async fn transcribe_cloud(
                 .to_string(),
         );
     }
-    let client = BackendClient::new(&effective_backend_api_url(&config.api_url))
+    let client = BackendClient::new(&crate::backend::require_base_url(&config.api_url)?)
         .map_err(|error| error.to_string())?;
     let url = client
         .url_for("/openai/v1/audio/transcriptions")

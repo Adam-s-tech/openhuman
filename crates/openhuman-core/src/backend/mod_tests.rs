@@ -21,3 +21,9 @@ fn product_identity_comes_from_the_transport() {
         Some(transport::plain::TEST_PRODUCT_IDENTITY)
     );
 }
+
+#[test]
+fn require_base_url_resolves_through_the_transport() {
+    let configured = Some("http://127.0.0.1:4010".to_string());
+    assert_eq!(require_base_url(&configured).unwrap(), "http://127.0.0.1:4010");
+}

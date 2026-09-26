@@ -20,7 +20,6 @@ use std::time::{Duration, Instant};
 
 use serde_json::Value;
 
-use crate::api::config::effective_backend_api_url;
 use crate::backend::BackendClient;
 use crate::config::Config;
 use crate::rpc::RpcOutcome;
@@ -30,7 +29,7 @@ use crate::security::credentials::session_support::BackendCredential;
 /// already-resolved credential. `flatten_authed_error` keeps the typed 401 on
 /// the `SESSION_EXPIRED` sentinel so a lapse never anchors the backoff.
 async fn fetch_usage(config: &Config, credential: BackendCredential) -> Result<Value, String> {
-    let api_url = effective_backend_api_url(&config.api_url);
+    let api_url = crate::backend::require_base_url(&config.api_url)?;
     let client = BackendClient::new(&api_url).map_err(|e| format!("{e:#}"))?;
     client
         .authed_json(&credential, reqwest::Method::GET, "/teams/me/usage", None)
@@ -129,7 +128,7 @@ where
 async fn probe_usage(config: &Config) -> Result<Value, String> {
     let credential =
         crate::security::credentials::session_support::resolve_backend_credential(config)?;
-    let backend_key = effective_backend_api_url(&config.api_url);
+    let backend_key = crate::backend::require_base_url(&config.api_url)?;
     usage_with_failure_backoff(&backend_key, || fetch_usage(config, credential))
         .await
         .map(|outcome| outcome.value)
