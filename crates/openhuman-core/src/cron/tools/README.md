@@ -11,17 +11,13 @@ when cron is disabled.
 
 ## Registration state
 
-`tools/ops.rs::all_tools` registers the six per-operation tools and **not**
-`CronTool`. The `CronTool` registration added in `61618e7e8b` ("expose
-collapsed scheduler tool") was dropped by `4a6f9b7082` ("align merge
-resolution with main APIs"), before the crate refactor. The six members still
-report `ToolExposure::Hidden` (`fn exposure`), which
-`tools/impl/meta/tool_search.rs` strips from the advertised catalogue, so at
-this commit the scheduler surface is dispatchable by name (replayed
-transcripts, saved skills, `user_filter.rs` family `cron`, toolpack
-`scheduling`) but no cron tool is advertised to the model. The `//!` docs in
-`tools.rs` and `collapsed.rs` describe the intended wiring, not the current
-one.
+`crate::tools::ops::all_tools` registers `CronTool` as the compact, advertised
+scheduler surface, plus the six per-operation tools as hidden aliases behind
+it. Each per-operation tool reports `ToolExposure::Hidden` (`fn exposure`),
+which `tools/impl/meta/tool_search.rs` strips from the advertised catalogue,
+so they stay dispatchable by name (replayed transcripts, saved skills,
+`user_filter.rs` family `cron`, toolpack `scheduling`) without cluttering the
+model's tool list with six near-duplicate schemas.
 
 ## Collapsed dispatch (`collapsed.rs`)
 

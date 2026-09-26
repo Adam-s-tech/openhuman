@@ -610,7 +610,7 @@ Cross-platform URL opening: tries the Tauri opener plugin, falls back to `window
 
 #### Tauri command wrappers (`utils/tauriCommands/`)
 
-Typed wrappers around `invoke(...)`, including the bridge-gap-aware `isTauri()` guard (checks `__TAURI_INTERNALS__.invoke` is actually wired, not merely that the app runs under Tauri). Use it: never check `window.__TAURI__` directly.
+Typed wrappers around `invoke(...)`, including the bridge-gap-aware `isTauri()` guard (checks `__TAURI_INTERNALS__.invoke` is actually wired, not merely that the app runs under Tauri). Use it; never check `window.__TAURI__` directly.
 
 ### Polyfills (`polyfills.ts`)
 
