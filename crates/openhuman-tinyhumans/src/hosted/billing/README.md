@@ -67,7 +67,7 @@ None of its own; stateless adapter. The only state it reads is the backend crede
 
 ## Dependencies
 
-- `crate::api::config::effective_backend_api_url` — resolves the backend base URL from `config.api_url`.
+- `crate::backend::url::effective_backend_api_url` — resolves the backend base URL from `config.api_url`.
 - `crate::hosted::client::HostedClient` — resolves the core's backend credential first (no request without one), builds the SDK's `TinyHumansClient`, and maps SDK errors onto the core's RPC sentinels.
 - `crate::config::Config` — config struct (`api_url`); `config::rpc::load_config_with_timeout` in handlers.
 - `crate::rpc::RpcOutcome` — standard RPC return/logging wrapper.
