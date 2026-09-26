@@ -63,7 +63,9 @@ describe('NodePalette', () => {
 
     it('omits the panel hint in the default overlay variant', () => {
       render(<NodePalette onAdd={vi.fn()} />);
-      expect(screen.queryByText('flows.palette.panelHint')).not.toBeInTheDocument();
+      expect(
+        screen.queryByText('Click a step to add it to the canvas, or drag it where you want it.')
+      ).not.toBeInTheDocument();
     });
   });
 });
