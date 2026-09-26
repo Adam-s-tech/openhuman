@@ -223,7 +223,8 @@ Hide-to-tray / reopen behavior is **not** an IPC command: it lives in the `RunEv
 
 | Command                                                          | Purpose                                                                                 |
 | ---------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `save_artifact_via_dialog` / `download_artifact_to_downloads`    | Export an artifact via Save-As dialog or straight to Downloads (`artifact_commands.rs`) |
+| `download_artifact_to_downloads`                                 | Copy an artifact straight to the Downloads folder (`artifact_commands.rs`); the Save-As dialog this used to sit behind was dropped with the shell's `rfd` dependency |
+| `pick_directory_via_dialog`                                      | Native OS folder picker for the folder memory source, returning an absolute path a `webkitdirectory` input cannot report (`directory_picker.rs`, #5831) |
 | `reveal_logs_folder` / `logs_folder_path`                        | Open / return the file-logging folder (`file_logging.rs`)                               |
 | `mcp_resolve_binary_path` / `mcp_open_client_config`             | MCP client helpers (`mcp_commands.rs`)                                                  |
 | `start_loopback_oauth_listener` / `stop_loopback_oauth_listener` | Localhost OAuth redirect listener (`loopback_oauth.rs`)                                 |
