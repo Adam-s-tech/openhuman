@@ -53,40 +53,42 @@ Tauri v2 compiles the Rust core into native binaries per platform, embedding the
 
 ---
 
-## High-Level Architecture
+## High-level architecture
 
 ```
 +------------------------------------------------------------------+
 |                        React Frontend                            |
-|  Redux Toolkit  |  Socket.io Client  |  MCP Transport  |  UI    |
+|  Redux Toolkit  |  coreRpcClient (fetch)  |  Socket.IO client  |  UI |
 +------------------------------------------------------------------+
-                          |  Tauri IPC Bridge  |
+      |  HTTP JSON-RPC (loopback)   |  Socket.IO (loopback)
+      |  Tauri IPC (windows, hotkeys, relay_http_rpc fallback)
 +------------------------------------------------------------------+
-|                        Rust Core Engine                           |
+|                        Rust Core (openhuman_core)                  |
 |                                                                  |
 |  +------------------+  +------------------+  +-----------------+ |
-|  |   Tool Runtime   |  |  Socket Manager  |  |  AI Encryption  | |
-|  |  (native + Node) |  |  (Persistent WS) |  |  & Memory Store | |
-|  +------------------+  +------------------+  +-----------------+ |
-|                                                                  |
-|  +------------------+  +------------------+  +-----------------+ |
-|  |  Skill Metadata  |  |  Cron Scheduler  |  |  Session & Auth | |
-|  |  & Tool Registry |  |  (5s tick loop)  |  |  Management     | |
+|  |  Agent harness    |  |  Socket Manager  |  |  Memory tree    | |
+|  |  (tinyagents)      |  |  (client to      |  |  + encryption   | |
+|  |  + tool dispatch   |  |   backend, WS)   |  |  at rest        | |
 |  +------------------+  +------------------+  +-----------------+ |
 |                                                                  |
 |  +------------------+  +------------------+  +-----------------+ |
-|  |   Telegram       |  |  SQLite Storage  |  |  OS Keychain    | |
-|  |   Integration    |  |  (rusqlite)      |  |  Integration    | |
+|  |  Skill metadata  |  |  Cron Scheduler  |  |  Session & Auth | |
+|  |  & tool registry |  |  (`cron` domain) |  |  Management     | |
+|  +------------------+  +------------------+  +-----------------+ |
+|                                                                  |
+|  +------------------+  +------------------+  +-----------------+ |
+|  |  Channel          |  |  SQLite Storage  |  |  OS Keychain    | |
+|  |  integrations     |  |  (rusqlite)      |  |  Integration    | |
 |  +------------------+  +------------------+  +-----------------+ |
 +------------------------------------------------------------------+
                           |
               +-----------+-----------+
               |                       |
-     Backend Services          External APIs
-     (Socket.io Server)        (Telegram, etc.)
+     TinyHumans backend        External APIs
+     (Socket.IO + REST)        (Telegram, etc.)
 ```
 
-The frontend communicates with the **openhuman** Rust core in two ways: **Tauri IPC** for shell commands (windows, hotkeys, and the **`relay_http_rpc`** HTTP relay used only for non-loopback plain-`http://` runtimes) and **HTTP JSON-RPC** over loopback to the in-process core for business logic and tools. The core owns persistent connections where applicable, cryptographic work for memory/features, and tool execution: native Rust handlers plus Node-backed helpers via `runtime::node`, gated by the `security/` sandbox policy. Skills no longer execute in-process; the `crates/openhuman-core/src/skills/` domain contributes metadata + tool descriptors that get injected into agent prompts.
+The frontend communicates with the **openhuman** Rust core in two ways: **Tauri IPC** for shell commands (windows, hotkeys, and the **`relay_http_rpc`** HTTP relay used only for non-loopback plain-`http://` runtimes) and **HTTP JSON-RPC over loopback** for business logic and tools, plus a **Socket.IO bridge served by the core itself** for live events (chat streaming, notifications). The core owns the outbound persistent connection to the TinyHumans backend, cryptographic work for memory, and tool execution: agent turns run through the `tinyagents` harness, and tools dispatch as native Rust handlers, plus Node-backed helpers via `runtime::node`, gated by the `security/` sandbox policy. Skills no longer execute in-process; the `crates/openhuman-core/src/skills/` domain contributes metadata and tool descriptors that get injected into agent prompts. External MCP clients (Claude Desktop, Cursor, Zed) reach the same tool surface over a separate stdio MCP server; see [MCP Server](mcp-server.md).
 
 ---
 
