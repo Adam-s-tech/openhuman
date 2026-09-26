@@ -28,7 +28,7 @@ Re-exported from `mod.rs`:
 - **Ops (all `async fn(... ) -> Result<RpcOutcome<Value>, String>`):** `get_usage` (`GET /teams/me/usage` on the SDK, behind the core's shared failure backoff `integrations::client::budget_gate::usage_with_failure_backoff`; the core keeps only the managed-tool pre-call probe), `list_members`, `list_teams`, `get_team`, `create_team`, `update_team`, `delete_team`, `switch_team`, `leave_team`, `join_team`, `create_invite`, `remove_member`, `change_member_role`, `list_invites`, `revoke_invite`.
 - **Schemas:** `all_team_controller_schemas`, `all_team_registered_controllers`, `team_schemas`.
 
-Internal helpers in `ops.rs` (`normalize_id`, `clamp_u32`, `legacy_authed_value`) are private. `create_team` / `delete_team` stay on the core's `BackendOAuthClient::authed_json` (`legacy_authed_value`) because the SDK carries no route for `POST /teams` / `DELETE /teams/{teamId}`.
+Internal helpers in `ops.rs` (`normalize_id`, `clamp_u32`, `legacy_authed_value`) are private. `create_team` / `delete_team` stay on the core's `BackendClient::authed_json` (`legacy_authed_value`) because the SDK carries no route for `POST /teams` / `DELETE /teams/{teamId}`.
 
 ## RPC / controllers
 
