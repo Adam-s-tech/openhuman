@@ -146,7 +146,7 @@ From `tools.rs` (`all_composio_agent_tools`, registered only when `agent::subage
 
 ## Events
 
-Subscribers/handlers for trigger and config-change events still live in `crate::memory::sync::composio::bus` (re-exported here via `bus.rs`). All three are registered by one call, `register_composio_trigger_subscriber()`, from `crates/openhuman-rpc/src/server/` (~2158, right after `init_composio_trigger_history`):
+Subscribers/handlers for trigger and config-change events still live in `crate::memory::sync::composio::bus` (re-exported here via `bus.rs`). All three are registered by one call, `register_composio_trigger_subscriber()`, from `crates/openhuman-core/src/core/runtime/subscribers.rs` (~2158, right after `init_composio_trigger_history`):
 
 - **`ComposioTriggerSubscriber`**, reacts to `DomainEvent::ComposioTriggerReceived` (published by `platform::socket::event_handlers` when the backend emits `composio:trigger`); archives the event to `trigger_history` and routes it through `agent::triage::run_triage` unless `OPENHUMAN_TRIGGER_TRIAGE_DISABLED`, `composio.triage_disabled`, or `composio.triage_disabled_toolkits` opts out.
 - **`ComposioConnectionCreatedSubscriber`**, reacts to `DomainEvent::ComposioConnectionCreated` (published by `composio_authorize`); waits for the connection to go active, invalidates and eagerly warms the integrations cache, then runs the initial profile fetch + sync.
@@ -185,7 +185,7 @@ Published from `ops/` via `crate::core::bus::BUS.publish` (`crate::core::events:
 
 - `crates/openhuman-core/src/core/all.rs`: registers the controllers.
 - `crates/openhuman-core/src/tools/{mod,ops}.rs`, `tools/schemas/composio.rs`: wires agent tools into the tool registry.
-- `crates/openhuman-rpc/src/server/`: at startup initializes trigger history and registers the three bus subscribers.
+- `crates/openhuman-core/src/core/runtime/subscribers.rs`: at startup initializes trigger history and registers the three bus subscribers.
 - `crates/openhuman-core/src/channels/runtime/startup/start_channels.rs` (`start_channels`), the one caller of `start_periodic_sync()`. `core/runtime/services.rs`'s `composio_integration_sync` job only runs `memory::sources::reconcile::ensure_composio_sources`; its comment explains why the periodic loop is not started there.
 - `crates/openhuman-core/src/agent/**`: session-host/subagent spawning (`integrations_agent`), triage escalation and debug (e.g. `agent/subagent_host/`, `agent/orchestration/tools/`, `agent/debug/mod.rs`).
 - `crates/openhuman-core/src/platform/socket/event_handlers.rs`: parses `composio:trigger` and publishes `ComposioTriggerReceived`.

@@ -19,7 +19,7 @@ facade. The real payment machinery (`ops`, `schemas`, `store`, `tools`,
 `types`) is gated behind the default-ON `web3` Cargo feature (shared with
 `web3` and `web3::wallet`). When the feature is off, `stub.rs` takes its
 place and exposes only the three entry points with always-on callers:
-`init_ledger` (a no-op; the boot call site in `core/jsonrpc.rs` is itself
+`init_ledger` (a no-op; the boot call site in `core/runtime/bootstrap.rs` is itself
 runtime-gated on `DomainGroup::Web3`), `all_x402_registered_controllers`, and
 `all_x402_controller_schemas` (both empty). `X402RequestTool`'s registration
 and the `http_request` 402-retry path are `#[cfg(feature = "web3")]` at their

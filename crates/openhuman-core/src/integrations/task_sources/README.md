@@ -137,7 +137,7 @@ The additive idempotent `ingested_tasks.card_id` migration preserves older datab
 ## Used by
 
 - `crates/openhuman-core/src/core/all.rs`: registers controllers + schemas into the global RPC registry.
-- `crates/openhuman-rpc/src/server/`: at startup registers the connection subscriber (bus.rs).
+- `crates/openhuman-core/src/core/runtime/subscribers.rs`: at startup registers the connection subscriber (bus.rs).
 - `crates/openhuman-core/src/core/runtime/services.rs`: at startup starts the periodic poll as part of the task-source polling bootstrap job.
 - `crates/openhuman-core/src/channels/runtime/startup/start_channels.rs`: `start_channels` registers the subscriber and starts the poll for the channels runtime.
 - `crates/openhuman-core/src/core/events.rs`: defines/classifies the three `TaskSource*` event variants under domain `"task_sources"`.

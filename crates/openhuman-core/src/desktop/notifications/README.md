@@ -97,7 +97,7 @@ SQLite DB at `{workspace_dir}/notifications/notifications.db`, opened per-call v
 ## Used by
 
 - `crates/openhuman-core/src/core/all.rs`: registers the controllers/schemas into the RPC registry.
-- `crates/openhuman-rpc/src/server/`: calls `register_notification_bridge_subscriber(config)` at startup when the Desktop domain group is enabled.
+- `crates/openhuman-core/src/core/runtime/subscribers.rs`: calls `register_notification_bridge_subscriber(config)` at startup when the Desktop domain group is enabled.
 - `crates/openhuman-rpc/src/server/socketio.rs`: calls `subscribe_core_notifications()` to forward events to web clients.
 - `crates/openhuman-core/src/cron/scheduler/delivery.rs`: writes cron-triggered notifications through `notifications::store` directly; `cron/scheduler_tests*.rs` list them back with `store::list`.
 - `crates/openhuman-core/src/flows/ops/execution.rs` and `crates/openhuman-core/src/security/approval/gate.rs`: call `publish_core_notification` directly to surface flow and approval events.

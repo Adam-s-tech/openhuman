@@ -74,7 +74,7 @@ Subscribes (in `bus.rs`):
 - `RestartSubscriber` (`name = "service::restart"`): on `SystemRestartRequested`, atomically claims a one-shot gate, calls `trigger_self_restart_now` to spawn a replacement process, then `process::exit(0)` after 150ms.
 - `ShutdownSubscriber` (`name = "service::shutdown"`): on `SystemShutdownRequested`, claims its gate and `process::exit(0)` after 150ms (no respawn).
 
-Both subscribers are registered idempotently from `crates/openhuman-rpc/src/server/` at startup via `register_restart_subscriber` / `register_shutdown_subscriber`; handles are held in process-lifetime `OnceLock`s so they are never dropped.
+Both subscribers are registered idempotently from `crates/openhuman-core/src/core/runtime/subscribers.rs` at startup via `register_restart_subscriber` / `register_shutdown_subscriber`; handles are held in process-lifetime `OnceLock`s so they are never dropped.
 
 ## Persistence
 
@@ -94,7 +94,7 @@ Both subscribers are registered idempotently from `crates/openhuman-rpc/src/serv
 ## Used by
 
 - `crates/openhuman-core/src/core/all.rs`: registers the service controllers (`all_service_registered_controllers`).
-- `crates/openhuman-rpc/src/server/`: registers the restart/shutdown event-bus subscribers at startup.
+- `crates/openhuman-core/src/core/runtime/subscribers.rs`: registers the restart/shutdown event-bus subscribers at startup.
 - `crates/openhuman-core/src/platform/doctor/core.rs`: reads `service::daemon::state_file_path`.
 - `crates/openhuman-core/src/platform/update/ops.rs` (`rpc::service_restart` after a self-replace), `crates/openhuman-core/src/config/ops/loader/runtime_flags.rs` (`mock::mock_agent_running`), `crates/openhuman-core/src/desktop/app_state/ops/{types,runtime_snapshot}.rs` (`ServiceState`/`ServiceStatus`, `status`): call into `crate::platform::service`.
 - `crates/openhuman-core/src/tools/mod.rs`: re-exports `platform::service::tools::*`.
