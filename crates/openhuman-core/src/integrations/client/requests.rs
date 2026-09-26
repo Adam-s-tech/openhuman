@@ -58,11 +58,11 @@ impl IntegrationClient {
         url: &str,
     ) -> anyhow::Result<std::sync::Arc<dyn crate::api::transport::BackendTransport>> {
         crate::api::transport::resolve_backend_transport()
-            .map_err(|error| Self::map_transport_error(error, method, path, url))
+            .map_err(|error| self.map_transport_error(error, method, path, url))
     }
 
     /// Describe one `/agent-integrations/*` round-trip for the transport: the
-    /// app-session JWT as bearer, no envelope unwrapping (this client parses
+    /// client's credential (session JWT as bearer, API key as `x-api-key`), no envelope unwrapping (this client parses
     /// the `{success,data}` envelope itself so its error classification sees
     /// the raw shape).
     pub(super) fn backend_request<'a>(
@@ -129,7 +129,7 @@ impl IntegrationClient {
             .transport(&method_name, path, &url)?
             .send_json(self.backend_request(method, path, body))
             .await
-            .map_err(|error| Self::map_transport_error(error, &method_name, path, &url))?;
+            .map_err(|error| self.map_transport_error(error, &method_name, path, &url))?;
         Self::parse_envelope(&method_name, path, &url, value)
     }
 
@@ -175,7 +175,7 @@ impl IntegrationClient {
                 form,
             )
             .await
-            .map_err(|error| Self::map_transport_error(error, "post_multipart", path, &url))?;
+            .map_err(|error| self.map_transport_error(error, "post_multipart", path, &url))?;
         // The transport unwraps successful `{success,data}` responses. Preserve
         // compatibility with endpoints that return their payload directly,
         // while still recognizing a `success:false` envelope.

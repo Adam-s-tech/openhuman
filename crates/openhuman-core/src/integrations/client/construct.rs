@@ -94,8 +94,9 @@ impl IntegrationClient {
     /// The auth headers for a request built outside the backend transport
     /// (binary download, raw DELETE): `Authorization: Bearer` for a session,
     /// `x-api-key` for an API key.
-    pub(crate) fn auth_headers(&self) -> reqwest::header::HeaderMap {
+    pub(crate) fn auth_headers(&self) -> anyhow::Result<reqwest::header::HeaderMap> {
         crate::api::transport::credential_headers(&self.credential)
+            .map_err(|e| anyhow::anyhow!("invalid backend credential header: {e}"))
     }
 
     fn new_inner(

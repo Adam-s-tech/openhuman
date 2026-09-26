@@ -70,7 +70,7 @@ impl IntegrationClient {
         let resp = self
             .download_client
             .get(&url)
-            .header("Authorization", format!("Bearer {}", self.auth_token))
+            .headers(self.auth_headers()?)
             .send()
             .await
             .map_err(|error| Self::report_transport_error(error, "get_bytes", path, &url))?;
@@ -79,7 +79,7 @@ impl IntegrationClient {
             let body_text = resp.text().await.unwrap_or_default();
             let body =
                 serde_json::from_str(&body_text).unwrap_or(serde_json::Value::String(body_text));
-            return Err(Self::map_transport_error(
+            return Err(self.map_transport_error(
                 BackendTransportError::Status {
                     status: status.as_u16(),
                     body,
