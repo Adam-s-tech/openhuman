@@ -398,7 +398,7 @@ pub fn resolve_backend_credential(config: &Config) -> Result<BackendCredential, 
 /// relay, …), or `None` when the call should be skipped:
 ///
 /// - no backend transport is installed — the core runs without a TinyHumans
-///   connection (`api::transport::is_installed`), or
+///   connection (`backend::transport::is_installed`), or
 /// - no usable credential resolves — signed out, the offline local session,
 ///   or a locally-expired token ([`resolve_backend_credential`]).
 ///
