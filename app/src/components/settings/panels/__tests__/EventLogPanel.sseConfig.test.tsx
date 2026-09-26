@@ -133,9 +133,11 @@ describe('EventLogPanel SSE config frame', () => {
   });
 
   it('caps the buffer from the other end when newest-last', async () => {
-    // Same cap, opposite direction: the list is [A, B, C] and must keep the
-    // LAST two. Trimming the wrong end here would silently discard the newest
-    // events instead of the oldest — which is why both directions are pinned.
+    // Same cap, opposite direction: the buffer is [A, B, C] appended and must
+    // keep the LAST two (B, C) — trimming the wrong end here would silently
+    // discard the newest events instead of the oldest, which is why both
+    // directions are pinned. Display still normalizes to newest-first (see
+    // the 'bottom' test above), so the surviving pair renders as [C, B].
     mockFetchRaw(
       config({ max_entries: 2, new_entries: 'bottom' }) +
         evt('AlphaEvent') +
@@ -146,8 +148,8 @@ describe('EventLogPanel SSE config frame', () => {
 
     await waitFor(() => expect(screen.getByText('GammaEvent')).toBeTruthy());
     expect(renderedEvents(['AlphaEvent', 'BetaEvent', 'GammaEvent'])).toEqual([
-      'BetaEvent',
       'GammaEvent',
+      'BetaEvent',
     ]);
     expect(screen.queryByText('AlphaEvent')).toBeNull();
   });

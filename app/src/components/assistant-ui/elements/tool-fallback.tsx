@@ -544,7 +544,7 @@ function ToolFallbackApproval({
             className={pressable}
             onClick={() => respondWithOption(confirming)}
             disabled={locked}>
-            Confirm
+            {t('common.confirm', 'Confirm')}
           </Button>
           <Button
             size="sm"
@@ -552,7 +552,7 @@ function ToolFallbackApproval({
             className={pressable}
             onClick={() => setConfirmingId(null)}
             disabled={locked}>
-            Back
+            {t('common.back', 'Back')}
           </Button>
         </div>
       </div>
