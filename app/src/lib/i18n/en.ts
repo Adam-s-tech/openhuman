@@ -6167,6 +6167,9 @@ const en: TranslationMap = {
     'Enter a whole number of seconds within the allowed range',
   'settings.agentAccess.timeout.envOverride':
     'The OPENHUMAN_TOOL_TIMEOUT_SECS environment variable is overriding this setting, so changes here have no effect until it is unset.',
+  'settings.agentAccess.group.approvals': 'Approvals',
+  'settings.agentAccess.group.fileSystem': 'File system',
+  'settings.agentAccess.group.limits': 'Limits',
   'settings.agentAccess.grantedFolders': 'Granted folders',
   'settings.agentAccess.alwaysAllow': 'Always-allowed tools',
   'settings.agentAccess.alwaysAllowDesc':
