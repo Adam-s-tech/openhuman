@@ -144,14 +144,30 @@ const UsageLogPanel = () => {
             .replace('{days}', String(days))
             .replace('{limit}', '1000')}
         </p>
-        {data && (
-          <span className="text-xs tabular-nums text-content-muted">
-            {t('settings.costDashboard.filteredTotal')
-              .replace('{shown}', String(records.length))
-              .replace('{loaded}', String(data.records.length))
-              .replace('{cost}', formatCurrency(filteredCost, data.currency))}
-          </span>
-        )}
+        <div className="flex items-center gap-3">
+          {data && (
+            <span className="text-xs tabular-nums text-content-muted">
+              {t('settings.costDashboard.filteredTotal')
+                .replace('{shown}', String(records.length))
+                .replace('{loaded}', String(data.records.length))
+                .replace('{cost}', formatCurrency(filteredCost, data.currency))}
+            </span>
+          )}
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            leadingIcon={
+              <RefreshCw
+                className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin' : ''}`}
+                aria-hidden
+              />
+            }
+            onClick={() => void refetch()}
+            disabled={isFetching}>
+            {t('settings.costDashboard.refresh')}
+          </Button>
+        </div>
       </div>
 
       <DataTable<CostUsageRecord>
@@ -211,22 +227,6 @@ const UsageLogPanel = () => {
           placeholder: t('settings.costDashboard.searchModelSession'),
           ariaLabel: t('settings.costDashboard.searchModelSession'),
         }}
-        toolbarEnd={
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            leadingIcon={
-              <RefreshCw
-                className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin' : ''}`}
-                aria-hidden
-              />
-            }
-            onClick={() => void refetch()}
-            disabled={isFetching}>
-            {t('settings.costDashboard.refresh')}
-          </Button>
-        }
         loading={!data && isLoading}
         loadingLabel={t('settings.costDashboard.loading')}
         error={error ? <StatusLine saving={false} error={error} savingLabel="" /> : undefined}
