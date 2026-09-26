@@ -135,9 +135,14 @@ describe('entriesForSection', () => {
     expect(allIds).not.toContain('webhooks-triggers');
   });
 
-  it('returns multiple developer entries', () => {
+  it('returns the surviving developer entries', () => {
+    // Most former Developer & Diagnostics entries (agents, autonomy,
+    // agent-access, sandbox-settings, tools, voice, embeddings, heartbeat,
+    // migration, security, etc.) moved to their canonical section pages in
+    // the redesign; only a handful of dev-only diagnostics stayed here.
     const devEntries = entriesForSection('developer');
-    expect(devEntries.length).toBeGreaterThanOrEqual(5);
+    const ids = devEntries.map(e => e.id);
+    expect(ids.sort()).toEqual(['event-log', 'search', 'tool-policy-diagnostics']);
     devEntries.forEach(e => {
       expect(e.section).toBe('developer');
       expect(e.hiddenDeepLink).not.toBe(true);

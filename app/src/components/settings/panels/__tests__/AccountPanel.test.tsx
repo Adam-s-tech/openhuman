@@ -1,9 +1,9 @@
 /**
  * Tests for the Settings → Account landing panel.
  *
- * Verifies that the signed-in summary header renders the user's display name,
- * username and avatar initial when a current user is present, and that the
- * summary block is omitted entirely when there is no name/username.
+ * Verifies that the signed-in summary header renders the user's display name
+ * and a "signed in" label when a current user is present, and that the name
+ * is omitted (while the signed-in label still renders) when no name is set.
  */
 import { screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
