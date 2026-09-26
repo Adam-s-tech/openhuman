@@ -64,7 +64,8 @@ describe('WorkerThreadRefCard — status badge', () => {
     const badge = screen.getByTestId('worker-thread-status-badge');
     expect(badge.getAttribute('data-status')).toBe('failed');
     expect(badge.textContent).toContain('failed');
-    expect(badge.className).toContain('coral');
+    expect(badge.getAttribute('data-variant')).toBe('danger');
+    expect(badge.querySelector('[data-slot="badge-dot"]')?.className).toContain('bg-coral-500');
     expect(badge.getAttribute('aria-label')).toBe('Worker failed');
   });
 
