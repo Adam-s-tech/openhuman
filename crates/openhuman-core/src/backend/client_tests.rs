@@ -1,156 +1,16 @@
 use super::{
-    backend_api_body_shape, flatten_authed_error, is_unmatched_route_404, key_bytes_from_string,
-    parse_message_path, BackendApiError, BackendClient, BACKEND_API_BODY_SHAPE_MAX_BYTES,
+    backend_api_body_shape, flatten_authed_error, is_unmatched_route_404, parse_message_path,
+    BackendApiError, BackendClient, BACKEND_API_BODY_SHAPE_MAX_BYTES,
 };
-use crate::api::headers::sanitize_client_version;
-use crate::api::product::{
-    product_identity_test_lock, reset_product_identity_for_test, set_product_identity,
-    ProductIdentity, DEFAULT_PRODUCT_IDENTITY, PRODUCT_IDENTITY_HEADER,
-};
+use crate::backend::transport::plain::TEST_PRODUCT_HEADER as PRODUCT_IDENTITY_HEADER;
 use axum::extract::State;
 use axum::http::HeaderMap;
 use axum::routing::{get, post};
 use axum::{Json, Router};
-use base64::engine::general_purpose::{STANDARD, URL_SAFE_NO_PAD};
-use base64::Engine;
 use reqwest::Method;
 use serde_json::{json, Value};
 use std::sync::{Arc, Mutex};
 use tokio::net::TcpListener;
-
-#[test]
-fn decodes_base64url_no_pad() {
-    // A 32-byte key that, when base64url-encoded, contains both `-` and `_`.
-    let raw = [
-        0xff_u8, 0xfb, 0xef, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa,
-        0xbb, 0xcc, 0xdd, 0xee, 0xff, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a,
-        0x0b, 0x0c, 0x0d,
-    ];
-    let url_key = URL_SAFE_NO_PAD.encode(raw);
-    assert!(url_key.contains('-') || url_key.contains('_'));
-    let decoded = key_bytes_from_string(&url_key).unwrap();
-    assert_eq!(decoded, raw);
-}
-
-#[test]
-fn decodes_standard_base64() {
-    let raw = [0x41_u8; 32];
-    let std_key = STANDARD.encode(raw);
-    let decoded = key_bytes_from_string(&std_key).unwrap();
-    assert_eq!(decoded, raw);
-}
-
-#[test]
-fn decodes_raw_32_byte_key() {
-    let raw = "abcdefghijklmnopqrstuvwxyz012345";
-    assert_eq!(raw.len(), 32);
-    let decoded = key_bytes_from_string(raw).unwrap();
-    assert_eq!(decoded, raw.as_bytes());
-}
-
-#[test]
-fn trims_whitespace() {
-    let raw = [0x42_u8; 32];
-    let url_key = format!("  {}\n", URL_SAFE_NO_PAD.encode(raw));
-    let decoded = key_bytes_from_string(&url_key).unwrap();
-    assert_eq!(decoded, raw);
-}
-
-#[test]
-fn rejects_wrong_length() {
-    let err = key_bytes_from_string("tooshort").unwrap_err();
-    assert!(err.to_string().contains("must decode to 32 raw bytes"));
-}
-
-use super::user_id_from_profile_payload;
-
-#[test]
-fn extracts_id_from_root() {
-    let payload1 = json!({ "id": "123" });
-    let payload2 = json!({ "_id": "456" });
-    let payload3 = json!({ "userId": "789" });
-
-    assert_eq!(user_id_from_profile_payload(&payload1).unwrap(), "123");
-    assert_eq!(user_id_from_profile_payload(&payload2).unwrap(), "456");
-    assert_eq!(user_id_from_profile_payload(&payload3).unwrap(), "789");
-}
-
-#[test]
-fn extracts_id_from_data_nested() {
-    let payload = json!({
-        "data": { "id": "abc" }
-    });
-    assert_eq!(user_id_from_profile_payload(&payload).unwrap(), "abc");
-}
-
-#[test]
-fn extracts_id_from_user_nested() {
-    let payload = json!({
-        "user": { "id": "def" }
-    });
-    assert_eq!(user_id_from_profile_payload(&payload).unwrap(), "def");
-}
-
-#[test]
-fn extracts_id_from_data_user_nested() {
-    let payload = json!({
-        "data": {
-            "user": { "userId": "ghi" }
-        }
-    });
-    assert_eq!(user_id_from_profile_payload(&payload).unwrap(), "ghi");
-}
-
-#[test]
-fn ignores_whitespace_only_ids() {
-    let payload = json!({
-        "data": {
-            "id": "   ",
-            "_id": "real_id"
-        }
-    });
-    assert_eq!(user_id_from_profile_payload(&payload).unwrap(), "real_id");
-}
-
-#[test]
-fn trims_extracted_ids() {
-    let payload = json!({
-        "id": "  padded_id  "
-    });
-    assert_eq!(user_id_from_profile_payload(&payload).unwrap(), "padded_id");
-}
-
-#[test]
-fn rejects_non_string_ids() {
-    let payload = json!({
-        "id": 123,
-        "_id": ["not_a_string"],
-        "userId": "valid_id"
-    });
-    assert_eq!(user_id_from_profile_payload(&payload).unwrap(), "valid_id");
-}
-
-#[test]
-fn returns_none_for_missing_ids() {
-    let payload = json!({
-        "data": { "name": "alice" }
-    });
-    assert!(user_id_from_profile_payload(&payload).is_none());
-}
-
-#[test]
-fn returns_none_for_non_object_payload() {
-    let payload = json!("just a string");
-    assert!(user_id_from_profile_payload(&payload).is_none());
-}
-
-#[test]
-fn sanitize_client_version_strips_invalid_chars_and_clamps_length() {
-    let raw = format!(" 1.2.3 (desktop)+build!?{} ", "a".repeat(80));
-    let sanitized = sanitize_client_version(&raw).unwrap();
-    assert_eq!(sanitized, format!("1.2.3desktop+build{}", "a".repeat(46)));
-    assert_eq!(sanitized.len(), 64);
-}
 
 #[derive(Clone, Default)]
 struct CapturedHeaders {
@@ -201,32 +61,6 @@ async fn spawn_header_capture_server() -> (String, CapturedHeaders) {
     (format!("http://{addr}"), captured)
 }
 
-#[tokio::test]
-async fn backend_client_sends_x_core_version_on_auth_requests() {
-    let (base_url, captured) = spawn_header_capture_server().await;
-    let client = BackendClient::new(&base_url).unwrap();
-
-    let profile = client
-        .authed_json("test-jwt", Method::GET, "auth/me", None)
-        .await
-        .unwrap();
-    assert_eq!(profile["_id"], "user-123");
-
-    let headers = captured.take();
-    let request_headers = headers.last().unwrap();
-    let version = request_headers
-        .get("x-core-version")
-        .and_then(|value| value.to_str().ok())
-        .unwrap();
-    assert_eq!(
-        version,
-        sanitize_client_version(env!("CARGO_PKG_VERSION")).unwrap()
-    );
-    assert!(
-        request_headers.get(PRODUCT_IDENTITY_HEADER).is_some(),
-        "all backend requests must carry a product identity"
-    );
-}
 
 #[tokio::test]
 async fn authed_json_sends_an_api_key_as_x_api_key_and_no_bearer() {
@@ -311,36 +145,7 @@ async fn authed_json_sends_bearer_and_host_headers() {
             .and_then(|value| value.to_str().ok()),
         Some("Bearer sdk-cutover-token")
     );
-    assert!(
-        request_headers.get("x-core-version").is_some(),
-        "OpenHuman host metadata must reach the backend transport"
-    );
     assert!(request_headers.get(PRODUCT_IDENTITY_HEADER).is_some());
-}
-
-#[tokio::test]
-async fn backend_client_sends_x_tauri_version_when_env_set() {
-    // Serialize against any concurrent test that also touches this env var.
-    static ENV_LOCK: Mutex<()> = Mutex::new(());
-    let _guard = ENV_LOCK.lock().unwrap();
-
-    std::env::set_var("OPENHUMAN_TAURI_VERSION", "9.8.7-shell+test");
-    let (base_url, captured) = spawn_header_capture_server().await;
-    let client = BackendClient::new(&base_url).unwrap();
-    let url = client.url_for("/probe").unwrap();
-    let response = client.raw_client().unwrap().get(url).send().await.unwrap();
-    assert!(response.status().is_success());
-    std::env::remove_var("OPENHUMAN_TAURI_VERSION");
-
-    let headers = captured.take();
-    let request_headers = headers.last().unwrap();
-    let tauri_version = request_headers
-        .get("x-tauri-version")
-        .and_then(|value| value.to_str().ok())
-        .unwrap();
-    assert_eq!(tauri_version, "9.8.7-shell+test");
-    // Core version still flows alongside the new tauri version header.
-    assert!(request_headers.get("x-core-version").is_some());
 }
 
 // Regression: OPENHUMAN-TAURI-8K / Sentry issue 7473650958.
@@ -374,116 +179,6 @@ fn new_works_with_trailing_slash() {
     let client = BackendClient::new("https://api.tinyhumans.ai/").unwrap();
     let url = client.url_for("/teams/me/usage").unwrap();
     assert_eq!(url.path(), "/teams/me/usage");
-}
-
-#[tokio::test]
-async fn backend_raw_client_inherits_x_core_version_default_header() {
-    let (base_url, captured) = spawn_header_capture_server().await;
-    let client = BackendClient::new(&base_url).unwrap();
-    let url = client.url_for("/probe").unwrap();
-
-    let response = client.raw_client().unwrap().get(url).send().await.unwrap();
-    assert!(response.status().is_success());
-
-    let headers = captured.take();
-    let request_headers = headers.last().unwrap();
-    let version = request_headers
-        .get("x-core-version")
-        .and_then(|value| value.to_str().ok())
-        .unwrap();
-    assert_eq!(
-        version,
-        sanitize_client_version(env!("CARGO_PKG_VERSION")).unwrap()
-    );
-}
-
-#[tokio::test]
-async fn sdk_path_sends_the_default_product_identity() {
-    let _guard = product_identity_test_lock();
-    reset_product_identity_for_test();
-
-    let (base_url, captured) = spawn_header_capture_server().await;
-    let client = BackendClient::new(&base_url).unwrap();
-
-    client
-        .authed_json("session-token", Method::GET, "/probe", None)
-        .await
-        .unwrap();
-
-    let headers = captured.take();
-    let request_headers = headers.last().unwrap();
-    assert_eq!(
-        request_headers
-            .get(PRODUCT_IDENTITY_HEADER)
-            .and_then(|value| value.to_str().ok()),
-        Some(DEFAULT_PRODUCT_IDENTITY),
-        "a build that sets no product identity must still attribute itself"
-    );
-}
-
-#[tokio::test]
-async fn raw_client_sends_the_product_identity_alongside_the_version_headers() {
-    // `raw_client()` bypasses the SDK entirely (multipart STT upload), so the
-    // identity has to ride on the transport rather than only on the SDK.
-    let _guard = product_identity_test_lock();
-    reset_product_identity_for_test();
-
-    let (base_url, captured) = spawn_header_capture_server().await;
-    let client = BackendClient::new(&base_url).unwrap();
-    let url = client.url_for("/probe").unwrap();
-
-    let response = client.raw_client().unwrap().get(url).send().await.unwrap();
-    assert!(response.status().is_success());
-
-    let headers = captured.take();
-    let request_headers = headers.last().unwrap();
-    assert_eq!(
-        request_headers
-            .get(PRODUCT_IDENTITY_HEADER)
-            .and_then(|value| value.to_str().ok()),
-        Some(DEFAULT_PRODUCT_IDENTITY)
-    );
-    assert!(request_headers.get("x-core-version").is_some());
-}
-
-#[tokio::test]
-async fn an_embedding_product_can_override_the_product_identity() {
-    let _guard = product_identity_test_lock();
-    reset_product_identity_for_test();
-
-    // The identity is read when the client is built, so an embedding product
-    // sets it during startup, before it constructs any backend client.
-    set_product_identity(ProductIdentity::new("opencompany").unwrap());
-
-    let (base_url, captured) = spawn_header_capture_server().await;
-    let client = BackendClient::new(&base_url).unwrap();
-
-    let sdk_result = client
-        .authed_json("session-token", Method::GET, "/probe", None)
-        .await;
-
-    let url = client.url_for("/probe").unwrap();
-    let raw_result = client.raw_client().unwrap().get(url).send().await;
-
-    reset_product_identity_for_test();
-
-    sdk_result.unwrap();
-    assert!(raw_result.unwrap().status().is_success());
-
-    let headers = captured.take();
-    assert_eq!(
-        headers.len(),
-        2,
-        "both transports should have been observed"
-    );
-    for request_headers in headers {
-        assert_eq!(
-            request_headers
-                .get(PRODUCT_IDENTITY_HEADER)
-                .and_then(|value| value.to_str().ok()),
-            Some("opencompany")
-        );
-    }
 }
 
 #[tokio::test]
@@ -1280,51 +975,6 @@ async fn sdk_backed_channel_typing_surfaces_unauthorized_on_401() {
     // keeps routing this to re-sign-in rather than to Sentry.
     assert!(flatten_authed_error(err).starts_with("SESSION_EXPIRED:"));
 }
-
-// The SDK transport must inherit this crate's client, so the version headers
-// and timeouts apply to SDK-backed calls exactly as they do to `authed_json`.
-#[tokio::test]
-async fn sdk_backed_calls_send_the_core_version_header() {
-    let seen: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
-    let app = Router::new()
-        .route(
-            "/channels/telegram/typing",
-            post(
-                |State(state): State<Arc<Mutex<Option<String>>>>, headers: HeaderMap| async move {
-                    *state.lock().unwrap() = headers
-                        .get("x-core-version")
-                        .and_then(|v| v.to_str().ok())
-                        .map(str::to_owned);
-                    Json(json!({"success": true, "data": {}}))
-                },
-            ),
-        )
-        .with_state(seen.clone());
-    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
-    let addr = listener.local_addr().unwrap();
-    tokio::spawn(async move {
-        axum::serve(listener, app).await.unwrap();
-    });
-
-    let client = BackendClient::new(&format!("http://{addr}")).unwrap();
-    client
-        .send_channel_typing("telegram", "mock-jwt")
-        .await
-        .unwrap();
-
-    assert_eq!(
-        seen.lock().unwrap().as_deref(),
-        Some(env!("CARGO_PKG_VERSION"))
-    );
-}
-
-// ── is_unmatched_route_404 (#5230 review) ──────────────────────────────────
-//
-// A PATCH 404 becomes `ChannelEditUnsupported`, which disables progressive edits
-// for the whole provider for the rest of the process. That is only correct when
-// the *route* is absent. Once the backend implements the route, a handler-level
-// "that message is gone" 404 has to stay a per-message `MessageNotFound`, or one
-// deleted message would switch edits off for everyone.
 
 #[test]
 fn unmatched_route_404_is_expresss_html_page() {
