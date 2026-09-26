@@ -232,7 +232,9 @@ const TokenUsagePanel = ({ embedded = false }: TokenUsagePanelProps = {}) => {
                   <div key={name} className="flex items-center justify-between py-1.5 text-sm">
                     <span className="font-mono text-content-secondary">{name}</span>
                     <span className="tabular-nums text-content-muted">
-                      {formatInt(b.tokensSaved)} tok · {formatUsd(b.costSavedUsd)}
+                      {t('settings.tokenUsage.tokensAndCost', '{tokens} tok · {cost}')
+                        .replace('{tokens}', formatInt(b.tokensSaved))
+                        .replace('{cost}', formatUsd(b.costSavedUsd))}
                     </span>
                   </div>
                 ))}

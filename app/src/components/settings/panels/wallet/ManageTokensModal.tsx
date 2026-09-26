@@ -6,6 +6,7 @@ import {
   balanceKey,
   formatDisplayBalance,
 } from '../../../../features/wallet/walletDisplay';
+import { useT } from '../../../../lib/i18n/I18nContext';
 import { type EvmNetwork, type WalletChain } from '../../../../services/walletApi';
 import { type RootState } from '../../../../store';
 import { toggleTokenHidden } from '../../../../store/walletPreferencesSlice';
@@ -24,6 +25,7 @@ interface ManageTokensModalProps {
 }
 
 export default function ManageTokensModal({ open, onClose, tokens }: ManageTokensModalProps) {
+  const { t } = useT();
   const dispatch = useDispatch();
   const hiddenTokenKeys = useSelector(
     (state: RootState) => state.walletPreferences?.hiddenTokenKeys || []

@@ -7,7 +7,7 @@
  * - loading → loaded transition (renders rows once the audit log resolves)
  * - formatting of tokens (k/M), cost ($x.xxxx), and duration (ms / s / m s)
  * - the scope label mapping for github / gmail / rebuild scopes
- * - success ✓ vs failure ✗ status glyphs
+ * - success / partial / failed status badges
  * - the empty state when no runs are recorded
  * - registry labels from the status list, with the scope label as fallback
  * - re-reading after a run ends, polling while one runs, and manual Refresh
@@ -178,10 +178,10 @@ describe('<SyncAuditPanel />', () => {
     ]);
     render(<SyncAuditPanel />);
 
-    const partialGlyph = await screen.findByTitle(
+    const partialBadge = await screen.findByTitle(
       '250 item(s) fetched but not ingested into the memory tree'
     );
-    expect(partialGlyph).toHaveTextContent('⚠');
+    expect(partialBadge).toHaveTextContent('Partial');
   });
 
   it('falls back to the partial label when the row has no tree_error text', async () => {
@@ -190,16 +190,16 @@ describe('<SyncAuditPanel />', () => {
     ]);
     render(<SyncAuditPanel />);
 
-    const partialGlyph = await screen.findByTitle('Fetched, memory ingest failed');
-    expect(partialGlyph).toHaveTextContent('⚠');
+    const partialBadge = await screen.findByTitle('Fetched, memory ingest failed');
+    expect(partialBadge).toHaveTextContent('Partial');
   });
 
-  it('renders the success glyph for successful runs', async () => {
+  it('renders the success badge for successful runs', async () => {
     mockAuditLog.mockResolvedValue([entry({ success: true })]);
     render(<SyncAuditPanel />);
 
-    const okGlyph = await screen.findByTitle('Success');
-    expect(okGlyph).toHaveTextContent('✓');
+    const okBadge = await screen.findByTitle('Success');
+    expect(okBadge).toHaveTextContent('Success');
   });
 
   it('maps a rebuild scope through its label', async () => {

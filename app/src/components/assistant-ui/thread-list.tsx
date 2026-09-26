@@ -342,6 +342,7 @@ const ThreadListItem: FC = () => {
 };
 
 const ThreadListItemRename: FC<{ onDone: (restoreFocus: boolean) => void }> = ({ onDone }) => {
+  const { t } = useT();
   const aui = useAui();
   const title = useAuiState(s => s.threadListItem.title) ?? '';
   const [value, setValue] = useState(title);
@@ -385,7 +386,7 @@ const ThreadListItemRename: FC<{ onDone: (restoreFocus: boolean) => void }> = ({
       ref={inputRef}
       autoFocus
       data-slot="aui_thread-list-item-rename"
-      aria-label="Rename thread"
+      aria-label={t('assistantUi.threadList.renameThread', 'Rename thread')}
       value={value}
       className="h-7 min-w-0 flex-1 ps-2.5 pe-9 text-sm"
       onChange={event => setValue(event.target.value)}
