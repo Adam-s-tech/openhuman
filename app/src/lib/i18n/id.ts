@@ -6738,28 +6738,6 @@ const messages: TranslationMap = {
   'composer.voiceMode': 'Mode suara',
   'composer.humanMode': 'Mode manusia',
   'composer.qualityHigh': 'Tinggi',
-  // Agent activity level
-  'activityLevel.title': 'Tingkat aktivitas agen',
-  'activityLevel.description':
-    'Kendalikan seberapa proaktif agen Anda. Tingkat lebih tinggi menggunakan lebih banyak token.',
-  'activityLevel.off': 'Mati',
-  'activityLevel.offDesc':
-    'Tidak ada pemrosesan latar belakang. Hanya sinkronisasi saat tombol ditekan.',
-  'activityLevel.minimal': 'Minimal',
-  'activityLevel.minimalDesc': 'Sinkronisasi sumber sekali sehari. Tidak ada pesan proaktif.',
-  'activityLevel.moderate': 'Sedang',
-  'activityLevel.moderateDesc': 'Sinkronisasi setiap jam. Ringkasan harian. Menyarankan tindakan.',
-  'activityLevel.active': 'Aktif',
-  'activityLevel.activeDesc':
-    'Sinkronisasi setiap 10 menit. Memantau saluran, mengurutkan, dan menyusun balasan.',
-  'activityLevel.alwaysOn': 'Selalu aktif',
-  'activityLevel.alwaysOnDesc':
-    'Sinkronisasi real-time. Otonomi penuh dalam batas yang ditentukan.',
-  'activityLevel.currentMonth': 'Bulan ini: ${amount}',
-  'activityLevel.saved': 'Tingkat aktivitas diperbarui.',
-  'activityLevel.default': 'bawaan',
-  'activityLevel.costFree': '$0',
-  'activityLevel.costRange': '~${min}–${max}/bln',
 
   // Sync budget dialog
   'syncBudget.title': 'Anggaran sinkronisasi',

@@ -1319,25 +1319,6 @@ const en: TranslationMap = {
   'onboarding.custom.memory.configureDesc':
     'Inspect, export, or wipe memory yourself. Configure in Settings › Memory.',
 
-  // Agent activity level
-  'activityLevel.title': 'Agent activity level',
-  'activityLevel.description':
-    'Control how proactive your agent is. Higher levels use more tokens.',
-  'activityLevel.off': 'Off',
-  'activityLevel.offDesc': 'No background processing. Syncs only when you press the button.',
-  'activityLevel.minimal': 'Minimal',
-  'activityLevel.minimalDesc': 'Sync sources once per day. No proactive messages.',
-  'activityLevel.moderate': 'Moderate',
-  'activityLevel.moderateDesc': 'Sync every hour. Daily digest. Suggests actions.',
-  'activityLevel.active': 'Active',
-  'activityLevel.activeDesc': 'Sync every 10 min. Monitors channels, triages, drafts replies.',
-  'activityLevel.alwaysOn': 'Always-on',
-  'activityLevel.alwaysOnDesc': 'Real-time sync. Full autonomy within guardrails.',
-  'activityLevel.currentMonth': 'This month: ${amount}',
-  'activityLevel.saved': 'Activity level updated.',
-  'activityLevel.default': 'default',
-  'activityLevel.costFree': '$0',
-  'activityLevel.costRange': '~${min}–${max}/mo',
 
   // Accounts
   'accounts.addAccount': 'Add Account',

@@ -6702,26 +6702,6 @@ const messages: TranslationMap = {
   'composer.voiceMode': 'वॉइस मोड',
   'composer.humanMode': 'मानव मोड',
   'composer.qualityHigh': 'उच्च',
-  // Agent activity level
-  'activityLevel.title': 'एजेंट गतिविधि स्तर',
-  'activityLevel.description':
-    'नियंत्रित करें कि आपका एजेंट कितना सक्रिय है। उच्च स्तर पर अधिक टोकन का उपयोग होता है।',
-  'activityLevel.off': 'बंद',
-  'activityLevel.offDesc': 'पृष्ठभूमि में कोई प्रसंस्करण नहीं। केवल बटन दबाने पर सिंक होता है।',
-  'activityLevel.minimal': 'न्यूनतम',
-  'activityLevel.minimalDesc': 'दिन में एक बार स्रोत सिंक करता है। कोई सक्रिय संदेश नहीं।',
-  'activityLevel.moderate': 'मध्यम',
-  'activityLevel.moderateDesc': 'हर घंटे सिंक करता है। दैनिक सारांश। क्रियाएं सुझाता है।',
-  'activityLevel.active': 'सक्रिय',
-  'activityLevel.activeDesc':
-    'हर 10 मिनट में सिंक करता है। चैनलों की निगरानी करता है, प्राथमिकता देता है और उत्तर तैयार करता है।',
-  'activityLevel.alwaysOn': 'हमेशा चालू',
-  'activityLevel.alwaysOnDesc': 'रीयल-टाइम सिंक। निर्धारित सीमाओं के भीतर पूर्ण स्वायत्तता।',
-  'activityLevel.currentMonth': 'इस महीने: ${amount}',
-  'activityLevel.saved': 'गतिविधि स्तर अपडेट किया गया।',
-  'activityLevel.default': 'डिफ़ॉल्ट',
-  'activityLevel.costFree': '$0',
-  'activityLevel.costRange': '~${min}–${max}/माह',
 
   // Sync budget dialog
   'syncBudget.title': 'सिंक बजट',

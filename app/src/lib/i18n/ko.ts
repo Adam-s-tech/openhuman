@@ -6633,25 +6633,6 @@ const messages: TranslationMap = {
   'composer.voiceMode': '음성 모드',
   'composer.humanMode': '휴먼 모드',
   'composer.qualityHigh': '높음',
-  // Agent activity level
-  'activityLevel.title': '에이전트 활동 수준',
-  'activityLevel.description':
-    '에이전트의 능동성을 조절하세요. 높은 수준은 더 많은 토큰을 사용합니다.',
-  'activityLevel.off': '끄기',
-  'activityLevel.offDesc': '백그라운드 처리 없음. 버튼을 눌러야만 동기화됩니다.',
-  'activityLevel.minimal': '최소',
-  'activityLevel.minimalDesc': '소스를 하루에 한 번 동기화합니다. 능동적 메시지 없음.',
-  'activityLevel.moderate': '보통',
-  'activityLevel.moderateDesc': '매 시간 동기화. 일일 요약. 작업을 제안합니다.',
-  'activityLevel.active': '활성',
-  'activityLevel.activeDesc': '10분마다 동기화. 채널 모니터링, 분류, 답변 초안 작성.',
-  'activityLevel.alwaysOn': '항상 켜짐',
-  'activityLevel.alwaysOnDesc': '실시간 동기화. 가이드라인 내 완전한 자율성.',
-  'activityLevel.currentMonth': '이번 달: ${amount}',
-  'activityLevel.saved': '활동 수준이 업데이트되었습니다.',
-  'activityLevel.default': '기본값',
-  'activityLevel.costFree': '$0',
-  'activityLevel.costRange': '~${min}–${max}/월',
 
   // Sync budget dialog
   'syncBudget.title': '동기화 예산',

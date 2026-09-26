@@ -6704,27 +6704,6 @@ const messages: TranslationMap = {
   'composer.voiceMode': 'ভয়েস মোড',
   'composer.humanMode': 'হিউম্যান মোড',
   'composer.qualityHigh': 'উচ্চ',
-  // Agent activity level
-  'activityLevel.title': 'এজেন্ট কার্যকলাপের স্তর',
-  'activityLevel.description':
-    'আপনার এজেন্ট কতটা সক্রিয় তা নিয়ন্ত্রণ করুন। উচ্চ স্তরে বেশি টোকেন ব্যবহার হয়।',
-  'activityLevel.off': 'বন্ধ',
-  'activityLevel.offDesc': 'পটভূমিতে কোনো প্রক্রিয়াকরণ নেই। শুধুমাত্র বোতাম চাপলে সিঙ্ক করে।',
-  'activityLevel.minimal': 'ন্যূনতম',
-  'activityLevel.minimalDesc': 'প্রতিদিন একবার উৎস সিঙ্ক করে। কোনো সক্রিয় বার্তা নেই।',
-  'activityLevel.moderate': 'মাঝারি',
-  'activityLevel.moderateDesc':
-    'প্রতি ঘণ্টায় সিঙ্ক করে। দৈনিক সারসংক্ষেপ। কর্মপন্থা প্রস্তাব করে।',
-  'activityLevel.active': 'সক্রিয়',
-  'activityLevel.activeDesc':
-    'প্রতি ১০ মিনিটে সিঙ্ক করে। চ্যানেল পর্যবেক্ষণ, বাছাই ও উত্তর খসড়া করে।',
-  'activityLevel.alwaysOn': 'সর্বদা চালু',
-  'activityLevel.alwaysOnDesc': 'রিয়েল-টাইম সিঙ্ক। নির্ধারিত সীমার মধ্যে পূর্ণ স্বায়ত্তশাসন।',
-  'activityLevel.currentMonth': 'এই মাস: ${amount}',
-  'activityLevel.saved': 'কার্যকলাপের স্তর আপডেট হয়েছে।',
-  'activityLevel.default': 'ডিফল্ট',
-  'activityLevel.costFree': '$০',
-  'activityLevel.costRange': '~${min}–${max}/মাস',
 
   // Sync budget dialog
   'syncBudget.title': 'সিঙ্ক বাজেট',

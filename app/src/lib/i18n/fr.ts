@@ -6856,29 +6856,6 @@ const messages: TranslationMap = {
   'composer.voiceMode': 'Mode vocal',
   'composer.humanMode': 'Mode humain',
   'composer.qualityHigh': 'Élevé',
-  // Agent activity level
-  'activityLevel.title': "Niveau d'activité de l'agent",
-  'activityLevel.description':
-    'Contrôlez le niveau de proactivité de votre agent. Les niveaux élevés consomment plus de tokens.',
-  'activityLevel.off': 'Désactivé',
-  'activityLevel.offDesc':
-    'Aucun traitement en arrière-plan. Synchronise uniquement sur pression du bouton.',
-  'activityLevel.minimal': 'Minimal',
-  'activityLevel.minimalDesc': 'Synchronise les sources une fois par jour. Aucun message proactif.',
-  'activityLevel.moderate': 'Modéré',
-  'activityLevel.moderateDesc':
-    'Synchronise toutes les heures. Résumé quotidien. Suggère des actions.',
-  'activityLevel.active': 'Actif',
-  'activityLevel.activeDesc':
-    'Synchronise toutes les 10 min. Surveille les canaux, trie et rédige des réponses.',
-  'activityLevel.alwaysOn': 'Toujours actif',
-  'activityLevel.alwaysOnDesc':
-    'Synchronisation en temps réel. Pleine autonomie dans les limites définies.',
-  'activityLevel.currentMonth': 'Ce mois-ci : ${amount}',
-  'activityLevel.saved': "Niveau d'activité mis à jour.",
-  'activityLevel.default': 'par défaut',
-  'activityLevel.costFree': '0 $',
-  'activityLevel.costRange': '~${min}–${max}/mois',
 
   // Sync budget dialog
   'syncBudget.title': 'Budget de synchronisation',

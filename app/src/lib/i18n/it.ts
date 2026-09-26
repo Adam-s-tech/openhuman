@@ -6813,29 +6813,6 @@ const messages: TranslationMap = {
   'composer.voiceMode': 'Modalità vocale',
   'composer.humanMode': 'Modalità umano',
   'composer.qualityHigh': 'Alta',
-  // Agent activity level
-  'activityLevel.title': "Livello di attività dell'agente",
-  'activityLevel.description':
-    'Controlla quanto è proattivo il tuo agente. I livelli più alti usano più token.',
-  'activityLevel.off': 'Disattivato',
-  'activityLevel.offDesc':
-    'Nessuna elaborazione in background. Sincronizza solo alla pressione del pulsante.',
-  'activityLevel.minimal': 'Minimo',
-  'activityLevel.minimalDesc':
-    'Sincronizza le sorgenti una volta al giorno. Nessun messaggio proattivo.',
-  'activityLevel.moderate': 'Moderato',
-  'activityLevel.moderateDesc': 'Sincronizza ogni ora. Riepilogo giornaliero. Suggerisce azioni.',
-  'activityLevel.active': 'Attivo',
-  'activityLevel.activeDesc':
-    'Sincronizza ogni 10 min. Monitora i canali, ordina e redige risposte.',
-  'activityLevel.alwaysOn': 'Sempre attivo',
-  'activityLevel.alwaysOnDesc':
-    'Sincronizzazione in tempo reale. Piena autonomia entro i limiti definiti.',
-  'activityLevel.currentMonth': 'Questo mese: ${amount}',
-  'activityLevel.saved': 'Livello di attività aggiornato.',
-  'activityLevel.default': 'predefinito',
-  'activityLevel.costFree': '0 $',
-  'activityLevel.costRange': '~${min}–${max}/mese',
 
   // Sync budget dialog
   'syncBudget.title': 'Budget di sincronizzazione',

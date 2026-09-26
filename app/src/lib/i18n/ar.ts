@@ -6556,25 +6556,6 @@ const messages: TranslationMap = {
   'composer.voiceMode': 'وضع الصوت',
   'composer.humanMode': 'وضع الإنسان',
   'composer.qualityHigh': 'عالٍ',
-  // Agent activity level
-  'activityLevel.title': 'مستوى نشاط الوكيل',
-  'activityLevel.description':
-    'تحكم في مدى استباقية وكيلك. المستويات الأعلى تستخدم المزيد من الرموز.',
-  'activityLevel.off': 'إيقاف',
-  'activityLevel.offDesc': 'لا معالجة في الخلفية. يزامن فقط عند الضغط على الزر.',
-  'activityLevel.minimal': 'أدنى حد',
-  'activityLevel.minimalDesc': 'مزامنة المصادر مرة يوميًا. لا رسائل استباقية.',
-  'activityLevel.moderate': 'متوسط',
-  'activityLevel.moderateDesc': 'مزامنة كل ساعة. ملخص يومي. يقترح إجراءات.',
-  'activityLevel.active': 'نشط',
-  'activityLevel.activeDesc': 'مزامنة كل 10 دقائق. يراقب القنوات ويصنف ويصيغ الردود.',
-  'activityLevel.alwaysOn': 'دائم التشغيل',
-  'activityLevel.alwaysOnDesc': 'مزامنة فورية. استقلالية كاملة ضمن الحدود المحددة.',
-  'activityLevel.currentMonth': 'هذا الشهر: ${amount}',
-  'activityLevel.saved': 'تم تحديث مستوى النشاط.',
-  'activityLevel.default': 'افتراضي',
-  'activityLevel.costFree': '0$',
-  'activityLevel.costRange': '~${min}–${max}/شهر',
 
   // Sync budget dialog
   'syncBudget.title': 'ميزانية المزامنة',
