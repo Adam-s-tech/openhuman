@@ -164,8 +164,13 @@ cargo build --release -p openhuman --no-default-features --features rss-bench \
 
 ## See also
 
-- [`docs/library-benchmarking.md`](../../../../docs/library-benchmarking.md) —
+- [`docs/library-benchmarking.md`](../../../../docs/library-benchmarking.md):
   the benchmark environment, driver scripts under `scripts/profile/`, and
   results, covering `rss-bench` and `library-profile`.
 - [`scripts/profile/README.md`](../../../../scripts/profile/README.md): the
   driver scripts themselves.
+- [`gitbooks/developing/performance.md`](../../../../gitbooks/developing/performance.md):
+  the numbers these benchmarks feed (marginal memory per agent, cold-start
+  time, binary size).
+- [`gitbooks/developing/jev.md`](../../../../gitbooks/developing/jev.md): what
+  `tool-search-bench` is comparing when it ranks bm25 against jev.

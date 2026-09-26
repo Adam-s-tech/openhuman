@@ -8,8 +8,8 @@ Data-migration helpers that import memory from other AI assistants' workspaces (
 
 - Resolve a source workspace path (explicit override, else vendor default: `~/.openclaw/workspace`, or `~/.hermes` / `%LOCALAPPDATA%\hermes` on Windows).
 - Refuse self-migration when source resolves to the current OpenHuman workspace.
-- **OpenClaw**: read memory entries from `memory/brain.db` (SQLite `memories` table, schema-tolerant column detection) plus `MEMORY.md` and `memory/*.md`.
-- **Hermes**: read a fixed file mapping — `MEMORY.md` → core, `USER.md` → `Custom("user_profile")`, `SOUL.md` → `Custom("persona")`.
+- OpenClaw: read memory entries from `memory/brain.db` (SQLite `memories` table, schema-tolerant column detection) plus `MEMORY.md` and `memory/*.md`.
+- Hermes: read a fixed file mapping, `MEMORY.md` to core, `USER.md` to `Custom("user_profile")`, `SOUL.md` to `Custom("persona")`.
 - Normalize keys (non-alphanumeric → `_`), parse/map categories, de-dup exact duplicates for deterministic re-runs.
 - Back up the target workspace's existing memory (`MEMORY.md`, `brain.db`, `memory/*.md` → `memory_backup/`) before applying.
 - Import into the target memory backend: skip entries whose content is unchanged, rename key on content conflict (`key_1`, `key_2`, …).
