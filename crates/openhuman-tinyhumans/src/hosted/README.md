@@ -8,13 +8,13 @@ connection has no use for them.
 
 ## Contents
 
-- [`billing/`](billing/README.md) — plans, Stripe/Coinbase purchase and
+- [`billing/`](billing/README.md): plans, Stripe/Coinbase purchase and
   top-up flows, credit balance and transactions, auto-recharge and saved
   cards, coupon redemption.
-- [`team/`](team/README.md) — team CRUD, membership, role changes, invites,
+- [`team/`](team/README.md): team CRUD, membership, role changes, invites,
   usage, active-team switching.
-- [`referral/`](referral/README.md) — referral codes and reward claims.
-- [`announcements/`](announcements/README.md) — the latest active product
+- [`referral/`](referral/README.md): referral codes and reward claims.
+- [`announcements/`](announcements/README.md): the latest active product
   announcement, surfaced on harness init.
 
 Each domain follows the same shape: an `ops.rs` of async handlers that
@@ -38,7 +38,7 @@ point; it never grows a `billing` or `team` branch of its own.
 ## Where to look next
 
 - Each subdirectory's own README for its RPC surface and wire names.
-- [`../transport/README.md`](../transport/README.md) — the
+- [`../transport/README.md`](../transport/README.md): the
   `BackendTransport` these domains ultimately call through.
-- `AGENTS.md`, "Backend API" — why hosted-only proxy domains belong here and
+- `AGENTS.md`, "Backend API": why hosted-only proxy domains belong here and
   not in the core.

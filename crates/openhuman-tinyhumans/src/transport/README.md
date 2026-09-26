@@ -7,7 +7,7 @@ header shapes the backend expects.
 
 ## Contents
 
-- `mod.rs` — `SdkBackendTransport`. It holds one `reqwest::Client` per
+- `mod.rs`: `SdkBackendTransport`. It holds one `reqwest::Client` per
   `TransportProfile` (`Api`, `Integrations`), each built from the core's
   `api::headers::build_backend_client` so TLS, timeouts and the attribution
   headers (`x-core-version`, `x-tauri-version`, `x-sdk-name`) match exactly
@@ -16,7 +16,7 @@ header shapes the backend expects.
   (`BackendCredential::Session` as a bearer token, `BackendCredential::ApiKey`
   as `x-api-key`), and forward to the SDK's `raw()` client. `name()` returns
   `"tinyhumans-sdk"`.
-- `error.rs` — `map_sdk_error`, translating `tinyhumans_sdk::Error` into the
+- `error.rs`: `map_sdk_error`, translating `tinyhumans_sdk::Error` into the
   core's `BackendTransportError` variants.
 
 ## Installing it
@@ -41,9 +41,9 @@ route implementation of its own.
 
 ## Where to look next
 
-- `AGENTS.md`, "Backend API" — the full port/adapter boundary and the header
+- `AGENTS.md`, "Backend API": the full port/adapter boundary and the header
   rules every authenticated request must follow.
-- [`../session/README.md`](../session/README.md) — where the credential this
+- [`../session/README.md`](../session/README.md): where the credential this
   transport attaches comes from.
-- [`../hosted/README.md`](../hosted/README.md) — the RPC proxy domains built
+- [`../hosted/README.md`](../hosted/README.md): the RPC proxy domains built
   on top of this transport.

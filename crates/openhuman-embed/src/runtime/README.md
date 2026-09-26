@@ -8,15 +8,15 @@ for what running many agents on one runtime costs in memory.
 
 ## Contents
 
-- `mod.rs` — `Runtime` itself: `agent()` to instantiate an `Agent` from an
+- `mod.rs`: `Runtime` itself: `agent()` to instantiate an `Agent` from an
   `AgentSpec`, `agent_ids()`, `core()` for non-turn access (config, auth),
   `root_dir()` / `workspace_dir()`, and the process-scoped `CoreGuard` that
   tears the embedded core down (and, for an ephemeral workspace, deletes it)
   once the last `Runtime` or `Agent` handle referencing it drops.
-- `builder.rs` — `RuntimeBuilder`: workspace choice, feature/service/domain
+- `builder.rs`: `RuntimeBuilder`: workspace choice, feature/service/domain
   selection, provider and access defaults, and `api_key()` for managed
   TinyHumans inference.
-- `api_key.rs` — `ApiKey`, the newtype the builder stores the TinyHumans key
+- `api_key.rs`: `ApiKey`, the newtype the builder stores the TinyHumans key
   as before it reaches the credential store.
 
 ## What is runtime-wide versus per-agent
@@ -52,8 +52,8 @@ overflow.
 
 ## Where to look next
 
-- [`../agent/README.md`](../agent/README.md) — what `Runtime::agent` builds.
-- [`../harness/README.md`](../harness/README.md) — the one-agent shorthand
+- [`../agent/README.md`](../agent/README.md): what `Runtime::agent` builds.
+- [`../harness/README.md`](../harness/README.md): the one-agent shorthand
   built on top of a `Runtime` and an `Agent`.
 - `openhuman-tinyhumans`'s `RuntimeBuilder` extension
   (`crates/openhuman-tinyhumans/src/lib.rs`) boots a runtime already connected
