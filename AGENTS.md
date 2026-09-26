@@ -303,7 +303,7 @@ Preferred module shape:
 Additional rules:
 
 - Wire controllers through the registry in `crates/openhuman-core/src/core/all.rs`. Do not add
-  namespace branches to `cli.rs` or `jsonrpc/`.
+  namespace branches to `cli.rs` or the JSON-RPC server.
 - RPC namespace strings are wire contracts and do not follow directory
   renames.
 - Domain tools live with their domain and are re-exported through
@@ -313,17 +313,22 @@ Additional rules:
   are deduplication keys.
 - Update `crates/openhuman-core/src/platform/about_app/` when user-visible capabilities
   change.
-- The JSON-RPC wire contract lives in `crates/openhuman-rpc/`: `Outcome<T>`,
-  `StructuredRpcError`, `unwrap_rpc`, the request/response envelopes
+- The controller contract lives in core: every domain operation returns
+  `crate::core::Outcome<T>`; `crate::core::StructuredRpcError`, the params
+  rules (`core::params`) and in-process dispatch (`core::invoke::invoke_method`)
+  sit beside `ControllerSchema`. Core has no JSON-RPC server and does not
+  depend on `openhuman-rpc`.
+- `crates/openhuman-rpc/` sits above core and owns JSON-RPC 2.0: the envelopes
   (`RpcRequest`, `RpcSuccess`, `RpcFailure`, `request_body`,
-  `decode_response`), the params contract and its validation messages, the
-  browser-origin allowlist, and the JSON-RPC HTTP client. The core's server
-  side (`openhuman-rpc/src/server/`) and every client use it; the core re-exports the crate as
-  `crate::rpc` (`pub use openhuman_rpc as rpc;` in
-  `crates/openhuman-core/src/lib.rs`), and `openhuman-app` and `openhuman-tui`
-  depend on it directly. Keep it free of business logic and core dependencies
-  (its only deps are serde, serde_json, and optional log/reqwest/url behind
-  the `http-client` feature).
+  `decode_response`), the browser-origin allowlist, the HTTP client
+  (`http-client` feature), and the whole server (`server` feature): the axum
+  router and handlers, auth middleware, Socket.IO, `/dev/connect`, the
+  listener bind (`openhuman_rpc::server::serve`) and the `run_server*` entry
+  points. A host that runs `openhuman-core run`/`serve` calls
+  `openhuman_rpc::server::install_cli_server()` before `run_core_from_args`.
+  Domain-owned HTTP handlers the router mounts (`inference::http`, the
+  dictation WebSocket) stay in their domains behind core's `http-server`
+  feature.
 
 ## Tool, harness, and runtime boundaries
 
