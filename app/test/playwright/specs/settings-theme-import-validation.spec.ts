@@ -28,18 +28,20 @@ import {
  * there" is a state the accepting build cannot produce.
  */
 
-const importBox = (page: Page) => page.getByLabel('Import theme');
+const importBox = (page: Page) => page.getByRole('textbox', { name: 'Import theme' });
 const importButton = (page: Page) =>
   page.getByTestId('app-content-surface').getByRole('button', { name: 'Import', exact: true });
 const importError = (page: Page) => page.getByText('Could not parse that theme JSON.');
 
 async function openAppearance(page: Page) {
-  await page.goto('/#/settings/appearance');
+  // Import lives on the Theme Studio tab, inside a collapsed accordion item.
+  await page.goto('/#/settings/appearance#studio');
   await waitForAppReady(page);
   await dismissWalkthroughIfPresent(page);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Appearance', {
     timeout: 20_000,
   });
+  await page.getByRole('button', { name: 'Import theme' }).click();
   await expect(importBox(page)).toBeVisible({ timeout: 20_000 });
 }
 
