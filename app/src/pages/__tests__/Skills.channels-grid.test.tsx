@@ -115,10 +115,11 @@ describe('Skills page — Channels grid', () => {
     renderWithProviders(<Skills />, { initialEntries: ['/connections'], preloadedState });
     fireEvent.click(screen.getByTestId('two-pane-nav-channels'));
 
-    const channelsCard = screen
-      .getByRole('heading', { name: 'Messaging' })
-      .closest('[data-slot="card"]');
-    const order = within(channelsCard as HTMLElement)
+    // The channels overview splits into a "Connected" card and an "Available"
+    // card (rendered in that order), rather than one flat "Messaging" list —
+    // scope on the shared overview container that wraps both.
+    const overview = screen.getByTestId('channels-overview');
+    const order = within(overview)
       .getAllByTestId(/^skill-row-channel-/)
       .map(el => el.getAttribute('data-testid'));
 
