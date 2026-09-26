@@ -120,6 +120,7 @@ export function applyBorderContrast(
 
   for (const key of CONTRAST_KEYS) {
     const base = read(key);
-    if (isChannelTriple(base)) root.style.setProperty(`--${key}`, mixChannels(base, target, amount));
+    if (isChannelTriple(base))
+      root.style.setProperty(`--${key}`, mixChannels(base, target, amount));
   }
 }

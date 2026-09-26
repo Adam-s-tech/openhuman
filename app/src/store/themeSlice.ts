@@ -1,6 +1,7 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { REHYDRATE } from 'redux-persist';
 
+import { DEFAULT_LAYOUT, resolveLayout, type ThemeLayout } from '../lib/theme/layout';
 import {
   familyForThemeId,
   findFamily,
@@ -8,7 +9,6 @@ import {
   resolveFamilyVariant,
   THEME_FAMILIES,
 } from '../lib/theme/presets';
-import { DEFAULT_LAYOUT, resolveLayout, type ThemeLayout } from '../lib/theme/layout';
 import type { FontRole } from '../lib/theme/tokens';
 import type { Theme, ThemeFamily } from '../lib/theme/types';
 
@@ -204,9 +204,11 @@ const themeSlice = createSlice({
     /** Merge a partial layout change (e.g. one border area) into the current one. */
     setThemeLayout(
       state,
-      action: PayloadAction<Partial<Omit<ThemeLayout, 'borderAreas'>> & {
-        borderAreas?: Partial<ThemeLayout['borderAreas']>;
-      }>
+      action: PayloadAction<
+        Partial<Omit<ThemeLayout, 'borderAreas'>> & {
+          borderAreas?: Partial<ThemeLayout['borderAreas']>;
+        }
+      >
     ) {
       const current = resolveLayout(state.layout);
       state.layout = resolveLayout({

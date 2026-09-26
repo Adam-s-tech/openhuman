@@ -21,7 +21,11 @@ import ThemeStudioPanel from './ThemeStudioPanel';
 
 type AppearanceTab = 'general' | 'studio' | 'layout';
 
-const TAB_HASH: Record<AppearanceTab, string> = { general: '', studio: '#studio', layout: '#layout' };
+const TAB_HASH: Record<AppearanceTab, string> = {
+  general: '',
+  studio: '#studio',
+  layout: '#layout',
+};
 
 interface FontSizeOption {
   id: FontSize;
