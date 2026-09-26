@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 
+import { useT } from '../lib/i18n/I18nContext';
 import { handleDeepLinkUrls } from '../utils/desktopDeepLinkListener';
 
 interface WebCallbackPageProps {
