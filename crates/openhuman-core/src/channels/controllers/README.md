@@ -26,7 +26,7 @@ Owns the `channels.*` RPC namespace: provider metadata, connect/disconnect lifec
 | `yuanbao.rs` | `pub(super)` Yuanbao connect helpers: required-field checks, effective config assembly, credential verification |
 | `types.rs` | Re-exports of `tinychannels::controllers` result/snapshot types used by the ops layer |
 
-`connected_channel_slugs` (from `connect.rs`) is re-exported at `channels::controllers::connected_channel_slugs` for callers outside the controller registry; the `ops/mod.rs` comment cites the welcome agent's onboarding snapshot, but nothing outside `channels/controllers/` calls it today. `types.rs` re-exports the `tinychannels::controllers` result types (`ChannelStatusEntry`, `ChannelSendMessageResult`, …) rather than defining its own.
+`connected_channel_slugs` (from `connect.rs`) is re-exported at `channels::controllers::connected_channel_slugs` for callers outside the controller registry; the `ops/mod.rs` comment cites the welcome agent's onboarding snapshot, but nothing outside `channels/controllers/` calls it today. `types.rs` re-exports the `tinychannels::controllers` result types (`ChannelStatusEntry`, `ChannelSendMessageResult`, and others) rather than defining its own.
 
 ## Wiring
 

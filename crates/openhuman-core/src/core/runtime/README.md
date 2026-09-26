@@ -83,11 +83,11 @@ registry filters on.
 three capability axes only narrow: a group set to `Advertised` whose tools
 are compiled out, or whose `DomainGroup` is off, stays absent.
 
-- `.services(ServiceSet)`, `.domains(DomainSet)`, `.tool_groups(ToolGroups)`
- : the three independent narrowing axes: which services run, which domain
-  families exist, and how the tools of the families that do exist are
-  disclosed (advertised on the wire, withheld behind the pack proxy, or not
-  registered at all).
+- `.services(ServiceSet)`, `.domains(DomainSet)`, `.tool_groups(ToolGroups)`:
+  the three independent narrowing axes. They control which services run,
+  which domain families exist, and how the tools of the families that do
+  exist are disclosed (advertised on the wire, withheld behind the pack
+  proxy, or not registered at all).
 - `.token(TokenSource)`, `.host(impl Into<String>)`, `.port(u16)`.
 - `.config(Config)`: supply the config outright instead of letting
   `build()` discover one from `config.toml` + environment; used verbatim, no
