@@ -97,7 +97,10 @@ export function settingsRouteElements(): ReactNode {
       <Route path="appearance" element={wrapSettingsPage(<AppearancePanel />)} />
       {/* Theme studio merged into Appearance — one page for one subject. */}
       <Route path="theme" element={wrapSettingsPage(<ThemeStudioPanel />)} />
-      <Route path="notifications" element={wrapSettingsPage(<NotificationsPanel />)} />
+      {/* The Notifications settings page was removed entirely; the slug
+          redirects to Account so old deep links / bookmarks still land
+          somewhere real rather than falling through to the settings index. */}
+      <Route path="notifications" element={<SettingsRedirect to="/settings/account" />} />
       {/* Real device-pairing panel (replaces the old "Coming Soon" stub). */}
       <Route path="devices" element={wrapSettingsPage(<DevicesPanel />)} />
       {/* Feedback was its own top-level route reached from a sidebar-header
