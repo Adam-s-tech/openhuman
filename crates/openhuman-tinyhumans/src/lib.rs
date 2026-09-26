@@ -36,6 +36,7 @@
 
 pub use openhuman_embed as embed;
 
+pub mod backend;
 pub mod hosted;
 mod install;
 #[cfg(feature = "jev")]
