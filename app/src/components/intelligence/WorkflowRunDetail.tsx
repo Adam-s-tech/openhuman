@@ -176,13 +176,12 @@ const WorkflowRunDetail: React.FC<Props> = ({
                     showChevron={false}
                     className="h-auto rounded-none px-3 py-2 font-normal hover:bg-transparent">
                     <span className="flex min-w-0 items-center gap-2">
-                      <span
-                        className={`h-2 w-2 flex-none rounded-full ${PHASE_STATUS_DOT[state.status]}`}
-                      />
                       <span className="truncate text-sm font-medium text-content">
                         {phaseDef?.name ?? name}
                       </span>
-                      <Badge data-testid={`workflow-phase-status-${name}`} dot={false}>
+                      <Badge
+                        variant={PHASE_STATUS_VARIANT[state.status]}
+                        data-testid={`workflow-phase-status-${name}`}>
                         {t(PHASE_STATUS_KEY[state.status])}
                       </Badge>
                     </span>
