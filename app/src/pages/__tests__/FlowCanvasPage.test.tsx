@@ -28,6 +28,9 @@ const validateFlow = vi.hoisted(() => vi.fn());
 const listFlowConnections = vi.hoisted(() => vi.fn());
 const runFlowDetached = vi.hoisted(() => vi.fn());
 const setFlowEnabled = vi.hoisted(() => vi.fn());
+// Backs the projected `FlowRunsSidebar` (real, not stubbed) so the side-panel
+// switching tests below can click a real run row to open the Run tab.
+const listFlowRuns = vi.hoisted(() => vi.fn());
 vi.mock('../../services/api/flowsApi', () => ({
   getFlow,
   updateFlow,
@@ -36,6 +39,7 @@ vi.mock('../../services/api/flowsApi', () => ({
   listFlowConnections,
   runFlowDetached,
   setFlowEnabled,
+  listFlowRuns,
 }));
 
 // F-M1: a tiny in-memory socket stand-in (same shape as
