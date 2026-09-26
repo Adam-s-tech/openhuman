@@ -167,9 +167,7 @@ export default function IntelligenceMemoryTab({
               style={{ animationDelay: `${groupIndex * 50}ms` }}>
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-sm font-semibold text-content opacity-80">{group.label}</h2>
-                <div className="text-xs bg-surface-subtle text-content px-2 py-1 rounded-full">
-                  {group.count}
-                </div>
+                <Badge dot={false}>{group.count}</Badge>
               </div>
               <div className="space-y-3">
                 {group.items.map((item, itemIndex) => (
