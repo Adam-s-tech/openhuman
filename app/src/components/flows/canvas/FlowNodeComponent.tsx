@@ -66,7 +66,7 @@ import type { FlowNode } from '../../../lib/flows/graphAdapter';
 import { NodeKindTile } from '../../../lib/flows/nodeKindIcons';
 import { describeNode } from '../../../lib/flows/nodeSummary';
 import { useT } from '../../../lib/i18n/I18nContext';
-import { Button } from '../../ui';
+import { Badge, type BadgeVariant, Button } from '../../ui';
 import { useCanvasActions } from './canvasActions';
 import { useStepNumber } from './stepNumbers';
 
