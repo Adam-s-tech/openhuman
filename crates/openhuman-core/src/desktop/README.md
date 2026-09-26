@@ -19,7 +19,7 @@ since it is specifically the desktop-only slice.
 | --- | --- |
 | [`accessibility`](accessibility/README.md) | macOS AX/IOKit FFI, the Swift helper process, focus queries, permission detection, the Globe-key listener. Reached today only from the `voice` family. |
 | [`app_state`](app_state/README.md) | The aggregator the React shell polls (`openhuman.app_state_snapshot`): stored credential, local-AI status, service health, onboarding tasks, keyring status. |
-| `control` | Local opt-in desktop automation: native window inspection and control, driven through Jev-ranked accessibility actions. See its `WORKFLOW.md`. Gated by `#[cfg(feature = "modules")]`. |
+| `control` | Local opt-in desktop automation: native window inspection and control, driven through [Jev](../../../../gitbooks/developing/jev.md)-ranked accessibility actions. See its `WORKFLOW.md`. Gated by `#[cfg(feature = "modules")]`. |
 | [`dashboard`](dashboard/README.md) | Aggregate operator-facing views over local config; today a single read-only per-model health comparison table. |
 | [`notifications`](notifications/README.md) | Translates cross-domain events into user-facing notifications, and separately ingests, triages, and stores notifications captured from embedded webview integrations. |
 | [`overlay`](overlay/README.md) | A broadcast bus for short "attention" messages pushed to the desktop overlay/notch window. |
