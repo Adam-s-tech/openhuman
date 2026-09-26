@@ -39,7 +39,7 @@ previously `providers/` (pre-consolidation single-crate layout); see
 | Anthropic Messages API (prompt caching) | `tinyinference_llm::providers::anthropic` | `<slug>:<model>` whose endpoint is the first-party Messages API and native tool calling is on |
 | Codex OAuth / Responses API | `openai_codex.rs` host OAuth selection plus `tinyinference_llm::providers::openai::codex` metadata | the `openai` cloud slug once Codex OAuth tokens exist |
 | Claude Agent SDK subprocess | `tinyagents_harness::providers::claude_agent_sdk` | `claude_agent_sdk` / `claude_agent_sdk:<model>` |
-| Claude Code CLI subprocess | `claude_code/`: see its own [README](claude_code/README.md) | `claude-code:<model>` |
+| Claude Code CLI subprocess | routed by `factory/` (see the [Claude Code provider guide](../../../../../gitbooks/developing/providers/claude-code.md)) | `claude-code:<model>` |
 
 ## Calls into
 
@@ -89,7 +89,7 @@ consumers: the agent harness (`agent/session_host/builder/factory.rs`,
   (`list_configured_models`), `provider_factory` (`ProviderRuntimeOptions`,
   `list_providers`, `is_qwen_alias`-style China-provider alias helpers).
   Preserves the original `pub use ops::*` contract split out of a single `ops.rs`.
-- [`claude_code/`](claude_code/README.md), Claude Code CLI provider.
+- Claude Code CLI provider: routed in `factory/`; see the [Claude Code provider guide](../../../../../gitbooks/developing/providers/claude-code.md).
 - `schemas.rs`: a `providers.list_models` controller that is **not**
   registered in `core/all.rs`; the live method is `inference.list_models`
   (`openhuman.providers_list_models` survives only as a legacy alias in

@@ -104,9 +104,9 @@ runtime-wide".
 > Multi-agent **orchestration** is expressed on tinyagents' **graph layer** via
 > `graph::parallel::map_reduce`, the `spawn_parallel_graph` scaffold, and the
 > shared `graph::orchestration` `TaskStore` lifecycle primitives re-exported from
-> [`tinyagents/orchestration.rs`](../../../crates/openhuman-core/src/agent/tinyagents/orchestration.rs):
+> [`orchestration/mod.rs`](../../../crates/openhuman-core/src/agent/orchestration/mod.rs):
 >
-> - [`tinyagents/delegation.rs`](../../../crates/openhuman-core/src/agent/tinyagents/delegation.rs)
+> - [`orchestration/delegation.rs`](../../../crates/openhuman-core/src/agent/orchestration/delegation.rs)
 >   is a `plan → execute ⇄ review → finalize` `CompiledGraph` (conditional routing,
 >   `RecursionPolicy`, durable `FileCheckpointer`, `CancellationToken`, `GraphTracingSink`);
 > - the **workflow phase engine** fans each phase's agents out on the graph
@@ -115,7 +115,7 @@ runtime-wide".
 > - `spawn_parallel_agents` runs its fan-out through `spawn_parallel_graph` +
 >   `graph::parallel::map_reduce`;
 > - the **agent-teams** member runtime is a conditional-routing graph
->   (`execute → complete | fail → done`, [`agent_teams/graph.rs`](../../../crates/openhuman-core/src/agent/orchestration/agent_teams/graph.rs));
+>   (`execute → complete | fail → done`, [`agent_teams/runtime.rs`](../../../crates/openhuman-core/src/agent/orchestration/agent_teams/runtime.rs));
 > - the **detached-sub-agent** registry is backed by a typed `TaskStore` lifecycle
 >   ledger (Pending → Running → Completed/Failed/Cancelled).
 >
@@ -624,7 +624,7 @@ The harness shell lives under `crates/openhuman-core/src/agent/`, with the tinya
 > the published **tinyagents** crate; see the status banner at the top of this
 > page and "Agent engine + orchestration on tinyagents (live)" below. Graphs are
 > built with `tinyagents::graph::GraphBuilder` (`orchestration/*/graph.rs`,
-> `tinyagents/delegation.rs`), durable
+> `orchestration/delegation.rs`), durable
 > checkpoints use TinyAgents' own `SqliteCheckpointer` (the earlier
 > `SqlRunLedgerCheckpointer` adapter is retired), and per-agent graph selection is
 > `AgentGraph` (`agent/harness/agent_graph.rs`) with each agent's
@@ -684,7 +684,7 @@ direct `tinyagents-orchestration::subagent` lifecycle. There is no
 **Orchestration on graphs** (`crates/openhuman-core/src/agent/orchestration/`):
 
 - **Workflow phase DAG** (`workflow_runs/engine.rs`) runs on a `dispatch ⇄ run_phase → done` conditional-routing graph; each phase fans its agents out via `graph::parallel::map_reduce`. The durable `workflow_runs` row stays the source of truth (controllers + resume read it).
-- **Team member runtime** (`agent_teams/graph.rs`) is a conditional-routing graph (`execute → complete|fail → done`).
+- **Team member runtime** (`agent_teams/runtime.rs`, `run_member_graph`) is a conditional-routing graph (`execute → complete|fail → done`).
 - **Multi-stage delegation** (`orchestration::delegation` + the `delegate` tool) runs `delegation.rs`, checkpointed to the session DB.
 - **Detached sub-agents** (`running_subagents.rs`) use TinyAgents `DetachedTaskRegistry` for ownership-aware snapshots, wait/timeout, steering lookup, cooperative cancellation, hard abort, and terminal cleanup. OpenHuman retains durable task-store projection, product/session metadata, RPC and delivery semantics, and the `RunQueue` compatibility fallback.
 
