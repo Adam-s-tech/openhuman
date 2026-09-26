@@ -188,7 +188,7 @@ Ephemeral chat state (streaming buffers, tool timelines) must **not** survive a 
 
 ### Typed hooks
 
-**File:** `store/hooks.ts`
+File: `store/hooks.ts`
 
 ```typescript
 // Use these instead of plain useDispatch/useSelector
