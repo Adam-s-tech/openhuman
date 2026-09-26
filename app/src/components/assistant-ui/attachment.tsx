@@ -25,6 +25,7 @@ import {
 import { AlertCircleIcon, FileText, Loader2Icon, PlusIcon, XIcon } from 'lucide-react';
 import { type FC, isValidElement, type PropsWithChildren, useEffect, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
+import { useT } from '@/lib/i18n/I18nContext';
 
 const useFileSrc = (file: File | undefined) => {
   const [src, setSrc] = useState<string | undefined>(undefined);
