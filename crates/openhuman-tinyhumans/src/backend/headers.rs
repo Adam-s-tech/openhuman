@@ -100,3 +100,7 @@ pub fn build_backend_client(profile: TransportProfile) -> Result<reqwest::Client
         .build()
         .map_err(|e| anyhow::anyhow!("failed to build HTTP client: {e}"))
 }
+
+#[cfg(test)]
+#[path = "headers_tests.rs"]
+mod tests;

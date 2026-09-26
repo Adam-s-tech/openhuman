@@ -152,7 +152,7 @@ pub fn product_identity_headers() -> HeaderMap {
 /// process-wide product identity.
 ///
 /// The identity is process state, so a module-local lock cannot prevent
-/// cross-module races: `api::product`, `api::rest` and
+/// cross-module races: `backend::product`, `backend::headers` and
 /// `openhuman_core::integrations` tests all touch it from parallel test threads, and
 /// a test asserting the `openhuman` default would flake against a test that has
 /// installed an override. Every test that touches the identity must take THIS
