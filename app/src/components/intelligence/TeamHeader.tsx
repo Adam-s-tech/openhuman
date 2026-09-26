@@ -17,16 +17,18 @@ import type {
   AgentTeamMember,
   AgentTeamMemberStatus,
 } from '../../services/api/agentTeamApi';
+import type { BadgeVariant } from '../ui/Badge';
+import Badge from '../ui/Badge';
 import { AvatarFallback, AvatarRoot } from '../ui/Avatar';
 import Button from '../ui/Button';
 import { memberColor } from './memberColors';
 
-/** Status dot colour per member lifecycle state. */
-const MEMBER_STATUS_DOT: Record<AgentTeamMemberStatus, string> = {
-  active: 'bg-sage-500',
-  pending: 'bg-amber-500',
-  idle: 'bg-content-faint',
-  stopped: 'bg-coral-500',
+/** Badge variant (status colour + dot) per member lifecycle state. */
+const MEMBER_STATUS_VARIANT: Record<AgentTeamMemberStatus, BadgeVariant> = {
+  active: 'success',
+  pending: 'warning',
+  idle: 'neutral',
+  stopped: 'danger',
 };
 
 const MEMBER_STATUS_KEY: Record<AgentTeamMemberStatus, string> = {

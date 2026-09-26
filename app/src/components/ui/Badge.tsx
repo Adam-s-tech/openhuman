@@ -34,6 +34,8 @@ export interface BadgeProps
   dot?: boolean;
   className?: string;
   'data-testid'?: string;
+  /** Arbitrary `data-*` passthrough (e.g. `data-status`) for callers that key tests/CSS off it. */
+  [key: `data-${string}`]: unknown;
 }
 
 /**

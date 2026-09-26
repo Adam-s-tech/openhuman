@@ -1278,14 +1278,14 @@ const WorkflowRunnerBody = ({ headerText, className }: SkillsRunnerBodyProps) =>
                   </div>
 
                   {scheduleSaved && (
-                    <p className="mt-2 inline-flex items-center rounded-full border border-sage-300 dark:border-sage-700 bg-sage-50 dark:bg-sage-900/40 px-2.5 py-1 text-xs font-medium text-sage-700 dark:text-sage-300">
+                    <Badge variant="success" className="mt-2">
                       {t('settings.skillsRunner.schedule.saved')}
-                    </p>
+                    </Badge>
                   )}
                   {scheduleError && (
-                    <p className="mt-2 inline-flex items-center rounded-full border border-coral-300 dark:border-coral-700 bg-coral-50 dark:bg-coral-900/40 px-2.5 py-1 text-xs font-medium text-coral-700 dark:text-coral-300">
+                    <Badge variant="danger" className="mt-2">
                       {t('settings.skillsRunner.schedule.error')} {scheduleError}
-                    </p>
+                    </Badge>
                   )}
                 </div>
               </div>
