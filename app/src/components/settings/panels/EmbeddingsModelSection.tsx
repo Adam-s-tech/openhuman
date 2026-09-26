@@ -38,6 +38,23 @@ const EmbeddingsModelSection = ({
 
   return (
     <Card title={t('settings.embeddings.modelCardTitle')}>
+      {/* A single choice is shown as a fact, not a one-option dropdown. */}
+      {currentModels.length === 1 && (
+        <Field
+          label={t('settings.embeddings.model')}
+          control={
+            <span className="font-mono text-xs text-content">
+              {currentModels[0].label} ({currentModels[0].id})
+            </span>
+          }
+        />
+      )}
+      {allowedDims.length <= 1 && (
+        <Field
+          label={t('settings.embeddings.dimensions')}
+          control={<span className="font-mono text-xs text-content">{dimensions}</span>}
+        />
+      )}
       {currentModels.length > 1 && (
         <Field
           htmlFor="embeddings-model"
