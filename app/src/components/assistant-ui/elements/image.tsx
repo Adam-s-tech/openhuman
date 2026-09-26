@@ -337,13 +337,14 @@ function RegenerateButton({ onRegenerate }: { onRegenerate: () => void | Promise
 }
 
 function ImageActions({ part, onRegenerate, className }: ImageActionsProps) {
+  const { t } = useT();
   return (
     <div data-slot="image-actions" className={cn('flex items-center gap-1 p-1', className)}>
       <button
         type="button"
         onClick={() => downloadImagePart(part)}
         data-slot="image-download"
-        aria-label="Download image"
+        aria-label={t('elements.image.downloadAria', 'Download image')}
         className="hover:bg-muted inline-flex size-7 items-center justify-center rounded">
         <DownloadIcon className="size-4" />
       </button>
@@ -353,7 +354,7 @@ function ImageActions({ part, onRegenerate, className }: ImageActionsProps) {
           copyImagePart(part).catch(() => {});
         }}
         data-slot="image-copy"
-        aria-label="Copy image"
+        aria-label={t('share.copyImage', 'Copy image')}
         className="hover:bg-muted inline-flex size-7 items-center justify-center rounded">
         <CopyIcon className="size-4" />
       </button>
