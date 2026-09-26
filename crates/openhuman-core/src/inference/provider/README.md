@@ -18,12 +18,12 @@ domain.
   and applies the BYOK sentinel, Privacy-Mode `LocalOnly`
   (`enforce_local_only_inference`), and managed-session (`verify_session_active`)
   gates before building a model.
-- **Models**, `OpenHumanBackendModel` + `PROVIDER_LABEL`
+- **Models**: `OpenHumanBackendModel` + `PROVIDER_LABEL`
   (`openhuman_backend_model.rs`); OpenAI-compatible and Anthropic builders live
   in `tinyinference_llm::providers` and are called directly.
-- **DTOs** (`types.rs`), `ChatRequest`, `ChatResponse`, `ProviderDelta`,
+- **DTOs** (`types.rs`): `ChatRequest`, `ChatResponse`, `ProviderDelta`,
   `ToolCall`, `UsageInfo`, `AGENT_TURN_MAX_OUTPUT_TOKENS`.
-- **Error classifiers**, reusable classifiers live in
+- **Error classifiers**: reusable classifiers live in
   `tinyinference_llm::classification`; this directory retains OpenHuman managed-backend and telemetry policy.
 
 ## Transports
