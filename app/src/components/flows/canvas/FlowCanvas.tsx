@@ -43,6 +43,7 @@ import EditableFlowCanvas, {
   type EditableFlowCanvasHandle,
   type EditorSaveMeta,
 } from './EditableFlowCanvas';
+import CanvasToolbar from './CanvasToolbar';
 import { FLOW_FIT_VIEW_OPTIONS } from './fitView';
 import './flowCanvasStyles.css';
 import FlowNodeComponent from './FlowNodeComponent';
