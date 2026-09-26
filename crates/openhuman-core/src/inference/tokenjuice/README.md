@@ -31,7 +31,7 @@ TinyJuice-owned engine pieces:
 
 ## What is linked, and what stays behind the module boundary
 
-The rule is no longer "the crate is never linked", it is **stateful engine
+The rule is no longer "the crate is never linked". It is **stateful engine
 behavior stays behind the module boundary; stateless content transforms do
 not.**
 
