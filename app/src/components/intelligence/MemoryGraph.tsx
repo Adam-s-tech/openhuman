@@ -815,7 +815,7 @@ export function MemoryGraph({
               {hoveredSummaryPath && (
                 <>
                   <span className="ml-3 break-all font-mono text-content-faint">
-                    workspace:{hoveredSummaryPath}
+                    {t('graph.workspacePath').replace('{path}', hoveredSummaryPath)}
                   </span>
                   <Button
                     variant="secondary"

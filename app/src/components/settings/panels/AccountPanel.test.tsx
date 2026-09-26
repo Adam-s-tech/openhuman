@@ -38,22 +38,21 @@ describe('AccountPanel', () => {
     useUsageStateMock.mockReturnValue({ currentPlan: null });
   });
 
-  it('renders the avatar initial and full name for a signed-in user', () => {
+  it('renders the full name and signed-in label for a signed-in user', () => {
     renderPanel({ firstName: 'Ada', lastName: 'Lovelace', username: 'ada' });
 
     expect(screen.getByText('Ada Lovelace')).toBeInTheDocument();
-    expect(screen.getByText('@ada')).toBeInTheDocument();
-    // Avatar fallback renders the first letter of the display name.
-    expect(screen.getByText('A')).toBeInTheDocument();
+    expect(screen.getByText('Signed in to OpenHuman')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Open dashboard' }));
     expect(openUrlMock).toHaveBeenCalledWith('https://tinyhumans.ai/dashboard?tab=billing');
   });
 
-  it('falls back to the username initial when no name is set', () => {
+  it('renders the profile card with just the signed-in label when no name is set', () => {
     renderPanel({ firstName: '', lastName: '', username: 'zed' });
 
-    expect(screen.getByText('@zed')).toBeInTheDocument();
-    expect(screen.getByText('Z')).toBeInTheDocument();
+    expect(screen.getByTestId('account-profile')).toBeInTheDocument();
+    expect(screen.getByText('Signed in to OpenHuman')).toBeInTheDocument();
+    expect(screen.queryByText(/^Ada/)).not.toBeInTheDocument();
   });
 
   it('omits the identity summary block entirely when there is no user', () => {
