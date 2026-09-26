@@ -6149,6 +6149,7 @@ const en: TranslationMap = {
   'settings.developerMenu.eventLog.notConnectedHint': 'Reconnect to the core to resume the stream.',
   'settings.developerMenu.eventLog.notConnected': 'Not connected to core',
   'settings.developerMenu.eventLog.jumpToLatest': 'Jump to latest',
+  'settings.developerMenu.eventLog.tableTitle': 'Events',
   'settings.developerMenu.eventLog.column.time': 'Time',
   'settings.developerMenu.eventLog.column.domain': 'Type',
   'settings.developerMenu.eventLog.column.agent': 'Agent',

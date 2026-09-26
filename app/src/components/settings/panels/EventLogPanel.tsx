@@ -353,7 +353,7 @@ const EventLogPanel = () => {
       description={t('settings.developerMenu.eventLog.desc')}>
       <DataTable<EventEntry>
         testId="event-log-scroll"
-        title={t('settings.developerMenu.eventLog.title')}
+        title={t('settings.developerMenu.eventLog.tableTitle')}
         description={
           <span className="inline-flex items-center gap-2">
             <Badge variant={isLive ? 'success' : 'neutral'} data-testid="event-log-status">
