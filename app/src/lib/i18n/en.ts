@@ -7433,6 +7433,60 @@ const en: TranslationMap = {
   'notifications.configRecovered.body':
     'Your settings file could not be read, so it was restored from a backup or reset to defaults. The unreadable file was kept with a ".corrupted" suffix in case you need it.',
   'chat.sources.usedCount': 'Used {n} sources',
+
+  // i18n react-audit sweep: assistant-ui attachment/image/tool-fallback/timing/quote
+  'attachment.previewAlt': 'Attachment preview',
+  'attachment.imagePreviewTitle': 'Image Attachment Preview',
+  'attachment.addAria': 'Add Attachment',
+  'elements.artifactCard.wordsOne': '{count} word',
+  'elements.artifactCard.wordsOther': '{count} words',
+  'elements.conversationMap.ariaLabel': 'Conversation map',
+  'elements.image.zoomAria': 'Click to zoom image',
+  'elements.image.closeZoomAria': 'Close zoomed image',
+  'elements.image.generating': 'Generating image…',
+  'elements.image.generateFailed': 'Image could not be generated',
+  'elements.image.regenerateAria': 'Regenerate image',
+  'elements.image.downloadAria': 'Download image',
+  'toolFallback.result': 'Result:',
+  'messageTiming.ariaLabel': 'Message timing',
+  'messageTiming.firstToken': 'First token',
+  'messageTiming.total': 'Total',
+  'messageTiming.speed': 'Speed',
+  'messageTiming.tokensPerSecond': '{value} tok/s',
+  'messageTiming.chunks': 'Chunks',
+  'quote.label': 'Quote',
+  'quote.dismiss': 'Dismiss quote',
+
+  // i18n react-audit sweep: assistant-ui thread / thread-list / dialog / sheet
+  'assistantUi.threadList.searchThreads': 'Search threads',
+  'assistantUi.threadList.noThreadsFound': 'No threads found',
+  'assistantUi.threadList.newThread': 'New Thread',
+  'assistantUi.threadList.loadingThreads': 'Loading threads',
+  'assistantUi.threadList.renameThread': 'Rename thread',
+  'assistantUi.threadList.moreOptions': 'More options',
+  'assistantUi.threadList.rename': 'Rename',
+  'assistantUi.threadList.archive': 'Archive',
+  'assistantUi.thread.loadingConversation': 'Loading conversation',
+  'assistantUi.thread.messageInputLabel': 'Message input',
+  'assistantUi.thread.voiceInput': 'Voice input',
+  'assistantUi.thread.startVoiceInput': 'Start voice input',
+  'assistantUi.thread.stopDictation': 'Stop dictation',
+  'assistantUi.thread.stopVoiceInput': 'Stop voice input',
+  'assistantUi.thread.exportAsMarkdown': 'Export as Markdown',
+
+  // i18n react-audit sweep: intelligence panels + ai routing
+  'graph.workspacePath': 'workspace:{path}',
+  'sync.tokensInOut': '{in} in / {out} out',
+  'settings.ai.routing.providerAndModelLabel': 'Provider and model',
+  'settings.ai.routing.changeAction': 'Change',
+
+  // i18n react-audit sweep: settings/wallet modals + web callback page
+  'settings.tokenUsage.tokensAndCost': '{tokens} tok · {cost}',
+  'wallet.selectNetwork.title': 'Select network',
+  'walletSend.recipientInputPlaceholder': 'Enter or paste an address',
+  'webCallback.title': 'Completing sign-in',
+  'webCallback.description':
+    'OpenHuman is processing your callback and will continue automatically.',
 };
 
 export default en;
