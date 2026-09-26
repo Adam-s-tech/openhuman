@@ -1233,13 +1233,13 @@ const ComposerAction: FC<{
           <AuiIf condition={s => s.composer.dictation == null}>
             <ComposerPrimitive.Dictate asChild>
               <TooltipIconButton
-                tooltip="Voice input"
+                tooltip={t('assistantUi.thread.voiceInput', 'Voice input')}
                 side="bottom"
                 type="button"
                 variant="ghost"
                 size="icon"
                 className="aui-composer-dictate text-muted-foreground hover:text-foreground size-7 rounded-full"
-                aria-label="Start voice input">
+                aria-label={t('assistantUi.thread.startVoiceInput', 'Start voice input')}>
                 <MicIcon className="aui-composer-dictate-icon size-4" />
               </TooltipIconButton>
             </ComposerPrimitive.Dictate>
