@@ -111,7 +111,7 @@ The **Tokio async runtime** drives all I/O. WebSocket connections, HTTP requests
 
 ---
 
-## Real-Time Socket Infrastructure
+## Real-time socket infrastructure
 
 OpenHuman implements a **dual-socket architecture**: a Rust-native WebSocket client on desktop and a JavaScript Socket.io client on web. The Rust implementation survives app backgrounding, operates independently of the WebView, and handles TLS via rustls.
 
