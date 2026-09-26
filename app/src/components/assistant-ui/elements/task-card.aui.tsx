@@ -36,19 +36,11 @@ import {
   type ToolCallMessagePartComponent,
   type ToolCallMessagePartProps,
   type ToolCallMessagePartStatus,
-  useAui,
   useAuiState,
 } from '@assistant-ui/react';
-import { type FC, useState } from 'react';
+import { type FC } from 'react';
 
-import {
-  formatElapsed,
-  TASK_PAGE_SIZE,
-  taskLabel,
-  taskMeta,
-  taskStateOf,
-  useTaskElapsed,
-} from '../utils/task';
+import { formatElapsed, taskLabel, taskMeta, taskStateOf, useTaskElapsed } from '../utils/task';
 import { mono } from './surfaces';
 import { TaskCard as TaskCardBase } from './task-card';
 import {
