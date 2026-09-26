@@ -134,23 +134,13 @@ export {
 } from './Collapsible';
 
 // Overlays
-export {
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogOverlay,
-  DialogRoot,
-  DialogTitle,
-  DialogTrigger,
-  type DialogContentProps,
-} from './Dialog';
+export { DialogContent, DialogDescription, DialogRoot, DialogTitle, type DialogContentProps } from './Dialog';
 export {
   AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
-  AlertDialogOverlay,
   AlertDialogRoot,
   AlertDialogTitle,
   AlertDialogTrigger,
@@ -158,31 +148,12 @@ export {
   type AlertDialogContentProps,
   type AlertDialogOverlayProps,
 } from './AlertDialog';
-export {
-  SheetClose,
-  SheetContent,
-  SheetDescription,
-  SheetRoot,
-  SheetTitle,
-  SheetTrigger,
-  sheetVariants,
-  type SheetContentProps,
-} from './Sheet';
-export {
-  PopoverAnchor,
-  PopoverClose,
-  PopoverContent,
-  PopoverRoot,
-  PopoverTrigger,
-  type PopoverContentProps,
-} from './Popover';
+export { SheetContent, SheetRoot, SheetTitle, SheetTrigger, type SheetContentProps } from './Sheet';
+export { PopoverContent, PopoverRoot, PopoverTrigger, type PopoverContentProps } from './Popover';
 export {
   DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuRoot,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
   type DropdownMenuContentProps,
 } from './DropdownMenu';
