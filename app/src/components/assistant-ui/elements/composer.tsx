@@ -10,7 +10,7 @@
  * - `cn` import path (`@/components/assistant-ui/lib/utils`).
  * - Only the slash-menu and mention pieces are vendored (`useSlashMatches`,
  *   `useMentionMatches`, `applyMention`, `ComposerMenu`, `ComposerMenuItem`,
- *   `ComposerCommandItem`, `ComposerPersonItem` and their types). The rest of
+ *   `ComposerCommandItem` and their types). The rest of
  *   the upstream file — attachments, voice, model picker, context ring and
  *   send button — is omitted: OpenHuman's composer renders those through
  *   `ComposerPrimitive` and Lexical in `thread.tsx`. The live product `/` and
