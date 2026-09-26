@@ -143,7 +143,7 @@ error) before Tauri's deep-link forwarding path is installed.
 
 | Variable                    | Default    | Description                                                            |
 | --------------------------- | ---------- | ---------------------------------------------------------------------- |
-| `APPIUM_PORT`               | `4723`     | Appium server port                                                     |
+| `TAURI_DRIVER_PORT`         | `4444`     | Port `tauri-driver` listens on; `wdio.conf.ts` connects here           |
 | `E2E_MOCK_PORT`             | `18473`    | Mock backend server port                                               |
 | `OPENHUMAN_WORKSPACE`       | (temp dir) | App workspace directory                                                |
 | `OPENHUMAN_SERVICE_MOCK`    | `0`        | Enable service mock mode                                               |
@@ -158,7 +158,7 @@ error) before Tauri's deep-link forwarding path is installed.
 
 ### Push / PR checks
 
-The default pull-request gate is `.github/workflows/ci-lite.yml` (quick lane: quality checks plus complete unit-test suites for each changed area). E2E suites do not run on PRs to `main` — the full E2E matrix (Rust mock-backend, Playwright web, desktop on Linux/macOS/Windows) runs in `.github/workflows/ci-full.yml` on PRs targeting the `release` branch and on every push to it.
+The default pull-request gate is `.github/workflows/ci-lite.yml` (quick lane: quality checks plus complete unit-test suites for each changed area). E2E suites do not run on PRs to `main`. The full E2E matrix (Rust mock-backend, Playwright web, desktop on Linux/macOS/Windows) runs in `.github/workflows/ci-full.yml` on PRs targeting the `release` branch and on every push to it.
 
 macOS and Windows desktop E2E do not run on pushes or PRs. `.github/workflows/e2e.yml` is a manually dispatched workflow whose `run_macos` / `run_windows` inputs default to `false` until #5485 lands a native driver for each platform; someone has to opt in explicitly to get cross-platform desktop signal before promotion.
 
