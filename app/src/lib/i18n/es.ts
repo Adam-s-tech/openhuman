@@ -539,7 +539,6 @@ const messages: TranslationMap = {
   'settings.dangerZone': 'Zona de peligro',
   'settings.account': 'Cuenta',
   'settings.accountDesc': 'Frase de recuperación, equipo, conexiones y privacidad',
-  'settings.notificationsDesc': 'No molestar y controles de notificación por cuenta',
   'settings.features': 'Funciones',
   'settings.aiModels': 'IA y modelos',
   'settings.aiModelsDesc': 'Configuración de modelos de IA locales, descargas y proveedor LLM',
@@ -6618,12 +6617,6 @@ const messages: TranslationMap = {
   'settings.cryptoSection.description':
     'Gestiona tu frase de recuperación y consulta los saldos de tus cuentas de monedero.',
   'settings.cryptoSection.menuDesc': 'Frase de recuperación y saldos del monedero',
-  'settings.notificationsHub.title': 'Notificaciones',
-  'settings.notificationsHub.description':
-    'Consulta tu bandeja de alertas y gestiona las preferencias de notificación y el enrutamiento.',
-  'settings.notificationsHub.menuDesc': 'Bandeja de alertas y preferencias de notificación',
-  'settings.notificationsHub.settingsItem': 'Ajustes de notificaciones',
-  'settings.notificationsHub.settingsItemDesc': 'Preferencias y enrutamiento',
   'settings.agents.editor.notFound': 'Agente no encontrado.',
   'settings.agents.editor.modelInherit': 'Heredar (predeterminado de la plataforma)',
   'settings.agents.editor.modelHints': 'Sugerencias de enrutamiento',

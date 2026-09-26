@@ -511,7 +511,6 @@ const messages: TranslationMap = {
   'settings.dangerZone': 'منطقة الخطر',
   'settings.account': 'الحساب',
   'settings.accountDesc': 'عبارة الاسترداد والفريق والاتصالات والخصوصية',
-  'settings.notificationsDesc': 'عدم الإزعاج وضوابط الإشعارات لكل حساب',
   'settings.features': 'الميزات',
   'settings.aiModels': 'الذكاء الاصطناعي والنماذج',
   'settings.aiModelsDesc': 'إعداد نموذج الذكاء الاصطناعي المحلي وتنزيلاته ومزود LLM',
@@ -6349,12 +6348,6 @@ const messages: TranslationMap = {
   'settings.cryptoSection.description':
     'أدر عبارة الاسترداد الخاصة بك واعرض الأرصدة عبر حسابات محفظتك.',
   'settings.cryptoSection.menuDesc': 'عبارة الاسترداد وأرصدة المحفظة',
-  'settings.notificationsHub.title': 'الإشعارات',
-  'settings.notificationsHub.description':
-    'اطّلع على صندوق التنبيهات وأدر تفضيلات الإشعارات والتوجيه.',
-  'settings.notificationsHub.menuDesc': 'صندوق التنبيهات وتفضيلات الإشعارات',
-  'settings.notificationsHub.settingsItem': 'إعدادات الإشعارات',
-  'settings.notificationsHub.settingsItemDesc': 'التفضيلات والتوجيه',
   'settings.agents.editor.notFound': 'العامل غير موجود.',
   'settings.agents.editor.modelInherit': 'موروث (الافتراضي للمنصة)',
   'settings.agents.editor.modelHints': 'تلميحات التوجيه',

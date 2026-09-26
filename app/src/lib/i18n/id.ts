@@ -536,7 +536,6 @@ const messages: TranslationMap = {
   'settings.dangerZone': 'Zona Berbahaya',
   'settings.account': 'Akun',
   'settings.accountDesc': 'Frasa pemulihan, tim, koneksi, dan privasi',
-  'settings.notificationsDesc': 'Jangan Ganggu dan kontrol notifikasi per akun',
   'settings.features': 'Fitur',
   'settings.aiModels': 'AI & Model',
   'settings.aiModelsDesc': 'Pengaturan model AI lokal, unduhan, dan penyedia LLM',
@@ -6528,12 +6527,6 @@ const messages: TranslationMap = {
   'settings.cryptoSection.description':
     'Kelola frasa pemulihan Anda dan lihat saldo di seluruh akun dompet Anda.',
   'settings.cryptoSection.menuDesc': 'Frasa pemulihan & saldo dompet',
-  'settings.notificationsHub.title': 'Notifikasi',
-  'settings.notificationsHub.description':
-    'Lihat kotak masuk lansiran Anda dan kelola preferensi notifikasi serta perutean.',
-  'settings.notificationsHub.menuDesc': 'Kotak masuk lansiran & preferensi notifikasi',
-  'settings.notificationsHub.settingsItem': 'Pengaturan notifikasi',
-  'settings.notificationsHub.settingsItemDesc': 'Preferensi & perutean',
   'settings.agents.editor.notFound': 'Agen tidak ditemukan.',
   'settings.agents.editor.modelInherit': 'Warisi (default platform)',
   'settings.agents.editor.modelHints': 'Petunjuk rute',

@@ -550,7 +550,6 @@ const messages: TranslationMap = {
   'settings.dangerZone': 'Zone de danger',
   'settings.account': 'Compte',
   'settings.accountDesc': 'Phrase de récupération, équipe, connexions et confidentialité',
-  'settings.notificationsDesc': 'Ne pas déranger et contrôles de notifications par compte',
   'settings.features': 'Fonctionnalités',
   'settings.aiModels': 'IA & Modèles',
   'settings.aiModelsDesc':
@@ -6642,13 +6641,6 @@ const messages: TranslationMap = {
   'settings.cryptoSection.description':
     'Gérez votre phrase de récupération et consultez les soldes de vos comptes de portefeuille.',
   'settings.cryptoSection.menuDesc': 'Phrase de récupération et soldes du portefeuille',
-  'settings.notificationsHub.title': 'Notifications',
-  'settings.notificationsHub.description':
-    'Consultez votre boîte de réception des alertes et gérez les préférences de notification et le routage.',
-  'settings.notificationsHub.menuDesc':
-    'Boîte de réception des alertes et préférences de notification',
-  'settings.notificationsHub.settingsItem': 'Paramètres de notification',
-  'settings.notificationsHub.settingsItemDesc': 'Préférences et routage',
   'settings.agents.editor.notFound': 'Agent introuvable.',
   'settings.agents.editor.modelInherit': 'Hériter (défaut de la plateforme)',
   'settings.agents.editor.modelHints': 'Conseils de routage',

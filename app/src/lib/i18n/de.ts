@@ -551,7 +551,6 @@ const messages: TranslationMap = {
   'settings.dangerZone': 'Gefahrenbereich',
   'settings.account': 'Konto',
   'settings.accountDesc': 'Wiederherstellungsphrase, Team, Verbindungen und Privatsphäre',
-  'settings.notificationsDesc': '„Bitte nicht stören“ und Benachrichtigungskontrollen pro Konto',
   'settings.features': 'Funktionen',
   'settings.aiModels': 'KI & Modelle',
   'settings.aiModelsDesc': 'Lokales KI-Modell-Setup, Downloads und LLM-Anbieter',
@@ -6658,12 +6657,6 @@ const messages: TranslationMap = {
   'settings.cryptoSection.description':
     'Verwalte deine Wiederherstellungsphrase und sieh dir die Guthaben deiner Wallet-Konten an.',
   'settings.cryptoSection.menuDesc': 'Wiederherstellungsphrase & Wallet-Guthaben',
-  'settings.notificationsHub.title': 'Benachrichtigungen',
-  'settings.notificationsHub.description':
-    'Sieh dir deinen Hinweise-Posteingang an und verwalte Benachrichtigungseinstellungen und Routing.',
-  'settings.notificationsHub.menuDesc': 'Hinweise-Posteingang & Benachrichtigungseinstellungen',
-  'settings.notificationsHub.settingsItem': 'Benachrichtigungseinstellungen',
-  'settings.notificationsHub.settingsItemDesc': 'Einstellungen & Routing',
   'settings.agents.editor.notFound': 'Agent nicht gefunden.',
   'settings.agents.editor.modelInherit': 'Übernehmen (Plattformstandard)',
   'settings.agents.editor.modelHints': 'Routing-Hinweise',
