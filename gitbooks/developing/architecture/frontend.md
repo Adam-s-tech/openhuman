@@ -619,7 +619,7 @@ Typed wrappers around `invoke(...)`, including the bridge-gap-aware `isTauri()` 
 
 ### Polyfills (`polyfills.ts`)
 
-Node.js globals (`Buffer`, `process`, `util`) are polyfilled for the browser. Several browser-side modules use Node APIs, including voice/PTT audio encoding (`features/voice/pttAudio.ts`, `wavEncoder.ts`), mascot Rive asset caching (`features/human/Mascot/`), the Meet mascot frame producer, and tool-timeline formatting.
+Node.js globals (`Buffer`, `process`, `util`) are polyfilled for the browser. Several browser-side modules use Node APIs, including voice/PTT audio encoding (`features/voice/pttAudio.ts`, `wavEncoder.ts`), mascot Rive asset caching (`features/human/Mascot/`), and tool-timeline formatting.
 
 Two layers provide them:
 

@@ -177,8 +177,9 @@ println!("{}", second.reply);
 ```
 
 `Core` is the typed facade shown at the top: a host that already built a
-`CoreRuntime` wraps it with `Core::from_runtime` and reaches sub-facades —
-`config()`, `auth()`, and `agent()` (a `CoreAgent` running the orchestrator).
+`CoreRuntime` wraps it with `Core::from_runtime` and reaches sub-facades
+through it: `config()`, `auth()`, and `agent()` (a `CoreAgent` running the
+orchestrator).
 
 ### One runtime per process
 
