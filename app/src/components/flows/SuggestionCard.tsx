@@ -17,10 +17,10 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 
-import { composioToolkitMeta } from '../composio/toolkitMeta';
 import { cn } from '../../lib/cn';
 import { useT } from '../../lib/i18n/I18nContext';
 import type { FlowSuggestion } from '../../services/api/flowsApi';
+import { composioToolkitMeta } from '../composio/toolkitMeta';
 import { Badge, Button } from '../ui';
 import { Spinner } from '../ui/icons';
 
