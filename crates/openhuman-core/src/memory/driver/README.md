@@ -19,14 +19,24 @@ workspace-keyed `for_config` lookup that resolves which driver backs a given
 workspace, reached through `CoreContext::memory_binding`). Both are described
 in the top-level [`memory/README.md`](../README.md#wiring).
 
-## Pluggable engines
+## Pluggable engines, and how far that goes today
 
-Memory is one of this project's pluggable-engine subsystems: the driver a
-workspace binds to is chosen by config (`[subsystems.memory] driver`, or
-`OPENHUMAN_MEMORY_DRIVER`), not compiled in. TinyCortex is the engine embedded
-by default; remote engines such as Supermemory, Mem0, Cognee, CortexDB,
-AgentMemory, and LivingBrain are reached the same way, through the
-`tinymemory-api` contract rather than a driver-specific code path. See
+Memory is one of this project's pluggable-engine subsystems, and the config
+shape for it already exists: `[subsystems.memory] driver` (or the
+`OPENHUMAN_MEMORY_DRIVER` env override) names which driver a workspace should
+bind to. `tinymemory-api` (vendored at `vendor/tinymemory/`) defines a
+driver-neutral `MemoryProvider` trait and ships adapter crates for six remote
+engines under `vendor/tinymemory/crates/tinymemory-remote/`: Supermemory,
+Mem0, Cognee, CortexDB, AgentMemory, and LivingBrain.
+
+What `binding::admit` actually accepts is narrower than that adapter list. It
+only binds the compiled TinyMemory module (registry id `tinymemory`, with
+`tinycortex` kept as a legacy config alias) or the `null` fallback provider. A
+driver id configured under `[subsystems.memory.drivers.<id>]` for one of the
+remote engines above is refused with "external driver transport is not
+implemented yet." TinyCortex is the memory engine every OpenHuman install
+actually runs; the config surface for the rest is in place ahead of the
+wiring that will make it switch engines. See
 [engines.md](../../../../../gitbooks/developing/engines.md) for how engine
 selection works across subsystems.
 
