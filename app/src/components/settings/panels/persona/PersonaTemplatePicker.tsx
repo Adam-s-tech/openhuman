@@ -26,15 +26,8 @@ const PersonaTemplatePicker = ({
   const { t } = useT();
 
   return (
-    <div className="space-y-2">
-      <div>
-        <p className="text-sm font-medium text-content">
-          {t('settings.persona.templates.heading')}
-        </p>
-        <p className="text-xs text-content-muted leading-relaxed">
-          {t('settings.persona.templates.desc')}
-        </p>
-      </div>
+    // Heading and description come from the host card.
+    <div>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {PERSONA_TEMPLATES.map(template => (
           <Button
@@ -43,7 +36,7 @@ const PersonaTemplatePicker = ({
             disabled={disabled}
             data-testid={`persona-template-${template.id}`}
             onClick={() => onChange(applyTemplate(value, template))}
-            className="h-auto w-full flex-col items-start justify-start gap-0.5 rounded-lg border-line-strong px-3 py-2 text-left hover:border-primary-400">
+            className="h-auto w-full flex-col items-start justify-start gap-0.5 rounded-lg border-line px-3 py-2 text-left hover:border-primary-400 hover:bg-surface-hover">
             <span className="text-sm font-medium text-content">{t(template.labelKey)}</span>
             <span className="text-[11px] font-normal text-content-muted leading-snug">
               {t(template.descriptionKey)}

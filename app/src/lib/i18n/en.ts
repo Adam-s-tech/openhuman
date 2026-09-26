@@ -6486,6 +6486,12 @@ const en: TranslationMap = {
   'settings.persona.menuDesc':
     'Name, personality, avatar, and voice: your assistant as one identity',
   'settings.persona.identityHeading': 'Identity',
+  'settings.persona.characterHeading': 'Character',
+  'settings.persona.characterDesc':
+    'How your assistant thinks and talks. Used as its instructions in every conversation.',
+  'settings.persona.unsavedChanges': 'You have unsaved changes',
+  'settings.persona.discard': 'Discard',
+  'settings.persona.saveChanges': 'Save changes',
   'settings.persona.identityDesc':
     'A display name and short description for your assistant. Shown in the app; does not change how the assistant reasons.',
   'settings.persona.displayNameLabel': 'Display name',
