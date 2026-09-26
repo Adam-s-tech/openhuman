@@ -1,8 +1,9 @@
 /**
- * Servers — the user's declared MCP servers, a row each.
+ * Servers — the user's declared MCP servers, as the standard `DataTable`
+ * (search, transport filter, paging; only the rows scroll).
  *
  * The first tab of the MCP page. A row is an identity on the left (icon, name,
- * how it runs, its live status) and its controls as icons on the right:
+ * how it runs), then type, status, tool count, and its controls as icons on the right:
  * connect or disconnect, enable or disable, remove. Labelled buttons pushed a
  * row four controls deep onto two lines, and the second line was always the
  * one carrying the command — the row's own information lost to its chrome.
@@ -65,6 +66,7 @@ const STATUS_TONE: Record<ServerStatus, { variant: BadgeVariant; labelKey: strin
   unauthorized: { variant: 'warning', labelKey: 'mcp.status.unauthorized' },
   error: { variant: 'danger', labelKey: 'channels.status.error' },
   disconnected: null,
+  disabled: null,
 };
 
 /** The square identity tile every row in the MCP / Skills tables leads with. */
@@ -282,7 +284,10 @@ const McpServerRows = ({
                   onClick={() => onOpen(server.server_id)}
                   className="inline-flex max-w-full cursor-pointer items-center gap-0.5 rounded-sm text-sm font-medium text-content transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500">
                   <span className="truncate">{server.display_name}</span>
-                  <ChevronRight className="size-3.5 shrink-0 text-content-muted" aria-hidden="true" />
+                  <ChevronRight
+                    className="size-3.5 shrink-0 text-content-muted"
+                    aria-hidden="true"
+                  />
                 </button>
                 <p className="truncate font-mono text-xs text-content-muted" title={dialOf(server)}>
                   {dialOf(server)}
