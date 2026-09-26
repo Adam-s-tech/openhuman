@@ -1247,13 +1247,13 @@ const ComposerAction: FC<{
           <AuiIf condition={s => s.composer.dictation != null}>
             <ComposerPrimitive.StopDictation asChild>
               <TooltipIconButton
-                tooltip="Stop dictation"
+                tooltip={t('assistantUi.thread.stopDictation', 'Stop dictation')}
                 side="bottom"
                 type="button"
                 variant="ghost"
                 size="icon"
                 className="aui-composer-stop-dictation text-destructive size-7 rounded-full"
-                aria-label="Stop voice input">
+                aria-label={t('assistantUi.thread.stopVoiceInput', 'Stop voice input')}>
                 <SquareIcon className="aui-composer-stop-dictation-icon size-3.5 animate-pulse fill-current" />
               </TooltipIconButton>
             </ComposerPrimitive.StopDictation>
