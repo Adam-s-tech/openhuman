@@ -1,7 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 
 import OnboardingLayout from './OnboardingLayout';
-import CustomActivityPage from './pages/CustomActivityPage';
 import CustomEmbeddingsPage from './pages/CustomEmbeddingsPage';
 import CustomInferencePage from './pages/CustomInferencePage';
 import CustomOAuthPage from './pages/CustomOAuthPage';
