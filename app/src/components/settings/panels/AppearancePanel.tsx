@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 
 import { cn } from '../../../lib/cn';
 import { useT } from '../../../lib/i18n/I18nContext';
@@ -31,7 +31,6 @@ const AppearancePanel = () => {
   const dispatch = useAppDispatch();
   const effectiveFontSizePx = useAppSelector(selectEffectiveFontSizePx);
   const location = useLocation();
-  const navigate = useNavigate();
 
   // Local draft for the numeric px field so partial typing doesn't thrash the
   // store; commits (blur / Enter) clamp and dispatch, while the slider dispatches
@@ -90,10 +89,8 @@ const AppearancePanel = () => {
     },
   ];
 
-
   const body = (
     <>
-
       <Card
         title={t('settings.appearance.fontSizeHeading')}
         description={t('settings.appearance.fontSizeHelperText')}
