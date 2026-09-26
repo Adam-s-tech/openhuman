@@ -174,7 +174,7 @@ Responsibilities are split across three domains:
 
 ---
 
-## AI & Tool Protocol (MCP)
+## AI and tool protocol (MCP)
 
 OpenHuman implements the **Model Context Protocol**, a JSON-RPC 2.0 layer over Socket.io that lets AI models discover and invoke tools exposed by skills.
 
