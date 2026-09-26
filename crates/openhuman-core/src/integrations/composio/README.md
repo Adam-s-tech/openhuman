@@ -36,7 +36,7 @@ once, here, and every handler reads the same either way.
 declared in `crates/openhuman-core/Cargo.toml` ~486, 496) supplies the member names
 (`module_client::methods`) and payload types with no transport and no
 behaviour; it compiles none of the connector itself. A gates-off build can
-still name a member and match on the contract, it just cannot call one.
+still name a member and match on the contract; it just cannot call one.
 `module_client::is_unsupported_by_route` distinguishes "this route does not
 offer this operation" (e.g. direct mode has no webhook endpoint for
 triggers) from a real transport failure.
