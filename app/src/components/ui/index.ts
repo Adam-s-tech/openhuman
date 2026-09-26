@@ -51,7 +51,6 @@ export {
   type InputGroupInputProps,
   type InputGroupProps,
 } from './InputGroup';
-
 export { default as TextField, type TextFieldProps } from './TextField';
 export { default as TextArea, type TextAreaProps } from './TextArea';
 export { default as NumberField, type NumberFieldProps } from './NumberField';
