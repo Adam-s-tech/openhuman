@@ -42,7 +42,7 @@ app/src/
 ├── services/               # apiClient, socketService, coreRpcClient, transport/, api/* (~50 modules)
 ├── lib/                    # AI prompt loaders, i18n, MCP helpers, platform, tunnel crypto
 ├── pages/                  # Route-level screens (incl. onboarding/, ios/, dev/)
-├── features/               # Feature verticals (human/, conversations/, meet/, voice/)
+├── features/               # Feature verticals (human/, conversations/, voice/, wallet/, skills/)
 ├── components/             # Shared UI (incl. settings/, layout/shell/, accounts/)
 ├── hooks/                  # App hooks
 ├── utils/                  # Config, Tauri command wrappers, routing utilities

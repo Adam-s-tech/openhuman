@@ -266,9 +266,9 @@ Every feature on this crate is a pass-through to the same-named feature on
 
 Two of them also gate items on this crate's own public surface:
 
-- `mcp` — `HttpHeader`, `McpAuthConfig`, `McpServer`, `AgentSpec::mcp` and
+- `mcp`: `HttpHeader`, `McpAuthConfig`, `McpServer`, `AgentSpec::mcp` and
   `HarnessBuilder::mcp`.
-- `skills` — `AgentSpec::skills_dir` and `HarnessBuilder::skills_dir`.
+- `skills`: `AgentSpec::skills_dir` and `HarnessBuilder::skills_dir`.
 
 See [`docs/library-minimal-recipe.md`](../../docs/library-minimal-recipe.md)
 for a measured minimal-footprint feature set.

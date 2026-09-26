@@ -79,12 +79,17 @@ RPC/tool formatting, and OpenHuman's worktree policy.
   single blessed entry point for constructing a root `ParentExecutionContext`
   outside an agent turn.
 - `running_subagents.rs` + `running_subagents/` (`registry.rs`, `roster.rs`,
-  `resolve.rs`, `cancel.rs`, `steering.rs`, `wait.rs`, `task_ledger.rs`) —
-  detached sub-agent registry mirror; `background_completions.rs` /
-  `background_delivery.rs` —
-  queue and idle-gated, debounced, batched delivery of finished background
-  runs back into chat; `run_ledger_finalize.rs` — global-bus subscriber that
-  settles ledger rows for runs that outlive their spawning turn.
+  `resolve.rs`, `cancel.rs`, `steering.rs`, `wait.rs`, `task_ledger.rs`): the
+  detached sub-agent registry mirror. `background_completions.rs` and
+  `background_delivery.rs` queue and idle-gated, debounced, batched delivery
+  of finished background runs back into chat; `run_ledger_finalize.rs` is the
+  global-bus subscriber that settles ledger rows for runs that outlive their
+  spawning turn.
+- `fleet_tools.rs`: decides which fleet-control tools (`wait_subagent`,
+  `steer_subagent`, `wait_loop`, `close_subagent`) a given parent agent's
+  definition actually exposes, so the delegation prompts and the
+  `[active_subagents]` roster text never name a tool the model cannot call
+  (#5701).
 - `tools.rs`: declares the LLM-callable tool files under `tools/` (see
   [Agent tools](#agent-tools)).
 
@@ -197,7 +202,7 @@ what the harness exposes to the child.
 - Namespace `agent_team` is distinct from the existing `team` domain (backend
   org/team membership); `workflow_run` is distinct from the `workflows`
   domain (SKILL.md/WORKFLOW.md bundle discovery).
-- `wait_agents` prunes an entry once it observes a terminal status — every
+- `wait_agents` prunes an entry once it observes a terminal status. Every
   in-tree caller spawns and waits exactly once.
 - `worktree.rs` only ever operates on the user's project repo rooted at the
   agent's `action_dir`, never on OpenHuman's own source tree; `remove`
