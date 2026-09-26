@@ -87,7 +87,7 @@ unreadable or malformed one becomes a `HookConfig::warnings` entry surfaced by
 
 Most hooks are `command`: spawn a program, hand it the event JSON on stdin,
 read a decision from stdout. A `prompt` hook is a policy written in English
-instead, `prompt_eval.rs` asks the configured model to judge a condition,
+instead. `prompt_eval.rs` asks the configured model to judge a condition,
 via a one-shot `inference::ops::inference_prompt` call capped at 200 output
 tokens. A hook definition may override the model; the override is applied to
 the `Config` copy returned by `load_config_with_timeout` for that one call
