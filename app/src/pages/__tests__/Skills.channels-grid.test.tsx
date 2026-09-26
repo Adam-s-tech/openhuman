@@ -226,20 +226,23 @@ describe('Skills page — Channels grid', () => {
       };
 
       renderWithProviders(<Skills />, { initialEntries: ['/connections'], preloadedState });
-      // Switch to the Channels tab so the Channels card is visible.
+      // Switch to the Channels tab so the Channels overview is visible.
       fireEvent.click(screen.getByTestId('two-pane-nav-channels'));
-      const channelsCard = screen
-        .getByRole('heading', { name: 'Messaging' })
-        .closest('[data-slot="card"]');
-      const telegramTile = within(channelsCard as HTMLElement).getByRole('button', {
+      const overview = screen.getByTestId('channels-overview');
+      const telegramButton = within(overview).getByRole('button', {
         name: new RegExp(`Telegram.*${labelPattern.source}`, 'i'),
       });
-      // The connection-status colour now lives on the tile container (the
-      // inner button only owns the "configure" affordance), so assert against
-      // the wrapping tile rather than the button itself.
-      const tileContainer = telegramTile.closest('.rounded-2xl');
+      // The connection status is carried by the tile's status Badge (chip
+      // text + a coloured dot), not a tinted tile background — consistent
+      // with the shared Badge primitive used everywhere else in the redesign.
+      const tileContainer = telegramButton.closest('.rounded-xl');
       expect(tileContainer).not.toBeNull();
-      expect((tileContainer as HTMLElement).className).toMatch(classPattern);
+      const statusBadge = within(tileContainer as HTMLElement)
+        .getByText(labelPattern)
+        .closest('[data-slot="badge"]');
+      expect(statusBadge).not.toBeNull();
+      const dot = (statusBadge as HTMLElement).querySelector('[data-slot="badge-dot"]');
+      expect(dot?.className).toContain(dotClass);
     }
   );
 

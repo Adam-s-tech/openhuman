@@ -28,9 +28,13 @@ const validateFlow = vi.hoisted(() => vi.fn());
 const listFlowConnections = vi.hoisted(() => vi.fn());
 const runFlowDetached = vi.hoisted(() => vi.fn());
 const setFlowEnabled = vi.hoisted(() => vi.fn());
-// Backs the projected `FlowRunsSidebar` (real, not stubbed) so the side-panel
-// switching tests below can click a real run row to open the Run tab.
-const listFlowRuns = vi.hoisted(() => vi.fn());
+// Backs the projected `FlowRunsSidebar` (real, not stubbed): now that the Back
+// button + run history live in the shell's sidebar region (`SidebarContent`),
+// every `renderEditor` mounts a `SidebarSlotProvider`/`SidebarSlotOutlet`, so
+// this sidebar actually renders (and calls `listFlowRuns`) in every describe
+// block, not just the side-panel-switching tests. Default to an empty list so
+// `useFlowRunsQuery`/`useFlowRunsLiveRefresh` always see a real array.
+const listFlowRuns = vi.hoisted(() => vi.fn(() => Promise.resolve([])));
 vi.mock('../../services/api/flowsApi', () => ({
   getFlow,
   updateFlow,
