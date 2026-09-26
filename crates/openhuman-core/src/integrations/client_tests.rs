@@ -113,3 +113,6 @@ async fn product_identity_seen_by_backend(identity: Option<&str>) -> ProductIden
 mod error_propagation_tests;
 #[path = "client_session_expiry_tests.rs"]
 mod session_expiry_tests;
+
+#[path = "client_api_key_tests.rs"]
+mod api_key_tests;
