@@ -85,8 +85,8 @@ function landingFor(entry: string) {
 // below fails — the list cannot silently fall behind the code.
 const REDIRECTS: Array<{ from: string; pathname: string; search: string }> = [
   { from: '/home', pathname: '/chat', search: '' },
-  { from: '/activity', pathname: '/settings/notifications', search: '' },
-  { from: '/intelligence', pathname: '/settings/notifications', search: '' },
+  { from: '/activity', pathname: '/settings/account', search: '' },
+  { from: '/intelligence', pathname: '/settings/account', search: '' },
   { from: '/skills', pathname: '/connections', search: '' },
   { from: '/accounts', pathname: '/chat', search: '' },
   { from: '/channels', pathname: '/connections', search: '?tab=messaging' },
