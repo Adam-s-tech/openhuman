@@ -332,19 +332,21 @@ const ContextDisplayRing: FC<PresetProps> = ({
   resetKey,
   labels,
   ...triggerProps
-}) => (
-  <ContextDisplayRoot
-    modelContextWindow={modelContextWindow}
-    usage={usage}
-    resetKey={resetKey}
-    labels={labels}>
-    <ContextDisplayTrigger
-      className={cn(
-        'text-muted-foreground hover:text-foreground gap-1.5 px-1.5 py-1 text-xs',
-        className
-      )}
-      aria-label="Context usage"
-      {...triggerProps}>
+}) => {
+  const { t } = useT();
+  return (
+    <ContextDisplayRoot
+      modelContextWindow={modelContextWindow}
+      usage={usage}
+      resetKey={resetKey}
+      labels={labels}>
+      <ContextDisplayTrigger
+        className={cn(
+          'text-muted-foreground hover:text-foreground gap-1.5 px-1.5 py-1 text-xs',
+          className
+        )}
+        aria-label={t('conversations.composer.context.usage', 'Context usage')}
+        {...triggerProps}>
       <RingVisual />
       <RingPercentLabel />
     </ContextDisplayTrigger>
