@@ -109,6 +109,20 @@ real bug (openhuman#6434). The proxy binds loopback only and refuses a
 plaintext non-loopback upstream unless overridden, because it forwards the
 bearer verbatim; `--help` lists every `CAPTURE_*` knob.
 
+## Production agent traces are a separate mechanism
+
+Everything above is about E2E artifacts on disk. For a real agent run, the
+core can export trace spans to Langfuse instead: when
+`observability.share_usage_data` is on (the default), a completed run's spans
+go to the OpenHuman backend's Langfuse ingestion proxy over the same session
+bearer every other backend call uses, and the backend forwards them to
+Langfuse with the project keys injected server-side. Clients never hold
+Langfuse credentials directly. Prompt and reply text ride along only while
+`observability.agent_tracing.capture_content` is also on; turning it off keeps
+metadata (names, timings, token and cost figures) but drops content. See
+`crates/openhuman-core/src/agent/progress_tracing/langfuse.rs` and
+`crates/openhuman-core/src/config/schema/observability.rs`.
+
 ## What is intentionally out of scope
 
 - Visual baselines / image diffs across every component state.
