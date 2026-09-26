@@ -1,7 +1,7 @@
 import { cn } from '../../lib/cn';
 import type { Translate } from '../../lib/flows/cron';
 import type { FlowRunStatus as FlowRunStatusValue } from '../../services/api/flowsApi';
-import Badge, { type BadgeVariant } from '../ui/Badge';
+import { Badge, type BadgeVariant } from '../ui';
 
 /**
  * @deprecated Kept only because `FlowRunStatus.test.tsx` still asserts on
