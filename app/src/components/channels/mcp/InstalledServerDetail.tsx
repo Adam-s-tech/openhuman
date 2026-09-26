@@ -346,11 +346,9 @@ const InstalledServerDetail = ({
           {!reconfigOpen && (
             <div className="flex flex-wrap gap-1.5">
               {visibleEnvKeys.map(key => (
-                <span
-                  key={key}
-                  className="px-2 py-0.5 text-[11px] font-mono rounded bg-surface-subtle text-content-secondary border border-line">
+                <Badge key={key} dot={false} className="font-mono">
                   {key}
-                </span>
+                </Badge>
               ))}
             </div>
           )}
