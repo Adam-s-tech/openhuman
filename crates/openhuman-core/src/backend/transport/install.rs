@@ -5,6 +5,7 @@
 //! 1. the transport carried by the ambient [`CoreContext`] (installed through
 //!    `CoreBuilder::backend_transport`; inherited by every derived context);
 //! 2. the process-global transport installed with [`install_backend_transport`]
+//!    (per thread under `cfg(test)`, so installs cannot leak between tests)
 //!    — the path the desktop shell and CLI use, because they boot the core
 //!    through `run_server_embedded_with_ready` / `run_core_from_args` rather
 //!    than through the builder;
@@ -16,14 +17,28 @@
 //! transport genuinely has no backend, and every caller degrades to a typed
 //! "backend unavailable" error.
 
-use std::sync::{Arc, OnceLock, RwLock};
+use std::sync::{Arc, RwLock};
 
 use super::{BackendTransport, BackendTransportError};
 
-static GLOBAL: OnceLock<RwLock<Option<Arc<dyn BackendTransport>>>> = OnceLock::new();
-
+#[cfg(not(test))]
 fn slot() -> &'static RwLock<Option<Arc<dyn BackendTransport>>> {
+    use std::sync::OnceLock;
+    static GLOBAL: OnceLock<RwLock<Option<Arc<dyn BackendTransport>>>> = OnceLock::new();
     GLOBAL.get_or_init(|| RwLock::new(None))
+}
+
+/// Under `cfg(test)` the "global" slot is per thread: a test that installs a
+/// fake transport (always-unavailable, canned responses) must not leak it into
+/// the wiremock tests running in parallel, which resolve the plain fallback.
+/// Every test that installs one runs on a single thread.
+#[cfg(test)]
+fn slot() -> &'static RwLock<Option<Arc<dyn BackendTransport>>> {
+    thread_local! {
+        static SLOT: &'static RwLock<Option<Arc<dyn BackendTransport>>> =
+            Box::leak(Box::new(RwLock::new(None)));
+    }
+    SLOT.with(|slot| *slot)
 }
 
 /// Install `transport` as the process-wide backend transport, replacing any
