@@ -1,5 +1,5 @@
 ---
-description: End-to-end testing with WDIO + Appium. CI and local setup.
+description: End-to-end testing with WDIO + tauri-driver. CI and local setup.
 icon: vials
 ---
 
