@@ -15,7 +15,6 @@ const log = debug('settings:nav');
 
 type SettingsRoute =
   | 'home'
-  | 'agents'
   | 'agent-access'
   | 'account'
   | 'privacy'
@@ -70,7 +69,7 @@ interface SettingsNavigationHook {
 /** Extract the settings sub-path from a full pathname. */
 const extractSettingsSlug = (pathname: string): string => {
   // Strip the leading /settings/ and take the first path segment.
-  // e.g. /settings/agents/edit/123 → 'agents'
+  // e.g. /settings/team/manage/123 → 'team'
   const match = /^\/settings\/(.+)$/.exec(pathname);
   if (!match) return '';
   return match[1];
@@ -79,9 +78,6 @@ const extractSettingsSlug = (pathname: string): string => {
 const getCurrentRoute = (pathname: string): SettingsRoute => {
   const slug = extractSettingsSlug(pathname);
   if (!slug) return 'home';
-
-  // --- agent editor sub-routes ---
-  if (/^agents\/(new|edit)/.test(slug)) return 'agents';
 
   // --- exact first-segment lookup via registry ---
   const firstSegment = slug.split('/')[0];

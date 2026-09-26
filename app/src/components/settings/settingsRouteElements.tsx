@@ -6,8 +6,6 @@ import SettingsIndexRedirect from './layout/SettingsIndexRedirect';
 import AboutPanel from './panels/AboutPanel';
 import AccountPanel from './panels/AccountPanel';
 import AgentAccessPanel from './panels/AgentAccessPanel';
-import AgentEditorPage from './panels/AgentEditorPage';
-import AgentsPanel from './panels/AgentsPanel';
 import AppearancePanel from './panels/AppearancePanel';
 import ApprovalHistoryPanel from './panels/ApprovalHistoryPanel';
 import CoreConnectionPanel from './panels/CoreConnectionPanel';
@@ -115,15 +113,14 @@ export function settingsRouteElements(): ReactNode {
       <Route path="personality" element={<PersonalityRoute />} />
       <Route path="face" element={wrapSettingsPage(<MascotPanel />)} />
       <Route path="language" element={<SettingsRedirect to="/settings/account" />} />
-      <Route path="agents" element={wrapSettingsPage(<AgentsPanel />)} />
-      <Route path="agents/new" element={wrapSettingsPage(<AgentEditorPage />)} />
-      <Route path="agents/edit/:id" element={wrapSettingsPage(<AgentEditorPage />)} />
+      {/* The Agents list and editor were removed; old links land on Tools. */}
+      <Route path="agents/*" element={<SettingsRedirect to="/settings/tools" />} />
       <Route path="agent-access" element={wrapSettingsPage(<AgentAccessPanel />)} />
       {/* Agent activity level (medulla/subconscious background-AI knob) was
           retired along with medulla/subconscious themselves. The slug
-          redirects so any old deep link lands on Agents rather than falling
+          redirects so any old deep link lands on Tools rather than falling
           through to the settings index. */}
-      <Route path="activity-level" element={<SettingsRedirect to="/settings/agents" />} />
+      <Route path="activity-level" element={<SettingsRedirect to="/settings/tools" />} />
       <Route path="sandbox-settings" element={wrapSettingsPage(<SandboxSettingsPanel />)} />
       <Route path="approval-history" element={wrapSettingsPage(<ApprovalHistoryPanel />)} />
 
@@ -203,7 +200,7 @@ export function settingsRouteElements(): ReactNode {
       {/* ── Legacy slugs → redirects (deep-link compatibility) ──── */}
       {/* Old hub pages */}
       <Route path="ai" element={<Navigate to="/connections?tab=llm" replace />} />
-      <Route path="agents-settings" element={<SettingsRedirect to="/settings/agents" />} />
+      <Route path="agents-settings" element={<SettingsRedirect to="/settings/tools" />} />
       <Route path="crypto" element={<Navigate to="/connections?tab=wallet" replace />} />
       <Route path="notifications-hub" element={<SettingsRedirect to="/settings/account" />} />
       {/* Composio (API key + routing) moved to Connections → API keys. */}

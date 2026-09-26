@@ -14,7 +14,6 @@ import debug from 'debug';
 //   'home'      → top-level home menu entry (Settings breadcrumb only)
 //   'account'   → Settings → Account
 //   'ai'        → Settings → AI & Models
-//   'agents'    → Settings → Agents
 //   'features'  → Settings → Features
 //   'crypto'    → Settings → Crypto
 //   'developer' → Settings → Developer & Diagnostics (devOnly entries)
@@ -390,15 +389,6 @@ export const SETTINGS_ROUTE_REGISTRY: SettingsRegistryEntry[] = [
   // =========================================================================
   // AGENTS section leaf panels
   // =========================================================================
-  {
-    id: 'agents',
-    titleKey: 'settings.agents.title',
-    descriptionKey: 'settings.agents.subtitle',
-    section: 'agents',
-    searchKeywords: ['agent', 'profiles'],
-    navGroup: 'agentsAutonomy',
-    navOrder: 0,
-  },
   {
     // agent-access also hosts the autonomy rate-limit section (formerly the
     // standalone /settings/autonomy page — that slug redirects here).
