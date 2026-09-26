@@ -70,8 +70,6 @@ pub fn all_controller_schemas() -> Vec<ControllerSchema> {
         schemas("update_agent_settings"),
         schemas("update_search_settings"),
         schemas("get_search_settings"),
-        schemas("get_activity_level_settings"),
-        schemas("update_activity_level_settings"),
         schemas("get_memory_sync_settings"),
         schemas("update_memory_sync_settings"),
         schemas("get_sandbox_settings"),
