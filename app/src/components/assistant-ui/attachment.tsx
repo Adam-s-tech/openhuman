@@ -243,6 +243,7 @@ export const ComposerAttachments: FC = () => {
 };
 
 export const ComposerAddAttachment: FC = () => {
+  const { t } = useT();
   return (
     <ComposerPrimitive.AddAttachment
       render={
@@ -252,7 +253,7 @@ export const ComposerAddAttachment: FC = () => {
           variant="ghost"
           size="icon"
           className="aui-composer-add-attachment text-muted-foreground hover:text-foreground hover:bg-muted-foreground/15 dark:border-muted-foreground/15 dark:hover:bg-muted-foreground/30 size-7 rounded-full active:scale-[0.96] motion-reduce:transition-none"
-          aria-label="Add Attachment"
+          aria-label={t('attachment.addAria', 'Add Attachment')}
         />
       }>
       <PlusIcon className="aui-attachment-add-icon size-4" />
