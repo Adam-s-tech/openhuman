@@ -60,9 +60,15 @@ const evt = (event: string, domain = 'tool') =>
 const config = (payload: Record<string, unknown>) =>
   `event: config\ndata:${JSON.stringify(payload)}\n\n`;
 
-/** Every rendered event label, in DOM order — nothing filtered out. */
+/**
+ * Every rendered event label, in DOM order — nothing filtered out.
+ *
+ * The event-name cell was a `<span>` before the redesign; DataTable's event
+ * column now renders it as a `<p>` (EventLogPanel.tsx's `columns` definition,
+ * the `event` column's `cell`), so the selector follows the tag rename.
+ */
 function allRenderedRows(): string[] {
-  return Array.from(document.querySelectorAll('span.text-xs.text-content.truncate')).map(
+  return Array.from(document.querySelectorAll('p.text-xs.text-content.truncate')).map(
     el => el.textContent ?? ''
   );
 }
