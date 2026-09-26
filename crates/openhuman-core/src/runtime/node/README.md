@@ -26,15 +26,15 @@ That is all in the `tinyruntime` module now, where one implementation serves
 every language, and it is reached through
 [`modules::runtime`](../../modules/runtime.rs). The visible consequence for this
 repository is that `xz2` and its static liblzma C build left the manifest
-entirely — the first native toolchain build removed rather than merely gated.
+entirely, the first native toolchain build removed rather than merely gated.
 
 ## Responsibilities
 
 - Ask the module to resolve a Node toolchain, installing one when the host has
   none, and adapt the reply onto `ResolvedNode` (`node_bin`, `npm_bin`,
   `bin_dir`, `version`, `source`).
-- Memoise that answer locally so `try_cached()` can answer **without awaiting** —
-  the shell consults it on every command to decide whether to prepend a managed
+- Memoise that answer locally so `try_cached()` can answer **without awaiting**.
+  The shell consults it on every command to decide whether to prepend a managed
   `bin/` directory to `PATH`, and a blocking call there would make every
   unrelated command wait on a bus round trip.
 - Build the full agent tool registry on demand and expose two RPC controllers:

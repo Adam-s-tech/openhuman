@@ -44,15 +44,15 @@ used here (not defined here) by `agent_graph.rs` and `fork_context.rs`.
 | --- | --- |
 | `definition*.rs`, `builtin_definitions.rs`, `definition_loader.rs` | `AgentDefinition`/`AgentDefinitionRegistry`/`SandboxMode`/`ToolScope`/`PromptSource`/`ModelSpec`; loads built-ins from `crate::agent::registry::agents` and user TOML from the workspace/home `agents/` directory. |
 | `fork_context.rs`, `sandbox_context.rs`, `spawn_depth_context.rs`, `task_recency_context.rs` | Task-locals that let a spawned tool see its parent's runtime context: parent handle, sandbox mode, spawn depth, and task-recency window. `fork_context.rs` also carries the `RunQueue` handle (from `tinyagents_harness::run_queue`) down to a forked turn. |
-| `graph.rs` | `run_channel_turn_via_graph` (`pub(crate)`) — the channel/CLI turn graph, thin over `run_turn_via_tinyagents_shared`; called by the `agent.run_turn` native-bus handler in `agent/bus.rs`. |
-| `agent_graph.rs` | `AgentGraph` (`Default`/`Custom`), `AgentTurnRequest`, `AgentTurnResult`, `AgentTurnUsage` — per-agent sub-agent turn-graph selection consumed by `../subagent_host/`. Every built-in agent currently selects `Default`. |
-| `archivist/` | `ArchivistHook` (`types.rs`, `PostTurnHook` impl in `hook_impl.rs`) — post-turn episodic insert, segment boundary detection and lifecycle, LLM recap with heuristic fallback, lesson extraction from tool failures, and raw-prose ingestion into the memory tree when `config.learning.chat_to_tree_enabled` (`boundary.rs`, `lifecycle.rs`, `recap.rs`, `resummarise.rs`, `store.rs`, `tree_ingest.rs`, `events_heuristic.rs`). |
+| `graph.rs` | `run_channel_turn_via_graph` (`pub(crate)`): the channel/CLI turn graph, thin over `run_turn_via_tinyagents_shared`; called by the `agent.run_turn` native-bus handler in `agent/bus.rs`. |
+| `agent_graph.rs` | `AgentGraph` (`Default`/`Custom`), `AgentTurnRequest`, `AgentTurnResult`, `AgentTurnUsage`: per-agent sub-agent turn-graph selection consumed by `../subagent_host/`. Every built-in agent currently selects `Default`. |
+| `archivist/` | `ArchivistHook` (`types.rs`, `PostTurnHook` impl in `hook_impl.rs`): post-turn episodic insert, segment boundary detection and lifecycle, LLM recap with heuristic fallback, lesson extraction from tool failures, and raw-prose ingestion into the memory tree when `config.learning.chat_to_tree_enabled` (`boundary.rs`, `lifecycle.rs`, `recap.rs`, `resummarise.rs`, `store.rs`, `tree_ingest.rs`, `events_heuristic.rs`). |
 | `artifact_offload/` | The `outputs/` / `workspace/` convention under `action_dir`: prompt half (`contract.rs`) and host policy half (`policy.rs`); mechanics (thresholds, path resolution, pointer rendering, the writer) live in `tinyagents_harness::artifacts` and are re-exported here. |
 | `tool_result_artifacts/` | Persists oversized individual and aggregate tool outputs under `action_dir/artifacts/tool-results/`, replacing them with a bounded `[tool_result_preview]` envelope pointing at the full, redacted file. |
 | `memory_context.rs`, `memory_context_safety.rs`, `memory_protocol.rs` | Working-memory and `[Cross-chat context]` lines surfaced into the prompt (capped by `WORKING_MEMORY_LIMIT`); trust-tier wrapping of recalled entries that came from connectors (`wrap_untrusted_for_agent`); and the read-index, dedupe, write, update-index enforcement state machine for memory-mutating tools (issue #4116). |
 | `required_output.rs` | Pure validate/repair/synthesize primitives (issue #4117) that guarantee a required structured-output block (for example a `thoughts` JSON block) on every accepted turn. The orchestration that calls these lives on the session in `../session_host/turn/`. |
 | `parse_wire_tests.rs` | Test-only fixtures for OpenHuman's own wire vocabulary (`inference::provider::ToolCall`, native-history JSON, OpenAI function-calling payloads). The actual `<tool_call>` parsing (tags, fenced blocks, bare JSON, `<invoke>` XML, GLM grammar, p-format) moved to the vendored `tinytools_agent` crate; nothing about recovering a tool call from model text stayed here. |
-| `credentials.rs` | `scrub_credentials` — regex scrubbing of credential-shaped text (key/value secrets, AWS access-key IDs, `sk-...` keys). Applied to every tool result by `CredentialScrubMiddleware` in `agent/tinyagents/middleware/credential_scrub.rs`, installed as the innermost tool wrap so nothing downstream sees the raw secret. |
+| `credentials.rs` | `scrub_credentials`: regex scrubbing of credential-shaped text (key/value secrets, AWS access-key IDs, `sk-...` keys). Applied to every tool result by `CredentialScrubMiddleware` in `agent/tinyagents/middleware/credential_scrub.rs`, installed as the innermost tool wrap so nothing downstream sees the raw secret. |
 
 ## Public surface
 
@@ -60,16 +60,16 @@ What `harness/mod.rs` actually re-exports:
 
 - `AgentDefinition`, `AgentDefinitionRegistry`, `DefinitionSource`,
   `ModelSpec`, `PromptSource`, `SandboxMode`, `ToolScope`,
-  `TriggerMemoryAgent` — the sub-agent archetype data model.
+  `TriggerMemoryAgent`: the sub-agent archetype data model.
 - `ParentExecutionContext` and its accessors (`current_parent`,
   `with_parent_context`, `current_agent_context_prepared_sources`,
   `with_agent_context_prepared_sources`, `AgentContextPreparedSource`) —
   parent runtime context for spawned tools.
 - `current_sandbox_mode`/`with_current_sandbox_mode`,
-  `current_task_recency_window`/`with_task_recency_window` — the other
+  `current_task_recency_window`/`with_task_recency_window`: the other
   task-local accessors.
 - `AgentGraph`, `AgentTurnRequest`, `AgentTurnResult`, `AgentTurnUsage`.
-- `artifact_offload::{...}` — reached only via the `artifact_offload::` path
+- `artifact_offload::{...}`: reached only via the `artifact_offload::` path
   (see Notes), never flattened into `harness::`.
 
 Adjacent public surface that lives in sibling modules, not here:
@@ -80,22 +80,22 @@ turn lifecycle are in `../session_host/`; `run_subagent`,
 
 ## Dependencies
 
-- `tinyagents_harness` (vendored via `vendor/tinyagents/`) — the tool loop
+- `tinyagents_harness` (vendored via `vendor/tinyagents/`): the tool loop
   itself (`run_turn_via_tinyagents_shared`), the `run_queue` and `artifacts`
   primitives this module wraps, and the `Store` trait implemented by
   `tool_result_artifacts::ToolResultArtifactIndexStore`.
-- `tinytools_agent` (also vendored) — the tool-call parsers themselves
+- `tinytools_agent` (also vendored): the tool-call parsers themselves
   (`<tool_call>` tags, fenced blocks, bare JSON, `<invoke>` XML, GLM grammar,
   p-format). This crate is a test-only dependency of `harness/`; the parsers
   are not called from production code here.
-- `crate::agent::registry::agents` — built-in agent archetype TOML/prompt
+- `crate::agent::registry::agents`: built-in agent archetype TOML/prompt
   bundles loaded by `definition_loader`/`builtin_definitions`.
-- `crate::security::SecurityPolicy` — workspace containment policy plumbed
+- `crate::security::SecurityPolicy`: workspace containment policy plumbed
   into `artifact_offload::new_artifact_offload`.
-- `crate::memory` — context injection (`memory_context*`) and text
+- `crate::memory`: context injection (`memory_context*`) and text
   sanitization (`tool_result_artifacts` uses `memory::safety::sanitize_text`).
 - `crate::config::AgentConfig`, `crate::skills::Workflow`,
-  `crate::tools::{Tool, ToolSpec}` — runtime context carried through
+  `crate::tools::{Tool, ToolSpec}`: runtime context carried through
   `fork_context::ParentExecutionContext`.
 
 ## Used by
