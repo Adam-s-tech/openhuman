@@ -115,6 +115,7 @@ All commands are registered in **`crates/openhuman-app/src/lib.rs`** inside `tau
 | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | `core_rpc_url`                   | Return the **active gateway's** JSON-RPC URL: the embedded core's `http://127.0.0.1:<port>/rpc` unless another gateway is active               |
 | `core_rpc_token`                 | Return the active gateway's bearer. Paired with `core_rpc_url`: a token minted for the embedded core is meaningless to a core in a container    |
+| `core_rpc_endpoint`              | Return the URL and bearer together from one resolved snapshot, so a gateway switch between two separate calls cannot pair one gateway's URL with another's token |
 | `relay_http_rpc`                 | Host-side JSON-RPC POST (`{ url, token?, body }` → `{ status, body }`) for self-hosted runtimes the webview cannot fetch (mixed content, #3865) |
 | `overlay_parent_rpc_url`         | RPC URL inherited from a parent process (overlay windows), from `OPENHUMAN_CORE_RPC_URL`                                                        |
 | `process_diagnostics_list_owned` | List OpenHuman processes owned by this app bundle (macOS; empty elsewhere)                                                                      |
