@@ -39,9 +39,7 @@ export type SettingsSection =
 type SettingsNavGroup =
   | 'general'
   | 'appearance'
-  | 'assistant'
   | 'data'
-  | 'connections'
   | 'knowledgeMemory'
   | 'agentsAutonomy'
   | 'automationIntegrations'
@@ -50,11 +48,11 @@ type SettingsNavGroup =
 const NAV_GROUP_ORDER: SettingsNavGroup[] = [
   'general',
   'appearance',
-  'assistant',
-  'data',
-  'connections',
-  'knowledgeMemory',
+  // Everything agentic in one category: agents, their tools, approvals and the
+  // skills runner. Was split across Assistant, Connections and Agents & Autonomy.
   'agentsAutonomy',
+  'data',
+  'knowledgeMemory',
   'automationIntegrations',
   'diagnosticsLogs',
 ];
@@ -63,9 +61,7 @@ const NAV_GROUP_ORDER: SettingsNavGroup[] = [
 export const NAV_GROUP_LABEL_KEY: Record<SettingsNavGroup, string> = {
   general: 'settings.navGroups.general',
   appearance: 'settings.navGroups.appearance',
-  assistant: 'settings.navGroups.assistant',
   data: 'settings.navGroups.data',
-  connections: 'settings.navGroups.connections',
   // Promoted from the old Developer & Diagnostics sub-sections.
   knowledgeMemory: 'settings.devGroups.knowledgeMemory',
   agentsAutonomy: 'settings.devGroups.agentsAutonomy',
@@ -407,8 +403,8 @@ export const SETTINGS_ROUTE_REGISTRY: SettingsRegistryEntry[] = [
     descriptionKey: 'settings.agents.subtitle',
     section: 'agents',
     searchKeywords: ['agent', 'profiles'],
-    navGroup: 'assistant',
-    navOrder: 4,
+    navGroup: 'agentsAutonomy',
+    navOrder: 0,
   },
   {
     // agent-access also hosts the autonomy rate-limit section (formerly the
@@ -459,8 +455,8 @@ export const SETTINGS_ROUTE_REGISTRY: SettingsRegistryEntry[] = [
     descriptionKey: 'pages.settings.features.toolsDesc',
     section: 'features',
     searchKeywords: ['tools', 'capabilities', 'functions'],
-    navGroup: 'connections',
-    navOrder: 3,
+    navGroup: 'agentsAutonomy',
+    navOrder: 1,
   },
   {
     // meetings: Meeting Assistant settings (issue #3511 / epic #3505 PR-5).
@@ -572,6 +568,7 @@ export const SETTINGS_ROUTE_REGISTRY: SettingsRegistryEntry[] = [
     section: 'developer',
     devOnly: true,
     navGroup: 'agentsAutonomy',
+    navOrder: 3,
   },
   // The dev-only "Build / version info" alias was removed: it opened the same
   // About page, so dev builds listed two sidebar entries for one page. About's
@@ -609,6 +606,7 @@ export const SETTINGS_ROUTE_REGISTRY: SettingsRegistryEntry[] = [
     section: 'agents',
     searchKeywords: ['approval', 'history', 'permission', 'audit'],
     navGroup: 'agentsAutonomy',
+    navOrder: 2,
   },
 ];
 
