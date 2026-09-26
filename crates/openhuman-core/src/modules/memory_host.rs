@@ -290,8 +290,7 @@ impl ComposioCallbacks {
     /// out. Asking per call means the module always gets the one valid now.
     ///
     /// `Ok(None)` means this host has no credential to lend — a signed-out user
-    /// with no API key,
-    /// not a broken one. The engine turns that into a named refusal rather than
+    /// with no API key, not a broken one. The engine turns that into a named refusal rather than
     /// treating it as "nothing to sync", which is the distinction that keeps a
     /// signed-out user from looking like a user with no connected sources.
     ///
