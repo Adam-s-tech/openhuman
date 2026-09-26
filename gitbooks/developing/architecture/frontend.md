@@ -257,7 +257,7 @@ For the full list, `ls app/src/services/api/`. New feature surfaces get their ow
 
 ### Socket Service (`services/socketService.ts`)
 
-Socket.io client singleton connected to the **local core's** socket endpoint (base URL derived from the resolved RPC URL via `coreSocket.ts`; authenticated with the core RPC token). It ingests realtime core events (chat/meet/channel/companion updates) and dispatches them into Redux (`socketSlice`, `backendMeetSlice`, `channelConnectionsSlice`, `companionSlice`, `connectivitySlice`). It also hosts the MCP-style transport (`SocketIOMCPTransportImpl` from `lib/mcp`).
+Socket.io client singleton connected to the **local core's** socket endpoint (base URL derived from the resolved RPC URL via `coreSocket.ts`; authenticated with the core RPC token). It ingests realtime core events (connection status, channel updates) and dispatches them into Redux (`socketSlice`, `connectivitySlice`, `channelConnectionsSlice`). It also hosts the MCP-style transport (`SocketIOMCPTransportImpl` from `lib/mcp`).
 
 Keep `socketService` and the core socket behavior aligned (the "dual socket sync" rule in AGENTS.md). Connection lifecycle is owned by `providers/SocketProvider.tsx`; on mobile the provider is not mounted at all: events arrive through the `TunnelTransport` relay instead.
 
