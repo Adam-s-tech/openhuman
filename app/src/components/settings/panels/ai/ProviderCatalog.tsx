@@ -66,7 +66,7 @@ export const ProviderCatalog = ({
         </section>
       ))}
 
-      <section className="p-4">
+      <section className="grid gap-2 p-4 sm:grid-cols-2 xl:grid-cols-3">
         <button
           type="button"
           className={tileClass}
