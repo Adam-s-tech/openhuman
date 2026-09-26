@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { Mic, Play, Volume2 } from 'lucide-react';
+import { type ReactNode, useState } from 'react';
 
 import { installPiper } from '../../../services/api/voiceInstallApi';
 import { testVoiceProvider, type VoiceProviderView } from '../../../services/api/voiceSettingsApi';
 import type { VoiceStatus } from '../../../utils/tauriCommands';
-import { Button } from '../../ui';
-import { SettingsRow, SettingsSection, SettingsSelect, SettingsTextField } from '../controls';
+import { Badge, Button, Card, Field, NativeSelect, TextField } from '../../ui';
+import { Spinner } from '../../ui/icons';
 import { ELEVENLABS_VOICE_PRESETS, isCuratedVoicePreset } from './elevenlabsVoicePresets';
 
 interface VoicePanelRoutingSectionProps {
@@ -30,6 +31,31 @@ interface VoicePanelRoutingSectionProps {
   isSavingRouting: boolean;
   saveRouting: () => Promise<void>;
 }
+
+type TestResult = { ok: boolean; detail: string } | null;
+
+/** Label with a small leading icon, for the two workload rows. */
+const WorkloadLabel = ({ icon, children }: { icon: ReactNode; children: ReactNode }) => (
+  <span className="flex items-center gap-2">
+    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-surface-muted text-content-secondary">
+      {icon}
+    </span>
+    {children}
+  </span>
+);
+
+/** Outcome of a Test click: a status chip plus the provider's detail text. */
+const TestResultLine = ({ result, t }: { result: TestResult; t: (key: string) => string }) =>
+  result ? (
+    <div className="flex items-center gap-2 px-4 pb-3 text-xs text-content-muted">
+      <Badge variant={result.ok ? 'success' : 'danger'}>
+        {result.ok ? t('voice.routing.testOk') : t('voice.routing.testFailed')}
+      </Badge>
+      <span className="min-w-0 truncate" title={result.detail}>
+        {result.detail}
+      </span>
+    </div>
+  ) : null;
 
 /** STT/TTS provider routing pickers + per-workload test buttons. */
 const VoicePanelRoutingSection = ({

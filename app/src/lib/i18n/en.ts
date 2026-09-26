@@ -1732,6 +1732,10 @@ const en: TranslationMap = {
   'settings.search.fallbackToManaged':
     'No key configured: search will fall back to Managed until a key is saved.',
   'settings.search.getApiKey': 'Get API key',
+  'settings.search.keyStored': 'Stored',
+  'settings.search.apiKeysHeading': 'API keys',
+  'settings.search.apiKeysDesc':
+    'Keys for the direct providers. They stay on this device and are used only when that engine is selected.',
   'settings.search.save': 'Save',
   'settings.search.clear': 'Clear',
   'settings.search.show': 'Show',
