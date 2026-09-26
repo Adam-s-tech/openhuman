@@ -133,40 +133,21 @@ Each subscribing domain owns a `bus.rs`; subscriber names use
 
 ## RPC and HTTP transport
 
-`jsonrpc.rs` builds the Axum router (`build_core_http_router`) behind the
-`http-server` feature: `POST /rpc`, `GET /health`, `GET /schema`,
-`GET /events` (SSE), `GET /events/webhooks`, `GET /events/domain`,
-`GET /ws/dictation`, the `/auth`, `/auth/telegram`, and
-`/oauth/mcp/callback` callback routes, and a nested `/v1` OpenAI-compatible
-inference router (`inference::http`). The
-dispatch surface itself (`invoke_method`, `parse_json_params`,
-`default_state`, the `run_server*` `CoreBuilder` shims,
-`register_domain_subscribers`, `bootstrap_core_runtime`) stays compiled in a
-slim build with no listener bound, so the CLI and `CoreRuntime::invoke` keep
-working without the HTTP feature.
+Core has no JSON-RPC server. Every transport resolves a method through
+`invoke::invoke_method`, which checks the registry schema, validates params
+(`all::validate_params`, messages from `params.rs`), dispatches, and on a
+confirmed session expiry publishes `DomainEvent::SessionExpired`.
+`CoreRuntime::invoke` wraps it for embedders; the CLI's `call` subcommand
+uses it directly.
 
-`socketio.rs` bridges live domain events onto Socket.IO for the desktop
-shell's webviews. The socketioxide/axum transport
-bodies are gated on `http-server`, but the payload types
-(`WebChannelEvent`, `TurnUsagePayload`, `SubagentUsagePayload`,
-`SubagentProgressDetail`) stay compiled in every build because roughly ten
-always-on domains construct them: a type carve-out, not a full gate. `pub
-mod socketio;` in `mod.rs` is deliberately ungated for the same reason.
-`COMPANION_STATE_BUS` is a broadcast channel for shell-originated companion
-lifecycle events that still need to reach the native macOS notch WKWebView,
-which has no Tauri IPC bridge and connects to the core's Socket.IO endpoint
-directly. `spawn_web_channel_bridge` spawns one forwarding task per source:
-web-chat events (`web_chat::subscribe_web_channel_events`, delivered to the
-initiating client's room and the `thread:<id>` room, not broadcast),
-dictation hotkeys and transcription results (`voice::dictation_listener`),
-overlay attention bubbles (`desktop::overlay::subscribe_attention_events`,
-see `desktop/overlay/README.md`), core notifications
-(`desktop::notifications`), and companion state. It also forwards a set of
-`DomainEvent`s read straight off `BUS`: session expiry, MCP setup secret
-requests, memory sync and tree-build progress, channel listener health, and
-active-workspace changes.
-Everything except web-chat is broadcast to every connected client, most under
-both a colon- and an underscore-separated event name.
+The HTTP and Socket.IO server that exposes these methods lives in
+`crates/openhuman-rpc` (`openhuman_rpc::server`): the axum router, `/rpc`,
+`/health`, `/schema`, the SSE streams, auth middleware, CORS, Socket.IO and
+the listener bind. It mounts the domain-owned HTTP handlers that stay here
+behind the `http-server` feature (`inference::http`'s `/v1` router, the
+dictation WebSocket in `voice::streaming`). `CoreRuntime` exposes the hooks
+the server needs around a listener (`start_services`, `listener_bound`,
+`serving_started`, `exit_cleanup`).
 
 ## Auth
 
@@ -176,8 +157,8 @@ order of preference: an in-memory handoff from the Tauri shell
 `OPENHUMAN_CORE_TOKEN` env var (operator-supplied for Docker/cloud), or a
 freshly generated token written to `{workspace_dir}/core.token`
 (owner-read-only) for standalone CLI clients. Once set, the `OnceLock` is
-the single source of truth for every transport: `rpc_auth_middleware`,
-Socket.IO, the SSE query-token fallback, and the approval-gate session id.
+the single source of truth for every transport: the HTTP auth middleware
+in `openhuman-rpc`, Socket.IO, the SSE query-token fallback, and the approval-gate session id.
 `event_bind_tokens.rs` mints the separate short-lived, single-shot tokens
 `/events` needs because browser `EventSource` cannot send an `Authorization`
 header.
@@ -196,6 +177,11 @@ which bound memory driver does not advertise which family) so a human does
 not mistake silence for a typo. It resolves the binding itself because plain
 CLI invocations never build a `CoreContext`, so the ambient gate would
 answer "everything allowed".
+
+`run` / `serve` start the JSON-RPC server through the launcher a host
+installs in `server_launcher.rs` (`openhuman_rpc::server::install_cli_server`
+in the `openhuman-core` binary and the desktop app); without one they fail
+and say so.
 
 ## `runtime/` and `subsystem/`
 
@@ -218,12 +204,15 @@ projection backs the `subsystems` RPC namespace and the `openhuman
 subsystems` CLI table. Later subsystems (inference, channels, sandbox) are
 expected to reuse the same registry rather than invent their own.
 
-## `crate::rpc`
+## The controller contract
 
-`crate::rpc` is `pub use openhuman_rpc as rpc;` (see `lib.rs`), so
-`crate::core::Outcome`, `StructuredRpcError`, and `apply_log_envelope` are
-the same types `crates/openhuman-rpc` exposes to `openhuman-app` and
-`openhuman-tui`. There is no separate RPC contract layer under `core/`.
+`Outcome<T>` (`outcome.rs`) is what every domain operation returns: a value
+plus log lines, turned into JSON by `Outcome::into_cli_compatible_json`,
+whose shape `apply_log_envelope` decides. `StructuredRpcError`
+(`structured_error.rs`) is the typed error a controller can return through
+its `Err(String)` channel, and `params.rs` defines the params shape and the
+validation messages. They live in core so every domain and host shares one
+definition; `crates/openhuman-rpc` depends on core for them.
 
 ## A note on `#![recursion_limit = "256"]`
 
