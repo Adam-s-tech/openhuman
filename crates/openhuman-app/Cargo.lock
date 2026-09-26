@@ -4430,8 +4430,10 @@ dependencies = [
 name = "openhuman-tinyhumans"
 version = "0.64.4"
 dependencies = [
+ "aes-gcm",
  "anyhow",
  "async-trait",
+ "base64 0.22.1",
  "chrono",
  "log",
  "openhuman",
@@ -4446,6 +4448,7 @@ dependencies = [
  "tinytools 0.4.1",
  "tinytools-jev",
  "tokio",
+ "tracing",
  "url",
  "urlencoding",
 ]
