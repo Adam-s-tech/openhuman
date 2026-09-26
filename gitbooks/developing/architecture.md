@@ -135,9 +135,7 @@ Desktop Mode:                          Web Mode:
 
 The Rust socket manager implements Engine.IO v4 and Socket.IO v4 framing over a raw WebSocket. On handshake it connects, waits for the Engine.IO OPEN frame (which carries `sid`, `pingInterval`, `pingTimeout`), then sends the Socket.IO CONNECT with JWT auth and waits for the ACK. For keep-alive it answers each Engine.IO PING with a PONG; the connection is considered dead after `pingInterval + pingTimeout + 5s` (50 seconds with the defaults). Reconnection backs off exponentially from 1 second up to a 30-second cap, resetting to 1s once a connection that had been established is lost, but continuing to grow if a connection was never established in the first place. Because it is plain Rust `reqwest` rather than a browser fetch, it also sidesteps CORS: outbound API calls go out directly, with no browser restrictions to work around.
 
-The socket connection is **shared across all skills**. When events arrive, the socket manager routes them to the appropriate skill via async message channels. This eliminates per-skill connection overhead entirely.
-
-**`tool:sync` protocol**: On every socket connect and skill lifecycle change, the client emits a `tool:sync` event containing the full list of available tools with their connection status. This keeps the backend AI system aware of all capabilities in real time.
+The socket connection is shared across the process rather than opened per skill or per tool, so events are routed to the right handler over async message channels instead of paying a new connection each time.
 
 ---
 
