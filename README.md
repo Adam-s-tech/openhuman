@@ -80,10 +80,10 @@ Past compile time, capability comes from loadable native modules: `tinydocs`, `t
 
 Every engine OpenHuman calls out to is chosen by config, not hardcoded:
 
-- **LLM**: the managed TinyHumans route, Ollama, LM Studio, MLX, any local OpenAI-compatible server, Claude Code or the Claude Agent SDK, and 26 bring-your-own-key providers including OpenRouter, OpenAI, Anthropic, Google, Groq, Mistral, DeepSeek, Together, and Fireworks. See [local models and BYOK](https://tinyhumans.gitbook.io/openhuman/features/model-routing/local-and-byok-models).
-- **Embeddings**: the managed Voyage-backed route, or your own Voyage, OpenAI, Cohere, Ollama, or OpenAI-compatible endpoint.
-- **Memory**: [Memory Trees](https://tinyhumans.gitbook.io/openhuman/features/memory-tree) on TinyCortex, mirrored as an [Obsidian vault](https://tinyhumans.gitbook.io/openhuman/features/obsidian-wiki) on your machine, is what every install runs today. The shared `tinymemory` contract already ships adapters for six remote engines (Supermemory, Mem0, Cognee, CortexDB, AgentMemory, LivingBrain) and a `[subsystems.memory] driver` config key for picking one; the host binding that would actually switch a live install to one of them is not wired up yet.
-- **Web search**: managed search included with a subscription, or your own key for Parallel, Brave, Querit, Exa, Tavily, or a self-hosted SearXNG instance.
+- LLM: the managed TinyHumans route, Ollama, LM Studio, MLX, any local OpenAI-compatible server, Claude Code or the Claude Agent SDK, and 26 bring-your-own-key providers including OpenRouter, OpenAI, Anthropic, Google, Groq, Mistral, DeepSeek, Together, and Fireworks. See [local models and BYOK](https://tinyhumans.gitbook.io/openhuman/features/model-routing/local-and-byok-models).
+- Embeddings: the managed Voyage-backed route, or your own Voyage, OpenAI, Cohere, Ollama, or OpenAI-compatible endpoint.
+- Memory: [Memory Trees](https://tinyhumans.gitbook.io/openhuman/features/memory-tree) on TinyCortex, mirrored as an [Obsidian vault](https://tinyhumans.gitbook.io/openhuman/features/obsidian-wiki) on your machine, is what every install runs today. The shared `tinymemory` contract already ships adapters for six remote engines (Supermemory, Mem0, Cognee, CortexDB, AgentMemory, LivingBrain) and a `[subsystems.memory] driver` config key for picking one; the host binding that would actually switch a live install to one of them is not wired up yet.
+- Web search: managed search included with a subscription, or your own key for Parallel, Brave, Querit, Exa, Tavily, or a self-hosted SearXNG instance.
 
 Engine details: [engines](./gitbooks/developing/engines.md).
 
@@ -91,7 +91,7 @@ Engine details: [engines](./gitbooks/developing/engines.md).
 
 Not every decision needs the model to generate text. [Jev](./gitbooks/developing/jev.md) is a small decision model, run through the TinyHumans System One proxy, that takes a question and a fixed set of options and returns a calibrated probability for each: pick one of these (Choice), score this (Score), or yes/no (Noul). It never writes prose.
 
-The clearest use is [tool search](./docs/plans/jev-tool-search-baseline.md): with 215 core tools plus 1,000 Composio actions on the table and 160 real requests, plain BM25 retrieval got the right tool in its top pick 22.5% of the time and made 26 needless tool calls out of 31 tool-less requests. Retrieving the top 20 candidates by embedding and letting Jev choose among them got the right tool 62.0% of the time (66.7% in its top 3) and made 1 needless call, at a p50 of 1.5 seconds against BM25's 28 milliseconds. Letting Jev pick the Composio app family first and then the action within it pushes Composio-only accuracy to 80.3% top-1. It falls back to BM25 automatically when no TinyHumans credential is present.
+The clearest use is [tool search](./docs/plans/jev-tool-search-baseline.md): with 215 core tools plus 1,000 Composio actions on the table and 160 test requests, plain BM25 retrieval got the right tool in its top pick 22.5% of the time and made 26 needless tool calls out of 31 tool-less requests. Retrieving the top 20 candidates by embedding and letting Jev choose among them got the right tool 62.0% of the time (66.7% in its top 3) and made 1 needless call, at a p50 of 1.5 seconds against BM25's 28 milliseconds. Letting Jev pick the Composio app family first and then the action within it pushes Composio-only accuracy to 80.3% top-1. It falls back to BM25 automatically when no TinyHumans credential is present.
 
 Jev also drives step-by-step decisions inside the [browser tool](./crates/openhuman-core/src/modules/browser_task.rs), where a consequential action (a purchase, a send, a delete) returns `NeedsConfirmation` instead of executing.
 
@@ -115,10 +115,9 @@ The same core ships three ways: a Tauri v2 and Wry desktop app for Windows, macO
 
 `openhuman-embed` is the typed facade for embedding the core directly in another Rust process: one `Runtime` per process, then any number of independent `Agent`s on it, each with its own provider, access tier, working directory, MCP servers, skills, prompt, and sandbox. This is the exact code from [`crates/openhuman-embed/README.md`](./crates/openhuman-embed/README.md):
 
-```rust,no_run
+```rust
 use openhuman_embed::{Access, AgentSpec, McpServer, Provider, Runtime, Workspace};
 
-# async fn demo() -> Result<(), Box<dyn std::error::Error>> {
 let runtime = Runtime::builder()
     .workspace(Workspace::dir("/var/lib/my-product/openhuman"))
     .api_key("th_live_…")                     // the only credential in library mode
@@ -151,8 +150,6 @@ println!("{}", fix.reply);
 // Continue a conversation with the same agent.
 let again = fixer.turn("Now run the tests.").session(&fix.session_id).send().await?;
 println!("{}", again.reply);
-# Ok(())
-# }
 ```
 
 Details, feature-flag pass-through, and the minimal-footprint recipe: [embedding](./gitbooks/developing/embedding.md).
