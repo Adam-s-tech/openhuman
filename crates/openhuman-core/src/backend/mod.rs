@@ -1,0 +1,68 @@
+//! The backend port: how the core reaches a hosted backend it knows nothing
+//! about.
+//!
+//! The core holds no hosted-backend URL, header policy, product identity or
+//! SDK. A host installs a [`BackendTransport`] (`openhuman-tinyhumans` installs
+//! the TinyHumans one) and the core asks it for everything host-specific:
+//!
+//! - [`transport`] — the port itself: [`BackendTransport`], [`BackendRequest`],
+//!   [`BackendTransportError`] and the process-wide install slot. The transport
+//!   sends requests *and* answers [`base_url`] / [`inference_base_url`]
+//!   (defaults, environment overrides, the inference-endpoint guard) and
+//!   [`product_identity`].
+//! - [`client`] — [`BackendClient`]: authenticated JSON calls over the port,
+//!   the typed [`BackendApiError`] results domains recover from, and
+//!   [`flatten_authed_error`], the chokepoint that turns them into the
+//!   `SESSION_EXPIRED:` / `API_KEY_REJECTED:` / `BACKEND_UNAVAILABLE:`
+//!   sentinels `core::observability` classifies.
+//! - [`classify`] — backend budget-exhaustion body classification shared by
+//!   inference, the agent loop, the scheduler and web chat.
+//!
+//! A core with no transport installed runs agents, memory, tools and RPC as
+//! normal; every backend-touching call answers
+//! [`BackendApiError::BackendUnavailable`] / `BACKEND_UNAVAILABLE:`, and the
+//! URL helpers here return [`BackendTransportError::Unavailable`].
+
+pub mod classify;
+pub mod client;
+pub mod transport;
+
+pub use client::{flatten_authed_error, BackendApiError, BackendClient};
+pub use transport::{
+    install_backend_transport, installed_backend_transport, is_installed,
+    resolve_backend_transport, BackendRequest, BackendTransport, BackendTransportError,
+    BaseUrlPurpose, TransportProfile,
+};
+
+/// The operator's override, trimmed; `None` when unset or blank.
+fn configured(api_url: &Option<String>) -> Option<&str> {
+    api_url.as_deref().map(str::trim).filter(|s| !s.is_empty())
+}
+
+/// The backend origin for control-plane calls (account, integrations,
+/// channels, voice, sockets, telemetry), resolved by the installed transport
+/// from the configured `api_url` override.
+pub fn base_url(api_url: &Option<String>) -> Result<String, BackendTransportError> {
+    let transport = resolve_backend_transport()?;
+    Ok(transport.base_url(configured(api_url), BaseUrlPurpose::ControlPlane))
+}
+
+/// The backend origin for the managed OpenAI-compatible inference proxy
+/// (chat, embeddings, model listing). Unlike [`base_url`] this honours an
+/// `api_url` override that points at an inference endpoint.
+pub fn inference_base_url(api_url: &Option<String>) -> Result<String, BackendTransportError> {
+    let transport = resolve_backend_transport()?;
+    Ok(transport.base_url(configured(api_url), BaseUrlPurpose::Inference))
+}
+
+/// The product identity the installed host attributes backend traffic to
+/// (the `x-sdk-name` value), or `None` when no transport is installed.
+pub fn product_identity() -> Option<String> {
+    resolve_backend_transport()
+        .ok()
+        .map(|transport| transport.product_identity())
+}
+
+#[cfg(test)]
+#[path = "mod_tests.rs"]
+mod tests;
