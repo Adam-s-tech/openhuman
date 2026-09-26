@@ -51,7 +51,7 @@ openhuman_tinyhumans::install(openhuman_tinyhumans::InstallOptions::default())?;
 | `install` | process-global installation, idempotent |
 | `RuntimeBuilder` | embed builder + transport |
 | `hosted` | the hosted-backend RPC proxies (`billing`, `team`, `referral`, `announcements`), moved here from the core; `hosted::extension()` packages them as a `ControllerExtension` that `install()` registers with the core's registry under `DomainGroup::Hosted`. Wire names (`openhuman.billing_*`, …) are unchanged |
-| `session` | the host-side login/session owner (formerly the `openhuman-session` crate): `SessionClient` (login-token exchange, `GET /auth/me`), `CurrentUserCache`, `CoreLink` (credential handoff into whichever core the host owns), `SessionManager`, process-global `identity` for sync Sentry hooks. May use core utilities (`util::tls`, `api::product`) but never `openhuman_core::security::*` — the core only *takes* a credential |
+| `session` | the host-side login/session owner (formerly the `openhuman-session` crate): `SessionClient` (login-token exchange, `GET /auth/me`), `CurrentUserCache`, `CoreLink` (credential handoff into whichever core the host owns), `SessionManager`, process-global `identity` for sync Sentry hooks. May use core utilities (`util::tls`, `api::product`) but never `openhuman_core::security::*`: the core only *takes* a credential |
 | `jwt` | the SDK's JWT readers, for hosts that already depend on this crate |
 
 Routes and error classification stay in the core (`api/rest.rs`,
