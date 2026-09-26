@@ -118,27 +118,6 @@ const summaryLabel = (
   return `${plural(summary.total, strings)} ${strings.done}`;
 };
 
-export const AgentStatus: FC<{ className?: string; strings?: AgentStatusStrings }> = ({
-  className,
-  strings,
-}) => {
-  const summary = useTaskSummary();
-  const elapsedMs = useTaskElapsed(
-    summary.startedAt === undefined ? undefined : { startedAt: summary.startedAt },
-    summary.running > 0
-  );
-  if (summary.running === 0 && summary.waiting === 0) return null;
-
-  return (
-    <AgentStatusBase
-      className={className}
-      state={summaryState(summary)}
-      label={summaryLabel(summary, strings)}
-      elapsed={elapsedMs === undefined ? undefined : formatElapsed(elapsedMs)}
-    />
-  );
-};
-
 const TaskTrayItem: FC<{ task: TaskState }> = ({ task }) => {
   const state = taskStateOf(task.status, task.isError);
   const meta = taskMeta(task.args);
