@@ -352,15 +352,9 @@ async fn factory_managed_provider_authenticates_with_config_scoped_token() {
         api_url: Some(base.clone()),
         ..config
     };
-    let provider = create_embedding_provider_with_config(
-        &config,
-        "managed",
-        "voyage-3-large",
-        3,
-        "",
-        None,
-    )
-    .expect("managed provider builds via config-aware factory");
+    let provider =
+        create_embedding_provider_with_config(&config, "managed", "voyage-3-large", 3, "", None)
+            .expect("managed provider builds via config-aware factory");
 
     // Embed: the lazy bearer resolver reads the config scope, finds the
     // token, and authenticates to the mock.

@@ -25,7 +25,9 @@ fn attribution_headers_carry_the_core_version_and_default_identity() {
         sanitize_client_version(env!("CARGO_PKG_VERSION")).as_deref()
     );
     assert_eq!(
-        headers.get(PRODUCT_IDENTITY_HEADER).and_then(|v| v.to_str().ok()),
+        headers
+            .get(PRODUCT_IDENTITY_HEADER)
+            .and_then(|v| v.to_str().ok()),
         Some(DEFAULT_PRODUCT_IDENTITY)
     );
 }
