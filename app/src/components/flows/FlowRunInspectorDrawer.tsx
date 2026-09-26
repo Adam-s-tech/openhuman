@@ -241,10 +241,13 @@ export function FlowRunInspectorDrawer({
     });
   };
 
-  useEscapeKey(() => {
-    log('escape: closing runId=%s', runId);
-    onClose();
-  }, runId !== null && variant === 'drawer');
+  useEscapeKey(
+    () => {
+      log('escape: closing runId=%s', runId);
+      onClose();
+    },
+    runId !== null && variant === 'drawer'
+  );
 
   if (!runId) return null;
 
@@ -253,171 +256,171 @@ export function FlowRunInspectorDrawer({
 
   const content = (
     <>
-        {/* Header */}
-        <header className="flex items-start gap-2.5 border-b border-line px-4 py-3">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <span className="truncate font-semibold text-content">
-                {t('flowRuns.inspector.title')}
-              </span>
-              {run && (
-                <span
-                  data-testid="flow-run-status-dot"
-                  data-status={run.status}
-                  className={`h-2 w-2 shrink-0 rounded-full ${flowRunStatusDotClass(run.status)}`}
-                />
-              )}
-            </div>
-            <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-content-muted">
-              {run && (
-                <Badge
-                  variant={flowRunStatusVariant(run.status)}
-                  data-testid="flow-run-status-pill"
-                  data-status={run.status}>
-                  {flowRunStatusLabel(run.status, t)}
-                </Badge>
-              )}
-              {/* Internal ids are dev/debug info, not primary-view content (issue
+      {/* Header */}
+      <header className="flex items-start gap-2.5 border-b border-line px-4 py-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className="truncate font-semibold text-content">
+              {t('flowRuns.inspector.title')}
+            </span>
+            {run && (
+              <span
+                data-testid="flow-run-status-dot"
+                data-status={run.status}
+                className={`h-2 w-2 shrink-0 rounded-full ${flowRunStatusDotClass(run.status)}`}
+              />
+            )}
+          </div>
+          <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-content-muted">
+            {run && (
+              <Badge
+                variant={flowRunStatusVariant(run.status)}
+                data-testid="flow-run-status-pill"
+                data-status={run.status}>
+                {flowRunStatusLabel(run.status, t)}
+              </Badge>
+            )}
+            {/* Internal ids are dev/debug info, not primary-view content (issue
                   B20) — shown short-form only, full value on hover via `title`,
                   matching `FlowRunsDrawer`'s row-level `run.id.slice(0, 8)`. */}
-              {run && (
-                <span className="truncate font-mono" title={run.flow_id}>
-                  {run.flow_id.slice(0, 8)}
-                </span>
-              )}
-              {run && (
-                <span className="truncate font-mono" title={run.thread_id}>
-                  {run.thread_id.slice(0, 8)}
-                </span>
-              )}
-            </div>
+            {run && (
+              <span className="truncate font-mono" title={run.flow_id}>
+                {run.flow_id.slice(0, 8)}
+              </span>
+            )}
+            {run && (
+              <span className="truncate font-mono" title={run.thread_id}>
+                {run.thread_id.slice(0, 8)}
+              </span>
+            )}
           </div>
-          <Button
-            type="button"
-            variant="tertiary"
-            size="xs"
-            iconOnly
-            data-testid="flow-run-inspector-close"
-            onClick={onClose}
-            aria-label={t('conversations.subagent.close')}
-            className="shrink-0">
-            <X className="h-3.5 w-3.5" aria-hidden />
-          </Button>
-        </header>
+        </div>
+        <Button
+          type="button"
+          variant="tertiary"
+          size="xs"
+          iconOnly
+          data-testid="flow-run-inspector-close"
+          onClick={onClose}
+          aria-label={t('conversations.subagent.close')}
+          className="shrink-0">
+          <X className="h-3.5 w-3.5" aria-hidden />
+        </Button>
+      </header>
 
-        <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
-          {loading && !run && (
-            <div data-testid="flow-run-inspector-loading">
-              <CenteredLoadingState label={t('flowRuns.inspector.loading')} />
-            </div>
-          )}
+      <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
+        {loading && !run && (
+          <div data-testid="flow-run-inspector-loading">
+            <CenteredLoadingState label={t('flowRuns.inspector.loading')} />
+          </div>
+        )}
 
-          {error && (
-            <Alert variant="destructive" density="compact" data-testid="flow-run-inspector-error">
-              <AlertDescription>
-                {t('flowRuns.inspector.loadError')}: {error}
-              </AlertDescription>
-            </Alert>
-          )}
+        {error && (
+          <Alert variant="destructive" density="compact" data-testid="flow-run-inspector-error">
+            <AlertDescription>
+              {t('flowRuns.inspector.loadError')}: {error}
+            </AlertDescription>
+          </Alert>
+        )}
 
-          {run && (
-            <>
-              {/* Timing */}
-              <div className="text-xs text-content-muted" data-testid="flow-run-timing">
-                {startedAt && (
-                  <div>
-                    {t('flowRuns.inspector.startedAt')}: {startedAt}
-                  </div>
-                )}
-                {finishedAt ? (
-                  <div>
-                    {t('flowRuns.inspector.finishedAt')}: {finishedAt}
-                  </div>
-                ) : run.status === 'running' || run.status === 'pending_approval' ? (
-                  <div className="animate-pulse">{t('flowRuns.inspector.running')}</div>
-                ) : null}
-              </div>
-
-              {/* Error banner */}
-              {run.error && (
-                <Alert variant="destructive" density="compact" data-testid="flow-run-error-banner">
-                  <AlertDescription>
-                    {t('flowRuns.inspector.error')}: {run.error}
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              {/* Repair entry point (Phase 5c): open the canvas copilot preloaded
-                  with this failed run so the workflow builder can propose a fix. */}
-              {run.status === 'failed' && onFixWithAgent && (
+        {run && (
+          <>
+            {/* Timing */}
+            <div className="text-xs text-content-muted" data-testid="flow-run-timing">
+              {startedAt && (
                 <div>
-                  <Button
-                    type="button"
-                    variant="primary"
-                    size="sm"
-                    data-testid="flow-run-fix-with-agent"
-                    onClick={handleFixWithAgent}>
-                    {t('flowRuns.inspector.fixWithAgent')}
-                  </Button>
+                  {t('flowRuns.inspector.startedAt')}: {startedAt}
                 </div>
               )}
+              {finishedAt ? (
+                <div>
+                  {t('flowRuns.inspector.finishedAt')}: {finishedAt}
+                </div>
+              ) : run.status === 'running' || run.status === 'pending_approval' ? (
+                <div className="animate-pulse">{t('flowRuns.inspector.running')}</div>
+              ) : null}
+            </div>
 
-              {/* Actionable pending-approval gates for this run (flow-approval
+            {/* Error banner */}
+            {run.error && (
+              <Alert variant="destructive" density="compact" data-testid="flow-run-error-banner">
+                <AlertDescription>
+                  {t('flowRuns.inspector.error')}: {run.error}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Repair entry point (Phase 5c): open the canvas copilot preloaded
+                  with this failed run so the workflow builder can propose a fix. */}
+            {run.status === 'failed' && onFixWithAgent && (
+              <div>
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  data-testid="flow-run-fix-with-agent"
+                  onClick={handleFixWithAgent}>
+                  {t('flowRuns.inspector.fixWithAgent')}
+                </Button>
+              </div>
+            )}
+
+            {/* Actionable pending-approval gates for this run (flow-approval
                   surface). Replaces the old read-only "N node(s) awaiting
                   approval" banner — Approve once / Approve always / Deny
                   resolve the gate in place via `openhuman.approval_decide`;
                   the run poller above picks up the resulting steps on its
                   own 2s cadence once the gate clears. */}
-              {isActiveRun && pendingApprovals.length > 0 && (
-                <div className="space-y-2" data-testid="flow-run-pending-approvals">
-                  <h3 className="text-xs font-semibold uppercase tracking-wide text-content-muted">
-                    {t('flowRuns.inspector.pendingApprovals')}
-                  </h3>
-                  {pendingApprovals.map(approval => (
-                    <FlowRunPendingApprovalCard
-                      key={approval.request_id}
-                      approval={approval}
-                      deciding={decidingApprovalId === approval.request_id}
-                      onDecide={decision => decideApproval(approval.request_id, decision)}
-                    />
-                  ))}
-                  {pendingApprovalsError && (
-                    <p
-                      role="alert"
-                      data-testid="flow-run-pending-approvals-error"
-                      className="text-xs text-coral-600 dark:text-coral-400">
-                      {t('flowRuns.inspector.approval.loadError')}
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {/* Steps timeline */}
-              <div>
-                <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-content-muted">
-                  {t('flowRuns.inspector.steps')}
+            {isActiveRun && pendingApprovals.length > 0 && (
+              <div className="space-y-2" data-testid="flow-run-pending-approvals">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-content-muted">
+                  {t('flowRuns.inspector.pendingApprovals')}
                 </h3>
-                {run.steps.length === 0 ? (
-                  <p className="text-xs italic text-content-faint">
-                    {t('flowRuns.inspector.noSteps')}
+                {pendingApprovals.map(approval => (
+                  <FlowRunPendingApprovalCard
+                    key={approval.request_id}
+                    approval={approval}
+                    deciding={decidingApprovalId === approval.request_id}
+                    onDecide={decision => decideApproval(approval.request_id, decision)}
+                  />
+                ))}
+                {pendingApprovalsError && (
+                  <p
+                    role="alert"
+                    data-testid="flow-run-pending-approvals-error"
+                    className="text-xs text-coral-600 dark:text-coral-400">
+                    {t('flowRuns.inspector.approval.loadError')}
                   </p>
-                ) : (
-                  <ol className="space-y-2" data-testid="flow-run-steps">
-                    {run.steps.map((step, idx) => (
-                      <StepRow
-                        key={`${step.node_id}-${idx}`}
-                        step={step}
-                        index={idx}
-                        liveStatus={liveStatuses[step.node_id]}
-                        inputItems={idx > 0 ? normalizeItems(run.steps[idx - 1].output) : undefined}
-                      />
-                    ))}
-                  </ol>
                 )}
               </div>
-            </>
-          )}
-        </div>
+            )}
+
+            {/* Steps timeline */}
+            <div>
+              <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-content-muted">
+                {t('flowRuns.inspector.steps')}
+              </h3>
+              {run.steps.length === 0 ? (
+                <p className="text-xs italic text-content-faint">
+                  {t('flowRuns.inspector.noSteps')}
+                </p>
+              ) : (
+                <ol className="space-y-2" data-testid="flow-run-steps">
+                  {run.steps.map((step, idx) => (
+                    <StepRow
+                      key={`${step.node_id}-${idx}`}
+                      step={step}
+                      index={idx}
+                      liveStatus={liveStatuses[step.node_id]}
+                      inputItems={idx > 0 ? normalizeItems(run.steps[idx - 1].output) : undefined}
+                    />
+                  ))}
+                </ol>
+              )}
+            </div>
+          </>
+        )}
+      </div>
     </>
   );
 

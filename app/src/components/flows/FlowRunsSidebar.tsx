@@ -220,11 +220,11 @@ export default function FlowRunsSidebar({
       </div>
 
       {!controlled && (
-      <FlowRunInspectorDrawer
-        runId={selectedRunId}
-        onClose={() => setSelectedRunId(null)}
-        onFixWithAgent={handleFixWithAgent}
-      />
+        <FlowRunInspectorDrawer
+          runId={selectedRunId}
+          onClose={() => setSelectedRunId(null)}
+          onFixWithAgent={handleFixWithAgent}
+        />
       )}
     </div>
   );

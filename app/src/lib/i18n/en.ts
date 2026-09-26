@@ -4888,6 +4888,7 @@ const en: TranslationMap = {
   // The palette tab is labelled "Manual" (build by hand) as the counterpart to
   // the AI "Copilot" tab; the key name stays `legendTab` for the node palette.
   'flows.canvas.legendTab': 'Manual',
+  'flows.canvas.runTab': 'Run',
   'flows.canvas.toolbar': 'Canvas controls',
   'flows.canvas.zoomIn': 'Zoom in',
   'flows.canvas.zoomOut': 'Zoom out',

@@ -19,7 +19,7 @@
  */
 import type { Viewport } from '@xyflow/react';
 import createDebug from 'debug';
-import { Blocks, PanelRightClose, Sparkles } from 'lucide-react';
+import { Blocks, ChevronLeft, History, PanelRightClose, Sparkles } from 'lucide-react';
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
@@ -30,6 +30,7 @@ import type {
 import FlowCanvas from '../components/flows/canvas/FlowCanvas';
 import NodePalette from '../components/flows/canvas/NodePalette';
 import { FlowPreauthorizationOverlay } from '../components/flows/FlowPreauthorizationCard';
+import { FlowRunInspectorDrawer } from '../components/flows/FlowRunInspectorDrawer';
 import FlowRunsSidebar from '../components/flows/FlowRunsSidebar';
 import WorkflowCopilotPanel, {
   type RepairPromptContext,
@@ -174,7 +175,7 @@ const log = createDebug('app:flows:canvas');
 const RUN_ERROR_AUTO_DISMISS_MS = 12_000;
 
 /** Which panel (if any) the canvas side rail shows. Driven by the header toggle. */
-type SidePanel = 'copilot' | 'legend' | null;
+type SidePanel = 'copilot' | 'legend' | 'run' | null;
 
 type LoadState =
   | { status: 'loading' }
@@ -455,6 +456,8 @@ function FlowEditor({
   // Copilot is shown by DEFAULT (and any build/prefill/repair seed also targets
   // it); the user can switch to the Legend or collapse the rail entirely.
   const [sidePanel, setSidePanel] = useState<SidePanel>('copilot');
+  /** The run picked in the sidebar's run list, shown in the side panel's Run tab. */
+  const [inspectRunId, setInspectRunId] = useState<string | null>(null);
   const copilotOpen = sidePanel === 'copilot';
   // Issue B22: a repair seed can also arrive WITHOUT a `FlowEditor` remount —
   // "Fix with agent" clicked from `FlowRunsSidebar` stays on this same
@@ -1105,7 +1108,7 @@ function FlowEditor({
       size="sm"
       value={sidePanel ?? ''}
       onValueChange={next => {
-        if (next === 'copilot' || next === 'legend') setSidePanel(next);
+        if (next === 'copilot' || next === 'legend' || next === 'run') setSidePanel(next);
       }}
       aria-label={t('flows.canvas.sidePanelToggle')}
       className="rounded-lg border border-line bg-surface-muted/50 p-0.5">
@@ -1123,6 +1126,15 @@ function FlowEditor({
         <Blocks className="h-3.5 w-3.5" aria-hidden />
         {t('flows.canvas.legendTab')}
       </ToggleGroupItem>
+      {inspectRunId && (
+        <ToggleGroupItem
+          value="run"
+          data-testid="flow-canvas-run-toggle"
+          className="gap-1.5 border-0 bg-transparent data-[state=on]:bg-primary-500/10 data-[state=on]:text-primary-600 dark:data-[state=on]:text-primary-300">
+          <History className="h-3.5 w-3.5" aria-hidden />
+          {t('flows.canvas.runTab')}
+        </ToggleGroupItem>
+      )}
     </ToggleGroupRoot>
   );
 
@@ -1221,17 +1233,42 @@ function FlowEditor({
           in the space the real one would have occupied, and it only existed at
           `lg` and up. Drafts have no runs yet, so they project nothing and the
           region stays empty. */}
-      {!isDraft && flowId && (
-        <SidebarContent>
-          <div className="h-full overflow-hidden">
-            <FlowRunsSidebar flowId={flowId} />
+      {/* The sidebar region carries the way back to the list (so the page title
+          sits on the same left edge as every other page's, instead of being
+          pushed in by a leading back button) and, for a saved flow, its runs.
+          Picking a run loads it into the side panel's Run tab. */}
+      <SidebarContent>
+        <div className="flex h-full flex-col overflow-hidden">
+          <div className="shrink-0 px-3 pb-2">
+            <Button
+              type="button"
+              variant="tertiary"
+              data-testid="flow-canvas-back"
+              aria-label={t('flows.canvas.backToList')}
+              leadingIcon={<ChevronLeft className="h-4 w-4" aria-hidden />}
+              className="h-auto w-full justify-start gap-2 rounded-md px-2.5 py-1.5 text-[13px] font-normal text-content-muted hover:bg-surface/40 hover:text-content-secondary"
+              onClick={handleBack}>
+              {t('flows.canvas.backToList')}
+            </Button>
           </div>
-        </SidebarContent>
-      )}
+          {!isDraft && flowId && (
+            <div className="min-h-0 flex-1">
+              <FlowRunsSidebar
+                flowId={flowId}
+                selectedRunId={sidePanel === 'run' ? inspectRunId : null}
+                onSelectRun={runId => {
+                  log('runs sidebar: inspecting run=%s in side panel', runId);
+                  setInspectRunId(runId);
+                  setSidePanel('run');
+                }}
+              />
+            </div>
+          )}
+        </div>
+      </SidebarContent>
       <SettingsTabbedPage
         title={titleNode}
         description={t('flows.canvas.description')}
-        leading={backButton}
         headerAction={headerActions}
         scrollable={false}
         // No full-bleed: the canvas and the side panel are two framed cards in
@@ -1336,6 +1373,30 @@ function FlowEditor({
                 )}
               </header>
               <div className="min-h-0 flex-1">
+                {sidePanel === 'run' && inspectRunId && (
+                  <FlowRunInspectorDrawer
+                    variant="panel"
+                    runId={inspectRunId}
+                    onClose={() => {
+                      setInspectRunId(null);
+                      setSidePanel('copilot');
+                    }}
+                    onFixWithAgent={request => {
+                      log('fix with agent from run panel: run=%s', request.runId);
+                      setInspectRunId(null);
+                      navigate(`/flows/${request.flowId}`, {
+                        replace: true,
+                        state: {
+                          copilotRepair: {
+                            runId: request.runId,
+                            error: request.error,
+                            failingNodeIds: request.failingNodeIds,
+                          },
+                        },
+                      });
+                    }}
+                  />
+                )}
                 {sidePanel === 'legend' && (
                   <NodePalette
                     variant="panel"
