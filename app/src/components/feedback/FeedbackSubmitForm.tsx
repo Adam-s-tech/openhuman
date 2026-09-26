@@ -274,7 +274,7 @@ export default function FeedbackSubmitForm({ onAccepted, bare = false }: Feedbac
       <div className="mt-3 flex items-center justify-between gap-3">
         <Button
           variant="primary"
-          size="lg"
+          size={bare ? 'md' : 'lg'}
           onClick={handleSubmit}
           disabled={!canSubmit}
           aria-describedby={visibleHint ? QUALITY_HINT_ID : undefined}>
