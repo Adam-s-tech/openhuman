@@ -97,16 +97,20 @@ describe('EventLogPanel SSE config frame', () => {
     expect(renderedEvents(['AlphaEvent', 'BetaEvent'])).toEqual(['BetaEvent', 'AlphaEvent']);
   });
 
-  it("appends newest-last when the config frame asks for new_entries 'bottom'", async () => {
-    // The whole point of the frame: the server decides the direction. With
-    // 'bottom' the order must invert relative to the case above.
+  it("still renders newest-first when the config frame asks for new_entries 'bottom'", async () => {
+    // `new_entries: 'bottom'` still governs which end of the in-memory buffer
+    // new rows join (and so which end gets trimmed at `max_entries` — see the
+    // cap tests below), but display order no longer follows it: EventLogPanel
+    // now always shows page 1 as "latest first" regardless of the stream's
+    // append direction (EventLogPanel.tsx's `orderedEntries`, which reverses
+    // the buffer for 'bottom' precisely so paging stays "page 1 = newest").
     mockFetchRaw(
       config({ max_entries: 100, new_entries: 'bottom' }) + evt('AlphaEvent') + evt('BetaEvent')
     );
     renderWithProviders(<EventLogPanel />);
 
     await waitFor(() => expect(screen.getByText('BetaEvent')).toBeTruthy());
-    expect(renderedEvents(['AlphaEvent', 'BetaEvent'])).toEqual(['AlphaEvent', 'BetaEvent']);
+    expect(renderedEvents(['AlphaEvent', 'BetaEvent'])).toEqual(['BetaEvent', 'AlphaEvent']);
   });
 
   it('caps the buffer at max_entries, dropping the oldest when newest-first', async () => {

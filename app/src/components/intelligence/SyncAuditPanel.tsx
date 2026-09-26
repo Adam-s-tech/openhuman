@@ -228,7 +228,9 @@ export function SyncAuditPanel({ fill = false }: SyncAuditPanelProps = {}) {
         </span>
         <span aria-hidden>·</span>
         <span>
-          {formatTokens(totalInput)} in / {formatTokens(totalOutput)} out
+          {t('sync.tokensInOut', '{in} in / {out} out')
+            .replace('{in}', formatTokens(totalInput))
+            .replace('{out}', formatTokens(totalOutput))}
         </span>
         <span aria-hidden>·</span>
         <span className="font-medium text-content-secondary">
