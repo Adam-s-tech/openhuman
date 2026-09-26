@@ -318,9 +318,9 @@ Subscribes to chat runtime socket events (message streaming, tool calls, subagen
 
 ### Gates and shell-level contexts (in `components/`)
 
-- **`BootCheckGate`** (`components/BootCheckGate/`): blocks render until the core boot snapshot resolves.
-- **`CommandProvider`** (`components/commands/`): command palette context.
-- **`ServiceBlockingGate`** (`components/daemon/`): blocks the shell until required services are configured.
+- `BootCheckGate` (`components/BootCheckGate/`) blocks render until the core boot snapshot resolves.
+- `CommandProvider` (`components/commands/`) holds the command palette context.
+- `ServiceBlockingGate` (`components/daemon/`) blocks the shell until required services are configured.
 
 ### Context vs Redux
 
