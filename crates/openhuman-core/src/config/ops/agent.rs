@@ -1,4 +1,4 @@
-//! Agent, autonomy, paths, activity-level, and memory-sync config operations.
+//! Agent, autonomy, paths, and memory-sync config operations.
 
 use std::path::{Path, PathBuf};
 
