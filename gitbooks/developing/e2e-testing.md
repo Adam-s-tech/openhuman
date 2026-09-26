@@ -107,21 +107,23 @@ Use `waitForTestId(testId)` and `clickTestId(testId)` from `element-helpers.ts` 
 
 `app/test/e2e/helpers/deep-link-helpers.ts` handles auth deep links:
 
-- **Appium Chromium**: `browser.execute(window.__simulateDeepLink(url))` on every platform
-- **macOS fallback**: `macos: deepLink` extension command, then `open -a ...`
+- **Primary path**: `browser.execute(window.__simulateDeepLink(url))`, which works against the WebView on every platform tauri-driver supports.
+- **macOS-only fallbacks** (unexercised by CI today, since macOS has no automated desktop session): the `macos: deepLink` extension command, then `open -a ...`.
+- Linux has no shell fallback: `xdg-open openhuman://...` needs a `.desktop` file registering the URL scheme, which the CI container does not have, so `triggerDeepLink` throws immediately if the WebView simulate call fails there.
 
 For release candidates, also run one manual secondary-instance smoke on Linux
-or macOS when touching CEF preflight, single-instance, or deep-link startup
-code:
+or macOS when touching single-instance or deep-link startup code (this
+exercises `tauri-plugin-single-instance`, which OpenHuman registers with the
+`deep-link` feature):
 
 1. Launch OpenHuman normally and leave it running.
 2. Trigger `openhuman://auth?token=e2e-token&key=auth` through the OS opener.
-3. Confirm the already-running window receives the callback and does not start
-   a second full CEF instance.
-4. Confirm the secondary process exits cleanly without a CEF cache-lock error.
+3. Confirm the already-running window receives the callback instead of a
+   second app instance starting.
+4. Confirm the secondary process exits cleanly.
 
-This catches the class of regressions where a secondary process exits during
-CEF cache preflight before Tauri's deep-link forwarding path is installed.
+This catches regressions where a second instance starts (or exits with an
+error) before Tauri's deep-link forwarding path is installed.
 
 ### Writing cross-platform specs
 
