@@ -16,7 +16,7 @@ use tokio_stream::StreamExt;
 /// `Authorization` header, so the bind token is the only credential the
 /// endpoint accepts.
 #[derive(Debug, serde::Deserialize)]
-struct EventsQuery {
+pub(super) struct EventsQuery {
     client_id: String,
     #[serde(default)]
     token: Option<String>,

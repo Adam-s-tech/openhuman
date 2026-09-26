@@ -15,7 +15,7 @@ use serde_json::json;
 /// validated against the same in-process RPC token via [`verify_bearer_token`]
 /// (single source of truth, no separate credential).
 #[derive(Debug, serde::Deserialize)]
-struct DictationQuery {
+pub(super) struct DictationQuery {
     #[serde(default)]
     token: Option<String>,
 }

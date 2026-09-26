@@ -8,7 +8,7 @@ use super::pages::{error_html, success_html};
 
 /// Query params for the MCP browser-OAuth callback (`/oauth/mcp/callback`).
 #[derive(Debug, serde::Deserialize)]
-struct OAuthMcpCallbackQuery {
+pub(super) struct OAuthMcpCallbackQuery {
     code: Option<String>,
     state: Option<String>,
     error: Option<String>,
