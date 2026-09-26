@@ -54,6 +54,8 @@ crates/openhuman-app/src/
 ├── dictation_hotkeys.rs / ptt_hotkeys.rs / ptt_overlay.rs
 ├── native_notifications/
 ├── artifact_commands.rs    # Artifact export (copy into Downloads)
+├── directory_picker.rs     # Native folder picker for the folder memory source (#5831)
+├── external_navigation.rs  # Keeps the main webview from navigating off-app; hands remote links to the OS browser
 ├── workspace_paths.rs      # Safe workspace-relative file open/reveal/preview
 ├── app_update.rs           # Updater support (commands live in lib.rs)
 ├── loopback_oauth.rs       # Localhost OAuth redirect listener
@@ -61,7 +63,7 @@ crates/openhuman-app/src/
 ├── claude_code.rs          # Claude Code login launch
 ├── mcp_commands.rs         # MCP client helpers
 ├── file_logging.rs         # Log file sink + logs-folder commands
-├── process_recovery.rs / process_kill.rs / local_data_reset.rs
+├── process_recovery.rs / process_kill.rs / local_data_reset.rs  # process_recovery has per-platform submodules under process_recovery/
 ├── deep_link_ipc.rs / deep_link_ipc_windows.rs / deep_link_registration_check.rs
 └── stderr_panic_hook.rs / reset_reboot_schedule.rs
 ```
