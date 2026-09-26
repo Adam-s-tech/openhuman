@@ -76,7 +76,8 @@ None. This package is the library only; `crates/openhuman-cli` declares the
 the pluggable-core work (see `src/core/runtime/`). `test-mcp-stub` is the
 stdio MCP server `tests/mcp_registry_e2e.rs` spawns. `rss-bench` and
 `library-profile` are dev-only profiling harnesses; see `scripts/profile/`.
-Details for each are in [`src/bin/README.md`](src/bin/README.md).
+Details for each are in
+[`../openhuman-cli/src/bin/README.md`](../openhuman-cli/src/bin/README.md).
 
 ## Feature flags
 

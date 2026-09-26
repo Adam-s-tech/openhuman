@@ -3,7 +3,7 @@
 The native loadable-module host. A module is a first-party `cdylib`: `tinydocs`,
 `tinywallet`, `tinymemory`, `tinyjuice`, `tinyvoice`, `tinyruntime` (+
 `tinyruntime-nodejs` / `tinyruntime-python`), `tinymcp`, `tinyconnectors`,
-`tinybox`, `tinychannels`, `tinyhosts`, `tinysearch`: that
+`tinybox`, `tinychannels`, `tinyhosts`, `tinysearch`, that
 speaks the tinybus module ABI. It is downloaded from a pinned GitHub release,
 verified against a digest compiled into [`registry.rs`](registry.rs), admitted
 through tinybus's ABI/manifest gates, and attached to a private in-process
@@ -170,3 +170,13 @@ sandbox boundary. From `AGENTS.md`, do not weaken these:
   `inference/voice` (`voice.rs`), `integrations/composio/module_client.rs`
   (`connectors.rs`), and `inference/tokenjuice`, which `ensure_loaded`s
   `tinyjuice` and is called back through `tokenjuice_host.rs`.
+
+## Where next
+
+- [`modules/registry`](registry/README.md) for how a module's record is
+  admitted (checksum, ABI, manifest).
+- [`modules/memory`](memory/README.md) for one concrete example of a module's
+  host-side half, `tinymemory`.
+- `gitbooks/developing/performance.md` for how loading modules on demand
+  (rather than linking everything in) keeps a minimal build small and a full
+  one modular without paying for what a given install never uses.

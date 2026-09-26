@@ -45,7 +45,7 @@ Namespace `notification` (10 controllers, registered via `all_notifications_regi
 | `mark_acted` | `id` | `{ ok }` (true when a row matched) |
 | `settings_get` | `provider` | `{ settings }` (defaulted if absent) |
 | `settings_set` | `provider`, `enabled`, `importance_threshold`, `route_to_orchestrator` | `{ ok, settings }`: threshold clamped to 0.0-1.0. |
-| `stats` |, | `{ total, unread, unscored, by_provider, by_action }` |
+| `stats` | none | `{ total, unread, unscored, by_provider, by_action }` |
 | `core_list` | `only_unread?` (true), `limit?` (100) | `{ items, unread_count }`: persisted core notifications (#3805), newest first; sync-down for events fired while the app was closed. |
 | `core_mark_read` | `id` | `{ ok }` (true when a row matched) |
 
