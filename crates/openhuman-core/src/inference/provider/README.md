@@ -39,7 +39,7 @@ previously `providers/` (pre-consolidation single-crate layout); see
 | Anthropic Messages API (prompt caching) | `tinyinference_llm::providers::anthropic` | `<slug>:<model>` whose endpoint is the first-party Messages API and native tool calling is on |
 | Codex OAuth / Responses API | `openai_codex.rs` host OAuth selection plus `tinyinference_llm::providers::openai::codex` metadata | the `openai` cloud slug once Codex OAuth tokens exist |
 | Claude Agent SDK subprocess | `tinyagents_harness::providers::claude_agent_sdk` | `claude_agent_sdk` / `claude_agent_sdk:<model>` |
-| Claude Code CLI subprocess | routed by `factory/` (see the [Claude Code provider guide](../../../../../gitbooks/developing/providers/claude-code.md)) | `claude-code:<model>` |
+| Claude Code CLI subprocess | `tinyagents_harness::providers::claude_code` (see the [Claude Code provider guide](../../../../../gitbooks/developing/providers/claude-code.md)) | `claude-code:<model>` |
 
 ## Calls into
 
@@ -64,7 +64,7 @@ previously `providers/` (pre-consolidation single-crate layout); see
   managed backend reports an auth failure, so the credentials layer can
   clear/refresh the session; `ops/http_error/auth_failure.rs` also publishes
   `DomainEvent::ProviderApiKeyRejected` the first time a BYO key is rejected.
-- `crate::mcp::server::local` (via `claude_code/driver.rs`), the Claude Code
+- `crate::mcp::server::local` (via the vendored `claude_code` driver), the Claude Code
   provider points the sandboxed `claude` subprocess at the in-process MCP
   server so it can reach OpenHuman's memory/tools over loopback without the
   MCP server inheriting CC's OS jail.
@@ -89,7 +89,7 @@ consumers: the agent harness (`agent/session_host/builder/factory.rs`,
   (`list_configured_models`), `provider_factory` (`ProviderRuntimeOptions`,
   `list_providers`, `is_qwen_alias`-style China-provider alias helpers).
   Preserves the original `pub use ops::*` contract split out of a single `ops.rs`.
-- Claude Code CLI provider: routed in `factory/`; see the [Claude Code provider guide](../../../../../gitbooks/developing/providers/claude-code.md).
+- Claude Code CLI provider: `tinyagents_harness::providers::claude_code` in `vendor/tinyagents`; see the [Claude Code provider guide](../../../../../gitbooks/developing/providers/claude-code.md).
 - `schemas.rs`: a `providers.list_models` controller that is **not**
   registered in `core/all.rs`; the live method is `inference.list_models`
   (`openhuman.providers_list_models` survives only as a legacy alias in
@@ -106,9 +106,8 @@ consumers: the agent harness (`agent/session_host/builder/factory.rs`,
   classification and model listing.
 - `error_classify_tests.rs`: OpenHuman-specific classifier policy; reusable
   classifier tests live in TinyInference.
-- `claude_code/*_tests.rs`: per-file coverage of the CC provider (auth,
-  auth status, driver, event mapper, input builder, stream parser, session
-  store, settings, version check) plus `mod_tests.rs`.
+- Claude Code provider tests live with the provider in
+  `vendor/tinyagents/crates/tinyagents-harness/src/providers/claude_code/`.
 - `openhuman_backend_model_tests.rs`: managed host transport; reusable provider
   builder and Codex tests live in TinyInference and TinyAgents.
 
