@@ -1,7 +1,9 @@
 # The core package and its implementation live together under `crates/`:
 # domain modules live directly under `src/`, alongside backend API and runtime
-# composition. Shared RPC contracts and clients belong to `openhuman-rpc`; the
-# typed embedding facade belongs to `openhuman-embed`.
+# composition, and the controller contract (`core::Outcome`, schemas, dispatch).
+# The JSON-RPC protocol and server that expose it belong to `openhuman-rpc`,
+# which depends on this crate; the typed embedding facade belongs to
+# `openhuman-embed`.
 # This package is the LIBRARY only. The `openhuman-core` binary, the other
 # developer bins, and every root `tests/*.rs` / `examples/*.rs` target belong
 # to `crates/openhuman-cli`, which depends on `openhuman-tinyhumans` for the
@@ -59,7 +61,6 @@ path = "src/lib.rs"
 crate-type = ["rlib"]
 
 [dependencies]
-openhuman-rpc.workspace = true
 # The TinyHumans SDK is deliberately NOT a dependency of the core. The core
 # reaches the hosted backend only through `api::transport::BackendTransport`;
 # the SDK-backed implementation is `crates/openhuman-tinyhumans`, which hosts
@@ -453,7 +454,6 @@ axum = { version = "0.8", default-features = false, features = ["http1", "json",
 sentry = { version = "0.47.0", default-features = false, optional = true, features = ["backtrace", "contexts", "panic", "tracing", "debug-images", "httpdate"] }
 tokio-stream = { version = "0.1.18", default-features = false, features = ["sync"] }
 url = "2"
-socketioxide = { version = "0.15", features = ["extensions"], optional = true }
 tempfile = "3"
 cpal = { version = "0.15", optional = true }
 enigo = { version = "0.3", optional = true }
@@ -802,7 +802,7 @@ default = ["media", "skills", "flows", "mcp", "channels", "http-server", "schedu
 # `None`; and the three `ops` entry points always-on code calls return a
 # build-fact error, so a post-sync snapshot or a subconscious diff is logged and
 # skipped rather than silently reported as "nothing changed".
-http-server = ["dep:axum", "dep:socketioxide"]
+http-server = ["dep:axum"]
 # Local audio-device access: the `cpal` capture stack behind voice recording
 # and the accessibility microphone-permission probe. Default-ON. Slim /
 # headless builds opt out via `--no-default-features --features "<explicit list

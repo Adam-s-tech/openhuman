@@ -24,10 +24,11 @@
 //! composition (`core::runtime`). See `README.md` and AGENTS.md ("Rust domain
 //! structure") for the preferred per-domain module shape.
 //!
-//! `pub use openhuman_rpc as rpc;` re-exports the `openhuman-rpc` crate, so
-//! `crate::rpc::{Outcome, StructuredRpcError, ...}` are the same types the
-//! app and TUI decode responses with — there is no separate RPC contract
-//! layer in this crate.
+//! The controller contract lives in `core`: every domain operation returns
+//! [`core::Outcome`], controllers are described by `core::ControllerSchema`,
+//! and `core::invoke::invoke_method` dispatches them in-process. The JSON-RPC
+//! protocol and server that expose them live in `openhuman-rpc`, which depends
+//! on this crate.
 //!
 //! [`CoreBuilder`], [`CoreRuntime`], [`DomainSet`], [`ServiceSet`],
 //! [`TokenSource`] and [`HostKind`] are the embeddable composition API;
@@ -76,7 +77,6 @@ pub mod memory;
 #[cfg(feature = "modules")]
 pub mod modules;
 pub mod platform;
-pub use openhuman_rpc as rpc;
 pub mod runtime;
 pub mod sandbox;
 pub mod search;
