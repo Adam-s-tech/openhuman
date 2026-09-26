@@ -179,9 +179,9 @@ into `SecurityPolicy` at startup and on every settings change
 
 Process-local inference overrides supplied by the standalone CLI
 (`set_cli_inference_overrides`, `apply_cli_inference_overrides`,
-`restore_persisted_inference_fields` — all `pub(crate)` — and the
+`restore_persisted_inference_fields`, all `pub(crate)`, and the
 `#[doc(hidden)]` `AppliedInferenceOverride` snapshot stored on
-`Config::cli_inference_snapshot`) — lets a CLI invocation temporarily swap
+`Config::cli_inference_snapshot`). This lets a CLI invocation temporarily swap
 model/provider without the override ever reaching the persisted config.
 
 ## Tests

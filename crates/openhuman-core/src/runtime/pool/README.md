@@ -50,7 +50,7 @@ step spawns a `node` child at roughly 72-75 MB RSS. A small, bounded pool of
 warm workers turns "K concurrent skill runs, K interpreters" into "K
 concurrent skill runs, about one pooled worker", at the cost of queueing work
 beyond the pool size. This is one piece of the density work described in
-[performance.md](../../../../../../gitbooks/developing/performance.md).
+[performance.md](../../../../../gitbooks/developing/performance.md).
 
 ## Defaults (`[runtime_pool]`, `config/schema/runtime_pool.rs`)
 
