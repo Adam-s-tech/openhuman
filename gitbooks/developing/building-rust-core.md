@@ -233,7 +233,7 @@ Recommended commands after the Microsoft toolchain is installed:
 ```powershell
 rustup toolchain install 1.96.1 --component rustfmt --component clippy
 rustup target add x86_64-pc-windows-msvc
-cargo build --manifest-path Cargo.toml --bin openhuman-core
+cargo build --manifest-path Cargo.toml -p openhuman-cli --bin openhuman-core
 ```
 
 Use the MSVC toolchain, not MinGW, to match CI and release builds.
