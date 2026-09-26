@@ -152,7 +152,7 @@ export interface DataTableProps<T> {
 
 const DEFAULT_PAGE_SIZES = [10, 25, 50, 100];
 
-export function DataTableFilterMenu({ filter }: { filter: DataTableFilter }) {
+function DataTableFilterMenu({ filter }: { filter: DataTableFilter }) {
   const { t } = useT();
   const partial = filter.selected.size > 0 && filter.selected.size < filter.options.length;
 
