@@ -5,6 +5,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { Badge } from '../ui';
 import {
   memoryNamespaceSummaries,
   memorySyncStatusList,

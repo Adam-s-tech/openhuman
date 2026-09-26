@@ -1,5 +1,5 @@
 import { RefreshCw } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { type ReactNode, useMemo, useState } from 'react';
 
 import { type CostUsageRecord, useCostUsageLog } from '../../hooks/useCostDashboard';
 import { useT } from '../../lib/i18n/I18nContext';
@@ -235,10 +235,7 @@ const UsageLogPanel = () => {
   );
 };
 
-/**
- * A compact labelled select for the table toolbar. The label is visually
- * hidden (the option text says what is selected) but stays the accessible name.
- */
+/** A compact labelled select for the table toolbar; the label is its accessible name. */
 const FilterSelect = ({
   label,
   value,
@@ -248,7 +245,7 @@ const FilterSelect = ({
   label: string;
   value: string;
   onChange: (value: string) => void;
-  children: React.ReactNode;
+  children: ReactNode;
 }) => (
   <label className="flex shrink-0 items-center gap-1.5 text-xs text-content-muted">
     <span>{label}</span>
