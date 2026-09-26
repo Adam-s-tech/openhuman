@@ -138,10 +138,8 @@ describe('Skills page — Channels grid', () => {
     const { store } = renderWithProviders(<Skills />, { initialEntries: ['/connections'] });
     fireEvent.click(screen.getByTestId('two-pane-nav-channels'));
 
-    const channelsCard = screen
-      .getByRole('heading', { name: 'Messaging' })
-      .closest('[data-slot="card"]');
-    const within$ = within(channelsCard as HTMLElement);
+    const overview = screen.getByTestId('channels-overview');
+    const within$ = within(overview);
 
     // The redux default starts on Telegram, so its tile shows the "Default"
     // badge (there is no longer a second, separate channel-picker list below).
