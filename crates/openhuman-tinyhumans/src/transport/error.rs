@@ -1,7 +1,7 @@
 //! `tinyhumans_sdk::Error` → core [`BackendTransportError`], one arm per
-//! variant the core classifies on so `api::rest::finish_authed_json` and the
-//! integrations client see exactly the shapes they saw when they called the
-//! SDK directly.
+//! variant the core classifies on so `backend::client::finish_authed_json` and
+//! the integrations client see exactly the shapes they saw when they called
+//! the SDK directly.
 
 use openhuman_core::backend::transport::BackendTransportError;
 use tinyhumans_sdk::Error as SdkError;
