@@ -428,14 +428,6 @@ export const SETTINGS_ROUTE_REGISTRY: SettingsRegistryEntry[] = [
   // FEATURES section leaf panels
   // =========================================================================
   {
-    id: 'tools',
-    titleKey: 'pages.settings.features.tools',
-    descriptionKey: 'pages.settings.features.toolsDesc',
-    section: 'features',
-    searchKeywords: ['tools', 'capabilities', 'functions'],
-    navGroup: 'agentsAutonomy',
-    navOrder: 1,
-  },
   {
     // meetings: Meeting Assistant settings (issue #3511 / epic #3505 PR-5).
     // Surfaced on the Connections page (meetings tab, below the meetings list);
@@ -567,8 +559,8 @@ export const SETTINGS_ROUTE_REGISTRY: SettingsRegistryEntry[] = [
     titleKey: 'settings.approvalHistory.title',
     section: 'agents',
     searchKeywords: ['approval', 'history', 'permission', 'audit'],
-    navGroup: 'agentsAutonomy',
-    navOrder: 2,
+    navGroup: 'security',
+    navOrder: 3,
   },
 ];
 
