@@ -2,24 +2,18 @@
 
 /**
  * Vendored from the assistant-ui `sources` registry item
- * (https://r.assistant-ui.com/styles/base-nova/sources.json). Renders one
- * `source` message part (`SourceMessagePartComponent`): a `url` source as a
- * favicon + domain/title link, a `document` source (memory citations) as a
- * badge with a document glyph.
+ * (https://r.assistant-ui.com/styles/base-nova/sources.json). Exposes the
+ * `Source`/`SourceIcon`/`SourceTitle`/`DocumentSourceIcon` primitives; the
+ * upstream `Sources` message-part component was dropped as unused — callers
+ * compose the primitives directly (see `ChatSources.tsx`).
  *
  * Changes from upstream:
  * - `cn` import path (`@/components/assistant-ui/lib/utils`).
- * - `@/components/ui/badge` -> this app's own vendored
- *   `@/components/assistant-ui/badge` (already vendored from the same
- *   registry `badge` item under a different local path).
  */
 import { cn } from '@/components/assistant-ui/lib/utils';
-import type { SourceMessagePartComponent } from '@assistant-ui/react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { FileTextIcon } from 'lucide-react';
-import { type ComponentProps, memo, useState } from 'react';
-
-import { Badge } from '../badge';
+import { type ComponentProps, useState } from 'react';
 
 const sourceVariants = cva(
   'inline-flex items-center justify-center gap-1 rounded-md text-xs font-medium transition-colors [&_svg]:size-3 [&_svg]:shrink-0',
