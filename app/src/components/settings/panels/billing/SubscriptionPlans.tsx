@@ -166,23 +166,19 @@ const SubscriptionPlans = ({
                         {plan.name}
                       </h4>
                       {isPopular && (
-                        <Badge
-                          variant="primary">
+                        <Badge variant="primary">
                           {t('settings.billing.subscription.popular')}
                         </Badge>
                       )}
                       {isCurrent && !plan.recommended && (
-                        <Badge
-                          variant="success">
+                        <Badge variant="success">
                           {t('settings.billing.subscription.current')}
                         </Badge>
                       )}
                     </div>
                     <div className="mt-3 flex flex-wrap gap-2">
                       {plan.features.slice(0, 4).map(feature => (
-                        <Badge
-                          key={feature.text}
-                          variant="neutral">
+                        <Badge key={feature.text} variant="neutral">
                           {feature.text}
                         </Badge>
                       ))}

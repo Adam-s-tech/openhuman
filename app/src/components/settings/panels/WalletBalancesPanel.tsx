@@ -142,9 +142,7 @@ const BalanceRow = ({ balance, onSend, onReceive }: BalanceRowProps) => {
             <span className="text-xs text-content-muted">{networkLabel}</span>
           </div>
           {balance.providerStatus !== 'ready' && (
-            <Badge variant="warning">
-              {t('walletBalances.providerMissing')}
-            </Badge>
+            <Badge variant="warning">{t('walletBalances.providerMissing')}</Badge>
           )}
         </div>
       </TableCell>

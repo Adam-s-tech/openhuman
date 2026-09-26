@@ -348,10 +348,7 @@ function ChannelTile({
         // Aligns under the name/status text (icon 2.5rem + gap 0.75rem).
         <div className="pl-13">
           {isDefault ? (
-            <Badge
-              data-testid={setDefaultTestId}
-              variant="primary"
-              dot={false}>
+            <Badge data-testid={setDefaultTestId} variant="primary" dot={false}>
               <svg className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                 <path
                   fillRule="evenodd"
