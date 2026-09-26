@@ -197,7 +197,7 @@ const AppearancePanel = () => {
       value={tab}
       onChange={selectTab}
       tabs={[
-        // Everyday controls: theme + Light/Dark/Auto, text size, language. The
+        // Everyday controls: theme + Light/Dark/Auto and text size. The
         // gallery's header holds the variant toggle — `setThemeMode` and
         // `setThemeVariant` write the same two slice fields, so there is one
         // control, not two.
