@@ -6135,7 +6135,7 @@ const en: TranslationMap = {
   'settings.mcpServer.tools.treeBrowse': 'Browse the memory tree structure',
   'settings.mcpServer.tools.treeTopEntities': 'Get top entities from memory tree',
   'settings.mcpServer.tools.treeListSources': 'List memory tree sources',
-  'settings.appearance.menuDesc': 'Pick light, dark, or match your system theme',
+  'settings.appearance.menuDesc': 'Text size, corners and borders',
   'settings.agentAccess.title': 'Agent OS access',
   'settings.agentAccess.menuDesc':
     'Control where the agent can read/write and whether it can use the shell.',
