@@ -38,7 +38,7 @@ The status RPC is on the existing inference namespace:
 openhuman-core rpc openhuman.inference_claude_code_status
 ```
 
-Returns one of (`CliStatus` in [`crates/openhuman-core/src/inference/provider/claude_code/types.rs`](../../../crates/openhuman-core/src/inference/provider/claude_code/types.rs)):
+Returns one of (`CliStatus` in [`tinyagents-harness`'s `claude_code/types.rs`](../../../vendor/tinyagents/crates/tinyagents-harness/src/providers/claude_code/types.rs)):
 
 - `{"status":"ok","version":"2.0.4","path":"/usr/local/bin/claude"}`: ready
 - `{"status":"not_installed"}`: no usable `claude` was found through the
