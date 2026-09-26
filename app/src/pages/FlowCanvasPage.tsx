@@ -1112,14 +1112,14 @@ function FlowEditor({
       <ToggleGroupItem
         value="copilot"
         data-testid="flow-canvas-copilot-toggle"
-        className="gap-1.5 border-0 data-[state=on]:bg-surface data-[state=on]:shadow-xs">
+        className="gap-1.5 border-0 bg-transparent data-[state=on]:bg-primary-500/10 data-[state=on]:text-primary-600 dark:data-[state=on]:text-primary-300">
         <Sparkles className="h-3.5 w-3.5" aria-hidden />
         {t('flows.copilot.open')}
       </ToggleGroupItem>
       <ToggleGroupItem
         value="legend"
         data-testid="flow-canvas-legend-toggle"
-        className="gap-1.5 border-0 data-[state=on]:bg-surface data-[state=on]:shadow-xs">
+        className="gap-1.5 border-0 bg-transparent data-[state=on]:bg-primary-500/10 data-[state=on]:text-primary-600 dark:data-[state=on]:text-primary-300">
         <Blocks className="h-3.5 w-3.5" aria-hidden />
         {t('flows.canvas.legendTab')}
       </ToggleGroupItem>
