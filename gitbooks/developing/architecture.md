@@ -362,7 +362,7 @@ Transport is selected by `ConnectionProfile` stored in secure storage. On pairin
 
 ### Security
 
-- Tunnel backend is a blind forwarder -- never sees plaintext payloads.
+- Tunnel backend is a blind forwarder; it never sees plaintext payloads.
 - `pairingToken` is single-use, TTL'd, hashed at rest on backend.
 - `sessionToken` is per-client peer and revocable from the desktop Devices panel; the desktop core does not receive a session token during register.
 - Speech recognition runs on-device (Apple Speech framework); audio never leaves the device.
