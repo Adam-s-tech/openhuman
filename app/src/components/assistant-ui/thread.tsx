@@ -1278,14 +1278,14 @@ const ComposerAction: FC<{
             // button. `cn` is tailwind-merge, so the later `bg-primary-500`
             // replaces the variant's `bg-primary` cleanly.
             <TooltipIconButton
-              tooltip="Send message"
+              tooltip={t('chat.send', 'Send message')}
               side="bottom"
               type="button"
               variant="default"
               size="icon"
               className="aui-composer-send size-7 rounded-full bg-primary-500 text-content-inverted hover:bg-primary-600"
               data-testid="send-message-button"
-              aria-label="Send message"
+              aria-label={t('chat.send', 'Send message')}
               onClick={() => {
                 onComposerAttachmentSend?.();
                 aui.composer.setText('');
@@ -1295,14 +1295,14 @@ const ComposerAction: FC<{
           ) : (
             <ComposerPrimitive.Send asChild>
               <TooltipIconButton
-                tooltip="Send message"
+                tooltip={t('chat.send', 'Send message')}
                 side="bottom"
                 type="button"
                 variant="default"
                 size="icon"
                 className="aui-composer-send size-7 rounded-full bg-primary-500 text-content-inverted hover:bg-primary-600"
                 data-testid="send-message-button"
-                aria-label="Send message">
+                aria-label={t('chat.send', 'Send message')}>
                 <ArrowUpIcon className="aui-composer-send-icon size-4" />
               </TooltipIconButton>
             </ComposerPrimitive.Send>
@@ -1316,7 +1316,7 @@ const ComposerAction: FC<{
               size="icon"
               className="aui-composer-cancel size-7 rounded-full bg-primary-500 text-content-inverted hover:bg-primary-600"
               data-testid="stop-generation-button"
-              aria-label="Stop generating">
+              aria-label={t('chat.stopGeneration', 'Stop generating')}>
               <SquareIcon className="aui-composer-cancel-icon size-3.5 fill-current" />
             </Button>
           </ComposerPrimitive.Cancel>
