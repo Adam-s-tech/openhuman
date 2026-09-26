@@ -336,12 +336,16 @@ const isHistoryLoadingView = (s: AssistantState) =>
   !s.thread.isDisabled &&
   !s.threads.isLoading;
 
-const ThreadHistorySkeleton: FC = () => (
-  <div
-    data-slot="aui_thread-history-skeleton"
-    role="status"
-    className="animate-in fade-in fill-mode-both flex flex-col gap-y-6 [animation-delay:150ms] [animation-duration:200ms]">
-    <span className="sr-only">Loading conversation</span>
+const ThreadHistorySkeleton: FC = () => {
+  const { t } = useT();
+  return (
+    <div
+      data-slot="aui_thread-history-skeleton"
+      role="status"
+      className="animate-in fade-in fill-mode-both flex flex-col gap-y-6 [animation-delay:150ms] [animation-duration:200ms]">
+      <span className="sr-only">
+        {t('assistantUi.thread.loadingConversation', 'Loading conversation')}
+      </span>
     <Skeleton className="ml-auto h-9 w-2/5 rounded-xl motion-reduce:animate-none" />
     <div className="flex flex-col gap-y-2">
       <Skeleton className="h-4 w-11/12 motion-reduce:animate-none" />
