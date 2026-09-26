@@ -33,17 +33,14 @@
 use serde::Deserialize;
 use serde::Serialize;
 use serde_json::Value;
-// `json!` + socketioxide are used only by the socketioxide event-transport
-// bodies below, all gated with the `http-server` feature (#5048). The inert
-// event payload types further down (`WebChannelEvent`, `TurnUsagePayload`,
-// `SubagentUsagePayload`, `SubagentProgressDetail`) stay compiled in every build
-// — ~10 always-on domains (web_chat, cron, channels, agent, …)
-// construct them — so `serde` stays ungated and only the transport surface is
-// gated (type carve-out; see AGENTS.md and this module's `pub mod` in
-// `core::mod`, which is intentionally NOT gated).
 use serde_json::json;
 use socketioxide::extract::{AckSender, Data, SocketRef, TryData};
 use socketioxide::SocketIo;
+
+use openhuman_core::web_chat::{
+    ChatSuggestion, GuardrailPayload, GuardrailReason, QueueItemPayload, SubagentProgressDetail,
+    SubagentUsagePayload, TurnTimingPayload, TurnUsagePayload, WebChannelEvent,
+};
 
 /// Shell-originated companion lifecycle events that still need to reach
 /// Socket.IO-only surfaces such as the native macOS notch WKWebView.
