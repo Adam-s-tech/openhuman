@@ -128,7 +128,7 @@ None. No `store.rs`; the module holds no persisted state. Tools that persist (me
 - One unified `ToolResult`: every tool imports it from `tinytools`, so every tool uses the same type.
 - Browser allowlist is fail-safe: the browser shares `http_request.allowed_domains` but `browser_allowed_domains` strips the `"*"` wildcard: unifying can only narrow browser reach. Allow-all stays behind `OPENHUMAN_BROWSER_ALLOW_ALL`.
 - Node tools are co-gated: `shell`, `node_exec`, and `npm_exec` share one memoised `NodeBootstrap`; with `node.enabled = false` (or the `runtime-node` feature off), node/npm tools are not registered and shell skips PATH injection.
-- **`external_effect_with_args`** is the hook the harness checks at the gate-decision point (not the arg-less variant): override it for per-call gating (e.g. composio `execute` vs `list`).
+- `external_effect_with_args` is the hook the harness checks at the gate-decision point, not the arg-less variant. Override it for per-call gating (e.g. composio `execute` vs `list`).
 - `PermissionLevel` ordering is load-bearing: the runtime compares `<` to reject tools above a channel's max; `permission_level()` should return the *minimum* level across a multi-action tool, with `permission_level_with_args` doing the per-call check.
 - `is_concurrency_safe` is still advisory in practice: it is mapped to `ToolRuntime.idempotent` in `agent/tinyagents/tools.rs`, and tinyagents only runs a multi-call batch concurrently when no tool-wrap middleware is registered. OpenHuman's approval and scope gates are `wrap_tool` middlewares, so its turns take the serial path.
 - **RPC surface is intentionally tiny** (6 methods): anything not in `schemas.rs`/`schemas/` is agent-only.
