@@ -148,7 +148,7 @@ The socket connection is **shared across all skills**. When events arrive, the s
 
 ## Skills
 
-Skills are `SKILL.md` packages (metadata, instructions, optional bundled scripts/resources) that extend the agent with reusable workflows. The legacy model — one sandboxed QuickJS VM per skill with per-skill bridge APIs and an embedded 5-second cron tick — is gone.
+Skills are `SKILL.md` packages (metadata, instructions, optional bundled scripts/resources) that extend the agent with reusable workflows. The legacy model, one sandboxed QuickJS VM per skill with per-skill bridge APIs and an embedded 5-second cron tick, is gone.
 
 Responsibilities are split across three domains:
 
