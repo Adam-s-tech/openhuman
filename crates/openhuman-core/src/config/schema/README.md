@@ -93,8 +93,10 @@ keys that select an implementation, rather than tune one:
   picks which ranker answers a tool search over tools exposed as
   `ToolExposure::Deferred`; `top_k` (default 3) caps how many matches come
   back.
-- `[storage]` / `[memory]` (`storage_memory.rs`, `LlmBackend`): selects the
-  embedding and storage backend for the built-in memory engine.
+- `[storage]` / `[memory]` (`storage_memory.rs`): re-exports
+  `MemoryConfig`, `StorageConfig`, `StorageProviderConfig`, and `LlmBackend`
+  from `tinymemory_api::host::storage_memory`, the storage-provider and
+  embedding-model selection for the built-in memory engine.
 
 `autonomy.rs` is not an engine selector; it is the config-side half of the
 sandbox policy contract described under Workspace/identity helpers below.
@@ -116,7 +118,7 @@ sandbox policy contract described under Workspace/identity helpers below.
 3. Fill `config_path` / `workspace_dir` / `action_dir` (`resolve_action_dir`),
    then apply the two pre-schema-version legacy rewrites in `load/migrate.rs`
    (`migrate_legacy_inference_url`, `migrate_cloud_provider_slugs`).
-4. Apply environment-variable overrides — `Config::apply_env_overrides_from`
+4. Apply environment-variable overrides through `Config::apply_env_overrides_from`
    in `load/env_overlay.rs`, split into submodules under `load/env_overlay/`
    (`dictation_context.rs`, `learning_memory.rs`, `observability.rs`,
    `proxy.rs`, `runtime.rs`, `search.rs`, `subsystems_update.rs`);
@@ -138,7 +140,7 @@ writes and fsyncs a 0600 temp file, then hands off to
 `load/atomic_commit.rs::commit_replacement`, which preserves the previous
 config as `.bak` and renames the temp file into place. The split exists so
 callers can tell "nothing written" (an `Err` before the rename) from "already
-committed" (after it) and roll back in-memory state accordingly — the
+committed" (after it) and roll back in-memory state accordingly; the
 migrations runner depends on this.
 
 `load/mod.rs` also exports `CONFIG_OWNER_MISMATCH_MARKER`: the loader appends
