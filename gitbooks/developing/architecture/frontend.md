@@ -468,7 +468,7 @@ There is **no** `/login` route: authentication flows through the Welcome page, t
 
 All three guards read `useCoreState()` (not Redux auth state) and render `RouteLoadingScreen` while bootstrapping:
 
-- **`ProtectedRoute`** (`components/ProtectedRoute.tsx`) (`({ children, requireAuth = true, redirectTo })`; without a session token, navigates to `redirectTo || '/'`. Onboarding gating is _not_ done here) an effect in `AppShellDesktop` (App.tsx) forces non-onboarding routes back to `/onboarding` while `onboarding_completed` is false, and bounces off it once complete.
+- **`ProtectedRoute`** (`components/ProtectedRoute.tsx`, `({ children, requireAuth = true, redirectTo })`): without a session token, navigates to `redirectTo || '/'`. Onboarding gating is _not_ done here; an effect in `AppShellDesktop` (App.tsx) forces non-onboarding routes back to `/onboarding` while `onboarding_completed` is false, and bounces off it once complete.
 - **`PublicRoute`** (`components/PublicRoute.tsx`): redirects signed-in users to `/home` (which forwards to `/chat`).
 - **`DefaultRedirect`** (`components/DefaultRedirect.tsx`): signed out → `/`; signed in but onboarding incomplete → `/onboarding`; otherwise → `/chat`. Waits for `snapshot.currentUser` to avoid the post-login race.
 

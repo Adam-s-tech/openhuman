@@ -84,7 +84,7 @@ From the repository root:
 cargo check --manifest-path Cargo.toml
 
 # Debug build of the actual CLI / RPC binary
-cargo build --manifest-path Cargo.toml --bin openhuman-core
+cargo build --manifest-path Cargo.toml -p openhuman-cli --bin openhuman-core
 
 # Check the stable host-facing embedding facade
 cargo check --manifest-path Cargo.toml -p openhuman-embed
@@ -99,7 +99,7 @@ cargo build --manifest-path Cargo.toml -p openhuman-tui
 cargo check --manifest-path crates/openhuman-app/Cargo.toml
 
 # Release build
-cargo build --manifest-path Cargo.toml --release --bin openhuman-core
+cargo build --manifest-path Cargo.toml --release -p openhuman-cli --bin openhuman-core
 
 # Rust tests
 cargo test --manifest-path Cargo.toml
@@ -107,8 +107,7 @@ cargo test --manifest-path Cargo.toml
 
 Notes:
 
-- The **package** name is `openhuman`, but the runnable binary is **`openhuman-core`**.
-- If you prefer package-oriented cargo commands for packager scripts, use `-p openhuman`.
+- The core library's package name is `openhuman` (crate `openhuman_core`), but the runnable binary, `openhuman-core`, is built from the `openhuman-cli` package (`crates/openhuman-cli/src/main.rs`), which is why the commands above pass `-p openhuman-cli`.
 - The built binary lands at `target/debug/openhuman-core` or `target/release/openhuman-core`.
 
 ### Faster local linking (optional)
