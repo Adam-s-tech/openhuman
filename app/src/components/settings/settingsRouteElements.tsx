@@ -231,11 +231,11 @@ export function settingsRouteElements(): ReactNode {
         element={<Navigate to="/connections?tab=composio-key" replace />}
       />
       <Route path="webhooks-triggers" element={<Navigate to="/connections" replace />} />
-      {/* Notification routing tab */}
-      {/* The routing tab was removed; land on the notifications page itself. */}
+      {/* Notification routing tab and the Notifications settings page itself
+          were both removed; land on Account instead. */}
       <Route
         path="notification-routing"
-        element={<SettingsRedirect to="/settings/notifications" />}
+        element={<SettingsRedirect to="/settings/account" />}
       />
       {/* Fallback */}
       <Route path="*" element={<SettingsRedirect to="/settings" />} />
