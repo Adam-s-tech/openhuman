@@ -33,29 +33,6 @@ const fileVariants = cva(
   }
 );
 
-function getMimeTypeIcon(mimeType: string): FC<{ className?: string }> {
-  const type = mimeType.toLowerCase();
-  if (type.startsWith('image/')) {
-    return ImageIcon;
-  }
-  if (type === 'application/pdf') {
-    return FileTextIcon;
-  }
-  if (type === 'application/json') {
-    return BracesIcon;
-  }
-  if (type.startsWith('text/')) {
-    return FileTextIcon;
-  }
-  if (type.startsWith('audio/')) {
-    return MusicIcon;
-  }
-  if (type.startsWith('video/')) {
-    return VideoIcon;
-  }
-  return FileIcon;
-}
-
 function renderMimeTypeIcon(mimeType: string | undefined) {
   const type = mimeType?.toLowerCase();
 
