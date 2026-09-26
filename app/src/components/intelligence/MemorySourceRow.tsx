@@ -358,6 +358,12 @@ export function MemorySourceRow({
   );
 }
 
+const FRESHNESS_VARIANT: Record<FreshnessLabel, BadgeVariant> = {
+  active: 'primary',
+  recent: 'success',
+  idle: 'neutral',
+};
+
 function FreshnessPill({ freshness }: { freshness: FreshnessLabel }) {
   const { t } = useT();
   const label =
@@ -366,13 +372,7 @@ function FreshnessPill({ freshness }: { freshness: FreshnessLabel }) {
       : freshness === 'recent'
         ? t('sync.recent')
         : t('sync.idle');
-  const cls =
-    freshness === 'active'
-      ? 'bg-primary-100 dark:bg-primary-500/20 text-primary-700 dark:text-primary-300'
-      : freshness === 'recent'
-        ? 'bg-sage-100 dark:bg-sage-500/20 text-sage-700 dark:text-sage-300'
-        : 'bg-surface-subtle text-content-secondary';
-  return <span className={`rounded-md px-2 py-0.5 text-[10px] font-medium ${cls}`}>{label}</span>;
+  return <Badge variant={FRESHNESS_VARIANT[freshness]}>{label}</Badge>;
 }
 
 /**
