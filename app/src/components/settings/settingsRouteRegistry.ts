@@ -441,14 +441,6 @@ export const SETTINGS_ROUTE_REGISTRY: SettingsRegistryEntry[] = [
     navOrder: 1,
   },
   {
-    id: 'activity-level',
-    titleKey: 'activityLevel.title',
-    descriptionKey: 'activityLevel.description',
-    section: 'agents',
-    searchKeywords: ['background', 'activity', 'subconscious'],
-    navParent: 'agents',
-  },
-  {
     id: 'sandbox-settings',
     titleKey: 'settings.sandbox.title',
     descriptionKey: 'settings.sandbox.menuDesc',
