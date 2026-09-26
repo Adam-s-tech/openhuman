@@ -19,7 +19,9 @@ previously `providers/` (pre-consolidation single-crate layout); see
   `claude_agent_sdk[:<model>]`, `claude-code:<model>`, `<slug>:<model>[@<temp>]`)
   and applies the BYOK sentinel, Privacy-Mode `LocalOnly`
   (`enforce_local_only_inference`), and managed-session (`verify_session_active`)
-  gates before building a model.
+  gates before building a model. See
+  [gitbooks/features/model-routing/local-and-byok-models.md](../../../../../gitbooks/features/model-routing/local-and-byok-models.md)
+  for the user-facing side of local and BYOK routing.
 - **Models**: `OpenHumanBackendModel` + `PROVIDER_LABEL`
   (`openhuman_backend_model.rs`); OpenAI-compatible and Anthropic builders live
   in `tinyinference_llm::providers` and are called directly.
