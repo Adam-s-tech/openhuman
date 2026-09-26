@@ -39,6 +39,8 @@ methods directly rather than reaching for `BackendOAuthClient` or a raw
 
 ## Where to look next
 
-See [`../README.md`](../README.md) for the integrations domain overview, and
-`crate::integrations::client::map_transport_error` for how a transport
-failure becomes a typed error other domains match on.
+See [`../README.md`](../README.md) for the integrations domain overview.
+`errors.rs`'s private `map_transport_error` is where a raw
+`BackendTransportError` becomes the `anyhow::Error` every verb method
+returns; `IntegrationClient::map_transport_error` in `AGENTS.md` refers to
+this function.
