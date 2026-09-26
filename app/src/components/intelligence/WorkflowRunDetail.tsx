@@ -182,11 +182,9 @@ const WorkflowRunDetail: React.FC<Props> = ({
                       <span className="truncate text-sm font-medium text-content">
                         {phaseDef?.name ?? name}
                       </span>
-                      <span
-                        data-testid={`workflow-phase-status-${name}`}
-                        className="rounded-md border border-line px-1.5 py-0.5 text-[10px] font-medium text-content-muted">
+                      <Badge data-testid={`workflow-phase-status-${name}`} dot={false}>
                         {t(PHASE_STATUS_KEY[state.status])}
-                      </span>
+                      </Badge>
                     </span>
                     <span className="flex flex-none items-center gap-2 text-[11px] text-content-faint">
                       {hasOutputs && (
