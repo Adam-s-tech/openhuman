@@ -131,7 +131,7 @@ function Toast({ notification, onRemove }: ToastProps) {
           variant="tertiary"
           size="xs"
           iconOnly
-          aria-label="Dismiss notification"
+          aria-label={t('notifications.card.dismiss', 'Dismiss notification')}
           onClick={handleRemove}
           className="shrink-0 text-content-faint hover:text-content-secondary">
           <CloseIcon className="w-4 h-4" />

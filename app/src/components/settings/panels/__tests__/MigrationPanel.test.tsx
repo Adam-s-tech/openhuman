@@ -184,8 +184,7 @@ describe('MigrationPanel (#1440)', () => {
     fireEvent.click(screen.getByTestId('migration-preview-button'));
     await waitFor(() => expect(apply).not.toBeDisabled());
 
-    const select = screen.getByTestId('migration-vendor-select') as HTMLSelectElement;
-    fireEvent.change(select, { target: { value: 'hermes' } });
+    fireEvent.click(screen.getByTestId('migration-vendor-option-hermes'));
     expect(apply).toBeDisabled();
   });
 
