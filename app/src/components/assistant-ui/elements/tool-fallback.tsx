@@ -49,6 +49,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/assistant-ui/ui/collapsible';
 import { Textarea } from '@/components/assistant-ui/ui/textarea';
+import { useT } from '@/lib/i18n/I18nContext';
 import {
   toolApprovalAcceptsText,
   type ToolApprovalOption,
