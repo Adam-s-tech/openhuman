@@ -1078,8 +1078,6 @@ function FlowEditor({
     goBack();
   }, [dirty, goBack]);
 
-  const backButton = <CanvasBackButton onBack={handleBack} />;
-
   // A draft has nothing persisted to run yet — the canvas's Save (which creates
   // the flow) is the only gate, so no Run affordance until it's saved.
   const runButton = isDraft ? undefined : (
