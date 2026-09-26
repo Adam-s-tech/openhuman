@@ -3187,7 +3187,7 @@ pub const USAGE_PROBE_BACKOFF_PREFIX: &str = "USAGE_PROBE_BACKOFF:";
 pub const BACKEND_UNAVAILABLE_PREFIX: &str = "BACKEND_UNAVAILABLE:";
 
 /// Sentinel prefix on the error string a backend call returns when the backend
-/// rejects the stored TinyHumans API key (`api::rest::flatten_authed_error`).
+/// rejects the stored TinyHumans API key (`backend::client::flatten_authed_error`).
 /// [`expected_error_kind`] demotes it: the fix is a new key, not a code change.
 pub const API_KEY_REJECTED_PREFIX: &str = "API_KEY_REJECTED:";
 
