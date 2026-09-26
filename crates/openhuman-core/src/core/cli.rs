@@ -9,7 +9,7 @@ use serde_json::{Map, Value};
 use std::collections::BTreeMap;
 
 use crate::core::all;
-use crate::core::jsonrpc::{default_state, invoke_method};
+use crate::core::invoke::{default_state, invoke_method};
 use crate::core::logging::CliLogDefault;
 use crate::core::{ControllerSchema, TypeSchema};
 use crate::core::params::parse_json_params;
@@ -394,13 +394,18 @@ fn run_server_command(args: &[String]) -> Result<()> {
         .thread_stack_size(crate::core::runtime::AGENT_WORKER_STACK_BYTES)
         .max_blocking_threads(crate::core::runtime::MAX_BLOCKING_THREADS)
         .build()?;
-    rt.block_on(async {
-        if headless_api {
-            crate::core::jsonrpc::run_server_headless(host.as_deref(), port).await
-        } else {
-            crate::core::jsonrpc::run_server(host.as_deref(), port, socketio_enabled).await
-        }
+    let launcher = crate::core::server_launcher::installed_server_launcher().ok_or_else(|| {
+        anyhow::anyhow!(
+            "this binary has no JSON-RPC server linked in; the host must call \
+             openhuman_rpc::server::install_cli_server() before run_core_from_args"
+        )
     })?;
+    rt.block_on(launcher(crate::core::server_launcher::ServeRequest {
+        host,
+        port,
+        socketio_enabled,
+        headless_api,
+    }))?;
     Ok(())
 }
 
