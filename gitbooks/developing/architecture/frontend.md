@@ -457,8 +457,8 @@ Back-compat redirects (all `Navigate replace`, query params preserved):
 
 ```
 /home        → /chat                     /skills      → /connections
-/activity    → /settings/notifications   /channels    → /connections?tab=messaging
-/intelligence→ /settings/notifications   /routines    → /settings/automations
+/activity    → /settings/account         /channels    → /connections?tab=messaging
+/intelligence→ /settings/account         /routines    → /settings/automations
 /workflows   → /settings/automations     /webhooks    → /settings/integrations#webhooks
 ```
 
