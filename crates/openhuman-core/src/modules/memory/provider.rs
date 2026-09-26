@@ -31,8 +31,8 @@ pub const MODULE_ID: &str = "tinymemory";
 ///
 /// So the policy is published once during boot instead. This is the same shape
 /// `tinymemory_core::embedding_host` and `openhuman_tinyhumans::backend::product`
-/// already use, and for the
-/// same stated reason: the construction sites sit too deep to thread through.
+/// already use, and for the same stated reason: the construction sites sit
+/// too deep to thread through.
 ///
 /// # Unset means disabled, deliberately
 ///
