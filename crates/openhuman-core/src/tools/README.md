@@ -81,7 +81,7 @@ This module owns the cross-cutting built-in tools (the only ones that belong her
 - Browser: `browser`, `browser_open`, `image_info`.
 - Generic network: `http_request`, `web_fetch`, `curl`, `gitbooks_search`/`gitbooks_get_page`, MCP bridge (`mcp_list_servers`/`mcp_list_tools`/`mcp_call_tool`), `gmail_unsubscribe`.
 - Meta: `deferred` (which tools leave the wire for the harness's `tool_search` bridge) and the `collapse` multi-action helpers used by other tools' schema merging.
-- **Documents** (`documents` feature): `generate_document` (`DocumentTool`), `generate_presentation` (`PresentationTool`).
+- Documents (`documents` feature): `generate_document` (`DocumentTool`), `generate_presentation` (`PresentationTool`).
 - Search: `web_search` and provider-specific search families are registered by `crate::search`; `search.engine = "disabled"` suppresses this surface entirely.
 
 Domain-owned tools (memory, cron, wallet, composio, integrations, skills, voice::audio_toolkit, agent sub-dispatch like `spawn_subagent`/`spawn_async_subagent`/`delegate`/`todo`/`plan_exit`/`run_skill`) are **registered** in `all_tools` but implemented in their respective domains and only re-exported through this module.
