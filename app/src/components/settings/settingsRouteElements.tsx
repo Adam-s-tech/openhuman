@@ -83,7 +83,7 @@ export function settingsRouteElements(): ReactNode {
       <Route path="migration" element={wrapSettingsPage(<MigrationPanel />)} />
       <Route path="appearance" element={wrapSettingsPage(<AppearancePanel />)} />
       {/* Theme studio merged into Appearance — one page for one subject. */}
-      <Route path="theme" element={<SettingsRedirect to="/settings/appearance" />} />
+      <Route path="theme" element={<SettingsRedirect to="/settings/appearance#studio" />} />
       <Route path="notifications" element={wrapSettingsPage(<NotificationsPanel />)} />
       {/* Real device-pairing panel (replaces the old "Coming Soon" stub). */}
       <Route path="devices" element={wrapSettingsPage(<DevicesPanel />)} />

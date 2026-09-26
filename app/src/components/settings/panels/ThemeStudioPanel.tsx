@@ -340,19 +340,14 @@ const ThemeStudioPanel = ({ embedded = false, part }: ThemeStudioPanelProps = {}
   // and language settings, so the everyday controls sat a long scroll down.
   const customize = (
     <section className="space-y-2" data-testid="theme-customize">
-      <div className="px-1">
-        <h3 className="font-title text-sm font-semibold text-content">
-          {t('settings.theme.title', 'Theme Studio')}
-        </h3>
-        {!isActiveCustom && (
-          <p className="mt-0.5 text-xs text-content-muted">
-            {t(
-              'settings.theme.autoForkHint',
-              'Editing a preset automatically saves your changes as a new custom theme.'
-            )}
-          </p>
-        )}
-      </div>
+      {!isActiveCustom && (
+        <p className="px-1 text-xs text-content-muted">
+          {t(
+            'settings.theme.autoForkHint',
+            'Editing a preset automatically saves your changes as a new custom theme.'
+          )}
+        </p>
+      )}
 
       {isActiveCustom && contrastRisk && (
         <Alert variant="warning" density="compact">
