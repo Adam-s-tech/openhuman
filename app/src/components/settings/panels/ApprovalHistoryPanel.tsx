@@ -17,10 +17,20 @@ import SettingsPanel from '../layout/SettingsPanel';
 
 const log = debug('ui:approval-history');
 
-/** Render a decided timestamp as a locale string; fall back to the raw value. */
-const formatDateTime = (value: string): string => {
+/**
+ * Render a decided timestamp as two lines — date over time — in the user's
+ * locale; an unparseable value is shown raw on one line.
+ */
+const DateTimeCell = ({ value }: { value: string }) => {
   const ts = Date.parse(value);
-  return Number.isNaN(ts) ? value : new Date(ts).toLocaleString();
+  if (Number.isNaN(ts)) return <>{value}</>;
+  const date = new Date(ts);
+  return (
+    <span className="flex flex-col leading-tight" title={date.toLocaleString()}>
+      <span className="text-content">{date.toLocaleDateString()}</span>
+      <span className="text-xs text-content-muted">{date.toLocaleTimeString()}</span>
+    </span>
+  );
 };
 
 /** Badge variant per decision variant. */
@@ -114,7 +124,7 @@ const ApprovalHistoryPanel = () => {
       header: t('settings.approvalHistory.column.time'),
       align: 'right',
       className: 'w-40 whitespace-nowrap tabular-nums',
-      cell: entry => formatDateTime(entry.decided_at),
+      cell: entry => <DateTimeCell value={entry.decided_at} />,
     },
     {
       id: 'tool',
