@@ -68,7 +68,7 @@ Installed servers are connected as the core comes up, and `mcp::registry::superv
 | `schemas/` (`mod.rs`, `registry.rs`, `handlers.rs`, `params.rs`) | Controller schemas + handler dispatch. Re-exported from `mod.rs` as `all_mcp_registry_controller_schemas` / `all_mcp_registry_registered_controllers`.                    |
 | `bus.rs`                    | `DomainEvent` subscriber (`McpClientEventSubscriber`) that logs `McpServer*` / `McpClientToolExecuted` lifecycle events.                                                               |
 | `supervisor_events.rs`      | Turns a `tinymcp::Supervisor` tick report into this domain's `DomainEvent`s, stamped with the workspace whose host was ticked.                                                          |
-| `tools.rs`                  | Agent-facing `mcp_registry_*` tools (search catalog, inspect/list/connect/disconnect/call) — thin shims over `ops.rs`. The one mutator (`mcp_registry_uninstall`) ships default-OFF behind the `mcp_manage` toggle; there is no install tool. Distinct from the generic `mcp_list_servers`/`mcp_call_tool` bridge tools. |
+| `tools.rs`                  | Agent-facing `mcp_registry_*` tools (search catalog, inspect/list/connect/disconnect/call), thin shims over `ops.rs`. The one mutator (`mcp_registry_uninstall`) ships default-OFF behind the `mcp_manage` toggle; there is no install tool. Distinct from the generic `mcp_list_servers`/`mcp_call_tool` bridge tools. |
 | `stub.rs`                   | The disabled facade compiled when the `mcp` feature is off.                                                                                                                            |
 
 ## Public surface
