@@ -58,11 +58,12 @@ describe('MigrationPanel (#1440)', () => {
 
   it('renders OpenClaw as the default vendor and Hermes as selectable', () => {
     renderWithProviders(<MigrationPanel />);
-    const select = screen.getByTestId('migration-vendor-select') as HTMLSelectElement;
-    expect(select.value).toBe('openclaw');
-    const hermesOption = Array.from(select.options).find(o => o.value === 'hermes');
-    expect(hermesOption).toBeDefined();
-    expect(hermesOption?.disabled).toBe(false);
+    expect(screen.getByTestId('migration-vendor-select')).toHaveAttribute('role', 'radiogroup');
+    const openclawOption = screen.getByTestId('migration-vendor-option-openclaw');
+    const hermesOption = screen.getByTestId('migration-vendor-option-hermes');
+    expect(openclawOption).toHaveAttribute('aria-checked', 'true');
+    expect(hermesOption).toHaveAttribute('aria-checked', 'false');
+    expect(hermesOption).not.toBeDisabled();
     expect(screen.getByTestId('migration-apply-button')).toBeDisabled();
   });
 
@@ -76,8 +77,7 @@ describe('MigrationPanel (#1440)', () => {
     });
 
     renderWithProviders(<MigrationPanel />);
-    const select = screen.getByTestId('migration-vendor-select') as HTMLSelectElement;
-    fireEvent.change(select, { target: { value: 'hermes' } });
+    fireEvent.click(screen.getByTestId('migration-vendor-option-hermes'));
     fireEvent.click(screen.getByTestId('migration-preview-button'));
 
     await waitFor(() => expect(screen.getByTestId('migration-report-preview')).toBeInTheDocument());
