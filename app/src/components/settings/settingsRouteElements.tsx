@@ -6,7 +6,6 @@ import SettingsIndexRedirect from './layout/SettingsIndexRedirect';
 import AboutPanel from './panels/AboutPanel';
 import AccountPanel from './panels/AccountPanel';
 import AgentAccessPanel from './panels/AgentAccessPanel';
-import AgentActivityPanel from './panels/AgentActivityPanel';
 import AgentEditorPage from './panels/AgentEditorPage';
 import AgentsPanel from './panels/AgentsPanel';
 import AppearancePanel from './panels/AppearancePanel';
