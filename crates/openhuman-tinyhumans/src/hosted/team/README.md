@@ -68,7 +68,7 @@ None local. State lives in the hosted backend. The only stored value it reads is
 
 ## Dependencies
 
-- `crate::api::config::effective_backend_api_url` — resolves the backend base URL from `Config.api_url`.
+- `crate::backend::url::effective_backend_api_url` — resolves the backend base URL from `Config.api_url`.
 - `crate::hosted::client::HostedClient` — resolves the core's backend credential first (no request without one), builds the SDK's `TinyHumansClient`, and maps SDK errors onto the core's RPC sentinels.
 - `crate::config::Config` — config passed into every op; `config::rpc::load_config_with_timeout` loads it inside each `handle_*`.
 - `crate::core::all::{ControllerFuture, RegisteredController}` and `crate::core::{ControllerSchema, FieldSchema, TypeSchema}` — controller registry types.
