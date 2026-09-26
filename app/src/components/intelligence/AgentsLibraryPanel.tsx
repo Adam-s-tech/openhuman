@@ -166,21 +166,19 @@ export default function AgentsLibraryPanel({
                       <span className="truncate text-sm font-semibold text-content">
                         {agent.display_name}
                       </span>
-                      <span className="rounded-md bg-surface-subtle px-1.5 py-0.5 font-mono text-[10px] text-content-muted">
+                      <Badge variant="neutral" dot={false} className="font-mono">
                         {agent.id}
-                      </span>
-                      <span className="rounded-md bg-primary-50 px-1.5 py-0.5 text-[10px] font-medium text-primary-700 dark:bg-primary-500/10 dark:text-primary-200">
+                      </Badge>
+                      <Badge variant="primary" dot={false}>
                         {modelLabel(agent, t)}
-                      </span>
+                      </Badge>
                     </div>
                     <p className="text-xs leading-5 text-content-muted">{agent.when_to_use}</p>
                     <div className="flex flex-wrap gap-1.5">
                       {capabilityChips(agent, t).map(chip => (
-                        <span
-                          key={chip}
-                          className="rounded-md bg-surface-muted px-1.5 py-0.5 text-[10px] font-medium text-content-muted">
+                        <Badge key={chip} variant="neutral" dot={false}>
                           {chip}
-                        </span>
+                        </Badge>
                       ))}
                     </div>
                   </div>
