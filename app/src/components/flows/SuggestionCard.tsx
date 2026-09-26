@@ -21,8 +21,7 @@ import { cn } from '../../lib/cn';
 import { useT } from '../../lib/i18n/I18nContext';
 import type { FlowSuggestion } from '../../services/api/flowsApi';
 import { composioToolkitMeta } from '../composio/toolkitMeta';
-import { Badge, Button } from '../ui';
-import { Spinner } from '../ui/icons';
+import { Badge, Button, Spinner } from '../ui';
 
 /** How many outline steps a card shows before collapsing the rest into "+N". */
 const MAX_STEPS = 4;

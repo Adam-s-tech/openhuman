@@ -48,8 +48,7 @@ import {
   type FlowSuggestion,
   listSuggestions,
 } from '../../services/api/flowsApi';
-import { Alert, AlertDescription, Button } from '../ui';
-import { Spinner } from '../ui/icons';
+import { Alert, AlertDescription, Button, Spinner } from '../ui';
 import SuggestionCard, {
   type SuggestionTrigger,
   suggestionTrigger,
