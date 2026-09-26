@@ -1,16 +1,16 @@
 # Claude Code CLI provider
 
-OpenHuman can route any chat workload through **Anthropic's `claude` CLI** instead of calling the Anthropic HTTP API directly. The CLI handles model selection, auth, and prompt-cache management; OpenHuman drives it as a child process per turn, parses its stream-json output, and re-exposes its own read-only tools back into the CLI over MCP so the model can reach native OpenHuman state (memory, threads, channels, people).
+OpenHuman can route any chat workload through Anthropic's `claude` CLI instead of calling the Anthropic HTTP API directly. The CLI handles model selection, auth, and prompt-cache management; OpenHuman drives it as a long-lived, session-resuming child process, parses its stream-json output, and hands it an MCP endpoint so the model can reach native OpenHuman state (memory, threads, agents, search).
 
-> Implementation notes live in [`crates/openhuman-core/src/inference/provider/claude_code/README.md`](../../../crates/openhuman-core/src/inference/provider/claude_code/README.md).
+The provider itself, `ClaudeCodeProvider`, is owned by `tinyagents-harness` (vendor/tinyagents), not by OpenHuman: see [its README](../../../vendor/tinyagents/crates/tinyagents-harness/src/providers/claude_code/README.md) for the full file map and implementation notes. OpenHuman only wires it up in `crates/openhuman-core/src/inference/provider/factory/subprocess_providers.rs`, which supplies the MCP endpoint (`OpenHumanMcpEndpoint`, below) and reads the resulting model string back into its own routing.
 
 ## Requirements
 
-- Claude Code CLI **≥ 2.0.0**, either on `PATH`, at one of the supported
+- Claude Code CLI **≥ 2.0.0** (`MIN_CLI_VERSION`), either on `PATH`, at one of the supported
   well-known install locations, or selected with
   `OPENHUMAN_CLAUDE_CLI=/abs/path/to/claude`.
 - An Anthropic API key in `ANTHROPIC_API_KEY`, **or** a pre-existing `~/.claude/.credentials.json` from `claude login`.
-- The `openhuman-core` binary on disk: OpenHuman spawns `openhuman-core mcp` as a stdio MCP server so the CLI can call OpenHuman tools. The path is discovered via `std::env::current_exe()`.
+- The `http-server` Cargo feature (on by default): OpenHuman exposes its MCP tools to the CLI over a loopback HTTP endpoint (`crate::mcp::server::ensure_local_http`), not by spawning `openhuman-core mcp` as a subprocess. Without that feature, the provider still runs, but the CLI gets no OpenHuman tools.
 
 ## Routing a workload through the CLI
 
