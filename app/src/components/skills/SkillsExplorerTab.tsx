@@ -22,7 +22,7 @@ import {
 } from '../../services/api/skillsApi';
 import McpIconButton from '../channels/mcp/McpIconButton';
 import EmptyStateCard from '../EmptyStateCard';
-import { Badge, DataTableFilterMenu, ModalShell } from '../ui';
+import { Badge, type BadgeVariant, DataTableFilterMenu, ModalShell } from '../ui';
 import Button from '../ui/Button';
 import Card from '../ui/Card';
 import TextField from '../ui/TextField';
@@ -86,64 +86,51 @@ function isCatalogEntryInstalled(entry: CatalogEntry, installedKeys: Set<string>
 }
 
 /**
- * Source tone table. Six sources, four themeable ramps — so the hue encodes the
- * distinction a reader acts on (where does this skill come from: shipped with
- * the app, or fetched from a remote catalogue) rather than naming each
- * catalogue twice. The badge already prints the catalogue's name, so the four
- * remote rows fall through to the shared neutral tone instead of reaching for
- * unthemeable ramps. See `gitbooks/developing/theming.md`.
+ * Source tone table: where a skill comes from (shipped with the app, or
+ * fetched from a remote catalogue) maps to a `Badge` variant instead of a
+ * bespoke tint. See `gitbooks/developing/theming.md`.
  */
-const BADGE_NEUTRAL_TONE = 'bg-surface-muted text-content-secondary border-line';
+const SOURCE_VARIANT: Record<string, BadgeVariant> = {
+  'built-in': 'success',
+  optional: 'primary',
+};
 
 function SourceBadge({ source }: { source: string }) {
-  const SOURCE_COLORS: Record<string, string> = {
-    'built-in':
-      'bg-sage-50 text-sage-700 border-sage-200 dark:bg-sage-500/10 dark:text-sage-300 dark:border-sage-500/30',
-    optional:
-      'bg-primary-50 text-primary-700 border-primary-200 dark:bg-primary-500/10 dark:text-primary-300 dark:border-primary-500/30',
-  };
-  const colors = SOURCE_COLORS[source] ?? BADGE_NEUTRAL_TONE;
   return (
-    <span
-      className={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${colors}`}>
+    <Badge variant={SOURCE_VARIANT[source] ?? 'neutral'} dot={false}>
       {source}
-    </span>
+    </Badge>
   );
 }
 
 /**
- * Format tone table. Three distinct tones for five formats, so it fits inside
- * the four themeable ramps with no collision and every distinction survives:
- * the Hermes family on `primary`, the ClawHub family on `sage`, and `legacy`
- * on `amber` because it is the one row that means "deprecated".
+ * Format tone table. Three distinct variants for five formats, with no
+ * collision: the Hermes family on `primary`, the ClawHub family on
+ * `success`, and `legacy` on `warning` because it is the one row that means
+ * "deprecated".
  */
-const FORMAT_TONE = {
-  hermes:
-    'bg-primary-50 text-primary-700 border-primary-200 dark:bg-primary-500/10 dark:text-primary-300 dark:border-primary-500/30',
-  clawhub:
-    'bg-sage-50 text-sage-700 border-sage-200 dark:bg-sage-500/10 dark:text-sage-300 dark:border-sage-500/30',
-  legacy:
-    'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/30',
-} as const;
+const FORMAT_VARIANT: Record<string, BadgeVariant> = {
+  hermes: 'primary',
+  agentskills: 'primary',
+  openclaw: 'success',
+  clawhub: 'success',
+  legacy: 'warning',
+};
 
 function SkillFormatBadge({ format }: { format: string }) {
   const lower = format.toLowerCase();
-  const FORMAT_MAP: Record<string, { label: string; colors: string }> = {
-    hermes: { label: 'Hermes', colors: FORMAT_TONE.hermes },
-    agentskills: { label: 'AgentSkills', colors: FORMAT_TONE.hermes },
-    openclaw: { label: 'OpenClaw', colors: FORMAT_TONE.clawhub },
-    clawhub: { label: 'ClawHub', colors: FORMAT_TONE.clawhub },
-    legacy: { label: 'Legacy', colors: FORMAT_TONE.legacy },
+  const FORMAT_LABELS: Record<string, string> = {
+    hermes: 'Hermes',
+    agentskills: 'AgentSkills',
+    openclaw: 'OpenClaw',
+    clawhub: 'ClawHub',
+    legacy: 'Legacy',
   };
-  const entry = FORMAT_MAP[lower] ?? {
-    label: format || 'Skill',
-    colors: BADGE_NEUTRAL_TONE,
-  };
+  const label = FORMAT_LABELS[lower] ?? format || 'Skill';
   return (
-    <span
-      className={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${entry.colors}`}>
-      {entry.label}
-    </span>
+    <Badge variant={FORMAT_VARIANT[lower] ?? 'neutral'} dot={false}>
+      {label}
+    </Badge>
   );
 }
 
@@ -155,11 +142,7 @@ function SkillScopeBadge({ scope }: { scope: string }) {
       : scope === 'project'
         ? t('skills.explorer.scopeProject')
         : t('skills.explorer.scopeLegacy');
-  return (
-    <span className="inline-flex items-center rounded-full border border-line bg-surface-muted px-1.5 py-0.5 text-[9px] font-medium text-content-muted">
-      {label}
-    </span>
-  );
+  return <Badge dot={false}>{label}</Badge>;
 }
 
 interface SkillTileProps {
@@ -380,9 +363,9 @@ function SkillDetailDialog({
         <span className="flex items-center gap-2">
           <span className="truncate">{name}</span>
           {installed && (
-            <span className="shrink-0 rounded-full border border-sage-200 dark:border-sage-500/30 bg-sage-50 dark:bg-sage-500/10 px-2 py-0.5 text-[10px] font-medium text-sage-700 dark:text-sage-300">
+            <Badge variant="success" className="shrink-0" dot={false}>
               {t('skills.explorer.installed')}
-            </span>
+            </Badge>
           )}
         </span>
       }
