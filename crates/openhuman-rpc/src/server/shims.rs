@@ -166,5 +166,5 @@ fn apply_e2e_tool_groups(
 }
 
 #[cfg(test)]
-#[path = "server_tests.rs"]
+#[path = "shims_tests.rs"]
 mod tests;
