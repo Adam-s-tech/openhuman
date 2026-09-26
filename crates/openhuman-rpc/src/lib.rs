@@ -13,6 +13,14 @@
 //! - [`unwrap_rpc`] unwraps the client-side `result`/`data` envelopes.
 //! - [`StructuredRpcError`] and [`STRUCTURED_RPC_ERROR_SENTINEL`] are the
 //!   typed error envelope decoded at the transport boundary.
+//! - [`RpcRequest`], [`RpcSuccess`], [`RpcFailure`] and [`RpcError`] are the
+//!   JSON-RPC 2.0 envelopes the core's `/rpc` handler reads and writes;
+//!   [`request_body`] and [`decode_response`] are the client half.
+//! - [`params_to_object`], [`parse_json_params`] and the validation messages
+//!   ([`unknown_param_message`], [`missing_required_param_message`]) define
+//!   the params contract, and [`is_param_validation_error`] recognises them.
+//! - [`is_origin_allowed_with_extra`] and [`ALLOWED_ORIGINS_ENV`] are the
+//!   browser-origin allowlist for a core's HTTP API.
 //! - Behind the `http-client` feature (default-on here, but disabled by the
 //!   root workspace dependency so each consumer opts in): [`post_json_rpc`],
 //!   [`bearer_header`], [`redact_url_for_log`], and [`HttpRpcResponse`].
@@ -22,10 +30,22 @@ use serde_json::json;
 
 #[cfg(feature = "http-client")]
 mod client;
+mod envelope;
+mod origin;
+mod params;
 mod structured_error;
 
 #[cfg(feature = "http-client")]
 pub use client::{bearer_header, post_json_rpc, redact_url_for_log, HttpRpcResponse};
+pub use envelope::{
+    decode_response, request_body, RpcError, RpcFailure, RpcRequest, RpcSuccess, JSONRPC_VERSION,
+    SERVER_ERROR_CODE,
+};
+pub use origin::{is_origin_allowed_with_extra, ALLOWED_ORIGINS_ENV};
+pub use params::{
+    is_param_validation_error, json_type_name, missing_required_param_message, params_to_object,
+    parse_json_params, unknown_param_message,
+};
 pub use structured_error::{StructuredRpcError, STRUCTURED_RPC_ERROR_SENTINEL};
 
 /// Unwrap the optional log and API envelopes used by OpenHuman RPC handlers.

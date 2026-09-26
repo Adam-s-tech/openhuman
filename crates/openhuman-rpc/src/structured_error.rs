@@ -6,7 +6,7 @@
 //! the existing `Result<Value, String>` channel that controller handlers
 //! already use, without changing every handler signature.
 //!
-//! The JSON-RPC transport layer (`crates/openhuman-core/src/core/jsonrpc.rs`) decodes the envelope
+//! The JSON-RPC transport layer (`crates/openhuman-core/src/core/jsonrpc/http/rpc_handler.rs`) decodes the envelope
 //! transparently — it has zero knowledge of which domain produced the error,
 //! and never branches on the RPC method name. New domains that want
 //! structured RPC errors just emit a [`StructuredRpcError`] at their
