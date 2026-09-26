@@ -383,6 +383,22 @@ pub fn resolve_backend_credential(config: &Config) -> Result<BackendCredential, 
     }
 }
 
+/// The raw secret a Bearer-only backend caller should send: the stored
+/// TinyHumans API key when there is one, else the stored app-session token
+/// (unclassified, exactly what [`get_session_token`] returns).
+///
+/// For module seams that ask "what bearer can I lend right now?" and treat
+/// `None` as signed out, where [`resolve_backend_credential`]'s error-for-absent
+/// shape does not fit. The backend accepts a key as `Authorization: Bearer`
+/// (it recognises it by prefix), so handing the key over as a bearer is
+/// correct on every route a key may reach.
+pub fn backend_bearer_secret(config: &Config) -> Result<Option<String>, String> {
+    if let Some(key) = super::api_key::get_api_key(config).map_err(|e| e.to_string())? {
+        return Ok(Some(key));
+    }
+    get_session_token(config)
+}
+
 /// Whether *some* backend credential is present — an API key or a non-empty
 /// app-session token — without classifying expiry. This is the boot-time
 /// "signed in?" question the scheduler gate asks: an expired session still

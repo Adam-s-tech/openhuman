@@ -104,8 +104,10 @@ impl MemoryHostConfig for Config {
         crate::api::config::effective_backend_api_url(&self.api_url)
     }
 
+    /// The backend bearer: the TinyHumans API key when one is stored, else
+    /// the app-session JWT.
     fn session_token(&self) -> Result<Option<String>, String> {
-        crate::api::jwt::get_session_token(self)
+        crate::security::credentials::session_support::backend_bearer_secret(self)
     }
 
     fn default_model(&self) -> Option<&str> {
