@@ -36,7 +36,7 @@ schema's field comments repeat them for `/schema` readers only.
 
 ## Compile-time gate (`mcp` feature)
 
-`pub mod audit;` is always compiled, it is a facade. The RPC surface
+`pub mod audit;` is always compiled. It is a facade. The RPC surface
 (`schemas`) is gated; with the `mcp` feature off, `stub` mirrors the
 consumed surface (`record_write`, `list_writes`,
 `all_mcp_audit_internal_controllers`) so the audited subsystem simply
