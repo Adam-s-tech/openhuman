@@ -717,6 +717,113 @@ describe('FlowCanvasPage', () => {
   });
 });
 
+describe('FlowCanvasPage side panel switching', () => {
+  beforeEach(() => {
+    getFlow.mockReset();
+    updateFlow.mockReset();
+    createFlow.mockReset();
+    validateFlow.mockReset();
+    listFlowConnections.mockReset();
+    runFlowDetached.mockReset();
+    setFlowEnabled.mockReset();
+    listFlowRuns.mockReset();
+    validateFlow.mockResolvedValue({ valid: true, errors: [], warnings: [] });
+    listFlowConnections.mockResolvedValue([]);
+    listFlowRuns.mockResolvedValue([]);
+    socketHandlers.clear();
+    socketOn.mockClear();
+    socketOff.mockClear();
+  });
+
+  function renderEditor(id = 'test-id') {
+    return render(
+      <MemoryRouter initialEntries={[`/flows/${id}`]}>
+        <SidebarSlotProvider>
+          <SidebarSlotOutlet />
+          <Routes>
+            <Route path="/flows/:id" element={<FlowCanvasPage />} />
+            <Route path="/flows" element={<div data-testid="flows-list">Flows list</div>} />
+          </Routes>
+        </SidebarSlotProvider>
+      </MemoryRouter>
+    );
+  }
+
+  it('opens with the Copilot tab shown by default', async () => {
+    getFlow.mockResolvedValue(makeFlow());
+    renderEditor();
+    await waitFor(() => expect(screen.getByTestId('flow-canvas')).toBeInTheDocument());
+
+    expect(screen.getByTestId('flow-canvas-side-panel')).toBeInTheDocument();
+    expect(screen.getByTestId('stub-copilot-panel')).toBeInTheDocument();
+    expect(screen.getByTestId('flow-canvas-copilot-toggle')).toHaveAttribute(
+      'data-state',
+      'on'
+    );
+  });
+
+  it('switches to Manual (the node palette) via the toggle', async () => {
+    getFlow.mockResolvedValue(makeFlow());
+    renderEditor();
+    await waitFor(() => expect(screen.getByTestId('flow-canvas')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByTestId('flow-canvas-legend-toggle'));
+
+    expect(screen.getByTestId('flow-node-palette')).toBeInTheDocument();
+    expect(screen.queryByTestId('stub-copilot-panel')).not.toBeInTheDocument();
+    expect(screen.getByTestId('flow-canvas-legend-toggle')).toHaveAttribute('data-state', 'on');
+  });
+
+  it('closes the side panel and shows the open-panel button on the canvas toolbar', async () => {
+    getFlow.mockResolvedValue(makeFlow());
+    renderEditor();
+    await waitFor(() => expect(screen.getByTestId('flow-canvas')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByTestId('flow-canvas-close-panel'));
+
+    expect(screen.queryByTestId('flow-canvas-side-panel')).not.toBeInTheDocument();
+    expect(screen.getByTestId('flow-canvas-open-panel')).toBeInTheDocument();
+  });
+
+  it('reopens the side panel (back to Copilot) from the toolbar\'s open-panel button', async () => {
+    getFlow.mockResolvedValue(makeFlow());
+    renderEditor();
+    await waitFor(() => expect(screen.getByTestId('flow-canvas')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByTestId('flow-canvas-close-panel'));
+    fireEvent.click(screen.getByTestId('flow-canvas-open-panel'));
+
+    expect(screen.getByTestId('flow-canvas-side-panel')).toBeInTheDocument();
+    expect(screen.getByTestId('stub-copilot-panel')).toBeInTheDocument();
+  });
+
+  it('selecting a run in the runs sidebar opens the Run tab in the side panel', async () => {
+    getFlow.mockResolvedValue(makeFlow());
+    listFlowRuns.mockResolvedValue([
+      {
+        id: 'run-1',
+        flow_id: 'test-id',
+        thread_id: 'run-1',
+        status: 'completed',
+        started_at: '2026-01-01T00:00:00Z',
+        finished_at: '2026-01-01T00:05:00Z',
+        steps: [],
+        pending_approvals: [],
+      },
+    ]);
+    renderEditor();
+    await waitFor(() => expect(screen.getByTestId('flow-canvas')).toBeInTheDocument());
+
+    const runRow = await screen.findByTestId('flow-runs-sidebar-run-run-1');
+    fireEvent.click(runRow);
+
+    expect(screen.getByTestId('flow-canvas-run-toggle')).toHaveAttribute('data-state', 'on');
+    expect(screen.getByTestId('flow-run-inspector-panel')).toBeInTheDocument();
+    // The run panel replaces the copilot — only one side-panel body at a time.
+    expect(screen.queryByTestId('stub-copilot-panel')).not.toBeInTheDocument();
+  });
+});
+
 describe('isPlaceholderTitle', () => {
   it('treats an empty or whitespace-only title as a placeholder', () => {
     expect(isPlaceholderTitle('', 'New workflow')).toBe(true);
