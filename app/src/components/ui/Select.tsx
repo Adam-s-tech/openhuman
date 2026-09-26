@@ -27,7 +27,6 @@ import { CheckIcon } from './icons';
 
 export const SelectRoot = SelectPrimitive.Root;
 export const SelectValue = SelectPrimitive.Value;
-export const SelectGroup = SelectPrimitive.Group;
 
 export type SelectSize = 'sm' | 'md';
 
