@@ -5,13 +5,12 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::Json;
 
-use super::super::classify::{classify_failure, FailureDisposition, USAGE_BACKOFF_CLIENT_MESSAGE};
 use openhuman_core::core::invoke::invoke_method;
 use openhuman_core::core::types::AppState;
-use crate::{
-    RpcError, RpcFailure, RpcRequest, RpcSuccess, StructuredRpcError, JSONRPC_VERSION,
-    SERVER_ERROR_CODE,
-};
+use openhuman_core::core::StructuredRpcError;
+
+use super::super::classify::{classify_failure, FailureDisposition, USAGE_BACKOFF_CLIENT_MESSAGE};
+use crate::{RpcError, RpcFailure, RpcRequest, RpcSuccess, JSONRPC_VERSION, SERVER_ERROR_CODE};
 
 /// Axum handler for JSON-RPC POST requests.
 ///

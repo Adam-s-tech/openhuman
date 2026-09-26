@@ -53,6 +53,7 @@ pub(crate) use web_errors::{
 };
 
 // Public API — event bus
+pub use progress_bridge::unix_epoch_ms;
 pub use channel_event::{ChatSuggestion, GuardrailPayload, GuardrailReason, QueueItemPayload, SubagentProgressDetail, SubagentUsagePayload, TurnTimingPayload, TurnUsagePayload, WebChannelEvent};
 pub use egress_surface::register_egress_surface_subscriber;
 pub use event_bus::{

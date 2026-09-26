@@ -1324,7 +1324,7 @@ fn replay_parked_approval(socket: &SocketRef, thread_id: &str) {
     // Replay is a fresh emit to a newly-joined socket, not a resend of the
     // original event, so stamp `ts` with "now" (same clock as
     // `publish_web_channel_event`) rather than leaving it unset.
-    event.ts = Some(openhuman_core::web_chat::progress_bridge::unix_epoch_ms());
+    event.ts = Some(openhuman_core::web_chat::unix_epoch_ms());
     let Ok(payload) = serde_json::to_value(&event) else {
         return;
     };
@@ -1355,7 +1355,7 @@ fn replay_parked_plan_review(socket: &SocketRef, thread_id: &str) {
         row.tool_call_id.as_deref(),
         row.expires_at.as_deref(),
     );
-    event.ts = Some(openhuman_core::web_chat::progress_bridge::unix_epoch_ms());
+    event.ts = Some(openhuman_core::web_chat::unix_epoch_ms());
     let Ok(payload) = serde_json::to_value(&event) else {
         return;
     };
