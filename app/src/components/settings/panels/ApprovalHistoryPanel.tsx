@@ -228,7 +228,7 @@ const ApprovalHistoryPanel = () => {
         }
         empty={
           error ? undefined : (
-            <div className="py-8 text-center" data-testid="approval-history-empty">
+            <div className="px-4 py-8 text-center" data-testid="approval-history-empty">
               <EmptyState label={t('settings.approvalHistory.emptyState')} />
             </div>
           )
