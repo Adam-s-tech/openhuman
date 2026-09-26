@@ -326,8 +326,8 @@ describe('AIPanel', () => {
     expect(await screen.findByText(/^Always on$/i)).toBeInTheDocument();
     // ...and must NOT render a toggle switch users would try (and fail) to flip.
     expect(screen.queryByRole('switch', { name: /Managed/i })).toBeNull();
-    // A hint points users wanting a local model at the Routing card below.
-    expect(screen.getByText(/choose a routing mode below/i)).toBeInTheDocument();
+    // A hint points users wanting a different provider at the Routing tab.
+    expect(screen.getByText(/Choose which provider each task uses on the Routing tab/i)).toBeInTheDocument();
   });
 
   it('shows the per-workload routing tables directly, with no mode selector', async () => {
