@@ -66,7 +66,7 @@ No owned persistence. `diagnostics()` reads the MCP write-audit log through `cra
 
 ## Notes / gotchas
 
-- **Read-only by design**: the registry never executes tools; routes are descriptive metadata only.
+- Read-only by design: the registry never executes tools; routes are descriptive metadata only.
 - Duplicate `tool_id` is first-write-wins: ordered MCP-stdio → controller → MCP-client; duplicates (e.g. external servers reusing well-known names) are logged and skipped, not overwritten. MCP-client ids are `mcp-client::<server_id>::<tool>` and route to `openhuman.mcp_clients_tool_call`.
 - MCP client enumeration is best-effort: on a single-thread tokio runtime (e.g. unit tests) or with no runtime, connected-client tools silently fall back to empty, since `block_in_place` panics outside the multi-thread runtime.
 - `registry_entries()` vs `registry_entries_for_config()`: the ambient form resolves the MCP host through the process default, which stops answering once a second workspace is open in the process (test binaries). Callers holding a `Config` should use the `_for_config` variant.
