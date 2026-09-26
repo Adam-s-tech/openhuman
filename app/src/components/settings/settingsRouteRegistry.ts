@@ -39,6 +39,7 @@ export type SettingsSection =
 type SettingsNavGroup =
   | 'general'
   | 'appearance'
+  | 'security'
   | 'data'
   | 'knowledgeMemory'
   | 'agentsAutonomy'
@@ -51,6 +52,9 @@ const NAV_GROUP_ORDER: SettingsNavGroup[] = [
   // Everything agentic in one category: agents, their tools, approvals and the
   // skills runner. Was split across Assistant, Connections and Agents & Autonomy.
   'agentsAutonomy',
+  // Everything about what the assistant may touch: the credential store,
+  // agent OS access (tiers, approvals, rate limits) and sandboxing.
+  'security',
   'data',
   'knowledgeMemory',
   'automationIntegrations',
@@ -61,6 +65,8 @@ const NAV_GROUP_ORDER: SettingsNavGroup[] = [
 export const NAV_GROUP_LABEL_KEY: Record<SettingsNavGroup, string> = {
   general: 'settings.navGroups.general',
   appearance: 'settings.navGroups.appearance',
+  // Reuses the Security page's title key, which is already translated.
+  security: 'pages.settings.account.security',
   data: 'settings.navGroups.data',
   // Promoted from the old Developer & Diagnostics sub-sections.
   knowledgeMemory: 'settings.devGroups.knowledgeMemory',
@@ -328,8 +334,8 @@ export const SETTINGS_ROUTE_REGISTRY: SettingsRegistryEntry[] = [
     descriptionKey: 'pages.settings.account.securityDesc',
     section: 'account',
     searchKeywords: ['keychain', 'secret', 'password', 'encryption', 'credentials'],
-    navGroup: 'general',
-    navOrder: 6,
+    navGroup: 'security',
+    navOrder: 0,
   },
   {
     id: 'migration',
@@ -428,7 +434,9 @@ export const SETTINGS_ROUTE_REGISTRY: SettingsRegistryEntry[] = [
       'full autonomy',
       'bypass approval',
     ],
-    navParent: 'agents',
+    // Was a sub-nav pill under Agents; now a page of the Security category.
+    navGroup: 'security',
+    navOrder: 1,
   },
   {
     id: 'activity-level',
@@ -444,7 +452,8 @@ export const SETTINGS_ROUTE_REGISTRY: SettingsRegistryEntry[] = [
     descriptionKey: 'settings.sandbox.menuDesc',
     section: 'agents',
     searchKeywords: ['sandbox', 'jail', 'isolation', 'docker'],
-    navParent: 'agents',
+    navGroup: 'security',
+    navOrder: 2,
   },
 
   // =========================================================================
