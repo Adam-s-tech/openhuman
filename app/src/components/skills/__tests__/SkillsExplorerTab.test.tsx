@@ -989,7 +989,7 @@ describe('SkillsExplorerTab', () => {
 
     const callsBefore = vi.mocked(skillRegistryApi.browse).mock.calls.length;
 
-    const refreshBtn = screen.getByTitle('Refresh registry');
+    const refreshBtn = screen.getByRole('button', { name: 'Refresh registry' });
     await act(async () => {
       fireEvent.click(refreshBtn);
     });
