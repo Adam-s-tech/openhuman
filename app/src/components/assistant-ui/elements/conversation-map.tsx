@@ -38,6 +38,7 @@ export function ConversationMap({
   /** Which edge of the 24px rail the collapsed ticks hug. */
   align?: 'left' | 'right';
 }) {
+  const { t } = useT();
   const railRef = useRef<HTMLElement>(null);
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
   const [previewId, setPreviewId] = useState<string | null>(null);
