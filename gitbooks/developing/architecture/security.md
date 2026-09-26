@@ -53,13 +53,11 @@ The agent never sees the choice; it just calls into `Sandbox::run(...)` and the 
 
 ## Autonomy ladder
 
-`AutonomyLevel` is a three-step ladder that controls how aggressively the policy gates tool calls:
+`AutonomyLevel` is a three-step ladder that controls how aggressively the policy gates tool calls. `Supervised`, the default, requires an explicit approval round trip for every higher-risk tool call. `SemiAutonomous` lets low and medium-risk calls through but still gates the higher-risk ones. `Autonomous` lets the agent run unattended within its budget and risk caps.
 
-- **Supervised**: every higher-risk tool call requires an explicit approval round-trip.
-- **SemiAutonomous**: low / medium-risk tool calls flow through; higher-risk ones still approval-gate.
-- **Autonomous**: the policy lets the agent run unattended within budget and risk caps.
+`CommandRiskLevel` and `ToolOperation` classify a given tool call; `ActionTracker` keeps the per-session counts that the policy compares against those caps. The agent harness asks `SecurityPolicy` for a decision before every executable tool dispatch.
 
-`CommandRiskLevel` + `ToolOperation` classify a given tool call; `ActionTracker` keeps the per-session counts that the policy compares against caps. The agent harness asks `SecurityPolicy` for a decision before every executable tool dispatch.
+All of this only applies when the autonomy policy is turned on. Per `AGENTS.md`, `[autonomy] enabled = false` is the default, and `SecurityPolicy::from_config` carries that flag through every enforcement entry point: with the policy disabled, command classification, the approval gate, the command allowlist, and the hourly action budget are all inert, and `workspace_only`, `forbidden_paths`, and the workspace-internal boundary are not enforced. One thing never turns off: `is_always_forbidden` blocks credential stores (`~/.ssh`, `~/.gnupg`, `~/.aws`) and system roots, and rejects `..` traversal and null bytes in a path, whether the autonomy policy is enabled or not. That is the floor this module keeps regardless of configuration.
 
 ## Audit log
 

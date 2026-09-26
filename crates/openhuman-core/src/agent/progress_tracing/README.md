@@ -12,17 +12,17 @@ content).
 ## Key files
 
 - `agent/progress_tracing.rs` (parent module file) declares the submodules
-  below it. `collector/` — `SpanCollector` (pure state machine: feed it
+  below it. `collector/` holds `SpanCollector` (a pure state machine: feed it
   progress events plus a timestamp, it accumulates finished `TraceSpan`s).
-  `types.rs` — `TraceContext`, `RunType`, `SpanKind`/`SpanStatus`.
-  `serialize.rs` — `spans_to_ndjson`. `export.rs` — the local file/log
+  `types.rs` has `TraceContext`, `RunType`, `SpanKind`/`SpanStatus`.
+  `serialize.rs` has `spans_to_ndjson`. `export.rs` has the local file/log
   exporter `export_spans`, and the two run-completion entry points
   `export_run_trace` / `export_run_trace_from_journal`. Each entry point runs
   two independent, best-effort paths: a Langfuse push when
   `observability.share_usage_data` is on (the default), and local NDJSON
   export to `export_path` or the app log when
   `observability.agent_tracing.enabled` is on (opt-in).
-- `otlp.rs` — the remote agent-turn exporter. It turns completed live spans
+- `otlp.rs`: the remote agent-turn exporter. It turns completed live spans
   into OTLP/HTTP JSON, preserves the root turn's input/output, maps
   TinyInference messages into role-labeled conversations, puts usage only on
   model generations, and summarizes repeated internal tool discovery.
@@ -32,7 +32,7 @@ content).
   `observability.share_usage_data`; local NDJSON export remains optional.
 - `langfuse.rs` + `langfuse/` retain the legacy batch projection for
   compatibility tests and the flow-run exporter. Agent turns use `otlp.rs`.
-- `journal_projection.rs` — `spans_from_observations` rebuilds spans from the
+- `journal_projection.rs`: `spans_from_observations` rebuilds spans from the
   durable `AgentObservation` journal instead of the live stream, by folding
   journalled events through the same `SpanCollector`, so a UI/supervisor can
   attach after a run. Its match is exhaustive over
@@ -47,7 +47,7 @@ Tests live in this directory as `*_tests.rs` files, e.g.
 
 ## Called by
 
-- `web_chat/progress_bridge.rs` — the only caller. Builds a `SpanCollector`
+- `web_chat/progress_bridge.rs`: the only caller. Builds a `SpanCollector`
   per run, feeds it `AgentProgress`, shadow-compares the live spans against
   `spans_from_observations` over the run journal, then calls
   `export_run_trace_from_journal` (journal available) or `export_run_trace`.
