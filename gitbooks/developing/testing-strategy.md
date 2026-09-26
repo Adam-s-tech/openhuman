@@ -211,7 +211,7 @@ error: failed to get `tinytools` as a dependency of package `openhuman-cli v0.63
 ```
 
 **Check content, never status.** `git submodule status` prints `-` only for
-*unregistered* modules, and registration happens **before** checkout — so a
+*unregistered* modules, and registration happens **before** checkout, so a
 mid-flight init reads as ready while every working tree is still empty.
 Observed mid-`update --init`: **13 `+`, 3 ` `, zero `-`** while `du -sh vendor`
 was **120K** and `ls vendor/tinychannels` was empty.
