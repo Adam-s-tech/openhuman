@@ -265,7 +265,7 @@ const SandboxSettingsPanel = () => {
                     {t(`settings.sandbox.backendName.${id}`)}
                     {linuxOnly && (
                       <Badge variant="neutral" className="px-1.5 py-0 text-[10px]">
-                        Linux
+                        {t('settings.sandbox.linuxTag')}
                       </Badge>
                     )}
                   </span>
