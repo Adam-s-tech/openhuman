@@ -20,7 +20,7 @@ Credential management for the backend credential the core authenticates with and
 
 | File | Role |
 | --- | --- |
-| `mod.rs` | Export-focused. Re-exports `core::*`, `ops` (also as `rpc`), Composio-direct helpers, schema controllers (`all_credentials_controller_schemas` / `all_credentials_registered_controllers`), and backend OAuth REST types from `crate::api::rest`. |
+| `mod.rs` | Export-focused. Re-exports `core::*`, `ops` (also as `rpc`), Composio-direct helpers, schema controllers (`all_credentials_controller_schemas` / `all_credentials_registered_controllers`), `crate::backend::BackendClient`, and `jwt::user_id_from_profile_payload`. |
 | `core.rs` | `AuthService` facade over `AuthProfilesStore` — store/get/remove/set-active profiles, resolve bearer token, profile-id selection logic (override → active → default → any-for-provider), provider normalization, state-dir derivation. |
 | `profiles.rs` | The persistence engine. `AuthProfile` / `TokenSet` / `AuthProfileKind` / `AuthProfilesData` types and `AuthProfilesStore` — atomic JSON read/write, keychain vs encrypted-JSON secret handling, legacy migration, corrupt-store quarantine, PID-aware stale-lock recovery. |
 | `api_key.rs` | The `api-key` profile: `store_api_key[_in]`, `get_api_key[_in]`, `has_api_key[_in]`, `clear_api_key`. |
