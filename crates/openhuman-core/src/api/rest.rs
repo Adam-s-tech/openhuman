@@ -514,12 +514,12 @@ impl BackendOAuthClient {
         Ok(ConnectResponse { oauth_url, state })
     }
 
-    /// `GET /auth/me` with the stored session JWT — the backend user profile,
-    /// bearer-only. Used by channel link checks to see whether a channel id has
+    /// `GET /auth/me` with the backend credential (session JWT or API key) —
+    /// the backend user profile. Used by channel link checks to see whether a channel id has
     /// been attached to the account; it does not establish or validate a
     /// session (the host that owns the session does that).
-    pub async fn fetch_profile(&self, bearer_jwt: &str) -> Result<Value> {
-        self.authed_json(bearer_jwt, Method::GET, "auth/me", None)
+    pub async fn fetch_profile(&self, credential: impl Into<BackendCredential>) -> Result<Value> {
+        self.authed_json(credential, Method::GET, "auth/me", None)
             .await
     }
 
@@ -884,9 +884,9 @@ impl BackendOAuthClient {
     }
 
     /// Lists all active integrations for the current user.
-    pub async fn list_integrations(&self, bearer_jwt: &str) -> Result<Vec<IntegrationSummary>> {
+    pub async fn list_integrations(&self, credential: impl Into<BackendCredential>) -> Result<Vec<IntegrationSummary>> {
         let value = self
-            .authed_json(bearer_jwt, Method::GET, "auth/integrations", None)
+            .authed_json(credential, Method::GET, "auth/integrations", None)
             .await?;
         let integrations = value
             .get("integrations")
@@ -958,14 +958,14 @@ impl BackendOAuthClient {
     pub async fn send_channel_message(
         &self,
         channel: &str,
-        bearer_jwt: &str,
+        credential: impl Into<BackendCredential>,
         message_body: Value,
     ) -> Result<Value> {
         let channel = channel.trim().trim_matches('/');
         anyhow::ensure!(!channel.is_empty(), "channel is required");
         let encoded = urlencoding::encode(channel);
         self.authed_json(
-            bearer_jwt,
+            credential,
             Method::POST,
             &format!("channels/{encoded}/messages"),
             Some(message_body),
@@ -982,12 +982,12 @@ impl BackendOAuthClient {
     /// so callers should re-invoke every ~4 s for as long as the turn is
     /// in flight. Returns `Err` if the backend doesn't support typing for
     /// this channel — caller should swallow the error silently.
-    pub async fn send_channel_typing(&self, channel: &str, bearer_jwt: &str) -> Result<Value> {
+    pub async fn send_channel_typing(&self, channel: &str, credential: impl Into<BackendCredential>) -> Result<Value> {
         let channel = channel.trim().trim_matches('/');
         anyhow::ensure!(!channel.is_empty(), "channel is required");
         let encoded = urlencoding::encode(channel);
         self.authed_json(
-            bearer_jwt,
+            credential,
             Method::POST,
             &format!("channels/{encoded}/typing"),
             Some(json!({})),
@@ -1017,7 +1017,7 @@ impl BackendOAuthClient {
         &self,
         channel: &str,
         message_id: &str,
-        bearer_jwt: &str,
+        credential: impl Into<BackendCredential>,
         edit_body: Value,
     ) -> Result<Value> {
         let channel = channel.trim().trim_matches('/');
@@ -1026,7 +1026,7 @@ impl BackendOAuthClient {
         let encoded_channel = urlencoding::encode(channel);
         let encoded_id = urlencoding::encode(message_id);
         self.authed_json(
-            bearer_jwt,
+            credential,
             Method::PATCH,
             &format!("channels/{encoded_channel}/messages/{encoded_id}"),
             Some(edit_body),
@@ -1041,7 +1041,7 @@ impl BackendOAuthClient {
         &self,
         channel: &str,
         message_id: &str,
-        bearer_jwt: &str,
+        credential: impl Into<BackendCredential>,
     ) -> Result<Value> {
         let channel = channel.trim().trim_matches('/');
         anyhow::ensure!(!channel.is_empty(), "channel is required");
@@ -1049,7 +1049,7 @@ impl BackendOAuthClient {
         let encoded_channel = urlencoding::encode(channel);
         let encoded_id = urlencoding::encode(message_id);
         self.authed_json(
-            bearer_jwt,
+            credential,
             Method::DELETE,
             &format!("channels/{encoded_channel}/messages/{encoded_id}"),
             None,
@@ -1061,14 +1061,14 @@ impl BackendOAuthClient {
     pub async fn send_channel_reaction(
         &self,
         channel: &str,
-        bearer_jwt: &str,
+        credential: impl Into<BackendCredential>,
         reaction_body: Value,
     ) -> Result<Value> {
         let channel = channel.trim().trim_matches('/');
         anyhow::ensure!(!channel.is_empty(), "channel is required");
         let encoded = urlencoding::encode(channel);
         self.authed_json(
-            bearer_jwt,
+            credential,
             Method::POST,
             &format!("channels/{encoded}/reactions"),
             Some(reaction_body),
@@ -1080,7 +1080,7 @@ impl BackendOAuthClient {
     pub async fn create_channel_thread(
         &self,
         channel: &str,
-        bearer_jwt: &str,
+        credential: impl Into<BackendCredential>,
         title: &str,
     ) -> Result<Value> {
         let channel = channel.trim().trim_matches('/');
@@ -1089,7 +1089,7 @@ impl BackendOAuthClient {
         let encoded = urlencoding::encode(channel);
         let body = serde_json::json!({ "title": title.trim() });
         self.authed_json(
-            bearer_jwt,
+            credential,
             Method::POST,
             &format!("channels/{encoded}/threads"),
             Some(body),
@@ -1101,7 +1101,7 @@ impl BackendOAuthClient {
     pub async fn update_channel_thread(
         &self,
         channel: &str,
-        bearer_jwt: &str,
+        credential: impl Into<BackendCredential>,
         thread_id: &str,
         action: &str,
     ) -> Result<Value> {
@@ -1116,7 +1116,7 @@ impl BackendOAuthClient {
         let encoded_thread = urlencoding::encode(thread_id.trim());
         let body = serde_json::json!({ "action": action });
         self.authed_json(
-            bearer_jwt,
+            credential,
             Method::PATCH,
             &format!("channels/{encoded_channel}/threads/{encoded_thread}"),
             Some(body),
@@ -1128,7 +1128,7 @@ impl BackendOAuthClient {
     pub async fn list_channel_threads(
         &self,
         channel: &str,
-        bearer_jwt: &str,
+        credential: impl Into<BackendCredential>,
         active_filter: Option<bool>,
     ) -> Result<Value> {
         let channel = channel.trim().trim_matches('/');
@@ -1142,15 +1142,15 @@ impl BackendOAuthClient {
                 "?active=false"
             });
         }
-        self.authed_json(bearer_jwt, Method::GET, &path, None).await
+        self.authed_json(credential, Method::GET, &path, None).await
     }
 
     /// Revokes (deletes) an active integration.
-    pub async fn revoke_integration(&self, integration_id: &str, bearer_jwt: &str) -> Result<()> {
+    pub async fn revoke_integration(&self, integration_id: &str, credential: impl Into<BackendCredential>) -> Result<()> {
         let id = integration_id.trim();
         anyhow::ensure!(!id.is_empty(), "integration id is required");
         self.authed_json(
-            bearer_jwt,
+            credential,
             Method::DELETE,
             &format!("auth/integrations/{id}"),
             None,
