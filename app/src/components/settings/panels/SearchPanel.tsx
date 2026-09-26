@@ -18,6 +18,7 @@ import Card from '../../ui/Card';
 import { CenteredLoadingState } from '../../ui/LoadingState';
 import StatusLine from '../../ui/StatusLine';
 import TextArea from '../../ui/TextArea';
+import { TileGrid } from '../../ui/TileGrid';
 import { ToggleGroupItem, ToggleGroupRoot } from '../../ui/ToggleGroup';
 import SettingsBackButton from '../components/SettingsBackButton';
 import { useSettingsNavigation } from '../hooks/useSettingsNavigation';
@@ -367,97 +368,99 @@ const SearchPanel = ({ embedded = false }: { embedded?: boolean }) => {
             {/* Keys and the website policy are independent, mid-sized cards:
                 side by side once the page is wide enough for key inputs. */}
             <TileGrid columns={2} className="md:grid-cols-1 xl:grid-cols-2">
-            {/* ── BYO API keys, one row per direct provider ───────────── */}
-            <Card
-              className="h-full"
-              title={t('settings.search.apiKeysHeading')}
-              description={t('settings.search.apiKeysDesc')}>
-              {KEY_ROWS.map(row => (
-                <KeyEditor
-                  key={row.engine}
-                  label={t(row.labelKey)}
-                  placeholder={
-                    row.configured ? t('settings.search.placeholderStored') : t(row.placeholderKey)
-                  }
-                  show={row.show}
-                  onToggleShow={row.toggleShow}
-                  value={row.value}
-                  onChange={row.setValue}
-                  onSave={() => void persistKey(row.engine, row.value)}
-                  onClear={() => void persistKey(row.engine, '')}
-                  configured={row.configured}
-                  docUrl={row.docUrl}
-                  t={t}
-                />
-              ))}
-            </Card>
+              {/* ── BYO API keys, one row per direct provider ───────────── */}
+              <Card
+                className="h-full"
+                title={t('settings.search.apiKeysHeading')}
+                description={t('settings.search.apiKeysDesc')}>
+                {KEY_ROWS.map(row => (
+                  <KeyEditor
+                    key={row.engine}
+                    label={t(row.labelKey)}
+                    placeholder={
+                      row.configured
+                        ? t('settings.search.placeholderStored')
+                        : t(row.placeholderKey)
+                    }
+                    show={row.show}
+                    onToggleShow={row.toggleShow}
+                    value={row.value}
+                    onChange={row.setValue}
+                    onSave={() => void persistKey(row.engine, row.value)}
+                    onClear={() => void persistKey(row.engine, '')}
+                    configured={row.configured}
+                    docUrl={row.docUrl}
+                    t={t}
+                  />
+                ))}
+              </Card>
 
-            {/* ── Allowed websites: the unified host allowlist shared by
+              {/* ── Allowed websites: the unified host allowlist shared by
                 web_fetch / curl and (when enabled) the browser tool. Web
                 search is not gated by this list. ────────────────────── */}
-            <Card
-              className="h-full"
-              title={t('settings.search.allowedSitesLabel')}
-              description={
-                mode === 'all'
-                  ? t('settings.search.allowedSitesAllOn')
-                  : mode === 'block'
-                    ? t('settings.search.accessBlockAllHint')
-                    : t('settings.search.allowedSitesHint')
-              }
-              headerRight={
-                <ToggleGroupRoot
-                  type="single"
-                  variant="secondary"
-                  size="xs"
-                  aria-label={t('settings.search.accessModeAria')}
-                  value={mode}
-                  onValueChange={value => {
-                    if (value) selectMode(value as AccessMode);
-                  }}
-                  disabled={status.kind === 'saving'}
-                  className="gap-0 overflow-hidden rounded-lg border border-line *:rounded-none *:border-0">
-                  {(
-                    [
-                      ['all', 'settings.search.accessAllowAll'],
-                      ['custom', 'settings.search.accessCustom'],
-                      ['block', 'settings.search.accessBlockAll'],
-                    ] as const
-                  ).map(([value, labelKey]) => (
-                    <ToggleGroupItem
-                      key={value}
-                      value={value}
-                      className="h-auto px-2.5 py-1 text-xs font-medium data-[state=on]:bg-primary-500 data-[state=on]:text-content-inverted">
-                      {t(labelKey)}
-                    </ToggleGroupItem>
-                  ))}
-                </ToggleGroupRoot>
-              }>
-              {mode === 'custom' && (
-                <div className="space-y-3 p-4">
-                  <TextArea
-                    value={allowedText}
-                    onChange={e => setAllowedText(e.target.value)}
-                    rows={5}
-                    spellCheck={false}
-                    placeholder={t('settings.search.allowedSitesPlaceholder')}
-                    className="font-mono text-xs"
-                    aria-label={t('settings.search.allowedSitesLabel')}
-                  />
-                  <div className="flex justify-end">
-                    <Button
-                      type="button"
-                      variant="primary"
-                      size="sm"
-                      leadingIcon={<Save className="h-3.5 w-3.5" aria-hidden />}
-                      onClick={() => persistAllowedDomains()}
-                      disabled={status.kind === 'saving'}>
-                      {t('settings.search.allowedSitesSave')}
-                    </Button>
+              <Card
+                className="h-full"
+                title={t('settings.search.allowedSitesLabel')}
+                description={
+                  mode === 'all'
+                    ? t('settings.search.allowedSitesAllOn')
+                    : mode === 'block'
+                      ? t('settings.search.accessBlockAllHint')
+                      : t('settings.search.allowedSitesHint')
+                }
+                headerRight={
+                  <ToggleGroupRoot
+                    type="single"
+                    variant="secondary"
+                    size="xs"
+                    aria-label={t('settings.search.accessModeAria')}
+                    value={mode}
+                    onValueChange={value => {
+                      if (value) selectMode(value as AccessMode);
+                    }}
+                    disabled={status.kind === 'saving'}
+                    className="gap-0 overflow-hidden rounded-lg border border-line *:rounded-none *:border-0">
+                    {(
+                      [
+                        ['all', 'settings.search.accessAllowAll'],
+                        ['custom', 'settings.search.accessCustom'],
+                        ['block', 'settings.search.accessBlockAll'],
+                      ] as const
+                    ).map(([value, labelKey]) => (
+                      <ToggleGroupItem
+                        key={value}
+                        value={value}
+                        className="h-auto px-2.5 py-1 text-xs font-medium data-[state=on]:bg-primary-500 data-[state=on]:text-content-inverted">
+                        {t(labelKey)}
+                      </ToggleGroupItem>
+                    ))}
+                  </ToggleGroupRoot>
+                }>
+                {mode === 'custom' && (
+                  <div className="space-y-3 p-4">
+                    <TextArea
+                      value={allowedText}
+                      onChange={e => setAllowedText(e.target.value)}
+                      rows={5}
+                      spellCheck={false}
+                      placeholder={t('settings.search.allowedSitesPlaceholder')}
+                      className="font-mono text-xs"
+                      aria-label={t('settings.search.allowedSitesLabel')}
+                    />
+                    <div className="flex justify-end">
+                      <Button
+                        type="button"
+                        variant="primary"
+                        size="sm"
+                        leadingIcon={<Save className="h-3.5 w-3.5" aria-hidden />}
+                        onClick={() => persistAllowedDomains()}
+                        disabled={status.kind === 'saving'}>
+                        {t('settings.search.allowedSitesSave')}
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              )}
-            </Card>
+                )}
+              </Card>
             </TileGrid>
 
             <StatusLine
