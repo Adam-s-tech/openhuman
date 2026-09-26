@@ -134,6 +134,19 @@ CI enables the same flag directly via `RUSTFLAGS` in the Linux Rust jobs; this
 script exists so local `cargo` invocations get the same speedup without
 depending on a container.
 
+### Feature gates and binary size
+
+`crates/openhuman-core/Cargo.toml` builds most of its domains behind Cargo
+features. A bare `cargo check` compiles the contributor default set (`media`,
+`skills`, `flows`, `mcp`, `channels`, `http-server`, `scheduler-gate`,
+`file-logging`, `modules`), which is not the same as what the desktop app
+ships: `scripts/ci/product-features.txt` is the single source of truth for
+the shipped product's gate list, and `scripts/ci/check-feature-forwarding.mjs`
+asserts that `crates/openhuman-app/Cargo.toml` forwards exactly that set.
+Turning a gate off drops real code and, for some gates, whole native
+dependencies. For measured binary sizes and RSS across a few feature recipes,
+see [Performance](performance.md).
+
 ## 4. macOS prerequisites
 
 Install:

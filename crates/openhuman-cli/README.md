@@ -46,5 +46,11 @@ target).
 ```bash
 cargo build --manifest-path Cargo.toml -p openhuman-cli --bin openhuman-core
 cargo test  --manifest-path Cargo.toml -p openhuman-cli --test json_rpc_e2e --features "$(bash scripts/ci/product-features.sh)"
-pnpm test:rust     # scripts/test-rust-with-mock.sh — the canonical runner
+pnpm test:rust     # scripts/test-rust-with-mock.sh: the canonical runner
 ```
+
+See [`src/bin/README.md`](src/bin/README.md) for the benchmark and dev bins
+(`rss-bench`, `library-profile`, `tool-search-bench`, `openhuman-fleet`), and
+[`gitbooks/developing/performance.md`](../../gitbooks/developing/performance.md)
+and [`gitbooks/developing/jev.md`](../../gitbooks/developing/jev.md) for what
+those benchmarks measure.
