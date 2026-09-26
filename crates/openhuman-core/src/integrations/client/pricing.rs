@@ -144,9 +144,7 @@ fn build_client_with_credential(
         None => return None,
     };
     if credential.secret().is_empty() {
-        tracing::warn!(
-            "[integrations] no auth token available — not signed in and no API key set"
-        );
+        tracing::warn!("[integrations] no auth token available — not signed in and no API key set");
         return None;
     }
     tracing::debug!(

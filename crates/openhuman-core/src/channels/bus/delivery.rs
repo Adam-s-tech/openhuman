@@ -198,15 +198,17 @@ pub(super) async fn build_channel_client() -> Option<(
         }
     };
     let api_url = crate::api::config::effective_backend_api_url(&config.api_url);
-    let jwt = match crate::security::credentials::session_support::resolve_backend_credential(
-        &config,
-    ) {
-        Ok(credential) => credential,
-        Err(e) => {
-            tracing::error!("[channel-inbound] no backend credential — cannot send: {}", e);
-            return None;
-        }
-    };
+    let jwt =
+        match crate::security::credentials::session_support::resolve_backend_credential(&config) {
+            Ok(credential) => credential,
+            Err(e) => {
+                tracing::error!(
+                    "[channel-inbound] no backend credential — cannot send: {}",
+                    e
+                );
+                return None;
+            }
+        };
     match crate::api::rest::BackendOAuthClient::new(&api_url) {
         Ok(c) => Some((c, jwt)),
         Err(e) => {
@@ -227,15 +229,17 @@ pub(super) async fn send_channel_reply(channel: &str, text: &str) {
     };
 
     let api_url = crate::api::config::effective_backend_api_url(&config.api_url);
-    let jwt = match crate::security::credentials::session_support::resolve_backend_credential(
-        &config,
-    ) {
-        Ok(credential) => credential,
-        Err(e) => {
-            tracing::error!("[channel-inbound] no backend credential — cannot reply: {}", e);
-            return;
-        }
-    };
+    let jwt =
+        match crate::security::credentials::session_support::resolve_backend_credential(&config) {
+            Ok(credential) => credential,
+            Err(e) => {
+                tracing::error!(
+                    "[channel-inbound] no backend credential — cannot reply: {}",
+                    e
+                );
+                return;
+            }
+        };
 
     let client = match crate::api::rest::BackendOAuthClient::new(&api_url) {
         Ok(c) => c,

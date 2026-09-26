@@ -302,11 +302,9 @@ impl ComposioCallbacks {
     async fn session_bearer(&self) -> tinybus::Result<Option<String>> {
         let config = self.live_config_or_installed().await;
         Ok(
-            crate::security::credentials::session_support::backend_bearer_secret(
-                config.as_ref(),
-            )
-            .ok()
-            .flatten(),
+            crate::security::credentials::session_support::backend_bearer_secret(config.as_ref())
+                .ok()
+                .flatten(),
         )
     }
 

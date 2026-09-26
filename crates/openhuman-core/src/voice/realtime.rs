@@ -91,7 +91,12 @@ pub async fn mint_voice_agent_signed_url(
     let client = BackendOAuthClient::new(&api_url).map_err(|e| e.to_string())?;
 
     let raw = client
-        .authed_json(&credential, Method::GET, "/voice-agent/get-signed-url", None)
+        .authed_json(
+            &credential,
+            Method::GET,
+            "/voice-agent/get-signed-url",
+            None,
+        )
         .await
         .map_err(crate::api::flatten_authed_error)?;
 

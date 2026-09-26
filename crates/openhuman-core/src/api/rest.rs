@@ -884,7 +884,10 @@ impl BackendOAuthClient {
     }
 
     /// Lists all active integrations for the current user.
-    pub async fn list_integrations(&self, credential: impl Into<BackendCredential>) -> Result<Vec<IntegrationSummary>> {
+    pub async fn list_integrations(
+        &self,
+        credential: impl Into<BackendCredential>,
+    ) -> Result<Vec<IntegrationSummary>> {
         let value = self
             .authed_json(credential, Method::GET, "auth/integrations", None)
             .await?;
@@ -982,7 +985,11 @@ impl BackendOAuthClient {
     /// so callers should re-invoke every ~4 s for as long as the turn is
     /// in flight. Returns `Err` if the backend doesn't support typing for
     /// this channel — caller should swallow the error silently.
-    pub async fn send_channel_typing(&self, channel: &str, credential: impl Into<BackendCredential>) -> Result<Value> {
+    pub async fn send_channel_typing(
+        &self,
+        channel: &str,
+        credential: impl Into<BackendCredential>,
+    ) -> Result<Value> {
         let channel = channel.trim().trim_matches('/');
         anyhow::ensure!(!channel.is_empty(), "channel is required");
         let encoded = urlencoding::encode(channel);
@@ -1146,7 +1153,11 @@ impl BackendOAuthClient {
     }
 
     /// Revokes (deletes) an active integration.
-    pub async fn revoke_integration(&self, integration_id: &str, credential: impl Into<BackendCredential>) -> Result<()> {
+    pub async fn revoke_integration(
+        &self,
+        integration_id: &str,
+        credential: impl Into<BackendCredential>,
+    ) -> Result<()> {
         let id = integration_id.trim();
         anyhow::ensure!(!id.is_empty(), "integration id is required");
         self.authed_json(

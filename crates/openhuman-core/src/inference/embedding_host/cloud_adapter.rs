@@ -41,9 +41,7 @@ impl OpenHumanCloudEmbeddingModel {
             // non-loopback wire.
             if let Some(key) =
                 crate::security::credentials::api_key::get_api_key_in(&state_dir, secrets_encrypt)
-                    .map_err(|error| {
-                        tinyinference_embeddings::Error::Embedding(error.to_string())
-                    })?
+                    .map_err(|error| tinyinference_embeddings::Error::Embedding(error.to_string()))?
             {
                 if !crate::inference::provider::openhuman_backend_model::is_safe_endpoint_for_managed_bearer(
                     &key_endpoint,

@@ -439,19 +439,21 @@ pub fn spawn_socket_auto_connect(
             };
             let api_url = crate::api::config::effective_backend_api_url(&config.api_url);
             // The API key when one is stored, else the session token.
-            let initial_token = match crate::security::credentials::session_support::backend_bearer_secret(&config) {
-                Ok(Some(t)) => t,
-                Ok(None) => {
-                    log::info!(
+            let initial_token =
+                match crate::security::credentials::session_support::backend_bearer_secret(&config)
+                {
+                    Ok(Some(t)) => t,
+                    Ok(None) => {
+                        log::info!(
                         "[socket] No session token stored — skipping auto-connect (will connect after login)"
                     );
-                    return;
-                }
-                Err(e) => {
-                    log::warn!("[socket] Failed to read session token: {e}");
-                    return;
-                }
-            };
+                        return;
+                    }
+                    Err(e) => {
+                        log::warn!("[socket] Failed to read session token: {e}");
+                        return;
+                    }
+                };
             log::info!(
                 "[socket] Session token found — auto-connecting to {}",
                 api_url

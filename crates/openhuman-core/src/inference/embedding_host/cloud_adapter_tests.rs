@@ -164,7 +164,8 @@ async fn api_key_is_refused_over_plaintext_non_loopback() {
     );
     let err = provider.embed(&["hello".to_string()]).await.unwrap_err();
     assert!(
-        err.to_string().contains("refusing to send the TinyHumans API key"),
+        err.to_string()
+            .contains("refusing to send the TinyHumans API key"),
         "{err}"
     );
 }
