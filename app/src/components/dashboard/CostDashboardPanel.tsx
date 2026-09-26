@@ -127,12 +127,14 @@ const CostDashboardPanel = ({ embedded = false }: CostDashboardPanelProps) => {
               <TokenUsageChart days={data.days} />
             </Card>
           </div>
-          <Card
-            data-testid="cost-dashboard-model-table"
-            title={t('settings.costDashboard.modelBreakdown')}
-            description={t('settings.costDashboard.modelBreakdownHint')}>
-            <ModelCostTable models={data.by_model} currency={data.currency} />
-          </Card>
+          <div data-testid="cost-dashboard-model-table">
+            <ModelCostTable
+              models={data.by_model}
+              currency={data.currency}
+              title={t('settings.costDashboard.modelBreakdown')}
+              description={t('settings.costDashboard.modelBreakdownHint')}
+            />
+          </div>
           {!hasAnyUsage && (
             <Card data-testid="cost-dashboard-empty">
               <div className="space-y-1 px-4 py-6 text-center">

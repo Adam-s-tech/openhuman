@@ -2,7 +2,16 @@ import type { ReactNode } from 'react';
 
 import type { CostDashboardModelStats } from '../../hooks/useCostDashboard';
 import { useT } from '../../lib/i18n/I18nContext';
-import { Badge, DataTable, type DataTableColumn, EmptyState, Progress } from '../ui';
+import {
+  Badge,
+  DataTable,
+  type DataTableColumn,
+  EmptyState,
+  Progress,
+  TableCell,
+  TableRow,
+} from '../ui';
+import { cn } from '../../lib/cn';
 import { formatCurrency, formatTokens } from './formatCurrency';
 
 interface ModelCostTableProps {
@@ -90,8 +99,18 @@ const ModelCostTable = ({ models, currency, title, description }: ModelCostTable
       columns={columns}
       rows={models}
       rowKey={row => row.model}
-      rowTestId={undefined}
-      renderRow={undefined}
+      // Custom rows only to keep the per-model `model-row-*` test id.
+      renderRow={row => (
+        <TableRow key={row.model} data-testid={`model-row-${row.model}`}>
+          {columns.map(column => (
+            <TableCell
+              key={column.id}
+              className={cn(column.align === 'right' && 'text-right', column.className)}>
+              {column.cell?.(row)}
+            </TableCell>
+          ))}
+        </TableRow>
+      )}
       ariaLabel={t('settings.costDashboard.modelBreakdown')}
       testId="model-cost-table"
       empty={
@@ -100,7 +119,6 @@ const ModelCostTable = ({ models, currency, title, description }: ModelCostTable
           label={t('settings.costDashboard.noModels')}
         />
       }
-      rowClassName={() => undefined}
     />
   );
 };
