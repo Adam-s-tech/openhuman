@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { BubbleMarkdown, TableCellMarkdown } from './AgentMessageBubble';
+import { BubbleMarkdown } from './AgentMessageBubble';
 
 const mocks = vi.hoisted(() => ({ openUrl: vi.fn(), openWorkspacePath: vi.fn() }));
 
