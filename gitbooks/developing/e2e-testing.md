@@ -76,9 +76,9 @@ active platform detection.
 
 ### Element helpers
 
-`app/test/e2e/helpers/element-helpers.ts` provides a unified API:
+`app/test/e2e/helpers/element-helpers.ts` provides a unified API over the WebView DOM:
 
-| Helper                    | Appium Chromium                              |
+| Helper                    | Behavior                                      |
 | ------------------------- | -------------------------------------------- |
 | `waitForText(text)`       | XPath over DOM text content                  |
 | `waitForButton(text)`     | `button` / `[role="button"]` XPath           |
