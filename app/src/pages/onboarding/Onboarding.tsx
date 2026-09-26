@@ -37,7 +37,6 @@ const Onboarding = () => {
         <Route path="custom/oauth" element={<CustomOAuthPage />} />
         <Route path="custom/search" element={<CustomSearchPage />} />
         <Route path="custom/embeddings" element={<CustomEmbeddingsPage />} />
-        <Route path="custom/activity" element={<CustomActivityPage />} />
         <Route path="custom/vault" element={<VaultSetupStep />} />
         <Route path="*" element={<Navigate to="welcome" replace />} />
       </Route>
