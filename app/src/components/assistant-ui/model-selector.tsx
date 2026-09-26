@@ -126,7 +126,7 @@ function useModelSelectorContext() {
  * DropdownMenu) when the built-in ModelSelector.Effort layout doesn't fit.
  * `efforts` is undefined for models without configurable reasoning.
  */
-export function useModelSelectorEfforts(): {
+function useModelSelectorEfforts(): {
   efforts: readonly ModelSelectorEffortOption[] | undefined;
   effort: string | undefined;
   setEffort: (effort: string) => void;
