@@ -84,12 +84,12 @@ background; the status poll reports the outcome.
 
 What stayed host-side inside these handlers, on purpose:
 
-- **Events**, `tinymcp` reports outcomes in its return values and publishes
+- **Events**: `tinymcp` reports outcomes in its return values and publishes
   nothing; the handlers turn those into `DomainEvent`s because the vocabulary
   is this application's.
-- **The prompt-injection scan**, `tools_safe_for_agent` filters remote tool
+- **The prompt-injection scan**: `tools_safe_for_agent` filters remote tool
   definitions before they reach the agent.
-- **The document**, `tinymcp` has no notion of `mcp.json`; the shape, the
+- **The document**: `tinymcp` has no notion of `mcp.json`; the shape, the
   refusals and the reconciliation are this application's.
 
 ## Reconnect-supervisor events
