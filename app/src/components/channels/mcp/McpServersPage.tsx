@@ -44,7 +44,10 @@ const McpServersPage = ({ initialTab = 'servers' }: McpServersPageProps) => {
       value={tab}
       onChange={setTab}
       tabsAriaLabel={t('mcp.tab.tablistAria')}
-      tabsTestIdPrefix="mcp-page-tab">
+      tabsTestIdPrefix="mcp-page-tab"
+      // The Servers table fills the body and scrolls its own rows; the other
+      // tabs are documents that scroll with the page.
+      scrollable={tab !== 'servers'}>
       {tab === 'clients' ? (
         <McpServerPanel embedded />
       ) : (

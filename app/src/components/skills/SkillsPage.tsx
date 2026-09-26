@@ -41,7 +41,10 @@ const SkillsPage = ({ onToast, initialTab = 'installed' }: SkillsPageProps) => {
       value={tab}
       onChange={setTab}
       tabsAriaLabel={t('skills.explorer.title')}
-      tabsTestIdPrefix="skill-explorer-tab">
+      tabsTestIdPrefix="skill-explorer-tab"
+      // Installed / Registry are tables that fill the body and scroll their
+      // own rows; the Runner is a form that scrolls with the page.
+      scrollable={tab === 'runner'}>
       {tab === 'runner' ? (
         <WorkflowRunnerBody />
       ) : (

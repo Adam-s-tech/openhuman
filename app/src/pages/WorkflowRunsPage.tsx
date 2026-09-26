@@ -138,7 +138,8 @@ export default function WorkflowRunsPage() {
       if (selectedStatus.size > 0 && !selectedStatus.has(row.displayStatus)) return false;
       if (!needle) return true;
       return (
-        row.name.toLowerCase().includes(needle) || (row.run.error ?? '').toLowerCase().includes(needle)
+        row.name.toLowerCase().includes(needle) ||
+        (row.run.error ?? '').toLowerCase().includes(needle)
       );
     });
   }, [rows, query, selectedStatus]);
@@ -237,7 +238,10 @@ export default function WorkflowRunsPage() {
               {
                 id: 'status',
                 label: t('flows.allRuns.columnStatus'),
-                options: statusOptions.map(status => ({ value: status, label: statusLabel(status) })),
+                options: statusOptions.map(status => ({
+                  value: status,
+                  label: statusLabel(status),
+                })),
                 selected: selectedStatus,
                 onChange: setSelectedStatus,
                 testId: 'workflow-runs-status-filter',
