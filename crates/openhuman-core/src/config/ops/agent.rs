@@ -69,13 +69,6 @@ pub struct AgentPathsPatch {
     pub action_dir: Option<String>,
 }
 
-/// Partial update for the agent activity level (0–4).
-#[derive(Debug, Clone, Default)]
-pub struct ActivityLevelSettingsPatch {
-    /// "off" | "minimal" | "moderate" | "active" | "always_on" (or "0"-"4").
-    pub level: Option<String>,
-}
-
 /// Patch for the global memory-sync cadence (#3302).
 ///
 /// `sync_interval_secs` carries the new value to store in
