@@ -110,9 +110,7 @@ describe('SuggestionCard', () => {
   it('lists up to 4 steps and shows a "+N more steps" note beyond that', () => {
     render(
       <SuggestionCard
-        suggestion={suggestion({
-          steps_outline: ['One', 'Two', 'Three', 'Four', 'Five', 'Six'],
-        })}
+        suggestion={suggestion({ steps_outline: ['One', 'Two', 'Three', 'Four', 'Five', 'Six'] })}
         opening={false}
         buildInProgress={false}
         onBuild={vi.fn()}

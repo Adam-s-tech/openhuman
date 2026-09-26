@@ -48,9 +48,7 @@ describe('CanvasToolbar', () => {
   it('reflects history.canUndo/canRedo and fires the given callbacks', () => {
     const onUndo = vi.fn();
     const onRedo = vi.fn();
-    render(
-      <CanvasToolbar history={{ canUndo: true, canRedo: false, onUndo, onRedo }} />
-    );
+    render(<CanvasToolbar history={{ canUndo: true, canRedo: false, onUndo, onRedo }} />);
 
     const undo = screen.getByTestId('flow-editor-undo');
     const redo = screen.getByTestId('flow-editor-redo');

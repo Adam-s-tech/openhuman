@@ -32,7 +32,11 @@ describe('TileGrid', () => {
         <div />
       </TileGrid>
     );
-    expect(screen.getByTestId('grid')).toHaveClass('sm:grid-cols-2', 'lg:grid-cols-3', '2xl:grid-cols-4');
+    expect(screen.getByTestId('grid')).toHaveClass(
+      'sm:grid-cols-2',
+      'lg:grid-cols-3',
+      '2xl:grid-cols-4'
+    );
   });
 
   it('adds p-4 padding when padded is true', () => {
@@ -115,12 +119,7 @@ describe('Tile', () => {
         title="Notifications"
         htmlFor="notif-toggle"
         control={
-          <input
-            id="notif-toggle"
-            type="checkbox"
-            aria-label="Notifications"
-            onChange={onChange}
-          />
+          <input id="notif-toggle" type="checkbox" aria-label="Notifications" onChange={onChange} />
         }
       />
     );

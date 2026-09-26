@@ -763,10 +763,7 @@ describe('FlowCanvasPage side panel switching', () => {
 
     expect(screen.getByTestId('flow-canvas-side-panel')).toBeInTheDocument();
     expect(screen.getByTestId('stub-copilot-panel')).toBeInTheDocument();
-    expect(screen.getByTestId('flow-canvas-copilot-toggle')).toHaveAttribute(
-      'data-state',
-      'on'
-    );
+    expect(screen.getByTestId('flow-canvas-copilot-toggle')).toHaveAttribute('data-state', 'on');
   });
 
   it('switches to Manual (the node palette) via the toggle', async () => {
@@ -792,7 +789,7 @@ describe('FlowCanvasPage side panel switching', () => {
     expect(screen.getByTestId('flow-canvas-open-panel')).toBeInTheDocument();
   });
 
-  it('reopens the side panel (back to Copilot) from the toolbar\'s open-panel button', async () => {
+  it("reopens the side panel (back to Copilot) from the toolbar's open-panel button", async () => {
     getFlow.mockResolvedValue(makeFlow());
     renderEditor();
     await waitFor(() => expect(screen.getByTestId('flow-canvas')).toBeInTheDocument());

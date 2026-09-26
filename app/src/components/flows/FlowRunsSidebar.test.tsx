@@ -245,10 +245,7 @@ describe('FlowRunsSidebar', () => {
         <Provider store={store}>
           <MemoryRouter initialEntries={[`/flows/${flowId}`]}>
             <Routes>
-              <Route
-                path="/flows/:id"
-                element={<FlowRunsSidebar flowId={flowId} {...props} />}
-              />
+              <Route path="/flows/:id" element={<FlowRunsSidebar flowId={flowId} {...props} />} />
             </Routes>
           </MemoryRouter>
         </Provider>

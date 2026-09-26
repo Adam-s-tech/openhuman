@@ -163,12 +163,14 @@ describe('SuggestedWorkflows', () => {
 
   describe('trigger filters', () => {
     async function renderWithMixedTriggers() {
-      api.listSuggestions = vi.fn().mockResolvedValue([
-        suggestion({ id: 'sug_schedule', title: 'Scheduled one', trigger_hint: 'schedule' }),
-        suggestion({ id: 'sug_event_1', title: 'Event one', trigger_hint: 'app_event' }),
-        suggestion({ id: 'sug_event_2', title: 'Event two', trigger_hint: 'app_event' }),
-        suggestion({ id: 'sug_manual', title: 'Manual one', trigger_hint: 'manual' }),
-      ]);
+      api.listSuggestions = vi
+        .fn()
+        .mockResolvedValue([
+          suggestion({ id: 'sug_schedule', title: 'Scheduled one', trigger_hint: 'schedule' }),
+          suggestion({ id: 'sug_event_1', title: 'Event one', trigger_hint: 'app_event' }),
+          suggestion({ id: 'sug_event_2', title: 'Event two', trigger_hint: 'app_event' }),
+          suggestion({ id: 'sug_manual', title: 'Manual one', trigger_hint: 'manual' }),
+        ]);
       render(<SuggestedWorkflows />);
       await waitFor(() => expect(screen.getAllByTestId('flow-suggestion-card')).toHaveLength(4));
     }
