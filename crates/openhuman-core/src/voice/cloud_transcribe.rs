@@ -1,7 +1,6 @@
 //! OpenHuman authentication adapter for hosted speech-to-text.
 
 use crate::api::config::effective_backend_api_url;
-use crate::api::jwt::get_session_token;
 use crate::api::BackendOAuthClient;
 use crate::config::Config;
 use crate::rpc::RpcOutcome;
@@ -14,10 +13,10 @@ pub async fn transcribe_cloud(
     audio_base64: &str,
     options: &CloudTranscribeOptions,
 ) -> Result<RpcOutcome<CloudTranscribeResult>, String> {
-    let token = get_session_token(config)
-        .map_err(|error| error.to_string())?
-        .filter(|token| !token.trim().is_empty())
-        .ok_or_else(|| "no backend session token; sign in first".to_string())?;
+    // The session JWT or the TinyHumans API key. The vendored client sends it
+    // as `Authorization: Bearer`, which the backend accepts for either.
+    let token = crate::security::credentials::session_support::resolve_backend_credential(config)?
+        .into_secret();
     let client = BackendOAuthClient::new(&effective_backend_api_url(&config.api_url))
         .map_err(|error| error.to_string())?;
     let url = client
