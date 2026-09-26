@@ -34,7 +34,7 @@ const setFlowEnabled = vi.hoisted(() => vi.fn());
 // this sidebar actually renders (and calls `listFlowRuns`) in every describe
 // block, not just the side-panel-switching tests. Default to an empty list so
 // `useFlowRunsQuery`/`useFlowRunsLiveRefresh` always see a real array.
-const listFlowRuns = vi.hoisted(() => vi.fn(() => Promise.resolve([])));
+const listFlowRuns = vi.hoisted(() => vi.fn<(flowId: string) => Promise<FlowRun[]>>());
 vi.mock('../../services/api/flowsApi', () => ({
   getFlow,
   updateFlow,
