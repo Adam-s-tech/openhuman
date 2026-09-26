@@ -15,14 +15,7 @@
  * Styling stays on the shadcn semantic tokens the rest of the vendored set
  * uses, so this follows the app theme in both modes.
  */
-import { ToolFallback } from '@/components/assistant-ui/elements/tool-fallback';
-import {
-  ToolGroupContent,
-  ToolGroupRoot,
-  ToolGroupTrigger,
-} from '@/components/assistant-ui/elements/tool-group';
 import { cn } from '@/components/assistant-ui/lib/utils';
-import type { ThreadGroupPart } from '@/components/assistant-ui/thread';
 import {
   Collapsible,
   CollapsibleContent,
@@ -30,7 +23,6 @@ import {
 } from '@/components/assistant-ui/ui/collapsible';
 import type { ToolCallMessagePartComponent } from '@assistant-ui/react';
 import { CheckIcon, ChevronDownIcon, Loader2Icon, WorkflowIcon } from 'lucide-react';
-import type { FC, PropsWithChildren } from 'react';
 
 import type { MockSubagentResult } from './mockScript';
 
