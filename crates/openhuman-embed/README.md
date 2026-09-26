@@ -2,7 +2,9 @@
 
 `openhuman-embed` is the host-facing library package for products that run the
 OpenHuman core in-process, including OpenCompany. It re-exports the
-runtime builder from `openhuman-core` and owns the typed embedding facade.
+runtime builder from `openhuman-core` and owns the typed embedding facade. See
+[`gitbooks/developing/embedding.md`](../../gitbooks/developing/embedding.md)
+for the narrative walkthrough this README's reference material supports.
 
 Use the default contributor feature set:
 
@@ -271,7 +273,9 @@ Two of them also gate items on this crate's own public surface:
 - `skills`: `AgentSpec::skills_dir` and `HarnessBuilder::skills_dir`.
 
 See [`docs/library-minimal-recipe.md`](../../docs/library-minimal-recipe.md)
-for a measured minimal-footprint feature set.
+for a measured minimal-footprint feature set, and
+[`gitbooks/developing/performance.md`](../../gitbooks/developing/performance.md)
+for the resulting binary sizes and per-agent memory numbers.
 
 ## Examples and tests
 
