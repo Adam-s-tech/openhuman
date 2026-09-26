@@ -2,9 +2,11 @@
 //! [`CoreBuilder`](openhuman_core::core::runtime::CoreBuilder).
 //!
 //! Each `run_server*` function is a thin shim that composes a `CoreBuilder`
-//! and calls [`CoreRuntime::serve`](openhuman_core::core::runtime::CoreRuntime::serve).
+//! and calls [`serve`](super::serve::serve).
 
 use tokio_util::sync::CancellationToken;
+
+use super::serve::EmbeddedReadySignal;
 
 /// Resolves the port for the core server from environment variables or defaults.
 pub(crate) fn core_port() -> u16 {
@@ -20,14 +22,6 @@ pub(crate) fn core_host() -> String {
         .ok()
         .filter(|s| !s.is_empty())
         .unwrap_or_else(|| "127.0.0.1".to_string())
-}
-
-/// Metadata sent back to the Tauri host once the embedded core has selected
-/// and bound its listen port.
-#[derive(Debug, Clone)]
-pub struct EmbeddedReadySignal {
-    pub port: u16,
-    pub fallback_from: Option<u16>,
 }
 
 /// Runs the HTTP/JSON-RPC server.
@@ -72,7 +66,7 @@ pub async fn run_server_embedded(
 /// When the caller already holds the per-launch RPC bearer in memory (the
 /// Tauri shell now that the core runs in-process — PR #1061), it should
 /// pass `Some(token)` so the embedded server can seed its auth subsystem
-/// via [`openhuman_core::core::auth::init_rpc_token_with_value`] without ever
+/// via `openhuman_core::core::auth::init_rpc_token_with_value` without ever
 /// reading `OPENHUMAN_CORE_TOKEN` from the process environment.  Passing
 /// `None` preserves the env-as-config fallback (CLI / docker / cloud).
 pub async fn run_server_embedded_with_ready(
@@ -158,7 +152,7 @@ async fn run_server_with_services(
     }
 
     let runtime = builder.build().await?;
-    runtime.serve(ready_tx, shutdown_token).await
+    super::serve::serve(&runtime, ready_tx, shutdown_token).await
 }
 
 fn apply_e2e_tool_groups(
