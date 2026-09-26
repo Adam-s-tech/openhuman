@@ -85,7 +85,7 @@ export const Tile = ({
         'flex h-full items-start gap-3 rounded-xl border px-3.5 py-3 transition-colors',
         selected
           ? 'border-primary-500 bg-primary-50 ring-1 ring-primary-500 dark:bg-primary-500/10'
-          : 'border-line bg-surface',
+          : 'border-line-strong bg-surface',
         muted && 'opacity-60',
         className
       )}>
