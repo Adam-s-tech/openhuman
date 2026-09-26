@@ -40,10 +40,24 @@ describe('<AppearancePanel />', () => {
     expect(queryByTestId('theme-customize')).not.toBeInTheDocument();
   });
 
-  it('redirects away (renders no font-size card) for the legacy #studio hash', () => {
-    const { queryByTestId } = renderPanel('medium', null, ['/settings/appearance#studio']);
-    // AppearancePanel returns <Navigate to="/settings/theme" replace /> for this
-    // hash instead of its own body.
+  it('redirects to /settings/theme for the legacy #studio hash', () => {
+    // A real `<Routes>` switches AppearancePanel out for whatever matches
+    // /settings/theme, so verify the redirect the way the app actually
+    // renders it rather than inspecting the pre-navigation render.
+    const store = createTestStore({
+      theme: { mode: 'system', tabBarLabels: 'hover', fontSize: 'medium', customFontSizePx: null },
+    });
+    const { getByTestId, queryByTestId } = render(
+      <Provider store={store}>
+        <MemoryRouter initialEntries={['/settings/appearance#studio']}>
+          <Routes>
+            <Route path="/settings/appearance" element={<AppearancePanel />} />
+            <Route path="/settings/theme" element={<div data-testid="theme-route" />} />
+          </Routes>
+        </MemoryRouter>
+      </Provider>
+    );
+    expect(getByTestId('theme-route')).toBeInTheDocument();
     expect(queryByTestId('font-size-card')).not.toBeInTheDocument();
   });
 });
