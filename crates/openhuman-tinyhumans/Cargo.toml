@@ -90,7 +90,6 @@ reqwest = { version = "0.12", default-features = false, features = ["json", "mul
 # tower and tracing features and force a separate core build (see below).
 axum = { version = "0.8", default-features = false, features = ["http1", "json", "tokio", "query", "ws", "macros"] }
 tempfile = "3"
-tracing = "0.1"
 tokio = { version = "1", features = ["full", "test-util"] }
 wiremock = "0.6"
 # Feature unification with openhuman-cli's dev-dependencies. Cargo builds the
