@@ -1773,6 +1773,7 @@ const en: TranslationMap = {
   'settings.embeddings.description':
     'Choose which embedding provider converts memory into vectors for semantic search. Changing the provider, model, or dimensions invalidates stored vectors and requires a full memory reset.',
   'settings.embeddings.providerAria': 'Embedding provider',
+  'settings.embeddings.modelCardTitle': 'Model & dimensions',
   'settings.embeddings.statusConfigured': 'Configured',
   'settings.embeddings.statusNeedsKey': 'Needs API key',
   'settings.embeddings.requiresSignIn': 'Requires OpenHuman sign-in',

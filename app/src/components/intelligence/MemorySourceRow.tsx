@@ -200,7 +200,7 @@ export function MemorySourceRow({
               <div className="mt-2 pl-7" data-testid={`memory-source-result-${source.id}`}>
                 {result.kind === 'success' ? (
                   <>
-                    <span className="inline-flex items-center gap-1 rounded-md bg-sage-100 px-2 py-0.5 text-xs font-medium text-sage-700 dark:bg-sage-500/20 dark:text-sage-300">
+                    <Badge variant="success" dot={false}>
                       <CheckIcon />
                       {result.items && result.items > 0
                         ? `${result.items.toLocaleString()} ${t('memorySources.sync.itemsSynced')}`
@@ -209,7 +209,7 @@ export function MemorySourceRow({
                           : result.note === 'more_pending'
                             ? t('memorySources.sync.morePending')
                             : t('memorySources.sync.upToDate')}
-                    </span>
+                    </Badge>
                     {noteKey && (
                       <span
                         className="ml-2 text-xs text-content-muted"

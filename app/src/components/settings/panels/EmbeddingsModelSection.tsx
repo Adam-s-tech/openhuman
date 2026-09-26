@@ -37,7 +37,7 @@ const EmbeddingsModelSection = ({
   const { t } = useT();
 
   return (
-    <Card title={t('settings.embeddings.model')}>
+    <Card title={t('settings.embeddings.modelCardTitle')}>
       {currentModels.length > 1 && (
         <Field
           htmlFor="embeddings-model"
