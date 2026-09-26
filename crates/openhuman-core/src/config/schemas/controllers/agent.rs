@@ -1,4 +1,4 @@
-//! Handlers for agent behaviour settings: autonomy, privacy, browser, sandbox, activity level, and memory sync.
+//! Handlers for agent behaviour settings: autonomy, privacy, browser, sandbox, and memory sync.
 
 use serde_json::{Map, Value};
 
@@ -6,9 +6,9 @@ use crate::config::rpc as config_rpc;
 use crate::core::all::ControllerFuture;
 
 use super::super::helpers::{
-    deserialize_params, to_json, ActivityLevelSettingsUpdate, AgentSettingsUpdate,
-    AutonomySettingsUpdate, BrowserSettingsUpdate, MemorySyncSettingsUpdate, PrivacyModeUpdate,
-    SandboxSettingsUpdate, SetBrowserAllowAllParams,
+    deserialize_params, to_json, AgentSettingsUpdate, AutonomySettingsUpdate,
+    BrowserSettingsUpdate, MemorySyncSettingsUpdate, PrivacyModeUpdate, SandboxSettingsUpdate,
+    SetBrowserAllowAllParams,
 };
 
 pub(crate) fn handle_get_autonomy_settings(_params: Map<String, Value>) -> ControllerFuture {
