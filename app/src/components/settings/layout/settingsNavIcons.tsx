@@ -24,11 +24,6 @@ export const SETTINGS_NAV_ICONS: Record<string, ReactNode> = {
     )
   ),
   appearance: icon(stroke('M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z')),
-  notifications: icon(
-    stroke(
-      'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9'
-    )
-  ),
   llm: icon(
     stroke(
       'M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z'
