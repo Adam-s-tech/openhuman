@@ -155,7 +155,7 @@ describe('PersonaPanel', () => {
     fireEvent.change(screen.getByTestId('persona-soul-editor'), {
       target: { value: 'You are calm and concise.' },
     });
-    fireEvent.click(screen.getByTestId('persona-soul-save'));
+    fireEvent.click(screen.getByTestId('persona-save'));
 
     await waitFor(() => {
       expect(writePersonaFileMock).toHaveBeenCalledWith('SOUL.md', 'You are calm and concise.');
