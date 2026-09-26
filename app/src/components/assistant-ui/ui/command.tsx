@@ -1,12 +1,5 @@
 import * as React from 'react';
 import { cn } from '@/components/assistant-ui/lib/utils';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/assistant-ui/ui/dialog';
 import { InputGroup, InputGroupAddon } from '@/components/assistant-ui/ui/input-group';
 import { Command as CommandPrimitive } from 'cmdk';
 import { CheckIcon, SearchIcon } from 'lucide-react';
