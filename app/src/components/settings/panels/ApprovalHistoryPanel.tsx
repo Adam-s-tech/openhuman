@@ -160,7 +160,9 @@ const ApprovalHistoryPanel = () => {
   const hasEntries = filteredEntries.length > 0;
 
   return (
-    <SettingsPanel testId="approval-history-panel">
+    <SettingsPanel
+      testId="approval-history-panel"
+      description={t('settings.approvalHistory.subtitle')}>
       <DataTable<ApprovalAuditEntry>
         columns={columns}
         rows={filteredEntries}
@@ -180,9 +182,6 @@ const ApprovalHistoryPanel = () => {
             ))}
           </TableRow>
         )}
-        toolbarStart={
-          <p className="text-xs text-content-muted">{t('settings.approvalHistory.subtitle')}</p>
-        }
         toolbarEnd={
           <Button
             type="button"
