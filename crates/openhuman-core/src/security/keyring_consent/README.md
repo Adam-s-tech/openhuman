@@ -33,7 +33,7 @@ so the app never silently drops to local storage without the user agreeing.
   be used); and the operator-configured backends `LocalEncryptedFile`
   (`encrypted_file`) / `LocalPlaintextFile` (`file`/`mock`), for which no
   consent was ever asked. The last two groups are kept distinct from
-  `LocalEncrypted` because they are not the same storage — see the type's
+  `LocalEncrypted` because they are not the same storage; see the type's
   doc comment.
 - `KeyringStatus` — `available`, `failure_reason: Option<KeyringFailureReason>`,
   `active_mode: StorageMode`, `backend_name: String`. `active_mode` is derived

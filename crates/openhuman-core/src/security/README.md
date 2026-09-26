@@ -8,16 +8,16 @@ credentials, and the keychain. None of these submodules is feature-gated.
 
 | Path | Purpose |
 | --- | --- |
-| `policy/` | `SecurityPolicy`, autonomy tiers, path/command gating — see [policy/README.md](policy/README.md) |
-| `approval/` | Human-in-the-loop approval gate for prompted tool calls — see [approval/README.md](approval/README.md) |
-| `credentials/` | Per-channel credential storage and profile-scoped secrets — see [credentials/README.md](credentials/README.md) |
-| `devices/` | Device pairing and cross-device tunnel security — see [devices/README.md](devices/README.md) |
-| `egress/` | Data-egress descriptors and `LocalOnly` enforcement chokepoint — see [egress/README.md](egress/README.md) |
-| `encryption/` | Cross-domain `EncryptionEngine` — see [encryption/README.md](encryption/README.md) |
-| `keyring/` | OS keyring backend and encrypted-file fallback secret store — see [keyring/README.md](keyring/README.md) |
-| `keyring_consent/` | Consent gate for falling back from OS keyring to local encrypted storage — see [keyring_consent/README.md](keyring_consent/README.md) |
-| `pii/` | Fully local PII scanner — see [pii/README.md](pii/README.md) |
-| `prompt_injection/` | Prompt-injection heuristics — see [prompt_injection/README.md](prompt_injection/README.md) |
+| `policy/` | `SecurityPolicy`, autonomy tiers, path/command gating; see [policy/README.md](policy/README.md) |
+| `approval/` | Human-in-the-loop approval gate for prompted tool calls; see [approval/README.md](approval/README.md) |
+| `credentials/` | Per-channel credential storage and profile-scoped secrets; see [credentials/README.md](credentials/README.md) |
+| `devices/` | Device pairing and cross-device tunnel security; see [devices/README.md](devices/README.md) |
+| `egress/` | Data-egress descriptors and `LocalOnly` enforcement chokepoint; see [egress/README.md](egress/README.md) |
+| `encryption/` | Cross-domain `EncryptionEngine`; see [encryption/README.md](encryption/README.md) |
+| `keyring/` | OS keyring backend and encrypted-file fallback secret store; see [keyring/README.md](keyring/README.md) |
+| `keyring_consent/` | Consent gate for falling back from OS keyring to local encrypted storage; see [keyring_consent/README.md](keyring_consent/README.md) |
+| `pii/` | Fully local PII scanner; see [pii/README.md](pii/README.md) |
+| `prompt_injection/` | Prompt-injection heuristics; see [prompt_injection/README.md](prompt_injection/README.md) |
 | `live_policy.rs` | Process-global, hot-swappable current `SecurityPolicy` (see its own `//!`) |
 | `secrets.rs` | One-line re-export of `keyring::encrypted_store` for legacy import paths |
 | `tools.rs` | `SecurityPolicyInfoTool`, the only LLM-callable surface of this domain (read-only, default-ON); command/path gating itself is enforced in-engine, never as an agent-callable tool |
@@ -33,7 +33,7 @@ credentials, and the keychain. None of these submodules is feature-gated.
 Sandbox note: `docker.rs` / `bubblewrap.rs` / `firejail.rs` / `landlock.rs`
 here wrap a `std::process::Command` per the `Sandbox` trait and are chosen by
 `detect::create_sandbox`. `crates/openhuman-core/src/sandbox/` is a separate,
-newer domain — see `sandbox/cwd_jail/mod.rs`'s rustdoc for why `cwd_jail`
+newer domain; see `sandbox/cwd_jail/mod.rs`'s rustdoc for why `cwd_jail`
 superseded these backends on macOS (no `bwrap`) and added a Windows
 AppContainer backend; the two domains are not interchangeable.
 
@@ -42,7 +42,7 @@ AppContainer backend; the two domains are not interchangeable.
 - `pub struct SecurityPolicy`, `pub enum AutonomyLevel`, `pub enum CommandClass`,
   `pub enum GateDecision`, `pub struct TrustedRoot` /
   `pub enum TrustedAccess`, `POLICY_BLOCKED_MARKER` / `POLICY_DENIED_MARKER` —
-  `policy/types.rs`, re-exported here — see [policy/README.md](policy/README.md).
+  `policy/types.rs`, re-exported here; see [policy/README.md](policy/README.md).
 - `pub fn validate_path_within_root`, `pub fn openhuman_scratch_dir`,
   `pub fn ensure_openhuman_scratch_dir` — `policy/enforcement.rs`.
 - `pub trait Sandbox` / `pub struct NoopSandbox` — `traits.rs` — pluggable
