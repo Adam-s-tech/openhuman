@@ -136,7 +136,9 @@ const ApprovalHistoryPanel = () => {
       header: t('settings.approvalHistory.column.session'),
       className: 'max-w-32',
       cell: entry => (
-        <span className="truncate font-mono text-[11px] text-content-muted" title={entry.session_id}>
+        <span
+          className="truncate font-mono text-[11px] text-content-muted"
+          title={entry.session_id}>
           {entry.session_id}
         </span>
       ),
@@ -168,7 +170,11 @@ const ApprovalHistoryPanel = () => {
             {columns.map(column => (
               <TableCell
                 key={column.id}
-                className={column.align === 'right' ? `${column.className ?? ''} text-right` : column.className}>
+                className={
+                  column.align === 'right'
+                    ? `${column.className ?? ''} text-right`
+                    : column.className
+                }>
                 {column.cell?.(entry)}
               </TableCell>
             ))}
