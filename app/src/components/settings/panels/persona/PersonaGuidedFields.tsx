@@ -14,6 +14,7 @@ interface PersonaGuidedFieldsProps {
 interface FieldDef {
   key: PersonaFieldKey;
   labelKey: string;
+  helpKey: string;
   placeholderKey: string;
   testId: string;
 }
@@ -22,18 +23,21 @@ const FIELDS: readonly FieldDef[] = [
   {
     key: 'personality',
     labelKey: 'settings.persona.builder.personalityLabel',
+    helpKey: 'settings.persona.builder.personalityHelp',
     placeholderKey: 'settings.persona.builder.personalityPlaceholder',
     testId: 'persona-guided-personality',
   },
   {
     key: 'voice',
     labelKey: 'settings.persona.builder.voiceLabel',
+    helpKey: 'settings.persona.builder.voiceHelp',
     placeholderKey: 'settings.persona.builder.voicePlaceholder',
     testId: 'persona-guided-voice',
   },
   {
     key: 'about',
     labelKey: 'settings.persona.builder.aboutLabel',
+    helpKey: 'settings.persona.builder.aboutHelp',
     placeholderKey: 'settings.persona.builder.aboutPlaceholder',
     testId: 'persona-guided-about',
   },
@@ -52,24 +56,21 @@ const PersonaGuidedFields = ({ value, onChange, disabled = false }: PersonaGuide
   const fields = parsePersonaFields(value);
 
   return (
-    <div className="space-y-4">
-      <p className="text-xs text-content-muted leading-relaxed">
-        {t('settings.persona.builder.intro')}
-      </p>
-
+    <div className="space-y-5">
       {FIELDS.map(field => (
         <div key={field.key}>
           <Label htmlFor={field.testId}>{t(field.labelKey)}</Label>
+          <p className="mt-0.5 text-xs text-content-muted">{t(field.helpKey)}</p>
           <TextArea
             id={field.testId}
             data-testid={field.testId}
             aria-label={t(field.labelKey)}
             value={fields[field.key]}
-            rows={3}
+            rows={4}
             disabled={disabled}
             placeholder={t(field.placeholderKey)}
             onChange={e => onChange(applyPersonaField(value, field.key, e.target.value))}
-            className="mt-1.5"
+            className="mt-2"
           />
         </div>
       ))}

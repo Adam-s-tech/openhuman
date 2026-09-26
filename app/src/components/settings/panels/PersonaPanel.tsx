@@ -21,11 +21,9 @@ import {
 import {
   Alert,
   AlertDescription,
-  AvatarFallback,
-  AvatarRoot,
   Button,
   Card,
-  Label,
+  Field,
   TextArea,
   TextField,
   ToggleGroupItem,
@@ -171,50 +169,44 @@ const PersonaPanel = ({ embedded = false }: PersonaPanelProps) => {
     setSoulError(null);
   };
 
-  const initial = (nameDraft.trim() || 'A').charAt(0).toUpperCase();
-
   const body = (
     <>
-      {/* ── Identity: who the assistant is, as shown in the app ───────── */}
+      {/* ── 1. Identity: how the assistant is shown in the app ──────────── */}
       <Card
         title={t('settings.persona.identityHeading')}
         description={t('settings.persona.identityDesc')}>
-        <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-start">
-          <AvatarRoot className="h-14 w-14 shrink-0">
-            <AvatarFallback className="bg-primary-100 text-xl font-semibold text-primary-700 dark:bg-primary-500/15 dark:text-primary-300">
-              {initial}
-            </AvatarFallback>
-          </AvatarRoot>
-          <div className="min-w-0 flex-1 space-y-3">
-            <div>
-              <Label htmlFor="persona-display-name">{t('settings.persona.displayNameLabel')}</Label>
-              <TextField
-                id="persona-display-name"
-                aria-label={t('settings.persona.displayNameLabel')}
-                data-testid="persona-display-name-input"
-                value={nameDraft}
-                maxLength={MAX_PERSONA_DISPLAY_NAME_LEN}
-                placeholder={t('settings.persona.displayNamePlaceholder')}
-                onChange={e => setNameDraft(e.target.value)}
-                className="mt-1.5"
-              />
-            </div>
-            <div>
-              <Label htmlFor="persona-description">{t('settings.persona.descriptionLabel')}</Label>
-              <TextArea
-                id="persona-description"
-                aria-label={t('settings.persona.descriptionLabel')}
-                data-testid="persona-description-input"
-                value={descriptionDraft}
-                maxLength={MAX_PERSONA_DESCRIPTION_LEN}
-                rows={2}
-                placeholder={t('settings.persona.descriptionPlaceholder')}
-                onChange={e => setDescriptionDraft(e.target.value)}
-                className="mt-1.5 resize-none"
-              />
-            </div>
-          </div>
-        </div>
+        <Field
+          htmlFor="persona-display-name"
+          label={t('settings.persona.displayNameLabel')}
+          control={
+            <TextField
+              id="persona-display-name"
+              aria-label={t('settings.persona.displayNameLabel')}
+              data-testid="persona-display-name-input"
+              value={nameDraft}
+              maxLength={MAX_PERSONA_DISPLAY_NAME_LEN}
+              placeholder={t('settings.persona.displayNamePlaceholder')}
+              onChange={e => setNameDraft(e.target.value)}
+              className="w-72"
+            />
+          }
+        />
+        <Field
+          htmlFor="persona-description"
+          label={t('settings.persona.descriptionLabel')}
+          control={
+            <TextField
+              id="persona-description"
+              aria-label={t('settings.persona.descriptionLabel')}
+              data-testid="persona-description-input"
+              value={descriptionDraft}
+              maxLength={MAX_PERSONA_DESCRIPTION_LEN}
+              placeholder={t('settings.persona.descriptionPlaceholder')}
+              onChange={e => setDescriptionDraft(e.target.value)}
+              className="w-72"
+            />
+          }
+        />
       </Card>
 
       {soulLoading ? (
@@ -223,7 +215,7 @@ const PersonaPanel = ({ embedded = false }: PersonaPanelProps) => {
         </Card>
       ) : (
         <>
-          {/* ── Templates: one click to a sensible starting point ──────── */}
+          {/* ── 2. Role: pick a template, or Custom once edited ───────────── */}
           {soulMode === 'guided' && (
             <Card
               title={t('settings.persona.templates.heading')}
@@ -238,10 +230,14 @@ const PersonaPanel = ({ embedded = false }: PersonaPanelProps) => {
             </Card>
           )}
 
-          {/* ── Character: the SOUL.md sections, as plain fields ────────── */}
+          {/* ── 3. Character: the SOUL.md sections, as plain fields ──────── */}
           <Card
             title={t('settings.persona.characterHeading')}
-            description={t('settings.persona.characterDesc')}
+            description={
+              soulMode === 'guided'
+                ? t('settings.persona.builder.intro')
+                : t('settings.persona.characterDesc')
+            }
             headerRight={
               <ToggleGroupRoot
                 type="single"
