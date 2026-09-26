@@ -1,6 +1,6 @@
 # Claude Code CLI provider
 
-OpenHuman can route any chat workload through Anthropic's `claude` CLI instead of calling the Anthropic HTTP API directly. The CLI handles model selection, auth, and prompt-cache management; OpenHuman drives it as a long-lived, session-resuming child process, parses its stream-json output, and hands it an MCP endpoint so the model can reach native OpenHuman state (memory, threads, agents, search).
+OpenHuman can route any chat workload through Anthropic's `claude` CLI instead of calling the Anthropic HTTP API directly. The CLI handles model selection, auth, and prompt-cache management; OpenHuman drives it as a long-lived, session-resuming child process, parses its stream-json output, and hands it an MCP endpoint so the model can reach native OpenHuman state (memory, threads, agents, search). This is one of several pluggable LLM backends; see [Engines](../engines.md) for the full list.
 
 The provider itself, `ClaudeCodeProvider`, is owned by `tinyagents-harness` (vendor/tinyagents), not by OpenHuman: see [its README](../../../vendor/tinyagents/crates/tinyagents-harness/src/providers/claude_code/README.md) for the full file map and implementation notes. OpenHuman only wires it up in `crates/openhuman-core/src/inference/provider/factory/subprocess_providers.rs`, which supplies the MCP endpoint (`OpenHumanMcpEndpoint`, below) and reads the resulting model string back into its own routing.
 
