@@ -214,7 +214,7 @@ Tests notification RPC methods via the in-process core and the Notifications UI 
 bash app/scripts/e2e-run-spec.sh test/e2e/specs/notifications.spec.ts notifications
 ```
 
-**Platform note**: RPC tests (`notification_ingest`, `notification_list`, `notification_mark_read`, `notification_stats`) run through the unified Appium Chromium backend. UI assertions require `browser.execute()` support, which the current backend provides on every platform.
+**Platform note**: both the RPC calls and the UI assertions in this spec run inside the same `tauri-driver` session, which supports `browser.execute()`.
 
 ---
 
