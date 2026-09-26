@@ -7,7 +7,7 @@ Process-wide wall-clock timeout policy for tool execution (the node/tool runtime
 Highest precedence first:
 
 1. `OPENHUMAN_TOOL_TIMEOUT_SECS` environment variable — operator override. When set to a valid value (`1..=3600`) it always wins; config pushes are ignored while it is present.
-2. The persisted config value (`[agent].agent_timeout_secs`), pushed in via `set_tool_timeout_secs` at startup (from `core::jsonrpc::register_domain_subscribers`, the always-on core boot path) and on every `config.update_agent_settings` RPC.
+2. The persisted config value (`[agent].agent_timeout_secs`), pushed in via `set_tool_timeout_secs` at startup (from `core::runtime::subscribers::register_domain_subscribers`, the always-on core boot path) and on every `config.update_agent_settings` RPC.
 3. The built-in `DEFAULT_TIMEOUT_SECS` (`120`) default.
 
 ## Responsibilities

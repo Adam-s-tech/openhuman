@@ -20,7 +20,7 @@
 //! result, channel-less users silently got **no** learning at all.
 //!
 //! [`register_learning_subscribers`] is invoked from the always-on Platform
-//! boot path (`core::jsonrpc::register_domain_subscribers`, the unconditional
+//! boot path (`core::runtime::subscribers::register_domain_subscribers`, the unconditional
 //! `DomainGroup::Platform` block), where the memory client and workspace dir are
 //! already available. Registration is idempotent, so both boot paths (and repeat
 //! calls) install each subscriber exactly once.

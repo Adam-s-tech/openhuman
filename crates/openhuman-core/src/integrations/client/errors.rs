@@ -82,7 +82,7 @@ pub(crate) fn extract_error_detail(body: &str, max_bytes: usize) -> String {
 /// 1. Build a `SESSION_EXPIRED:`-prefixed message so it (a) classifies as
 ///    [`crate::core::observability::ExpectedErrorKind::SessionExpired`] and
 ///    stays demoted from Sentry, and (b) is recognised by
-///    `core::jsonrpc::is_session_expired_error` *if* it ever propagates up to
+///    `core::jsonrpc::classify::is_session_expired_error` *if* it ever propagates up to
 ///    the RPC boundary.
 /// 2. **Publish `DomainEvent::SessionExpired` directly.** The autonomous agent
 ///    tool path converts tool errors into a `role:tool` result string fed back

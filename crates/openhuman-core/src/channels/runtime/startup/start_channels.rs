@@ -111,7 +111,7 @@ async fn start_channels_inner(mut config: Config) -> Result<()> {
     crate::agent::bus::register_agent_handlers();
     // The Phase 2/3/4 self-improvement subscribers (email-signature producer,
     // rebuild trigger, ProfileMdRenderer) are registered in
-    // core::jsonrpc::register_domain_subscribers instead. start_channels is
+    // core::runtime::subscribers::register_domain_subscribers instead. start_channels is
     // skipped when no channel is configured, so wiring them here silently
     // dropped user-profile inference for channel-less users (#5003).
 
@@ -189,7 +189,7 @@ async fn start_channels_inner(mut config: Config) -> Result<()> {
         config.action_dir.clone(),
     );
     // NOTE: the live tool-execution timeout seed is done in
-    // `core::jsonrpc::register_domain_subscribers` (unconditional core boot), NOT
+    // `core::runtime::subscribers::register_domain_subscribers` (unconditional core boot), NOT
     // here — `start_channels` is skipped when no channel is configured or
     // `OPENHUMAN_DISABLE_CHANNEL_LISTENERS` is set, which would otherwise leave
     // channel-less / web-chat-only cores running the default timeout instead of the
@@ -449,7 +449,7 @@ async fn start_channels_inner(mut config: Config) -> Result<()> {
         crate::cron::bus::CronDeliverySubscriber::new(Arc::clone(&channels_by_name)),
     ));
     // NOTE: the flows `FlowTriggerSubscriber` is registered in
-    // `jsonrpc.rs::register_domain_subscribers` (unconditional core boot), NOT
+    // `runtime/subscribers.rs::register_domain_subscribers` (unconditional core boot), NOT
     // here — `start_channels` is skipped when no channel is configured or
     // `OPENHUMAN_DISABLE_CHANNEL_LISTENERS` is set, which would otherwise leave
     // schedule/app-event workflows undispatched (issue B2 review).
