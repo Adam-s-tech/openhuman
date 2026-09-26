@@ -199,7 +199,7 @@ The first Docker build compiles Rust and installs the E2E harness dependencies. 
 
 **File**: `app/test/e2e/specs/notifications.spec.ts`
 
-Tests notification RPC methods via the live core sidecar and the Notifications UI page:
+Tests notification RPC methods via the in-process core and the Notifications UI page:
 
 - `notification_ingest`, creates a new notification via core RPC
 - `notification_list`, verifies the ingested notification is returned
