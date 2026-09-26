@@ -31,6 +31,7 @@ import {
 } from '../../lib/flows/runItems';
 import { useT } from '../../lib/i18n/I18nContext';
 import { truncateText } from '../../utils/truncateText';
+import Badge from '../ui/Badge';
 import {
   Table,
   TableBody,
