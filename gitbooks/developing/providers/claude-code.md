@@ -28,7 +28,7 @@ openhuman-core rpc openhuman.inference_update_model_settings \
 | `reasoning_provider` | long-context reasoning workloads |
 | `agentic_provider`   | multi-step agentic loops         |
 
-A workload set to `claude-code:<model>` always spawns a fresh `claude` child per turn; concurrency is capped at `MAX_CONCURRENT_TURNS = 4` per `ClaudeCodeProvider` instance.
+A workload set to `claude-code:<model>` always spawns a fresh `claude` child per turn; concurrency is capped at `MAX_CONCURRENT_TURNS = 4` per `ClaudeCodeProvider` instance (see [Per-turn behavior](#per-turn-behavior)).
 
 ## Verifying the install
 
