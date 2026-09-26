@@ -2389,6 +2389,7 @@ const en: TranslationMap = {
   'voice.mode.connecting': 'Connecting…',
   'voice.mode.listening': 'Listening',
   'voice.mode.speaking': 'Speaking',
+  'voice.pageDesc': 'Speech engines, how they are routed, and push-to-talk.',
   'voice.providers.title': 'Voice Providers',
   'voice.providers.cardDesc': 'Turn on the engines you want to use. Keys stay on this device.',
   'voice.providers.cap.stt': 'Speech to text',
