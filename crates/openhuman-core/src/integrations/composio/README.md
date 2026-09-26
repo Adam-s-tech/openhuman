@@ -209,5 +209,5 @@ Published from `ops/` via `crate::core::bus::BUS.publish` (`crate::core::events:
 - **Sentry funnel**: `report_composio_op_error` re-tags op-layer failures under `domain="composio"` with `failure="non_2xx"|"transport"` (+ extracted backend status) so transient 5xx leaks are dropped by `before_send` while genuine bugs surface.
 - **Type drift tolerance**: trigger types use `de_string_or_object` / `de_opt_string_or_object` to accept upstream fields that flip between string and object shapes.
 - **Direct-mode 401 short-circuit** (`direct_auth/mod.rs`): after `DIRECT_INVALID_API_KEY_THRESHOLD` (3) consecutive `401 Invalid API key` responses for the same fingerprinted key, further polls short-circuit with a stable user-facing message instead of re-hitting Composio.
-- **Contract gate is per-action, per-turn** (`contract_gate.rs`, #4853): only gates `ComposioActionTool` (the per-action surface used by `integrations_agent`), not the generic `composio_execute` dispatcher, MCP bridges, or Workflow dispatchers, those are tracked as follow-up.
+- **Contract gate is per-action, per-turn** (`contract_gate.rs`, #4853): only gates `ComposioActionTool` (the per-action surface used by `integrations_agent`), not the generic `composio_execute` dispatcher, MCP bridges, or Workflow dispatchers; those are tracked as follow-up.
 </content>
