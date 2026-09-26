@@ -15,8 +15,8 @@ use reqwest::Method;
 use serde_json::{json, Value};
 use tinyhumans_sdk::api::types::{CodeRequest, CreateTeamInviteRequest};
 
-use openhuman_core::api::config::effective_backend_api_url;
-use openhuman_core::api::BackendOAuthClient;
+use crate::backend::url::effective_backend_api_url;
+use openhuman_core::backend::BackendClient;
 use openhuman_core::config::Config;
 use openhuman_core::integrations::client::budget_gate;
 use openhuman_core::rpc::RpcOutcome;
@@ -87,7 +87,7 @@ pub async fn get_team(config: &Config, team_id: &str) -> Result<RpcOutcome<Value
     Ok(RpcOutcome::single_log(data, "team fetched from backend"))
 }
 
-/// `POST /teams` through the core's `BackendOAuthClient::authed_json`.
+/// `POST /teams` through the core's `BackendClient::authed_json`.
 ///
 /// Deliberately **not** on the SDK: the SDK has no typed method for this route
 /// and its generated public-route registry has no entry for it (teams were
@@ -120,11 +120,11 @@ async fn legacy_authed_value(
     let credential =
         openhuman_core::security::credentials::session_support::resolve_backend_credential(config)?;
     let api_url = effective_backend_api_url(&config.api_url);
-    let client = BackendOAuthClient::new(&api_url).map_err(|e| format!("{e:#}"))?;
+    let client = BackendClient::new(&api_url).map_err(|e| format!("{e:#}"))?;
     client
         .authed_json(credential, method, path, body)
         .await
-        .map_err(openhuman_core::api::flatten_authed_error)
+        .map_err(openhuman_core::backend::flatten_authed_error)
 }
 
 pub async fn update_team(

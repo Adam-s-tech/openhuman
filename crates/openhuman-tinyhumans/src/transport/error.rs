@@ -3,7 +3,7 @@
 //! integrations client see exactly the shapes they saw when they called the
 //! SDK directly.
 
-use openhuman_core::api::transport::BackendTransportError;
+use openhuman_core::backend::transport::BackendTransportError;
 use tinyhumans_sdk::Error as SdkError;
 
 /// Map the SDK's error onto the core-owned transport error.

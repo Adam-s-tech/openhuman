@@ -2,7 +2,7 @@
 //! code relies on, pinned against a mock backend.
 
 use super::*;
-use openhuman_core::api::transport::{clear_backend_transport, resolve_backend_transport};
+use openhuman_core::backend::transport::{clear_backend_transport, resolve_backend_transport};
 use serde_json::json;
 use wiremock::matchers::{header, header_exists, method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
@@ -234,7 +234,7 @@ async fn backend_client_round_trips_through_the_installed_transport() {
 
     let _guard = global_lock().lock().await;
     let _t = crate::install(crate::InstallOptions::default()).unwrap();
-    let client = openhuman_core::api::BackendOAuthClient::new(&server.uri()).unwrap();
+    let client = openhuman_core::backend::BackendClient::new(&server.uri()).unwrap();
     let value = client
         .authed_json("jwt", reqwest::Method::GET, "/announcements/latest", None)
         .await

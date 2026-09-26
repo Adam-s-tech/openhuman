@@ -24,12 +24,12 @@
 //! | `Envelope` / `Decode` / others | `backend request {op}: {error}`            |
 //! | `RouteNotExposed`              | same, logged at `error` (a bug here)       |
 //!
-//! The non-sentinel shapes are exactly what `BackendOAuthClient::authed_json`
+//! The non-sentinel shapes are exactly what `BackendClient::authed_json`
 //! produced before, so the JSON-RPC classifiers (transient status, transport
 //! phrases, budget exhaustion) keep matching them.
 
-use openhuman_core::api::config::effective_backend_api_url;
-use openhuman_core::api::transport::{resolve_backend_transport, TransportProfile};
+use crate::backend::url::effective_backend_api_url;
+use openhuman_core::backend::transport::{resolve_backend_transport, TransportProfile};
 use openhuman_core::config::Config;
 use openhuman_core::core::observability::{
     contains_transient_transport_phrase, is_transient_http_status_code, API_KEY_REJECTED_PREFIX,
@@ -77,7 +77,7 @@ impl HostedClient {
             // The product identity (`x-sdk-name`) also rides the SDK's own
             // default headers, exactly as the SDK transport does, so it holds
             // even for a client this crate did not build.
-            .with_default_headers(openhuman_core::api::product::product_identity_headers());
+            .with_default_headers(crate::backend::product::product_identity_headers());
         match credential {
             BackendCredential::Session(secret) => Self {
                 sdk: sdk.with_token(Some(secret.trim().to_string())),
@@ -117,7 +117,7 @@ impl HostedClient {
 }
 
 /// The backend origin with any path, query and fragment stripped — the same
-/// normalisation `BackendOAuthClient::new` applies, so a completions-style
+/// normalisation `BackendClient::new` applies, so a completions-style
 /// `api_url` (`https://host/v1/chat/completions`) still reaches `/teams/...`.
 fn backend_origin(api_url: &str) -> Result<String, String> {
     let mut url =
@@ -138,7 +138,7 @@ fn http_client() -> reqwest::Client {
     if let Ok(transport) = resolve_backend_transport() {
         return transport.http_client(TransportProfile::Api);
     }
-    openhuman_core::api::headers::build_backend_client(TransportProfile::Api).unwrap_or_else(
+    crate::backend::headers::build_backend_client(TransportProfile::Api).unwrap_or_else(
         |err| {
             log::warn!("{LOG_PREFIX} failed to build backend client, using default: {err}");
             reqwest::Client::new()

@@ -10,7 +10,7 @@ use tinychannels_bus::controllers::{
     TelegramLoginCheckResult, TelegramLoginStartResult,
 };
 
-use openhuman_core::api::config::{app_env_from_env, is_staging_app_env};
+use openhuman_core::config::app_env::{app_env_from_env, is_staging_app_env};
 use openhuman_core::config::Config;
 use openhuman_core::rpc::RpcOutcome;
 use openhuman_core::security::credentials;
