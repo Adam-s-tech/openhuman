@@ -10,7 +10,7 @@ Opt-in **Model Context Protocol (MCP) server** that exposes a curated, security-
 - Enforce `SecurityPolicy` per call: read tools require `ToolOperation::Read`; `agent.run_subagent` and the three write tools require `ToolOperation::Act`.
 - Run write tools (`memory.store`, `memory.note`, `tree.tag`) through a dedicated write-dispatch + audit pipeline that records every attempt (success and rejection) to the MCP write-audit log.
 - Serve bundled prompt assets (`IDENTITY.md`, `SOUL.md`, `USER.md`, and each built-in subagent's `prompt.md`) as static MCP resources under the `openhuman://prompts/...` URI scheme.
-- Provide two transports, newline-delimited JSON-RPC over stdio, and Axum-based Streamable HTTP + SSE with session-id + protocol-version handshakes and optional bearer auth.
+- Provide two transports: newline-delimited JSON-RPC over stdio, and Axum-based Streamable HTTP + SSE with session-id and protocol-version handshakes and optional bearer auth.
 - Capture client provenance from `initialize` `clientInfo.name` into a per-session `source_type` (e.g. `mcp:claude-desktop`) used for audit attribution.
 
 ## Key files
@@ -76,14 +76,14 @@ No `store.rs`. The only durable side effect is the **MCP write-audit log**, writ
 ## Dependencies
 
 - `crate::core::all`: `try_invoke_registered_rpc`, `schema_for_rpc_method`, `validate_params`: dispatch MCP tool calls into the registered core RPC layer and validate params against controller schemas.
-- `crate::core::logging` (`CliLogDefault`, `init_for_cli_run`), install the stderr tracing subscriber for the MCP subprocess.
-- `crate::config` (`Config`, `rpc::load_config_with_timeout`, `McpAuthConfig`/`McpClientIdentityConfig` in tests), load config for policy/searxng gating and per-call config.
-- `crate::security` (`SecurityPolicy`, `ToolOperation`), enforce read/act autonomy policy per tool call.
-- `crate::agent` (`Agent`, `registry::agents::BUILTINS`, `harness::AgentDefinitionRegistry`), build the orchestrator agent for `core.list_tools`/`core.tool_instructions`, list/run subagents, and cross-check the resource catalog.
+- `crate::core::logging` (`CliLogDefault`, `init_for_cli_run`): installs the stderr tracing subscriber for the MCP subprocess.
+- `crate::config` (`Config`, `rpc::load_config_with_timeout`, `McpAuthConfig`/`McpClientIdentityConfig` in tests): loads config for policy/searxng gating and per-call config.
+- `crate::security` (`SecurityPolicy`, `ToolOperation`): enforces read/act autonomy policy per tool call.
+- `crate::agent` (`Agent`, `registry::agents::BUILTINS`, `harness::AgentDefinitionRegistry`): builds the orchestrator agent for `core.list_tools`/`core.tool_instructions`, lists/runs subagents, and cross-checks the resource catalog.
 - `tinyinference_llm::tool::ToolSchema`: directly materialize model-visible tool declarations for `core.tool_instructions`.
 - `tinyagents_harness::tool::prompt_tool_instructions`: render the markdown tool-use instructions block for `core.tool_instructions`.
-- `crate::tools` (`SEARXNG_MAX_RESULTS`, `normalize_categories`), SearXNG bounds + category normalization for `searxng_search`.
-- `crate::mcp::audit` (`record_write`, `NewMcpWriteRecord`, list/query helpers in tests), durable write-audit log.
+- `crate::tools` (`SEARXNG_MAX_RESULTS`, `normalize_categories`): SearXNG bounds and category normalization for `searxng_search`.
+- `crate::mcp::audit` (`record_write`, `NewMcpWriteRecord`, list/query helpers in tests): durable write-audit log.
 - `crate::mcp::http_client::McpHttpClient`: round-trip test harness for the HTTP transport (test-only).
 - External crates: `axum`/`tokio`/`tokio-stream` (HTTP+SSE), `serde_json`, `uuid`, `sha2`/`hex` (session-id redaction, slug fallback hash), `chrono` (audit timestamps).
 

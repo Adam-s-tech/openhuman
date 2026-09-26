@@ -11,11 +11,13 @@ This page is the contributor reference for the token system.
    font-role vars (`--font-title/heading/body/mono/serif`). The Light palette
    lives in `:root`; the Dark palette in `:root.dark`.
 
-2. **Tailwind wiring**: `app/tailwind.config.js` exposes the tokens as utility
-   colours via `rgb(var(--token) / <alpha-value>)`. The `<alpha-value>` form is
-   what keeps opacity modifiers working (`bg-surface/50`, `bg-primary-500/10`).
-   Channel format is mandatory for this reason: never store a token as a hex
-   string.
+2. **Tailwind wiring**: the app runs Tailwind v4, so there is no
+   `tailwind.config.js`. The `@theme` block in `app/src/index.css` exposes each
+   token as a utility colour (`--color-surface: rgb(var(--surface));`, and so
+   on), and Tailwind's opacity-modifier support handles `bg-surface/50` and
+   `bg-primary-500/10` without any extra templating. Channel format (a
+   space-separated RGB triple, never a hex string) is what makes that work: a
+   hex string can't be composed with an opacity modifier this way.
 
 3. **Runtime application**: `app/src/providers/ThemeProvider.tsx` resolves the
    active `Theme` and writes its overrides as inline `--token` / `--font-<role>`
