@@ -218,7 +218,7 @@ interface PaginationBarProps {
 }
 
 /** Footer: rows-per-page selector, "from–to of total", and page stepping. */
-export function DataTablePaginationBar({
+function DataTablePaginationBar({
   page,
   pageSize,
   pageSizeOptions,
