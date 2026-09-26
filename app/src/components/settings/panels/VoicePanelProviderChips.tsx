@@ -95,7 +95,7 @@ const VoicePanelProviderChips = ({
       description={t('voice.providers.cardDesc')}
       divided={false}
       data-testid="voice-providers-section">
-      <TileGrid padded>
+      <TileGrid padded columns={2}>
         {/* Cloud — always enabled, locked */}
         <ProviderRow
           icon={Cloud}
