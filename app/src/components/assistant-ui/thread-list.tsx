@@ -331,7 +331,9 @@ const ThreadListItem: FC = () => {
           <span data-slot="aui_thread-list-item-title" className="min-w-0 flex-1 truncate">
             <ThreadListItemPrimitive.Title fallback="New Chat" />
           </span>
-          {isRunning && <span className="sr-only">Running</span>}
+          {isRunning && (
+            <span className="sr-only">{t('conversations.backgroundTasks.statusRunning', 'Running')}</span>
+          )}
         </ThreadListItemPrimitive.Trigger>
       )}
       <ThreadListItemMore onRename={() => setIsRenaming(true)} />
