@@ -29,6 +29,7 @@ type SettingsRoute =
   | 'notifications'
   | 'personality'
   | 'face'
+  | 'theme'
   | 'language'
   | 'appearance'
   | 'approval-history'

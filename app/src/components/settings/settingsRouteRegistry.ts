@@ -183,6 +183,18 @@ export const SETTINGS_ROUTE_REGISTRY: SettingsRegistryEntry[] = [
     navOrder: 0,
   },
   {
+    // theme: Theme Studio — per-token colours, fonts, background and theme
+    // import/export for the active theme. Was a tab of Appearance; the
+    // Appearance gallery's "Custom" tile links here.
+    id: 'theme',
+    titleKey: 'settings.theme.title',
+    descriptionKey: 'settings.theme.menuDesc',
+    section: 'home',
+    searchKeywords: ['theme studio', 'custom theme', 'palette', 'colour', 'color', 'font', 'import'],
+    navGroup: 'appearance',
+    navOrder: 1,
+  },
+  {
     // language: the display-language picker, formerly a card at the bottom of
     // Appearance — a language is not a visual preference.
     id: 'language',
@@ -218,7 +230,7 @@ export const SETTINGS_ROUTE_REGISTRY: SettingsRegistryEntry[] = [
     section: 'home',
     searchKeywords: ['personality', 'tone', 'character', 'persona', 'name'],
     navGroup: 'appearance',
-    navOrder: 1,
+    navOrder: 2,
   },
   {
     id: 'face',
@@ -227,7 +239,7 @@ export const SETTINGS_ROUTE_REGISTRY: SettingsRegistryEntry[] = [
     section: 'home',
     searchKeywords: ['face', 'avatar', 'mascot', 'tiny', 'colour', 'color'],
     navGroup: 'appearance',
-    navOrder: 2,
+    navOrder: 3,
   },
 
   // --- Connections group ---

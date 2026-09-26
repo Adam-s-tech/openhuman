@@ -25,6 +25,7 @@ import MigrationPanel from './panels/MigrationPanel';
 import NotificationsPanel from './panels/NotificationsPanel';
 import PermissionsPanel from './panels/PermissionsPanel';
 import PersonaPanel from './panels/PersonaPanel';
+import ThemeStudioPanel from './panels/ThemeStudioPanel';
 import PrivacyPanel from './panels/PrivacyPanel';
 import RecoveryPhrasePanel from './panels/RecoveryPhrasePanel';
 import SandboxSettingsPanel from './panels/SandboxSettingsPanel';
@@ -96,7 +97,7 @@ export function settingsRouteElements(): ReactNode {
       <Route path="migration" element={wrapSettingsPage(<MigrationPanel />)} />
       <Route path="appearance" element={wrapSettingsPage(<AppearancePanel />)} />
       {/* Theme studio merged into Appearance — one page for one subject. */}
-      <Route path="theme" element={<SettingsRedirect to="/settings/appearance#studio" />} />
+      <Route path="theme" element={wrapSettingsPage(<ThemeStudioPanel />)} />
       <Route path="notifications" element={wrapSettingsPage(<NotificationsPanel />)} />
       {/* Real device-pairing panel (replaces the old "Coming Soon" stub). */}
       <Route path="devices" element={wrapSettingsPage(<DevicesPanel />)} />
