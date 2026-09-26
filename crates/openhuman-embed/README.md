@@ -109,7 +109,7 @@ resumes only its own thread.
 
 What the runtime owns: the workspace and credential store, the event bus,
 the keyring, the background `ServiceSet`, the registered `DomainSet` (agents
-can only narrow it — enable `mcp` / `skills` at runtime build time if any
+can only narrow it, so enable `mcp` / `skills` at runtime build time if any
 agent will use them; the default does), and the API key.
 
 Layout under a runtime-owned root:
@@ -127,9 +127,11 @@ The core knows the hosted TinyHumans backend only through
 none: agents, memory, skills, tools and RPC run without any TinyHumans
 connection, and every hosted-backend surface (billing, `/agent-integrations/*`
 tools, channel relay, cloud voice) answers with a typed
-`BACKEND_UNAVAILABLE:` error. Use `openhuman-tinyhumans` — its
+`BACKEND_UNAVAILABLE:` error. Use `openhuman-tinyhumans`, whose
 `RuntimeBuilder` mirrors this one and installs the SDK-backed transport on
-`build()` — or pass your own to `RuntimeBuilder::backend_transport`.
+`build()`, or pass your own to `RuntimeBuilder::backend_transport`. See
+[`gitbooks/developing/tinyhumans-api-key.md`](../../gitbooks/developing/tinyhumans-api-key.md)
+for what that one key then unlocks.
 
 ### Authentication
 
