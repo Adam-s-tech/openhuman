@@ -82,51 +82,57 @@ export const UsageLedgerSection = ({
         </Button>
       }>
       <div className="grid grid-cols-2 gap-2 p-4 lg:grid-cols-3">
-      <MetricTile
-        label={t('settings.ai.weekBudget')}
-        value={usage ? formatUsd(usage.cycleBudgetUsd) : t('common.notAvailable')}
-        detail={t('settings.ai.resetsAt').replace('{time}', formatDateTime(usage?.cycleEndsAt))}
-      />
-      <MetricTile
-        label={t('settings.ai.cycleRemaining')}
-        value={usage ? formatUsd(usage.remainingUsd) : t('common.notAvailable')}
-        detail={
-          usage
-            ? t('settings.ai.usedAmount').replace('{amount}', formatUsd(usage.cycleSpentUsd))
-            : undefined
-        }
-      />
-      <MetricTile
-        label={t('settings.ai.cycleTotalSpend')}
-        value={usage ? formatUsd(usage.insights.totals.totalUsd) : t('common.notAvailable')}
-        detail={
-          usage
-            ? t('settings.ai.inferenceIntegrationsBreakdown')
-                .replace('{inference}', formatUsd(usage.insights.totals.inferenceUsd))
-                .replace('{integrations}', formatUsd(usage.insights.totals.integrationsUsd))
-            : undefined
-        }
-      />
-      <MetricTile
-        label={t('settings.ai.avgSpendRow')}
-        value={spendAvgRowUsd > 0 ? formatUsd(spendAvgRowUsd) : t('common.notAvailable')}
-        detail={t('settings.ai.recentSpendRowsCount').replace('{count}', String(spendRows.length))}
-      />
-      <MetricTile
-        label={t('settings.ai.backgroundApiReads')}
-        value={t('settings.ai.perWeek').replace('{count}', formatCount(backgroundApiReadsPerWeek))}
-        detail={t('settings.ai.plannerSyncBreakdown')
-          .replace('{planner}', formatCount(calendarPlannerCallsPerWeek))
-          .replace('{sync}', formatCount(composioConnectionScansPerWeek))}
-      />
-      <MetricTile
-        label={t('settings.ai.backgroundWakeups')}
-        value={t('settings.ai.perWeek').replace('{count}', formatCount(backgroundWakeupsPerWeek))}
-        detail={t('settings.ai.memoryPollsDetail').replace(
-          '{count}',
-          formatCount(memoryPollsPerWeek)
-        )}
-      />
+        <MetricTile
+          label={t('settings.ai.weekBudget')}
+          value={usage ? formatUsd(usage.cycleBudgetUsd) : t('common.notAvailable')}
+          detail={t('settings.ai.resetsAt').replace('{time}', formatDateTime(usage?.cycleEndsAt))}
+        />
+        <MetricTile
+          label={t('settings.ai.cycleRemaining')}
+          value={usage ? formatUsd(usage.remainingUsd) : t('common.notAvailable')}
+          detail={
+            usage
+              ? t('settings.ai.usedAmount').replace('{amount}', formatUsd(usage.cycleSpentUsd))
+              : undefined
+          }
+        />
+        <MetricTile
+          label={t('settings.ai.cycleTotalSpend')}
+          value={usage ? formatUsd(usage.insights.totals.totalUsd) : t('common.notAvailable')}
+          detail={
+            usage
+              ? t('settings.ai.inferenceIntegrationsBreakdown')
+                  .replace('{inference}', formatUsd(usage.insights.totals.inferenceUsd))
+                  .replace('{integrations}', formatUsd(usage.insights.totals.integrationsUsd))
+              : undefined
+          }
+        />
+        <MetricTile
+          label={t('settings.ai.avgSpendRow')}
+          value={spendAvgRowUsd > 0 ? formatUsd(spendAvgRowUsd) : t('common.notAvailable')}
+          detail={t('settings.ai.recentSpendRowsCount').replace(
+            '{count}',
+            String(spendRows.length)
+          )}
+        />
+        <MetricTile
+          label={t('settings.ai.backgroundApiReads')}
+          value={t('settings.ai.perWeek').replace(
+            '{count}',
+            formatCount(backgroundApiReadsPerWeek)
+          )}
+          detail={t('settings.ai.plannerSyncBreakdown')
+            .replace('{planner}', formatCount(calendarPlannerCallsPerWeek))
+            .replace('{sync}', formatCount(composioConnectionScansPerWeek))}
+        />
+        <MetricTile
+          label={t('settings.ai.backgroundWakeups')}
+          value={t('settings.ai.perWeek').replace('{count}', formatCount(backgroundWakeupsPerWeek))}
+          detail={t('settings.ai.memoryPollsDetail').replace(
+            '{count}',
+            formatCount(memoryPollsPerWeek)
+          )}
+        />
       </div>
       {latestSpend && (
         <div className="px-4 py-3 text-xs text-content-secondary">

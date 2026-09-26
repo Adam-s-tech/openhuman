@@ -288,7 +288,9 @@ const TokenUsagePanel = ({ embedded = false }: TokenUsagePanelProps = {}) => {
       </Card>
 
       {/* ── CCR cache ──────────────────────────────────────────────────── */}
-      <Card title={t('settings.tokenUsage.ccrTitle')} description={t('settings.tokenUsage.ccrDesc')}>
+      <Card
+        title={t('settings.tokenUsage.ccrTitle')}
+        description={t('settings.tokenUsage.ccrDesc')}>
         <ToggleRow
           id="tj-ccr-enabled"
           label={t('settings.tokenUsage.ccrEnabled')}
