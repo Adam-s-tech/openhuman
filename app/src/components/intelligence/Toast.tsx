@@ -60,6 +60,7 @@ const TOAST_ICON_STYLES = {
 };
 
 function Toast({ notification, onRemove }: ToastProps) {
+  const { t } = useT();
   const [isVisible, setIsVisible] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
 
