@@ -1,6 +1,6 @@
 # tools
 
-The agent tool layer. Defines the core [`Tool`] trait every agent-callable capability implements, assembles the **default tool registry** consumed by the agent harness, hosts the cross-cutting built-in tool implementations (filesystem, browser, generic system/network/document/presentation), and exposes a small allowlist of tool operations over JSON-RPC for the Tauri shell. Domain-owned tools (cron, memory, wallet, composio, skills, etc.) live in their own domains and are re-exported here so a single `crate::tools::*` import surfaces the full set. The crate's lib target is `openhuman_core` (`[lib] name = "openhuman_core"`), so external callers (e.g. `openhuman-embed`) reach this module as `openhuman_core::tools::*`; everything below uses in-crate `crate::` paths.
+The agent tool layer. Defines the core [`Tool`] trait every agent-callable capability implements, assembles the default tool registry consumed by the agent harness, hosts the cross-cutting built-in tool implementations (filesystem, browser, generic system/network/document/presentation), and exposes a small allowlist of tool operations over JSON-RPC for the Tauri shell. Domain-owned tools (cron, memory, wallet, composio, skills, etc.) live in their own domains and are re-exported here so a single `crate::tools::*` import surfaces the full set. The crate's lib target is `openhuman_core` (`[lib] name = "openhuman_core"`), so external callers (e.g. `openhuman-embed`) reach this module as `openhuman_core::tools::*`; everything below uses in-crate `crate::` paths.
 
 ## Responsibilities
 
