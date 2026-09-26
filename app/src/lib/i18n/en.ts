@@ -1319,7 +1319,6 @@ const en: TranslationMap = {
   'onboarding.custom.memory.configureDesc':
     'Inspect, export, or wipe memory yourself. Configure in Settings › Memory.',
 
-
   // Accounts
   'accounts.addAccount': 'Add Account',
   'accounts.addApps': 'Add apps',
