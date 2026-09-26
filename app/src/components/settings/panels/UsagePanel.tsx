@@ -5,7 +5,7 @@ import { useT } from '../../../lib/i18n/I18nContext';
 import { type AISettings, loadAISettings } from '../../../services/api/aiSettingsApi';
 import CostDashboardPanel from '../../dashboard/CostDashboardPanel';
 import UsageLogPanel from '../../dashboard/UsageLogPanel';
-import { CenteredLoadingState, StatusLine } from '../../ui';
+import { Alert, AlertDescription, CenteredLoadingState } from '../../ui';
 import SettingsTabbedPage from '../layout/SettingsTabbedPage';
 import BackgroundLoopControls from './ai/BackgroundLoopControls';
 import TokenUsagePanel from './TokenUsagePanel';
@@ -93,7 +93,11 @@ const BackgroundActivityTab = () => {
 
   return (
     <div className="space-y-4" data-testid="usage-background-tab">
-      {loadError && <StatusLine saving={false} error={loadError} savingLabel="" />}
+      {loadError && (
+        <Alert variant="destructive" density="compact">
+          <AlertDescription>{loadError}</AlertDescription>
+        </Alert>
+      )}
       {snapshot ? (
         <BackgroundLoopControls
           view="all"

@@ -5,7 +5,6 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { Badge } from '../ui';
 import {
   memoryNamespaceSummaries,
   memorySyncStatusList,
@@ -13,6 +12,7 @@ import {
   memoryTreePipelineStatus,
   type MemoryTreePipelineStatus,
 } from '../../utils/tauriCommands';
+import { Badge } from '../ui';
 
 /** Translator function shape exposed by `useT()`. */
 export type TFn = (key: string, fallback?: string) => string;
