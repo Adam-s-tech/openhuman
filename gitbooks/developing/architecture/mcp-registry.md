@@ -85,7 +85,7 @@ pub use schemas::{
 pub use types::{ConnStatus, InstalledServer, McpTool};
 ```
 
-`types` and `connections` are thin `pub mod`s re-exporting the `tinymcp_bus` wire vocabulary and `super::host`-backed lookups, respectively — this domain does not define its own copies. Everything else (`bus`, `ops`, `action_tool`, `supervisor_events`, `tools`) is `pub mod` for in-crate callers but not re-exported from `mod.rs`.
+`types` and `connections` are thin `pub mod`s re-exporting the `tinymcp_bus` wire vocabulary and `super::host`-backed lookups, respectively. This domain does not define its own copies. Everything else (`bus`, `ops`, `action_tool`, `supervisor_events`, `tools`) is `pub mod` for in-crate callers but not re-exported from `mod.rs`.
 
 ## Calls into
 
