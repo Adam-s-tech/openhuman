@@ -274,13 +274,15 @@ export const ThreadListNew = forwardRef<
 ThreadListNew.displayName = 'ThreadListNew';
 
 const ThreadListSkeleton: FC = () => {
+  const { t } = useT();
+  const loadingThreadsLabel = t('assistantUi.threadList.loadingThreads', 'Loading threads');
   return (
     <div className="flex flex-col gap-0.5">
       {Array.from({ length: 5 }, (_, i) => (
         <div
           key={i}
           role="status"
-          aria-label="Loading threads"
+          aria-label={loadingThreadsLabel}
           data-slot="aui_thread-list-skeleton-wrapper"
           className="flex h-8 items-center px-2.5">
           <Skeleton data-slot="aui_thread-list-skeleton" className="h-3.5 w-full" />

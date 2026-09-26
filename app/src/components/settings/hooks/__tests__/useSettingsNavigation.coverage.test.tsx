@@ -69,8 +69,11 @@ describe('agents section leaves', () => {
     expectRoute('/settings/agent-access', 'agent-access'));
 });
 
-describe('features section leaves', () => {
-  test('tools resolves to tools', () => expectRoute('/settings/tools', 'tools'));
+describe('features section leaves (retired)', () => {
+  // 'tools' no longer has a registry entry — tool policy moved onto the
+  // agents/autonomy surface reachable from Connections, so the old settings
+  // slug falls through to home like the other retired slugs.
+  test('tools (retired) resolves to home', () => expectRoute('/settings/tools', 'home'));
 });
 
 describe('integrations (retired)', () => {
