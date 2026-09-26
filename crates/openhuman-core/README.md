@@ -27,7 +27,7 @@ contents inside `mod.rs` behind the feature of the same name. See the
 | `api` | HTTP and Socket.IO helpers for the TinyHumans / AlphaHuman hosted API | [README](src/api/README.md) |
 | `channels` | Channel implementations and runtime orchestration | [README](src/channels/README.md) |
 | `config` | Configuration management for the core | [README](src/config/README.md) |
-| `core` | Transport, dispatch, controller registry (`core::all`), auth, CLI, event bus, runtime composition (`core::runtime`) — not a domain | [README](src/core/README.md) |
+| `core` | Transport, dispatch, controller registry (`core::all`), auth, CLI, event bus, runtime composition (`core::runtime`); not a domain | [README](src/core/README.md) |
 | `cron` | Scheduled-job runtime: cron/human-delay parsing, job + run store, polling scheduler, output delivery | [README](src/cron/README.md) |
 | `desktop` | Desktop-shell-facing surfaces | |
 | `flows`* | Saved automation workflows (tinyflows graphs) | [README](src/flows/README.md) |
@@ -39,8 +39,8 @@ contents inside `mod.rs` behind the feature of the same name. See the
 | `json_schema` | Vendor-neutral JSON Schema and JSON value walking | |
 | `mcp` | Host half of Model Context Protocol support | [README](src/mcp/README.md) |
 | `media`* | Media generation and image tool contracts | [README](src/media/README.md) |
-| `memory` | Memory orchestration — the host layer over `tinymemory-core` | [README](src/memory/README.md) |
-| `modules`* | Loadable native modules — capabilities that live outside this binary | [README](src/modules/README.md) |
+| `memory` | Memory orchestration: the host layer over `tinymemory-core` | [README](src/memory/README.md) |
+| `modules`* | Loadable native modules: capabilities that live outside this binary | [README](src/modules/README.md) |
 | `platform` | Host-platform services: process lifecycle, self-update, diagnostics, local transport surfaces | |
 | `runtime` | Code-execution runtimes, client side (toolchain download/warm workers live in the `tinyruntime` module) | |
 | `sandbox` | Sandbox execution backends for agent tool isolation | [README](src/sandbox/README.md) |
