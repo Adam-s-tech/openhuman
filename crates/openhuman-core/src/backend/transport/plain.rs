@@ -1,5 +1,5 @@
 //! Test-only `reqwest` transport so the core's wiremock unit tests exercise
-//! [`BackendOAuthClient`](crate::api::rest::BackendOAuthClient) and
+//! [`BackendClient`](crate::backend::BackendClient) and
 //! `IntegrationClient` without any host crate. Never compiled into a
 //! production build: [`resolve_backend_transport`](super::resolve_backend_transport)
 //! only reaches it under `cfg(test)`.
@@ -17,8 +17,22 @@ use serde_json::Value;
 
 use super::{
     compose_url, credential_headers, parse_body_text, unwrap_envelope, BackendRequest,
-    BackendTransport, BackendTransportError, TransportProfile,
+    BackendTransport, BackendTransportError, BaseUrlPurpose, TransportProfile,
 };
+
+/// Attribution header the test transport stamps, mirroring the host's.
+pub const TEST_PRODUCT_HEADER: &str = "x-sdk-name";
+/// Product identity the test transport reports and stamps.
+pub const TEST_PRODUCT_IDENTITY: &str = "openhuman";
+/// Base URL for a test that configured none: the discard port on loopback.
+pub const TEST_FALLBACK_BASE_URL: &str = "http://127.0.0.1:9";
+
+fn plain_client() -> reqwest::Client {
+    reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(30))
+        .build()
+        .expect("plain test client")
+}
 
 pub struct PlainHttpTransport {
     api: reqwest::Client,
@@ -28,16 +42,12 @@ pub struct PlainHttpTransport {
 impl PlainHttpTransport {
     pub fn new() -> Self {
         Self {
-            api: crate::api::headers::build_backend_client(TransportProfile::Api)
-                .expect("plain api client"),
-            integrations: crate::api::headers::build_backend_client(TransportProfile::Integrations)
-                .expect("plain integrations client"),
+            api: plain_client(),
+            integrations: plain_client(),
         }
     }
 
-    /// A fresh instance. Deliberately *not* cached: tests change the product
-    /// identity between calls and expect the next client to carry it, and
-    /// building two `reqwest::Client`s is cheap.
+    /// A fresh instance (building two `reqwest::Client`s is cheap).
     pub fn fresh() -> Arc<dyn BackendTransport> {
         Arc::new(Self::new())
     }
@@ -79,12 +89,10 @@ impl Default for PlainHttpTransport {
 impl BackendTransport for PlainHttpTransport {
     async fn send_json(&self, req: BackendRequest<'_>) -> Result<Value, BackendTransportError> {
         let url = compose_url(req.base_url, req.path, req.query)?;
-        // Product identity is stamped per request, as the SDK transport does,
-        // so a change after this client was built still reaches the wire.
         let mut request = self
             .client(req.profile)
             .request(req.method, url)
-            .headers(crate::api::product::product_identity_headers())
+            .header(TEST_PRODUCT_HEADER, TEST_PRODUCT_IDENTITY)
             .header(reqwest::header::ACCEPT, "application/json")
             .header(CONTENT_TYPE, "application/json");
         if let Some(credential) = req.credential {
@@ -105,7 +113,7 @@ impl BackendTransport for PlainHttpTransport {
         let mut request = self
             .client(req.profile)
             .request(Method::POST, url)
-            .headers(crate::api::product::product_identity_headers())
+            .header(TEST_PRODUCT_HEADER, TEST_PRODUCT_IDENTITY)
             .header(reqwest::header::ACCEPT, "application/json");
         if let Some(credential) = req.credential {
             request = request.headers(credential_headers(credential)?);
@@ -115,6 +123,20 @@ impl BackendTransport for PlainHttpTransport {
 
     fn http_client(&self, profile: TransportProfile) -> reqwest::Client {
         self.client(profile).clone()
+    }
+
+    fn base_url(&self, configured: Option<&str>, _purpose: BaseUrlPurpose) -> String {
+        // No defaults here: a test that reaches the backend points
+        // `api_url` at its mock server. The fallback is a discard port so an
+        // unconfigured test can never reach a real host.
+        configured
+            .map(crate::util::url::normalize_backend_api_base_url)
+            .filter(|url| !url.is_empty())
+            .unwrap_or_else(|| TEST_FALLBACK_BASE_URL.to_string())
+    }
+
+    fn product_identity(&self) -> String {
+        TEST_PRODUCT_IDENTITY.to_string()
     }
 
     fn name(&self) -> &'static str {

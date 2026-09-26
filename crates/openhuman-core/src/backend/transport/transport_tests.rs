@@ -168,17 +168,11 @@ fn error_status_accessor_only_reports_status_variant() {
 
 #[tokio::test]
 async fn plain_transport_sends_attribution_and_credential_headers() {
-    let _identity = crate::api::product::product_identity_test_lock();
-    crate::api::product::reset_product_identity_for_test();
     let server = MockServer::start().await;
     Mock::given(method("GET"))
         .and(path("/teams/me/usage"))
         .and(header("authorization", "Bearer jwt.a.b"))
-        .and(header(
-            crate::api::product::PRODUCT_IDENTITY_HEADER,
-            "openhuman",
-        ))
-        .and(header_exists("x-core-version"))
+        .and(header(plain::TEST_PRODUCT_HEADER, plain::TEST_PRODUCT_IDENTITY))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!({
             "success": true,
             "data": {"remainingUsd": 4.5}
@@ -277,7 +271,7 @@ async fn backend_client_reports_unavailable_when_transport_returns_unavailable()
 
     let _guard = global_lock().lock().unwrap();
     install_backend_transport(Arc::new(Absent));
-    let client = crate::api::BackendOAuthClient::new("https://api.example.test").unwrap();
+    let client = crate::backend::BackendClient::new("https://api.example.test").unwrap();
     let err = client
         .authed_json("jwt", reqwest::Method::GET, "/payments/summary", None)
         .await
@@ -285,11 +279,11 @@ async fn backend_client_reports_unavailable_when_transport_returns_unavailable()
     clear_backend_transport();
 
     assert!(matches!(
-        err.downcast_ref::<crate::api::BackendApiError>(),
-        Some(crate::api::BackendApiError::BackendUnavailable { method, path })
+        err.downcast_ref::<crate::backend::BackendApiError>(),
+        Some(crate::backend::BackendApiError::BackendUnavailable { method, path })
             if method == "GET" && path == "/payments/summary"
     ));
-    let flat = crate::api::flatten_authed_error(err);
+    let flat = crate::backend::flatten_authed_error(err);
     assert!(flat.starts_with(crate::core::observability::BACKEND_UNAVAILABLE_PREFIX));
     assert_eq!(
         crate::core::observability::expected_error_kind(&flat),
