@@ -357,9 +357,10 @@ function useLazyFlipSide(): {
  * one automatically when unfiltered.
  */
 function ModelSelectorFocusAnchor() {
+  const { t } = useT();
   return (
     <div className="sr-only">
-      <CommandInput readOnly aria-label="Model" />
+      <CommandInput readOnly aria-label={t('composer.modelSelector', 'Model')} />
     </div>
   );
 }
