@@ -304,9 +304,9 @@ Every layer is async and non-blocking. The Rust core processes thousands of conc
 
 Core subsystems run on published `tiny*` crates, vendored as git submodules under `vendor/` (`tinyagents`, `tinyflows`, `tinychannels`, `tinyjuice`, `tinymemory`, …) so crate changes can be tested in-tree before publishing. `tinycortex` is not a top-level submodule: the memory engine is reached through the copy `tinymemory` vendors (`vendor/tinymemory/vendor/tinycortex`), which is the commit the prebuilt `tinymemory` module is built from. The major ownership boundaries are:
 
-- **Agent engine on tinyagents** — every agent turn runs through the `tinyagents` crate harness via the seam in `crates/openhuman-core/src/agent/tinyagents/`; see [Agent Harness](architecture/agent-harness.md).
-- **Memory on tinycortex** — the generic store/tree/queue/retrieval/sync engine is crate-owned. OpenHuman keeps RPC, tools, scheduling, credentials, security/event policy, worker orchestration, and the host namespace-document store; `crates/openhuman-core/src/memory/` (`host.rs`, `api.rs`, `binding.rs`, `tree/`, `ops/`, `schemas/`) implements those seams over the vendored `tinymemory` engine (`tinymemory-core`, `tinymemory-api`). Concrete embedding transports are shared through `tinyagents::harness::embeddings`.
-- **Inference on the crate ModelRouter** — host workload-tier model routing and cloud provider slugs now use the crate-native `ModelRouter`/`OpenAiModel` (#4782, #4783).
+- **Agent engine on tinyagents.** Every agent turn runs through the `tinyagents` crate harness via the seam in `crates/openhuman-core/src/agent/tinyagents/`; see [Agent harness](architecture/agent-harness.md).
+- **Memory on tinycortex.** The generic store/tree/queue/retrieval/sync engine is crate-owned. TinyCortex is the only memory engine that actually runs today; the remote drivers listed in config exist but are not wired in (see [Engines](engines.md)). OpenHuman keeps RPC, tools, scheduling, credentials, security/event policy, worker orchestration, and the host namespace-document store. `crates/openhuman-core/src/memory/` (`host.rs`, `api.rs`, `binding.rs`, `tree/`, `ops/`, `schemas/`) implements those seams over the vendored `tinymemory` engine (`tinymemory-core`, `tinymemory-api`). Concrete embedding transports are shared through `tinyagents::harness::embeddings`.
+- **Inference on the crate ModelRouter.** Host workload-tier model routing and cloud provider slugs now use the crate-native `ModelRouter`/`OpenAiModel` (#4782, #4783).
 ---
 
 ## Technology Stack
