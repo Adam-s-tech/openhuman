@@ -6734,16 +6734,6 @@ const messages: TranslationMap = {
   'monthlyCost.badge': 'এই মাসে ${amount}',
   'monthlyCost.noData': 'এই মাসে কোনো সিঙ্ক নেই',
 
-  // Onboarding: Custom > Activity
-  'onboarding.custom.stepperActivity': 'কার্যকলাপ',
-  'onboarding.custom.stepperVault': 'ভল্ট',
-  'onboarding.custom.activity.title': 'এজেন্টের কার্যকলাপ',
-  'onboarding.custom.activity.subtitle':
-    'আপনার এজেন্ট পটভূমিতে কতটা সক্রিয়ভাবে পর্যবেক্ষণ ও কাজ করে।',
-  'onboarding.custom.activity.defaultDesc':
-    'মাঝারি কার্যকলাপ: প্রতি ঘণ্টায় সিঙ্ক, দৈনিক সারসংক্ষেপ।',
-  'onboarding.custom.activity.configureDesc':
-    'নিজের কার্যকলাপের স্তর বেছে নিন। সেটিংস › এজেন্ট কার্যকলাপ স্তরে কনফিগার করুন।',
   'onboarding.custom.vault.title': 'মেমোরি ও ভল্ট সেটআপ',
   'onboarding.custom.vault.subtitle':
     'নিশ্চিত করুন মেমোরি নোট কোথায় লেখা হয়, উৎস ডেটা কীভাবে পড়া হয় এবং আপনার ভল্ট পাইপলাইন সুস্থ কিনা।',

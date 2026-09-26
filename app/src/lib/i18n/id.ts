@@ -6768,16 +6768,6 @@ const messages: TranslationMap = {
   'monthlyCost.badge': '${amount} bulan ini',
   'monthlyCost.noData': 'Tidak ada sinkronisasi bulan ini',
 
-  // Onboarding: Custom > Activity
-  'onboarding.custom.stepperActivity': 'Aktivitas',
-  'onboarding.custom.stepperVault': 'Vault',
-  'onboarding.custom.activity.title': 'Aktivitas agen',
-  'onboarding.custom.activity.subtitle':
-    'Seberapa proaktif agen Anda memantau dan bertindak di latar belakang.',
-  'onboarding.custom.activity.defaultDesc':
-    'Aktivitas sedang: sinkronisasi per jam, ringkasan harian.',
-  'onboarding.custom.activity.configureDesc':
-    'Pilih tingkat aktivitas Anda sendiri. Konfigurasi di Pengaturan › Tingkat aktivitas agen.',
   'onboarding.custom.vault.title': 'Pengaturan Memori & Vault',
   'onboarding.custom.vault.subtitle':
     'Konfirmasi di mana catatan memori ditulis, bagaimana data sumber dibaca, dan apakah pipeline vault Anda sehat.',

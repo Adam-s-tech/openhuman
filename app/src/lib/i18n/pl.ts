@@ -6824,15 +6824,6 @@ const messages: TranslationMap = {
   'monthlyCost.badge': '${amount} w tym miesiącu',
   'monthlyCost.noData': 'Brak synchronizacji w tym miesiącu',
 
-  // Onboarding: Custom > Activity
-  'onboarding.custom.stepperActivity': 'Aktywność',
-  'onboarding.custom.stepperVault': 'Skarbiec',
-  'onboarding.custom.activity.title': 'Aktywność agenta',
-  'onboarding.custom.activity.subtitle': 'Jak proaktywnie Twój agent monitoruje i działa w tle.',
-  'onboarding.custom.activity.defaultDesc':
-    'Umiarkowana aktywność: synchronizacja co godzinę, codzienny skrót.',
-  'onboarding.custom.activity.configureDesc':
-    'Wybierz własny poziom aktywności. Skonfiguruj w Ustawieniach › Poziom aktywności agenta.',
   'onboarding.custom.vault.title': 'Konfiguracja pamięci i skarbca',
   'onboarding.custom.vault.subtitle':
     'Potwierdź, gdzie zapisywane są notatki pamięci, jak odczytywane są dane źródłowe i czy potok skarbca działa poprawnie.',

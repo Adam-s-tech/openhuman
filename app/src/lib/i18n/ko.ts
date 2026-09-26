@@ -6662,15 +6662,6 @@ const messages: TranslationMap = {
   'monthlyCost.badge': '이번 달 ${amount}',
   'monthlyCost.noData': '이번 달 동기화 없음',
 
-  // Onboarding: Custom > Activity
-  'onboarding.custom.stepperActivity': '활동',
-  'onboarding.custom.stepperVault': '볼트',
-  'onboarding.custom.activity.title': '에이전트 활동',
-  'onboarding.custom.activity.subtitle':
-    '에이전트가 백그라운드에서 얼마나 능동적으로 모니터링하고 행동하는지.',
-  'onboarding.custom.activity.defaultDesc': '보통 활동: 매시간 동기화, 일일 요약.',
-  'onboarding.custom.activity.configureDesc':
-    '자신만의 활동 수준을 선택하세요. 설정 › 에이전트 활동 수준에서 구성하세요.',
   'onboarding.custom.vault.title': '메모리 및 볼트 설정',
   'onboarding.custom.vault.subtitle':
     '메모리 노트가 기록되는 위치, 소스 데이터를 읽는 방법, 볼트 파이프라인이 정상인지 확인하세요.',

@@ -6799,16 +6799,6 @@ const messages: TranslationMap = {
   'monthlyCost.badge': '${amount} в этом месяце',
   'monthlyCost.noData': 'Синхронизаций в этом месяце нет',
 
-  // Onboarding: Custom > Activity
-  'onboarding.custom.stepperActivity': 'Активность',
-  'onboarding.custom.stepperVault': 'Хранилище',
-  'onboarding.custom.activity.title': 'Активность агента',
-  'onboarding.custom.activity.subtitle':
-    'Насколько проактивно агент отслеживает события и действует в фоне.',
-  'onboarding.custom.activity.defaultDesc':
-    'Умеренная активность: синхронизация каждый час, ежедневная сводка.',
-  'onboarding.custom.activity.configureDesc':
-    'Выберите свой уровень активности. Настройка в Параметры › Уровень активности агента.',
   'onboarding.custom.vault.title': 'Настройка памяти и хранилища',
   'onboarding.custom.vault.subtitle':
     'Подтвердите, куда записываются заметки памяти, как считываются исходные данные и исправно ли работает конвейер хранилища.',

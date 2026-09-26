@@ -6374,14 +6374,6 @@ const messages: TranslationMap = {
   'monthlyCost.badge': '本月${amount}',
   'monthlyCost.noData': '本月无同步',
 
-  // Onboarding: Custom > Activity
-  'onboarding.custom.stepperActivity': '活动',
-  'onboarding.custom.stepperVault': '保险库',
-  'onboarding.custom.activity.title': '智能体活动',
-  'onboarding.custom.activity.subtitle': '您的智能体在后台监控和行动的主动程度。',
-  'onboarding.custom.activity.defaultDesc': '适中活动：每小时同步，每日摘要。',
-  'onboarding.custom.activity.configureDesc':
-    '选择您自己的活动级别。在设置 › 智能体活动级别中配置。',
 
   // Onboarding: Custom > Vault
   'onboarding.custom.vault.title': '记忆与保险库设置',

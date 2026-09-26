@@ -6585,14 +6585,6 @@ const messages: TranslationMap = {
   'monthlyCost.badge': '${amount} هذا الشهر',
   'monthlyCost.noData': 'لا مزامنات هذا الشهر',
 
-  // Onboarding: Custom > Activity
-  'onboarding.custom.stepperActivity': 'النشاط',
-  'onboarding.custom.stepperVault': 'الخزينة',
-  'onboarding.custom.activity.title': 'نشاط الوكيل',
-  'onboarding.custom.activity.subtitle': 'مدى استباقية وكيلك في المراقبة والتصرف في الخلفية.',
-  'onboarding.custom.activity.defaultDesc': 'نشاط متوسط: مزامنة كل ساعة، ملخص يومي.',
-  'onboarding.custom.activity.configureDesc':
-    'اختر مستوى نشاطك الخاص. الإعداد في الإعدادات › مستوى نشاط الوكيل.',
   'onboarding.custom.vault.title': 'إعداد الذاكرة والخزينة',
   'onboarding.custom.vault.subtitle':
     'تأكيد موضع كتابة ملاحظات الذاكرة، وكيفية قراءة البيانات المصدر، وسلامة مسار الخزينة.',

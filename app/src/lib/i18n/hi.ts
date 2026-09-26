@@ -6731,15 +6731,6 @@ const messages: TranslationMap = {
   'monthlyCost.badge': 'इस महीने ${amount}',
   'monthlyCost.noData': 'इस महीने कोई सिंक नहीं',
 
-  // Onboarding: Custom > Activity
-  'onboarding.custom.stepperActivity': 'गतिविधि',
-  'onboarding.custom.stepperVault': 'वॉल्ट',
-  'onboarding.custom.activity.title': 'एजेंट गतिविधि',
-  'onboarding.custom.activity.subtitle':
-    'आपका एजेंट पृष्ठभूमि में कितनी सक्रियता से निगरानी और कार्य करता है।',
-  'onboarding.custom.activity.defaultDesc': 'मध्यम गतिविधि: प्रति घंटे सिंक, दैनिक सारांश।',
-  'onboarding.custom.activity.configureDesc':
-    'अपना गतिविधि स्तर चुनें। सेटिंग्स › एजेंट गतिविधि स्तर में कॉन्फ़िगर करें।',
   'onboarding.custom.vault.title': 'मेमोरी और वॉल्ट सेटअप',
   'onboarding.custom.vault.subtitle':
     'पुष्टि करें कि मेमोरी नोट्स कहाँ लिखे जाते हैं, स्रोत डेटा कैसे पढ़ा जाता है, और आपका वॉल्ट पाइपलाइन स्वस्थ है या नहीं।',

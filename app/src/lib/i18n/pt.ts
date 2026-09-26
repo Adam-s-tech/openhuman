@@ -6833,15 +6833,6 @@ const messages: TranslationMap = {
   'monthlyCost.badge': '${amount} este mês',
   'monthlyCost.noData': 'Sem sincronizações este mês',
 
-  // Onboarding: Custom > Activity
-  'onboarding.custom.stepperActivity': 'Atividade',
-  'onboarding.custom.activity.title': 'Atividade do agente',
-  'onboarding.custom.activity.subtitle':
-    'O quão proativamente seu agente monitora e age em segundo plano.',
-  'onboarding.custom.activity.defaultDesc':
-    'Atividade moderada: sincronização por hora, resumo diário.',
-  'onboarding.custom.activity.configureDesc':
-    'Escolha seu próprio nível de atividade. Configurar em Configurações › Nível de atividade do agente.',
 
   // Onboarding: Custom > Vault
   'onboarding.custom.stepperVault': 'Vault',

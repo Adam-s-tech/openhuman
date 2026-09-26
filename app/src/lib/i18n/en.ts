@@ -1290,14 +1290,6 @@ const en: TranslationMap = {
   'onboarding.custom.embeddings.configureDesc':
     'Bring your own embedding provider (OpenAI, Voyage, Ollama, etc.).',
 
-  // Onboarding: Custom > Activity
-  'onboarding.custom.activity.title': 'Agent Activity',
-  'onboarding.custom.activity.subtitle':
-    'How proactively your agent monitors and acts in the background.',
-  'onboarding.custom.activity.defaultDesc':
-    'Moderate activity: syncs every hour, sends a daily digest. Balanced cost and responsiveness.',
-  'onboarding.custom.activity.configureDesc':
-    'Pick your own activity level. Configure in Settings › Agent activity level.',
 
   // Onboarding: Custom > Vault
   'onboarding.custom.vault.title': 'Memory & Vault Setup',
