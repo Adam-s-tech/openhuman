@@ -6,7 +6,7 @@ import { useCoreState } from '../../../providers/CoreStateProvider';
 import type { PlanTier } from '../../../types/api';
 import { BILLING_DASHBOARD_URL } from '../../../utils/links';
 import { openUrl } from '../../../utils/openUrl';
-import { AvatarFallback, AvatarRoot, Badge, Button, Card, Field } from '../../ui';
+import { Badge, Button, Card, Field } from '../../ui';
 import SettingsPanel from '../layout/SettingsPanel';
 import LogoutAndClearActions from '../LogoutAndClearActions';
 import { PLANS } from './billingHelpers';
@@ -31,7 +31,6 @@ const AccountPanel = () => {
 
   const name = user ? [user.firstName, user.lastName].filter(Boolean).join(' ') || null : null;
   const username = user?.username ? `@${user.username}` : null;
-  const initial = (name ?? user?.username ?? '?').slice(0, 1).toUpperCase();
   const tier: PlanTier | null = currentPlan?.plan ?? user?.subscription?.plan ?? null;
 
   return (
@@ -41,11 +40,6 @@ const AccountPanel = () => {
       {user && (name || username) && (
         <Card padded data-testid="account-profile">
           <div className="flex items-center gap-4">
-            <AvatarRoot className="h-12 w-12 shrink-0">
-              <AvatarFallback className="bg-primary-100 text-base font-semibold text-primary-700 dark:bg-primary-500/15 dark:text-primary-300">
-                {initial}
-              </AvatarFallback>
-            </AvatarRoot>
             <div className="min-w-0 flex-1">
               {name && <div className="truncate text-base font-semibold text-content">{name}</div>}
               {username && <div className="truncate text-sm text-content-muted">{username}</div>}
