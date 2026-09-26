@@ -87,7 +87,8 @@ impl IntegrationClient {
 
         // JSON traffic goes through the process backend transport
         // (`TransportProfile::Integrations`: platform TLS, 60 s timeout,
-        // product identity — see `api::headers`). Only the binary download
+        // product identity — see `openhuman_tinyhumans::backend::headers`).
+        // Only the binary download
         // client is built here.
         //
         // `download_client` deliberately does NOT carry the product identity.
