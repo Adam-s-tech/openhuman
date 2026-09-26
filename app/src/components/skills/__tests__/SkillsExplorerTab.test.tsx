@@ -140,7 +140,7 @@ describe('SkillsExplorerTab', () => {
     expect(screen.getByText('built-in')).toBeInTheDocument();
   });
 
-  it('paginates the registry catalog via the Show more control', async () => {
+  it('paginates the registry catalog via the DataTable pager', async () => {
     const { skillsApi } = await import('../../../services/api/skillsApi');
     const { skillRegistryApi } = await import('../../../services/api/skillRegistryApi');
     vi.mocked(skillsApi.listWorkflows).mockResolvedValue([]);
@@ -164,20 +164,23 @@ describe('SkillsExplorerTab', () => {
     const tileCount = () =>
       container.querySelectorAll('[data-testid^="registry-tile-"]').length;
 
-    // First page only: 60 of 130 revealed.
-    expect(tileCount()).toBe(60);
+    // Registry rows page through the shared DataTable pager (25/page) rather
+    // than an incremental "Show more" reveal.
+    expect(tileCount()).toBe(25);
+    const pager = screen.getByTestId('registry-pagination');
 
     await act(async () => {
-      fireEvent.click(screen.getByTestId('registry-show-more'));
+      fireEvent.click(within(pager).getByRole('button', { name: 'Next page' }));
     });
-    expect(tileCount()).toBe(120);
+    expect(tileCount()).toBe(25);
+    expect(screen.getByText('Paged Skill 25')).toBeInTheDocument();
 
     await act(async () => {
-      fireEvent.click(screen.getByTestId('registry-show-more'));
+      fireEvent.click(within(pager).getByRole('button', { name: 'Last page' }));
     });
-    // All 130 revealed → the control disappears.
-    expect(tileCount()).toBe(130);
-    expect(screen.queryByTestId('registry-show-more')).toBeNull();
+    // 130 entries / 25 per page → last page holds the remainder (5).
+    expect(tileCount()).toBe(5);
+    expect(screen.getByText('Paged Skill 129')).toBeInTheDocument();
   });
 
   it('searches catalog via RPC when typing in search box', async () => {
