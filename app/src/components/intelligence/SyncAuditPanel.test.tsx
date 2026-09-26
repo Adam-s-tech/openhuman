@@ -160,11 +160,11 @@ describe('<SyncAuditPanel />', () => {
     ]);
     render(<SyncAuditPanel />);
 
-    const failGlyph = await screen.findByTitle('rate limited');
-    expect(failGlyph).toHaveTextContent('✗');
+    const failBadge = await screen.findByTitle('rate limited');
+    expect(failBadge).toHaveTextContent('Failed');
   });
 
-  it('renders the partial glyph when the fetch succeeded but tree ingest failed', async () => {
+  it('renders the partial badge when the fetch succeeded but tree ingest failed', async () => {
     // openhuman#5820: fetched items with a failed memory-tree half must not
     // read as plain failure (nothing fetched) and MUST not read as success.
     mockAuditLog.mockResolvedValue([
