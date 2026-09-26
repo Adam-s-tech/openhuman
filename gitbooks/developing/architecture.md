@@ -225,7 +225,7 @@ Memory encryption keys derive from user credentials via Argon2id, ensuring memor
 
 ---
 
-## Security Architecture
+## Security architecture
 
 ```
 +-------------------------------------------------------------------+
