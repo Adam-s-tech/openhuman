@@ -1,4 +1,4 @@
-import { Fragment, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 
 // ---------------------------------------------------------------------------
 // Sidebar icons, keyed by settings registry entry id. Consolidates the SVGs
