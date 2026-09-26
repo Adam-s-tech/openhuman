@@ -555,10 +555,10 @@ components/
 
 Conventions:
 
-- **Modal via portal**: shell modals (Settings, link modal) render above routed content; the Settings modal uses the backgroundLocation pattern rather than unmounting the page underneath.
-- **Controlled modals**: parents own `isOpen` state and pass `onClose`.
-- **i18n everywhere**: all user-facing text goes through `useT()` (`lib/i18n/I18nContext`); CI enforces locale parity.
-- **No dynamic imports** in production `app/src` code: static `import` / `import type` only.
+- Modals render through a portal: shell modals (Settings, link modal) render above routed content, and the Settings modal uses the backgroundLocation pattern rather than unmounting the page underneath.
+- Modals are controlled: parents own `isOpen` state and pass `onClose`.
+- All user-facing text goes through `useT()` (`lib/i18n/I18nContext`); CI enforces locale parity.
+- Production `app/src` code uses only static `import` / `import type`, never dynamic imports.
 
 ---
 

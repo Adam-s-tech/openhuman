@@ -105,7 +105,7 @@ OpenHuman chose Tauri + Rust over Electron for performance and security reasons.
 | Memory safety             | Compile-time guaranteed                                                    | Runtime exceptions                       |
 | TLS implementation        | rustls (no OpenSSL dependency)                                             | Chromium's BoringSSL                     |
 
-**Why this matters for a crypto platform**: Traders and analysts run OpenHuman alongside resource-intensive tools, charting software, multiple browser tabs, trading terminals. A native binary with sub-500ms startup means the app feels native and stays out of the way. Zero GC pauses means real-time price feeds and alerts are never delayed by memory management.
+Why this matters in practice: people run OpenHuman alongside other resource-heavy apps, browser tabs, IDEs, chat clients, dashboards. A native binary with sub-500ms startup means the app feels native and stays out of the way instead of competing for the same CPU and memory budget. No GC pauses means background work such as memory writes and socket events does not stall while a collector runs.
 
 The **Tokio async runtime** drives all I/O. WebSocket connections, HTTP requests, file operations, and inter-skill communication, as non-blocking tasks on a thread pool. Thousands of concurrent operations (skill executions, cron jobs, socket events) share a small fixed set of OS threads.
 
@@ -309,7 +309,7 @@ Core subsystems run on published `tiny*` crates, vendored as git submodules unde
 - **Inference on the crate ModelRouter.** Host workload-tier model routing and cloud provider slugs now use the crate-native `ModelRouter`/`OpenAiModel` (#4782, #4783).
 ---
 
-## Technology Stack
+## Technology stack
 
 | Layer          | Technology                         | Why                                                       |
 | -------------- | ---------------------------------- | --------------------------------------------------------- |
@@ -334,7 +334,7 @@ Core subsystems run on published `tiny*` crates, vendored as git submodules unde
 
 ---
 
-## iOS Client (experimental)
+## iOS client (experimental)
 
 The iOS client is a Tauri v2 app that shares the React/TypeScript UI codebase but ships **no Rust core binary on-device**. All AI, RPC, and domain logic remain on the desktop core; the iOS app is a thin transport client.
 
