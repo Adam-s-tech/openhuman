@@ -1220,16 +1220,17 @@ const WorkflowRunnerBody = ({ headerText, className }: SkillsRunnerBodyProps) =>
                           data-testid="skill-run-error"
                           className="rounded border border-coral-300 dark:border-coral-700 bg-coral-50 dark:bg-coral-950 p-3 text-sm">
                           {isGateFailure && (
-                            <div
+                            <Badge
+                              variant="warning"
                               data-testid="preflight-gate-pill"
-                              className="mb-1.5 inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-900 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800 dark:text-amber-200">
+                              className="mb-1.5">
                               {t('settings.skillsRunner.error.preflightGate')}
                               {parsed.tag ? (
                                 <code className="font-mono text-[10px] opacity-80">
                                   {parsed.tag}
                                 </code>
                               ) : null}
-                            </div>
+                            </Badge>
                           )}
                           <p className="text-coral-800 dark:text-coral-200">
                             {isGateFailure

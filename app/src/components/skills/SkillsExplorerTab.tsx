@@ -372,11 +372,7 @@ function SkillDetailDialog({
       subtitle={
         <span className="mt-1.5 flex items-center gap-1.5">
           {source && <SourceBadge source={source} />}
-          {category && (
-            <span className="inline-flex items-center rounded-full border border-line bg-surface-muted px-1.5 py-0.5 text-[9px] font-medium text-content-muted">
-              {category}
-            </span>
-          )}
+          {category && <Badge dot={false}>{category}</Badge>}
         </span>
       }
       footer={

@@ -60,7 +60,6 @@ function ChannelConfigContent({ definition }: { definition: ChannelDefinition })
 }
 
 export default function ChannelSetupModal({ definition, onClose }: ChannelSetupModalProps) {
-  const { t } = useT();
   const titleId = useId();
 
   return (
