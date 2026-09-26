@@ -35,9 +35,9 @@ constructed and executable but unadvertised: the agent sees one small tool,
   produced by the tinyagents policy middleware, which is the only layer that
   holds the session (see below).
 - `tools::PackRegistryHandle` is the late-bound, non-owning (`Weak`) view the
-  proxy dispatches through. It holds two registries — the durable tool `Arc`
+  proxy dispatches through. It holds two registries: the durable tool `Arc`
   and the agent's `synthesized_tools` `Arc`, where every `delegate_*` tool
-  lives — and each must be rebound after its `Arc` is replaced, or packed
+  lives. Each must be rebound after its `Arc` is replaced, or packed
   tools degrade to "skill unavailable" / "no tool in skill". The handle rides
   on `Tool::host_extension` and is read back by
   `tools::host_extensions::pack_registry_handle`.
