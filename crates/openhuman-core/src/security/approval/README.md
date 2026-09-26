@@ -76,7 +76,7 @@ SQLite DB at `{workspace_dir}/approval/approval.db`, table `pending_approvals` (
 - `crate::core::bus::BUS` + `crate::core::events::DomainEvent` to surface approval prompts/decisions.
 - `crate::core::all` — `ControllerFuture` / `RegisteredController` for the controller registry.
 - `crate::core` (`ControllerSchema`, `FieldSchema`, `TypeSchema`) — schema definitions.
-- `crate::rpc::Outcome` — RPC return contract.
+- `crate::core::Outcome` — RPC return contract.
 - `crate::config::Config` — workspace dir (DB path) + the boot-time `autonomy.auto_approve` snapshot; `config::ops::add_auto_approve_tool` to persist "Always allow".
 - `crate::security` — `live_policy::current()` for the live "Always allow" list and `POLICY_DENIED_MARKER` for deny reasons.
 - `tinymemory_core::store::safety::sanitize_text` — scrub secrets out of stored execution-error strings.

@@ -44,7 +44,7 @@ None. The module reads from in-memory `Config`; it stores no state.
 
 - `crate::config` (`Config`, `config::rpc::load_config_with_timeout`) — source of the model registry and `dashboard.model_health` thresholds. `DashboardConfig` / `ModelHealthConfig` are defined in `crates/openhuman-core/src/config/schema/dashboard.rs`.
 - `crate::core::all` (`ControllerFuture`, `RegisteredController`) and `crate::core` (`ControllerSchema`, `FieldSchema`, `TypeSchema`) — controller registry types.
-- `crate::rpc::Outcome` — standard RPC result wrapper.
+- `crate::core::Outcome` — standard RPC result wrapper.
 - `serde` / `serde_json` — wire (de)serialization and handler params.
 
 ## Used by

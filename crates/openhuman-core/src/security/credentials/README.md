@@ -95,7 +95,7 @@ Note: `list_provider_credentials_by_prefix` and the Composio-direct/secret helpe
 - `crate::memory` — bind memory client to the active workspace after activation.
 - `crate::inference::host_runtime`, `crate::voice::{server,dictation_listener,always_on}` — credential-gated services started/stopped.
 - `crate::api::config`, `::jwt`, `::rest` — backend API URL, JWT `exp` decode, `BackendOAuthClient` + OAuth/handoff types.
-- `crate::core::all` (`ControllerFuture`, `RegisteredController`), `crate::core` (`ControllerSchema`/`FieldSchema`/`TypeSchema`), `crate::core::events::DomainEvent` + `tinybus::EventHandler`, `crate::rpc::Outcome` — controller registry + RPC envelope + event bus.
+- `crate::core::all` (`ControllerFuture`, `RegisteredController`), `crate::core` (`ControllerSchema`/`FieldSchema`/`TypeSchema`), `crate::core::events::DomainEvent` + `tinybus::EventHandler`, `crate::core::Outcome` — controller registry + RPC envelope + event bus.
 
 ## Used by
 

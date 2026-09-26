@@ -61,7 +61,7 @@ None. No `store.rs` — staged binaries are written to the filesystem (current-e
 - `crate::core::bus` — `BUS.publish`, `crate::core::events::DomainEvent`, and `bus::init()` to bring up the in-process broker.
 - `crate::core::observability` — Sentry reporting + transient-failure classifiers (`report_error`, `is_updater_transient_message`, `is_updater_transient_http_status`).
 - `crate::core::all` — `ControllerFuture`, `RegisteredController` (schemas wiring); `crate::core::{ControllerSchema, FieldSchema, TypeSchema}`.
-- `crate::rpc::Outcome` — RPC return contract.
+- `crate::core::Outcome` — RPC return contract.
 - External crates: `reqwest` (HTTP), `url` (URL validation), `serde`/`serde_json`, `tokio`.
 
 ## Used by

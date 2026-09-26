@@ -55,7 +55,7 @@ No owned persistence. `diagnostics()` reads the MCP write-audit log through `cra
 - `crate::mcp::server` (`McpToolSpec`, `tool_specs()`) — MCP stdio tool source for registry entries.
 - `crate::mcp::registry::connections` (`all_connected_tools()` / `all_connected_tools_for_config()`, defined inside `mcp/registry/mod.rs`; empty-returning stubs in `mcp/registry/stub.rs` when the `mcp` feature is disabled) — live MCP client server tools, fetched via `block_in_place` only on the multi-thread runtime.
 - `crate::mcp::audit` (`list_writes`, `McpWriteListQuery`; stubbed under `mcp/audit/stub.rs` without the `mcp` feature) — write-audit health.
-- `crate::rpc::Outcome` — RPC result envelope.
+- `crate::core::Outcome` — RPC result envelope.
 
 ## Used by
 

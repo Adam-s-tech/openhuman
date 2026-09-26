@@ -44,7 +44,7 @@ None — the module holds no state. The diag snapshot reads only the environment
 - `crate::platform::socket::manager::global_socket_manager` — read the live backend Socket.IO `ConnectionStatus` and last error for the diag snapshot.
 - `crate::core::all::{ControllerFuture, RegisteredController}` — controller registration types.
 - `crate::core::{ControllerSchema, FieldSchema, TypeSchema}` — controller schema shape.
-- `crate::rpc::Outcome` — RPC return envelope (`Outcome::single_log`).
+- `crate::core::Outcome` — RPC return envelope (`Outcome::single_log`).
 - External crates: `reqwest` (HTTP fingerprint probe of a listener's `GET /` root), `tokio` (async `TcpListener`, retry backoff), `serde`/`serde_json`, `url`, `tracing`/`log`.
 
 ## Used by

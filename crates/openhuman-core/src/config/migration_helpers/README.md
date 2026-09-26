@@ -64,7 +64,7 @@ No own store. It writes imported entries through the **target memory backend** o
 - `crate::memory` (`Memory`, `MemoryCategory`) — target backend trait + category enum entries are mapped into.
 - `crate::memory::store` — `create_memory_for_migration` constructs the target memory backend.
 - `crate::core::all` (`ControllerFuture`, `RegisteredController`) and `crate::core::{ControllerSchema, FieldSchema, TypeSchema}` — controller registry/schema types.
-- `crate::rpc::Outcome` — RPC response envelope.
+- `crate::core::Outcome` — RPC response envelope.
 - External crates: `rusqlite` (read OpenClaw `brain.db`), `directories::UserDirs` (home dir), `anyhow`, `serde`/`serde_json`.
 
 ## Used by

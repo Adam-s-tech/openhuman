@@ -88,7 +88,7 @@ Note that nothing in the production startup path currently constructs a `Webhook
 - `crate::agent::triage` — `TriggerEnvelope`, `run_triage`, `apply_decision`, `TriageOutcome` for agent-tunnel routing and `trigger_agent`.
 - `crate::config::{Config, rpc::load_config_with_timeout}` — config for backend-proxy RPCs.
 - `crate::api::{BackendOAuthClient, config::effective_backend_api_url, jwt::get_session_token}` — authenticated backend tunnel CRUD/bandwidth calls.
-- `crate::rpc::Outcome` — handler return contract.
+- `crate::core::Outcome` — handler return contract.
 
 ## Used by
 

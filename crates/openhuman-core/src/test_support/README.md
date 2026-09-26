@@ -62,7 +62,7 @@ This module owns no state of its own — it mutates/reads state owned by other d
 - `crate::web3::wallet` — `prepared_quotes_for_test` and `PreparedTransaction` to snapshot prepared quotes.
 - `crate::core::all` — `ControllerFuture`, `RegisteredController` for handler wiring.
 - `crate::core::{ControllerSchema, FieldSchema, TypeSchema}` — controller schema types.
-- `crate::rpc::Outcome` — standard RPC result envelope; `crate::rpc` is the `openhuman-rpc` crate re-exported by `pub use openhuman_rpc as rpc;` in `crates/openhuman-core/src/lib.rs`.
+- `crate::core::Outcome` — standard RPC result envelope; `crate::rpc` is the `openhuman-rpc` crate re-exported by `pub use openhuman_rpc as rpc;` in `crates/openhuman-core/src/lib.rs`.
 
 ## Used by
 

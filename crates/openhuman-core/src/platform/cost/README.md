@@ -68,7 +68,7 @@ None. The module has no `bus.rs` and no `DomainEvent` publishers/subscribers.
 - `crate::inference::provider::types::UsageInfo` (re-exported as `crate::inference::provider::UsageInfo`) — provider usage payload translated into `TokenUsage` in `global.rs`.
 - `crate::core::all` — `ControllerFuture`, `RegisteredController` for controller registration.
 - `crate::core` — `ControllerSchema`, `FieldSchema`, `TypeSchema`.
-- `crate::rpc::Outcome` — RPC return wrapper.
+- `crate::core::Outcome` — RPC return wrapper.
 - External: `chrono`, `serde`/`serde_json`, `uuid`, `parking_lot`, `once_cell`, `anyhow`, `tempfile` (tests).
 
 ## Used by
