@@ -11,14 +11,14 @@ HTTP client.
 
 ## Public surface
 
-- `pub struct RpcOutcome<T>` / `fn new` / `fn single_log` / `fn into_cli_compatible_json`: `lib.rs`: handler result plus its log lines; the type domain `ops.rs` operations return (see `AGENTS.md`'s module-shape table).
-- `pub fn apply_log_envelope(value, logs) -> Value`: `lib.rs`: single definition of the bare-vs-wrapped response-shape rule; see its doc comment before touching it.
-- `pub fn unwrap_rpc(value: &Value) -> &Value`: `lib.rs`: client-side unwrapping of nested `result`/`data` envelopes.
-- `pub struct StructuredRpcError` / `pub const STRUCTURED_RPC_ERROR_SENTINEL`: `structured_error.rs`: typed error envelope, sentinel-encoded into the controller `Result<_, String>` channel and decoded by `crates/openhuman-core/src/core/jsonrpc.rs`.
-- `pub struct HttpRpcResponse`: `client.rs` (feature `http-client`): verbatim status + body from an OpenHuman RPC endpoint.
-- `pub fn post_json_rpc(url, token, body) -> Result<HttpRpcResponse, String>`: `client.rs` (feature `http-client`): POST a JSON-RPC body with a 30s timeout; disables redirects when a bearer token is set.
-- `pub fn bearer_header(token: Option<&str>) -> Option<String>`: `client.rs` (feature `http-client`): normalize a token into an `Authorization` header value.
-- `pub fn redact_url_for_log(url: &str) -> String`: `client.rs` (feature `http-client`): strip credentials, path, query and fragment before logging a URL.
+- `pub struct RpcOutcome<T>` / `fn new` / `fn single_log` / `fn into_cli_compatible_json`, in `lib.rs`: a handler result plus its log lines, the type domain `ops.rs` operations return (see `AGENTS.md`'s module-shape table).
+- `pub fn apply_log_envelope(value, logs) -> Value`, in `lib.rs`: the single definition of the bare-vs-wrapped response-shape rule; see its doc comment before touching it.
+- `pub fn unwrap_rpc(value: &Value) -> &Value`, in `lib.rs`: client-side unwrapping of nested `result`/`data` envelopes.
+- `pub struct StructuredRpcError` / `pub const STRUCTURED_RPC_ERROR_SENTINEL`, in `structured_error.rs`: a typed error envelope, sentinel-encoded into the controller `Result<_, String>` channel and decoded by `crates/openhuman-core/src/core/jsonrpc.rs`.
+- `pub struct HttpRpcResponse`, in `client.rs` (feature `http-client`): verbatim status and body from an OpenHuman RPC endpoint.
+- `pub fn post_json_rpc(url, token, body) -> Result<HttpRpcResponse, String>`, in `client.rs` (feature `http-client`): POSTs a JSON-RPC body with a 30s timeout and disables redirects when a bearer token is set.
+- `pub fn bearer_header(token: Option<&str>) -> Option<String>`, in `client.rs` (feature `http-client`): normalizes a token into an `Authorization` header value.
+- `pub fn redact_url_for_log(url: &str) -> String`, in `client.rs` (feature `http-client`): strips credentials, path, query and fragment before logging a URL.
 
 ## Feature flags
 
