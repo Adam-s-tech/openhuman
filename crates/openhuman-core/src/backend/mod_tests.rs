@@ -27,3 +27,14 @@ fn require_base_url_resolves_through_the_transport() {
     let configured = Some("http://127.0.0.1:4010".to_string());
     assert_eq!(require_base_url(&configured).unwrap(), "http://127.0.0.1:4010");
 }
+
+#[test]
+fn attribution_headers_come_from_the_transport() {
+    let headers = attribution_headers();
+    assert_eq!(
+        headers
+            .get(transport::plain::TEST_PRODUCT_HEADER)
+            .and_then(|v| v.to_str().ok()),
+        Some(transport::plain::TEST_PRODUCT_IDENTITY)
+    );
+}

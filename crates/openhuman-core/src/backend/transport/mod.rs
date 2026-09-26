@@ -131,6 +131,12 @@ pub trait BackendTransport: Send + Sync + 'static {
     /// the transport does not build itself.
     fn product_identity(&self) -> String;
 
+    /// The attribution headers this host stamps on backend traffic
+    /// (product identity, client versions), for a caller that must reach the
+    /// backend with a client the transport did not build (the managed model
+    /// catalog rides the generic provider client).
+    fn attribution_headers(&self) -> HeaderMap;
+
     /// Short stable name for logs (`"tinyhumans-sdk"`, `"plain-test"`).
     fn name(&self) -> &'static str;
 }

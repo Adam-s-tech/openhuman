@@ -76,6 +76,14 @@ pub fn product_identity() -> Option<String> {
         .map(|transport| transport.product_identity())
 }
 
+/// The installed host's attribution headers (see
+/// [`BackendTransport::attribution_headers`]); empty without a transport.
+pub fn attribution_headers() -> reqwest::header::HeaderMap {
+    resolve_backend_transport()
+        .map(|transport| transport.attribution_headers())
+        .unwrap_or_default()
+}
+
 #[cfg(test)]
 #[path = "mod_tests.rs"]
 mod tests;

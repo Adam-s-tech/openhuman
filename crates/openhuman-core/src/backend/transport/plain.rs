@@ -139,6 +139,15 @@ impl BackendTransport for PlainHttpTransport {
         TEST_PRODUCT_IDENTITY.to_string()
     }
 
+    fn attribution_headers(&self) -> reqwest::header::HeaderMap {
+        let mut headers = reqwest::header::HeaderMap::new();
+        headers.insert(
+            TEST_PRODUCT_HEADER,
+            reqwest::header::HeaderValue::from_static(TEST_PRODUCT_IDENTITY),
+        );
+        headers
+    }
+
     fn name(&self) -> &'static str {
         "plain-test"
     }
