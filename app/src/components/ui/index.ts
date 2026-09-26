@@ -37,7 +37,7 @@
  */
 
 // Actions
-export { default as Button, buttonVariants, type ButtonProps } from './Button';
+export { default as Button, type ButtonProps } from './Button';
 
 // Form controls
 export { default as Input, type InputProps } from './Input';
