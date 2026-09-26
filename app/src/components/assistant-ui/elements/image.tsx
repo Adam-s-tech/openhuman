@@ -404,14 +404,4 @@ Image.Actions = ImageActions;
 Image.Generating = ImageGenerating;
 Image.ContentFilterError = ImageContentFilterError;
 
-export {
-  Image,
-  ImageRoot,
-  ImagePreview,
-  ImageFilename,
-  ImageZoom,
-  ImageActions,
-  ImageGenerating,
-  ImageContentFilterError,
-  imageVariants,
-};
+export { Image };
