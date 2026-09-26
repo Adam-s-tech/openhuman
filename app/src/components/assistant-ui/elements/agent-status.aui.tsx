@@ -93,7 +93,7 @@ export const useTaskSummary = (): TaskSummary => {
 const plural = (count: number, strings: AgentStatusStrings) =>
   `${count} ${count === 1 ? strings.taskOne : strings.taskOther}`;
 
-export const summaryState = (summary: TaskSummary): AgentState => {
+const summaryState = (summary: TaskSummary): AgentState => {
   if (summary.running > 0) return 'working';
   if (summary.waiting > 0) return 'waiting';
   return summary.failed > 0 ? 'failed' : 'done';
