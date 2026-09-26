@@ -1777,7 +1777,9 @@ const UserActionBar: FC = () => {
       autohide="not-last"
       className="aui-user-action-bar-root flex flex-col items-end">
       <ActionBarPrimitive.Copy asChild>
-        <TooltipIconButton tooltip="Copy response" title="Copy response">
+        <TooltipIconButton
+          tooltip={t('chat.copyResponse', 'Copy response')}
+          title={t('chat.copyResponse', 'Copy response')}>
           <CopyIcon />
         </TooltipIconButton>
       </ActionBarPrimitive.Copy>
