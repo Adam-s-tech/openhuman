@@ -132,7 +132,6 @@ export type ContextDisplayRootProps = {
 };
 
 function ContextDisplayRoot({
-  // eslint-disable-line
   modelContextWindow,
   children,
   usage,
