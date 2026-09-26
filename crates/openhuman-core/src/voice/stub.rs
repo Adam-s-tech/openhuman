@@ -192,7 +192,7 @@ pub mod always_on {
 // streaming::handle_dictation_ws (provided by the real voice host adapter)
 // ---------------------------------------------------------------------------
 
-// axum-only, and its sole caller (`core::jsonrpc::http::dictation::dictation_ws_handler`) is
+// axum-only, and its sole caller (`openhuman_rpc::server::http::dictation::dictation_ws_handler`) is
 // gated the same way, so the stub's dictation-WS surface is exclusive to the
 // `http-server` feature too (#5048): voice-OFF + http-server-OFF needs no
 // `voice::streaming` at all.

@@ -26,7 +26,7 @@ pub use crate::memory::tree::tree::canonicalize_types::*;
 ///
 /// The transport layer demotes these to a warn-level capture — still recorded
 /// for triage, because a spike genuinely means a producer regressed, but not
-/// an error event. See `core::jsonrpc::rpc_handler`.
+/// an error event. See `openhuman_rpc::server::rpc_handler`.
 ///
 /// Anchored on the exact `invalid <kind> payload: ` prefix rather than a
 /// loose `"invalid"` substring so unrelated failures keep paging.

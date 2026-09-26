@@ -558,7 +558,7 @@ async fn clear_credential_without_a_kind_removes_everything() {
 // ── authed routes keep the SESSION_EXPIRED sentinel ───────────
 
 /// #5307 — a lapsed session on an authed backend route must stay classifiable
-/// as session expiry: the dispatcher (`core::jsonrpc::invoke_method`) keys
+/// as session expiry: the dispatcher (`core::invoke::invoke_method`) keys
 /// both the Sentry skip and the `DomainEvent::SessionExpired` publish off the
 /// `SESSION_EXPIRED:` sentinel `flatten_authed_error` produces.
 #[tokio::test]
@@ -596,7 +596,7 @@ async fn auth_create_channel_link_token_401_stays_classifiable_as_session_expiry
 /// session expiry (matrix 1.2.3).
 ///
 /// The sibling test above pins the 401 -> `SESSION_EXPIRED:` mapping, and
-/// `core::jsonrpc::invoke_method` keys a `DomainEvent::SessionExpired` publish
+/// `core::invoke::invoke_method` keys a `DomainEvent::SessionExpired` publish
 /// off that sentinel — which signs the user out. If a 409 fell into the same
 /// bucket, discovering that someone else had already linked your Telegram
 /// account would log you out of OpenHuman, and the real reason for the failure
