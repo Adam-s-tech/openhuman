@@ -97,8 +97,8 @@ serves `/rpc` without those namespaces; `config_servers` is simply
 
 ## Dependencies
 
-- `tinymcp` (path dependency on `vendor/tinymcp`, `default-features = false`)
-, the extracted client library.
+- `tinymcp` (path dependency on `vendor/tinymcp`, `default-features = false`):
+  the extracted client library.
 - `tinymcp-bus`: the wire contract: payload types and member names, with no
   transport and no runtime, also used to generate the desktop settings
   schema.
