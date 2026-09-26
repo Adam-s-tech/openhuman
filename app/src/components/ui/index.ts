@@ -62,31 +62,21 @@ export { default as Field, type FieldProps } from './Field';
 export {
   RadioGroupItem,
   RadioGroupRoot,
-  radioGroupItemVariants,
   type RadioGroupItemProps,
   type RadioGroupRootProps,
 } from './RadioGroup';
-export { default as Toggle, toggleVariants, type ToggleProps } from './Toggle';
+export { default as Toggle, type ToggleProps } from './Toggle';
 export {
   ToggleGroupItem,
   ToggleGroupRoot,
   type ToggleGroupItemProps,
   type ToggleGroupProps,
 } from './ToggleGroup';
-export {
-  default as Slider,
-  sliderThumbVariants,
-  sliderTrackVariants,
-  type SliderProps,
-  type SliderSize,
-} from './Slider';
+export { default as Slider, type SliderProps, type SliderSize } from './Slider';
 export {
   SelectContent,
-  SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectRoot,
-  SelectSeparator,
   SelectTrigger,
   SelectValue,
   type SelectContentProps,
