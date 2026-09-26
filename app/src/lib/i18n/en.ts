@@ -2568,6 +2568,7 @@ const en: TranslationMap = {
   // Memory
   'memory.debugTitle': 'Memory Debug',
   'memory.documents': 'Documents',
+  'memory.column.document': 'Document',
   'memory.filterByNamespace': 'Filter by namespace...',
   'memory.refresh': 'Refresh',
   'memory.noDocumentsFound': 'No documents found.',
