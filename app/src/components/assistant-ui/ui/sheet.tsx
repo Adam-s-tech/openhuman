@@ -39,6 +39,7 @@ function SheetContent({
   side?: 'top' | 'right' | 'bottom' | 'left';
   showCloseButton?: boolean;
 }) {
+  const { t } = useT();
   return (
     <SheetPortal>
       <SheetOverlay />
