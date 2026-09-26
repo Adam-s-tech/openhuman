@@ -126,7 +126,7 @@ pub enum AgentProgress {
         /// every emit site is updated to pass it through; additive so
         /// existing consumers reading only the other fields are
         /// unaffected. Mirrors
-        /// [`crate::core::socketio::SubagentProgressDetail::parent_call_id`].
+        /// [`crate::web_chat::SubagentProgressDetail::parent_call_id`].
         parent_call_id: Option<String>,
     },
 

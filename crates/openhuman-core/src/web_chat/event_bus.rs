@@ -8,7 +8,7 @@ use std::sync::{Arc, OnceLock};
 use tokio::sync::broadcast;
 
 use crate::core::events::DomainEvent;
-use crate::core::socketio::WebChannelEvent;
+use crate::web_chat::WebChannelEvent;
 use tinybus::EventHandler;
 use tinybus::SubscriptionHandle;
 
@@ -302,7 +302,7 @@ impl EventHandler<DomainEvent> for AgentSurfaceSubscriber {
                     event: "queue_item_queued".to_string(),
                     client_id: String::new(),
                     thread_id: thread_id.clone(),
-                    queue_item: Some(crate::core::socketio::QueueItemPayload {
+                    queue_item: Some(crate::web_chat::QueueItemPayload {
                         id: item_id,
                         lane: None,
                         text_preview: text_preview.clone(),
@@ -328,7 +328,7 @@ impl EventHandler<DomainEvent> for AgentSurfaceSubscriber {
                     event: "queue_item_delivered".to_string(),
                     client_id: String::new(),
                     thread_id: thread_id.clone(),
-                    queue_item: Some(crate::core::socketio::QueueItemPayload {
+                    queue_item: Some(crate::web_chat::QueueItemPayload {
                         id: item_id,
                         lane,
                         text_preview: text_preview.clone(),
@@ -359,7 +359,7 @@ impl EventHandler<DomainEvent> for AgentSurfaceSubscriber {
                     event: "queue_item_delivered".to_string(),
                     client_id: String::new(),
                     thread_id: thread_id.clone(),
-                    queue_item: Some(crate::core::socketio::QueueItemPayload {
+                    queue_item: Some(crate::web_chat::QueueItemPayload {
                         id: item_id,
                         lane,
                         text_preview: text_preview.clone(),

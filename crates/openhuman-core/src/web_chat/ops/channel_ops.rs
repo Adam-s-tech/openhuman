@@ -4,7 +4,7 @@
 
 use serde_json::{json, Value};
 
-use crate::core::socketio::WebChannelEvent;
+use crate::web_chat::WebChannelEvent;
 use crate::core::Outcome;
 
 use super::super::event_bus::publish_web_channel_event;
@@ -319,7 +319,7 @@ pub async fn channel_web_queue_remove(
             event: "queue_item_removed".to_string(),
             client_id: client_id.to_string(),
             thread_id: thread_id.to_string(),
-            queue_item: Some(crate::core::socketio::QueueItemPayload {
+            queue_item: Some(crate::web_chat::QueueItemPayload {
                 id: item_id.to_string(),
                 lane: None,
                 text_preview: None,

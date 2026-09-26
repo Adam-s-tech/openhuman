@@ -81,9 +81,9 @@ async fn cron_alerts(config: &Config) -> usize {
 /// #4169); only a terminal `Empty`/`Closed` — the matching event genuinely was
 /// not published — panics.
 fn next_user_error(
-    rx: &mut tokio::sync::broadcast::Receiver<crate::core::socketio::WebChannelEvent>,
+    rx: &mut tokio::sync::broadcast::Receiver<crate::web_chat::WebChannelEvent>,
     kind: &str,
-) -> crate::core::socketio::WebChannelEvent {
+) -> crate::web_chat::WebChannelEvent {
     use tokio::sync::broadcast::error::TryRecvError;
     loop {
         match rx.try_recv() {

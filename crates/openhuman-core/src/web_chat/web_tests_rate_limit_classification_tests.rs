@@ -241,7 +241,7 @@ async fn start_chat_chat_error_event_serializes_structured_fields_to_json_wire()
 
     // Pin the additive contract: serializing a default (no error)
     // event must NOT introduce any of the new keys.
-    let empty = crate::core::socketio::WebChannelEvent {
+    let empty = crate::web_chat::WebChannelEvent {
         event: "chat_done".to_string(),
         ..Default::default()
     };

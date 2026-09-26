@@ -12,7 +12,7 @@ use tinymemory_api::host::{
     LOCAL_MODEL_UNAVAILABLE_KIND, MEMORY_USER_ERROR_SOURCE, STORE_CORRUPT_KIND,
 };
 
-use crate::core::socketio::WebChannelEvent;
+use crate::web_chat::WebChannelEvent;
 
 /// The metadata-only `user_error` payload for an unusable local embedding
 /// runtime. Built separately from the publish so the no-leak contract is

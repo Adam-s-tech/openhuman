@@ -18,7 +18,7 @@ use serde_json::json;
 use tempfile::{tempdir, TempDir};
 use tokio::time::timeout;
 
-use openhuman_core::core::socketio::WebChannelEvent;
+use openhuman_core::web_chat::WebChannelEvent;
 use openhuman_core::web_chat::{
     all_web_channel_controller_schemas, all_web_channel_registered_controllers, cancel_chat,
     channel_web_cancel, publish_web_channel_event, schemas as web_channel_schema, start_chat,

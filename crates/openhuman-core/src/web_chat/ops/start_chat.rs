@@ -10,7 +10,7 @@ use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
 use crate::core::events::DomainEvent;
-use crate::core::socketio::WebChannelEvent;
+use crate::web_chat::WebChannelEvent;
 use crate::security::prompt_injection::{
     enforce_prompt_input, PromptEnforcementAction, PromptEnforcementContext,
 };
@@ -41,7 +41,7 @@ pub enum StartChatError {
     Guardrail {
         verdict: String,
         score: f64,
-        reasons: Vec<crate::core::socketio::GuardrailReason>,
+        reasons: Vec<crate::web_chat::GuardrailReason>,
     },
     Other(String),
 }
@@ -104,7 +104,7 @@ impl From<StartChatError> for String {
                 score,
                 reasons,
             } => {
-                let payload = crate::core::socketio::GuardrailPayload {
+                let payload = crate::web_chat::GuardrailPayload {
                     verdict,
                     score,
                     reasons,
@@ -258,7 +258,7 @@ pub async fn start_chat(
             reasons: prompt_decision
                 .reasons
                 .iter()
-                .map(|r| crate::core::socketio::GuardrailReason {
+                .map(|r| crate::web_chat::GuardrailReason {
                     code: r.code.clone(),
                     message: r.message.clone(),
                 })

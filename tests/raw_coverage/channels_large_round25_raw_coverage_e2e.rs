@@ -9,7 +9,7 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
-use openhuman_core::core::socketio::WebChannelEvent;
+use openhuman_core::web_chat::WebChannelEvent;
 use openhuman_core::channels::providers::email_channel::{
     test_support as email_support, EmailChannel, EmailConfig,
 };

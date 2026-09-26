@@ -23,7 +23,7 @@ use serde_json::json;
 use tokio::sync::broadcast;
 
 use openhuman_core::core::runtime::CoreRuntime;
-use openhuman_core::core::socketio::WebChannelEvent;
+use openhuman_core::web_chat::WebChannelEvent;
 use openhuman_core::web_chat;
 
 use super::cockpit::{

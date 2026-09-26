@@ -5,7 +5,7 @@
 
 use serde_json::json;
 
-use crate::core::socketio::{SubagentProgressDetail, WebChannelEvent};
+use crate::web_chat::{SubagentProgressDetail, WebChannelEvent};
 use crate::threads::turn_state::{TurnStateMirror, TurnStateStore};
 
 use super::event_bus::publish_web_channel_event;
@@ -1181,7 +1181,7 @@ pub(crate) fn spawn_progress_bridge(
                                 thread_id: thread_id.clone(),
                                 request_id: request_id.clone(),
                                 round: Some(iteration),
-                                usage: Some(crate::core::socketio::TurnUsagePayload {
+                                usage: Some(crate::web_chat::TurnUsagePayload {
                                     input_tokens,
                                     output_tokens,
                                     cached_input_tokens,
