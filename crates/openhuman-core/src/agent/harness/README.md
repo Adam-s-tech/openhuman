@@ -56,25 +56,27 @@ used here (not defined here) by `agent_graph.rs` and `fork_context.rs`.
 
 ## Public surface
 
-- `OpenHumanSessionHost`, `SessionHostBuilder`, `TurnOverrides` — re-exported from `session_host`; the
-  entry point for any chat turn. External callers import these from
-  `crate::agent`, which re-exports them from `session_host`.
-- `run_subagent`, `SubagentRunOptions`, `SubagentRunError` — hierarchical
-  sub-agent dispatch from a parent tool loop.
+What `harness/mod.rs` actually re-exports:
+
 - `AgentDefinition`, `AgentDefinitionRegistry`, `DefinitionSource`,
   `ModelSpec`, `PromptSource`, `SandboxMode`, `ToolScope`,
-  `TriggerMemoryAgent` — sub-agent archetype data model.
+  `TriggerMemoryAgent` — the sub-agent archetype data model.
 - `ParentExecutionContext` and its accessors (`current_parent`,
   `with_parent_context`, `current_agent_context_prepared_sources`,
-  `with_agent_context_prepared_sources`) — parent runtime context for
-  spawned tools.
+  `with_agent_context_prepared_sources`, `AgentContextPreparedSource`) —
+  parent runtime context for spawned tools.
 - `current_sandbox_mode`/`with_current_sandbox_mode`,
-  `current_task_recency_window`/`with_task_recency_window` — other
+  `current_task_recency_window`/`with_task_recency_window` — the other
   task-local accessors.
 - `AgentGraph`, `AgentTurnRequest`, `AgentTurnResult`, `AgentTurnUsage`.
-- `LastTurnUsage`, `SubagentUsageEntry`.
-- `artifact_offload::{ArtifactKind, OffloadedArtifact, new_artifact_offload, offload_oversized_result, render_artifact_offload_contract, ...}` — import via the `artifact_offload::` path (see Notes).
-- `run_queue::{RunQueue, QueueMode, QueuedMessage, QueueStatus}`.
+- `artifact_offload::{...}` — reached only via the `artifact_offload::` path
+  (see Notes), never flattened into `harness::`.
+
+Adjacent public surface that lives in sibling modules, not here:
+`OpenHumanSessionHost`/`SessionHostBuilder`/`TurnOverrides` and the `Agent`
+turn lifecycle are in `../session_host/`; `run_subagent`,
+`SubagentRunOptions`, `SubagentRunError` are in `../subagent_host/`;
+`LastTurnUsage`/`SubagentUsageEntry` are in `../tinyagents/host/run_context.rs`.
 
 ## Dependencies
 
@@ -82,6 +84,10 @@ used here (not defined here) by `agent_graph.rs` and `fork_context.rs`.
   itself (`run_turn_via_tinyagents_shared`), the `run_queue` and `artifacts`
   primitives this module wraps, and the `Store` trait implemented by
   `tool_result_artifacts::ToolResultArtifactIndexStore`.
+- `tinytools_agent` (also vendored) — the tool-call parsers themselves
+  (`<tool_call>` tags, fenced blocks, bare JSON, `<invoke>` XML, GLM grammar,
+  p-format). This crate is a test-only dependency of `harness/`; the parsers
+  are not called from production code here.
 - `crate::agent::registry::agents` — built-in agent archetype TOML/prompt
   bundles loaded by `definition_loader`/`builtin_definitions`.
 - `crate::security::SecurityPolicy` — workspace containment policy plumbed
@@ -94,42 +100,41 @@ used here (not defined here) by `agent_graph.rs` and `fork_context.rs`.
 
 ## Used by
 
-- `agent/mod.rs` re-exports `Agent`/`AgentBuilder` for the rest of the
-  crate.
+- `../session_host/` and `../subagent_host/` build turns from the
+  definitions, prompt data, and task-local context this module supplies.
 - `agent/bus.rs` serves the `agent.run_turn` native request through
   `run_channel_turn_via_graph`; channels reach the harness through that bus.
-- `cron/scheduler/agent_run.rs`, `web_chat/`, `inference/local/ops/agent_chat.rs`
-  (`agent_chat`) build and drive `Agent` turns directly;
-  `channels/runtime/dispatch/routing.rs` consults `AgentDefinitionRegistry`/
-  `ToolScope`.
-- `agent/tinyagents/` middleware calls `credentials::scrub_credentials` on
-  every tool result.
+- `channels/runtime/dispatch/routing.rs` consults
+  `AgentDefinitionRegistry`/`ToolScope`.
+- `agent/tinyagents/middleware/credential_scrub.rs` calls
+  `harness::credentials::scrub_credentials` on every tool result.
 - `agent/orchestration/tools/*` (`spawn_subagent`, `spawn_parallel_agents`,
-  `spawn_async_subagent`, `continue_subagent`, `steer_subagent`, …) call into
-  `subagent_host` and the task-local context modules.
+  `spawn_async_subagent`, `continue_subagent`, `steer_subagent`, and friends)
+  call into `../subagent_host/` and this module's task-local context
+  functions.
 
 ## Tests
 
-- Unit: `harness_tests.rs`, `harness_gap_tests.rs`, plus `*_tests.rs` files
-  beside each sub-module (`session/session_tests*.rs`,
-  `../subagent_host/{ops_tests*,handoff_tests,extract_tool_tests,tool_prep_tests}.rs`,
-  `run_queue/run_queue_tests.rs`, `tool_result_artifacts/mod_tests.rs`,
-  `artifact_offload/artifact_offload_tests.rs`).
+- Unit: `harness_tests.rs`, `harness_gap_tests.rs`,
+  `harness_tool_call_parsing_tests.rs`,
+  `harness_tool_call_parsing_edge_case_tests.rs`, plus `*_tests.rs` files
+  beside each sub-module (`tool_result_artifacts/mod_tests.rs`,
+  `artifact_offload/artifact_offload_tests.rs`,
+  `archivist/{lifecycle,recap,resummarise}_tests.rs`).
 - Integration: `tests/agent_harness_public.rs`, `tests/agent_harness_e2e.rs`.
 
 ## Notes / gotchas
 
-- `session/mod.rs` cites `docs/tinyagents-harness-migration-audit.md`, and
-  `artifact_offload/mod.rs`, `agent_graph.rs`, `../subagent_host/ops/runner.rs`
-  cite `plan-agents.md` (`docs/specs/plan-agents.md`) as the plan for moving
-  durable state, the sub-agent graph, and offload mechanics onto TinyAgents
-  primitives. Neither file is checked into this repo; the plan is not
-  documented here.
+- `agent_graph.rs`, `artifact_offload/mod.rs`, and
+  `../subagent_host/ops/runner.rs` cite `docs/specs/plan-agents.md` as the
+  plan for moving durable state, the sub-agent graph, and offload mechanics
+  onto TinyAgents primitives. That file is not checked into this repo, so the
+  plan itself is not documented here, only the citations to it.
 - `artifact_offload` deliberately has no flat `ArtifactKind` re-export at the
-  `harness` level — it would shadow `agent::artifacts::ArtifactKind` for glob
-  importers. Use the `artifact_offload::` path.
-- `run_queue::RunQueue::push` logs and drops `QueueMode::Interrupt` and
-  `QueueMode::Parallel` messages: interrupts and forked turns are handled at
-  the caller, never queued.
+  `harness` level. It would shadow `agent::artifacts::ArtifactKind` for glob
+  importers, so use the `artifact_offload::` path instead.
+- The `Agent` struct, its turn lifecycle, and transcript persistence used to
+  live under `harness/session/`. That code has moved to `../session_host/`;
+  this README describes only what remains in `harness/` today.
 
 Related: [`gitbooks/developing/architecture/agent-harness.md`](../../../../../gitbooks/developing/architecture/agent-harness.md).

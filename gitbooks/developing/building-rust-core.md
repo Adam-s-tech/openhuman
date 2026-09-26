@@ -14,7 +14,8 @@ It covers the **core workspace and its sibling crates**:
 - Library: `openhuman_core`
 
 The root `Cargo.toml` is a virtual workspace whose members are
-`crates/openhuman-core`, `crates/openhuman-embed`, `crates/openhuman-rpc`, and
+`crates/openhuman-core`, `crates/openhuman-embed`, `crates/openhuman-rpc`,
+`crates/openhuman-tinyhumans`, `crates/openhuman-cli`, and
 `crates/openhuman-tui`. `crates/openhuman-app` (the Tauri desktop shell) is
 excluded from that workspace and builds from its own manifest.
 
