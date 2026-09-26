@@ -156,7 +156,7 @@ describe('Composio GitHub tools — tags query param flow', () => {
     });
 
     expect(result.ok).toBe(true);
-    // RpcOutcome with logs serializes as { result: value, logs: [...] };
+    // Outcome with logs serializes as { result: value, logs: [...] };
     // without logs it returns value directly. Unwrap both shapes.
     const raw = result.result as any;
     const tools: Array<{ function: { name: string } }> = raw?.result?.tools ?? raw?.tools ?? [];

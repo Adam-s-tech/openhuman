@@ -61,7 +61,7 @@ interface ChannelStatusEntry {
   has_credentials?: boolean;
 }
 
-/** `RpcOutcome` wraps payloads inconsistently across controllers; drill down. */
+/** `Outcome` wraps payloads inconsistently across controllers; drill down. */
 function unwrap(result: unknown): unknown {
   const outer = (result as Record<string, unknown> | null) ?? {};
   if (Array.isArray(outer)) return outer;
