@@ -38,7 +38,7 @@ const ColorTokenField = ({ tokenKey, label, value, disabled, onChange }: ColorTo
           every engine. The visible swatch is a plain span; the real input sits
           on top of it, transparent, so clicking still opens the OS picker. */}
       <span
-        className={`relative h-8 w-8 shrink-0 overflow-hidden rounded-lg shadow-[inset_0_0_0_1px_rgb(var(--line-strong))] ${
+        className={`relative h-8 w-8 shrink-0 overflow-hidden rounded-lg shadow-[inset_0_0_0_1px_rgb(var(--content)/0.18)] ${
           disabled ? 'opacity-50' : ''
         }`}
         style={{ backgroundColor: hex }}>
