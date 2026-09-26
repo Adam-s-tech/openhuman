@@ -12,7 +12,7 @@ import {
   memoryRecallNamespace,
 } from '../../../utils/tauriCommands';
 import { MemoryTextWithEntities } from '../../intelligence/MemoryTextWithEntities';
-import { Spinner } from '../../ui';
+import { Badge, Spinner } from '../../ui';
 import Button from '../../ui/Button';
 import {
   SettingsEmptyState,
@@ -291,11 +291,9 @@ const MemoryDebugPanel = () => {
             {namespaces.length > 0 ? (
               <div className="flex flex-wrap gap-1">
                 {namespaces.map(ns => (
-                  <span
-                    key={ns}
-                    className="rounded-full bg-surface-subtle px-2 py-0.5 text-[11px] text-content-muted">
+                  <Badge key={ns} variant="neutral">
                     {ns}
-                  </span>
+                  </Badge>
                 ))}
               </div>
             ) : (
