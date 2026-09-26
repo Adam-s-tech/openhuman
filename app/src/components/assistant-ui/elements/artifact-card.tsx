@@ -102,6 +102,11 @@ function ArtifactCardBody({
   writingLabel: string;
   Icon: ElementType;
 }) {
+  const { t } = useT();
+  const wordsText = t(
+    words === 1 ? 'elements.artifactCard.wordsOne' : 'elements.artifactCard.wordsOther',
+    words === 1 ? '{count} word' : '{count} words'
+  ).replace('{count}', String(words));
   return (
     <>
       <span className="bg-foreground/[0.05] text-foreground/45 flex size-9 shrink-0 items-center justify-center rounded-xl">
@@ -115,7 +120,7 @@ function ArtifactCardBody({
               {writingLabel}
             </ShimmerLabel>
             <span>·</span>
-            <span className="tabular-nums">{words} words</span>
+            <span className="tabular-nums">{wordsText}</span>
           </p>
         ) : (
           <p
