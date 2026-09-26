@@ -206,7 +206,6 @@ export {
 
 // Feedback & misc
 export { Spinner, CheckIcon, CloseIcon, WarningIcon } from './icons';
-export { CenteredLoadingState, ErrorBanner, InlineLoadingStatus } from './LoadingState';
+export { CenteredLoadingState, ErrorBanner } from './LoadingState';
 export { default as BetaBanner } from './BetaBanner';
-export { default as BetaIndicator } from './BetaIndicator';
 export { default as VisuallyHidden, type VisuallyHiddenProps } from './VisuallyHidden';
