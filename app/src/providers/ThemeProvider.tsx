@@ -1,7 +1,7 @@
-import { ReactNode, useCallback, useEffect, useRef } from 'react';
+import { ReactNode, useCallback, useEffect, useMemo, useRef } from 'react';
 
 import { withDerivedChrome } from '../lib/theme/chrome';
-import { applyBorderContrast, applyLayoutAttributes } from '../lib/theme/layout';
+import { applyBorderContrast, applyLayoutAttributes, resolveLayout } from '../lib/theme/layout';
 import { findFamily, resolveFamilyVariant } from '../lib/theme/presets';
 import type { Theme } from '../lib/theme/types';
 import { useAppSelector } from '../store/hooks';
@@ -9,7 +9,6 @@ import {
   selectActiveFamilyId,
   selectEffectiveTheme,
   selectRootFontSizePx,
-  selectThemeLayout,
   selectThemeVariant,
 } from '../store/themeSlice';
 
@@ -34,7 +33,10 @@ const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const themeVariant = useAppSelector(selectThemeVariant);
   const activeFamilyId = useAppSelector(selectActiveFamilyId);
   const effectiveTheme = useAppSelector(selectEffectiveTheme);
-  const layout = useAppSelector(selectThemeLayout);
+  // Select the raw persisted value (stable identity) and fill defaults here, so
+  // the layout effect only re-runs when the preference actually changes.
+  const rawLayout = useAppSelector(state => state.theme?.layout);
+  const layout = useMemo(() => resolveLayout(rawLayout), [rawLayout]);
   // Read inside `applyTheme` (a stable callback also fired by the OS
   // light/dark listener) so border contrast is re-derived on every theme apply.
   const layoutRef = useRef(layout);
