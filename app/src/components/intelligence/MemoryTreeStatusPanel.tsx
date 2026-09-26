@@ -251,18 +251,14 @@ export function MemoryTreeStatusPanel({ onToast }: MemoryTreeStatusPanelProps) {
           {degraded?.semantic_recall || degraded?.structure ? (
             <div className="mt-1 flex flex-wrap gap-1.5" data-testid="memory-tree-degraded-badges">
               {degraded?.semantic_recall ? (
-                <span
-                  className="inline-flex items-center rounded-full bg-amber-100 dark:bg-amber-500/20 px-2 py-0.5 text-[11px] font-medium text-amber-800 dark:text-amber-200"
-                  data-testid="memory-tree-badge-recall">
+                <Badge variant="warning" data-testid="memory-tree-badge-recall">
                   {t('memoryTree.status.degradedRecall')}
-                </span>
+                </Badge>
               ) : null}
               {degraded?.structure ? (
-                <span
-                  className="inline-flex items-center rounded-full bg-amber-100 dark:bg-amber-500/20 px-2 py-0.5 text-[11px] font-medium text-amber-800 dark:text-amber-200"
-                  data-testid="memory-tree-badge-structure">
+                <Badge variant="warning" data-testid="memory-tree-badge-structure">
                   {t('memoryTree.status.degradedStructure')}
-                </span>
+                </Badge>
               ) : null}
             </div>
           ) : null}

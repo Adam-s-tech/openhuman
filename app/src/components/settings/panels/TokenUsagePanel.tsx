@@ -1,3 +1,4 @@
+import { RefreshCw, RotateCcw } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useT } from '../../../lib/i18n/I18nContext';
@@ -10,8 +11,6 @@ import {
   type TokenjuiceSettingsPatch,
   updateTokenjuiceSettings,
 } from '../../../utils/tauriCommands/tokenjuice';
-import { RefreshCw, RotateCcw } from 'lucide-react';
-
 import { Button, Card, Field, NumberField, StatusLine, Switch } from '../../ui';
 import SettingsPanel from '../layout/SettingsPanel';
 
