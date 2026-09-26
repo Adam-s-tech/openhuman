@@ -853,7 +853,7 @@ export function MemoryGraph({
           className="border-t border-line-subtle bg-surface px-4 py-3 dark:bg-surface-canvas"
           data-testid="memory-graph-preview">
           <div className="mb-2 break-all font-mono text-[11px] text-content-faint">
-            workspace:{preview.path}
+            {t('graph.workspacePath').replace('{path}', preview.path)}
           </div>
           <pre className="max-h-40 overflow-auto whitespace-pre-wrap rounded-md bg-surface-muted p-3 text-xs text-content-secondary">
             {preview.error || preview.contents}
