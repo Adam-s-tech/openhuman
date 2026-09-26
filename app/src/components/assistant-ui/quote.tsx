@@ -1,6 +1,7 @@
 'use client';
 
 import { cn } from '@/components/assistant-ui/lib/utils';
+import { useT } from '@/lib/i18n/I18nContext';
 import {
   ComposerPrimitive,
   type QuoteMessagePartComponent,
@@ -89,6 +90,7 @@ function SelectionToolbarQuote({
   children,
   ...props
 }: ComponentProps<typeof SelectionToolbarPrimitive.Quote>) {
+  const { t } = useT();
   return (
     <SelectionToolbarPrimitive.Quote
       data-slot="selection-toolbar-quote"
@@ -100,7 +102,7 @@ function SelectionToolbarQuote({
       {children ?? (
         <>
           <QuoteIcon className="size-3.5" />
-          Quote
+          {t('quote.label', 'Quote')}
         </>
       )}
     </SelectionToolbarPrimitive.Quote>
