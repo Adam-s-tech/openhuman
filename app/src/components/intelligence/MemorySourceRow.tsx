@@ -385,10 +385,8 @@ function FreshnessPill({ freshness }: { freshness: FreshnessLabel }) {
 function IngestedOnlyPill({ sourceId }: { sourceId: string }) {
   const { t } = useT();
   return (
-    <span
-      className="rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-800 dark:bg-amber-500/20 dark:text-amber-200"
-      data-testid={`memory-source-ingested-only-${sourceId}`}>
+    <Badge variant="warning" data-testid={`memory-source-ingested-only-${sourceId}`}>
       {t('sync.pipeline.ingestedOnly')}
-    </span>
+    </Badge>
   );
 }
