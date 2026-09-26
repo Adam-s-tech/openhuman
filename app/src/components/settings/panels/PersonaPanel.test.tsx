@@ -220,12 +220,9 @@ describe('PersonaPanel', () => {
     });
   });
 
-  it('navigates to the Face tab for avatar & voice', async () => {
-    renderWithProviders(<PersonaPanel />);
-    await awaitLoaded();
-    fireEvent.click(screen.getByTestId('persona-open-mascot'));
-    expect(mockNavigateToSettings).toHaveBeenCalledWith('personality#face');
-  });
+  // Personality and Face are now separate settings pages (not tabs of one
+  // panel); the `#face` deep link redirect lives in the route table
+  // (`PersonalityRoute` in settingsRouteElements.tsx), not in PersonaPanel.
 
   it('links guided users to Agent access for permissions', async () => {
     renderWithProviders(<PersonaPanel />);
