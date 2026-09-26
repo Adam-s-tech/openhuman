@@ -14,7 +14,12 @@ HTTP client.
 - `pub struct RpcOutcome<T>` / `fn new` / `fn single_log` / `fn into_cli_compatible_json` — `lib.rs` — handler result plus its log lines; the type domain `ops.rs` operations return (see `AGENTS.md`'s module-shape table).
 - `pub fn apply_log_envelope(value, logs) -> Value` — `lib.rs` — single definition of the bare-vs-wrapped response-shape rule; see its doc comment before touching it.
 - `pub fn unwrap_rpc(value: &Value) -> &Value` — `lib.rs` — client-side unwrapping of nested `result`/`data` envelopes.
-- `pub struct StructuredRpcError` / `pub const STRUCTURED_RPC_ERROR_SENTINEL` — `structured_error.rs` — typed error envelope, sentinel-encoded into the controller `Result<_, String>` channel and decoded by `crates/openhuman-core/src/core/jsonrpc.rs`.
+- `pub struct StructuredRpcError` / `pub const STRUCTURED_RPC_ERROR_SENTINEL` — `structured_error.rs` — typed error envelope, sentinel-encoded into the controller `Result<_, String>` channel and decoded by `crates/openhuman-core/src/core/jsonrpc/http/rpc_handler.rs`.
+- `pub struct RpcRequest` / `RpcSuccess` / `RpcFailure` / `RpcError`, `pub const JSONRPC_VERSION` / `SERVER_ERROR_CODE` — `envelope.rs` — the JSON-RPC 2.0 envelopes the core's `/rpc` handler reads and writes.
+- `pub fn request_body(id, method, params) -> Value` / `pub fn decode_response(status, body) -> Result<Value, String>` — `envelope.rs` — the client half: build a request, decode a response into its `result` or error message.
+- `pub fn params_to_object` / `json_type_name` / `parse_json_params` — `params.rs` — the named-arguments params contract.
+- `pub fn unknown_param_message` / `missing_required_param_message` / `is_param_validation_error` — `params.rs` — the transport-level validation messages and their matcher, kept together so they cannot drift.
+- `pub fn is_origin_allowed_with_extra(origin, extra) -> bool` / `pub const ALLOWED_ORIGINS_ENV` — `origin.rs` — the browser-origin allowlist for a core's HTTP API (pure; the caller reads the env var).
 - `pub struct HttpRpcResponse` — `client.rs` (feature `http-client`) — verbatim status + body from an OpenHuman RPC endpoint.
 - `pub fn post_json_rpc(url, token, body) -> Result<HttpRpcResponse, String>` — `client.rs` (feature `http-client`) — POST a JSON-RPC body with a 30s timeout; disables redirects when a bearer token is set.
 - `pub fn bearer_header(token: Option<&str>) -> Option<String>` — `client.rs` (feature `http-client`) — normalize a token into an `Authorization` header value.
@@ -72,9 +77,9 @@ HTTP client.
 
 ## Tests
 
-`#[cfg(test)] mod tests` blocks in `src/lib.rs` and
-`src/structured_error.rs` cover the envelope rule and the sentinel
-encode/decode round trip. Run with:
+Sibling `*_tests.rs` files cover the log-envelope rule, the sentinel
+encode/decode round trip, the JSON-RPC envelopes (including the exact
+server-failure wire bytes), the params contract and the origin allowlist. Run with:
 
 ```bash
 cargo test -p openhuman-rpc
