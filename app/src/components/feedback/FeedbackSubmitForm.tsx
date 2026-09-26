@@ -152,7 +152,9 @@ export default function FeedbackSubmitForm({ onAccepted, bare = false }: Feedbac
   return (
     <div
       className={
-        bare ? undefined : 'rounded-2xl border border-line bg-surface p-6 shadow-soft dark:shadow-none'
+        bare
+          ? undefined
+          : 'rounded-2xl border border-line bg-surface p-6 shadow-soft dark:shadow-none'
       }>
       {/* The type toggle used to be two full-width `size="lg"` buttons stacked
           above the fields: a binary property of the draft, rendered larger and
