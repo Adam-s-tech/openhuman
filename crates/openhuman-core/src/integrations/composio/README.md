@@ -142,7 +142,7 @@ Handlers delegate to `ops/`; scope handlers delegate to `ops::user_scopes`. Expo
 
 ## Agent tools
 
-From `tools.rs` (`all_composio_agent_tools`, registered only when `agent::subagent_host::user_is_signed_in_to_composio` is true): `composio_list_toolkits`, `composio_list_connections`, `composio_authorize`, `composio_connect` (inline OAuth approval card, #3993), `composio_list_tools`, `composio_execute`. Plus `ComposioActionTool` (one tool per action, spawned for `integrations_agent`, gated by `contract_gate.rs` on first call) and the direct-mode `ComposioTool` provider (`tools/direct.rs`). Scope elevation is deliberately NOT an agent tool, the user toggles it in the UI. Visibility/execution is gated by curated catalogs (`providers::` contract re-exports) + per-toolkit user-scope prefs and sandbox mode; unparseable slugs default to `Write` (fail-closed).
+From `tools.rs` (`all_composio_agent_tools`, registered only when `agent::subagent_host::user_is_signed_in_to_composio` is true): `composio_list_toolkits`, `composio_list_connections`, `composio_authorize`, `composio_connect` (inline OAuth approval card, #3993), `composio_list_tools`, `composio_execute`. Plus `ComposioActionTool` (one tool per action, spawned for `integrations_agent`, gated by `contract_gate.rs` on first call) and the direct-mode `ComposioTool` provider (`tools/direct.rs`). Scope elevation is deliberately NOT an agent tool; the user toggles it in the UI. Visibility/execution is gated by curated catalogs (`providers::` contract re-exports) + per-toolkit user-scope prefs and sandbox mode; unparseable slugs default to `Write` (fail-closed).
 
 ## Events
 
