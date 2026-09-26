@@ -422,11 +422,12 @@ export default function DataTable<T>({
   const hasHeader = title != null || actions != null;
   const hasToolbar = Boolean(toolbarStart || search || filters?.length || toolbarEnd);
   const showTable = !loading && visibleRows.length > 0;
-  const edgeCells = '[&>*:first-child]:pl-4 [&>*:last-child]:pr-4';
+  // 16px gutters on the outer columns, for generated AND custom rows.
+  const edgeCells = '[&_tr>*:first-child]:pl-4 [&_tr>*:last-child]:pr-4';
 
   const head = (
     <TableHeader>
-      <TableRow className={cn('hover:bg-transparent', edgeCells)}>
+      <TableRow className="hover:bg-transparent">
         {columns.map(column => (
           <TableHead
             key={column.id}
@@ -466,7 +467,6 @@ export default function DataTable<T>({
             }
             tabIndex={onRowClick ? 0 : undefined}
             className={cn(
-              edgeCells,
               onRowClick &&
                 'cursor-pointer focus-visible:bg-surface-hover focus-visible:outline-hidden',
               rowClassName?.(row, index)
@@ -560,7 +560,7 @@ export default function DataTable<T>({
             aria-busy="true"
             aria-label={loadingLabel ?? t('common.loading')}
             data-testid={loadingTestId}>
-            <Table containerClassName="w-full">
+            <Table containerClassName="w-full" className={edgeCells}>
               {head}
               <TableBody>
                 {Array.from({ length: loadingRows }).map((_, rowIndex) => (
@@ -568,7 +568,7 @@ export default function DataTable<T>({
                     key={rowIndex}
                     aria-hidden
                     data-testid={loadingTestId ? `${loadingTestId}-row` : undefined}
-                    className={cn('hover:bg-transparent', edgeCells)}>
+                    className="hover:bg-transparent">
                     {columns.map(column => (
                       <TableCell key={column.id} className={column.className}>
                         <span className="block h-3.5 w-full animate-pulse rounded bg-surface-subtle" />
@@ -581,7 +581,7 @@ export default function DataTable<T>({
           </div>
         ) : showTable ? (
           <>
-            <Table containerClassName="w-full" aria-label={ariaLabel}>
+            <Table containerClassName="w-full" className={edgeCells} aria-label={ariaLabel}>
               {head}
               {body}
             </Table>
