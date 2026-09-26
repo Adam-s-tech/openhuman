@@ -91,7 +91,7 @@ Note: `list_provider_credentials_by_prefix` and the Composio-direct/secret helpe
 - `crate::memory::conversations` — purge pre-login threads, bind conversation persistence after activation.
 - `crate::memory` — bind memory client to the active workspace after activation.
 - `crate::inference::host_runtime`, `crate::voice::{server,dictation_listener,always_on}` — credential-gated services started/stopped.
-- `crate::api::config`, `::jwt`, `::rest` — backend API URL, JWT `exp` decode, `BackendOAuthClient` + OAuth/handoff types.
+- `crate::backend` — `BackendClient`, `backend::base_url` (via the installed transport); `jwt.rs` — JWT `exp` decode and `user_id_from_profile_payload`.
 - `crate::core::all` (`ControllerFuture`, `RegisteredController`), `crate::core` (`ControllerSchema`/`FieldSchema`/`TypeSchema`), `crate::core::events::DomainEvent` + `tinybus::EventHandler`, `crate::rpc::RpcOutcome` — controller registry + RPC envelope + event bus.
 
 ## Used by
