@@ -67,7 +67,7 @@ This module is a **publisher only** — it owns no `bus.rs` / `EventHandler` imp
 
 ## Persistence
 
-None of its own. State (`status`, `socket_id`, `error`, attached `WebhookRouter`, pending ACK waiters) lives in-memory in `SharedState`. The session token is read on demand from the profile store via `crate::api::jwt::get_session_token` (live-refresh path); there is no `store.rs`.
+None of its own. State (`status`, `socket_id`, `error`, attached `WebhookRouter`, pending ACK waiters) lives in-memory in `SharedState`. The session token is read on demand from the profile store via `crate::security::credentials::session_support::get_session_token` (live-refresh path); there is no `store.rs`.
 
 ## Dependencies
 
