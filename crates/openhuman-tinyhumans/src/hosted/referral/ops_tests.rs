@@ -74,7 +74,7 @@ fn require_token_trims_stored_value() {
     let tmp = TempDir::new().unwrap();
     let config = test_config(&tmp);
     store_session_token(&config, "  tok  ");
-    assert_eq!(require_token(&config).unwrap(), "tok");
+    assert_eq!(require_token(&config).unwrap().secret(), "tok");
 }
 
 #[test]

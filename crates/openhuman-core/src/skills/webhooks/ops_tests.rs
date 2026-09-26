@@ -80,7 +80,19 @@ fn require_token_returns_stored_token_trimmed() {
     let config = test_config(&tmp);
     store_session_token(&config, "  tok-123  ");
     let got = require_token(&config).expect("token");
-    assert_eq!(got, "tok-123");
+    assert_eq!(got.secret(), "tok-123");
+    assert!(!got.is_api_key());
+}
+
+#[test]
+fn require_token_prefers_the_api_key() {
+    let tmp = TempDir::new().unwrap();
+    let config = test_config(&tmp);
+    store_session_token(&config, "tok-123");
+    crate::security::credentials::api_key::store_api_key(&config, "tiny_test_key").unwrap();
+    let got = require_token(&config).expect("credential");
+    assert!(got.is_api_key());
+    assert_eq!(got.secret(), "tiny_test_key");
 }
 
 #[test]
