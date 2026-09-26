@@ -35,6 +35,7 @@ function DialogContent({
   showCloseButton = true,
   ...props
 }: DialogPrimitive.Popup.Props & { showCloseButton?: boolean }) {
+  const { t } = useT();
   return (
     <DialogPortal>
       <DialogOverlay />
@@ -51,7 +52,7 @@ function DialogContent({
             data-slot="dialog-close"
             render={<Button variant="ghost" className="absolute top-2 right-2" size="icon-sm" />}>
             <XIcon />
-            <span className="sr-only">Close</span>
+            <span className="sr-only">{t('common.close', 'Close')}</span>
           </DialogPrimitive.Close>
         )}
       </DialogPrimitive.Popup>
