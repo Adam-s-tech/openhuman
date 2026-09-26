@@ -37,7 +37,7 @@ pub fn normalize_backend_api_base_url(url: &str) -> String {
     }
 
     let parsed =
-        url::Url::parse(&normalized).or_else(|_| url::Url::parse(&format!("https://{normalized}")));
+        ::url::Url::parse(&normalized).or_else(|_| ::url::Url::parse(&format!("https://{normalized}")));
 
     let Ok(mut parsed) = parsed else {
         // Unparseable even with the scheme prefix — return as-is; the caller
@@ -76,7 +76,7 @@ pub fn join_url(base: &str, path: &str) -> String {
         return normalize_api_base_url(base);
     }
 
-    match url::Url::parse(base) {
+    match ::url::Url::parse(base) {
         Ok(parsed) => match parsed.join(path) {
             Ok(joined) => joined.to_string().trim_end_matches('/').to_string(),
             Err(_) => fallback_concat(base, path),
@@ -85,7 +85,7 @@ pub fn join_url(base: &str, path: &str) -> String {
     }
 }
 
-/// Last-resort URL join used when `url::Url::parse` rejects the base.
+/// Last-resort URL join used when `::url::Url::parse` rejects the base.
 ///
 /// Guarantees a slash between `base` and `path` regardless of whether either
 /// carries one, but does not otherwise validate the resulting string.
@@ -107,13 +107,13 @@ fn fallback_concat(base: &str, path: &str) -> String {
 /// (`::ffff:127.0.0.1`), the bare IPv6 loopback (`::1`), and all three
 /// IPv4 loopback forms classify correctly.
 #[inline]
-pub fn host_is_local(parsed: &url::Url) -> bool {
+pub fn host_is_local(parsed: &::url::Url) -> bool {
     match parsed.host() {
-        Some(url::Host::Ipv4(addr)) => {
+        Some(::url::Host::Ipv4(addr)) => {
             addr.is_loopback() || addr.is_unspecified() || addr.is_private()
         }
-        Some(url::Host::Ipv6(addr)) => addr.is_loopback() || addr.is_unspecified(),
-        Some(url::Host::Domain(name)) => {
+        Some(::url::Host::Ipv6(addr)) => addr.is_loopback() || addr.is_unspecified(),
+        Some(::url::Host::Domain(name)) => {
             let h = name.to_ascii_lowercase();
             h == "localhost" || h.ends_with(".localhost")
         }
