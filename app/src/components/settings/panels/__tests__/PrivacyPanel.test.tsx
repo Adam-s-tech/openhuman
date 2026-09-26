@@ -43,8 +43,6 @@ describe('PrivacyPanel', () => {
     // Analytics section: toggle + explanatory copy of what it collects.
     expect(screen.getByText('Product Analytics')).toBeInTheDocument();
     expect(screen.getByText('Share Product Analytics and Diagnostics')).toBeInTheDocument();
-    expect(
-      screen.getByText(/Messages, wallet keys, API keys, and session tokens are never collected/)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/You can change this setting at any time/)).toBeInTheDocument();
   });
 });
