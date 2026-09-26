@@ -130,19 +130,3 @@ export function ComposerCommandItem({
     </ComposerMenuItem>
   );
 }
-
-export function ComposerPersonItem({
-  person,
-  active,
-  ...props
-}: Omit<ComponentProps<'button'>, 'children'> & { person: ComposerPerson; active: boolean }) {
-  return (
-    <ComposerMenuItem active={active} {...props}>
-      <span className="bg-foreground/[0.06] text-foreground/45 flex size-5 shrink-0 items-center justify-center rounded-full text-[9px] font-medium">
-        {person.name[0]}
-      </span>
-      <span className="flex-1 truncate text-start">{person.name}</span>
-      <span className={cn(mono, 'text-foreground/35')}>{person.role}</span>
-    </ComposerMenuItem>
-  );
-}
