@@ -120,7 +120,9 @@ struct HandshakeAuth {
 pub(crate) fn origin_is_allowed(origin: Option<&str>) -> bool {
     origin_is_allowed_with_extra(
         origin,
-        std::env::var(crate::rpc::ALLOWED_ORIGINS_ENV).ok().as_deref(),
+        std::env::var(crate::rpc::ALLOWED_ORIGINS_ENV)
+            .ok()
+            .as_deref(),
     )
 }
 

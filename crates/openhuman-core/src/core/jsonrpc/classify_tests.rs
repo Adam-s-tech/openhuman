@@ -1,6 +1,6 @@
-use super::{is_session_expired_error, is_unconfirmed_unauthorized_error};
 #[cfg(feature = "http-server")]
 use super::{classify_failure, is_wallet_not_configured_error, FailureDisposition};
+use super::{is_session_expired_error, is_unconfirmed_unauthorized_error};
 
 #[test]
 fn is_session_expired_error_matches_backend_path_401() {
@@ -306,7 +306,10 @@ fn classify_failure_routes_each_boundary_class() {
     );
     assert_eq!(
         classify_failure(
-            &format!("{}totally.made.up.method", crate::core::dispatch::UNKNOWN_METHOD_PREFIX),
+            &format!(
+                "{}totally.made.up.method",
+                crate::core::dispatch::UNKNOWN_METHOD_PREFIX
+            ),
             false
         ),
         FailureDisposition::UnknownMethod { probe: false }

@@ -237,7 +237,6 @@ struct EnvVarGuard {
 }
 
 impl EnvVarGuard {
-
     /// Remove the named vars (capturing their prior values) for the guard's
     /// lifetime, restoring each on `Drop`.
     fn remove_many(keys: Vec<&'static str>) -> Self {

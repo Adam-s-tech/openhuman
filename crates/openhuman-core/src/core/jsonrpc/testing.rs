@@ -24,7 +24,6 @@ impl EnvVarGuard {
             _lock: lock,
         }
     }
-
 }
 
 impl Drop for EnvVarGuard {
