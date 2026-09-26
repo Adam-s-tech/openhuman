@@ -1747,6 +1747,7 @@ const UserMessage: FC = () => {
 };
 
 const UserActionBar: FC = () => {
+  const { t } = useT();
   // Edit is offered only when the bound runtime can honour it. The
   // external-store adapter supplies `onNew` / `onCancel` and neither `onEdit`
   // nor `setMessages`, so assistant-ui reports `edit: false` and
