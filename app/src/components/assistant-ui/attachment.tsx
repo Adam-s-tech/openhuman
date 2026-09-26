@@ -107,13 +107,14 @@ const AttachmentPreviewDialog: FC<PropsWithChildren> = ({ children }) => {
 };
 
 const AttachmentThumb: FC = () => {
+  const { t } = useT();
   const src = useAttachmentSrc();
 
   return (
     <Avatar className="aui-attachment-tile-avatar h-full w-full rounded-none after:hidden">
       <AvatarImage
         src={src}
-        alt="Attachment preview"
+        alt={t('attachment.previewAlt', 'Attachment preview')}
         className="aui-attachment-tile-image rounded-none object-cover"
       />
       <AvatarFallback>
