@@ -9,7 +9,7 @@ Unified, read-only tool registry for OpenHuman. It builds a single discovery vie
 - Serve `list` / `get` (by `tool_id`) RPC lookups over the registry.
 - Produce redacted `diagnostics`: tool counts by transport, heuristic write-capable surfaces, policy surfaces, autonomy posture, MCP allowlist summaries, MCP write-audit row counts (last 24h), the 25 most recent denials, and capability-provider counts.
 - Maintain a bounded, secret-redacting in-memory log of recent policy denials (`denials.rs`).
-- Normalize and validate configured external **capability providers** (id slugging, dedupe, trust/enabled state) for policy and diagnostics callers (`providers.rs`).
+- Normalize and validate configured external capability providers (id slugging, dedupe, trust/enabled state) for policy and diagnostics callers (`providers.rs`).
 
 ## Key files
 
