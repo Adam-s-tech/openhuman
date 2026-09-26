@@ -32,6 +32,7 @@ import {
 import { useT } from '../../lib/i18n/I18nContext';
 import { truncateText } from '../../utils/truncateText';
 import {
+  Badge,
   Table,
   TableBody,
   TableCell,
@@ -42,7 +43,6 @@ import {
   ToggleGroupItem,
   ToggleGroupRoot,
 } from '../ui';
-import Badge from '../ui/Badge';
 
 const log = debug('flows:run-item-data-browser');
 
