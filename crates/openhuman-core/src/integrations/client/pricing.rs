@@ -141,7 +141,7 @@ fn build_client_with_credential(
             BackendCredential::Session(token.trim().to_owned())
         }
         Some(BackendCredential::ApiKey(key)) => BackendCredential::ApiKey(key.trim().to_owned()),
-        None => None?,
+        None => return None,
     };
     if credential.secret().is_empty() {
         tracing::warn!(
