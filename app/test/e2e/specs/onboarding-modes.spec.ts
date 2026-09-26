@@ -503,13 +503,7 @@ describe('Onboarding modes — Simple (Cloud) vs Advanced (Custom)', function ()
     await pause(400);
     await clickOnboardingNext();
 
-    // Step 7 — Custom Activity (Default).
-    expect(await testIdExists('onboarding-custom-activity-step', 10_000)).toBe(true);
-    expect(await clickTestId('onboarding-custom-activity-step-default')).toBe(true);
-    await pause(400);
-    await clickOnboardingNext();
-
-    // Step 8 — Custom Vault. Final step → Finish. Choice cards are hidden/auto-
+    // Step 7 — Custom Vault. Final step → Finish. Choice cards are hidden/auto-
     // configured only for LOCAL sessions; the E2E's cloud-auth session shows the
     // cards with an enabled default that must be picked before Finish enables.
     expect(await testIdExists('onboarding-custom-vault-step', 10_000)).toBe(true);
