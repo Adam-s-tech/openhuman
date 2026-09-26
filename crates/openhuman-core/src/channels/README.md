@@ -38,7 +38,7 @@ Flat files: `bus.rs` (`ChannelInboundSubscriber`, handles `DomainEvent::ChannelI
 - `crates/openhuman-core/src/security/approval/` — `ApprovalGate` for the approval-reply intercept and `ApprovalChatContext` scoping of Telegram turns.
 - `crates/openhuman-core/src/config/` — `Config` / `ChannelsConfig` (schema types come from `tinychannels_bus::config` via `config/schema/channels.rs`).
 - `crates/openhuman-core/src/memory/conversations/` and `memory/guard` — conversation history persistence and the active memory guard.
-- `crates/openhuman-core/src/api/rest.rs` — `BackendOAuthClient` for controller messaging ops and Telegram/Discord link flows.
+- `crates/openhuman-core/src/backend/client.rs` — `BackendClient` for controller messaging ops and Telegram/Discord link flows.
 - `crates/openhuman-core/src/web_chat/` — web-channel event publishing, session invalidation (`/new`), and the web surface subscribers registered at startup.
 - `crates/openhuman-core/src/voice/` — STT/TTS behind the `host/` adapters.
 - `crates/openhuman-core/src/core/bus.rs` and `core/events.rs` — the process-wide `BUS` and the `DomainEvent::Channel*` variants published from `runtime/dispatch/` and `runtime/supervision.rs`.
