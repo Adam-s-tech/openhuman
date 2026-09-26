@@ -449,7 +449,9 @@ impl CoreContext {
     }
 
     /// The backend transport bound to this context, if the host supplied one.
-    pub fn backend_transport(&self) -> Option<Arc<dyn crate::backend::transport::BackendTransport>> {
+    pub fn backend_transport(
+        &self,
+    ) -> Option<Arc<dyn crate::backend::transport::BackendTransport>> {
         self.backend_transport.clone()
     }
 

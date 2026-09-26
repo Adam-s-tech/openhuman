@@ -17,12 +17,12 @@ pub mod session_support;
 pub mod tools;
 
 pub use crate::backend::BackendClient;
-pub use jwt::user_id_from_profile_payload;
 pub use core::*;
 pub use credential_ref::{CredentialRef, CredentialRefError, CredentialRefScheme, ResolvedSecret};
 pub use http_creds::{
     HttpCredential, HttpCredentialScheme, HttpCredentialSummary, HttpCredentialsStore,
 };
+pub use jwt::user_id_from_profile_payload;
 pub use ops as rpc;
 pub use ops::*;
 // Direct-mode (BYO Composio API key) credential helpers.

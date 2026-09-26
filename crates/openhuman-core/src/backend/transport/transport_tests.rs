@@ -186,7 +186,10 @@ async fn plain_transport_sends_attribution_and_credential_headers() {
     Mock::given(method("GET"))
         .and(path("/teams/me/usage"))
         .and(header("authorization", "Bearer jwt.a.b"))
-        .and(header(plain::TEST_PRODUCT_HEADER, plain::TEST_PRODUCT_IDENTITY))
+        .and(header(
+            plain::TEST_PRODUCT_HEADER,
+            plain::TEST_PRODUCT_IDENTITY,
+        ))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!({
             "success": true,
             "data": {"remainingUsd": 4.5}

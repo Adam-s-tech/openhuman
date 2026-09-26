@@ -20,10 +20,10 @@ use reqwest::Method;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
-use crate::security::credentials::jwt::get_session_token;
 use crate::backend::BackendClient;
 use crate::config::Config;
 use crate::rpc::RpcOutcome;
+use crate::security::credentials::jwt::get_session_token;
 
 const LOG_PREFIX: &str = "[voice_reply]";
 

@@ -2,10 +2,10 @@
 
 use serde_json::Value;
 
-use crate::security::credentials::jwt::get_session_token;
 use crate::backend::BackendClient;
 use crate::config::Config;
 use crate::rpc::RpcOutcome;
+use crate::security::credentials::jwt::get_session_token;
 
 /// Send a rich message to a channel via the backend API.
 pub async fn channel_send_message(

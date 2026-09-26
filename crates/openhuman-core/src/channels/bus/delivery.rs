@@ -208,8 +208,7 @@ fn relay_session_token(config: &crate::config::Config, op: &str) -> Option<Strin
 /// Construct the REST client + session JWT shared by every outbound
 /// channel call on this turn. Returns `None` and logs if either is
 /// unavailable so the caller can bail quietly.
-pub(super) async fn build_channel_client() -> Option<(crate::backend::BackendClient, String)>
-{
+pub(super) async fn build_channel_client() -> Option<(crate::backend::BackendClient, String)> {
     let config = match crate::config::rpc::load_config_with_timeout().await {
         Ok(c) => c,
         Err(e) => {

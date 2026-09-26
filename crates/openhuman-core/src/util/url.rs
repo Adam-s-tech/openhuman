@@ -36,8 +36,8 @@ pub fn normalize_backend_api_base_url(url: &str) -> String {
         return normalized;
     }
 
-    let parsed =
-        ::url::Url::parse(&normalized).or_else(|_| ::url::Url::parse(&format!("https://{normalized}")));
+    let parsed = ::url::Url::parse(&normalized)
+        .or_else(|_| ::url::Url::parse(&format!("https://{normalized}")));
 
     let Ok(mut parsed) = parsed else {
         // Unparseable even with the scheme prefix — return as-is; the caller

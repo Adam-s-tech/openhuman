@@ -447,7 +447,8 @@ pub fn spawn_socket_auto_connect(
                 log::debug!("[socket] No backend base URL — skipping auto-connect");
                 return;
             };
-            let initial_token = match crate::security::credentials::jwt::get_session_token(&config) {
+            let initial_token = match crate::security::credentials::jwt::get_session_token(&config)
+            {
                 Ok(Some(t))
                     if crate::security::credentials::session_support::is_local_session_token(
                         &t,

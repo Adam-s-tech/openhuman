@@ -10,10 +10,10 @@
 
 use serde_json::json;
 
-use crate::security::credentials::jwt::get_session_token;
 use crate::backend::BackendClient;
 use crate::config::Config;
 use crate::rpc::RpcOutcome;
+use crate::security::credentials::jwt::get_session_token;
 
 pub async fn oauth_fetch_client_key(
     config: &Config,

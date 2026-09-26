@@ -99,7 +99,9 @@ pub fn build_client(config: &crate::config::Config) -> Option<Arc<IntegrationCli
     let backend_url = match crate::backend::base_url(&config.api_url) {
         Ok(url) => url,
         Err(_) => {
-            tracing::debug!("[integrations] no backend transport — integrations client unavailable");
+            tracing::debug!(
+                "[integrations] no backend transport — integrations client unavailable"
+            );
             return None;
         }
     };

@@ -9,7 +9,10 @@ fn catalog_counts_match() {
     assert_eq!(schemas.len(), handlers.len());
     // The account-bound `auth.oauth_*` / `auth.create_channel_link_token`
     // controllers moved to `openhuman-tinyhumans`; the core keeps the rest.
-    assert!(schemas.len() >= 8, "auth namespace should expose ≥8 core fns");
+    assert!(
+        schemas.len() >= 8,
+        "auth namespace should expose ≥8 core fns"
+    );
 }
 
 #[test]

@@ -61,7 +61,6 @@ async fn spawn_header_capture_server() -> (String, CapturedHeaders) {
     (format!("http://{addr}"), captured)
 }
 
-
 #[tokio::test]
 async fn authed_json_sends_an_api_key_as_x_api_key_and_no_bearer() {
     // Library mode: the TinyHumans API key rides the SDK REST routes as
