@@ -134,5 +134,4 @@ export const SETTINGS_NAV_ICONS: Record<string, ReactNode> = {
   search: icon(stroke('M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z')),
   // Diagnostics & Logs
   'event-log': icon(stroke('M4 6h16M4 10h16M4 14h16M4 18h16')),
-  'build-info': icon(stroke('M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z')),
 };

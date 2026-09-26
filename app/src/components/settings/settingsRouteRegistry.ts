@@ -552,16 +552,9 @@ export const SETTINGS_ROUTE_REGISTRY: SettingsRegistryEntry[] = [
     devOnly: true,
     navGroup: 'agentsAutonomy',
   },
-  // Build Info (about page alias in dev menu)
-  {
-    id: 'build-info',
-    route: 'about',
-    titleKey: 'settings.buildInfo.title',
-    descriptionKey: 'settings.buildInfo.menuDesc',
-    section: 'developer',
-    devOnly: true,
-    navGroup: 'diagnosticsLogs',
-  },
+  // The dev-only "Build / version info" alias was removed: it opened the same
+  // About page, so dev builds listed two sidebar entries for one page. About's
+  // search keywords already cover "build" and "version".
 
   // Token & Cost (TokenJuice compression settings + savings) is now the
   // "Token savings" tab of the merged Usage & limits surface on Connections —

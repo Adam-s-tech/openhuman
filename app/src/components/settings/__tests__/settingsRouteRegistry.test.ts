@@ -33,10 +33,11 @@ describe('entryRoute', () => {
     expect(entryRoute(entry!)).toBe('personality');
   });
 
-  it('returns the overridden route for build-info (→ about)', () => {
-    const entry = findEntryById('build-info');
-    expect(entry).toBeDefined();
-    expect(entryRoute(entry!)).toBe('about');
+  it('has exactly one entry resolving to the about route', () => {
+    // A dev-only "build-info" alias used to point here too, which listed two
+    // sidebar entries for the same page.
+    expect(findEntryById('build-info')).toBeUndefined();
+    expect(SETTINGS_ROUTE_REGISTRY.filter(e => entryRoute(e) === 'about')).toHaveLength(1);
   });
 });
 
@@ -88,12 +89,8 @@ describe('findEntryByRoute', () => {
     expect(findEntryByRoute('messaging')).toBeUndefined();
   });
 
-  it('returns the build-info entry when looking up the "about" route alias', () => {
-    // build-info has route: 'about', so findEntryByRoute('about') returns
-    // whichever comes first — likely the canonical 'about' entry itself.
-    // The important assertion: the route is reachable.
-    const entry = findEntryByRoute('about');
-    expect(entry).toBeDefined();
+  it('resolves the about route to the canonical about entry', () => {
+    expect(findEntryByRoute('about')?.id).toBe('about');
   });
 
   it('does not match partial/substring routes — lookup is exact', () => {

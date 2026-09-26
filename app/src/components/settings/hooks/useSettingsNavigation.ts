@@ -96,7 +96,7 @@ const getCurrentRoute = (pathname: string): SettingsRoute => {
     return entry.id as SettingsRoute;
   }
 
-  // A few routes have ids that don't match their URL segment (build-info → about).
+  // A few routes have ids that don't match their URL segment (e.g. an entry with an explicit `route`).
   // Check all registry entries whose resolved route matches.
   const byRoute = SETTINGS_ROUTE_REGISTRY.find(e => entryRoute(e) === firstSegment);
   if (byRoute) {
