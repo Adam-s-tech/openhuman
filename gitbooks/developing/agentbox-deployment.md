@@ -106,6 +106,6 @@ curl http://127.0.0.1:7788/jobs/<job_id>
 - `[agentbox::gmi] not registering GMI MaaS provider: missing/blank: GMI_MAAS_API_KEY`:
   the platform did not inject the key. Re-check the wizard's "MaaS
   integration toggle" in Step 2.
-- `[agentbox::gmi] current-thread runtime detected — skipping provider registration`:
+- `[agentbox::gmi] current-thread runtime detected, skipping provider registration`:
   the core was booted in a single-threaded tokio runtime. Use the standard
   `serve` subcommand, which spawns a multi-thread runtime.
