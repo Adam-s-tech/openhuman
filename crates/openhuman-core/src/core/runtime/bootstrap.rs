@@ -3,7 +3,8 @@
 //! [`bootstrap_core_runtime`] runs from
 //! [`CoreContext::init`](super::context::CoreContext::init) whether or not the
 //! runtime ever binds a listener; [`start_core_runtime_services`] runs from
-//! [`CoreRuntime::serve`](super::CoreRuntime::serve) once it does.
+//! [`CoreRuntime::start_services`](super::CoreRuntime::start_services)
+//! once a transport has bound, or directly when there is none.
 
 /// Initializes long-lived socket/event-bus infrastructure.
 ///

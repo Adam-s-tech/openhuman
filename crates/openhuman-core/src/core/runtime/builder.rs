@@ -10,13 +10,15 @@
 //!    background loops. After `build`, [`CoreRuntime::invoke`] can dispatch any
 //!    RPC method in-process, and agent turns can run — so a harness-only embedder
 //!    (`ServiceSet::none`) needs nothing more.
-//! 2. [`CoreRuntime::serve`] — *transport + background services*: bind the HTTP
-//!    listener, mount the router, fire the readiness signal, spawn the selected
-//!    background services, and serve until shutdown.
+//! 2. *Transport + background services*: `openhuman_rpc::server::serve` binds
+//!    the HTTP listener, mounts the router, fires the readiness signal, calls
+//!    [`CoreRuntime::start_services`], and serves until shutdown. A runtime
+//!    with no transport calls `start_services` itself.
 //!
-//! The legacy entry points (`run_server`, `run_server_embedded`,
-//! `run_server_embedded_with_ready`) are now thin shims over this builder, so
-//! the desktop shell, the standalone CLI, and any new embedder share one path.
+//! The server entry points in `openhuman-rpc` (`run_server`,
+//! `run_server_embedded`, `run_server_embedded_with_ready`) are thin shims over
+//! this builder, so the desktop shell, the standalone CLI, and any new embedder
+//! share one path.
 //! See the pluggable-core work (`core::runtime`) for how this fits with
 //! [`context`](crate::core::runtime::context) and `services`.
 
@@ -499,7 +501,7 @@ impl CoreBuilder {
         self
     }
 
-    /// Choose which background services / transports [`CoreRuntime::serve`] runs.
+    /// Choose which background services and transports this runtime runs.
     pub fn services(mut self, services: ServiceSet) -> Self {
         self.services = services;
         self
@@ -676,7 +678,8 @@ impl CoreBuilder {
 }
 
 /// A built, initialized core. Dispatch RPC in-process with [`CoreRuntime::invoke`],
-/// or run the selected transport + background services with [`CoreRuntime::serve`].
+/// start its background services with [`CoreRuntime::start_services`], or hand it
+/// to `openhuman_rpc::server::serve` to run the selected transport as well.
 pub struct CoreRuntime {
     ctx: Arc<CoreContext>,
     config: Option<Config>,

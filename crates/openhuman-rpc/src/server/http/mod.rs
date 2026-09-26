@@ -2,7 +2,7 @@
 //!
 //! [`build_core_http_router`] assembles every route; each route family has its
 //! own module. Binding the listener and running the server belongs to
-//! [`CoreRuntime::serve`](openhuman_core::core::runtime::CoreRuntime::serve).
+//! [`serve`](super::serve).
 
 use axum::extract::{DefaultBodyLimit, Request};
 use axum::http::StatusCode;
