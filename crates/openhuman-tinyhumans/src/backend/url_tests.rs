@@ -56,15 +56,15 @@ fn fallback_backend_base_for_current_build() -> String {
 #[test]
 fn api_url_empty_path_returns_normalized_base() {
     assert_eq!(
-        api_url("https://api.tinyhumans.ai", ""),
+        join_url("https://api.tinyhumans.ai", ""),
         "https://api.tinyhumans.ai"
     );
     assert_eq!(
-        api_url("https://api.tinyhumans.ai/", ""),
+        join_url("https://api.tinyhumans.ai/", ""),
         "https://api.tinyhumans.ai"
     );
     assert_eq!(
-        api_url("  https://api.tinyhumans.ai/  ", ""),
+        join_url("  https://api.tinyhumans.ai/  ", ""),
         "https://api.tinyhumans.ai"
     );
 }
@@ -74,7 +74,7 @@ fn api_url_absolute_path_replaces_base_path() {
     // Regression: a base with an inference path baked in must not corrupt
     // /agent-integrations/* calls.
     assert_eq!(
-        api_url(
+        join_url(
             "https://api.tinyhumans.ai/openai/v1/chat/completions",
             "/agent-integrations/composio/toolkits",
         ),
@@ -86,14 +86,14 @@ fn api_url_absolute_path_replaces_base_path() {
 fn api_url_clean_base_joins_cleanly() {
     let expected = "https://api.tinyhumans.ai/agent-integrations/composio/toolkits";
     assert_eq!(
-        api_url(
+        join_url(
             "https://api.tinyhumans.ai",
             "/agent-integrations/composio/toolkits"
         ),
         expected
     );
     assert_eq!(
-        api_url(
+        join_url(
             "https://api.tinyhumans.ai/",
             "/agent-integrations/composio/toolkits"
         ),
@@ -104,7 +104,7 @@ fn api_url_clean_base_joins_cleanly() {
 #[test]
 fn api_url_preserves_query_string_on_path() {
     assert_eq!(
-        api_url(
+        join_url(
             "https://api.tinyhumans.ai",
             "/agent-integrations/composio/tools?toolkits=gmail"
         ),
@@ -114,8 +114,8 @@ fn api_url_preserves_query_string_on_path() {
 
 #[test]
 fn api_url_unparseable_base_falls_back_to_concat() {
-    assert_eq!(api_url("not a url", "/x"), "not a url/x");
-    assert_eq!(api_url("not a url/", "/x"), "not a url/x");
+    assert_eq!(join_url("not a url", "/x"), "not a url/x");
+    assert_eq!(join_url("not a url/", "/x"), "not a url/x");
 }
 
 #[test]
@@ -124,7 +124,7 @@ fn api_url_with_lm_studio_base_joins_correctly() {
     // (it redirects), but api_url itself must not panic and the result
     // must use the correct host root.
     assert_eq!(
-        api_url("http://localhost:1234/v1", "/agent-integrations/foo"),
+        join_url("http://localhost:1234/v1", "/agent-integrations/foo"),
         "http://localhost:1234/agent-integrations/foo"
     );
 }
@@ -132,7 +132,7 @@ fn api_url_with_lm_studio_base_joins_correctly() {
 #[test]
 fn api_url_multiple_trailing_slashes_on_base_are_stripped() {
     assert_eq!(
-        api_url("https://api.tinyhumans.ai///", "/v1/foo"),
+        join_url("https://api.tinyhumans.ai///", "/v1/foo"),
         "https://api.tinyhumans.ai/v1/foo"
     );
 }
@@ -142,7 +142,7 @@ fn api_url_relative_path_without_leading_slash_does_not_panic() {
     // Documented edge-case: relative paths are resolved RFC 3986-style
     // (last base segment dropped). The exact result depends on base
     // structure; we just pin the no-panic contract.
-    assert!(!api_url("https://api.tinyhumans.ai", "relative").is_empty());
+    assert!(!join_url("https://api.tinyhumans.ai", "relative").is_empty());
 }
 
 // ── normalize_api_base_url ────────────────────────────────────────────────
