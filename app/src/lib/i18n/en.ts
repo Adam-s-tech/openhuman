@@ -451,8 +451,7 @@ const en: TranslationMap = {
   'migration.report.skippedUnchanged': 'Skipped (unchanged)',
   'migration.report.renamedConflicts': 'Renamed on conflict',
   'migration.report.warnings': 'Warnings',
-  'migration.report.previewHint':
-    'Nothing has been imported yet. Click Import to copy it over.',
+  'migration.report.previewHint': 'Nothing has been imported yet. Click Import to copy it over.',
   'migration.report.appliedHint':
     'Imported entries are now in your memory. Re-run Preview if you want to compare again.',
   'migration.confirmImport.singular':
@@ -6310,7 +6309,8 @@ const en: TranslationMap = {
 
   'settings.approvalHistory.title': 'Approval history',
   'settings.approvalHistory.tableTitle': 'Decisions',
-  'settings.approvalHistory.tableDesc': 'Every approve or deny, with the tool and what it was asked to do.',
+  'settings.approvalHistory.tableDesc':
+    'Every approve or deny, with the tool and what it was asked to do.',
   'settings.approvalHistory.subtitle': 'Recent tool-approval decisions, newest first.',
   'settings.approvalHistory.refresh': 'Refresh',
   'settings.approvalHistory.loading': 'Loading approval history…',
