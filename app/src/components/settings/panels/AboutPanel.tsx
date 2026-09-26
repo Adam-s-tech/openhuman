@@ -68,35 +68,32 @@ const AboutPanel = () => {
 
   return (
     <SettingsPanel description={t('settings.aboutDesc')}>
-      {/* Version */}
-      <SettingsSection>
-        <div className="px-4 py-3">
-          <div className="text-xs text-content-muted">{t('settings.about.version')}</div>
-          <div className="mt-1 text-lg font-semibold text-content">v{APP_VERSION}</div>
-          {info?.available && info.available_version && (
-            <div className="mt-1 text-xs text-primary-500">
-              v{info.available_version} {t('settings.about.updateAvailable')}
-            </div>
-          )}
-        </div>
-      </SettingsSection>
-
-      {/* Software updates */}
+      {/* Version + updates: one card. They were two stacked cards that both
+          described the running build. */}
       <SettingsSection>
         <SettingsRow
-          label={t('settings.about.softwareUpdates')}
+          label={t('settings.about.version')}
           description={summary}
           control={
             <Button
               type="button"
-              variant="primary"
-              size="xs"
+              variant="secondary"
+              size="sm"
               onClick={handleCheck}
-              disabled={isChecking}>
+              disabled={isChecking}
+              data-testid="about-check-updates">
               {isChecking ? t('settings.about.checking') : t('settings.about.checkForUpdates')}
             </Button>
           }
         />
+        <div className="flex items-baseline gap-2 px-4 pb-3 -mt-2">
+          <span className="text-lg font-semibold text-content">v{APP_VERSION}</span>
+          {info?.available && info.available_version && (
+            <span className="text-xs text-primary-500">
+              v{info.available_version} {t('settings.about.updateAvailable')}
+            </span>
+          )}
+        </div>
         {lastCheckedAt && (
           <div className="px-4 py-3 text-[11px] text-content-faint">
             {t('settings.about.lastChecked')} {formatRelative(lastCheckedAt, t)}
