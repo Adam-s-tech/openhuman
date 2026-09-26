@@ -93,7 +93,7 @@ None of its own. State (`status`, `socket_id`, `error`, attached `WebhookRouter`
 
 ## Notes / gotchas
 
-- **Event-name constants in `types.rs` (`runtime:socket-state-changed`, `server:event`) are grep-anchored**: the frontend subscribes to those exact strings; a rename silently breaks the Tauri event bridge (locked by a test).
+- Event-name constants in `types.rs` (`runtime:socket-state-changed`, `server:event`) are grep-anchored: the frontend subscribes to those exact strings; a rename silently breaks the Tauri event bridge (locked by a test).
 - **Payload content is never logged** at any level: webhook bodies / channel messages / Composio payloads can carry PII, secrets, or tokens. Only byte-length and structural shape are logged. This also dodged a UTF-8 char-boundary panic that used to slice raw payloads at byte 500 (OPENHUMAN-TAURI-KC / #1814).
 - `connect` rejects an empty/whitespace token immediately rather than spawning a doomed retry loop; `connect_with_provider` does the same eager pre-check via the provider.
 - The reconnect loop bounds "fresh-token immediate retry" to **one** per cycle so a provider that returns a different non-empty token every call cannot hot-loop without sleeping or escalating (CodeRabbit Major, #2905).

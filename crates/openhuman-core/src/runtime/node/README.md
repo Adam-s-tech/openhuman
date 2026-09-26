@@ -123,10 +123,10 @@ crate: those went with the machinery.
 
 ## Notes / gotchas
 
-- **Naming asymmetry**: the directory is `node` but its RPC namespace and public
+- Naming asymmetry: the directory is `node` but its RPC namespace and public
   aliases are `javascript`. That indirection is what let the backend underneath
   be replaced by a bus module without churning a single caller.
-- **`build_runtime_tools` is not cheap**: each bridge call rebuilds the full tool
+- `build_runtime_tools` is not cheap: each bridge call rebuilds the full tool
   registry from `Config`. There is no caching at the bridge layer: the
   memoisation here is only for toolchain resolution.
 - **The local cache is not redundant with the module's.** The module memoises

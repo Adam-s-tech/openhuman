@@ -56,17 +56,17 @@ backend, and delegates local OS-level confinement to `cwd_jail`.
 
 ## Backend behavior
 
-- **None**: `execute_unsandboxed` runs the command directly via
+- None: `execute_unsandboxed` runs the command directly via
   `agent::platform_shell` after validating `working_dir` with
   `config::ensure_usable_cwd`.
-- **Local**: `execute_local_jail` builds a `cwd_jail::Jail` rooted at
+- Local: `execute_local_jail` builds a `cwd_jail::Jail` rooted at
   `policy.workspace_root`, applies `deny_net()` and any read-only mounts from
   the policy, and spawns through `cwd_jail::default_backend()` (falling back
   to `NoopBackend` if no OS jail is available on the host). Output is
   captured by redirecting stdout/stderr to temp files inside the jail root,
   because some backends (macOS Seatbelt) rebuild the command and drop piped
   stdio.
-- **Docker**: `docker::docker_exec` runs `docker run --rm` with the host
+- Docker: `docker::docker_exec` runs `docker run --rm` with the host
   `action_dir` mounted read/write at `/workspace`, network `none` by default,
   `--cap-drop ALL` (plus policy-specified extra drops),
   `--security-opt no-new-privileges`, a read-only rootfs with `/tmp` and

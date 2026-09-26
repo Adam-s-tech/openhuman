@@ -15,28 +15,28 @@ runner and fails the link check.
 
 What stays here, per that split:
 
-- **RPC surface**: [`schemas/`](schemas/) + [`schema/`](schema/), the
+- RPC surface: [`schemas/`](schemas/) + [`schema/`](schema/), the
   memory\_\* controller registrations, and [`read_rpc/`](read_rpc/) for reads.
-- **Agent tools**: [`tools/`](tools/), [`agent/`](agent/) (the memory agent
+- Agent tools: [`tools/`](tools/), [`agent/`](agent/) (the memory agent
   + prompt), and the consolidated `memory_query` agent tool in
   [`query/`](query/) (it came back from the extracted crate because the
   engine crate cannot name the `Tool` trait).
-- **Guard**: [`guard/`](guard/), the taint/scope/budget policy gate over
+- Guard: [`guard/`](guard/), the taint/scope/budget policy gate over
   every provider call.
-- **Driver binding**: [`binding.rs`](binding.rs) (`memory::binding::for_config`,
+- Driver binding: [`binding.rs`](binding.rs) (`memory::binding::for_config`,
   the workspace-keyed driver binding the Layer rules below reference) and
   [`driver/`](driver/), which provider backs a workspace. The built-in driver
   is the compiled TinyMemory TinyBus module; there is no in-process engine
   driver any more.
-- **Ops**: [`ops/`](ops/), RPC handlers that delegate into the core.
-- **Contract facade**: [`api.rs`](api.rs) (`memory::api`), the selective
+- Ops: [`ops/`](ops/), RPC handlers that delegate into the core.
+- Contract facade: [`api.rs`](api.rs) (`memory::api`), the selective
   re-export of `tinymemory-api` that is the bus vocabulary: see its own
   module docs for what it excludes and why.
-- **Seam impls**: [`host.rs`](host.rs): `install_memory_event_sink` and
+- Seam impls: [`host.rs`](host.rs): `install_memory_event_sink` and
   `MemoryHostConfig for Config`. Its sibling `host_impls.rs` held the half that
   only an in-process engine could use, and went with the engine when the test
   build stopped linking one (openhuman#6161).
-- **Host-owned wire shapes**: [`rpc_models.rs`](rpc_models.rs) /
+- Host-owned wire shapes: [`rpc_models.rs`](rpc_models.rs) /
   [`ingestion_models.rs`](ingestion_models.rs), the RPC request/response
   shapes that used to live in `tinymemory_core::rpc_models`, re-exported flat
   from [`mod.rs`](mod.rs) (`pub use rpc_models::*`).

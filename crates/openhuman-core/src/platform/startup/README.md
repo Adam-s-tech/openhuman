@@ -47,7 +47,7 @@ No own state/store. It triggers migrations that mutate on-disk workspace artifac
 
 ## Notes / gotchas
 
-- **Non-fatal by design**: every migration branch logs and continues; a failed migration must never block startup.
-- **Idempotency is delegated**: this module does not track whether a migration already ran: it relies on each helper's own `already_done` markers. Re-running is safe.
-- **Grep-friendly log prefixes**: `[runtime]` for session-layout, `[migration::welcome-to-orchestrator]` for the thread/artifact migration.
+- Non-fatal by design: every migration branch logs and continues; a failed migration must never block startup.
+- Idempotency is delegated: this module does not track whether a migration already ran: it relies on each helper's own `already_done` markers. Re-running is safe.
+- Grep-friendly log prefixes: `[runtime]` for session-layout, `[migration::welcome-to-orchestrator]` for the thread/artifact migration.
 - Module is intentionally minimal: no `types.rs`/`store.rs`/`schemas.rs` because it holds no domain types, no persisted state, and no RPC surface.

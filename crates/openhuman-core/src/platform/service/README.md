@@ -78,10 +78,10 @@ Both subscribers are registered idempotently from `crates/openhuman-core/src/cor
 
 ## Persistence
 
-- **Daemon-host prefs**: `daemon_host_config.json` next to the main config (`DaemonHostConfig { show_tray }`, default `true`); read/written async by `daemon_host.rs`.
-- **Daemon state path**: `daemon_state.json` next to config (`daemon::state_file_path`), consumed by doctor/health (not written here).
-- **Service unit files**: written by the per-OS impls (macOS plist in `~/Library/LaunchAgents`, Linux systemd user unit, Windows scheduled task).
-- **Mock state**: `service-mock-state.json` (overridable via `OPENHUMAN_SERVICE_MOCK_STATE_FILE`) tracking `installed`/`running`/`agent_running`/forced `failures`, only when the mock is enabled.
+- Daemon-host prefs: `daemon_host_config.json` next to the main config (`DaemonHostConfig { show_tray }`, default `true`); read/written async by `daemon_host.rs`.
+- Daemon state path: `daemon_state.json` next to config (`daemon::state_file_path`), consumed by doctor/health (not written here).
+- Service unit files: written by the per-OS impls (macOS plist in `~/Library/LaunchAgents`, Linux systemd user unit, Windows scheduled task).
+- Mock state: `service-mock-state.json` (overridable via `OPENHUMAN_SERVICE_MOCK_STATE_FILE`) tracking `installed`/`running`/`agent_running`/forced `failures`, only when the mock is enabled.
 
 ## Dependencies
 

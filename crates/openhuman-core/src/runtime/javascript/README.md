@@ -51,7 +51,7 @@ through this facade's `all_javascript_*` aliases:
 
 | Method | Inputs | Outputs |
 | --- | --- | --- |
-| `javascript.list_tools` |: | `tools`: array of tool metadata (`name`, `description`, `category`, `permission_level`, `scope`, `supports_markdown`, `parameters`). |
+| `javascript.list_tools` | none | `tools`: array of tool metadata (`name`, `description`, `category`, `permission_level`, `scope`, `supports_markdown`, `parameters`). |
 | `javascript.execute_tool` | `tool_name` (required), `args` (optional Json, defaults to `{}`), `prefer_markdown` (optional bool) | `tool_name`, `elapsed_ms` (u64), `result` (MCP-style `ToolResult`: `{content, is_error, markdownFormatted?}`). |
 
 Handlers live in `runtime::node::rpc`, load config via
