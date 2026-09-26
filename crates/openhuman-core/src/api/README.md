@@ -134,34 +134,34 @@ serializes them to avoid cross-module races.
 `BackendOAuthClient` holds the backend origin (base URL stripped to its
 origin) and sends every request through the process `BackendTransport`
 (`TransportProfile::Api`: `x-core-version`, optional `x-tauri-version`, and
-`x-sdk-name` default headers; platform TLS via `util::tls`; 120 s timeout —
+`x-sdk-name` default headers; platform TLS via `util::tls`; 120 s timeout,
 all specified by `headers.rs`). Key surface:
 
-- `authed_json` / `fetch_billing_summary` — send an authenticated request and
+- `authed_json` / `fetch_billing_summary`: send an authenticated request and
   route the result through `finish_authed_json`.
 - Typed route helpers (`fetch_profile`, `create_channel_link_token`,
   `list_integrations`, `fetch_integration_tokens_handoff`, `fetch_client_key`,
   `send_channel_*`, `*_channel_thread`, `revoke_integration`) all go through
   `authed_json`. Every one of them is bearer-only: the core never obtains,
-  exchanges or validates a session — login-token exchange and `/auth/me`
+  exchanges or validates a session. Login-token exchange and `/auth/me`
   validation live in the host's session owner (`openhuman_tinyhumans::session`),
   and `fetch_profile` exists only for channel link-checks that read a
   connected channel id off the profile.
-- `connect`, `url_for`, `raw_client` — OAuth connect flow and URL helpers for
-  callers that need to drive a non-JSON request (e.g. multipart uploads)
-  without re-implementing TLS/proxy setup. `raw_client` returns the
+- `connect`, `url_for`, `raw_client`: OAuth connect flow and URL helpers for
+  callers that need to drive a non-JSON request (for example multipart
+  uploads) without re-implementing TLS/proxy setup. `raw_client` returns the
   transport's `Api`-profile client and fails with `BackendUnavailable` when
   no transport is installed.
-- `ConnectResponse`, `IntegrationSummary`, `IntegrationTokensHandoff` — typed
+- `ConnectResponse`, `IntegrationSummary`, `IntegrationTokensHandoff`: typed
   backend response shapes.
-- `user_id_from_profile_payload` — pull the user id out of the `/auth/me`
+- `user_id_from_profile_payload`: pulls the user id out of the `/auth/me`
   envelope variants.
-- `decrypt_handoff_blob` — AES-256-GCM decrypt for integration token handoff,
+- `decrypt_handoff_blob`: AES-256-GCM decrypt for integration token handoff,
   compatible with the backend's `encryptMessageFromString`.
 
 `BackendApiError` is the typed-error surface `authed_json` callers should
 match on for expected backend states rather than treating as failures:
-`Unauthorized` (401 — session lapsed, not a bug), `MessageNotFound` (404 on a
+`Unauthorized` (401, session lapsed, not a bug), `MessageNotFound` (404 on a
 channel message the provider or backend already deleted),
 `ChannelEditUnsupported` (404 because the backend never implemented the
 `PATCH` edit route), `AnnouncementNotFound` (404 on the best-effort
@@ -173,8 +173,8 @@ reporting it to Sentry, and `BackendUnavailable` onto `BACKEND_UNAVAILABLE:`
 
 The private `BackendOAuthClient::finish_authed_json` is the error
 classification chokepoint for every `authed_json`/`fetch_billing_summary`
-call: it walks the `reqwest`/`hyper`/`rustls` error source chain (not just the
-top-level message) to distinguish a transient transport failure from one
+call. It walks the `reqwest`/`hyper`/`rustls` error source chain, not just the
+top-level message, to distinguish a transient transport failure from one
 worth reporting, and turns specific status/path combinations into the typed
 `BackendApiError` variants above. `IntegrationClient::map_transport_error`
 (`integrations/client/errors.rs`) plays the same role for integrations.
@@ -184,13 +184,13 @@ Route new backend calls through those helpers instead of matching
 ## `socket.rs`
 
 `websocket_url` converts an `http(s)` API base into the Engine.IO v4
-WebSocket URL (`wss://…/socket.io/?EIO=4&transport=websocket`) the realtime
+WebSocket URL (`wss://.../socket.io/?EIO=4&transport=websocket`) the realtime
 client connects to.
 
 ## `models/`
 
-Serde DTOs (`auth.rs`, `socket.rs`) shared by auth and realtime call sites —
-see [`models/mod.rs`](models/mod.rs) for the full list.
+Serde DTOs (`auth.rs`, `socket.rs`) shared by auth and realtime call sites.
+See [`models/mod.rs`](models/mod.rs) for the full list.
 
 ## Backend request rules (from `AGENTS.md`)
 
@@ -198,9 +198,9 @@ see [`models/mod.rs`](models/mod.rs) for the full list.
   `crates/openhuman-core/src/api/`.
 - Every TinyHumans backend request must carry a sanitized `x-sdk-name`:
   `BackendOAuthClient`, `IntegrationClient` (except redirected file
-  downloads), the agent's Langfuse ingestion request, and — outside this crate — the host
-  session owner's `POST /auth/login-token/consume` / `GET /auth/me`
-  (`openhuman_tinyhumans::session`, via `ClientHeaders`).
+  downloads), the agent's Langfuse ingestion request, and, outside this
+  crate, the host session owner's `POST /auth/login-token/consume` /
+  `GET /auth/me` (`openhuman_tinyhumans::session`, via `ClientHeaders`).
 - Never add `x-sdk-name` to third-party endpoints, MCP servers, BYOK
   inference endpoints, or presigned storage redirects.
 - When auditing hand-built backend requests, grep for
