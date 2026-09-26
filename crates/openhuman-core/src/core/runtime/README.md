@@ -99,10 +99,10 @@ are compiled out, or whose `DomainGroup` is off, stays absent.
   root.
 - `.backend_url(url)`.
 - `.backend_transport(Arc<dyn BackendTransport>)` — bind the transport this
-  core's handlers reach the hosted backend through (`api::transport`). The
+  core's handlers reach the hosted backend through (`backend::transport`). The
   context carries it and every `derive_with` child inherits it. Optional:
   without it the core resolves the process-global transport
-  (`api::transport::install_backend_transport`), and with neither every
+  (`backend::transport::install_backend_transport`), and with neither every
   backend-touching call degrades to a typed "backend unavailable" error.
 
 ## `CoreContext` and initialization order
