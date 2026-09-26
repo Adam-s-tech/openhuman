@@ -252,8 +252,6 @@ const en: TranslationMap = {
   'settings.privacySecurity.approvalsHistory': 'Approvals & history',
   'settings.privacySecurity.approvalsHistoryDesc': 'Review recent tool-approval decisions',
 
-  // Settings: notifications group items
-
   // Developer & Diagnostics: 7 sub-section group labels
   'settings.devGroups.knowledgeMemory': 'Knowledge & Memory',
   'settings.devGroups.agentsAutonomy': 'Agents & Autonomy',
@@ -441,8 +439,6 @@ const en: TranslationMap = {
     'Import {count} entry into the current workspace?\n\nSource: {source}\nTarget: {target}\n\nExisting memory will be backed up before the import runs.',
   'migration.confirmImport.plural':
     'Import {count} entries into the current workspace?\n\nSource: {source}\nTarget: {target}\n\nExisting memory will be backed up before the import runs.',
-
-  // Settings: Notifications
 
   // Settings: Features
   'settings.features.messaging': 'Messaging',
@@ -2151,8 +2147,6 @@ const en: TranslationMap = {
   'settings.ai.skillsOverview': 'Skills Overview',
   'settings.ai.refreshingAll': 'Refreshing All...',
   'settings.ai.refreshAll': 'Refresh All AI Configuration',
-
-  // Settings: Notifications
 
   // Settings: Billing
   'settings.billing.movedToWeb': 'Billing moved to the web',
