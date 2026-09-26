@@ -43,7 +43,7 @@ Non-desktop targets fail at compile time (`compile_error!` in `lib.rs`).
 crates/openhuman-app/src/
 ├── lib.rs                  # `run()`, tray/menu, plugins, `generate_handler!`, most window/update/lifecycle commands
 ├── main.rs                 # Binary entry
-├── core_process.rs         # CoreProcessHandle — embedded core server task, RPC token, port conflict handling
+├── core_process.rs         # CoreProcessHandle: embedded core server task, RPC token, port conflict handling
 ├── core_rpc.rs             # Auth helpers + `relay_http_rpc` host-side HTTP relay
 ├── gateway/                # Where the frontend's RPC goes: the core in this process, a
 │                           # core at a URL, or one this app provisions in a container /
@@ -69,7 +69,7 @@ crates/openhuman-app/src/
 This listing was rewritten against the real tree after #5478 / #5456. Gone with
 the move off Chromium: `cdp/`, the `cef_*` preflight modules, `webview_accounts/`,
 every `*_scanner/` but `imessage_scanner/`, the `meet_*` call window,
-`fake_camera/` and `companion_commands.rs`. `webview_apis/` went later — it was
+`fake_camera/` and `companion_commands.rs`. `webview_apis/` went later: it was
 the WS bridge those scanners called, and once they were gone its router
 dispatched nothing while still binding a loopback listener at boot.
 
@@ -84,7 +84,7 @@ React (fetch)
         → embedded openhuman core server (tokio task in this process)
 ```
 
-The renderer talks to the local core **directly over HTTP** — `app/src/services/coreRpcClient.ts` invokes `core_rpc_url` / `core_rpc_token` once, then issues plain `fetch()` calls. The `relay_http_rpc` Tauri command is a host-side fallback used only when the RPC URL is **not** a trustworthy origin for the secure `tauri://localhost` webview (e.g. a self-hosted runtime on a LAN IP, blocked as mixed content — #3865): the Rust host delegates to `openhuman_rpc::post_json_rpc` from the shared `crates/openhuman-rpc` crate (feature `http-client`): 30 s timeout, redirects disabled when a bearer is present, status + body mirrored back verbatim as `HttpRpcResponse`. The shell adds only the gateway transport guard (`validate_remote_transport`, feature `gateways`) before delegating.
+The renderer talks to the local core **directly over HTTP** (`app/src/services/coreRpcClient.ts` invokes `core_rpc_url` / `core_rpc_token` once, then issues plain `fetch()` calls. The `relay_http_rpc` Tauri command is a host-side fallback used only when the RPC URL is **not** a trustworthy origin for the secure `tauri://localhost` webview (e.g. a self-hosted runtime on a LAN IP, blocked as mixed content) #3865): the Rust host delegates to `openhuman_rpc::post_json_rpc` from the shared `crates/openhuman-rpc` crate (feature `http-client`): 30 s timeout, redirects disabled when a bearer is present, status + body mirrored back verbatim as `HttpRpcResponse`. The shell adds only the gateway transport guard (`validate_remote_transport`, feature `gateways`) before delegating.
 
 `CoreProcessHandle` in `core_process.rs` owns the embedded server task (started via `openhuman_core::core::jsonrpc::run_server_embedded_with_ready` with a per-launch random bearer token) and handles stale-listener/port-conflict recovery.
 
@@ -107,13 +107,13 @@ The renderer talks to the local core **directly over HTTP** — `app/src/service
 
 ## Tauri IPC commands (`crates/openhuman-app`)
 
-All commands are registered in **`crates/openhuman-app/src/lib.rs`** inside `tauri::generate_handler![...]` — that list is the authoritative reference. The major families:
+All commands are registered in **`crates/openhuman-app/src/lib.rs`** inside `tauri::generate_handler![...]`: that list is the authoritative reference. The major families:
 
 ### Core RPC & diagnostics
 
 | Command                          | Purpose                                                                                                                                         |
 | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `core_rpc_url`                   | Return the **active gateway's** JSON-RPC URL — the embedded core's `http://127.0.0.1:<port>/rpc` unless another gateway is active               |
+| `core_rpc_url`                   | Return the **active gateway's** JSON-RPC URL: the embedded core's `http://127.0.0.1:<port>/rpc` unless another gateway is active               |
 | `core_rpc_token`                 | Return the active gateway's bearer. Paired with `core_rpc_url`: a token minted for the embedded core is meaningless to a core in a container    |
 | `relay_http_rpc`                 | Host-side JSON-RPC POST (`{ url, token?, body }` → `{ status, body }`) for self-hosted runtimes the webview cannot fetch (mixed content, #3865) |
 | `overlay_parent_rpc_url`         | RPC URL inherited from a parent process (overlay windows), from `OPENHUMAN_CORE_RPC_URL`                                                        |
@@ -121,10 +121,10 @@ All commands are registered in **`crates/openhuman-app/src/lib.rs`** inside `tau
 
 Use **`app/src/services/coreRpcClient.ts`** (`callCoreRpc`) from the frontend.
 
-### Gateways — running the core somewhere else
+### Gateways: running the core somewhere else
 
 A **gateway** is one way of reaching an OpenHuman core. Four exist: the core inside this
-process, a core somebody else is running at a URL, and two this app provisions itself — in
+process, a core somebody else is running at a URL, and two this app provisions itself: in
 a Docker container, or on a machine reached over SSH. The last two are the same code:
 [tinybox](https://github.com/tinyhumansai/tinybox) models *reach* (`local` / `ssh`) and
 *confinement* (`passthrough` / `docker`) as independent axes, so "a container on the build
@@ -132,13 +132,13 @@ server" is those two choices made separately rather than a third case with code 
 
 **The seam is one line.** A gateway resolves to a URL and a bearer, and `core_rpc_url` /
 `core_rpc_token` answer from the active one. Every RPC call site in the renderer therefore
-follows along unchanged — there is no per-gateway transport in the frontend, and
+follows along unchanged: there is no per-gateway transport in the frontend, and
 `services/transport/` (the iOS `ConnectionProfile` path) is not involved.
 
 Provisioning is four tinybox calls: `create` a box publishing the core's port, `spawn` the
 core in it detached with a freshly minted bearer, `forward` that published port back to
 this machine, then poll the core's unauthenticated `/health`. The third step is the one
-that is easy to omit and impossible to notice missing — publishing puts the port on the
+that is easy to omit and impossible to notice missing: publishing puts the port on the
 *box's* host, which for an SSH placement is the far machine.
 
 | Command            | Purpose                                                                    |
@@ -202,7 +202,7 @@ A JWT accepted while the backend is unreachable (live `exp`, subject claim) is i
 | Command                                                                            | Purpose                                                                       |
 | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
 | `register_dictation_hotkey` / `unregister_dictation_hotkey`                        | Global dictation shortcuts (`dictation_hotkeys.rs`)                           |
-| `register_ptt_hotkey` / `unregister_ptt_hotkey` / `show_ptt_overlay`               | Push-to-talk — see the [PTT section](#push-to-talk-ptt-hotkey--overlay) below |
+| `register_ptt_hotkey` / `unregister_ptt_hotkey` / `show_ptt_overlay`               | Push-to-talk: see the [PTT section](#push-to-talk-ptt-hotkey--overlay) below |
 
 ### Notifications
 
@@ -216,7 +216,7 @@ A JWT accepted while the backend is unreachable (live `exp`, subject claim) is i
 | `mascot_window_show` / `mascot_window_hide`        | Toggle the mascot native window                |
 | `notch_window_show` / `notch_window_hide`          | Toggle the notch window                        |
 
-Hide-to-tray / reopen behavior is **not** an IPC command — it lives in the `RunEvent` handlers in `lib.rs` (see [Window and tray behavior](#window-and-tray-behavior)).
+Hide-to-tray / reopen behavior is **not** an IPC command: it lives in the `RunEvent` handlers in `lib.rs` (see [Window and tray behavior](#window-and-tray-behavior)).
 
 ### Artifacts, logs, MCP, OAuth
 
@@ -302,7 +302,7 @@ The Tauri crate **does not** embed a duplicate Socket.io server or Telegram clie
 
 ### `CoreProcessHandle` (`core_process.rs`)
 
-- Runs the core's HTTP/JSON-RPC server as a **tokio task inside the Tauri host** via `openhuman_core::core::jsonrpc::run_server_embedded_with_ready` — no sidecar binary.
+- Runs the core's HTTP/JSON-RPC server as a **tokio task inside the Tauri host** via `openhuman_core::core::jsonrpc::run_server_embedded_with_ready`: no sidecar binary.
 - Generates a per-launch 256-bit hex bearer token (`generate_rpc_token`) and hands it to the embedded server; the renderer reads it via the `core_rpc_token` command.
 - Stale-listener policy (#1130): if the core port is already occupied, probes whether the listener is an old OpenHuman core (terminate + respawn) or something foreign (surface the conflict). `OPENHUMAN_CORE_REUSE_EXISTING=1` opts back into attach-to-existing for debugging.
 - Managed as Tauri state in `lib.rs` (`app.manage(core_handle)`).
