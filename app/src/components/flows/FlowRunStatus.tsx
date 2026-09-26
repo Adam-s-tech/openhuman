@@ -124,7 +124,6 @@ export function FlowRunStatus({
   return (
     <Badge
       variant={flowRunStatusVariant(status)}
-      dot={false}
       data-testid={testId}
       data-status={status}
       className={className}>
