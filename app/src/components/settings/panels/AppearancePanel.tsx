@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 
 import { cn } from '../../../lib/cn';
 import { useT } from '../../../lib/i18n/I18nContext';
@@ -19,13 +19,9 @@ import SettingsPanel from '../layout/SettingsPanel';
 import LayoutSettings from './theme/LayoutSettings';
 import ThemeStudioPanel from './ThemeStudioPanel';
 
-type AppearanceTab = 'general' | 'studio' | 'layout';
+type AppearanceTab = 'general' | 'layout';
 
-const TAB_HASH: Record<AppearanceTab, string> = {
-  general: '',
-  studio: '#studio',
-  layout: '#layout',
-};
+const TAB_HASH: Record<AppearanceTab, string> = { general: '', layout: '#layout' };
 
 interface FontSizeOption {
   id: FontSize;
@@ -41,10 +37,8 @@ const AppearancePanel = () => {
   const effectiveFontSizePx = useAppSelector(selectEffectiveFontSizePx);
   const location = useLocation();
   const navigate = useNavigate();
-  // The URL hash is the source of truth for the tab, so `/settings/theme`
-  // (which redirects to `#studio`) and deep links land on the right one.
-  const tab: AppearanceTab =
-    location.hash === '#studio' ? 'studio' : location.hash === '#layout' ? 'layout' : 'general';
+  // The URL hash is the source of truth for the tab, so deep links land on it.
+  const tab: AppearanceTab = location.hash === '#layout' ? 'layout' : 'general';
   const selectTab = (next: AppearanceTab) => {
     navigate(`${location.pathname}${location.search}${TAB_HASH[next]}`, { replace: true });
   };
@@ -108,7 +102,7 @@ const AppearancePanel = () => {
 
   const general = (
     <>
-      <ThemeStudioPanel embedded part="gallery" />
+      <ThemeStudioPanel embedded part="gallery" onCustomize={() => navigate('/settings/theme')} />
 
       <Card
         title={t('settings.appearance.fontSizeHeading')}
@@ -194,6 +188,9 @@ const AppearancePanel = () => {
     </>
   );
 
+  // Theme Studio was briefly a tab here (`#studio`); it is its own page now.
+  if (location.hash === '#studio') return <Navigate to="/settings/theme" replace />;
+
   return (
     <SettingsPanel<AppearanceTab>
       description={t('settings.appearance.menuDesc')}
@@ -210,13 +207,6 @@ const AppearancePanel = () => {
           id: 'general',
           label: t('settings.general'),
           content: general,
-          contentClassName: 'space-y-5',
-        },
-        // Colours, fonts, background and import/export for the active theme.
-        {
-          id: 'studio',
-          label: t('settings.theme.title'),
-          content: <ThemeStudioPanel embedded part="customize" />,
           contentClassName: 'space-y-5',
         },
         // Corner rounding, border contrast, and which areas draw borders.

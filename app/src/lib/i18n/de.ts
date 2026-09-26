@@ -487,8 +487,6 @@ const messages: TranslationMap = {
   'settings.privacySecurity.approvalsHistory': 'Genehmigungen & Verlauf',
   'settings.privacySecurity.approvalsHistoryDesc':
     'Aktuelle Tool-Genehmigungsentscheidungen überprüfen',
-  'settings.notifications.menuTitle': 'Benachrichtigungen',
-  'settings.notifications.menuDesc': 'Benachrichtigungs-Posteingang und -Einstellungen',
   'settings.devGroups.knowledgeMemory': 'Wissen & Gedächtnis',
   'settings.devGroups.agentsAutonomy': 'Agenten & Autonomie',
   'settings.devGroups.automationIntegrations': 'Automatisierung & Integrationen',
@@ -553,10 +551,7 @@ const messages: TranslationMap = {
   'settings.dangerZone': 'Gefahrenbereich',
   'settings.account': 'Konto',
   'settings.accountDesc': 'Wiederherstellungsphrase, Team, Verbindungen und Privatsphäre',
-  'settings.notifications': 'Benachrichtigungen',
   'settings.notificationsDesc': '„Bitte nicht stören“ und Benachrichtigungskontrollen pro Konto',
-  'settings.notifications.tabs.preferences': 'Einstellungen',
-  'settings.notifications.tabs.routing': 'Routenführung',
   'settings.features': 'Funktionen',
   'settings.aiModels': 'KI & Modelle',
   'settings.aiModelsDesc': 'Lokales KI-Modell-Setup, Downloads und LLM-Anbieter',
@@ -684,12 +679,6 @@ const messages: TranslationMap = {
     'Eintrag {count} in den aktuellen Arbeitsbereich importieren?\n\nQuelle: {source}\nZiel: {target}\n\nVorhandener Speicher wird gesichert, bevor der Import ausgeführt wird.',
   'migration.confirmImport.plural':
     '{count} Einträge in den aktuellen Arbeitsbereich importieren?\n\nQuelle: {source}\nZiel: {target}\n\nVorhandener Speicher wird gesichert, bevor der Import ausgeführt wird.',
-  'settings.notifications.doNotDisturb': 'Bitte nicht stören',
-  'settings.notifications.doNotDisturbDesc':
-    'Pausiere alle Benachrichtigungen für einen festgelegten Zeitraum',
-  'settings.notifications.channelControls': 'Steuerung pro Kanal',
-  'settings.notifications.channelControlsDesc':
-    'Konfiguriere Benachrichtigungseinstellungen für jeden Kanal',
   'settings.features.messaging': 'Nachrichten',
   'settings.features.messagingDesc': 'Einstellungen für die Kanal- und Messaging-Integration',
   'settings.features.tools': 'Werkzeuge',
@@ -2051,13 +2040,6 @@ const messages: TranslationMap = {
   'settings.ai.skillsOverview': 'Überblick über die Fähigkeiten',
   'settings.ai.refreshingAll': 'Alles erfrischen...',
   'settings.ai.refreshAll': 'Aktualisiere alle AI-Konfigurationen',
-  'settings.notifications.suppressAll': 'Alle Benachrichtigungen unterdrücken',
-  'settings.notifications.suppressAllDesc':
-    'Blockiere alle Betriebssystem-Benachrichtigungs-Toasts von eingebetteten Apps, unabhängig vom Fokusstatus.',
-  'settings.notifications.toggleDnd': 'Schalte „Bitte nicht stören“ um',
-  'settings.notifications.categories': 'Kategorien',
-  'settings.notifications.categoryFooter':
-    'Durch das Deaktivieren einer Kategorie wird verhindert, dass neue Benachrichtigungen dieses Typs im Benachrichtigungscenter angezeigt werden. Vorhandene Benachrichtigungen bleiben bestehen, bis sie gelöscht werden.',
   'settings.billing.movedToWeb': 'Die Abrechnung wurde ins Internet verlagert',
   'settings.billing.openDashboard': 'Abrechnungs-Dashboard öffnen',
   'settings.billing.movedToWebDesc':
@@ -7368,29 +7350,6 @@ const messages: TranslationMap = {
   'settings.mcpServer.tools.treeTopEntities':
     'Ruft die wichtigsten Entitäten aus dem Speicherbaum ab',
   'settings.mcpServer.tools.treeListSources': 'Listet die Quellen des Speicherbaums auf',
-  'settings.notifications.category.messages.title': 'Nachrichten',
-  'settings.notifications.category.messages.desc':
-    'Neue Nachrichten von eingebetteten Webview-Konten (Slack, WhatsApp, …).',
-  'settings.notifications.category.agents.title': 'Agentenaktivität',
-  'settings.notifications.category.agents.desc':
-    'Abgeschlossene Agentenaufgaben und lang laufende Antworten.',
-  'settings.notifications.category.skills.title': 'Skills',
-  'settings.notifications.category.skills.desc':
-    'Skill-Synchronisierungsereignisse und OAuth-Statusänderungen.',
-  'settings.notifications.category.system.title': 'System',
-  'settings.notifications.category.system.desc':
-    'Verbindungsprobleme, Fehler im Hintergrundprozess, Aktualisierungen.',
-  'settings.notifications.category.meetings.title': 'Meetings',
-  'settings.notifications.category.meetings.desc':
-    'Anstehende Meetings und vom Heartbeat erkannte Kalenderereignisse.',
-  'settings.notifications.category.reminders.title': 'Erinnerungen',
-  'settings.notifications.category.reminders.desc':
-    'Anstehende Erinnerungen und geplante Aufgaben aus Cron-Jobs.',
-  'settings.notifications.category.important.title': 'Wichtige Ereignisse',
-  'settings.notifications.category.important.desc':
-    'Dringende oder zeitkritische Ereignisse aus verbundenen Quellen.',
-  'settings.notifications.categoryToggleAria':
-    'Benachrichtigungen für {name} ein- oder ausschalten',
   'settings.cron.jobs.runFinishedAt': '{status} um {time}',
   'settings.cron.jobs.scheduleAt': 'um {time}',
   'settings.cron.jobs.scheduleEvery': 'alle {ms}ms',

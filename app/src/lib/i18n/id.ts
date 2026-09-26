@@ -471,8 +471,6 @@ const messages: TranslationMap = {
   'settings.privacySecurity.securityDesc': 'Sesi dan opsi masuk',
   'settings.privacySecurity.approvalsHistory': 'Persetujuan & riwayat',
   'settings.privacySecurity.approvalsHistoryDesc': 'Tinjau keputusan persetujuan alat terbaru',
-  'settings.notifications.menuTitle': 'Notifikasi',
-  'settings.notifications.menuDesc': 'Kotak masuk peringatan dan preferensi notifikasi',
   'settings.devGroups.knowledgeMemory': 'Pengetahuan & Memori',
   'settings.devGroups.agentsAutonomy': 'Agen & Otonomi',
   'settings.devGroups.automationIntegrations': 'Otomasi & Integrasi',
@@ -538,10 +536,7 @@ const messages: TranslationMap = {
   'settings.dangerZone': 'Zona Berbahaya',
   'settings.account': 'Akun',
   'settings.accountDesc': 'Frasa pemulihan, tim, koneksi, dan privasi',
-  'settings.notifications': 'Notifikasi',
   'settings.notificationsDesc': 'Jangan Ganggu dan kontrol notifikasi per akun',
-  'settings.notifications.tabs.preferences': 'Preferensi',
-  'settings.notifications.tabs.routing': 'Perutean',
   'settings.features': 'Fitur',
   'settings.aiModels': 'AI & Model',
   'settings.aiModelsDesc': 'Pengaturan model AI lokal, unduhan, dan penyedia LLM',
@@ -666,10 +661,6 @@ const messages: TranslationMap = {
     'Impor {count} entri ke ruang kerja saat ini?\n\nSumber: {source}\nTujuan: {target}\n\nMemori yang ada akan dicadangkan sebelum impor dimulai.',
   'migration.confirmImport.plural':
     'Impor {count} entri ke ruang kerja saat ini?\n\nSumber: {source}\nTujuan: {target}\n\nMemori yang ada akan dicadangkan sebelum impor dimulai.',
-  'settings.notifications.doNotDisturb': 'Jangan Ganggu',
-  'settings.notifications.doNotDisturbDesc': 'Jeda semua notifikasi selama periode tertentu',
-  'settings.notifications.channelControls': 'Kontrol Per Kanal',
-  'settings.notifications.channelControlsDesc': 'Atur preferensi notifikasi untuk setiap kanal',
   'settings.features.messaging': 'Pesan',
   'settings.features.messagingDesc': 'Pengaturan kanal dan integrasi pesan',
   'settings.features.tools': 'Alat',
@@ -2005,13 +1996,6 @@ const messages: TranslationMap = {
   'settings.ai.skillsOverview': 'Ringkasan Skill',
   'settings.ai.refreshingAll': 'Menyegarkan Semua...',
   'settings.ai.refreshAll': 'Segarkan Semua Konfigurasi AI',
-  'settings.notifications.suppressAll': 'Tahan semua notifikasi',
-  'settings.notifications.suppressAllDesc':
-    'Blokir semua toast notifikasi OS dari aplikasi tertanam terlepas dari status fokus.',
-  'settings.notifications.toggleDnd': 'Alihkan Jangan Ganggu',
-  'settings.notifications.categories': 'Kategori',
-  'settings.notifications.categoryFooter':
-    'Menonaktifkan kategori menghentikan notifikasi baru jenis tersebut muncul di pusat notifikasi. Notifikasi yang sudah ada tetap tersimpan sampai dibersihkan.',
   'settings.billing.movedToWeb': 'Tagihan dipindahkan ke web',
   'settings.billing.openDashboard': 'Buka dashboard tagihan',
   'settings.billing.movedToWebDesc':
@@ -7211,28 +7195,6 @@ const messages: TranslationMap = {
   'settings.mcpServer.tools.treeBrowse': 'Menjelajahi struktur pohon memori',
   'settings.mcpServer.tools.treeTopEntities': 'Mendapatkan entitas teratas dari pohon memori',
   'settings.mcpServer.tools.treeListSources': 'Mencantumkan sumber pohon memori',
-  'settings.notifications.category.messages.title': 'Pesan',
-  'settings.notifications.category.messages.desc':
-    'Pesan baru dari akun webview tersemat (Slack, WhatsApp, …).',
-  'settings.notifications.category.agents.title': 'Aktivitas agen',
-  'settings.notifications.category.agents.desc':
-    'Penyelesaian tugas agen dan respons yang berjalan lama.',
-  'settings.notifications.category.skills.title': 'Skill',
-  'settings.notifications.category.skills.desc':
-    'Peristiwa sinkronisasi skill dan perubahan status OAuth.',
-  'settings.notifications.category.system.title': 'Sistem',
-  'settings.notifications.category.system.desc':
-    'Masalah koneksi, kesalahan proses latar belakang, pembaruan.',
-  'settings.notifications.category.meetings.title': 'Rapat',
-  'settings.notifications.category.meetings.desc':
-    'Rapat mendatang dan acara kalender yang terdeteksi oleh heartbeat.',
-  'settings.notifications.category.reminders.title': 'Pengingat',
-  'settings.notifications.category.reminders.desc':
-    'Pengingat mendatang dan tugas terjadwal dari job cron.',
-  'settings.notifications.category.important.title': 'Peristiwa penting',
-  'settings.notifications.category.important.desc':
-    'Peristiwa mendesak atau sensitif waktu dari sumber yang terhubung.',
-  'settings.notifications.categoryToggleAria': 'Aktifkan atau nonaktifkan notifikasi {name}',
   'settings.cron.jobs.runFinishedAt': '{status} pada {time}',
   'settings.cron.jobs.scheduleAt': 'pada {time}',
   'settings.cron.jobs.scheduleEvery': 'setiap {ms}md',

@@ -253,8 +253,6 @@ const en: TranslationMap = {
   'settings.privacySecurity.approvalsHistoryDesc': 'Review recent tool-approval decisions',
 
   // Settings: notifications group items
-  'settings.notifications.menuTitle': 'Notifications',
-  'settings.notifications.menuDesc': 'Alerts inbox and notification preferences',
 
   // Developer & Diagnostics: 7 sub-section group labels
   'settings.devGroups.knowledgeMemory': 'Knowledge & Memory',
@@ -312,10 +310,7 @@ const en: TranslationMap = {
   'settings.dataSync.description':
     "Manage what gets synced into your assistant's memory: every connected source with its last-synced time, how much is synced, and whether it's syncing right now.",
   'settings.devGroups.diagnosticsLogs': 'Diagnostics & Logs',
-  'settings.notifications': 'Notifications',
   'settings.notificationsDesc': 'Do Not Disturb and per-account notification controls',
-  'settings.notifications.tabs.preferences': 'Preferences',
-  'settings.notifications.tabs.routing': 'Routing',
   'settings.features': 'Features',
   'settings.aiModels': 'AI & Models',
   'settings.aiModelsDesc': 'Local AI model setup, downloads, and LLM provider',
@@ -449,11 +444,6 @@ const en: TranslationMap = {
     'Import {count} entries into the current workspace?\n\nSource: {source}\nTarget: {target}\n\nExisting memory will be backed up before the import runs.',
 
   // Settings: Notifications
-  'settings.notifications.doNotDisturb': 'Do Not Disturb',
-  'settings.notifications.doNotDisturbDesc': 'Pause all notifications for a set period',
-  'settings.notifications.channelControls': 'Per-Channel Controls',
-  'settings.notifications.channelControlsDesc':
-    'Configure notification preferences for each channel',
 
   // Settings: Features
   'settings.features.messaging': 'Messaging',
@@ -2164,34 +2154,6 @@ const en: TranslationMap = {
   'settings.ai.refreshAll': 'Refresh All AI Configuration',
 
   // Settings: Notifications
-  'settings.notifications.suppressAll': 'Suppress all notifications',
-  'settings.notifications.suppressAllDesc':
-    'Block all OS notification toasts from embedded apps regardless of focus state.',
-  'settings.notifications.toggleDnd': 'Toggle Do Not Disturb',
-  'settings.notifications.categories': 'Categories',
-  'settings.notifications.categoryFooter':
-    'Disabling a category stops new notifications of that type from appearing in the notification center. Existing notifications remain until cleared.',
-  'settings.notifications.category.messages.title': 'Messages',
-  'settings.notifications.category.messages.desc':
-    'New messages from embedded webview accounts (Slack, WhatsApp, …).',
-  'settings.notifications.category.agents.title': 'Agent activity',
-  'settings.notifications.category.agents.desc':
-    'Agent task completions and long-running responses.',
-  'settings.notifications.category.skills.title': 'Skills',
-  'settings.notifications.category.skills.desc': 'Skill sync events and OAuth status changes.',
-  'settings.notifications.category.system.title': 'System',
-  'settings.notifications.category.system.desc':
-    'Connection issues, background process errors, updates.',
-  'settings.notifications.category.meetings.title': 'Meetings',
-  'settings.notifications.category.meetings.desc':
-    'Upcoming meetings and calendar events detected by heartbeat.',
-  'settings.notifications.category.reminders.title': 'Reminders',
-  'settings.notifications.category.reminders.desc':
-    'Upcoming reminders and scheduled tasks from cron jobs.',
-  'settings.notifications.category.important.title': 'Important events',
-  'settings.notifications.category.important.desc':
-    'Urgent or time-sensitive events surfaced from connected sources.',
-  'settings.notifications.categoryToggleAria': 'Toggle {name} notifications',
 
   // Settings: Billing
   'settings.billing.movedToWeb': 'Billing moved to the web',

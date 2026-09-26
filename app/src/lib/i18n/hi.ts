@@ -466,8 +466,6 @@ const messages: TranslationMap = {
   'settings.privacySecurity.securityDesc': 'सत्र और साइन-इन विकल्प',
   'settings.privacySecurity.approvalsHistory': 'अनुमोदन और इतिहास',
   'settings.privacySecurity.approvalsHistoryDesc': 'हाल के टूल-अनुमोदन निर्णय देखें',
-  'settings.notifications.menuTitle': 'सूचनाएं',
-  'settings.notifications.menuDesc': 'अलर्ट इनबॉक्स और सूचना प्राथमिकताएं',
   'settings.devGroups.knowledgeMemory': 'ज्ञान और स्मृति',
   'settings.devGroups.agentsAutonomy': 'एजेंट और स्वायत्तता',
   'settings.devGroups.automationIntegrations': 'स्वचालन और एकीकरण',
@@ -531,10 +529,7 @@ const messages: TranslationMap = {
   'settings.dangerZone': 'डेंजर ज़ोन',
   'settings.account': 'अकाउंट',
   'settings.accountDesc': 'रिकवरी फ्रेज़, टीम, कनेक्शन और प्राइवेसी',
-  'settings.notifications': 'नोटिफिकेशन',
   'settings.notificationsDesc': 'डू नॉट डिस्टर्ब और हर अकाउंट के नोटिफिकेशन कंट्रोल',
-  'settings.notifications.tabs.preferences': 'प्राथमिकताएँ',
-  'settings.notifications.tabs.routing': 'रूटिंग',
   'settings.features': 'फीचर्स',
   'settings.aiModels': 'AI और मॉडल्स',
   'settings.aiModelsDesc': 'लोकल AI मॉडल सेटअप, डाउनलोड और LLM प्रोवाइडर',
@@ -658,10 +653,6 @@ const messages: TranslationMap = {
     '{count} एंट्री को मौजूदा वर्कस्पेस में इम्पोर्ट करें?\n\nसोर्स: {source}\nटार्गेट: {target}\n\nइम्पोर्ट से पहले मौजूदा मेमोरी का बैकअप लिया जाएगा।',
   'migration.confirmImport.plural':
     '{count} एंट्रीज़ को मौजूदा वर्कस्पेस में इम्पोर्ट करें?\n\nसोर्स: {source}\nटार्गेट: {target}\n\nइम्पोर्ट से पहले मौजूदा मेमोरी का बैकअप लिया जाएगा।',
-  'settings.notifications.doNotDisturb': 'डू नॉट डिस्टर्ब',
-  'settings.notifications.doNotDisturbDesc': 'तय समय के लिए सभी नोटिफिकेशन रोकें',
-  'settings.notifications.channelControls': 'चैनल-वाइज़ कंट्रोल',
-  'settings.notifications.channelControlsDesc': 'हर चैनल के लिए नोटिफिकेशन प्रेफरेंस सेट करें',
   'settings.features.messaging': 'मैसेजिंग',
   'settings.features.messagingDesc': 'चैनल और मैसेजिंग इंटीग्रेशन सेटिंग्स',
   'settings.features.tools': 'टूल्स',
@@ -1988,13 +1979,6 @@ const messages: TranslationMap = {
   'settings.ai.skillsOverview': 'स्किल्स ओवरव्यू',
   'settings.ai.refreshingAll': 'सभी रिफ्रेश हो रहे हैं...',
   'settings.ai.refreshAll': 'सभी AI कॉन्फिगरेशन रिफ्रेश करें',
-  'settings.notifications.suppressAll': 'सभी नोटिफिकेशन बंद करें',
-  'settings.notifications.suppressAllDesc':
-    'फोकस स्टेट चाहे कुछ भी हो, एम्बेडेड ऐप्स के सभी OS नोटिफिकेशन टोस्ट ब्लॉक करें।',
-  'settings.notifications.toggleDnd': 'डू नॉट डिस्टर्ब टॉगल करें',
-  'settings.notifications.categories': 'कैटेगरीज़',
-  'settings.notifications.categoryFooter':
-    'किसी कैटेगरी को डिसेबल करने से उस टाइप के नए नोटिफिकेशन नोटिफिकेशन सेंटर में नहीं आएंगे। पुराने नोटिफिकेशन तब तक रहेंगे जब तक क्लियर न हों।',
   'settings.billing.movedToWeb': 'बिलिंग वेब पर चली गई है',
   'settings.billing.openDashboard': 'बिलिंग डैशबोर्ड खोलें',
   'settings.billing.movedToWebDesc':
@@ -7163,27 +7147,6 @@ const messages: TranslationMap = {
   'settings.mcpServer.tools.treeBrowse': 'मेमोरी ट्री की संरचना ब्राउज़ करता है',
   'settings.mcpServer.tools.treeTopEntities': 'मेमोरी ट्री से शीर्ष एंटिटी प्राप्त करता है',
   'settings.mcpServer.tools.treeListSources': 'मेमोरी ट्री के स्रोत सूचीबद्ध करता है',
-  'settings.notifications.category.messages.title': 'संदेश',
-  'settings.notifications.category.messages.desc':
-    'एम्बेडेड वेबव्यू खातों (Slack, WhatsApp, …) से नए संदेश।',
-  'settings.notifications.category.agents.title': 'एजेंट गतिविधि',
-  'settings.notifications.category.agents.desc':
-    'एजेंट कार्य पूर्णताएँ और लंबे समय तक चलने वाली प्रतिक्रियाएँ।',
-  'settings.notifications.category.skills.title': 'स्किल्स',
-  'settings.notifications.category.skills.desc': 'स्किल सिंक इवेंट और OAuth स्थिति में बदलाव।',
-  'settings.notifications.category.system.title': 'सिस्टम',
-  'settings.notifications.category.system.desc':
-    'कनेक्शन समस्याएँ, बैकग्राउंड प्रोसेस त्रुटियाँ, अपडेट।',
-  'settings.notifications.category.meetings.title': 'मीटिंग्स',
-  'settings.notifications.category.meetings.desc':
-    'आगामी मीटिंग्स और हार्टबीट द्वारा पहचाने गए कैलेंडर इवेंट।',
-  'settings.notifications.category.reminders.title': 'रिमाइंडर',
-  'settings.notifications.category.reminders.desc':
-    'आगामी रिमाइंडर और cron जॉब्स से शेड्यूल किए गए कार्य।',
-  'settings.notifications.category.important.title': 'महत्वपूर्ण इवेंट',
-  'settings.notifications.category.important.desc':
-    'जुड़े हुए स्रोतों से आपातकालीन या समय-संवेदनशील इवेंट।',
-  'settings.notifications.categoryToggleAria': '{name} सूचनाएँ चालू या बंद करें',
   'settings.cron.jobs.runFinishedAt': '{time} पर {status}',
   'settings.cron.jobs.scheduleAt': '{time} पर',
   'settings.cron.jobs.scheduleEvery': 'हर {ms}ms',

@@ -448,8 +448,6 @@ const messages: TranslationMap = {
   'settings.privacySecurity.securityDesc': 'الجلسات وخيارات تسجيل الدخول',
   'settings.privacySecurity.approvalsHistory': 'الموافقات والسجل',
   'settings.privacySecurity.approvalsHistoryDesc': 'مراجعة قرارات الموافقة الأخيرة على الأدوات',
-  'settings.notifications.menuTitle': 'الإشعارات',
-  'settings.notifications.menuDesc': 'صندوق التنبيهات وتفضيلات الإشعارات',
   'settings.devGroups.knowledgeMemory': 'المعرفة والذاكرة',
   'settings.devGroups.agentsAutonomy': 'الوكلاء والاستقلالية',
   'settings.devGroups.automationIntegrations': 'الأتمتة والتكاملات',
@@ -513,10 +511,7 @@ const messages: TranslationMap = {
   'settings.dangerZone': 'منطقة الخطر',
   'settings.account': 'الحساب',
   'settings.accountDesc': 'عبارة الاسترداد والفريق والاتصالات والخصوصية',
-  'settings.notifications': 'الإشعارات',
   'settings.notificationsDesc': 'عدم الإزعاج وضوابط الإشعارات لكل حساب',
-  'settings.notifications.tabs.preferences': 'التفضيلات',
-  'settings.notifications.tabs.routing': 'التوجيه',
   'settings.features': 'الميزات',
   'settings.aiModels': 'الذكاء الاصطناعي والنماذج',
   'settings.aiModelsDesc': 'إعداد نموذج الذكاء الاصطناعي المحلي وتنزيلاته ومزود LLM',
@@ -640,10 +635,6 @@ const messages: TranslationMap = {
     'استيراد {count} عنصر إلى مساحة العمل الحالية؟\n\nالمصدر: {source}\nالهدف: {target}\n\nسيتم نسخ الذاكرة الحالية احتياطيًا قبل بدء الاستيراد.',
   'migration.confirmImport.plural':
     'استيراد {count} عنصر إلى مساحة العمل الحالية؟\n\nالمصدر: {source}\nالهدف: {target}\n\nسيتم نسخ الذاكرة الحالية احتياطيًا قبل بدء الاستيراد.',
-  'settings.notifications.doNotDisturb': 'عدم الإزعاج',
-  'settings.notifications.doNotDisturbDesc': 'إيقاف جميع الإشعارات مؤقتًا لفترة محددة',
-  'settings.notifications.channelControls': 'ضوابط لكل قناة',
-  'settings.notifications.channelControlsDesc': 'ضبط تفضيلات الإشعارات لكل قناة',
   'settings.features.messaging': 'المراسلة',
   'settings.features.messagingDesc': 'إعدادات تكامل القنوات والمراسلة',
   'settings.features.tools': 'الأدوات',
@@ -1946,13 +1937,6 @@ const messages: TranslationMap = {
   'settings.ai.skillsOverview': 'نظرة عامة على المهارات',
   'settings.ai.refreshingAll': 'جارٍ تحديث الكل...',
   'settings.ai.refreshAll': 'تحديث جميع إعدادات الذكاء الاصطناعي',
-  'settings.notifications.suppressAll': 'كتم جميع الإشعارات',
-  'settings.notifications.suppressAllDesc':
-    'حظر جميع إشعارات نظام التشغيل من التطبيقات المدمجة بغض النظر عن حالة التركيز.',
-  'settings.notifications.toggleDnd': 'تفعيل/تعطيل عدم الإزعاج',
-  'settings.notifications.categories': 'الفئات',
-  'settings.notifications.categoryFooter':
-    'يؤدي تعطيل فئة إلى إيقاف ظهور الإشعارات الجديدة من هذا النوع في مركز الإشعارات. تبقى الإشعارات الموجودة حتى مسحها.',
   'settings.billing.movedToWeb': 'انتقلت الفوترة إلى الويب',
   'settings.billing.openDashboard': 'فتح لوحة الفوترة',
   'settings.billing.movedToWebDesc':
@@ -7012,26 +6996,6 @@ const messages: TranslationMap = {
   'settings.mcpServer.tools.treeBrowse': 'يتصفّح بنية شجرة الذاكرة',
   'settings.mcpServer.tools.treeTopEntities': 'يحصل على أهم الكيانات من شجرة الذاكرة',
   'settings.mcpServer.tools.treeListSources': 'يسرد مصادر شجرة الذاكرة',
-  'settings.notifications.category.messages.title': 'الرسائل',
-  'settings.notifications.category.messages.desc':
-    'رسائل جديدة من حسابات العرض المضمّنة (Slack وWhatsApp وغيرها).',
-  'settings.notifications.category.agents.title': 'نشاط الوكلاء',
-  'settings.notifications.category.agents.desc': 'إكمال مهام الوكلاء والردود طويلة الأمد.',
-  'settings.notifications.category.skills.title': 'المهارات',
-  'settings.notifications.category.skills.desc': 'أحداث مزامنة المهارات وتغييرات حالة OAuth.',
-  'settings.notifications.category.system.title': 'النظام',
-  'settings.notifications.category.system.desc':
-    'مشكلات الاتصال، وأخطاء العملية الخلفية، والتحديثات.',
-  'settings.notifications.category.meetings.title': 'الاجتماعات',
-  'settings.notifications.category.meetings.desc':
-    'الاجتماعات القادمة وأحداث التقويم التي يكتشفها نبض التشغيل.',
-  'settings.notifications.category.reminders.title': 'التذكيرات',
-  'settings.notifications.category.reminders.desc':
-    'التذكيرات القادمة والمهام المجدولة من مهام cron.',
-  'settings.notifications.category.important.title': 'الأحداث المهمة',
-  'settings.notifications.category.important.desc':
-    'الأحداث العاجلة أو الحساسة زمنيًا من المصادر المتصلة.',
-  'settings.notifications.categoryToggleAria': 'تفعيل أو إيقاف إشعارات {name}',
   'settings.cron.jobs.runFinishedAt': '{status} في {time}',
   'settings.cron.jobs.scheduleAt': 'في {time}',
   'settings.cron.jobs.scheduleEvery': 'كل {ms} مللي ثانية',

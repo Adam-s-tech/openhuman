@@ -474,8 +474,6 @@ const messages: TranslationMap = {
   'settings.privacySecurity.approvalsHistory': 'Aprovações e histórico',
   'settings.privacySecurity.approvalsHistoryDesc':
     'Revisar decisões recentes de aprovação de ferramentas',
-  'settings.notifications.menuTitle': 'Notificações',
-  'settings.notifications.menuDesc': 'Caixa de entrada de alertas e preferências de notificações',
   'settings.devGroups.knowledgeMemory': 'Conhecimento e memória',
   'settings.devGroups.agentsAutonomy': 'Agentes e autonomia',
   'settings.devGroups.automationIntegrations': 'Automação e integrações',
@@ -540,10 +538,7 @@ const messages: TranslationMap = {
   'settings.dangerZone': 'Zona de Perigo',
   'settings.account': 'Conta',
   'settings.accountDesc': 'Frase de recuperação, equipe, conexões e privacidade',
-  'settings.notifications': 'Notificações',
   'settings.notificationsDesc': 'Não Perturbe e controles de notificação por conta',
-  'settings.notifications.tabs.preferences': 'Preferências',
-  'settings.notifications.tabs.routing': 'Roteamento',
   'settings.features': 'Recursos',
   'settings.aiModels': 'IA e Modelos',
   'settings.aiModelsDesc': 'Configuração de modelos de IA local, downloads e provedor LLM',
@@ -672,11 +667,6 @@ const messages: TranslationMap = {
     'Importar {count} entrada para o espaço de trabalho atual?\n\nOrigem: {source}\nDestino: {target}\n\nA memória existente será salva antes da importação.',
   'migration.confirmImport.plural':
     'Importar {count} entradas para o espaço de trabalho atual?\n\nOrigem: {source}\nDestino: {target}\n\nA memória existente será salva antes da importação.',
-  'settings.notifications.doNotDisturb': 'Não Perturbe',
-  'settings.notifications.doNotDisturbDesc': 'Pausar todas as notificações por um período definido',
-  'settings.notifications.channelControls': 'Controles por Canal',
-  'settings.notifications.channelControlsDesc':
-    'Configurar preferências de notificação para cada canal',
   'settings.features.messaging': 'Mensagens',
   'settings.features.messagingDesc': 'Configurações de integração de canais e mensagens',
   'settings.features.tools': 'Ferramentas',
@@ -2033,13 +2023,6 @@ const messages: TranslationMap = {
   'settings.ai.skillsOverview': 'Visão Geral das Habilidades',
   'settings.ai.refreshingAll': 'Atualizando Tudo...',
   'settings.ai.refreshAll': 'Atualizar Toda a Configuração de IA',
-  'settings.notifications.suppressAll': 'Suprimir todas as notificações',
-  'settings.notifications.suppressAllDesc':
-    'Bloquear todos os avisos de notificação do SO de apps incorporados independentemente do estado de foco.',
-  'settings.notifications.toggleDnd': 'Ativar/Desativar Não Perturbe',
-  'settings.notifications.categories': 'Categorias',
-  'settings.notifications.categoryFooter':
-    'Desativar uma categoria impede que novas notificações desse tipo apareçam na central de notificações. As notificações existentes permanecem até serem limpas.',
   'settings.billing.movedToWeb': 'Cobrança movida para a web',
   'settings.billing.openDashboard': 'Abrir painel de cobrança',
   'settings.billing.movedToWebDesc':
@@ -7289,28 +7272,6 @@ const messages: TranslationMap = {
   'settings.mcpServer.tools.treeBrowse': 'Explora a estrutura da árvore de memória',
   'settings.mcpServer.tools.treeTopEntities': 'Obtém as principais entidades da árvore de memória',
   'settings.mcpServer.tools.treeListSources': 'Lista as fontes da árvore de memória',
-  'settings.notifications.category.messages.title': 'Mensagens',
-  'settings.notifications.category.messages.desc':
-    'Novas mensagens de contas de webview incorporadas (Slack, WhatsApp, …).',
-  'settings.notifications.category.agents.title': 'Atividade dos agentes',
-  'settings.notifications.category.agents.desc':
-    'Conclusões de tarefas de agentes e respostas de longa duração.',
-  'settings.notifications.category.skills.title': 'Habilidades',
-  'settings.notifications.category.skills.desc':
-    'Eventos de sincronização de habilidades e mudanças de status do OAuth.',
-  'settings.notifications.category.system.title': 'Sistema',
-  'settings.notifications.category.system.desc':
-    'Problemas de conexão, erros do processo em segundo plano, atualizações.',
-  'settings.notifications.category.meetings.title': 'Reuniões',
-  'settings.notifications.category.meetings.desc':
-    'Próximas reuniões e eventos de calendário detectados pelo heartbeat.',
-  'settings.notifications.category.reminders.title': 'Lembretes',
-  'settings.notifications.category.reminders.desc':
-    'Próximos lembretes e tarefas agendadas de jobs cron.',
-  'settings.notifications.category.important.title': 'Eventos importantes',
-  'settings.notifications.category.important.desc':
-    'Eventos urgentes ou sensíveis ao tempo vindos de fontes conectadas.',
-  'settings.notifications.categoryToggleAria': 'Ativar ou desativar as notificações de {name}',
   'settings.cron.jobs.runFinishedAt': '{status} às {time}',
   'settings.cron.jobs.scheduleAt': 'às {time}',
   'settings.cron.jobs.scheduleEvery': 'a cada {ms}ms',

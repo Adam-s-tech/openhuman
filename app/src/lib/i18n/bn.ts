@@ -465,8 +465,6 @@ const messages: TranslationMap = {
   'settings.privacySecurity.approvalsHistory': 'অনুমোদন ও ইতিহাস',
   'settings.privacySecurity.approvalsHistoryDesc':
     'সাম্প্রতিক টুল-অনুমোদন সিদ্ধান্ত পর্যালোচনা করুন',
-  'settings.notifications.menuTitle': 'বিজ্ঞপ্তি',
-  'settings.notifications.menuDesc': 'সতর্কতা ইনবক্স ও বিজ্ঞপ্তি পছন্দ',
   'settings.devGroups.knowledgeMemory': 'জ্ঞান ও স্মৃতি',
   'settings.devGroups.agentsAutonomy': 'এজেন্ট ও স্বায়ত্তশাসন',
   'settings.devGroups.automationIntegrations': 'অটোমেশন ও ইন্টিগ্রেশন',
@@ -530,10 +528,7 @@ const messages: TranslationMap = {
   'settings.dangerZone': 'বিপদ অঞ্চল',
   'settings.account': 'অ্যাকাউন্ট',
   'settings.accountDesc': 'রিকভারি ফ্রেজ, টিম, সংযোগ ও গোপনীয়তা',
-  'settings.notifications': 'বিজ্ঞপ্তি',
   'settings.notificationsDesc': 'ডু নট ডিস্টার্ব এবং প্রতিটি অ্যাকাউন্টের বিজ্ঞপ্তি নিয়ন্ত্রণ',
-  'settings.notifications.tabs.preferences': 'পছন্দ',
-  'settings.notifications.tabs.routing': 'রাউটিং',
   'settings.features': 'ফিচার',
   'settings.aiModels': 'AI ও মডেল',
   'settings.aiModelsDesc': 'লোকাল AI মডেল সেটআপ, ডাউনলোড এবং LLM প্রোভাইডার',
@@ -657,10 +652,6 @@ const messages: TranslationMap = {
     'বর্তমান ওয়ার্কস্পেসে {count}টি এন্ট্রি আমদানি করবেন?\n\nউৎস: {source}\nলক্ষ্য: {target}\n\nআমদানির আগে বর্তমান মেমরির ব্যাকআপ নেওয়া হবে।',
   'migration.confirmImport.plural':
     'বর্তমান ওয়ার্কস্পেসে {count}টি এন্ট্রি আমদানি করবেন?\n\nউৎস: {source}\nলক্ষ্য: {target}\n\nআমদানির আগে বর্তমান মেমরির ব্যাকআপ নেওয়া হবে।',
-  'settings.notifications.doNotDisturb': 'ডু নট ডিস্টার্ব',
-  'settings.notifications.doNotDisturbDesc': 'নির্দিষ্ট সময়ের জন্য সব বিজ্ঞপ্তি বন্ধ রাখুন',
-  'settings.notifications.channelControls': 'চ্যানেল-ভিত্তিক নিয়ন্ত্রণ',
-  'settings.notifications.channelControlsDesc': 'প্রতিটি চ্যানেলের জন্য বিজ্ঞপ্তি পছন্দ সেট করুন',
   'settings.features.messaging': 'মেসেজিং',
   'settings.features.messagingDesc': 'চ্যানেল ও মেসেজিং ইন্টিগ্রেশন সেটিংস',
   'settings.features.tools': 'টুলস',
@@ -1988,13 +1979,6 @@ const messages: TranslationMap = {
   'settings.ai.skillsOverview': 'স্কিলস ওভারভিউ',
   'settings.ai.refreshingAll': 'সব রিফ্রেশ হচ্ছে...',
   'settings.ai.refreshAll': 'সব AI কনফিগারেশন রিফ্রেশ করুন',
-  'settings.notifications.suppressAll': 'সব বিজ্ঞপ্তি দমন করুন',
-  'settings.notifications.suppressAllDesc':
-    'ফোকাস স্টেট নির্বিশেষে এম্বেডেড অ্যাপ থেকে সব OS বিজ্ঞপ্তি টোস্ট ব্লক করুন।',
-  'settings.notifications.toggleDnd': 'ডু নট ডিস্টার্ব টগল করুন',
-  'settings.notifications.categories': 'ক্যাটাগরি',
-  'settings.notifications.categoryFooter':
-    'একটি ক্যাটাগরি নিষ্ক্রিয় করলে সেই ধরনের নতুন বিজ্ঞপ্তি বিজ্ঞপ্তি কেন্দ্রে আর দেখাবে না। বিদ্যমান বিজ্ঞপ্তিগুলো পরিষ্কার না করা পর্যন্ত থাকবে।',
   'settings.billing.movedToWeb': 'বিলিং ওয়েবে সরানো হয়েছে',
   'settings.billing.openDashboard': 'বিলিং ড্যাশবোর্ড খুলুন',
   'settings.billing.movedToWebDesc':
@@ -7168,28 +7152,6 @@ const messages: TranslationMap = {
   'settings.mcpServer.tools.treeBrowse': 'মেমরি ট্রি-র গঠন ব্রাউজ করে',
   'settings.mcpServer.tools.treeTopEntities': 'মেমরি ট্রি থেকে শীর্ষ এনটিটি পায়',
   'settings.mcpServer.tools.treeListSources': 'মেমরি ট্রি-র উৎসের তালিকা দেয়',
-  'settings.notifications.category.messages.title': 'বার্তা',
-  'settings.notifications.category.messages.desc':
-    'এমবেডেড ওয়েবভিউ অ্যাকাউন্ট (Slack, WhatsApp, …) থেকে নতুন বার্তা।',
-  'settings.notifications.category.agents.title': 'এজেন্ট কার্যকলাপ',
-  'settings.notifications.category.agents.desc':
-    'এজেন্ট কাজ সম্পন্ন হওয়া এবং দীর্ঘ সময়ের প্রতিক্রিয়া।',
-  'settings.notifications.category.skills.title': 'দক্ষতা',
-  'settings.notifications.category.skills.desc':
-    'দক্ষতা সিঙ্ক ইভেন্ট এবং OAuth স্ট্যাটাস পরিবর্তন।',
-  'settings.notifications.category.system.title': 'সিস্টেম',
-  'settings.notifications.category.system.desc':
-    'সংযোগ সমস্যা, ব্যাকগ্রাউন্ড প্রক্রিয়ার ত্রুটি, আপডেট।',
-  'settings.notifications.category.meetings.title': 'মিটিং',
-  'settings.notifications.category.meetings.desc':
-    'আসন্ন মিটিং এবং হার্টবিট দ্বারা শনাক্ত ক্যালেন্ডার ইভেন্ট।',
-  'settings.notifications.category.reminders.title': 'রিমাইন্ডার',
-  'settings.notifications.category.reminders.desc':
-    'আসন্ন রিমাইন্ডার এবং cron জব থেকে নির্ধারিত কাজ।',
-  'settings.notifications.category.important.title': 'গুরুত্বপূর্ণ ইভেন্ট',
-  'settings.notifications.category.important.desc':
-    'সংযুক্ত উৎস থেকে জরুরি বা সময়-সংবেদনশীল ইভেন্ট।',
-  'settings.notifications.categoryToggleAria': '{name} বিজ্ঞপ্তি চালু বা বন্ধ করুন',
   'settings.cron.jobs.runFinishedAt': '{time}-এ {status}',
   'settings.cron.jobs.scheduleAt': '{time}-এ',
   'settings.cron.jobs.scheduleEvery': 'প্রতি {ms}ms',

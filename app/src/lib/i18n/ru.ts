@@ -472,8 +472,6 @@ const messages: TranslationMap = {
   'settings.privacySecurity.approvalsHistory': 'Подтверждения и история',
   'settings.privacySecurity.approvalsHistoryDesc':
     'Просмотр недавних решений об одобрении инструментов',
-  'settings.notifications.menuTitle': 'Уведомления',
-  'settings.notifications.menuDesc': 'Входящие оповещения и настройки уведомлений',
   'settings.devGroups.knowledgeMemory': 'Знания и память',
   'settings.devGroups.agentsAutonomy': 'Агенты и автономия',
   'settings.devGroups.automationIntegrations': 'Автоматизация и интеграции',
@@ -537,11 +535,8 @@ const messages: TranslationMap = {
   'settings.dangerZone': 'Опасная зона',
   'settings.account': 'Аккаунт',
   'settings.accountDesc': 'Фраза восстановления, команда, подключения и конфиденциальность',
-  'settings.notifications': 'Уведомления',
   'settings.notificationsDesc':
     'Режим «Не беспокоить» и настройки уведомлений для каждого аккаунта',
-  'settings.notifications.tabs.preferences': 'Настройки',
-  'settings.notifications.tabs.routing': 'Маршрутизация',
   'settings.features': 'Функции',
   'settings.aiModels': 'AI и модели',
   'settings.aiModelsDesc': 'Настройка локальных AI-моделей, загрузки и LLM-провайдер',
@@ -668,10 +663,6 @@ const messages: TranslationMap = {
     'Импортировать {count} запись в текущее рабочее пространство?\n\nИсточник: {source}\nЦель: {target}\n\nПеред импортом будет сохранена резервная копия памяти.',
   'migration.confirmImport.plural':
     'Импортировать {count} записей в текущее рабочее пространство?\n\nИсточник: {source}\nЦель: {target}\n\nПеред импортом будет сохранена резервная копия памяти.',
-  'settings.notifications.doNotDisturb': 'Не беспокоить',
-  'settings.notifications.doNotDisturbDesc': 'Отключить все уведомления на заданный период',
-  'settings.notifications.channelControls': 'По каналам',
-  'settings.notifications.channelControlsDesc': 'Настройка уведомлений для каждого канала',
   'settings.features.messaging': 'Мессенджеры',
   'settings.features.messagingDesc': 'Настройки каналов и интеграции мессенджеров',
   'settings.features.tools': 'Инструменты',
@@ -2010,13 +2001,6 @@ const messages: TranslationMap = {
   'settings.ai.skillsOverview': 'Обзор навыков',
   'settings.ai.refreshingAll': 'Обновление всего...',
   'settings.ai.refreshAll': 'Обновить всю конфигурацию AI',
-  'settings.notifications.suppressAll': 'Отключить все уведомления',
-  'settings.notifications.suppressAllDesc':
-    'Блокировать все всплывающие уведомления ОС из встроенных приложений независимо от фокуса.',
-  'settings.notifications.toggleDnd': 'Включить/выключить «Не беспокоить»',
-  'settings.notifications.categories': 'Категории',
-  'settings.notifications.categoryFooter':
-    'Отключение категории останавливает появление новых уведомлений этого типа в центре уведомлений. Существующие уведомления остаются до их очистки.',
   'settings.billing.movedToWeb': 'Оплата перенесена на сайт',
   'settings.billing.openDashboard': 'Открыть панель оплаты',
   'settings.billing.movedToWebDesc':
@@ -7242,27 +7226,6 @@ const messages: TranslationMap = {
   'settings.mcpServer.tools.treeBrowse': 'Просматривает структуру дерева памяти',
   'settings.mcpServer.tools.treeTopEntities': 'Получает главные сущности из дерева памяти',
   'settings.mcpServer.tools.treeListSources': 'Выводит список источников дерева памяти',
-  'settings.notifications.category.messages.title': 'Сообщения',
-  'settings.notifications.category.messages.desc':
-    'Новые сообщения из встроенных webview-аккаунтов (Slack, WhatsApp, …).',
-  'settings.notifications.category.agents.title': 'Активность агентов',
-  'settings.notifications.category.agents.desc': 'Завершённые задачи агентов и длительные ответы.',
-  'settings.notifications.category.skills.title': 'Навыки',
-  'settings.notifications.category.skills.desc':
-    'События синхронизации навыков и изменения статуса OAuth.',
-  'settings.notifications.category.system.title': 'Система',
-  'settings.notifications.category.system.desc':
-    'Проблемы соединения, ошибки фонового процесса, обновления.',
-  'settings.notifications.category.meetings.title': 'Встречи',
-  'settings.notifications.category.meetings.desc':
-    'Предстоящие встречи и события календаря, обнаруженные heartbeat.',
-  'settings.notifications.category.reminders.title': 'Напоминания',
-  'settings.notifications.category.reminders.desc':
-    'Предстоящие напоминания и запланированные задачи из cron-заданий.',
-  'settings.notifications.category.important.title': 'Важные события',
-  'settings.notifications.category.important.desc':
-    'Срочные или чувствительные ко времени события из подключённых источников.',
-  'settings.notifications.categoryToggleAria': 'Включить или выключить уведомления {name}',
   'settings.cron.jobs.runFinishedAt': '{status} в {time}',
   'settings.cron.jobs.scheduleAt': 'в {time}',
   'settings.cron.jobs.scheduleEvery': 'каждые {ms}мс',
