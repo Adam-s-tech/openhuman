@@ -20,7 +20,7 @@ Client-side webhook **tunnel routing** for OpenHuman. The backend provisions and
 | `crates/openhuman-core/src/skills/webhooks/mod.rs` | Export-only: module docstring, `pub mod` decls, re-exports of `WebhookRouter`, types, and the `all_webhooks_*` controller pair. |
 | `crates/openhuman-core/src/skills/webhooks/types.rs` | Serde domain types: `WebhookRequest`, `WebhookResponseData`, `TunnelRegistration`, `WebhookActivityEntry`, `WebhookDebugLogEntry`, debug result wrappers, `WebhookDebugEvent`. |
 | `crates/openhuman-core/src/skills/webhooks/router.rs` | `WebhookRouter` — route map + ownership rules, disk persistence (generation-counter, spawn_blocking offload), bounded debug log ring (`MAX_DEBUG_LOG_ENTRIES = 250`), debug-event broadcast channel. |
-| `crates/openhuman-core/src/skills/webhooks/ops.rs` | RPC handler logic returning `RpcOutcome<T>`: local routing ops (`list_registrations`, `list_logs`, `clear_logs`, `register_echo`, `unregister_echo`, `register_agent`, `trigger_agent`), `build_echo_response`, and backend-proxied tunnel CRUD (`list/create/get/update/delete_tunnel`, `get_bandwidth`). |
+| `crates/openhuman-core/src/skills/webhooks/ops.rs` | RPC handler logic returning `Outcome<T>`: local routing ops (`list_registrations`, `list_logs`, `clear_logs`, `register_echo`, `unregister_echo`, `register_agent`, `trigger_agent`), `build_echo_response`, and backend-proxied tunnel CRUD (`list/create/get/update/delete_tunnel`, `get_bandwidth`). |
 | `crates/openhuman-core/src/skills/webhooks/schemas.rs` | Controller schemas + `handle_*` fns + `all_controller_schemas` / `all_registered_controllers`; deserializes params, delegates to `ops.rs`. |
 | `crates/openhuman-core/src/skills/webhooks/bus.rs` | `WebhookRequestSubscriber` (`EventHandler`) — the incoming-request routing flow; helpers `decode_webhook_body`, `run_agent_trigger`, `build_agent_response`. |
 | `crates/openhuman-core/src/skills/webhooks/{webhooks_tests,bus_tests,ops_tests,router_tests,schemas_tests,types_tests}.rs` | Test suites, each pulled into its sibling source file via `#[cfg(test)] #[path = "..."] mod tests;` (no inline test modules). |
@@ -88,7 +88,7 @@ Note that nothing in the production startup path currently constructs a `Webhook
 - `crate::agent::triage` — `TriggerEnvelope`, `run_triage`, `apply_decision`, `TriageOutcome` for agent-tunnel routing and `trigger_agent`.
 - `crate::config::{Config, rpc::load_config_with_timeout}` — config for backend-proxy RPCs.
 - `crate::api::{BackendOAuthClient, config::effective_backend_api_url, jwt::get_session_token}` — authenticated backend tunnel CRUD/bandwidth calls.
-- `crate::rpc::RpcOutcome` — handler return contract.
+- `crate::rpc::Outcome` — handler return contract.
 
 ## Used by
 

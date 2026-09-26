@@ -8,7 +8,7 @@ use crate::config::rpc as config_rpc;
 use crate::config::Config;
 use crate::core::all::{ControllerFuture, RegisteredController};
 use crate::core::{ControllerSchema, FieldSchema, TypeSchema};
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 use super::backend::OpenHumanChannelBackend;
 use super::definitions::ChannelAuthMode;
@@ -240,7 +240,7 @@ pub fn schemas(function: &str) -> ControllerSchema {
 fn handle_list(_params: Map<String, Value>) -> ControllerFuture {
     Box::pin(async move {
         let manager = ChannelManager::new(ChannelsConfig::default(), ());
-        to_json(RpcOutcome::new(manager.list_definitions(), vec![]))
+        to_json(Outcome::new(manager.list_definitions(), vec![]))
     })
 }
 
@@ -252,7 +252,7 @@ fn handle_describe(params: Map<String, Value>) -> ControllerFuture {
         let definition = manager
             .describe(channel)
             .ok_or_else(|| format!("unknown channel: {channel}"))?;
-        to_json(RpcOutcome::new(definition, vec![]))
+        to_json(Outcome::new(definition, vec![]))
     })
 }
 
@@ -272,7 +272,7 @@ fn handle_connect(params: Map<String, Value>) -> ControllerFuture {
             .await
             .map_err(|e| e.to_string())?;
         let logs = connect_logs(channel, mode, result.auth_action.is_some());
-        to_json(RpcOutcome::new(result, logs))
+        to_json(Outcome::new(result, logs))
     })
 }
 
@@ -290,7 +290,7 @@ fn handle_disconnect(params: Map<String, Value>) -> ControllerFuture {
             .disconnect(channel, mode, p.clear_memory)
             .await
             .map_err(|e| e.to_string())?;
-        to_json(RpcOutcome::single_log(
+        to_json(Outcome::single_log(
             raw_or_typed(result.raw.clone(), &result)?,
             format!(
                 "removed credentials for {}",
@@ -315,7 +315,7 @@ fn handle_status(params: Map<String, Value>) -> ControllerFuture {
             .filter(|s| !s.is_empty());
         let manager = openhuman_channel_manager(config);
         let result = manager.status(filter).await.map_err(|e| e.to_string())?;
-        to_json(RpcOutcome::new(result, vec![]))
+        to_json(Outcome::new(result, vec![]))
     })
 }
 
@@ -330,7 +330,7 @@ fn handle_set_default(params: Map<String, Value>) -> ControllerFuture {
             .await
             .map_err(|e| e.to_string())?;
         let canonical = channel.to_ascii_lowercase();
-        to_json(RpcOutcome::single_log(
+        to_json(Outcome::single_log(
             serde_json::json!({ "active_channel": canonical, "restart_required": false }),
             format!("default messaging channel set to {canonical}"),
         ))
@@ -346,7 +346,7 @@ fn handle_get_default(_params: Map<String, Value>) -> ControllerFuture {
             .await
             .map_err(|e| e.to_string())?
             .unwrap_or_else(|| "web".to_string());
-        to_json(RpcOutcome::new(
+        to_json(Outcome::new(
             serde_json::json!({ "active_channel": active }),
             vec![],
         ))
@@ -366,7 +366,7 @@ fn handle_test(params: Map<String, Value>) -> ControllerFuture {
             .test(p.channel.trim(), mode, p.credentials)
             .await
             .map_err(|e| e.to_string())?;
-        to_json(RpcOutcome::new(result, vec![]))
+        to_json(Outcome::new(result, vec![]))
     })
 }
 
@@ -378,7 +378,7 @@ fn handle_telegram_login_start(_params: Map<String, Value>) -> ControllerFuture 
             .telegram_login_start()
             .await
             .map_err(|e| e.to_string())?;
-        to_json(RpcOutcome::new(result, vec![]))
+        to_json(Outcome::new(result, vec![]))
     })
 }
 
@@ -391,7 +391,7 @@ fn handle_telegram_login_check(params: Map<String, Value>) -> ControllerFuture {
             .telegram_login_check(p.link_token.trim())
             .await
             .map_err(|e| e.to_string())?;
-        to_json(RpcOutcome::new(result, vec![]))
+        to_json(Outcome::new(result, vec![]))
     })
 }
 
@@ -403,7 +403,7 @@ fn handle_discord_link_start(_params: Map<String, Value>) -> ControllerFuture {
             .discord_link_start()
             .await
             .map_err(|e| e.to_string())?;
-        to_json(RpcOutcome::new(result, vec![]))
+        to_json(Outcome::new(result, vec![]))
     })
 }
 
@@ -416,7 +416,7 @@ fn handle_discord_link_check(params: Map<String, Value>) -> ControllerFuture {
             .discord_link_check(p.link_token.trim())
             .await
             .map_err(|e| e.to_string())?;
-        to_json(RpcOutcome::new(result, vec![]))
+        to_json(Outcome::new(result, vec![]))
     })
 }
 
@@ -428,7 +428,7 @@ fn handle_discord_list_guilds(_params: Map<String, Value>) -> ControllerFuture {
             .discord_list_guilds()
             .await
             .map_err(|e| e.to_string())?;
-        to_json(RpcOutcome::single_log(
+        to_json(Outcome::single_log(
             raw_or_typed(result.raw.clone(), &result)?,
             "discord guilds listed",
         ))
@@ -445,7 +445,7 @@ fn handle_discord_list_channels(params: Map<String, Value>) -> ControllerFuture 
             .discord_list_channels(guild_id)
             .await
             .map_err(|e| e.to_string())?;
-        to_json(RpcOutcome::single_log(
+        to_json(Outcome::single_log(
             raw_or_typed(result.raw.clone(), &result)?,
             format!("discord channels listed for guild {guild_id}"),
         ))
@@ -463,7 +463,7 @@ fn handle_discord_check_permissions(params: Map<String, Value>) -> ControllerFut
             .discord_check_permissions(guild_id, channel_id)
             .await
             .map_err(|e| e.to_string())?;
-        to_json(RpcOutcome::single_log(
+        to_json(Outcome::single_log(
             raw_or_typed(result.raw.clone(), &result)?,
             format!("discord permissions checked for channel {channel_id}"),
         ))
@@ -479,7 +479,7 @@ fn handle_send_message(params: Map<String, Value>) -> ControllerFuture {
             .send_message_value(p.channel.trim(), p.message)
             .await
             .map_err(|e| e.to_string())?;
-        to_json(RpcOutcome::new(
+        to_json(Outcome::new(
             raw_or_typed(result.raw.clone(), &result)?,
             vec![],
         ))
@@ -495,7 +495,7 @@ fn handle_send_reaction(params: Map<String, Value>) -> ControllerFuture {
             .send_reaction(p.channel.trim(), p.reaction)
             .await
             .map_err(|e| e.to_string())?;
-        to_json(RpcOutcome::new(
+        to_json(Outcome::new(
             raw_or_typed(result.raw.clone(), &result)?,
             vec![],
         ))
@@ -511,7 +511,7 @@ fn handle_create_thread(params: Map<String, Value>) -> ControllerFuture {
             .create_thread(p.channel.trim(), p.title.trim())
             .await
             .map_err(|e| e.to_string())?;
-        to_json(RpcOutcome::new(
+        to_json(Outcome::new(
             raw_or_typed(result.raw.clone(), &result)?,
             vec![],
         ))
@@ -527,7 +527,7 @@ fn handle_update_thread(params: Map<String, Value>) -> ControllerFuture {
             .update_thread(p.channel.trim(), p.thread_id.trim(), p.action.trim())
             .await
             .map_err(|e| e.to_string())?;
-        to_json(RpcOutcome::new(
+        to_json(Outcome::new(
             raw_or_typed(result.raw.clone(), &result)?,
             vec![],
         ))
@@ -543,7 +543,7 @@ fn handle_list_threads(params: Map<String, Value>) -> ControllerFuture {
             .list_threads(p.channel.trim(), p.active)
             .await
             .map_err(|e| e.to_string())?;
-        to_json(RpcOutcome::new(
+        to_json(Outcome::new(
             raw_or_typed(result.raw.clone(), &result)?,
             vec![],
         ))
@@ -580,7 +580,7 @@ fn raw_or_typed<T: serde::Serialize>(raw: Option<Value>, typed: &T) -> Result<Va
         .unwrap_or_else(|| serde_json::to_value(typed).map_err(|e| e.to_string()))
 }
 
-fn to_json<T: serde::Serialize>(outcome: RpcOutcome<T>) -> Result<Value, String> {
+fn to_json<T: serde::Serialize>(outcome: Outcome<T>) -> Result<Value, String> {
     outcome.into_cli_compatible_json()
 }
 

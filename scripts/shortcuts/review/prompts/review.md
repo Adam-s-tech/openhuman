@@ -33,7 +33,7 @@ Skipping this produces shallow reviews that miss architectural issues.
 
 ## 3. Analyze against these axes
 
-**Correctness** — logic bugs, off-by-one, null/undefined, async/await misuse, race conditions, error propagation (`Result<T>` / `RpcOutcome<T>` / thrown errors).
+**Correctness** — logic bugs, off-by-one, null/undefined, async/await misuse, race conditions, error propagation (`Result<T>` / `Outcome<T>` / thrown errors).
 
 **Project standards** (from `CLAUDE.md`)
 - New Rust functionality lives in a subdirectory under `crates/openhuman-core/src/`, not root-level `.rs` files.
@@ -126,7 +126,7 @@ Review body structure:
 - `path/to/file.ts:88` — <question>
 
 ## Verified / looks good
-- Error paths in `foo.rs` propagate `RpcOutcome<T>` correctly.
+- Error paths in `foo.rs` propagate `Outcome<T>` correctly.
 - New Vitest in `Foo.test.tsx` exercises empty + error states.
 ````
 

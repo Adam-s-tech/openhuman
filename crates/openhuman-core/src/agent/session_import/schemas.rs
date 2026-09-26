@@ -5,7 +5,7 @@ use serde_json::{Map, Value};
 
 use crate::core::all::{ControllerFuture, RegisteredController};
 use crate::core::{ControllerSchema, FieldSchema, TypeSchema};
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 use super::ops::run_import;
 use super::types::ImportOptions;
@@ -116,7 +116,7 @@ fn handle_session_import_run(params: Map<String, Value>) -> ControllerFuture {
             .await
             .map_err(|e| format!("session import failed: {e:#}"))?;
         let logs = summary.warnings.clone();
-        RpcOutcome::new(summary, logs).into_cli_compatible_json()
+        Outcome::new(summary, logs).into_cli_compatible_json()
     })
 }
 

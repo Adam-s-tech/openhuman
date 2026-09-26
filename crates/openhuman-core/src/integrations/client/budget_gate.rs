@@ -19,7 +19,7 @@ use serde_json::Value;
 use crate::api::config::effective_backend_api_url;
 use crate::api::BackendOAuthClient;
 use crate::config::Config;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 /// Fetch `GET /teams/me/usage` with the live backend credential.
 ///
@@ -101,7 +101,7 @@ impl UsageFailureCache {
 
 static USAGE_FAILURE_CACHE: UsageFailureCache = UsageFailureCache::new();
 
-pub async fn get_usage(config: &Config) -> Result<RpcOutcome<Value>, String> {
+pub async fn get_usage(config: &Config) -> Result<Outcome<Value>, String> {
     // Key the failure backoff by the effective backend URL so a failure on one
     // backend never suppresses probes after the backend is re-pointed (#4153).
     let backend_key = effective_backend_api_url(&config.api_url);
@@ -132,7 +132,7 @@ async fn get_usage_with_cache<F, Fut>(
     ttl: Duration,
     now: Instant,
     fetch: F,
-) -> Result<RpcOutcome<Value>, String>
+) -> Result<Outcome<Value>, String>
 where
     F: FnOnce() -> Fut,
     Fut: std::future::Future<Output = Result<Value, String>>,
@@ -150,7 +150,7 @@ where
     match fetch().await {
         Ok(data) => {
             cache.clear();
-            Ok(RpcOutcome::single_log(
+            Ok(Outcome::single_log(
                 data,
                 "team usage fetched from backend",
             ))

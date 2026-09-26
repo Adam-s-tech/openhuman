@@ -7,7 +7,7 @@ use crate::memory::sources::apply_kind_defaults;
 use crate::memory::sources::readers;
 use crate::memory::sources::registry::{self, MemorySourcePatch};
 use crate::memory::sources::types::{MemorySourceEntry, SourceKind};
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 // ── List ──
 
@@ -16,7 +16,7 @@ pub struct ListResponse {
     pub sources: Vec<MemorySourceEntry>,
 }
 
-pub async fn list_rpc() -> Result<RpcOutcome<ListResponse>, String> {
+pub async fn list_rpc() -> Result<Outcome<ListResponse>, String> {
     tracing::debug!("[memory_sources] list_rpc: entry");
     // Lazily reconcile Composio connections into the registry so users
     // see freshly-connected integrations as memory sources immediately,
@@ -39,7 +39,7 @@ pub async fn list_rpc() -> Result<RpcOutcome<ListResponse>, String> {
         returned = filtered.len(),
         "[memory_sources] list_rpc: filtered listing to active connections"
     );
-    Ok(RpcOutcome::new(ListResponse { sources: filtered }, vec![]))
+    Ok(Outcome::new(ListResponse { sources: filtered }, vec![]))
 }
 
 /// Filter the registry listing down to the live, deduplicated set of sources.
@@ -97,10 +97,10 @@ pub struct GetResponse {
     pub source: Option<MemorySourceEntry>,
 }
 
-pub async fn get_rpc(req: GetRequest) -> Result<RpcOutcome<GetResponse>, String> {
+pub async fn get_rpc(req: GetRequest) -> Result<Outcome<GetResponse>, String> {
     tracing::debug!(id = %req.id, "[memory_sources] get_rpc: entry");
     let source = registry::get_source(&req.id).await?;
-    Ok(RpcOutcome::new(GetResponse { source }, vec![]))
+    Ok(Outcome::new(GetResponse { source }, vec![]))
 }
 
 // ── Add ──
@@ -158,7 +158,7 @@ pub struct AddResponse {
     pub source: MemorySourceEntry,
 }
 
-pub async fn add_rpc(req: AddRequest) -> Result<RpcOutcome<AddResponse>, String> {
+pub async fn add_rpc(req: AddRequest) -> Result<Outcome<AddResponse>, String> {
     tracing::info!(
         kind = %req.kind.as_str(),
         label = %req.label,
@@ -193,7 +193,7 @@ pub async fn add_rpc(req: AddRequest) -> Result<RpcOutcome<AddResponse>, String>
     apply_kind_defaults(&mut entry);
 
     let source = registry::add_source(entry).await?;
-    Ok(RpcOutcome::new(AddResponse { source }, vec![]))
+    Ok(Outcome::new(AddResponse { source }, vec![]))
 }
 
 // ── Update ──
@@ -210,10 +210,10 @@ pub struct UpdateResponse {
     pub source: MemorySourceEntry,
 }
 
-pub async fn update_rpc(req: UpdateRequest) -> Result<RpcOutcome<UpdateResponse>, String> {
+pub async fn update_rpc(req: UpdateRequest) -> Result<Outcome<UpdateResponse>, String> {
     tracing::info!(id = %req.id, "[memory_sources] update_rpc: entry");
     let source = registry::update_source(&req.id, req.patch).await?;
-    Ok(RpcOutcome::new(UpdateResponse { source }, vec![]))
+    Ok(Outcome::new(UpdateResponse { source }, vec![]))
 }
 
 // ── Remove ──
@@ -228,10 +228,10 @@ pub struct RemoveResponse {
     pub removed: bool,
 }
 
-pub async fn remove_rpc(req: RemoveRequest) -> Result<RpcOutcome<RemoveResponse>, String> {
+pub async fn remove_rpc(req: RemoveRequest) -> Result<Outcome<RemoveResponse>, String> {
     tracing::info!(id = %req.id, "[memory_sources] remove_rpc: entry");
     let removed = registry::remove_source(&req.id).await?;
-    Ok(RpcOutcome::new(RemoveResponse { removed }, vec![]))
+    Ok(Outcome::new(RemoveResponse { removed }, vec![]))
 }
 
 // ── List Items ──
@@ -248,7 +248,7 @@ pub struct ListItemsResponse {
 
 pub async fn list_items_rpc(
     req: ListItemsRequest,
-) -> Result<RpcOutcome<ListItemsResponse>, String> {
+) -> Result<Outcome<ListItemsResponse>, String> {
     tracing::debug!(source_id = %req.source_id, "[memory_sources] list_items_rpc: entry");
 
     let source = registry::get_source(&req.source_id)
@@ -259,7 +259,7 @@ pub async fn list_items_rpc(
     let reader = readers::reader_for(&source.kind);
     let items = reader.list_items(&source, &config).await?;
 
-    Ok(RpcOutcome::new(ListItemsResponse { items }, vec![]))
+    Ok(Outcome::new(ListItemsResponse { items }, vec![]))
 }
 
 // ── Read Item ──
@@ -275,7 +275,7 @@ pub struct ReadItemResponse {
     pub content: crate::memory::sources::types::SourceContent,
 }
 
-pub async fn read_item_rpc(req: ReadItemRequest) -> Result<RpcOutcome<ReadItemResponse>, String> {
+pub async fn read_item_rpc(req: ReadItemRequest) -> Result<Outcome<ReadItemResponse>, String> {
     tracing::debug!(
         source_id = %req.source_id,
         item_id = %req.item_id,
@@ -290,5 +290,5 @@ pub async fn read_item_rpc(req: ReadItemRequest) -> Result<RpcOutcome<ReadItemRe
     let reader = readers::reader_for(&source.kind);
     let content = reader.read_item(&source, &req.item_id, &config).await?;
 
-    Ok(RpcOutcome::new(ReadItemResponse { content }, vec![]))
+    Ok(Outcome::new(ReadItemResponse { content }, vec![]))
 }

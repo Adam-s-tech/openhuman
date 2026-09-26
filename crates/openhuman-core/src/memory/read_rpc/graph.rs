@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::config::Config;
 use crate::memory::api::provider::ChunkQuery;
 use crate::memory::api::tree::{TreeLeaf, TreeSummary};
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 // `MemoryGraph` in the contract is the key/value and relation tier, a different
 // graph from the one exported here: the summary forest and its leaf chunks,
@@ -81,7 +81,7 @@ const CHUNK_LABEL_CHARS: usize = 72;
 pub async fn graph_export_rpc(
     config: &Config,
     mode: GraphMode,
-) -> Result<RpcOutcome<GraphExportResponse>, String> {
+) -> Result<Outcome<GraphExportResponse>, String> {
     log::debug!("[memory_tree::read::graph_export] mode={mode:?}");
 
     // No `spawn_blocking`: every read below is a driver call, the driver owns
@@ -107,7 +107,7 @@ pub async fn graph_export_rpc(
         resp.edges.len(),
         crate::util::redact::redact(&resp.content_root_abs),
     );
-    Ok(RpcOutcome::single_log(resp, log))
+    Ok(Outcome::single_log(resp, log))
 }
 
 // ── collect_tree_graph ───────────────────────────────────────────────────

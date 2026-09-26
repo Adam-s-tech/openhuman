@@ -186,7 +186,7 @@ pub(super) fn classify_failure(message: &str, expected_user_state: bool) -> Fail
         FailureDisposition::ExpectedUserState
     } else if is_wallet_not_configured_error(message) {
         FailureDisposition::WalletNotConfigured
-    } else if crate::rpc::is_param_validation_error(message) {
+    } else if crate::core::params::is_param_validation_error(message) {
         FailureDisposition::ParamValidation
     } else if is_session_expired_error(message) {
         FailureDisposition::SessionExpired

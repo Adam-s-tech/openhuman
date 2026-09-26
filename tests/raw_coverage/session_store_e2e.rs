@@ -247,7 +247,7 @@ fn catalog_has(catalog: &Value, method: &str) -> bool {
         .any(|entry| entry.get("method").and_then(Value::as_str) == Some(method))
 }
 
-/// The payload of a successful dispatch, unwrapping the `RpcOutcome`
+/// The payload of a successful dispatch, unwrapping the `Outcome`
 /// `{ result, logs }` envelope when the handler produced one.
 fn payload(value: &Value, context: &str) -> Value {
     if let Some(error) = value.get("error") {

@@ -37,7 +37,7 @@ Keeping the two surfaces in lockstep is enforced by the disabled-build check
 | --- | --- |
 | `mod.rs` | Module docstring, feature gate, and exports; re-exports inference-side voice submodules (`cloud_transcribe`, `local_speech`, `postprocess`, `streaming`); defines `cloud_transcribe_default_model()` (`"whisper-v1"`). |
 | `types.rs` | RPC DTOs: `VoiceSpeechResult`, `VoiceTtsResult`, `VoiceStatus` + `From<LocalAi*>` conversions. |
-| `ops.rs` | Business logic returning `RpcOutcome<T>`: `voice_status`, `voice_transcribe`, `voice_transcribe_bytes`, `voice_tts`, `normalize_extension`. |
+| `ops.rs` | Business logic returning `Outcome<T>`: `voice_status`, `voice_transcribe`, `voice_transcribe_bytes`, `voice_tts`, `normalize_extension`. |
 | `factory/` | `SttProvider` / `TtsProvider` traits; cloud/piper/external implementations; `create_stt_provider` / `create_tts_provider`; `effective_*_provider`; slug:model parsing; `DEFAULT_STT_MODEL`, `DEFAULT_PIPER_VOICE`. Split into `entry.rs` (public entry points + constants), `traits.rs`, `stt_providers.rs` (`CloudSttProvider`, `ExternalSttProvider`), `tts_providers.rs` (`CloudTtsProvider`, `PiperTtsProvider`, `ExternalTtsProvider`), `helpers.rs` (`split_slug_model`, `effective_*_provider`, slug-keyed lookup in `config.voice_providers`). |
 | `schemas/` | Controller schemas, registry exports, and all `handle_voice_*` / `handle_overlay_stt_notify` RPC handlers. Split into `registry.rs`, `params.rs`, `helpers.rs`, `handlers.rs` (+ `handlers/provider_server.rs`, `handlers/transcribe_tts.rs`). |
 | `server.rs` (+ `server/runtime.rs`, `server/pipeline.rs`, `server/hotkey_listener.rs`, `server/singleton.rs`, `server/types.rs`) | The `VoiceServer` dictation runtime: hotkey event loop, recording lifecycle, duration/silence/hallucination gates, background processing, global singleton (`global_server` / `try_global_server` / `start_if_enabled` / `run_standalone`, all in `server/singleton.rs`). |
@@ -144,7 +144,7 @@ transcription count, rolling recent-transcript buffer for context) behind a
 - `crate::desktop::accessibility` (macOS only) — focused-text inspection (`focused_text_context_verbose`) and the Swift globe-key listener (`globe_listener_start` / `globe_listener_poll`) used in place of rdev for the Fn key.
 - `crate::api` — `BackendOAuthClient`, `effective_backend_api_url`, `get_session_token` for backend-proxied reply-speech and the realtime signed-URL bootstrap.
 - `crate::modules::voice` (`tinyvoice`) — see Contract crates above.
-- `crate::core::all` (`ControllerFuture`, `RegisteredController`), `crate::core::{ControllerSchema, FieldSchema, TypeSchema}`, `crate::core::bus::BUS` + `crate::core::events` (event publishing), `crate::core::logging` (CLI run init), and `crate::rpc::RpcOutcome`.
+- `crate::core::all` (`ControllerFuture`, `RegisteredController`), `crate::core::{ControllerSchema, FieldSchema, TypeSchema}`, `crate::core::bus::BUS` + `crate::core::events` (event publishing), `crate::core::logging` (CLI run init), and `crate::rpc::Outcome`.
 - External crates: `cpal` (capture), `rdev` (hotkeys), `enigo` + `arboard` (paste insertion), `reqwest` (external provider HTTP + realtime bootstrap), `tokio`/`tokio-util`, `once_cell`.
 
 ## Used by

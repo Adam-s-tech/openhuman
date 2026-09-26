@@ -15,7 +15,7 @@ use serde_json::Value;
 
 use crate::core::all::RegisteredController;
 use crate::core::ControllerSchema;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 mod apply_all_schemas;
 mod coding_session_schemas;
@@ -139,6 +139,6 @@ fn parse_value<T: DeserializeOwned>(v: Value) -> Result<T, String> {
     serde_json::from_value(v).map_err(|e| format!("invalid params: {e}"))
 }
 
-fn to_json<T: serde::Serialize>(outcome: RpcOutcome<T>) -> Result<Value, String> {
+fn to_json<T: serde::Serialize>(outcome: Outcome<T>) -> Result<Value, String> {
     outcome.into_cli_compatible_json()
 }

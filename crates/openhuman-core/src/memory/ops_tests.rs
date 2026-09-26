@@ -158,7 +158,7 @@ use super::{
     relation_identity, relation_metadata, timestamp_to_rfc3339, validate_memory_relative_path,
 };
 use crate::memory::{ApiEnvelope, MemoryRetrievalContext};
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 #[test]
 fn memory_request_id_is_nonempty_and_unique() {
@@ -312,7 +312,7 @@ fn validate_memory_relative_path_rejects_empty_absolute_and_traversal() {
 
 #[test]
 fn error_envelope_produces_api_error_with_code_and_message() {
-    let envelope: RpcOutcome<ApiEnvelope<serde_json::Value>> =
+    let envelope: Outcome<ApiEnvelope<serde_json::Value>> =
         error_envelope::<serde_json::Value>("NOT_FOUND", "missing".into());
     let api = &envelope.value;
     assert!(api.data.is_none());

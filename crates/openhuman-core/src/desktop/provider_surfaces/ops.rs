@@ -4,7 +4,7 @@
 //! can land before the SQLite-backed store arrives.
 
 use crate::memory::{ApiEnvelope, ApiMeta, EmptyRequest};
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 use serde::Serialize;
 use std::collections::BTreeMap;
 
@@ -25,8 +25,8 @@ fn counts(entries: impl IntoIterator<Item = (&'static str, usize)>) -> BTreeMap<
 fn envelope<T: Serialize>(
     data: T,
     counts: Option<BTreeMap<String, usize>>,
-) -> RpcOutcome<ApiEnvelope<T>> {
-    RpcOutcome::new(
+) -> Outcome<ApiEnvelope<T>> {
+    Outcome::new(
         ApiEnvelope {
             data: Some(data),
             error: None,
@@ -44,7 +44,7 @@ fn envelope<T: Serialize>(
 
 pub async fn ingest_event(
     request: ProviderEvent,
-) -> Result<RpcOutcome<ApiEnvelope<RespondQueueItem>>, String> {
+) -> Result<Outcome<ApiEnvelope<RespondQueueItem>>, String> {
     tracing::debug!(
         provider = %request.provider,
         account_id = %request.account_id,
@@ -59,7 +59,7 @@ pub async fn ingest_event(
 
 pub async fn list_queue(
     _request: EmptyRequest,
-) -> Result<RpcOutcome<ApiEnvelope<RespondQueueListResponse>>, String> {
+) -> Result<Outcome<ApiEnvelope<RespondQueueListResponse>>, String> {
     let items = store::list_queue_items();
     let count = items.len();
     tracing::debug!(count, "[provider-surfaces] list_queue");

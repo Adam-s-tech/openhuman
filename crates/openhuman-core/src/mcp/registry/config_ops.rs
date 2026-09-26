@@ -11,7 +11,7 @@ use serde_json::{json, Value};
 use crate::config::Config;
 use crate::core::bus::BUS;
 use crate::core::events::DomainEvent;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 use super::config_doc;
 use super::helpers::resolve;
@@ -22,7 +22,7 @@ use super::helpers::resolve;
 ///
 /// Credential *names* ride along as `envKeys`; values never do. See
 /// [`super::config_doc`] for the contract.
-pub async fn mcp_clients_config_get(config: &Config) -> Result<RpcOutcome<Value>, String> {
+pub async fn mcp_clients_config_get(config: &Config) -> Result<Outcome<Value>, String> {
     let service = resolve(config)?;
     let installed = service
         .dynamic()
@@ -33,7 +33,7 @@ pub async fn mcp_clients_config_get(config: &Config) -> Result<RpcOutcome<Value>
     let count = installed.len();
     let doc = config_doc::render(&installed, &stored_keys);
 
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         doc,
         vec![format!("config_get rendered {count} servers")],
     ))
@@ -53,7 +53,7 @@ pub async fn mcp_clients_config_get(config: &Config) -> Result<RpcOutcome<Value>
 pub async fn mcp_clients_config_set(
     config: &Config,
     doc: Value,
-) -> Result<RpcOutcome<Value>, String> {
+) -> Result<Outcome<Value>, String> {
     let declared = config_doc::parse(&doc)?;
 
     // Keys are trimmed on the way in, so two spellings of one name can collide
@@ -239,7 +239,7 @@ pub async fn mcp_clients_config_set(
         object.insert("removed".into(), json!(removed));
     }
 
-    Ok(RpcOutcome::new(rendered, vec![note]))
+    Ok(Outcome::new(rendered, vec![note]))
 }
 
 /// The credential *names* stored for each server, keyed by `server_id`.

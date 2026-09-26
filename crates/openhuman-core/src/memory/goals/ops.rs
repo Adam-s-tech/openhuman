@@ -1,6 +1,6 @@
 //! Business logic for the goals domain — thin handlers over the driver's
 //! goals family, plus the on-demand reflection entry point. Every function
-//! returns an [`RpcOutcome`] so the RPC layer (and CLI) get a uniform shape
+//! returns an [`Outcome`] so the RPC layer (and CLI) get a uniform shape
 //! with logs.
 //!
 //! # These take the driver's goals family, not a workspace path (#5560)
@@ -56,7 +56,7 @@ use serde::Serialize;
 use crate::config::Config;
 use crate::memory::api::goals::GoalsDoc;
 use crate::memory::api::provider::MemoryGoals;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 use super::doc;
 
@@ -88,10 +88,10 @@ async fn read(goals: &dyn MemoryGoals, op: &str) -> Result<GoalsDoc, String> {
 }
 
 /// List the current goals.
-pub async fn list(goals: &dyn MemoryGoals) -> Result<RpcOutcome<GoalsDoc>, String> {
+pub async fn list(goals: &dyn MemoryGoals) -> Result<Outcome<GoalsDoc>, String> {
     log::debug!("[memory_goals] rpc=list");
     let doc = read(goals, "list").await?;
-    Ok(RpcOutcome::new(doc, vec![]))
+    Ok(Outcome::new(doc, vec![]))
 }
 
 /// Add a goal and return the new id + updated list.
@@ -100,7 +100,7 @@ pub async fn list(goals: &dyn MemoryGoals) -> Result<RpcOutcome<GoalsDoc>, Strin
 /// items and the new goal is the newest, so the read-back always contains it
 /// unless that one goal alone exceeds the whole-file byte cap — which is the
 /// same edge the engine's `add` had.
-pub async fn add(goals: &dyn MemoryGoals, text: &str) -> Result<RpcOutcome<AddResult>, String> {
+pub async fn add(goals: &dyn MemoryGoals, text: &str) -> Result<Outcome<AddResult>, String> {
     log::debug!("[memory_goals] rpc=add");
     let _guard = doc::mutation_lock().lock().await;
     let mut document = read(goals, "add").await?;
@@ -110,7 +110,7 @@ pub async fn add(goals: &dyn MemoryGoals, text: &str) -> Result<RpcOutcome<AddRe
         .await
         .map_err(|e| format!("add: {e}"))?;
     let goals = read(goals, "add").await?;
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         AddResult {
             id: id.clone(),
             goals,
@@ -124,7 +124,7 @@ pub async fn edit(
     goals: &dyn MemoryGoals,
     id: &str,
     text: &str,
-) -> Result<RpcOutcome<GoalsDoc>, String> {
+) -> Result<Outcome<GoalsDoc>, String> {
     log::debug!("[memory_goals] rpc=edit id={id}");
     let _guard = doc::mutation_lock().lock().await;
     let mut document = read(goals, "edit").await?;
@@ -134,11 +134,11 @@ pub async fn edit(
         .await
         .map_err(|e| format!("edit: {e}"))?;
     let updated = read(goals, "edit").await?;
-    Ok(RpcOutcome::single_log(updated, format!("edited goal {id}")))
+    Ok(Outcome::single_log(updated, format!("edited goal {id}")))
 }
 
 /// Delete a goal and return the updated list.
-pub async fn delete(goals: &dyn MemoryGoals, id: &str) -> Result<RpcOutcome<GoalsDoc>, String> {
+pub async fn delete(goals: &dyn MemoryGoals, id: &str) -> Result<Outcome<GoalsDoc>, String> {
     log::debug!("[memory_goals] rpc=delete id={id}");
     let _guard = doc::mutation_lock().lock().await;
     let mut document = read(goals, "delete").await?;
@@ -148,7 +148,7 @@ pub async fn delete(goals: &dyn MemoryGoals, id: &str) -> Result<RpcOutcome<Goal
         .await
         .map_err(|e| format!("delete: {e}"))?;
     let updated = read(goals, "delete").await?;
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         updated,
         format!("deleted goal {id}"),
     ))
@@ -168,7 +168,7 @@ pub async fn reflect_now(
     config: &Config,
     goals: &dyn MemoryGoals,
     context: Option<String>,
-) -> Result<RpcOutcome<ReflectResult>, String> {
+) -> Result<Outcome<ReflectResult>, String> {
     log::info!("[memory_goals] rpc=reflect — running goals agent on demand");
     let workspace_dir = config.workspace_dir.clone();
     let default_nudge = "Review the user's long-term goals against recent memory and the \
@@ -188,7 +188,7 @@ pub async fn reflect_now(
             // reading the list back should not replace that report with a
             // different one.
             let goals = goals.goals().await.unwrap_or_default();
-            return Ok(RpcOutcome::single_log(
+            return Ok(Outcome::single_log(
                 ReflectResult {
                     ran: false,
                     summary: format!("enrichment failed: {e}"),
@@ -200,7 +200,7 @@ pub async fn reflect_now(
     };
 
     let goals = goals.goals().await.unwrap_or_default();
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         ReflectResult {
             ran: true,
             summary,

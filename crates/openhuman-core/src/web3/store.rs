@@ -154,7 +154,7 @@ pub(crate) fn stored_quote_count() -> usize {
 /// so it stays retryable.
 pub async fn execute_quote(
     params: ExecuteQuoteParams,
-) -> Result<crate::rpc::RpcOutcome<Web3ExecutionResult>, String> {
+) -> Result<crate::core::Outcome<Web3ExecutionResult>, String> {
     if !params.confirmed {
         return Err("execute requires `confirmed: true`".to_string());
     }
@@ -193,7 +193,7 @@ pub async fn execute_quote(
         }
     };
 
-    Ok(crate::rpc::RpcOutcome::new(
+    Ok(crate::core::Outcome::new(
         Web3ExecutionResult {
             quote_id: params.quote_id,
             kind,

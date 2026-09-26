@@ -39,7 +39,7 @@
 use crate::config::rpc as config_rpc;
 use crate::config::Config;
 use crate::memory::sync::composio;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 use tinymemory_api::sync_events::{emit_sync_stage, MemorySyncStage, MemorySyncTrigger};
 
 /// Parameters for `memory_sync_channel`.
@@ -101,7 +101,7 @@ pub struct IngestionStatusResult {
 /// request was published, not that ingestion ran.
 pub async fn memory_sync_channel(
     params: SyncChannelParams,
-) -> Result<RpcOutcome<SyncChannelResult>, String> {
+) -> Result<Outcome<SyncChannelResult>, String> {
     // `channel_id` is a user/context identifier — keep it out of normal logs.
     tracing::info!("[memory.sync] memory_sync_channel: entry");
     crate::core::bus::BUS.publish(crate::core::events::DomainEvent::MemorySyncRequested {
@@ -122,7 +122,7 @@ pub async fn memory_sync_channel(
         }
     });
     tracing::debug!("[memory.sync] memory_sync_channel: MemorySyncRequested published");
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         SyncChannelResult {
             requested: true,
             channel_id: params.channel_id,
@@ -136,7 +136,7 @@ pub async fn memory_sync_channel(
 /// Publishes `DomainEvent::MemorySyncRequested { channel_id: None }` on the
 /// global event bus. No consumers exist yet — this is a hook for future
 /// ingestion subscribers.
-pub async fn memory_sync_all() -> Result<RpcOutcome<SyncAllResult>, String> {
+pub async fn memory_sync_all() -> Result<Outcome<SyncAllResult>, String> {
     tracing::info!("[memory.sync] memory_sync_all: entry");
     crate::core::bus::BUS
         .publish(crate::core::events::DomainEvent::MemorySyncRequested { channel_id: None });
@@ -154,7 +154,7 @@ pub async fn memory_sync_all() -> Result<RpcOutcome<SyncAllResult>, String> {
         }
     });
     tracing::debug!("[memory.sync] memory_sync_all: MemorySyncRequested(all) published");
-    Ok(RpcOutcome::new(SyncAllResult { requested: true }, vec![]))
+    Ok(Outcome::new(SyncAllResult { requested: true }, vec![]))
 }
 
 async fn spawn_manual_sync(requested_connection: Option<String>) -> Result<(), String> {
@@ -270,10 +270,10 @@ async fn spawn_manual_sync(requested_connection: Option<String>) -> Result<(), S
 /// Returns the current memory-ingestion status: whether the driver's queue is
 /// working, how much is waiting, and when it last settled a job. Read-only,
 /// safe to poll.
-pub async fn memory_ingestion_status() -> Result<RpcOutcome<IngestionStatusResult>, String> {
+pub async fn memory_ingestion_status() -> Result<Outcome<IngestionStatusResult>, String> {
     let config = config_rpc::load_config_with_timeout().await?;
     let status = ingestion_status_for_config(&config).await?;
-    Ok(RpcOutcome::new(status, vec![]))
+    Ok(Outcome::new(status, vec![]))
 }
 
 /// The queue half of [`memory_ingestion_status`], against an explicit config.
@@ -378,7 +378,7 @@ pub struct SchedulerOverrideResult {
 /// hour; the default asks for ten minutes.
 pub async fn memory_scheduler_override(
     seconds: Option<u64>,
-) -> Result<RpcOutcome<SchedulerOverrideResult>, String> {
+) -> Result<Outcome<SchedulerOverrideResult>, String> {
     let seconds = seconds.unwrap_or(600).min(3600);
     #[cfg(feature = "modules")]
     {
@@ -401,7 +401,7 @@ pub async fn memory_scheduler_override(
                     format!("scheduler override: {error}")
                 }
             })?;
-        Ok(RpcOutcome::new(
+        Ok(Outcome::new(
             SchedulerOverrideResult {
                 overridden: true,
                 seconds,

@@ -17,7 +17,7 @@ use crate::api::config::effective_backend_api_url;
 use crate::api::jwt::get_session_token;
 use crate::api::BackendOAuthClient;
 use crate::config::Config;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 const LOG_PREFIX: &str = "[voice-realtime]";
 
@@ -82,7 +82,7 @@ fn authority_host(rest: &str) -> &str {
 /// than leaking as a raw error string.
 pub async fn mint_voice_agent_signed_url(
     config: &Config,
-) -> Result<RpcOutcome<VoiceAgentSignedUrl>, String> {
+) -> Result<Outcome<VoiceAgentSignedUrl>, String> {
     let token = get_session_token(config)
         .map_err(|e| e.to_string())?
         .and_then(|t| {
@@ -106,7 +106,7 @@ pub async fn mint_voice_agent_signed_url(
 
     let result = parse_signed_url_response(&raw)?;
     debug!("{LOG_PREFIX} minted signed url agent={}", result.agent_id);
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         result,
         "voice agent signed url minted via GET /voice-agent/get-signed-url",
     ))

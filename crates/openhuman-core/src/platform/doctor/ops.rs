@@ -6,9 +6,9 @@
 
 use crate::config::Config;
 use crate::platform::doctor::{self, DoctorReport, MemoryChunkCount, ModelProbeReport};
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
-pub async fn doctor_report(config: &Config) -> Result<RpcOutcome<DoctorReport>, String> {
+pub async fn doctor_report(config: &Config) -> Result<Outcome<DoctorReport>, String> {
     // Awaited before the blocking hop, not inside it: `doctor::run` may not
     // `.await`, and the driver call may not be blocked on from a runtime
     // worker. See `MemoryChunkCount`.
@@ -22,7 +22,7 @@ pub async fn doctor_report(config: &Config) -> Result<RpcOutcome<DoctorReport>, 
         .await
         .map_err(|e| format!("doctor task join error: {e}"))?
         .map_err(|e| e.to_string())?;
-    Ok(RpcOutcome::single_log(report, "doctor report generated"))
+    Ok(Outcome::single_log(report, "doctor report generated"))
 }
 
 /// How many chunks the workspace's bound memory driver holds.
@@ -62,7 +62,7 @@ async fn memory_chunk_count(config: &Config) -> MemoryChunkCount {
 pub async fn doctor_models(
     config: &Config,
     use_cache: bool,
-) -> Result<RpcOutcome<ModelProbeReport>, String> {
+) -> Result<Outcome<ModelProbeReport>, String> {
     let report = doctor::run_models(config, use_cache).map_err(|e| e.to_string())?;
-    Ok(RpcOutcome::single_log(report, "model probes completed"))
+    Ok(Outcome::single_log(report, "model probes completed"))
 }

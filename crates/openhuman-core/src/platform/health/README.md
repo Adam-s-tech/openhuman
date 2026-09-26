@@ -17,7 +17,7 @@ In-process health registry for the OpenHuman core. Tracks per-component liveness
 | --- | --- |
 | `crates/openhuman-core/src/platform/health/mod.rs` | Export-only: declares modules, re-exports `core::*`, `ops::*`, `pub use ops as rpc`, and the controller-schema pair (`all_health_controller_schemas` / `all_health_registered_controllers`). |
 | `crates/openhuman-core/src/platform/health/core.rs` | The registry itself: `ComponentHealth`/`HealthSnapshot` types, the `OnceLock<HealthRegistry>` singleton (`started_at` + `Mutex<BTreeMap>`), and the mutators/`snapshot`/`snapshot_json` functions. |
-| `crates/openhuman-core/src/platform/health/ops.rs` | RPC handler logic returning `RpcOutcome<T>`: `health_snapshot()` and `system_info()` (+ `SystemInfo` type). |
+| `crates/openhuman-core/src/platform/health/ops.rs` | RPC handler logic returning `Outcome<T>`: `health_snapshot()` and `system_info()` (+ `SystemInfo` type). |
 | `crates/openhuman-core/src/platform/health/schemas.rs` | Controller schemas + `handle_snapshot`/`handle_system_info` async handlers that delegate to `ops` and serialize via `into_cli_compatible_json`. |
 | `crates/openhuman-core/src/platform/health/bus.rs` | `HealthSubscriber` (`EventHandler`) and `register_health_subscriber()`; maps domain events to registry mutations. |
 | `crates/openhuman-core/src/platform/health/tools.rs` | Read-only, default-on LLM tools `health_snapshot` / `health_system_info`, re-exported through `crates/openhuman-core/src/tools/mod.rs`. |
@@ -31,7 +31,7 @@ From `core.rs` (re-exported via `pub use core::*`):
 The HTTP `GET /health` handler (`core::jsonrpc::health_handler`) uses `verdict()` for its status code (200 unless a critical component is unhealthy) and adds `healthy` / `degraded` / `critical_unhealthy` / `degraded_components` fields alongside the `components` map in the body. The `components` map shape is unchanged — the new fields are additive.
 
 From `ops.rs` (re-exported via `pub use ops::*`, also aliased `pub use ops as rpc`):
-- `health_snapshot() -> RpcOutcome<serde_json::Value>`, `system_info() -> RpcOutcome<SystemInfo>`, and the `SystemInfo` struct.
+- `health_snapshot() -> Outcome<serde_json::Value>`, `system_info() -> Outcome<SystemInfo>`, and the `SystemInfo` struct.
 
 From `bus.rs`: `HealthSubscriber`, `register_health_subscriber()`.
 
@@ -70,7 +70,7 @@ None on disk. State lives in a process-global `OnceLock<HealthRegistry>` (lazy-i
 
 - `crate::core::bus::BUS.subscribe` (`crate::core::events::DomainEvent`, `tinybus::SubscriptionHandle`) — to receive system/channel events.
 - `crate::core::all` (`ControllerFuture`, `RegisteredController`) and `crate::core::{ControllerSchema, FieldSchema, TypeSchema}` — controller registry wiring.
-- `crate::rpc::RpcOutcome` — RPC handler return contract.
+- `crate::rpc::Outcome` — RPC handler return contract.
 - External crates: `chrono` (RFC3339 timestamps), `parking_lot::Mutex`, `serde`/`serde_json`, `async_trait`.
 
 ## Used by

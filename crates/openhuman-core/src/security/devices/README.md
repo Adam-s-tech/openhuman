@@ -90,7 +90,7 @@ Separately, encrypted X25519 private keys are persisted as `enc2:` strings (via 
 - `crate::platform::socket::global_socket_manager` — reuse the shared backend Socket.IO connection to emit `tunnel:*` events (no second WebSocket).
 - `crate::core::bus::BUS` (`.publish`, `.subscribe`) + `crate::core::events::DomainEvent` + `tinybus::EventHandler` — pub/sub for device tunnel events.
 - `crate::core::all` (`ControllerFuture`, `RegisteredController`) and `crate::core::{ControllerSchema, FieldSchema, TypeSchema}` — controller registry contract.
-- `crate::rpc::RpcOutcome` — RPC handler return type.
+- `crate::rpc::Outcome` — RPC handler return type.
 - External crates: `rusqlite`, `chacha20poly1305`, `x25519-dalek`, `base64`, `sha2`, `chrono`, `once_cell`, `tokio`, `async_trait`, `anyhow`.
 
 ## Used by

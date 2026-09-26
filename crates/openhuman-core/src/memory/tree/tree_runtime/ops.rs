@@ -22,7 +22,7 @@ use crate::memory::api::provider::{MemoryProvider, MemoryTree};
 // reason; see its comment on the node model.
 use crate::memory::api::tree::{estimate_tokens, QueryResult};
 use crate::memory::guard::MemoryGuard;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 // ── How these handlers reach the tree ───────────────────────────────────────
 //
@@ -102,7 +102,7 @@ pub async fn tree_summarizer_ingest(
     content: &str,
     timestamp: Option<DateTime<Utc>>,
     metadata: Option<&Value>,
-) -> Result<RpcOutcome<Value>, String> {
+) -> Result<Outcome<Value>, String> {
     // Defaulted here rather than driver-side, exactly as before: the reply
     // echoes the instant the content was filed under, and a timestamp the
     // driver resolved would disagree with the one reported here by however
@@ -116,7 +116,7 @@ pub async fn tree_summarizer_ingest(
         .await
         .map_err(|error| driver_error("buffer write failed", error))?;
 
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         json!({
             "buffered": true,
             "namespace": namespace.trim(),
@@ -135,7 +135,7 @@ pub async fn tree_summarizer_ingest(
 pub async fn tree_summarizer_run(
     config: &Config,
     namespace: &str,
-) -> Result<RpcOutcome<Value>, String> {
+) -> Result<Outcome<Value>, String> {
     // #002 FR-007's consent gate stays **host-side**, and this is the one thing
     // the door does not carry across. `runtime_summarize` builds the fold's
     // provider driver-side, "the way every scheduled seal builds it" — which is
@@ -152,7 +152,7 @@ pub async fn tree_summarizer_run(
     let guard = tree_guard(config)?;
 
     match tree_of(&guard)?.runtime_summarize(namespace, ts).await {
-        Ok(Some(node)) => Ok(RpcOutcome::single_log(
+        Ok(Some(node)) => Ok(Outcome::single_log(
             serde_json::to_value(&node).map_err(|e| e.to_string())?,
             format!(
                 "summarization completed for '{}': node {} ({} tokens)",
@@ -161,7 +161,7 @@ pub async fn tree_summarizer_run(
                 node.token_count
             ),
         )),
-        Ok(None) => Ok(RpcOutcome::single_log(
+        Ok(None) => Ok(Outcome::single_log(
             json!({ "skipped": true, "reason": "no buffered data" }),
             format!(
                 "summarization skipped for '{}': no buffered data",
@@ -177,7 +177,7 @@ pub async fn tree_summarizer_query(
     config: &Config,
     namespace: &str,
     node_id: Option<&str>,
-) -> Result<RpcOutcome<Value>, String> {
+) -> Result<Outcome<Value>, String> {
     let target_id = node_id.unwrap_or("root");
 
     let guard = tree_guard(config)?;
@@ -205,7 +205,7 @@ pub async fn tree_summarizer_query(
         .map_err(|error| driver_error("read children", error))?;
 
     let result = QueryResult { node, children };
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         serde_json::to_value(&result).map_err(|e| e.to_string())?,
         format!(
             "queried node '{}' in namespace '{}'",
@@ -219,14 +219,14 @@ pub async fn tree_summarizer_query(
 pub async fn tree_summarizer_status(
     config: &Config,
     namespace: &str,
-) -> Result<RpcOutcome<Value>, String> {
+) -> Result<Outcome<Value>, String> {
     let guard = tree_guard(config)?;
     let status = tree_of(&guard)?
         .runtime_tree_status(namespace)
         .await
         .map_err(|error| driver_error("get status", error))?;
 
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         serde_json::to_value(&status).map_err(|e| e.to_string())?,
         format!("tree status for namespace '{}'", namespace.trim()),
     ))
@@ -236,7 +236,7 @@ pub async fn tree_summarizer_status(
 pub async fn tree_summarizer_rebuild(
     config: &Config,
     namespace: &str,
-) -> Result<RpcOutcome<Value>, String> {
+) -> Result<Outcome<Value>, String> {
     // The consent gate, for the reason `tree_summarizer_run` gives.
     let _ = create_provider(config)?;
 
@@ -246,7 +246,7 @@ pub async fn tree_summarizer_rebuild(
         .await
         .map_err(|error| driver_error("rebuild failed", error))?;
 
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         serde_json::to_value(&status).map_err(|e| e.to_string())?,
         format!(
             "tree rebuilt for '{}': {} nodes",

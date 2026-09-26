@@ -65,11 +65,11 @@ impl InvocationResult {
 /// - `!logs.is_empty()` -> `{ "result": inv.value, "logs": inv.logs }`
 pub fn invocation_to_rpc_json(inv: InvocationResult) -> serde_json::Value {
     // Delegates rather than repeating the rule. This function and
-    // `RpcOutcome::into_cli_compatible_json` are the two ways a controller
+    // `Outcome::into_cli_compatible_json` are the two ways a controller
     // result reaches a caller, and they carried independent copies of the same
     // six lines — so a fix to one would have silently left the other on the old
-    // shape. See `crate::rpc::apply_log_envelope` (#6080).
-    crate::rpc::apply_log_envelope(inv.value, inv.logs)
+    // shape. See `crate::core::apply_log_envelope` (#6080).
+    crate::core::apply_log_envelope(inv.value, inv.logs)
 }
 
 /// Global core-level application state.

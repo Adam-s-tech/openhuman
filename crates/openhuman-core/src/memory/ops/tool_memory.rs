@@ -17,7 +17,7 @@ use std::sync::Arc;
 use crate::memory::api::provider::MemoryProvider;
 
 use crate::memory::api::tool_memory::{ToolMemoryPriority, ToolMemoryRule, ToolMemorySource};
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 /// Parameters for `memory_tool_rule_put`.
 #[derive(Debug, Deserialize)]
@@ -70,7 +70,7 @@ async fn tool_memory_guard() -> Result<Arc<crate::memory::guard::MemoryGuard>, S
 /// Upsert a tool-scoped memory rule.
 pub async fn tool_rule_put(
     params: ToolRulePutParams,
-) -> Result<RpcOutcome<ToolMemoryRule>, String> {
+) -> Result<Outcome<ToolMemoryRule>, String> {
     log::debug!("[tool-memory] rpc tool_rule_put tool={}", params.tool_name);
     let mut rule = ToolMemoryRule::new(
         &params.tool_name,
@@ -91,13 +91,13 @@ pub async fn tool_rule_put(
         .put_tool_rule(rule.clone())
         .await
         .map_err(|e| e.to_string())?;
-    Ok(RpcOutcome::single_log(rule, "tool memory rule stored"))
+    Ok(Outcome::single_log(rule, "tool memory rule stored"))
 }
 
 /// Fetch a tool-scoped rule by id.
 pub async fn tool_rule_get(
     params: ToolRuleRefParams,
-) -> Result<RpcOutcome<Option<ToolMemoryRule>>, String> {
+) -> Result<Outcome<Option<ToolMemoryRule>>, String> {
     log::debug!(
         "[tool-memory] rpc tool_rule_get tool={} id={}",
         params.tool_name,
@@ -112,7 +112,7 @@ pub async fn tool_rule_get(
         .map_err(|e| e.to_string())?
         .into_iter()
         .find(|rule| rule.id == params.id);
-    Ok(RpcOutcome::single_log(rule, "tool memory rule fetched"))
+    Ok(Outcome::single_log(rule, "tool memory rule fetched"))
 }
 
 /// The reason a guarded handler in this file cannot proceed.
@@ -133,7 +133,7 @@ pub(crate) const NO_TOOL_MEMORY: &str = "memory driver does not support the tool
 /// `crate::memory::api::tool_memory::ToolMemoryRule`.
 pub async fn tool_rule_list(
     params: ToolRuleListParams,
-) -> Result<RpcOutcome<Vec<ToolMemoryRule>>, String> {
+) -> Result<Outcome<Vec<ToolMemoryRule>>, String> {
     log::debug!("[tool-memory] rpc tool_rule_list tool={}", params.tool_name);
     let guard = super::guard::active_memory_guard().await?;
     let rules = guard
@@ -142,14 +142,14 @@ pub async fn tool_rule_list(
         .tool_rules(&params.tool_name)
         .await
         .map_err(|e| e.to_string())?;
-    Ok(RpcOutcome::single_log(rules, "tool memory rules listed"))
+    Ok(Outcome::single_log(rules, "tool memory rules listed"))
 }
 
 /// Delete a tool-scoped rule by id.
 ///
 /// Routed through [`MemoryGuard`](crate::memory::guard::MemoryGuard)
 /// and the shared tool-memory API.
-pub async fn tool_rule_delete(params: ToolRuleRefParams) -> Result<RpcOutcome<bool>, String> {
+pub async fn tool_rule_delete(params: ToolRuleRefParams) -> Result<Outcome<bool>, String> {
     log::debug!(
         "[tool-memory] rpc tool_rule_delete tool={} id={}",
         params.tool_name,
@@ -162,7 +162,7 @@ pub async fn tool_rule_delete(params: ToolRuleRefParams) -> Result<RpcOutcome<bo
         .delete_tool_rule(&params.tool_name, &params.id)
         .await
         .map_err(|e| e.to_string())?;
-    Ok(RpcOutcome::single_log(deleted, "tool memory rule deleted"))
+    Ok(Outcome::single_log(deleted, "tool memory rule deleted"))
 }
 
 /// Return the rendered prompt block plus the structured rule list for
@@ -179,7 +179,7 @@ pub struct ToolRulesForPromptResult {
 /// Pre-fetch Critical + High priority rules for prompt injection.
 pub async fn tool_rules_for_prompt(
     params: ToolRulesForPromptParams,
-) -> Result<RpcOutcome<ToolRulesForPromptResult>, String> {
+) -> Result<Outcome<ToolRulesForPromptResult>, String> {
     log::debug!(
         "[tool-memory] rpc tool_rules_for_prompt tools={:?}",
         params.tools
@@ -206,7 +206,7 @@ pub async fn tool_rules_for_prompt(
             .then_with(|| a.rule.cmp(&b.rule))
     });
     let rendered = crate::memory::tool_memory::prompt::render_tool_memory_rules(&flat);
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         ToolRulesForPromptResult {
             rendered,
             rules: flat,
@@ -217,7 +217,7 @@ pub async fn tool_rules_for_prompt(
 
 /// Render the raw JSON form of a tool's rules, useful for envelope
 /// consumers that want the unfiltered list.
-pub async fn tool_rules_json(params: ToolRuleListParams) -> Result<RpcOutcome<Value>, String> {
+pub async fn tool_rules_json(params: ToolRuleListParams) -> Result<Outcome<Value>, String> {
     log::debug!(
         "[tool-memory] rpc tool_rules_json tool={}",
         params.tool_name
@@ -230,7 +230,7 @@ pub async fn tool_rules_json(params: ToolRuleListParams) -> Result<RpcOutcome<Va
         .await
         .map_err(|e| e.to_string())?;
     let value = serde_json::to_value(rules).map_err(|e| e.to_string())?;
-    Ok(RpcOutcome::single_log(value, "tool memory rules json"))
+    Ok(Outcome::single_log(value, "tool memory rules json"))
 }
 
 #[cfg(test)]

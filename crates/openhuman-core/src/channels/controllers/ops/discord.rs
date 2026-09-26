@@ -6,7 +6,7 @@ use crate::api::config::effective_backend_api_url;
 use crate::api::jwt::get_session_token;
 use crate::api::rest::BackendOAuthClient;
 use crate::config::Config;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 use crate::security::credentials;
 
 use super::super::definitions::ChannelAuthMode;
@@ -23,7 +23,7 @@ use super::types::{DiscordLinkCheckResult, DiscordLinkStartResult};
 /// Requires an active session JWT.
 pub async fn discord_link_start(
     config: &Config,
-) -> Result<RpcOutcome<DiscordLinkStartResult>, String> {
+) -> Result<Outcome<DiscordLinkStartResult>, String> {
     let api_url = effective_backend_api_url(&config.api_url);
     let jwt = get_session_token(config)?
         .ok_or_else(|| "session JWT required; complete login first".to_string())?;
@@ -61,7 +61,7 @@ pub async fn discord_link_start(
         link_token.len()
     );
 
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         DiscordLinkStartResult {
             link_token,
             instructions,
@@ -77,7 +77,7 @@ pub async fn discord_link_start(
 pub async fn discord_link_check(
     config: &Config,
     _link_token: &str,
-) -> Result<RpcOutcome<DiscordLinkCheckResult>, String> {
+) -> Result<Outcome<DiscordLinkCheckResult>, String> {
     let api_url = effective_backend_api_url(&config.api_url);
     let jwt = get_session_token(config)?.ok_or_else(|| "session JWT required".to_string())?;
 
@@ -138,7 +138,7 @@ pub async fn discord_link_check(
         );
     }
 
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         DiscordLinkCheckResult {
             linked,
             details: if linked { Some(user_payload) } else { None },
@@ -170,21 +170,21 @@ async fn discord_bot_token(config: &Config) -> Result<String, String> {
 /// List Discord guilds (servers) the connected bot is a member of.
 pub async fn discord_list_guilds(
     config: &Config,
-) -> Result<RpcOutcome<Vec<crate::channels::providers::discord::api::DiscordGuild>>, String> {
+) -> Result<Outcome<Vec<crate::channels::providers::discord::api::DiscordGuild>>, String> {
     use crate::channels::providers::discord::api;
 
     let token = discord_bot_token(config).await?;
     let guilds = api::list_bot_guilds(&token)
         .await
         .map_err(|e| format!("Discord API error: {e}"))?;
-    Ok(RpcOutcome::single_log(guilds, "discord guilds listed"))
+    Ok(Outcome::single_log(guilds, "discord guilds listed"))
 }
 
 /// List text channels in a Discord guild.
 pub async fn discord_list_channels(
     config: &Config,
     guild_id: &str,
-) -> Result<RpcOutcome<Vec<crate::channels::providers::discord::api::DiscordTextChannel>>, String> {
+) -> Result<Outcome<Vec<crate::channels::providers::discord::api::DiscordTextChannel>>, String> {
     use crate::channels::providers::discord::api;
 
     if guild_id.is_empty() {
@@ -194,7 +194,7 @@ pub async fn discord_list_channels(
     let channels = api::list_guild_channels(&token, guild_id)
         .await
         .map_err(|e| format!("Discord API error: {e}"))?;
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         channels,
         format!("discord channels listed for guild {guild_id}"),
     ))
@@ -205,7 +205,7 @@ pub async fn discord_check_permissions(
     config: &Config,
     guild_id: &str,
     channel_id: &str,
-) -> Result<RpcOutcome<crate::channels::providers::discord::api::BotPermissionCheck>, String> {
+) -> Result<Outcome<crate::channels::providers::discord::api::BotPermissionCheck>, String> {
     use crate::channels::providers::discord::api;
 
     if guild_id.is_empty() || channel_id.is_empty() {
@@ -215,7 +215,7 @@ pub async fn discord_check_permissions(
     let check = api::check_channel_permissions(&token, guild_id, channel_id)
         .await
         .map_err(|e| format!("Discord API error: {e}"))?;
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         check,
         format!("discord permissions checked for channel {channel_id}"),
     ))

@@ -56,7 +56,7 @@ For every file in the diff, read the **whole file** (not just the hunk). Context
 
 Run a CodeRabbit-style review against these axes:
 
-**Correctness** — logic bugs, off-by-one, null/undefined, async/await misuse, race conditions, error propagation (`Result<T>` / `RpcOutcome<T>`).
+**Correctness** — logic bugs, off-by-one, null/undefined, async/await misuse, race conditions, error propagation (`Result<T>` / `Outcome<T>`).
 
 **Project standards** (from `CLAUDE.md`)
 - New Rust functionality under `crates/openhuman-core/src/<domain>/`, not root-level `.rs` files.

@@ -12,7 +12,7 @@ use serde_json::Value;
 use openhuman_core::api::config::effective_backend_api_url;
 use openhuman_core::api::{BackendApiError, BackendOAuthClient};
 use openhuman_core::config::Config;
-use openhuman_core::rpc::RpcOutcome;
+use openhuman_core::core::Outcome;
 
 /// Canonical authed-session guard — rejects an expired token locally instead of
 /// firing a doomed backend 401 (see `billing/ops.rs` / #3297).
@@ -42,7 +42,7 @@ fn is_announcement_not_found(err: &anyhow::Error) -> bool {
 /// flooded Sentry with no actionable signal (TAURI-RUST-HW0, TAURI-RUST-KHX).
 /// Any other error (5xx, malformed response, session expiry, …) still
 /// propagates via `flatten_authed_error` and still reaches Sentry.
-pub async fn get_latest_announcement(config: &Config) -> Result<RpcOutcome<Value>, String> {
+pub async fn get_latest_announcement(config: &Config) -> Result<Outcome<Value>, String> {
     let token = require_token(config)?;
     let api_url = effective_backend_api_url(&config.api_url);
     let client = BackendOAuthClient::new(&api_url).map_err(|e| e.to_string())?;
@@ -51,8 +51,8 @@ pub async fn get_latest_announcement(config: &Config) -> Result<RpcOutcome<Value
         .authed_json(&token, Method::GET, "/announcements/latest", None)
         .await
     {
-        Ok(data) => Ok(RpcOutcome::single_log(data, "latest announcement fetched")),
-        Err(err) if is_announcement_not_found(&err) => Ok(RpcOutcome::single_log(
+        Ok(data) => Ok(Outcome::single_log(data, "latest announcement fetched")),
+        Err(err) if is_announcement_not_found(&err) => Ok(Outcome::single_log(
             Value::Null,
             "no announcement available (404)",
         )),

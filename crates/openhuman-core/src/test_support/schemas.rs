@@ -2,7 +2,7 @@ use serde_json::{Map, Value};
 
 use crate::core::all::{ControllerFuture, RegisteredController};
 use crate::core::{ControllerSchema, FieldSchema, TypeSchema};
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 use crate::test_support::{introspect, rpc};
 
 pub fn all_controller_schemas() -> Vec<ControllerSchema> {
@@ -329,6 +329,6 @@ fn handle_wallet_prepared_quotes(_params: Map<String, Value>) -> ControllerFutur
     Box::pin(async move { to_json(introspect::wallet_prepared_quotes().await?) })
 }
 
-fn to_json<T: serde::Serialize>(outcome: RpcOutcome<T>) -> Result<Value, String> {
+fn to_json<T: serde::Serialize>(outcome: Outcome<T>) -> Result<Value, String> {
     outcome.into_cli_compatible_json()
 }

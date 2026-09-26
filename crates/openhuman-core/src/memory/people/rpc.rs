@@ -16,7 +16,7 @@
 use serde_json::{json, Value};
 
 use crate::memory::api::provider::{MemoryPeople, PersonHandle, PersonRecord};
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 /// Render one person plus their score into the published `people.*` shape.
 fn person_json(person: &PersonRecord, score: &crate::memory::api::provider::PersonScore) -> Value {
@@ -58,7 +58,7 @@ fn person_json(person: &PersonRecord, score: &crate::memory::api::provider::Pers
 pub async fn handle_list(
     people: &dyn MemoryPeople,
     limit: usize,
-) -> Result<RpcOutcome<Value>, String> {
+) -> Result<Outcome<Value>, String> {
     let limit = limit.clamp(1, 500);
     let ranked = people
         .list_people(Some(limit))
@@ -68,7 +68,7 @@ pub async fn handle_list(
         .iter()
         .map(|entry| person_json(&entry.person, &entry.score))
         .collect();
-    Ok(RpcOutcome::new(json!({ "people": people_json }), vec![]))
+    Ok(Outcome::new(json!({ "people": people_json }), vec![]))
 }
 
 /// Resolve a handle to a person id. Mints on first sight when
@@ -77,12 +77,12 @@ pub async fn handle_resolve(
     people: &dyn MemoryPeople,
     handle: PersonHandle,
     create_if_missing: bool,
-) -> Result<RpcOutcome<Value>, String> {
+) -> Result<Outcome<Value>, String> {
     let resolved = people
         .resolve_handle(&handle, create_if_missing)
         .await
         .map_err(|e| format!("resolve: {e}"))?;
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         json!({
             "person_id": resolved.as_ref().map(|r| r.id.clone()),
             "created": resolved.as_ref().is_some_and(|r| r.created),
@@ -105,7 +105,7 @@ pub async fn handle_resolve(
 /// memory-driver error.
 pub async fn handle_refresh_address_book(
     people: &dyn MemoryPeople,
-) -> Result<RpcOutcome<Value>, String> {
+) -> Result<Outcome<Value>, String> {
     let outcome = people
         .seed_from_address_book()
         .await
@@ -115,7 +115,7 @@ pub async fn handle_refresh_address_book(
         outcome.seeded,
         outcome.skipped
     );
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         json!({
             "seeded": outcome.seeded,
             "skipped": outcome.skipped,
@@ -129,13 +129,13 @@ pub async fn handle_refresh_address_book(
 pub async fn handle_score(
     people: &dyn MemoryPeople,
     person_id: &str,
-) -> Result<RpcOutcome<Value>, String> {
+) -> Result<Outcome<Value>, String> {
     let score = people
         .score_person(person_id)
         .await
         .map_err(|e| format!("score: {e}"))?
         .ok_or_else(|| format!("person not found: {person_id}"))?;
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         json!({
             "person_id": person_id,
             "score": score.score,

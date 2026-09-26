@@ -25,7 +25,7 @@ Interactive approval workflow for supervised mode (issue #1339). `ApprovalGate` 
 | `crates/openhuman-core/src/security/approval/store.rs` | SQLite persistence (`pending_approvals` table). `insert_pending`, `decide`, `get_decision`, `record_execution`, `list_pending`, `list_recent_decisions`, `purge_session`, `expire_stale`, plus idempotent column migration for the v1 schema. |
 | `crates/openhuman-core/src/security/approval/types.rs` | Serde domain types: `PendingApproval`, `ApprovalAuditEntry`, `ApprovalDecision`, `GateOutcome`, `ExecutionOutcome`. |
 | `crates/openhuman-core/src/security/approval/redact.rs` | `redact_args` (PII/chat-content key scrubbing + home-path stripping) and `summarize_action` (safe-field summary). |
-| `crates/openhuman-core/src/security/approval/rpc.rs` | Domain RPC entry points returning `RpcOutcome<T>`: `approval_get_gate_state`, `approval_list_pending`, `approval_list_recent_decisions`, `approval_decide`, `approval_preauthorize_flow`. |
+| `crates/openhuman-core/src/security/approval/rpc.rs` | Domain RPC entry points returning `Outcome<T>`: `approval_get_gate_state`, `approval_list_pending`, `approval_list_recent_decisions`, `approval_decide`, `approval_preauthorize_flow`. |
 | `crates/openhuman-core/src/security/approval/schemas.rs` | Controller schemas + `handle_*` fns wiring the RPC into the registry. |
 
 ## Public surface
@@ -76,7 +76,7 @@ SQLite DB at `{workspace_dir}/approval/approval.db`, table `pending_approvals` (
 - `crate::core::bus::BUS` + `crate::core::events::DomainEvent` to surface approval prompts/decisions.
 - `crate::core::all` — `ControllerFuture` / `RegisteredController` for the controller registry.
 - `crate::core` (`ControllerSchema`, `FieldSchema`, `TypeSchema`) — schema definitions.
-- `crate::rpc::RpcOutcome` — RPC return contract.
+- `crate::rpc::Outcome` — RPC return contract.
 - `crate::config::Config` — workspace dir (DB path) + the boot-time `autonomy.auto_approve` snapshot; `config::ops::add_auto_approve_tool` to persist "Always allow".
 - `crate::security` — `live_policy::current()` for the live "Always allow" list and `POLICY_DENIED_MARKER` for deny reasons.
 - `tinymemory_core::store::safety::sanitize_text` — scrub secrets out of stored execution-error strings.

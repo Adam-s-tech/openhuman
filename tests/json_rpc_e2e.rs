@@ -1143,7 +1143,7 @@ fn extract_string_outcome(result: &Value) -> String {
 }
 
 /// Peel the `{"result": inner, "logs": [...]}` envelope that
-/// `RpcOutcome::into_cli_compatible_json` adds when logs are present.
+/// `Outcome::into_cli_compatible_json` adds when logs are present.
 fn peel_logs_envelope(v: &Value) -> &Value {
     if v.get("logs").is_some() {
         v.get("result").unwrap_or(v)
@@ -7803,7 +7803,7 @@ async fn credentials_crud_roundtrip() {
     )
     .await;
     // assert_no_jsonrpc_error returns the JSON-RPC `result` field which is the
-    // RpcOutcome envelope: {"logs": [...], "result": { <AuthProfileSummary> }}.
+    // Outcome envelope: {"logs": [...], "result": { <AuthProfileSummary> }}.
     let store_outer = assert_no_jsonrpc_error(&store, "auth_store_provider_credentials");
     let store_result = store_outer.get("result").unwrap_or(store_outer);
     assert_eq!(

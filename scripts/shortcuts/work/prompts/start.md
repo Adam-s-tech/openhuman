@@ -29,7 +29,7 @@ Ground the change in the existing codebase before writing any code:
 - Domain `mod.rs` is export-focused; operational code in `ops.rs` / `store.rs` / `types.rs` / `schemas.rs`.
 - Expose features through the controller registry — never add domain branches in `crates/openhuman-core/src/core/cli.rs` / `crates/openhuman-core/src/core/jsonrpc/`.
 - Use the event bus singletons (`publish_global` / `subscribe_global` / `register_native_global` / `request_native_global`); never construct `EventBus` / `NativeRegistry` directly.
-- Return `RpcOutcome<T>` per `AGENTS.md`.
+- Return `Outcome<T>` per `AGENTS.md`.
 
 ## 3. JSON-RPC E2E
 

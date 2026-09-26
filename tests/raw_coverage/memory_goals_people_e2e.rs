@@ -263,7 +263,7 @@ async fn rpc(rpc_base: &str, id: i64, method: &str, params: Value) -> Value {
         .unwrap_or_else(|err| panic!("json for {method}: {err}"))
 }
 
-/// The payload of a successful dispatch, unwrapping the `RpcOutcome`
+/// The payload of a successful dispatch, unwrapping the `Outcome`
 /// `{ result, logs }` envelope when the handler produced one.
 fn payload(value: &Value, context: &str) -> Value {
     if let Some(error) = value.get("error") {

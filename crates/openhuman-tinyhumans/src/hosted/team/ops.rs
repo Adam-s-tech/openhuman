@@ -16,7 +16,7 @@ use serde_json::{json, Value};
 use openhuman_core::api::config::effective_backend_api_url;
 use openhuman_core::api::BackendOAuthClient;
 use openhuman_core::config::Config;
-use openhuman_core::rpc::RpcOutcome;
+use openhuman_core::core::Outcome;
 
 /// Canonical authed-session guard. Delegates to `require_live_session_token`,
 /// which rejects an expired token locally (publishing `SessionExpired`) instead
@@ -79,26 +79,26 @@ async fn get_authed_value(
         .map_err(openhuman_core::api::flatten_authed_error)
 }
 
-pub async fn list_members(config: &Config, team_id: &str) -> Result<RpcOutcome<Value>, String> {
+pub async fn list_members(config: &Config, team_id: &str) -> Result<Outcome<Value>, String> {
     let team_id = normalize_id(team_id, "teamId")?;
     let path = build_api_path(&["teams", &team_id, "members"])?;
     let data = get_authed_value(config, Method::GET, &path, None).await?;
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         data,
         "team members fetched from backend",
     ))
 }
 
-pub async fn list_teams(config: &Config) -> Result<RpcOutcome<Value>, String> {
+pub async fn list_teams(config: &Config) -> Result<Outcome<Value>, String> {
     let data = get_authed_value(config, Method::GET, "/teams", None).await?;
-    Ok(RpcOutcome::single_log(data, "teams fetched from backend"))
+    Ok(Outcome::single_log(data, "teams fetched from backend"))
 }
 
-pub async fn get_team(config: &Config, team_id: &str) -> Result<RpcOutcome<Value>, String> {
+pub async fn get_team(config: &Config, team_id: &str) -> Result<Outcome<Value>, String> {
     let team_id = normalize_id(team_id, "teamId")?;
     let path = build_api_path(&["teams", &team_id])?;
     let data = get_authed_value(config, Method::GET, &path, None).await?;
-    Ok(RpcOutcome::single_log(data, "team fetched from backend"))
+    Ok(Outcome::single_log(data, "team fetched from backend"))
 }
 
 #[derive(Debug, Serialize)]
@@ -106,7 +106,7 @@ struct TeamNameBody<'a> {
     name: &'a str,
 }
 
-pub async fn create_team(config: &Config, name: &str) -> Result<RpcOutcome<Value>, String> {
+pub async fn create_team(config: &Config, name: &str) -> Result<Outcome<Value>, String> {
     let trimmed = name.trim();
     if trimmed.is_empty() {
         return Err("name is required".to_string());
@@ -118,14 +118,14 @@ pub async fn create_team(config: &Config, name: &str) -> Result<RpcOutcome<Value
         Some(json!(TeamNameBody { name: trimmed })),
     )
     .await?;
-    Ok(RpcOutcome::single_log(data, "team created via backend"))
+    Ok(Outcome::single_log(data, "team created via backend"))
 }
 
 pub async fn update_team(
     config: &Config,
     team_id: &str,
     name: Option<&str>,
-) -> Result<RpcOutcome<Value>, String> {
+) -> Result<Outcome<Value>, String> {
     let team_id = normalize_id(team_id, "teamId")?;
     let path = build_api_path(&["teams", &team_id])?;
     let mut body = serde_json::Map::new();
@@ -133,34 +133,34 @@ pub async fn update_team(
         body.insert("name".to_string(), Value::String(name.to_string()));
     }
     let data = get_authed_value(config, Method::PUT, &path, Some(Value::Object(body))).await?;
-    Ok(RpcOutcome::single_log(data, "team updated via backend"))
+    Ok(Outcome::single_log(data, "team updated via backend"))
 }
 
-pub async fn delete_team(config: &Config, team_id: &str) -> Result<RpcOutcome<Value>, String> {
+pub async fn delete_team(config: &Config, team_id: &str) -> Result<Outcome<Value>, String> {
     let team_id = normalize_id(team_id, "teamId")?;
     let path = build_api_path(&["teams", &team_id])?;
     let data = get_authed_value(config, Method::DELETE, &path, None).await?;
-    Ok(RpcOutcome::single_log(data, "team deleted via backend"))
+    Ok(Outcome::single_log(data, "team deleted via backend"))
 }
 
-pub async fn switch_team(config: &Config, team_id: &str) -> Result<RpcOutcome<Value>, String> {
+pub async fn switch_team(config: &Config, team_id: &str) -> Result<Outcome<Value>, String> {
     let team_id = normalize_id(team_id, "teamId")?;
     let path = build_api_path(&["teams", &team_id, "switch"])?;
     let data = get_authed_value(config, Method::POST, &path, Some(json!({}))).await?;
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         data,
         "active team switched via backend",
     ))
 }
 
-pub async fn leave_team(config: &Config, team_id: &str) -> Result<RpcOutcome<Value>, String> {
+pub async fn leave_team(config: &Config, team_id: &str) -> Result<Outcome<Value>, String> {
     let team_id = normalize_id(team_id, "teamId")?;
     let path = build_api_path(&["teams", &team_id, "leave"])?;
     let data = get_authed_value(config, Method::POST, &path, Some(json!({}))).await?;
-    Ok(RpcOutcome::single_log(data, "team left via backend"))
+    Ok(Outcome::single_log(data, "team left via backend"))
 }
 
-pub async fn join_team(config: &Config, code: &str) -> Result<RpcOutcome<Value>, String> {
+pub async fn join_team(config: &Config, code: &str) -> Result<Outcome<Value>, String> {
     let trimmed = code.trim();
     if trimmed.is_empty() {
         return Err("code is required".to_string());
@@ -172,7 +172,7 @@ pub async fn join_team(config: &Config, code: &str) -> Result<RpcOutcome<Value>,
         Some(json!({ "code": trimmed })),
     )
     .await?;
-    Ok(RpcOutcome::single_log(data, "team joined via backend"))
+    Ok(Outcome::single_log(data, "team joined via backend"))
 }
 
 #[derive(Debug, Serialize)]
@@ -189,7 +189,7 @@ pub async fn create_invite(
     team_id: &str,
     max_uses: Option<u64>,
     expires_in_days: Option<u64>,
-) -> Result<RpcOutcome<Value>, String> {
+) -> Result<Outcome<Value>, String> {
     let team_id = normalize_id(team_id, "teamId")?;
     let path = build_api_path(&["teams", &team_id, "invites"])?;
     let body = json!(InviteBody {
@@ -197,7 +197,7 @@ pub async fn create_invite(
         expires_in_days,
     });
     let data = get_authed_value(config, Method::POST, &path, Some(body)).await?;
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         data,
         "team invite created via backend",
     ))
@@ -207,12 +207,12 @@ pub async fn remove_member(
     config: &Config,
     team_id: &str,
     user_id: &str,
-) -> Result<RpcOutcome<Value>, String> {
+) -> Result<Outcome<Value>, String> {
     let team_id = normalize_id(team_id, "teamId")?;
     let user_id = normalize_id(user_id, "userId")?;
     let path = build_api_path(&["teams", &team_id, "members", &user_id])?;
     let data = get_authed_value(config, Method::DELETE, &path, None).await?;
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         data,
         "team member removed via backend",
     ))
@@ -223,14 +223,14 @@ pub async fn change_member_role(
     team_id: &str,
     user_id: &str,
     role: &str,
-) -> Result<RpcOutcome<Value>, String> {
+) -> Result<Outcome<Value>, String> {
     let team_id = normalize_id(team_id, "teamId")?;
     let user_id = normalize_id(user_id, "userId")?;
     let role = normalize_id(role, "role")?;
     let path = build_api_path(&["teams", &team_id, "members", &user_id, "role"])?;
     let body = json!({ "role": role });
     let data = get_authed_value(config, Method::PUT, &path, Some(body)).await?;
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         data,
         "team member role updated via backend",
     ))
@@ -238,11 +238,11 @@ pub async fn change_member_role(
 
 /// List all active invites for a team.
 /// Maps to `GET /teams/:teamId/invites` — matches `teamApi.getInvites`.
-pub async fn list_invites(config: &Config, team_id: &str) -> Result<RpcOutcome<Value>, String> {
+pub async fn list_invites(config: &Config, team_id: &str) -> Result<Outcome<Value>, String> {
     let team_id = normalize_id(team_id, "teamId")?;
     let path = build_api_path(&["teams", &team_id, "invites"])?;
     let data = get_authed_value(config, Method::GET, &path, None).await?;
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         data,
         "team invites listed from backend",
     ))
@@ -254,12 +254,12 @@ pub async fn revoke_invite(
     config: &Config,
     team_id: &str,
     invite_id: &str,
-) -> Result<RpcOutcome<Value>, String> {
+) -> Result<Outcome<Value>, String> {
     let team_id = normalize_id(team_id, "teamId")?;
     let invite_id = normalize_id(invite_id, "inviteId")?;
     let path = build_api_path(&["teams", &team_id, "invites", &invite_id])?;
     let data = get_authed_value(config, Method::DELETE, &path, None).await?;
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         data,
         "team invite revoked via backend",
     ))

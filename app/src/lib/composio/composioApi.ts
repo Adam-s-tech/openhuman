@@ -28,8 +28,8 @@ import type {
 } from './types';
 
 /**
- * Every `composio_*` op on the Rust side returns an `RpcOutcome` with a
- * user-visible log line attached. `RpcOutcome::into_cli_compatible_json`
+ * Every `composio_*` op on the Rust side returns an `Outcome` with a
+ * user-visible log line attached. `Outcome::into_cli_compatible_json`
  * (see `crates/openhuman-rpc/src/mod.rs`) therefore wraps the payload as
  * `{ "result": <flat shape>, "logs": [...] }` before handing it to the
  * JSON-RPC layer. This helper peels that envelope back off so every

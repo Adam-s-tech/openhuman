@@ -20,7 +20,7 @@ use crate::memory::api::types::{
     MemoryCategory, MemoryEntry, MemoryTaint, NamespaceSummary, RecallOpts,
 };
 use crate::memory::Memory;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 use async_trait::async_trait;
 use std::collections::BTreeMap;
 use std::sync::Arc;
@@ -304,13 +304,13 @@ async fn open_query_stores() -> Result<Vec<AgentExperienceStore>, String> {
     Ok(vec![open_store().await?])
 }
 
-pub async fn capture(params: CaptureParams) -> Result<RpcOutcome<AgentExperience>, String> {
+pub async fn capture(params: CaptureParams) -> Result<Outcome<AgentExperience>, String> {
     let store = open_store().await?;
     let stored = store.put(params.experience).await?;
-    Ok(RpcOutcome::single_log(stored, "agent experience captured"))
+    Ok(Outcome::single_log(stored, "agent experience captured"))
 }
 
-pub async fn retrieve(params: RetrieveParams) -> Result<RpcOutcome<Vec<ExperienceHit>>, String> {
+pub async fn retrieve(params: RetrieveParams) -> Result<Outcome<Vec<ExperienceHit>>, String> {
     let stores = open_query_stores().await?;
     let max_hits = params.max_hits.unwrap_or(5);
     let query = ExperienceQuery {
@@ -322,10 +322,10 @@ pub async fn retrieve(params: RetrieveParams) -> Result<RpcOutcome<Vec<Experienc
         max_hits,
     };
     let hits = retrieve_across_stores(&stores, query).await?;
-    Ok(RpcOutcome::single_log(hits, "agent experiences retrieved"))
+    Ok(Outcome::single_log(hits, "agent experiences retrieved"))
 }
 
-pub async fn list(_params: ListParams) -> Result<RpcOutcome<Vec<AgentExperience>>, String> {
+pub async fn list(_params: ListParams) -> Result<Outcome<Vec<AgentExperience>>, String> {
     let stores = open_query_stores().await?;
     let mut by_id: BTreeMap<String, AgentExperience> = BTreeMap::new();
     for store in stores {
@@ -345,19 +345,19 @@ pub async fn list(_params: ListParams) -> Result<RpcOutcome<Vec<AgentExperience>
             .cmp(&a.updated_at_ms)
             .then_with(|| a.id.cmp(&b.id))
     });
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         experiences,
         "agent experiences listed",
     ))
 }
 
-pub async fn dismiss(params: DismissParams) -> Result<RpcOutcome<DismissResult>, String> {
+pub async fn dismiss(params: DismissParams) -> Result<Outcome<DismissResult>, String> {
     let stores = open_query_stores().await?;
     let mut dismissed = false;
     for store in stores {
         dismissed |= store.dismiss(&params.id).await?;
     }
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         DismissResult {
             id: params.id,
             dismissed,

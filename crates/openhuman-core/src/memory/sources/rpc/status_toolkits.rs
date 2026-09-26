@@ -1,7 +1,7 @@
 //! Per-source ingest status and the supported-toolkit catalog.
 
 use crate::config::rpc as config_rpc;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 // ── Status List ──
 
@@ -10,11 +10,11 @@ pub struct StatusListResponse {
     pub statuses: Vec<crate::memory::sources::status::SourceStatus>,
 }
 
-pub async fn status_list_rpc() -> Result<RpcOutcome<StatusListResponse>, String> {
+pub async fn status_list_rpc() -> Result<Outcome<StatusListResponse>, String> {
     tracing::debug!("[memory_sources] status_list_rpc: entry");
     let config = config_rpc::load_config_with_timeout().await?;
     let statuses = crate::memory::sources::status::status_list(&config).await?;
-    Ok(RpcOutcome::new(StatusListResponse { statuses }, vec![]))
+    Ok(Outcome::new(StatusListResponse { statuses }, vec![]))
 }
 
 // ── Supported Toolkits ──
@@ -42,7 +42,7 @@ pub struct SupportedToolkitsResponse {
 /// registration step (`init_default_composio_sync_providers`) is needed any
 /// more either: this is now a `&'static` table read, not a process-global
 /// `HashMap` that has to be primed first.
-pub async fn supported_toolkits_rpc() -> Result<RpcOutcome<SupportedToolkitsResponse>, String> {
+pub async fn supported_toolkits_rpc() -> Result<Outcome<SupportedToolkitsResponse>, String> {
     tracing::debug!("[memory_sources] supported_toolkits_rpc: entry");
 
     let mut toolkits: Vec<String> = crate::integrations::composio::providers::NATIVE_PROVIDERS
@@ -57,7 +57,7 @@ pub async fn supported_toolkits_rpc() -> Result<RpcOutcome<SupportedToolkitsResp
         toolkits = ?toolkits,
         "[memory_sources] supported_toolkits_rpc: resolved supported toolkit set"
     );
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         SupportedToolkitsResponse { toolkits },
         vec![],
     ))

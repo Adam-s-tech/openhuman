@@ -326,7 +326,7 @@ async fn fetch_data_paths(user_id: Option<String>) -> Result<ResolvedDataPaths, 
         .json()
         .await
         .map_err(|e| format!("config_get_data_paths decode failed: {e}"))?;
-    // JSON-RPC envelope wraps the `RpcOutcome` result twice:
+    // JSON-RPC envelope wraps the `Outcome` result twice:
     // `{ "result": { "result": { ...paths... }, "logs": [...] } }`.
     let inner = envelope
         .pointer("/result/result")

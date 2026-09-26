@@ -6,7 +6,7 @@ use crate::api::config::{app_env_from_env, effective_backend_api_url, is_staging
 use crate::api::jwt::get_session_token;
 use crate::api::rest::BackendOAuthClient;
 use crate::config::Config;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 use crate::security::credentials;
 
 use super::super::definitions::ChannelAuthMode;
@@ -38,7 +38,7 @@ fn telegram_bot_username() -> String {
 /// Requires an active session JWT.
 pub async fn telegram_login_start(
     config: &Config,
-) -> Result<RpcOutcome<TelegramLoginStartResult>, String> {
+) -> Result<Outcome<TelegramLoginStartResult>, String> {
     let api_url = effective_backend_api_url(&config.api_url);
     let jwt = get_session_token(config)?
         .ok_or_else(|| "session JWT required; complete login first".to_string())?;
@@ -81,7 +81,7 @@ pub async fn telegram_login_start(
         telegram_url
     );
 
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         TelegramLoginStartResult {
             link_token,
             telegram_url,
@@ -99,7 +99,7 @@ pub async fn telegram_login_start(
 pub async fn telegram_login_check(
     config: &Config,
     _link_token: &str,
-) -> Result<RpcOutcome<TelegramLoginCheckResult>, String> {
+) -> Result<Outcome<TelegramLoginCheckResult>, String> {
     let api_url = effective_backend_api_url(&config.api_url);
     let jwt = get_session_token(config)?.ok_or_else(|| "session JWT required".to_string())?;
 
@@ -164,7 +164,7 @@ pub async fn telegram_login_check(
         );
     }
 
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         TelegramLoginCheckResult {
             linked,
             details: if linked { Some(user_payload) } else { None },

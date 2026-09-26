@@ -10,7 +10,7 @@ struct LocalAiTestConnectionParams {
 use crate::config::rpc as config_rpc;
 use crate::core::all::{ControllerFuture, RegisteredController};
 use crate::core::{ControllerSchema, FieldSchema, TypeSchema};
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 /// Params for `inference.agent_chat` and `inference.agent_chat_simple`.
 ///
@@ -542,7 +542,7 @@ fn json_output(name: &'static str, comment: &'static str) -> FieldSchema {
     }
 }
 
-fn to_json<T: serde::Serialize>(outcome: RpcOutcome<T>) -> Result<Value, String> {
+fn to_json<T: serde::Serialize>(outcome: Outcome<T>) -> Result<Value, String> {
     outcome.into_cli_compatible_json()
 }
 

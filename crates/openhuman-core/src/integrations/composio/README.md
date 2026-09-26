@@ -47,7 +47,7 @@ triggers) from a real transport failure.
 | --- | --- |
 | `crates/openhuman-core/src/integrations/composio/mod.rs` | Module doc + declarations; re-exports types, ops, schemas, agent tools, trigger-history, and provider/bus types. |
 | `crates/openhuman-core/src/integrations/composio/types.rs` | Serde domain types mirroring backend response envelopes (toolkits, connections, tools, execute, triggers, trigger events/history). Includes drift-tolerant `de_string_or_object` deserializers. |
-| `crates/openhuman-core/src/integrations/composio/ops/` | RPC-facing `composio_*` operations returning `RpcOutcome<T>`, split by concern (see [Ops layout](#ops-layout)). |
+| `crates/openhuman-core/src/integrations/composio/ops/` | RPC-facing `composio_*` operations returning `Outcome<T>`, split by concern (see [Ops layout](#ops-layout)). |
 | `crates/openhuman-core/src/integrations/composio/schemas.rs` + `schemas/` (`registry.rs`, `definitions.rs`, `handlers_identity.rs`, `handlers_tools.rs`, `handlers_connections.rs`, `handlers_triggers.rs`, `params.rs`, `util.rs`) | Controller schemas + `handle_*` handlers; `all_controller_schemas` / `all_registered_controllers` (`schemas/registry.rs`). |
 | `crates/openhuman-core/src/integrations/composio/client.rs` + `client/` (`connections.rs`, `factory.rs`, `direct.rs`, `execute.rs`, `triggers.rs`) | `ComposioClient` (thin HTTP wrapper over `IntegrationClient` for backend routes, `client/connections.rs`) + `ComposioClientKind` (Backend/Direct), `create_composio_client` (`client/factory.rs`), and direct-mode v3 helpers (`direct_list_connections`, `direct_list_tools`, `direct_execute`, `direct_authorize`, all in `client/direct.rs`). |
 | `crates/openhuman-core/src/integrations/composio/module_client.rs` | The `tinyconnectors` module bridge: the one `modules`-feature `#[cfg]` switch, `methods` re-exported from `tinyconnectors_bus`, and member-failure classification (`is_unsupported_by_route`, error-prefix peeling). |
@@ -179,7 +179,7 @@ Published from `ops/` via `crate::core::bus::BUS.publish` (`crate::core::events:
 - `crate::core::all` — `ControllerFuture` / `RegisteredController` registry types.
 - `crate::core::bus` (`BUS`) / `crate::core::events::DomainEvent` — event publish/subscribe.
 - `crate::core::observability` — Sentry error classification/reporting.
-- `crate::rpc` — `RpcOutcome<T>`.
+- `crate::rpc` — `Outcome<T>`.
 
 ## Used by
 

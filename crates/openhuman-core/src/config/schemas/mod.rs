@@ -5,7 +5,7 @@
 //! `core/all.rs` registers the latter under `DomainGroup::Config` (the schema-only
 //! list is consumed by tests). Handlers here are thin: they deserialize params,
 //! delegate to `config::ops` (re-exported as `config::rpc`) for the actual
-//! mutation/read, and shape the `RpcOutcome` response.
+//! mutation/read, and shape the `Outcome` response.
 //!
 //! - `controllers.rs` — declares submodules `controllers/{agent,inference,
 //!   integrations,registry,voice,workspace}.rs` (split for file-size only;
@@ -48,7 +48,7 @@ pub use controllers::{all_controller_schemas, all_registered_controllers};
 #[cfg(test)]
 use crate::core::TypeSchema;
 #[cfg(test)]
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 #[cfg(test)]
 use controllers::{
     handle_get_agent_paths, handle_get_autonomy_settings, handle_update_autonomy_settings,

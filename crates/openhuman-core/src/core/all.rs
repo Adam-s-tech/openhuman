@@ -1489,7 +1489,7 @@ pub fn validate_params(
 ) -> Result<(), String> {
     for input in &schema.inputs {
         if input.required && !params.contains_key(input.name) {
-            return Err(crate::rpc::missing_required_param_message(
+            return Err(crate::core::params::missing_required_param_message(
                 input.name,
                 input.comment,
             ));
@@ -1498,7 +1498,7 @@ pub fn validate_params(
 
     for key in params.keys() {
         if !schema.inputs.iter().any(|f| f.name == key) {
-            return Err(crate::rpc::unknown_param_message(
+            return Err(crate::core::params::unknown_param_message(
                 key,
                 schema.namespace,
                 schema.function,
@@ -1515,7 +1515,7 @@ pub fn validate_params(
             check_type(value, &input.ty).map_err(|mismatch| {
                 let (expected, got) = match mismatch {
                     TypeMismatch::Kind(expected) => {
-                        (expected.to_string(), crate::rpc::json_type_name(value).to_string())
+                        (expected.to_string(), crate::core::params::json_type_name(value).to_string())
                     }
                     TypeMismatch::OutOfRange { min, max, got } => {
                         log::debug!(

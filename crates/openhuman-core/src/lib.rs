@@ -25,7 +25,7 @@
 //! structure") for the preferred per-domain module shape.
 //!
 //! `pub use openhuman_rpc as rpc;` re-exports the `openhuman-rpc` crate, so
-//! `crate::rpc::{RpcOutcome, StructuredRpcError, ...}` are the same types the
+//! `crate::rpc::{Outcome, StructuredRpcError, ...}` are the same types the
 //! app and TUI decode responses with — there is no separate RPC contract
 //! layer in this crate.
 //!

@@ -4,12 +4,12 @@ use crate::api::config::effective_backend_api_url;
 use crate::api::jwt::get_session_token;
 use crate::api::rest::BackendOAuthClient;
 use crate::config::Config;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 pub async fn auth_create_channel_link_token(
     config: &Config,
     channel: &str,
-) -> Result<RpcOutcome<serde_json::Value>, String> {
+) -> Result<Outcome<serde_json::Value>, String> {
     let channel = channel.trim();
     if channel.is_empty() {
         return Err("channel is required".to_string());
@@ -29,7 +29,7 @@ pub async fn auth_create_channel_link_token(
         // keep their full anyhow chain.
         .map_err(crate::api::flatten_authed_error)?;
 
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         payload,
         "channel link token created",
     ))

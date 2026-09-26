@@ -284,7 +284,7 @@ export async function getOnboardingCompleted(): Promise<boolean> {
   const res = await callCoreRpc<boolean | { result: boolean }>({
     method: 'openhuman.config_get_onboarding_completed',
   });
-  // RpcOutcome may wrap value in { result, logs } when logs are present
+  // Outcome may wrap value in { result, logs } when logs are present
   if (typeof res === 'boolean') return res;
   if (res && typeof res === 'object' && 'result' in res) return res.result;
   return false;

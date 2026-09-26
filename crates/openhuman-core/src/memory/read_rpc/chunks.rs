@@ -6,7 +6,7 @@ use crate::memory::api::provider::retrieval::{
     RetrievalNodeKind, RetrievalResponse, SourceRetrievalQuery,
 };
 use crate::memory::api::provider::{ChunkListRow, ChunkQuery, MemoryChunks};
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 use tinymemory_api::chunks::SourceKind;
 
 use super::types::{
@@ -19,12 +19,12 @@ use super::types::{
 pub async fn list_chunks_rpc(
     config: &Config,
     filter: ChunkFilter,
-) -> Result<RpcOutcome<ListChunksResponse>, String> {
+) -> Result<Outcome<ListChunksResponse>, String> {
     let resp = list_chunks_page(config, &filter).await?;
 
     let n = resp.chunks.len();
     let total = resp.total;
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         resp,
         format!("memory_tree::read: list_chunks n={n} total={total}"),
     ))
@@ -283,11 +283,11 @@ fn chunk_row_from_list_row(row: ChunkListRow) -> ChunkRow {
 pub async fn list_sources_rpc(
     config: &Config,
     user_email_hint: Option<String>,
-) -> Result<RpcOutcome<Vec<Source>>, String> {
+) -> Result<Outcome<Vec<Source>>, String> {
     let sources = list_sources(config, user_email_hint.as_deref()).await?;
 
     let n = sources.len();
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         sources,
         format!("memory_tree::read: list_sources n={n}"),
     ))
@@ -398,11 +398,11 @@ pub async fn search_rpc(
     config: &Config,
     query: String,
     k: u32,
-) -> Result<RpcOutcome<Vec<ChunkRow>>, String> {
+) -> Result<Outcome<Vec<ChunkRow>>, String> {
     let limit = k.clamp(1, MAX_LIST_LIMIT);
     let tokens = query_tokens(Some(&query));
     if !query.trim().is_empty() && tokens.is_empty() {
-        return Ok(RpcOutcome::single_log(
+        return Ok(Outcome::single_log(
             Vec::new(),
             format!("memory_tree::read: search query_len={} n=0", query.len()),
         ));
@@ -424,7 +424,7 @@ pub async fn search_rpc(
             "[memory_tree::read] search: driver '{}' does not serve Chunks; reporting empty",
             binding.driver_id()
         );
-        return Ok(RpcOutcome::single_log(
+        return Ok(Outcome::single_log(
             Vec::new(),
             format!("memory_tree::read: search query_len={query_len} n=0"),
         ));
@@ -458,7 +458,7 @@ pub async fn search_rpc(
     let hits: Vec<ChunkRow> = rows.into_iter().map(chunk_row_from_list_row).collect();
     let n = hits.len();
     log::debug!("[memory_tree::read] search: limit={limit} n={n}");
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         hits,
         format!("memory_tree::read: search query_len={query_len} n={n}"),
     ))
@@ -468,7 +468,7 @@ pub async fn recall_rpc(
     config: &Config,
     query: String,
     k: u32,
-) -> Result<RpcOutcome<RecallResponse>, String> {
+) -> Result<Outcome<RecallResponse>, String> {
     let limit = k.clamp(1, MAX_LIST_LIMIT) as usize;
     log::debug!(
         "[memory_tree::read::recall] query_len={} k={}",
@@ -612,7 +612,7 @@ pub async fn recall_rpc(
     scores.truncate(limit);
 
     let n = chunk_rows.len();
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         RecallResponse {
             chunks: chunk_rows,
             scores,

@@ -4,7 +4,7 @@ use serde_json::{Map, Value};
 use crate::agent::experience::ops::{CaptureParams, DismissParams, ListParams, RetrieveParams};
 use crate::core::all::{ControllerFuture, RegisteredController};
 use crate::core::{ControllerSchema, FieldSchema, TypeSchema};
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 pub fn all_controller_schemas() -> Vec<ControllerSchema> {
     vec![
@@ -201,7 +201,7 @@ fn read_params<T: DeserializeOwned>(params: Map<String, Value>) -> Result<T, Str
     serde_json::from_value(Value::Object(params)).map_err(|e| e.to_string())
 }
 
-fn to_json<T: serde::Serialize>(outcome: RpcOutcome<T>) -> Result<Value, String> {
+fn to_json<T: serde::Serialize>(outcome: Outcome<T>) -> Result<Value, String> {
     outcome.into_cli_compatible_json()
 }
 

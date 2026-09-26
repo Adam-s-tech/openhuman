@@ -23,7 +23,7 @@
 //! route out, through `MemoryTree::flavour_profile`.
 //!
 //! What is left here is what could only ever have lived host-side: the handlers
-//! and schemas name OpenHuman's `RpcOutcome` and `ControllerSchema`, the CLI
+//! and schemas name OpenHuman's `Outcome` and `ControllerSchema`, the CLI
 //! names its argument parsing, and the subscriber names `DomainEvent`.
 
 // The summary-tree node model is **contract** vocabulary, not engine

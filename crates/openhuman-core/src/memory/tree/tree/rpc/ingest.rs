@@ -3,7 +3,7 @@
 //! family.
 
 use crate::config::Config;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 use tinymemory_api::chunks::{DataSource, SourceKind, SourceRef};
 use tinymemory_api::provider::types::{IngestItem, IngestOutcome};
 use tinymemory_api::types::MemoryTaint;
@@ -368,7 +368,7 @@ fn response_from_outcome(source_id: String, outcome: IngestOutcome) -> IngestRes
 pub async fn ingest_rpc(
     config: &Config,
     req: IngestRequest,
-) -> Result<RpcOutcome<IngestResponse>, String> {
+) -> Result<Outcome<IngestResponse>, String> {
     let IngestRequest {
         source_kind,
         source_id,
@@ -458,7 +458,7 @@ pub async fn ingest_rpc(
         }
     };
 
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         response,
         format!(
             "memory_tree: ingest kind={} source_id={source_id}",

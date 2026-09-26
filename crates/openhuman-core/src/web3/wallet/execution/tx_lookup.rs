@@ -3,7 +3,7 @@
 
 use log::debug;
 
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 use super::super::chains::{
     btc as chain_btc, evm as chain_evm, solana as chain_sol, tron as chain_tron,
@@ -28,7 +28,7 @@ pub async fn tx_status(
     chain: WalletChain,
     evm_network: Option<EvmNetwork>,
     hash: &str,
-) -> Result<RpcOutcome<TxStatusInfo>, String> {
+) -> Result<Outcome<TxStatusInfo>, String> {
     let hash = hash.trim();
     if hash.is_empty() {
         return Err("tx hash is empty".to_string());
@@ -47,7 +47,7 @@ pub async fn tx_status(
         hash,
         info.state
     );
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         info,
         vec!["wallet tx status fetched".to_string()],
     ))
@@ -58,7 +58,7 @@ pub async fn tx_receipt(
     chain: WalletChain,
     evm_network: Option<EvmNetwork>,
     hash: &str,
-) -> Result<RpcOutcome<TxReceiptInfo>, String> {
+) -> Result<Outcome<TxReceiptInfo>, String> {
     let hash = hash.trim();
     if hash.is_empty() {
         return Err("tx hash is empty".to_string());
@@ -77,7 +77,7 @@ pub async fn tx_receipt(
         hash,
         info.found
     );
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         info,
         vec!["wallet tx receipt fetched".to_string()],
     ))
@@ -88,7 +88,7 @@ pub async fn lookup_tx(
     chain: WalletChain,
     evm_network: Option<EvmNetwork>,
     hash: &str,
-) -> Result<RpcOutcome<TxLookupInfo>, String> {
+) -> Result<Outcome<TxLookupInfo>, String> {
     let hash = hash.trim();
     if hash.is_empty() {
         return Err("tx hash is empty".to_string());
@@ -107,7 +107,7 @@ pub async fn lookup_tx(
         hash,
         info.found
     );
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         info,
         vec!["wallet tx looked up".to_string()],
     ))

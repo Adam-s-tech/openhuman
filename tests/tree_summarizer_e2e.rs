@@ -194,7 +194,7 @@ fn ok(v: &Value, ctx: &str) -> Value {
     let outer = v
         .get("result")
         .unwrap_or_else(|| panic!("{ctx}: missing result: {v}"));
-    // RpcOutcome wraps its payload under an inner "result" alongside "logs".
+    // Outcome wraps its payload under an inner "result" alongside "logs".
     outer
         .get("result")
         .cloned()

@@ -3,7 +3,7 @@
 use crate::agent::OpenHumanSessionHost;
 use crate::config::Config;
 use crate::inference::provider as providers;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 use super::turn_guards::{
     effective_agent_chat_origin, enforce_user_prompt_or_reject, grant_turn_cwd,
@@ -57,7 +57,7 @@ pub async fn agent_chat(
     thread_id: Option<String>,
     cwd: Option<String>,
     route: Option<crate::config::schema::EphemeralRoute>,
-) -> Result<RpcOutcome<String>, String> {
+) -> Result<Outcome<String>, String> {
     agent_chat_for(
         config,
         AgentChatTarget::Orchestrator,
@@ -184,7 +184,7 @@ pub async fn agent_chat_for(
     thread_id: Option<String>,
     cwd: Option<String>,
     route: Option<crate::config::schema::EphemeralRoute>,
-) -> Result<RpcOutcome<String>, String> {
+) -> Result<Outcome<String>, String> {
     enforce_user_prompt_or_reject(message, "local_ai.ops.agent_chat")?;
 
     // TAURI-RUST-RS: an upstream caller (frontend, JSON-RPC client) can pass
@@ -311,7 +311,7 @@ pub async fn agent_chat_for(
             .unwrap_or_else(std::sync::PoisonError::into_inner) = agent.last_turn_usage();
     }
     let response = outcome.map_err(|e| e.to_string())?;
-    Ok(RpcOutcome::single_log(response, "agent chat completed"))
+    Ok(Outcome::single_log(response, "agent chat completed"))
 }
 
 /// A simplified chat interface that does not update the base configuration.
@@ -321,7 +321,7 @@ pub async fn agent_chat_simple(
     model_override: Option<String>,
     temperature: Option<f64>,
     thread_id: Option<String>,
-) -> Result<RpcOutcome<String>, String> {
+) -> Result<Outcome<String>, String> {
     enforce_user_prompt_or_reject(message, "local_ai.ops.agent_chat_simple")?;
 
     let mut effective = config.clone();
@@ -376,7 +376,7 @@ pub async fn agent_chat_simple(
     );
     let response = run.await.map_err(|e| e.to_string())?.text();
 
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         response,
         "agent simple chat completed",
     ))

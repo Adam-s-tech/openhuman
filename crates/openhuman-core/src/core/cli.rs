@@ -12,7 +12,7 @@ use crate::core::all;
 use crate::core::jsonrpc::{default_state, invoke_method};
 use crate::core::logging::CliLogDefault;
 use crate::core::{ControllerSchema, TypeSchema};
-use crate::rpc::parse_json_params;
+use crate::core::params::parse_json_params;
 
 /// The ASCII banner displayed when the CLI starts.
 const CLI_BANNER: &str = r#"

@@ -211,7 +211,7 @@ fn ok<'a>(value: &'a Value, context: &str) -> &'a Value {
         .unwrap_or_else(|| panic!("{context}: missing result: {value}"))
 }
 
-/// Peel the conditional `RpcOutcome` envelope. A handler that emits no log
+/// Peel the conditional `Outcome` envelope. A handler that emits no log
 /// lines returns the bare value; one that emits any returns
 /// `{ result, logs }`. Both shapes are valid for the same method, so every
 /// consumer has to tolerate both — see `crates/openhuman-rpc/src/mod.rs`.

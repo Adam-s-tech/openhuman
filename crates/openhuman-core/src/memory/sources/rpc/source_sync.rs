@@ -5,7 +5,7 @@ use super::coding_sessions::unserved;
 use crate::config::rpc as config_rpc;
 use crate::memory::sources::registry;
 use crate::memory::sources::types::MemorySourceEntry;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 // ── Sync ──
 
@@ -106,7 +106,7 @@ pub(super) fn describe_source_sync_failure(
     }
 }
 
-pub async fn sync_rpc(req: SyncRequest) -> Result<RpcOutcome<SyncResponse>, String> {
+pub async fn sync_rpc(req: SyncRequest) -> Result<Outcome<SyncResponse>, String> {
     tracing::info!(source_id = %req.source_id, "[memory_sources] sync_rpc: entry");
 
     let config = config_rpc::load_config_with_timeout().await?;
@@ -146,7 +146,7 @@ pub async fn sync_rpc(req: SyncRequest) -> Result<RpcOutcome<SyncResponse>, Stri
                 max_items,
             )
             .await?;
-            return Ok(RpcOutcome::new(
+            return Ok(Outcome::new(
                 SyncResponse {
                     requested: true,
                     source_id: req.source_id,
@@ -180,7 +180,7 @@ pub async fn sync_rpc(req: SyncRequest) -> Result<RpcOutcome<SyncResponse>, Stri
     )
     .await?;
 
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         SyncResponse {
             requested: true,
             source_id: req.source_id,
@@ -235,7 +235,7 @@ pub struct ReconcileResponse {
 /// The scopes themselves are still derived host-side (`derive_scopes` reads the
 /// registry row); what moved is the crosscheck and the repair, which are
 /// `MemorySourceSync::raw_archive_coverage` and `rebuild_from_raw_archive`.
-pub async fn reconcile_rpc(req: ReconcileRequest) -> Result<RpcOutcome<ReconcileResponse>, String> {
+pub async fn reconcile_rpc(req: ReconcileRequest) -> Result<Outcome<ReconcileResponse>, String> {
     use crate::memory::sources::sync::derive_scopes;
 
     tracing::info!(
@@ -324,7 +324,7 @@ pub async fn reconcile_rpc(req: ReconcileRequest) -> Result<RpcOutcome<Reconcile
         }
     }
 
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         ReconcileResponse { scopes: reports },
         vec![],
     ))

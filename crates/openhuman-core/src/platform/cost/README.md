@@ -20,7 +20,7 @@ Local API-usage cost tracking for the agent. Records per-call token usage and co
 | `crates/openhuman-core/src/platform/cost/types.rs`         | Serde domain types: `TokenUsage`, `CostSource`, `CostRecord`, `UsagePeriod`, `CostSummary`, `ModelStats`, `DailyCostEntry`, `BudgetStatus`, `CostDashboard`. Cost-calc logic lives in `TokenUsage::new`. |
 | `crates/openhuman-core/src/platform/cost/tracker.rs`       | `CostTracker` (recording, summaries, daily history, dashboard build) plus the private `CostStorage` JSONL persistence + aggregate-cache layer. Functions as both `ops` and `store`.                      |
 | `crates/openhuman-core/src/platform/cost/global.rs`        | Process-global `OnceCell<Arc<CostTracker>>` singleton: `init_global`, `try_global`, `record_provider_usage`, and `build_token_usage` (provider `UsageInfo` → `TokenUsage`).                                             |
-| `crates/openhuman-core/src/platform/cost/rpc.rs`           | RPC-facing handlers (`dashboard`, `daily_history`, `summary`) returning `RpcOutcome<Value>`; DTO types; `resolve_tracker` with a cached fallback tracker + error-replay TTL.                                            |
+| `crates/openhuman-core/src/platform/cost/rpc.rs`           | RPC-facing handlers (`dashboard`, `daily_history`, `summary`) returning `Outcome<Value>`; DTO types; `resolve_tracker` with a cached fallback tracker + error-replay TTL.                                            |
 | `crates/openhuman-core/src/platform/cost/schemas.rs`       | Controller schemas + `handle_*` JSON-RPC dispatchers; `all_controller_schemas` / `all_registered_controllers`.                                                                                                          |
 | `crates/openhuman-core/src/platform/cost/tracker_tests.rs` | Sibling test suite for `tracker.rs` (`#[path]`-included).                                                                                                                                                               |
 | `crates/openhuman-core/src/platform/cost/catalog.rs` | Static per-model pricing + context-window catalog (`ModelPrice`, `lookup`, `estimate_cost_usd`, `PRICING_AS_OF`) and the tinyagents model-catalog adapters. |
@@ -68,7 +68,7 @@ None. The module has no `bus.rs` and no `DomainEvent` publishers/subscribers.
 - `crate::inference::provider::types::UsageInfo` (re-exported as `crate::inference::provider::UsageInfo`) — provider usage payload translated into `TokenUsage` in `global.rs`.
 - `crate::core::all` — `ControllerFuture`, `RegisteredController` for controller registration.
 - `crate::core` — `ControllerSchema`, `FieldSchema`, `TypeSchema`.
-- `crate::rpc::RpcOutcome` — RPC return wrapper.
+- `crate::rpc::Outcome` — RPC return wrapper.
 - External: `chrono`, `serde`/`serde_json`, `uuid`, `parking_lot`, `once_cell`, `anyhow`, `tempfile` (tests).
 
 ## Used by

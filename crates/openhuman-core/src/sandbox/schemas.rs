@@ -5,7 +5,7 @@ use serde_json::{Map, Value};
 use crate::config::rpc as config_rpc;
 use crate::core::all::{ControllerFuture, RegisteredController};
 use crate::core::{ControllerSchema, FieldSchema, TypeSchema};
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 pub fn all_controller_schemas() -> Vec<ControllerSchema> {
     vec![
@@ -199,7 +199,7 @@ fn handle_status(params: Map<String, Value>) -> ControllerFuture {
             is_remote,
         );
         let handle = super::ops::create_sandbox_backend(&policy).await;
-        to_json(RpcOutcome::new(handle, vec![]))
+        to_json(Outcome::new(handle, vec![]))
     })
 }
 
@@ -246,14 +246,14 @@ fn handle_resolve_policy(params: Map<String, Value>) -> ControllerFuture {
             &config.runtime,
             is_remote,
         );
-        to_json(RpcOutcome::new(policy, vec![]))
+        to_json(Outcome::new(policy, vec![]))
     })
 }
 
 fn handle_cleanup_orphans(_params: Map<String, Value>) -> ControllerFuture {
     Box::pin(async {
         match super::docker::cleanup_orphaned_containers().await {
-            Ok(count) => to_json(RpcOutcome::new(
+            Ok(count) => to_json(Outcome::new(
                 serde_json::json!({ "cleaned": count }),
                 vec![],
             )),
@@ -273,11 +273,11 @@ fn handle_validate_policy(params: Map<String, Value>) -> ControllerFuture {
             Ok(()) => serde_json::json!({ "valid": true, "issues": [] }),
             Err(issues) => serde_json::json!({ "valid": false, "issues": issues }),
         };
-        to_json(RpcOutcome::new(result, vec![]))
+        to_json(Outcome::new(result, vec![]))
     })
 }
 
-fn to_json<T: serde::Serialize>(outcome: RpcOutcome<T>) -> Result<Value, String> {
+fn to_json<T: serde::Serialize>(outcome: Outcome<T>) -> Result<Value, String> {
     outcome.into_cli_compatible_json()
 }
 

@@ -15,7 +15,7 @@ use crate::memory::{
     UpdateConversationMessageRequest, UpdateConversationThreadLabelsRequest,
     UpdateConversationThreadTitleRequest, UpsertConversationThreadRequest,
 };
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 use crate::threads::turn_state;
 use crate::threads::ThreadsError;
 use crate::web_chat as web_channel;
@@ -24,7 +24,7 @@ use std::path::PathBuf;
 /// Lists all conversation threads.
 pub async fn threads_list(
     _request: EmptyRequest,
-) -> Result<RpcOutcome<ApiEnvelope<ConversationThreadsListResponse>>, String> {
+) -> Result<Outcome<ApiEnvelope<ConversationThreadsListResponse>>, String> {
     let dir = workspace_dir().await?;
     let threads = conversations::blocking::list_threads(dir)
         .await?
@@ -42,7 +42,7 @@ pub async fn threads_list(
 /// Creates or refreshes a conversation thread.
 pub async fn thread_upsert(
     request: UpsertConversationThreadRequest,
-) -> Result<RpcOutcome<ApiEnvelope<ConversationThreadSummary>>, String> {
+) -> Result<Outcome<ApiEnvelope<ConversationThreadSummary>>, String> {
     let dir = workspace_dir().await?;
     let thread = conversations::blocking::ensure_thread(
         dir,
@@ -66,7 +66,7 @@ pub async fn thread_upsert(
 /// Creates a new conversation thread with auto-generated ID and title.
 pub async fn thread_create_new(
     request: CreateConversationThreadRequest,
-) -> Result<RpcOutcome<ApiEnvelope<ConversationThreadSummary>>, String> {
+) -> Result<Outcome<ApiEnvelope<ConversationThreadSummary>>, String> {
     let dir = workspace_dir().await?;
     let id = format!("thread-{}", uuid::Uuid::new_v4());
     let now = chrono::Local::now();
@@ -102,7 +102,7 @@ pub async fn thread_create_new(
 /// Lists messages for a conversation thread.
 pub async fn messages_list(
     request: ConversationMessagesRequest,
-) -> Result<RpcOutcome<ApiEnvelope<ConversationMessagesResponse>>, String> {
+) -> Result<Outcome<ApiEnvelope<ConversationMessagesResponse>>, String> {
     let dir = workspace_dir().await?;
     let messages = conversations::blocking::get_messages(dir, request.thread_id.clone())
         .await?
@@ -150,7 +150,7 @@ pub async fn transcript_search(
 /// Appends a message to a conversation thread.
 pub async fn message_append(
     request: AppendConversationMessageRequest,
-) -> Result<RpcOutcome<ApiEnvelope<ConversationMessageRecord>>, ThreadsError> {
+) -> Result<Outcome<ApiEnvelope<ConversationMessageRecord>>, ThreadsError> {
     let dir = workspace_dir().await?;
     let message = conversations::blocking::append_message(
         dir,
@@ -173,7 +173,7 @@ pub async fn message_append(
 /// ensure this is intentional.
 pub async fn thread_update_labels(
     request: UpdateConversationThreadLabelsRequest,
-) -> Result<RpcOutcome<ApiEnvelope<ConversationThreadSummary>>, String> {
+) -> Result<Outcome<ApiEnvelope<ConversationThreadSummary>>, String> {
     let dir = workspace_dir().await?;
     let thread = conversations::blocking::update_thread_labels(
         dir,
@@ -197,7 +197,7 @@ pub async fn thread_update_labels(
 /// Sets a user-specified title on a conversation thread, bypassing AI generation.
 pub async fn thread_update_title(
     request: UpdateConversationThreadTitleRequest,
-) -> Result<RpcOutcome<ApiEnvelope<ConversationThreadSummary>>, String> {
+) -> Result<Outcome<ApiEnvelope<ConversationThreadSummary>>, String> {
     let dir = workspace_dir().await?;
     let title = request.title.trim().to_string();
     if title.is_empty() {
@@ -226,7 +226,7 @@ pub async fn thread_update_title(
 /// Updates metadata on an existing conversation message.
 pub async fn message_update(
     request: UpdateConversationMessageRequest,
-) -> Result<RpcOutcome<ApiEnvelope<ConversationMessageRecord>>, String> {
+) -> Result<Outcome<ApiEnvelope<ConversationMessageRecord>>, String> {
     let dir = workspace_dir().await?;
     let message = conversations::blocking::update_message(
         dir,
@@ -275,7 +275,7 @@ pub async fn delete_after(
 /// snapshot still live.
 pub async fn thread_delete(
     request: DeleteConversationThreadRequest,
-) -> Result<RpcOutcome<ApiEnvelope<DeleteConversationThreadResponse>>, String> {
+) -> Result<Outcome<ApiEnvelope<DeleteConversationThreadResponse>>, String> {
     let dir = workspace_dir().await?;
     run_to_completion("thread_delete", thread_delete_inner(dir, request)).await
 }
@@ -283,7 +283,7 @@ pub async fn thread_delete(
 async fn thread_delete_inner(
     dir: PathBuf,
     request: DeleteConversationThreadRequest,
-) -> Result<RpcOutcome<ApiEnvelope<DeleteConversationThreadResponse>>, String> {
+) -> Result<Outcome<ApiEnvelope<DeleteConversationThreadResponse>>, String> {
     let deleted = conversations::blocking::delete_thread(
         dir.clone(),
         request.thread_id.clone(),

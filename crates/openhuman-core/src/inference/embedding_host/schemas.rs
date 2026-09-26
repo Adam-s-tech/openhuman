@@ -6,7 +6,7 @@ use serde_json::{Map, Value};
 use crate::config::ops as config_rpc;
 use crate::core::all::{ControllerFuture, RegisteredController};
 use crate::core::{ControllerSchema, FieldSchema, TypeSchema};
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 pub fn all_controller_schemas() -> Vec<ControllerSchema> {
     vec![
@@ -232,7 +232,7 @@ fn handle_test_connection(params: Map<String, Value>) -> ControllerFuture {
 
 // ── Helpers ────────────────────────────────────────────────
 
-fn to_json<T: serde::Serialize>(outcome: RpcOutcome<T>) -> Result<Value, String> {
+fn to_json<T: serde::Serialize>(outcome: Outcome<T>) -> Result<Value, String> {
     outcome.into_cli_compatible_json()
 }
 

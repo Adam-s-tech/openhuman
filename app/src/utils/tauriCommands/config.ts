@@ -338,7 +338,7 @@ export async function openhumanClaudeCodeAuthStatus(): Promise<ClaudeCodeAuthSta
   if (!isTauri()) {
     throw new Error('Not running in Tauri');
   }
-  // The core handler returns the value via `RpcOutcome::new(_, vec![])` with no
+  // The core handler returns the value via `Outcome::new(_, vec![])` with no
   // logs, which `into_cli_compatible_json` serializes as the BARE value (not a
   // `{ result, logs }` envelope). `callCoreRpc` returns the JSON-RPC `result`,
   // so this resolves directly to the AuthStatus — do NOT read `.result`.

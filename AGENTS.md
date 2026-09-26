@@ -294,7 +294,7 @@ Preferred module shape:
 | `mod.rs` | Module declarations, re-exports, and controller aggregators |
 | `types.rs` | Serde domain types |
 | `store.rs` | Persistence |
-| `ops.rs` | Business operations returning `RpcOutcome<T>` |
+| `ops.rs` | Business operations returning `Outcome<T>` |
 | `schemas.rs` | Controller schemas and thin handlers |
 | `tools.rs` | Domain-owned agent tools |
 | `bus.rs` | Event subscribers |
@@ -313,7 +313,7 @@ Additional rules:
   are deduplication keys.
 - Update `crates/openhuman-core/src/platform/about_app/` when user-visible capabilities
   change.
-- The JSON-RPC wire contract lives in `crates/openhuman-rpc/`: `RpcOutcome<T>`,
+- The JSON-RPC wire contract lives in `crates/openhuman-rpc/`: `Outcome<T>`,
   `StructuredRpcError`, `unwrap_rpc`, the request/response envelopes
   (`RpcRequest`, `RpcSuccess`, `RpcFailure`, `request_body`,
   `decode_response`), the params contract and its validation messages, the

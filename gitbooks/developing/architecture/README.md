@@ -49,7 +49,7 @@ OpenHuman is a **React + Tauri v2 desktop app** with a **Rust core** that does t
 - `crates/openhuman-app/` — Tauri v2 desktop host; excluded from the root workspace, built from its own manifest.
 - `crates/openhuman-core/` — Cargo package `openhuman`: business domains, JSON-RPC server, CLI, `CoreBuilder`/`CoreRuntime`.
 - `crates/openhuman-embed/` — typed library facade (`openhuman_embed::Harness`) for embedding the core in another product.
-- `crates/openhuman-rpc/` — shared RPC contracts (`RpcOutcome`, `unwrap_rpc`, `StructuredRpcError`) and the HTTP client used by the app and TUI.
+- `crates/openhuman-rpc/` — shared RPC contracts (`Outcome`, `unwrap_rpc`, `StructuredRpcError`) and the HTTP client used by the app and TUI.
 - `crates/openhuman-tui/` — standalone terminal frontend that boots the core in-process.
 
 The full table is under "Repository layout" in the [deep architecture reference](../architecture.md).

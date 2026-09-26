@@ -6,14 +6,14 @@ use crate::api::config::effective_backend_api_url;
 use crate::api::jwt::get_session_token;
 use crate::api::rest::BackendOAuthClient;
 use crate::config::Config;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 /// Send a rich message to a channel via the backend API.
 pub async fn channel_send_message(
     config: &Config,
     channel: &str,
     message: Value,
-) -> Result<RpcOutcome<Value>, String> {
+) -> Result<Outcome<Value>, String> {
     let api_url = effective_backend_api_url(&config.api_url);
     let jwt = get_session_token(config)?
         .ok_or_else(|| "session JWT required; complete login first".to_string())?;
@@ -32,7 +32,7 @@ pub async fn channel_send_message(
 
     log::debug!("[channels] send_message response: {:?}", result);
 
-    Ok(RpcOutcome::new(result, vec![]))
+    Ok(Outcome::new(result, vec![]))
 }
 
 /// Send a reaction to a message in a channel via the backend API.
@@ -40,7 +40,7 @@ pub async fn channel_send_reaction(
     config: &Config,
     channel: &str,
     reaction: Value,
-) -> Result<RpcOutcome<Value>, String> {
+) -> Result<Outcome<Value>, String> {
     let api_url = effective_backend_api_url(&config.api_url);
     let jwt = get_session_token(config)?
         .ok_or_else(|| "session JWT required; complete login first".to_string())?;
@@ -59,7 +59,7 @@ pub async fn channel_send_reaction(
 
     log::debug!("[channels] send_reaction response: {:?}", result);
 
-    Ok(RpcOutcome::new(result, vec![]))
+    Ok(Outcome::new(result, vec![]))
 }
 
 /// Create a thread in a channel via the backend API.
@@ -67,7 +67,7 @@ pub async fn channel_create_thread(
     config: &Config,
     channel: &str,
     title: &str,
-) -> Result<RpcOutcome<Value>, String> {
+) -> Result<Outcome<Value>, String> {
     let api_url = effective_backend_api_url(&config.api_url);
     let jwt = get_session_token(config)?
         .ok_or_else(|| "session JWT required; complete login first".to_string())?;
@@ -87,7 +87,7 @@ pub async fn channel_create_thread(
 
     log::debug!("[channels] create_thread response: {:?}", result);
 
-    Ok(RpcOutcome::new(result, vec![]))
+    Ok(Outcome::new(result, vec![]))
 }
 
 /// Close or reopen a thread in a channel via the backend API.
@@ -96,7 +96,7 @@ pub async fn channel_update_thread(
     channel: &str,
     thread_id: &str,
     action: &str,
-) -> Result<RpcOutcome<Value>, String> {
+) -> Result<Outcome<Value>, String> {
     let api_url = effective_backend_api_url(&config.api_url);
     let jwt = get_session_token(config)?
         .ok_or_else(|| "session JWT required; complete login first".to_string())?;
@@ -117,7 +117,7 @@ pub async fn channel_update_thread(
 
     log::debug!("[channels] update_thread response: {:?}", result);
 
-    Ok(RpcOutcome::new(result, vec![]))
+    Ok(Outcome::new(result, vec![]))
 }
 
 /// List threads in a channel via the backend API.
@@ -125,7 +125,7 @@ pub async fn channel_list_threads(
     config: &Config,
     channel: &str,
     active: Option<bool>,
-) -> Result<RpcOutcome<Value>, String> {
+) -> Result<Outcome<Value>, String> {
     let api_url = effective_backend_api_url(&config.api_url);
     let jwt = get_session_token(config)?
         .ok_or_else(|| "session JWT required; complete login first".to_string())?;
@@ -145,5 +145,5 @@ pub async fn channel_list_threads(
 
     log::debug!("[channels] list_threads response: {:?}", result);
 
-    Ok(RpcOutcome::new(result, vec![]))
+    Ok(Outcome::new(result, vec![]))
 }

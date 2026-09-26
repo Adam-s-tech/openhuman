@@ -2,7 +2,7 @@
 
 use crate::config::Config;
 use crate::inference::host_runtime as local_ai;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 use super::turn_guards::enforce_user_prompt_or_reject;
 
@@ -20,7 +20,7 @@ pub async fn local_ai_chat(
     config: &Config,
     messages: Vec<LocalAiChatMessage>,
     max_tokens: Option<u32>,
-) -> Result<RpcOutcome<String>, String> {
+) -> Result<Outcome<String>, String> {
     tracing::debug!(
         message_count = messages.len(),
         "[local_ai:chat] local_ai_chat op: validating"
@@ -64,5 +64,5 @@ pub async fn local_ai_chat(
         reply_len = reply.len(),
         "[local_ai:chat] local_ai_chat op: done"
     );
-    Ok(RpcOutcome::single_log(reply, "local ai chat completed"))
+    Ok(Outcome::single_log(reply, "local ai chat completed"))
 }

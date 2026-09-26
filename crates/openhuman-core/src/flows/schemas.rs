@@ -3,7 +3,7 @@
 //! one `ControllerSchema`, `all_controller_schemas()`/
 //! `all_registered_controllers()` aggregate them, and each `handle_*` loads
 //! config, reads params, awaits the matching `ops::flows_*` fn, and converts
-//! the `RpcOutcome` to CLI-compatible JSON.
+//! the `Outcome` to CLI-compatible JSON.
 
 use serde::de::DeserializeOwned;
 use serde_json::{Map, Value};
@@ -12,7 +12,7 @@ use crate::config::rpc as config_rpc;
 use crate::core::all::{ControllerFuture, RegisteredController};
 use crate::core::{ControllerSchema, FieldSchema, TypeSchema};
 use crate::flows::ops;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 fn id_input(comment: &'static str) -> FieldSchema {
     FieldSchema {

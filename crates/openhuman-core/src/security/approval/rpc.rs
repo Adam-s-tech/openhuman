@@ -5,7 +5,7 @@
 
 use anyhow::anyhow;
 
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 use super::gate::{try_boot_state, ApprovalGate, ApprovalGateBootState, DecideMiss};
 use super::types::{
@@ -25,7 +25,7 @@ const MAX_PREAUTHORIZE_TOOLS: usize = 100;
 /// Returns a benign "installed, no banner" default when the boot state was
 /// never recorded — older test paths that bring up the gate directly bypass
 /// `bootstrap_core_runtime` and therefore never call `record_boot_state`.
-pub async fn approval_get_gate_state() -> anyhow::Result<RpcOutcome<ApprovalGateBootState>> {
+pub async fn approval_get_gate_state() -> anyhow::Result<Outcome<ApprovalGateBootState>> {
     tracing::debug!("[rpc:approval_get_gate_state] entry");
     let state = try_boot_state().unwrap_or(ApprovalGateBootState {
         installed: ApprovalGate::try_global().is_some(),
@@ -40,7 +40,7 @@ pub async fn approval_get_gate_state() -> anyhow::Result<RpcOutcome<ApprovalGate
         host = state.host,
         "[rpc:approval_get_gate_state] exit"
     );
-    Ok(RpcOutcome::new(state, vec![]))
+    Ok(Outcome::new(state, vec![]))
 }
 
 /// List rows still awaiting a user decision in the current session.
@@ -48,11 +48,11 @@ pub async fn approval_get_gate_state() -> anyhow::Result<RpcOutcome<ApprovalGate
 /// Returns an empty list (not an error) when the gate is not
 /// installed — supervised mode may be disabled, in which case there
 /// is nothing pending by definition.
-pub async fn approval_list_pending() -> anyhow::Result<RpcOutcome<Vec<PendingApproval>>> {
+pub async fn approval_list_pending() -> anyhow::Result<Outcome<Vec<PendingApproval>>> {
     tracing::debug!("[rpc:approval_list_pending] entry");
     let Some(gate) = ApprovalGate::try_global() else {
         tracing::debug!("[rpc:approval_list_pending] gate not installed, returning empty");
-        return Ok(RpcOutcome::new(Vec::new(), vec![]));
+        return Ok(Outcome::new(Vec::new(), vec![]));
     };
     let rows = match gate.list_pending() {
         Ok(rows) => rows,
@@ -63,17 +63,17 @@ pub async fn approval_list_pending() -> anyhow::Result<RpcOutcome<Vec<PendingApp
     };
     tracing::debug!(rows = rows.len(), "[rpc:approval_list_pending] exit");
     let log = format!("[approval] list_pending returned {} row(s)", rows.len());
-    Ok(RpcOutcome::single_log(rows, log))
+    Ok(Outcome::single_log(rows, log))
 }
 
 /// List recently decided approval rows for audit/diagnostic surfaces.
 pub async fn approval_list_recent_decisions(
     limit: Option<usize>,
-) -> anyhow::Result<RpcOutcome<Vec<ApprovalAuditEntry>>> {
+) -> anyhow::Result<Outcome<Vec<ApprovalAuditEntry>>> {
     tracing::debug!("[rpc:approval_list_recent_decisions] entry");
     let Some(gate) = ApprovalGate::try_global() else {
         tracing::debug!("[rpc:approval_list_recent_decisions] gate not installed, returning empty");
-        return Ok(RpcOutcome::new(Vec::new(), vec![]));
+        return Ok(Outcome::new(Vec::new(), vec![]));
     };
     let limit = limit.unwrap_or(50);
     let rows = match gate.list_recent_decisions(limit) {
@@ -92,7 +92,7 @@ pub async fn approval_list_recent_decisions(
         limit = limit,
         "[rpc:approval_list_recent_decisions] exit"
     );
-    Ok(RpcOutcome::single_log(rows, log))
+    Ok(Outcome::single_log(rows, log))
 }
 
 /// Batch-grant "approve always for this flow" trust at save+enable time
@@ -107,7 +107,7 @@ pub async fn approval_list_recent_decisions(
 pub async fn approval_preauthorize_flow(
     flow_id: &str,
     tool_names: Vec<String>,
-) -> anyhow::Result<RpcOutcome<FlowPreauthorizationResult>> {
+) -> anyhow::Result<Outcome<FlowPreauthorizationResult>> {
     tracing::debug!(
         flow_id = flow_id,
         tools = tool_names.len(),
@@ -127,7 +127,7 @@ pub async fn approval_preauthorize_flow(
             flow_id = flow_id,
             "[rpc:approval_preauthorize_flow] gate not installed; nothing to grant"
         );
-        return Ok(RpcOutcome::single_log(
+        return Ok(Outcome::single_log(
             FlowPreauthorizationResult {
                 flow_id: flow_id.to_string(),
                 granted: vec![],
@@ -176,7 +176,7 @@ pub async fn approval_preauthorize_flow(
         granted.len(),
         already_trusted.len()
     );
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         FlowPreauthorizationResult {
             flow_id: flow_id.to_string(),
             granted,
@@ -192,7 +192,7 @@ pub async fn approval_preauthorize_flow(
 pub async fn approval_decide(
     request_id: &str,
     decision: ApprovalDecision,
-) -> anyhow::Result<RpcOutcome<PendingApproval>> {
+) -> anyhow::Result<Outcome<PendingApproval>> {
     tracing::debug!(
         request_id = request_id,
         decision = decision.as_str(),
@@ -349,5 +349,5 @@ pub async fn approval_decide(
         decision = decision.as_str(),
         "[rpc:approval_decide] exit"
     );
-    Ok(RpcOutcome::new(row, logs))
+    Ok(Outcome::new(row, logs))
 }

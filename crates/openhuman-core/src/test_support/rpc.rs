@@ -16,7 +16,7 @@ use crate::config::Config;
 use crate::config::{clear_active_user, default_root_openhuman_dir};
 use crate::cron;
 use crate::memory::read_rpc;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 const E2E_MODE_ENV_VAR: &str = "OPENHUMAN_E2E_MODE";
 
@@ -57,7 +57,7 @@ fn ensure_e2e_mode_value(raw: Option<&str>) -> Result<(), String> {
 /// Errors at any individual wipe step short-circuit and surface back to the
 /// caller — partial resets are worse than a clear failure, because they let
 /// downstream tests pass on contaminated state.
-pub async fn reset() -> Result<RpcOutcome<ResetSummary>, String> {
+pub async fn reset() -> Result<Outcome<ResetSummary>, String> {
     log::debug!("[test_reset] entry");
     ensure_e2e_mode_enabled().map_err(|e| {
         log::debug!("[test_reset] rejected: {e}");
@@ -131,7 +131,7 @@ pub async fn reset() -> Result<RpcOutcome<ResetSummary>, String> {
         serde_json::to_string(&summary).unwrap_or_default()
     );
 
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         summary,
         vec![
             format!("removed {cron_jobs_removed} cron jobs"),

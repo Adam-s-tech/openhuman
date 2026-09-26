@@ -5,7 +5,7 @@ use crate::config::rpc as config_rpc;
 use crate::core::all::{ControllerFuture, RegisteredController};
 use crate::core::{ControllerSchema, FieldSchema, TypeSchema};
 use crate::cron::CronJobPatch;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 fn job_id_input(comment: &'static str) -> FieldSchema {
     FieldSchema {
@@ -361,7 +361,7 @@ fn handle_add(params: Map<String, Value>) -> ControllerFuture {
             other => return Err(format!("invalid 'job_type': {other}")),
         };
 
-        to_json(RpcOutcome::single_log(job, "cron job created"))
+        to_json(Outcome::single_log(job, "cron job created"))
     })
 }
 
@@ -431,7 +431,7 @@ fn read_optional_u64(params: &Map<String, Value>, key: &str) -> Result<Option<u6
     }
 }
 
-fn to_json<T: serde::Serialize>(outcome: RpcOutcome<T>) -> Result<Value, String> {
+fn to_json<T: serde::Serialize>(outcome: Outcome<T>) -> Result<Value, String> {
     outcome.into_cli_compatible_json()
 }
 

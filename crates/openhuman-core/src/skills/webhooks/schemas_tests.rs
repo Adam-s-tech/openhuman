@@ -270,10 +270,10 @@ fn json_output_builds_required_json_field() {
 
 #[test]
 fn to_json_renders_rpc_outcome_in_cli_compatible_shape() {
-    // `to_json` is a thin wrapper over `RpcOutcome::into_cli_compatible_json`.
+    // `to_json` is a thin wrapper over `Outcome::into_cli_compatible_json`.
     // We exercise it here so coverage follows the real shape the
     // adapters produce, rather than asserting on implementation details.
-    let outcome: RpcOutcome<serde_json::Value> = RpcOutcome::new(json!({"ok": true}), vec![]);
+    let outcome: Outcome<serde_json::Value> = Outcome::new(json!({"ok": true}), vec![]);
     let value = to_json(outcome).unwrap();
     assert!(value.is_object());
 }

@@ -13,7 +13,7 @@ use super::*;
 /// fails the whole picker.
 pub async fn flows_list_connections(
     config: &Config,
-) -> Result<RpcOutcome<Vec<FlowConnection>>, String> {
+) -> Result<Outcome<Vec<FlowConnection>>, String> {
     tracing::debug!(
         "[flows] rpc flows_list_connections: aggregating composio + http_cred picker sources"
     );
@@ -97,7 +97,7 @@ pub async fn flows_list_connections(
         "flows_list_connections: {} connection(s)",
         connections.len()
     ));
-    Ok(RpcOutcome::new(connections, logs))
+    Ok(Outcome::new(connections, logs))
 }
 
 /// Fold Composio connected accounts + named HTTP credentials into the flat,
@@ -315,10 +315,10 @@ pub async fn compute_required_connections(config: &Config, graph: &WorkflowGraph
 pub async fn flows_required_connections(
     config: &Config,
     graph_json: Value,
-) -> Result<RpcOutcome<Value>, String> {
+) -> Result<Outcome<Value>, String> {
     let graph = migrate_and_deserialize_graph(graph_json)?;
     let required = compute_required_connections(config, &graph).await;
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         json!({ "required_connections": required }),
         "required connections computed",
     ))

@@ -24,7 +24,7 @@ Credential management for the backend credential the core authenticates with and
 | `core.rs` | `AuthService` facade over `AuthProfilesStore` — store/get/remove/set-active profiles, resolve bearer token, profile-id selection logic (override → active → default → any-for-provider), provider normalization, state-dir derivation. |
 | `profiles.rs` | The persistence engine. `AuthProfile` / `TokenSet` / `AuthProfileKind` / `AuthProfilesData` types and `AuthProfilesStore` — atomic JSON read/write, keychain vs encrypted-JSON secret handling, legacy migration, corrupt-store quarantine, PID-aware stale-lock recovery. |
 | `api_key.rs` | The `api-key` profile: `store_api_key[_in]`, `get_api_key[_in]`, `has_api_key[_in]`, `clear_api_key`. |
-| `ops.rs` + `ops/` | Business logic + RPC entry points (returns `RpcOutcome<T>`). `ops/credential.rs` (`set_credential` / `clear_credential`, plus the historical `store_session` / `clear_session` names), `ops/user_scope.rs` (user-dir activation and process-global rebinding), `ops/gated_services.rs` (credential-gated services), `ops/boot_env.rs` (env seeding), `ops/session_query.rs` (`auth_get_state`, `auth_get_session_token_json`), `ops/login_tokens.rs` (channel link tokens), `ops/oauth.rs`, `ops/provider_credentials.rs`, `ops/composio.rs`, `ops/secrets.rs`. Re-exported as `rpc`. |
+| `ops.rs` + `ops/` | Business logic + RPC entry points (returns `Outcome<T>`). `ops/credential.rs` (`set_credential` / `clear_credential`, plus the historical `store_session` / `clear_session` names), `ops/user_scope.rs` (user-dir activation and process-global rebinding), `ops/gated_services.rs` (credential-gated services), `ops/boot_env.rs` (env seeding), `ops/session_query.rs` (`auth_get_state`, `auth_get_session_token_json`), `ops/login_tokens.rs` (channel link tokens), `ops/oauth.rs`, `ops/provider_credentials.rs`, `ops/composio.rs`, `ops/secrets.rs`. Re-exported as `rpc`. |
 | `schemas.rs` | `auth.*` controller schemas + `handle_*` dispatchers delegating to `ops`. Defines `all_controller_schemas` / `all_registered_controllers`. |
 | `session_support.rs` | `CredentialKind`, `BackendCredential`, `resolve_backend_credential`, `require_live_session_token`, `has_backend_credential`, `build_session_state`, `get_session_token`, `load_app_session_profile`, `user_id_from_jwt_claims`, local-session detection/slug, field parsing. Shared by RPC and the HTTP host. |
 | `identity.rs` | The signed-in user's identity slot (`peek_credential_user_identity`), seeded from the host-supplied payload for prompts and Sentry. |
@@ -95,7 +95,7 @@ Note: `list_provider_credentials_by_prefix` and the Composio-direct/secret helpe
 - `crate::memory` — bind memory client to the active workspace after activation.
 - `crate::inference::host_runtime`, `crate::voice::{server,dictation_listener,always_on}` — credential-gated services started/stopped.
 - `crate::api::config`, `::jwt`, `::rest` — backend API URL, JWT `exp` decode, `BackendOAuthClient` + OAuth/handoff types.
-- `crate::core::all` (`ControllerFuture`, `RegisteredController`), `crate::core` (`ControllerSchema`/`FieldSchema`/`TypeSchema`), `crate::core::events::DomainEvent` + `tinybus::EventHandler`, `crate::rpc::RpcOutcome` — controller registry + RPC envelope + event bus.
+- `crate::core::all` (`ControllerFuture`, `RegisteredController`), `crate::core` (`ControllerSchema`/`FieldSchema`/`TypeSchema`), `crate::core::events::DomainEvent` + `tinybus::EventHandler`, `crate::rpc::Outcome` — controller registry + RPC envelope + event bus.
 
 ## Used by
 

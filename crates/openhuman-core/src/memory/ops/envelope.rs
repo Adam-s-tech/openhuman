@@ -9,7 +9,7 @@ use std::collections::BTreeMap;
 use serde::Serialize;
 
 use crate::memory::{ApiEnvelope, ApiError, ApiMeta, PaginationMeta};
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 /// Generates a unique request ID for memory operations.
 ///
@@ -37,8 +37,8 @@ pub(crate) fn envelope<T: Serialize>(
     data: T,
     counts: Option<BTreeMap<String, usize>>,
     pagination: Option<PaginationMeta>,
-) -> RpcOutcome<ApiEnvelope<T>> {
-    RpcOutcome::new(
+) -> Outcome<ApiEnvelope<T>> {
+    Outcome::new(
         ApiEnvelope {
             data: Some(data),
             error: None,
@@ -60,8 +60,8 @@ pub(crate) fn envelope<T: Serialize>(
 pub(crate) fn error_envelope<T: Serialize>(
     code: &str,
     message: String,
-) -> RpcOutcome<ApiEnvelope<T>> {
-    RpcOutcome::new(
+) -> Outcome<ApiEnvelope<T>> {
+    Outcome::new(
         ApiEnvelope {
             data: None,
             error: Some(ApiError {

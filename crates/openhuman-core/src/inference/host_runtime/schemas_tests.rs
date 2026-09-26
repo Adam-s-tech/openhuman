@@ -77,7 +77,7 @@ fn field_builder_helpers_are_correct_shape() {
 #[test]
 fn to_json_wraps_rpc_outcome() {
     let v =
-        to_json(RpcOutcome::single_log(serde_json::json!({"ok": true}), "l")).expect("serialize");
+        to_json(Outcome::single_log(serde_json::json!({"ok": true}), "l")).expect("serialize");
     assert!(v.get("logs").is_some() || v.get("result").is_some() || v.get("ok").is_some());
 }
 

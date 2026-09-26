@@ -16,7 +16,7 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
 use crate::config::Config;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 /// Error text returned by every disabled-path operation that must yield a
 /// `Result`. Shared so callers/log-greps see one stable string.
@@ -48,7 +48,7 @@ pub trait SttProvider: Send + Sync {
         mime_type: Option<&str>,
         file_name: Option<&str>,
         language: Option<&str>,
-    ) -> Result<RpcOutcome<SttResult>, String>;
+    ) -> Result<Outcome<SttResult>, String>;
 
     #[cfg(test)]
     fn configured_model(&self) -> Option<&str> {
@@ -217,7 +217,7 @@ pub mod reply_speech {
     use serde_json::Value;
 
     use crate::config::Config;
-    use crate::rpc::RpcOutcome;
+    use crate::core::Outcome;
 
     /// One frame on the viseme timeline. Mirrors the real type.
     #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -260,7 +260,7 @@ pub mod reply_speech {
         _config: &Config,
         _text: &str,
         _opts: &ReplySpeechOptions,
-    ) -> Result<RpcOutcome<ReplySpeechResult>, String> {
+    ) -> Result<Outcome<ReplySpeechResult>, String> {
         Err(super::DISABLED_MSG.to_string())
     }
 }
@@ -274,7 +274,7 @@ pub mod cloud_transcribe {
     use serde::{Deserialize, Serialize};
 
     use crate::config::Config;
-    use crate::rpc::RpcOutcome;
+    use crate::core::Outcome;
 
     /// Caller-tunable knobs. Mirrors the real type (fields + `Default`).
     #[derive(Debug, Default, Clone)]
@@ -296,7 +296,7 @@ pub mod cloud_transcribe {
         _config: &Config,
         _audio_base64: &str,
         _opts: &CloudTranscribeOptions,
-    ) -> Result<RpcOutcome<CloudTranscribeResult>, String> {
+    ) -> Result<Outcome<CloudTranscribeResult>, String> {
         Err(super::DISABLED_MSG.to_string())
     }
 }

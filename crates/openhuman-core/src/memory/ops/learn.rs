@@ -3,7 +3,7 @@
 use std::collections::BTreeSet;
 
 use crate::memory::api::provider::MemoryProvider;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 use super::guard::active_memory_guard;
 
@@ -39,7 +39,7 @@ pub struct LearnAllParams {
 /// the local AI provider.
 pub async fn memory_learn_all(
     params: LearnAllParams,
-) -> Result<RpcOutcome<LearnAllResult>, String> {
+) -> Result<Outcome<LearnAllResult>, String> {
     tracing::info!(
         "[memory.learn] memory_learn_all: entry namespaces={:?}",
         params.namespaces
@@ -95,7 +95,7 @@ pub async fn memory_learn_all(
         tracing::info!(
             "[memory.learn] memory_learn_all: no namespaces to process, returning early"
         );
-        return Ok(RpcOutcome::new(
+        return Ok(Outcome::new(
             LearnAllResult {
                 namespaces_processed: 0,
                 results: vec![],
@@ -149,7 +149,7 @@ pub async fn memory_learn_all(
             .map(|r| (&r.namespace, &r.status))
             .collect::<Vec<_>>()
     );
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         LearnAllResult {
             namespaces_processed,
             results,

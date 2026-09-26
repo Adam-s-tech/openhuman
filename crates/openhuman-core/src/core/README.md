@@ -213,7 +213,7 @@ expected to reuse the same registry rather than invent their own.
 ## `crate::rpc`
 
 `crate::rpc` is `pub use openhuman_rpc as rpc;` (see `lib.rs`), so
-`crate::rpc::RpcOutcome`, `StructuredRpcError`, and `apply_log_envelope` are
+`crate::rpc::Outcome`, `StructuredRpcError`, and `apply_log_envelope` are
 the same types `crates/openhuman-rpc` exposes to `openhuman-app` and
 `openhuman-tui`. There is no separate RPC contract layer under `core/`.
 

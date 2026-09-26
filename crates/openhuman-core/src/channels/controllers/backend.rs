@@ -5,7 +5,7 @@ use serde::Serialize;
 use serde_json::{json, Value};
 
 use crate::config::{ChannelsConfig, Config};
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 use super::ops;
 use tinychannels::controllers::{
@@ -39,7 +39,7 @@ impl OpenHumanChannelBackend {
     }
 }
 
-fn into_anyhow<T>(result: Result<RpcOutcome<T>, String>) -> anyhow::Result<T> {
+fn into_anyhow<T>(result: Result<Outcome<T>, String>) -> anyhow::Result<T> {
     result
         .map(|outcome| outcome.value)
         .map_err(anyhow::Error::msg)

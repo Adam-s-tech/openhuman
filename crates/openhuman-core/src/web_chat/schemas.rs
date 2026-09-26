@@ -6,7 +6,7 @@ use serde_json::{Map, Value};
 
 use crate::core::all::{ControllerFuture, RegisteredController};
 use crate::core::{ControllerSchema, FieldSchema, TypeSchema};
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 use super::ops::{
     channel_web_cancel, channel_web_chat, channel_web_queue_clear, channel_web_queue_remove,
@@ -265,6 +265,6 @@ pub(crate) fn json_output(name: &'static str, comment: &'static str) -> FieldSch
     }
 }
 
-fn to_json<T: serde::Serialize>(outcome: RpcOutcome<T>) -> Result<Value, String> {
+fn to_json<T: serde::Serialize>(outcome: Outcome<T>) -> Result<Value, String> {
     outcome.into_cli_compatible_json()
 }

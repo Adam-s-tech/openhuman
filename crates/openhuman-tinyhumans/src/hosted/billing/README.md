@@ -17,7 +17,7 @@ Thin RPC adapter domain over the hosted backend's payment API. It exposes plan l
 | File | Role |
 | --- | --- |
 | `crates/openhuman-tinyhumans/src/hosted/billing/mod.rs` | Export-focused module root; re-exports `ops::*` and the schemas/controllers pair. |
-| `crates/openhuman-tinyhumans/src/hosted/billing/ops.rs` | Business logic: one async fn per backend endpoint; auth helper (`require_token`, `get_authed_value`); input validation + gateway normalization. Returns `RpcOutcome<Value>`. |
+| `crates/openhuman-tinyhumans/src/hosted/billing/ops.rs` | Business logic: one async fn per backend endpoint; auth helper (`require_token`, `get_authed_value`); input validation + gateway normalization. Returns `Outcome<Value>`. |
 | `crates/openhuman-tinyhumans/src/hosted/billing/schemas.rs` | Controller schemas, `all_billing_controller_schemas` / `all_billing_registered_controllers`, param structs, and `handle_billing_*` handlers delegating to `ops`. |
 | `crates/openhuman-tinyhumans/src/hosted/billing/schemas_tests.rs` | Sibling test suite for `schemas.rs` (wired via `#[path]` mod). |
 
@@ -25,7 +25,7 @@ Thin RPC adapter domain over the hosted backend's payment API. It exposes plan l
 
 From `mod.rs`:
 
-- `ops::*` — async handlers: `get_summary`, `get_current_plan`, `get_balance`, `get_transactions`, `get_auto_recharge`, `update_auto_recharge`, `get_cards`, `create_setup_intent`, `update_card`, `delete_card`, `purchase_plan`, `create_portal_session`, `top_up_credits`, `create_coinbase_charge`, `redeem_coupon`, `get_user_coupons`. Each takes `&Config` (plus typed params) and returns `Result<RpcOutcome<Value>, String>`.
+- `ops::*` — async handlers: `get_summary`, `get_current_plan`, `get_balance`, `get_transactions`, `get_auto_recharge`, `update_auto_recharge`, `get_cards`, `create_setup_intent`, `update_card`, `delete_card`, `purchase_plan`, `create_portal_session`, `top_up_credits`, `create_coinbase_charge`, `redeem_coupon`, `get_user_coupons`. Each takes `&Config` (plus typed params) and returns `Result<Outcome<Value>, String>`.
 - `all_billing_controller_schemas()`, `all_billing_registered_controllers()`, `billing_schemas(function: &str)` — registry wiring.
 
 ## RPC / controllers
@@ -51,7 +51,7 @@ Namespace `billing` (16 methods, exposed as `openhuman.billing_*`):
 | `billing_redeem_coupon` | `POST /coupons/redeem` |
 | `billing_get_coupons` | `GET /coupons/me` |
 
-Handlers load `Config` via `config::rpc::load_config_with_timeout()`, deserialize camelCase params, call the matching `ops` fn, and emit CLI-compatible JSON via `RpcOutcome::into_cli_compatible_json()`.
+Handlers load `Config` via `config::rpc::load_config_with_timeout()`, deserialize camelCase params, call the matching `ops` fn, and emit CLI-compatible JSON via `Outcome::into_cli_compatible_json()`.
 
 ## Agent tools
 
@@ -71,7 +71,7 @@ None of its own; stateless adapter. The only state it reads is the backend sessi
 - `crate::api::jwt::get_session_token` — reads the stored app-session JWT.
 - `crate::api::BackendOAuthClient` — performs the authenticated JSON HTTP request (`authed_json`).
 - `crate::config::Config` — config struct (`api_url`); `config::rpc::load_config_with_timeout` in handlers.
-- `crate::rpc::RpcOutcome` — standard RPC return/logging wrapper.
+- `crate::rpc::Outcome` — standard RPC return/logging wrapper.
 - `crate::core::all::{ControllerFuture, RegisteredController}` and `crate::core::{ControllerSchema, FieldSchema, TypeSchema}` — controller registry types.
 - External crates: `reqwest` (`Method`), `serde`/`serde_json`, `urlencoding` (path-segment encoding for `paymentMethodId`).
 

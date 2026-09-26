@@ -640,10 +640,10 @@ async fn target_domain_read_paths_round_trip_through_json_rpc_transport() {
 /// `channels.set_default` and `channels.get_default` differ in WIRE SHAPE.
 ///
 /// Nothing else pins this, and the difference is invisible to every helper that
-/// unwraps tolerantly. `set_default_channel` returns `RpcOutcome::single_log(...)`
+/// unwraps tolerantly. `set_default_channel` returns `Outcome::single_log(...)`
 /// (`channels/controllers/ops/connect/status.rs:101-104`), so its payload arrives
 /// ENVELOPED as `{ result, logs }`. `get_default_channel` returns
-/// `RpcOutcome::new(_, vec![])` (`:115`), so its payload arrives BARE. Adding or
+/// `Outcome::new(_, vec![])` (`:115`), so its payload arrives BARE. Adding or
 /// removing a single log line in either handler silently changes what every
 /// caller must parse — the §6 log-envelope rule, on a live pair of methods.
 ///
@@ -735,7 +735,7 @@ async fn cron_update_applies_a_partial_patch_without_clobbering_unset_fields() {
         }),
     )
     .await;
-    // `handle_add` ends in `to_json(RpcOutcome::single_log(job, ...))`, so the
+    // `handle_add` ends in `to_json(Outcome::single_log(job, ...))`, so the
     // CronJob is the payload itself — there is no `job` wrapper key, despite what
     // the declared output schema names.
     let job = payload(&added, "cron_add").clone();

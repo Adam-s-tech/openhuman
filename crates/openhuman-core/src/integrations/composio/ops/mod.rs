@@ -1,7 +1,7 @@
 //! RPC-facing operations for the Composio domain.
 //!
 //! Each `composio_*` function wraps a [`ComposioClient`] call, translates
-//! errors to strings, and returns an [`RpcOutcome`] so the controller
+//! errors to strings, and returns an [`Outcome`] so the controller
 //! schemas can log a user-visible line. The handlers in [`super::schemas`]
 //! call into these.
 //!

@@ -4,7 +4,7 @@ use crate::config::rpc as config_rpc;
 use crate::config::Config;
 use crate::memory::api::provider::sessions::{CodingSessionIngestReport, CodingSessionSource};
 use crate::memory::binding::MemoryBinding;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 /// The coding-session ingest request, under this domain's own name.
 ///
@@ -52,7 +52,7 @@ pub struct CodingSessionStatusResponse {
 /// `CodingSessionSource::scan_truncated` is how a caller learns the counts are
 /// a floor — the same field the engine's `CodingSessionSourceStatus` carried,
 /// under the same name.
-pub async fn coding_session_status_rpc() -> Result<RpcOutcome<CodingSessionStatusResponse>, String>
+pub async fn coding_session_status_rpc() -> Result<Outcome<CodingSessionStatusResponse>, String>
 {
     tracing::debug!("[memory_sources] coding_session_status_rpc: entry");
     let config = config_rpc::load_config_with_timeout().await?;
@@ -80,7 +80,7 @@ pub async fn coding_session_status_rpc() -> Result<RpcOutcome<CodingSessionStatu
         truncated = sources.iter().any(|source| source.scan_truncated),
         "[memory_sources] coding_session_status_rpc: exit"
     );
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         CodingSessionStatusResponse { sources },
         vec![],
     ))
@@ -158,7 +158,7 @@ pub(crate) fn ingest_budget(max_sessions: usize) -> std::time::Duration {
 /// a report the run never finished writing is not progress the caller can keep.
 pub async fn ingest_coding_sessions_rpc(
     req: CodingSessionIngestRequest,
-) -> Result<RpcOutcome<CodingSessionIngestReport>, String> {
+) -> Result<Outcome<CodingSessionIngestReport>, String> {
     tracing::info!(
         backfill = req.backfill,
         max_sessions = req.max_sessions,
@@ -204,5 +204,5 @@ pub async fn ingest_coding_sessions_rpc(
         budget_hit = report.budget_hit,
         "[memory_sources] ingest_coding_sessions_rpc: exit"
     );
-    Ok(RpcOutcome::new(report, vec![]))
+    Ok(Outcome::new(report, vec![]))
 }

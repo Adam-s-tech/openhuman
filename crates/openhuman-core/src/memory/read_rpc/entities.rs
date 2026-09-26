@@ -2,7 +2,7 @@ use anyhow::Result;
 
 use crate::config::Config;
 use crate::memory::binding::MemoryBinding;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 use tinymemory_api::error::MemoryError;
 use tinymemory_api::provider::chunks::ChunkScore;
 use tinymemory_api::provider::types::{EntityOccurrence, ForgetSelector};
@@ -79,7 +79,7 @@ async fn chunk_entity_rows(
 pub async fn entity_index_for_rpc(
     config: &Config,
     chunk_id: String,
-) -> Result<RpcOutcome<Vec<EntityRef>>, String> {
+) -> Result<Outcome<Vec<EntityRef>>, String> {
     let binding = crate::memory::binding::for_config(config)?;
     let refs: Vec<EntityRef> = chunk_entity_rows(&binding, &chunk_id, "entity_index_for")
         .await?
@@ -88,7 +88,7 @@ pub async fn entity_index_for_rpc(
         .collect();
 
     let n = refs.len();
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         refs,
         format!("memory_tree::read: entity_index_for chunk_id={chunk_id} n={n}"),
     ))
@@ -97,7 +97,7 @@ pub async fn entity_index_for_rpc(
 pub async fn chunks_for_entity_rpc(
     config: &Config,
     entity_id: String,
-) -> Result<RpcOutcome<Vec<String>>, String> {
+) -> Result<Outcome<Vec<String>>, String> {
     let binding = crate::memory::binding::for_config(config)?;
     let chunk_ids = match binding.provider().as_entities() {
         // A bound appears where the SQL had none, because `entity_chunk_ids`
@@ -138,7 +138,7 @@ pub async fn chunks_for_entity_rpc(
         binding.driver_id(),
         MAX_LIST_LIMIT
     );
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         chunk_ids,
         format!("memory_tree::read: chunks_for_entity entity_id={entity_id} n={n}"),
     ))
@@ -148,7 +148,7 @@ pub async fn top_entities_rpc(
     config: &Config,
     kind: Option<String>,
     limit: u32,
-) -> Result<RpcOutcome<Vec<EntityRef>>, String> {
+) -> Result<Outcome<Vec<EntityRef>>, String> {
     let limit = limit.clamp(1, MAX_LIST_LIMIT);
     let binding = crate::memory::binding::for_config(config)?;
     let refs: Vec<EntityRef> = match binding.provider().as_entities() {
@@ -201,7 +201,7 @@ pub async fn top_entities_rpc(
         binding.driver_id(),
         kind
     );
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         refs,
         format!("memory_tree::read: top_entities n={n}"),
     ))
@@ -310,12 +310,12 @@ fn score_breakdown(row: ChunkScore) -> ScoreBreakdown {
 pub async fn chunk_score_rpc(
     config: &Config,
     chunk_id: String,
-) -> Result<RpcOutcome<Option<ScoreBreakdown>>, String> {
+) -> Result<Outcome<Option<ScoreBreakdown>>, String> {
     let binding = crate::memory::binding::for_config(config)?;
     let result = chunk_score_row(&binding, &chunk_id, "chunk_score")
         .await?
         .map(score_breakdown);
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         result,
         format!("memory_tree::read: chunk_score id={chunk_id}"),
     ))
@@ -337,7 +337,7 @@ async fn score_row_count(binding: &MemoryBinding, chunk_id: &str) -> Result<u32,
 pub async fn delete_chunk_rpc(
     config: &Config,
     chunk_id: String,
-) -> Result<RpcOutcome<DeleteChunkResponse>, String> {
+) -> Result<Outcome<DeleteChunkResponse>, String> {
     let binding = crate::memory::binding::for_config(config)?;
 
     // Resolved on `provider()` and **refused** when the family is absent, not
@@ -401,7 +401,7 @@ pub async fn delete_chunk_rpc(
         outcome.chunks_removed,
         outcome.trees_cleaned
     );
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         resp.clone(),
         format!(
             "memory_tree::read: delete_chunk id={chunk_id} deleted={} score_rows={} entity_rows={}",

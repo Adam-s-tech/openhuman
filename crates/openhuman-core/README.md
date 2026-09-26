@@ -55,7 +55,7 @@ contents inside `mod.rs` behind the feature of the same name. See the
 | `web3` | High-level web3 surface built on the wallet layer | [README](src/web3/README.md) |
 | `web_chat` | Web/desktop channel turn runner (`channel.web_*` RPC, `WebChannelEvent` bus) | [README](src/web_chat/README.md) |
 
-RPC contract types (`RpcOutcome`, `StructuredRpcError`, the HTTP client) live
+RPC contract types (`Outcome`, `StructuredRpcError`, the HTTP client) live
 in `crates/openhuman-rpc` and are re-exported here as `openhuman_core::rpc` —
 they are not redefined in this crate.
 

@@ -5,7 +5,7 @@ use serde_json::{json, Map, Value};
 
 use crate::config::rpc as config_rpc;
 use crate::core::all::ControllerFuture;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 use crate::search::tools::SEARXNG_MAX_RESULTS;
 use tinytools::Tool;
 
@@ -75,7 +75,7 @@ pub(super) fn handle_web_search(params: Map<String, Value>) -> ControllerFuture 
             "tools.web_search: query_len={} results={count} provider={provider}",
             query.chars().count()
         )];
-        RpcOutcome::new(payload, log).into_cli_compatible_json()
+        Outcome::new(payload, log).into_cli_compatible_json()
     })
 }
 
@@ -151,7 +151,7 @@ pub(super) fn handle_seltz_search(params: Map<String, Value>) -> ControllerFutur
             query.chars().count(),
             max_results
         )];
-        RpcOutcome::new(payload, log).into_cli_compatible_json()
+        Outcome::new(payload, log).into_cli_compatible_json()
     })
 }
 
@@ -232,7 +232,7 @@ pub(super) fn handle_querit_search(params: Map<String, Value>) -> ControllerFutu
             query.chars().count(),
             max_results
         )];
-        RpcOutcome::new(payload, log).into_cli_compatible_json()
+        Outcome::new(payload, log).into_cli_compatible_json()
     })
 }
 
@@ -300,7 +300,7 @@ pub(super) fn handle_searxng_search(params: Map<String, Value>) -> ControllerFut
         let log = vec![format!(
             "[rpc][tools.searxng_search] success results={result_count}"
         )];
-        RpcOutcome::new(payload, log).into_cli_compatible_json()
+        Outcome::new(payload, log).into_cli_compatible_json()
     })
 }
 

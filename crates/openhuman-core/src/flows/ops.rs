@@ -65,7 +65,7 @@ use crate::flows::types::{
     FlowConnection, FlowRunStep, FlowRunTrigger, FlowSuggestion, SuggestionStatus,
 };
 use crate::flows::{flow_namespace, Flow, FlowRun};
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 use crate::security::approval::{
     ApprovalChatContext, FlowRunContext, APPROVAL_CHAT_CONTEXT, APPROVAL_COPILOT_STREAM_CONTEXT,
     APPROVAL_FLOW_RUN_CONTEXT,

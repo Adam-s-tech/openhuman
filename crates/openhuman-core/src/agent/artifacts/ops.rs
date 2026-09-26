@@ -1,7 +1,7 @@
 use serde_json::{json, Value};
 
 use crate::config::Config;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 // Imports used only by the `documents`-gated presentation regeneration helper
 // below; when the feature is off the PresentationTool is compiled out.
@@ -37,7 +37,7 @@ pub async fn ai_list_artifacts(
     offset: Option<usize>,
     limit: Option<usize>,
     thread_id: Option<&str>,
-) -> Result<RpcOutcome<Value>, String> {
+) -> Result<Outcome<Value>, String> {
     let offset = offset.unwrap_or(0);
     let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT);
     log::debug!(
@@ -60,7 +60,7 @@ pub async fn ai_list_artifacts(
         "offset": offset,
         "limit": limit,
     });
-    Ok(RpcOutcome::new(value, vec![]))
+    Ok(Outcome::new(value, vec![]))
 }
 
 /// Retrieve a single artifact by ID.
@@ -70,7 +70,7 @@ pub async fn ai_list_artifacts(
 pub async fn ai_get_artifact(
     config: &Config,
     artifact_id: &str,
-) -> Result<RpcOutcome<Value>, String> {
+) -> Result<Outcome<Value>, String> {
     log::debug!(
         "[artifacts] ai_get_artifact: id={artifact_id} workspace={:?}",
         config.workspace_dir
@@ -106,7 +106,7 @@ pub async fn ai_get_artifact(
     log::debug!(
         "[artifacts] ai_get_artifact: found id={artifact_id} absolute_path={absolute_path}"
     );
-    Ok(RpcOutcome::new(value, vec![]))
+    Ok(Outcome::new(value, vec![]))
 }
 
 /// Delete an artifact and all associated files.
@@ -115,7 +115,7 @@ pub async fn ai_get_artifact(
 pub async fn ai_delete_artifact(
     config: &Config,
     artifact_id: &str,
-) -> Result<RpcOutcome<Value>, String> {
+) -> Result<Outcome<Value>, String> {
     log::debug!(
         "[artifacts] ai_delete_artifact: id={artifact_id} workspace={:?}",
         config.workspace_dir
@@ -132,7 +132,7 @@ pub async fn ai_delete_artifact(
         "artifact_id": artifact_id,
         "deleted": true,
     });
-    Ok(RpcOutcome::new(value, vec![]))
+    Ok(Outcome::new(value, vec![]))
 }
 
 /// Re-dispatch the producing tool for a failed (or any) artifact using
@@ -161,7 +161,7 @@ pub async fn ai_regenerate(
     artifact_id: &str,
     thread_id: &str,
     client_id: &str,
-) -> Result<RpcOutcome<Value>, String> {
+) -> Result<Outcome<Value>, String> {
     log::info!(
         "[artifacts] ai_regenerate: id={artifact_id} thread_id={thread_id} client_id={client_id} workspace={:?}",
         config.workspace_dir
@@ -197,7 +197,7 @@ async fn regenerate_presentation(
     artifact_id: &str,
     thread_id: &str,
     client_id: &str,
-) -> Result<RpcOutcome<Value>, String> {
+) -> Result<Outcome<Value>, String> {
     let args = store::read_artifact_args(&config.workspace_dir, artifact_id).await?;
 
     // A fresh policy from the live config — cheap, sync, and mirrors how
@@ -240,7 +240,7 @@ async fn regenerate_presentation(
                 "regenerated": true,
                 "is_error": tool_result.is_error,
             });
-            Ok(RpcOutcome::new(value, vec![]))
+            Ok(Outcome::new(value, vec![]))
         }
         Err(err) => Err(format!(
             "[artifacts] regenerate execution error for id={artifact_id}: {err}"
@@ -257,7 +257,7 @@ async fn regenerate_presentation(
     artifact_id: &str,
     _thread_id: &str,
     _client_id: &str,
-) -> Result<RpcOutcome<Value>, String> {
+) -> Result<Outcome<Value>, String> {
     log::debug!(
         "[artifacts] presentation regeneration rejected for id={artifact_id}: built without the `documents` feature"
     );

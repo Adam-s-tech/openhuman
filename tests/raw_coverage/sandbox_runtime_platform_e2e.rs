@@ -288,7 +288,7 @@ fn err_message(value: &Value, context: &str) -> String {
         .to_string()
 }
 
-/// Controllers wrap their payload in `RpcOutcome::into_cli_compatible_json`,
+/// Controllers wrap their payload in `Outcome::into_cli_compatible_json`,
 /// which nests the value under `result` and carries `logs` alongside. Handlers
 /// that return a bare `serde_json::json!` do not. Unwrap one level when it is
 /// there so a case can assert on the payload either way.

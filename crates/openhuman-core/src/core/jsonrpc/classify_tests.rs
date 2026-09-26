@@ -295,7 +295,7 @@ fn classify_failure_routes_each_boundary_class() {
     );
     assert_eq!(
         classify_failure(
-            &crate::rpc::unknown_param_message("api_key", "config", "update_model_settings"),
+            &crate::core::params::unknown_param_message("api_key", "config", "update_model_settings"),
             false
         ),
         FailureDisposition::ParamValidation
@@ -328,7 +328,7 @@ fn classify_failure_param_validation_outranks_session_expiry() {
     // could have expired anything.
     assert_eq!(
         classify_failure(
-            &crate::rpc::missing_required_param_message("token", "Session expired token"),
+            &crate::core::params::missing_required_param_message("token", "Session expired token"),
             false
         ),
         FailureDisposition::ParamValidation

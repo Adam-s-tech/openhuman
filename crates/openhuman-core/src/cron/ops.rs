@@ -2,7 +2,7 @@ use crate::config::Config;
 use crate::cron::{
     self, add_shell_job, get_job, update_job, CronJob, CronJobPatch, CronRun, Schedule,
 };
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 use crate::security::SecurityPolicy;
 use anyhow::Result;
 use once_cell::sync::Lazy;
@@ -149,19 +149,19 @@ pub fn parse_human_delay(input: &str) -> Result<chrono::Duration> {
     Ok(duration)
 }
 
-pub async fn cron_list(config: &Config) -> Result<RpcOutcome<Vec<CronJob>>, String> {
+pub async fn cron_list(config: &Config) -> Result<Outcome<Vec<CronJob>>, String> {
     if !config.cron.enabled {
         return Err("cron is disabled by config (cron.enabled=false)".to_string());
     }
     let jobs = cron::list_jobs(config).map_err(|e| e.to_string())?;
-    Ok(RpcOutcome::single_log(jobs, "cron jobs listed"))
+    Ok(Outcome::single_log(jobs, "cron jobs listed"))
 }
 
 pub async fn cron_update(
     config: &Config,
     job_id: &str,
     patch: CronJobPatch,
-) -> Result<RpcOutcome<CronJob>, String> {
+) -> Result<Outcome<CronJob>, String> {
     if job_id.trim().is_empty() {
         return Err("Missing 'job_id' parameter".to_string());
     }
@@ -181,7 +181,7 @@ pub async fn cron_update(
     }
 
     let updated = cron::update_job(config, job_id.trim(), patch).map_err(|e| e.to_string())?;
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         updated,
         vec![format!("cron job updated: {}", job_id.trim())],
     ))
@@ -190,7 +190,7 @@ pub async fn cron_update(
 pub async fn cron_remove(
     config: &Config,
     job_id: &str,
-) -> Result<RpcOutcome<serde_json::Value>, String> {
+) -> Result<Outcome<serde_json::Value>, String> {
     if job_id.trim().is_empty() {
         return Err("Missing 'job_id' parameter".to_string());
     }
@@ -199,7 +199,7 @@ pub async fn cron_remove(
     }
 
     cron::remove_job(config, job_id.trim()).map_err(|e| e.to_string())?;
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         json!({ "job_id": job_id.trim(), "removed": true }),
         vec![format!("cron job removed: {}", job_id.trim())],
     ))
@@ -208,7 +208,7 @@ pub async fn cron_remove(
 pub async fn cron_run(
     config: &Config,
     job_id: &str,
-) -> Result<RpcOutcome<serde_json::Value>, String> {
+) -> Result<Outcome<serde_json::Value>, String> {
     let job_id = job_id.trim();
     if job_id.is_empty() {
         return Err("Missing 'job_id' parameter".to_string());
@@ -294,7 +294,7 @@ pub async fn cron_run(
         cron::scheduler::deliver_job(&config_owned, &job, &output).await;
     });
 
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         json!({
             "job_id": job_id,
             "status": "queued",
@@ -307,7 +307,7 @@ pub async fn cron_runs(
     config: &Config,
     job_id: &str,
     limit: Option<usize>,
-) -> Result<RpcOutcome<Vec<CronRun>>, String> {
+) -> Result<Outcome<Vec<CronRun>>, String> {
     if job_id.trim().is_empty() {
         return Err("Missing 'job_id' parameter".to_string());
     }
@@ -317,7 +317,7 @@ pub async fn cron_runs(
 
     let limit = limit.unwrap_or(20).max(1);
     let runs = cron::list_runs(config, job_id.trim(), limit).map_err(|e| e.to_string())?;
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         runs,
         vec![format!("cron run history loaded: {}", job_id.trim())],
     ))

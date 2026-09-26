@@ -42,7 +42,7 @@ fn invocation_to_rpc_json_with_logs_wraps_in_envelope() {
 /// The two controller return paths must produce byte-identical JSON for the
 /// same (value, logs) pair.
 ///
-/// `RpcOutcome::into_cli_compatible_json` (the registry path, 152 call
+/// `Outcome::into_cli_compatible_json` (the registry path, 152 call
 /// sites) and `invocation_to_rpc_json` (the dynamic-dispatch path) used to
 /// carry independent copies of the same envelope rule. Nothing linked them,
 /// so a fix or a normalisation applied to one would have left the other
@@ -69,7 +69,7 @@ fn both_controller_return_paths_apply_the_same_log_envelope() {
             value: value.clone(),
             logs: logs.clone(),
         });
-        let via_registry = crate::rpc::RpcOutcome::new(value.clone(), logs.clone())
+        let via_registry = crate::core::Outcome::new(value.clone(), logs.clone())
             .into_cli_compatible_json()
             .expect("a serde_json::Value always serializes");
 

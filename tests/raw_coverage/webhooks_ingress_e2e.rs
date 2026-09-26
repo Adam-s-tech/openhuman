@@ -419,7 +419,7 @@ fn jsonrpc_error_message(v: &Value, ctx: &str) -> String {
         .to_string()
 }
 
-/// Peel the `{"result": inner, "logs": [...]}` envelope `RpcOutcome` adds when logs are present.
+/// Peel the `{"result": inner, "logs": [...]}` envelope `Outcome` adds when logs are present.
 fn peel<'a>(v: &'a Value) -> &'a Value {
     if v.get("logs").is_some() {
         v.get("result").unwrap_or(v)

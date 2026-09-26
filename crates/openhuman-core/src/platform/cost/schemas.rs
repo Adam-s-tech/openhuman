@@ -6,7 +6,7 @@ use serde_json::{Map, Value};
 use crate::config::rpc as config_rpc;
 use crate::core::all::{ControllerFuture, RegisteredController};
 use crate::core::{ControllerSchema, FieldSchema, TypeSchema};
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 use super::rpc as cost_rpc;
 
@@ -257,7 +257,7 @@ fn handle_cost_get_usage_log(params: Map<String, Value>) -> ControllerFuture {
     })
 }
 
-fn to_json(outcome: RpcOutcome<Value>) -> Result<Value, String> {
+fn to_json(outcome: Outcome<Value>) -> Result<Value, String> {
     outcome.into_cli_compatible_json()
 }
 

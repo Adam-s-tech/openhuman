@@ -29,7 +29,7 @@ macro_rules! emit {
     }};
 }
 
-/// Read tool over an arg-less `async fn() -> Result<RpcOutcome<Value>, String>`.
+/// Read tool over an arg-less `async fn() -> Result<Outcome<Value>, String>`.
 macro_rules! read_tool {
     ($ty:ident, $name:literal, $fn:ident, $desc:literal) => {
         pub struct $ty;
@@ -94,7 +94,7 @@ impl Tool for ConfigSnapshotTool {
     }
 }
 
-/// Runtime flags (sync, returns RpcOutcome directly).
+/// Runtime flags (sync, returns Outcome directly).
 pub struct ConfigRuntimeFlagsTool;
 
 #[async_trait]

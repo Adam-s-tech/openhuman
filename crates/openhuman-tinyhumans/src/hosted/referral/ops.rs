@@ -10,7 +10,7 @@ use openhuman_core::api::config::effective_backend_api_url;
 use openhuman_core::api::jwt::get_session_token;
 use openhuman_core::api::BackendOAuthClient;
 use openhuman_core::config::Config;
-use openhuman_core::rpc::RpcOutcome;
+use openhuman_core::core::Outcome;
 
 fn require_token(config: &Config) -> Result<String, String> {
     get_session_token(config)?
@@ -25,7 +25,7 @@ fn require_token(config: &Config) -> Result<String, String> {
         .ok_or_else(|| "no backend session token; run auth_store_session first".to_string())
 }
 
-pub async fn get_stats(config: &Config) -> Result<RpcOutcome<Value>, String> {
+pub async fn get_stats(config: &Config) -> Result<Outcome<Value>, String> {
     let token = require_token(config)?;
     let api_url = effective_backend_api_url(&config.api_url);
     let client = BackendOAuthClient::new(&api_url).map_err(|e| e.to_string())?;
@@ -33,7 +33,7 @@ pub async fn get_stats(config: &Config) -> Result<RpcOutcome<Value>, String> {
         .authed_json(&token, Method::GET, "/referral/stats", None)
         .await
         .map_err(|e| e.to_string())?;
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         data,
         "referral stats fetched from backend GET /referral/stats",
     ))
@@ -43,7 +43,7 @@ pub async fn claim_referral(
     config: &Config,
     code: &str,
     device_fingerprint: Option<&str>,
-) -> Result<RpcOutcome<Value>, String> {
+) -> Result<Outcome<Value>, String> {
     let token = require_token(config)?;
     let api_url = effective_backend_api_url(&config.api_url);
     let client = BackendOAuthClient::new(&api_url).map_err(|e| e.to_string())?;
@@ -64,7 +64,7 @@ pub async fn claim_referral(
         .await
         .map_err(|e| e.to_string())?;
 
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         data,
         "referral claim accepted by backend POST /referral/claim",
     ))

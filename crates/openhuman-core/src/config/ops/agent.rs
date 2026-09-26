@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use serde_json::json;
 
 use crate::config::Config;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 use super::loader::{load_config_with_timeout, snapshot_config_json};
 
@@ -97,7 +97,7 @@ pub struct MemorySyncSettingsPatch {
 pub async fn apply_autonomy_settings(
     config: &mut Config,
     update: AutonomySettingsPatch,
-) -> Result<RpcOutcome<serde_json::Value>, String> {
+) -> Result<Outcome<serde_json::Value>, String> {
     use crate::security::AutonomyLevel;
 
     if let Some(enabled) = update.enabled {
@@ -151,7 +151,7 @@ pub async fn apply_autonomy_settings(
     crate::core::bus::BUS.publish(crate::core::events::DomainEvent::AutonomyConfigChanged);
 
     let snapshot = snapshot_config_json(config)?;
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         snapshot,
         vec![format!(
             "autonomy settings saved to {}",
@@ -163,16 +163,16 @@ pub async fn apply_autonomy_settings(
 /// Loads the configuration, applies autonomy settings updates, and saves it.
 pub async fn load_and_apply_autonomy_settings(
     update: AutonomySettingsPatch,
-) -> Result<RpcOutcome<serde_json::Value>, String> {
+) -> Result<Outcome<serde_json::Value>, String> {
     let mut config = load_config_with_timeout().await?;
     apply_autonomy_settings(&mut config, update).await
 }
 
 /// Returns the current `[autonomy]` settings block as JSON (no secrets).
-pub async fn get_autonomy_settings() -> Result<RpcOutcome<serde_json::Value>, String> {
+pub async fn get_autonomy_settings() -> Result<Outcome<serde_json::Value>, String> {
     let config = load_config_with_timeout().await?;
     let value = serde_json::to_value(&config.autonomy).map_err(|e| e.to_string())?;
-    Ok(RpcOutcome::single_log(value, "autonomy settings read"))
+    Ok(Outcome::single_log(value, "autonomy settings read"))
 }
 
 fn auto_approve_write_lock() -> &'static tokio::sync::Mutex<()> {
@@ -215,7 +215,7 @@ pub async fn add_auto_approve_tool(tool_name: &str) -> Result<(), String> {
 pub async fn apply_agent_settings(
     config: &mut Config,
     update: AgentSettingsPatch,
-) -> Result<RpcOutcome<serde_json::Value>, String> {
+) -> Result<Outcome<serde_json::Value>, String> {
     use crate::tools::timeout::{MAX_TIMEOUT_SECS, MIN_TIMEOUT_SECS};
 
     if let Some(timeout_secs) = update.agent_timeout_secs {
@@ -263,7 +263,7 @@ pub async fn apply_agent_settings(
     );
 
     let snapshot = snapshot_config_json(config)?;
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         snapshot,
         vec![format!(
             "agent settings saved to {}",
@@ -275,7 +275,7 @@ pub async fn apply_agent_settings(
 /// Loads the configuration, applies agent settings updates, and saves it.
 pub async fn load_and_apply_agent_settings(
     update: AgentSettingsPatch,
-) -> Result<RpcOutcome<serde_json::Value>, String> {
+) -> Result<Outcome<serde_json::Value>, String> {
     let mut config = load_config_with_timeout().await?;
     apply_agent_settings(&mut config, update).await
 }
@@ -283,7 +283,7 @@ pub async fn load_and_apply_agent_settings(
 /// Returns the agent execution settings (currently the action timeout) plus the
 /// runtime-effective value and whether the `OPENHUMAN_TOOL_TIMEOUT_SECS` env var
 /// is overriding the configured value, so the UI can explain a no-op control.
-pub async fn get_agent_settings() -> Result<RpcOutcome<serde_json::Value>, String> {
+pub async fn get_agent_settings() -> Result<Outcome<serde_json::Value>, String> {
     let config = load_config_with_timeout().await?;
     crate::tools::timeout::set_tool_timeout_secs(config.agent.agent_timeout_secs);
     let value = serde_json::json!({
@@ -293,7 +293,7 @@ pub async fn get_agent_settings() -> Result<RpcOutcome<serde_json::Value>, Strin
         "min_timeout_secs": crate::tools::timeout::MIN_TIMEOUT_SECS,
         "max_timeout_secs": crate::tools::timeout::MAX_TIMEOUT_SECS,
     });
-    Ok(RpcOutcome::single_log(value, "agent settings read"))
+    Ok(Outcome::single_log(value, "agent settings read"))
 }
 
 /// Expand a leading `~/` to the user's home directory, building the path
@@ -477,7 +477,7 @@ fn agent_paths_payload(config: &Config) -> serde_json::Value {
 pub async fn apply_agent_paths_settings(
     config: &mut Config,
     update: AgentPathsPatch,
-) -> Result<RpcOutcome<serde_json::Value>, String> {
+) -> Result<Outcome<serde_json::Value>, String> {
     let mut notes: Vec<String> = Vec::new();
 
     if let Some(raw) = update.action_dir {
@@ -537,13 +537,13 @@ pub async fn apply_agent_paths_settings(
         );
     }
 
-    Ok(RpcOutcome::new(agent_paths_payload(config), notes))
+    Ok(Outcome::new(agent_paths_payload(config), notes))
 }
 
 /// Loads the configuration, applies agent-paths updates, and saves it.
 pub async fn load_and_apply_agent_paths_settings(
     update: AgentPathsPatch,
-) -> Result<RpcOutcome<serde_json::Value>, String> {
+) -> Result<Outcome<serde_json::Value>, String> {
     let mut config = load_config_with_timeout().await?;
     apply_agent_paths_settings(&mut config, update).await
 }
@@ -557,9 +557,9 @@ fn paths_equal(a: &Path, b: &Path) -> bool {
 
 /// Reports the agent's filesystem roots so the UI can render them live
 /// instead of hard-coding strings that drift away from `Config`.
-pub async fn get_agent_paths() -> Result<RpcOutcome<serde_json::Value>, String> {
+pub async fn get_agent_paths() -> Result<Outcome<serde_json::Value>, String> {
     let config = load_config_with_timeout().await?;
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         agent_paths_payload(&config),
         vec![format!(
             "agent paths resolved (action={}, workspace={}, source={})",
@@ -571,7 +571,7 @@ pub async fn get_agent_paths() -> Result<RpcOutcome<serde_json::Value>, String> 
 }
 
 /// Returns the current activity level and its derived settings.
-pub async fn get_activity_level_settings() -> Result<RpcOutcome<serde_json::Value>, String> {
+pub async fn get_activity_level_settings() -> Result<Outcome<serde_json::Value>, String> {
     let config = load_config_with_timeout().await?;
     let level = config.agent_activity_level;
     let (cost_min, cost_max) = level.estimated_monthly_cost_range();
@@ -585,7 +585,7 @@ pub async fn get_activity_level_settings() -> Result<RpcOutcome<serde_json::Valu
         "estimated_monthly_cost_min_usd": cost_min,
         "estimated_monthly_cost_max_usd": cost_max,
     });
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         value,
         "activity level settings read",
     ))
@@ -595,7 +595,7 @@ pub async fn get_activity_level_settings() -> Result<RpcOutcome<serde_json::Valu
 pub async fn apply_activity_level_settings(
     config: &mut Config,
     update: ActivityLevelSettingsPatch,
-) -> Result<RpcOutcome<serde_json::Value>, String> {
+) -> Result<Outcome<serde_json::Value>, String> {
     use crate::config::schema::activity_level::AgentActivityLevel;
     use crate::config::SchedulerGateMode;
 
@@ -640,7 +640,7 @@ pub async fn apply_activity_level_settings(
         "estimated_monthly_cost_min_usd": cost_min,
         "estimated_monthly_cost_max_usd": cost_max,
     });
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         value,
         vec![format!(
             "activity level set to '{}' — saved to {}",
@@ -653,7 +653,7 @@ pub async fn apply_activity_level_settings(
 /// Loads the configuration, applies activity level settings, and saves it.
 pub async fn load_and_apply_activity_level_settings(
     update: ActivityLevelSettingsPatch,
-) -> Result<RpcOutcome<serde_json::Value>, String> {
+) -> Result<Outcome<serde_json::Value>, String> {
     let mut config = load_config_with_timeout().await?;
     apply_activity_level_settings(&mut config, update).await
 }
@@ -673,10 +673,10 @@ fn memory_sync_settings_value(stored: Option<u64>) -> serde_json::Value {
 }
 
 /// Returns the current global memory-sync cadence and its derived view.
-pub async fn get_memory_sync_settings() -> Result<RpcOutcome<serde_json::Value>, String> {
+pub async fn get_memory_sync_settings() -> Result<Outcome<serde_json::Value>, String> {
     let config = load_config_with_timeout().await?;
     let value = memory_sync_settings_value(config.memory_sync_interval_secs);
-    Ok(RpcOutcome::single_log(value, "memory sync settings read"))
+    Ok(Outcome::single_log(value, "memory sync settings read"))
 }
 
 /// Updates the global memory-sync cadence and persists it. The running
@@ -685,7 +685,7 @@ pub async fn get_memory_sync_settings() -> Result<RpcOutcome<serde_json::Value>,
 pub async fn apply_memory_sync_settings(
     config: &mut Config,
     update: MemorySyncSettingsPatch,
-) -> Result<RpcOutcome<serde_json::Value>, String> {
+) -> Result<Outcome<serde_json::Value>, String> {
     config.memory_sync_interval_secs = update.sync_interval_secs;
     config.save().await.map_err(|e| e.to_string())?;
 
@@ -701,7 +701,7 @@ pub async fn apply_memory_sync_settings(
         Some(n) => format!("memory sync interval set to {n}s"),
         None => "memory sync interval reset to default".to_string(),
     };
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         value,
         vec![format!("{msg} — saved to {}", config.config_path.display())],
     ))
@@ -710,7 +710,7 @@ pub async fn apply_memory_sync_settings(
 /// Loads the configuration, applies memory-sync settings, and saves it.
 pub async fn load_and_apply_memory_sync_settings(
     update: MemorySyncSettingsPatch,
-) -> Result<RpcOutcome<serde_json::Value>, String> {
+) -> Result<Outcome<serde_json::Value>, String> {
     let mut config = load_config_with_timeout().await?;
     apply_memory_sync_settings(&mut config, update).await
 }

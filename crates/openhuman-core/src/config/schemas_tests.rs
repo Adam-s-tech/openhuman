@@ -79,7 +79,7 @@ fn json_output_helper_builds_required_json_field() {
 #[test]
 fn to_json_wraps_rpc_outcome() {
     let v =
-        to_json(RpcOutcome::single_log(serde_json::json!({"ok": true}), "l")).expect("serialize");
+        to_json(Outcome::single_log(serde_json::json!({"ok": true}), "l")).expect("serialize");
     assert!(v.get("logs").is_some() || v.get("result").is_some());
 }
 
