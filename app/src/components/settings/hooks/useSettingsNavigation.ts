@@ -37,7 +37,6 @@ type SettingsRoute =
   | 'mcp-server'
   | 'sandbox-settings'
   | 'permissions'
-  | 'activity-level'
   | 'devices'
   | 'usage'
   | 'security'
