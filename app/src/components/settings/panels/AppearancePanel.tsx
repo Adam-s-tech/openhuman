@@ -16,9 +16,12 @@ import {
 import { Card, Slider } from '../../ui';
 import { SettingsNumberField } from '../controls';
 import SettingsPanel from '../layout/SettingsPanel';
+import LayoutSettings from './theme/LayoutSettings';
 import ThemeStudioPanel from './ThemeStudioPanel';
 
-type AppearanceTab = 'general' | 'studio';
+type AppearanceTab = 'general' | 'studio' | 'layout';
+
+const TAB_HASH: Record<AppearanceTab, string> = { general: '', studio: '#studio', layout: '#layout' };
 
 interface FontSizeOption {
   id: FontSize;
@@ -36,11 +39,10 @@ const AppearancePanel = () => {
   const navigate = useNavigate();
   // The URL hash is the source of truth for the tab, so `/settings/theme`
   // (which redirects to `#studio`) and deep links land on the right one.
-  const tab: AppearanceTab = location.hash === '#studio' ? 'studio' : 'general';
+  const tab: AppearanceTab =
+    location.hash === '#studio' ? 'studio' : location.hash === '#layout' ? 'layout' : 'general';
   const selectTab = (next: AppearanceTab) => {
-    navigate(`${location.pathname}${location.search}${next === 'studio' ? '#studio' : ''}`, {
-      replace: true,
-    });
+    navigate(`${location.pathname}${location.search}${TAB_HASH[next]}`, { replace: true });
   };
 
   // Local draft for the numeric px field so partial typing doesn't thrash the
@@ -211,6 +213,13 @@ const AppearancePanel = () => {
           id: 'studio',
           label: t('settings.theme.title'),
           content: <ThemeStudioPanel embedded part="customize" />,
+          contentClassName: 'space-y-5',
+        },
+        // Corner rounding, border contrast, and which areas draw borders.
+        {
+          id: 'layout',
+          label: t('settings.layout.title'),
+          content: <LayoutSettings />,
           contentClassName: 'space-y-5',
         },
       ]}

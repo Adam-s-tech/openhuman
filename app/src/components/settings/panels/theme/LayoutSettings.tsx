@@ -105,10 +105,12 @@ const LayoutSettings = () => {
         {BORDER_AREAS.map(area => (
           <Field
             key={area}
+            htmlFor={`layout-area-${area}`}
             label={areaLabel[area].label}
             description={areaLabel[area].description}
             control={
               <Switch
+                id={`layout-area-${area}`}
                 checked={layout.borderAreas[area]}
                 onCheckedChange={next =>
                   dispatch(setThemeLayout({ borderAreas: { [area]: next } }))
