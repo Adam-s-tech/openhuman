@@ -4,13 +4,13 @@ import { type HTMLAttributes, type ReactNode } from 'react';
 import { cn } from '../../lib/cn';
 
 /**
- * One chip style app-wide: shadcn's outline status badge — a hairline border,
- * no fill, content-coloured text, and (for the semantic variants) a small
+ * One chip style app-wide: shadcn's outline status badge — a faint border and
+ * a faint fill, content-coloured text, and (for the semantic variants) a small
  * coloured dot carrying the meaning. The dot, not a tinted fill, is what sets
  * success / warning / danger apart, so a row of chips stays calm.
  */
 export const badgeVariants = cva(
-  'inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-line bg-transparent px-2 py-0.5 text-xs font-medium leading-5 text-content',
+  'inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-line/60 bg-surface-subtle/60 px-2 py-0.5 text-xs font-medium leading-5 text-content',
   {
     variants: { variant: { neutral: '', primary: '', success: '', warning: '', danger: '' } },
     defaultVariants: { variant: 'neutral' },
