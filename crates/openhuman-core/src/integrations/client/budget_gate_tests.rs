@@ -317,7 +317,7 @@ async fn probe_without_a_credential_fails_before_the_backoff_and_any_request() {
     );
     assert!(
         !USAGE_FAILURE_CACHE.is_fresh(
-            &effective_backend_api_url(&config.api_url),
+            &crate::backend::base_url(&config.api_url).unwrap(),
             Instant::now(),
             USAGE_FAILURE_BACKOFF
         ),

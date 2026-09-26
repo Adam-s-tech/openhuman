@@ -264,6 +264,15 @@ async fn backend_client_reports_unavailable_when_transport_returns_unavailable()
         fn http_client(&self, _profile: TransportProfile) -> reqwest::Client {
             reqwest::Client::new()
         }
+        fn base_url(&self, configured: Option<&str>, _purpose: BaseUrlPurpose) -> String {
+            configured.unwrap_or_default().to_string()
+        }
+        fn product_identity(&self) -> String {
+            "absent".to_string()
+        }
+        fn attribution_headers(&self) -> reqwest::header::HeaderMap {
+            reqwest::header::HeaderMap::new()
+        }
         fn name(&self) -> &'static str {
             "absent"
         }
