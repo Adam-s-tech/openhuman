@@ -12,15 +12,7 @@ import { cn } from '../../lib/cn';
 export const badgeVariants = cva(
   'inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-line bg-transparent px-2 py-0.5 text-xs font-medium leading-5 text-content',
   {
-    variants: {
-      variant: {
-        neutral: '',
-        primary: '',
-        success: '',
-        warning: '',
-        danger: '',
-      },
-    },
+    variants: { variant: { neutral: '', primary: '', success: '', warning: '', danger: '' } },
     defaultVariants: { variant: 'neutral' },
   }
 );

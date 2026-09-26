@@ -265,11 +265,7 @@ const SandboxSettingsPanel = () => {
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-1.5 text-sm font-semibold text-content">
                     {t(`settings.sandbox.backendName.${id}`)}
-                    {linuxOnly && (
-                      <Badge variant="neutral">
-                        {t('settings.sandbox.linuxTag')}
-                      </Badge>
-                    )}
+                    {linuxOnly && <Badge variant="neutral">{t('settings.sandbox.linuxTag')}</Badge>}
                   </span>
                   <span className="mt-0.5 block text-xs text-content-muted">
                     {t(`settings.sandbox.backendHint.${id}`)}
