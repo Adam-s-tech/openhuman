@@ -3181,7 +3181,7 @@ pub const USAGE_PROBE_BACKOFF_PREFIX: &str = "USAGE_PROBE_BACKOFF:";
 
 /// Sentinel prefix on the error string a backend-touching call returns when
 /// the core has no [`BackendTransport`](crate::backend::transport::BackendTransport)
-/// installed. `api::rest::flatten_authed_error` and the integrations client
+/// installed. `backend::client::flatten_authed_error` and the integrations client
 /// build their message from this constant; [`is_backend_unavailable_message`]
 /// classifies it as [`ExpectedErrorKind::BackendUnavailable`].
 pub const BACKEND_UNAVAILABLE_PREFIX: &str = "BACKEND_UNAVAILABLE:";
