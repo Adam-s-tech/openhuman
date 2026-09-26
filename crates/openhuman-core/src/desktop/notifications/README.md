@@ -106,7 +106,7 @@ SQLite DB at `{workspace_dir}/notifications/notifications.db`, opened per-call v
 
 - `CoreNotificationEvent` ids embed a publish timestamp, so each cron run / webhook failure / subagent event produces a distinct notification-center entry rather than coalescing.
 - `CoreNotificationCategory` must stay in sync with `NotificationCategory` in `app/src/store/notificationSlice.ts`.
-- The ingest RPC returns immediately; triage runs in a spawned task and back-fills the score later, list/stats may show `importance_score: null` (unscored) until triage completes.
+- The ingest RPC returns immediately; triage runs in a spawned task and back-fills the score later. List/stats may show `importance_score: null` (unscored) until triage completes.
 - Triage→score mapping is a fixed heuristic in `rpc::triage_action_to_score`: Drop 0.1, Acknowledge 0.35, React 0.65, Escalate 0.9.
 - Routing re-reads provider settings just before escalation so a mid-flight settings toggle takes effect; routing requires `score >= importance_threshold` AND `route_to_orchestrator`.
 - Dedup window is a hard-coded 60 seconds (`exists_recent` / `insert_if_not_recent`).
