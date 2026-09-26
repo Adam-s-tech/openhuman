@@ -32,13 +32,9 @@ import { summarizeStep } from '../../lib/flows/runStepSummary';
 import { formatRunTimestamp } from '../../lib/flows/runTimestamp';
 import { useT } from '../../lib/i18n/I18nContext';
 import type { FlowRunStep } from '../../services/api/flowsApi';
-import { Alert, AlertDescription, Button, CenteredLoadingState } from '../ui';
+import { Alert, AlertDescription, Badge, Button, CenteredLoadingState } from '../ui';
 import { FlowRunPendingApprovalCard } from './FlowRunPendingApprovalCard';
-import {
-  flowRunStatusAccentClass,
-  flowRunStatusDotClass,
-  flowRunStatusLabel,
-} from './FlowRunStatus';
+import { flowRunStatusDotClass, flowRunStatusLabel, flowRunStatusVariant } from './FlowRunStatus';
 import { RunItemDataBrowser } from './RunItemDataBrowser';
 
 /**
