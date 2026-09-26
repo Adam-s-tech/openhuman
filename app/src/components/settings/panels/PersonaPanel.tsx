@@ -31,7 +31,6 @@ import {
   ToggleGroupItem,
   ToggleGroupRoot,
 } from '../../ui';
-import { useSettingsNavigation } from '../hooks/useSettingsNavigation';
 import SettingsPanel from '../layout/SettingsPanel';
 import PersonaGuidedFields from './persona/PersonaGuidedFields';
 import PersonaTemplatePicker from './persona/PersonaTemplatePicker';
@@ -51,7 +50,6 @@ interface PersonaPanelProps {
 
 const PersonaPanel = ({ embedded = false }: PersonaPanelProps) => {
   const { t } = useT();
-  const { navigateToSettings } = useSettingsNavigation();
   const dispatch = useAppDispatch();
 
   const storedDisplayName = useAppSelector(selectPersonaDisplayName);
