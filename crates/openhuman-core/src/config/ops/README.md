@@ -1,6 +1,6 @@
 # ops
 
-JSON-RPC / CLI controller surface for persisted config and runtime flags — the
+JSON-RPC / CLI controller surface for persisted config and runtime flags: the
 mutation half of `config`. `crate::config` re-exports this module both under
 its own name and as `rpc` (`pub use ops as rpc`), so most callers write
 `config::rpc::*`. Controllers in `../schemas/` are thin wrappers around the
@@ -80,7 +80,7 @@ TinySearch module is refreshed with a private configuration payload.
   lock and delegates to `apply_autonomy_settings`, so the same reload
   happens. `apply_agent_paths_settings` calls
   `crate::security::live_policy::set_action_dir` when `action_dir` changes.
-  Do not weaken these settings mutators — they gate the same autonomy
+  Do not weaken these settings mutators; they gate the same autonomy
   invariants AGENTS.md requires of `security/`.
 - `apply_privacy_settings` calls `crate::security::live_policy::reload_privacy`
   after saving, so the inference chokepoint enforces the new Privacy Mode
