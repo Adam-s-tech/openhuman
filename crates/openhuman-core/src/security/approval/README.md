@@ -83,7 +83,7 @@ SQLite DB at `{workspace_dir}/approval/approval.db`, table `pending_approvals` (
 
 ## Used by
 
-- `crates/openhuman-core/src/core/jsonrpc.rs` — installs the global gate (`ApprovalGate::init_global`) at startup; wires the approval RPCs.
+- `crates/openhuman-core/src/core/runtime/bootstrap.rs` — installs the global gate (`ApprovalGate::init_global`) at startup; wires the approval RPCs.
 - `crates/openhuman-core/src/core/all.rs` — registers the controller schemas.
 - `crates/openhuman-core/src/agent/tinyagents/middleware.rs` (`ApprovalSecurityMiddleware`, a `wrap_tool` middleware on every turn path) — routes external-effect tool calls through the gate before `execute()` and records the terminal audit row.
 - `crates/openhuman-core/src/web_chat/` — sets `APPROVAL_CHAT_CONTEXT`, hosts `ApprovalSurfaceSubscriber`, and routes typed yes/no replies to `approval_decide`.
@@ -101,7 +101,7 @@ SQLite DB at `{workspace_dir}/approval/approval.db`, table `pending_approvals` (
 - **Waiter registered before persist** so a fast `approval_decide` can't mark a request approved while no waiter exists (PR #2149).
 - **Orphan rows are intentionally preserved** across launches (issue #1339); deciding one is a DB-only audit update — no side effect can fire across processes, so the security invariant holds.
 - **`approve_always_for_tool` persistence is the RPC handler's job**, not the gate's — `gate.decide` only resolves the parked future and emits the audit event; `rpc::approval_decide` appends to `autonomy.auto_approve` + reloads the live policy (best-effort; failure degrades to prompting again).
-- `OPENHUMAN_APPROVAL_GATE=0`/`false` skips installing the gate for CLI, Docker, and library hosts only (`approval_gate_boot_decision` in `crates/openhuman-core/src/core/types.rs`, applied in `core/jsonrpc.rs`); the Tauri shell always installs it and ignores the override. Where honored, `Prompt`-class calls run unprompted.
+- `OPENHUMAN_APPROVAL_GATE=0`/`false` skips installing the gate for CLI, Docker, and library hosts only (`approval_gate_boot_decision` in `crates/openhuman-core/src/core/types.rs`, applied in `core/runtime/bootstrap.rs`); the Tauri shell always installs it and ignores the override. Where honored, `Prompt`-class calls run unprompted.
 - **A disabled autonomy policy parks nothing.** With `[autonomy] enabled = false` (the shipped default, see `security/README.md`) `SecurityPolicy::gate_decision` answers `Allow` for every class, so the acting tools' `external_effect_with_args` — which asks for `GateDecision::Prompt` — is `false` and the gate is never reached. The gate is still installed and still works the moment the policy is turned on; nothing here is special-cased on the flag.
 - A prior list-based `ApprovalManager` was removed; the gate is now the sole control reading the `autonomy.auto_approve` allowlist.
 

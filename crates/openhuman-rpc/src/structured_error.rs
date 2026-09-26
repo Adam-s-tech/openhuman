@@ -31,7 +31,7 @@ pub const STRUCTURED_RPC_ERROR_SENTINEL: &str = "__OPENHUMAN_STRUCTURED_RPC_ERRO
 ///
 /// The transport layer decodes this without inspecting the RPC method name
 /// or the message contents, so new domains can adopt it without touching
-/// `crates/openhuman-core/src/core/jsonrpc.rs`.
+/// `crates/openhuman-core/src/core/jsonrpc/http/rpc_handler.rs`.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct StructuredRpcError {
     /// Human-readable error text for the JSON-RPC `error.message` field.

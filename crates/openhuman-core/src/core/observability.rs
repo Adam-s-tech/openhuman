@@ -372,7 +372,7 @@ pub enum ExpectedErrorKind {
     /// succeed until the user creates one — so this is user-state, not a
     /// defect.
     ///
-    /// `jsonrpc.rs` already demoted the *bare* message via
+    /// `core/jsonrpc/http/rpc_handler.rs` already demoted the *bare* message via
     /// `is_wallet_not_configured_error`, but that predicate is exact equality,
     /// so it stops matching the moment any caller adds context — and callers
     /// do: `format!("{context}: {e}")` appears ~800 times in `src/`. One such
@@ -2146,7 +2146,7 @@ fn report_expected_message(kind: ExpectedErrorKind, message: &str, domain: &str,
             // is the sentinel itself, and it is a constant. `domain` and
             // `operation` carry the correlation, which is what a breadcrumb is
             // for. Same reasoning as the param-validation skip in
-            // `jsonrpc.rs`, which redacts because its messages embed
+            // `core/jsonrpc/http/rpc_handler.rs`, which redacts because its messages embed
             // caller-supplied param names.
             tracing::info!(
                 domain = domain,

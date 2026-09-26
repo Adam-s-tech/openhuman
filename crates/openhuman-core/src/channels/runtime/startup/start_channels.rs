@@ -128,7 +128,7 @@ async fn start_channels_inner(mut config: Config) -> Result<()> {
         );
     }
     // Note: WebhookRequestSubscriber and ChannelInboundSubscriber are registered
-    // in bootstrap_core_runtime() (crates/openhuman-core/src/core/jsonrpc.rs) to avoid double-registration
+    // in bootstrap_core_runtime() (crates/openhuman-core/src/core/runtime/bootstrap.rs) to avoid double-registration
     // when both startup paths run in the same process.
 
     let provider_runtime_options = provider::ProviderRuntimeOptions {

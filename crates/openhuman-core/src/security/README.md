@@ -143,7 +143,7 @@ a feature work:
   `security/approval/gate.rs`'s
   `DEFAULT_APPROVAL_TTL` is 10 minutes and a timed-out park returns `Deny`;
   `approval_gate_boot_decision` (`core/types.rs`, applied in
-  `core/jsonrpc.rs`) always installs the gate for `HostKind::TauriShell` and
+  `core/runtime/bootstrap.rs`) always installs the gate for `HostKind::TauriShell` and
   ignores `OPENHUMAN_APPROVAL_GATE=0` there — only CLI, Docker, and library
   hosts may opt out.
 

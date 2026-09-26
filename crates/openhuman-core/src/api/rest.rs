@@ -47,7 +47,7 @@ pub enum BackendApiError {
     /// `401 Unauthorized` — a library-mode runtime's credential, not a user
     /// session. Must stay distinct from [`Self::Unauthorized`]:
     /// `flatten_authed_error` maps that variant onto the `SESSION_EXPIRED`
-    /// sentinel, which `core/jsonrpc.rs` treats as "clear the app session and
+    /// sentinel, which `core/jsonrpc/invoke.rs` treats as "clear the app session and
     /// sign out". A rejected API key on a runtime that never had a session
     /// would otherwise trigger that same session-expiry recovery, clearing an
     /// app session that was never the problem and leaving the rejected key
@@ -127,7 +127,7 @@ pub enum BackendApiError {
 /// rest of the authed-endpoint family (#3297).
 ///
 /// Mapping `Unauthorized` onto the existing `SESSION_EXPIRED` sentinel makes the
-/// dispatcher (`core/jsonrpc.rs`) classify it as session expiry: it skips the
+/// dispatcher (`core/jsonrpc/classify.rs`) classify it as session expiry: it skips the
 /// Sentry report AND publishes `DomainEvent::SessionExpired` so the auth domain
 /// drives re-sign-in. This keys off the typed downcast — not the Display
 /// wording — so it stays correct if the `#[error(...)]` text changes, consistent
@@ -141,7 +141,7 @@ pub fn flatten_authed_error(err: anyhow::Error) -> String {
         }
         // Deliberately NOT the `SESSION_EXPIRED` sentinel: this runtime
         // authenticates with an API key, not a session, so there is no
-        // session to expire and `core/jsonrpc.rs`'s `SessionExpired` publish
+        // session to expire and `core/jsonrpc/invoke.rs`'s `SessionExpired` publish
         // (clear the session, prompt re-sign-in) would be the wrong
         // recovery. See `BackendApiError::ApiKeyRejected`.
         Some(BackendApiError::ApiKeyRejected { method, path }) => {

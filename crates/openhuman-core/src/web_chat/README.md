@@ -130,12 +130,12 @@ Namespace `channel`, registered via
 
 - Broadcasts `WebChannelEvent` (defined in `core/socketio.rs`) over an
   in-process `tokio::sync::broadcast` channel. `core/socketio.rs` forwards it
-  to the connected Socket.IO client; `core/jsonrpc.rs` forwards the same
+  to the connected Socket.IO client; `core/jsonrpc/http/events.rs` forwards the same
   stream to the JSON-RPC `/events` SSE endpoint; `channels/bus/subscriber.rs`
   subscribes to collect the reply for an inbound provider message.
 - Subscribes to `DomainEvent` on `crate::core::bus::BUS` via three
   process-lifetime, `OnceLock`-guarded subscribers registered at startup from
-  `core/jsonrpc.rs` and `channels/runtime/startup/start_channels.rs`:
+  `core/runtime/bootstrap.rs` and `channels/runtime/startup/start_channels.rs`:
   `register_approval_surface_subscriber`
   (`ApprovalRequested`/`PlanReviewRequested` → `approval_request` /
   `plan_review_request`), `register_artifact_surface_subscriber`
@@ -167,7 +167,7 @@ Namespace `channel`, registered via
 - `core/socketio.rs` — the `chat:start` and `chat:cancel` handlers call
   `start_chat` / `cancel_chat_scoped`, and forward `WebChannelEvent`s to the
   client.
-- `core/jsonrpc.rs` — subscribes the event stream for `/events` SSE and
+- `core/jsonrpc/http/events.rs` — subscribes the event stream for `/events` SSE and
   registers the three `DomainEvent` surface subscribers at startup.
 - `core/all.rs` — registers `all_web_channel_registered_controllers()` under
   `DomainGroup::Channels`, deliberately *not* behind the `channels` feature

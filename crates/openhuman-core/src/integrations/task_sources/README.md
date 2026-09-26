@@ -106,7 +106,7 @@ Subscribes:
 Startup wiring is split across three sites; both entry points are idempotent
 (`OnceLock`), so the overlap is harmless:
 
-- `crates/openhuman-core/src/core/jsonrpc.rs` (~2159) calls
+- `crates/openhuman-core/src/core/runtime/subscribers.rs` (~2159) calls
   `crate::integrations::task_sources::bus::register_task_sources_subscriber()`.
 - `crates/openhuman-core/src/core/runtime/services.rs` (~349) calls
   `crate::integrations::task_sources::start_periodic_poll()` when the
@@ -137,7 +137,7 @@ The additive idempotent `ingested_tasks.card_id` migration preserves older datab
 ## Used by
 
 - `crates/openhuman-core/src/core/all.rs` — registers controllers + schemas into the global RPC registry.
-- `crates/openhuman-core/src/core/jsonrpc.rs` — at startup registers the connection subscriber (bus.rs).
+- `crates/openhuman-core/src/core/runtime/subscribers.rs` — at startup registers the connection subscriber (bus.rs).
 - `crates/openhuman-core/src/core/runtime/services.rs` — at startup starts the periodic poll as part of the task-source polling bootstrap job.
 - `crates/openhuman-core/src/channels/runtime/startup/start_channels.rs` — `start_channels` registers the subscriber and starts the poll for the channels runtime.
 - `crates/openhuman-core/src/core/events.rs` — defines/classifies the three `TaskSource*` event variants under domain `"task_sources"`.

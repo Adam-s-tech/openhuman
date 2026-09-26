@@ -151,7 +151,7 @@ transcription count, rolling recent-transcript buffer for context) behind a
 
 - `crates/openhuman-core/src/core/all.rs` — registers the `voice` and `audio_toolkit` controllers (gated) and the `openhuman voice` CLI adapter (ungated, so the stub answers with a "voice disabled" error).
 - `crates/openhuman-core/src/core/socketio.rs` — subscribes to the dictation/transcription broadcast buses and forwards them to Socket.IO clients.
-- `crates/openhuman-core/src/core/jsonrpc.rs` — WebSocket upgrade for streaming dictation (`streaming::handle_dictation_ws`).
+- `crates/openhuman-core/src/core/jsonrpc/http/dictation.rs` — WebSocket upgrade for streaming dictation (`streaming::handle_dictation_ws`).
 - `crates/openhuman-core/src/platform/socket/event_handlers.rs` — spawns `realtime_harness::handle_voice_harness_turn` for each `voice:harness` socket event.
 - `crates/openhuman-core/src/web_chat/run_task.rs` — synthesizes agent reply speech and publishes PTT transcript-committed events.
 - `crates/openhuman-core/src/channels/host/adapters.rs` — channel-side STT provider dispatch and reply synthesis.

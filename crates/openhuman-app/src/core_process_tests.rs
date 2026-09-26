@@ -266,7 +266,7 @@ fn ensure_running_reuses_unknown_listener_when_override_set() {
 
 #[test]
 fn is_openhuman_root_body_matches_canonical_root_response() {
-    // Mirrors the JSON shape produced by `core/jsonrpc.rs::root_handler`.
+    // Mirrors the JSON shape produced by `core/jsonrpc/http/mod.rs::root_handler`.
     let body = r#"{
         "name": "openhuman",
         "ok": true,

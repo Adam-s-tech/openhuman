@@ -688,7 +688,7 @@ async fn authed_json_surfaces_unauthorized_on_401() {
 /// Regression: a 401 for an API-key-authenticated request must classify as
 /// `BackendApiError::ApiKeyRejected`, not `Unauthorized`. `Unauthorized` is
 /// what `flatten_authed_error` maps onto the `SESSION_EXPIRED` sentinel, and
-/// `core/jsonrpc.rs`'s `is_session_expired_error` treats that sentinel as
+/// `core/jsonrpc/classify.rs`'s `is_session_expired_error` treats that sentinel as
 /// "clear the app session and sign out" — the wrong recovery for a
 /// library-mode runtime that authenticates with an API key and has no
 /// session at all.
@@ -726,7 +726,7 @@ async fn authed_json_surfaces_api_key_rejected_not_unauthorized_on_401() {
     assert_eq!(path, "/teams/me/usage");
 
     // The flattened message must NOT carry the `SESSION_EXPIRED` sentinel —
-    // that would make `core/jsonrpc.rs::is_session_expired_error` clear an
+    // that would make `core/jsonrpc/classify.rs::is_session_expired_error` clear an
     // app session that was never the problem.
     let flattened = flatten_authed_error(err);
     assert!(

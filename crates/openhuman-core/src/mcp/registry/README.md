@@ -148,7 +148,7 @@ same real type in both builds.
   installed servers, and connect, disconnect, config updates, and reconnects
   update the map. `connected_overview()` reads tool snapshots from that map;
   it does not call an MCP server on each chat turn.
-- `crates/openhuman-core/src/core/jsonrpc.rs` — the `/oauth/mcp/callback`
+- `crates/openhuman-core/src/core/jsonrpc/http/oauth_mcp.rs` — the `/oauth/mcp/callback`
   route calls `oauth::complete`.
 - `crates/openhuman-core/src/tools/registry/ops.rs` and
   `crates/openhuman-core/src/agent/registry/agents/orchestrator/prompt.rs` —

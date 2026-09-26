@@ -258,7 +258,7 @@ fn classifies_vault_create_root_path_not_a_directory_as_filesystem_user_path_inv
     );
 
     // The same body wrapped by the JSON-RPC dispatcher's `display_message`
-    // prefix (`rpc.invoke_method` re-emit shape from `crates/openhuman-core/src/core/jsonrpc.rs`).
+    // prefix (`rpc.invoke_method` re-emit shape from `crates/openhuman-core/src/core/jsonrpc/http/rpc_handler.rs`).
     // Must still classify so the dispatch-site re-report doesn't escape
     // the matcher even if a future caller layers more context.
     assert_eq!(

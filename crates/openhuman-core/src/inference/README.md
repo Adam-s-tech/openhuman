@@ -83,7 +83,7 @@ One namespace is wired into the controller registry (`crates/openhuman-core/src/
 
 Legacy `openhuman.local_ai_*` and `openhuman.update_local_ai_settings` method names are rewritten to canonical `openhuman.inference_*` methods by `crates/openhuman-core/src/core/legacy_aliases.rs` and `app/src/services/rpcMethods.ts`.
 
-Also exposes a non-RPC HTTP router (`http::router()`) nested at `/v1` by `crates/openhuman-core/src/core/jsonrpc.rs` (`/v1/chat/completions`, `/v1/models`), accepting either the core bearer or a stable external API key.
+Also exposes a non-RPC HTTP router (`http::router()`) nested at `/v1` by `crates/openhuman-core/src/core/jsonrpc/http/mod.rs` (`/v1/chat/completions`, `/v1/models`), accepting either the core bearer or a stable external API key.
 
 ## Events
 

@@ -2850,7 +2850,7 @@ async fn json_rpc_thread_not_found_errors_are_structured() {
     assert_eq!(append_err["data"]["thread_id"], thread_id);
     // The transport layer no longer stamps the RPC method into the structured
     // error data — the domain controller emits a method-agnostic envelope and
-    // jsonrpc.rs surfaces it verbatim. The frontend keys on `kind` +
+    // core/jsonrpc/http/rpc_handler.rs surfaces it verbatim. The frontend keys on `kind` +
     // `thread_id` (see `coreRpcClient.isThreadNotFoundRpcData`), not method.
     assert!(
         append_err["data"]["method"].is_null(),

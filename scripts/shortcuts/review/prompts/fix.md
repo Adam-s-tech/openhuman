@@ -60,7 +60,7 @@ Run a CodeRabbit-style review against these axes:
 
 **Project standards** (from `CLAUDE.md`)
 - New Rust functionality under `crates/openhuman-core/src/<domain>/`, not root-level `.rs` files.
-- Domain exposure via `schemas.rs` + registry — not ad-hoc branches in `crates/openhuman-core/src/core/cli.rs` / `crates/openhuman-core/src/core/jsonrpc.rs`.
+- Domain exposure via `schemas.rs` + registry — not ad-hoc branches in `crates/openhuman-core/src/core/cli.rs` / `crates/openhuman-core/src/core/jsonrpc/`.
 - No dynamic `import()` in production `app/src` code.
 - Frontend `VITE_*` reads via `app/src/utils/config.ts`.
 - `crates/openhuman-app` is desktop-only.
