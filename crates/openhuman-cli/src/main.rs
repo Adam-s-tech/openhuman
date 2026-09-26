@@ -281,6 +281,10 @@ fn main() {
         std::process::exit(1);
     }
 
+    // `run` / `serve` start the JSON-RPC server from `openhuman-rpc`, which the
+    // core cannot depend on; hand it the launcher before dispatching.
+    openhuman_rpc::server::install_cli_server();
+
     // Delegate to the core library to handle the command.
     if let Err(err) = openhuman_core::run_core_from_args(&args) {
         eprintln!("{err}");
