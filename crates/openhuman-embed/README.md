@@ -139,7 +139,23 @@ managed inference then sends it as `Authorization: Bearer <key>` to the
 TinyHumans OpenAI-compatible endpoint, backend REST calls send it as
 `x-api-key`, and the scheduler gate treats the runtime as signed in. No
 `/auth/me` round trip, no session JWT, nothing to expire. An agent that names
-its own `Provider` (BYOK) never touches the key. `HarnessBuilder::session`
+its own `Provider` (BYOK) never touches the key.
+
+The key covers every hosted feature the core reaches: managed inference, cloud
+embeddings, voice (STT, TTS, the realtime voice agent), web search, media
+generation, the Jev ranker, Composio and the other `/agent-integrations/*`
+tools, channel delivery, webhooks, and the Socket.IO connection. Callers that
+can only send a bearer (the vendored STT and embedding clients, the connector
+module's proxy route, TinyCortex's Composio sync) send the key as
+`Authorization: Bearer`, which the backend accepts because it recognises the
+`tiny_live_` / `tiny_test_` prefix. What a key may reach is decided by its
+scopes on the backend: `inference`, `voice`, `search`, `media`, `storage`,
+`account` and `connections` (Composio). A key minted through the grant flow
+omits `connections` unless it is asked for; a missing scope answers `403`.
+Only the session-bound `/auth/*` flows (OAuth connect, channel link tokens,
+login tokens) still need a signed-in user.
+
+`HarnessBuilder::session`
 remains for hosts that drive backend features on behalf of a signed-in user;
 the core stores that session as handed over (`auth.set_credential`) and never
 validates it — obtaining and validating a JWT is the host's job (see
@@ -230,11 +246,6 @@ are documented rather than hidden; each is a candidate follow-up in the core.
   `include_user_skills(false)` (the default) an agent does not *discover* the
   operator's skills, but an install by the agent lands there.
 - One API key (or session) is shared by all agents.
-- `IntegrationClient` (backend-proxied Composio/search/media tools) only
-  ever reads the app-session JWT (`api::jwt::get_session_token`), never the
-  runtime's API key. A library runtime that authenticates with only
-  `.api_key(...)` gets no integration tools at all rather than the key
-  being sent as the wrong header.
 
 Other invariants worth knowing before wiring any entry point:
 
