@@ -439,7 +439,9 @@ const ThreadRoot: FC<{
           )}>
           {loadError ? (
             <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center">
-              <p className="text-sm font-medium text-destructive">Failed to load messages</p>
+              <p className="text-sm font-medium text-destructive">
+                {t('chat.failedToLoadMessages', 'Failed to load messages')}
+              </p>
               <p className="text-muted-foreground max-w-md text-xs">{loadError}</p>
             </div>
           ) : (
