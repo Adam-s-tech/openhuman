@@ -87,9 +87,6 @@ being set to `exa` or `tavily` before a key is saved behaves the same as
 
 ## Where next
 
-- [`gitbooks/developing/engines.md`](../../../../../gitbooks/developing/engines.md)
-  has more background on the pluggable-engine design, once that page exists
-  in this checkout (it did not exist in this worktree as of this pass).
 - `search/registry.rs` for the dispatch and the TinyFish add-on logic.
 - `search/tools/` for the actual `Tool` implementations these `build`
   functions construct.
