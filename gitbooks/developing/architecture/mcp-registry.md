@@ -85,7 +85,7 @@ pub use schemas::{
 pub use types::{ConnStatus, InstalledServer, McpTool};
 ```
 
-`types` and `connections` are thin `pub mod`s re-exporting the `tinymcp_bus` wire vocabulary and `super::host`-backed lookups, respectively — this domain does not define its own copies. Everything else (`bus`, `ops`, `setup_ops`, `supervisor_events`, `tools`) is `pub mod` for in-crate callers but not re-exported from `mod.rs`.
+`types` and `connections` are thin `pub mod`s re-exporting the `tinymcp_bus` wire vocabulary and `super::host`-backed lookups, respectively — this domain does not define its own copies. Everything else (`bus`, `ops`, `action_tool`, `supervisor_events`, `tools`) is `pub mod` for in-crate callers but not re-exported from `mod.rs`.
 
 ## Calls into
 
@@ -102,7 +102,7 @@ pub use types::{ConnStatus, InstalledServer, McpTool};
 
 ## Tests
 
-Focused `*_tests.rs` siblings cover each file: `bus_tests.rs`, `ops_tests.rs`, `schemas_tests.rs`, `setup_ops_tests.rs`, `supervisor_events_tests.rs`, `tools_tests.rs`.
+Focused `*_tests.rs` siblings cover each file: `bus_tests.rs`, `ops_tests.rs`, `schemas_tests.rs`, `action_tool_tests.rs`, `supervisor_events_tests.rs`, `tools_tests.rs`, `config_doc_tests.rs`.
 
 ## Related
 
