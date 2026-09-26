@@ -51,14 +51,4 @@ export const DropdownMenuItem = ({
   />
 );
 
-export const DropdownMenuSeparator = ({
-  className,
-  ...rest
-}: ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Separator>) => (
-  <DropdownMenuPrimitive.Separator
-    className={cn('my-1 h-px bg-line-subtle', className)}
-    {...rest}
-  />
-);
-
 export default DropdownMenuRoot;
