@@ -24,7 +24,6 @@ import SandboxSettingsPanel from './panels/SandboxSettingsPanel';
 import SecurityPanel from './panels/SecurityPanel';
 import ThemeStudioPanel from './panels/ThemeStudioPanel';
 import ToolPolicyDiagnosticsPanel from './panels/ToolPolicyDiagnosticsPanel';
-import ToolsPanel from './panels/ToolsPanel';
 
 /**
  * Single vertical-scroll wrapper for a settings panel. The surrounding card
@@ -113,14 +112,17 @@ export function settingsRouteElements(): ReactNode {
       <Route path="personality" element={<PersonalityRoute />} />
       <Route path="face" element={wrapSettingsPage(<MascotPanel />)} />
       <Route path="language" element={<SettingsRedirect to="/settings/account" />} />
-      {/* The Agents list and editor were removed; old links land on Tools. */}
-      <Route path="agents/*" element={<SettingsRedirect to="/settings/tools" />} />
+      {/* The Agents list and editor were removed; old links land on Connections → Tools. */}
+      <Route path="agents/*" element={<Navigate to="/connections?tab=agent-tools" replace />} />
       <Route path="agent-access" element={wrapSettingsPage(<AgentAccessPanel />)} />
       {/* Agent activity level (medulla/subconscious background-AI knob) was
           retired along with medulla/subconscious themselves. The slug
-          redirects so any old deep link lands on Tools rather than falling
+          redirects so any old deep link lands on Connections → Tools rather than falling
           through to the settings index. */}
-      <Route path="activity-level" element={<SettingsRedirect to="/settings/tools" />} />
+      <Route
+        path="activity-level"
+        element={<Navigate to="/connections?tab=agent-tools" replace />}
+      />
       <Route path="sandbox-settings" element={wrapSettingsPage(<SandboxSettingsPanel />)} />
       <Route path="approval-history" element={wrapSettingsPage(<ApprovalHistoryPanel />)} />
 
@@ -135,7 +137,8 @@ export function settingsRouteElements(): ReactNode {
       {/* The Integrations settings section was retired; the composio/OAuth grid
           lives on the Connections page. */}
       <Route path="integrations" element={<ForwardSearch to="/connections" />} />
-      <Route path="tools" element={wrapSettingsPage(<ToolsPanel />)} />
+      {/* Tools moved to Connections → Tools. */}
+      <Route path="tools" element={<Navigate to="/connections?tab=agent-tools" replace />} />
 
       {/* ── System ──────────────────────────────────────────────── */}
       {/* Core connection — promotes cloud-mode remote-core config into a
@@ -200,7 +203,10 @@ export function settingsRouteElements(): ReactNode {
       {/* ── Legacy slugs → redirects (deep-link compatibility) ──── */}
       {/* Old hub pages */}
       <Route path="ai" element={<Navigate to="/connections?tab=llm" replace />} />
-      <Route path="agents-settings" element={<SettingsRedirect to="/settings/tools" />} />
+      <Route
+        path="agents-settings"
+        element={<Navigate to="/connections?tab=agent-tools" replace />}
+      />
       <Route path="crypto" element={<Navigate to="/connections?tab=wallet" replace />} />
       <Route path="notifications-hub" element={<SettingsRedirect to="/settings/account" />} />
       {/* Composio (API key + routing) moved to Connections → API keys. */}

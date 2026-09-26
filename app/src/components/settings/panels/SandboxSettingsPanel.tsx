@@ -210,7 +210,9 @@ const SandboxSettingsPanel = () => {
             <Badge
               variant={dockerAvailable ? 'success' : 'neutral'}
               data-testid="sandbox-docker-status">
-              {dockerAvailable ? t('settings.sandbox.available') : t('settings.sandbox.unavailable')}
+              {dockerAvailable
+                ? t('settings.sandbox.available')
+                : t('settings.sandbox.unavailable')}
             </Badge>
           </span>
           {detectedBackend && (

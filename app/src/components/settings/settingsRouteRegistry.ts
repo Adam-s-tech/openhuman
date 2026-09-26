@@ -209,7 +209,7 @@ export const SETTINGS_ROUTE_REGISTRY: SettingsRegistryEntry[] = [
 
   // --- Assistant group ---
   // The old 'ai' and 'agents-settings' hub pages are retired — their slugs
-  // redirect to /settings/llm and /settings/tools.
+  // redirect to /settings/llm and the Connections → Tools tab.
   {
     // personality and face: how the assistant presents itself, so they sit in
     // the Appearance group next to the app's own look. They were one page with
@@ -427,7 +427,6 @@ export const SETTINGS_ROUTE_REGISTRY: SettingsRegistryEntry[] = [
   // =========================================================================
   // FEATURES section leaf panels
   // =========================================================================
-  {
   {
     // meetings: Meeting Assistant settings (issue #3511 / epic #3505 PR-5).
     // Surfaced on the Connections page (meetings tab, below the meetings list);
