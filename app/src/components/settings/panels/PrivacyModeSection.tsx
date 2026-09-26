@@ -103,7 +103,7 @@ const PrivacyModeSection = () => {
 
   return (
     <Card title={t('privacy.mode.title')} description={t('privacy.mode.description')}>
-      <div className="flex flex-col gap-3 p-4">
+      <div className="p-4">
         <RadioGroupRoot
           value={mode ?? undefined}
           onValueChange={next => void handleSelect(next as PrivacyMode)}
@@ -158,6 +158,10 @@ const PrivacyModeSection = () => {
           savedNote={status === 'saved' ? t('privacy.mode.saved') : null}
           error={status === 'error' ? (error ?? t('privacy.mode.saveError')) : null}
           savingLabel={t('autonomy.statusSaving')}
+          // The live region stays mounted for announcements, but takes no
+          // space until it has something to say, so the card's bottom
+          // padding matches its top.
+          className="min-h-0 [&:not(:empty)]:mt-3"
         />
       </div>
     </Card>
