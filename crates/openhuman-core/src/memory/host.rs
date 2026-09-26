@@ -101,7 +101,7 @@ impl MemoryHostConfig for Config {
         // Resolution (defaults, env overrides, normalisation) belongs to the
         // installed backend transport and must not be re-derived on the other
         // side of the seam. Empty when no transport is installed.
-        crate::backend::base_url(&self.api_url).unwrap_or_else(|_| "https://example.invalid".into())
+        crate::backend::base_url(&self.api_url).unwrap_or_default()
     }
 
     fn session_token(&self) -> Result<Option<String>, String> {
