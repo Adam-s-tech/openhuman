@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
-import { CenteredLoadingState, ErrorBanner, InlineLoadingStatus, Spinner } from './LoadingState';
+import { CenteredLoadingState, ErrorBanner, Spinner } from './LoadingState';
 
 describe('ErrorBanner', () => {
   it('retains message call sites and exposes errors as alerts', () => {
