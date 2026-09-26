@@ -320,14 +320,6 @@ export default function DesktopConnectionPage() {
           </Card>
         )}
 
-        {/* ── System permissions ─────────────────────────────────────────── */}
-        {status?.supported && (
-          <Card title={t('desktop.permissions')} description={t('desktop.captureNote')}>
-            {permissionRow('accessibility', status.accessibility)}
-            {permissionRow('screen_recording', status.screen_recording)}
-          </Card>
-        )}
-
         {status?.supported && status.enabled && (
           <>
             {/* ── Pending approvals ──────────────────────────────────────── */}
@@ -379,8 +371,22 @@ export default function DesktopConnectionPage() {
               </Card>
             )}
 
+          </>
+        )}
+
+        {/* Permissions and the access check are short cards: side by side. */}
+        {status?.supported && (
+          <TileGrid columns={2}>
+            <Card
+              title={t('desktop.permissions')}
+              description={t('desktop.captureNote')}
+              className="h-full">
+              {permissionRow('accessibility', status.accessibility)}
+              {permissionRow('screen_recording', status.screen_recording)}
+            </Card>
+            {status.enabled && (
             {/* ── Access check ───────────────────────────────────────────── */}
-            <Card title={t('desktop.checkHeading')}>
+              <Card title={t('desktop.checkHeading')} className="h-full">
               <Field
                 label={t('desktop.checkLabel')}
                 description={t('desktop.testDescription')}
@@ -409,7 +415,8 @@ export default function DesktopConnectionPage() {
                 </div>
               )}
             </Card>
-          </>
+            )}
+          </TileGrid>
         )}
 
         {error && (
