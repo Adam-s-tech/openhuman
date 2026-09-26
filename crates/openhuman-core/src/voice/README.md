@@ -3,8 +3,8 @@
 Speech-to-text (STT) and text-to-speech (TTS) domain. Exposes the `voice_*` RPC
 namespace for transcription, synthesis, availability checks, provider
 configuration, agent reply-speech (with mascot lip-sync visemes), a realtime
-ElevenLabs Agents bootstrap, and a standalone voice **dictation server**
-(hotkey → record → transcribe → insert text). Routing between the hosted
+ElevenLabs Agents bootstrap, and a standalone voice dictation server
+(hotkey, then record, transcribe, and insert text). Routing between the hosted
 backend proxy, local Piper, and third-party providers is decided by a provider
 factory driven by config. The low-level inference implementations (cloud STT,
 local speech, streaming, and postprocess) are built by `tinyinference-voice` with
@@ -43,7 +43,7 @@ Keeping the two surfaces in lockstep is enforced by the disabled-build check
 | `server.rs` (+ `server/runtime.rs`, `server/pipeline.rs`, `server/hotkey_listener.rs`, `server/singleton.rs`, `server/types.rs`) | The `VoiceServer` dictation runtime: hotkey event loop, recording lifecycle, duration/silence/hallucination gates, background processing, global singleton (`global_server` / `try_global_server` / `start_if_enabled` / `run_standalone`, all in `server/singleton.rs`). |
 | `always_on.rs` (+ `always_on/processor.rs`, `always_on/capture.rs`, `always_on/lock_watcher.rs`, `always_on/transcribe.rs`) | Phase 2 always-on listening: keeps the mic open continuously and uses VAD to carve utterances instead of gating on a hotkey. Owns the `cpal` stream and thread discipline; everything else (VAD session, resample, energies, WAV encode, wake-word gate, command/intent routing) runs in the `tinyvoice` module. Opt-in (`config.voice_server.always_on_enabled`); pauses while the screen is locked (macOS only — other platforms have no lock signal yet). |
 | `bus.rs` | Publishes `DomainEvent::Voice(VoiceEvent::PttTranscriptCommitted)` via `publish_ptt_transcript_committed`. |
-| `compile_status.rs` | `VOICE_COMPILED_IN` — see the gate section above. |
+| `compile_status.rs` | `VOICE_COMPILED_IN`: see the gate section above. |
 | `hotkey.rs` | rdev-based global hotkey listener; `ActivationMode` (Tap/Push), `HotkeyEvent`, `HotkeyCombination`, `parse_hotkey`, `start_listener`. |
 | `audio_capture.rs` | cpal mic capture → 16 kHz mono WAV bytes; `RecordingHandle`, silence-gate ring buffer, peak-RMS reporting. Delegates framing/resample/energy math to `crate::modules::voice` (the `tinyvoice` module). |
 | `audio_toolkit/` | Podcast generation + email delivery (`audio_toolkit` RPC namespace), gated by the same `voice` feature. See its own [README](audio_toolkit/README.md). |
@@ -116,7 +116,7 @@ results reach the frontend without Tauri-side shortcut registration).
 
 - `tinyvoice-bus` (`crates/openhuman-core/Cargo.toml`, optional, gated by the
   `voice` feature) — the wire contract for the loaded `tinyvoice` module.
-- `crate::modules::voice` — the host-side wrapper over the loaded `tinyvoice`
+- `crate::modules::voice`: the host-side wrapper over the loaded `tinyvoice`
   native module (the `voice` feature pulls in `modules` for it). `audio_capture.rs`
   and `always_on.rs` call it (imported as `tinyvoice`) for frame preparation,
   resample, per-frame energies, WAV encoding, the VAD session, wake-word
@@ -139,28 +139,27 @@ transcription count, rolling recent-transcript buffer for context) behind a
 
 ## Dependencies
 
-- `tinyinference-voice` — hosted STT transport, Piper execution, transcription cleanup, and streaming PCM mechanics; `crate::inference` supplies the local runtime and provider policy.
-- `crate::config` — `Config`, `config::rpc::load_config_with_timeout`, voice-server / dictation config sections, and `config::schema::voice_providers` (`VoiceProviderCreds`, capability/auth/API-style enums).
+- `tinyinference-voice`: hosted STT transport, Piper execution, transcription cleanup, and streaming PCM mechanics; `crate::inference` supplies the local runtime and provider policy.
+- `crate::config`: `Config`, `config::rpc::load_config_with_timeout`, voice-server / dictation config sections, and `config::schema::voice_providers` (`VoiceProviderCreds`, capability/auth/API-style enums).
 - `crate::desktop::accessibility` (macOS only) — focused-text inspection (`focused_text_context_verbose`) and the Swift globe-key listener (`globe_listener_start` / `globe_listener_poll`) used in place of rdev for the Fn key.
-- `crate::api` — `BackendOAuthClient`, `effective_backend_api_url`, `get_session_token` for backend-proxied reply-speech and the realtime signed-URL bootstrap.
+- `crate::api`: `BackendOAuthClient`, `effective_backend_api_url`, `get_session_token` for backend-proxied reply-speech and the realtime signed-URL bootstrap.
 - `crate::modules::voice` (`tinyvoice`) — see Contract crates above.
 - `crate::core::all` (`ControllerFuture`, `RegisteredController`), `crate::core::{ControllerSchema, FieldSchema, TypeSchema}`, `crate::core::bus::BUS` + `crate::core::events` (event publishing), `crate::core::logging` (CLI run init), and `crate::rpc::RpcOutcome`.
 - External crates: `cpal` (capture), `rdev` (hotkeys), `enigo` + `arboard` (paste insertion), `reqwest` (external provider HTTP + realtime bootstrap), `tokio`/`tokio-util`, `once_cell`.
 
 ## Used by
 
-- `crates/openhuman-core/src/core/all.rs` — registers the `voice` and `audio_toolkit` controllers (gated) and the `openhuman voice` CLI adapter (ungated, so the stub answers with a "voice disabled" error).
-- `crates/openhuman-core/src/core/socketio.rs` — subscribes to the dictation/transcription broadcast buses and forwards them to Socket.IO clients.
-- `crates/openhuman-core/src/core/jsonrpc.rs` — WebSocket upgrade for streaming dictation (`streaming::handle_dictation_ws`).
-- `crates/openhuman-core/src/platform/socket/event_handlers.rs` — spawns `realtime_harness::handle_voice_harness_turn` for each `voice:harness` socket event.
-- `crates/openhuman-core/src/web_chat/run_task.rs` — synthesizes agent reply speech and publishes PTT transcript-committed events.
-- `crates/openhuman-core/src/channels/host/adapters.rs` — channel-side STT provider dispatch and reply synthesis.
-- `crates/openhuman-core/src/security/credentials/ops/login_services.rs` — starts/stops the dictation server, dictation listener, and always-on listener when credentials that gate them change.
-- `crates/openhuman-core/src/config/schemas/controllers/voice.rs` — re-applies `always_on::start_if_enabled` live after voice-server settings are saved.
-- `crates/openhuman-core/src/inference/local/service/speech.rs` — the local-AI service's STT path resolves and constructs the provider through `effective_stt_provider` / `create_stt_provider`.
-- `crates/openhuman-core/src/inference/local/install_piper.rs` — references `DEFAULT_PIPER_VOICE`.
-- `crates/openhuman-core/src/tools/mod.rs` — re-exports `voice::audio_toolkit::tools::*` into the agent tool catalog.
-- `crates/openhuman-app/src/lib.rs` — `const` asserts `VOICE_COMPILED_IN`.
+- `crates/openhuman-core/src/core/all.rs`: registers the `voice` and `audio_toolkit` controllers (gated) and the `openhuman voice` CLI adapter (ungated, so the stub answers with a "voice disabled" error).
+- `crates/openhuman-core/src/core/socketio.rs`: subscribes to the dictation/transcription broadcast buses and forwards them to Socket.IO clients.
+- `crates/openhuman-core/src/core/jsonrpc.rs`: WebSocket upgrade for streaming dictation (`streaming::handle_dictation_ws`).
+- `crates/openhuman-core/src/platform/socket/event_handlers.rs`: spawns `realtime_harness::handle_voice_harness_turn` for each `voice:harness` socket event.
+- `crates/openhuman-core/src/web_chat/run_task.rs`: synthesizes agent reply speech and publishes PTT transcript-committed events.
+- `crates/openhuman-core/src/channels/host/adapters.rs`: channel-side STT provider dispatch and reply synthesis.
+- `crates/openhuman-core/src/security/credentials/ops/gated_services.rs`: starts/stops the dictation server, dictation listener, and always-on listener when credentials that gate them change.
+- `crates/openhuman-core/src/config/schemas/controllers/voice.rs`: re-applies `always_on::start_if_enabled` live after voice-server settings are saved.
+- `crates/openhuman-core/src/inference/host_runtime/service/speech.rs`: the local-AI service's STT path resolves and constructs the provider through `effective_stt_provider` / `create_stt_provider`.
+- `crates/openhuman-core/src/tools/mod.rs`: re-exports `voice::audio_toolkit::tools::*` into the agent tool catalog.
+- `crates/openhuman-app/src/lib.rs`: `const` asserts `VOICE_COMPILED_IN`.
 
 ## Notes / gotchas
 
