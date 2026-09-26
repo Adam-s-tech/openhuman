@@ -137,46 +137,46 @@ const UsageLogPanel = () => {
   ];
 
   return (
-    <div className="space-y-3" data-testid="usage-log-panel">
-      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
-        <p className="max-w-prose text-xs text-content-muted">
-          {t('settings.costDashboard.usageLogHint')
-            .replace('{days}', String(days))
-            .replace('{limit}', '1000')}
-        </p>
-        <div className="flex items-center gap-3">
-          {data && (
-            <span className="text-xs tabular-nums text-content-muted">
-              {t('settings.costDashboard.filteredTotal')
-                .replace('{shown}', String(records.length))
-                .replace('{loaded}', String(data.records.length))
-                .replace('{cost}', formatCurrency(filteredCost, data.currency))}
-            </span>
-          )}
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            leadingIcon={
-              <RefreshCw
-                className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin' : ''}`}
-                aria-hidden
-              />
-            }
-            onClick={() => void refetch()}
-            disabled={isFetching}>
-            {t('settings.costDashboard.refresh')}
-          </Button>
-        </div>
-      </div>
-
+    // Fills the Usage page's non-scrolling tab body; only the rows scroll.
+    <div className="flex h-full min-h-0 flex-col" data-testid="usage-log-panel">
       <DataTable<CostUsageRecord>
+        title={t('settings.costDashboard.usageLog')}
+        description={t('settings.costDashboard.usageLogHint')
+          .replace('{days}', String(days))
+          .replace('{limit}', '1000')}
+        actions={
+          <>
+            {data && (
+              <span className="text-xs tabular-nums text-content-muted">
+                {t('settings.costDashboard.filteredTotal')
+                  .replace('{shown}', String(records.length))
+                  .replace('{loaded}', String(data.records.length))
+                  .replace('{cost}', formatCurrency(filteredCost, data.currency))}
+              </span>
+            )}
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              leadingIcon={
+                <RefreshCw
+                  className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin' : ''}`}
+                  aria-hidden
+                />
+              }
+              onClick={() => void refetch()}
+              disabled={isFetching}>
+              {t('settings.costDashboard.refresh')}
+            </Button>
+          </>
+        }
         columns={columns}
         rows={records}
         rowKey={record => record.id}
         ariaLabel={t('settings.costDashboard.usageLog')}
-        toolbarStart={
-          <>
+        pagination={{ pageSize: 25, pageSizeOptions: [10, 25, 50, 100] }}
+        toolbarTop={
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             <FilterSelect
               label={t('settings.costDashboard.period')}
               value={String(days)}
@@ -219,7 +219,7 @@ const UsageLogPanel = () => {
                 {t('settings.costDashboard.providerCharged')}
               </option>
             </FilterSelect>
-          </>
+          </div>
         }
         search={{
           value: query,
@@ -232,9 +232,7 @@ const UsageLogPanel = () => {
         error={error ? <StatusLine saving={false} error={error} savingLabel="" /> : undefined}
         empty={
           data ? (
-            <div className="rounded-xl border border-dashed border-line py-6 text-center">
-              <EmptyState className="p-0" label={t('settings.costDashboard.noUsageLog')} />
-            </div>
+            <EmptyState className="p-0" label={t('settings.costDashboard.noUsageLog')} />
           ) : undefined
         }
       />

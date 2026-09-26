@@ -51,6 +51,9 @@ const UsagePanel = () => {
       description={t('settings.usage.menuDesc')}
       tabsAriaLabel={t('settings.usage.title')}
       tabsTestIdPrefix="usage-tab"
+      // The log tab is one table card that fills the body and scrolls its own
+      // rows, so the page must not scroll around it.
+      scrollable={tab !== 'log'}
       value={tab}
       onChange={selectTab}
       tabs={[
