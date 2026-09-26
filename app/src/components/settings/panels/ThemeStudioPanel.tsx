@@ -1,4 +1,3 @@
-import { ChevronRight, Palette } from 'lucide-react';
 import { useState } from 'react';
 
 import { useT } from '../../../lib/i18n/I18nContext';
@@ -143,23 +142,7 @@ function importedBackdrop(parsed: Partial<Theme>): Theme['backdrop'] {
   };
 }
 
-interface ThemeStudioPanelProps {
-  /** Render the sections only — the host draws the page header. */
-  embedded?: boolean;
-  /**
-   * Which half to render when embedded. The Appearance page puts the theme
-   * gallery at the top and the customizer at the bottom, with text size and
-   * language between them, so it mounts this component twice. Omit for both.
-   */
-  part?: 'gallery' | 'customize';
-  /**
-   * When set, the gallery ends with a "Custom" tile that calls this — the
-   * Appearance page uses it to open the Theme Studio page.
-   */
-  onCustomize?: () => void;
-}
-
-const ThemeStudioPanel = ({ embedded = false, part, onCustomize }: ThemeStudioPanelProps = {}) => {
+const ThemeStudioPanel = () => {
   const { t } = useT();
   const dispatch = useAppDispatch();
   const families = selectThemeFamilies();
@@ -317,23 +300,6 @@ const ThemeStudioPanel = ({ embedded = false, part, onCustomize }: ThemeStudioPa
             </button>
           );
         })}
-        {onCustomize && (
-          <button
-            type="button"
-            onClick={onCustomize}
-            data-testid="theme-customize-tile"
-            className="flex flex-col gap-2 rounded-xl border border-dashed border-line-strong p-3 text-left transition-colors hover:bg-surface-hover focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary-500/25">
-            <span className="flex h-10 items-center justify-center rounded-lg bg-surface-muted text-content-muted">
-              <Palette className="h-4 w-4" aria-hidden />
-            </span>
-            <span className="flex items-center justify-between gap-1">
-              <span className="truncate text-sm font-medium text-content">
-                {t('settings.theme.customBadge', 'Custom')}
-              </span>
-              <ChevronRight className="h-3.5 w-3.5 text-content-faint" aria-hidden />
-            </span>
-          </button>
-        )}
       </div>
     </Card>
   );
@@ -568,25 +534,14 @@ const ThemeStudioPanel = ({ embedded = false, part, onCustomize }: ThemeStudioPa
     </section>
   );
 
-  const body =
-    part === 'gallery' ? (
-      gallery
-    ) : part === 'customize' ? (
-      customize
-    ) : (
-      <>
-        {gallery}
-        {customize}
-      </>
-    );
-
-  // Embedded: the Appearance page shows just the gallery (with the Custom
-  // tile). The routed `/settings/theme` page renders both halves.
-  if (embedded) return body;
-
+  // Theme Studio page: pick a theme (gallery, with the Light/Dark/Auto
+  // toggle), then fine-tune it in the column cards below.
   return (
-    <SettingsPanel description={t('settings.theme.menuDesc', 'Customize colours and fonts.')}>
-      {body}
+    <SettingsPanel
+      testId="theme-studio-panel"
+      description={t('settings.theme.menuDesc', 'Customize colours and fonts.')}>
+      {gallery}
+      {customize}
     </SettingsPanel>
   );
 };
