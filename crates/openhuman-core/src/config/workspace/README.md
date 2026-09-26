@@ -1,10 +1,10 @@
 # workspace
 
-Owns workspace layout bootstrap and the editable "Persona Pack" prompt files (`SOUL.md`, `IDENTITY.md`) that drive the agent's personality. Two concerns live here: (1) `init_workspace` — the one-shot setup that creates the default directory tree and copies the bundled prompt/skills/heartbeat files into a fresh workspace (backs CLI `init`-style entrypoints); and (2) read/edit/reset RPCs over a tightly allowlisted set of persona files, so the settings UI can round-trip those prompts without ever exposing an arbitrary path under the workspace.
+Owns workspace layout bootstrap and the editable "Persona Pack" prompt files (`SOUL.md`, `IDENTITY.md`) that drive the agent's personality. Two concerns live here: (1) `init_workspace`, the one-shot setup that creates the default directory tree and copies the bundled prompt/skills/heartbeat files into a fresh workspace (backs CLI `init`-style entrypoints); and (2) read/edit/reset RPCs over a tightly allowlisted set of persona files, so the settings UI can round-trip those prompts without ever exposing an arbitrary path under the workspace. It also carries an unrelated file-watcher state store (see `state.rs` below).
 
 ## Responsibilities
 
-- Initialize a fresh workspace: create the `memory`, `sessions`, `state`, `cron` directories, write bundled `SOUL.md` / `IDENTITY.md`, seed the skills dir README, and ensure `HEARTBEAT.md` — reporting created/overwritten/existing entries.
+- Initialize a fresh workspace: create the `memory`, `sessions`, `state`, `cron` directories, write bundled `SOUL.md` / `IDENTITY.md`, seed the skills dir README, and ensure `HEARTBEAT.md` exists, reporting created/overwritten/existing entries.
 - Define the single source of truth for which workspace files are editable (the `BOOTSTRAP_FILES` allowlist via `bundled_default_contents`).
 - Read an editable persona file, falling back to the bundled default (with `is_default = true`) when the on-disk copy is missing.
 - Overwrite an editable persona file with user-supplied contents (size-capped, allowlist-enforced).

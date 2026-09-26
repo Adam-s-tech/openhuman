@@ -75,7 +75,7 @@ Note: `list_provider_credentials_by_prefix` and the Composio-direct/secret helpe
 
 ## Events
 
-`bus.rs` — `SessionExpiredSubscriber` (`name() == "credentials::session_expired_handler"`, domain filter `["auth"]`) **subscribes** to `DomainEvent::SessionExpired`. On a non-local session it flips the scheduler gate to signed-out and drops the rejected credential (`clear_session`); for a local offline session or an API-key runtime it re-enables the gate and no-ops. This module does not publish events directly (publishers of `SessionExpired` are 401-detection sites elsewhere). The host learns of the sign-out through the Socket.IO `auth:session_expired` bridge and `auth.get_state`.
+`bus.rs`: `SessionExpiredSubscriber` (`name() == "credentials::session_expired_handler"`, domain filter `["auth"]`) **subscribes** to `DomainEvent::SessionExpired`. On a non-local session it flips the scheduler gate to signed-out and drops the rejected credential (`clear_session`); for a local offline session or an API-key runtime it re-enables the gate and no-ops. This module does not publish events directly (publishers of `SessionExpired` are 401-detection sites elsewhere). The host learns of the sign-out through the Socket.IO `auth:session_expired` bridge and `auth.get_state`.
 
 ## Persistence
 
