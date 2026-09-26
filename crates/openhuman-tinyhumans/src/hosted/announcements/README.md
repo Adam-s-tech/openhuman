@@ -43,11 +43,11 @@ anything. Dismissal is tracked client-side by announcement id
 
 ## Dependencies
 
-- `crate::security::credentials::session_support::require_live_session_token`
- : rejects an expired token locally instead of firing a doomed backend 401
+- `crate::security::credentials::session_support::require_live_session_token`:
+  rejects an expired token locally instead of firing a doomed backend 401
   (same guard as `billing/ops.rs`).
-- `crate::api::config::effective_backend_api_url`, `crate::api::BackendOAuthClient`
- : resolve the backend base URL and issue the authed JSON request, carrying
+- `crate::api::config::effective_backend_api_url`, `crate::api::BackendOAuthClient`:
+  resolve the backend base URL and issue the authed JSON request, carrying
   the sanitized `x-sdk-name` product identity (`crate::api::product`) on every
   call.
 - `crate::api::flatten_authed_error`: flattens any non-404 backend/session
