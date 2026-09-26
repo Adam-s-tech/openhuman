@@ -105,14 +105,15 @@ const WorkflowRunDetail: React.FC<Props> = ({
       {/* Header: status + controls */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <span
+          <Badge
+            variant={RUN_STATUS_VARIANT[run.status]}
             data-testid="workflow-run-status"
-            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium ${RUN_STATUS_ACCENT[run.status]}`}>
+            dot={run.status === 'running' ? false : undefined}>
             {run.status === 'running' && (
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary-500" />
             )}
             {t(RUN_STATUS_KEY[run.status])}
-          </span>
+          </Badge>
           <span className="font-mono text-[11px] text-content-faint">{run.id}</span>
         </div>
 

@@ -161,9 +161,7 @@ export function MemorySourceRow({
                 }`}>
                 {source.label}
               </span>
-              <span className="rounded-md bg-surface-subtle px-1.5 py-0.5 text-[10px] font-medium text-content-muted">
-                {kindLabel}
-              </span>
+              <Badge variant="neutral">{kindLabel}</Badge>
               {status &&
                 status.chunks_synced > 0 &&
                 (ingestedOnly ? (

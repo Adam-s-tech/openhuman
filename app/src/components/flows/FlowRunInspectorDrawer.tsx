@@ -268,12 +268,12 @@ export function FlowRunInspectorDrawer({ runId, onClose, onFixWithAgent }: Props
             </div>
             <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-content-muted">
               {run && (
-                <span
+                <Badge
+                  variant={flowRunStatusVariant(run.status)}
                   data-testid="flow-run-status-pill"
-                  data-status={run.status}
-                  className={`inline-flex items-center rounded-full border px-2 py-0.5 font-medium ${flowRunStatusAccentClass(run.status)}`}>
+                  data-status={run.status}>
                   {flowRunStatusLabel(run.status, t)}
-                </span>
+                </Badge>
               )}
               {/* Internal ids are dev/debug info, not primary-view content (issue
                   B20) — shown short-form only, full value on hover via `title`,
