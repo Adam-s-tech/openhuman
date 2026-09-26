@@ -135,35 +135,3 @@ export const SubagentCall: ToolCallMessagePartComponent = ({ args, result }) => 
 };
 
 export default SubagentCall;
-
-/**
- * Drop-in for `Thread`'s `components.ToolFallback` seam: routes a `task` call
- * to {@link SubagentCall} and leaves every other tool to the stock fallback.
- *
- * Using the seam rather than editing `thread.tsx` keeps the vendored component
- * set unmodified, so it can still be re-pulled from the registry.
- */
-export const MockToolFallback: ToolCallMessagePartComponent = props =>
-  props.toolName === 'task' ? <SubagentCall {...props} /> : <ToolFallback {...props} />;
-
-/**
- * Drop-in for `Thread`'s `components.ToolGroup` seam.
- *
- * Identical to the stock group except that a group holding work still in flight
- * opens itself. Collapsed-by-default is right for a finished trace, but it
- * hides the one thing a dispatched delegation needs to show: that it is still
- * running while the answer below it streams. `defaultOpen` only applies on
- * mount, so the group opens once and the reader can still collapse it.
- */
-export const MockToolGroup: FC<PropsWithChildren<{ group: ThreadGroupPart }>> = ({
-  group,
-  children,
-}) => {
-  const running = group.status.type === 'running';
-  return (
-    <ToolGroupRoot variant="ghost" defaultOpen={running}>
-      <ToolGroupTrigger count={group.indices.length} active={running} />
-      <ToolGroupContent>{children}</ToolGroupContent>
-    </ToolGroupRoot>
-  );
-};
