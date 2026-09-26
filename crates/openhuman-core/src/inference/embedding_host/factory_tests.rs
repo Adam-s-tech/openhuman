@@ -348,8 +348,9 @@ async fn factory_managed_provider_authenticates_with_config_scoped_token() {
 
     // `OpenHumanCloudEmbedding::new` bakes the base URL at construction, so
     // BACKEND_URL only needs to point at the mock while the factory builds —
-    // held under the crate-wide backend-env lock (shared with `api::config`'s
-    // own BACKEND_URL tests) so the process-global env can't race.
+    // held under the crate-wide backend-env lock (shared with
+    // `openhuman_tinyhumans::backend::url`'s own BACKEND_URL tests) so the
+    // process-global env can't race.
     let provider = {
         let _env_guard = crate::config::app_env::env_test_lock();
         let prev = std::env::var("BACKEND_URL").ok();
