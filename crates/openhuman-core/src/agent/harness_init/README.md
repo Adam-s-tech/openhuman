@@ -8,9 +8,9 @@ tracks per-step progress in an in-memory snapshot, and exposes it over
 `openhuman.harness_init_status` / `openhuman.harness_init_run` for the
 frontend's initialization screen (`app/src/services/harnessInitService.ts`).
 
-Steps delegate to existing idempotent provisioning code, `runtime::python`
+Steps delegate to existing idempotent provisioning code: `runtime::python`
 (`PythonBootstrap`), `runtime::node` (`NodeBootstrap`), and
-`runtime::python_server` (`ensure_spacy`, `ensure_kompress`, `ensure_started`)
+`runtime::python_server` (`ensure_spacy`, `ensure_kompress`, `ensure_started`).
 This module only orchestrates and reports; it does not reimplement downloads.
 
 ## Files

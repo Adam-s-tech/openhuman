@@ -54,7 +54,7 @@ None.
 
 ## Events
 
-None — no event-bus publishers or subscribers.
+None. No event-bus publishers or subscribers.
 
 ## Persistence
 
