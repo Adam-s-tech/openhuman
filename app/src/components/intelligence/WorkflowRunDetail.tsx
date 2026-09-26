@@ -26,7 +26,7 @@ import {
   type WorkflowRunStatus,
 } from '../../services/api/workflowRunsApi';
 import { AccordionContent, AccordionItem, AccordionRoot, AccordionTrigger } from '../ui/Accordion';
-import { Badge, type BadgeVariant } from '../ui/Badge';
+import Badge, { type BadgeVariant } from '../ui/Badge';
 import Button from '../ui/Button';
 
 const log = debug('intelligence:workflow-detail');
