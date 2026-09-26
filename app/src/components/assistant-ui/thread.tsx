@@ -1336,6 +1336,7 @@ const ComposerAction: FC<{
  * must not offer Reload even when the runtime supports it for settled replies.
  */
 const MessageError: FC = () => {
+  const { t } = useT();
   const error = useMessageError();
   if (error === undefined) return null;
   const detail = typeof error === 'string' ? error : JSON.stringify(error);
@@ -1343,7 +1344,7 @@ const MessageError: FC = () => {
     <MessagePrimitive.Error>
       <ErrorState
         className="aui-message-error-root mt-2"
-        title="Something went wrong"
+        title={t('misc.somethingWentWrong', 'Something went wrong')}
         detail={detail}
         retrying={false}
       />
