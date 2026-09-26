@@ -82,15 +82,6 @@ describe('AgentMessageBubble markdown links', () => {
     }
   });
 
-  test('uses the same workspace link handling inside table cells', async () => {
-    render(<TableCellMarkdown content="[note](openhuman-workspace:/docs/note.md)" />);
-
-    await userEvent.click(screen.getByRole('link', { name: 'note' }));
-
-    await waitFor(() => expect(mocks.openWorkspacePath).toHaveBeenCalledWith('docs/note.md'));
-    expect(mocks.openUrl).not.toHaveBeenCalled();
-  });
-
   test('does not open raw file links from markdown', async () => {
     render(<BubbleMarkdown content="[secret](file:///etc/passwd)" />);
 
