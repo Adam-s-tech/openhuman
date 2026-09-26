@@ -50,8 +50,6 @@
 
 > **Early Beta**: Under active development. Expect rough edges.
 
-> OpenHuman is not AGI. But it is a meaningful architectural step closer, with better memory, better orchestration, and better tooling.
-
 > 🎉 Within one week of launch, OpenHuman became the number one trending repository on GitHub for nine days in a row.
 
 # Install
