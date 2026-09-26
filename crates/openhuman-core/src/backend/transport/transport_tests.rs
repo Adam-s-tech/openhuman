@@ -25,6 +25,20 @@ impl BackendTransport for NamedTransport {
         reqwest::Client::new()
     }
 
+    // URL and attribution answers delegate to the plain transport: this
+    // double is installed process-wide while other tests resolve base URLs.
+    fn base_url(&self, configured: Option<&str>, purpose: BaseUrlPurpose) -> String {
+        plain::PlainHttpTransport::new().base_url(configured, purpose)
+    }
+
+    fn product_identity(&self) -> String {
+        plain::TEST_PRODUCT_IDENTITY.to_string()
+    }
+
+    fn attribution_headers(&self) -> reqwest::header::HeaderMap {
+        plain::PlainHttpTransport::new().attribution_headers()
+    }
+
     fn name(&self) -> &'static str {
         self.0
     }
@@ -264,14 +278,14 @@ async fn backend_client_reports_unavailable_when_transport_returns_unavailable()
         fn http_client(&self, _profile: TransportProfile) -> reqwest::Client {
             reqwest::Client::new()
         }
-        fn base_url(&self, configured: Option<&str>, _purpose: BaseUrlPurpose) -> String {
-            configured.unwrap_or_default().to_string()
+        fn base_url(&self, configured: Option<&str>, purpose: BaseUrlPurpose) -> String {
+            plain::PlainHttpTransport::new().base_url(configured, purpose)
         }
         fn product_identity(&self) -> String {
-            "absent".to_string()
+            plain::TEST_PRODUCT_IDENTITY.to_string()
         }
         fn attribution_headers(&self) -> reqwest::header::HeaderMap {
-            reqwest::header::HeaderMap::new()
+            plain::PlainHttpTransport::new().attribution_headers()
         }
         fn name(&self) -> &'static str {
             "absent"
