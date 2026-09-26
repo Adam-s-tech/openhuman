@@ -198,7 +198,11 @@ export function SyncAuditPanel() {
   }, [anySyncing, reload]);
 
   const statusOf = (e: SyncAuditEntry): SyncStatus =>
-    e.success ? 'success' : (e.tree_ingest_failures ?? 0) > 0 || e.tree_error ? 'partial' : 'failed';
+    e.success
+      ? 'success'
+      : (e.tree_ingest_failures ?? 0) > 0 || e.tree_error
+        ? 'partial'
+        : 'failed';
   const sourceName = (e: SyncAuditEntry) => labels[e.source_id] ?? scopeLabel(e.scope);
 
   const needle = query.trim().toLowerCase();

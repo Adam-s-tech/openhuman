@@ -7097,6 +7097,8 @@ const en: TranslationMap = {
   'wallet.tabs.recovery': 'Recovery',
   'wallet.ariaLabel': 'Wallet views',
   // WalletBalancesPanel strings
+  'walletBalances.tableTitle': 'Balances',
+  'walletBalances.searchPlaceholder': 'Search token, network or address…',
   'walletBalances.title': 'Wallet Balances',
   'walletBalances.earlyAlphaNotice':
     'Early Alpha: Wallet balances are still being tested. Amounts and network support may change between releases.',
