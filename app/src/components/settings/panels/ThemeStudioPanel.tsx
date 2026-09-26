@@ -386,7 +386,7 @@ const ThemeStudioPanel = ({ embedded = false, part }: ThemeStudioPanelProps = {}
                         </div>
                         {colorFields(
                           ACCENT_SHADES.map(shade => `${fam}-${shade}`),
-                          key => humanize(key).replace(/-/g, ' ')
+                          humanize
                         )}
                       </div>
                     ))}
