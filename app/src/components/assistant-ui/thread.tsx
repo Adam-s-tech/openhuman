@@ -393,6 +393,7 @@ const ThreadRoot: FC<{
   loadError: string | null;
   onEscape?: () => void;
 }> = ({ isEmpty, model, onModelChange, loadError, onEscape }) => {
+  const { t } = useT();
   const {
     Welcome = ThreadWelcome,
     Composer: HostComposer,
