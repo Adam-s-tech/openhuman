@@ -29,8 +29,8 @@ than protocol:
 
 - **Prompt-injection detection** over remote tool definitions
   (`registry::tools_safe_for_agent`). The detector, its rules, and what a hit
-  means belong to this application's threat model. The *lexical* half, 
-  control characters, prompt-template fences, length caps, lives in the
+  means belong to this application's threat model. The *lexical* half
+  (control characters, prompt-template fences, length caps) lives in the
   contract instead, applied by the display accessors on every remote
   description.
 - **Events.** `tinymcp` reports what happened in its return values;
