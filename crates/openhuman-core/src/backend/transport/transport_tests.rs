@@ -2,7 +2,7 @@ use super::*;
 use crate::security::credentials::session_support::BackendCredential;
 use serde_json::json;
 use std::sync::Arc;
-use wiremock::matchers::{header, header_exists, method, path};
+use wiremock::matchers::{header, method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 struct NamedTransport(&'static str);
