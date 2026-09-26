@@ -189,13 +189,13 @@ The keyring master key, the RPC bearer, the global event bus and the
 sequence), so a second runtime would silently share them while believing it
 had a separate workspace. `RuntimeBuilder::build` returns
 `RuntimeError::AlreadyRunning` instead; agents are the unit of multiplicity.
-`Core::from_runtime` is not guarded — it only wraps a runtime the host
-already built — but the same constraint applies to the `CoreRuntime` beneath
+`Core::from_runtime` is not guarded (it only wraps a runtime the host
+already built), but the same constraint applies to the `CoreRuntime` beneath
 it.
 
-Build the tokio runtime yourself — a turn is a large async state machine that
-overflows tokio's default 2 MiB worker stack once a sub-agent nests inside it —
-using `AGENT_WORKER_STACK_BYTES` and `MAX_BLOCKING_THREADS` from
+Build the tokio runtime yourself. A turn is a large async state machine that
+overflows tokio's default 2 MiB worker stack once a sub-agent nests inside it,
+so use `AGENT_WORKER_STACK_BYTES` and `MAX_BLOCKING_THREADS` from
 [`openhuman_core::core::runtime`](../openhuman-core/src/core/runtime/README.md):
 
 ```rust,no_run
