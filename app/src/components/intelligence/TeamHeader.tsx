@@ -17,9 +17,8 @@ import type {
   AgentTeamMember,
   AgentTeamMemberStatus,
 } from '../../services/api/agentTeamApi';
-import type { BadgeVariant } from '../ui/Badge';
-import Badge from '../ui/Badge';
 import { AvatarFallback, AvatarRoot } from '../ui/Avatar';
+import Badge, { type BadgeVariant } from '../ui/Badge';
 import Button from '../ui/Button';
 import { memberColor } from './memberColors';
 
