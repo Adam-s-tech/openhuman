@@ -168,7 +168,7 @@ macOS and Windows desktop E2E do not run on pushes or PRs. `.github/workflows/e2
 
 ### Linux: "WebView not ready" timeout
 
-For the default CEF runtime, this usually means a stale local runner is trying to drive a CEF-backed WebView through WebKitWebDriver. Current CI uses the Appium Chromium driver on Linux; use `app/scripts/e2e-run-session.sh` or the PR CI workflow for the supported Linux path.
+This usually means `tauri-driver` never reached its `/status` endpoint, or the app crashed before mounting its WebView. Use `app/scripts/e2e-run-session.sh`, which starts `tauri-driver` and waits on that endpoint before invoking WDIO, rather than driving the app by hand.
 
 Ensure `DISPLAY` is set and Xvfb is running:
 
@@ -183,12 +183,9 @@ Also ensure dbus is started (required by webkit2gtk):
 eval $(dbus-launch --sh-syntax)
 ```
 
-### Linux: Appium Chromium driver not found
+### Linux: `tauri-driver` or `WebKitWebDriver` not found
 
-```bash
-npm install -g appium@3
-appium driver install --source=npm appium-chromium-driver
-```
+Install `tauri-driver` with `cargo install tauri-driver`, and make sure `WebKitWebDriver` is on `PATH` (on Debian/Ubuntu it ships in `webkit2gtk-driver`) or point `WEBKIT_WEBDRIVER` at its location; `e2e-run-session.sh` defaults to `/usr/bin/WebKitWebDriver`.
 
 ### macOS: Deep links not working in `tauri dev`
 
