@@ -1,7 +1,7 @@
-# mcp/audit, write-audit RPC surface
+# mcp/audit: write-audit RPC surface
 
-RPC surface over the MCP write-audit log. The log itself, its store and
-schema, moved to [`tinymcp`](https://github.com/tinyhumansai/tinymcp). What
+RPC surface over the MCP write-audit log. The log itself (its store and
+schema) moved to [`tinymcp`](https://github.com/tinyhumansai/tinymcp). What
 is here is the `mcp_audit` controller family and the payload types it
 speaks, re-exported from the wire contract.
 
