@@ -60,20 +60,20 @@ export const DefaultModelRow = ({
           data-testid="default-model-change"
         />
 
-      {pickerOpen && (
-        <ProviderModelPickerDialog
-          cloudProviders={[]}
-          localModels={[]}
-          ollamaRunning={false}
-          claudeCodeEnabled={false}
-          initial={{ source: { kind: 'managed' }, model: pinned ?? RECOMMENDED_DEFAULT_MODEL }}
-          onClose={() => setPickerOpen(false)}
-          onSelect={({ model }) => {
-            setPickerOpen(false);
-            void onChange(model);
-          }}
-        />
-      )}
+        {pickerOpen && (
+          <ProviderModelPickerDialog
+            cloudProviders={[]}
+            localModels={[]}
+            ollamaRunning={false}
+            claudeCodeEnabled={false}
+            initial={{ source: { kind: 'managed' }, model: pinned ?? RECOMMENDED_DEFAULT_MODEL }}
+            onClose={() => setPickerOpen(false)}
+            onSelect={({ model }) => {
+              setPickerOpen(false);
+              void onChange(model);
+            }}
+          />
+        )}
       </TableCell>
     </TableRow>
   );

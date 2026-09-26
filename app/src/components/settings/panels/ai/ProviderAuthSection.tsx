@@ -16,8 +16,8 @@
  * internal dialog from the outside, so they keep a two-row band of their own
  * whether connected or not.
  */
-import { useState } from 'react';
 import { Plus } from 'lucide-react';
+import { useState } from 'react';
 
 import { useT } from '../../../../lib/i18n/I18nContext';
 import type { ProviderAuthError } from '../../../../services/api/aiSettingsApi';

@@ -173,10 +173,7 @@ export const ProviderListRow = ({
 }) => {
   const { t } = useT();
   return (
-    <li
-      data-slot="provider-row"
-      data-testid={testId}
-      className="flex items-center gap-3 px-4 py-3">
+    <li data-slot="provider-row" data-testid={testId} className="flex items-center gap-3 px-4 py-3">
       <ProviderSwatch slug={slug} label={label} tone={tone} />
 
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -184,11 +181,7 @@ export const ProviderListRow = ({
           <span className="truncate text-sm font-semibold text-content">{label}</span>
           {badge}
         </div>
-        <span
-          className={cn(
-            'truncate text-xs text-content-muted',
-            detailMono && 'font-mono'
-          )}>
+        <span className={cn('truncate text-xs text-content-muted', detailMono && 'font-mono')}>
           {detail}
         </span>
       </div>

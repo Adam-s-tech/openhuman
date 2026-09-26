@@ -35,9 +35,7 @@ export const RouteButton = ({
     ) : null}
     <span className="flex min-w-0 flex-1 flex-col">
       <span className="truncate text-xs font-medium text-content">{provider}</span>
-      <span className="truncate font-mono text-[11px] font-normal text-content-muted">
-        {model}
-      </span>
+      <span className="truncate font-mono text-[11px] font-normal text-content-muted">{model}</span>
     </span>
     <ChevronRight className="h-4 w-4 shrink-0 text-content-faint" aria-hidden />
   </Button>
