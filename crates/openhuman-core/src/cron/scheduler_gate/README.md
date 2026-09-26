@@ -25,7 +25,7 @@ Gates background AI work (memory-tree digests, embeddings, summarisation, triage
 From `mod.rs`:
 
 - **Functions** (`gate`): `init_global(&Config)`, `current_policy() -> Policy`, `current_signals() -> Signals`, `wait_for_capacity() -> Option<LlmPermit>`, `is_signed_out() -> bool`, `set_signed_out(bool)`.
-- **Types**: `LlmPermit` (RAII semaphore guard, `#[must_use]`), `Policy` (`Aggressive` / `Normal` / `Throttled` / `Paused { reason }`), `PauseReason` (`UserDisabled` / `OnBattery` / `CpuPressure` / `SignedOut` / `Unknown`), `Signals`.
+- Types: `LlmPermit` (RAII semaphore guard, `#[must_use]`), `Policy` (`Aggressive` / `Normal` / `Throttled` / `Paused { reason }`), `PauseReason` (`UserDisabled` / `OnBattery` / `CpuPressure` / `SignedOut` / `Unknown`), `Signals`.
 - Not re-exported but `pub` on `gate`: `update_config(SchedulerGateConfig)`.
 - Test-only: `SignedOutTestGuard` (RAII flag snapshot/restore), `try_acquire_llm_permit`, `available_llm_permits`.
 
@@ -56,10 +56,10 @@ No dependency on any other `openhuman` domain or on `crate::core::*`.
 
 Consumed in-process across the codebase (discoverable via `grep scheduler_gate`):
 
-- **Background workers / pipelines**: `memory/schema.rs`, `memory_queue/worker.rs`, `memory_tree/tree/rpc.rs`, `memory_sync/composio/periodic.rs`, `subconscious/engine.rs`, `learning/reflection.rs`, `autocomplete/core/engine.rs`, `task_sources/route.rs`, `agent/triage/evaluator.rs`.
-- **Inference layer**: `inference/provider/openhuman_backend.rs`, `inference/provider/factory.rs`, `inference/local/service/{vision_embed.rs,public_infer.rs}`, `inference/voice/postprocess.rs`.
+- Background workers / pipelines: `memory/schema.rs`, `memory_queue/worker.rs`, `memory_tree/tree/rpc.rs`, `memory_sync/composio/periodic.rs`, `subconscious/engine.rs`, `learning/reflection.rs`, `autocomplete/core/engine.rs`, `task_sources/route.rs`, `agent/triage/evaluator.rs`.
+- Inference layer: `inference/provider/openhuman_backend.rs`, `inference/provider/factory.rs`, `inference/local/service/{vision_embed.rs,public_infer.rs}`, `inference/voice/postprocess.rs`.
 - **Credentials lifecycle** (signed-out kill switch): `credentials/ops.rs`, `credentials/bus.rs`.
-- **Bootstrap / transport**: `core/jsonrpc.rs` (calls `init_global` during server bootstrap), `core/observability.rs`, plus the domain wiring in `openhuman/mod.rs` and config schema in `config/schema/scheduler_gate.rs`.
+- Bootstrap / transport: `core/jsonrpc.rs` (calls `init_global` during server bootstrap), `core/observability.rs`, plus the domain wiring in `openhuman/mod.rs` and config schema in `config/schema/scheduler_gate.rs`.
 
 ## Notes / gotchas
 
@@ -67,7 +67,7 @@ Consumed in-process across the codebase (discoverable via `grep scheduler_gate`)
 - **Backoff happens before semaphore acquisition** so a `Paused`/`Throttled` mode doesn't pile tasks into the semaphore wait queue: they sit in the policy poll loop instead.
 - **`current_policy()` defaults to `Normal` and `wait_for_capacity()` acquires directly when `STATE` is uninitialised** (unit tests / pre-`init_global` bootstrap) so callers never deadlock on a sampler that will never start.
 - **Signed-out override is gated on `STATE.get().is_some()`** on both the reader (`current_policy`/`wait_for_capacity`) and writer (`set_signed_out`) sides. Without this, a stale per-test `signed_out=true` flag (from `clear_session` / 401 / `SessionExpiredSubscriber` tests) would make every later `wait_for_capacity` caller poll forever: the source of the post-#1516 triage-evaluator hangs.
-- **Test isolation**: in `cfg(test)` the semaphore and signed-out flag are keyed per tokio runtime ID (`test_state`) so parallel cargo workers and libtest thread reuse don't leak state across `#[tokio::test]`s. `SignedOutTestGuard` snapshots/restores the flag and bypasses the writer-side `STATE` gate.
+- Test isolation: in `cfg(test)` the semaphore and signed-out flag are keyed per tokio runtime ID (`test_state`) so parallel cargo workers and libtest thread reuse don't leak state across `#[tokio::test]`s. `SignedOutTestGuard` snapshots/restores the flag and bypasses the writer-side `STATE` gate.
 - **`init_global` is idempotent** (`std::sync::Once`); live config changes go through `update_config`, which recomputes the policy immediately.
 - **Server-mode detection** never infers server from "no battery" alone (desktops have none); it requires Linux + no battery + no `DISPLAY`/`WAYLAND_DISPLAY`, or explicit env / k8s / docker signals.
 - `PauseReason::OnBattery` and `CpuPressure` are the active power-aware (#1073) reasons; `Unknown` is a placeholder fallback.

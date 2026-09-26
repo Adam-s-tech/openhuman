@@ -45,12 +45,12 @@ The subsystem is organised in phases (issue #566): **Phase 1** the candidate tax
 
 Re-exported from `mod.rs`:
 
-- **Candidate types**: `Buffer`, `CueFamily`, `EvidenceRef`, `FacetClass`, `LearningCandidate`.
-- **Cache / detector**: `FacetCache`, `StabilityDetector`.
-- **Hooks**: `ReflectionHook`, `ToolTrackerHook`, `UserProfileHook` (all impl `PostTurnHook`).
-- **Prompt**: `LearnedContextSection`, `UserProfileSection`, `MemoryAccessSection`, `MemoryWriteSection`, `MEMORY_ACCESS_INSTRUCTION`, `memory_write_instruction`, `any_tool_offered`, `load_learned_from_cache`, and the tool-name constants `MEMORY_READ_TOOLS`, `MEMORY_WRITE_TOOLS`, `MEMORY_STORE_TOOL`, `MEMORY_WRITE_DELEGATE_TOOL`, `SAVE_PREFERENCE_TOOL`.
-- **Profile**: `ProfileMdRenderer`.
-- **Schemas**: `all_learning_controller_schemas`, `all_learning_registered_controllers`, `learning_schemas`.
+- Candidate types: `Buffer`, `CueFamily`, `EvidenceRef`, `FacetClass`, `LearningCandidate`.
+- Cache / detector: `FacetCache`, `StabilityDetector`.
+- Hooks: `ReflectionHook`, `ToolTrackerHook`, `UserProfileHook` (all impl `PostTurnHook`).
+- Prompt: `LearnedContextSection`, `UserProfileSection`, `MemoryAccessSection`, `MemoryWriteSection`, `MEMORY_ACCESS_INSTRUCTION`, `memory_write_instruction`, `any_tool_offered`, `load_learned_from_cache`, and the tool-name constants `MEMORY_READ_TOOLS`, `MEMORY_WRITE_TOOLS`, `MEMORY_STORE_TOOL`, `MEMORY_WRITE_DELEGATE_TOOL`, `SAVE_PREFERENCE_TOOL`.
+- Profile: `ProfileMdRenderer`.
+- Schemas: `all_learning_controller_schemas`, `all_learning_registered_controllers`, `learning_schemas`.
 
 Not re-exported but public within the module: `candidate::global()`, the `linkedin_enrichment::*` pipeline fns, `transcript_ingest::ingest_*`, `scheduler::{spawn_rebuild_loop, register_event_trigger, DEFAULT_REBUILD_INTERVAL}`, and `stability_detector` constants (`TAU_*`, `HALF_LIFE_*`, `BUDGET_*`, `stability`, `half_life`, `class_budget`).
 
@@ -81,8 +81,8 @@ Facet handlers build a `FacetCache` over `crate::memory::ops::guard::active_memo
 
 Uses the typed event bus (`crates/openhuman-core/src/core/bus.rs`, the process-wide `BUS` singleton; `core/events.rs` for `DomainEvent`; handlers implement `tinybus::EventHandler<DomainEvent>`):
 
-- **Publishes**: `DomainEvent::CacheRebuilt { added, evicted, kept, total_size, rebuilt_at }` after each rebuild (`stability_detector.rs`).
-- **Subscribes**:
+- Publishes: `DomainEvent::CacheRebuilt { added, evicted, kept, total_size, rebuilt_at }` after each rebuild (`stability_detector.rs`).
+- Subscribes:
   - `profile_md_renderer.rs` (`ProfileMdRenderer::subscribe`) → `CacheRebuilt` → re-render `PROFILE.md` blocks.
   - `scheduler.rs` (`RebuildTriggerHandler`, domains `memory` / `tree_summarizer`) → `DocumentCanonicalized` (email/document) and `TreeSummarizerPropagated` → debounced (60 s) rebuild.
   - `extract/signature.rs` → `DocumentCanonicalized` (email) → emit Identity candidates.
@@ -93,7 +93,7 @@ These are subscriber registrations rather than a single `bus.rs`; subscriptions 
 
 - **`user_profile_facets`** (the ambient cache), accessed via `FacetCache`, which delegates to the `MemoryProfile` family of the active `MemoryGuard` (`list_active`, `list_all`, `get`, `upsert`, `set_user_state`, `delete`, `drop_below_threshold`; `reset_non_pinned` is a free fn in `cache.rs`). The SQL lives in the memory driver, not in this crate. Rows are `tinymemory_api::provider::ProfileFacet { key, value, state, user_state, stability, confidence, evidence_count, evidence_refs, class, cue_families, first/last_seen_at, … }`.
 - **KV memory namespaces** (via the `Memory` trait): `learning_observations`, `learning_patterns`, `learning_reflections`, `user_profile`, `tool_effectiveness`, plus transcript-ingest `conversation_memory` / `conversation_reflections`. LinkedIn enrichment also upserts the scraped profile through the guard's documents family (`put_profile_document` in `linkedin_enrichment/memory_persistence.rs`) and writes `{workspace_dir}/PROFILE.md`.
-- **In-memory**: the global `candidate::Buffer` (transient evidence, not persisted) and per-session state in `extract/heuristics.rs`.
+- In-memory: the global `candidate::Buffer` (transient evidence, not persisted) and per-session state in `extract/heuristics.rs`.
 
 ## Dependencies
 
@@ -122,7 +122,7 @@ These are subscriber registrations rather than a single `bus.rs`; subscriptions 
 - **Class is encoded in the key prefix** (`style/verbosity`, `goal/learn_rust`). `candidate.key` carries no prefix; the detector prepends `class_prefix`. Legacy rows without a recognised prefix are skipped by rebuild.
 - **`emit_candidates_*` uses the global buffer length as a synthetic `episodic_id`** (a Phase-2 placeholder noted to be replaced by a real `episodic_log` row id).
 - **Goal facets render value-only** (full sentence, no key prefix) in both prompt injection and `PROFILE.md`; other classes render `**key**: value`.
-- **`load_learned_from_cache` is async**: the facet store sits behind the memory driver, so it is a driver call (it used to be a synchronous SQLite read) and degrades to empty on error. Both the cache path and the legacy KV-namespace path are still active (KV slated for later removal).
+- `load_learned_from_cache` is async: the facet store sits behind the memory driver, so it is a driver call (it used to be a synchronous SQLite read) and degrades to empty on error. Both the cache path and the legacy KV-namespace path are still active (KV slated for later removal).
 - **Reflection has a local/cloud gate.** The `ReflectionSource::Local` route requires `Config::workload_uses_local("learning")` (an `ollama:` `learning_provider`); if off it falls back to the optional cloud `ChatModel` or no-ops (empty string), and an empty response is a clean-skip sentinel that rolls back the throttle counter. Per-session reflections are throttled by `max_reflections_per_session`.
 - **LinkedIn enrichment short-circuits** if `PROFILE.md` already exists, and the Composio-only Gmail-search stage is documented as currently erroring (Gmail-via-Composio removed), callers should pass `preset_profile_url` obtained via the frontend's webview Gmail helper.
 - **Transcript ingestion is heuristic-only by design** (no hard LLM dependency) so it can run as a background task without provider credentials.

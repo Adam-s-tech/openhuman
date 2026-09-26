@@ -17,9 +17,9 @@ Scheduled-job runtime. Owns cron-expression and human-delay parsing, the persist
 
 ## Job types
 
-- **`shell`**: `run_job_command_with_timeout` refuses the command unless the `SecurityPolicy` (`SecurityPolicy::from_config`, built once in `scheduler::run` and per call in `execute_job_now`) passes `can_act`, `is_rate_limited`, and `is_command_allowed`; a `blocked by security policy:` result is never retried.
-- **`agent`**: the scheduler builds an `Agent` directly and runs a turn (see below); it does not go through `agent::triage`.
-- **`flow`**: a `flows::Flow` schedule-trigger binding, the mechanism behind a workflow's [schedule trigger](../../../../gitbooks/features/workflows.md). `flows/ops/triggers.rs::bind_schedule_trigger` creates it via `add_flow_schedule_job` (idempotent through `find_flow_schedule_job`) from both `flows_set_enabled` and `reconcile_schedule_triggers_on_boot`. Its `command` column carries the bound flow's id; on fire `run_flow_schedule_job` publishes `DomainEvent::FlowScheduleTick { flow_id }` instead of running anything itself. `flows::bus::FlowTriggerSubscriber` does the actual dispatch. Never created via the `cron_add` agent tool, whose `job_type` enum is `shell` / `agent` only.
+- `shell`: `run_job_command_with_timeout` refuses the command unless the `SecurityPolicy` (`SecurityPolicy::from_config`, built once in `scheduler::run` and per call in `execute_job_now`) passes `can_act`, `is_rate_limited`, and `is_command_allowed`; a `blocked by security policy:` result is never retried.
+- `agent`: the scheduler builds an `Agent` directly and runs a turn (see below); it does not go through `agent::triage`.
+- `flow`: a `flows::Flow` schedule-trigger binding, the mechanism behind a workflow's [schedule trigger](../../../../gitbooks/features/workflows.md). `flows/ops/triggers.rs::bind_schedule_trigger` creates it via `add_flow_schedule_job` (idempotent through `find_flow_schedule_job`) from both `flows_set_enabled` and `reconcile_schedule_triggers_on_boot`. Its `command` column carries the bound flow's id; on fire `run_flow_schedule_job` publishes `DomainEvent::FlowScheduleTick { flow_id }` instead of running anything itself. `flows::bus::FlowTriggerSubscriber` does the actual dispatch. Never created via the `cron_add` agent tool, whose `job_type` enum is `shell` / `agent` only.
 
 ### Agent jobs
 
@@ -53,18 +53,18 @@ Cron publishes through `core/bus.rs` using variants declared in `core/events.rs`
 
 A cron job's `DeliveryConfig.mode` decides where its output ends up. `DeliveryConfig::default()` is `none`; the `cron_add` tool substitutes `proactive` when an agent job is created without a `delivery` block.
 
-- **`proactive`**: `deliver_if_configured` publishes
+- `proactive`: `deliver_if_configured` publishes
   `DomainEvent::ProactiveMessageRequested`. The proactive subscriber
   (`channels::proactive`) always pushes to the in-app web stream and additionally
   mirrors to `channels_config.active_channel` when set. Use for jobs whose
   natural surface is the desktop UI (briefings, app-pushed notifications).
-- **`announce`**: explicit channel-targeted delivery. Requires `channel` and
+- `announce`: explicit channel-targeted delivery. Requires `channel` and
   `to`; publishes `DomainEvent::CronDeliveryRequested` and lands only in that
   channel. The agent layer should pick this mode when a cron is created from a
   non-web channel (Telegram, Discord, Slack, …) so the reminder ends up where
   the user asked for it. The `cron_add` tool validates `to` against the
   channel's `allowed_users` to reject cross-tenant targets.
-- **`none`**: silent; output is stored in `last_output` only.
+- `none`: silent; output is stored in `last_output` only.
 
 The `[Channel context]` block built in `channels/runtime/dispatch/helpers.rs`
 for non-web inbound turns instructs the model to default to `announce` with the
