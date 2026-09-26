@@ -4,6 +4,7 @@ import { LuLightbulb } from 'react-icons/lu';
 import { cn } from '../../lib/cn';
 import { useT } from '../../lib/i18n/I18nContext';
 import type { ActionableItem, ActionableItemSource, TimeGroup } from '../../types/intelligence';
+import Badge from '../ui/Badge';
 import Button from '../ui/Button';
 import NativeSelect from '../ui/NativeSelect';
 import TextField from '../ui/TextField';
