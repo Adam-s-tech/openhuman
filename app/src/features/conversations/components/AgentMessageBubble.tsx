@@ -6,18 +6,11 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 
 import { createCodeBlockPre } from '../../../components/markdown/CodeBlock';
-import { OPENHUMAN_LINK_EVENT } from '../../../components/OpenhumanLinkModal';
-import { parseMarkdownTable } from '../../../utils/agentMessageBubbles';
 import { hasLatexContent, normalizeLatexDelimiters } from '../../../utils/latex';
 import { openUrl } from '../../../utils/openUrl';
 import { openWorkspacePath } from '../../../utils/tauriCommands/workspacePaths';
 import { parseWorkspaceHref } from '../../../utils/workspaceLinks';
-import {
-  type AgentBubblePosition,
-  getAgentBubbleChrome,
-  isAllowedExternalHref,
-  parseBubbleSegments,
-} from '../utils/format';
+import { isAllowedExternalHref } from '../utils/format';
 
 const GFM_REMARK_PLUGINS = [remarkGfm];
 const MATH_REMARK_PLUGINS = [remarkGfm, remarkMath];
@@ -25,7 +18,6 @@ const MATH_REMARK_PLUGINS = [remarkGfm, remarkMath];
 // environments are not double-processed.
 const HIGHLIGHT_REHYPE_PLUGINS = [rehypeHighlight];
 const MATH_REHYPE_PLUGINS = [rehypeHighlight, rehypeKatex];
-type ParsedMarkdownTable = NonNullable<ReturnType<typeof parseMarkdownTable>>;
 
 function transformMarkdownUrl(url: string): string {
   return parseWorkspaceHref(url) ? url : defaultUrlTransform(url);
