@@ -2389,6 +2389,11 @@ const en: TranslationMap = {
   'voice.mode.listening': 'Listening',
   'voice.mode.speaking': 'Speaking',
   'voice.providers.title': 'Voice Providers',
+  'voice.providers.cardDesc': 'Turn on the engines you want to use. Keys stay on this device.',
+  'voice.providers.cap.stt': 'Speech to text',
+  'voice.providers.cap.tts': 'Text to speech',
+  'voice.providers.alwaysOn': 'Always on',
+  'voice.providers.mascotVoiceCardDesc': 'Pick the voice your mascot speaks with in Face settings.',
   'voice.providers.desc':
     'Choose which hosted engine transcribes your speech and where synthesis runs. Speech-to-text always runs in the cloud; only text-to-speech has a local option (Piper), installed with the Install locally button. No manual PIPER_BIN setup required.',
   'voice.providers.sttProvider': 'Speech-to-Text Provider',
@@ -2454,6 +2459,9 @@ const en: TranslationMap = {
   'voice.routing.title': 'Voice Routing',
   'voice.routing.desc': 'Choose which enabled providers handle speech-to-text and text-to-speech.',
   'voice.routing.save': 'Save',
+  'voice.routing.testOk': 'Working',
+  'voice.routing.testFailed': 'Failed',
+  'voice.routing.unsaved': 'Unsaved changes',
   'voice.routing.testStt': 'Test STT',
   'voice.routing.testTts': 'Test TTS',
   'voice.routing.elevenlabsVoice': 'ElevenLabs Voice',
@@ -2479,6 +2487,7 @@ const en: TranslationMap = {
 
   // Push-to-talk (PTT)
   'pttSettings.title': 'Push-to-talk',
+  'pttSettings.clearShortcut': 'Clear',
   'pttSettings.description':
     "Hold a key to talk to OpenHuman while you're in another app. Release the key to send; OpenHuman speaks the reply if 'Speak agent replies' is on.",
   'pttSettings.shortcutLabel': 'Hotkey',
