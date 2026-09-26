@@ -2,8 +2,8 @@
 
 OpenHuman-owned bindings around `tinyinference-local`.
 
-The reusable runtime implementation—Ollama and LM Studio discovery, process
-lifecycle, model downloads, status, prompts, vision, and embeddings—lives in
+The reusable runtime implementation, Ollama and LM Studio discovery, process
+lifecycle, model downloads, status, prompts, vision, and embeddings, lives in
 the `tinyinference-local` crate. This directory contains only OpenHuman policy
 and integration seams:
 

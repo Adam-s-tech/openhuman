@@ -11,9 +11,9 @@ everything about a provider, and this module owns everything about OpenHuman.
 - Decide which directory an agent may deploy (`resolve_in_workspace`).
 - Expose the ten `hosting_*` agent tools and describe their results to a model.
 
-Everything else — Vercel's endpoints, the upload-then-build deployment protocol,
+Everything else, Vercel's endpoints, the upload-then-build deployment protocol,
 how a marketplace database is provisioned and connected, the order a launch runs
-in — belongs to the crate, where it is provider-independent and tested against a
+in, belongs to the crate, where it is provider-independent and tested against a
 mock of the provider's REST API. Outside the mock responses in
 `hosting_tests.rs`, nothing here knows the word `readyState`.
 
@@ -53,7 +53,7 @@ agent reaches for it.
 
 `hosting_rollback` reads the deployment before promoting it and refuses one that
 did not finish building. `hosting_list_deployments` returns failed and
-still-building deployments too — they are the history an agent is reading — so
+still-building deployments too, they are the history an agent is reading, so
 the id it picks is not necessarily one that can serve traffic, and promoting a
 failed build would take the site down during an attempt to bring it back up. It
 does **not** check that the deployment belongs to the named site: a deployment is
@@ -71,7 +71,7 @@ Two gates, and both matter:
   `tools::ops` then registers nothing. A tool that is present and cannot work is
   worse than one that is absent, because a model retries it.
 
-A *misconfigured* section — an unknown provider slug, a blank configured key — is
+A *misconfigured* section, an unknown provider slug, a blank configured key, is
 an error rather than a silent skip, logged at `warn` by the registry.
 
 ## Two things this domain will not do

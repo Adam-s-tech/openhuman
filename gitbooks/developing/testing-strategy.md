@@ -231,8 +231,8 @@ The mechanism is worth understanding because it is invisible in the output: a
 feature flag can gate the *registration* of a tool, a test's expected side is a
 static allowlist while its actual side is computed by **introspecting the built
 binary**, and so the flag silently moves the actual. Nothing is stubbed, nothing
-is skipped, and the failure names a product concept —
-*"agents that carry tools but whose prompt names none of them"* — with no
+is skipped, and the failure names a product concept,
+*"agents that carry tools but whose prompt names none of them,"* with no
 mention of a feature anywhere.
 
 *Falsified, from the two runs side by side:* on `0f1ecc9d2`, `openhuman --lib`
@@ -256,13 +256,13 @@ Tracked as openhuman#6512; per-profile detail in openhuman#6486.
 
 *Reported for `openhuman --lib`:* `web_chat` aborts with
 `fatal runtime error: stack overflow` without it, which is why `ci-lite.yml`
-exports it. Not reproduced here — treat as the reason the CI command above
+exports it. Not reproduced here: treat that as the reason the CI command above
 carries it, and re-verify before relying on it elsewhere.
 
 Two crates, one variable, opposite answers. That is the argument against a
 single blanket recipe: do not add a prerequisite by reflex. One that is not
 needed teaches contributors the docs are unreliable, and it is precisely how the
-misleading note above came to exist — someone's defensively-accumulated setup,
+misleading note above came to exist: someone's defensively-accumulated setup,
 written down as necessity, never falsified.
 
 ### 4. Only now suspect a defect — and make the silence speak
