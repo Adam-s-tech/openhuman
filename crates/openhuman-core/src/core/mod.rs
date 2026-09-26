@@ -28,15 +28,21 @@ pub mod log_redaction;
 pub mod logging;
 pub mod memory_cli;
 pub mod observability;
+pub mod outcome;
+pub mod params;
 pub mod rpc_log;
 pub mod runtime;
 #[cfg(feature = "crash-reporting")]
 pub mod sentry_transport;
 pub mod shutdown;
 pub mod socketio;
+pub mod structured_error;
 pub mod subsystem;
 pub mod subsystems_cli;
 pub mod types;
+
+pub use outcome::{apply_log_envelope, unwrap_rpc, Outcome};
+pub use structured_error::{StructuredRpcError, STRUCTURED_RPC_ERROR_SENTINEL};
 
 /// Canonical function contract for domain controllers.
 ///
