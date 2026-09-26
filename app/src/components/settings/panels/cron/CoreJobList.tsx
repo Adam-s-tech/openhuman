@@ -1,5 +1,6 @@
 import { useT } from '../../../../lib/i18n/I18nContext';
 import type { CoreCronJob, CoreCronRun } from '../../../../utils/tauriCommands';
+import Badge from '../../../ui/Badge';
 import Button from '../../../ui/Button';
 
 interface CoreJobListProps {
@@ -73,14 +74,9 @@ const CoreJobList = ({
                   <div className="text-sm font-semibold text-content">{job.name || job.id}</div>
                   <div className="text-[11px] text-content-faint">{job.id}</div>
                 </div>
-                <span
-                  className={`px-2 py-1 text-[11px] font-semibold uppercase border rounded-full ${
-                    job.enabled
-                      ? 'bg-sage-50 dark:bg-sage-500/10 text-sage-700 dark:text-sage-300 border-sage-200 dark:border-sage-500/30'
-                      : 'bg-surface-subtle text-content-secondary border-line'
-                  }`}>
+                <Badge variant={job.enabled ? 'success' : 'neutral'}>
                   {job.enabled ? t('common.enabled') : t('settings.cron.jobs.paused')}
-                </span>
+                </Badge>
               </div>
 
               <div className="text-xs text-content-secondary space-y-1">
