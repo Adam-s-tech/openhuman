@@ -2,10 +2,10 @@
 
 Wires the vendored `tinyflows` workflow engine (validate → compile → run over
 its own in-crate state-graph runtime, `vendor/tinyflows/`) to real OpenHuman
-services. `tinyflows` knows nothing about OpenHuman; every effect a flow node
-can have, calling an LLM, running an agent, making an HTTP request, running
+services. `tinyflows` knows nothing about OpenHuman. Every effect a flow node
+can have (calling an LLM, running an agent, making an HTTP request, running
 code, calling a tool, reading/writing state, resolving a sub-workflow,
-recalling/writing memory, is a trait the engine declares and this module
+recalling/writing memory) is a trait the engine declares and this module
 implements. See
 [`gitbooks/developing/architecture/flows-on-tinyagents.md`](../../../../../gitbooks/developing/architecture/flows-on-tinyagents.md)
 for the engine's own model (trigger model, run state shape, the two-gate
@@ -103,6 +103,6 @@ SSRF/allowlist rejections rather than a mock round-trip),
 `checkpoint_compat_tests.rs` (proves the `tinyflows-sqlite` checkpoint store
 stays byte-compatible with the `tinyagents` backend it was ported from),
 `memory_node_e2e_tests.rs` (the `memory` node through the real engine,
-adapter, and on-disk store, kept apart from `tinyflows_tests.rs` because the
+adapter, and on-disk store; kept apart from `tinyflows_tests.rs` because the
 unit tests only exercise error paths against an empty workspace), plus a
 `<module>_tests.rs` file beside most modules above.
