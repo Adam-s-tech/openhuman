@@ -1,6 +1,6 @@
 # http_host
 
-Static directory hosting over ad-hoc, in-process HTTP listeners owned by the core. Lets trusted callers (RPC/CLI) start, inspect, list, and stop lightweight file servers that expose a chosen directory on a chosen TCP port. Each server runs as an in-process `axum` task sharing the core's lifetime, and defaults to HTTP Basic authentication using the active user's identity plus a randomly generated password. There is no on-disk persistence, the registry of running servers lives in process memory and is torn down on shutdown.
+Static directory hosting over ad-hoc, in-process HTTP listeners owned by the core. Lets trusted callers (RPC/CLI) start, inspect, list, and stop lightweight file servers that expose a chosen directory on a chosen TCP port. Each server runs as an in-process `axum` task sharing the core's lifetime, and defaults to HTTP Basic authentication using the active user's identity plus a randomly generated password. There is no on-disk persistence. The registry of running servers lives in process memory and is torn down on shutdown.
 
 ## Responsibilities
 
