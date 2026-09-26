@@ -83,6 +83,9 @@ const LogoutAndClearActions = () => {
 
   return (
     <>
+      {/* Log out and Clear app data share one card, but the wipe keeps its
+          danger styling (coral button, irreversible note) and sits behind a
+          confirm — so the two still don't read as peers. */}
       <Card title={t('settings.account.session')}>
         <Field
           label={t('settings.logOut')}
@@ -103,27 +106,23 @@ const LogoutAndClearActions = () => {
         />
         {/* The confirm dialog owns error display while it is open. */}
         {!confirmOpen && error && <div className="px-4 py-3">{errorAlert('logout-error')}</div>}
-      </Card>
-
-      <Card
-        title={t('settings.account.dangerZone')}
-        className="border-coral-500/30"
-        data-testid="account-destructive-zone">
-        <Field
-          label={t('settings.clearAppData')}
-          description={`${t('settings.clearAppDataDesc')} ${t('settings.clearAppDataIrreversible')}`}
-          control={
-            <Button
-              variant="secondary"
-              tone="danger"
-              size="sm"
-              leadingIcon={<Trash2 className="h-3.5 w-3.5" aria-hidden />}
-              onClick={() => setConfirmOpen(true)}
-              data-testid="settings-nav-logout-and-clear">
-              {t('settings.clearAppDataAction')}
-            </Button>
-          }
-        />
+        <div data-testid="account-destructive-zone">
+          <Field
+            label={t('settings.clearAppData')}
+            description={`${t('settings.clearAppDataDesc')} ${t('settings.clearAppDataIrreversible')}`}
+            control={
+              <Button
+                variant="secondary"
+                tone="danger"
+                size="sm"
+                leadingIcon={<Trash2 className="h-3.5 w-3.5" aria-hidden />}
+                onClick={() => setConfirmOpen(true)}
+                data-testid="settings-nav-logout-and-clear">
+                {t('settings.clearAppDataAction')}
+              </Button>
+            }
+          />
+        </div>
       </Card>
 
       <AlertDialogRoot open={confirmOpen} onOpenChange={closeConfirm}>
