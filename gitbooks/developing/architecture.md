@@ -92,9 +92,9 @@ The frontend communicates with the **openhuman** Rust core in two ways: **Tauri 
 
 ---
 
-## Rust-Powered Performance
+## Rust-powered performance
 
-OpenHuman chose Tauri + Rust over Electron for fundamental performance and security reasons:
+OpenHuman chose Tauri + Rust over Electron for performance and security reasons. See [Performance](performance.md) for measured numbers (agents-per-process density, cold start, binary size); the table below is qualitative:
 
 | Metric                    | OpenHuman (Tauri + Rust)                                                   | Typical Electron App                     |
 | ------------------------- | -------------------------------------------------------------------------- | ---------------------------------------- |
