@@ -3,7 +3,7 @@
 OpenHuman on the hosted TinyHumans backend.
 
 ```
-openhuman-core   ──► knows the backend only through `api::transport::BackendTransport`
+openhuman-core   ──► knows the backend only through `backend::transport::BackendTransport`
       ▲
 openhuman-embed  ──► library facade (Runtime → Agent)
       ▲
