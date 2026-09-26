@@ -1,4 +1,4 @@
-# Agent Orchestration
+# orchestration
 
 `agent::orchestration` is the control plane for coordinating multiple agent
 workers from one parent session: agent teams, background command-center views,
