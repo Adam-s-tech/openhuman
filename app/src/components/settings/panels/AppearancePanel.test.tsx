@@ -24,28 +24,25 @@ function renderPanel(
   });
 }
 
-describe('<AppearancePanel /> tabs', () => {
-  it('opens on General: theme gallery, font size and language, no customizer', () => {
+// Theme Studio (the theme gallery + customizer) now lives on its own route
+// (`/settings/theme`, `ThemeStudioPanel`) rather than as a tab inside
+// AppearancePanel — see ThemeStudioPanel.test.tsx for that coverage.
+describe('<AppearancePanel />', () => {
+  it('renders the font size card and no theme gallery/customizer of its own', () => {
     const { getByTestId, getByRole, queryByTestId } = renderPanel();
-    expect(getByTestId('theme-gallery')).toBeInTheDocument();
+    expect(getByTestId('font-size-card')).toBeInTheDocument();
     expect(
       getByRole('radiogroup', { name: 'settings.appearance.fontSizeAria' })
     ).toBeInTheDocument();
+    expect(queryByTestId('theme-gallery')).not.toBeInTheDocument();
     expect(queryByTestId('theme-customize')).not.toBeInTheDocument();
   });
 
-  it('shows the Theme Studio customizer for the #studio hash', () => {
-    const { getByTestId, queryByTestId } = renderPanel('medium', null, [
-      '/settings/appearance#studio',
-    ]);
-    expect(getByTestId('theme-customize')).toBeInTheDocument();
-    expect(queryByTestId('theme-gallery')).not.toBeInTheDocument();
-  });
-
-  it('switches to Theme Studio when its tab is clicked', () => {
-    const { getByTestId } = renderPanel();
-    fireEvent.click(getByTestId('appearance-tab-studio'));
-    expect(getByTestId('theme-customize')).toBeInTheDocument();
+  it('redirects away (renders no font-size card) for the legacy #studio hash', () => {
+    const { queryByTestId } = renderPanel('medium', null, ['/settings/appearance#studio']);
+    // AppearancePanel returns <Navigate to="/settings/theme" replace /> for this
+    // hash instead of its own body.
+    expect(queryByTestId('font-size-card')).not.toBeInTheDocument();
   });
 });
 
