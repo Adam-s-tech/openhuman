@@ -4,14 +4,17 @@ import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 
 import { cn } from '../../../lib/cn';
 import { useT } from '../../../lib/i18n/I18nContext';
+import { findFamily } from '../../../lib/theme/presets';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
   FONT_SIZE_PX,
   type FontSize,
   MAX_FONT_SIZE_PX,
   MIN_FONT_SIZE_PX,
+  selectActiveFamilyId,
+  selectActiveThemeId,
+  selectCustomThemes,
   selectEffectiveFontSizePx,
-  selectEffectiveTheme,
   selectThemeVariant,
   setCustomFontSizePx,
   setFontSize,
@@ -36,7 +39,15 @@ const AppearancePanel = () => {
   const dispatch = useAppDispatch();
   const effectiveFontSizePx = useAppSelector(selectEffectiveFontSizePx);
   const variant = useAppSelector(selectThemeVariant);
-  const effectiveTheme = useAppSelector(selectEffectiveTheme);
+  const activeFamilyId = useAppSelector(selectActiveFamilyId);
+  const activeThemeId = useAppSelector(selectActiveThemeId);
+  const customThemes = useAppSelector(selectCustomThemes);
+  // Name the theme the user picked (a family like "Classic", or a custom
+  // theme), not the resolved light/dark variant of it.
+  const activeThemeName =
+    customThemes.find(th => th.id === activeThemeId)?.name ??
+    findFamily(activeFamilyId)?.name ??
+    activeThemeId;
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -110,7 +121,7 @@ const AppearancePanel = () => {
           there, so light/dark stays a one-click setting here. */}
       <Card title={t('settings.appearance.themeHeading')} data-testid="appearance-theme">
         <Field
-          label={t('settings.theme.variantAria')}
+          label={t('settings.appearance.mode')}
           control={
             <ToggleGroupRoot
               type="single"
@@ -134,8 +145,8 @@ const AppearancePanel = () => {
           }
         />
         <Field
-          label={t('settings.theme.presetsHeading')}
-          description={effectiveTheme.name}
+          label={t('settings.appearance.currentTheme')}
+          description={activeThemeName}
           control={
             <Button
               variant="secondary"

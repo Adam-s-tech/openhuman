@@ -6376,6 +6376,8 @@ const en: TranslationMap = {
   'settings.theme.importError': 'Could not parse that theme JSON.',
   'settings.appearance.title': 'Appearance',
   'settings.appearance.themeHeading': 'Theme',
+  'settings.appearance.mode': 'Mode',
+  'settings.appearance.currentTheme': 'Current theme',
   'settings.appearance.themeAria': 'Theme',
   'settings.appearance.modeLight': 'Light',
   'settings.appearance.modeLightDesc': 'Bright surfaces, dark text.',
