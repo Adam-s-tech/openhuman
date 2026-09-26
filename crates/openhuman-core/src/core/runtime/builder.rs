@@ -22,7 +22,6 @@
 
 use std::sync::Arc;
 
-use tokio_util::sync::CancellationToken;
 
 use crate::config::Config;
 use crate::core::all::DomainGroup;
