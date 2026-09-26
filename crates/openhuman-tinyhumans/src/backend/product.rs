@@ -7,13 +7,14 @@
 //! (`src/utils/sdkSource.ts` in `tinyhumansai/backend`) to attribute the call.
 //!
 //! The identity is process-wide rather than a constructor parameter because
-//! [`BackendClient`](openhuman_core::backend::BackendClient) is built at ~35 call sites spread
-//! across the domains, none of which an embedding product owns. Threading a
-//! parameter through would mean editing every one of them. Instead a host sets
-//! the identity once during startup, before it builds any backend client:
+//! the core builds backend clients at dozens of call sites spread across its
+//! domains, none of which an embedding product owns. Instead a host sets the
+//! identity once during startup, before any backend traffic; the installed
+//! [`SdkBackendTransport`](crate::SdkBackendTransport) stamps it and reports it
+//! to the core:
 //!
 //! ```no_run
-//! use crate::backend::{set_product_identity, ProductIdentity};
+//! use openhuman_tinyhumans::{set_product_identity, ProductIdentity};
 //!
 //! if let Some(identity) = ProductIdentity::new("opencompany") {
 //!     set_product_identity(identity);
