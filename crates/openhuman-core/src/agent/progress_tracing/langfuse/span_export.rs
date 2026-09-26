@@ -277,17 +277,17 @@ pub(crate) async fn push_spans(config: &Config, spans: &[TraceSpan]) -> Result<(
 
     // `ingestion_url` resolves to the backend's own Langfuse proxy route on the
     // backend host, authenticated with a TinyHumans session token — backend
-    // traffic, so it carries the product identity. This is a bare
-    // `reqwest::Client`, not `BackendClient`'s, so nothing is inherited
-    // from that path's default headers; see [`crate::api::product`].
-    let (product_header, product_value) = crate::api::product::product_identity_header();
-    let response = reqwest::Client::new()
+    // traffic, so it rides the transport's client, which carries the host's
+    // attribution headers (product identity, versions).
+    let client = crate::backend::resolve_backend_transport()
+        .map_err(|err| format!("Langfuse push has no backend transport: {err}"))?
+        .http_client(crate::backend::TransportProfile::Api);
+    let response = client
         .post(&url)
         .header(
             reqwest::header::AUTHORIZATION,
             bearer_authorization_value(&token),
         )
-        .header(product_header, product_value)
         .timeout(PUSH_TIMEOUT)
         .json(&batch)
         .send()

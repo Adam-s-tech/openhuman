@@ -466,8 +466,11 @@ pub(super) async fn push_spans(config: &Config, spans: &[TraceSpan]) -> Result<(
         return Ok(());
     };
     let token = credential.into_secret();
-    let (product_header, product_value) = crate::api::product::product_identity_header();
-    let client = reqwest::Client::new();
+    // Backend traffic: the transport's client carries the host's attribution
+    // headers (product identity, versions).
+    let client = crate::backend::resolve_backend_transport()
+        .map_err(|err| format!("Langfuse OTLP push has no backend transport: {err}"))?
+        .http_client(crate::backend::TransportProfile::Api);
     for payload in otlp_requests(spans, environment) {
         let response = client
             .post(&url)
@@ -475,7 +478,6 @@ pub(super) async fn push_spans(config: &Config, spans: &[TraceSpan]) -> Result<(
                 reqwest::header::AUTHORIZATION,
                 bearer_authorization_value(&token),
             )
-            .header(product_header.clone(), product_value.clone())
             .timeout(std::time::Duration::from_secs(10))
             .json(&payload)
             .send()
