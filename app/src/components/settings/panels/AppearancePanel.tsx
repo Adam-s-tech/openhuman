@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
+import { cn } from '../../../lib/cn';
 import { useT } from '../../../lib/i18n/I18nContext';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
@@ -12,7 +13,6 @@ import {
   setCustomFontSizePx,
   setFontSize,
 } from '../../../store/themeSlice';
-import { cn } from '../../../lib/cn';
 import LanguageSelect from '../../LanguageSelect';
 import { Card, Field, Slider } from '../../ui';
 import { SettingsNumberField } from '../controls';
@@ -103,98 +103,98 @@ const AppearancePanel = () => {
 
   const general = (
     <>
-        <ThemeStudioPanel embedded part="gallery" />
+      <ThemeStudioPanel embedded part="gallery" />
 
-        <Card
-          title={t('settings.appearance.fontSizeHeading')}
-          description={t('settings.appearance.fontSizeHelperText')}
-          data-testid="font-size-card">
-          {/* Card forwards no `role`/`aria-label` to its wrapper, so the
+      <Card
+        title={t('settings.appearance.fontSizeHeading')}
+        description={t('settings.appearance.fontSizeHelperText')}
+        data-testid="font-size-card">
+        {/* Card forwards no `role`/`aria-label` to its wrapper, so the
               radiogroup semantics sit on an inner div that encloses every
               option — `within(group)` in the specs resolves the same. */}
-          <div
-            role="radiogroup"
-            aria-label={t('settings.appearance.fontSizeAria')}
-            className="grid grid-cols-2 gap-2 p-4 sm:grid-cols-4">
-            {FONT_SIZE_OPTIONS.map(opt => {
-              // Highlight the preset whose px matches the effective size, so a
-              // fine-tuned value landing exactly on a preset still lights it up.
-              const selected = Number.parseInt(FONT_SIZE_PX[opt.id], 10) === effectiveFontSizePx;
-              return (
-                <button
-                  key={opt.id}
-                  type="button"
-                  role="radio"
-                  aria-checked={selected}
-                  title={opt.description}
-                  onClick={() => dispatch(setFontSize(opt.id))}
+        <div
+          role="radiogroup"
+          aria-label={t('settings.appearance.fontSizeAria')}
+          className="grid grid-cols-2 gap-2 p-4 sm:grid-cols-4">
+          {FONT_SIZE_OPTIONS.map(opt => {
+            // Highlight the preset whose px matches the effective size, so a
+            // fine-tuned value landing exactly on a preset still lights it up.
+            const selected = Number.parseInt(FONT_SIZE_PX[opt.id], 10) === effectiveFontSizePx;
+            return (
+              <button
+                key={opt.id}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                title={opt.description}
+                onClick={() => dispatch(setFontSize(opt.id))}
+                className={cn(
+                  'flex flex-col items-center gap-1.5 rounded-xl border px-3 py-3 transition-colors',
+                  'focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary-500/25',
+                  selected
+                    ? 'border-primary-500 bg-primary-50 ring-1 ring-primary-500 dark:bg-primary-500/10'
+                    : 'border-line hover:bg-surface-hover'
+                )}>
+                <span
                   className={cn(
-                    'flex flex-col items-center gap-1.5 rounded-xl border px-3 py-3 transition-colors',
-                    'focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary-500/25',
-                    selected
-                      ? 'border-primary-500 bg-primary-50 ring-1 ring-primary-500 dark:bg-primary-500/10'
-                      : 'border-line hover:bg-surface-hover'
-                  )}>
-                  <span
-                    className={cn(
-                      'flex h-9 items-end font-semibold leading-none',
-                      opt.glyphClass,
-                      selected ? 'text-primary-500' : 'text-content-secondary'
-                    )}
-                    aria-hidden>
-                    Aa
-                  </span>
-                  <span className="text-xs font-medium text-content">{opt.label}</span>
-                </button>
-              );
-            })}
-          </div>
+                    'flex h-9 items-end font-semibold leading-none',
+                    opt.glyphClass,
+                    selected ? 'text-primary-500' : 'text-content-secondary'
+                  )}
+                  aria-hidden>
+                  Aa
+                </span>
+                <span className="text-xs font-medium text-content">{opt.label}</span>
+              </button>
+            );
+          })}
+        </div>
 
-          {/* Fine-tune the exact size beyond the presets (issue #4246). */}
-          <div className="px-4 py-3">
-            <div className="flex items-center justify-between gap-3">
-              <label htmlFor="font-size-custom-number" className="text-sm font-medium text-content">
-                {t('settings.appearance.fontSizeCustomLabel')}
-              </label>
-              <SettingsNumberField
-                id="font-size-custom-number"
-                value={pxDraft}
-                onChange={setPxDraft}
-                onCommit={commitCustomFontSize}
-                unit={t('settings.appearance.fontSizeUnit')}
-                min={MIN_FONT_SIZE_PX}
-                max={MAX_FONT_SIZE_PX}
-                aria-label={t('settings.appearance.fontSizeCustomAria')}
-                data-testid="font-size-custom-number"
-              />
-            </div>
-            <Slider
-              id="font-size-slider"
+        {/* Fine-tune the exact size beyond the presets (issue #4246). */}
+        <div className="px-4 py-3">
+          <div className="flex items-center justify-between gap-3">
+            <label htmlFor="font-size-custom-number" className="text-sm font-medium text-content">
+              {t('settings.appearance.fontSizeCustomLabel')}
+            </label>
+            <SettingsNumberField
+              id="font-size-custom-number"
+              value={pxDraft}
+              onChange={setPxDraft}
+              onCommit={commitCustomFontSize}
+              unit={t('settings.appearance.fontSizeUnit')}
               min={MIN_FONT_SIZE_PX}
               max={MAX_FONT_SIZE_PX}
-              step={1}
-              value={[effectiveFontSizePx]}
-              onValueChange={handleFontSizeSlider}
-              thumbLabels={[t('settings.appearance.fontSizeCustomSliderAria')]}
-              aria-valuetext={`${effectiveFontSizePx}${t('settings.appearance.fontSizeUnit')}`}
-              className="mt-3"
-              data-testid="font-size-slider"
+              aria-label={t('settings.appearance.fontSizeCustomAria')}
+              data-testid="font-size-custom-number"
             />
-            <div className="mt-1 flex items-center justify-between text-[11px] text-content-faint">
-              <span>{`${MIN_FONT_SIZE_PX}${t('settings.appearance.fontSizeUnit')}`}</span>
-              <span>{`${MAX_FONT_SIZE_PX}${t('settings.appearance.fontSizeUnit')}`}</span>
-            </div>
           </div>
-        </Card>
-
-        {/* Display language (moved from the old settings home list). */}
-        <Card>
-          <Field
-            label={t('settings.language')}
-            description={t('settings.languageDesc')}
-            control={<LanguageSelect ariaLabel={t('settings.language')} />}
+          <Slider
+            id="font-size-slider"
+            min={MIN_FONT_SIZE_PX}
+            max={MAX_FONT_SIZE_PX}
+            step={1}
+            value={[effectiveFontSizePx]}
+            onValueChange={handleFontSizeSlider}
+            thumbLabels={[t('settings.appearance.fontSizeCustomSliderAria')]}
+            aria-valuetext={`${effectiveFontSizePx}${t('settings.appearance.fontSizeUnit')}`}
+            className="mt-3"
+            data-testid="font-size-slider"
           />
-        </Card>
+          <div className="mt-1 flex items-center justify-between text-[11px] text-content-faint">
+            <span>{`${MIN_FONT_SIZE_PX}${t('settings.appearance.fontSizeUnit')}`}</span>
+            <span>{`${MAX_FONT_SIZE_PX}${t('settings.appearance.fontSizeUnit')}`}</span>
+          </div>
+        </div>
+      </Card>
+
+      {/* Display language (moved from the old settings home list). */}
+      <Card>
+        <Field
+          label={t('settings.language')}
+          description={t('settings.languageDesc')}
+          control={<LanguageSelect ariaLabel={t('settings.language')} />}
+        />
+      </Card>
     </>
   );
 

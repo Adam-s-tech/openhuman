@@ -4707,7 +4707,8 @@ const messages: TranslationMap = {
     'Verwalte deine BIP39-Wiederherstellungsphrase für Verschlüsselung und Wallet-Zugriff',
   'pages.settings.account.team': 'Team',
   'pages.settings.account.teamDesc': 'Verwalte dein Team, deine Mitglieder und Einladungen',
-  'pages.settings.accountSection.description': 'Dein Profil, dein Tarif und deine Sitzung auf diesem Gerät.',
+  'pages.settings.accountSection.description':
+    'Dein Profil, dein Tarif und deine Sitzung auf diesem Gerät.',
   'pages.settings.accountSection.title': 'Konto',
   'pages.settings.ai.llm': 'LLM',
   'pages.settings.ai.llmDesc': 'Sprachmodell-Anbieter und Routing',

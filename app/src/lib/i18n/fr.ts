@@ -4686,7 +4686,8 @@ const messages: TranslationMap = {
   'pages.settings.account.recoveryPhraseDesc': 'Description de la phrase de récupération',
   'pages.settings.account.team': 'Équipe',
   'pages.settings.account.teamDesc': "Description de l'équipe",
-  'pages.settings.accountSection.description': 'Votre profil, votre forfait et votre session sur cet appareil.',
+  'pages.settings.accountSection.description':
+    'Votre profil, votre forfait et votre session sur cet appareil.',
   'pages.settings.accountSection.title': 'Compte',
   'pages.settings.ai.llm': 'LLM',
   'pages.settings.ai.llmDesc': 'Description du LLM',
