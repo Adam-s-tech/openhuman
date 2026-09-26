@@ -72,5 +72,6 @@ from always-compiled code.
 
 ## Related docs
 
-- [gitbooks/developing/architecture/flows-on-tinyagents.md](../../../../gitbooks/developing/architecture/flows-on-tinyagents.md), the run pipeline, capability seam, and two-layer security model.
-- [`../cron/README.md`](../cron/README.md), `JobType::Flow` and the schedule-trigger binding.
+- [gitbooks/features/workflows.md](../../../../gitbooks/features/workflows.md): the user-facing feature page, for what a saved workflow is and how it is built.
+- [gitbooks/developing/architecture/flows-on-tinyagents.md](../../../../gitbooks/developing/architecture/flows-on-tinyagents.md): the run pipeline, capability seam, and two-layer security model.
+- [`../cron/README.md`](../cron/README.md): `JobType::Flow` and the schedule-trigger binding.
