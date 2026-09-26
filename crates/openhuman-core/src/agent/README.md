@@ -7,14 +7,14 @@ Multi-agent orchestration domain. Owns the LLM tool-calling loop, sub-agent disp
 - `pub struct OpenHumanSessionHost` / `pub struct SessionHostBuilder` / `pub struct TurnOverrides` (`session_host/types.rs`, re-exported from `agent`): top-level conversation runtime, the entry point for any chat turn. Constructors live in `session_host/builder/factory.rs`; `run_single` / `run_interactive` in `session_host/runtime/run_loop.rs`. The `builder/`, `runtime/`, and `turn/` submodules are private.
 - `pub fn run_subagent` / `pub struct SubagentRunOptions` / `pub enum SubagentRunError` (`subagent_host/`): OpenHuman policy adapters around the neutral TinyAgents sub-agent lifecycle.
 - `pub struct AgentDefinition` / `pub struct AgentDefinitionRegistry` / `pub enum SandboxMode` / `pub enum ToolScope` (`harness/definition/`: `agent_definition.rs`, `registry.rs`, `source.rs`, `tier.rs`, `execution_spec.rs`, `prompt_source.rs`, `subagents.rs`): sub-agent archetypes loaded from built-ins and workspace TOML.
-- `pub mod harness::fork_context` — task-local parent context for KV-cache reuse.
-- `tinytools_agent::dialect::ToolDialect` / `tinytools_agent::ParsedToolCall` / `tinytools_agent::dialect::ToolOutcome` — canonical tool-call vocabulary; `message_convert.rs` performs only concrete durable/provider conversions.
+- `pub mod harness::fork_context`: task-local parent context for KV-cache reuse.
+- `tinytools_agent::dialect::ToolDialect` / `tinytools_agent::ParsedToolCall` / `tinytools_agent::dialect::ToolOutcome`: canonical tool-call vocabulary; `message_convert.rs` performs only concrete durable/provider conversions.
 - `pub mod triage` (`run_triage`, `apply_decision`, `TriggerEnvelope`, `TriageDecision`, `TriageAction`, in `triage/mod.rs`): classifies external triggers and escalates to sub-agents.
 - `pub mod prompts::SystemPromptBuilder` (`prompts/`): system-prompt section composer.
 - `pub struct ChatMessage` / `pub enum ConversationMessage` / `pub struct ToolResultMessage` (`messages.rs`): transcript wire types; `inference/provider/types.rs::ChatRequest` borrows `&[ChatMessage]` from here.
 - `pub fn bus::register_agent_handlers` (`bus.rs`): registers the `agent.run_turn` native request handler (`AgentTurnRequest` -> `AgentTurnResponse`) on `BUS.native()`; called from `channels/runtime/startup/start_channels.rs`.
 - Built-in archetypes live in `crates/openhuman-core/src/agent/registry/agents/`; this module stays focused on harness/runtime behavior.
-- RPC `agent.{chat, chat_simple, server_status, list_definitions, get_definition, reload_definitions, triage_evaluate, graph_topologies, registry_snapshot}` — `schemas.rs`.
+- RPC `agent.{chat, chat_simple, server_status, list_definitions, get_definition, reload_definitions, triage_evaluate, graph_topologies, registry_snapshot}`: `schemas.rs`.
 - Read-only replay RPC `agent.{runs_active, run_status, run_events}` (`tinyagents/replay/schemas.rs`): pages a run's durable journal or status without holding the run open.
 
 ## Submodule map
@@ -46,32 +46,32 @@ Flat files: `bus.rs` (`agent.run_turn` native request handler), `cost.rs` (`pub(
 
 ## RPC namespaces owned by this tree
 
-`agent`, `agent_registry`, `harness_init`, `session_import`, `plan_review`, `run_ledger` (session_db), `agent_experience` (experience), `ai` (artifacts), `learning`, `agent_team`, `agent_work` (orchestration/command_center), `workflow_run`, `worktree`, `subagent` (orchestration/subagent_control) — all registered under `DomainGroup::Agent` in `core/all.rs`.
+`agent`, `agent_registry`, `harness_init`, `session_import`, `plan_review`, `run_ledger` (session_db), `agent_experience` (experience), `ai` (artifacts), `learning`, `agent_team`, `agent_work` (orchestration/command_center), `workflow_run`, `worktree`, `subagent` (orchestration/subagent_control): all registered under `DomainGroup::Agent` in `core/all.rs`.
 
 `crate::rpc` is `pub use openhuman_rpc as rpc` in `lib.rs`; shared RPC contracts, response decoding, and the HTTP client live in the separate `crates/openhuman-rpc` crate, not under `agent/`.
 
 ## Calls into
 
 - `crates/openhuman-core/src/inference/provider/`: `factory::{provider_for_role, create_chat_model_with_model_id}` build the crate-native `ChatModel`s that `tinyagents::TurnModelSource` runs each turn against; `ChatResponse` / `ToolCall` / `UsageInfo` DTOs cross this boundary. There is no `Provider` trait; the harness names crate model types only.
-- `crates/openhuman-core/src/tools/` — `Tool` / `ToolSpec` execution surface invoked from the tool loop.
-- `crates/openhuman-core/src/memory/` — episodic indexing + memory-loader context injection (`harness/memory_context.rs`).
-- `crates/openhuman-core/src/inference/local/` — `agent_chat` / `agent_chat_simple` execution backend.
-- `crates/openhuman-core/src/config/` — runtime config load via `config::rpc::load_config_with_timeout` (`config::rpc` is `pub use ops as rpc`).
-- `crates/openhuman-core/src/core/bus.rs` (`BUS.publish`/`BUS.subscribe`/`BUS.native()`) and `crates/openhuman-core/src/core/events.rs` (`DomainEvent`) — emits `AgentTurnStarted` / `AgentTurnCompleted` / `AgentError`, `AgentOrchestration*`, and `TriggerEvaluated`; subscribers live in `orchestration/{background_delivery,run_ledger_finalize}.rs` and `learning/`, not in `agent/bus.rs`.
+- `crates/openhuman-core/src/tools/`: `Tool` / `ToolSpec` execution surface invoked from the tool loop.
+- `crates/openhuman-core/src/memory/`: episodic indexing + memory-loader context injection (`harness/memory_context.rs`).
+- `crates/openhuman-core/src/inference/local/`: `agent_chat` / `agent_chat_simple` execution backend.
+- `crates/openhuman-core/src/config/`: runtime config load via `config::rpc::load_config_with_timeout` (`config::rpc` is `pub use ops as rpc`).
+- `crates/openhuman-core/src/core/bus.rs` (`BUS.publish`/`BUS.subscribe`/`BUS.native()`) and `crates/openhuman-core/src/core/events.rs` (`DomainEvent`): emits `AgentTurnStarted` / `AgentTurnCompleted` / `AgentError`, `AgentOrchestration*`, and `TriggerEvaluated`; subscribers live in `orchestration/{background_delivery,run_ledger_finalize}.rs` and `learning/`, not in `agent/bus.rs`.
 
 ## Called by
 
-- `crates/openhuman-core/src/channels/runtime/dispatch/` (`processor*.rs`, `routing.rs`) — drives chat turns through the `agent.run_turn` native handler; `web_chat/` (`session.rs`, `run_task.rs`) builds `Agent`s directly.
-- `crates/openhuman-core/src/cron/scheduler/agent_run.rs::run_agent_job` — builds an `Agent` directly via `Agent::from_config_for_agent` and delivers output through `scheduler/delivery.rs::deliver_if_configured`; it does not go through triage.
-- `crates/openhuman-core/src/skills/webhooks/{ops,bus}.rs` — webhook ingestion routes through `triage::run_triage` + `apply_decision`.
-- `crates/openhuman-core/src/memory/sync/composio/bus*.rs` — Composio trigger envelopes go through `agent::triage`.
-- `crates/openhuman-core/src/integrations/task_sources/route.rs` — external task-source events go through the same `TriggerEnvelope` → `run_triage` → `apply_decision` path.
-- `crates/openhuman-core/src/desktop/notifications/rpc.rs` — `notification_ingest` kicks off background triage to back-fill the notification score.
-- `crates/openhuman-core/src/agent/schemas.rs::handle_triage_evaluate` — `agent.triage_evaluate`, the dry-run triage entry point exposed over RPC.
-- `crates/openhuman-core/src/agent/learning/{reflection,tool_tracker,user_profile}.rs` — read transcripts + tool outcomes.
-- `crates/openhuman-core/src/agent/orchestration/tools/{dispatch,spawn_subagent}.rs` — `spawn_subagent` tool delegates to `subagent_host`.
-- `crates/openhuman-core/src/core/runtime/services.rs` — starts task-source polling and runs `agent::harness_init::run_harness_init` during core startup.
-- `crates/openhuman-core/src/core/all.rs` — controller registry wires all `agent`, `agent_registry`, `harness_init`, `plan_review`, `artifacts`, `experience`, `learning`, `session_db`, `session_import`, and `orchestration` controllers under `DomainGroup::Agent`.
+- `crates/openhuman-core/src/channels/runtime/dispatch/` (`processor*.rs`, `routing.rs`): drives chat turns through the `agent.run_turn` native handler; `web_chat/` (`session.rs`, `run_task.rs`) builds `Agent`s directly.
+- `crates/openhuman-core/src/cron/scheduler/agent_run.rs::run_agent_job`: builds an `Agent` directly via `Agent::from_config_for_agent` and delivers output through `scheduler/delivery.rs::deliver_if_configured`; it does not go through triage.
+- `crates/openhuman-core/src/skills/webhooks/{ops,bus}.rs`: webhook ingestion routes through `triage::run_triage` + `apply_decision`.
+- `crates/openhuman-core/src/memory/sync/composio/bus*.rs`: Composio trigger envelopes go through `agent::triage`.
+- `crates/openhuman-core/src/integrations/task_sources/route.rs`: external task-source events go through the same `TriggerEnvelope` → `run_triage` → `apply_decision` path.
+- `crates/openhuman-core/src/desktop/notifications/rpc.rs`: `notification_ingest` kicks off background triage to back-fill the notification score.
+- `crates/openhuman-core/src/agent/schemas.rs::handle_triage_evaluate`: `agent.triage_evaluate`, the dry-run triage entry point exposed over RPC.
+- `crates/openhuman-core/src/agent/learning/{reflection,tool_tracker,user_profile}.rs`: read transcripts + tool outcomes.
+- `crates/openhuman-core/src/agent/orchestration/tools/{dispatch,spawn_subagent}.rs`: `spawn_subagent` tool delegates to `subagent_host`.
+- `crates/openhuman-core/src/core/runtime/services.rs`: starts task-source polling and runs `agent::harness_init::run_harness_init` during core startup.
+- `crates/openhuman-core/src/core/all.rs`: controller registry wires all `agent`, `agent_registry`, `harness_init`, `plan_review`, `artifacts`, `experience`, `learning`, `session_db`, `session_import`, and `orchestration` controllers under `DomainGroup::Agent`.
 
 ## Tests
 
