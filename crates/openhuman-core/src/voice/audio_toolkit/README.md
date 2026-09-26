@@ -27,8 +27,8 @@ Text-to-speech "podcast" toolkit. Synthesizes text into a workspace audio file v
 From `mod.rs`:
 
 - ops: `generate_podcast`, `email_podcast`, `generate_and_email_podcast`, `resolve_email_capture_dir`. All take `&Config` and return `Result<RpcOutcome<T>, String>` (except `resolve_email_capture_dir`, which returns `Option<PathBuf>`).
-- **schemas**: `all_audio_toolkit_controller_schemas`, `all_audio_toolkit_registered_controllers`.
-- **types**: `AudioFormat` (`Mp3`/`Wav`, with `extension()` / `mime()`), `AudioGenerateRequest`, `EmailPodcastRequest`, `AudioGeneratedArtifact`, `AudioEmailDeliveryResult`, `AudioToolkitGenerateAndEmailResult`.
+- schemas: `all_audio_toolkit_controller_schemas`, `all_audio_toolkit_registered_controllers`.
+- types: `AudioFormat` (`Mp3`/`Wav`, with `extension()` / `mime()`), `AudioGenerateRequest`, `EmailPodcastRequest`, `AudioGeneratedArtifact`, `AudioEmailDeliveryResult`, `AudioToolkitGenerateAndEmailResult`.
 - **tools** (`pub mod tools`): `AudioGeneratePodcastTool`, `AudioEmailPodcastTool`, `AudioGenerateAndEmailPodcastTool`.
 
 ## RPC / controllers
