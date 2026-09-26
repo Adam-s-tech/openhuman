@@ -1,5 +1,5 @@
 import debug from 'debug';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useT } from '../../../lib/i18n/I18nContext';
 import {
@@ -7,13 +7,12 @@ import {
   type ApprovalDecision,
   fetchRecentApprovalDecisions,
 } from '../../../services/api/approvalApi';
+import Badge, { type BadgeVariant } from '../../ui/Badge';
 import Button from '../../ui/Button';
-import {
-  SettingsBadge,
-  SettingsEmptyState,
-  SettingsSection,
-  SettingsStatusLine,
-} from '../controls';
+import DataTable, { type DataTableColumn } from '../../ui/DataTable';
+import EmptyState from '../../ui/EmptyState';
+import { TableCell, TableRow } from '../../ui/Table';
+import { SettingsStatusLine } from '../controls';
 import SettingsPanel from '../layout/SettingsPanel';
 
 const log = debug('ui:approval-history');
@@ -24,11 +23,8 @@ const formatDateTime = (value: string): string => {
   return Number.isNaN(ts) ? value : new Date(ts).toLocaleString();
 };
 
-/** SettingsBadge variant per decision variant. */
-const DECISION_BADGE_VARIANT: Record<
-  ApprovalDecision,
-  'success' | 'danger' | 'warning' | 'neutral' | 'primary'
-> = {
+/** Badge variant per decision variant. */
+const DECISION_BADGE_VARIANT: Record<ApprovalDecision, BadgeVariant> = {
   approve_once: 'success',
   approve_always_for_tool: 'success',
   approve_always_for_flow: 'success',
@@ -42,12 +38,21 @@ const DECISION_LABEL_KEY: Record<ApprovalDecision, string> = {
   deny: 'settings.approvalHistory.decision.deny',
 };
 
+const DECISION_ORDER: ApprovalDecision[] = [
+  'approve_once',
+  'approve_always_for_tool',
+  'approve_always_for_flow',
+  'deny',
+];
+
 const ApprovalHistoryPanel = () => {
   const { t } = useT();
 
   const [entries, setEntries] = useState<ApprovalAuditEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
+  const [selectedDecisions, setSelectedDecisions] = useState<ReadonlySet<string>>(new Set());
 
   // Monotonic guard so an out-of-order (slower) response can't clobber a
   // fresher one when the user taps Refresh rapidly (last request wins).
@@ -91,11 +96,88 @@ const ApprovalHistoryPanel = () => {
     void runLoad(++loadSeqRef.current);
   };
 
+  const filteredEntries = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    return entries.filter(entry => {
+      if (selectedDecisions.size > 0 && !selectedDecisions.has(entry.decision)) return false;
+      if (!needle) return true;
+      return (
+        entry.tool_name.toLowerCase().includes(needle) ||
+        entry.action_summary.toLowerCase().includes(needle)
+      );
+    });
+  }, [entries, query, selectedDecisions]);
+
+  const columns: DataTableColumn<ApprovalAuditEntry>[] = [
+    {
+      id: 'time',
+      header: t('settings.approvalHistory.column.time'),
+      align: 'right',
+      className: 'w-40 whitespace-nowrap tabular-nums',
+      cell: entry => formatDateTime(entry.decided_at),
+    },
+    {
+      id: 'tool',
+      header: t('settings.approvalHistory.column.tool'),
+      className: 'min-w-0 max-w-xs',
+      cell: entry => (
+        <div className="min-w-0 space-y-0.5">
+          <p className="truncate font-mono text-xs text-content" title={entry.tool_name}>
+            {entry.tool_name}
+          </p>
+          <p className="truncate text-xs text-content-muted" title={entry.action_summary}>
+            {entry.action_summary}
+          </p>
+        </div>
+      ),
+    },
+    {
+      id: 'session',
+      header: t('settings.approvalHistory.column.session'),
+      className: 'max-w-32',
+      cell: entry => (
+        <span className="truncate font-mono text-[11px] text-content-muted" title={entry.session_id}>
+          {entry.session_id}
+        </span>
+      ),
+    },
+    {
+      id: 'decision',
+      header: t('settings.approvalHistory.column.decision'),
+      align: 'right',
+      cell: entry => (
+        <Badge
+          variant={DECISION_BADGE_VARIANT[entry.decision]}
+          data-testid={`approval-history-decision-${entry.decision}`}>
+          {t(DECISION_LABEL_KEY[entry.decision])}
+        </Badge>
+      ),
+    },
+  ];
+
+  const hasEntries = filteredEntries.length > 0;
+
   return (
     <SettingsPanel testId="approval-history-panel">
-      <SettingsSection>
-        <div className="px-4 py-3 flex items-center justify-between gap-2">
+      <DataTable<ApprovalAuditEntry>
+        columns={columns}
+        rows={filteredEntries}
+        rowKey={entry => entry.request_id}
+        renderRow={entry => (
+          <TableRow key={entry.request_id} data-testid="approval-history-row">
+            {columns.map(column => (
+              <TableCell
+                key={column.id}
+                className={column.align === 'right' ? `${column.className ?? ''} text-right` : column.className}>
+                {column.cell?.(entry)}
+              </TableCell>
+            ))}
+          </TableRow>
+        )}
+        toolbarStart={
           <p className="text-xs text-content-muted">{t('settings.approvalHistory.subtitle')}</p>
+        }
+        toolbarEnd={
           <Button
             type="button"
             variant="primary"
@@ -105,59 +187,55 @@ const ApprovalHistoryPanel = () => {
             data-testid="approval-history-refresh">
             {t('settings.approvalHistory.refresh')}
           </Button>
-        </div>
-
-        {isLoading ? (
-          <div
-            className="px-4 py-4 text-sm text-content-muted"
-            data-testid="approval-history-loading">
-            {t('settings.approvalHistory.loading')}
-          </div>
-        ) : error ? (
-          <div className="px-4 py-4 space-y-2" data-testid="approval-history-error">
-            <SettingsStatusLine saving={false} error={error} savingLabel="" />
-            <Button
-              type="button"
-              variant="tertiary"
-              size="xs"
-              onClick={handleRefresh}
-              className="text-primary-600 dark:text-primary-400">
-              {t('settings.approvalHistory.retry')}
-            </Button>
-          </div>
-        ) : entries.length === 0 ? (
-          <div className="px-4 py-8 text-center" data-testid="approval-history-empty">
-            <SettingsEmptyState label={t('settings.approvalHistory.emptyState')} />
-          </div>
-        ) : (
-          <ul className="divide-y divide-line-subtle" data-testid="approval-history-list">
-            {entries.map(entry => (
-              <li
-                key={entry.request_id}
-                className="px-4 py-3 space-y-1"
-                data-testid="approval-history-row">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="font-mono text-xs text-content truncate">{entry.tool_name}</span>
-                  <span
-                    data-testid={`approval-history-decision-${entry.decision}`}
-                    className="shrink-0">
-                    <SettingsBadge variant={DECISION_BADGE_VARIANT[entry.decision]}>
-                      {t(DECISION_LABEL_KEY[entry.decision])}
-                    </SettingsBadge>
-                  </span>
-                </div>
-                <p className="text-xs text-content-muted">{entry.action_summary}</p>
-                <p className="text-[11px] text-content-muted">
-                  {t('settings.approvalHistory.decidedAt').replace(
-                    '{date}',
-                    formatDateTime(entry.decided_at)
-                  )}
-                </p>
-              </li>
-            ))}
-          </ul>
-        )}
-      </SettingsSection>
+        }
+        search={{
+          value: query,
+          onChange: setQuery,
+          placeholder: t('settings.approvalHistory.searchPlaceholder'),
+          testId: 'approval-history-search',
+        }}
+        filters={[
+          {
+            id: 'decision',
+            label: t('settings.approvalHistory.filterDecision'),
+            ariaLabel: t('settings.approvalHistory.filterDecisionAriaLabel'),
+            options: DECISION_ORDER.map(decision => ({
+              value: decision,
+              label: t(DECISION_LABEL_KEY[decision]),
+            })),
+            selected: selectedDecisions,
+            onChange: setSelectedDecisions,
+            testId: 'approval-history-decision-filter',
+          },
+        ]}
+        loading={isLoading}
+        loadingTestId="approval-history-loading"
+        loadingLabel={t('settings.approvalHistory.loading')}
+        error={
+          error ? (
+            <div className="space-y-2" data-testid="approval-history-error">
+              <SettingsStatusLine saving={false} error={error} savingLabel="" />
+              <Button
+                type="button"
+                variant="tertiary"
+                size="xs"
+                onClick={handleRefresh}
+                className="text-primary-600 dark:text-primary-400">
+                {t('settings.approvalHistory.retry')}
+              </Button>
+            </div>
+          ) : undefined
+        }
+        empty={
+          error ? undefined : (
+            <div className="py-8 text-center" data-testid="approval-history-empty">
+              <EmptyState label={t('settings.approvalHistory.emptyState')} />
+            </div>
+          )
+        }
+        ariaLabel={t('settings.approvalHistory.tableAriaLabel')}
+        testId={hasEntries ? 'approval-history-list' : undefined}
+      />
     </SettingsPanel>
   );
 };
