@@ -27,21 +27,18 @@ import {
 } from '../../services/api/workflowRunsApi';
 import { AccordionContent, AccordionItem, AccordionRoot, AccordionTrigger } from '../ui/Accordion';
 import Button from '../ui/Button';
+import { Badge, type BadgeVariant } from '../ui/Badge';
 
 const log = debug('intelligence:workflow-detail');
 
-/** Accent classes per run status (semantic palette from tailwind.config.js). */
-const RUN_STATUS_ACCENT: Record<WorkflowRunStatus, string> = {
-  pending: 'border-line bg-surface-muted text-content-secondary',
-  running:
-    'border-primary-200 bg-primary-50 text-primary-700 dark:border-primary-500/30 dark:bg-primary-500/10 dark:text-primary-300',
-  completed:
-    'border-sage-200 bg-sage-50 text-sage-700 dark:border-sage-500/30 dark:bg-sage-500/10 dark:text-sage-300',
-  failed:
-    'border-coral-200 bg-coral-50 text-coral-700 dark:border-coral-500/30 dark:bg-coral-500/10 dark:text-coral-300',
-  cancelled: 'border-line bg-surface-muted text-content-secondary',
-  interrupted:
-    'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300',
+/** Badge variant per run status. */
+const RUN_STATUS_VARIANT: Record<WorkflowRunStatus, BadgeVariant> = {
+  pending: 'neutral',
+  running: 'primary',
+  completed: 'success',
+  failed: 'danger',
+  cancelled: 'neutral',
+  interrupted: 'warning',
 };
 
 const RUN_STATUS_KEY: Record<WorkflowRunStatus, string> = {

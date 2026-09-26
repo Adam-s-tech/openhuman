@@ -120,11 +120,9 @@ function StepRow({
           {step.node_id}
         </span>
         {step.port !== undefined && (
-          <span
-            data-testid={`flow-run-step-port-${index}`}
-            className="rounded-md border border-line px-1.5 py-0.5 text-[10px] font-medium text-content-muted">
+          <Badge variant="neutral" data-testid={`flow-run-step-port-${index}`}>
             {t('flowRuns.inspector.port')}: {step.port}
-          </span>
+          </Badge>
         )}
       </div>
       {/* Null-resolution diagnostics: each config `=`-expression that resolved

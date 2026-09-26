@@ -3,8 +3,15 @@ import { type ReactNode, useMemo, useState } from 'react';
 
 import { type CostUsageRecord, useCostUsageLog } from '../../hooks/useCostDashboard';
 import { useT } from '../../lib/i18n/I18nContext';
-import { Badge, Button, EmptyState, NativeSelect, StatusLine } from '../ui';
-import DataTable, { type DataTableColumn } from '../ui/DataTable';
+import {
+  Badge,
+  Button,
+  DataTable,
+  type DataTableColumn,
+  EmptyState,
+  NativeSelect,
+  StatusLine,
+} from '../ui';
 import { formatCurrency, formatTokens } from './formatCurrency';
 
 const ALL = '';

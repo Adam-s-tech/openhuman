@@ -1,7 +1,16 @@
 import type { CostDashboardModelStats } from '../../hooks/useCostDashboard';
 import { useT } from '../../lib/i18n/I18nContext';
-import { Badge, EmptyState, Progress } from '../ui';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/Table';
+import {
+  Badge,
+  EmptyState,
+  Progress,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../ui';
 import { formatCurrency, formatTokens } from './formatCurrency';
 
 interface ModelCostTableProps {
