@@ -35,7 +35,7 @@ core/all.rs
 core/all_tests.rs
 core/cli_tests.rs
 core/dispatch_tests.rs
-core/jsonrpc/invoke_tests.rs
+core/invoke_tests.rs
 core/legacy_aliases_tests.rs
 core/runtime/services.rs
 core/runtime/subscribers.rs
