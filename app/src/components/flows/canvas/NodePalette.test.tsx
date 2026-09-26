@@ -49,7 +49,9 @@ describe('NodePalette', () => {
       const palette = screen.getByTestId('flow-node-palette');
       expect(palette).toBeInTheDocument();
       // The panel-only hint copy only renders for `variant="panel"`.
-      expect(screen.getByText('flows.palette.panelHint')).toBeInTheDocument();
+      expect(
+        screen.getByText('Click a step to add it to the canvas, or drag it where you want it.')
+      ).toBeInTheDocument();
       // The overlay's floating position/sizing classes are absent in panel mode.
       expect(palette.className).not.toContain('absolute');
       expect(palette.className).toContain('flex h-full min-h-0 flex-col');
