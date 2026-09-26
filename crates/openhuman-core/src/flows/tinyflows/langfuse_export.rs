@@ -46,8 +46,11 @@ const PUSH_TIMEOUT: Duration = Duration::from_secs(10);
 /// always matches wherever the app's domain calls go (staging, prod, or a
 /// custom `api_url` override).
 fn ingestion_url(config: &Config) -> String {
-    let base = crate::backend::require_base_url(&config.api_url)?;
-    crate::util::url::join_url(&base, INGESTION_PATH)
+    // Empty without a backend transport; callers treat a non-`http` URL as
+    // "proxy unavailable" and skip the push.
+    crate::backend::base_url(&config.api_url)
+        .map(|base| crate::util::url::join_url(&base, INGESTION_PATH))
+        .unwrap_or_default()
 }
 
 /// The OpenHuman core crate version (e.g. `0.58.0`), stamped onto every flow

@@ -14,14 +14,17 @@ use super::LOG_TARGET;
 const INGESTION_PATH: &str = "/telemetry/langfuse/ingestion";
 
 /// Resolve the Langfuse ingestion URL from the current backend host. Joins the
-/// proxy path onto [`effective_backend_api_url`] — the exact base-server
+/// proxy path onto [`crate::backend::base_url`] — the exact base-server
 /// resolution every other backend call uses — via the canonical
 /// [`crate::util::url::join_url`] helper, which replaces any path the base
 /// carried with the given absolute path. So the host always matches wherever the
 /// app's domain calls go (staging, prod, or a custom `api_url` override).
 pub(crate) fn ingestion_url(config: &Config) -> String {
-    let base = crate::backend::require_base_url(&config.api_url)?;
-    crate::util::url::join_url(&base, INGESTION_PATH)
+    // Empty without a backend transport; callers treat a non-`http` URL as
+    // "proxy unavailable" and skip the push.
+    crate::backend::base_url(&config.api_url)
+        .map(|base| crate::util::url::join_url(&base, INGESTION_PATH))
+        .unwrap_or_default()
 }
 
 /// The domain the deployed backends live under. A host outside it cannot be
