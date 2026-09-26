@@ -11,6 +11,7 @@
 //! from the SDK's public-route registry, so it stays on the core's pre-SDK path
 //! until the route is added upstream.
 
+mod handoff;
 mod ops;
 mod schemas;
 mod types;

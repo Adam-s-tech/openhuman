@@ -7,7 +7,7 @@
 use serde_json::{json, Value};
 use tinyhumans_sdk::api::types::IntegrationTokenRequest;
 
-use openhuman_core::api::decrypt_handoff_blob;
+use super::handoff::decrypt_handoff_blob;
 use openhuman_core::config::Config;
 use openhuman_core::rpc::RpcOutcome;
 
