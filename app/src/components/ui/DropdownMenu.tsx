@@ -5,8 +5,6 @@ import { cn } from '../../lib/cn';
 
 export const DropdownMenuRoot = DropdownMenuPrimitive.Root;
 export const DropdownMenuTrigger = DropdownMenuPrimitive.Trigger;
-export const DropdownMenuGroup = DropdownMenuPrimitive.Group;
-export const DropdownMenuLabel = DropdownMenuPrimitive.Label;
 
 export interface DropdownMenuContentProps extends ComponentPropsWithoutRef<
   typeof DropdownMenuPrimitive.Content
