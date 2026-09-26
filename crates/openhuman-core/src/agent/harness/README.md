@@ -3,23 +3,26 @@
 Product shell around the tinyagents tool loop. The model/tool iteration
 itself runs in `crate::agent::tinyagents` (via
 `run_turn_via_tinyagents_shared`); this module owns everything OpenHuman
-layers on top: agent-definition/prompt helpers, post-turn
-memory/archival hooks, mid-turn message steering, and oversized-tool-result
-handling.
+layers on top: sub-agent definitions, parent/child context plumbing, post-turn
+memory/archival hooks, and oversized-tool-result handling.
+
+`Agent`, its per-turn lifecycle, and transcript persistence live in
+`../session_host/`, not here; this module supplies the definition/prompt data
+that session host and `../subagent_host/` build turns from.
 
 Cancellation is the tinyagents steering channel (`SteeringCommand` in
 `crate::agent::tinyagents`); there is no in-house interrupt fence or
-cancellation token owned here. `run_queue` only queues messages between
-iterations.
+cancellation token owned here. The message queue that lets a caller steer or
+follow up on an in-flight turn is `tinyagents_harness::run_queue::RunQueue`,
+used here (not defined here) by `agent_graph.rs` and `fork_context.rs`.
 
 ## Responsibilities
 
-- Own the `Agent` struct and its per-turn lifecycle: prompt/context assembly,
-  tool dispatch, transcript persistence, KV-cache prefix stability
-  (`session/`).
-- Supply the product definition/prompt inputs used by `../subagent_host/`.
-  That host implements the TinyAgents sub-agent lifecycle traits directly;
-  this module does not export a compatibility runner.
+- Define sub-agent archetypes and the definition/prompt inputs consumed by
+  `../session_host/` (which owns the `Agent` struct, turn lifecycle, and
+  KV-cache prefix stability) and `../subagent_host/`, which implements the
+  TinyAgents sub-agent lifecycle traits directly. This module does not export
+  a compatibility runner of its own.
 - Define sub-agent archetypes (built-in + workspace TOML) and the task-local
   plumbing that lets a spawned tool see its parent's runtime context
   (`definition*.rs`, `builtin_definitions.rs`, `fork_context.rs`,

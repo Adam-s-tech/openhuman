@@ -28,29 +28,29 @@ The domain lives behind the `channels` feature (default-ON, #4801), except two d
 | `controllers/` | `channels.*` RPC namespace, `OpenHumanChannelBackend`, provider definitions ([README](controllers/README.md)) |
 | `tests/` | Cross-channel integration test suite (`#[cfg(all(feature = "channels", test))]`) |
 
-Flat files: `bus.rs` (`ChannelInboundSubscriber`, handles `DomainEvent::ChannelInboundMessage` published by the socket transport layer in `platform/socket/event_handlers.rs` and replies through the REST API; registered by `register_domain_subscribers` in `core/jsonrpc.rs`, not here), `cli.rs` (ungated `CliChannel`), `commands.rs` (`doctor_channels` and listener health classification), `context.rs` (`ChannelRuntimeContext`, per-sender conversation history, timeouts), `proactive.rs` (`ProactiveMessageSubscriber`, subscribes `DomainEvent::ProactiveMessageRequested` and delivers to the active channel), `relay_runtime.rs` (`relay_runtime_fronts_channel` / `send_outbound_intent` — the process-local relay-websocket transport handle controller sends go through when the relay fronts a channel), `routes.rs` (per-sender route overrides and runtime commands), `system_prompt.rs`, `traits.rs` (ungated `Channel`/`SendMessage` re-export).
+Flat files: `bus.rs` (`ChannelInboundSubscriber`, handles `DomainEvent::ChannelInboundMessage` published by the socket transport layer in `platform/socket/event_handlers.rs` and replies through the REST API; registered by `register_domain_subscribers` in `core/jsonrpc.rs`, not here), `cli.rs` (ungated `CliChannel`), `commands.rs` (`doctor_channels` and listener health classification), `context.rs` (`ChannelRuntimeContext`, per-sender conversation history, timeouts), `proactive.rs` (`ProactiveMessageSubscriber`, subscribes `DomainEvent::ProactiveMessageRequested` and delivers to the active channel), `relay_runtime.rs` (`relay_runtime_fronts_channel` / `send_outbound_intent`, the process-local relay-websocket transport handle controller sends go through when the relay fronts a channel), `routes.rs` (per-sender route overrides and runtime commands), `system_prompt.rs`, `traits.rs` (ungated `Channel`/`SendMessage` re-export).
 
 ## Calls into
 
-- `crates/openhuman-core/src/agent/` — the agent turn is dispatched over `BUS.native()` to the `agent.run_turn` handler registered by `agent::bus::register_agent_handlers`, so `runtime/dispatch/` never imports the harness directly.
-- `crates/openhuman-core/src/agent/context/channels_prompt.rs` — channel system prompt rendering, re-exported as `build_system_prompt`.
-- `crates/openhuman-core/src/security/credentials/` — `AuthService` lookups for connect/disconnect and for secret hydration at startup (email password, Yuanbao app secret).
-- `crates/openhuman-core/src/security/approval/` — `ApprovalGate` for the approval-reply intercept and `ApprovalChatContext` scoping of Telegram turns.
-- `crates/openhuman-core/src/config/` — `Config` / `ChannelsConfig` (schema types come from `tinychannels_bus::config` via `config/schema/channels.rs`).
-- `crates/openhuman-core/src/memory/conversations/` and `memory/guard` — conversation history persistence and the active memory guard.
-- `crates/openhuman-core/src/api/rest.rs` — `BackendOAuthClient` for controller messaging ops and Telegram/Discord link flows.
-- `crates/openhuman-core/src/web_chat/` — web-channel event publishing, session invalidation (`/new`), and the web surface subscribers registered at startup.
-- `crates/openhuman-core/src/voice/` — STT/TTS behind the `host/` adapters.
-- `crates/openhuman-core/src/core/bus.rs` and `core/events.rs` — the process-wide `BUS` and the `DomainEvent::Channel*` variants published from `runtime/dispatch/` and `runtime/supervision.rs`.
-- `vendor/tinychannels/` — provider transports, `tinychannels::build_channels` (provider construction), `ChannelManager`/`ChannelBackend`, and the `tinychannels::host` capability boundary; `vendor/tinychannels/crates/tinychannels-bus` — the transport-free trait/type contract.
+- `crates/openhuman-core/src/agent/`: the agent turn is dispatched over `BUS.native()` to the `agent.run_turn` handler registered by `agent::bus::register_agent_handlers`, so `runtime/dispatch/` never imports the harness directly.
+- `crates/openhuman-core/src/agent/context/channels_prompt.rs`: channel system prompt rendering, re-exported as `build_system_prompt`.
+- `crates/openhuman-core/src/security/credentials/`: `AuthService` lookups for connect/disconnect and for secret hydration at startup (email password, Yuanbao app secret).
+- `crates/openhuman-core/src/security/approval/`: `ApprovalGate` for the approval-reply intercept and `ApprovalChatContext` scoping of Telegram turns.
+- `crates/openhuman-core/src/config/`: `Config` / `ChannelsConfig` (schema types come from `tinychannels_bus::config` via `config/schema/channels.rs`).
+- `crates/openhuman-core/src/memory/conversations/` and `memory/guard`: conversation history persistence and the active memory guard.
+- `crates/openhuman-core/src/api/rest.rs`: `BackendOAuthClient` for controller messaging ops and Telegram/Discord link flows.
+- `crates/openhuman-core/src/web_chat/`: web-channel event publishing, session invalidation (`/new`), and the web surface subscribers registered at startup.
+- `crates/openhuman-core/src/voice/`: STT/TTS behind the `host/` adapters.
+- `crates/openhuman-core/src/core/bus.rs` and `core/events.rs`: the process-wide `BUS` and the `DomainEvent::Channel*` variants published from `runtime/dispatch/` and `runtime/supervision.rs`.
+- `vendor/tinychannels/`: provider transports, `tinychannels::build_channels` (provider construction), `ChannelManager`/`ChannelBackend`, and the `tinychannels::host` capability boundary. `vendor/tinychannels/crates/tinychannels-bus` holds the transport-free trait/type contract.
 
 ## Called by
 
-- `crates/openhuman-core/src/core/all.rs` — registers `controllers::all_channels_registered_controllers()` under the `channels` feature gate.
-- `crates/openhuman-core/src/core/runtime/services.rs` — `spawn_channels_service` calls `channels::start_channels(config)` unless `OPENHUMAN_DISABLE_CHANNEL_LISTENERS` is set or `has_listening_integrations()` is false.
-- `crates/openhuman-core/src/core/jsonrpc.rs` — `bootstrap_core_runtime` subscribes `bus::ChannelInboundSubscriber` and calls `proactive::register_web_only_proactive_subscriber()`.
-- `crates/openhuman-core/src/agent/session_host/` — the interactive loop drives the ungated `CliChannel`.
-- `crates/openhuman-core/src/cron/bus.rs` — `CronDeliverySubscriber` is handed the started channel map by `runtime/startup.rs`; it names channels only through `tinychannels_bus`.
+- `crates/openhuman-core/src/core/all.rs`: registers `controllers::all_channels_registered_controllers()` under the `channels` feature gate.
+- `crates/openhuman-core/src/core/runtime/services.rs`: `spawn_channels_service` calls `channels::start_channels(config)` unless `OPENHUMAN_DISABLE_CHANNEL_LISTENERS` is set or `has_listening_integrations()` is false.
+- `crates/openhuman-core/src/core/jsonrpc.rs`: `bootstrap_core_runtime` subscribes `bus::ChannelInboundSubscriber` and calls `proactive::register_web_only_proactive_subscriber()`.
+- `crates/openhuman-core/src/agent/session_host/`: the interactive loop drives the ungated `CliChannel`.
+- `crates/openhuman-core/src/cron/bus.rs`: `CronDeliverySubscriber` is handed the started channel map by `runtime/startup.rs`; it names channels only through `tinychannels_bus`.
 
 ## Tests
 
