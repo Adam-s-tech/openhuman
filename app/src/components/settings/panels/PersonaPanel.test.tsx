@@ -87,7 +87,7 @@ describe('PersonaPanel', () => {
     fireEvent.change(screen.getByTestId('persona-guided-personality'), {
       target: { value: 'Warm and direct.' },
     });
-    fireEvent.click(screen.getByTestId('persona-soul-save'));
+    fireEvent.click(screen.getByTestId('persona-save'));
 
     await waitFor(() => {
       expect(writePersonaFileMock).toHaveBeenCalledWith(
