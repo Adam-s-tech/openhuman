@@ -1551,6 +1551,7 @@ const en: TranslationMap = {
   'settings.about.checking': 'Checking...',
   'settings.about.checkForUpdates': 'Check for updates',
   'settings.about.releases': 'Releases',
+  'settings.about.resources': 'Resources',
   'settings.about.releasesDesc': 'Browse release notes and earlier builds on GitHub.',
   'settings.about.openReleases': 'Open GitHub releases',
   'settings.about.starCta.title': 'Enjoying OpenHuman?',
