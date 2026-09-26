@@ -200,7 +200,7 @@ describe('SuggestedWorkflows', () => {
       );
     });
 
-    it('returns to "all" when the filter chip is clicked again is not needed — clicking "all" restores every card', async () => {
+    it('clicking the "all" chip restores every card after a filter was applied', async () => {
       await renderWithMixedTriggers();
 
       fireEvent.click(screen.getByTestId('flow-suggestions-filter-manual'));

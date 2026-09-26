@@ -5,6 +5,7 @@
 'use client';
 
 import { cn } from '@/components/assistant-ui/lib/utils';
+import { useT } from '@/lib/i18n/I18nContext';
 import { type ComponentProps, type KeyboardEvent, useCallback, useRef, useState } from 'react';
 
 import { clamp } from '../utils/range';
