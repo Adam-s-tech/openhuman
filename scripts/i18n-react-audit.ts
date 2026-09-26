@@ -25,6 +25,22 @@ const IGNORED_TEXT = new Set([
   'Discord',
   'Telegram',
   'iPhone',
+  // McpServerForm.tsx placeholders — example server config values, not prose.
+  'github', // example MCP server name
+  '-y @modelcontextprotocol/server-github', // example CLI args
+  'https://mcp.example.com/mcp', // example MCP server URL
+  'X-API-Key', // example HTTP header name
+  // flows/canvas/nodeConfig/* placeholders — flow-engine expression/code/field-name
+  // examples, not prose (the product's `=`-expression syntax, field names, or code).
+  '=item.id', // flow-engine expression example
+  '=item.needs_another_pass', // flow-engine expression example
+  '=item.title', // flow-engine expression example
+  '=item', // flow-engine expression example
+  'web_search', // native tool slug example
+  'https://api.example.com/v1/resource', // example HTTP URL
+  'status', // example field name
+  'type', // example field name
+  'return items;', // example code snippet
 ]);
 const IGNORED_SHORT_TOKENS = new Set([
   'v',
