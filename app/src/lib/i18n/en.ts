@@ -1569,7 +1569,7 @@ const en: TranslationMap = {
   'settings.about.connectionHelperCloud':
     'Connected to a remote core. Change this in BootCheck or the cloud mode picker.',
   // Core connection panel (GH-4396)
-  'settings.core.title': 'Core connection',
+  'settings.core.title': 'Gateway',
   'settings.core.menuDesc': 'Use the built-in local core or connect to a remote core.',
   'settings.core.useRemoteToggle': 'Use remote core',
   'settings.core.useRemoteToggleDesc':
