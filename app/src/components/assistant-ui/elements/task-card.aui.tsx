@@ -60,16 +60,13 @@ import {
 } from './tool-fallback';
 
 export type { TaskCardState } from './task-card';
-export { TASK_PAGE_SIZE } from '../utils/task';
 
 export type TaskPart = ToolCallMessagePart & {
   readonly status: ToolCallMessagePartStatus;
 } & Partial<Pick<ToolCallMessagePartProps, 'addResult' | 'resume' | 'respondToApproval'>>;
 
-export const isTaskPart = (part: { readonly type: string; readonly messages?: unknown }) =>
+const isTaskPart = (part: { readonly type: string; readonly messages?: unknown }) =>
   part.type === 'tool-call' && part.messages !== undefined;
-
-const KEY_SEPARATOR = String.fromCharCode(31);
 
 /** English defaults for a nested transcript message's role tag; override via `TaskTranscript`'s `roleLabels` prop. */
 export interface TaskTranscriptRoleLabels {
