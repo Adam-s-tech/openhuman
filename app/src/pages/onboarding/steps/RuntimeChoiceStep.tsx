@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
-import { useT } from '../../../lib/i18n/I18nContext';
 import { Badge, type BadgeVariant } from '../../../components/ui';
+import { useT } from '../../../lib/i18n/I18nContext';
 import OnboardingNextButton from '../components/OnboardingNextButton';
 import type { AiMode } from '../OnboardingContext';
 
@@ -38,10 +38,7 @@ const ACCENT_CLASSES: Record<Accent, { selected: string; dot: string; highlight:
   },
 };
 
-const ACCENT_BADGE_VARIANT: Record<Accent, BadgeVariant> = {
-  sage: 'success',
-  primary: 'primary',
-};
+const ACCENT_BADGE_VARIANT: Record<Accent, BadgeVariant> = { sage: 'success', primary: 'primary' };
 
 const ChoiceCard = ({
   selected,

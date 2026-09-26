@@ -212,7 +212,9 @@ const SubscriptionPlans = ({
                   </div>
 
                   {isCurrent ? (
-                    <Badge variant="primary">{t('settings.billing.subscription.currentPlan')}</Badge>
+                    <Badge variant="primary">
+                      {t('settings.billing.subscription.currentPlan')}
+                    </Badge>
                   ) : isUpgrade ? (
                     <Button
                       variant="primary"
