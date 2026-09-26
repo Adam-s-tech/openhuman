@@ -4,18 +4,18 @@ Multi-agent orchestration domain. Owns the LLM tool-calling loop, sub-agent disp
 
 ## Public surface
 
-- `pub struct OpenHumanSessionHost` / `pub struct SessionHostBuilder` / `pub struct TurnOverrides` — `session_host/types.rs`, re-exported from `agent` — top-level conversation runtime; entry point for any chat turn. Constructors live in `session_host/builder/factory.rs`; `run_single` / `run_interactive` in `session_host/runtime/run_loop.rs`. The `builder/`, `runtime/`, and `turn/` submodules are private.
-- `pub fn run_subagent` / `pub struct SubagentRunOptions` / `pub enum SubagentRunError` — `subagent_host/` — OpenHuman policy adapters around the neutral TinyAgents sub-agent lifecycle.
-- `pub struct AgentDefinition` / `pub struct AgentDefinitionRegistry` / `pub enum SandboxMode` / `pub enum ToolScope` — `harness/definition/` (`agent_definition.rs`, `registry.rs`, `source.rs`, `tier.rs`, `execution_spec.rs`, `prompt_source.rs`, `subagents.rs`) — sub-agent archetypes loaded from built-ins + workspace TOML.
+- `pub struct OpenHumanSessionHost` / `pub struct SessionHostBuilder` / `pub struct TurnOverrides` (`session_host/types.rs`, re-exported from `agent`): top-level conversation runtime, the entry point for any chat turn. Constructors live in `session_host/builder/factory.rs`; `run_single` / `run_interactive` in `session_host/runtime/run_loop.rs`. The `builder/`, `runtime/`, and `turn/` submodules are private.
+- `pub fn run_subagent` / `pub struct SubagentRunOptions` / `pub enum SubagentRunError` (`subagent_host/`): OpenHuman policy adapters around the neutral TinyAgents sub-agent lifecycle.
+- `pub struct AgentDefinition` / `pub struct AgentDefinitionRegistry` / `pub enum SandboxMode` / `pub enum ToolScope` (`harness/definition/`: `agent_definition.rs`, `registry.rs`, `source.rs`, `tier.rs`, `execution_spec.rs`, `prompt_source.rs`, `subagents.rs`): sub-agent archetypes loaded from built-ins and workspace TOML.
 - `pub mod harness::fork_context` — task-local parent context for KV-cache reuse.
 - `tinytools_agent::dialect::ToolDialect` / `tinytools_agent::ParsedToolCall` / `tinytools_agent::dialect::ToolOutcome` — canonical tool-call vocabulary; `message_convert.rs` performs only concrete durable/provider conversions.
-- `pub mod triage` (`run_triage`, `apply_decision`, `TriggerEnvelope`, `TriageDecision`, `TriageAction`) — `triage/mod.rs` — classify external triggers, escalate to sub-agents.
-- `pub mod prompts::SystemPromptBuilder` — `prompts/` — system-prompt section composer.
-- `pub struct ChatMessage` / `pub enum ConversationMessage` / `pub struct ToolResultMessage` — `messages.rs` — transcript wire types; `inference/provider/types.rs::ChatRequest` borrows `&[ChatMessage]` from here.
-- `pub fn bus::register_agent_handlers` — `bus.rs` — registers the `agent.run_turn` native request handler (`AgentTurnRequest` → `AgentTurnResponse`) on `BUS.native()`; called from `channels/runtime/startup/start_channels.rs`.
+- `pub mod triage` (`run_triage`, `apply_decision`, `TriggerEnvelope`, `TriageDecision`, `TriageAction`, in `triage/mod.rs`): classifies external triggers and escalates to sub-agents.
+- `pub mod prompts::SystemPromptBuilder` (`prompts/`): system-prompt section composer.
+- `pub struct ChatMessage` / `pub enum ConversationMessage` / `pub struct ToolResultMessage` (`messages.rs`): transcript wire types; `inference/provider/types.rs::ChatRequest` borrows `&[ChatMessage]` from here.
+- `pub fn bus::register_agent_handlers` (`bus.rs`): registers the `agent.run_turn` native request handler (`AgentTurnRequest` -> `AgentTurnResponse`) on `BUS.native()`; called from `channels/runtime/startup/start_channels.rs`.
 - Built-in archetypes live in `crates/openhuman-core/src/agent/registry/agents/`; this module stays focused on harness/runtime behavior.
 - RPC `agent.{chat, chat_simple, server_status, list_definitions, get_definition, reload_definitions, triage_evaluate, graph_topologies, registry_snapshot}` — `schemas.rs`.
-- Read-only replay RPC `agent.{runs_active, run_status, run_events}` — `tinyagents/replay/schemas.rs` — pages a run's durable journal/status without holding the run open.
+- Read-only replay RPC `agent.{runs_active, run_status, run_events}` (`tinyagents/replay/schemas.rs`): pages a run's durable journal or status without holding the run open.
 
 ## Submodule map
 
@@ -52,7 +52,7 @@ Flat files: `bus.rs` (`agent.run_turn` native request handler), `cost.rs` (`pub(
 
 ## Calls into
 
-- `crates/openhuman-core/src/inference/provider/` — `factory::{provider_for_role, create_chat_model_with_model_id}` build the crate-native `ChatModel`s that `tinyagents::TurnModelSource` runs each turn against; `ChatResponse` / `ToolCall` / `UsageInfo` DTOs cross this boundary. There is no `Provider` trait — the harness names crate model types only.
+- `crates/openhuman-core/src/inference/provider/`: `factory::{provider_for_role, create_chat_model_with_model_id}` build the crate-native `ChatModel`s that `tinyagents::TurnModelSource` runs each turn against; `ChatResponse` / `ToolCall` / `UsageInfo` DTOs cross this boundary. There is no `Provider` trait; the harness names crate model types only.
 - `crates/openhuman-core/src/tools/` — `Tool` / `ToolSpec` execution surface invoked from the tool loop.
 - `crates/openhuman-core/src/memory/` — episodic indexing + memory-loader context injection (`harness/memory_context.rs`).
 - `crates/openhuman-core/src/inference/local/` — `agent_chat` / `agent_chat_simple` execution backend.
