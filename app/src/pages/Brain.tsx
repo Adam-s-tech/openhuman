@@ -407,12 +407,11 @@ export default function Brain() {
                       </Card>
                       {/* Sync history relocated from the Memory Inspection panel so
                       the Sync tab is the single sync surface. */}
-                      <Card padded divided={false} data-testid="brain-sync-history">
-                        <h3 className="mb-2 text-sm font-medium text-content-secondary">
-                          {t('sync.auditTitle', 'Sync History')}
-                        </h3>
+                      {/* The panel is a standard DataTable card (title, search,
+                      paging) — no outer card, or it would be framed twice. */}
+                      <div data-testid="brain-sync-history">
                         <SyncAuditPanel />
-                      </Card>
+                      </div>
                     </div>
                   )}
                 </div>
