@@ -1,8 +1,8 @@
 # webhooks
 
-Client-side webhook **tunnel routing** for OpenHuman. The backend provisions and hosts the actual tunnels (ngrok / cloudflare / etc.) and forwards incoming HTTP requests to the app over Socket.IO; this module maps each backend tunnel UUID to its owning target (a skill, the built-in echo responder, or the agent triage pipeline), dispatches incoming requests, builds responses, captures debug logs, and exposes both local routing RPCs and thin proxies to the backend's tunnel-management API.
+Client-side webhook tunnel routing for OpenHuman. The backend provisions and hosts the actual tunnels (ngrok / cloudflare / etc.) and forwards incoming HTTP requests to the app over Socket.IO; this module maps each backend tunnel UUID to its owning target (a skill, the built-in echo responder, or the agent triage pipeline), dispatches incoming requests, builds responses, captures debug logs, and exposes both local routing RPCs and thin proxies to the backend's tunnel-management API.
 
-`webhooks` is nested under `skills/` for historical reasons but is **not** gated by the `skills` Cargo feature: it has always-compiled callers in `crates/openhuman-core/src/core/` and stays outside the `skills` feature gate (see `crates/openhuman-core/src/skills/mod.rs`).
+`webhooks` is nested under `skills/` for historical reasons but is not gated by the `skills` Cargo feature. It has always-compiled callers in `crates/openhuman-core/src/core/` and stays outside the `skills` feature gate (see `crates/openhuman-core/src/skills/mod.rs`).
 
 ## Responsibilities
 
