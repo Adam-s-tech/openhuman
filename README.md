@@ -50,7 +50,7 @@
 
 > **Early Beta**: Under active development. Expect rough edges.
 
-> 🎉 Within one week of launch, OpenHuman became the number one trending repository on GitHub for nine days in a row.
+> Within one week of launch, OpenHuman became the number one trending repository on GitHub for nine days in a row.
 
 # Install
 
