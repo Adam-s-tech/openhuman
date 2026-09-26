@@ -31,7 +31,7 @@ import {
 import PanelPage from '../../layout/PanelPage';
 import Button from '../../ui/Button';
 import Card from '../../ui/Card';
-import { Tile, TileGrid } from '../../ui/TileGrid';
+import { Tile } from '../../ui/TileGrid';
 import { SettingsStatusLine, SettingsSwitch } from '../controls';
 import SettingsPanel from '../layout/SettingsPanel';
 
@@ -57,9 +57,12 @@ interface ToolsPanelProps {
   /** When true, render without the SettingsHeader chrome (used when embedded
    *  inside the onboarding custom wizard). */
   embedded?: boolean;
+  /** Body only, no page chrome — for a host that already draws the page
+   *  header and gutter (the Connections pane). */
+  bare?: boolean;
 }
 
-const ToolsPanel = ({ embedded = false }: ToolsPanelProps = {}) => {
+const ToolsPanel = ({ embedded = false, bare = false }: ToolsPanelProps = {}) => {
   const { t } = useT();
   const { snapshot, setOnboardingTasks } = useCoreState();
   const toolsByCategory = getToolsByCategory();
@@ -135,9 +138,9 @@ const ToolsPanel = ({ embedded = false }: ToolsPanelProps = {}) => {
 
   const body = (
     <>
-      {/* Each category is a card of tool tiles; the tiles are narrow, so they
-          flow into a grid instead of stacking full-width. */}
-      <div className="space-y-4">
+      {/* Category cards flow into a two-column masonry: they are narrow and
+          uneven in length, so stacking them full-width wasted the page. */}
+      <div className="gap-4 lg:columns-2 [&>*]:mb-4 [&>*]:break-inside-avoid">
         {TOOL_CATEGORIES.map(category => {
           const tools = toolsByCategory[category];
           if (tools.length === 0) return null;
@@ -148,7 +151,7 @@ const ToolsPanel = ({ embedded = false }: ToolsPanelProps = {}) => {
               description={CATEGORY_DESCRIPTIONS[category]}
               divided={false}
               data-testid={`tools-category-${category.toLowerCase()}`}>
-              <TileGrid padded>
+              <div className="space-y-2 p-4">
                 {tools.map(tool => {
                   const Icon = TOOL_ICONS[tool.id] ?? Wrench;
                   const on = Boolean(enabled[tool.id]);
@@ -171,7 +174,7 @@ const ToolsPanel = ({ embedded = false }: ToolsPanelProps = {}) => {
                     />
                   );
                 })}
-              </TileGrid>
+              </div>
             </Card>
           );
         })}
@@ -197,6 +200,8 @@ const ToolsPanel = ({ embedded = false }: ToolsPanelProps = {}) => {
       />
     </>
   );
+
+  if (bare) return <div className="space-y-4">{body}</div>;
 
   // Embedded (onboarding custom wizard) keeps the headerless PanelPage branch.
   if (embedded) {

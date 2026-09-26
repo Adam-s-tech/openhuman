@@ -1178,7 +1178,7 @@ export default function Skills() {
                   <SettingsTabbedPage
                     title={t('pages.settings.features.tools')}
                     description={t('pages.settings.features.toolsDesc')}>
-                    <ToolsPanel />
+                    <ToolsPanel bare />
                   </SettingsTabbedPage>
                 )}
                 {activeTab === 'browser' && <BrowserConnectionsPanel />}
