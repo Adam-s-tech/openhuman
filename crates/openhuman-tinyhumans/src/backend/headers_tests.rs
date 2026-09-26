@@ -36,8 +36,14 @@ fn attribution_headers_carry_the_core_version_and_default_identity() {
 async fn the_profile_client_stamps_versions_and_identity_on_raw_requests() {
     // `http_client` traffic (multipart STT upload, the Langfuse push) bypasses
     // the SDK, so the attribution has to ride the client's default headers.
-    let _guard = product_identity_test_lock();
-    reset_product_identity_for_test();
+    // The identity is baked into the client's default headers when it is
+    // built, so hold the identity lock only for the build (never across an
+    // await).
+    let client = {
+        let _guard = product_identity_test_lock();
+        reset_product_identity_for_test();
+        build_backend_client(TransportProfile::Api).unwrap()
+    };
     let server = MockServer::start().await;
     Mock::given(method("GET"))
         .and(path("/probe"))
@@ -53,7 +59,6 @@ async fn the_profile_client_stamps_versions_and_identity_on_raw_requests() {
         .mount(&server)
         .await;
 
-    let client = build_backend_client(TransportProfile::Api).unwrap();
     let response = client
         .get(format!("{}/probe", server.uri()))
         .send()
