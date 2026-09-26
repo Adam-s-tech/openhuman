@@ -11,7 +11,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { SidebarSlotOutlet, SidebarSlotProvider } from '../../components/layout/shell/SidebarSlot';
 import type { WorkflowGraph } from '../../lib/flows/types';
-import type { Flow } from '../../services/api/flowsApi';
+import type { Flow, FlowRun } from '../../services/api/flowsApi';
 import type { WorkflowProposal } from '../../store/chatRuntimeSlice';
 import FlowCanvasPage, {
   asCopilotBuildSeed,
