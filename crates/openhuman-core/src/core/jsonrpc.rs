@@ -344,7 +344,7 @@ fn translate_local_session_error(msg: &str, credential_is_local: bool) -> Option
 /// Anthropic failures, Composio direct-mode errors) to clear the user's session
 /// and log them out. The fix distinguishes between:
 ///
-/// - **OpenHuman backend 401s** (`authed_json` in `crates/openhuman-core/src/api/rest.rs`): formatted
+/// - **OpenHuman backend 401s** (`authed_json` in `crates/openhuman-core/src/backend/client.rs`): formatted
 ///   as `"{METHOD} /path failed (401 Unauthorized): {body}"`, e.g.
 ///   `"GET /teams failed (401 Unauthorized): {"success":false}"`. These always
 ///   start with an HTTP method verb followed by a space and a forward slash.
