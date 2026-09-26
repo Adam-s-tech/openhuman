@@ -26,11 +26,11 @@ describe('<PersonaTemplatePicker />', () => {
     expect(onChange).toHaveBeenCalledWith(expect.any(String));
   });
 
-  it('disables every template button when disabled', () => {
+  it('disables every template radio when disabled', () => {
     render(<PersonaTemplatePicker value="" onChange={vi.fn()} disabled />);
-    const buttons = screen
-      .getAllByRole('button')
+    const radios = screen
+      .getAllByRole('radio')
       .filter(b => b.getAttribute('data-testid')?.startsWith('persona-template-'));
-    buttons.forEach(button => expect(button).toBeDisabled());
+    radios.forEach(radio => expect(radio).toBeDisabled());
   });
 });
