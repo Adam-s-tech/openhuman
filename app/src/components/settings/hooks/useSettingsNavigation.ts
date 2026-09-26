@@ -26,7 +26,6 @@ type SettingsRoute =
   | 'tools'
   | 'recovery-phrase'
   | 'wallet-balances'
-  | 'notifications'
   | 'personality'
   | 'face'
   | 'theme'
