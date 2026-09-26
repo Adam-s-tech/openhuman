@@ -14,7 +14,7 @@ icon: plug
 
 The registries are **browse-only**. There is no install-from-catalog path and no setup agent: a user who finds a server in the Registry tab opens its own page, reads the install instructions there, and declares the server in the mcp.json tab (`{ "mcpServers": { name: { command, args, env } | { url, headers } } }`). `config_doc.rs` is that document's contract and `config_ops.rs` the reconciliation (`mcp_clients_config_get` / `mcp_clients_config_set`).
 
-The **client half** — both transports, the Smithery/official catalogs, the SQLite store, the live connection map, the subprocess supervisor, browser sign-in, and the write-audit log — moved to the vendored `tinymcp` crate (`vendor/tinymcp`). What lives in this directory is only what belongs to this application:
+The **client half**, meaning both transports, the Smithery/official catalogs, the SQLite store, the live connection map, the subprocess supervisor, browser sign-in, and the write-audit log, moved to the vendored `tinymcp` crate (`vendor/tinymcp`). What lives in this directory is only what belongs to this application:
 
 - `host.rs` (one level up, `crates/openhuman-core/src/mcp/host.rs`): the one `tinymcp` service this process holds per workspace, and config-to-`tinymcp` conversion.
 - `registry/`: the `mcp_clients` RPC surface, the agent-facing tools, and the prompt-injection scan applied to remote tool definitions.
