@@ -1,3 +1,4 @@
+import { ChevronRight, Palette } from 'lucide-react';
 import { useState } from 'react';
 
 import { useT } from '../../../lib/i18n/I18nContext';
@@ -34,10 +35,6 @@ import {
   upsertCustomTheme,
 } from '../../../store/themeSlice';
 import {
-  AccordionContent,
-  AccordionItem,
-  AccordionRoot,
-  AccordionTrigger,
   Alert,
   AlertDescription,
   Button,
@@ -155,9 +152,14 @@ interface ThemeStudioPanelProps {
    * language between them, so it mounts this component twice. Omit for both.
    */
   part?: 'gallery' | 'customize';
+  /**
+   * When set, the gallery ends with a "Custom" tile that calls this — the
+   * Appearance page uses it to open the Theme Studio page.
+   */
+  onCustomize?: () => void;
 }
 
-const ThemeStudioPanel = ({ embedded = false, part }: ThemeStudioPanelProps = {}) => {
+const ThemeStudioPanel = ({ embedded = false, part, onCustomize }: ThemeStudioPanelProps = {}) => {
   const { t } = useT();
   const dispatch = useAppDispatch();
   const families = selectThemeFamilies();
@@ -315,6 +317,23 @@ const ThemeStudioPanel = ({ embedded = false, part }: ThemeStudioPanelProps = {}
             </button>
           );
         })}
+        {onCustomize && (
+          <button
+            type="button"
+            onClick={onCustomize}
+            data-testid="theme-customize-tile"
+            className="flex flex-col gap-2 rounded-xl border border-dashed border-line-strong p-3 text-left transition-colors hover:bg-surface-hover focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary-500/25">
+            <span className="flex h-10 items-center justify-center rounded-lg bg-surface-muted text-content-muted">
+              <Palette className="h-4 w-4" aria-hidden />
+            </span>
+            <span className="flex items-center justify-between gap-1">
+              <span className="truncate text-sm font-medium text-content">
+                {t('settings.theme.customBadge', 'Custom')}
+              </span>
+              <ChevronRight className="h-3.5 w-3.5 text-content-faint" aria-hidden />
+            </span>
+          </button>
+        )}
       </div>
     </Card>
   );
@@ -334,12 +353,15 @@ const ThemeStudioPanel = ({ embedded = false, part }: ThemeStudioPanelProps = {}
     </div>
   );
 
-  // ── Customizer: every fine-grained control, collapsed by default ─────
-  // These used to be eight always-open cards (four colour groups of up to a
-  // dozen rows each, fonts, background, import) stacked above the font size
-  // and language settings, so the everyday controls sat a long scroll down.
+  // ── Customizer: column cards ─────────────────────────────────────────
+  // Each concern is its own card, flowed into CSS columns so short cards
+  // (Borders, Fonts) pack beside long ones (Surfaces) instead of each taking a
+  // full-width row. It was an accordion before that; before that, eight
+  // full-width cards stacked a long scroll deep.
+  const cardClass = 'mb-4 break-inside-avoid';
+
   const customize = (
-    <section className="space-y-2" data-testid="theme-customize">
+    <section className="space-y-3" data-testid="theme-customize">
       {!isActiveCustom && (
         <p className="px-1 text-xs text-content-muted">
           {t(
@@ -360,11 +382,14 @@ const ThemeStudioPanel = ({ embedded = false, part }: ThemeStudioPanelProps = {}
         </Alert>
       )}
 
-      <AccordionRoot type="multiple" variant="contained">
+      <div className="columns-1 gap-4 lg:columns-2 2xl:columns-3">
         {COLOR_GROUPS.map(group => (
-          <AccordionItem key={group.id} value={`colors-${group.id}`}>
-            <AccordionTrigger>{t(group.i18nKey, humanize(group.id))}</AccordionTrigger>
-            <AccordionContent>
+          <Card
+            key={group.id}
+            title={t(group.i18nKey, humanize(group.id))}
+            className={cardClass}
+            data-testid={`theme-card-${group.id}`}>
+            <div className="px-4 pb-2 pt-1">
               {colorFields(group.keys, humanize)}
               {group.id === 'accents' && (
                 <div className="pt-2">
@@ -387,107 +412,105 @@ const ThemeStudioPanel = ({ embedded = false, part }: ThemeStudioPanelProps = {}
                     ))}
                 </div>
               )}
-            </AccordionContent>
-          </AccordionItem>
+            </div>
+          </Card>
         ))}
 
-        <AccordionItem value="fonts">
-          <AccordionTrigger>{t('settings.theme.fontsHeading', 'Fonts')}</AccordionTrigger>
-          <AccordionContent>
-            <div className="space-y-2">
-              {FONT_ROLES.map(role => {
-                const current = fontChoiceForStack(
-                  effectiveTheme.fonts[role] ?? readFontRole(role)
-                );
-                return (
-                  <div key={role} className="flex items-center justify-between gap-3">
-                    <span className="text-sm text-content">
-                      {t(`settings.theme.fontRole.${role}`, humanize(role))}
-                    </span>
-                    <SettingsSelect
-                      inputSize="sm"
-                      value={current?.id ?? '__current__'}
-                      disabled={false}
-                      aria-label={t(`settings.theme.fontRole.${role}`, humanize(role))}
-                      onChange={e => {
-                        const choice = FONT_CHOICES.find(c => c.id === e.target.value);
-                        if (choice) dispatch(setFontRole({ role, stack: choice.stack }));
-                      }}>
-                      {!current && (
-                        <option value="__current__" disabled>
-                          {t('settings.theme.fontCurrent', 'Current')}
-                        </option>
-                      )}
-                      {FONT_CHOICES.map(c => (
-                        <option key={c.id} value={c.id}>
-                          {c.label}
-                        </option>
-                      ))}
-                    </SettingsSelect>
-                  </div>
-                );
-              })}
-            </div>
-          </AccordionContent>
-        </AccordionItem>
+        <Card
+          title={t('settings.theme.fontsHeading', 'Fonts')}
+          className={cardClass}
+          data-testid="theme-card-fonts">
+          <div className="space-y-2 px-4 pb-4 pt-2">
+            {FONT_ROLES.map(role => {
+              const current = fontChoiceForStack(effectiveTheme.fonts[role] ?? readFontRole(role));
+              return (
+                <div key={role} className="flex items-center justify-between gap-3">
+                  <span className="text-sm text-content">
+                    {t(`settings.theme.fontRole.${role}`, humanize(role))}
+                  </span>
+                  <SettingsSelect
+                    inputSize="sm"
+                    value={current?.id ?? '__current__'}
+                    disabled={false}
+                    aria-label={t(`settings.theme.fontRole.${role}`, humanize(role))}
+                    onChange={e => {
+                      const choice = FONT_CHOICES.find(c => c.id === e.target.value);
+                      if (choice) dispatch(setFontRole({ role, stack: choice.stack }));
+                    }}>
+                    {!current && (
+                      <option value="__current__" disabled>
+                        {t('settings.theme.fontCurrent', 'Current')}
+                      </option>
+                    )}
+                    {FONT_CHOICES.map(c => (
+                      <option key={c.id} value={c.id}>
+                        {c.label}
+                      </option>
+                    ))}
+                  </SettingsSelect>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
 
-        <AccordionItem value="background">
-          <AccordionTrigger>{t('settings.theme.backdropHeading', 'Background')}</AccordionTrigger>
-          <AccordionContent>
-            <div className="space-y-2">
-              <ToggleGroupRoot
-                type="single"
-                variant="secondary"
-                size="xs"
-                value={effectiveTheme.backdrop?.kind ?? 'solid'}
-                onValueChange={next => {
-                  if (next)
-                    dispatch(
-                      setThemeBackdrop({
-                        kind: next as BackdropKind,
-                        imageUrl: effectiveTheme.backdrop?.imageUrl,
-                      })
-                    );
-                }}
-                aria-label={t('settings.theme.backdropHeading', 'Background')}
-                className="overflow-hidden rounded-lg border border-line gap-0 *:rounded-none *:border-0">
-                {(['mesh', 'solid', 'image'] as BackdropKind[]).map(kind => (
-                  <ToggleGroupItem
-                    key={kind}
-                    value={kind}
-                    className="h-auto px-3 py-1.5 text-xs font-medium data-[state=on]:bg-primary-500 data-[state=on]:text-content-inverted">
-                    {t(`settings.theme.backdrop.${kind}`, kind)}
-                  </ToggleGroupItem>
-                ))}
-              </ToggleGroupRoot>
-              {effectiveTheme.backdrop?.kind === 'image' && (
-                <TextField
-                  type="url"
-                  inputSize="sm"
-                  disabled={false}
-                  value={effectiveTheme.backdrop?.imageUrl ?? ''}
-                  placeholder="https://…/background.jpg"
-                  aria-label={t('settings.theme.backdropImageUrl', 'Background image URL')}
-                  onChange={e =>
-                    dispatch(setThemeBackdrop({ kind: 'image', imageUrl: e.target.value }))
-                  }
-                  className="text-xs"
-                />
-              )}
-              <p className="text-[11px] text-content-faint">
-                {t(
-                  'settings.theme.backdropHint',
-                  'Mesh shows the animated gradient; Solid uses a flat background; Image paints your own.'
-                )}
-              </p>
-            </div>
-          </AccordionContent>
-        </AccordionItem>
+        <Card
+          title={t('settings.theme.backdropHeading', 'Background')}
+          description={t(
+            'settings.theme.backdropHint',
+            'Mesh shows the animated gradient; Solid uses a flat background; Image paints your own.'
+          )}
+          className={cardClass}
+          data-testid="theme-card-background">
+          <div className="space-y-2 px-4 pb-4 pt-3">
+            <ToggleGroupRoot
+              type="single"
+              variant="secondary"
+              size="xs"
+              value={effectiveTheme.backdrop?.kind ?? 'solid'}
+              onValueChange={next => {
+                if (next)
+                  dispatch(
+                    setThemeBackdrop({
+                      kind: next as BackdropKind,
+                      imageUrl: effectiveTheme.backdrop?.imageUrl,
+                    })
+                  );
+              }}
+              aria-label={t('settings.theme.backdropHeading', 'Background')}
+              className="overflow-hidden rounded-lg border border-line gap-0 *:rounded-none *:border-0">
+              {(['mesh', 'solid', 'image'] as BackdropKind[]).map(kind => (
+                <ToggleGroupItem
+                  key={kind}
+                  value={kind}
+                  className="h-auto px-3 py-1.5 text-xs font-medium data-[state=on]:bg-primary-500 data-[state=on]:text-content-inverted">
+                  {t(`settings.theme.backdrop.${kind}`, kind)}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroupRoot>
+            {effectiveTheme.backdrop?.kind === 'image' && (
+              <TextField
+                type="url"
+                inputSize="sm"
+                disabled={false}
+                value={effectiveTheme.backdrop?.imageUrl ?? ''}
+                placeholder="https://…/background.jpg"
+                aria-label={t('settings.theme.backdropImageUrl', 'Background image URL')}
+                onChange={e =>
+                  dispatch(setThemeBackdrop({ kind: 'image', imageUrl: e.target.value }))
+                }
+                className="text-xs"
+              />
+            )}
+          </div>
+        </Card>
 
         {isActiveCustom && (
-          <AccordionItem value="manage">
-            <AccordionTrigger>{t('settings.theme.actions', 'Manage theme')}</AccordionTrigger>
-            <AccordionContent>
+          <Card
+            title={t('settings.theme.actions', 'Manage theme')}
+            className={cardClass}
+            data-testid="theme-card-manage">
+            <div className="space-y-2 px-4 pb-4 pt-3">
               <div className="flex flex-wrap gap-2">
                 <Button variant="secondary" size="sm" onClick={() => dispatch(resetActiveTheme())}>
                   {t('settings.theme.reset', 'Reset overrides')}
@@ -510,40 +533,38 @@ const ThemeStudioPanel = ({ embedded = false, part }: ThemeStudioPanelProps = {}
                 value={exportJson}
                 rows={4}
                 aria-label={t('settings.theme.export', 'Copy JSON')}
-                className="mt-2 resize-none bg-surface-muted p-2 font-mono text-[11px] text-content-secondary"
+                className="resize-none bg-surface-muted p-2 font-mono text-[11px] text-content-secondary"
               />
-            </AccordionContent>
-          </AccordionItem>
+            </div>
+          </Card>
         )}
 
-        <AccordionItem value="import">
-          <AccordionTrigger>{t('settings.theme.import', 'Import theme')}</AccordionTrigger>
-          <AccordionContent>
-            <div className="space-y-2">
-              <p className="text-xs text-content-muted">
-                {t(
-                  'settings.theme.importHint',
-                  'Paste exported theme JSON to add it as a custom theme.'
-                )}
-              </p>
-              <TextArea
-                value={importText}
-                onChange={e => setImportText(e.target.value)}
-                rows={4}
-                placeholder='{ "name": "...", "isDark": false, "colors": { ... } }'
-                aria-label={t('settings.theme.import', 'Import theme')}
-                className="resize-none p-2 font-mono text-[11px]"
-              />
-              {importError && (
-                <p className="text-xs text-coral-600 dark:text-coral-300">{importError}</p>
-              )}
-              <Button size="sm" onClick={handleImport} disabled={!importText.trim()}>
-                {t('settings.theme.importApply', 'Import')}
-              </Button>
-            </div>
-          </AccordionContent>
-        </AccordionItem>
-      </AccordionRoot>
+        <Card
+          title={t('settings.theme.import', 'Import theme')}
+          description={t(
+            'settings.theme.importHint',
+            'Paste exported theme JSON to add it as a custom theme.'
+          )}
+          className={cardClass}
+          data-testid="theme-card-import">
+          <div className="space-y-2 px-4 pb-4 pt-3">
+            <TextArea
+              value={importText}
+              onChange={e => setImportText(e.target.value)}
+              rows={4}
+              placeholder='{ "name": "...", "isDark": false, "colors": { ... } }'
+              aria-label={t('settings.theme.import', 'Import theme')}
+              className="resize-none p-2 font-mono text-[11px]"
+            />
+            {importError && (
+              <p className="text-xs text-coral-600 dark:text-coral-300">{importError}</p>
+            )}
+            <Button size="sm" onClick={handleImport} disabled={!importText.trim()}>
+              {t('settings.theme.importApply', 'Import')}
+            </Button>
+          </div>
+        </Card>
+      </div>
     </section>
   );
 
@@ -559,12 +580,8 @@ const ThemeStudioPanel = ({ embedded = false, part }: ThemeStudioPanelProps = {}
       </>
     );
 
-  // Embedded: the Appearance page owns the header and renders these sections
-  // among its own. That is the only host today — `/settings/theme` redirects to
-  // `/settings/appearance`, because a separate "Theme studio" page split one
-  // subject across two sidebar rows whose light/dark toggles wrote the same two
-  // slice fields (`setThemeMode` and `setThemeVariant` are identical). The
-  // unembedded branch is kept for a standalone host.
+  // Embedded: the Appearance page shows just the gallery (with the Custom
+  // tile). The routed `/settings/theme` page renders both halves.
   if (embedded) return body;
 
   return (
