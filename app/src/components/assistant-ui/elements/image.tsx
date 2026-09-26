@@ -274,17 +274,19 @@ function ImageZoom({ src, alt = 'Image preview', children }: ImageZoomProps) {
 }
 
 function ImageGenerating({ className }: { className?: string }) {
+  const { t } = useT();
   return (
     <div
       data-slot="image-generating"
       className={cn('bg-muted/50 flex min-h-32 items-center justify-center p-4', className)}>
       <Loader2Icon className="text-muted-foreground size-8 animate-spin" />
-      <span className="sr-only">Generating image…</span>
+      <span className="sr-only">{t('elements.image.generating', 'Generating image…')}</span>
     </div>
   );
 }
 
 function ImageContentFilterError({ className, reason }: { className?: string; reason?: string }) {
+  const { t } = useT();
   return (
     <div
       data-slot="image-content-filter-error"
@@ -293,7 +295,9 @@ function ImageContentFilterError({ className, reason }: { className?: string; re
         className
       )}>
       <ShieldAlertIcon className="text-muted-foreground size-8" />
-      <p className="text-sm font-medium">Image could not be generated</p>
+      <p className="text-sm font-medium">
+        {t('elements.image.generateFailed', 'Image could not be generated')}
+      </p>
       {reason && <p className="text-muted-foreground text-xs">{reason}</p>}
     </div>
   );
