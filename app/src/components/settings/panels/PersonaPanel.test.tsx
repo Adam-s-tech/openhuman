@@ -125,16 +125,26 @@ describe('PersonaPanel', () => {
     fireEvent.change(screen.getByTestId('persona-description-input'), {
       target: { value: 'Calm and concise.' },
     });
-    fireEvent.click(screen.getByTestId('persona-identity-save'));
+    fireEvent.click(screen.getByTestId('persona-save'));
 
     expect(store.getState().persona.displayName).toBe('Nova');
     expect(store.getState().persona.description).toBe('Calm and concise.');
   });
 
-  it('keeps the identity save button disabled until a field changes', async () => {
+  it('hides the save bar until a field changes, one bar for the whole page', async () => {
     renderWithProviders(<PersonaPanel />);
     await awaitLoaded();
-    expect(screen.getByTestId('persona-identity-save')).toBeDisabled();
+    // Identity and SOUL.md now share a single save bar/button, shown only
+    // once something is dirty — no separate per-section save controls.
+    expect(screen.queryByTestId('persona-save-bar')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('persona-save')).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByTestId('persona-display-name-input'), {
+      target: { value: 'Nova' },
+    });
+
+    expect(screen.getByTestId('persona-save-bar')).toBeInTheDocument();
+    expect(screen.getByTestId('persona-save')).not.toBeDisabled();
   });
 
   it('writes edited SOUL.md contents over RPC from the raw editor', async () => {
