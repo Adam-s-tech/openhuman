@@ -26,7 +26,7 @@ import {
   Unplug,
   Wrench,
 } from 'lucide-react';
-import { Fragment, type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useT } from '../../../lib/i18n/I18nContext';
 import { mcpClientsApi } from '../../../services/api/mcpClientsApi';
@@ -40,6 +40,7 @@ import ConnectAuthModal from './ConnectAuthModal';
 import McpIconButton from './McpIconButton';
 import McpServerForm from './McpServerForm';
 import McpToolPlayground from './McpToolPlayground';
+import RowIcon from './RowIcon';
 import type { ConnStatus, InstalledServer, McpTool, ServerStatus } from './types';
 
 interface McpServerRowsProps {
@@ -68,13 +69,6 @@ const STATUS_TONE: Record<ServerStatus, { variant: BadgeVariant; labelKey: strin
   disconnected: null,
   disabled: null,
 };
-
-/** The square identity tile every row in the MCP / Skills tables leads with. */
-export const RowIcon = ({ children }: { children: ReactNode }) => (
-  <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-md border border-line bg-surface-muted">
-    {children}
-  </span>
-);
 
 type ToolsState =
   | { kind: 'loading' }

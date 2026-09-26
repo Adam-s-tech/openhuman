@@ -28,7 +28,7 @@ import {
   type WorkflowSummary,
 } from '../../services/api/skillsApi';
 import McpIconButton from '../channels/mcp/McpIconButton';
-import { RowIcon } from '../channels/mcp/McpServerRows';
+import RowIcon from '../channels/mcp/RowIcon';
 import EmptyStateCard from '../EmptyStateCard';
 import { Alert, AlertDescription, Badge, type BadgeVariant, ModalShell } from '../ui';
 import Button from '../ui/Button';
