@@ -24,7 +24,6 @@
 import {
   Background,
   BackgroundVariant,
-  Controls,
   MiniMap,
   ReactFlow,
   type Viewport,
@@ -134,9 +133,9 @@ function ReadonlyFlowCanvas({ nodes, edges }: { nodes: FlowNode[]; edges: FlowEd
           panOnScroll
           zoomOnScroll
           {...interactionProps}>
-          <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
+          <Background variant={BackgroundVariant.Dots} gap={20} size={1.25} />
           <MiniMap pannable zoomable />
-          <Controls showInteractive={false} />
+          <CanvasToolbar />
         </ReactFlow>
       </StepNumberContext.Provider>
     </div>
