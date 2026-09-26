@@ -183,12 +183,12 @@ describe('Skills page — Channels grid', () => {
   });
 
   it.each([
-    ['connected', /Connected/i, /sage/],
-    ['connecting', /Connecting/i, /amber/],
-    ['error', /Error/i, /coral/],
+    ['connected', /Connected/i, 'bg-sage-500'],
+    ['connecting', /Connecting/i, 'bg-amber-500'],
+    ['error', /Error/i, 'bg-coral-500'],
   ] as const)(
     'styles the Telegram channel tile to reflect the %s connection state',
-    (status, labelPattern, classPattern) => {
+    (status, labelPattern, dotClass) => {
       const preloadedState = {
         channelConnections: {
           schemaVersion: 1,
