@@ -46,11 +46,12 @@ pub(crate) fn extract_error_detail(body: &str, max_bytes: usize) -> String {
 /// Handle a `401 Unauthorized` from the OpenHuman backend's
 /// `/agent-integrations/*` routes.
 ///
-/// **Why this 401 is unambiguously a session-JWT rejection.** Every request
-/// from [`IntegrationClient`] attaches the *app-session JWT* as its
-/// `Authorization: Bearer` — [`super::construct::IntegrationClient::new`] resolves the
-/// token via [`crate::api::jwt::get_session_token`], the same token billing / team /
-/// webhooks / memory all use. The backend's auth middleware
+/// **Why this 401 is unambiguously a session-JWT rejection.** Only reached
+/// when the client authenticates with the *app-session JWT* (an API-key client
+/// takes [`handle_api_key_unauthorized`] instead); that JWT rides
+/// `Authorization: Bearer`, resolved by
+/// `session_support::resolve_backend_credential`, the same resolver billing /
+/// team / webhooks / memory all use. The backend's auth middleware
 /// (`backend-openhuman`) is what answers `401 {"error":"Invalid token"}` when
 /// that JWT is expired / revoked / rotated server-side — see the identical
 /// envelope pinned in `inference/provider/config_rejection.rs` and the socket
