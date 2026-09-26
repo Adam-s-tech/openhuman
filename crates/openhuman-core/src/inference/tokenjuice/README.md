@@ -6,6 +6,13 @@ ranged retrieval, runs there and is reached only over the bus; its stateless
 content transforms are linked directly (see "What is linked" below). This
 directory is the host adapter and shared wire-contract layer.
 
+Token compression is one of the ways OpenHuman keeps a turn cheap and fast
+(see [gitbooks/developing/performance.md](../../../../../gitbooks/developing/performance.md)):
+compressing tool output before it reaches the model shrinks the prompt
+without the model ever seeing less information than it needs. See
+[gitbooks/features/token-compression.md](../../../../../gitbooks/features/token-compression.md)
+for the user-facing feature page.
+
 OpenHuman-owned files:
 
 | Path | Role |
