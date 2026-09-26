@@ -314,6 +314,7 @@ export type ImageActionsProps = {
 };
 
 function RegenerateButton({ onRegenerate }: { onRegenerate: () => void | Promise<void> }) {
+  const { t } = useT();
   const [isRegenerating, setIsRegenerating] = useState(false);
   return (
     <button
@@ -328,7 +329,7 @@ function RegenerateButton({ onRegenerate }: { onRegenerate: () => void | Promise
       }}
       disabled={isRegenerating}
       data-slot="image-regenerate"
-      aria-label="Regenerate image"
+      aria-label={t('elements.image.regenerateAria', 'Regenerate image')}
       className="hover:bg-muted inline-flex size-7 items-center justify-center rounded disabled:opacity-50">
       <RefreshCwIcon className={cn('size-4', isRegenerating && 'animate-spin')} />
     </button>
