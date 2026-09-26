@@ -24,11 +24,12 @@ import { Spinner } from '../ui/icons';
 const warnLog = debug('settings:account:warn');
 
 /**
- * The bottom of Settings → Account: a Session card (routine, reversible log
- * out) and a separate Danger zone card for wiping local data. The two are kept
- * apart on purpose — same weight and colour one row apart made an irreversible
- * wipe read like a sign-out. The wipe sits behind an `AlertDialog`, which does
- * not dismiss on an outside click.
+ * The bottom of Settings → Account: a single Session card holding both the
+ * routine, reversible log-out row and the destructive wipe-local-data row.
+ * The wipe keeps its own destructive-zone wrapper and coral/danger button so
+ * it doesn't read as a peer of log out — same weight and colour one row apart
+ * used to make an irreversible wipe read like a sign-out. The wipe sits
+ * behind an `AlertDialog`, which does not dismiss on an outside click.
  */
 const LogoutAndClearActions = () => {
   const { t } = useT();

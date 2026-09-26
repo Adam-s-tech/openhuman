@@ -358,12 +358,18 @@ describe('FlowCanvasPage', () => {
   });
 
   function renderEditor(id = 'test-id') {
+    // The Back button now lives in the shell's dynamic sidebar region
+    // (`SidebarContent`), so the outlet + provider must be mounted for it to
+    // portal anywhere and be clickable.
     return render(
       <MemoryRouter initialEntries={[`/flows/${id}`]}>
-        <Routes>
-          <Route path="/flows/:id" element={<FlowCanvasPage />} />
-          <Route path="/flows" element={<div data-testid="flows-list">Flows list</div>} />
-        </Routes>
+        <SidebarSlotProvider>
+          <SidebarSlotOutlet />
+          <Routes>
+            <Route path="/flows/:id" element={<FlowCanvasPage />} />
+            <Route path="/flows" element={<div data-testid="flows-list">Flows list</div>} />
+          </Routes>
+        </SidebarSlotProvider>
       </MemoryRouter>
     );
   }
@@ -804,12 +810,18 @@ describe('FlowCanvasPage copilot proposal name adoption', () => {
   });
 
   function renderEditor(id = 'test-id') {
+    // The Back button now lives in the shell's dynamic sidebar region
+    // (`SidebarContent`), so the outlet + provider must be mounted for it to
+    // portal anywhere and be clickable.
     return render(
       <MemoryRouter initialEntries={[`/flows/${id}`]}>
-        <Routes>
-          <Route path="/flows/:id" element={<FlowCanvasPage />} />
-          <Route path="/flows" element={<div data-testid="flows-list">Flows list</div>} />
-        </Routes>
+        <SidebarSlotProvider>
+          <SidebarSlotOutlet />
+          <Routes>
+            <Route path="/flows/:id" element={<FlowCanvasPage />} />
+            <Route path="/flows" element={<div data-testid="flows-list">Flows list</div>} />
+          </Routes>
+        </SidebarSlotProvider>
       </MemoryRouter>
     );
   }
