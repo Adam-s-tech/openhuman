@@ -75,7 +75,7 @@ describe('SandboxSettingsPanel', () => {
 
   it('changing backend persists the selection', async () => {
     renderWithProviders(<SandboxSettingsPanel />);
-    const dockerOption = await screen.findByRole('radio', { name: /^docker$/i });
+    const dockerOption = await screen.findByRole('radio', { name: /^docker /i });
     fireEvent.click(dockerOption);
     await waitFor(() =>
       expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({ backend: 'docker' }))
@@ -132,7 +132,7 @@ describe('SandboxSettingsPanel', () => {
 
   it('shows saved note after successful persist', async () => {
     renderWithProviders(<SandboxSettingsPanel />);
-    const noneOption = await screen.findByRole('radio', { name: /^none$/i });
+    const noneOption = await screen.findByRole('radio', { name: /^none /i });
     fireEvent.click(noneOption);
     expect(await screen.findByText(/applies to new agent sessions/i)).toBeInTheDocument();
   });
@@ -140,7 +140,7 @@ describe('SandboxSettingsPanel', () => {
   it('shows error note when persist fails', async () => {
     mockUpdate.mockRejectedValue(new Error('Save failed'));
     renderWithProviders(<SandboxSettingsPanel />);
-    const dockerOption = await screen.findByRole('radio', { name: /^docker$/i });
+    const dockerOption = await screen.findByRole('radio', { name: /^docker /i });
     fireEvent.click(dockerOption);
     expect(await screen.findByText('Save failed')).toBeInTheDocument();
   });
