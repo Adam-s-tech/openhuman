@@ -1,7 +1,7 @@
 //! Long-lived runtime infrastructure brought up once per core boot.
 //!
 //! [`bootstrap_core_runtime`] runs from
-//! [`CoreContext::init`](super::context::CoreContext) whether or not the
+//! [`CoreContext::init`](super::context::CoreContext::init) whether or not the
 //! runtime ever binds a listener; [`start_core_runtime_services`] runs from
 //! [`CoreRuntime::serve`](super::CoreRuntime::serve) once it does.
 
