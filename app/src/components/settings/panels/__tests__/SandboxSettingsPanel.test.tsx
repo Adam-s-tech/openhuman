@@ -132,16 +132,16 @@ describe('SandboxSettingsPanel', () => {
 
   it('shows saved note after successful persist', async () => {
     renderWithProviders(<SandboxSettingsPanel />);
-    const select = await screen.findByRole('combobox', { name: /backend/i });
-    fireEvent.change(select, { target: { value: 'none' } });
+    const noneOption = await screen.findByRole('radio', { name: /^none$/i });
+    fireEvent.click(noneOption);
     expect(await screen.findByText(/applies to new agent sessions/i)).toBeInTheDocument();
   });
 
   it('shows error note when persist fails', async () => {
     mockUpdate.mockRejectedValue(new Error('Save failed'));
     renderWithProviders(<SandboxSettingsPanel />);
-    const select = await screen.findByRole('combobox', { name: /backend/i });
-    fireEvent.change(select, { target: { value: 'docker' } });
+    const dockerOption = await screen.findByRole('radio', { name: /^docker$/i });
+    fireEvent.click(dockerOption);
     expect(await screen.findByText('Save failed')).toBeInTheDocument();
   });
 
