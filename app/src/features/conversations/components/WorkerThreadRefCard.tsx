@@ -27,22 +27,23 @@ interface WorkerThreadStatusBadgeProps {
  * scanning the parent transcript know whether the background work has
  * finished or is still in flight without having to open the worker.
  *
- * Tones use the existing tool-timeline status palette
- * (amber=running, sage=success, coral=error) so a worker badge inside a
- * timeline row reads as the same state as its containing `<details>`
- * status pill — no new colour vocabulary for the user to learn.
+ * Tones use the shared `Badge` primitive's semantic variants
+ * (warning=running, success=completed, danger=failed) so a worker badge
+ * inside a timeline row reads as the same state as its containing
+ * `<details>` status pill — no new colour vocabulary for the user to learn.
  */
+const WORKER_THREAD_STATUS_VARIANT: Record<WorkerThreadStatus, BadgeVariant> = {
+  running: 'warning',
+  completed: 'success',
+  failed: 'danger',
+};
+
 function WorkerThreadStatusBadge({ status }: WorkerThreadStatusBadgeProps) {
-  const tone =
-    status === 'running'
-      ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300'
-      : status === 'completed'
-        ? 'bg-sage-100 dark:bg-sage-500/20 text-sage-700 dark:text-sage-300'
-        : 'bg-coral-100 dark:bg-coral-500/20 text-coral-700 dark:text-coral-300';
   const label = status === 'running' ? 'running' : status === 'completed' ? 'done' : 'failed';
   return (
-    <span
-      className={`flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${tone}`}
+    <Badge
+      variant={WORKER_THREAD_STATUS_VARIANT[status]}
+      dot={status !== 'running'}
       data-testid="worker-thread-status-badge"
       data-status={status}
       role="status"
@@ -53,7 +54,7 @@ function WorkerThreadStatusBadge({ status }: WorkerThreadStatusBadgeProps) {
         <span aria-hidden="true" className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500" />
       ) : null}
       {label}
-    </span>
+    </Badge>
   );
 }
 
