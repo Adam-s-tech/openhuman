@@ -18,7 +18,7 @@
  *   2. **Attention message** — when the core (subconscious loop, heartbeat,
  *      …) publishes an `OverlayAttentionEvent` via
  *      `openhuman::overlay::publish_attention(...)`. The bridge in
- *      `core::socketio` forwards this as an `overlay:attention` event.
+ *      `openhuman_rpc::server::socketio` forwards this as an `overlay:attention` event.
  *      The bubble auto-dismisses after its ttl.
  *
  * There is **no** demo loop — the overlay is entirely event-driven.

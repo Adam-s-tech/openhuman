@@ -535,7 +535,7 @@ pub fn fresh_approval_surface_subscription() -> Option<SubscriptionHandle> {
 /// Build the `approval_request` web-channel event for a parked approval.
 ///
 /// Shared by the live surface below (on `ApprovalRequested`) and by the replay
-/// path in `core::socketio` (a socket joining a thread room that already has an
+/// path in `openhuman_rpc::server::socketio` (a socket joining a thread room that already has an
 /// approval parked on it). One constructor so a client that missed the live
 /// emit is handed a byte-identical payload rather than a second shape kept in
 /// step by hand.
@@ -565,7 +565,7 @@ pub fn approval_request_event(
 
 /// Build the `plan_review_request` web-channel event for a parked plan
 /// review. Shared by the live surface below (on `PlanReviewRequested`) and by
-/// the replay path in `core::socketio` (a socket joining a thread room that
+/// the replay path in `openhuman_rpc::server::socketio` (a socket joining a thread room that
 /// already has a review parked on it) — one constructor so a client that
 /// missed the live emit is handed a byte-identical payload.
 pub fn plan_review_request_event(

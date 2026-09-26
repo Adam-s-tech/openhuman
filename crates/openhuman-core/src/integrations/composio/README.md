@@ -179,7 +179,7 @@ Published from `ops/` via `crate::core::bus::BUS.publish` (`crate::core::events:
 - `crate::core::all`: `ControllerFuture` / `RegisteredController` registry types.
 - `crate::core::bus` (`BUS`) / `crate::core::events::DomainEvent`: event publish/subscribe.
 - `crate::core::observability`: Sentry error classification/reporting.
-- `crate::rpc`: `Outcome<T>`.
+- `crate::core`: `Outcome<T>`.
 
 ## Used by
 

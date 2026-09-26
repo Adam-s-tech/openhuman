@@ -534,7 +534,7 @@ When the backend doesn't surface a charged amount (older builds, providers that 
 
 The assistant-ui-elements integration added a batch of additive `WebChannelEvent`s and RPCs so the frontend can render tool args/timing, plan/goal/queue state, and turn lifecycle without polling. `EVENTS_VERSION` (`core/bus.rs`) is `1.4.0`; every new field is optional/defaulted so an older subscriber keeps parsing what a newer publisher emits.
 
-**New/extended socket events** (bridged from `DomainEvent` onto `WebChannelEvent` by `web_chat::event_bus` and `core::socketio`):
+**New/extended socket events** (bridged from `DomainEvent` onto `WebChannelEvent` by `web_chat::event_bus` and `openhuman_rpc::server::socketio`):
 
 - `ts` (epoch ms) is now stamped on every event by `publish_web_channel_event` when the producer left it unset, so the frontend can order/measure latency without guessing at receive time.
 - `chat_done.timing` - `{ first_token_ms, first_tool_ms, total_ms, tokens_per_second }`, threaded from the progress bridge's per-turn `TurnTiming` through `ProgressBridgeHandle::timing_snapshot()`. `tokens_per_second` is derived from `output_tokens / (total_ms / 1000)` when both are known and `total_ms > 0`.

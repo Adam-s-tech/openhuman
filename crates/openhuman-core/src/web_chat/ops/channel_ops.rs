@@ -183,7 +183,7 @@ pub async fn channel_web_chat(
     metadata: ChatRequestMetadata,
 ) -> Result<Outcome<Value>, String> {
     // Mirrors the socket `chat:start` payload's `run_mode` handling
-    // (`core::socketio`): apply it before starting the turn so
+    // (`openhuman_rpc::server::socketio`): apply it before starting the turn so
     // `plan_mode_middleware` sees the requested mode from the first tool
     // check of this turn, rather than racing a separate
     // `agent.set_run_mode` RPC. Unrecognized values are logged and ignored

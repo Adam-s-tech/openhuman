@@ -73,7 +73,7 @@ None. This domain owns no `tools.rs`.
 
 **Publishes**: `DomainEvent::NotificationTriaged` from `rpc::handle_ingest`'s background triage task (carries `id`, `provider`, `action`, `importance_score`, `latency_ms`, `routed`).
 
-The bridge bus is a separate `tokio::sync::broadcast` channel (not the global event bus); `core::socketio` subscribes to it and forwards each event as the `core_notification` / `core:notification` Socket.IO message.
+The bridge bus is a separate `tokio::sync::broadcast` channel (not the global event bus); `openhuman_rpc::server::socketio` subscribes to it and forwards each event as the `core_notification` / `core:notification` Socket.IO message.
 
 ## Persistence
 
