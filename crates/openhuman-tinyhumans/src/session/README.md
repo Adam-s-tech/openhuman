@@ -41,10 +41,10 @@ host owns the login; the core only takes the resulting credential.
 
 ## Where to look next
 
-- `AGENTS.md`, "Tool, harness, and runtime boundaries" and "Backend API" —
+- `AGENTS.md`, "Tool, harness, and runtime boundaries" and "Backend API":
   why login ownership sits here and not in the core.
-- [`gitbooks/developing/tinyhumans-api-key.md`](../../../../gitbooks/developing/tinyhumans-api-key.md)
- : the API-key alternative to a session login for library and headless
+- [`gitbooks/developing/tinyhumans-api-key.md`](../../../../gitbooks/developing/tinyhumans-api-key.md):
+  the API-key alternative to a session login for library and headless
   hosts, which does not go through this module.
 - [`../transport/README.md`](../transport/README.md): the transport a
   resolved credential ultimately authenticates.
