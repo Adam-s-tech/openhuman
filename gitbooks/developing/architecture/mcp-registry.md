@@ -19,7 +19,7 @@ The **client half**, meaning both transports, the Smithery/official catalogs, th
 - `host.rs` (one level up, `crates/openhuman-core/src/mcp/host.rs`): the one `tinymcp` service this process holds per workspace, and config-to-`tinymcp` conversion.
 - `registry/`: the `mcp_clients` RPC surface, the agent-facing tools, and the prompt-injection scan applied to remote tool definitions.
 - `audit/` (sibling of `registry/`): the RPC surface over `tinymcp`'s write-audit log.
-- `server/` (sibling of `registry/`): the `openhuman-core mcp` stdio/HTTP server that exposes this application's own tools to external MCP hosts — see [MCP Server](../mcp-server.md). This is the *server* side and did not move.
+- `server/` (sibling of `registry/`): the `openhuman-core mcp` stdio/HTTP server that exposes this application's own tools to external MCP hosts (see [MCP Server](../mcp-server.md)). This is the *server* side and did not move.
 
 > **Naming note**: the Rust module path is `crate::mcp::registry` (`crates/openhuman-core/src/mcp/registry/`), but the RPC namespace and on-disk SQLite filename stay `mcp_clients` for backward compatibility with existing frontend code and stored user state. Grep both names when chasing call sites.
 
