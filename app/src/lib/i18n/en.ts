@@ -665,6 +665,7 @@ const en: TranslationMap = {
   'skills.explorer.scopeLegacy': 'Legacy',
   'skills.explorer.noDescription': 'No description provided.',
   'skills.explorer.uninstallSuccess': 'Skill uninstalled successfully.',
+  'skills.explorer.runnerTab': 'Runner',
   'skills.explorer.registryTab': 'Registry',
   'skills.explorer.installedTab': 'Installed',
   'skills.explorer.allFormats': 'All formats',

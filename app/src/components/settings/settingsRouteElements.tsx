@@ -28,7 +28,6 @@ import SecurityPanel from './panels/SecurityPanel';
 import ThemeStudioPanel from './panels/ThemeStudioPanel';
 import ToolPolicyDiagnosticsPanel from './panels/ToolPolicyDiagnosticsPanel';
 import ToolsPanel from './panels/ToolsPanel';
-import WorkflowRunnerPanel from './panels/WorkflowRunnerPanel';
 
 /**
  * Single vertical-scroll wrapper for a settings panel. The surrounding card
@@ -177,7 +176,7 @@ export function settingsRouteElements(): ReactNode {
       <Route path="automations" element={<Navigate to="/flows" replace />} />
       {/* Dev Workflow panel retired — superseded by Workflows (/flows). */}
       <Route path="dev-workflow" element={<Navigate to="/flows" replace />} />
-      <Route path="skills-runner" element={wrapSettingsPage(<WorkflowRunnerPanel />)} />
+      <Route path="skills-runner" element={<SettingsRedirect to="/connections?tab=skills" />} />
       {/* Voice Debug page retired. */}
       <Route path="voice-debug" element={<SettingsRedirect to="/settings/developer-options" />} />
       {/* Local Model Debug retired — the panel is deleted. Redirect kept for

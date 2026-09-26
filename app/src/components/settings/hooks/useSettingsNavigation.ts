@@ -42,7 +42,6 @@ type SettingsRoute =
   | 'meetings'
   | 'embeddings'
   | 'search'
-  | 'skills-runner'
   | 'event-log'
   | 'tool-policy-diagnostics'
   | 'about';

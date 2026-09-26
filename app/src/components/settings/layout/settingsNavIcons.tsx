@@ -126,14 +126,6 @@ export const SETTINGS_NAV_ICONS: Record<string, ReactNode> = {
       'M9 17v-5a2 2 0 012-2h2a2 2 0 012 2v5m-8 0h8m-8 0H7a2 2 0 01-2-2V7a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2h-2'
     )
   ),
-  'skills-runner': icon(
-    <Fragment>
-      {stroke(
-        'M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z'
-      )}
-      {stroke('M21 12a9 9 0 11-18 0 9 9 0 0118 0z')}
-    </Fragment>
-  ),
   // Automation & Integrations
   tasks: icon(
     stroke(

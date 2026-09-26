@@ -549,15 +549,7 @@ export const SETTINGS_ROUTE_REGISTRY: SettingsRegistryEntry[] = [
   // superseded by first-level Workflows (/flows) and the skills workflow runner.
   // Composio trigger-triage config merged into the Connections Composio page.
   // Agent Chat + Local Model Debug are now chips on the Connections → LLM page.
-  {
-    id: 'skills-runner',
-    titleKey: 'settings.developerMenu.skillsRunner.title',
-    descriptionKey: 'settings.developerMenu.skillsRunner.desc',
-    section: 'developer',
-    devOnly: true,
-    navGroup: 'agentsAutonomy',
-    navOrder: 3,
-  },
+  // skills-runner moved to Connections → Skills → Runner; the slug redirects.
   // The dev-only "Build / version info" alias was removed: it opened the same
   // About page, so dev builds listed two sidebar entries for one page. About's
   // search keywords already cover "build" and "version".
