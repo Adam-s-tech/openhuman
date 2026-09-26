@@ -112,6 +112,7 @@ const themePersistConfig = {
     'activeThemeId',
     'themeVariant',
     'customThemes',
+    'layout',
   ],
 };
 const persistedThemeReducer = persistReducer(themePersistConfig, themeReducer);

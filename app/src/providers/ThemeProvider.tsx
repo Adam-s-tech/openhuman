@@ -1,6 +1,7 @@
 import { ReactNode, useCallback, useEffect, useRef } from 'react';
 
 import { withDerivedChrome } from '../lib/theme/chrome';
+import { applyBorderContrast, applyLayoutAttributes } from '../lib/theme/layout';
 import { findFamily, resolveFamilyVariant } from '../lib/theme/presets';
 import type { Theme } from '../lib/theme/types';
 import { useAppSelector } from '../store/hooks';
@@ -8,6 +9,7 @@ import {
   selectActiveFamilyId,
   selectEffectiveTheme,
   selectRootFontSizePx,
+  selectThemeLayout,
   selectThemeVariant,
 } from '../store/themeSlice';
 
@@ -32,6 +34,12 @@ const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const themeVariant = useAppSelector(selectThemeVariant);
   const activeFamilyId = useAppSelector(selectActiveFamilyId);
   const effectiveTheme = useAppSelector(selectEffectiveTheme);
+  const layout = useAppSelector(selectThemeLayout);
+  // Read inside `applyTheme` (a stable callback also fired by the OS
+  // light/dark listener) so border contrast is re-derived on every theme apply.
+  const layoutRef = useRef(layout);
+  layoutRef.current = layout;
+  const appliedColorsRef = useRef<Record<string, string>>({});
 
   // Track which inline vars we set last time so we can clear stale ones.
   const appliedRef = useRef<{ colors: string[]; fonts: string[] }>({ colors: [], fonts: [] });
@@ -74,6 +82,10 @@ const ThemeProvider = ({ children }: { children: ReactNode }) => {
       root.style.removeProperty('--app-gradient');
     }
 
+    // Border contrast derives from the colours just applied, so it runs last.
+    applyBorderContrast(root, layoutRef.current.borderContrast, theme.colors);
+    appliedColorsRef.current = theme.colors;
+
     appliedRef.current = { colors: Object.keys(theme.colors), fonts: Object.keys(theme.fonts) };
     console.debug('[theme] applied', {
       id: theme.id,
@@ -90,6 +102,15 @@ const ThemeProvider = ({ children }: { children: ReactNode }) => {
     console.debug('[theme] applying root font-size', { px: rootFontSizePx });
     document.documentElement.style.fontSize = rootFontSizePx;
   }, [rootFontSizePx]);
+
+  // Apply Appearance → Layout (corners, border contrast, border areas).
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const root = document.documentElement;
+    console.debug('[theme] applying layout', layout);
+    applyLayoutAttributes(root, layout);
+    applyBorderContrast(root, layout.borderContrast, appliedColorsRef.current);
+  }, [layout]);
 
   // Apply the active theme whenever it changes.
   useEffect(() => {

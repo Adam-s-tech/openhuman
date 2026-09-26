@@ -8,6 +8,7 @@ import {
   resolveFamilyVariant,
   THEME_FAMILIES,
 } from '../lib/theme/presets';
+import { DEFAULT_LAYOUT, resolveLayout, type ThemeLayout } from '../lib/theme/layout';
 import type { FontRole } from '../lib/theme/tokens';
 import type { Theme, ThemeFamily } from '../lib/theme/types';
 
@@ -94,6 +95,12 @@ interface ThemeState {
   themeVariant: ThemeVariant;
   /** User-authored themes (full or partial token overrides). */
   customThemes: Theme[];
+  /**
+   * Appearance → Layout: corner rounding, border contrast and which areas draw
+   * borders. Theme-independent. Absent in state persisted before it existed;
+   * read it through {@link selectThemeLayout}, which fills the defaults.
+   */
+  layout: ThemeLayout;
 }
 
 const initialState: ThemeState = {
@@ -105,6 +112,7 @@ const initialState: ThemeState = {
   activeThemeId: DEFAULT_FAMILY_ID,
   themeVariant: 'system',
   customThemes: [],
+  layout: DEFAULT_LAYOUT,
 };
 
 const themeSlice = createSlice({
@@ -193,6 +201,23 @@ const themeSlice = createSlice({
     setCustomFontSizePx(state, action: PayloadAction<number | null>) {
       state.customFontSizePx = action.payload === null ? null : clampFontSizePx(action.payload);
     },
+    /** Merge a partial layout change (e.g. one border area) into the current one. */
+    setThemeLayout(
+      state,
+      action: PayloadAction<Partial<Omit<ThemeLayout, 'borderAreas'>> & {
+        borderAreas?: Partial<ThemeLayout['borderAreas']>;
+      }>
+    ) {
+      const current = resolveLayout(state.layout);
+      state.layout = resolveLayout({
+        ...current,
+        ...action.payload,
+        borderAreas: { ...current.borderAreas, ...action.payload.borderAreas },
+      });
+    },
+    resetThemeLayout(state) {
+      state.layout = DEFAULT_LAYOUT;
+    },
     setDeveloperMode(state, action: PayloadAction<boolean>) {
       state.developerMode = action.payload;
     },
@@ -226,6 +251,8 @@ export const {
   setFontSize,
   setCustomFontSizePx,
   setDeveloperMode,
+  setThemeLayout,
+  resetThemeLayout,
   setActiveTheme,
   upsertCustomTheme,
   deleteCustomTheme,
@@ -238,6 +265,10 @@ export default themeSlice.reducer;
 
 /** Built-in theme families (static). */
 export const selectThemeFamilies = (): ThemeFamily[] => THEME_FAMILIES;
+
+/** The layout preference with defaults filled for older persisted state. */
+export const selectThemeLayout = (state: { theme?: ThemeState }): ThemeLayout =>
+  resolveLayout(state.theme?.layout);
 
 export const selectActiveThemeId = (state: { theme?: ThemeState }): string =>
   state.theme?.activeThemeId ?? DEFAULT_FAMILY_ID;
