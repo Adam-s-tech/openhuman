@@ -215,7 +215,7 @@ describe('<Feedback /> keeps the board in sync after local mutations', () => {
     renderWithProviders(<Feedback />, { initialEntries: ['/?view=main'] });
     await screen.findByText('A bug');
 
-    await openFilter(user, 'All types', 'Bug');
+    await clickTypeFilter(user, 'Bug');
     await waitFor(() => expect(mockList).toHaveBeenCalledTimes(2));
 
     await submitFeature(user, 'New feature idea');
