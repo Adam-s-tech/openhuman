@@ -78,7 +78,7 @@ export function ConversationMap({
     <nav
       data-slot="conversation-map"
       ref={railRef}
-      aria-label="Conversation map"
+      aria-label={t('elements.conversationMap.ariaLabel', 'Conversation map')}
       onKeyDown={handleKeyDown}
       onPointerLeave={() => setPreviewId(null)}
       className={cn('group/rail flex h-full w-6 flex-col justify-center', className)}
