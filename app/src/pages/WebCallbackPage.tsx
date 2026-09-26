@@ -29,6 +29,7 @@ export default function WebCallbackPage({
   callbackKind,
   callbackStatus,
 }: WebCallbackPageProps = {}) {
+  const { t } = useT();
   const { kind: routeKind, status: routeStatus } = useParams();
   const location = useLocation();
   const kind = callbackKind ?? routeKind;
