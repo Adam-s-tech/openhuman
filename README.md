@@ -66,7 +66,7 @@ OpenHuman is a Rust core with a desktop app, a browser UI, a terminal client, an
 
 The core runs in-process, not as a separate daemon the UI talks to over a socket. A [fleet sweep](./gitbooks/developing/performance.md) of 50, 100, and 500 live agents in one process measured a marginal cost of 1,985, 1,866, and 1,770 KiB per additional agent, settling at 223 MiB, 356 MiB, and 1,393 MiB total. The same workload run as 500 separate processes instead of 500 agents in one costs about 48 MiB per instance, so sharing one process is roughly 25 times denser. Thousands of agents on one box is the direction this is heading, not a number we've hit yet.
 
-A cold agent turn takes 102 ms; the full nine-phase bootstrap (config load, registry init, agent build, memory construction, first turn) takes 476 ms. A slim build settles at about 42 MiB RSS, of which roughly 15.2 MiB is private heap and the rest is paged-in executable text and allocator overhead. [Token compression](gitbooks/features/token-compression.md) (tinyjuice) also cuts what actually reaches the model, so a large context costs less than its raw size suggests.
+A cold agent turn takes 102 ms; the full nine-phase bootstrap (config load, registry init, agent build, memory construction, first turn) takes 476 ms. A slim build settles at about 42 MiB RSS, of which roughly 15.2 MiB is private heap and the rest is paged-in executable text and allocator overhead. [Token compression](./gitbooks/features/token-compression.md) (tinyjuice) also cuts what actually reaches the model, so a large context costs less than its raw size suggests.
 
 Full methodology and numbers: [`docs/library-benchmarking.md`](./docs/library-benchmarking.md), [`docs/harness-comparison-2026-07-22.md`](./docs/harness-comparison-2026-07-22.md), and [performance](./gitbooks/developing/performance.md).
 
@@ -93,11 +93,11 @@ Not every decision needs the model to generate text. [Jev](./gitbooks/developing
 
 The clearest use is [tool search](./docs/plans/jev-tool-search-baseline.md): with 215 core tools plus 1,000 Composio actions on the table and 160 real requests, plain BM25 retrieval got the right tool in its top pick 22.5% of the time and made 26 needless tool calls out of 31 tool-less requests. Retrieving the top 20 candidates by embedding and letting Jev choose among them got the right tool 62.0% of the time (66.7% in its top 3) and made 1 needless call, at a p50 of 1.5 seconds against BM25's 28 milliseconds. Letting Jev pick the Composio app family first and then the action within it pushes Composio-only accuracy to 80.3% top-1. It falls back to BM25 automatically when no TinyHumans credential is present.
 
-Jev also drives step-by-step decisions inside the [browser tool](crates/openhuman-core/src/modules/browser_task.rs), where a consequential action (a purchase, a send, a delete) returns `NeedsConfirmation` instead of executing.
+Jev also drives step-by-step decisions inside the [browser tool](./crates/openhuman-core/src/modules/browser_task.rs), where a consequential action (a purchase, a send, a delete) returns `NeedsConfirmation` instead of executing.
 
 ## Workflows
 
-[Workflows](gitbooks/features/workflows.md) are saved, typed automation graphs, built on the open-source [tinyflows](https://github.com/tinyhumansai/tinyflows) engine. The catalog has 22 node kinds (agent calls, HTTP requests, code, conditions, loops, sub-workflows, approvals, and more), and a graph can trigger on a schedule, an app event, or manually, and can resume mid-run after a pause.
+[Workflows](./gitbooks/features/workflows.md) are saved, typed automation graphs, built on the open-source [tinyflows](https://github.com/tinyhumansai/tinyflows) engine. The catalog has 22 node kinds (agent calls, HTTP requests, code, conditions, loops, sub-workflows, approvals, and more), and a graph can trigger on a schedule, an app event, or manually, and can resume mid-run after a pause.
 
 <p align="center">
  <img src="./gitbooks/.gitbook/assets/workflows.png" alt="OpenHuman workflow canvas">

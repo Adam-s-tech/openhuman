@@ -153,11 +153,11 @@ When you add / remove / rename a feature, **update the matrix row in the same PR
 
 Most local Rust failures in this repo are environmental, and the environments
 fail in ways that look exactly like product defects. Work down this list before
-concluding anything — each step is one command, and every one of them has caught
+concluding anything. Each step is one command, and every one of them has caught
 a wrong conclusion that was already on its way into an issue.
 
 **Every prerequisite below carries the failure you get without it.** A step with
-its failure attached is self-auditing — anyone can check in thirty seconds
+its failure attached is self-auditing: anyone can check in thirty seconds
 whether it is still true, and a stale one announces itself. A bare list of steps
 cannot be audited at all, which is how it rots into folklore. *If you cannot
 produce the failure for an item, it does not belong here.*
@@ -165,7 +165,7 @@ produce the failure for an item, it does not belong here.*
 **A note that tells you the cause is not evidence of the cause.** A line in a
 doc or a memory saying "these fail locally, it is provisioning" is a
 *pre-supplied conclusion*. It terminates the investigation before it starts,
-which is worse than no note at all — one such note sent a worker looking for a
+which is worse than no note at all: one such note sent a worker looking for a
 provisioning gap when the real cause was a product defect
 (`agent definition \`harness\` was not found`, openhuman#6487). Use the steps,
 not the folklore.
@@ -187,7 +187,7 @@ Zero `test result` lines means the question is *compilation or abort*, never
 - `fatal runtime error: stack overflow` with `signal: 6, SIGABRT` and no
   `test result` line at all → the process aborted; see step 3.
 
-### 2. Are the submodules actually there — at every depth?
+### 2. Are the submodules actually there, at every depth?
 
 Some crates depend on submodules **nested inside other submodules**.
 `openhuman-tinyhumans` is the clearest case: it needs `vendor/tinyhumans-sdk`
