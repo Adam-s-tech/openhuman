@@ -25,5 +25,5 @@ pub fn websocket_url(http_or_https_base: &str) -> String {
 }
 
 #[cfg(test)]
-#[path = "socket_tests.rs"]
+#[path = "url_tests.rs"]
 mod tests;

@@ -1035,5 +1035,5 @@ fn key_bytes_from_string(key: &str) -> Result<Vec<u8>> {
 }
 
 #[cfg(test)]
-#[path = "rest_tests.rs"]
+#[path = "client_tests.rs"]
 mod key_bytes_from_string_tests;
