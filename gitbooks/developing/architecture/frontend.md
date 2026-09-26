@@ -198,11 +198,11 @@ export const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
 
 ### Best practices
 
-1. **Always use typed hooks**: `useAppDispatch` and `useAppSelector`.
-2. **Use selectors for derived state**: see `store/socketSelectors.ts`, `store/connectivitySelectors.ts`, `store/userErrorsSelectors.ts`.
-3. **Whitelist persistence per slice**: never persist transient/loading state; add a per-slice `persistReducer` in `store/index.ts`.
-4. **Prefer Redux over ad-hoc `localStorage`**: plain localStorage is reserved for the pre-login slices noted above.
-5. In dev / E2E builds the store is exposed as `window.__OPENHUMAN_STORE__` so WDIO specs can assert backing state; production bundles do not expose it.
+1. Always use the typed hooks, `useAppDispatch` and `useAppSelector`.
+2. Use selectors for derived state: see `store/socketSelectors.ts`, `store/connectivitySelectors.ts`, `store/userErrorsSelectors.ts`.
+3. Whitelist persistence per slice. Never persist transient or loading state; add a per-slice `persistReducer` in `store/index.ts`.
+4. Prefer Redux over ad hoc `localStorage`. Plain localStorage is reserved for the pre-login slices noted above.
+5. In dev and E2E builds the store is exposed as `window.__OPENHUMAN_STORE__` so WDIO specs can assert backing state; production bundles do not expose it.
 
 ---
 
