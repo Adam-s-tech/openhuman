@@ -19,6 +19,7 @@
  * only caller.
  */
 import { cn } from '@/components/assistant-ui/lib/utils';
+import { useT } from '@/lib/i18n/I18nContext';
 import {
   Tooltip,
   TooltipContent,
