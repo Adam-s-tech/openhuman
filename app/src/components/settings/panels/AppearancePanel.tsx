@@ -1,3 +1,4 @@
+import { ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 
@@ -10,18 +11,17 @@ import {
   MAX_FONT_SIZE_PX,
   MIN_FONT_SIZE_PX,
   selectEffectiveFontSizePx,
+  selectEffectiveTheme,
+  selectThemeVariant,
   setCustomFontSizePx,
   setFontSize,
+  setThemeVariant,
+  type ThemeVariant,
 } from '../../../store/themeSlice';
-import { Card, Slider } from '../../ui';
+import { Button, Card, Field, Slider, ToggleGroupItem, ToggleGroupRoot } from '../../ui';
 import { SettingsNumberField } from '../controls';
 import SettingsPanel from '../layout/SettingsPanel';
 import LayoutSettings from './theme/LayoutSettings';
-import ThemeStudioPanel from './ThemeStudioPanel';
-
-type AppearanceTab = 'general' | 'layout';
-
-const TAB_HASH: Record<AppearanceTab, string> = { general: '', layout: '#layout' };
 
 interface FontSizeOption {
   id: FontSize;
@@ -35,13 +35,10 @@ const AppearancePanel = () => {
   const { t } = useT();
   const dispatch = useAppDispatch();
   const effectiveFontSizePx = useAppSelector(selectEffectiveFontSizePx);
+  const variant = useAppSelector(selectThemeVariant);
+  const effectiveTheme = useAppSelector(selectEffectiveTheme);
   const location = useLocation();
   const navigate = useNavigate();
-  // The URL hash is the source of truth for the tab, so deep links land on it.
-  const tab: AppearanceTab = location.hash === '#layout' ? 'layout' : 'general';
-  const selectTab = (next: AppearanceTab) => {
-    navigate(`${location.pathname}${location.search}${TAB_HASH[next]}`, { replace: true });
-  };
 
   // Local draft for the numeric px field so partial typing doesn't thrash the
   // store; commits (blur / Enter) clamp and dispatch, while the slider dispatches
@@ -100,9 +97,57 @@ const AppearancePanel = () => {
     },
   ];
 
-  const general = (
+  const VARIANT_OPTIONS: { id: ThemeVariant; label: string }[] = [
+    { id: 'light', label: t('settings.theme.variantLight') },
+    { id: 'dark', label: t('settings.theme.variantDark') },
+    { id: 'system', label: t('settings.theme.variantAuto') },
+  ];
+
+  const body = (
     <>
-      <ThemeStudioPanel embedded part="gallery" onCustomize={() => navigate('/settings/theme')} />
+      {/* Mode + the active theme. Picking and editing themes lives on the
+          Theme Studio page; this row only names the current one and links
+          there, so light/dark stays a one-click setting here. */}
+      <Card title={t('settings.appearance.themeHeading')} data-testid="appearance-theme">
+        <Field
+          label={t('settings.theme.variantAria')}
+          control={
+            <ToggleGroupRoot
+              type="single"
+              variant="secondary"
+              size="xs"
+              value={variant}
+              onValueChange={next => {
+                if (next) dispatch(setThemeVariant(next as ThemeVariant));
+              }}
+              aria-label={t('settings.theme.variantAria')}
+              className="overflow-hidden rounded-lg border border-line gap-0 *:rounded-none *:border-0">
+              {VARIANT_OPTIONS.map(opt => (
+                <ToggleGroupItem
+                  key={opt.id}
+                  value={opt.id}
+                  className="h-auto px-2.5 py-1 text-xs font-medium data-[state=on]:bg-primary-500 data-[state=on]:text-content-inverted">
+                  {opt.label}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroupRoot>
+          }
+        />
+        <Field
+          label={t('settings.theme.presetsHeading')}
+          description={effectiveTheme.name}
+          control={
+            <Button
+              variant="secondary"
+              size="sm"
+              trailingIcon={<ChevronRight className="h-3.5 w-3.5" aria-hidden />}
+              onClick={() => navigate('/settings/theme')}
+              data-testid="appearance-open-theme-studio">
+              {t('settings.theme.title')}
+            </Button>
+          }
+        />
+      </Card>
 
       <Card
         title={t('settings.appearance.fontSizeHeading')}
@@ -188,36 +233,15 @@ const AppearancePanel = () => {
     </>
   );
 
-  // Theme Studio was briefly a tab here (`#studio`); it is its own page now.
+  // Theme Studio and Layout were briefly tabs here (`#studio`, `#layout`).
   if (location.hash === '#studio') return <Navigate to="/settings/theme" replace />;
 
   return (
-    <SettingsPanel<AppearanceTab>
-      description={t('settings.appearance.menuDesc')}
-      tabsAriaLabel={t('settings.appearance.title')}
-      tabsTestIdPrefix="appearance-tab"
-      value={tab}
-      onChange={selectTab}
-      tabs={[
-        // Everyday controls: theme + Light/Dark/Auto and text size. The
-        // gallery's header holds the variant toggle — `setThemeMode` and
-        // `setThemeVariant` write the same two slice fields, so there is one
-        // control, not two.
-        {
-          id: 'general',
-          label: t('settings.general'),
-          content: general,
-          contentClassName: 'space-y-5',
-        },
-        // Corner rounding, border contrast, and which areas draw borders.
-        {
-          id: 'layout',
-          label: t('settings.layout.title'),
-          content: <LayoutSettings />,
-          contentClassName: 'space-y-5',
-        },
-      ]}
-    />
+    <SettingsPanel testId="appearance-panel" description={t('settings.appearance.menuDesc')}>
+      {body}
+      {/* Corner rounding, border contrast, and which areas draw borders. */}
+      <LayoutSettings />
+    </SettingsPanel>
   );
 };
 
