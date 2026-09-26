@@ -1,6 +1,5 @@
 'use client';
 
-import * as React from 'react';
 import { cn } from '@/components/assistant-ui/lib/utils';
 import { Avatar as AvatarPrimitive } from '@base-ui/react/avatar';
 
