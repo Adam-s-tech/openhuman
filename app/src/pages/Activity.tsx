@@ -6,6 +6,7 @@ import { ToastContainer } from '../components/intelligence/Toast';
 import WorkflowsTab from '../components/intelligence/WorkflowsTab';
 import ChipTabs from '../components/layout/ChipTabs';
 import PageSectionHeader from '../components/layout/PageSectionHeader';
+import { Badge } from '../components/ui';
 import {
   useIntelligenceSocket,
   useIntelligenceSocketManager,
