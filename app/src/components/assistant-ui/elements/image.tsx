@@ -255,7 +255,7 @@ function ImageZoom({ src, alt = 'Image preview', children }: ImageZoomProps) {
             className="aui-image-zoom-overlay fade-in animate-in fixed inset-0 z-50 flex items-center justify-center bg-black/80 duration-200"
             onClick={handleClose}
             onKeyDown={e => e.key === 'Enter' && handleClose()}
-            aria-label="Close zoomed image">
+            aria-label={t('elements.image.closeZoomAria', 'Close zoomed image')}>
             <img
               data-slot="image-zoom-content"
               src={src}
