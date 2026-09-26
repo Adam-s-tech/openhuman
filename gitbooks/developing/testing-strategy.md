@@ -79,7 +79,7 @@ A spec that asserts only the happy path is incomplete.
 - **Element helpers**: `clickNativeButton`, `waitForWebView`, `clickToggle` in `helpers/element-helpers.ts`, use these instead of raw `XCUIElementType*` selectors.
 - **Shared flows**: `completeOnboardingIfVisible`, `navigateViaHash`, `navigateToSkills`, `walkOnboarding` in `helpers/shared-flows.ts`.
 - **Core RPC from spec**: `callOpenhumanRpc` in `helpers/core-rpc.ts`, drives the embedded core directly when a UI step would be brittle.
-- **Platform guards**: `isTauriDriver`, `isMac2`, `supportsExecuteScript` in `helpers/platform.ts` (the first two are legacy shims — everything runs on the Appium Chromium driver now).
+- **Platform guards**: `isTauriDriver`, `isMac2`, `supportsExecuteScript` in `helpers/platform.ts` (the first two are legacy shims; everything runs on the Appium Chromium driver now).
 - **Artifact capture on failure**: `captureFailureArtifacts` runs from `wdio.conf.ts`, screenshots + DOM dumps land under `app/test/e2e/artifacts/`.
 
 ---
