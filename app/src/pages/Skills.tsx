@@ -1189,13 +1189,8 @@ export default function Skills() {
                     <ComposioPanel embedded />
                   </SettingsTabbedPage>
                 )}
-                {activeTab === 'usage' && (
-                  <SettingsTabbedPage
-                    title={t('settings.usage.title')}
-                    description={t('settings.usage.menuDesc')}>
-                    <UsagePanel />
-                  </SettingsTabbedPage>
-                )}
+                {/* Usage owns its page shell (header chip tabs), like LLM. */}
+                {activeTab === 'usage' && <UsagePanel />}
                 {activeTab === 'wallet' && <WalletPanel />}
                 {activeTab === 'desktop' && <DesktopConnectionPage />}
               </SettingsLayoutProvider>
