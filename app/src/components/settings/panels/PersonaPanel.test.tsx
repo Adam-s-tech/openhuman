@@ -105,7 +105,7 @@ describe('PersonaPanel', () => {
     await awaitLoaded();
 
     fireEvent.click(screen.getByTestId('persona-template-doctor'));
-    fireEvent.click(screen.getByTestId('persona-soul-save'));
+    fireEvent.click(screen.getByTestId('persona-save'));
 
     await waitFor(() => {
       const lastCall = writePersonaFileMock.mock.calls.at(-1);
