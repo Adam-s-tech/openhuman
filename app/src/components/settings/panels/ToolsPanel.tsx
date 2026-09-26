@@ -97,9 +97,9 @@ const ToolsPanel = ({ embedded = false }: ToolsPanelProps = {}) => {
 
   const body = (
     <>
-      <p className="text-content-muted text-sm">{t('settings.tools.chooseCapabilities')}</p>
-
-      <div className="max-h-[420px] overflow-y-auto pr-1 space-y-4">
+      {/* The page scrolls as a whole; the page description already says what
+          this is, so no intro line and no fixed-height inner scroller. */}
+      <div className="space-y-4">
         {TOOL_CATEGORIES.map(category => {
           const tools = toolsByCategory[category];
           if (tools.length === 0) return null;
