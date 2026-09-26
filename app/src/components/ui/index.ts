@@ -91,12 +91,11 @@ export {
   Alert,
   AlertDescription,
   AlertTitle,
-  alertVariants,
   type AlertDensity,
   type AlertProps,
   type AlertVariant,
 } from './Alert';
-export { default as Badge, badgeVariants, type BadgeProps, type BadgeVariant } from './Badge';
+export { default as Badge, type BadgeProps, type BadgeVariant } from './Badge';
 export { default as Separator, type SeparatorProps } from './Separator';
 export { default as EmptyState, type EmptyStateProps } from './EmptyState';
 export { default as StatusLine, type StatusLineProps } from './StatusLine';
