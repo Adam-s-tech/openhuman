@@ -77,7 +77,7 @@ fn sanitize_user(user: Option<Value>) -> Option<Value> {
 }
 
 fn user_id_from_payload(user: Option<&Value>) -> Option<String> {
-    user.and_then(crate::backend::user_id_from_profile_payload)
+    user.and_then(crate::security::credentials::jwt::user_id_from_profile_payload)
 }
 
 fn normalize_local_user(user: Value, local_user_id: &str) -> Value {

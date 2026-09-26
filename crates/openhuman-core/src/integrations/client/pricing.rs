@@ -71,9 +71,9 @@ pub async fn pricing_for_config(
 ///
 /// Both the backend URL and the auth token come from **core defaults**:
 ///
-/// - backend URL → [`crate::api::config::effective_backend_api_url`]
+/// - backend URL → [`crate::backend::base_url`]
 ///   applied to `config.api_url`. Unlike the plain
-///   [`crate::api::config::effective_api_url`] resolver (which honours a
+///   [`crate::backend::inference_base_url`] resolver (which honours a
 ///   user-set local-AI endpoint so chat completions still work), the
 ///   backend resolver detects local-AI URLs and falls back to the
 ///   `BACKEND_URL` / `VITE_BACKEND_URL` env vars (and finally the hosted
@@ -96,7 +96,13 @@ pub fn build_client(config: &crate::config::Config) -> Option<Arc<IntegrationCli
     // which 404 against the local LLM and flooded Sentry
     // (OPENHUMAN-TAURI-51 / -80 / -7Z). The helper falls through to env /
     // default backend in that case so integrations actually work.
-    let backend_url = crate::api::config::effective_backend_api_url(&config.api_url);
+    let backend_url = match crate::backend::base_url(&config.api_url) {
+        Ok(url) => url,
+        Err(_) => {
+            tracing::debug!("[integrations] no backend transport — integrations client unavailable");
+            return None;
+        }
+    };
 
     // Primary: app-session JWT from the auth profile store.
     let session_token = match crate::security::credentials::jwt::get_session_token(config) {
