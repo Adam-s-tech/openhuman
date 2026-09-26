@@ -75,3 +75,5 @@ to `exa` or `tavily` before a key is saved behaves the same as `managed`.
 - `crates/openhuman-core/src/config/schema/` for the `SearchEngine` enum and
   the per-provider config sections (`search.brave`, `search.exa`, and so on)
   these files read.
+- `gitbooks/developing/engines.md` for how web search fits alongside the
+  other pluggable engines (LLM providers, embeddings, memory).

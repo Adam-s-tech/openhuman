@@ -55,7 +55,7 @@ than protocol:
 
 ## The two re-export modules
 
-`mcp::http_client` and `mcp::config_servers` are not directories, they no
+`mcp::http_client` and `mcp::config_servers` are not directories. They no
 longer hold transport source, only `pub use` re-exports of `tinymcp`:
 
 - `http_client` (ungated), the Streamable HTTP transport:
@@ -73,7 +73,7 @@ longer hold transport source, only `pub use` re-exports of `tinymcp`:
   `config::McpAuthConfig`, which the TOML file declares).
 
 Neither module implements a transport, a handshake, or OAuth discovery any
-more, that all lives in `tinymcp` now. Read
+more. That all lives in `tinymcp` now. Read
 [the tinymcp repo](https://github.com/tinyhumansai/tinymcp) for that half.
 
 ## Startup wiring
