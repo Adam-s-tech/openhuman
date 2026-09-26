@@ -153,9 +153,10 @@ initiating client's room and the `thread:<id>` room, not broadcast),
 dictation hotkeys and transcription results (`voice::dictation_listener`),
 overlay attention bubbles (`desktop::overlay::subscribe_attention_events`,
 see `desktop/overlay/README.md`), core notifications
-(`desktop::notifications`), companion state, and: read off `BUS` as
-`DomainEvent`s: session expiry, MCP setup secret requests, memory sync and
-tree-build progress, channel listener health, and active-workspace changes.
+(`desktop::notifications`), and companion state. It also forwards a set of
+`DomainEvent`s read straight off `BUS`: session expiry, MCP setup secret
+requests, memory sync and tree-build progress, channel listener health, and
+active-workspace changes.
 Everything except web-chat is broadcast to every connected client, most under
 both a colon- and an underscore-separated event name.
 
