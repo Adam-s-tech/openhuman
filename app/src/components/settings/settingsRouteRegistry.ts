@@ -209,7 +209,7 @@ export const SETTINGS_ROUTE_REGISTRY: SettingsRegistryEntry[] = [
 
   // --- Assistant group ---
   // The old 'ai' and 'agents-settings' hub pages are retired — their slugs
-  // redirect to /settings/llm and /settings/agents.
+  // redirect to /settings/llm and /settings/tools.
   {
     // personality and face: how the assistant presents itself, so they sit in
     // the Appearance group next to the app's own look. They were one page with
