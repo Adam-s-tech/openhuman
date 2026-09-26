@@ -37,9 +37,9 @@ pub type QueryParam = (&'static str, Option<String>);
 
 /// Which pre-built HTTP client profile a request rides. The two profiles
 /// preserve the historically distinct `reqwest` configurations of
-/// [`crate::api::rest::BackendOAuthClient`] and
-/// `integrations::client::IntegrationClient`; see
-/// [`crate::api::headers::backend_client_builder`].
+/// [`crate::backend::BackendClient`] and
+/// `integrations::client::IntegrationClient`; the transport builds one
+/// `reqwest::Client` per profile.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum TransportProfile {
     /// Control-plane REST (`/auth/*`, `/payments/*`, `/channels/*`, ...).
@@ -54,7 +54,7 @@ pub struct BackendRequest<'a> {
     /// Client profile to send with.
     pub profile: TransportProfile,
     /// Origin of the backend. Already sanitised by the caller
-    /// (`BackendOAuthClient::new`, `IntegrationClient::new`): absolute
+    /// (`BackendClient::new`, `IntegrationClient::new`): absolute
     /// `http(s)` URL, no path, no query.
     pub base_url: &'a str,
     /// HTTP verb.
@@ -118,8 +118,33 @@ pub trait BackendTransport: Send + Sync + 'static {
     /// profile's TLS settings and attribution headers, but **no** credential.
     fn http_client(&self, profile: TransportProfile) -> reqwest::Client;
 
+    /// The backend origin for `purpose`, given the operator's configured
+    /// override (`config.api_url`, already trimmed; `None` when unset).
+    ///
+    /// The transport owns defaults, environment overrides and any guard
+    /// against an override that is really an inference endpoint — the core
+    /// knows none of the hosted backend's URLs.
+    fn base_url(&self, configured: Option<&str>, purpose: BaseUrlPurpose) -> String;
+
+    /// The product identity this host attributes backend traffic to (the
+    /// `x-sdk-name` value), for callers that hand it to a module or header
+    /// the transport does not build itself.
+    fn product_identity(&self) -> String;
+
     /// Short stable name for logs (`"tinyhumans-sdk"`, `"plain-test"`).
     fn name(&self) -> &'static str;
+}
+
+/// What a backend base URL is for. The two differ only in how an operator
+/// override is treated: control-plane calls must never land on an inference
+/// endpoint the user pointed `api_url` at, while managed inference honours it
+/// as-is.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum BaseUrlPurpose {
+    /// Account, integrations, channels, voice, sockets, telemetry.
+    ControlPlane,
+    /// The OpenAI-compatible inference proxy (chat, embeddings, models).
+    Inference,
 }
 
 /// Header the backend expects a TinyHumans API key on.
