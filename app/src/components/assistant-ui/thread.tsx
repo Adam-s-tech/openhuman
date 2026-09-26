@@ -925,6 +925,8 @@ const Composer: FC<{
   /** A file drag is over the thread and will land here; see `useThreadFileDrop`. */
   isDraggingFiles: boolean;
 }> = ({ model, onModelChange, onEscape, isDraggingFiles }) => {
+  const { t } = useT();
+  const messageInputLabel = t('assistantUi.thread.messageInputLabel', 'Message input');
   const aui = useAui();
   const commands = useContext(SlashCommandsContext);
   const slash = unstable_useSlashCommandAdapter({ commands, fallbackIcon: SlashIcon });
@@ -938,7 +940,7 @@ const Composer: FC<{
   } = useContext(ThreadComponentsContext);
   useEffect(() => {
     const textbox = inputWrapperRef.current?.querySelector<HTMLElement>('[contenteditable="true"]');
-    textbox?.setAttribute('aria-label', 'Message input');
+    textbox?.setAttribute('aria-label', messageInputLabel);
     // The rich Lexical surface deliberately is not a native textarea, so give
     // it an explicit stable hook for browser tests and assistive tooling. The
     // old chat composer exposed a textarea with a placeholder; consumers must

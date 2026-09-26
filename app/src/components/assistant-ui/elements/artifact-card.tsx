@@ -19,6 +19,7 @@
  */
 import { mono, paper, ShimmerLabel } from '@/components/assistant-ui/elements/surfaces';
 import { cn } from '@/components/assistant-ui/lib/utils';
+import { useT } from '@/lib/i18n/I18nContext';
 import { ArrowUpRightIcon, FileTextIcon } from 'lucide-react';
 import type { ComponentProps, ElementType } from 'react';
 
