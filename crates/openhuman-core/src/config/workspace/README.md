@@ -55,21 +55,24 @@ The editable surface is restricted to the `BOOTSTRAP_FILES` allowlist (`SOUL.md`
 
 ## Dependencies
 
-- `crate::config::rpc` — loads `Config` (timeout-bounded) to resolve `workspace_dir` and `config_path` in both `ops.rs` and `schemas.rs`.
-- `crate::skills::init_skills_dir` — seeds the `skills/` directory README during `init_workspace`.
-- `crate::subconscious::heartbeat::engine::HeartbeatEngine::ensure_heartbeat_file` — ensures `HEARTBEAT.md` during `init_workspace`.
-- `crate::core::all` (`ControllerFuture`, `RegisteredController`) and `crate::core::{ControllerSchema, FieldSchema, TypeSchema}` — controller registry types.
-- `crate::rpc::RpcOutcome` — uniform RPC return type.
+- `crate::config::rpc`: loads `Config` (timeout-bounded) to resolve `workspace_dir` and `config_path` in both `ops.rs` and `schemas.rs`.
+- `crate::skills::init_skills_dir`: seeds the `skills/` directory README during `init_workspace`.
+- `crate::subconscious::heartbeat::engine::HeartbeatEngine::ensure_heartbeat_file`: ensures `HEARTBEAT.md` during `init_workspace`.
+- `crate::core::all` (`ControllerFuture`, `RegisteredController`) and `crate::core::{ControllerSchema, FieldSchema, TypeSchema}`: controller registry types.
+- `crate::rpc::RpcOutcome`: uniform RPC return type.
 - Bundled prompt assets via `include_str!("../../agent/prompts/SOUL.md" | "IDENTITY.md")`.
+- `tinytools` (`PermissionLevel`, `Tool`, `ToolResult`) for the agent tools in `tools.rs`.
+- `rusqlite` for `state.rs`'s watcher-state database.
 
 ## Used by
 
-- `crates/openhuman-core/src/core/all.rs` — extends the global controller + schema registries with the workspace controllers (the only external consumer found in-tree). The CLI/JSON-RPC surface reaches `init_workspace` and the persona RPCs through that registry rather than direct calls.
+- `crates/openhuman-core/src/core/all.rs` extends the global controller and schema registries with the workspace controllers (the only external consumer found in-tree). The CLI/JSON-RPC surface reaches `init_workspace` and the persona RPCs through that registry rather than direct calls.
+- `crates/openhuman-core/src/tools/mod.rs` re-exports `workspace::tools::*` into the agent tool catalog.
 
 ## Notes / gotchas
 
 - `bundled_default_contents` is the single allowlist gate: membership there is both "what may be edited from the Persona surface" and "what to restore on reset", so a caller can never read or clobber an arbitrary workspace path (path-traversal names like `../escape.md` and case variants like `soul.md` are rejected).
 - `read_workspace_file` deliberately avoids a `metadata().len()` pre-check (TOCTOU-prone) and instead reads through `take(MAX_WORKSPACE_FILE_BYTES + 1)`, capping bytes held regardless of races; an over-cap file is refused, non-UTF-8 is rejected.
 - `WorkspaceFile` intentionally omits the absolute on-disk path to avoid leaking host filesystem layout over RPC.
-- This is a stateless-handler domain: no `store.rs`, `tools.rs`, `bus.rs`, or `types.rs` — no agent tools, no event-bus subscribers, no persisted in-memory state.
+- The persona/bootstrap surface has no `store.rs`, `bus.rs`, or `types.rs`: no event-bus subscribers, no persisted in-memory state beyond plain files. `tools.rs` and `state.rs` are the exceptions to an otherwise stateless-handler domain.
 - The module's own `init_workspace` is unrelated to `keyring::init_workspace` (same name, different domain).

@@ -321,7 +321,7 @@ time. Run them with `cargo test -p openhuman-embed --features inference,mcp,skil
 ## Relationship to other crates
 
 Its only in-repo dependency is `openhuman-core` (package `openhuman`) with
-`default-features = false` — every capability comes from a feature forwarded
+`default-features = false`: every capability comes from a feature forwarded
 above. It does not depend on `openhuman-rpc` directly; the shared
 `RpcOutcome` and `StructuredRpcError` types reach it through
 `openhuman_core::rpc`. `openhuman-app` and `openhuman-tui` depend on

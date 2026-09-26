@@ -27,7 +27,7 @@ This is one consolidated reference. Use the table of contents above (or your rea
 
 | Metric                                  | Value                                                                     |
 | --------------------------------------- | ------------------------------------------------------------------------- |
-| TypeScript / TSX files under `app/src/` | \~1700 (`find app/src -name '*.ts' -o -name '*.tsx' \| wc -l` to refresh) |
+| TypeScript / TSX files under `app/src/` | \~1900 (`find app/src -name '*.ts' -o -name '*.tsx' \| wc -l` to refresh) |
 | Test runner                             | Vitest (`app/test/vitest.config.ts`)                                      |
 
 ## Directory layout
@@ -242,7 +242,7 @@ const result = await apiClient.post<LoginResponse>("/auth/login", {
 
 ### Domain API modules (`services/api/`)
 
-\~50 domain-scoped modules, one per feature surface, each wrapping either backend REST endpoints or core RPC methods. Representative examples:
+\~55 domain-scoped modules, one per feature surface, each wrapping either backend REST endpoints or core RPC methods. Representative examples:
 
 - `authApi` / `userApi`: auth + user profile
 - `threadApi`, `threadUsageApi`: chat threads
@@ -499,7 +499,7 @@ Settings is a full `/settings/*` URL surface, presented on desktop as a **modal 
 - **`components/settings/settingsRouteElements.tsx`**: maps registry entries to panel `<Route>` elements.
 - **`components/settings/modal/`**: `SettingsModal` (mounted by `AppShellDesktop` whenever the path is a settings path; `settingsOverlay.ts` computes `{ settingsOpen, baseLocation }` so the page behind stays rendered), `SettingsModalFrame` (backdrop / Esc / focus / close), `SettingsModalLayout` (routed two-column layout).
 - **`components/settings/layout/`**: two-pane chrome: `SettingsLayout`, `SettingsSidebar` (grouped by `SettingsNavGroup`: general, assistant, data, connections, knowledge & memory, agents & autonomy, models & inference, automation & integrations, diagnostics & logs), `SettingsSubNav`, `SettingsIndexRedirect`.
-- **`components/settings/panels/`**: \~50 leaf panels (`AccountPanel`, `AppearancePanel`, `AIPanel`, `AgentsPanel`, `AgentAccessPanel`, `AutonomyPanel`, `BillingPanel`, `CronJobsPanel`, `IntegrationsPanel`, `McpServerPanel`, `NotificationsTabbedPanel`, `PrivacyPanel`, `DeveloperOptionsPanel`, …). Adding a panel = add the component + a registry entry; nav, breadcrumbs, and search pick it up automatically.
+- **`components/settings/panels/`**: \~80 leaf panels (`AccountPanel`, `AppearancePanel`, `AIPanel`, `AgentsPanel`, `AgentAccessPanel`, `AutonomyPanel`, `BillingPanel`, `CronJobsPanel`, `IntegrationsPanel`, `McpServerPanel`, `NotificationsTabbedPanel`, `PrivacyPanel`, `DeveloperOptionsPanel`, …). Adding a panel = add the component + a registry entry; nav, breadcrumbs, and search pick it up automatically.
 - **`components/settings/search/`**: settings search bar + registry-derived index.
 
 ### HashRouter vs BrowserRouter
@@ -566,7 +566,7 @@ Conventions:
 
 ### Custom Hooks (`hooks/`)
 
-\~40 app-level hooks. Representative examples:
+\~45 app-level hooks. Representative examples:
 
 - **`useUser`**: thin wrapper over `useCoreState()`; returns `{ user: snapshot.currentUser, isLoading, error, refetch }`. There is no standalone user store.
 - **`useBackendUrl`**: runtime backend URL resolution (see [Runtime config precedence](frontend.md#runtime-config-precedence)).
