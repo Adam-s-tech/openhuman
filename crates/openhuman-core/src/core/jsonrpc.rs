@@ -1327,9 +1327,10 @@ async fn domain_events_handler(headers: axum::http::HeaderMap) -> Response {
 /// Handler for the root endpoint, returning server information and available endpoints.
 #[cfg(feature = "http-server")]
 async fn root_handler() -> impl IntoResponse {
+    // `null` when no backend transport is installed.
     let api_server = match crate::config::Config::load_or_init().await {
-        Ok(cfg) => crate::api::config::effective_backend_api_url(&cfg.api_url),
-        Err(_) => crate::api::config::effective_backend_api_url(&None),
+        Ok(cfg) => crate::backend::base_url(&cfg.api_url).ok(),
+        Err(_) => crate::backend::base_url(&None).ok(),
     };
 
     (

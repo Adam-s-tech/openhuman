@@ -443,7 +443,10 @@ pub fn spawn_socket_auto_connect(
                 log::debug!("[socket] No backend transport installed — skipping auto-connect");
                 return;
             }
-            let api_url = crate::api::config::effective_backend_api_url(&config.api_url);
+            let Ok(api_url) = crate::backend::base_url(&config.api_url) else {
+                log::debug!("[socket] No backend base URL — skipping auto-connect");
+                return;
+            };
             let initial_token = match crate::security::credentials::jwt::get_session_token(&config) {
                 Ok(Some(t))
                     if crate::security::credentials::session_support::is_local_session_token(
