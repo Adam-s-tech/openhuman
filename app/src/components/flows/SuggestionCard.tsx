@@ -186,8 +186,16 @@ export default function SuggestionCard({
               <span
                 key={slug}
                 title={t('flows.suggest.uses')}
-                className="inline-flex items-center gap-1.5 rounded-md border border-line/60 bg-content/5 py-0.5 pl-1 pr-2 text-xs font-medium text-content [&_img]:h-4 [&_img]:w-4 [&>span:first-child]:h-4 [&>span:first-child]:w-4">
-                {meta.icon}
+                className="inline-flex items-center gap-1.5 rounded-md border border-line/60 bg-content/5 py-0.5 pl-1.5 pr-2 text-xs font-medium text-content">
+                <img
+                  src={meta.logoUrl}
+                  alt=""
+                  className="h-3.5 w-3.5 rounded-sm object-contain"
+                  loading="lazy"
+                  onError={e => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
                 {meta.name}
               </span>
             );
