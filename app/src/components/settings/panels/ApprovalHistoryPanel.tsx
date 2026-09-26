@@ -7,7 +7,7 @@ import {
   type ApprovalDecision,
   fetchRecentApprovalDecisions,
 } from '../../../services/api/approvalApi';
-import Badge, { type BadgeVariant } from '../../ui/Badge';
+import Badge from '../../ui/Badge';
 import Button from '../../ui/Button';
 import DataTable, { type DataTableColumn } from '../../ui/DataTable';
 import EmptyState from '../../ui/EmptyState';
