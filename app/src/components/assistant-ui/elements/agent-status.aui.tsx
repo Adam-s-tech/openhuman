@@ -198,7 +198,7 @@ export const TaskTray: FC<{ className?: string; strings?: AgentStatusStrings }> 
       <PopoverContent align="end" className="w-80 p-1">
         <ul
           data-slot="aui_task-tray"
-          aria-label={strings?.tasksAriaLabel ?? DEFAULT_STRINGS.tasksAriaLabel}
+          aria-label={t('chat.filter.tasks', 'Tasks')}
           className="flex max-h-80 flex-col overflow-y-auto">
           {tasks.slice(0, visible).map((task, index) => (
             <TaskTrayItem key={`${index}:${task.id}`} task={task} />
