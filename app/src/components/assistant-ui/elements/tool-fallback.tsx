@@ -287,6 +287,7 @@ function ToolFallbackResult({
   className,
   ...props
 }: React.ComponentProps<'div'> & { result?: unknown }) {
+  const { t } = useT();
   if (result === undefined) return null;
 
   return (
@@ -295,7 +296,7 @@ function ToolFallbackResult({
       className={cn('aui-tool-fallback-result', className)}
       {...props}>
       <p className="aui-tool-fallback-result-header text-muted-foreground text-xs font-medium">
-        Result:
+        {t('toolFallback.result', 'Result:')}
       </p>
       <pre className="aui-tool-fallback-result-content bg-muted/50 text-foreground/90 mt-1 rounded-md p-2.5 text-xs whitespace-pre-wrap">
         {formatUnknownValue(result, 2)}
@@ -385,6 +386,7 @@ function ToolFallbackApproval({
     interrupt?: ToolCallMessagePart['interrupt'];
     approval?: ToolCallMessagePart['approval'];
   }) {
+  const { t } = useT();
   const [submitted, setSubmitted] = useState(false);
   const voiceActive = useAuiState(s => s.thread.voice !== undefined);
   const locked = submitted || voiceActive;
@@ -501,7 +503,7 @@ function ToolFallbackApproval({
       {question && (
         <div className="flex items-center gap-2">
           <Button size="sm" className={pressable} onClick={submitAnswer} disabled={locked}>
-            Send
+            {t('chat.elicitation.send', 'Send')}
           </Button>
           {dismissButton}
         </div>

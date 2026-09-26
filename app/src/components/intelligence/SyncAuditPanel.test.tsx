@@ -154,7 +154,7 @@ describe('<SyncAuditPanel />', () => {
     expect(screen.getByText(/\$0\.0300\s+total/)).toBeInTheDocument();
   });
 
-  it('renders the failure glyph for unsuccessful runs', async () => {
+  it('renders the failure badge for unsuccessful runs', async () => {
     mockAuditLog.mockResolvedValue([
       entry({ success: false, error: 'rate limited', source_id: 'fail' }),
     ]);
