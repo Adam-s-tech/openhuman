@@ -1290,7 +1290,6 @@ const en: TranslationMap = {
   'onboarding.custom.embeddings.configureDesc':
     'Bring your own embedding provider (OpenAI, Voyage, Ollama, etc.).',
 
-
   // Onboarding: Custom > Vault
   'onboarding.custom.vault.title': 'Memory & Vault Setup',
   'onboarding.custom.vault.subtitle':

@@ -6902,7 +6902,6 @@ const messages: TranslationMap = {
   'monthlyCost.badge': '${amount} diesen Monat',
   'monthlyCost.noData': 'Keine Synchronisierungen diesen Monat',
 
-
   // Onboarding: Custom > Vault
   'onboarding.custom.stepperVault': 'Vault',
   'onboarding.custom.vault.title': 'Speicher & Vault-Einrichtung',

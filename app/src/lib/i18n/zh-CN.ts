@@ -6374,7 +6374,6 @@ const messages: TranslationMap = {
   'monthlyCost.badge': '本月${amount}',
   'monthlyCost.noData': '本月无同步',
 
-
   // Onboarding: Custom > Vault
   'onboarding.custom.vault.title': '记忆与保险库设置',
   'onboarding.custom.vault.subtitle':
