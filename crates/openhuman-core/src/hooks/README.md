@@ -34,7 +34,7 @@ second.
 
 **The strictest verdict wins.** Layers concatenate rather than override, and
 `types::HookOutput::merge` folds denial over ask over allow. Adding a hook can
-therefore never loosen a policy another one set, an operator-managed
+therefore never loosen a policy another one set: an operator-managed
 system-wide deny hook cannot be overridden by a repository shipping its own
 `hooks.json`.
 
@@ -74,8 +74,8 @@ trust last:
 | `Workspace` | `<workspace_dir>/hooks.json` |
 | `Project` | `<action_dir>/.openhuman/hooks.json` |
 
-This is the opposite of how `config.toml` merges (override, not concatenate)
-, deliberately, since concatenation combined with `HookOutput::merge`'s
+This is the opposite of how `config.toml` merges (override, not concatenate),
+deliberately, since concatenation combined with `HookOutput::merge`'s
 strictest-wins rule is the only composition that can't be used to loosen
 policy. `HookDefinition::layer` and `source_dir` are `skip_deserializing` and
 stamped from the file's own location, so a `hooks.json` cannot claim a more
@@ -103,14 +103,14 @@ engine registers itself through those seams once at bootstrap
 (`ConfiguredHookBridge::install`/`uninstall`, registered under
 `BRIDGE_HOOK_NAME` so a rebuilt core replaces rather than duplicates it).
 Cursor's `beforeShellExecution`, `beforeReadFile`, and `afterFileEdit` are not
-separate call sites here, `derived_event` maps tool names onto them
+separate call sites here: `derived_event` maps tool names onto them
 (`SHELL_TOOLS`: `shell`/`run_command`/`bash`/...; `READ_TOOLS`:
 `file_read`/`read_diff`; `WRITE_TOOLS`: `file_write`/`edit`/...; MCP tools
 get `beforeMCPExecution`/`afterMCPExecution`). On the pre side the bridge fires
 `preToolUse` and then the derived `before*` event with a Cursor-shaped
 payload, merging both verdicts; on the post side it fires `postToolUse` (or
 `postToolUseFailure`) and then `afterShellExecution`/`afterFileEdit`. A write
-therefore has no derived pre-event, denying it belongs to `preToolUse`. The
+therefore has no derived pre-event: denying it belongs to `preToolUse`. The
 `PostTurnHook` impl fires `afterAgentResponse` and `stop`.
 
 ## Wiring
@@ -121,7 +121,7 @@ therefore has no derived pre-event, denying it belongs to `preToolUse`. The
   or empty config uninstalls the bridge entirely so an unconfigured host pays
   no per-tool-call cost.
 - `[hooks]` in `config/schema/hooks.rs` carries only host-level switches
-  (`enabled`, `default_timeout_secs`), the hooks themselves live in
+  (`enabled`, `default_timeout_secs`); the hooks themselves live in
   `hooks.json`, not in `config.toml`.
 - RPC namespace `hooks` (`schemas.rs`) is registered via
   `all_hooks_registered_controllers` in `core/all.rs`.
@@ -139,5 +139,5 @@ therefore has no derived pre-event, denying it belongs to `preToolUse`. The
 
 ## Related docs
 
-- [gitbooks/developing/hooks.md](../../../../gitbooks/developing/hooks.md), user-facing `hooks.json` guide
-- [gitbooks/developing/architecture/security.md](../../../../gitbooks/developing/architecture/security.md), approval gate and autonomy policy that still applies after a hook allows
+- [gitbooks/developing/hooks.md](../../../../gitbooks/developing/hooks.md): user-facing `hooks.json` guide
+- [gitbooks/developing/architecture/security.md](../../../../gitbooks/developing/architecture/security.md): approval gate and autonomy policy that still applies after a hook allows
