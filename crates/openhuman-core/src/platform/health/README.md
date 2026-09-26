@@ -28,7 +28,7 @@ From `core.rs` (re-exported via `pub use core::*`):
 - Types: `ComponentHealth`, `HealthSnapshot`, `HealthVerdict`.
 - Functions: `mark_component_ok(component)`, `mark_component_error(component, error)`, `bump_component_restart(component)`, `snapshot() -> HealthSnapshot`, `snapshot_json() -> serde_json::Value`, `verdict(&HealthSnapshot) -> HealthVerdict`, `is_critical_component(name) -> bool`.
 
-The HTTP `GET /health` handler (`core::jsonrpc::health_handler`) uses `verdict()` for its status code (200 unless a critical component is unhealthy) and adds `healthy` / `degraded` / `critical_unhealthy` / `degraded_components` fields alongside the `components` map in the body. The `components` map shape is unchanged: the new fields are additive.
+The HTTP `GET /health` handler (`openhuman_rpc::server::http::health::health_handler`) uses `verdict()` for its status code (200 unless a critical component is unhealthy) and adds `healthy` / `degraded` / `critical_unhealthy` / `degraded_components` fields alongside the `components` map in the body. The `components` map shape is unchanged: the new fields are additive.
 
 From `ops.rs` (re-exported via `pub use ops::*`, also aliased `pub use ops as rpc`):
 - `health_snapshot() -> Outcome<serde_json::Value>`, `system_info() -> Outcome<SystemInfo>`, and the `SystemInfo` struct.
@@ -76,7 +76,7 @@ None on disk. State lives in a process-global `OnceLock<HealthRegistry>` (lazy-i
 ## Used by
 
 - `crates/openhuman-core/src/core/all.rs`: registers `all_health_*` controllers into the registry.
-- `crates/openhuman-rpc/src/server/`: references health (snapshot/system_info surface).
+- `crates/openhuman-rpc/src/server/http/health.rs`: references health (snapshot/system_info surface).
 - `crates/openhuman-core/src/channels/runtime/{startup,supervision}.rs` and `crates/openhuman-core/src/channels/tests/health.rs`: channel runtime updates component health.
 - `crates/openhuman-core/src/cron/scheduler.rs`, `crates/openhuman-core/src/platform/update/scheduler.rs`: emit/consume health signals.
 

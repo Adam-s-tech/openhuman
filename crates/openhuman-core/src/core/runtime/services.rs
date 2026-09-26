@@ -1,7 +1,7 @@
 //! Background service spawns.
 //!
 //! Extracted (Phase 0 — pure motion) from the inline `tokio::spawn` blocks that
-//! used to live in `run_server_inner` (then in `crates/openhuman-rpc/src/server/`).
+//! used to live in `run_server_inner` (later in the since-split `core/jsonrpc.rs`).
 //! Each function spawns one long-lived background service as a detached task,
 //! preserving the exact gating and behavior of the original inline block.
 //!

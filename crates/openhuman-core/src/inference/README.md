@@ -83,7 +83,7 @@ One namespace is wired into the controller registry (`crates/openhuman-core/src/
 
 Legacy `openhuman.local_ai_*` and `openhuman.update_local_ai_settings` method names are rewritten to canonical `openhuman.inference_*` methods by `crates/openhuman-core/src/core/legacy_aliases.rs` and `app/src/services/rpcMethods.ts`.
 
-Also exposes a non-RPC HTTP router (`http::router()`) nested at `/v1` by `crates/openhuman-rpc/src/server/` (`/v1/chat/completions`, `/v1/models`), accepting either the core bearer or a stable external API key.
+Also exposes a non-RPC HTTP router (`http::router()`) nested at `/v1` by `crates/openhuman-rpc/src/server/http/mod.rs` (`/v1/chat/completions`, `/v1/models`), accepting either the core bearer or a stable external API key.
 
 ## Events
 
@@ -112,7 +112,7 @@ Also exposes a non-RPC HTTP router (`http::router()`) nested at `/v1` by `crates
 - `crate::core::bus` (`BUS.publish`) / `crate::core::events::DomainEvent`: `SessionExpired` / `ProviderApiKeyRejected` publishing on auth failure.
 - `crate::security::live_policy` + `crate::security::egress`: Privacy-Mode `LocalOnly` enforcement and egress descriptors at the chat-factory chokepoint (`enforce_local_only_inference`, `emit_inference_egress` in `provider/factory/access_gates.rs`).
 - `crate::core::observability`: `expected_error_kind` for Sentry-noise classification.
-- `crate::core::jsonrpc`: endpoint mounting reference for `/v1`.
+- `openhuman_rpc::server::build_core_http_router`: mounts this router at `/v1`.
 - `crate::core::auth`: bearer auth for the OpenAI-compatible endpoint.
 - External: `sysinfo` (device profile), `reqwest`.
 

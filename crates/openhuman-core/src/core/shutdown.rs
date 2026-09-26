@@ -3,7 +3,7 @@
 //! Provides a shutdown signal that listens for SIGINT (Ctrl-C) **and** SIGTERM
 //! (on Unix), then runs registered cleanup hooks before the process exits.
 //! Domain-specific cleanup (autocomplete, voice, etc.) registers itself here
-//! so `openhuman-rpc/src/server/` stays transport-only.
+//! so the JSON-RPC server in `openhuman-rpc` stays transport-only.
 
 use std::future::Future;
 use std::pin::Pin;

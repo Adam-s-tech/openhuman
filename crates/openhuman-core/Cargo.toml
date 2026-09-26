@@ -757,7 +757,7 @@ proptest = "1"
 # `--no-default-features --features flows` and never reads this list.
 default = ["media", "skills", "flows", "mcp", "channels", "http-server", "scheduler-gate", "file-logging", "modules"]
 # HTTP + Socket.IO server transport (#5048): the `/rpc` JSON-RPC endpoint and
-# its auth middleware/CORS layer (`core::jsonrpc`, `core::auth`), the `/v1`
+# its auth middleware/CORS layer (now in `openhuman-rpc`), the `/v1`
 # OpenAI-compatible router (`inference::http`), the ad-hoc static-dir file
 # server (`openhuman::http_host`), the AgentBox `/run` HTTP surface
 # (`agentbox::http`), the WebSocket dictation stream
