@@ -69,10 +69,9 @@ const ChoiceCard = ({
       <div className="flex items-start justify-between gap-3">
         <h3 className="text-base font-semibold text-content">{title}</h3>
         {badge ? (
-          <span
-            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${accentClasses.badge}`}>
+          <Badge variant={ACCENT_BADGE_VARIANT[accent]} dot={false}>
             {badge}
-          </span>
+          </Badge>
         ) : null}
       </div>
       <p className="mt-1 text-xs text-content-muted">{tagline}</p>
