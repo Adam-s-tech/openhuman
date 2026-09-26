@@ -39,8 +39,8 @@ domain.
 
 ## Calls into
 
-- `tinyinference_llm::model::ChatModel` (`vendor/tinyagents/vendor/tinyinference`)
-, the trait every transport implements.
+- `tinyinference_llm::model::ChatModel` (`vendor/tinyagents/vendor/tinyinference`):
+  the trait every transport implements.
 - `crate::config`: cloud-provider schema (`AuthStyle`, slug reservation),
   `Config::claude_agent_sdk`, abstract tier model constants.
 - `crate::security::credentials`: auth-profile store for BYOK keys and OAuth
