@@ -76,7 +76,7 @@ describe('<ThemeStudioPanel />', () => {
       backdrop: { kind: 'image', imageUrl: 'https://example.com/bg.jpg' },
     };
 
-    fireEvent.change(screen.getByLabelText('Import theme'), {
+    fireEvent.change(screen.getByRole('textbox', { name: 'Import theme' }), {
       target: { value: JSON.stringify(imported) },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Import' }));
@@ -112,7 +112,7 @@ describe('<ThemeStudioPanel />', () => {
     });
     openSection('Import theme');
 
-    fireEvent.change(screen.getByLabelText('Import theme'), {
+    fireEvent.change(screen.getByRole('textbox', { name: 'Import theme' }), {
       target: { value: JSON.stringify({ name: 'Malformed', isDark: false, colors }) },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Import' }));
@@ -128,7 +128,7 @@ describe('<ThemeStudioPanel />', () => {
     });
     openSection('Import theme');
 
-    fireEvent.change(screen.getByLabelText('Import theme'), {
+    fireEvent.change(screen.getByRole('textbox', { name: 'Import theme' }), {
       target: {
         value: JSON.stringify({ name: 'Minimal', isDark: false, colors: { surface: '1 2 3' } }),
       },
@@ -154,7 +154,7 @@ describe('<ThemeStudioPanel />', () => {
     });
     openSection('Import theme');
 
-    fireEvent.change(screen.getByLabelText('Import theme'), {
+    fireEvent.change(screen.getByRole('textbox', { name: 'Import theme' }), {
       target: {
         value: JSON.stringify({ name: 'Inherits base', isDark: true, colors: {}, fonts: {} }),
       },
