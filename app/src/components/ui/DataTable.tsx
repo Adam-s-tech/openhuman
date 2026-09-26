@@ -1,4 +1,11 @@
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Filter, Search } from 'lucide-react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  Filter,
+  Search,
+} from 'lucide-react';
 import { type ReactNode, useId, useState } from 'react';
 
 import { cn } from '../../lib/cn';
@@ -257,7 +264,10 @@ export function DataTablePaginationBar({
         <SelectRoot
           value={String(pageSize)}
           onValueChange={value => onPageSizeChange(Number(value))}>
-          <SelectTrigger inputSize="sm" className="h-8 w-18" aria-label={t('dataTable.rowsPerPage')}>
+          <SelectTrigger
+            inputSize="sm"
+            className="h-8 w-18"
+            aria-label={t('dataTable.rowsPerPage')}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
