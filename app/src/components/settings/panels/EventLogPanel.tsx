@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { useT } from '../../../lib/i18n/I18nContext';
 import { getCoreHttpBaseUrl, getCoreRpcToken } from '../../../services/coreRpcClient';
+import { Badge, type BadgeVariant } from '../../ui';
 import Button from '../../ui/Button';
 import { SettingsSelect, SettingsTextField } from '../controls';
 import SettingsPanel from '../layout/SettingsPanel';

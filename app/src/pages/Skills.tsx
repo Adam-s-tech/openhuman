@@ -1,3 +1,4 @@
+import { Check, ChevronRight, Info } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
@@ -42,7 +43,8 @@ import {
 import SkillSearchBar from '../components/skills/SkillSearchBar';
 import SkillsPage from '../components/skills/SkillsPage';
 import VoiceSetupModal from '../components/skills/VoiceSetupModal';
-import Badge from '../components/ui/Badge';
+import { Alert, AlertDescription } from '../components/ui/Alert';
+import Badge, { type BadgeVariant } from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import { useVoiceSkillStatus } from '../features/voice/useVoiceSkillStatus';
@@ -83,16 +85,16 @@ function channelStatusLabel(status: ChannelConnectionStatus, t: (key: string) =>
   }
 }
 
-function channelStatusColor(status: ChannelConnectionStatus): string {
+function channelStatusVariant(status: ChannelConnectionStatus): BadgeVariant {
   switch (status) {
     case 'connected':
-      return 'text-sage-600 dark:text-sage-300';
+      return 'success';
     case 'connecting':
-      return 'text-amber-600 dark:text-amber-300';
+      return 'warning';
     case 'error':
-      return 'text-coral-600 dark:text-coral-300';
+      return 'danger';
     default:
-      return 'text-content-faint';
+      return 'neutral';
   }
 }
 
@@ -291,37 +293,23 @@ function ChannelTile({
 }: ChannelTileProps) {
   const { t } = useT();
   const isConnected = status === 'connected';
-  const isPending = status === 'connecting';
-  const isError = status === 'error';
   const statusLabel = channelStatusLabel(status, t);
   const ctaLabel = isConnected ? t('skills.configure') : t('channels.setup');
 
-  // Horizontal tile: icon on the left; name → status → default control stacked
-  // on the right. The tile is a container (not one button) so "configure" (the
-  // icon + name row) and "set as default" stay distinct, focusable controls —
-  // collapsing the old two-selector layout (connect grid + separate picker)
-  // into one place. "Set as default" only appears for channels you can actually
-  // route through (connected); the default badge still shows on whichever
-  // channel is persisted as default, connected or not.
+  // The tile is a container, not one button, so "configure" (icon + name row)
+  // and "set as default" stay distinct, focusable controls. Status is a Badge;
+  // the default channel gets the primary selection border used by every
+  // picker tile in Settings. "Set as default" only appears for channels you
+  // can route through (connected); the Default badge follows the persisted
+  // default whether or not it is currently connected.
   const showDefaultControl = isDefault || isConnected;
 
   return (
     <div
-      className={`group flex flex-col gap-2 rounded-2xl border p-3 transition-colors ${
-        isConnected
-          ? 'border-sage-300 bg-sage-50/80 shadow-[0_0_0_1px_rgba(34,197,94,0.12)] dark:border-sage-500/30 dark:bg-sage-500/10'
-          : isPending
-            ? 'border-amber-200 bg-amber-50/40 dark:border-amber-500/30 dark:bg-amber-500/10'
-            : isError
-              ? 'border-coral-200 bg-coral-50/30 dark:border-coral-500/30 dark:bg-coral-500/10'
-              : 'border-line bg-surface'
-      } ${
-        // The default channel keeps its connection-status colour but gains a
-        // primary ring so "which one is the default" reads at a glance without
-        // masking whether it is connected.
+      className={`flex h-full flex-col rounded-xl border bg-surface transition-colors ${
         isDefault
-          ? 'ring-2 ring-primary-400 ring-offset-1 ring-offset-white dark:ring-offset-neutral-900'
-          : ''
+          ? 'border-primary-500 ring-1 ring-primary-500'
+          : 'border-line hover:border-line-strong'
       }`}>
       <Button
         type="button"
@@ -331,47 +319,87 @@ function ChannelTile({
         onClick={onOpen}
         title={`${def.display_name} — ${def.description}`}
         aria-label={`${def.display_name}, ${statusLabel}. ${ctaLabel}.`}
-        className="h-auto w-full justify-start gap-3 rounded-xl p-0 text-left">
-        <div className="relative flex h-10 w-10 shrink-0 items-center justify-center text-content-secondary [&>span]:h-10 [&>span]:w-10 [&>span]:rounded-2xl [&_svg]:h-6 [&_svg]:w-6">
+        className="h-auto w-full justify-start gap-3 rounded-b-none rounded-t-xl px-3 py-3 text-left">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-muted text-content-secondary [&>span]:h-9 [&>span]:w-9 [&>span]:rounded-lg [&_svg]:h-5 [&_svg]:w-5">
           {icon}
-        </div>
-        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className="line-clamp-2 text-xs font-semibold leading-tight text-content">
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-semibold text-content">
             {def.display_name}
           </span>
-          <span className={`line-clamp-1 text-[11px] font-medium ${channelStatusColor(status)}`}>
-            {statusLabel}
+          <span className="mt-0.5 block truncate text-xs font-normal text-content-muted">
+            {def.description}
           </span>
-        </div>
+        </span>
+        <ChevronRight className="h-4 w-4 shrink-0 text-content-faint" aria-hidden />
       </Button>
-      {showDefaultControl && (
-        // Aligns under the name/status text (icon 2.5rem + gap 0.75rem).
-        <div className="pl-13">
-          {isDefault ? (
+      <div className="mt-auto flex min-h-11 items-center justify-between gap-2 border-t border-line-subtle px-3 py-2">
+        <Badge variant={channelStatusVariant(status)}>{statusLabel}</Badge>
+        {showDefaultControl &&
+          (isDefault ? (
             <Badge data-testid={setDefaultTestId} variant="primary" dot={false}>
-              <svg className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                <path
-                  fillRule="evenodd"
-                  d="M16.704 5.29a1 1 0 010 1.42l-7.5 7.5a1 1 0 01-1.42 0l-3.5-3.5a1 1 0 111.42-1.42l2.79 2.79 6.79-6.79a1 1 0 011.42 0z"
-                  clipRule="evenodd"
-                />
-              </svg>
+              <Check className="h-3 w-3" aria-hidden />
               {t('channels.defaultBadge')}
             </Badge>
           ) : (
             <Button
               type="button"
-              variant="secondary"
+              variant="tertiary"
               size="xs"
               data-testid={setDefaultTestId}
               onClick={onSetDefault}
-              disabled={setDefaultBusy}
-              className="text-content-muted hover:border-primary-300 hover:text-primary-600 dark:hover:border-primary-500/40 dark:hover:text-primary-300">
+              disabled={setDefaultBusy}>
               {t('channels.setAsDefault')}
             </Button>
-          )}
-        </div>
+          ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Connections → Channels body: connected channels first, then the ones still
+ * to set up, each in its own card with a count, and the Slack pointer as a
+ * quiet note underneath.
+ */
+function ChannelsOverview({
+  defs,
+  statusFor,
+  renderTile,
+}: {
+  defs: ChannelDefinition[];
+  statusFor: (def: ChannelDefinition) => ChannelConnectionStatus;
+  renderTile: (def: ChannelDefinition, status: ChannelConnectionStatus) => React.ReactNode;
+}) {
+  const { t } = useT();
+  const withStatus = defs.map(def => ({ def, status: statusFor(def) }));
+  const connected = withStatus.filter(d => d.status === 'connected');
+  const available = withStatus.filter(d => d.status !== 'connected');
+  const grid = 'grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-3';
+
+  return (
+    // `skills-channels` is the product-tour anchor for this surface.
+    <div className="space-y-4" data-testid="channels-overview" data-walkthrough="skills-channels">
+      {connected.length > 0 && (
+        <Card
+          title={t('skills.connected')}
+          description={t('channels.connectedDesc')}
+          headerRight={<Badge variant="success">{connected.length}</Badge>}>
+          <div className={grid}>{connected.map(d => renderTile(d.def, d.status))}</div>
+        </Card>
       )}
+      {available.length > 0 && (
+        <Card
+          title={t('skills.available')}
+          description={t('channels.availableDesc')}
+          headerRight={<Badge variant="neutral">{available.length}</Badge>}>
+          <div className={grid}>{available.map(d => renderTile(d.def, d.status))}</div>
+        </Card>
+      )}
+      <Alert density="compact">
+        <Info className="h-4 w-4 shrink-0 text-content-muted" aria-hidden />
+        <AlertDescription>{t('channels.connectHelp.slackNote')}</AlertDescription>
+      </Alert>
     </div>
   );
 }
@@ -1222,84 +1250,32 @@ export default function Skills() {
                 {
                   <>
                     {activeTab === 'channels' && channelsGroup && (
-                      <Card className="animate-fade-up">
-                        <div className="p-3">
-                          <div className="px-1 pb-3 pt-1">
-                            <h2
-                              className="flex items-center gap-2 text-sm font-semibold text-content"
-                              data-walkthrough="skills-channels">
-                              <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-surface-subtle">
-                                <SkillCategoryIcon
-                                  category="Channels"
-                                  className={skillCategoryHeadingClassName('Channels')}
-                                />
-                              </span>
-                              {t('skills.channels')}
-                            </h2>
-                            <p className="mt-0.5 text-[11px] leading-relaxed text-content-muted">
-                              {t('channels.defaultMessaging')}
-                            </p>
-                            <p className="mt-1 text-[11px] leading-relaxed text-content-faint">
-                              {t('channels.connectHelp.slackNote')}
-                            </p>
-                          </div>
-                          {/* One unified surface: each tile shows connection status,
-                          opens setup/configure on click, and owns the "default
-                          messaging channel" selection via its footer control.
-                          Connected channels and not-yet-connected channels are
-                          rendered as two separate grids (no divider/label) so
-                          each group occupies its own rows. */}
-                          {(() => {
-                            // The built-in web channel needs no connection — treat it
-                            // as always available so it stays selectable as default.
-                            const statusFor = (def: ChannelDefinition): ChannelConnectionStatus =>
-                              def.id === 'web'
-                                ? 'connected'
-                                : bestChannelStatus(def.id as ChannelType);
-                            const renderTile = (def: ChannelDefinition) => {
-                              const channelId = def.id as ChannelType;
-                              return (
-                                <div key={channelId} data-testid={`skill-row-channel-${channelId}`}>
-                                  <ChannelTile
-                                    def={def}
-                                    status={statusFor(def)}
-                                    icon={channelIcons[def.icon]}
-                                    testId={`skill-install-channel-${channelId}`}
-                                    onOpen={() => setChannelModalDef(def)}
-                                    isDefault={
-                                      channelConnections.defaultMessagingChannel === channelId
-                                    }
-                                    onSetDefault={() => void handleSetDefaultChannel(channelId)}
-                                    setDefaultTestId={`channel-select-${channelId}`}
-                                    setDefaultBusy={defaultChannelBusy !== null}
-                                  />
-                                </div>
-                              );
-                            };
-                            const connected = channelDefs.filter(d => statusFor(d) === 'connected');
-                            const notConnected = channelDefs.filter(
-                              d => statusFor(d) !== 'connected'
-                            );
-                            const gridStyle = {
-                              gridTemplateColumns: 'repeat(auto-fill, minmax(13rem, 1fr))',
-                            };
-                            return (
-                              <div className="space-y-2 sm:space-y-3">
-                                {connected.length > 0 && (
-                                  <div className="grid gap-2 sm:gap-3" style={gridStyle}>
-                                    {connected.map(renderTile)}
-                                  </div>
-                                )}
-                                {notConnected.length > 0 && (
-                                  <div className="grid gap-2 sm:gap-3" style={gridStyle}>
-                                    {notConnected.map(renderTile)}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })()}
-                        </div>
-                      </Card>
+                      <ChannelsOverview
+                        defs={channelDefs}
+                        statusFor={def =>
+                          // The built-in web channel needs no connection, so it
+                          // stays selectable as the default.
+                          def.id === 'web' ? 'connected' : bestChannelStatus(def.id as ChannelType)
+                        }
+                        renderTile={(def, status) => {
+                          const channelId = def.id as ChannelType;
+                          return (
+                            <div key={channelId} data-testid={`skill-row-channel-${channelId}`}>
+                              <ChannelTile
+                                def={def}
+                                status={status}
+                                icon={channelIcons[def.icon]}
+                                testId={`skill-install-channel-${channelId}`}
+                                onOpen={() => setChannelModalDef(def)}
+                                isDefault={channelConnections.defaultMessagingChannel === channelId}
+                                onSetDefault={() => void handleSetDefaultChannel(channelId)}
+                                setDefaultTestId={`channel-select-${channelId}`}
+                                setDefaultBusy={defaultChannelBusy !== null}
+                              />
+                            </div>
+                          );
+                        }}
+                      />
                     )}
 
                     {activeTab === 'composio' && (

@@ -774,6 +774,15 @@ const en: TranslationMap = {
   'desktop.permission.accessibility': 'Accessibility',
   'desktop.permission.screen_recording': 'Screen Recording',
   'desktop.openSettings': 'Open settings',
+  'desktop.enableLabel': 'Let the agent control apps',
+  'desktop.statusSetupNeeded': 'Setup needed',
+  'desktop.statusModuleFailed': 'Unavailable',
+  'desktop.permissionState.granted': 'Granted',
+  'desktop.permissionState.denied': 'Denied',
+  'desktop.permissionState.notRequired': 'Not required',
+  'desktop.permissionState.unknown': 'Not determined',
+  'desktop.checkHeading': 'Access check',
+  'desktop.checkLabel': 'App visibility',
   'desktop.captureNote':
     'Screen Recording is needed only for screenshots. Accessibility is needed to inspect and control apps.',
   'desktop.testDescription': 'Check that the core can see the apps running on this computer.',
@@ -1351,6 +1360,8 @@ const en: TranslationMap = {
   'channels.defaultMessaging': 'Default Messaging Channel',
   'channels.setAsDefault': 'Set as default',
   'channels.defaultBadge': 'Default',
+  'channels.connectedDesc': 'Ready to send and receive messages. Pick one as the default.',
+  'channels.availableDesc': 'Chat apps you can link. Open one to set it up.',
 
   // Webhooks
   'webhooks.title': 'Webhooks',
