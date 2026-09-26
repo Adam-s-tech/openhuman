@@ -23,7 +23,7 @@ model's tool list with six near-duplicate schemas.
 
 `CronTool` (`CRON_TOOL_NAME = "cron"`) advertises one schema with an `action`
 field (`list` / `add` / `update` / `remove` / `run` / `runs`) instead of six
-near-duplicate schemas — four of the six take only `job_id`. Each action
+near-duplicate schemas: four of the six take only `job_id`. Each action
 forwards to the matching per-operation tool through
 `crate::tools::implementations::meta::collapse` (`merge_action_schemas`,
 `resolve`, `args_without_action`), so schedule parsing, the `SecurityPolicy`
@@ -64,7 +64,7 @@ or immediately execute a stored command or agent prompt on the host.
   true, .. }`. `validate_delivery` only inspects `mode: "announce"`: it
   requires `channel` and `to`, exempts `web`, rejects an unconfigured
   channel, accepts any `to` when the channel's `allowed_users` is empty, and
-  otherwise requires `to` to be in that list — this blocks scheduling a cron
+  otherwise requires `to` to be in that list: this blocks scheduling a cron
   whose output is delivered to an arbitrary chat id (#928).
 - `JobType::Flow` is unreachable through this tool (flow-schedule rows are
   created internally by `flows::ops::flows_set_enabled` via
@@ -73,13 +73,13 @@ or immediately execute a stored command or agent prompt on the host.
 
 ## Related
 
-- `cron` domain: [`../README.md`](../README.md) — job/run model, scheduler,
+- `cron` domain: [`../README.md`](../README.md): job/run model, scheduler,
   delivery modes, agent-job minimum interval.
-- `crates/openhuman-core/src/tools/impl/system/schedule.rs` — the separate
+- `crates/openhuman-core/src/tools/impl/system/schedule.rs`: the separate
   one-shot `schedule` tool built on `cron::add_once` / `cron::add_once_at`;
   not part of the collapse above.
 - `crates/openhuman-core/src/tools/impl/meta/collapse.rs` (module path
-  `crate::tools::implementations::meta::collapse`) — the generic
+  `crate::tools::implementations::meta::collapse`): the generic
   action-collapsing helper `collapsed.rs` builds on.
 
 ## Tests

@@ -243,3 +243,6 @@ Use the MSVC toolchain, not MinGW, to match CI and release builds.
 - [Getting Set Up](getting-set-up.md): full desktop contributor setup with `pnpm`, Tauri, and submodules. The core runs in-process inside the desktop shell (see [Tauri Shell](architecture/tauri-shell.md)); there is no sidecar staging step.
 - [OpenHuman Architecture](architecture/README.md): where the core fits into the desktop app and RPC flow.
 - [Deep Architecture Reference](architecture.md): the full crate map and repository layout.
+- [Embedding](embedding.md): using `crates/openhuman-embed` to run the core as a library in another product.
+- [Engines](engines.md): the pluggable LLM, embedding, memory, and search backends the core can run against.
+- [Performance](performance.md): binary size, cold start, and memory numbers across feature recipes.

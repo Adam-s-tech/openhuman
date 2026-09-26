@@ -69,11 +69,11 @@ No own store. It writes imported entries through the **target memory backend** o
 
 ## Used by
 
-- `crates/openhuman-core/src/core/all.rs` — registers `all_migration_registered_controllers()` (line ~165) and `all_migration_controller_schemas()` (line ~319) into the global controller/schema registry, exposing both methods over CLI and JSON-RPC.
+- `crates/openhuman-core/src/core/all.rs` registers `all_migration_registered_controllers()` (line ~165) and `all_migration_controller_schemas()` (line ~319) into the global controller/schema registry, exposing both methods over CLI and JSON-RPC.
 
 ## Notes / gotchas
 
-- `dry_run` default is `true` at the RPC boundary — callers must explicitly pass `dry_run: false` to actually apply a migration.
+- `dry_run` default is `true` at the RPC boundary. Callers must explicitly pass `dry_run: false` to actually apply a migration.
 - OpenClaw SQLite reading is **schema-tolerant**: it inspects `PRAGMA table_info(memories)` and picks key/content/category columns from candidate name lists (`key`/`id`/`name`, `content`/`value`/`text`/`memory`, `category`/`kind`/`type`), bailing only if no content-like column exists. DB is opened read-only.
 - Idempotency: exact-duplicate source entries are de-duped; unchanged target entries are skipped (`skipped_unchanged`); content conflicts get a renamed key (`renamed_conflicts`).
 - `migrate_openclaw_apply_imports_markdown_entries` in `ops.rs` documents a regression (#1440): the apply path previously bailed in `create_memory_for_migration` under the unified-namespace memory core; that hard-disable was removed.
