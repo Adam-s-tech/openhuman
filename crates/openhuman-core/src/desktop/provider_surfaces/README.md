@@ -55,7 +55,7 @@ In-memory only. State lives in a process-global `RESPOND_QUEUE` (`static OnceLoc
 ## Dependencies
 
 - `crate::memory`: `ApiEnvelope`, `ApiMeta`, `EmptyRequest` (response envelope shape + empty-request type).
-- `crate::rpc::Outcome`: RPC return contract.
+- `crate::core::Outcome`: RPC return contract.
 - `crate::core::all`: `RegisteredController`, `ControllerFuture` (controller registry wiring).
 - `crate::core::{ControllerSchema, FieldSchema, TypeSchema}`: controller schema types.
 - External crates: `serde` / `serde_json`, `uuid` (request ids), `tracing` (debug logging with `[provider-surfaces]` prefix).

@@ -91,14 +91,14 @@ SQLite DB at `{workspace_dir}/notifications/notifications.db`, opened per-call v
 - `crate::core::all` (`ControllerFuture`, `RegisteredController`) and `crate::core` (`ControllerSchema`, `FieldSchema`, `TypeSchema`), controller registry contract.
 - `crate::config`: `Config` (workspace dir for the DB path), `config::rpc::load_config_with_timeout` in handlers, `active_workspace_snapshot` / `workspace_handle` for the workspace gate.
 - `crate::agent::triage`: `run_triage`, `apply_decision`, `TriageOutcome`, `TriggerEnvelope`, `TriggerSource`, `TriageAction` for the background scoring/routing pipeline; `crate::agent::turn_origin::with_origin` scopes the routing turn.
-- `crate::rpc::Outcome`: RPC response shaping.
+- `crate::core::Outcome`: RPC response shaping.
 - External crates: `rusqlite` (store), `chrono`, `uuid`, `serde_json`, `tokio`, `once_cell`, `async_trait`.
 
 ## Used by
 
 - `crates/openhuman-core/src/core/all.rs`: registers the controllers/schemas into the RPC registry.
-- `crates/openhuman-core/src/core/jsonrpc.rs`: calls `register_notification_bridge_subscriber(config)` at startup when the Desktop domain group is enabled.
-- `crates/openhuman-core/src/core/socketio.rs`: calls `subscribe_core_notifications()` to forward events to web clients.
+- `crates/openhuman-rpc/src/server/`: calls `register_notification_bridge_subscriber(config)` at startup when the Desktop domain group is enabled.
+- `crates/openhuman-rpc/src/server/socketio.rs`: calls `subscribe_core_notifications()` to forward events to web clients.
 - `crates/openhuman-core/src/cron/scheduler/delivery.rs`: writes cron-triggered notifications through `notifications::store` directly; `cron/scheduler_tests*.rs` list them back with `store::list`.
 - `crates/openhuman-core/src/flows/ops/execution.rs` and `crates/openhuman-core/src/security/approval/gate.rs`: call `publish_core_notification` directly to surface flow and approval events.
 

@@ -37,7 +37,7 @@ Skipping this produces shallow reviews that miss architectural issues.
 
 **Project standards** (from `CLAUDE.md`)
 - New Rust functionality lives in a subdirectory under `crates/openhuman-core/src/`, not root-level `.rs` files.
-- Controllers exposed via `schemas.rs` + registry, not ad-hoc branches in `core/cli.rs` / `core/jsonrpc/`.
+- Controllers exposed via `schemas.rs` + registry, not ad-hoc branches in `core/cli.rs` / `openhuman-rpc/src/server/`.
 - No dynamic `import()` in production `app/src` code.
 - Frontend reads `VITE_*` via `app/src/utils/config.ts`, not `import.meta.env` directly.
 - `crates/openhuman-app` is desktop-only; no Android/iOS branches there.

@@ -71,7 +71,7 @@ None of its own; stateless adapter. The only state it reads is the backend sessi
 - `crate::api::jwt::get_session_token`: reads the stored app-session JWT.
 - `crate::api::BackendOAuthClient`: performs the authenticated JSON HTTP request (`authed_json`).
 - `crate::config::Config`: config struct (`api_url`); `config::rpc::load_config_with_timeout` in handlers.
-- `crate::rpc::Outcome`: standard RPC return/logging wrapper.
+- `crate::core::Outcome`: standard RPC return/logging wrapper.
 - `crate::core::all::{ControllerFuture, RegisteredController}` and `crate::core::{ControllerSchema, FieldSchema, TypeSchema}`: controller registry types.
 - External crates: `reqwest` (`Method`), `serde`/`serde_json`, `urlencoding` (path-segment encoding for `paymentMethodId`).
 

@@ -13,7 +13,7 @@
 //! mirror below until that build is green again.
 //!
 //! Consumers covered here (all outside `wallet`, so all must keep compiling):
-//! - `core/jsonrpc/classify.rs` — `WALLET_NOT_CONFIGURED_MESSAGE`
+//! - `openhuman-rpc/src/server/classify.rs` — `WALLET_NOT_CONFIGURED_MESSAGE`
 //! - `test_support/introspect.rs` — `prepared_quotes_for_test`,
 //!   `PreparedTransaction`
 //! - `core/all.rs` — `all_wallet_registered_controllers`
@@ -28,7 +28,7 @@ use crate::core::Outcome;
 /// `Result`. Shared so callers/log-greps see one stable string.
 const DISABLED_MSG: &str = "web3/wallet feature disabled at compile time";
 
-/// Mirrors the real `ops::WALLET_NOT_CONFIGURED_MESSAGE` verbatim. `core/jsonrpc/classify.rs`
+/// Mirrors the real `ops::WALLET_NOT_CONFIGURED_MESSAGE` verbatim. `openhuman-rpc/src/server/classify.rs`
 /// compares Sentry-noise errors against this exact string, so it must not drift.
 pub const WALLET_NOT_CONFIGURED_MESSAGE: &str = "wallet is not configured; run wallet setup first";
 

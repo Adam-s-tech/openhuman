@@ -70,13 +70,13 @@ None on disk. State lives in a process-global `OnceLock<HealthRegistry>` (lazy-i
 
 - `crate::core::bus::BUS.subscribe` (`crate::core::events::DomainEvent`, `tinybus::SubscriptionHandle`): to receive system/channel events.
 - `crate::core::all` (`ControllerFuture`, `RegisteredController`) and `crate::core::{ControllerSchema, FieldSchema, TypeSchema}`: controller registry wiring.
-- `crate::rpc::Outcome`: RPC handler return contract.
+- `crate::core::Outcome`: RPC handler return contract.
 - External crates: `chrono` (RFC3339 timestamps), `parking_lot::Mutex`, `serde`/`serde_json`, `async_trait`.
 
 ## Used by
 
 - `crates/openhuman-core/src/core/all.rs`: registers `all_health_*` controllers into the registry.
-- `crates/openhuman-core/src/core/jsonrpc.rs`: references health (snapshot/system_info surface).
+- `crates/openhuman-rpc/src/server/`: references health (snapshot/system_info surface).
 - `crates/openhuman-core/src/channels/runtime/{startup,supervision}.rs` and `crates/openhuman-core/src/channels/tests/health.rs`: channel runtime updates component health.
 - `crates/openhuman-core/src/cron/scheduler.rs`, `crates/openhuman-core/src/platform/update/scheduler.rs`: emit/consume health signals.
 

@@ -86,7 +86,7 @@ DevTools client can attach to it. Run the same SPA in Chrome instead:
   finds the running desktop core, starts Vite, and prints
   `http://127.0.0.1:<core>/dev/connect?app=http://localhost:<vite>`. Open that
   URL with the chrome-devtools MCP (`new_page` / `navigate_page`). The core's
-  dev-only `GET /dev/connect` (`crates/openhuman-core/src/core/dev_connect.rs`)
+  dev-only `GET /dev/connect` (`crates/openhuman-rpc/src/server/dev_connect.rs`)
   redirects to Vite's `/__dev-connect` page with the RPC URL and bearer in the
   URL fragment. That page seeds them into `localStorage`, so the browser runs on
   the desktop core with its signed-in user, and nothing is pasted. The route
@@ -318,7 +318,7 @@ Additional rules:
   (`RpcRequest`, `RpcSuccess`, `RpcFailure`, `request_body`,
   `decode_response`), the params contract and its validation messages, the
   browser-origin allowlist, and the JSON-RPC HTTP client. The core's server
-  side (`core/jsonrpc/`) and every client use it; the core re-exports the crate as
+  side (`openhuman-rpc/src/server/`) and every client use it; the core re-exports the crate as
   `crate::rpc` (`pub use openhuman_rpc as rpc;` in
   `crates/openhuman-core/src/lib.rs`), and `openhuman-app` and `openhuman-tui`
   depend on it directly. Keep it free of business logic and core dependencies

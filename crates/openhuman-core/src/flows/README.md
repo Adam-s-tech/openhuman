@@ -60,7 +60,7 @@ from always-compiled code.
 ## Called by
 
 - `crates/openhuman-core/src/core/all.rs`: registers `all_flows_registered_controllers()` under `#[cfg(feature = "flows")]`.
-- `crates/openhuman-core/src/core/jsonrpc.rs`: constructs and subscribes `FlowTriggerSubscriber`, `FlowRunDigestSubscriber`, and `DedupCommitSubscriber` at startup.
+- `crates/openhuman-rpc/src/server/`: constructs and subscribes `FlowTriggerSubscriber`, `FlowRunDigestSubscriber`, and `DedupCommitSubscriber` at startup.
 - `crates/openhuman-core/src/tools/ops.rs`: pushes all 27 flows tools onto the agent tool list (`tools/mod.rs` re-exports the four tool modules).
 - `crates/openhuman-core/src/agent/registry/agents/loader.rs`: registers `workflow_builder` and `flow_discovery` as built-in archetypes.
 - `crates/openhuman-core/src/agent/session_host/` (`builder/factory.rs`, `turn/tools.rs`), extends the skill catalogue with `catalogue::flow_entries`.

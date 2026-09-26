@@ -70,7 +70,7 @@ None of its own (no `store.rs`). It only **reads** existing state owned by other
 - `crate::inference::{provider, local}`: `provider::list_providers` (model targets) and `local::ollama_base_url` (embedding probe).
 - `crate::api::{config, jwt}`: `effective_api_url` fallback resolution and `get_session_token` for sign-in state.
 - `crate::core::all::{ControllerFuture, RegisteredController}`, `crate::core::{ControllerSchema, FieldSchema, TypeSchema}`: controller/schema plumbing.
-- `crate::rpc::Outcome`: handler return contract.
+- `crate::core::Outcome`: handler return contract.
 - External: `reqwest` (blocking client + URL parse), `serde`/`serde_json`, `chrono`, `anyhow`.
 
 ## Used by

@@ -57,7 +57,7 @@ None on disk. Running servers are held in a process-global `HostedDirRegistry` (
 - `crate::core::shutdown`: `register` a one-time hook so all hosted servers stop when the core shuts down (`ops.rs`).
 - `crate::core::all`: `ControllerFuture`, `RegisteredController` for controller registration (`schemas.rs`).
 - `crate::core::{ControllerSchema, FieldSchema, TypeSchema}`: controller schema types (`schemas.rs`).
-- `crate::rpc::Outcome`: RPC response envelope (`rpc.rs`); `crate::rpc` is the `openhuman-rpc` crate re-exported from `crates/openhuman-core/src/lib.rs`.
+- `crate::core::Outcome`: RPC response envelope (`rpc.rs`); `crate::rpc` is the `openhuman-rpc` crate re-exported from `crates/openhuman-core/src/lib.rs`.
 - External crates: `axum` (HTTP server/router), `tokio` (`TcpListener`, tasks), `tokio_util` (`CancellationToken`, `ReaderStream`), `uuid`, `base64`, `rand`, `urlencoding`, `serde`/`serde_json`.
 
 ## Used by

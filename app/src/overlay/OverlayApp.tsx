@@ -311,7 +311,7 @@ export default function OverlayApp() {
         });
 
         // Core emits each event under both colon and underscore forms
-        // (see `emit_with_aliases` in `crates/openhuman-core/src/core/socketio.rs`). Subscribe
+        // (see `emit_with_aliases` in `crates/openhuman-rpc/src/server/socketio.rs`). Subscribe
         // only to the canonical colon-delimited form so each signal fires
         // the handler exactly once.
         socket.on('dictation:toggle', handleDictationToggle);

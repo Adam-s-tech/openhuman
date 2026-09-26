@@ -22,7 +22,7 @@ pub struct CommandResponse<T> {
 /// Success payload from a core RPC handler before JSON-RPC wrapping.
 ///
 /// This internal type allows handlers to return a generic JSON value along
-/// with optional logs. It is transformed into a [`crate::rpc::RpcSuccess`] or a
+/// with optional logs. It is transformed into a [`crate::core::RpcSuccess`] or a
 /// combined object by [`invocation_to_rpc_json`].
 #[derive(Debug, Clone)]
 pub struct InvocationResult {

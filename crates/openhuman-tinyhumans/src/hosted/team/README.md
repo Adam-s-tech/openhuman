@@ -73,7 +73,7 @@ None local. State lives in the hosted backend. The only stored value it reads is
 - `crate::api::BackendOAuthClient`: HTTP client; `authed_json(token, method, path, body)` performs the authed call.
 - `crate::config::Config`: config passed into every op; `config::rpc::load_config_with_timeout` loads it inside each `handle_*`.
 - `crate::core::all::{ControllerFuture, RegisteredController}` and `crate::core::{ControllerSchema, FieldSchema, TypeSchema}`: controller registry types.
-- `crate::rpc::Outcome`: return wrapper (`single_log`).
+- `crate::core::Outcome`: return wrapper (`single_log`).
 - `reqwest` (`Method`, `Url`) for HTTP + path building; `serde` / `serde_json` for params and bodies.
 
 ## Used by

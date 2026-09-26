@@ -10,7 +10,7 @@ runner behind both surfaces.
 
 ## Request lifecycle
 
-1. `core/socketio.rs` receives a `chat:start` socket event and calls
+1. `openhuman-rpc/src/server/socketio.rs` receives a `chat:start` socket event and calls
    [`start_chat`] (`ops/start_chat.rs`) with the raw message, thread/client ids,
    and any model/profile/locale/queue-mode overrides.
 2. `start_chat` preprocesses `[FILE:...]`/`[IMAGE:...]` attachment markers
@@ -129,8 +129,8 @@ Namespace `channel`, registered via
 
 ## Events
 
-- Broadcasts `WebChannelEvent` (defined in `core/socketio.rs`) over an
-  in-process `tokio::sync::broadcast` channel. `core/socketio.rs` forwards it
+- Broadcasts `WebChannelEvent` (defined in `openhuman-rpc/src/server/socketio.rs`) over an
+  in-process `tokio::sync::broadcast` channel. `openhuman-rpc/src/server/socketio.rs` forwards it
   to the connected Socket.IO client; `core/jsonrpc.rs` forwards the same
   stream to the JSON-RPC `/events` SSE endpoint; `channels/bus/subscriber.rs`
   subscribes to collect the reply for an inbound provider message.
@@ -165,7 +165,7 @@ Namespace `channel`, registered via
 
 ## Called by
 
-- `core/socketio.rs`: the `chat:start` and `chat:cancel` handlers call
+- `openhuman-rpc/src/server/socketio.rs`: the `chat:start` and `chat:cancel` handlers call
   `start_chat` / `cancel_chat_scoped`, and forward `WebChannelEvent`s to the
   client.
 - `core/jsonrpc.rs`: subscribes the event stream for `/events` SSE and

@@ -5,7 +5,7 @@
 //! plus a [`EventHandler`] implementation that translates relevant
 //! [`DomainEvent`] variants into [`CoreNotificationEvent`] payloads.
 //!
-//! The Socket.IO bridge in `core::socketio::spawn_web_channel_bridge`
+//! The Socket.IO bridge in `openhuman_rpc::server::socketio::spawn_web_channel_bridge`
 //! subscribes to this bus and forwards every event to all connected clients
 //! as `core_notification` / `core:notification` Socket.IO messages.
 

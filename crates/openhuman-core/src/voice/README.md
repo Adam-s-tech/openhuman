@@ -108,7 +108,7 @@ channels that predate the typed event bus:
 - `DictationEvent` (`pressed`/`released`): `publish_dictation_event` / `subscribe_dictation_events`.
 - transcription text: `publish_transcription` / `subscribe_transcription_results`.
 
-`crates/openhuman-core/src/core/socketio.rs` subscribes to both broadcast
+`crates/openhuman-rpc/src/server/socketio.rs` subscribes to both broadcast
 channels and forwards them to Socket.IO clients (so dictation hotkeys and
 results reach the frontend without Tauri-side shortcut registration).
 
@@ -144,14 +144,14 @@ transcription count, rolling recent-transcript buffer for context) behind a
 - `crate::desktop::accessibility` (macOS only): focused-text inspection (`focused_text_context_verbose`) and the Swift globe-key listener (`globe_listener_start` / `globe_listener_poll`) used in place of rdev for the Fn key.
 - `crate::api`: `BackendOAuthClient`, `effective_backend_api_url`, `get_session_token` for backend-proxied reply-speech and the realtime signed-URL bootstrap.
 - `crate::modules::voice` (`tinyvoice`): see Contract crates above.
-- `crate::core::all` (`ControllerFuture`, `RegisteredController`), `crate::core::{ControllerSchema, FieldSchema, TypeSchema}`, `crate::core::bus::BUS` + `crate::core::events` (event publishing), `crate::core::logging` (CLI run init), and `crate::rpc::Outcome`.
+- `crate::core::all` (`ControllerFuture`, `RegisteredController`), `crate::core::{ControllerSchema, FieldSchema, TypeSchema}`, `crate::core::bus::BUS` + `crate::core::events` (event publishing), `crate::core::logging` (CLI run init), and `crate::core::Outcome`.
 - External crates: `cpal` (capture), `rdev` (hotkeys), `enigo` + `arboard` (paste insertion), `reqwest` (external provider HTTP + realtime bootstrap), `tokio`/`tokio-util`, `once_cell`.
 
 ## Used by
 
 - `crates/openhuman-core/src/core/all.rs`: registers the `voice` and `audio_toolkit` controllers (gated) and the `openhuman voice` CLI adapter (ungated, so the stub answers with a "voice disabled" error).
-- `crates/openhuman-core/src/core/socketio.rs`: subscribes to the dictation/transcription broadcast buses and forwards them to Socket.IO clients.
-- `crates/openhuman-core/src/core/jsonrpc.rs`: WebSocket upgrade for streaming dictation (`streaming::handle_dictation_ws`).
+- `crates/openhuman-rpc/src/server/socketio.rs`: subscribes to the dictation/transcription broadcast buses and forwards them to Socket.IO clients.
+- `crates/openhuman-rpc/src/server/`: WebSocket upgrade for streaming dictation (`streaming::handle_dictation_ws`).
 - `crates/openhuman-core/src/platform/socket/event_handlers.rs`: spawns `realtime_harness::handle_voice_harness_turn` for each `voice:harness` socket event.
 - `crates/openhuman-core/src/web_chat/run_task.rs`: synthesizes agent reply speech and publishes PTT transcript-committed events.
 - `crates/openhuman-core/src/channels/host/adapters.rs`: channel-side STT provider dispatch and reply synthesis.

@@ -70,7 +70,7 @@ No durable domain store. Side effects are filesystem writes within the workspace
 - `crate::security`: `SecurityPolicy` / `ToolOperation` to gate the agent tools.
 - `tinytools`: `Tool`, `ToolResult`, `PermissionLevel`.
 - `crate::core::all` / `crate::core`: `RegisteredController`, `ControllerFuture`, `ControllerSchema`, `FieldSchema`, `TypeSchema` for RPC registration.
-- `crate::rpc::Outcome`: controller/op return contract.
+- `crate::core::Outcome`: controller/op return contract.
 - External crates: `lettre` (email message + attachment), `base64`, `chrono`, `uuid`.
 
 ## Used by

@@ -59,7 +59,7 @@ The editable surface is restricted to the `BOOTSTRAP_FILES` allowlist (`SOUL.md`
 - `crate::skills::init_skills_dir`: seeds the `skills/` directory README during `init_workspace`.
 - `crate::subconscious::heartbeat::engine::HeartbeatEngine::ensure_heartbeat_file`: ensures `HEARTBEAT.md` during `init_workspace`.
 - `crate::core::all` (`ControllerFuture`, `RegisteredController`) and `crate::core::{ControllerSchema, FieldSchema, TypeSchema}`: controller registry types.
-- `crate::rpc::Outcome`: uniform RPC return type.
+- `crate::core::Outcome`: uniform RPC return type.
 - Bundled prompt assets via `include_str!("../../agent/prompts/SOUL.md" | "IDENTITY.md")`.
 - `tinytools` (`PermissionLevel`, `Tool`, `ToolResult`) for the agent tools in `tools.rs`.
 - `rusqlite` for `state.rs`'s watcher-state database.

@@ -48,7 +48,7 @@ Flat files: `bus.rs` (`ChannelInboundSubscriber`, handles `DomainEvent::ChannelI
 
 - `crates/openhuman-core/src/core/all.rs`: registers `controllers::all_channels_registered_controllers()` under the `channels` feature gate.
 - `crates/openhuman-core/src/core/runtime/services.rs`: `spawn_channels_service` calls `channels::start_channels(config)` unless `OPENHUMAN_DISABLE_CHANNEL_LISTENERS` is set or `has_listening_integrations()` is false.
-- `crates/openhuman-core/src/core/jsonrpc.rs`: `bootstrap_core_runtime` subscribes `bus::ChannelInboundSubscriber` and calls `proactive::register_web_only_proactive_subscriber()`.
+- `crates/openhuman-rpc/src/server/`: `bootstrap_core_runtime` subscribes `bus::ChannelInboundSubscriber` and calls `proactive::register_web_only_proactive_subscriber()`.
 - `crates/openhuman-core/src/agent/session_host/`: the interactive loop drives the ungated `CliChannel`.
 - `crates/openhuman-core/src/cron/bus.rs`: `CronDeliverySubscriber` is handed the started channel map by `runtime/startup.rs`; it names channels only through `tinychannels_bus`.
 

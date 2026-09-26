@@ -1,7 +1,7 @@
 # ops
 
 RPC handlers for the memory system: each returns `Outcome<T>`
-(`crate::rpc::Outcome`, `openhuman_rpc::Outcome` re-exported through
+(`crate::core::Outcome`, `openhuman_rpc::Outcome` re-exported through
 `pub use openhuman_rpc as rpc;` in `crates/openhuman-core/src/lib.rs`).
 `memory::ops` is re-exported flat from `crate::memory::mod` (`pub use
 ops::*;`), and `memory::rpc` is an alias of this module (`pub use ops as

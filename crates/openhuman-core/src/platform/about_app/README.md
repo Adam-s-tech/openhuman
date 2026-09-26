@@ -58,7 +58,7 @@ None. No `store.rs`. The catalog is a compile-time `&'static [Capability]` const
 
 ## Dependencies
 
-- `crate::rpc::Outcome`: return-type contract for ops/handlers.
+- `crate::core::Outcome`: return-type contract for ops/handlers.
 - `crate::core::all::{ControllerFuture, RegisteredController}`: controller registration types (schemas.rs).
 - `crate::core::{ControllerSchema, FieldSchema, TypeSchema}`: controller schema definitions (schemas.rs).
 

@@ -171,7 +171,7 @@ fn main() {
             // lives at the call sites (`openhuman::inference::provider::ops::api_error`
             // publishes a SessionExpired event_bus signal and short-circuits;
             // the rpc dispatcher's `is_session_expired_error` skip-path in
-            // `crates/openhuman-core/src/core/jsonrpc/http/rpc_handler.rs` redirects to a tracing::info). This
+            // `crates/openhuman-rpc/src/server/http/rpc_handler.rs` redirects to a tracing::info). This
             // filter catches any future call site that re-emits the same
             // shape — keeping OPENHUMAN-TAURI-25 / -1Q / -27 / -1G off
             // Sentry permanently (~185 events/day combined).

@@ -213,7 +213,7 @@ pub async fn synthesize_reply(
 
     // `flatten_authed_error` maps the typed `BackendApiError::Unauthorized`
     // (expected session-lapse 401 from `authed_json`) onto the `SESSION_EXPIRED`
-    // sentinel so the JSON-RPC layer (`core/jsonrpc/classify.rs::is_session_expired_error`)
+    // sentinel so the JSON-RPC layer (`openhuman-rpc/src/server/classify.rs::is_session_expired_error`)
     // classifies it as session expiry and skips Sentry, matching the #3384
     // team/billing pattern. The previous `e.to_string()` produced the raw
     // "backend rejected session token on POST /openai/v1/audio/speech" Display

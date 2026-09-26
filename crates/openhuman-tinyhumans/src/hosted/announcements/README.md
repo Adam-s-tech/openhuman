@@ -52,7 +52,7 @@ anything. Dismissal is tracked client-side by announcement id
   call.
 - `crate::api::flatten_authed_error`: flattens any non-404 backend/session
   error for the RPC caller.
-- `crate::rpc::Outcome` (re-export of `openhuman_rpc`): return wrapper
+- `crate::core::Outcome` (re-export of `openhuman_rpc`): return wrapper
   carrying value + log line.
 
 ## Gating
