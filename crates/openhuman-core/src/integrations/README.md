@@ -20,7 +20,9 @@ task-source sub-domains, and the remaining non-search tool families.
 
 Every request `IntegrationClient` sends through the backend transport
 carries the sanitized `x-sdk-name` product identity (part of the
-`Integrations` profile's attribution headers in `api::headers`; asserted by
+`Integrations` profile's attribution headers, answered by the installed
+transport's `attribution_headers` — see
+`crates/openhuman-tinyhumans/src/backend/headers.rs`; asserted by
 `integration_requests_carry_the_default_product_identity` in
 `client_error_propagation_tests.rs`). The one deliberate exception, per AGENTS.md
 "Backend API", is `get_bytes`: it uses a separate untagged `download_client`
