@@ -46,6 +46,7 @@ mod runtime;
 pub mod session;
 pub mod transport;
 
+pub use backend::{product_identity, set_product_identity, ProductIdentity};
 pub use hosted::extension as hosted_controllers;
 pub use install::{install, is_installed, InstallError, InstallOptions};
 pub use openhuman_embed::{
