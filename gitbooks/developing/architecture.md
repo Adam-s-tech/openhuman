@@ -171,52 +171,15 @@ Responsibilities are split across three domains:
 
 ## AI and tool protocol (MCP)
 
-OpenHuman implements the **Model Context Protocol**, a JSON-RPC 2.0 layer over Socket.io that lets AI models discover and invoke tools exposed by skills.
+OpenHuman implements the **Model Context Protocol** on both sides of the connection. As a client, the core browses Smithery and the official MCP registry, connects servers a user declares in `mcp.json`, and surfaces their tools to agents through the same tool registry native tools use; see [MCP registry](architecture/mcp-registry.md). As a server, `openhuman-core mcp` exposes OpenHuman's own tools over stdio or HTTP so external MCP hosts such as Claude Desktop, Cursor, and Zed can call them; see [MCP server](mcp-server.md).
 
-```
-User Prompt
-    |
-    v
-AI Model (Backend)
-    |
-    |  1. mcp:listTools  -->  Frontend/Rust aggregates all skill tools
-    |  <-- tool catalog
-    |
-    |  2. Decides which tool to call
-    |
-    |  3. mcp:toolCall { tool_name, arguments }
-    |         |
-    |         v
-    |     Socket Manager routes to the unified Tool Registry
-    |         |
-    |         v
-    |     Native Rust handler (or Node helper via `runtime::node`) executes
-    |         |
-    |         v
-    |     External call (HTTP via reqwest, SQLite, etc.), gated by SecurityPolicy
-    |         |
-    |  <-- mcp:toolCallResponse { result }
-    |
-    v
-AI Response to User
-```
+Every remote tool definition, whether coming in through a connected server or served out to a host, passes a prompt-injection scan before it reaches a model. Tool execution itself runs through the same Tool Registry as native tools: native Rust handlers or Node helpers via `runtime::node`, gated by `SecurityPolicy` and the active sandbox backend.
 
-**Transport**: 30-second timeout per request, `mcp:` event prefix, request IDs tracked in a pending response map. Tool names are namespaced as `skillId__toolName` for unambiguous routing.
+## Memory
 
-**Tool sync**: The `tool:sync` event broadcasts the complete tool inventory, skill ID, name, connection status, and tool list, on every socket connect and skill state change. The backend AI system always has an up-to-date view of available capabilities.
+Agent memory runs on TinyCortex, the memory engine vendored under `tinymemory` (`vendor/tinymemory/vendor/tinycortex`). OpenHuman's own code keeps RPC, tools, scheduling, credentials, and the host namespace-document store; the tree mechanics (chunking, scoring, retrieval, embedding) are crate-owned. See [Pluggable engines](engines.md) for which memory and embedding backends actually run, and [Memory tree](architecture/memory-tree.md) for the host layer over the engine.
 
-**AI Memory System**:
-
-| Feature            | Implementation                                                                      |
-| ------------------ | ----------------------------------------------------------------------------------- |
-| Encryption at rest | AES-256-GCM with Argon2id key derivation                                            |
-| Chunking           | 512 tokens per chunk, 64-token overlap                                              |
-| Search             | Hybrid: 70% vector similarity + 30% FTS5 full-text                                  |
-| Embeddings         | OpenAI `text-embedding-3-small`                                                     |
-| Knowledge graph    | SQLite-backed code/entity graph (`codegraph`, `memory_tree`); no external graph DB |
-| Sessions           | JSONL transcripts with compaction and tool compression                              |
-
-Memory encryption keys derive from user credentials via Argon2id, ensuring memory files are unreadable without authentication. The hybrid search combines semantic understanding (vector similarity) with keyword precision (SQLite FTS5) for reliable recall.
+Conversation state is separate from memory: each thread's transcript is a JSONL file keyed by thread and agent id, and compaction seals a generation rather than deleting it, so the full history stays recoverable even though a resumed session only reads the latest generation.
 
 ---
 
