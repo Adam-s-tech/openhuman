@@ -7,7 +7,7 @@ icon: eye
 
 This doc describes the artifact-capture layer that makes the desktop app
 inspectable by coding agents (Codex, Claude Code, Cursor) through the
-existing WDIO/Appium Chromium harness.
+existing WDIO / tauri-driver E2E harness (see [E2E Testing](e2e-testing.md)).
 
 It is intentionally narrow: one canonical onboarding + privacy flow with
 on-disk screenshots, page-source dumps, and mock backend request logs.
