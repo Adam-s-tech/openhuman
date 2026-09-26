@@ -33,7 +33,6 @@ type SettingsRoute =
   | 'approval-history'
   | 'integrations'
   | 'composio-triggers'
-  | 'mcp-server'
   | 'sandbox-settings'
   | 'permissions'
   | 'usage'

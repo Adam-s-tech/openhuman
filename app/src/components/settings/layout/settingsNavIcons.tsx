@@ -132,9 +132,6 @@ export const SETTINGS_NAV_ICONS: Record<string, ReactNode> = {
       'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-6 0h.01M12 16h3m-6 0h.01'
     )
   ),
-  'mcp-server': icon(
-    stroke('M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z')
-  ),
   search: icon(stroke('M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z')),
   // Diagnostics & Logs
   'event-log': icon(stroke('M4 6h16M4 10h16M4 14h16M4 18h16')),

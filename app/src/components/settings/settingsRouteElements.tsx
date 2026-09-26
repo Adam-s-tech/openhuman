@@ -15,7 +15,6 @@ import DeveloperOptionsPanel from './panels/DeveloperOptionsPanel';
 import EventLogPanel from './panels/EventLogPanel';
 import FeedbackPanel from './panels/FeedbackPanel';
 import MascotPanel from './panels/MascotPanel';
-import McpServerPanel from './panels/McpServerPanel';
 import MemoryDataPanel from './panels/MemoryDataPanel';
 import MemoryDebugPanel from './panels/MemoryDebugPanel';
 import MigrationPanel from './panels/MigrationPanel';
@@ -160,7 +159,7 @@ export function settingsRouteElements(): ReactNode {
         path="tool-policy-diagnostics"
         element={wrapSettingsPage(<ToolPolicyDiagnosticsPanel />)}
       />
-      <Route path="mcp-server" element={wrapSettingsPage(<McpServerPanel />)} />
+      <Route path="mcp-server" element={<SettingsRedirect to="/connections?tab=mcp" />} />
       {/* Search engine settings moved to the Connections page. */}
       <Route path="search" element={<Navigate to="/connections?tab=search" replace />} />
       {/* Agent Chat debug tester retired — the panel is deleted. The slug is

@@ -265,8 +265,9 @@ const McpServerPanel = ({ embedded = false }: McpServerPanelProps = {}) => {
     </>
   );
 
+  // Embedded in Connections → MCP → Clients, whose page owns the header.
   if (embedded) {
-    return <PanelPage className="z-10">{body}</PanelPage>;
+    return <div className="space-y-5">{body}</div>;
   }
 
   return (

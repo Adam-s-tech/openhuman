@@ -536,15 +536,7 @@ export const SETTINGS_ROUTE_REGISTRY: SettingsRegistryEntry[] = [
     navGroup: 'diagnosticsLogs',
   },
   // Automation & Integrations (debug)
-  {
-    id: 'mcp-server',
-    titleKey: 'settings.developerMenu.mcpServer.title',
-    descriptionKey: 'settings.developerMenu.mcpServer.desc',
-    section: 'developer',
-    devOnly: true,
-    navGroup: 'automationIntegrations',
-    searchKeywords: ['mcp', 'server'],
-  },
+  // mcp-server moved to Connections → MCP → Clients; the slug redirects.
   // dev-workflow (the cron-based GitHub dev-automation panel) was retired —
   // superseded by first-level Workflows (/flows) and the skills workflow runner.
   // Composio trigger-triage config merged into the Connections Composio page.

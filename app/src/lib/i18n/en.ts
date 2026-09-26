@@ -1995,6 +1995,7 @@ const en: TranslationMap = {
   'mcp.json.unsaved': 'Unsaved changes',
   'mcp.registry.title': 'MCP directory',
   'mcp.tab.section.servers': 'Servers',
+  'mcp.tab.section.clients': 'Clients',
   'mcp.tab.section.json': 'mcp.json',
   'mcp.tab.section.registry': 'Registry',
   'mcp.tab.back': 'Back to servers',
