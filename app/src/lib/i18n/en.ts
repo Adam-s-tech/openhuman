@@ -5211,7 +5211,8 @@ const en: TranslationMap = {
   'pages.settings.features.notifications': 'Notifications',
   'pages.settings.features.notificationsDesc': 'Notifications desc',
   'pages.settings.features.tools': 'Tools',
-  'pages.settings.features.toolsDesc': 'Tools desc',
+  'pages.settings.features.toolsDesc':
+    'Choose which built-in tools your assistant can use: shell, files, web, vision, memory and scheduling.',
   'pages.settings.featuresSection.title': 'Features',
   'privacy.dataKind.credentials': 'Credentials',
   'privacy.dataKind.derived': 'Derived',
@@ -6502,7 +6503,8 @@ const en: TranslationMap = {
   'settings.persona.builder.intro':
     'Fill in a few fields and we write them into your persona for you. No markdown required.',
   'settings.persona.builder.personalityLabel': 'Personality',
-  'settings.persona.builder.personalityHelp': 'Its character and values: how it behaves and what it prioritises.',
+  'settings.persona.builder.personalityHelp':
+    'Its character and values: how it behaves and what it prioritises.',
   'settings.persona.builder.personalityPlaceholder':
     'e.g. Warm, curious, and direct. Honest about uncertainty.',
   'settings.persona.builder.voiceLabel': 'Communication style',
@@ -6510,7 +6512,8 @@ const en: TranslationMap = {
   'settings.persona.builder.voicePlaceholder':
     'e.g. Lead with the answer, keep it brief, and match my tone.',
   'settings.persona.builder.aboutLabel': 'About you',
-  'settings.persona.builder.aboutHelp': 'Context about you it should keep in mind: your work, preferences, time zone.',
+  'settings.persona.builder.aboutHelp':
+    'Context about you it should keep in mind: your work, preferences, time zone.',
   'settings.persona.builder.aboutPlaceholder':
     'e.g. I run a small design studio and prefer plain language.',
   'settings.persona.builder.preservedNote':

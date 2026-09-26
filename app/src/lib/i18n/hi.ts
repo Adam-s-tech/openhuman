@@ -4610,7 +4610,8 @@ const messages: TranslationMap = {
   'pages.settings.features.notifications': 'नोटिफिकेशन',
   'pages.settings.features.notificationsDesc': 'नोटिफ़िकेशन विवरण',
   'pages.settings.features.tools': 'टूल्स',
-  'pages.settings.features.toolsDesc': 'टूल्स विवरण',
+  'pages.settings.features.toolsDesc':
+    'चुनें कि आपका असिस्टेंट कौन-से बिल्ट-इन टूल इस्तेमाल कर सकता है: शेल, फ़ाइलें, वेब, विज़न, मेमोरी और शेड्यूलिंग।',
   'pages.settings.featuresSection.title': 'फीचर्स',
   'privacy.dataKind.credentials': 'क्रेडेंशियल',
   'privacy.dataKind.derived': 'डिराइव्ड',

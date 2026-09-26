@@ -4652,7 +4652,8 @@ const messages: TranslationMap = {
   'pages.settings.features.notifications': 'Уведомления',
   'pages.settings.features.notificationsDesc': 'Описание уведомлений',
   'pages.settings.features.tools': 'Инструменты',
-  'pages.settings.features.toolsDesc': 'Описание инструментов',
+  'pages.settings.features.toolsDesc':
+    'Выберите, какими встроенными инструментами может пользоваться ассистент: терминал, файлы, веб, зрение, память и расписание.',
   'pages.settings.featuresSection.title': 'Функции',
   'privacy.dataKind.credentials': 'Учётные данные',
   'privacy.dataKind.derived': 'Производные данные',

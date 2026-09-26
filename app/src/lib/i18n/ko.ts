@@ -4564,7 +4564,8 @@ const messages: TranslationMap = {
   'pages.settings.features.notifications': '알림',
   'pages.settings.features.notificationsDesc': '알림 설명',
   'pages.settings.features.tools': '도구',
-  'pages.settings.features.toolsDesc': '도구 설명',
+  'pages.settings.features.toolsDesc':
+    '어시스턴트가 사용할 수 있는 기본 도구를 선택하세요: 셸, 파일, 웹, 비전, 메모리, 예약.',
   'pages.settings.featuresSection.title': '기능',
   'privacy.dataKind.credentials': '자격 증명',
   'privacy.dataKind.derived': '파생됨',

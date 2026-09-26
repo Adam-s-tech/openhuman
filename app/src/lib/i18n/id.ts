@@ -4636,7 +4636,8 @@ const messages: TranslationMap = {
   'pages.settings.features.notifications': 'Notifikasi',
   'pages.settings.features.notificationsDesc': 'Deskripsi notifikasi',
   'pages.settings.features.tools': 'Alat',
-  'pages.settings.features.toolsDesc': 'Deskripsi alat',
+  'pages.settings.features.toolsDesc':
+    'Pilih alat bawaan yang boleh digunakan asisten Anda: shell, file, web, visi, memori, dan penjadwalan.',
   'pages.settings.featuresSection.title': 'Fitur',
   'privacy.dataKind.credentials': 'Kredensial',
   'privacy.dataKind.derived': 'Turunan',

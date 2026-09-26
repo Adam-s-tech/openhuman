@@ -4671,7 +4671,8 @@ const messages: TranslationMap = {
   'pages.settings.features.notificationsDesc':
     'Steruj alertami systemowymi i kategoriami powiadomień',
   'pages.settings.features.tools': 'Narzędzia',
-  'pages.settings.features.toolsDesc': 'Wybierz, z jakich możliwości OpenHuman może korzystać',
+  'pages.settings.features.toolsDesc':
+    'Wybierz, z jakich wbudowanych narzędzi może korzystać asystent: powłoka, pliki, sieć, obraz, pamięć i harmonogram.',
   'pages.settings.featuresSection.title': 'Funkcje',
   'privacy.dataKind.credentials': 'Poświadczenia',
   'privacy.dataKind.derived': 'Wyprowadzone',

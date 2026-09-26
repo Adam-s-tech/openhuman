@@ -4713,7 +4713,8 @@ const messages: TranslationMap = {
   'pages.settings.features.notifications': 'Notifications',
   'pages.settings.features.notificationsDesc': 'Description des notifications',
   'pages.settings.features.tools': 'Outils',
-  'pages.settings.features.toolsDesc': 'Description des outils',
+  'pages.settings.features.toolsDesc':
+    'Choisissez les outils intégrés que votre assistant peut utiliser : terminal, fichiers, web, vision, mémoire et planification.',
   'pages.settings.featuresSection.title': 'Fonctionnalités',
   'privacy.dataKind.credentials': 'Identifiants',
   'privacy.dataKind.derived': 'Dérivé',

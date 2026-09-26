@@ -4362,7 +4362,8 @@ const messages: TranslationMap = {
   'pages.settings.features.notifications': '通知',
   'pages.settings.features.notificationsDesc': '管理通知偏好',
   'pages.settings.features.tools': '工具',
-  'pages.settings.features.toolsDesc': '管理已连接的工具和集成',
+  'pages.settings.features.toolsDesc':
+    '选择助手可以使用的内置工具：命令行、文件、网络、视觉、记忆和定时任务。',
   'pages.settings.featuresSection.title': '功能',
   'privacy.dataKind.credentials': '凭据',
   'privacy.dataKind.derived': '派生数据',

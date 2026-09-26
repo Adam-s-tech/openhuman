@@ -4613,7 +4613,8 @@ const messages: TranslationMap = {
   'pages.settings.features.notifications': 'বিজ্ঞপ্তি',
   'pages.settings.features.notificationsDesc': 'বিজ্ঞপ্তির বিবরণ',
   'pages.settings.features.tools': 'টুলস',
-  'pages.settings.features.toolsDesc': 'টুলসের বিবরণ',
+  'pages.settings.features.toolsDesc':
+    'আপনার সহকারী কোন বিল্ট-ইন টুল ব্যবহার করতে পারবে তা বেছে নিন: শেল, ফাইল, ওয়েব, ভিশন, মেমরি ও শিডিউলিং।',
   'pages.settings.featuresSection.title': 'ফিচার',
   'privacy.dataKind.credentials': 'ক্রেডেনশিয়াল',
   'privacy.dataKind.derived': 'ডেরাইভড',

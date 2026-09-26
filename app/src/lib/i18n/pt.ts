@@ -4678,7 +4678,8 @@ const messages: TranslationMap = {
   'pages.settings.features.notifications': 'Notificações',
   'pages.settings.features.notificationsDesc': 'Descrição de notificações',
   'pages.settings.features.tools': 'Ferramentas',
-  'pages.settings.features.toolsDesc': 'Descrição de ferramentas',
+  'pages.settings.features.toolsDesc':
+    'Escolha quais ferramentas integradas seu assistente pode usar: terminal, arquivos, web, visão, memória e agendamento.',
   'pages.settings.featuresSection.title': 'Recursos',
   'privacy.dataKind.credentials': 'Credenciais',
   'privacy.dataKind.derived': 'Derivado',

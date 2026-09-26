@@ -4734,7 +4734,8 @@ const messages: TranslationMap = {
   'pages.settings.features.notifications': 'Benachrichtigungen',
   'pages.settings.features.notificationsDesc': 'Benachrichtigungen absch',
   'pages.settings.features.tools': 'Werkzeuge',
-  'pages.settings.features.toolsDesc': 'Werkzeugbeschr',
+  'pages.settings.features.toolsDesc':
+    'Lege fest, welche integrierten Werkzeuge dein Assistent nutzen darf: Shell, Dateien, Web, Bilderkennung, Gedächtnis und Zeitplanung.',
   'pages.settings.featuresSection.title': 'Funktionen',
   'privacy.dataKind.credentials': 'Anmeldeinformationen',
   'privacy.dataKind.derived': 'Abgeleitet',

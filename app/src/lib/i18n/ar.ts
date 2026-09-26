@@ -4504,7 +4504,8 @@ const messages: TranslationMap = {
   'pages.settings.features.notifications': 'الإشعارات',
   'pages.settings.features.notificationsDesc': 'وصف الإشعارات',
   'pages.settings.features.tools': 'الأدوات',
-  'pages.settings.features.toolsDesc': 'وصف الأدوات',
+  'pages.settings.features.toolsDesc':
+    'اختر الأدوات المدمجة التي يمكن لمساعدك استخدامها: سطر الأوامر والملفات والويب والرؤية والذاكرة والجدولة.',
   'pages.settings.featuresSection.title': 'الميزات',
   'privacy.dataKind.credentials': 'بيانات الاعتماد',
   'privacy.dataKind.derived': 'مشتقة',
