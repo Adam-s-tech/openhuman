@@ -65,16 +65,16 @@ Does not own a `store.rs`. Its effects are written through other layers:
 
 ## Dependencies
 
-- `crate::config` (`Config`, `HttpRequestConfig`, `schema::cloud_providers::{CloudProviderCreds, AuthStyle, CloudProviderType, generate_provider_id}`, `schema::LlmBackend`, `MODEL_CHAT_V1`, `MODEL_REASONING_V1`, `MODEL_REASONING_QUICK_V1`) — the migrations read and mutate the config struct; `schema_version` is the gating field.
-- `tinyagents_session::transcript` (`transcript`, `SessionTranscript`, `write_transcript`) — `phase_out_profile_md` parses and rewrites persisted session transcripts byte-compatibly.
-- `crate::inference::provider::factory` — `reconcile_orphaned_providers` mirrors the factory's exact, case-sensitive provider-string grammar so "resolvable here" matches "resolvable at inference time"; `unify_ai_provider_settings` references the factory's provider-string format.
-- `crate::inference::host_runtime::ollama_base_url_from_config` — the runner's Ollama reachability probe for the 6→7 step. That step and the 9→10 step mirror, by hand, the provider-string grammar of `embeddings::factory::create_embedding_provider` and `voice::factory::create_stt_provider` respectively (doc-linked, not imported), so keep them in sync when those factories change.
+- `crate::config` (`Config`, `HttpRequestConfig`, `schema::cloud_providers::{CloudProviderCreds, AuthStyle, CloudProviderType, generate_provider_id}`, `schema::LlmBackend`, `MODEL_CHAT_V1`, `MODEL_REASONING_V1`, `MODEL_REASONING_QUICK_V1`): the migrations read and mutate the config struct; `schema_version` is the gating field.
+- `tinyagents_session::transcript` (`transcript`, `SessionTranscript`, `write_transcript`): `phase_out_profile_md` parses and rewrites persisted session transcripts byte-compatibly.
+- `crate::inference::provider::factory`: `reconcile_orphaned_providers` mirrors the factory's exact, case-sensitive provider-string grammar so "resolvable here" matches "resolvable at inference time"; `unify_ai_provider_settings` references the factory's provider-string format.
+- `crate::inference::host_runtime::ollama_base_url_from_config`: the runner's Ollama reachability probe for the 6→7 step. That step and the 9→10 step mirror, by hand, the provider-string grammar of `embeddings::factory::create_embedding_provider` and `voice::factory::create_stt_provider` respectively (doc-linked, not imported), so keep them in sync when those factories change.
 - `crate::agent::messages::ChatMessage`, `schema::{LocalAiConfig, LocalAiUsage, ModelRouteConfig, SttEngine}` and `voice::factory::effective_stt_provider` are imported only by tests.
 
 ## Used by
 
-- `crates/openhuman-core/src/config/schema/load/impl_load.rs` — calls `migrations::run_pending(&mut config)` from `Config::load_or_init` (three call sites) and seeds new configs via `migrations::seed_new_workspace` with `schema_version: CURRENT_SCHEMA_VERSION`.
-- `crates/openhuman-core/src/config/mod.rs` — declares `pub mod migrations;`.
+- `crates/openhuman-core/src/config/schema/load/impl_load.rs` calls `migrations::run_pending(&mut config)` from `Config::load_or_init` (three call sites) and seeds new configs via `migrations::seed_new_workspace` with `schema_version: CURRENT_SCHEMA_VERSION`.
+- `crates/openhuman-core/src/config/mod.rs` declares `pub mod migrations;`.
 
 ## Notes / gotchas
 

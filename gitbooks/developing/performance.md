@@ -79,7 +79,7 @@ what the desktop app ships).
 
 | Build | Features | Unstripped | Stripped |
 | --- | --- | ---: | ---: |
-| Default (all gates) | Contrib/Product superset | 115.9 MiB | — |
+| Default (all gates) | Contrib/Product superset | 115.9 MiB | n/a |
 | library-minimal | `skills,flows` | ~81.1 MiB | ~60.4 MiB |
 | Pure slim | none | 68.4 MiB | 51.0 MiB |
 

@@ -116,7 +116,7 @@ globs those files into the single `raw_coverage_all` target instead of one
 target per file. Four product-gated targets (`json_rpc_e2e`,
 `observability_smoke`, `raw_coverage_all`, `x402_twit_sh_live`) declare
 `required-features` and are silently skipped, not failed, under the
-contributor default set — run them with the product feature set to exercise
+contributor default set. Run them with the product feature set to exercise
 what ships.
 
 ## Public entry points
