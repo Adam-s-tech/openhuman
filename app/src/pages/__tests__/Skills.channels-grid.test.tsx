@@ -161,15 +161,14 @@ describe('Skills page — Channels grid', () => {
   it('renders configured channels as tiles in a dedicated card and opens the setup modal on click', async () => {
     renderWithProviders(<Skills />, { initialEntries: ['/connections'] });
 
-    // Switch to the Channels tab to make the Channels card visible.
+    // Switch to the Channels tab to make the Channels overview visible.
     fireEvent.click(screen.getByTestId('two-pane-nav-channels'));
 
-    const channelsHeading = screen.getByRole('heading', { name: 'Messaging' });
-    expect(channelsHeading).toBeInTheDocument();
-
-    const channelsCard = channelsHeading.closest('[data-slot="card"]');
-    expect(channelsCard).not.toBeNull();
-    const within$ = within(channelsCard as HTMLElement);
+    // Both tiles are "Not configured" (not yet connected), so they land in
+    // the "Available" card inside the shared overview container.
+    const overview = await screen.findByTestId('channels-overview');
+    expect(screen.getByRole('heading', { name: 'Available' })).toBeInTheDocument();
+    const within$ = within(overview);
 
     const telegramTile = within$.getByRole('button', { name: /Telegram.*Not configured.*Setup/i });
     expect(telegramTile).toBeInTheDocument();
