@@ -289,10 +289,10 @@ Errors are classified into a stable `CoreRpcError.kind` (`auth_expired`, `transp
 
 ### Best Practices
 
-1. **Use singletons**: never create multiple service instances.
-2. **Keep Tauri IPC and RPC calls in services**: do not scatter `invoke()` or raw fetches through components.
-3. **Clean up on unmount**: disconnect in `useEffect` cleanup.
-4. **Handle errors via `CoreRpcError.kind`**: retry only transient failures.
+1. Use singletons. Never create multiple service instances.
+2. Keep Tauri IPC and RPC calls in services. Do not scatter `invoke()` or raw fetches through components.
+3. Clean up on unmount by disconnecting in the `useEffect` cleanup.
+4. Handle errors through `CoreRpcError.kind` and retry only transient failures.
 
 ---
 
