@@ -22,7 +22,6 @@ import McpServerPanel from './panels/McpServerPanel';
 import MemoryDataPanel from './panels/MemoryDataPanel';
 import MemoryDebugPanel from './panels/MemoryDebugPanel';
 import MigrationPanel from './panels/MigrationPanel';
-import NotificationsPanel from './panels/NotificationsPanel';
 import PermissionsPanel from './panels/PermissionsPanel';
 import PersonaPanel from './panels/PersonaPanel';
 import PrivacyPanel from './panels/PrivacyPanel';
