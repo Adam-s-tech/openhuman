@@ -18,25 +18,22 @@ used here (not defined here) by `agent_graph.rs` and `fork_context.rs`.
 
 ## Responsibilities
 
-- Define sub-agent archetypes and the definition/prompt inputs consumed by
-  `../session_host/` (which owns the `Agent` struct, turn lifecycle, and
-  KV-cache prefix stability) and `../subagent_host/`, which implements the
-  TinyAgents sub-agent lifecycle traits directly. This module does not export
-  a compatibility runner of its own.
-- Define sub-agent archetypes (built-in + workspace TOML) and the task-local
-  plumbing that lets a spawned tool see its parent's runtime context
-  (`definition*.rs`, `builtin_definitions.rs`, `fork_context.rs`,
-  `sandbox_context.rs`, `spawn_depth_context.rs`, `task_recency_context.rs`,
-  `OpenHumanRunContext`).
-- Run the channel/CLI turn graph (`graph.rs`) and let a built-in agent
-  select a bespoke sub-agent turn graph (`agent_graph.rs`).
+- Define sub-agent archetypes, built-in and workspace TOML, and the
+  definition/prompt inputs consumed by `../session_host/` (which owns the
+  `Agent` struct, turn lifecycle, and KV-cache prefix stability) and
+  `../subagent_host/`, which implements the TinyAgents sub-agent lifecycle
+  traits directly. This module does not export a compatibility runner of its
+  own.
+- Carry the task-local plumbing that lets a spawned tool see its parent's
+  runtime context (`fork_context.rs`, `sandbox_context.rs`,
+  `spawn_depth_context.rs`, `task_recency_context.rs`, `OpenHumanRunContext`).
+- Run the channel/CLI turn graph (`graph.rs`) and let a built-in agent select
+  a bespoke sub-agent turn graph (`agent_graph.rs`).
 - Extract lessons and episodic memory after each turn as a `PostTurnHook`
   (`archivist/`).
 - Offload oversized worker artifacts to the filesystem, and persist oversized
   tool results as action-workspace artifacts (`artifact_offload/`,
   `tool_result_artifacts/`).
-- Run the channel/CLI turn graph (`graph.rs`) and let a built-in agent select
-  a bespoke sub-agent turn graph (`agent_graph.rs`).
 
 ## Key sub-modules
 
