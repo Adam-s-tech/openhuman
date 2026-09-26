@@ -150,6 +150,7 @@ const ToolsPanel = ({ embedded = false, bare = false }: ToolsPanelProps = {}) =>
               title={category}
               description={CATEGORY_DESCRIPTIONS[category]}
               divided={false}
+              className="border-line-strong"
               data-testid={`tools-category-${category.toLowerCase()}`}>
               <div className="space-y-2 p-4">
                 {tools.map(tool => {

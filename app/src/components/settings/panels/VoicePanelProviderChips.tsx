@@ -94,6 +94,7 @@ const VoicePanelProviderChips = ({
       title={t('voice.providers.title')}
       description={t('voice.providers.cardDesc')}
       divided={false}
+      className="border-line-strong"
       data-testid="voice-providers-section">
       <TileGrid padded columns={2}>
         {/* Cloud — always enabled, locked */}
