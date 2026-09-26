@@ -25,7 +25,7 @@ suites that boot the core in-process do the same through
 | `openhuman-fleet` | `src/bin/fleet.rs` | `http-server`, `bin-tools` |
 | `rss-bench` | `src/bin/rss_bench.rs` | `rss-bench` |
 | `library-profile` | `src/bin/library_profile/main.rs` | `rss-bench` (+ `rss-bench-dhat`) |
-| `[[test]]` × 44 | `../../tests/<name>.rs` | some carry `required-features` (see the manifest) |
+| `[[test]]` × 49 | `../../tests/<name>.rs` | some carry `required-features` (see the manifest) |
 | `[[example]]` × 4 | `../../examples/<name>.rs` | none |
 
 `tests/raw_coverage/*.rs` are globbed by the shared root `build.rs` into the
