@@ -23,7 +23,7 @@ Persistent, Rust-native Socket.IO client to the OpenHuman backend. The `socket` 
 | `crates/openhuman-core/src/platform/socket/event_handlers.rs` | Inbound SIO event dispatch (`handle_sio_event`), SIO frame parsing (`parse_sio_event`), outbound frame helper (`emit_via_channel`). Maps event names → `DomainEvent` publishes. Redacts payload content from logs. |
 | `crates/openhuman-core/src/platform/socket/token_provider.rs` | `TokenProvider` type alias + `static_token_provider`, `token_provider_from_config`, and `is_invalid_token_error` (strict double-anchor matcher). |
 | `crates/openhuman-core/src/platform/socket/schemas.rs` | Controller schemas + RPC handlers for the `socket` namespace. |
-| `crates/openhuman-core/src/platform/socket/types.rs` | `WsStream` alias, `ConnectionOutcome` enum, observability event-name constants; re-exports `ConnectionStatus` / `SocketState` from `crate::api::models::socket`. |
+| `crates/openhuman-core/src/platform/socket/types.rs` | `WsStream` alias, `ConnectionOutcome` enum, observability event-name constants; re-exports `ConnectionStatus` / `SocketState` from `crate::platform::socket::models`. |
 | `crates/openhuman-core/src/platform/socket/ops.rs` | RPC operations behind `schemas.rs` (`connect_with_session` and live-socket reuse). |
 | `crates/openhuman-core/src/platform/socket/*_tests.rs` | Sibling test suites, included via `#[path]`. |
 
