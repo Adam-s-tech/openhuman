@@ -48,7 +48,7 @@ import type {
 } from '../../store/chatRuntimeSlice';
 import { useAppSelector } from '../../store/hooks';
 import ChatComposer from '../chat/ChatComposer';
-import { Button } from '../ui';
+import { Badge, Button } from '../ui';
 
 const log = createDebug('app:flows:copilot-panel');
 
@@ -534,18 +534,14 @@ export default function WorkflowCopilotPanel({
 
           <div className="mt-2 flex flex-wrap gap-1.5 text-[11px]">
             {diff.addedNodeIds.size > 0 && (
-              <span
-                data-testid="workflow-copilot-added"
-                className="rounded-full bg-sage-100 px-2 py-0.5 font-medium text-sage-700 dark:bg-sage-500/15 dark:text-sage-300">
+              <Badge variant="success" data-testid="workflow-copilot-added">
                 {t('flows.copilot.added').replace('{count}', String(diff.addedNodeIds.size))}
-              </span>
+              </Badge>
             )}
             {diff.removedNodeIds.size > 0 && (
-              <span
-                data-testid="workflow-copilot-removed"
-                className="rounded-full bg-coral-100 px-2 py-0.5 font-medium text-coral-700 dark:bg-coral-500/15 dark:text-coral-300">
+              <Badge variant="danger" data-testid="workflow-copilot-removed">
                 {t('flows.copilot.removed').replace('{count}', String(diff.removedNodeIds.size))}
-              </span>
+              </Badge>
             )}
             {!diff.hasChanges && (
               <span className="text-content-faint">{t('flows.copilot.noChanges')}</span>
