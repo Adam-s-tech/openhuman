@@ -1571,6 +1571,7 @@ const AssistantMessage: FC = () => {
 };
 
 const AssistantActionBar: FC = () => {
+  const { t } = useT();
   // assistant-ui's own disabled predicate for Reload is
   // `isRunning || isDisabled || role !== 'assistant'` — it never consults
   // `capabilities.reload`, so the button ships enabled on every settled
