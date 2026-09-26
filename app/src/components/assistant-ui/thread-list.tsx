@@ -242,6 +242,7 @@ export const ThreadListNew = forwardRef<
   HTMLButtonElement,
   ComponentPropsWithoutRef<typeof Button> & { labelClassName?: string }
 >(({ className, labelClassName, children, ...props }, ref) => {
+  const { t } = useT();
   return (
     <ThreadListPrimitive.New
       render={
@@ -262,7 +263,7 @@ export const ThreadListNew = forwardRef<
           <span
             data-slot="aui_thread-list-new-label"
             className={cn('whitespace-nowrap', labelClassName)}>
-            New Thread
+            {t('assistantUi.threadList.newThread', 'New Thread')}
           </span>
         </>
       )}
