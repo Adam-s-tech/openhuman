@@ -1030,9 +1030,9 @@ describe('SkillsExplorerTab', () => {
       expect(screen.getByText('Hermes Skill')).toBeInTheDocument();
     });
 
-    const allTiles = screen
-      .getAllByRole('button')
-      .filter(el => el.getAttribute('data-testid')?.startsWith('skill-explorer-tile'));
+    // Installed skills render as table rows now (same row grammar as the MCP
+    // servers table), not buttons.
+    const allTiles = screen.getAllByTestId(/^skill-explorer-tile-/);
     // Hermes should come first
     expect(allTiles[0]).toHaveAttribute('data-testid', 'skill-explorer-tile-hermes');
     expect(allTiles[1]).toHaveAttribute('data-testid', 'skill-explorer-tile-alpha');
