@@ -23,7 +23,7 @@ import { cn } from '@/components/assistant-ui/lib/utils';
 import type { LucideIcon } from 'lucide-react';
 import { type ComponentProps, useMemo } from 'react';
 
-import { field, floating, mono } from './surfaces';
+import { field, floating } from './surfaces';
 
 export interface ComposerCommand {
   name: string;
