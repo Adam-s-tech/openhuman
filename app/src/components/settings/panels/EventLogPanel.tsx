@@ -406,10 +406,7 @@ const EventLogPanel = () => {
             </div>
           )}
           {filteredEntries.map(entry => {
-            const colors = DOMAIN_BADGE_COLORS[entry.domain] || {
-              bg: 'bg-content-muted/20',
-              text: 'text-content-faint',
-            };
+            const variant = DOMAIN_BADGE_VARIANT[entry.domain] ?? 'neutral';
             return (
               <div
                 key={entry.id}
@@ -417,12 +414,11 @@ const EventLogPanel = () => {
                 <span className="text-[10px] text-content-muted font-mono shrink-0 pt-0.5">
                   {entry.timestamp}
                 </span>
-                <span
-                  className={`rounded-full ${colors.bg} px-2 py-0.5 text-[10px] ${colors.text} shrink-0`}>
+                <Badge variant={variant} className="shrink-0">
                   {DOMAIN_BADGE_KEYS[entry.domain]
                     ? t(DOMAIN_BADGE_KEYS[entry.domain])
                     : entry.domain.toUpperCase()}
-                </span>
+                </Badge>
                 {entry.agent && (
                   <span className="text-[10px] text-content-muted shrink-0 font-mono">
                     {entry.agent}
