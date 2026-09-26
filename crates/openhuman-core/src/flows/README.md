@@ -15,12 +15,12 @@ in-crate under `vendor/tinyflows/crates/tinyflows/src/graph/`), and
 [`tinyflows/README.md`](tinyflows/README.md) for the capability seam; this
 file is the directory map.
 
-## Gate shape, leaf, not facade
+## Gate shape: leaf, not facade
 
 The whole family (`flows` + `flows::tinyflows`) is gated at `pub mod flows;`
 in `crates/openhuman-core/src/lib.rs` behind `#[cfg(feature = "flows")]`, and
 every submodule inherits that gate. There is deliberately **no `stub.rs`**:
-every symbol reached from outside is a registration site, 
+every symbol reached from outside is a registration site:
 `core::all::all_flows_registered_controllers`, `core::jsonrpc`'s
 `FlowTriggerSubscriber`, `core::runtime::services`' boot reconcile
 (`sweep_orphaned_running_runs_on_boot`, `reconcile_schedule_triggers_on_boot`),
