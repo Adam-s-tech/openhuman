@@ -19,7 +19,7 @@ import type {
   BackfillStatus,
   MemoryTreePipelineStatus,
 } from '../../utils/tauriCommands/memoryTree';
-import Badge from '../ui/Badge';
+import Badge, { type BadgeVariant } from '../ui/Badge';
 import Button from '../ui/Button';
 import { CollapsibleContent, CollapsibleRoot, CollapsibleTrigger } from '../ui/Collapsible';
 import Switch from '../ui/Switch';
