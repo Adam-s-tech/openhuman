@@ -17,6 +17,10 @@ vi.mock('../../../../providers/CoreStateProvider', () => ({
   useCoreState: () => mockUseCoreState(),
 }));
 
+vi.mock('../../../../hooks/useUsageState', () => ({
+  useUsageState: () => ({ currentPlan: null }),
+}));
+
 // Isolate the panel from the destructive logout/clear actions (which pull in
 // session + clear-data plumbing we don't exercise here).
 vi.mock('../../LogoutAndClearActions', () => ({

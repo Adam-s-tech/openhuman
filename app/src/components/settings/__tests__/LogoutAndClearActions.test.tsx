@@ -34,12 +34,14 @@ describe('LogoutAndClearActions', () => {
     mockClearAllAppData.mockReset().mockResolvedValue(undefined);
   });
 
-  it('renders log out as a row and clearing data as a separate destructive zone', () => {
+  it('renders log out in a Session card and clearing data in a separate danger zone', () => {
     renderActions();
     // The two used to be adjacent rows with the same amber, weight and icon.
-    // Clearing data is now its own zone with its own button, so the assertion
+    // Clearing data is now its own card with its own button, so the assertion
     // checks the split rather than just that both strings exist.
-    expect(screen.getByText('Log out')).toBeInTheDocument();
+    expect(screen.getByText('Session')).toBeInTheDocument();
+    expect(screen.getByTestId('settings-nav-logout')).toHaveTextContent('Log out');
+    expect(screen.getByText('Danger zone')).toBeInTheDocument();
     expect(screen.getByText('Clear app data')).toBeInTheDocument();
     expect(screen.getByTestId('account-destructive-zone')).toBeInTheDocument();
     expect(screen.getByTestId('settings-nav-logout-and-clear')).toHaveTextContent('Clear data');
@@ -94,10 +96,34 @@ describe('LogoutAndClearActions', () => {
     mockClearSession.mockRejectedValueOnce(new Error('backend unreachable'));
     renderActions();
 
-    await user.click(screen.getByText('Log out').closest('button')!);
+    await user.click(screen.getByTestId('settings-nav-logout'));
 
     const alert = await screen.findByTestId('logout-error');
-    expect(alert).toHaveTextContent(/sign-in failed|failed to log out|/i); // tolerant
+    expect(alert).toHaveTextContent('Failed to log out. Please try again.');
     expect(alert).toBeVisible();
+  });
+
+  it('closes the confirm dialog on Cancel without clearing anything', async () => {
+    const user = userEvent.setup();
+    renderActions();
+
+    await user.click(screen.getByTestId('settings-nav-logout-and-clear'));
+    expect(screen.getByRole('alertdialog')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    expect(mockClearAllAppData).not.toHaveBeenCalled();
+  });
+
+  it('keeps the confirm dialog open and shows the error when clearing fails', async () => {
+    const user = userEvent.setup();
+    mockClearAllAppData.mockRejectedValueOnce(new Error('disk busy'));
+    renderActions();
+
+    await user.click(screen.getByTestId('settings-nav-logout-and-clear'));
+    await user.click(screen.getByRole('button', { name: 'Clear app data' }));
+
+    expect(await screen.findByText('disk busy')).toBeInTheDocument();
+    expect(screen.getByRole('alertdialog')).toBeInTheDocument();
   });
 });
