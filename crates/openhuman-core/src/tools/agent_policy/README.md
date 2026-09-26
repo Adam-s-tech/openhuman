@@ -59,7 +59,7 @@ Re-exported from `mod.rs`:
 ## Notes / gotchas
 
 - Legacy escape hatch: an empty `channel_permissions` map yields `PermissionLevel::Dangerous` (fully unrestricted). `AgentConfig::migrate_channel_permissions_if_legacy` seeds the map on first boot, so this branch is only hit before that migration. Once *any* entry exists, channels missing from the map (or with an unparseable value) fall back to `PermissionLevel::ReadOnly`.
-- **Permission parsing** (`parse_permission_level`) is lenient: trims, lowercases, strips `-`/`_`, and accepts aliases (`read`/`readonly`, `exec`/`execute`, `danger`/`dangerous`). Unrecognized tokens fall back to read-only.
+- Permission parsing (`parse_permission_level`) is lenient: trims, lowercases, strips `-`/`_`, and accepts aliases (`read`/`readonly`, `exec`/`execute`, `danger`/`dangerous`). Unrecognized tokens fall back to read-only.
 - Two independent restriction axes: a tool can be `Deny`ed (exceeds the permission ceiling → `blocked_tool_names`) or `HideFromPrompt` (not in the non-empty `visible_tool_names` set → `hidden_tool_names`). Hidden is tested first, so a tool that is both hidden and over the ceiling lands only in `hidden_tool_names`; `blocks_execution()` carries the ceiling check for that case.
 - An empty `visible_tool_names` set means "all visible", not "none visible".
 - `ToolPolicyAction::RequireApproval` is handled (routed to `blocked_tool_names`) but the engine never produces it.
