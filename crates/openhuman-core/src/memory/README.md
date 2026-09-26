@@ -75,7 +75,7 @@ host's own use of the crate: they are not the same set.
 
 `core/all.rs` registers the nine schema families behind the `all_memory_*_registered_controllers`
 aliases re-exported from [`mod.rs`](mod.rs): `core_recall`, `documents`,
-`ingest`, `files`, `kv_graph`, `sync`, `learn`, `provider`, `tool_memory` —
+`ingest`, `files`, `kv_graph`, `sync`, `learn`, `provider`, `tool_memory`,
 plus [`goals`](goals/)'s, [`people`](people/)'s, and
 [`tree`](tree/)'s own `all_memory_tree_*`, `all_retrieval_*`, and
 `all_tree_summarizer_*` registered-controller functions,

@@ -2,8 +2,8 @@
 
 Agent-facing memory tools: `Tool` implementations the model can call directly
 (as opposed to [`memory/ops/`](../ops/), the RPC handlers used by the app and
-CLI). The module file for this directory is [`memory/tools.rs`](../tools.rs)
-— there is no `tools/mod.rs`: so start there when tracing what is declared
+CLI). The module file for this directory is [`memory/tools.rs`](../tools.rs).
+There is no `tools/mod.rs`, so start there when tracing what is declared
 where.
 
 ## Layout

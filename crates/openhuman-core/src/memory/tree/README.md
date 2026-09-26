@@ -36,7 +36,7 @@ from them (they cannot live in the extracted crate alongside the rest of
   namespace deliberately, "to keep the tool surface tightly grouped with the
   Phase 1-3 ingest controllers"): `query_source`, `cover_window`,
   `search_entities`, `drill_down`, `fetch_leaves`.
-- `all_tree_summarizer_registered_controllers` (`tree_runtime/schemas.rs`) —
+- `all_tree_summarizer_registered_controllers` (`tree_runtime/schemas.rs`):
   the `tree_summarizer` namespace: `ingest`, `run`, `query`, `status`,
   `rebuild`.
 
