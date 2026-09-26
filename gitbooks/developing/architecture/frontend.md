@@ -150,8 +150,8 @@ The application uses Redux Toolkit with Redux-Persist. There is no single root p
 
 ### Storage backends
 
-- **`userScopedStorage`** (`store/userScopedStorage.ts`): the default storage for persisted slices. Blobs are keyed `${userId}:persist:<key>` so state never leaks across users on logout/login (#900).
-- **Plain `localStorage`**: used only for pre-login, device-wide slices (`coreMode`, `locale`, `theme`) that must survive user switches.
+- `userScopedStorage` (`store/userScopedStorage.ts`) is the default storage for persisted slices. Blobs are keyed `${userId}:persist:<key>` so state never leaks across users on logout/login (#900).
+- Plain `localStorage` is used only for pre-login, device-wide slices (`coreMode`, `locale`, `theme`) that must survive user switches.
 
 ### Slices
 
