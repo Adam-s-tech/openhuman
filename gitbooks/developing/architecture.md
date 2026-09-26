@@ -168,7 +168,7 @@ Responsibilities are split across three domains:
 | `allowed-tools`   | Tool allowlist guidance        |
 | bundled resources | scripts, references, assets    |
 
-**Language runtimes**: script-backed skills run through shared runtime domains rather than embedded VMs — `runtime::node` (Cargo feature `runtime-node`) resolves a compatible system `node` or installs a managed distribution (SHA-256-verified) into the OpenHuman cache, and `runtime::python` does the same for Python. Execution is gated by the `security/` sandbox policy like any other tool.
+**Language runtimes**: script-backed skills run through shared runtime domains rather than embedded VMs. `runtime::node` (Cargo feature `runtime-node`) resolves a compatible system `node` or installs a managed distribution (SHA-256-verified) into the OpenHuman cache, and `runtime::python` does the same for Python. Execution is gated by the `security/` sandbox policy like any other tool.
 
 **Scheduling**: recurring work is owned by the `cron` domain (with `scheduler_gate`), not by skills; there is no per-skill `onCronTrigger()` handler.
 
@@ -198,7 +198,7 @@ AI Model (Backend)
     |     Native Rust handler (or Node helper via `runtime::node`) executes
     |         |
     |         v
-    |     External call (HTTP via reqwest, SQLite, etc.) — gated by SecurityPolicy
+    |     External call (HTTP via reqwest, SQLite, etc.), gated by SecurityPolicy
     |         |
     |  <-- mcp:toolCallResponse { result }
     |
@@ -218,7 +218,7 @@ AI Response to User
 | Chunking           | 512 tokens per chunk, 64-token overlap                                              |
 | Search             | Hybrid: 70% vector similarity + 30% FTS5 full-text                                  |
 | Embeddings         | OpenAI `text-embedding-3-small`                                                     |
-| Knowledge graph    | SQLite-backed code/entity graph (`codegraph`, `memory_tree`) — no external graph DB |
+| Knowledge graph    | SQLite-backed code/entity graph (`codegraph`, `memory_tree`); no external graph DB |
 | Sessions           | JSONL transcripts with compaction and tool compression                              |
 
 Memory encryption keys derive from user credentials via Argon2id, ensuring memory files are unreadable without authentication. The hybrid search combines semantic understanding (vector similarity) with keyword precision (SQLite FTS5) for reliable recall.
