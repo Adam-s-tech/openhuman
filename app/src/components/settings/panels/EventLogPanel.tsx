@@ -60,25 +60,23 @@ const DOMAIN_BADGE_KEYS: Record<string, string> = {
  * Domain tone table. Eleven domains, four themeable ramps — so the hue is spent
  * on the three readings a reader scans for in a live log (who acted: the agent
  * or a tool; and which rows are waiting on a human) and every other domain
- * takes the neutral pair `system` already used. Coral is deliberately left
+ * takes the neutral variant already used. Danger is deliberately left
  * unassigned: nothing here means "failure", and painting an ordinary domain in
  * the danger ramp would make routine events read as errors. The badge prints
  * the domain name either way. See `gitbooks/developing/theming.md`.
  */
-const DOMAIN_NEUTRAL_TONE = { bg: 'bg-content-muted/20', text: 'text-content-secondary' } as const;
-
-const DOMAIN_BADGE_COLORS: Record<string, { bg: string; text: string }> = {
-  tool: { bg: 'bg-primary-500/20', text: 'text-primary-400' },
-  agent: { bg: 'bg-sage-500/20', text: 'text-sage-400' },
-  system: DOMAIN_NEUTRAL_TONE,
-  memory: DOMAIN_NEUTRAL_TONE,
-  channel: DOMAIN_NEUTRAL_TONE,
-  cron: DOMAIN_NEUTRAL_TONE,
-  webhook: DOMAIN_NEUTRAL_TONE,
-  approval: { bg: 'bg-amber-500/20', text: 'text-amber-400' },
-  skill: DOMAIN_NEUTRAL_TONE,
-  composio: DOMAIN_NEUTRAL_TONE,
-  mcp_client: DOMAIN_NEUTRAL_TONE,
+const DOMAIN_BADGE_VARIANT: Record<string, BadgeVariant> = {
+  tool: 'primary',
+  agent: 'success',
+  system: 'neutral',
+  memory: 'neutral',
+  channel: 'neutral',
+  cron: 'neutral',
+  webhook: 'neutral',
+  approval: 'warning',
+  skill: 'neutral',
+  composio: 'neutral',
+  mcp_client: 'neutral',
 };
 
 const MAX_ENTRIES = 200;
