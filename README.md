@@ -25,7 +25,7 @@
  </p>
 
 <p align="center">
- <strong>OpenHuman is your personal AI super intelligence: a brain that remembers everything, a fantastic orchestrator, a deep researcher. Local-first, simple, powerful.</strong>
+ <strong>An open-source agent harness with a Rust core: lightweight, modular, and pluggable into whatever LLM, memory, or search engine you already run.</strong>
 </p>
 
 <p align="center">

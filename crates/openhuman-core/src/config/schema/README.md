@@ -153,22 +153,22 @@ state.
 
 Re-exported through `config::mod` and `config::schema::mod`:
 
-- `default_root_openhuman_dir`, `user_openhuman_dir` — the per-user
+- `default_root_openhuman_dir`, `user_openhuman_dir`: the per-user
   `~/.openhuman/users/<user-id>/` root.
 - `resolve_action_dir`, `default_action_dir`, `action_dir_env_override`
-  (`OPENHUMAN_ACTION_DIR`) — the agent's sandboxed read/write root.
-- `active_workspace_dir` / `active_workspace_dir_cached` — resolve (and
+  (`OPENHUMAN_ACTION_DIR`): the agent's sandboxed read/write root.
+- `active_workspace_dir` / `active_workspace_dir_cached`: resolve (and
   synchronously cache, via `load/active_workspace.rs`) the workspace the
   loader last resolved, for callers (like the developer Event Log's SSE
   stream) that cannot afford a disk read per lookup.
 - `PRE_LOGIN_USER_ID` (`"local"`), `pre_login_user_dir`,
-  `read_active_user_id` / `write_active_user_id` / `clear_active_user` — the
+  `read_active_user_id` / `write_active_user_id` / `clear_active_user`: the
   pre-authentication identity scope and the `active_user.toml` marker
   (implemented in `../load_user_state.rs`).
 
-`config` only *describes* these roots. Per AGENTS.md: `action_dir` is the
+`config` only *describes* these roots. Per AGENTS.md, `action_dir` is the
 agent's permitted read/write root, and `workspace_dir` stores internal state
-and is never an acting-tool target — enforcement of that boundary lives in
+and is never an acting-tool target. Enforcement of that boundary lives in
 `security::SecurityPolicy` (`security/policy/`), not here. `autonomy.rs`
 (`AutonomyConfig`) is the config-side half of the same contract: it is read
 into `SecurityPolicy` at startup and on every settings change
