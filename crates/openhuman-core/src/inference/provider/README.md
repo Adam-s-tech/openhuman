@@ -2,9 +2,11 @@
 
 Native TinyAgents `ChatModel` construction plus cloud/local inference policy,
 auth, error taxonomy, and RPC helpers for every chat-model transport OpenHuman
-supports. Was previously `providers/` (pre-consolidation single-crate
-layout); see `../README.md` for how this fits into the wider `inference`
-domain.
+supports. This is the chat-model half of OpenHuman's pluggable-engine story
+(see [gitbooks/developing/engines.md](../../../../../gitbooks/developing/engines.md)):
+the model a turn runs on is chosen by config, not by code change. Was
+previously `providers/` (pre-consolidation single-crate layout); see
+`../README.md` for how this fits into the wider `inference` domain.
 
 ## Public surface
 
