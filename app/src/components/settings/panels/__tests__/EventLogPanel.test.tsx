@@ -211,9 +211,7 @@ describe('EventLogPanel', () => {
     // only renders once the reader has actually left it (`currentPage > 1`
     // in EventLogPanel.tsx). Seed more rows than the default page size (50)
     // so a second page exists to navigate to.
-    mockFetchSSE(
-      Array.from({ length: 60 }, (_, i) => ({ domain: 'tool', event: `Event${i}` }))
-    );
+    mockFetchSSE(Array.from({ length: 60 }, (_, i) => ({ domain: 'tool', event: `Event${i}` })));
     renderWithProviders(<EventLogPanel />);
 
     await waitFor(() => {
@@ -231,9 +229,7 @@ describe('EventLogPanel', () => {
     fireEvent.click(screen.getByText('settings.developerMenu.eventLog.jumpToLatest'));
 
     await waitFor(() => {
-      expect(
-        screen.queryByText('settings.developerMenu.eventLog.jumpToLatest')
-      ).toBeNull();
+      expect(screen.queryByText('settings.developerMenu.eventLog.jumpToLatest')).toBeNull();
     });
   });
 });

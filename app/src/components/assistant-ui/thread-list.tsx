@@ -431,7 +431,7 @@ const ThreadListItemMore: FC<{ onRename: () => void }> = ({ onRename }) => {
           className="hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm outline-none select-none"
           onSelect={onRename}>
           <PencilIcon className="size-4" />
-          Rename
+          {t('assistantUi.threadList.rename', 'Rename')}
         </ThreadListItemMorePrimitive.Item>
         <ThreadListItemPrimitive.Archive
           render={
@@ -441,7 +441,7 @@ const ThreadListItemMore: FC<{ onRename: () => void }> = ({ onRename }) => {
             />
           }>
           <ArchiveIcon className="size-4" />
-          Archive
+          {t('assistantUi.threadList.archive', 'Archive')}
         </ThreadListItemPrimitive.Archive>
         <ThreadListItemPrimitive.Delete
           render={
@@ -451,7 +451,7 @@ const ThreadListItemMore: FC<{ onRename: () => void }> = ({ onRename }) => {
             />
           }>
           <TrashIcon className="size-4" />
-          Delete
+          {t('common.delete', 'Delete')}
         </ThreadListItemPrimitive.Delete>
       </ThreadListItemMorePrimitive.Content>
     </ThreadListItemMorePrimitive.Root>

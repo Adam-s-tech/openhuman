@@ -86,9 +86,7 @@ export const MessageTiming: FC<{
             </div>
             {timing.tokensPerSecond !== undefined && (
               <div className="flex items-center justify-between gap-4">
-                <span className="text-muted-foreground">
-                  {t('messageTiming.speed', 'Speed')}
-                </span>
+                <span className="text-muted-foreground">{t('messageTiming.speed', 'Speed')}</span>
                 <span className="font-mono tabular-nums">
                   {t('messageTiming.tokensPerSecond', '{value} tok/s').replace(
                     '{value}',

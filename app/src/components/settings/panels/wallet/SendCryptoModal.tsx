@@ -139,7 +139,7 @@ const SendCryptoModal = ({ balance, onClose, onSuccess }: SendCryptoModalProps) 
             <button
               onClick={onClose}
               className="flex h-8 w-8 items-center justify-center rounded-full text-content-muted hover:bg-surface-hover hover:text-content transition-colors"
-              aria-label="Close">
+              aria-label={t('common.close', 'Close')}>
               <svg
                 className="h-5 w-5"
                 fill="none"
