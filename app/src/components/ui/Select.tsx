@@ -131,30 +131,4 @@ export const SelectItem = forwardRef<
 ));
 SelectItem.displayName = 'SelectItem';
 
-export const SelectLabel = forwardRef<
-  HTMLDivElement,
-  ComponentPropsWithoutRef<typeof SelectPrimitive.Label>
->(({ className, ...rest }, ref) => (
-  <SelectPrimitive.Label
-    ref={ref}
-    data-slot="select-label"
-    className={cn('px-2.5 py-1.5 text-micro font-medium uppercase text-content-muted', className)}
-    {...rest}
-  />
-));
-SelectLabel.displayName = 'SelectLabel';
-
-export const SelectSeparator = forwardRef<
-  HTMLDivElement,
-  ComponentPropsWithoutRef<typeof SelectPrimitive.Separator>
->(({ className, ...rest }, ref) => (
-  <SelectPrimitive.Separator
-    ref={ref}
-    data-slot="select-separator"
-    className={cn('my-1 h-px bg-line-subtle', className)}
-    {...rest}
-  />
-));
-SelectSeparator.displayName = 'SelectSeparator';
-
 export default SelectRoot;
