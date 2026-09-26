@@ -1,4 +1,4 @@
-//! Schemas for agent behaviour settings: autonomy, privacy, browser, sandbox, activity level, and memory sync.
+//! Schemas for agent behaviour settings: autonomy, privacy, browser, sandbox, and memory sync.
 
 use crate::core::{ControllerSchema, FieldSchema, TypeSchema};
 
