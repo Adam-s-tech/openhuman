@@ -17,7 +17,6 @@ import debug from 'debug';
 //   'agents'    → Settings → Agents
 //   'features'  → Settings → Features
 //   'crypto'    → Settings → Crypto
-//   'notifications' → Settings → Notifications
 //   'developer' → Settings → Developer & Diagnostics (devOnly entries)
 //
 // debug logging: [settings] registry loaded N entries
