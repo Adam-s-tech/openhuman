@@ -1,21 +1,25 @@
 # core
 
-Transport, dispatch, the controller registry, the event bus, auth, the CLI,
-and runtime composition. `core/` is not a domain: it holds no business
+The controller contract, in-process dispatch, the controller registry, the
+event bus, auth, the CLI, and runtime composition. `core/` is not a domain: it holds no business
 logic. Every controller it exposes is implemented by a domain module under
 `crates/openhuman-core/src/<domain>/` and wired in here.
 
 ## Responsibilities
 
-- Define the transport-agnostic controller contract (`ControllerSchema`,
-  `FieldSchema`, `TypeSchema` in `mod.rs`) that both RPC and CLI invoke
-  against.
+- Define the transport-agnostic controller contract that both RPC and CLI
+  invoke against: `ControllerSchema`, `FieldSchema`, `TypeSchema` (`mod.rs`),
+  the [`Outcome`](outcome.rs) every operation returns, the structured error
+  envelope (`structured_error.rs`) and the params rules (`params.rs`).
 - Own the single registry of every controller (`all.rs`) and the coarse
   `DomainGroup` tagging that lets a runtime narrow its live surface.
-- Dispatch every RPC call through one tiered function (`dispatch.rs`).
+- Dispatch every call in-process through `invoke::invoke_method`, which
+  validates params, runs the tiered router (`dispatch.rs`) and publishes
+  `SessionExpired` on a confirmed expiry (`session_expiry.rs`).
 - Own the process-wide typed event bus (`bus.rs`, `events.rs`).
-- Serve JSON-RPC and Socket.IO over HTTP (`jsonrpc.rs`, `socketio.rs`) and
-  the equivalent CLI surface (`cli.rs` and friends).
+- Provide the CLI surface (`cli.rs` and friends). Serving JSON-RPC and
+  Socket.IO over HTTP is `openhuman-rpc`'s job; the CLI's `run` / `serve`
+  start it through the launcher a host installs (`server_launcher.rs`).
 - Seed and check the per-process RPC bearer token (`auth.rs`,
   `event_bind_tokens.rs`).
 - Compose an embeddable `CoreRuntime` from domain modules (`runtime/`) and
@@ -32,12 +36,16 @@ logic. Every controller it exposes is implemented by a domain module under
 | `dispatch.rs` | `dispatch()`: the 4-tier RPC router. |
 | `bus.rs` | The `BUS: OnceBus<DomainEvent>` singleton, `EVENTS_ROOT`/`EVENTS_INTERFACE`/`EVENTS_VERSION`, `init`/`init_over_socket`. |
 | `events.rs` | `DomainEvent`: the full event catalog, `domain()` routing. |
-| `jsonrpc.rs` | Axum router (`/rpc`, `/health`, `/schema`, `/events`, …), `invoke_method`, `run_server*` shims, `bootstrap_core_runtime`. |
-| `socketio.rs` | Socket.IO live-event bridge to the desktop shell. |
-| `auth.rs` | Per-process RPC bearer token: init paths, `get_rpc_token`, `rpc_auth_middleware`. |
+| `outcome.rs` | `Outcome<T>`, `apply_log_envelope`, `unwrap_rpc`: the controller result and its wire shape. |
+| `structured_error.rs` | `StructuredRpcError`: typed error envelope sentinel-encoded into a controller's `Err(String)`. |
+| `params.rs` | Params shape (`params_to_object`) and the validation messages `all::validate_params` emits, with their matcher. |
+| `invoke.rs` | `invoke_method` / `default_state`: in-process dispatch every transport and the CLI use. |
+| `session_expiry.rs` | `is_session_expired_error`: which failures mean the OpenHuman session expired. |
+| `server_launcher.rs` | `ServerLauncher` port the CLI `run` / `serve` subcommands start a server through. |
+| `auth.rs` | Per-process RPC bearer token: init paths, `get_rpc_token`, `verify_bearer_token`, `bearer_matches`. The HTTP route policy is `openhuman_rpc::server::auth`. |
 | `event_bind_tokens.rs` | Single-shot bind tokens for the `/events` SSE stream. |
 | `cli.rs`, `agent_cli.rs`, `memory_cli.rs`, `subsystems_cli.rs`, `cli_capability.rs` | CLI argument parsing and dispatch, routed through the same registry as RPC. |
-| `types.rs` | `AppState`, `HostKind`, `RpcRequest`/`RpcSuccess`/`RpcFailure`, `InvocationResult`, `approval_gate_boot_decision`. |
+| `types.rs` | `AppState`, `HostKind`, `InvocationResult`, `approval_gate_boot_decision`. |
 | `legacy_aliases.rs` | `resolve_legacy`: rewrites retired method names before dispatch; mirrors `app/src/services/rpcMethods.ts`'s `LEGACY_METHOD_ALIASES`. |
 | `observability.rs` | `report_error` + Sentry `before_send` filters that drop deterministic provider/updater noise. |
 | `log_redaction.rs` | `scrub_secrets`: regex secret scrubbing shared by the Sentry path and always-on log path. |
@@ -73,7 +81,7 @@ adds the two Tier-1 internal methods (`core.ping`, `core.version`) to the
 registered set for `/schema`.
 
 Wire controllers only through this registry: do not add namespace branches
-to `cli.rs` or `jsonrpc.rs`. RPC namespace strings are wire contracts and do
+to `cli.rs` or the JSON-RPC server. RPC namespace strings are wire contracts and do
 not follow directory renames.
 
 ## Dispatch
