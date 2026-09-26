@@ -39,6 +39,7 @@ function useAgentStatusStrings() {
     done: t('conversations.tasks.done'),
     failed: t('conversations.tasks.failed'),
     of: t('conversations.tasks.of'),
+    tasksAriaLabel: t('chat.filter.tasks', 'Tasks'),
   };
 }
 
