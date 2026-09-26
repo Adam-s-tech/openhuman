@@ -173,7 +173,7 @@ pub fn effective_backend_api_url(api_url: &Option<String>) -> String {
             is_inference_provider,
             is_cloud_inference,
             is_openhuman,
-            "[api/config] evaluating backend api_url override"
+            "[tinyhumans::backend::url] evaluating backend api_url override"
         );
 
         // Let the override through only when it is NOT an inference endpoint
@@ -206,7 +206,7 @@ pub fn effective_backend_api_url(api_url: &Option<String>) -> String {
             tracing::trace!(
                 api_url        = %redact_url_for_log(u),
                 normalized_url = %redact_url_for_log(&normalized),
-                "[api/config] using configured backend api_url override"
+                "[tinyhumans::backend::url] using configured backend api_url override"
             );
             return normalized;
         }
@@ -216,7 +216,7 @@ pub fn effective_backend_api_url(api_url: &Option<String>) -> String {
             is_local_ai,
             is_inference_provider,
             is_cloud_inference,
-            "[api/config] override classified as inference endpoint (managed provider or builtin cloud host) — falling back to backend default chain"
+            "[tinyhumans::backend::url] override classified as inference endpoint (managed provider or builtin cloud host) — falling back to backend default chain"
         );
         warn_backend_url_fallback_once(u);
     }
@@ -399,7 +399,7 @@ fn looks_like_openhuman_backend_endpoint(url: &str) -> bool {
         Ok(p) => {
             tracing::trace!(
                 api_url = %redacted,
-                "[api/config] parsed api_url for OpenHuman backend classification"
+                "[tinyhumans::backend::url] parsed api_url for OpenHuman backend classification"
             );
             p
         }
@@ -407,7 +407,7 @@ fn looks_like_openhuman_backend_endpoint(url: &str) -> bool {
             tracing::trace!(
                 api_url = %redacted,
                 error   = %e,
-                "[api/config] api_url parse failed during OpenHuman backend classification"
+                "[tinyhumans::backend::url] api_url parse failed during OpenHuman backend classification"
             );
             return false;
         }
@@ -416,7 +416,7 @@ fn looks_like_openhuman_backend_endpoint(url: &str) -> bool {
     let Some(host) = parsed.host_str().map(str::to_ascii_lowercase) else {
         tracing::trace!(
             api_url = %redacted,
-            "[api/config] api_url has no host — not classified as OpenHuman backend"
+            "[tinyhumans::backend::url] api_url has no host — not classified as OpenHuman backend"
         );
         return false;
     };
@@ -430,7 +430,7 @@ fn looks_like_openhuman_backend_endpoint(url: &str) -> bool {
         api_url = %redacted,
         host    = %host,
         is_openhuman,
-        "[api/config] OpenHuman backend classification complete"
+        "[tinyhumans::backend::url] OpenHuman backend classification complete"
     );
 
     is_openhuman
@@ -513,7 +513,7 @@ fn warn_backend_url_fallback_once(local_url: &str) {
     WARNED.call_once(|| {
         tracing::warn!(
             local_url = %redact_url_for_log(local_url),
-            "[api/config] config.api_url looks like a local-AI endpoint; \
+            "[tinyhumans::backend::url] config.api_url looks like a local-AI endpoint; \
              integrations base will fall back to env/default backend so \
              /agent-integrations/* requests don't 404 against your local LLM"
         );

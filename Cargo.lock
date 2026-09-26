@@ -4084,6 +4084,7 @@ dependencies = [
  "tinytools 0.4.1",
  "tinytools-jev",
  "tokio",
+ "tracing",
  "tracing-subscriber",
  "url",
  "urlencoding",

@@ -44,5 +44,3 @@ fn rejects_wrong_length() {
     let err = key_bytes_from_string("tooshort").unwrap_err();
     assert!(err.to_string().contains("must decode to 32 raw bytes"));
 }
-
-use super::user_id_from_profile_payload;
