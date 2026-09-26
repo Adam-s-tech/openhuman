@@ -120,8 +120,8 @@ Startup wiring is split across three sites; both entry points are idempotent
 
 SQLite at `<workspace_dir>/task_sources/sources.db` (WAL, 5s busy timeout, migrate-on-open):
 
-- **`task_sources`**, configured sources: provider, optional connection_id/name, enabled, filter JSON, interval_secs, target, max_tasks_per_fetch, created_at, and last_fetch_at/last_status.
-- **`ingested_tasks`**, per-(source, external_id) dedup ledger: edit-aware `content_hash` (SHA-256 over title/body/status/updated_at/url), normalized task `payload`, `ingested_at`. The `card_id` column is a leftover from when tasks were mirrored onto a todo board; it is written as `NULL` and kept only so older databases open unchanged. FK to `task_sources` with `ON DELETE CASCADE`.
+- **`task_sources`**: configured sources, provider, optional connection_id/name, enabled, filter JSON, interval_secs, target, max_tasks_per_fetch, created_at, and last_fetch_at/last_status.
+- **`ingested_tasks`**: per-(source, external_id) dedup ledger, edit-aware `content_hash` (SHA-256 over title/body/status/updated_at/url), normalized task `payload`, `ingested_at`. The `card_id` column is a leftover from when tasks were mirrored onto a todo board; it is written as `NULL` and kept only so older databases open unchanged. FK to `task_sources` with `ON DELETE CASCADE`.
 
 The additive idempotent `ingested_tasks.card_id` migration preserves older databases. App-level defaults (enabled flag, default interval, per-fetch cap, auto_proactive) live in config (`TaskSourcesConfig`), not the store.
 
@@ -152,5 +152,5 @@ The additive idempotent `ingested_tasks.card_id` migration preserves older datab
 - **Route-then-mark ordering.** A task is marked ingested only after routing succeeds, so a routing failure retries next pass instead of being silently dropped.
 - **Edit-aware dedup.** `content_hash` includes `url` deliberately (it drives external write-back); a changed hash re-ingests and re-routes.
 - **`update_source` TOCTOU.** Documented theoretical read-modify-write window across three connections; acceptable at settings-panel scale.
-- **Enrichment is intentionally LLM-free**, deterministic and unit-testable; the heavy reasoning happens in the downstream triage turn.
+- **Enrichment is intentionally LLM-free**: deterministic and unit-testable; the heavy reasoning happens in the downstream triage turn.
 - `clear_all` exists for the E2E `test_reset` RPC.

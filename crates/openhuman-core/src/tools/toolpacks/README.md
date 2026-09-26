@@ -10,8 +10,8 @@ constructed and executable but unadvertised: the agent sees one small tool,
 ## How it works
 
 - `types::ToolPack` is the unit: an `id`, a one-line `summary` shown in the
-  always-on pack index, the `tools` it owns, and `owners` — agent ids the pack
-  is *not* applied to, because the specialist a family was delegated to
+  always-on pack index, the `tools` it owns, and `owners` (agent ids the pack
+  is *not* applied to), because the specialist a family was delegated to
   (`settings_agent` for `system`, `skill_executor` for `skills`, ...) should
   not pay a `use_skill` round trip on every call of its own belt.
 - `registry::PACKS` is the compiled-in table. Membership is a build-time

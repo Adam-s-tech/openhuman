@@ -117,7 +117,7 @@ There is no separate `staging` branch: staging cuts and production releases both
 - **Naming.** Staging tags use the SemVer pre-release suffix `-staging` (`v1.2.4-staging`) so they sort _before_ the matching production tag.
 - **Collisions.** Both workflows fail fast if the target tag already exists locally or on `origin`. Resolve by deleting the stale tag (org maintainers only) or bumping past it.
 - **Rollback (production).** A failed build matrix triggers `cleanup-failed-release`, which deletes both the draft GitHub Release and the `v<version>` tag.
-- **Rollback (staging).** A failed staging build deletes the `v<version>-staging` tag. The bump commit on the selected source branch is left in place; the next staging cut continues from the new patch number rather than re-using it (we accept a small “gap” in patch numbers over racing with concurrent merges).
+- **Rollback (staging).** A failed staging build deletes the `v<version>-staging` tag. The bump commit on the selected source branch is left in place; the next staging cut continues from the new patch number rather than re-using it (we accept a small "gap" in patch numbers over racing with concurrent merges).
 - **Who can delete tags.** Same write-access as `main`. Workflow-driven cleanup deletes run with the workflow's token via `actions/github-script` (the GitHub App token is only used by `prepare-build` for the bump commit + tag push); manual deletes (`git push --delete origin <tag>`) require equivalent maintainer permissions.
 
 ## Release App token: approval gate and rotation
