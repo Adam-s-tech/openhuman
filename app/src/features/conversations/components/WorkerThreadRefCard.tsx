@@ -102,9 +102,9 @@ export function WorkerThreadRefCard({
       className="mt-1 flex w-full items-center justify-between gap-3 rounded-xl border border-primary-200 dark:border-primary-500/30 bg-primary-50 dark:bg-primary-500/15 px-3 py-2 text-left transition-colors hover:bg-primary-100 dark:hover:bg-primary-500/25">
       <div className="min-w-0">
         <div className="flex items-center gap-2">
-          <span className="rounded-full bg-primary-200 dark:bg-primary-500/30 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary-800 dark:text-primary-200">
+          <Badge variant="primary" dot={false}>
             {ref.label}
-          </span>
+          </Badge>
           <span className="truncate text-xs font-medium text-primary-900 dark:text-primary-100">
             {t('chat.openWorkerThread')}
           </span>
