@@ -1,7 +1,7 @@
 # runtime/pool
 
-The client for pooled inline execution. The pool itself — warm interpreter
-children, the job protocol, backpressure, idle reaping, recycle-after-N — lives
+The client for pooled inline execution. The pool itself (warm interpreter
+children, the job protocol, backpressure, idle reaping, recycle-after-N) lives
 in the `tinyruntime` module, where one implementation serves every language.
 
 What is here is two decisions this core still owns.
@@ -24,15 +24,15 @@ than being one error type. Each drives different caller behaviour:
 
 | Variant | The job… | The caller must… |
 | --- | --- | --- |
-| `PreDispatch` | provably never reached a worker | fall back to a per-call spawn — safe, because nothing ran |
+| `PreDispatch` | provably never reached a worker | fall back to a per-call spawn (safe, because nothing ran) |
 | `PostDispatch` | reached a worker and **may have executed** | **not** retry, or it risks running someone's code twice |
-| `Saturated` | was shed because the pool was full | **not** spawn — that reintroduces exactly the resident memory the pool caps. Report busy, or retry later |
+| `Saturated` | was shed because the pool was full | **not** spawn: that reintroduces exactly the resident memory the pool caps, so report busy or retry later |
 
 `classify` maps the module's failures onto these. The default is `PreDispatch`,
 and the asymmetry is deliberate: mistakenly treating a job as un-run costs one
 extra fallback spawn, while mistakenly treating a run job as un-run duplicates
-its side effects. Only the two signals the module states explicitly — capacity
-and post-dispatch — move a failure out of the default.
+its side effects. Only the two signals the module states explicitly, capacity
+and post-dispatch, move a failure out of the default.
 
 ## Key files
 

@@ -113,20 +113,19 @@ initialize the workspace-bound stores, and run the pure-registration part of
 `bootstrap_core_runtime`. `init_stores` gates each store on its owning
 `DomainGroup` via `StoreInitPlan`: the memory driver binding (`Memory`), the
 image-attachment sidecar dir (`Agent`), and the legacy-workflow prune
-(`Skills`): while the keyring-path log and the boot-time Sentry user bind run
+(`Skills`). The keyring-path log and the boot-time Sentry user bind run
 unguarded for every `DomainSet`. The WhatsApp store moved to the Tauri
 shell and the people store is owned by the bound memory driver, so neither
-is seeded here. It also
-holds the `DomainSet` for its scope and, when supplied, the embedder's
-`Config`: RPC handlers otherwise re-resolve config independently per
-dispatch, so an embedder-supplied config would be silently ignored without
-this seam.
+is seeded here. `CoreContext` also holds the `DomainSet` for its scope and,
+when supplied, the embedder's `Config`. RPC handlers otherwise re-resolve
+config independently per dispatch, so an embedder-supplied config would be
+silently ignored without this seam.
 
 The "wrong-workspace guard" (Sentry OPENHUMAN-CORE-48 / TAURI-RUST-8NM)
 lives in `CoreContext::init_with_config`: when no config was supplied and
 `Config::load_or_init()` fails, it logs an error and skips `init_stores`
-entirely: memory stays explicitly uninitialised for the run and callers get
-a "memory client not ready" error: rather than falling back to
+entirely. Memory stays explicitly uninitialised for the run and callers get
+a "memory client not ready" error, rather than the core falling back to
 `Config::default()` and seeding stores against the wrong workspace.
 
 `CoreContext::scope(ctx, fut)` establishes the ambient context for the
@@ -152,5 +151,5 @@ host an agent turn must set:
 
 ## Related docs
 
-- [../README.md](../README.md): the rest of `core/`: dispatch, registry,
-  event bus, transport, CLI.
+- [../README.md](../README.md): the rest of `core/`, covering dispatch,
+  registry, event bus, transport, and CLI.
