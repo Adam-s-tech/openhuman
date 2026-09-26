@@ -181,7 +181,7 @@ const SendCryptoModal = ({ balance, onClose, onSuccess }: SendCryptoModalProps) 
                       type="text"
                       value={recipient}
                       onChange={e => setRecipient(e.target.value)}
-                      placeholder="Enter or paste an address"
+                      placeholder={t('walletSend.recipientInputPlaceholder', 'Enter or paste an address')}
                       spellCheck={false}
                       autoComplete="off"
                       className="font-mono"
