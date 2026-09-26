@@ -255,7 +255,7 @@ export const SETTINGS_ROUTE_REGISTRY: SettingsRegistryEntry[] = [
   // Connections page's Desktop group; their slugs redirect there.
 
   // Notifications-hub and crypto hub pages are retired — their slugs redirect
-  // to /settings/notifications and /settings/wallet-balances.
+  // to /settings/account and /settings/wallet-balances.
 
   // --- About ---
   {
