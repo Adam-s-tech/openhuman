@@ -306,15 +306,16 @@ const MigrationPanel = () => {
                 value: reportToRender.stats.renamed_conflicts,
               },
             ].map(stat => (
-              <div key={stat.key} className="rounded-lg bg-surface-muted px-3 py-2.5">
+              // Label first in the DOM (dt before dd), number first on screen.
+              <div
+                key={stat.key}
+                className="flex flex-col-reverse gap-0.5 rounded-lg bg-surface-muted px-3 py-2.5">
+                <dt className="text-[11px] leading-tight text-content-muted">{t(stat.key)}</dt>
                 <dd
                   className="text-lg font-semibold tabular-nums text-content"
                   data-testid={stat.testId}>
                   {stat.value}
                 </dd>
-                <dt className="mt-0.5 text-[11px] leading-tight text-content-muted">
-                  {t(stat.key)}
-                </dt>
               </div>
             ))}
           </dl>

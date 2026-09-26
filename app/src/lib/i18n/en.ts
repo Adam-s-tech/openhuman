@@ -415,6 +415,12 @@ const en: TranslationMap = {
   'migration.vendorLabel': 'Source vendor',
   'migration.vendor.openclaw': 'OpenClaw',
   'migration.vendor.hermes': 'Hermes Agent',
+  'migration.vendor.openclawDesc': 'Memory database and markdown notes',
+  'migration.vendor.hermesDesc': 'Memories and notes from Hermes',
+  'migration.sourceHeading': 'Source',
+  'migration.badgePreview': 'Preview',
+  'migration.badgeImported': 'Imported',
+  'migration.confirmTitle': 'Import into this workspace?',
   'migration.sourceLabel': 'Source workspace path (optional)',
   'migration.sourcePlaceholder': 'Leave blank to auto-detect (e.g. ~/.openclaw/workspace)',
   'migration.sourcePlaceholderHermes': 'Leave blank to auto-detect (e.g. ~/.hermes)',
@@ -422,11 +428,11 @@ const en: TranslationMap = {
     "Defaults to the vendor's standard location when blank. Set an explicit path if you've moved the workspace elsewhere.",
   'migration.previewAction': 'Preview',
   'migration.previewRunning': 'Previewing…',
-  'migration.applyAction': 'Apply import',
+  'migration.applyAction': 'Import',
   'migration.applyRunning': 'Importing…',
   'migration.applyDisclaimer':
     'Apply is unlocked after a successful Preview of the same source. Existing memory is backed up before any import.',
-  'migration.reportTitlePreview': 'Preview: nothing imported yet',
+  'migration.reportTitlePreview': 'What would be imported',
   'migration.reportTitleApplied': 'Import complete',
   'migration.report.source': 'Source workspace',
   'migration.report.target': 'Target workspace',
@@ -437,7 +443,7 @@ const en: TranslationMap = {
   'migration.report.renamedConflicts': 'Renamed on conflict',
   'migration.report.warnings': 'Warnings',
   'migration.report.previewHint':
-    'No data has been imported yet. Click Apply import to copy it over.',
+    'Nothing has been imported yet. Click Import to copy it over.',
   'migration.report.appliedHint':
     'Imported entries are now in your memory. Re-run Preview if you want to compare again.',
   'migration.confirmImport.singular':
