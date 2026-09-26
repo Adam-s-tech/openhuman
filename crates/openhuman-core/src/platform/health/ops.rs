@@ -2,8 +2,8 @@
 
 use serde::Serialize;
 
-use crate::platform::health;
 use crate::core::Outcome;
+use crate::platform::health;
 
 pub fn health_snapshot() -> Outcome<serde_json::Value> {
     Outcome::single_log(health::snapshot_json(), "health_snapshot requested")

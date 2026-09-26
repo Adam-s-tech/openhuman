@@ -22,7 +22,6 @@
 
 use std::sync::Arc;
 
-
 use crate::config::Config;
 use crate::core::all::DomainGroup;
 use crate::core::runtime::context::CoreContext;
@@ -721,7 +720,11 @@ impl CoreRuntime {
         log::trace!("[core-runtime] invoke_in method={method}");
         CoreContext::scope(
             ctx,
-            crate::core::invoke::invoke_method(crate::core::invoke::default_state(), method, params),
+            crate::core::invoke::invoke_method(
+                crate::core::invoke::default_state(),
+                method,
+                params,
+            ),
         )
         .await
     }

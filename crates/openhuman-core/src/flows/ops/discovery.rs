@@ -116,10 +116,7 @@ pub async fn flows_discover(
         count = suggestions.len(),
         "[flows] flows_discover: returning active suggestions"
     );
-    Ok(Outcome::single_log(
-        suggestions,
-        "flow discovery complete",
-    ))
+    Ok(Outcome::single_log(suggestions, "flow discovery complete"))
 }
 
 /// Lists persisted workflow suggestions. `status` filters to one lifecycle
@@ -135,10 +132,7 @@ pub async fn flows_list_suggestions(
 
 /// Marks a suggestion `dismissed` (the user rejected the card). The row is kept
 /// so a later discovery run dedupes against it and won't re-surface the idea.
-pub async fn flows_dismiss_suggestion(
-    config: &Config,
-    id: &str,
-) -> Result<Outcome<Value>, String> {
+pub async fn flows_dismiss_suggestion(config: &Config, id: &str) -> Result<Outcome<Value>, String> {
     let found = store::set_suggestion_status(config, id, SuggestionStatus::Dismissed)
         .map_err(|e| e.to_string())?;
     Ok(Outcome::single_log(

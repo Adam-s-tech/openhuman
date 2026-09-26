@@ -116,7 +116,9 @@ pub(super) fn classify_failure(message: &str, expected_user_state: bool) -> Fail
         FailureDisposition::UsageProbeBackoff
     } else if observability::is_transient_message_failure(message) {
         FailureDisposition::TransientDownstream
-    } else if let Some(unknown_method) = openhuman_core::core::dispatch::unknown_method_name(message) {
+    } else if let Some(unknown_method) =
+        openhuman_core::core::dispatch::unknown_method_name(message)
+    {
         FailureDisposition::UnknownMethod {
             probe: openhuman_core::core::dispatch::is_known_probe_method(unknown_method),
         }

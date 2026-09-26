@@ -19,16 +19,12 @@ use reqwest::StatusCode as ReqwestStatusCode;
 use serde_json::{json, Value};
 use tempfile::{tempdir, TempDir};
 
-use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
-use openhuman_core::core::events::DomainEvent;
-use tinybus::EventHandler;
-use openhuman_rpc::server::build_core_http_router;
-use openhuman_core::web_chat::WebChannelEvent;
 use openhuman_core::agent::harness::definition::{
     AgentDefinition, AgentDefinitionRegistry, AgentTier, DefinitionSource, ModelSpec, PromptSource,
     SandboxMode, SkillsWildcard, SubagentEntry, ToolScope as AgentToolScope,
 };
 use openhuman_core::agent::host_runtime::NativeRuntime;
+use openhuman_core::agent::prompts::ConnectedIntegration;
 use openhuman_core::channels::email_channel::EmailConfig;
 use openhuman_core::channels::irc::IrcChannelConfig;
 use openhuman_core::channels::proactive::ProactiveMessageSubscriber;
@@ -37,9 +33,7 @@ use openhuman_core::channels::yuanbao::config::YuanbaoConfig;
 use openhuman_core::channels::yuanbao::errors::{
     AUTH_FAILED_CODES, AUTH_RETRYABLE_CODES, NO_RECONNECT_CLOSE_CODES,
 };
-use openhuman_core::channels::yuanbao::inbound::{
-    InboundPipeline, PipelineOutcome, PipelineState,
-};
+use openhuman_core::channels::yuanbao::inbound::{InboundPipeline, PipelineOutcome, PipelineState};
 use openhuman_core::channels::yuanbao::media::{
     build_file_msg_body, build_image_msg_body, guess_mime_type, image_format_code, is_image,
     parse_image_size,
@@ -73,21 +67,25 @@ use openhuman_core::channels::{
     IrcChannel, LinqChannel, MattermostChannel, QQChannel, SendMessage, SignalChannel,
     SlackChannel, WhatsAppChannel,
 };
-use openhuman_core::integrations::composio::all_composio_agent_tools;
 use openhuman_core::config::schema::{
     CapabilityProviderConfig, CapabilityProviderTrustState, NodeConfig, WhatsAppConfig,
 };
 use openhuman_core::config::{Config, IMessageConfig, WebhookConfig};
-use openhuman_core::agent::prompts::ConnectedIntegration;
+use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
+use openhuman_core::core::events::DomainEvent;
+use openhuman_core::inference::tokenjuice::AgentTokenjuiceCompression;
+use openhuman_core::integrations::composio::all_composio_agent_tools;
+use openhuman_core::memory::{Memory, MemoryCategory, MemoryEntry, NamespaceSummary, RecallOpts};
+use openhuman_core::runtime::javascript::NodeBootstrap;
 use openhuman_core::security::credentials::{
     AuthService, APP_SESSION_PROVIDER, DEFAULT_AUTH_PROFILE_NAME,
 };
-use openhuman_core::runtime::javascript::NodeBootstrap;
-use openhuman_core::memory::{
-    Memory, MemoryCategory, MemoryEntry, NamespaceSummary, RecallOpts,
-};
 use openhuman_core::security::{AuditLogger, AutonomyLevel, SecurityPolicy};
-use openhuman_core::inference::tokenjuice::AgentTokenjuiceCompression;
+use openhuman_core::tools::generated::{
+    admit_generated_tool_definitions, generated_tools_from_definitions, GeneratedToolAdapter,
+    GeneratedToolAdmissionConfig, GeneratedToolDefinition, GeneratedToolRisk,
+};
+use openhuman_core::tools::orchestrator_tools::collect_orchestrator_tools;
 use openhuman_core::tools::registry::ops::diagnostics_for_config;
 use openhuman_core::tools::registry::{
     all_tool_registry_controller_schemas, all_tool_registry_registered_controllers,
@@ -96,20 +94,19 @@ use openhuman_core::tools::registry::{
     list_tools, normalize_capability_provider_id, registry_entries,
     CapabilityProviderRegistryError,
 };
-use openhuman_core::tools::generated::{
-    admit_generated_tool_definitions, generated_tools_from_definitions, GeneratedToolAdapter,
-    GeneratedToolAdmissionConfig, GeneratedToolDefinition, GeneratedToolRisk,
-};
-use openhuman_core::tools::orchestrator_tools::collect_orchestrator_tools;
-use tinytools::{PermissionLevel, Tool, ToolResult, ToolScope, ToolCategory, ToolCallOptions};
 use openhuman_core::tools::{
-    all_tools, all_tools_controller_schemas, all_tools_registered_controllers,
-    default_tools, ApplyPatchTool, BrowserTool, CleaningStrategy,
-    ComputerUseConfig, CsvExportTool, CurrentTimeTool, DefaultToolPolicy, DetectToolsTool,
-    EditFileTool, FileReadTool, FileWriteTool, GitbooksGetPageTool, GitbooksSearchTool, GlobTool,
-    GrepTool, InsertSqlRecordTool, ListFilesTool, LspTool, NodeExecTool, NpmExecTool,
-    PolicyDecision, ProxyConfigTool, ReadDiffTool, RunLinterTool, RunTestsTool,
-    SchemaCleanr, ToolPolicy, UpdateApplyTool, UpdateMemoryMdTool, WebFetchTool, WorkspaceStateTool};
+    all_tools, all_tools_controller_schemas, all_tools_registered_controllers, default_tools,
+    ApplyPatchTool, BrowserTool, CleaningStrategy, ComputerUseConfig, CsvExportTool,
+    CurrentTimeTool, DefaultToolPolicy, DetectToolsTool, EditFileTool, FileReadTool, FileWriteTool,
+    GitbooksGetPageTool, GitbooksSearchTool, GlobTool, GrepTool, InsertSqlRecordTool,
+    ListFilesTool, LspTool, NodeExecTool, NpmExecTool, PolicyDecision, ProxyConfigTool,
+    ReadDiffTool, RunLinterTool, RunTestsTool, SchemaCleanr, ToolPolicy, UpdateApplyTool,
+    UpdateMemoryMdTool, WebFetchTool, WorkspaceStateTool,
+};
+use openhuman_core::web_chat::WebChannelEvent;
+use openhuman_rpc::server::build_core_http_router;
+use tinybus::EventHandler;
+use tinytools::{PermissionLevel, Tool, ToolCallOptions, ToolCategory, ToolResult, ToolScope};
 
 const TEST_RPC_TOKEN: &str = "tools-approval-channels-raw-e2e-token";
 
@@ -360,7 +357,6 @@ fn env_lock() -> std::sync::MutexGuard<'static, ()> {
 }
 
 fn ensure_rpc_auth() {
-
     crate::tinyhumans_boot::boot();
     AUTH_INIT.get_or_init(|| {
         std::env::set_var(CORE_TOKEN_ENV_VAR, TEST_RPC_TOKEN);
@@ -693,7 +689,6 @@ disallowed_tools = ["write_file"]
 }
 
 async fn setup() -> Harness {
-
     crate::tinyhumans_boot::boot();
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
@@ -1575,11 +1570,13 @@ fn tools_and_tool_registry_public_surfaces_cover_schema_and_assembly_paths() {
     assert!(!default_tool.is_concurrency_safe(&json!({})));
     assert!(!default_tool.external_effect());
     assert!(!default_tool.external_effect_with_args(&json!({})));
-    assert!(openhuman_core::tools::host_extensions::generated_runtime_context(
-        &default_tool,
-        &json!({})
-    )
-    .is_none());
+    assert!(
+        openhuman_core::tools::host_extensions::generated_runtime_context(
+            &default_tool,
+            &json!({})
+        )
+        .is_none()
+    );
     assert!(default_tool.max_result_size_chars().is_none());
 
     let computer = ComputerUseConfig {
@@ -2121,11 +2118,9 @@ async fn web_channel_public_paths_cover_event_delivery_and_validation_errors() {
             .is_none()
     );
     openhuman_core::web_chat::invalidate_thread_sessions("thread-1").await;
-    assert!(
-        openhuman_core::web_chat::in_flight_entries_for_test()
-            .await
-            .is_empty()
-    );
+    assert!(openhuman_core::web_chat::in_flight_entries_for_test()
+        .await
+        .is_empty());
 }
 
 #[tokio::test]

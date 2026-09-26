@@ -2,8 +2,8 @@ use serde_json::{Map, Value};
 
 use openhuman_core::config::rpc as config_rpc;
 use openhuman_core::core::all::{ControllerFuture, RegisteredController};
-use openhuman_core::core::{ControllerSchema, FieldSchema, TypeSchema};
 use openhuman_core::core::Outcome;
+use openhuman_core::core::{ControllerSchema, FieldSchema, TypeSchema};
 
 pub fn all_announcements_controller_schemas() -> Vec<ControllerSchema> {
     vec![announcements_schemas("announcements_get_latest")]

@@ -9,7 +9,6 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
-use openhuman_core::web_chat::WebChannelEvent;
 use openhuman_core::channels::providers::email_channel::{
     test_support as email_support, EmailChannel, EmailConfig,
 };
@@ -18,12 +17,13 @@ use openhuman_core::channels::providers::mattermost::{
     test_support as mattermost_support, MattermostChannel,
 };
 use openhuman_core::channels::providers::telegram::test_support as telegram_support;
-use openhuman_core::web_chat::{self as web, test_support as web_support};
 use openhuman_core::channels::test_support::{
     build_channel_context_block_for_test, run_dispatch_harness,
     select_acknowledgment_reaction_for_test, DispatchHarnessOptions, TestMemoryEntry,
 };
 use openhuman_core::channels::traits::{Channel, ChannelMessage, SendMessage};
+use openhuman_core::web_chat::WebChannelEvent;
+use openhuman_core::web_chat::{self as web, test_support as web_support};
 use serde_json::{json, Value};
 use std::sync::{Arc, Mutex};
 use tokio::sync::broadcast::error::RecvError;

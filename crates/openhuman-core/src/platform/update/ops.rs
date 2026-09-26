@@ -5,9 +5,9 @@ use std::path::PathBuf;
 use serde_json::Value;
 
 use crate::config::{self, UpdateConfig, UpdateRestartStrategy};
+use crate::core::Outcome;
 use crate::platform::update;
 use crate::platform::update::types::{UpdateApplyResult, UpdateInfo, UpdateRunResult, VersionInfo};
-use crate::core::Outcome;
 
 async fn load_update_policy() -> Result<UpdateConfig, String> {
     config::rpc::load_config_with_timeout()

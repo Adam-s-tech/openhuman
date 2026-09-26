@@ -14,9 +14,9 @@ use serde_json::json;
 
 use crate::config::Config;
 use crate::config::{clear_active_user, default_root_openhuman_dir};
+use crate::core::Outcome;
 use crate::cron;
 use crate::memory::read_rpc;
-use crate::core::Outcome;
 
 const E2E_MODE_ENV_VAR: &str = "OPENHUMAN_E2E_MODE";
 

@@ -2672,12 +2672,7 @@ pub(crate) fn report_error_message(
 // reporting, #3567), so it has no caller in a slim build (#5048). Kept compiled
 // for the crash-reporting carve-out; the allow keeps the disabled build quiet.
 #[cfg_attr(not(feature = "http-server"), allow(dead_code))]
-pub fn report_warning_message(
-    message: &str,
-    domain: &str,
-    operation: &str,
-    extra: &[Tag<'_>],
-) {
+pub fn report_warning_message(message: &str, domain: &str, operation: &str, extra: &[Tag<'_>]) {
     // Redact secret-looking spans before `message` reaches any log sink or
     // Sentry event — see the note in `report_error_message`.
     let scrubbed = crate::core::log_redaction::scrub_secrets(message);

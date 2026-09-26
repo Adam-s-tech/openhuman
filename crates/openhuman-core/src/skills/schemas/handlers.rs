@@ -144,10 +144,7 @@ pub(super) fn handle_skills_recent_runs(params: Map<String, Value>) -> Controlle
             limit,
             "[skills][rpc] recent_runs"
         );
-        to_json(Outcome::new(
-            WorkflowsRecentRunsResult { runs },
-            Vec::new(),
-        ))
+        to_json(Outcome::new(WorkflowsRecentRunsResult { runs }, Vec::new()))
     })
 }
 

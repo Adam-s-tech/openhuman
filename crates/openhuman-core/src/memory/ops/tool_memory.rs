@@ -16,8 +16,8 @@ use std::sync::Arc;
 
 use crate::memory::api::provider::MemoryProvider;
 
-use crate::memory::api::tool_memory::{ToolMemoryPriority, ToolMemoryRule, ToolMemorySource};
 use crate::core::Outcome;
+use crate::memory::api::tool_memory::{ToolMemoryPriority, ToolMemoryRule, ToolMemorySource};
 
 /// Parameters for `memory_tool_rule_put`.
 #[derive(Debug, Deserialize)]
@@ -68,9 +68,7 @@ async fn tool_memory_guard() -> Result<Arc<crate::memory::guard::MemoryGuard>, S
 }
 
 /// Upsert a tool-scoped memory rule.
-pub async fn tool_rule_put(
-    params: ToolRulePutParams,
-) -> Result<Outcome<ToolMemoryRule>, String> {
+pub async fn tool_rule_put(params: ToolRulePutParams) -> Result<Outcome<ToolMemoryRule>, String> {
     log::debug!("[tool-memory] rpc tool_rule_put tool={}", params.tool_name);
     let mut rule = ToolMemoryRule::new(
         &params.tool_name,

@@ -5,8 +5,8 @@
 
 use serde_json::json;
 
-use crate::web_chat::{SubagentProgressDetail, WebChannelEvent};
 use crate::threads::turn_state::{TurnStateMirror, TurnStateStore};
+use crate::web_chat::{SubagentProgressDetail, WebChannelEvent};
 
 use super::event_bus::publish_web_channel_event;
 use super::types::ChatRequestMetadata;

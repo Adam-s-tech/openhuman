@@ -110,9 +110,7 @@ impl CreateCustomRequest {
     }
 }
 
-pub async fn create_custom_rpc(
-    req: CreateCustomRequest,
-) -> Result<Outcome<AgentResponse>, String> {
+pub async fn create_custom_rpc(req: CreateCustomRequest) -> Result<Outcome<AgentResponse>, String> {
     Ok(Outcome::new(
         AgentResponse {
             agent: ops::upsert_custom_agent(req.into_entry()).await?,
@@ -131,9 +129,7 @@ pub struct AgentResponse {
     pub agent: AgentRegistryEntry,
 }
 
-pub async fn upsert_custom_rpc(
-    req: UpsertCustomRequest,
-) -> Result<Outcome<AgentResponse>, String> {
+pub async fn upsert_custom_rpc(req: UpsertCustomRequest) -> Result<Outcome<AgentResponse>, String> {
     Ok(Outcome::new(
         AgentResponse {
             agent: ops::upsert_custom_agent(req.agent).await?,

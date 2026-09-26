@@ -5,8 +5,8 @@
 //! is resolved here and passed down as a value.
 
 use crate::config::Config;
-use crate::platform::doctor::{self, DoctorReport, MemoryChunkCount, ModelProbeReport};
 use crate::core::Outcome;
+use crate::platform::doctor::{self, DoctorReport, MemoryChunkCount, ModelProbeReport};
 
 pub async fn doctor_report(config: &Config) -> Result<Outcome<DoctorReport>, String> {
     // Awaited before the blocking hop, not inside it: `doctor::run` may not

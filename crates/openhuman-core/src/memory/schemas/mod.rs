@@ -28,8 +28,8 @@ use serde::de::DeserializeOwned;
 use serde_json::{Map, Value};
 
 use crate::core::all::RegisteredController;
-use crate::core::{ControllerSchema, FieldSchema, TypeSchema};
 use crate::core::Outcome;
+use crate::core::{ControllerSchema, FieldSchema, TypeSchema};
 
 mod documents;
 mod files;

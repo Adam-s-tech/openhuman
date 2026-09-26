@@ -86,10 +86,7 @@ pub async fn get_transactions(
 pub async fn get_auto_recharge(config: &Config) -> Result<Outcome<Value>, String> {
     let data =
         get_authed_value(config, Method::GET, "/payments/credits/auto-recharge", None).await?;
-    Ok(Outcome::single_log(
-        data,
-        "auto recharge settings fetched",
-    ))
+    Ok(Outcome::single_log(data, "auto recharge settings fetched"))
 }
 
 pub async fn update_auto_recharge(
@@ -103,10 +100,7 @@ pub async fn update_auto_recharge(
         Some(payload),
     )
     .await?;
-    Ok(Outcome::single_log(
-        data,
-        "auto recharge settings updated",
-    ))
+    Ok(Outcome::single_log(data, "auto recharge settings updated"))
 }
 
 pub async fn get_cards(config: &Config) -> Result<Outcome<Value>, String> {
@@ -185,18 +179,12 @@ pub async fn purchase_plan(config: &Config, plan: &str) -> Result<Outcome<Value>
     )
     .await?;
 
-    Ok(Outcome::single_log(
-        data,
-        "plan purchase session created",
-    ))
+    Ok(Outcome::single_log(data, "plan purchase session created"))
 }
 
 pub async fn create_portal_session(config: &Config) -> Result<Outcome<Value>, String> {
     let data = get_authed_value(config, Method::POST, "/payments/stripe/portal", None).await?;
-    Ok(Outcome::single_log(
-        data,
-        "customer portal session created",
-    ))
+    Ok(Outcome::single_log(data, "customer portal session created"))
 }
 
 #[derive(Debug, Serialize)]
@@ -290,10 +278,7 @@ pub async fn create_coinbase_charge(
     )
     .await?;
 
-    Ok(Outcome::single_log(
-        data,
-        "Coinbase payment link created",
-    ))
+    Ok(Outcome::single_log(data, "Coinbase payment link created"))
 }
 
 // ── Coupon operations ──────────────────────────────────────────────────────

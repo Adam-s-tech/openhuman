@@ -4,12 +4,12 @@
 use chrono::Utc;
 
 use crate::config::Config;
+use crate::core::Outcome;
 use crate::inference::host_runtime as local_ai;
 use crate::inference::{
     LocalAiAssetsStatus, LocalAiDownloadsProgress, LocalAiEmbeddingResult, LocalAiSpeechResult,
     LocalAiStatus, LocalAiTtsResult,
 };
-use crate::core::Outcome;
 
 use super::turn_guards::enforce_user_prompt_or_reject;
 
@@ -56,10 +56,7 @@ pub async fn local_ai_summarize(
         .summarize_interactive(&runtime, text, max_tokens)
         .await
         .map_err(|e| e.to_string())?;
-    Ok(Outcome::single_log(
-        summary,
-        "local ai summarize completed",
-    ))
+    Ok(Outcome::single_log(summary, "local ai summarize completed"))
 }
 
 /// Executes a raw prompt directly against the local AI model.
@@ -127,10 +124,7 @@ pub async fn local_ai_embed(
         .embed(&runtime, inputs)
         .await
         .map_err(|e| e.to_string())?;
-    Ok(Outcome::single_log(
-        output,
-        "local ai embedding completed",
-    ))
+    Ok(Outcome::single_log(output, "local ai embedding completed"))
 }
 
 /// Transcribes the audio file at the specified path.

@@ -19,8 +19,8 @@ use serde_json::{json, Map, Value};
 use crate::agent::orchestration::running_subagents::{CancelledSubagent, SteerError};
 use crate::agent::orchestration::{background_completions, running_subagents, subagent_sessions};
 use crate::core::all::{ControllerFuture, RegisteredController};
-use crate::core::{ControllerSchema, FieldSchema, TypeSchema};
 use crate::core::Outcome;
+use crate::core::{ControllerSchema, FieldSchema, TypeSchema};
 use tinyagents_harness::run_queue::QueueLane;
 
 /// Controller schemas exposed for detached sub-agent control.

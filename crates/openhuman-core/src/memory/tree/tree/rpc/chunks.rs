@@ -3,8 +3,8 @@
 use serde::{Deserialize, Serialize};
 
 use crate::config::Config;
-use crate::memory::api::provider::ChunkQuery;
 use crate::core::Outcome;
+use crate::memory::api::provider::ChunkQuery;
 use tinymemory_api::chunks::{Chunk, SourceKind};
 
 /// Query shape for the `list_chunks` RPC.

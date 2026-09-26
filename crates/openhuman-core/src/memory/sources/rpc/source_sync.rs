@@ -3,9 +3,9 @@
 
 use super::coding_sessions::unserved;
 use crate::config::rpc as config_rpc;
+use crate::core::Outcome;
 use crate::memory::sources::registry;
 use crate::memory::sources::types::MemorySourceEntry;
-use crate::core::Outcome;
 
 // ── Sync ──
 
@@ -324,8 +324,5 @@ pub async fn reconcile_rpc(req: ReconcileRequest) -> Result<Outcome<ReconcileRes
         }
     }
 
-    Ok(Outcome::new(
-        ReconcileResponse { scopes: reports },
-        vec![],
-    ))
+    Ok(Outcome::new(ReconcileResponse { scopes: reports }, vec![]))
 }

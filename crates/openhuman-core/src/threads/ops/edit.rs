@@ -46,8 +46,8 @@ use tinyagents_session::transcript::{
     TranscriptMeta, TruncateCut,
 };
 
-use crate::memory::conversations::{self, reply_run_id, run_reply_message_id};
 use crate::core::Outcome;
+use crate::memory::conversations::{self, reply_run_id, run_reply_message_id};
 use crate::threads::ThreadsError;
 
 use super::support::workspace_dir;

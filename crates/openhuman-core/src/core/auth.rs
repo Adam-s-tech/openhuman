@@ -45,7 +45,6 @@ use std::os::unix::fs::OpenOptionsExt as _;
 // transports and `CoreBuilder` call them in every build. `Config`/`AuthService`/
 // the provider-id import are consumed only by the gated `/v1` helpers.
 
-
 static RPC_TOKEN: OnceLock<String> = OnceLock::new();
 
 /// Operator-supplied environment variable that carries the RPC bearer in

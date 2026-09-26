@@ -16,8 +16,8 @@ use serde_json::{Map, Value};
 use super::rpc as slack_rpc;
 use crate::config::rpc as config_rpc;
 use crate::core::all::{ControllerFuture, RegisteredController};
-use crate::core::{ControllerSchema, FieldSchema, TypeSchema};
 use crate::core::Outcome;
+use crate::core::{ControllerSchema, FieldSchema, TypeSchema};
 
 const NAMESPACE: &str = "slack_memory";
 

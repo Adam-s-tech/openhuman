@@ -67,10 +67,7 @@ pub async fn ai_list_artifacts(
 ///
 /// Returns the serialized `ArtifactMeta` plus an `absolute_path` field
 /// pointing to the full on-disk location of the artifact files.
-pub async fn ai_get_artifact(
-    config: &Config,
-    artifact_id: &str,
-) -> Result<Outcome<Value>, String> {
+pub async fn ai_get_artifact(config: &Config, artifact_id: &str) -> Result<Outcome<Value>, String> {
     log::debug!(
         "[artifacts] ai_get_artifact: id={artifact_id} workspace={:?}",
         config.workspace_dir

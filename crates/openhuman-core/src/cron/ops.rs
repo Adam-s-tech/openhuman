@@ -1,8 +1,8 @@
 use crate::config::Config;
+use crate::core::Outcome;
 use crate::cron::{
     self, add_shell_job, get_job, update_job, CronJob, CronJobPatch, CronRun, Schedule,
 };
-use crate::core::Outcome;
 use crate::security::SecurityPolicy;
 use anyhow::Result;
 use once_cell::sync::Lazy;
@@ -205,10 +205,7 @@ pub async fn cron_remove(
     ))
 }
 
-pub async fn cron_run(
-    config: &Config,
-    job_id: &str,
-) -> Result<Outcome<serde_json::Value>, String> {
+pub async fn cron_run(config: &Config, job_id: &str) -> Result<Outcome<serde_json::Value>, String> {
     let job_id = job_id.trim();
     if job_id.is_empty() {
         return Err("Missing 'job_id' parameter".to_string());

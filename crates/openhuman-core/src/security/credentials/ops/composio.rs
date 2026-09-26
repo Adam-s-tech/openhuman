@@ -76,9 +76,7 @@ pub async fn rpc_store_composio_api_key(
 
 /// Remove the stored Composio direct-mode API key. Used when the user
 /// switches back to backend mode and explicitly clears their key.
-pub async fn clear_composio_api_key(
-    config: &Config,
-) -> Result<Outcome<serde_json::Value>, String> {
+pub async fn clear_composio_api_key(config: &Config) -> Result<Outcome<serde_json::Value>, String> {
     tracing::debug!("[composio-direct] clearing stored api key");
     let auth = AuthService::from_config(config);
     let removed = auth

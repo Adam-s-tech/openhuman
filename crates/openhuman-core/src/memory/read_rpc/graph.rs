@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
 
 use crate::config::Config;
+use crate::core::Outcome;
 use crate::memory::api::provider::ChunkQuery;
 use crate::memory::api::tree::{TreeLeaf, TreeSummary};
-use crate::core::Outcome;
 
 // `MemoryGraph` in the contract is the key/value and relation tier, a different
 // graph from the one exported here: the summary forest and its leaf chunks,

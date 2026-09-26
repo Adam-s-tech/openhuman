@@ -4,11 +4,11 @@
 //! All filesystem I/O here is performed via `tokio::fs` so the handlers stay
 //! async-friendly and never block the executor.
 
+use crate::core::Outcome;
 use crate::memory::{
     ApiEnvelope, ListMemoryFilesRequest, ListMemoryFilesResponse, ReadMemoryFileRequest,
     ReadMemoryFileResponse, WriteMemoryFileRequest, WriteMemoryFileResponse,
 };
-use crate::core::Outcome;
 
 use super::envelope::{envelope, memory_counts};
 use super::helpers::{

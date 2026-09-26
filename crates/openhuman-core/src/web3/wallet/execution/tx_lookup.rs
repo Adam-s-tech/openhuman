@@ -107,8 +107,5 @@ pub async fn lookup_tx(
         hash,
         info.found
     );
-    Ok(Outcome::new(
-        info,
-        vec!["wallet tx looked up".to_string()],
-    ))
+    Ok(Outcome::new(info, vec!["wallet tx looked up".to_string()]))
 }

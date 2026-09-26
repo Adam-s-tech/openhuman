@@ -36,10 +36,10 @@ use serde_json::{json, Value};
 use tempfile::tempdir;
 
 use openhuman_core::core::auth::{get_rpc_token, init_rpc_token};
-use openhuman_rpc::server::build_core_http_router;
 use openhuman_core::platform::socket::{
     global_socket_manager, set_global_socket_manager, SocketManager,
 };
+use openhuman_rpc::server::build_core_http_router;
 
 // ── env serialisation ────────────────────────────────────────────────────────
 
@@ -73,7 +73,6 @@ fn rpc_bearer() -> &'static str {
 }
 
 fn ensure_rpc_auth() {
-
     crate::tinyhumans_boot::boot();
     let _ = rpc_bearer();
 }
@@ -352,7 +351,10 @@ async fn socket_state_and_parameter_guards() {
     );
 
     let still_down = post_json_rpc(&h.rpc_base, 8005, "openhuman.socket_state", json!({})).await;
-    let result = peel(assert_no_jsonrpc_error(&still_down, "socket_state after guards"));
+    let result = peel(assert_no_jsonrpc_error(
+        &still_down,
+        "socket_state after guards",
+    ));
     assert_eq!(
         result.get("status").and_then(Value::as_str),
         Some("disconnected"),
@@ -368,7 +370,8 @@ async fn socket_state_and_parameter_guards() {
     )
     .await;
     assert!(
-        jsonrpc_error_message(&emit_offline, "socket_emit while disconnected").contains("Not connected"),
+        jsonrpc_error_message(&emit_offline, "socket_emit while disconnected")
+            .contains("Not connected"),
         "emitting with no connection must be an error, not a silent success"
     );
 
@@ -422,7 +425,8 @@ async fn socket_connect_then_disconnect_round_trips_state() {
          (`\"Connecting\"`) and the split was #6111: {result}"
     );
 
-    let disconnected = post_json_rpc(&h.rpc_base, 8102, "openhuman.socket_disconnect", json!({})).await;
+    let disconnected =
+        post_json_rpc(&h.rpc_base, 8102, "openhuman.socket_disconnect", json!({})).await;
     let result = peel(assert_no_jsonrpc_error(&disconnected, "socket_disconnect"));
     assert_eq!(
         result.get("status").and_then(Value::as_str),
@@ -431,7 +435,10 @@ async fn socket_connect_then_disconnect_round_trips_state() {
     );
 
     let state = post_json_rpc(&h.rpc_base, 8103, "openhuman.socket_state", json!({})).await;
-    let result = peel(assert_no_jsonrpc_error(&state, "socket_state after disconnect"));
+    let result = peel(assert_no_jsonrpc_error(
+        &state,
+        "socket_state after disconnect",
+    ));
     assert_eq!(
         result.get("status").and_then(Value::as_str),
         Some("disconnected"),
@@ -631,8 +638,14 @@ async fn channel_queue_controllers_report_an_idle_thread() {
         json!({ "client_id": "e2e-client", "thread_id": canonical, "request_id": "req-that-never-ran" }),
     )
     .await;
-    let result = peel(assert_no_jsonrpc_error(&scoped, "channel_web_cancel scoped"));
-    assert_eq!(result.get("cancelled").and_then(Value::as_bool), Some(false));
+    let result = peel(assert_no_jsonrpc_error(
+        &scoped,
+        "channel_web_cancel scoped",
+    ));
+    assert_eq!(
+        result.get("cancelled").and_then(Value::as_bool),
+        Some(false)
+    );
 
     h.stop();
 }

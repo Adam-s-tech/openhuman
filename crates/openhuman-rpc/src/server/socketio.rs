@@ -32,8 +32,8 @@
 
 use serde::Deserialize;
 use serde::Serialize;
-use serde_json::Value;
 use serde_json::json;
+use serde_json::Value;
 use socketioxide::extract::{AckSender, Data, SocketRef, TryData};
 use socketioxide::SocketIo;
 
@@ -107,9 +107,7 @@ struct HandshakeAuth {
 pub(crate) fn origin_is_allowed(origin: Option<&str>) -> bool {
     origin_is_allowed_with_extra(
         origin,
-        std::env::var(crate::ALLOWED_ORIGINS_ENV)
-            .ok()
-            .as_deref(),
+        std::env::var(crate::ALLOWED_ORIGINS_ENV).ok().as_deref(),
     )
 }
 
@@ -726,13 +724,18 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
             let Some(event) = rx.recv().await else {
                 break;
             };
-            if let openhuman_core::core::events::DomainEvent::SessionExpired { source, reason } = event {
+            if let openhuman_core::core::events::DomainEvent::SessionExpired { source, reason } =
+                event
+            {
                 // Other publishers may emit a backend 401 while this core is
                 // using its offline local credential. The auth subscriber
                 // correctly keeps that credential, so the UI must not receive
                 // a contradictory sign-out event from this independent bus
                 // consumer. Real JWT expiry still broadcasts as before.
-                if openhuman_core::security::credentials::session_support::current_session_is_local().await {
+                if openhuman_core::security::credentials::session_support::current_session_is_local(
+                )
+                .await
+                {
                     log::info!(
                         "[socketio] suppress auth:session_expired for local offline credential source={}",
                         source
@@ -1126,7 +1129,10 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
                         None,
                     ))
                 }
-                openhuman_core::core::events::DomainEvent::ChannelDisconnected { channel, reason } => {
+                openhuman_core::core::events::DomainEvent::ChannelDisconnected {
+                    channel,
+                    reason,
+                } => {
                     log::debug!(
                         "[socketio] broadcast channel:connection-updated {channel} -> error reason_len={}",
                         reason.len()
@@ -1338,7 +1344,8 @@ fn replay_parked_approval(socket: &SocketRef, thread_id: &str) {
 /// plan review is a live, in-memory park (no SQLite row), but it reaches the
 /// UI the same fire-and-forget way, so the same reconciliation applies.
 fn replay_parked_plan_review(socket: &SocketRef, thread_id: &str) {
-    let Some(row) = openhuman_core::agent::plan_review::gate::global().parked_review_for_thread(thread_id)
+    let Some(row) =
+        openhuman_core::agent::plan_review::gate::global().parked_review_for_thread(thread_id)
     else {
         return;
     };

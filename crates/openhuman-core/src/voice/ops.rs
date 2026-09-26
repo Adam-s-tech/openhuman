@@ -8,8 +8,8 @@ use log::{debug, warn};
 use std::time::Instant;
 
 use crate::config::Config;
-use crate::inference::host_runtime as local_ai;
 use crate::core::Outcome;
+use crate::inference::host_runtime as local_ai;
 use tinyinference_local::models as model_ids;
 
 use super::factory::{create_stt_provider, effective_stt_provider};

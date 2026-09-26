@@ -3,8 +3,8 @@
 use serde_json::{Map, Value};
 
 use crate::core::all::{ControllerFuture, RegisteredController};
-use crate::core::{ControllerSchema, FieldSchema, TypeSchema};
 use crate::core::Outcome;
+use crate::core::{ControllerSchema, FieldSchema, TypeSchema};
 
 use super::ops;
 use super::types::ModelHealthResponse;

@@ -2,8 +2,8 @@
 
 use std::collections::BTreeSet;
 
-use crate::memory::api::provider::MemoryProvider;
 use crate::core::Outcome;
+use crate::memory::api::provider::MemoryProvider;
 
 use super::guard::active_memory_guard;
 
@@ -37,9 +37,7 @@ pub struct LearnAllParams {
 /// `tree_summarizer_run`. Results are collected per-namespace; a failing
 /// namespace does not abort the rest. Runs sequentially to avoid saturating
 /// the local AI provider.
-pub async fn memory_learn_all(
-    params: LearnAllParams,
-) -> Result<Outcome<LearnAllResult>, String> {
+pub async fn memory_learn_all(params: LearnAllParams) -> Result<Outcome<LearnAllResult>, String> {
     tracing::info!(
         "[memory.learn] memory_learn_all: entry namespaces={:?}",
         params.namespaces

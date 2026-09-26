@@ -154,10 +154,7 @@ pub async fn setup(params: WalletSetupParams) -> Result<Outcome<WalletStatus>, S
         status.secret_stored
     );
 
-    Ok(Outcome::new(
-        status,
-        vec!["wallet setup saved".to_string()],
-    ))
+    Ok(Outcome::new(status, vec!["wallet setup saved".to_string()]))
 }
 
 /// Decrypt and return the stored recovery phrase for the current wallet.

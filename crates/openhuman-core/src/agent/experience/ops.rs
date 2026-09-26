@@ -14,13 +14,13 @@ use crate::memory::api::health::MemoryHealth;
 // are reached on a `dyn MemoryProvider` receiver, where supertrait methods are
 // inherent object candidates rather than in-scope-trait candidates — so an
 // import of either would be flagged unused and fail `clippy -D warnings`.
+use crate::core::Outcome;
 use crate::memory::api::provider::MemoryProvider;
 use crate::memory::api::recall::OwnedRecallOpts;
 use crate::memory::api::types::{
     MemoryCategory, MemoryEntry, MemoryTaint, NamespaceSummary, RecallOpts,
 };
 use crate::memory::Memory;
-use crate::core::Outcome;
 use async_trait::async_trait;
 use std::collections::BTreeMap;
 use std::sync::Arc;
@@ -345,10 +345,7 @@ pub async fn list(_params: ListParams) -> Result<Outcome<Vec<AgentExperience>>, 
             .cmp(&a.updated_at_ms)
             .then_with(|| a.id.cmp(&b.id))
     });
-    Ok(Outcome::single_log(
-        experiences,
-        "agent experiences listed",
-    ))
+    Ok(Outcome::single_log(experiences, "agent experiences listed"))
 }
 
 pub async fn dismiss(params: DismissParams) -> Result<Outcome<DismissResult>, String> {

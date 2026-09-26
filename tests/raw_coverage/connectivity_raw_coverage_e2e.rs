@@ -15,7 +15,6 @@ use tempfile::{tempdir, TempDir};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
-use openhuman_rpc::server::build_core_http_router;
 use openhuman_core::platform::connectivity::ops::is_port_in_use;
 use openhuman_core::platform::connectivity::rpc::{
     diag, pick_listen_port, pick_listen_port_for_host, PickListenPortError,
@@ -25,6 +24,7 @@ use openhuman_core::platform::connectivity::{
     connectivity_controller_schema,
 };
 use openhuman_core::platform::socket::{set_global_socket_manager, SocketManager};
+use openhuman_rpc::server::build_core_http_router;
 
 const TEST_RPC_TOKEN: &str = "connectivity-raw-coverage-e2e-token";
 

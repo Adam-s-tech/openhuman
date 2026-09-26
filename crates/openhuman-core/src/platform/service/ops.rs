@@ -1,9 +1,9 @@
 //! JSON-RPC / CLI controller surface for platform service install/lifecycle.
 
 use crate::config::Config;
+use crate::core::Outcome;
 use crate::platform::service::daemon_host::DaemonHostConfig;
 use crate::platform::service::{self, daemon_host, ServiceStatus};
-use crate::core::Outcome;
 
 /// Installs the OpenHuman daemon as a system service.
 pub async fn service_install(config: &Config) -> Result<Outcome<ServiceStatus>, String> {
@@ -48,10 +48,7 @@ pub async fn service_shutdown(
 /// Uninstalls the OpenHuman daemon system service.
 pub async fn service_uninstall(config: &Config) -> Result<Outcome<ServiceStatus>, String> {
     let status = service::uninstall(config).map_err(|e| e.to_string())?;
-    Ok(Outcome::single_log(
-        status,
-        "service uninstall completed",
-    ))
+    Ok(Outcome::single_log(status, "service uninstall completed"))
 }
 
 /// Reads the daemon host UI preferences from the configuration directory.

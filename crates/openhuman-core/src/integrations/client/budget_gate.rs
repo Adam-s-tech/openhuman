@@ -150,10 +150,7 @@ where
     match fetch().await {
         Ok(data) => {
             cache.clear();
-            Ok(Outcome::single_log(
-                data,
-                "team usage fetched from backend",
-            ))
+            Ok(Outcome::single_log(data, "team usage fetched from backend"))
         }
         Err(err) => {
             if crate::core::observability::is_session_expired_message(&err) {

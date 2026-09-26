@@ -197,10 +197,7 @@ pub async fn create_invite(
         expires_in_days,
     });
     let data = get_authed_value(config, Method::POST, &path, Some(body)).await?;
-    Ok(Outcome::single_log(
-        data,
-        "team invite created via backend",
-    ))
+    Ok(Outcome::single_log(data, "team invite created via backend"))
 }
 
 pub async fn remove_member(
@@ -212,10 +209,7 @@ pub async fn remove_member(
     let user_id = normalize_id(user_id, "userId")?;
     let path = build_api_path(&["teams", &team_id, "members", &user_id])?;
     let data = get_authed_value(config, Method::DELETE, &path, None).await?;
-    Ok(Outcome::single_log(
-        data,
-        "team member removed via backend",
-    ))
+    Ok(Outcome::single_log(data, "team member removed via backend"))
 }
 
 pub async fn change_member_role(
@@ -259,10 +253,7 @@ pub async fn revoke_invite(
     let invite_id = normalize_id(invite_id, "inviteId")?;
     let path = build_api_path(&["teams", &team_id, "invites", &invite_id])?;
     let data = get_authed_value(config, Method::DELETE, &path, None).await?;
-    Ok(Outcome::single_log(
-        data,
-        "team invite revoked via backend",
-    ))
+    Ok(Outcome::single_log(data, "team invite revoked via backend"))
 }
 
 #[cfg(test)]

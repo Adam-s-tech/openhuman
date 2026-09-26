@@ -585,10 +585,7 @@ pub async fn get_activity_level_settings() -> Result<Outcome<serde_json::Value>,
         "estimated_monthly_cost_min_usd": cost_min,
         "estimated_monthly_cost_max_usd": cost_max,
     });
-    Ok(Outcome::single_log(
-        value,
-        "activity level settings read",
-    ))
+    Ok(Outcome::single_log(value, "activity level settings read"))
 }
 
 /// Updates the agent activity level and pushes it into the scheduler gate.

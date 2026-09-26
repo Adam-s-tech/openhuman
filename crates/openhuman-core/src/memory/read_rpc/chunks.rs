@@ -2,11 +2,11 @@ use anyhow::Result;
 use std::collections::{HashMap, HashSet};
 
 use crate::config::Config;
+use crate::core::Outcome;
 use crate::memory::api::provider::retrieval::{
     RetrievalNodeKind, RetrievalResponse, SourceRetrievalQuery,
 };
 use crate::memory::api::provider::{ChunkListRow, ChunkQuery, MemoryChunks};
-use crate::core::Outcome;
 use tinymemory_api::chunks::SourceKind;
 
 use super::types::{

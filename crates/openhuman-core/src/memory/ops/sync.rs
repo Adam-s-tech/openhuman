@@ -38,8 +38,8 @@
 
 use crate::config::rpc as config_rpc;
 use crate::config::Config;
-use crate::memory::sync::composio;
 use crate::core::Outcome;
+use crate::memory::sync::composio;
 use tinymemory_api::sync_events::{emit_sync_stage, MemorySyncStage, MemorySyncTrigger};
 
 /// Parameters for `memory_sync_channel`.

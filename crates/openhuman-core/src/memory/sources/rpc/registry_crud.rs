@@ -3,11 +3,11 @@
 //! `registry` and `readers` and never resolves a memory-driver binding.
 
 use crate::config::rpc as config_rpc;
+use crate::core::Outcome;
 use crate::memory::sources::apply_kind_defaults;
 use crate::memory::sources::readers;
 use crate::memory::sources::registry::{self, MemorySourcePatch};
 use crate::memory::sources::types::{MemorySourceEntry, SourceKind};
-use crate::core::Outcome;
 
 // ── List ──
 
@@ -246,9 +246,7 @@ pub struct ListItemsResponse {
     pub items: Vec<crate::memory::sources::types::SourceItem>,
 }
 
-pub async fn list_items_rpc(
-    req: ListItemsRequest,
-) -> Result<Outcome<ListItemsResponse>, String> {
+pub async fn list_items_rpc(req: ListItemsRequest) -> Result<Outcome<ListItemsResponse>, String> {
     tracing::debug!(source_id = %req.source_id, "[memory_sources] list_items_rpc: entry");
 
     let source = registry::get_source(&req.source_id)

@@ -1,8 +1,8 @@
 use anyhow::{Context, Result};
 
 use crate::config::Config;
-use crate::memory::api::provider::ForgetSelector;
 use crate::core::Outcome;
+use crate::memory::api::provider::ForgetSelector;
 // The KV namespace the Composio sync pipelines keep their per-connection
 // cursor state under, named at the **contract** (#5560).
 //

@@ -15,8 +15,8 @@
 
 use serde_json::{json, Value};
 
-use crate::memory::api::provider::{MemoryPeople, PersonHandle, PersonRecord};
 use crate::core::Outcome;
+use crate::memory::api::provider::{MemoryPeople, PersonHandle, PersonRecord};
 
 /// Render one person plus their score into the published `people.*` shape.
 fn person_json(person: &PersonRecord, score: &crate::memory::api::provider::PersonScore) -> Value {

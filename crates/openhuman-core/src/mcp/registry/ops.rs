@@ -29,8 +29,8 @@ use serde_json::{json, Value};
 use crate::config::Config;
 use crate::core::bus::BUS;
 use crate::core::events::DomainEvent;
-use crate::mcp::host;
 use crate::core::Outcome;
+use crate::mcp::host;
 
 use super::helpers::{encode, inject_required_env_keys, require, resolve};
 
@@ -346,9 +346,7 @@ pub async fn mcp_clients_update_env(
 
 // ── registry settings ────────────────────────────────────────────────────────
 
-pub async fn mcp_clients_registry_settings_get(
-    config: &Config,
-) -> Result<Outcome<Value>, String> {
+pub async fn mcp_clients_registry_settings_get(config: &Config) -> Result<Outcome<Value>, String> {
     let settings = resolve(config)?.dynamic().registry_settings();
 
     Ok(Outcome::new(

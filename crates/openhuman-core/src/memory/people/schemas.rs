@@ -9,11 +9,11 @@
 use serde_json::{Map, Value};
 
 use crate::core::all::{ControllerFuture, RegisteredController};
+use crate::core::Outcome;
 use crate::core::{ControllerSchema, FieldSchema, TypeSchema};
 use crate::memory::api::provider::{MemoryProvider, PersonHandle};
 use crate::memory::ops::guard::active_memory_guard;
 use crate::memory::people::rpc;
-use crate::core::Outcome;
 
 pub fn all_controller_schemas() -> Vec<ControllerSchema> {
     vec![

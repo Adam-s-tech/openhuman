@@ -245,7 +245,9 @@ pub(super) async fn domain_events_handler(headers: axum::http::HeaderMap) -> Res
         // publishes, so it should not want to. `None` means "not resolved
         // since the last workspace marker write", which the client treats as
         // unknown rather than as a mismatch.
-        let workspace = event.workspace_dir().map(openhuman_core::config::workspace_handle);
+        let workspace = event
+            .workspace_dir()
+            .map(openhuman_core::config::workspace_handle);
         let active = openhuman_core::config::active_workspace_dir_cached()
             .map(|dir| openhuman_core::config::workspace_handle(&dir));
         let data = json!({

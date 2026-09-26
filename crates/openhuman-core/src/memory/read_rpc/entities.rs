@@ -1,8 +1,8 @@
 use anyhow::Result;
 
 use crate::config::Config;
-use crate::memory::binding::MemoryBinding;
 use crate::core::Outcome;
+use crate::memory::binding::MemoryBinding;
 use tinymemory_api::error::MemoryError;
 use tinymemory_api::provider::chunks::ChunkScore;
 use tinymemory_api::provider::types::{EntityOccurrence, ForgetSelector};

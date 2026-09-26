@@ -3,8 +3,8 @@
 //! This initial cut keeps state in-memory so the RPC contract and UI wiring
 //! can land before the SQLite-backed store arrives.
 
-use crate::memory::{ApiEnvelope, ApiMeta, EmptyRequest};
 use crate::core::Outcome;
+use crate::memory::{ApiEnvelope, ApiMeta, EmptyRequest};
 use serde::Serialize;
 use std::collections::BTreeMap;
 

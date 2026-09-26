@@ -2,8 +2,8 @@
 //! extracting the emoji it picked.
 
 use crate::config::Config;
-use crate::inference::host_runtime as local_ai;
 use crate::core::Outcome;
+use crate::inference::host_runtime as local_ai;
 
 /// Result of the reaction-decision prompt.
 #[derive(Debug, serde::Serialize)]
@@ -114,10 +114,7 @@ pub async fn local_ai_should_react(
         emoji = ?decision.emoji,
         "[local_ai:should_react] decision"
     );
-    Ok(Outcome::single_log(
-        decision,
-        "reaction decision completed",
-    ))
+    Ok(Outcome::single_log(decision, "reaction decision completed"))
 }
 
 /// Extract the first emoji from a string. Handles common emoji codepoints

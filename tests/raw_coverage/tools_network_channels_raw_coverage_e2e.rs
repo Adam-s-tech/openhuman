@@ -18,17 +18,16 @@ use serde_json::json;
 use tempfile::{tempdir, TempDir};
 use tokio::time::timeout;
 
+use openhuman_core::config::{AutonomyConfig, Config};
+use openhuman_core::security::{AutonomyLevel, SecurityPolicy};
+use openhuman_core::tools::{ComposioTool, GitOperationsTool, ScheduleTool};
 use openhuman_core::web_chat::WebChannelEvent;
 use openhuman_core::web_chat::{
     all_web_channel_controller_schemas, all_web_channel_registered_controllers, cancel_chat,
     channel_web_cancel, publish_web_channel_event, schemas as web_channel_schema, start_chat,
     subscribe_web_channel_events, ChatRequestMetadata,
 };
-use openhuman_core::config::{AutonomyConfig, Config};
-use openhuman_core::security::{AutonomyLevel, SecurityPolicy};
 use tinytools::{Tool, ToolCallOptions};
-use openhuman_core::tools::{
-    ComposioTool, GitOperationsTool, ScheduleTool};
 
 #[derive(Clone, Debug)]
 struct MockRequest {

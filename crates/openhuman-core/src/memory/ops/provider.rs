@@ -17,8 +17,8 @@
 
 use crate::core::runtime::context::CoreContext;
 use crate::core::subsystem::{DriverHealth, SubsystemStatus};
-use crate::memory::binding::{to_driver_health, MemoryBinding};
 use crate::core::Outcome;
+use crate::memory::binding::{to_driver_health, MemoryBinding};
 
 /// The status of the memory slot for the current dispatch context.
 ///

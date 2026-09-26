@@ -130,8 +130,7 @@ pub fn client_config_json(config: &Config) -> serde_json::Value {
 }
 
 /// Loads config and returns the client-facing AI config slice.
-pub async fn load_and_get_client_config_snapshot() -> Result<Outcome<serde_json::Value>, String>
-{
+pub async fn load_and_get_client_config_snapshot() -> Result<Outcome<serde_json::Value>, String> {
     let config = load_config_with_timeout().await?;
     let snapshot = client_config_json(&config);
     Ok(Outcome::new(

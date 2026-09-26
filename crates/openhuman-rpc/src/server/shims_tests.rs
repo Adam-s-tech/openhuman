@@ -8,7 +8,8 @@ use crate::server::testing::EnvVarGuard;
 #[test]
 fn e2e_environment_enables_advertised_tool_groups() {
     let _guard = EnvVarGuard::set_many(vec![("OPENHUMAN_E2E", "1".into())]);
-    let builder = openhuman_core::core::runtime::CoreBuilder::new(openhuman_core::core::types::HostKind::Cli);
+    let builder =
+        openhuman_core::core::runtime::CoreBuilder::new(openhuman_core::core::types::HostKind::Cli);
     let _ = super::apply_e2e_tool_groups(builder);
 }
 

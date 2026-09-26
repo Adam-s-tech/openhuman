@@ -49,11 +49,11 @@ use serde_json::{json, Value};
 use tempfile::tempdir;
 
 use openhuman_core::core::auth::{get_rpc_token, init_rpc_token};
-use openhuman_rpc::server::build_core_http_router;
 use openhuman_core::platform::socket::{
     global_socket_manager, set_global_socket_manager, SocketManager,
 };
 use openhuman_core::skills::webhooks::{WebhookRequest, WebhookRouter};
+use openhuman_rpc::server::build_core_http_router;
 
 // ── env serialisation ────────────────────────────────────────────────────────
 //
@@ -91,7 +91,6 @@ fn rpc_bearer() -> &'static str {
 }
 
 fn ensure_rpc_auth() {
-
     crate::tinyhumans_boot::boot();
     let _ = rpc_bearer();
 }
@@ -177,10 +176,7 @@ impl BackendState {
     }
 
     fn calls(&self) -> Vec<RecordedCall> {
-        self.calls
-            .lock()
-            .unwrap_or_else(|p| p.into_inner())
-            .clone()
+        self.calls.lock().unwrap_or_else(|p| p.into_inner()).clone()
     }
 }
 
@@ -301,7 +297,9 @@ async fn mock_delete_tunnel(
         return Err(unauthorized());
     }
     state.record("DELETE", &format!("/webhooks/core/{id}"), None);
-    Ok(Json(json!({ "success": true, "data": { "deleted": true, "id": id } })))
+    Ok(Json(
+        json!({ "success": true, "data": { "deleted": true, "id": id } }),
+    ))
 }
 
 async fn mock_bandwidth(
@@ -489,7 +487,10 @@ async fn webhooks_registration_lifecycle_and_ownership_guards() {
         json!({ "tunnel_uuid": echo_uuid, "tunnel_name": "Echo Tunnel", "backend_tunnel_id": "bt-9" }),
     )
     .await;
-    let result = peel(assert_no_jsonrpc_error(&registered, "webhooks_register_echo"));
+    let result = peel(assert_no_jsonrpc_error(
+        &registered,
+        "webhooks_register_echo",
+    ));
     let row = registration(result, echo_uuid).expect("echo registration present in response");
     assert_eq!(
         row.get("target_kind").and_then(Value::as_str),
@@ -531,7 +532,10 @@ async fn webhooks_registration_lifecycle_and_ownership_guards() {
     .await;
     let result = peel(assert_no_jsonrpc_error(&agent, "webhooks_register_agent"));
     let row = registration(result, agent_uuid).expect("agent registration present");
-    assert_eq!(row.get("target_kind").and_then(Value::as_str), Some("agent"));
+    assert_eq!(
+        row.get("target_kind").and_then(Value::as_str),
+        Some("agent")
+    );
     assert_eq!(row.get("agent_id").and_then(Value::as_str), Some("agent-a"));
 
     let rebind = post_json_rpc(
@@ -662,7 +666,10 @@ async fn webhooks_debug_log_ring_records_and_clears() {
         json!({ "limit": 50 }),
     )
     .await;
-    let result = peel(assert_no_jsonrpc_error(&empty, "webhooks_list_logs (empty)"));
+    let result = peel(assert_no_jsonrpc_error(
+        &empty,
+        "webhooks_list_logs (empty)",
+    ));
     assert_eq!(
         result.get("logs").and_then(Value::as_array).map(Vec::len),
         Some(0),
@@ -687,7 +694,11 @@ async fn webhooks_debug_log_ring_records_and_clears() {
         .get("logs")
         .and_then(Value::as_array)
         .expect("logs array");
-    assert_eq!(logs.len(), 1, "one recorded request → one log entry: {result}");
+    assert_eq!(
+        logs.len(),
+        1,
+        "one recorded request → one log entry: {result}"
+    );
     let entry = &logs[0];
     assert_eq!(
         entry.get("correlation_id").and_then(Value::as_str),
@@ -716,7 +727,10 @@ async fn webhooks_debug_log_ring_records_and_clears() {
         json!({ "limit": 0 }),
     )
     .await;
-    let result = peel(assert_no_jsonrpc_error(&zero, "webhooks_list_logs (limit 0)"));
+    let result = peel(assert_no_jsonrpc_error(
+        &zero,
+        "webhooks_list_logs (limit 0)",
+    ));
     assert_eq!(
         result.get("logs").and_then(Value::as_array).map(Vec::len),
         Some(0),
@@ -731,7 +745,10 @@ async fn webhooks_debug_log_ring_records_and_clears() {
         json!({ "limit": 1 }),
     )
     .await;
-    let result = peel(assert_no_jsonrpc_error(&one, "webhooks_list_logs (limit 1)"));
+    let result = peel(assert_no_jsonrpc_error(
+        &one,
+        "webhooks_list_logs (limit 1)",
+    ));
     assert_eq!(
         result.get("logs").and_then(Value::as_array).map(Vec::len),
         Some(1),
@@ -748,7 +765,10 @@ async fn webhooks_debug_log_ring_records_and_clears() {
     );
 
     let after = post_json_rpc(&rpc_base, 7105, "openhuman.webhooks_list_logs", json!({})).await;
-    let result = peel(assert_no_jsonrpc_error(&after, "webhooks_list_logs (after)"));
+    let result = peel(assert_no_jsonrpc_error(
+        &after,
+        "webhooks_list_logs (after)",
+    ));
     assert_eq!(
         result.get("logs").and_then(Value::as_array).map(Vec::len),
         Some(0)
@@ -876,7 +896,10 @@ async fn webhooks_backend_tunnel_crud_roundtrip() {
         .find(|c| c.method == "POST" && c.path == "/webhooks/core")
         .expect("a POST /webhooks/core was issued");
     let body = create_call.body.expect("create body");
-    assert_eq!(body.get("name").and_then(Value::as_str), Some("Payments Hook"));
+    assert_eq!(
+        body.get("name").and_then(Value::as_str),
+        Some("Payments Hook")
+    );
     assert!(
         body.get("description").is_none(),
         "a whitespace-only description must be omitted from the body, not sent empty: {body}"
@@ -959,7 +982,11 @@ async fn webhooks_backend_tunnel_crud_roundtrip() {
         .get("tunnels")
         .and_then(Value::as_array)
         .expect("tunnels array");
-    assert_eq!(tunnels.len(), 1, "list_tunnels must surface the backend rows: {result}");
+    assert_eq!(
+        tunnels.len(),
+        1,
+        "list_tunnels must surface the backend rows: {result}"
+    );
     assert_eq!(tunnels[0].get("id").and_then(Value::as_str), Some("tun-1"));
 
     // ── bandwidth: its own path, not the `{id}` capture.
@@ -970,7 +997,10 @@ async fn webhooks_backend_tunnel_crud_roundtrip() {
         json!({}),
     )
     .await;
-    let result = peel(assert_no_jsonrpc_error(&bandwidth, "webhooks_get_bandwidth"));
+    let result = peel(assert_no_jsonrpc_error(
+        &bandwidth,
+        "webhooks_get_bandwidth",
+    ));
     assert_eq!(
         result.get("bytesIn").and_then(Value::as_u64),
         Some(4096),
@@ -1006,7 +1036,8 @@ async fn webhooks_backend_tunnel_crud_roundtrip() {
     )
     .await;
     assert!(
-        jsonrpc_error_message(&blank_name, "create_tunnel with a blank name").contains("name is required"),
+        jsonrpc_error_message(&blank_name, "create_tunnel with a blank name")
+            .contains("name is required"),
         "a whitespace-only name must be rejected locally"
     );
 
@@ -1031,7 +1062,8 @@ async fn webhooks_backend_tunnel_crud_roundtrip() {
     )
     .await;
     assert!(
-        jsonrpc_error_message(&blank_delete, "delete_tunnel with a blank id").contains("id is required")
+        jsonrpc_error_message(&blank_delete, "delete_tunnel with a blank id")
+            .contains("id is required")
     );
     assert_eq!(
         state.calls().len(),

@@ -1,9 +1,9 @@
 //! Workspace-wide conversation purge.
 
 use super::support::{envelope, run_to_completion, workspace_dir};
+use crate::core::Outcome;
 use crate::memory::conversations;
 use crate::memory::{ApiEnvelope, EmptyRequest, PurgeConversationThreadsResponse};
-use crate::core::Outcome;
 use crate::threads::turn_state;
 use std::path::PathBuf;
 

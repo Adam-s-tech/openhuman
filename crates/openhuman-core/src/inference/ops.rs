@@ -3,11 +3,11 @@
 use crate::config::ops::local_ai_presets;
 use crate::config::rpc as config_rpc;
 use crate::config::Config;
+use crate::core::Outcome;
 use crate::inference::host_runtime as local_runtime;
 use crate::inference::host_runtime::ops::ReactionDecision;
 use crate::inference::provider as providers;
 use crate::inference::{LocalAiEmbeddingResult, LocalAiStatus};
-use crate::core::Outcome;
 use serde_json::{json, Value};
 use tinyinference_llm::message::Message;
 use tinyinference_llm::model::ModelRequest;
@@ -281,10 +281,7 @@ pub async fn inference_analyze_sentiment(
             SentimentResult::neutral()
         }
     };
-    let result = Ok(Outcome::single_log(
-        result,
-        "sentiment analysis completed",
-    ));
+    let result = Ok(Outcome::single_log(result, "sentiment analysis completed"));
     match &result {
         Ok(outcome) => {
             debug!(valence = %outcome.value.valence, "{LOG_PREFIX} analyze_sentiment:ok")
@@ -595,9 +592,7 @@ pub async fn inference_openai_oauth_status(config: &Config) -> Result<Outcome<Va
     result
 }
 
-pub async fn inference_openai_oauth_disconnect(
-    config: &Config,
-) -> Result<Outcome<Value>, String> {
+pub async fn inference_openai_oauth_disconnect(config: &Config) -> Result<Outcome<Value>, String> {
     debug!("{LOG_PREFIX} openai_oauth_disconnect:start");
     let result = crate::security::credentials::openai_oauth::disconnect_openai_oauth(config)
         .map(|payload| Outcome::single_log(payload, "openai oauth disconnected"));

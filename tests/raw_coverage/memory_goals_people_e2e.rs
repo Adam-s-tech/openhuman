@@ -39,9 +39,9 @@ use reqwest::StatusCode;
 use serde_json::{json, Value};
 use tempfile::TempDir;
 
+use openhuman_core::config::Config;
 use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
 use openhuman_rpc::server::build_core_http_router;
-use openhuman_core::config::Config;
 
 /// Preferred bearer. Only the real one if this module wins the process-global
 /// `OnceLock` race — send [`rpc_bearer`], never this.
@@ -961,7 +961,13 @@ async fn tree_summarizer_run_and_rebuild_refuse_without_summarization_consent() 
         (43_101_i64, "openhuman.tree_summarizer_run", "run"),
         (43_102, "openhuman.tree_summarizer_rebuild", "rebuild"),
     ] {
-        let response = rpc(&harness.rpc_base, id, method, json!({ "namespace": namespace })).await;
+        let response = rpc(
+            &harness.rpc_base,
+            id,
+            method,
+            json!({ "namespace": namespace }),
+        )
+        .await;
         let message = error_message(&response, context);
         assert!(
             message.contains("no summarization provider"),

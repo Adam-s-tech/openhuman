@@ -72,9 +72,7 @@ pub async fn list_registrations() -> Result<Outcome<WebhookDebugRegistrationsRes
     }
 }
 
-pub async fn list_logs(
-    limit: Option<usize>,
-) -> Result<Outcome<WebhookDebugLogListResult>, String> {
+pub async fn list_logs(limit: Option<usize>) -> Result<Outcome<WebhookDebugLogListResult>, String> {
     match get_router() {
         Ok(router) => {
             let logs = router.list_logs(limit);

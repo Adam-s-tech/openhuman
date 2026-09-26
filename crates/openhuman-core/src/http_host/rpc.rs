@@ -1,15 +1,13 @@
 //! RPC adapters for the `http_host` domain.
 
+use crate::core::Outcome;
 use crate::http_host::ops;
 use crate::http_host::types::{
     HostedDirGetResult, HostedDirListResult, HostedDirLookupParams, HostedDirStartResult,
     HostedDirStopResult, StartHostedDirParams,
 };
-use crate::core::Outcome;
 
-pub async fn start(
-    params: StartHostedDirParams,
-) -> Result<Outcome<HostedDirStartResult>, String> {
+pub async fn start(params: StartHostedDirParams) -> Result<Outcome<HostedDirStartResult>, String> {
     let server = ops::start_hosted_dir_server(params).await?;
     Ok(Outcome::single_log(
         HostedDirStartResult { server },
@@ -17,9 +15,7 @@ pub async fn start(
     ))
 }
 
-pub async fn stop(
-    params: HostedDirLookupParams,
-) -> Result<Outcome<HostedDirStopResult>, String> {
+pub async fn stop(params: HostedDirLookupParams) -> Result<Outcome<HostedDirStopResult>, String> {
     let server = ops::stop_hosted_dir_server(&params.server_id).await?;
     Ok(Outcome::single_log(
         HostedDirStopResult {

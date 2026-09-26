@@ -50,12 +50,19 @@ fn classify_failure_expected_user_state_flag_wins() {
 #[test]
 fn classify_failure_routes_each_boundary_class() {
     assert_eq!(
-        classify_failure(openhuman_core::web3::wallet::WALLET_NOT_CONFIGURED_MESSAGE, false),
+        classify_failure(
+            openhuman_core::web3::wallet::WALLET_NOT_CONFIGURED_MESSAGE,
+            false
+        ),
         FailureDisposition::WalletNotConfigured
     );
     assert_eq!(
         classify_failure(
-            &openhuman_core::core::params::unknown_param_message("api_key", "config", "update_model_settings"),
+            &openhuman_core::core::params::unknown_param_message(
+                "api_key",
+                "config",
+                "update_model_settings"
+            ),
             false
         ),
         FailureDisposition::ParamValidation
@@ -87,7 +94,10 @@ fn classify_failure_param_validation_outranks_session_expiry() {
     // could have expired anything.
     assert_eq!(
         classify_failure(
-            &openhuman_core::core::params::missing_required_param_message("token", "Session expired token"),
+            &openhuman_core::core::params::missing_required_param_message(
+                "token",
+                "Session expired token"
+            ),
             false
         ),
         FailureDisposition::ParamValidation

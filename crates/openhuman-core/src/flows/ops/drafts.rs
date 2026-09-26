@@ -43,9 +43,7 @@ pub fn flows_draft_update(
 }
 
 /// Lists all drafts, newest-updated first.
-pub fn flows_draft_list(
-    config: &Config,
-) -> Result<Outcome<Vec<crate::flows::FlowDraft>>, String> {
+pub fn flows_draft_list(config: &Config) -> Result<Outcome<Vec<crate::flows::FlowDraft>>, String> {
     let drafts = draft_store::list_drafts(config).map_err(|e| e.to_string())?;
     Ok(Outcome::single_log(drafts, "drafts listed"))
 }

@@ -26,9 +26,9 @@ use tinyinference_llm::message::Message;
 use tinyinference_llm::model::ModelRequest;
 
 use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
-use openhuman_rpc::server::build_core_http_router;
 use openhuman_core::memory::tree::all_memory_tree_registered_controllers;
 use openhuman_core::platform::connectivity::rpc::pick_listen_port;
+use openhuman_rpc::server::build_core_http_router;
 
 const TEST_RPC_TOKEN: &str = "json-rpc-e2e-local-token";
 static JSON_RPC_AUTH_INIT: OnceLock<()> = OnceLock::new();

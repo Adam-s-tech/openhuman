@@ -20,9 +20,9 @@ use crate::memory::api::provider::{MemoryProvider, MemoryTree};
 // under the path the module contract already uses, and no wire byte changes.
 // The sibling `tree_runtime/mod.rs` re-exports the same set for the same
 // reason; see its comment on the node model.
+use crate::core::Outcome;
 use crate::memory::api::tree::{estimate_tokens, QueryResult};
 use crate::memory::guard::MemoryGuard;
-use crate::core::Outcome;
 
 // ── How these handlers reach the tree ───────────────────────────────────────
 //

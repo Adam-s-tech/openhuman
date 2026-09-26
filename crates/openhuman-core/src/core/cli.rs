@@ -11,8 +11,8 @@ use std::collections::BTreeMap;
 use crate::core::all;
 use crate::core::invoke::{default_state, invoke_method};
 use crate::core::logging::CliLogDefault;
-use crate::core::{ControllerSchema, TypeSchema};
 use crate::core::params::parse_json_params;
+use crate::core::{ControllerSchema, TypeSchema};
 
 /// The ASCII banner displayed when the CLI starts.
 const CLI_BANNER: &str = r#"

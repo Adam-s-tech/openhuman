@@ -8,8 +8,8 @@ use std::collections::BTreeMap;
 
 use serde::Serialize;
 
-use crate::memory::{ApiEnvelope, ApiError, ApiMeta, PaginationMeta};
 use crate::core::Outcome;
+use crate::memory::{ApiEnvelope, ApiError, ApiMeta, PaginationMeta};
 
 /// Generates a unique request ID for memory operations.
 ///
@@ -57,10 +57,7 @@ pub(crate) fn envelope<T: Serialize>(
 /// Wraps an error in an RPC API envelope.
 ///
 /// This provides a consistent error reporting format for the memory system.
-pub(crate) fn error_envelope<T: Serialize>(
-    code: &str,
-    message: String,
-) -> Outcome<ApiEnvelope<T>> {
+pub(crate) fn error_envelope<T: Serialize>(code: &str, message: String) -> Outcome<ApiEnvelope<T>> {
     Outcome::new(
         ApiEnvelope {
             data: None,

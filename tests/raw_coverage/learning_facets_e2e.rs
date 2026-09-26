@@ -39,12 +39,12 @@ use reqwest::StatusCode;
 use serde_json::{json, Value};
 use tempfile::TempDir;
 
-use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
-use openhuman_rpc::server::build_core_http_router;
 use openhuman_core::agent::learning::candidate::{
     self, CueFamily, EvidenceRef, FacetClass, LearningCandidate,
 };
 use openhuman_core::config::Config;
+use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
+use openhuman_rpc::server::build_core_http_router;
 
 /// Preferred bearer. Only the real one if this module wins the process-global
 /// `OnceLock` race — send [`rpc_bearer`], never this.
@@ -421,7 +421,11 @@ async fn learning_facet_lifecycle_from_rebuild_to_reset() {
     );
     assert_eq!(seeded.get("class").and_then(Value::as_str), Some("style"));
     assert!(
-        seeded.get("stability").and_then(Value::as_f64).unwrap_or(0.0) > 0.0,
+        seeded
+            .get("stability")
+            .and_then(Value::as_f64)
+            .unwrap_or(0.0)
+            > 0.0,
         "a promoted facet carries a positive stability: {seeded}"
     );
     assert!(

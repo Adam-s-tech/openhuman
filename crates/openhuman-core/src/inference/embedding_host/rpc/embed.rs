@@ -130,10 +130,7 @@ pub async fn test_connection(
                 "requested_dimensions": dims,
                 "actual_dimensions": actual_dims,
             });
-            Ok(Outcome::new(
-                payload,
-                vec!["connection test passed".into()],
-            ))
+            Ok(Outcome::new(payload, vec!["connection test passed".into()]))
         }
         Err(e) => {
             let payload = serde_json::json!({

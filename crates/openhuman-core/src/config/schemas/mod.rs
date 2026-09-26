@@ -46,9 +46,9 @@ pub use controllers::{all_controller_schemas, all_registered_controllers};
 // Re-export items that schemas_tests.rs accesses via `use super::*`.
 // The test module is `schemas::tests` so `super::` resolves to `schemas`.
 #[cfg(test)]
-use crate::core::TypeSchema;
-#[cfg(test)]
 use crate::core::Outcome;
+#[cfg(test)]
+use crate::core::TypeSchema;
 #[cfg(test)]
 use controllers::{
     handle_get_agent_paths, handle_get_autonomy_settings, handle_update_autonomy_settings,

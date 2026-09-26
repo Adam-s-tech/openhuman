@@ -18,10 +18,10 @@ use serde_json::{Map, Value};
 use super::ops;
 use crate::config::rpc as config_rpc;
 use crate::core::all::{ControllerFuture, RegisteredController};
+use crate::core::Outcome;
 use crate::core::{ControllerSchema, FieldSchema, TypeSchema};
 use crate::memory::api::provider::MemoryProvider;
 use crate::memory::ops::guard::active_memory_guard;
-use crate::core::Outcome;
 
 /// All `memory_goals` controller schemas (advertised to CLI + RPC consumers).
 pub fn all_memory_goals_controller_schemas() -> Vec<ControllerSchema> {

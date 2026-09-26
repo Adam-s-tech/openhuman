@@ -29,8 +29,5 @@ pub async fn auth_create_channel_link_token(
         // keep their full anyhow chain.
         .map_err(crate::api::flatten_authed_error)?;
 
-    Ok(Outcome::single_log(
-        payload,
-        "channel link token created",
-    ))
+    Ok(Outcome::single_log(payload, "channel link token created"))
 }

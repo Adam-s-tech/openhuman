@@ -10,10 +10,10 @@ use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
 use crate::core::events::DomainEvent;
-use crate::web_chat::WebChannelEvent;
 use crate::security::prompt_injection::{
     enforce_prompt_input, PromptEnforcementAction, PromptEnforcementContext,
 };
+use crate::web_chat::WebChannelEvent;
 
 use super::super::event_bus::publish_web_channel_event;
 use super::super::run_task::run_chat_task;

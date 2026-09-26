@@ -57,8 +57,5 @@ pub async fn supported_toolkits_rpc() -> Result<Outcome<SupportedToolkitsRespons
         toolkits = ?toolkits,
         "[memory_sources] supported_toolkits_rpc: resolved supported toolkit set"
     );
-    Ok(Outcome::new(
-        SupportedToolkitsResponse { toolkits },
-        vec![],
-    ))
+    Ok(Outcome::new(SupportedToolkitsResponse { toolkits }, vec![]))
 }

@@ -54,9 +54,9 @@ use serde::Serialize;
 #[cfg(feature = "web3")]
 use crate::core::all::RegisteredController;
 #[cfg(feature = "web3")]
-use crate::core::{ControllerSchema, FieldSchema, TypeSchema};
-#[cfg(feature = "web3")]
 use crate::core::Outcome;
+#[cfg(feature = "web3")]
+use crate::core::{ControllerSchema, FieldSchema, TypeSchema};
 #[cfg(feature = "web3")]
 use tinytools::{Tool, ToolResult};
 

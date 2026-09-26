@@ -3,8 +3,8 @@
 use serde::de::DeserializeOwned;
 use serde_json::{Map, Value};
 
-use crate::core::{FieldSchema, TypeSchema};
 use crate::core::Outcome;
+use crate::core::{FieldSchema, TypeSchema};
 
 pub(super) fn to_json<T: serde::Serialize>(outcome: Outcome<T>) -> Result<Value, String> {
     let json_val =

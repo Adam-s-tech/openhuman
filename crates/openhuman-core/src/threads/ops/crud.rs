@@ -5,6 +5,7 @@ use super::support::{
     counts, envelope, message_to_record, record_to_message, run_to_completion, thread_to_summary,
     workspace_dir,
 };
+use crate::core::Outcome;
 use crate::memory::conversations;
 use crate::memory::conversations::{ConversationMessagePatch, CrossThreadHit};
 use crate::memory::{
@@ -15,7 +16,6 @@ use crate::memory::{
     UpdateConversationMessageRequest, UpdateConversationThreadLabelsRequest,
     UpdateConversationThreadTitleRequest, UpsertConversationThreadRequest,
 };
-use crate::core::Outcome;
 use crate::threads::turn_state;
 use crate::threads::ThreadsError;
 use crate::web_chat as web_channel;

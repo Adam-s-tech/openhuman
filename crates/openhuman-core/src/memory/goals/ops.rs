@@ -54,9 +54,9 @@
 use serde::Serialize;
 
 use crate::config::Config;
+use crate::core::Outcome;
 use crate::memory::api::goals::GoalsDoc;
 use crate::memory::api::provider::MemoryGoals;
-use crate::core::Outcome;
 
 use super::doc;
 
@@ -148,10 +148,7 @@ pub async fn delete(goals: &dyn MemoryGoals, id: &str) -> Result<Outcome<GoalsDo
         .await
         .map_err(|e| format!("delete: {e}"))?;
     let updated = read(goals, "delete").await?;
-    Ok(Outcome::single_log(
-        updated,
-        format!("deleted goal {id}"),
-    ))
+    Ok(Outcome::single_log(updated, format!("deleted goal {id}")))
 }
 
 /// On-demand enrichment: run the turn-based goals agent now, then return the

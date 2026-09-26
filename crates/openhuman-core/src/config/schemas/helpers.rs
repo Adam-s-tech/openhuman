@@ -2,8 +2,8 @@ use serde::de::{DeserializeOwned, Deserializer};
 use serde::Deserialize;
 use serde_json::{Map, Value};
 
-use crate::core::{FieldSchema, TypeSchema};
 use crate::core::Outcome;
+use crate::core::{FieldSchema, TypeSchema};
 
 pub(super) const DEFAULT_ONBOARDING_FLAG_NAME: &str = ".skip_onboarding";
 

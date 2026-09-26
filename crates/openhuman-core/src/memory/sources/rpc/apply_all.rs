@@ -3,9 +3,9 @@
 
 use super::source_sync::{sync_dispatch, SyncDispatch};
 use crate::config::rpc as config_rpc;
+use crate::core::Outcome;
 use crate::memory::sources::registry;
 use crate::memory::sources::types::MemorySourceEntry;
-use crate::core::Outcome;
 
 /// Response returned by `memory_sources_apply_all_in`.
 #[derive(Debug, serde::Serialize)]

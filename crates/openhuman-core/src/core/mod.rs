@@ -32,9 +32,9 @@ pub mod rpc_log;
 pub mod runtime;
 #[cfg(feature = "crash-reporting")]
 pub mod sentry_transport;
-pub mod shutdown;
 pub mod server_launcher;
 pub mod session_expiry;
+pub mod shutdown;
 pub mod structured_error;
 pub mod subsystem;
 pub mod subsystems_cli;

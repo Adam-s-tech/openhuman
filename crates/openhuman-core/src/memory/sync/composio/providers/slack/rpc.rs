@@ -36,13 +36,13 @@
 use serde::{Deserialize, Serialize};
 
 use crate::config::Config;
+use crate::core::Outcome;
 use crate::integrations::composio::client::{
     create_composio_client, direct_list_connections, ComposioClientKind,
 };
 use crate::integrations::composio::ops::run_sync_within_budget;
 use crate::integrations::composio::providers::SyncOutcome;
 use crate::integrations::composio::types::ComposioConnectionsResponse;
-use crate::core::Outcome;
 
 /// Optional connection-id override for the trigger. When absent, all
 /// active Slack connections are synced (serially, one-by-one).

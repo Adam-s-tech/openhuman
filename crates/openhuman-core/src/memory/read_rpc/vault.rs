@@ -14,8 +14,8 @@
 use anyhow::Result;
 
 use crate::config::Config;
-use crate::memory::obsidian_registry;
 use crate::core::Outcome;
+use crate::memory::obsidian_registry;
 
 use super::types::{ObsidianVaultStatusResponse, VaultHealthCheckResponse};
 

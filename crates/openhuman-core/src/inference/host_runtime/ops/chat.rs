@@ -1,8 +1,8 @@
 //! Multi-turn chat through the local model.
 
 use crate::config::Config;
-use crate::inference::host_runtime as local_ai;
 use crate::core::Outcome;
+use crate::inference::host_runtime as local_ai;
 
 use super::turn_guards::enforce_user_prompt_or_reject;
 

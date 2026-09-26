@@ -213,9 +213,7 @@ pub async fn get_data_paths() -> Result<Outcome<serde_json::Value>, String> {
 /// let `Path::join` resolve a delete target OUTSIDE `<root>/users/<id>`. We
 /// therefore reject anything that isn't a single plain path segment and, as
 /// defense in depth, verify the resolved dir is a direct child of `users/`.
-pub async fn get_data_paths_for_user(
-    user_id: &str,
-) -> Result<Outcome<serde_json::Value>, String> {
+pub async fn get_data_paths_for_user(user_id: &str) -> Result<Outcome<serde_json::Value>, String> {
     if !is_plain_user_id(user_id) {
         return Err(format!(
             "refusing to resolve data paths for unsafe user id {user_id:?}: must be a single path segment with no separators, `.` or `..`"

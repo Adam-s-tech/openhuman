@@ -9,8 +9,8 @@ struct LocalAiTestConnectionParams {
 
 use crate::config::rpc as config_rpc;
 use crate::core::all::{ControllerFuture, RegisteredController};
-use crate::core::{ControllerSchema, FieldSchema, TypeSchema};
 use crate::core::Outcome;
+use crate::core::{ControllerSchema, FieldSchema, TypeSchema};
 
 /// Params for `inference.agent_chat` and `inference.agent_chat_simple`.
 ///

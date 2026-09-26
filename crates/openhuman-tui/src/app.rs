@@ -23,8 +23,8 @@ use serde_json::json;
 use tokio::sync::broadcast;
 
 use openhuman_core::core::runtime::CoreRuntime;
-use openhuman_core::web_chat::WebChannelEvent;
 use openhuman_core::web_chat;
+use openhuman_core::web_chat::WebChannelEvent;
 
 use super::cockpit::{
     array_at, row_from_value, Overlay, OverlayKind, OverlayRow, PendingApproval, PendingPlanReview,

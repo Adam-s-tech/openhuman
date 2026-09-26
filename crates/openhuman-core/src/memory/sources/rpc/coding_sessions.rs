@@ -2,9 +2,9 @@
 
 use crate::config::rpc as config_rpc;
 use crate::config::Config;
+use crate::core::Outcome;
 use crate::memory::api::provider::sessions::{CodingSessionIngestReport, CodingSessionSource};
 use crate::memory::binding::MemoryBinding;
-use crate::core::Outcome;
 
 /// The coding-session ingest request, under this domain's own name.
 ///
@@ -52,8 +52,7 @@ pub struct CodingSessionStatusResponse {
 /// `CodingSessionSource::scan_truncated` is how a caller learns the counts are
 /// a floor — the same field the engine's `CodingSessionSourceStatus` carried,
 /// under the same name.
-pub async fn coding_session_status_rpc() -> Result<Outcome<CodingSessionStatusResponse>, String>
-{
+pub async fn coding_session_status_rpc() -> Result<Outcome<CodingSessionStatusResponse>, String> {
     tracing::debug!("[memory_sources] coding_session_status_rpc: entry");
     let config = config_rpc::load_config_with_timeout().await?;
     let binding = crate::memory::binding::for_config(&config)?;

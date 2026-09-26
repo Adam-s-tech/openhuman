@@ -258,7 +258,6 @@ impl Harness {
 }
 
 async fn setup() -> Harness {
-
     crate::tinyhumans_boot::boot();
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path().to_path_buf();
@@ -398,7 +397,11 @@ async fn workflow_run_stop_then_resume_preserves_the_phase_ledger() {
     );
 
     let resumed = h
-        .ok(3004, "openhuman.workflow_run_resume", json!({ "id": run_id }))
+        .ok(
+            3004,
+            "openhuman.workflow_run_resume",
+            json!({ "id": run_id }),
+        )
         .await;
     let resumed_run = resumed
         .get("workflowRun")
@@ -445,9 +448,7 @@ async fn workflow_run_stop_is_idempotent_where_resume_is_not() {
         )
         .await;
     assert!(
-        stopped
-            .get("workflowRun")
-            .is_some_and(Value::is_null),
+        stopped.get("workflowRun").is_some_and(Value::is_null),
         "stopping an unknown run yields a null run, not an error: {stopped}"
     );
 
@@ -619,7 +620,10 @@ async fn agent_team_close_flips_the_status_the_list_filter_selects_on() {
         Some("planner")
     );
     assert_eq!(
-        created.pointer("/members").and_then(Value::as_array).map(Vec::len),
+        created
+            .pointer("/members")
+            .and_then(Value::as_array)
+            .map(Vec::len),
         Some(2),
         "both seeded members are created: {created}"
     );
@@ -1119,7 +1123,9 @@ async fn agent_experience_capture_list_retrieve_and_dismiss_round_trip() {
             .as_array()
             .expect("retrieve array")
             .iter()
-            .any(|hit| hit.pointer("/experience/id").and_then(Value::as_str) == Some("w1exp-deploy")),
+            .any(
+                |hit| hit.pointer("/experience/id").and_then(Value::as_str) == Some("w1exp-deploy")
+            ),
         "a dismissed experience is out of retrieval: {after}"
     );
 

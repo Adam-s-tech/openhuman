@@ -1,8 +1,8 @@
 //! Aggregated token/cost usage for a thread, re-audited at current pricing.
 
 use super::support::{counts, envelope, workspace_dir};
-use crate::memory::ApiEnvelope;
 use crate::core::Outcome;
+use crate::memory::ApiEnvelope;
 use std::collections::BTreeMap;
 use std::path::Path;
 use tinyagents_session::transcript::{

@@ -5,6 +5,7 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::core::Outcome;
 use crate::memory::api::provider::MemoryProvider;
 use crate::memory::api::types::NamespaceDocumentInput;
 use crate::memory::api::types::NamespaceRetrievalContext;
@@ -15,7 +16,6 @@ use crate::memory::{
     QueryNamespaceResponse, RecallContextRequest, RecallContextResponse, RecallMemoriesRequest,
     RecallMemoriesResponse,
 };
-use crate::core::Outcome;
 
 use super::envelope::{envelope, error_envelope, memory_counts};
 use super::guard::active_memory_guard;
@@ -172,10 +172,7 @@ pub async fn namespace_list() -> Result<Outcome<Vec<String>>, String> {
         .list_namespaces()
         .await
         .map_err(|error| error.to_string())?;
-    Ok(Outcome::single_log(
-        namespaces,
-        "memory namespaces listed",
-    ))
+    Ok(Outcome::single_log(namespaces, "memory namespaces listed"))
 }
 
 /// Upserts a document into a namespace.
@@ -225,9 +222,7 @@ pub async fn doc_put(params: PutDocParams) -> Result<Outcome<PutDocResult>, Stri
 }
 
 /// Ingests a document, performing chunking and embedding.
-pub async fn doc_ingest(
-    params: IngestDocParams,
-) -> Result<Outcome<MemoryIngestionResult>, String> {
+pub async fn doc_ingest(params: IngestDocParams) -> Result<Outcome<MemoryIngestionResult>, String> {
     let guard = active_memory_guard().await?;
     let documents = guard
         .as_documents()

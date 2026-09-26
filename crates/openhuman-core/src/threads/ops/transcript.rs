@@ -1,8 +1,8 @@
 //! Paginated projection of a thread's settled transcript.
 
 use super::support::{counts, envelope, workspace_dir};
-use crate::memory::{ApiEnvelope, PaginationMeta};
 use crate::core::Outcome;
+use crate::memory::{ApiEnvelope, PaginationMeta};
 
 /// Request for [`transcript_get`]: the thread to project, plus newest-first
 /// pagination controls. `cursor` is the opaque token from a prior page's

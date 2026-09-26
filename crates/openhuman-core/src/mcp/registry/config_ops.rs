@@ -50,10 +50,7 @@ pub async fn mcp_clients_config_get(config: &Config) -> Result<Outcome<Value>, S
 /// Every added or rewritten server that is enabled is connected in the
 /// background; the status poll reports how that went. The reply carries the
 /// re-rendered document and what changed, so the editor can show both.
-pub async fn mcp_clients_config_set(
-    config: &Config,
-    doc: Value,
-) -> Result<Outcome<Value>, String> {
+pub async fn mcp_clients_config_set(config: &Config, doc: Value) -> Result<Outcome<Value>, String> {
     let declared = config_doc::parse(&doc)?;
 
     // Keys are trimmed on the way in, so two spellings of one name can collide

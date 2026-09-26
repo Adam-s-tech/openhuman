@@ -59,11 +59,11 @@ use crate::config::Config;
 // The contract's retrieval vocabulary, not the engine's: these handlers return
 // what the driver handed back. The two encode identically (see the module
 // docs), so this is a Rust-type change and not a wire one.
+use crate::core::Outcome;
 use crate::memory::api::provider::retrieval::{
     CoverWindowQuery, EntityMatch, RetrievalHit, RetrievalResponse, SourceRetrievalQuery,
 };
 use crate::memory::source_scope::as_bus_scope;
-use crate::core::Outcome;
 use tinymemory_api::chunks::SourceKind;
 
 // ── query_source ──────────────────────────────────────────────────────

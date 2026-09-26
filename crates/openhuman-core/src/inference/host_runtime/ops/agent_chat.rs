@@ -2,8 +2,8 @@
 
 use crate::agent::OpenHumanSessionHost;
 use crate::config::Config;
-use crate::inference::provider as providers;
 use crate::core::Outcome;
+use crate::inference::provider as providers;
 
 use super::turn_guards::{
     effective_agent_chat_origin, enforce_user_prompt_or_reject, grant_turn_cwd,
@@ -376,8 +376,5 @@ pub async fn agent_chat_simple(
     );
     let response = run.await.map_err(|e| e.to_string())?.text();
 
-    Ok(Outcome::single_log(
-        response,
-        "agent simple chat completed",
-    ))
+    Ok(Outcome::single_log(response, "agent simple chat completed"))
 }

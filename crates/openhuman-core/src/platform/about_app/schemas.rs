@@ -5,9 +5,9 @@ use serde::Deserialize;
 use serde_json::{Map, Value};
 
 use crate::core::all::{ControllerFuture, RegisteredController};
+use crate::core::Outcome;
 use crate::core::{ControllerSchema, FieldSchema, TypeSchema};
 use crate::platform::about_app::CapabilityCategory;
-use crate::core::Outcome;
 
 #[derive(Debug, Deserialize, Default)]
 struct AboutAppListParams {

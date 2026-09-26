@@ -35,8 +35,8 @@ use tinyinference_llm::message::Message;
 use tinyinference_llm::model::ModelRequest;
 
 use crate::config::rpc as config_rpc;
-use crate::web_chat::{ChatSuggestion, WebChannelEvent};
 use crate::inference::provider;
+use crate::web_chat::{ChatSuggestion, WebChannelEvent};
 
 use super::publish_web_channel_event;
 

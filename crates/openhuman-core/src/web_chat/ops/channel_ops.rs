@@ -4,8 +4,8 @@
 
 use serde_json::{json, Value};
 
-use crate::web_chat::WebChannelEvent;
 use crate::core::Outcome;
+use crate::web_chat::WebChannelEvent;
 
 use super::super::event_bus::publish_web_channel_event;
 use super::super::types::ChatRequestMetadata;

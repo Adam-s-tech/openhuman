@@ -3,9 +3,9 @@ use serde_json::{Map, Value};
 
 use crate::config::rpc as config_rpc;
 use crate::core::all::{ControllerFuture, RegisteredController};
+use crate::core::Outcome;
 use crate::core::{ControllerSchema, FieldSchema, TypeSchema};
 use crate::cron::CronJobPatch;
-use crate::core::Outcome;
 
 fn job_id_input(comment: &'static str) -> FieldSchema {
     FieldSchema {

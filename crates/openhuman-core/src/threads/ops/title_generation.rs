@@ -3,12 +3,12 @@
 
 use super::support::{counts, envelope, thread_to_summary, update_thread_with_fallback_title};
 use crate::config::Config;
+use crate::core::Outcome;
 use crate::inference::provider;
 use crate::memory::conversations;
 use crate::memory::{
     ApiEnvelope, ConversationThreadSummary, GenerateConversationThreadTitleRequest,
 };
-use crate::core::Outcome;
 use crate::threads::title::{
     build_title_request, is_auto_generated_thread_title, sanitize_generated_title,
     title_log_fingerprint, THREAD_TITLE_LOG_PREFIX,
