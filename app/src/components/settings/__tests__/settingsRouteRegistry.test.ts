@@ -21,10 +21,12 @@ import {
 
 describe('entryRoute', () => {
   it('returns the explicit route when set', () => {
-    // 'notifications' entry has route: 'notifications' set explicitly.
-    const entry = findEntryById('notifications');
-    expect(entry).toBeDefined();
-    expect(entryRoute(entry!)).toBe('notifications');
+    // No live registry entry currently sets an explicit `route` override (the
+    // 'notifications' entry that used to was removed with the Notifications
+    // settings page), so this exercises the helper directly against a
+    // synthetic entry instead of registry data.
+    const entry = { id: 'foo', route: 'bar', titleKey: 'x', section: 'home' as const };
+    expect(entryRoute(entry)).toBe('bar');
   });
 
   it('falls back to the id when no explicit route is set', () => {
