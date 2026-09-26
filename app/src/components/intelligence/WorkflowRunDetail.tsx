@@ -57,12 +57,12 @@ const PHASE_STATUS_KEY: Record<WorkflowPhaseStatus, string> = {
   failed: 'orchestration.phaseStatus.failed',
 };
 
-/** Glyph per phase status — color comes from the surrounding classes. */
-const PHASE_STATUS_DOT: Record<WorkflowPhaseStatus, string> = {
-  pending: 'bg-surface-strong',
-  running: 'bg-primary-500 animate-pulse',
-  completed: 'bg-sage-500',
-  failed: 'bg-coral-500',
+/** Badge variant per phase status. */
+const PHASE_STATUS_VARIANT: Record<WorkflowPhaseStatus, BadgeVariant> = {
+  pending: 'neutral',
+  running: 'primary',
+  completed: 'success',
+  failed: 'danger',
 };
 
 const TERMINAL_STATUSES: WorkflowRunStatus[] = ['completed', 'failed', 'cancelled', 'interrupted'];
