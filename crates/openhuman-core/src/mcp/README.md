@@ -1,4 +1,4 @@
-# mcp, MCP host
+# mcp: MCP host
 
 Host-side half of Model Context Protocol support. Both transports, the
 static config-declared server set, the dynamic (Smithery/official-catalog)
