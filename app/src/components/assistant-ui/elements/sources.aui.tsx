@@ -142,44 +142,4 @@ function Source({
   );
 }
 
-const SourcesImpl: SourceMessagePartComponent = part => {
-  if (part.sourceType === 'url' && part.url) {
-    const domain = extractDomain(part.url);
-    const displayTitle = part.title || domain;
-
-    return (
-      <Source href={part.url}>
-        <SourceIcon url={part.url} />
-        <SourceTitle>{displayTitle}</SourceTitle>
-      </Source>
-    );
-  }
-
-  if (part.sourceType === 'document') {
-    return (
-      <Badge
-        variant="secondary"
-        className="focus-visible:border-ring focus-visible:ring-ring/50 outline-none focus-visible:ring-1">
-        <span data-slot="source" className="inline-flex items-center gap-1.5">
-          <DocumentSourceIcon />
-          <SourceTitle>{part.title}</SourceTitle>
-        </span>
-      </Badge>
-    );
-  }
-
-  return null;
-};
-
-const Sources = memo(SourcesImpl) as unknown as SourceMessagePartComponent & {
-  Root: typeof Source;
-  Icon: typeof SourceIcon;
-  Title: typeof SourceTitle;
-};
-
-Sources.displayName = 'Sources';
-Sources.Root = Source;
-Sources.Icon = SourceIcon;
-Sources.Title = SourceTitle;
-
-export { Sources, Source, SourceIcon, SourceTitle, DocumentSourceIcon, sourceVariants };
+export { Source, SourceIcon, SourceTitle, DocumentSourceIcon };
