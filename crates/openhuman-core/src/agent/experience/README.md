@@ -48,7 +48,7 @@ Namespace `agent_experience` (registered into `crates/openhuman-core/src/core/al
 
 ## Events
 
-None — no `bus.rs`; this module does not publish or subscribe to `DomainEvent`s.
+None: no `bus.rs`; this module does not publish or subscribe to `DomainEvent`s.
 
 ## Persistence
 
@@ -59,19 +59,19 @@ Records are stored through the `Memory` trait (no dedicated DB), served by `Driv
 
 ## Dependencies
 
-- `crate::memory` — `Memory` trait, `MemoryCategory`, `memory::binding::{for_config, for_subtree}` (driver binding behind `DriverMemory`), `memory::api::{provider, recall, types, health}` (the provider contract `DriverMemory` adapts), `memory::safety::sanitize_text` (store-time scrub), `memory::source_scope::as_bus_scope` (explicit recall scope), `memory::preferences::recall_by_vector_over`.
-- `crate::config` — `Config::load_or_init` for `workspace_dir` and `subsystems.memory` when the RPC handlers bind a store.
-- `crate::core::all` — `ControllerFuture`, `RegisteredController` for RPC registration.
-- `crate::core` — `ControllerSchema`, `FieldSchema`, `TypeSchema` (schema types); `crate::rpc::RpcOutcome`.
-- `crate::memory::tool_memory::test_helpers::MockMemory` and `crate::memory::guard::test_support::RecordingProvider` — tests only.
+- `crate::memory`: `Memory` trait, `MemoryCategory`, `memory::binding::{for_config, for_subtree}` (driver binding behind `DriverMemory`), `memory::api::{provider, recall, types, health}` (the provider contract `DriverMemory` adapts), `memory::safety::sanitize_text` (store-time scrub), `memory::source_scope::as_bus_scope` (explicit recall scope), `memory::preferences::recall_by_vector_over`.
+- `crate::config`: `Config::load_or_init` for `workspace_dir` and `subsystems.memory` when the RPC handlers bind a store.
+- `crate::core::all`: `ControllerFuture`, `RegisteredController` for RPC registration.
+- `crate::core`: `ControllerSchema`, `FieldSchema`, `TypeSchema` (schema types); `crate::rpc::RpcOutcome`.
+- `crate::memory::tool_memory::test_helpers::MockMemory` and `crate::memory::guard::test_support::RecordingProvider`: tests only.
 
 ## Used by
 
-- `crates/openhuman-core/src/core/all.rs` — registers controllers/schemas and the namespace description.
-- `crates/openhuman-core/src/agent/mod.rs` — declares `pub mod experience`.
-- `crates/openhuman-core/src/agent/session_host/turn/core/experience_context.rs` — defines `Agent::inject_agent_experience_context`, which queries the session store plus the shared store with `retrieve_across_stores` (max 3 hits, 2048-byte block, gated on `learning_enabled`) and prepends the block to the enriched user message. Called from `turn/core_turn.rs`.
-- `crates/openhuman-core/src/agent/tinyagents/host/experience_store.rs` — host adapter implementing `tinyagents_harness::host::ExperienceStore` over `AgentExperienceStore`.
-- `crates/openhuman-core/src/config/migration_helpers/core.rs` — uses `DriverMemory::for_config` to bind the import target.
+- `crates/openhuman-core/src/core/all.rs`: registers controllers/schemas and the namespace description.
+- `crates/openhuman-core/src/agent/mod.rs`: declares `pub mod experience`.
+- `crates/openhuman-core/src/agent/session_host/turn/core/experience_context.rs`: defines `Agent::inject_agent_experience_context`, which queries the session store plus the shared store with `retrieve_across_stores` (max 3 hits, 2048-byte block, gated on `learning_enabled`) and prepends the block to the enriched user message. Called from `turn/core_turn.rs`.
+- `crates/openhuman-core/src/agent/tinyagents/host/experience_store.rs`: host adapter implementing `tinyagents_harness::host::ExperienceStore` over `AgentExperienceStore`.
+- `crates/openhuman-core/src/config/migration_helpers/core.rs`: uses `DriverMemory::for_config` to bind the import target.
 
 ## Notes / gotchas
 

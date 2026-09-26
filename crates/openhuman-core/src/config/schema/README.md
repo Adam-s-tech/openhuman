@@ -34,7 +34,7 @@ is mounted as a submodule of `load/dirs.rs` via `#[path]`.
 | `[hosting]` | `hosting.rs` | `HostingConfig` |
 | `[learning]` | `learning.rs` | `LearningConfig`, `ReflectionSource` |
 | `[local_ai]` | `local_ai.rs` | `LocalAiConfig`, `LocalAiUsage` |
-| `[modules]` | `modules.rs` | `ModulesConfig`, `ModuleOverride` — controls only whether compiled-in modules load; the loadable *set* is fixed by `crate::modules::registry` |
+| `[modules]` | `modules.rs` | `ModulesConfig`, `ModuleOverride`: controls only whether compiled-in modules load. The loadable *set* is fixed by `crate::modules::registry` |
 | `[node]` | `node.rs` | `NodeConfig` (managed Node.js toolchain for skills) |
 | `[observability]` | `observability.rs` | `ObservabilityConfig`, `AgentTracingConfig` |
 | `[privacy]` | `privacy.rs` | `PrivacyConfig`, `PrivacyMode` |
@@ -49,7 +49,7 @@ is mounted as a submodule of `load/dirs.rs` via `#[path]`.
 | `[subsystems]` | `subsystems.rs` | `SubsystemsConfig`, `MemorySubsystemConfig` |
 | `[task_sources]` | `task_sources.rs` | `TaskSourcesConfig` |
 | `[tokenjuice]` | `tokenjuice.rs` | `TokenjuiceConfig` |
-| tool-related sections (see below) | `tools/` | — |
+| tool-related sections (see below) | `tools/` | (multiple structs) |
 | `[update]` | `update.rs` | `UpdateConfig`, `UpdateRestartStrategy` |
 | `[voice_server]` | `voice_server.rs` | `VoiceServerConfig`, `SttEngine`, `VoiceActivationMode` |
 | `[[voice_providers]]`, `stt_provider` / `tts_provider` | `voice_providers.rs` | `VoiceProviderCreds`, `BuiltinVoiceProvider`, `BUILTIN_VOICE_PROVIDERS` |
