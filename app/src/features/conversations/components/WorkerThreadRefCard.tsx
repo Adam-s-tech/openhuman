@@ -1,3 +1,4 @@
+import { Badge, type BadgeVariant } from '../../../components/ui';
 import { useT } from '../../../lib/i18n/I18nContext';
 import { useAppDispatch } from '../../../store/hooks';
 import { loadThreadMessages, setSelectedThread } from '../../../store/threadSlice';
