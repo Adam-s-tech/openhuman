@@ -293,6 +293,7 @@ const ThreadListSkeleton: FC = () => {
 };
 
 const ThreadListItem: FC = () => {
+  const { t } = useT();
   const isRunning = useAuiState(s => s.threadListItem.isRunning);
   const [isRenaming, setIsRenaming] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
