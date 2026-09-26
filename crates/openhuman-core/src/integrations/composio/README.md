@@ -4,8 +4,8 @@ Backend-proxied (and optionally direct/BYO-key) access to Composio's 1000+ OAuth
 
 A third path underlies most of the above: profile fetch, action execution,
 and sync now go through the loaded `tinyconnectors` module (via
-`module_client.rs`) rather than an in-process engine, `tinymemory` v1.13.4
-deleted the old in-process Composio pipeline outright (72 files, ~18.3k
+`module_client.rs`) rather than an in-process engine (`tinymemory` v1.13.4
+deleted the old in-process Composio pipeline outright: 72 files, ~18.3k
 lines) because reaching a connected account needs a credential this crate
 must not hold. `tinyconnectors-bus` is the wire contract for that module
 call; see [Module boundary](#module-boundary) below.

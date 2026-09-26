@@ -36,9 +36,9 @@ Namespace `team`. Registered controllers (RPC method `openhuman.team_<function>`
 
 | Method | Backend call | Required inputs | Optional |
 | --- | --- | --- | --- |
-| `team_get_usage` | `GET /teams/me/usage` | none |: |
+| `team_get_usage` | `GET /teams/me/usage` | none | none |
 | `team_list_members` | `GET /teams/:teamId/members` | `teamId` | none |
-| `team_list_teams` | `GET /teams` | none |: |
+| `team_list_teams` | `GET /teams` | none | none |
 | `team_get_team` | `GET /teams/:teamId` | `teamId` | none |
 | `team_create_team` | `POST /teams` | `name` | none |
 | `team_update_team` | `PUT /teams/:teamId` | `teamId` | `name` |
