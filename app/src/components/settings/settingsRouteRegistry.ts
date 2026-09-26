@@ -329,11 +329,13 @@ export const SETTINGS_ROUTE_REGISTRY: SettingsRegistryEntry[] = [
     navOrder: 5,
   },
   {
+    // Titled "Keychain": the page is secret storage and keychain status, and
+    // "Security" is now the name of the category it sits in.
     id: 'security',
-    titleKey: 'pages.settings.account.security',
+    titleKey: 'settings.keychain.title',
     descriptionKey: 'pages.settings.account.securityDesc',
     section: 'account',
-    searchKeywords: ['keychain', 'secret', 'password', 'encryption', 'credentials'],
+    searchKeywords: ['keychain', 'secret', 'password', 'encryption', 'credentials', 'security'],
     navGroup: 'security',
     navOrder: 0,
   },

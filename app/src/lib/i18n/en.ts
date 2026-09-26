@@ -7342,6 +7342,7 @@ const en: TranslationMap = {
   'keyring.settings.revokeConsent': 'Decline local storage',
   'pages.settings.account.security': 'Security',
   'pages.settings.account.securityDesc': 'Secret storage mode and keychain status',
+  'settings.keychain.title': 'Keychain',
 
   // Chat: agent-generated artifacts (#2779)
   // Chat composer toolbar
