@@ -49,7 +49,7 @@ Note the `reset` controller uses namespace `test` (method `openhuman.test_reset`
 
 ## Persistence
 
-This module owns no state of its own: it mutates/reads state owned by other domains:
+This module owns no state of its own. It mutates and reads state owned by other domains:
 - Wipes: cron jobs (`cron::clear_all_jobs`), memory tree rows/content dirs/sync state (`memory::read_rpc::wipe_all_rpc`), config fields (`onboarding_completed`, `chat_onboarding_completed`, `api_key`), and `active_user.toml` (`config::clear_active_user` under `default_root_openhuman_dir`).
 - Reads: workspace files under `Config::workspace_dir`, the in-process `IN_FLIGHT` chat map, and the in-memory wallet prepared-quote store.
 
