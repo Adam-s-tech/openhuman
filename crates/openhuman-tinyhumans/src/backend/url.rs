@@ -534,7 +534,7 @@ fn non_empty_str(s: &Option<String>) -> Option<&str> {
 /// Process-global mutex serialising every test in this crate that mutates the
 /// backend env vars (`BACKEND_URL` / `VITE_BACKEND_URL` / app-env overrides).
 /// `std::env` is process-global, so a module-local lock cannot prevent
-/// cross-module races: `api::config` and `core::cli_tests`
+/// cross-module races: this module's own tests and `core::cli_tests`
 /// tests all mutate the same vars from parallel test threads, and under the
 /// full-suite coverage lane that race reliably broke the
 /// "unconfigured" assertions. Every env-mutating test must take THIS lock.
