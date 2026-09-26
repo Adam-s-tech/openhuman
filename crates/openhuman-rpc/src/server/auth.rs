@@ -7,14 +7,12 @@
 //! - `GET /`              — public info page
 //! - `GET /health`        — liveness probe
 //! - `GET /schema`        — read-only schema discovery
-//! - `GET /dev/connect`   — dev-only core handoff; see `core::dev_connect`
+//! - `GET /dev/connect`   — dev-only core handoff; see `server::dev_connect`
 //! - `GET /events`        — SSE stream; browser `EventSource` cannot set
-//!                          headers, so the handler enforces a bind-token /
-//!                          bearer credential itself
+//!   headers, so the handler enforces a bind-token / bearer credential itself
 //! - `GET /ws/dictation`  — WebSocket upgrade; browser WS API cannot set
-//!                          headers, so the handler enforces the bearer
-//!                          (header or `?token=`) + origin itself before the
-//!                          upgrade (C4 / issue #1924)
+//!   headers, so the handler enforces the bearer (header or `?token=`) +
+//!   origin itself before the upgrade (C4 / issue #1924)
 //! - `OPTIONS *`          — CORS preflight (handled by outer CORS middleware)
 //!
 //! Endpoints that accept the bearer either via header **or** `?token=…` query
@@ -58,7 +56,7 @@ const PUBLIC_PATHS: &[&str] = &[
     // bearer; the one-time `state` (minted in `oauth_begin`) is the guard.
     "/oauth/mcp/callback",
     // Dev-only handoff to a loopback Vite renderer. Guards live in the handler
-    // (`core::dev_connect`): debug build or explicit opt-in, loopback `app`
+    // (`server::dev_connect`): debug build or explicit opt-in, loopback `app`
     // origin and `Host`, no cross-site navigation.
     "/dev/connect",
     "/schema",
