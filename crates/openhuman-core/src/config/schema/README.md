@@ -1,6 +1,6 @@
 # schema
 
-Defines the `Config` struct — the single source of truth for `config.toml` —
+Defines the `Config` struct, the single source of truth for `config.toml`,
 and everything needed to load, save, and migrate it. AGENTS.md points
 contributors here: "Rust configuration is defined under
 `crates/openhuman-core/src/config/schema/` and loaded through its config

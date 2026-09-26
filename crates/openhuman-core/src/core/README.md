@@ -101,7 +101,7 @@ thing a generic bus crate (`tinybus`) cannot own, since it is generic over
 the event type. `events.rs` is the vocabulary half: `DomainEvent`, a
 `#[non_exhaustive]` enum whose `domain()` method is the routing key appended
 to `EVENTS_ROOT` (`/ai/tinyhumans/openhuman/events`). `EVENTS_VERSION` is
-currently `1.2.0`; bump the minor for an added variant or field, the major
+currently `1.4.0`; bump the minor for an added variant or field, the major
 (and rename `EVENTS_INTERFACE`) for a breaking change.
 
 Two surfaces, pick by what the call needs to carry:
