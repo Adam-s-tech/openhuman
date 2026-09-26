@@ -116,22 +116,6 @@ pub(super) fn handle_set_browser_allow_all(params: Map<String, Value>) -> Contro
     })
 }
 
-pub(super) fn handle_get_activity_level_settings(_params: Map<String, Value>) -> ControllerFuture {
-    Box::pin(async move { to_json(config_rpc::get_activity_level_settings().await?) })
-}
-
-pub(super) fn handle_update_activity_level_settings(
-    params: Map<String, Value>,
-) -> ControllerFuture {
-    Box::pin(async move {
-        let update = deserialize_params::<ActivityLevelSettingsUpdate>(params)?;
-        let patch = config_rpc::ActivityLevelSettingsPatch {
-            level: update.level,
-        };
-        to_json(config_rpc::load_and_apply_activity_level_settings(patch).await?)
-    })
-}
-
 pub(super) fn handle_get_memory_sync_settings(_params: Map<String, Value>) -> ControllerFuture {
     Box::pin(async move { to_json(config_rpc::get_memory_sync_settings().await?) })
 }
