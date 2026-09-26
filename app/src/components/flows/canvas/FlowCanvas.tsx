@@ -21,13 +21,7 @@
  * non-editable render path again. Delete both it and its tests together if
  * no such consumer materializes.
  */
-import {
-  Background,
-  BackgroundVariant,
-  MiniMap,
-  ReactFlow,
-  type Viewport,
-} from '@xyflow/react';
+import { Background, BackgroundVariant, MiniMap, ReactFlow, type Viewport } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { forwardRef, memo, useMemo } from 'react';
 
@@ -39,11 +33,11 @@ import {
   type WorkflowGraphMeta,
 } from '../../../lib/flows/graphAdapter';
 import type { WorkflowGraph } from '../../../lib/flows/types';
+import CanvasToolbar from './CanvasToolbar';
 import EditableFlowCanvas, {
   type EditableFlowCanvasHandle,
   type EditorSaveMeta,
 } from './EditableFlowCanvas';
-import CanvasToolbar from './CanvasToolbar';
 import { FLOW_FIT_VIEW_OPTIONS } from './fitView';
 import './flowCanvasStyles.css';
 import FlowNodeComponent from './FlowNodeComponent';

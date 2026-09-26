@@ -4888,6 +4888,12 @@ const en: TranslationMap = {
   // The palette tab is labelled "Manual" (build by hand) as the counterpart to
   // the AI "Copilot" tab; the key name stays `legendTab` for the node palette.
   'flows.canvas.legendTab': 'Manual',
+  'flows.canvas.toolbar': 'Canvas controls',
+  'flows.canvas.zoomIn': 'Zoom in',
+  'flows.canvas.zoomOut': 'Zoom out',
+  'flows.canvas.fitView': 'Fit to screen',
+  'flows.canvas.openPanel': 'Open side panel',
+  'flows.canvas.closePanel': 'Close side panel',
   'flows.nodeKind.trigger': 'Trigger',
   'flows.nodeKind.agent': 'Agent',
   'flows.nodeKind.tool_call': 'Tool call',
@@ -4952,6 +4958,7 @@ const en: TranslationMap = {
   // ── Editable Workflow Canvas (issue B5b.2 / Phase 3a): the node palette
   // and editor toolbar layered on top of the read-only canvas above.
   'flows.palette.title': 'Nodes',
+  'flows.palette.panelHint': 'Click a step to add it to the canvas, or drag it where you want it.',
   'flows.palette.addNode': 'Add {kind} node',
   'flows.palette.search': 'Search nodes…',
   'flows.palette.noResults': 'No matching nodes',

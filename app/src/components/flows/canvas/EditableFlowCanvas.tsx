@@ -74,7 +74,6 @@ import { useFlowValidation } from './useFlowValidation';
 
 const log = createDebug('app:flows:canvas:edit');
 
-
 const NODE_TYPES = { [FLOW_NODE_TYPE]: FlowNodeComponent };
 const DELETE_KEYS = ['Backspace', 'Delete'];
 

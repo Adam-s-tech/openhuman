@@ -19,6 +19,7 @@
  */
 import type { Viewport } from '@xyflow/react';
 import createDebug from 'debug';
+import { Blocks, PanelRightClose, Sparkles } from 'lucide-react';
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
@@ -27,6 +28,7 @@ import type {
   EditorSaveMeta,
 } from '../components/flows/canvas/EditableFlowCanvas';
 import FlowCanvas from '../components/flows/canvas/FlowCanvas';
+import NodePalette from '../components/flows/canvas/NodePalette';
 import { FlowPreauthorizationOverlay } from '../components/flows/FlowPreauthorizationCard';
 import FlowRunsSidebar from '../components/flows/FlowRunsSidebar';
 import WorkflowCopilotPanel, {
@@ -47,6 +49,7 @@ import {
   CenteredLoadingState,
   ConfirmDialog,
   ErrorBanner,
+  Spinner,
   ToggleGroupItem,
   ToggleGroupRoot,
 } from '../components/ui';
@@ -1339,32 +1342,32 @@ function FlowEditor({
                     onAdd={entry => canvasRef.current?.addPaletteEntry(entry)}
                   />
                 )}
-          {copilotOpen && (
-            <WorkflowCopilotPanel
-              framed
-              // Stable ('copilot') across manual open/close and build-seed
-              // navigations (unaffected — those always land on a fresh
-              // `FlowEditor` mount already, see `locationKey`'s doc comment).
-              // Repair seeds fold in `locationKey` so a same-route "Fix with
-              // agent" click (no `FlowEditor` remount) still forces a fresh
-              // panel mount, resetting the once-per-mount `repairSentRef` guard
-              // so the repair turn actually (re)fires (issue B22).
-              key={initialCopilotSeed ? `copilot-repair-${locationKey}` : 'copilot'}
-              graph={preview?.base ?? draftGraph}
-              flowId={flowId}
-              onProposal={handleProposal}
-              onAccept={handleAcceptProposal}
-              onReject={handleRejectProposal}
-              repairSeed={copilotRepairSeed}
-              buildSeed={initialBuildSeed}
-              onBuildSeedConsumed={onBuildSeedConsumed}
-              prefillSeed={initialPrefillSeed}
-              onPrefillSeedConsumed={onPrefillSeedConsumed}
-              seedThreadId={copilotThreadId}
-              onThreadIdChange={handleCopilotThreadId}
-              fullWidth={hideGraph}
-            />
-          )}
+                {copilotOpen && (
+                  <WorkflowCopilotPanel
+                    framed
+                    // Stable ('copilot') across manual open/close and build-seed
+                    // navigations (unaffected — those always land on a fresh
+                    // `FlowEditor` mount already, see `locationKey`'s doc comment).
+                    // Repair seeds fold in `locationKey` so a same-route "Fix with
+                    // agent" click (no `FlowEditor` remount) still forces a fresh
+                    // panel mount, resetting the once-per-mount `repairSentRef` guard
+                    // so the repair turn actually (re)fires (issue B22).
+                    key={initialCopilotSeed ? `copilot-repair-${locationKey}` : 'copilot'}
+                    graph={preview?.base ?? draftGraph}
+                    flowId={flowId}
+                    onProposal={handleProposal}
+                    onAccept={handleAcceptProposal}
+                    onReject={handleRejectProposal}
+                    repairSeed={copilotRepairSeed}
+                    buildSeed={initialBuildSeed}
+                    onBuildSeedConsumed={onBuildSeedConsumed}
+                    prefillSeed={initialPrefillSeed}
+                    onPrefillSeedConsumed={onPrefillSeedConsumed}
+                    seedThreadId={copilotThreadId}
+                    onThreadIdChange={handleCopilotThreadId}
+                    fullWidth={hideGraph}
+                  />
+                )}
               </div>
             </section>
           )}

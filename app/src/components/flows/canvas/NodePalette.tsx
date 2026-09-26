@@ -52,7 +52,12 @@ function NodePalette({ onAdd, variant = 'overlay' }: NodePaletteProps) {
           {t('flows.palette.panelHint')}
         </p>
       )}
-      <div className={panel ? 'flex flex-col gap-4 overflow-y-auto p-4' : 'flex flex-col gap-2 overflow-y-auto p-2'}>
+      <div
+        className={
+          panel
+            ? 'flex flex-col gap-4 overflow-y-auto p-4'
+            : 'flex flex-col gap-2 overflow-y-auto p-2'
+        }>
         {NODE_GROUP_ORDER.map(group => (
           <div key={group} className={panel ? 'grid grid-cols-2 gap-1.5' : 'flex flex-col gap-1'}>
             <div
