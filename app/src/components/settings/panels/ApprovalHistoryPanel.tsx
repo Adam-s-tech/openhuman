@@ -42,7 +42,8 @@ const DECISION_DOT_CLASS: Record<ApprovalDecision, string> = {
 };
 
 /** Last 8 characters of a long id — enough to tell sessions apart. */
-const shortId = (id: string): string => (id.length > 10 ? `…${id.slice(-8)}` : id);
+const shortId = (id: string | null | undefined): string =>
+  !id ? '—' : id.length > 10 ? `…${id.slice(-8)}` : id;
 
 const DECISION_LABEL_KEY: Record<ApprovalDecision, string> = {
   approve_once: 'settings.approvalHistory.decision.approveOnce',
@@ -115,8 +116,8 @@ const ApprovalHistoryPanel = () => {
       if (selectedDecisions.size > 0 && !selectedDecisions.has(entry.decision)) return false;
       if (!needle) return true;
       return (
-        entry.tool_name.toLowerCase().includes(needle) ||
-        entry.action_summary.toLowerCase().includes(needle)
+        (entry.tool_name ?? '').toLowerCase().includes(needle) ||
+        (entry.action_summary ?? '').toLowerCase().includes(needle)
       );
     });
   }, [entries, query, selectedDecisions]);
@@ -151,7 +152,9 @@ const ApprovalHistoryPanel = () => {
       header: t('settings.approvalHistory.column.session'),
       className: 'w-px whitespace-nowrap',
       cell: entry => (
-        <span className="font-mono text-[11px] text-content-muted" title={entry.session_id}>
+        <span
+          className="font-mono text-[11px] text-content-muted"
+          title={entry.session_id ?? undefined}>
           {shortId(entry.session_id)}
         </span>
       ),
