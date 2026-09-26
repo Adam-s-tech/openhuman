@@ -332,7 +332,9 @@ const ThreadListItem: FC = () => {
             <ThreadListItemPrimitive.Title fallback="New Chat" />
           </span>
           {isRunning && (
-            <span className="sr-only">{t('conversations.backgroundTasks.statusRunning', 'Running')}</span>
+            <span className="sr-only">
+              {t('conversations.backgroundTasks.statusRunning', 'Running')}
+            </span>
           )}
         </ThreadListItemPrimitive.Trigger>
       )}
