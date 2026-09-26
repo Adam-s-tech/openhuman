@@ -41,6 +41,20 @@ const IGNORED_TEXT = new Set([
   'status', // example field name
   'type', // example field name
   'return items;', // example code snippet
+  // EmbeddingsSetupModal.tsx placeholders — example custom-endpoint config
+  // values (a URL and a model-name example), not prose.
+  'https://your-endpoint.com/v1', // example custom embeddings endpoint URL
+  'text-embedding-3-small', // example embeddings model name
+  // ThemeStudioPanel.tsx placeholders — non-linguistic examples (an image URL
+  // and a JSON shape) shown as field placeholders, not prose.
+  'https://…/background.jpg', // example background image URL
+  '{ "name": "...", "isDark": false, "colors": { ... } }', // example theme JSON shape
+  // VoicePanelRoutingSection.tsx placeholder — an opaque ElevenLabs voice-ID
+  // example, not English text.
+  'JBFqnCBsd6RMkjVDRZzb', // example ElevenLabs voice ID
+  // NumberField.tsx range separator — a decorative en-dash entity between
+  // {min} and {max}, not translatable content.
+  '&#x2013;', // en-dash range separator
 ]);
 const IGNORED_SHORT_TOKENS = new Set([
   'v',
