@@ -14,9 +14,7 @@ const ModelCostTable = ({ models, currency }: ModelCostTableProps) => {
   const { t } = useT();
   if (models.length === 0) {
     return (
-      <div data-testid="model-cost-table-empty" className="p-4">
-        <EmptyState label={t('settings.costDashboard.noModels')} />
-      </div>
+      <EmptyState data-testid="model-cost-table-empty" label={t('settings.costDashboard.noModels')} />
     );
   }
 

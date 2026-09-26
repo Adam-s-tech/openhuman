@@ -1,7 +1,8 @@
-import { Check, ChevronRight, Info } from 'lucide-react';
+import { Check, ChevronRight, Info, MessageSquare } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
+import { renderChannelIcon } from '../components/channels/channelIcon';
 import ChannelSetupModal from '../components/channels/ChannelSetupModal';
 import McpServersPage from '../components/channels/mcp/McpServersPage';
 import ComposioConnectModal from '../components/composio/ComposioConnectModal';
@@ -321,7 +322,9 @@ function ChannelTile({
         aria-label={`${def.display_name}, ${statusLabel}. ${ctaLabel}.`}
         className="h-auto w-full justify-start gap-3 rounded-b-none rounded-t-xl px-3 py-3 text-left">
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-muted text-content-secondary [&>span]:h-9 [&>span]:w-9 [&>span]:rounded-lg [&_svg]:h-5 [&_svg]:w-5">
-          {icon}
+          {/* Branded badge when there is one, else the definition's own icon,
+              else a generic chat glyph — never an empty tile. */}
+          {icon ?? renderChannelIcon(def.icon) ?? <MessageSquare aria-hidden />}
         </span>
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm font-semibold text-content">

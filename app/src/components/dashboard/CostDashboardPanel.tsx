@@ -136,7 +136,7 @@ const CostDashboardPanel = ({ embedded = false }: CostDashboardPanelProps) => {
           {!hasAnyUsage && (
             <Card data-testid="cost-dashboard-empty">
               <div className="space-y-1 px-4 py-6 text-center">
-                <EmptyState label={t('settings.costDashboard.noData')} />
+                <EmptyState className="p-0 text-sm" label={t('settings.costDashboard.noData')} />
                 <p className="text-xs text-content-faint">
                   {t('settings.costDashboard.noDataHint')}
                 </p>
