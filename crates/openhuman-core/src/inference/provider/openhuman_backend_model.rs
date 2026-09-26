@@ -51,7 +51,7 @@ pub const PROVIDER_LABEL: &str = "OpenHuman";
 /// Deliberately narrow to the managed-key bearer path: `normalize_api_base_url`
 /// itself must stay permissive, because a library host's BYOK/local `api_url`
 /// can legitimately be plain HTTP.
-fn is_safe_endpoint_for_managed_bearer(endpoint: &str) -> bool {
+pub(crate) fn is_safe_endpoint_for_managed_bearer(endpoint: &str) -> bool {
     let Ok(url) = url::Url::parse(endpoint) else {
         return false;
     };

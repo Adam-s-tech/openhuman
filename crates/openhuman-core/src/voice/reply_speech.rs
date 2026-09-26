@@ -21,7 +21,6 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 use crate::api::config::effective_backend_api_url;
-use crate::api::jwt::get_session_token;
 use crate::api::BackendOAuthClient;
 use crate::config::Config;
 use crate::rpc::RpcOutcome;
