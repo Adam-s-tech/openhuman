@@ -33,13 +33,15 @@ describe('CanvasToolbar', () => {
   it('calls zoomIn, zoomOut, and fitView with the shared fit options', () => {
     render(<CanvasToolbar />);
 
-    fireEvent.click(screen.getByLabelText('flows.canvas.zoomOut'));
+    // No `I18nProvider` mounted, so `useT()` falls back to the bundled
+    // English strings (same fallback `EditableFlowCanvas.test.tsx` relies on).
+    fireEvent.click(screen.getByLabelText('Zoom out'));
     expect(zoomOut).toHaveBeenCalledTimes(1);
 
-    fireEvent.click(screen.getByLabelText('flows.canvas.zoomIn'));
+    fireEvent.click(screen.getByLabelText('Zoom in'));
     expect(zoomIn).toHaveBeenCalledTimes(1);
 
-    fireEvent.click(screen.getByLabelText('flows.canvas.fitView'));
+    fireEvent.click(screen.getByLabelText('Fit to screen'));
     expect(fitView).toHaveBeenCalledWith(FLOW_FIT_VIEW_OPTIONS);
   });
 
