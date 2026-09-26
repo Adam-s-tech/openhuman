@@ -73,7 +73,7 @@ looks fine in the default skin and falls apart in every other one.
 2. **Hues that have no equivalent do not get one.** `violet`, `teal`, `sky`,
    `cyan`, `indigo`, `pink` and `purple` are not "nearly primary" or "nearly
    sage". Do not invent a fifth ramp, do not duplicate an existing one under a
-   new name, and do not reach for `--accent-lavender` and friends — those are
+   new name, and do not reach for `--accent-lavender` and friends: those are
    fixed hexes, not ramps.
 
 3. **When a table needs more than four distinct hues, send the surplus rows to
