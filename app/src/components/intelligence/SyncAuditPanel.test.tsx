@@ -226,9 +226,12 @@ describe('<SyncAuditPanel />', () => {
     mockAuditLog.mockResolvedValue([entry()]);
     render(<SyncAuditPanel />);
 
-    const table = await screen.findByRole('table');
-    require('fs').writeFileSync('/tmp/table_debug.html', table.outerHTML);
-    require('fs').writeFileSync('/tmp/table_debug2.txt', String(within(table).queryByText('When')) + ' ownerDoc=' + String(table.ownerDocument === document) + ' inDoc=' + String(document.body.contains(table)));
+    // Wait for the loaded table (real row data), not the loading skeleton
+    // table that briefly renders first with the same column headers — the
+    // skeleton node gets swapped out for the real one once the audit log
+    // resolves, so grabbing "table" before that would hold a detached node.
+    await screen.findByText('GitHub · tinyhumansai/openhuman');
+    const table = screen.getByRole('table');
     expect(within(table).getByText('When')).toBeInTheDocument();
     expect(within(table).getByText('Source')).toBeInTheDocument();
     expect(within(table).getByText('Cost')).toBeInTheDocument();
