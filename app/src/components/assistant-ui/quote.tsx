@@ -243,17 +243,4 @@ ComposerQuotePreview.Icon = ComposerQuotePreviewIcon;
 ComposerQuotePreview.Text = ComposerQuotePreviewText;
 ComposerQuotePreview.Dismiss = ComposerQuotePreviewDismiss;
 
-export {
-  QuoteBlock,
-  QuoteBlockRoot,
-  QuoteBlockIcon,
-  QuoteBlockText,
-  SelectionToolbar,
-  SelectionToolbarRoot,
-  SelectionToolbarQuote,
-  ComposerQuotePreview,
-  ComposerQuotePreviewRoot,
-  ComposerQuotePreviewIcon,
-  ComposerQuotePreviewText,
-  ComposerQuotePreviewDismiss,
-};
+export { QuoteBlock, SelectionToolbar, ComposerQuotePreview };
