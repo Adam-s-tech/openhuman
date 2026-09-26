@@ -676,18 +676,4 @@ ModelSelector.Separator = ModelSelectorSeparator;
 ModelSelector.Item = ModelSelectorItem;
 ModelSelector.Effort = ModelSelectorEffort;
 
-export {
-  ModelSelector,
-  ModelSelectorRoot,
-  ModelSelectorTrigger,
-  ModelSelectorValue,
-  ModelSelectorContent,
-  ModelSelectorSearch,
-  ModelSelectorFocusAnchor,
-  ModelSelectorList,
-  ModelSelectorEmpty,
-  ModelSelectorGroup,
-  ModelSelectorSeparator,
-  ModelSelectorItem,
-  ModelSelectorEffort,
-};
+export { ModelSelector };
