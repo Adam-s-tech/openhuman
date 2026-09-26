@@ -45,7 +45,7 @@ import {
   type FlowSuggestion,
   listSuggestions,
 } from '../../services/api/flowsApi';
-import { Button } from '../ui';
+import { Badge, Button } from '../ui';
 
 const log = createDebug('app:flows:suggested');
 
@@ -96,9 +96,9 @@ function SuggestionCard({
       <div className="flex items-start justify-between gap-2">
         <p className="font-semibold text-content">{suggestion.title}</p>
         {triggerKey && (
-          <span className="shrink-0 rounded-full bg-primary-50 px-2 py-0.5 text-xs text-primary-700 dark:bg-primary-500/10 dark:text-primary-200">
+          <Badge variant="primary" dot={false} className="shrink-0">
             {t(triggerKey)}
-          </span>
+          </Badge>
         )}
       </div>
       <p className="mt-1 text-content-secondary">{suggestion.one_liner}</p>
