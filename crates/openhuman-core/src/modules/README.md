@@ -1,9 +1,9 @@
 # modules
 
-The native loadable-module host. A module is a first-party `cdylib` — `tinydocs`,
+The native loadable-module host. A module is a first-party `cdylib`: `tinydocs`,
 `tinywallet`, `tinymemory`, `tinyjuice`, `tinyvoice`, `tinyruntime` (+
 `tinyruntime-nodejs` / `tinyruntime-python`), `tinymcp`, `tinyconnectors`,
-`tinybox`, `tinychannels`, `tinyhosts`, `tinysearch` — that
+`tinybox`, `tinychannels`, `tinyhosts`, `tinysearch`: that
 speaks the tinybus module ABI. It is downloaded from a pinned GitHub release,
 verified against a digest compiled into [`registry.rs`](registry.rs), admitted
 through tinybus's ABI/manifest gates, and attached to a private in-process
@@ -31,7 +31,7 @@ directory on `modules`.
 | `host.rs` | The module broker: a dedicated process-lifetime tokio runtime, its `ModuleHost`, and the host's own `Connection` for calling into loaded modules |
 | `resolution.rs` | One resolution slot per module id, replacing a single global lock so unrelated modules never queue behind each other |
 | `ops.rs` | `ensure_loaded` / `ensure_loaded_within` / `state_of` / `LoadError`; the release cache under `install_dir`; failure caching |
-| `boot.rs` | What loads at startup: search-path artifacts, then every `LoadPolicy::Eager` record — deliberately not every registry entry |
+| `boot.rs` | What loads at startup: search-path artifacts, then every `LoadPolicy::Eager` record: deliberately not every registry entry |
 | `schemas.rs` | The `modules` RPC namespace (`list`, `status`, `load`) |
 | `documents.rs` | Host half of `tinydocs` (feature `documents`): the three document operations |
 | `browser.rs`, `browser_task.rs` | Typed TinyBrowser bus calls, shared website policy, and bounded Jev task routing; the browser engine remains in the loadable module |
@@ -67,7 +67,7 @@ layer.
 5. The release cache (`tinybus::module::CachedRelease`) downloads if
    `modules.allow_download`, fetches the release's own `checksum.toml`, checks
    it against the digest pinned in `registry.rs`, hashes the archive, extracts,
-   and `dlopen`s — on the module runtime's blocking pool so a cold download
+   and `dlopen`s: on the module runtime's blocking pool so a cold download
    never stalls another task.
    On Windows desktop installs, the installer contains the registry-pinned
    `windows-2022-x86_64` archives and their extracted DLLs under
@@ -78,7 +78,7 @@ layer.
 6. tinybus's ABI descriptor, manifest, and dependency gates decide whether the
    artifact is *admitted*; a faulted or refused module is recorded as
    `Resolution::Failed` in the resolution table (surfaced as
-   `LoadError::Failed`) and never retried in this process — restart is the
+   `LoadError::Failed`) and never retried in this process: restart is the
    only recovery, because tinybus never unloads a library.
 
 `boot::load_declared_modules` does two things at startup: it loads search-path
@@ -86,7 +86,7 @@ artifacts directly through the host, then calls `ensure_loaded` for every
 `LoadPolicy::Eager` record (currently only `tinymemory`, and only when
 `memory::binding::admit` selects the module-backed driver; its host callbacks
 are installed first). It never fails the boot. Everything else is
-`LoadPolicy::Lazy` and resolves on first `ensure_loaded` call — deliberately
+`LoadPolicy::Lazy` and resolves on first `ensure_loaded` call: deliberately
 not eager, so a user who never touches a feature never pays its download.
 
 ## TinySearch development pin
@@ -133,13 +133,13 @@ contract, runtime/config/security policy stays in this host.
 ## Security and operational invariants
 
 A loaded module shares this process's address space, privileges, and crash
-domain — it is first-party code that happens to ship separately, not a
+domain: it is first-party code that happens to ship separately, not a
 sandbox boundary. From `AGENTS.md`, do not weaken these:
 
 - Only the compiled registry (`registry.rs`) may select which artifacts can
   load. There is no RPC method to name an arbitrary path.
 - Pin release checksums verbatim from the release's own `checksum.toml`. Never
-  compute a replacement digest from a local build — that would make the check
+  compute a replacement digest from a local build: that would make the check
   agree with whatever was served instead of with what the release published.
 - Keep the ABI, manifest, dependency, and digest admission checks intact.
 - Never unload or repeatedly retry a faulted module in the same process; a
@@ -154,14 +154,14 @@ sandbox boundary. From `AGENTS.md`, do not weaken these:
 
 ## Used by
 
-- `crate::runtime::client` — the ungated facade re-exporting `resolve`,
+- `crate::runtime::client`: the ungated facade re-exporting `resolve`,
   `execute`, `pool_stats`, and `RuntimeCallError` from `modules::runtime`, so
   a build without `modules` still compiles.
-- `memory::binding` — binds `ModuleMemoryProvider` when the memory driver
+- `memory::binding`: binds `ModuleMemoryProvider` when the memory driver
   selects the module-backed class.
-- `core::all::all_registered_controllers` — wires the `modules` RPC namespace
+- `core::all::all_registered_controllers`: wires the `modules` RPC namespace
   (`crate::modules::all_registered_controllers()`).
-- `config::schema::modules::ModulesConfig` — `enabled`, `allow_download`,
+- `config::schema::modules::ModulesConfig`: `enabled`, `allow_download`,
   `install_dir`, and `overrides` control only whether (and from where) the
   compiled-in modules in this directory load, never what is loadable.
 - The per-module host halves are called from their domains:

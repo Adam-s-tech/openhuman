@@ -13,13 +13,13 @@ Top-level home for web search selection and agent-facing search tool registratio
 
 `search.engine` accepts:
 
-- `disabled` — register no search tools.
-- `managed` — register backend-proxied `web_search_tool`.
-- `parallel` — register the Parallel family plus `web_search_tool` when configured.
-- `brave` — register Brave web/news/image/video search when configured.
-- `querit` — register Querit search plus `web_search_tool` when configured.
-- `exa` — BYOK: register `exa_search`, `exa_find_similar`, `exa_get_contents` plus `web_search_tool` when configured. Calls go directly to `https://api.exa.ai` with the user's own key, never through the managed backend.
-- `tavily` — BYOK: register `tavily_search` (web/news/finance, search depth, time-range/date filters, domain include/exclude) and `tavily_extract` plus `web_search_tool` when configured. Calls go directly to `https://api.tavily.com` with the user's own key, never through the managed backend.
+- `disabled`: register no search tools.
+- `managed`: register backend-proxied `web_search_tool`.
+- `parallel`: register the Parallel family plus `web_search_tool` when configured.
+- `brave`: register Brave web/news/image/video search when configured.
+- `querit`: register Querit search plus `web_search_tool` when configured.
+- `exa`: BYOK: register `exa_search`, `exa_find_similar`, `exa_get_contents` plus `web_search_tool` when configured. Calls go directly to `https://api.exa.ai` with the user's own key, never through the managed backend.
+- `tavily`: BYOK: register `tavily_search` (web/news/finance, search depth, time-range/date filters, domain include/exclude) and `tavily_extract` plus `web_search_tool` when configured. Calls go directly to `https://api.tavily.com` with the user's own key, never through the managed backend.
 
 A BYO engine with no key configured falls back to the managed surface, so `managed` stays the effective default until a key is saved.
 
@@ -48,7 +48,7 @@ When search is disabled, search tools are absent from the agent runtime tool lis
 `engines` is `pub(crate)`. Each file (`managed`, `parallel`, `brave`,
 `querit`, `exa`, `tavily`, `disabled`) exports a single
 `pub(crate) fn build(root_config: &Config, params: SearchToolParams) -> Vec<Box<dyn Tool>>`
-that constructs that engine's tool set — e.g. `managed::build` returns a single
+that constructs that engine's tool set: e.g. `managed::build` returns a single
 `WebSearchTool`, which posts to the backend's
 `/agent-integrations/parallel/search`. `parallel::build` registers the same
 `WebSearchTool` alongside the Parallel family, and falls back to it alone when
