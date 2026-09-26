@@ -68,7 +68,7 @@ visibility with `ToolGroups`"). Per pack it holds a `groups::GroupMode`:
 | `Withheld` (default) | no, reached via `use_skill` | yes |
 | `Off` | no | no |
 
-`ToolGroups::default()` / `packed()` puts every pack in `Withheld` — exactly
+`ToolGroups::default()` / `packed()` puts every pack in `Withheld`, exactly
 the compiled-in behavior before this type existed, so a host that never calls
 `CoreBuilder::tool_groups` is unaffected. `advertised()`, `none()`, and
 `with(id, mode)` are the other constructors; an unknown id in `with` is
