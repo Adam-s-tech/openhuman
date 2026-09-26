@@ -229,19 +229,23 @@ function ComposioConnectorTile({
                 : 'border-line bg-surface hover:bg-surface-hover'
       }`}>
       {isPreview && (
-        <span
+        <Badge
+          variant="warning"
+          dot={false}
           data-testid={`composio-preview-badge-${meta.slug}`}
-          className="absolute right-1.5 top-1.5 max-w-18 truncate rounded-full border border-amber-200 bg-amber-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase leading-none text-amber-800 dark:border-amber-500/40 dark:bg-amber-500/15 dark:text-amber-200"
+          className="absolute right-1.5 top-1.5 max-w-18 truncate"
           title={t('composio.previewTooltip')}>
           {t('composio.previewBadge')}
-        </span>
+        </Badge>
       )}
       {!isPreview && activeConnectionCount > 1 && (
-        <span
-          className="absolute right-1.5 top-1.5 rounded-full border border-sage-200 bg-sage-100 px-1.5 py-0.5 text-[9px] font-semibold leading-none text-sage-800 dark:border-sage-500/40 dark:bg-sage-500/15 dark:text-sage-200"
+        <Badge
+          variant="success"
+          dot={false}
+          className="absolute right-1.5 top-1.5"
           title={t('composio.connect.connectedAccounts')}>
           {activeConnectionCount}
-        </span>
+        </Badge>
       )}
       <div className="relative flex h-12 w-12 shrink-0 items-center justify-center text-content-secondary [&_img]:max-h-10 [&_img]:max-w-10 [&_svg]:h-8 [&_svg]:w-8">
         {meta.icon}
