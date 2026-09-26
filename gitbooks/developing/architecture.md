@@ -133,12 +133,7 @@ Desktop Mode:                          Web Mode:
 +-------------+                        +-------------+
 ```
 
-**Rust Socket Manager** implements Engine.IO v4 + Socket.IO v4 framing over raw WebSocket:
-
-- **Handshake**: WebSocket connect, Engine.IO OPEN (extracts `sid`, `pingInterval`, `pingTimeout`), Socket.IO CONNECT with JWT auth, CONNECT ACK
-- **Keep-alive**: Responds to Engine.IO PING with PONG; timeout threshold = `pingInterval + pingTimeout + 5s` (default: 50 seconds)
-- **Reconnection**: Exponential backoff from 1 second to 30 seconds max. Resets to 1s after a successful connection is lost; keeps growing if connection was never established
-- **CORS bypass**: The Rust `reqwest` HTTP client makes external API calls directly, no browser CORS restrictions apply
+The Rust socket manager implements Engine.IO v4 and Socket.IO v4 framing over a raw WebSocket. On handshake it connects, waits for the Engine.IO OPEN frame (which carries `sid`, `pingInterval`, `pingTimeout`), then sends the Socket.IO CONNECT with JWT auth and waits for the ACK. For keep-alive it answers each Engine.IO PING with a PONG; the connection is considered dead after `pingInterval + pingTimeout + 5s` (50 seconds with the defaults). Reconnection backs off exponentially from 1 second up to a 30-second cap, resetting to 1s once a connection that had been established is lost, but continuing to grow if a connection was never established in the first place. Because it is plain Rust `reqwest` rather than a browser fetch, it also sidesteps CORS: outbound API calls go out directly, with no browser restrictions to work around.
 
 The socket connection is **shared across all skills**. When events arrive, the socket manager routes them to the appropriate skill via async message channels. This eliminates per-skill connection overhead entirely.
 
