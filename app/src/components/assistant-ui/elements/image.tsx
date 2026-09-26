@@ -205,6 +205,7 @@ function ImageFilename({ className, children, ...props }: React.ComponentProps<'
 type ImageZoomProps = PropsWithChildren<{ src: string; alt?: string }>;
 
 function ImageZoom({ src, alt = 'Image preview', children }: ImageZoomProps) {
+  const { t } = useT();
   const [isMounted, setIsMounted] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
 
