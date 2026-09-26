@@ -97,6 +97,8 @@ export const ThreadListSearch = forwardRef<
     onValueChange: (value: string) => void;
   }
 >(({ className, value, onValueChange, ...props }, ref) => {
+  const { t } = useT();
+  const searchThreadsLabel = t('assistantUi.threadList.searchThreads', 'Search threads');
   return (
     <div data-slot="aui_thread-list-search" className="relative px-0.5 py-1">
       <SearchIcon
@@ -108,8 +110,8 @@ export const ThreadListSearch = forwardRef<
         type="search"
         value={value}
         onChange={event => onValueChange(event.target.value)}
-        aria-label="Search threads"
-        placeholder="Search threads"
+        aria-label={searchThreadsLabel}
+        placeholder={searchThreadsLabel}
         className={cn('h-8 ps-8 text-sm', className)}
         {...props}
       />
@@ -163,6 +165,7 @@ const dateGroupLabel = (date: Date | undefined, startOfToday: number): string =>
 type ThreadListGroup = { label: string; indices: number[] };
 
 const ThreadListItemGroups: FC<{ searchQuery?: string }> = ({ searchQuery = '' }) => {
+  const { t } = useT();
   const threadIds = useAuiState(s => s.threads.threadIds);
   const threadItems = useAuiState(s => s.threads.threadItems);
 

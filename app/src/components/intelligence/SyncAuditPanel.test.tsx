@@ -228,6 +228,7 @@ describe('<SyncAuditPanel />', () => {
 
     const table = await screen.findByRole('table');
     require('fs').writeFileSync('/tmp/table_debug.html', table.outerHTML);
+    require('fs').writeFileSync('/tmp/table_debug2.txt', String(within(table).queryByText('When')) + ' ownerDoc=' + String(table.ownerDocument === document) + ' inDoc=' + String(document.body.contains(table)));
     expect(within(table).getByText('When')).toBeInTheDocument();
     expect(within(table).getByText('Source')).toBeInTheDocument();
     expect(within(table).getByText('Cost')).toBeInTheDocument();
