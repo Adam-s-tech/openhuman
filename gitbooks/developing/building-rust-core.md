@@ -53,8 +53,12 @@ That is enough for the Rust workspace. Core sources, the package manifest, and
 the authoritative domain implementation live under `crates/openhuman-core/`.
 The stable host-facing library facade is the sibling
 `crates/openhuman-embed/` package, while the terminal frontend is
-`crates/openhuman-tui/`. Shared JSON-RPC contracts and the HTTP client used by
-the Tauri shell and the TUI live in `crates/openhuman-rpc/`.
+`crates/openhuman-tui/`. The `openhuman-core` binary itself, the developer and
+benchmark bins, and the root `tests/*.rs` / `examples/*.rs` targets live in
+`crates/openhuman-cli/`, which depends on `crates/openhuman-tinyhumans/` for
+the SDK-backed backend transport the core does not carry on its own. Shared
+JSON-RPC contracts and the HTTP client used by the Tauri shell and the TUI
+live in `crates/openhuman-rpc/`.
 
 The recursive submodules under repo-root `vendor/` are required for the core
 build too, not just the desktop shell: `crates/openhuman-core/Cargo.toml`

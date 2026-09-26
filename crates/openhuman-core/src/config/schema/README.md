@@ -193,10 +193,10 @@ Per-section `*_tests.rs` files, plus `load_tests.rs` (split into
 
 ## Related docs
 
-- [../README.md](../README.md) — the `config` module overview.
-- [../ops/README.md](../ops/README.md) — the mutation/RPC surface built on
+- [../README.md](../README.md): the `config` module overview.
+- [../ops/README.md](../ops/README.md): the mutation/RPC surface built on
   top of this schema.
-- [../migrations/README.md](../migrations/README.md) — automatic
+- [../migrations/README.md](../migrations/README.md): automatic
   schema-version upgrades run during load.
-- [../../security/README.md](../../security/README.md) — enforces the
+- [../../security/README.md](../../security/README.md): enforces the
   `action_dir` / `workspace_dir` boundary this module only describes.
