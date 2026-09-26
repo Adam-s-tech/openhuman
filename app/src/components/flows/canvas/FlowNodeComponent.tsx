@@ -267,7 +267,9 @@ function FlowNodeComponent({ id, data, selected }: NodeProps<FlowNode>) {
               />
               {/* Absolute for the same reason as the input labels above. */}
               {labelOutputs && (
-                <span className={`absolute top-full mt-1 ${portPillClass(port)}`}>{port}</span>
+                <Badge variant={portPillVariant(port)} dot={false} className="absolute top-full mt-1">
+                  {port}
+                </Badge>
               )}
             </div>
           ))}
