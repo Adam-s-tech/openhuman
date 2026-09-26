@@ -22,14 +22,14 @@ The user-facing feature is described in [Memory Tree](../../features/obsidian-wi
 memory (orchestrator, crates/openhuman-core/src/memory/)
    │  binding.provider() → tinymemory-api contract
    ▼
-memory/tree/              (this directory — host surface only)
+memory/tree/              (this directory: host surface only)
    ├── tree/              memory_tree write/status RPCs + canonical ingest payloads
    ├── retrieval/         memory_tree read RPCs (query_source, drill_down, …)
    ├── tree_runtime/      tree_summarizer RPCs, `tree-summarizer` CLI, bus subscriber
    └── health/            pipeline failure taxonomy + doctor report
    │
    ▼
-vendor/tinymemory         (engine: tinymemory-core / tinycortex — persistence, seal, score)
+vendor/tinymemory         (engine: tinymemory-core / tinycortex, persistence, seal, score)
 ```
 
 ## Layout
@@ -52,9 +52,9 @@ vendor/tinymemory         (engine: tinymemory-core / tinycortex — persistence,
 
 `mod.rs` re-exports three registries that `crates/openhuman-core/src/core/all.rs` wires into the global registry:
 
-- `all_memory_tree_registered_controllers` (sourced from `memory/schema/`): the core `memory_tree` namespace — `ingest`, `list_chunks`, `get_chunk`, `pipeline_status`, `set_enabled`, `doctor`, `retry_failed`, `memory_backfill_status`, `smart_walk`, plus the `memory/read_rpc/` methods.
-- `all_retrieval_registered_controllers` (`retrieval/schemas.rs`): also under `memory_tree` — `query_source`, `cover_window`, `search_entities`, `drill_down`, `fetch_leaves`.
-- `all_tree_summarizer_registered_controllers` (`tree_runtime/schemas.rs`): the `tree_summarizer` namespace — `ingest`, `run`, `query`, `status`, `rebuild`.
+- `all_memory_tree_registered_controllers` (sourced from `memory/schema/`): the core `memory_tree` namespace, `ingest`, `list_chunks`, `get_chunk`, `pipeline_status`, `set_enabled`, `doctor`, `retry_failed`, `memory_backfill_status`, `smart_walk`, plus the `memory/read_rpc/` methods.
+- `all_retrieval_registered_controllers` (`retrieval/schemas.rs`): also under `memory_tree`, `query_source`, `cover_window`, `search_entities`, `drill_down`, `fetch_leaves`.
+- `all_tree_summarizer_registered_controllers` (`tree_runtime/schemas.rs`): the `tree_summarizer` namespace, `ingest`, `run`, `query`, `status`, `rebuild`.
 
 RPC namespace strings are wire contracts; they did not change when the directory moved from `memory_tree/` to `memory/tree/`.
 

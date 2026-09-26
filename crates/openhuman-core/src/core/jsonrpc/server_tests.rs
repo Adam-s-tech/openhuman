@@ -5,6 +5,13 @@ use tokio_util::sync::CancellationToken;
 
 use crate::core::jsonrpc::testing::EnvVarGuard;
 
+#[test]
+fn e2e_environment_enables_advertised_tool_groups() {
+    let _guard = EnvVarGuard::set_many(vec![("OPENHUMAN_E2E", "1".into())]);
+    let builder = crate::core::runtime::CoreBuilder::new(crate::core::types::HostKind::Cli);
+    let _ = super::apply_e2e_tool_groups(builder);
+}
+
 async fn wait_until_port_accepts(port: u16) {
     let deadline = tokio::time::Instant::now() + Duration::from_secs(2);
     loop {
