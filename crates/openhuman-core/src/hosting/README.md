@@ -72,7 +72,7 @@ Two gates, and both matter:
   `tools::ops` then registers nothing. A tool that is present and cannot work is
   worse than one that is absent, because a model retries it.
 
-A *misconfigured* section, an unknown provider slug, a blank configured key, is
+A *misconfigured* section (an unknown provider slug, a blank configured key) is
 an error rather than a silent skip, logged at `warn` by the registry.
 
 ## Two things this domain will not do
