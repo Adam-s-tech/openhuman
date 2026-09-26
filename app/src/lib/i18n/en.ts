@@ -6364,6 +6364,8 @@ const en: TranslationMap = {
   'settings.sandbox.noEnvVars': 'No environment variables configured.',
 
   'settings.approvalHistory.title': 'Approval history',
+  'settings.approvalHistory.tableTitle': 'Decisions',
+  'settings.approvalHistory.tableDesc': 'Every approve or deny, with the tool and what it was asked to do.',
   'settings.approvalHistory.subtitle': 'Recent tool-approval decisions, newest first.',
   'settings.approvalHistory.refresh': 'Refresh',
   'settings.approvalHistory.loading': 'Loading approval history…',

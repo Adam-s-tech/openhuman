@@ -1,4 +1,5 @@
 import debug from 'debug';
+import { RefreshCw } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useT } from '../../../lib/i18n/I18nContext';
@@ -161,10 +162,16 @@ const ApprovalHistoryPanel = () => {
   const hasEntries = filteredEntries.length > 0;
 
   return (
+    // Non-scrolling page body: the table card fills it and only its rows scroll.
     <SettingsPanel
       testId="approval-history-panel"
-      description={t('settings.approvalHistory.subtitle')}>
+      description={t('settings.approvalHistory.subtitle')}
+      scrollable={false}
+      bodyClassName="flex h-full min-h-0 flex-col gap-4">
       <DataTable<ApprovalAuditEntry>
+        title={t('settings.approvalHistory.tableTitle')}
+        description={t('settings.approvalHistory.tableDesc')}
+        pagination={{ pageSize: 25, testId: 'approval-history-pagination' }}
         columns={columns}
         rows={filteredEntries}
         rowKey={entry => entry.request_id}
@@ -183,11 +190,12 @@ const ApprovalHistoryPanel = () => {
             ))}
           </TableRow>
         )}
-        toolbarEnd={
+        actions={
           <Button
             type="button"
-            variant="primary"
-            size="xs"
+            variant="secondary"
+            size="sm"
+            leadingIcon={<RefreshCw className="h-3.5 w-3.5" aria-hidden />}
             onClick={handleRefresh}
             disabled={isLoading}
             data-testid="approval-history-refresh">
@@ -234,7 +242,7 @@ const ApprovalHistoryPanel = () => {
         }
         empty={
           error ? undefined : (
-            <div className="px-4 py-8 text-center" data-testid="approval-history-empty">
+            <div data-testid="approval-history-empty">
               <EmptyState label={t('settings.approvalHistory.emptyState')} />
             </div>
           )
