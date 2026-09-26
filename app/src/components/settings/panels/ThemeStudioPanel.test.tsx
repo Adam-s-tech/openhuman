@@ -12,6 +12,11 @@ const themeState = {
   customThemes: [],
 };
 
+/** Customizer sections are collapsed accordion items; expand one by name. */
+function openSection(name: string) {
+  fireEvent.click(screen.getByRole('button', { name }));
+}
+
 describe('<ThemeStudioPanel />', () => {
   it('renders the family gallery', () => {
     renderWithProviders(<ThemeStudioPanel />, {
@@ -30,6 +35,7 @@ describe('<ThemeStudioPanel />', () => {
       preloadedState: { theme: themeState },
       initialEntries: ['/settings/theme'],
     });
+    openSection('Surfaces');
 
     expect(store.getState().theme.customThemes).toHaveLength(0);
     // Editing a colour on a preset transparently forks a custom theme.
@@ -48,6 +54,7 @@ describe('<ThemeStudioPanel />', () => {
       preloadedState: { theme: themeState },
       initialEntries: ['/settings/theme'],
     });
+    openSection('Surfaces');
     // No disabled colour inputs — editing is always available.
     expect(document.querySelector('input[type="color"]:not([disabled])')).not.toBeNull();
     expect(document.querySelector('input[type="color"][disabled]')).toBeNull();
@@ -58,6 +65,7 @@ describe('<ThemeStudioPanel />', () => {
       preloadedState: { theme: themeState },
       initialEntries: ['/settings/theme'],
     });
+    openSection('Import theme');
 
     const imported = {
       name: 'Imported studio theme',
@@ -102,6 +110,7 @@ describe('<ThemeStudioPanel />', () => {
       preloadedState: { theme: themeState },
       initialEntries: ['/settings/theme'],
     });
+    openSection('Import theme');
 
     fireEvent.change(screen.getByLabelText('Import theme'), {
       target: { value: JSON.stringify({ name: 'Malformed', isDark: false, colors }) },
@@ -117,6 +126,7 @@ describe('<ThemeStudioPanel />', () => {
       preloadedState: { theme: themeState },
       initialEntries: ['/settings/theme'],
     });
+    openSection('Import theme');
 
     fireEvent.change(screen.getByLabelText('Import theme'), {
       target: {
@@ -142,6 +152,7 @@ describe('<ThemeStudioPanel />', () => {
       preloadedState: { theme: themeState },
       initialEntries: ['/settings/theme'],
     });
+    openSection('Import theme');
 
     fireEvent.change(screen.getByLabelText('Import theme'), {
       target: {
@@ -157,5 +168,20 @@ describe('<ThemeStudioPanel />', () => {
       isDark: true,
       colors: {},
     });
+  });
+
+  it('renders only the gallery or only the customizer when a part is given', () => {
+    const { unmount } = renderWithProviders(<ThemeStudioPanel embedded part="gallery" />, {
+      preloadedState: { theme: themeState },
+    });
+    expect(screen.getByTestId('theme-gallery')).toBeInTheDocument();
+    expect(screen.queryByTestId('theme-customize')).not.toBeInTheDocument();
+    unmount();
+
+    renderWithProviders(<ThemeStudioPanel embedded part="customize" />, {
+      preloadedState: { theme: themeState },
+    });
+    expect(screen.getByTestId('theme-customize')).toBeInTheDocument();
+    expect(screen.queryByTestId('theme-gallery')).not.toBeInTheDocument();
   });
 });

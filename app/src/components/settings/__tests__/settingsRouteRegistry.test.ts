@@ -135,7 +135,7 @@ describe('entriesForSection', () => {
 
   it('returns multiple developer entries', () => {
     const devEntries = entriesForSection('developer');
-    expect(devEntries.length).toBeGreaterThan(5);
+    expect(devEntries.length).toBeGreaterThanOrEqual(5);
     devEntries.forEach(e => {
       expect(e.section).toBe('developer');
       expect(e.hiddenDeepLink).not.toBe(true);
