@@ -55,7 +55,7 @@ layer.
 ## Loading pipeline
 
 1. `registry::find(id)` looks up the compiled-in `ModuleRecord`.
-2. `resolution::table().claim(id)` gives the caller `Run`, `Wait`, or `Done` —
+2. `resolution::table().claim(id)` gives the caller `Run`, `Wait`, or `Done`:
    the first caller for a module resolves it as a process-lifetime task;
    everyone else waits on a watch channel (`ops.rs`).
 3. Resolution order is cheapest first: already serving on the host's broker,

@@ -72,7 +72,7 @@ copy nested under `vendor/tinyagents/`.
 git submodule update --init --recursive vendor/
 ```
 
-Desktop/Tauri work has extra requirements on top of this — follow [Getting
+Desktop/Tauri work has extra requirements on top of this: follow [Getting
 Set Up](getting-set-up.md) for those.
 
 ## 3. Build commands
@@ -119,7 +119,7 @@ on Linux, lld on macOS) can cut a large slice off every incremental relink.
 opt-in, but the easiest path is:
 
 ```bash
-# installs mold/lld detection into $CARGO_HOME/config.toml — never the
+# installs mold/lld detection into $CARGO_HOME/config.toml, never the
 # repo's tracked .cargo/config.toml, so it's a per-machine opt-in
 scripts/dev-setup-linker.sh
 
