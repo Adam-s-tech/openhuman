@@ -12,7 +12,7 @@ import {
   MusicIcon,
   VideoIcon,
 } from 'lucide-react';
-import { type FC, memo } from 'react';
+import { memo } from 'react';
 
 const fileVariants = cva(
   'aui-file-root inline-flex items-center gap-3 rounded-lg transition-colors',
