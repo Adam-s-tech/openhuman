@@ -494,7 +494,7 @@ Settings is a full `/settings/*` URL surface, presented on desktop as a **modal 
 - **`components/settings/settingsRouteElements.tsx`** — maps registry entries to panel `<Route>` elements.
 - **`components/settings/modal/`** — `SettingsModal` (mounted by `AppShellDesktop` whenever the path is a settings path; `settingsOverlay.ts` computes `{ settingsOpen, baseLocation }` so the page behind stays rendered), `SettingsModalFrame` (backdrop / Esc / focus / close), `SettingsModalLayout` (routed two-column layout).
 - **`components/settings/layout/`** — two-pane chrome: `SettingsLayout`, `SettingsSidebar` (grouped by `SettingsNavGroup`: general, assistant, data, connections, knowledge & memory, agents & autonomy, models & inference, automation & integrations, diagnostics & logs), `SettingsSubNav`, `SettingsIndexRedirect`.
-- **`components/settings/panels/`** — \~50 leaf panels (`AccountPanel`, `AppearancePanel`, `AIPanel`, `AgentsPanel`, `AgentAccessPanel`, `AutonomyPanel`, `BillingPanel`, `CronJobsPanel`, `IntegrationsPanel`, `McpServerPanel`, `NotificationsTabbedPanel`, `PrivacyPanel`, `DeveloperOptionsPanel`, …). Adding a panel = add the component + a registry entry; nav, breadcrumbs, and search pick it up automatically.
+- **`components/settings/panels/`** — \~50 leaf panels (`AccountPanel`, `AppearancePanel`, `AIPanel`, `AgentsPanel`, `AgentAccessPanel`, `AutonomyPanel`, `BillingPanel`, `CronJobsPanel`, `IntegrationsPanel`, `McpServerPanel`, `PrivacyPanel`, `DeveloperOptionsPanel`, …). Adding a panel = add the component + a registry entry; nav, breadcrumbs, and search pick it up automatically.
 - **`components/settings/search/`** — settings search bar + registry-derived index.
 
 ### HashRouter vs BrowserRouter
