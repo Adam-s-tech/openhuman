@@ -26,7 +26,7 @@ import {
 import { useScrollLock } from '@assistant-ui/react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { ChevronDownIcon, LoaderIcon } from 'lucide-react';
-import { type FC, useCallback, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 
 const ANIMATION_DURATION = 200;
 
