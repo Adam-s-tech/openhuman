@@ -1,8 +1,5 @@
 import * as React from 'react';
 import { cn } from '@/components/assistant-ui/lib/utils';
-import { Button } from '@/components/assistant-ui/ui/button';
-import { Input } from '@/components/assistant-ui/ui/input';
-import { Textarea } from '@/components/assistant-ui/ui/textarea';
 import { cva, type VariantProps } from 'class-variance-authority';
 
 function InputGroup({ className, ...props }: React.ComponentProps<'div'>) {
