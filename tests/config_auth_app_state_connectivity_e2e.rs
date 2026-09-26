@@ -42,7 +42,7 @@ use openhuman_core::config::{
 };
 use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
 use openhuman_core::core::events::DomainEvent;
-use openhuman_core::core::jsonrpc::build_core_http_router;
+use openhuman_rpc::server::build_core_http_router;
 use openhuman_core::desktop::app_state::app_state_schemas;
 use openhuman_core::platform::connectivity::{
     all_connectivity_controller_schemas, all_connectivity_registered_controllers,

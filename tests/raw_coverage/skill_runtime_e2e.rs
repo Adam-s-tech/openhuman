@@ -50,7 +50,7 @@ use serde_json::{json, Value};
 use tempfile::{tempdir, TempDir};
 
 use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
-use openhuman_core::core::jsonrpc::build_core_http_router;
+use openhuman_rpc::server::build_core_http_router;
 
 /// The bearer this suite *proposes*. It is only used if this suite happens to
 /// be the first in the aggregated binary to initialise the token subsystem —

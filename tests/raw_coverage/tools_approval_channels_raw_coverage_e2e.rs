@@ -22,7 +22,7 @@ use tempfile::{tempdir, TempDir};
 use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
 use openhuman_core::core::events::DomainEvent;
 use tinybus::EventHandler;
-use openhuman_core::core::jsonrpc::build_core_http_router;
+use openhuman_rpc::server::build_core_http_router;
 use openhuman_core::web_chat::WebChannelEvent;
 use openhuman_core::agent::harness::definition::{
     AgentDefinition, AgentDefinitionRegistry, AgentTier, DefinitionSource, ModelSpec, PromptSource,

@@ -1436,7 +1436,7 @@ pub fn schema_for_rpc_method(method: &str) -> Option<ControllerSchema> {
 ///
 /// | entry point | validates in |
 /// | --- | --- |
-/// | HTTP JSON-RPC | `core::jsonrpc` |
+/// | HTTP JSON-RPC | `openhuman_rpc::server` (through `core::invoke`) |
 /// | dynamic dispatch fallback | `core::dispatch::try_registry_dispatch` |
 /// | CLI | `core::cli` |
 /// | MCP read and write tools | `crate::mcp::server::tools::params` |

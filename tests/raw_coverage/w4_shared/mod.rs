@@ -311,7 +311,7 @@ impl Harness {
         }
 
         let (rpc_addr, rpc_join) =
-            serve_on_ephemeral(openhuman_core::core::jsonrpc::build_core_http_router(false)).await;
+            serve_on_ephemeral(openhuman_rpc::server::build_core_http_router(false)).await;
         tokio::time::sleep(Duration::from_millis(100)).await;
 
         Self {
