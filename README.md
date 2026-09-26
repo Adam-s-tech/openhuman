@@ -82,7 +82,7 @@ Every engine OpenHuman calls out to is chosen by config, not hardcoded:
 
 - **LLM**: the managed TinyHumans route, Ollama, LM Studio, MLX, any local OpenAI-compatible server, Claude Code or the Claude Agent SDK, and 26 bring-your-own-key providers including OpenRouter, OpenAI, Anthropic, Google, Groq, Mistral, DeepSeek, Together, and Fireworks. See [local models and BYOK](https://tinyhumans.gitbook.io/openhuman/features/model-routing/local-and-byok-models).
 - **Embeddings**: the managed Voyage-backed route, or your own Voyage, OpenAI, Cohere, Ollama, or OpenAI-compatible endpoint.
-- **Memory**: [Memory Trees](https://tinyhumans.gitbook.io/openhuman/features/memory-tree) mirrored as an [Obsidian vault](https://tinyhumans.gitbook.io/openhuman/features/obsidian-wiki) on your machine by default, or swap in Supermemory, Mem0, Cognee, CortexDB, AgentMemory, or LivingBrain over the shared `tinymemory` contract by setting `[subsystems.memory] driver`.
+- **Memory**: [Memory Trees](https://tinyhumans.gitbook.io/openhuman/features/memory-tree) on TinyCortex, mirrored as an [Obsidian vault](https://tinyhumans.gitbook.io/openhuman/features/obsidian-wiki) on your machine, is what every install runs today. The shared `tinymemory` contract already ships adapters for six remote engines (Supermemory, Mem0, Cognee, CortexDB, AgentMemory, LivingBrain) and a `[subsystems.memory] driver` config key for picking one; the host binding that would actually switch a live install to one of them is not wired up yet.
 - **Web search**: managed search included with a subscription, or your own key for Parallel, Brave, Querit, Exa, Tavily, or a self-hosted SearXNG instance.
 
 Engine details: [engines](./gitbooks/developing/engines.md).
