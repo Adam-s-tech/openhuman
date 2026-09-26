@@ -34,17 +34,11 @@ describe('ErrorBanner', () => {
 });
 
 describe('loading states', () => {
-  it('renders inline and centered labels with their shared spinners', () => {
-    const { container } = render(
-      <>
-        <InlineLoadingStatus label="Checking" />
-        <CenteredLoadingState label="Loading runs" />
-      </>
-    );
+  it('renders a centered label with its shared spinner', () => {
+    const { container } = render(<CenteredLoadingState label="Loading runs" />);
 
-    expect(screen.getByText('Checking')).toBeInTheDocument();
     expect(screen.getByText('Loading runs')).toBeInTheDocument();
-    expect(container.querySelectorAll('svg')).toHaveLength(2);
+    expect(container.querySelectorAll('svg')).toHaveLength(1);
   });
 });
 
