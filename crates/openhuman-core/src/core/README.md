@@ -1,8 +1,8 @@
 # core
 
 Transport, dispatch, the controller registry, the event bus, auth, the CLI,
-and runtime composition. `core/` is not a domain — it holds no business
-logic; every controller it exposes is implemented by a domain module under
+and runtime composition. `core/` is not a domain: it holds no business
+logic. Every controller it exposes is implemented by a domain module under
 `crates/openhuman-core/src/<domain>/` and wired in here.
 
 ## Responsibilities

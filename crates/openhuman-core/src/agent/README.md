@@ -26,6 +26,7 @@ Multi-agent orchestration domain. Owns the LLM tool-calling loop, sub-agent disp
 | `debug/` | Renders the exact system prompt a live session would see for a given agent, via `Agent::from_config_for_agent` |
 | `experience/` | Local procedural operating experience capture for self-learning ([README](experience/README.md)) |
 | `file_state/` | Process-wide read/write stamps so parallel sub-agents and worker threads detect stale file contents before writing |
+| `goals/` | Host adapters around `tinyagents_graph::goals`: workspace-store resolution, domain events, heartbeat dispatch, and the `goal_*` tools ([README](goals/README.md)) |
 | `harness/` | Legacy/product prompt and definition helpers used by the session host; generic loop mechanics are imported from TinyAgents ([README](harness/README.md)) |
 | `harness_init/` | One-time first-run provisioning (Python/spaCy/Kompress/Node) before the harness can run ([README](harness_init/README.md)) |
 | `learning/` | Reflection, tool-outcome tracking, user-profile inference from transcripts ([README](learning/README.md)) |
