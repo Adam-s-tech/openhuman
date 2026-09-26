@@ -105,7 +105,7 @@ impl MemoryHostConfig for Config {
     }
 
     fn session_token(&self) -> Result<Option<String>, String> {
-        crate::api::jwt::get_session_token(self)
+        crate::security::credentials::jwt::get_session_token(self)
     }
 
     fn default_model(&self) -> Option<&str> {

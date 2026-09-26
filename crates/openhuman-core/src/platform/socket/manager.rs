@@ -20,7 +20,7 @@ use serde_json::json;
 use tokio::sync::{mpsc, oneshot, watch};
 use tokio::time::Duration;
 
-use crate::api::models::socket::{ConnectionStatus, SocketState};
+use crate::platform::socket::models::{ConnectionStatus, SocketState};
 use crate::skills::webhooks::WebhookRouter;
 
 use super::token_provider::{static_token_provider, TokenProvider};

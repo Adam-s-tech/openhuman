@@ -301,7 +301,7 @@ impl ComposioCallbacks {
     /// differently.
     async fn session_bearer(&self) -> tinybus::Result<Option<String>> {
         let config = self.live_config_or_installed().await;
-        Ok(crate::api::jwt::get_session_token(config.as_ref())
+        Ok(crate::security::credentials::jwt::get_session_token(config.as_ref())
             .ok()
             .flatten())
     }

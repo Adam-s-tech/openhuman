@@ -14,7 +14,7 @@ async fn composio_get_user_profile_via_mock_returns_provider_profile() {
     // api::config / core::cli_tests tests
     // that mutate the same process-global var under the crate-wide lock —
     // TEST_ENV_LOCK alone does not serialize against those. Hold both.
-    let _backend_env_guard = crate::api::config::backend_env_test_lock();
+    let _backend_env_guard = crate::config::app_env::env_test_lock();
 
     let app = Router::new()
         .route(

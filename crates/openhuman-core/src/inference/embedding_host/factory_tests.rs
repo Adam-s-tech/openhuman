@@ -351,7 +351,7 @@ async fn factory_managed_provider_authenticates_with_config_scoped_token() {
     // held under the crate-wide backend-env lock (shared with `api::config`'s
     // own BACKEND_URL tests) so the process-global env can't race.
     let provider = {
-        let _env_guard = crate::api::config::backend_env_test_lock();
+        let _env_guard = crate::config::app_env::env_test_lock();
         let prev = std::env::var("BACKEND_URL").ok();
         std::env::set_var("BACKEND_URL", &base);
         let built = create_embedding_provider_with_config(
@@ -446,7 +446,7 @@ async fn default_provider_with_config_authenticates_with_config_scoped_token() {
         .unwrap();
 
     let provider = {
-        let _env_guard = crate::api::config::backend_env_test_lock();
+        let _env_guard = crate::config::app_env::env_test_lock();
         let prev = std::env::var("BACKEND_URL").ok();
         std::env::set_var("BACKEND_URL", &base);
         let built = default_embedding_provider_with_config(&config);

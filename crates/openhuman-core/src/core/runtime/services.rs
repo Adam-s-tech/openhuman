@@ -439,12 +439,12 @@ pub fn spawn_socket_auto_connect(
             };
             // No TinyHumans connection (no backend transport installed): there
             // is no backend to hold a socket to, so skip quietly.
-            if !crate::api::transport::is_installed() {
+            if !crate::backend::transport::is_installed() {
                 log::debug!("[socket] No backend transport installed — skipping auto-connect");
                 return;
             }
             let api_url = crate::api::config::effective_backend_api_url(&config.api_url);
-            let initial_token = match crate::api::jwt::get_session_token(&config) {
+            let initial_token = match crate::security::credentials::jwt::get_session_token(&config) {
                 Ok(Some(t))
                     if crate::security::credentials::session_support::is_local_session_token(
                         &t,

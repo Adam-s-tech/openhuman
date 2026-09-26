@@ -48,7 +48,7 @@ const PUSH_TIMEOUT: Duration = Duration::from_secs(10);
 /// custom `api_url` override).
 fn ingestion_url(config: &Config) -> String {
     let base = effective_backend_api_url(&config.api_url);
-    crate::api::config::api_url(&base, INGESTION_PATH)
+    crate::util::url::join_url(&base, INGESTION_PATH)
 }
 
 /// The OpenHuman core crate version (e.g. `0.58.0`), stamped onto every flow

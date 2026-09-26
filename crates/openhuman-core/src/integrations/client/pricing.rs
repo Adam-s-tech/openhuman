@@ -79,7 +79,7 @@ pub async fn pricing_for_config(
 ///   `BACKEND_URL` / `VITE_BACKEND_URL` env vars (and finally the hosted
 ///   default) so backend paths don't get concatenated onto a local
 ///   Ollama/vLLM endpoint and 404.
-/// - auth token → [`crate::api::jwt::get_session_token`], i.e. the
+/// - auth token → [`crate::security::credentials::jwt::get_session_token`], i.e. the
 ///   app-session JWT written by `auth_store_session` — the same token
 ///   that billing, team, webhooks, referral, memory, etc. all use. The local
 ///   offline token is excluded before constructing an HTTP client.
@@ -99,7 +99,7 @@ pub fn build_client(config: &crate::config::Config) -> Option<Arc<IntegrationCli
     let backend_url = crate::api::config::effective_backend_api_url(&config.api_url);
 
     // Primary: app-session JWT from the auth profile store.
-    let session_token = match crate::api::jwt::get_session_token(config) {
+    let session_token = match crate::security::credentials::jwt::get_session_token(config) {
         Ok(token) => token,
         Err(e) => {
             tracing::warn!("[integrations] failed to read session token: {e}");

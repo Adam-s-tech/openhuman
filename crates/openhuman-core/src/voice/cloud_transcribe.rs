@@ -1,8 +1,8 @@
 //! OpenHuman authentication adapter for hosted speech-to-text.
 
 use crate::api::config::effective_backend_api_url;
-use crate::api::jwt::get_session_token;
-use crate::api::BackendOAuthClient;
+use crate::security::credentials::jwt::get_session_token;
+use crate::backend::BackendClient;
 use crate::config::Config;
 use crate::rpc::RpcOutcome;
 
@@ -25,14 +25,14 @@ pub async fn transcribe_cloud(
                 .to_string(),
         );
     }
-    let client = BackendOAuthClient::new(&effective_backend_api_url(&config.api_url))
+    let client = BackendClient::new(&effective_backend_api_url(&config.api_url))
         .map_err(|error| error.to_string())?;
     let url = client
         .url_for("/openai/v1/audio/transcriptions")
         .map_err(|error| error.to_string())?;
     let http = client
         .raw_client()
-        .map_err(crate::api::flatten_authed_error)?;
+        .map_err(crate::backend::flatten_authed_error)?;
     let result = tinyinference_voice::cloud::transcribe(&http, url, &token, audio_base64, options)
         .await
         .map_err(classify_transcribe_error)?;

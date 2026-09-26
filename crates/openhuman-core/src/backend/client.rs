@@ -7,7 +7,7 @@ use reqwest::{Client, Method, Url};
 use serde_json::{json, Value};
 use std::sync::Arc;
 
-use crate::api::transport::{
+use crate::backend::transport::{
     resolve_backend_transport, BackendRequest, BackendTransport, BackendTransportError,
     TransportProfile,
 };
@@ -333,17 +333,17 @@ pub fn user_id_from_profile_payload(payload: &Value) -> Option<String> {
 /// A client for interacting with the TinyHumans / AlphaHuman backend API.
 ///
 /// Owns the *routes* and the error classification; the HTTP round-trip itself
-/// rides the process [`BackendTransport`] (see [`crate::api::transport`]),
+/// rides the process [`BackendTransport`] (see [`crate::backend::transport`]),
 /// which is what carries TLS, timeouts, attribution headers and the
 /// credential header shape. A core with no transport installed answers every
 /// call with [`BackendApiError::BackendUnavailable`].
 #[derive(Clone)]
-pub struct BackendOAuthClient {
+pub struct BackendClient {
     base: Url,
 }
 
-impl BackendOAuthClient {
-    /// Creates a new `BackendOAuthClient` with the given API base URL.
+impl BackendClient {
+    /// Creates a new `BackendClient` with the given API base URL.
     ///
     /// Any path, query, or fragment in `api_base` is stripped so that
     /// `Url::join` always resolves root-relative REST paths correctly.
@@ -664,7 +664,7 @@ impl BackendOAuthClient {
             let is_transient_infra =
                 crate::core::observability::is_transient_http_status_code(status_code);
             let is_budget_exhausted =
-                status_code == 400 && crate::api::classify::is_budget_exhausted_message(&text);
+                status_code == 400 && crate::backend::classify::is_budget_exhausted_message(&text);
             if is_budget_exhausted {
                 tracing::info!(
                     method = method.as_str(),

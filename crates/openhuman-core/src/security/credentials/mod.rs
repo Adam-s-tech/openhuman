@@ -15,8 +15,8 @@ pub mod sentry_scope;
 pub mod session_support;
 pub mod tools;
 
-pub use crate::api::rest::{
-    decrypt_handoff_blob, user_id_from_profile_payload, BackendOAuthClient,
+pub use crate::backend::{
+    decrypt_handoff_blob, user_id_from_profile_payload, BackendClient,
 };
 pub use core::*;
 pub use credential_ref::{CredentialRef, CredentialRefError, CredentialRefScheme, ResolvedSecret};

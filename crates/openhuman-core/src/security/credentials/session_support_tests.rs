@@ -428,7 +428,7 @@ fn direct_backend_credential_returns_a_live_session() {
         )
         .unwrap();
     // Unit tests resolve the plain test transport, so the transport gate passes.
-    assert!(crate::api::transport::is_installed());
+    assert!(crate::backend::transport::is_installed());
     assert_eq!(
         direct_backend_credential(&config, "test"),
         Some(BackendCredential::Session("raw-session-token".into()))

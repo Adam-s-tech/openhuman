@@ -1729,7 +1729,7 @@ fn register_domain_subscribers(
             log::info!("[auth] api-key credential present at startup — scheduler gate signed in");
             crate::cron::scheduler_gate::set_signed_out(false);
         } else {
-            match crate::api::jwt::get_session_token(&config) {
+            match crate::security::credentials::jwt::get_session_token(&config) {
                 Ok(Some(_)) => {
                     crate::cron::scheduler_gate::set_signed_out(false);
                 }

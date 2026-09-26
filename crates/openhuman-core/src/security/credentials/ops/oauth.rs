@@ -11,8 +11,8 @@
 use serde_json::json;
 
 use crate::api::config::effective_backend_api_url;
-use crate::api::jwt::get_session_token;
-use crate::api::rest::BackendOAuthClient;
+use crate::security::credentials::jwt::get_session_token;
+use crate::backend::BackendClient;
 use crate::config::Config;
 use crate::rpc::RpcOutcome;
 
@@ -22,13 +22,13 @@ pub async fn oauth_fetch_client_key(
 ) -> Result<RpcOutcome<serde_json::Value>, String> {
     let api_url = effective_backend_api_url(&config.api_url);
     let token = get_session_token(config)?.ok_or_else(|| "session JWT required".to_string())?;
-    let client = BackendOAuthClient::new(&api_url).map_err(|e| e.to_string())?;
+    let client = BackendClient::new(&api_url).map_err(|e| e.to_string())?;
     // `flatten_authed_error` keeps a 401 on the `SESSION_EXPIRED` sentinel (and
     // a missing transport on `BACKEND_UNAVAILABLE:`) instead of an opaque string.
     let client_key = client
         .fetch_client_key(integration_id, &token)
         .await
-        .map_err(crate::api::flatten_authed_error)?;
+        .map_err(crate::backend::flatten_authed_error)?;
     log::debug!(
         "[credentials] client key retrieved for integration {}",
         integration_id

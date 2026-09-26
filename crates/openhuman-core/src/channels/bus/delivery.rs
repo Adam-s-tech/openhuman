@@ -27,8 +27,8 @@ pub(super) async fn delete_channel_message(channel: &str, message_id: &str) {
             );
         }
         Err(err) => {
-            if let Some(crate::api::rest::BackendApiError::MessageNotFound { .. }) =
-                err.downcast_ref::<crate::api::rest::BackendApiError>()
+            if let Some(crate::backend::BackendApiError::MessageNotFound { .. }) =
+                err.downcast_ref::<crate::backend::BackendApiError>()
             {
                 tracing::info!(
                     "[channel-inbound] delete channel='{}' msg_id={} — message already gone provider-side (404), nothing to clean up",
@@ -208,7 +208,7 @@ fn relay_session_token(config: &crate::config::Config, op: &str) -> Option<Strin
 /// Construct the REST client + session JWT shared by every outbound
 /// channel call on this turn. Returns `None` and logs if either is
 /// unavailable so the caller can bail quietly.
-pub(super) async fn build_channel_client() -> Option<(crate::api::rest::BackendOAuthClient, String)>
+pub(super) async fn build_channel_client() -> Option<(crate::backend::BackendClient, String)>
 {
     let config = match crate::config::rpc::load_config_with_timeout().await {
         Ok(c) => c,
@@ -219,7 +219,7 @@ pub(super) async fn build_channel_client() -> Option<(crate::api::rest::BackendO
     };
     let api_url = crate::api::config::effective_backend_api_url(&config.api_url);
     let jwt = relay_session_token(&config, "send")?;
-    match crate::api::rest::BackendOAuthClient::new(&api_url) {
+    match crate::backend::BackendClient::new(&api_url) {
         Ok(c) => Some((c, jwt)),
         Err(e) => {
             tracing::error!("[channel-inbound] failed to create API client: {}", e);
@@ -243,7 +243,7 @@ pub(super) async fn send_channel_reply(channel: &str, text: &str) {
         return;
     };
 
-    let client = match crate::api::rest::BackendOAuthClient::new(&api_url) {
+    let client = match crate::backend::BackendClient::new(&api_url) {
         Ok(c) => c,
         Err(e) => {
             tracing::error!("[channel-inbound] failed to create API client: {}", e);

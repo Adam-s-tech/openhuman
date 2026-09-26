@@ -4,7 +4,7 @@
 
 use serde_json::{json, Map, Value};
 
-use crate::api::jwt::bearer_authorization_value;
+use crate::security::credentials::jwt::bearer_authorization_value;
 use crate::config::Config;
 use crate::security::credentials::session_support::direct_backend_credential;
 
@@ -278,7 +278,7 @@ pub(crate) async fn push_spans(config: &Config, spans: &[TraceSpan]) -> Result<(
     // `ingestion_url` resolves to the backend's own Langfuse proxy route on the
     // backend host, authenticated with a TinyHumans session token — backend
     // traffic, so it carries the product identity. This is a bare
-    // `reqwest::Client`, not `BackendOAuthClient`'s, so nothing is inherited
+    // `reqwest::Client`, not `BackendClient`'s, so nothing is inherited
     // from that path's default headers; see [`crate::api::product`].
     let (product_header, product_value) = crate::api::product::product_identity_header();
     let response = reqwest::Client::new()

@@ -10,7 +10,7 @@
 //! about one probe a minute across both surfaces.
 //!
 //! The pre-call probe reads `GET /teams/me/usage` through
-//! [`BackendOAuthClient`], so it rides the backend transport port. It resolves
+//! [`BackendClient`], so it rides the backend transport port. It resolves
 //! the credential first and defers to the backend (allows the call) without
 //! any request when there is no usable TinyHumans credential — the offline
 //! local session, an API-less core, or a signed-out user.
@@ -21,7 +21,7 @@ use std::time::{Duration, Instant};
 use serde_json::Value;
 
 use crate::api::config::effective_backend_api_url;
-use crate::api::BackendOAuthClient;
+use crate::backend::BackendClient;
 use crate::config::Config;
 use crate::rpc::RpcOutcome;
 use crate::security::credentials::session_support::BackendCredential;
@@ -31,11 +31,11 @@ use crate::security::credentials::session_support::BackendCredential;
 /// the `SESSION_EXPIRED` sentinel so a lapse never anchors the backoff.
 async fn fetch_usage(config: &Config, credential: BackendCredential) -> Result<Value, String> {
     let api_url = effective_backend_api_url(&config.api_url);
-    let client = BackendOAuthClient::new(&api_url).map_err(|e| format!("{e:#}"))?;
+    let client = BackendClient::new(&api_url).map_err(|e| format!("{e:#}"))?;
     client
         .authed_json(&credential, reqwest::Method::GET, "/teams/me/usage", None)
         .await
-        .map_err(crate::api::flatten_authed_error)
+        .map_err(crate::backend::flatten_authed_error)
 }
 
 /// How long a *failed* usage fetch is short-circuited before the backend is

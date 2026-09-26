@@ -37,7 +37,7 @@ pub(super) fn check_config_semantics(config: &Config, items: &mut Vec<Diagnostic
         ));
     }
 
-    match crate::api::jwt::get_session_token(config) {
+    match crate::security::credentials::jwt::get_session_token(config) {
         Ok(Some(token)) if !token.trim().is_empty() => {
             items.push(DiagnosticItem::ok(cat, "signed in with app session JWT"));
         }

@@ -192,7 +192,7 @@ impl CredentialKind {
 /// The subject of a JWT, read from its payload claims without verification.
 /// Checked in order: `sub`, `userId`, `user_id`, `_id`, `id`.
 pub fn user_id_from_jwt_claims(token: &str) -> Option<String> {
-    let claims = crate::api::jwt::decode_jwt_payload(token)?;
+    let claims = crate::security::credentials::jwt::decode_jwt_payload(token)?;
     let obj = claims.as_object()?;
     ["sub", "userId", "user_id", "_id", "id"]
         .iter()
@@ -405,7 +405,7 @@ pub fn resolve_backend_credential(config: &Config) -> Result<BackendCredential, 
 /// Both are configured states, not faults, so the skip is logged at `debug`
 /// with `op` naming the caller; nothing reaches Sentry and no request is made.
 pub fn direct_backend_credential(config: &Config, op: &str) -> Option<BackendCredential> {
-    if !crate::api::transport::is_installed() {
+    if !crate::backend::transport::is_installed() {
         log::debug!("[backend-direct] {op} skipped: no backend transport installed");
         return None;
     }

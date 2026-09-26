@@ -7,7 +7,7 @@ use sha2::{Digest, Sha256};
 
 use super::langfuse::{environment_for_base, ingestion_url, skip_push};
 use super::types::{SpanKind, SpanStatus, TraceSpan};
-use crate::api::jwt::bearer_authorization_value;
+use crate::security::credentials::jwt::bearer_authorization_value;
 use crate::config::Config;
 use crate::security::credentials::session_support::direct_backend_credential;
 

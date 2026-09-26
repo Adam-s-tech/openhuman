@@ -664,7 +664,7 @@ pub fn expected_error_kind(message: &str) -> Option<ExpectedErrorKind> {
     if is_local_ai_capability_unavailable_message(&lower) {
         return Some(ExpectedErrorKind::LocalAiCapabilityUnavailable);
     }
-    if crate::api::classify::is_budget_exhausted_message(message) {
+    if crate::backend::classify::is_budget_exhausted_message(message) {
         return Some(ExpectedErrorKind::BudgetExhausted);
     }
     if is_backend_unavailable_message(message) {
@@ -3180,7 +3180,7 @@ pub fn is_transient_message_failure(msg: &str) -> bool {
 pub const USAGE_PROBE_BACKOFF_PREFIX: &str = "USAGE_PROBE_BACKOFF:";
 
 /// Sentinel prefix on the error string a backend-touching call returns when
-/// the core has no [`BackendTransport`](crate::api::transport::BackendTransport)
+/// the core has no [`BackendTransport`](crate::backend::transport::BackendTransport)
 /// installed. `api::rest::flatten_authed_error` and the integrations client
 /// build their message from this constant; [`is_backend_unavailable_message`]
 /// classifies it as [`ExpectedErrorKind::BackendUnavailable`].
@@ -3482,7 +3482,7 @@ fn event_contains_budget_exhausted_message(event: &sentry::protocol::Event<'_>) 
     if event
         .message
         .as_deref()
-        .is_some_and(crate::api::classify::is_budget_exhausted_message)
+        .is_some_and(crate::backend::classify::is_budget_exhausted_message)
     {
         return true;
     }
@@ -3491,7 +3491,7 @@ fn event_contains_budget_exhausted_message(event: &sentry::protocol::Event<'_>) 
         exception
             .value
             .as_deref()
-            .is_some_and(crate::api::classify::is_budget_exhausted_message)
+            .is_some_and(crate::backend::classify::is_budget_exhausted_message)
     })
 }
 

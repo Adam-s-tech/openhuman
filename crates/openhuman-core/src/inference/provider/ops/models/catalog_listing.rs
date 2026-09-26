@@ -184,7 +184,7 @@ pub async fn list_configured_models_from_config(
         }
         let base = crate::api::config::effective_backend_api_url(&config.api_url);
         models_url = append_query_param(
-            &crate::api::config::api_url(&base, "/openai/v1/models"),
+            &crate::util::url::join_url(&base, "/openai/v1/models"),
             "catalog",
             "openrouter",
         );

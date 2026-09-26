@@ -1,6 +1,6 @@
 use super::{
     backend_api_body_shape, flatten_authed_error, is_unmatched_route_404, key_bytes_from_string,
-    parse_message_path, BackendApiError, BackendOAuthClient, BACKEND_API_BODY_SHAPE_MAX_BYTES,
+    parse_message_path, BackendApiError, BackendClient, BACKEND_API_BODY_SHAPE_MAX_BYTES,
 };
 use crate::api::headers::sanitize_client_version;
 use crate::api::product::{
@@ -204,7 +204,7 @@ async fn spawn_header_capture_server() -> (String, CapturedHeaders) {
 #[tokio::test]
 async fn backend_client_sends_x_core_version_on_auth_requests() {
     let (base_url, captured) = spawn_header_capture_server().await;
-    let client = BackendOAuthClient::new(&base_url).unwrap();
+    let client = BackendClient::new(&base_url).unwrap();
 
     let profile = client
         .authed_json("test-jwt", Method::GET, "auth/me", None)
@@ -236,7 +236,7 @@ async fn authed_json_sends_an_api_key_as_x_api_key_and_no_bearer() {
     use crate::security::credentials::session_support::BackendCredential;
 
     let (base_url, captured) = spawn_header_capture_server().await;
-    let client = BackendOAuthClient::new(&base_url).unwrap();
+    let client = BackendClient::new(&base_url).unwrap();
 
     let response = client
         .authed_json(
@@ -269,7 +269,7 @@ async fn authed_json_sends_a_session_credential_as_a_bearer_only() {
     use crate::security::credentials::session_support::BackendCredential;
 
     let (base_url, captured) = spawn_header_capture_server().await;
-    let client = BackendOAuthClient::new(&base_url).unwrap();
+    let client = BackendClient::new(&base_url).unwrap();
 
     client
         .authed_json(
@@ -295,7 +295,7 @@ async fn authed_json_sends_a_session_credential_as_a_bearer_only() {
 #[tokio::test]
 async fn authed_json_sends_bearer_and_host_headers() {
     let (base_url, captured) = spawn_header_capture_server().await;
-    let client = BackendOAuthClient::new(&base_url).unwrap();
+    let client = BackendClient::new(&base_url).unwrap();
 
     let response = client
         .authed_json("sdk-cutover-token", Method::GET, "/probe", None)
@@ -326,7 +326,7 @@ async fn backend_client_sends_x_tauri_version_when_env_set() {
 
     std::env::set_var("OPENHUMAN_TAURI_VERSION", "9.8.7-shell+test");
     let (base_url, captured) = spawn_header_capture_server().await;
-    let client = BackendOAuthClient::new(&base_url).unwrap();
+    let client = BackendClient::new(&base_url).unwrap();
     let url = client.url_for("/probe").unwrap();
     let response = client.raw_client().unwrap().get(url).send().await.unwrap();
     assert!(response.status().is_success());
@@ -346,17 +346,17 @@ async fn backend_client_sends_x_tauri_version_when_env_set() {
 // Regression: OPENHUMAN-TAURI-8K / Sentry issue 7473650958.
 // When config.api_url is a full LLM completions URL (e.g. /v1/chat/completions),
 // Url::join used to produce wrong paths like /v1/chat/teams/me/usage instead of
-// /teams/me/usage — BackendOAuthClient::new must strip the path to prevent this.
+// /teams/me/usage — BackendClient::new must strip the path to prevent this.
 #[test]
 fn new_strips_path_from_completions_url() {
-    let client = BackendOAuthClient::new("https://api.tinyhumans.ai/v1/chat/completions").unwrap();
+    let client = BackendClient::new("https://api.tinyhumans.ai/v1/chat/completions").unwrap();
     let url = client.url_for("/teams/me/usage").unwrap();
     assert_eq!(url.path(), "/teams/me/usage");
 }
 
 #[test]
 fn new_strips_path_from_openai_style_url() {
-    let client = BackendOAuthClient::new("https://api.openai.com/v1/chat/completions").unwrap();
+    let client = BackendClient::new("https://api.openai.com/v1/chat/completions").unwrap();
     let url = client.url_for("/teams/me/usage").unwrap();
     assert_eq!(url.path(), "/teams/me/usage");
     assert_eq!(url.host_str(), Some("api.openai.com"));
@@ -364,14 +364,14 @@ fn new_strips_path_from_openai_style_url() {
 
 #[test]
 fn new_works_with_bare_origin() {
-    let client = BackendOAuthClient::new("https://api.tinyhumans.ai").unwrap();
+    let client = BackendClient::new("https://api.tinyhumans.ai").unwrap();
     let url = client.url_for("/teams/me/usage").unwrap();
     assert_eq!(url.path(), "/teams/me/usage");
 }
 
 #[test]
 fn new_works_with_trailing_slash() {
-    let client = BackendOAuthClient::new("https://api.tinyhumans.ai/").unwrap();
+    let client = BackendClient::new("https://api.tinyhumans.ai/").unwrap();
     let url = client.url_for("/teams/me/usage").unwrap();
     assert_eq!(url.path(), "/teams/me/usage");
 }
@@ -379,7 +379,7 @@ fn new_works_with_trailing_slash() {
 #[tokio::test]
 async fn backend_raw_client_inherits_x_core_version_default_header() {
     let (base_url, captured) = spawn_header_capture_server().await;
-    let client = BackendOAuthClient::new(&base_url).unwrap();
+    let client = BackendClient::new(&base_url).unwrap();
     let url = client.url_for("/probe").unwrap();
 
     let response = client.raw_client().unwrap().get(url).send().await.unwrap();
@@ -403,7 +403,7 @@ async fn sdk_path_sends_the_default_product_identity() {
     reset_product_identity_for_test();
 
     let (base_url, captured) = spawn_header_capture_server().await;
-    let client = BackendOAuthClient::new(&base_url).unwrap();
+    let client = BackendClient::new(&base_url).unwrap();
 
     client
         .authed_json("session-token", Method::GET, "/probe", None)
@@ -429,7 +429,7 @@ async fn raw_client_sends_the_product_identity_alongside_the_version_headers() {
     reset_product_identity_for_test();
 
     let (base_url, captured) = spawn_header_capture_server().await;
-    let client = BackendOAuthClient::new(&base_url).unwrap();
+    let client = BackendClient::new(&base_url).unwrap();
     let url = client.url_for("/probe").unwrap();
 
     let response = client.raw_client().unwrap().get(url).send().await.unwrap();
@@ -456,7 +456,7 @@ async fn an_embedding_product_can_override_the_product_identity() {
     set_product_identity(ProductIdentity::new("opencompany").unwrap());
 
     let (base_url, captured) = spawn_header_capture_server().await;
-    let client = BackendOAuthClient::new(&base_url).unwrap();
+    let client = BackendClient::new(&base_url).unwrap();
 
     let sdk_result = client
         .authed_json("session-token", Method::GET, "/probe", None)
@@ -504,7 +504,7 @@ async fn authed_json_surfaces_message_not_found_on_404() {
     });
 
     let base_url = format!("http://{addr}");
-    let client = BackendOAuthClient::new(&base_url).unwrap();
+    let client = BackendClient::new(&base_url).unwrap();
 
     // Telegram path — matches OPENHUMAN-TAURI-2Y shape.
     let err = client
@@ -573,7 +573,7 @@ async fn authed_json_surfaces_unauthorized_on_401() {
     });
 
     let base_url = format!("http://{addr}");
-    let client = BackendOAuthClient::new(&base_url).unwrap();
+    let client = BackendClient::new(&base_url).unwrap();
 
     // Mascot TTS path — the original reporter.
     let err = client
@@ -628,7 +628,7 @@ async fn authed_json_surfaces_api_key_rejected_not_unauthorized_on_401() {
     });
 
     let base_url = format!("http://{addr}");
-    let client = BackendOAuthClient::new(&base_url).unwrap();
+    let client = BackendClient::new(&base_url).unwrap();
 
     let err = client
         .authed_json(
@@ -766,7 +766,7 @@ async fn authed_json_reports_non_channel_404_still_propagates() {
     });
 
     let base_url = format!("http://{addr}");
-    let client = BackendOAuthClient::new(&base_url).unwrap();
+    let client = BackendClient::new(&base_url).unwrap();
 
     let err = client
         .authed_json("mock-jwt", Method::GET, "/teams/me/usage", None)
@@ -860,7 +860,7 @@ async fn authed_json_403_is_not_demoted_to_unauthorized() {
     });
 
     let base_url = format!("http://{addr}");
-    let client = BackendOAuthClient::new(&base_url).unwrap();
+    let client = BackendClient::new(&base_url).unwrap();
 
     let err = client
         .authed_json("mock-jwt", Method::POST, "/openai/v1/audio/speech", None)
@@ -888,7 +888,7 @@ async fn authed_json_404_outside_messages_path_still_reports() {
     });
 
     let base_url = format!("http://{addr}");
-    let client = BackendOAuthClient::new(&base_url).unwrap();
+    let client = BackendClient::new(&base_url).unwrap();
 
     let err = client
         .authed_json("mock-jwt", Method::GET, "/auth/profile", None)
@@ -969,7 +969,7 @@ async fn authed_json_patch_404_with_base_path_prefix_does_not_report() {
     // Regression for TAURI-R7: if the resolved URL has a base-path prefix,
     // authed_json must still suppress the 404 — NOT call report_error.
     //
-    // Since BackendOAuthClient strips the base path in `new()`, the path
+    // Since BackendClient strips the base path in `new()`, the path
     // passed to authed_json is always joined against the stripped base. We
     // verify that a PATCH 404 returns an error without panicking and that it
     // is not classified as a code bug (no Sentry event).
@@ -990,7 +990,7 @@ async fn authed_json_patch_404_with_base_path_prefix_does_not_report() {
     });
 
     let base_url = format!("http://{addr}");
-    let client = BackendOAuthClient::new(&base_url).unwrap();
+    let client = BackendClient::new(&base_url).unwrap();
 
     let err = client
         .authed_json(
@@ -1038,7 +1038,7 @@ async fn send_channel_edit_404_is_route_absence_not_a_missing_message() {
         axum::serve(listener, app).await.unwrap();
     });
 
-    let client = BackendOAuthClient::new(&format!("http://{addr}")).unwrap();
+    let client = BackendClient::new(&format!("http://{addr}")).unwrap();
     let err = client
         .send_channel_edit("telegram", "1103", "mock-jwt", serde_json::json!({}))
         .await
@@ -1082,7 +1082,7 @@ async fn channel_edit_404_from_a_real_handler_stays_a_missing_message() {
         axum::serve(listener, app).await.unwrap();
     });
 
-    let client = BackendOAuthClient::new(&format!("http://{addr}")).unwrap();
+    let client = BackendClient::new(&format!("http://{addr}")).unwrap();
     let err = client
         .send_channel_edit("telegram", "1103", "mock-jwt", serde_json::json!({}))
         .await
@@ -1118,7 +1118,7 @@ async fn channel_edit_404_on_a_prefixed_path_keeps_the_parsed_ids() {
         axum::serve(listener, app).await.unwrap();
     });
 
-    let client = BackendOAuthClient::new(&format!("http://{addr}")).unwrap();
+    let client = BackendClient::new(&format!("http://{addr}")).unwrap();
     let err = client
         .authed_json(
             "mock-jwt",
@@ -1162,7 +1162,7 @@ async fn channel_edit_404_on_an_undecomposable_path_falls_back_to_unknown_ids() 
         axum::serve(listener, app).await.unwrap();
     });
 
-    let client = BackendOAuthClient::new(&format!("http://{addr}")).unwrap();
+    let client = BackendClient::new(&format!("http://{addr}")).unwrap();
     let err = client
         .authed_json(
             "mock-jwt",
@@ -1203,7 +1203,7 @@ async fn channel_delete_404_still_means_the_message_is_gone() {
         axum::serve(listener, app).await.unwrap();
     });
 
-    let client = BackendOAuthClient::new(&format!("http://{addr}")).unwrap();
+    let client = BackendClient::new(&format!("http://{addr}")).unwrap();
     let err = client
         .send_channel_delete("telegram", "1103", "mock-jwt")
         .await
@@ -1234,7 +1234,7 @@ async fn sdk_backed_channel_delete_surfaces_message_not_found_on_404() {
         axum::serve(listener, app).await.unwrap();
     });
 
-    let client = BackendOAuthClient::new(&format!("http://{addr}")).unwrap();
+    let client = BackendClient::new(&format!("http://{addr}")).unwrap();
     let err = client
         .send_channel_delete("telegram", "1103", "mock-jwt")
         .await
@@ -1264,7 +1264,7 @@ async fn sdk_backed_channel_typing_surfaces_unauthorized_on_401() {
         axum::serve(listener, app).await.unwrap();
     });
 
-    let client = BackendOAuthClient::new(&format!("http://{addr}")).unwrap();
+    let client = BackendClient::new(&format!("http://{addr}")).unwrap();
     let err = client
         .send_channel_typing("telegram", "mock-jwt")
         .await
@@ -1306,7 +1306,7 @@ async fn sdk_backed_calls_send_the_core_version_header() {
         axum::serve(listener, app).await.unwrap();
     });
 
-    let client = BackendOAuthClient::new(&format!("http://{addr}")).unwrap();
+    let client = BackendClient::new(&format!("http://{addr}")).unwrap();
     client
         .send_channel_typing("telegram", "mock-jwt")
         .await

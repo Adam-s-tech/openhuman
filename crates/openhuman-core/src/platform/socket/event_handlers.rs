@@ -9,7 +9,7 @@ use std::sync::Arc;
 use serde_json::json;
 use tokio::sync::mpsc;
 
-use crate::api::models::socket::ConnectionStatus;
+use crate::platform::socket::models::ConnectionStatus;
 use crate::core::bus::BUS;
 use crate::core::events::DomainEvent;
 use crate::skills::webhooks::WebhookRequest;

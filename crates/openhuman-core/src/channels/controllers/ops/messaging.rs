@@ -3,8 +3,8 @@
 use serde_json::Value;
 
 use crate::api::config::effective_backend_api_url;
-use crate::api::jwt::get_session_token;
-use crate::api::rest::BackendOAuthClient;
+use crate::security::credentials::jwt::get_session_token;
+use crate::backend::BackendClient;
 use crate::config::Config;
 use crate::rpc::RpcOutcome;
 
@@ -24,14 +24,14 @@ pub async fn channel_send_message(
         api_url
     );
 
-    let client = BackendOAuthClient::new(&api_url).map_err(|e| e.to_string())?;
+    let client = BackendClient::new(&api_url).map_err(|e| e.to_string())?;
     let result = client
         .send_channel_message(channel, &jwt, message)
         .await
         .map_err(|e| {
             format!(
                 "failed to send channel message: {}",
-                crate::api::flatten_authed_error(e)
+                crate::backend::flatten_authed_error(e)
             )
         })?;
 
@@ -56,14 +56,14 @@ pub async fn channel_send_reaction(
         api_url
     );
 
-    let client = BackendOAuthClient::new(&api_url).map_err(|e| e.to_string())?;
+    let client = BackendClient::new(&api_url).map_err(|e| e.to_string())?;
     let result = client
         .send_channel_reaction(channel, &jwt, reaction)
         .await
         .map_err(|e| {
             format!(
                 "failed to send channel reaction: {}",
-                crate::api::flatten_authed_error(e)
+                crate::backend::flatten_authed_error(e)
             )
         })?;
 
@@ -89,14 +89,14 @@ pub async fn channel_create_thread(
         api_url
     );
 
-    let client = BackendOAuthClient::new(&api_url).map_err(|e| e.to_string())?;
+    let client = BackendClient::new(&api_url).map_err(|e| e.to_string())?;
     let result = client
         .create_channel_thread(channel, &jwt, title)
         .await
         .map_err(|e| {
             format!(
                 "failed to create channel thread: {}",
-                crate::api::flatten_authed_error(e)
+                crate::backend::flatten_authed_error(e)
             )
         })?;
 
@@ -124,14 +124,14 @@ pub async fn channel_update_thread(
         api_url
     );
 
-    let client = BackendOAuthClient::new(&api_url).map_err(|e| e.to_string())?;
+    let client = BackendClient::new(&api_url).map_err(|e| e.to_string())?;
     let result = client
         .update_channel_thread(channel, &jwt, thread_id, action)
         .await
         .map_err(|e| {
             format!(
                 "failed to update channel thread: {}",
-                crate::api::flatten_authed_error(e)
+                crate::backend::flatten_authed_error(e)
             )
         })?;
 
@@ -157,14 +157,14 @@ pub async fn channel_list_threads(
         api_url
     );
 
-    let client = BackendOAuthClient::new(&api_url).map_err(|e| e.to_string())?;
+    let client = BackendClient::new(&api_url).map_err(|e| e.to_string())?;
     let result = client
         .list_channel_threads(channel, &jwt, active)
         .await
         .map_err(|e| {
             format!(
                 "failed to list channel threads: {}",
-                crate::api::flatten_authed_error(e)
+                crate::backend::flatten_authed_error(e)
             )
         })?;
 
