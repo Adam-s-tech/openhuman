@@ -45,7 +45,7 @@ All handlers return `RpcOutcome<T>` serialized via `into_cli_compatible_json()`.
 
 ## Persistence
 
-No owned persistence. `diagnostics()` reads the MCP write-audit log through `crate::mcp::audit::list_writes` (with a `McpWriteListQuery` whose `since_ms` is now minus 24h, capped at `tinymcp_bus::MAX_LIST_LIMIT` rows) to fill `McpWriteAuditHealth`; a query error lands in `last_error` rather than failing diagnostics. Recent denials live in a **process-global in-memory** `Mutex<VecDeque>` in `denials.rs` (not durable; max 50 entries).
+No owned persistence. `diagnostics()` reads the MCP write-audit log through `crate::mcp::audit::list_writes` (with a `McpWriteListQuery` whose `since_ms` is now minus 24h, capped at `tinymcp_bus::MAX_LIST_LIMIT` rows) to fill `McpWriteAuditHealth`; a query error lands in `last_error` rather than failing diagnostics. Recent denials live in a process-global, in-memory `Mutex<VecDeque>` in `denials.rs` (not durable; max 50 entries).
 
 ## Dependencies
 
