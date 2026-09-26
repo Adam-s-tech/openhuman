@@ -364,8 +364,12 @@ const SearchPanel = ({ embedded = false }: { embedded?: boolean }) => {
               />
             </Card>
 
+            {/* Keys and the website policy are independent, mid-sized cards:
+                side by side once the page is wide enough for key inputs. */}
+            <TileGrid columns={2} className="md:grid-cols-1 xl:grid-cols-2">
             {/* ── BYO API keys, one row per direct provider ───────────── */}
             <Card
+              className="h-full"
               title={t('settings.search.apiKeysHeading')}
               description={t('settings.search.apiKeysDesc')}>
               {KEY_ROWS.map(row => (
@@ -392,6 +396,7 @@ const SearchPanel = ({ embedded = false }: { embedded?: boolean }) => {
                 web_fetch / curl and (when enabled) the browser tool. Web
                 search is not gated by this list. ────────────────────── */}
             <Card
+              className="h-full"
               title={t('settings.search.allowedSitesLabel')}
               description={
                 mode === 'all'
@@ -453,6 +458,7 @@ const SearchPanel = ({ embedded = false }: { embedded?: boolean }) => {
                 </div>
               )}
             </Card>
+            </TileGrid>
 
             <StatusLine
               saving={status.kind === 'saving'}
