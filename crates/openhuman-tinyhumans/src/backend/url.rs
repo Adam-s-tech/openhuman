@@ -549,5 +549,5 @@ pub(crate) fn backend_env_test_lock() -> std::sync::MutexGuard<'static, ()> {
 
 // ─── Tests ───────────────────────────────────────────────────────────────────
 #[cfg(test)]
-#[path = "config_tests.rs"]
+#[path = "url_tests.rs"]
 mod tests;

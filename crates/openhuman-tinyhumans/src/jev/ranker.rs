@@ -9,8 +9,8 @@ use std::{
 
 use std::{future::Future, pin::Pin, sync::Arc, time::Duration};
 
-use openhuman_core::agent::tinyagents::discovery::EmbeddingToolRanker;
 use crate::backend::url::effective_backend_api_url;
+use openhuman_core::agent::tinyagents::discovery::EmbeddingToolRanker;
 use openhuman_core::config::Config;
 use openhuman_core::security::credentials::session_support::resolve_backend_credential;
 use tinyjevclient::{Client, ClientConfig};

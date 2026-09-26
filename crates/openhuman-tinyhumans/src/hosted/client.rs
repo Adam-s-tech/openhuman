@@ -138,12 +138,10 @@ fn http_client() -> reqwest::Client {
     if let Ok(transport) = resolve_backend_transport() {
         return transport.http_client(TransportProfile::Api);
     }
-    crate::backend::headers::build_backend_client(TransportProfile::Api).unwrap_or_else(
-        |err| {
-            log::warn!("{LOG_PREFIX} failed to build backend client, using default: {err}");
-            reqwest::Client::new()
-        },
-    )
+    crate::backend::headers::build_backend_client(TransportProfile::Api).unwrap_or_else(|err| {
+        log::warn!("{LOG_PREFIX} failed to build backend client, using default: {err}");
+        reqwest::Client::new()
+    })
 }
 
 /// The single `tinyhumans_sdk::Error` → RPC error mapping.

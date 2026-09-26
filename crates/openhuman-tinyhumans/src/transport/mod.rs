@@ -128,7 +128,9 @@ impl BackendTransport for SdkBackendTransport {
     }
 
     fn product_identity(&self) -> String {
-        crate::backend::product::product_identity().as_str().to_owned()
+        crate::backend::product::product_identity()
+            .as_str()
+            .to_owned()
     }
 
     fn attribution_headers(&self) -> reqwest::header::HeaderMap {
