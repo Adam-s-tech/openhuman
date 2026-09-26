@@ -1,10 +1,9 @@
 import { AudioLines, AudioWaveform, Cloud, Laptop, type LucideIcon, Sparkles } from 'lucide-react';
 import type { ReactNode } from 'react';
 
-import { cn } from '../../../lib/cn';
 import type { VoiceInstallStatus } from '../../../services/api/voiceInstallApi';
 import type { VoiceSettings } from '../../../services/api/voiceSettingsApi';
-import { Badge, Card, Switch } from '../../ui';
+import { Badge, Card, Switch, Tile, TileGrid } from '../../ui';
 
 /** Built-in voice provider slugs with display metadata. */
 export const BUILTIN_VOICE_PROVIDER_META: Record<
@@ -49,7 +48,7 @@ interface ProviderRowProps {
   children: ReactNode;
 }
 
-/** One provider: icon tile, name + what it does, and its enable switch. */
+/** One provider tile: icon, name + what it does, and its enable switch. */
 const ProviderRow = ({
   icon: Icon,
   label,
@@ -60,28 +59,17 @@ const ProviderRow = ({
   t,
   children,
 }: ProviderRowProps) => (
-  <div className={cn('flex items-center gap-3 px-4 py-3', dimmed && 'opacity-60')}>
-    <span
-      className={cn(
-        'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg',
-        enabled ? 'bg-primary-500 text-content-inverted' : 'bg-surface-muted text-content-secondary'
-      )}>
-      <Icon className="h-4.5 w-4.5" aria-hidden />
-    </span>
-    <div className="min-w-0 flex-1">
-      <div className="text-sm font-semibold text-content">{label}</div>
-      <div className="mt-1 flex flex-wrap items-center gap-1.5">
-        {capability !== 'tts' && <Badge variant="neutral">{t('voice.providers.cap.stt')}</Badge>}
-        {capability !== 'stt' && <Badge variant="neutral">{t('voice.providers.cap.tts')}</Badge>}
-        {status}
-      </div>
+  <Tile icon={<Icon />} iconActive={enabled} muted={dimmed} title={label} control={children}>
+    <div className="flex flex-wrap items-center gap-1.5">
+      {capability !== 'tts' && <Badge variant="neutral">{t('voice.providers.cap.stt')}</Badge>}
+      {capability !== 'stt' && <Badge variant="neutral">{t('voice.providers.cap.tts')}</Badge>}
+      {status}
     </div>
-    {children}
-  </div>
+  </Tile>
 );
 
 /**
- * Voice providers as a list: managed cloud (locked on), Piper (local TTS, no
+ * Voice providers as a tile grid: managed cloud (locked on), Piper (local TTS, no
  * key required), and the external BYOK providers. Turning an external
  * provider on opens the key modal; Piper opens its install modal.
  */
@@ -105,101 +93,104 @@ const VoicePanelProviderChips = ({
     <Card
       title={t('voice.providers.title')}
       description={t('voice.providers.cardDesc')}
+      divided={false}
       data-testid="voice-providers-section">
-      {/* Cloud — always enabled, locked */}
-      <ProviderRow
-        icon={Cloud}
-        label={t('voice.providers.chip.cloud')}
-        capability="both"
-        enabled
-        status={<Badge variant="success">{t('voice.providers.alwaysOn')}</Badge>}
-        t={t}>
-        <Switch
-          id="voice-provider-chip-cloud"
-          checked
-          disabled
-          onCheckedChange={() => {}}
-          aria-label={t('voice.providers.chip.cloudAria')}
-        />
-      </ProviderRow>
+      <TileGrid padded>
+        {/* Cloud — always enabled, locked */}
+        <ProviderRow
+          icon={Cloud}
+          label={t('voice.providers.chip.cloud')}
+          capability="both"
+          enabled
+          status={<Badge variant="success">{t('voice.providers.alwaysOn')}</Badge>}
+          t={t}>
+          <Switch
+            id="voice-provider-chip-cloud"
+            checked
+            disabled
+            onCheckedChange={() => {}}
+            aria-label={t('voice.providers.chip.cloudAria')}
+          />
+        </ProviderRow>
 
-      {/* Piper — local TTS, no API key required. Turning it on opens the
+        {/* Piper — local TTS, no API key required. Turning it on opens the
           install/enable modal (inference_install_piper, then
           voice_update_provider_settings on Enable). Turning it off routes TTS
           back to the managed cloud provider. */}
-      <ProviderRow
-        icon={Laptop}
-        label={t('voice.providers.chip.piper')}
-        capability="tts"
-        enabled={piperEnabled}
-        t={t}>
-        <Switch
-          id="voice-provider-chip-piper"
-          data-testid="voice-provider-chip-piper"
-          checked={piperEnabled}
-          // Stay disabled for the full install window: the local RPC kickoff
-          // (`isInstallingPiper`) ends as soon as the start call returns, but
-          // the install continues until the status RPC reports `installed` /
-          // `error`. Combining both prevents routing edits mid-install.
-          disabled={isInstallingPiper || piperInstall?.state === 'installing'}
-          onCheckedChange={next => {
-            if (!next) {
-              onTtsProviderChange('cloud');
-            } else {
-              setPendingKeySlug('piper');
-              setPendingKeyValue('');
-            }
-          }}
-          aria-label={
-            piperEnabled
-              ? `${t('voice.providers.chip.disableProvider')} ${t('voice.providers.chip.piper')}`
-              : `${t('voice.providers.chip.enableProvider')} ${t('voice.providers.chip.piper')}`
-          }
-        />
-      </ProviderRow>
-
-      {/* External providers: Deepgram, ElevenLabs, OpenAI */}
-      {Object.entries(BUILTIN_VOICE_PROVIDER_META).map(([slug, meta]) => {
-        const enabled = (voiceSettings?.voiceProviders ?? []).some(p => p.slug === slug);
-        return (
-          <ProviderRow
-            key={slug}
-            icon={PROVIDER_ICON[slug] ?? AudioLines}
-            label={meta.label}
-            capability={meta.capability}
-            enabled={enabled}
-            dimmed={meta.comingSoon}
-            status={
-              meta.comingSoon ? (
-                <Badge variant="neutral">{t('voice.providers.chip.comingSoon')}</Badge>
-              ) : undefined
-            }
-            t={t}>
-            <Switch
-              id={`voice-provider-chip-${slug}`}
-              data-testid={`voice-provider-chip-${slug}`}
-              checked={enabled}
-              disabled={isSavingPendingKey || !!meta.comingSoon}
-              onCheckedChange={next => {
-                if (meta.comingSoon) return;
-                if (!next) {
-                  void handleRemoveProvider(slug);
-                  if (sttProvider === slug) onSttProviderChange('cloud');
-                  if (ttsProvider === slug) onTtsProviderChange('cloud');
-                } else {
-                  setPendingKeySlug(slug);
-                  setPendingKeyValue('');
-                }
-              }}
-              aria-label={
-                enabled
-                  ? `${t('voice.providers.chip.disableProvider')} ${meta.label}`
-                  : `${t('voice.providers.chip.enableProvider')} ${meta.label}`
+        <ProviderRow
+          icon={Laptop}
+          label={t('voice.providers.chip.piper')}
+          capability="tts"
+          enabled={piperEnabled}
+          t={t}>
+          <Switch
+            id="voice-provider-chip-piper"
+            data-testid="voice-provider-chip-piper"
+            checked={piperEnabled}
+            // Stay disabled for the full install window: the local RPC kickoff
+            // (`isInstallingPiper`) ends as soon as the start call returns, but
+            // the install continues until the status RPC reports `installed` /
+            // `error`. Combining both prevents routing edits mid-install.
+            disabled={isInstallingPiper || piperInstall?.state === 'installing'}
+            onCheckedChange={next => {
+              if (!next) {
+                onTtsProviderChange('cloud');
+              } else {
+                setPendingKeySlug('piper');
+                setPendingKeyValue('');
               }
-            />
-          </ProviderRow>
-        );
-      })}
+            }}
+            aria-label={
+              piperEnabled
+                ? `${t('voice.providers.chip.disableProvider')} ${t('voice.providers.chip.piper')}`
+                : `${t('voice.providers.chip.enableProvider')} ${t('voice.providers.chip.piper')}`
+            }
+          />
+        </ProviderRow>
+
+        {/* External providers: Deepgram, ElevenLabs, OpenAI */}
+        {Object.entries(BUILTIN_VOICE_PROVIDER_META).map(([slug, meta]) => {
+          const enabled = (voiceSettings?.voiceProviders ?? []).some(p => p.slug === slug);
+          return (
+            <ProviderRow
+              key={slug}
+              icon={PROVIDER_ICON[slug] ?? AudioLines}
+              label={meta.label}
+              capability={meta.capability}
+              enabled={enabled}
+              dimmed={meta.comingSoon}
+              status={
+                meta.comingSoon ? (
+                  <Badge variant="neutral">{t('voice.providers.chip.comingSoon')}</Badge>
+                ) : undefined
+              }
+              t={t}>
+              <Switch
+                id={`voice-provider-chip-${slug}`}
+                data-testid={`voice-provider-chip-${slug}`}
+                checked={enabled}
+                disabled={isSavingPendingKey || !!meta.comingSoon}
+                onCheckedChange={next => {
+                  if (meta.comingSoon) return;
+                  if (!next) {
+                    void handleRemoveProvider(slug);
+                    if (sttProvider === slug) onSttProviderChange('cloud');
+                    if (ttsProvider === slug) onTtsProviderChange('cloud');
+                  } else {
+                    setPendingKeySlug(slug);
+                    setPendingKeyValue('');
+                  }
+                }}
+                aria-label={
+                  enabled
+                    ? `${t('voice.providers.chip.disableProvider')} ${meta.label}`
+                    : `${t('voice.providers.chip.enableProvider')} ${meta.label}`
+                }
+              />
+            </ProviderRow>
+          );
+        })}
+      </TileGrid>
     </Card>
   );
 };
