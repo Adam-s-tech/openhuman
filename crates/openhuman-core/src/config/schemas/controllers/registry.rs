@@ -224,14 +224,6 @@ pub fn all_registered_controllers() -> Vec<RegisteredController> {
             handler: handle_get_search_settings,
         },
         RegisteredController {
-            schema: schemas("get_activity_level_settings"),
-            handler: handle_get_activity_level_settings,
-        },
-        RegisteredController {
-            schema: schemas("update_activity_level_settings"),
-            handler: handle_update_activity_level_settings,
-        },
-        RegisteredController {
             schema: schemas("get_memory_sync_settings"),
             handler: handle_get_memory_sync_settings,
         },
