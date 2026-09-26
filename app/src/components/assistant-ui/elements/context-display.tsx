@@ -19,13 +19,13 @@
  * only caller.
  */
 import { cn } from '@/components/assistant-ui/lib/utils';
-import { useT } from '@/lib/i18n/I18nContext';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/assistant-ui/ui/tooltip';
+import { useT } from '@/lib/i18n/I18nContext';
 import {
   type ComponentProps,
   createContext,
