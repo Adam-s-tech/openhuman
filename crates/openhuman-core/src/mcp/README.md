@@ -88,7 +88,7 @@ idempotent so the two callers can't double-register or double-spawn.
 
 ## Compile-time gate (`mcp` feature)
 
-`pub mod mcp;` is always compiled, the family root is a facade. `host` and
+`pub mod mcp;` is always compiled. The family root is a facade. `host` and
 `http_client` are ungated because the startup path and always-on consumers
 reach them unconditionally. `registry`, `audit`, and `server` keep
 their own gate and their own `stub.rs`, so a build without the feature still
