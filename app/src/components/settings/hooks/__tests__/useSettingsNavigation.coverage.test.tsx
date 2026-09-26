@@ -79,9 +79,14 @@ describe('integrations (retired)', () => {
   test('integrations resolves to home', () => expectRoute('/settings/integrations', 'home'));
 });
 
-describe('notifications', () => {
-  test('notifications resolves to notifications', () =>
-    expectRoute('/settings/notifications', 'notifications'));
+describe('notifications (retired)', () => {
+  // The Notifications settings page was removed entirely — `notifications`
+  // no longer has a registry entry, so the slug falls through to home the
+  // same way other retired hub slugs do. The route itself redirects to
+  // /settings/account at the route-elements layer (`settingsRouteElements`);
+  // this test only covers `getCurrentRoute`'s pure slug resolution.
+  test('notifications (retired) resolves to home', () =>
+    expectRoute('/settings/notifications', 'home'));
 });
 
 describe('crypto section leaves', () => {
