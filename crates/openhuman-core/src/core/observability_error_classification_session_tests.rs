@@ -690,7 +690,7 @@ fn skills_install_fetch_filter_keeps_server_and_wrong_shape_failures() {
 #[test]
 fn classifies_api_key_rejected_as_expected_credential_lapse() {
     // A 401 on a TinyHumans API-key credential flattens to the
-    // `API_KEY_REJECTED:` sentinel (`api::rest::flatten_authed_error`). The
+    // `API_KEY_REJECTED:` sentinel (`backend::client::flatten_authed_error`). The
     // remedy is a new key, so it must not reach Sentry as an RPC error.
     let msg = format!("{API_KEY_REJECTED_PREFIX} backend rejected api key on GET /teams/me/usage");
     assert!(is_api_key_rejected_message(&msg));
