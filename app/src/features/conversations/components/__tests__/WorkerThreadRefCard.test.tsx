@@ -54,7 +54,8 @@ describe('WorkerThreadRefCard — status badge', () => {
     const badge = screen.getByTestId('worker-thread-status-badge');
     expect(badge.getAttribute('data-status')).toBe('completed');
     expect(badge.textContent).toContain('done');
-    expect(badge.className).toContain('sage');
+    expect(badge.getAttribute('data-variant')).toBe('success');
+    expect(badge.querySelector('[data-slot="badge-dot"]')?.className).toContain('bg-sage-500');
     expect(badge.getAttribute('aria-label')).toBe('Worker done');
   });
 
