@@ -83,15 +83,15 @@ The default posture, `acceptEdits`, restricts CC to file reads and edits under `
 ## Auth resolution order
 
 1. `ANTHROPIC_API_KEY` env var (highest precedence, set on the spawned child).
-2. Per-thread / per-agent key from `ChatRequest` config (future, not yet wired).
-3. `~/.claude/.credentials.json`: the CLI's own OAuth tokens from `claude login` (Pro / Max subscription). We never read or round-trip the access token; auth detection probes this file for non-secret metadata only.
+2. A host-provided auth-profile store, or Claude Pro/Max OAuth: both still future work.
+3. `~/.claude/.credentials.json`: the CLI's own login from `claude login` (Pro/Max subscription), used transparently by simply not setting `ANTHROPIC_API_KEY` on the child, so the CLI reads its own credentials (the Keychain, on macOS, under the `Claude Code-credentials` service).
 4. None: the CLI will fail with an auth error.
 
-The `openhuman.inference_claude_code_auth_status` RPC probes sources 1 and 3 without spawning the CLI and surfaces the result in the Settings → AI panel.
+The `openhuman.inference_claude_code_auth_status` RPC reports the richer state for the Settings → AI panel by spawning `claude auth status --json` (bounded by a 10-second timeout) rather than reading the credentials file directly, since a macOS login lives in the Keychain, not on disk.
 
 ## Tool surface exposed to the CLI
 
-The CLI sees these tools as `mcp__openhuman__<name>` (delivered by the existing stdio MCP server in [`crates/openhuman-core/src/mcp/server/`](../../../crates/openhuman-core/src/mcp/server/)):
+The CLI sees these tools as `mcp__openhuman__<name>`, served over the loopback HTTP MCP endpoint described above (the same tool set the stdio MCP server in [`crates/openhuman-core/src/mcp/server/`](../../../crates/openhuman-core/src/mcp/server/) exposes to other MCP clients):
 
 - `core.list_tools`, `core.tool_instructions`
 - `memory.search`, `memory.recall`
@@ -99,7 +99,7 @@ The CLI sees these tools as `mcp__openhuman__<name>` (delivered by the existing 
 - `agent.list_subagents`, `agent.run_subagent` (write, flagged `destructiveHint` per MCP spec)
 - `searxng_search`
 
-The MCP server enforces `SecurityPolicy::ToolOperation` checks; all tools except `agent.run_subagent` are read-only.
+The MCP server enforces `SecurityPolicy::ToolOperation` checks; all tools except `agent.run_subagent` are read-only. The CLI's own `tool_use` blocks (its internal Read/Bash/etc. calls) are never surfaced to OpenHuman as harness tool calls: the CLI has already executed them by the time they appear in the stream, so `event_mapper.rs` only strips their argument JSON out of the visible text.
 
 ## Limitations (v1)
 
