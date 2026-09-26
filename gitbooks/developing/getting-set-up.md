@@ -133,7 +133,7 @@ Windows installer behavior:
 - Verifies digest when available
 - Runs per-user install where supported by installer package
 
-## ARM Linux Build (aarch64)
+## ARM Linux build (aarch64)
 
 CI builds the `aarch64-unknown-linux-gnu` target on an `ubuntu-24.04-arm` runner
 with the same Tauri command as x64 (see
