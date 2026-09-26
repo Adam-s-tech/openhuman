@@ -7,51 +7,39 @@ icon: vials
 
 ## Overview
 
-Desktop E2E tests use **WebDriverIO (WDIO)** to drive the Tauri app through Appium:
+Desktop E2E tests use **WebDriverIO (WDIO)** to drive the app through a single `tauri-driver` (WebDriver) session against its native Wry/WebKit webview:
 
-| Platform                    | Driver          | Port | App format    | Selectors |
-| --------------------------- | --------------- | ---- | ------------- | --------- |
-| **Linux / Appium Chromium** | Appium Chromium | 4723 | Debug binary  | CSS / DOM |
-| **macOS / Appium Chromium** | Appium Chromium | 4723 | `.app` bundle | CSS / DOM |
+| Platform  | Driver                        | Port | App format   | Selectors |
+| --------- | ------------------------------ | ---- | ------------- | --------- |
+| **Linux** | tauri-driver + WebKitWebDriver | 4444 | Debug binary  | CSS / DOM |
 
-OpenHuman's desktop app runs on Tauri's native Wry webview (the CEF runtime was removed in #5478). CI drives the Linux debug binary under Xvfb; the macOS / Windows Chromium-driver backend attached over CEF's remote-debugging port and no longer works — those platforms have no desktop E2E coverage until a native driver (Appium Mac2 / WinAppDriver) lands (#5485).
+The app moved from CEF to Tauri's native Wry webview in #5456. The old Appium Chromium-driver backend attached over CEF's remote-debugging port; CDP only exists under a Chromium engine, so that backend was removed in #5478 along with CEF itself. Linux CI now drives the debug binary under Xvfb through `tauri-driver`. macOS and Windows have no automated desktop E2E coverage until a native driver (Appium Mac2 / WinAppDriver) replaces the removed one; that work is tracked in #5485. `pnpm --filter openhuman-app test:e2e:build` still produces a `.app` bundle on macOS for manual testing, but there is no supported automated session there yet.
 
 ---
 
 ## Quick start
 
-### Linux / Appium Chromium
+### Linux
 
 ```bash
-# Install Appium and the Chromium driver (one-time)
-npm install -g appium@3
-appium driver install --source=npm appium-chromium-driver
-
 # Build the E2E app
 pnpm --filter openhuman-app test:e2e:build
 
-# Run all flows
+# Run every spec in one shared tauri-driver session
+pnpm --filter openhuman-app test:e2e:session
+
+# Run all flows, sharded by suite category
 pnpm --filter openhuman-app test:e2e:all:flows
 
 # Run a single spec
 bash app/scripts/e2e-run-spec.sh test/e2e/specs/smoke.spec.ts smoke
 ```
 
-On headless Linux, the harness runs under **Xvfb** for a virtual display.
-
-### macOS / Appium Chromium
-
-```bash
-# Install Appium + Chromium driver (one-time, needs Node 24+)
-npm install -g appium@3
-appium driver install --source=npm appium-chromium-driver
-
-# Build the .app bundle
-pnpm --filter openhuman-app test:e2e:build
-
-# Run all flows
-pnpm --filter openhuman-app test:e2e:all:flows
-```
+`app/scripts/e2e-run-session.sh` starts `tauri-driver` on `TAURI_DRIVER_PORT`
+(default `4444`) with `WebKitWebDriver` as its native driver, waits for its
+`/status` endpoint, then runs WDIO against `app/test/wdio.conf.ts`. On
+headless Linux the app itself runs under **Xvfb** for a virtual display; the
+driver process does not need one.
 
 ### Docker on macOS (Linux harness locally)
 
