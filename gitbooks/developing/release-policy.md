@@ -49,7 +49,7 @@ Two long-lived branches, two CI lanes:
 The cycle:
 
 1. A maintainer dispatches [`promote-main-to-release.yml`](../../.github/workflows/promote-main-to-release.yml), which pushes a merge commit from `main` into `release` (no PR). Re-dispatching refreshes `release` with main's latest while preserving fix commits already on `release`; when `release` already contains `main` it's a no-op.
-2. CI Full runs on the promotion push. If it finds breakage, anyone with write access opens a fix PR directly against `release`; fix PRs run both lanes — CI Lite for quick lint/coverage feedback and CI Full as the merge-blocking `CI Full Gate` check — and the post-merge push re-runs CI Full on the merge result.
+2. CI Full runs on the promotion push. If it finds breakage, anyone with write access opens a fix PR directly against `release`; fix PRs run both lanes (CI Lite for quick lint/coverage feedback and CI Full as the merge-blocking `CI Full Gate` check), and the post-merge push re-runs CI Full on the merge result.
 3. Once CI Full is green on `release` HEAD, cut production with `release-production.yml`. Staging may instead be dispatched from `main` when QA needs to validate main before promotion. The release workflows do not query or enforce the `CI Full Gate`; operators verify the relevant CI evidence before cutting.
 4. A cut sourced from `release` back-merges `release` into `main` (`scripts/release/merge-release-into-main.sh`: fast-forward when possible, else a versioned merge commit such as `chore(release): merge release v1.2.4 back into main`), so bump commits and fix commits flow back. A staging cut sourced from `main` needs no back-merge. Version-bump commits carry `[skip ci]`.
 
@@ -104,7 +104,7 @@ Google Play requires each upload to use a monotonically increasing Android `vers
 4. The bump commit (and anything else on `release`) is merged back into `main`.
 5. On failure the staging tag is auto-deleted; the bump commit on `release` stays so the next cut continues from `vX.Y.(Z+1)`.
 
-There is no separate `staging` branch — staging cuts and production releases both live on `release`. The two are distinguished only by tag suffix (`-staging` vs none) and by which workflow created the tag.
+There is no separate `staging` branch: staging cuts and production releases both live on `release`. The two are distinguished only by tag suffix (`-staging` vs none) and by which workflow created the tag.
 
 ### Shipping a production release
 
