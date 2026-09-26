@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Navigate, Route } from 'react-router-dom';
+import { Navigate, Route, useLocation } from 'react-router-dom';
 
 import ForwardSearch from '../routing/ForwardSearch';
 import SettingsIndexRedirect from './layout/SettingsIndexRedirect';
