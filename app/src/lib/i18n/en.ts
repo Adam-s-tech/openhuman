@@ -2099,7 +2099,7 @@ const en: TranslationMap = {
   'autonomy.unlimitedNote': 'Unlimited: rate limiting disabled.',
   'autonomy.invalidIntegerMsg':
     'Must be a positive integer (use the Unlimited preset for no limit).',
-  'autonomy.presetUnlimited': 'Unlimited (default)',
+  'autonomy.presetUnlimited': 'Unlimited',
   'triggers.toggleFailed': '{action} failed for {trigger}: {message}',
 
   // Settings: AI
