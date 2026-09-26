@@ -215,40 +215,37 @@ A complete flow from user action to external service and back:
 User types a command in the chat UI
           |
           v
-React Frontend dispatches to AI provider
+Frontend sends the turn to the core over HTTP JSON-RPC
           |
           v
-AI model receives prompt + tool catalog (via tool:sync)
+Agent harness (tinyagents) runs the turn, sees the tool catalog
           |
           v
-AI decides to invoke a skill tool (e.g., send Telegram message)
+Model decides to call a tool (e.g., send a Telegram message)
           |
           v
-mcp:toolCall event sent over Socket.io (or local invocation)
+Tool Registry routes to the registered handler
           |
           v
-Socket Manager (Rust) receives event, parses the tool name
+Handler executes: native Rust, or a Node helper via `runtime::node`
           |
           v
-Tool Registry routes to the registered handler (native Rust or Node helper via `runtime::node`)
+Handler runs through `SecurityPolicy` and the active sandbox backend
           |
           v
-Handler executes through `SecurityPolicy` + the active sandbox backend
-          |
-          v
-External call: reqwest HTTP request via rustls (no browser CORS), SQLite, OS keychain, etc.
+External call: reqwest over rustls, a channel driver, SQLite, OS keychain, etc.
           |
           v
 External service responds
           |
           v
-Result flows back: Handler -> Registry -> Socket -> MCP -> AI -> UI
+Result flows back through the harness to the frontend over Socket.IO or the RPC response
           |
           v
 User sees the result in the chat interface
 ```
 
-Every layer is async and non-blocking. The Rust core processes thousands of concurrent skill executions, cron triggers, and socket events on a fixed Tokio thread pool.
+Every layer is async and non-blocking. The Rust core runs concurrent tool executions, cron triggers, and socket events on a fixed Tokio thread pool.
 
 ---
 
