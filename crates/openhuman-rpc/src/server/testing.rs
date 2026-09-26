@@ -10,7 +10,7 @@ pub(crate) struct EnvVarGuard {
 
 impl EnvVarGuard {
     pub(crate) fn set_many(vars: Vec<(&'static str, OsString)>) -> Self {
-        let lock = crate::config::TEST_ENV_LOCK
+        let lock = openhuman_core::config::TEST_ENV_LOCK
             .lock()
             .expect("test env lock poisoned");
         let mut old_values = Vec::with_capacity(vars.len());

@@ -2,7 +2,7 @@
 //!
 //! [`build_core_http_router`] assembles every route; each route family has its
 //! own module. Binding the listener and running the server belongs to
-//! [`CoreRuntime::serve`](crate::core::runtime::CoreRuntime::serve).
+//! [`CoreRuntime::serve`](openhuman_core::core::runtime::CoreRuntime::serve).
 
 use axum::extract::{DefaultBodyLimit, Request};
 use axum::http::StatusCode;
@@ -12,7 +12,7 @@ use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde_json::json;
 
-use crate::core::types::AppState;
+use openhuman_core::core::types::AppState;
 
 pub(crate) mod cors;
 mod dictation;
@@ -71,10 +71,10 @@ pub fn build_core_http_router(socketio_enabled: bool) -> Router {
         // Dev-only: hand this core (URL + bearer) to a loopback Vite renderer.
         .route(
             "/dev/connect",
-            get(crate::core::dev_connect::dev_connect_handler),
+            get(crate::server::dev_connect::dev_connect_handler),
         )
         // OpenAI-compatible inference endpoint (/v1/chat/completions, /v1/models)
-        .nest("/v1", crate::inference::http::router())
+        .nest("/v1", openhuman_core::inference::http::router())
         // Apply `AppState` here so the outer router becomes `Router<()>` and
         // matches any state-less sub-router merged into it.
         .with_state(AppState {
@@ -84,12 +84,12 @@ pub fn build_core_http_router(socketio_enabled: bool) -> Router {
     let router = router
         .fallback(not_found_handler)
         .layer(middleware::from_fn(http_request_log_middleware))
-        .layer(middleware::from_fn(crate::core::auth::rpc_auth_middleware))
+        .layer(middleware::from_fn(crate::server::auth::rpc_auth_middleware))
         .layer(middleware::from_fn(cors::cors_middleware));
 
     if socketio_enabled {
-        let (socket_layer, io) = crate::core::socketio::attach_socketio();
-        crate::core::socketio::spawn_web_channel_bridge(io);
+        let (socket_layer, io) = crate::server::socketio::attach_socketio();
+        crate::server::socketio::spawn_web_channel_bridge(io);
         return router.layer(socket_layer);
     }
 
@@ -126,9 +126,9 @@ async fn http_request_log_middleware(req: Request, next: Next) -> Response {
 
 /// Handler for the root endpoint, returning server information and available endpoints.
 async fn root_handler() -> impl IntoResponse {
-    let api_server = match crate::config::Config::load_or_init().await {
-        Ok(cfg) => crate::api::config::effective_backend_api_url(&cfg.api_url),
-        Err(_) => crate::api::config::effective_backend_api_url(&None),
+    let api_server = match openhuman_core::config::Config::load_or_init().await {
+        Ok(cfg) => openhuman_core::api::config::effective_backend_api_url(&cfg.api_url),
+        Err(_) => openhuman_core::api::config::effective_backend_api_url(&None),
     };
 
     (

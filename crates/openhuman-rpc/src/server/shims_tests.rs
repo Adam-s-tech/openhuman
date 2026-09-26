@@ -3,12 +3,12 @@ use std::time::Duration;
 
 use tokio_util::sync::CancellationToken;
 
-use crate::core::jsonrpc::testing::EnvVarGuard;
+use crate::server::testing::EnvVarGuard;
 
 #[test]
 fn e2e_environment_enables_advertised_tool_groups() {
     let _guard = EnvVarGuard::set_many(vec![("OPENHUMAN_E2E", "1".into())]);
-    let builder = crate::core::runtime::CoreBuilder::new(crate::core::types::HostKind::Cli);
+    let builder = openhuman_core::core::runtime::CoreBuilder::new(openhuman_core::core::types::HostKind::Cli);
     let _ = super::apply_e2e_tool_groups(builder);
 }
 
@@ -70,7 +70,7 @@ async fn wait_until_port_released(port: u16) {
 #[tokio::test]
 #[ignore = "calls full server bootstrap; leaks process-global state into sibling tests (#1552). Re-cover via integration test."]
 async fn shutdown_token_stops_axum_listener_within_timeout() {
-    let _signed_out_restore = crate::cron::scheduler_gate::SignedOutTestGuard::set(false);
+    let _signed_out_restore = openhuman_core::cron::scheduler_gate::SignedOutTestGuard::set(false);
 
     let workspace = tempfile::tempdir().expect("workspace tempdir");
 

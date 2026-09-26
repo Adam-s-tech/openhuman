@@ -1,7 +1,7 @@
 //! CORS for the core's HTTP API.
 //!
 //! The origin allowlist itself is the shared wire rule in
-//! [`crate::rpc::is_origin_allowed_with_extra`]; this module reads the
+//! [`crate::is_origin_allowed_with_extra`]; this module reads the
 //! operator's extra origins from the environment and shapes the headers.
 
 use axum::extract::Request;
@@ -10,10 +10,10 @@ use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
 
 /// Decides whether a browser `Origin` header value is allowed, including the
-/// operator's extra origins from [`crate::rpc::ALLOWED_ORIGINS_ENV`].
+/// operator's extra origins from [`crate::ALLOWED_ORIGINS_ENV`].
 pub(crate) fn is_origin_allowed(origin: &str) -> bool {
-    let extra_origins = std::env::var(crate::rpc::ALLOWED_ORIGINS_ENV).ok();
-    crate::rpc::is_origin_allowed_with_extra(origin, extra_origins.as_deref())
+    let extra_origins = std::env::var(crate::ALLOWED_ORIGINS_ENV).ok();
+    crate::is_origin_allowed_with_extra(origin, extra_origins.as_deref())
 }
 
 /// Middleware for handling Cross-Origin Resource Sharing (CORS).

@@ -47,7 +47,7 @@ pub(super) async fn events_handler(
         .map(str::trim)
         .filter(|s| !s.is_empty());
     let bearer_ok = bearer
-        .map(crate::core::auth::verify_bearer_token)
+        .map(openhuman_core::core::auth::verify_bearer_token)
         .unwrap_or(false);
 
     if !bearer_ok {
@@ -71,7 +71,7 @@ pub(super) async fn events_handler(
             )
                 .into_response();
         };
-        if !crate::core::event_bind_tokens::consume(&query.client_id, supplied_token) {
+        if !openhuman_core::core::event_bind_tokens::consume(&query.client_id, supplied_token) {
             log::warn!(
                 "[events] reject subscribe: bind token invalid or expired (client_id_len={})",
                 query.client_id.len()
@@ -89,7 +89,7 @@ pub(super) async fn events_handler(
     }
 
     let client_id = query.client_id;
-    let rx = crate::web_chat::subscribe_web_channel_events();
+    let rx = openhuman_core::web_chat::subscribe_web_channel_events();
     let stream = tokio_stream::wrappers::BroadcastStream::new(rx).filter_map(
         move |item| -> Option<Result<Event, std::convert::Infallible>> {
             let event = match item {
@@ -136,7 +136,7 @@ pub(super) async fn domain_events_handler(headers: axum::http::HeaderMap) -> Res
         .map(str::trim)
         .filter(|s| !s.is_empty());
     let bearer_ok = bearer
-        .map(crate::core::auth::verify_bearer_token)
+        .map(openhuman_core::core::auth::verify_bearer_token)
         .unwrap_or(false);
 
     if !bearer_ok {
@@ -153,7 +153,7 @@ pub(super) async fn domain_events_handler(headers: axum::http::HeaderMap) -> Res
     }
 
     // Read dashboard config for event stream settings.
-    let es_cfg = crate::config::rpc::load_config_with_timeout()
+    let es_cfg = openhuman_core::config::rpc::load_config_with_timeout()
         .await
         .map(|c| c.dashboard.event_stream)
         .unwrap_or_default();
@@ -166,7 +166,7 @@ pub(super) async fn domain_events_handler(headers: axum::http::HeaderMap) -> Res
             .into_response();
     }
 
-    let bus = match crate::core::bus::BUS.get() {
+    let bus = match openhuman_core::core::bus::BUS.get() {
         Some(bus) => bus,
         None => {
             log::warn!("[events/domain] event bus not initialized");
@@ -186,9 +186,9 @@ pub(super) async fn domain_events_handler(headers: axum::http::HeaderMap) -> Res
     // in this handler that can afford the authoritative read — it happens
     // per connection, not per event — and it refills the cache the row
     // stamping below relies on.
-    let active_workspace = crate::config::active_workspace_dir()
+    let active_workspace = openhuman_core::config::active_workspace_dir()
         .await
-        .map(|dir| crate::config::workspace_handle(&dir))
+        .map(|dir| openhuman_core::config::workspace_handle(&dir))
         .map_err(|error| {
             log::warn!(
                 "[events/domain] could not resolve the active workspace ({error}); \
@@ -245,9 +245,9 @@ pub(super) async fn domain_events_handler(headers: axum::http::HeaderMap) -> Res
         // publishes, so it should not want to. `None` means "not resolved
         // since the last workspace marker write", which the client treats as
         // unknown rather than as a mismatch.
-        let workspace = event.workspace_dir().map(crate::config::workspace_handle);
-        let active = crate::config::active_workspace_dir_cached()
-            .map(|dir| crate::config::workspace_handle(&dir));
+        let workspace = event.workspace_dir().map(openhuman_core::config::workspace_handle);
+        let active = openhuman_core::config::active_workspace_dir_cached()
+            .map(|dir| openhuman_core::config::workspace_handle(&dir));
         let data = json!({
             "domain": domain,
             "event": event_name,

@@ -42,7 +42,7 @@ pub(super) async fn dictation_ws_handler(
         .get(header::ORIGIN)
         .and_then(|v| v.to_str().ok())
         .map(str::trim);
-    if !crate::core::socketio::origin_is_allowed(origin) {
+    if !crate::server::socketio::origin_is_allowed(origin) {
         log::warn!("[ws] dictation upgrade rejected: disallowed origin {origin:?}");
         return (
             StatusCode::FORBIDDEN,
@@ -63,7 +63,7 @@ pub(super) async fn dictation_ws_handler(
         .map(str::trim)
         .filter(|s| !s.is_empty());
     let bearer_ok = header_token
-        .map(crate::core::auth::verify_bearer_token)
+        .map(openhuman_core::core::auth::verify_bearer_token)
         .unwrap_or(false);
     let bearer_ok = bearer_ok
         || query
@@ -71,7 +71,7 @@ pub(super) async fn dictation_ws_handler(
             .as_deref()
             .map(str::trim)
             .filter(|s| !s.is_empty())
-            .map(crate::core::auth::verify_bearer_token)
+            .map(openhuman_core::core::auth::verify_bearer_token)
             .unwrap_or(false);
     if !bearer_ok {
         log::warn!("[ws] dictation upgrade rejected: missing or invalid bearer token");
@@ -87,13 +87,13 @@ pub(super) async fn dictation_ws_handler(
     }
 
     ws.on_upgrade(|socket| async move {
-        let config = match crate::config::rpc::load_config_with_timeout().await {
+        let config = match openhuman_core::config::rpc::load_config_with_timeout().await {
             Ok(c) => Arc::new(c),
             Err(e) => {
                 log::error!("[ws] failed to load config for dictation: {e}");
                 return;
             }
         };
-        crate::voice::streaming::handle_dictation_ws(socket, config).await;
+        openhuman_core::voice::streaming::handle_dictation_ws(socket, config).await;
     })
 }

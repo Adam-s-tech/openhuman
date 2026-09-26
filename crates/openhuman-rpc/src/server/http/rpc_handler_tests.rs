@@ -3,8 +3,8 @@ use serde_json::json;
 use std::sync::Arc;
 
 use super::rpc_handler;
-use crate::core::jsonrpc::default_state;
-use crate::core::jsonrpc::testing::EnvVarGuard;
+use openhuman_core::core::invoke::default_state;
+use crate::server::testing::EnvVarGuard;
 
 #[tokio::test(flavor = "current_thread")]
 async fn structured_rpc_error_envelope_passes_through_generic_dispatch() {
@@ -23,7 +23,7 @@ async fn structured_rpc_error_envelope_passes_through_generic_dispatch() {
         workspace.path().as_os_str().to_os_string(),
     )]);
 
-    let stale_thread_request = crate::rpc::RpcRequest {
+    let stale_thread_request = crate::RpcRequest {
         jsonrpc: "2.0".to_string(),
         id: json!(7),
         method: "openhuman.threads_generate_title".to_string(),
@@ -80,7 +80,7 @@ async fn thread_not_found_rpc_error_does_not_report_to_sentry() {
             // `report_error_message` are captured directly via
             // `sentry::capture_message` and must not be picked up here too
             // (otherwise this test sees double events).
-            if metadata.target() == crate::core::observability::REPORT_ERROR_TRACING_TARGET {
+            if metadata.target() == openhuman_core::core::observability::REPORT_ERROR_TRACING_TARGET {
                 return sentry::integrations::tracing::EventFilter::Ignore;
             }
             match *metadata.level() {
@@ -92,7 +92,7 @@ async fn thread_not_found_rpc_error_does_not_report_to_sentry() {
     );
     let _subscriber_guard = tracing::subscriber::set_default(subscriber);
 
-    let stale_thread_request = crate::rpc::RpcRequest {
+    let stale_thread_request = crate::RpcRequest {
         jsonrpc: "2.0".to_string(),
         id: json!(1),
         method: "openhuman.threads_message_append".to_string(),
@@ -119,7 +119,7 @@ async fn thread_not_found_rpc_error_does_not_report_to_sentry() {
         "ThreadNotFound should not reach Sentry"
     );
 
-    let unrelated_error_request = crate::rpc::RpcRequest {
+    let unrelated_error_request = crate::RpcRequest {
         jsonrpc: "2.0".to_string(),
         id: json!(2),
         method: "core.not_a_real_method".to_string(),
@@ -197,7 +197,7 @@ async fn unknown_method_severity_split_by_probe_allow_list() {
             // Mirror production: diagnostics from the report_* helpers are
             // captured directly via `sentry::capture_message`, so the bridge
             // must ignore their marker target to avoid double events.
-            if metadata.target() == crate::core::observability::REPORT_ERROR_TRACING_TARGET {
+            if metadata.target() == openhuman_core::core::observability::REPORT_ERROR_TRACING_TARGET {
                 return sentry::integrations::tracing::EventFilter::Ignore;
             }
             match *metadata.level() {
@@ -210,7 +210,7 @@ async fn unknown_method_severity_split_by_probe_allow_list() {
     let _subscriber_guard = tracing::subscriber::set_default(subscriber);
 
     // (1) Allow-listed probe → debug-only, never reaches Sentry.
-    let probe_request = crate::rpc::RpcRequest {
+    let probe_request = crate::RpcRequest {
         jsonrpc: "2.0".to_string(),
         id: json!(1),
         method: "rpc.discover".to_string(),
@@ -234,7 +234,7 @@ async fn unknown_method_severity_split_by_probe_allow_list() {
     );
 
     // (2) Genuinely-unknown method → still captured, but at warn for triage.
-    let unknown_request = crate::rpc::RpcRequest {
+    let unknown_request = crate::RpcRequest {
         jsonrpc: "2.0".to_string(),
         id: json!(2),
         method: "totally.made.up.method".to_string(),
@@ -306,7 +306,7 @@ async fn invalid_ingest_payload_is_captured_at_warn_not_error() {
 
     let subscriber = tracing_subscriber::registry().with(
         sentry::integrations::tracing::layer().event_filter(|metadata| {
-            if metadata.target() == crate::core::observability::REPORT_ERROR_TRACING_TARGET {
+            if metadata.target() == openhuman_core::core::observability::REPORT_ERROR_TRACING_TARGET {
                 return sentry::integrations::tracing::EventFilter::Ignore;
             }
             match *metadata.level() {
@@ -321,7 +321,7 @@ async fn invalid_ingest_payload_is_captured_at_warn_not_error() {
     // `platform` is genuinely required by `ChatBatch` (unlike `timestamp`,
     // which now defaults — see `chat_payload_without_timestamp_is_accepted`),
     // so this reaches the invalid-payload branch rather than succeeding.
-    let request = crate::rpc::RpcRequest {
+    let request = crate::RpcRequest {
         jsonrpc: "2.0".to_string(),
         id: json!(1),
         method: "openhuman.memory_tree_ingest".to_string(),

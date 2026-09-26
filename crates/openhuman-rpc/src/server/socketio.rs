@@ -1,12 +1,12 @@
 //! Socket.IO live-event bridge to the desktop shell.
 //!
 //! `spawn_web_channel_bridge` spawns one forwarding task per source. Domain
-//! broadcast channels: web-chat events (`crate::web_chat`), dictation hotkeys
-//! and transcription results (`crate::voice::dictation_listener`), overlay
-//! attention bubbles (`crate::desktop::overlay::subscribe_attention_events`,
+//! broadcast channels: web-chat events (`openhuman_core::web_chat`), dictation hotkeys
+//! and transcription results (`openhuman_core::voice::dictation_listener`), overlay
+//! attention bubbles (`openhuman_core::desktop::overlay::subscribe_attention_events`,
 //! see `desktop/overlay/README.md`), core notifications
-//! (`crate::desktop::notifications`), and shell companion state
-//! (`COMPANION_STATE_BUS`). `DomainEvent`s read off `crate::core::bus::BUS`:
+//! (`openhuman_core::desktop::notifications`), and shell companion state
+//! (`COMPANION_STATE_BUS`). `DomainEvent`s read off `openhuman_core::core::bus::BUS`:
 //! session expiry, MCP setup secret requests, memory sync and tree-build
 //! progress, channel listener health, and active-workspace changes. Web-chat
 //! events go to the initiating client's room and the `thread:<id>` room
@@ -41,11 +41,8 @@ use serde_json::Value;
 // construct them — so `serde` stays ungated and only the transport surface is
 // gated (type carve-out; see AGENTS.md and this module's `pub mod` in
 // `core::mod`, which is intentionally NOT gated).
-#[cfg(feature = "http-server")]
 use serde_json::json;
-#[cfg(feature = "http-server")]
 use socketioxide::extract::{AckSender, Data, SocketRef, TryData};
-#[cfg(feature = "http-server")]
 use socketioxide::SocketIo;
 
 /// Shell-originated companion lifecycle events that still need to reach
@@ -66,7 +63,6 @@ pub fn publish_companion_state_changed(payload: Value) -> usize {
     COMPANION_STATE_BUS.send(payload).unwrap_or_default()
 }
 
-#[cfg(feature = "http-server")]
 fn subscribe_companion_state_changed() -> tokio::sync::broadcast::Receiver<Value> {
     COMPANION_STATE_BUS.subscribe()
 }
@@ -78,7 +74,6 @@ fn subscribe_companion_state_changed() -> tokio::sync::broadcast::Receiver<Value
 /// into the JSON-RPC dispatcher or the web-chat orchestrator: an unauthenticated
 /// socket that never picked up the marker is allowed to receive broadcast-style
 /// events (read-only) but cannot trigger executable work.
-#[cfg(feature = "http-server")]
 #[derive(Clone, Copy, Debug)]
 struct AuthedConnection;
 
@@ -88,7 +83,6 @@ struct AuthedConnection;
 /// headers, so the handshake `auth` map is the only header-equivalent slot
 /// available for our per-process bearer. The socket-IO Node/JS clients all
 /// surface `io(url, { auth: { token: "<hex>" } })` for this.
-#[cfg(feature = "http-server")]
 #[derive(Debug, Default, Deserialize)]
 struct HandshakeAuth {
     #[serde(default)]
@@ -116,11 +110,10 @@ struct HandshakeAuth {
 /// A missing `Origin` header is treated as a native (non-browser) client
 /// and accepted — only the cross-origin browser-page case is the targeted
 /// bad actor here.
-#[cfg(feature = "http-server")]
 pub(crate) fn origin_is_allowed(origin: Option<&str>) -> bool {
     origin_is_allowed_with_extra(
         origin,
-        std::env::var(crate::rpc::ALLOWED_ORIGINS_ENV)
+        std::env::var(crate::ALLOWED_ORIGINS_ENV)
             .ok()
             .as_deref(),
     )
@@ -135,7 +128,6 @@ pub(crate) fn origin_is_allowed(origin: Option<&str>) -> bool {
 /// still dropped here: the page loaded and every read RPC succeeded, but the
 /// socket was disconnected at handshake and pressing Send did nothing, with no
 /// error surfaced to the user.
-#[cfg(feature = "http-server")]
 pub(crate) fn origin_is_allowed_with_extra(
     origin: Option<&str>,
     extra_origins: Option<&str>,
@@ -180,7 +172,6 @@ pub(crate) fn origin_is_allowed_with_extra(
 }
 
 /// True when `socket` finished the handshake with a valid bearer token.
-#[cfg(feature = "http-server")]
 fn socket_is_authed(socket: &SocketRef) -> bool {
     socket.extensions.get::<AuthedConnection>().is_some()
 }
@@ -188,7 +179,6 @@ fn socket_is_authed(socket: &SocketRef) -> bool {
 /// Best-effort disconnect. Called when we discover an unauthenticated socket
 /// inside an event handler — the connect path already disconnects the bad
 /// origins / wrong tokens, so this is purely a defense-in-depth path.
-#[cfg(feature = "http-server")]
 fn drop_unauthed(socket: &SocketRef, reason: &'static str) {
     log::warn!(
         "[socketio] dropping unauthenticated socket id={} reason={}",
@@ -198,7 +188,6 @@ fn drop_unauthed(socket: &SocketRef, reason: &'static str) {
     let _ = socket.clone().disconnect();
 }
 
-#[cfg(feature = "http-server")]
 #[derive(Debug, Deserialize)]
 struct SocketRpcRequest {
     id: serde_json::Value,
@@ -207,7 +196,6 @@ struct SocketRpcRequest {
     params: serde_json::Value,
 }
 
-#[cfg(feature = "http-server")]
 #[derive(Debug, Deserialize)]
 struct ChatStartPayload {
     thread_id: String,
@@ -231,7 +219,6 @@ struct ChatStartPayload {
     run_mode: Option<String>,
 }
 
-#[cfg(feature = "http-server")]
 #[derive(Debug, Deserialize)]
 struct ChatCancelPayload {
     thread_id: String,
@@ -242,14 +229,12 @@ struct ChatCancelPayload {
     request_id: Option<String>,
 }
 
-#[cfg(feature = "http-server")]
 #[derive(Debug, Deserialize)]
 struct ThreadSubscribePayload {
     thread_id: String,
 }
 
 /// Reply to `thread:subscribe`, so a client can order a read after the join.
-#[cfg(feature = "http-server")]
 #[derive(Debug, Serialize)]
 struct ThreadSubscribeAck {
     joined: bool,
@@ -262,7 +247,6 @@ struct ThreadSubscribeAck {
 /// - `rpc:request`: Invoking JSON-RPC methods over WebSocket.
 /// - `chat:start`: Initiating a new chat turn.
 /// - `chat:cancel`: Aborting an active chat turn.
-#[cfg(feature = "http-server")]
 pub fn attach_socketio() -> (socketioxide::layer::SocketIoLayer, SocketIo) {
     let (layer, io) = SocketIo::new_layer();
 
@@ -300,7 +284,7 @@ pub fn attach_socketio() -> (socketioxide::layer::SocketIoLayer, SocketIo) {
             // `TryData` lets us treat a missing/malformed `auth` payload as a
             // soft failure (no panic) and reject the connect cleanly.
             let supplied = handshake.ok().and_then(|h| h.token).unwrap_or_default();
-            if !crate::core::auth::verify_bearer_token(&supplied) {
+            if !openhuman_core::core::auth::verify_bearer_token(&supplied) {
                 log::warn!(
                     "[socketio] rejecting connect: missing or invalid bearer client={}",
                     client_id
@@ -341,9 +325,9 @@ pub fn attach_socketio() -> (socketioxide::layer::SocketIoLayer, SocketIo) {
                 let socket = socket.clone();
                 let client_id = client_id.clone();
                 tokio::spawn(async move {
-                    match crate::config::active_workspace_snapshot().await {
+                    match openhuman_core::config::active_workspace_snapshot().await {
                         Ok((dir, revision)) => {
-                            let handle = crate::config::workspace_handle(&dir);
+                            let handle = openhuman_core::config::workspace_handle(&dir);
                             // One snapshot, not two reads: resolved
                             // separately, a switch between them would pair
                             // this workspace with the *next* one's revision,
@@ -383,8 +367,8 @@ pub fn attach_socketio() -> (socketioxide::layer::SocketIoLayer, SocketIo) {
                     );
 
                     // Invoke the method through the same logic used by the HTTP RPC endpoint.
-                    let response = match crate::core::jsonrpc::invoke_method(
-                        crate::core::jsonrpc::default_state(),
+                    let response = match openhuman_core::core::invoke::invoke_method(
+                        openhuman_core::core::invoke::default_state(),
                         payload.method.as_str(),
                         payload.params,
                     )
@@ -425,9 +409,9 @@ pub fn attach_socketio() -> (socketioxide::layer::SocketIoLayer, SocketIo) {
                     payload.message.len()
                 );
                     if let Some(run_mode) = payload.run_mode.as_deref() {
-                        match crate::agent::tinyagents::run_mode::parse_mode_label(run_mode) {
+                        match openhuman_core::agent::tinyagents::run_mode::parse_mode_label(run_mode) {
                             Some(mode) => {
-                                crate::agent::tinyagents::run_mode::set_mode(&thread_id, mode);
+                                openhuman_core::agent::tinyagents::run_mode::set_mode(&thread_id, mode);
                             }
                             None => log::warn!(
                                 "[socketio] chat:start thread_id={thread_id} ignoring unrecognized run_mode={run_mode}"
@@ -436,7 +420,7 @@ pub fn attach_socketio() -> (socketioxide::layer::SocketIoLayer, SocketIo) {
                     }
 
                     // Trigger the web channel's chat logic.
-                    match crate::web_chat::start_chat(
+                    match openhuman_core::web_chat::start_chat(
                         &client_id,
                         &payload.thread_id,
                         &payload.message,
@@ -444,7 +428,7 @@ pub fn attach_socketio() -> (socketioxide::layer::SocketIoLayer, SocketIo) {
                         payload.temperature,
                         payload.locale,
                         payload.queue_mode,
-                        crate::web_chat::ChatRequestMetadata::default(),
+                        openhuman_core::web_chat::ChatRequestMetadata::default(),
                     )
                     .await
                     {
@@ -472,7 +456,7 @@ pub fn attach_socketio() -> (socketioxide::layer::SocketIoLayer, SocketIo) {
                             // every other `chat_error`: by `error_type`, plus
                             // a typed `guardrail` payload it doesn't have to
                             // parse out of `message`.
-                            if let crate::web_chat::StartChatError::Guardrail {
+                            if let openhuman_core::web_chat::StartChatError::Guardrail {
                                 verdict,
                                 score,
                                 reasons,
@@ -505,7 +489,7 @@ pub fn attach_socketio() -> (socketioxide::layer::SocketIoLayer, SocketIo) {
                         client_id,
                         payload.thread_id
                     );
-                    let _ = crate::web_chat::cancel_chat_scoped(
+                    let _ = openhuman_core::web_chat::cancel_chat_scoped(
                         &client_id,
                         &payload.thread_id,
                         payload.request_id.as_deref(),
@@ -577,12 +561,11 @@ pub fn attach_socketio() -> (socketioxide::layer::SocketIoLayer, SocketIo) {
 /// 3. **Overlay Bridge**: Forwards attention bubble events to all clients.
 /// 4. **Core Notification Bridge**: Forwards core notification events to all clients.
 /// 5. **Transcription Bridge**: Forwards real-time speech-to-text results to all clients.
-#[cfg(feature = "http-server")]
 pub fn spawn_web_channel_bridge(io: SocketIo) {
     // 1. Web channel events → per-client rooms.
     let io_web = io.clone();
     tokio::spawn(async move {
-        let mut rx = crate::web_chat::subscribe_web_channel_events();
+        let mut rx = openhuman_core::web_chat::subscribe_web_channel_events();
         loop {
             let event = match rx.recv().await {
                 Ok(event) => event,
@@ -609,7 +592,7 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
 
     // 2. Dictation hotkey events → broadcast to all connected clients.
     tokio::spawn(async move {
-        let mut rx = crate::voice::dictation_listener::subscribe_dictation_events();
+        let mut rx = openhuman_core::voice::dictation_listener::subscribe_dictation_events();
         loop {
             let event = match rx.recv().await {
                 Ok(event) => event,
@@ -659,7 +642,7 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
 
     // 3. Overlay attention events → broadcast to all clients.
     tokio::spawn(async move {
-        let mut rx = crate::desktop::overlay::subscribe_attention_events();
+        let mut rx = openhuman_core::desktop::overlay::subscribe_attention_events();
         loop {
             let event = match rx.recv().await {
                 Ok(event) => event,
@@ -687,7 +670,7 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
     //    chat session is active. Pattern mirrors the overlay attention
     //    bridge above — fire-and-forget, no per-client routing.
     tokio::spawn(async move {
-        let mut rx = crate::desktop::notifications::subscribe_core_notifications();
+        let mut rx = openhuman_core::desktop::notifications::subscribe_core_notifications();
         loop {
             let event = match rx.recv().await {
                 Ok(event) => event,
@@ -730,7 +713,7 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
             let max_attempts = (MAX_WAIT_SECS * 1000) / RETRY_INTERVAL_MS;
             let mut attempts: u64 = 0;
             loop {
-                if let Some(bus) = crate::core::bus::BUS.get() {
+                if let Some(bus) = openhuman_core::core::bus::BUS.get() {
                     break bus;
                 }
                 attempts += 1;
@@ -749,13 +732,13 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
             let Some(event) = rx.recv().await else {
                 break;
             };
-            if let crate::core::events::DomainEvent::SessionExpired { source, reason } = event {
+            if let openhuman_core::core::events::DomainEvent::SessionExpired { source, reason } = event {
                 // Other publishers may emit a backend 401 while this core is
                 // using its offline local credential. The auth subscriber
                 // correctly keeps that credential, so the UI must not receive
                 // a contradictory sign-out event from this independent bus
                 // consumer. Real JWT expiry still broadcasts as before.
-                if crate::security::credentials::session_support::current_session_is_local().await {
+                if openhuman_core::security::credentials::session_support::current_session_is_local().await {
                     log::info!(
                         "[socketio] suppress auth:session_expired for local offline credential source={}",
                         source
@@ -798,7 +781,7 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
             let max_attempts = (MAX_WAIT_SECS * 1000) / RETRY_INTERVAL_MS;
             let mut attempts: u64 = 0;
             loop {
-                if let Some(bus) = crate::core::bus::BUS.get() {
+                if let Some(bus) = openhuman_core::core::bus::BUS.get() {
                     break bus;
                 }
                 attempts += 1;
@@ -817,12 +800,12 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
             let Some(event) = rx.recv().await else {
                 break;
             };
-            if let crate::core::events::DomainEvent::ActiveWorkspaceChanged {
+            if let openhuman_core::core::events::DomainEvent::ActiveWorkspaceChanged {
                 workspace_dir,
                 revision,
             } = event
             {
-                let handle = crate::config::workspace_handle(&workspace_dir);
+                let handle = openhuman_core::config::workspace_handle(&workspace_dir);
                 log::info!(
                     "[socketio] broadcast workspace_changed workspace={handle} revision={revision}"
                 );
@@ -836,7 +819,7 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
 
     // 5. Transcription results → broadcast to all connected clients.
     tokio::spawn(async move {
-        let mut rx = crate::voice::dictation_listener::subscribe_transcription_results();
+        let mut rx = openhuman_core::voice::dictation_listener::subscribe_transcription_results();
         loop {
             let text = match rx.recv().await {
                 Ok(text) => text,
@@ -869,7 +852,7 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
             let max_attempts = (MAX_WAIT_SECS * 1000) / RETRY_INTERVAL_MS;
             let mut attempts: u64 = 0;
             loop {
-                if let Some(bus) = crate::core::bus::BUS.get() {
+                if let Some(bus) = openhuman_core::core::bus::BUS.get() {
                     break bus;
                 }
                 attempts += 1;
@@ -889,7 +872,7 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
                 break;
             };
             match event {
-                crate::core::events::DomainEvent::MemorySyncStageChanged {
+                openhuman_core::core::events::DomainEvent::MemorySyncStageChanged {
                     trigger,
                     stage,
                     provider,
@@ -910,7 +893,7 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
                     });
                     let _ = io_memory_sync.emit("memory:sync_stage", &payload);
                 }
-                crate::core::events::DomainEvent::TreeSummarizerPropagated {
+                openhuman_core::core::events::DomainEvent::TreeSummarizerPropagated {
                     namespace,
                     node_id,
                     level,
@@ -924,7 +907,7 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
                     });
                     let _ = io_memory_sync.emit("memory:tree_progress", &payload);
                 }
-                crate::core::events::DomainEvent::TreeSummarizerRebuildCompleted {
+                openhuman_core::core::events::DomainEvent::TreeSummarizerRebuildCompleted {
                     namespace,
                     total_nodes,
                 } => {
@@ -934,7 +917,7 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
                     });
                     let _ = io_memory_sync.emit("memory:tree_completed", &payload);
                 }
-                crate::core::events::DomainEvent::MemoryTreeBuildProgress {
+                openhuman_core::core::events::DomainEvent::MemoryTreeBuildProgress {
                     phase,
                     step,
                     tree_scope,
@@ -952,7 +935,7 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
                     });
                     let _ = io_memory_sync.emit("memory:build_progress", &payload);
                 }
-                crate::core::events::DomainEvent::HarnessInitProgress {
+                openhuman_core::core::events::DomainEvent::HarnessInitProgress {
                     step_id,
                     state,
                     message,
@@ -966,7 +949,7 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
                     });
                     let _ = io_memory_sync.emit("init:progress", &payload);
                 }
-                crate::core::events::DomainEvent::HarnessInitCompleted {
+                openhuman_core::core::events::DomainEvent::HarnessInitCompleted {
                     overall,
                     failed_required,
                 } => {
@@ -981,7 +964,7 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
                 // truth and the Workflows UI keeps a 2s poller as fallback, so
                 // a dropped event here (broadcast lag) only delays the live
                 // update, never corrupts run history.
-                crate::core::events::DomainEvent::FlowRunProgress {
+                openhuman_core::core::events::DomainEvent::FlowRunProgress {
                     run_id,
                     node_id,
                     status,
@@ -1006,7 +989,7 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
                 // instead of waiting for the blocking `flows_run` RPC to
                 // resolve or the first `FlowRunProgress` step. Best-effort,
                 // same rationale as `flow:run_progress` above.
-                crate::core::events::DomainEvent::FlowRunStarted { flow_id, run_id } => {
+                openhuman_core::core::events::DomainEvent::FlowRunStarted { flow_id, run_id } => {
                     let payload = serde_json::json!({
                         "flow_id": flow_id,
                         "run_id": run_id,
@@ -1025,7 +1008,7 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
                 // canvas/sidebar can flip a run to Completed/Failed live
                 // instead of relying on a poll to notice. Best-effort, same
                 // rationale as the other `flow:*` bridges.
-                crate::core::events::DomainEvent::FlowRunFinished {
+                openhuman_core::core::events::DomainEvent::FlowRunFinished {
                     flow_id,
                     run_id,
                     status,
@@ -1049,7 +1032,7 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
                 // — most importantly, so an agent `save_workflow` becomes
                 // visible in a canvas the user has open (audit F6). Best-effort;
                 // the UI's refetch-on-focus is the backstop.
-                crate::core::events::DomainEvent::FlowChanged {
+                openhuman_core::core::events::DomainEvent::FlowChanged {
                     flow_id,
                     kind,
                     actor,
@@ -1074,7 +1057,7 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
                 // bridge — because a flow run has no chat thread/client to
                 // target; the Workflows UI listens process-wide and filters
                 // by `flow_id`/`run_id` client-side.
-                crate::core::events::DomainEvent::FlowApprovalRequested {
+                openhuman_core::core::events::DomainEvent::FlowApprovalRequested {
                     request_id,
                     flow_id,
                     run_id,
@@ -1119,7 +1102,7 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
             let max_attempts = (MAX_WAIT_SECS * 1000) / RETRY_INTERVAL_MS;
             let mut attempts: u64 = 0;
             loop {
-                if let Some(bus) = crate::core::bus::BUS.get() {
+                if let Some(bus) = openhuman_core::core::bus::BUS.get() {
                     break bus;
                 }
                 attempts += 1;
@@ -1139,7 +1122,7 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
                 break;
             };
             let payload = match event {
-                crate::core::events::DomainEvent::ChannelConnected { channel } => {
+                openhuman_core::core::events::DomainEvent::ChannelConnected { channel } => {
                     log::debug!(
                         "[socketio] broadcast channel:connection-updated {channel} -> connected"
                     );
@@ -1149,7 +1132,7 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
                         None,
                     ))
                 }
-                crate::core::events::DomainEvent::ChannelDisconnected { channel, reason } => {
+                openhuman_core::core::events::DomainEvent::ChannelDisconnected { channel, reason } => {
                     log::debug!(
                         "[socketio] broadcast channel:connection-updated {channel} -> error reason_len={}",
                         reason.len()
@@ -1178,7 +1161,6 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
 /// listener for telegram/discord); `last_error` carries the disconnect reason.
 /// Matches the shape consumed by the frontend
 /// `normalizeChannelConnectionUpdatePayload`.
-#[cfg(feature = "http-server")]
 pub(crate) fn channel_connection_update_payload(
     channel: &str,
     status: &str,
@@ -1209,7 +1191,6 @@ pub(crate) fn channel_connection_update_payload(
 /// client told it is in a room it never joined reads the thread, waits for
 /// events that will never be routed to it, and reproduces the invisible-reply
 /// bug this room exists to prevent (#6034).
-#[cfg(feature = "http-server")]
 fn join_room_logged(socket: &SocketRef, room: &str, client_id: &str) -> bool {
     match socket.join(room.to_string()) {
         Ok(()) => {
@@ -1223,7 +1204,6 @@ fn join_room_logged(socket: &SocketRef, room: &str, client_id: &str) -> bool {
     }
 }
 
-#[cfg(feature = "http-server")]
 fn emit_web_channel_event(io: &SocketIo, event: WebChannelEvent) {
     let name = event.event.clone();
     // Deliver to the initiating client's own room AND the per-thread room. The
@@ -1286,10 +1266,8 @@ fn emit_web_channel_event(io: &SocketIo, event: WebChannelEvent) {
 /// is suppressed for exactly these. Enumerated explicitly rather than matched by
 /// a `*_delta` suffix, so a future *discrete* event whose name happens to end in
 /// `_delta` still gets its compat alias instead of being silently dropped.
-#[cfg(feature = "http-server")]
 const STREAMING_DELTA_EVENTS: &[&str] = &["text_delta", "thinking_delta", "tool_args_delta"];
 
-#[cfg(feature = "http-server")]
 fn event_alias(name: &str) -> Option<String> {
     // Match against the canonical underscore form after stripping a `subagent_`
     // prefix (subagent streaming mirrors the parent's deltas), so `text_delta`,
@@ -1327,9 +1305,8 @@ fn event_alias(name: &str) -> Option<String> {
 /// safe to repeat: the client keys the card by `request_id` and a decided
 /// request is no longer parked, so a socket that already has the card just
 /// re-renders the same one.
-#[cfg(feature = "http-server")]
 fn replay_parked_approval(socket: &SocketRef, thread_id: &str) {
-    let Some(gate) = crate::security::approval::ApprovalGate::try_global() else {
+    let Some(gate) = openhuman_core::security::approval::ApprovalGate::try_global() else {
         return;
     };
     let Some(row) = gate.parked_request_for_thread(thread_id) else {
@@ -1337,7 +1314,7 @@ fn replay_parked_approval(socket: &SocketRef, thread_id: &str) {
     };
     let client_id = socket.id.to_string();
     let expires_at = row.expires_at.map(|t| t.to_rfc3339());
-    let mut event = crate::web_chat::approval_request_event(
+    let mut event = openhuman_core::web_chat::approval_request_event(
         &row.request_id,
         &row.tool_name,
         &row.action_summary,
@@ -1350,7 +1327,7 @@ fn replay_parked_approval(socket: &SocketRef, thread_id: &str) {
     // Replay is a fresh emit to a newly-joined socket, not a resend of the
     // original event, so stamp `ts` with "now" (same clock as
     // `publish_web_channel_event`) rather than leaving it unset.
-    event.ts = Some(crate::web_chat::progress_bridge::unix_epoch_ms());
+    event.ts = Some(openhuman_core::web_chat::progress_bridge::unix_epoch_ms());
     let Ok(payload) = serde_json::to_value(&event) else {
         return;
     };
@@ -1366,14 +1343,13 @@ fn replay_parked_approval(socket: &SocketRef, thread_id: &str) {
 /// just joined that thread's room. Mirrors [`replay_parked_approval`] — a
 /// plan review is a live, in-memory park (no SQLite row), but it reaches the
 /// UI the same fire-and-forget way, so the same reconciliation applies.
-#[cfg(feature = "http-server")]
 fn replay_parked_plan_review(socket: &SocketRef, thread_id: &str) {
-    let Some(row) = crate::agent::plan_review::gate::global().parked_review_for_thread(thread_id)
+    let Some(row) = openhuman_core::agent::plan_review::gate::global().parked_review_for_thread(thread_id)
     else {
         return;
     };
     let client_id = socket.id.to_string();
-    let mut event = crate::web_chat::plan_review_request_event(
+    let mut event = openhuman_core::web_chat::plan_review_request_event(
         &row.request_id,
         &row.summary,
         &row.steps,
@@ -1382,7 +1358,7 @@ fn replay_parked_plan_review(socket: &SocketRef, thread_id: &str) {
         row.tool_call_id.as_deref(),
         row.expires_at.as_deref(),
     );
-    event.ts = Some(crate::web_chat::progress_bridge::unix_epoch_ms());
+    event.ts = Some(openhuman_core::web_chat::progress_bridge::unix_epoch_ms());
     let Ok(payload) = serde_json::to_value(&event) else {
         return;
     };
@@ -1393,7 +1369,6 @@ fn replay_parked_plan_review(socket: &SocketRef, thread_id: &str) {
     emit_with_aliases(socket, "plan_review_request", &payload);
 }
 
-#[cfg(feature = "http-server")]
 fn emit_with_aliases(socket: &SocketRef, name: &str, payload: &serde_json::Value) {
     let _ = socket.emit(name, payload);
     if let Some(alias) = event_alias(name) {
@@ -1403,6 +1378,6 @@ fn emit_with_aliases(socket: &SocketRef, name: &str, payload: &serde_json::Value
 
 // Every test here names a gated fn (`channel_connection_update_payload`,
 // `event_alias`, `origin_is_allowed`), so the module gates in lockstep (#5048).
-#[cfg(all(test, feature = "http-server"))]
+#[cfg(test)]
 #[path = "socketio_tests.rs"]
 mod tests;
