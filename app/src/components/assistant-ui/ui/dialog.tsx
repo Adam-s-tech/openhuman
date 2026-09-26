@@ -1,4 +1,3 @@
-import * as React from 'react';
 import { cn } from '@/components/assistant-ui/lib/utils';
 import { Button } from '@/components/assistant-ui/ui/button';
 import { Dialog as DialogPrimitive } from '@base-ui/react/dialog';
