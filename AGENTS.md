@@ -303,7 +303,7 @@ Preferred module shape:
 Additional rules:
 
 - Wire controllers through the registry in `crates/openhuman-core/src/core/all.rs`. Do not add
-  namespace branches to `cli.rs` or `jsonrpc.rs`.
+  namespace branches to `cli.rs` or `jsonrpc/`.
 - RPC namespace strings are wire contracts and do not follow directory
   renames.
 - Domain tools live with their domain and are re-exported through
@@ -313,8 +313,12 @@ Additional rules:
   are deduplication keys.
 - Update `crates/openhuman-core/src/platform/about_app/` when user-visible capabilities
   change.
-- `RpcOutcome<T>`, `StructuredRpcError`, `unwrap_rpc`, and the JSON-RPC HTTP
-  client live in `crates/openhuman-rpc/`; the core re-exports the crate as
+- The JSON-RPC wire contract lives in `crates/openhuman-rpc/`: `RpcOutcome<T>`,
+  `StructuredRpcError`, `unwrap_rpc`, the request/response envelopes
+  (`RpcRequest`, `RpcSuccess`, `RpcFailure`, `request_body`,
+  `decode_response`), the params contract and its validation messages, the
+  browser-origin allowlist, and the JSON-RPC HTTP client. The core's server
+  side (`core/jsonrpc/`) and every client use it; the core re-exports the crate as
   `crate::rpc` (`pub use openhuman_rpc as rpc;` in
   `crates/openhuman-core/src/lib.rs`), and `openhuman-app` and `openhuman-tui`
   depend on it directly. Keep it free of business logic and core dependencies

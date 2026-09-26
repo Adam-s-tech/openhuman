@@ -110,7 +110,7 @@ are compiled out, or whose `DomainGroup` is off, stays absent.
 `runtime/context.rs`'s `CoreContext` owns the core's initialization
 *order*: register controllers, load the master key, seed the RPC bearer,
 initialize the workspace-bound stores, and run the pure-registration part of
-`bootstrap_core_runtime`. `init_stores` gates each store on its owning
+`bootstrap_core_runtime` (`runtime/bootstrap.rs`). `init_stores` gates each store on its owning
 `DomainGroup` via `StoreInitPlan` — the memory driver binding (`Memory`), the
 image-attachment sidecar dir (`Agent`), and the legacy-workflow prune
 (`Skills`) — while the keyring-path log and the boot-time Sentry user bind run
@@ -154,3 +154,16 @@ host an agent turn must set:
 
 - [../README.md](../README.md) — the rest of `core/`: dispatch, registry,
   event bus, transport, CLI.
+
+## Boot infrastructure
+
+- `bootstrap.rs`: `bootstrap_core_runtime` brings up the event bus, ledgers,
+  the agent-definition registry, the live security policy, the approval gate
+  and the socket manager during `CoreContext::init`.
+  `start_core_runtime_services` starts the selected background jobs from
+  `CoreRuntime::serve`.
+- `subscribers.rs`: `register_domain_subscribers` registers event-bus
+  subscribers. Ungated infrastructure registers once per process, and each
+  `DomainGroup` registers the first time a boot enables it.
+  `DomainSubscriberPlan` is the pure group-to-subscriber mapping the tests
+  assert against.

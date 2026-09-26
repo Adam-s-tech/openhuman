@@ -14,7 +14,7 @@ logic; every controller it exposes is implemented by a domain module under
   `DomainGroup` tagging that lets a runtime narrow its live surface.
 - Dispatch every RPC call through one tiered function (`dispatch.rs`).
 - Own the process-wide typed event bus (`bus.rs`, `events.rs`).
-- Serve JSON-RPC and Socket.IO over HTTP (`jsonrpc.rs`, `socketio.rs`) and
+- Serve JSON-RPC and Socket.IO over HTTP (`jsonrpc/`, `socketio.rs`) and
   the equivalent CLI surface (`cli.rs` and friends).
 - Seed and check the per-process RPC bearer token (`auth.rs`,
   `event_bind_tokens.rs`).
@@ -32,12 +32,12 @@ logic; every controller it exposes is implemented by a domain module under
 | `dispatch.rs` | `dispatch()` — the 4-tier RPC router. |
 | `bus.rs` | The `BUS: OnceBus<DomainEvent>` singleton, `EVENTS_ROOT`/`EVENTS_INTERFACE`/`EVENTS_VERSION`, `init`/`init_over_socket`. |
 | `events.rs` | `DomainEvent` — the full event catalog, `domain()` routing. |
-| `jsonrpc.rs` | Axum router (`/rpc`, `/health`, `/schema`, `/events`, …), `invoke_method`, `run_server*` shims, `bootstrap_core_runtime`. |
+| `jsonrpc/` | JSON-RPC dispatch and transport: `invoke.rs` (`invoke_method`), `classify.rs` (session-expiry and Sentry routing of failures), `server.rs` (`run_server*` shims), and `http/` (the axum router and one module per route family, `http-server` feature only). |
 | `socketio.rs` | Socket.IO live-event bridge to the desktop shell. |
 | `auth.rs` | Per-process RPC bearer token: init paths, `get_rpc_token`, `rpc_auth_middleware`. |
 | `event_bind_tokens.rs` | Single-shot bind tokens for the `/events` SSE stream. |
 | `cli.rs`, `agent_cli.rs`, `memory_cli.rs`, `subsystems_cli.rs`, `cli_capability.rs` | CLI argument parsing and dispatch, routed through the same registry as RPC. |
-| `types.rs` | `AppState`, `HostKind`, `RpcRequest`/`RpcSuccess`/`RpcFailure`, `InvocationResult`, `approval_gate_boot_decision`. |
+| `types.rs` | `AppState`, `HostKind`, `InvocationResult`, `approval_gate_boot_decision`. The JSON-RPC envelopes live in `crates/openhuman-rpc`. |
 | `legacy_aliases.rs` | `resolve_legacy` — rewrites retired method names before dispatch; mirrors `app/src/services/rpcMethods.ts`'s `LEGACY_METHOD_ALIASES`. |
 | `observability.rs` | `report_error` + Sentry `before_send` filters that drop deterministic provider/updater noise. |
 | `log_redaction.rs` | `scrub_secrets` — regex secret scrubbing shared by the Sentry path and always-on log path. |
@@ -73,7 +73,7 @@ adds the two Tier-1 internal methods (`core.ping`, `core.version`) to the
 registered set for `/schema`.
 
 Wire controllers only through this registry — do not add namespace branches
-to `cli.rs` or `jsonrpc.rs`. RPC namespace strings are wire contracts and do
+to `cli.rs` or `jsonrpc/`. RPC namespace strings are wire contracts and do
 not follow directory renames.
 
 ## Dispatch
@@ -125,17 +125,18 @@ Each subscribing domain owns a `bus.rs`; subscriber names use
 
 ## RPC and HTTP transport
 
-`jsonrpc.rs` builds the Axum router (`build_core_http_router`) behind the
+`jsonrpc/http/` builds the Axum router (`build_core_http_router`) behind the
 `http-server` feature: `POST /rpc`, `GET /health`, `GET /schema`,
 `GET /events` (SSE), `GET /events/webhooks`, `GET /events/domain`,
 `GET /ws/dictation`, the `/auth`, `/auth/telegram`, and
 `/oauth/mcp/callback` callback routes, and a nested `/v1` OpenAI-compatible
 inference router (`inference::http`). The
-dispatch surface itself (`invoke_method`, `parse_json_params`,
-`default_state`, the `run_server*` `CoreBuilder` shims,
-`register_domain_subscribers`, `bootstrap_core_runtime`) stays compiled in a
-slim build with no listener bound, so the CLI and `CoreRuntime::invoke` keep
-working without the HTTP feature.
+dispatch surface itself (`invoke_method`, `default_state`, the `run_server*`
+`CoreBuilder` shims) stays compiled in a slim build with no listener bound, so
+the CLI and `CoreRuntime::invoke` keep working without the HTTP feature.
+Runtime boot (`bootstrap_core_runtime`, `register_domain_subscribers`) lives
+in `runtime/`, and the wire vocabulary (envelopes, params shape, origin
+allowlist) in `crates/openhuman-rpc`.
 
 `socketio.rs` bridges live domain events onto Socket.IO for the desktop
 shell's webviews. The socketioxide/axum transport
