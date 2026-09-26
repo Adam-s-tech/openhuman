@@ -7,7 +7,7 @@ The notifications domain owns two complementary sub-systems. The **core-bridge**
 - Subscribe to cross-domain `DomainEvent`s and republish a curated subset as user-facing `CoreNotificationEvent`s (with title/body/category/deep-link) onto an in-process broadcast bus consumed by the Socket.IO bridge.
 - Filter noise at the bridge: only failed webhooks surface; only `routed` triage actions (`escalate`/`react`) surface; `drop`/`acknowledge`/unrouted are silent.
 - Ingest integration notifications, dedup against identical content received in the last 60s, and persist them immediately.
-- Spawn background triage per ingest; map the triage action to a 0.0, 1.0 importance score and back-fill `importance_score`/`triage_action`/`triage_reason`/`scored_at` in place.
+- Spawn background triage per ingest; map the triage action to a 0.0-1.0 importance score and back-fill `importance_score`/`triage_action`/`triage_reason`/`scored_at` in place.
 - Auto-route high-importance (`escalate`/`react`) notifications to the orchestrator when the provider's settings allow (re-reading settings just before routing).
 - Persist and expose per-provider settings (enabled, importance threshold, route-to-orchestrator).
 - Track lifecycle state (`unread`/`read`/`acted`/`dismissed`) and aggregate pipeline stats.
@@ -44,7 +44,7 @@ Namespace `notification` (10 controllers, registered via `all_notifications_regi
 | `dismiss` | `id` | `{ ok }` (true when a row matched) |
 | `mark_acted` | `id` | `{ ok }` (true when a row matched) |
 | `settings_get` | `provider` | `{ settings }` (defaulted if absent) |
-| `settings_set` | `provider`, `enabled`, `importance_threshold`, `route_to_orchestrator` | `{ ok, settings }`: threshold clamped to 0.0, 1.0. |
+| `settings_set` | `provider`, `enabled`, `importance_threshold`, `route_to_orchestrator` | `{ ok, settings }`: threshold clamped to 0.0-1.0. |
 | `stats` |, | `{ total, unread, unscored, by_provider, by_action }` |
 | `core_list` | `only_unread?` (true), `limit?` (100) | `{ items, unread_count }`: persisted core notifications (#3805), newest first; sync-down for events fired while the app was closed. |
 | `core_mark_read` | `id` | `{ ok }` (true when a row matched) |
