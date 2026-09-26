@@ -23,7 +23,7 @@ async fn structured_rpc_error_envelope_passes_through_generic_dispatch() {
         workspace.path().as_os_str().to_os_string(),
     )]);
 
-    let stale_thread_request = crate::core::types::RpcRequest {
+    let stale_thread_request = crate::rpc::RpcRequest {
         jsonrpc: "2.0".to_string(),
         id: json!(7),
         method: "openhuman.threads_generate_title".to_string(),
@@ -92,7 +92,7 @@ async fn thread_not_found_rpc_error_does_not_report_to_sentry() {
     );
     let _subscriber_guard = tracing::subscriber::set_default(subscriber);
 
-    let stale_thread_request = crate::core::types::RpcRequest {
+    let stale_thread_request = crate::rpc::RpcRequest {
         jsonrpc: "2.0".to_string(),
         id: json!(1),
         method: "openhuman.threads_message_append".to_string(),
@@ -119,7 +119,7 @@ async fn thread_not_found_rpc_error_does_not_report_to_sentry() {
         "ThreadNotFound should not reach Sentry"
     );
 
-    let unrelated_error_request = crate::core::types::RpcRequest {
+    let unrelated_error_request = crate::rpc::RpcRequest {
         jsonrpc: "2.0".to_string(),
         id: json!(2),
         method: "core.not_a_real_method".to_string(),
@@ -210,7 +210,7 @@ async fn unknown_method_severity_split_by_probe_allow_list() {
     let _subscriber_guard = tracing::subscriber::set_default(subscriber);
 
     // (1) Allow-listed probe → debug-only, never reaches Sentry.
-    let probe_request = crate::core::types::RpcRequest {
+    let probe_request = crate::rpc::RpcRequest {
         jsonrpc: "2.0".to_string(),
         id: json!(1),
         method: "rpc.discover".to_string(),
@@ -234,7 +234,7 @@ async fn unknown_method_severity_split_by_probe_allow_list() {
     );
 
     // (2) Genuinely-unknown method → still captured, but at warn for triage.
-    let unknown_request = crate::core::types::RpcRequest {
+    let unknown_request = crate::rpc::RpcRequest {
         jsonrpc: "2.0".to_string(),
         id: json!(2),
         method: "totally.made.up.method".to_string(),
@@ -321,7 +321,7 @@ async fn invalid_ingest_payload_is_captured_at_warn_not_error() {
     // `platform` is genuinely required by `ChatBatch` (unlike `timestamp`,
     // which now defaults — see `chat_payload_without_timestamp_is_accepted`),
     // so this reaches the invalid-payload branch rather than succeeding.
-    let request = crate::core::types::RpcRequest {
+    let request = crate::rpc::RpcRequest {
         jsonrpc: "2.0".to_string(),
         id: json!(1),
         method: "openhuman.memory_tree_ingest".to_string(),

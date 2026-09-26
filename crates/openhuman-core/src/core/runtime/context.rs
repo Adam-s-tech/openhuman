@@ -342,7 +342,7 @@ impl CoreContext {
             .as_ref()
             .map(|cfg| cfg.subsystems.memory.clone())
             .unwrap_or_default();
-        crate::core::jsonrpc::bootstrap_core_runtime(host_kind, config, domains).await;
+        super::bootstrap::bootstrap_core_runtime(host_kind, config, domains).await;
 
         let ctx = Arc::new(CoreContext {
             host_kind,

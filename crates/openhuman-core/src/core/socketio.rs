@@ -116,15 +116,12 @@ struct HandshakeAuth {
 /// A missing `Origin` header is treated as a native (non-browser) client
 /// and accepted — only the cross-origin browser-page case is the targeted
 /// bad actor here.
-/// Same env var the JSON-RPC CORS layer reads (`jsonrpc::ALLOWED_ORIGINS_ENV`).
-/// Comma-separated, exact-match origins for operator-controlled surfaces that
-/// are not on loopback — a tailnet host, an E2E driver, a reverse proxy.
-#[cfg(feature = "http-server")]
-const ALLOWED_ORIGINS_ENV: &str = "OPENHUMAN_CORE_ALLOWED_ORIGINS";
-
 #[cfg(feature = "http-server")]
 pub(crate) fn origin_is_allowed(origin: Option<&str>) -> bool {
-    origin_is_allowed_with_extra(origin, std::env::var(ALLOWED_ORIGINS_ENV).ok().as_deref())
+    origin_is_allowed_with_extra(
+        origin,
+        std::env::var(crate::rpc::ALLOWED_ORIGINS_ENV).ok().as_deref(),
+    )
 }
 
 /// Origin gate with the extra allowlist passed explicitly so tests do not have

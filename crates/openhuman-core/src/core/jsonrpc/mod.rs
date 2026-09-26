@@ -21,8 +21,9 @@ mod classify;
 pub(crate) mod http;
 mod invoke;
 mod server;
+#[cfg(test)]
+mod testing;
 
-pub use crate::rpc::parse_json_params;
 #[cfg(feature = "http-server")]
 pub use http::{build_core_http_router, rpc_handler};
 pub use invoke::{default_state, invoke_method};

@@ -94,64 +94,6 @@ fn command_response_serde_roundtrip() {
 }
 
 #[test]
-fn rpc_request_deserializes() {
-    let json = r#"{"jsonrpc":"2.0","id":1,"method":"test","params":{}}"#;
-    let req: RpcRequest = serde_json::from_str(json).unwrap();
-    assert_eq!(req.method, "test");
-    assert_eq!(req.id, json!(1));
-}
-
-#[test]
-fn rpc_request_params_default_to_null() {
-    let json = r#"{"jsonrpc":"2.0","id":"abc","method":"foo"}"#;
-    let req: RpcRequest = serde_json::from_str(json).unwrap();
-    assert!(req.params.is_null());
-}
-
-#[test]
-fn rpc_success_serializes() {
-    let resp = RpcSuccess {
-        jsonrpc: "2.0",
-        id: json!(42),
-        result: json!({"ok": true}),
-    };
-    let json = serde_json::to_string(&resp).unwrap();
-    assert!(json.contains("\"jsonrpc\":\"2.0\""));
-    assert!(json.contains("\"id\":42"));
-}
-
-#[test]
-fn rpc_failure_serializes() {
-    let resp = RpcFailure {
-        jsonrpc: "2.0",
-        id: json!("req-1"),
-        error: RpcError {
-            code: -32601,
-            message: "Method not found".into(),
-            data: Some(json!({"detail": "unknown"})),
-        },
-    };
-    let json = serde_json::to_string(&resp).unwrap();
-    assert!(json.contains("-32601"));
-    assert!(json.contains("Method not found"));
-}
-
-#[test]
-fn rpc_failure_serializes_without_data() {
-    let resp = RpcFailure {
-        jsonrpc: "2.0",
-        id: json!(null),
-        error: RpcError {
-            code: -32700,
-            message: "Parse error".into(),
-            data: None,
-        },
-    };
-    let json = serde_json::to_string(&resp).unwrap();
-    assert!(json.contains("-32700"));
-}
-
-#[test]
 fn app_state_clone() {
     let state = AppState {
         core_version: "0.1.0".into(),

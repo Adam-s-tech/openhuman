@@ -1489,18 +1489,19 @@ pub fn validate_params(
 ) -> Result<(), String> {
     for input in &schema.inputs {
         if input.required && !params.contains_key(input.name) {
-            return Err(format!(
-                "missing required param '{}': {}",
-                input.name, input.comment
+            return Err(crate::rpc::missing_required_param_message(
+                input.name,
+                input.comment,
             ));
         }
     }
 
     for key in params.keys() {
         if !schema.inputs.iter().any(|f| f.name == key) {
-            return Err(format!(
-                "unknown param '{}' for {}.{}",
-                key, schema.namespace, schema.function
+            return Err(crate::rpc::unknown_param_message(
+                key,
+                schema.namespace,
+                schema.function,
             ));
         }
     }
@@ -1514,7 +1515,7 @@ pub fn validate_params(
             check_type(value, &input.ty).map_err(|mismatch| {
                 let (expected, got) = match mismatch {
                     TypeMismatch::Kind(expected) => {
-                        (expected.to_string(), json_type_name(value).to_string())
+                        (expected.to_string(), crate::rpc::json_type_name(value).to_string())
                     }
                     TypeMismatch::OutOfRange { min, max, got } => {
                         log::debug!(
@@ -1551,19 +1552,6 @@ enum TypeMismatch {
     ///
     /// [`TypeSchema::BoundedU64`]: crate::core::TypeSchema::BoundedU64
     OutOfRange { min: u64, max: u64, got: u64 },
-}
-
-/// A short, human-readable name for the JSON kind of `value`, used in
-/// `validate_params` type-mismatch errors.
-fn json_type_name(value: &Value) -> &'static str {
-    match value {
-        Value::Null => "null",
-        Value::Bool(_) => "bool",
-        Value::Number(_) => "number",
-        Value::String(_) => "string",
-        Value::Array(_) => "array",
-        Value::Object(_) => "object",
-    }
 }
 
 /// Validate a JSON `value` against a declared [`TypeSchema`].

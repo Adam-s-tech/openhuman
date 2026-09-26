@@ -9,7 +9,8 @@ use serde_json::{Map, Value};
 use std::collections::BTreeMap;
 
 use crate::core::all;
-use crate::core::jsonrpc::{default_state, invoke_method, parse_json_params};
+use crate::core::jsonrpc::{default_state, invoke_method};
+use crate::rpc::parse_json_params;
 use crate::core::logging::CliLogDefault;
 use crate::core::{ControllerSchema, TypeSchema};
 
