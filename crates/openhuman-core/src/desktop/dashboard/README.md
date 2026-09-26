@@ -1,6 +1,6 @@
 # dashboard
 
-Aggregate, operator-facing views over local config. Today it owns a single read-only view: the per-model health comparison table rendered in the desktop **Settings → Developer Options → Model Health** panel. The view joins the local `Config::model_registry` with the `dashboard.model_health` thresholds and emits one row per model. Telemetry-driven metric fields (`quality_score`, `hallucination_rate`, `agents_using`, `tasks_evaluated`) are intentional placeholders (`null` / `0`) until a local telemetry pipeline lands, the placeholder contract is documented in `ops.rs` and asserted in its tests. Stateless: no persistence, no event-bus subscribers, no agent tools.
+Aggregate, operator-facing views over local config. Today it owns a single read-only view: the per-model health comparison table rendered in the desktop **Settings → Developer Options → Model Health** panel. The view joins the local `Config::model_registry` with the `dashboard.model_health` thresholds and emits one row per model. Telemetry-driven metric fields (`quality_score`, `hallucination_rate`, `agents_using`, `tasks_evaluated`) are intentional placeholders (`null` / `0`) until a local telemetry pipeline lands. The placeholder contract is documented in `ops.rs` and asserted in its tests. Stateless: no persistence, no event-bus subscribers, no agent tools.
 
 ## Responsibilities
 
