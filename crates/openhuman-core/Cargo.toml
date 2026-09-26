@@ -443,13 +443,11 @@ rustls = { version = "0.23", default-features = false, features = ["ring"] }
 sysinfo = { version = "0.33", default-features = false, features = ["system"] }
 keyring = { version = "3", features = ["apple-native", "windows-native", "linux-native"] }
 lettre = { version = "0.11.22", default-features = false, features = ["builder", "smtp-transport", "rustls-tls"], optional = true }
-# HTTP + Socket.IO server transport — the `/rpc` JSON-RPC endpoint, `/v1`
-# OpenAI-compat router, agentbox/http_host sub-servers, and the Socket.IO
-# live-event bridge. Exclusive to the default-ON `http-server` feature (#5048):
-# a slim/embedded build without it (`--no-default-features`) sheds `axum` +
-# `socketioxide` and never binds a listener — the core still runs background
-# services and answers over the CLI/native dispatch surface. See the
-# `http-server` feature note below and `crates/openhuman-core/src/core/http_server_status.rs`.
+# HTTP server framework for the domain-owned routes (`/v1`, dictation, the MCP
+# HTTP transport, `http_host`). Exclusive to the default-ON `http-server`
+# feature (#5048); the JSON-RPC server that mounts them lives in
+# `openhuman-rpc`. See the `http-server` feature note below and
+# `crates/openhuman-core/src/core/http_server_status.rs`.
 axum = { version = "0.8", default-features = false, features = ["http1", "json", "tokio", "query", "ws", "macros"], optional = true }
 sentry = { version = "0.47.0", default-features = false, optional = true, features = ["backtrace", "contexts", "panic", "tracing", "debug-images", "httpdate"] }
 tokio-stream = { version = "0.1.18", default-features = false, features = ["sync"] }
@@ -756,27 +754,23 @@ proptest = "1"
 # which already lists it. This does NOT move the kernel floor: that profile is
 # `--no-default-features --features flows` and never reads this list.
 default = ["media", "skills", "flows", "mcp", "channels", "http-server", "scheduler-gate", "file-logging", "modules"]
-# HTTP + Socket.IO server transport (#5048): the `/rpc` JSON-RPC endpoint and
-# its auth middleware/CORS layer (now in `openhuman-rpc`), the `/v1`
-# OpenAI-compatible router (`inference::http`), the ad-hoc static-dir file
-# server (`openhuman::http_host`), the AgentBox `/run` HTTP surface
-# (`agentbox::http`), the WebSocket dictation stream
-# (`inference::voice::streaming`), the `openhuman text-input run` dev server,
-# the MCP Streamable-HTTP transport (`mcp::server::http`, additionally gated by
-# `mcp`), and the Socket.IO live-event bridge (`core::socketio`). Default-ON —
-# the desktop shell REQUIRES it (see the `HTTP_SERVER_COMPILED_IN` compile
-# assert in `crates/openhuman-app/src/lib.rs`). Slim / headless-embedding builds opt
-# out via `--no-default-features --features "<explicit list without
-# http-server>"`, which drops the exclusive `axum` + `socketioxide` deps; the
-# core then runs background services without binding a listener (`serve()`
-# returns early) and is driven over the CLI / native dispatch surface instead.
+# The core's domain-owned HTTP surfaces (#5048): the `/v1` OpenAI-compatible
+# router (`inference::http`), the ad-hoc static-dir file server
+# (`openhuman::http_host`), the WebSocket dictation handler
+# (`voice::streaming`), the `openhuman text-input run` dev server, and the MCP
+# Streamable-HTTP transport (`mcp::server::http`, additionally gated by `mcp`).
+# The JSON-RPC server that mounts them — `/rpc`, auth, CORS, SSE, Socket.IO,
+# the listener — lives in `openhuman-rpc`, whose `server` feature turns this
+# gate on. Default-ON; the desktop shell REQUIRES it (see the
+# `HTTP_SERVER_COMPILED_IN` compile assert in `crates/openhuman-app/src/lib.rs`).
+# Slim / headless-embedding builds opt out via `--no-default-features
+# --features "<explicit list without http-server>"`, which drops `axum`; the
+# core is then driven over the CLI / native dispatch surface instead.
 #
-# TYPE CARVE-OUT (see AGENTS.md): `core::socketio`'s inert event payload types
-# (`WebChannelEvent`, `TurnUsagePayload`, `SubagentUsagePayload`,
-# `SubagentProgressDetail`) stay compiled in BOTH builds — ~10 always-on
-# domains construct them — so `pub mod socketio;` is UNGATED and only the
-# socketioxide/axum-touching bodies are gated. Likewise `inference::http::types`
-# and `EXTERNAL_OPENAI_COMPAT_PROVIDER` stay compiled for `core::auth`.
+# `web_chat`'s event payload types (`WebChannelEvent`, `TurnUsagePayload`, …)
+# stay compiled in BOTH builds, since ~10 always-on domains construct them.
+# Likewise `inference::http::types` and `EXTERNAL_OPENAI_COMPAT_PROVIDER` stay
+# compiled for the server's auth policy.
 # Git-backed memory diff: snapshots as commits, checkpoints as tags, read
 # markers as refs, diffs as git tree diffs (`openhuman::memory::diff`), plus the
 # git-backed wiki content format in `memory::store::content::wiki_git`.
