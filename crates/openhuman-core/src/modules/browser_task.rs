@@ -10,7 +10,6 @@ use tinybrowser_bus::SessionId;
 use tinybrowser_control::{BrowserControl, ControlLimits, JevController, TaskRequest, TaskResult};
 use tinyjevclient::{Client, ClientConfig};
 
-use crate::api::config::effective_backend_api_url;
 use crate::config::Config;
 use crate::inference::provider::factory::{lookup_key_for_slug, provider_for_role};
 use crate::security::credentials::session_support::direct_backend_credential;
@@ -56,7 +55,8 @@ fn jev_client(config: &Config) -> Result<Client, String> {
             let credential = direct_backend_credential(config, "browser task (hosted jev)")
                 .ok_or_else(|| "TinyHumans credential is unavailable".to_owned())?;
             let mut client_config = ClientConfig::tinyhumans_openrouter(credential.into_secret());
-            client_config.base_url = effective_backend_api_url(&config.api_url);
+            client_config.base_url = crate::backend::base_url(&config.api_url)
+                .map_err(|_| "TinyHumans backend is unavailable".to_owned())?;
             client_config
         }
     };

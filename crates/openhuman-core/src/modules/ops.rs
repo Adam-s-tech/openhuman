@@ -592,7 +592,8 @@ fn module_config(config: &Config, id: &str) -> serde_json::Value {
         "composio_entity_id": config.composio.entity_id,
         // Proxied Composio addresses the backend with this; without it the module
         // builds its request against an empty base and fails in the HTTP client.
-        "backend_api_url": crate::api::config::effective_backend_api_url(&config.api_url),
+        // `null` when no backend transport is installed.
+        "backend_api_url": crate::backend::base_url(&config.api_url).ok(),
         "driver_id": "tinymemory",
     })
 }
