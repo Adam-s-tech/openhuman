@@ -63,12 +63,7 @@ describe('themeSlice', () => {
       themeVariant: 'dark',
       customThemes: [],
       layout: {
-        borderAreas: {
-          cards: true,
-          controls: true,
-          dividers: true,
-          frame: true,
-        },
+        borderAreas: { cards: true, controls: true, dividers: true, frame: true },
         borderContrast: 'default',
         corners: 'default',
       },
