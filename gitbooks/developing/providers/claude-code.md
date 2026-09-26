@@ -57,21 +57,28 @@ The same status is rendered in the settings panel via `ClaudeCodeStatusCard` ([`
 
 ## Per-turn behavior
 
-Each chat turn:
+`ClaudeCodeProvider::run_chat` acquires one of `MAX_CONCURRENT_TURNS` (4) semaphore permits, plus a per-thread mutex so two overlapping calls for the same conversation cannot race on the same session UUID. Each turn then:
 
-1. Resolve a per-thread CC session UUID from `<workspace>/claude-code-sessions.json`. New threads get a fresh RFC-4122 v4 UUID; the CLI requires v4 specifically for `--resume`.
-2. Write `mcp-config.json` to a tempdir pointing at `openhuman-core mcp` (stdio MCP server, no extra credentials).
-3. Spawn the CLI with:
-   - `-p --input-format stream-json --output-format stream-json --verbose --include-partial-messages`
-   - `--mcp-config <tmp> --strict-mcp-config` so only the configured MCP servers are visible
-   - `--disallowedTools Bash,Read,Write,Edit,Glob,Grep,WebFetch,WebSearch,TodoWrite,Task,BashOutput,KillShell`, so that CC's own builtins stay off so OpenHuman tools (`mcp__openhuman__*`) are authoritative
+1. Resolves a per-thread CC session UUID from `<workspace_dir>/claude-code-sessions.json`. New threads get a fresh RFC-4122 v4 UUID; the CLI requires v4 specifically for `--resume`.
+2. Asks the host's `McpEndpointProvider` for an MCP endpoint. OpenHuman's implementation (`OpenHumanMcpEndpoint`) lazily starts one in-process HTTP MCP server per core (`crate::mcp::server::ensure_local_http`, loopback only) and returns its URL plus a bearer token; the config file passed via `--mcp-config` carries that token in its `Authorization` header. If starting the endpoint fails, the turn still proceeds, just without OpenHuman tools.
+3. Spawns the CLI with:
+   - `-p --input-format stream-json --output-format stream-json --verbose --include-partial-messages --add-dir <project_dir>`
+   - `--mcp-config <scratch>/openhuman-mcp-config.json --strict-mcp-config` when the endpoint resolved, so only the configured MCP servers are visible
+   - `--permission-mode acceptEdits` (default) or `bypassPermissions` (full access, see below)
+   - by default, `--disallowedTools Bash,BashOutput,KillShell,WebFetch,WebSearch,Task`, so CC's own shell, network, and subagent-fanout builtins stay off and OpenHuman tools (`mcp__openhuman__*`) are the only way to reach those capabilities; omitted entirely when full access is on
    - `--session-id <uuid>` on first turn, `--resume <uuid>` thereafter
    - `--model <model>` (the suffix after `claude-code:`)
-   - `--append-system-prompt <…>` if the conversation carries a system message
-4. Pipe stdin: full conversation history on a new session, just the last user turn on `--resume` (the CLI already holds its own prior-turn context server-side).
-5. Stream stdout through the JSONL parser → event mapper → `ProviderDelta`s on the request's `stream` sink.
+   - `--append-system-prompt-file <scratch>/append-system-prompt.txt` if the conversation carries a system message (a file, not an argv value, so a large harness prompt does not hit Windows' argv length limit)
+4. Pipes stdin: full conversation history folded into a text preamble on a new session, just the pending user turn(s) on `--resume` (the CLI already holds its own prior-turn context server-side).
+5. Streams stdout through the JSONL parser, then the event mapper, into `ProviderDelta`s on the request's `stream` sink.
 
 On exit non-zero the driver bubbles stderr (capped at 16 KiB) up as the error message.
+
+On macOS the spawn is wrapped in a Seatbelt jail (`sandbox-exec`) by default when `/usr/bin/sandbox-exec` exists; set `OPENHUMAN_CLAUDE_CODE_SANDBOX=0` to opt out. The profile blocks reads and writes under the first `.openhuman*`-named ancestor of `workspace_dir` (this provider's own session store and settings), not the CLI's own file tools. Linux and Windows have no OS-level wall yet.
+
+### Permission posture and full access
+
+The default posture, `acceptEdits`, restricts CC to file reads and edits under `project_dir` and withholds shell, network, and `Task` fan-out via `--disallowedTools`. A user can opt into full access (CC's entire toolset, including Bash) either through the settings toggle persisted in `<workspace_dir>/claude_code_settings.json`, or with `OPENHUMAN_CLAUDE_CODE_PERMISSION_MODE=bypass|bypassPermissions|full`. This is an explicit user choice; enabling the Claude Code provider alone never grants shell or network access.
 
 ## Auth resolution order
 
