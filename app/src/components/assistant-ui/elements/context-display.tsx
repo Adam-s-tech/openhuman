@@ -11,9 +11,10 @@
  * - `cn` and tooltip import paths (`@/components/assistant-ui/...`).
  * - The "% full" caption and the Input / Cached input / Output / Reasoning
  *   row labels are a `labels` prop with English defaults, for `useT()`.
- * - The Ring / Bar / Text presets forward any other button props to their
- *   trigger, so the "Context usage" accessible name can be translated and a
- *   preset can itself be a popover trigger (`render={<ContextDisplayRing />}`).
+ * - The Ring preset forwards any other button props to its trigger, so the
+ *   "Context usage" accessible name can be translated and it can itself be a
+ *   popover trigger (`render={<ContextDisplayRing />}`). Only the Ring preset
+ *   is used; the upstream Bar/Text presets were dropped as unused.
  * See `ContextUsage` in `features/conversations/aui/ContextUsage.tsx`, the
  * only caller.
  */
