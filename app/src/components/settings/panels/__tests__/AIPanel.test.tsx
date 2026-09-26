@@ -323,7 +323,7 @@ describe('AIPanel', () => {
   it('renders Managed as an always-on badge, not a switchable toggle (#3760)', async () => {
     renderWithProviders(<AIPanel />);
     // The Managed chip must show an "Always on" indicator...
-    expect(await screen.findByText(/Always on/i)).toBeInTheDocument();
+    expect(await screen.findByText(/^Always on$/i)).toBeInTheDocument();
     // ...and must NOT render a toggle switch users would try (and fail) to flip.
     expect(screen.queryByRole('switch', { name: /Managed/i })).toBeNull();
     // A hint points users wanting a local model at the Routing card below.
