@@ -28,9 +28,9 @@ Implementations live in `vendor/tinychannels/src/providers/`, not here. Every fl
 
 `providers/telegram/mod.rs` re-exports the transport (`session_store`, `TelegramChannel`) from `tinychannels::providers::telegram`, but keeps three pieces here because they depend on the OpenHuman event bus and runtime rather than on transport:
 
-- `remote_control` — `/status /sessions /new` command handling (`TelegramRemoteCommand`), using the `ChannelRuntimeContext` and `web_chat::invalidate_thread_sessions`.
-- `bus::TelegramRemoteSubscriber` — busy-state handler for `DomainEvent::ChannelMessageReceived` / `ChannelMessageProcessed`, subscribed to the process bus in `channels/runtime/startup/start_channels.rs`.
-- `approval_surface::TelegramApprovalSurfaceSubscriber` (+ `TELEGRAM_APPROVAL_CLIENT_ID`) — the approval surface for Telegram, subscribed in the same place. `runtime/dispatch/processor.rs::channel_has_approval_surface` returns `true` only for `TELEGRAM_APPROVAL_CLIENT_ID`, so Telegram is currently the only channel whose yes/no replies reach the `ApprovalGate`.
+- `remote_control`: `/status /sessions /new` command handling (`TelegramRemoteCommand`), using the `ChannelRuntimeContext` and `web_chat::invalidate_thread_sessions`.
+- `bus::TelegramRemoteSubscriber`: busy-state handler for `DomainEvent::ChannelMessageReceived` / `ChannelMessageProcessed`, subscribed to the process bus in `channels/runtime/startup/start_channels.rs`.
+- `approval_surface::TelegramApprovalSurfaceSubscriber` (plus `TELEGRAM_APPROVAL_CLIENT_ID`): the approval surface for Telegram, subscribed in the same place. `runtime/dispatch/processor.rs::channel_has_approval_surface` returns `true` only for `TELEGRAM_APPROVAL_CLIENT_ID`, so Telegram is currently the only channel whose yes/no replies reach the `ApprovalGate`.
 
 Ported providers reach host capabilities (voice, approvals, conversation history, shutdown, event sink) through the `tinychannels::host::ProviderContext` built by `channels::host::build_provider_context` instead of calling OpenHuman internals directly; see `channels/host/mod.rs`.
 

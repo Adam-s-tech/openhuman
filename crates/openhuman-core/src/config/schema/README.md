@@ -73,6 +73,32 @@ Most sections have a matching `*_tests.rs` (some further split into several
 `*_tests.rs` siblings, e.g. `types_model_pin_tests.rs`); this is the repo's
 file-size-splitting convention, not separate modules.
 
+### Engine selection keys
+
+This is where a config file names which engine handles a given concern. The
+keys that select an implementation, rather than tune one:
+
+- `search.engine` (`SearchConfig.engine`, `tools/search.rs`): one of the
+  string constants re-exported from `mod.rs` (`SEARCH_ENGINE_MANAGED`,
+  `SEARCH_ENGINE_PARALLEL`, `SEARCH_ENGINE_BRAVE`, `SEARCH_ENGINE_QUERIT`,
+  `SEARCH_ENGINE_EXA`, `SEARCH_ENGINE_TAVILY`, `SEARCH_ENGINE_DISABLED`), plus
+  SearXNG through the separate toggle described above.
+- `[subsystems.memory]` (`subsystems.rs`): re-exports
+  `MemorySubsystemConfig` / `MemoryDriverConfig` / `SubsystemsConfig` from
+  `tinymemory_api::host::subsystems`, since the driver-binding shape now lives
+  with `tinymemory-core`. `OPENHUMAN_MEMORY_DRIVER` overrides it at the
+  environment layer.
+- `agent.tool_search.ranker` (`ToolSearchConfig`, `agent.rs`): `"jev"` by
+  default, with `"auto"`, `"bm25"`, and `"compare"` as the other values. It
+  picks which ranker answers a tool search over tools exposed as
+  `ToolExposure::Deferred`; `top_k` (default 3) caps how many matches come
+  back.
+- `[storage]` / `[memory]` (`storage_memory.rs`, `LlmBackend`): selects the
+  embedding and storage backend for the built-in memory engine.
+
+`autonomy.rs` is not an engine selector; it is the config-side half of the
+sandbox policy contract described under Workspace/identity helpers below.
+
 ## Loading
 
 `Config::load_or_init` (in `load/impl_load.rs`) is the entry point used by

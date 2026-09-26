@@ -42,9 +42,9 @@ Namespace `agent_experience` (registered into `crates/openhuman-core/src/core/al
 ## Agent hooks (not a tool)
 
 
-- **Multi-tool success**: ≥2 successful tool calls → `ExperienceOutcome::Success`, confidence 0.72.
-- **Repeated failure**: a tool that failed ≥2 times in one turn → `Failure`, confidence 0.68, with an error class parsed from the output summary (`...(error_class)`).
-- **Partial success**: a failure followed by a later success (≥2 calls total) → `Partial`, confidence 0.62; skipped when it would duplicate an earlier candidate's id or outcome.
+- Multi-tool success: ≥2 successful tool calls → `ExperienceOutcome::Success`, confidence 0.72.
+- Repeated failure: a tool that failed ≥2 times in one turn → `Failure`, confidence 0.68, with an error class parsed from the output summary (`...(error_class)`).
+- Partial success: a failure followed by a later success (≥2 calls total) → `Partial`, confidence 0.62; skipped when it would duplicate an earlier candidate's id or outcome.
 
 ## Events
 
@@ -75,7 +75,7 @@ Records are stored through the `Memory` trait (no dedicated DB), served by `Driv
 
 ## Notes / gotchas
 
-- **Two redaction layers at write time**: `capture::build_experience` masks `Bearer …`, `sk-…`, and `token=/password:` pairs with `types::redact_text`; `store::put` then runs the full `memory::safety::sanitize_text` scrubber (private keys, vendor secrets, national-ID / phone / card PII) over the free-text fields. The base64 payload means the memory layer's own content scrub is a no-op, so the store-level scrub is what preserves the invariant.
+- Two redaction layers at write time: `capture::build_experience` masks `Bearer …`, `sk-…`, and `token=/password:` pairs with `types::redact_text`; `store::put` then runs the full `memory::safety::sanitize_text` scrubber (private keys, vendor secrets, national-ID / phone / card PII) over the free-text fields. The base64 payload means the memory layer's own content scrub is a no-op, so the store-level scrub is what preserves the invariant.
 - Retrieval scoring is **lexical, not embedding-based**: term sets keep only tokens length > 2, normalized lowercase; score combines tool overlap (weighted highest), tag overlap, query-term overlap over summary+lesson+hints, plus small agent/entrypoint match boosts and a confidence prior. `max_hits == 0` short-circuits to empty. The live-turn path additionally drops hits with no `match_reasons`.
 - `render_experience_hits` is hard byte-capped (`max_bytes`) with UTF-8-boundary-safe truncation, so the injected prompt block can't blow the context budget.
 - The capture hook is gated by an `enabled` flag passed at construction; when disabled `on_turn_complete` is a no-op, and capture failures only `log::warn!` (never fail the turn).
