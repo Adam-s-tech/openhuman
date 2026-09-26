@@ -37,10 +37,7 @@ use serde_json::json;
 use socketioxide::extract::{AckSender, Data, SocketRef, TryData};
 use socketioxide::SocketIo;
 
-use openhuman_core::web_chat::{
-    ChatSuggestion, GuardrailPayload, GuardrailReason, QueueItemPayload, SubagentProgressDetail,
-    SubagentUsagePayload, TurnTimingPayload, TurnUsagePayload, WebChannelEvent,
-};
+use openhuman_core::web_chat::{GuardrailPayload, WebChannelEvent};
 
 /// Shell-originated companion lifecycle events that still need to reach
 /// Socket.IO-only surfaces such as the native macOS notch WKWebView.
