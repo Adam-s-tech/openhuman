@@ -33,8 +33,21 @@ import {
   type ThemeVariant,
   upsertCustomTheme,
 } from '../../../store/themeSlice';
-import { Button, TextArea, TextField, ToggleGroupItem, ToggleGroupRoot } from '../../ui';
-import { SettingsSection, SettingsSelect } from '../controls';
+import {
+  AccordionContent,
+  AccordionItem,
+  AccordionRoot,
+  AccordionTrigger,
+  Alert,
+  AlertDescription,
+  Button,
+  Card,
+  TextArea,
+  TextField,
+  ToggleGroupItem,
+  ToggleGroupRoot,
+} from '../../ui';
+import { SettingsSelect } from '../controls';
 import SettingsPanel from '../layout/SettingsPanel';
 import ColorTokenField from './theme/ColorTokenField';
 
@@ -136,9 +149,15 @@ function importedBackdrop(parsed: Partial<Theme>): Theme['backdrop'] {
 interface ThemeStudioPanelProps {
   /** Render the sections only — the host draws the page header. */
   embedded?: boolean;
+  /**
+   * Which half to render when embedded. The Appearance page puts the theme
+   * gallery at the top and the customizer at the bottom, with text size and
+   * language between them, so it mounts this component twice. Omit for both.
+   */
+  part?: 'gallery' | 'customize';
 }
 
-const ThemeStudioPanel = ({ embedded = false }: ThemeStudioPanelProps = {}) => {
+const ThemeStudioPanel = ({ embedded = false, part }: ThemeStudioPanelProps = {}) => {
   const { t } = useT();
   const dispatch = useAppDispatch();
   const families = selectThemeFamilies();
@@ -210,331 +229,340 @@ const ThemeStudioPanel = ({ embedded = false }: ThemeStudioPanelProps = {}) => {
       channelLuminance(readToken('content')) - channelLuminance(readToken('surface-canvas'))
     ) < 0.2;
 
-  const body = (
-    <>
-      {/* ── Theme gallery: family tiles + one Light/Dark/Auto toggle ──── */}
-      <div>
-        <div className="mb-2 flex items-center justify-between px-1">
-          <h3 className="font-title text-sm font-semibold text-content">
-            {t('settings.theme.presetsHeading', 'Themes')}
-          </h3>
-          <ToggleGroupRoot
-            type="single"
-            variant="secondary"
-            size="xs"
-            value={variant}
-            onValueChange={next => {
-              if (next) dispatch(setThemeVariant(next as ThemeVariant));
-            }}
-            aria-label={t('settings.theme.variantAria', 'Theme variant')}
-            className="overflow-hidden rounded-lg border border-line gap-0 *:rounded-none *:border-0">
-            {VARIANT_OPTIONS.map(opt => (
-              <ToggleGroupItem
-                key={opt.id}
-                value={opt.id}
-                className="h-auto px-2.5 py-1 text-xs font-medium data-[state=on]:bg-primary-500 data-[state=on]:text-content-inverted">
-                {opt.label}
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroupRoot>
-        </div>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {families.map(fam => {
-            const preview = resolveFamilyVariant(fam, previewVariant);
-            const selected = !isActiveCustom && fam.id === activeFamilyId;
-            return (
-              <button
-                key={fam.id}
-                type="button"
-                aria-pressed={selected}
-                onClick={() => dispatch(setActiveFamily(fam.id))}
-                className={`flex flex-col gap-2 rounded-xl border p-3 text-left transition-colors ${
-                  selected
-                    ? 'border-primary-500 ring-1 ring-primary-500'
-                    : 'border-line hover:bg-surface-hover'
-                }`}>
-                <span
-                  className="flex h-10 items-center gap-1 rounded-lg px-2"
-                  style={{ background: tileCanvas(preview) }}>
-                  <span
-                    className="h-5 w-5 rounded-full border border-line-subtle"
-                    style={{ background: channelsToCss(swatchChannels(preview, 'surface')) }}
-                  />
-                  <span
-                    className="h-3 w-8 rounded-full"
-                    style={{ background: channelsToCss(swatchChannels(preview, 'content')) }}
-                  />
-                  <span
-                    className="ml-auto h-4 w-4 rounded-full"
-                    style={{ background: channelsToCss(swatchChannels(preview, 'primary-500')) }}
-                  />
+  const tileClass = (selected: boolean) =>
+    `flex flex-col gap-2 rounded-xl border p-3 text-left transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary-500/25 ${
+      selected ? 'border-primary-500 ring-1 ring-primary-500' : 'border-line hover:bg-surface-hover'
+    }`;
+
+  const swatch = (theme: Theme) => (
+    <span
+      className="flex h-10 items-center gap-1 rounded-lg px-2"
+      style={{ background: tileCanvas(theme) }}>
+      <span
+        className="h-5 w-5 rounded-full border border-line-subtle"
+        style={{ background: channelsToCss(swatchChannels(theme, 'surface')) }}
+      />
+      <span
+        className="h-3 w-8 rounded-full"
+        style={{ background: channelsToCss(swatchChannels(theme, 'content')) }}
+      />
+      <span
+        className="ml-auto h-4 w-4 rounded-full"
+        style={{ background: channelsToCss(swatchChannels(theme, 'primary-500')) }}
+      />
+    </span>
+  );
+
+  // ── Theme gallery: family tiles + one Light/Dark/Auto toggle ────────
+  const gallery = (
+    <Card
+      title={t('settings.theme.presetsHeading', 'Themes')}
+      padded
+      divided={false}
+      data-testid="theme-gallery"
+      headerRight={
+        <ToggleGroupRoot
+          type="single"
+          variant="secondary"
+          size="xs"
+          value={variant}
+          onValueChange={next => {
+            if (next) dispatch(setThemeVariant(next as ThemeVariant));
+          }}
+          aria-label={t('settings.theme.variantAria', 'Theme variant')}
+          className="overflow-hidden rounded-lg border border-line gap-0 *:rounded-none *:border-0">
+          {VARIANT_OPTIONS.map(opt => (
+            <ToggleGroupItem
+              key={opt.id}
+              value={opt.id}
+              className="h-auto px-2.5 py-1 text-xs font-medium data-[state=on]:bg-primary-500 data-[state=on]:text-content-inverted">
+              {opt.label}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroupRoot>
+      }>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        {families.map(fam => {
+          const selected = !isActiveCustom && fam.id === activeFamilyId;
+          return (
+            <button
+              key={fam.id}
+              type="button"
+              aria-pressed={selected}
+              onClick={() => dispatch(setActiveFamily(fam.id))}
+              className={tileClass(selected)}>
+              {swatch(resolveFamilyVariant(fam, previewVariant))}
+              <span className="truncate text-sm font-medium text-content">{fam.name}</span>
+            </button>
+          );
+        })}
+        {customThemes.map(th => {
+          const selected = th.id === activeThemeId;
+          return (
+            <button
+              key={th.id}
+              type="button"
+              aria-pressed={selected}
+              onClick={() => dispatch(setActiveTheme(th.id))}
+              className={tileClass(selected)}>
+              {swatch(th)}
+              <span className="flex items-center justify-between gap-1">
+                <span className="truncate text-sm font-medium text-content">{th.name}</span>
+                <span className="text-[11px] text-content-faint">
+                  {t('settings.theme.customBadge', 'Custom')}
                 </span>
-                <span className="text-sm font-medium text-content truncate">{fam.name}</span>
-              </button>
-            );
-          })}
-          {customThemes.map(th => {
-            const selected = th.id === activeThemeId;
-            return (
-              <button
-                key={th.id}
-                type="button"
-                aria-pressed={selected}
-                onClick={() => dispatch(setActiveTheme(th.id))}
-                className={`flex flex-col gap-2 rounded-xl border p-3 text-left transition-colors ${
-                  selected
-                    ? 'border-primary-500 ring-1 ring-primary-500'
-                    : 'border-line hover:bg-surface-hover'
-                }`}>
-                <span
-                  className="flex h-10 items-center gap-1 rounded-lg px-2"
-                  style={{ background: tileCanvas(th) }}>
-                  <span
-                    className="h-5 w-5 rounded-full border border-line-subtle"
-                    style={{ background: channelsToCss(swatchChannels(th, 'surface')) }}
-                  />
-                  <span
-                    className="h-3 w-8 rounded-full"
-                    style={{ background: channelsToCss(swatchChannels(th, 'content')) }}
-                  />
-                  <span
-                    className="ml-auto h-4 w-4 rounded-full"
-                    style={{ background: channelsToCss(swatchChannels(th, 'primary-500')) }}
-                  />
-                </span>
-                <span className="flex items-center justify-between gap-1">
-                  <span className="text-sm font-medium text-content truncate">{th.name}</span>
-                  <span className="text-[11px] text-content-faint">
-                    {t('settings.theme.customBadge', 'Custom')}
-                  </span>
-                </span>
-              </button>
-            );
-          })}
-        </div>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </Card>
+  );
+
+  const colorFields = (keys: readonly string[], label: (key: string) => string) => (
+    <div className="divide-y divide-line-subtle">
+      {keys.map(key => (
+        <ColorTokenField
+          key={key}
+          tokenKey={key}
+          label={label(key)}
+          value={effectiveTheme.colors[key] ?? readToken(key)}
+          disabled={false}
+          onChange={channels => dispatch(setThemeToken({ key, value: channels }))}
+        />
+      ))}
+    </div>
+  );
+
+  // ── Customizer: every fine-grained control, collapsed by default ─────
+  // These used to be eight always-open cards (four colour groups of up to a
+  // dozen rows each, fonts, background, import) stacked above the font size
+  // and language settings, so the everyday controls sat a long scroll down.
+  const customize = (
+    <section className="space-y-2" data-testid="theme-customize">
+      <div className="px-1">
+        <h3 className="font-title text-sm font-semibold text-content">
+          {t('settings.theme.title', 'Theme Studio')}
+        </h3>
+        {!isActiveCustom && (
+          <p className="mt-0.5 text-xs text-content-muted">
+            {t(
+              'settings.theme.autoForkHint',
+              'Editing a preset automatically saves your changes as a new custom theme.'
+            )}
+          </p>
+        )}
       </div>
 
-      {/* ── Editing hint (presets auto-fork) / contrast guard ──────── */}
-      {!isActiveCustom && (
-        <p className="px-1 text-xs text-content-muted">
-          {t(
-            'settings.theme.autoForkHint',
-            'Editing a preset automatically saves your changes as a new custom theme.'
-          )}
-        </p>
-      )}
       {isActiveCustom && contrastRisk && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 dark:border-amber-500/30 dark:bg-amber-500/10">
-          <p className="text-xs text-amber-700 dark:text-amber-300">
+        <Alert variant="warning" density="compact">
+          <AlertDescription>
             {t(
               'settings.theme.contrastWarn',
               'Low contrast between text and background — this theme may be hard to read.'
             )}
-          </p>
-        </div>
+          </AlertDescription>
+        </Alert>
       )}
 
-      {/* ── Colour editor ──────────────────────────────────────────── */}
-      {COLOR_GROUPS.map(group => (
-        <SettingsSection key={group.id} title={t(group.i18nKey, humanize(group.id))}>
-          {/* A ruled list, matching the billing panel: the hairlines do the
-              separating so each row needs no box of its own. */}
-          <div className="divide-y divide-line-subtle px-4">
-            {group.keys.map(key => (
-              <ColorTokenField
-                key={key}
-                tokenKey={key}
-                label={humanize(key)}
-                value={effectiveTheme.colors[key] ?? readToken(key)}
-                disabled={false}
-                onChange={channels => dispatch(setThemeToken({ key, value: channels }))}
-              />
-            ))}
-          </div>
-        </SettingsSection>
-      ))}
+      <AccordionRoot type="multiple" variant="contained">
+        {COLOR_GROUPS.map(group => (
+          <AccordionItem key={group.id} value={`colors-${group.id}`}>
+            <AccordionTrigger>{t(group.i18nKey, humanize(group.id))}</AccordionTrigger>
+            <AccordionContent>
+              {colorFields(group.keys, humanize)}
+              {group.id === 'accents' && (
+                <div className="pt-2">
+                  <Button variant="tertiary" size="xs" onClick={() => setShowAdvanced(v => !v)}>
+                    {showAdvanced
+                      ? t('settings.theme.hideShades', 'Hide all accent shades')
+                      : t('settings.theme.showShades', 'Show all accent shades')}
+                  </Button>
+                  {showAdvanced &&
+                    ACCENT_FAMILIES.map(fam => (
+                      <div key={fam} className="pt-3">
+                        <div className="text-xs font-semibold text-content-muted">
+                          {humanize(fam)}
+                        </div>
+                        {colorFields(
+                          ACCENT_SHADES.map(shade => `${fam}-${shade}`),
+                          key => humanize(key).replace(/-/g, ' ')
+                        )}
+                      </div>
+                    ))}
+                </div>
+              )}
+            </AccordionContent>
+          </AccordionItem>
+        ))}
 
-      {/* ── Advanced accent shades ─────────────────────────────────── */}
-      <div>
-        <button
-          type="button"
-          onClick={() => setShowAdvanced(v => !v)}
-          className="text-xs font-medium text-primary-600 hover:underline dark:text-primary-300">
-          {showAdvanced
-            ? t('settings.theme.hideShades', 'Hide all accent shades')
-            : t('settings.theme.showShades', 'Show all accent shades')}
-        </button>
-        {showAdvanced &&
-          ACCENT_FAMILIES.map(fam => (
-            <SettingsSection key={fam} title={humanize(fam)}>
-              <div className="px-1">
-                {ACCENT_SHADES.map(shade => {
-                  const key = `${fam}-${shade}`;
-                  return (
-                    <ColorTokenField
-                      key={key}
-                      tokenKey={key}
-                      label={`${humanize(fam)} ${shade}`}
-                      value={effectiveTheme.colors[key] ?? readToken(key)}
+        <AccordionItem value="fonts">
+          <AccordionTrigger>{t('settings.theme.fontsHeading', 'Fonts')}</AccordionTrigger>
+          <AccordionContent>
+            <div className="space-y-2">
+              {FONT_ROLES.map(role => {
+                const current = fontChoiceForStack(
+                  effectiveTheme.fonts[role] ?? readFontRole(role)
+                );
+                return (
+                  <div key={role} className="flex items-center justify-between gap-3">
+                    <span className="text-sm text-content">
+                      {t(`settings.theme.fontRole.${role}`, humanize(role))}
+                    </span>
+                    <SettingsSelect
+                      inputSize="sm"
+                      value={current?.id ?? '__current__'}
                       disabled={false}
-                      onChange={channels => dispatch(setThemeToken({ key, value: channels }))}
-                    />
-                  );
-                })}
-              </div>
-            </SettingsSection>
-          ))}
-      </div>
+                      aria-label={t(`settings.theme.fontRole.${role}`, humanize(role))}
+                      onChange={e => {
+                        const choice = FONT_CHOICES.find(c => c.id === e.target.value);
+                        if (choice) dispatch(setFontRole({ role, stack: choice.stack }));
+                      }}>
+                      {!current && (
+                        <option value="__current__" disabled>
+                          {t('settings.theme.fontCurrent', 'Current')}
+                        </option>
+                      )}
+                      {FONT_CHOICES.map(c => (
+                        <option key={c.id} value={c.id}>
+                          {c.label}
+                        </option>
+                      ))}
+                    </SettingsSelect>
+                  </div>
+                );
+              })}
+            </div>
+          </AccordionContent>
+        </AccordionItem>
 
-      {/* ── Fonts ──────────────────────────────────────────────────── */}
-      <SettingsSection title={t('settings.theme.fontsHeading', 'Fonts')}>
-        <div className="space-y-2 px-1">
-          {FONT_ROLES.map(role => {
-            const current = fontChoiceForStack(effectiveTheme.fonts[role] ?? readFontRole(role));
-            return (
-              <div key={role} className="flex items-center justify-between gap-3">
-                <span className="text-sm text-content">
-                  {t(`settings.theme.fontRole.${role}`, humanize(role))}
-                </span>
-                <SettingsSelect
-                  inputSize="sm"
-                  value={current?.id ?? '__current__'}
-                  disabled={false}
-                  aria-label={t(`settings.theme.fontRole.${role}`, humanize(role))}
-                  onChange={e => {
-                    const choice = FONT_CHOICES.find(c => c.id === e.target.value);
-                    if (choice) dispatch(setFontRole({ role, stack: choice.stack }));
-                  }}>
-                  {!current && (
-                    <option value="__current__" disabled>
-                      {t('settings.theme.fontCurrent', 'Current')}
-                    </option>
-                  )}
-                  {FONT_CHOICES.map(c => (
-                    <option key={c.id} value={c.id}>
-                      {c.label}
-                    </option>
-                  ))}
-                </SettingsSelect>
-              </div>
-            );
-          })}
-        </div>
-      </SettingsSection>
-
-      {/* ── Backdrop (mesh / solid / image) ────────────────────────── */}
-      <SettingsSection title={t('settings.theme.backdropHeading', 'Background')}>
-        <div className="space-y-2 px-1">
-          <div
-            className="inline-flex overflow-hidden rounded-lg border border-line"
-            role="radiogroup"
-            aria-label={t('settings.theme.backdropHeading', 'Background')}>
-            {(['mesh', 'solid', 'image'] as BackdropKind[]).map(kind => {
-              const current = effectiveTheme.backdrop?.kind ?? 'solid';
-              const sel = current === kind;
-              return (
-                <button
-                  key={kind}
-                  type="button"
-                  role="radio"
-                  aria-checked={sel}
-                  disabled={false}
-                  onClick={() =>
+        <AccordionItem value="background">
+          <AccordionTrigger>{t('settings.theme.backdropHeading', 'Background')}</AccordionTrigger>
+          <AccordionContent>
+            <div className="space-y-2">
+              <ToggleGroupRoot
+                type="single"
+                variant="secondary"
+                size="xs"
+                value={effectiveTheme.backdrop?.kind ?? 'solid'}
+                onValueChange={next => {
+                  if (next)
                     dispatch(
-                      setThemeBackdrop({ kind, imageUrl: effectiveTheme.backdrop?.imageUrl })
-                    )
+                      setThemeBackdrop({
+                        kind: next as BackdropKind,
+                        imageUrl: effectiveTheme.backdrop?.imageUrl,
+                      })
+                    );
+                }}
+                aria-label={t('settings.theme.backdropHeading', 'Background')}
+                className="overflow-hidden rounded-lg border border-line gap-0 *:rounded-none *:border-0">
+                {(['mesh', 'solid', 'image'] as BackdropKind[]).map(kind => (
+                  <ToggleGroupItem
+                    key={kind}
+                    value={kind}
+                    className="h-auto px-3 py-1.5 text-xs font-medium data-[state=on]:bg-primary-500 data-[state=on]:text-content-inverted">
+                    {t(`settings.theme.backdrop.${kind}`, kind)}
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroupRoot>
+              {effectiveTheme.backdrop?.kind === 'image' && (
+                <TextField
+                  type="url"
+                  inputSize="sm"
+                  disabled={false}
+                  value={effectiveTheme.backdrop?.imageUrl ?? ''}
+                  placeholder="https://…/background.jpg"
+                  aria-label={t('settings.theme.backdropImageUrl', 'Background image URL')}
+                  onChange={e =>
+                    dispatch(setThemeBackdrop({ kind: 'image', imageUrl: e.target.value }))
                   }
-                  className={`px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 ${
-                    sel
-                      ? 'bg-primary-500 text-content-inverted'
-                      : 'text-content-secondary hover:bg-surface-hover'
-                  }`}>
-                  {t(`settings.theme.backdrop.${kind}`, kind)}
-                </button>
-              );
-            })}
-          </div>
-          {effectiveTheme.backdrop?.kind === 'image' && (
-            <TextField
-              type="url"
-              inputSize="sm"
-              disabled={false}
-              value={effectiveTheme.backdrop?.imageUrl ?? ''}
-              placeholder="https://…/background.jpg"
-              aria-label={t('settings.theme.backdropImageUrl', 'Background image URL')}
-              onChange={e =>
-                dispatch(setThemeBackdrop({ kind: 'image', imageUrl: e.target.value }))
-              }
-              className="text-xs"
-            />
-          )}
-          <p className="text-[11px] text-content-faint">
-            {t(
-              'settings.theme.backdropHint',
-              'Mesh shows the animated gradient; Solid uses a flat background; Image paints your own.'
-            )}
-          </p>
-        </div>
-      </SettingsSection>
+                  className="text-xs"
+                />
+              )}
+              <p className="text-[11px] text-content-faint">
+                {t(
+                  'settings.theme.backdropHint',
+                  'Mesh shows the animated gradient; Solid uses a flat background; Image paints your own.'
+                )}
+              </p>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
 
-      {/* ── Actions: reset / delete / export / import ──────────────── */}
-      {isActiveCustom && (
-        <SettingsSection title={t('settings.theme.actions', 'Manage theme')}>
-          <div className="flex flex-wrap gap-2 px-1">
-            <Button variant="secondary" size="sm" onClick={() => dispatch(resetActiveTheme())}>
-              {t('settings.theme.reset', 'Reset overrides')}
-            </Button>
-            <Button
-              variant="secondary"
-              tone="danger"
-              size="sm"
-              onClick={() => dispatch(deleteCustomTheme(activeThemeId))}>
-              {t('settings.theme.delete', 'Delete theme')}
-            </Button>
-            <Button variant="secondary" size="sm" onClick={handleExport}>
-              {copied
-                ? t('settings.theme.copied', 'Copied!')
-                : t('settings.theme.export', 'Copy JSON')}
-            </Button>
-          </div>
-          <div className="px-1 pt-2">
-            <TextArea
-              readOnly
-              value={exportJson}
-              rows={4}
-              aria-label={t('settings.theme.export', 'Copy JSON')}
-              className="resize-none bg-surface-muted p-2 font-mono text-[11px] text-content-secondary"
-            />
-          </div>
-        </SettingsSection>
-      )}
+        {isActiveCustom && (
+          <AccordionItem value="manage">
+            <AccordionTrigger>{t('settings.theme.actions', 'Manage theme')}</AccordionTrigger>
+            <AccordionContent>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="secondary" size="sm" onClick={() => dispatch(resetActiveTheme())}>
+                  {t('settings.theme.reset', 'Reset overrides')}
+                </Button>
+                <Button
+                  variant="secondary"
+                  tone="danger"
+                  size="sm"
+                  onClick={() => dispatch(deleteCustomTheme(activeThemeId))}>
+                  {t('settings.theme.delete', 'Delete theme')}
+                </Button>
+                <Button variant="secondary" size="sm" onClick={handleExport}>
+                  {copied
+                    ? t('settings.theme.copied', 'Copied!')
+                    : t('settings.theme.export', 'Copy JSON')}
+                </Button>
+              </div>
+              <TextArea
+                readOnly
+                value={exportJson}
+                rows={4}
+                aria-label={t('settings.theme.export', 'Copy JSON')}
+                className="mt-2 resize-none bg-surface-muted p-2 font-mono text-[11px] text-content-secondary"
+              />
+            </AccordionContent>
+          </AccordionItem>
+        )}
 
-      {/* ── Import (always available) ──────────────────────────────── */}
-      <SettingsSection
-        title={t('settings.theme.import', 'Import theme')}
-        description={t(
-          'settings.theme.importHint',
-          'Paste exported theme JSON to add it as a custom theme.'
-        )}>
-        <div className="space-y-2 px-1">
-          <TextArea
-            value={importText}
-            onChange={e => setImportText(e.target.value)}
-            rows={4}
-            placeholder='{ "name": "...", "isDark": false, "colors": { ... } }'
-            aria-label={t('settings.theme.import', 'Import theme')}
-            className="resize-none p-2 font-mono text-[11px]"
-          />
-          {importError && (
-            <p className="text-xs text-coral-600 dark:text-coral-300">{importError}</p>
-          )}
-          <Button size="sm" onClick={handleImport} disabled={!importText.trim()}>
-            {t('settings.theme.importApply', 'Import')}
-          </Button>
-        </div>
-      </SettingsSection>
-    </>
+        <AccordionItem value="import">
+          <AccordionTrigger>{t('settings.theme.import', 'Import theme')}</AccordionTrigger>
+          <AccordionContent>
+            <div className="space-y-2">
+              <p className="text-xs text-content-muted">
+                {t(
+                  'settings.theme.importHint',
+                  'Paste exported theme JSON to add it as a custom theme.'
+                )}
+              </p>
+              <TextArea
+                value={importText}
+                onChange={e => setImportText(e.target.value)}
+                rows={4}
+                placeholder='{ "name": "...", "isDark": false, "colors": { ... } }'
+                aria-label={t('settings.theme.import', 'Import theme')}
+                className="resize-none p-2 font-mono text-[11px]"
+              />
+              {importError && (
+                <p className="text-xs text-coral-600 dark:text-coral-300">{importError}</p>
+              )}
+              <Button size="sm" onClick={handleImport} disabled={!importText.trim()}>
+                {t('settings.theme.importApply', 'Import')}
+              </Button>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+      </AccordionRoot>
+    </section>
   );
+
+  const body =
+    part === 'gallery' ? (
+      gallery
+    ) : part === 'customize' ? (
+      customize
+    ) : (
+      <>
+        {gallery}
+        {customize}
+      </>
+    );
 
   // Embedded: the Appearance page owns the header and renders these sections
   // among its own. That is the only host today — `/settings/theme` redirects to
