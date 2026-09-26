@@ -3,20 +3,17 @@
 //!
 //! Every request that reaches the hosted backend carries the same three
 //! attribution headers regardless of which transport sends it: `x-core-version`
-//! (this crate), `x-tauri-version` (the desktop shell, when it hosts the core)
-//! and `x-sdk-name` (the product identity from [`crate::api::product`]). The
-//! header *policy* is OpenHuman's, so it lives here in the core; the
-//! [`BackendTransport`](crate::api::transport::BackendTransport)
-//! implementation that actually performs the request — the SDK-backed one in
-//! `openhuman-tinyhumans`, or the test-only plain client — builds its
-//! `reqwest::Client` from these helpers so the wire shape cannot drift between
-//! them.
+//! (the workspace version the core ships as), `x-tauri-version` (the desktop
+//! shell, when it hosts the core) and `x-sdk-name` (the product identity from
+//! [`crate::backend::product`]). This is TinyHumans header policy, so it lives
+//! with the TinyHumans transport; the core only asks the installed
+//! [`BackendTransport`](openhuman_core::backend::BackendTransport) for them.
 
 use anyhow::{Context, Result};
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
 use std::time::Duration;
 
-use crate::api::transport::TransportProfile;
+use openhuman_core::backend::TransportProfile;
 
 /// Upper bound on the `x-core-version` / `x-tauri-version` header values. A
 /// version string is short; anything longer is a misconfigured environment and
@@ -51,7 +48,7 @@ pub(crate) fn sanitize_client_version(raw: &str) -> Option<String> {
 ///
 /// Set at the transport level rather than per request because some callers
 /// drive a raw `reqwest::Client` themselves (multipart STT upload via
-/// [`BackendOAuthClient::raw_client`](crate::api::rest::BackendOAuthClient::raw_client))
+/// [`BackendClient::raw_client`](openhuman_core::backend::BackendClient::raw_client))
 /// and that traffic needs attributing too.
 pub fn attribution_headers() -> Result<HeaderMap> {
     let mut headers = HeaderMap::new();
@@ -69,7 +66,7 @@ pub fn attribution_headers() -> Result<HeaderMap> {
             );
         }
     }
-    let (name, value) = crate::api::product::product_identity_header();
+    let (name, value) = crate::backend::product::product_identity_header();
     headers.insert(name, value);
     Ok(headers)
 }
@@ -80,16 +77,16 @@ pub fn attribution_headers() -> Result<HeaderMap> {
 ///
 /// Platform-appropriate TLS: Windows → schannel (honors the OS cert store,
 /// required for corporate TLS-inspection proxies); macOS / Linux → rustls.
-/// See [`crate::util::tls::tls_client_builder`].
+/// See [`openhuman_core::util::tls::tls_client_builder`].
 pub fn backend_client_builder(profile: TransportProfile) -> Result<reqwest::ClientBuilder> {
     let timeout = match profile {
-        // `BackendOAuthClient` historically allowed 120 s: it fronts slow
+        // `BackendClient` historically allowed 120 s: it fronts slow
         // control-plane calls (billing summaries, integration token handoffs).
         TransportProfile::Api => Duration::from_secs(120),
         // `/agent-integrations/*` tool calls were always capped at 60 s.
         TransportProfile::Integrations => Duration::from_secs(60),
     };
-    Ok(crate::util::tls::tls_client_builder()
+    Ok(openhuman_core::util::tls::tls_client_builder()
         .default_headers(attribution_headers()?)
         .http1_only()
         .timeout(timeout)

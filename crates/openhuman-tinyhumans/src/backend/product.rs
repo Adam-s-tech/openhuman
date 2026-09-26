@@ -7,7 +7,7 @@
 //! (`src/utils/sdkSource.ts` in `tinyhumansai/backend`) to attribute the call.
 //!
 //! The identity is process-wide rather than a constructor parameter because
-//! [`crate::api::rest::BackendOAuthClient`] is built at ~35 call sites spread
+//! [`BackendClient`](openhuman_core::backend::BackendClient) is built at ~35 call sites spread
 //! across the domains, none of which an embedding product owns. Threading a
 //! parameter through would mean editing every one of them. Instead a host sets
 //! the identity once during startup, before it builds any backend client:
@@ -23,7 +23,7 @@
 //! A build that never calls the setter sends [`DEFAULT_PRODUCT_IDENTITY`], so
 //! behaviour is unchanged for any host that does not opt in.
 //!
-//! The shape mirrors [`crate::config::schema::proxy`]'s runtime
+//! The shape mirrors `openhuman_core::config::schema::proxy`'s runtime
 //! proxy config — a `OnceLock<RwLock<_>>` holding a defaulted value — rather
 //! than a bare `OnceLock<T>`, which could only ever be set once per process and
 //! would make the override untestable without poisoning the test binary.
@@ -39,7 +39,7 @@ pub const DEFAULT_PRODUCT_IDENTITY: &str = "openhuman";
 
 /// Upper bound on the emitted header value. Mirrors the cap
 /// `sanitize_client_version` applies to `x-core-version` in
-/// [`crate::api::rest`].
+/// [`openhuman_core::backend`].
 const PRODUCT_IDENTITY_MAX_LEN: usize = 64;
 
 /// A product identity that is always safe to send as a header value.
@@ -106,7 +106,7 @@ fn slot() -> &'static RwLock<ProductIdentity> {
 /// Set the product identity for this process.
 ///
 /// Call once during startup, before the first backend client is constructed.
-/// [`crate::api::rest::BackendOAuthClient`] and `IntegrationClient` read the
+/// [`BackendClient`](openhuman_core::backend::BackendClient) and `IntegrationClient` read the
 /// identity into their default headers at construction, so a later call does
 /// not retroactively re-tag clients that already exist.
 pub fn set_product_identity(identity: ProductIdentity) {
@@ -153,7 +153,7 @@ pub fn product_identity_headers() -> HeaderMap {
 ///
 /// The identity is process state, so a module-local lock cannot prevent
 /// cross-module races: `api::product`, `api::rest` and
-/// `crate::integrations` tests all touch it from parallel test threads, and
+/// `openhuman_core::integrations` tests all touch it from parallel test threads, and
 /// a test asserting the `openhuman` default would flake against a test that has
 /// installed an override. Every test that touches the identity must take THIS
 /// lock and restore the default before releasing it.
