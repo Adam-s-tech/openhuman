@@ -11,6 +11,7 @@ import {
   CommandSeparator,
 } from '@/components/assistant-ui/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/assistant-ui/ui/popover';
+import { useT } from '@/lib/i18n/I18nContext';
 import { useAui } from '@assistant-ui/react';
 import { Radio } from '@base-ui/react/radio';
 import { RadioGroup } from '@base-ui/react/radio-group';
