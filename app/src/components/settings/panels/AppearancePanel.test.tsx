@@ -1,7 +1,9 @@
-import { fireEvent, within } from '@testing-library/react';
+import { fireEvent, render, within } from '@testing-library/react';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { Provider } from 'react-redux';
 import { describe, expect, it, vi } from 'vitest';
 
-import { renderWithProviders } from '../../../test/test-utils';
+import { createTestStore, renderWithProviders } from '../../../test/test-utils';
 import AppearancePanel from './AppearancePanel';
 
 // Pass-through translator so assertions can target the i18n keys directly.

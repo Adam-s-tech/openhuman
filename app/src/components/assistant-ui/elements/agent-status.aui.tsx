@@ -14,6 +14,7 @@
  *   it keeps upstream's exact English text.
  */
 import { cn } from '@/components/assistant-ui/lib/utils';
+import { useT } from '@/lib/i18n/I18nContext';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/assistant-ui/ui/popover';
 import { type TaskState, useAuiState } from '@assistant-ui/react';
 import { ChevronDownIcon } from 'lucide-react';
