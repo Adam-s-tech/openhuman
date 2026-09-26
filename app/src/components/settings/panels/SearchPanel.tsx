@@ -342,6 +342,12 @@ const SearchPanel = ({ embedded = false }: { embedded?: boolean }) => {
 
         {status.kind === 'loading' && <CenteredLoadingState label={t('common.loading')} />}
 
+        {!settings && status.kind === 'error' && (
+          <Alert variant="destructive" density="compact" data-testid="search-settings-load-error">
+            <AlertDescription>{`${t('settings.search.statusError')}: ${status.message}`}</AlertDescription>
+          </Alert>
+        )}
+
         {settings && (
           <>
             {/* ── Engine ─────────────────────────────────────────────── */}
