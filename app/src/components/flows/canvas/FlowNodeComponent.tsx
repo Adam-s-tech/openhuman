@@ -157,7 +157,9 @@ function FlowNodeComponent({ id, data, selected }: NodeProps<FlowNode>) {
                   — which pushed the dot itself down inside the card. Only the
                   unlabelled ports looked right. */}
               {labelInputs && (
-                <span className={`absolute bottom-full mb-1 ${portPillClass(port)}`}>{port}</span>
+                <Badge variant={portPillVariant(port)} dot={false} className="absolute bottom-full mb-1">
+                  {port}
+                </Badge>
               )}
               <Handle
                 id={port}
