@@ -126,7 +126,7 @@ function SkillFormatBadge({ format }: { format: string }) {
     clawhub: 'ClawHub',
     legacy: 'Legacy',
   };
-  const label = FORMAT_LABELS[lower] ?? format || 'Skill';
+  const label = FORMAT_LABELS[lower] ?? (format || 'Skill');
   return (
     <Badge variant={FORMAT_VARIANT[lower] ?? 'neutral'} dot={false}>
       {label}
