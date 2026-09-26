@@ -71,8 +71,8 @@ None of its own. State (`status`, `socket_id`, `error`, attached `WebhookRouter`
 
 ## Dependencies
 
-- `crate::api::models::socket` — `ConnectionStatus`, `SocketState` DTOs.
-- `crate::api::socket::websocket_url`, `crate::api::config::effective_backend_api_url`, `crate::api::jwt::get_session_token` — URL derivation and session-token lookup.
+- `crate::platform::socket::models` — `ConnectionStatus`, `SocketState` DTOs.
+- `crate::platform::socket::url::websocket_url`, `crate::backend::require_base_url` (asks the installed transport, which resolves `effective_backend_api_url`), `crate::security::credentials::session_support::get_session_token` — URL derivation and session-token lookup.
 - `crate::core::all` — `ControllerFuture`, `RegisteredController` for the controller registry.
 - `crate::core::{ControllerSchema, FieldSchema, TypeSchema}` — RPC schema types.
 - `crate::core::bus::BUS.publish` / `crate::core::events::DomainEvent` — for routing inbound events.
