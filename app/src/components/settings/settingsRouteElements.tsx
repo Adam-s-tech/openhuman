@@ -206,7 +206,7 @@ export function settingsRouteElements(): ReactNode {
       <Route path="ai" element={<Navigate to="/connections?tab=llm" replace />} />
       <Route path="agents-settings" element={<SettingsRedirect to="/settings/agents" />} />
       <Route path="crypto" element={<Navigate to="/connections?tab=wallet" replace />} />
-      <Route path="notifications-hub" element={<SettingsRedirect to="/settings/notifications" />} />
+      <Route path="notifications-hub" element={<SettingsRedirect to="/settings/account" />} />
       {/* Composio (API key + routing) moved to Connections → API keys. */}
       <Route path="composio" element={<Navigate to="/connections?tab=composio-key" replace />} />
       {/* Merged Usage & Limits surface (now on Connections) */}
