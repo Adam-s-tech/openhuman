@@ -304,12 +304,11 @@ async fn fetch_data_paths(user_id: Option<String>) -> Result<ResolvedDataPaths, 
     if let Some(id) = user_id {
         params.insert("user_id".to_string(), serde_json::Value::String(id));
     }
-    let body = serde_json::json!({
-        "jsonrpc": "2.0",
-        "id": 1,
-        "method": "openhuman.config_get_data_paths",
-        "params": serde_json::Value::Object(params),
-    });
+    let body = openhuman_rpc::request_body(
+        1,
+        "openhuman.config_get_data_paths",
+        serde_json::Value::Object(params),
+    );
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(10))
         .build()
