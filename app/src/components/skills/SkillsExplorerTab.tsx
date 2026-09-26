@@ -436,11 +436,9 @@ function SkillDetailDialog({
             </h3>
             <div className="flex flex-wrap gap-1.5">
               {tags.map(tag => (
-                <span
-                  key={tag}
-                  className="rounded-full bg-surface-subtle px-2 py-0.5 text-[10px] font-medium text-content-secondary">
+                <Badge key={tag} dot={false}>
                   {tag}
-                </span>
+                </Badge>
               ))}
             </div>
           </div>
