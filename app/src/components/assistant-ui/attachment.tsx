@@ -64,11 +64,12 @@ const useAttachmentSrc = () => {
 type AttachmentPreviewProps = { src: string };
 
 const AttachmentPreview: FC<AttachmentPreviewProps> = ({ src }) => {
+  const { t } = useT();
   const [isLoaded, setIsLoaded] = useState(false);
   return (
     <img
       src={src}
-      alt="Attachment preview"
+      alt={t('attachment.previewAlt', 'Attachment preview')}
       className={cn(
         'block h-auto max-h-[80vh] w-auto max-w-full rounded-sm object-contain transition-opacity duration-300 motion-reduce:transition-none',
         isLoaded
