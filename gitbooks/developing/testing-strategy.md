@@ -284,7 +284,7 @@ watching it fire.**
 The cheap checks are first because a wrong answer early is invisible later: a
 suite that never compiled reports the same exit code as one that failed, and a
 plausible-but-wrong explanation gets *confirmed* rather than tested, because
-confirming it succeeds. Knowing that features matter is not enough — the rule is
+confirming it succeeds. Knowing that features matter is not enough: the rule is
 not applied at the moment of asserting. Running CI's literal command is.
 
 ---
