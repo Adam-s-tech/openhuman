@@ -22,6 +22,7 @@
  * own status-tone convention — dots, not progress bars (project rule).
  */
 import debug from 'debug';
+import { X } from 'lucide-react';
 
 import { useEscapeKey } from '../../hooks/useEscapeKey';
 import { useFlowPendingApprovals } from '../../hooks/useFlowPendingApprovals';
@@ -182,6 +183,12 @@ interface Props {
    * canvas copilot preloaded. Omitted where there's no copilot to route to.
    */
   onFixWithAgent?: (request: FlowRepairRequest) => void;
+  /**
+   * `drawer` (default): a fixed right-side overlay with a backdrop. `panel`:
+   * the same header + body laid out to fill a host container (the workflow
+   * editor's side panel), with no overlay and no backdrop.
+   */
+  variant?: 'drawer' | 'panel';
 }
 
 /**
@@ -189,7 +196,12 @@ interface Props {
  * unconditionally and just flip `runId` (same convention as
  * `AgentProcessSourcePanel`).
  */
-export function FlowRunInspectorDrawer({ runId, onClose, onFixWithAgent }: Props) {
+export function FlowRunInspectorDrawer({
+  runId,
+  onClose,
+  onFixWithAgent,
+  variant = 'drawer',
+}: Props) {
   const { t } = useT();
   const { run, loading, error } = useFlowRunPoller(runId);
   // Live per-node status overlay (Phase 3e): the socket feed makes the poller's
@@ -232,25 +244,15 @@ export function FlowRunInspectorDrawer({ runId, onClose, onFixWithAgent }: Props
   useEscapeKey(() => {
     log('escape: closing runId=%s', runId);
     onClose();
-  }, runId !== null);
+  }, runId !== null && variant === 'drawer');
 
   if (!runId) return null;
 
   const startedAt = formatRunTimestamp(run?.started_at, { withSeconds: true });
   const finishedAt = formatRunTimestamp(run?.finished_at, { withSeconds: true });
 
-  return (
-    <div className="fixed inset-0 z-50 flex justify-end" data-testid="flow-run-inspector-drawer">
-      {/* Backdrop */}
-      <Button
-        type="button"
-        variant="tertiary"
-        aria-label={t('conversations.subagent.close')}
-        data-testid="flow-run-inspector-backdrop"
-        className="absolute inset-0 h-auto w-auto rounded-none bg-surface-overlay/50 backdrop-blur-sm hover:bg-surface-overlay/50"
-        onClick={onClose}
-      />
-      <aside className="relative flex h-full w-full max-w-md flex-col bg-surface shadow-xl">
+  const content = (
+    <>
         {/* Header */}
         <header className="flex items-start gap-2.5 border-b border-line px-4 py-3">
           <div className="min-w-0 flex-1">
@@ -298,8 +300,8 @@ export function FlowRunInspectorDrawer({ runId, onClose, onFixWithAgent }: Props
             data-testid="flow-run-inspector-close"
             onClick={onClose}
             aria-label={t('conversations.subagent.close')}
-            className="shrink-0 rounded-full">
-            ✕
+            className="shrink-0">
+            <X className="h-3.5 w-3.5" aria-hidden />
           </Button>
         </header>
 
@@ -416,6 +418,30 @@ export function FlowRunInspectorDrawer({ runId, onClose, onFixWithAgent }: Props
             </>
           )}
         </div>
+    </>
+  );
+
+  if (variant === 'panel') {
+    return (
+      <div className="flex h-full min-h-0 flex-col" data-testid="flow-run-inspector-panel">
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end" data-testid="flow-run-inspector-drawer">
+      {/* Backdrop */}
+      <Button
+        type="button"
+        variant="tertiary"
+        aria-label={t('conversations.subagent.close')}
+        data-testid="flow-run-inspector-backdrop"
+        className="absolute inset-0 h-auto w-auto rounded-none bg-surface-overlay/50 backdrop-blur-sm hover:bg-surface-overlay/50"
+        onClick={onClose}
+      />
+      <aside className="relative flex h-full w-full max-w-md flex-col bg-surface shadow-xl">
+        {content}
       </aside>
     </div>
   );
