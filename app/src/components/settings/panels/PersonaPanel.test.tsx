@@ -169,7 +169,7 @@ describe('PersonaPanel', () => {
     openAdvanced();
 
     fireEvent.change(screen.getByTestId('persona-soul-editor'), { target: { value: 'edited' } });
-    fireEvent.click(screen.getByTestId('persona-soul-save'));
+    fireEvent.click(screen.getByTestId('persona-save'));
 
     await waitFor(() => {
       expect(screen.getByTestId('persona-soul-error')).toHaveTextContent('disk full');
