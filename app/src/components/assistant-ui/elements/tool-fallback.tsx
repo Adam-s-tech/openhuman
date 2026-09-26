@@ -588,7 +588,7 @@ function ToolFallbackApproval({
               className={pressable}
               onClick={() => respond(false)}
               disabled={locked}>
-              Deny
+              {t('chat.approval.deny', 'Deny')}
             </Button>
           )}
           {!acceptsText && dismissButton}
@@ -625,7 +625,7 @@ function ToolFallbackApproval({
       {promptText}
       <div className="flex items-center gap-2">
         <Button size="sm" className={pressable} onClick={() => respond(true)} disabled={locked}>
-          Allow
+          {t('workflows.phase.toolScope.allow', 'Allow')}
         </Button>
         <Button
           size="sm"
@@ -633,7 +633,7 @@ function ToolFallbackApproval({
           className={pressable}
           onClick={() => respond(false)}
           disabled={locked}>
-          Deny
+          {t('chat.approval.deny', 'Deny')}
         </Button>
       </div>
       {answerField}
