@@ -134,7 +134,13 @@ export {
 } from './Collapsible';
 
 // Overlays
-export { DialogContent, DialogDescription, DialogRoot, DialogTitle, type DialogContentProps } from './Dialog';
+export {
+  DialogContent,
+  DialogDescription,
+  DialogRoot,
+  DialogTitle,
+  type DialogContentProps,
+} from './Dialog';
 export {
   AlertDialogAction,
   AlertDialogCancel,

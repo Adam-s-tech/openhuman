@@ -163,4 +163,3 @@ const TaskCard: FC<{ part: TaskPart; className?: string }> = ({ part, className 
     </TaskCardBase>
   );
 };
-

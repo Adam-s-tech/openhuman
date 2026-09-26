@@ -99,10 +99,7 @@ const summaryState = (summary: TaskSummary): AgentState => {
   return summary.failed > 0 ? 'failed' : 'done';
 };
 
-const summaryLabel = (
-  summary: TaskSummary,
-  strings: AgentStatusStrings = DEFAULT_STRINGS
-) => {
+const summaryLabel = (summary: TaskSummary, strings: AgentStatusStrings = DEFAULT_STRINGS) => {
   if (summary.running === 1 && summary.runningLabel !== undefined) {
     return summary.runningLabel;
   }
