@@ -96,6 +96,7 @@ export {
 
 // Surfaces & content
 export { default as Card, type CardProps } from './Card';
+export { Tile, TileGrid, type TileGridProps, type TileProps } from './TileGrid';
 export {
   Alert,
   AlertDescription,
