@@ -951,7 +951,7 @@ const Composer: FC<{
       textbox?.removeAttribute('aria-label');
       textbox?.removeAttribute('data-testid');
     };
-  }, []);
+  }, [messageInputLabel]);
 
   // Set for as long as an IME composition is open. The gate is a ref rather
   // than state because it is read from a microtask, not from a render.
