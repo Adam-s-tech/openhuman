@@ -63,7 +63,7 @@ What `harness/mod.rs` actually re-exports:
   `TriggerMemoryAgent`: the sub-agent archetype data model.
 - `ParentExecutionContext` and its accessors (`current_parent`,
   `with_parent_context`, `current_agent_context_prepared_sources`,
-  `with_agent_context_prepared_sources`, `AgentContextPreparedSource`) —
+  `with_agent_context_prepared_sources`, `AgentContextPreparedSource`):
   parent runtime context for spawned tools.
 - `current_sandbox_mode`/`with_current_sandbox_mode`,
   `current_task_recency_window`/`with_task_recency_window`: the other
