@@ -364,7 +364,7 @@ export function SyncAuditPanel({ fill = false }: SyncAuditPanelProps = {}) {
       columns={columns}
       rows={visible}
       rowKey={(e, i) => `${e.timestamp}-${i}`}
-      pagination={{ pageSize: 10 }}
+      pagination={{ pageSize: fill ? 25 : 10 }}
       loading={loading}
       loadingRows={4}
       empty={
