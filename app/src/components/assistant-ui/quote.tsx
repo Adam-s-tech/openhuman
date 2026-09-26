@@ -183,6 +183,7 @@ function ComposerQuotePreviewDismiss({
   children,
   ...props
 }: ComponentProps<typeof ComposerPrimitive.QuoteDismiss>) {
+  const { t } = useT();
   const defaultClassName =
     'shrink-0 rounded-sm p-0.5 text-muted-foreground/70 transition-colors hover:bg-accent hover:text-foreground';
 
@@ -194,7 +195,7 @@ function ComposerQuotePreviewDismiss({
       {children ?? (
         <button
           type="button"
-          aria-label="Dismiss quote"
+          aria-label={t('quote.dismiss', 'Dismiss quote')}
           className={cn(defaultClassName, className)}>
           <XIcon className="size-3.5" />
         </button>

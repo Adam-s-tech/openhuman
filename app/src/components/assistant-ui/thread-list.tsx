@@ -405,6 +405,7 @@ const ThreadListItemRename: FC<{ onDone: (restoreFocus: boolean) => void }> = ({
 };
 
 const ThreadListItemMore: FC<{ onRename: () => void }> = ({ onRename }) => {
+  const { t } = useT();
   return (
     <ThreadListItemMorePrimitive.Root sharedFocusGroup>
       <ThreadListItemMorePrimitive.Trigger
@@ -417,7 +418,7 @@ const ThreadListItemMore: FC<{ onRename: () => void }> = ({ onRename }) => {
           />
         }>
         <MoreHorizontalIcon className="size-3.5" />
-        <span className="sr-only">More options</span>
+        <span className="sr-only">{t('assistantUi.threadList.moreOptions', 'More options')}</span>
       </ThreadListItemMorePrimitive.Trigger>
       <ThreadListItemMorePrimitive.Content
         side="right"
