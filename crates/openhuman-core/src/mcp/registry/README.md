@@ -1,8 +1,8 @@
-# mcp/registry, user-declared MCP servers
+# mcp/registry: user-declared MCP servers
 
 Host half of the dynamic, user-declared MCP server surface. The registry
-itself, the Smithery and official catalogs, the SQLite store, the live
-connection map, and the subprocess/browser-sign-in supervisor, moved to
+itself (the Smithery and official catalogs, the SQLite store, the live
+connection map, and the subprocess/browser-sign-in supervisor) moved to
 [`tinymcp`](https://github.com/tinyhumansai/tinymcp). What is left here is
 what belongs to this application: the `mcp_clients` RPC surface, the
 `mcp.json` document that is the only way a server is added or removed, the
