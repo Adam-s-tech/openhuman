@@ -13,7 +13,7 @@ fn, which returns `RpcOutcome<T>`.
 
 | File | Responsibility |
 | --- | --- |
-| `agent.rs` | Autonomy, agent, agent-paths, activity-level, and memory-sync settings. |
+| `agent.rs` | Autonomy, agent, agent-paths, and memory-sync settings. |
 | `loader.rs` | Config loading/snapshotting and runtime flags; split into submodules `loader/load.rs`, `loader/paths.rs`, `loader/reset_local_data.rs`, `loader/runtime_flags.rs`, `loader/snapshot.rs`. |
 | `model.rs` | AI-provider, memory, runtime, local-AI, and Composio-trigger settings. |
 | `privacy.rs` | Privacy Mode (`[privacy]`) get/set. |
