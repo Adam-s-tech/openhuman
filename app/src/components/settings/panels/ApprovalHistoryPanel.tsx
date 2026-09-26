@@ -33,12 +33,12 @@ const DateTimeCell = ({ value }: { value: string }) => {
   );
 };
 
-/** Status-dot colour per decision (the badge itself is a neutral outline). */
-const DECISION_DOT_CLASS: Record<ApprovalDecision, string> = {
-  approve_once: 'bg-sage-500',
-  approve_always_for_tool: 'bg-sage-500',
-  approve_always_for_flow: 'bg-sage-500',
-  deny: 'bg-coral-500',
+/** Badge tone per decision: approvals read sage, a denial coral. */
+const DECISION_VARIANT: Record<ApprovalDecision, 'success' | 'danger'> = {
+  approve_once: 'success',
+  approve_always_for_tool: 'success',
+  approve_always_for_flow: 'success',
+  deny: 'danger',
 };
 
 const DECISION_LABEL_KEY: Record<ApprovalDecision, string> = {
@@ -148,16 +148,10 @@ const ApprovalHistoryPanel = () => {
       header: t('settings.approvalHistory.column.decision'),
       align: 'right',
       className: 'w-px whitespace-nowrap',
-      // shadcn's status badge: an outline badge with a coloured dot.
       cell: entry => (
         <Badge
-          variant="neutral"
-          className="gap-1.5 rounded-md bg-transparent px-2 py-1 text-xs font-medium text-content"
+          variant={DECISION_VARIANT[entry.decision]}
           data-testid={`approval-history-decision-${entry.decision}`}>
-          <span
-            className={`h-1.5 w-1.5 rounded-full ${DECISION_DOT_CLASS[entry.decision]}`}
-            aria-hidden
-          />
           {t(DECISION_LABEL_KEY[entry.decision])}
         </Badge>
       ),

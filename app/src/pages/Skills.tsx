@@ -351,7 +351,7 @@ function ChannelTile({
             <Badge
               data-testid={setDefaultTestId}
               variant="primary"
-              className="gap-1 border-primary-400/60 bg-primary-100/70 text-primary-700 dark:border-primary-500/40 dark:bg-primary-500/15 dark:text-primary-200">
+              dot={false}>
               <svg className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                 <path
                   fillRule="evenodd"

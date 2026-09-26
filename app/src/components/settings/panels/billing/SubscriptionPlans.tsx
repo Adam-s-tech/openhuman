@@ -167,15 +167,13 @@ const SubscriptionPlans = ({
                       </h4>
                       {isPopular && (
                         <Badge
-                          variant="primary"
-                          className="rounded-full bg-primary-600 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.24em] text-content-inverted">
+                          variant="primary">
                           {t('settings.billing.subscription.popular')}
                         </Badge>
                       )}
                       {isCurrent && !plan.recommended && (
                         <Badge
-                          variant="neutral"
-                          className="rounded-full bg-content px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.24em] text-content-inverted">
+                          variant="success">
                           {t('settings.billing.subscription.current')}
                         </Badge>
                       )}
@@ -184,8 +182,7 @@ const SubscriptionPlans = ({
                       {plan.features.slice(0, 4).map(feature => (
                         <Badge
                           key={feature.text}
-                          variant="neutral"
-                          className="rounded-full border-primary-200 bg-surface-subtle/50 px-3 py-1 text-xs font-medium normal-case dark:border-primary-500/30">
+                          variant="neutral">
                           {feature.text}
                         </Badge>
                       ))}
