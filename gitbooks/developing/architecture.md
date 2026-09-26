@@ -255,7 +255,7 @@ Memory encryption keys derive from user credentials via Argon2id, ensuring memor
 
 ---
 
-## End-to-End Data Flow
+## End-to-end data flow
 
 A complete flow from user action to external service and back:
 

@@ -3,16 +3,14 @@ description: How to build OpenHuman from source - toolchain, submodules, Tauri C
 icon: wrench
 ---
 
-# Building & Installing OpenHuman
+# Building and installing OpenHuman
 
-This guide covers the full desktop/source install path and release installers.
+This guide covers the full desktop/source install path plus the release installers, so pick whichever path matches what you're doing:
 
-If you only need the Rust workspace under `crates/` on a fresh machine, use [Building the Rust Core](building-rust-core.md). That page documents the pinned Rust toolchain, OS package prerequisites, and the exact `cargo` commands for `openhuman-core`.
-
-This guide covers two paths:
-
-1. Build and compile OpenHuman from source
+1. Build OpenHuman from source
 2. Install the latest stable release binaries
+
+If you only need the Rust workspace under `crates/` on a fresh machine (no Node, no Tauri), use [Building the Rust Core](building-rust-core.md) instead. That page has the pinned Rust toolchain, OS package prerequisites, and the exact `cargo` commands for `openhuman-core`.
 
 ## Prerequisites
 
