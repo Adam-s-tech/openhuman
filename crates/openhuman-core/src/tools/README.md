@@ -74,7 +74,7 @@ Handlers load config via `config::rpc::load_config_with_timeout`, build the back
 
 ## Agent tools
 
-This module **owns** the cross-cutting built-in tools (the only ones that belong here per the repo's tool-ownership rule):
+This module owns the cross-cutting built-in tools (the only ones that belong here per the repo's tool-ownership rule):
 
 - Filesystem: `file_read`, `file_write`, `edit`, `apply_patch`, `grep`, `glob`, `list`, `read_diff`, `csv_export`, `git_operations`, `run_linter`, `run_tests`, `update_memory_md`.
 - System/process: `shell`, `node_exec`, `npm_exec`, `python_exec`, `install_tool`, `detect_tools`, `current_time`, `resolve_time`, `schedule`, `proxy_config`, `pushover`, `lsp`, `tool_stats`, `update_check`, `update_apply`, `insert_sql_record`, `read_workspace_state`, `retrieve_tool_output`.
