@@ -44,8 +44,10 @@ pub(super) fn sanitize_backend_url(backend_url: &str) -> String {
 pub struct IntegrationClient {
     pub backend_url: String,
     pub auth_token: String,
-    /// `auth_token` in the shape the transport takes: always a session JWT
-    /// here (see `errors.rs::handle_session_jwt_unauthorized`).
+    /// `auth_token` in the shape the transport takes: a session JWT rides
+    /// `Authorization: Bearer`, a TinyHumans API key rides `x-api-key` (see
+    /// `api::transport::credential_headers`). The 401 handling in `errors.rs`
+    /// branches on which one it is.
     pub(super) credential: crate::security::credentials::session_support::BackendCredential,
     pub(super) budget_config: Option<Arc<crate::config::Config>>,
     // The binary download path never rode the SDK: file storage also consumes
@@ -56,21 +58,49 @@ pub struct IntegrationClient {
 }
 
 impl IntegrationClient {
+    /// A client authenticating with a session JWT.
     pub fn new(backend_url: String, auth_token: String) -> Self {
-        Self::new_inner(backend_url, auth_token, None)
+        Self::new_inner(
+            backend_url,
+            crate::security::credentials::session_support::BackendCredential::Session(auth_token),
+            None,
+        )
+    }
+
+    /// A client authenticating with whichever credential
+    /// [`resolve_backend_credential`](crate::security::credentials::session_support::resolve_backend_credential)
+    /// chose: the TinyHumans API key or the session JWT.
+    pub fn new_with_credential(
+        backend_url: String,
+        credential: crate::security::credentials::session_support::BackendCredential,
+    ) -> Self {
+        Self::new_inner(backend_url, credential, None)
     }
 
     pub fn new_with_budget_config(
         backend_url: String,
-        auth_token: String,
+        credential: crate::security::credentials::session_support::BackendCredential,
         config: Arc<crate::config::Config>,
     ) -> Self {
-        Self::new_inner(backend_url, auth_token, Some(config))
+        Self::new_inner(backend_url, credential, Some(config))
+    }
+
+    /// Whether this client authenticates with a TinyHumans API key rather
+    /// than a session JWT.
+    pub fn uses_api_key(&self) -> bool {
+        self.credential.is_api_key()
+    }
+
+    /// The auth headers for a request built outside the backend transport
+    /// (binary download, raw DELETE): `Authorization: Bearer` for a session,
+    /// `x-api-key` for an API key.
+    pub(crate) fn auth_headers(&self) -> reqwest::header::HeaderMap {
+        crate::api::transport::credential_headers(&self.credential)
     }
 
     fn new_inner(
         backend_url: String,
-        auth_token: String,
+        credential: crate::security::credentials::session_support::BackendCredential,
         budget_config: Option<Arc<crate::config::Config>>,
     ) -> Self {
         // Defense-in-depth (issue #2075 / Sentry OPENHUMAN-TAURI-H6, -HN):
@@ -111,9 +141,7 @@ impl IntegrationClient {
             .build()
             .expect("failed to build integration download HTTP client");
 
-        let credential = crate::security::credentials::session_support::BackendCredential::Session(
-            auth_token.clone(),
-        );
+        let auth_token = credential.secret().to_owned();
         Self {
             backend_url,
             auth_token,
