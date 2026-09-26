@@ -40,6 +40,7 @@ export type SettingsSection =
  */
 type SettingsNavGroup =
   | 'general'
+  | 'appearance'
   | 'assistant'
   | 'data'
   | 'connections'
@@ -50,6 +51,7 @@ type SettingsNavGroup =
 
 const NAV_GROUP_ORDER: SettingsNavGroup[] = [
   'general',
+  'appearance',
   'assistant',
   'data',
   'connections',
@@ -62,6 +64,7 @@ const NAV_GROUP_ORDER: SettingsNavGroup[] = [
 /** i18n keys for the sidebar group labels. */
 export const NAV_GROUP_LABEL_KEY: Record<SettingsNavGroup, string> = {
   general: 'settings.navGroups.general',
+  appearance: 'settings.navGroups.appearance',
   assistant: 'settings.navGroups.assistant',
   data: 'settings.navGroups.data',
   connections: 'settings.navGroups.connections',
@@ -175,10 +178,18 @@ export const SETTINGS_ROUTE_REGISTRY: SettingsRegistryEntry[] = [
       'palette',
       'background',
       'backdrop',
-      'language',
-      'locale',
-      'translation',
     ],
+    navGroup: 'appearance',
+    navOrder: 0,
+  },
+  {
+    // language: the display-language picker, formerly a card at the bottom of
+    // Appearance — a language is not a visual preference.
+    id: 'language',
+    titleKey: 'settings.language',
+    descriptionKey: 'settings.languageDesc',
+    section: 'home',
+    searchKeywords: ['language', 'locale', 'translation', 'i18n'],
     navGroup: 'general',
     navOrder: 1,
   },
@@ -197,23 +208,25 @@ export const SETTINGS_ROUTE_REGISTRY: SettingsRegistryEntry[] = [
   // The old 'ai' and 'agents-settings' hub pages are retired — their slugs
   // redirect to /settings/llm and /settings/agents.
   {
-    // personality: merged Personality & Face page (formerly persona and
-    // mascot — those slugs redirect here).
+    // personality and face: how the assistant presents itself, so they sit in
+    // the Appearance group next to the app's own look. They were one page with
+    // two tabs; `/settings/persona` redirects to personality, and
+    // `/settings/mascot` and the old `personality#face` link to face.
     id: 'personality',
-    titleKey: 'settings.personalityFace.title',
-    descriptionKey: 'settings.personalityFace.menuDesc',
+    titleKey: 'settings.assistant.personality',
+    descriptionKey: 'settings.personality.menuDesc',
     section: 'home',
-    searchKeywords: [
-      'personality',
-      'tone',
-      'character',
-      'persona',
-      'face',
-      'avatar',
-      'mascot',
-      'tiny',
-    ],
-    navGroup: 'assistant',
+    searchKeywords: ['personality', 'tone', 'character', 'persona', 'name'],
+    navGroup: 'appearance',
+    navOrder: 1,
+  },
+  {
+    id: 'face',
+    titleKey: 'settings.face.title',
+    descriptionKey: 'settings.face.menuDesc',
+    section: 'home',
+    searchKeywords: ['face', 'avatar', 'mascot', 'tiny', 'colour', 'color'],
+    navGroup: 'appearance',
     navOrder: 2,
   },
 

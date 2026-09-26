@@ -28,6 +28,8 @@ type SettingsRoute =
   | 'wallet-balances'
   | 'notifications'
   | 'personality'
+  | 'face'
+  | 'language'
   | 'appearance'
   | 'approval-history'
   | 'integrations'

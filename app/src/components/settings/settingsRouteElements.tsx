@@ -22,7 +22,9 @@ import MemoryDebugPanel from './panels/MemoryDebugPanel';
 import MigrationPanel from './panels/MigrationPanel';
 import NotificationsPanel from './panels/NotificationsPanel';
 import PermissionsPanel from './panels/PermissionsPanel';
-import PersonalityPanel from './panels/PersonalityPanel';
+import LanguagePanel from './panels/LanguagePanel';
+import MascotPanel from './panels/MascotPanel';
+import PersonaPanel from './panels/PersonaPanel';
 import PrivacyPanel from './panels/PrivacyPanel';
 import RecoveryPhrasePanel from './panels/RecoveryPhrasePanel';
 import SandboxSettingsPanel from './panels/SandboxSettingsPanel';
@@ -53,6 +55,17 @@ const wrapSettingsPage = (element: ReactNode) => (
  * deliberately leave the settings tree.
  */
 const SettingsRedirect = ({ to }: { to: string }) => <Navigate to={to} replace />;
+
+/**
+ * Personality and Face used to be two tabs of one page, with Face at
+ * `/settings/personality#face`. They are separate pages now; keep that old
+ * deep link landing on Face.
+ */
+const PersonalityRoute = () => {
+  const location = useLocation();
+  if (location.hash === '#face') return <SettingsRedirect to="/settings/face" />;
+  return wrapSettingsPage(<PersonaPanel />);
+};
 
 /**
  * The full settings route table — index, every panel, and every legacy-slug
@@ -101,7 +114,9 @@ export function settingsRouteElements(): ReactNode {
           background loops as tabs). */}
       <Route path="usage" element={<Navigate to="/connections?tab=usage" replace />} />
       <Route path="voice" element={<Navigate to="/connections?tab=voice" replace />} />
-      <Route path="personality" element={wrapSettingsPage(<PersonalityPanel />)} />
+      <Route path="personality" element={<PersonalityRoute />} />
+      <Route path="face" element={wrapSettingsPage(<MascotPanel />)} />
+      <Route path="language" element={wrapSettingsPage(<LanguagePanel />)} />
       <Route path="agents" element={wrapSettingsPage(<AgentsPanel />)} />
       <Route path="agents/new" element={wrapSettingsPage(<AgentEditorPage />)} />
       <Route path="agents/edit/:id" element={wrapSettingsPage(<AgentEditorPage />)} />
@@ -204,7 +219,7 @@ export function settingsRouteElements(): ReactNode {
       {/* Autonomy rate-limit lives inside Agent access now */}
       <Route path="autonomy" element={<SettingsRedirect to="/settings/agent-access" />} />
       {/* Merged Personality & Face page */}
-      <Route path="mascot" element={<SettingsRedirect to="/settings/personality#face" />} />
+      <Route path="mascot" element={<SettingsRedirect to="/settings/face" />} />
       <Route path="persona" element={<SettingsRedirect to="/settings/personality" />} />
       {/* Retired Integrations settings section → Connections page */}
       <Route path="task-sources" element={<Navigate to="/connections" replace />} />
