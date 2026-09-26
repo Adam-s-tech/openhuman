@@ -483,20 +483,10 @@ export const SETTINGS_ROUTE_REGISTRY: SettingsRegistryEntry[] = [
     ],
   },
 
-  // =========================================================================
-  // NOTIFICATIONS section leaf panels
-  // =========================================================================
-  // alerts is an external link (→ /notifications) handled inline in Settings.tsx
-  {
-    id: 'notifications',
-    route: 'notifications',
-    titleKey: 'settings.notifications.menuTitle',
-    descriptionKey: 'settings.notifications.menuDesc',
-    section: 'notifications',
-    searchKeywords: ['alerts', 'push', 'preferences', 'routing'],
-    navGroup: 'general',
-    navOrder: 2,
-  },
+  // The Notifications settings page (preferences toggles) was removed
+  // entirely; `/settings/notifications` now redirects to Account
+  // (`settingsRouteElements`). Alerts remain reachable as the external
+  // `/notifications` notification-center page, handled inline in Settings.tsx.
 
   // =========================================================================
   // CRYPTO section leaf panels
