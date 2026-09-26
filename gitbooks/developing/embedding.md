@@ -26,7 +26,7 @@ Every feature on this crate forwards to the same-named feature on
 `openhuman-core`: `default`, `http-server`, `inference`, `documents`,
 `hosting`, `modules`, `voice`, `web3`, `runtime-node`, `contacts`, `media`,
 `flows`, `skills`, `mcp`, `crash-reporting`, `channels`,
-`sandbox-landlock`, `sandbox-bubblewrap`, `browser-native`,
+`sandbox-landlock`, `sandbox-bubblewrap`,
 `whatsapp-web`, `file-logging`, `scheduler-gate`. Two of them also gate
 items on this crate's own surface: `mcp` gates `HttpHeader`,
 `McpAuthConfig`, `McpServer`, `AgentSpec::mcp` and `HarnessBuilder::mcp`;
@@ -107,7 +107,7 @@ Layout under a runtime-owned root:
 
 ```text
 <root>/config.toml, auth-profiles.json, core.token
-<root>/workspace/session_db/, session_raw/<ts>_<agent>.jsonl, agents/<agent>/skills/
+<root>/workspace/session_db/, session_raw/<session_key>.<agent>[.g<n>].jsonl, agents/<agent>/skills/
 <root>/agents/<agent>/action/                  default action_dir
 ```
 
