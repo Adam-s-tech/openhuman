@@ -303,7 +303,7 @@ const PersonaPanel = ({ embedded = false }: PersonaPanelProps) => {
   // sibling Face tab (MascotPanel) is already flush.
   if (embedded) return <div className="space-y-5">{body}</div>;
 
-  return <SettingsPanel>{body}</SettingsPanel>;
+  return <SettingsPanel description={t('settings.personality.menuDesc')}>{body}</SettingsPanel>;
 };
 
 export default PersonaPanel;

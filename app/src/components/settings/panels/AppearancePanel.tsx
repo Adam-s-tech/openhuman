@@ -13,8 +13,7 @@ import {
   setCustomFontSizePx,
   setFontSize,
 } from '../../../store/themeSlice';
-import LanguageSelect from '../../LanguageSelect';
-import { Card, Field, Slider } from '../../ui';
+import { Card, Slider } from '../../ui';
 import { SettingsNumberField } from '../controls';
 import SettingsPanel from '../layout/SettingsPanel';
 import ThemeStudioPanel from './ThemeStudioPanel';
@@ -187,14 +186,6 @@ const AppearancePanel = () => {
         </div>
       </Card>
 
-      {/* Display language (moved from the old settings home list). */}
-      <Card>
-        <Field
-          label={t('settings.language')}
-          description={t('settings.languageDesc')}
-          control={<LanguageSelect ariaLabel={t('settings.language')} />}
-        />
-      </Card>
     </>
   );
 
