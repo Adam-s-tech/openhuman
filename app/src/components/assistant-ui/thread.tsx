@@ -1178,6 +1178,7 @@ const ComposerAction: FC<{
   model: string | null;
   onModelChange?: (value: string | null, contextWindow?: number | null) => void;
 }> = ({ model, onModelChange }) => {
+  const { t } = useT();
   const aui = useAui();
   const composerText = useAuiState(state => state.composer.text);
   const {
