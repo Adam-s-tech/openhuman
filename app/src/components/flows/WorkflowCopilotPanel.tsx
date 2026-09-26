@@ -157,6 +157,11 @@ interface Props {
    * the graph appears.
    */
   fullWidth?: boolean;
+  /**
+   * Drop the panel's own left border and width cap: the host has framed it in
+   * a card of its own (the builder's side panel), which owns both.
+   */
+  framed?: boolean;
 }
 
 export default function WorkflowCopilotPanel({
@@ -173,6 +178,7 @@ export default function WorkflowCopilotPanel({
   seedThreadId = null,
   onThreadIdChange,
   fullWidth = false,
+  framed = false,
 }: Props) {
   const { t } = useT();
   const { threadId, sending, proposal, capped, error, send, stop, clearProposal } =
@@ -679,9 +685,11 @@ export default function WorkflowCopilotPanel({
   return (
     <aside
       data-testid="workflow-copilot-panel"
-      className={`flex h-full w-full flex-col border-l border-line bg-surface ${
-        fullWidth ? '' : 'max-w-sm'
-      }`}>
+      className={
+        framed
+          ? 'flex h-full min-h-0 w-full flex-col bg-surface'
+          : `flex h-full w-full flex-col border-l border-line bg-surface ${fullWidth ? '' : 'max-w-sm'}`
+      }>
       {/* No header. It carried a "Workflow copilot" title, a subtitle
           describing the proposal flow, and a close ✕ — none of which earned
           permanent height above a transcript. The panel is opened from a
