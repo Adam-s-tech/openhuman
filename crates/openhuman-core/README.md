@@ -121,12 +121,13 @@ what ships.
 
 ## Public entry points
 
-- [`run_core_from_args`](src/lib.rs) — the CLI entry point used by both
+- [`run_core_from_args`](src/lib.rs): the CLI entry point used by both
   `crates/openhuman-cli/src/main.rs` and the desktop shell binary's `core`
   and `mcp` subcommands.
   Order: load dotenv, apply the startup restart delay, initialize the keyring
   master key, then dispatch to `core::cli`.
-- [`CoreBuilder` → `CoreRuntime`](src/core/runtime/builder.rs) — the
-  embeddable composition API; `openhuman-embed` layers a typed facade over it.
-- `openhuman-core serve` (alias `run`) — the standalone JSON-RPC/Socket.IO
+- [`CoreBuilder` to `CoreRuntime`](src/core/runtime/builder.rs): the
+  embeddable composition API. `openhuman-embed` layers a typed facade over
+  it; see [`gitbooks/developing/embedding.md`](../../gitbooks/developing/embedding.md).
+- `openhuman-core serve` (alias `run`): the standalone JSON-RPC/Socket.IO
   server. Public endpoints: `GET /health`, `GET /schema`, `GET /events`.
