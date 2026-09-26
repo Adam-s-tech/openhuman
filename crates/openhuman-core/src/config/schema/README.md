@@ -13,7 +13,7 @@ helper types) purely to keep any one file under the repo's ~500-line
 guideline; treat them as one unit. `load_user_state.rs` sits at this level but
 is mounted as a submodule of `load/dirs.rs` via `#[path]`.
 
-## Layout — `[section]` → file → struct
+## Layout: `[section]` to file to struct
 
 | `config.toml` section | File | Struct |
 | --- | --- | --- |
