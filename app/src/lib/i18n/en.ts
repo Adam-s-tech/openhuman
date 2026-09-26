@@ -1440,6 +1440,32 @@ const en: TranslationMap = {
     'Tool inventory, policy posture, MCP allowlists, and recent blocks',
   'devOptions.toolPolicyDiagnostics.loading': 'Loading…',
   'devOptions.toolPolicyDiagnostics.unavailable': 'Diagnostics unavailable',
+  'devOptions.toolPolicyDiagnostics.inventory.title': 'Tool inventory',
+  'devOptions.toolPolicyDiagnostics.inventory.totalTools': 'Total tools',
+  'devOptions.toolPolicyDiagnostics.inventory.enabledTools': 'Enabled tools',
+  'devOptions.toolPolicyDiagnostics.inventory.mcpStdioTools': 'MCP stdio tools',
+  'devOptions.toolPolicyDiagnostics.inventory.jsonRpcTools': 'JSON-RPC tools',
+  'devOptions.toolPolicyDiagnostics.posture.title': 'Policy posture',
+  'devOptions.toolPolicyDiagnostics.posture.autonomy': 'Autonomy level',
+  'devOptions.toolPolicyDiagnostics.posture.workspaceOnly': 'Workspace only',
+  'devOptions.toolPolicyDiagnostics.posture.maxActionsPerHour': 'Maximum actions per hour',
+  'devOptions.toolPolicyDiagnostics.posture.approvalMediumRisk':
+    'Require approval for medium-risk actions',
+  'devOptions.toolPolicyDiagnostics.posture.blockHighRisk': 'Block high-risk commands',
+  'devOptions.toolPolicyDiagnostics.mcpAllowlists.title': 'MCP allowlists',
+  'devOptions.toolPolicyDiagnostics.mcpAllowlists.summary':
+    'Enabled: {enabled} · {enabledCount} of {totalCount} servers',
+  'devOptions.toolPolicyDiagnostics.mcpAllowlists.unnamed': 'Unnamed server',
+  'devOptions.toolPolicyDiagnostics.mcpAllowlists.allowDeny':
+    'Allow: {allowCount} · Deny: {denyCount}',
+  'devOptions.toolPolicyDiagnostics.mcpWriteAudit.title': 'MCP write audit',
+  'devOptions.toolPolicyDiagnostics.mcpWriteAudit.summary':
+    'Enabled: {enabled} · Recent rows: {recentRows}',
+  'devOptions.toolPolicyDiagnostics.redactedSurfaces.title': 'Sensitive surfaces',
+  'devOptions.toolPolicyDiagnostics.redactedSurfaces.summary':
+    '{writeCount} possible write surfaces · {policyCount} policy surfaces',
+  'devOptions.toolPolicyDiagnostics.recentBlocked.title': 'Recent blocked calls',
+  'devOptions.toolPolicyDiagnostics.recentBlocked.empty': 'No recent blocked tool calls',
   'devOptions.debugPanels': 'Debug Panels',
   'devOptions.debugPanelsDesc': 'Feature flags, state inspection, and debugging tools',
   'devOptions.webhooks': 'Webhooks',
