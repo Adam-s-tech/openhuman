@@ -45,6 +45,9 @@ vi.mock('../../services/api/flowsApi', () => ({
   setFlowEnabled,
   listFlowRuns,
 }));
+// Default to an empty list (see the doc comment above) — overridden per test
+// via `listFlowRuns.mockResolvedValue(...)` where the run list itself matters.
+listFlowRuns.mockResolvedValue([]);
 
 // F-M1: a tiny in-memory socket stand-in (same shape as
 // `EditableFlowCanvas.runOverlay.test.tsx`) so a `flow:run_progress` event can
