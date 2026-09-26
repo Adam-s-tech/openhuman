@@ -40,6 +40,13 @@
 //! 4. Environment-aware default: `staging` env → [`DEFAULT_STAGING_API_BASE_URL`],
 //!    otherwise [`DEFAULT_API_BASE_URL`].
 
+pub use openhuman_core::config::app_env::{
+    app_env_from_env, is_staging_app_env, APP_ENV_VAR, VITE_APP_ENV_VAR,
+};
+pub use openhuman_core::util::url::{
+    host_is_local, join_url, normalize_api_base_url, normalize_backend_api_base_url,
+};
+
 // ─── Public constants ────────────────────────────────────────────────────────
 
 /// Production hosted-API root. Used as the final fallback for non-staging
@@ -49,14 +56,6 @@ pub const DEFAULT_API_BASE_URL: &str = "https://api.tinyhumans.ai";
 /// Staging hosted-API root. Activated when `OPENHUMAN_APP_ENV=staging` (or
 /// the Vite equivalent) is set at runtime or baked in at compile time.
 pub const DEFAULT_STAGING_API_BASE_URL: &str = "https://staging-api.tinyhumans.ai";
-
-/// Runtime env key used by the Tauri/core side to select the app environment.
-pub const APP_ENV_VAR: &str = "OPENHUMAN_APP_ENV";
-
-/// Runtime env key exposed to the Vite frontend bundle. Mirrors `APP_ENV_VAR`
-/// so both the core sidecar and the renderer agree on the environment without
-/// a separate IPC round-trip.
-pub const VITE_APP_ENV_VAR: &str = "VITE_OPENHUMAN_APP_ENV";
 
 /// The path the hosted backend appends to its root to expose the
 /// OpenAI-compatible inference proxy. Joined onto [`effective_api_url`] when
@@ -112,7 +111,7 @@ pub fn effective_inference_url(
         return u.to_string();
     }
 
-    api_url(
+    join_url(
         &effective_api_url(api_url_override),
         OPENHUMAN_INFERENCE_PATH,
     )
@@ -163,9 +162,9 @@ pub fn effective_backend_api_url(api_url: &Option<String>) -> String {
         // billing) would 400/404 against the inference host — TAURI-RUST-HW1
         // (4932 `GET /teams/me/usage` 400s from `openrouter.ai`). Cloud analogue
         // of the local-AI guard (OPENHUMAN-TAURI-51/-80/-7Z, Ollama).
-        let is_cloud_inference = crate::config::schema::cloud_providers::endpoint_host(u)
+        let is_cloud_inference = openhuman_core::config::schema::cloud_providers::endpoint_host(u)
             .is_some_and(|h| {
-                crate::config::schema::cloud_providers::host_is_builtin_cloud_provider(&h)
+                openhuman_core::config::schema::cloud_providers::host_is_builtin_cloud_provider(&h)
             });
 
         tracing::debug!(
@@ -437,104 +436,6 @@ fn looks_like_openhuman_backend_endpoint(url: &str) -> bool {
     is_openhuman
 }
 
-// ─── URL normalization helpers ───────────────────────────────────────────────
-
-/// Trim whitespace and strip trailing slashes so all base URLs are in
-/// canonical form before being joined with a path.
-///
-/// This is deliberately a cheap string operation (no URL parsing) so it can
-/// be called on potentially-invalid strings without panicking.
-pub fn normalize_api_base_url(url: &str) -> String {
-    url.trim().trim_end_matches('/').to_string()
-}
-
-/// Like [`normalize_api_base_url`] but also **strips any inference-style path**
-/// (e.g. `/openai/v1/chat/completions`) so the result is always a bare host
-/// root suitable as a backend base.
-///
-/// # Why this exists
-///
-/// Users (and CI configs) sometimes set `BACKEND_URL` or `config.api_url` to
-/// the full inference endpoint. Backend callers append domain-specific paths
-/// (`/auth/me`, `/agent-integrations/…`) which then land on
-/// `.../openai/v1/chat/completions/auth/me` — an obvious 404.
-///
-/// # Scheme-less fallback
-///
-/// `option_env!`-baked values occasionally omit the scheme
-/// (e.g. `api.tinyhumans.ai/openai/v1/chat/completions`). We retry with an
-/// `https://` prefix so the path can still be stripped before the value is
-/// used as a base. Without this, a scheme-less inference path survived into
-/// every backend call — Sentry `OPENHUMAN-TAURI-H6 / -HN`, issue #2075.
-pub(crate) fn normalize_backend_api_base_url(url: &str) -> String {
-    let normalized = normalize_api_base_url(url);
-    if normalized.is_empty() {
-        return normalized;
-    }
-
-    let parsed =
-        url::Url::parse(&normalized).or_else(|_| url::Url::parse(&format!("https://{normalized}")));
-
-    let Ok(mut parsed) = parsed else {
-        // Unparseable even with the scheme prefix — return as-is; the caller
-        // will surface a network error rather than silently 404.
-        return normalized;
-    };
-
-    // Strip everything after the host (path, query, fragment).
-    if parsed.path() != "/" {
-        parsed.set_path("");
-    }
-    parsed.set_query(None);
-    parsed.set_fragment(None);
-
-    parsed.to_string().trim_end_matches('/').to_string()
-}
-
-/// Safely join an API base URL with an absolute path.
-///
-/// # Behaviour
-///
-/// | `base`                                    | `path`                    | result                                                                 |
-/// |-------------------------------------------|---------------------------|------------------------------------------------------------------------|
-/// | `https://api.tinyhumans.ai`               | `/auth/me`                | `https://api.tinyhumans.ai/auth/me`                                   |
-/// | `https://api.tinyhumans.ai/openai/v1/…`   | `/agent-integrations/foo` | `https://api.tinyhumans.ai/agent-integrations/foo`  ← path replaced   |
-/// | `https://api.tinyhumans.ai`               | `""`                      | `https://api.tinyhumans.ai`                                           |
-/// | `not a url`                               | `/x`                      | `not a url/x`  ← safe fallback concat                                 |
-///
-/// Paths **must start with `/`**. Relative paths (no leading slash) are
-/// resolved per RFC 3986 — the base's last segment is dropped — which is
-/// almost never what an API client wants.
-pub fn api_url(base: &str, path: &str) -> String {
-    let base = base.trim();
-
-    if path.is_empty() {
-        return normalize_api_base_url(base);
-    }
-
-    match url::Url::parse(base) {
-        Ok(parsed) => match parsed.join(path) {
-            Ok(joined) => joined.to_string().trim_end_matches('/').to_string(),
-            Err(_) => fallback_concat(base, path),
-        },
-        Err(_) => fallback_concat(base, path),
-    }
-}
-
-/// Last-resort URL join used when `url::Url::parse` rejects the base.
-///
-/// Guarantees a slash between `base` and `path` regardless of whether either
-/// carries one, but does not otherwise validate the resulting string.
-#[inline]
-fn fallback_concat(base: &str, path: &str) -> String {
-    let base = base.trim_end_matches('/');
-    if path.starts_with('/') {
-        format!("{base}{path}")
-    } else {
-        format!("{base}/{path}")
-    }
-}
-
 // ─── Environment resolution ───────────────────────────────────────────────────
 
 /// Resolve the hosted API base URL from the environment.
@@ -570,35 +471,6 @@ pub fn api_base_from_env() -> Option<String> {
     None
 }
 
-/// Resolve the app environment string (e.g. `"staging"`, `"production"`).
-///
-/// Resolution order mirrors [`api_base_from_env`]: runtime vars first, then
-/// compile-time bakes, each key checked independently.
-pub fn app_env_from_env() -> Option<String> {
-    for key in [APP_ENV_VAR, VITE_APP_ENV_VAR] {
-        if let Ok(v) = std::env::var(key) {
-            let s = v.trim().to_ascii_lowercase();
-            if !s.is_empty() {
-                return Some(s);
-            }
-        }
-    }
-
-    for v in compile_time_app_env_values().into_iter().flatten() {
-        let s = v.trim().to_ascii_lowercase();
-        if !s.is_empty() {
-            return Some(s);
-        }
-    }
-
-    None
-}
-
-/// Return `true` when `app_env` equals `"staging"` (case-insensitive).
-pub fn is_staging_app_env(app_env: Option<&str>) -> bool {
-    matches!(app_env.map(str::trim), Some(env) if env.eq_ignore_ascii_case("staging"))
-}
-
 /// Map an app environment string to its canonical API base URL constant.
 pub fn default_api_base_url_for_env(app_env: Option<&str>) -> &'static str {
     if is_staging_app_env(app_env) {
@@ -624,26 +496,13 @@ fn compile_time_api_base_env_values() -> [Option<&'static str>; 2] {
     [None, None]
 }
 
-#[cfg(not(test))]
-fn compile_time_app_env_values() -> [Option<&'static str>; 2] {
-    [
-        option_env!("OPENHUMAN_APP_ENV"),
-        option_env!("VITE_OPENHUMAN_APP_ENV"),
-    ]
-}
-
-#[cfg(test)]
-fn compile_time_app_env_values() -> [Option<&'static str>; 2] {
-    [None, None]
-}
-
 // ─── Logging helpers ─────────────────────────────────────────────────────────
 
 /// Redact username and password from a URL before writing it to a log.
 ///
 /// Falls back to a scheme-prefixed parse for bare-host strings like
 /// `localhost:1234` so those are still sanitised rather than returned verbatim.
-pub(crate) use crate::util::redact_url_for_log;
+use openhuman_core::util::redact_url_for_log;
 
 /// Emit a single `warn!` log the **first time** the backend URL falls back
 /// from a user-set local-AI endpoint. Uses `std::sync::Once` to suppress
@@ -670,28 +529,6 @@ fn warn_backend_url_fallback_once(local_url: &str) {
 #[inline]
 fn non_empty_str(s: &Option<String>) -> Option<&str> {
     s.as_deref().map(str::trim).filter(|s| !s.is_empty())
-}
-
-/// Returns `true` when the parsed URL's host is loopback, unspecified
-/// (`0.0.0.0` / `[::]`), a private RFC 1918 IPv4 range, or `localhost`.
-///
-/// Using typed-host matching (via `url::Host` variants) rather than
-/// `host_str()` string comparison ensures that IPv4-mapped IPv6 addresses
-/// (`::ffff:127.0.0.1`), the bare IPv6 loopback (`::1`), and all three
-/// IPv4 loopback forms classify correctly.
-#[inline]
-pub(crate) fn host_is_local(parsed: &url::Url) -> bool {
-    match parsed.host() {
-        Some(url::Host::Ipv4(addr)) => {
-            addr.is_loopback() || addr.is_unspecified() || addr.is_private()
-        }
-        Some(url::Host::Ipv6(addr)) => addr.is_loopback() || addr.is_unspecified(),
-        Some(url::Host::Domain(name)) => {
-            let h = name.to_ascii_lowercase();
-            h == "localhost" || h.ends_with(".localhost")
-        }
-        None => false,
-    }
 }
 
 /// Process-global mutex serialising every test in this crate that mutates the
