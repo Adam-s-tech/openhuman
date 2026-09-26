@@ -157,27 +157,32 @@ The application uses Redux Toolkit with Redux-Persist. There is no single root p
 
 Authoritative list = the `reducer` map in `store/index.ts`. One-line purposes:
 
-| Slice                | Purpose                                                                 | Persisted?                                                     |
-| -------------------- | ----------------------------------------------------------------------- | -------------------------------------------------------------- |
-| `accounts`           | Connected web-app accounts + rail ordering                              | `accounts`, `order`, `lastActiveAccountId` (not the active id) |
-| `announcement`       | Harness-init announcement banner, seen ids                              | `shownIds`                                                     |
-| `backendMeet`        | Backend-driven Google Meet call state (join/leave, transcript, replies) | no                                                             |
-| `channelConnections` | Messaging channel connections (WhatsApp, Slack, …)                      | connections + migration/default-channel fields                 |
-| `chatRuntime`        | Streaming buffers, tool timelines, inference status, artifacts          | only `artifactsByThread` (ready snapshots)                     |
-| `companion`          | Companion overlay state                                                 | no                                                             |
-| `connectivity`       | navigator.onLine, core health, renderer↔core socket, core↔hosted link   | no                                                             |
-| `coreMode`           | Pre-login core mode selection (embedded / self-hosted / cloud)          | `mode` (plain localStorage)                                    |
-| `layout`             | Two-pane layout geometry (sidebar visibility, dragged widths)           | `panels`                                                       |
-| `locale`             | UI language                                                             | `current` (plain localStorage)                                 |
-| `mascot`             | Mascot appearance / voice selection                                     | `color`, `voiceId`, `customMascotGifUrl`, `selectedMascotId`   |
-| `notifications`      | Notification items + preferences                                        | `items`, `preferences`                                         |
-| `persona`            | Cosmetic persona display name + description (SOUL.md lives in the core) | `displayName`, `description`                                   |
-| `providerSurfaces`   | Provider webview surface state                                          | no                                                             |
-| `ptt`                | Push-to-talk hotkey + session prefs (`isHeld` deliberately excluded)    | `shortcut`, `speakReplies`, `showOverlay`                      |
-| `socket`             | Per-user socket connection status / socket ids                          | no (reconnects on boot)                                        |
-| `theme`              | Theme mode, font size, message view mode, custom themes                 | plain localStorage                                             |
-| `thread`             | Chat thread list + per-thread message caches                            | only `selectedThreadId`                                        |
-| `userErrors`         | User-actionable runtime errors (#3931)                                  | no (in-memory only)                                            |
+| Slice                 | Purpose                                                                          | Persisted?                                                      |
+| --------------------- | --------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `accounts`            | Connected web-app accounts + rail ordering                                        | `accounts`, `order`, `lastActiveAccountId` (not the active id)  |
+| `announcement`        | Harness-init announcement banner, seen ids                                        | `shownIds`                                                      |
+| `channelConnections`  | Messaging channel connections (WhatsApp, Slack, …)                                | connections + migration/default-channel fields                  |
+| `chatRuntime`         | Streaming buffers, tool timelines, inference status, artifacts                    | only `artifactsByThread` (ready snapshots)                       |
+| `connectivity`        | navigator.onLine, core health, renderer to core socket, core to hosted link       | no                                                               |
+| `coreMode`            | Pre-login core mode selection (embedded / self-hosted / cloud)                    | `mode` (plain localStorage)                                      |
+| `followupSuggestions` | Follow-up chips for each thread's latest settled turn                             | no (in-memory only)                                              |
+| `githubStar`          | Whether the user dismissed the in-app "Star us on GitHub" CTA                     | `dismissed`                                                      |
+| `layout`              | Two-pane layout geometry (sidebar visibility, dragged widths)                     | `panels`                                                         |
+| `locale`              | UI language                                                                        | `current` (plain localStorage)                                  |
+| `mascot`              | Mascot appearance / voice selection                                               | `color`, `voiceId`, `customMascotGifUrl`, `selectedMascotId`    |
+| `notifications`       | Notification items + preferences                                                  | `items`, `preferences`                                          |
+| `persona`             | Cosmetic persona display name + description (SOUL.md lives in the core)           | `displayName`, `description`                                    |
+| `providerSurfaces`    | Provider webview surface state                                                    | no                                                               |
+| `ptt`                 | Push-to-talk hotkey + session prefs (`isHeld` deliberately excluded)              | `shortcut`, `speakReplies`, `showOverlay`                        |
+| `queue`               | The core's per-thread run queue plus the composer's pending follow-up messages    | no (in-memory only)                                              |
+| `runMode`             | Per-thread plan/build run mode                                                    | no (in-memory only)                                              |
+| `socket`              | Per-user socket connection status / socket ids                                    | no (reconnects on boot)                                          |
+| `theme`               | Theme mode, font size, message view mode, custom themes                           | plain localStorage                                               |
+| `thread`              | Chat thread list + per-thread message caches                                      | only `selectedThreadId`                                          |
+| `threadGoal`          | Durable per-thread goal state                                                     | no (in-memory only)                                              |
+| `threadTodos`         | Live per-thread todo list                                                         | no (in-memory only)                                              |
+| `userErrors`          | User-actionable runtime errors (#3931)                                            | no (in-memory only)                                              |
+| `walletPreferences`   | Hidden-token preferences for the wallet view                                      | `hiddenTokenKeys`                                                |
 
 Ephemeral chat state (streaming buffers, tool timelines) must **not** survive a restart: the UI would try to resume a turn whose live driver is gone. The one exception, agent-generated artifacts, goes through the `artifactsReadyOnlyTransform` in `store/index.ts` (pure logic in `store/artifactsPersistFilter.ts`).
 

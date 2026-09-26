@@ -53,8 +53,8 @@ embedding method in `openhuman-embed`.
 
 ## Two steps: a `Runtime`, then any number of `Agent`s
 
-The library API. Initialise one runtime — features, services, backend URL,
-the TinyHumans API key — then instantiate agents on it, each fully described
+The library API. Initialize one runtime (features, services, backend URL,
+the TinyHumans API key), then instantiate agents on it, each fully described
 and independent of the others:
 
 ```rust,no_run

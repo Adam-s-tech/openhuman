@@ -265,7 +265,7 @@ needed teaches contributors the docs are unreliable, and it is precisely how the
 misleading note above came to exist: someone's defensively-accumulated setup,
 written down as necessity, never falsified.
 
-### 4. Only now suspect a defect — and make the silence speak
+### 4. Only now suspect a defect, and make the silence speak
 
 If it compiled, the submodules are present and the feature set matches CI, then
 a failure may be real. The trap at this stage is a layer that *correctly*
@@ -275,7 +275,7 @@ message where a specific one was produced.
 Patch the discarding line to print what it drops, run once, and read the
 underlying error. On openhuman#6487 a sanitized
 `hosted agent invocation was rejected by policy` was hiding
-`Validation("agent definition \`harness\` was not found")` — which named the
+`Validation("agent definition \`harness\` was not found")`, which named the
 defect outright. **Reading seven links of a chain correctly is not the same as
 watching it fire.**
 
