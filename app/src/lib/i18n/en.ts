@@ -418,10 +418,11 @@ const en: TranslationMap = {
   'migration.vendor.openclawDesc': 'Memory database and markdown notes',
   'migration.vendor.hermesDesc': 'Memories and notes from Hermes',
   'migration.sourceHeading': 'Source',
+  'migration.sourceHeadingDesc': 'Pick the assistant to import from',
   'migration.badgePreview': 'Preview',
   'migration.badgeImported': 'Imported',
   'migration.confirmTitle': 'Import into this workspace?',
-  'migration.sourceLabel': 'Source workspace path (optional)',
+  'migration.sourceLabel': 'Workspace folder (optional)',
   'migration.sourcePlaceholder': 'Leave blank to auto-detect (e.g. ~/.openclaw/workspace)',
   'migration.sourcePlaceholderHermes': 'Leave blank to auto-detect (e.g. ~/.hermes)',
   'migration.sourceHint':
@@ -431,7 +432,7 @@ const en: TranslationMap = {
   'migration.applyAction': 'Import',
   'migration.applyRunning': 'Importing…',
   'migration.applyDisclaimer':
-    'Apply is unlocked after a successful Preview of the same source. Existing memory is backed up before any import.',
+    'Import unlocks after a preview of the same source. Your current memory is backed up first.',
   'migration.reportTitlePreview': 'What would be imported',
   'migration.reportTitleApplied': 'Import complete',
   'migration.report.source': 'Source workspace',
@@ -5190,7 +5191,7 @@ const en: TranslationMap = {
   'pages.settings.account.connectionsDesc': 'Review and manage linked account connections',
   'pages.settings.account.migration': 'Import',
   'pages.settings.account.migrationDesc':
-    'Bring memory and notes over from OpenClaw (Hermes coming soon)',
+    'Bring memory and notes over from another local assistant',
   'pages.settings.account.privacy': 'Privacy',
   'pages.settings.account.privacyDesc': 'Control what data leaves your computer',
   'pages.settings.account.recoveryPhrase': 'Recovery phrase',

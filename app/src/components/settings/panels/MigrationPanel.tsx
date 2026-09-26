@@ -159,11 +159,11 @@ const MigrationPanel = () => {
     : 0;
 
   return (
-    <SettingsPanel description={t('migration.description')}>
+    <SettingsPanel description={t('pages.settings.account.migrationDesc')}>
       {/* ── Source: which assistant, where it lives, and the two actions ── */}
       <Card
         title={t('migration.sourceHeading')}
-        description={t('pages.settings.account.migrationDesc')}
+        description={t('migration.sourceHeadingDesc')}
         data-testid="migration-form">
         <div className="p-4">
           <RadioGroupRoot
