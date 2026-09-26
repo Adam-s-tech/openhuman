@@ -42,7 +42,7 @@ Credential management for the backend credential the core authenticates with and
 - **Types** (`profiles.rs`) — `AuthProfile`, `AuthProfileKind` (`OAuth`/`Token`), `TokenSet`, `AuthProfilesData`, `AuthProfilesStore`.
 - **Ops/RPC** (`ops`, re-exported as `rpc`) — `set_credential`, `clear_credential`, `store_session`, `clear_session`, `SetCredentialRequest`, `seed_api_key_from_env`, `seed_session_from_env`, `auth_get_state`, `auth_get_session_token_json`, `store_provider_credentials`, `remove_provider_credentials`, `list_provider_credentials`, `list_provider_credentials_by_prefix`, `oauth_fetch_client_key`, `encrypt_secret`, `decrypt_secret`, `start_credential_gated_services`, `stop_credential_gated_services`.
 - **Composio-direct** — `store_composio_api_key`, `get_composio_api_key`, `clear_composio_api_key`, `rpc_store_composio_api_key`.
-- **Backend OAuth re-exports** (from `crate::api::rest`) — `BackendOAuthClient`, `ConnectResponse`, `IntegrationSummary`, `IntegrationTokensHandoff`, `decrypt_handoff_blob`, `user_id_from_profile_payload`.
+- **Backend re-exports** — `crate::backend::BackendClient` and `jwt::user_id_from_profile_payload`. The OAuth connect/handoff types (`IntegrationSummary`, `IntegrationTokensHandoff`) and `decrypt_handoff_blob` moved to `crates/openhuman-tinyhumans/src/hosted/oauth/` with the OAuth flows themselves.
 - **Schema controllers** — `all_credentials_controller_schemas`, `all_credentials_registered_controllers`.
 
 ## RPC / controllers
