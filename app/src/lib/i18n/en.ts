@@ -62,6 +62,8 @@ const en: TranslationMap = {
   'brain.tabs.goals': 'Goals',
   'brain.tabs.sources': 'Sources',
   'brain.tabs.sync': 'Sync',
+  'brain.sync.viewStatus': 'Status',
+  'brain.sync.viewHistory': 'History',
   'brain.empty': 'Your brain is empty for now: connect a source to start building memory.',
   'brain.error': "Couldn't load your brain. Please try again.",
   'brain.refreshError': "Couldn't refresh your brain. Showing the last data that loaded.",

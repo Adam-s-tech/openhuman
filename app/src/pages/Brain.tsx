@@ -40,6 +40,9 @@ const navIcon = (d: string) => (
 
 const BRAIN_TABS: readonly BrainTab[] = ['welcome', 'graph', 'goals', 'sources', 'sync'];
 
+/** Sub-tabs of Sync, reflected in `?view=`: live status, or the run history. */
+type SyncView = 'status' | 'history';
+
 /**
  * Backoff ladder for automatically retrying a failed graph load.
  *
@@ -74,6 +77,16 @@ export default function Brain() {
     (tab: BrainTab) => {
       const params = new URLSearchParams(location.search);
       params.set('tab', tab);
+      navigate({ pathname: location.pathname, search: `?${params.toString()}` });
+    },
+    [location.pathname, location.search, navigate]
+  );
+  const syncView: SyncView =
+    new URLSearchParams(location.search).get('view') === 'history' ? 'history' : 'status';
+  const setSyncView = useCallback(
+    (view: SyncView) => {
+      const params = new URLSearchParams(location.search);
+      params.set('view', view);
       navigate({ pathname: location.pathname, search: `?${params.toString()}` });
     },
     [location.pathname, location.search, navigate]
@@ -327,10 +340,29 @@ export default function Brain() {
             PanelPage so every page opens with the same flush header band, rather
             than a bordered card floating in the content column. */
             <div className="h-full p-4">
-              <SettingsTabbedPage
+              <SettingsTabbedPage<SyncView>
                 title={t(BRAIN_HEADERS[activeTab as Exclude<BrainTab, 'welcome'>].titleKey)}
-                description={t(BRAIN_HEADERS[activeTab as Exclude<BrainTab, 'welcome'>].descKey)}>
-                <div className="w-full space-y-5">
+                description={t(BRAIN_HEADERS[activeTab as Exclude<BrainTab, 'welcome'>].descKey)}
+                {...(activeTab === 'sync'
+                  ? {
+                      tabs: [
+                        { id: 'status', label: t('brain.sync.viewStatus') },
+                        { id: 'history', label: t('brain.sync.viewHistory') },
+                      ],
+                      value: syncView,
+                      onChange: setSyncView,
+                      tabsAriaLabel: t('brain.tabs.sync'),
+                      tabsTestIdPrefix: 'brain-sync-view',
+                      // History is a full-height table: only its rows scroll.
+                      scrollable: syncView !== 'history',
+                    }
+                  : {})}>
+                <div
+                  className={
+                    activeTab === 'sync' && syncView === 'history'
+                      ? 'flex h-full min-h-0 flex-col'
+                      : 'w-full space-y-5'
+                  }>
                   {activeTab === 'graph' && (
                     <div className="space-y-5 animate-fade-up">
                       <MemoryControls
@@ -395,7 +427,7 @@ export default function Brain() {
                     </div>
                   )}
 
-                  {activeTab === 'sync' && (
+                  {activeTab === 'sync' && syncView === 'status' && (
                     <div className="space-y-5 animate-fade-up">
                       <Card padded divided={false}>
                         <MemoryTreeStatusPanel onToast={addToast} />
@@ -405,13 +437,13 @@ export default function Brain() {
                       <Card padded divided={false} data-testid="brain-sync-activity">
                         <SyncActivityCard />
                       </Card>
-                      {/* Sync history relocated from the Memory Inspection panel so
-                      the Sync tab is the single sync surface. */}
-                      {/* The panel is a standard DataTable card (title, search,
-                      paging) — no outer card, or it would be framed twice. */}
-                      <div data-testid="brain-sync-history">
-                        <SyncAuditPanel />
-                      </div>
+                    </div>
+                  )}
+
+                  {/* Sync → History: the run history as a full-height table. */}
+                  {activeTab === 'sync' && syncView === 'history' && (
+                    <div className="flex min-h-0 flex-1 flex-col" data-testid="brain-sync-history">
+                      <SyncAuditPanel fill />
                     </div>
                   )}
                 </div>

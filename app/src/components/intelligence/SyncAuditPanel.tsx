@@ -100,7 +100,12 @@ function WhenCell({ iso, ago }: { iso: string; ago: string }) {
   );
 }
 
-export function SyncAuditPanel() {
+interface SyncAuditPanelProps {
+  /** Fill a height-bounded parent (only rows scroll) instead of a capped card. */
+  fill?: boolean;
+}
+
+export function SyncAuditPanel({ fill = false }: SyncAuditPanelProps = {}) {
   const { t } = useT();
   const { syncingIds } = useMemorySyncActivity();
   const [entries, setEntries] = useState<SyncAuditEntry[]>([]);
@@ -309,7 +314,7 @@ export function SyncAuditPanel() {
   return (
     <DataTable<SyncAuditEntry>
       // Sits among other cards on the scrolling Sync tab: capped, scrolls inside.
-      fill={false}
+      fill={fill}
       maxHeight="24rem"
       testId="sync-history-table"
       title={t('sync.auditTitle', 'Sync History')}
