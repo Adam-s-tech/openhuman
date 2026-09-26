@@ -48,6 +48,7 @@ import { cn } from '@/components/assistant-ui/lib/utils';
 import { Button } from '@/components/assistant-ui/ui/button';
 import { Input } from '@/components/assistant-ui/ui/input';
 import { Skeleton } from '@/components/assistant-ui/ui/skeleton';
+import { useT } from '@/lib/i18n/I18nContext';
 import {
   AuiIf,
   ThreadListItemMorePrimitive,
