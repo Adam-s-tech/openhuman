@@ -13,14 +13,41 @@ vi.mock('../hooks/useSettingsNavigation', () => ({
 
 function renderPanel(
   fontSize: 'small' | 'medium' | 'large' | 'xlarge' = 'medium',
-  customFontSizePx: number | null = null
+  customFontSizePx: number | null = null,
+  initialEntries?: string[]
 ) {
   return renderWithProviders(<AppearancePanel />, {
     preloadedState: {
       theme: { mode: 'system', tabBarLabels: 'hover', fontSize, customFontSizePx },
     },
+    initialEntries,
   });
 }
+
+describe('<AppearancePanel /> tabs', () => {
+  it('opens on General: theme gallery, font size and language, no customizer', () => {
+    const { getByTestId, getByRole, queryByTestId } = renderPanel();
+    expect(getByTestId('theme-gallery')).toBeInTheDocument();
+    expect(
+      getByRole('radiogroup', { name: 'settings.appearance.fontSizeAria' })
+    ).toBeInTheDocument();
+    expect(queryByTestId('theme-customize')).not.toBeInTheDocument();
+  });
+
+  it('shows the Theme Studio customizer for the #studio hash', () => {
+    const { getByTestId, queryByTestId } = renderPanel('medium', null, [
+      '/settings/appearance#studio',
+    ]);
+    expect(getByTestId('theme-customize')).toBeInTheDocument();
+    expect(queryByTestId('theme-gallery')).not.toBeInTheDocument();
+  });
+
+  it('switches to Theme Studio when its tab is clicked', () => {
+    const { getByTestId } = renderPanel();
+    fireEvent.click(getByTestId('appearance-tab-studio'));
+    expect(getByTestId('theme-customize')).toBeInTheDocument();
+  });
+});
 
 describe('<AppearancePanel /> font size', () => {
   it('renders the four font-size options as a radio group', () => {
