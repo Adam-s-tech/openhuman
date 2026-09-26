@@ -33,13 +33,16 @@ const DateTimeCell = ({ value }: { value: string }) => {
   );
 };
 
-/** Badge variant per decision variant. */
-const DECISION_BADGE_VARIANT: Record<ApprovalDecision, BadgeVariant> = {
-  approve_once: 'success',
-  approve_always_for_tool: 'success',
-  approve_always_for_flow: 'success',
-  deny: 'danger',
+/** Status-dot colour per decision (the badge itself is a neutral outline). */
+const DECISION_DOT_CLASS: Record<ApprovalDecision, string> = {
+  approve_once: 'bg-sage-500',
+  approve_always_for_tool: 'bg-sage-500',
+  approve_always_for_flow: 'bg-sage-500',
+  deny: 'bg-coral-500',
 };
+
+/** Last 8 characters of a long id — enough to tell sessions apart. */
+const shortId = (id: string): string => (id.length > 10 ? `…${id.slice(-8)}` : id);
 
 const DECISION_LABEL_KEY: Record<ApprovalDecision, string> = {
   approve_once: 'settings.approvalHistory.decision.approveOnce',
@@ -122,14 +125,16 @@ const ApprovalHistoryPanel = () => {
     {
       id: 'time',
       header: t('settings.approvalHistory.column.time'),
-      align: 'right',
-      className: 'w-40 whitespace-nowrap tabular-nums',
+      // `w-px` + nowrap: fixed-content columns shrink to fit, so the
+      // tool/action column takes all the remaining width.
+      className: 'w-px whitespace-nowrap tabular-nums',
       cell: entry => <DateTimeCell value={entry.decided_at} />,
     },
     {
       id: 'tool',
       header: t('settings.approvalHistory.column.tool'),
-      className: 'min-w-0 max-w-xs',
+      // `max-w-0 w-full` is what lets a table cell truncate instead of growing.
+      className: 'w-full max-w-0',
       cell: entry => (
         <div className="min-w-0 space-y-0.5">
           <p className="truncate font-mono text-xs text-content" title={entry.tool_name}>
@@ -144,12 +149,10 @@ const ApprovalHistoryPanel = () => {
     {
       id: 'session',
       header: t('settings.approvalHistory.column.session'),
-      className: 'max-w-32',
+      className: 'w-px whitespace-nowrap',
       cell: entry => (
-        <span
-          className="truncate font-mono text-[11px] text-content-muted"
-          title={entry.session_id}>
-          {entry.session_id}
+        <span className="font-mono text-[11px] text-content-muted" title={entry.session_id}>
+          {shortId(entry.session_id)}
         </span>
       ),
     },
@@ -157,10 +160,17 @@ const ApprovalHistoryPanel = () => {
       id: 'decision',
       header: t('settings.approvalHistory.column.decision'),
       align: 'right',
+      className: 'w-px whitespace-nowrap',
+      // shadcn's status badge: an outline badge with a coloured dot.
       cell: entry => (
         <Badge
-          variant={DECISION_BADGE_VARIANT[entry.decision]}
+          variant="neutral"
+          className="gap-1.5 rounded-md bg-transparent px-2 py-1 text-xs font-medium text-content"
           data-testid={`approval-history-decision-${entry.decision}`}>
+          <span
+            className={`h-1.5 w-1.5 rounded-full ${DECISION_DOT_CLASS[entry.decision]}`}
+            aria-hidden
+          />
           {t(DECISION_LABEL_KEY[entry.decision])}
         </Badge>
       ),
