@@ -12,10 +12,8 @@ import AppearancePanel from './panels/AppearancePanel';
 import ApprovalHistoryPanel from './panels/ApprovalHistoryPanel';
 import CoreConnectionPanel from './panels/CoreConnectionPanel';
 import DeveloperOptionsPanel from './panels/DeveloperOptionsPanel';
-import DevicesPanel from './panels/DevicesPanel';
 import EventLogPanel from './panels/EventLogPanel';
 import FeedbackPanel from './panels/FeedbackPanel';
-import LanguagePanel from './panels/LanguagePanel';
 import MascotPanel from './panels/MascotPanel';
 import McpServerPanel from './panels/McpServerPanel';
 import MemoryDataPanel from './panels/MemoryDataPanel';
@@ -101,7 +99,7 @@ export function settingsRouteElements(): ReactNode {
           somewhere real rather than falling through to the settings index. */}
       <Route path="notifications" element={<SettingsRedirect to="/settings/account" />} />
       {/* Real device-pairing panel (replaces the old "Coming Soon" stub). */}
-      <Route path="devices" element={wrapSettingsPage(<DevicesPanel />)} />
+      <Route path="devices" element={<SettingsRedirect to="/settings/account" />} />
       {/* Feedback was its own top-level route reached from a sidebar-header
           icon. That icon is the command-palette trigger now, which left the
           page with no way in, so the board lives here as a General panel. The
@@ -118,7 +116,7 @@ export function settingsRouteElements(): ReactNode {
       <Route path="voice" element={<Navigate to="/connections?tab=voice" replace />} />
       <Route path="personality" element={<PersonalityRoute />} />
       <Route path="face" element={wrapSettingsPage(<MascotPanel />)} />
-      <Route path="language" element={wrapSettingsPage(<LanguagePanel />)} />
+      <Route path="language" element={<SettingsRedirect to="/settings/account" />} />
       <Route path="agents" element={wrapSettingsPage(<AgentsPanel />)} />
       <Route path="agents/new" element={wrapSettingsPage(<AgentEditorPage />)} />
       <Route path="agents/edit/:id" element={wrapSettingsPage(<AgentEditorPage />)} />

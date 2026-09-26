@@ -147,6 +147,9 @@ export const SETTINGS_ROUTE_REGISTRY: SettingsRegistryEntry[] = [
     descriptionKey: 'pages.settings.accountSection.description',
     section: 'home',
     searchKeywords: [
+      'language',
+      'locale',
+      'translation',
       'profile',
       'sign out',
       'logout',
@@ -202,27 +205,8 @@ export const SETTINGS_ROUTE_REGISTRY: SettingsRegistryEntry[] = [
     navGroup: 'appearance',
     navOrder: 1,
   },
-  {
-    // language: the display-language picker, formerly a card at the bottom of
-    // Appearance — a language is not a visual preference.
-    id: 'language',
-    titleKey: 'settings.language',
-    descriptionKey: 'settings.languageDesc',
-    section: 'home',
-    searchKeywords: ['language', 'locale', 'translation', 'i18n'],
-    navGroup: 'general',
-    navOrder: 1,
-  },
-  {
-    // devices: real pairing panel (the old "Coming Soon" stub was removed).
-    id: 'devices',
-    titleKey: 'settings.account.devices',
-    descriptionKey: 'settings.account.devicesDesc',
-    section: 'home',
-    searchKeywords: ['mobile', 'phone', 'ios', 'android', 'pair'],
-    navGroup: 'general',
-    navOrder: 3,
-  },
+  // language: now a card on Account; devices: pairing page removed. Both
+  // slugs redirect to /settings/account.
 
   // --- Assistant group ---
   // The old 'ai' and 'agents-settings' hub pages are retired — their slugs

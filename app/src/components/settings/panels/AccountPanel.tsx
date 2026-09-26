@@ -6,6 +6,7 @@ import { useCoreState } from '../../../providers/CoreStateProvider';
 import type { PlanTier } from '../../../types/api';
 import { BILLING_DASHBOARD_URL } from '../../../utils/links';
 import { openUrl } from '../../../utils/openUrl';
+import LanguageSelect from '../../LanguageSelect';
 import { Badge, Button, Card, Field } from '../../ui';
 import SettingsPanel from '../layout/SettingsPanel';
 import LogoutAndClearActions from '../LogoutAndClearActions';
@@ -71,6 +72,14 @@ const AccountPanel = () => {
           />
         </Card>
       )}
+
+      <Card>
+        <Field
+          label={t('settings.language')}
+          description={t('settings.languageDesc')}
+          control={<LanguageSelect ariaLabel={t('settings.language')} />}
+        />
+      </Card>
 
       <LogoutAndClearActions />
     </SettingsPanel>
