@@ -61,11 +61,22 @@ pub fn require_base_url(api_url: &Option<String>) -> Result<String, String> {
 }
 
 /// The backend origin for the managed OpenAI-compatible inference proxy
-/// (chat, embeddings, model listing). Unlike [`base_url`] this honours an
-/// `api_url` override that points at an inference endpoint.
+/// (chat, embeddings). Unlike [`base_url`] this honours an `api_url` override
+/// that points at an inference endpoint.
+///
+/// Managed inference talks to that URL directly rather than through the
+/// transport, so a library host with no transport installed still reaches an
+/// origin it configured explicitly (`openhuman_embed::Runtime::backend_url`).
+/// Only the *default* origin is the host's to supply: with neither a
+/// transport nor an override this is [`BackendTransportError::Unavailable`].
 pub fn inference_base_url(api_url: &Option<String>) -> Result<String, BackendTransportError> {
-    let transport = resolve_backend_transport()?;
-    Ok(transport.base_url(configured(api_url), BaseUrlPurpose::Inference))
+    match resolve_backend_transport() {
+        Ok(transport) => Ok(transport.base_url(configured(api_url), BaseUrlPurpose::Inference)),
+        Err(BackendTransportError::Unavailable) => configured(api_url)
+            .map(crate::util::url::normalize_api_base_url)
+            .ok_or(BackendTransportError::Unavailable),
+        Err(other) => Err(other),
+    }
 }
 
 /// The product identity the installed host attributes backend traffic to
