@@ -1,4 +1,3 @@
-import * as React from 'react';
 import { cn } from '@/components/assistant-ui/lib/utils';
 import { Popover as PopoverPrimitive } from '@base-ui/react/popover';
 
