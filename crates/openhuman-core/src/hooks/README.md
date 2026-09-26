@@ -92,8 +92,8 @@ via a one-shot `inference::ops::inference_prompt` call capped at 200 output
 tokens. A hook definition may override the model; the override is applied to
 the `Config` copy returned by `load_config_with_timeout` for that one call
 (`default_model`), so nothing persists and a concurrent turn on the real
-config is unaffected. Reserve `prompt` hooks for rare, high-stakes moments, 
-they cost a model call per event.
+config is unaffected. Reserve `prompt` hooks for rare, high-stakes moments.
+They cost a model call per event.
 
 ## Bridge (`bridge.rs`)
 
