@@ -30,19 +30,19 @@ const AccountPanel = () => {
   const { currentPlan } = useUsageState();
 
   const name = user ? [user.firstName, user.lastName].filter(Boolean).join(' ') || null : null;
-  const username = user?.username ? `@${user.username}` : null;
   const tier: PlanTier | null = currentPlan?.plan ?? user?.subscription?.plan ?? null;
 
   return (
     <SettingsPanel
       testId="account-panel"
       description={t('pages.settings.accountSection.description')}>
-      {user && (name || username) && (
+      {/* The username on the user record is the linked Telegram handle, not
+          an account identity, so the profile card shows the name only. */}
+      {user && name && (
         <Card padded data-testid="account-profile">
           <div className="flex items-center gap-4">
             <div className="min-w-0 flex-1">
               {name && <div className="truncate text-base font-semibold text-content">{name}</div>}
-              {username && <div className="truncate text-sm text-content-muted">{username}</div>}
             </div>
             {tier && (
               <Badge variant={tier === 'FREE' ? 'neutral' : 'primary'} data-testid="account-plan">
