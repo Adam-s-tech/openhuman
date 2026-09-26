@@ -44,7 +44,8 @@ describe('WorkerThreadRefCard — status badge', () => {
     expect(badge.getAttribute('data-status')).toBe('running');
     expect(badge.textContent).toContain('running');
     expect(badge.getAttribute('data-variant')).toBe('warning');
-    expect(badge.querySelector('[data-slot="badge-dot"]')?.className).toContain('bg-amber-500');
+    // Running uses its own animated dot (Badge's built-in dot is suppressed for this status).
+    expect(badge.querySelector('span[aria-hidden="true"]')?.className).toContain('bg-amber-500');
     expect(badge.getAttribute('aria-label')).toBe('Worker running');
   });
 
