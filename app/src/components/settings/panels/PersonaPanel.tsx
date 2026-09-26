@@ -1,5 +1,5 @@
 import debug from 'debug';
-import { ChevronRight, RotateCcw } from 'lucide-react';
+import { RotateCcw } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { useT } from '../../../lib/i18n/I18nContext';
@@ -25,7 +25,6 @@ import {
   AvatarRoot,
   Button,
   Card,
-  Field,
   Label,
   TextArea,
   TextField,
@@ -317,25 +316,6 @@ const PersonaPanel = ({ embedded = false }: PersonaPanelProps) => {
           <AlertDescription>{soulError}</AlertDescription>
         </Alert>
       )}
-
-      {/* ── Face & voice live on the Face page ──────────────────────────── */}
-      <Card>
-        <Field
-          label={t('settings.persona.appearanceHeading')}
-          description={t('settings.persona.appearanceDesc')}
-          control={
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              data-testid="persona-open-mascot"
-              trailingIcon={<ChevronRight className="h-3.5 w-3.5" aria-hidden />}
-              onClick={() => navigateToSettings('face')}>
-              {t('settings.face.title')}
-            </Button>
-          }
-        />
-      </Card>
 
       {/* ── One save bar for the page, shown only with unsaved edits ────── */}
       {dirty && (
