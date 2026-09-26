@@ -242,7 +242,7 @@ function ImageZoom({ src, alt = 'Image preview', children }: ImageZoomProps) {
         role="button"
         tabIndex={0}
         className="aui-image-zoom-trigger cursor-zoom-in"
-        aria-label="Click to zoom image">
+        aria-label={t('elements.image.zoomAria', 'Click to zoom image')}>
         {children}
       </div>
       {isMounted &&
