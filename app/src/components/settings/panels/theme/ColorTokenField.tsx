@@ -32,13 +32,13 @@ const ColorTokenField = ({ tokenKey, label, value, disabled, onChange }: ColorTo
   return (
     <label
       htmlFor={id}
-      className={`flex items-center gap-3 py-2 ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+      className={`flex items-center gap-3 py-1.5 ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
       {/* The native colour input paints its own frame and inset padding around
           the swatch, which doubled up with our border and looked different in
           every engine. The visible swatch is a plain span; the real input sits
           on top of it, transparent, so clicking still opens the OS picker. */}
       <span
-        className={`relative h-8 w-8 shrink-0 overflow-hidden rounded-lg ring-1 ring-inset ring-line-strong ${
+        className={`relative h-7 w-7 shrink-0 overflow-hidden rounded-md ring-1 ring-inset ring-line-strong ${
           disabled ? 'opacity-50' : ''
         }`}
         style={{ backgroundColor: hex }}>
