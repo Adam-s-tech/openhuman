@@ -100,17 +100,12 @@ const HANDLE_CLASS =
 /** The implicit single port; shown as a bare dot with no redundant label. */
 const IMPLICIT_PORT = 'main';
 
-/** Semantic colours for the well-known branch ports so routing reads at a glance. */
-function portPillClass(port: string): string {
-  const base = 'rounded px-1.5 py-0.5 text-[10px] font-medium leading-none';
+/** Semantic Badge variant for the well-known branch ports so routing reads at a glance. */
+function portPillVariant(port: string): BadgeVariant {
   const key = port.toLowerCase();
-  if (key === 'true') {
-    return `${base} bg-sage-100 text-sage-700 dark:bg-sage-500/20 dark:text-sage-300`;
-  }
-  if (key === 'false' || key === 'error') {
-    return `${base} bg-coral-100 text-coral-700 dark:bg-coral-500/20 dark:text-coral-300`;
-  }
-  return `${base} bg-surface-subtle text-content-secondary`;
+  if (key === 'true') return 'success';
+  if (key === 'false' || key === 'error') return 'danger';
+  return 'neutral';
 }
 
 function FlowNodeComponent({ id, data, selected }: NodeProps<FlowNode>) {
