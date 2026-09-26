@@ -207,7 +207,7 @@ Deeper docs: [Architecture](https://tinyhumans.gitbook.io/openhuman/developing/a
 
 # Star us on GitHub
 
-_Building toward AGI and artificial consciousness? Star the repo and help others find the path._
+_Star the repo to follow the project and help others find it._
 
 <p align="center">
  <a href="https://www.star-history.com/#tinyhumansai/openhuman&type=date&legend=top-left">

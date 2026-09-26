@@ -1,6 +1,6 @@
 # ops
 
-JSON-RPC / CLI controller surface for persisted config and runtime flags — the
+JSON-RPC / CLI controller surface for persisted config and runtime flags: the
 mutation half of `config`. `crate::config` re-exports this module both under
 its own name and as `rpc` (`pub use ops as rpc`), so most callers write
 `config::rpc::*`. Controllers in `../schemas/` are thin wrappers around the
