@@ -53,7 +53,7 @@ canonical tokens. Don't add new colours there.
 ## Colour as identity: the four-ramp ceiling
 
 A recurring shape in this codebase is a lookup table that answers "which thing
-is this?" with a colour — a skill category, an event-log domain, a notification
+is this?" with a colour: a skill category, an event-log domain, a notification
 provider, a catalogue source. Those tables are where stock Tailwind ramps keep
 creeping back in, because a table with nine rows wants nine hues and the app
 ships four.
