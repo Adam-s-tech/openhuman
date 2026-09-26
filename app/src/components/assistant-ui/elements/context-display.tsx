@@ -347,11 +347,12 @@ const ContextDisplayRing: FC<PresetProps> = ({
         )}
         aria-label={t('conversations.composer.context.usage', 'Context usage')}
         {...triggerProps}>
-      <RingVisual />
-      <RingPercentLabel />
-    </ContextDisplayTrigger>
-    <ContextDisplayContent side={side} />
-  </ContextDisplayRoot>
-);
+        <RingVisual />
+        <RingPercentLabel />
+      </ContextDisplayTrigger>
+      <ContextDisplayContent side={side} />
+    </ContextDisplayRoot>
+  );
+};
 
 export { ContextDisplayRing };
