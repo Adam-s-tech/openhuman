@@ -371,7 +371,6 @@ export default function DesktopConnectionPage() {
                 ))}
               </Card>
             )}
-
           </>
         )}
 
@@ -385,37 +384,40 @@ export default function DesktopConnectionPage() {
               {permissionRow('accessibility', status.accessibility)}
               {permissionRow('screen_recording', status.screen_recording)}
             </Card>
+            {/* ── Access check ───────────────────────────────────────── */}
             {status.enabled && (
-            {/* ── Access check ───────────────────────────────────────────── */}
               <Card title={t('desktop.checkHeading')} className="h-full">
-              <Field
-                label={t('desktop.checkLabel')}
-                description={t('desktop.testDescription')}
-                control={
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    leadingIcon={
-                      busy ? <Spinner /> : <Activity className="h-3.5 w-3.5" aria-hidden />
-                    }
-                    onClick={() => void runProbe()}
-                    disabled={busy}>
-                    {t('desktop.testButton')}
-                  </Button>
-                }
-              />
-              {probe && (
-                <div className="p-4">
-                  <Alert variant={probe.ok ? 'success' : 'warning'} density="compact" role="status">
-                    <AlertDescription>
-                      {probe.ok
-                        ? t('desktop.testPassed')
-                        : (probe.reason ?? t('desktop.testFailed'))}
-                    </AlertDescription>
-                  </Alert>
-                </div>
-              )}
-            </Card>
+                <Field
+                  label={t('desktop.checkLabel')}
+                  description={t('desktop.testDescription')}
+                  control={
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      leadingIcon={
+                        busy ? <Spinner /> : <Activity className="h-3.5 w-3.5" aria-hidden />
+                      }
+                      onClick={() => void runProbe()}
+                      disabled={busy}>
+                      {t('desktop.testButton')}
+                    </Button>
+                  }
+                />
+                {probe && (
+                  <div className="p-4">
+                    <Alert
+                      variant={probe.ok ? 'success' : 'warning'}
+                      density="compact"
+                      role="status">
+                      <AlertDescription>
+                        {probe.ok
+                          ? t('desktop.testPassed')
+                          : (probe.reason ?? t('desktop.testFailed'))}
+                      </AlertDescription>
+                    </Alert>
+                  </div>
+                )}
+              </Card>
             )}
           </TileGrid>
         )}
