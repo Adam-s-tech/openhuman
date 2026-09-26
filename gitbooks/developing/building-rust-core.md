@@ -127,7 +127,7 @@ scripts/dev-setup-linker.sh
 scripts/dev-setup-linker.sh --dry-run
 ```
 
-Install the linker first (`apt install mold` / `brew install llvm`) — the
+Install the linker first (`apt install mold` / `brew install llvm`). The
 script detects it and exits with instructions if it's missing. It's
 idempotent: re-running it after the linker is already configured is a no-op.
 CI enables the same flag directly via `RUSTFLAGS` in the Linux Rust jobs; this

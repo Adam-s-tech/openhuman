@@ -32,15 +32,15 @@ Startup data-migration runner gated by `Config::schema_version`. Each migration 
 | `crates/openhuman-core/src/config/migrations/retire_local_whisper_stt.rs` | **9→10.** Rewrites `stt_provider` (top-level or legacy `local_ai`) values naming the removed local whisper engine (`"whisper"`, `"local"`) to `"cloud"`, which defers to `voice_server.stt_engine`. Pure in-memory. |
 | *(inline in `mod.rs`)* | **10→11.** `reseed_cloud_providers`: backfills the managed `openhuman` entry for workspaces that were born past the `== 1` gate with `cloud_providers = []`; reuses `unify_ai_provider_settings::seed_cloud_providers`, which is a no-op on a populated list. On save failure rolls back both the version and the seeded entries. |
 | `crates/openhuman-core/src/config/migrations/mod.rs` | **11→12.** Reserializes the retired subconscious engine name as `local` while preserving startup for old configuration files. |
-| `crates/openhuman-core/src/config/migrations/retire_managed_tier_slugs.rs` | **12→13.** Retires the managed tier slugs (`chat-v1`, `agentic-v1`, …): every persisted one — `default_model`, orchestrator/team/delegate pins, `model_routes[].model` — becomes the managed default model (`openrouter/deepseek/deepseek-v4-flash`). Concrete ids and `hint:*` markers are untouched. Pure in-memory. |
+| `crates/openhuman-core/src/config/migrations/retire_managed_tier_slugs.rs` | **12→13.** Retires the managed tier slugs (`chat-v1`, `agentic-v1`, …): every persisted one (`default_model`, orchestrator/team/delegate pins, `model_routes[].model`) becomes the managed default model (`openrouter/deepseek/deepseek-v4-flash`). Concrete ids and `hint:*` markers are untouched. Pure in-memory. |
 | `crates/openhuman-core/src/config/migrations/mod_tests.rs` | Tests for `run_pending` ordering, gating, rollback-on-save-failure. |
 | `crates/openhuman-core/src/config/migrations/*_tests.rs` | Per-migration unit tests; every migration module mounts its own `<name>_tests.rs` via `#[cfg(test)] #[path]`. |
 
 ## Public surface
 
-- `migrations::run_pending(config: &mut Config) -> impl Future<Output = ()>` — the only `pub` entry point; called by `Config::load_or_init`.
-- `migrations::CURRENT_SCHEMA_VERSION: u32` — target schema version (`11`).
-- `migrations::seed_new_workspace(config: &mut Config)` — `pub(crate)`; called by `Config::load_or_init` when it creates a fresh `config.toml`.
+- `migrations::run_pending(config: &mut Config) -> impl Future<Output = ()>`: the only `pub` entry point; called by `Config::load_or_init`.
+- `migrations::CURRENT_SCHEMA_VERSION: u32`: target schema version (`11`).
+- `migrations::seed_new_workspace(config: &mut Config)`: `pub(crate)`; called by `Config::load_or_init` when it creates a fresh `config.toml`.
 
 All individual migration modules (`phase_out_profile_md`, `unify_ai_provider_settings`, …) are **private** to the module; each exposes a `run(...)` fn and a `*Stats` struct used internally by the runner for diagnostics logging.
 

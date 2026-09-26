@@ -56,8 +56,15 @@ contents inside `mod.rs` behind the feature of the same name. See the
 | `web_chat` | Web/desktop channel turn runner (`channel.web_*` RPC, `WebChannelEvent` bus) | [README](src/web_chat/README.md) |
 
 RPC contract types (`RpcOutcome`, `StructuredRpcError`, the HTTP client) live
-in `crates/openhuman-rpc` and are re-exported here as `openhuman_core::rpc` —
-they are not redefined in this crate.
+in `crates/openhuman-rpc` and are re-exported here as `openhuman_core::rpc`.
+They are not redefined in this crate.
+
+The `inference` domain is where the pluggable LLM and embedding providers
+live; see
+[`gitbooks/developing/engines.md`](../../gitbooks/developing/engines.md) for
+the full provider list. Tool selection under `agent` includes the Jev
+ranker's core-side integration point; see
+[`gitbooks/developing/jev.md`](../../gitbooks/developing/jev.md).
 
 ## Binaries
 
@@ -73,9 +80,9 @@ Details for each are in [`src/bin/README.md`](src/bin/README.md).
 
 ## Feature flags
 
-`[features] default` in `Cargo.toml` is the **contributor set** — what a bare
-`cargo check`/`cargo test`/rust-analyzer compile — and is deliberately smaller
-than what the desktop app ships. The **product set** lives in
+`[features] default` in `Cargo.toml` is the **contributor set**: what a bare
+`cargo check`/`cargo test`/rust-analyzer compile builds, and deliberately
+smaller than what the desktop app ships. The **product set** lives in
 `scripts/ci/product-features.txt` and is forwarded by
 `crates/openhuman-app/Cargo.toml`; `scripts/ci/check-feature-forwarding.mjs`
 asserts the two stay in sync. Slim or headless-embedding builds use
