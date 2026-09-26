@@ -263,6 +263,7 @@ export const SETTINGS_ROUTE_REGISTRY: SettingsRegistryEntry[] = [
     descriptionKey: 'settings.core.menuDesc',
     section: 'home',
     searchKeywords: [
+      'gateway',
       'core',
       'remote',
       'rpc',
