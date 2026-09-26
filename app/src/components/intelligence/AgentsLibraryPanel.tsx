@@ -4,6 +4,7 @@ import { LuBot, LuClipboard, LuPlay, LuRefreshCw, LuSend } from 'react-icons/lu'
 
 import { useT } from '../../lib/i18n/I18nContext';
 import { type AgentDefinitionDisplay, agentLibraryApi } from '../../services/api/agentLibraryApi';
+import Badge from '../ui/Badge';
 import Button from '../ui/Button';
 import TextField from '../ui/TextField';
 
