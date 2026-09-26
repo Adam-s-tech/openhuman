@@ -1225,13 +1225,12 @@ const en: TranslationMap = {
   'onboarding.apiKeys.continue': 'Save and continue',
   'onboarding.apiKeys.saving': 'Saving…',
 
-  // Onboarding: Custom wizard (Inference / Voice / OAuth / Search / Activity / Vault / Memory)
+  // Onboarding: Custom wizard (Inference / Voice / OAuth / Search / Embeddings / Vault / Memory)
   'onboarding.custom.stepperInference': 'Inference',
   'onboarding.custom.stepperVoice': 'Voice',
   'onboarding.custom.stepperOAuth': 'OAuth',
   'onboarding.custom.stepperSearch': 'Search',
   'onboarding.custom.stepperEmbeddings': 'Embeddings',
-  'onboarding.custom.stepperActivity': 'Activity',
   'onboarding.custom.stepperVault': 'Vault',
   'onboarding.custom.stepperMemory': 'Memory',
   'onboarding.custom.stepCounter': 'Step {n} of {total}',
