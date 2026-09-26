@@ -123,7 +123,11 @@ export function settingsRouteElements(): ReactNode {
       <Route path="agents/new" element={wrapSettingsPage(<AgentEditorPage />)} />
       <Route path="agents/edit/:id" element={wrapSettingsPage(<AgentEditorPage />)} />
       <Route path="agent-access" element={wrapSettingsPage(<AgentAccessPanel />)} />
-      <Route path="activity-level" element={wrapSettingsPage(<AgentActivityPanel />)} />
+      {/* Agent activity level (medulla/subconscious background-AI knob) was
+          retired along with medulla/subconscious themselves. The slug
+          redirects so any old deep link lands on Agents rather than falling
+          through to the settings index. */}
+      <Route path="activity-level" element={<SettingsRedirect to="/settings/agents" />} />
       <Route path="sandbox-settings" element={wrapSettingsPage(<SandboxSettingsPanel />)} />
       <Route path="approval-history" element={wrapSettingsPage(<ApprovalHistoryPanel />)} />
 
