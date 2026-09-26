@@ -5,9 +5,9 @@ icon: code-branch
 
 # OpenHuman Architecture
 
-**AI-powered super assistant for crypto communities, built on Rust.**
+**A personal AI assistant built on Rust, with a persistent local memory and an agent harness that can act across your connected services.**
 
-OpenHuman is a cross-platform communication and automation platform purpose-built for the cryptocurrency ecosystem. A single React + Rust (Tauri) codebase can target multiple platforms; **what we document and ship for users today is desktop only** - **Windows, macOS, and Linux**. Android, iOS, and web are **not** supported in current docs or releases. The stack includes a managed Node.js runtime for tool-capable skills, persistent Rust-native WebSocket infrastructure, and an AI tool protocol that lets language models invoke any connected service in real time.
+OpenHuman is a cross-platform communication and automation platform: a Rust core that runs agent turns, keeps a local-first memory tree, and executes tools against memory, channels, integrations, and (for users who opt in) a wallet, all wrapped in a single React + Rust (Tauri) codebase that can target multiple platforms. **What we document and ship for users today is desktop only: Windows, macOS, and Linux.** Android, iOS, and web are **not** supported in current docs or releases. The stack includes a managed Node.js runtime for tool-capable skills, persistent Rust-native WebSocket infrastructure to the backend, and a native Rust tool-dispatch path plus a standards-based Model Context Protocol (MCP) server for external clients.
 
 ---
 
