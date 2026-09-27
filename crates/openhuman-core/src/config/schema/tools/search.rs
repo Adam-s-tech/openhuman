@@ -139,22 +139,11 @@ pub const SEARCH_ROLE_CONTENTS: &str = "contents";
 /// Capability roles, in display order.
 pub const SEARCH_ROLES: &[&str] = &[SEARCH_ROLE_SEARCH, SEARCH_ROLE_ANSWER, SEARCH_ROLE_CONTENTS];
 
-/// Providers the host knows how to configure. Mirrors the TinySearch catalog;
-/// `modules::search` tests assert the two stay in sync.
-pub const SEARCH_PROVIDERS: &[&str] = &[
-    "exa",
-    "gemini",
-    "gemini_deep_research",
-    "tinyfish",
-    "brave",
-    "querit",
-    "tavily",
-    "seltz",
-    "searxng",
-];
+/// Providers the host can configure — the TinySearch catalog.
+pub const SEARCH_PROVIDERS: &[&str] = tinysearch_bus::PROVIDERS;
 
 /// Providers that can be reached through the managed TinyHumans backend.
-pub const MANAGED_SEARCH_PROVIDERS: &[&str] = &["exa", "gemini", "tinyfish"];
+pub const MANAGED_SEARCH_PROVIDERS: &[&str] = tinysearch_bus::BACKEND_PROVIDERS;
 
 // Legacy single-engine ids, still accepted by `config.update_search_settings`
 // for older clients and by the `SEARCH_ENGINE` env var.
