@@ -200,12 +200,15 @@ async fn export_with_empty_observations_is_a_noop() {
 
 #[tokio::test]
 async fn export_skips_api_key_credentials() {
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let address = listener.local_addr().unwrap();
     let dir = tempfile::tempdir().unwrap();
     let mut config = Config::default();
     config.config_path = dir.path().join("config.toml");
     config.workspace_dir = dir.path().join("workspace");
     config.secrets.encrypt = false;
-    config.api_url = Some("http://127.0.0.1:9".to_string());
+    config.api_url = Some(format!("http://{address}"));
+    config.observability.share_usage_data = true;
     crate::security::credentials::api_key::store_api_key(&config, "th_live_test").unwrap();
 
     export_flow_run_trace(
@@ -218,6 +221,13 @@ async fn export_skips_api_key_credentials() {
         &sample_observations("flow:flow-1:uuid-1"),
     )
     .await;
+
+    assert!(
+        tokio::time::timeout(std::time::Duration::from_millis(250), listener.accept())
+            .await
+            .is_err(),
+        "API-key credentials must not send a Langfuse export request"
+    );
 }
 
 /// The re-typing hop is a serde round-trip between two independently
