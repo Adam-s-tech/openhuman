@@ -44,7 +44,7 @@ check_world() {
   for version in ${reqwest_013_versions[@]+"${reqwest_013_versions[@]}"}; do
     owners="$(
       cargo tree --locked --manifest-path "$manifest" --target "$target" \
-        --invert "reqwest@$version" 2>/dev/null || true
+        --prefix none --invert "reqwest@$version" 2>/dev/null || true
     )"
     if printf '%s\n' "$owners" | grep -Eq '^sentry v'; then
       printf 'error: Sentry owns reqwest %s in %s\n%s\n' \
@@ -56,7 +56,7 @@ check_world() {
   for package in native-tls openssl openssl-sys; do
     owners="$(
       cargo tree --locked --manifest-path "$manifest" --target "$target" \
-        --invert "$package" 2>/dev/null || true
+        --prefix none --invert "$package" 2>/dev/null || true
     )"
     if printf '%s\n' "$owners" | grep -Eq '^sentry v'; then
       printf 'error: Sentry owns %s in %s\n%s\n' \

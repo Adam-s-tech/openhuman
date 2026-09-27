@@ -147,9 +147,7 @@ for (const interpreter of interpreters) {
   });
 
   test(`[${interpreter} ${version}] a Sentry-owned reqwest 0.13 fails the policy`, SKIP, () => {
-    // The owners fixture is in the shape the script greps for (`^sentry v`),
-    // not the indented shape `cargo tree --invert` really prints; that
-    // mismatch is #6602 and is out of scope here.
+    // `--prefix none` makes the real inverted tree emit dependents at column 0.
     const tree = makeTree({
       tauri: "reqwest v0.13.2\nsentry v0.36.0",
       owners: { "reqwest@0.13.2": "reqwest v0.13.2\nsentry v0.36.0" },
@@ -157,6 +155,7 @@ for (const interpreter of interpreters) {
     const result = run(interpreter, tree);
     assert.equal(result.status, 1);
     assert.match(result.stderr, /Sentry owns reqwest 0\.13\.2 in tauri/);
+    assert.match(tree.calls(), /--prefix none --invert reqwest@0\.13\.2/);
   });
 
   test(`[${interpreter} ${version}] an aws-lc dependency fails the policy`, SKIP, () => {
