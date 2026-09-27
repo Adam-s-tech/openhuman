@@ -29,7 +29,7 @@ Applies to every release, all platforms.
 
 ### Refreshed application UI
 
-- [ ] **Settings, Connections, theme, and workflow surfaces remain usable** — On desktop, navigate between Settings sections and Connections tabs, switch between light/dark and at least one named theme family, then open a workflow canvas and its run history. Expected: each route renders its own content without stale panels or horizontal overflow; navigation, theme selection, and run details survive a reload where persistence is expected.
+- [ ] **Settings, Connections, theme, and workflow surfaces remain usable** — On desktop, navigate between Settings sections and Connections tabs, switch between light/dark and at least one named theme family, export and re-import a custom theme, then open a workflow canvas and its run history. Expected: each route renders its own content without stale panels or horizontal overflow; imported themes can be selected and theme selection and run details survive a reload where persistence is expected.
 
 ### Native desktop control
 
