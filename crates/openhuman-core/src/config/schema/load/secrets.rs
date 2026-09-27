@@ -102,11 +102,7 @@ pub(super) fn decrypt_config_secrets(config: &mut Config, openhuman_dir: &Path) 
 
     decrypt_optional_secret(&store, &mut config.api_key, "api_key")?;
 
-    decrypt_optional_secret(
-        &store,
-        &mut config.search.parallel.api_key,
-        "search.parallel.api_key",
-    )?;
+    decrypt_optional_secret(&store, &mut config.seltz.api_key, "seltz.api_key")?;
     decrypt_optional_secret(
         &store,
         &mut config.search.brave.api_key,
@@ -216,11 +212,7 @@ pub(super) fn encrypt_config_secrets(config: &mut Config) -> Result<()> {
 
     encrypt_optional_secret(&store, &mut config.api_key, "api_key")?;
 
-    encrypt_optional_secret(
-        &store,
-        &mut config.search.parallel.api_key,
-        "search.parallel.api_key",
-    )?;
+    encrypt_optional_secret(&store, &mut config.seltz.api_key, "seltz.api_key")?;
     encrypt_optional_secret(
         &store,
         &mut config.search.brave.api_key,
