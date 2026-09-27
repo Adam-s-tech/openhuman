@@ -204,4 +204,15 @@ for (const interpreter of interpreters) {
     assert.equal(result.status, 2);
     assert.match(result.stderr, /could not check native-tls owners in tauri/);
   });
+
+  test(`[${interpreter} ${version}] a Sentry-owned TLS package fails the policy`, SKIP, () => {
+    const tree = makeTree({
+      tauri: "native-tls v0.2.14",
+      owners: { "native-tls": "native-tls v0.2.14\nsentry v0.36.0" },
+    });
+    const result = run(interpreter, tree);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /Sentry owns native-tls in tauri/);
+    assert.match(tree.calls(), /--invert native-tls/);
+  });
 }
