@@ -19,8 +19,8 @@ pub async fn oauth_fetch_client_key(
     config: &Config,
     integration_id: &str,
 ) -> Result<RpcOutcome<serde_json::Value>, String> {
-    let api_url = crate::backend::require_base_url(&config.api_url)?;
     let token = get_session_token(config)?.ok_or_else(|| "session JWT required".to_string())?;
+    let api_url = crate::backend::require_base_url(&config.api_url)?;
     let client = BackendClient::new(&api_url).map_err(|e| e.to_string())?;
     // `flatten_authed_error` keeps a 401 on the `SESSION_EXPIRED` sentinel (and
     // a missing transport on `BACKEND_UNAVAILABLE:`) instead of an opaque string.
