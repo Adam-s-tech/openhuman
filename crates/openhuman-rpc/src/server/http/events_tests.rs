@@ -3,9 +3,22 @@ use axum::extract::Query;
 use axum::http::{header, HeaderMap, StatusCode};
 
 use super::{
-    domain_event_payload, domain_events_handler, events_handler, webhook_events_handler,
-    EventsQuery,
+    domain_event_payload, domain_event_stream_error, domain_events_handler, events_handler,
+    webhook_events_handler, EventsQuery,
 };
+
+#[test]
+fn domain_event_stream_status_requires_enabled_config_and_initialized_bus() {
+    assert_eq!(
+        domain_event_stream_error(false, false),
+        Some((StatusCode::NOT_FOUND, "event stream disabled by config"))
+    );
+    assert_eq!(
+        domain_event_stream_error(true, false),
+        Some((StatusCode::SERVICE_UNAVAILABLE, "event bus not initialized"))
+    );
+    assert_eq!(domain_event_stream_error(true, true), None);
+}
 
 #[test]
 fn domain_event_payload_includes_redacted_detail_and_workspace_handle() {

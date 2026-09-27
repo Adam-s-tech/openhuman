@@ -159,25 +159,14 @@ pub(super) async fn domain_events_handler(headers: axum::http::HeaderMap) -> Res
         .map(|c| c.dashboard.event_stream)
         .unwrap_or_default();
 
-    if !es_cfg.enabled {
-        return (
-            StatusCode::NOT_FOUND,
-            Json(json!({ "ok": false, "error": "event stream disabled by config" })),
-        )
-            .into_response();
-    }
-
-    let bus = match openhuman_core::core::bus::BUS.get() {
-        Some(bus) => bus,
-        None => {
+    let bus = openhuman_core::core::bus::BUS.get();
+    if let Some((status, error)) = domain_event_stream_error(es_cfg.enabled, bus.is_some()) {
+        if status == StatusCode::SERVICE_UNAVAILABLE {
             log::warn!("[events/domain] event bus not initialized");
-            return (
-                StatusCode::SERVICE_UNAVAILABLE,
-                Json(json!({ "ok": false, "error": "event bus not initialized" })),
-            )
-                .into_response();
         }
-    };
+        return (status, Json(json!({ "ok": false, "error": error }))).into_response();
+    }
+    let bus = bus.expect("enabled event stream has an initialized event bus");
 
     log::debug!("[events/domain] client connected, streaming domain events");
 
@@ -233,6 +222,19 @@ pub(super) async fn domain_events_handler(headers: axum::http::HeaderMap) -> Res
     Sse::new(stream)
         .keep_alive(KeepAlive::new().interval(std::time::Duration::from_secs(5)))
         .into_response()
+}
+
+fn domain_event_stream_error(
+    enabled: bool,
+    bus_initialized: bool,
+) -> Option<(StatusCode, &'static str)> {
+    if !enabled {
+        Some((StatusCode::NOT_FOUND, "event stream disabled by config"))
+    } else if !bus_initialized {
+        Some((StatusCode::SERVICE_UNAVAILABLE, "event bus not initialized"))
+    } else {
+        None
+    }
 }
 
 fn domain_event_payload(event: &DomainEvent) -> Option<(String, String)> {
