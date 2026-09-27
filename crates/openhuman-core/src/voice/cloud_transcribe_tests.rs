@@ -57,3 +57,21 @@ async fn offline_local_session_refuses_without_a_request() {
         "{err}"
     );
 }
+
+#[tokio::test]
+async fn api_key_refuses_remote_plaintext_endpoint_before_request() {
+    let tmp = tempfile::TempDir::new().unwrap();
+    let config = Config {
+        workspace_dir: tmp.path().join("workspace"),
+        action_dir: tmp.path().join("workspace"),
+        config_path: tmp.path().join("config.toml"),
+        api_url: Some("http://backend.example.test".to_string()),
+        ..Config::default()
+    };
+    crate::security::credentials::api_key::store_api_key(&config, "test-api-key").unwrap();
+
+    let err = transcribe_cloud(&config, "AAAA", &CloudTranscribeOptions::default())
+        .await
+        .unwrap_err();
+    assert!(err.contains("refusing to send"), "{err}");
+}
