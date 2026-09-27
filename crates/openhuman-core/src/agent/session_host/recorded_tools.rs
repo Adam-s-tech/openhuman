@@ -112,13 +112,7 @@ pub(super) fn recorded_search_tools(recorded: &[ToolSpec]) -> Vec<ToolSpec> {
 }
 
 fn is_search_role_tool(name: &str) -> bool {
-    [
-        tinysearch_bus::Role::Search,
-        tinysearch_bus::Role::Answer,
-        tinysearch_bus::Role::Contents,
-    ]
-    .into_iter()
-    .any(|role| tinysearch_bus::role_tool_name(role) == name)
+    tinysearch_bus::role_for_tool(name).is_some()
 }
 
 /// Executors for recorded search role tools the live surface no longer
