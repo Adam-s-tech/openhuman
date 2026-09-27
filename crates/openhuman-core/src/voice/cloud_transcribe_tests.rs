@@ -129,6 +129,6 @@ async fn api_key_transcribes_via_safe_backend_with_bearer_and_multipart_audio() 
         .starts_with("multipart/form-data; boundary="));
     let body = String::from_utf8(body).unwrap();
     assert!(body.contains("name=\"file\""));
-    assert!(body.contains("AQID"));
+    assert!(body.as_bytes().windows(3).any(|bytes| bytes == [1, 2, 3]));
     assert!(body.contains("name=\"model\""));
 }
