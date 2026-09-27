@@ -1781,6 +1781,11 @@ fn register_domain_subscribers(
             );
         }
 
+        // Managed search routes follow the credential: refresh the search
+        // module when it is stored, replaced or cleared.
+        #[cfg(feature = "modules")]
+        crate::search::bus::register_credential_refresh_subscriber();
+
         // Restart requests go through a subscriber so every trigger path shares
         // the same respawn logic.
         crate::platform::service::bus::register_restart_subscriber();
