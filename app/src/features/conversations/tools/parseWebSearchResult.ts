@@ -290,7 +290,9 @@ function fromText(text: string): ParsedWebSearch | undefined {
   }
 
   // Markdown rendering.
-  const mdHeading = heading.match(/^#\s+(.+)$/);
+  const mdHeading = heading.match(
+    /^#\s+((?:\w+ results|Answer for|Page contents for|Research still running for)\b.*)$/i
+  );
   if (mdHeading || lines.some(line => /^##\s+\[.+\]\(.+\)\s*$/.test(line))) {
     const headingText = mdHeading?.[1] ?? '';
     const { role, inProgress } = headingRole(headingText);

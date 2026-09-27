@@ -40,18 +40,50 @@ async fn proxy(config: &Config) -> Result<tinybus::Proxy, String> {
     let current = fingerprint(&configuration);
     // Caller holds the module call lock through the subsequent bus call.
     let mut previous = last_config().lock().await;
-    if *previous != Some(current) {
-        tracing::debug!("[modules][search] configuration changed; reinitializing module");
-        runtime
-            .connection()
-            .reinitialize_module(MODULE_ID, configuration)
-            .await
-            .map_err(|error| format!("search module configuration refresh failed: {error}"))?;
-        *previous = Some(current);
+    match *previous {
+        // The first call after a lazy load: `ensure_loaded_within` initialized
+        // the module with `module_config(config)` for this same config, so it
+        // already holds this configuration. Reinitializing now would race the
+        // module's own initialization.
+        None => {
+            tracing::debug!("[modules][search] first call; module holds the load-time configuration");
+        }
+        Some(last) if last == current => {}
+        Some(_) => {
+            tracing::debug!("[modules][search] configuration changed; reinitializing module");
+            reinitialize(&runtime, configuration).await?;
+        }
     }
+    *previous = Some(current);
     runtime
         .proxy(names::INTERFACE, names::OBJECT_PATH)
         .map_err(|error| format!("search module proxy unavailable: {error}"))
+}
+
+/// Reinitialize, waiting out a module that is still finishing its previous
+/// (re)initialization instead of failing the caller's search.
+async fn reinitialize(
+    runtime: &crate::modules::host::HostRuntime,
+    configuration: serde_json::Value,
+) -> Result<(), String> {
+    const ATTEMPTS: u32 = 40;
+    for attempt in 1..=ATTEMPTS {
+        match runtime
+            .connection()
+            .reinitialize_module(MODULE_ID, configuration.clone())
+            .await
+        {
+            Ok(_) => return Ok(()),
+            Err(error) if attempt < ATTEMPTS && error.to_string().contains("initializing") => {
+                tracing::debug!(attempt, "[modules][search] module still initializing; retrying");
+                tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+            }
+            Err(error) => {
+                return Err(format!("search module configuration refresh failed: {error}"));
+            }
+        }
+    }
+    Err("search module configuration refresh failed: module never became ready".into())
 }
 
 pub(super) async fn with_module_lock<T, F, Fut>(operation: F) -> Result<T, String>
