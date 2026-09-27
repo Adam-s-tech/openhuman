@@ -133,9 +133,7 @@ async fn api_key_credentials_are_not_used_for_langfuse_proxy_exports() {
             output: None,
         },
     )];
-    assert!(!crate::agent::progress_tracing::langfuse::journal_export::journal_push_ready(
-        &config
-    ));
+    assert!(!crate::agent::progress_tracing::langfuse::journal_export::journal_push_ready(&config));
     assert_eq!(
         crate::agent::progress_tracing::langfuse::journal_export::push_observations(
             &config,
@@ -143,7 +141,7 @@ async fn api_key_credentials_are_not_used_for_langfuse_proxy_exports() {
             &observations,
             None,
         )
-            .await,
+        .await,
         Ok(())
     );
 }
