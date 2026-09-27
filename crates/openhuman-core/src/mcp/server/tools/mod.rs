@@ -40,7 +40,7 @@ pub use crate::config::rpc as config_rpc;
 #[cfg(all(test, feature = "mcp"))]
 pub use crate::core::all;
 #[cfg(all(test, feature = "mcp"))]
-pub use crate::tools::SEARXNG_MAX_RESULTS;
+pub use types::SEARCH_MAX_RESULTS;
 #[cfg(all(test, feature = "mcp"))]
 pub use dispatch::{mcp_dispatch_block_reason, subagent_summary_line};
 #[cfg(all(test, feature = "mcp"))]
