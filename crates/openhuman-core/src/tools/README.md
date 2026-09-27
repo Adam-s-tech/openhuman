@@ -82,7 +82,7 @@ This module owns the cross-cutting built-in tools (the only ones that belong her
 - Generic network: `http_request`, `web_fetch`, `curl`, `gitbooks_search`/`gitbooks_get_page`, MCP bridge (`mcp_list_servers`/`mcp_list_tools`/`mcp_call_tool`), `gmail_unsubscribe`.
 - Meta: `deferred` (which tools leave the wire for the harness's `tool_search` bridge) and the `collapse` multi-action helpers used by other tools' schema merging.
 - Documents (`documents` feature): `generate_document` (`DocumentTool`), `generate_presentation` (`PresentationTool`).
-- Search: `web_search` and provider-specific search families are registered by `crate::search`; `search.engine = "disabled"` suppresses this surface entirely.
+- Search: `web_search` and provider-specific search families are registered through the provider-based host integration in `crate::search`; disabling all providers suppresses this surface. Legacy `search.engine` settings are handled during config migration.
 
 Domain-owned tools (memory, cron, wallet, composio, integrations, skills, voice::audio_toolkit, agent sub-dispatch like `spawn_subagent`/`spawn_async_subagent`/`delegate`/`todo`/`plan_exit`/`run_skill`) are registered in `all_tools` but implemented in their respective domains and only re-exported through this module.
 
@@ -98,7 +98,7 @@ None. No `store.rs`; the module holds no persisted state. Tools that persist (me
 
 - `crate::agent`: `host_runtime` (`RuntimeAdapter`/`NativeRuntime`), `tool_policy::GeneratedToolRuntimeContext`, harness definitions (`AgentDefinition`, `SubagentEntry`) for orchestrator tool synthesis, and the agent-owned dispatch tools re-exported here.
 - `crate::config`: `Config`, `BrowserConfig`, `HttpRequestConfig`, `DelegateAgentConfig`; drives all registration gating and `config::rpc::load_config_with_timeout` in RPC handlers.
-- `crate::search`: active search engine registry and search-owned tool implementations.
+- `crate::search`: provider resolution, TinySearch module configuration, and search-owned tool implementations.
 - `crate::security`: `SecurityPolicy` (host/path/command gating threaded into nearly every tool) + `AuditLogger`.
 - `crate::memory`: `memory::ops::guard::active_memory_guard` (read by `tool_stats`) and the memory-owned tool sets re-exported here; the registry takes no `Memory` handle itself.
 - `crate::integrations`: `build_client` backend HTTP client + the integration tool structs (apify, brave, parallel, stock, twilio, tinyfish, google_places, querit, seltz, searxng).
