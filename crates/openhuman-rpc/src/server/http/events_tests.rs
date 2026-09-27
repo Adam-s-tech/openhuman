@@ -90,7 +90,10 @@ async fn domain_events_require_a_bearer() {
 async fn webhook_debug_stream_starts_with_a_documented_event() {
     let response = webhook_events_handler().await;
     assert_eq!(response.status(), StatusCode::OK);
-    assert_eq!(response.headers()[header::CONTENT_TYPE], "text/event-stream");
+    assert_eq!(
+        response.headers()[header::CONTENT_TYPE],
+        "text/event-stream"
+    );
     let mut body = response.into_body().into_data_stream();
     use tokio_stream::StreamExt;
     let chunk = body.next().await.expect("first event").expect("SSE bytes");
