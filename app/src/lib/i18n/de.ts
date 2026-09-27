@@ -1635,7 +1635,7 @@ const messages: TranslationMap = {
   'settings.search.advancedTitle': 'Erweitert',
   'settings.search.exposeProviderTools': 'Eigene Werkzeuge jedes Anbieters freigeben',
   'settings.search.exposeProviderToolsDesc':
-    'Gibt dem Agenten die Werkzeuge jedes aktiven Anbieters statt nur eines Werkzeugs pro Rolle. Das belegt mehr vom Kontextfenster.',
+    'Gibt dem Agenten die Werkzeuge jedes aktiven Anbieters anstelle eines Werkzeugs pro Rolle. Das belegt mehr vom Kontextfenster.',
   // ─── Settings global search bar ────────────────────────────
   'settings.embeddings.title': 'Einbettungen',
   'settings.embeddings.description':

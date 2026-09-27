@@ -1618,7 +1618,7 @@ const messages: TranslationMap = {
   'settings.search.advancedTitle': 'Avanzate',
   'settings.search.exposeProviderTools': 'Mostra gli strumenti propri di ogni fornitore',
   'settings.search.exposeProviderToolsDesc':
-    "Fornisce all'agente gli strumenti di ogni fornitore attivo, non solo uno strumento per ruolo. Occupa più finestra di contesto.",
+    "Fornisce all'agente gli strumenti di ogni fornitore attivo al posto di uno strumento per ruolo. Occupa più finestra di contesto.",
   // ─── Settings global search bar ────────────────────────────
   'settings.embeddings.title': 'Incorporamenti',
   'settings.embeddings.description':

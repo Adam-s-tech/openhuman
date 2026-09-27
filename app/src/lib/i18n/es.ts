@@ -1622,7 +1622,7 @@ const messages: TranslationMap = {
   'settings.search.advancedTitle': 'Avanzado',
   'settings.search.exposeProviderTools': 'Mostrar las herramientas propias de cada proveedor',
   'settings.search.exposeProviderToolsDesc':
-    'Da al agente las herramientas de cada proveedor activo, no solo una herramienta por rol. Esto ocupa más ventana de contexto.',
+    'Da al agente las herramientas de cada proveedor activo en lugar de una herramienta por rol. Esto ocupa más ventana de contexto.',
   // ─── Settings global search bar ────────────────────────────
   'settings.embeddings.title': 'Incrustaciones',
   'settings.embeddings.description':

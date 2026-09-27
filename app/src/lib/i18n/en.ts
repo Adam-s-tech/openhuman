@@ -1757,7 +1757,7 @@ const en: TranslationMap = {
   'settings.search.advancedTitle': 'Advanced',
   'settings.search.exposeProviderTools': "Expose each provider's own tools",
   'settings.search.exposeProviderToolsDesc':
-    'Give the agent the tools each enabled provider offers, not just one tool per role. This uses more of the context window.',
+    'Give the agent the tools each enabled provider offers instead of one tool per role. This uses more of the context window.',
   // ─── Settings global search bar ────────────────────────────
   // ─── Embeddings settings ───────────────────────────────────
   'settings.embeddings.title': 'Embeddings',

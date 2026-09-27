@@ -1570,7 +1570,7 @@ const messages: TranslationMap = {
   'settings.search.advancedTitle': '고급',
   'settings.search.exposeProviderTools': '각 제공자의 자체 도구 노출',
   'settings.search.exposeProviderToolsDesc':
-    '역할마다 도구 하나가 아니라, 켜진 각 제공자가 제공하는 도구를 에이전트에 모두 줍니다. 컨텍스트 창을 더 많이 사용합니다.',
+    '역할마다 도구 하나 대신, 켜진 각 제공자가 제공하는 도구를 에이전트에 줍니다. 컨텍스트 창을 더 많이 사용합니다.',
   // ─── Settings global search bar ────────────────────────────
   'settings.embeddings.title': '임베딩',
   'settings.embeddings.description':

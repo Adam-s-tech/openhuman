@@ -1545,7 +1545,7 @@ const messages: TranslationMap = {
   'settings.search.advancedTitle': 'متقدم',
   'settings.search.exposeProviderTools': 'إظهار الأدوات الخاصة بكل مزوّد',
   'settings.search.exposeProviderToolsDesc':
-    'امنح الوكيل أدوات كل مزوّد مفعّل، وليس أداة واحدة لكل دور فقط. يستهلك هذا مساحة أكبر من نافذة السياق.',
+    'امنح الوكيل أدوات كل مزوّد مفعّل بدلًا من أداة واحدة لكل دور. يستهلك هذا مساحة أكبر من نافذة السياق.',
   // ─── Settings global search bar ────────────────────────────
   'settings.embeddings.title': 'التضمينات',
   'settings.embeddings.description':

@@ -1598,7 +1598,7 @@ const messages: TranslationMap = {
   'settings.search.advancedTitle': 'Lanjutan',
   'settings.search.exposeProviderTools': 'Tampilkan alat bawaan setiap penyedia',
   'settings.search.exposeProviderToolsDesc':
-    'Beri agen alat dari setiap penyedia yang aktif, bukan hanya satu alat per peran. Ini memakai lebih banyak jendela konteks.',
+    'Beri agen alat dari setiap penyedia yang aktif, sebagai ganti satu alat per peran. Ini memakai lebih banyak jendela konteks.',
   // ─── Settings global search bar ────────────────────────────
   'settings.embeddings.title': 'Sematan',
   'settings.embeddings.description':

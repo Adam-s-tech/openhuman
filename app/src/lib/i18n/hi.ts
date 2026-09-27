@@ -1578,7 +1578,7 @@ const messages: TranslationMap = {
   'settings.search.advancedTitle': 'उन्नत',
   'settings.search.exposeProviderTools': 'हर प्रदाता के अपने टूल दिखाएँ',
   'settings.search.exposeProviderToolsDesc':
-    'एजेंट को हर चालू प्रदाता के टूल दें, सिर्फ़ हर भूमिका का एक टूल नहीं। इससे कॉन्टेक्स्ट विंडो ज़्यादा भरती है।',
+    'हर भूमिका के एक टूल की जगह एजेंट को हर चालू प्रदाता के अपने टूल दें। इससे कॉन्टेक्स्ट विंडो ज़्यादा भरती है।',
   // ─── Settings global search bar ────────────────────────────
   'settings.embeddings.title': 'एम्बेडिंग्स',
   'settings.embeddings.description':

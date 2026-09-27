@@ -1578,7 +1578,7 @@ const messages: TranslationMap = {
   'settings.search.advancedTitle': 'উন্নত',
   'settings.search.exposeProviderTools': 'প্রতিটি প্রদানকারীর নিজস্ব টুল দেখান',
   'settings.search.exposeProviderToolsDesc':
-    'শুধু প্রতি ভূমিকায় একটি টুল নয়, প্রতিটি চালু প্রদানকারীর টুল এজেন্টকে দিন। এতে কনটেক্সট উইন্ডো বেশি লাগে।',
+    'প্রতি ভূমিকায় একটি টুলের বদলে প্রতিটি চালু প্রদানকারীর নিজস্ব টুল এজেন্টকে দিন। এতে কনটেক্সট উইন্ডো বেশি লাগে।',
   // ─── Settings global search bar ────────────────────────────
   'settings.embeddings.title': 'এমবেডিংস',
   'settings.embeddings.description':

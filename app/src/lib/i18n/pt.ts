@@ -1621,7 +1621,7 @@ const messages: TranslationMap = {
   'settings.search.advancedTitle': 'Avançado',
   'settings.search.exposeProviderTools': 'Expor as ferramentas próprias de cada provedor',
   'settings.search.exposeProviderToolsDesc':
-    'Dá ao agente as ferramentas de cada provedor ativo, não apenas uma ferramenta por função. Isso ocupa mais da janela de contexto.',
+    'Dá ao agente as ferramentas de cada provedor ativo em vez de uma ferramenta por função. Isso ocupa mais da janela de contexto.',
   // ─── Settings global search bar ────────────────────────────
   'settings.embeddings.title': 'Incorporações',
   'settings.embeddings.description':

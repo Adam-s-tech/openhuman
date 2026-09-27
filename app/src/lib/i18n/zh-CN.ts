@@ -1482,7 +1482,7 @@ const messages: TranslationMap = {
   'settings.search.advancedTitle': '高级',
   'settings.search.exposeProviderTools': '公开每个提供商自己的工具',
   'settings.search.exposeProviderToolsDesc':
-    '让智能体使用每个已启用提供商提供的工具，而不只是每个角色一个工具。这会占用更多上下文窗口。',
+    '让智能体使用每个已启用提供商自己的工具，取代每个角色一个工具。这会占用更多上下文窗口。',
   // ─── Settings global search bar ────────────────────────────
   'settings.embeddings.title': '向量嵌入',
   'settings.embeddings.description':

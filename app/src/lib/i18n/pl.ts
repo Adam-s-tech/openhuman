@@ -1609,7 +1609,7 @@ const messages: TranslationMap = {
   'settings.search.advancedTitle': 'Zaawansowane',
   'settings.search.exposeProviderTools': 'Udostępnij własne narzędzia każdego dostawcy',
   'settings.search.exposeProviderToolsDesc':
-    'Daje agentowi narzędzia każdego włączonego dostawcy, a nie tylko jedno narzędzie na rolę. Zajmuje to więcej okna kontekstu.',
+    'Daje agentowi narzędzia każdego włączonego dostawcy zamiast jednego narzędzia na rolę. Zajmuje to więcej okna kontekstu.',
   // ─── Settings global search bar ────────────────────────────
   'settings.embeddings.title': 'Embeddings',
   'settings.embeddings.description':

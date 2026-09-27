@@ -1599,7 +1599,7 @@ const messages: TranslationMap = {
   'settings.search.advancedTitle': 'Дополнительно',
   'settings.search.exposeProviderTools': 'Показывать собственные инструменты каждого провайдера',
   'settings.search.exposeProviderToolsDesc':
-    'Дать агенту инструменты каждого включённого провайдера, а не только по одному инструменту на роль. Это занимает больше контекстного окна.',
+    'Дать агенту инструменты каждого включённого провайдера вместо одного инструмента на роль. Это занимает больше контекстного окна.',
   // ─── Settings global search bar ────────────────────────────
   'settings.embeddings.title': 'Эмбеддинги',
   'settings.embeddings.description':
