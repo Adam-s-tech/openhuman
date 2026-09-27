@@ -189,9 +189,8 @@ impl OpenHumanBackendModel {
             let endpoint = self.base_url()?;
             if !is_managed_endpoint_for_api_key(&endpoint) {
                 anyhow::bail!(
-                    "refusing to send the TinyHumans API key as a bearer over a non-HTTPS, \
-                     non-loopback endpoint: {endpoint} — set a https:// api_url or a loopback \
-                     one for local testing"
+                    "refusing to send the TinyHumans API key to an unmanaged or insecure \
+                     endpoint: {endpoint} — use the managed backend or loopback for local testing"
                 );
             }
             log::debug!(

@@ -482,20 +482,20 @@ fn resolve_bearer_refuses_a_stored_api_key_over_plaintext_non_loopback() {
     let msg = err.to_string();
     assert!(
         msg.contains("refusing to send")
-            && msg.contains("non-HTTPS")
+            && msg.contains("unmanaged or insecure")
             && msg.contains("api.example.test"),
         "error must name the refusal and the offending endpoint: {msg}"
     );
 }
 
 #[test]
-fn resolve_bearer_sends_a_stored_api_key_over_https() {
+fn resolve_bearer_sends_a_stored_api_key_to_managed_https() {
     let tmp = tempfile::TempDir::new().unwrap();
-    let backend = backend_with_api_key("https://api.example.test", tmp.path());
+    let backend = backend_with_api_key("https://api.tinyhumans.ai", tmp.path());
 
     let token = backend
         .resolve_bearer()
-        .expect("https must be allowed to carry the api-key bearer");
+        .expect("managed HTTPS must be allowed to carry the api-key bearer");
     assert_eq!(token, "th_test_key");
 }
 
