@@ -1,6 +1,6 @@
 use super::*;
-use axum::{body::Bytes, routing::post, Router};
-use std::sync::{Arc, Mutex};
+use wiremock::matchers::{method, path};
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 #[test]
 fn backend_401_is_tagged_as_session_expiry() {
@@ -80,38 +80,21 @@ async fn api_key_refuses_remote_plaintext_endpoint_before_request() {
 
 #[tokio::test]
 async fn api_key_transcribes_via_safe_backend_with_bearer_and_multipart_audio() {
-    let request = Arc::new(Mutex::new(None));
-    let captured = Arc::clone(&request);
-    let app = Router::new().route(
-        "/openai/v1/audio/transcriptions",
-        post(move |headers: axum::http::HeaderMap, body: Bytes| {
-            let captured = Arc::clone(&captured);
-            async move {
-                *captured.lock().unwrap() = Some((
-                    headers
-                        .get(axum::http::header::AUTHORIZATION)
-                        .and_then(|value| value.to_str().ok())
-                        .map(str::to_owned),
-                    headers
-                        .get(axum::http::header::CONTENT_TYPE)
-                        .and_then(|value| value.to_str().ok())
-                        .map(str::to_owned),
-                    body.to_vec(),
-                ));
-                (axum::http::StatusCode::OK, r#"{"text":"recognized words"}"#)
-            }
-        }),
-    );
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
-    let endpoint = format!("http://{}", listener.local_addr().unwrap());
-    tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/openai/v1/audio/transcriptions"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "text": "recognized words"
+        })))
+        .mount(&server)
+        .await;
 
     let tmp = tempfile::TempDir::new().unwrap();
     let config = Config {
         workspace_dir: tmp.path().join("workspace"),
         action_dir: tmp.path().join("workspace"),
         config_path: tmp.path().join("config.toml"),
-        api_url: Some(endpoint),
+        api_url: Some(server.uri()),
         ..Config::default()
     };
     crate::security::credentials::api_key::store_api_key(&config, "test-api-key").unwrap();
@@ -121,14 +104,13 @@ async fn api_key_transcribes_via_safe_backend_with_bearer_and_multipart_audio() 
         .unwrap()
         .value;
     assert_eq!(outcome.text, "recognized words");
-    let (authorization, content_type, body) = request.lock().unwrap().take().unwrap();
-    assert_eq!(authorization.as_deref(), Some("Bearer test-api-key"));
-    assert!(content_type
-        .as_deref()
-        .unwrap()
-        .starts_with("multipart/form-data; boundary="));
-    assert!(body.windows(3).any(|bytes| bytes == [1, 2, 3]));
-    let body = String::from_utf8_lossy(&body);
+    let requests = server.received_requests().await.unwrap();
+    assert_eq!(requests.len(), 1);
+    let request = &requests[0];
+    assert_eq!(request.headers.get("authorization").unwrap(), "Bearer test-api-key");
+    assert!(request.headers.get("content-type").unwrap().to_str().unwrap().starts_with("multipart/form-data; boundary="));
+    assert!(request.body.windows(3).any(|bytes| bytes == [1, 2, 3]));
+    let body = String::from_utf8_lossy(&request.body);
     assert!(body.contains("name=\"file\""));
     assert!(body.contains("name=\"model\""));
 }
