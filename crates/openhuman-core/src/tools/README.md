@@ -67,7 +67,7 @@ Namespace `tools` (wired into `crates/openhuman-core/src/core/all.rs` via `all_t
 | `openhuman.tools_web_search` | Ranked web search through the `search` role (TinySearch module); structured results plus the provider that answered. |
 | `openhuman.tools_web_answer` | Grounded answer with citations through the `answer` role. |
 | `openhuman.tools_web_contents` | Page contents for given URLs through the `contents` role. |
-| `openhuman.tools_searxng_search` | Self-hosted SearXNG search (gated on `searxng.enabled`). |
+| `openhuman.tools_searxng_search` | The `search` role pinned to your self-hosted SearXNG (requires SearXNG enabled in search settings). |
 | `openhuman.tools_apify_linkedin_scrape` | Apify LinkedIn profile scrape → raw JSON + rendered markdown. |
 
 Handlers load config via `config::rpc::load_config_with_timeout`, build the backend integration client where needed, and return `RpcOutcome`.
