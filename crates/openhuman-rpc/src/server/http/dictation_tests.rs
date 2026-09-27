@@ -1,8 +1,7 @@
 use std::sync::Once;
 
-use axum::body::Body;
-use axum::http::{header, HeaderMap, HeaderValue, Request, StatusCode};
-use tower::ServiceExt;
+use axum::http::{header, HeaderMap, HeaderValue, StatusCode};
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
 use super::{authorize_dictation_request, DictationQuery};
 
@@ -61,21 +60,30 @@ fn dictation_accepts_bearer_header_and_browser_query_token() {
 
 #[tokio::test]
 async fn dictation_handler_rejects_disallowed_origin_before_upgrade() {
-    let request = Request::builder()
-        .uri("/ws/dictation")
-        .header(header::ORIGIN, "https://attacker.example")
-        .header(header::AUTHORIZATION, format!("Bearer {}", test_token()))
-        .header(header::CONNECTION, "upgrade")
-        .header(header::UPGRADE, "websocket")
-        .header("sec-websocket-version", "13")
-        .header("sec-websocket-key", "dGhlIHNhbXBsZSBub25jZQ==")
-        .body(Body::empty())
-        .unwrap();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let address = listener.local_addr().unwrap();
+    let server = tokio::spawn(async move {
+        axum::serve(listener, crate::server::http::build_core_http_router(false))
+            .await
+            .unwrap();
+    });
 
-    let response = crate::server::http::build_core_http_router(false)
-        .oneshot(request)
-        .await
-        .unwrap();
+    let socket = tokio::net::TcpStream::connect(address).await.unwrap();
+    let (read_half, mut write_half) = socket.into_split();
+    let request = format!(
+        "GET /ws/dictation HTTP/1.1\r\nHost: {address}\r\nConnection: Upgrade\r\nUpgrade: websocket\r\nSec-WebSocket-Version: 13\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nAuthorization: Bearer {}\r\nOrigin: https://attacker.example\r\n\r\n",
+        test_token()
+    );
+    write_half.write_all(request.as_bytes()).await.unwrap();
+    let mut response = String::new();
+    tokio::time::timeout(
+        std::time::Duration::from_secs(5),
+        BufReader::new(read_half).read_line(&mut response),
+    )
+    .await
+    .expect("HTTP rejection completes")
+    .unwrap();
+    server.abort();
 
-    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+    assert!(response.starts_with("HTTP/1.1 403"), "{response}");
 }
