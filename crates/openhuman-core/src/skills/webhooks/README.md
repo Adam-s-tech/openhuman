@@ -80,7 +80,7 @@ Note that nothing in the production startup path currently constructs a `Webhook
 - `crate::core::observability::report_error` — error reporting for body-decode / agent-trigger failures.
 - `crate::platform::socket::global_socket_manager` — obtain the `WebhookRouter` (stored on the socket manager) and `emit` responses over the socket.
 - `crate::agent::triage` — `TriggerEnvelope`, `run_triage`, `apply_decision`, `TriageOutcome` for agent-tunnel routing and `trigger_agent`.
-- `crate::config::{Config, rpc::load_config_with_timeout}` — config for backend-proxy RPCs.
+- `crate::config::{Config, rpc::load_config_with_timeout}` — config for local webhook routing operations.
 - `crate::rpc::RpcOutcome` — handler return contract.
 
 ## Used by

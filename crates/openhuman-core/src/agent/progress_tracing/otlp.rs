@@ -462,10 +462,12 @@ pub(super) async fn push_spans(config: &Config, spans: &[TraceSpan]) -> Result<(
     // No TinyHumans connection, or no usable credential (signed out, offline
     // local session): a configured state, so skip quietly rather than failing
     // every turn's push.
-    let Some(credential) = direct_backend_credential(config, "langfuse otlp push") else {
-        return Ok(());
+    let token = match direct_backend_credential(config, "langfuse otlp push") {
+        Some(crate::security::credentials::session_support::BackendCredential::Session(token)) => {
+            token
+        }
+        _ => return Ok(()),
     };
-    let token = credential.into_secret();
     // Backend traffic: the transport's client carries the host's attribution
     // headers (product identity, versions).
     let client = crate::backend::resolve_backend_transport()

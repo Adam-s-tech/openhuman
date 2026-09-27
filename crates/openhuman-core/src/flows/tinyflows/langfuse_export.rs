@@ -184,15 +184,19 @@ pub async fn export_flow_run_trace(
     // No TinyHumans connection, or no usable credential (signed out, offline
     // local session): a configured state — `direct_backend_credential` logs
     // the reason at debug, and the export is skipped without a request.
-    let Some(credential) = direct_backend_credential(config, "flows langfuse export") else {
-        tracing::debug!(
-            target: LOG_TARGET,
-            flow_id = %flow_id,
-            "[flows] langfuse export skipped: hosted backend not available"
-        );
-        return;
+    let token = match direct_backend_credential(config, "flows langfuse export") {
+        Some(crate::security::credentials::session_support::BackendCredential::Session(token)) => {
+            token
+        }
+        _ => {
+            tracing::debug!(
+                target: LOG_TARGET,
+                flow_id = %flow_id,
+                "[flows] langfuse export skipped: hosted backend not available"
+            );
+            return;
+        }
     };
-    let token = credential.into_secret();
     let client = match LangfuseClient::new(url.clone(), LangfuseAuth::Bearer { token }) {
         Ok(client) => client,
         Err(err) => {

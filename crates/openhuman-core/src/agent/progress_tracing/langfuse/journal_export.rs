@@ -252,7 +252,10 @@ pub(crate) fn journal_push_ready(config: &Config) -> bool {
     let url = ingestion_url(config);
     !skip_push(environment_for_base(&url))
         && url.starts_with("http")
-        && direct_backend_credential(config, "langfuse journal push").is_some()
+        && matches!(
+            direct_backend_credential(config, "langfuse journal push"),
+            Some(crate::security::credentials::session_support::BackendCredential::Session(_))
+        )
 }
 
 pub(crate) async fn push_observations(
@@ -279,10 +282,12 @@ pub(crate) async fn push_observations(
     // No TinyHumans connection, or no usable credential (signed out, offline
     // local session): a configured state, so skip quietly rather than failing
     // every turn's push.
-    let Some(credential) = direct_backend_credential(config, "langfuse journal push") else {
-        return Ok(());
+    let token = match direct_backend_credential(config, "langfuse journal push") {
+        Some(crate::security::credentials::session_support::BackendCredential::Session(token)) => {
+            token
+        }
+        _ => return Ok(()),
     };
-    let token = credential.into_secret();
     // Stamp the run lineage from the run's own observations so a spawned
     // sub-agent's trace links back to its parent turn (#4657).
     let trace_ctx = trace_ctx_with_run_lineage(trace_ctx, observations);
