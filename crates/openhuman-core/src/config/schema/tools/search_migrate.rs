@@ -48,10 +48,18 @@ impl SearchConfig {
 
         match self.enabled_providers.take() {
             Some(selected) => {
+                let selected_exa_with_key = selected.contains("exa") && self.exa.has_key();
                 for name in selected {
                     match name.as_str() {
                         "managed" => {
-                            providers.insert("exa".into(), SearchProviderSettings::managed());
+                            providers.insert(
+                                "exa".into(),
+                                if selected_exa_with_key {
+                                    SearchProviderSettings::direct()
+                                } else {
+                                    SearchProviderSettings::managed()
+                                },
+                            );
                             providers
                                 .entry("gemini".into())
                                 .or_insert_with(SearchProviderSettings::managed);
