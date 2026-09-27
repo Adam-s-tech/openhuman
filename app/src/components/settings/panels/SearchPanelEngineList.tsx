@@ -1,6 +1,8 @@
+import { Ban, KeyRound, type LucideIcon, Sparkles } from 'lucide-react';
+
+import { cn } from '../../../lib/cn';
 import type { SearchEngineId } from '../../../utils/tauriCommands/config';
 import Badge from '../../ui/Badge';
-import { CheckIcon } from '../../ui/icons';
 import { ToggleGroupItem, ToggleGroupRoot } from '../../ui/ToggleGroup';
 
 export interface EngineOption {
@@ -19,12 +21,17 @@ interface SearchPanelEngineListProps {
   t: (key: string) => string;
 }
 
+const engineIcon = (engine: EngineOption): LucideIcon => {
+  if (engine.id === 'disabled') return Ban;
+  if (engine.id === 'managed') return Sparkles;
+  return KeyRound;
+};
+
 /**
- * The search-engine picker. A single-select `ToggleGroup` gives the real
- * `role="radiogroup"` / `role="radio"` / `aria-checked` pairing for free
- * (Radix sets these itself for `type="single"`), plus roving-focus arrow-key
- * navigation — the hand-rolled `<button role="radio">` list this replaced had
- * neither.
+ * The search-engine picker as a grid of icon tiles. A single-select
+ * `ToggleGroup` gives the real `role="radiogroup"` / `role="radio"` /
+ * `aria-checked` pairing (Radix sets these for `type="single"`) plus
+ * roving-focus arrow-key navigation, so each tile is the radio itself.
  */
 const SearchPanelEngineList = ({
   engines,
@@ -36,27 +43,41 @@ const SearchPanelEngineList = ({
 }: SearchPanelEngineListProps) => (
   <ToggleGroupRoot
     type="single"
-    orientation="vertical"
     aria-label={ariaLabel}
     value={selectedEngine}
     onValueChange={value => {
       if (value) onSelect(value as SearchEngineId);
     }}
-    className="flex w-full flex-col gap-0 divide-y divide-line-subtle rounded-xl border border-line bg-surface overflow-hidden">
+    className="grid w-full gap-2 p-4 sm:grid-cols-2 xl:grid-cols-3">
     {engines.map(opt => {
       const selected = opt.id === selectedEngine;
       const configured = isConfigured(opt.id);
       const blocked = opt.requiresKey && !configured && selected;
+      const Icon = engineIcon(opt);
       return (
         <ToggleGroupItem
           key={opt.id}
           value={opt.id}
           data-testid={`search-engine-${opt.id}`}
           variant="tertiary"
-          className="w-full flex items-start justify-start gap-3 rounded-none border-0 px-4 py-3 h-auto text-left data-[state=on]:bg-primary-50 dark:data-[state=on]:bg-primary-500/10">
-          <span className="flex-1 min-w-0">
-            <span className="flex items-center gap-2">
-              <span className="text-sm font-medium text-content">{opt.label}</span>
+          className={cn(
+            'h-auto w-full items-start justify-start gap-3 whitespace-normal rounded-xl border px-3.5 py-3 text-left font-normal transition-colors',
+            selected
+              ? 'border-primary-500 bg-primary-50 ring-1 ring-primary-500 hover:bg-primary-50 dark:bg-primary-500/10 dark:hover:bg-primary-500/10'
+              : 'border-line bg-surface hover:border-line-strong hover:bg-surface-hover'
+          )}>
+          <span
+            className={cn(
+              'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg',
+              selected
+                ? 'bg-primary-500 text-content-inverted'
+                : 'bg-surface-muted text-content-secondary'
+            )}>
+            <Icon className="h-4.5 w-4.5" aria-hidden />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="flex flex-wrap items-center gap-2">
+              <span className="text-sm font-semibold text-content">{opt.label}</span>
               {opt.requiresKey && (
                 <Badge variant={configured ? 'success' : 'warning'}>
                   {configured
@@ -65,16 +86,15 @@ const SearchPanelEngineList = ({
                 </Badge>
               )}
             </span>
-            <span className="block mt-0.5 text-xs text-content-muted">{opt.description}</span>
+            <span className="mt-0.5 block text-xs leading-relaxed text-content-muted">
+              {opt.description}
+            </span>
             {blocked && (
-              <span className="block mt-1 text-[11px] text-amber-700 dark:text-amber-300">
+              <span className="mt-1 block text-xs text-amber-700 dark:text-amber-300">
                 {t('settings.search.fallbackToManaged')}
               </span>
             )}
           </span>
-          {selected && (
-            <CheckIcon className="w-5 h-5 text-primary-500 shrink-0 mt-0.5" aria-hidden="true" />
-          )}
         </ToggleGroupItem>
       );
     })}

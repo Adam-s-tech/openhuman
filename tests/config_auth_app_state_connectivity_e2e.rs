@@ -2524,7 +2524,6 @@ async fn worker_a_controller_schemas_are_fully_exposed() {
             vec![
                 "openhuman.config_agent_server_status",
                 "openhuman.config_get",
-                "openhuman.config_get_activity_level_settings",
                 "openhuman.config_get_agent_paths",
                 "openhuman.config_get_agent_settings",
                 "openhuman.config_get_analytics_settings",
@@ -2546,7 +2545,6 @@ async fn worker_a_controller_schemas_are_fully_exposed() {
                 "openhuman.config_set_browser_allow_all",
                 "openhuman.config_set_onboarding_completed",
                 "openhuman.config_set_privacy_mode",
-                "openhuman.config_update_activity_level_settings",
                 "openhuman.config_update_agent_paths",
                 "openhuman.config_update_agent_settings",
                 "openhuman.config_update_analytics_settings",

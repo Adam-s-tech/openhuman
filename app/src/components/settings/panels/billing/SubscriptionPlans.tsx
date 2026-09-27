@@ -166,26 +166,19 @@ const SubscriptionPlans = ({
                         {plan.name}
                       </h4>
                       {isPopular && (
-                        <Badge
-                          variant="primary"
-                          className="rounded-full bg-primary-600 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.24em] text-content-inverted">
+                        <Badge variant="primary">
                           {t('settings.billing.subscription.popular')}
                         </Badge>
                       )}
                       {isCurrent && !plan.recommended && (
-                        <Badge
-                          variant="neutral"
-                          className="rounded-full bg-content px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.24em] text-content-inverted">
+                        <Badge variant="success">
                           {t('settings.billing.subscription.current')}
                         </Badge>
                       )}
                     </div>
                     <div className="mt-3 flex flex-wrap gap-2">
                       {plan.features.slice(0, 4).map(feature => (
-                        <Badge
-                          key={feature.text}
-                          variant="neutral"
-                          className="rounded-full border-primary-200 bg-surface-subtle/50 px-3 py-1 text-xs font-medium normal-case dark:border-primary-500/30">
+                        <Badge key={feature.text} variant="neutral">
                           {feature.text}
                         </Badge>
                       ))}
@@ -219,9 +212,7 @@ const SubscriptionPlans = ({
                   </div>
 
                   {isCurrent ? (
-                    <Badge
-                      variant="primary"
-                      className="rounded-full bg-primary-600 px-4 py-2 text-xs font-semibold normal-case text-content-inverted">
+                    <Badge variant="primary">
                       {t('settings.billing.subscription.currentPlan')}
                     </Badge>
                   ) : isUpgrade ? (

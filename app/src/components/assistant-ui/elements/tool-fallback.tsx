@@ -49,6 +49,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/assistant-ui/ui/collapsible';
 import { Textarea } from '@/components/assistant-ui/ui/textarea';
+import { useT } from '@/lib/i18n/I18nContext';
 import {
   toolApprovalAcceptsText,
   type ToolApprovalOption,
@@ -286,6 +287,7 @@ function ToolFallbackResult({
   className,
   ...props
 }: React.ComponentProps<'div'> & { result?: unknown }) {
+  const { t } = useT();
   if (result === undefined) return null;
 
   return (
@@ -294,7 +296,7 @@ function ToolFallbackResult({
       className={cn('aui-tool-fallback-result', className)}
       {...props}>
       <p className="aui-tool-fallback-result-header text-muted-foreground text-xs font-medium">
-        Result:
+        {t('toolFallback.result', 'Result:')}
       </p>
       <pre className="aui-tool-fallback-result-content bg-muted/50 text-foreground/90 mt-1 rounded-md p-2.5 text-xs whitespace-pre-wrap">
         {formatUnknownValue(result, 2)}
@@ -384,6 +386,7 @@ function ToolFallbackApproval({
     interrupt?: ToolCallMessagePart['interrupt'];
     approval?: ToolCallMessagePart['approval'];
   }) {
+  const { t } = useT();
   const [submitted, setSubmitted] = useState(false);
   const voiceActive = useAuiState(s => s.thread.voice !== undefined);
   const locked = submitted || voiceActive;
@@ -500,7 +503,7 @@ function ToolFallbackApproval({
       {question && (
         <div className="flex items-center gap-2">
           <Button size="sm" className={pressable} onClick={submitAnswer} disabled={locked}>
-            Send
+            {t('chat.elicitation.send', 'Send')}
           </Button>
           {dismissButton}
         </div>
@@ -541,7 +544,7 @@ function ToolFallbackApproval({
             className={pressable}
             onClick={() => respondWithOption(confirming)}
             disabled={locked}>
-            Confirm
+            {t('common.confirm', 'Confirm')}
           </Button>
           <Button
             size="sm"
@@ -549,7 +552,7 @@ function ToolFallbackApproval({
             className={pressable}
             onClick={() => setConfirmingId(null)}
             disabled={locked}>
-            Back
+            {t('common.back', 'Back')}
           </Button>
         </div>
       </div>
@@ -585,7 +588,7 @@ function ToolFallbackApproval({
               className={pressable}
               onClick={() => respond(false)}
               disabled={locked}>
-              Deny
+              {t('chat.approval.deny', 'Deny')}
             </Button>
           )}
           {!acceptsText && dismissButton}
@@ -622,7 +625,7 @@ function ToolFallbackApproval({
       {promptText}
       <div className="flex items-center gap-2">
         <Button size="sm" className={pressable} onClick={() => respond(true)} disabled={locked}>
-          Allow
+          {t('workflows.phase.toolScope.allow', 'Allow')}
         </Button>
         <Button
           size="sm"
@@ -630,7 +633,7 @@ function ToolFallbackApproval({
           className={pressable}
           onClick={() => respond(false)}
           disabled={locked}>
-          Deny
+          {t('chat.approval.deny', 'Deny')}
         </Button>
       </div>
       {answerField}
@@ -707,11 +710,6 @@ export {
   formatUnknownValue,
   offersInterruptAction,
   ToolFallback,
-  ToolFallbackRoot,
-  ToolFallbackTrigger,
-  ToolFallbackContent,
-  ToolFallbackArgs,
-  ToolFallbackResult,
   ToolFallbackError,
   ToolFallbackApproval,
 };

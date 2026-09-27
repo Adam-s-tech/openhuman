@@ -14,15 +14,21 @@ vi.mock('../../../dashboard/CostDashboardPanel', () => ({
   ),
 }));
 
-vi.mock('../AIPanel', () => ({
-  BackgroundLoopControls: ({ view, hideHeader }: { view?: string; hideHeader?: boolean }) => (
+// UsagePanel imports the loop-map component directly from its extracted
+// module (`./ai/BackgroundLoopControls`), not through the `AIPanel` re-export
+// — stub that module so this suite stays focused on the hash <-> tab mapping
+// UsagePanel owns, rather than mounting the real component (and its
+// RPC-backed data fetches).
+vi.mock('../ai/BackgroundLoopControls', () => {
+  const Stub = ({ view, hideHeader }: { view?: string; hideHeader?: boolean }) => (
     <div
       data-testid="stub-background-loops"
       data-view={view}
       data-hide-header={String(hideHeader ?? false)}
     />
-  ),
-}));
+  );
+  return { BackgroundLoopControls: Stub, default: Stub };
+});
 
 vi.mock('../TokenUsagePanel', () => ({
   default: ({ embedded }: { embedded?: boolean }) => (

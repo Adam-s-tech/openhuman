@@ -26,22 +26,19 @@ import {
   type WorkflowRunStatus,
 } from '../../services/api/workflowRunsApi';
 import { AccordionContent, AccordionItem, AccordionRoot, AccordionTrigger } from '../ui/Accordion';
+import Badge, { type BadgeVariant } from '../ui/Badge';
 import Button from '../ui/Button';
 
 const log = debug('intelligence:workflow-detail');
 
-/** Accent classes per run status (semantic palette from tailwind.config.js). */
-const RUN_STATUS_ACCENT: Record<WorkflowRunStatus, string> = {
-  pending: 'border-line bg-surface-muted text-content-secondary',
-  running:
-    'border-primary-200 bg-primary-50 text-primary-700 dark:border-primary-500/30 dark:bg-primary-500/10 dark:text-primary-300',
-  completed:
-    'border-sage-200 bg-sage-50 text-sage-700 dark:border-sage-500/30 dark:bg-sage-500/10 dark:text-sage-300',
-  failed:
-    'border-coral-200 bg-coral-50 text-coral-700 dark:border-coral-500/30 dark:bg-coral-500/10 dark:text-coral-300',
-  cancelled: 'border-line bg-surface-muted text-content-secondary',
-  interrupted:
-    'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300',
+/** Badge variant per run status. */
+const RUN_STATUS_VARIANT: Record<WorkflowRunStatus, BadgeVariant> = {
+  pending: 'neutral',
+  running: 'primary',
+  completed: 'success',
+  failed: 'danger',
+  cancelled: 'neutral',
+  interrupted: 'warning',
 };
 
 const RUN_STATUS_KEY: Record<WorkflowRunStatus, string> = {
@@ -60,12 +57,12 @@ const PHASE_STATUS_KEY: Record<WorkflowPhaseStatus, string> = {
   failed: 'orchestration.phaseStatus.failed',
 };
 
-/** Glyph per phase status — color comes from the surrounding classes. */
-const PHASE_STATUS_DOT: Record<WorkflowPhaseStatus, string> = {
-  pending: 'bg-surface-strong',
-  running: 'bg-primary-500 animate-pulse',
-  completed: 'bg-sage-500',
-  failed: 'bg-coral-500',
+/** Badge variant per phase status. */
+const PHASE_STATUS_VARIANT: Record<WorkflowPhaseStatus, BadgeVariant> = {
+  pending: 'neutral',
+  running: 'primary',
+  completed: 'success',
+  failed: 'danger',
 };
 
 const TERMINAL_STATUSES: WorkflowRunStatus[] = ['completed', 'failed', 'cancelled', 'interrupted'];
@@ -108,14 +105,15 @@ const WorkflowRunDetail: React.FC<Props> = ({
       {/* Header: status + controls */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <span
+          <Badge
+            variant={RUN_STATUS_VARIANT[run.status]}
             data-testid="workflow-run-status"
-            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium ${RUN_STATUS_ACCENT[run.status]}`}>
+            dot={run.status === 'running' ? false : undefined}>
             {run.status === 'running' && (
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary-500" />
             )}
             {t(RUN_STATUS_KEY[run.status])}
-          </span>
+          </Badge>
           <span className="font-mono text-[11px] text-content-faint">{run.id}</span>
         </div>
 
@@ -178,17 +176,14 @@ const WorkflowRunDetail: React.FC<Props> = ({
                     showChevron={false}
                     className="h-auto rounded-none px-3 py-2 font-normal hover:bg-transparent">
                     <span className="flex min-w-0 items-center gap-2">
-                      <span
-                        className={`h-2 w-2 flex-none rounded-full ${PHASE_STATUS_DOT[state.status]}`}
-                      />
                       <span className="truncate text-sm font-medium text-content">
                         {phaseDef?.name ?? name}
                       </span>
-                      <span
-                        data-testid={`workflow-phase-status-${name}`}
-                        className="rounded-md border border-line px-1.5 py-0.5 text-[10px] font-medium text-content-muted">
+                      <Badge
+                        variant={PHASE_STATUS_VARIANT[state.status]}
+                        data-testid={`workflow-phase-status-${name}`}>
                         {t(PHASE_STATUS_KEY[state.status])}
-                      </span>
+                      </Badge>
                     </span>
                     <span className="flex flex-none items-center gap-2 text-[11px] text-content-faint">
                       {hasOutputs && (

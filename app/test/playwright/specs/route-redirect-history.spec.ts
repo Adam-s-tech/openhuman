@@ -42,8 +42,8 @@ const REDIRECTS: ReadonlyArray<readonly [string, string]> = [
   // because it never mounts the nested settings routes.
   ['/webhooks', '/connections'],
   ['/home', '/chat'],
-  ['/activity', '/settings/notifications'],
-  ['/intelligence', '/settings/notifications'],
+  ['/activity', '/settings/account'],
+  ['/intelligence', '/settings/account'],
   // The retired unified-chat aliases. `/accounts` predates the /chat merge;
   // `/feedback` moved into Settings.
   ['/accounts', '/chat'],

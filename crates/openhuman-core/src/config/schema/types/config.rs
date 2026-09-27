@@ -175,12 +175,6 @@ pub struct Config {
     #[serde(default)]
     pub scheduler_gate: SchedulerGateConfig,
 
-    /// User-facing activity-level knob (0–4) controlling how proactive
-    /// background AI work is. Maps into scheduler_gate mode, periodic sync
-    /// cadence, heartbeat/subconscious toggles. See issue #3117.
-    #[serde(default)]
-    pub agent_activity_level: AgentActivityLevel,
-
     /// Global memory-sync cadence applied to **all** opted-in memory
     /// sources, presented to the user like a backup schedule ("Sync
     /// every 4h / 12h / 24h", plus "Manual only"). See issue #3302.

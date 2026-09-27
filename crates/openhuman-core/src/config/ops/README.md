@@ -13,7 +13,7 @@ fn, which returns `RpcOutcome<T>`.
 
 | File | Responsibility |
 | --- | --- |
-| `agent.rs` | Autonomy, agent, agent-paths, activity-level, and memory-sync settings. |
+| `agent.rs` | Autonomy, agent, agent-paths, and memory-sync settings. |
 | `loader.rs` | Config loading/snapshotting and runtime flags; split into submodules `loader/load.rs`, `loader/paths.rs`, `loader/reset_local_data.rs`, `loader/runtime_flags.rs`, `loader/snapshot.rs`. |
 | `model.rs` | AI-provider, memory, runtime, local-AI, and Composio-trigger settings. |
 | `privacy.rs` | Privacy Mode (`[privacy]`) get/set. |
@@ -33,8 +33,7 @@ dictation and voice-server mutators exist only in `load_and_apply_*` form.
 - `agent.rs`: `apply_autonomy_settings` / `get_autonomy_settings`,
   `add_auto_approve_tool`, `apply_agent_settings` / `get_agent_settings`,
   `apply_agent_paths_settings` / `get_agent_paths`, `ensure_usable_cwd`,
-  `expand_tilde`, `redact_home`, `apply_activity_level_settings`,
-  `apply_memory_sync_settings`.
+  `expand_tilde`, `redact_home`, `apply_memory_sync_settings`.
 - `loader.rs`: `load_config_with_timeout`,
   `load_config_for_workspace_with_timeout`, `get_config_snapshot`,
   `client_config_json`, `reload_config_from_paths`, `reset_local_data`,

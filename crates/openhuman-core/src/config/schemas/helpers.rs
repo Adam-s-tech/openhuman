@@ -256,12 +256,6 @@ pub(super) struct AgentPathsUpdate {
 }
 
 #[derive(Debug, Deserialize)]
-pub(super) struct ActivityLevelSettingsUpdate {
-    /// "off" | "minimal" | "moderate" | "active" | "always_on" (or "0"-"4").
-    pub(super) level: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
 pub(super) struct MemorySyncSettingsUpdate {
     pub(super) sync_interval_secs: Option<u64>,
 }
