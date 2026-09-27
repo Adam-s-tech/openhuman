@@ -141,6 +141,20 @@ async fn list_servers_strips_endpoint_query_string() {
     assert!(rendered.contains("https://example.com/mcp"), "{rendered}");
 }
 
+#[tokio::test]
+async fn list_servers_strips_endpoint_userinfo() {
+    let tool = McpListServersTool::new(registry_with(
+        "https://svc-user:private12345@example.com/mcp?token=othersecret#fragment",
+        crate::config::McpAuthConfig::None,
+    ));
+    let result = tool.execute(json!({})).await.expect("execute");
+    let rendered = full_output(&result);
+    assert!(rendered.contains("https://example.com/mcp"), "{rendered}");
+    for secret in ["svc-user", "private12345", "othersecret", "fragment"] {
+        assert!(!rendered.contains(secret), "leaked {secret}: {rendered}");
+    }
+}
+
 struct EchoingServer {
     echo: String,
     fail: Option<&'static str>,

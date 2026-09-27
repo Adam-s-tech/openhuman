@@ -452,10 +452,18 @@ fn auth_kind(auth: &McpDefinitionAuth) -> &'static str {
     }
 }
 
-fn endpoint_without_query(endpoint: &str) -> &str {
+fn endpoint_without_query(endpoint: &str) -> String {
+    if let Ok(mut url) = url::Url::parse(endpoint) {
+        let _ = url.set_username("");
+        let _ = url.set_password(None);
+        url.set_query(None);
+        url.set_fragment(None);
+        return url.to_string();
+    }
     endpoint
         .find(['?', '#'])
         .map_or(endpoint, |cut| &endpoint[..cut])
+        .to_string()
 }
 
 fn required_string_arg(args: &Value, key: &str) -> anyhow::Result<String> {
