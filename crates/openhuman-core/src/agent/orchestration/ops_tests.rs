@@ -532,18 +532,14 @@ async fn e2e_abort_all_cancels_an_in_flight_child_for_a_concurrent_waiter() {
         observed_running.is_ok(),
         "child never reached Running before the readiness timeout"
     );
-    futures::future::poll_fn(|cx| {
-        match waiter.as_mut().poll(cx) {
-            std::task::Poll::Pending => std::task::Poll::Ready(()),
-            std::task::Poll::Ready(_) => panic!("waiter completed before cancellation"),
-        }
+    futures::future::poll_fn(|cx| match waiter.as_mut().poll(cx) {
+        std::task::Poll::Pending => std::task::Poll::Ready(()),
+        std::task::Poll::Ready(_) => panic!("waiter completed before cancellation"),
     })
     .await;
     session.abort_all().await;
 
-    let response = waiter
-        .await
-        .expect("wait resolves after abort_all");
+    let response = waiter.await.expect("wait resolves after abort_all");
     assert!(response.completed);
     assert_eq!(response.agents.len(), 1);
     assert_eq!(
