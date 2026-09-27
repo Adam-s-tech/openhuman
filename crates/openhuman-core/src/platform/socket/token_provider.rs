@@ -76,11 +76,15 @@ pub(super) fn static_token_provider(token: String) -> TokenProvider {
 /// refreshed or re-stored since the previous attempt.
 pub(crate) fn token_provider_from_config(config: Arc<crate::config::Config>) -> TokenProvider {
     Arc::new(move || {
-        crate::security::credentials::session_support::backend_bearer_secret(&config)
+        let token = crate::security::credentials::session_support::backend_bearer_secret(&config)
             .map_err(|e| format!("failed to read session token: {e}"))?
             .ok_or_else(|| {
                 "no session token stored — user must log in first or set an API key".to_string()
-            })
+            })?;
+        if crate::security::credentials::session_support::is_local_session_token(&token) {
+            return Err("offline local session cannot connect to hosted socket".to_string());
+        }
+        Ok(token)
     })
 }
 
