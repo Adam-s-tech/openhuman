@@ -3,7 +3,7 @@
 //! Provides a shutdown signal that listens for SIGINT (Ctrl-C) **and** SIGTERM
 //! (on Unix), then runs registered cleanup hooks before the process exits.
 //! Domain-specific cleanup (autocomplete, voice, etc.) registers itself here
-//! so shutdown plumbing stays outside the JSON-RPC implementation modules.
+//! so shutdown plumbing stays outside the JSON-RPC modules.
 
 use std::future::Future;
 use std::pin::Pin;
