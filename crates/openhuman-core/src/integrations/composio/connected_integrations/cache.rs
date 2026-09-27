@@ -52,15 +52,16 @@ pub(crate) fn composio_cache_test_lock() -> std::sync::MutexGuard<'static, ()> {
 /// cache key and logs while preventing an old identity's cache hit during a
 /// credential rotation, even before invalidation completes.
 pub(crate) fn cache_key(config: &Config) -> String {
+    let backend_url = crate::backend::base_url(&config.api_url).unwrap_or_default();
+    cache_key_with_backend_url(config, &backend_url)
+}
+
+fn cache_key_with_backend_url(config: &Config, backend_url: &str) -> String {
     let mut digest = Sha256::new();
     digest.update(b"openhuman-integrations-cache-v2\0");
     digest.update(config.config_path.to_string_lossy().as_bytes());
     digest.update(b"\0");
-    digest.update(
-        crate::backend::base_url(&config.api_url)
-            .unwrap_or_default()
-            .as_bytes(),
-    );
+    digest.update(backend_url.as_bytes());
     digest.update(b"\0");
     match crate::security::credentials::session_support::resolve_backend_credential(config) {
         Ok(credential) => {
