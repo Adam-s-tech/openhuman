@@ -83,9 +83,7 @@ const SearchRoleRow = ({ role, settings, saving, persist, t }: RowProps) => {
       <p
         data-testid={`${testId}-serving`}
         className={
-          serving
-            ? 'text-xs text-content-secondary'
-            : 'text-xs text-amber-700 dark:text-amber-300'
+          serving ? 'text-xs text-content-secondary' : 'text-xs text-amber-700 dark:text-amber-300'
         }>
         {serving
           ? withProvider(t('settings.search.roleServedBy'), serving.label)

@@ -78,10 +78,7 @@ const SearchPanelProviderCard = ({ provider, saving, onUpdate, t }: Props) => {
   };
 
   return (
-    <div
-      data-testid={testId}
-      data-status={provider.status}
-      className="space-y-3 px-4 py-3">
+    <div data-testid={testId} data-status={provider.status} className="space-y-3 px-4 py-3">
       <div className="flex items-center gap-3">
         <label htmlFor={switchId} className="flex min-w-0 flex-1 items-center gap-2">
           <span className="truncate text-sm font-medium text-content">{provider.label}</span>
