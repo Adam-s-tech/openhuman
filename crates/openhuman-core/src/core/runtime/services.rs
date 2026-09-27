@@ -457,7 +457,8 @@ pub fn spawn_socket_auto_connect(
                         return;
                     }
                 };
-            if crate::security::credentials::session_support::is_local_session_token(&initial_token) {
+            if crate::security::credentials::session_support::is_local_session_token(&initial_token)
+            {
                 log::debug!("[socket] Offline local session — skipping auto-connect");
                 return;
             }

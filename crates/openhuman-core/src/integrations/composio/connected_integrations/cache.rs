@@ -56,7 +56,11 @@ pub(crate) fn cache_key(config: &Config) -> String {
     digest.update(b"openhuman-integrations-cache-v2\0");
     digest.update(config.config_path.to_string_lossy().as_bytes());
     digest.update(b"\0");
-    digest.update(crate::backend::base_url(&config.api_url).unwrap_or_default().as_bytes());
+    digest.update(
+        crate::backend::base_url(&config.api_url)
+            .unwrap_or_default()
+            .as_bytes(),
+    );
     digest.update(b"\0");
     match crate::security::credentials::session_support::resolve_backend_credential(config) {
         Ok(credential) => {
