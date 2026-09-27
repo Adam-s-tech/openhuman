@@ -30,6 +30,8 @@ pub fn store_session(config: &Config, token: &str) {
 
 /// A signed-in config against `api_url` (session token `jwt.test`).
 pub fn signed_in(tmp: &TempDir, api_url: &str) -> Config {
+    crate::install(crate::InstallOptions::default().hosted_controllers(false))
+        .expect("install SDK backend transport for hosted mock");
     let config = config(tmp, api_url);
     store_session(&config, "jwt.test");
     config
