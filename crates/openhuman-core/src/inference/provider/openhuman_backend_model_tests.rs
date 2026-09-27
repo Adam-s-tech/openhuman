@@ -500,6 +500,14 @@ fn resolve_bearer_sends_a_stored_api_key_to_managed_https() {
 }
 
 #[test]
+fn resolve_bearer_rejects_foreign_https_for_api_key() {
+    let tmp = tempfile::TempDir::new().unwrap();
+    let backend = backend_with_api_key("https://api.example.test", tmp.path());
+    let error = backend.resolve_bearer().unwrap_err();
+    assert!(error.to_string().contains("unmanaged or insecure"));
+}
+
+#[test]
 fn resolve_bearer_sends_a_stored_api_key_over_plain_loopback() {
     // Plain HTTP to loopback stays allowed — the same local-testing
     // allowance `openhuman_embed::turn::is_safe_endpoint_for_bearer` makes.
