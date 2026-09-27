@@ -10,7 +10,9 @@ fn credential_socket_endpoint_requires_tls_or_loopback() {
         "ws://api.tinyhumans.ai/socket.io/"
     ));
     assert!(!is_safe_socket_endpoint("ws://example.com/socket.io/"));
-    assert!(!is_safe_socket_endpoint("ws://127.attacker.example/socket.io/"));
+    assert!(!is_safe_socket_endpoint(
+        "ws://127.attacker.example/socket.io/"
+    ));
 }
 
 #[test]

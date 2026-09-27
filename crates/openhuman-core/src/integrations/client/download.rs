@@ -44,10 +44,8 @@ fn parse_content_disposition_filename(value: &str) -> Option<String> {
 impl IntegrationClient {
     /// Authenticated GET returning the raw response body plus content-type and
     /// any `Content-Disposition` filename. Used for backend download routes
-    /// that `302`-redirect to a presigned S3 URL: reqwest follows redirects by
-    /// default and its redirect policy strips sensitive headers (including
-    /// `Authorization`) on cross-host hops, so the bearer token never leaks to
-    /// S3 while the presigned URL still authorizes the fetch.
+    /// that redirect to a presigned S3 URL. The storage hop uses a separate
+    /// client with no backend credential headers.
     pub async fn get_bytes(
         &self,
         path: &str,
@@ -68,13 +66,32 @@ impl IntegrationClient {
         let url = crate::util::url::join_url(&self.backend_url, path);
         tracing::debug!("[integrations] GET(bytes) {}", url);
 
-        let resp = self
+        let mut resp = self
             .download_client
             .get(&url)
             .headers(self.auth_headers()?)
             .send()
             .await
             .map_err(|error| Self::report_transport_error(error, "get_bytes", path, &url))?;
+        if resp.status().is_redirection() {
+            let location = resp
+                .headers()
+                .get(reqwest::header::LOCATION)
+                .ok_or_else(|| anyhow::anyhow!("download redirect missing Location"))?
+                .to_str()?;
+            let redirect_url = resp.url().join(location)?;
+            anyhow::ensure!(
+                crate::inference::provider::openhuman_backend_model::is_safe_endpoint_for_managed_bearer(redirect_url.as_str()),
+                "download redirect requires HTTPS or a loopback HTTP endpoint"
+            );
+            // The second request has no auth headers, including x-api-key.
+            resp = self
+                .presigned_client
+                .get(redirect_url)
+                .send()
+                .await
+                .map_err(|error| Self::report_transport_error(error, "get_bytes", path, &url))?;
+        }
         let status = resp.status();
         if !status.is_success() {
             let body_text = resp.text().await.unwrap_or_default();

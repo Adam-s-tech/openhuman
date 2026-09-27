@@ -80,6 +80,44 @@ async fn binary_download_sends_the_api_key_as_x_api_key() {
 }
 
 #[tokio::test]
+async fn presigned_download_redirect_does_not_forward_api_key() {
+    let seen: Seen = Arc::default();
+    let storage = Router::new().route(
+        "/blob",
+        get({
+            let seen = Arc::clone(&seen);
+            move |headers: HeaderMap| async move {
+                record(&seen, &headers);
+                "stored bytes"
+            }
+        }),
+    );
+    let storage_url = start_mock_backend(storage).await;
+    let location = format!("{storage_url}/blob");
+    let backend = Router::new().route(
+        "/agent-integrations/file-storage/files/f1/download",
+        get(move || {
+            let location = location.clone();
+            async move {
+                (
+                    StatusCode::FOUND,
+                    [(axum::http::header::LOCATION, location)],
+                )
+            }
+        }),
+    );
+    let client = api_key_client(start_mock_backend(backend).await);
+    let (bytes, _, _) = client
+        .get_bytes("/agent-integrations/file-storage/files/f1/download")
+        .await
+        .unwrap();
+    assert_eq!(&bytes[..], b"stored bytes");
+    let seen = seen.lock();
+    assert_eq!(seen.len(), 1);
+    assert_eq!(seen[0], (None, None));
+}
+
+#[tokio::test]
 async fn api_key_401_is_api_key_rejected_not_session_expired() {
     use crate::core::observability::is_session_expired_message;
 

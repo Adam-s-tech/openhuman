@@ -54,6 +54,8 @@ pub struct IntegrationClient {
     // Content-Type and Content-Disposition, and the presigned-redirect hop
     // must not carry attribution headers (see `new_inner`).
     pub(super) download_client: reqwest::Client,
+    /// Follows storage redirects without inheriting any backend credential.
+    pub(super) presigned_client: reqwest::Client,
     pub(super) pricing: tokio::sync::OnceCell<IntegrationPricing>,
 }
 
@@ -103,12 +105,15 @@ impl IntegrationClient {
     pub(super) fn validate_credential_endpoint(&self) -> anyhow::Result<()> {
         let endpoint = &self.backend_url;
         if self.uses_api_key()
-            && !crate::inference::provider::openhuman_backend_model::is_managed_endpoint_for_api_key(endpoint)
+            && !crate::inference::provider::openhuman_backend_model::is_managed_endpoint_for_api_key(
+                endpoint,
+            )
         {
             anyhow::bail!("TinyHumans API key requires the managed backend or a loopback endpoint");
         }
-        if !crate::inference::provider::openhuman_backend_model::is_safe_endpoint_for_managed_bearer(endpoint)
-        {
+        if !crate::inference::provider::openhuman_backend_model::is_safe_endpoint_for_managed_bearer(
+            endpoint,
+        ) {
             anyhow::bail!("backend credential requires HTTPS or a loopback HTTP endpoint");
         }
         Ok(())
@@ -138,25 +143,24 @@ impl IntegrationClient {
         // client is built here.
         //
         // `download_client` deliberately does NOT carry the product identity.
-        // Its one caller (`get_bytes`) fetches
-        // `/agent-integrations/file-storage/files/{id}/download`, which answers
-        // a 302 to a presigned S3 URL. reqwest follows redirects by default and
-        // strips only *sensitive* headers (Authorization, Cookie, …) when the
-        // host changes — a custom header like `x-sdk-name` survives the hop, so
-        // tagging this transport would disclose the product identity to the
-        // storage provider. Attaching it per-request would not help: redirected
-        // requests carry the original request headers too.
+        // Its one caller (`get_bytes`) fetches a route that can redirect to
+        // presigned storage. The first client stops at the redirect; the second
+        // follows it without x-api-key or any other backend header.
         //
-        // The lost attribution is deliberate and cheap: the header cannot be
-        // scoped to the first hop without hand-rolling redirect following, and
-        // any session that downloads a file has already made SDK-path calls that
-        // are tagged.
+        // These raw clients do not add product attribution to storage requests.
         let download_client = crate::util::tls::tls_client_builder()
             .http1_only()
+            .redirect(reqwest::redirect::Policy::none())
             .timeout(Duration::from_secs(15 * 60))
             .connect_timeout(Duration::from_secs(15))
             .build()
             .expect("failed to build integration download HTTP client");
+        let presigned_client = crate::util::tls::tls_client_builder()
+            .http1_only()
+            .timeout(Duration::from_secs(15 * 60))
+            .connect_timeout(Duration::from_secs(15))
+            .build()
+            .expect("failed to build presigned download HTTP client");
 
         let auth_token = credential.secret().to_owned();
         Self {
@@ -165,6 +169,7 @@ impl IntegrationClient {
             credential,
             budget_config,
             download_client,
+            presigned_client,
             pricing: tokio::sync::OnceCell::new(),
         }
     }
