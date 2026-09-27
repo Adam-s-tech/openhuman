@@ -6,7 +6,8 @@
 //! # Credential first, no network
 //!
 //! [`HostedClient::from_config`] asks the core for the credential
-//! ([`resolve_backend_credential`]) before anything touches the network. The
+//! ([`resolve_backend_credential`]) and requires an installed backend
+//! transport before anything touches the network. The
 //! offline local session, a missing token and a locally-expired token all come
 //! back as the core's own error string, which already carries the right
 //! sentinel (`BACKEND_UNAVAILABLE:` / `SESSION_EXPIRED:`), so a user without a
@@ -60,9 +61,8 @@ pub struct HostedClient {
 impl HostedClient {
     /// Resolve the credential for `config` and build the client.
     ///
-    /// Errors without any network I/O when there is no usable credential; the
-    /// error is the core's own string, returned unchanged (it already carries
-    /// its sentinel).
+    /// Errors without network I/O when there is no usable credential or
+    /// installed backend transport, with the appropriate core sentinel.
     pub fn from_config(config: &Config) -> Result<Self, String> {
         let credential = resolve_backend_credential(config).inspect_err(|err| {
             log::debug!("{LOG_PREFIX} no usable backend credential; skipping request: {err}");
