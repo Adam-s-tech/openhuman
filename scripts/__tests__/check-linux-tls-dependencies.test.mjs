@@ -133,110 +133,149 @@ for (const interpreter of interpreters) {
           encoding: "utf8",
         }).stdout.trim();
 
-  test(`[${interpreter} ${version}] a tree without reqwest 0.13 passes`, SKIP, () => {
-    // The regression: under bash 3.2 this run used to stop at `mapfile` with
-    // exit 127 and never reach the verdict. With no 0.13 versions the array
-    // is also empty, which `set -u` must tolerate.
-    const tree = makeTree({});
-    const result = run(interpreter, tree);
-    assert.equal(result.status, 0, result.stderr);
-    assert.match(
-      result.stdout,
-      /dependency policy passed for both Cargo worlds/,
-    );
-    assert.doesNotMatch(result.stderr, /mapfile/);
-    assert.doesNotMatch(tree.calls(), /--invert reqwest@/);
-  });
+  test(
+    `[${interpreter} ${version}] a tree without reqwest 0.13 passes`,
+    SKIP,
+    () => {
+      // The regression: under bash 3.2 this run used to stop at `mapfile` with
+      // exit 127 and never reach the verdict. With no 0.13 versions the array
+      // is also empty, which `set -u` must tolerate.
+      const tree = makeTree({});
+      const result = run(interpreter, tree);
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(
+        result.stdout,
+        /dependency policy passed for both Cargo worlds/,
+      );
+      assert.doesNotMatch(result.stderr, /mapfile/);
+      assert.doesNotMatch(tree.calls(), /--invert reqwest@/);
+    },
+  );
 
-  test(`[${interpreter} ${version}] every reqwest 0.13 version is checked for a Sentry owner`, SKIP, () => {
-    const tree = makeTree({
-      tauri: [
-        "reqwest v0.13.2",
-        "reqwest v0.13.2 (*)",
-        "reqwest v0.13.5",
-        "tauri v2.0.0",
-      ].join("\n"),
-      owners: {
-        "reqwest@0.13.2": "reqwest v0.13.2\ntauri v2.0.0",
-        "reqwest@0.13.5": "reqwest v0.13.5\ntauri-plugin-updater v2.0.0",
-      },
-    });
-    const result = run(interpreter, tree);
-    assert.equal(result.status, 0, result.stderr);
-    assert.deepEqual(tree.calls().trim().split("\n"), [
-      "cargo tree --locked --manifest-path Cargo.toml --target x86_64-unknown-linux-gnu --prefix none",
-      "cargo tree --locked --manifest-path crates/openhuman-app/Cargo.toml --target x86_64-unknown-linux-gnu --prefix none",
-      "cargo tree --locked --manifest-path crates/openhuman-app/Cargo.toml --target x86_64-unknown-linux-gnu --prefix none --invert reqwest@0.13.2",
-      "cargo tree --locked --manifest-path crates/openhuman-app/Cargo.toml --target x86_64-unknown-linux-gnu --prefix none --invert reqwest@0.13.5",
-    ]);
-  });
+  test(
+    `[${interpreter} ${version}] every reqwest 0.13 version is checked for a Sentry owner`,
+    SKIP,
+    () => {
+      const tree = makeTree({
+        tauri: [
+          "reqwest v0.13.2",
+          "reqwest v0.13.2 (*)",
+          "reqwest v0.13.5",
+          "tauri v2.0.0",
+        ].join("\n"),
+        owners: {
+          "reqwest@0.13.2": "reqwest v0.13.2\ntauri v2.0.0",
+          "reqwest@0.13.5": "reqwest v0.13.5\ntauri-plugin-updater v2.0.0",
+        },
+      });
+      const result = run(interpreter, tree);
+      assert.equal(result.status, 0, result.stderr);
+      assert.deepEqual(tree.calls().trim().split("\n"), [
+        "cargo tree --locked --manifest-path Cargo.toml --target x86_64-unknown-linux-gnu --prefix none",
+        "cargo tree --locked --manifest-path crates/openhuman-app/Cargo.toml --target x86_64-unknown-linux-gnu --prefix none",
+        "cargo tree --locked --manifest-path crates/openhuman-app/Cargo.toml --target x86_64-unknown-linux-gnu --prefix none --invert reqwest@0.13.2",
+        "cargo tree --locked --manifest-path crates/openhuman-app/Cargo.toml --target x86_64-unknown-linux-gnu --prefix none --invert reqwest@0.13.5",
+      ]);
+    },
+  );
 
-  test(`[${interpreter} ${version}] a Sentry-owned reqwest 0.13 fails the policy`, SKIP, () => {
-    // `--prefix none` makes the real inverted tree emit dependents at column 0.
-    const tree = makeTree({
-      tauri: "reqwest v0.13.2\nsentry v0.36.0",
-      owners: { "reqwest@0.13.2": "reqwest v0.13.2\nsentry v0.36.0" },
-    });
-    const result = run(interpreter, tree);
-    assert.equal(result.status, 1);
-    assert.match(result.stderr, /Sentry owns reqwest 0\.13\.2 in tauri/);
-    assert.match(tree.calls(), /--prefix none --invert reqwest@0\.13\.2/);
-  });
+  test(
+    `[${interpreter} ${version}] a Sentry-owned reqwest 0.13 fails the policy`,
+    SKIP,
+    () => {
+      // `--prefix none` makes the real inverted tree emit dependents at column 0.
+      const tree = makeTree({
+        tauri: "reqwest v0.13.2\nsentry v0.36.0",
+        owners: { "reqwest@0.13.2": "reqwest v0.13.2\nsentry v0.36.0" },
+      });
+      const result = run(interpreter, tree);
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /Sentry owns reqwest 0\.13\.2 in tauri/);
+      assert.match(tree.calls(), /--prefix none --invert reqwest@0\.13\.2/);
+    },
+  );
 
-  test(`[${interpreter} ${version}] an aws-lc dependency fails the policy`, SKIP, () => {
-    const tree = makeTree({ core: "openhuman v0.1.0\naws-lc-sys v0.21.0" });
-    const result = run(interpreter, tree);
-    assert.equal(result.status, 1);
-    assert.match(result.stderr, /aws-lc dependencies found in core/);
-  });
+  test(
+    `[${interpreter} ${version}] an aws-lc dependency fails the policy`,
+    SKIP,
+    () => {
+      const tree = makeTree({ core: "openhuman v0.1.0\naws-lc-sys v0.21.0" });
+      const result = run(interpreter, tree);
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /aws-lc dependencies found in core/);
+    },
+  );
 
-  test(`[${interpreter} ${version}] a failed dependency tree is a check error`, SKIP, () => {
-    const tree = makeTree({ failCore: true });
-    const result = run(interpreter, tree);
-    assert.equal(result.status, 2);
-    assert.match(result.stderr, /could not check core dependency tree/);
-  });
+  test(
+    `[${interpreter} ${version}] a failed dependency tree is a check error`,
+    SKIP,
+    () => {
+      const tree = makeTree({ failCore: true });
+      const result = run(interpreter, tree);
+      assert.equal(result.status, 2);
+      assert.match(result.stderr, /could not check core dependency tree/);
+    },
+  );
 
-  test(`[${interpreter} ${version}] a failed reqwest owner query is a check error`, SKIP, () => {
-    const tree = makeTree({
-      tauri: "reqwest v0.13.2",
-      failInvert: "reqwest@0.13.2",
-    });
-    const result = run(interpreter, tree);
-    assert.equal(result.status, 2);
-    assert.match(result.stderr, /could not check reqwest 0\.13\.2 owners in tauri/);
-  });
+  test(
+    `[${interpreter} ${version}] a failed reqwest owner query is a check error`,
+    SKIP,
+    () => {
+      const tree = makeTree({
+        tauri: "reqwest v0.13.2",
+        failInvert: "reqwest@0.13.2",
+      });
+      const result = run(interpreter, tree);
+      assert.equal(result.status, 2);
+      assert.match(
+        result.stderr,
+        /could not check reqwest 0\.13\.2 owners in tauri/,
+      );
+    },
+  );
 
-  test(`[${interpreter} ${version}] a failed TLS owner query is a check error`, SKIP, () => {
-    const tree = makeTree({
-      tauri: "native-tls v0.2.14",
-      failInvert: "native-tls",
-    });
-    const result = run(interpreter, tree);
-    assert.equal(result.status, 2);
-    assert.match(result.stderr, /could not check native-tls owners in tauri/);
-  });
+  test(
+    `[${interpreter} ${version}] a failed TLS owner query is a check error`,
+    SKIP,
+    () => {
+      const tree = makeTree({
+        tauri: "native-tls v0.2.14",
+        failInvert: "native-tls",
+      });
+      const result = run(interpreter, tree);
+      assert.equal(result.status, 2);
+      assert.match(result.stderr, /could not check native-tls owners in tauri/);
+    },
+  );
 
-  test(`[${interpreter} ${version}] a Sentry-owned TLS package fails the policy`, SKIP, () => {
-    const tree = makeTree({
-      tauri: "native-tls v0.2.14",
-      owners: { "native-tls": SENTRY_OWNER_TREE },
-    });
-    assert.match(SENTRY_OWNER_TREE, /^sentry v0\.47\.0$/m);
-    const result = run(interpreter, tree);
-    assert.equal(result.status, 1);
-    assert.match(result.stderr, /Sentry owns native-tls in tauri/);
-    assert.match(tree.calls(), /--invert native-tls/);
-  });
+  test(
+    `[${interpreter} ${version}] a Sentry-owned TLS package fails the policy`,
+    SKIP,
+    () => {
+      const tree = makeTree({
+        tauri: "native-tls v0.2.14",
+        owners: { "native-tls": SENTRY_OWNER_TREE },
+      });
+      assert.match(SENTRY_OWNER_TREE, /^sentry v0\.47\.0$/m);
+      const result = run(interpreter, tree);
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /Sentry owns native-tls in tauri/);
+      assert.match(tree.calls(), /--invert native-tls/);
+    },
+  );
 
-  test(`[${interpreter} ${version}] an early TLS match in a large tree still checks owners`, SKIP, () => {
-    const tree = makeTree({
-      tauri: `native-tls v0.2.14\n${"other-package v1.0.0\n".repeat(20000)}`,
-      owners: { "native-tls": SENTRY_OWNER_TREE },
-    });
-    const result = run(interpreter, tree);
-    assert.equal(result.status, 1);
-    assert.match(result.stderr, /Sentry owns native-tls in tauri/);
-    assert.match(tree.calls(), /--invert native-tls/);
-  });
+  test(
+    `[${interpreter} ${version}] an early TLS match in a large tree still checks owners`,
+    SKIP,
+    () => {
+      const tree = makeTree({
+        tauri: `native-tls v0.2.14\n${"other-package v1.0.0\n".repeat(20000)}`,
+        owners: { "native-tls": SENTRY_OWNER_TREE },
+      });
+      const result = run(interpreter, tree);
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /Sentry owns native-tls in tauri/);
+      assert.match(tree.calls(), /--invert native-tls/);
+    },
+  );
 }
