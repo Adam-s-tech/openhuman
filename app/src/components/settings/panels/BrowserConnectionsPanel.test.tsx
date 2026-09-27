@@ -55,9 +55,7 @@ describe('BrowserConnectionsPanel', () => {
         expect.objectContaining({ enabled: true, profile_mode: 'fresh' })
       )
     );
-    await waitFor(() =>
-      expect(screen.getByText('connections.browser.testModule')).toBeEnabled()
-    );
+    await waitFor(() => expect(screen.getByText('connections.browser.testModule')).toBeEnabled());
     mocks.rpc.mockResolvedValueOnce({ result: { module: { id: 'tinybrowser', state: 'ready' } } });
     fireEvent.click(screen.getByText('connections.browser.testModule'));
     await waitFor(() =>
