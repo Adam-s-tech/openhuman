@@ -197,7 +197,6 @@ pub(super) async fn build_channel_client() -> Option<(
             return None;
         }
     };
-    let api_url = crate::backend::require_base_url(&config.api_url)?;
     let jwt =
         match crate::security::credentials::session_support::resolve_backend_credential(&config) {
             Ok(credential) => credential,
@@ -209,7 +208,7 @@ pub(super) async fn build_channel_client() -> Option<(
                 return None;
             }
         };
-    match crate::backend::BackendClient::new(&api_url) {
+    match crate::backend::BackendClient::from_config(&config) {
         Ok(c) => Some((c, jwt)),
         Err(e) => {
             tracing::error!("[channel-inbound] failed to create API client: {}", e);
@@ -228,7 +227,6 @@ pub(super) async fn send_channel_reply(channel: &str, text: &str) {
         }
     };
 
-    let api_url = crate::backend::require_base_url(&config.api_url)?;
     let jwt =
         match crate::security::credentials::session_support::resolve_backend_credential(&config) {
             Ok(credential) => credential,
