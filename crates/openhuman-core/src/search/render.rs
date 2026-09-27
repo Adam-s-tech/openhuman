@@ -22,6 +22,7 @@ pub fn provider_label(provider: &str) -> String {
         "gemini" => "Gemini".into(),
         "gemini_deep_research" => "Gemini Deep Research".into(),
         "tinyfish" => "TinyFish".into(),
+        "parallel" => "Parallel".into(),
         "brave" => "Brave".into(),
         "querit" => "Querit".into(),
         "tavily" => "Tavily".into(),

@@ -65,7 +65,7 @@ pub struct SearchSettingsPatch {
 /// Providers shown in settings. `gemini_deep_research` rides on the Gemini
 /// key and is reported under `gemini` rather than as its own row.
 const LISTED_PROVIDERS: &[&str] = &[
-    "exa", "gemini", "tinyfish", "brave", "tavily", "querit", "seltz", "searxng",
+    "exa", "gemini", "tinyfish", "parallel", "brave", "tavily", "querit", "seltz", "searxng",
 ];
 
 fn label(provider: &str) -> String {
@@ -76,6 +76,7 @@ fn docs_url(provider: &str) -> Option<&'static str> {
     match provider {
         "exa" => Some("https://dashboard.exa.ai/api-keys"),
         "gemini" => Some("https://aistudio.google.com/apikey"),
+        "parallel" => Some("https://platform.parallel.ai/"),
         "brave" => Some("https://brave.com/search/api/"),
         "tavily" => Some("https://app.tavily.com/"),
         "querit" => Some("https://querit.ai/"),

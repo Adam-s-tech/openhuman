@@ -4,8 +4,8 @@
 use std::collections::BTreeMap;
 
 use super::{
-    LegacySearchInputs, SearchConfig, SearchEngineCredentials, SearchProviderSettings, SearchRoute,
-    SEARCH_ENGINE_BRAVE, SEARCH_ENGINE_DISABLED, SEARCH_ENGINE_EXA, SEARCH_ENGINE_MANAGED,
+    LegacySearchInputs, SearchConfig, SearchProviderSettings, SearchRoute, SEARCH_ENGINE_BRAVE,
+    SEARCH_ENGINE_DISABLED, SEARCH_ENGINE_EXA, SEARCH_ENGINE_MANAGED, SEARCH_ENGINE_PARALLEL,
     SEARCH_ENGINE_QUERIT, SEARCH_ENGINE_TAVILY, SEARCH_PROVIDERS, SEARCH_ROLE_SEARCH,
     SEARCH_SCHEMA_VERSION,
 };

@@ -1276,6 +1276,7 @@ fn tool_group(name: &str) -> crate::core::all::DomainGroup {
         || name.starts_with("tinyfish_")
         || name.starts_with("exa_")
         || name.starts_with("gemini_")
+        || name.starts_with("parallel_")
         || name.starts_with("brave_")
         || name.starts_with("querit_")
         || name.starts_with("tavily_")

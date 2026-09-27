@@ -176,11 +176,13 @@ impl Config {
                 }
             }
         }
-        if env.contains("OPENHUMAN_PARALLEL_ROUTE")
-            || env.contains("OPENHUMAN_PARALLEL_API_KEY")
-            || env.contains("PARALLEL_API_KEY")
-        {
-            log::warn!("[config][search] Parallel is no longer a search provider; PARALLEL_* settings are ignored");
+        if env.contains("OPENHUMAN_PARALLEL_ROUTE") {
+            log::warn!("[config][search] managed Parallel is no longer offered; OPENHUMAN_PARALLEL_ROUTE is ignored (Parallel uses your own key)");
+        }
+        if let Some(key) = env.get_any(&["OPENHUMAN_PARALLEL_API_KEY", "PARALLEL_API_KEY"]) {
+            if !key.trim().is_empty() {
+                self.search.parallel.api_key = Some(key);
+            }
         }
         if let Some(key) = env.get_any(&["OPENHUMAN_GEMINI_API_KEY", "GEMINI_API_KEY"]) {
             if !key.trim().is_empty() {
