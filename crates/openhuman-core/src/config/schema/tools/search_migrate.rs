@@ -22,7 +22,9 @@ impl SearchConfig {
     /// Managed selections map to managed Exa (search, contents) plus managed
     /// Gemini (answer) regardless of whether a session exists right now; the
     /// settings RPC reports them as "sign in required" until one does.
-    /// Parallel is no longer offered: its selection and key are dropped.
+    /// Parallel stays as a bring-your-own-key provider. Only managed
+    /// (backend-routed) Parallel is gone: a selection that relied on it
+    /// without a key is dropped, and Exa and Gemini cover those roles.
     pub fn migrate_legacy(&mut self, legacy: LegacySearchInputs) -> bool {
         if !self.needs_migration() {
             return false;
@@ -39,7 +41,13 @@ impl SearchConfig {
             .and_then(SearchRoute::parse)
             .unwrap_or(SearchRoute::Managed);
         let mut providers = BTreeMap::new();
-        let mut dropped_parallel = self.parallel.has_key() || engine == "parallel";
+        let parallel_key = self.parallel.has_key();
+        let managed_parallel = self
+            .parallel_route
+            .as_deref()
+            .and_then(SearchRoute::parse)
+            == Some(SearchRoute::Managed);
+        let mut dropped_parallel = false;
 
         match self.enabled_providers.take() {
             Some(selected) => {
@@ -50,6 +58,9 @@ impl SearchConfig {
                             providers
                                 .entry("gemini".into())
                                 .or_insert_with(SearchProviderSettings::managed);
+                        }
+                        "parallel" if parallel_key || !managed_parallel => {
+                            providers.insert("parallel".into(), SearchProviderSettings::direct());
                         }
                         "parallel" => dropped_parallel = true,
                         "gemini" => {
@@ -107,6 +118,7 @@ impl SearchConfig {
                     ("brave", &self.brave),
                     ("querit", &self.querit),
                     ("tavily", &self.tavily),
+                    ("parallel", &self.parallel),
                 ] {
                     if credentials.has_key() {
                         providers.insert(name.into(), SearchProviderSettings::direct());
@@ -128,7 +140,10 @@ impl SearchConfig {
         let mut roles = BTreeMap::new();
         if matches!(
             engine.as_str(),
-            SEARCH_ENGINE_BRAVE | SEARCH_ENGINE_QUERIT | SEARCH_ENGINE_TAVILY
+            SEARCH_ENGINE_BRAVE
+                | SEARCH_ENGINE_QUERIT
+                | SEARCH_ENGINE_TAVILY
+                | SEARCH_ENGINE_PARALLEL
         ) && providers.contains_key(engine.as_str())
         {
             roles.insert(
@@ -139,8 +154,9 @@ impl SearchConfig {
 
         if dropped_parallel {
             tracing::warn!(
-                "[config][migrate][search] Parallel is no longer a search provider; \
-                 its selection and key were dropped (Exa and Gemini replace it)"
+                "[config][migrate][search] managed Parallel is no longer offered and no \
+                 Parallel key is stored; dropped it (managed Exa and Gemini cover its roles, \
+                 or add your own Parallel key)"
             );
         }
         tracing::info!(
@@ -154,14 +170,14 @@ impl SearchConfig {
         self.providers = providers;
         self.roles = roles;
         if self.presentation_provider.as_deref() == Some("managed")
-            || self.presentation_provider.as_deref() == Some("parallel")
+            || (self.presentation_provider.as_deref() == Some("parallel")
+                && !providers.contains_key("parallel"))
         {
             self.presentation_provider = None;
         }
         self.engine = None;
         self.parallel_route = None;
         self.gemini_route = None;
-        self.parallel = SearchEngineCredentials::default();
         self.schema_version = SEARCH_SCHEMA_VERSION;
         true
     }
@@ -183,7 +199,10 @@ impl SearchConfig {
                     .or_insert_with(SearchProviderSettings::managed);
                 self.roles.remove(SEARCH_ROLE_SEARCH);
             }
-            SEARCH_ENGINE_BRAVE | SEARCH_ENGINE_QUERIT | SEARCH_ENGINE_TAVILY
+            SEARCH_ENGINE_BRAVE
+            | SEARCH_ENGINE_QUERIT
+            | SEARCH_ENGINE_TAVILY
+            | SEARCH_ENGINE_PARALLEL
             | SEARCH_ENGINE_EXA => {
                 self.enabled = Some(true);
                 self.providers
@@ -196,7 +215,7 @@ impl SearchConfig {
             }
             other => {
                 return Err(format!(
-                    "unknown search engine '{other}' (expected disabled, managed, brave, querit, exa or tavily)"
+                    "unknown search engine '{other}' (expected disabled, managed, brave, querit, exa, tavily or parallel)"
                 ));
             }
         }

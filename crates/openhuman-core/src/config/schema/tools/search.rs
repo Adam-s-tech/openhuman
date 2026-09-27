@@ -153,6 +153,7 @@ pub const SEARCH_ENGINE_BRAVE: &str = "brave";
 pub const SEARCH_ENGINE_QUERIT: &str = "querit";
 pub const SEARCH_ENGINE_EXA: &str = "exa";
 pub const SEARCH_ENGINE_TAVILY: &str = "tavily";
+pub const SEARCH_ENGINE_PARALLEL: &str = "parallel";
 
 fn default_search_max_results() -> usize {
     5
@@ -340,6 +341,10 @@ pub struct SearchConfig {
     /// Managed Gemini needs no key.
     #[serde(default)]
     pub gemini: SearchEngineCredentials,
+    /// Parallel key. Parallel is bring-your-own-key only: there is no managed
+    /// Parallel route.
+    #[serde(default)]
+    pub parallel: SearchEngineCredentials,
 
     // ── Legacy single-engine fields: read for migration, never written ──
     #[serde(default, skip_serializing)]
@@ -354,9 +359,6 @@ pub struct SearchConfig {
     #[serde(default, skip_serializing)]
     #[schemars(skip)]
     pub gemini_route: Option<String>,
-    #[serde(default, skip_serializing)]
-    #[schemars(skip)]
-    pub parallel: SearchEngineCredentials,
 }
 
 impl Default for SearchConfig {
@@ -418,6 +420,7 @@ impl SearchConfig {
             "exa" => Some(&self.exa),
             "tavily" => Some(&self.tavily),
             "gemini" | "gemini_deep_research" => Some(&self.gemini),
+            "parallel" => Some(&self.parallel),
             _ => None,
         }
     }
@@ -429,6 +432,7 @@ impl SearchConfig {
             "exa" => Some(&mut self.exa),
             "tavily" => Some(&mut self.tavily),
             "gemini" | "gemini_deep_research" => Some(&mut self.gemini),
+            "parallel" => Some(&mut self.parallel),
             _ => None,
         }
     }
