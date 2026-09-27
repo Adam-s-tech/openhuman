@@ -218,6 +218,31 @@ for (const interpreter of interpreters) {
   );
 
   test(
+    `[${interpreter} ${version}] a real cargo tree failure is reported as a check error`,
+    {
+      ...SKIP,
+      skip:
+        SKIP.skip ||
+        (spawnSync("cargo", ["--version"], { encoding: "utf8" }).status !== 0
+          ? "requires Cargo"
+          : false),
+    },
+    () => {
+      // Run the checker outside a Cargo workspace so the real Cargo command
+      // fails to load Cargo.toml. This exercises the production command/error
+      // boundary without building dependencies or accessing the network.
+      const root = fs.mkdtempSync(path.join(os.tmpdir(), "check-linux-tls-real-cargo-"));
+      const result = spawnSync(interpreter, [script], {
+        cwd: root,
+        encoding: "utf8",
+        env: process.env,
+      });
+      assert.equal(result.status, 2);
+      assert.match(result.stderr, /could not check core dependency tree/);
+    },
+  );
+
+  test(
     `[${interpreter} ${version}] a failed reqwest owner query is a check error`,
     SKIP,
     () => {
