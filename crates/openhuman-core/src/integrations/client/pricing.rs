@@ -160,7 +160,7 @@ fn build_client_with_credential(
         api_key = credential.is_api_key(),
         "[integrations] client built (backend credential resolved)"
     );
-    Some(Arc::new(IntegrationClient::new_with_budget_config(
+    Some(Arc::new(IntegrationClient::new_with_credential_and_budget_config(
         backend_url,
         credential,
         Arc::new(config.clone()),

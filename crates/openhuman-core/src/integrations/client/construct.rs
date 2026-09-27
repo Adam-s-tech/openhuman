@@ -81,6 +81,19 @@ impl IntegrationClient {
 
     pub fn new_with_budget_config(
         backend_url: String,
+        auth_token: String,
+        config: Arc<crate::config::Config>,
+    ) -> Self {
+        Self::new_inner(
+            backend_url,
+            crate::security::credentials::session_support::BackendCredential::Session(auth_token),
+            Some(config),
+        )
+    }
+
+    /// Credential-aware variant of [`Self::new_with_budget_config`].
+    pub fn new_with_credential_and_budget_config(
+        backend_url: String,
         credential: crate::security::credentials::session_support::BackendCredential,
         config: Arc<crate::config::Config>,
     ) -> Self {
