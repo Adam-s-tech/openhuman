@@ -1,4 +1,6 @@
 use super::*;
+use axum::{body::Bytes, extract::State, routing::post, Router};
+use std::sync::{Arc, Mutex};
 
 #[test]
 fn backend_401_is_tagged_as_session_expiry() {
@@ -74,4 +76,61 @@ async fn api_key_refuses_remote_plaintext_endpoint_before_request() {
         .await
         .unwrap_err();
     assert!(err.contains("refusing to send"), "{err}");
+}
+
+#[tokio::test]
+async fn api_key_transcribes_via_safe_backend_with_bearer_and_multipart_audio() {
+    let request = Arc::new(Mutex::new(None));
+    let captured = Arc::clone(&request);
+    let app = Router::new().route(
+        "/openai/v1/audio/transcriptions",
+        post(move |headers: axum::http::HeaderMap, body: Bytes| {
+            let captured = Arc::clone(&captured);
+            async move {
+                *captured.lock().unwrap() = Some((
+                    headers
+                        .get(axum::http::header::AUTHORIZATION)
+                        .and_then(|value| value.to_str().ok())
+                        .map(str::to_owned),
+                    headers
+                        .get(axum::http::header::CONTENT_TYPE)
+                        .and_then(|value| value.to_str().ok())
+                        .map(str::to_owned),
+                    body.to_vec(),
+                ));
+                (axum::http::StatusCode::OK, r#"{"text":"recognized words"}"#)
+            }
+        }),
+    );
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let endpoint = format!("http://{}", listener.local_addr().unwrap());
+    tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
+
+    let tmp = tempfile::TempDir::new().unwrap();
+    let config = Config {
+        workspace_dir: tmp.path().join("workspace"),
+        action_dir: tmp.path().join("workspace"),
+        config_path: tmp.path().join("config.toml"),
+        api_url: Some(endpoint),
+        ..Config::default()
+    };
+    crate::security::credentials::api_key::store_api_key(&config, "test-api-key").unwrap();
+
+    let outcome = transcribe_cloud(
+        &config,
+        "AQID",
+        &CloudTranscribeOptions::default(),
+    )
+    .await
+    .unwrap()
+    .into_result()
+    .unwrap();
+    assert_eq!(outcome.text, "recognized words");
+    let (authorization, content_type, body) = request.lock().unwrap().take().unwrap();
+    assert_eq!(authorization.as_deref(), Some("Bearer test-api-key"));
+    assert!(content_type.as_deref().unwrap().starts_with("multipart/form-data; boundary="));
+    let body = String::from_utf8(body).unwrap();
+    assert!(body.contains("name=\"file\""));
+    assert!(body.contains("AQID"));
+    assert!(body.contains("name=\"model\""));
 }
