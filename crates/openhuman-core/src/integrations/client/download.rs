@@ -73,7 +73,12 @@ impl IntegrationClient {
             .send()
             .await
             .map_err(|error| Self::report_transport_error(error, "get_bytes", path, &url))?;
-        if resp.status().is_redirection() {
+        // Follow redirects manually so every hop is checked. The authenticated
+        // first request is separate from the credential-free storage client.
+        for _ in 0..10 {
+            if !resp.status().is_redirection() {
+                break;
+            }
             let location = resp
                 .headers()
                 .get(reqwest::header::LOCATION)
@@ -84,7 +89,7 @@ impl IntegrationClient {
                 crate::inference::provider::openhuman_backend_model::is_safe_endpoint_for_managed_bearer(redirect_url.as_str()),
                 "download redirect requires HTTPS or a loopback HTTP endpoint"
             );
-            // The second request has no auth headers, including x-api-key.
+            // Redirect hops never carry backend headers, including x-api-key.
             resp = self
                 .presigned_client
                 .get(redirect_url)
@@ -92,6 +97,10 @@ impl IntegrationClient {
                 .await
                 .map_err(|error| Self::report_transport_error(error, "get_bytes", path, &url))?;
         }
+        anyhow::ensure!(
+            !resp.status().is_redirection(),
+            "download exceeded the maximum number of redirects"
+        );
         let status = resp.status();
         if !status.is_success() {
             let body_text = resp.text().await.unwrap_or_default();

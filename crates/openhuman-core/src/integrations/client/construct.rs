@@ -157,6 +157,7 @@ impl IntegrationClient {
             .expect("failed to build integration download HTTP client");
         let presigned_client = crate::util::tls::tls_client_builder()
             .http1_only()
+            .redirect(reqwest::redirect::Policy::none())
             .timeout(Duration::from_secs(15 * 60))
             .connect_timeout(Duration::from_secs(15))
             .build()
