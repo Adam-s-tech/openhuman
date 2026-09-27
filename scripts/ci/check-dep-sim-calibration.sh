@@ -57,6 +57,9 @@
 # 280 -> 282 on 2026-09-25: TinyChannels 0.1.3 resolves HMAC 0.13 and
 # activates digest 0.11's ctutils/cmov tail, adding two names but no native
 # build dependency. See the matching kernel-floor history entry.
+# 285 -> 286 on 2026-09-27: multi-provider search uses the required
+# tinysearch-bus contract in always-on config and policy code; one name,
+# no native dependency. See kernel-floor.limits.
 # 282 -> 285 on 2026-09-26: the required TinyBrowser integration adds
 # tinybrowser-bus, tinybrowser-control, and tinyjevclient. Native count stays 2.
 #
