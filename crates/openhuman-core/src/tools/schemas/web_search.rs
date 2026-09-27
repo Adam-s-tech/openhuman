@@ -89,9 +89,14 @@ fn search_arguments(params: &Map<String, Value>, provider: Option<&str>) -> Resu
     if let Some(provider) = provider.map(str::to_string).or_else(|| optional_text(params, "provider")) {
         arguments["provider"] = json!(provider);
     }
+    let pinned = arguments
+        .get("provider")
+        .and_then(Value::as_str)
+        .unwrap_or("auto")
+        .to_string();
     tracing::debug!(
         query_len = query.chars().count(),
-        provider = arguments.get("provider").and_then(Value::as_str).unwrap_or("auto"),
+        provider = %pinned,
         "[rpc][tools.search] request"
     );
     Ok(arguments)
