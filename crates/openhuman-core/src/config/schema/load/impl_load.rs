@@ -410,7 +410,6 @@ impl Config {
             config.recovered_from_corruption = config_was_corrupted;
             migrate_legacy_inference_url(&mut config);
             migrate_cloud_provider_slugs(&mut config);
-        migrate_search_settings(&mut config);
             migrate_search_settings(&mut config);
             config.apply_env_overrides_from(env);
 
