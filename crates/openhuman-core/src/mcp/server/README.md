@@ -65,7 +65,7 @@ It does **not** own any agent tools in the `tools.rs`/`crates/openhuman-core/src
 - Read-only (`ToolOperation::Read`): `core.list_tools`, `core.tool_instructions`, `agent.list_subagents`, `memory.search`, `memory.recall`, `tree.read_chunk`, `tree.browse`, `tree.top_entities`, `tree.list_sources`, `web_search`, `web_answer`, `searxng_search` (listed only when a search provider can serve them; `crate::search::providers`).
 - Act-policy (`ToolOperation::Act`): `agent.run_subagent` (annotated destructive/open-world; rejects `integrations_agent`), and the write tools `memory.store`, `memory.note`, `tree.tag` (annotated destructive/idempotent, local-only).
 
-Argument bounds enforced in-layer: `k`/limits capped at `MAX_LIMIT` (50), default 10; `tree.tag` capped at 50 tags / 128 bytes per tag; SearXNG `max_results` capped at `SEARXNG_MAX_RESULTS`. Write tools derive deterministic upsert keys (`mcp-store-<slug>`, `mcp-note-<chunk_id>`, `mcp-tag-<chunk_id>`).
+Argument bounds enforced in-layer: `k`/limits capped at `MAX_LIMIT` (50), default 10; `tree.tag` capped at 50 tags / 128 bytes per tag; Search tool `max_results` capped at `SEARCH_MAX_RESULTS`. Write tools derive deterministic upsert keys (`mcp-store-<slug>`, `mcp-note-<chunk_id>`, `mcp-tag-<chunk_id>`).
 
 ## Events
 

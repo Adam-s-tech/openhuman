@@ -61,12 +61,11 @@ const SearchPanelAllowedSites = ({ settings, saving, persist, t }: Props) => {
   // host editor (its Save button persists the list), keeping what was typed.
   const selectMode = (next: AccessMode) => {
     if (saving) return;
+    const previous = mode;
     setMode(next);
-    if (next === 'all') {
-      void persist({ allow_all: true });
-    } else if (next === 'block') {
-      void persist({ allowed_domains: [], allow_all: false });
-    }
+    const update =
+      next === 'all' ? { allow_all: true } : next === 'block' ? { allowed_domains: [], allow_all: false } : null;
+    if (update) void persist(update).then(ok => { if (!ok) setMode(previous); });
   };
 
   const persistAllowedDomains = () => {
