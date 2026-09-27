@@ -6878,7 +6878,6 @@ const messages: TranslationMap = {
   'migration.badgeImported': 'مُستورد',
   'desktop.statusModuleFailed': 'غير متاح',
   'desktop.permissionState.denied': 'مرفوض',
-  'settings.search.apiKeysHeading': 'مفاتيح API',
   'voice.providers.alwaysOn': 'دائما على',
   'voice.routing.testOk': 'جارٍ العمل',
   'voice.routing.testFailed': 'فشل',
@@ -6939,9 +6938,7 @@ const messages: TranslationMap = {
   'channels.connectedDesc': 'جاهز لإرسال وتلقي الرسائل اختر واحداً كمقعد',
   'channels.availableDesc': 'تطبيقات الشاسعة يمكنك ربطها افتحي واحدة لضبطها',
   'settings.about.resources': 'الموارد',
-  'settings.search.keyStored': 'المخزن',
-  'settings.search.apiKeysDesc':
-    'مفاتيح مقدمي الخدمات المباشرة. يبقون على هذا الجهاز ويستخدمون فقط عندما يتم اختيار ذلك المحرك',
+  'settings.search.keyStored': 'محفوظ',
   'settings.embeddings.modelCardTitle': 'الأبعاد النموذجية',
   'mcp.rows.searchPlaceholder': 'خوادم البحث...',
   'mcp.tab.section.clients': 'العملاء',

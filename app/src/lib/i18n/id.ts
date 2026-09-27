@@ -7066,7 +7066,6 @@ const messages: TranslationMap = {
   'migration.badgePreview': 'Pratinjau',
   'migration.badgeImported': 'Diimpor',
   'desktop.statusModuleFailed': 'Tidak tersedia',
-  'settings.search.apiKeysHeading': 'Kunci API',
   'voice.providers.alwaysOn': 'Selalu aktif',
   'voice.routing.testOk': 'Sedang bekerja',
   'voice.routing.testFailed': 'Gagal',
@@ -7128,8 +7127,6 @@ const messages: TranslationMap = {
     'Aplikasi percakapan yang dapat Anda hubungkan. Buka satu untuk mengaturnya.',
   'settings.about.resources': 'Sumber Daya',
   'settings.search.keyStored': 'Tersimpan',
-  'settings.search.apiKeysDesc':
-    'Kunci untuk penyedia langsung. Mereka tinggal di perangkat ini dan digunakan hanya ketika mesin yang dipilih.',
   'settings.embeddings.modelCardTitle': '& dimensi model',
   'mcp.rows.searchPlaceholder': 'Cari server...',
   'mcp.tab.section.clients': 'Klien',

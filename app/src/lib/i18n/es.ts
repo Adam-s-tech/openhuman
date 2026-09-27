@@ -7176,7 +7176,6 @@ const messages: TranslationMap = {
   'migration.badgeImported': 'Importado',
   'desktop.statusModuleFailed': 'No disponible',
   'desktop.permissionState.denied': 'Denegado',
-  'settings.search.apiKeysHeading': 'Claves de API',
   'voice.providers.alwaysOn': 'Siempre encendido',
   'voice.routing.testOk': 'Trabajando',
   'voice.routing.testFailed': 'Fallido',
@@ -7239,8 +7238,6 @@ const messages: TranslationMap = {
   'channels.availableDesc': 'Aplicaciones de chat que puedes conectar. Abre uno para configurarlo.',
   'settings.about.resources': 'Recursos',
   'settings.search.keyStored': 'Almacenado',
-  'settings.search.apiKeysDesc':
-    'Llaves para los proveedores directos. Se quedan en este dispositivo y solo se utilizan cuando se selecciona ese motor.',
   'settings.embeddings.modelCardTitle': 'Modelo &quot; dimensiones &quot;',
   'mcp.rows.searchPlaceholder': 'Buscar servidores...',
   'mcp.tab.section.clients': 'Clientes',

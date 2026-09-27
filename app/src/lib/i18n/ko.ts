@@ -6950,7 +6950,6 @@ const messages: TranslationMap = {
   'migration.badgePreview': '미리 보기',
   'migration.badgeImported': '가져옴',
   'desktop.statusModuleFailed': '사용할 수 없음',
-  'settings.search.apiKeysHeading': 'API 키',
   'voice.providers.alwaysOn': '항상 켜짐',
   'voice.routing.testOk': '작업 중',
   'voice.routing.testFailed': '실패',
@@ -7012,9 +7011,7 @@ const messages: TranslationMap = {
   'channels.connectedDesc': '메시지 보내기 및 수신 기본으로 하나를 선택합니다.',
   'channels.availableDesc': '채팅 앱을 연결할 수 있습니다. 그것을 설치하기 위하여 1을 엽니다.',
   'settings.about.resources': '지원하다',
-  'settings.search.keyStored': '구매하기',
-  'settings.search.apiKeysDesc':
-    '직접적인 공급자를 위한 열쇠. 이 장치에 머물고 엔진이 선택되었을 때만 사용됩니다.',
+  'settings.search.keyStored': '저장됨',
   'settings.embeddings.modelCardTitle': '모형 & 차원',
   'mcp.rows.searchPlaceholder': '서버 검색...',
   'mcp.tab.section.clients': '고객 지원',

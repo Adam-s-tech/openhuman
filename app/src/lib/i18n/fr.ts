@@ -7197,7 +7197,6 @@ const messages: TranslationMap = {
   'migration.badgePreview': 'Aperçu',
   'migration.badgeImported': 'Importés',
   'desktop.statusModuleFailed': 'Indisponible',
-  'settings.search.apiKeysHeading': 'Clés API',
   'voice.providers.alwaysOn': 'Toujours allumé',
   'voice.routing.testOk': 'En cours',
   'voice.routing.testFailed': 'Échec',
@@ -7255,8 +7254,6 @@ const messages: TranslationMap = {
     'Clavardez les applications que vous pouvez lier. Ouvrez-en un pour le mettre en place.',
   'settings.about.resources': 'Ressources',
   'settings.search.keyStored': 'Stocké',
-  'settings.search.apiKeysDesc':
-    'Clés pour les fournisseurs directs. Ils restent sur ce dispositif et ne sont utilisés que lorsque ce moteur est sélectionné.',
   'settings.embeddings.modelCardTitle': 'Modèle & dimensions',
   'mcp.rows.searchPlaceholder': 'Les serveurs de recherche...',
   'mcp.tab.section.clients': 'Clients',

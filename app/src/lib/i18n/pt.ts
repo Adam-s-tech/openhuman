@@ -7141,7 +7141,6 @@ const messages: TranslationMap = {
   'migration.badgePreview': 'Pré-visualizar',
   'migration.badgeImported': 'Importados',
   'desktop.statusModuleFailed': 'Indisponível',
-  'settings.search.apiKeysHeading': 'Chaves de API',
   'voice.providers.alwaysOn': 'Sempre ligado',
   'voice.routing.testOk': 'Trabalhando',
   'voice.routing.testFailed': 'Falhou',
@@ -7201,8 +7200,6 @@ const messages: TranslationMap = {
   'channels.availableDesc': 'Aplicativos de chat que você pode vincular. Abra um para preparar.',
   'settings.about.resources': 'Recursos',
   'settings.search.keyStored': 'Armazenado',
-  'settings.search.apiKeysDesc':
-    'Chaves para os fornecedores diretos. Eles permanecem neste dispositivo e são usados apenas quando o motor é selecionado.',
   'settings.embeddings.modelCardTitle': 'Modelo & dimensões',
   'mcp.rows.searchPlaceholder': 'Procurar servidores...',
   'mcp.tab.section.clients': 'Clientes',

@@ -1704,9 +1704,6 @@ const en: TranslationMap = {
   'settings.search.statusNeedsKey': 'Needs API key',
   'settings.search.getApiKey': 'Get API key',
   'settings.search.keyStored': 'Stored',
-  'settings.search.apiKeysHeading': 'API keys',
-  'settings.search.apiKeysDesc':
-    'Keys for the direct providers. They stay on this device and are used only when that engine is selected.',
   'settings.search.save': 'Save',
   'settings.search.clear': 'Clear',
   'settings.search.show': 'Show',

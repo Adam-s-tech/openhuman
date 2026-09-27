@@ -7024,7 +7024,6 @@ const messages: TranslationMap = {
   'migration.badgePreview': 'প্রিভিউ',
   'migration.badgeImported': 'আমদানিকৃত',
   'desktop.statusModuleFailed': 'অনুপলব্ধ',
-  'settings.search.apiKeysHeading': 'API কী',
   'voice.providers.alwaysOn': 'সর্বদা চালু',
   'voice.routing.testOk': 'কাজ চলছে',
   'voice.routing.testFailed': 'ব্যর্থ',
@@ -7087,8 +7086,6 @@ const messages: TranslationMap = {
   'channels.availableDesc': 'লিঙ্কের নাম। একটা খুলতে হবে।',
   'settings.about.resources': 'রিসোর্সসমূহ',
   'settings.search.keyStored': 'সংরক্ষিত',
-  'settings.search.apiKeysDesc':
-    'সরাসরি সরবরাহকারীর জন্য। তারা এই যন্ত্রে থাকে আর ইঞ্জিনের সময় এটা ব্যবহার করা হয়।',
   'settings.embeddings.modelCardTitle': 'মডেল ও মাত্রা',
   'mcp.rows.searchPlaceholder': 'অনুসন্ধানের সার্ভার...',
   'mcp.tab.section.clients': 'ক্লায়েন্ট',

@@ -7213,7 +7213,6 @@ const messages: TranslationMap = {
   'migration.badgePreview': 'Vorschau',
   'migration.badgeImported': 'Importiert',
   'desktop.statusModuleFailed': 'Nicht verfügbar',
-  'settings.search.apiKeysHeading': 'API-Schlüssel',
   'voice.providers.alwaysOn': 'Immer aktiv',
   'voice.routing.testOk': 'Arbeitet',
   'voice.routing.testFailed': 'Fehlgeschlagen',
@@ -7273,9 +7272,7 @@ const messages: TranslationMap = {
   'channels.availableDesc':
     'Chat-apps, die sie verknüpfen können. Öffnen Sie einen, um es einzurichten.',
   'settings.about.resources': 'Ressourcen',
-  'settings.search.keyStored': 'Gelagert',
-  'settings.search.apiKeysDesc':
-    'Schlüssel für die direkten Anbieter. Sie bleiben auf diesem Gerät und werden nur verwendet, wenn dieser Motor ausgewählt ist.',
+  'settings.search.keyStored': 'Gespeichert',
   'settings.embeddings.modelCardTitle': 'Modell und Abmessungen',
   'mcp.rows.searchPlaceholder': 'Suchserver...',
   'mcp.tab.section.clients': 'Kunden',

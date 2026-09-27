@@ -7095,7 +7095,6 @@ const messages: TranslationMap = {
   'migration.badgePreview': 'Предпросмотр',
   'migration.badgeImported': 'Импортировано',
   'desktop.statusModuleFailed': 'Недоступно',
-  'settings.search.apiKeysHeading': 'API-ключи',
   'voice.providers.alwaysOn': 'Всегда включен',
   'voice.routing.testOk': 'Выполняется',
   'voice.routing.testFailed': 'Сбой',
@@ -7159,9 +7158,7 @@ const messages: TranslationMap = {
   'channels.availableDesc':
     'Чат приложения, которые вы можете связать. Откройте один, чтобы настроить его.',
   'settings.about.resources': 'ресурсы',
-  'settings.search.keyStored': 'хранить',
-  'settings.search.apiKeysDesc':
-    'Ключи для прямых поставщиков. Они остаются на этом устройстве и используются только при выборе двигателя.',
+  'settings.search.keyStored': 'Сохранён',
   'settings.embeddings.modelCardTitle': 'Модель и размеры',
   'mcp.rows.searchPlaceholder': 'Поисковые серверы...',
   'mcp.tab.section.clients': 'Клиенты',

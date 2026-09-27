@@ -7024,7 +7024,6 @@ const messages: TranslationMap = {
   'migration.badgePreview': 'प्रीव्यू',
   'migration.badgeImported': 'इम्पोर्ट हुए',
   'desktop.statusModuleFailed': 'अनुपलब्ध',
-  'settings.search.apiKeysHeading': 'API कुंजियाँ',
   'voice.providers.alwaysOn': 'हमेशा बने रहें',
   'voice.routing.testOk': 'काम जारी है',
   'voice.routing.testFailed': 'विफल',
@@ -7087,9 +7086,7 @@ const messages: TranslationMap = {
     'संदेश भेजने और प्राप्त करने के लिए तैयार है। एक डिफ़ॉल्ट के रूप में चुनें।',
   'channels.availableDesc': 'आप लिंक कर सकते हैं। इसे स्थापित करने के लिए एक खोलें।',
   'settings.about.resources': 'संसाधन',
-  'settings.search.keyStored': 'स्टोर',
-  'settings.search.apiKeysDesc':
-    'प्रत्यक्ष प्रदाताओं के लिए कुंजी। वे इस उपकरण पर रहते हैं और केवल उसी इंजन को चुना जाता है।',
+  'settings.search.keyStored': 'सहेजा गया',
   'settings.embeddings.modelCardTitle': 'मॉडल और आयाम',
   'mcp.rows.searchPlaceholder': 'सर्वर खोजें...',
   'mcp.tab.section.clients': 'ग्राहक',

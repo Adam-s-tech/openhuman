@@ -7125,7 +7125,6 @@ const messages: TranslationMap = {
   'migration.badgePreview': 'Podgląd',
   'migration.badgeImported': 'Zaimportowano',
   'desktop.statusModuleFailed': 'Niedostępny',
-  'settings.search.apiKeysHeading': 'Klucze API',
   'voice.providers.alwaysOn': 'Zawsze włączone',
   'voice.routing.testOk': 'Pracuje',
   'voice.routing.testFailed': 'Niepowodzenie',
@@ -7188,8 +7187,6 @@ const messages: TranslationMap = {
   'channels.availableDesc': 'Aplikacje do rozmowy można połączyć. Otwórz jeden, żeby to ustawić.',
   'settings.about.resources': 'Zasoby',
   'settings.search.keyStored': 'Przechowywane',
-  'settings.search.apiKeysDesc':
-    'Klucze dla bezpośrednich dostawców. Zostają na tym urządzeniu i są używane tylko wtedy, gdy silnik jest wybrany.',
   'settings.embeddings.modelCardTitle': 'Wzór i wymiary',
   'mcp.rows.searchPlaceholder': 'Wyszukiwanie serwerów...',
   'mcp.tab.section.clients': 'Klienci',
