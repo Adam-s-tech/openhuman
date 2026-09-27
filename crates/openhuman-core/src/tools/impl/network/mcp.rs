@@ -300,6 +300,7 @@ const CREDENTIAL_QUERY_PARAM_NEEDLES: [&str; 7] = [
 
 struct SecretScrubber {
     secrets: Vec<String>,
+    strict: Vec<String>,
 }
 
 impl SecretScrubber {
@@ -307,6 +308,7 @@ impl SecretScrubber {
         let Some(definition) = registry.get(server) else {
             return Self {
                 secrets: Vec::new(),
+                strict: Vec::new(),
             };
         };
         Self::new(&definition.auth, &definition.endpoint)
@@ -314,6 +316,7 @@ impl SecretScrubber {
 
     fn new(auth: &McpDefinitionAuth, endpoint: &str) -> Self {
         let mut raw: Vec<String> = Vec::new();
+        let mut strict: Vec<String> = Vec::new();
         match auth {
             McpDefinitionAuth::BearerToken { token } => raw.push(token.clone()),
             McpDefinitionAuth::Basic { username, password } => {
@@ -333,7 +336,7 @@ impl SecretScrubber {
         }
         if endpoint_query(endpoint).is_some() {
             if let Ok(url) = url::Url::parse(endpoint) {
-                raw.extend(url.query_pairs().filter_map(|(name, value)| {
+                strict.extend(url.query_pairs().filter_map(|(name, value)| {
                     let name = name.to_ascii_lowercase();
                     let credential_like = CREDENTIAL_QUERY_PARAM_NEEDLES
                         .iter()
@@ -354,13 +357,21 @@ impl SecretScrubber {
                                 .iter()
                                 .any(|needle| decoded_name.contains(needle))
                             {
-                                raw.push(value.to_string());
+                                strict.push(value.to_string());
                             }
                         }
                     }
                 }
             }
         }
+
+        strict.retain(|value| !value.trim().is_empty());
+        let encoded_strict = strict
+            .iter()
+            .map(|value| urlencoding::encode(value).into_owned())
+            .collect::<Vec<_>>();
+        strict.extend(encoded_strict);
+        raw.extend(strict.iter().cloned());
 
         let mut secrets: Vec<String> = Vec::new();
         for value in raw {
@@ -376,13 +387,13 @@ impl SecretScrubber {
         }
         secrets.sort_by(|a, b| b.len().cmp(&a.len()).then_with(|| a.cmp(b)));
         secrets.dedup();
-        Self { secrets }
+        Self { secrets, strict }
     }
 
     fn scrub(&self, text: &str) -> String {
         let mut out = text.to_string();
         for secret in &self.secrets {
-            if secret.len() < MIN_QUERY_SECRET_LEN {
+            if secret.len() < MIN_QUERY_SECRET_LEN && !self.strict.contains(secret) {
                 // Short credentials are common words or field-name fragments;
                 // only replace a complete token so unrelated text stays usable.
                 let mut next = String::with_capacity(out.len());

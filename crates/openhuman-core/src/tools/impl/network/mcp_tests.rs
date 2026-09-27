@@ -453,16 +453,31 @@ fn scrubber_redacts_credential_query_value() {
 }
 
 #[test]
-fn scrubber_redacts_short_query_credentials_without_rewriting_words() {
+fn scrubber_redacts_short_query_credentials_even_inside_other_text() {
     let scrubber = SecretScrubber::new(
         &McpDefinitionAuth::None,
         "https://example.com/mcp?api_key=abc&v=2",
     );
     assert_eq!(
-        scrubber.scrub("abc is a credential; alphabet and abc_def are not"),
-        "[redacted] is a credential; alphabet and abc_def are not"
+        scrubber.scrub("abc is a credential; prefixabc also contains it"),
+        "[redacted] is a credential; prefix[redacted] also contains it"
     );
     assert_eq!(scrubber.scrub("v=2"), "v=2");
+}
+
+#[test]
+fn short_auth_values_do_not_rewrite_unrelated_words() {
+    let scrubber = SecretScrubber::new(
+        &McpDefinitionAuth::Basic {
+            username: "abc".into(),
+            password: "private12345".into(),
+        },
+        "https://example.com/mcp",
+    );
+    assert_eq!(
+        scrubber.scrub("abc identifies the user; alphabet is unrelated"),
+        "[redacted] identifies the user; alphabet is unrelated"
+    );
 }
 
 #[test]
