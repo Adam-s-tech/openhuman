@@ -6,7 +6,7 @@ The agent tool layer. Defines the core [`Tool`] trait every agent-callable capab
 
 - Use the [`tinytools::Tool`] async trait and its supporting value types (`ToolResult`, `ToolSpec`, `PermissionLevel`, `ToolScope`, `ToolCategory`, `ToolCallOptions`, `ToolExposure`) directly from `tinytools`.
 - Assemble the registry the agent loop runs against — `default_tools[_with_runtime]` (minimal: shell + file read/write) and `all_tools[_with_runtime]` (full, config-gated set).
-- Gate registration on config flags / env (`browser.enabled`, `node.enabled`, `runtime_python.enabled`, `learning.*`, `integrations.*`, `search.engine`, `gitbooks.enabled`, MCP registry presence, `OPENHUMAN_LSP_ENABLED`).
+- Gate registration on config flags / env (`browser.enabled`, `node.enabled`, `runtime_python.enabled`, `learning.*`, `integrations.*`, `[search]` providers, `gitbooks.enabled`, MCP registry presence, `OPENHUMAN_LSP_ENABLED`).
 - Own the cross-cutting built-in tool impls under `impl/` (filesystem, browser, generic system, generic network, meta, and the `documents`-gated document/presentation tools).
 - Provide the pre-execution [`ToolPolicy`] middleware (allow/deny gate) and the default allow-all policy.
 - Normalize tool JSON schemas for provider compatibility (`SchemaCleanr`).
@@ -44,7 +44,7 @@ The agent tool layer. Defines the core [`Tool`] trait every agent-callable capab
 | `crates/openhuman-core/src/tools/impl/meta/` | Tools *about* the tool surface itself: `deferred` (the host's half of `ToolExposure::Deferred`; the harness's intrinsic `tool_search` bridge is the lookup half) and `collapse` (multi-action schema/permission merging helpers). |
 | `crates/openhuman-core/src/tools/impl/document/` (`documents` feature) | `DocumentTool` (`generate_document`) — structured document generation/editing engine. |
 | `crates/openhuman-core/src/tools/impl/presentation/` (`documents` feature) | `PresentationTool` (`generate_presentation`) — structured slide-deck generation engine. |
-| `crates/openhuman-core/src/search/` | Search engine registry and search-owned agent tools such as `web_search`. |
+| `crates/openhuman-core/src/search/` | Search policy over the TinySearch module: provider resolution, the `TinySearchTool` bridge (`web_search_tool`, `web_answer_tool`, `web_contents_tool`), result rendering. |
 | `*_tests.rs` / `#[cfg(test)] mod tests` | Co-located/sibling unit tests across the module. |
 
 ## Public surface
@@ -64,9 +64,9 @@ Namespace `tools` (wired into `crates/openhuman-core/src/core/all.rs` via `all_t
 | Method | Purpose |
 | --- | --- |
 | `openhuman.tools_composio_execute` | Run a Composio action via the mode-aware client factory (backend-proxied or direct). |
-| `openhuman.tools_web_search` | Web search via the backend `/agent-integrations/parallel/search` proxy; structured results plus the resolved provider. |
-| `openhuman.tools_seltz_search` | Seltz web search (gated on `seltz.enabled`). |
-| `openhuman.tools_querit_search` | Querit web search (gated on `search.querit` having a key). |
+| `openhuman.tools_web_search` | Ranked web search through the `search` role (TinySearch module); structured results plus the provider that answered. |
+| `openhuman.tools_web_answer` | Grounded answer with citations through the `answer` role. |
+| `openhuman.tools_web_contents` | Page contents for given URLs through the `contents` role. |
 | `openhuman.tools_searxng_search` | Self-hosted SearXNG search (gated on `searxng.enabled`). |
 | `openhuman.tools_apify_linkedin_scrape` | Apify LinkedIn profile scrape → raw JSON + rendered markdown. |
 
