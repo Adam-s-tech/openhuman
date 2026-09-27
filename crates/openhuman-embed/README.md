@@ -236,7 +236,8 @@ are documented rather than hidden; each is a candidate follow-up in the core.
   operator's skills, but an install by the agent lands there.
 - One API key (or session) is shared by all agents.
 - `IntegrationClient` (backend-proxied Composio/search/media tools) only
-  ever reads the app-session JWT (`api::jwt::get_session_token`), never the
+  ever reads the app-session JWT
+  (`security::credentials::session_support::get_session_token`), never the
   runtime's API key. A library runtime that authenticates with only
   `.api_key(...)` gets no integration tools at all rather than the key
   being sent as the wrong header.
