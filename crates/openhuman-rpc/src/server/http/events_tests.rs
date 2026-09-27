@@ -4,14 +4,15 @@ use axum::http::{header, HeaderMap, StatusCode};
 
 use super::{
     active_workspace_handle, domain_event_payload, domain_event_stream_unavailable,
-    domain_events_handler, events_handler,
-    webhook_events_handler, EventsQuery,
+    domain_events_handler, events_handler, webhook_events_handler, EventsQuery,
 };
 
 #[test]
 fn domain_event_stream_status_requires_enabled_config_and_initialized_bus() {
     assert_eq!(
-        domain_event_stream_unavailable(false, false).unwrap().status(),
+        domain_event_stream_unavailable(false, false)
+            .unwrap()
+            .status(),
         StatusCode::NOT_FOUND
     );
     assert_eq!(

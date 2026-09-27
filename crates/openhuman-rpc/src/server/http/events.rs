@@ -206,10 +206,7 @@ pub(super) async fn domain_events_handler(headers: axum::http::HeaderMap) -> Res
         .into_response()
 }
 
-fn domain_event_stream_unavailable(
-    enabled: bool,
-    bus_initialized: bool,
-) -> Option<Response> {
+fn domain_event_stream_unavailable(enabled: bool, bus_initialized: bool) -> Option<Response> {
     let (status, error) = if !enabled {
         (StatusCode::NOT_FOUND, "event stream disabled by config")
     } else if !bus_initialized {
