@@ -368,6 +368,16 @@ sandboxing, timeouts, and progress events.
 - Library mode has no user login: the runtime's API key rides managed
   inference as `Authorization: Bearer` and backend REST as `x-api-key`
   (`security::credentials::api_key`, `session_support::BackendCredential`).
+  Every backend caller resolves its credential through
+  `resolve_backend_credential` (or `backend_bearer_secret` for bearer-only
+  seams), never `get_session_token`, so the key covers integrations, voice,
+  embeddings, memory-host and socket calls too; only `/auth/*` session flows
+  need a signed-in user.
+  Every backend caller resolves its credential through
+  `resolve_backend_credential` (or `backend_bearer_secret` for bearer-only
+  seams), never `get_session_token`, so the key covers integrations, voice,
+  embeddings, memory-host and socket calls too; only `/auth/*` session flows
+  need a signed-in user.
 - The core never obtains, validates, exchanges or refreshes a credential.
   It takes one — a session JWT, an API key, or the offline local token —
   through `auth.set_credential` (`security::credentials::ops::credential`)
@@ -420,7 +430,10 @@ Cargo default features define the contributor build;
 `scripts/ci/product-features.txt` defines the shipped product. The Tauri shell
 disables default features, so product gates must be forwarded explicitly in
 `crates/openhuman-app/Cargo.toml` and checked by
-`scripts/ci/check-feature-forwarding.mjs`. Test both enabled and disabled
+`scripts/ci/check-feature-forwarding.mjs`. The same gate checks the library
+chain: a core gate must be forwarded by `openhuman-embed`, then
+`openhuman-tinyhumans`, then `openhuman-cli`, or be listed in
+`CHAIN_GATES_NOT_FORWARDED` / `CHAIN_LOCAL_GATES` with a reason. Test both enabled and disabled
 builds after changing a gate. Use `scripts/assert-shed.sh` or
 `scripts/dep-sim.py` before claiming a dependency reduction.
 
@@ -638,6 +651,12 @@ serialization.
   `tinyhumansai/openhuman`.
 - Use the issue and PR templates.
 - Fix hook failures caused by your changes.
+- `.husky/pre-push` runs `rust:clippy` only when the push carries Rust
+  (`*.rs`, a manifest, `.cargo/`, `.gitmodules`, `crates/`, `vendor/`,
+  `rust-toolchain.toml`); it runs
+  anyway when the range cannot be resolved, or with
+  `PRE_PUSH_FORCE_CLIPPY=1`. `scripts/__tests__/pre-push-hook.test.mjs`
+  covers the hook.
 - macOS deep links require a built app bundle.
 - Windows registers `openhuman://` through `tauri-plugin-deep-link`.
 - Standalone debugging uses `./target/debug/openhuman-core serve`. Public

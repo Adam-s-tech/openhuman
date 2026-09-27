@@ -2,8 +2,7 @@
 
 use crate::backend::BackendClient;
 use crate::config::Config;
-use crate::core::Outcome;
-use crate::security::credentials::jwt::get_session_token;
+use crate::rpc::RpcOutcome;
 
 pub use tinyinference_voice::cloud::{CloudTranscribeOptions, CloudTranscribeResult};
 
@@ -12,30 +11,43 @@ pub async fn transcribe_cloud(
     config: &Config,
     audio_base64: &str,
     options: &CloudTranscribeOptions,
-) -> Result<Outcome<CloudTranscribeResult>, String> {
-    let token = get_session_token(config)
-        .map_err(|error| error.to_string())?
-        .filter(|token| !token.trim().is_empty())
-        .ok_or_else(|| "no backend session token; sign in first".to_string())?;
-    if crate::security::credentials::session_support::is_local_session_token(&token) {
-        log::debug!("[voice][cloud_stt] offline local session — hosted STT unavailable");
-        return Err(
-            crate::security::credentials::session_support::LOCAL_SESSION_BACKEND_UNAVAILABLE
-                .to_string(),
-        );
-    }
-    let client = BackendClient::new(&crate::backend::require_base_url(&config.api_url)?)
-        .map_err(|error| error.to_string())?;
+) -> Result<RpcOutcome<CloudTranscribeResult>, String> {
+    // The session JWT or the TinyHumans API key. The vendored client sends it
+    // as `Authorization: Bearer`, which the backend accepts for either.
+    let credential =
+        crate::security::credentials::session_support::resolve_backend_credential(config)?;
+    let is_api_key = credential.is_api_key();
+    let client = BackendClient::from_config(config).map_err(|error| error.to_string())?;
     let url = client
         .url_for("/openai/v1/audio/transcriptions")
         .map_err(|error| error.to_string())?;
+    let safe_for_bearer =
+        crate::inference::provider::openhuman_backend_model::is_safe_endpoint_for_managed_bearer(
+            url.as_str(),
+        );
+    let managed_for_api_key =
+        crate::inference::provider::openhuman_backend_model::is_managed_endpoint_for_api_key(
+            url.as_str(),
+        );
+    if !safe_for_bearer || (is_api_key && !managed_for_api_key) {
+        return Err(
+            "refusing to send the TinyHumans API key over a non-HTTPS, non-loopback endpoint"
+                .to_string(),
+        );
+    }
     let http = client
         .raw_client()
         .map_err(crate::backend::flatten_authed_error)?;
-    let result = tinyinference_voice::cloud::transcribe(&http, url, &token, audio_base64, options)
-        .await
-        .map_err(classify_transcribe_error)?;
-    Ok(Outcome::single_log(
+    let result = tinyinference_voice::cloud::transcribe(
+        &http,
+        url,
+        credential.secret(),
+        audio_base64,
+        options,
+    )
+    .await
+    .map_err(|error| classify_transcribe_error(error, is_api_key))?;
+    Ok(RpcOutcome::single_log(
         result,
         "cloud STT via POST /openai/v1/audio/transcriptions",
     ))
@@ -45,10 +57,15 @@ pub async fn transcribe_cloud(
 /// the app-session JWT to the hosted backend, so a 401 here is the session
 /// lapsing — the JSON-RPC layer then re-auths instead of paging Sentry with
 /// the raw `transcription request failed (401 …)` string.
-fn classify_transcribe_error(error: String) -> String {
+fn classify_transcribe_error(error: String, is_api_key: bool) -> String {
     if error.starts_with("transcription request failed (401") {
-        log::info!("[voice][cloud_stt] backend rejected the session (401)");
-        format!("SESSION_EXPIRED: {error}")
+        if is_api_key {
+            log::info!("[voice][cloud_stt] backend rejected the API key (401)");
+            format!("API_KEY_REJECTED: {error}")
+        } else {
+            log::info!("[voice][cloud_stt] backend rejected the session (401)");
+            format!("SESSION_EXPIRED: {error}")
+        }
     } else {
         error
     }

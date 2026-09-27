@@ -403,12 +403,8 @@ impl BackendClient {
 
     /// Generic authenticated JSON request helper for backend API routes.
     ///
-    /// `credential` accepts a [`BackendCredential`] (from
-    /// `session_support::resolve_backend_credential`) or, for the many callers
-    /// that still hold a bare session token string, a `&str` / `&String`,
-    /// which is treated as a session JWT. The transport puts it on the wire
-    /// the backend expects for its kind: a session JWT as `Authorization:
-    /// Bearer`, an API key as `x-api-key` (see `security::credentials::api_key`).
+    /// `credential` accepts a [`BackendCredential`] or a bare session token.
+    /// The transport sends API keys as `x-api-key` and sessions as Bearer JWTs.
     pub async fn authed_json(
         &self,
         credential: impl Into<BackendCredential>,
@@ -418,6 +414,18 @@ impl BackendClient {
     ) -> Result<Value> {
         let credential = credential.into();
         let is_api_key = credential.is_api_key();
+        if is_api_key
+            && !crate::inference::provider::openhuman_backend_model::is_managed_endpoint_for_api_key(
+                self.base.as_str(),
+            )
+        {
+            anyhow::bail!("TinyHumans API key requires the managed backend or a loopback endpoint");
+        }
+        if !crate::inference::provider::openhuman_backend_model::is_safe_endpoint_for_managed_bearer(
+            self.base.as_str(),
+        ) {
+            anyhow::bail!("backend credential requires HTTPS or a loopback HTTP endpoint");
+        }
         let transport = self.transport(&method, path)?;
         let response = transport
             .send_json(BackendRequest {
@@ -675,17 +683,8 @@ impl BackendClient {
                     url.path(),
                 );
             } else {
-                // Enrich the report with the two fields triage needs to pin a
-                // non-2xx's origin: the outbound `host` and a PII-safe `body_shape`
-                // (top-level JSON key names only — never values; see
-                // `backend_api_body_shape`). `report_error` previously logged only
-                // `response_body_len`, leaving us blind when a client hits a
-                // non-canonical backend (custom BACKEND_URL / proxy / foreign
-                // host) — TAURI-RUST-8C: 12k `GET /teams/me/usage` 404s from one
-                // user whose 91-byte body matched no route this backend emits,
-                // un-diagnosable because neither host nor shape was captured.
-                // `host_str()` carries no scheme/path/query/token. Telemetry only
-                // — the error still propagates below (no suppression).
+                // Record the host and JSON key names to locate misrouted
+                // backend errors without sending response values (TAURI-RUST-8C).
                 let host = url.host_str().unwrap_or("");
                 let body_shape = backend_api_body_shape(&text);
                 crate::core::observability::report_error(

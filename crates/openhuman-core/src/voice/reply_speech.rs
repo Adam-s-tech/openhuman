@@ -22,8 +22,7 @@ use serde_json::{json, Value};
 
 use crate::backend::BackendClient;
 use crate::config::Config;
-use crate::core::Outcome;
-use crate::security::credentials::jwt::get_session_token;
+use crate::rpc::RpcOutcome;
 
 const LOG_PREFIX: &str = "[voice_reply]";
 
@@ -125,7 +124,7 @@ pub async fn synthesize_reply(
     config: &Config,
     text: &str,
     opts: &ReplySpeechOptions,
-) -> Result<Outcome<ReplySpeechResult>, String> {
+) -> Result<RpcOutcome<ReplySpeechResult>, String> {
     let trimmed = text.trim();
     if trimmed.is_empty() {
         return Err("text is required".to_string());
@@ -145,7 +144,7 @@ pub async fn synthesize_reply(
             .lock()
             .unwrap()
             .push(trimmed.to_string());
-        return Ok(Outcome::single_log(
+        return Ok(RpcOutcome::single_log(
             ReplySpeechResult {
                 audio_base64: String::new(),
                 audio_mime: "audio/mpeg".to_string(),
@@ -156,17 +155,9 @@ pub async fn synthesize_reply(
         ));
     }
 
-    let token = get_session_token(config)
-        .map_err(|e| e.to_string())?
-        .and_then(|t| {
-            let s = t.trim().to_string();
-            if s.is_empty() {
-                None
-            } else {
-                Some(s)
-            }
-        })
-        .ok_or_else(|| "no backend session token; sign in first".to_string())?;
+    // API key (sent as `x-api-key`) or live session JWT (sent as Bearer).
+    let credential =
+        crate::security::credentials::session_support::resolve_backend_credential(config)?;
 
     let api_url = crate::backend::require_base_url(&config.api_url)?;
     let client = BackendClient::new(&api_url).map_err(|e| e.to_string())?;
@@ -212,7 +203,7 @@ pub async fn synthesize_reply(
 
     // `flatten_authed_error` maps the typed `BackendApiError::Unauthorized`
     // (expected session-lapse 401 from `authed_json`) onto the `SESSION_EXPIRED`
-    // sentinel so the JSON-RPC layer (`openhuman-rpc/src/server/classify.rs::is_session_expired_error`)
+    // sentinel so the JSON-RPC layer (`core/jsonrpc.rs::is_session_expired_error`)
     // classifies it as session expiry and skips Sentry, matching the #3384
     // team/billing pattern. The previous `e.to_string()` produced the raw
     // "backend rejected session token on POST /openai/v1/audio/speech" Display
@@ -221,7 +212,7 @@ pub async fn synthesize_reply(
     // keeps its full `{e:#}` anyhow chain so genuine TTS failures still report.
     let raw = client
         .authed_json(
-            &token,
+            &credential,
             Method::POST,
             "/openai/v1/audio/speech",
             Some(Value::Object(body)),
@@ -237,7 +228,7 @@ pub async fn synthesize_reply(
         result.alignment.as_ref().map_or(0, Vec::len)
     );
 
-    Ok(Outcome::single_log(
+    Ok(RpcOutcome::single_log(
         result,
         "voice reply synthesized via POST /openai/v1/audio/speech",
     ))

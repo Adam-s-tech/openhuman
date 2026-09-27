@@ -389,6 +389,10 @@ impl SocketManager {
         provider: TokenProvider,
         token: String,
     ) -> Result<(), String> {
+        let ws_url = super::url::websocket_url(url);
+        if !super::url::is_safe_socket_endpoint(&ws_url) {
+            return Err("socket credential requires WSS or a loopback WS endpoint".to_string());
+        }
         // Ensure the rustls crypto provider is installed (needed for wss:// TLS).
         // This is a no-op if already installed.
         let _ = rustls::crypto::ring::default_provider().install_default();

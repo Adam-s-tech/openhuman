@@ -183,32 +183,13 @@ pub(super) async fn finalize_channel_reply(
     }
 }
 
-/// The session JWT the backend channel relay authenticates with, or `None`
-/// (logged at debug) when there is none to use: no TinyHumans connection, the
-/// user signed out while a relay message was in flight, the offline local
-/// session, or an API-key-only runtime (the relay binds a user session). All
-/// are user or build state, not faults, so nothing reaches Sentry.
-fn relay_session_token(config: &crate::config::Config, op: &str) -> Option<String> {
-    use crate::security::credentials::session_support::{
-        direct_backend_credential, BackendCredential,
-    };
-    match direct_backend_credential(config, "channel relay") {
-        Some(BackendCredential::Session(token)) => Some(token),
-        Some(BackendCredential::ApiKey(_)) => {
-            tracing::debug!("[channel-inbound] api-key runtime has no relay session — cannot {op}");
-            None
-        }
-        None => {
-            tracing::debug!("[channel-inbound] no hosted session — cannot {op}");
-            None
-        }
-    }
-}
-
-/// Construct the REST client + session JWT shared by every outbound
-/// channel call on this turn. Returns `None` and logs if either is
+/// Construct the REST client + backend credential (API key or session JWT)
+/// shared by every outbound channel call on this turn. Returns `None` and logs if either is
 /// unavailable so the caller can bail quietly.
-pub(super) async fn build_channel_client() -> Option<(crate::backend::BackendClient, String)> {
+pub(super) async fn build_channel_client() -> Option<(
+    crate::backend::BackendClient,
+    crate::security::credentials::session_support::BackendCredential,
+)> {
     let config = match crate::config::rpc::load_config_with_timeout().await {
         Ok(c) => c,
         Err(e) => {
@@ -216,7 +197,24 @@ pub(super) async fn build_channel_client() -> Option<(crate::backend::BackendCli
             return None;
         }
     };
-    let jwt = relay_session_token(&config, "send")?;
+    let jwt = match crate::security::credentials::session_support::get_session_token(&config) {
+        Ok(Some(token))
+            if !crate::security::credentials::session_support::is_local_session_token(&token) =>
+        {
+            crate::security::credentials::session_support::BackendCredential::Session(token)
+        }
+        Ok(_) => {
+            tracing::error!("[channel-inbound] no hosted user session — cannot send");
+            return None;
+        }
+        Err(e) => {
+            tracing::error!(
+                "[channel-inbound] no backend credential — cannot send: {}",
+                e
+            );
+            return None;
+        }
+    };
     match crate::backend::BackendClient::from_config(&config) {
         Ok(c) => Some((c, jwt)),
         Err(e) => {
@@ -236,8 +234,23 @@ pub(super) async fn send_channel_reply(channel: &str, text: &str) {
         }
     };
 
-    let Some(jwt) = relay_session_token(&config, "reply") else {
-        return;
+    let jwt = match crate::security::credentials::session_support::get_session_token(&config) {
+        Ok(Some(token))
+            if !crate::security::credentials::session_support::is_local_session_token(&token) =>
+        {
+            crate::security::credentials::session_support::BackendCredential::Session(token)
+        }
+        Ok(_) => {
+            tracing::error!("[channel-inbound] no hosted user session — cannot send");
+            return;
+        }
+        Err(e) => {
+            tracing::error!(
+                "[channel-inbound] no backend credential — cannot reply: {}",
+                e
+            );
+            return;
+        }
     };
 
     let client = match crate::backend::BackendClient::from_config(&config) {
