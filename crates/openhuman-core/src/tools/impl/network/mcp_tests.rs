@@ -383,7 +383,12 @@ async fn encoded_query_secrets_are_redacted_from_successful_results() {
     );
     for result in [
         call_tool(registry.clone())
-            .execute_with_options(call_args(), ToolCallOptions { prefer_markdown: true })
+            .execute_with_options(
+                call_args(),
+                ToolCallOptions {
+                    prefer_markdown: true,
+                },
+            )
             .await
             .expect("call"),
         McpListToolsTool::new(registry)
