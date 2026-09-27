@@ -73,9 +73,10 @@ async function renderLoaded(overrides: Partial<SandboxSettings> = {}) {
   // getBy* accessors below then query a DOM that has no fields in it yet. The
   // same trap is described under flushPersist; it applies to readiness too.
   //
-  // The backend select is rendered only by the loaded branch and by every
-  // override these tests pass, so awaiting it is the signal that was meant.
-  await screen.findByRole('combobox', { name: /backend/i });
+  // The backend radio group is rendered only by the loaded branch and by
+  // every override these tests pass, so awaiting it is the signal that was
+  // meant.
+  await screen.findByRole('radiogroup', { name: /backend/i });
 }
 
 /**

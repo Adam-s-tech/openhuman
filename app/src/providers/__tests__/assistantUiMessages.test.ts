@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import type { ToolTimelineEntry } from '../../store/chatRuntimeSlice';
+import { CHAT_ERROR_METADATA_KEY } from '../../store/threadSlice';
 import type { ThreadMessage } from '../../types/thread';
 import {
   buildRuntimeMessages,
@@ -60,6 +61,26 @@ describe('toThreadMessageLike', () => {
     const m = msg({ id: 'meta', extraMetadata: { requestId: 'r1' } });
     expect(toThreadMessageLike(m).metadata?.custom).toMatchObject({
       extraMetadata: { requestId: 'r1' },
+    });
+  });
+
+  it('shows a failed turn through assistant-ui error status without raw link markup', () => {
+    const content =
+      'Something went wrong. Please try again.\n<openhuman-link path="community/discord-report">Report on Discord</openhuman-link>\n\n> Provider detail';
+    const converted = toThreadMessageLike(
+      msg({
+        id: 'failed-turn',
+        sender: 'agent',
+        content,
+        extraMetadata: { [CHAT_ERROR_METADATA_KEY]: { errorType: 'inference' } },
+      })
+    );
+
+    expect(converted.content).toEqual([]);
+    expect(converted.status).toEqual({
+      type: 'incomplete',
+      reason: 'error',
+      error: 'Something went wrong. Please try again.\n\n> Provider detail',
     });
   });
 
@@ -144,10 +165,14 @@ describe('streamingTailMessage', () => {
     const complete = streamingTailMessage(null, [
       tool({ id: 'sub-1', name: 'subagent:researcher', status: 'success', subagent }),
     ]);
+    // `result` is `{status, activity}`, not the bare activity: the outer row's
+    // OWN `entry.status` is what settles reliably (`subagentDone` never
+    // touches `activity.status` itself), so `SubagentTaskCard` reads that
+    // rather than the activity's possibly-stale `status` field.
     expect(complete?.content[0]).toMatchObject({
       type: 'tool-call',
       toolName: 'task',
-      result: subagent,
+      result: { status: 'success', activity: subagent },
     });
   });
 });
@@ -788,16 +813,20 @@ describe('tool label on the part', () => {
       }),
     ]);
     expect(artifactOf(converted)).toEqual({
+      kind: 'openhuman-tool',
       displayName: 'Gmail send email',
       detail: 'me@example.com',
     });
   });
 
-  it('formats a row that arrived with no label from the tool identity', () => {
+  it('carries no artifact when the row has no server label — the renderer derives the label from tool identity', () => {
+    // `tool_search` is a client-known tool (an exact `toolSpecs.ts` entry), so
+    // `AssistantUiToolCall` resolves its own label through `describeToolCall`
+    // and never needs the artifact. Emitting one here would be pure noise.
     const converted = toThreadMessageLike(msg({ id: 'a', sender: 'agent', content: 'done' }), [
       tool({ id: 'c1', name: 'tool_search', status: 'success', argsBuffer: '{"query":"gmail"}' }),
     ]);
-    expect(artifactOf(converted)).toEqual({ displayName: 'Finding the right tool' });
+    expect(artifactOf(converted)).toBeUndefined();
   });
 });
 

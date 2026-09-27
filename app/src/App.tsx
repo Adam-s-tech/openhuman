@@ -24,6 +24,10 @@ import KeyringConsentOverlay from './components/keyring/KeyringConsentOverlay';
 import AppSidebar from './components/layout/shell/AppSidebar';
 import RootShellLayout from './components/layout/shell/RootShellLayout';
 import { SidebarSlotProvider } from './components/layout/shell/SidebarSlot';
+import WindowDragBar from './components/layout/shell/WindowDragBar';
+import WindowsWindowControls, {
+  isWindowsDesktop,
+} from './components/layout/shell/WindowsWindowControls';
 import LocalAIDownloadSnackbar from './components/LocalAIDownloadSnackbar';
 import NoticeCenter from './components/notices/NoticeCenter';
 import OpenhumanLinkModal from './components/OpenhumanLinkModal';
@@ -116,48 +120,52 @@ function App() {
    * @end-source:provider-chain
    */
   return (
-    <Sentry.ErrorBoundary
-      fallback={({ error, componentStack, resetError, eventId }) => (
-        <ErrorFallbackScreen
-          error={error}
-          componentStack={componentStack}
-          eventId={eventId}
-          onReset={resetError}
-        />
-      )}>
-      <Provider store={store}>
-        <PersistGate loading={<PersistRehydrationScreen />} persistor={persistor}>
-          <ThemeProvider>
-            <I18nProvider>
-              <BootCheckGate>
-                <CoreStateProvider>
-                  {socketWrapped(
-                    <ChatRuntimeProvider>
-                      <Router>
-                        <CommandProvider>
-                          <ServiceBlockingGate>
-                            <AnalyticsPageTracker />
-                            <AppShell />
-                            <SecurityBanner />
-                            {!onMobile && <DictationHotkeyManager />}
-                            {!onMobile && <PttHotkeyManager />}
-                            {!onMobile && <LocalAIDownloadSnackbar />}
-                            {!onMobile && <AppUpdatePrompt />}
-                            <KeyringConsentOverlay />
-                            <HarnessInitOverlay />
-                            <AnnouncementGate />
-                          </ServiceBlockingGate>
-                        </CommandProvider>
-                      </Router>
-                    </ChatRuntimeProvider>
-                  )}
-                </CoreStateProvider>
-              </BootCheckGate>
-            </I18nProvider>
-          </ThemeProvider>
-        </PersistGate>
-      </Provider>
-    </Sentry.ErrorBoundary>
+    <div className={`relative h-screen overflow-hidden ${isWindowsDesktop() ? 'rounded-xs' : ''}`}>
+      {!onMobile && <WindowDragBar />}
+      <Sentry.ErrorBoundary
+        fallback={({ error, componentStack, resetError, eventId }) => (
+          <ErrorFallbackScreen
+            error={error}
+            componentStack={componentStack}
+            eventId={eventId}
+            onReset={resetError}
+          />
+        )}>
+        <Provider store={store}>
+          <PersistGate loading={<PersistRehydrationScreen />} persistor={persistor}>
+            <ThemeProvider>
+              <I18nProvider>
+                {!onMobile && <WindowsWindowControls />}
+                <BootCheckGate>
+                  <CoreStateProvider>
+                    {socketWrapped(
+                      <ChatRuntimeProvider>
+                        <Router>
+                          <CommandProvider>
+                            <ServiceBlockingGate>
+                              <AnalyticsPageTracker />
+                              <AppShell />
+                              <SecurityBanner />
+                              {!onMobile && <DictationHotkeyManager />}
+                              {!onMobile && <PttHotkeyManager />}
+                              {!onMobile && <LocalAIDownloadSnackbar />}
+                              {!onMobile && <AppUpdatePrompt />}
+                              <KeyringConsentOverlay />
+                              <HarnessInitOverlay />
+                              <AnnouncementGate />
+                            </ServiceBlockingGate>
+                          </CommandProvider>
+                        </Router>
+                      </ChatRuntimeProvider>
+                    )}
+                  </CoreStateProvider>
+                </BootCheckGate>
+              </I18nProvider>
+            </ThemeProvider>
+          </PersistGate>
+        </Provider>
+      </Sentry.ErrorBoundary>
+    </div>
   );
 }
 
@@ -272,13 +280,9 @@ export function AppShellDesktop() {
           {chromeless ? (
             content
           ) : (
-            // Nothing sets `unframed` today. It existed for live CEF provider
-            // webviews — WebviewHost handed the Rust side a plain rectangle and
-            // CEF composited that child view above the whole HTML layer, so a
-            // rounded card under it showed four square corners punching through
-            // the radius. That surface was removed upstream along with
-            // WebviewHost, so no route needs the escape hatch right now; the
-            // prop stays on the primitive for the next full-bleed surface.
+            // The root surface is full-bleed by default. The floating sidebar
+            // supplies the inset/elevation; another rounded outer card would
+            // expose an unnecessary band of window chrome around the content.
             <RootShellLayout sidebar={<AppSidebar />}>{content}</RootShellLayout>
           )}
         </div>

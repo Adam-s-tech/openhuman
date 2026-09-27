@@ -1,6 +1,7 @@
 import { Dialog as DialogPrimitive } from 'radix-ui';
 
 import { cn } from '../../../../lib/cn';
+import { useT } from '../../../../lib/i18n/I18nContext';
 import type { NetworkFilterId } from '../WalletBalancesPanel';
 
 interface SelectNetworkModalProps {
@@ -20,22 +21,23 @@ export default function SelectNetworkModal({
   networkFilters,
   chainIcons,
 }: SelectNetworkModalProps) {
+  const { t } = useT();
   return (
     <DialogPrimitive.Root open={open} onOpenChange={(next: boolean) => !next && onClose()}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm duration-200 animate-in fade-in data-[state=closed]:animate-out data-[state=closed]:fade-out" />
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-surface-overlay/60 backdrop-blur-sm duration-200 animate-in fade-in data-[state=closed]:animate-out data-[state=closed]:fade-out" />
         <DialogPrimitive.Content
           aria-describedby={undefined}
           className="fixed left-1/2 top-1/2 z-50 w-full max-w-[340px] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-surface p-0 shadow-2xl duration-200 animate-in fade-in zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out data-[state=closed]:zoom-out-95">
           <div className="flex items-center justify-between border-b border-line-subtle px-4 py-4">
             <div className="w-8" />
             <DialogPrimitive.Title className="text-sm font-semibold text-content m-0 p-0">
-              Select network
+              {t('wallet.selectNetwork.title', 'Select network')}
             </DialogPrimitive.Title>
             <button
               onClick={onClose}
               className="flex h-8 w-8 items-center justify-center rounded-full text-content-muted hover:bg-surface-hover hover:text-content transition-colors"
-              aria-label="Close">
+              aria-label={t('common.close', 'Close')}>
               <svg
                 className="h-5 w-5"
                 fill="none"

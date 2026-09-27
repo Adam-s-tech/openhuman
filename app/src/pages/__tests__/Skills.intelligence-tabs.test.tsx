@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import '../../test/mockDefaultSkillStatusHooks';
@@ -20,6 +20,9 @@ vi.mock('../../components/settings/panels/EmbeddingsPanel', () => ({
 }));
 vi.mock('../../components/settings/panels/SearchPanel', () => ({
   default: () => <div data-testid="skills-search-panel" />,
+}));
+vi.mock('../../components/settings/panels/BrowserConnectionsPanel', () => ({
+  default: () => <div data-testid="skills-browser-panel" />,
 }));
 vi.mock('../../components/settings/panels/ComposioPanel', () => ({
   default: () => <div data-testid="skills-composio-panel" />,
@@ -72,11 +75,20 @@ vi.mock('../../utils/tauriCommands', async () => {
 });
 
 describe('Skills page — API keys (intelligence) tabs', () => {
+  it('groups Browser and Desktop Control with integrations', () => {
+    renderWithProviders(<Skills />, { initialEntries: ['/connections?tab=browser'] });
+    const group = screen.getByText('Integrations').parentElement?.parentElement;
+    expect(group).toBeTruthy();
+    expect(within(group!).getByTestId('two-pane-nav-browser')).toBeInTheDocument();
+    expect(within(group!).getByTestId('two-pane-nav-desktop')).toBeInTheDocument();
+  });
+
   it.each([
     ['llm', 'skills-llm-panel'],
     ['voice', 'skills-voice-panel'],
     ['embeddings', 'skills-embeddings-panel'],
     ['search', 'skills-search-panel'],
+    ['browser', 'skills-browser-panel'],
     ['usage', 'skills-usage-panel'],
     ['composio-key', 'skills-composio-panel'],
   ])('renders the %s panel for ?tab=%s', async (tab, testId) => {

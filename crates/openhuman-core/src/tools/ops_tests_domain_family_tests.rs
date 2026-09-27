@@ -306,8 +306,14 @@ async fn readonly_acting_tools_carry_policy_blocked_marker() {
         // The `computer`-family tools are compiled out with the
         // `desktop-automation` feature; gate these two cases per-element so the
         // rest of the read-only policy assertions still run in the slim build.
+        #[cfg(feature = "modules")]
         (
-            Box::new(BrowserOpenTool::new(sec.clone(), vec![])),
+            Box::new(BrowserOpenTool::new(
+                sec.clone(),
+                Arc::new(crate::modules::browser::BrowserClient::new(Arc::new(
+                    crate::config::Config::default(),
+                ))),
+            )),
             serde_json::json!({ "url": "https://example.com" }),
         ),
         (
@@ -572,7 +578,18 @@ fn account_tools_survive_a_narrow_user_preference_set() {
 fn desktop_tools_are_registered() {
     let tmp = TempDir::new().unwrap();
     let names = tool_names(&expansion_tools_for(&tmp));
+    if !cfg!(feature = "modules") {
+        assert!(!names.iter().any(|name| name.starts_with("desktop_")));
+        return;
+    }
     assert_contains_all(&names, DESKTOP_TOOLS);
+    assert!(names.iter().any(|name| name == "desktop_goal"));
+    assert!(names.iter().any(|name| name == "desktop_launch"));
+    assert!(names.iter().any(|name| name == "desktop_snapshot"));
+    assert!(
+        !names.iter().any(|name| name == "desktop_act"),
+        "raw ref actions must not enter the agent/tool_search registry"
+    );
 }
 
 #[test]

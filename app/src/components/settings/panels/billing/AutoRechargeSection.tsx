@@ -153,7 +153,7 @@ const AutoRechargeSection = ({
           {/* Status row */}
           <div className="flex items-center gap-3 flex-wrap">
             {arSettings.inFlight && (
-              <span className="flex items-center gap-1 text-[10px] text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-full px-2 py-0.5">
+              <Badge variant="warning" dot={false}>
                 <svg className="w-2.5 h-2.5 animate-spin" fill="none" viewBox="0 0 24 24">
                   <circle
                     className="opacity-25"
@@ -170,7 +170,7 @@ const AutoRechargeSection = ({
                   />
                 </svg>
                 {t('settings.billing.autoRecharge.rechargeInProgress')}
-              </span>
+              </Badge>
             )}
             {arSettings.spentThisWeekUsd > 0 && (
               <span className="text-[10px] text-content-faint">

@@ -259,8 +259,9 @@ pub async fn rpc_handler(State(state): State<AppState>, Json(req): Json<RpcReque
 ///
 /// This is a high-level wrapper around [`invoke_method_inner`] that adds
 /// automatic session management logic. If a call fails with a confirmed
-/// OpenHuman session-expired error, it will automatically clear the local
-/// session.
+/// OpenHuman session-expired error, it publishes the event that clears a
+/// backend session. The offline local credential has no backend session to
+/// expire and receives a recoverable hosted-unavailable error instead.
 ///
 /// # Arguments
 ///
@@ -268,7 +269,7 @@ pub async fn rpc_handler(State(state): State<AppState>, Json(req): Json<RpcReque
 /// * `method` - The name of the method to invoke.
 /// * `params` - The JSON parameters for the method.
 pub async fn invoke_method(state: AppState, method: &str, params: Value) -> Result<Value, String> {
-    let result = invoke_method_inner(state, method, params).await;
+    let mut result = invoke_method_inner(state, method, params).await;
 
     // Session auto-cleanup: if the OpenHuman auth session is explicitly
     // expired, publish a `SessionExpired` event. The credentials subscriber
@@ -279,24 +280,35 @@ pub async fn invoke_method(state: AppState, method: &str, params: Value) -> Resu
     if let Err(ref msg) = result {
         let sanitized_reason = tinyinference_core::sanitize::sanitize_api_error(msg);
         if is_session_expired_error(msg) {
-            log::warn!(
-                "[jsonrpc] confirmed session expiry for method='{}' — publishing SessionExpired: {}",
-                method,
-                sanitized_reason
-            );
-            // pasted-through provider replies. `sanitize_api_error` runs
-            // `scrub_secret_patterns` and truncates.
-            //
-            // Local-session protection is handled by `SessionExpiredSubscriber`
-            // in `crates/openhuman-core/src/security/credentials/bus.rs` — it checks `is_local_session_token`
-            // after config load and short-circuits teardown with
-            // `scheduler_gate::set_signed_out(false)`. Duplicating that check
-            // here would pull a domain concern into the transport layer and would
-            // add an extra config-load round-trip on every 401.
-            crate::core::bus::BUS.publish(crate::core::events::DomainEvent::SessionExpired {
-                source: format!("jsonrpc.invoke_method:{method}"),
-                reason: sanitized_reason,
-            });
+            // The subscriber ignores an offline local session, but Socket.IO
+            // also hears this event and broadcasts sign-out independently.
+            // Suppress it at the publisher for backend-only routes that the
+            // local credential cannot use. This extra config read happens only
+            // on a classified session-expiry error, never on the normal path.
+            let local =
+                crate::security::credentials::session_support::current_session_is_local().await;
+            if should_publish_session_expired(msg, local) {
+                log::warn!(
+                    "[jsonrpc] confirmed session expiry for method='{}' — publishing SessionExpired: {}",
+                    method,
+                    sanitized_reason
+                );
+                // `sanitize_api_error` scrubs pasted-through provider replies.
+                crate::core::bus::BUS.publish(crate::core::events::DomainEvent::SessionExpired {
+                    source: format!("jsonrpc.invoke_method:{method}"),
+                    reason: sanitized_reason,
+                });
+            } else {
+                log::info!(
+                    "[jsonrpc] backend session unavailable for local offline credential method='{}' — leaving local auth intact",
+                    method
+                );
+                // The RPC error is also observed by the renderer's auth
+                // classifier. Keep the background hosted probe recoverable
+                // without asking it to infer the core's credential kind.
+                result = Err(translate_local_session_error(msg, local)
+                    .expect("classified local session error"));
+            }
         } else if is_unconfirmed_unauthorized_error(msg) {
             log::info!(
                 "[jsonrpc] unconfirmed unauthorized error for method='{}' (not session expiry) — leaving session intact: {}",
@@ -309,6 +321,19 @@ pub async fn invoke_method(state: AppState, method: &str, params: Value) -> Resu
     result
 }
 
+fn should_publish_session_expired(msg: &str, credential_is_local: bool) -> bool {
+    is_session_expired_error(msg) && !credential_is_local
+}
+
+fn translate_local_session_error(msg: &str, credential_is_local: bool) -> Option<String> {
+    (credential_is_local && is_session_expired_error(msg)).then(|| {
+        format!(
+            "{}Hosted account data is unavailable in local offline mode",
+            crate::core::observability::BACKEND_UNAVAILABLE_PREFIX
+        )
+    })
+}
+
 /// Helper to determine if an error message indicates an expired or invalid
 /// OpenHuman backend session.
 ///
@@ -319,7 +344,7 @@ pub async fn invoke_method(state: AppState, method: &str, params: Value) -> Resu
 /// Anthropic failures, Composio direct-mode errors) to clear the user's session
 /// and log them out. The fix distinguishes between:
 ///
-/// - **OpenHuman backend 401s** (`authed_json` in `crates/openhuman-core/src/api/rest.rs`): formatted
+/// - **OpenHuman backend 401s** (`authed_json` in `crates/openhuman-core/src/backend/client.rs`): formatted
 ///   as `"{METHOD} /path failed (401 Unauthorized): {body}"`, e.g.
 ///   `"GET /teams failed (401 Unauthorized): {"success":false}"`. These always
 ///   start with an HTTP method verb followed by a space and a forward slash.
@@ -1302,9 +1327,10 @@ async fn domain_events_handler(headers: axum::http::HeaderMap) -> Response {
 /// Handler for the root endpoint, returning server information and available endpoints.
 #[cfg(feature = "http-server")]
 async fn root_handler() -> impl IntoResponse {
+    // `null` when no backend transport is installed.
     let api_server = match crate::config::Config::load_or_init().await {
-        Ok(cfg) => crate::api::config::effective_backend_api_url(&cfg.api_url),
-        Err(_) => crate::api::config::effective_backend_api_url(&None),
+        Ok(cfg) => crate::backend::base_url(&cfg.api_url).ok(),
+        Err(_) => crate::backend::base_url(&None).ok(),
     };
 
     (
@@ -1485,6 +1511,10 @@ async fn run_server_with_services(
     let mut builder = crate::core::runtime::CoreBuilder::new(host_kind)
         .token(token)
         .services(services);
+    // The browser E2E harness scripts direct tool calls through its mock model.
+    // Keep production's fail-closed packed default, while making those calls
+    // visible in the deterministic test core without changing library hosts.
+    builder = apply_e2e_tool_groups(builder);
     if let Some(host) = host {
         builder = builder.host(host);
     }
@@ -1494,6 +1524,16 @@ async fn run_server_with_services(
 
     let runtime = builder.build().await?;
     runtime.serve(ready_tx, shutdown_token).await
+}
+
+fn apply_e2e_tool_groups(
+    builder: crate::core::runtime::CoreBuilder,
+) -> crate::core::runtime::CoreBuilder {
+    if std::env::var_os("OPENHUMAN_E2E").is_some() {
+        builder.tool_groups(crate::tools::toolpacks::ToolGroups::advertised())
+    } else {
+        builder
+    }
 }
 
 /// Per-`DomainGroup` gating decision for each event-bus subscriber that
@@ -1704,7 +1744,7 @@ fn register_domain_subscribers(
             log::info!("[auth] api-key credential present at startup — scheduler gate signed in");
             crate::cron::scheduler_gate::set_signed_out(false);
         } else {
-            match crate::api::jwt::get_session_token(&config) {
+            match crate::security::credentials::jwt::get_session_token(&config) {
                 Ok(Some(_)) => {
                     crate::cron::scheduler_gate::set_signed_out(false);
                 }
@@ -2252,6 +2292,10 @@ pub async fn bootstrap_core_runtime(
     // disclosures reach the UI even on cores that skip `start_channels` or run
     // with the approval gate disabled. Idempotent (OnceLock-guarded).
     crate::web_chat::register_egress_surface_subscriber();
+    // Agent-surface bridge (goals/todos/queue, C3) — registered unconditionally
+    // for the same reason as the two bridges above: this JSON-RPC serve boot
+    // path can run without `start_channels`. Idempotent (OnceLock-guarded).
+    crate::web_chat::register_agent_surface_subscriber();
 
     if decision.install_gate {
         // Per-launch correlation token for the approval gate. This is
@@ -2290,6 +2334,10 @@ pub async fn bootstrap_core_runtime(
     // sets OPENHUMAN_APPROVAL_GATE=0 (CR #3328947323 on PR #3026). Idempotent
     // (OnceLock-guarded inside register_artifact_surface_subscriber).
     crate::web_chat::register_artifact_surface_subscriber();
+    // Memory-activity surface bridges DomainEvent::MemoryStored/Recalled onto
+    // the web channel's `memory_activity` event (C5) — same unconditional
+    // placement rationale as the bridges above. Idempotent (OnceLock-guarded).
+    crate::web_chat::register_memory_activity_surface_subscriber();
 
     // --- Workspace migrations --------------------------------------------
     crate::platform::startup::run_workspace_migrations(&workspace_dir);
@@ -2309,7 +2357,6 @@ pub async fn bootstrap_core_runtime(
 pub async fn start_core_runtime_services(
     services: crate::core::runtime::ServiceSet,
     config: Option<&crate::config::Config>,
-    flows_enabled: bool,
 ) {
     let Some(cfg) = config else {
         log::error!(
@@ -2333,11 +2380,7 @@ pub async fn start_core_runtime_services(
 
     match crate::platform::socket::global_socket_manager() {
         Some(socket_mgr) => {
-            crate::core::runtime::services::spawn_socket_auto_connect(
-                services,
-                socket_mgr.clone(),
-                flows_enabled,
-            );
+            crate::core::runtime::services::spawn_socket_auto_connect(services, socket_mgr.clone());
         }
         None => {
             log::warn!(

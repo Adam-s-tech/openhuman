@@ -12,16 +12,23 @@ import { useState } from 'react';
 
 import { useT } from '../../../lib/i18n/I18nContext';
 import SettingsTabbedPage from '../../settings/layout/SettingsTabbedPage';
+import McpServerPanel from '../../settings/panels/McpServerPanel';
 import BetaIndicator from '../../ui/BetaIndicator';
 import McpServersTab, { type McpPageTab } from './McpServersTab';
 
+/**
+ * `clients` sets up external MCP clients (Claude Desktop, Cursor, …) to use
+ * OpenHuman as their server. It was the Settings → MCP Server page.
+ */
+type McpTab = McpPageTab | 'clients';
+
 interface McpServersPageProps {
-  initialTab?: McpPageTab;
+  initialTab?: McpTab;
 }
 
 const McpServersPage = ({ initialTab = 'servers' }: McpServersPageProps) => {
   const { t } = useT();
-  const [tab, setTab] = useState<McpPageTab>(initialTab);
+  const [tab, setTab] = useState<McpTab>(initialTab);
 
   return (
     <SettingsTabbedPage
@@ -30,14 +37,22 @@ const McpServersPage = ({ initialTab = 'servers' }: McpServersPageProps) => {
       headerAction={<BetaIndicator />}
       tabs={[
         { id: 'servers', label: t('mcp.tab.section.servers') },
+        { id: 'clients', label: t('mcp.tab.section.clients') },
         { id: 'json', label: t('mcp.tab.section.json') },
         { id: 'registry', label: t('mcp.tab.section.registry') },
       ]}
       value={tab}
       onChange={setTab}
       tabsAriaLabel={t('mcp.tab.tablistAria')}
-      tabsTestIdPrefix="mcp-page-tab">
-      <McpServersTab tab={tab} onTabChange={setTab} />
+      tabsTestIdPrefix="mcp-page-tab"
+      // The Servers table fills the body and scrolls its own rows; the other
+      // tabs are documents that scroll with the page.
+      scrollable={tab !== 'servers'}>
+      {tab === 'clients' ? (
+        <McpServerPanel embedded />
+      ) : (
+        <McpServersTab tab={tab} onTabChange={setTab} />
+      )}
     </SettingsTabbedPage>
   );
 };

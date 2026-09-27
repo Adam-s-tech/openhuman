@@ -14,13 +14,12 @@
  * - the flow-approval banner, the only Approve/Reject affordance for a paused
  *   tinyflows run;
  * - the in-flight / failed artifact deck;
- * - the background-processes button and the panel it opens.
  *
  * Each test fails against the pre-fix component with "unable to find" on the
  * element it names — that is the regression, not a styling detail.
  */
 import { combineReducers, configureStore } from '@reduxjs/toolkit';
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -29,15 +28,18 @@ import { SidebarSlotOutlet, SidebarSlotProvider } from '../../components/layout/
 // Type-only: erased at runtime, so it does not defeat `vi.hoisted`.
 import type { FlowApprovalRequest } from '../../hooks/useFlowApprovalRequests';
 import { chatSend } from '../../services/chatService';
+import { callCoreRpc } from '../../services/coreRpcClient';
 import chatRuntimeReducer, {
   type ArtifactSnapshot,
-  setToolTimelineForThread,
   type ToolTimelineEntry,
 } from '../../store/chatRuntimeSlice';
 import layoutReducer from '../../store/layoutSlice';
+import runModeReducer from '../../store/runModeSlice';
 import socketReducer from '../../store/socketSlice';
 import themeReducer from '../../store/themeSlice';
+import threadGoalReducer from '../../store/threadGoalSlice';
 import threadReducer from '../../store/threadSlice';
+import threadTodosReducer from '../../store/threadTodosSlice';
 import type { Thread, ThreadMessage } from '../../types/thread';
 
 // ── Hoisted mock state ─────────────────────────────────────────────────────
@@ -165,7 +167,10 @@ function buildStore(preload: Record<string, unknown> = {}) {
       layout: layoutReducer,
       socket: socketReducer,
       chatRuntime: chatRuntimeReducer,
+      runMode: runModeReducer,
       theme: themeReducer,
+      threadGoal: threadGoalReducer,
+      threadTodos: threadTodosReducer,
     }),
     preloadedState: preload as never,
   });
@@ -339,7 +344,7 @@ describe('assistant-ui chat surface — composer-adjacent cards', () => {
     await renderChat();
 
     expect(await screen.findByText('POST https://example.test/orders')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Approve once' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Approve' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Deny' })).toBeInTheDocument();
   });
 
@@ -349,18 +354,13 @@ describe('assistant-ui chat surface — composer-adjacent cards', () => {
     expect(await screen.findByText('Quarterly summary')).toBeInTheDocument();
   });
 
-  it('opens the background-processes panel from the composer toolbar', async () => {
+  it('hides the background-processes and run-mode controls for now', async () => {
     await renderChat({
       chatRuntime: { toolTimelineByThread: { [THREAD_ID]: [asyncSubagentRow()] } },
     });
 
-    const toggle = await screen.findByTestId('background-processes-toggle');
-    await act(async () => {
-      fireEvent.click(toggle);
-    });
-
-    // The panel is the only route to the sub-agent drawer on this surface.
-    expect(await screen.findByText('Researcher')).toBeInTheDocument();
+    expect(screen.queryByTestId('background-processes-toggle')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('run-mode-toggle')).not.toBeInTheDocument();
   });
 
   it('shows the prompt-injection advisory when the send is risky', async () => {
@@ -392,30 +392,42 @@ describe('assistant-ui chat surface — composer-adjacent cards', () => {
     );
   });
 
+  it('switches the run mode for a typed /plan instead of sending it to the model', async () => {
+    const store = await renderChat();
+
+    const input = await screen.findByRole('textbox', { name: 'Message input' });
+    await act(async () => {
+      input.textContent = '/plan';
+      fireEvent.input(input, { data: '/plan', inputType: 'insertText' });
+    });
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Send message' })).not.toBeDisabled()
+    );
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Send message' }));
+    });
+
+    await waitFor(() =>
+      expect(callCoreRpc).toHaveBeenCalledWith({
+        method: 'openhuman.agent_set_run_mode',
+        params: { thread_id: THREAD_ID, mode: 'plan' },
+      })
+    );
+    expect(store.getState().runMode.byThread[THREAD_ID]).toBe('plan');
+    expect(chatSend).not.toHaveBeenCalled();
+  });
+
   it('lists the thread files chip beside the model pill', async () => {
     await renderChat({ chatRuntime: { artifactsByThread: { [THREAD_ID]: [readyArtifact()] } } });
 
     expect(await screen.findByTestId('chat-files-chip')).toBeInTheDocument();
   });
 
-  it('keeps the composer toolbar live after mount, not frozen at first render', async () => {
-    // The toolbar controls reach the composer through `ComposerExtras`, which
-    // assistant-ui renders BY TYPE — so a slot that closes over the host node
-    // instead of reading it through a ref keeps whatever the first render
-    // produced. The badge would then never leave the state it mounted in: a
-    // sub-agent spawned mid-turn would be invisible for the rest of the turn.
-    const store = await renderChat();
-    const toggle = await screen.findByTestId('background-processes-toggle');
-    expect(within(toggle).queryByText('1')).toBeNull();
-
-    await act(async () => {
-      store.dispatch(
-        setToolTimelineForThread({ threadId: THREAD_ID, entries: [asyncSubagentRow()] })
-      );
-    });
-
-    expect(
-      within(await screen.findByTestId('background-processes-toggle')).getByText('1')
-    ).toBeInTheDocument();
+  it('places context usage in the right action cluster immediately before voice mode', async () => {
+    await renderChat();
+    const context = await screen.findByTestId('composer-context-usage');
+    const voice = screen.getByRole('button', { name: 'Voice mode' });
+    expect(context.parentElement).toBe(voice.parentElement);
+    expect(context.compareDocumentPosition(voice) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });

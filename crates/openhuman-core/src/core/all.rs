@@ -104,15 +104,6 @@ pub enum DomainGroup {
     Web3,
     Voice,
     Media,
-    /// Medulla integration: the cloud client (`medulla`), the folded session
-    /// runtime (`medulla_session`), the chat store (`medulla::chat`), and
-    /// authored harness workflows (`medulla_workflows`).
-    ///
-    /// One coarse family rather than four, because these are never
-    /// independently useful — a host that wants `medulla_session` always wants
-    /// `medulla` (it folds that domain's envelopes). Splitting them would add
-    /// drift surface for no reachable configuration.
-    Medulla,
     // Families carved out of the `Platform` catch-all once the domain reorg
     // (#5328) gave each one a directory to be named after. Before that, half the
     // controller surface was tagged `Platform` purely because there was no
@@ -148,7 +139,7 @@ pub enum DomainGroup {
 
 impl DomainGroup {
     /// Number of variants. Kept in sync by `domain_group_all_lists_every_variant`.
-    pub const COUNT: usize = 21;
+    pub const COUNT: usize = 20;
 
     /// Every variant, for exhaustive iteration in drift guards.
     ///
@@ -172,7 +163,6 @@ impl DomainGroup {
         DomainGroup::Web3,
         DomainGroup::Voice,
         DomainGroup::Media,
-        DomainGroup::Medulla,
         DomainGroup::Inference,
         DomainGroup::Integrations,
         DomainGroup::Automation,
@@ -200,15 +190,14 @@ impl DomainGroup {
             DomainGroup::Web3 => 9,
             DomainGroup::Voice => 10,
             DomainGroup::Media => 11,
-            DomainGroup::Medulla => 12,
-            DomainGroup::Inference => 13,
-            DomainGroup::Integrations => 14,
-            DomainGroup::Automation => 15,
-            DomainGroup::Runtimes => 16,
-            DomainGroup::Desktop => 17,
-            DomainGroup::Hosted => 18,
-            DomainGroup::Modules => 19,
-            DomainGroup::Platform => 20,
+            DomainGroup::Inference => 12,
+            DomainGroup::Integrations => 13,
+            DomainGroup::Automation => 14,
+            DomainGroup::Runtimes => 15,
+            DomainGroup::Desktop => 16,
+            DomainGroup::Hosted => 17,
+            DomainGroup::Modules => 18,
+            DomainGroup::Platform => 19,
         }
     }
 }
@@ -677,11 +666,27 @@ fn build_registered_controllers() -> Vec<GroupedController> {
         DomainGroup::Agent,
         crate::agent::plan_review::all_plan_review_registered_controllers(),
     );
+    // Per-thread Plan/Build run mode (agent.set_run_mode / agent.get_run_mode)
+    push(
+        &mut controllers,
+        DomainGroup::Agent,
+        crate::agent::tinyagents::run_mode::all_registered_controllers(),
+    );
     // Agent-generated artifact storage, retrieval, and lifecycle management
     push(
         &mut controllers,
         DomainGroup::Agent,
         crate::agent::artifacts::all_artifacts_registered_controllers(),
+    );
+    // Read-only command palette listing: built-ins merged with skills.list /
+    // flows.list (C5). Tagged `Agent` rather than a new `DomainGroup` variant
+    // — it is chat-harness surface, always on, and adding a variant for this
+    // single-RPC domain would touch every exhaustive `DomainGroup` match in
+    // this file.
+    push(
+        &mut controllers,
+        DomainGroup::Agent,
+        crate::commands::all_commands_registered_controllers(),
     );
     // Ad-hoc static directory HTTP hosting for local file sharing / previews.
     // Gated with the `http-server` feature (#5048): the domain is an axum server,
@@ -797,17 +802,6 @@ fn build_registered_controllers() -> Vec<GroupedController> {
         &mut controllers,
         DomainGroup::Runtimes,
         crate::runtime::javascript::all_javascript_registered_controllers(),
-    );
-    // Medulla integration: readiness, durable sessions, and the connected worker
-    // roster against the Medulla orchestration backend. Registration-site gate
-    // like `flows` — with the `medulla` feature off these methods are absent
-    // (unknown-method), which is what lets a host hide the surface instead of
-    // rendering a failure.
-    #[cfg(feature = "medulla")]
-    push(
-        &mut controllers,
-        DomainGroup::Medulla,
-        crate::medulla::all_medulla_registered_controllers(),
     );
     // Discovered SKILL.md skills and their bundled resources
     push(
@@ -1116,6 +1110,12 @@ fn build_registered_controllers() -> Vec<GroupedController> {
 /// (e.g. the desktop shell) that should not appear in agent tool listings.
 fn build_internal_only_controllers() -> Vec<GroupedController> {
     let mut controllers = Vec::new();
+    #[cfg(feature = "modules")]
+    push(
+        &mut controllers,
+        DomainGroup::Desktop,
+        crate::desktop::control::all_registered_controllers(),
+    );
     // MCP write audit list: internal-only so the desktop UI/CLI can inspect
     // local write history without exposing cross-client history as an MCP tool.
     push(
@@ -1182,6 +1182,7 @@ pub fn rpc_method_name(schema: &ControllerSchema) -> String {
 pub fn namespace_description(namespace: &str) -> Option<&'static str> {
     match namespace {
         "about_app" => Some("Catalog the app's user-facing capabilities and where to find them."),
+        "agent" => Some("Per-thread agent run-mode control (Plan vs Build)."),
         "ai" => Some("Agent-generated artifact storage, retrieval, and lifecycle management."),
         "app_state" => Some("Expose core-owned app shell state for frontend polling."),
         "auth" => Some("Manage app session and provider credentials."),
@@ -1212,7 +1213,6 @@ pub fn namespace_description(namespace: &str) -> Option<&'static str> {
         "inference" => Some("Connect to configured text, vision, and embedding inference runtimes."),
         "migrate" => Some("Data migration utilities."),
         "javascript" => Some("First-class JavaScript runtime bridge for listing and dispatching tools."),
-        "medulla" => Some("Medulla orchestration backend: integration readiness, durable sessions, and the connected worker roster."),
         "security" => Some("Security policy and autonomy guardrail metadata."),
         "service" => Some("Desktop service lifecycle management."),
         "session_import" => {

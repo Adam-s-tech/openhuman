@@ -135,6 +135,7 @@ pub async fn run_context_scout_with_catalog(
         None,
         crate::agent::tinyagents::host::OpenHumanRunContext::new(),
         None,
+        None,
     )
     .await
 }
@@ -167,14 +168,14 @@ pub(super) fn scout_failure_signal(err: &SubagentRunError) -> String {
 /// Two billing shapes reach here, both **user-state, not defects**:
 /// * the managed OpenHuman backend's budget-exhausted 400
 ///   (`{"error":"Insufficient budget","errorCode":"USER_INSUFFICIENT_CREDITS"}`),
-///   matched by [`crate::api::classify::is_budget_exhausted_message`];
+///   matched by [`crate::backend::classify::is_budget_exhausted_message`];
 /// * a BYO provider's insufficient-credits 402, matched by
 ///   [`crate::core::observability::is_insufficient_credits_message`].
 ///
 /// Both delegate to the crate's single-source classifiers so the phrase sets
 /// can't drift from the cron halt / `before_send` nets that share them.
 pub(super) fn is_expected_billing_failure(message: &str) -> bool {
-    crate::api::classify::is_budget_exhausted_message(message)
+    crate::backend::classify::is_budget_exhausted_message(message)
         || crate::core::observability::is_insufficient_credits_message(message)
 }
 
@@ -224,6 +225,7 @@ pub(super) async fn run_context_scout_with_catalog_and_workspace(
             crate::agent::tinyagents::host::OpenHumanRunContext,
         >,
     >,
+    parent_call_id: Option<String>,
 ) -> anyhow::Result<ToolResult> {
     let question = question.trim().to_string();
     let focus = focus.map(|s| s.to_string());
@@ -305,6 +307,7 @@ pub(super) async fn run_context_scout_with_catalog_and_workspace(
                 prompt: scout_prompt.clone(),
                 worker_thread_id: None,
                 display_name: Some(definition.display_name().to_string()),
+                parent_call_id: parent_call_id.clone(),
             })
             .await;
     }
@@ -462,6 +465,7 @@ pub(super) async fn run_context_scout_with_catalog_and_workspace(
                                         thread_id: goal.thread_id.clone(),
                                         goal_id: goal.goal_id.clone(),
                                         status: goal.status.as_str().to_string(),
+                                        goal: Some(crate::agent::goals::goal_to_value(&goal)),
                                     });
                                 }
                                 Ok(None) => {

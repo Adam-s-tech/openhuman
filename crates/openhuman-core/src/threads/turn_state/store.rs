@@ -146,6 +146,26 @@ impl TurnStateStore {
         Ok(removed)
     }
 
+    /// Delete one turn's snapshot by `request_id`, leaving every other turn on
+    /// the thread untouched. Returns `true` if a file was removed.
+    ///
+    /// Backs edit/regenerate (`threads.edit_message` / `threads.regenerate`):
+    /// truncating the message log after a cut point orphans the turn
+    /// snapshots for every dropped request — `delete(thread_id)` would also
+    /// discard the turns kept *before* the cut, which a client's "Agentic
+    /// task insights" trail for an earlier answer still needs.
+    pub fn delete_turn(&self, thread_id: &str, request_id: &str) -> Result<bool, String> {
+        let _guard = TURN_STATE_LOCK.lock();
+        self.migrate_thread_locked(thread_id);
+        let path = self.turn_path(thread_id, request_id);
+        if !path.exists() {
+            return Ok(false);
+        }
+        fs::remove_file(&path).map_err(|e| format!("remove turn-state {}: {e}", path.display()))?;
+        debug!("{LOG_PREFIX} deleted snapshot thread={thread_id} request={request_id}");
+        Ok(true)
+    }
+
     /// List the latest turn for every thread. Used by the UI on cold boot to
     /// surface interrupted turns from a previous process (one entry per thread,
     /// preserving the pre-ring-store contract).
@@ -262,6 +282,48 @@ impl TurnStateStore {
             debug!("{LOG_PREFIX} marked {count} snapshots as interrupted on startup");
         }
         Ok(count)
+    }
+
+    /// Force one turn's snapshot to a terminal `lifecycle` if it is still
+    /// `Started`/`Streaming`. Returns `true` when it changed something; a
+    /// missing or already-terminal snapshot is a no-op.
+    ///
+    /// The progress bridge is normally the only writer that marks a snapshot
+    /// terminal, and it does so on its way out — but it only exits once its
+    /// progress sender drops, and for a cached per-thread session that does not
+    /// happen until the *next* turn replaces the sink. The last turn of a thread
+    /// would otherwise keep a non-terminal snapshot on disk indefinitely
+    /// (`prune_completed_locked` only prunes `Completed` turns, and the startup
+    /// sweep runs once per process), so re-entering the thread hydrates a
+    /// live-looking "Thinking…" indicator under a reply that already landed.
+    /// The turn driver calls this the moment the turn ends, which is the
+    /// earliest point that is known for certain.
+    pub fn settle_turn(
+        &self,
+        thread_id: &str,
+        request_id: &str,
+        lifecycle: TurnLifecycle,
+        now_rfc3339: &str,
+    ) -> Result<bool, String> {
+        let Some(mut snapshot) = self.get_turn(thread_id, request_id)? else {
+            return Ok(false);
+        };
+        if matches!(
+            snapshot.lifecycle,
+            TurnLifecycle::Interrupted | TurnLifecycle::Completed
+        ) {
+            return Ok(false);
+        }
+        snapshot.lifecycle = lifecycle;
+        snapshot.phase = None;
+        snapshot.active_tool = None;
+        snapshot.active_subagent = None;
+        snapshot.updated_at = now_rfc3339.to_string();
+        self.put(&snapshot)?;
+        debug!(
+            "{LOG_PREFIX} settled non-terminal snapshot thread={thread_id} request={request_id} lifecycle={lifecycle:?}"
+        );
+        Ok(true)
     }
 
     // --- internals -------------------------------------------------------
@@ -625,6 +687,14 @@ pub fn get_turn(
 
 pub fn delete(workspace_dir: PathBuf, thread_id: &str) -> Result<bool, String> {
     TurnStateStore::new(workspace_dir).delete(thread_id)
+}
+
+pub fn delete_turn(
+    workspace_dir: PathBuf,
+    thread_id: &str,
+    request_id: &str,
+) -> Result<bool, String> {
+    TurnStateStore::new(workspace_dir).delete_turn(thread_id, request_id)
 }
 
 pub fn list(workspace_dir: PathBuf) -> Result<Vec<TurnState>, String> {

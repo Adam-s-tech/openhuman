@@ -1,8 +1,8 @@
-//! Schemas for agent behaviour settings: autonomy, privacy, browser, sandbox, activity level, and memory sync.
+//! Schemas for agent behaviour settings: autonomy, privacy, browser, sandbox, and memory sync.
 
 use crate::core::{ControllerSchema, FieldSchema, TypeSchema};
 
-use super::super::helpers::{json_output, optional_bool, optional_string};
+use super::super::helpers::{json_output, optional_bool, optional_number, optional_string};
 
 pub(super) fn lookup(function: &str) -> Option<ControllerSchema> {
     match function {
@@ -113,8 +113,17 @@ pub(super) fn lookup(function: &str) -> Option<ControllerSchema> {
                 optional_bool("enabled", "Enable browser integration."),
                 optional_string(
                     "backend",
-                    "Browser backend: agent_browser, playwright, rust_native, computer_use, or auto.",
+                    "Browser backend: tinybrowser (legacy values accepted for migration).",
                 ),
+                optional_bool("headless", "Run Chrome without a visible window."),
+                optional_number("viewport_width", "Chrome viewport width in pixels (320-3840)."),
+                optional_number("viewport_height", "Chrome viewport height in pixels (240-2160)."),
+                optional_string("chrome_path", "Optional Chrome executable path; empty clears."),
+                optional_string("profile_mode", "fresh or persistent."),
+                optional_string("profile_path", "Persistent Chrome profile path; empty clears."),
+                optional_string("download_dir", "Absolute permitted download folder; empty clears."),
+                optional_number("max_task_steps", "Maximum Jev task steps (1-100)."),
+                optional_number("task_timeout_secs", "Browser task timeout in seconds (5-600)."),
             ],
             outputs: vec![json_output("snapshot", "Updated config snapshot.")],
         }),
@@ -134,20 +143,6 @@ pub(super) fn lookup(function: &str) -> Option<ControllerSchema> {
                 comment: "Updated runtime flag state.",
                 required: true,
             }],
-        }),
-"get_activity_level_settings" => Some( ControllerSchema {
-            namespace: "config",
-            function: "get_activity_level_settings",
-            description: "Get the agent activity level (0–4) and its derived settings: sync cadence, heartbeat/subconscious toggles, token budget, estimated monthly cost.",
-            inputs: vec![],
-            outputs: vec![json_output("settings", "Activity level settings with cost estimates.")],
-        }),
-"update_activity_level_settings" => Some( ControllerSchema {
-            namespace: "config",
-            function: "update_activity_level_settings",
-            description: "Set the agent activity level. Immediately updates the scheduler gate mode and persists the change.",
-            inputs: vec![optional_string("level", "Activity level: off | minimal | moderate | active | always_on (or 0–4).")],
-            outputs: vec![json_output("settings", "Updated activity level settings with cost estimates.")],
         }),
 "get_memory_sync_settings" => Some( ControllerSchema {
             namespace: "config",

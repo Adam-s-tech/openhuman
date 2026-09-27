@@ -10,13 +10,16 @@ use tinymemory_api::capabilities::{Capabilities, Capability};
 /// Checked against the registry pin by `the_capability_list_matches_the_pinned_release`,
 /// so bumping the pin without re-reading the list is a red test rather than a
 /// silent over-claim.
-pub(crate) const ARTIFACT_CAPABILITIES_PIN: &str = "1.16.0";
+pub(crate) const ARTIFACT_CAPABILITIES_PIN: &str = "1.16.1";
 
 /// The capability families the **pinned artifact** actually serves.
 ///
 /// Deliberately not `Capabilities::all()`. `Capability::ALL` is what the
 /// *contract crate this host compiles against* declares; the loaded `cdylib` is
 /// a specific release and may serve fewer families.
+///
+/// Re-read at the published `v1.16.1` tag: its `Capability::ALL` has the
+/// same 26 families in the same order as this list. No family was added.
 ///
 /// Re-read at tag `v1.13.3`. v1.13.0 added a `MemoryEvent` variant and two
 /// additive audit fields, v1.13.1 fixed the module's source-registry path,
@@ -26,6 +29,8 @@ pub(crate) const ARTIFACT_CAPABILITIES_PIN: &str = "1.16.0";
 /// (`ExtractEntities`, `EmbedText`, `EmbedderSlug`), which the artifact serves
 /// and which `as_scoring` below forwards, so it is advertised here in the same
 /// change, the way `Episodic` arrived with `as_episodic`.
+/// Re-read at `v1.16.1`: the capability and member declarations are unchanged
+/// from `v1.16.0`, so the advertised families stay the same.
 ///
 /// Read at tag `v1.3.0`. Unchanged from v1.2.0 — the release added members
 /// within existing families (`retry_failed`, the diagnostics trio,

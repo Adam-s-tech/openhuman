@@ -8,23 +8,32 @@ import {
 } from '@/components/assistant-ui/attachment';
 import { ComposerTriggerPopover } from '@/components/assistant-ui/composer-trigger-popover';
 import { DirectiveText } from '@/components/assistant-ui/directive-text';
+import { EditMessage } from '@/components/assistant-ui/elements/edit-message';
+import { ErrorState } from '@/components/assistant-ui/elements/error-state';
+import { Image } from '@/components/assistant-ui/elements/image';
+import { MessageTiming } from '@/components/assistant-ui/elements/message-timing.aui';
+import { StoppedRun } from '@/components/assistant-ui/elements/stopped-run';
+import { ToolFallback } from '@/components/assistant-ui/elements/tool-fallback';
 import { File } from '@/components/assistant-ui/file';
 import { ThreadFollowupSuggestions } from '@/components/assistant-ui/follow-up-suggestions';
-import { Image } from '@/components/assistant-ui/image';
 import { cn } from '@/components/assistant-ui/lib/utils';
 import { MarkdownText } from '@/components/assistant-ui/markdown-text';
 import { ComposerQuotePreview, SelectionToolbar } from '@/components/assistant-ui/quote';
 import { Reasoning } from '@/components/assistant-ui/reasoning';
-import { ToolFallback } from '@/components/assistant-ui/tool-fallback';
 import { TooltipIconButton } from '@/components/assistant-ui/tooltip-icon-button';
 import { Button } from '@/components/assistant-ui/ui/button';
 import { Skeleton } from '@/components/assistant-ui/ui/skeleton';
-import ModelQualityPill from '@/components/chat/ModelQualityPill';
+import { ChatErrorNotice } from '@/features/conversations/aui/ChatErrorNotice';
+import { ChatSettingsPanel } from '@/features/conversations/aui/ChatSettingsPanel';
+import { ConnectionStateBanner } from '@/features/conversations/aui/ConnectionStateBanner';
 import {
   useAuiEditCapabilities,
   useAuiReloadCapability,
 } from '@/features/conversations/components/aui/auiThreadState';
+import { useT } from '@/lib/i18n/I18nContext';
 import { useAuiThreadId } from '@/providers/AssistantUiRuntimeProvider';
+import { CHAT_ERROR_METADATA_KEY } from '@/store/threadSlice';
+import { useActionBarReload, useMessageError } from '@assistant-ui/core/react';
 import {
   ActionBarMorePrimitive,
   ActionBarPrimitive,
@@ -32,7 +41,6 @@ import {
   AuiIf,
   BranchPickerPrimitive,
   ComposerPrimitive,
-  ErrorPrimitive,
   type FileMessagePartComponent,
   groupPartByType,
   type ImageMessagePartComponent,
@@ -76,6 +84,7 @@ import {
   useContext,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -98,8 +107,12 @@ export type ThreadComponents = {
    * and the answer — as a single group. Defaults to `ActivityGroup`.
    */
   ActivityGroup?: ComponentType<PropsWithChildren<{ group: ThreadGroupPart }>> | undefined;
-  /** Host-owned disclosure for the URL source parts emitted after an answer. */
-  SourceGroup?: ComponentType<{ sources: readonly SourceUrlPart[] }> | undefined;
+  /**
+   * Host-owned disclosure for the source parts emitted after an answer:
+   * `url` sources (web fetch/search) and `document` sources (memory
+   * citations, `sourceType: 'document'`).
+   */
+  SourceGroup?: ComponentType<{ sources: readonly SourceItemPart[] }> | undefined;
   /**
    * Extra controls in the composer's action row, to the right of the model
    * selector. A seam rather than a fixed set because what belongs there is
@@ -108,6 +121,10 @@ export type ThreadComponents = {
    * anything else.
    */
   ComposerExtras?: ComponentType | undefined;
+  /** Host-owned controls rendered in the right action cluster before voice. */
+  ComposerRightExtras?: ComponentType | undefined;
+  /** Host-owned navigation rail mounted inside the scrolling viewport. */
+  ConversationMap?: ComponentType | undefined;
   /** Full-width host content immediately above the composer shell. */
   ComposerHeader?: ComponentType | undefined;
   /**
@@ -165,6 +182,13 @@ export type ThreadComponents = {
    * builder turns rather than chat turns.
    */
   Composer?: ComponentType | undefined;
+  /**
+   * Host-owned trigger pickers (`/` commands, `@` mentions), mounted inside the
+   * composer's `Unstable_TriggerPopoverRoot` in place of the built-in `/`
+   * popover fed by `slashCommands`. A component for the same reason the other
+   * slots are: its sources are host behaviour this file should not learn.
+   */
+  ComposerTriggers?: ComponentType | undefined;
 };
 
 export type ThreadProps = {
@@ -312,25 +336,30 @@ const isHistoryLoadingView = (s: AssistantState) =>
   !s.thread.isDisabled &&
   !s.threads.isLoading;
 
-const ThreadHistorySkeleton: FC = () => (
-  <div
-    data-slot="aui_thread-history-skeleton"
-    role="status"
-    className="animate-in fade-in fill-mode-both flex flex-col gap-y-6 [animation-delay:150ms] [animation-duration:200ms]">
-    <span className="sr-only">Loading conversation</span>
-    <Skeleton className="ml-auto h-9 w-2/5 rounded-xl motion-reduce:animate-none" />
-    <div className="flex flex-col gap-y-2">
-      <Skeleton className="h-4 w-11/12 motion-reduce:animate-none" />
-      <Skeleton className="h-4 w-4/5 motion-reduce:animate-none" />
-      <Skeleton className="h-4 w-3/5 motion-reduce:animate-none" />
+const ThreadHistorySkeleton: FC = () => {
+  const { t } = useT();
+  return (
+    <div
+      data-slot="aui_thread-history-skeleton"
+      role="status"
+      className="animate-in fade-in fill-mode-both flex flex-col gap-y-6 [animation-delay:150ms] [animation-duration:200ms]">
+      <span className="sr-only">
+        {t('assistantUi.thread.loadingConversation', 'Loading conversation')}
+      </span>
+      <Skeleton className="ml-auto h-9 w-2/5 rounded-xl motion-reduce:animate-none" />
+      <div className="flex flex-col gap-y-2">
+        <Skeleton className="h-4 w-11/12 motion-reduce:animate-none" />
+        <Skeleton className="h-4 w-4/5 motion-reduce:animate-none" />
+        <Skeleton className="h-4 w-3/5 motion-reduce:animate-none" />
+      </div>
+      <Skeleton className="ml-auto h-9 w-1/3 rounded-xl motion-reduce:animate-none" />
+      <div className="flex flex-col gap-y-2">
+        <Skeleton className="h-4 w-10/12 motion-reduce:animate-none" />
+        <Skeleton className="h-4 w-2/3 motion-reduce:animate-none" />
+      </div>
     </div>
-    <Skeleton className="ml-auto h-9 w-1/3 rounded-xl motion-reduce:animate-none" />
-    <div className="flex flex-col gap-y-2">
-      <Skeleton className="h-4 w-10/12 motion-reduce:animate-none" />
-      <Skeleton className="h-4 w-2/3 motion-reduce:animate-none" />
-    </div>
-  </div>
-);
+  );
+};
 
 export const Thread: FC<ThreadProps> = ({
   components = EMPTY_COMPONENTS,
@@ -364,7 +393,12 @@ const ThreadRoot: FC<{
   loadError: string | null;
   onEscape?: () => void;
 }> = ({ isEmpty, model, onModelChange, loadError, onEscape }) => {
-  const { Welcome = ThreadWelcome, Composer: HostComposer } = useContext(ThreadComponentsContext);
+  const { t } = useT();
+  const {
+    Welcome = ThreadWelcome,
+    Composer: HostComposer,
+    ConversationMap,
+  } = useContext(ThreadComponentsContext);
   const viewportRef = useRef<HTMLDivElement>(null);
   const messageGroupRef = useRef<HTMLDivElement>(null);
   // Everything the viewport scrolls over, which is MORE than the message group:
@@ -396,6 +430,7 @@ const ThreadRoot: FC<{
         scrollToBottomOnRunStart={false}
         data-slot="aui_thread-viewport"
         className="relative flex flex-1 flex-col overflow-x-auto overflow-y-scroll scroll-smooth">
+        {ConversationMap ? <ConversationMap /> : null}
         <div
           ref={scrollContentRef}
           className={cn(
@@ -404,7 +439,9 @@ const ThreadRoot: FC<{
           )}>
           {loadError ? (
             <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center">
-              <p className="text-sm font-medium text-destructive">Failed to load messages</p>
+              <p className="text-sm font-medium text-destructive">
+                {t('chat.failedToLoadMessages', 'Failed to load messages')}
+              </p>
               <p className="text-muted-foreground max-w-md text-xs">{loadError}</p>
             </div>
           ) : (
@@ -438,6 +475,7 @@ const ThreadRoot: FC<{
             )}>
             <ThreadScrollToBottom />
             <ThreadFollowupSuggestions />
+            <ConnectionStateBanner />
             {HostComposer ? (
               <HostComposer />
             ) : (
@@ -691,7 +729,8 @@ function useFollowBottom(
         followRef.current = true;
       } else if (
         viewport.scrollTop < lastScrollTopRef.current &&
-        (scrollbarDragActive || window.performance.now() - userIntentAt <= USER_SCROLL_INTENT_WINDOW_MS)
+        (scrollbarDragActive ||
+          window.performance.now() - userIntentAt <= USER_SCROLL_INTENT_WINDOW_MS)
       ) {
         followRef.current = false;
       }
@@ -846,10 +885,11 @@ const ThreadScrollToBottom: FC = () => {
 };
 
 const ThreadWelcome: FC = () => {
+  const { t } = useT();
   return (
     <div className="aui-thread-welcome-root mb-6 flex flex-col items-center px-4 text-center">
       <h1 className="aui-thread-welcome-message-inner fade-in slide-in-from-bottom-1 animate-in fill-mode-both text-2xl font-medium tracking-tight duration-200">
-        How can I help you today?
+        {t('chat.newWindowPrompt', 'How can I help you today?')}
       </h1>
     </div>
   );
@@ -878,6 +918,16 @@ const ThreadSuggestionItem: FC = () => {
   );
 };
 
+export function extractComposerPasteFiles(
+  clipboardData: DataTransfer | null | undefined
+): globalThis.File[] {
+  const itemFiles = Array.from(clipboardData?.items ?? [])
+    .filter(item => item.kind === 'file' && /^(image|video)\//.test(item.type))
+    .map(item => item.getAsFile())
+    .filter((file): file is globalThis.File => file !== null);
+  return itemFiles.length > 0 ? itemFiles : Array.from(clipboardData?.files ?? []);
+}
+
 const Composer: FC<{
   model: string | null;
   onModelChange?: (value: string | null, contextWindow?: number | null) => void;
@@ -885,6 +935,8 @@ const Composer: FC<{
   /** A file drag is over the thread and will land here; see `useThreadFileDrop`. */
   isDraggingFiles: boolean;
 }> = ({ model, onModelChange, onEscape, isDraggingFiles }) => {
+  const { t } = useT();
+  const messageInputLabel = t('assistantUi.thread.messageInputLabel', 'Message input');
   const aui = useAui();
   const commands = useContext(SlashCommandsContext);
   const slash = unstable_useSlashCommandAdapter({ commands, fallbackIcon: SlashIcon });
@@ -892,12 +944,13 @@ const Composer: FC<{
   const {
     ComposerHeader,
     ComposerAttachments: HostComposerAttachments,
+    ComposerTriggers: HostComposerTriggers,
     onComposerFiles,
     canAcceptComposerFiles,
   } = useContext(ThreadComponentsContext);
   useEffect(() => {
     const textbox = inputWrapperRef.current?.querySelector<HTMLElement>('[contenteditable="true"]');
-    textbox?.setAttribute('aria-label', 'Message input');
+    textbox?.setAttribute('aria-label', messageInputLabel);
     // The rich Lexical surface deliberately is not a native textarea, so give
     // it an explicit stable hook for browser tests and assistive tooling. The
     // old chat composer exposed a textarea with a placeholder; consumers must
@@ -908,7 +961,7 @@ const Composer: FC<{
       textbox?.removeAttribute('aria-label');
       textbox?.removeAttribute('data-testid');
     };
-  }, []);
+  }, [messageInputLabel]);
 
   // Set for as long as an IME composition is open. The gate is a ref rather
   // than state because it is read from a microtask, not from a render.
@@ -935,10 +988,7 @@ const Composer: FC<{
       debug('[assistant-composer] paste: refused, ingest not accepting');
       return;
     }
-    const files = Array.from(event.clipboardData?.items ?? [])
-      .filter(item => item.kind === 'file' && /^(image|video)\//.test(item.type))
-      .map(item => item.getAsFile())
-      .filter((file): file is File => file !== null);
+    const files = extractComposerPasteFiles(event.clipboardData);
     if (files.length === 0) {
       // The overwhelmingly common case: an ordinary text paste. Left for Lexical.
       return;
@@ -974,6 +1024,7 @@ const Composer: FC<{
           <div
             data-slot="aui_composer-shell"
             data-dragging={onComposerFiles && isDraggingFiles ? 'true' : undefined}
+            onPasteCapture={handlePasteCapture}
             // Keyed to `content-faint` rather than `line`/`line-strong`, which
             // sat too close to the composer's own surface to read as an edge at
             // all; `content-faint` is a real step along the grey ramp in both
@@ -1050,8 +1101,7 @@ const Composer: FC<{
              */}
             <LexicalComposerInput
               ref={inputWrapperRef}
-              placeholder="Send a message..."
-              onPasteCapture={handlePasteCapture}
+              placeholder={t('chat.typeMessage', 'Send a message...')}
               onCompositionStartCapture={() => {
                 isComposingTextRef.current = true;
               }}
@@ -1103,14 +1153,18 @@ const Composer: FC<{
                 }
               }}
               className="aui-composer-input caret-primary [&_.aui-lexical-placeholder]:text-muted-foreground/60 relative max-h-48 min-h-10 w-full resize-none bg-transparent px-2.5 py-1 text-base leading-6 outline-none [&_.aui-lexical-input]:min-h-lh [&_.aui-lexical-input]:outline-none [&_.aui-lexical-placeholder]:pointer-events-none [&_.aui-lexical-placeholder]:absolute [&_.aui-lexical-placeholder]:top-0 [&_.aui-lexical-placeholder]:right-0 [&_.aui-lexical-placeholder]:left-0 [&_.aui-lexical-placeholder]:truncate [&_.aui-lexical-placeholder]:px-2.5 [&_.aui-lexical-placeholder]:py-1"
-              aria-label="Message input"
+              aria-label={messageInputLabel}
             />
             <ComposerAction model={model} onModelChange={onModelChange} />
           </div>
         </ComposerPrimitive.AttachmentDropzone>
 
-        {commands.length > 0 && (
-          <ComposerTriggerPopover char="/" {...slash} emptyItemsLabel="No matching commands" />
+        {HostComposerTriggers ? (
+          <HostComposerTriggers />
+        ) : (
+          commands.length > 0 && (
+            <ComposerTriggerPopover char="/" {...slash} emptyItemsLabel="No matching commands" />
+          )
         )}
       </ComposerPrimitive.Root>
     </ComposerPrimitive.Unstable_TriggerPopoverRoot>
@@ -1126,6 +1180,7 @@ const ComposerAction: FC<{
   model: string | null;
   onModelChange?: (value: string | null, contextWindow?: number | null) => void;
 }> = ({ model, onModelChange }) => {
+  const { t } = useT();
   const aui = useAui();
   const composerText = useAuiState(state => state.composer.text);
   const {
@@ -1133,6 +1188,7 @@ const ComposerAction: FC<{
     hasComposerAttachments,
     onComposerAttachmentSend,
     ComposerIdleAction,
+    ComposerRightExtras,
     onSwitchToMicCloud,
   } = useContext(ThreadComponentsContext);
   const isRunning = useAuiState(state => state.thread.isRunning);
@@ -1146,19 +1202,20 @@ const ComposerAction: FC<{
     <div className="aui-composer-action-wrapper relative flex items-center justify-between">
       <div className="flex min-w-0 items-center gap-1">
         {HostComposerAddAttachment ? <HostComposerAddAttachment /> : <ComposerAddAttachment />}
-        <ModelQualityPill value={model} onValueChange={onModelChange} />
+        <ChatSettingsPanel model={model} onModelChange={onModelChange} />
         <ComposerExtrasSlot />
       </div>
       <div className="flex items-center gap-1.5">
+        {ComposerRightExtras ? <ComposerRightExtras /> : null}
         {onSwitchToMicCloud && (
           <TooltipIconButton
-            tooltip="Voice mode"
+            tooltip={t('composer.voiceMode', 'Voice mode')}
             side="bottom"
             type="button"
             variant="ghost"
             size="icon"
             className="aui-composer-voice-mode text-muted-foreground hover:text-foreground size-7 rounded-full"
-            aria-label="Voice mode"
+            aria-label={t('composer.voiceMode', 'Voice mode')}
             disabled={isRunning}
             onClick={onSwitchToMicCloud}>
             <MicIcon className="size-4" />
@@ -1178,13 +1235,13 @@ const ComposerAction: FC<{
           <AuiIf condition={s => s.composer.dictation == null}>
             <ComposerPrimitive.Dictate asChild>
               <TooltipIconButton
-                tooltip="Voice input"
+                tooltip={t('assistantUi.thread.voiceInput', 'Voice input')}
                 side="bottom"
                 type="button"
                 variant="ghost"
                 size="icon"
                 className="aui-composer-dictate text-muted-foreground hover:text-foreground size-7 rounded-full"
-                aria-label="Start voice input">
+                aria-label={t('assistantUi.thread.startVoiceInput', 'Start voice input')}>
                 <MicIcon className="aui-composer-dictate-icon size-4" />
               </TooltipIconButton>
             </ComposerPrimitive.Dictate>
@@ -1192,13 +1249,13 @@ const ComposerAction: FC<{
           <AuiIf condition={s => s.composer.dictation != null}>
             <ComposerPrimitive.StopDictation asChild>
               <TooltipIconButton
-                tooltip="Stop dictation"
+                tooltip={t('assistantUi.thread.stopDictation', 'Stop dictation')}
                 side="bottom"
                 type="button"
                 variant="ghost"
                 size="icon"
                 className="aui-composer-stop-dictation text-destructive size-7 rounded-full"
-                aria-label="Stop voice input">
+                aria-label={t('assistantUi.thread.stopVoiceInput', 'Stop voice input')}>
                 <SquareIcon className="aui-composer-stop-dictation-icon size-3.5 animate-pulse fill-current" />
               </TooltipIconButton>
             </ComposerPrimitive.StopDictation>
@@ -1223,14 +1280,14 @@ const ComposerAction: FC<{
             // button. `cn` is tailwind-merge, so the later `bg-primary-500`
             // replaces the variant's `bg-primary` cleanly.
             <TooltipIconButton
-              tooltip="Send message"
+              tooltip={t('chat.send', 'Send message')}
               side="bottom"
               type="button"
               variant="default"
               size="icon"
               className="aui-composer-send size-7 rounded-full bg-primary-500 text-content-inverted hover:bg-primary-600"
               data-testid="send-message-button"
-              aria-label="Send message"
+              aria-label={t('chat.send', 'Send message')}
               onClick={() => {
                 onComposerAttachmentSend?.();
                 aui.composer.setText('');
@@ -1240,14 +1297,14 @@ const ComposerAction: FC<{
           ) : (
             <ComposerPrimitive.Send asChild>
               <TooltipIconButton
-                tooltip="Send message"
+                tooltip={t('chat.send', 'Send message')}
                 side="bottom"
                 type="button"
                 variant="default"
                 size="icon"
                 className="aui-composer-send size-7 rounded-full bg-primary-500 text-content-inverted hover:bg-primary-600"
                 data-testid="send-message-button"
-                aria-label="Send message">
+                aria-label={t('chat.send', 'Send message')}>
                 <ArrowUpIcon className="aui-composer-send-icon size-4" />
               </TooltipIconButton>
             </ComposerPrimitive.Send>
@@ -1261,7 +1318,7 @@ const ComposerAction: FC<{
               size="icon"
               className="aui-composer-cancel size-7 rounded-full bg-primary-500 text-content-inverted hover:bg-primary-600"
               data-testid="stop-generation-button"
-              aria-label="Stop generating">
+              aria-label={t('chat.stopGeneration', 'Stop generating')}>
               <SquareIcon className="aui-composer-cancel-icon size-3.5 fill-current" />
             </Button>
           </ComposerPrimitive.Cancel>
@@ -1271,32 +1328,128 @@ const ComposerAction: FC<{
   );
 };
 
+/**
+ * The runtime's error presentation for a failed message. The external-store
+ * projection marks persisted `chat_error` rows as incomplete/error, so they
+ * use this same card as errors raised directly by assistant-ui.
+ *
+ * `useMessageError` gives us the raw error value for the card. Failed turns
+ * have no committed assistant reply id for `threads.regenerate`, so this card
+ * must not offer Reload even when the runtime supports it for settled replies.
+ */
 const MessageError: FC = () => {
+  const { t } = useT();
+  const error = useMessageError();
+  if (error === undefined) return null;
+  const detail = typeof error === 'string' ? error : JSON.stringify(error);
   return (
     <MessagePrimitive.Error>
-      <ErrorPrimitive.Root className="aui-message-error-root border-destructive bg-destructive/10 text-destructive dark:bg-destructive/5 mt-2 rounded-md border p-3 text-sm dark:text-red-200">
-        <ErrorPrimitive.Message className="aui-message-error-message line-clamp-2" />
-      </ErrorPrimitive.Root>
+      <ErrorState
+        className="aui-message-error-root mt-2"
+        title={t('misc.somethingWentWrong', 'Something went wrong')}
+        detail={detail}
+        retrying={false}
+      />
     </MessagePrimitive.Error>
   );
 };
 
-/** A URL `source` part, the only kind this app emits. */
-export type SourceUrlPart = { id: string; url: string; title?: string };
+/** A URL `source` part, e.g. a web fetch/search result. */
+export type SourceUrlPart = { id: string; sourceType: 'url'; url: string; title?: string };
+/** A document `source` part, e.g. a memory citation. */
+export type SourceDocumentPart = { id: string; sourceType: 'document'; title?: string };
+/** Either kind of `source` part this app emits. */
+export type SourceItemPart = SourceUrlPart | SourceDocumentPart;
 
 const selectMessageParts = (state: AssistantState) => state.message.parts;
 
-/** Gives the host all URL source parts represented by one grouped source node. */
-const SourceGroupSlot: FC<{ Component: ComponentType<{ sources: readonly SourceUrlPart[] }> }> = ({
+/** Gives the host all source parts (`url` and `document`) represented by one grouped source node. */
+const SourceGroupSlot: FC<{ Component: ComponentType<{ sources: readonly SourceItemPart[] }> }> = ({
   Component,
 }) => {
   const parts = useAuiState(selectMessageParts);
-  const sources = parts.flatMap(part =>
-    part.type === 'source' && part.sourceType === 'url'
-      ? [{ id: part.id, url: part.url, ...(part.title ? { title: part.title } : {}) }]
-      : []
-  );
+  const sources = parts.flatMap((part): SourceItemPart[] => {
+    if (part.type !== 'source') return [];
+    if (part.sourceType === 'url') {
+      return [
+        {
+          id: part.id,
+          sourceType: 'url',
+          url: part.url,
+          ...(part.title ? { title: part.title } : {}),
+        },
+      ];
+    }
+    if (part.sourceType === 'document') {
+      return [
+        { id: part.id, sourceType: 'document', ...(part.title ? { title: part.title } : {}) },
+      ];
+    }
+    return [];
+  });
   return sources.length > 0 ? <Component sources={sources} /> : null;
+};
+
+/** Whether this message is a stopped/cancelled turn's partial reply. */
+const isStoppedRun = (s: AssistantState): boolean =>
+  s.message.status?.type === 'incomplete' && s.message.status.reason === 'cancelled';
+
+/**
+ * The stopped turn's own text, split into words for the vendored
+ * `StoppedRun` element, plus `cancel_reason`/`superseded_by`
+ * (wire-contract.md `chat_cancelled`, carried through
+ * `metadata.custom.extraMetadata` by `assistantUiMessages.ts`) so the reason
+ * chip can distinguish a user-initiated Stop from a turn the core superseded.
+ */
+// Two primitive selectors rather than one object-returning selector:
+// `useAuiState`'s selector is compared by `Object.is`, so an inline `{...}`
+// literal differs from itself on every store tick and free-runs the
+// subscription — exactly the "Maximum update depth exceeded" loop this file
+// hit once already. `words` (an array) is derived from `text` with
+// `useMemo` in the component below instead of being computed here.
+const selectStoppedRunText = (s: AssistantState): string =>
+  s.message.parts.flatMap(part => (part.type === 'text' ? [part.text] : [])).join(' ');
+
+const selectStoppedRunCancelReason = (s: AssistantState): string | undefined => {
+  const custom = s.message.metadata?.custom as
+    | { extraMetadata?: { cancelReason?: string; supersededBy?: string } }
+    | undefined;
+  return custom?.extraMetadata?.cancelReason;
+};
+
+/**
+ * Renders in place of the normal part switch for a stopped/cancelled
+ * assistant message (#4862 kept the raw text visible via a plain "Stopped"
+ * label; this replaces that with the real vendored element). Continue re-runs
+ * the turn through the same Reload capability `AssistantActionBar` uses;
+ * Discard drops the partial reply from this client's view via `onDelete`
+ * (`useOpenHumanExternalStore.ts` — the core keeps the persisted row, this
+ * only stops showing it here).
+ */
+const StoppedRunSlot: FC = () => {
+  const aui = useAui();
+  const { t } = useT();
+  const text = useAuiState(selectStoppedRunText);
+  const cancelReason = useAuiState(selectStoppedRunCancelReason);
+  const words = useMemo(() => (text.length > 0 ? text.split(/\s+/).filter(Boolean) : []), [text]);
+  const { disabled: reloadDisabled, reload } = useActionBarReload();
+  const reasonLabel =
+    cancelReason === 'superseded'
+      ? t('conversations.assistantUi.stoppedRun.reasonSuperseded')
+      : t('conversations.assistantUi.stoppedRun.reasonUserStop');
+  return (
+    <StoppedRun
+      data-testid="stopped-marker"
+      words={words}
+      reason={reasonLabel}
+      onContinue={() => {
+        if (!reloadDisabled) reload();
+      }}
+      onDiscard={() => aui.message.delete()}
+      continueLabel={t('common.continue')}
+      discardLabel={t('settings.ai.discard')}
+    />
+  );
 };
 
 const AssistantMessage: FC = () => {
@@ -1305,6 +1458,7 @@ const AssistantMessage: FC = () => {
     ActivityGroup = DefaultActivityGroup,
     SourceGroup,
   } = useContext(ThreadComponentsContext);
+  const stopped = useAuiState(isStoppedRun);
 
   const ACTION_BAR_PT = 'pt-1.5';
   // `min-h` reserves the bar's height (`pt-1.5` + a `size-6` button = 7.5) so a
@@ -1364,7 +1518,10 @@ const AssistantMessage: FC = () => {
               case 'group-source':
                 return SourceGroup ? <SourceGroupSlot Component={SourceGroup} /> : null;
               case 'text':
-                return <MarkdownText />;
+                // A stopped/cancelled turn's text renders once, inside
+                // `StoppedRunSlot` below (as `words`), not here — see that
+                // component's docstring.
+                return stopped ? null : <MarkdownText />;
               case 'reasoning':
                 // A step inside the activity group, not a disclosure of its own.
                 return (
@@ -1391,33 +1548,23 @@ const AssistantMessage: FC = () => {
                   </div>
                 );
               case 'indicator':
-                return (
-                  <span
-                    data-slot="aui_assistant-message-indicator"
-                    className="animate-pulse font-sans"
-                    aria-label="Assistant is working">
-                    {'●'}
-                  </span>
-                );
+                // The host RunningStatus slot renders the single shared loading
+                // state below the message group. Rendering assistant-ui's raw
+                // indicator part as well produces a second, disconnected dot.
+                return null;
               default:
                 return null;
             }
           }}
         </MessagePrimitive.GroupedParts>
+        {stopped && <StoppedRunSlot />}
         <MessageError />
+        <ChatErrorNotice />
       </div>
 
       <div
         data-slot="aui_assistant-message-footer"
         className={cn('ms-2 flex items-center', ACTION_BAR_HEIGHT)}>
-        <AuiIf
-          condition={s =>
-            s.message.status?.type === 'incomplete' && s.message.status.reason === 'cancelled'
-          }>
-          <span data-testid="stopped-marker" className="text-muted-foreground text-xs">
-            Stopped
-          </span>
-        </AuiIf>
         <BranchPicker />
         <AssistantActionBar />
       </div>
@@ -1426,6 +1573,7 @@ const AssistantMessage: FC = () => {
 };
 
 const AssistantActionBar: FC = () => {
+  const { t } = useT();
   // assistant-ui's own disabled predicate for Reload is
   // `isRunning || isDisabled || role !== 'assistant'` — it never consults
   // `capabilities.reload`, so the button ships enabled on every settled
@@ -1435,13 +1583,21 @@ const AssistantActionBar: FC = () => {
   // Hoisted to a `const` rather than written inline for the same coverage
   // reason as `editAction` in `UserActionBar`.
   const canReload = useAuiReloadCapability();
-  const reloadAction = canReload ? (
-    <ActionBarPrimitive.Reload asChild>
-      <TooltipIconButton tooltip="Refresh">
-        <RefreshCwIcon />
-      </TooltipIconButton>
-    </ActionBarPrimitive.Reload>
-  ) : null;
+  const isFailedTurn = useAuiState(s => {
+    if (s.message.status?.type === 'incomplete' && s.message.status.reason === 'error') return true;
+    const custom = s.message.metadata?.custom as
+      | { extraMetadata?: Record<string, unknown> }
+      | undefined;
+    return custom?.extraMetadata?.[CHAT_ERROR_METADATA_KEY] !== undefined;
+  });
+  const reloadAction =
+    canReload && !isFailedTurn ? (
+      <ActionBarPrimitive.Reload asChild>
+        <TooltipIconButton tooltip="Refresh">
+          <RefreshCwIcon />
+        </TooltipIconButton>
+      </ActionBarPrimitive.Reload>
+    ) : null;
 
   return (
     <ActionBarPrimitive.Root
@@ -1528,11 +1684,17 @@ const AssistantActionBar: FC = () => {
           <ActionBarPrimitive.ExportMarkdown asChild>
             <ActionBarMorePrimitive.Item className="aui-action-bar-more-item hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm outline-hidden select-none">
               <DownloadIcon className="size-4" />
-              Export as Markdown
+              {t('assistantUi.thread.exportAsMarkdown', 'Export as Markdown')}
             </ActionBarMorePrimitive.Item>
           </ActionBarPrimitive.ExportMarkdown>
         </ActionBarMorePrimitive.Content>
       </ActionBarMorePrimitive.Root>
+      {/*
+       * Renders nothing until the stream completes and `chat_done.timing`
+       * lands on `message.metadata.timing` (`assistantUiMessages.ts`); see
+       * that element's own docstring for why it belongs inside this root.
+       */}
+      <MessageTiming />
     </ActionBarPrimitive.Root>
   );
 };
@@ -1587,6 +1749,7 @@ const UserMessage: FC = () => {
 };
 
 const UserActionBar: FC = () => {
+  const { t } = useT();
   // Edit is offered only when the bound runtime can honour it. The
   // external-store adapter supplies `onNew` / `onCancel` and neither `onEdit`
   // nor `setMessages`, so assistant-ui reports `edit: false` and
@@ -1616,7 +1779,9 @@ const UserActionBar: FC = () => {
       autohide="not-last"
       className="aui-user-action-bar-root flex flex-col items-end">
       <ActionBarPrimitive.Copy asChild>
-        <TooltipIconButton tooltip="Copy response" title="Copy response">
+        <TooltipIconButton
+          tooltip={t('chat.copyResponse', 'Copy response')}
+          title={t('chat.copyResponse', 'Copy response')}>
           <CopyIcon />
         </TooltipIconButton>
       </ActionBarPrimitive.Copy>
@@ -1625,27 +1790,48 @@ const UserActionBar: FC = () => {
   );
 };
 
+/**
+ * How many later turns editing this message would discard — `onEdit`
+ * (`useOpenHumanExternalStore.ts`) truncates the thread's single lineage from
+ * this message on, exactly like `onReload`, so every message after it (not
+ * just its direct reply) is what a Send here throws away. `s.message.index`
+ * is the position `MessageState` already tracks;
+ * `s.thread.messages.length - 1 - index` is everything after it. Kept as its
+ * own primitive-returning selector (a plain number), never combined with
+ * `value` below into one object literal — `useAuiState`'s selector is
+ * compared by `Object.is`, so an object literal differs from itself on every
+ * store tick and free-runs the subscription (the "Maximum update depth
+ * exceeded" loop this file hit once already).
+ */
+const selectDiscardedReplies = (s: AssistantState): number =>
+  Math.max(0, s.thread.messages.length - 1 - s.message.index);
+
 const EditComposer: FC = () => {
+  const aui = useAui();
+  const { t } = useT();
+  const value = useAuiState(s => s.composer.text);
+  const discardedReplies = useAuiState(selectDiscardedReplies);
   return (
     <MessagePrimitive.Root data-slot="aui_edit-composer-wrapper" className="flex flex-col px-2">
-      <ComposerPrimitive.Root className="aui-edit-composer-root border-border/60 dark:border-muted-foreground/15 ms-auto flex w-full max-w-[85%] cursor-text flex-col rounded-(--composer-radius) border bg-(--composer-bg)">
-        <ComposerPrimitive.Input
-          className="aui-edit-composer-input text-foreground min-h-14 w-full resize-none bg-transparent px-4 pt-3 pb-1 text-base outline-hidden"
-          autoFocus
-        />
-        <div className="aui-edit-composer-footer mx-2.5 mb-2.5 flex items-center gap-1.5 self-end">
-          <ComposerPrimitive.Cancel asChild>
-            <Button variant="ghost" size="sm" className="h-8 rounded-full px-3.5">
-              Cancel
-            </Button>
-          </ComposerPrimitive.Cancel>
-          <ComposerPrimitive.Send asChild>
-            <Button size="sm" className="h-8 rounded-full px-3.5">
-              Update
-            </Button>
-          </ComposerPrimitive.Send>
-        </div>
-      </ComposerPrimitive.Root>
+      <EditMessage
+        className="ms-auto"
+        value={value}
+        discardedReplies={discardedReplies}
+        editing
+        onValueChange={text => aui.message.composer().setText(text)}
+        onSave={() => aui.message.composer().send()}
+        onCancel={() => aui.message.composer().cancel()}
+        cancelLabel={t('common.cancel')}
+        sendLabel={t('chat.elicitation.send')}
+        editAriaLabel={t('conversations.assistantUi.edit.ariaLabel')}
+        discardedRepliesText={count =>
+          t(
+            count === 1
+              ? 'conversations.assistantUi.edit.discardedRepliesOne'
+              : 'conversations.assistantUi.edit.discardedRepliesOther'
+          ).replace('{count}', String(count))
+        }
+      />
     </MessagePrimitive.Root>
   );
 };

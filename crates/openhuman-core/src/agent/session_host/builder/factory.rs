@@ -113,7 +113,7 @@ impl OpenHumanSessionHost {
                 .unwrap_or(config.default_temperature)
         );
 
-        Self::build_session_agent_inner(config, agent_id, target_def.as_ref(), false)
+        Self::build_session_agent_inner(config, agent_id, target_def.as_ref(), false, None, None)
     }
 
     /// Build a session agent from a definition the caller already holds,
@@ -135,7 +135,7 @@ impl OpenHumanSessionHost {
             definition.id,
             definition.sandbox_mode,
         );
-        Self::build_session_agent_inner(config, &definition.id, Some(definition), false)
+        Self::build_session_agent_inner(config, &definition.id, Some(definition), false, None, None)
     }
 
     /// Internal constructor that consumes the optionally-resolved agent
@@ -153,6 +153,8 @@ impl OpenHumanSessionHost {
         agent_id: &str,
         target_def: Option<&crate::agent::harness::definition::AgentDefinition>,
         read_only_tools_only: bool,
+        host: Option<&super::HostTools>,
+        session_id: Option<&str>,
     ) -> Result<Self> {
         let workspace_descriptor = derive_turn_workspace_descriptor();
 
@@ -199,11 +201,10 @@ impl OpenHumanSessionHost {
         // module or remote driver can supply. The engine's connection is now
         // exclusively the engine's. Lane C (#6040) rides the same binding.
         let (archivist_provider, auto_recall) = super::helpers::bind_session_memory(config)?;
-
         // Load the user's persisted tool preferences once. They drive two
         // things below: granting the App UI Control / App Automation mutation
         // opt-in (#3762) and filtering the tool set to the enabled snapshot.
-        let enabled_tools: Vec<String> = {
+        let mut enabled_tools: Vec<String> = {
             use crate::desktop::app_state::load_stored_app_state;
             match load_stored_app_state(config) {
                 Ok(stored) => stored
@@ -218,7 +219,10 @@ impl OpenHumanSessionHost {
                 }
             }
         };
-
+        if config.browser.enabled && !enabled_tools.is_empty() {
+            // Browser's explicit opt-in outranks a positive-only onboarding snapshot.
+            enabled_tools.extend(["browser".to_string(), "browser_open".to_string()]);
+        }
         // Share a single `Arc<Config>` across the heavyweight per-build consumers
         // (the tool registry, the reflection hook, the turn provider) instead of
         // deep-cloning the large `Config` at each site (#5050, Fix 1). `Config` is
@@ -994,6 +998,11 @@ impl OpenHumanSessionHost {
             );
             effective_agent_config.max_tool_iterations = def_cap;
         }
+        // Host-first, so a host tool wins a name collision -- see
+        // `HostTurnTools::merge_into`, which owns that rule and why.
+        let host_policy = host
+            .map(|build| build(super::host_tools::TurnContext::new(agent_id, session_id)))
+            .and_then(|host_tools| host_tools.merge_into(agent_id, &mut tools, &mut visible));
         let mut builder = OpenHumanSessionHost::builder()
             .crate_native_provider(provider_role, Arc::clone(&base_config))
             .tools(tools)
@@ -1028,6 +1037,12 @@ impl OpenHumanSessionHost {
             .tokenjuice_compression(effective_tokenjuice_compression);
         if let Some(ps) = payload_summarizer {
             builder = builder.payload_summarizer(ps);
+        }
+        // A host gate REPLACES the session's rather than fronting it --
+        // `tool_policy` assigns. `HostTurnTools::with_policy` says why, and
+        // what it costs a host that gates only its own names.
+        if let Some(policy) = host_policy {
+            builder = builder.tool_policy(policy);
         }
         builder = builder.archivist_hook(archivist_hook_arc);
         let mut agent = builder.build()?;

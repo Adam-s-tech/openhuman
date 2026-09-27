@@ -369,14 +369,7 @@ describe('Onboarding modes — Simple (Cloud) vs Advanced (Custom)', function ()
     await pause(400);
     await clickOnboardingNext();
 
-    // Step 7 — Custom Activity (Default). Added to CUSTOM_WIZARD_STEPS after
-    // embeddings (see app/src/pages/onboarding/customWizardSteps.ts).
-    expect(await testIdExists('onboarding-custom-activity-step', 10_000)).toBe(true);
-    expect(await clickTestId('onboarding-custom-activity-step-default')).toBe(true);
-    await pause(400);
-    await clickOnboardingNext();
-
-    // Step 8 — Custom Vault. Final step → Finish. VaultSetupStep hides the
+    // Step 7 — Custom Vault. Final step → Finish. VaultSetupStep hides the
     // choice cards and auto-selects "configure" only for LOCAL sessions
     // (`defaultDisabled={isLocalSession}`); the E2E logs in via the cloud-auth
     // deep link, so the session is non-local — the choice cards ARE shown with
@@ -510,13 +503,7 @@ describe('Onboarding modes — Simple (Cloud) vs Advanced (Custom)', function ()
     await pause(400);
     await clickOnboardingNext();
 
-    // Step 7 — Custom Activity (Default).
-    expect(await testIdExists('onboarding-custom-activity-step', 10_000)).toBe(true);
-    expect(await clickTestId('onboarding-custom-activity-step-default')).toBe(true);
-    await pause(400);
-    await clickOnboardingNext();
-
-    // Step 8 — Custom Vault. Final step → Finish. Choice cards are hidden/auto-
+    // Step 7 — Custom Vault. Final step → Finish. Choice cards are hidden/auto-
     // configured only for LOCAL sessions; the E2E's cloud-auth session shows the
     // cards with an enabled default that must be picked before Finish enables.
     expect(await testIdExists('onboarding-custom-vault-step', 10_000)).toBe(true);

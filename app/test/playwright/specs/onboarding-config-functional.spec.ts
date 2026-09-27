@@ -55,7 +55,6 @@ test.describe('Onboarding custom configuration flow', () => {
       'onboarding-custom-oauth-step',
       'onboarding-custom-search-step',
       'onboarding-custom-embeddings-step',
-      'onboarding-custom-activity-step',
     ]) {
       await expect(page.getByTestId(id)).toBeVisible({ timeout: 20_000 });
       const configure = page.getByRole('button', { name: /Configure/ });
