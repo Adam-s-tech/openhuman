@@ -403,12 +403,8 @@ impl BackendClient {
 
     /// Generic authenticated JSON request helper for backend API routes.
     ///
-    /// `credential` accepts a [`BackendCredential`] (from
-    /// `session_support::resolve_backend_credential`) or, for the many callers
-    /// that still hold a bare session token string, a `&str` / `&String`,
-    /// which is treated as a session JWT. The transport puts it on the wire
-    /// the backend expects for its kind: a session JWT as `Authorization:
-    /// Bearer`, an API key as `x-api-key` (see `security::credentials::api_key`).
+    /// `credential` accepts a [`BackendCredential`] or a bare session token.
+    /// The transport sends API keys as `x-api-key` and sessions as Bearer JWTs.
     pub async fn authed_json(
         &self,
         credential: impl Into<BackendCredential>,

@@ -527,3 +527,12 @@ fn resolve_bearer_returns_token_for_exp_less_offline_session() {
         .expect("an exp-less offline session must resolve (presence-only)");
     assert_eq!(token, "test.session.jwt");
 }
+#[test]
+fn api_key_endpoint_is_bound_to_tinyhumans_or_loopback() {
+    use super::is_managed_endpoint_for_api_key;
+
+    assert!(is_managed_endpoint_for_api_key("https://api.tinyhumans.ai/openai/v1"));
+    assert!(is_managed_endpoint_for_api_key("http://127.0.0.1:18765/openai/v1"));
+    assert!(!is_managed_endpoint_for_api_key("https://example.com/openai/v1"));
+    assert!(!is_managed_endpoint_for_api_key("http://api.tinyhumans.ai/openai/v1"));
+}
