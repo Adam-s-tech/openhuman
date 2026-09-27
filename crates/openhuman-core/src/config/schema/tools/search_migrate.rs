@@ -168,7 +168,7 @@ impl SearchConfig {
         self.roles = roles;
         if self.presentation_provider.as_deref() == Some("managed")
             || (self.presentation_provider.as_deref() == Some("parallel")
-                && !providers.contains_key("parallel"))
+                && !self.providers.contains_key("parallel"))
         {
             self.presentation_provider = None;
         }
