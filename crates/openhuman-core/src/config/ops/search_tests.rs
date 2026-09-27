@@ -163,10 +163,8 @@ fn settings_view_reports_status_roles_and_never_keys() {
     assert_eq!(gemini["deep_research_available"], true);
     assert_eq!(provider(&view, "tinyfish")["routes"], json!(["managed"]));
     assert_eq!(provider(&view, "brave")["status"], "disabled");
-    assert_eq!(
-        view["effective_roles"]["answer"],
-        json!(["gemini", "gemini_deep_research"])
-    );
+    // Deep research rides on the Gemini key and is reported on the gemini row.
+    assert_eq!(view["effective_roles"]["answer"], json!(["gemini", "exa"]));
     assert_eq!(view["effective_roles"]["search"], json!(["exa"]));
     assert!(!view.to_string().contains("secret-gemini"));
     assert!(view["providers"]
