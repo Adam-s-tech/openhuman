@@ -178,9 +178,12 @@ describe('parseWebSearchResult', () => {
 
   it('recognises contents and still-running research headings', () => {
     const contents = parseWebSearchResult(
-      ['Page contents for: https://a.dev (via Exa)', '1. A page', '   https://a.dev/', '   Body'].join(
-        '\n'
-      )
+      [
+        'Page contents for: https://a.dev (via Exa)',
+        '1. A page',
+        '   https://a.dev/',
+        '   Body',
+      ].join('\n')
     );
     expect(contents?.role).toBe('contents');
     expect(contents?.results[0]?.url).toBe('https://a.dev/');
@@ -240,7 +243,7 @@ describe('extractAgentSources', () => {
     expect(sources[0].title).toBe('Async fn in traits are now stable');
   });
 
-  it('lists an answer call\'s citations as sources', () => {
+  it("lists an answer call's citations as sources", () => {
     const sources = extractAgentSources([
       {
         id: 'a1',
@@ -249,7 +252,8 @@ describe('extractAgentSources', () => {
         seq: 0,
         status: 'success',
         argsBuffer: '{"query":"q"}',
-        result: 'Answer for: q (via Gemini)\n\nYes.\n\nSources:\n[1] Doc \u2014 https://docs.example/a',
+        result:
+          'Answer for: q (via Gemini)\n\nYes.\n\nSources:\n[1] Doc \u2014 https://docs.example/a',
       },
     ]);
     expect(sources.map(s => s.url)).toEqual(['https://docs.example/a']);

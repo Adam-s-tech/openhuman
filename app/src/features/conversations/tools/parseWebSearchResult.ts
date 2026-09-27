@@ -189,8 +189,7 @@ function fromStructured(value: unknown): ParsedWebSearch | undefined {
           label.length <= MAX_SEARCH_PROVIDER_LENGTH
       )
     : [];
-  const answer =
-    typeof payload.answer === 'string' ? clipAnswer(payload.answer) : undefined;
+  const answer = typeof payload.answer === 'string' ? clipAnswer(payload.answer) : undefined;
   const role = ROLES.find(r => r === payload.role);
   return withExtras(
     {

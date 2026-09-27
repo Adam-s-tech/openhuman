@@ -1529,9 +1529,11 @@ const messages: TranslationMap = {
   'settings.search.localManagedUnavailable':
     'TinyHumans에 포함된 제공자는 로그인해야 사용할 수 있습니다. 로컬 세션에서 웹 검색을 쓰려면 본인 API 키로 제공자를 켜세요.',
   'settings.search.enabledLabel': '웹 검색',
-  'settings.search.enabledDesc': '에이전트가 웹을 검색하고, 웹 출처로 질문에 답하고, 페이지를 읽을 수 있게 합니다.',
+  'settings.search.enabledDesc':
+    '에이전트가 웹을 검색하고, 웹 출처로 질문에 답하고, 페이지를 읽을 수 있게 합니다.',
   'settings.search.providersTitle': '제공자',
-  'settings.search.providersDesc': '원하는 제공자를 켜세요. 여러 개를 동시에 켤 수 있으며, 아래 역할이 어떤 제공자를 먼저 시도할지 정합니다.',
+  'settings.search.providersDesc':
+    '원하는 제공자를 켜세요. 여러 개를 동시에 켤 수 있으며, 아래 역할이 어떤 제공자를 먼저 시도할지 정합니다.',
   'settings.search.providerToggleAria': '{provider} 사용',
   'settings.search.routeAria': '{provider} 연결 방식',
   'settings.search.routeManaged': 'TinyHumans에 포함',
@@ -1545,7 +1547,8 @@ const messages: TranslationMap = {
   'settings.search.statusOff': '꺼짐',
   'settings.search.deepResearchAvailable':
     '심층 리서치를 사용할 수 있습니다. 에이전트가 {provider}에 더 길고 자세한 보고서를 요청할 수 있습니다.',
-  'settings.search.deepResearchHint': '본인 {provider} 키를 추가하면 심층 리서치를 사용할 수 있습니다.',
+  'settings.search.deepResearchHint':
+    '본인 {provider} 키를 추가하면 심층 리서치를 사용할 수 있습니다.',
   'settings.search.rolesTitle': '역할',
   'settings.search.rolesDesc':
     '각 역할은 에이전트의 도구 하나입니다. 사용 가능한 첫 번째 제공자가 담당하고, 나머지는 순서대로 대체 제공자가 됩니다.',
@@ -1556,7 +1559,8 @@ const messages: TranslationMap = {
   'settings.search.roleContents': '콘텐츠',
   'settings.search.roleContentsDesc': '지정한 페이지를 가져와 텍스트를 추출합니다.',
   'settings.search.roleServedBy': '{provider}에서 처리',
-  'settings.search.roleNoProvider': '사용 가능한 제공자가 없습니다. 지금은 에이전트가 이 도구를 받지 않습니다.',
+  'settings.search.roleNoProvider':
+    '사용 가능한 제공자가 없습니다. 지금은 에이전트가 이 도구를 받지 않습니다.',
   'settings.search.roleMoveUp': '{provider} 위로 이동',
   'settings.search.roleMoveDown': '{provider} 아래로 이동',
   'settings.search.roleRemove': '{provider} 제거',

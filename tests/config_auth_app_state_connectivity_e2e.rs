@@ -1818,7 +1818,11 @@ async fn config_env_overlay_public_loader_applies_runtime_and_tool_overrides() {
     assert_eq!(config.searxng.base_url, "https://searx.example");
     assert_eq!(config.searxng.max_results, 31);
     assert_eq!(
-        config.search.roles.get("search").and_then(|order| order.first()),
+        config
+            .search
+            .roles
+            .get("search")
+            .and_then(|order| order.first()),
         Some(&"brave".to_string())
     );
     assert!(config.search.brave.has_key());

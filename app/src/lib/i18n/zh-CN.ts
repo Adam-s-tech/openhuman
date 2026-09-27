@@ -1149,8 +1149,10 @@ const messages: TranslationMap = {
     '使用你自己的 Composio 账户或 API 密钥。在设置 › 连接中配置。',
   'onboarding.custom.search.title': '网页搜索',
   'onboarding.custom.search.subtitle': 'OpenHuman 如何代表你搜索网页。',
-  'onboarding.custom.search.defaultDesc': '网页搜索开箱即用：Exa 和 Gemini 已包含在 TinyHumans 中，无需 API 密钥。',
-  'onboarding.custom.search.configureDesc': '已包含 Exa 和 Gemini。可在 设置 › 工具 中使用你自己的 API 密钥添加更多搜索提供商。',
+  'onboarding.custom.search.defaultDesc':
+    '网页搜索开箱即用：Exa 和 Gemini 已包含在 TinyHumans 中，无需 API 密钥。',
+  'onboarding.custom.search.configureDesc':
+    '已包含 Exa 和 Gemini。可在 设置 › 工具 中使用你自己的 API 密钥添加更多搜索提供商。',
   'onboarding.custom.embeddings.title': 'Embeddings',
   'onboarding.custom.embeddings.subtitle': 'OpenHuman 生成向量嵌入以实现语义记忆搜索的方式。',
   'onboarding.custom.embeddings.defaultDesc': 'OpenHuman 使用托管嵌入服务，无需 API 密钥。',
@@ -1444,7 +1446,8 @@ const messages: TranslationMap = {
   'settings.search.enabledLabel': '网页搜索',
   'settings.search.enabledDesc': '允许智能体搜索网页、根据网页来源回答问题并阅读页面。',
   'settings.search.providersTitle': '提供商',
-  'settings.search.providersDesc': '启用你需要的提供商。可以同时启用多个；下方的角色决定先尝试哪一个。',
+  'settings.search.providersDesc':
+    '启用你需要的提供商。可以同时启用多个；下方的角色决定先尝试哪一个。',
   'settings.search.providerToggleAria': '使用 {provider}',
   'settings.search.routeAria': '{provider} 连接方式',
   'settings.search.routeManaged': 'TinyHumans 已包含',
@@ -1456,10 +1459,12 @@ const messages: TranslationMap = {
   'settings.search.statusReady': '就绪',
   'settings.search.statusSignInRequired': '需要登录',
   'settings.search.statusOff': '已关闭',
-  'settings.search.deepResearchAvailable': '深度研究可用：智能体可以请 {provider} 生成更长、更全面的报告。',
+  'settings.search.deepResearchAvailable':
+    '深度研究可用：智能体可以请 {provider} 生成更长、更全面的报告。',
   'settings.search.deepResearchHint': '添加你自己的 {provider} 密钥即可解锁深度研究。',
   'settings.search.rolesTitle': '角色',
-  'settings.search.rolesDesc': '每个角色都是智能体的一个工具。由第一个可用的提供商负责，其余按顺序作为备用。',
+  'settings.search.rolesDesc':
+    '每个角色都是智能体的一个工具。由第一个可用的提供商负责，其余按顺序作为备用。',
   'settings.search.roleSearch': '搜索',
   'settings.search.roleSearchDesc': '针对查询返回排序后的网页结果。',
   'settings.search.roleAnswer': '回答',
@@ -1476,7 +1481,8 @@ const messages: TranslationMap = {
   'settings.search.roleUnavailable': '不可用',
   'settings.search.advancedTitle': '高级',
   'settings.search.exposeProviderTools': '公开每个提供商自己的工具',
-  'settings.search.exposeProviderToolsDesc': '让智能体使用每个已启用提供商提供的工具，而不只是每个角色一个工具。这会占用更多上下文窗口。',
+  'settings.search.exposeProviderToolsDesc':
+    '让智能体使用每个已启用提供商提供的工具，而不只是每个角色一个工具。这会占用更多上下文窗口。',
   // ─── Settings global search bar ────────────────────────────
   'settings.embeddings.title': '向量嵌入',
   'settings.embeddings.description':
@@ -3277,7 +3283,8 @@ const messages: TranslationMap = {
   'conversations.tools.search.sources.one': '{count} 个来源',
   'conversations.tools.search.sources.other': '{count} 个来源',
   'conversations.tools.search.researching': '研究仍在进行中',
-  'conversations.tools.search.balanceLow': '你的 TinyHumans 余额不足，无法使用内置搜索。请充值，或在设置中为某个搜索提供商添加你自己的密钥。',
+  'conversations.tools.search.balanceLow':
+    '你的 TinyHumans 余额不足，无法使用内置搜索。请充值，或在设置中为某个搜索提供商添加你自己的密钥。',
   'conversations.tools.readFile.active': '正在读取文件',
   'conversations.tools.readFile.done': '已读取文件',
   'conversations.tools.writeFile.active': '正在写入文件',

@@ -129,10 +129,7 @@ async fn config_secrets_roundtrip_via_keyring_backed_master_key_migration() {
 
     let loaded = Config::load_or_init().await.expect("reload config");
     assert_eq!(loaded.api_key.as_deref(), Some("sk-direct-secret"));
-    assert_eq!(
-        loaded.search.brave.api_key.as_deref(),
-        Some("brave-secret")
-    );
+    assert_eq!(loaded.search.brave.api_key.as_deref(), Some("brave-secret"));
     assert_eq!(
         loaded
             .channels_config

@@ -48,6 +48,7 @@ async fn run_role_tool_with(
     if !config.search.is_enabled() {
         return Err("web search is disabled in settings".to_string());
     }
+    ensure_servable(config, tool, &arguments)?;
     let request = tinysearch_bus::ExecuteToolRequest {
         name: tool.to_string(),
         arguments,
@@ -72,6 +73,40 @@ async fn run_role_tool_with(
         response.fallback_from.len()
     )];
     RpcOutcome::new(payload, log).into_cli_compatible_json()
+}
+
+/// Refuse early, without loading the module, when nothing can serve the call.
+#[cfg(feature = "modules")]
+fn ensure_servable(
+    config: &crate::config::Config,
+    tool: &str,
+    arguments: &Value,
+) -> Result<(), String> {
+    use crate::search::providers::{effective_role_providers, resolve};
+    let role = tinysearch_bus::role_for_tool(tool)
+        .ok_or_else(|| format!("{tool} is not a search role tool"))?;
+    let resolved = resolve(config);
+    let usable = effective_role_providers(&resolved, config, role);
+    let pinned = arguments.get("provider").and_then(Value::as_str);
+    let servable = match pinned {
+        Some(provider) => usable.iter().any(|p| p == provider),
+        None => !usable.is_empty(),
+    };
+    if servable {
+        return Ok(());
+    }
+    tracing::debug!(
+        tool,
+        pinned = pinned.unwrap_or("auto"),
+        "[rpc][tools.search] no usable provider"
+    );
+    Err(format!(
+        "No web search provider is available for {}. Sign in to TinyHumans for the included \
+         providers, or turn on a provider with your own key under Connections → Search.",
+        pinned
+            .map(|p| format!("`{p}`"))
+            .unwrap_or_else(|| "this request".to_string())
+    ))
 }
 
 #[cfg(not(feature = "modules"))]

@@ -14,6 +14,7 @@ import type {
 } from '../../../store/chatRuntimeSlice';
 import { openUrl } from '../../../utils/openUrl';
 import { ToolFailureCard } from '../aui/ToolFailureCard';
+import { isSearchBalanceError } from '../tools/parseWebSearchResult';
 import {
   FetchBody,
   FileBody,
@@ -21,7 +22,6 @@ import {
   ShellBody,
   WebSearchBody,
 } from '../tools/ToolBodies';
-import { isSearchBalanceError } from '../tools/parseWebSearchResult';
 import { hasDisplayValue, parsedValue, ToolDataView } from '../tools/ToolDataView';
 import { ToolIcon } from '../tools/ToolIcon';
 import { describeToolCall, parseToolArgs, toolLabel } from '../tools/toolPresentation';

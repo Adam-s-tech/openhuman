@@ -37,9 +37,7 @@ vi.mock('../hooks/useSettingsNavigation', () => ({
   useSettingsNavigation: () => ({ navigateBack: vi.fn(), breadcrumbs: [] }),
 }));
 
-vi.mock('../../../utils/localSession', () => ({
-  isLocalSessionToken: () => hoisted.localSession,
-}));
+vi.mock('../../../utils/localSession', () => ({ isLocalSessionToken: () => hoisted.localSession }));
 
 // ---------------------------------------------------------------------------
 // Fixtures (shape of the core's config_get_search_settings response)
@@ -119,11 +117,7 @@ function settings(overrides: Record<string, unknown> = {}) {
     timeout_secs: 15,
     managed_available: true,
     providers: [provider('exa'), provider('gemini'), provider('brave'), provider('searxng')],
-    roles: {
-      search: ['exa', 'brave', 'searxng'],
-      answer: ['gemini', 'exa'],
-      contents: ['exa'],
-    },
+    roles: { search: ['exa', 'brave', 'searxng'], answer: ['gemini', 'exa'], contents: ['exa'] },
     effective_roles: { search: ['exa'], answer: ['gemini', 'exa'], contents: ['exa'] },
     allowed_domains: ['reuters.com'],
     allow_all: false,
@@ -307,7 +301,9 @@ describe('SearchPanel — providers', () => {
 
   test('a stored key can be cleared', async () => {
     hoisted.getSearchSettings.mockResolvedValue({
-      result: settings({ providers: [provider('exa'), provider('brave', { key_configured: true })] }),
+      result: settings({
+        providers: [provider('exa'), provider('brave', { key_configured: true })],
+      }),
     });
     await renderPanel();
     const editor = within(screen.getByTestId('search-provider-brave-key'));
@@ -457,7 +453,9 @@ describe('SearchPanel — roles', () => {
 
   test('a removed provider can be added back to the end', async () => {
     hoisted.getSearchSettings.mockResolvedValue({
-      result: settings({ roles: { search: ['exa'], answer: ['gemini', 'exa'], contents: ['exa'] } }),
+      result: settings({
+        roles: { search: ['exa'], answer: ['gemini', 'exa'], contents: ['exa'] },
+      }),
     });
     await renderPanel();
 

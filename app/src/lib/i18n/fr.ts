@@ -1274,7 +1274,7 @@ const messages: TranslationMap = {
   'onboarding.custom.search.defaultDesc':
     'La recherche web fonctionne immédiatement : Exa et Gemini sont inclus avec TinyHumans, sans clé API.',
   'onboarding.custom.search.configureDesc':
-    'Exa et Gemini sont inclus. Ajoutez d\'autres fournisseurs de recherche avec votre propre clé API dans Paramètres › Outils.',
+    "Exa et Gemini sont inclus. Ajoutez d'autres fournisseurs de recherche avec votre propre clé API dans Paramètres › Outils.",
   'onboarding.custom.embeddings.title': 'Embeddings',
   'onboarding.custom.embeddings.subtitle':
     'Comment OpenHuman génère des embeddings vectoriels pour la recherche sémantique en mémoire.',
@@ -1595,7 +1595,7 @@ const messages: TranslationMap = {
     'Les fournisseurs inclus avec TinyHumans nécessitent une connexion. Activez un fournisseur avec votre propre clé API pour utiliser la recherche web en session locale.',
   'settings.search.enabledLabel': 'Recherche web',
   'settings.search.enabledDesc':
-    'Autorise l\'agent à chercher sur le web, à répondre à partir de sources web et à lire des pages.',
+    "Autorise l'agent à chercher sur le web, à répondre à partir de sources web et à lire des pages.",
   'settings.search.providersTitle': 'Fournisseurs',
   'settings.search.providersDesc':
     'Activez les fournisseurs voulus. Plusieurs peuvent être actifs à la fois ; les rôles ci-dessous décident lequel est essayé en premier.',
@@ -1605,18 +1605,18 @@ const messages: TranslationMap = {
   'settings.search.routeDirect': 'Clé personnelle',
   'settings.search.apiKeyLabel': 'Clé API {provider}',
   'settings.search.placeholderKey': 'Collez votre clé API {provider}',
-  'settings.search.baseUrlLabel': 'URL de l\'instance',
-  'settings.search.baseUrlSave': 'Enregistrer l\'URL',
+  'settings.search.baseUrlLabel': "URL de l'instance",
+  'settings.search.baseUrlSave': "Enregistrer l'URL",
   'settings.search.statusReady': 'Prêt',
   'settings.search.statusSignInRequired': 'Connexion requise',
   'settings.search.statusOff': 'Désactivé',
   'settings.search.deepResearchAvailable':
-    'La recherche approfondie est disponible : l\'agent peut demander à {provider} un rapport plus long et plus complet.',
+    "La recherche approfondie est disponible : l'agent peut demander à {provider} un rapport plus long et plus complet.",
   'settings.search.deepResearchHint':
     'Ajoutez votre propre clé {provider} pour débloquer la recherche approfondie.',
   'settings.search.rolesTitle': 'Rôles',
   'settings.search.rolesDesc':
-    'Chaque rôle est un outil pour l\'agent. Le premier fournisseur disponible s\'en charge ; les autres servent de secours, dans l\'ordre.',
+    "Chaque rôle est un outil pour l'agent. Le premier fournisseur disponible s'en charge ; les autres servent de secours, dans l'ordre.",
   'settings.search.roleSearch': 'Recherche',
   'settings.search.roleSearchDesc': 'Résultats web classés pour une requête.',
   'settings.search.roleAnswer': 'Réponse',
@@ -1625,7 +1625,7 @@ const messages: TranslationMap = {
   'settings.search.roleContentsDesc': 'Récupère les pages indiquées et en extrait le texte.',
   'settings.search.roleServedBy': 'Assuré par {provider}',
   'settings.search.roleNoProvider':
-    'Aucun fournisseur disponible : l\'agent n\'a pas cet outil pour le moment.',
+    "Aucun fournisseur disponible : l'agent n'a pas cet outil pour le moment.",
   'settings.search.roleMoveUp': 'Monter {provider}',
   'settings.search.roleMoveDown': 'Descendre {provider}',
   'settings.search.roleRemove': 'Retirer {provider}',
@@ -1635,7 +1635,7 @@ const messages: TranslationMap = {
   'settings.search.advancedTitle': 'Avancé',
   'settings.search.exposeProviderTools': 'Exposer les outils propres à chaque fournisseur',
   'settings.search.exposeProviderToolsDesc':
-    'Donne à l\'agent les outils de chaque fournisseur actif, pas seulement un outil par rôle. Cela occupe davantage la fenêtre de contexte.',
+    "Donne à l'agent les outils de chaque fournisseur actif, pas seulement un outil par rôle. Cela occupe davantage la fenêtre de contexte.",
   // ─── Settings global search bar ────────────────────────────
   'settings.embeddings.title': 'Encastrements',
   'settings.embeddings.description':

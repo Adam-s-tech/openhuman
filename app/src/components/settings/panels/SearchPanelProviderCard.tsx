@@ -64,8 +64,7 @@ const SearchPanelProviderCard = ({ provider, saving, onUpdate, t }: Props) => {
   // `deep_research_available` (Gemini) also takes an optional key on the
   // managed route, because the key is what unlocks deep research.
   const deepResearchCapable = provider.deep_research_available !== undefined;
-  const showKeyEditor =
-    provider.takes_key && (provider.route === 'direct' || deepResearchCapable);
+  const showKeyEditor = provider.takes_key && (provider.route === 'direct' || deepResearchCapable);
   const hasBaseUrl = provider.base_url !== undefined;
 
   const saveKey = async (value: string) => {

@@ -1575,10 +1575,10 @@ const messages: TranslationMap = {
   'settings.search.description':
     'La ricerca può usare più fornitori contemporaneamente. Exa e Gemini sono inclusi con TinyHumans e non richiedono configurazione; gli altri fornitori funzionano con la tua chiave API. Ogni ruolo qui sotto usa il primo fornitore disponibile e ripiega sul successivo.',
   'settings.search.localManagedUnavailable':
-    'I fornitori inclusi con TinyHumans richiedono l\'accesso. Attiva un fornitore con la tua chiave API per usare la ricerca web in una sessione locale.',
+    "I fornitori inclusi con TinyHumans richiedono l'accesso. Attiva un fornitore con la tua chiave API per usare la ricerca web in una sessione locale.",
   'settings.search.enabledLabel': 'Ricerca web',
   'settings.search.enabledDesc':
-    'Consente all\'agente di cercare sul web, rispondere a domande da fonti web e leggere pagine.',
+    "Consente all'agente di cercare sul web, rispondere a domande da fonti web e leggere pagine.",
   'settings.search.providersTitle': 'Fornitori',
   'settings.search.providersDesc':
     'Attiva i fornitori che preferisci. Possono essere attivi più fornitori insieme; i ruoli qui sotto decidono quale provare per primo.',
@@ -1588,18 +1588,18 @@ const messages: TranslationMap = {
   'settings.search.routeDirect': 'Chiave personale',
   'settings.search.apiKeyLabel': 'Chiave API di {provider}',
   'settings.search.placeholderKey': 'Incolla la tua chiave API di {provider}',
-  'settings.search.baseUrlLabel': 'URL dell\'istanza',
+  'settings.search.baseUrlLabel': "URL dell'istanza",
   'settings.search.baseUrlSave': 'Salva URL',
   'settings.search.statusReady': 'Pronto',
   'settings.search.statusSignInRequired': 'Accesso richiesto',
   'settings.search.statusOff': 'Disattivato',
   'settings.search.deepResearchAvailable':
-    'La ricerca approfondita è disponibile: l\'agente può chiedere a {provider} un report più lungo e accurato.',
+    "La ricerca approfondita è disponibile: l'agente può chiedere a {provider} un report più lungo e accurato.",
   'settings.search.deepResearchHint':
     'Aggiungi la tua chiave di {provider} per sbloccare la ricerca approfondita.',
   'settings.search.rolesTitle': 'Ruoli',
   'settings.search.rolesDesc':
-    'Ogni ruolo è uno strumento per l\'agente. Lo gestisce il primo fornitore disponibile; gli altri sono alternative, in ordine.',
+    "Ogni ruolo è uno strumento per l'agente. Lo gestisce il primo fornitore disponibile; gli altri sono alternative, in ordine.",
   'settings.search.roleSearch': 'Ricerca',
   'settings.search.roleSearchDesc': 'Risultati web ordinati per una query.',
   'settings.search.roleAnswer': 'Risposta',
@@ -1608,7 +1608,7 @@ const messages: TranslationMap = {
   'settings.search.roleContentsDesc': 'Recupera le pagine indicate e ne estrae il testo.',
   'settings.search.roleServedBy': 'Gestito da {provider}',
   'settings.search.roleNoProvider':
-    'Nessun fornitore disponibile: al momento l\'agente non ha questo strumento.',
+    "Nessun fornitore disponibile: al momento l'agente non ha questo strumento.",
   'settings.search.roleMoveUp': 'Sposta {provider} su',
   'settings.search.roleMoveDown': 'Sposta {provider} giù',
   'settings.search.roleRemove': 'Rimuovi {provider}',
@@ -1618,7 +1618,7 @@ const messages: TranslationMap = {
   'settings.search.advancedTitle': 'Avanzate',
   'settings.search.exposeProviderTools': 'Mostra gli strumenti propri di ogni fornitore',
   'settings.search.exposeProviderToolsDesc':
-    'Fornisce all\'agente gli strumenti di ogni fornitore attivo, non solo uno strumento per ruolo. Occupa più finestra di contesto.',
+    "Fornisce all'agente gli strumenti di ogni fornitore attivo, non solo uno strumento per ruolo. Occupa più finestra di contesto.",
   // ─── Settings global search bar ────────────────────────────
   'settings.embeddings.title': 'Incorporamenti',
   'settings.embeddings.description':
