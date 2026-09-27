@@ -53,13 +53,13 @@ use openhuman_core::security::credentials::{
     list_provider_credentials_by_prefix, normalize_provider, rpc_store_composio_api_key,
     store_composio_api_key, AuthService, APP_SESSION_PROVIDER, COMPOSIO_DIRECT_PROVIDER,
 };
+use openhuman_rpc::server::build_core_http_router;
 use openhuman_tinyhumans::backend::url::{
     api_base_from_env, app_env_from_env, default_api_base_url_for_env, effective_api_url,
     effective_backend_api_url, effective_inference_url, join_url as api_url,
     looks_like_local_ai_endpoint, normalize_api_base_url, APP_ENV_VAR, DEFAULT_API_BASE_URL,
     DEFAULT_STAGING_API_BASE_URL, OPENHUMAN_INFERENCE_PATH, VITE_APP_ENV_VAR,
 };
-use openhuman_rpc::server::build_core_http_router;
 use tinybus::EventHandler;
 
 const TEST_RPC_TOKEN: &str = "worker-a-domain-e2e-token";
