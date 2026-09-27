@@ -30,7 +30,9 @@
 //! phrases, budget exhaustion) keep matching them.
 
 use crate::backend::url::effective_backend_api_url;
-use openhuman_core::backend::transport::{resolve_backend_transport, TransportProfile};
+use openhuman_core::backend::transport::{
+    resolve_backend_transport, BackendTransport, BackendTransportError, TransportProfile,
+};
 use openhuman_core::config::Config;
 use openhuman_core::core::observability::{
     contains_transient_transport_phrase, is_transient_http_status_code, API_KEY_REJECTED_PREFIX,
@@ -40,6 +42,7 @@ use openhuman_core::security::credentials::session_support::{
     resolve_backend_credential, BackendCredential,
 };
 use serde_json::Value;
+use std::sync::Arc;
 use tinyhumans_sdk::{Error as SdkError, TinyHumansClient};
 
 const LOG_PREFIX: &str = "[hosted][client]";
@@ -67,10 +70,7 @@ impl HostedClient {
         let credential = resolve_backend_credential(config).inspect_err(|err| {
             log::debug!("{LOG_PREFIX} no usable backend credential; skipping request: {err}");
         })?;
-        resolve_backend_transport().map_err(|_| {
-            log::debug!("{LOG_PREFIX} no backend transport installed; skipping request");
-            format!("{BACKEND_UNAVAILABLE_PREFIX} no backend transport installed")
-        })?;
+        require_transport(resolve_backend_transport())?;
         let base_url = backend_origin(&effective_backend_api_url(&config.api_url))?;
         Ok(Self::with_credential(&base_url, credential))
     }
@@ -119,6 +119,16 @@ impl HostedClient {
     ) -> Result<Value, String> {
         self.finish(op, result).map(|v| v.0)
     }
+}
+
+/// Reject hosted calls when the runtime has no backend transport.
+fn require_transport(
+    result: Result<Arc<dyn BackendTransport>, BackendTransportError>,
+) -> Result<(), String> {
+    result.map(|_| ()).map_err(|_| {
+        log::debug!("{LOG_PREFIX} no backend transport installed; skipping request");
+        format!("{BACKEND_UNAVAILABLE_PREFIX} no backend transport installed")
+    })
 }
 
 /// The backend origin with any path, query and fragment stripped — the same

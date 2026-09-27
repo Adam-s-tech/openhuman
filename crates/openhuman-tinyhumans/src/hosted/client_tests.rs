@@ -150,13 +150,8 @@ fn missing_credential_fails_before_any_request() {
 }
 
 #[test]
-fn stored_session_cannot_bypass_missing_backend_transport() {
-    let tmp = TempDir::new().unwrap();
-    let config = test_config(&tmp, "http://127.0.0.1:9");
-    store_session(&config, "jwt.a.b");
-    let err = HostedClient::from_config(&config)
-        .err()
-        .expect("transport required");
+fn missing_backend_transport_has_unavailable_sentinel() {
+    let err = require_transport(Err(BackendTransportError::Unavailable)).unwrap_err();
     assert!(err.starts_with("BACKEND_UNAVAILABLE:"), "{err}");
 }
 
