@@ -95,8 +95,8 @@ case "$manifest" in
       echo "cargo tree failed" >&2
       exit 7
     fi
-    cat "${root}/tree.core" ;;
-  *) cat "${root}/tree.tauri" ;;
+    cat "$TEST_FIXTURE_ROOT/tree.core" ;;
+  *) cat "$TEST_FIXTURE_ROOT/tree.tauri" ;;
 esac
 `,
     { mode: 0o755 },
