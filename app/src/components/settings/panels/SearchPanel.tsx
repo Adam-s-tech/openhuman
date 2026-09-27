@@ -13,6 +13,7 @@ import {
 } from '../../../utils/tauriCommands/config';
 import PanelPage from '../../layout/PanelPage';
 import { Alert, AlertDescription } from '../../ui/Alert';
+import Card from '../../ui/Card';
 import { CollapsibleContent, CollapsibleRoot, CollapsibleTrigger } from '../../ui/Collapsible';
 import { CenteredLoadingState } from '../../ui/LoadingState';
 import StatusLine from '../../ui/StatusLine';
@@ -96,11 +97,7 @@ const SearchPanel = ({ embedded = false }: { embedded?: boolean }) => {
       contentClassName=""
       description={embedded ? undefined : t('settings.search.menuDesc')}
       leading={embedded ? undefined : <SettingsBackButton onBack={navigateBack} />}>
-      <div className={embedded ? 'space-y-5' : 'p-4 space-y-5'}>
-        <p className="text-xs text-content-muted leading-relaxed">
-          {t('settings.search.description')}
-        </p>
-
+      <div className={embedded ? 'space-y-5' : 'space-y-5 p-4'}>
         {managedUnavailable && (
           <Alert variant="info">
             <AlertDescription>{t('settings.search.localManagedUnavailable')}</AlertDescription>
@@ -111,38 +108,36 @@ const SearchPanel = ({ embedded = false }: { embedded?: boolean }) => {
 
         {settings && (
           <>
-            {/* Search on/off */}
-            <div className="flex items-center gap-3 rounded-xl border border-line bg-surface p-3">
-              <label htmlFor={enabledId} className="flex-1 min-w-0">
-                <span className="block text-sm font-medium text-content">
-                  {t('settings.search.enabledLabel')}
-                </span>
-                <span className="block text-xs text-content-muted">
-                  {t('settings.search.enabledDesc')}
-                </span>
-              </label>
-              <Switch
-                id={enabledId}
-                data-testid="search-enabled-toggle"
-                aria-label={t('settings.search.enabledLabel')}
-                checked={settings.enabled}
-                disabled={saving}
-                onCheckedChange={next => void persist({ enabled: next })}
-              />
-            </div>
-
-            {/* Providers */}
-            <section className="space-y-2" aria-labelledby="search-providers-heading">
-              <div>
-                <h3
-                  id="search-providers-heading"
-                  className="text-xs font-semibold text-content-secondary">
-                  {t('settings.search.providersTitle')}
-                </h3>
-                <p className="text-[11px] text-content-muted leading-relaxed">
-                  {t('settings.search.providersDesc')}
-                </p>
+            {/* ── Search on/off ─────────────────────────────────────── */}
+            <Card data-testid="search-enabled">
+              <div className="flex items-center gap-3 p-4">
+                <div className="min-w-0 flex-1">
+                  <label htmlFor={enabledId} className="block text-sm font-semibold text-content">
+                    {t('settings.search.enabledLabel')}
+                  </label>
+                  <p className="mt-0.5 text-xs text-content-muted">
+                    {t('settings.search.enabledDesc')}
+                  </p>
+                </div>
+                <Switch
+                  id={enabledId}
+                  data-testid="search-enabled-toggle"
+                  aria-label={t('settings.search.enabledLabel')}
+                  checked={settings.enabled}
+                  disabled={saving}
+                  onCheckedChange={next => void persist({ enabled: next })}
+                />
               </div>
+              <p className="px-4 py-3 text-xs leading-relaxed text-content-muted">
+                {t('settings.search.description')}
+              </p>
+            </Card>
+
+            {/* ── Providers, one row each ───────────────────────────── */}
+            <Card
+              data-testid="search-providers"
+              title={t('settings.search.providersTitle')}
+              description={t('settings.search.providersDesc')}>
               {settings.providers.map(provider => (
                 <SearchPanelProviderCard
                   key={provider.id}
@@ -152,28 +147,28 @@ const SearchPanel = ({ embedded = false }: { embedded?: boolean }) => {
                   t={t}
                 />
               ))}
-            </section>
+            </Card>
 
             <SearchPanelRoles settings={settings} saving={saving} persist={persist} t={t} />
 
             <SearchPanelAllowedSites settings={settings} saving={saving} persist={persist} t={t} />
 
-            {/* Advanced */}
+            {/* ── Advanced ──────────────────────────────────────────── */}
             <CollapsibleRoot variant="card" data-testid="search-advanced">
-              <CollapsibleTrigger size="sm">
+              <CollapsibleTrigger>
                 {t('settings.search.advancedTitle')}
                 <ChevronDownIcon
                   className="size-3.5 transition-transform group-data-[state=open]:rotate-180"
                   aria-hidden="true"
                 />
               </CollapsibleTrigger>
-              <CollapsibleContent size="sm">
+              <CollapsibleContent>
                 <div className="flex items-center gap-3 pt-1">
-                  <label htmlFor={presentationId} className="flex-1 min-w-0">
-                    <span className="block text-xs font-medium text-content">
+                  <label htmlFor={presentationId} className="min-w-0 flex-1">
+                    <span className="block text-sm text-content">
                       {t('settings.search.exposeProviderTools')}
                     </span>
-                    <span className="block text-[11px] text-content-muted leading-relaxed">
+                    <span className="mt-0.5 block text-xs leading-relaxed text-content-muted">
                       {t('settings.search.exposeProviderToolsDesc')}
                     </span>
                   </label>
