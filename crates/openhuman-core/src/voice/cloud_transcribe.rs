@@ -21,11 +21,15 @@ pub async fn transcribe_cloud(
     let url = client
         .url_for("/openai/v1/audio/transcriptions")
         .map_err(|error| error.to_string())?;
-    if is_api_key
-        && !crate::inference::provider::openhuman_backend_model::is_managed_endpoint_for_api_key(
+    let safe_for_bearer =
+        crate::inference::provider::openhuman_backend_model::is_safe_endpoint_for_managed_bearer(
             url.as_str(),
-        )
-    {
+        );
+    let managed_for_api_key =
+        crate::inference::provider::openhuman_backend_model::is_managed_endpoint_for_api_key(
+            url.as_str(),
+        );
+    if !safe_for_bearer || (is_api_key && !managed_for_api_key) {
         return Err(
             "refusing to send the TinyHumans API key over a non-HTTPS, non-loopback endpoint"
                 .to_string(),
