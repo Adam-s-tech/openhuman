@@ -130,7 +130,10 @@ fn exa_key_under_managed_engine_stays_managed() {
 fn a_parallel_key_is_kept_as_a_direct_provider() {
     let mut cfg = legacy("engine = \"parallel\"\n[parallel]\napi_key = \"p\"\n");
     cfg.migrate_legacy(LegacySearchInputs::default());
-    assert_eq!(provider(&cfg, "parallel"), Some(SearchProviderSettings::direct()));
+    assert_eq!(
+        provider(&cfg, "parallel"),
+        Some(SearchProviderSettings::direct())
+    );
     assert_eq!(cfg.parallel.key(), Some("p"));
     assert_eq!(
         cfg.roles.get(SEARCH_ROLE_SEARCH),
@@ -143,12 +146,14 @@ fn a_parallel_key_is_kept_as_a_direct_provider() {
 
 #[test]
 fn managed_parallel_without_a_key_is_dropped() {
-    let mut cfg = legacy(
-        "enabled_providers = [\"managed\", \"parallel\"]\nparallel_route = \"backend\"\n",
-    );
+    let mut cfg =
+        legacy("enabled_providers = [\"managed\", \"parallel\"]\nparallel_route = \"backend\"\n");
     cfg.migrate_legacy(LegacySearchInputs::default());
     assert!(!cfg.providers.contains_key("parallel"));
-    assert_eq!(provider(&cfg, "exa"), Some(SearchProviderSettings::managed()));
+    assert_eq!(
+        provider(&cfg, "exa"),
+        Some(SearchProviderSettings::managed())
+    );
 }
 
 #[test]

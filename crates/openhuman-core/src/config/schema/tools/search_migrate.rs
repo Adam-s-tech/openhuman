@@ -42,10 +42,7 @@ impl SearchConfig {
             .unwrap_or(SearchRoute::Managed);
         let mut providers = BTreeMap::new();
         let parallel_key = self.parallel.has_key();
-        let managed_parallel = self
-            .parallel_route
-            .as_deref()
-            .and_then(SearchRoute::parse)
+        let managed_parallel = self.parallel_route.as_deref().and_then(SearchRoute::parse)
             == Some(SearchRoute::Managed);
         let mut dropped_parallel = false;
 
