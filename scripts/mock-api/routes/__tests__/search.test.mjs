@@ -72,7 +72,7 @@ test("serves Exa contents, answer and findSimilar", async () => {
   assert.equal(similar.status, 200);
 });
 
-test("answers 402 for Exa when the balance behavior is set", async () => {
+test("answers insufficient credits for Exa when the balance behavior is set", async () => {
   setMockBehaviors({ exaInsufficientBalance: "1" });
   const started = await startMockServer(18593, { retryIfInUse: true });
   const baseUrl = `http://127.0.0.1:${started.port}`;
@@ -81,7 +81,8 @@ test("answers 402 for Exa when the balance behavior is set", async () => {
     objective: "x",
     searchQueries: ["x"],
   });
-  assert.equal(response.status, 402);
+  assert.equal(response.status, 400);
+  assert.equal(response.body.errorCode, "USER_INSUFFICIENT_CREDITS");
 });
 
 test("serves Gemini grounded generate-content with grounding metadata", async () => {

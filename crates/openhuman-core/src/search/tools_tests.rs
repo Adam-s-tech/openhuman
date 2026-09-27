@@ -21,7 +21,9 @@ fn classified_errors_become_actionable_messages() {
     assert!(user_facing_error("tinysearch.rate_limited: slow down").contains("rate limited"));
     assert!(user_facing_error("tinysearch.provider_unavailable: all down").contains("unavailable"));
     assert_eq!(
-        user_facing_error("tinysearch.invalid_arguments: urls must not be empty"),
+        user_facing_error(
+            "search ExecuteTool failed: tinysearch.invalid_arguments: urls must not be empty"
+        ),
         "The search request was rejected: urls must not be empty"
     );
     assert_eq!(user_facing_error("boom"), "Web search failed: boom");

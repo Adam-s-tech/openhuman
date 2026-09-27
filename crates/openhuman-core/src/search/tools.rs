@@ -62,41 +62,34 @@ impl TinySearchTool {
 /// classified failures with `tinysearch.<code>:`; the detail after the prefix
 /// may echo the query, so it is not logged.
 pub fn user_facing_error(error: &str) -> String {
-    let code = error
-        .split("tinysearch.")
-        .nth(1)
-        .and_then(|rest| rest.split(':').next())
-        .unwrap_or_default();
-    match code {
-        c if c == errors::INSUFFICIENT_BALANCE => {
+    match error_code(error) {
+        Some(code) if code == errors::INSUFFICIENT_BALANCE => {
             "Web search is unavailable: the TinyHumans balance is too low for managed search. \
              Top up the balance, or add your own provider key under Connections → Search."
                 .to_string()
         }
-        c if c == errors::RATE_LIMITED => {
+        Some(code) if code == errors::RATE_LIMITED => {
             "Web search is rate limited right now. Wait a moment and try again.".to_string()
         }
-        c if c == errors::UNAVAILABLE => {
+        Some(code) if code == errors::UNAVAILABLE => {
             "Every configured search provider for this request is unavailable right now."
                 .to_string()
         }
-        c if c == errors::INVALID_ARGUMENTS => {
-            format!(
-                "The search request was rejected: {}",
-                error.split_once(": ").map(|(_, d)| d).unwrap_or(error)
-            )
+        Some(code) if code == errors::INVALID_ARGUMENTS => {
+            let marker = format!("{}{code}: ", errors::PREFIX);
+            let detail = error
+                .split_once(marker.as_str())
+                .map(|(_, detail)| detail)
+                .unwrap_or(error);
+            format!("The search request was rejected: {detail}")
         }
         _ => format!("Web search failed: {error}"),
     }
 }
 
 /// The classified error code in a module error message, if any.
-pub fn error_code(error: &str) -> Option<&str> {
-    error
-        .split("tinysearch.")
-        .nth(1)
-        .and_then(|rest| rest.split(':').next())
-        .filter(|code| !code.is_empty())
+pub fn error_code(error: &str) -> Option<&'static str> {
+    errors::code_of(error)
 }
 
 #[async_trait]

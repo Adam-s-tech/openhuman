@@ -625,10 +625,15 @@ export function handleIntegrations(ctx) {
   // ── Exa (managed) ──────────────────────────────────────────
   // Mirrors backend `/agent-integrations/exa/*`: search takes
   // `{objective, searchQueries}`; contents/answer/findSimilar proxy Exa's
-  // own REST bodies. `mockBehavior.exaInsufficientBalance = "1"` answers 402.
+  // own REST bodies. `mockBehavior.exaInsufficientBalance = "1"` answers
+  // the backend's insufficient-credits 400.
   if (method === "POST" && /^\/agent-integrations\/exa\//.test(url)) {
     if (mockBehavior.exaInsufficientBalance === "1") {
-      json(res, 402, { success: false, error: "Insufficient balance" });
+      json(res, 400, {
+        success: false,
+        error: "Insufficient balance",
+        errorCode: "USER_INSUFFICIENT_CREDITS",
+      });
       return true;
     }
     if (/^\/agent-integrations\/exa\/search\/?$/.test(url)) {
