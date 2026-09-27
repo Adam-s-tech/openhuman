@@ -2,7 +2,7 @@
 
 use crate::backend::BackendClient;
 use crate::config::Config;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 use crate::security::credentials::jwt::get_session_token;
 
 pub use tinyinference_voice::cloud::{CloudTranscribeOptions, CloudTranscribeResult};
@@ -35,7 +35,7 @@ pub async fn transcribe_cloud(
     let result = tinyinference_voice::cloud::transcribe(&http, url, &token, audio_base64, options)
         .await
         .map_err(classify_transcribe_error)?;
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         result,
         "cloud STT via POST /openai/v1/audio/transcriptions",
     ))
