@@ -15,6 +15,7 @@
  */
 import { cn } from '@/components/assistant-ui/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/assistant-ui/ui/popover';
+import { useT } from '@/lib/i18n/I18nContext';
 import { type TaskState, useAuiState } from '@assistant-ui/react';
 import { ChevronDownIcon } from 'lucide-react';
 import { type FC, useMemo, useState } from 'react';
@@ -93,16 +94,13 @@ export const useTaskSummary = (): TaskSummary => {
 const plural = (count: number, strings: AgentStatusStrings) =>
   `${count} ${count === 1 ? strings.taskOne : strings.taskOther}`;
 
-export const summaryState = (summary: TaskSummary): AgentState => {
+const summaryState = (summary: TaskSummary): AgentState => {
   if (summary.running > 0) return 'working';
   if (summary.waiting > 0) return 'waiting';
   return summary.failed > 0 ? 'failed' : 'done';
 };
 
-export const summaryLabel = (
-  summary: TaskSummary,
-  strings: AgentStatusStrings = DEFAULT_STRINGS
-) => {
+const summaryLabel = (summary: TaskSummary, strings: AgentStatusStrings = DEFAULT_STRINGS) => {
   if (summary.running === 1 && summary.runningLabel !== undefined) {
     return summary.runningLabel;
   }
@@ -116,27 +114,6 @@ export const summaryLabel = (
     return `${plural(summary.total, strings)} ${strings.done}, ${summary.failed} ${strings.failed}`;
   }
   return `${plural(summary.total, strings)} ${strings.done}`;
-};
-
-export const AgentStatus: FC<{ className?: string; strings?: AgentStatusStrings }> = ({
-  className,
-  strings,
-}) => {
-  const summary = useTaskSummary();
-  const elapsedMs = useTaskElapsed(
-    summary.startedAt === undefined ? undefined : { startedAt: summary.startedAt },
-    summary.running > 0
-  );
-  if (summary.running === 0 && summary.waiting === 0) return null;
-
-  return (
-    <AgentStatusBase
-      className={className}
-      state={summaryState(summary)}
-      label={summaryLabel(summary, strings)}
-      elapsed={elapsedMs === undefined ? undefined : formatElapsed(elapsedMs)}
-    />
-  );
 };
 
 const TaskTrayItem: FC<{ task: TaskState }> = ({ task }) => {
@@ -172,6 +149,7 @@ export const TaskTray: FC<{ className?: string; strings?: AgentStatusStrings }> 
   className,
   strings,
 }) => {
+  const { t } = useT();
   const tasks = useAuiState(s => s.thread.tasks);
   const summary = useMemo(() => summarize(tasks), [tasks]);
   const elapsedMs = useTaskElapsed(
@@ -220,7 +198,7 @@ export const TaskTray: FC<{ className?: string; strings?: AgentStatusStrings }> 
       <PopoverContent align="end" className="w-80 p-1">
         <ul
           data-slot="aui_task-tray"
-          aria-label="Tasks"
+          aria-label={t('chat.filter.tasks', 'Tasks')}
           className="flex max-h-80 flex-col overflow-y-auto">
           {tasks.slice(0, visible).map((task, index) => (
             <TaskTrayItem key={`${index}:${task.id}`} task={task} />

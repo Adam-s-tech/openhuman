@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { BubbleMarkdown, TableCellMarkdown } from './AgentMessageBubble';
+import { BubbleMarkdown } from './AgentMessageBubble';
 
 const mocks = vi.hoisted(() => ({ openUrl: vi.fn(), openWorkspacePath: vi.fn() }));
 
@@ -80,15 +80,6 @@ describe('AgentMessageBubble markdown links', () => {
     } finally {
       consoleError.mockRestore();
     }
-  });
-
-  test('uses the same workspace link handling inside table cells', async () => {
-    render(<TableCellMarkdown content="[note](openhuman-workspace:/docs/note.md)" />);
-
-    await userEvent.click(screen.getByRole('link', { name: 'note' }));
-
-    await waitFor(() => expect(mocks.openWorkspacePath).toHaveBeenCalledWith('docs/note.md'));
-    expect(mocks.openUrl).not.toHaveBeenCalled();
   });
 
   test('does not open raw file links from markdown', async () => {

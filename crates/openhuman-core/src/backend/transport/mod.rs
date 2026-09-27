@@ -3,7 +3,7 @@
 //!
 //! The core owns the *routes* (`/payments/summary`,
 //! `/agent-integrations/...`, `channels/{c}/messages`, ...) and the error
-//! *classification* ([`crate::backend::error`], `integrations/client/errors.rs`).
+//! *classification* ([`crate::backend::client`], `integrations/client/errors.rs`).
 //! What it does not own is the HTTP primitive that carries a request with the
 //! right credential header shape and route policy. That is a
 //! [`BackendTransport`], and the only production implementation lives in the

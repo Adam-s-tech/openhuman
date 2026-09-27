@@ -14,7 +14,7 @@ describe('<CostSummary />', () => {
       />
     );
     expect(screen.getByTestId('metric-total-spend')).toHaveTextContent('$42.50');
-    expect(screen.getByTestId('metric-total-spend')).toHaveTextContent('$50.00');
+    expect(screen.getByTestId('metric-month-to-date')).toHaveTextContent('$50.00');
     expect(screen.getByTestId('metric-monthly-pace')).toHaveTextContent('$181');
     expect(screen.queryByTestId('metric-budget-limit')).not.toBeInTheDocument();
     expect(screen.queryByTestId('budget-status-badge')).not.toBeInTheDocument();

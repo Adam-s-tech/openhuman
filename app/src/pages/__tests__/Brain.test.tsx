@@ -159,16 +159,33 @@ describe('Brain page', () => {
     });
   });
 
-  it('shows the sync history panel on the Sync tab', async () => {
+  // Sync has two sub-views reflected in `?view=`: the default "status" view
+  // (live status panel + activity card) and "history" (the full-height run
+  // history table). They're mutually exclusive panes, not stacked together.
+  it('shows the live status and activity panels on the Sync status sub-view (default)', async () => {
     graphExportMock.mockResolvedValue(makeGraph(0));
     await act(async () => {
       renderWithProviders(<Brain />, { initialEntries: ['/?tab=sync'] });
     });
     await waitFor(() => {
-      expect(screen.getByTestId('brain-sync-history')).toBeInTheDocument();
-      expect(screen.getByTestId('brain-sync-audit')).toBeInTheDocument();
+      expect(screen.getByTestId('brain-sync')).toBeInTheDocument();
       expect(screen.getByTestId('brain-sync-activity')).toBeInTheDocument();
       expect(screen.getByTestId('brain-sync-activity-card')).toBeInTheDocument();
     });
+    expect(screen.queryByTestId('brain-sync-history')).toBeNull();
+    expect(screen.queryByTestId('brain-sync-audit')).toBeNull();
+  });
+
+  it('shows the sync history panel on the Sync history sub-view', async () => {
+    graphExportMock.mockResolvedValue(makeGraph(0));
+    await act(async () => {
+      renderWithProviders(<Brain />, { initialEntries: ['/?tab=sync&view=history'] });
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId('brain-sync-history')).toBeInTheDocument();
+      expect(screen.getByTestId('brain-sync-audit')).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId('brain-sync-activity')).toBeNull();
+    expect(screen.queryByTestId('brain-sync-activity-card')).toBeNull();
   });
 });

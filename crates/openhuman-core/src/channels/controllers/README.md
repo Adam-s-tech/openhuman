@@ -6,7 +6,7 @@ Owns the `channels.*` RPC namespace: provider metadata, connect/disconnect lifec
 
 | Path | Purpose |
 | --- | --- |
-| `backend.rs` | `OpenHumanChannelBackend` — the OpenHuman implementation of `tinychannels::ChannelBackend`; `tinychannels::ChannelManager` calls back into it, and each method forwards to the matching `ops` function. `send_outbound_intent` first tries `channels::relay_runtime::send_outbound_intent` when `relay_runtime_fronts_channel` says the relay-websocket transport fronts the channel, then falls back to `ops::channel_send_message` |
+| `backend.rs` | `OpenHumanChannelBackend`, the OpenHuman implementation of `tinychannels::ChannelBackend`. `tinychannels::ChannelManager` calls back into it, and each method forwards to the matching `ops` function. `send_outbound_intent` first tries `channels::relay_runtime::send_outbound_intent` when `relay_runtime_fronts_channel` says the relay-websocket transport fronts the channel, then falls back to `ops::channel_send_message` |
 | `definitions.rs` | Re-exports provider metadata (`ChannelDefinition`, `ChannelAuthMode`, `ChannelCapability`, `AuthModeSpec`, `FieldRequirement`, `all_channel_definitions`, `find_channel_definition`) from `tinychannels::controllers` |
 | `ops/` | Business logic behind each RPC handler, grouped by concern (connect, discord, messaging, telegram, yuanbao) |
 | `schemas.rs` | `all_registered_controllers` / `all_controller_schemas` and the thin RPC handlers: deserialize params, build a `ChannelManager<OpenHumanChannelBackend>` over the loaded config, call the manager, and shape the `RpcOutcome`. Field schemas come from `tinychannels::controllers::channel_controller_schema`, converted by `from_channel_controller_schema` |
@@ -19,13 +19,13 @@ Owns the `channels.*` RPC namespace: provider metadata, connect/disconnect lifec
 
 | Path | Purpose |
 | --- | --- |
-| `connect.rs` (+ `connect/` — `catalog.rs`, `connect_channel.rs`, `disconnect.rs`, `email.rs`, `memory.rs`, `shared.rs`, `status.rs`, `test_channel.rs`) | `list_channels`, `describe_channel`, `connect_channel`, `disconnect_channel`, `channel_status`, `test_channel`, `get_default_channel`/`set_default_channel`, `connected_channel_slugs`, `merge_listener_health` (`pub(crate)`, re-exported from `ops/mod.rs` under `#[cfg(test)]`) |
+| `connect.rs` (+ `connect/`: `catalog.rs`, `connect_channel.rs`, `disconnect.rs`, `email.rs`, `memory.rs`, `shared.rs`, `status.rs`, `test_channel.rs`) | `list_channels`, `describe_channel`, `connect_channel`, `disconnect_channel`, `channel_status`, `test_channel`, `get_default_channel`/`set_default_channel`, `connected_channel_slugs`, `merge_listener_health` (`pub(crate)`, re-exported from `ops/mod.rs` under `#[cfg(test)]`) |
 | `discord.rs` | Discord OAuth link flow and guild/channel/permission listing |
 | `messaging.rs` | `channel_send_message`, `channel_send_reaction`, `channel_create_thread`, `channel_update_thread`, `channel_list_threads` — all call the TinyHumans backend REST API (`crate::backend::BackendClient`); the only path that reaches `relay_runtime` is `OpenHumanChannelBackend::send_outbound_intent` in `backend.rs` |
 | `yuanbao.rs` | `pub(super)` Yuanbao connect helpers: required-field checks, effective config assembly, credential verification |
 | `types.rs` | Re-exports of `tinychannels::controllers` result/snapshot types used by the ops layer |
 
-`connected_channel_slugs` (from `connect.rs`) is re-exported at `channels::controllers::connected_channel_slugs` for callers outside the controller registry; the `ops/mod.rs` comment cites the welcome agent's onboarding snapshot, but nothing outside `channels/controllers/` calls it today. `types.rs` re-exports the `tinychannels::controllers` result types (`ChannelStatusEntry`, `ChannelSendMessageResult`, …) rather than defining its own.
+`connected_channel_slugs` (from `connect.rs`) is re-exported at `channels::controllers::connected_channel_slugs` for callers outside the controller registry; the `ops/mod.rs` comment cites the welcome agent's onboarding snapshot, but nothing outside `channels/controllers/` calls it today. `types.rs` re-exports the `tinychannels::controllers` result types (`ChannelStatusEntry`, `ChannelSendMessageResult`, and others) rather than defining its own.
 
 ## Wiring
 

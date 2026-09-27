@@ -43,7 +43,9 @@ describe('WorkerThreadRefCard — status badge', () => {
     const badge = screen.getByTestId('worker-thread-status-badge');
     expect(badge.getAttribute('data-status')).toBe('running');
     expect(badge.textContent).toContain('running');
-    expect(badge.className).toContain('amber');
+    expect(badge.getAttribute('data-variant')).toBe('warning');
+    // Running uses its own animated dot (Badge's built-in dot is suppressed for this status).
+    expect(badge.querySelector('span[aria-hidden="true"]')?.className).toContain('bg-amber-500');
     expect(badge.getAttribute('aria-label')).toBe('Worker running');
   });
 
@@ -52,7 +54,8 @@ describe('WorkerThreadRefCard — status badge', () => {
     const badge = screen.getByTestId('worker-thread-status-badge');
     expect(badge.getAttribute('data-status')).toBe('completed');
     expect(badge.textContent).toContain('done');
-    expect(badge.className).toContain('sage');
+    expect(badge.getAttribute('data-variant')).toBe('success');
+    expect(badge.querySelector('[data-slot="badge-dot"]')?.className).toContain('bg-sage-500');
     expect(badge.getAttribute('aria-label')).toBe('Worker done');
   });
 
@@ -61,7 +64,8 @@ describe('WorkerThreadRefCard — status badge', () => {
     const badge = screen.getByTestId('worker-thread-status-badge');
     expect(badge.getAttribute('data-status')).toBe('failed');
     expect(badge.textContent).toContain('failed');
-    expect(badge.className).toContain('coral');
+    expect(badge.getAttribute('data-variant')).toBe('danger');
+    expect(badge.querySelector('[data-slot="badge-dot"]')?.className).toContain('bg-coral-500');
     expect(badge.getAttribute('aria-label')).toBe('Worker failed');
   });
 

@@ -137,7 +137,7 @@ pub fn flatten_authed_error(err: anyhow::Error) -> String {
         // recovery. See `BackendApiError::ApiKeyRejected`.
         Some(BackendApiError::ApiKeyRejected { method, path }) => {
             format!(
-                "{} backend rejected api key on {method} {path}",
+                "{}backend rejected api key on {method} {path}",
                 crate::core::observability::API_KEY_REJECTED_PREFIX
             )
         }

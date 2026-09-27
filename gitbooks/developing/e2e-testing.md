@@ -1,5 +1,5 @@
 ---
-description: End-to-end testing with WDIO + Appium. CI and local setup.
+description: End-to-end testing with WDIO + tauri-driver. CI and local setup.
 icon: vials
 ---
 
@@ -7,51 +7,39 @@ icon: vials
 
 ## Overview
 
-Desktop E2E tests use **WebDriverIO (WDIO)** to drive the Tauri app through Appium:
+Desktop E2E tests use **WebDriverIO (WDIO)** to drive the app through a single `tauri-driver` (WebDriver) session against its native Wry/WebKit webview:
 
-| Platform                    | Driver          | Port | App format    | Selectors |
-| --------------------------- | --------------- | ---- | ------------- | --------- |
-| **Linux / Appium Chromium** | Appium Chromium | 4723 | Debug binary  | CSS / DOM |
-| **macOS / Appium Chromium** | Appium Chromium | 4723 | `.app` bundle | CSS / DOM |
+| Platform  | Driver                        | Port | App format   | Selectors |
+| --------- | ------------------------------ | ---- | ------------- | --------- |
+| **Linux** | tauri-driver + WebKitWebDriver | 4444 | Debug binary  | CSS / DOM |
 
-OpenHuman's desktop app runs on Tauri's native Wry webview (the CEF runtime was removed in #5478). CI drives the Linux debug binary under Xvfb; the macOS / Windows Chromium-driver backend attached over CEF's remote-debugging port and no longer works — those platforms have no desktop E2E coverage until a native driver (Appium Mac2 / WinAppDriver) lands (#5485).
+The app moved from CEF to Tauri's native Wry webview in #5456. The old Appium Chromium-driver backend attached over CEF's remote-debugging port; CDP only exists under a Chromium engine, so that backend was removed in #5478 along with CEF itself. Linux CI now drives the debug binary under Xvfb through `tauri-driver`. macOS and Windows have no automated desktop E2E coverage until a native driver (Appium Mac2 / WinAppDriver) replaces the removed one; that work is tracked in #5485. `pnpm --filter openhuman-app test:e2e:build` still produces a `.app` bundle on macOS for manual testing, but there is no supported automated session there yet.
 
 ---
 
 ## Quick start
 
-### Linux / Appium Chromium
+### Linux
 
 ```bash
-# Install Appium and the Chromium driver (one-time)
-npm install -g appium@3
-appium driver install --source=npm appium-chromium-driver
-
 # Build the E2E app
 pnpm --filter openhuman-app test:e2e:build
 
-# Run all flows
+# Run every spec in one shared tauri-driver session
+pnpm --filter openhuman-app test:e2e:session
+
+# Run all flows, sharded by suite category
 pnpm --filter openhuman-app test:e2e:all:flows
 
 # Run a single spec
 bash app/scripts/e2e-run-spec.sh test/e2e/specs/smoke.spec.ts smoke
 ```
 
-On headless Linux, the harness runs under **Xvfb** for a virtual display.
-
-### macOS / Appium Chromium
-
-```bash
-# Install Appium + Chromium driver (one-time, needs Node 24+)
-npm install -g appium@3
-appium driver install --source=npm appium-chromium-driver
-
-# Build the .app bundle
-pnpm --filter openhuman-app test:e2e:build
-
-# Run all flows
-pnpm --filter openhuman-app test:e2e:all:flows
-```
+`app/scripts/e2e-run-session.sh` starts `tauri-driver` on `TAURI_DRIVER_PORT`
+(default `4444`) with `WebKitWebDriver` as its native driver, waits for its
+`/status` endpoint, then runs WDIO against `app/test/wdio.conf.ts`. On
+headless Linux the app itself runs under **Xvfb** for a virtual display; the
+driver process does not need one.
 
 ### Docker on macOS (Linux harness locally)
 
@@ -78,17 +66,19 @@ Requires Docker Desktop or Colima. The repo is bind-mounted so builds persist be
 
 ### Platform detection
 
-`app/test/e2e/helpers/platform.ts` exports:
-
-- `isTauriDriver()`, legacy shim that now always returns `true` for the DOM-capable Chromium session
-- `isMac2()`, legacy shim that now always returns `false`
-- `supportsExecuteScript()`, `true` because the Chromium driver supports `browser.execute()` on every platform
+`app/test/e2e/helpers/platform.ts` now exports two functions, both hardcoded
+to `true`: `isTauriDriver()` and `supportsExecuteScript()`. They date from an
+earlier harness split between an accessibility-tree macOS driver and a
+DOM-based Linux driver. Every session today exposes the WebView DOM and
+supports `browser.execute()`, so specs that still branch on either check
+always take the DOM-capable path. Treat them as compatibility shims, not
+active platform detection.
 
 ### Element helpers
 
-`app/test/e2e/helpers/element-helpers.ts` provides a unified API:
+`app/test/e2e/helpers/element-helpers.ts` provides a unified API over the WebView DOM:
 
-| Helper                    | Appium Chromium                              |
+| Helper                    | Behavior                                      |
 | ------------------------- | -------------------------------------------- |
 | `waitForText(text)`       | XPath over DOM text content                  |
 | `waitForButton(text)`     | `button` / `[role="button"]` XPath           |
@@ -117,21 +107,23 @@ Use `waitForTestId(testId)` and `clickTestId(testId)` from `element-helpers.ts` 
 
 `app/test/e2e/helpers/deep-link-helpers.ts` handles auth deep links:
 
-- **Appium Chromium**: `browser.execute(window.__simulateDeepLink(url))` on every platform
-- **macOS fallback**: `macos: deepLink` extension command, then `open -a ...`
+- **Primary path**: `browser.execute(window.__simulateDeepLink(url))`, which works against the WebView on every platform tauri-driver supports.
+- **macOS-only fallbacks** (unexercised by CI today, since macOS has no automated desktop session): the `macos: deepLink` extension command, then `open -a ...`.
+- Linux has no shell fallback: `xdg-open openhuman://...` needs a `.desktop` file registering the URL scheme, which the CI container does not have, so `triggerDeepLink` throws immediately if the WebView simulate call fails there.
 
 For release candidates, also run one manual secondary-instance smoke on Linux
-or macOS when touching CEF preflight, single-instance, or deep-link startup
-code:
+or macOS when touching single-instance or deep-link startup code (this
+exercises `tauri-plugin-single-instance`, which OpenHuman registers with the
+`deep-link` feature):
 
 1. Launch OpenHuman normally and leave it running.
 2. Trigger `openhuman://auth?token=e2e-token&key=auth` through the OS opener.
-3. Confirm the already-running window receives the callback and does not start
-   a second full CEF instance.
-4. Confirm the secondary process exits cleanly without a CEF cache-lock error.
+3. Confirm the already-running window receives the callback instead of a
+   second app instance starting.
+4. Confirm the secondary process exits cleanly.
 
-This catches the class of regressions where a secondary process exits during
-CEF cache preflight before Tauri's deep-link forwarding path is installed.
+This catches regressions where a second instance starts (or exits with an
+error) before Tauri's deep-link forwarding path is installed.
 
 ### Writing cross-platform specs
 
@@ -151,7 +143,7 @@ CEF cache preflight before Tauri's deep-link forwarding path is installed.
 
 | Variable                    | Default    | Description                                                            |
 | --------------------------- | ---------- | ---------------------------------------------------------------------- |
-| `APPIUM_PORT`               | `4723`     | Appium server port                                                     |
+| `TAURI_DRIVER_PORT`         | `4444`     | Port `tauri-driver` listens on; `wdio.conf.ts` connects here           |
 | `E2E_MOCK_PORT`             | `18473`    | Mock backend server port                                               |
 | `OPENHUMAN_WORKSPACE`       | (temp dir) | App workspace directory                                                |
 | `OPENHUMAN_SERVICE_MOCK`    | `0`        | Enable service mock mode                                               |
@@ -166,17 +158,9 @@ CEF cache preflight before Tauri's deep-link forwarding path is installed.
 
 ### Push / PR checks
 
-The default pull-request gate is `.github/workflows/ci-lite.yml` (quick lane: quality checks plus complete unit-test suites for each changed area). E2E suites do not run on PRs to `main` — the full E2E matrix (Rust mock-backend, Playwright web, desktop on Linux/macOS/Windows) runs in `.github/workflows/ci-full.yml` on PRs targeting the `release` branch and on every push to it.
+The default pull-request gate is `.github/workflows/ci-lite.yml` (quick lane: quality checks plus complete unit-test suites for each changed area). E2E suites do not run on PRs to `main`. The full E2E matrix (Rust mock-backend, Playwright web, desktop on Linux/macOS/Windows) runs in `.github/workflows/ci-full.yml` on PRs targeting the `release` branch and on every push to it.
 
-macOS and Windows desktop E2E do not run on every PR. Use the manually dispatched E2E workflow (`.github/workflows/e2e.yml`) when cross-platform desktop signal is needed before promotion.
-
-### macOS / Appium Chromium
-
-macOS/Appium Chromium is available for local runs and through the manually dispatched E2E workflow:
-
-1. Installs Appium + Chromium driver
-2. Builds the `.app` bundle
-3. Runs all E2E flows
+macOS and Windows desktop E2E do not run on pushes or PRs. `.github/workflows/e2e.yml` is a manually dispatched workflow whose `run_macos` / `run_windows` inputs default to `false` until #5485 lands a native driver for each platform; someone has to opt in explicitly to get cross-platform desktop signal before promotion.
 
 ---
 
@@ -184,7 +168,7 @@ macOS/Appium Chromium is available for local runs and through the manually dispa
 
 ### Linux: "WebView not ready" timeout
 
-For the default CEF runtime, this usually means a stale local runner is trying to drive a CEF-backed WebView through WebKitWebDriver. Current CI uses the Appium Chromium driver on Linux; use `app/scripts/e2e-run-session.sh` or the PR CI workflow for the supported Linux path.
+This usually means `tauri-driver` never reached its `/status` endpoint, or the app crashed before mounting its WebView. Use `app/scripts/e2e-run-session.sh`, which starts `tauri-driver` and waits on that endpoint before invoking WDIO, rather than driving the app by hand.
 
 Ensure `DISPLAY` is set and Xvfb is running:
 
@@ -199,12 +183,9 @@ Also ensure dbus is started (required by webkit2gtk):
 eval $(dbus-launch --sh-syntax)
 ```
 
-### Linux: Appium Chromium driver not found
+### Linux: `tauri-driver` or `WebKitWebDriver` not found
 
-```bash
-npm install -g appium@3
-appium driver install --source=npm appium-chromium-driver
-```
+Install `tauri-driver` with `cargo install tauri-driver`, and make sure `WebKitWebDriver` is on `PATH` (on Debian/Ubuntu it ships in `webkit2gtk-driver`) or point `WEBKIT_WEBDRIVER` at its location; `e2e-run-session.sh` defaults to `/usr/bin/WebKitWebDriver`.
 
 ### macOS: Deep links not working in `tauri dev`
 
@@ -218,7 +199,7 @@ The first Docker build compiles Rust and installs the E2E harness dependencies. 
 
 **File**: `app/test/e2e/specs/notifications.spec.ts`
 
-Tests notification RPC methods via the live core sidecar and the Notifications UI page:
+Tests notification RPC methods via the in-process core and the Notifications UI page:
 
 - `notification_ingest`, creates a new notification via core RPC
 - `notification_list`, verifies the ingested notification is returned
@@ -233,7 +214,7 @@ Tests notification RPC methods via the live core sidecar and the Notifications U
 bash app/scripts/e2e-run-spec.sh test/e2e/specs/notifications.spec.ts notifications
 ```
 
-**Platform note**: RPC tests (`notification_ingest`, `notification_list`, `notification_mark_read`, `notification_stats`) run through the unified Appium Chromium backend. UI assertions require `browser.execute()` support, which the current backend provides on every platform.
+**Platform note**: both the RPC calls and the UI assertions in this spec run inside the same `tauri-driver` session, which supports `browser.execute()`.
 
 ---
 

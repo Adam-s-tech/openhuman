@@ -56,6 +56,3 @@ export {
   type SourcesProps,
   type SourcesTriggerProps,
 } from './Sources';
-
-// Icons
-export { BookIcon, ChevronDownIcon } from './icons';

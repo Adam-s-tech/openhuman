@@ -32,7 +32,10 @@ let runtime = RuntimeBuilder::new()
 ```
 
 `RuntimeBuilder` mirrors `openhuman_embed::RuntimeBuilder` method for method
-and, on `build()`, installs the SDK transport and binds it to the runtime.
+and, on `build()`, installs the SDK transport and binds it to the runtime. See
+[`gitbooks/developing/tinyhumans-api-key.md`](../../gitbooks/developing/tinyhumans-api-key.md)
+for what one TinyHumans API key unlocks across inference, search,
+embeddings, media, integrations, voice and Jev.
 
 Hosts that boot the core themselves (desktop shell, TUI, CLI, test fixtures)
 call `install` once before the first backend-touching dispatch (it also

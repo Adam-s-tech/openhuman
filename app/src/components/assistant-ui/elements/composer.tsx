@@ -10,7 +10,7 @@
  * - `cn` import path (`@/components/assistant-ui/lib/utils`).
  * - Only the slash-menu and mention pieces are vendored (`useSlashMatches`,
  *   `useMentionMatches`, `applyMention`, `ComposerMenu`, `ComposerMenuItem`,
- *   `ComposerCommandItem`, `ComposerPersonItem` and their types). The rest of
+ *   `ComposerCommandItem` and their types). The rest of
  *   the upstream file — attachments, voice, model picker, context ring and
  *   send button — is omitted: OpenHuman's composer renders those through
  *   `ComposerPrimitive` and Lexical in `thread.tsx`. The live product `/` and
@@ -23,7 +23,7 @@ import { cn } from '@/components/assistant-ui/lib/utils';
 import type { LucideIcon } from 'lucide-react';
 import { type ComponentProps, useMemo } from 'react';
 
-import { field, floating, mono } from './surfaces';
+import { field, floating } from './surfaces';
 
 export interface ComposerCommand {
   name: string;
@@ -127,22 +127,6 @@ export function ComposerCommandItem({
           ↵
         </kbd>
       )}
-    </ComposerMenuItem>
-  );
-}
-
-export function ComposerPersonItem({
-  person,
-  active,
-  ...props
-}: Omit<ComponentProps<'button'>, 'children'> & { person: ComposerPerson; active: boolean }) {
-  return (
-    <ComposerMenuItem active={active} {...props}>
-      <span className="bg-foreground/[0.06] text-foreground/45 flex size-5 shrink-0 items-center justify-center rounded-full text-[9px] font-medium">
-        {person.name[0]}
-      </span>
-      <span className="flex-1 truncate text-start">{person.name}</span>
-      <span className={cn(mono, 'text-foreground/35')}>{person.role}</span>
     </ComposerMenuItem>
   );
 }

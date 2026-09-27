@@ -336,25 +336,30 @@ const isHistoryLoadingView = (s: AssistantState) =>
   !s.thread.isDisabled &&
   !s.threads.isLoading;
 
-const ThreadHistorySkeleton: FC = () => (
-  <div
-    data-slot="aui_thread-history-skeleton"
-    role="status"
-    className="animate-in fade-in fill-mode-both flex flex-col gap-y-6 [animation-delay:150ms] [animation-duration:200ms]">
-    <span className="sr-only">Loading conversation</span>
-    <Skeleton className="ml-auto h-9 w-2/5 rounded-xl motion-reduce:animate-none" />
-    <div className="flex flex-col gap-y-2">
-      <Skeleton className="h-4 w-11/12 motion-reduce:animate-none" />
-      <Skeleton className="h-4 w-4/5 motion-reduce:animate-none" />
-      <Skeleton className="h-4 w-3/5 motion-reduce:animate-none" />
+const ThreadHistorySkeleton: FC = () => {
+  const { t } = useT();
+  return (
+    <div
+      data-slot="aui_thread-history-skeleton"
+      role="status"
+      className="animate-in fade-in fill-mode-both flex flex-col gap-y-6 [animation-delay:150ms] [animation-duration:200ms]">
+      <span className="sr-only">
+        {t('assistantUi.thread.loadingConversation', 'Loading conversation')}
+      </span>
+      <Skeleton className="ml-auto h-9 w-2/5 rounded-xl motion-reduce:animate-none" />
+      <div className="flex flex-col gap-y-2">
+        <Skeleton className="h-4 w-11/12 motion-reduce:animate-none" />
+        <Skeleton className="h-4 w-4/5 motion-reduce:animate-none" />
+        <Skeleton className="h-4 w-3/5 motion-reduce:animate-none" />
+      </div>
+      <Skeleton className="ml-auto h-9 w-1/3 rounded-xl motion-reduce:animate-none" />
+      <div className="flex flex-col gap-y-2">
+        <Skeleton className="h-4 w-10/12 motion-reduce:animate-none" />
+        <Skeleton className="h-4 w-2/3 motion-reduce:animate-none" />
+      </div>
     </div>
-    <Skeleton className="ml-auto h-9 w-1/3 rounded-xl motion-reduce:animate-none" />
-    <div className="flex flex-col gap-y-2">
-      <Skeleton className="h-4 w-10/12 motion-reduce:animate-none" />
-      <Skeleton className="h-4 w-2/3 motion-reduce:animate-none" />
-    </div>
-  </div>
-);
+  );
+};
 
 export const Thread: FC<ThreadProps> = ({
   components = EMPTY_COMPONENTS,
@@ -388,6 +393,7 @@ const ThreadRoot: FC<{
   loadError: string | null;
   onEscape?: () => void;
 }> = ({ isEmpty, model, onModelChange, loadError, onEscape }) => {
+  const { t } = useT();
   const {
     Welcome = ThreadWelcome,
     Composer: HostComposer,
@@ -433,7 +439,9 @@ const ThreadRoot: FC<{
           )}>
           {loadError ? (
             <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center">
-              <p className="text-sm font-medium text-destructive">Failed to load messages</p>
+              <p className="text-sm font-medium text-destructive">
+                {t('chat.failedToLoadMessages', 'Failed to load messages')}
+              </p>
               <p className="text-muted-foreground max-w-md text-xs">{loadError}</p>
             </div>
           ) : (
@@ -877,10 +885,11 @@ const ThreadScrollToBottom: FC = () => {
 };
 
 const ThreadWelcome: FC = () => {
+  const { t } = useT();
   return (
     <div className="aui-thread-welcome-root mb-6 flex flex-col items-center px-4 text-center">
       <h1 className="aui-thread-welcome-message-inner fade-in slide-in-from-bottom-1 animate-in fill-mode-both text-2xl font-medium tracking-tight duration-200">
-        How can I help you today?
+        {t('chat.newWindowPrompt', 'How can I help you today?')}
       </h1>
     </div>
   );
@@ -909,6 +918,16 @@ const ThreadSuggestionItem: FC = () => {
   );
 };
 
+export function extractComposerPasteFiles(
+  clipboardData: DataTransfer | null | undefined
+): globalThis.File[] {
+  const itemFiles = Array.from(clipboardData?.items ?? [])
+    .filter(item => item.kind === 'file' && /^(image|video)\//.test(item.type))
+    .map(item => item.getAsFile())
+    .filter((file): file is globalThis.File => file !== null);
+  return itemFiles.length > 0 ? itemFiles : Array.from(clipboardData?.files ?? []);
+}
+
 const Composer: FC<{
   model: string | null;
   onModelChange?: (value: string | null, contextWindow?: number | null) => void;
@@ -916,6 +935,8 @@ const Composer: FC<{
   /** A file drag is over the thread and will land here; see `useThreadFileDrop`. */
   isDraggingFiles: boolean;
 }> = ({ model, onModelChange, onEscape, isDraggingFiles }) => {
+  const { t } = useT();
+  const messageInputLabel = t('assistantUi.thread.messageInputLabel', 'Message input');
   const aui = useAui();
   const commands = useContext(SlashCommandsContext);
   const slash = unstable_useSlashCommandAdapter({ commands, fallbackIcon: SlashIcon });
@@ -929,7 +950,7 @@ const Composer: FC<{
   } = useContext(ThreadComponentsContext);
   useEffect(() => {
     const textbox = inputWrapperRef.current?.querySelector<HTMLElement>('[contenteditable="true"]');
-    textbox?.setAttribute('aria-label', 'Message input');
+    textbox?.setAttribute('aria-label', messageInputLabel);
     // The rich Lexical surface deliberately is not a native textarea, so give
     // it an explicit stable hook for browser tests and assistive tooling. The
     // old chat composer exposed a textarea with a placeholder; consumers must
@@ -940,7 +961,7 @@ const Composer: FC<{
       textbox?.removeAttribute('aria-label');
       textbox?.removeAttribute('data-testid');
     };
-  }, []);
+  }, [messageInputLabel]);
 
   // Set for as long as an IME composition is open. The gate is a ref rather
   // than state because it is read from a microtask, not from a render.
@@ -967,10 +988,7 @@ const Composer: FC<{
       debug('[assistant-composer] paste: refused, ingest not accepting');
       return;
     }
-    const files = Array.from(event.clipboardData?.items ?? [])
-      .filter(item => item.kind === 'file' && /^(image|video)\//.test(item.type))
-      .map(item => item.getAsFile())
-      .filter((file): file is File => file !== null);
+    const files = extractComposerPasteFiles(event.clipboardData);
     if (files.length === 0) {
       // The overwhelmingly common case: an ordinary text paste. Left for Lexical.
       return;
@@ -1006,6 +1024,7 @@ const Composer: FC<{
           <div
             data-slot="aui_composer-shell"
             data-dragging={onComposerFiles && isDraggingFiles ? 'true' : undefined}
+            onPasteCapture={handlePasteCapture}
             // Keyed to `content-faint` rather than `line`/`line-strong`, which
             // sat too close to the composer's own surface to read as an edge at
             // all; `content-faint` is a real step along the grey ramp in both
@@ -1082,8 +1101,7 @@ const Composer: FC<{
              */}
             <LexicalComposerInput
               ref={inputWrapperRef}
-              placeholder="Send a message..."
-              onPasteCapture={handlePasteCapture}
+              placeholder={t('chat.typeMessage', 'Send a message...')}
               onCompositionStartCapture={() => {
                 isComposingTextRef.current = true;
               }}
@@ -1135,7 +1153,7 @@ const Composer: FC<{
                 }
               }}
               className="aui-composer-input caret-primary [&_.aui-lexical-placeholder]:text-muted-foreground/60 relative max-h-48 min-h-10 w-full resize-none bg-transparent px-2.5 py-1 text-base leading-6 outline-none [&_.aui-lexical-input]:min-h-lh [&_.aui-lexical-input]:outline-none [&_.aui-lexical-placeholder]:pointer-events-none [&_.aui-lexical-placeholder]:absolute [&_.aui-lexical-placeholder]:top-0 [&_.aui-lexical-placeholder]:right-0 [&_.aui-lexical-placeholder]:left-0 [&_.aui-lexical-placeholder]:truncate [&_.aui-lexical-placeholder]:px-2.5 [&_.aui-lexical-placeholder]:py-1"
-              aria-label="Message input"
+              aria-label={messageInputLabel}
             />
             <ComposerAction model={model} onModelChange={onModelChange} />
           </div>
@@ -1162,6 +1180,7 @@ const ComposerAction: FC<{
   model: string | null;
   onModelChange?: (value: string | null, contextWindow?: number | null) => void;
 }> = ({ model, onModelChange }) => {
+  const { t } = useT();
   const aui = useAui();
   const composerText = useAuiState(state => state.composer.text);
   const {
@@ -1190,13 +1209,13 @@ const ComposerAction: FC<{
         {ComposerRightExtras ? <ComposerRightExtras /> : null}
         {onSwitchToMicCloud && (
           <TooltipIconButton
-            tooltip="Voice mode"
+            tooltip={t('composer.voiceMode', 'Voice mode')}
             side="bottom"
             type="button"
             variant="ghost"
             size="icon"
             className="aui-composer-voice-mode text-muted-foreground hover:text-foreground size-7 rounded-full"
-            aria-label="Voice mode"
+            aria-label={t('composer.voiceMode', 'Voice mode')}
             disabled={isRunning}
             onClick={onSwitchToMicCloud}>
             <MicIcon className="size-4" />
@@ -1216,13 +1235,13 @@ const ComposerAction: FC<{
           <AuiIf condition={s => s.composer.dictation == null}>
             <ComposerPrimitive.Dictate asChild>
               <TooltipIconButton
-                tooltip="Voice input"
+                tooltip={t('assistantUi.thread.voiceInput', 'Voice input')}
                 side="bottom"
                 type="button"
                 variant="ghost"
                 size="icon"
                 className="aui-composer-dictate text-muted-foreground hover:text-foreground size-7 rounded-full"
-                aria-label="Start voice input">
+                aria-label={t('assistantUi.thread.startVoiceInput', 'Start voice input')}>
                 <MicIcon className="aui-composer-dictate-icon size-4" />
               </TooltipIconButton>
             </ComposerPrimitive.Dictate>
@@ -1230,13 +1249,13 @@ const ComposerAction: FC<{
           <AuiIf condition={s => s.composer.dictation != null}>
             <ComposerPrimitive.StopDictation asChild>
               <TooltipIconButton
-                tooltip="Stop dictation"
+                tooltip={t('assistantUi.thread.stopDictation', 'Stop dictation')}
                 side="bottom"
                 type="button"
                 variant="ghost"
                 size="icon"
                 className="aui-composer-stop-dictation text-destructive size-7 rounded-full"
-                aria-label="Stop voice input">
+                aria-label={t('assistantUi.thread.stopVoiceInput', 'Stop voice input')}>
                 <SquareIcon className="aui-composer-stop-dictation-icon size-3.5 animate-pulse fill-current" />
               </TooltipIconButton>
             </ComposerPrimitive.StopDictation>
@@ -1261,14 +1280,14 @@ const ComposerAction: FC<{
             // button. `cn` is tailwind-merge, so the later `bg-primary-500`
             // replaces the variant's `bg-primary` cleanly.
             <TooltipIconButton
-              tooltip="Send message"
+              tooltip={t('chat.send', 'Send message')}
               side="bottom"
               type="button"
               variant="default"
               size="icon"
               className="aui-composer-send size-7 rounded-full bg-primary-500 text-content-inverted hover:bg-primary-600"
               data-testid="send-message-button"
-              aria-label="Send message"
+              aria-label={t('chat.send', 'Send message')}
               onClick={() => {
                 onComposerAttachmentSend?.();
                 aui.composer.setText('');
@@ -1278,14 +1297,14 @@ const ComposerAction: FC<{
           ) : (
             <ComposerPrimitive.Send asChild>
               <TooltipIconButton
-                tooltip="Send message"
+                tooltip={t('chat.send', 'Send message')}
                 side="bottom"
                 type="button"
                 variant="default"
                 size="icon"
                 className="aui-composer-send size-7 rounded-full bg-primary-500 text-content-inverted hover:bg-primary-600"
                 data-testid="send-message-button"
-                aria-label="Send message">
+                aria-label={t('chat.send', 'Send message')}>
                 <ArrowUpIcon className="aui-composer-send-icon size-4" />
               </TooltipIconButton>
             </ComposerPrimitive.Send>
@@ -1299,7 +1318,7 @@ const ComposerAction: FC<{
               size="icon"
               className="aui-composer-cancel size-7 rounded-full bg-primary-500 text-content-inverted hover:bg-primary-600"
               data-testid="stop-generation-button"
-              aria-label="Stop generating">
+              aria-label={t('chat.stopGeneration', 'Stop generating')}>
               <SquareIcon className="aui-composer-cancel-icon size-3.5 fill-current" />
             </Button>
           </ComposerPrimitive.Cancel>
@@ -1319,6 +1338,7 @@ const ComposerAction: FC<{
  * must not offer Reload even when the runtime supports it for settled replies.
  */
 const MessageError: FC = () => {
+  const { t } = useT();
   const error = useMessageError();
   if (error === undefined) return null;
   const detail = typeof error === 'string' ? error : JSON.stringify(error);
@@ -1326,7 +1346,7 @@ const MessageError: FC = () => {
     <MessagePrimitive.Error>
       <ErrorState
         className="aui-message-error-root mt-2"
-        title="Something went wrong"
+        title={t('misc.somethingWentWrong', 'Something went wrong')}
         detail={detail}
         retrying={false}
       />
@@ -1553,6 +1573,7 @@ const AssistantMessage: FC = () => {
 };
 
 const AssistantActionBar: FC = () => {
+  const { t } = useT();
   // assistant-ui's own disabled predicate for Reload is
   // `isRunning || isDisabled || role !== 'assistant'` — it never consults
   // `capabilities.reload`, so the button ships enabled on every settled
@@ -1663,7 +1684,7 @@ const AssistantActionBar: FC = () => {
           <ActionBarPrimitive.ExportMarkdown asChild>
             <ActionBarMorePrimitive.Item className="aui-action-bar-more-item hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm outline-hidden select-none">
               <DownloadIcon className="size-4" />
-              Export as Markdown
+              {t('assistantUi.thread.exportAsMarkdown', 'Export as Markdown')}
             </ActionBarMorePrimitive.Item>
           </ActionBarPrimitive.ExportMarkdown>
         </ActionBarMorePrimitive.Content>
@@ -1728,6 +1749,7 @@ const UserMessage: FC = () => {
 };
 
 const UserActionBar: FC = () => {
+  const { t } = useT();
   // Edit is offered only when the bound runtime can honour it. The
   // external-store adapter supplies `onNew` / `onCancel` and neither `onEdit`
   // nor `setMessages`, so assistant-ui reports `edit: false` and
@@ -1757,7 +1779,9 @@ const UserActionBar: FC = () => {
       autohide="not-last"
       className="aui-user-action-bar-root flex flex-col items-end">
       <ActionBarPrimitive.Copy asChild>
-        <TooltipIconButton tooltip="Copy response" title="Copy response">
+        <TooltipIconButton
+          tooltip={t('chat.copyResponse', 'Copy response')}
+          title={t('chat.copyResponse', 'Copy response')}>
           <CopyIcon />
         </TooltipIconButton>
       </ActionBarPrimitive.Copy>

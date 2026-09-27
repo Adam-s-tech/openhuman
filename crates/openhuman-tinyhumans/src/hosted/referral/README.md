@@ -55,12 +55,12 @@ None of its own. The domain is stateless — it reads the backend credential thr
 
 ## Used by
 
-- `crates/openhuman-core/src/core/all.rs` — registers `all_referral_registered_controllers()` into the controller registry (line ~213) and `all_referral_controller_schemas()` into the schema list (line ~345), exposing both methods to CLI and JSON-RPC.
+- `crates/openhuman-core/src/core/all.rs`: registers `all_referral_registered_controllers()` into the controller registry (line ~213) and `all_referral_controller_schemas()` into the schema list (line ~345), exposing both methods to CLI and JSON-RPC.
 
 ## Notes / gotchas
 
-- No `types.rs`, `store.rs`, `tools.rs`, or `bus.rs` — this is a pure RPC adapter, not a stateful domain. No agent tools, no event-bus subscribers.
+- No `types.rs`, `store.rs`, `tools.rs`, or `bus.rs`: this is a pure RPC adapter, not a stateful domain. No agent tools, no event-bus subscribers.
 - Both ops fail closed when no session token is stored, with the error `"no backend session token; run auth_store_session first"`.
-- Eligibility for `claim` ("only users who have not yet subscribed") is enforced **by the backend**, not in this module — it merely forwards the request.
+- Eligibility for `claim` ("only users who have not yet subscribed") is enforced **by the backend**, not in this module: it merely forwards the request.
 - Trimming/whitespace-dropping of `deviceFingerprint` happens in both `ops::claim_referral` and the schema handler `handle_referral_claim` (defensive, redundant filtering).
 - The module deliberately runs server-side like the billing domain to avoid WebView `fetch` "Load failed" failures.

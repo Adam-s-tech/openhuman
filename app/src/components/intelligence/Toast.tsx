@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
+import { useT } from '../../lib/i18n/I18nContext';
 import type { ToastNotification } from '../../types/intelligence';
 import { Button, CloseIcon } from '../ui';
 
@@ -59,6 +60,7 @@ const TOAST_ICON_STYLES = {
 };
 
 function Toast({ notification, onRemove }: ToastProps) {
+  const { t } = useT();
   const [isVisible, setIsVisible] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
 
@@ -129,7 +131,7 @@ function Toast({ notification, onRemove }: ToastProps) {
           variant="tertiary"
           size="xs"
           iconOnly
-          aria-label="Dismiss notification"
+          aria-label={t('notifications.card.dismiss', 'Dismiss notification')}
           onClick={handleRemove}
           className="shrink-0 text-content-faint hover:text-content-secondary">
           <CloseIcon className="w-4 h-4" />

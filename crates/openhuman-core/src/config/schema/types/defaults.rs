@@ -53,7 +53,6 @@ impl Default for Config {
             reliability: ReliabilityConfig::default(),
             scheduler: SchedulerConfig::default(),
             scheduler_gate: SchedulerGateConfig::default(),
-            agent_activity_level: AgentActivityLevel::default(),
             memory_sync_interval_secs: None,
             agent: AgentConfig::default(),
             orchestrator: OrchestratorModelConfig::default(),

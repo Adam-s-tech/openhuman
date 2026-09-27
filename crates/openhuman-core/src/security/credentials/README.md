@@ -2,11 +2,11 @@
 
 Credential management for the backend credential the core authenticates with and for provider/OAuth auth profiles. Owns the on-disk **auth-profiles** store (encrypted JSON + OS keychain), the `app-session` / `api-key` credential slots and everything the core does when one is installed or removed, per-provider token storage (e.g. API keys, OAuth token sets), the backend OAuth connect/handoff flows, and the Composio direct-mode (BYO key) credential slot. Exposes everything under the `auth.*` JSON-RPC / CLI namespace and runs the canonical sign-out teardown when a `SessionExpired` event fires.
 
-**The core never obtains, validates, exchanges or refreshes a credential.** Login-token exchange, `GET /auth/me` validation and the current-user cache are the host's job — the Tauri shell and the TUI through `openhuman_tinyhumans::session`, an embedder through `openhuman_embed::Auth`, an operator through the CLI or the boot env vars. They hand the result over with `auth.set_credential`.
+**The core never obtains, validates, exchanges or refreshes a credential.** Login-token exchange, `GET /auth/me` validation and the current-user cache are the host's job: the Tauri shell and the TUI through `openhuman_tinyhumans::session`, an embedder through `openhuman_embed::Auth`, an operator through the CLI or the boot env vars. They hand the result over with `auth.set_credential`.
 
 ## Responsibilities
 
-- Install a backend credential (`set_credential`): a session JWT (with the user id / payload the host resolved — or the JWT's subject claim), a TinyHumans API key, or the offline local token. A JWT whose `exp` is already past is refused; a session with no resolvable user id is refused.
+- Install a backend credential (`set_credential`): a session JWT (with the user id / payload the host resolved, or the JWT's subject claim), a TinyHumans API key, or the offline local token. A JWT whose `exp` is already past is refused; a session with no resolvable user id is refused.
 - On install: activate the user-scoped openhuman directory, purge pre-login (anonymous) conversation threads on first activation, bind memory/conversation persistence, start the credential-gated services (local AI, voice server, dictation listener, always-on voice), open the scheduler gate, scope Sentry and the prompt-layer identity. A repeat install with the **same token and user** is a cheap refresh of the stored user payload (this is how a host replaces a `pendingBackendValidation` placeholder with its later `/auth/me` answer); a **different user** is signed out first.
 - On removal / session-expiry (`clear_credential`): remove the profile, clear the active-user marker, stop the gated services, rebind process globals to the signed-out workspace, and close the scheduler-gate override.
 - Boot seeding for headless hosts: `OPENHUMAN_BACKEND_API_KEY` / `OPENHUMAN_BACKEND_SESSION_TOKEN` install a credential on a fresh store (never overwrite one).
@@ -64,7 +64,7 @@ The account-bound `auth` methods `auth_create_channel_link_token`, `auth_oauth_c
 
 `openhuman.auth_store_session` and `openhuman.auth_clear_session` survive as legacy aliases (`core/legacy_aliases.rs`) of the credential pair for bundles that predate it.
 
-Note: `list_provider_credentials_by_prefix` and the Composio-direct/secret helpers are public ops but not registered as `auth.*` controllers here — they are called directly by other domains.
+Note: `list_provider_credentials_by_prefix` and the Composio-direct/secret helpers are public ops but not registered as `auth.*` controllers here. They are called directly by other domains.
 
 ## Agent tools
 
@@ -72,7 +72,7 @@ Note: `list_provider_credentials_by_prefix` and the Composio-direct/secret helpe
 
 ## Events
 
-`bus.rs` — `SessionExpiredSubscriber` (`name() == "credentials::session_expired_handler"`, domain filter `["auth"]`) **subscribes** to `DomainEvent::SessionExpired`. On a non-local session it flips the scheduler gate to signed-out and drops the rejected credential (`clear_session`); for a local offline session or an API-key runtime it re-enables the gate and no-ops. This module does not publish events directly (publishers of `SessionExpired` are 401-detection sites elsewhere). The host learns of the sign-out through the Socket.IO `auth:session_expired` bridge and `auth.get_state`.
+`bus.rs`: `SessionExpiredSubscriber` (`name() == "credentials::session_expired_handler"`, domain filter `["auth"]`) **subscribes** to `DomainEvent::SessionExpired`. On a non-local session it flips the scheduler gate to signed-out and drops the rejected credential (`clear_session`); for a local offline session or an API-key runtime it re-enables the gate and no-ops. This module does not publish events directly (publishers of `SessionExpired` are 401-detection sites elsewhere). The host learns of the sign-out through the Socket.IO `auth:session_expired` bridge and `auth.get_state`.
 
 ## Persistence
 
@@ -100,8 +100,8 @@ Many domains consume `AuthService` / session helpers / Composio-direct key, incl
 
 ## Notes / gotchas
 
-- `mod.rs` re-exports `ops` both as `ops::*` and as `pub use ops as rpc` — call sites use `credentials::rpc::*`; this is the documented `rpc.rs`-equivalent exception (no separate `rpc.rs` file exists).
-- `set_credential` does heavy orchestration beyond just storing a token (directory activation, thread purge, service startup). Treat it as the install funnel, not a thin setter — except on the same-token/same-user refresh path, which only rewrites the stored payload.
+- `mod.rs` re-exports `ops` both as `ops::*` and as `pub use ops as rpc`. Call sites use `credentials::rpc::*`; this is the documented `rpc.rs`-equivalent exception (no separate `rpc.rs` file exists).
+- `set_credential` does heavy orchestration beyond just storing a token (directory activation, thread purge, service startup). Treat it as the install funnel, not a thin setter, except on the same-token/same-user refresh path, which only rewrites the stored payload.
 - An embedder host (`CoreContext::current_embedder_config()` is set) keeps the credential under its own `config_path` scope and never touches the operator's global `active_user.toml`.
 - Local offline sessions are detected purely by the JWT signature segment being literally `local` (`is_local_session_token`); they are never sent anywhere and are never treated as expired.
-- Secrets are never logged — debug lines record only lengths/markers, honoring the CLAUDE.md redaction rule.
+- Secrets are never logged; debug lines record only lengths/markers, honoring the CLAUDE.md redaction rule.

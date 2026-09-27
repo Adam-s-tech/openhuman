@@ -1,7 +1,7 @@
 //! The error a [`BackendTransport`](super::BackendTransport) returns.
 //!
 //! This is the core-owned image of the variants the classification code in
-//! [`crate::backend::error`] and `integrations/client/errors.rs` matches on. It
+//! [`crate::backend::client`] and `integrations/client/errors.rs` matches on. It
 //! mirrors the vendored SDK's `Error` one-to-one for those arms so a transport
 //! built on the SDK maps mechanically, while the core itself never names the
 //! SDK type.
