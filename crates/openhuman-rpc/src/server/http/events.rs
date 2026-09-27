@@ -271,3 +271,7 @@ pub(super) async fn domain_events_handler(headers: axum::http::HeaderMap) -> Res
         .keep_alive(KeepAlive::new().interval(std::time::Duration::from_secs(5)))
         .into_response()
 }
+
+#[cfg(test)]
+#[path = "events_tests.rs"]
+mod tests;
