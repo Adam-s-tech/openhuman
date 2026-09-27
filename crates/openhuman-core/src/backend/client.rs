@@ -680,17 +680,8 @@ impl BackendClient {
                     url.path(),
                 );
             } else {
-                // Enrich the report with the two fields triage needs to pin a
-                // non-2xx's origin: the outbound `host` and a PII-safe `body_shape`
-                // (top-level JSON key names only — never values; see
-                // `backend_api_body_shape`). `report_error` previously logged only
-                // `response_body_len`, leaving us blind when a client hits a
-                // non-canonical backend (custom BACKEND_URL / proxy / foreign
-                // host) — TAURI-RUST-8C: 12k `GET /teams/me/usage` 404s from one
-                // user whose 91-byte body matched no route this backend emits,
-                // un-diagnosable because neither host nor shape was captured.
-                // `host_str()` carries no scheme/path/query/token. Telemetry only
-                // — the error still propagates below (no suppression).
+                // Record the host and JSON key names to locate misrouted
+                // backend errors without sending response values (TAURI-RUST-8C).
                 let host = url.host_str().unwrap_or("");
                 let body_shape = backend_api_body_shape(&text);
                 crate::core::observability::report_error(

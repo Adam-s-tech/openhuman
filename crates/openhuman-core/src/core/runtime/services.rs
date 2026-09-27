@@ -427,7 +427,7 @@ pub fn spawn_socket_auto_connect(
     services: ServiceSet,
     socket_mgr: std::sync::Arc<crate::platform::socket::SocketManager>,
 ) {
-    if services.socketio {
+    if services.socketio && crate::backend::transport::is_installed() {
         tokio::spawn(async move {
             log::info!("[socket] Checking for stored session to auto-connect...");
             let config = match Config::load_or_init().await {
@@ -441,9 +441,8 @@ pub fn spawn_socket_auto_connect(
                 log::debug!("[socket] No backend transport or base URL — skipping auto-connect");
                 return;
             };
-            // The API key when one is stored, else the session token.
             let initial_token =
-                match crate::security::credentials::session_support::backend_bearer_secret(&config)
+                match crate::security::credentials::session_support::get_session_token(&config)
                 {
                     Ok(Some(t)) => t,
                     Ok(None) => {
