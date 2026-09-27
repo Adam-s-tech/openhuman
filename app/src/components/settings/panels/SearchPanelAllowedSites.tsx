@@ -64,8 +64,15 @@ const SearchPanelAllowedSites = ({ settings, saving, persist, t }: Props) => {
     const previous = mode;
     setMode(next);
     const update =
-      next === 'all' ? { allow_all: true } : next === 'block' ? { allowed_domains: [], allow_all: false } : null;
-    if (update) void persist(update).then(ok => { if (!ok) setMode(previous); });
+      next === 'all'
+        ? { allow_all: true }
+        : next === 'block'
+          ? { allowed_domains: [], allow_all: false }
+          : null;
+    if (update)
+      void persist(update).then(ok => {
+        if (!ok) setMode(previous);
+      });
   };
 
   const persistAllowedDomains = () => {

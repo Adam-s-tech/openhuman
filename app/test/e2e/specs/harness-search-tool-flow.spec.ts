@@ -391,13 +391,19 @@ describe('Harness - Search tool-flow', () => {
     const toolResults = log.flatMap(request => {
       if (!request.body) return [];
       try {
-        const body = JSON.parse(request.body) as { messages?: Array<{ role?: string; content?: string }> };
-        return (body.messages ?? []).filter(message => message.role === 'tool').map(message => message.content ?? '');
+        const body = JSON.parse(request.body) as {
+          messages?: Array<{ role?: string; content?: string }>;
+        };
+        return (body.messages ?? [])
+          .filter(message => message.role === 'tool')
+          .map(message => message.content ?? '');
       } catch {
         return [];
       }
     });
-    expect(toolResults.some(result => result.includes('Canberra') && /https?:\/\//.test(result))).toBe(true);
+    expect(
+      toolResults.some(result => result.includes('Canberra') && /https?:\/\//.test(result))
+    ).toBe(true);
 
     console.log(`${LOG_PREFIX} S3.4: PASSED`);
   });
