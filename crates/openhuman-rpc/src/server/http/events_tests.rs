@@ -114,6 +114,57 @@ async fn domain_events_require_a_bearer() {
     assert!(String::from_utf8_lossy(&body).contains("Bearer token required"));
 }
 
+#[tokio::test(flavor = "current_thread")]
+async fn domain_events_stream_config_then_published_events() {
+    use futures::StreamExt;
+    use openhuman_core::core::events::DomainEvent;
+    use std::ffi::OsString;
+
+    let workspace = tempfile::tempdir().expect("workspace tempdir");
+    let _env = crate::server::testing::EnvVarGuard::set_many(vec![(
+        "OPENHUMAN_WORKSPACE",
+        OsString::from(workspace.path()),
+    )]);
+    openhuman_core::core::auth::init_rpc_token_with_value("events-http-tests-token")
+        .expect("initialize test bearer");
+    let token = openhuman_core::core::auth::get_rpc_token()
+        .expect("test bearer initialized")
+        .to_string();
+    if openhuman_core::core::bus::BUS.get().is_none() {
+        openhuman_core::core::bus::init()
+            .await
+            .expect("initialize in-process event bus");
+    }
+
+    let mut headers = HeaderMap::new();
+    headers.insert(
+        header::AUTHORIZATION,
+        format!("Bearer {token}").parse().unwrap(),
+    );
+    let response = domain_events_handler(headers).await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let mut chunks = response.into_body().into_data_stream();
+
+    let config = tokio::time::timeout(std::time::Duration::from_secs(1), chunks.next())
+        .await
+        .expect("config event arrives")
+        .expect("SSE config chunk")
+        .expect("SSE bytes");
+    assert!(String::from_utf8_lossy(&config).contains("event: config"));
+
+    openhuman_core::core::bus::BUS.publish(DomainEvent::SystemStartup {
+        component: "events-test".into(),
+    });
+    let event = tokio::time::timeout(std::time::Duration::from_secs(1), chunks.next())
+        .await
+        .expect("published event arrives")
+        .expect("SSE domain event chunk")
+        .expect("SSE bytes");
+    let event = String::from_utf8_lossy(&event);
+    assert!(event.contains("event: system"));
+    assert!(event.contains("SystemStartup"));
+}
+
 #[tokio::test]
 async fn webhook_debug_stream_starts_with_a_documented_event() {
     let response = webhook_events_handler().await;
