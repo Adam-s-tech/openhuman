@@ -1,9 +1,12 @@
+import { Save } from 'lucide-react';
 import { useState } from 'react';
 
 import type { SearchSettings, SearchSettingsUpdate } from '../../../utils/tauriCommands/config';
 import Button from '../../ui/Button';
+import Card from '../../ui/Card';
 import TextArea from '../../ui/TextArea';
 import { ToggleGroupItem, ToggleGroupRoot } from '../../ui/ToggleGroup';
+import { SEGMENTED_ITEM_CLASS, SEGMENTED_ROOT_CLASS } from './SearchPanelProviderCard';
 
 /**
  * Tri-state web-access mode for the unified fetch + browser allowlist.
@@ -73,66 +76,66 @@ const SearchPanelAllowedSites = ({ settings, saving, persist, t }: Props) => {
   };
 
   return (
-    <div className="rounded-xl border border-line bg-surface p-3 space-y-2">
-      {/* Section heading, not a form label — use a <p> so screen readers
-          don't announce an orphan <label> with no htmlFor. */}
-      <p className="text-xs font-semibold text-content-secondary">
-        {t('settings.search.allowedSitesLabel')}
-      </p>
-      <ToggleGroupRoot
-        type="single"
-        aria-label={t('settings.search.accessModeAria')}
-        value={mode}
-        onValueChange={value => {
-          if (value) selectMode(value as AccessMode);
-        }}
-        disabled={saving}
-        className="flex w-full rounded-lg border border-line overflow-hidden gap-0">
-        {(
-          [
-            ['all', t('settings.search.accessAllowAll')],
-            ['custom', t('settings.search.accessCustom')],
-            ['block', t('settings.search.accessBlockAll')],
-          ] as const
-        ).map(([value, label]) => (
-          <ToggleGroupItem
-            key={value}
-            value={value}
-            variant="tertiary"
-            className="flex-1 rounded-none border-0 border-l border-line first:border-l-0 px-3 py-1.5 text-xs data-[state=on]:bg-primary-500 data-[state=on]:text-content-inverted">
-            {label}
-          </ToggleGroupItem>
-        ))}
-      </ToggleGroupRoot>
-      <p className="text-[11px] text-content-muted leading-relaxed">
-        {mode === 'all'
+    <Card
+      data-testid="search-allowed-sites"
+      title={t('settings.search.allowedSitesLabel')}
+      description={
+        mode === 'all'
           ? t('settings.search.allowedSitesAllOn')
           : mode === 'block'
             ? t('settings.search.accessBlockAllHint')
-            : t('settings.search.allowedSitesHint')}
-      </p>
+            : t('settings.search.allowedSitesHint')
+      }
+      headerRight={
+        <ToggleGroupRoot
+          type="single"
+          variant="secondary"
+          size="xs"
+          aria-label={t('settings.search.accessModeAria')}
+          value={mode}
+          onValueChange={value => {
+            if (value) selectMode(value as AccessMode);
+          }}
+          disabled={saving}
+          className={SEGMENTED_ROOT_CLASS}>
+          {(
+            [
+              ['all', t('settings.search.accessAllowAll')],
+              ['custom', t('settings.search.accessCustom')],
+              ['block', t('settings.search.accessBlockAll')],
+            ] as const
+          ).map(([value, label]) => (
+            <ToggleGroupItem key={value} value={value} className={SEGMENTED_ITEM_CLASS}>
+              {label}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroupRoot>
+      }>
       {mode === 'custom' && (
-        <>
+        <div className="space-y-3 p-4">
           <TextArea
             value={allowedText}
             onChange={e => setAllowedText(e.target.value)}
-            rows={4}
+            rows={5}
             spellCheck={false}
             placeholder={t('settings.search.allowedSitesPlaceholder')}
             className="font-mono text-xs"
             aria-label={t('settings.search.allowedSitesLabel')}
           />
-          <Button
-            type="button"
-            variant="primary"
-            size="xs"
-            onClick={() => persistAllowedDomains()}
-            disabled={saving}>
-            {t('settings.search.allowedSitesSave')}
-          </Button>
-        </>
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              leadingIcon={<Save className="h-3.5 w-3.5" aria-hidden />}
+              onClick={() => persistAllowedDomains()}
+              disabled={saving}>
+              {t('settings.search.allowedSitesSave')}
+            </Button>
+          </div>
+        </div>
       )}
-    </div>
+    </Card>
   );
 };
 
