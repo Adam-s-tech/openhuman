@@ -12,6 +12,25 @@ use serde_json::{json, Value};
 use std::sync::{Arc, Mutex};
 use tokio::net::TcpListener;
 
+#[tokio::test]
+async fn authed_json_rejects_api_key_for_foreign_or_plaintext_endpoint() {
+    use crate::security::credentials::session_support::BackendCredential;
+
+    for endpoint in ["https://example.com", "http://example.com"] {
+        let client = BackendClient::new(endpoint).unwrap();
+        let error = client
+            .authed_json(
+                BackendCredential::ApiKey("th_test_key".to_string()),
+                Method::GET,
+                "/probe",
+                None,
+            )
+            .await
+            .unwrap_err();
+        assert!(error.to_string().contains("TinyHumans API key requires"));
+    }
+}
+
 #[derive(Clone, Default)]
 struct CapturedHeaders {
     entries: Arc<Mutex<Vec<HeaderMap>>>,

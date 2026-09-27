@@ -58,11 +58,11 @@ impl IntegrationClient {
         url: &str,
     ) -> anyhow::Result<std::sync::Arc<dyn crate::backend::transport::BackendTransport>> {
         crate::backend::transport::resolve_backend_transport()
-            .map_err(|error| Self::map_transport_error(error, method, path, url))
+            .map_err(|error| self.map_transport_error(error, method, path, url))
     }
 
     /// Describe one `/agent-integrations/*` round-trip for the transport: the
-    /// app-session JWT as bearer, no envelope unwrapping (this client parses
+    /// client's credential (session JWT as bearer, API key as `x-api-key`), no envelope unwrapping (this client parses
     /// the `{success,data}` envelope itself so its error classification sees
     /// the raw shape).
     pub(super) fn backend_request<'a>(
@@ -118,6 +118,7 @@ impl IntegrationClient {
         path: &str,
         body: Option<&serde_json::Value>,
     ) -> anyhow::Result<T> {
+        self.validate_credential_endpoint()?;
         reject_privileged_backend_path(method.as_str(), path)?;
         enforce_backend_egress(path)?;
         emit_backend_egress(path);
@@ -129,7 +130,7 @@ impl IntegrationClient {
             .transport(&method_name, path, &url)?
             .send_json(self.backend_request(method, path, body))
             .await
-            .map_err(|error| Self::map_transport_error(error, &method_name, path, &url))?;
+            .map_err(|error| self.map_transport_error(error, &method_name, path, &url))?;
         Self::parse_envelope(&method_name, path, &url, value)
     }
 
@@ -161,6 +162,7 @@ impl IntegrationClient {
         path: &str,
         form: reqwest::multipart::Form,
     ) -> anyhow::Result<T> {
+        self.validate_credential_endpoint()?;
         reject_privileged_backend_path("POST", path)?;
         enforce_backend_egress(path)?;
         emit_backend_egress(path);
@@ -175,7 +177,7 @@ impl IntegrationClient {
                 form,
             )
             .await
-            .map_err(|error| Self::map_transport_error(error, "post_multipart", path, &url))?;
+            .map_err(|error| self.map_transport_error(error, "post_multipart", path, &url))?;
         // The transport unwraps successful `{success,data}` responses. Preserve
         // compatibility with endpoints that return their payload directly,
         // while still recognizing a `success:false` envelope.

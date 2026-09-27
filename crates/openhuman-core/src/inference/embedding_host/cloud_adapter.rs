@@ -27,11 +27,13 @@ impl OpenHumanCloudEmbeddingModel {
         dimensions: usize,
     ) -> Self {
         let state_dir = openhuman_dir.unwrap_or_else(default_state_dir);
-        // The managed endpoint comes from the installed backend transport.
-        // Without one there is nothing to embed against, so the bearer
-        // resolver (asked before every request) refuses up front.
         let base = crate::backend::inference_base_url(&api_url).ok();
         let backend_available = base.is_some();
+        let base_url = format!(
+            "{}/openai/v1",
+            base.unwrap_or_default().trim_end_matches('/')
+        );
+        let key_endpoint = base_url.clone();
         let bearer: BearerResolver = Arc::new(move || {
             if !backend_available {
                 return Err(tinyinference_embeddings::Error::Validation(format!(
@@ -39,20 +41,38 @@ impl OpenHumanCloudEmbeddingModel {
                     crate::core::observability::BACKEND_UNAVAILABLE_PREFIX
                 )));
             }
+            // A stored TinyHumans API key is the bearer outright, exactly as
+            // for managed inference (`OpenHumanBackendModel::resolve_bearer`):
+            // `/openai/v1/embeddings` accepts it as `Bearer <key>`. Same
+            // plaintext guard too — never put the key on a non-HTTPS,
+            // non-loopback wire.
+            if let Some(key) =
+                crate::security::credentials::api_key::get_api_key_in(&state_dir, secrets_encrypt)
+                    .map_err(|error| tinyinference_embeddings::Error::Embedding(error.to_string()))?
+            {
+                if !crate::inference::provider::openhuman_backend_model::is_managed_endpoint_for_api_key(
+                    &key_endpoint,
+                ) {
+                    return Err(tinyinference_embeddings::Error::Validation(format!(
+                        "refusing to send the TinyHumans API key over a non-HTTPS, non-loopback \
+                         endpoint: {key_endpoint}"
+                    )));
+                }
+                log::debug!("[embeddings::cloud] authenticating with api-key");
+                return Ok(key);
+            }
             let auth = AuthService::new(&state_dir, secrets_encrypt);
             auth.get_provider_bearer_token(APP_SESSION_PROVIDER, None)
                 .map_err(|error| tinyinference_embeddings::Error::Embedding(error.to_string()))?
                 .filter(|token| !token.trim().is_empty())
                 .ok_or_else(|| {
                     tinyinference_embeddings::Error::Validation(
-                        "No backend session for cloud embeddings: log in to OpenHuman".into(),
+                        "No backend session for cloud embeddings: log in to OpenHuman or set a \
+                         TinyHumans API key"
+                            .into(),
                     )
                 })
         });
-        let base_url = format!(
-            "{}/openai/v1",
-            base.unwrap_or_default().trim_end_matches('/')
-        );
         let guard: EmbeddingEgressGuard = Arc::new(|model, _input_count| {
             let egress = crate::security::egress::EgressDescriptor::embedding("cloud", model);
             crate::security::egress::enforce_egress(&egress)

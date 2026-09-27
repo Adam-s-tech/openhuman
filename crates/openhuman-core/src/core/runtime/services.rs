@@ -427,7 +427,7 @@ pub fn spawn_socket_auto_connect(
     services: ServiceSet,
     socket_mgr: std::sync::Arc<crate::platform::socket::SocketManager>,
 ) {
-    if services.socketio {
+    if services.socketio && crate::backend::transport::is_installed() {
         tokio::spawn(async move {
             log::info!("[socket] Checking for stored session to auto-connect...");
             let config = match Config::load_or_init().await {
@@ -437,42 +437,29 @@ pub fn spawn_socket_auto_connect(
                     return;
                 }
             };
-            // No TinyHumans connection (no backend transport installed): there
-            // is no backend to hold a socket to, so skip quietly.
-            if !crate::backend::transport::is_installed() {
-                log::debug!("[socket] No backend transport installed — skipping auto-connect");
-                return;
-            }
             let Ok(api_url) = crate::backend::base_url(&config.api_url) else {
-                log::debug!("[socket] No backend base URL — skipping auto-connect");
+                log::debug!("[socket] No backend transport or base URL — skipping auto-connect");
                 return;
             };
-            let initial_token = match crate::security::credentials::jwt::get_session_token(&config)
-            {
-                Ok(Some(t))
-                    if crate::security::credentials::session_support::is_local_session_token(
-                        &t,
-                    ) =>
-                {
-                    // The offline local credential has no TinyHumans account,
-                    // so the backend would only reject the handshake.
-                    log::info!(
-                        "[socket] Offline local session — skipping auto-connect (no hosted account)"
-                    );
-                    return;
-                }
-                Ok(Some(t)) => t,
-                Ok(None) => {
-                    log::info!(
+            let initial_token =
+                match crate::security::credentials::session_support::get_session_token(&config) {
+                    Ok(Some(t)) => t,
+                    Ok(None) => {
+                        log::info!(
                         "[socket] No session token stored — skipping auto-connect (will connect after login)"
                     );
-                    return;
-                }
-                Err(e) => {
-                    log::warn!("[socket] Failed to read session token: {e}");
-                    return;
-                }
-            };
+                        return;
+                    }
+                    Err(e) => {
+                        log::warn!("[socket] Failed to read session token: {e}");
+                        return;
+                    }
+                };
+            if crate::security::credentials::session_support::is_local_session_token(&initial_token)
+            {
+                log::debug!("[socket] Offline local session — skipping auto-connect");
+                return;
+            }
             log::info!(
                 "[socket] Session token found — auto-connecting to {}",
                 api_url

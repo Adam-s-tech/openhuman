@@ -257,6 +257,38 @@ fn get_session_token_returns_stored_token_when_present() {
 }
 
 #[test]
+fn backend_bearer_secret_prefers_api_key_and_returns_none_when_empty() {
+    let tmp = TempDir::new().unwrap();
+    let config = test_config(&tmp);
+    assert_eq!(backend_bearer_secret(&config).unwrap(), None);
+    crate::security::credentials::api_key::store_api_key(&config, "th_test_key")
+        .expect("store API key");
+    assert_eq!(
+        backend_bearer_secret(&config).unwrap().as_deref(),
+        Some("th_test_key")
+    );
+}
+
+#[test]
+fn backend_bearer_secret_falls_back_to_session_token() {
+    let tmp = TempDir::new().unwrap();
+    let config = test_config(&tmp);
+    AuthService::from_config(&config)
+        .store_provider_token(
+            APP_SESSION_PROVIDER,
+            DEFAULT_AUTH_PROFILE_NAME,
+            "raw-session-token",
+            std::collections::HashMap::new(),
+            true,
+        )
+        .expect("store session token");
+    assert_eq!(
+        backend_bearer_secret(&config).unwrap().as_deref(),
+        Some("raw-session-token")
+    );
+}
+
+#[test]
 fn offline_local_token_is_never_a_backend_bearer() {
     let tmp = TempDir::new().unwrap();
     let config = test_config(&tmp);
