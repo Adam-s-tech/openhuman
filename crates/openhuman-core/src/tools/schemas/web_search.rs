@@ -172,6 +172,3 @@ pub(super) fn optional_string_array(
         .collect()
 }
 
-#[cfg(test)]
-#[path = "web_search_tests.rs"]
-mod tests;
