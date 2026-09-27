@@ -169,7 +169,7 @@ Namespace `channel`, registered via
   `start_chat` / `cancel_chat_scoped`, and forward `WebChannelEvent`s to the
   client.
 - `core/jsonrpc/http/events.rs`: subscribes to the `/events` SSE stream and forwards web-channel events.
-- `core/runtime/bootstrap.rs`: bootstraps runtime services; `core/runtime/subscribers.rs` registers the `DomainEvent` surface subscribers.
+- `core/jsonrpc/http/events.rs`: subscribes to the `/events` SSE stream and forwards web-channel events; `core/runtime/bootstrap.rs` registers the `DomainEvent` surface subscribers.
 - `core/all.rs`: registers `all_web_channel_registered_controllers()` under
   `DomainGroup::Channels`, deliberately not behind the `channels` feature
   (the in-app chat is core product surface, #5002).

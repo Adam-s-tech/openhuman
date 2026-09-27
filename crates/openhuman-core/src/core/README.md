@@ -133,7 +133,7 @@ Each subscribing domain owns a `bus.rs`; subscriber names use
 
 ## RPC and HTTP transport
 
-Core has no JSON-RPC server. Every transport resolves a method through
+The core HTTP router serves the routes listed below; `/auth` and `/auth/telegram` callbacks belong to the host. Every transport resolves a method through
 `invoke::invoke_method`, which checks the registry schema, validates params
 (`all::validate_params`, messages from `params.rs`), dispatches, and on a
 confirmed session expiry publishes `DomainEvent::SessionExpired`.
