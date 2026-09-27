@@ -183,6 +183,12 @@ impl SearchConfig {
         {
             self.presentation_provider = None;
         }
+        // `roles` did not exist in the legacy presentation vocabulary; its
+        // serde default means the old file omitted the field. Preserve the
+        // legacy default while fresh configs use Roles.
+        if self.presentation == super::SearchPresentation::Roles {
+            self.presentation = super::SearchPresentation::AllTools;
+        }
         self.engine = None;
         self.parallel_route = None;
         self.gemini_route = None;

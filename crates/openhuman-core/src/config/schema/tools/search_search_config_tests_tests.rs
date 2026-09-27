@@ -28,6 +28,13 @@ fn fresh_defaults_are_managed_exa_and_gemini_with_roles_presentation() {
 }
 
 #[test]
+fn legacy_omitted_presentation_keeps_all_tools_default() {
+    let mut cfg = legacy("engine = \"managed\"\n");
+    cfg.migrate_legacy(LegacySearchInputs::default());
+    assert_eq!(cfg.presentation, SearchPresentation::AllTools);
+}
+
+#[test]
 fn http_request_defaults_to_allow_all() {
     // Web research works out of the box: the default allowlist is the
     // wildcard. The SSRF guard (url_guard) still blocks local/private
