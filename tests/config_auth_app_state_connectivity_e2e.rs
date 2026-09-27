@@ -951,29 +951,23 @@ fn config_schema_defaults_cover_dashboard_capability_memory_and_security_shapes(
         assert!(local_ai.use_local_for_subconscious());
     }
 
-    let mut search = openhuman_core::config::schema::SearchConfig {
-        engine: " Parallel ".into(),
-        ..Default::default()
+    let mut search = openhuman_core::config::schema::SearchConfig::default();
+    search.brave = openhuman_core::config::schema::SearchEngineCredentials {
+        api_key: Some(" brave-key ".into()),
     };
     assert_eq!(
-        search.effective_engine(),
-        openhuman_core::config::schema::SearchEngine::Managed
-    );
-    search.parallel = openhuman_core::config::schema::SearchEngineCredentials {
-        api_key: Some(" parallel-key ".into()),
-    };
-    assert_eq!(
-        search.parallel.key(),
-        Some("parallel-key"),
+        search.brave.key(),
+        Some("brave-key"),
         "search credential keys should be trimmed at read time"
     );
+    search
+        .apply_legacy_engine(" Brave ")
+        .expect("legacy engine applies");
     assert_eq!(
-        search.effective_engine(),
-        openhuman_core::config::schema::SearchEngine::Parallel
+        search.roles.get("search"),
+        Some(&vec!["brave".to_string(), "exa".to_string()])
     );
-    assert_eq!(search.requested_engine_str(), "Parallel");
-    search.engine = "   ".into();
-    assert_eq!(search.requested_engine_str(), "managed");
+    assert!(search.apply_legacy_engine("parallel").is_err());
 
     let integration = openhuman_core::config::schema::IntegrationToggle {
         enabled: true,
@@ -1823,8 +1817,10 @@ async fn config_env_overlay_public_loader_applies_runtime_and_tool_overrides() {
     assert!(config.searxng.enabled);
     assert_eq!(config.searxng.base_url, "https://searx.example");
     assert_eq!(config.searxng.max_results, 31);
-    assert_eq!(config.search.engine, "brave");
-    assert!(config.search.parallel.has_key());
+    assert_eq!(
+        config.search.roles.get("search").and_then(|order| order.first()),
+        Some(&"brave".to_string())
+    );
     assert!(config.search.brave.has_key());
     assert!(config.search.querit.has_key());
     assert!(config.search.exa.has_key());
