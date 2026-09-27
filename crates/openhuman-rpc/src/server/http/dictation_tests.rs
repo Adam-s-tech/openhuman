@@ -24,7 +24,10 @@ fn query(token: Option<&str>) -> DictationQuery {
 #[test]
 fn dictation_rejects_disallowed_origin_before_authentication() {
     let mut headers = HeaderMap::new();
-    headers.insert(header::ORIGIN, HeaderValue::from_static("https://attacker.example"));
+    headers.insert(
+        header::ORIGIN,
+        HeaderValue::from_static("https://attacker.example"),
+    );
 
     let response = authorize_dictation_request(&headers, &query(Some(&test_token())))
         .expect_err("cross-origin request rejected");
