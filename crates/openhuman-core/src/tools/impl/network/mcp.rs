@@ -339,8 +339,26 @@ impl SecretScrubber {
                         .iter()
                         .any(|needle| name.contains(needle));
                     let value = value.into_owned();
-                    (credential_like && value.len() >= MIN_QUERY_SECRET_LEN).then_some(value)
+                    credential_like.then_some(value)
                 }));
+                // Retain the spelling supplied in the endpoint: form decoding turns
+                // '+' into a space, which ordinary URL encoding does not recreate.
+                if let Some(query) = url.query() {
+                    for pair in query.split('&') {
+                        if let Some((name, value)) = pair.split_once('=') {
+                            let decoded_name = url::form_urlencoded::parse(name.as_bytes())
+                                .next()
+                                .map(|(name, _)| name.to_ascii_lowercase())
+                                .unwrap_or_default();
+                            if CREDENTIAL_QUERY_PARAM_NEEDLES
+                                .iter()
+                                .any(|needle| decoded_name.contains(needle))
+                            {
+                                raw.push(value.to_string());
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -364,7 +382,28 @@ impl SecretScrubber {
     fn scrub(&self, text: &str) -> String {
         let mut out = text.to_string();
         for secret in &self.secrets {
-            if out.contains(secret.as_str()) {
+            if secret.len() < MIN_QUERY_SECRET_LEN {
+                // Short credentials are common words or field-name fragments;
+                // only replace a complete token so unrelated text stays usable.
+                let mut next = String::with_capacity(out.len());
+                let mut cursor = 0;
+                for (start, _) in out.match_indices(secret.as_str()) {
+                    if start < cursor {
+                        continue;
+                    }
+                    let end = start + secret.len();
+                    let word_char = |ch: char| ch.is_alphanumeric() || ch == '_';
+                    let before = out[..start].chars().next_back().is_some_and(word_char);
+                    let after = out[end..].chars().next().is_some_and(word_char);
+                    if !before && !after {
+                        next.push_str(&out[cursor..start]);
+                        next.push_str(REDACTED);
+                        cursor = end;
+                    }
+                }
+                next.push_str(&out[cursor..]);
+                out = next;
+            } else if out.contains(secret.as_str()) {
                 out = out.replace(secret.as_str(), REDACTED);
             }
         }

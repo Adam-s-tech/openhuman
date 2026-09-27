@@ -373,6 +373,31 @@ async fn endpoint_query_secrets_are_redacted_from_errors() {
     assert!(!rendered.contains(SECRET), "{rendered}");
 }
 
+#[tokio::test]
+async fn encoded_query_secrets_are_redacted_from_successful_results() {
+    let echo = "a+b%2Fc";
+    let server = echoing_server(echo, None).await;
+    let registry = registry_with(
+        &format!("{}/mcp?api_key={echo}", server.uri()),
+        crate::config::McpAuthConfig::None,
+    );
+    for result in [
+        call_tool(registry.clone())
+            .execute_with_options(call_args(), ToolCallOptions { prefer_markdown: true })
+            .await
+            .expect("call"),
+        McpListToolsTool::new(registry)
+            .execute(json!({ "server": "docs" }))
+            .await
+            .expect("list"),
+    ] {
+        let rendered = full_output(&result);
+        assert!(!result.is_error, "{rendered}");
+        assert!(rendered.contains(REDACTED), "{rendered}");
+        assert!(!rendered.contains(echo), "{rendered}");
+    }
+}
+
 #[test]
 fn scrubber_redacts_url_encoded_secrets_and_ignores_empty_values() {
     let scrubber = SecretScrubber::new(
@@ -420,6 +445,19 @@ fn scrubber_redacts_credential_query_value() {
         scrubber.scrub("server echoed private12345"),
         "server echoed [redacted]"
     );
+}
+
+#[test]
+fn scrubber_redacts_short_query_credentials_without_rewriting_words() {
+    let scrubber = SecretScrubber::new(
+        &McpDefinitionAuth::None,
+        "https://example.com/mcp?api_key=abc&v=2",
+    );
+    assert_eq!(
+        scrubber.scrub("abc is a credential; alphabet and abc_def are not"),
+        "[redacted] is a credential; alphabet and abc_def are not"
+    );
+    assert_eq!(scrubber.scrub("v=2"), "v=2");
 }
 
 #[test]
