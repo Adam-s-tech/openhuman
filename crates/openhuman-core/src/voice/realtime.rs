@@ -16,7 +16,6 @@ use serde_json::Value;
 use crate::backend::BackendClient;
 use crate::config::Config;
 use crate::rpc::RpcOutcome;
-use crate::security::credentials::jwt::get_session_token;
 
 const LOG_PREFIX: &str = "[voice-realtime]";
 
