@@ -18,4 +18,10 @@ pub use mcp::{
     McpServerConfig,
 };
 pub use multimodal::{MultimodalConfig, MultimodalFileConfig};
-pub use search::{LegacySearchInputs, SearchConfig, SearchEngineCredentials, SearchPresentation, SearchProviderSettings, SearchRoute, SearxngConfig, SeltzConfig, WebSearchConfig, MANAGED_SEARCH_PROVIDERS, SEARCH_ENGINE_BRAVE, SEARCH_ENGINE_DISABLED, SEARCH_ENGINE_EXA, SEARCH_ENGINE_MANAGED, SEARCH_ENGINE_QUERIT, SEARCH_ENGINE_TAVILY, SEARCH_PROVIDERS, SEARCH_ROLES, SEARCH_ROLE_ANSWER, SEARCH_ROLE_CONTENTS, SEARCH_ROLE_SEARCH, SEARCH_SCHEMA_VERSION,};
+pub use search::{
+    LegacySearchInputs, SearchConfig, SearchEngineCredentials, SearchPresentation,
+    SearchProviderSettings, SearchRoute, SearxngConfig, SeltzConfig, WebSearchConfig,
+    MANAGED_SEARCH_PROVIDERS, SEARCH_ENGINE_BRAVE, SEARCH_ENGINE_DISABLED, SEARCH_ENGINE_EXA,
+    SEARCH_ENGINE_MANAGED, SEARCH_ENGINE_QUERIT, SEARCH_ENGINE_TAVILY, SEARCH_PROVIDERS,
+    SEARCH_ROLES, SEARCH_ROLE_ANSWER, SEARCH_ROLE_CONTENTS, SEARCH_ROLE_SEARCH,
+};

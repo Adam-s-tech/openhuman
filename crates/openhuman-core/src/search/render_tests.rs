@@ -94,7 +94,13 @@ fn results_are_capped_and_subject_reads_urls() {
         })
         .collect();
     let result = render(&many, "q", 3, false);
-    assert_eq!(result.metadata.unwrap()["results"].as_array().unwrap().len(), 3);
+    assert_eq!(
+        result.metadata.unwrap()["results"]
+            .as_array()
+            .unwrap()
+            .len(),
+        3
+    );
     assert_eq!(
         subject(&serde_json::json!({"urls": ["https://a", "https://b"]})),
         "https://a, https://b"

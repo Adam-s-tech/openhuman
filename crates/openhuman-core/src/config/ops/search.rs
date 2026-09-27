@@ -199,7 +199,10 @@ fn apply_roles(config: &mut Config, roles: BTreeMap<String, Vec<String>>) -> Res
         if cleaned.is_empty() {
             config.search.roles.remove(role_key(role));
         } else {
-            config.search.roles.insert(role_key(role).to_string(), cleaned);
+            config
+                .search
+                .roles
+                .insert(role_key(role).to_string(), cleaned);
         }
     }
     Ok(())
@@ -254,8 +257,9 @@ pub fn apply_search_patch(config: &mut Config, update: SearchSettingsPatch) -> R
         apply_roles(config, roles)?;
     }
     if let Some(mode) = update.presentation.as_deref() {
-        config.search.presentation = SearchPresentation::parse(mode)
-            .ok_or_else(|| "presentation must be roles, all_tools, router or one_provider".to_string())?;
+        config.search.presentation = SearchPresentation::parse(mode).ok_or_else(|| {
+            "presentation must be roles, all_tools, router or one_provider".to_string()
+        })?;
     }
     if let Some(provider) = update.presentation_provider {
         let provider = provider.trim().to_ascii_lowercase();
@@ -272,7 +276,9 @@ pub fn apply_search_patch(config: &mut Config, update: SearchSettingsPatch) -> R
     }
     if let Some(secs) = update.timeout_secs {
         if !(1..=120).contains(&secs) {
-            return Err(format!("timeout_secs must be between 1 and 120 (got {secs})"));
+            return Err(format!(
+                "timeout_secs must be between 1 and 120 (got {secs})"
+            ));
         }
         config.search.timeout_secs = secs;
     }
@@ -349,7 +355,12 @@ pub(crate) fn search_settings_json_with(config: &Config, managed_available: bool
         .collect();
     let roles: serde_json::Map<String, Value> = ROLES
         .into_iter()
-        .map(|role| (role_key(role).to_string(), json!(providers::role_order(config, role))))
+        .map(|role| {
+            (
+                role_key(role).to_string(),
+                json!(providers::role_order(config, role)),
+            )
+        })
         .collect();
     let effective_roles: serde_json::Map<String, Value> = ROLES
         .into_iter()

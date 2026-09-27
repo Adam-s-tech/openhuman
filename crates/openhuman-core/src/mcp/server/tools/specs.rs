@@ -11,7 +11,11 @@ pub fn tool_specs() -> Vec<McpToolSpec> {
 /// Every search tool MCP can expose; `list_tools_result_for_config` keeps
 /// only those whose role has a usable provider.
 pub fn search_tool_specs() -> Vec<McpToolSpec> {
-    vec![web_search_tool_spec(), web_answer_tool_spec(), searxng_tool_spec()]
+    vec![
+        web_search_tool_spec(),
+        web_answer_tool_spec(),
+        searxng_tool_spec(),
+    ]
 }
 
 pub fn web_search_tool_spec() -> McpToolSpec {
@@ -285,7 +289,10 @@ pub fn list_tools_result_for_config(config: &crate::config::Config) -> Value {
 }
 
 /// Base tools plus the search tools this config can serve.
-pub fn tool_specs_for_config(config: &crate::config::Config, managed_available: bool) -> Vec<McpToolSpec> {
+pub fn tool_specs_for_config(
+    config: &crate::config::Config,
+    managed_available: bool,
+) -> Vec<McpToolSpec> {
     use crate::search::providers::{effective_role_providers, resolve_with};
     use tinysearch_bus::Role;
 

@@ -34,7 +34,11 @@ fn direct_settings(config: &Config, provider: &str) -> ProviderConfig {
     };
     match provider {
         "seltz" => {
-            settings.credential = config.seltz.api_key.clone().filter(|k| !k.trim().is_empty());
+            settings.credential = config
+                .seltz
+                .api_key
+                .clone()
+                .filter(|k| !k.trim().is_empty());
             settings.base_url = config.seltz.api_url.clone();
             settings.max_results = Some(config.seltz.max_results as u64);
             settings.timeout_secs = Some(config.seltz.timeout_secs);
@@ -93,7 +97,9 @@ pub fn module_config(config: &Config) -> ModuleSearchConfig {
         .collect();
     // Deep research runs on the direct Gemini API and needs the user's key,
     // even when grounded Gemini answers go through the managed route.
-    if module_providers.contains_key("gemini") && !module_providers.contains_key("gemini_deep_research") {
+    if module_providers.contains_key("gemini")
+        && !module_providers.contains_key("gemini_deep_research")
+    {
         let mut deep = direct_settings(config, "gemini_deep_research");
         deep.enabled = config.search.is_enabled() && deep.credential.is_some();
         module_providers.insert("gemini_deep_research".into(), deep);

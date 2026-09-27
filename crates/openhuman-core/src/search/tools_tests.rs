@@ -25,7 +25,10 @@ fn classified_errors_become_actionable_messages() {
         "The search request was rejected: urls must not be empty"
     );
     assert_eq!(user_facing_error("boom"), "Web search failed: boom");
-    assert_eq!(error_code("x tinysearch.rate_limited: y"), Some("rate_limited"));
+    assert_eq!(
+        error_code("x tinysearch.rate_limited: y"),
+        Some("rate_limited")
+    );
     assert_eq!(error_code("plain"), None);
 }
 
@@ -38,7 +41,10 @@ fn role_tools_are_built_for_usable_byok_providers() {
     assert!(names.contains(&"web_contents_tool"), "{names:?}");
     // Nothing usable can answer without a session or a Gemini key.
     assert!(!names.contains(&"web_answer_tool"), "{names:?}");
-    let search = tools.iter().find(|t| t.name() == "web_search_tool").unwrap();
+    let search = tools
+        .iter()
+        .find(|t| t.name() == "web_search_tool")
+        .unwrap();
     assert_eq!(search.category(), ToolCategory::Workflow);
     assert!(search.supports_markdown());
     assert!(search.parameters_schema()["properties"]["query"].is_object());

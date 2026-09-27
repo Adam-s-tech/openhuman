@@ -62,7 +62,8 @@ pub fn render(
     let provider = provider_label(&response.provider);
     let mut result = ToolResult::success(render_text(response, subject, &provider, max_results));
     if prefer_markdown {
-        result.markdown_formatted = Some(render_markdown(response, subject, &provider, max_results));
+        result.markdown_formatted =
+            Some(render_markdown(response, subject, &provider, max_results));
     }
     result.metadata = Some(metadata(response, subject, &provider, max_results));
     result
@@ -97,7 +98,12 @@ fn render_text(
     max_results: usize,
 ) -> String {
     let mut lines = vec![heading(response, subject, provider)];
-    if let Some(answer) = response.answer.as_deref().map(str::trim).filter(|a| !a.is_empty()) {
+    if let Some(answer) = response
+        .answer
+        .as_deref()
+        .map(str::trim)
+        .filter(|a| !a.is_empty())
+    {
         lines.push(String::new());
         lines.push(answer.to_string());
     }
@@ -109,10 +115,20 @@ fn render_text(
         };
         lines.push(format!("{}. {}", index + 1, title));
         lines.push(format!("   {}", item.url.trim()));
-        if let Some(date) = item.published.as_deref().map(str::trim).filter(|d| !d.is_empty()) {
+        if let Some(date) = item
+            .published
+            .as_deref()
+            .map(str::trim)
+            .filter(|d| !d.is_empty())
+        {
             lines.push(format!("   Published: {date}"));
         }
-        if let Some(snippet) = item.snippet.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+        if let Some(snippet) = item
+            .snippet
+            .as_deref()
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+        {
             lines.push(format!(
                 "   {}",
                 crate::util::truncate_with_suffix(snippet, TEXT_EXCERPT_CHARS, "…")
@@ -123,7 +139,12 @@ fn render_text(
         lines.push(String::new());
         lines.push("Sources:".into());
         for (index, citation) in response.citations.iter().enumerate() {
-            match citation.title.as_deref().map(str::trim).filter(|t| !t.is_empty()) {
+            match citation
+                .title
+                .as_deref()
+                .map(str::trim)
+                .filter(|t| !t.is_empty())
+            {
                 Some(title) => lines.push(format!("[{}] {} — {}", index + 1, title, citation.url)),
                 None => lines.push(format!("[{}] {}", index + 1, citation.url)),
             }
@@ -139,7 +160,12 @@ fn render_markdown(
     max_results: usize,
 ) -> String {
     let mut out = format!("# {}\n", heading(response, subject, provider));
-    if let Some(answer) = response.answer.as_deref().map(str::trim).filter(|a| !a.is_empty()) {
+    if let Some(answer) = response
+        .answer
+        .as_deref()
+        .map(str::trim)
+        .filter(|a| !a.is_empty())
+    {
         out.push_str(&format!("\n{answer}\n"));
     }
     for item in response.results.iter().take(max_results) {
@@ -149,10 +175,20 @@ fn render_markdown(
             item.title.trim()
         };
         out.push_str(&format!("\n## [{title}]({})\n", item.url.trim()));
-        if let Some(date) = item.published.as_deref().map(str::trim).filter(|d| !d.is_empty()) {
+        if let Some(date) = item
+            .published
+            .as_deref()
+            .map(str::trim)
+            .filter(|d| !d.is_empty())
+        {
             out.push_str(&format!("_Published: {date}_\n\n"));
         }
-        if let Some(snippet) = item.snippet.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+        if let Some(snippet) = item
+            .snippet
+            .as_deref()
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+        {
             out.push_str(&format!(
                 "> {}\n",
                 crate::util::truncate_with_suffix(snippet, TEXT_EXCERPT_CHARS, "…")
@@ -186,10 +222,20 @@ fn metadata(
         .take(max_results)
         .map(|item| {
             let mut obj = json!({ "title": item.title, "url": item.url });
-            if let Some(published) = item.published.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+            if let Some(published) = item
+                .published
+                .as_deref()
+                .map(str::trim)
+                .filter(|s| !s.is_empty())
+            {
                 obj["published"] = json!(published);
             }
-            if let Some(snippet) = item.snippet.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+            if let Some(snippet) = item
+                .snippet
+                .as_deref()
+                .map(str::trim)
+                .filter(|s| !s.is_empty())
+            {
                 obj["excerpt"] = json!(crate::util::truncate_with_ellipsis(
                     snippet,
                     METADATA_EXCERPT_CHARS
@@ -207,7 +253,12 @@ fn metadata(
     if let Some(role) = response.role {
         payload["role"] = json!(role);
     }
-    if let Some(answer) = response.answer.as_deref().map(str::trim).filter(|a| !a.is_empty()) {
+    if let Some(answer) = response
+        .answer
+        .as_deref()
+        .map(str::trim)
+        .filter(|a| !a.is_empty())
+    {
         payload["answer"] = json!(answer);
     }
     if !response.citations.is_empty() {

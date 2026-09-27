@@ -97,7 +97,9 @@ impl Config {
             let mut providers = std::collections::BTreeMap::new();
             for entry in names.split(',').map(str::trim).filter(|e| !e.is_empty()) {
                 let (name, route) = match entry.split_once(':') {
-                    Some((name, route)) => (name.trim().to_ascii_lowercase(), SearchRoute::parse(route)),
+                    Some((name, route)) => {
+                        (name.trim().to_ascii_lowercase(), SearchRoute::parse(route))
+                    }
                     None => (entry.to_ascii_lowercase(), None),
                 };
                 if name == "managed" {
@@ -106,7 +108,9 @@ impl Config {
                     continue;
                 }
                 if !SEARCH_PROVIDERS.contains(&name.as_str()) {
-                    log::warn!("[config][search] OPENHUMAN_SEARCH_PROVIDERS: unknown provider '{name}'");
+                    log::warn!(
+                        "[config][search] OPENHUMAN_SEARCH_PROVIDERS: unknown provider '{name}'"
+                    );
                     continue;
                 }
                 let default_route = if MANAGED_SEARCH_PROVIDERS.contains(&name.as_str()) {
@@ -167,7 +171,9 @@ impl Config {
         if let Some(mode) = env.get_any(&["OPENHUMAN_SEARCH_PRESENTATION"]) {
             match SearchPresentation::parse(&mode) {
                 Some(mode) => self.search.presentation = mode,
-                None => log::warn!("[config][search] ignoring OPENHUMAN_SEARCH_PRESENTATION='{mode}'"),
+                None => {
+                    log::warn!("[config][search] ignoring OPENHUMAN_SEARCH_PRESENTATION='{mode}'")
+                }
             }
         }
         if env.contains("OPENHUMAN_PARALLEL_ROUTE")

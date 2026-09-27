@@ -81,7 +81,10 @@ pub fn user_facing_error(error: &str) -> String {
                 .to_string()
         }
         c if c == errors::INVALID_ARGUMENTS => {
-            format!("The search request was rejected: {}", error.split_once(": ").map(|(_, d)| d).unwrap_or(error))
+            format!(
+                "The search request was rejected: {}",
+                error.split_once(": ").map(|(_, d)| d).unwrap_or(error)
+            )
         }
         _ => format!("Web search failed: {error}"),
     }

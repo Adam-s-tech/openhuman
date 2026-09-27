@@ -88,11 +88,8 @@ fn roles_are_validated_deduplicated_and_resettable() {
         config.search.roles.get("search"),
         Some(&vec!["brave".to_string(), "exa".to_string()])
     );
-    let err = apply_search_patch(
-        &mut config,
-        patch(json!({"roles": {"answer": ["brave"]}})),
-    )
-    .unwrap_err();
+    let err = apply_search_patch(&mut config, patch(json!({"roles": {"answer": ["brave"]}})))
+        .unwrap_err();
     assert!(err.contains("cannot serve the answer role"), "{err}");
     assert!(apply_search_patch(&mut config, patch(json!({"roles": {"research": []}}))).is_err());
     apply_search_patch(&mut config, patch(json!({"roles": {"search": []}}))).unwrap();
@@ -166,7 +163,10 @@ fn settings_view_reports_status_roles_and_never_keys() {
     assert_eq!(gemini["deep_research_available"], true);
     assert_eq!(provider(&view, "tinyfish")["routes"], json!(["managed"]));
     assert_eq!(provider(&view, "brave")["status"], "disabled");
-    assert_eq!(view["effective_roles"]["answer"], json!(["gemini", "gemini_deep_research"]));
+    assert_eq!(
+        view["effective_roles"]["answer"],
+        json!(["gemini", "gemini_deep_research"])
+    );
     assert_eq!(view["effective_roles"]["search"], json!(["exa"]));
     assert!(!view.to_string().contains("secret-gemini"));
     assert!(view["providers"]

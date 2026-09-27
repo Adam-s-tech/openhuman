@@ -136,10 +136,10 @@ fn run_subagent_annotations_signal_act_semantics() {
 #[test]
 fn list_tools_includes_searxng_when_enabled() {
     let mut config = crate::config::Config::default();
-    config
-        .search
-        .providers
-        .insert("searxng".into(), crate::config::SearchProviderSettings::direct());
+    config.search.providers.insert(
+        "searxng".into(),
+        crate::config::SearchProviderSettings::direct(),
+    );
     let result = list_tools_result_for_config(&config);
     let names = result["tools"]
         .as_array()
@@ -259,8 +259,8 @@ fn web_search_params_accept_a_pinned_provider() {
 
 #[test]
 fn web_answer_params_validate_depth() {
-    let params = build_rpc_params("web_answer", json!({"query": "why", "depth": "deep"}))
-        .expect("params");
+    let params =
+        build_rpc_params("web_answer", json!({"query": "why", "depth": "deep"})).expect("params");
     assert_eq!(params["depth"], "deep");
     let err = build_rpc_params("web_answer", json!({"query": "why", "depth": "long"}))
         .expect_err("must reject");

@@ -11,7 +11,10 @@ fn config_with(providers: &[(&str, SearchProviderSettings)]) -> Config {
 }
 
 fn find<'a>(resolved: &'a [ResolvedProvider], id: &str) -> &'a ResolvedProvider {
-    resolved.iter().find(|p| p.id == id).expect("provider resolved")
+    resolved
+        .iter()
+        .find(|p| p.id == id)
+        .expect("provider resolved")
 }
 
 #[test]
@@ -80,7 +83,10 @@ fn search_off_makes_nothing_usable() {
     config.search.enabled = Some(false);
     let resolved = resolve_with(&config, true);
     assert!(resolved.iter().all(|p| !p.usable));
-    assert_eq!(find(&resolved, "exa").status(false), ProviderStatus::SearchOff);
+    assert_eq!(
+        find(&resolved, "exa").status(false),
+        ProviderStatus::SearchOff
+    );
 }
 
 #[test]
@@ -123,7 +129,10 @@ fn role_order_drops_providers_that_cannot_serve_the_role() {
         .search
         .roles
         .insert("answer".into(), vec!["brave".into(), "gemini".into()]);
-    assert_eq!(role_order(&config, Role::Answer), vec!["gemini".to_string()]);
+    assert_eq!(
+        role_order(&config, Role::Answer),
+        vec!["gemini".to_string()]
+    );
 }
 
 #[test]

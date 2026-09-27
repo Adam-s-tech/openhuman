@@ -140,7 +140,11 @@ pub fn role_order(config: &Config, role: Role) -> Vec<String> {
 
 /// Usable providers for `role`, in serving order. The first one answers; the
 /// rest are fallbacks.
-pub fn effective_role_providers(resolved: &[ResolvedProvider], config: &Config, role: Role) -> Vec<String> {
+pub fn effective_role_providers(
+    resolved: &[ResolvedProvider],
+    config: &Config,
+    role: Role,
+) -> Vec<String> {
     role_order(config, role)
         .into_iter()
         .filter(|provider| {

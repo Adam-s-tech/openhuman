@@ -88,7 +88,10 @@ fn role_tools_follow_provider_selection() {
             "web_contents_tool".to_string()
         ]
     );
-    select(&mut config, &[("gemini", SearchProviderSettings::managed())]);
+    select(
+        &mut config,
+        &[("gemini", SearchProviderSettings::managed())],
+    );
     let names: Vec<String> = configured_tool_specs(&config)
         .into_iter()
         .map(|spec| spec.name)
@@ -163,7 +166,10 @@ fn seltz_and_searxng_use_their_own_sections() {
     config.searxng.base_url = "http://127.0.0.1:8888".into();
     let payload = module_config(&config);
     assert!(payload.providers["seltz"].enabled);
-    assert_eq!(payload.providers["seltz"].credential.as_deref(), Some("test-secret"));
+    assert_eq!(
+        payload.providers["seltz"].credential.as_deref(),
+        Some("test-secret")
+    );
     assert!(payload.providers["searxng"].enabled);
     assert_eq!(
         payload.providers["searxng"].base_url.as_deref(),

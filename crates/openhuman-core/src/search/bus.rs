@@ -38,8 +38,12 @@ impl EventHandler<DomainEvent> for CredentialRefreshSubscriber {
             }
         };
         match crate::modules::search::refresh_loaded(&config).await {
-            Ok(()) => tracing::debug!(kind = %kind, "[search][bus] module refreshed after credential change"),
-            Err(error) => tracing::warn!(kind = %kind, %error, "[search][bus] module refresh failed"),
+            Ok(()) => {
+                tracing::debug!(kind = %kind, "[search][bus] module refreshed after credential change")
+            }
+            Err(error) => {
+                tracing::warn!(kind = %kind, %error, "[search][bus] module refresh failed")
+            }
         }
     }
 }
@@ -48,7 +52,9 @@ impl EventHandler<DomainEvent> for CredentialRefreshSubscriber {
 pub fn register_credential_refresh_subscriber() {
     match crate::core::bus::BUS.subscribe(Arc::new(CredentialRefreshSubscriber)) {
         Some(handle) => std::mem::forget(handle),
-        None => tracing::warn!("[search][bus] failed to register credential refresh — bus not initialized"),
+        None => tracing::warn!(
+            "[search][bus] failed to register credential refresh — bus not initialized"
+        ),
     }
 }
 

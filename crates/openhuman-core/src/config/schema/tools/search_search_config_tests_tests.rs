@@ -15,8 +15,14 @@ fn fresh_defaults_are_managed_exa_and_gemini_with_roles_presentation() {
     assert!(!cfg.needs_migration());
     assert!(cfg.is_enabled());
     assert_eq!(cfg.presentation, SearchPresentation::Roles);
-    assert_eq!(provider(&cfg, "exa"), Some(SearchProviderSettings::managed()));
-    assert_eq!(provider(&cfg, "gemini"), Some(SearchProviderSettings::managed()));
+    assert_eq!(
+        provider(&cfg, "exa"),
+        Some(SearchProviderSettings::managed())
+    );
+    assert_eq!(
+        provider(&cfg, "gemini"),
+        Some(SearchProviderSettings::managed())
+    );
     assert_eq!(cfg.providers.len(), 2);
     assert!(cfg.roles.is_empty());
 }
@@ -44,8 +50,14 @@ fn legacy_managed_becomes_managed_exa_and_gemini() {
     let mut cfg = legacy("engine = \"managed\"\n");
     assert!(cfg.migrate_legacy(LegacySearchInputs::default()));
     assert!(cfg.is_enabled());
-    assert_eq!(provider(&cfg, "exa"), Some(SearchProviderSettings::managed()));
-    assert_eq!(provider(&cfg, "gemini"), Some(SearchProviderSettings::managed()));
+    assert_eq!(
+        provider(&cfg, "exa"),
+        Some(SearchProviderSettings::managed())
+    );
+    assert_eq!(
+        provider(&cfg, "gemini"),
+        Some(SearchProviderSettings::managed())
+    );
     assert!(cfg.roles.is_empty());
     assert_eq!(cfg.schema_version, SEARCH_SCHEMA_VERSION);
     assert!(cfg.engine.is_none());
@@ -75,7 +87,10 @@ fn legacy_disabled_stays_disabled_but_keeps_providers_configured() {
 fn legacy_byok_engine_leads_the_search_role() {
     let mut cfg = legacy("engine = \"tavily\"\n[tavily]\napi_key = \"t\"\n");
     cfg.migrate_legacy(LegacySearchInputs::default());
-    assert_eq!(provider(&cfg, "tavily"), Some(SearchProviderSettings::direct()));
+    assert_eq!(
+        provider(&cfg, "tavily"),
+        Some(SearchProviderSettings::direct())
+    );
     assert_eq!(
         cfg.roles.get(SEARCH_ROLE_SEARCH),
         Some(&vec!["tavily".to_string(), "exa".to_string()])
@@ -94,7 +109,10 @@ fn legacy_byok_engine_without_key_does_not_claim_a_role() {
 fn legacy_exa_engine_with_key_keeps_exa_direct() {
     let mut cfg = legacy("engine = \"exa\"\n[exa]\napi_key = \"e\"\n");
     cfg.migrate_legacy(LegacySearchInputs::default());
-    assert_eq!(provider(&cfg, "exa"), Some(SearchProviderSettings::direct()));
+    assert_eq!(
+        provider(&cfg, "exa"),
+        Some(SearchProviderSettings::direct())
+    );
     assert_eq!(cfg.exa.key(), Some("e"));
 }
 
@@ -102,7 +120,10 @@ fn legacy_exa_engine_with_key_keeps_exa_direct() {
 fn exa_key_under_managed_engine_stays_managed() {
     let mut cfg = legacy("engine = \"managed\"\n[exa]\napi_key = \"e\"\n");
     cfg.migrate_legacy(LegacySearchInputs::default());
-    assert_eq!(provider(&cfg, "exa"), Some(SearchProviderSettings::managed()));
+    assert_eq!(
+        provider(&cfg, "exa"),
+        Some(SearchProviderSettings::managed())
+    );
 }
 
 #[test]
@@ -112,7 +133,10 @@ fn parallel_selection_and_key_are_dropped() {
     assert!(!cfg.providers.contains_key("parallel"));
     assert!(cfg.parallel.key().is_none());
     // Parallel's roles fall to the managed defaults.
-    assert_eq!(provider(&cfg, "exa"), Some(SearchProviderSettings::managed()));
+    assert_eq!(
+        provider(&cfg, "exa"),
+        Some(SearchProviderSettings::managed())
+    );
     let written = toml::to_string(&cfg).unwrap();
     assert!(!written.contains("parallel"), "{written}");
     assert!(!written.contains("engine"), "{written}");
@@ -125,10 +149,22 @@ fn explicit_provider_selection_maps_managed_and_routes() {
          gemini_route = \"direct\"\n[gemini]\napi_key = \"g\"\n",
     );
     cfg.migrate_legacy(LegacySearchInputs::default());
-    assert_eq!(provider(&cfg, "exa"), Some(SearchProviderSettings::managed()));
-    assert_eq!(provider(&cfg, "gemini"), Some(SearchProviderSettings::direct()));
-    assert_eq!(provider(&cfg, "tinyfish"), Some(SearchProviderSettings::managed()));
-    assert_eq!(provider(&cfg, "querit"), Some(SearchProviderSettings::direct()));
+    assert_eq!(
+        provider(&cfg, "exa"),
+        Some(SearchProviderSettings::managed())
+    );
+    assert_eq!(
+        provider(&cfg, "gemini"),
+        Some(SearchProviderSettings::direct())
+    );
+    assert_eq!(
+        provider(&cfg, "tinyfish"),
+        Some(SearchProviderSettings::managed())
+    );
+    assert_eq!(
+        provider(&cfg, "querit"),
+        Some(SearchProviderSettings::direct())
+    );
     assert!(!cfg.providers.contains_key("parallel"));
     assert!(cfg.enabled_providers.is_none());
 }
@@ -141,9 +177,18 @@ fn legacy_toggles_outside_search_migrate_when_active() {
         seltz_active: true,
         searxng_active: true,
     });
-    assert_eq!(provider(&cfg, "tinyfish"), Some(SearchProviderSettings::managed()));
-    assert_eq!(provider(&cfg, "seltz"), Some(SearchProviderSettings::direct()));
-    assert_eq!(provider(&cfg, "searxng"), Some(SearchProviderSettings::direct()));
+    assert_eq!(
+        provider(&cfg, "tinyfish"),
+        Some(SearchProviderSettings::managed())
+    );
+    assert_eq!(
+        provider(&cfg, "seltz"),
+        Some(SearchProviderSettings::direct())
+    );
+    assert_eq!(
+        provider(&cfg, "searxng"),
+        Some(SearchProviderSettings::direct())
+    );
 }
 
 #[test]
@@ -194,6 +239,9 @@ fn route_and_presentation_parse_accept_legacy_spellings() {
 fn credentials_resolve_per_provider() {
     let mut cfg = SearchConfig::default();
     cfg.credentials_mut("gemini").unwrap().api_key = Some(" g ".into());
-    assert_eq!(cfg.credentials("gemini_deep_research").unwrap().key(), Some("g"));
+    assert_eq!(
+        cfg.credentials("gemini_deep_research").unwrap().key(),
+        Some("g")
+    );
     assert!(cfg.credentials("seltz").is_none());
 }

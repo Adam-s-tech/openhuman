@@ -78,8 +78,7 @@ impl OpenHumanWorkflowExecutor {
                         "workflow safety admission rejected unknown agent '{agent_id}'"
                     ))
                 })?;
-                let allowed_named_tool =
-                    |tool: &str| {
+                let allowed_named_tool = |tool: &str| {
                     matches!(
                         tool,
                         "web_search_tool" | "web_answer_tool" | "web_contents_tool" | "web_fetch"

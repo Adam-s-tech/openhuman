@@ -5,9 +5,7 @@ use serde_json::{Map, Value};
 use crate::config::rpc as config_rpc;
 use crate::core::all::ControllerFuture;
 
-use super::super::helpers::{
-    deserialize_params, to_json, ComposioTriggerSettingsUpdate,
-};
+use super::super::helpers::{deserialize_params, to_json, ComposioTriggerSettingsUpdate};
 
 pub(super) fn handle_update_search_settings(params: Map<String, Value>) -> ControllerFuture {
     Box::pin(async move {
