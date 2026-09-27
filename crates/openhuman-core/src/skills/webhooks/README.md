@@ -88,7 +88,7 @@ Note that nothing in the production startup path currently constructs a `Webhook
 - `crates/openhuman-core/src/core/all.rs`: registers the controllers/schemas into the RPC registry.
 - `crates/openhuman-core/src/platform/socket/manager.rs`: stores the `WebhookRouter` (`set_webhook_router` / `webhook_router`) on the socket manager; ops/bus retrieve it from there.
 - `crates/openhuman-core/src/platform/socket/event_handlers.rs`: publishes `WebhookIncomingRequest` from the socket and reads the shared router slot.
-- `crates/openhuman-core/src/core/runtime/subscribers.rs`: registers `WebhookRequestSubscriber` in `register_domain_subscribers()`.
+- `crates/openhuman-core/src/core/runtime/subscribers.rs`: registers `WebhookRequestSubscriber`.
 - `crates/openhuman-core/src/core/events.rs`: defines the `Webhook*` `DomainEvent` variants this module uses.
 
 ## Notes / gotchas

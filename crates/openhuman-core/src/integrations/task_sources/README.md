@@ -106,7 +106,7 @@ Subscribes:
 Startup wiring is split across three sites; both entry points are idempotent
 (`OnceLock`), so the overlap is harmless:
 
-- `crates/openhuman-core/src/core/runtime/subscribers.rs` calls
+- `crates/openhuman-core/src/core/runtime/subscribers.rs` (around line 306) calls
   `crate::integrations::task_sources::bus::register_task_sources_subscriber()`.
 - `crates/openhuman-core/src/core/runtime/services.rs` calls
   `crate::integrations::task_sources::start_periodic_poll()` when the
