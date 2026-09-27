@@ -33,9 +33,8 @@ check_world() {
   #
   # A `while read` loop rather than `mapfile`, which needs bash 4: the stock
   # macOS /bin/bash is 3.2, where `mapfile` dies with exit 127 partway
-  # through the run and reads like a policy failure. The `${arr[@]+...}`
-  # form is the bash 3.2 spelling of "expand this array, empty or not"
-  # without tripping `set -u`.
+  # through the run and reads like a policy failure. Guarding the first
+  # element avoids expanding an empty array under bash 3.2's `set -u`.
   reqwest_013_versions=()
   while IFS= read -r version; do
     [[ -n "$version" ]] && reqwest_013_versions+=("$version")
@@ -44,20 +43,22 @@ check_world() {
       sed -nE 's/^reqwest v(0\.13\.[^ ]+).*/\1/p' |
       sort -u
   )
-  for version in ${reqwest_013_versions[@]+"${reqwest_013_versions[@]}"}; do
-    if ! owners="$(
-      cargo tree --locked --manifest-path "$manifest" --target "$target" \
-        --prefix none --invert "reqwest@$version"
-    )"; then
-      printf 'error: could not check reqwest %s owners in %s\n' "$version" "$label" >&2
-      exit 2
-    fi
-    if printf '%s\n' "$owners" | grep -Eq '^sentry v'; then
-      printf 'error: Sentry owns reqwest %s in %s\n%s\n' \
-        "$version" "$label" "$owners" >&2
-      exit 1
-    fi
-  done
+  if [[ ${reqwest_013_versions[0]+set} ]]; then
+    for version in "${reqwest_013_versions[@]}"; do
+      if ! owners="$(
+        cargo tree --locked --manifest-path "$manifest" --target "$target" \
+          --prefix none --invert "reqwest@$version"
+      )"; then
+        printf 'error: could not check reqwest %s owners in %s\n' "$version" "$label" >&2
+        exit 2
+      fi
+      if printf '%s\n' "$owners" | grep -Eq '^sentry v'; then
+        printf 'error: Sentry owns reqwest %s in %s\n%s\n' \
+          "$version" "$label" "$owners" >&2
+        exit 1
+      fi
+    done
+  fi
 
   for package in native-tls openssl openssl-sys; do
     # Cargo returns an error for --invert when the package is absent.
