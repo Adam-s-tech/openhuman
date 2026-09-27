@@ -58,9 +58,10 @@ pub(super) async fn events_handler(
             .map(str::trim)
             .filter(|s| !s.is_empty());
         let Some(supplied_token) = supplied_token else {
+            let client_id_len = query.client_id.len();
             log::warn!(
                 "[events] reject subscribe: missing bind token + missing bearer (client_id_len={})",
-                query.client_id.len()
+                client_id_len
             );
             return (
                 StatusCode::UNAUTHORIZED,
@@ -73,9 +74,10 @@ pub(super) async fn events_handler(
                 .into_response();
         };
         if !openhuman_core::core::event_bind_tokens::consume(&query.client_id, supplied_token) {
+            let client_id_len = query.client_id.len();
             log::warn!(
                 "[events] reject subscribe: bind token invalid or expired (client_id_len={})",
-                query.client_id.len()
+                client_id_len
             );
             return (
                 StatusCode::UNAUTHORIZED,
@@ -93,17 +95,11 @@ pub(super) async fn events_handler(
     let rx = openhuman_core::web_chat::subscribe_web_channel_events();
     let stream = tokio_stream::wrappers::BroadcastStream::new(rx).filter_map(
         move |item| -> Option<Result<Event, std::convert::Infallible>> {
-            let event = match item {
-                Ok(ev) => ev,
-                Err(_) => return None,
-            };
+            let event = item.ok()?;
             if event.client_id != client_id {
                 return None;
             }
-            let data = match serde_json::to_string(&event) {
-                Ok(data) => data,
-                Err(_) => return None,
-            };
+            let data = serde_json::to_string(&event).ok()?;
             Some(Ok(Event::default().event(event.event).data(data)))
         },
     );
