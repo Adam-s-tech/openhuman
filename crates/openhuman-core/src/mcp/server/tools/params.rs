@@ -4,7 +4,7 @@ use crate::core::all;
 
 use super::types::{
     McpToolSpec, ToolCallError, DEFAULT_LIMIT, MAX_LIMIT, MEMORY_NOTE_ARGUMENTS,
-    MEMORY_STORE_ARGUMENTS, QUERY_ARGUMENTS, SEARCH_MAX_RESULTS, SEARXNG_SEARCH_ARGUMENTS, SUBAGENT_RUN_ARGUMENTS,
+    MEMORY_STORE_ARGUMENTS, QUERY_ARGUMENTS, SEARCH_MAX_RESULTS, SEARXNG_SEARCH_ARGUMENTS, SUBAGENT_RUN_ARGUMENTS, WEB_ANSWER_ARGUMENTS, WEB_SEARCH_ARGUMENTS,
     TREE_BROWSE_ARGUMENTS, TREE_LIST_SOURCES_ARGUMENTS, TREE_READ_CHUNK_ARGUMENTS,
     TREE_TAG_ARGUMENTS, TREE_TAG_MAX_TAGS, TREE_TAG_MAX_TAG_LENGTH, TREE_TOP_ENTITIES_ARGUMENTS,
 };
@@ -14,6 +14,7 @@ pub fn build_rpc_params(
     arguments: Value,
 ) -> Result<Map<String, Value>, ToolCallError> {
     let args = object_arguments(arguments)?;
+    let name = tool_name;
     match tool_name {
         "core.list_tools" | "core.tool_instructions" | "agent.list_subagents" => {
             reject_unexpected_arguments(&args, &[])?;
