@@ -1,6 +1,8 @@
 use std::sync::Once;
 
-use axum::http::{header, HeaderMap, HeaderValue, StatusCode};
+use axum::body::Body;
+use axum::http::{header, HeaderMap, HeaderValue, Request, StatusCode};
+use tower::ServiceExt;
 
 use super::{authorize_dictation_request, DictationQuery};
 
@@ -55,4 +57,25 @@ fn dictation_accepts_bearer_header_and_browser_query_token() {
     assert!(authorize_dictation_request(&headers, &query(None)).is_ok());
 
     assert!(authorize_dictation_request(&HeaderMap::new(), &query(Some(&token))).is_ok());
+}
+
+#[tokio::test]
+async fn dictation_handler_rejects_disallowed_origin_before_upgrade() {
+    let request = Request::builder()
+        .uri("/ws/dictation")
+        .header(header::ORIGIN, "https://attacker.example")
+        .header(header::AUTHORIZATION, format!("Bearer {}", test_token()))
+        .header(header::CONNECTION, "upgrade")
+        .header(header::UPGRADE, "websocket")
+        .header("sec-websocket-version", "13")
+        .header("sec-websocket-key", "dGhlIHNhbXBsZSBub25jZQ==")
+        .body(Body::empty())
+        .unwrap();
+
+    let response = crate::server::http::build_core_http_router(false)
+        .oneshot(request)
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
 }
