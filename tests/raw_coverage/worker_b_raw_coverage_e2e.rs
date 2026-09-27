@@ -148,10 +148,7 @@ async fn serve_mock() -> MockHarness {
         .route("/v1/models", get(mock_models))
         .route("/v1/missing-models", get(mock_missing_models))
         .route("/v1/chat/completions", post(mock_chat_completions))
-        .route(
-            "/agent-integrations/parallel/search",
-            post(mock_parallel_search),
-        )
+        .route("/agent-integrations/exa/search", post(mock_exa_search))
         .with_state(state.clone());
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
         .await
@@ -209,19 +206,16 @@ async fn mock_chat_completions(
     }))
 }
 
-async fn mock_parallel_search(
-    State(state): State<MockState>,
-    Json(body): Json<Value>,
-) -> Json<Value> {
+async fn mock_exa_search(State(state): State<MockState>, Json(body): Json<Value>) -> Json<Value> {
     state
         .requests
         .lock()
         .expect("requests lock")
-        .push(json!({ "path": "/agent-integrations/parallel/search", "body": body }));
+        .push(json!({ "path": "/agent-integrations/exa/search", "body": body }));
     Json(json!({
         "success": true,
         "data": {
-            "searchId": "parallel-worker-b",
+            "searchId": "exa-worker-b",
             "costUsd": 0.01,
             "results": [
                 {
@@ -464,11 +458,35 @@ async fn inference_provider_success_paths_use_mock_models_and_chat() {
 
 #[tokio::test]
 async fn tools_web_search_success_path_uses_backend_session_and_shapes_results() {
+    // The search RPC runs through the TinySearch module; CI and
+    // scripts/test-rust-with-mock.sh build it and export its path.
+    if std::env::var_os("TINYSEARCH_TEST_MODULE").is_none() {
+        eprintln!("skipping: TINYSEARCH_TEST_MODULE is not set");
+        return;
+    }
     let _lock = env_lock();
     let mock = serve_mock().await;
     let harness = setup().await;
     configure_mock_provider(&harness.rpc_base, &mock.base).await;
     seed_session_token().await;
+
+    let settings = rpc(
+        &harness.rpc_base,
+        200,
+        "openhuman.config_update_search_settings",
+        json!({
+            "enabled": true,
+            "providers": {"exa": {"enabled": true, "route": "managed"}},
+            "roles": {"search": ["exa"]}
+        }),
+    )
+    .await;
+    let settings = payload(&settings, "config_update_search_settings");
+    assert_eq!(
+        settings.pointer("/effective_roles/search/0").and_then(Value::as_str),
+        Some("exa"),
+        "managed Exa should serve the search role once signed in: {settings}"
+    );
 
     let search = rpc(
         &harness.rpc_base,
@@ -476,13 +494,13 @@ async fn tools_web_search_success_path_uses_backend_session_and_shapes_results()
         "openhuman.tools_web_search",
         json!({
             "query": "worker b raw coverage",
-            "objective": "prove backend web search success path",
-            "max_results": 99,
-            "timeout_secs": 0
+            "max_results": 99
         }),
     )
     .await;
-    let results = payload(&search, "tools_web_search")
+    let search = payload(&search, "tools_web_search");
+    assert_eq!(search.get("provider").and_then(Value::as_str), Some("Exa"));
+    let results = search
         .get("results")
         .and_then(Value::as_array)
         .expect("results array");
@@ -495,23 +513,19 @@ async fn tools_web_search_success_path_uses_backend_session_and_shapes_results()
     let body = seen
         .iter()
         .find(|entry| {
-            entry.get("path").and_then(Value::as_str) == Some("/agent-integrations/parallel/search")
+            entry.get("path").and_then(Value::as_str) == Some("/agent-integrations/exa/search")
         })
         .and_then(|entry| entry.get("body"))
-        .expect("parallel search request body");
+        .expect("managed Exa search request body");
     assert_eq!(
         body.pointer("/searchQueries/0").and_then(Value::as_str),
         Some("worker b raw coverage")
     );
-    assert_eq!(
-        body.pointer("/excerpts/maxResults").and_then(Value::as_u64),
-        Some(10)
-    );
+    assert!(body.get("mode").is_none(), "backend Exa rejects `mode`: {body}");
 
     harness.rpc_join.abort();
     mock.join.abort();
 }
-
 
 #[tokio::test]
 async fn approval_gate_rpc_decision_resumes_parked_tool_and_records_execution() {
