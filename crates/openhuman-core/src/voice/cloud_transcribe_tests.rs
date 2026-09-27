@@ -116,18 +116,17 @@ async fn api_key_transcribes_via_safe_backend_with_bearer_and_multipart_audio() 
     };
     crate::security::credentials::api_key::store_api_key(&config, "test-api-key").unwrap();
 
-    let outcome = transcribe_cloud(
-        &config,
-        "AQID",
-        &CloudTranscribeOptions::default(),
-    )
-    .await
-    .unwrap()
-    .value;
+    let outcome = transcribe_cloud(&config, "AQID", &CloudTranscribeOptions::default())
+        .await
+        .unwrap()
+        .value;
     assert_eq!(outcome.text, "recognized words");
     let (authorization, content_type, body) = request.lock().unwrap().take().unwrap();
     assert_eq!(authorization.as_deref(), Some("Bearer test-api-key"));
-    assert!(content_type.as_deref().unwrap().starts_with("multipart/form-data; boundary="));
+    assert!(content_type
+        .as_deref()
+        .unwrap()
+        .starts_with("multipart/form-data; boundary="));
     let body = String::from_utf8(body).unwrap();
     assert!(body.contains("name=\"file\""));
     assert!(body.contains("AQID"));
