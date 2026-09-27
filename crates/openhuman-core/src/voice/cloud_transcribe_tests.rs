@@ -1,5 +1,5 @@
 use super::*;
-use axum::{body::Bytes, extract::State, routing::post, Router};
+use axum::{body::Bytes, routing::post, Router};
 use std::sync::{Arc, Mutex};
 
 #[test]
@@ -123,8 +123,7 @@ async fn api_key_transcribes_via_safe_backend_with_bearer_and_multipart_audio() 
     )
     .await
     .unwrap()
-    .into_result()
-    .unwrap();
+    .value;
     assert_eq!(outcome.text, "recognized words");
     let (authorization, content_type, body) = request.lock().unwrap().take().unwrap();
     assert_eq!(authorization.as_deref(), Some("Bearer test-api-key"));
