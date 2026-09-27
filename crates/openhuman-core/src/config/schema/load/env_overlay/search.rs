@@ -130,22 +130,22 @@ impl Config {
         }
         // The dedicated provider toggles and credentials take precedence over
         // the provider-set shorthand, which replaces the map above.
-        if let Some(key) = env.get_any(&["OPENHUMAN_SELTZ_API_KEY", "SELTZ_API_KEY"])
-            && !key.is_empty()
-        {
-            self.search
-                .providers
-                .insert("seltz".into(), SearchProviderSettings::direct());
-        }
-        if let Some(flag) = env.get_any(&["OPENHUMAN_SEARXNG_ENABLED", "SEARXNG_ENABLED"])
-            && let Some(enabled) = parse_env_bool("OPENHUMAN_SEARXNG_ENABLED", &flag)
-        {
-            if enabled {
+        if let Some(key) = env.get_any(&["OPENHUMAN_SELTZ_API_KEY", "SELTZ_API_KEY"]) {
+            if !key.is_empty() {
                 self.search
                     .providers
-                    .insert("searxng".into(), SearchProviderSettings::direct());
-            } else {
-                self.search.providers.remove("searxng");
+                    .insert("seltz".into(), SearchProviderSettings::direct());
+            }
+        }
+        if let Some(flag) = env.get_any(&["OPENHUMAN_SEARXNG_ENABLED", "SEARXNG_ENABLED"]) {
+            if let Some(enabled) = parse_env_bool("OPENHUMAN_SEARXNG_ENABLED", &flag) {
+                if enabled {
+                    self.search
+                        .providers
+                        .insert("searxng".into(), SearchProviderSettings::direct());
+                } else {
+                    self.search.providers.remove("searxng");
+                }
             }
         }
         // `exa=direct,gemini=managed` — changes routes of listed providers.

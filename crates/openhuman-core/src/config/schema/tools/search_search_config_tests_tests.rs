@@ -222,9 +222,13 @@ fn legacy_toggles_outside_search_migrate_when_active() {
 
 #[test]
 fn selected_legacy_exa_keeps_own_key_when_managed_is_also_selected() {
-    let mut cfg = legacy("enabled_providers = [\"exa\", \"managed\"]\n[exa]\napi_key = \"exa-key\"\n");
+    let mut cfg =
+        legacy("enabled_providers = [\"exa\", \"managed\"]\n[exa]\napi_key = \"exa-key\"\n");
     cfg.migrate_legacy(LegacySearchInputs::default());
-    assert_eq!(provider(&cfg, "exa"), Some(SearchProviderSettings::direct()));
+    assert_eq!(
+        provider(&cfg, "exa"),
+        Some(SearchProviderSettings::direct())
+    );
 }
 
 #[test]
