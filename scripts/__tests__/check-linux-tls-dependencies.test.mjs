@@ -135,9 +135,9 @@ for (const interpreter of interpreters) {
   const version =
     process.platform === "win32"
       ? "unavailable"
-      : spawnSync(interpreter, ["-c", 'echo "$BASH_VERSION"'], {
+      : (spawnSync(interpreter, ["-c", 'echo "$BASH_VERSION"'], {
           encoding: "utf8",
-        }).stdout.trim();
+        }).stdout?.trim() ?? "unavailable");
 
   test(
     `[${interpreter} ${version}] a tree without reqwest 0.13 passes`,
