@@ -742,14 +742,10 @@ impl BackendClient {
             .context("missing clientKey in response")?;
         Ok(client_key.to_string())
     }
-
-
 }
 
 #[cfg(test)]
 #[path = "client_tests.rs"]
 mod tests;
-
-mod channel;
 
 mod channel;
