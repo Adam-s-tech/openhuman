@@ -162,4 +162,42 @@ impl SearchConfig {
         self.schema_version = SEARCH_SCHEMA_VERSION;
         true
     }
+
+    /// Apply a legacy single-engine selection (`SEARCH_ENGINE`, or an older
+    /// client sending `engine`) on top of the current provider settings.
+    pub fn apply_legacy_engine(&mut self, engine: &str) -> Result<(), String> {
+        let engine = engine.trim().to_ascii_lowercase();
+        match engine.as_str() {
+            SEARCH_ENGINE_DISABLED => {
+                self.enabled = Some(false);
+            }
+            SEARCH_ENGINE_MANAGED => {
+                self.enabled = Some(true);
+                self.providers
+                    .insert("exa".into(), SearchProviderSettings::managed());
+                self.providers
+                    .entry("gemini".into())
+                    .or_insert_with(SearchProviderSettings::managed);
+                self.roles.remove(SEARCH_ROLE_SEARCH);
+            }
+            SEARCH_ENGINE_BRAVE | SEARCH_ENGINE_QUERIT | SEARCH_ENGINE_TAVILY
+            | SEARCH_ENGINE_EXA => {
+                self.enabled = Some(true);
+                self.providers
+                    .insert(engine.clone(), SearchProviderSettings::direct());
+                let mut order = vec![engine.clone()];
+                if engine != SEARCH_ENGINE_EXA {
+                    order.push("exa".into());
+                }
+                self.roles.insert(SEARCH_ROLE_SEARCH.to_string(), order);
+            }
+            other => {
+                return Err(format!(
+                    "unknown search engine '{other}' (expected disabled, managed, brave, querit, exa or tavily)"
+                ));
+            }
+        }
+        tracing::debug!(engine = %engine, "[config][search] applied legacy engine selection");
+        Ok(())
+    }
 }

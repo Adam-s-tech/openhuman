@@ -70,43 +70,101 @@ impl Config {
                 self.search.enabled = Some(enabled);
             }
         }
-        if let Some(names) = env.get_any(&["OPENHUMAN_SEARCH_PROVIDERS"]) {
-            let selected: std::collections::BTreeSet<String> = names
-                .split(',')
-                .map(|name| name.trim().to_ascii_lowercase())
-                .filter(|name| crate::config::schema::SEARCH_PROVIDERS.contains(&name.as_str()))
-                .collect();
-            self.search.enabled_providers = Some(selected);
-        }
-        if let Some(mode) = env.get_any(&["OPENHUMAN_SEARCH_PRESENTATION"]) {
-            if ["all_tools", "router", "one_provider"].contains(&mode.as_str()) {
-                self.search.presentation = mode;
-            }
-        }
-        for (name, route) in [
-            ("OPENHUMAN_PARALLEL_ROUTE", &mut self.search.parallel_route),
-            ("OPENHUMAN_GEMINI_ROUTE", &mut self.search.gemini_route),
-        ] {
-            if let Some(value) = env.get_any(&[name]) {
-                if value == "direct" || value == "backend" {
-                    *route = value;
+        if let Some(engine) = env.get_any(&["OPENHUMAN_SEARCH_ENGINE", "SEARCH_ENGINE"]) {
+            if !engine.trim().is_empty() {
+                if let Err(error) = self.search.apply_legacy_engine(&engine) {
+                    log::warn!("[config][search] ignoring SEARCH_ENGINE: {error}");
                 }
             }
+        }
+        // `exa:managed,gemini,brave` — replaces the provider set. A provider
+        // without a route is managed when it can be, direct otherwise.
+        if let Some(names) = env.get_any(&["OPENHUMAN_SEARCH_PROVIDERS"]) {
+            let mut providers = std::collections::BTreeMap::new();
+            for entry in names.split(',').map(str::trim).filter(|e| !e.is_empty()) {
+                let (name, route) = match entry.split_once(':') {
+                    Some((name, route)) => (name.trim().to_ascii_lowercase(), SearchRoute::parse(route)),
+                    None => (entry.to_ascii_lowercase(), None),
+                };
+                if name == "managed" {
+                    providers.insert("exa".to_string(), SearchProviderSettings::managed());
+                    providers.insert("gemini".to_string(), SearchProviderSettings::managed());
+                    continue;
+                }
+                if !SEARCH_PROVIDERS.contains(&name.as_str()) {
+                    log::warn!("[config][search] OPENHUMAN_SEARCH_PROVIDERS: unknown provider '{name}'");
+                    continue;
+                }
+                let default_route = if MANAGED_SEARCH_PROVIDERS.contains(&name.as_str()) {
+                    SearchRoute::Managed
+                } else {
+                    SearchRoute::Direct
+                };
+                providers.insert(
+                    name,
+                    SearchProviderSettings {
+                        enabled: true,
+                        route: route.unwrap_or(default_route),
+                    },
+                );
+            }
+            self.search.providers = providers;
+        }
+        // `exa=direct,gemini=managed` — changes routes of listed providers.
+        let mut routes: Vec<(String, String)> = Vec::new();
+        if let Some(value) = env.get_any(&["OPENHUMAN_SEARCH_ROUTES"]) {
+            routes.extend(value.split(',').filter_map(|pair| {
+                pair.split_once('=')
+                    .map(|(p, r)| (p.trim().to_ascii_lowercase(), r.trim().to_string()))
+            }));
+        }
+        if let Some(value) = env.get_any(&["OPENHUMAN_GEMINI_ROUTE"]) {
+            log::warn!("[config][search] OPENHUMAN_GEMINI_ROUTE is deprecated; use OPENHUMAN_SEARCH_ROUTES=gemini=<route>");
+            routes.push(("gemini".into(), value));
+        }
+        for (provider, route) in routes {
+            match SearchRoute::parse(&route) {
+                Some(route) if SEARCH_PROVIDERS.contains(&provider.as_str()) => {
+                    self.search.providers.entry(provider).or_default().route = route;
+                }
+                _ => log::warn!("[config][search] ignoring route '{provider}={route}'"),
+            }
+        }
+        // `search=brave|exa;answer=gemini` — ordered provider list per role.
+        if let Some(value) = env.get_any(&["OPENHUMAN_SEARCH_ROLES"]) {
+            for spec in value.split(';').map(str::trim).filter(|s| !s.is_empty()) {
+                let Some((role, list)) = spec.split_once('=') else {
+                    log::warn!("[config][search] OPENHUMAN_SEARCH_ROLES: malformed '{spec}'");
+                    continue;
+                };
+                let role = role.trim().to_ascii_lowercase();
+                if !SEARCH_ROLES.contains(&role.as_str()) {
+                    log::warn!("[config][search] OPENHUMAN_SEARCH_ROLES: unknown role '{role}'");
+                    continue;
+                }
+                let order: Vec<String> = list
+                    .split('|')
+                    .map(|p| p.trim().to_ascii_lowercase())
+                    .filter(|p| SEARCH_PROVIDERS.contains(&p.as_str()))
+                    .collect();
+                self.search.roles.insert(role, order);
+            }
+        }
+        if let Some(mode) = env.get_any(&["OPENHUMAN_SEARCH_PRESENTATION"]) {
+            match SearchPresentation::parse(&mode) {
+                Some(mode) => self.search.presentation = mode,
+                None => log::warn!("[config][search] ignoring OPENHUMAN_SEARCH_PRESENTATION='{mode}'"),
+            }
+        }
+        if env.contains("OPENHUMAN_PARALLEL_ROUTE")
+            || env.contains("OPENHUMAN_PARALLEL_API_KEY")
+            || env.contains("PARALLEL_API_KEY")
+        {
+            log::warn!("[config][search] Parallel is no longer a search provider; PARALLEL_* settings are ignored");
         }
         if let Some(key) = env.get_any(&["OPENHUMAN_GEMINI_API_KEY", "GEMINI_API_KEY"]) {
             if !key.trim().is_empty() {
                 self.search.gemini.api_key = Some(key);
-            }
-        }
-        if let Some(engine) = env.get_any(&["OPENHUMAN_SEARCH_ENGINE", "SEARCH_ENGINE"]) {
-            let engine = engine.trim().to_ascii_lowercase();
-            if !engine.is_empty() {
-                self.search.engine = engine;
-            }
-        }
-        if let Some(key) = env.get_any(&["OPENHUMAN_PARALLEL_API_KEY", "PARALLEL_API_KEY"]) {
-            if !key.trim().is_empty() {
-                self.search.parallel.api_key = Some(key);
             }
         }
         if let Some(key) = env.get_any(&["OPENHUMAN_BRAVE_API_KEY", "BRAVE_API_KEY"]) {
