@@ -134,3 +134,34 @@ async fn test_chat_completions_with_bearer_not_rejected_as_auth_error() {
         "403 must not fire when bearer is present"
     );
 }
+
+/// Dictation WebSockets accept the browser query-token transport at the
+/// handler boundary, but still reject a token that is not the process bearer.
+#[tokio::test]
+async fn test_dictation_rejects_invalid_query_token() {
+    let req = Request::builder()
+        .method(Method::GET)
+        .uri("/ws/dictation?token=not-the-core-token")
+        .body(Body::empty())
+        .unwrap();
+
+    let resp = dispatch(req).await;
+    assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
+}
+
+/// A browser origin outside the local-app allowlist is rejected before any
+/// WebSocket upgrade, even when the caller has a valid core bearer.
+#[tokio::test]
+async fn test_dictation_rejects_disallowed_origin_with_valid_bearer() {
+    let token = ensure_test_rpc_auth();
+    let req = Request::builder()
+        .method(Method::GET)
+        .uri("/ws/dictation")
+        .header(header::ORIGIN, "https://attacker.example")
+        .header(header::AUTHORIZATION, format!("Bearer {token}"))
+        .body(Body::empty())
+        .unwrap();
+
+    let resp = dispatch(req).await;
+    assert_eq!(resp.status(), StatusCode::FORBIDDEN);
+}
