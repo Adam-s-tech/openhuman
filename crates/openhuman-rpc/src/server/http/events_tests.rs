@@ -46,6 +46,39 @@ async fn events_bind_token_is_client_bound_and_single_use() {
 }
 
 #[tokio::test]
+async fn events_stream_forwards_only_the_bound_client() {
+    use openhuman_core::web_chat::{publish_web_channel_event, WebChannelEvent};
+    use tokio_stream::StreamExt;
+
+    let token = openhuman_core::core::event_bind_tokens::issue("stream-client", None)
+        .expect("bind token")
+        .token;
+    let response = events_handler(HeaderMap::new(), query("stream-client", Some(&token))).await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let mut body = response.into_body().into_data_stream();
+
+    publish_web_channel_event(WebChannelEvent {
+        event: "wrong_client_probe".into(),
+        client_id: "another-client".into(),
+        ..Default::default()
+    });
+    publish_web_channel_event(WebChannelEvent {
+        event: "right_client_probe".into(),
+        client_id: "stream-client".into(),
+        ..Default::default()
+    });
+
+    let chunk = tokio::time::timeout(std::time::Duration::from_secs(1), body.next())
+        .await
+        .expect("matching event arrived")
+        .expect("SSE body chunk")
+        .expect("SSE bytes");
+    let event = String::from_utf8_lossy(&chunk);
+    assert!(event.contains("event: right_client_probe"));
+    assert!(!event.contains("wrong_client_probe"));
+}
+
+#[tokio::test]
 async fn domain_events_require_a_bearer() {
     let response = domain_events_handler(HeaderMap::new()).await;
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
