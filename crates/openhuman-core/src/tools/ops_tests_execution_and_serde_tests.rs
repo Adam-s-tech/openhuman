@@ -454,7 +454,10 @@ fn all_tools_registers_querit_as_the_search_role_when_enabled() {
     #[cfg(feature = "modules")]
     assert_contains_all(&names, &["web_search_tool"]);
     // Provider tools stay behind the role tool in the default presentation.
-    assert!(!names.iter().any(|name| name == "querit_search"), "{names:?}");
+    assert!(
+        !names.iter().any(|name| name == "querit_search"),
+        "{names:?}"
+    );
 }
 
 #[test]

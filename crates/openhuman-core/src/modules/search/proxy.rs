@@ -46,7 +46,9 @@ async fn proxy(config: &Config) -> Result<tinybus::Proxy, String> {
         // already holds this configuration. Reinitializing now would race the
         // module's own initialization.
         None => {
-            tracing::debug!("[modules][search] first call; module holds the load-time configuration");
+            tracing::debug!(
+                "[modules][search] first call; module holds the load-time configuration"
+            );
         }
         Some(last) if last == current => {}
         Some(_) => {
@@ -63,7 +65,7 @@ async fn proxy(config: &Config) -> Result<tinybus::Proxy, String> {
 /// Reinitialize, waiting out a module that is still finishing its previous
 /// (re)initialization instead of failing the caller's search.
 async fn reinitialize(
-    runtime: &crate::modules::host::HostRuntime,
+    runtime: &crate::modules::host::ModuleRuntime,
     configuration: serde_json::Value,
 ) -> Result<(), String> {
     const ATTEMPTS: u32 = 40;
@@ -75,11 +77,16 @@ async fn reinitialize(
         {
             Ok(_) => return Ok(()),
             Err(error) if attempt < ATTEMPTS && error.to_string().contains("initializing") => {
-                tracing::debug!(attempt, "[modules][search] module still initializing; retrying");
+                tracing::debug!(
+                    attempt,
+                    "[modules][search] module still initializing; retrying"
+                );
                 tokio::time::sleep(std::time::Duration::from_millis(50)).await;
             }
             Err(error) => {
-                return Err(format!("search module configuration refresh failed: {error}"));
+                return Err(format!(
+                    "search module configuration refresh failed: {error}"
+                ));
             }
         }
     }
