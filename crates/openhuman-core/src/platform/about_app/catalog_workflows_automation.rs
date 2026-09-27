@@ -71,7 +71,7 @@ Capability {
         domain: "workflows",
         category: CapabilityCategory::Workflows,
         description:
-            "Search the web, get grounded answers with citations, and read page contents through several providers at once. Signed-in users get Exa and Gemini with Google Search grounding included; Brave, Tavily, Querit, Seltz, SearXNG, and your own Exa or Gemini keys can be added. Each capability falls back to the next provider when one is unavailable.",
+            "Search the web, get grounded answers with citations, and read page contents through several providers at once. Signed-in users get Exa and Gemini with Google Search grounding included; Brave, Tavily, Querit, Parallel, Seltz, SearXNG, and your own Exa or Gemini keys can be added. Each capability falls back to the next provider when one is unavailable.",
         how_to: "Connections > Search to choose providers and their order, then ask the assistant to look something up",
         status: CapabilityStatus::Beta,
         privacy: Some(CapabilityPrivacy {

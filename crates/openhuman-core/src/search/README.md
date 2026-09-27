@@ -6,7 +6,7 @@ OpenHuman decides about them.
 
 ## Model
 
-- **Providers** (`exa`, `gemini`, `tinyfish`, `brave`, `querit`, `tavily`,
+- **Providers** (`exa`, `gemini`, `tinyfish`, `parallel`, `brave`, `querit`, `tavily`,
   `seltz`, `searxng`; `gemini_deep_research` rides on the Gemini key). Each
   has `enabled` and a route: `managed` (TinyHumans backend, billed to the
   session or API key; supported by `exa`, `gemini`, `tinyfish`) or `direct`
@@ -19,7 +19,8 @@ OpenHuman decides about them.
 - Config lives in `[search]` (`config/schema/tools/search.rs`): `providers`,
   `roles`, `presentation` (`roles` by default; `all_tools`, `router`,
   `one_provider`). Files from the single-engine era are migrated on load
-  (`search_migrate.rs`); Parallel selections and keys are dropped.
+  (`search_migrate.rs`); Parallel is kept as a direct-only (own key)
+  provider, and a keyless managed-Parallel selection is dropped.
 
 ## Files
 

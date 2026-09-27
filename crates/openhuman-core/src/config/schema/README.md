@@ -66,8 +66,8 @@ is mounted as a submodule of `load/dirs.rs` via `#[path]`.
 `presentation`, limits, and direct keys; fresh installs default to managed Exa
 and managed Gemini. Files without `schema_version` carry the single-engine
 format and are migrated on load (`tools/search_migrate.rs`,
-`load/migrate.rs::migrate_search_settings`); Parallel selections and keys are
-dropped. Seltz and SearXNG keep their options in their own sections, but only
+`load/migrate.rs::migrate_search_settings`); Parallel keeps its key as a
+direct-only provider, and a keyless managed-Parallel selection is dropped. Seltz and SearXNG keep their options in their own sections, but only
 the `providers` map decides whether they are on.
 
 Most sections have a matching `*_tests.rs` (some further split into several

@@ -32,9 +32,9 @@ The default order is:
 
 | Role     | Default providers, in order                                        |
 | -------- | ------------------------------------------------------------------ |
-| Search   | Exa, Brave, Tavily, Querit, Seltz, SearXNG, TinyFish               |
-| Answer   | Gemini, Exa                                                        |
-| Contents | Exa, Tavily, TinyFish                                              |
+| Search   | Exa, Brave, Tavily, Parallel, Querit, Seltz, SearXNG, TinyFish     |
+| Answer   | Gemini, Exa, Parallel                                              |
+| Contents | Exa, Tavily, Parallel, TinyFish                                    |
 
 Providers that are off are skipped, so with the defaults only Exa and Gemini serve.
 
@@ -50,6 +50,7 @@ Every provider has a **route**:
 | Exa      | Included, own key  | Search, answer, contents  | On by default (included).                                                                             |
 | Gemini   | Included, own key  | Answer                    | On by default (included). A key of your own also unlocks Deep Research, even on the included route. |
 | TinyFish | Included           | Search, contents          | Off by default.                                                                                       |
+| Parallel | Own key            | Search, answer, contents  | Off by default. There is no included Parallel route; bring your own [Parallel](https://parallel.ai) key. Deep answers never use Parallel. |
 | Brave    | Own key            | Search                    | Off by default.                                                                                       |
 | Tavily   | Own key            | Search, contents          | Off by default.                                                                                       |
 | Querit   | Own key            | Search                    | Off by default.                                                                                       |
@@ -107,7 +108,7 @@ Environment overrides:
 | `OPENHUMAN_SEARCH_PROVIDERS`                                                                                     | Replaces the provider set, e.g. `exa:managed,gemini,brave`.                    |
 | `OPENHUMAN_SEARCH_ROUTES`                                                                                        | Changes routes, e.g. `exa=direct,gemini=managed`.                              |
 | `OPENHUMAN_SEARCH_ROLES`                                                                                         | Sets role orders, e.g. `search=brave\|exa;answer=gemini`.                      |
-| `OPENHUMAN_EXA_API_KEY`, `OPENHUMAN_GEMINI_API_KEY`, `OPENHUMAN_BRAVE_API_KEY`, `OPENHUMAN_TAVILY_API_KEY`, `OPENHUMAN_QUERIT_API_KEY`, `OPENHUMAN_SELTZ_API_KEY` | Provider keys. The unprefixed names (`EXA_API_KEY`, `GEMINI_API_KEY`, …) work too. |
+| `OPENHUMAN_EXA_API_KEY`, `OPENHUMAN_GEMINI_API_KEY`, `OPENHUMAN_BRAVE_API_KEY`, `OPENHUMAN_TAVILY_API_KEY`, `OPENHUMAN_QUERIT_API_KEY`, `OPENHUMAN_PARALLEL_API_KEY`, `OPENHUMAN_SELTZ_API_KEY` | Provider keys. The unprefixed names (`EXA_API_KEY`, `GEMINI_API_KEY`, …) work too. |
 
 Treat environment-provided keys as secrets.
 
@@ -115,9 +116,9 @@ Treat environment-provided keys as secrets.
 
 Besides serving the Search role, an enabled SearXNG instance is exposed to RPC and MCP clients as `openhuman.tools_searxng_search` (`searxng_search` in the MCP catalog), which pins the call to SearXNG. Its `[searxng]` section in `config.toml` and the `OPENHUMAN_SEARXNG_*` variables (`ENABLED`, `BASE_URL`, `MAX_RESULTS`, `DEFAULT_LANGUAGE`, `TIMEOUT_SECONDS`) configure the instance.
 
-## Parallel was removed
+## Parallel is own-key only
 
-Parallel is no longer a search provider. Its engine option, its own-key field and its `parallel_*` agent tools are gone, and `PARALLEL_*` environment settings and old Parallel entries in `config.toml` are ignored. Older chat transcripts that contain Parallel tool calls still render.
+Parallel is no longer included with TinyHumans; it works only with your own Parallel key. A saved Parallel key carries over when you upgrade (Parallel stays first for search if it was your chosen engine). A setup that relied on the included Parallel route without a key moves to the included Exa and Gemini providers. `OPENHUMAN_PARALLEL_ROUTE` is ignored.
 
 ## How it differs from generic HTTP
 
