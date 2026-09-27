@@ -95,8 +95,23 @@ impl IntegrationClient {
     /// (binary download, raw DELETE): `Authorization: Bearer` for a session,
     /// `x-api-key` for an API key.
     pub(crate) fn auth_headers(&self) -> anyhow::Result<reqwest::header::HeaderMap> {
+        self.validate_credential_endpoint()?;
         crate::backend::transport::credential_headers(&self.credential)
             .map_err(|e| anyhow::anyhow!("invalid backend credential header: {e}"))
+    }
+
+    pub(super) fn validate_credential_endpoint(&self) -> anyhow::Result<()> {
+        let endpoint = &self.backend_url;
+        if self.uses_api_key()
+            && !crate::inference::provider::openhuman_backend_model::is_managed_endpoint_for_api_key(endpoint)
+        {
+            anyhow::bail!("TinyHumans API key requires the managed backend or a loopback endpoint");
+        }
+        if !crate::inference::provider::openhuman_backend_model::is_safe_endpoint_for_managed_bearer(endpoint)
+        {
+            anyhow::bail!("backend credential requires HTTPS or a loopback HTTP endpoint");
+        }
+        Ok(())
     }
 
     fn new_inner(

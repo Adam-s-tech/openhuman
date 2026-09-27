@@ -52,6 +52,7 @@ impl IntegrationClient {
         &self,
         path: &str,
     ) -> anyhow::Result<(bytes::Bytes, Option<String>, Option<String>)> {
+        self.validate_credential_endpoint()?;
         enforce_backend_egress(path)?;
         emit_backend_egress(path);
         self.ensure_budget_available(path).await?;

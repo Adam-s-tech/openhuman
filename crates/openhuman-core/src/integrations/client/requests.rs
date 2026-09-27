@@ -118,6 +118,7 @@ impl IntegrationClient {
         path: &str,
         body: Option<&serde_json::Value>,
     ) -> anyhow::Result<T> {
+        self.validate_credential_endpoint()?;
         reject_privileged_backend_path(method.as_str(), path)?;
         enforce_backend_egress(path)?;
         emit_backend_egress(path);
@@ -161,6 +162,7 @@ impl IntegrationClient {
         path: &str,
         form: reqwest::multipart::Form,
     ) -> anyhow::Result<T> {
+        self.validate_credential_endpoint()?;
         reject_privileged_backend_path("POST", path)?;
         enforce_backend_egress(path)?;
         emit_backend_egress(path);

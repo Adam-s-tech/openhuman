@@ -60,13 +60,12 @@ pub(crate) fn is_safe_endpoint_for_managed_bearer(endpoint: &str) -> bool {
     if url.scheme() != "http" {
         return false;
     }
-    let Some(host) = url.host_str() else {
-        return false;
-    };
-    matches!(
-        host,
-        "127.0.0.1" | "localhost" | "::1" | "[::1]" | "[0:0:0:0:0:0:0:1]" | "0:0:0:0:0:0:0:1"
-    ) || host.starts_with("127.")
+    url.host_str().is_some_and(|host| {
+        host == "localhost"
+            || host
+                .parse::<std::net::IpAddr>()
+                .is_ok_and(|address| address.is_loopback())
+    })
 }
 
 /// API keys belong to TinyHumans. A loopback endpoint is permitted for local
@@ -82,7 +81,12 @@ pub(crate) fn is_managed_endpoint_for_api_key(endpoint: &str) -> bool {
         url.host_str(),
         Some("api.tinyhumans.ai" | "staging-api.tinyhumans.ai")
     ) && url.scheme() == "https"
-        || matches!(url.host_str(), Some("localhost" | "127.0.0.1" | "::1"))
+        || url.host_str().is_some_and(|host| {
+            host == "localhost"
+                || host
+                    .parse::<std::net::IpAddr>()
+                    .is_ok_and(|address| address.is_loopback())
+        })
 }
 
 /// The managed OpenHuman backend as a crate [`ChatModel`]. Holds the backend
