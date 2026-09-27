@@ -110,7 +110,7 @@ which handles a 402 only as a silent fallback for any endpoint.
   `x402::store::with_ledger_mut`.
 - `crates/openhuman-core/src/tools/ops.rs`: registers `X402RequestTool` as an
   agent tool.
-- `crates/openhuman-core/src/core/all.rs` (around line 569): wires
+- `crates/openhuman-core/src/core/all.rs` (around line 710): wires
   `all_x402_registered_controllers` into the controller registry under
   `DomainGroup::Web3`.
 - `crates/openhuman-core/src/core/runtime/bootstrap.rs`: calls
