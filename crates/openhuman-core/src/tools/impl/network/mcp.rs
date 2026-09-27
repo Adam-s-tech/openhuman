@@ -391,9 +391,22 @@ impl SecretScrubber {
     }
 
     fn scrub(&self, text: &str) -> String {
+        self.scrub_text(text, true)
+    }
+
+    fn scrub_key(&self, text: &str) -> String {
+        // Object keys carry structure (tool names and JSON schema fields). Keep
+        // short query credentials from matching inside those names while still
+        // removing them when they are the complete key.
+        self.scrub_text(text, false)
+    }
+
+    fn scrub_text(&self, text: &str, redact_short_substrings: bool) -> String {
         let mut out = text.to_string();
         for secret in &self.secrets {
-            if secret.len() < MIN_QUERY_SECRET_LEN && !self.strict.contains(secret) {
+            if secret.len() < MIN_QUERY_SECRET_LEN
+                && (!self.strict.contains(secret) || !redact_short_substrings)
+            {
                 // Short credentials are common words or field-name fragments;
                 // only replace a complete token so unrelated text stays usable.
                 let mut next = String::with_capacity(out.len());
@@ -429,7 +442,7 @@ impl SecretScrubber {
                 let entries = std::mem::take(map);
                 for (key, mut item) in entries {
                     self.scrub_value(&mut item);
-                    let base_key = self.scrub(&key);
+                    let base_key = self.scrub_key(&key);
                     let mut unique_key = base_key.clone();
                     let mut suffix = 2;
                     while map.contains_key(&unique_key) {

@@ -466,6 +466,19 @@ fn scrubber_redacts_short_query_credentials_even_inside_other_text() {
 }
 
 #[test]
+fn short_query_credentials_do_not_rewrite_json_structure_keys() {
+    let scrubber = SecretScrubber::new(
+        &McpDefinitionAuth::None,
+        "https://example.com/mcp?api_key=abc",
+    );
+    let mut value = json!({ "prefixabc": "prefixabc", "abc": "abc" });
+    scrubber.scrub_value(&mut value);
+    assert_eq!(value["prefixabc"], "prefix[redacted]");
+    assert_eq!(value["[redacted]"], "[redacted]");
+    assert!(value.get("prefix[redacted]").is_none());
+}
+
+#[test]
 fn short_auth_values_do_not_rewrite_unrelated_words() {
     let scrubber = SecretScrubber::new(
         &McpDefinitionAuth::Basic {
