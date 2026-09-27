@@ -1,8 +1,12 @@
-//! Env overrides for web search: SearXNG, Seltz, Tavily, and the search engine selection.
+//! Env overrides for web search: provider set, routes, roles, keys, and the
+//! Seltz/SearXNG options.
 
 use crate::config::schema::load::env::parse_env_bool;
 use crate::config::schema::load::env::EnvLookup;
-use crate::config::schema::Config;
+use crate::config::schema::{
+    Config, SearchPresentation, SearchProviderSettings, SearchRoute, MANAGED_SEARCH_PROVIDERS,
+    SEARCH_PROVIDERS, SEARCH_ROLES,
+};
 
 impl Config {
     pub(super) fn apply_search_env<E: EnvLookup + ?Sized>(&mut self, env: &E) {
@@ -10,6 +14,9 @@ impl Config {
             if !key.is_empty() {
                 self.seltz.api_key = Some(key);
                 self.seltz.enabled = true;
+                self.search
+                    .providers
+                    .insert("seltz".into(), SearchProviderSettings::direct());
             }
         }
         if let Some(url) = env.get_any(&["OPENHUMAN_SELTZ_API_URL", "SELTZ_API_URL"]) {
@@ -28,6 +35,13 @@ impl Config {
         if let Some(flag) = env.get_any(&["OPENHUMAN_SEARXNG_ENABLED", "SEARXNG_ENABLED"]) {
             if let Some(enabled) = parse_env_bool("OPENHUMAN_SEARXNG_ENABLED", &flag) {
                 self.searxng.enabled = enabled;
+                if enabled {
+                    self.search
+                        .providers
+                        .insert("searxng".into(), SearchProviderSettings::direct());
+                } else {
+                    self.search.providers.remove("searxng");
+                }
             }
         }
         if let Some(url) = env.get_any(&["OPENHUMAN_SEARXNG_BASE_URL", "SEARXNG_BASE_URL"]) {
