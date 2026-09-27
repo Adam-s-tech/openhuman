@@ -1,3 +1,4 @@
+import { Save } from 'lucide-react';
 import { useId, useState } from 'react';
 
 import type {
@@ -7,8 +8,7 @@ import type {
   SearchRoute,
 } from '../../../utils/tauriCommands/config';
 import Badge, { type BadgeVariant } from '../../ui/Badge';
-import Button from '../../ui/Button';
-import Input from '../../ui/Input';
+import { InputGroupButton, InputGroupInput, InputGroupRoot } from '../../ui/InputGroup';
 import Switch from '../../ui/Switch';
 import { ToggleGroupItem, ToggleGroupRoot } from '../../ui/ToggleGroup';
 import KeyEditor from './SearchPanelKeyEditor';
@@ -39,6 +39,12 @@ export function statusLabel(status: SearchProviderStatus, t: Translate): string 
 
 const withProvider = (text: string, provider: string) => text.replace('{provider}', provider);
 
+/** Segmented-control look shared with the allowed-websites mode picker. */
+export const SEGMENTED_ROOT_CLASS =
+  'gap-0 overflow-hidden rounded-lg border border-line *:rounded-none *:border-0';
+export const SEGMENTED_ITEM_CLASS =
+  'h-auto px-2.5 py-1 text-xs font-medium data-[state=on]:bg-primary-500 data-[state=on]:text-content-inverted';
+
 interface Props {
   provider: SearchProviderInfo;
   saving: boolean;
@@ -48,7 +54,7 @@ interface Props {
 }
 
 /**
- * One search provider: enable switch, status badge, route choice (when the
+ * One search provider, rendered as a row of the Providers card: enable switch, status badge, route choice (when the
  * provider supports more than one), its key editor and any extra field the
  * core reports for it (SearXNG's instance URL). Everything shown is driven by
  * the provider entry the core returned; nothing here knows a provider by id.
@@ -75,10 +81,10 @@ const SearchPanelProviderCard = ({ provider, saving, onUpdate, t }: Props) => {
     <div
       data-testid={testId}
       data-status={provider.status}
-      className="rounded-xl border border-line bg-surface p-3 space-y-3">
+      className="space-y-3 px-4 py-3">
       <div className="flex items-center gap-3">
-        <label htmlFor={switchId} className="flex-1 min-w-0 flex items-center gap-2">
-          <span className="text-sm font-medium text-content truncate">{provider.label}</span>
+        <label htmlFor={switchId} className="flex min-w-0 flex-1 items-center gap-2">
+          <span className="truncate text-sm font-medium text-content">{provider.label}</span>
           <Badge variant={STATUS_VARIANT[provider.status]} data-testid={`${testId}-status`}>
             {statusLabel(provider.status, t)}
           </Badge>
@@ -101,16 +107,17 @@ const SearchPanelProviderCard = ({ provider, saving, onUpdate, t }: Props) => {
           onValueChange={value => {
             if (value && value !== provider.route) void onUpdate({ route: value as SearchRoute });
           }}
+          variant="secondary"
+          size="xs"
           disabled={saving}
-          className="flex w-full rounded-lg border border-line overflow-hidden gap-0">
+          className={SEGMENTED_ROOT_CLASS}>
           {provider.routes.map(route => (
             <ToggleGroupItem
               key={route}
               value={route}
               data-testid={`${testId}-route-${route}`}
               disabled={route === 'managed' && !provider.managed_available}
-              variant="tertiary"
-              className="flex-1 rounded-none border-0 border-l border-line first:border-l-0 px-3 py-1.5 text-xs data-[state=on]:bg-primary-500 data-[state=on]:text-content-inverted">
+              className={SEGMENTED_ITEM_CLASS}>
               {route === 'managed'
                 ? t('settings.search.routeManaged')
                 : t('settings.search.routeDirect')}
@@ -144,7 +151,7 @@ const SearchPanelProviderCard = ({ provider, saving, onUpdate, t }: Props) => {
       {deepResearchCapable && (
         <p
           data-testid={`${testId}-deep-research`}
-          className="text-[11px] text-content-muted leading-relaxed">
+          className="text-xs leading-relaxed text-content-muted">
           {provider.deep_research_available
             ? withProvider(t('settings.search.deepResearchAvailable'), provider.label)
             : withProvider(t('settings.search.deepResearchHint'), provider.label)}
@@ -152,26 +159,23 @@ const SearchPanelProviderCard = ({ provider, saving, onUpdate, t }: Props) => {
       )}
 
       {hasBaseUrl && (
-        <div className="space-y-1">
-          <label
-            htmlFor={`${switchId}-base-url`}
-            className="block text-xs font-semibold text-content">
+        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <label htmlFor={`${switchId}-base-url`} className="text-sm text-content">
             {t('settings.search.baseUrlLabel')}
           </label>
-          <div className="flex items-center gap-2">
-            <Input
+          <InputGroupRoot size="sm" className="w-full md:w-96">
+            <InputGroupInput
               id={`${switchId}-base-url`}
               data-testid={`${testId}-base-url`}
-              inputSize="sm"
+              mono
               value={draftBaseUrl}
               onChange={e => setDraftBaseUrl(e.target.value)}
               spellCheck={false}
-              className="flex-1 min-w-0 font-mono"
             />
-            <Button
+            <InputGroupButton
               type="button"
               variant="primary"
-              size="xs"
+              leadingIcon={<Save className="h-3.5 w-3.5" aria-hidden />}
               disabled={
                 saving ||
                 draftBaseUrl.trim().length === 0 ||
@@ -179,8 +183,8 @@ const SearchPanelProviderCard = ({ provider, saving, onUpdate, t }: Props) => {
               }
               onClick={() => void onUpdate({ base_url: draftBaseUrl.trim() })}>
               {t('settings.search.baseUrlSave')}
-            </Button>
-          </div>
+            </InputGroupButton>
+          </InputGroupRoot>
         </div>
       )}
     </div>
