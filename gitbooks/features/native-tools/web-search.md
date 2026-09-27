@@ -32,9 +32,11 @@ The default order is:
 
 | Role     | Default providers, in order                                        |
 | -------- | ------------------------------------------------------------------ |
-| Search   | Exa, then any other enabled search provider                        |
-| Answer   | Gemini, then Exa                                                   |
-| Contents | Exa, then any other enabled provider that can read pages           |
+| Search   | Exa, Brave, Tavily, Querit, Seltz, SearXNG, TinyFish               |
+| Answer   | Gemini, Exa                                                        |
+| Contents | Exa, Tavily, TinyFish                                              |
+
+Providers that are off are skipped, so with the defaults only Exa and Gemini serve.
 
 ## Providers and routes
 
@@ -68,7 +70,7 @@ Everything is under **Connections → Search**:
 - **Providers**: one card per provider with an on/off switch, the route choice (for providers that support both), the API key field for the own-key route, and the instance URL for SearXNG. Gemini always shows its key field, since the key is what enables Deep Research.
 - **Roles**: the provider order for Search, Answer and Contents, with which provider currently serves each role. Move providers up or down, remove fallbacks, add a provider back, or reset a role to its default order.
 - **Allowed websites**: which sites the assistant may open and read through web fetch and the browser tool. This list does not restrict web search.
-- **Advanced → Expose each provider's own tools**: gives the agent every enabled provider's own tools (for example Brave news or image search, or Exa's find-similar) in addition to the role tools. This uses more of the context window.
+- **Advanced → Expose each provider's own tools**: gives the agent each usable provider's own tools (for example Brave news or image search, or Exa's find-similar) rather than one tool per role. This uses more of the context window.
 
 Keys are stored in `config.toml`. When secret encryption is on, OpenHuman stores them as ciphertext; the OS keyring protects the master encryption key, not the provider keys themselves.
 
@@ -115,7 +117,7 @@ Besides serving the Search role, an enabled SearXNG instance is exposed to RPC a
 
 ## Parallel was removed
 
-Parallel is no longer a search provider. Its engine option, its own-key field and its `parallel_*` agent tools are gone, and `PARALLEL_*` environment settings are ignored with a warning. A configuration that selected Parallel falls back to the default providers. Older chat transcripts that contain Parallel tool calls still render.
+Parallel is no longer a search provider. Its engine option, its own-key field and its `parallel_*` agent tools are gone, and `PARALLEL_*` environment settings and old Parallel entries in `config.toml` are ignored. Older chat transcripts that contain Parallel tool calls still render.
 
 ## How it differs from generic HTTP
 

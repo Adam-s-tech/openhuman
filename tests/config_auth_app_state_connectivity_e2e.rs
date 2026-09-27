@@ -1920,7 +1920,6 @@ async fn config_save_and_load_encrypts_channel_secret_fields() {
     config.workspace_dir = workspace_dir.clone();
     config.secrets.encrypt = true;
     config.api_key = Some("api-secret".into());
-    config.search.parallel.api_key = Some("parallel-secret".into());
     config.search.brave.api_key = Some("brave-secret".into());
     config.search.querit.api_key = Some("querit-secret".into());
     config.search.exa.api_key = Some("exa-secret".into());
@@ -2007,7 +2006,6 @@ async fn config_save_and_load_encrypts_channel_secret_fields() {
     let raw = std::fs::read_to_string(&config_path).expect("read saved encrypted config");
     for secret in [
         "api-secret",
-        "parallel-secret",
         "exa-secret",
         "tavily-secret",
         "telegram-secret",
@@ -2033,10 +2031,6 @@ async fn config_save_and_load_encrypts_channel_secret_fields() {
         .expect("load encrypted config from default path");
     assert_eq!(loaded.config_path, config_path);
     assert_eq!(loaded.api_key.as_deref(), Some("api-secret"));
-    assert_eq!(
-        loaded.search.parallel.api_key.as_deref(),
-        Some("parallel-secret")
-    );
     assert_eq!(loaded.search.exa.api_key.as_deref(), Some("exa-secret"));
     assert_eq!(
         loaded.search.tavily.api_key.as_deref(),
@@ -2842,9 +2836,10 @@ async fn config_controller_mutations_round_trip_over_json_rpc() {
                 "engine": "managed",
                 "max_results": 5,
                 "timeout_secs": 12,
-                "parallel_api_key": "parallel-secret",
-                "brave_api_key": "brave-secret",
-                "querit_api_key": "querit-secret",
+                "providers": {
+                    "brave": {"enabled": true, "api_key": "brave-secret"},
+                    "querit": {"enabled": true, "api_key": "querit-secret"}
+                },
                 "allowed_domains": ["example.com"],
                 "allow_all": false
             }),
@@ -3094,7 +3089,7 @@ async fn config_runtime_flags_settings_readbacks_and_validation_paths_are_exerci
         )
         .await,
         "update_search_settings invalid engine",
-        "engine must be one of",
+        "unknown search engine",
     );
     assert_error_contains(
         &rpc(
@@ -3126,18 +3121,18 @@ async fn config_runtime_flags_settings_readbacks_and_validation_paths_are_exerci
             "engine": " brave ",
             "max_results": 12,
             "timeout_secs": 42,
-            "parallel_api_key": " parallel-rpc-key ",
-            "brave_api_key": " brave-rpc-key ",
-            "querit_api_key": " querit-rpc-key ",
-            "exa_api_key": " exa-rpc-key ",
-            "tavily_api_key": " tavily-rpc-key ",
+            "providers": {
+                "brave": {"api_key": " brave-rpc-key "},
+                "querit": {"enabled": true, "api_key": " querit-rpc-key "},
+                "exa": {"api_key": " exa-rpc-key "},
+                "tavily": {"enabled": true, "api_key": " tavily-rpc-key "}
+            },
             "allowed_domains": [" example.com ", "", "example.com", "docs.example.com"],
             "allow_all": false
         }),
     )
     .await;
     let valid_search_payload = payload(&valid_search, "update_search_settings valid");
-    assert_eq!(valid_search_payload.get("engine"), Some(&json!("brave")));
     assert_eq!(valid_search_payload.get("max_results"), Some(&json!(12)));
     assert_eq!(valid_search_payload.get("timeout_secs"), Some(&json!(42)));
     let search_readback = rpc(
@@ -3148,46 +3143,25 @@ async fn config_runtime_flags_settings_readbacks_and_validation_paths_are_exerci
     )
     .await;
     let search_payload = payload(&search_readback, "get_search_settings after valid update");
+    let provider = |view: &Value, id: &str| -> Value {
+        view.get("providers")
+            .and_then(Value::as_array)
+            .and_then(|providers| providers.iter().find(|p| p["id"] == id).cloned())
+            .unwrap_or_else(|| panic!("provider {id} listed: {view}"))
+    };
+    for id in ["brave", "querit", "exa", "tavily"] {
+        assert_eq!(
+            provider(search_payload, id)["key_configured"],
+            json!(true),
+            "{id} key should be stored"
+        );
+    }
     assert_eq!(
-        search_payload.get("engine").and_then(Value::as_str),
-        Some("brave")
+        search_payload.pointer("/effective_roles/search/0"),
+        Some(&json!("brave")),
+        "the legacy engine selection leads the search role: {search_payload}"
     );
-    assert_eq!(
-        search_payload
-            .get("effective_engine")
-            .and_then(Value::as_str),
-        Some("brave")
-    );
-    assert_eq!(
-        search_payload
-            .get("parallel_configured")
-            .and_then(Value::as_bool),
-        Some(true)
-    );
-    assert_eq!(
-        search_payload
-            .get("brave_configured")
-            .and_then(Value::as_bool),
-        Some(true)
-    );
-    assert_eq!(
-        search_payload
-            .get("querit_configured")
-            .and_then(Value::as_bool),
-        Some(true)
-    );
-    assert_eq!(
-        search_payload
-            .get("exa_configured")
-            .and_then(Value::as_bool),
-        Some(true)
-    );
-    assert_eq!(
-        search_payload
-            .get("tavily_configured")
-            .and_then(Value::as_bool),
-        Some(true)
-    );
+    assert!(!search_payload.to_string().contains("rpc-key"));
     assert_eq!(
         search_payload.get("allow_all").and_then(Value::as_bool),
         Some(false)
@@ -3200,45 +3174,30 @@ async fn config_runtime_flags_settings_readbacks_and_validation_paths_are_exerci
         &harness.rpc_base,
         11_126,
         "openhuman.config_update_search_settings",
-        json!({ "engine": "tavily" }),
+        json!({ "roles": {"search": ["tavily", "brave"]} }),
     )
     .await;
-    let select_tavily_payload = payload(&select_tavily, "select Tavily search engine");
-    assert_eq!(select_tavily_payload.get("engine"), Some(&json!("tavily")));
-    let tavily_readback = rpc(
-        &harness.rpc_base,
-        11_127,
-        "openhuman.config_get_search_settings",
-        json!({}),
-    )
-    .await;
-    let tavily_payload = payload(&tavily_readback, "get_search_settings for Tavily");
+    let select_tavily_payload = payload(&select_tavily, "put Tavily first for search");
     assert_eq!(
-        tavily_payload.get("engine").and_then(Value::as_str),
-        Some("tavily")
+        select_tavily_payload.pointer("/effective_roles/search/0"),
+        Some(&json!("tavily"))
     );
     assert_eq!(
-        tavily_payload
-            .get("effective_engine")
-            .and_then(Value::as_str),
-        Some("tavily")
-    );
-    assert_eq!(
-        tavily_payload
-            .get("tavily_configured")
-            .and_then(Value::as_bool),
-        Some(true)
+        select_tavily_payload.pointer("/effective_roles/contents/0"),
+        Some(&json!("tavily")),
+        "Tavily also serves contents without a session: {select_tavily_payload}"
     );
     let allow_all_search = rpc(
         &harness.rpc_base,
         11_027,
         "openhuman.config_update_search_settings",
         json!({
-            "parallel_api_key": " ",
-            "brave_api_key": " ",
-            "querit_api_key": " ",
-            "exa_api_key": " ",
-            "tavily_api_key": " ",
+            "providers": {
+                "brave": {"api_key": " "},
+                "querit": {"api_key": " "},
+                "exa": {"api_key": " "},
+                "tavily": {"api_key": " "}
+            },
             "allow_all": true
         }),
     )

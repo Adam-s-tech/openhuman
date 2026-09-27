@@ -593,22 +593,17 @@ async fn tools_and_tool_registry_paths_are_reachable_without_live_services() {
         (
             "openhuman.tools_web_search",
             json!({ "query": "worker b", "max_results": 1 }),
-            "Sign in first",
+            "No web search provider is available",
         ),
         (
-            "openhuman.tools_seltz_search",
-            json!({ "query": "worker b", "max_results": 1 }),
-            "Seltz search is not enabled",
-        ),
-        (
-            "openhuman.tools_querit_search",
-            json!({ "query": "worker b", "max_results": 1 }),
-            "Querit search is not enabled",
+            "openhuman.tools_web_answer",
+            json!({ "query": "worker b" }),
+            "No web search provider is available",
         ),
         (
             "openhuman.tools_searxng_search",
-            json!({ "query": "worker b", "categories": ["general"] }),
-            "SearXNG search is not enabled",
+            json!({ "query": "worker b", "max_results": 1 }),
+            "No web search provider is available",
         ),
         (
             "openhuman.tools_apify_linkedin_scrape",
