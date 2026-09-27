@@ -5,6 +5,7 @@ use axum::http::{header, StatusCode};
 use axum::response::sse::{Event, KeepAlive, Sse};
 use axum::response::{IntoResponse, Response};
 use axum::Json;
+use openhuman_core::core::events::DomainEvent;
 use serde_json::json;
 use tokio_stream::StreamExt;
 
@@ -221,46 +222,9 @@ pub(super) async fn domain_events_handler(headers: axum::http::HeaderMap) -> Res
             Ok(ev) => ev,
             Err(_) => return None,
         };
-        let domain = event.domain().to_string();
-        let event_name = event.variant_name();
-        let agent = event.agent_hint().unwrap_or("").to_string();
-        // Most variants say everything in their name; the ones whose point is
-        // a failure *reason* would otherwise reach the log with the reason
-        // discarded, so they opt into one already-redacted line (#5931). It is
-        // `null` for every other variant, which renders as no change.
-        let detail = event.log_detail();
-        // Which workspace this row belongs to, and which one is current
-        // (#5966). One process serves more than one workspace over its life,
-        // so without these two a row left over from a workspace the user has
-        // switched away from is indistinguishable from one belonging to the
-        // workspace they are in.
-        //
-        // Both are *handles*, never `workspace_dir` itself: this envelope
-        // feeds a settings panel and its NDJSON download, and the path is
-        // under the user's home directory.
-        //
-        // `active` is read from the cache rather than resolved. This closure
-        // is synchronous — `tokio_stream`'s `filter_map` — so it could not
-        // await a resolve, and it runs for every domain event the process
-        // publishes, so it should not want to. `None` means "not resolved
-        // since the last workspace marker write", which the client treats as
-        // unknown rather than as a mismatch.
-        let workspace = event
-            .workspace_dir()
-            .map(openhuman_core::config::workspace_handle);
-        let active = openhuman_core::config::active_workspace_dir_cached()
-            .map(|dir| openhuman_core::config::workspace_handle(&dir));
-        let data = json!({
-            "domain": domain,
-            "event": event_name,
-            "agent": agent,
-            "detail": detail,
-            "workspace": workspace,
-            "active_workspace": active,
-            "timestamp": chrono::Utc::now().format("%H:%M:%S").to_string(),
-        });
-        let data_str = serde_json::to_string(&data).ok()?;
-        Some(Ok(Event::default().event(domain).data(data_str)))
+            domain_event_payload(&event).map(|(domain, data)| {
+                Ok(Event::default().event(domain).data(data))
+            })
     });
 
     let config_stream =
@@ -270,6 +234,25 @@ pub(super) async fn domain_events_handler(headers: axum::http::HeaderMap) -> Res
     Sse::new(stream)
         .keep_alive(KeepAlive::new().interval(std::time::Duration::from_secs(5)))
         .into_response()
+}
+
+fn domain_event_payload(event: &DomainEvent) -> Option<(String, String)> {
+    let domain = event.domain().to_string();
+    let data = json!({
+        "domain": domain,
+        "event": event.variant_name(),
+        "agent": event.agent_hint().unwrap_or(""),
+        // Only already-redacted failure details enter the event log.
+        "detail": event.log_detail(),
+        // Public event rows expose workspace handles, never raw home paths.
+        "workspace": event.workspace_dir().map(openhuman_core::config::workspace_handle),
+        "active_workspace": openhuman_core::config::active_workspace_dir_cached()
+            .map(|dir| openhuman_core::config::workspace_handle(&dir)),
+        "timestamp": chrono::Utc::now().format("%H:%M:%S").to_string(),
+    });
+    serde_json::to_string(&data)
+        .ok()
+        .map(|data| (domain, data))
 }
 
 #[cfg(test)]
