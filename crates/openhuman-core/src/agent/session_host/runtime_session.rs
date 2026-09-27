@@ -159,6 +159,9 @@ struct OpenHumanTurnPreludeMutable {
     /// executors whenever the live integrations list does not supply them
     /// (see `recorded_tools`).
     recorded_integration_actions: Vec<tinytools::ToolSpec>,
+    /// Search role tools the resumed thread was sent (see
+    /// `recorded_tools::rehydrate_search_tools`).
+    recorded_search_tools: Vec<tinytools::ToolSpec>,
     workflows: Vec<crate::skills::Workflow>,
     composio_events: Option<tinybus::events::EventReceiver<crate::core::events::DomainEvent>>,
     skill_events: Option<tinybus::events::EventReceiver<crate::core::events::DomainEvent>>,
@@ -472,6 +475,33 @@ impl OpenHumanTurnPrelude {
             if !rebuilt.is_empty() {
                 log::info!(
                     "[session] rebuilt {} recorded integration action(s) the live integrations did not supply agent={}",
+                    rebuilt.len(),
+                    self.agent_definition_id
+                );
+                collected.extend(rebuilt);
+            }
+        }
+        #[cfg(feature = "modules")]
+        {
+            let recorded = self
+                .mutable
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .recorded_search_tools
+                .clone();
+            let mut present: Vec<&dyn tinytools::Tool> =
+                surface.tools.iter().map(|tool| tool.as_ref()).collect();
+            present.extend(collected.iter().map(|tool| tool.as_ref()));
+            let present_names: std::collections::HashSet<String> =
+                present.iter().map(|tool| tool.name().to_string()).collect();
+            let missing: Vec<tinytools::ToolSpec> = recorded
+                .into_iter()
+                .filter(|spec| !present_names.contains(&spec.name))
+                .collect();
+            let rebuilt = super::recorded_tools::rehydrate_search_tools(&missing, &[]);
+            if !rebuilt.is_empty() {
+                log::info!(
+                    "[session] rebuilt {} recorded search tool(s) the live surface did not supply agent={}",
                     rebuilt.len(),
                     self.agent_definition_id
                 );
@@ -1570,6 +1600,7 @@ impl OpenHumanSessionHost {
                     // this session's current authorization refresh.
                     connected_integrations_authoritative: false,
                     recorded_integration_actions: Vec::new(),
+                    recorded_search_tools: Vec::new(),
                     workflows: self.workflows.clone(),
                     composio_events: None,
                     skill_events: None,

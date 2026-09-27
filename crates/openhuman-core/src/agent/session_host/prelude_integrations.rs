@@ -23,10 +23,13 @@ impl OpenHumanTurnPrelude {
             actions.len(),
             self.agent_definition_id
         );
-        self.mutable
+        let search_tools = super::super::recorded_tools::recorded_search_tools(recorded.specs());
+        let mut mutable = self
+            .mutable
             .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
-            .recorded_integration_actions = actions;
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        mutable.recorded_integration_actions = actions;
+        mutable.recorded_search_tools = search_tools;
     }
 
     pub(super) async fn refresh_turn_boundary(&self, cold: bool) {

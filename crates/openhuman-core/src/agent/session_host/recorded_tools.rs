@@ -101,6 +101,55 @@ pub(super) fn rehydrate_integration_actions(
         .collect()
 }
 
+/// The recorded TinySearch role tools (`web_search_tool`, `web_answer_tool`,
+/// `web_contents_tool`), in recorded order.
+pub(super) fn recorded_search_tools(recorded: &[ToolSpec]) -> Vec<ToolSpec> {
+    recorded
+        .iter()
+        .filter(|spec| is_search_role_tool(&spec.name))
+        .cloned()
+        .collect()
+}
+
+fn is_search_role_tool(name: &str) -> bool {
+    [
+        tinysearch_bus::Role::Search,
+        tinysearch_bus::Role::Answer,
+        tinysearch_bus::Role::Contents,
+    ]
+    .into_iter()
+    .any(|role| tinysearch_bus::role_tool_name(role) == name)
+}
+
+/// Executors for recorded search role tools the live surface no longer
+/// builds (the user signed out, or turned a provider off). Each keeps its
+/// recorded declaration and resolves the live config per call, so a call
+/// answers with the actionable "no usable provider" error instead of an
+/// unknown-tool failure.
+#[cfg(feature = "modules")]
+pub(super) fn rehydrate_search_tools(
+    recorded: &[ToolSpec],
+    live: &[Box<dyn Tool>],
+) -> Vec<Box<dyn Tool>> {
+    let live_names: HashSet<&str> = live.iter().map(|tool| tool.name()).collect();
+    let mut seen = HashSet::new();
+    recorded
+        .iter()
+        .filter(|spec| is_search_role_tool(&spec.name))
+        .filter(|spec| !live_names.contains(spec.name.as_str()))
+        .filter(|spec| seen.insert(spec.name.clone()))
+        .map(|spec| {
+            Box::new(crate::search::TinySearchTool::recorded(
+                tinysearch_bus::ToolSpec {
+                    name: spec.name.clone(),
+                    description: spec.description.clone(),
+                    parameters: spec.parameters.clone(),
+                },
+            )) as Box<dyn Tool>
+        })
+        .collect()
+}
+
 #[cfg(test)]
 #[path = "recorded_tools_tests.rs"]
 mod tests;
