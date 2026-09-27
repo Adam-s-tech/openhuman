@@ -66,7 +66,7 @@ fn read_only_tools_are_marked_read_only_and_closed_world() {
         "memory.note",
         "tree.tag",
     ];
-    let open_world_read_only = ["searxng_search"];
+    let open_world_read_only = ["searxng_search", "web_search", "web_answer"];
     for spec in tool_specs() {
         if act_tool_names.contains(&spec.name) {
             continue;
