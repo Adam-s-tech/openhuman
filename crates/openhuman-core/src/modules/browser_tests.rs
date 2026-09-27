@@ -16,8 +16,17 @@ fn navigation_uses_shared_allowlist_and_blocks_private_hosts() {
 
 #[test]
 fn non_global_ip_literals_stay_blocked() {
-    for host in ["198.18.0.1", "240.0.0.1", "255.255.255.255", "192.0.2.1", "[2001:db8::1]"] {
-        assert!(private_or_local(host.trim_matches(['[', ']'])), "{host} must be blocked");
+    for host in [
+        "198.18.0.1",
+        "240.0.0.1",
+        "255.255.255.255",
+        "192.0.2.1",
+        "[2001:db8::1]",
+    ] {
+        assert!(
+            private_or_local(host.trim_matches(['[', ']'])),
+            "{host} must be blocked"
+        );
     }
     assert!(!private_or_local("93.184.216.34"));
 }
