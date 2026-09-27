@@ -3,21 +3,30 @@ use axum::extract::Query;
 use axum::http::{header, HeaderMap, StatusCode};
 
 use super::{
-    domain_event_payload, domain_event_stream_error, domain_events_handler, events_handler,
+    active_workspace_handle, domain_event_payload, domain_event_stream_unavailable,
+    domain_events_handler, events_handler,
     webhook_events_handler, EventsQuery,
 };
 
 #[test]
 fn domain_event_stream_status_requires_enabled_config_and_initialized_bus() {
     assert_eq!(
-        domain_event_stream_error(false, false),
-        Some((StatusCode::NOT_FOUND, "event stream disabled by config"))
+        domain_event_stream_unavailable(false, false).unwrap().status(),
+        StatusCode::NOT_FOUND
     );
     assert_eq!(
-        domain_event_stream_error(true, false),
-        Some((StatusCode::SERVICE_UNAVAILABLE, "event bus not initialized"))
+        domain_event_stream_unavailable(true, false)
+            .unwrap()
+            .status(),
+        StatusCode::SERVICE_UNAVAILABLE
     );
-    assert_eq!(domain_event_stream_error(true, true), None);
+    assert!(domain_event_stream_unavailable(true, true).is_none());
+}
+
+#[test]
+fn active_workspace_resolution_failure_is_nonfatal() {
+    let result = active_workspace_handle(Err(anyhow::anyhow!("workspace unavailable")));
+    assert!(result.is_none());
 }
 
 #[test]

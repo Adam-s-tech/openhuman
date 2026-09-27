@@ -156,11 +156,8 @@ pub(super) async fn domain_events_handler(headers: axum::http::HeaderMap) -> Res
         .unwrap_or_default();
 
     let bus = openhuman_core::core::bus::BUS.get();
-    if let Some((status, error)) = domain_event_stream_error(es_cfg.enabled, bus.is_some()) {
-        if status == StatusCode::SERVICE_UNAVAILABLE {
-            log::warn!("[events/domain] event bus not initialized");
-        }
-        return (status, Json(json!({ "ok": false, "error": error }))).into_response();
+    if let Some(response) = domain_event_stream_unavailable(es_cfg.enabled, bus.is_some()) {
+        return response;
     }
     let bus = bus.expect("enabled event stream has an initialized event bus");
 
@@ -172,16 +169,8 @@ pub(super) async fn domain_events_handler(headers: axum::http::HeaderMap) -> Res
     // in this handler that can afford the authoritative read — it happens
     // per connection, not per event — and it refills the cache the row
     // stamping below relies on.
-    let active_workspace = openhuman_core::config::active_workspace_dir()
-        .await
-        .map(|dir| openhuman_core::config::workspace_handle(&dir))
-        .map_err(|error| {
-            log::warn!(
-                "[events/domain] could not resolve the active workspace ({error}); \
-                 the client will scope the log once an event says which workspace is active"
-            );
-        })
-        .ok();
+    let active_workspace =
+        active_workspace_handle(openhuman_core::config::active_workspace_dir().await);
 
     // Send config as first SSE event so frontend can apply settings.
     let config_event = Event::default().event("config").data(
@@ -203,10 +192,7 @@ pub(super) async fn domain_events_handler(headers: axum::http::HeaderMap) -> Res
             .map(|event| (Ok::<_, std::convert::Infallible>(event), rx))
     })
     .filter_map(|item| -> Option<Result<Event, std::convert::Infallible>> {
-        let event = match item {
-            Ok(ev) => ev,
-            Err(_) => return None,
-        };
+        let event = item.ok()?;
         domain_event_payload(&event)
             .map(|(domain, data)| Ok(Event::default().event(domain).data(data)))
     });
@@ -220,17 +206,31 @@ pub(super) async fn domain_events_handler(headers: axum::http::HeaderMap) -> Res
         .into_response()
 }
 
-fn domain_event_stream_error(
+fn domain_event_stream_unavailable(
     enabled: bool,
     bus_initialized: bool,
-) -> Option<(StatusCode, &'static str)> {
-    if !enabled {
-        Some((StatusCode::NOT_FOUND, "event stream disabled by config"))
+) -> Option<Response> {
+    let (status, error) = if !enabled {
+        (StatusCode::NOT_FOUND, "event stream disabled by config")
     } else if !bus_initialized {
-        Some((StatusCode::SERVICE_UNAVAILABLE, "event bus not initialized"))
+        log::warn!("[events/domain] event bus not initialized");
+        (StatusCode::SERVICE_UNAVAILABLE, "event bus not initialized")
     } else {
-        None
-    }
+        return None;
+    };
+    Some((status, Json(json!({ "ok": false, "error": error }))).into_response())
+}
+
+fn active_workspace_handle(result: anyhow::Result<std::path::PathBuf>) -> Option<String> {
+    result
+        .map(|dir| openhuman_core::config::workspace_handle(&dir))
+        .map_err(|error| {
+            log::warn!(
+                "[events/domain] could not resolve the active workspace ({error}); \
+                 the client will scope the log once an event says which workspace is active"
+            );
+        })
+        .ok()
 }
 
 fn domain_event_payload(event: &DomainEvent) -> Option<(String, String)> {
