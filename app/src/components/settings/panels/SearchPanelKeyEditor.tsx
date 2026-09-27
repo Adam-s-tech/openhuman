@@ -13,11 +13,14 @@ export interface KeyEditorProps {
   onSave: () => void;
   onClear: () => void;
   configured: boolean;
-  docUrl: string;
+  /** Where to get a key; the link is hidden when the provider has none. */
+  docUrl?: string | null;
+  disabled?: boolean;
+  testId?: string;
   t: (key: string) => string;
 }
 
-/** One BYOK API-key row: label + doc link, a maskable input, and save/clear actions. */
+/** One API-key row: label + doc link, a maskable input, and save/clear actions. */
 const KeyEditor = ({
   label,
   placeholder,
@@ -29,6 +32,8 @@ const KeyEditor = ({
   onClear,
   configured,
   docUrl,
+  disabled = false,
+  testId,
   t,
 }: KeyEditorProps) => {
   const inputId = useId();
@@ -37,7 +42,8 @@ const KeyEditor = ({
     <div
       role="group"
       aria-labelledby={inputId}
-      className="rounded-xl border border-line bg-surface p-3">
+      data-testid={testId}
+      className="rounded-lg border border-line-subtle bg-surface-subtle p-3">
       <div className="flex items-center justify-between mb-2">
         <label
           id={inputId}
@@ -45,13 +51,15 @@ const KeyEditor = ({
           className="text-xs font-semibold text-content">
           {label}
         </label>
-        <a
-          href={docUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-[10px] text-primary-500 hover:underline">
-          {t('settings.search.getApiKey')} ↗
-        </a>
+        {docUrl && (
+          <a
+            href={docUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[10px] text-primary-500 hover:underline">
+            {t('settings.search.getApiKey')} ↗
+          </a>
+        )}
       </div>
       <div className="flex items-center gap-2">
         <Input
@@ -71,11 +79,17 @@ const KeyEditor = ({
           variant="primary"
           size="xs"
           onClick={onSave}
-          disabled={value.trim().length === 0}>
+          disabled={disabled || value.trim().length === 0}>
           {t('settings.search.save')}
         </Button>
         {configured && (
-          <Button type="button" variant="secondary" tone="danger" size="xs" onClick={onClear}>
+          <Button
+            type="button"
+            variant="secondary"
+            tone="danger"
+            size="xs"
+            onClick={onClear}
+            disabled={disabled}>
             {t('settings.search.clear')}
           </Button>
         )}
