@@ -71,7 +71,7 @@ function makeTree(fixtures) {
   fs.writeFileSync(
     path.join(bin, "cargo"),
     `#!/usr/bin/env bash
-echo "cargo $*" >> "${path.join(root, "calls.log")}"
+echo "cargo $*" >> "$TEST_CALLS_LOG"
 manifest=""
 inverted=""
 while [ $# -gt 0 ]; do
@@ -82,16 +82,16 @@ while [ $# -gt 0 ]; do
   shift
 done
 if [ -n "$inverted" ]; then
-  if [ -f "${root}/fail-invert" ] && [ "$inverted" = "$(cat "${root}/fail-invert")" ]; then
+  if [ -f "$TEST_FIXTURE_ROOT/fail-invert" ] && [ "$inverted" = "$(cat "$TEST_FIXTURE_ROOT/fail-invert")" ]; then
     echo "cargo tree failed" >&2
     exit 7
   fi
-  [ -f "${owners}/$inverted" ] && cat "${owners}/$inverted"
+  [ -f "$TEST_OWNERS_DIR/$inverted" ] && cat "$TEST_OWNERS_DIR/$inverted"
   exit 0
 fi
 case "$manifest" in
   Cargo.toml)
-    if [ -f "${root}/fail-core" ]; then
+    if [ -f "$TEST_FIXTURE_ROOT/fail-core" ]; then
       echo "cargo tree failed" >&2
       exit 7
     fi
@@ -112,7 +112,13 @@ function run(interpreter, tree) {
   return spawnSync(interpreter, [script], {
     cwd: tree.root,
     encoding: "utf8",
-    env: { ...process.env, PATH: `${tree.bin}:${process.env.PATH}` },
+    env: {
+      ...process.env,
+      PATH: `${tree.bin}:${process.env.PATH}`,
+      TEST_FIXTURE_ROOT: tree.root,
+      TEST_CALLS_LOG: path.join(tree.root, "calls.log"),
+      TEST_OWNERS_DIR: path.join(tree.root, "owners"),
+    },
   });
 }
 
