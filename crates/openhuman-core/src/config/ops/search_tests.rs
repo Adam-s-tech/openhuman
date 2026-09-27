@@ -65,10 +65,16 @@ fn routes_a_provider_cannot_take_are_rejected() {
     assert!(err.contains("does not support the direct route"), "{err}");
     assert!(apply_search_patch(
         &mut config,
-        patch(json!({"providers": {"parallel": {"enabled": true}}}))
+        patch(json!({"providers": {"bing": {"enabled": true}}}))
     )
     .unwrap_err()
     .contains("unknown search provider"));
+    let err = apply_search_patch(
+        &mut config,
+        patch(json!({"providers": {"parallel": {"route": "managed"}}})),
+    )
+    .unwrap_err();
+    assert!(err.contains("does not support the managed route"), "{err}");
     assert!(apply_search_patch(
         &mut config,
         patch(json!({"providers": {"searxng": {"api_key": "x"}}}))
@@ -103,7 +109,9 @@ fn legacy_engine_from_an_older_client_still_works() {
     assert!(!config.search.is_enabled());
     apply_search_patch(&mut config, patch(json!({"engine": "managed"}))).unwrap();
     assert!(config.search.is_enabled());
-    assert!(apply_search_patch(&mut config, patch(json!({"engine": "parallel"}))).is_err());
+    apply_search_patch(&mut config, patch(json!({"engine": "parallel"}))).unwrap();
+    assert_eq!(config.search.route("parallel"), SearchRoute::Direct);
+    assert!(apply_search_patch(&mut config, patch(json!({"engine": "bing"}))).is_err());
 }
 
 #[test]

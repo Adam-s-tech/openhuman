@@ -967,7 +967,7 @@ fn config_schema_defaults_cover_dashboard_capability_memory_and_security_shapes(
         search.roles.get("search"),
         Some(&vec!["brave".to_string(), "exa".to_string()])
     );
-    assert!(search.apply_legacy_engine("parallel").is_err());
+    assert!(search.apply_legacy_engine("bing").is_err());
 
     let integration = openhuman_core::config::schema::IntegrationToggle {
         enabled: true,
@@ -1874,6 +1874,7 @@ async fn config_env_overlay_public_loader_applies_runtime_and_tool_overrides() {
             .and_then(|order| order.first()),
         Some(&"brave".to_string())
     );
+    assert!(config.search.parallel.has_key());
     assert!(config.search.brave.has_key());
     assert!(config.search.querit.has_key());
     assert!(config.search.exa.has_key());

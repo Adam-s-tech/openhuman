@@ -127,26 +127,43 @@ fn exa_key_under_managed_engine_stays_managed() {
 }
 
 #[test]
-fn parallel_selection_and_key_are_dropped() {
+fn a_parallel_key_is_kept_as_a_direct_provider() {
     let mut cfg = legacy("engine = \"parallel\"\n[parallel]\napi_key = \"p\"\n");
     cfg.migrate_legacy(LegacySearchInputs::default());
-    assert!(!cfg.providers.contains_key("parallel"));
-    assert!(cfg.parallel.key().is_none());
-    // Parallel's roles fall to the managed defaults.
+    assert_eq!(provider(&cfg, "parallel"), Some(SearchProviderSettings::direct()));
+    assert_eq!(cfg.parallel.key(), Some("p"));
     assert_eq!(
-        provider(&cfg, "exa"),
-        Some(SearchProviderSettings::managed())
+        cfg.roles.get(SEARCH_ROLE_SEARCH),
+        Some(&vec!["parallel".to_string(), "exa".to_string()])
     );
     let written = toml::to_string(&cfg).unwrap();
-    assert!(!written.contains("parallel"), "{written}");
     assert!(!written.contains("engine"), "{written}");
+    assert!(!written.contains("parallel_route"), "{written}");
+}
+
+#[test]
+fn managed_parallel_without_a_key_is_dropped() {
+    let mut cfg = legacy(
+        "enabled_providers = [\"managed\", \"parallel\"]\nparallel_route = \"backend\"\n",
+    );
+    cfg.migrate_legacy(LegacySearchInputs::default());
+    assert!(!cfg.providers.contains_key("parallel"));
+    assert_eq!(provider(&cfg, "exa"), Some(SearchProviderSettings::managed()));
+}
+
+#[test]
+fn parallel_is_direct_only() {
+    let mut cfg = SearchConfig::default();
+    cfg.providers
+        .insert("parallel".into(), SearchProviderSettings::managed());
+    assert_eq!(cfg.route("parallel"), SearchRoute::Direct);
 }
 
 #[test]
 fn explicit_provider_selection_maps_managed_and_routes() {
     let mut cfg = legacy(
         "enabled = true\nenabled_providers = [\"managed\", \"parallel\", \"gemini\", \"tinyfish\", \"querit\"]\n\
-         gemini_route = \"direct\"\n[gemini]\napi_key = \"g\"\n",
+         parallel_route = \"backend\"\ngemini_route = \"direct\"\n[gemini]\napi_key = \"g\"\n",
     );
     cfg.migrate_legacy(LegacySearchInputs::default());
     assert_eq!(
