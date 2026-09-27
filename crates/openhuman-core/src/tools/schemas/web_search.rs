@@ -7,7 +7,6 @@ use serde_json::{json, Map, Value};
 
 use crate::config::rpc as config_rpc;
 use crate::core::all::ControllerFuture;
-use crate::rpc::RpcOutcome;
 
 fn required_text(params: &Map<String, Value>, key: &str) -> Result<String, String> {
     params
@@ -72,7 +71,7 @@ async fn run_role_tool_with(
         response.results.len(),
         response.fallback_from.len()
     )];
-    RpcOutcome::new(payload, log).into_cli_compatible_json()
+    crate::rpc::RpcOutcome::new(payload, log).into_cli_compatible_json()
 }
 
 /// Refuse early, without loading the module, when nothing can serve the call.
