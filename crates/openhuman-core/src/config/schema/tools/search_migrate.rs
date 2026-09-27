@@ -133,6 +133,17 @@ impl SearchConfig {
             }
         }
 
+        // These legacy toggles were independent of enabled_providers.
+        if legacy.searxng_active {
+            providers.insert("searxng".into(), SearchProviderSettings::direct());
+        }
+        if legacy.seltz_active {
+            providers.insert("seltz".into(), SearchProviderSettings::direct());
+        }
+        if legacy.tinyfish_active {
+            providers.insert("tinyfish".into(), SearchProviderSettings::managed());
+        }
+
         // A deliberately chosen BYO engine stays first for ranked search.
         let mut roles = BTreeMap::new();
         if matches!(

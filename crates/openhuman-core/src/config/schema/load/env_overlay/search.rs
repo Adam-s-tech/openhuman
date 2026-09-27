@@ -142,8 +142,11 @@ impl Config {
         }
         for (provider, route) in routes {
             match SearchRoute::parse(&route) {
-                Some(route) if SEARCH_PROVIDERS.contains(&provider.as_str()) => {
-                    self.search.providers.entry(provider).or_default().route = route;
+                Some(route)
+                    if SEARCH_PROVIDERS.contains(&provider.as_str())
+                        && self.search.providers.contains_key(&provider) =>
+                {
+                    self.search.providers.get_mut(&provider).expect("checked above").route = route;
                 }
                 _ => log::warn!("[config][search] ignoring route '{provider}={route}'"),
             }
