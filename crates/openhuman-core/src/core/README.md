@@ -144,8 +144,9 @@ The HTTP and Socket.IO server that exposes these methods lives in
 `crates/openhuman-rpc` (`openhuman_rpc::server`): the axum router, `/rpc`,
 `/health`, `/schema`, `/events`, `/oauth/mcp/callback`, the SSE streams, auth
 middleware, CORS, Socket.IO and the listener bind. Host-owned `/auth` and
-`/auth/telegram` callbacks are not served by this router. It mounts the domain-owned HTTP handlers that stay here
-behind the `http-server` feature (`inference::http`'s `/v1` router, the
+`/auth/telegram` callbacks are not served by this router. It mounts the
+domain-owned HTTP handlers that stay here behind the `http-server` feature
+(`inference::http`'s `/v1` router, the
 dictation WebSocket in `voice::streaming`). `CoreRuntime` exposes the hooks
 the server needs around a listener (`start_services`, `listener_bound`,
 `serving_started`, `exit_cleanup`).

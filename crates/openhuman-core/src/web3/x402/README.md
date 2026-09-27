@@ -104,8 +104,7 @@ which handles a 402 only as a silent fallback for any endpoint.
 
 ## Used by
 
-- `crates/openhuman-core/src/tools/impl/network/http_request.rs` (around lines
-  165-265): `handle_x402_payment`, gated `#[cfg(feature = "web3")]`, is the
+- `crates/openhuman-core/src/tools/impl/network/http_request.rs`: `handle_x402_payment`, gated `#[cfg(feature = "web3")]`, is the
   402 fallback path any HTTP tool call can hit. It calls
   `x402::handle_402_and_pay` and records to the same ledger via
   `x402::store::with_ledger_mut`.
