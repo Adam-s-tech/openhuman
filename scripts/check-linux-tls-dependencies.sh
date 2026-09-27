@@ -52,7 +52,7 @@ check_world() {
         printf 'error: could not check reqwest %s owners in %s\n' "$version" "$label" >&2
         exit 2
       fi
-      if printf '%s\n' "$owners" | grep -Eq '^sentry v'; then
+      if grep -Eq '^sentry v' <<< "$owners"; then
         printf 'error: Sentry owns reqwest %s in %s\n%s\n' \
           "$version" "$label" "$owners" >&2
         exit 1
@@ -62,7 +62,7 @@ check_world() {
 
   for package in native-tls openssl openssl-sys; do
     # Cargo returns an error for --invert when the package is absent.
-    if ! printf '%s\n' "$tree" | grep -Eq "^${package} v"; then
+    if ! grep -Eq "^${package} v" <<< "$tree"; then
       continue
     fi
     if ! owners="$(
@@ -72,13 +72,13 @@ check_world() {
       printf 'error: could not check %s owners in %s\n' "$package" "$label" >&2
       exit 2
     fi
-    if printf '%s\n' "$owners" | grep -Eq '^sentry v'; then
+    if grep -Eq '^sentry v' <<< "$owners"; then
       printf 'error: Sentry owns %s in %s\n%s\n' \
         "$package" "$label" "$owners" >&2
       exit 1
     fi
     if [[ "$label" == tauri ]] &&
-      printf '%s\n' "$owners" | grep -Eq '^motosan-ai-oauth v'; then
+      grep -Eq '^motosan-ai-oauth v' <<< "$owners"; then
       printf 'error: motosan-ai-oauth owns %s in %s\n%s\n' \
         "$package" "$label" "$owners" >&2
       exit 1

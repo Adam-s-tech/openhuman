@@ -34,6 +34,16 @@ const CLEAN_TREE = [
   "tokio v1.40.0",
 ].join("\n");
 
+// Cargo 1.90 `cargo tree --prefix none --invert sentry` emits unindented
+// package lines, for example `sentry v0.47.0` followed by
+// `openhuman v0.64.4 (/checkout/crates/openhuman-core)`. The path below is
+// normalized; the line shape and column-zero owner are taken from Cargo.
+const SENTRY_OWNER_TREE = [
+  "native-tls v0.2.14",
+  "sentry v0.47.0",
+  "openhuman v0.64.4 (/checkout/crates/openhuman-core)",
+].join("\n");
+
 /**
  * A temporary tree holding the cargo stub and the fixtures it answers from.
  *
@@ -208,7 +218,19 @@ for (const interpreter of interpreters) {
   test(`[${interpreter} ${version}] a Sentry-owned TLS package fails the policy`, SKIP, () => {
     const tree = makeTree({
       tauri: "native-tls v0.2.14",
-      owners: { "native-tls": "native-tls v0.2.14\nsentry v0.36.0" },
+      owners: { "native-tls": SENTRY_OWNER_TREE },
+    });
+    assert.match(SENTRY_OWNER_TREE, /^sentry v0\.47\.0$/m);
+    const result = run(interpreter, tree);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /Sentry owns native-tls in tauri/);
+    assert.match(tree.calls(), /--invert native-tls/);
+  });
+
+  test(`[${interpreter} ${version}] an early TLS match in a large tree still checks owners`, SKIP, () => {
+    const tree = makeTree({
+      tauri: `native-tls v0.2.14\n${"other-package v1.0.0\n".repeat(20000)}`,
+      owners: { "native-tls": SENTRY_OWNER_TREE },
     });
     const result = run(interpreter, tree);
     assert.equal(result.status, 1);
