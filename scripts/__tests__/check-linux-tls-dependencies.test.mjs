@@ -163,10 +163,12 @@ for (const interpreter of interpreters) {
     });
     const result = run(interpreter, tree);
     assert.equal(result.status, 0, result.stderr);
-    const inverted = [...tree.calls().matchAll(/--invert (reqwest@\S+)/g)].map(
-      (m) => m[1],
-    );
-    assert.deepEqual(inverted, ["reqwest@0.13.2", "reqwest@0.13.5"]);
+    assert.deepEqual(tree.calls().trim().split("\n"), [
+      "cargo tree --locked --manifest-path Cargo.toml --target x86_64-unknown-linux-gnu --prefix none",
+      "cargo tree --locked --manifest-path crates/openhuman-app/Cargo.toml --target x86_64-unknown-linux-gnu --prefix none",
+      "cargo tree --locked --manifest-path crates/openhuman-app/Cargo.toml --target x86_64-unknown-linux-gnu --prefix none --invert reqwest@0.13.2",
+      "cargo tree --locked --manifest-path crates/openhuman-app/Cargo.toml --target x86_64-unknown-linux-gnu --prefix none --invert reqwest@0.13.5",
+    ]);
   });
 
   test(`[${interpreter} ${version}] a Sentry-owned reqwest 0.13 fails the policy`, SKIP, () => {
