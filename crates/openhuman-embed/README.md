@@ -156,8 +156,9 @@ module's proxy route, TinyCortex's Composio sync) send the key as
 scopes on the backend: `inference`, `voice`, `search`, `media`, `storage`,
 `account` and `connections` (Composio). A key minted through the grant flow
 omits `connections` unless it is asked for; a missing scope answers `403`.
-Only the session-bound `/auth/*` flows (OAuth connect, channel link tokens,
-login tokens) still need a signed-in user.
+The session-bound `/auth/*` flows (OAuth connect, channel link tokens, login
+tokens), the realtime voice agent, and the Socket.IO relay still need a
+signed-in user.
 
 `HarnessBuilder::session`
 remains for hosts that drive backend features on behalf of a signed-in user;
