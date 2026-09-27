@@ -37,7 +37,7 @@ const CLEAN_TREE = [
 /**
  * A temporary tree holding the cargo stub and the fixtures it answers from.
  *
- * @param {{core?: string, tauri?: string, owners?: Record<string, string>}} fixtures
+ * @param {{core?: string, tauri?: string, owners?: Record<string, string>, failCore?: boolean, failInvert?: string}} fixtures
  *   `core` / `tauri` are the `cargo tree --prefix none` output for each
  *   Cargo world; `owners` maps a `--invert` target to its output.
  */
@@ -49,6 +49,10 @@ function makeTree(fixtures) {
   fs.mkdirSync(owners, { recursive: true });
   fs.writeFileSync(path.join(root, "tree.core"), fixtures.core ?? CLEAN_TREE);
   fs.writeFileSync(path.join(root, "tree.tauri"), fixtures.tauri ?? CLEAN_TREE);
+  if (fixtures.failCore) fs.writeFileSync(path.join(root, "fail-core"), "");
+  if (fixtures.failInvert) {
+    fs.writeFileSync(path.join(root, "fail-invert"), fixtures.failInvert);
+  }
   for (const [target, text] of Object.entries(fixtures.owners ?? {})) {
     fs.writeFileSync(path.join(owners, target), text);
   }
@@ -68,11 +72,20 @@ while [ $# -gt 0 ]; do
   shift
 done
 if [ -n "$inverted" ]; then
+  if [ -f "${root}/fail-invert" ] && [ "$inverted" = "$(cat "${root}/fail-invert")" ]; then
+    echo "cargo tree failed" >&2
+    exit 7
+  fi
   [ -f "${owners}/$inverted" ] && cat "${owners}/$inverted"
   exit 0
 fi
 case "$manifest" in
-  Cargo.toml) cat "${root}/tree.core" ;;
+  Cargo.toml)
+    if [ -f "${root}/fail-core" ]; then
+      echo "cargo tree failed" >&2
+      exit 7
+    fi
+    cat "${root}/tree.core" ;;
   *) cat "${root}/tree.tauri" ;;
 esac
 `,
@@ -163,5 +176,32 @@ for (const interpreter of interpreters) {
     const result = run(interpreter, tree);
     assert.equal(result.status, 1);
     assert.match(result.stderr, /aws-lc dependencies found in core/);
+  });
+
+  test(`[${interpreter} ${version}] a failed dependency tree is a check error`, SKIP, () => {
+    const tree = makeTree({ failCore: true });
+    const result = run(interpreter, tree);
+    assert.equal(result.status, 2);
+    assert.match(result.stderr, /could not check core dependency tree/);
+  });
+
+  test(`[${interpreter} ${version}] a failed reqwest owner query is a check error`, SKIP, () => {
+    const tree = makeTree({
+      tauri: "reqwest v0.13.2",
+      failInvert: "reqwest@0.13.2",
+    });
+    const result = run(interpreter, tree);
+    assert.equal(result.status, 2);
+    assert.match(result.stderr, /could not check reqwest 0\.13\.2 owners in tauri/);
+  });
+
+  test(`[${interpreter} ${version}] a failed TLS owner query is a check error`, SKIP, () => {
+    const tree = makeTree({
+      tauri: "native-tls v0.2.14",
+      failInvert: "native-tls",
+    });
+    const result = run(interpreter, tree);
+    assert.equal(result.status, 2);
+    assert.match(result.stderr, /could not check native-tls owners in tauri/);
   });
 }

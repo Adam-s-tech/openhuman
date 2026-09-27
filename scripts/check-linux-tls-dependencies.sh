@@ -8,7 +8,10 @@ check_world() {
   local label="$1"
   local manifest="$2"
   local tree
-  tree="$(cargo tree --locked --manifest-path "$manifest" --target "$target" --prefix none)"
+  if ! tree="$(cargo tree --locked --manifest-path "$manifest" --target "$target" --prefix none)"; then
+    printf 'error: could not check %s dependency tree for %s\n' "$label" "$target" >&2
+    exit 2
+  fi
   if matches="$(printf '%s\n' "$tree" | grep -E "$forbidden")"; then
     printf 'error: aws-lc dependencies found in %s for %s:\n%s\n' \
       "$label" "$target" "$matches" >&2
@@ -42,10 +45,13 @@ check_world() {
       sort -u
   )
   for version in ${reqwest_013_versions[@]+"${reqwest_013_versions[@]}"}; do
-    owners="$(
+    if ! owners="$(
       cargo tree --locked --manifest-path "$manifest" --target "$target" \
-        --prefix none --invert "reqwest@$version" 2>/dev/null || true
-    )"
+        --prefix none --invert "reqwest@$version"
+    )"; then
+      printf 'error: could not check reqwest %s owners in %s\n' "$version" "$label" >&2
+      exit 2
+    fi
     if printf '%s\n' "$owners" | grep -Eq '^sentry v'; then
       printf 'error: Sentry owns reqwest %s in %s\n%s\n' \
         "$version" "$label" "$owners" >&2
@@ -54,10 +60,17 @@ check_world() {
   done
 
   for package in native-tls openssl openssl-sys; do
-    owners="$(
+    # Cargo returns an error for --invert when the package is absent.
+    if ! printf '%s\n' "$tree" | grep -Eq "^${package} v"; then
+      continue
+    fi
+    if ! owners="$(
       cargo tree --locked --manifest-path "$manifest" --target "$target" \
-        --prefix none --invert "$package" 2>/dev/null || true
-    )"
+        --prefix none --invert "$package"
+    )"; then
+      printf 'error: could not check %s owners in %s\n' "$package" "$label" >&2
+      exit 2
+    fi
     if printf '%s\n' "$owners" | grep -Eq '^sentry v'; then
       printf 'error: Sentry owns %s in %s\n%s\n' \
         "$package" "$label" "$owners" >&2
