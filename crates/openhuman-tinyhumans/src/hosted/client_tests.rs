@@ -149,6 +149,15 @@ fn missing_credential_fails_before_any_request() {
     assert!(HostedClient::from_config(&config).is_err());
 }
 
+#[test]
+fn stored_session_cannot_bypass_missing_backend_transport() {
+    let tmp = TempDir::new().unwrap();
+    let config = test_config(&tmp, "http://127.0.0.1:9");
+    store_session(&config, "jwt.a.b");
+    let err = HostedClient::from_config(&config).err().expect("transport required");
+    assert!(err.starts_with("BACKEND_UNAVAILABLE:"), "{err}");
+}
+
 #[tokio::test]
 async fn session_client_sends_bearer_and_product_identity() {
     let server = MockServer::start().await;
@@ -167,7 +176,10 @@ async fn session_client_sends_bearer_and_product_identity() {
     let tmp = TempDir::new().unwrap();
     let config = test_config(&tmp, &server.uri());
     store_session(&config, "jwt.a.b");
-    let client = HostedClient::from_config(&config).unwrap();
+    let client = HostedClient::with_credential(
+        &server.uri(),
+        BackendCredential::Session("jwt.a.b".into()),
+    );
     assert_eq!(client.kind(), CredentialKind::Session);
     let value = client
         .finish_value(

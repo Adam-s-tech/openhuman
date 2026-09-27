@@ -33,6 +33,7 @@ use openhuman_core::backend::transport::{resolve_backend_transport, TransportPro
 use openhuman_core::config::Config;
 use openhuman_core::core::observability::{
     contains_transient_transport_phrase, is_transient_http_status_code, API_KEY_REJECTED_PREFIX,
+    BACKEND_UNAVAILABLE_PREFIX,
 };
 use openhuman_core::security::credentials::session_support::{
     resolve_backend_credential, BackendCredential,
@@ -65,6 +66,10 @@ impl HostedClient {
     pub fn from_config(config: &Config) -> Result<Self, String> {
         let credential = resolve_backend_credential(config).inspect_err(|err| {
             log::debug!("{LOG_PREFIX} no usable backend credential; skipping request: {err}");
+        })?;
+        resolve_backend_transport().map_err(|_| {
+            log::debug!("{LOG_PREFIX} no backend transport installed; skipping request");
+            format!("{BACKEND_UNAVAILABLE_PREFIX} no backend transport installed")
         })?;
         let base_url = backend_origin(&effective_backend_api_url(&config.api_url))?;
         Ok(Self::with_credential(&base_url, credential))
