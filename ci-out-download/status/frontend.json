@@ -1,0 +1,88 @@
+{
+  "name": "frontend",
+  "heavyWaitS": null,
+  "targetDir": null,
+  "targetBytes": null,
+  "checks": [
+    {
+      "name": "pnpm-install",
+      "status": "success",
+      "reportOnly": false,
+      "exitCode": 0,
+      "start": "2026-09-27T15:30:59.283Z",
+      "end": "2026-09-27T15:31:05.466Z",
+      "durationS": 6,
+      "peakRssMiB": 629
+    },
+    {
+      "name": "tsc",
+      "status": "success",
+      "reportOnly": false,
+      "exitCode": 0,
+      "start": "2026-09-27T15:31:05.468Z",
+      "end": "2026-09-27T15:31:28.595Z",
+      "durationS": 23,
+      "peakRssMiB": 1758
+    },
+    {
+      "name": "prettier",
+      "status": "success",
+      "reportOnly": false,
+      "exitCode": 0,
+      "start": "2026-09-27T15:31:28.595Z",
+      "end": "2026-09-27T15:31:44.654Z",
+      "durationS": 16,
+      "peakRssMiB": 390
+    },
+    {
+      "name": "eslint",
+      "status": "success",
+      "reportOnly": false,
+      "exitCode": 0,
+      "start": "2026-09-27T15:31:44.654Z",
+      "end": "2026-09-27T15:31:54.785Z",
+      "durationS": 10,
+      "peakRssMiB": 1982
+    },
+    {
+      "name": "i18n",
+      "status": "success",
+      "reportOnly": false,
+      "exitCode": 0,
+      "start": "2026-09-27T15:31:54.785Z",
+      "end": "2026-09-27T15:31:56.394Z",
+      "durationS": 2,
+      "peakRssMiB": 0
+    },
+    {
+      "name": "docs-generator-tests",
+      "status": "success",
+      "reportOnly": false,
+      "exitCode": 0,
+      "start": "2026-09-27T15:31:56.394Z",
+      "end": "2026-09-27T15:31:56.789Z",
+      "durationS": 0,
+      "peakRssMiB": 0
+    },
+    {
+      "name": "docs-drift",
+      "status": "success",
+      "reportOnly": false,
+      "exitCode": 0,
+      "start": "2026-09-27T15:31:56.790Z",
+      "end": "2026-09-27T15:31:57.145Z",
+      "durationS": 0,
+      "peakRssMiB": 0
+    },
+    {
+      "name": "scripts-self-tests",
+      "status": "success",
+      "reportOnly": false,
+      "exitCode": 0,
+      "start": "2026-09-27T15:31:57.145Z",
+      "end": "2026-09-27T15:32:00.826Z",
+      "durationS": 4,
+      "peakRssMiB": 420
+    }
+  ]
+}
