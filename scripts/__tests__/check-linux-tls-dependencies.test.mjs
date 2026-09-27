@@ -95,17 +95,22 @@ function run(interpreter, tree) {
 
 // `bash` as the shebang resolves it, plus the stock /bin/bash when that is a
 // different (on macOS: 3.2) binary.
+const SKIP =
+  process.platform === "win32" ? { skip: "requires a POSIX shell" } : {};
 const interpreters = ["bash"];
 if (process.platform === "darwin" && fs.existsSync("/bin/bash")) {
   interpreters.push("/bin/bash");
 }
 
 for (const interpreter of interpreters) {
-  const version = spawnSync(interpreter, ["-c", 'echo "$BASH_VERSION"'], {
-    encoding: "utf8",
-  }).stdout.trim();
+  const version =
+    process.platform === "win32"
+      ? "unavailable"
+      : spawnSync(interpreter, ["-c", 'echo "$BASH_VERSION"'], {
+          encoding: "utf8",
+        }).stdout.trim();
 
-  test(`[${interpreter} ${version}] a tree without reqwest 0.13 passes`, () => {
+  test(`[${interpreter} ${version}] a tree without reqwest 0.13 passes`, SKIP, () => {
     // The regression: under bash 3.2 this run used to stop at `mapfile` with
     // exit 127 and never reach the verdict. With no 0.13 versions the array
     // is also empty, which `set -u` must tolerate.
@@ -120,7 +125,7 @@ for (const interpreter of interpreters) {
     assert.doesNotMatch(tree.calls(), /--invert reqwest@/);
   });
 
-  test(`[${interpreter} ${version}] every reqwest 0.13 version is checked for a Sentry owner`, () => {
+  test(`[${interpreter} ${version}] every reqwest 0.13 version is checked for a Sentry owner`, SKIP, () => {
     const tree = makeTree({
       tauri: [
         "reqwest v0.13.2",
@@ -141,7 +146,7 @@ for (const interpreter of interpreters) {
     assert.deepEqual(inverted, ["reqwest@0.13.2", "reqwest@0.13.5"]);
   });
 
-  test(`[${interpreter} ${version}] a Sentry-owned reqwest 0.13 fails the policy`, () => {
+  test(`[${interpreter} ${version}] a Sentry-owned reqwest 0.13 fails the policy`, SKIP, () => {
     // The owners fixture is in the shape the script greps for (`^sentry v`),
     // not the indented shape `cargo tree --invert` really prints; that
     // mismatch is #6602 and is out of scope here.
@@ -154,7 +159,7 @@ for (const interpreter of interpreters) {
     assert.match(result.stderr, /Sentry owns reqwest 0\.13\.2 in tauri/);
   });
 
-  test(`[${interpreter} ${version}] an aws-lc dependency fails the policy`, () => {
+  test(`[${interpreter} ${version}] an aws-lc dependency fails the policy`, SKIP, () => {
     const tree = makeTree({ core: "openhuman v0.1.0\naws-lc-sys v0.21.0" });
     const result = run(interpreter, tree);
     assert.equal(result.status, 1);
