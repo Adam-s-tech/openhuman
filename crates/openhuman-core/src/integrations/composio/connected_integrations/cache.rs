@@ -52,7 +52,12 @@ pub(crate) fn composio_cache_test_lock() -> std::sync::MutexGuard<'static, ()> {
 /// cache key and logs while preventing an old identity's cache hit during a
 /// credential rotation, even before invalidation completes.
 pub(crate) fn cache_key(config: &Config) -> String {
-    let backend_url = crate::backend::base_url(&config.api_url).unwrap_or_default();
+    // Match `IntegrationClient::new_inner`: the cache must follow the same
+    // control-plane origin after the transport applies its configured/default
+    // backend resolution and inference-path normalization.
+    let backend_url = crate::backend::base_url(&config.api_url)
+        .map(|url| crate::util::url::normalize_backend_api_base_url(&url))
+        .unwrap_or_default();
     cache_key_with_backend_url(config, &backend_url)
 }
 
