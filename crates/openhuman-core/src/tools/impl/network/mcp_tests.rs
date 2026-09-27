@@ -453,7 +453,7 @@ fn scrubber_collects_url_userinfo_credentials() {
         SecretScrubber::new(&McpDefinitionAuth::None, "https://short:pw@example.com/mcp");
     assert_eq!(
         scrubber.scrub("short pw shortpw"),
-        "[redacted] [redacted] shortpw"
+        "[redacted] [redacted] [redacted][redacted]"
     );
 }
 
