@@ -298,7 +298,7 @@ const CREDENTIAL_QUERY_PARAM_NEEDLES: [&str; 7] = [
     "credential",
 ];
 
-struct SecretScrubber {
+pub(super) struct SecretScrubber {
     secrets: Vec<String>,
     strict: Vec<String>,
 }
@@ -314,9 +314,17 @@ impl SecretScrubber {
         Self::new(&definition.auth, &definition.endpoint)
     }
 
-    fn new(auth: &McpDefinitionAuth, endpoint: &str) -> Self {
+    pub(super) fn new(auth: &McpDefinitionAuth, endpoint: &str) -> Self {
         let mut raw: Vec<String> = Vec::new();
         let mut strict: Vec<String> = Vec::new();
+        if let Ok(url) = url::Url::parse(endpoint) {
+            if !url.username().is_empty() {
+                strict.push(url.username().to_string());
+            }
+            if let Some(password) = url.password() {
+                strict.push(password.to_string());
+            }
+        }
         match auth {
             McpDefinitionAuth::BearerToken { token } => raw.push(token.clone()),
             McpDefinitionAuth::Basic { username, password } => {

@@ -374,6 +374,24 @@ async fn endpoint_query_secrets_are_redacted_from_errors() {
 }
 
 #[tokio::test]
+async fn endpoint_userinfo_secrets_are_redacted_from_tool_results() {
+    let username = "mcp-user";
+    let password = "url-password-42";
+    let server = echoing_server(password, None).await;
+    let endpoint = server.uri().replace("http://", &format!("http://{username}:{password}@"));
+    let registry = registry_with(&format!("{endpoint}/mcp"), crate::config::McpAuthConfig::None);
+    let result = call_tool(registry)
+        .execute(call_args())
+        .await
+        .expect("execute");
+    let rendered = full_output(&result);
+    assert!(!result.is_error, "{rendered}");
+    assert!(rendered.contains(REDACTED), "{rendered}");
+    assert!(!rendered.contains(username), "username leaked: {rendered}");
+    assert!(!rendered.contains(password), "password leaked: {rendered}");
+}
+
+#[tokio::test]
 async fn encoded_query_secrets_are_redacted_from_successful_results() {
     let echo = "a+b%2Fc";
     let server = echoing_server(echo, None).await;
@@ -422,6 +440,18 @@ fn scrubber_redacts_url_encoded_secrets_and_ignores_empty_values() {
     );
     assert!(empty.secrets.is_empty());
     assert_eq!(empty.scrub("unchanged"), "unchanged");
+}
+
+#[test]
+fn scrubber_collects_url_userinfo_credentials() {
+    let scrubber = SecretScrubber::new(
+        &McpDefinitionAuth::None,
+        "https://short:pw@example.com/mcp",
+    );
+    assert_eq!(
+        scrubber.scrub("short pw shortpw"),
+        "[redacted] [redacted] shortpw"
+    );
 }
 
 #[test]
