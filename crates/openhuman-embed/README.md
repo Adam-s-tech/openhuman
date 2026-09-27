@@ -127,9 +127,10 @@ Layout under a runtime-owned root:
 The core knows the hosted TinyHumans backend only through
 `BackendTransport` (re-exported here). `openhuman-embed` alone installs
 none: agents, memory, skills, tools and RPC run without any TinyHumans
-connection, and every hosted-backend surface (billing, `/agent-integrations/*`
-tools, channel relay, cloud voice) answers with a typed
-`BACKEND_UNAVAILABLE:` error. Use `openhuman-tinyhumans`, whose
+connection, and calls to hosted-backend surfaces answer with a typed
+`BACKEND_UNAVAILABLE:` error. This includes managed inference, billing,
+`/agent-integrations/*` tools, cloud voice, and session-bound surfaces such as
+channel relay. Use `openhuman-tinyhumans`, whose
 `RuntimeBuilder` mirrors this one and installs the SDK-backed transport on
 `build()`, or pass your own to `RuntimeBuilder::backend_transport`. See
 [`gitbooks/developing/tinyhumans-api-key.md`](../../gitbooks/developing/tinyhumans-api-key.md)
