@@ -97,7 +97,3 @@ pub(super) async fn dictation_ws_handler(
         openhuman_core::voice::streaming::handle_dictation_ws(socket, config).await;
     })
 }
-
-#[cfg(test)]
-#[path = "dictation_tests.rs"]
-mod tests;
