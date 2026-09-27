@@ -173,7 +173,7 @@ fn apply_provider_patch(
             return Err(format!("{provider} does not take a base URL"));
         }
         let url = url.trim();
-        if !url.is_empty() && !(url.starts_with("http://") || url.starts_with("https://")) {
+        if !(url.is_empty() || url.starts_with("http://") || url.starts_with("https://")) {
             return Err("SearXNG base URL must start with http:// or https://".into());
         }
         config.searxng.base_url = url.to_string();

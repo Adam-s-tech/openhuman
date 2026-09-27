@@ -53,7 +53,7 @@ async fn proxy(config: &Config) -> Result<tinybus::Proxy, String> {
         Some(last) if last == current => {}
         Some(_) => {
             tracing::debug!("[modules][search] configuration changed; reinitializing module");
-            reinitialize(&runtime, configuration).await?;
+            reinitialize(runtime, configuration).await?;
         }
     }
     *previous = Some(current);
