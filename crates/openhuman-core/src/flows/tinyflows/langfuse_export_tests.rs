@@ -198,6 +198,28 @@ async fn export_with_empty_observations_is_a_noop() {
     .await;
 }
 
+#[tokio::test]
+async fn export_skips_api_key_credentials() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut config = Config::default();
+    config.config_path = dir.path().join("config.toml");
+    config.workspace_dir = dir.path().join("workspace");
+    config.secrets.encrypt = false;
+    config.api_url = Some("http://127.0.0.1:9".to_string());
+    crate::security::credentials::api_key::store_api_key(&config, "th_live_test").unwrap();
+
+    export_flow_run_trace(
+        &config,
+        "Daily digest",
+        "flow-1",
+        "flow:flow-1:uuid-1",
+        "completed",
+        FlowRunTrigger::Rpc,
+        &sample_observations("flow:flow-1:uuid-1"),
+    )
+    .await;
+}
+
 /// The re-typing hop is a serde round-trip between two independently
 /// declared types, so nothing but a test notices when one of them grows,
 /// renames, or re-tags a field: `to_exporter_observations` would start

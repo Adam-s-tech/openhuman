@@ -1,6 +1,126 @@
 use super::*;
 
 #[tokio::test]
+async fn channel_routes_build_expected_requests_and_validate_inputs() {
+    type Requests = Arc<Mutex<Vec<(String, String, Value)>>>;
+    async fn capture(
+        State(seen): State<Requests>,
+        request: axum::http::Request<axum::body::Body>,
+    ) -> Json<Value> {
+        let method = request.method().to_string();
+        let path = request.uri().to_string();
+        let bytes = axum::body::to_bytes(request.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let body = if bytes.is_empty() {
+            Value::Null
+        } else {
+            serde_json::from_slice(&bytes).unwrap()
+        };
+        seen.lock().unwrap().push((method, path, body));
+        Json(json!({ "success": true, "data": { "ok": true } }))
+    }
+
+    let seen = Requests::default();
+    let app = Router::new().fallback(capture).with_state(seen.clone());
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    tokio::spawn(async move {
+        axum::serve(listener, app).await.unwrap();
+    });
+    let client = BackendClient::new(&format!("http://{addr}")).unwrap();
+
+    client
+        .send_channel_message(" /telegram/ ", "jwt", json!({ "text": "hello" }))
+        .await
+        .unwrap();
+    client
+        .send_channel_reaction("telegram", "jwt", json!({ "emoji": "👍" }))
+        .await
+        .unwrap();
+    client
+        .create_channel_thread("telegram", "jwt", "  topic  ")
+        .await
+        .unwrap();
+    client
+        .update_channel_thread("telegram", "jwt", "thread-1", "close")
+        .await
+        .unwrap();
+    client
+        .list_channel_threads("telegram", "jwt", Some(true))
+        .await
+        .unwrap();
+    client
+        .list_channel_threads("telegram", "jwt", Some(false))
+        .await
+        .unwrap();
+    client
+        .list_channel_threads("telegram", "jwt", None)
+        .await
+        .unwrap();
+
+    let requests = seen.lock().unwrap();
+    assert_eq!(
+        requests[0],
+        (
+            "POST".into(),
+            "/channels/telegram/messages".into(),
+            json!({ "text": "hello" })
+        )
+    );
+    assert_eq!(
+        requests[1],
+        (
+            "POST".into(),
+            "/channels/telegram/reactions".into(),
+            json!({ "emoji": "👍" })
+        )
+    );
+    assert_eq!(
+        requests[2],
+        (
+            "POST".into(),
+            "/channels/telegram/threads".into(),
+            json!({ "title": "topic" })
+        )
+    );
+    assert_eq!(
+        requests[3],
+        (
+            "PATCH".into(),
+            "/channels/telegram/threads/thread-1".into(),
+            json!({ "action": "close" })
+        )
+    );
+    assert_eq!(requests[4].1, "/channels/telegram/threads?active=true");
+    assert_eq!(requests[5].1, "/channels/telegram/threads?active=false");
+    assert_eq!(requests[6].1, "/channels/telegram/threads");
+    drop(requests);
+
+    assert!(client
+        .send_channel_message(" / ", "jwt", json!({}))
+        .await
+        .is_err());
+    assert!(client
+        .send_channel_reaction(" ", "jwt", json!({}))
+        .await
+        .is_err());
+    assert!(client
+        .create_channel_thread("telegram", "jwt", " ")
+        .await
+        .is_err());
+    assert!(client
+        .update_channel_thread("telegram", "jwt", " ", "close")
+        .await
+        .is_err());
+    assert!(client
+        .update_channel_thread("telegram", "jwt", "thread-1", "delete")
+        .await
+        .is_err());
+    assert!(client.list_channel_threads("", "jwt", None).await.is_err());
+}
+
+#[tokio::test]
 async fn authed_json_reports_non_channel_404_still_propagates() {
     // TAURI-RUST-8C: a GET 404 on a non-channel path (e.g. `/teams/me/usage`)
     // falls through to `report_error` (not a typed/suppressed state) — it must
