@@ -193,7 +193,7 @@ fn explicit_provider_selection_maps_managed_and_routes() {
 
 #[test]
 fn legacy_toggles_outside_search_migrate_when_active() {
-    let mut cfg = legacy("engine = \"managed\"\n");
+    let mut cfg = legacy("engine = \"managed\"\nenabled_providers = [\"managed\", \"brave\"]\n");
     cfg.migrate_legacy(LegacySearchInputs {
         tinyfish_active: true,
         seltz_active: true,
