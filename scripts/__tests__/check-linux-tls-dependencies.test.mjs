@@ -291,7 +291,11 @@ for (const interpreter of interpreters) {
       const result = run(interpreter, tree);
       assert.equal(result.status, 1);
       assert.match(result.stderr, /Sentry owns native-tls in tauri/);
-      assert.match(tree.calls(), /--invert native-tls/);
+      assert.deepEqual(tree.calls().trim().split("\n"), [
+        "cargo tree --locked --manifest-path Cargo.toml --target x86_64-unknown-linux-gnu --prefix none",
+        "cargo tree --locked --manifest-path crates/openhuman-app/Cargo.toml --target x86_64-unknown-linux-gnu --prefix none",
+        "cargo tree --locked --manifest-path crates/openhuman-app/Cargo.toml --target x86_64-unknown-linux-gnu --prefix none --invert native-tls",
+      ]);
     },
   );
 
