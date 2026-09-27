@@ -356,11 +356,9 @@ fn latest_quarantine_reads_the_newest_copy_and_derives_resynced() {
     // The rebuilt store is still empty: the notice stands.
     let pending = latest_quarantine(tmp.path(), 0).expect("newest quarantine");
     assert_eq!(pending.quarantined_at_ms, at);
-    assert!(
-        pending
-            .quarantined_path
-            .ends_with("chunks.db.corrupt-20260827T070304Z")
-    );
+    assert!(pending
+        .quarantined_path
+        .ends_with("chunks.db.corrupt-20260827T070304Z"));
     assert!(!pending.resynced);
 
     // Any chunk in the rebuilt store: the user re-synced, the notice retires.
