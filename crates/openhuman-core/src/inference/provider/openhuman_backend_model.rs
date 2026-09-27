@@ -78,8 +78,10 @@ pub(crate) fn is_managed_endpoint_for_api_key(endpoint: &str) -> bool {
     if !is_safe_endpoint_for_managed_bearer(endpoint) {
         return false;
     }
-    matches!(url.host_str(), Some("api.tinyhumans.ai" | "staging-api.tinyhumans.ai"))
-        && url.scheme() == "https"
+    matches!(
+        url.host_str(),
+        Some("api.tinyhumans.ai" | "staging-api.tinyhumans.ai")
+    ) && url.scheme() == "https"
         || matches!(url.host_str(), Some("localhost" | "127.0.0.1" | "::1"))
 }
 

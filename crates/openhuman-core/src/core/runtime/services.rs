@@ -442,8 +442,7 @@ pub fn spawn_socket_auto_connect(
                 return;
             };
             let initial_token =
-                match crate::security::credentials::session_support::get_session_token(&config)
-                {
+                match crate::security::credentials::session_support::get_session_token(&config) {
                     Ok(Some(t)) => t,
                     Ok(None) => {
                         log::info!(
