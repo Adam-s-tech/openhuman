@@ -23,13 +23,37 @@ impl OpenHumanTurnPrelude {
             actions.len(),
             self.agent_definition_id
         );
-        let search_tools = super::super::recorded_tools::recorded_search_tools(recorded.specs());
-        let mut mutable = self
+        // Search role tools ride in the same list; each rehydration pass
+        // keeps only the names it owns.
+        let mut actions = actions;
+        actions.extend(super::super::recorded_tools::recorded_search_tools(
+            recorded.specs(),
+        ));
+        self.mutable
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .recorded_integration_actions = actions;
+    }
+
+    /// Executors for the recorded search role tools that neither the base
+    /// surface nor this turn's synthesized tools supply.
+    #[cfg(feature = "modules")]
+    pub(super) fn rebuilt_search_tools(
+        &self,
+        base: &[Box<dyn tinytools::Tool>],
+        synthesized: &[Box<dyn tinytools::Tool>],
+    ) -> Vec<Box<dyn tinytools::Tool>> {
+        let recorded = self
             .mutable
             .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner);
-        mutable.recorded_integration_actions = actions;
-        mutable.recorded_search_tools = search_tools;
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .recorded_integration_actions
+            .clone();
+        super::super::recorded_tools::rehydrate_search_tools(
+            &recorded,
+            &[base, synthesized],
+            &self.agent_definition_id,
+        )
     }
 
     pub(super) async fn refresh_turn_boundary(&self, cold: bool) {

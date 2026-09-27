@@ -159,9 +159,6 @@ struct OpenHumanTurnPreludeMutable {
     /// executors whenever the live integrations list does not supply them
     /// (see `recorded_tools`).
     recorded_integration_actions: Vec<tinytools::ToolSpec>,
-    /// Search role tools the resumed thread was sent (see
-    /// `recorded_tools::rehydrate_search_tools`).
-    recorded_search_tools: Vec<tinytools::ToolSpec>,
     workflows: Vec<crate::skills::Workflow>,
     composio_events: Option<tinybus::events::EventReceiver<crate::core::events::DomainEvent>>,
     skill_events: Option<tinybus::events::EventReceiver<crate::core::events::DomainEvent>>,
@@ -482,20 +479,7 @@ impl OpenHumanTurnPrelude {
             }
         }
         #[cfg(feature = "modules")]
-        {
-            let recorded = self
-                .mutable
-                .lock()
-                .unwrap_or_else(std::sync::PoisonError::into_inner)
-                .recorded_search_tools
-                .clone();
-            let rebuilt = super::recorded_tools::rehydrate_search_tools(
-                &recorded,
-                &[surface.tools.as_slice(), collected.as_slice()],
-                &self.agent_definition_id,
-            );
-            collected.extend(rebuilt);
-        }
+        collected.extend(self.rebuilt_search_tools(&surface.tools, &collected));
         let synthesized =
             super::builder::drop_synthesized_name_collisions(&surface.tools, collected);
         let synthesized_names = synthesized
@@ -1588,7 +1572,6 @@ impl OpenHumanSessionHost {
                     // this session's current authorization refresh.
                     connected_integrations_authoritative: false,
                     recorded_integration_actions: Vec::new(),
-                    recorded_search_tools: Vec::new(),
                     workflows: self.workflows.clone(),
                     composio_events: None,
                     skill_events: None,
