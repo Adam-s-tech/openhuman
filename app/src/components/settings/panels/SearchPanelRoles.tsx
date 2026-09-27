@@ -8,6 +8,7 @@ import type {
 } from '../../../utils/tauriCommands/config';
 import Badge from '../../ui/Badge';
 import Button from '../../ui/Button';
+import Card from '../../ui/Card';
 
 type Translate = (key: string) => string;
 
@@ -62,7 +63,7 @@ const SearchRoleRow = ({ role, settings, saving, persist, t }: RowProps) => {
   const saveOrder = (next: string[]) => void persist({ roles: { [role]: next } });
 
   return (
-    <div data-testid={testId} className="rounded-xl border border-line bg-surface p-3 space-y-2">
+    <div data-testid={testId} className="space-y-2 px-4 py-3">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="text-sm font-medium text-content">{roleTitle(role, t)}</p>
@@ -83,15 +84,15 @@ const SearchRoleRow = ({ role, settings, saving, persist, t }: RowProps) => {
         data-testid={`${testId}-serving`}
         className={
           serving
-            ? 'text-[11px] text-content-secondary'
-            : 'text-[11px] text-amber-700 dark:text-amber-300'
+            ? 'text-xs text-content-secondary'
+            : 'text-xs text-amber-700 dark:text-amber-300'
         }>
         {serving
           ? withProvider(t('settings.search.roleServedBy'), serving.label)
           : t('settings.search.roleNoProvider')}
       </p>
 
-      <ol className="divide-y divide-line-subtle rounded-lg border border-line-subtle">
+      <ol className="divide-y divide-line-subtle rounded-lg border border-line-subtle bg-surface-subtle">
         {order.map((id, index) => {
           const provider = byId.get(id);
           if (!provider) return null;
@@ -101,9 +102,9 @@ const SearchRoleRow = ({ role, settings, saving, persist, t }: RowProps) => {
               key={id}
               data-testid={`${testId}-provider-${id}`}
               data-serving={serving?.id === id ? 'true' : undefined}
-              className="flex items-center gap-2 px-2.5 py-1.5">
-              <span className="w-4 text-[11px] tabular-nums text-content-muted">{index + 1}</span>
-              <span className="flex-1 min-w-0 truncate text-xs text-content">{provider.label}</span>
+              className="flex items-center gap-2 px-3 py-1.5">
+              <span className="w-4 text-xs tabular-nums text-content-muted">{index + 1}</span>
+              <span className="min-w-0 flex-1 truncate text-sm text-content">{provider.label}</span>
               {!usable && <Badge variant="neutral">{t('settings.search.roleUnavailable')}</Badge>}
               <Button
                 type="button"
@@ -151,8 +152,8 @@ const SearchRoleRow = ({ role, settings, saving, persist, t }: RowProps) => {
               size="xs"
               data-testid={`${testId}-add-${provider.id}`}
               disabled={saving}
+              leadingIcon={<PlusIcon className="size-3" aria-hidden="true" />}
               onClick={() => saveOrder([...order, provider.id])}>
-              <PlusIcon className="size-3" aria-hidden="true" />
               {withProvider(t('settings.search.roleAdd'), provider.label)}
             </Button>
           ))}
@@ -169,17 +170,12 @@ interface Props {
   t: Translate;
 }
 
-/** The Roles section: one row per capability role (Search, Answer, Contents). */
+/** The Roles card: one row per capability role (Search, Answer, Contents). */
 const SearchPanelRoles = ({ settings, saving, persist, t }: Props) => (
-  <section className="space-y-2" aria-labelledby="search-roles-heading">
-    <div>
-      <h3 id="search-roles-heading" className="text-xs font-semibold text-content-secondary">
-        {t('settings.search.rolesTitle')}
-      </h3>
-      <p className="text-[11px] text-content-muted leading-relaxed">
-        {t('settings.search.rolesDesc')}
-      </p>
-    </div>
+  <Card
+    data-testid="search-roles"
+    title={t('settings.search.rolesTitle')}
+    description={t('settings.search.rolesDesc')}>
     {SEARCH_ROLES.map(role => (
       <SearchRoleRow
         key={role}
@@ -190,7 +186,7 @@ const SearchPanelRoles = ({ settings, saving, persist, t }: Props) => (
         t={t}
       />
     ))}
-  </section>
+  </Card>
 );
 
 export default SearchPanelRoles;
