@@ -114,7 +114,7 @@ which handles a 402 only as a silent fallback for any endpoint.
 - `crates/openhuman-core/src/core/all.rs` (around line 569): wires
   `all_x402_registered_controllers` into the controller registry under
   `DomainGroup::Web3`.
-- `crates/openhuman-core/src/core/runtime/bootstrap.rs`: calls
+- `crates/openhuman-core/src/core/runtime/bootstrap.rs` (around line 136): calls
   `init_ledger(&workspace_dir, &x402_session)` at boot, itself runtime-gated on
   `DomainGroup::Web3`.
 
