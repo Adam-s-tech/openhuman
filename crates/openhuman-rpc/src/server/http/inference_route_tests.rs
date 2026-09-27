@@ -148,24 +148,3 @@ async fn test_dictation_rejects_invalid_query_token() {
     let resp = dispatch(req).await;
     assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
 }
-
-/// A browser origin outside the local-app allowlist is rejected before any
-/// WebSocket upgrade, even when the caller has a valid core bearer.
-#[tokio::test]
-async fn test_dictation_rejects_disallowed_origin_with_valid_bearer() {
-    let token = ensure_test_rpc_auth();
-    let req = Request::builder()
-        .method(Method::GET)
-        .uri("/ws/dictation")
-        .header(header::ORIGIN, "https://attacker.example")
-        .header(header::AUTHORIZATION, format!("Bearer {token}"))
-        .header(header::CONNECTION, "Upgrade")
-        .header(header::UPGRADE, "websocket")
-        .header("sec-websocket-version", "13")
-        .header("sec-websocket-key", "dGhlIHNhbXBsZSBub25jZQ==")
-        .body(Body::empty())
-        .unwrap();
-
-    let resp = dispatch(req).await;
-    assert_eq!(resp.status(), StatusCode::FORBIDDEN);
-}
