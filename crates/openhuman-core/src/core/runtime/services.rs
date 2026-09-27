@@ -457,6 +457,10 @@ pub fn spawn_socket_auto_connect(
                         return;
                     }
                 };
+            if crate::security::credentials::session_support::is_local_session_token(&initial_token) {
+                log::debug!("[socket] Offline local session — skipping auto-connect");
+                return;
+            }
             log::info!(
                 "[socket] Session token found — auto-connecting to {}",
                 api_url

@@ -418,6 +418,9 @@ impl BackendClient {
     ) -> Result<Value> {
         let credential = credential.into();
         let is_api_key = credential.is_api_key();
+        if !crate::inference::provider::openhuman_backend_model::is_safe_endpoint_for_managed_bearer(self.base.as_str()) {
+            anyhow::bail!("backend credential requires HTTPS or a loopback HTTP endpoint");
+        }
         let transport = self.transport(&method, path)?;
         let response = transport
             .send_json(BackendRequest {

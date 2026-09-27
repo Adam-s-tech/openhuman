@@ -148,7 +148,7 @@ its own `Provider` (BYOK) never touches the key.
 The key covers every hosted feature the core reaches: managed inference, cloud
 embeddings, voice (STT, TTS, the realtime voice agent), web search, media
 generation, the Jev ranker, Composio and the other `/agent-integrations/*`
-tools, channel delivery, webhooks, and the Socket.IO connection. Callers that
+tools, channel delivery, referral, webhooks, and the Socket.IO connection. Callers that
 can only send a bearer (the vendored STT and embedding clients, the connector
 module's proxy route, TinyCortex's Composio sync) send the key as
 `Authorization: Bearer`, which the backend accepts because it recognises the
