@@ -22,6 +22,17 @@ fn test_config() -> (TempDir, Config) {
     (tmp, cfg)
 }
 
+#[tokio::test]
+async fn retry_failed_rpc_returns_an_outcome_when_no_driver_is_bound() {
+    let (_tmp, cfg) = test_config();
+
+    let outcome = super::retry_failed_rpc(&cfg).await.unwrap();
+
+    assert_eq!(outcome.result.requeued, 0);
+    assert_eq!(outcome.logs.len(), 1);
+    assert!(outcome.logs[0].contains("retry_failed requeued=0"));
+}
+
 /// Bind a driver reporting fixed diagnostics as `cfg`'s memory driver.
 ///
 /// See `binding::FixedDiagnostics` for why the status handlers need one:
