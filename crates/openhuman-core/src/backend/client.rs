@@ -743,12 +743,13 @@ impl BackendClient {
         Ok(client_key.to_string())
     }
 
-    /// Sends a message to a communication channel.
 
 }
 
 #[cfg(test)]
 #[path = "client_tests.rs"]
 mod tests;
+
+mod channel;
 
 mod channel;
