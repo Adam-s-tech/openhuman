@@ -40,6 +40,15 @@ use crate::security::credentials::{AuthService, APP_SESSION_PROVIDER};
 
 pub const PROVIDER_LABEL: &str = "OpenHuman";
 
+fn is_loopback_host(url: &url::Url) -> bool {
+    match url.host() {
+        Some(url::Host::Domain("localhost")) => true,
+        Some(url::Host::Ipv4(address)) => address.is_loopback(),
+        Some(url::Host::Ipv6(address)) => address.is_loopback(),
+        _ => false,
+    }
+}
+
 /// Whether `endpoint` is safe to carry the TinyHumans API key as a bearer.
 ///
 /// `https://` always qualifies; plain `http://` only for loopback, matching
@@ -60,12 +69,7 @@ pub(crate) fn is_safe_endpoint_for_managed_bearer(endpoint: &str) -> bool {
     if url.scheme() != "http" {
         return false;
     }
-    url.host_str().is_some_and(|host| {
-        host == "localhost"
-            || host
-                .parse::<std::net::IpAddr>()
-                .is_ok_and(|address| address.is_loopback())
-    })
+    is_loopback_host(&url)
 }
 
 /// API keys belong to TinyHumans. A loopback endpoint is permitted for local
@@ -81,12 +85,7 @@ pub(crate) fn is_managed_endpoint_for_api_key(endpoint: &str) -> bool {
         url.host_str(),
         Some("api.tinyhumans.ai" | "staging-api.tinyhumans.ai")
     ) && url.scheme() == "https"
-        || url.host_str().is_some_and(|host| {
-            host == "localhost"
-                || host
-                    .parse::<std::net::IpAddr>()
-                    .is_ok_and(|address| address.is_loopback())
-        })
+        || is_loopback_host(&url)
 }
 
 /// The managed OpenHuman backend as a crate [`ChatModel`]. Holds the backend
