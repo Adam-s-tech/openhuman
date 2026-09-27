@@ -393,17 +393,8 @@ pub fn resolve_backend_credential(config: &Config) -> Result<BackendCredential, 
     }
 }
 
-/// The credential for a backend call that talks to the backend host directly
-/// rather than through the transport port (Langfuse proxy push, channel reply
-/// relay, …), or `None` when the call should be skipped:
-///
-/// - no backend transport is installed — the core runs without a TinyHumans
-///   connection (`backend::transport::is_installed`), or
-/// - no usable credential resolves — signed out, the offline local session,
-///   or a locally-expired token ([`resolve_backend_credential`]).
-///
-/// Both are configured states, not faults, so the skip is logged at `debug`
-/// with `op` naming the caller; nothing reaches Sentry and no request is made.
+/// Resolve a credential for a direct call to the configured backend.
+/// A missing transport or unusable credential is an expected offline state.
 pub fn direct_backend_credential(config: &Config, op: &str) -> Option<BackendCredential> {
     if !crate::backend::transport::is_installed() {
         log::debug!("[backend-direct] {op} skipped: no backend transport installed");
@@ -416,6 +407,22 @@ pub fn direct_backend_credential(config: &Config, op: &str) -> Option<BackendCre
             None
         }
     }
+}
+
+/// The raw secret a Bearer-only backend caller should send: the stored
+/// TinyHumans API key when there is one, else the stored app-session token
+/// (unclassified, exactly what [`get_session_token`] returns).
+///
+/// For module seams that ask "what bearer can I lend right now?" and treat
+/// `None` as signed out, where [`resolve_backend_credential`]'s error-for-absent
+/// shape does not fit. The backend accepts a key as `Authorization: Bearer`
+/// (it recognises it by prefix), so handing the key over as a bearer is
+/// correct on every route a key may reach.
+pub fn backend_bearer_secret(config: &Config) -> Result<Option<String>, String> {
+    if let Some(key) = super::api_key::get_api_key(config).map_err(|e| e.to_string())? {
+        return Ok(Some(key));
+    }
+    get_session_token(config)
 }
 
 /// Whether *some* backend credential is present — an API key or a non-empty

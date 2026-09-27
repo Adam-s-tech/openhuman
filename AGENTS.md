@@ -359,6 +359,16 @@ sandboxing, timeouts, and progress events.
 - Library mode has no user login: the runtime's API key rides managed
   inference as `Authorization: Bearer` and backend REST as `x-api-key`
   (`security::credentials::api_key`, `session_support::BackendCredential`).
+  Every backend caller resolves its credential through
+  `resolve_backend_credential` (or `backend_bearer_secret` for bearer-only
+  seams), never `get_session_token`, so the key covers integrations, voice,
+  embeddings, memory-host and socket calls too; only `/auth/*` session flows
+  need a signed-in user.
+  Every backend caller resolves its credential through
+  `resolve_backend_credential` (or `backend_bearer_secret` for bearer-only
+  seams), never `get_session_token`, so the key covers integrations, voice,
+  embeddings, memory-host and socket calls too; only `/auth/*` session flows
+  need a signed-in user.
 - The core never obtains, validates, exchanges or refreshes a credential.
   It takes one — a session JWT, an API key, or the offline local token —
   through `auth.set_credential` (`security::credentials::ops::credential`)

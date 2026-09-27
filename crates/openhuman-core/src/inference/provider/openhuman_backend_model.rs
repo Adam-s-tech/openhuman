@@ -40,6 +40,15 @@ use crate::security::credentials::{AuthService, APP_SESSION_PROVIDER};
 
 pub const PROVIDER_LABEL: &str = "OpenHuman";
 
+fn is_loopback_host(url: &url::Url) -> bool {
+    match url.host() {
+        Some(url::Host::Domain("localhost")) => true,
+        Some(url::Host::Ipv4(address)) => address.is_loopback(),
+        Some(url::Host::Ipv6(address)) => address.is_loopback(),
+        _ => false,
+    }
+}
+
 /// Whether `endpoint` is safe to carry the TinyHumans API key as a bearer.
 ///
 /// `https://` always qualifies; plain `http://` only for loopback, matching
@@ -50,7 +59,7 @@ pub const PROVIDER_LABEL: &str = "OpenHuman";
 /// Deliberately narrow to the managed-key bearer path: `normalize_api_base_url`
 /// itself must stay permissive, because a library host's BYOK/local `api_url`
 /// can legitimately be plain HTTP.
-fn is_safe_endpoint_for_managed_bearer(endpoint: &str) -> bool {
+pub(crate) fn is_safe_endpoint_for_managed_bearer(endpoint: &str) -> bool {
     let Ok(url) = url::Url::parse(endpoint) else {
         return false;
     };
@@ -60,13 +69,23 @@ fn is_safe_endpoint_for_managed_bearer(endpoint: &str) -> bool {
     if url.scheme() != "http" {
         return false;
     }
-    let Some(host) = url.host_str() else {
+    is_loopback_host(&url)
+}
+
+/// API keys belong to TinyHumans. A loopback endpoint is permitted for local
+/// development; an arbitrary TLS host is not a trusted key recipient.
+pub(crate) fn is_managed_endpoint_for_api_key(endpoint: &str) -> bool {
+    let Ok(url) = url::Url::parse(endpoint) else {
         return false;
     };
+    if !is_safe_endpoint_for_managed_bearer(endpoint) {
+        return false;
+    }
     matches!(
-        host,
-        "127.0.0.1" | "localhost" | "::1" | "[::1]" | "[0:0:0:0:0:0:0:1]" | "0:0:0:0:0:0:0:1"
-    ) || host.starts_with("127.")
+        url.host_str(),
+        Some("api.tinyhumans.ai" | "staging-api.tinyhumans.ai")
+    ) && url.scheme() == "https"
+        || is_loopback_host(&url)
 }
 
 /// The managed OpenHuman backend as a crate [`ChatModel`]. Holds the backend
@@ -168,11 +187,10 @@ impl OpenHumanBackendModel {
             // plain HTTP on loopback), so this cannot tighten
             // `normalize_api_base_url` itself without breaking those.
             let endpoint = self.base_url()?;
-            if !is_safe_endpoint_for_managed_bearer(&endpoint) {
+            if !is_managed_endpoint_for_api_key(&endpoint) {
                 anyhow::bail!(
-                    "refusing to send the TinyHumans API key as a bearer over a non-HTTPS, \
-                     non-loopback endpoint: {endpoint} — set a https:// api_url or a loopback \
-                     one for local testing"
+                    "refusing to send the TinyHumans API key to an unmanaged or insecure \
+                     endpoint: {endpoint} — use the managed backend or loopback for local testing"
                 );
             }
             log::debug!(

@@ -89,6 +89,9 @@ pub fn backend_client_builder(profile: TransportProfile) -> Result<reqwest::Clie
     Ok(openhuman_core::util::tls::tls_client_builder()
         .default_headers(attribution_headers()?)
         .http1_only()
+        // The SDK adds `x-api-key` per request. Reqwest does not strip this
+        // custom header when following a cross-origin redirect.
+        .redirect(reqwest::redirect::Policy::none())
         .timeout(timeout)
         .connect_timeout(Duration::from_secs(15)))
 }

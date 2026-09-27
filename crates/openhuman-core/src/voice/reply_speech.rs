@@ -23,7 +23,6 @@ use serde_json::{json, Value};
 use crate::backend::BackendClient;
 use crate::config::Config;
 use crate::rpc::RpcOutcome;
-use crate::security::credentials::jwt::get_session_token;
 
 const LOG_PREFIX: &str = "[voice_reply]";
 
@@ -156,17 +155,9 @@ pub async fn synthesize_reply(
         ));
     }
 
-    let token = get_session_token(config)
-        .map_err(|e| e.to_string())?
-        .and_then(|t| {
-            let s = t.trim().to_string();
-            if s.is_empty() {
-                None
-            } else {
-                Some(s)
-            }
-        })
-        .ok_or_else(|| "no backend session token; sign in first".to_string())?;
+    // API key (sent as `x-api-key`) or live session JWT (sent as Bearer).
+    let credential =
+        crate::security::credentials::session_support::resolve_backend_credential(config)?;
 
     let api_url = crate::backend::require_base_url(&config.api_url)?;
     let client = BackendClient::new(&api_url).map_err(|e| e.to_string())?;
@@ -221,7 +212,7 @@ pub async fn synthesize_reply(
     // keeps its full `{e:#}` anyhow chain so genuine TTS failures still report.
     let raw = client
         .authed_json(
-            &token,
+            &credential,
             Method::POST,
             "/openai/v1/audio/speech",
             Some(Value::Object(body)),

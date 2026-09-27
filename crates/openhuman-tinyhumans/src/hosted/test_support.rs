@@ -6,6 +6,7 @@ use tempfile::TempDir;
 
 /// A config rooted in `tmp` whose backend is `api_url`.
 pub fn config(tmp: &TempDir, api_url: &str) -> Config {
+    crate::install(crate::InstallOptions::default()).expect("install mock backend transport");
     Config {
         workspace_dir: tmp.path().join("workspace"),
         action_dir: tmp.path().join("workspace"),

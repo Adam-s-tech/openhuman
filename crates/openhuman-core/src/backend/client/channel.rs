@@ -5,20 +5,21 @@ use reqwest::Method;
 use serde_json::{json, Value};
 
 use super::BackendClient;
+use crate::security::credentials::session_support::BackendCredential;
 
 impl BackendClient {
     /// Sends a message to a communication channel.
     pub async fn send_channel_message(
         &self,
         channel: &str,
-        bearer_jwt: &str,
+        credential: impl Into<BackendCredential>,
         message_body: Value,
     ) -> Result<Value> {
         let channel = channel.trim().trim_matches('/');
         anyhow::ensure!(!channel.is_empty(), "channel is required");
         let encoded = urlencoding::encode(channel);
         self.authed_json(
-            bearer_jwt,
+            credential,
             Method::POST,
             &format!("channels/{encoded}/messages"),
             Some(message_body),
@@ -35,12 +36,16 @@ impl BackendClient {
     /// so callers should re-invoke every ~4 s for as long as the turn is
     /// in flight. Returns `Err` if the backend doesn't support typing for
     /// this channel — caller should swallow the error silently.
-    pub async fn send_channel_typing(&self, channel: &str, bearer_jwt: &str) -> Result<Value> {
+    pub async fn send_channel_typing(
+        &self,
+        channel: &str,
+        credential: impl Into<BackendCredential>,
+    ) -> Result<Value> {
         let channel = channel.trim().trim_matches('/');
         anyhow::ensure!(!channel.is_empty(), "channel is required");
         let encoded = urlencoding::encode(channel);
         self.authed_json(
-            bearer_jwt,
+            credential,
             Method::POST,
             &format!("channels/{encoded}/typing"),
             Some(json!({})),
@@ -70,7 +75,7 @@ impl BackendClient {
         &self,
         channel: &str,
         message_id: &str,
-        bearer_jwt: &str,
+        credential: impl Into<BackendCredential>,
         edit_body: Value,
     ) -> Result<Value> {
         let channel = channel.trim().trim_matches('/');
@@ -79,7 +84,7 @@ impl BackendClient {
         let encoded_channel = urlencoding::encode(channel);
         let encoded_id = urlencoding::encode(message_id);
         self.authed_json(
-            bearer_jwt,
+            credential,
             Method::PATCH,
             &format!("channels/{encoded_channel}/messages/{encoded_id}"),
             Some(edit_body),
@@ -94,7 +99,7 @@ impl BackendClient {
         &self,
         channel: &str,
         message_id: &str,
-        bearer_jwt: &str,
+        credential: impl Into<BackendCredential>,
     ) -> Result<Value> {
         let channel = channel.trim().trim_matches('/');
         anyhow::ensure!(!channel.is_empty(), "channel is required");
@@ -102,7 +107,7 @@ impl BackendClient {
         let encoded_channel = urlencoding::encode(channel);
         let encoded_id = urlencoding::encode(message_id);
         self.authed_json(
-            bearer_jwt,
+            credential,
             Method::DELETE,
             &format!("channels/{encoded_channel}/messages/{encoded_id}"),
             None,
@@ -114,14 +119,14 @@ impl BackendClient {
     pub async fn send_channel_reaction(
         &self,
         channel: &str,
-        bearer_jwt: &str,
+        credential: impl Into<BackendCredential>,
         reaction_body: Value,
     ) -> Result<Value> {
         let channel = channel.trim().trim_matches('/');
         anyhow::ensure!(!channel.is_empty(), "channel is required");
         let encoded = urlencoding::encode(channel);
         self.authed_json(
-            bearer_jwt,
+            credential,
             Method::POST,
             &format!("channels/{encoded}/reactions"),
             Some(reaction_body),
@@ -133,7 +138,7 @@ impl BackendClient {
     pub async fn create_channel_thread(
         &self,
         channel: &str,
-        bearer_jwt: &str,
+        credential: impl Into<BackendCredential>,
         title: &str,
     ) -> Result<Value> {
         let channel = channel.trim().trim_matches('/');
@@ -142,7 +147,7 @@ impl BackendClient {
         let encoded = urlencoding::encode(channel);
         let body = serde_json::json!({ "title": title.trim() });
         self.authed_json(
-            bearer_jwt,
+            credential,
             Method::POST,
             &format!("channels/{encoded}/threads"),
             Some(body),
@@ -154,7 +159,7 @@ impl BackendClient {
     pub async fn update_channel_thread(
         &self,
         channel: &str,
-        bearer_jwt: &str,
+        credential: impl Into<BackendCredential>,
         thread_id: &str,
         action: &str,
     ) -> Result<Value> {
@@ -169,7 +174,7 @@ impl BackendClient {
         let encoded_thread = urlencoding::encode(thread_id.trim());
         let body = serde_json::json!({ "action": action });
         self.authed_json(
-            bearer_jwt,
+            credential,
             Method::PATCH,
             &format!("channels/{encoded_channel}/threads/{encoded_thread}"),
             Some(body),
@@ -181,7 +186,7 @@ impl BackendClient {
     pub async fn list_channel_threads(
         &self,
         channel: &str,
-        bearer_jwt: &str,
+        credential: impl Into<BackendCredential>,
         active_filter: Option<bool>,
     ) -> Result<Value> {
         let channel = channel.trim().trim_matches('/');
@@ -195,6 +200,6 @@ impl BackendClient {
                 "?active=false"
             });
         }
-        self.authed_json(bearer_jwt, Method::GET, &path, None).await
+        self.authed_json(credential, Method::GET, &path, None).await
     }
 }
