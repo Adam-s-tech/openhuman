@@ -59,6 +59,7 @@ use openhuman_tinyhumans::backend::url::{
     looks_like_local_ai_endpoint, normalize_api_base_url, APP_ENV_VAR, DEFAULT_API_BASE_URL,
     DEFAULT_STAGING_API_BASE_URL, OPENHUMAN_INFERENCE_PATH, VITE_APP_ENV_VAR,
 };
+use openhuman_rpc::server::build_core_http_router;
 use tinybus::EventHandler;
 
 const TEST_RPC_TOKEN: &str = "worker-a-domain-e2e-token";
