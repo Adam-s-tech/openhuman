@@ -489,24 +489,12 @@ impl OpenHumanTurnPrelude {
                 .unwrap_or_else(std::sync::PoisonError::into_inner)
                 .recorded_search_tools
                 .clone();
-            let mut present: Vec<&dyn tinytools::Tool> =
-                surface.tools.iter().map(|tool| tool.as_ref()).collect();
-            present.extend(collected.iter().map(|tool| tool.as_ref()));
-            let present_names: std::collections::HashSet<String> =
-                present.iter().map(|tool| tool.name().to_string()).collect();
-            let missing: Vec<tinytools::ToolSpec> = recorded
-                .into_iter()
-                .filter(|spec| !present_names.contains(&spec.name))
-                .collect();
-            let rebuilt = super::recorded_tools::rehydrate_search_tools(&missing, &[]);
-            if !rebuilt.is_empty() {
-                log::info!(
-                    "[session] rebuilt {} recorded search tool(s) the live surface did not supply agent={}",
-                    rebuilt.len(),
-                    self.agent_definition_id
-                );
-                collected.extend(rebuilt);
-            }
+            let rebuilt = super::recorded_tools::rehydrate_search_tools(
+                &recorded,
+                &[surface.tools.as_slice(), collected.as_slice()],
+                &self.agent_definition_id,
+            );
+            collected.extend(rebuilt);
         }
         let synthesized =
             super::builder::drop_synthesized_name_collisions(&surface.tools, collected);

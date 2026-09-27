@@ -158,7 +158,7 @@ fn missing_search_tools_are_rebuilt_once_with_their_recorded_declaration() {
             parameters: serde_json::json!({"type": "object"}),
         },
     ))];
-    let rebuilt = rehydrate_search_tools(&recorded, &live);
+    let rebuilt = rehydrate_search_tools(&recorded, &[live.as_slice()], "test-agent");
     assert_eq!(rebuilt.len(), 1);
     assert_eq!(rebuilt[0].name(), "web_answer_tool");
     assert_eq!(rebuilt[0].description(), "web_answer_tool description");

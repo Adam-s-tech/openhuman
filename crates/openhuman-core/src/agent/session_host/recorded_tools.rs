@@ -123,11 +123,15 @@ fn is_search_role_tool(name: &str) -> bool {
 #[cfg(feature = "modules")]
 pub(super) fn rehydrate_search_tools(
     recorded: &[ToolSpec],
-    live: &[Box<dyn Tool>],
+    live: &[&[Box<dyn Tool>]],
+    agent_id: &str,
 ) -> Vec<Box<dyn Tool>> {
-    let live_names: HashSet<&str> = live.iter().map(|tool| tool.name()).collect();
+    let live_names: HashSet<&str> = live
+        .iter()
+        .flat_map(|tools| tools.iter().map(|tool| tool.name()))
+        .collect();
     let mut seen = HashSet::new();
-    recorded
+    let rebuilt: Vec<Box<dyn Tool>> = recorded
         .iter()
         .filter(|spec| is_search_role_tool(&spec.name))
         .filter(|spec| !live_names.contains(spec.name.as_str()))
@@ -141,7 +145,14 @@ pub(super) fn rehydrate_search_tools(
                 },
             )) as Box<dyn Tool>
         })
-        .collect()
+        .collect();
+    if !rebuilt.is_empty() {
+        log::info!(
+            "[session] rebuilt {} recorded search tool(s) the live surface did not supply agent={agent_id}",
+            rebuilt.len()
+        );
+    }
+    rebuilt
 }
 
 #[cfg(test)]
