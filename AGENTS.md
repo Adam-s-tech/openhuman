@@ -417,6 +417,69 @@ builds after changing a gate. Use `scripts/assert-shed.sh` or
 
 ## Loadable modules and bus contracts
 
+### Submodule ownership
+
+OpenHuman is the host and orchestrator for these components. It composes them,
+loads modules, adapts their contracts to product RPC/tools, and applies
+OpenHuman-specific configuration, security policy, approvals, and lifecycle
+rules. It is not the implementation home for behavior that belongs to a
+vendored project.
+
+Before changing code, identify the owning repository below. Implement a
+module/library capability, bug fix, or contract change in that submodule,
+raise its PR against that repository's canonical upstream, and update the
+OpenHuman gitlink only after the upstream change is available. OpenHuman may
+contain the host adapter and integration tests that prove the composition, but
+do not copy the module implementation into OpenHuman or add a host-side
+workaround for a defect owned by a submodule. For a change that spans a module
+and its host adapter, make both changes in their respective repositories and
+raise the module PR first. Keep PRs and gitlinks independently reviewable.
+
+Direct rendered submodules under `vendor/`:
+
+| Submodule | Owns |
+| --- | --- |
+| `tinyagents` | Provider-neutral agent harness and durable typed state graph: model/tool loop, tool-call dialects and parsing, middleware, retries, caching, sessions/transcripts, and graph execution. |
+| `tinybox` | Isolated execution environments for code the host does not trust; box lifecycle and isolation backends. |
+| `tinybrowser` | Browser automation as a TinyBus module, including browser launch/control, navigation, accessibility snapshots, input, extraction, and screenshots. |
+| `tinybus` | TinyBus runtime and module contracts: discovery/loading, ABI and manifest admission, transport, proxies, lifecycle, and module bus behavior. |
+| `tinychannels` | Portable channel/message contracts, configuration/schema, routing metadata, and channel backend abstractions. OpenHuman owns its concrete product/backend adapters. |
+| `tinyconnectors` | OAuth connector module behavior: account linking, available actions, action execution, and connector webhooks. |
+| `tinydesktop` | Native desktop accessibility observation and interaction exposed through TinyBus. |
+| `tinydocs` | Document extraction and synthesis, including PDF reading and DOCX/PPTX generation. |
+| `tinyflows` | Host-agnostic workflow graph definition, validation, compilation, and execution engine. |
+| `tinyhosts` | Hosting provider APIs and deployment/database/domain/analytics operations, as library and TinyBus module. |
+| `tinyhumans-sdk` | Rust client types and transport operations for the public TinyHumans backend API. OpenHuman owns its transport integration and product auth/session policy. |
+| `tinyjuice` | Agent tool-output compression and recovery of omitted content. |
+| `tinymcp` | The TinyMCP module implementation and its bus contract. Put MCP module behavior and contract changes here; OpenHuman owns configuration, lifecycle, and host integration. |
+| `tinymemory` | Engine-neutral memory contracts, operations, and providers. Its nested TinyCortex submodule owns the TinyCortex memory engine. |
+| `tinyruntime` | Runtime discovery/installation and bounded pools of warm language interpreter processes, exposed as a TinyBus module. |
+| `tinysearch` | Web-search module, provider dispatch, tool declarations, and execution behind its TinyBus contract. |
+| `tinyskills` | Host-independent skill/workflow bundle parsing, discovery, scope resolution, resource inventory, and safe reads. OpenHuman owns trust and execution policy. |
+| `tinyvoice` | Host-agnostic voice primitives such as audio framing, VAD, wake-word gating, routing, and STT hallucination detection. |
+| `tinywallet` | Pure multi-chain wallet primitives such as address formats, validation, and encoding conversions; no key custody or transaction broadcast. |
+| `motosan-ai-oauth` | Provider-agnostic PKCE OAuth login and token-refresh primitives. |
+
+Some rendered submodules are shared dependencies nested inside those projects,
+not separate OpenHuman feature implementations. Make changes to them in their
+own canonical repositories as well:
+
+| Nested submodule | Owns |
+| --- | --- |
+| `tinyagents/vendor/tinytools` | Shared `Tool` trait and generic tool types. This is the single `tinytools` copy used by OpenHuman. |
+| `tinyagents/vendor/tinyinference` and `tinymemory/vendor/tinyinference` | Inference/provider, embedding, local model, and voice inference libraries. OpenHuman patches the TinyAgents copy in its Cargo workspace; do not create a competing copy. |
+| `tinymemory/vendor/tinycortex` | TinyCortex engine implementation for the TinyMemory contracts. |
+| `*/vendor/tinybus` | Shared TinyBus contract/runtime dependency; change the owning TinyBus project, not a vendored duplicate. |
+| `tinybrowser/vendor/agent-browser` | Browser-control library used by TinyBrowser. |
+| `tinydesktop/vendor/agent-desktop` | Cross-platform desktop accessibility and interaction library used by TinyDesktop. |
+| `*/vendor/tinyjevclient` | Shared TinyJEV client used by the browser and desktop modules. |
+| `tinyagents/wiki`, `tinychannels/wiki`, `tinyjuice/wiki` | Project documentation content, not runtime implementation. |
+
+When ownership is unclear, inspect the submodule's README, crate boundaries,
+and bus contract before editing. A behavior change belongs with the code that
+defines that behavior; OpenHuman changes should be limited to the host-side
+composition and policy described above.
+
 Each loadable module has a small `*-bus` contract crate for interface names,
 method constants, request and response types, and its contract version.
 
@@ -464,7 +527,7 @@ module release before migrating a host call to it.
 ## Backend API
 
 The core does not depend on `tinyhumans-sdk`. It reaches the hosted backend
-only through the port `crates/openhuman-core/src/api/transport/`
+only through the port `crates/openhuman-core/src/backend/transport/`
 (`BackendTransport`, `BackendRequest`, `BackendTransportError`); the SDK-backed
 implementation is `crates/openhuman-tinyhumans` (`SdkBackendTransport`), which
 sits above `openhuman-embed` and is installed once per process
@@ -478,34 +541,48 @@ openhuman -i tinyhumans-sdk` must stay empty). Every host that boots a core
 (`crates/openhuman-app/src/main.rs` and `lib.rs::run`,
 `crates/openhuman-tui/src/runner.rs`, `crates/openhuman-cli/src/main.rs`)
 calls `openhuman_tinyhumans::install` first; it also registers the hosted RPC
-proxies (`billing`, `team`, `referral`, `announcements` —
-`crates/openhuman-tinyhumans/src/hosted/`) into the core's controller
-registry through `core::all::register_controller_extension`
+proxies (`billing`, `team`, `referral`, `announcements`, `webhooks`,
+`channel_link`, `oauth` — `crates/openhuman-tinyhumans/src/hosted/`) into the
+core's controller registry through `core::all::register_controller_extension`
 (`DomainGroup::Hosted`). New backend-only proxy domains belong there, not in
 the core.
 
 Add missing backend routes to the vendored SDK (its unexposed-route registry
 is the route policy the transport enforces) and name them from the core;
-do not recreate route implementations in `crates/openhuman-core/src/api/`.
+do not recreate route implementations in `crates/openhuman-core/src/backend/`.
 
-`crates/openhuman-core/src/api/` owns OpenHuman session-token lookup, base URL
-selection, attribution headers and client profiles (`headers.rs`), and error
-classification. Authenticated `BackendOAuthClient` requests go through
-`authed_json`, whose private `finish_authed_json`
-(`crates/openhuman-core/src/api/rest.rs`) classifies transient transport
-failures and maps 401/404 responses to typed `BackendApiError` variants;
-`IntegrationClient::map_transport_error`
+The core holds no hosted URL, default, environment variable, header policy or
+product identity of its own any more — it only *asks* the installed
+transport, through `crates/openhuman-core/src/backend/mod.rs`'s
+`backend::base_url`, `backend::inference_base_url`, `backend::product_identity`
+and `backend::attribution_headers`. That state now lives with the transport
+implementation, in `crates/openhuman-tinyhumans/src/backend/`: `url.rs`
+(defaults, `BACKEND_URL`/`VITE_BACKEND_URL` overrides, the local-AI/inference
+guard), `headers.rs` (attribution headers and per-profile `reqwest` clients)
+and `product.rs` (`ProductIdentity`, re-exported at
+`openhuman_tinyhumans::{product_identity, set_product_identity,
+ProductIdentity}`).
+
+`crates/openhuman-core/src/backend/client.rs` owns the authenticated JSON
+client (`BackendClient`, renamed from `BackendOAuthClient`) and error
+classification. Authenticated `BackendClient` requests go through
+`authed_json`, whose private `finish_authed_json` classifies transient
+transport failures and maps 401/404 responses to typed `BackendApiError`
+variants; `IntegrationClient::map_transport_error`
 (`crates/openhuman-core/src/integrations/client/errors.rs`) plays the same
 role for integrations. Route new backend calls through those helpers instead
 of matching `BackendTransportError` by hand.
 
-Every TinyHumans backend request must carry a sanitized `x-sdk-name`:
+Every TinyHumans backend request must carry a sanitized `x-sdk-name`, now
+stamped by the installed transport's `attribution_headers` (called through
+`backend::attribution_headers`):
 
-- `BackendOAuthClient`
+- `BackendClient`
 - `IntegrationClient`, except redirected file downloads
 - the host session owner's `POST /auth/login-token/consume` and
   `GET /auth/me` (`openhuman_tinyhumans::session`, through `ClientHeaders`)
-- the agent Langfuse ingestion request
+- the agent's Langfuse and OTLP ingestion push
+- the managed model catalog listing
 
 Set `ProductIdentity` once during startup before building clients. Do not add
 this header to third-party endpoints, MCP servers, BYOK inference endpoints, or
@@ -552,6 +629,12 @@ serialization.
   `tinyhumansai/openhuman`.
 - Use the issue and PR templates.
 - Fix hook failures caused by your changes.
+- `.husky/pre-push` runs `rust:clippy` only when the push carries Rust
+  (`*.rs`, a manifest, `.cargo/`, `.gitmodules`, `crates/`, `vendor/`,
+  `rust-toolchain.toml`); it runs
+  anyway when the range cannot be resolved, or with
+  `PRE_PUSH_FORCE_CLIPPY=1`. `scripts/__tests__/pre-push-hook.test.mjs`
+  covers the hook.
 - macOS deep links require a built app bundle.
 - Windows registers `openhuman://` through `tauri-plugin-deep-link`.
 - Standalone debugging uses `./target/debug/openhuman-core serve`. Public

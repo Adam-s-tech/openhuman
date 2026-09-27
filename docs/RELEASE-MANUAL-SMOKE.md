@@ -27,6 +27,10 @@ Applies to every release, all platforms.
 - [ ] **A failed chat turn does not offer an invalid regenerate action** — Trigger a provider failure in a test profile and inspect its error card. Expected: the diagnostic text remains visible, with no Retry or Refresh button on that failed message. A completed assistant reply still offers Refresh (#6613).
 - [ ] **A failed turn leaves its thread usable** — In a test profile, get one successful reply, trigger a streamed provider failure on the next turn, then send another message in the same thread. Expected: the error card appears, the composer re-enables, the next reply streams normally, and the agent still has the first turn's context. If a queued follow-up starts as the failed turn ends, its stream and composer state stay active.
 
+### Refreshed application UI
+
+- [ ] **Settings, Connections, theme, and workflow surfaces remain usable** — On desktop, navigate between Settings sections and Connections tabs, switch between light/dark and at least one named theme family, export and re-import a custom theme, then open a workflow canvas and its run history. Expected: each route renders its own content without stale panels or horizontal overflow; imported themes can be selected and theme selection and run details survive a reload where persistence is expected.
+
 ### Native desktop control
 
 - [ ] **Connections enables the published desktop module on an unlocked macOS or Windows session** — Open Connections → Integrations → Desktop Control, verify the Early Alpha notice, enable it, grant Accessibility if prompted, and run the read-only test. Expected: the module loads from the pinned release, the panel reports the actual permission state, and the test sees an accessibility snapshot. Screen Recording is required only when testing capture. A locked macOS screen must not be reported as a successful probe.
@@ -35,7 +39,7 @@ Applies to every release, all platforms.
 
 ### Browser module
 
-- [ ] **Browser readiness and setup** — Open Connections → Integrations → Browser Control on each desktop platform and verify the Early Alpha notice. Expected: the checksum-pinned TinyBrowser module downloads and passes TinyBus admission, module and Chrome readiness are reported separately, Test works, and saved viewport, profile, download folder, task limits, and allowed websites survive relaunch.
+- [ ] **Browser readiness and setup** — Open Connections → Integrations → Browser Control on each desktop platform and verify the Early Alpha notice. Expected: the checksum-pinned TinyBrowser module loads from the installer on Windows or the release cache on other platforms and passes TinyBus admission, module and Chrome readiness are reported separately, Test works, and saved viewport, profile, download folder, task limits, and allowed websites survive relaunch.
 - [ ] **Browser task and policy** — With an allowed Selenium test site, use a conversation to submit its web form and download File 1. Expected: `tool_search` discovers `browser`, consequential actions wait for the exact host approval, the submitted page shows “Received!”, and a completed download is verified on disk. Then restrict allowed websites and confirm a disallowed navigation is blocked.
 
 ### Wallet balances
@@ -68,6 +72,8 @@ Applies to every release, all platforms.
 
 ### Windows
 
+- [ ] **Bundled native modules work offline** — Install from the signed MSI or NSIS package on a fresh Windows account, disconnect the network, then open Desktop Control and Browser Control and load their modules. Expected: both modules reach Ready without a GitHub request, and the log records `[modules] loaded '<id>' from the installer bundle`. Reconnect before testing hosted features. Check both installer formats when both are shipped.
+- [ ] **Custom window frame and exit** — Launch with no saved window geometry. Expected: the window opens near 800 × 720 with compact rounded corners; the top-right controls minimize, maximize/restore, and close. Drag the window from the top strip on both the loading screen and main app. Closing exits the host and its embedded core (no lingering `OpenHuman.exe` or core listener).
 - [ ] **SmartScreen does not block install** — Run the installer from a fresh download. Expected: SmartScreen passes (signed binary). If `Windows protected your PC` appears, the EV signature is missing or the reputation has not built up — escalate before shipping.
 - [ ] **Installer creates Start Menu + Desktop shortcuts** — Defaults preserved. Expected: both shortcuts launch the app.
 - [ ] **Chat links preserve the desktop UI** — Click an HTTPS PR link in an assistant reply. Expected: the default browser opens the PR and OpenHuman stays on the same conversation. If the OS opener fails, the app must remain visible instead of navigating to the remote page. Check internal chat/settings navigation still works.

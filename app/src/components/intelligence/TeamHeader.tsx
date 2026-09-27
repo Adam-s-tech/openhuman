@@ -18,15 +18,16 @@ import type {
   AgentTeamMemberStatus,
 } from '../../services/api/agentTeamApi';
 import { AvatarFallback, AvatarRoot } from '../ui/Avatar';
+import Badge, { type BadgeVariant } from '../ui/Badge';
 import Button from '../ui/Button';
 import { memberColor } from './memberColors';
 
-/** Status dot colour per member lifecycle state. */
-const MEMBER_STATUS_DOT: Record<AgentTeamMemberStatus, string> = {
-  active: 'bg-sage-500',
-  pending: 'bg-amber-500',
-  idle: 'bg-content-faint',
-  stopped: 'bg-coral-500',
+/** Badge variant (status colour + dot) per member lifecycle state. */
+const MEMBER_STATUS_VARIANT: Record<AgentTeamMemberStatus, BadgeVariant> = {
+  active: 'success',
+  pending: 'warning',
+  idle: 'neutral',
+  stopped: 'danger',
 };
 
 const MEMBER_STATUS_KEY: Record<AgentTeamMemberStatus, string> = {
@@ -75,10 +76,10 @@ export function TeamHeader({
 
         <div className="flex flex-wrap items-center gap-1">
           {members.map(member => (
-            <span
+            <Badge
               key={member.id}
-              title={`${member.agentId ?? member.name} · ${t(MEMBER_STATUS_KEY[member.memberStatus])}`}
-              className="inline-flex items-center gap-1 rounded-md border border-line bg-surface-muted px-1.5 py-0.5 text-[10px] text-content-secondary">
+              variant={MEMBER_STATUS_VARIANT[member.memberStatus]}
+              title={`${member.agentId ?? member.name} · ${t(MEMBER_STATUS_KEY[member.memberStatus])}`}>
               <AvatarRoot className="h-3.5 w-3.5">
                 <AvatarFallback
                   className="text-[7px] font-semibold text-content-inverted"
@@ -87,9 +88,6 @@ export function TeamHeader({
                 </AvatarFallback>
               </AvatarRoot>
               <span className="max-w-28 truncate">{member.name}</span>
-              <span
-                className={`h-1.5 w-1.5 flex-none rounded-full ${MEMBER_STATUS_DOT[member.memberStatus]}`}
-              />
               {onStartMember && member.memberStatus !== 'active' && (
                 <Button
                   variant="tertiary"
@@ -107,7 +105,7 @@ export function TeamHeader({
                   )}
                 </Button>
               )}
-            </span>
+            </Badge>
           ))}
         </div>
       </div>

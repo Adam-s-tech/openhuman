@@ -8,7 +8,6 @@ use tinyinference_embeddings::{
     DEFAULT_CLOUD_DIMENSIONS, DEFAULT_CLOUD_MODEL,
 };
 
-use crate::api::config::effective_api_url;
 use crate::security::credentials::{AuthService, APP_SESSION_PROVIDER};
 
 pub const DEFAULT_CLOUD_EMBEDDING_MODEL: &str = DEFAULT_CLOUD_MODEL;
@@ -28,7 +27,18 @@ impl OpenHumanCloudEmbeddingModel {
         dimensions: usize,
     ) -> Self {
         let state_dir = openhuman_dir.unwrap_or_else(default_state_dir);
+        // The managed endpoint comes from the installed backend transport.
+        // Without one there is nothing to embed against, so the bearer
+        // resolver (asked before every request) refuses up front.
+        let base = crate::backend::inference_base_url(&api_url).ok();
+        let backend_available = base.is_some();
         let bearer: BearerResolver = Arc::new(move || {
+            if !backend_available {
+                return Err(tinyinference_embeddings::Error::Validation(format!(
+                    "{} managed embeddings need a backend transport",
+                    crate::core::observability::BACKEND_UNAVAILABLE_PREFIX
+                )));
+            }
             let auth = AuthService::new(&state_dir, secrets_encrypt);
             auth.get_provider_bearer_token(APP_SESSION_PROVIDER, None)
                 .map_err(|error| tinyinference_embeddings::Error::Embedding(error.to_string()))?
@@ -41,7 +51,7 @@ impl OpenHumanCloudEmbeddingModel {
         });
         let base_url = format!(
             "{}/openai/v1",
-            effective_api_url(&api_url).trim_end_matches('/')
+            base.unwrap_or_default().trim_end_matches('/')
         );
         let guard: EmbeddingEgressGuard = Arc::new(|model, _input_count| {
             let egress = crate::security::egress::EgressDescriptor::embedding("cloud", model);

@@ -64,7 +64,7 @@ const CostBarChart = ({ days, currency }: CostBarChartProps) => {
               tickLine={false}
               axisLine={false}
               tick={{ fill: 'currentColor', opacity: 0.45 }}
-              height={14}
+              height={24}
             />
             <YAxis
               stroke="currentColor"
