@@ -36,7 +36,11 @@ impl BackendClient {
     /// so callers should re-invoke every ~4 s for as long as the turn is
     /// in flight. Returns `Err` if the backend doesn't support typing for
     /// this channel — caller should swallow the error silently.
-    pub async fn send_channel_typing(&self, channel: &str, credential: impl Into<BackendCredential>) -> Result<Value> {
+    pub async fn send_channel_typing(
+        &self,
+        channel: &str,
+        credential: impl Into<BackendCredential>,
+    ) -> Result<Value> {
         let channel = channel.trim().trim_matches('/');
         anyhow::ensure!(!channel.is_empty(), "channel is required");
         let encoded = urlencoding::encode(channel);

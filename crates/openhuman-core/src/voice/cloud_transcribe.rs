@@ -1,10 +1,8 @@
 //! OpenHuman authentication adapter for hosted speech-to-text.
 
-
 use crate::backend::BackendClient;
 use crate::config::Config;
 use crate::rpc::RpcOutcome;
-
 
 pub use tinyinference_voice::cloud::{CloudTranscribeOptions, CloudTranscribeResult};
 
@@ -16,24 +14,35 @@ pub async fn transcribe_cloud(
 ) -> Result<RpcOutcome<CloudTranscribeResult>, String> {
     // The session JWT or the TinyHumans API key. The vendored client sends it
     // as `Authorization: Bearer`, which the backend accepts for either.
-    let credential = crate::security::credentials::session_support::resolve_backend_credential(config)?;
+    let credential =
+        crate::security::credentials::session_support::resolve_backend_credential(config)?;
     let is_api_key = credential.is_api_key();
-    let client = BackendClient::from_config(config)
-        .map_err(|error| error.to_string())?;
+    let client = BackendClient::from_config(config).map_err(|error| error.to_string())?;
     let url = client
         .url_for("/openai/v1/audio/transcriptions")
         .map_err(|error| error.to_string())?;
     if is_api_key
-        && !crate::inference::provider::openhuman_backend_model::is_safe_endpoint_for_managed_bearer(url.as_str())
+        && !crate::inference::provider::openhuman_backend_model::is_safe_endpoint_for_managed_bearer(
+            url.as_str(),
+        )
     {
-        return Err("refusing to send the TinyHumans API key over a non-HTTPS, non-loopback endpoint".to_string());
+        return Err(
+            "refusing to send the TinyHumans API key over a non-HTTPS, non-loopback endpoint"
+                .to_string(),
+        );
     }
     let http = client
         .raw_client()
         .map_err(crate::backend::flatten_authed_error)?;
-    let result = tinyinference_voice::cloud::transcribe(&http, url, credential.secret(), audio_base64, options)
-        .await
-        .map_err(|error| classify_transcribe_error(error, is_api_key))?;
+    let result = tinyinference_voice::cloud::transcribe(
+        &http,
+        url,
+        credential.secret(),
+        audio_base64,
+        options,
+    )
+    .await
+    .map_err(|error| classify_transcribe_error(error, is_api_key))?;
     Ok(RpcOutcome::single_log(
         result,
         "cloud STT via POST /openai/v1/audio/transcriptions",

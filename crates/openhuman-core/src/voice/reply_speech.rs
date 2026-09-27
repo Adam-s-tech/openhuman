@@ -20,7 +20,6 @@ use reqwest::Method;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
-
 use crate::backend::BackendClient;
 use crate::config::Config;
 use crate::rpc::RpcOutcome;

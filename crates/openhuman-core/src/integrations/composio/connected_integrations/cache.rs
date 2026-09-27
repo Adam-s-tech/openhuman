@@ -60,7 +60,11 @@ pub(crate) fn cache_key(config: &Config) -> String {
     digest.update(b"\0");
     match crate::security::credentials::session_support::resolve_backend_credential(config) {
         Ok(credential) => {
-            digest.update(if credential.is_api_key() { b"api-key\0" } else { b"session\0" });
+            digest.update(if credential.is_api_key() {
+                b"api-key\0"
+            } else {
+                b"session\0"
+            });
             digest.update(credential.secret().as_bytes());
         }
         Err(_) => digest.update(b"unavailable"),

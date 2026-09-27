@@ -26,7 +26,9 @@ fn backend_401_with_api_key_does_not_expire_session() {
         true,
     );
     assert!(tagged.starts_with("API_KEY_REJECTED: "));
-    assert!(!crate::core::observability::is_session_expired_message(&tagged));
+    assert!(!crate::core::observability::is_session_expired_message(
+        &tagged
+    ));
 }
 
 #[tokio::test]

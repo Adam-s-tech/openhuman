@@ -2,7 +2,6 @@
 
 use serde_json::Value;
 
-
 use crate::backend::BackendClient;
 use crate::config::Config;
 use crate::rpc::RpcOutcome;
