@@ -288,8 +288,8 @@ impl Tool for McpCallTool {
 
 const REDACTED: &str = "[redacted]";
 const MIN_QUERY_SECRET_LEN: usize = 8;
-const CREDENTIAL_QUERY_PARAM_NEEDLES: [&str; 6] =
-    ["token", "key", "secret", "password", "auth", "sig"];
+const CREDENTIAL_QUERY_PARAM_NEEDLES: [&str; 7] =
+    ["token", "key", "secret", "password", "auth", "sig", "credential"];
 
 struct SecretScrubber {
     secrets: Vec<String>,

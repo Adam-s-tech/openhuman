@@ -397,6 +397,18 @@ fn scrubber_does_not_globally_redact_ordinary_short_query_values() {
 }
 
 #[test]
+fn scrubber_redacts_credential_query_value() {
+    let scrubber = SecretScrubber::new(
+        &McpDefinitionAuth::None,
+        "https://example.com/mcp?credential=private12345",
+    );
+    assert_eq!(
+        scrubber.scrub("server echoed private12345"),
+        "server echoed [redacted]"
+    );
+}
+
+#[test]
 fn scrub_value_keeps_both_entries_when_keys_collide_after_redaction() {
     let scrubber = SecretScrubber::new(
         &McpDefinitionAuth::Headers {
