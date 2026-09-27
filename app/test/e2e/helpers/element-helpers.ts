@@ -385,6 +385,59 @@ export async function waitForTestId(
   return el;
 }
 
+/** Wait until a selector is absent from the DOM. */
+export async function waitForElementAbsence(
+  selector: string,
+  timeout: number = 15_000
+): Promise<void> {
+  await browser.waitUntil(async () => !(await browser.$(selector).isExisting()), {
+    timeout,
+    timeoutMsg: `Element ${selector} remained present after ${timeout}ms`,
+  });
+}
+
+/** Read the checked state of a settings switch by its accessible label. */
+export async function getSwitchCheckedByLabel(
+  testId: string,
+  label: string,
+  timeout: number = 15_000
+): Promise<boolean> {
+  const literal = xpathStringLiteral(label);
+  const selector = isTauriDriver()
+    ? `[data-testid="${testId}"]`
+    : `//XCUIElementTypeSwitch[contains(@label, ${literal}) or contains(@title, ${literal})]`;
+  const element = await browser.$(selector);
+  await element.waitForExist({ timeout, timeoutMsg: `Switch "${label}" was not found` });
+  if (isTauriDriver()) return (await element.getAttribute('aria-checked')) === 'true';
+  const value = await element.getAttribute('value');
+  return value === '1' || value === 'true' || (await element.isSelected());
+}
+
+/** Toggle a settings switch through its accessible label. */
+export async function toggleSwitchByLabel(
+  testId: string,
+  label: string,
+  timeout: number = 15_000
+): Promise<void> {
+  const literal = xpathStringLiteral(label);
+  const selector = isTauriDriver()
+    ? `[data-testid="${testId}"]`
+    : `//XCUIElementTypeSwitch[contains(@label, ${literal}) or contains(@title, ${literal})]`;
+  const element = await browser.$(selector);
+  await element.waitForExist({ timeout, timeoutMsg: `Switch "${label}" was not found` });
+  await clickAtElement(element);
+}
+
+/** Read an attribute from a stable test id. */
+export async function getAttributeByTestId(
+  testId: string,
+  attribute: string,
+  timeout: number = 15_000
+): Promise<string | null> {
+  const element = await waitForTestId(testId, timeout);
+  return element.getAttribute(attribute);
+}
+
 /**
  * Wait for an element by its stable assistant-ui data slot.
  *
@@ -453,6 +506,41 @@ export async function clickTestId(
 ): Promise<ChainablePromiseElement> {
   const el = await waitForTestId(testId, timeout);
   await clickAtElement(el);
+  return el;
+}
+
+/** Click a test id with a physical pointer sequence. Use for controls, such as
+ * Radix menu triggers, that listen for pointerdown instead of a synthetic click.
+ */
+export async function clickTestIdWithPointer(
+  testId: string,
+  timeout: number = 15_000
+): Promise<ChainablePromiseElement> {
+  const el = await waitForTestId(testId, timeout);
+  const location = await el.getLocation();
+  const size = await el.getSize();
+  try {
+    await browser.performActions([
+      {
+        type: 'pointer',
+        id: 'mouse1',
+        parameters: { pointerType: 'mouse' },
+        actions: [
+          {
+            type: 'pointerMove',
+            duration: 10,
+            x: Math.round(location.x + size.width / 2),
+            y: Math.round(location.y + size.height / 2),
+          },
+          { type: 'pointerDown', button: 0 },
+          { type: 'pause', duration: 50 },
+          { type: 'pointerUp', button: 0 },
+        ],
+      },
+    ]);
+  } finally {
+    await browser.releaseActions();
+  }
   return el;
 }
 

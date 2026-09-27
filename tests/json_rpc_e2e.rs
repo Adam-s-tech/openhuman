@@ -539,7 +539,11 @@ fn mock_upstream_router() -> Router {
     ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
         require_bearer(&headers, BILLING_TOKEN)?;
         let plan = require_string_field(&body, "plan")?;
-        if !matches!(plan, "basic" | "pro" | "BASIC" | "PRO") {
+        // The deployed backend's `BillingPlan` values (the SDK's typed request).
+        if !matches!(
+            plan,
+            "BASIC_MONTHLY" | "BASIC_YEARLY" | "PRO_MONTHLY" | "PRO_YEARLY"
+        ) {
             return Err(error_json(
                 StatusCode::BAD_REQUEST,
                 "missing or invalid 'plan'",
@@ -1249,6 +1253,13 @@ fn ensure_test_rpc_auth() {
 async fn json_rpc_discovers_codex_and_claude_sessions_for_memory_ingestion() {
     let _env_lock = json_rpc_e2e_env_lock();
     let tmp = tempdir().expect("tempdir");
+    let home = tmp.path();
+    let _home_guard = EnvVarGuard::set_to_path("HOME", home);
+    let _workspace_guard =
+        EnvVarGuard::set_to_path("OPENHUMAN_WORKSPACE", json_rpc_e2e_shared_workspace());
+    let _memory_driver_guard = EnvVarGuard::set("OPENHUMAN_MEMORY_DRIVER", "tinymemory");
+    let _backend_guard = EnvVarGuard::unset("VITE_BACKEND_URL");
+    memory_module::settle().await;
     let claude_home = tmp.path().join("claude");
     let codex_home = tmp.path().join("codex");
     let claude_root = claude_home.join("projects/repo");
@@ -7306,7 +7317,7 @@ async fn billing_rpc_e2e() {
         &rpc_base,
         3,
         "openhuman.billing_purchase_plan",
-        json!({ "plan": "pro" }),
+        json!({ "plan": "PRO_MONTHLY" }),
     )
     .await;
     let purchase_outer = assert_no_jsonrpc_error(&purchase, "billing_purchase_plan");

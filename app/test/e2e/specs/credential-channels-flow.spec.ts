@@ -29,15 +29,14 @@
  * Mirrors the C.1/C.2/C.3/C.4/C.8/C.9 shape of `telegram-channel-flow.spec.ts`,
  * which is the house pattern for a channel lifecycle.
  *
- * No network: `api_key` connect stores credentials locally. The Yuanbao
- * sign-token preflight and the IMAP login are not reached — this spec never
- * supplies credentials that would pass validation into a live call, and the
- * mock backend is the only server running.
+ * No external network: Yuanbao credential verification is directed to the
+ * local mock backend. Email's required IMAP login is tested against a refused
+ * loopback port because the suite has no TLS IMAP fixture.
  */
 import { waitForApp } from '../helpers/app-helpers';
 import { callOpenhumanRpc } from '../helpers/core-rpc';
 import { resetApp } from '../helpers/reset-app';
-import { startMockServer, stopMockServer } from '../mock-server';
+import { getMockServerPort, startMockServer, stopMockServer } from '../mock-server';
 
 const LOG_PREFIX = '[CredentialChannels]';
 
@@ -122,15 +121,21 @@ const CREDENTIAL_CHANNELS = [
   {
     channel: 'email',
     label: 'Email (IMAP/SMTP)',
-    requiredFields: ['imap_host', 'username'],
+    requiredFields: ['imap_host', 'smtp_host', 'username', 'password'],
     validCredentials: {
       imap_host: 'imap.e2e.invalid',
       imap_port: '993',
+      smtp_host: 'smtp.e2e.invalid',
+      smtp_port: '465',
       username: 'e2e@example.invalid',
       password: 'e2e-app-password',
     },
     /** Omits `username`, which the definition marks required. */
-    incompleteCredentials: { imap_host: 'imap.e2e.invalid' },
+    incompleteCredentials: {
+      imap_host: 'imap.e2e.invalid',
+      smtp_host: 'smtp.e2e.invalid',
+      password: 'e2e-app-password',
+    },
     missingFieldHint: 'username',
   },
 ] as const;
@@ -192,34 +197,51 @@ describe('Credential channels — Yuanbao and Email (IMAP/SMTP)', () => {
       }
     });
 
-    it(`D.3 ${channel} connect with complete credentials reports connected`, async function () {
-      this.timeout(60_000);
-      // Start from a known-disconnected state so a leftover connection from an
-      // earlier run cannot make the assertion below pass without a connect.
-      await callOpenhumanRpc('openhuman.channels_disconnect', { channel, authMode: 'api_key' });
-      if (isConnected(await statusFor(channel))) {
-        throw new Error(
-          `precondition: ${label} should be disconnected before the connect under test`
-        );
-      }
+    it(
+      channel === 'email'
+        ? 'D.3 email refuses local IMAP verification without storing credentials'
+        : `D.3 ${channel} connect with complete credentials reports connected`,
+      async function () {
+        this.timeout(60_000);
+        // Start from a known-disconnected state so a leftover connection from an
+        // earlier run cannot make the assertion below pass without a connect.
+        await callOpenhumanRpc('openhuman.channels_disconnect', { channel, authMode: 'api_key' });
+        if (isConnected(await statusFor(channel))) {
+          throw new Error(
+            `precondition: ${label} should be disconnected before the connect under test`
+          );
+        }
 
-      const out = await callOpenhumanRpc('openhuman.channels_connect', {
-        channel,
-        authMode: 'api_key',
-        credentials: validCredentials,
-      });
-      if (!out.ok) {
-        throw new Error(`${label} connect should be accepted: ${JSON.stringify(out)}`);
-      }
+        const credentials =
+          channel === 'email'
+            ? { ...validCredentials, imap_host: '127.0.0.1', imap_port: '1' }
+            : { ...validCredentials, api_domain: `http://127.0.0.1:${getMockServerPort()}` };
+        const out = await callOpenhumanRpc('openhuman.channels_connect', {
+          channel,
+          authMode: 'api_key',
+          credentials,
+        });
+        if (channel === 'email') {
+          expect(out.ok).toBe(false);
+          expect(out.error).toContain('IMAP connection failed');
+          expect(isConnected(await statusFor(channel))).toBe(false);
+          console.log(`${LOG_PREFIX} D.3 email: local IMAP verification rejected`);
+          return;
+        }
 
-      if (!isConnected(await statusFor(channel))) {
-        throw new Error(
-          `${label} reported a successful connect but channels_status does not show it ` +
-            `connected — the credentials were accepted and then not persisted`
-        );
+        if (!out.ok) {
+          throw new Error(`${label} connect should be accepted: ${JSON.stringify(out)}`);
+        }
+
+        if (!isConnected(await statusFor(channel))) {
+          throw new Error(
+            `${label} reported a successful connect but channels_status does not show it ` +
+              `connected — the credentials were accepted and then not persisted`
+          );
+        }
+        console.log(`${LOG_PREFIX} D.3 ${channel}: connected`);
       }
-      console.log(`${LOG_PREFIX} D.3 ${channel}: connected`);
-    });
+    );
 
     it(`D.4 ${channel} connect missing a required credential is rejected`, async function () {
       this.timeout(60_000);
@@ -247,10 +269,18 @@ describe('Credential channels — Yuanbao and Email (IMAP/SMTP)', () => {
 
     it(`D.5 ${channel} disconnect clears the stored connection`, async function () {
       this.timeout(60_000);
+      if (channel === 'email') {
+        this.skip();
+      }
       await callOpenhumanRpc('openhuman.channels_connect', {
         channel,
         authMode: 'api_key',
-        credentials: validCredentials,
+        credentials: {
+          ...validCredentials,
+          ...(channel === 'yuanbao'
+            ? { api_domain: `http://127.0.0.1:${getMockServerPort()}` }
+            : {}),
+        },
       });
       if (!isConnected(await statusFor(channel))) {
         throw new Error(

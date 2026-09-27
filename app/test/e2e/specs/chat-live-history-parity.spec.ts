@@ -30,17 +30,15 @@ import {
   waitForSocketConnected,
 } from '../helpers/chat-harness';
 import { callOpenhumanRpc } from '../helpers/core-rpc';
-import { textExists } from '../helpers/element-helpers';
+import { clickTestId } from '../helpers/element-helpers';
 import { resetApp } from '../helpers/reset-app';
 import { navigateViaHash } from '../helpers/shared-flows';
 import { clearRequestLog, setMockBehavior, startMockServer, stopMockServer } from '../mock-server';
 
 const LOG_PREFIX = '[chat-live-history-parity]';
 const USER_ID = 'e2e-chat-live-history-parity';
-const PROMPT = 'Check the config, then search for the setting, then explain it.';
+const PROMPT = 'Check the current time, resolve five minutes from now, then explain it.';
 const CANARY_FINAL = 'canary-parity-7c1e';
-const NARRATION_1 = 'Let me read the config first.';
-const NARRATION_2 = 'Now I will search for the setting.';
 const FINAL_ANSWER = [
   `Here is what I found (${CANARY_FINAL}).`,
   ...Array.from(
@@ -51,22 +49,22 @@ const FINAL_ANSWER = [
 
 const FORCED_RESPONSES = [
   {
-    content: NARRATION_1,
+    content: 'I will check the current time first.',
     toolCalls: [
       {
-        id: 'call_parity_read',
-        name: 'file_read',
-        arguments: JSON.stringify({ path: '/etc/openhuman/config.toml' }),
+        id: 'call_parity_time',
+        name: 'current_time',
+        arguments: JSON.stringify({ timezone: 'UTC' }),
       },
     ],
   },
   {
-    content: NARRATION_2,
+    content: 'Now I will resolve the five-minute interval.',
     toolCalls: [
       {
-        id: 'call_parity_grep',
-        name: 'grep',
-        arguments: JSON.stringify({ pattern: 'setting', path: '/etc/openhuman' }),
+        id: 'call_parity_resolve',
+        name: 'resolve_time',
+        arguments: JSON.stringify({ expr: 'in 5 minutes', timezone: 'UTC' }),
       },
     ],
   },
@@ -116,6 +114,10 @@ async function replyBlocks(): Promise<Block[]> {
         };
       });
   })) as Block[];
+}
+
+function hasFinalReply(blocks: Block[]): boolean {
+  return blocks.some(block => block.kind === 'text' && block.text.includes(CANARY_FINAL));
 }
 
 async function distanceFromBottom(): Promise<number> {
@@ -185,7 +187,13 @@ describe('Chat live/history parity', () => {
     while (Date.now() < deadline) {
       const blocks = await replyBlocks();
       if (blocks.length > 0) samples.push(blocks);
-      if ((await textExists(CANARY_FINAL)) && (await turnDrained())) break;
+      if (
+        (await getSelectedThreadId()) === threadId &&
+        hasFinalReply(blocks) &&
+        (await turnDrained())
+      ) {
+        break;
+      }
       await browser.pause(100);
     }
     expect(samples.length).toBeGreaterThan(3);
@@ -212,33 +220,84 @@ describe('Chat live/history parity', () => {
   });
 
   it('P3 — the settled reply equals the same turn reopened from history', async () => {
-    settled = await replyBlocks();
-    expect(settled.map(block => block.kind)).toEqual([
-      'text',
-      'tool-group-root',
-      'text',
-      'tool-group-root',
-      'text',
-    ]);
+    let previous: Block[] | undefined;
+    let stableSamples = 0;
+    await browser.waitUntil(
+      async () => {
+        const blocks = await replyBlocks();
+        const stable =
+          (await getSelectedThreadId()) === threadId &&
+          hasFinalReply(blocks) &&
+          (await turnDrained());
+        if (!stable) {
+          previous = undefined;
+          stableSamples = 0;
+          return false;
+        }
+        if (JSON.stringify(blocks) === JSON.stringify(previous)) stableSamples += 1;
+        else stableSamples = 1;
+        previous = blocks;
+        return stableSamples >= 3;
+      },
+      {
+        timeout: 15_000,
+        timeoutMsg: 'selected thread never rendered a stable, settled final reply',
+      }
+    );
+    // Compare the stable current projection. A streaming sample can become
+    // stale when the final assistant message replaces an earlier narration.
+    settled = (await replyBlocks()).map(block => ({ ...block }));
+    // The activity projection can consolidate adjacent tool rounds into one
+    // group. Pin the meaningful structure, then compare the complete live and
+    // reloaded projections below.
+    expect(settled.some(block => block.kind === 'tool-group-root')).toBe(true);
+    const finalBlock = settled.find(
+      block => block.kind === 'text' && block.text.includes(CANARY_FINAL)
+    );
+    expect(finalBlock).toBeDefined();
+    expect(finalBlock?.text).toContain(
+      'Paragraph 24: the setting controls how the agent behaves in this case.'
+    );
 
-    // Reopen the thread as a fresh load: drop this session's runtime state for
-    // it (including the frozen trail) and select it from another thread, so it
-    // renders from the persisted messages plus the core transcript projection.
+    // Reopen through the visible thread list after dropping runtime state, so
+    // the conversation is reloaded from persisted messages and the transcript.
     expect(await clickByTitle('New thread', 8_000)).toBe(true);
-    await browser.execute(tid => {
+    await browser.waitUntil(
+      async () => (await getSelectedThreadId()) !== threadId && (await replyBlocks()).length === 0,
+      {
+        timeout: 10_000,
+        timeoutMsg: 'new thread did not clear the prior conversation before reopening it',
+      }
+    );
+    await browser.execute(() => {
       const store = (
         window as unknown as { __OPENHUMAN_STORE__?: { dispatch: (a: unknown) => void } }
       ).__OPENHUMAN_STORE__;
       store?.dispatch({ type: 'chatRuntime/clearAllChatRuntime' });
-      store?.dispatch({ type: 'thread/setSelectedThread', payload: tid });
-    }, threadId);
+    });
+    await clickTestId(`thread-row-${threadId}`, 10_000);
 
+    previous = undefined;
+    stableSamples = 0;
     await browser.waitUntil(
       async () => {
         const blocks = await replyBlocks();
-        return blocks.length === settled.length && (await textExists(CANARY_FINAL));
+        const stable =
+          (await getSelectedThreadId()) === threadId &&
+          blocks.length === settled.length &&
+          hasFinalReply(blocks) &&
+          (await turnDrained());
+        if (!stable) {
+          previous = undefined;
+          stableSamples = 0;
+          return false;
+        }
+        if (JSON.stringify(blocks) === JSON.stringify(previous)) stableSamples += 1;
+        else stableSamples = 1;
+        previous = blocks;
+        return stableSamples >= 3;
       },
-      { timeout: 15_000, timeoutMsg: 'reopened thread never rendered the full reply' }
+      { timeout: 15_000, timeoutMsg: 'reopened thread never rendered a stable full reply' }
     );
     const reopened = await replyBlocks();
     expect(reopened).toEqual(settled);
