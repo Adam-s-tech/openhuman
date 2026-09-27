@@ -18,10 +18,16 @@ import { startMockServer, stopMockServer } from '../mock-server';
 
 const USER_ID = 'e2e-settings-search';
 
-async function getSearchSettings(): Promise<Record<string, unknown>> {
+type SearchSettings = {
+  enabled?: boolean;
+  providers?: Array<{ id: string; enabled: boolean; route: string }>;
+  effective_roles?: Record<string, string[]>;
+};
+
+async function getSearchSettings(): Promise<SearchSettings> {
   const response = await callOpenhumanRpc('openhuman.config_get_search_settings', {});
   expect(response.ok).toBe(true);
-  return response.result?.result ?? {};
+  return (response.result?.result ?? {}) as SearchSettings;
 }
 
 function providerOf(settings: Record<string, unknown>, id: string) {

@@ -88,7 +88,9 @@ fn ensure_servable(
     let usable = effective_role_providers(&resolved, config, role);
     let pinned = arguments.get("provider").and_then(Value::as_str);
     let servable = match pinned {
-        Some(provider) => usable.iter().any(|p| p == provider),
+        Some(provider) => resolved
+            .iter()
+            .any(|p| p.id == provider && p.usable && p.roles.contains(&role)),
         None => !usable.is_empty(),
     };
     if servable {

@@ -387,9 +387,17 @@ describe('Harness - Search tool-flow', () => {
     const log = getRequestLog() as Array<{ method: string; url: string; body?: string }>;
     const llmHits = log.filter(r => r.method === 'POST' && r.url.includes('/chat/completions'));
     expect(llmHits.length).toBeGreaterThanOrEqual(2);
-    if (!findToolInLlmLog(log, 'web_answer_tool')) {
-      console.warn(`${LOG_PREFIX} S3.4: "web_answer_tool" not found in LLM request bodies`);
-    }
+    expect(findToolInLlmLog(log, 'web_answer_tool')).toBe(true);
+    const toolResults = log.flatMap(request => {
+      if (!request.body) return [];
+      try {
+        const body = JSON.parse(request.body) as { messages?: Array<{ role?: string; content?: string }> };
+        return (body.messages ?? []).filter(message => message.role === 'tool').map(message => message.content ?? '');
+      } catch {
+        return [];
+      }
+    });
+    expect(toolResults.some(result => result.includes('Canberra') && /https?:\/\//.test(result))).toBe(true);
 
     console.log(`${LOG_PREFIX} S3.4: PASSED`);
   });
