@@ -48,7 +48,9 @@ export interface PendingApproval {
   action_summary: string;
   /** Redacted JSON arguments — counts/shape only, no raw message bodies. */
   args_redacted: unknown;
-  session_id: string;
+  /** Not sent by `approval_list_recent_decisions` today; optional so the UI
+   *  cannot crash on its absence. */
+  session_id?: string | null;
   /** RFC3339 timestamp. */
   created_at: string;
   /** RFC3339 timestamp, or null when the request does not expire. */

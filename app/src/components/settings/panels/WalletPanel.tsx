@@ -29,12 +29,23 @@ export default function WalletPanel() {
       value={tab}
       onChange={setTab}
       tabsAriaLabel={t('wallet.ariaLabel')}
-      tabsTestIdPrefix="wallet">
-      <div className="min-h-0 space-y-4" data-testid="wallet-panel">
-        <Alert variant="warning" role={undefined} className="max-w-5xl">
+      tabsTestIdPrefix="wallet"
+      // Balances is a fill-height table (only its rows scroll); Recovery is a
+      // normal scrolling form.
+      scrollable={tab !== 'balance'}>
+      <div
+        className={tab === 'balance' ? 'flex h-full min-h-0 flex-col gap-4' : 'space-y-4'}
+        data-testid="wallet-panel">
+        <Alert variant="warning" role={undefined} className="shrink-0">
           <AlertDescription>{t('walletBalances.earlyAlphaNotice')}</AlertDescription>
         </Alert>
-        {tab === 'balance' ? <WalletBalancesPanel /> : <RecoveryPhrasePanel />}
+        {tab === 'balance' ? (
+          <div className="min-h-0 flex-1">
+            <WalletBalancesPanel />
+          </div>
+        ) : (
+          <RecoveryPhrasePanel />
+        )}
       </div>
     </SettingsTabbedPage>
   );

@@ -83,7 +83,7 @@ SQLite DB at `{workspace_dir}/approval/approval.db`, table `pending_approvals` (
 
 ## Used by
 
-- `crates/openhuman-core/src/core/runtime/subscribers.rs`: installs the global gate (`ApprovalGate::init_global`) at startup and wires the approval RPCs.
+- `crates/openhuman-core/src/core/runtime/bootstrap.rs`: installs the global gate (`ApprovalGate::init_global`) at startup. `core/all.rs` registers the approval RPC controllers.
 - `crates/openhuman-core/src/core/all.rs`: registers the controller schemas.
 - `crates/openhuman-core/src/agent/tinyagents/middleware.rs` (`ApprovalSecurityMiddleware`, a `wrap_tool` middleware on every turn path): routes external-effect tool calls through the gate before `execute()` and records the terminal audit row.
 - `crates/openhuman-core/src/web_chat/`: sets `APPROVAL_CHAT_CONTEXT`, hosts `ApprovalSurfaceSubscriber`, and routes typed yes/no replies to `approval_decide`.

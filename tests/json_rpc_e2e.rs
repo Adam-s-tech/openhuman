@@ -539,7 +539,11 @@ fn mock_upstream_router() -> Router {
     ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
         require_bearer(&headers, BILLING_TOKEN)?;
         let plan = require_string_field(&body, "plan")?;
-        if !matches!(plan, "basic" | "pro" | "BASIC" | "PRO") {
+        // The deployed backend's `BillingPlan` values (the SDK's typed request).
+        if !matches!(
+            plan,
+            "BASIC_MONTHLY" | "BASIC_YEARLY" | "PRO_MONTHLY" | "PRO_YEARLY"
+        ) {
             return Err(error_json(
                 StatusCode::BAD_REQUEST,
                 "missing or invalid 'plan'",
@@ -4021,14 +4025,27 @@ async fn json_rpc_memory_sync_and_learn() {
     );
 
     // ── memory_ingestion_status: idle after direct learning ─────────────────
-    let ing_status = post_json_rpc(
-        &rpc_base,
-        7006,
-        "openhuman.memory_ingestion_status",
-        json!({}),
-    )
-    .await;
-    let ing_result = assert_no_jsonrpc_error(&ing_status, "memory_ingestion_status");
+    // The module's worker may still be settling an item that was already in
+    // flight when the shared store was wiped. Poll the read-only status until
+    // the worker releases it instead of racing its last queue-stat update.
+    let ing_result = tokio::time::timeout(Duration::from_secs(10), async {
+        loop {
+            let ing_status = post_json_rpc(
+                &rpc_base,
+                7006,
+                "openhuman.memory_ingestion_status",
+                json!({}),
+            )
+            .await;
+            let result = assert_no_jsonrpc_error(&ing_status, "memory_ingestion_status");
+            if result.get("running") == Some(&json!(false)) {
+                break result.clone();
+            }
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+    })
+    .await
+    .expect("memory ingestion did not settle after clearing the fresh store");
     assert_eq!(
         ing_result.get("running"),
         Some(&json!(false)),
@@ -7293,7 +7310,7 @@ async fn billing_rpc_e2e() {
         &rpc_base,
         3,
         "openhuman.billing_purchase_plan",
-        json!({ "plan": "pro" }),
+        json!({ "plan": "PRO_MONTHLY" }),
     )
     .await;
     let purchase_outer = assert_no_jsonrpc_error(&purchase, "billing_purchase_plan");

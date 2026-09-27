@@ -18,8 +18,7 @@ is mounted as a submodule of `load/dirs.rs` via `#[path]`.
 | `config.toml` section | File | Struct |
 | --- | --- | --- |
 | `[agent]`, `[orchestrator]`, `[teams.*]`, `[agents.*]` | `agent.rs` | `AgentConfig`, `OrchestratorModelConfig`, `TeamModelConfig`, `DelegateAgentConfig` |
-| `agent_activity_level` (scalar key) | `activity_level.rs` | `AgentActivityLevel` |
-| `[autonomy]` | `autonomy.rs` | `AutonomyConfig`, feeds `security::SecurityPolicy` |
+| `[autonomy]` | `autonomy.rs` | `AutonomyConfig` — feeds `security::SecurityPolicy` |
 | `[[capability_providers]]` | `capability_providers.rs` | `CapabilityProviderConfig` |
 | `[channels_config]`, `[sandbox]` | `channels.rs` | `ChannelsConfig` and per-provider configs re-exported from `tinychannels_bus`; `SandboxConfig`, `ResourceLimitsConfig`, `AuditConfig`, and `SecurityConfig` (only `DaemonConfig` embeds the last one) |
 | `[claude_agent_sdk]` | `claude_agent_sdk.rs` | `ClaudeAgentSdkConfig` |

@@ -36,19 +36,11 @@ import {
   type ToolCallMessagePartComponent,
   type ToolCallMessagePartProps,
   type ToolCallMessagePartStatus,
-  useAui,
   useAuiState,
 } from '@assistant-ui/react';
-import { type FC, useState } from 'react';
+import { type FC } from 'react';
 
-import {
-  formatElapsed,
-  TASK_PAGE_SIZE,
-  taskLabel,
-  taskMeta,
-  taskStateOf,
-  useTaskElapsed,
-} from '../utils/task';
+import { formatElapsed, taskLabel, taskMeta, taskStateOf, useTaskElapsed } from '../utils/task';
 import { mono } from './surfaces';
 import { TaskCard as TaskCardBase } from './task-card';
 import {
@@ -60,16 +52,13 @@ import {
 } from './tool-fallback';
 
 export type { TaskCardState } from './task-card';
-export { TASK_PAGE_SIZE } from '../utils/task';
 
 export type TaskPart = ToolCallMessagePart & {
   readonly status: ToolCallMessagePartStatus;
 } & Partial<Pick<ToolCallMessagePartProps, 'addResult' | 'resume' | 'respondToApproval'>>;
 
-export const isTaskPart = (part: { readonly type: string; readonly messages?: unknown }) =>
+const isTaskPart = (part: { readonly type: string; readonly messages?: unknown }) =>
   part.type === 'tool-call' && part.messages !== undefined;
-
-const KEY_SEPARATOR = String.fromCharCode(31);
 
 /** English defaults for a nested transcript message's role tag; override via `TaskTranscript`'s `roleLabels` prop. */
 export interface TaskTranscriptRoleLabels {
@@ -127,7 +116,7 @@ const TaskResult: FC<{ result: unknown }> = ({ result }) =>
     <pre className="m-0 overflow-x-auto whitespace-pre-wrap">{formatUnknownValue(result, 2)}</pre>
   );
 
-export const TaskCard: FC<{ part: TaskPart; className?: string }> = ({ part, className }) => {
+const TaskCard: FC<{ part: TaskPart; className?: string }> = ({ part, className }) => {
   const elapsedMs = useTaskElapsed(
     part.timing,
     part.status.type === 'running' || part.status.type === 'requires-action'
@@ -172,97 +161,5 @@ export const TaskCard: FC<{ part: TaskPart; className?: string }> = ({ part, cla
       result={result}>
       {messages.length > 0 ? <TaskTranscript messages={messages} /> : undefined}
     </TaskCardBase>
-  );
-};
-
-const TaskLane: FC<{ index: number }> = ({ index }) => {
-  const aui = useAui();
-  const part = useAuiState(s => s.message.parts[index]);
-  if (part?.type !== 'tool-call') return null;
-  const client = aui.message.part({ toolCallId: part.toolCallId });
-  return (
-    <TaskCard
-      part={{
-        ...part,
-        addResult: client.addToolResult,
-        resume: client.resumeToolCall,
-        respondToApproval: client.respondToToolApproval,
-      }}
-    />
-  );
-};
-
-/** English defaults for `TaskGroup`'s summary line; override via its `strings` prop. */
-export interface TaskGroupStrings {
-  tasks: (count: number) => string;
-  running: (count: number) => string;
-  waiting: (count: number) => string;
-  failed: (count: number) => string;
-  showMore: (count: number) => string;
-}
-
-const DEFAULT_TASK_GROUP_STRINGS: TaskGroupStrings = {
-  tasks: count => `${count} tasks`,
-  running: count => `${count} running`,
-  waiting: count => `${count} waiting`,
-  failed: count => `${count} failed`,
-  showMore: count => `Show ${count} more`,
-};
-
-export const TaskGroup: FC<{
-  group: MessagePrimitive.GroupedParts.GroupPart;
-  className?: string;
-  strings?: TaskGroupStrings;
-}> = ({ group, className, strings = DEFAULT_TASK_GROUP_STRINGS }) => {
-  const [visible, setVisible] = useState(TASK_PAGE_SIZE);
-  const { indices, counts } = group;
-  // A selector has to return a stable value, so the lane keys travel as one string and are split afterwards.
-  const laneKeys = useAuiState(s =>
-    indices
-      .map(index => {
-        const part = s.message.parts[index];
-        return part?.type === 'tool-call' ? part.toolCallId : String(index);
-      })
-      .join(KEY_SEPARATOR)
-  ).split(KEY_SEPARATOR);
-  const failed = useAuiState(s =>
-    indices.reduce((count, index) => {
-      const part = s.message.parts[index];
-      return part?.type === 'tool-call' && taskStateOf(part.status, part.isError) === 'failed'
-        ? count + 1
-        : count;
-    }, 0)
-  );
-  if (indices.length === 1) return <TaskLane index={indices[0]!} />;
-
-  const shown = indices.slice(0, visible);
-  const hidden = indices.length - shown.length;
-  const summary = [
-    strings.tasks(indices.length),
-    counts.running > 0 && strings.running(counts.running),
-    counts.requiresAction > 0 && strings.waiting(counts.requiresAction),
-    failed > 0 && strings.failed(failed),
-  ].filter((entry): entry is string => typeof entry === 'string');
-
-  return (
-    <div
-      data-slot="aui_task-group"
-      className={cn('flex w-full max-w-sm flex-col gap-2', className)}>
-      <div data-slot="aui_task-group-summary" className="text-muted-foreground px-1 text-xs">
-        {summary.join(' · ')}
-      </div>
-      {shown.map((index, position) => (
-        <TaskLane key={laneKeys[position] ?? index} index={index} />
-      ))}
-      {hidden > 0 && (
-        <button
-          type="button"
-          data-slot="aui_task-group-more"
-          onClick={() => setVisible(count => count + TASK_PAGE_SIZE)}
-          className="text-muted-foreground hover:text-foreground w-fit px-1 text-xs transition-colors">
-          {strings.showMore(Math.min(hidden, TASK_PAGE_SIZE))}
-        </button>
-      )}
-    </div>
   );
 };

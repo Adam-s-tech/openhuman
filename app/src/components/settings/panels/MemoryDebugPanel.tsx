@@ -1,3 +1,4 @@
+import { RefreshCw, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useT } from '../../../lib/i18n/I18nContext';
@@ -12,8 +13,9 @@ import {
   memoryRecallNamespace,
 } from '../../../utils/tauriCommands';
 import { MemoryTextWithEntities } from '../../intelligence/MemoryTextWithEntities';
-import { Spinner } from '../../ui';
+import { Badge, Spinner } from '../../ui';
 import Button from '../../ui/Button';
+import DataTable, { type DataTableColumn } from '../../ui/DataTable';
 import {
   SettingsEmptyState,
   SettingsSection,
@@ -194,84 +196,115 @@ const MemoryDebugPanel = () => {
     }
   }, [clearNamespaceInput, refreshAll, t]);
 
+  const documentColumns: DataTableColumn<MemoryDebugDocument>[] = [
+    {
+      id: 'document',
+      header: t('memory.column.document'),
+      className: 'w-full max-w-0',
+      cell: doc => (
+        <div className="min-w-0 space-y-0.5">
+          <p className="truncate text-xs font-medium text-content" title={doc.documentId}>
+            {doc.documentId}
+          </p>
+          {doc.title && (
+            <p className="truncate text-[11px] text-content-muted" title={doc.title}>
+              {doc.title}
+            </p>
+          )}
+        </div>
+      ),
+    },
+    {
+      id: 'namespace',
+      header: t('memory.namespace'),
+      className: 'w-px whitespace-nowrap',
+      cell: doc => <Badge variant="neutral">{doc.namespace}</Badge>,
+    },
+    {
+      id: 'actions',
+      header: <span className="sr-only">{t('memory.delete')}</span>,
+      align: 'right',
+      className: 'w-px whitespace-nowrap',
+      cell: doc => (
+        <Button
+          type="button"
+          variant="tertiary"
+          tone="danger"
+          size="xs"
+          disabled={Boolean(deleteLoadingId)}
+          onClick={() => void handleDelete(doc)}
+          leadingIcon={
+            deleteLoadingId === doc.documentId ? (
+              <Spinner className="h-3 w-3" />
+            ) : (
+              <Trash2 className="h-3.5 w-3.5" aria-hidden />
+            )
+          }>
+          {t('memory.delete')}
+        </Button>
+      ),
+    },
+  ];
+
   return (
     <SettingsPanel testId="memory-debug-panel" description={t('devOptions.debugPanelsDesc')}>
       <div className="space-y-5">
-        {/* Documents */}
-        <SettingsSection title={t('memory.documents')}>
-          <div className="px-4 py-3 space-y-3">
-            <div className="flex gap-2">
-              <SettingsTextField
-                className="flex-1"
-                value={documentsNamespaceFilter}
-                onChange={e => setDocumentsNamespaceFilter(e.target.value)}
-                placeholder={t('memory.filterByNamespace')}
-                aria-label={t('memory.filterByNamespace')}
-                inputSize="sm"
-              />
-              <Button
-                type="button"
-                variant="secondary"
-                size="xs"
-                onClick={() => void loadDocuments()}
-                disabled={documentsLoading}
-                leadingIcon={documentsLoading ? <Spinner className="h-3 w-3" /> : undefined}>
-                {t('memory.refresh')}
-              </Button>
-            </div>
-            <SettingsStatusLine saving={false} error={documentsError} savingLabel="" />
-            {documents.length === 0 && !documentsLoading ? (
-              <SettingsEmptyState label={t('memory.noDocumentsFound')} />
-            ) : (
-              <div className="space-y-1">
-                {documents.map(doc => (
-                  <div
-                    key={`${doc.namespace}:${doc.documentId}`}
-                    className="flex items-start justify-between gap-2 rounded-lg border border-line bg-surface-muted p-2">
-                    <div className="min-w-0">
-                      <div className="text-xs font-medium text-content break-all">
-                        {doc.documentId}
-                      </div>
-                      <div className="text-[11px] text-content-muted break-all">
-                        {doc.namespace}
-                      </div>
-                      {doc.title && (
-                        <div className="text-[11px] text-content-muted">{doc.title}</div>
-                      )}
-                    </div>
-                    <Button
-                      type="button"
-                      variant="tertiary"
-                      size="xs"
-                      disabled={Boolean(deleteLoadingId)}
-                      onClick={() => void handleDelete(doc)}
-                      leadingIcon={
-                        deleteLoadingId === doc.documentId ? (
-                          <Spinner className="h-3 w-3" />
-                        ) : undefined
-                      }>
-                      {t('memory.delete')}
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-            <details className="text-xs">
-              <summary className="cursor-pointer text-content-muted">
-                {t('memory.rawResponse')}
-              </summary>
-              {/* Intentionally non-themeable: a fixed dark terminal surface
-                  for raw JSON, inverted between light/dark mode so the dump
-                  always reads as a code/terminal pane rather than following
-                  the user's theme. Arbitrary hex values (not the `neutral`
-                  palette scale) so this isn't a themeable-surface regression
-                  masquerading as a fixed one. */}
-              <pre className="mt-1 max-h-32 overflow-auto rounded-lg border border-line bg-[#0a0a0a] dark:bg-[#fafafa] p-2 text-[11px] text-[#f5f5f5] dark:text-[#171717] whitespace-pre-wrap wrap-break-word">
-                {JSON.stringify(documentsRaw, null, 2)}
-              </pre>
-            </details>
-          </div>
-        </SettingsSection>
+        {/* Documents — the standard table, capped in height because this
+            page also carries the namespace / query / clear sections below. */}
+        <DataTable<MemoryDebugDocument>
+          fill={false}
+          testId="memory-debug-documents"
+          title={t('memory.documents')}
+          actions={
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => void loadDocuments()}
+              disabled={documentsLoading}
+              leadingIcon={
+                documentsLoading ? (
+                  <Spinner className="h-3 w-3" />
+                ) : (
+                  <RefreshCw className="h-3.5 w-3.5" aria-hidden />
+                )
+              }>
+              {t('memory.refresh')}
+            </Button>
+          }
+          search={{
+            value: documentsNamespaceFilter,
+            onChange: setDocumentsNamespaceFilter,
+            placeholder: t('memory.filterByNamespace'),
+            ariaLabel: t('memory.filterByNamespace'),
+          }}
+          error={
+            documentsError ? (
+              <SettingsStatusLine saving={false} error={documentsError} savingLabel="" />
+            ) : undefined
+          }
+          columns={documentColumns}
+          rows={documents}
+          rowKey={doc => `${doc.namespace}:${doc.documentId}`}
+          // Paging only once there is more than a page: a short list needs no
+          // footer.
+          pagination={documents.length > 25 ? { pageSize: 25 } : undefined}
+          loading={documentsLoading && documents.length === 0}
+          empty={<SettingsEmptyState label={t('memory.noDocumentsFound')} />}
+          ariaLabel={t('memory.documents')}
+        />
+        <details className="text-xs">
+          <summary className="cursor-pointer text-content-muted">{t('memory.rawResponse')}</summary>
+          {/* Intentionally non-themeable: a fixed dark terminal surface
+              for raw JSON, inverted between light/dark mode so the dump
+              always reads as a code/terminal pane rather than following
+              the user's theme. Arbitrary hex values (not the `neutral`
+              palette scale) so this isn't a themeable-surface regression
+              masquerading as a fixed one. */}
+          <pre className="mt-1 max-h-32 overflow-auto rounded-lg border border-line bg-[#0a0a0a] dark:bg-[#fafafa] p-2 text-[11px] text-[#f5f5f5] dark:text-[#171717] whitespace-pre-wrap wrap-break-word">
+            {JSON.stringify(documentsRaw, null, 2)}
+          </pre>
+        </details>
 
         {/* Namespaces */}
         <SettingsSection title={t('memory.namespaces')}>
@@ -291,11 +324,9 @@ const MemoryDebugPanel = () => {
             {namespaces.length > 0 ? (
               <div className="flex flex-wrap gap-1">
                 {namespaces.map(ns => (
-                  <span
-                    key={ns}
-                    className="rounded-full bg-surface-subtle px-2 py-0.5 text-[11px] text-content-muted">
+                  <Badge key={ns} variant="neutral">
                     {ns}
-                  </span>
+                  </Badge>
                 ))}
               </div>
             ) : (

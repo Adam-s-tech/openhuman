@@ -27,6 +27,10 @@ Applies to every release, all platforms.
 - [ ] **A failed chat turn does not offer an invalid regenerate action** — Trigger a provider failure in a test profile and inspect its error card. Expected: the diagnostic text remains visible, with no Retry or Refresh button on that failed message. A completed assistant reply still offers Refresh (#6613).
 - [ ] **A failed turn leaves its thread usable** — In a test profile, get one successful reply, trigger a streamed provider failure on the next turn, then send another message in the same thread. Expected: the error card appears, the composer re-enables, the next reply streams normally, and the agent still has the first turn's context. If a queued follow-up starts as the failed turn ends, its stream and composer state stay active.
 
+### Refreshed application UI
+
+- [ ] **Settings, Connections, theme, and workflow surfaces remain usable** — On desktop, navigate between Settings sections and Connections tabs, switch between light/dark and at least one named theme family, export and re-import a custom theme, then open a workflow canvas and its run history. Expected: each route renders its own content without stale panels or horizontal overflow; imported themes can be selected and theme selection and run details survive a reload where persistence is expected.
+
 ### Native desktop control
 
 - [ ] **Connections enables the published desktop module on an unlocked macOS or Windows session** — Open Connections → Integrations → Desktop Control, verify the Early Alpha notice, enable it, grant Accessibility if prompted, and run the read-only test. Expected: the module loads from the pinned release, the panel reports the actual permission state, and the test sees an accessibility snapshot. Screen Recording is required only when testing capture. A locked macOS screen must not be reported as a successful probe.

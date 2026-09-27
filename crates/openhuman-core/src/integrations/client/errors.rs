@@ -4,7 +4,7 @@
 
 use std::error::Error as _;
 
-use crate::api::transport::BackendTransportError;
+use crate::backend::transport::BackendTransportError;
 
 use crate::integrations::types::BackendResponse;
 
@@ -48,7 +48,7 @@ pub(crate) fn extract_error_detail(body: &str, max_bytes: usize) -> String {
 /// **Why this 401 is unambiguously a session-JWT rejection.** Every request
 /// from [`IntegrationClient`] attaches the *app-session JWT* as its
 /// `Authorization: Bearer` — [`super::construct::IntegrationClient::new`] resolves the
-/// token via [`crate::api::jwt::get_session_token`], the same token billing / team /
+/// token via [`crate::security::credentials::jwt::get_session_token`], the same token billing / team /
 /// webhooks / memory all use. The backend's auth middleware
 /// (`backend-openhuman`) is what answers `401 {"error":"Invalid token"}` when
 /// that JWT is expired / revoked / rotated server-side — see the identical

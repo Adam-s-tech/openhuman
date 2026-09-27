@@ -63,11 +63,18 @@ fn domain_subscriber_plan_harness_gates_by_owning_group() {
         plan.memory,
         "harness keeps memory conversation-persistence + sync bridge"
     );
-    // Platform / Channels / Flows / Meet / Mcp are NOT in harness.
+    // Skills, Desktop and Integrations own the subscribers omitted by harness.
+    assert!(!plan.skills, "harness must skip the webhook subscriber");
+    assert!(!plan.desktop, "harness must skip the notification bridge");
     assert!(
-        !plan.platform,
-        "harness must skip webhook/notification/composio/task-sources/device-tunnel"
+        !plan.integrations,
+        "harness must skip composio and task-source subscribers"
     );
+    assert!(
+        plan.security,
+        "harness retains the device-tunnel subscriber"
+    );
+    assert!(!plan.platform, "harness excludes the platform domain");
     assert!(
         !plan.channels,
         "harness must skip channel-inbound + web-only proactive"

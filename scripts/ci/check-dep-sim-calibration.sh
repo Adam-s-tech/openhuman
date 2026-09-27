@@ -59,6 +59,8 @@
 # build dependency. See the matching kernel-floor history entry.
 # 282 -> 285 on 2026-09-26: the required TinyBrowser integration adds
 # tinybrowser-bus, tinybrowser-control, and tinyjevclient. Native count stays 2.
+# 285 -> 284 on 2026-09-27: moving the JSON-RPC server above the core removes
+# openhuman-rpc from the core's no-default + flows dependency graph.
 #
 # Called by ci-lite.yml's feature-gate smoke lane and by the lane runner, so the
 # expected count lives here once (plus scripts/kernel-floor.limits).
@@ -66,6 +68,6 @@ set -euo pipefail
 
 cd "$(dirname "$0")/../.."
 
-EXPECTED_NAMES=285
+EXPECTED_NAMES=284
 
 exec python3 scripts/dep-sim.py --cut-nothing --expect-names "${EXPECTED_NAMES}"

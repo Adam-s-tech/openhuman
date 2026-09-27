@@ -21,7 +21,6 @@ import {
 import { connectOpenRouterViaOAuth } from '../../../utils/openrouterOAuth';
 import PanelPage from '../../layout/PanelPage';
 import Button from '../../ui/Button';
-import Card from '../../ui/Card';
 import { ModalShell } from '../../ui/ModalShell';
 import SettingsBackButton from '../components/SettingsBackButton';
 import { useSettingsNavigation } from '../hooks/useSettingsNavigation';
@@ -210,7 +209,7 @@ const AIPanel = ({
             label: t('settings.ai.llmProviders'),
             contentClassName: embedded || hideTabChrome ? '' : 'p-4',
             content: (
-              <div className="flex w-full flex-col">
+              <div className="flex w-full flex-col gap-4">
                 <ProviderAuthSection
                   draft={draft}
                   persist={persist}
@@ -257,41 +256,39 @@ const AIPanel = ({
               "managed / own / custom" mode any more: every row is explicit,
               and Managed is just one of the sources a row can pick.
               ═══════════════════════════════════════════════════════════════ */}
-                <Card className="w-full">
-                  <WorkloadTable
-                    title={t('settings.ai.routing.chatAndConversations')}
-                    description={t('settings.ai.routing.chatDesc')}>
-                    <DefaultModelRow
-                      value={draft.defaultModel}
-                      onChange={model => persist({ ...draft, defaultModel: model })}
+                <WorkloadTable
+                  title={t('settings.ai.routing.chatAndConversations')}
+                  description={t('settings.ai.routing.chatDesc')}
+                  data-testid="routing-group-chat">
+                  <DefaultModelRow
+                    value={draft.defaultModel}
+                    onChange={model => persist({ ...draft, defaultModel: model })}
+                  />
+                  {chatRows.map(w => (
+                    <WorkloadRow
+                      key={w.id}
+                      workload={w}
+                      ref_={draft.routing[w.id]}
+                      cloudProviders={draft.cloudProviders}
+                      onCustomClick={() => setPickerFor(w.id)}
                     />
-                    {chatRows.map(w => (
-                      <WorkloadRow
-                        key={w.id}
-                        workload={w}
-                        ref_={draft.routing[w.id]}
-                        cloudProviders={draft.cloudProviders}
-                        onCustomClick={() => setPickerFor(w.id)}
-                      />
-                    ))}
-                  </WorkloadTable>
-                </Card>
+                  ))}
+                </WorkloadTable>
 
-                <Card className="w-full">
-                  <WorkloadTable
-                    title={t('settings.ai.routing.backgroundTasks')}
-                    description={t('settings.ai.routing.bgTasksDesc')}>
-                    {bgRows.map(w => (
-                      <WorkloadRow
-                        key={w.id}
-                        workload={w}
-                        ref_={draft.routing[w.id]}
-                        cloudProviders={draft.cloudProviders}
-                        onCustomClick={() => setPickerFor(w.id)}
-                      />
-                    ))}
-                  </WorkloadTable>
-                </Card>
+                <WorkloadTable
+                  title={t('settings.ai.routing.backgroundTasks')}
+                  description={t('settings.ai.routing.bgTasksDesc')}
+                  data-testid="routing-group-background">
+                  {bgRows.map(w => (
+                    <WorkloadRow
+                      key={w.id}
+                      workload={w}
+                      ref_={draft.routing[w.id]}
+                      cloudProviders={draft.cloudProviders}
+                      onCustomClick={() => setPickerFor(w.id)}
+                    />
+                  ))}
+                </WorkloadTable>
                 {isDirty && (
                   <SaveBar
                     diffSummary={diffSummary}
