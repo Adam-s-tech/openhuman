@@ -129,8 +129,8 @@ async fn http_request_log_middleware(req: Request, next: Next) -> Response {
 /// Handler for the root endpoint, returning server information and available endpoints.
 async fn root_handler() -> impl IntoResponse {
     let api_server = match openhuman_core::config::Config::load_or_init().await {
-        Ok(cfg) => openhuman_core::api::config::effective_backend_api_url(&cfg.api_url),
-        Err(_) => openhuman_core::api::config::effective_backend_api_url(&None),
+        Ok(cfg) => openhuman_core::backend::base_url(&cfg.api_url).ok(),
+        Err(_) => openhuman_core::backend::base_url(&None).ok(),
     };
 
     (
