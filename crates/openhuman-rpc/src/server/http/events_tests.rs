@@ -23,7 +23,7 @@ fn domain_event_payload_includes_redacted_detail_and_workspace_handle() {
 
     assert_eq!(domain, "mcp_client");
     assert_eq!(data["event"], "McpServerProbeTimedOut");
-    assert_eq!(data["agent"], "server-1");
+    assert_eq!(data["agent"], "example.test/mcp");
     assert_eq!(
         data["detail"],
         "no answer in 10s; timeout 2 of 3 before teardown"
