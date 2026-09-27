@@ -16,7 +16,7 @@ The command does not start the HTTP JSON-RPC server. It reads newline-delimited
 JSON-RPC 2.0 messages from stdin and writes MCP responses to stdout. Logs go to
 stderr; add `--verbose` for debug output.
 
-## Client Provenance
+## Client provenance
 
 During `initialize`, the MCP server captures `params.clientInfo.name` for the
 stdio session. The name is normalized by trimming leading and trailing
@@ -112,7 +112,7 @@ The `initialize` response includes:
 | `openhuman://prompts/identity`    | `IDENTITY.md` (core agent identity)                    |
 | `openhuman://prompts/soul`        | `SOUL.md` (core agent personality and values)          |
 | `openhuman://prompts/user`        | `USER.md` (user-profile context)                       |
-| `openhuman://prompts/agents/<id>` | `<id>/prompt.md` for each of the 18 built-in subagents |
+| `openhuman://prompts/agents/<id>` | `<id>/prompt.md` for each of the 33 built-in subagents |
 
 All resources have `mimeType: "text/markdown"`.
 
@@ -142,7 +142,7 @@ printf '%s\n' \
   | openhuman-core mcp
 ```
 
-## Tool Registry
+## Tool registry
 
 The HTTP JSON-RPC server also exposes a read-only global tool registry for
 agents and dashboards that need discovery metadata without opening an MCP stdio
@@ -158,7 +158,7 @@ The registry is discovery-only. It does not change tool dispatch or permission
 checks; MCP calls still go through `tools/call`, and controller-backed tools
 still route through their existing JSON-RPC methods.
 
-### External Capability Providers
+### External capability providers
 
 OpenHuman can record trusted external capability providers in `config.toml`.
 This is governance metadata only: it does not install packages, execute remote
@@ -180,7 +180,7 @@ eligible for future admission checks only when it is both `enabled = true` and
 `trust_state = "trusted"`. Missing provider config preserves the previous
 behavior: the provider registry is empty and no existing tools are hidden.
 
-## Smoke Test
+## Smoke test
 
 ```bash
 printf '%s\n' \

@@ -52,7 +52,7 @@ const TokenUsageChart = ({ days }: TokenUsageChartProps) => {
             tickLine={false}
             axisLine={false}
             tick={{ fill: 'currentColor', opacity: 0.45 }}
-            height={14}
+            height={24}
           />
           <YAxis
             stroke="currentColor"
@@ -94,7 +94,7 @@ const TokenUsageChart = ({ days }: TokenUsageChartProps) => {
                 ? t('settings.costDashboard.inputTokens')
                 : t('settings.costDashboard.outputTokens')
             }
-            wrapperStyle={{ fontSize: '11px' }}
+            wrapperStyle={{ fontSize: '11px', paddingTop: 4 }}
             iconType="circle"
           />
           <Bar

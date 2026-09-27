@@ -12,15 +12,15 @@ test.describe('Card Payment Flow', () => {
     await bootAuthenticatedPage(page, `pw-card-payment-${slug}`, '/settings/account');
   });
 
-  test('account settings exposes the billing redirect', async ({ page }) => {
+  test('account settings exposes the billing dashboard action', async ({ page }) => {
     await waitForAppReady(page);
     await expect(page.getByTestId('account-panel')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Billing' })).toBeVisible();
+    await expect(page.getByTestId('account-open-billing')).toBeVisible();
   });
 
-  test('billing button is present', async ({ page }) => {
+  test('billing action is present', async ({ page }) => {
     await waitForAppReady(page);
-    await expect(page.getByRole('button', { name: 'Billing' })).toBeVisible();
+    await expect(page.getByTestId('account-open-billing')).toBeVisible();
   });
 
   test('back-to-settings navigation works', async ({ page }) => {

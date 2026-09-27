@@ -1,6 +1,6 @@
 # ops
 
-JSON-RPC / CLI controller surface for persisted config and runtime flags — the
+JSON-RPC / CLI controller surface for persisted config and runtime flags: the
 mutation half of `config`. `crate::config` re-exports this module both under
 its own name and as `rpc` (`pub use ops as rpc`), so most callers write
 `config::rpc::*`. Controllers in `../schemas/` are thin wrappers around the
@@ -13,7 +13,7 @@ fn, which returns `RpcOutcome<T>`.
 
 | File | Responsibility |
 | --- | --- |
-| `agent.rs` | Autonomy, agent, agent-paths, activity-level, and memory-sync settings. |
+| `agent.rs` | Autonomy, agent, agent-paths, and memory-sync settings. |
 | `loader.rs` | Config loading/snapshotting and runtime flags; split into submodules `loader/load.rs`, `loader/paths.rs`, `loader/reset_local_data.rs`, `loader/runtime_flags.rs`, `loader/snapshot.rs`. |
 | `model.rs` | AI-provider, memory, runtime, local-AI, and Composio-trigger settings. |
 | `privacy.rs` | Privacy Mode (`[privacy]`) get/set. |
@@ -34,8 +34,7 @@ dictation and voice-server mutators exist only in `load_and_apply_*` form.
 - `agent.rs`: `apply_autonomy_settings` / `get_autonomy_settings`,
   `add_auto_approve_tool`, `apply_agent_settings` / `get_agent_settings`,
   `apply_agent_paths_settings` / `get_agent_paths`, `ensure_usable_cwd`,
-  `expand_tilde`, `redact_home`, `apply_activity_level_settings`,
-  `apply_memory_sync_settings`.
+  `expand_tilde`, `redact_home`, `apply_memory_sync_settings`.
 - `loader.rs`: `load_config_with_timeout`,
   `load_config_for_workspace_with_timeout`, `get_config_snapshot`,
   `client_config_json`, `reload_config_from_paths`, `reset_local_data`,
@@ -84,7 +83,7 @@ After saving, a loaded TinySearch module is refreshed privately.
   lock and delegates to `apply_autonomy_settings`, so the same reload
   happens. `apply_agent_paths_settings` calls
   `crate::security::live_policy::set_action_dir` when `action_dir` changes.
-  Do not weaken these settings mutators — they gate the same autonomy
+  Do not weaken these settings mutators; they gate the same autonomy
   invariants AGENTS.md requires of `security/`.
 - `apply_privacy_settings` calls `crate::security::live_policy::reload_privacy`
   after saving, so the inference chokepoint enforces the new Privacy Mode

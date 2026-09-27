@@ -97,7 +97,7 @@ function WorktreeRow({ activity }: { activity: SubagentActivity }) {
           title={activity.worktreePath}>
           {basename(activity.worktreePath)}
         </span>
-        <Badge variant={activity.isDirty ? 'warning' : 'success'} className="rounded-full">
+        <Badge variant={activity.isDirty ? 'warning' : 'success'}>
           {activity.isDirty ? t('worktree.dirty') : t('worktree.clean')}
         </Badge>
       </div>

@@ -126,11 +126,15 @@ describe('WalletBalancesPanel — loading state', () => {
 
     renderPanel();
 
-    expect(screen.getByText(/loading balances/i)).toBeInTheDocument();
+    // The loading state is a skeleton table body (`role="status"` +
+    // `aria-busy`), announced via its `aria-label` rather than visible text.
+    expect(screen.getByRole('status', { name: /loading balances/i })).toBeInTheDocument();
 
     // Resolve so React can clean up.
     resolve([]);
-    await waitFor(() => expect(screen.queryByText(/loading balances/i)).not.toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.queryByRole('status', { name: /loading balances/i })).not.toBeInTheDocument()
+    );
   });
 });
 

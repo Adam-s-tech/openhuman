@@ -7,6 +7,7 @@
 //! - Defining the RPC surface for configuration management.
 //! - Handling the schema definitions for all agent and system settings.
 
+pub mod app_env;
 pub mod daemon;
 pub mod migration_helpers;
 pub mod migrations;

@@ -5,9 +5,9 @@ import { useT } from '../../../lib/i18n/I18nContext';
 import { type AISettings, loadAISettings } from '../../../services/api/aiSettingsApi';
 import CostDashboardPanel from '../../dashboard/CostDashboardPanel';
 import UsageLogPanel from '../../dashboard/UsageLogPanel';
-import { SettingsStatusLine } from '../controls';
-import SettingsPanel from '../layout/SettingsPanel';
-import { BackgroundLoopControls } from './AIPanel';
+import { Alert, AlertDescription, CenteredLoadingState } from '../../ui';
+import SettingsTabbedPage from '../layout/SettingsTabbedPage';
+import BackgroundLoopControls from './ai/BackgroundLoopControls';
 import TokenUsagePanel from './TokenUsagePanel';
 
 type TabId = 'costs' | 'log' | 'tokens' | 'background';
@@ -27,13 +27,12 @@ const hashToTab = (hash: string): TabId => {
 };
 
 /**
- * Single Settings entry for usage. Combines the cost dashboard, usage log,
- * Tokenjuice token-savings surface, and the
- * background-activity controls (heartbeat cadences + usage ledger, previously
- * the separate Heartbeat and Usage-ledger pages) as tabs under one header. The
- * active tab is reflected in the URL hash (`#tokens` / `#background`) so deep
- * links and the legacy heartbeat/ledger-usage/token-usage redirects land on
- * the right view.
+ * Connections → Usage. One page, four views as header chip tabs (the same
+ * shell as Connections → LLM): the cost dashboard, the per-call usage log,
+ * Tokenjuice token savings, and background loops + the credit ledger. The
+ * active tab is reflected in the URL hash (`#log` / `#tokens` / `#background`)
+ * so deep links and the legacy heartbeat/ledger-usage/token-usage redirects
+ * land on the right view.
  */
 const UsagePanel = () => {
   const { t } = useT();
@@ -47,31 +46,27 @@ const UsagePanel = () => {
   };
 
   return (
-    <SettingsPanel<TabId>
+    <SettingsTabbedPage<TabId>
+      title={t('settings.usage.title')}
       description={t('settings.usage.menuDesc')}
       tabsAriaLabel={t('settings.usage.title')}
       tabsTestIdPrefix="usage-tab"
+      // The log tab is one table card that fills the body and scrolls its own
+      // rows, so the page must not scroll around it.
+      scrollable={tab !== 'log'}
       value={tab}
       onChange={selectTab}
       tabs={[
-        {
-          id: 'costs',
-          label: t('settings.costDashboard.title'),
-          content: <CostDashboardPanel embedded />,
-        },
-        { id: 'log', label: t('settings.costDashboard.usageLog'), content: <UsageLogPanel /> },
-        {
-          id: 'tokens',
-          label: t('settings.tokenUsage.title'),
-          content: <TokenUsagePanel embedded />,
-        },
-        {
-          id: 'background',
-          label: t('settings.heartbeat.title'),
-          content: <BackgroundActivityTab />,
-        },
-      ]}
-    />
+        { id: 'costs', label: t('settings.costDashboard.title') },
+        { id: 'log', label: t('settings.costDashboard.usageLog') },
+        { id: 'tokens', label: t('settings.tokenUsage.title') },
+        { id: 'background', label: t('settings.heartbeat.title') },
+      ]}>
+      {tab === 'costs' && <CostDashboardPanel embedded />}
+      {tab === 'log' && <UsageLogPanel />}
+      {tab === 'tokens' && <TokenUsagePanel embedded />}
+      {tab === 'background' && <BackgroundActivityTab />}
+    </SettingsTabbedPage>
   );
 };
 
@@ -100,8 +95,12 @@ const BackgroundActivityTab = () => {
   }, []);
 
   return (
-    <div className="p-4 space-y-5" data-testid="usage-background-tab">
-      <SettingsStatusLine saving={false} error={loadError} savingLabel="" />
+    <div className="space-y-4" data-testid="usage-background-tab">
+      {loadError && (
+        <Alert variant="destructive" density="compact">
+          <AlertDescription>{loadError}</AlertDescription>
+        </Alert>
+      )}
       {snapshot ? (
         <BackgroundLoopControls
           view="all"
@@ -110,7 +109,7 @@ const BackgroundActivityTab = () => {
           cloudProviders={snapshot.cloudProviders}
         />
       ) : !loadError ? (
-        <div className="text-xs text-content-muted">{t('common.loading')}</div>
+        <CenteredLoadingState label={t('common.loading')} />
       ) : null}
     </div>
   );

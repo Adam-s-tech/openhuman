@@ -61,7 +61,7 @@ crate-type = ["rlib"]
 [dependencies]
 openhuman-rpc.workspace = true
 # The TinyHumans SDK is deliberately NOT a dependency of the core. The core
-# reaches the hosted backend only through `api::transport::BackendTransport`;
+# reaches the hosted backend only through `backend::transport::BackendTransport`;
 # the SDK-backed implementation is `crates/openhuman-tinyhumans`, which hosts
 # install at boot. `scripts/assert-shed.sh` / `cargo tree -i tinyhumans-sdk`
 # must stay empty for this package.

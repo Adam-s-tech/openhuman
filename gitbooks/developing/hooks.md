@@ -1,7 +1,7 @@
 # Hooks
 
-A hook is a script you own that OpenHuman runs at a specific moment — before a
-tool executes, after a file is edited, when a turn finishes — and whose answer
+A hook is a script you own that OpenHuman runs at a specific moment (before a
+tool executes, after a file is edited, when a turn finishes) and whose answer
 the agent obeys. It is how you make the agent follow a rule that lives in your
 repository rather than in our code: block `rm -rf`, run the formatter after every
 edit, write an audit line per tool call, refuse to read `.env`.
@@ -39,7 +39,7 @@ for either host runs on the other unchanged.
 }
 ```
 
-Four locations are read, and **they concatenate — a more specific file cannot
+Four locations are read, and **they concatenate: a more specific file cannot
 remove a broader one's rules**:
 
 | Layer | Path |
@@ -60,7 +60,7 @@ a machine an operator has already locked down.
 | ----- | ------- |
 | `command` | Program to run (or the prompt text, for `"type": "prompt"`). Runs with its own `hooks.json` directory as cwd. |
 | `type` | `command` (default) or `prompt`. |
-| `matcher` | Which occurrences reach this hook — see below. Absent means all. |
+| `matcher` | Which occurrences reach this hook, see below. Absent means all. |
 | `timeout` | Seconds. Falls back to `[hooks] default_timeout_secs` (30). |
 | `failClosed` | Treat a crashed, missing, or timed-out hook as a denial. Default `false`. |
 | `loop_limit` | Follow-ups this hook may inject per session. Default 5; `0` means unlimited. |
@@ -76,14 +76,14 @@ The event arrives on **stdin** as one JSON object. The decision goes to
 | ---- | ------- |
 | `0` | stdout is the decision. Empty stdout is a no-op. |
 | `2` | Deny, whatever stdout said. stderr becomes the reason the agent is told. |
-| anything else | Failure. **Fails open** — the action proceeds — unless `failClosed`. |
+| anything else | Failure. **Fails open** (the action proceeds) unless `failClosed`. |
 
 A timeout, a missing interpreter, and unparseable stdout all take that same
 failure path. That symmetry is the point: a hook that denies only when it
 manages to run is not a security control, so `failClosed` covers every way a
 script can fail to answer.
 
-stdout is parsed leniently — the last standalone JSON object wins — so a script
+stdout is parsed leniently: the last standalone JSON object wins, so a script
 that logs progress before answering works as written.
 
 ### Decision object
@@ -110,27 +110,27 @@ allowing.
 ## Events
 
 `hook_event_name` in the envelope tells a script which moment it is in. Names are
-matched loosely — `preToolUse`, `PreToolUse` and `pre_tool_use` are the same
+matched loosely: `preToolUse`, `PreToolUse` and `pre_tool_use` are the same
 event, and Claude Code's `UserPromptSubmit` aliases onto `beforeSubmitPrompt`.
 
 | Event | Fires | Honours |
 | ----- | ----- | ------- |
 | `preToolUse` | before any tool | `permission`, `updated_input`, `agent_message` |
 | `postToolUse` | after a tool succeeded | `additional_context` |
-| `postToolUseFailure` | after a tool failed | — |
+| `postToolUseFailure` | after a tool failed | - |
 | `beforeShellExecution` | before `shell` / `node_exec` / … | `permission`, `agent_message` |
-| `afterShellExecution` | after one completed | — |
+| `afterShellExecution` | after one completed | - |
 | `beforeReadFile` | before `file_read` / `read_diff` | `permission` |
-| `afterFileEdit` | after `file_write` / `edit` / `apply_patch` | — |
+| `afterFileEdit` | after `file_write` / `edit` / `apply_patch` | - |
 | `beforeMCPExecution` / `afterMCPExecution` | around an MCP tool | `permission` |
 | `beforeSubmitPrompt` | on a chat message, before the model | `continue`, `permission`, `additional_context` |
 | `subagentStart` | before a delegation | `permission` |
-| `subagentStop` | after one — not fired yet, see below | `followup_message` |
+| `subagentStop` | after one (not fired yet, see below) | `followup_message` |
 | `stop` | after a turn | `followup_message` |
-| `afterAgentResponse` | on the assistant's message | — |
+| `afterAgentResponse` | on the assistant's message | - |
 
 `sessionStart`, `sessionEnd`, `preCompact`, `afterAgentThought` and `subagentStop`
-are defined — they parse, match, execute, and can be exercised with `hooks test` —
+are defined: they parse, match, execute, and can be exercised with `hooks test`,
 but the core does not fire them yet. (`subagentStop` is the near miss: the handler
 `hooks::ops::subagent_stopped` is complete, but the in-progress
 `agent/subagent_host` cutover currently fires only `subagentStart` and returns
@@ -141,7 +141,7 @@ system can do to you.
 
 ### Derived events
 
-OpenHuman has no separate "shell execution" or "file read" call site — those are
+OpenHuman has no separate "shell execution" or "file read" call site: those are
 the `shell`, `file_read` and `file_write` tools going through the ordinary tool
 seam. So the shell, file and MCP events are *derived* from tool calls, and their
 payloads are reshaped the way a Cursor hook expects: a `command` string, a
@@ -154,11 +154,11 @@ One string, matched against a subject the event chooses: the tool name for tool
 events, the command line for shell events, the path for file events, the agent id
 for subagent events.
 
-* absent or `*` — everything
-* `Shell` — a literal, case-insensitive name
-* `Read|Write|Shell` — alternation
-* `MCP:search_docs` — an MCP tool by name
-* anything containing punctuation — a regular expression (`^rm\b`, `\.rs$`)
+* absent or `*`: everything
+* `Shell`: a literal, case-insensitive name
+* `Read|Write|Shell`: alternation
+* `MCP:search_docs`: an MCP tool by name
+* anything containing punctuation: a regular expression (`^rm\b`, `\.rs$`)
 
 An invalid regex matches **nothing** and logs.
 
@@ -167,7 +167,7 @@ An invalid regex matches **nothing** and logs.
 Gating events run their hooks sequentially and the turn waits; a denial
 short-circuits the rest. Observational events (`afterShellExecution`,
 `postToolUseFailure`, `afterAgentResponse`, …) are dispatched onto a background
-task and the turn never waits — an audit hook that hangs must not hang the agent.
+task and the turn never waits, so an audit hook that hangs must not hang the agent.
 
 When nothing is configured, the harness bridge is not installed at all, so an
 unconfigured host pays nothing per tool call.
@@ -190,7 +190,7 @@ answers `{"ok": true}` or `{"ok": false, "reason": "…"}`.
 { "command": "Deny if $ARGUMENTS deletes anything outside /tmp.", "type": "prompt" }
 ```
 
-It costs a model call per event, so put it on rare, high-stakes moments — not on
+It costs a model call per event, so put it on rare, high-stakes moments, not on
 every tool call.
 
 ## Inspecting and debugging
@@ -256,7 +256,7 @@ Both need `chmod +x`.
 
 ## Implementation
 
-`crates/openhuman-core/src/hooks/` — `types` (the wire contract), `config` (the file and its
+`crates/openhuman-core/src/hooks/`: `types` (the wire contract), `config` (the file and its
 layering), `matcher`, `exec` (one hook: stdin, timeout, exit codes),
 `engine` (selection, ordering, aggregation), `context` (the envelope),
 `bridge` (mounting on the harness's existing tool and turn seams), `ops` (the

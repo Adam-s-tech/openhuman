@@ -80,14 +80,14 @@ pub fn module_config(config: &Config) -> ModuleSearchConfig {
         crate::security::credentials::session_support::resolve_backend_credential(config).ok();
     let resolved = providers::resolve_with(config, credential.is_some());
     let backend = BackendConfig {
-        base_url: Some(crate::api::effective_backend_api_url(&config.api_url)),
+        base_url: crate::backend::base_url(&config.api_url).ok(),
         auth_mode: if credential.as_ref().is_some_and(|c| c.is_api_key()) {
             BackendAuthMode::ApiKey
         } else {
             BackendAuthMode::Session
         },
         credential: credential.map(|c| c.into_secret()),
-        sdk_name: Some(crate::api::product_identity().as_str().to_owned()),
+        sdk_name: crate::backend::product_identity(),
     };
 
     let mut module_providers: BTreeMap<String, ProviderConfig> = resolved

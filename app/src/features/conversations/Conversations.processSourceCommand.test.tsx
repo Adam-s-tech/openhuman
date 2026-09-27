@@ -25,6 +25,7 @@ import threadGoalReducer from '../../store/threadGoalSlice';
 import threadReducer from '../../store/threadSlice';
 import threadTodosReducer from '../../store/threadTodosSlice';
 import type { Thread } from '../../types/thread';
+import Conversations from './Conversations';
 
 const { mockGetThreads, mockGetThreadMessages, mockUseUsageState } = vi.hoisted(() => ({
   mockGetThreads: vi.fn().mockResolvedValue({ threads: [], count: 0 }),
@@ -159,8 +160,6 @@ async function renderChat(composer?: 'text' | 'mic-cloud', withProcessData = fal
         }
       : {}),
   });
-  const { default: Conversations } = await import('./Conversations');
-
   await act(async () => {
     render(
       <Provider store={store}>

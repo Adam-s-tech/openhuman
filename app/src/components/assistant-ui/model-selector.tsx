@@ -11,6 +11,7 @@ import {
   CommandSeparator,
 } from '@/components/assistant-ui/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/assistant-ui/ui/popover';
+import { useT } from '@/lib/i18n/I18nContext';
 import { useAui } from '@assistant-ui/react';
 import { Radio } from '@base-ui/react/radio';
 import { RadioGroup } from '@base-ui/react/radio-group';
@@ -31,7 +32,7 @@ import {
 
 export type ModelSelectorEffortOption = { id: string; name: string };
 
-export const DEFAULT_EFFORT_OPTIONS: readonly ModelSelectorEffortOption[] = [
+const DEFAULT_EFFORT_OPTIONS: readonly ModelSelectorEffortOption[] = [
   { id: 'low', name: 'Low' },
   { id: 'medium', name: 'Med' },
   { id: 'high', name: 'High' },
@@ -126,7 +127,7 @@ function useModelSelectorContext() {
  * DropdownMenu) when the built-in ModelSelector.Effort layout doesn't fit.
  * `efforts` is undefined for models without configurable reasoning.
  */
-export function useModelSelectorEfforts(): {
+function useModelSelectorEfforts(): {
   efforts: readonly ModelSelectorEffortOption[] | undefined;
   effort: string | undefined;
   setEffort: (effort: string) => void;
@@ -204,7 +205,7 @@ function ModelSelectorRoot({
   );
 }
 
-export const modelSelectorTriggerVariants = cva(
+const modelSelectorTriggerVariants = cva(
   "focus-visible:ring-ring/50 flex w-fit items-center justify-between gap-2 overflow-hidden rounded-md text-sm whitespace-nowrap transition-colors outline-none focus-visible:ring-1 disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-3.5",
   {
     variants: {
@@ -356,9 +357,10 @@ function useLazyFlipSide(): {
  * one automatically when unfiltered.
  */
 function ModelSelectorFocusAnchor() {
+  const { t } = useT();
   return (
     <div className="sr-only">
-      <CommandInput readOnly aria-label="Model" />
+      <CommandInput readOnly aria-label={t('composer.modelSelector', 'Model')} />
     </div>
   );
 }
@@ -676,18 +678,4 @@ ModelSelector.Separator = ModelSelectorSeparator;
 ModelSelector.Item = ModelSelectorItem;
 ModelSelector.Effort = ModelSelectorEffort;
 
-export {
-  ModelSelector,
-  ModelSelectorRoot,
-  ModelSelectorTrigger,
-  ModelSelectorValue,
-  ModelSelectorContent,
-  ModelSelectorSearch,
-  ModelSelectorFocusAnchor,
-  ModelSelectorList,
-  ModelSelectorEmpty,
-  ModelSelectorGroup,
-  ModelSelectorSeparator,
-  ModelSelectorItem,
-  ModelSelectorEffort,
-};
+export { ModelSelector };

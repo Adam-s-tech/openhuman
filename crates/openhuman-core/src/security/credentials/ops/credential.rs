@@ -12,9 +12,9 @@
 use serde::Deserialize;
 use serde_json::{json, Value};
 
-use crate::api::jwt::decode_jwt_exp;
 use crate::config::Config;
 use crate::rpc::RpcOutcome;
+use crate::security::credentials::jwt::decode_jwt_exp;
 use crate::security::credentials::responses::AuthStateResponse;
 use crate::security::credentials::session_support::{
     build_session_state, load_app_session_profile, local_session_user_id,
@@ -77,7 +77,7 @@ fn sanitize_user(user: Option<Value>) -> Option<Value> {
 }
 
 fn user_id_from_payload(user: Option<&Value>) -> Option<String> {
-    user.and_then(crate::api::rest::user_id_from_profile_payload)
+    user.and_then(crate::security::credentials::jwt::user_id_from_profile_payload)
 }
 
 fn normalize_local_user(user: Value, local_user_id: &str) -> Value {

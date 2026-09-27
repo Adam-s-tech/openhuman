@@ -125,12 +125,10 @@ export const MetricTile = ({
   value: string;
   detail?: string;
 }) => (
-  <div className="min-w-0 overflow-hidden rounded-md bg-surface-muted px-3 py-2">
-    <div className="truncate text-[10px] font-semibold uppercase tracking-wide text-content-faint">
-      {label}
-    </div>
-    <div className="mt-1 truncate text-sm font-semibold text-content">{value}</div>
-    {detail ? <div className="mt-0.5 truncate text-[11px] text-content-muted">{detail}</div> : null}
+  <div className="min-w-0 overflow-hidden rounded-lg bg-surface-muted px-3 py-2.5">
+    <div className="truncate text-xs text-content-muted">{label}</div>
+    <div className="mt-0.5 truncate text-lg font-semibold tabular-nums text-content">{value}</div>
+    {detail ? <div className="mt-0.5 truncate text-xs text-content-faint">{detail}</div> : null}
   </div>
 );
 
@@ -143,11 +141,11 @@ export const FormulaRow = ({
   value: string;
   detail: string;
 }) => (
-  <div className="min-w-0 overflow-hidden rounded-md border border-line bg-surface px-3 py-2">
-    <div className="flex items-center justify-between gap-3">
-      <span className="min-w-0 truncate text-xs font-medium text-content">{label}</span>
-      <span className="shrink-0 font-mono text-xs text-content-secondary">{value}</span>
+  <div className="flex min-w-0 items-center justify-between gap-4 px-4 py-3">
+    <div className="min-w-0">
+      <div className="truncate text-sm font-medium text-content">{label}</div>
+      <div className="mt-0.5 truncate text-xs text-content-muted">{detail}</div>
     </div>
-    <div className="mt-1 truncate text-[11px] text-content-muted">{detail}</div>
+    <span className="shrink-0 font-mono text-sm tabular-nums text-content">{value}</span>
   </div>
 );
