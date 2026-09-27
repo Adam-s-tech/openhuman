@@ -334,7 +334,14 @@ pub(super) fn assemble_turn_harness(
     // dedupe read or leaves the index stale. Pushed ahead of every other
     // result-rewriting middleware so its `after_tool` runs *after* the byte-cap
     // truncation, keeping the note.
-    harness.push_middleware(Arc::new(middleware::MemoryProtocolMiddleware::new()));
+    // Dedupe guidance stays active; only the closing-step reminder depends on
+    // whether this turn can call the index-update tool.
+    let can_update_index = allowed
+        .as_ref()
+        .is_none_or(|names| names.contains("update_memory_md"));
+    harness.push_middleware(Arc::new(
+        middleware::MemoryProtocolMiddleware::with_index_update_tool(can_update_index),
+    ));
 
     // Repeated-failure circuit breaker: pause the run when a tool returns the same
     // error `REPEATED_TOOL_FAILURE_THRESHOLD` times in a row, so a deterministic
@@ -553,6 +560,13 @@ pub(super) fn assemble_turn_harness(
         &tool_outcome_sink,
     );
 
+    // Direct web lookup is for a bounded answer. Once enough search/fetch
+    // results have returned, spend the next model call on synthesis rather
+    // than another variation of the same query. Specialist research runs keep
+    // their own budgets and are not narrowed here.
+    if subagent_scope.is_none() {
+        harness.push_middleware(Arc::new(middleware::ResearchBudgetMiddleware::new()));
+    }
     // SDK-owned tool-policy projection (issue #4249 / tinyagents-full-migration
     // 01.1). Keep this narrow for now: enforce sandbox requirements declared by
     // adapter policies without enabling classification/approval/result-byte

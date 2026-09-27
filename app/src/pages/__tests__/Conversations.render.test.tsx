@@ -1180,7 +1180,7 @@ describe('Conversations — smoke render (#1123 welcome-lock removal)', () => {
     return { store: store!, thread };
   }
 
-  it('preserves the partial reply marked stopped when Stop is clicked mid-stream (#4862)', async () => {
+  it('requests cancellation without persisting the partial before core confirmation (#4862)', async () => {
     const { thread } = await renderStreamingConversation({ streamingContent: 'half a thought' });
 
     const stopButton = await screen.findByRole('button', { name: 'Stop generating' });
@@ -1189,18 +1189,13 @@ describe('Conversations — smoke render (#1123 welcome-lock removal)', () => {
     });
 
     expect(chatCancel).toHaveBeenCalledWith(thread.id);
-    // The partial stream is persisted as its own agent message flagged stopped
-    // so it survives the cancel instead of vanishing with the live preview.
-    await waitFor(() => {
-      expect(threadApi.appendMessage).toHaveBeenCalledWith(
-        thread.id,
-        expect.objectContaining({
-          content: 'half a thought',
-          sender: 'agent',
-          extraMetadata: expect.objectContaining({ stopped: true }),
-        })
-      );
+    // Persistence belongs to ChatRuntimeProvider.onCancelled after the core
+    // confirms the turn that actually stopped. The click path must not write
+    // early because a rejected cancellation can still produce a final reply.
+    await act(async () => {
+      await Promise.resolve();
     });
+    expect(threadApi.appendMessage).not.toHaveBeenCalled();
   });
 
   it('does not persist a stopped message when nothing has streamed yet (#4862)', async () => {
@@ -1262,7 +1257,7 @@ describe('Conversations — smoke render (#1123 welcome-lock removal)', () => {
     expect(threadApi.appendMessage).not.toHaveBeenCalled();
   });
 
-  it('persists the stopped reply only once across repeated Stop clicks (#4862)', async () => {
+  it('does not locally persist a partial across repeated Stop clicks (#4862)', async () => {
     const { thread } = await renderStreamingConversation({ streamingContent: 'half a thought' });
 
     const stopButton = await screen.findByRole('button', { name: 'Stop generating' });
@@ -1272,15 +1267,13 @@ describe('Conversations — smoke render (#1123 welcome-lock removal)', () => {
       fireEvent.click(stopButton);
     });
 
-    expect(chatCancel).toHaveBeenCalledWith(thread.id);
-    // The one-shot requestId guard keeps the partial from being appended twice.
-    await waitFor(() => {
-      expect(threadApi.appendMessage).toHaveBeenCalledTimes(1);
+    expect(chatCancel).toHaveBeenCalledTimes(2);
+    expect(chatCancel).toHaveBeenNthCalledWith(1, thread.id);
+    expect(chatCancel).toHaveBeenNthCalledWith(2, thread.id);
+    await act(async () => {
+      await Promise.resolve();
     });
-    expect(threadApi.appendMessage).toHaveBeenCalledWith(
-      thread.id,
-      expect.objectContaining({ extraMetadata: expect.objectContaining({ stopped: true }) })
-    );
+    expect(threadApi.appendMessage).not.toHaveBeenCalled();
   });
 
   it('interrupts the stream and restores the last prompt into the composer on ESC (#4862)', async () => {

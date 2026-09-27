@@ -98,7 +98,7 @@ pub(crate) fn direct_mode_without_key(config: &Config) -> OpResult<bool> {
 ///
 /// Session presence MUST mirror the module route's own resolution:
 /// `module_config` calls `integrations::build_client`, whose only token source
-/// is the app-session JWT (`crate::api::jwt::get_session_token`). Read that
+/// is the app-session JWT (`crate::security::credentials::jwt::get_session_token`). Read that
 /// same source — not `build_client` itself, which logs a warning per call and
 /// would recreate the noise this guard removes.
 ///
@@ -110,7 +110,7 @@ pub(crate) fn backend_mode_without_session(config: &Config) -> bool {
     if !(mode.is_empty() || mode == crate::config::schema::COMPOSIO_MODE_BACKEND) {
         return false;
     }
-    match crate::api::jwt::get_session_token(config) {
+    match crate::security::credentials::jwt::get_session_token(config) {
         Ok(token) => token.as_deref().map(str::trim).is_none_or(|token| {
             token.is_empty()
                 || crate::security::credentials::session_support::is_local_session_token(token)

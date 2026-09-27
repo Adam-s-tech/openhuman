@@ -20,6 +20,8 @@
    dependency; without it the class matches nothing and a streaming trace looks
    identical to a settled one. Guarded by `src/__tests__/shimmerUtility.test.ts`. */
 @import 'tw-shimmer';
+/* User border preferences (Appearance → Layout); unlayered so it wins. */
+@import './styles/layout-overrides.css';
 
 @plugin '@tailwindcss/forms';
 @plugin '@tailwindcss/typography';

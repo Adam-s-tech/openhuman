@@ -5,6 +5,76 @@ use std::sync::Arc;
 use tinyagents_runtime::ToolSnapshot;
 use tinytools::ToolSpec;
 
+#[tokio::test]
+async fn committed_progress_uses_each_turns_receipt_sender() {
+    use crate::agent::progress::AgentProgress;
+    use tinyagents_runtime::{
+        CommitReceipt, ResumeMode, SessionTurnOutcome, TranscriptTurnOptions,
+    };
+
+    let receipt = |tx| {
+        let mut context = crate::agent::tinyagents::host::OpenHumanRunContext::new();
+        context.progress = Some(tx);
+        CommitReceipt {
+            outcome: SessionTurnOutcome {
+                history: Vec::new(),
+                output: Some("answer".into()),
+                interrupted: false,
+            },
+            options: TranscriptTurnOptions {
+                request_id: None,
+                thread_id: None,
+                stream: true,
+                resume: ResumeMode::Never,
+                context,
+            },
+            transcript: None,
+        }
+    };
+    let (first_tx, mut first_rx) = tokio::sync::mpsc::channel(2);
+    let (second_tx, mut second_rx) = tokio::sync::mpsc::channel(2);
+    let first = receipt(first_tx);
+    let second = receipt(second_tx);
+
+    assert!(super::progress::send_receipt_progress(&second, "question", "answer", 2).await);
+    assert!(matches!(
+        second_rx.recv().await,
+        Some(AgentProgress::TurnContent { .. })
+    ));
+    assert!(matches!(
+        second_rx.recv().await,
+        Some(AgentProgress::TurnCompleted { iterations: 2 })
+    ));
+    assert!(matches!(
+        first_rx.try_recv(),
+        Err(tokio::sync::mpsc::error::TryRecvError::Empty)
+    ));
+    drop(first);
+}
+
+#[test]
+fn clearing_progress_releases_warm_prelude_sender() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let config = crate::config::Config {
+        workspace_dir: tmp.path().join("workspace"),
+        action_dir: tmp.path().join("workspace"),
+        config_path: tmp.path().join("config.toml"),
+        ..Default::default()
+    };
+    let mut host =
+        crate::agent::OpenHumanSessionHost::from_config_for_agent(&config, "orchestrator")
+            .expect("orchestrator");
+    host.ensure_runtime_session().expect("warm runtime");
+
+    let (tx, mut rx) = tokio::sync::mpsc::channel(1);
+    host.set_on_progress(Some(tx));
+    host.set_on_progress(None);
+    assert!(matches!(
+        rx.try_recv(),
+        Err(tokio::sync::mpsc::error::TryRecvError::Disconnected)
+    ));
+}
+
 /// A full progress channel must not discard the only terminal signal. A busy
 /// bridge can catch up after the turn commits; it cannot infer completion from
 /// an event that was dropped.
@@ -29,6 +99,15 @@ async fn committed_turn_completion_waits_for_a_full_progress_channel() {
             .expect("terminal progress event"),
         Some(AgentProgress::TurnCompleted { iterations: 2 })
     ));
+    assert!(matches!(
+        tokio::time::timeout(std::time::Duration::from_secs(1), rx.recv())
+            .await
+            .expect("content after terminal progress event"),
+        Some(AgentProgress::TurnContent {
+            input: Some(input),
+            output: Some(output),
+        }) if input == "question" && output == "answer"
+    ));
 }
 
 /// A receiver can remain alive while its bridge is stalled. Once the send
@@ -51,6 +130,74 @@ fn spec(name: &str) -> ToolSpec {
         description: format!("{name} description"),
         parameters: serde_json::json!({ "type": "object", "properties": {} }),
     }
+}
+
+#[cfg(feature = "mcp")]
+#[test]
+fn connected_mcp_actions_enter_search_and_leave_on_disconnect() {
+    use crate::mcp::registry::action_tool::searchable_name;
+    use crate::mcp::registry::types::{ConnectedServerOverview, McpTool};
+
+    crate::agent::harness::definition::AgentDefinitionRegistry::init_global_builtins()
+        .expect("builtin definitions");
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let config = crate::config::Config {
+        workspace_dir: tmp.path().join("workspace"),
+        action_dir: tmp.path().join("workspace"),
+        config_path: tmp.path().join("config.toml"),
+        ..Default::default()
+    };
+    let mut host =
+        crate::agent::OpenHumanSessionHost::from_config_for_agent(&config, "orchestrator")
+            .expect("orchestrator");
+    host.ensure_runtime_session().expect("runtime session");
+    let prelude = host
+        .runtime_state
+        .lock()
+        .expect("runtime state")
+        .prelude
+        .clone()
+        .expect("prelude");
+    prelude
+        .mutable
+        .lock()
+        .expect("prelude state")
+        .connected_mcp_tools = vec![ConnectedServerOverview {
+        server_id: "server-1".into(),
+        qualified_name: "example/weather".into(),
+        display_name: "Weather".into(),
+        description: None,
+        instructions: None,
+        tools: vec![McpTool {
+            name: "forecast".into(),
+            description: Some("Get weather forecast".into()),
+            input_schema: serde_json::json!({"type":"object","properties":{}}),
+        }],
+    }];
+
+    let action = searchable_name("server-1", "forecast");
+    prelude.refresh_delegation_tool_surface();
+    assert!(prelude.synthesized_tool_names_for_test().contains(&action));
+    {
+        let surface = prelude.tool_surface.lock().expect("tool surface");
+        assert!(surface.deferred_tool_names.contains(&action));
+        assert!(!surface.visible_tool_names.contains(&action));
+    }
+
+    prelude
+        .mutable
+        .lock()
+        .expect("prelude state")
+        .connected_mcp_tools
+        .clear();
+    prelude.refresh_delegation_tool_surface();
+    assert!(!prelude.synthesized_tool_names_for_test().contains(&action));
+    assert!(!prelude
+        .tool_surface
+        .lock()
+        .expect("tool surface")
+        .deferred_tool_names
+        .contains(&action));
 }
 
 #[cfg(feature = "modules")]
@@ -189,5 +336,40 @@ async fn a_resumed_orchestrator_keeps_the_integration_actions_it_was_sent() {
     assert!(
         !names.contains("web_fetch"),
         "only integration actions are rebuilt from the record"
+    );
+}
+
+/// The incident this guards: `session_locator()` is called from more than one
+/// place while assembling a session's runtime turn machinery (the
+/// `before_resume` resume target and the eager construction-time
+/// `builder.session(...)` bind), and tinyagents only accepts a later
+/// transcript-target change when it is the exact same locator object
+/// (`Arc::ptr_eq`), not merely an equivalent one over the same file. Before
+/// this was memoized, each call minted a fresh `FileTranscriptLocator`, so a
+/// thread's second turn was rejected with "cannot change a transcript target
+/// after it is bound or committed" even though both binds agreed on the
+/// destination. Pin the fix directly: every call must return the identical
+/// `Arc`.
+#[tokio::test]
+async fn session_locator_is_memoized_across_calls() {
+    let action_dir = tempfile::tempdir().expect("tempdir");
+    let model: Arc<dyn tinyinference_llm::model::ChatModel<()>> =
+        Arc::new(tinyagents_harness::testkit::ScriptedModel::new(Vec::new()));
+    let host = crate::agent::SessionHostBuilder::new()
+        .chat_model(model)
+        .tools(Vec::new())
+        .action_dir(action_dir.path().to_path_buf())
+        .memory(crate::memory::test_support::noop_memory())
+        .tool_dispatcher(Box::new(tinytools_agent::dialect::XmlDialect))
+        .agent_definition_name("orchestrator")
+        .build()
+        .expect("session build");
+
+    let first = host.session_locator();
+    let second = host.session_locator();
+    assert!(
+        Arc::ptr_eq(&first, &second),
+        "session_locator() must return the same Arc on every call, or tinyagents' \
+         same-binding check rejects the second transcript bind"
     );
 }

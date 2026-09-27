@@ -41,6 +41,7 @@ mod records_extra;
 mod records_mcp_connectors;
 mod records_memory_juice;
 mod records_runtime;
+mod records_search;
 mod records_voice;
 
 use crate::modules::types::ModuleRecord;

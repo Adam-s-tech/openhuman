@@ -1,3 +1,4 @@
+import { ArrowDown, ArrowUp, Check, Copy, Globe, RefreshCw, Settings2 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 
@@ -11,7 +12,6 @@ import {
 // ---------------------------------------------------------------------------
 
 import { useUser } from '../../../hooks/useUser';
-import { cn } from '../../../lib/cn';
 import { useT } from '../../../lib/i18n/I18nContext';
 import {
   type BalanceInfo,
@@ -21,10 +21,13 @@ import {
   type WalletChain,
 } from '../../../services/walletApi';
 import { type RootState } from '../../../store';
-import { type DataTableColumn } from '../../ui';
+import { Alert, AlertDescription } from '../../ui/Alert';
+import Badge from '../../ui/Badge';
 import Button from '../../ui/Button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../ui/Table';
-import { SettingsEmptyState } from '../controls';
+import Card from '../../ui/Card';
+import DataTable, { type DataTableColumn } from '../../ui/DataTable';
+import EmptyState from '../../ui/EmptyState';
+import { TableCell, TableRow } from '../../ui/Table';
 import { useSettingsNavigation } from '../hooks/useSettingsNavigation';
 import SettingsPanel from '../layout/SettingsPanel';
 import { ChainIcon, NETWORK_MODAL_ICONS, TOKEN_ICONS } from './wallet/chainIcons';
@@ -74,16 +77,21 @@ function truncateAddress(address: string): string {
  * its own copy button, its own clipboard state and its own action pair), and
  * the columns exist to define the header and the alignment.
  */
-const COLUMNS_FOR = <T,>(t: (key: string) => string): DataTableColumn<T>[] => [
-  { id: 'network', header: 'Token' },
-  { id: 'address', header: t('walletBalances.colAddress') },
+const COLUMNS_FOR = (t: (key: string) => string): DataTableColumn<BalanceInfo>[] => [
+  { id: 'network', header: t('walletBalances.colToken'), className: 'whitespace-nowrap' },
+  { id: 'address', header: t('walletBalances.colAddress'), className: 'w-full max-w-0' },
   {
     id: 'balance',
     header: t('walletBalances.colBalance'),
     align: 'right',
-    className: 'pr-12 lg:pr-24',
+    className: 'w-px whitespace-nowrap',
   },
-  { id: 'actions', header: t('walletBalances.colActions') },
+  {
+    id: 'actions',
+    header: t('walletBalances.colActions'),
+    align: 'right',
+    className: 'w-px whitespace-nowrap',
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -134,10 +142,8 @@ const BalanceRow = ({ balance, onSend, onReceive }: BalanceRowProps) => {
   const networkLabel = balanceNetworkLabel(balance);
 
   return (
-    <TableRow
-      data-testid={`wallet-row-${balanceKey(balance)}`}
-      className="hover:bg-surface-muted group">
-      <TableCell className="whitespace-nowrap px-4">
+    <TableRow data-testid={`wallet-row-${balanceKey(balance)}`} className="group">
+      <TableCell className="whitespace-nowrap">
         <div className="flex items-center gap-3">
           <ChainIcon chain={balance.chain} evmNetwork={balance.evmNetwork} />
           <div className="flex flex-col">
@@ -145,16 +151,14 @@ const BalanceRow = ({ balance, onSend, onReceive }: BalanceRowProps) => {
             <span className="text-xs text-content-muted">{networkLabel}</span>
           </div>
           {balance.providerStatus !== 'ready' && (
-            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
-              {t('walletBalances.providerMissing')}
-            </span>
+            <Badge variant="warning">{t('walletBalances.providerMissing')}</Badge>
           )}
         </div>
       </TableCell>
-      <TableCell>
+      <TableCell className="w-full max-w-0">
         {/* Address + copy button */}
-        <div className="flex items-center justify-start gap-1.5 min-w-0">
-          <span className="font-mono text-[12px] text-content-muted truncate">
+        <div className="flex min-w-0 items-center justify-start gap-1.5">
+          <span className="truncate font-mono text-xs text-content-muted" title={balance.address}>
             {truncateAddress(balance.address)}
           </span>
           <Button
@@ -166,32 +170,14 @@ const BalanceRow = ({ balance, onSend, onReceive }: BalanceRowProps) => {
             aria-label={t('walletBalances.copyAddress')}
             className="shrink-0 text-content-faint hover:text-content-secondary dark:hover:text-content-secondary">
             {copied ? (
-              <svg
-                className="w-3.5 h-3.5 text-sage-500"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
+              <Check className="h-3.5 w-3.5 text-sage-500" aria-hidden />
             ) : (
-              <svg
-                className="w-3.5 h-3.5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}>
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                />
-              </svg>
+              <Copy className="h-3.5 w-3.5" aria-hidden />
             )}
           </Button>
         </div>
       </TableCell>
-      <TableCell className="whitespace-nowrap text-right pr-12 lg:pr-24">
+      <TableCell className="w-px whitespace-nowrap text-right">
         <div className="flex items-center justify-end gap-1.5">
           <span
             title={t('walletBalances.rawBalance').replace('{raw}', balance.raw)}
@@ -210,52 +196,28 @@ const BalanceRow = ({ balance, onSend, onReceive }: BalanceRowProps) => {
           )}
         </div>
       </TableCell>
-      <TableCell className="w-px whitespace-nowrap text-left">
-        <div className="flex justify-start gap-4 pr-2">
-          <button
+      <TableCell className="w-px whitespace-nowrap text-right">
+        <div className="flex justify-end gap-2">
+          <Button
             type="button"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface dark:bg-content-inverted/5 border border-line hover:bg-surface-hover dark:hover:bg-content-inverted/10 group outline-hidden focus-visible:ring-2 focus-visible:ring-primary-500/40 transition-all duration-200 hover:scale-105 active:scale-95"
+            variant="secondary"
+            size="sm"
             onClick={() => onSend(balance)}
             data-testid={`wallet-send-${balanceKey(balance)}`}
-            aria-label={t('walletBalances.send')}>
-            <svg
-              className="h-3.5 w-3.5 text-content-secondary group-hover:text-content transition-colors"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2.5}>
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18"
-              />
-            </svg>
-            <span className="text-xs font-medium text-content-secondary group-hover:text-content transition-colors">
-              {t('walletBalances.send')}
-            </span>
-          </button>
-          <button
+            aria-label={t('walletBalances.send')}
+            leadingIcon={<ArrowUp className="h-3.5 w-3.5" aria-hidden />}>
+            {t('walletBalances.send')}
+          </Button>
+          <Button
             type="button"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface dark:bg-content-inverted/5 border border-line hover:bg-surface-hover dark:hover:bg-content-inverted/10 group outline-hidden focus-visible:ring-2 focus-visible:ring-primary-500/40 transition-all duration-200 hover:scale-105 active:scale-95"
+            variant="secondary"
+            size="sm"
             onClick={() => onReceive(balance)}
             data-testid={`wallet-receive-${balanceKey(balance)}`}
-            aria-label={t('walletBalances.receive')}>
-            <svg
-              className="h-3.5 w-3.5 text-content-secondary group-hover:text-content transition-colors"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2.5}>
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M19.5 13.5L12 21m0 0l-7.5-7.5M12 21V3"
-              />
-            </svg>
-            <span className="text-xs font-medium text-content-secondary group-hover:text-content transition-colors">
-              {t('walletBalances.receive')}
-            </span>
-          </button>
+            aria-label={t('walletBalances.receive')}
+            leadingIcon={<ArrowDown className="h-3.5 w-3.5" aria-hidden />}>
+            {t('walletBalances.receive')}
+          </Button>
         </div>
       </TableCell>
     </TableRow>
@@ -263,12 +225,10 @@ const BalanceRow = ({ balance, onSend, onReceive }: BalanceRowProps) => {
 };
 
 // ---------------------------------------------------------------------------
-// ChainPlaceholderRow — shown per chain before the wallet is configured. There
-// is no derived address or balance yet, so we render a muted "not set up" row
-// to convey the wallet layout without fabricating data.
+// ChainPlaceholderCard — shows available networks without implying balances exist.
 // ---------------------------------------------------------------------------
 
-const ChainPlaceholderRow = ({
+const ChainPlaceholderCard = ({
   chain,
   evmNetwork,
   assetSymbol,
@@ -280,40 +240,22 @@ const ChainPlaceholderRow = ({
   const { t } = useT();
 
   return (
-    <TableRow className="hover:bg-content-inverted/5 opacity-70 group">
-      <TableCell className="whitespace-nowrap px-4">
-        <div className="flex items-center gap-3">
+    <Card padded divided={false}>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
           <ChainIcon chain={chain} evmNetwork={evmNetwork} />
-          <div className="flex flex-col">
-            <span className="text-sm font-bold text-content-faint font-mono">{assetSymbol}</span>
-            <span className="text-xs text-content-faint">
+          <div className="min-w-0">
+            <p className="font-mono text-sm font-semibold text-content">{assetSymbol}</p>
+            <p className="truncate text-xs text-content-muted">
               {balanceNetworkLabel({ chain, evmNetwork })}
-            </span>
+            </p>
           </div>
         </div>
-      </TableCell>
-      <TableCell>
-        <span className="font-mono text-[11px] text-content-faint">
+        <Badge variant="neutral" className="shrink-0">
           {t('walletBalances.notSetUp')}
-        </span>
-      </TableCell>
-      <TableCell className="whitespace-nowrap text-right pr-12 lg:pr-24">
-        <div className="flex items-center justify-end gap-1.5">
-          <span className="text-sm font-medium text-content-faint font-mono">—</span>
-          {TOKEN_ICONS[assetSymbol] ? (
-            <img
-              src={TOKEN_ICONS[assetSymbol]}
-              alt={assetSymbol}
-              title={assetSymbol}
-              className="w-4 h-4 shrink-0 object-contain opacity-40 dark:opacity-40 dark:invert"
-            />
-          ) : (
-            <span className="text-xs text-content-faint">{assetSymbol}</span>
-          )}
-        </div>
-      </TableCell>
-      <TableCell className="w-px" />
-    </TableRow>
+        </Badge>
+      </div>
+    </Card>
   );
 };
 
@@ -417,7 +359,10 @@ const WalletBalancesPanel = () => {
   }, [loadBalances]);
 
   const selectedNetworkLabel =
-    NETWORK_FILTERS.find(f => f.id === selectedNetwork)?.label ?? 'All networks';
+    selectedNetwork === 'all'
+      ? t('walletBalances.allNetworks')
+      : (NETWORK_FILTERS.find(f => f.id === selectedNetwork)?.label ??
+        t('walletBalances.allNetworks'));
 
   const filterRows = <
     T extends { chain: WalletChain; evmNetwork?: EvmNetwork; assetSymbol: string },
@@ -433,302 +378,171 @@ const WalletBalancesPanel = () => {
     });
   };
 
+  const [query, setQuery] = useState('');
+  const needle = query.trim().toLowerCase();
+  const matchesQuery = (row: BalanceInfo) =>
+    !needle ||
+    row.assetSymbol.toLowerCase().includes(needle) ||
+    balanceNetworkLabel(row).toLowerCase().includes(needle) ||
+    row.address.toLowerCase().includes(needle);
+
+  const refreshButton = (
+    <Button
+      type="button"
+      variant="secondary"
+      size="sm"
+      onClick={() => void loadBalances()}
+      disabled={loading || isRefreshing}
+      leadingIcon={
+        <RefreshCw
+          className={loading || isRefreshing ? 'h-3.5 w-3.5 animate-spin' : 'h-3.5 w-3.5'}
+          aria-hidden
+        />
+      }>
+      {t('walletBalances.refresh')}
+    </Button>
+  );
+  const manageButton = (
+    <Button
+      type="button"
+      variant="secondary"
+      size="sm"
+      onClick={() => setIsManageModalOpen(true)}
+      aria-label={t('walletBalances.manageTokens')}
+      leadingIcon={<Settings2 className="h-3.5 w-3.5" aria-hidden />}>
+      {t('walletBalances.manageTokens')}
+    </Button>
+  );
+  const networkButton = (
+    <Button
+      type="button"
+      variant="secondary"
+      size="sm"
+      onClick={() => setIsNetworkModalOpen(true)}
+      aria-label={selectedNetworkLabel}
+      leadingIcon={<Globe className="h-3.5 w-3.5" aria-hidden />}
+      className="shrink-0">
+      {selectedNetworkLabel}
+    </Button>
+  );
+
   const renderContent = () => {
-    if (loading) {
+    // Not set up: a setup notice and network cards make it clear these are
+    // supported networks, not balances or addresses of an unconfigured wallet.
+    if (!loading && !error && walletConfigured === false) {
       return (
-        <div className="flex items-center justify-center gap-2 py-10 text-content-muted">
-          <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="4"
-            />
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-            />
-          </svg>
-          <span className="text-sm">{t('walletBalances.loading')}</span>
-        </div>
-      );
-    }
-
-    if (error) {
-      return (
-        <div className="px-4 py-4">
-          <div
-            role="alert"
-            className="flex items-start gap-2.5 p-3 mb-4 rounded-xl bg-coral-50 dark:bg-coral-500/10 border border-coral-200 dark:border-coral-500/30">
-            <svg
-              className="w-4 h-4 text-coral-500 shrink-0 mt-0.5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}>
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
-              />
-            </svg>
-            <p className="text-xs text-coral-700 dark:text-coral-300 leading-relaxed">
-              {t('walletBalances.errorGeneric')}
-            </p>
-          </div>
-          <Button
-            type="button"
-            variant="primary"
-            size="md"
-            onClick={() => void loadBalances()}
-            className="w-full">
-            {t('walletBalances.retry')}
-          </Button>
-        </div>
-      );
-    }
-
-    // Wallet not set up yet: show a non-blocking hint plus placeholder rows so
-    // the wallet layout is visible even before a recovery phrase exists.
-    if (walletConfigured === false) {
-      return (
-        <div>
-          <div className="px-4 pt-4 pb-3">
-            <div
-              role="status"
-              className="flex items-start gap-2.5 p-3 rounded-xl bg-destructive/10 border-0">
-              <svg
-                className="w-4 h-4 text-destructive shrink-0 mt-0.5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}>
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
-                />
-              </svg>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm text-destructive leading-relaxed">
-                  {t('walletBalances.setupHint')}
-                </p>
-                <Button
-                  type="button"
-                  variant="tertiary"
-                  onClick={() => navigateToSettings('recovery-phrase')}
-                  className="mt-2 text-sm font-medium text-primary-800 dark:text-primary-400 hover:text-primary-900 dark:hover:text-primary-300 px-0 h-auto">
-                  {t('walletBalances.setupCta')}
-                </Button>
-              </div>
-            </div>
-          </div>
-          <Table containerClassName="w-full bg-transparent border border-line rounded-[24px] overflow-hidden">
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                {COLUMNS_FOR<(typeof PLACEHOLDER_ROWS)[number]>(t).map(col => (
-                  <TableHead
-                    key={col.id}
-                    className={cn(
-                      col.align === 'right' && 'text-right',
-                      'text-content font-medium pb-4 pt-6',
-                      col.className
-                    )}>
-                    <span className="pb-1">{col.header}</span>
-                  </TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filterRows(PLACEHOLDER_ROWS).map(row => (
-                <ChainPlaceholderRow
-                  key={row.evmNetwork || row.chain}
-                  chain={row.chain}
-                  evmNetwork={row.evmNetwork}
-                  assetSymbol={row.assetSymbol}
-                />
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      );
-    }
-
-    if (balances !== null && balances.length === 0) {
-      return (
-        <div className="px-4 py-8 text-center">
-          <div className="w-12 h-12 rounded-full bg-surface-subtle flex items-center justify-center mx-auto mb-3">
-            <svg
-              className="w-6 h-6 text-content-faint"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={1.5}>
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M21 12a2.25 2.25 0 00-2.25-2.25H15a3 3 0 11-6 0H5.25A2.25 2.25 0 003 12m18 0v6a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 18v-6m18 0V9M3 12V9m18-3a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6m18 0V5.25A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25V6"
-              />
-            </svg>
-          </div>
-          <SettingsEmptyState label={t('walletBalances.emptyState')} />
-        </div>
-      );
-    }
-
-    if (balances && balances.length > 0) {
-      const visibleRows = filterRows(balances);
-
-      if (visibleRows.length === 0) {
-        return (
-          <div className="px-4 py-8 text-center">
-            <SettingsEmptyState label="No balances match your filters" />
-          </div>
-        );
-      }
-
-      return (
-        <Table containerClassName="w-full bg-transparent border border-line rounded-[24px] overflow-hidden">
-          <TableHeader>
-            <TableRow className="hover:bg-transparent">
-              {COLUMNS_FOR<BalanceInfo>(t).map(col => (
-                <TableHead
-                  key={col.id}
-                  className={cn(
-                    col.align === 'right' && 'text-right',
-                    'text-content font-medium pb-4 pt-6',
-                    col.className
-                  )}>
-                  <span className="pb-1">{col.header}</span>
-                </TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {visibleRows.map(balance => (
-              <BalanceRow
-                key={balanceKey(balance)}
-                balance={balance}
-                onSend={setSendTarget}
-                onReceive={setReceiveTarget}
+        <div className="space-y-4 overflow-y-auto">
+          <Alert variant="warning" role="status" className="flex-wrap items-center justify-between">
+            <AlertDescription>{t('walletBalances.setupHint')}</AlertDescription>
+            <Button type="button" size="sm" onClick={() => navigateToSettings('recovery-phrase')}>
+              {t('walletBalances.setupCta')}
+            </Button>
+          </Alert>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {filterRows(PLACEHOLDER_ROWS).map(row => (
+              <ChainPlaceholderCard
+                key={row.evmNetwork || row.chain}
+                chain={row.chain}
+                evmNetwork={row.evmNetwork}
+                assetSymbol={row.assetSymbol}
               />
             ))}
-          </TableBody>
-        </Table>
+          </div>
+        </div>
       );
     }
 
-    return null;
+    const allRows = balances ?? [];
+    const visibleRows = filterRows(allRows).filter(matchesQuery);
+
+    return (
+      <DataTable<BalanceInfo>
+        testId="wallet-balances-table"
+        title={t('walletBalances.tableTitle')}
+        description={t('pages.settings.account.walletBalancesDesc')}
+        actions={
+          <>
+            {refreshButton}
+            {manageButton}
+          </>
+        }
+        toolbarStart={networkButton}
+        search={{
+          value: query,
+          onChange: setQuery,
+          placeholder: t('walletBalances.searchPlaceholder'),
+          testId: 'wallet-balances-search',
+        }}
+        columns={COLUMNS_FOR(t)}
+        rows={error ? [] : visibleRows}
+        rowKey={balance => balanceKey(balance)}
+        renderRow={balance => (
+          <BalanceRow
+            key={balanceKey(balance)}
+            balance={balance}
+            onSend={setSendTarget}
+            onReceive={setReceiveTarget}
+          />
+        )}
+        pagination={{ pageSize: 25 }}
+        loading={loading}
+        loadingLabel={t('walletBalances.loading')}
+        loadingRows={4}
+        error={
+          error ? (
+            <Alert variant="destructive" density="compact" className="items-center justify-between">
+              <AlertDescription>{t('walletBalances.errorGeneric')}</AlertDescription>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => void loadBalances()}>
+                {t('walletBalances.retry')}
+              </Button>
+            </Alert>
+          ) : undefined
+        }
+        empty={
+          error ? null : (
+            <EmptyState
+              label={
+                allRows.length === 0
+                  ? t('walletBalances.emptyState')
+                  : t('walletBalances.noFilterMatches')
+              }
+            />
+          )
+        }
+        ariaLabel={t('walletBalances.tableTitle')}
+      />
+    );
   };
 
   const rowsToRender = walletConfigured === false ? PLACEHOLDER_ROWS : balances || [];
   return (
+    // The balances table is the page's main content: it fills the height and
+    // only its rows scroll.
     <SettingsPanel
-      title={
-        <div className="flex items-center gap-2.5">
-          <svg
-            className="w-5 h-5 text-content"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}>
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M21 12a2.25 2.25 0 00-2.25-2.25H15a3 3 0 11-6 0H5.25A2.25 2.25 0 003 12m18 0v6a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 18v-6m18 0V9M3 12V9m18-3a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6m18 0V5.25A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25V6"
-            />
-          </svg>
-          {t('pages.settings.account.walletBalances')}
-        </div>
-      }
+      bodyClassName="flex min-h-0 flex-col gap-4"
       description={t('pages.settings.account.walletBalancesDesc')}>
-      <div className="w-full max-w-4xl mx-auto py-2">
-        <div className="flex items-center justify-between mb-4 px-3">
-          <div>
-            <button
-              type="button"
-              onClick={() => setIsNetworkModalOpen(true)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-line bg-surface hover:bg-surface-hover transition-colors text-sm font-medium text-content outline-hidden focus-visible:ring-2 focus-visible:ring-primary-500/20">
-              <svg
-                className="w-4 h-4 text-content-muted"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
-                />
-              </svg>
-              {selectedNetworkLabel}
-            </button>
-            <SelectNetworkModal
-              open={isNetworkModalOpen}
-              onClose={() => setIsNetworkModalOpen(false)}
-              selectedNetwork={selectedNetwork}
-              onSelect={setSelectedNetwork}
-              networkFilters={NETWORK_FILTERS}
-              chainIcons={NETWORK_MODAL_ICONS}
-            />
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => void loadBalances()}
-              disabled={loading || isRefreshing}
-              aria-label="Refresh balances"
-              className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-line bg-surface hover:bg-surface-hover transition-colors text-sm font-medium text-content outline-hidden focus-visible:ring-2 focus-visible:ring-primary-500/20 disabled:opacity-50">
-              <svg
-                className={cn(
-                  'w-4 h-4 text-content-muted',
-                  (loading || isRefreshing) && 'animate-spin'
-                )}
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2.5}>
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                />
-              </svg>
-              Refresh
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setIsManageModalOpen(true)}
-              aria-label="Manage tokens"
-              className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-line bg-surface hover:bg-surface-hover transition-colors text-sm font-medium text-content outline-hidden focus-visible:ring-2 focus-visible:ring-primary-500/20">
-              <svg
-                className="w-4 h-4 text-content-muted"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2.5}>
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                />
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                />
-              </svg>
-              Manage tokens
-            </button>
-          </div>
+      {walletConfigured === false && !loading && !error && (
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+          {networkButton}
+          {refreshButton}
+          {manageButton}
         </div>
-        {renderContent()}
-      </div>
+      )}
+      <SelectNetworkModal
+        open={isNetworkModalOpen}
+        onClose={() => setIsNetworkModalOpen(false)}
+        selectedNetwork={selectedNetwork}
+        onSelect={setSelectedNetwork}
+        networkFilters={NETWORK_FILTERS.map(filter =>
+          filter.id === 'all' ? { ...filter, label: t('walletBalances.allNetworks') } : filter
+        )}
+        chainIcons={NETWORK_MODAL_ICONS}
+      />
+      {renderContent()}
 
       {sendTarget && (
         <SendCryptoModal

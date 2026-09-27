@@ -426,7 +426,6 @@ pub(crate) async fn run_legacy_migrations(config: &Config) {
 pub fn spawn_socket_auto_connect(
     services: ServiceSet,
     socket_mgr: std::sync::Arc<crate::platform::socket::SocketManager>,
-    _flows_enabled: bool,
 ) {
     if services.socketio {
         tokio::spawn(async move {
@@ -438,8 +437,30 @@ pub fn spawn_socket_auto_connect(
                     return;
                 }
             };
-            let api_url = crate::api::config::effective_backend_api_url(&config.api_url);
-            let initial_token = match crate::api::jwt::get_session_token(&config) {
+            // No TinyHumans connection (no backend transport installed): there
+            // is no backend to hold a socket to, so skip quietly.
+            if !crate::backend::transport::is_installed() {
+                log::debug!("[socket] No backend transport installed — skipping auto-connect");
+                return;
+            }
+            let Ok(api_url) = crate::backend::base_url(&config.api_url) else {
+                log::debug!("[socket] No backend base URL — skipping auto-connect");
+                return;
+            };
+            let initial_token = match crate::security::credentials::jwt::get_session_token(&config)
+            {
+                Ok(Some(t))
+                    if crate::security::credentials::session_support::is_local_session_token(
+                        &t,
+                    ) =>
+                {
+                    // The offline local credential has no TinyHumans account,
+                    // so the backend would only reject the handshake.
+                    log::info!(
+                        "[socket] Offline local session — skipping auto-connect (no hosted account)"
+                    );
+                    return;
+                }
                 Ok(Some(t)) => t,
                 Ok(None) => {
                     log::info!(
@@ -456,8 +477,7 @@ pub fn spawn_socket_auto_connect(
                 "[socket] Session token found — auto-connecting to {}",
                 api_url
             );
-            // Keep the authenticated token and user-scoped workflow bridge in
-            // one serialized identity transaction. The active profile may have
+            // Rebind the socket identity in one serialized transaction. The active profile may have
             // changed since CoreRuntime::build(), so the build-time Config is
             // not authoritative here.
             let _rebind = socket_mgr.lock_identity_rebind().await;
@@ -467,16 +487,8 @@ pub fn spawn_socket_auto_connect(
             // handshake (#6181); if it is already up for this identity there is
             // nothing to rebind.
             if socket_mgr.is_live_for(&api_url, &initial_token) {
-                // The socket is reusable, the bridge is not: it is pinned to the
-                // `Config` resolved above, which a workspace switch invalidates.
-                // `set_workflow_bridge` re-advertises over a live socket by
-                // design, so reinstall and skip only the handshake.
-                #[cfg(feature = "flows")]
-                if _flows_enabled {
-                    crate::flows::medulla_bridge::install(std::sync::Arc::clone(&config));
-                }
                 log::info!(
-                    "[socket] Auto-connect: {api_url} already connected with this session — refreshed the workflow bridge, kept the socket"
+                    "[socket] Auto-connect: {api_url} already connected with this session — kept the socket"
                 );
                 return;
             }
@@ -484,14 +496,19 @@ pub fn spawn_socket_auto_connect(
                 log::error!("[socket] Auto-connect could not stop the prior connection: {e}");
                 return;
             }
-            #[cfg(feature = "flows")]
-            if _flows_enabled {
-                crate::flows::medulla_bridge::install(std::sync::Arc::clone(&config));
-            }
             let provider =
                 crate::platform::socket::token_provider::token_provider_from_config(config);
             if let Err(e) = socket_mgr.connect_with_provider(&api_url, provider).await {
-                log::error!("[socket] Auto-connect failed: {e}");
+                // Signing out between the token check above and the provider's
+                // read leaves no token (Sentry 35911). That is a user-state
+                // race, not a fault: warn so it stays a breadcrumb.
+                if e.contains("no session token stored") {
+                    log::warn!(
+                        "[socket] Auto-connect skipped — session cleared before connect: {e}"
+                    );
+                } else {
+                    log::error!("[socket] Auto-connect failed: {e}");
+                }
             } else {
                 log::info!("[socket] Auto-connect initiated successfully");
             }

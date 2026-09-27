@@ -59,11 +59,10 @@
 //! reporting a failure.
 
 pub use openhuman_core::agent::turn_origin::{AgentTurnOrigin, TrustedAutomationSource};
-pub use openhuman_core::api::transport::{
+pub use openhuman_core::backend::{
     install_backend_transport, installed_backend_transport, BackendRequest, BackendTransport,
-    BackendTransportError, TransportProfile,
+    BackendTransportError, BaseUrlPurpose, TransportProfile,
 };
-pub use openhuman_core::api::{product_identity, set_product_identity, ProductIdentity};
 pub use openhuman_core::config::Config as RuntimeConfig;
 pub use openhuman_core::security::TrustedAccess;
 pub use openhuman_core::tools::toolpacks::{GroupMode, ToolGroups};
@@ -92,8 +91,6 @@ mod config;
 mod core_agent;
 mod error;
 mod harness;
-#[cfg(feature = "medulla")]
-mod medulla;
 mod runtime;
 mod turn;
 
@@ -109,11 +106,6 @@ pub use harness::{
 };
 #[cfg(feature = "mcp")]
 pub use harness::{HttpHeader, McpAuthConfig, McpServer};
-#[cfg(feature = "medulla")]
-pub use medulla::{
-    AbortResult, Medulla, MedullaStatus, Message, RosterWorker, SendResult, SessionCreated,
-    SessionDetail, SessionSummary, WireEventEnvelope,
-};
 pub use runtime::{ApiKey, Runtime, RuntimeBuilder, RuntimeError};
 pub use turn::{absolute, Route, Turn, TurnOutcome, TurnRequest};
 
@@ -168,15 +160,6 @@ impl Core {
     /// skills, working directory and access tier — see [`Runtime::agent`].
     pub fn agent(&self) -> CoreAgent<'_> {
         CoreAgent(&self.rt)
-    }
-
-    /// Typed access to the Medulla orchestration backend.
-    ///
-    /// Absent unless the `medulla` feature is on, so a host built without it
-    /// fails to compile against this rather than meeting a runtime error.
-    #[cfg(feature = "medulla")]
-    pub fn medulla(&self) -> Medulla<'_> {
-        Medulla(&self.rt)
     }
 
     /// The underlying runtime, for anything this facade does not yet model.

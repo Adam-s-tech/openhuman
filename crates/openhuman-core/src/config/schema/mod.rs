@@ -2,8 +2,6 @@
 //!
 //! Split into submodules; this module re-exports the main `Config` and all public types.
 
-pub mod activity_level;
-pub use activity_level::AgentActivityLevel;
 pub mod cloud_providers;
 pub use cloud_providers::{
     generate_provider_id, is_slug_reserved, migrate_legacy_fields, AuthStyle, CloudProviderCreds,
@@ -12,7 +10,7 @@ pub use cloud_providers::{
 pub mod ephemeral_route;
 pub use ephemeral_route::{EphemeralRoute, EPHEMERAL_ROUTE_SLUG};
 pub mod subconscious;
-pub use subconscious::{MedullaLocalConfig, SubconsciousConfig, SubconsciousEngine};
+pub use subconscious::{SubconsciousConfig, SubconsciousEngine};
 mod agent;
 mod autonomy;
 mod capability_providers;
@@ -126,7 +124,7 @@ pub use tools::{
     MultimodalFileConfig, SearchConfig, SearchEngine, SearchEngineCredentials, SearxngConfig,
     SecretsConfig, SeltzConfig, WebSearchConfig, COMPOSIO_MODE_BACKEND, COMPOSIO_MODE_DIRECT,
     SEARCH_ENGINE_BRAVE, SEARCH_ENGINE_DISABLED, SEARCH_ENGINE_EXA, SEARCH_ENGINE_MANAGED,
-    SEARCH_ENGINE_PARALLEL, SEARCH_ENGINE_QUERIT, SEARCH_ENGINE_TAVILY,
+    SEARCH_ENGINE_PARALLEL, SEARCH_ENGINE_QUERIT, SEARCH_ENGINE_TAVILY, SEARCH_PROVIDERS,
 };
 pub use update::{UpdateConfig, UpdateRestartStrategy};
 pub use web_chat_config::WebChatConfig;

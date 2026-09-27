@@ -40,6 +40,7 @@ describe('Desktop connection', () => {
       throw new Error(`Unexpected method: ${method}`);
     });
     renderWithProviders(<DesktopConnectionPage />);
+    expect(screen.getByText(/Early Alpha/)).toBeInTheDocument();
 
     expect(await screen.findByText('Screen Recording')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Open settings' }));
@@ -59,9 +60,11 @@ describe('Desktop connection', () => {
     });
     renderWithProviders(<DesktopConnectionPage />);
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Enable' }));
+    fireEvent.click(await screen.findByRole('switch', { name: 'Enable' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('could not save setting');
-    expect(screen.getByRole('button', { name: 'Enable' })).toBeInTheDocument();
+    // The switch stays off (unchecked) and still offers "Enable" since the
+    // write failed and the core-reported status never flipped to enabled.
+    expect(screen.getByRole('switch', { name: 'Enable' })).toBeInTheDocument();
     expect(callCoreRpc).toHaveBeenCalledWith({
       method: 'openhuman.desktop_set_enabled',
       params: { enabled: true },

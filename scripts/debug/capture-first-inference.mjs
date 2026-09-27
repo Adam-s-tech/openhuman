@@ -35,11 +35,15 @@ Configure with environment variables:
                      (default target/debug-logs/first-inference-request.json)
   CAPTURE_ALL=1      also record every inference request (and every non-2xx
                      response body) numbered under CAPTURE_ALL_DIR
+  CAPTURE_RESPONSES=1  record every inference response body under CAPTURE_ALL_DIR
   CAPTURE_ALL_DIR    (default target/debug-logs/inference-sequence)
   CAPTURE_LOG        JSONL file receiving one record per inference response
                      (default target/debug-logs/inference-capture.jsonl)
   CAPTURE_ALLOW_REMOTE=1              bind a non-loopback CAPTURE_HOST
   CAPTURE_ALLOW_PLAINTEXT_UPSTREAM=1  forward the bearer to a non-loopback http: upstream
+
+Request and response captures contain raw conversation content. They are
+written as local owner-only files; remove the capture directory after diagnosis.
 
 Point the core at it, then drive turns and read the summary lines:
   CAPTURE_ALL=1 pnpm debug capture
@@ -92,6 +96,7 @@ if (
 // cost"; only the sequence answers "does the cacheable prefix survive turn 2",
 // which is a different question and the one a prefix cache is graded on.
 const captureAll = process.env.CAPTURE_ALL === '1';
+const captureResponses = process.env.CAPTURE_RESPONSES === '1';
 const captureAllDir = path.resolve(
   process.env.CAPTURE_ALL_DIR || 'target/debug-logs/inference-sequence'
 );
@@ -193,8 +198,14 @@ function formatSummaryLine(record) {
 
 function appendSummary(record) {
   fs.mkdirSync(path.dirname(summaryLogPath), { recursive: true });
-  fs.appendFileSync(summaryLogPath, `${JSON.stringify(record)}\n`);
+  fs.appendFileSync(summaryLogPath, `${JSON.stringify(record)}\n`, { mode: 0o600 });
+  fs.chmodSync(summaryLogPath, 0o600);
   process.stdout.write(`${formatSummaryLine(record)}\n`);
+}
+
+function writePrivateCapture(file, data) {
+  fs.writeFileSync(file, data, { mode: 0o600 });
+  fs.chmodSync(file, 0o600);
 }
 
 const server = http.createServer((req, res) => {
@@ -208,14 +219,14 @@ const server = http.createServer((req, res) => {
     if (inference) {
       if (!captured) {
         fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-        fs.writeFileSync(outputPath, body);
+        writePrivateCapture(outputPath, body);
         captured = true;
         process.stdout.write(`[capture] wrote first inference body to ${outputPath}\n`);
       }
       if (captureAll) {
         fs.mkdirSync(captureAllDir, { recursive: true });
         const name = `req-${String(seq).padStart(3, '0')}.json`;
-        fs.writeFileSync(path.join(captureAllDir, name), body);
+        writePrivateCapture(path.join(captureAllDir, name), body);
         process.stdout.write(`[capture] wrote ${name} (${body.length} B)\n`);
       }
     }
@@ -266,9 +277,10 @@ const server = http.createServer((req, res) => {
             ttfb_ms: firstByteAt === null ? null : firstByteAt - startedAt,
             total_ms: Date.now() - startedAt,
           };
-          if (captureAll && (status < 200 || status >= 300)) {
+          if (captureResponses || (captureAll && (status < 200 || status >= 300))) {
             const name = `res-${String(seq).padStart(3, '0')}.txt`;
-            fs.writeFileSync(path.join(captureAllDir, name), text);
+            fs.mkdirSync(captureAllDir, { recursive: true });
+            writePrivateCapture(path.join(captureAllDir, name), text);
             record.response_body = path.join(captureAllDir, name);
           }
           appendSummary(record);
@@ -305,6 +317,58 @@ const server = http.createServer((req, res) => {
   });
 });
 
+// Socket.IO upgrades never enter the HTTP request callback. Relay the
+// handshake and then pipe both raw sockets so desktop backend events work.
+server.on('upgrade', (req, clientSocket, clientHead) => {
+  const transport = upstream.protocol === 'https:' ? https : http;
+  const upstreamReq = transport.request({
+    protocol: upstream.protocol,
+    hostname: upstream.hostname,
+    port: upstream.port || undefined,
+    method: req.method,
+    path: upstreamPath(req.url),
+    headers: { ...req.headers, host: upstream.host },
+  });
+
+  let upstreamSocket;
+  const writeResponseHead = response => {
+    clientSocket.write(
+      `HTTP/${response.httpVersion} ${response.statusCode} ${response.statusMessage}\r\n`
+    );
+    for (let i = 0; i < response.rawHeaders.length; i += 2) {
+      clientSocket.write(`${response.rawHeaders[i]}: ${response.rawHeaders[i + 1]}\r\n`);
+    }
+    clientSocket.write('\r\n');
+  };
+
+  upstreamReq.on('upgrade', (response, socket, upstreamHead) => {
+    upstreamSocket = socket;
+    writeResponseHead(response);
+    if (upstreamHead.length) clientSocket.write(upstreamHead);
+    if (clientHead.length) socket.write(clientHead);
+    socket.pipe(clientSocket);
+    clientSocket.pipe(socket);
+    socket.on('error', () => clientSocket.destroy());
+    clientSocket.on('error', () => socket.destroy());
+  });
+  upstreamReq.on('response', response => {
+    writeResponseHead(response);
+    response.pipe(clientSocket);
+    response.on('end', () => clientSocket.end());
+  });
+  upstreamReq.on('error', error => {
+    process.stderr.write(`[capture] websocket upstream error: ${error.message}\n`);
+    if (!clientSocket.destroyed) {
+      clientSocket.end('HTTP/1.1 502 Bad Gateway\r\nContent-Length: 0\r\n\r\n');
+    }
+  });
+  clientSocket.on('close', () => {
+    upstreamReq.destroy();
+    upstreamSocket?.destroy();
+  });
+  upstreamReq.end();
+});
+
 server.listen(listenPort, listenHost, () => {
   // Report the bound port, not the configured one: CAPTURE_PORT=0 asks the OS
   // for a free port, which is how the self-test runs several proxies at once.
@@ -312,7 +376,8 @@ server.listen(listenPort, listenHost, () => {
   process.stdout.write(
     `[capture] listening on http://${listenHost}:${boundPort}; forwarding to ${upstream.origin}` +
       `; summaries → ${summaryLogPath}` +
-      `${captureAll ? `; recording every request under ${captureAllDir}` : ''}\n`
+      `${captureAll ? `; recording every request under ${captureAllDir}` : ''}` +
+      `${captureResponses ? `; recording every response under ${captureAllDir}` : ''}\n`
   );
 });
 

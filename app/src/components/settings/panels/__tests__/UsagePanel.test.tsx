@@ -14,20 +14,30 @@ vi.mock('../../../dashboard/CostDashboardPanel', () => ({
   ),
 }));
 
-vi.mock('../AIPanel', () => ({
-  BackgroundLoopControls: ({ view, hideHeader }: { view?: string; hideHeader?: boolean }) => (
+// UsagePanel imports the loop-map component directly from its extracted
+// module (`./ai/BackgroundLoopControls`), not through the `AIPanel` re-export
+// — stub that module so this suite stays focused on the hash <-> tab mapping
+// UsagePanel owns, rather than mounting the real component (and its
+// RPC-backed data fetches).
+vi.mock('../ai/BackgroundLoopControls', () => {
+  const Stub = ({ view, hideHeader }: { view?: string; hideHeader?: boolean }) => (
     <div
       data-testid="stub-background-loops"
       data-view={view}
       data-hide-header={String(hideHeader ?? false)}
     />
-  ),
-}));
+  );
+  return { BackgroundLoopControls: Stub, default: Stub };
+});
 
 vi.mock('../TokenUsagePanel', () => ({
   default: ({ embedded }: { embedded?: boolean }) => (
     <div data-testid="stub-token-usage" data-embedded={String(embedded ?? false)} />
   ),
+}));
+
+vi.mock('../../../dashboard/UsageLogPanel', () => ({
+  default: () => <div data-testid="stub-usage-log" />,
 }));
 
 vi.mock('../../../../services/api/aiSettingsApi', async () => {
@@ -77,6 +87,14 @@ describe('UsagePanel', () => {
 
     expect(screen.getByTestId('usage-tab-tokens')).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByTestId('stub-token-usage')).toHaveAttribute('data-embedded', 'true');
+    expect(screen.queryByTestId('stub-cost-dashboard')).not.toBeInTheDocument();
+  });
+
+  test('#log hash selects the usage log without mounting the cost dashboard', () => {
+    renderWithProviders(<UsagePanel />, { initialEntries: ['/settings/usage#log'] });
+
+    expect(screen.getByTestId('usage-tab-log')).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByTestId('stub-usage-log')).toBeInTheDocument();
     expect(screen.queryByTestId('stub-cost-dashboard')).not.toBeInTheDocument();
   });
 

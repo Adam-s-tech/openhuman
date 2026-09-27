@@ -8,6 +8,7 @@ import { threadApi } from '../../services/api/threadApi';
 import { socketService } from '../../services/socketService';
 import { store } from '../../store';
 import {
+  beginInferenceTurn,
   clearAllChatRuntime,
   findPendingDelegationContext,
   registerParallelRequest,
@@ -19,7 +20,6 @@ import {
 import { pendingFollowupAdded } from '../../store/queueSlice';
 import { setStatusForUser } from '../../store/socketSlice';
 import {
-  addMessageLocal,
   clearAllThreads,
   loadThreads,
   setActiveThread,
@@ -1792,6 +1792,41 @@ describe('ChatRuntimeProvider — dedupe, proactive resolution, mid-turn invaria
       expect(store.getState().chatRuntime.inferenceStatusByThread['t-err']).toBeUndefined();
     });
 
+    it('keeps a queued follow-up live when the previous turn error arrives late', async () => {
+      const listeners = renderProvider();
+      const threadId = 't-late-error';
+      act(() => {
+        store.dispatch(beginInferenceTurn({ threadId }));
+        store.dispatch(setActiveThread(threadId));
+        listeners.onInferenceStart?.({ thread_id: threadId, request_id: 'new' });
+        store.dispatch(
+          setStreamingAssistantForThread({
+            threadId,
+            streaming: { content: 'new answer', thinking: '', requestId: 'new' },
+          })
+        );
+        listeners.onError?.({
+          thread_id: threadId,
+          request_id: 'old',
+          message: 'Earlier turn failed',
+          error_type: 'inference',
+          round: 0,
+        });
+      });
+
+      const state = store.getState();
+      expect(state.chatRuntime.liveRequestIdByThread[threadId]).toBe('new');
+      expect(state.chatRuntime.inferenceTurnLifecycleByThread[threadId]).toBe('streaming');
+      expect(state.chatRuntime.streamingAssistantByThread[threadId]?.content).toBe('new answer');
+      expect(state.thread.activeThreadIds[threadId]).toBe(true);
+      await waitFor(() =>
+        expect(threadApi.appendMessage).toHaveBeenCalledWith(
+          threadId,
+          expect.objectContaining({ content: 'Earlier turn failed' })
+        )
+      );
+    });
+
     it('forwards the server-provided inference error message verbatim', async () => {
       const listeners = renderProvider();
       // Transport-level failures yield no provider `error.message` body, so
@@ -2619,48 +2654,37 @@ describe('ChatRuntimeProvider — chat_cancelled (wire-contract.md)', () => {
     );
   });
 
-  it('does not double-persist a partial the local Stop path already saved for the same request', async () => {
+  it('persists a repeated chat_cancelled event only once for the same request', async () => {
     const listeners = renderProvider();
     const threadId = 't-chat-cancelled-dedupe';
-    const alreadyPersisted = {
-      id: 'a-already-stopped',
-      sender: 'agent' as const,
-      type: 'text' as const,
-      content: 'already saved locally',
-      extraMetadata: { stopped: true, cancelReason: 'user_stop', requestId: 'r-dup' },
-      createdAt: '2026-01-01T00:00:00.000Z',
-    };
-    vi.mocked(threadApi.appendMessage).mockResolvedValueOnce(alreadyPersisted);
-
-    // Seed the local cache exactly as `Conversations.tsx`'s
-    // `handleStopGeneration` already does for a user-initiated Stop, keyed by
-    // the same `requestId` this turn's `chat_cancelled` will carry.
-    await act(async () => {
-      await store.dispatch(addMessageLocal({ threadId, message: alreadyPersisted })).unwrap();
-    });
-    expect(threadApi.appendMessage).toHaveBeenCalledTimes(1);
 
     act(() => {
       store.dispatch(
         setStreamingAssistantForThread({
           threadId,
-          streaming: { content: 'already saved locally', thinking: '', requestId: 'r-dup' },
+          streaming: { content: 'save this once', thinking: '', requestId: 'r-dup' },
         })
       );
     });
 
     act(() => {
-      listeners.onCancelled?.({
+      const event = {
         thread_id: threadId,
         request_id: 'r-dup',
         cancel_reason: 'user_stop',
-      });
+      } as const;
+      listeners.onCancelled?.(event);
+      listeners.onCancelled?.(event);
     });
 
-    await new Promise(resolve => setTimeout(resolve, 50));
-    // Still just the one call from the seed above — `onCancelled` must not
-    // have persisted a second copy of the same partial.
-    expect(threadApi.appendMessage).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(threadApi.appendMessage).toHaveBeenCalledTimes(1));
+    expect(threadApi.appendMessage).toHaveBeenCalledWith(
+      threadId,
+      expect.objectContaining({
+        content: 'save this once',
+        extraMetadata: expect.objectContaining({ stopped: true, requestId: 'r-dup' }),
+      })
+    );
   });
 
   it('produces no message when nothing streamed (no partial to save)', async () => {

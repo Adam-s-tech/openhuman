@@ -144,6 +144,10 @@ struct OpenHumanTurnPreludeMutable {
     pending_integration_announcement: Vec<String>,
     announced_mcp_servers: std::collections::HashSet<String>,
     pending_mcp_announcement: Vec<String>,
+    /// Live MCP tool definitions for this workspace, refreshed before each
+    /// turn so disconnects remove their deferred executors immediately.
+    #[cfg(feature = "mcp")]
+    connected_mcp_tools: Vec<crate::mcp::registry::types::ConnectedServerOverview>,
     announced_skills: std::collections::HashSet<String>,
     pending_skill_announcement: Vec<String>,
     pending_skill_retraction: Vec<String>,
@@ -434,11 +438,15 @@ impl OpenHumanTurnPrelude {
                 mutable.connected_integrations_authoritative,
             )
         };
+        #[cfg(feature = "mcp")]
+        let mcp_tools = self.collect_mcp_search_tools();
         let mut surface = self
             .tool_surface
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         let mut collected = collect_orchestrator_tools(&definition, registry, &integrations);
+        #[cfg(feature = "mcp")]
+        collected.extend(mcp_tools);
         // Integration actions the thread already declared stay executable
         // even when this process has not (re)fetched their integration yet.
         // Only an agent that carries integration actions at all gets them.
@@ -1259,6 +1267,21 @@ async fn collect_prelude_tree_roots(
 }
 
 impl OpenHumanSessionHost {
+    pub(super) fn update_runtime_prelude_progress(
+        &mut self,
+        tx: Option<tokio::sync::mpsc::Sender<crate::agent::progress::AgentProgress>>,
+    ) {
+        if let Some(prelude) = self
+            .runtime_state
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .prelude
+            .as_mut()
+        {
+            prelude.on_progress = tx;
+        }
+    }
+
     /// Seed a cold runtime session from a host-provided message log.
     ///
     /// The runtime receives both the seed and any subsequent append; the host
@@ -1536,6 +1559,8 @@ impl OpenHumanSessionHost {
                     pending_integration_announcement: self.pending_integration_announcement.clone(),
                     announced_mcp_servers: self.announced_mcp_servers.clone(),
                     pending_mcp_announcement: self.pending_mcp_announcement.clone(),
+                    #[cfg(feature = "mcp")]
+                    connected_mcp_tools: Vec::new(),
                     announced_skills: self.announced_skills.clone(),
                     pending_skill_announcement: self.pending_skill_announcement.clone(),
                     pending_skill_retraction: self.pending_skill_retraction.clone(),
@@ -1700,14 +1725,12 @@ impl OpenHumanSessionHost {
             },
             {
                 let state = self.runtime_state.clone();
-                let progress = self.on_progress.clone();
                 let post_turn_hooks = self.post_turn_hooks.clone();
                 let session_id = self.event_session_id.clone();
                 let agent_id = self.agent_definition_id.clone();
                 let channel = self.event_channel.clone();
                 move |receipt| {
                     let state = state.clone();
-                    let progress = progress.clone();
                     let post_turn_hooks = post_turn_hooks.clone();
                     let session_id = session_id.clone();
                     let agent_id = agent_id.clone();
@@ -1786,6 +1809,9 @@ impl OpenHumanSessionHost {
                             Some(task) => task.await.unwrap_or_default(),
                             None => Vec::new(),
                         };
+                        let _ =
+                            progress::send_receipt_progress(&receipt, &input, &output, iterations)
+                                .await;
                         state
                             .lock()
                             .unwrap_or_else(|poisoned| poisoned.into_inner())
@@ -1797,12 +1823,6 @@ impl OpenHumanSessionHost {
                             state.last_turn_hit_cap = interrupted;
                             state.last_turn_usage = Some(usage);
                             state.last_turn_citations = citations;
-                        }
-                        if let Some(progress) = &progress {
-                            let _ = progress::send_committed_turn_progress(
-                                progress, &input, &output, iterations,
-                            )
-                            .await;
                         }
                         crate::agent::hooks::fire_hooks(
                             &post_turn_hooks,
@@ -1914,11 +1934,16 @@ impl OpenHumanSessionHost {
     pub(in crate::agent::session_host) fn session_locator(
         &self,
     ) -> Arc<dyn tinyagents_session::transcript::TranscriptLocator> {
-        self.session_history_locator.clone().unwrap_or_else(|| {
-            Arc::new(tinyagents_session::transcript::FileTranscriptLocator::new(
-                self.workspace_dir.clone(),
-            ))
-        })
+        if let Some(injected) = self.session_history_locator.clone() {
+            return injected;
+        }
+        self.session_history_locator_memo
+            .get_or_init(|| {
+                Arc::new(tinyagents_session::transcript::FileTranscriptLocator::new(
+                    self.workspace_dir.clone(),
+                ))
+            })
+            .clone()
     }
 
     fn runtime_transcript_meta(&self) -> TranscriptMeta {

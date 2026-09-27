@@ -18,6 +18,7 @@ import {
 import type { ComposioConnection } from '../../lib/composio/types';
 import { useT } from '../../lib/i18n/I18nContext';
 import type { SourceKind } from '../../services/memorySourcesService';
+import Badge from '../ui/Badge';
 import TextField from '../ui/TextField';
 import { FolderField } from './FolderField';
 
@@ -476,13 +477,12 @@ function ComposioPicker({
                     <span className="truncate">{entry.label}</span>
                   </span>
                   {!entry.supported && (
-                    <span
-                      data-testid={`composio-option-coming-soon-${entry.conn.id}`}
-                      className="shrink-0 rounded-full bg-surface-subtle px-2 py-0.5 text-[10px]
-                                 font-medium uppercase tracking-wide text-content-muted
-                                 dark:bg-surface-strong dark:text-content-muted">
+                    <Badge
+                      variant="neutral"
+                      className="shrink-0"
+                      data-testid={`composio-option-coming-soon-${entry.conn.id}`}>
                       {t('memorySources.comingSoon')}
-                    </span>
+                    </Badge>
                   )}
                 </li>
               );

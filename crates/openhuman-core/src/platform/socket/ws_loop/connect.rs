@@ -15,7 +15,7 @@ use tokio_tungstenite::{
     tungstenite::{http::StatusCode, Error as WsError, Message as WsMessage},
 };
 
-use crate::api::models::socket::ConnectionStatus;
+use crate::platform::socket::models::ConnectionStatus;
 use crate::util::utf8_safe_prefix_at_byte_boundary;
 
 use super::dispatch::handle_eio_message;

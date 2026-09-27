@@ -4231,7 +4231,7 @@ dependencies = [
 
 [[package]]
 name = "openhuman"
-version = "0.63.33"
+version = "0.64.4"
 dependencies = [
  "aes-gcm",
  "aho-corasick",
@@ -4325,6 +4325,7 @@ dependencies = [
  "tinymemory-bus",
  "tinymemory-sources",
  "tinyruntime-bus",
+ "tinysearch-bus",
  "tinyskills",
  "tinytools 0.4.1",
  "tinytools-agent 0.4.1",
@@ -4351,7 +4352,7 @@ dependencies = [
 
 [[package]]
 name = "openhuman-app"
-version = "0.63.33"
+version = "0.64.4"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4400,7 +4401,7 @@ dependencies = [
 
 [[package]]
 name = "openhuman-embed"
-version = "0.63.33"
+version = "0.64.4"
 dependencies = [
  "anyhow",
  "log",
@@ -4416,7 +4417,7 @@ dependencies = [
 
 [[package]]
 name = "openhuman-rpc"
-version = "0.63.33"
+version = "0.64.4"
 dependencies = [
  "log",
  "reqwest 0.12.28",
@@ -4427,10 +4428,12 @@ dependencies = [
 
 [[package]]
 name = "openhuman-tinyhumans"
-version = "0.63.33"
+version = "0.64.4"
 dependencies = [
+ "aes-gcm",
  "anyhow",
  "async-trait",
+ "base64 0.22.1",
  "chrono",
  "log",
  "openhuman",
@@ -4439,11 +4442,13 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror 2.0.20",
+ "tinychannels-bus",
  "tinyhumans-sdk",
  "tinyjevclient 0.2.1 (git+https://github.com/tinyhumansai/tinyjevclient?rev=84b3983c7e1e14f7515658ceafabb6c4e7967c94)",
  "tinytools 0.4.1",
  "tinytools-jev",
  "tokio",
+ "tracing",
  "url",
  "urlencoding",
 ]
@@ -7325,7 +7330,7 @@ dependencies = [
 
 [[package]]
 name = "tinydesktop-bus"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "serde",
  "serde_json",
@@ -7686,6 +7691,14 @@ dependencies = [
 [[package]]
 name = "tinyruntime-bus"
 version = "0.2.5"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "tinysearch-bus"
+version = "0.2.1"
 dependencies = [
  "serde",
  "serde_json",
