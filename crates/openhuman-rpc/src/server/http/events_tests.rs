@@ -2,7 +2,31 @@ use axum::body::to_bytes;
 use axum::extract::Query;
 use axum::http::{header, HeaderMap, StatusCode};
 
-use super::{domain_events_handler, events_handler, webhook_events_handler, EventsQuery};
+use super::{
+    domain_event_payload, domain_events_handler, events_handler, webhook_events_handler, EventsQuery,
+};
+
+#[test]
+fn domain_event_payload_includes_redacted_detail_and_workspace_handle() {
+    let event = openhuman_core::core::events::DomainEvent::McpServerProbeTimedOut {
+        server_id: "server-1".into(),
+        qualified_name: "example.test/mcp".into(),
+        probe_timeout_secs: 10,
+        consecutive_timeouts: 2,
+        teardown_after: 3,
+        workspace_dir: std::path::PathBuf::from("/home/private/workspace"),
+    };
+
+    let (domain, data) = domain_event_payload(&event).expect("event serializes");
+    let data: serde_json::Value = serde_json::from_str(&data).expect("valid event JSON");
+
+    assert_eq!(domain, "mcp_client");
+    assert_eq!(data["event"], "McpServerProbeTimedOut");
+    assert_eq!(data["agent"], "server-1");
+    assert_eq!(data["detail"], "no answer in 10s; timeout 2 of 3 before teardown");
+    assert_ne!(data["workspace"], "/home/private/workspace");
+    assert!(data["timestamp"].as_str().is_some());
+}
 
 fn query(client_id: &str, token: Option<&str>) -> Query<EventsQuery> {
     Query(EventsQuery {
