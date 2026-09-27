@@ -50,7 +50,7 @@ impl OpenHumanCloudEmbeddingModel {
                 crate::security::credentials::api_key::get_api_key_in(&state_dir, secrets_encrypt)
                     .map_err(|error| tinyinference_embeddings::Error::Embedding(error.to_string()))?
             {
-                if !crate::inference::provider::openhuman_backend_model::is_safe_endpoint_for_managed_bearer(
+                if !crate::inference::provider::openhuman_backend_model::is_managed_endpoint_for_api_key(
                     &key_endpoint,
                 ) {
                     return Err(tinyinference_embeddings::Error::Validation(format!(

@@ -69,6 +69,20 @@ pub(crate) fn is_safe_endpoint_for_managed_bearer(endpoint: &str) -> bool {
     ) || host.starts_with("127.")
 }
 
+/// API keys belong to TinyHumans. A loopback endpoint is permitted for local
+/// development; an arbitrary TLS host is not a trusted key recipient.
+pub(crate) fn is_managed_endpoint_for_api_key(endpoint: &str) -> bool {
+    let Ok(url) = url::Url::parse(endpoint) else {
+        return false;
+    };
+    if !is_safe_endpoint_for_managed_bearer(endpoint) {
+        return false;
+    }
+    matches!(url.host_str(), Some("api.tinyhumans.ai" | "staging-api.tinyhumans.ai"))
+        && url.scheme() == "https"
+        || matches!(url.host_str(), Some("localhost" | "127.0.0.1" | "::1"))
+}
+
 /// The managed OpenHuman backend as a crate [`ChatModel`]. Holds the backend
 /// connection settings (for JWT + base-URL resolution) and the default model id
 /// sent when a request doesn't override it.
@@ -168,7 +182,7 @@ impl OpenHumanBackendModel {
             // plain HTTP on loopback), so this cannot tighten
             // `normalize_api_base_url` itself without breaking those.
             let endpoint = self.base_url()?;
-            if !is_safe_endpoint_for_managed_bearer(&endpoint) {
+            if !is_managed_endpoint_for_api_key(&endpoint) {
                 anyhow::bail!(
                     "refusing to send the TinyHumans API key as a bearer over a non-HTTPS, \
                      non-loopback endpoint: {endpoint} — set a https:// api_url or a loopback \

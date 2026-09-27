@@ -22,7 +22,7 @@ pub async fn transcribe_cloud(
         .url_for("/openai/v1/audio/transcriptions")
         .map_err(|error| error.to_string())?;
     if is_api_key
-        && !crate::inference::provider::openhuman_backend_model::is_safe_endpoint_for_managed_bearer(
+        && !crate::inference::provider::openhuman_backend_model::is_managed_endpoint_for_api_key(
             url.as_str(),
         )
     {

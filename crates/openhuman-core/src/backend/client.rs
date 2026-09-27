@@ -418,9 +418,10 @@ impl BackendClient {
     ) -> Result<Value> {
         let credential = credential.into();
         let is_api_key = credential.is_api_key();
-        if !crate::inference::provider::openhuman_backend_model::is_safe_endpoint_for_managed_bearer(
-            self.base.as_str(),
-        ) {
+        if is_api_key && !crate::inference::provider::openhuman_backend_model::is_managed_endpoint_for_api_key(self.base.as_str()) {
+            anyhow::bail!("TinyHumans API key requires the managed backend or a loopback endpoint");
+        }
+        if !crate::inference::provider::openhuman_backend_model::is_safe_endpoint_for_managed_bearer(self.base.as_str()) {
             anyhow::bail!("backend credential requires HTTPS or a loopback HTTP endpoint");
         }
         let transport = self.transport(&method, path)?;
