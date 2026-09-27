@@ -12,13 +12,11 @@ mod ui;
 
 pub use agent::redact_home;
 pub use agent::{
-    add_auto_approve_tool, apply_activity_level_settings, apply_agent_paths_settings,
-    apply_agent_settings, apply_autonomy_settings, apply_memory_sync_settings, ensure_agent_dirs,
-    ensure_usable_cwd, expand_tilde, get_activity_level_settings, get_agent_paths,
-    get_agent_settings, get_autonomy_settings, get_memory_sync_settings,
-    load_and_apply_activity_level_settings, load_and_apply_agent_paths_settings,
-    load_and_apply_agent_settings, load_and_apply_autonomy_settings,
-    load_and_apply_memory_sync_settings, ActivityLevelSettingsPatch, AgentPathsPatch,
+    add_auto_approve_tool, apply_agent_paths_settings, apply_agent_settings,
+    apply_autonomy_settings, apply_memory_sync_settings, ensure_agent_dirs, ensure_usable_cwd,
+    expand_tilde, get_agent_paths, get_agent_settings, get_autonomy_settings,
+    get_memory_sync_settings, load_and_apply_agent_paths_settings, load_and_apply_agent_settings,
+    load_and_apply_autonomy_settings, load_and_apply_memory_sync_settings, AgentPathsPatch,
     AgentSettingsPatch, AutonomySettingsPatch, MemorySyncSettingsPatch,
 };
 

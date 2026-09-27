@@ -7,6 +7,7 @@
 
 use crate::agent::prompts::ConnectedIntegration;
 use crate::config::Config;
+use sha2::{Digest, Sha256};
 
 use std::collections::{HashMap, HashSet};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -46,11 +47,25 @@ pub(crate) fn composio_cache_test_lock() -> std::sync::MutexGuard<'static, ()> {
         .unwrap_or_else(|e| e.into_inner())
 }
 
-/// Derive a stable cache key from a [`Config`]. We use the stringified
-/// `config_path` because it uniquely identifies a user context (it
-/// resolves to the per-user openhuman dir).
+/// Bind a cached integration list to the effective backend credential and
+/// endpoint as well as the local config. The digest keeps secrets out of the
+/// cache key and logs while preventing an old identity's cache hit during a
+/// credential rotation, even before invalidation completes.
 pub(crate) fn cache_key(config: &Config) -> String {
-    config.config_path.display().to_string()
+    let mut digest = Sha256::new();
+    digest.update(b"openhuman-integrations-cache-v2\0");
+    digest.update(config.config_path.to_string_lossy().as_bytes());
+    digest.update(b"\0");
+    digest.update(config.api_url.as_deref().unwrap_or_default().as_bytes());
+    digest.update(b"\0");
+    match crate::security::credentials::session_support::resolve_backend_credential(config) {
+        Ok(credential) => {
+            digest.update(if credential.is_api_key() { b"api-key\0" } else { b"session\0" });
+            digest.update(credential.secret().as_bytes());
+        }
+        Err(_) => digest.update(b"unavailable"),
+    }
+    hex::encode(digest.finalize())
 }
 
 /// Clear cached connected integrations so the next call to

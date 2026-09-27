@@ -45,11 +45,8 @@ struct ProductIdentitySeen {
     download: Option<String>,
 }
 
-async fn product_identity_seen_by_backend(identity: Option<&str>) -> ProductIdentitySeen {
-    use crate::api::product::{
-        reset_product_identity_for_test, set_product_identity, ProductIdentity,
-        PRODUCT_IDENTITY_HEADER,
-    };
+async fn product_identity_seen_by_backend() -> ProductIdentitySeen {
+    use crate::backend::transport::plain::TEST_PRODUCT_HEADER as PRODUCT_IDENTITY_HEADER;
 
     fn sink_header(sink: &Arc<std::sync::Mutex<Option<String>>>, headers: &axum::http::HeaderMap) {
         *sink.lock().unwrap() = headers
@@ -87,11 +84,6 @@ async fn product_identity_seen_by_backend(identity: Option<&str>) -> ProductIden
         );
     let base = start_mock_backend(app).await;
 
-    reset_product_identity_for_test();
-    if let Some(identity) = identity {
-        set_product_identity(ProductIdentity::new(identity).unwrap());
-    }
-
     let client = client_for(base);
     let sdk_result = client
         .post::<serde_json::Value>("/agent-integrations/composio/execute", &json!({}))
@@ -100,7 +92,6 @@ async fn product_identity_seen_by_backend(identity: Option<&str>) -> ProductIden
         .get_bytes("/agent-integrations/file-storage/files/f1/download")
         .await;
 
-    reset_product_identity_for_test();
     sdk_result.expect("mock backend returns a success envelope");
     download_result.expect("mock backend returns file bytes");
 

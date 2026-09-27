@@ -56,8 +56,8 @@ impl IntegrationClient {
         method: &str,
         path: &str,
         url: &str,
-    ) -> anyhow::Result<std::sync::Arc<dyn crate::api::transport::BackendTransport>> {
-        crate::api::transport::resolve_backend_transport()
+    ) -> anyhow::Result<std::sync::Arc<dyn crate::backend::transport::BackendTransport>> {
+        crate::backend::transport::resolve_backend_transport()
             .map_err(|error| self.map_transport_error(error, method, path, url))
     }
 
@@ -70,9 +70,9 @@ impl IntegrationClient {
         method: reqwest::Method,
         path: &'a str,
         body: Option<&'a serde_json::Value>,
-    ) -> crate::api::transport::BackendRequest<'a> {
-        crate::api::transport::BackendRequest {
-            profile: crate::api::transport::TransportProfile::Integrations,
+    ) -> crate::backend::transport::BackendRequest<'a> {
+        crate::backend::transport::BackendRequest {
+            profile: crate::backend::transport::TransportProfile::Integrations,
             base_url: &self.backend_url,
             method,
             path,
@@ -122,7 +122,7 @@ impl IntegrationClient {
         enforce_backend_egress(path)?;
         emit_backend_egress(path);
         self.ensure_budget_available(path).await?;
-        let url = crate::api::config::api_url(&self.backend_url, path);
+        let url = crate::util::url::join_url(&self.backend_url, path);
         let method_name = method.as_str().to_ascii_lowercase();
         tracing::debug!("[integrations] {} {}", method.as_str(), url);
         let value = self
@@ -165,7 +165,7 @@ impl IntegrationClient {
         enforce_backend_egress(path)?;
         emit_backend_egress(path);
         self.ensure_budget_available(path).await?;
-        let url = crate::api::config::api_url(&self.backend_url, path);
+        let url = crate::util::url::join_url(&self.backend_url, path);
         tracing::debug!("[integrations] POST(multipart) {}", url);
 
         let value = self

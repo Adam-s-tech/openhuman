@@ -5,7 +5,7 @@
 
 use std::error::Error as _;
 
-use crate::api::transport::BackendTransportError;
+use crate::backend::transport::BackendTransportError;
 
 use crate::integrations::types::BackendResponse;
 

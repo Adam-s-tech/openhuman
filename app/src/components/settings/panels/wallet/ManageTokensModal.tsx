@@ -6,6 +6,7 @@ import {
   balanceKey,
   formatDisplayBalance,
 } from '../../../../features/wallet/walletDisplay';
+import { useT } from '../../../../lib/i18n/I18nContext';
 import { type EvmNetwork, type WalletChain } from '../../../../services/walletApi';
 import { type RootState } from '../../../../store';
 import { toggleTokenHidden } from '../../../../store/walletPreferencesSlice';
@@ -24,6 +25,7 @@ interface ManageTokensModalProps {
 }
 
 export default function ManageTokensModal({ open, onClose, tokens }: ManageTokensModalProps) {
+  const { t } = useT();
   const dispatch = useDispatch();
   const hiddenTokenKeys = useSelector(
     (state: RootState) => state.walletPreferences?.hiddenTokenKeys || []
@@ -43,12 +45,12 @@ export default function ManageTokensModal({ open, onClose, tokens }: ManageToken
           <div className="flex items-center justify-between border-b border-line-subtle px-4 py-4">
             <div className="w-8" />
             <DialogPrimitive.Title className="text-sm font-semibold text-content m-0 p-0">
-              Manage tokens
+              {t('walletBalances.manageTokens', 'Manage tokens')}
             </DialogPrimitive.Title>
             <button
               onClick={onClose}
               className="flex h-8 w-8 items-center justify-center rounded-full text-content-muted hover:bg-surface-hover hover:text-content transition-colors"
-              aria-label="Close">
+              aria-label={t('common.close', 'Close')}>
               <svg
                 className="h-5 w-5"
                 fill="none"

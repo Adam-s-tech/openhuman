@@ -1,10 +1,11 @@
+import { RefreshCw } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 import { useCostDashboard } from '../../hooks/useCostDashboard';
 import { useT } from '../../lib/i18n/I18nContext';
 import { SettingsStatusLine } from '../settings/controls';
 import SettingsPanel from '../settings/layout/SettingsPanel';
-import { Alert, AlertDescription, Button, Card } from '../ui';
+import { Alert, AlertDescription, Button, Card, EmptyState } from '../ui';
 import CostBarChart from './CostBarChart';
 import CostSummary from './CostSummary';
 import DashboardSkeleton from './DashboardSkeleton';
@@ -37,8 +38,8 @@ const CostDashboardPanel = ({ embedded = false }: CostDashboardPanelProps) => {
 
   const body = (
     <>
-      <div className="flex items-start justify-between gap-3">
-        <p className="text-xs text-content-muted max-w-prose">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="max-w-prose text-xs text-content-muted">
           {t('settings.costDashboard.subtitle')}
         </p>
         <div className="flex items-center gap-2 shrink-0">
@@ -62,7 +63,10 @@ const CostDashboardPanel = ({ embedded = false }: CostDashboardPanelProps) => {
             disabled={isFetching}
             aria-label={t('settings.costDashboard.refresh')}
             leadingIcon={
-              <RefreshIcon className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin' : ''}`} />
+              <RefreshCw
+                className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin' : ''}`}
+                aria-hidden
+              />
             }>
             {t('settings.costDashboard.refresh')}
           </Button>
@@ -96,52 +100,50 @@ const CostDashboardPanel = ({ embedded = false }: CostDashboardPanelProps) => {
             monthlyPaceUsd={data.monthly_pace_usd}
             monthToDateUsd={data.month_to_date_usd}
           />
-          <Card
-            data-testid="cost-dashboard-cost-chart"
-            padded
-            divided={false}
-            className="bg-surface/40"
-            title={t('settings.costDashboard.sevenDayCost')}
-            headerRight={
-              <span className="text-[11px] text-content-muted">
-                {t('settings.costDashboard.utcNote')}
-              </span>
-            }>
-            <CostBarChart days={data.days} currency={data.currency} />
-          </Card>
-          <Card
-            data-testid="cost-dashboard-token-chart"
-            padded
-            divided={false}
-            className="bg-surface/40"
-            title={t('settings.costDashboard.sevenDayTokens')}
-            headerRight={
-              <span className="text-[11px] text-content-muted">
-                {t('settings.costDashboard.stackedNote')}
-              </span>
-            }>
-            <TokenUsageChart days={data.days} />
-          </Card>
-          <Card
-            data-testid="cost-dashboard-model-table"
-            padded
-            divided={false}
-            className="bg-surface/40"
-            title={t('settings.costDashboard.modelBreakdown')}
-            description={t('settings.costDashboard.modelBreakdownHint')}>
-            <ModelCostTable models={data.by_model} currency={data.currency} />
-          </Card>
+          {/* The two 7-day charts sit side by side once there is room. */}
+          <div className="grid gap-4 xl:grid-cols-2">
+            <Card
+              data-testid="cost-dashboard-cost-chart"
+              padded
+              divided={false}
+              title={t('settings.costDashboard.sevenDayCost')}
+              headerRight={
+                <span className="text-xs text-content-muted">
+                  {t('settings.costDashboard.utcNote')}
+                </span>
+              }>
+              <CostBarChart days={data.days} currency={data.currency} />
+            </Card>
+            <Card
+              data-testid="cost-dashboard-token-chart"
+              padded
+              divided={false}
+              title={t('settings.costDashboard.sevenDayTokens')}
+              headerRight={
+                <span className="text-xs text-content-muted">
+                  {t('settings.costDashboard.stackedNote')}
+                </span>
+              }>
+              <TokenUsageChart days={data.days} />
+            </Card>
+          </div>
+          <div data-testid="cost-dashboard-model-table">
+            <ModelCostTable
+              models={data.by_model}
+              currency={data.currency}
+              title={t('settings.costDashboard.modelBreakdown')}
+              description={t('settings.costDashboard.modelBreakdownHint')}
+            />
+          </div>
           {!hasAnyUsage && (
-            <div
-              data-testid="cost-dashboard-empty"
-              className="rounded-xl border border-dashed border-line-strong px-4 py-6 text-center">
-              <div className="text-sm font-medium text-content-secondary">
-                {t('settings.costDashboard.noData')}
+            <Card data-testid="cost-dashboard-empty">
+              <div className="space-y-1 px-4 py-6 text-center">
+                <EmptyState className="p-0 text-sm" label={t('settings.costDashboard.noData')} />
+                <p className="text-xs text-content-faint">
+                  {t('settings.costDashboard.noDataHint')}
+                </p>
               </div>
-              <div className="text-[11px] text-content-muted mt-1">
-                {t('settings.costDashboard.noDataHint')}
-              </div>
-            </div>
+            </Card>
           )}
         </>
       )}
@@ -152,33 +154,12 @@ const CostDashboardPanel = ({ embedded = false }: CostDashboardPanelProps) => {
   // so render just the padded body.
   if (embedded)
     return (
-      <div className="p-4 space-y-4" data-testid="cost-dashboard-panel">
+      <div className="space-y-4" data-testid="cost-dashboard-panel">
         {body}
       </div>
     );
 
   return <SettingsPanel testId="cost-dashboard-panel">{body}</SettingsPanel>;
 };
-
-interface IconProps {
-  className?: string;
-}
-
-const RefreshIcon = ({ className }: IconProps) => (
-  <svg
-    className={className}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden>
-    <polyline points="23 4 23 10 17 10" />
-    <polyline points="1 20 1 14 7 14" />
-    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10" />
-    <path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14" />
-  </svg>
-);
 
 export default CostDashboardPanel;

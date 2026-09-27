@@ -1,38 +1,10 @@
-use crate::api::config::effective_backend_api_url;
-use crate::api::BackendOAuthClient;
-use crate::config::Config;
 use crate::rpc::RpcOutcome;
 use crate::skills::webhooks::{
     WebhookDebugLogListResult, WebhookDebugLogsClearedResult, WebhookDebugRegistrationsResult,
     WebhookRequest, WebhookResponseData,
 };
 use base64::Engine;
-use reqwest::Method;
-use serde_json::Value;
 use std::collections::HashMap;
-
-/// The backend credential for `/webhooks/*`: the TinyHumans API key or the
-/// live session JWT.
-fn require_token(
-    config: &Config,
-) -> Result<crate::security::credentials::session_support::BackendCredential, String> {
-    crate::security::credentials::session_support::resolve_backend_credential(config)
-}
-
-async fn get_authed_value(
-    config: &Config,
-    method: Method,
-    path: &str,
-    body: Option<Value>,
-) -> Result<Value, String> {
-    let token = require_token(config)?;
-    let api_url = effective_backend_api_url(&config.api_url);
-    let client = BackendOAuthClient::new(&api_url).map_err(|e| e.to_string())?;
-    client
-        .authed_json(&token, method, path, body)
-        .await
-        .map_err(|e| e.to_string())
-}
 
 /// Retrieve the global webhook router, returning an error if the socket
 /// manager or router is not yet initialised.
@@ -259,93 +231,6 @@ pub fn build_echo_response(request: &WebhookRequest) -> WebhookResponseData {
         headers,
         body: base64::engine::general_purpose::STANDARD.encode(response_body.to_string()),
     }
-}
-
-pub async fn list_tunnels(config: &Config) -> Result<RpcOutcome<Value>, String> {
-    let data = get_authed_value(config, Method::GET, "/webhooks/core", None).await?;
-    Ok(RpcOutcome::single_log(data, "webhook tunnels fetched"))
-}
-
-pub async fn create_tunnel(
-    config: &Config,
-    name: &str,
-    description: Option<String>,
-) -> Result<RpcOutcome<Value>, String> {
-    let name = name.trim();
-    if name.is_empty() {
-        return Err("name is required".to_string());
-    }
-    let mut body_map = serde_json::Map::new();
-    body_map.insert(
-        "name".to_string(),
-        serde_json::Value::String(name.to_string()),
-    );
-    if let Some(desc) = description {
-        let desc = desc.trim().to_string();
-        if !desc.is_empty() {
-            body_map.insert("description".to_string(), serde_json::Value::String(desc));
-        }
-    }
-    let body = serde_json::Value::Object(body_map);
-    let data = get_authed_value(config, Method::POST, "/webhooks/core", Some(body)).await?;
-    Ok(RpcOutcome::single_log(data, "webhook tunnel created"))
-}
-
-pub async fn get_tunnel(config: &Config, id: &str) -> Result<RpcOutcome<Value>, String> {
-    let id = id.trim();
-    if id.is_empty() {
-        return Err("id is required".to_string());
-    }
-    let encoded_id = urlencoding::encode(id);
-    let data = get_authed_value(
-        config,
-        Method::GET,
-        &format!("/webhooks/core/{encoded_id}"),
-        None,
-    )
-    .await?;
-    Ok(RpcOutcome::single_log(data, "webhook tunnel fetched"))
-}
-
-pub async fn update_tunnel(
-    config: &Config,
-    id: &str,
-    payload: Value,
-) -> Result<RpcOutcome<Value>, String> {
-    let id = id.trim();
-    if id.is_empty() {
-        return Err("id is required".to_string());
-    }
-    let encoded_id = urlencoding::encode(id);
-    let data = get_authed_value(
-        config,
-        Method::PATCH,
-        &format!("/webhooks/core/{encoded_id}"),
-        Some(payload),
-    )
-    .await?;
-    Ok(RpcOutcome::single_log(data, "webhook tunnel updated"))
-}
-
-pub async fn delete_tunnel(config: &Config, id: &str) -> Result<RpcOutcome<Value>, String> {
-    let id = id.trim();
-    if id.is_empty() {
-        return Err("id is required".to_string());
-    }
-    let encoded_id = urlencoding::encode(id);
-    let data = get_authed_value(
-        config,
-        Method::DELETE,
-        &format!("/webhooks/core/{encoded_id}"),
-        None,
-    )
-    .await?;
-    Ok(RpcOutcome::single_log(data, "webhook tunnel deleted"))
-}
-
-pub async fn get_bandwidth(config: &Config) -> Result<RpcOutcome<Value>, String> {
-    let data = get_authed_value(config, Method::GET, "/webhooks/core/bandwidth", None).await?;
-    Ok(RpcOutcome::single_log(data, "webhook bandwidth fetched"))
 }
 
 #[cfg(test)]

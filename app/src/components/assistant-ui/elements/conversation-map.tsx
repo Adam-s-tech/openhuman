@@ -5,6 +5,7 @@
 'use client';
 
 import { cn } from '@/components/assistant-ui/lib/utils';
+import { useT } from '@/lib/i18n/I18nContext';
 import { type ComponentProps, type KeyboardEvent, useCallback, useRef, useState } from 'react';
 
 import { clamp } from '../utils/range';
@@ -37,6 +38,7 @@ export function ConversationMap({
   /** Which edge of the 24px rail the collapsed ticks hug. */
   align?: 'left' | 'right';
 }) {
+  const { t } = useT();
   const railRef = useRef<HTMLElement>(null);
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
   const [previewId, setPreviewId] = useState<string | null>(null);
@@ -76,7 +78,7 @@ export function ConversationMap({
     <nav
       data-slot="conversation-map"
       ref={railRef}
-      aria-label="Conversation map"
+      aria-label={t('elements.conversationMap.ariaLabel', 'Conversation map')}
       onKeyDown={handleKeyDown}
       onPointerLeave={() => setPreviewId(null)}
       className={cn('group/rail flex h-full w-6 flex-col justify-center', className)}

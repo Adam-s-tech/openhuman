@@ -348,7 +348,7 @@ const RecoveryPhrasePanel = () => {
                       setError(null);
                     }}
                     className="flex w-8 h-8 items-center justify-center rounded-full text-content-muted hover:bg-surface-hover hover:text-content transition-colors mb-4 -ml-2"
-                    aria-label="Back">
+                    aria-label={t('common.back', 'Back')}>
                     <svg
                       className="w-5 h-5"
                       fill="none"

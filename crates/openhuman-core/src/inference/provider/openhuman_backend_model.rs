@@ -36,7 +36,6 @@ use tinyinference_llm::providers::openai::OpenAiModel;
 use tinyinference_llm::Error as TiError;
 
 use super::ProviderRuntimeOptions;
-use crate::api::config::effective_api_url;
 use crate::security::credentials::{AuthService, APP_SESSION_PROVIDER};
 
 pub const PROVIDER_LABEL: &str = "OpenHuman";
@@ -164,11 +163,11 @@ impl OpenHumanBackendModel {
         )? {
             // Refuse to send the key over a plaintext channel it could leak
             // from. Scoped to this managed-key path only — `base_url()`
-            // comes from `effective_api_url`, which a library host can point
+            // comes from the backend transport, which a library host can point
             // at anything (a BYOK/local endpoint legitimately runs over
             // plain HTTP on loopback), so this cannot tighten
             // `normalize_api_base_url` itself without breaking those.
-            let endpoint = self.base_url();
+            let endpoint = self.base_url()?;
             if !is_safe_endpoint_for_managed_bearer(&endpoint) {
                 anyhow::bail!(
                     "refusing to send the TinyHumans API key as a bearer over a non-HTTPS, \
@@ -217,11 +216,16 @@ impl OpenHumanBackendModel {
         }
     }
 
-    fn base_url(&self) -> String {
-        format!(
-            "{}/openai/v1",
-            effective_api_url(&self.api_url).trim_end_matches('/')
-        )
+    /// The managed OpenAI-compatible endpoint, from the installed backend
+    /// transport. Without one there is no managed backend to reach.
+    fn base_url(&self) -> anyhow::Result<String> {
+        let base = crate::backend::inference_base_url(&self.api_url).map_err(|_| {
+            anyhow::anyhow!(
+                "{} managed inference needs a backend transport",
+                crate::core::observability::BACKEND_UNAVAILABLE_PREFIX
+            )
+        })?;
+        Ok(format!("{}/openai/v1", base.trim_end_matches('/')))
     }
 
     /// Resolve the current JWT + base URL and build a fresh crate `OpenAiModel`
@@ -230,7 +234,7 @@ impl OpenHumanBackendModel {
         let token = self
             .resolve_bearer()
             .map_err(|e| TiError::Model(e.to_string()))?;
-        let base_url = self.base_url();
+        let base_url = self.base_url().map_err(|e| TiError::Model(e.to_string()))?;
         // The hosted API is chat-completions only (no `/v1/responses`); auth is a
         // plain bearer JWT. The tier/model rides `request.model`, which the backend
         // resolves — the baked default only applies when a request omits it.
@@ -558,11 +562,9 @@ impl ChatModel<()> for OpenHumanBackendModel {
     /// backend resolves the tier per account anyway, so two accounts sharing
     /// a cache would need their own namespace, not a credential in the key.
     fn cache_identity(&self) -> Option<String> {
-        Some(format!(
-            "openhuman:{}:{}",
-            self.base_url(),
-            self.default_model
-        ))
+        self.base_url()
+            .ok()
+            .map(|base| format!("openhuman:{base}:{}", self.default_model))
     }
 
     async fn invoke(

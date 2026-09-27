@@ -8,7 +8,6 @@ use tinyinference_embeddings::{
     DEFAULT_CLOUD_DIMENSIONS, DEFAULT_CLOUD_MODEL,
 };
 
-use crate::api::config::effective_api_url;
 use crate::security::credentials::{AuthService, APP_SESSION_PROVIDER};
 
 pub const DEFAULT_CLOUD_EMBEDDING_MODEL: &str = DEFAULT_CLOUD_MODEL;
@@ -28,12 +27,20 @@ impl OpenHumanCloudEmbeddingModel {
         dimensions: usize,
     ) -> Self {
         let state_dir = openhuman_dir.unwrap_or_else(default_state_dir);
+        let base = crate::backend::inference_base_url(&api_url).ok();
+        let backend_available = base.is_some();
         let base_url = format!(
             "{}/openai/v1",
-            effective_api_url(&api_url).trim_end_matches('/')
+            base.unwrap_or_default().trim_end_matches('/')
         );
         let key_endpoint = base_url.clone();
         let bearer: BearerResolver = Arc::new(move || {
+            if !backend_available {
+                return Err(tinyinference_embeddings::Error::Validation(format!(
+                    "{} managed embeddings need a backend transport",
+                    crate::core::observability::BACKEND_UNAVAILABLE_PREFIX
+                )));
+            }
             // A stored TinyHumans API key is the bearer outright, exactly as
             // for managed inference (`OpenHumanBackendModel::resolve_bearer`):
             // `/openai/v1/embeddings` accepts it as `Bearer <key>`. Same

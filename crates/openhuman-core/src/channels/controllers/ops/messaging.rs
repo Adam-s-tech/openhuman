@@ -2,8 +2,8 @@
 
 use serde_json::Value;
 
-use crate::api::config::effective_backend_api_url;
-use crate::api::rest::BackendOAuthClient;
+
+use crate::backend::BackendClient;
 use crate::config::Config;
 use crate::rpc::RpcOutcome;
 use crate::security::credentials::session_support::resolve_backend_credential;
@@ -14,7 +14,7 @@ pub async fn channel_send_message(
     channel: &str,
     message: Value,
 ) -> Result<RpcOutcome<Value>, String> {
-    let api_url = effective_backend_api_url(&config.api_url);
+    let api_url = crate::backend::require_base_url(&config.api_url)?;
     let jwt = resolve_backend_credential(config)?;
 
     log::debug!(
@@ -23,11 +23,16 @@ pub async fn channel_send_message(
         api_url
     );
 
-    let client = BackendOAuthClient::new(&api_url).map_err(|e| e.to_string())?;
+    let client = BackendClient::new(&api_url).map_err(|e| e.to_string())?;
     let result = client
         .send_channel_message(channel, &jwt, message)
         .await
-        .map_err(|e| format!("failed to send channel message: {e}"))?;
+        .map_err(|e| {
+            format!(
+                "failed to send channel message: {}",
+                crate::backend::flatten_authed_error(e)
+            )
+        })?;
 
     log::debug!("[channels] send_message response: {:?}", result);
 
@@ -40,7 +45,7 @@ pub async fn channel_send_reaction(
     channel: &str,
     reaction: Value,
 ) -> Result<RpcOutcome<Value>, String> {
-    let api_url = effective_backend_api_url(&config.api_url);
+    let api_url = crate::backend::require_base_url(&config.api_url)?;
     let jwt = resolve_backend_credential(config)?;
 
     log::debug!(
@@ -49,11 +54,16 @@ pub async fn channel_send_reaction(
         api_url
     );
 
-    let client = BackendOAuthClient::new(&api_url).map_err(|e| e.to_string())?;
+    let client = BackendClient::new(&api_url).map_err(|e| e.to_string())?;
     let result = client
         .send_channel_reaction(channel, &jwt, reaction)
         .await
-        .map_err(|e| format!("failed to send channel reaction: {e}"))?;
+        .map_err(|e| {
+            format!(
+                "failed to send channel reaction: {}",
+                crate::backend::flatten_authed_error(e)
+            )
+        })?;
 
     log::debug!("[channels] send_reaction response: {:?}", result);
 
@@ -66,7 +76,7 @@ pub async fn channel_create_thread(
     channel: &str,
     title: &str,
 ) -> Result<RpcOutcome<Value>, String> {
-    let api_url = effective_backend_api_url(&config.api_url);
+    let api_url = crate::backend::require_base_url(&config.api_url)?;
     let jwt = resolve_backend_credential(config)?;
 
     log::debug!(
@@ -76,11 +86,16 @@ pub async fn channel_create_thread(
         api_url
     );
 
-    let client = BackendOAuthClient::new(&api_url).map_err(|e| e.to_string())?;
+    let client = BackendClient::new(&api_url).map_err(|e| e.to_string())?;
     let result = client
         .create_channel_thread(channel, &jwt, title)
         .await
-        .map_err(|e| format!("failed to create channel thread: {e}"))?;
+        .map_err(|e| {
+            format!(
+                "failed to create channel thread: {}",
+                crate::backend::flatten_authed_error(e)
+            )
+        })?;
 
     log::debug!("[channels] create_thread response: {:?}", result);
 
@@ -94,7 +109,7 @@ pub async fn channel_update_thread(
     thread_id: &str,
     action: &str,
 ) -> Result<RpcOutcome<Value>, String> {
-    let api_url = effective_backend_api_url(&config.api_url);
+    let api_url = crate::backend::require_base_url(&config.api_url)?;
     let jwt = resolve_backend_credential(config)?;
 
     log::debug!(
@@ -105,11 +120,16 @@ pub async fn channel_update_thread(
         api_url
     );
 
-    let client = BackendOAuthClient::new(&api_url).map_err(|e| e.to_string())?;
+    let client = BackendClient::new(&api_url).map_err(|e| e.to_string())?;
     let result = client
         .update_channel_thread(channel, &jwt, thread_id, action)
         .await
-        .map_err(|e| format!("failed to update channel thread: {e}"))?;
+        .map_err(|e| {
+            format!(
+                "failed to update channel thread: {}",
+                crate::backend::flatten_authed_error(e)
+            )
+        })?;
 
     log::debug!("[channels] update_thread response: {:?}", result);
 
@@ -122,7 +142,7 @@ pub async fn channel_list_threads(
     channel: &str,
     active: Option<bool>,
 ) -> Result<RpcOutcome<Value>, String> {
-    let api_url = effective_backend_api_url(&config.api_url);
+    let api_url = crate::backend::require_base_url(&config.api_url)?;
     let jwt = resolve_backend_credential(config)?;
 
     log::debug!(
@@ -132,11 +152,16 @@ pub async fn channel_list_threads(
         api_url
     );
 
-    let client = BackendOAuthClient::new(&api_url).map_err(|e| e.to_string())?;
+    let client = BackendClient::new(&api_url).map_err(|e| e.to_string())?;
     let result = client
         .list_channel_threads(channel, &jwt, active)
         .await
-        .map_err(|e| format!("failed to list channel threads: {e}"))?;
+        .map_err(|e| {
+            format!(
+                "failed to list channel threads: {}",
+                crate::backend::flatten_authed_error(e)
+            )
+        })?;
 
     log::debug!("[channels] list_threads response: {:?}", result);
 

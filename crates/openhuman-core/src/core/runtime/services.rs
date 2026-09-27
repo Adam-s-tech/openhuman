@@ -437,7 +437,10 @@ pub fn spawn_socket_auto_connect(
                     return;
                 }
             };
-            let api_url = crate::api::config::effective_backend_api_url(&config.api_url);
+            let Ok(api_url) = crate::backend::base_url(&config.api_url) else {
+                log::debug!("[socket] No backend transport or base URL — skipping auto-connect");
+                return;
+            };
             // The API key when one is stored, else the session token.
             let initial_token =
                 match crate::security::credentials::session_support::backend_bearer_secret(&config)
@@ -480,7 +483,16 @@ pub fn spawn_socket_auto_connect(
             let provider =
                 crate::platform::socket::token_provider::token_provider_from_config(config);
             if let Err(e) = socket_mgr.connect_with_provider(&api_url, provider).await {
-                log::error!("[socket] Auto-connect failed: {e}");
+                // Signing out between the token check above and the provider's
+                // read leaves no token (Sentry 35911). That is a user-state
+                // race, not a fault: warn so it stays a breadcrumb.
+                if e.contains("no session token stored") {
+                    log::warn!(
+                        "[socket] Auto-connect skipped — session cleared before connect: {e}"
+                    );
+                } else {
+                    log::error!("[socket] Auto-connect failed: {e}");
+                }
             } else {
                 log::info!("[socket] Auto-connect initiated successfully");
             }

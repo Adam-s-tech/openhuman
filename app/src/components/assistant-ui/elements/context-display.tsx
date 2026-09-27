@@ -11,9 +11,10 @@
  * - `cn` and tooltip import paths (`@/components/assistant-ui/...`).
  * - The "% full" caption and the Input / Cached input / Output / Reasoning
  *   row labels are a `labels` prop with English defaults, for `useT()`.
- * - The Ring / Bar / Text presets forward any other button props to their
- *   trigger, so the "Context usage" accessible name can be translated and a
- *   preset can itself be a popover trigger (`render={<ContextDisplayRing />}`).
+ * - The Ring preset forwards any other button props to its trigger, so the
+ *   "Context usage" accessible name can be translated and it can itself be a
+ *   popover trigger (`render={<ContextDisplayRing />}`). Only the Ring preset
+ *   is used; the upstream Bar/Text presets were dropped as unused.
  * See `ContextUsage` in `features/conversations/aui/ContextUsage.tsx`, the
  * only caller.
  */
@@ -24,6 +25,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/assistant-ui/ui/tooltip';
+import { useT } from '@/lib/i18n/I18nContext';
 import {
   type ComponentProps,
   createContext,
@@ -330,127 +332,27 @@ const ContextDisplayRing: FC<PresetProps> = ({
   resetKey,
   labels,
   ...triggerProps
-}) => (
-  <ContextDisplayRoot
-    modelContextWindow={modelContextWindow}
-    usage={usage}
-    resetKey={resetKey}
-    labels={labels}>
-    <ContextDisplayTrigger
-      className={cn(
-        'text-muted-foreground hover:text-foreground gap-1.5 px-1.5 py-1 text-xs',
-        className
-      )}
-      aria-label="Context usage"
-      {...triggerProps}>
-      <RingVisual />
-      <RingPercentLabel />
-    </ContextDisplayTrigger>
-    <ContextDisplayContent side={side} />
-  </ContextDisplayRoot>
-);
-
-function BarVisual() {
-  const { percent, totalTokens } = useContextDisplay();
-
+}) => {
+  const { t } = useT();
   return (
-    <div className="flex items-center gap-2">
-      <div className="bg-muted h-1.5 w-16 overflow-hidden rounded-full">
-        <div
-          className={cn('h-full rounded-full transition-all duration-300', getBarColor(percent))}
-          style={{ width: `${percent}%` }}
-        />
-      </div>
-      <span className="text-muted-foreground text-[10px] tabular-nums">
-        {formatTokenCount(totalTokens)} ({Math.round(percent)}%)
-      </span>
-    </div>
+    <ContextDisplayRoot
+      modelContextWindow={modelContextWindow}
+      usage={usage}
+      resetKey={resetKey}
+      labels={labels}>
+      <ContextDisplayTrigger
+        className={cn(
+          'text-muted-foreground hover:text-foreground gap-1.5 px-1.5 py-1 text-xs',
+          className
+        )}
+        aria-label={t('conversations.composer.context.usage', 'Context usage')}
+        {...triggerProps}>
+        <RingVisual />
+        <RingPercentLabel />
+      </ContextDisplayTrigger>
+      <ContextDisplayContent side={side} />
+    </ContextDisplayRoot>
   );
-}
-
-const ContextDisplayBar: FC<PresetProps> = ({
-  modelContextWindow,
-  className,
-  side,
-  usage,
-  resetKey,
-  labels,
-  ...triggerProps
-}) => (
-  <ContextDisplayRoot
-    modelContextWindow={modelContextWindow}
-    usage={usage}
-    resetKey={resetKey}
-    labels={labels}>
-    <ContextDisplayTrigger
-      className={cn('px-2 py-1', className)}
-      aria-label="Context usage"
-      {...triggerProps}>
-      <BarVisual />
-    </ContextDisplayTrigger>
-    <ContextDisplayContent side={side} />
-  </ContextDisplayRoot>
-);
-
-function TextVisual() {
-  const { totalTokens, modelContextWindow } = useContextDisplay();
-
-  return (
-    <>
-      {formatTokenCount(totalTokens)} / {formatTokenCount(modelContextWindow)}
-    </>
-  );
-}
-
-const ContextDisplayText: FC<PresetProps> = ({
-  modelContextWindow,
-  className,
-  side,
-  usage,
-  resetKey,
-  labels,
-  ...triggerProps
-}) => (
-  <ContextDisplayRoot
-    modelContextWindow={modelContextWindow}
-    usage={usage}
-    resetKey={resetKey}
-    labels={labels}>
-    <ContextDisplayTrigger
-      aria-label="Context usage"
-      className={cn(
-        'text-muted-foreground hover:bg-accent hover:text-accent-foreground px-2 py-1 font-mono text-xs tabular-nums',
-        className
-      )}
-      {...triggerProps}>
-      <TextVisual />
-    </ContextDisplayTrigger>
-    <ContextDisplayContent side={side} />
-  </ContextDisplayRoot>
-);
-
-const ContextDisplay = {} as {
-  Root: typeof ContextDisplayRoot;
-  Trigger: typeof ContextDisplayTrigger;
-  Content: typeof ContextDisplayContent;
-  Ring: typeof ContextDisplayRing;
-  Bar: typeof ContextDisplayBar;
-  Text: typeof ContextDisplayText;
 };
 
-ContextDisplay.Root = ContextDisplayRoot;
-ContextDisplay.Trigger = ContextDisplayTrigger;
-ContextDisplay.Content = ContextDisplayContent;
-ContextDisplay.Ring = ContextDisplayRing;
-ContextDisplay.Bar = ContextDisplayBar;
-ContextDisplay.Text = ContextDisplayText;
-
-export {
-  ContextDisplay,
-  ContextDisplayRoot,
-  ContextDisplayTrigger,
-  ContextDisplayContent,
-  ContextDisplayRing,
-  ContextDisplayBar,
-  ContextDisplayText,
-};
+export { ContextDisplayRing };

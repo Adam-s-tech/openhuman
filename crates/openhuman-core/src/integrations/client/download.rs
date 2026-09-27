@@ -2,7 +2,7 @@
 //! download route bypasses the JSON envelope and needs `Content-Type` /
 //! `Content-Disposition` metadata the SDK's binary primitive doesn't expose.
 
-use crate::api::transport::BackendTransportError;
+use crate::backend::transport::BackendTransportError;
 
 use super::construct::IntegrationClient;
 use super::requests::{emit_backend_egress, enforce_backend_egress};
@@ -64,7 +64,7 @@ impl IntegrationClient {
         if !is_file_download {
             anyhow::bail!("route is intentionally not exposed by the SDK: GET {route}");
         }
-        let url = crate::api::config::api_url(&self.backend_url, path);
+        let url = crate::util::url::join_url(&self.backend_url, path);
         tracing::debug!("[integrations] GET(bytes) {}", url);
 
         let resp = self
