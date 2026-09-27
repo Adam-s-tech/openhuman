@@ -91,3 +91,7 @@ pub(super) async fn oauth_mcp_callback_handler(
         }
     }
 }
+
+#[cfg(test)]
+#[path = "oauth_mcp_tests.rs"]
+mod tests;
