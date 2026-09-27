@@ -198,8 +198,14 @@ pub(super) async fn build_channel_client() -> Option<(
         }
     };
     let jwt =
-        match crate::security::credentials::session_support::resolve_backend_credential(&config) {
-            Ok(credential) => credential,
+        match crate::security::credentials::session_support::get_session_token(&config) {
+            Ok(Some(token)) if !crate::security::credentials::session_support::is_local_session_token(&token) => {
+                crate::security::credentials::session_support::BackendCredential::Session(token)
+            }
+            Ok(_) => {
+                tracing::error!("[channel-inbound] no hosted user session — cannot send");
+                return None;
+            }
             Err(e) => {
                 tracing::error!(
                     "[channel-inbound] no backend credential — cannot send: {}",
@@ -228,8 +234,14 @@ pub(super) async fn send_channel_reply(channel: &str, text: &str) {
     };
 
     let jwt =
-        match crate::security::credentials::session_support::resolve_backend_credential(&config) {
-            Ok(credential) => credential,
+        match crate::security::credentials::session_support::get_session_token(&config) {
+            Ok(Some(token)) if !crate::security::credentials::session_support::is_local_session_token(&token) => {
+                crate::security::credentials::session_support::BackendCredential::Session(token)
+            }
+            Ok(_) => {
+                tracing::error!("[channel-inbound] no hosted user session — cannot send");
+                return;
+            }
             Err(e) => {
                 tracing::error!(
                     "[channel-inbound] no backend credential — cannot reply: {}",
