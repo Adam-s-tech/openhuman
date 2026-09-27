@@ -159,6 +159,10 @@ async fn test_dictation_rejects_disallowed_origin_with_valid_bearer() {
         .uri("/ws/dictation")
         .header(header::ORIGIN, "https://attacker.example")
         .header(header::AUTHORIZATION, format!("Bearer {token}"))
+        .header(header::CONNECTION, "Upgrade")
+        .header(header::UPGRADE, "websocket")
+        .header("sec-websocket-version", "13")
+        .header("sec-websocket-key", "dGhlIHNhbXBsZSBub25jZQ==")
         .body(Body::empty())
         .unwrap();
 
