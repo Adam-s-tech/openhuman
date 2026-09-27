@@ -52,7 +52,7 @@ pub use schema::{
     ObservabilityConfig, OrchestratorModelConfig, PrivacyConfig, PrivacyMode, ProxyConfig,
     ProxyScope, ReflectionSource, ReliabilityConfig, ResourceLimitsConfig, RuntimeConfig,
     RuntimePoolConfig, RuntimePoolLangConfig, SandboxBackend, SandboxConfig, SchedulerConfig,
-    SchedulerGateConfig, SchedulerGateMode, SearchConfig, SearchEngine, SearchEngineCredentials,
+    SchedulerGateConfig, SchedulerGateMode, SearchConfig, SearchEngineCredentials, SearchPresentation, SearchProviderSettings, SearchRoute,
     SearxngConfig, SecretsConfig, SecurityConfig, ShellConfig, SlackConfig, StorageConfig,
     StorageProviderConfig, StorageProviderSection, StreamMode, SttEngine, TeamModelConfig,
     TelegramConfig, TokenjuiceConfig, UpdateConfig, UpdateRestartStrategy, VoiceActivationMode,
@@ -61,7 +61,7 @@ pub use schema::{
     MANAGED_MULTIMODAL_MODELS, MEMORY_SYNC_INTERVAL_PRESETS_SECS, MODEL_IMAGE_GENERATION_AGENT,
     MODEL_MANAGED_DEFAULT, MODEL_MEDIA_UNDERSTANDING, MODEL_VIDEO_GENERATION_AGENT,
     SEARCH_ENGINE_BRAVE, SEARCH_ENGINE_DISABLED, SEARCH_ENGINE_EXA, SEARCH_ENGINE_MANAGED,
-    SEARCH_ENGINE_PARALLEL, SEARCH_ENGINE_QUERIT, SEARCH_ENGINE_TAVILY,
+    SEARCH_ENGINE_QUERIT, SEARCH_ENGINE_TAVILY,
 };
 // Kept as a separate re-export (issue #4117) so the large alphabetized group
 // above stays byte-identical and rustfmt-stable.
