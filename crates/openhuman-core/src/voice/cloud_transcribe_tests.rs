@@ -127,8 +127,8 @@ async fn api_key_transcribes_via_safe_backend_with_bearer_and_multipart_audio() 
         .as_deref()
         .unwrap()
         .starts_with("multipart/form-data; boundary="));
-    let body = String::from_utf8(body).unwrap();
+    assert!(body.windows(3).any(|bytes| bytes == [1, 2, 3]));
+    let body = String::from_utf8_lossy(&body);
     assert!(body.contains("name=\"file\""));
-    assert!(body.as_bytes().windows(3).any(|bytes| bytes == [1, 2, 3]));
     assert!(body.contains("name=\"model\""));
 }
