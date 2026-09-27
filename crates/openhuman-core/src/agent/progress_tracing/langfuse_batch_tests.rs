@@ -133,11 +133,16 @@ async fn api_key_credentials_are_not_used_for_langfuse_proxy_exports() {
             output: None,
         },
     )];
-    assert!(!super::langfuse::journal_export::journal_push_ready(
+    assert!(!crate::agent::progress_tracing::langfuse::journal_export::journal_push_ready(
         &config
     ));
     assert_eq!(
-        super::langfuse::journal_export::push_observations(&config, &ctx, &observations, None)
+        crate::agent::progress_tracing::langfuse::journal_export::push_observations(
+            &config,
+            &ctx,
+            &observations,
+            None,
+        )
             .await,
         Ok(())
     );
