@@ -150,7 +150,11 @@ pub async fn execute_tool(
     with_module_lock(|| async {
         proxy(&current)
             .await?
-            .call_confidential(names::methods::EXECUTE_TOOL, (request,))
+            // Keys travel only in the private module configuration; a call
+            // carries the model's arguments, which are not secrets. An
+            // ordinary call also works with a developer override, which is
+            // never attested.
+            .call(names::methods::EXECUTE_TOOL, (request,))
             .await
             .map_err(|error| {
                 tracing::debug!(tool = %tool, "[modules][search] ExecuteTool failed");
