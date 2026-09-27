@@ -107,8 +107,17 @@ async fn api_key_transcribes_via_safe_backend_with_bearer_and_multipart_audio() 
     let requests = server.received_requests().await.unwrap();
     assert_eq!(requests.len(), 1);
     let request = &requests[0];
-    assert_eq!(request.headers.get("authorization").unwrap(), "Bearer test-api-key");
-    assert!(request.headers.get("content-type").unwrap().to_str().unwrap().starts_with("multipart/form-data; boundary="));
+    assert_eq!(
+        request.headers.get("authorization").unwrap(),
+        "Bearer test-api-key"
+    );
+    assert!(request
+        .headers
+        .get("content-type")
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .starts_with("multipart/form-data; boundary="));
     assert!(request.body.windows(3).any(|bytes| bytes == [1, 2, 3]));
     let body = String::from_utf8_lossy(&request.body);
     assert!(body.contains("name=\"file\""));
