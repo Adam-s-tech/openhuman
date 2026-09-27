@@ -148,6 +148,10 @@ fn read_cached_integrations(config: &Config) -> Option<Vec<ConnectedIntegration>
     Some(cached.entries.clone())
 }
 
+#[cfg(test)]
+#[path = "cache_tests.rs"]
+mod tests;
+
 /// Stable hash of the *routing-relevant* slice of a connected-integrations
 /// snapshot.
 ///
