@@ -133,8 +133,8 @@ Each subscribing domain owns a `bus.rs`; subscriber names use
 
 ## RPC and HTTP transport
 
-The core HTTP router serves the routes listed below; `/auth` and `/auth/telegram` callbacks belong to the host. Every transport resolves a method through
-`invoke::invoke_method`, which checks the registry schema, validates params
+Every transport resolves a method through `invoke::invoke_method`, which checks
+the registry schema, validates params
 (`all::validate_params`, messages from `params.rs`), dispatches, and on a
 confirmed session expiry publishes `DomainEvent::SessionExpired`.
 `CoreRuntime::invoke` wraps it for embedders; the CLI's `call` subcommand
@@ -142,8 +142,9 @@ uses it directly.
 
 The HTTP and Socket.IO server that exposes these methods lives in
 `crates/openhuman-rpc` (`openhuman_rpc::server`): the axum router, `/rpc`,
-`/health`, `/schema`, the SSE streams, auth middleware, CORS, Socket.IO and
-the listener bind. It mounts the domain-owned HTTP handlers that stay here
+`/health`, `/schema`, `/events`, `/oauth/mcp/callback`, the SSE streams, auth
+middleware, CORS, Socket.IO and the listener bind. Host-owned `/auth` and
+`/auth/telegram` callbacks are not served by this router. It mounts the domain-owned HTTP handlers that stay here
 behind the `http-server` feature (`inference::http`'s `/v1` router, the
 dictation WebSocket in `voice::streaming`). `CoreRuntime` exposes the hooks
 the server needs around a listener (`start_services`, `listener_bound`,
