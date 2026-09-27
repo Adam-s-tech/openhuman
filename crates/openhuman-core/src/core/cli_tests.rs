@@ -53,10 +53,10 @@ fn launch_options_reject_missing_or_empty_values() {
 }
 
 /// Serialises env-mutating CLI tests via the crate-wide backend env lock —
-/// these tests set `BACKEND_URL`, which `api::config` and `medulla::ops`
+/// these tests set `BACKEND_URL`, which `openhuman_tinyhumans::backend::url`
 /// tests also read/remove, so a module-local lock is not enough.
 fn env_lock() -> std::sync::MutexGuard<'static, ()> {
-    crate::api::config::backend_env_test_lock()
+    crate::config::app_env::env_test_lock()
 }
 
 #[test]
@@ -133,6 +133,25 @@ fn parse_input_value_rejects_invalid_bool() {
     let err =
         parse_input_value(&TypeSchema::Bool, "not-a-bool").expect_err("invalid bool should fail");
     assert!(err.contains("expected bool"));
+}
+
+#[test]
+fn parse_input_value_enforces_bounded_u64_range() {
+    let ty = TypeSchema::BoundedU64 { min: 1, max: 10 };
+
+    assert_eq!(parse_input_value(&ty, "10").unwrap(), serde_json::json!(10));
+
+    let err = parse_input_value(&ty, "11").expect_err("above max should fail");
+    assert_eq!(err, "expected unsigned integer <= 10, got '11'");
+
+    let err = parse_input_value(&ty, "0").expect_err("below min should fail");
+    assert_eq!(err, "expected unsigned integer >= 1, got '0'");
+
+    let err = parse_input_value(&ty, "-3").expect_err("negative should fail");
+    assert!(
+        err.starts_with("expected unsigned integer, got '-3'"),
+        "got: {err}"
+    );
 }
 
 #[test]

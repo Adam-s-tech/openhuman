@@ -136,7 +136,7 @@ impl ComposioClient {
             error: Option<String>,
         }
 
-        let url = crate::api::config::api_url(&self.inner.backend_url, path);
+        let url = crate::util::url::join_url(&self.inner.backend_url, path);
         tracing::debug!("[composio] DELETE {}", url);
 
         // Build a fresh lightweight reqwest client for this DELETE.

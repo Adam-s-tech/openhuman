@@ -75,7 +75,7 @@ pub(super) fn static_token_provider(token: String) -> TokenProvider {
 /// refreshed or re-stored since the previous attempt.
 pub(crate) fn token_provider_from_config(config: Arc<crate::config::Config>) -> TokenProvider {
     Arc::new(move || {
-        crate::api::jwt::get_session_token(&config)
+        crate::security::credentials::jwt::get_session_token(&config)
             .map_err(|e| format!("failed to read session token: {e}"))?
             .ok_or_else(|| "no session token stored — user must log in first".to_string())
     })

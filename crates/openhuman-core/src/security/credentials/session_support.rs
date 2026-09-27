@@ -61,6 +61,20 @@ pub fn is_local_session_token(token: &str) -> bool {
     )
 }
 
+/// Whether the current RPC workspace is authenticated by the offline local
+/// credential. A backend-only route may report a missing session or 401 while
+/// this credential remains valid; those errors must not broadcast sign-out.
+/// A failed lookup leaves the ordinary session-expiry path in place.
+pub async fn current_session_is_local() -> bool {
+    let Ok(config) = crate::config::rpc::load_config_with_timeout().await else {
+        return false;
+    };
+    get_session_token(&config)
+        .ok()
+        .flatten()
+        .is_some_and(|token| is_local_session_token(&token))
+}
+
 pub fn parse_fields_value(
     input: Option<serde_json::Value>,
 ) -> Result<std::collections::HashMap<String, String>, String> {
@@ -178,7 +192,7 @@ impl CredentialKind {
 /// The subject of a JWT, read from its payload claims without verification.
 /// Checked in order: `sub`, `userId`, `user_id`, `_id`, `id`.
 pub fn user_id_from_jwt_claims(token: &str) -> Option<String> {
-    let claims = crate::api::jwt::decode_jwt_payload(token)?;
+    let claims = crate::security::credentials::jwt::decode_jwt_payload(token)?;
     let obj = claims.as_object()?;
     ["sub", "userId", "user_id", "_id", "id"]
         .iter()
@@ -339,6 +353,12 @@ impl BackendCredential {
     }
 }
 
+/// Error [`resolve_backend_credential`] returns for the offline local session.
+/// Carries [`BACKEND_UNAVAILABLE_PREFIX`](crate::core::observability::BACKEND_UNAVAILABLE_PREFIX)
+/// so it classifies as an expected backend-unavailable error.
+pub const LOCAL_SESSION_BACKEND_UNAVAILABLE: &str =
+    "BACKEND_UNAVAILABLE: hosted account data is unavailable for the offline local session";
+
 /// Resolve the backend credential for `config`: the API key when one is
 /// stored, else the live app-session token with exactly the classification
 /// [`require_live_session_token`] has always applied.
@@ -352,6 +372,13 @@ pub fn resolve_backend_credential(config: &Config) -> Result<BackendCredential, 
     }
     let profile = load_app_session_profile(config)?;
     match classify_session_token(profile.as_ref(), chrono::Utc::now()) {
+        // The offline local session has no TinyHumans account behind it, so a
+        // hosted call is unavailable by construction — the typed sentinel lets
+        // `report_error_or_expected` demote it instead of paging Sentry on
+        // every background usage/announcement probe (Sentry 36649).
+        SessionTokenCheck::Live(token) if is_local_session_token(&token) => {
+            Err(LOCAL_SESSION_BACKEND_UNAVAILABLE.to_owned())
+        }
         SessionTokenCheck::Live(token) => Ok(BackendCredential::Session(token)),
         SessionTokenCheck::Absent => {
             Err("no backend session token; run auth_store_session first".to_string())
@@ -362,6 +389,31 @@ pub fn resolve_backend_credential(config: &Config) -> Result<BackendCredential, 
                 "SESSION_EXPIRED: backend session token expired locally — re-authentication required"
                     .to_string(),
             )
+        }
+    }
+}
+
+/// The credential for a backend call that talks to the backend host directly
+/// rather than through the transport port (Langfuse proxy push, channel reply
+/// relay, …), or `None` when the call should be skipped:
+///
+/// - no backend transport is installed — the core runs without a TinyHumans
+///   connection (`backend::transport::is_installed`), or
+/// - no usable credential resolves — signed out, the offline local session,
+///   or a locally-expired token ([`resolve_backend_credential`]).
+///
+/// Both are configured states, not faults, so the skip is logged at `debug`
+/// with `op` naming the caller; nothing reaches Sentry and no request is made.
+pub fn direct_backend_credential(config: &Config, op: &str) -> Option<BackendCredential> {
+    if !crate::backend::transport::is_installed() {
+        log::debug!("[backend-direct] {op} skipped: no backend transport installed");
+        return None;
+    }
+    match resolve_backend_credential(config) {
+        Ok(credential) => Some(credential),
+        Err(reason) => {
+            log::debug!("[backend-direct] {op} skipped: no usable backend credential ({reason})");
+            None
         }
     }
 }

@@ -1,7 +1,9 @@
+import { ExternalLink, Eye, EyeOff } from 'lucide-react';
 import { useId } from 'react';
 
+import Badge from '../../ui/Badge';
 import Button from '../../ui/Button';
-import Input from '../../ui/Input';
+import { InputGroupButton, InputGroupInput, InputGroupRoot } from '../../ui/InputGroup';
 
 export interface KeyEditorProps {
   label: string;
@@ -17,7 +19,11 @@ export interface KeyEditorProps {
   t: (key: string) => string;
 }
 
-/** One BYOK API-key row: label + doc link, a maskable input, and save/clear actions. */
+/**
+ * One BYOK API-key row inside the "API keys" card: the provider's key label,
+ * a stored badge and a doc link on the left; a maskable input with a
+ * show/hide toggle, Save and (when stored) Clear on the right.
+ */
 const KeyEditor = ({
   label,
   placeholder,
@@ -37,45 +43,58 @@ const KeyEditor = ({
     <div
       role="group"
       aria-labelledby={inputId}
-      className="rounded-xl border border-line bg-surface p-3">
-      <div className="flex items-center justify-between mb-2">
-        <label
-          id={inputId}
-          htmlFor={`${inputId}-input`}
-          className="text-xs font-semibold text-content">
-          {label}
-        </label>
+      className="flex flex-col gap-3 px-4 py-3 md:flex-row md:items-center md:justify-between">
+      <div className="min-w-0 space-y-0.5">
+        <div className="flex items-center gap-2">
+          <label id={inputId} htmlFor={`${inputId}-input`} className="text-sm text-content">
+            {label}
+          </label>
+          {configured && <Badge variant="success">{t('settings.search.keyStored')}</Badge>}
+        </div>
         <a
           href={docUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-[10px] text-primary-500 hover:underline">
-          {t('settings.search.getApiKey')} ↗
+          className="inline-flex items-center gap-1 text-xs text-primary-600 hover:underline dark:text-primary-400">
+          {t('settings.search.getApiKey')}
+          <ExternalLink className="h-3 w-3" aria-hidden />
         </a>
       </div>
-      <div className="flex items-center gap-2">
-        <Input
-          id={`${inputId}-input`}
-          type={show ? 'text' : 'password'}
-          inputSize="sm"
-          value={value}
-          onChange={e => onChange(e.target.value)}
-          placeholder={placeholder}
-          className="flex-1 min-w-0 font-mono"
-        />
-        <Button type="button" variant="secondary" size="xs" onClick={onToggleShow}>
-          {show ? t('settings.search.hide') : t('settings.search.show')}
-        </Button>
+      <div className="flex shrink-0 items-center gap-2">
+        <InputGroupRoot size="sm" className="w-full md:w-72">
+          <InputGroupInput
+            id={`${inputId}-input`}
+            type={show ? 'text' : 'password'}
+            autoComplete="off"
+            mono
+            value={value}
+            onChange={e => onChange(e.target.value)}
+            placeholder={placeholder}
+          />
+          <InputGroupButton
+            type="button"
+            variant="secondary"
+            onClick={onToggleShow}
+            leadingIcon={
+              show ? (
+                <EyeOff className="h-3.5 w-3.5" aria-hidden />
+              ) : (
+                <Eye className="h-3.5 w-3.5" aria-hidden />
+              )
+            }>
+            {show ? t('settings.search.hide') : t('settings.search.show')}
+          </InputGroupButton>
+        </InputGroupRoot>
         <Button
           type="button"
           variant="primary"
-          size="xs"
+          size="sm"
           onClick={onSave}
           disabled={value.trim().length === 0}>
           {t('settings.search.save')}
         </Button>
         {configured && (
-          <Button type="button" variant="secondary" tone="danger" size="xs" onClick={onClear}>
+          <Button type="button" variant="secondary" tone="danger" size="sm" onClick={onClear}>
             {t('settings.search.clear')}
           </Button>
         )}

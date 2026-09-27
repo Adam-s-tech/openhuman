@@ -20,11 +20,10 @@ use reqwest::Method;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
-use crate::api::config::effective_backend_api_url;
-use crate::api::jwt::get_session_token;
-use crate::api::BackendOAuthClient;
+use crate::backend::BackendClient;
 use crate::config::Config;
 use crate::rpc::RpcOutcome;
+use crate::security::credentials::jwt::get_session_token;
 
 const LOG_PREFIX: &str = "[voice_reply]";
 
@@ -118,7 +117,7 @@ pub struct ReplySpeechOptions {
 
 /// Synthesize the agent's reply through the hosted backend.
 ///
-/// Uses [`BackendOAuthClient`] for the same reason `referral` does: the
+/// Uses [`BackendClient`] for the same reason `referral` does: the
 /// desktop WebView's `fetch` to the backend can fail with an opaque
 /// "Load failed" (CORS/TLS quirks), and routing through the core gives us
 /// a consistent auth + retry surface.
@@ -169,8 +168,8 @@ pub async fn synthesize_reply(
         })
         .ok_or_else(|| "no backend session token; sign in first".to_string())?;
 
-    let api_url = effective_backend_api_url(&config.api_url);
-    let client = BackendOAuthClient::new(&api_url).map_err(|e| e.to_string())?;
+    let api_url = crate::backend::require_base_url(&config.api_url)?;
+    let client = BackendClient::new(&api_url).map_err(|e| e.to_string())?;
 
     let mut body = serde_json::Map::new();
     body.insert("text".to_string(), json!(trimmed));
@@ -228,7 +227,7 @@ pub async fn synthesize_reply(
             Some(Value::Object(body)),
         )
         .await
-        .map_err(crate::api::flatten_authed_error)?;
+        .map_err(crate::backend::flatten_authed_error)?;
 
     let result = normalize_response(&raw);
     debug!(

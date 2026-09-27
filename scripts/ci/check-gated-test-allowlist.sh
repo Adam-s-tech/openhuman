@@ -19,6 +19,8 @@ EXPECTED=$(cat <<'EOF'
 agent/harness/builtin_definitions_tests.rs
 agent/harness/definition_tests.rs
 agent/session_host/builder/factory.rs
+agent/session_host/runtime_session.rs
+agent/session_host/runtime_session_tests.rs
 agent/session_host/turn/tools.rs
 agent/subagent_host/tool_prep_tests.rs
 agent/registry/agents/loader.rs
@@ -27,6 +29,7 @@ agent/registry/agents/loader_tests_orchestrator_tier_tests.rs
 agent/registry/agents/loader_tests_specialist_agents_tests.rs
 agent/registry/agents/mod.rs
 agent/tinyagents/mod.rs
+commands/ops.rs
 config/migrations/retire_local_whisper_stt_tests.rs
 core/all.rs
 core/all_tests.rs
@@ -40,7 +43,6 @@ flows/mod.rs
 mcp/server/resources.rs
 mcp/server/tools/mod.rs
 platform/socket/event_handlers.rs
-platform/socket/ops.rs
 skills/bundled/mod.rs
 skills/mod.rs
 skills/search.rs

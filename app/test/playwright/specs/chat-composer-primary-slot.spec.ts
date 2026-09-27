@@ -4,9 +4,9 @@
  *
  * # Which composer this is, and why that needed establishing
  *
- * `Conversations.tsx:2539` picks `composer === 'mic-cloud' ? legacyMainPanel :
- * assistantUiMainPanel`, and `composer` defaults to `'text'`
- * (`:255`), so `/chat` renders the **assistant-ui** composer. `ChatComposer.tsx`
+ * `Conversations.tsx` renders the assistant-ui panel for every composer, and
+ * `composer` defaults to `'text'` (the `mic-cloud` voice composer replaces only
+ * the input), so `/chat` renders the **assistant-ui** composer. `ChatComposer.tsx`
  * is the legacy one. A DOM probe against the running app confirms it: the page
  * contains `composer-human-mode` (`AssistantUiChat.tsx:204`) and **not**
  * `human-mode-button` (`ChatComposer.tsx:494`), and `chat-message-input` is a
@@ -196,14 +196,18 @@ test.describe('Chat composer primary slot', () => {
     await expect(sendButton(page)).toHaveCount(0);
   });
 
-  test('Stop ends the turn and the slot returns to the idle action', async ({ page }) => {
+  test('Stop ends the turn and restores the send action for the retained draft', async ({
+    page,
+  }) => {
     await openChat(page);
     await beginStreamingTurn(page, 'Count slowly for me');
 
     await stopButton(page).click();
 
     await expect(stopButton(page)).toHaveCount(0, { timeout: 20_000 });
-    await expect(idleAction(page)).toBeVisible({ timeout: 20_000 });
+    // Stop preserves the prompt so the user can edit and resend it. The
+    // primary slot therefore returns to Send rather than the idle mascot.
+    await expect(sendButton(page)).toBeVisible({ timeout: 20_000 });
     await expect(composer(page)).toBeVisible();
   });
 });

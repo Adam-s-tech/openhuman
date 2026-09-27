@@ -289,6 +289,7 @@ async fn run_queue_steer_lands_in_subagent_history() {
         .push(
             QueueLane::Steer,
             crate::agent::queued_turn::QueuedTurn {
+                id: "queued-test".into(),
                 text: "switch focus to memory safety".into(),
                 client_id: "steer_subagent".into(),
                 thread_id: "t-steer".into(),
@@ -518,7 +519,11 @@ async fn typed_mode_blocks_unallowed_tool_calls() {
     .await
     .expect("runner should succeed");
 
-    assert!(outcome.output.contains("oops"));
+    assert!(
+        outcome.output.contains("oops"),
+        "the recovered iteration's reply must be the output, got: {:?}",
+        outcome.output
+    );
     let captured = provider.captured.lock();
     let second_call_messages = &captured[1].messages;
     let tool_msg = second_call_messages

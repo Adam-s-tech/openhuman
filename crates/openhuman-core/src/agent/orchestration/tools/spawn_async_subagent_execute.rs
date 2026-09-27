@@ -104,19 +104,17 @@ impl SpawnAsyncSubagentTool {
             .or(run_context.thread_id.as_deref())
             .map(str::to_owned);
 
-        // Async delivery is thread-addressed: the finished result is inserted
-        // back into the parent chat thread as a follow-up turn
-        // (`background_delivery`). Outside a chat turn (flow `agent` nodes,
-        // CLI and cron runs intentionally have no parent thread to deliver into, so
-        // `background_delivery::deliver_batch` logs "dropping headless batch"
-        // and the (possibly real, completed) work is silently discarded — the
-        // caller sees "Accepted" and never learns the result never arrived.
-        // Fail loudly instead: the caller has a synchronous alternative
-        // (`spawn_subagent` with `blocking: true`, or a `delegate_*` tool).
-        // Both of those self-heal to blocking dispatch in this situation
-        // rather than reaching this guard — see the `has_delivery_thread`
-        // checks in `spawn_subagent.rs` and `dispatch.rs::dispatch_subagent`.
-        // Only a *direct* `spawn_async_subagent` call lands here.
+        // Async delivery is thread-addressed: the finished result is inserted back into the
+        // parent chat thread as a follow-up turn (`background_delivery`). Outside a chat turn
+        // (flow `agent` nodes, CLI and cron runs intentionally have no parent thread to deliver
+        // into, so `background_delivery::deliver_batch` logs "dropping headless batch" and the
+        // (possibly real, completed) work is silently discarded — the caller sees "Accepted" and
+        // never learns the result never arrived. Fail loudly instead: the caller has a
+        // synchronous alternative (`spawn_subagent` with `blocking: true`, or a `delegate_*`
+        // tool). Both of those self-heal to blocking dispatch in this situation rather than
+        // reaching this guard — see the `has_delivery_thread` checks in `spawn_subagent.rs` and
+        // `dispatch.rs::dispatch_subagent`. Only a *direct* `spawn_async_subagent` call lands
+        // here.
         if parent_thread_id.is_none() {
             log::warn!(
                 "[spawn_async_subagent] refusing fire-and-forget spawn with no delivery thread \
@@ -373,6 +371,7 @@ impl SpawnAsyncSubagentTool {
                     prompt: prompt.clone(),
                     worker_thread_id: worker_thread_id.clone(),
                     display_name: Some(definition.display_name().to_string()),
+                    parent_call_id: crate::tools::host_extensions::tool_call_id(tool_context),
                 })
                 .await;
         }
@@ -390,7 +389,6 @@ impl SpawnAsyncSubagentTool {
         let background_agent_id = definition.id.clone();
         let background_task_id = task_id.clone();
         let background_parent_session = parent_session.clone();
-        let background_progress = progress_sink.clone();
         let background_worker_thread_id = worker_thread_id.clone();
         let background_store = store.clone();
         let background_subagent_session_id = durable_session.subagent_session_id.clone();
@@ -418,13 +416,13 @@ impl SpawnAsyncSubagentTool {
             register_parent_thread_id.as_deref().unwrap_or("none")
         );
         let background_prompt = add_background_contract(&prompt);
-        // The detached child starts on a fresh task. Its explicit carrier keeps
-        // authority, origin, thread, and workspace while deliberately dropping
-        // the originating turn's accounting, dispatch refusal, and cancellation.
-        // Approval/origin and workspace policy remain task-local until B2h
-        // moves the security boundary onto this carrier, so propagation below
-        // is a staging bridge for those two scopes only.
+        // The detached child starts on a fresh task. Its explicit carrier keeps authority, origin,
+        // thread, and workspace while deliberately dropping the originating turn's accounting,
+        // dispatch refusal, and cancellation. Approval/origin and workspace policy remain
+        // task-local until B2h moves the security boundary onto this carrier, so propagation
+        // below is a staging bridge for those two scopes only.
         let detached_run_context = detached_parent.data.child();
+        let mut abort_report = AbortReport::arm(progress_sink.clone(), &definition.id, &task_id);
         let join = tokio::spawn(crate::agent::turn_origin::propagate(
             crate::agent::turn_workspace::propagate(async move {
                 let options = SubagentRunOptions {
@@ -450,7 +448,6 @@ impl SpawnAsyncSubagentTool {
                     options,
                 )
                 .await;
-
                 match result {
                     Ok(outcome) => {
                         let emit_lifecycle_effects = outcome.should_emit_lifecycle_effects();
@@ -508,29 +505,27 @@ impl SpawnAsyncSubagentTool {
                             outcome.output.chars().count(),
                             outcome.iterations,
                         );
-                                    if let Some(ref tx) = background_progress {
-                                        let _ = tx
-                                            .send(AgentProgress::SubagentCompleted {
-                                                agent_id: outcome.agent_id,
-                                                task_id: outcome.task_id,
-                                                elapsed_ms: outcome.elapsed.as_millis() as u64,
-                                                iterations: outcome.iterations as u32,
-                                                output_chars: outcome.output.chars().count(),
-                                                output: outcome.output.clone(),
-                                                // Detached by construction:
-                                                // this tool takes
-                                                // `detached_child()`, so this
-                                                // child's spend never reached
-                                                // the parent turn's ledger and
-                                                // `chat_done` does not contain
-                                                // it. See the field's docs.
-                                                usage: Some(outcome.usage),
-                                                worktree_path: None,
-                                                changed_files: Vec::new(),
-                                                dirty_status: None,
-                                            })
-                                            .await;
-                                    }
+                                    abort_report
+                                        .deliver(AgentProgress::SubagentCompleted {
+                                            agent_id: outcome.agent_id,
+                                            task_id: outcome.task_id,
+                                            elapsed_ms: outcome.elapsed.as_millis() as u64,
+                                            iterations: outcome.iterations as u32,
+                                            output_chars: outcome.output.chars().count(),
+                                            output: outcome.output.clone(),
+                                            // Detached by construction:
+                                            // this tool takes
+                                            // `detached_child()`, so this
+                                            // child's spend never reached
+                                            // the parent turn's ledger and
+                                            // `chat_done` does not contain
+                                            // it. See the field's docs.
+                                            usage: Some(outcome.usage),
+                                            worktree_path: None,
+                                            changed_files: Vec::new(),
+                                            dirty_status: None,
+                                        })
+                                        .await;
                                 }
                             }
                             SubagentRunStatus::Incomplete { ref reason } => {
@@ -588,29 +583,27 @@ impl SpawnAsyncSubagentTool {
                             outcome.output.chars().count(),
                             outcome.iterations,
                         );
-                                    if let Some(ref tx) = background_progress {
-                                        let _ = tx
-                                            .send(AgentProgress::SubagentCompleted {
-                                                agent_id: outcome.agent_id,
-                                                task_id: outcome.task_id,
-                                                elapsed_ms: outcome.elapsed.as_millis() as u64,
-                                                iterations: outcome.iterations as u32,
-                                                output_chars: outcome.output.chars().count(),
-                                                output: outcome.output.clone(),
-                                                // Detached by construction:
-                                                // this tool takes
-                                                // `detached_child()`, so this
-                                                // child's spend never reached
-                                                // the parent turn's ledger and
-                                                // `chat_done` does not contain
-                                                // it. See the field's docs.
-                                                usage: Some(outcome.usage),
-                                                worktree_path: None,
-                                                changed_files: Vec::new(),
-                                                dirty_status: None,
-                                            })
-                                            .await;
-                                    }
+                                    abort_report
+                                        .deliver(AgentProgress::SubagentCompleted {
+                                            agent_id: outcome.agent_id,
+                                            task_id: outcome.task_id,
+                                            elapsed_ms: outcome.elapsed.as_millis() as u64,
+                                            iterations: outcome.iterations as u32,
+                                            output_chars: outcome.output.chars().count(),
+                                            output: outcome.output.clone(),
+                                            // Detached by construction:
+                                            // this tool takes
+                                            // `detached_child()`, so this
+                                            // child's spend never reached
+                                            // the parent turn's ledger and
+                                            // `chat_done` does not contain
+                                            // it. See the field's docs.
+                                            usage: Some(outcome.usage),
+                                            worktree_path: None,
+                                            changed_files: Vec::new(),
+                                            dirty_status: None,
+                                        })
+                                        .await;
                                 }
                             }
                             SubagentRunStatus::Cancelled => {
@@ -647,15 +640,13 @@ impl SpawnAsyncSubagentTool {
                                         outcome.agent_id.clone(),
                                         error.clone(),
                                     );
-                                    if let Some(ref tx) = background_progress {
-                                        let _ = tx
-                                            .send(AgentProgress::SubagentFailed {
-                                                agent_id: outcome.agent_id,
-                                                task_id: outcome.task_id,
-                                                error,
-                                            })
-                                            .await;
-                                    }
+                                    abort_report
+                                        .deliver(AgentProgress::SubagentFailed {
+                                            agent_id: outcome.agent_id,
+                                            task_id: outcome.task_id,
+                                            error,
+                                        })
+                                        .await;
                                 }
                             }
                             SubagentRunStatus::AwaitingUser {
@@ -701,20 +692,18 @@ impl SpawnAsyncSubagentTool {
                                         outcome.agent_id.clone(),
                                         question.clone(),
                                     );
-                                    if let Some(ref tx) = background_progress {
-                                        let _ = tx
-                                            .send(AgentProgress::SubagentAwaitingUser {
-                                                agent_id: outcome.agent_id,
-                                                task_id: outcome.task_id,
-                                                question: question.clone(),
-                                                worker_thread_id: background_worker_thread_id
-                                                    .clone(),
-                                                checkpoint_path: checkpoint
-                                                    .as_ref()
-                                                    .map(|path| path.to_string_lossy().to_string()),
-                                            })
-                                            .await;
-                                    }
+                                    abort_report
+                                        .deliver(AgentProgress::SubagentAwaitingUser {
+                                            agent_id: outcome.agent_id,
+                                            task_id: outcome.task_id,
+                                            question: question.clone(),
+                                            worker_thread_id: background_worker_thread_id
+                                                .clone(),
+                                            checkpoint_path: checkpoint
+                                                .as_ref()
+                                                .map(|path| path.to_string_lossy().to_string()),
+                                        })
+                                        .await;
                                 }
                             }
                         }
@@ -756,17 +745,16 @@ impl SpawnAsyncSubagentTool {
                             background_agent_id.clone(),
                             error.clone(),
                         );
-                        if let Some(ref tx) = background_progress {
-                            let _ = tx
-                                .send(AgentProgress::SubagentFailed {
-                                    agent_id: background_agent_id,
-                                    task_id: background_task_id,
-                                    error,
-                                })
-                                .await;
-                        }
+                        abort_report
+                            .deliver(AgentProgress::SubagentFailed {
+                                agent_id: background_agent_id,
+                                task_id: background_task_id,
+                                error,
+                            })
+                            .await;
                     }
                 }
+                abort_report.disarm();
             }),
         ));
 

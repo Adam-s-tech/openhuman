@@ -224,12 +224,17 @@ fn every_builtin_is_stamped_builtin_source() {
 }
 
 #[test]
-fn vision_agent_loads_on_vision_hint() {
-    // The vision sub-agent rides the multimodal `vision-v1` tier (via the
-    // `vision` hint) so its model is image-capable, and it must be reachable
-    // from the orchestrator's subagent allowlist.
+fn vision_agent_loads_on_its_pinned_multimodal_model() {
+    // The vision sub-agent used to ride the multimodal `vision-v1` tier (via
+    // the `vision` hint), which is now deprecated — `vision-v1` silently
+    // falls back to the chat default on managed routes (regression R4). It
+    // is pinned to a dedicated OpenRouter passthrough model instead, and
+    // must remain reachable from the orchestrator's subagent allowlist.
     let def = find("vision_agent");
-    assert!(matches!(def.model, ModelSpec::Hint(ref h) if h == "vision"));
+    assert!(matches!(
+        def.model,
+        ModelSpec::Exact(ref m) if m == crate::config::MODEL_MEDIA_UNDERSTANDING
+    ));
 
     let orchestrator = find("orchestrator");
     assert!(
@@ -398,15 +403,6 @@ fn master_agent_has_coding_hint_and_named_tools() {
                     "orchestrator must have direct memory tool `{direct}` (#4762)"
                 );
             }
-            // Memory-protocol close-out (#4116): a direct `memory_store` write
-            // obliges an `update_memory_md` index reconcile, so the tool that
-            // performs it must be in scope — otherwise the protocol's guidance
-            // is unsatisfiable and MEMORY.md (loaded here) drifts from the store.
-            assert!(
-                tools.iter().any(|t| t == "update_memory_md"),
-                "orchestrator must have `update_memory_md` to reconcile MEMORY.md \
-                 after a direct memory_store (#4762)"
-            );
         }
         ToolScope::Wildcard => panic!("orchestrator must have named tool allowlist"),
     }
@@ -682,6 +678,29 @@ fn the_orchestrator_does_not_delegate_to_the_generalist_or_the_archivist() {
             registry.get(dropped).is_some(),
             "`{dropped}` must stay registered — its definition should not be \
              deleted, only dropped from the orchestrator's advertised list"
+        );
+    }
+}
+
+#[test]
+fn orchestrator_omits_removed_prompt_tools() {
+    let orchestrator = find("orchestrator");
+    let ToolScope::Named(tools) = &orchestrator.tools else {
+        panic!("orchestrator must have a named tool scope");
+    };
+    for removed in ["request_plan_review", "plan_exit", "update_memory_md"] {
+        assert!(
+            !tools.iter().any(|tool| tool == removed),
+            "`{removed}` must not appear in the orchestrator tool list"
+        );
+    }
+    for removed in ["critic", "help"] {
+        assert!(
+            !orchestrator
+                .subagents
+                .iter()
+                .any(|entry| matches!(entry, SubagentEntry::AgentId(id) if id == removed)),
+            "`{removed}` adds a delegate tool to the orchestrator prompt"
         );
     }
 }

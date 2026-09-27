@@ -31,6 +31,7 @@
 //! The child files are an implementation detail.
 
 pub(crate) use builder::provider_role_for_definition;
+pub use builder::{HostTools, HostTurnTools, TurnContext};
 
 mod builder;
 mod codec;
@@ -39,6 +40,7 @@ mod factory;
 mod hooks;
 mod policy;
 mod prefix_snapshot;
+mod recorded_tools;
 mod runtime;
 mod runtime_session;
 mod session_api;

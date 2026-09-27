@@ -497,7 +497,10 @@ fn every_pack_declares_the_tools_it_is_named_for() {
                 // card and stays unpacked (see the registry note).
                 "composio_execute",
                 "composio_list_connections",
-                "composio_list_toolkits",
+                // `composio_list_toolkits` is the orchestrator's catalogue
+                // lookup and stays unpacked (see the registry note): packed,
+                // `closed_by_direct_handoff` denied it to the orchestrator and
+                // the agent scraped the web for a list the app already had.
                 "composio_list_tools",
             ],
         ),
@@ -575,8 +578,9 @@ fn every_pack_declares_the_tools_it_is_named_for() {
             &[
                 // No `file_write`: it is the only create-capable tool on any
                 // belt, and packing it denied the orchestrator every route to a
-                // new file. See the comment in `registry.rs`.
-                "file_read",
+                // new file. No `file_read`: it is the tool every
+                // `[tool_result_preview]` names. See the comments in
+                // `registry.rs`.
                 "grep",
                 "glob",
                 "list",
@@ -592,7 +596,18 @@ fn every_pack_declares_the_tools_it_is_named_for() {
                 "storage_get_link",
             ],
         ),
-        ("scheduling", &["schedule_task", "cron"]),
+        (
+            "scheduling",
+            &[
+                "schedule_task",
+                "cron_add",
+                "cron_list",
+                "cron_update",
+                "cron_remove",
+                "cron_run",
+                "cron_runs",
+            ],
+        ),
         (
             "profile",
             &[
@@ -642,6 +657,32 @@ fn a_packs_owner_keeps_its_belt_advertised() {
         "the system pack's owner lost its own tool"
     );
     assert!(!visible.contains(USE_SKILL), "owner gained pack tools");
+}
+
+#[test]
+fn orchestrator_keeps_its_named_mcp_tools_advertised() {
+    let mut visible: HashSet<String> = [
+        "mcp_registry_status".to_string(),
+        "mcp_registry_list_tools".to_string(),
+        "mcp_registry_tool_call".to_string(),
+    ]
+    .into_iter()
+    .collect();
+    strip_packed_from_visible(&mut visible, "orchestrator");
+    assert!(visible.contains("mcp_registry_status"));
+    assert!(visible.contains("mcp_registry_list_tools"));
+    assert!(visible.contains("mcp_registry_tool_call"));
+}
+
+#[test]
+fn thread_renamed_orchestrator_keeps_its_mcp_tools_advertised() {
+    let pack = registry::pack("integrations").expect("MCP pack");
+    assert!(pack.is_owner("orchestrator_thread-mcp"));
+    assert!(!pack.is_owner("orchestratorish_thread-mcp"));
+
+    let mut visible: HashSet<String> = ["mcp_registry_tool_call".to_string()].into_iter().collect();
+    strip_packed_from_visible(&mut visible, "orchestrator_thread-mcp");
+    assert!(visible.contains("mcp_registry_tool_call"));
 }
 
 #[test]

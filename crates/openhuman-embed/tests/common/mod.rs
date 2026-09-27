@@ -123,9 +123,14 @@ pub fn tool_results(request: &wiremock::Request) -> String {
                     };
                     match m.get("role").and_then(|r| r.as_str()) {
                         Some("tool") => Some(content),
-                        Some("user") if content.starts_with(PROMPT_TOOL_RESULTS_PREFIX) => {
-                            Some(content)
-                        }
+                        // The harness may prepend continuation guidance and
+                        // the active user request before the tool-result block.
+                        Some("user") if content.contains(PROMPT_TOOL_RESULTS_PREFIX) => Some(
+                            content
+                                .split_once(PROMPT_TOOL_RESULTS_PREFIX)?
+                                .1
+                                .to_string(),
+                        ),
                         _ => None,
                     }
                 })

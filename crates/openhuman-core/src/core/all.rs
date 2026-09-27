@@ -104,15 +104,6 @@ pub enum DomainGroup {
     Web3,
     Voice,
     Media,
-    /// Medulla integration: the cloud client (`medulla`), the folded session
-    /// runtime (`medulla_session`), the chat store (`medulla::chat`), and
-    /// authored harness workflows (`medulla_workflows`).
-    ///
-    /// One coarse family rather than four, because these are never
-    /// independently useful — a host that wants `medulla_session` always wants
-    /// `medulla` (it folds that domain's envelopes). Splitting them would add
-    /// drift surface for no reachable configuration.
-    Medulla,
     // Families carved out of the `Platform` catch-all once the domain reorg
     // (#5328) gave each one a directory to be named after. Before that, half the
     // controller surface was tagged `Platform` purely because there was no
@@ -148,7 +139,7 @@ pub enum DomainGroup {
 
 impl DomainGroup {
     /// Number of variants. Kept in sync by `domain_group_all_lists_every_variant`.
-    pub const COUNT: usize = 21;
+    pub const COUNT: usize = 20;
 
     /// Every variant, for exhaustive iteration in drift guards.
     ///
@@ -172,7 +163,6 @@ impl DomainGroup {
         DomainGroup::Web3,
         DomainGroup::Voice,
         DomainGroup::Media,
-        DomainGroup::Medulla,
         DomainGroup::Inference,
         DomainGroup::Integrations,
         DomainGroup::Automation,
@@ -200,15 +190,14 @@ impl DomainGroup {
             DomainGroup::Web3 => 9,
             DomainGroup::Voice => 10,
             DomainGroup::Media => 11,
-            DomainGroup::Medulla => 12,
-            DomainGroup::Inference => 13,
-            DomainGroup::Integrations => 14,
-            DomainGroup::Automation => 15,
-            DomainGroup::Runtimes => 16,
-            DomainGroup::Desktop => 17,
-            DomainGroup::Hosted => 18,
-            DomainGroup::Modules => 19,
-            DomainGroup::Platform => 20,
+            DomainGroup::Inference => 12,
+            DomainGroup::Integrations => 13,
+            DomainGroup::Automation => 14,
+            DomainGroup::Runtimes => 15,
+            DomainGroup::Desktop => 16,
+            DomainGroup::Hosted => 17,
+            DomainGroup::Modules => 18,
+            DomainGroup::Platform => 19,
         }
     }
 }
@@ -677,11 +666,27 @@ fn build_registered_controllers() -> Vec<GroupedController> {
         DomainGroup::Agent,
         crate::agent::plan_review::all_plan_review_registered_controllers(),
     );
+    // Per-thread Plan/Build run mode (agent.set_run_mode / agent.get_run_mode)
+    push(
+        &mut controllers,
+        DomainGroup::Agent,
+        crate::agent::tinyagents::run_mode::all_registered_controllers(),
+    );
     // Agent-generated artifact storage, retrieval, and lifecycle management
     push(
         &mut controllers,
         DomainGroup::Agent,
         crate::agent::artifacts::all_artifacts_registered_controllers(),
+    );
+    // Read-only command palette listing: built-ins merged with skills.list /
+    // flows.list (C5). Tagged `Agent` rather than a new `DomainGroup` variant
+    // — it is chat-harness surface, always on, and adding a variant for this
+    // single-RPC domain would touch every exhaustive `DomainGroup` match in
+    // this file.
+    push(
+        &mut controllers,
+        DomainGroup::Agent,
+        crate::commands::all_commands_registered_controllers(),
     );
     // Ad-hoc static directory HTTP hosting for local file sharing / previews.
     // Gated with the `http-server` feature (#5048): the domain is an axum server,
@@ -797,17 +802,6 @@ fn build_registered_controllers() -> Vec<GroupedController> {
         &mut controllers,
         DomainGroup::Runtimes,
         crate::runtime::javascript::all_javascript_registered_controllers(),
-    );
-    // Medulla integration: readiness, durable sessions, and the connected worker
-    // roster against the Medulla orchestration backend. Registration-site gate
-    // like `flows` — with the `medulla` feature off these methods are absent
-    // (unknown-method), which is what lets a host hide the surface instead of
-    // rendering a failure.
-    #[cfg(feature = "medulla")]
-    push(
-        &mut controllers,
-        DomainGroup::Medulla,
-        crate::medulla::all_medulla_registered_controllers(),
     );
     // Discovered SKILL.md skills and their bundled resources
     push(
@@ -1116,6 +1110,12 @@ fn build_registered_controllers() -> Vec<GroupedController> {
 /// (e.g. the desktop shell) that should not appear in agent tool listings.
 fn build_internal_only_controllers() -> Vec<GroupedController> {
     let mut controllers = Vec::new();
+    #[cfg(feature = "modules")]
+    push(
+        &mut controllers,
+        DomainGroup::Desktop,
+        crate::desktop::control::all_registered_controllers(),
+    );
     // MCP write audit list: internal-only so the desktop UI/CLI can inspect
     // local write history without exposing cross-client history as an MCP tool.
     push(
@@ -1182,6 +1182,7 @@ pub fn rpc_method_name(schema: &ControllerSchema) -> String {
 pub fn namespace_description(namespace: &str) -> Option<&'static str> {
     match namespace {
         "about_app" => Some("Catalog the app's user-facing capabilities and where to find them."),
+        "agent" => Some("Per-thread agent run-mode control (Plan vs Build)."),
         "ai" => Some("Agent-generated artifact storage, retrieval, and lifecycle management."),
         "app_state" => Some("Expose core-owned app shell state for frontend polling."),
         "auth" => Some("Manage app session and provider credentials."),
@@ -1212,7 +1213,6 @@ pub fn namespace_description(namespace: &str) -> Option<&'static str> {
         "inference" => Some("Connect to configured text, vision, and embedding inference runtimes."),
         "migrate" => Some("Data migration utilities."),
         "javascript" => Some("First-class JavaScript runtime bridge for listing and dispatching tools."),
-        "medulla" => Some("Medulla orchestration backend: integration readiness, durable sessions, and the connected worker roster."),
         "security" => Some("Security policy and autonomy guardrail metadata."),
         "service" => Some("Desktop service lifecycle management."),
         "session_import" => {
@@ -1511,20 +1511,46 @@ pub fn validate_params(
     // already handled by the required-presence check above.
     for input in &schema.inputs {
         if let Some(value) = params.get(input.name) {
-            check_type(value, &input.ty).map_err(|expected| {
+            check_type(value, &input.ty).map_err(|mismatch| {
+                let (expected, got) = match mismatch {
+                    TypeMismatch::Kind(expected) => {
+                        (expected.to_string(), json_type_name(value).to_string())
+                    }
+                    TypeMismatch::OutOfRange { min, max, got } => {
+                        log::debug!(
+                            "[rpc][validate] param '{}' in {}.{} out of range: {got} not in {min}..={max}",
+                            input.name,
+                            schema.namespace,
+                            schema.function,
+                        );
+                        // Name the limit that was actually crossed.
+                        let bound = if got > max {
+                            format!("unsigned integer <= {max}")
+                        } else {
+                            format!("unsigned integer >= {min}")
+                        };
+                        (bound, got.to_string())
+                    }
+                };
                 format!(
                     "invalid type for param '{}' in {}.{}: expected {}, got {}",
-                    input.name,
-                    schema.namespace,
-                    schema.function,
-                    expected,
-                    json_type_name(value),
+                    input.name, schema.namespace, schema.function, expected, got,
                 )
             })?;
         }
     }
 
     Ok(())
+}
+
+/// Why a value failed [`check_type`].
+enum TypeMismatch {
+    /// The JSON kind is wrong; carries a short description of the required type.
+    Kind(&'static str),
+    /// An unsigned integer outside a [`TypeSchema::BoundedU64`] range.
+    ///
+    /// [`TypeSchema::BoundedU64`]: crate::core::TypeSchema::BoundedU64
+    OutOfRange { min: u64, max: u64, got: u64 },
 }
 
 /// A short, human-readable name for the JSON kind of `value`, used in
@@ -1542,11 +1568,10 @@ fn json_type_name(value: &Value) -> &'static str {
 
 /// Validate a JSON `value` against a declared [`TypeSchema`].
 ///
-/// Returns `Ok(())` on a match, or `Err(expected)` where `expected` is a short
-/// description of the type that was required. Unknown/opaque shapes
-/// (`Json`, `Bytes`, `Ref`) accept any value — they are validated by the
-/// handler's typed deserialization.
-fn check_type(value: &Value, ty: &crate::core::TypeSchema) -> Result<(), &'static str> {
+/// Returns `Ok(())` on a match, or a [`TypeMismatch`] describing what was
+/// required. Unknown/opaque shapes (`Json`, `Bytes`, `Ref`) accept any value —
+/// they are validated by the handler's typed deserialization.
+fn check_type(value: &Value, ty: &crate::core::TypeSchema) -> Result<(), TypeMismatch> {
     use crate::core::TypeSchema;
 
     // JSON-RPC semantics (preserved from the prior presence-only check):
@@ -1576,13 +1601,22 @@ fn check_type(value: &Value, ty: &crate::core::TypeSchema) -> Result<(), &'stati
         | TypeSchema::Object { .. }
         | TypeSchema::Map(_) => Ok(()),
 
-        TypeSchema::Bool => value.is_boolean().then_some(()).ok_or("bool"),
-        TypeSchema::String => value.is_string().then_some(()).ok_or("string"),
-        TypeSchema::I64 => value.is_i64().then_some(()).ok_or("integer"),
-        TypeSchema::U64 => value.is_u64().then_some(()).ok_or("unsigned integer"),
+        TypeSchema::Bool => kind(value.is_boolean(), "bool"),
+        TypeSchema::String => kind(value.is_string(), "string"),
+        TypeSchema::I64 => kind(value.is_i64(), "integer"),
+        TypeSchema::U64 => kind(value.is_u64(), "unsigned integer"),
+        TypeSchema::BoundedU64 { min, max } => match value.as_u64() {
+            Some(got) if (*min..=*max).contains(&got) => Ok(()),
+            Some(got) => Err(TypeMismatch::OutOfRange {
+                min: *min,
+                max: *max,
+                got,
+            }),
+            None => Err(TypeMismatch::Kind("unsigned integer")),
+        },
         TypeSchema::F64 => {
             // Accept any JSON number (ints are valid floats).
-            value.is_number().then_some(()).ok_or("number")
+            kind(value.is_number(), "number")
         }
 
         // `Option<T>` accepts null or a value matching the inner type.
@@ -1601,15 +1635,20 @@ fn check_type(value: &Value, ty: &crate::core::TypeSchema) -> Result<(), &'stati
                 }
                 Ok(())
             }
-            None => Err("array"),
+            None => Err(TypeMismatch::Kind("array")),
         },
 
         TypeSchema::Enum { variants } => match value.as_str() {
             Some(s) if variants.contains(&s) => Ok(()),
-            Some(_) => Err("one of the allowed enum variants"),
-            None => Err("string"),
+            Some(_) => Err(TypeMismatch::Kind("one of the allowed enum variants")),
+            None => Err(TypeMismatch::Kind("string")),
         },
     }
+}
+
+/// `Ok(())` when `matches`, else a [`TypeMismatch::Kind`] naming `expected`.
+fn kind(matches: bool, expected: &'static str) -> Result<(), TypeMismatch> {
+    matches.then_some(()).ok_or(TypeMismatch::Kind(expected))
 }
 
 /// Attempts to invoke a registered RPC method by name.

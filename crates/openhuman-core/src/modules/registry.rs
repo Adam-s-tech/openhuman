@@ -34,14 +34,21 @@
 #[path = "registry_tests.rs"]
 mod tests;
 
+mod records_browser;
+mod records_desktop;
 mod records_docs_wallet;
+mod records_extra;
 mod records_mcp_connectors;
 mod records_memory_juice;
 mod records_runtime;
+mod records_search;
 mod records_voice;
 
 use crate::modules::types::ModuleRecord;
+use records_browser::TINYBROWSER;
+use records_desktop::TINYDESKTOP;
 use records_docs_wallet::{TINYDOCS, TINYWALLET};
+use records_extra::{TINYBOX, TINYCHANNELS, TINYHOSTS};
 use records_mcp_connectors::{TINYCONNECTORS, TINYMCP};
 use records_memory_juice::{TINYJUICE, TINYMEMORY};
 use records_runtime::{TINYRUNTIME, TINYRUNTIME_NODEJS, TINYRUNTIME_PYTHON};
@@ -49,6 +56,8 @@ use records_voice::TINYVOICE;
 
 /// Every module this build can load.
 pub const ALL: &[ModuleRecord] = &[
+    TINYDESKTOP,
+    TINYBROWSER,
     TINYDOCS,
     TINYWALLET,
     TINYMEMORY,
@@ -59,6 +68,9 @@ pub const ALL: &[ModuleRecord] = &[
     TINYRUNTIME_PYTHON,
     TINYMCP,
     TINYCONNECTORS,
+    TINYBOX,
+    TINYCHANNELS,
+    TINYHOSTS,
 ];
 
 /// The record for `id`, if this build knows it.

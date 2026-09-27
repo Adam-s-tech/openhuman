@@ -7,6 +7,7 @@
 use std::sync::Arc;
 use tinyagents_harness::run_queue::RunQueue;
 
+use crate::agent::progress::AgentProgress;
 use crate::config::rpc as config_rpc;
 use crate::threads::turn_state::TurnStateStore;
 
@@ -125,6 +126,12 @@ pub(crate) async fn run_chat_task(
     // defense-in-depth; extraction of durable state (like a workflow
     // proposal) must not depend on any single progress event surviving.
     let (progress_tx, progress_rx) = tokio::sync::mpsc::channel(256);
+    // The channel is fresh here. Record the user input even if the turn fails
+    // before a committed reply can emit its final TurnContent event.
+    let _ = progress_tx.try_send(AgentProgress::TurnContent {
+        input: Some(message.to_string()),
+        output: None,
+    });
     agent.set_on_progress(Some(progress_tx));
     agent.set_run_queue(Some(run_queue));
     agent.set_thread_id(Some(thread_id));
@@ -133,7 +140,7 @@ pub(crate) async fn run_chat_task(
     // can attribute the run (`agent.id` attr / `agent.turn:<id>` trace name).
     let mut bridge_metadata = metadata.clone();
     bridge_metadata.agent_id = Some(current_fp.target_agent_id.clone());
-    spawn_progress_bridge(
+    let bridge = spawn_progress_bridge(
         progress_rx,
         client_id.to_string(),
         thread_id.to_string(),
@@ -148,7 +155,7 @@ pub(crate) async fn run_chat_task(
     // this already-large `run_chat_task` frame (which otherwise overflows the
     // default test-thread stack — see the channels web-turn coverage tests).
     let turn = Box::pin(agent.run_single(message));
-    let result = match turn.await {
+    let mut result = match turn.await {
         Ok(response) => {
             // A successful turn proves the thread's balance is usable, so drop
             // any stale budget-exhausted signal before it could mislabel a
@@ -161,6 +168,7 @@ pub(crate) async fn run_chat_task(
                 citations,
                 usage,
                 workspace_dir: config.workspace_dir.clone(),
+                timing: None,
             })
         }
         Err(err) => {
@@ -192,6 +200,7 @@ pub(crate) async fn run_chat_task(
                         citations: Vec::new(),
                         usage: None,
                         workspace_dir: config.workspace_dir.clone(),
+                        timing: None,
                     })
                 }
                 BudgetCorrelation::UpgradeEmptyToBudget => {
@@ -211,6 +220,7 @@ pub(crate) async fn run_chat_task(
                         citations: Vec::new(),
                         usage: None,
                         workspace_dir: config.workspace_dir.clone(),
+                        timing: None,
                     })
                 }
                 BudgetCorrelation::PassThrough => Err(err_message),
@@ -259,6 +269,63 @@ pub(crate) async fn run_chat_task(
     }
 
     agent.set_on_progress(None);
+
+    // The caller publishes the terminal `chat_done`/`chat_error` as soon as
+    // this returns. Let the bridge forward everything the turn queued first,
+    // so the terminal event cannot overtake the turn's own last tool results
+    // and narration on the socket. Bounded (see `BRIDGE_DRAIN_TIMEOUT`).
+    if !bridge
+        .wait_drained(super::progress_bridge::BRIDGE_DRAIN_TIMEOUT)
+        .await
+    {
+        log::warn!(
+            "[web-channel] progress bridge did not drain within {:?}; delivering anyway \
+             client={} thread={} request_id={}",
+            super::progress_bridge::BRIDGE_DRAIN_TIMEOUT,
+            client_id,
+            thread_id,
+            request_id
+        );
+    }
+
+    // Settle the turn's own snapshot now the turn is over.
+    //
+    // The bridge marks the snapshot terminal on its way out, but it only exits
+    // once its progress sender drops — and for a cached per-thread session that
+    // does not happen until the *next* turn replaces the sink, so a bridge
+    // routinely outlives its turn by minutes (the `did not drain` warning above
+    // is the visible edge of it). The last turn of a thread has no next turn to
+    // release it, leaving `Streaming` on disk indefinitely: re-entering the
+    // thread then hydrates that snapshot and paints a live "Thinking..."
+    // indicator under a reply that was already delivered. The turn has ended
+    // here by construction, so record that. A bridge that later observes
+    // `TurnCompleted` overwrites this with `Completed`, terminal either way.
+    {
+        let lifecycle = if result.is_ok() {
+            crate::threads::turn_state::TurnLifecycle::Completed
+        } else {
+            crate::threads::turn_state::TurnLifecycle::Interrupted
+        };
+        let now = chrono::Utc::now().to_rfc3339();
+        if let Err(err) = TurnStateStore::new(config.workspace_dir.clone())
+            .settle_turn(thread_id, request_id, lifecycle, &now)
+        {
+            log::warn!(
+                "[web-channel] failed to settle turn snapshot client={client_id} \
+                 thread={thread_id} request_id={request_id}: {err}"
+            );
+        }
+    }
+
+    // The bridge only stamps its `TurnTimingSnapshot` once it has seen the
+    // parent's `TurnCompleted`, which `wait_drained` above waits for — read
+    // it now so `chat_done.timing` reports the same first-token/first-tool/
+    // total numbers as the bridge's own `time-to-first-visible` log line.
+    // `None` on a synthetic (budget-exhausted) result, an `Err`, or a bridge
+    // that never drained in time.
+    if let Ok(ref mut task_result) = result {
+        task_result.timing = bridge.timing_snapshot();
+    }
 
     // Only the primary (non-fork) turn writes its agent back to the shared
     // cache; a fork is fully isolated and lets its agent drop here.

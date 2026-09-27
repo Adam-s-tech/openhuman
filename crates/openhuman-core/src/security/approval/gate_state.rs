@@ -40,6 +40,15 @@ impl ApprovalGate {
         request_id: &str,
         decision: ApprovalDecision,
     ) -> anyhow::Result<Option<PendingApproval>> {
+        if !matches!(decision, ApprovalDecision::ApproveOnce | ApprovalDecision::Deny)
+            && self
+                .request_routes
+                .lock()
+                .get(request_id)
+                .is_some_and(|route| route.forced)
+        {
+            anyhow::bail!("this action requires a one-time approval or denial");
+        }
         let decided = store::decide(&self.config, request_id, decision)?;
         if let Some(row) = &decided {
             // `ApproveAlwaysForTool` persistence (append to `autonomy.auto_approve`
@@ -49,10 +58,20 @@ impl ApprovalGate {
             if let Some(tx) = self.take_waiter(request_id) {
                 let _ = tx.send(decision);
             }
+            // Routing (thread/client/tool_call_id) was recorded at park time —
+            // see `intercept_audited_inner` — so a decision made after the
+            // in-memory waiter already resolved (e.g. via the TTL/channel-drop
+            // paths in `gate_intercept.rs`) still reports `None` here, which is
+            // correct: this fn only fires for a live `decide()` call.
+            let route = self.take_request_route(request_id);
             BUS.publish(DomainEvent::ApprovalDecided {
                 request_id: row.request_id.clone(),
                 tool_name: row.tool_name.clone(),
                 decision: decision.as_str().to_string(),
+                thread_id: route.as_ref().and_then(|r| r.thread_id.clone()),
+                client_id: route.as_ref().and_then(|r| r.client_id.clone()),
+                tool_call_id: route.and_then(|r| r.tool_call_id),
+                resolution: None,
             });
         }
         Ok(decided)
@@ -173,6 +192,20 @@ impl ApprovalGate {
     fn take_waiter(&self, request_id: &str) -> Option<oneshot::Sender<ApprovalDecision>> {
         let mut waiters = self.waiters.lock();
         waiters.remove(request_id)
+    }
+
+    /// Record the routing correlation for a newly-parked request. Called at
+    /// park time in `intercept_audited_inner`, alongside the `thread_to_request`
+    /// insert.
+    fn insert_request_route(&self, request_id: &str, route: RequestRoute) {
+        self.request_routes.lock().insert(request_id.to_string(), route);
+    }
+
+    /// Remove and return the routing correlation for `request_id`, if any.
+    /// Consumed exactly once per request — by whichever path resolves the
+    /// decision first (`decide`, a TTL timeout, or a dropped channel).
+    fn take_request_route(&self, request_id: &str) -> Option<RequestRoute> {
+        self.request_routes.lock().remove(request_id)
     }
 
     fn evict_waiter(&self, request_id: &str) {

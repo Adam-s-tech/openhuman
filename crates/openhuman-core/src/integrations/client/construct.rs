@@ -15,9 +15,9 @@ use crate::integrations::types::IntegrationPricing;
 /// baked into a build silently produced 404 URLs like
 /// `…/openai/v1/chat/completions/agent-integrations/composio/connections`
 /// because every `IntegrationClient` method joins paths onto this field
-/// via [`crate::api::config::api_url`].
+/// via [`crate::util::url::join_url`].
 pub(super) fn sanitize_backend_url(backend_url: &str) -> String {
-    let cleaned = crate::api::config::normalize_backend_api_base_url(backend_url);
+    let cleaned = crate::util::url::normalize_backend_api_base_url(backend_url);
     let trimmed = backend_url.trim().trim_end_matches('/');
     if !cleaned.is_empty() && cleaned != trimmed {
         // Redact userinfo (username/password) before logging — a
@@ -25,8 +25,8 @@ pub(super) fn sanitize_backend_url(backend_url: &str) -> String {
         // segment. The helper preserves host/path for diagnosability
         // while scrubbing secrets.
         tracing::warn!(
-            input = %crate::api::config::redact_url_for_log(trimmed),
-            cleaned = %crate::api::config::redact_url_for_log(&cleaned),
+            input = %crate::util::redact_url_for_log(trimmed),
+            cleaned = %crate::util::redact_url_for_log(&cleaned),
             "[integrations] backend_url carried an inference / non-root path; \
              stripping before use (issue #2075)"
         );
@@ -40,7 +40,7 @@ pub(super) fn sanitize_backend_url(backend_url: &str) -> String {
 
 /// Shared client for all integration tools. Holds backend URL, auth token,
 /// the download `reqwest::Client`, and a lazily-fetched pricing cache. JSON
-/// traffic rides the process [`BackendTransport`](crate::api::transport::BackendTransport).
+/// traffic rides the process [`BackendTransport`](crate::backend::transport::BackendTransport).
 pub struct IntegrationClient {
     pub backend_url: String,
     pub auth_token: String,
@@ -87,7 +87,8 @@ impl IntegrationClient {
 
         // JSON traffic goes through the process backend transport
         // (`TransportProfile::Integrations`: platform TLS, 60 s timeout,
-        // product identity — see `api::headers`). Only the binary download
+        // product identity — see `openhuman_tinyhumans::backend::headers`).
+        // Only the binary download
         // client is built here.
         //
         // `download_client` deliberately does NOT carry the product identity.

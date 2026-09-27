@@ -105,6 +105,9 @@ fn summarizer_mw(ps: Arc<dyn PayloadSummarizer>) -> ToolOutputMiddleware {
         tool_policies: HashMap::new(),
         artifact_reads: Default::default(),
         focus_by_call: Default::default(),
+        // `web_fetch` declares `summary_focus` in production.
+        summary_focus_tools: ["web_fetch".to_string()].into(),
+        raw_fetches: Default::default(),
     }
 }
 
@@ -217,6 +220,8 @@ fn compaction_enabled_mw() -> ToolOutputMiddleware {
         tool_policies: HashMap::new(),
         artifact_reads: Default::default(),
         focus_by_call: Default::default(),
+        summary_focus_tools: Default::default(),
+        raw_fetches: Default::default(),
     }
 }
 
@@ -266,6 +271,8 @@ fn truncation_probe_mw() -> ToolOutputMiddleware {
         tool_policies: HashMap::new(),
         artifact_reads: Default::default(),
         focus_by_call: Default::default(),
+        summary_focus_tools: Default::default(),
+        raw_fetches: Default::default(),
     }
 }
 
@@ -471,10 +478,20 @@ fn embedder_hook_mw(
     })])
 }
 
+#[path = "middleware_approval_guard_tests.rs"]
+mod approval_guard_tests;
+#[path = "middleware_classified_failure_tests.rs"]
+mod classified_failure_tests;
 #[path = "middleware_loop_guard_tests.rs"]
 mod loop_guard_tests;
+#[path = "middleware_prompt_cache_tests.rs"]
+mod prompt_cache_tests;
 #[path = "middleware_repeat_progress_tests.rs"]
 mod repeat_progress_tests;
+
+#[path = "middleware_research_budget_tests.rs"]
+mod research_budget_tests;
+
 #[path = "middleware_tool_output_artifact_tests.rs"]
 mod tool_output_artifact_tests;
 #[path = "middleware_tool_output_tests.rs"]

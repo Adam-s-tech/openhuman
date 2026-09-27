@@ -88,10 +88,8 @@ pub const PACKS: &[ToolPack] = &[
     },
     ToolPack {
         id: "integrations",
-        // The use hand-off (`use_mcp_server`) is not a member: it is the
-        // orchestrator's direct route into this family. See
-        // `DELIBERATELY_UNPACKED_HANDOFFS`. There is no install tool — servers
-        // are declared by the user in mcp.json.
+        // The orchestrator carries a narrow named set of MCP tools directly;
+        // keep those schemas visible without exposing every server tool.
         summary: "MCP servers: search the catalog, connect, disconnect, check status, call tools.",
         tools: &[
             "mcp_registry_status",
@@ -104,22 +102,39 @@ pub const PACKS: &[ToolPack] = &[
             "mcp_registry_tool_call",
             "mcp_registry_uninstall",
         ],
-        owners: &["mcp_agent", "planner"],
+        owners: &["mcp_agent", "planner", "orchestrator"],
     },
     ToolPack {
         id: "composio",
-        summary: "Composio toolkits: list connections and toolkits, list and execute actions.",
+        summary: "Composio toolkits: list connections, list and execute actions.",
         // `composio_connect` is deliberately not a member: it is the
         // orchestrator's inline connect card. Packed, it sat in a pack that
         // `ops::closed_by_direct_handoff` closes to the orchestrator (the
         // planner, one `plan` hand-off away, owns this pack), so the prompt's
         // "raise a connect card" route was a tool the model could not reach.
+        //
+        // `composio_list_toolkits` is unpacked for the same reason, one bug
+        // later. It answers "what can I connect?" — the backend allowlist as
+        // `{toolkits, catalog:[{slug, name, description, categories}]}` — and
+        // the orchestrator owns that conversation. Packed, it was `Deny`ed to
+        // the orchestrator by the rule above, and the only escapes were a
+        // `use_skill` that answers "no tools available" and a `plan` hand-off
+        // whose description ("break a task into a DAG of subtasks") gives a
+        // model no reason to associate it with a catalogue lookup. Observed:
+        // asked to list Composio apps, the orchestrator tried `use_skill`,
+        // then six `tool_search` calls, then scraped docs.composio.dev and
+        // reported a marketing figure of "1,552+ apps" instead of this
+        // install's real 119.
+        //
+        // Its own owners keep it by DECLARING it: `planner/agent.toml:72` and
+        // `workflow_builder/agent.toml:109`. `integrations_agent` reached it
+        // only through this pack, so it now declares it too — unpacking must
+        // not quietly take a capability from a second consumer.
         tools: &[
             "composio",
             "composio_authorize",
             "composio_execute",
             "composio_list_connections",
-            "composio_list_toolkits",
             "composio_list_tools",
         ],
         owners: &["integrations_agent", "workflow_builder", "planner"],
@@ -232,7 +247,7 @@ pub const PACKS: &[ToolPack] = &[
     },
     ToolPack {
         id: "files",
-        summary: "Files and repositories: read, write, grep, glob, list, git.",
+        summary: "Files and repositories: grep, glob, list, git.",
         // `shell` covers every one of these for an agent that has it, so on a
         // belt that also carries `shell` the family is duplicate surface
         // charged on every turn. It stays one `use_skill` away, and the
@@ -254,7 +269,20 @@ pub const PACKS: &[ToolPack] = &[
         // no file at all, and `meal-plan` burned eleven rounds discovering it
         // had no writer. One ~300 B schema per turn is the right price for the
         // single most common assistant task.
-        tools: &["file_read", "grep", "glob", "list", "git_operations"],
+        //
+        // `file_read` left too, because the harness itself tells the model to
+        // call it. Every oversized tool result is replaced by a
+        // `[tool_result_preview]` whose `read_with:` line is
+        // `file_read {"path": …}` (`agent/harness/tool_result_artifacts`), and
+        // the orchestrator is the agent that receives most of those previews
+        // (Gmail listings, catalogue dumps, search results). Packed, the same
+        // rule DENIED it, and the bare-name router (`packed_tool_route`) does
+        // not route a denied tool, so the call answered `unknown tool`. Observed
+        // on v0.64.0: asked to list ten emails, the orchestrator followed the
+        // preview, got `unknown tool file_read`, then invented `ranges` and
+        // `tool_read_file`, misused `desktop_continue_goal` and `plan`, and ran
+        // out of iterations without reading its own result.
+        tools: &["grep", "glob", "list", "git_operations"],
         owners: &[
             "code_executor",
             "critic",
@@ -285,7 +313,15 @@ pub const PACKS: &[ToolPack] = &[
     ToolPack {
         id: "scheduling",
         summary: "Reminders and scheduled jobs: create, list, update, remove, run, inspect.",
-        tools: &["schedule_task", "cron"],
+        tools: &[
+            "schedule_task",
+            "cron_add",
+            "cron_list",
+            "cron_update",
+            "cron_remove",
+            "cron_run",
+            "cron_runs",
+        ],
         owners: &["scheduler_agent"],
     },
     ToolPack {
@@ -375,12 +411,11 @@ pub(crate) const DELIBERATELY_UNPACKED_FLEET_TOOLS: &[&str] = &[
     "spawn_parallel_agents",
 ];
 
-/// The MCP and skill hand-offs are deliberately NOT packed either (#6302).
+/// The skill hand-offs are deliberately not packed (#6302).
 ///
-/// `use_mcp_server`, `setup_skills` and `run_skill` are the orchestrator's
-/// whole route into two families: it uses MCP servers and installs and uses
-/// skills only by handing the task to the specialist that owns that family. Packed, they sat in the same listing as the raw
-/// `mcp_registry_*` / `skill_registry_*` tools, one `use_skill` round trip
+/// `setup_skills` and `run_skill` are the orchestrator's route into the
+/// skills family. Packed, they sat in the same listing as the raw
+/// `skill_registry_*` tools, one `use_skill` round trip
 /// away, and a live account showed the cost: across 11 turns the orchestrator
 /// called the raw tools itself, guessed at tool names, and never handed off.
 /// Handing off is the most common thing it does with these families, so the
@@ -394,8 +429,7 @@ pub(crate) const DELIBERATELY_UNPACKED_FLEET_TOOLS: &[&str] = &[
 /// token-cost decision, and the same closing rule takes effect for any of them
 /// as soon as it is unpacked and listed here.
 #[cfg(test)]
-pub(crate) const DELIBERATELY_UNPACKED_HANDOFFS: &[&str] =
-    &["use_mcp_server", "setup_skills", "run_skill"];
+pub(crate) const DELIBERATELY_UNPACKED_HANDOFFS: &[&str] = &["setup_skills", "run_skill"];
 
 pub fn pack(id: &str) -> Option<&'static ToolPack> {
     PACKS.iter().find(|p| p.id == id)
@@ -413,9 +447,9 @@ pub fn all_packed_tool_names() -> Vec<&'static str> {
 
 /// Every packed tool name that applies to `agent_id`.
 ///
-/// A pack is skipped entirely for the specialist that owns its family — see
-/// [`ToolPack::owners`]. The orchestrator owns no pack, so it sees the full
-/// withholding.
+/// A pack is skipped entirely for agents listed as its owners — see
+/// [`ToolPack::owners`]. The orchestrator owns the MCP integrations pack so
+/// its small named MCP tool set remains directly callable.
 pub fn packed_tool_names_for_agent(agent_id: &str) -> Vec<&'static str> {
     PACKS
         .iter()

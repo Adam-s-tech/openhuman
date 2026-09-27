@@ -19,6 +19,7 @@ import {
   startMockServer,
   stopMockServer,
 } from '../../../scripts/mock-api-core.mjs';
+import { resetRememberedDisclosures } from '../components/assistant-ui/lib/useDisclosure';
 
 // The full Vitest run is executed under v8 coverage instrumentation with a
 // single worker (see test/vitest.config.ts), which makes individual renders
@@ -292,6 +293,7 @@ vi.mock('../utils/config', () => ({
   E2E_DEFAULT_CORE_MODE: '',
   E2E_RESTART_APP_AS_RELOAD: false,
   DEV_FORCE_ONBOARDING: false,
+  DEV_SKIP_ONBOARDING: false,
   CHAT_ATTACHMENTS_ENABLED: true,
   DERIVED_TRANSCRIPT_ENABLED: true,
   SKILLS_GITHUB_REPO: 'test/skills',
@@ -395,6 +397,9 @@ if (!process.env.DEBUG_TESTS) {
 // Shared mock API server lifecycle for unit tests (default)
 afterEach(async () => {
   clearRequestLog();
+  // Disclosure choices are module-scoped (they outlive a remount by design);
+  // a card toggled in one test must not start open in the next.
+  resetRememberedDisclosures();
   // Radix schedules focus restoration with setTimeout(0) during unmount.
   // Keep its Event constructor in the jsdom realm and let that task drain
   // before Vitest tears the environment down.
