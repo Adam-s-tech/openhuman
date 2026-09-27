@@ -108,7 +108,7 @@ Startup wiring is split across three sites; both entry points are idempotent
 
 - `crates/openhuman-core/src/core/runtime/subscribers.rs` calls
   `crate::integrations::task_sources::bus::register_task_sources_subscriber()`.
-- `crates/openhuman-core/src/core/runtime/services.rs` (around line 353) calls
+- `crates/openhuman-core/src/core/runtime/services.rs` calls
   `crate::integrations::task_sources::start_periodic_poll()` when the
   `ServiceSet`'s task-source polling bootstrap job is enabled (documented at
   around line 217).

@@ -168,8 +168,8 @@ Namespace `channel`, registered via
 - `openhuman-rpc/src/server/socketio.rs`: the `chat:start` and `chat:cancel` handlers call
   `start_chat` / `cancel_chat_scoped`, and forward `WebChannelEvent`s to the
   client.
-- `openhuman-rpc/src/server/http/events.rs`: subscribes the `/events` SSE stream.
-- `core/runtime/bootstrap.rs`: registers the `DomainEvent` surface subscribers at startup.
+- `openhuman-rpc/src/server/http/events.rs`: subscribes to and serves the `/events` SSE stream.
+- `core/runtime/bootstrap.rs`: bootstraps runtime services, including registration of the `DomainEvent` surface subscribers through `core/runtime/subscribers.rs`.
 - `core/all.rs`: registers `all_web_channel_registered_controllers()` under
   `DomainGroup::Channels`, deliberately not behind the `channels` feature
   (the in-app chat is core product surface, #5002).
