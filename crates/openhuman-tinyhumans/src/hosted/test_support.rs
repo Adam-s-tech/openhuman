@@ -36,7 +36,7 @@ pub fn signed_in(tmp: &TempDir, api_url: &str) -> Config {
             .hosted_controllers(false)
             .tool_ranker(false),
     )
-    .expect("install backend transport for hosted tests");
+    .expect("install SDK backend transport for hosted mock");
     let config = config(tmp, api_url);
     store_session(&config, "jwt.test");
     config
