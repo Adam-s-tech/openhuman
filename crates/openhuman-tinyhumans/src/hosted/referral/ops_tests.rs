@@ -85,8 +85,7 @@ async fn get_stats_sends_trimmed_bearer() {
     );
     let base = spawn_mock(app).await;
     let tmp = TempDir::new().unwrap();
-    let mut config = test_config(&tmp);
-    config.api_url = Some(base);
+    let config = config_with_backend(&tmp, base);
     store_session_token(&config, "  tok  ");
     let out = get_stats(&config).await.unwrap();
     assert_eq!(out.value["auth"], json!("Bearer tok"));
