@@ -3,7 +3,7 @@
 
 use anyhow::{Context, Result};
 use reqwest::{Client, Method, Url};
-use serde_json::{json, Value};
+use serde_json::Value;
 use std::sync::Arc;
 
 use crate::backend::transport::{
