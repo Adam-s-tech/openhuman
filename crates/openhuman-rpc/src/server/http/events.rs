@@ -222,9 +222,8 @@ pub(super) async fn domain_events_handler(headers: axum::http::HeaderMap) -> Res
             Ok(ev) => ev,
             Err(_) => return None,
         };
-            domain_event_payload(&event).map(|(domain, data)| {
-                Ok(Event::default().event(domain).data(data))
-            })
+        domain_event_payload(&event)
+            .map(|(domain, data)| Ok(Event::default().event(domain).data(data)))
     });
 
     let config_stream =
@@ -250,9 +249,7 @@ fn domain_event_payload(event: &DomainEvent) -> Option<(String, String)> {
             .map(|dir| openhuman_core::config::workspace_handle(&dir)),
         "timestamp": chrono::Utc::now().format("%H:%M:%S").to_string(),
     });
-    serde_json::to_string(&data)
-        .ok()
-        .map(|data| (domain, data))
+    serde_json::to_string(&data).ok().map(|data| (domain, data))
 }
 
 #[cfg(test)]
