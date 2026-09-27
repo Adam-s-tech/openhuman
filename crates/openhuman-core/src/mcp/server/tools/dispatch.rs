@@ -38,7 +38,9 @@ pub async fn call_tool(
             crate::search::providers::backend_credential_available(&config),
         ),
         Err(err) => {
-            log::warn!("[mcp_server] tools/call config load failed; omitting config-gated tools: {err}");
+            log::warn!(
+                "[mcp_server] tools/call config load failed; omitting config-gated tools: {err}"
+            );
             base_tool_specs()
         }
     };

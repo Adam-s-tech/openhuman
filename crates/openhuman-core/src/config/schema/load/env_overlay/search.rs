@@ -146,7 +146,11 @@ impl Config {
                     if SEARCH_PROVIDERS.contains(&provider.as_str())
                         && self.search.providers.contains_key(&provider) =>
                 {
-                    self.search.providers.get_mut(&provider).expect("checked above").route = route;
+                    self.search
+                        .providers
+                        .get_mut(&provider)
+                        .expect("checked above")
+                        .route = route;
                 }
                 _ => log::warn!("[config][search] ignoring route '{provider}={route}'"),
             }
