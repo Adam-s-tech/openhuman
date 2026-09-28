@@ -453,7 +453,10 @@ jobs:
   rust-feature-gate-smoke:
     name: Rust Feature-Gate Smoke (gates off)
     needs: [changes]
-    if: needs.changes.outputs['rust-core'] == 'true' || needs.changes.outputs['rust-tauri'] == 'true'
+    if: >-
+      needs.changes.outputs['rust-core'] == 'true' ||
+      needs.changes.outputs['rust-tauri'] == 'true' ||
+      needs.changes.outputs.inventory == 'true'
     runs-on: ubuntu-22.04
     # Was 25; raised because the lane now links (--all-targets) and runs a test
     # binary, not just `cargo check`.
