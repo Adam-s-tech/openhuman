@@ -1017,13 +1017,14 @@ describe('testProviderModel', () => {
     expect(result).toEqual({ reply: 'Hello from model' });
   });
 
-  it('throws when not running in Tauri', async () => {
+  it('calls core RPC when not running in Tauri', async () => {
     mockIsTauri.mockReturnValue(false);
+    mockCallCoreRpc.mockResolvedValueOnce({ result: { reply: 'Hello from model' } });
 
-    await expect(testProviderModel('reasoning', 'openai:gpt-4o')).rejects.toThrow(
-      'Model testing is only available in the desktop app.'
-    );
-    expect(mockCallCoreRpc).not.toHaveBeenCalled();
+    await expect(testProviderModel('reasoning', 'openai:gpt-4o')).resolves.toEqual({
+      reply: 'Hello from model',
+    });
+    expect(mockCallCoreRpc).toHaveBeenCalled();
   });
 });
 
