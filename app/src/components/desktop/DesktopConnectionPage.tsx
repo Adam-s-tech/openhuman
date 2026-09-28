@@ -281,9 +281,11 @@ export default function DesktopConnectionPage({
 
   const body = (
     <div className="space-y-4" data-testid="desktop-connection-page">
-      <Alert variant="warning" density="compact" role={undefined}>
-        <AlertDescription>{t('connections.earlyAlphaNotice')}</AlertDescription>
-      </Alert>
+      {!embedded && (
+        <Alert variant="warning" density="compact" role={undefined}>
+          <AlertDescription>{t('connections.earlyAlphaNotice')}</AlertDescription>
+        </Alert>
+      )}
 
       {loading && !status && <CenteredLoadingState label={t('common.loading')} />}
 
