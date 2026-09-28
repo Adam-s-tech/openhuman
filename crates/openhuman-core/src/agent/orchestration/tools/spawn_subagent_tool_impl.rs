@@ -10,7 +10,7 @@ impl Tool for SpawnSubagentTool {
          per call: by default it runs as a reusable async worker and returns \
          immediately — pass `blocking: true` to run it inline and get the \
          sub-agent's final output back in this turn. To run several independent \
-         workers at once (e.g. \"a separate researcher for each X\", a council \
+         workers at once (e.g. \"a separate worker for each X\", a council \
          of opinions, or \"fan out over N items\"), use `spawn_parallel_agents` \
          with one task per worker — a SINGLE call that launches them \
          concurrently. Do NOT call this tool in a loop to fan out: repeated \
