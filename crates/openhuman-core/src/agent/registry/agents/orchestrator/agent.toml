@@ -8,9 +8,7 @@ sandbox_mode = "sandboxed"
 # Spawn hierarchy: this is the user-facing tier. It can complete ordinary work
 # itself and delegates only when that is the better execution shape.
 # Loader enforces: a `chat` agent must NOT list any other `chat` agent
-# in `subagents` below — handoff goes to `reasoning` (e.g. planner) for
-# long-running deep work, or directly to `worker` specialists for the
-# fast path. See `AgentTier` in `crates/openhuman-core/src/agent/harness/definition.rs`.
+# in `subagents` below — handoff goes directly to `worker` specialists. See `AgentTier` in `crates/openhuman-core/src/agent/harness/definition.rs`.
 agent_tier = "chat"
 # Identity now loads from the workspace rather than from this agent's compiled
 # prompt (#5701). `IdentitySection` injects SOUL.md (product persona, shared by
@@ -75,6 +73,57 @@ omit_memory_md = false
 # If you are here to propose the mega-tool again, it is a routing-quality change
 # needing an eval, not a token change.
 #
+# Most former specialists are deliberately ABSENT, and absence is the point.
+# A sub-agent whose whole value was a prompt over a handful of tools
+# (code_executor, critic, planner, settings_agent, scheduler_agent,
+# crypto_agent, mcp_agent, help, tools_agent, skill_creator, skill_executor)
+# is now an inline skill instead: its tools are `ToolExposure::Deferred`
+# (found through `tool_search`) and its playbook is the pack guide
+# `use_skill` prints (`tools/toolpacks/guides/`). What remains below are
+# specialists that own something a guide cannot: a pinned model
+# (vision/image/video), a separate long-running context (workflow_builder),
+# or a curated domain belt.
+#
+# `archivist` is not listed either: memory archiving runs on its own
+# post-commit hook (`runtime_session.rs`), not on request.
+[subagents]` allowlist below, which synthesises a `delegate_retrieve_memory`
+# tool the orchestrator calls only when a message actually needs the deep
+# memory-tree walk. (The frozen MEMORY.md digest still anchors every turn.)
+
+# Delegation surface. The `collect_orchestrator_tools` helper reads this
+# at agent-build time and synthesises one `delegate_*` tool per entry:
+#
+#   * Bare agent ids → one `ArchetypeDelegationTool` each, using the
+#     target agent's `delegate_name` override (if any) or `delegate_{id}`
+#     as the tool name, and the target's `when_to_use` as the
+#     LLM-visible tool description.
+#
+#   * `{ skills = "*" }` → one `Deferred` action tool per action of every
+#     connected Composio toolkit. Off the wire, found through `tool_search`,
+#     called directly. This used to be a `delegate_to_integrations_agent`
+#     spawn; one clear service action is now a search and a call, and the
+#     wildcard admits no sub-agent id (`AgentDefinition::allowed_subagent_ids`).
+#
+# The orchestrator LLM sees these as first-class entries in its
+# function-calling schema, so routing decisions happen at the tool-
+# selection layer rather than hidden inside a mega-tool's enum param.
+#
+# That decision still stands, and it has been re-examined: collapsing these
+# into one `delegate(agent = enum, ...)` looks like it would save ~6.8k tokens
+# but does not, because each tool's DISTINCT description (the target's
+# `when_to_use`) does not disappear — it just re-renders inside the mega-tool,
+# the way `SkillDelegationTool::build_description` already does. The tool NAMES
+# are load-bearing too: prompt.md teaches them individually, and the tool-pack
+# withholding table (`tools/toolpacks/registry.rs`) keys on them.
+#
+# What DID cost 6.8k was the shared argument envelope, emitted identically once
+# per delegate tool. That is fixed at the source: `ArchetypeDelegationTool::
+# parameters_schema` now carries descriptions only on the four fields whose name
+# does not carry their meaning, and the envelope's semantics are documented ONCE
+# in prompt.md under "Structured handoffs" — charged once instead of 19 times.
+# If you are here to propose the mega-tool again, it is a routing-quality change
+# needing an eval, not a token change.
+#
 # Two agents are deliberately ABSENT from this list, and absence is the point:
 # dropping an entry removes its synthesised `delegate_*` schema from every turn
 # without deleting the agent's registry entry. `spawn_async_subagent` builds
@@ -98,18 +147,11 @@ omit_memory_md = false
 #     model rarely needs to ask for it, and asking is not how it usually happens.
 [subagents]
 allowlist = [
-    "planner",
-    "code_executor",
     # Task-source/workflow/artifact specialist. Route any request to add,
     # preview, fetch, update, remove, or summarize proactive task sources,
     # workflow bundles, or artifacts here instead of letting the generic
     # tools agent see the full family.
     "task_manager_agent",
-    # Settings/system specialist. Route app/core config, diagnostics,
-    # service lifecycle, update, proxy, health, model-health, and cost
-    # dashboard requests here so read-before-write and confirmation policy
-    # stays local to the risky tools.
-    "settings_agent",
     # Persistent profile/memory/persona specialist. Route "remember",
     # "forget", profile/persona edits, learned facets, and people alias
     # management here.
@@ -132,26 +174,13 @@ allowlist = [
     # tool. Route make/generate a video or animate this image requests here —
     # generation is async (minutes) and the agent blocks until the clip is saved.
     "video_agent",
-    "skill_creator",
-    # Scheduling/reminder specialist. Owns current_time + cron tools and
-    # confirmation-before-create policy so the chat prompt does not carry
-    # cron-specific instructions on every turn.
-    "scheduler_agent",
     # Deck specialist. Owns presentation grounding, citations, image
     # verification, and generate_presentation warning handling.
     "presentation_agent",
-    # Crypto wallet & market specialist (#1397). Synthesised into a
-    # `delegate_do_crypto` tool at agent-build time. Route any wallet,
-    # transfer, swap, contract-call, or exchange trading request here —
-    # the agent enforces a strict read → simulate → confirm → execute
-    # contract that the generic delegation surface does not.
-    "crypto_agent",
-    # Skill registry specialists. `skill_setup` discovers, installs, and
-    # manages agent skills from community registries (OpenHuman, HermesHub,
-    # ClawHub). `skill_executor` runs an installed skill by loading its
-    # SKILL.md instructions and executing the procedure.
+    # Skill registry specialist: discovers, installs, and manages agent
+    # skills from community registries (OpenHuman, HermesHub, ClawHub).
+    # Running an installed skill is the orchestrator's own `run_workflow`.
     "skill_setup",
-    "skill_executor",
     # Workflow-authoring specialist (Phase 5a). Synthesised into a
     # `build_workflow` tool at agent-build time. Route any "set up a workflow
     # that…", "automate…", "when X happens do Y", or "build/edit an automation
@@ -172,13 +201,10 @@ allowlist = [
     # creates/enables/runs a flow; picking a suggestion routes to
     # `workflow_builder` to author it.
     "flow_discovery",
-    # NOTE: `summarizer` used to be listed here for the runtime-only
-    # oversized-tool-result hook. That path is currently disabled
-    # (`context.summarizer_payload_threshold_tokens = 0`) after recursive
-    # dispatch was observed. The agent definition is still registered via
-    # `agents::loader` so the payload_summarizer machinery can resolve it
-    # if the threshold is ever raised back above zero — it just isn't
-    # exposed to the orchestrator's subagent inventory right now.
+    # NOTE: `summarizer` is not listed. It is runtime-only: the oversized
+    # tool-result hook resolves it from the registry
+    # (`context.summarizer_payload_threshold_tokens`, default 4000), and it
+    # never gets a delegate tool.
     { skills = "*" },
 ]
 
@@ -338,6 +364,9 @@ named = [
     "mcp_registry_list_tools",
     "mcp_registry_connect",
     "mcp_registry_tool_call",
+    # Current wall-clock time and the user's timezone, needed to ground a
+    # schedule (skill `scheduling`) or a quote's freshness (skill `web3`).
+    "current_time",
     # Deterministic time resolver. As the chat-facing agent, the orchestrator
     # is what reads a user's relative phrase ("last 24h", "since Monday")
     # first. It must resolve the window here via `resolve_time` and hand the
