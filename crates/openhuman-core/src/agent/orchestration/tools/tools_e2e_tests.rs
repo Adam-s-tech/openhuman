@@ -202,7 +202,9 @@ async fn continue_subagent_resumes_idle_durable_session_e2e() {
     let _ = env_logger::builder().is_test(true).try_init();
     let _ = AgentDefinitionRegistry::init_global_builtins();
     let registry = AgentDefinitionRegistry::global().expect("registry");
-    let definition = registry.get("task_manager_agent").expect("task_manager_agent definition");
+    let definition = registry
+        .get("task_manager_agent")
+        .expect("task_manager_agent definition");
     let workspace = tempfile::TempDir::new().expect("workspace");
     let provider = Arc::new(ScriptedModel::new(vec![(
         "continue-durable-canary",
@@ -416,9 +418,7 @@ fn parent_context(
     ParentExecutionContext {
         workspace_descriptor: None,
         agent_definition_id: "orchestrator".into(),
-        allowed_subagent_ids: ["task_manager_agent".to_string()]
-            .into_iter()
-            .collect(),
+        allowed_subagent_ids: ["task_manager_agent".to_string()].into_iter().collect(),
         turn_model_source: crate::agent::tinyagents::TurnModelSource::from_model(model),
         all_tools: Arc::new(Vec::new()),
         all_tool_specs: Arc::new(Vec::new()),

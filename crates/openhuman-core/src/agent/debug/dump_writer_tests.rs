@@ -27,10 +27,7 @@ fn golden_layout_matches_cli_format() {
     // File set exactly as expected.
     assert_eq!(out.prompt_paths.len(), 2);
     assert_eq!(out.prompt_paths[0], dir.path().join("1_orchestrator.md"));
-    assert_eq!(
-        out.prompt_paths[1],
-        dir.path().join("2_researcher.md")
-    );
+    assert_eq!(out.prompt_paths[1], dir.path().join("2_researcher.md"));
     assert_eq!(out.summary_path, dir.path().join("SUMMARY.txt"));
 
     // Prompt body is raw bytes.

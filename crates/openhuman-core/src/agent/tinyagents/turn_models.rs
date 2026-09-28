@@ -213,13 +213,8 @@ fn build_turn_models_crate(
             })
             .unwrap_or_else(|| factory::resolves_to_managed_backend(role, config));
         if managed {
-            let (backend, _) = factory::make_openhuman_backend_model_for_thread(
-                role,
-                config,
-                m,
-                true,
-                thread_id,
-            )?;
+            let (backend, _) =
+                factory::make_openhuman_backend_model_for_thread(role, config, m, true, thread_id)?;
             return Ok(Arc::new(RouteRecordingModel::new(
                 backend,
                 ResolvedModelRoute::new("openhuman", m, m),
@@ -269,11 +264,7 @@ fn build_turn_models_crate(
                 let tier_role = factory::role_for_model_tier(tier);
                 let route = if factory::resolves_to_managed_backend(tier_role, config) {
                     factory::make_openhuman_backend_model_for_thread(
-                        tier_role,
-                        config,
-                        tier,
-                        true,
-                        thread_id,
+                        tier_role, config, tier, true, thread_id,
                     )
                     .map(|(backend, _)| (backend, "openhuman".to_string(), tier.to_string()))
                 } else {

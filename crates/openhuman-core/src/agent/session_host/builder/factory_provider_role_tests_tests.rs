@@ -52,15 +52,9 @@ fn auto_prefers_native_when_supported_never_pformat() {
         DispatcherKind::Native
     );
     // Text-only provider defaults to JSON-in-tag, NOT P-Format.
-    assert_eq!(
-        resolve_dispatcher_kind("auto", false),
-        DispatcherKind::Xml
-    );
+    assert_eq!(resolve_dispatcher_kind("auto", false), DispatcherKind::Xml);
     // An unrecognized value behaves like "auto".
-    assert_eq!(
-        resolve_dispatcher_kind("bogus", false),
-        DispatcherKind::Xml
-    );
+    assert_eq!(resolve_dispatcher_kind("bogus", false), DispatcherKind::Xml);
 }
 
 #[test]
@@ -69,10 +63,7 @@ fn explicit_choices_are_honoured_including_opt_in_pformat() {
         resolve_dispatcher_kind("native", false),
         DispatcherKind::Native
     );
-    assert_eq!(
-        resolve_dispatcher_kind("xml", true),
-        DispatcherKind::Xml
-    );
+    assert_eq!(resolve_dispatcher_kind("xml", true), DispatcherKind::Xml);
     // P-Format is only ever selected when explicitly requested.
     assert_eq!(
         resolve_dispatcher_kind("pformat", true),
