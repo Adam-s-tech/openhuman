@@ -109,8 +109,8 @@ describe('formatTimelineEntry', () => {
   });
 
   it('falls back to humanized generic labels for non-integration subagents', () => {
-    expect(formatTimelineEntry(entry({ name: 'subagent:researcher' }))).toEqual({
-      title: 'Researching',
+    expect(formatTimelineEntry(entry({ name: 'subagent:context_scout' }))).toEqual({
+      title: 'Scouting context',
       detail: undefined,
     });
   });
@@ -382,7 +382,7 @@ describe('isKnownClientTool', () => {
   it('recognizes built-ins and special agent rows', () => {
     expect(isKnownClientTool('file_read')).toBe(true);
     expect(isKnownClientTool('shell')).toBe(true);
-    expect(isKnownClientTool('subagent:researcher')).toBe(true);
+    expect(isKnownClientTool('subagent:context_scout')).toBe(true);
     // The streamed search-slot name, so the client label wins over the
     // server's humanized "Web Search Tool".
     expect(isKnownClientTool('web_search_tool')).toBe(true);

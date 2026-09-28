@@ -134,7 +134,7 @@ describe('tool labels: regressions', () => {
   });
 
   it('labels named agents and delegations by what they do', () => {
-    expect(done('subagent:researcher')).toBe('Researched');
+    expect(done('subagent:planner')).toBe('Planned next steps');
     expect(done('spawn_subagent', { agent_id: 'critic' })).toBe('Reviewed the work');
     expect(done('delegate_gmail')).toBe('Used Gmail');
     expect(active('run_code')).toBe('Running code');
