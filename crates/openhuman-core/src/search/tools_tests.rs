@@ -85,9 +85,8 @@ fn recorded_tools_keep_their_declaration() {
 
 #[test]
 fn local_only_blocks_external_search_tool_dispatch() {
-    let _privacy = crate::security::live_policy::test_privacy_scope(
-        crate::config::PrivacyMode::LocalOnly,
-    );
+    let _privacy =
+        crate::security::live_policy::test_privacy_scope(crate::config::PrivacyMode::LocalOnly);
 
     let message = local_only_search_block("web_search_tool")
         .expect("search requests must be blocked in LocalOnly mode");
@@ -96,9 +95,8 @@ fn local_only_blocks_external_search_tool_dispatch() {
 
 #[test]
 fn standard_privacy_mode_allows_search_tool_dispatch() {
-    let _privacy = crate::security::live_policy::test_privacy_scope(
-        crate::config::PrivacyMode::Standard,
-    );
+    let _privacy =
+        crate::security::live_policy::test_privacy_scope(crate::config::PrivacyMode::Standard);
 
     assert!(local_only_search_block("web_search_tool").is_none());
 }

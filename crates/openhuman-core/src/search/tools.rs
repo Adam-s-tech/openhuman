@@ -181,15 +181,13 @@ impl Tool for TinySearchTool {
 }
 
 fn local_only_search_block(tool_name: &str) -> Option<String> {
-    crate::security::egress::local_only_tool_block(
-        &crate::security::egress::EgressDescriptor::new(
-            "tinysearch",
-            tool_name,
-            true,
-            crate::security::egress::EgressReason::ToolCall,
-            vec![crate::security::egress::DataKind::ToolArguments],
-        ),
-    )
+    crate::security::egress::local_only_tool_block(&crate::security::egress::EgressDescriptor::new(
+        "tinysearch",
+        tool_name,
+        true,
+        crate::security::egress::EgressReason::ToolCall,
+        vec![crate::security::egress::DataKind::ToolArguments],
+    ))
 }
 
 /// Build the agent's search tools from config. Empty when search is off or no
