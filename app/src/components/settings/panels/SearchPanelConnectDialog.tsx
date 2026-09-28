@@ -12,10 +12,7 @@ import { ExternalLink } from 'lucide-react';
 import { useId, useState } from 'react';
 
 import { openUrl } from '../../../utils/openUrl';
-import type {
-  SearchProviderInfo,
-  SearchProviderUpdate,
-} from '../../../utils/tauriCommands/config';
+import type { SearchProviderInfo, SearchProviderUpdate } from '../../../utils/tauriCommands/config';
 import Button from '../../ui/Button';
 import Label from '../../ui/Label';
 import { ModalShell } from '../../ui/ModalShell';
@@ -77,7 +74,11 @@ const SearchPanelConnectDialog = ({
     if (!canSubmit) return;
     const patch: SearchProviderUpdate = {};
     if (mode === 'enable') patch.enabled = true;
-    if ((mode === 'enable' || switchToDirect) && canUseDirect(provider) && provider.routes.length > 1)
+    if (
+      (mode === 'enable' || switchToDirect) &&
+      canUseDirect(provider) &&
+      provider.routes.length > 1
+    )
       patch.route = 'direct';
     if (showKey && key.trim()) patch.api_key = key.trim();
     if (showUrl) patch.base_url = url.trim();

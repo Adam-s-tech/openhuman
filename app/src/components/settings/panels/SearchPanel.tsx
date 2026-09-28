@@ -153,9 +153,7 @@ const SearchPanel = ({ embedded = false }: { embedded?: boolean }) => {
         saving={saving}
         savedNote={status.kind === 'saved' ? t('settings.search.statusSaved') : null}
         error={
-          status.kind === 'error'
-            ? `${t('settings.search.statusError')}: ${status.message}`
-            : null
+          status.kind === 'error' ? `${t('settings.search.statusError')}: ${status.message}` : null
         }
         savingLabel={t('settings.search.statusSaving')}
       />

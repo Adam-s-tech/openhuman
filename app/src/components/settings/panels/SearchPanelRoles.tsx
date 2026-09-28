@@ -22,14 +22,7 @@ import Button from '../../ui/Button';
 import Card from '../../ui/Card';
 import { ModalShell } from '../../ui/ModalShell';
 import Switch from '../../ui/Switch';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '../../ui/Table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../ui/Table';
 import {
   roleDescription,
   roleTitle,
@@ -59,7 +52,11 @@ interface RoleProps {
 }
 
 /** The configured order for a role, limited to providers that can serve it. */
-function roleOrder(role: SearchRole, settings: SearchSettings, byId: Map<string, SearchProviderInfo>) {
+function roleOrder(
+  role: SearchRole,
+  settings: SearchSettings,
+  byId: Map<string, SearchProviderInfo>
+) {
   return (settings.roles[role] ?? []).filter(id => byId.get(id)?.roles.includes(role));
 }
 

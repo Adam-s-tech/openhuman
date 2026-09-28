@@ -81,8 +81,7 @@ export const hasBaseUrl = (provider: SearchProviderInfo) => provider.base_url !=
  * a key it has not got, or an instance URL that is empty.
  */
 export const directNeedsSetup = (provider: SearchProviderInfo) =>
-  (provider.takes_key && !provider.key_configured) ||
-  (hasBaseUrl(provider) && !provider.base_url);
+  (provider.takes_key && !provider.key_configured) || (hasBaseUrl(provider) && !provider.base_url);
 
 const SWATCH_ICONS: Record<string, IconType> = {
   gemini: SiGooglegemini,

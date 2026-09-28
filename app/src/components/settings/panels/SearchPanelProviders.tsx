@@ -148,8 +148,7 @@ const SearchPanelProviders = ({
 
   const tile = (provider: SearchProviderInfo, detail: string) => {
     // A provider that only runs via TinyHumans cannot be added while signed out.
-    const blocked =
-      !canUseManaged(provider, managedUnavailable) && !canUseDirect(provider);
+    const blocked = !canUseManaged(provider, managedUnavailable) && !canUseDirect(provider);
     return (
       <button
         key={provider.id}
@@ -195,14 +194,14 @@ const SearchPanelProviders = ({
               label={provider.label}
               tone=""
               swatch={<SearchProviderSwatch id={provider.id} label={provider.label} />}
-              detail={
-                <span data-testid={`${testId}-detail`}>{connectedDetail(provider, t)}</span>
-              }
+              detail={<span data-testid={`${testId}-detail`}>{connectedDetail(provider, t)}</span>}
               detailMono={provider.route === 'direct' && hasBaseUrl(provider)}
               badge={
                 <>
                   {provider.status !== 'ready' && (
-                    <Badge variant={STATUS_VARIANT[provider.status]} data-testid={`${testId}-status`}>
+                    <Badge
+                      variant={STATUS_VARIANT[provider.status]}
+                      data-testid={`${testId}-status`}>
                       {statusLabel(provider.status, t)}
                     </Badge>
                   )}

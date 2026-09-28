@@ -180,7 +180,9 @@ beforeEach(() => {
 describe('SearchPanel — page and on/off', () => {
   test('renders as a titled page with chip tabs when not embedded', async () => {
     renderWithProviders(<SearchPanel />);
-    expect(await screen.findByRole('heading', { name: 'settings.search.title' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'settings.search.title' })
+    ).toBeInTheDocument();
     expect(screen.getByTestId('search-tab-providers')).toBeInTheDocument();
     expect(screen.getByTestId('search-tab-routing')).toBeInTheDocument();
     expect(screen.getByTestId('search-tab-websites')).toBeInTheDocument();
@@ -260,9 +262,7 @@ describe('SearchPanel — connected providers', () => {
 
   test('with nothing connected the list says so', async () => {
     hoisted.getSearchSettings.mockResolvedValue({
-      result: settings({
-        providers: [provider('exa', { enabled: false }), provider('brave')],
-      }),
+      result: settings({ providers: [provider('exa', { enabled: false }), provider('brave')] }),
     });
     await renderPanel();
     expect(screen.getByTestId('search-connected-empty')).toBeInTheDocument();
@@ -308,9 +308,7 @@ describe('SearchPanel — connected providers', () => {
 
   test('a direct provider can go back via TinyHumans and drop its key', async () => {
     hoisted.getSearchSettings.mockResolvedValue({
-      result: settings({
-        providers: [provider('exa', { route: 'direct', key_configured: true })],
-      }),
+      result: settings({ providers: [provider('exa', { route: 'direct', key_configured: true })] }),
     });
     await renderPanel();
     expect(screen.getByTestId('search-provider-exa-detail')).toHaveTextContent(
@@ -389,7 +387,9 @@ describe('SearchPanel — add a provider', () => {
     expect(within(direct).getByTestId('search-catalog-searxng')).toBeInTheDocument();
     expect(screen.queryByTestId('search-catalog-exa')).toBeNull();
     // Tiles say what each provider can do.
-    expect(tile('tinyfish')).toHaveTextContent('settings.search.roleSearch · settings.search.roleContents');
+    expect(tile('tinyfish')).toHaveTextContent(
+      'settings.search.roleSearch · settings.search.roleContents'
+    );
   });
 
   test('a via-TinyHumans tile turns the provider on in one click', async () => {
@@ -485,11 +485,7 @@ describe('SearchPanel — local session', () => {
     hoisted.localSession = true;
     hoisted.getSearchSettings.mockResolvedValue({
       result: settings({
-        providers: [
-          provider('exa', { enabled: false }),
-          provider('tinyfish'),
-          provider('brave'),
-        ],
+        providers: [provider('exa', { enabled: false }), provider('tinyfish'), provider('brave')],
       }),
     });
     await renderPanel();
@@ -563,7 +559,9 @@ describe('SearchPanel — routing', () => {
   test('moving a provider down saves the new order', async () => {
     await renderPanel('routing');
     const dialog = await openRole('search');
-    fireEvent.click(within(dialog).getAllByRole('button', { name: 'settings.search.roleMoveDown' })[0]);
+    fireEvent.click(
+      within(dialog).getAllByRole('button', { name: 'settings.search.roleMoveDown' })[0]
+    );
     await waitFor(() =>
       expect(hoisted.updateSearchSettings).toHaveBeenCalledWith({
         roles: { search: ['brave', 'exa', 'searxng'] },
@@ -584,7 +582,9 @@ describe('SearchPanel — routing', () => {
   test('removing a fallback saves the shorter order; the last one cannot be removed', async () => {
     await renderPanel('routing');
     const dialog = await openRole('search');
-    fireEvent.click(within(dialog).getAllByRole('button', { name: 'settings.search.roleRemove' })[1]);
+    fireEvent.click(
+      within(dialog).getAllByRole('button', { name: 'settings.search.roleRemove' })[1]
+    );
     await waitFor(() =>
       expect(hoisted.updateSearchSettings).toHaveBeenCalledWith({
         roles: { search: ['exa', 'searxng'] },
@@ -592,14 +592,25 @@ describe('SearchPanel — routing', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: 'common.close' }));
     const contents = await openRole('contents');
-    expect(within(contents).getByRole('button', { name: 'settings.search.roleRemove' })).toBeDisabled();
+    expect(
+      within(contents).getByRole('button', { name: 'settings.search.roleRemove' })
+    ).toBeDisabled();
   });
 
   test('a provider not in the order can be added back to the end', async () => {
+    hoisted.getSearchSettings.mockResolvedValue({
+      result: settings({
+        roles: { search: ['exa', 'brave'], answer: ['gemini', 'exa'], contents: ['exa'] },
+      }),
+    });
     await renderPanel('routing');
-    const dialog = await openRole('answer');
-    fireEvent.click(within(dialog).getByTestId('search-role-answer-add-exa'));
-    // exa is already in answer; nothing to add there — check contents instead.
+    const dialog = await openRole('search');
+    fireEvent.click(within(dialog).getByTestId('search-role-search-add-searxng'));
+    await waitFor(() =>
+      expect(hoisted.updateSearchSettings).toHaveBeenCalledWith({
+        roles: { search: ['exa', 'brave', 'searxng'] },
+      })
+    );
   });
 
   test('reset sends an empty order to restore the default', async () => {
@@ -622,7 +633,9 @@ describe('SearchPanel — advanced', () => {
   });
 
   test('turning it off restores role presentation', async () => {
-    hoisted.getSearchSettings.mockResolvedValue({ result: settings({ presentation: 'all_tools' }) });
+    hoisted.getSearchSettings.mockResolvedValue({
+      result: settings({ presentation: 'all_tools' }),
+    });
     await renderPanel('routing');
     fireEvent.click(screen.getByTestId('search-presentation-toggle'));
     await waitFor(() =>
