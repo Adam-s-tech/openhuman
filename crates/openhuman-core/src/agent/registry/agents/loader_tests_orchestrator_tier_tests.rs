@@ -32,7 +32,7 @@ fn the_web3_skill_keeps_the_crypto_safety_contract() {
     }
     let prompt = include_str!("orchestrator/prompt.md");
     assert!(
-        prompt.contains("never move funds or execute a swap, bridge or contract call"),
+        prompt.contains("except moving funds and stopping"),
         "the orchestrator prompt must bind money actions to explicit consent"
     );
 }

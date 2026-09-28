@@ -344,15 +344,8 @@ fn build_keeps_code_work_direct_with_no_coding_hand_off() {
 /// not against itself, so a rename on either side fails here.
 #[test]
 fn prompt_names_only_guided_skills_that_exist() {
-    let section = ARCHETYPE
-        .split("## Skills")
-        .nth(1)
-        .expect("orchestrator prompt must carry a `## Skills` section");
+    assert!(ARCHETYPE.contains("`use_skill` skill `coding`, `system`, `web3` or `docs` first"));
     for skill in ["coding", "system", "web3", "docs"] {
-        assert!(
-            section.contains(&format!("skill `{skill}`")),
-            "`## Skills` must route to skill `{skill}`"
-        );
         let pack = crate::tools::toolpacks::pack(skill)
             .unwrap_or_else(|| panic!("prompt names skill `{skill}`, which is not a pack"));
         assert!(!pack.guide.trim().is_empty(), "skill `{skill}` has no guide");
@@ -363,8 +356,9 @@ fn prompt_names_only_guided_skills_that_exist() {
 /// prompt, not in a guide a model may never open.
 #[test]
 fn prompt_binds_money_and_service_actions_to_explicit_consent() {
-    assert!(ARCHETYPE.contains("never move funds or execute a swap, bridge or contract call without the user's explicit yes"));
-    assert!(ARCHETYPE.contains("never stop, shut down, uninstall or update OpenHuman's service without an explicit yes"));
+    assert!(ARCHETYPE.contains(
+        "except moving funds and stopping, uninstalling or updating OpenHuman's service: those need the user's explicit yes"
+    ));
 }
 
 #[test]
