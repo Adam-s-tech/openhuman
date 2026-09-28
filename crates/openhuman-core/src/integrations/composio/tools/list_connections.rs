@@ -6,7 +6,7 @@ use async_trait::async_trait;
 use serde_json::{json, Value};
 
 use super::live_config::live_composio_config;
-use super::redact::redact_composio_outcome;
+use super::redact::{composio_secrets, redact_composio_outcome, redact_text};
 use crate::config::Config;
 use tinytools::{PermissionLevel, Tool, ToolCategory, ToolResult};
 
@@ -108,6 +108,12 @@ impl ComposioListConnectionsTool {
                         let rendered = format!(
                             "[composio-direct] composio_list_connections (direct) failed: {e:#}"
                         );
+                        let secrets = composio_secrets(&live_config);
+                        let rendered = if secrets.is_empty() {
+                            rendered
+                        } else {
+                            redact_text(&rendered, &secrets)
+                        };
                         super::super::ops::report_composio_op_error("list_connections", &rendered);
                         anyhow::anyhow!("{rendered}")
                     }) {
