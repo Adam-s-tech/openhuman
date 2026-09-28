@@ -307,9 +307,11 @@ describe('SearchPanel — connected providers', () => {
   });
 
   test('a direct provider can go back via TinyHumans and drop its key', async () => {
-    hoisted.getSearchSettings.mockResolvedValue({
-      result: settings({ providers: [provider('exa', { route: 'direct', key_configured: true })] }),
+    const direct = settings({
+      providers: [provider('exa', { route: 'direct', key_configured: true })],
     });
+    hoisted.getSearchSettings.mockResolvedValue({ result: direct });
+    hoisted.updateSearchSettings.mockResolvedValue({ result: direct });
     await renderPanel();
     expect(screen.getByTestId('search-provider-exa-detail')).toHaveTextContent(
       'settings.search.detailOwnKey'
@@ -590,7 +592,8 @@ describe('SearchPanel — routing', () => {
         roles: { search: ['exa', 'searxng'] },
       })
     );
-    fireEvent.click(screen.getByRole('button', { name: 'common.close' }));
+    // The footer button, not the header's icon-only close.
+    fireEvent.click(screen.getByText('common.close', { selector: 'button' }));
     const contents = await openRole('contents');
     expect(
       within(contents).getByRole('button', { name: 'settings.search.roleRemove' })
