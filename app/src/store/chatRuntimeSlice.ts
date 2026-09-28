@@ -1013,10 +1013,9 @@ function claimTimelineForLiveTurn(
   requestId: string | undefined
 ): void {
   if (requestId && state.parallelRequestThreads[requestId] !== undefined) return;
-  const live = state.liveRequestIdByThread[threadId];
-  // Another turn's row never reaches the live timeline (see `rowTarget`).
-  if (live && requestId && requestId !== live) return;
-  const claim = requestId ?? live;
+  // A row `rowTarget` kept off the live timeline never claims it.
+  if (foreignTrail(state, threadId, requestId) !== undefined) return;
+  const claim = requestId ?? state.liveRequestIdByThread[threadId];
   if (claim) state.toolTimelineRequestByThread[threadId] = claim;
   else delete state.toolTimelineRequestByThread[threadId];
 }
@@ -1052,14 +1051,20 @@ function foreignTrail(
   threadId: string,
   requestId: string | undefined
 ): { timeline: ToolTimelineEntry[]; transcript: ProcessingTranscriptItem[] } | null | undefined {
+  if (requestId === undefined || state.parallelRequestThreads[requestId] !== undefined) {
+    return undefined;
+  }
   const live = state.liveRequestIdByThread[threadId];
-  const foreign =
-    requestId !== undefined &&
-    live !== undefined &&
-    requestId !== live &&
-    state.parallelRequestThreads[requestId] === undefined;
-  if (!foreign) return undefined;
-  return state.settledTurnsByThread[threadId]?.[requestId] ?? null;
+  const frozen = state.settledTurnsByThread[threadId]?.[requestId];
+  if (live !== undefined) return requestId === live ? undefined : (frozen ?? null);
+  // No turn is live. The live timeline still holds the last settled turn's
+  // rows: a late row of THAT turn keeps joining them (they are its rows, and
+  // the background-process panel reads them), but a late row of an earlier
+  // turn that has its own frozen trail goes there — appending it would hand
+  // it, and by claiming, the whole timeline, to the wrong turn. Without a
+  // trail (a missed `inference_start`) it joins the live timeline as before.
+  const owner = state.toolTimelineRequestByThread[threadId];
+  return frozen && owner !== requestId ? frozen : undefined;
 }
 
 function subagentRows(
@@ -2150,10 +2155,15 @@ const chatRuntimeSlice = createSlice({
       }>
     ) => {
       const { threadId, rowId, childIteration, childMaxIterations } = action.payload;
-      const entry = state.toolTimelineByThread[threadId]?.find(e => e.id === rowId);
-      if (!entry?.subagent) return;
-      if (childIteration !== undefined) entry.subagent.childIteration = childIteration;
-      if (childMaxIterations !== undefined) entry.subagent.childMaxIterations = childMaxIterations;
+      // Live and frozen rows alike, as `subagentToolCallReceived`: a detached
+      // child keeps reporting after its turn settled (or its row was routed
+      // to that turn's frozen trail by `rowTarget`).
+      for (const entry of subagentRows(state, threadId, e => e.id === rowId)) {
+        if (!entry.subagent) continue;
+        if (childIteration !== undefined) entry.subagent.childIteration = childIteration;
+        if (childMaxIterations !== undefined)
+          entry.subagent.childMaxIterations = childMaxIterations;
+      }
     },
     subagentToolCallReceived: (
       state,
@@ -2307,20 +2317,22 @@ const chatRuntimeSlice = createSlice({
     ) => {
       const { threadId, rowId, callId, toolName, iteration, args, displayName, detail } =
         action.payload;
-      const entry = state.toolTimelineByThread[threadId]?.find(e => e.id === rowId);
-      if (!entry?.subagent) return;
-      const transcript = (entry.subagent.transcript ??= []);
-      if (transcript.some(i => i.kind === 'tool' && i.callId === callId)) return;
-      transcript.push({
-        kind: 'tool',
-        iteration,
-        callId,
-        toolName,
-        status: 'running',
-        args,
-        displayName,
-        detail,
-      });
+      // Live and frozen rows alike; see `subagentIterationStarted`.
+      for (const entry of subagentRows(state, threadId, e => e.id === rowId)) {
+        if (!entry.subagent) continue;
+        const transcript = (entry.subagent.transcript ??= []);
+        if (transcript.some(i => i.kind === 'tool' && i.callId === callId)) continue;
+        transcript.push({
+          kind: 'tool',
+          iteration,
+          callId,
+          toolName,
+          status: 'running',
+          args,
+          displayName,
+          detail,
+        });
+      }
     },
     /**
      * Flip a transcript `tool` item to its terminal status when the child
@@ -2342,16 +2354,20 @@ const chatRuntimeSlice = createSlice({
     ) => {
       const { threadId, rowId, callId, success, elapsedMs, outputChars, result, failure } =
         action.payload;
-      const entry = state.toolTimelineByThread[threadId]?.find(e => e.id === rowId);
-      const item = entry?.subagent?.transcript?.find(i => i.kind === 'tool' && i.callId === callId);
-      if (!item || item.kind !== 'tool') return;
-      item.status = success ? 'success' : 'error';
-      if (elapsedMs != null) item.elapsedMs = elapsedMs;
-      if (outputChars != null) item.outputChars = outputChars;
-      if (result != null) item.result = result;
-      // Carry the structured why/next onto the rendered transcript item; a
-      // successful result clears any stale failure (#4459).
-      item.failure = success ? undefined : failure;
+      // Live and frozen rows alike; see `subagentIterationStarted`.
+      for (const entry of subagentRows(state, threadId, e => e.id === rowId)) {
+        const item = entry.subagent?.transcript?.find(
+          i => i.kind === 'tool' && i.callId === callId
+        );
+        if (!item || item.kind !== 'tool') continue;
+        item.status = success ? 'success' : 'error';
+        if (elapsedMs != null) item.elapsedMs = elapsedMs;
+        if (outputChars != null) item.outputChars = outputChars;
+        if (result != null) item.result = result;
+        // Carry the structured why/next onto the rendered transcript item; a
+        // successful result clears any stale failure (#4459).
+        item.failure = success ? undefined : failure;
+      }
     },
     setPendingApprovalForThread: (
       state,
