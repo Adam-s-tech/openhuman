@@ -10,7 +10,7 @@ fn custom_delegate_is_treated_as_spawn_tool() {
 #[test]
 fn unprefixed_delegate_name_overrides_are_treated_as_spawn_tools() {
     // Most synthesised delegation tools use an unprefixed
-    // `delegate_name` override (`plan`, `run_code`, `research`, …).
+    // `delegate_name` override (`plan`, `manage_tasks`, `create_image`, …).
     // They must be stripped from every sub-agent surface, exactly like
     // the `delegate_*`-prefixed defaults.
     let tmp = tempfile::TempDir::new().unwrap();
