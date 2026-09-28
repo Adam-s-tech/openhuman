@@ -537,8 +537,7 @@ export async function clickToolGroupTrigger(
   timeout: number = 15_000
 ): Promise<void> {
   const literal = xpathStringLiteral(label);
-  const matches =
-    `//XCUIElementTypeButton[contains(@label, ${literal}) or contains(@value, ${literal}) or contains(@title, ${literal})]`;
+  const matches = `//XCUIElementTypeButton[contains(@label, ${literal}) or contains(@value, ${literal}) or contains(@title, ${literal})]`;
   let trigger: ChainablePromiseElement;
   if (isTauriDriver()) {
     const selector = '[data-slot="tool-group-root"] [data-slot="tool-group-trigger"]';

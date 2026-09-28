@@ -34,9 +34,10 @@
  * test-owned loopback socket that drops the TLS handshake before credentials
  * can be sent.
  */
-import { createServer } from 'node:net';
 import fs from 'node:fs';
+import { createServer } from 'node:net';
 import path from 'node:path';
+
 import { waitForApp } from '../helpers/app-helpers';
 import { callOpenhumanRpc } from '../helpers/core-rpc';
 import { resetApp } from '../helpers/reset-app';
