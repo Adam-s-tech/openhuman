@@ -518,10 +518,10 @@ fn generation_withholds_content_when_capture_off() {
 fn subagent_model_call_nests_generation_and_stamps_model_on_subagent_span() {
     let mut c = collect_with_capture(&[
         (AgentProgress::TurnStarted, 0),
-        (spawn("task-9", "Context Scout"), 5),
+        (spawn("task-9", "Researcher"), 5),
         (
             AgentProgress::SubagentIterationStarted {
-                agent_id: "context_scout".to_string(),
+                agent_id: "researcher".to_string(),
                 task_id: "task-9".to_string(),
                 iteration: 1,
                 max_iterations: 8,
