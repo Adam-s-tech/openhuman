@@ -1567,7 +1567,7 @@ const messages: TranslationMap = {
   'settings.search.catalogDesc':
     'Выберите провайдера для подключения. Добавить других можно в любой момент.',
   'settings.search.catalogManagedTitle': 'Через TinyHumans',
-  'settings.search.catalogManagedHelper': 'Настройка не нужна: один клик — и готово.',
+  'settings.search.catalogManagedHelper': 'Настройка не нужна: один клик, и всё готово.',
   'settings.search.catalogOwnTitle': 'Со своим ключом',
   'settings.search.catalogOwnHelper': 'Укажите API-ключ от провайдера или адрес своего экземпляра.',
   'settings.search.addProviderAria': 'Подключить {provider}',
