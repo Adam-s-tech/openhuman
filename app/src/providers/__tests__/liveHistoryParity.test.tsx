@@ -684,6 +684,61 @@ describe("a bare chat_done does not borrow the previous turn's trail", () => {
     );
   });
 
+  it('a late tool call of a settled turn renders on that turn, not on the live one', async () => {
+    // Through the real socket listeners: req-1 settled, req-2 is live and
+    // calls a tool, then req-1's late tool_call and tool_result arrive (a
+    // bridge that had not drained). The late call renders settled on req-1's
+    // message and never on req-2's.
+    vi.mocked(threadApi.getTurnState).mockResolvedValue(snapshot(TURN_REQUEST, 'running') as never);
+    const listeners = renderProvider();
+    await settleAsyncTurn(listeners);
+    vi.mocked(threadApi.getTurnState).mockResolvedValue(null);
+    const second = { thread_id: TURN_THREAD, request_id: 'req-2' };
+    const late = { thread_id: TURN_THREAD, request_id: TURN_REQUEST };
+    fire(listeners, { listener: 'onInferenceStart', event: { ...second } } as SocketStep);
+    fire(listeners, {
+      listener: 'onToolCall',
+      event: { ...second, round: 1, tool_name: 'web_search', args: {}, tool_call_id: 'call-r2' },
+    } as SocketStep);
+    fire(listeners, {
+      listener: 'onToolCall',
+      event: { ...late, round: 4, tool_name: 'calendar_list', args: {}, tool_call_id: 'call-late' },
+    } as SocketStep);
+    fire(listeners, {
+      listener: 'onToolResult',
+      event: {
+        ...late,
+        round: 4,
+        tool_name: 'calendar_list',
+        output: 'done',
+        success: true,
+        tool_call_id: 'call-late',
+      },
+    } as SocketStep);
+    act(() =>
+      listeners.onDone?.({ ...DONE_EVENT, request_id: 'req-2', full_response: 'Second answer.' })
+    );
+    await waitFor(() =>
+      expect(
+        store
+          .getState()
+          .thread.messagesByThreadId[TURN_THREAD]?.some(message => message.id === 'agent:req-2')
+      ).toBe(true)
+    );
+
+    const callsOn = (messageId: string) => {
+      const message = project().find(m => m.id === messageId);
+      if (!message || typeof message.content === 'string') return [];
+      return message.content.flatMap(part =>
+        part.type === 'tool-call'
+          ? [[part.toolCallId, part.result === undefined ? 'running' : 'settled']]
+          : []
+      );
+    };
+    expect(callsOn(`agent:${TURN_REQUEST}`)).toContainEqual(['call-late', 'settled']);
+    expect(callsOn('agent:req-2').map(([id]) => id)).toEqual(['call-r2']);
+  });
+
   it("an older snapshot arriving after chat_done does not hide the settled turn's own trail", async () => {
     // Snapshot lag: the completed-snapshot fetch returns the PREVIOUS turn's
     // snapshot, so the live rows (and their owner) become that turn's.
