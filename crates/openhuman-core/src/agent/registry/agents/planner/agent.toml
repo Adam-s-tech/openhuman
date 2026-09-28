@@ -63,6 +63,10 @@ named = [
     # real numbers (stock/crypto prices) and current web context, not just
     # whatever the model happens to remember.
     "web_answer_tool",
+    # Reads up to ten pages per call; with `web_answer_tool` `depth: "deep"`
+    # this is how the planner does its own multi-source research (there is no
+    # research sub-agent to hand it to).
+    "web_contents_tool",
     "stock_quote",
     "stock_exchange_rate",
     "stock_crypto_series",
