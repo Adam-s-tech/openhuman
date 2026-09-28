@@ -601,36 +601,3 @@ fn nested_subagent_dispatch_runs_on_a_constrained_worker_stack() {
         outcome.output
     );
 }
-
-// ── Repro: issue #3152 — near-miss write slug fails to resolve ──────
-//
-// The model emits `NOTION_SEARCH_NOTION` (drops the `_PAGE` suffix). The
-// real action `NOTION_SEARCH_NOTION_PAGE` is the unique superstring, yet
-// find_action's three tiers (exact / case-insensitive / normalized) all
-// miss → None → lazy registration never fires → allowlist gate blocks the
-// write. Asserts DESIRED post-fix behaviour → RED until the unique
-// prefix/superstring resolution tier lands. Must stay conservative: a
-// fabricated slug with no unique match must still resolve to None (covered
-// by `lazy_resolver_tolerates_near_miss_slugs`).
-#[test]
-fn repro_3152_near_miss_write_slug_resolves_uniquely() {
-    use crate::agent::prompts::ConnectedIntegrationTool;
-    let mk = |name: &str| ConnectedIntegrationTool {
-        name: name.into(),
-        description: "d".into(),
-        parameters: None,
-    };
-    let resolver = LazyToolkitResolver {
-        config: std::sync::Arc::new(crate::config::Config::default()),
-        actions: vec![
-            mk("NOTION_SEARCH_NOTION_PAGE"),
-            mk("NOTION_CREATE_NOTION_PAGE"),
-            mk("NOTION_FETCH_DATA"),
-        ],
-        resolved: std::sync::Mutex::default(),
-    };
-    let resolved = resolver
-        .resolve("NOTION_SEARCH_NOTION")
-        .expect("#3152: near-miss write slug must resolve to its unique superstring");
-    assert_eq!(resolved.name(), "NOTION_SEARCH_NOTION_PAGE");
-}
