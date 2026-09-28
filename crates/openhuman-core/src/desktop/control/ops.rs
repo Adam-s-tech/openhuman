@@ -8,7 +8,7 @@ use std::sync::{
 };
 
 use serde::{Deserialize, Serialize};
-use tinydesktop_bus::{names, ListAppsRequest, SnapshotRequest};
+use tinycomputer_bus::{names, ListAppsRequest, SnapshotRequest};
 
 use crate::config::Config;
 
@@ -199,7 +199,7 @@ async fn status_with<F, Fut>(
 ) -> DesktopStatus
 where
     F: FnOnce() -> Fut,
-    Fut: std::future::Future<Output = Result<tinydesktop_bus::DesktopResponse, String>>,
+    Fut: std::future::Future<Output = Result<tinycomputer_bus::DesktopResponse, String>>,
 {
     let local_enabled = enabled(config);
     let (module_state, mut reason) = crate::modules::desktop::state(config);
@@ -263,7 +263,7 @@ pub async fn probe(config: &Config) -> DesktopProbe {
 async fn probe_with<F, Fut>(config: &Config, platform_supported: bool, mut call: F) -> DesktopProbe
 where
     F: FnMut(&'static str) -> Fut,
-    Fut: std::future::Future<Output = Result<tinydesktop_bus::DesktopResponse, String>>,
+    Fut: std::future::Future<Output = Result<tinycomputer_bus::DesktopResponse, String>>,
 {
     if !platform_supported || !enabled(config) {
         return DesktopProbe {
