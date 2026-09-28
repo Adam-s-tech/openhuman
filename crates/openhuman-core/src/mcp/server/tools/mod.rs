@@ -40,8 +40,6 @@ pub use crate::config::rpc as config_rpc;
 #[cfg(all(test, feature = "mcp"))]
 pub use crate::core::all;
 #[cfg(all(test, feature = "mcp"))]
-pub use dispatch::{mcp_dispatch_block_reason, subagent_summary_line};
-#[cfg(all(test, feature = "mcp"))]
 pub use params::{build_rpc_params, slug_from};
 #[cfg(all(test, feature = "mcp"))]
 pub use serde_json::{json, Value};
