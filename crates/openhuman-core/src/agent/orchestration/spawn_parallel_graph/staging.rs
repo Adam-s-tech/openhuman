@@ -1,6 +1,6 @@
 //! OpenHuman policy admission for a `spawn_parallel_agents` task batch:
-//! identity, the parent's subagent allowlist, and whether a worker can write the shared workspace at all —
-//! plus the crate-side arbitration over the resulting workspace claims.
+//! identity, the parent's subagent allowlist, and whether a worker can write
+//! the shared workspace at all — plus the crate-side arbitration over the resulting workspace claims.
 //!
 //! **Write safety.** Whether a worker *needs* a claim on the shared workspace is
 //! an OpenHuman decision — it reads sandbox mode, tool permissions and the
@@ -52,7 +52,6 @@ pub(crate) enum ParallelTaskRejectionKind {
     MissingAgentOrPrompt,
     UnknownAgent,
     OutsideAllowlist,
-    MissingToolkit,
     RequiresIsolation,
 }
 
@@ -251,8 +250,8 @@ pub(crate) fn prepare_spawn_parallel_tasks_from_defs(
     parent: &ParentExecutionContext,
 ) -> Vec<SpawnParallelTaskPreflight> {
     // Pass 1 — OpenHuman policy. Identity, the parent's subagent allowlist, and
-    // whether a worker can write the shared workspace at all are all product decisions, so they are settled
-    // here and rejected in their own vocabulary. What survives carries a
+    // whether a worker can write the shared workspace at all are all product
+    // decisions, so they are settled here and rejected in their own vocabulary. What survives carries a
     // `WorkspaceClaim` describing only what the arbiter needs to know.
     enum Admission {
         Admitted(Box<AdmittedParallelTask>),
