@@ -1957,21 +1957,31 @@ const chatRuntimeSlice = createSlice({
       // not this socket `rowId`. Matching the socket id alone left that row
       // running, and a background delivery (a `chat_done` with no
       // `inference_start`) then froze it as its own trail: a card that spun
-      // forever under the reply announcing the child's result. Exactly that
-      // id, not any row with this task id: `continue_subagent` reuses a task
-      // id, and a run it continues must not settle an earlier turn's card.
+      // forever under the reply announcing the child's result. Both ids are
+      // turn-independent, so a run resumed by `continue_subagent` (same task
+      // id) also settles the earlier turn's card for it. That is how a paused
+      // `awaiting_user` card clears: the resumed run's completion carries the
+      // new `continue_subagent` call as its parent, never the original spawn.
+      // Restored past-turn timelines too, like `subagentCancelResolved`: they
+      // hold persisted (core-id) rows the process-source panel shows.
       const coreRowId = taskId !== undefined ? `subagent:${taskId}` : undefined;
-      const entries = subagentRows(
-        state,
-        threadId,
-        e =>
-          (e.id === rowId || e.id === coreRowId) &&
-          (e.status === 'running' || e.status === 'awaiting_user')
-      );
+      const matches = (e: ToolTimelineEntry) =>
+        (e.id === rowId || e.id === coreRowId) &&
+        (e.status === 'running' || e.status === 'awaiting_user');
+      const entries = [
+        ...subagentRows(state, threadId, matches),
+        ...Object.values(state.turnTimelinesByThread[threadId] ?? {})
+          .flat()
+          .filter(matches),
+      ];
       for (const entry of entries) {
         entry.status = success ? 'success' : 'error';
         if (!entry.subagent) continue;
         const s = entry.subagent;
+        // The nested activity settles with the row: it drives the card's own
+        // transcript status and the live tail's `requires-action` state, and a
+        // hydrated row carries the snapshot's `running` / `awaiting_user`.
+        s.status = success ? 'completed' : 'failed';
         if (iterations !== undefined) s.iterations = iterations;
         if (elapsedMs !== undefined) s.elapsedMs = elapsedMs;
         if (outputChars !== undefined) s.outputChars = outputChars;
