@@ -41,9 +41,7 @@ use crate::agent::subagent_host::types::{
 use crate::inference::provider::AGENT_TURN_MAX_OUTPUT_TOKENS;
 use crate::memory::api::provider::retrieval::{FastRetrieveQuery, RetrievalResponse};
 use crate::memory::source_scope::as_bus_scope;
-use tinytools::{
-    SandboxMode as TinyagentsSandboxMode, Tool, ToolCategory, ToolSpec, WorkspaceDescriptor,
-};
+use tinytools::{SandboxMode as TinyagentsSandboxMode, ToolSpec, WorkspaceDescriptor};
 
 use super::prompt::{
     append_artifact_offload_contract, append_subagent_role_contract, dedup_tool_specs_by_name,
