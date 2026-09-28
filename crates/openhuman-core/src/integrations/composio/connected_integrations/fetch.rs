@@ -6,13 +6,11 @@
 use std::sync::atomic::Ordering;
 use std::time::Instant;
 
-use crate::agent::prompts::{ConnectedIntegration, ConnectedIntegrationTool};
+use crate::agent::prompts::ConnectedIntegration;
 use crate::config::Config;
 
 use super::cache::{cache_key, CachedIntegrations, CACHE_GENERATION, INTEGRATIONS_CACHE};
 use super::fetch_uncached::fetch_connected_integrations_uncached;
-use crate::integrations::composio::client::ComposioClient;
-use crate::integrations::composio::ops::should_forward_tags;
 
 /// Fetch the user's active Composio connections and their available
 /// tool actions, returning a prompt-ready summary.
