@@ -128,6 +128,7 @@ fn navigation_rejects_non_global_ip_literal_urls() {
         "https://240.0.0.1/",
         "https://0.1.2.3/",
         "https://198.51.100.1/path",
+        "https://203.0.113.9/",
         "https://[2001:db8::1]/",
     ] {
         let error = client.check_url(url).expect_err(url).to_string();
