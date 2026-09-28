@@ -23,6 +23,7 @@ export const CORE_RPC_METHODS = {
   configUpdateAnalyticsSettings: 'openhuman.config_update_analytics_settings',
   configUpdateAutonomySettings: 'openhuman.config_update_autonomy_settings',
   configUpdateBrowserSettings: 'openhuman.config_update_browser_settings',
+  configUpdateComputerSettings: 'openhuman.config_update_computer_settings',
   configUpdateComposioTriggerSettings: 'openhuman.config_update_composio_trigger_settings',
   configUpdateLocalAiSettings: 'openhuman.config_update_local_ai_settings',
   configUpdateMemorySettings: 'openhuman.config_update_memory_settings',
