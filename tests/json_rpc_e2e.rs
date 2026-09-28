@@ -1677,25 +1677,25 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
         .get("definitions")
         .and_then(Value::as_array)
         .expect("agent_list_definitions should return definitions array");
-    let researcher = definitions
+    let planner = definitions
         .iter()
-        .find(|definition| definition.get("id").and_then(Value::as_str) == Some("researcher"))
-        .expect("safe agent library should include researcher");
+        .find(|definition| definition.get("id").and_then(Value::as_str) == Some("planner"))
+        .expect("safe agent library should include planner");
     assert_eq!(
-        researcher.get("display_name").and_then(Value::as_str),
-        Some("Researcher")
+        planner.get("display_name").and_then(Value::as_str),
+        Some("Planner")
     );
-    assert!(researcher
+    assert!(planner
         .get("when_to_use")
         .and_then(Value::as_str)
         .is_some());
-    assert!(researcher.get("system_prompt").is_none());
-    assert!(researcher.get("tools").is_some());
-    assert!(researcher
+    assert!(planner.get("system_prompt").is_none());
+    assert!(planner.get("tools").is_some());
+    assert!(planner
         .get("direct_tool_count")
         .and_then(Value::as_u64)
         .is_some());
-    assert!(researcher
+    assert!(planner
         .get("can_run_as_user_facing_worker")
         .and_then(Value::as_bool)
         .is_some());
@@ -1717,13 +1717,13 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
         286_211,
         "openhuman.agent_registry_update",
         json!({
-            "id": "researcher",
-            "name": "Research Specialist",
-            "description": "Workspace-specific research specialist.",
+            "id": "planner",
+            "name": "Planning Specialist",
+            "description": "Workspace-specific planning specialist.",
             "model": "hint:reasoning",
             "tool_allowlist": ["tools.web_search", "memory.search"],
             "tool_denylist": ["wallet.execute_prepared"],
-            "tags": ["research", "workspace"],
+            "tags": ["planning", "workspace"],
             "metadata": { "pinned_by": "json_rpc_e2e" }
         }),
     )
@@ -1734,7 +1734,7 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
             .expect("update default should return agent");
     assert_eq!(
         update_default_agent.get("name").and_then(Value::as_str),
-        Some("Research Specialist")
+        Some("Planning Specialist")
     );
     assert_eq!(
         update_default_agent
@@ -1950,7 +1950,7 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
             "system_prompt": "Write concise updates with citations when available.",
             "tool_allowlist": ["memory.search"],
             "tool_denylist": ["shell"],
-            "subagents": ["researcher"],
+            "subagents": ["planner"],
             "tags": ["writing", "custom", "disabled"],
             "metadata": { "updated_by": "json_rpc_e2e" }
         }),
@@ -1975,7 +1975,7 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
             .and_then(Value::as_array)
             .and_then(|allowlist| allowlist.first())
             .and_then(Value::as_str),
-        Some("researcher")
+        Some("planner")
     );
 
     let reenabled_custom = post_json_rpc(
@@ -2134,7 +2134,7 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
         &rpc_base,
         286_221,
         "openhuman.agent_registry_remove",
-        json!({ "id": "researcher" }),
+        json!({ "id": "planner" }),
     )
     .await;
     assert_eq!(
@@ -13077,8 +13077,8 @@ async fn json_rpc_agent_team_live_member_run_roundtrip_inner() {
             "leadAgentId": "lead",
             "summary": "live run e2e",
             "members": [
-                { "name": "alice", "agentId": "researcher" },
-                { "name": "bob", "agentId": "researcher" }
+                { "name": "alice", "agentId": "planner" },
+                { "name": "bob", "agentId": "planner" }
             ]
         }),
     )
