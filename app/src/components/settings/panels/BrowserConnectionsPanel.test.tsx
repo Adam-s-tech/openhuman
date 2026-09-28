@@ -31,7 +31,9 @@ beforeEach(() => {
       },
     },
   });
-  mocks.rpc.mockResolvedValue({ result: { modules: [{ id: 'tinycomputer', state: 'available' }] } });
+  mocks.rpc.mockResolvedValue({
+    result: { modules: [{ id: 'tinycomputer', state: 'available' }] },
+  });
   mocks.update.mockResolvedValue({ result: { config: {} } });
 });
 
