@@ -327,7 +327,7 @@ named = [
     # is built from.
     "list_subagents",
     # Resume a sub-agent that paused on `ask_user_clarification` (#4291). When
-    # a delegated sub-agent (e.g. crypto_agent via `delegate_do_crypto`)
+    # a delegated sub-agent (e.g. task_manager_agent via `manage_tasks`)
     # asks the user a question, the runner checkpoints it and the orchestrator
     # gets a `[SUBAGENT_AWAITING_USER]` envelope with the task_id/agent_id. The
     # orchestrator MUST resume that exact checkpoint with the user's answer via
