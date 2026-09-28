@@ -252,7 +252,7 @@ pub struct OpenHumanSessionHost {
     pub(super) agent_definition_name: String,
     /// Canonical agent id as registered in
     /// [`AgentDefinitionRegistry`] (e.g. `"orchestrator"`,
-    /// `"integrations_agent"`). Set once at build time and never
+    /// `"planner"`). Set once at build time and never
     /// rewritten — `set_agent_definition_name` only touches the
     /// transcript-facing `agent_definition_name`, so registry lookups
     /// (e.g. `refresh_delegation_tools` re-resolving the agent's

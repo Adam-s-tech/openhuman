@@ -65,8 +65,7 @@ pub fn render_grounding() -> &'static str {
 }
 
 // `render_skills` and `render_connected_integrations` helpers are
-// gone — `## Available Skills` lives in `integrations_agent/prompt.rs`, and
-// the connected-integrations / delegation-guide blocks each live in
+// gone — the connected-integrations / delegation-guide blocks each live in
 // their owning agent's `prompt.rs` so no branching-on-agent-id logic
 // needs to exist here.
 

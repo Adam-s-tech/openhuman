@@ -46,8 +46,8 @@ impl PromptSection for ArchetypePromptSection {
 }
 
 /// Section that defers to a [`crate::agent::harness::definition::PromptBuilder`]
-/// every time it renders, so dynamic prompts (orchestrator, welcome,
-/// integrations_agent, …) get to see the live runtime
+/// every time it renders, so dynamic prompts (orchestrator, welcome, …)
+/// get to see the live runtime
 /// [`PromptContext`] — including `connected_integrations`, which are
 /// fetched asynchronously after the builder itself has been
 /// constructed.
@@ -117,10 +117,9 @@ pub struct GroundingSection;
 // `WorkflowsSection` and `ConnectedIntegrationsSection` previously lived
 // here and branched on `ctx.agent_id` to pick between the skill-
 // executor and delegator voice. They've been removed — each agent's
-// `prompt.rs` now renders its own block inline (integrations_agent owns the
-// `## Available Skills` + executor-voice `## Connected Integrations`
-// blocks, orchestrator owns `## Delegation Guide — Integrations`,
-// welcome owns its onboarding-flavoured connected list).
+// `prompt.rs` now renders its own block inline (orchestrator owns
+// `## Delegation Guide — Integrations`, welcome owns its
+// onboarding-flavoured connected list).
 pub struct WorkspaceSection;
 pub struct RuntimeSection;
 pub struct DateTimeSection;
