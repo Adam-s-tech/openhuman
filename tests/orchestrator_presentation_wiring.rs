@@ -6,7 +6,8 @@
 //!    must not directly list `generate_presentation`.
 //!
 //! 2. The `presentation_agent` must list `generate_presentation` and
-//!    grounding tools, while `code_executor` still must not list it.
+//!    grounding tools, while the `coding` skill (which replaced the
+//!    `code_executor` specialist) must not carry it.
 //!
 //! Exact-line matching (not substring) so commented-out entries or
 //! prefixed names (`generate_presentation_v2`, `generate_presentation_legacy`)
@@ -19,8 +20,8 @@ const PRESENTATION_AGENT_TOML: &str = include_str!(
     "../crates/openhuman-core/src/agent/registry/agents/presentation_agent/agent.toml"
 );
 
-const CODE_EXECUTOR_TOML: &str =
-    include_str!("../crates/openhuman-core/src/agent/registry/agents/code_executor/agent.toml");
+const TOOLPACK_REGISTRY: &str =
+    include_str!("../crates/openhuman-core/src/tools/toolpacks/registry.rs");
 
 const TOOL_NAME: &str = "generate_presentation";
 
@@ -72,12 +73,28 @@ fn presentation_agent_lists_generate_presentation_and_grounding_tools() {
 }
 
 #[test]
-fn code_executor_does_not_list_generate_presentation() {
+fn only_the_documents_skill_carries_generate_presentation() {
+    // pptx rendering is not a code task: it runs in-process via the native
+    // Rust ppt-rs engine under the presentation agent's grounding rules. The
+    // `coding` skill (successor to `code_executor`) must not hand it out, so
+    // the name may appear in exactly one pack: `documents`.
+    let quoted = format!("\"{TOOL_NAME}\"");
+    let members = TOOLPACK_REGISTRY
+        .lines()
+        .map(str::trim)
+        .filter(|line| line.trim_end_matches(',') == quoted)
+        .count();
+    assert_eq!(
+        members, 1,
+        "'{TOOL_NAME}' must belong to exactly one tool pack (`documents`)"
+    );
+    let documents_at = TOOLPACK_REGISTRY
+        .find("id: \"documents\"")
+        .expect("documents pack");
+    let coding_at = TOOLPACK_REGISTRY.find("id: \"coding\"").expect("coding pack");
+    let member_at = TOOLPACK_REGISTRY.find(&quoted).unwrap();
     assert!(
-        !lists_named_tool(CODE_EXECUTOR_TOML, TOOL_NAME),
-        "code_executor agent.toml must NOT list '{TOOL_NAME}' — pptx rendering \
-         is not a code-exec task; it runs in-process via the native Rust ppt-rs \
-         engine and adding it here would bypass the orchestrator grounding-rule \
-         prompt (#2780)"
+        member_at > documents_at && (coding_at < documents_at || member_at < coding_at),
+        "'{TOOL_NAME}' must sit in the documents pack, not the coding pack"
     );
 }
