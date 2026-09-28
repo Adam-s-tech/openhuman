@@ -56,6 +56,18 @@ const RESOURCE_CATALOG: &[PromptResource] = &[
         content: include_str!("../../agent/registry/agents/orchestrator/prompt.md"),
     },
     PromptResource {
+        uri: "openhuman://prompts/agents/planner",
+        name: "planner",
+        description: "Read-only reasoning worker that decomposes and researches a question for workflow runs.",
+        content: include_str!("../../agent/registry/agents/planner/prompt.md"),
+    },
+    PromptResource {
+        uri: "openhuman://prompts/agents/critic",
+        name: "critic",
+        description: "Read-only worker that cross-checks claims and reviews changes for workflow runs.",
+        content: include_str!("../../agent/registry/agents/critic/prompt.md"),
+    },
+    PromptResource {
         uri: "openhuman://prompts/agents/vision_agent",
         name: "vision_agent",
         description: "Multimodal worker that analyses attached images for the vision tier.",
