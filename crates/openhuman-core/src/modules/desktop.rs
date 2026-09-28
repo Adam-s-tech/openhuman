@@ -44,9 +44,9 @@ pub(crate) async fn proxy(config: &Config) -> Result<Proxy, String> {
     .map_err(crate::modules::ops::LoadError::into_message)?;
     let runtime = crate::modules::host::runtime()
         .await
-        .map_err(|error| format!("desktop module bus unavailable: {error}"))?;
+        .map_err(|error| format!("TinyComputer module bus unavailable: {error}"))?;
     crate::modules::registry::find(MODULE_ID)
-        .ok_or_else(|| "desktop module is not in the compiled registry".to_owned())?;
+        .ok_or_else(|| "TinyComputer module is not in the compiled registry".to_owned())?;
 
     // Reinitialization is private and retains no plaintext secret in this host.
     // The lock makes credential rotation atomic across concurrent tool calls.
@@ -58,13 +58,22 @@ pub(crate) async fn proxy(config: &Config) -> Result<Proxy, String> {
             .connection()
             .reinitialize_module(MODULE_ID, configuration)
             .await
-            .map_err(|error| format!("desktop module credential refresh failed: {error}"))?;
+            .map_err(|error| {
+                let message = format!("TinyComputer configuration refresh failed: {error}");
+                if error.wire_name().ends_with("ModuleUnavailable") {
+                    // The module refused its configuration and faulted; it
+                    // stays unusable in this process, so report it that way.
+                    tracing::warn!(%message, "[computer] module faulted on reinitialization");
+                    super::resolution::table().mark_faulted(MODULE_ID, message.clone());
+                }
+                message
+            })?;
     }
     *previous = Some(current);
     drop(previous);
     runtime
         .proxy(names::INTERFACE, names::OBJECT_PATH)
-        .map_err(|error| format!("desktop module proxy unavailable: {error}"))
+        .map_err(|error| format!("TinyComputer module proxy unavailable: {error}"))
 }
 
 /// Call one contract member, preserving the structured error envelope.
@@ -123,7 +132,7 @@ pub fn state(config: &Config) -> (String, Option<String>) {
             || {
                 (
                     "failed".to_owned(),
-                    Some("desktop module is not registered".to_owned()),
+                    Some("TinyComputer module is not registered".to_owned()),
                 )
             },
             |item| (format!("{:?}", item.state).to_lowercase(), item.detail),
