@@ -9,8 +9,8 @@
  * (`providers/__tests__/liveHistoryParity.test.tsx`); this pins the real DOM.
  *
  * Scripted turn (three LLM rounds):
- *   1. narration + goal_set
- *   2. narration + todo
+ *   1. narration + web_fetch
+ *   2. narration + web_fetch
  *   3. a long final answer (taller than the viewport, so following matters)
  *
  * Verifies:
@@ -37,7 +37,7 @@ import { clearRequestLog, setMockBehavior, startMockServer, stopMockServer } fro
 
 const LOG_PREFIX = '[chat-live-history-parity]';
 const USER_ID = 'e2e-chat-live-history-parity';
-const PROMPT = 'Set a goal to prepare the release, add one checklist item, then explain it.';
+const PROMPT = 'Fetch two pages, compare them, then explain the result.';
 const CANARY_FINAL = 'canary-parity-7c1e';
 const FINAL_ANSWER = [
   `Here is what I found (${CANARY_FINAL}).`,
@@ -49,24 +49,22 @@ const FINAL_ANSWER = [
 
 const FORCED_RESPONSES = [
   {
-    content: 'I will check the current time first.',
+    content: 'I will fetch the first page.',
     toolCalls: [
       {
-        id: 'call_parity_goal',
-        name: 'goal_set',
-        arguments: JSON.stringify({ objective: 'Prepare the release', token_budget: 50000 }),
+        id: 'call_parity_fetch_one',
+        name: 'web_fetch',
+        arguments: JSON.stringify({ url: 'https://example.com' }),
       },
     ],
   },
   {
-    content: 'Now I will resolve the five-minute interval.',
+    content: 'Now I will fetch the second page.',
     toolCalls: [
       {
-        id: 'call_parity_todo',
-        name: 'todo',
-        arguments: JSON.stringify({
-          todos: [{ content: 'Review the release', status: 'in_progress' }],
-        }),
+        id: 'call_parity_fetch_two',
+        name: 'web_fetch',
+        arguments: JSON.stringify({ url: 'https://example.org' }),
       },
     ],
   },
@@ -276,10 +274,10 @@ describe('Chat live/history parity', () => {
     expect(toolGroups.map(group => group.text)).toEqual(['1 tool call', '1 tool call']);
     const toolCalls = toolGroups.flatMap(group => group.toolCalls ?? []);
     expect(toolCalls).toHaveLength(2);
-    expect(toolCalls[0]).toMatchObject({ name: 'goal_set' });
-    expect(toolCalls[0]?.input).toContain('Prepare the release');
-    expect(toolCalls[1]).toMatchObject({ name: 'todo' });
-    expect(toolCalls[1]?.input).toContain('Review the release');
+    expect(toolCalls[0]).toMatchObject({ name: 'web_fetch' });
+    expect(toolCalls[0]?.input).toContain('example.com');
+    expect(toolCalls[1]).toMatchObject({ name: 'web_fetch' });
+    expect(toolCalls[1]?.input).toContain('example.org');
     const finalBlock = settled.find(
       block => block.kind === 'text' && block.text.includes(CANARY_FINAL)
     );
