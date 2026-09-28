@@ -307,6 +307,10 @@ impl ProxyConfigTool {
 
 #[async_trait]
 impl Tool for ProxyConfigTool {
+    fn exposure(&self) -> tinytools::ToolExposure {
+        tinytools::ToolExposure::Deferred
+    }
+
     fn name(&self) -> &str {
         "proxy_config"
     }
