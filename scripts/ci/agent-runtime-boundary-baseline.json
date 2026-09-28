@@ -1409,8 +1409,8 @@
   {
     "rule": "tinyagents-tool-calling-facade",
     "path": "vendor/tinyagents/crates/tinyagents-harness/src/agent_loop/dialect.rs",
-    "line": 21,
-    "text": "use tinytools_agent::types::{ParseOptions, ParsedToolCall};",
+    "line": 22,
+    "text": "use tinytools_agent::types::{ParseDiagnostic, ParseOptions, ParsedToolCall};",
     "occurrence": 1
   },
   {
