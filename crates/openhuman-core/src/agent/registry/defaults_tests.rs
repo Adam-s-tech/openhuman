@@ -7,7 +7,10 @@ fn default_agents_include_core_personas() {
     assert!(ids.contains(&"orchestrator"));
     assert!(ids.contains(&"archivist"));
     assert!(!ids.contains(&"researcher"), "the researcher agent was removed");
-    assert!(ids.contains(&"code_executor"));
+    for removed in ["code_executor", "tools_agent", "settings_agent", "crypto_agent"] {
+        assert!(!ids.contains(&removed), "`{removed}` was replaced by an inline skill");
+    }
+    assert!(ids.contains(&"planner"), "planner stays for workflow runs");
     assert!(agents
         .iter()
         .all(|agent| agent.source == AgentRegistrySource::Default));
