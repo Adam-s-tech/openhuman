@@ -50,6 +50,7 @@ export interface ToolCallProps {
   onOpenChange?: (open: boolean) => void;
   className?: string;
   'data-testid'?: string;
+  'data-tool-name'?: string;
 }
 
 export function ToolCall({

@@ -30,7 +30,7 @@ import {
   waitForSocketConnected,
 } from '../helpers/chat-harness';
 import { callOpenhumanRpc } from '../helpers/core-rpc';
-import { clickElement, clickTestId } from '../helpers/element-helpers';
+import { clickTestIdOrText, clickToolGroupTrigger } from '../helpers/element-helpers';
 import { resetApp } from '../helpers/reset-app';
 import { navigateViaHash } from '../helpers/shared-flows';
 import { clearRequestLog, setMockBehavior, startMockServer, stopMockServer } from '../mock-server';
@@ -128,22 +128,8 @@ async function replyBlocks(): Promise<Block[]> {
 }
 
 async function expandToolGroups(): Promise<void> {
-  const messages = await browser.$$('[data-testid="agent-message"]');
-  const last = messages[messages.length - 1];
-  if (!last) throw new Error('assistant reply message was not rendered');
-  const groups = await last.$$('[data-slot="tool-group-root"]');
-  for (const group of groups) {
-    if ((await group.getAttribute('data-state')) === 'closed') {
-      await clickElement(await group.$('[data-slot="tool-group-trigger"]'));
-    }
-  }
-  await browser.waitUntil(
-    async () =>
-      Promise.all(groups.map(group => group.getAttribute('data-state'))).then(states =>
-        states.every(state => state === 'open')
-      ),
-    { timeout: 5_000, timeoutMsg: 'tool activity groups did not expand' }
-  );
+  await clickToolGroupTrigger(0, '1 tool call');
+  await clickToolGroupTrigger(1, '1 tool call');
 }
 
 function hasFinalReply(blocks: Block[]): boolean {
@@ -310,7 +296,7 @@ describe('Chat live/history parity', () => {
       ).__OPENHUMAN_STORE__;
       store?.dispatch({ type: 'chatRuntime/clearAllChatRuntime' });
     });
-    await clickTestId(`thread-row-${threadId}`, 10_000);
+    await clickTestIdOrText(`thread-row-${threadId}`, PROMPT, 10_000);
 
     previous = undefined;
     stableSamples = 0;

@@ -514,6 +514,32 @@ export async function clickTestId(
   return el;
 }
 
+/** Click a test id in DOM-backed runs or its visible text on Mac2. */
+export async function clickTestIdOrText(
+  testId: string,
+  text: string,
+  timeout: number = 15_000
+): Promise<ChainablePromiseElement> {
+  return isTauriDriver() ? clickTestId(testId, timeout) : clickText(text, timeout);
+}
+
+/** Click a tool activity group trigger by its visible count label and position. */
+export async function clickToolGroupTrigger(
+  index: number,
+  label: string,
+  timeout: number = 15_000
+): Promise<void> {
+  const literal = xpathStringLiteral(label);
+  const selector = isTauriDriver()
+    ? '[data-slot="tool-group-root"] [data-slot="tool-group-trigger"]'
+    : `//XCUIElementTypeButton[contains(@label, ${literal}) or contains(@value, ${literal}) or contains(@title, ${literal})]`;
+  const triggers = await browser.$$(selector);
+  const trigger = triggers[index];
+  if (!trigger) throw new Error(`Tool group trigger ${index + 1} (${label}) was not found`);
+  await trigger.waitForExist({ timeout, timeoutMsg: `Tool group trigger "${label}" not found` });
+  await clickAtElement(trigger);
+}
+
 /** Click a test id with a physical pointer sequence. Use for controls, such as
  * Radix menu triggers, that listen for pointerdown instead of a synthetic click.
  */
