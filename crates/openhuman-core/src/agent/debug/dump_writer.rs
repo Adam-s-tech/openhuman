@@ -69,7 +69,7 @@ pub fn write_prompt_dumps(dir: &Path, dumps: &[DumpedPrompt]) -> Result<DumpWrit
         std::fs::write(&wire_path, super::wire::render(dumped))
             .with_context(|| format!("writing {}", wire_path.display()))?;
 
-        let label = label_for(dumped);
+        let label = &dumped.agent_id;
         let _ = writeln!(
             summary,
             "{:<32} tools={:<4} skill={:<4}",
