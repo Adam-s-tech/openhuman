@@ -27,11 +27,22 @@ fn a_resumed_orphaned_tool_head_is_repaired_before_the_request() {
 
 async fn resumed_orphaned_tool_head_is_repaired_before_the_request() {
     const NUDGE: &str = "The last call failed validation. Fix the arguments and retry.";
+    // Run the production path: the app always installs the builtin agent
+    // definitions (core/jsonrpc.rs), which routes a root turn through the
+    // hosted harness. Without this the result depended on whether another test
+    // in the process had installed them first.
+    let _ = crate::agent::harness::definition::AgentDefinitionRegistry::init_global_builtins();
     let root = tempfile::tempdir().expect("tempdir");
-    let model = Arc::new(tinyagents_harness::testkit::ScriptedModel::replies(vec![
-        "first reply",
-        "second reply",
-    ]));
+    // The native dialect resolves from the model's profile (`Native` means
+    // "native if the model supports it"); a profile-less scripted model would
+    // be treated as text-only, like no production model is.
+    let model = Arc::new(
+        tinyagents_harness::testkit::ScriptedModel::replies(vec!["first reply", "second reply"])
+            .with_profile(tinyinference_llm::model::ModelProfile {
+                tool_calling: true,
+                ..Default::default()
+            }),
+    );
     let chat_model: Arc<dyn tinyinference_llm::model::ChatModel<()>> = model.clone();
     let new_host = || {
         crate::agent::SessionHostBuilder::new()
