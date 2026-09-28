@@ -128,6 +128,13 @@ async function replyBlocks(): Promise<Block[]> {
 }
 
 async function expandToolGroups(): Promise<void> {
+  await browser.waitUntil(
+    async () => (await browser.$$('[data-slot="tool-group-root"]')).length === 2,
+    {
+      timeout: 5_000,
+      timeoutMsg: 'expected the settled reply to contain both tool activity groups',
+    }
+  );
   await clickToolGroupTrigger(0, '1 tool call');
   await clickToolGroupTrigger(1, '1 tool call');
   await browser.execute(() => {
@@ -301,6 +308,8 @@ describe('Chat live/history parity', () => {
       block => block.kind === 'text' && block.text.includes(CANARY_FINAL)
     );
     expect(finalBlock).toBeDefined();
+    expect(settled.some(block => block.text.includes(FORCED_RESPONSES[0].content))).toBe(true);
+    expect(settled.some(block => block.text.includes(FORCED_RESPONSES[1].content))).toBe(true);
     expect(normalizeRenderedText(finalBlock?.text ?? '')).toEqual(
       normalizeRenderedText(FINAL_ANSWER)
     );
