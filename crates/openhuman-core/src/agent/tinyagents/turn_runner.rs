@@ -637,9 +637,12 @@ async fn run_turn_via_tinyagents_inner(
         // otherwise fire the same hooks a second time.
         host_bundle.capabilities.learning = None;
 
+        // The runtime appends this turn's input last; everything before it is
+        // replayed transcript that was screened when admitted (#6710).
+        let replayed_prefix = input.len().saturating_sub(1);
         let invocation = AgentInvocation::new(
             host_bundle.capabilities,
-            AgentTurnRequest::new(agent_id, input),
+            AgentTurnRequest::new(agent_id, input).with_replayed_prefix(replayed_prefix),
             ctx,
         )
         .with_runtime(InvocationRuntime::new(harness));
