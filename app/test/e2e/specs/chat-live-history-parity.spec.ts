@@ -9,8 +9,8 @@
  * (`providers/__tests__/liveHistoryParity.test.tsx`); this pins the real DOM.
  *
  * Scripted turn (three LLM rounds):
- *   1. narration + file_read
- *   2. narration + grep
+ *   1. narration + current_time
+ *   2. narration + resolve_time
  *   3. a long final answer (taller than the viewport, so following matters)
  *
  * Verifies:
@@ -30,7 +30,7 @@ import {
   waitForSocketConnected,
 } from '../helpers/chat-harness';
 import { callOpenhumanRpc } from '../helpers/core-rpc';
-import { clickTestId } from '../helpers/element-helpers';
+import { clickElement, clickTestId } from '../helpers/element-helpers';
 import { resetApp } from '../helpers/reset-app';
 import { navigateViaHash } from '../helpers/shared-flows';
 import { clearRequestLog, setMockBehavior, startMockServer, stopMockServer } from '../mock-server';
@@ -76,7 +76,7 @@ interface Block {
   label: string;
   state: string | null;
   text: string;
-  toolCalls?: string[];
+  toolCalls?: { name: string | null; input: string }[];
 }
 
 /**
@@ -113,8 +113,13 @@ async function replyBlocks(): Promise<Block[]> {
           kind === 'tool-call' ? (node.querySelector('button')?.textContent ?? '').trim() : '';
         const toolCalls =
           kind === 'tool-group-root'
-            ? Array.from(node.querySelectorAll('[data-slot="tool-call"]')).map(toolCall =>
-                (toolCall.querySelector('button')?.textContent ?? '').trim()
+            ? Array.from(node.querySelectorAll('[data-testid="assistant-ui-tool-call"]')).map(
+                toolCall => ({
+                  name: toolCall.getAttribute('data-tool-name'),
+                  input:
+                    toolCall.querySelector('[data-testid="assistant-ui-tool-input"]')
+                      ?.textContent ?? '',
+                })
               )
             : undefined;
         return { kind, label, state: node.getAttribute('data-state'), text, toolCalls };
@@ -123,22 +128,20 @@ async function replyBlocks(): Promise<Block[]> {
 }
 
 async function expandToolGroups(): Promise<void> {
-  await browser.execute(() => {
-    const messages = document.querySelectorAll('[data-testid="agent-message"]');
-    const last = messages[messages.length - 1];
-    last?.querySelectorAll('[data-slot="tool-group-root"][data-state="closed"]').forEach(group => {
-      (group.querySelector('[data-slot="tool-group-trigger"]') as HTMLElement | null)?.click();
-    });
-  });
+  const messages = await browser.$$('[data-testid="agent-message"]');
+  const last = messages[messages.length - 1];
+  if (!last) throw new Error('assistant reply message was not rendered');
+  const groups = await last.$$('[data-slot="tool-group-root"]');
+  for (const group of groups) {
+    if ((await group.getAttribute('data-state')) === 'closed') {
+      await clickElement(await group.$('[data-slot="tool-group-trigger"]'));
+    }
+  }
   await browser.waitUntil(
     async () =>
-      browser.execute(() => {
-        const messages = document.querySelectorAll('[data-testid="agent-message"]');
-        const last = messages[messages.length - 1];
-        return Array.from(last?.querySelectorAll('[data-slot="tool-group-root"]') ?? []).every(
-          group => group.getAttribute('data-state') === 'open'
-        );
-      }),
+      Promise.all(groups.map(group => group.getAttribute('data-state'))).then(states =>
+        states.every(state => state === 'open')
+      ),
     { timeout: 5_000, timeoutMsg: 'tool activity groups did not expand' }
   );
 }
@@ -281,15 +284,15 @@ describe('Chat live/history parity', () => {
     expect(toolGroups.map(group => group.text)).toEqual(['1 tool call', '1 tool call']);
     const toolCalls = toolGroups.flatMap(group => group.toolCalls ?? []);
     expect(toolCalls).toHaveLength(2);
-    expect(toolCalls[0]).toContain('current_time');
-    expect(toolCalls[1]).toContain('resolve_time');
+    expect(toolCalls[0]).toMatchObject({ name: 'current_time' });
+    expect(toolCalls[0]?.input).toContain('UTC');
+    expect(toolCalls[1]).toMatchObject({ name: 'resolve_time' });
+    expect(toolCalls[1]?.input).toContain('in 5 minutes');
     const finalBlock = settled.find(
       block => block.kind === 'text' && block.text.includes(CANARY_FINAL)
     );
     expect(finalBlock).toBeDefined();
-    expect(finalBlock?.text).toContain(
-      'Paragraph 24: the setting controls how the agent behaves in this case.'
-    );
+    expect(finalBlock?.text).toEqual(FINAL_ANSWER);
 
     // Reopen through the visible thread list after dropping runtime state, so
     // the conversation is reloaded from persisted messages and the transcript.

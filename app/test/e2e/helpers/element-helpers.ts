@@ -66,17 +66,17 @@ function xpathContainsText(text: string): string {
  * is only called from the Mac2 code path.
  */
 async function clickAtElement(el: ChainablePromiseElement): Promise<void> {
+  try {
+    await browser.execute(
+      (element: HTMLElement) => element.scrollIntoView({ block: 'center', behavior: 'instant' }),
+      el as unknown as HTMLElement
+    );
+    await browser.pause(200);
+  } catch {
+    // The element may have been detached while the click was being prepared.
+  }
+
   if (isTauriDriver()) {
-    // Scroll element into view first — webkit2gtk may not auto-scroll
-    try {
-      await browser.execute(
-        (e: HTMLElement) => e.scrollIntoView({ block: 'center', behavior: 'instant' }),
-        el as unknown as HTMLElement
-      );
-      await browser.pause(200);
-    } catch {
-      // scrollIntoView may fail if element is detached
-    }
     // Use JS click directly on tauri-driver — bypasses "element not interactable"
     // and "element click intercepted" errors that WebDriver click triggers
     // (WDIO retries WebDriver clicks 3 times internally before reaching catch,
@@ -109,6 +109,11 @@ async function clickAtElement(el: ChainablePromiseElement): Promise<void> {
     },
   ]);
   await browser.releaseActions();
+}
+
+/** Click an existing element through the shared cross-platform click path. */
+export async function clickElement(el: ChainablePromiseElement): Promise<void> {
+  await clickAtElement(el);
 }
 
 // ---------------------------------------------------------------------------
