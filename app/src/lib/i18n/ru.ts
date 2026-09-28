@@ -930,6 +930,22 @@ const messages: TranslationMap = {
   'computer.models.rescuesBounds':
     'Число восстановлений на задачу должно быть целым числом от 0 до 5.',
   'computer.models.saved': 'Модели компьютера сохранены.',
+  'computer.status.title': 'Модуль TinyComputer',
+  'computer.status.check': 'Проверить модуль',
+  'computer.status.configured': 'настроено',
+  'computer.status.missing': 'отсутствует',
+  'computer.status.available': 'доступно',
+  'computer.status.unavailable': 'недоступно',
+  'computer.status.incompatible': 'Версия модуля несовместима; обновите приложение',
+  'computer.status.ownKey': 'Собственный API-ключ',
+  'computer.status.noCredential': 'Учётных данных пока нет',
+  'computer.status.state.available': 'Не загружен',
+  'computer.status.state.loading': 'Загрузка',
+  'computer.status.state.ready': 'Готов',
+  'computer.status.state.failed': 'Ошибка',
+  'computer.status.state.unsupported': 'Не поддерживается на этом устройстве',
+  'connections.browser.chromeHint':
+    'Браузер работает внутри модуля TinyComputer. Проверка ненадолго запускает Chrome и закрывает его.',
   'desktop.title': 'Управление рабочим столом',
   'desktop.description': 'Разрешите агенту работать с приложениями на этом компьютере.',
   'desktop.enabledPending':

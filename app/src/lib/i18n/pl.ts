@@ -936,6 +936,22 @@ const messages: TranslationMap = {
   'computer.models.rescuesBounds':
     'Liczba ratunków na zadanie musi być liczbą całkowitą od 0 do 5.',
   'computer.models.saved': 'Modele komputera zapisane.',
+  'computer.status.title': 'Moduł TinyComputer',
+  'computer.status.check': 'Sprawdź moduł',
+  'computer.status.configured': 'skonfigurowano',
+  'computer.status.missing': 'brak',
+  'computer.status.available': 'dostępne',
+  'computer.status.unavailable': 'niedostępne',
+  'computer.status.incompatible': 'Wersja modułu jest niezgodna; zaktualizuj aplikację',
+  'computer.status.ownKey': 'Własny klucz API',
+  'computer.status.noCredential': 'Brak jeszcze poświadczeń',
+  'computer.status.state.available': 'Nie załadowano',
+  'computer.status.state.loading': 'Ładowanie',
+  'computer.status.state.ready': 'Gotowy',
+  'computer.status.state.failed': 'Błąd',
+  'computer.status.state.unsupported': 'Nieobsługiwane na tym urządzeniu',
+  'connections.browser.chromeHint':
+    'Przeglądarka działa w module TinyComputer. Test na chwilę uruchamia Chrome i go zamyka.',
   'desktop.title': 'Sterowanie pulpitem',
   'desktop.description': 'Pozwól agentowi pracować w aplikacjach na tym komputerze.',
   'desktop.enabledPending':

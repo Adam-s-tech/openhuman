@@ -93,14 +93,14 @@ export default function ComputerStatusCard() {
       <div className="space-y-3 text-sm" data-testid="computer-status">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant={stateVariant(status?.module?.state)} data-testid="computer-module-state">
+            <Badge
+              variant={stateVariant(status?.module?.state)}
+              data-testid="computer-module-state">
               {status?.module
                 ? t(`computer.status.state.${status.module.state}`)
                 : t('connections.browser.unknown')}
             </Badge>
-            {status?.module && (
-              <span className="text-content-muted">v{status.module.version}</span>
-            )}
+            {status?.module && <span className="text-content-muted">v{status.module.version}</span>}
           </div>
           <Button
             variant="secondary"

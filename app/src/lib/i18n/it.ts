@@ -943,6 +943,22 @@ const messages: TranslationMap = {
   'computer.models.rescuesBounds':
     'I recuperi per attività devono essere un numero intero da 0 a 5.',
   'computer.models.saved': 'Modelli del computer salvati.',
+  'computer.status.title': 'Modulo TinyComputer',
+  'computer.status.check': 'Verifica modulo',
+  'computer.status.configured': 'configurato',
+  'computer.status.missing': 'mancante',
+  'computer.status.available': 'disponibile',
+  'computer.status.unavailable': 'non disponibile',
+  'computer.status.incompatible': "La versione del modulo non è compatibile; aggiorna l'app",
+  'computer.status.ownKey': 'Chiave API propria',
+  'computer.status.noCredential': 'Nessuna credenziale ancora',
+  'computer.status.state.available': 'Non caricato',
+  'computer.status.state.loading': 'Caricamento',
+  'computer.status.state.ready': 'Pronto',
+  'computer.status.state.failed': 'Non riuscito',
+  'computer.status.state.unsupported': 'Non supportato su questo dispositivo',
+  'connections.browser.chromeHint':
+    'Il browser viene eseguito nel modulo TinyComputer. Il test avvia Chrome per un attimo e lo chiude.',
   'desktop.title': 'Controllo desktop',
   'desktop.description': 'Consenti al tuo agente di usare le app su questo computer.',
   'desktop.enabledPending':

@@ -952,6 +952,23 @@ const messages: TranslationMap = {
   'computer.models.moduleDefault': 'Valeur par défaut du module',
   'computer.models.rescuesBounds': 'Le nombre de secours par tâche doit être un entier de 0 à 5.',
   'computer.models.saved': "Modèles de l'ordinateur enregistrés.",
+  'computer.status.title': 'Module TinyComputer',
+  'computer.status.check': 'Vérifier le module',
+  'computer.status.configured': 'configuré',
+  'computer.status.missing': 'manquant',
+  'computer.status.available': 'disponible',
+  'computer.status.unavailable': 'indisponible',
+  'computer.status.incompatible':
+    "La version du module est incompatible ; mettez l'application à jour",
+  'computer.status.ownKey': 'Clé API personnelle',
+  'computer.status.noCredential': "Aucun identifiant pour l'instant",
+  'computer.status.state.available': 'Non chargé',
+  'computer.status.state.loading': 'Chargement',
+  'computer.status.state.ready': 'Prêt',
+  'computer.status.state.failed': 'Échec',
+  'computer.status.state.unsupported': 'Non pris en charge sur cet appareil',
+  'connections.browser.chromeHint':
+    "Le navigateur s'exécute dans le module TinyComputer. Le test lance brièvement Chrome puis le ferme.",
   'desktop.title': 'Contrôle du bureau',
   'desktop.description': 'Laissez votre agent travailler dans les applications de cet ordinateur.',
   'desktop.enabledPending':
