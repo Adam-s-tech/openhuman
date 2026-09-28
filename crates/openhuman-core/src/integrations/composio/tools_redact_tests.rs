@@ -1,5 +1,7 @@
 //! Regression coverage for `redact.rs` gaps flagged by review on PR #6689.
 
+use serde_json::json;
+
 use crate::config::{Config, ComposioHostCredential};
 use crate::integrations::composio::tools::redact_composio_outcome;
 
@@ -45,4 +47,21 @@ fn overlapping_secrets_redact_longest_first() {
     assert!(!text.contains(LONG_KEY), "{text}");
     assert!(!text.contains(SHORT_KEY), "{text}");
     assert_eq!(text, "token [REDACTED] in transit");
+}
+
+/// `redact_value` used to walk only object *values*; a secret that
+/// happened to be used as a JSON object key survived untouched.
+#[test]
+fn secret_used_as_a_json_object_key_is_redacted() {
+    let config = config_with_overlapping_secrets();
+    let outcome = redact_composio_outcome(
+        &config,
+        Ok(tinytools::ToolResult::json(
+            json!({ format!("token_{LONG_KEY}"): "value" }),
+        )),
+    )
+    .unwrap();
+    let serialized = serde_json::to_string(&outcome).unwrap();
+    assert!(!serialized.contains(LONG_KEY), "{serialized}");
+    assert!(serialized.contains("[REDACTED]"), "{serialized}");
 }

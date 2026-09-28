@@ -47,7 +47,18 @@ fn redact_value(value: &mut Value, secrets: &[String]) {
             }
         }
         Value::Array(items) => items.iter_mut().for_each(|v| redact_value(v, secrets)),
-        Value::Object(map) => map.values_mut().for_each(|v| redact_value(v, secrets)),
+        Value::Object(map) => {
+            *map = std::mem::take(map)
+                .into_iter()
+                .map(|(mut k, mut v)| {
+                    redact_value(&mut v, secrets);
+                    if secrets.iter().any(|secret| k.contains(secret.as_str())) {
+                        k = redact_text(&k, secrets);
+                    }
+                    (k, v)
+                })
+                .collect();
+        }
         _ => {}
     }
 }
