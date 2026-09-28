@@ -32,6 +32,7 @@ fn composio_tools_register_in_direct_mode_without_an_app_session() {
             "composio_authorize",
             "composio_list_tools",
             "composio_execute",
+            "composio_connect",
         ],
     );
 }
