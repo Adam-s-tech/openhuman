@@ -108,7 +108,7 @@ pub const PACKS: &[ToolPack] = &[
         // The orchestrator owns it so the four registry tools on its belt stay
         // advertised; the catalogue readers are `Deferred` and reached through
         // `tool_search` or this skill.
-        owners: &["orchestrator"],
+        owners: &["orchestrator", "planner"],
         guide: include_str!("guides/mcp.md"),
     },
     ToolPack {
@@ -133,7 +133,8 @@ pub const PACKS: &[ToolPack] = &[
         // reported a marketing figure of "1,552+ apps" instead of this
         // install's real 119.
         //
-        // Its own owner keeps it by DECLARING it (`workflow_builder/agent.toml`).
+        // Its own owners keep it by DECLARING it (`workflow_builder/agent.toml`,
+        // `planner/agent.toml`).
         tools: &[
             "composio",
             "composio_authorize",
@@ -141,7 +142,7 @@ pub const PACKS: &[ToolPack] = &[
             "composio_list_connections",
             "composio_list_tools",
         ],
-        owners: &["workflow_builder"],
+        owners: &["workflow_builder", "planner"],
         guide: "",
     },
     ToolPack {
@@ -310,7 +311,9 @@ pub const PACKS: &[ToolPack] = &[
             "run_linter",
             "run_tests",
         ],
-        owners: &["image_agent", "video_agent", "vision_agent"],
+        // `planner` and `critic` are workflow-run workers, not chat
+        // delegates; inspecting files is their loop, so they keep the family.
+        owners: &["planner", "critic", "image_agent", "video_agent", "vision_agent"],
         guide: include_str!("guides/coding.md"),
     },
     ToolPack {

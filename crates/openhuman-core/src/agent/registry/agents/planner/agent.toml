@@ -1,7 +1,7 @@
 id = "planner"
 display_name = "Planner"
 delegate_name = "plan"
-when_to_use = "Break a genuinely complex task into a small DAG of subtasks with acceptance criteria, grounded in memory and the web. Read-only; returns JSON, not code."
+when_to_use = "Workflow-run worker: decompose a question into independent research angles, or research one angle, grounded in memory and the web. Read-only; not a chat delegate."
 temperature = 0.4
 max_iterations = 8
 iteration_policy = "extended"
