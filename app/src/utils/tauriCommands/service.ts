@@ -100,9 +100,6 @@ export async function openhumanServiceRestart(
   source?: string,
   reason?: string
 ): Promise<CommandResponse<RestartStatus>> {
-  if (!isTauri()) {
-    throw new Error('Not running in Tauri');
-  }
   return await callCoreRpc<CommandResponse<RestartStatus>>({
     method: 'openhuman.service_restart',
     params: { source, reason },
@@ -110,18 +107,12 @@ export async function openhumanServiceRestart(
 }
 
 export async function openhumanAgentServerStatus(): Promise<CommandResponse<AgentServerStatus>> {
-  if (!isTauri()) {
-    throw new Error('Not running in Tauri');
-  }
   return await callCoreRpc<CommandResponse<AgentServerStatus>>({
     method: 'openhuman.agent_server_status',
   });
 }
 
 export async function openhumanGetDaemonHostConfig(): Promise<CommandResponse<DaemonHostConfig>> {
-  if (!isTauri()) {
-    throw new Error('Not running in Tauri');
-  }
   return await callCoreRpc<CommandResponse<DaemonHostConfig>>({
     method: 'openhuman.service_daemon_host_get',
   });
@@ -130,9 +121,6 @@ export async function openhumanGetDaemonHostConfig(): Promise<CommandResponse<Da
 export async function openhumanSetDaemonHostConfig(
   showTray: boolean
 ): Promise<CommandResponse<DaemonHostConfig>> {
-  if (!isTauri()) {
-    throw new Error('Not running in Tauri');
-  }
   return await callCoreRpc<CommandResponse<DaemonHostConfig>>({
     method: 'openhuman.service_daemon_host_set',
     params: { show_tray: showTray },

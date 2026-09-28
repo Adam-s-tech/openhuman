@@ -52,9 +52,6 @@ export async function storeSession(token: string, user: object): Promise<void> {
 }
 
 export async function openhumanEncryptSecret(plaintext: string): Promise<CommandResponse<string>> {
-  if (!isTauri()) {
-    throw new Error('Not running in Tauri');
-  }
   return await callCoreRpc<CommandResponse<string>>({
     method: 'openhuman.encrypt_secret',
     params: { plaintext },
@@ -62,9 +59,6 @@ export async function openhumanEncryptSecret(plaintext: string): Promise<Command
 }
 
 export async function openhumanDecryptSecret(ciphertext: string): Promise<CommandResponse<string>> {
-  if (!isTauri()) {
-    throw new Error('Not running in Tauri');
-  }
   return await callCoreRpc<CommandResponse<string>>({
     method: 'openhuman.decrypt_secret',
     params: { ciphertext },
@@ -101,9 +95,6 @@ export async function authStoreProviderCredentials(args: {
   fields?: Record<string, string>;
   setActive?: boolean;
 }): Promise<CommandResponse<AuthProfileSummary>> {
-  if (!isTauri()) {
-    throw new Error('Not running in Tauri');
-  }
   return await callCoreRpc<CommandResponse<AuthProfileSummary>>({
     method: 'openhuman.auth_store_provider_credentials',
     params: args,
@@ -115,9 +106,6 @@ export async function authRemoveProviderCredentials(args: {
   provider: string;
   profile?: string;
 }): Promise<CommandResponse<{ removed: boolean; provider: string; profile: string }>> {
-  if (!isTauri()) {
-    throw new Error('Not running in Tauri');
-  }
   return await callCoreRpc<
     CommandResponse<{ removed: boolean; provider: string; profile: string }>
   >({ method: 'openhuman.auth_remove_provider_credentials', params: args });
@@ -127,9 +115,6 @@ export async function authRemoveProviderCredentials(args: {
 export async function authListProviderCredentials(
   provider?: string
 ): Promise<CommandResponse<AuthProfileSummary[]>> {
-  if (!isTauri()) {
-    throw new Error('Not running in Tauri');
-  }
   return await callCoreRpc<CommandResponse<AuthProfileSummary[]>>({
     method: 'openhuman.auth_list_provider_credentials',
     params: provider ? { provider } : {},
