@@ -351,13 +351,6 @@
   },
   {
     "rule": "openhuman-task-local",
-    "path": "crates/openhuman-core/src/agent/orchestration/tools/agent_prepare_context/tool.rs",
-    "line": 277,
-    "text": "crate::agent::harness::current_agent_context_prepared_sources();",
-    "occurrence": 1
-  },
-  {
-    "rule": "openhuman-task-local",
     "path": "crates/openhuman-core/src/agent/orchestration/tools/close_subagent.rs",
     "line": 98,
     "text": "crate::agent::harness::current_parent(),",

@@ -1,15 +1,11 @@
 //! End-to-end integration test for cross-thread transcript search.
 //!
-//! Proves the path the context scout (and any agent) actually walks when it
+//! Proves the path an agent actually walks when it
 //! "goes through chat messages": persist real conversation threads + messages
 //! via `ConversationStore`, then exercise both the `threads::ops::transcript_search`
 //! op. The agent-facing `transcript_search` tool was removed with the rest of
 //! the `thread_*` tool family; the op below still backs the RPC surface.
 //! against that on-disk data under a per-test temp `OPENHUMAN_WORKSPACE`.
-//!
-//! This is the Rust contract counterpart to the live-session audit in
-//! `scripts/debug/agent-prepare-context-audit.mjs` (which drives the same path
-//! through a real orchestrator turn over JSON-RPC).
 //!
 //! Run with: `cargo test --test transcript_search_e2e`
 

@@ -461,7 +461,7 @@ fn rejects_reasoning_to_reasoning_delegation() {
 #[test]
 fn rejects_worker_with_subagents() {
     let mut defs = load_builtins().unwrap();
-    let worker = defs.iter_mut().find(|d| d.id == "code_executor").unwrap();
+    let worker = defs.iter_mut().find(|d| d.id == "archivist").unwrap();
     worker
         .subagents
         .push(SubagentEntry::AgentId("critic".into()));
