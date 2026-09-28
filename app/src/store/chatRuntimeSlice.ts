@@ -1951,18 +1951,21 @@ const chatRuntimeSlice = createSlice({
       // paused for input that then completes must not stay stuck at
       // awaiting_user). Already-terminal rows are left as-is.
       //
-      // Also matched by task id: a detached (`async`) child outlives its turn,
-      // and that turn's `chat_done` replaces the live timeline with the
-      // completed snapshot, whose row id is the core's `subagent:<task>`, not
-      // this socket `rowId`. Matching the id alone left that row running, and
-      // a background delivery (a `chat_done` with no `inference_start`) then
-      // froze it as its own trail: a card that spun forever under the reply
-      // announcing the child's result.
+      // Also the same delegation under the core's row id: a detached (`async`)
+      // child outlives its turn, and that turn's `chat_done` replaces the live
+      // timeline with the completed snapshot, whose row is `subagent:<task>`,
+      // not this socket `rowId`. Matching the socket id alone left that row
+      // running, and a background delivery (a `chat_done` with no
+      // `inference_start`) then froze it as its own trail: a card that spun
+      // forever under the reply announcing the child's result. Exactly that
+      // id, not any row with this task id: `continue_subagent` reuses a task
+      // id, and a run it continues must not settle an earlier turn's card.
+      const coreRowId = taskId !== undefined ? `subagent:${taskId}` : undefined;
       const entries = subagentRows(
         state,
         threadId,
         e =>
-          (e.id === rowId || (taskId !== undefined && e.subagent?.taskId === taskId)) &&
+          (e.id === rowId || e.id === coreRowId) &&
           (e.status === 'running' || e.status === 'awaiting_user')
       );
       for (const entry of entries) {

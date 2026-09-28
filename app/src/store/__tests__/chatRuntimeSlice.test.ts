@@ -1457,6 +1457,41 @@ describe('subagent event reducers (Phase 3)', () => {
     expect(again.toolTimelineByThread['t1'][0].status).toBe('success');
   });
 
+  it('subagentDone also settles the hydrated core row of the same delegation, and only it', () => {
+    // After its turn settles, an async delegation's live row is the completed
+    // snapshot's, under the core's id. A row that merely carries the same task
+    // id under any other id is a different card (`continue_subagent` reuses
+    // task ids) and must not take this run's outcome.
+    const row = (id: string) => ({
+      id,
+      name: 'subagent:researcher',
+      round: 0,
+      seq: 0,
+      status: 'running' as const,
+      subagent: { taskId: 'task-1', agentId: 'researcher', toolCalls: [] },
+    });
+    const state = reducer(
+      undefined,
+      setToolTimelineForThread({
+        threadId: 't1',
+        entries: [row('subagent:task-1'), row('earlier-card')],
+      })
+    );
+    const done = reducer(
+      state,
+      subagentDone({
+        threadId: 't1',
+        rowId: 't1:subagent:task-1:researcher',
+        taskId: 'task-1',
+        success: true,
+      })
+    );
+    expect(done.toolTimelineByThread['t1'].map(e => [e.id, e.status])).toEqual([
+      ['subagent:task-1', 'success'],
+      ['earlier-card', 'running'],
+    ]);
+  });
+
   it('subagentCancelResolved settles a spinning row by task id from the cancel answer', () => {
     // Aborted: the run was cancelled.
     const aborted = reducer(spawn(), subagentCancelResolved({ taskId: 'task-1', cancelled: true }));
