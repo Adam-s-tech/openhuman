@@ -290,6 +290,25 @@ if ! wait_for_http "http://127.0.0.1:${OPENHUMAN_CORE_PORT}/health" "standalone 
   exit 1
 fi
 
+# The preflight above refuses a port that was already taken, but two sessions
+# starting at once can both pass it. The mock and the web host die on
+# EADDRINUSE; the core does not. It falls back to preferred+1..+10 and keeps
+# running, so `/health` and the RPC probe below would be answered by whoever
+# owns the requested port while this core sits on another one. It reports the
+# address it actually bound, so ask it rather than trusting the probes (#5918).
+CORE_BOUND="$(sed -n 's/.*listening on http:\/\/\([^ ]*\).*/\1/p' \
+  "$OPENHUMAN_WORKSPACE/core.log" | tail -n 1)"
+if [ -z "$CORE_BOUND" ]; then
+  echo "WARNING: could not read the core's bound address from core.log; the" >&2
+  echo "         requested-port check below is skipped for this run." >&2
+elif [ "$CORE_BOUND" != "127.0.0.1:${OPENHUMAN_CORE_PORT}" ]; then
+  echo "ERROR: the core bound ${CORE_BOUND}, not 127.0.0.1:${OPENHUMAN_CORE_PORT}." >&2
+  echo "       Something took that port between the preflight check and startup, so the" >&2
+  echo "       core fell back and the health probe was answered by the other listener." >&2
+  echo "       Re-run with a free block: E2E_PORT_BASE=<free base>" >&2
+  exit 1
+fi
+
 if ! wait_for_rpc_auth "$PW_CORE_RPC_URL" "$PW_CORE_RPC_TOKEN"; then
   echo "Core RPC authentication failed. Last 50 lines of core.log:" >&2
   tail -50 "$OPENHUMAN_WORKSPACE/core.log" >&2
