@@ -1518,12 +1518,8 @@ const messages: TranslationMap = {
   'settings.costDashboard.noDataHint':
     "Invia un messaggio all'agente: l'utilizzo dei token dalla prossima chiamata al provider popolerà il grafico entro circa 10 secondi.",
   'settings.search.title': 'Motore di ricerca',
-  'settings.search.menuDesc':
-    'Imposta come predefinito la ricerca gestita da OpenHuman oppure collega il tuo provider con una chiave API.',
   'settings.search.statusNeedsKey': 'Richiede la chiave API',
   'settings.search.getApiKey': 'Ottieni chiave API',
-  'settings.search.save': 'Salva',
-  'settings.search.clear': 'Cancella',
   'settings.search.show': 'Mostra',
   'settings.search.hide': 'Nascondi',
   'settings.search.statusSaving': 'Salvataggio...',
@@ -1543,29 +1539,18 @@ const messages: TranslationMap = {
   'settings.search.accessBlockAll': 'Blocca tutto',
   'settings.search.accessBlockAllHint':
     "Tutti gli accessi web sono bloccati: l'assistente non può aprire o leggere alcun sito web.",
-  'settings.search.description':
-    'La ricerca può usare più fornitori contemporaneamente. Exa e Gemini sono inclusi con TinyHumans e non richiedono configurazione; gli altri fornitori funzionano con la tua chiave API. Ogni ruolo qui sotto usa il primo fornitore disponibile e ripiega sul successivo.',
   'settings.search.localManagedUnavailable':
-    "I fornitori inclusi con TinyHumans richiedono l'accesso. Attiva un fornitore con la tua chiave API per usare la ricerca web in una sessione locale.",
+    "I fornitori tramite TinyHumans richiedono l'accesso. Collega un fornitore con la tua chiave API per usare la ricerca web in una sessione locale.",
   'settings.search.enabledLabel': 'Ricerca web',
-  'settings.search.enabledDesc':
-    "Consente all'agente di cercare sul web, rispondere a domande da fonti web e leggere pagine.",
-  'settings.search.providersTitle': 'Fornitori',
-  'settings.search.providersDesc':
-    'Attiva i fornitori che preferisci. Possono essere attivi più fornitori insieme; i ruoli qui sotto decidono quale provare per primo.',
   'settings.search.providerToggleAria': 'Usa {provider}',
-  'settings.search.routeAria': 'Connessione di {provider}',
-  'settings.search.routeManaged': 'Incluso con TinyHumans',
-  'settings.search.routeDirect': 'Chiave personale',
+  'settings.search.routeManaged': 'tramite TinyHumans',
+  'settings.search.routeDirect': 'La tua chiave',
   'settings.search.apiKeyLabel': 'Chiave API di {provider}',
   'settings.search.placeholderKey': 'Incolla la tua chiave API di {provider}',
   'settings.search.baseUrlLabel': "URL dell'istanza",
-  'settings.search.baseUrlSave': 'Salva URL',
   'settings.search.statusReady': 'Pronto',
   'settings.search.statusSignInRequired': 'Accesso richiesto',
   'settings.search.statusOff': 'Disattivato',
-  'settings.search.deepResearchAvailable':
-    "La ricerca approfondita è disponibile: l'agente può chiedere a {provider} un report più lungo e accurato.",
   'settings.search.deepResearchHint':
     'Aggiungi la tua chiave di {provider} per sbloccare la ricerca approfondita.',
   'settings.search.rolesTitle': 'Ruoli',
@@ -1577,9 +1562,6 @@ const messages: TranslationMap = {
   'settings.search.roleAnswerDesc': 'Una risposta scritta basata su fonti web, con citazioni.',
   'settings.search.roleContents': 'Contenuti',
   'settings.search.roleContentsDesc': 'Recupera le pagine indicate e ne estrae il testo.',
-  'settings.search.roleServedBy': 'Gestito da {provider}',
-  'settings.search.roleNoProvider':
-    "Nessun fornitore disponibile: al momento l'agente non ha questo strumento.",
   'settings.search.roleMoveUp': 'Sposta {provider} su',
   'settings.search.roleMoveDown': 'Sposta {provider} giù',
   'settings.search.roleRemove': 'Rimuovi {provider}',
@@ -1590,6 +1572,45 @@ const messages: TranslationMap = {
   'settings.search.exposeProviderTools': 'Mostra gli strumenti propri di ogni fornitore',
   'settings.search.exposeProviderToolsDesc':
     "Fornisce all'agente gli strumenti di ogni fornitore attivo al posto di uno strumento per ruolo. Occupa più finestra di contesto.",
+  'settings.search.tabProviders': 'Fornitori',
+  'settings.search.tabRouting': 'Instradamento',
+  'settings.search.tabWebsites': 'Siti web',
+  'settings.search.offNotice':
+    "La ricerca web è disattivata. L'agente non può cercare né leggere sul web finché non la riattivi.",
+  'settings.search.connectedTitle': 'Collegati',
+  'settings.search.connectedDesc':
+    "Fornitori che l'agente può usare. Possono essere attivi più fornitori insieme; la scheda Instradamento decide quale provare per primo.",
+  'settings.search.connectedEmpty': 'Nessun fornitore ancora collegato. Scegline uno qui sotto.',
+  'settings.search.catalogTitle': 'Aggiungi un fornitore',
+  'settings.search.catalogDesc':
+    'Scegli un fornitore da collegare. Puoi aggiungerne altri in qualsiasi momento.',
+  'settings.search.catalogManagedTitle': 'Tramite TinyHumans',
+  'settings.search.catalogManagedHelper': 'Nessuna configurazione: un clic ed è pronto.',
+  'settings.search.catalogOwnTitle': 'Con la tua chiave',
+  'settings.search.catalogOwnHelper':
+    'Usa una chiave API del fornitore oppure indica la tua istanza.',
+  'settings.search.addProviderAria': 'Collega {provider}',
+  'settings.search.detailOwnKey': 'La tua chiave API',
+  'settings.search.detailNoKey': 'Nessuna chiave API',
+  'settings.search.detailNoUrl': "Nessun URL dell'istanza",
+  'settings.search.deepResearchBadge': 'Ricerca approfondita',
+  'settings.search.rowActions': 'Opzioni di {provider}',
+  'settings.search.actionUseOwnKey': 'Usa la tua chiave',
+  'settings.search.actionUseManaged': 'Usa tramite TinyHumans',
+  'settings.search.actionAddKey': 'Aggiungi chiave API',
+  'settings.search.actionAddDeepResearchKey': 'Aggiungi una chiave per la ricerca approfondita',
+  'settings.search.actionReplaceKey': 'Sostituisci chiave API',
+  'settings.search.actionRemoveKey': 'Rimuovi chiave API',
+  'settings.search.actionEditUrl': "Cambia URL dell'istanza",
+  'settings.search.connectTitle': 'Collega {provider}',
+  'settings.search.connect': 'Collega',
+  'settings.search.baseUrlHint': "L'indirizzo della tua istanza SearXNG, porta inclusa.",
+  'settings.search.roleServing': 'In uso',
+  'settings.search.roleNoProviderShort': 'Nessun fornitore disponibile',
+  'settings.search.roleFallbacks': 'Alternative: {providers}',
+  'settings.search.roleNoFallback': 'Nessuna alternativa',
+  'settings.search.roleDialogDesc':
+    'Il primo fornitore disponibile gestisce questa attività. Se non riesce o non è disponibile, si prova il successivo.',
   // ─── Settings global search bar ────────────────────────────
   'settings.embeddings.title': 'Incorporamenti',
   'settings.embeddings.description':
@@ -7210,7 +7231,6 @@ const messages: TranslationMap = {
   'channels.connectedDesc': 'Pronto a inviare e ricevere messaggi. Scegline uno come predefinito.',
   'channels.availableDesc': 'Chat app che puoi collegare. Aprire uno per impostarlo.',
   'settings.about.resources': 'Risorse',
-  'settings.search.keyStored': 'Salvata',
   'settings.embeddings.modelCardTitle': 'Modello e dimensioni',
   'mcp.rows.searchPlaceholder': 'Cerca server...',
   'mcp.tab.section.clients': 'Clienti',
