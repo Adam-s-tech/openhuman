@@ -76,6 +76,7 @@ interface Block {
   label: string;
   state: string | null;
   text: string;
+  toolCalls?: string[];
 }
 
 /**
@@ -89,7 +90,7 @@ async function replyBlocks(): Promise<Block[]> {
       // An activity group (reasoning + tool calls of one run) is ONE block: it
       // collapses once the answer leads, and its cards unmount with it.
       '[data-slot="tool-group-root"]',
-      '[data-slot="aui_openhuman-tool-call"]',
+      '[data-slot="tool-call"]',
       '[data-slot="aui_subagent-call"]',
       '[data-slot="reasoning-root"]',
       '.aui-md',
@@ -109,12 +110,37 @@ async function replyBlocks(): Promise<Block[]> {
               ? (node.textContent ?? '').trim()
               : '';
         const label =
-          slot === 'aui_openhuman-tool-call'
-            ? (node.querySelector('button .font-medium')?.textContent ?? '')
-            : '';
-        return { kind, label, state: node.getAttribute('data-state'), text };
+          kind === 'tool-call' ? (node.querySelector('button')?.textContent ?? '').trim() : '';
+        const toolCalls =
+          kind === 'tool-group-root'
+            ? Array.from(node.querySelectorAll('[data-slot="tool-call"]')).map(toolCall =>
+                (toolCall.querySelector('button')?.textContent ?? '').trim()
+              )
+            : undefined;
+        return { kind, label, state: node.getAttribute('data-state'), text, toolCalls };
       });
   })) as Block[];
+}
+
+async function expandToolGroups(): Promise<void> {
+  await browser.execute(() => {
+    const messages = document.querySelectorAll('[data-testid="agent-message"]');
+    const last = messages[messages.length - 1];
+    last?.querySelectorAll('[data-slot="tool-group-root"][data-state="closed"]').forEach(group => {
+      (group.querySelector('[data-slot="tool-group-trigger"]') as HTMLElement | null)?.click();
+    });
+  });
+  await browser.waitUntil(
+    async () =>
+      browser.execute(() => {
+        const messages = document.querySelectorAll('[data-testid="agent-message"]');
+        const last = messages[messages.length - 1];
+        return Array.from(last?.querySelectorAll('[data-slot="tool-group-root"]') ?? []).every(
+          group => group.getAttribute('data-state') === 'open'
+        );
+      }),
+    { timeout: 5_000, timeoutMsg: 'tool activity groups did not expand' }
+  );
 }
 
 function hasFinalReply(blocks: Block[]): boolean {
@@ -247,11 +273,16 @@ describe('Chat live/history parity', () => {
     );
     // Compare the stable current projection. A streaming sample can become
     // stale when the final assistant message replaces an earlier narration.
+    await expandToolGroups();
     settled = (await replyBlocks()).map(block => ({ ...block }));
     // Each scripted tool round appears as its own activity group.
     const toolGroups = settled.filter(block => block.kind === 'tool-group-root');
     expect(toolGroups).toHaveLength(2);
     expect(toolGroups.map(group => group.text)).toEqual(['1 tool call', '1 tool call']);
+    const toolCalls = toolGroups.flatMap(group => group.toolCalls ?? []);
+    expect(toolCalls).toHaveLength(2);
+    expect(toolCalls[0]).toContain('current_time');
+    expect(toolCalls[1]).toContain('resolve_time');
     const finalBlock = settled.find(
       block => block.kind === 'text' && block.text.includes(CANARY_FINAL)
     );
@@ -300,6 +331,7 @@ describe('Chat live/history parity', () => {
       },
       { timeout: 15_000, timeoutMsg: 'reopened thread never rendered a stable full reply' }
     );
+    await expandToolGroups();
     const reopened = await replyBlocks();
     expect(reopened).toEqual(settled);
     console.log(`${LOG_PREFIX} P3: ${reopened.length} blocks identical live and reopened`);
