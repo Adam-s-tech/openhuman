@@ -276,9 +276,6 @@ async fn halt_on_missing_connection_asks_the_user_instead_of_reporting_back() {
 
 #[tokio::test]
 async fn repeated_tool_failure_nudges_change_of_strategy_before_the_halt() {
-    use crate::agent::tinyagents::host::steering::{openhuman_steering_handle, SteeringRunClass};
-    use tinyagents_harness::steering::SteeringCommandKind;
-
     // #4089: before the same-strategy retry cap, the breaker must feed a
     // structured "no progress since step X" corrective back into the loop so
     // the model changes approach rather than retrying the identical failing
@@ -303,7 +300,7 @@ async fn repeated_tool_failure_nudges_change_of_strategy_before_the_halt() {
     mw.after_tool(&mut ctx(), &(), &invocation("read-2", "read_file"), &mut r)
         .await
         .unwrap();
-    let nudges = drain_nudge_messages(&handle);
+    let nudges = drain_nudge_messages(&mw);
     assert_eq!(
         nudges.len(),
         1,
@@ -319,22 +316,13 @@ async fn repeated_tool_failure_nudges_change_of_strategy_before_the_halt() {
         "the nudge names the failing call so the model knows what not to repeat: {nudge}"
     );
 
-    // Regression for the #4473 crash: the nudge must ride a steering lane the
-    // user's *interactive* turn permits. `Redirect` is Background-only, so a
-    // Redirect nudge aborted interactive turns; `InjectMessage` is permitted
-    // on both classes. Assert the interactive policy accepts the lane we use.
-    let interactive = openhuman_steering_handle(SteeringRunClass::Interactive);
+    // Regression for the #4473 crash (a `Redirect` nudge was refused by the
+    // interactive run policy and aborted the turn) and for #6725 (an
+    // `InjectMessage` nudge was committed into durable history): the nudge
+    // must not ride steering at all.
     assert!(
-        interactive
-            .policy()
-            .is_allowed(SteeringCommandKind::InjectMessage),
-        "the no-progress nudge must use a lane the interactive turn permits"
-    );
-    assert!(
-        !interactive
-            .policy()
-            .is_allowed(SteeringCommandKind::Redirect),
-        "sanity: interactive still refuses Redirect (the lane that crashed it)"
+        handle.drain().is_empty(),
+        "the nudge must not be sent as a steering command"
     );
 }
 
