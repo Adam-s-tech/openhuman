@@ -6,7 +6,7 @@
  * backend (for example an external Ollama endpoint).
  */
 import { callCoreRpc } from '../../services/coreRpcClient';
-import { CommandResponse, isTauri, tauriErrorMessage } from './common';
+import { CommandResponse, tauriErrorMessage } from './common';
 
 export interface LocalAiStatus {
   state: string;

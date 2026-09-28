@@ -8,16 +8,12 @@
  */
 import { callCoreRpc } from '../../services/coreRpcClient';
 import { logoutSession, storeSessionToken } from '../../services/session/sessionOwner';
-import { type CommandResponse, isTauri } from './common';
+import { type CommandResponse } from './common';
 
 /**
  * Get the current authentication state from Rust
  */
 export async function getAuthState(): Promise<{ is_authenticated: boolean; user: object | null }> {
-  if (!isTauri()) {
-    return { is_authenticated: false, user: null };
-  }
-
   const response = await callCoreRpc<{ result: { isAuthenticated: boolean; user: object | null } }>(
     { method: 'openhuman.auth_get_state' }
   );

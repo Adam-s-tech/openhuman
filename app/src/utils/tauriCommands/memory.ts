@@ -2,7 +2,6 @@
  * Memory subsystem commands.
  */
 import { callCoreRpc } from '../../services/coreRpcClient';
-import { isTauri } from './common';
 
 export interface MemoryDebugDocument {
   documentId: string;
@@ -80,15 +79,7 @@ export interface GraphRelation {
  * Initialise the local-only (SQLite) memory subsystem in the Rust core.
  */
 export async function syncMemoryClientToken(token: string): Promise<void> {
-  console.debug(
-    '[memory] syncMemoryClientToken: entry (token_present=%s, is_tauri=%s)',
-    !!token,
-    isTauri()
-  );
-  if (!isTauri()) {
-    console.debug('[memory] syncMemoryClientToken: exit — skipped (not Tauri)');
-    return;
-  }
+  console.debug('[memory] syncMemoryClientToken: entry (token_present=%s)', !!token);
   try {
     console.debug('[memory] syncMemoryClientToken: payload → memory.init (local-only)');
     // jwt_token is passed for backward compatibility but ignored by the core.
