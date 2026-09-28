@@ -443,9 +443,10 @@ pub struct OpenHumanSessionHost {
     pub(super) announced_mcp_servers: std::collections::HashSet<String>,
     /// MCP servers that connected mid-session and still need announcing on the
     /// next user message. The MCP analogue of
-    /// [`Self::pending_integration_announcement`]. `use_mcp_server` is a single
-    /// static delegate (no per-server schema to refresh), so this prose note on
-    /// the user turn is the entire mid-session-connect mechanism for MCP. The
+    /// [`Self::pending_integration_announcement`]. Connected servers' tools are
+    /// `Deferred` registrations found through `tool_search` (no per-server
+    /// schema on the wire to refresh), so this prose note on the user turn is
+    /// the entire mid-session-connect mechanism for MCP. The
     /// note rides the user turn (NOT the system prompt) so the KV-cache prefix
     /// stays byte-identical. Order-preserving + de-duped on insert.
     pub(super) pending_mcp_announcement: Vec<String>,
