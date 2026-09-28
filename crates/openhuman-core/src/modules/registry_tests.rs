@@ -4,13 +4,13 @@ use crate::modules::platform::candidates_for;
 #[test]
 fn tinydesktop_registry_matches_bus_contract_and_published_release() {
     let desktop = find("tinydesktop").expect("compiled desktop module");
-    assert_eq!(desktop.bus_name, tinydesktop_bus::names::INTERFACE);
-    assert_eq!(desktop.object_path, tinydesktop_bus::names::OBJECT_PATH);
-    assert_eq!(desktop.version, "0.5.1");
+    assert_eq!(desktop.bus_name, tinycomputer_bus::names::INTERFACE);
+    assert_eq!(desktop.object_path, tinycomputer_bus::names::OBJECT_PATH);
+    assert_eq!(desktop.version, "0.5.2");
     assert_eq!(desktop.assets.len(), 7);
     assert_eq!(
         desktop.asset_for("macos-26-arm64").unwrap().sha256,
-        "41b32370ec8789891f42bbcb40d7e1ea8c359ce1edbe210d1cd636ba2ba2562b"
+        "7f4aa7136c9c09a2ac7752b4adb7b4aa76c3a1b035971517cd6f2f605c54fab2"
     );
 }
 
