@@ -149,7 +149,7 @@ Responsibilities are split across three domains:
 | ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `crates/openhuman-core/src/skills/`         | Skill metadata: create/discover/install/parse `SKILL.md` and inject descriptors into agent prompts (`ops_create`, `ops_discover`, `ops_install`, `ops_parse`, `registry`, `tools`). |
 | `crates/openhuman-core/src/skills/catalog/` | Registry of installed skills.                                                                                                                                         |
-| `crates/openhuman-core/src/skills/runtime/` | Execution of installed `SKILL.md` workflows: starts/cancels runs, reads run metadata/logs, resolves language runtimes, hosts the built-in `skill_executor` agent.     |
+| `crates/openhuman-core/src/skills/runtime/` | Execution of installed `SKILL.md` workflows: starts/cancels runs, reads run metadata/logs, resolves language runtimes. The orchestrator runs an installed skill itself through `run_workflow`. |
 
 **Skill discovery** uses `SKILL.md` plus optional bundled resources:
 
