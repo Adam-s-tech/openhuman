@@ -398,9 +398,13 @@ export async function waitForElementAbsence(
   selector: string,
   timeout: number = 15_000
 ): Promise<void> {
-  await browser.waitUntil(async () => !(await browser.$(selector).isExisting()), {
+  const activeSelector =
+    !isTauriDriver() && selector.startsWith('[data-testid="')
+      ? `//*[@data-testid=${xpathStringLiteral(selector.slice('[data-testid="'.length, -2))}]`
+      : selector;
+  await browser.waitUntil(async () => !(await browser.$(activeSelector).isExisting()), {
     timeout,
-    timeoutMsg: `Element ${selector} remained present after ${timeout}ms`,
+    timeoutMsg: `Element ${activeSelector} remained present after ${timeout}ms`,
   });
 }
 
@@ -533,12 +537,19 @@ export async function clickToolGroupTrigger(
   timeout: number = 15_000
 ): Promise<void> {
   const literal = xpathStringLiteral(label);
-  const selector = isTauriDriver()
-    ? '[data-slot="tool-group-root"] [data-slot="tool-group-trigger"]'
-    : `//XCUIElementTypeButton[contains(@label, ${literal}) or contains(@value, ${literal}) or contains(@title, ${literal})]`;
-  const triggers = await browser.$$(selector);
-  const trigger = triggers[index];
-  if (!trigger) throw new Error(`Tool group trigger ${index + 1} (${label}) was not found`);
+  const matches =
+    `//XCUIElementTypeButton[contains(@label, ${literal}) or contains(@value, ${literal}) or contains(@title, ${literal})]`;
+  let trigger: ChainablePromiseElement;
+  if (isTauriDriver()) {
+    const selector = '[data-slot="tool-group-root"] [data-slot="tool-group-trigger"]';
+    await browser.waitUntil(async () => (await browser.$$(selector)).length > index, {
+      timeout,
+      timeoutMsg: `Tool group trigger ${index + 1} (${label}) was not found`,
+    });
+    trigger = (await browser.$$(selector))[index]!;
+  } else {
+    trigger = await browser.$(`(${matches})[${index + 1}]`);
+  }
   await trigger.waitForExist({ timeout, timeoutMsg: `Tool group trigger "${label}" not found` });
   await clickAtElement(trigger);
 }

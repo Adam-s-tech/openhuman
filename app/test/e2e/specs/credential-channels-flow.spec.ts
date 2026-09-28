@@ -30,15 +30,35 @@
  * which is the house pattern for a channel lifecycle.
  *
  * No external network: Yuanbao credential verification is directed to the
- * local mock backend. Email's required IMAP login is tested against a refused
- * loopback port because the suite has no TLS IMAP fixture.
+ * local mock backend. Email's required IMAP login is tested against a
+ * test-owned loopback socket that drops the TLS handshake before credentials
+ * can be sent.
  */
+import { createServer } from 'node:net';
 import { waitForApp } from '../helpers/app-helpers';
 import { callOpenhumanRpc } from '../helpers/core-rpc';
 import { resetApp } from '../helpers/reset-app';
 import { getMockServerPort, startMockServer, stopMockServer } from '../mock-server';
 
 const LOG_PREFIX = '[CredentialChannels]';
+
+/** Accept one local connection and drop the TLS handshake before IMAP credentials can be sent. */
+async function startImapHandshakeRejector(): Promise<{ port: number; close: () => Promise<void> }> {
+  const server = createServer(socket => socket.destroy());
+  await new Promise<void>((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', resolve);
+  });
+  const address = server.address();
+  if (!address || typeof address === 'string') throw new Error('IMAP fixture did not bind');
+  return {
+    port: address.port,
+    close: () =>
+      new Promise<void>((resolve, reject) =>
+        server.close(error => (error ? reject(error) : resolve()))
+      ),
+  };
+}
 
 interface AuthModeSpec {
   mode?: string;
@@ -212,15 +232,20 @@ describe('Credential channels — Yuanbao and Email (IMAP/SMTP)', () => {
           );
         }
 
-        const credentials =
-          channel === 'email'
-            ? { ...validCredentials, imap_host: '127.0.0.1', imap_port: '0' }
+        const imapFixture = channel === 'email' ? await startImapHandshakeRejector() : undefined;
+        let out: Awaited<ReturnType<typeof callOpenhumanRpc>>;
+        try {
+          const credentials = imapFixture
+            ? { ...validCredentials, imap_host: '127.0.0.1', imap_port: String(imapFixture.port) }
             : { ...validCredentials, api_domain: `http://127.0.0.1:${getMockServerPort()}` };
-        const out = await callOpenhumanRpc('openhuman.channels_connect', {
-          channel,
-          authMode: 'api_key',
-          credentials,
-        });
+          out = await callOpenhumanRpc('openhuman.channels_connect', {
+            channel,
+            authMode: 'api_key',
+            credentials,
+          });
+        } finally {
+          await imapFixture?.close();
+        }
         if (channel === 'email') {
           expect(out.ok).toBe(false);
           expect(out.error).toContain('IMAP connection failed');
@@ -272,7 +297,12 @@ describe('Credential channels — Yuanbao and Email (IMAP/SMTP)', () => {
     it(`D.5 ${channel} disconnect clears the stored connection`, async function () {
       this.timeout(60_000);
       if (channel === 'email') {
-        this.skip();
+        await callOpenhumanRpc('openhuman.channels_disconnect', { channel, authMode: 'api_key' });
+        const status = await statusFor(channel);
+        expect(isConnected(status)).toBe(false);
+        expect(status?.hasCredentials ?? status?.has_credentials).toBe(false);
+        console.log(`${LOG_PREFIX} D.5 email: disconnected state verified`);
+        return;
       }
       await callOpenhumanRpc('openhuman.channels_connect', {
         channel,
