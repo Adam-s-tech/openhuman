@@ -13,7 +13,7 @@
 //!   `run_turn_via_tinyagents_shared`.
 //!
 //! Today every built-in agent selects `Default`. The optional hook is the
-//! extension point that lets a specialized agent (orchestrator, researcher, …)
+//! extension point that lets a specialized agent (orchestrator, planner, …)
 //! define a bespoke graph without branching the shared runner.
 
 use std::collections::HashSet;

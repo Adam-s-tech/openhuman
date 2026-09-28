@@ -224,7 +224,7 @@ pub(crate) fn subagent_prompt_protocol(
 /// * the generic `spawn_subagent` meta-tool (arbitrary archetype by id);
 /// * every synthesised per-archetype `delegate_*` tool
 ///   ([`crate::tools::orchestrator_tools::collect_orchestrator_tools`]
-///   emits `delegate_researcher`, `delegate_planner`, …).
+///   emits `delegate_code_executor`, `delegate_planner`, …).
 /// * `agent_prepare_context` — the context-scout entry point. It reads the
 ///   *parent's* visible catalog/session via `current_parent()`, which inside a
 ///   nested run is still the top-level orchestrator (the runner does not
@@ -384,7 +384,7 @@ pub(super) fn load_prompt_source(
             // file write — so we re-use that scaffolding by reading from
             // `<workspace>/<filename>` after the parent agent has
             // bootstrapped its workspace files. For sub-agent
-            // archetype prompts (e.g. `archetypes/researcher.md`),
+            // archetype prompts (e.g. `archetypes/critic.md`),
             // we look up by basename in the workspace, then accept
             // missing files as an empty body (the runner will fall
             // back to a generic role hint).

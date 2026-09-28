@@ -50,7 +50,7 @@ use crate::agent::tinyagents::observability::GraphTracingSink;
 
 const LOG_TARGET: &str = "agent_team_runtime";
 /// Fallback worker archetype when a member carries no explicit `agent_id`.
-const DEFAULT_TEAMMATE_AGENT_ID: &str = "researcher";
+const DEFAULT_TEAMMATE_AGENT_ID: &str = "tools_agent";
 /// Event recorded when a worker run ends without completing its task.
 const MEMBER_FAILED_EVENT: &str = "team_member_failed";
 /// Cap on how much worker output is captured as evidence (UTF-8 safe).

@@ -85,11 +85,9 @@ pub(crate) fn append_subagent_role_contract(base_prompt: String, agent_id: &str)
 ///
 /// Kept separate from [`append_subagent_role_contract`] because it is **not**
 /// universal. A sub-agent's system prompt may only name tools it can really
-/// call — `researcher` is search + fetch only, and a skill-filtered specialist
-/// sees just its own toolkit. Telling either to write a file yields
+/// call — a skill-filtered specialist sees just its own toolkit. Telling it to write a file yields
 /// hallucinated calls that fail, and two guards enforce it
-/// (`researcher::prompt::tests::build_returns_nonempty_body`,
-/// `ops_tests::typed_mode_filters_tools_by_skill_filter`).
+/// (`ops_tests::typed_mode_filters_tools_by_skill_filter`).
 ///
 /// Agents skipped here are still covered: `offload_oversized_result` runs on
 /// every sub-agent outcome and needs no cooperation from the model.

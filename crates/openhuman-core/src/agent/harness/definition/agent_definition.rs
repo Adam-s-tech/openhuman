@@ -64,7 +64,7 @@ pub enum TriggerMemoryAgent {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentDefinition {
     // ── identity ────────────────────────────────────────────────────────
-    /// Unique identifier for this archetype (e.g., `researcher`, `code_executor`).
+    /// Unique identifier for this archetype (e.g., `planner`, `code_executor`).
     pub id: String,
 
     /// Human-readable description explaining when this agent should be used.

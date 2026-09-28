@@ -98,12 +98,6 @@ const RESOURCE_CATALOG: &[PromptResource] = &[
         content: include_str!("../../agent/registry/agents/skill_creator/prompt.md"),
     },
     PromptResource {
-        uri: "openhuman://prompts/agents/researcher",
-        name: "researcher",
-        description: "Worker that searches the web and synthesises research findings.",
-        content: include_str!("../../agent/registry/agents/researcher/prompt.md"),
-    },
-    PromptResource {
         uri: "openhuman://prompts/agents/context_scout",
         name: "context_scout",
         description: "Read-only pre-flight worker that gathers context (memory, transcripts, goals, skills, integrations, web) and returns a bounded context bundle.",

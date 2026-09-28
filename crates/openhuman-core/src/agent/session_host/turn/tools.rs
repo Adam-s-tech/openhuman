@@ -638,7 +638,7 @@ impl OpenHumanSessionHost {
         // Rebuild the visible-spec cache from the new tool_specs so the
         // next provider call carries the reconciled schema. Dedup
         // afterward so a delegate synthesised here (e.g.
-        // `delegate_name = "research"`) doesn't collide with a
+        // `delegate_name = "plan"`) doesn't collide with a
         // same-named skill tool on the wire — Anthropic 400s on dup
         // tool names where OpenHuman's backend silently accepts.
         self.rebuild_tool_policy_session();

@@ -12,7 +12,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 /// ```toml
 /// [subagents]
 /// allowlist = [
-///     "researcher",            # AgentId("researcher")
+///     "planner",               # AgentId("planner")
 ///     "code_executor",         # AgentId("code_executor")
 ///     { skills = "*" },        # Skills { pattern: "*" }
 /// ]

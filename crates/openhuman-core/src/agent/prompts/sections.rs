@@ -448,7 +448,7 @@ impl PromptSection for SafetySection {
 /// anti-fabrication rules every agent inherits. Before this block existed,
 /// the same "never invent ids / a tool not in your list does not exist"
 /// paragraph was copy-pasted (and slowly drifting) across crypto, markets,
-/// integrations, account-admin, mcp-setup, morning-briefing, researcher, …
+/// integrations, account-admin, mcp-setup, morning-briefing, …
 /// agent prompts. Centralising it kills that drift and guarantees a uniform
 /// floor of grounding discipline.
 ///

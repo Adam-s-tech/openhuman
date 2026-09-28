@@ -76,8 +76,8 @@ impl Config {
     /// 1. `orchestrator.model` when resolving the front-line orchestrator.
     /// 2. `[teams.<agent_id>]` entries, with `lead_model` used for agents
     ///    that can delegate and `agent_model` used for leaf workers.
-    /// 3. Built-in aliases such as `[teams.research]` for `researcher` and
-    ///    `[teams.code]` for `code_executor`, matching the issue examples.
+    /// 3. Built-in aliases such as `[teams.code]` for `code_executor` and
+    ///    `[teams.tools]` for `tools_agent`, matching the issue examples.
     ///
     /// Empty strings are ignored so partially-written configs fall back to
     /// the existing auto-routing path.
@@ -116,7 +116,6 @@ impl Config {
         }
 
         let aliases: &[&str] = match agent_id {
-            "researcher" => &["research"],
             "code_executor" => &["code"],
             "tool_maker" | "tools_agent" => &["tools"],
             "integrations_agent" => &["integrations"],

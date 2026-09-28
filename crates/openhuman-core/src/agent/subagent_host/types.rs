@@ -149,7 +149,7 @@ pub enum SubagentRunStatus {
 pub struct SubagentRunOutcome {
     /// Unique identifier for this sub-task run.
     pub task_id: String,
-    /// The ID of the agent archetype used (e.g., `researcher`).
+    /// The ID of the agent archetype used (e.g., `code_executor`).
     pub agent_id: String,
     /// The final text response produced by the sub-agent.
     pub output: String,
