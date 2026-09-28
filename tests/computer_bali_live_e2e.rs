@@ -11,8 +11,8 @@
 //!    and rescue route (`modules::computer_config`);
 //! 3. `modules::browser_task` starts the task with `StartTask` (browser only,
 //!    confined to the allowed websites, never allowed to pay), follows it with
-//!    `AwaitTask`, answers `needs_input` from the facts, and refuses every
-//!    `needs_approval`.
+//!    `AwaitTask`, answers `needs_input` from the facts, approves ordinary
+//!    booking steps, and refuses any approval that would pay.
 //!
 //! It never pays: TinyComputer always stops at a payment page, and this test
 //! treats reaching that checkpoint as success.
@@ -165,18 +165,27 @@ async fn books_a_bali_flight_up_to_the_payment_page() {
                 .expect("ContinueTask inputs");
             }
             TaskStatus::NeedsApproval { action, target, .. } => {
-                // This test never commits to anything irreversible.
-                println!("refusing approval: {action} ({target})");
+                // A host approves ordinary booking steps (opening a tab,
+                // continuing a form) and never one that pays. TinyComputer also
+                // stops at the payment page on its own.
+                let text = format!("{action} {target}").to_lowercase();
+                let pays = ["pay", "purchase", "buy", "card", "checkout"]
+                    .iter()
+                    .any(|word| text.contains(word));
+                println!(
+                    "{} approval: {action} ({target})",
+                    if pays { "refusing" } else { "granting" }
+                );
                 view = browser_task::resume(
                     &config,
                     ContinueTaskRequest {
                         id: view.id.clone(),
-                        approve: Some(false),
+                        approve: Some(!pays),
                         ..ContinueTaskRequest::default()
                     },
                 )
                 .await
-                .expect("ContinueTask deny");
+                .expect("ContinueTask approval");
             }
             TaskStatus::Checkpoint {
                 reason,
