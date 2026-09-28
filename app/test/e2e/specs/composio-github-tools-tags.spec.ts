@@ -252,6 +252,9 @@ describe('Composio GitHub tools — tags query param flow', () => {
       connection_id: 'conn-github',
     });
     expect(executed.ok).toBe(true);
+    const executeResult = (executed.result as any)?.result ?? executed.result;
+    expect(executeResult?.successful).toBe(true);
+    expect(executeResult?.data?.repositories).toEqual(STARRED_REPOS);
 
     const log = getRequestLog() as Array<{ method: string; url: string; body: string }>;
     const listHit = log.find(
