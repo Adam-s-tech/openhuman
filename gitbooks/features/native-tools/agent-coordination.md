@@ -41,5 +41,5 @@ Asking for clarification is a tool too, on purpose: it makes "I should ask the u
 
 ## See also
 
-- [Coder](coder.md) - what a coder-archetype subagent typically uses.
+- [Coder](coder.md) - the coding tools, most of them loaded through the `coding` skill.
 - [Cron & Scheduling](cron.md) - how background agent runs get scheduled.
