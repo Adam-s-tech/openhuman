@@ -31,8 +31,7 @@ use crate::agent::prompts::{
 };
 use crate::agent::subagent_host::subagent_iter_cap_with_autonomous_lift;
 use crate::agent::subagent_host::tool_prep::{
-    filter_tool_indices, is_subagent_spawn_tool, load_prompt_source,
-    subagent_prompt_protocol,
+    filter_tool_indices, is_subagent_spawn_tool, load_prompt_source, subagent_prompt_protocol,
 };
 use crate::agent::subagent_host::types::{
     SubagentMode, SubagentRunError, SubagentRunOptions, SubagentRunOutcome, SubagentRunStatus,
