@@ -6,6 +6,7 @@
  * Nothing here knows a provider by id except the cosmetic swatch tables; the
  * behavior is driven by the provider entry the core returned.
  */
+import { createElement } from 'react';
 import type { IconType } from 'react-icons';
 import { SiBrave, SiGooglegemini, SiSearxng } from 'react-icons/si';
 
@@ -115,7 +116,7 @@ export const SearchProviderSwatch = ({
   label: string;
   size?: 'sm' | 'md';
 }) => {
-  const Icon = SWATCH_ICONS[id];
+  const icon = SWATCH_ICONS[id];
   return (
     <span
       aria-hidden
@@ -125,11 +126,9 @@ export const SearchProviderSwatch = ({
         size === 'sm' ? 'h-7 w-7 text-[11px]' : 'h-9 w-9 text-xs',
         SWATCH_TONES[id] ?? 'bg-[#27272A]'
       )}>
-      {Icon ? (
-        <Icon className={size === 'sm' ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
-      ) : (
-        label.trim().charAt(0).toUpperCase() || '?'
-      )}
+      {icon
+        ? createElement(icon, { className: size === 'sm' ? 'h-3.5 w-3.5' : 'h-4 w-4' })
+        : label.trim().charAt(0).toUpperCase() || '?'}
     </span>
   );
 };
