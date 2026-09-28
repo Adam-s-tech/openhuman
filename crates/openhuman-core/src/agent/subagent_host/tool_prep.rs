@@ -225,12 +225,6 @@ pub(crate) fn subagent_prompt_protocol(
 /// * every synthesised per-archetype `delegate_*` tool
 ///   ([`crate::tools::orchestrator_tools::collect_orchestrator_tools`]
 ///   emits `delegate_code_executor`, `delegate_planner`, …).
-/// * `agent_prepare_context` — the context-scout entry point. It reads the
-///   *parent's* visible catalog/session via `current_parent()`, which inside a
-///   nested run is still the top-level orchestrator (the runner does not
-///   install a child-scoped parent context). A wildcard or named sub-agent
-///   calling it would therefore scout against the orchestrator's surface, not
-///   its own. Context preparation is a top-level concern only.
 ///
 /// Kept as a tight prefix/exact match rather than a registry lookup so
 /// the strip is cheap to run inside [`super::ops::run_typed_mode`]'s
@@ -238,8 +232,7 @@ pub(crate) fn subagent_prompt_protocol(
 /// this function and the corresponding generator in
 /// `orchestrator_tools.rs` together.
 pub(super) fn is_subagent_spawn_tool(name: &str) -> bool {
-    if name == "spawn_subagent" || name.starts_with("delegate_") || name == "agent_prepare_context"
-    {
+    if name == "spawn_subagent" || name.starts_with("delegate_") {
         return true;
     }
     // Synthesised delegation tools are named by the target agent's

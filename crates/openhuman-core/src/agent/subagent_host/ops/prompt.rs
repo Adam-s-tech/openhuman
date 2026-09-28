@@ -39,21 +39,6 @@ Do not include facts in Answer that are not supported by Evidence used or Action
 If a tool result was truncated, partial, or too large to inspect fully, say so under Open uncertainties and do not treat it as complete.\n";
 
 pub(crate) fn append_subagent_role_contract(base_prompt: String, agent_id: &str) -> String {
-    // `context_scout` defines its own strict output contract (emit a single
-    // `[context_bundle]` and nothing else). The generic Result Contract here
-    // (Answer / Evidence used / Actions taken / …) directly conflicts with
-    // that and can make the scout emit the generic headings instead of the
-    // bundle — leaving the orchestrator without `has_enough_context` /
-    // `recommended_tool_calls`. Skip the suffix for the scout; its prompt.md
-    // already carries the sub-agent framing it needs.
-    if agent_id == "context_scout" {
-        tracing::debug!(
-            agent_id = %agent_id,
-            "[subagent_host] skipping role-contract suffix — agent defines its own output contract"
-        );
-        return base_prompt;
-    }
-
     if base_prompt.contains(SUBAGENT_ROLE_CONTRACT_SUFFIX.trim()) {
         tracing::debug!(
             agent_id = %agent_id,
