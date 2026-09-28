@@ -86,65 +86,6 @@ omit_memory_md = false
 #
 # `archivist` is not listed either: memory archiving runs on its own
 # post-commit hook (`runtime_session.rs`), not on request.
-[subagents]` allowlist below, which synthesises a `delegate_retrieve_memory`
-# tool the orchestrator calls only when a message actually needs the deep
-# memory-tree walk. (The frozen MEMORY.md digest still anchors every turn.)
-
-# Delegation surface. The `collect_orchestrator_tools` helper reads this
-# at agent-build time and synthesises one `delegate_*` tool per entry:
-#
-#   * Bare agent ids → one `ArchetypeDelegationTool` each, using the
-#     target agent's `delegate_name` override (if any) or `delegate_{id}`
-#     as the tool name, and the target's `when_to_use` as the
-#     LLM-visible tool description.
-#
-#   * `{ skills = "*" }` → one `Deferred` action tool per action of every
-#     connected Composio toolkit. Off the wire, found through `tool_search`,
-#     called directly. This used to be a `delegate_to_integrations_agent`
-#     spawn; one clear service action is now a search and a call, and the
-#     wildcard admits no sub-agent id (`AgentDefinition::allowed_subagent_ids`).
-#
-# The orchestrator LLM sees these as first-class entries in its
-# function-calling schema, so routing decisions happen at the tool-
-# selection layer rather than hidden inside a mega-tool's enum param.
-#
-# That decision still stands, and it has been re-examined: collapsing these
-# into one `delegate(agent = enum, ...)` looks like it would save ~6.8k tokens
-# but does not, because each tool's DISTINCT description (the target's
-# `when_to_use`) does not disappear — it just re-renders inside the mega-tool,
-# the way `SkillDelegationTool::build_description` already does. The tool NAMES
-# are load-bearing too: prompt.md teaches them individually, and the tool-pack
-# withholding table (`tools/toolpacks/registry.rs`) keys on them.
-#
-# What DID cost 6.8k was the shared argument envelope, emitted identically once
-# per delegate tool. That is fixed at the source: `ArchetypeDelegationTool::
-# parameters_schema` now carries descriptions only on the four fields whose name
-# does not carry their meaning, and the envelope's semantics are documented ONCE
-# in prompt.md under "Structured handoffs" — charged once instead of 19 times.
-# If you are here to propose the mega-tool again, it is a routing-quality change
-# needing an eval, not a token change.
-#
-# Two agents are deliberately ABSENT from this list, and absence is the point:
-# dropping an entry removes its synthesised `delegate_*` schema from every turn
-# without deleting the agent's registry entry. `spawn_async_subagent` builds
-# its `agent_id` enum from the whole registry, so `tools_agent` and
-# `archivist` still appear as choices — but note that they are NOT actually
-# dispatchable that way today: `execute_with_context_inner` additionally
-# checks `parent.allowed_subagent_ids`, which `session/turn/tools.rs` derives
-# from this very `subagents.allowlist`, so a model that calls
-# `spawn_async_subagent(agent_id = "tools_agent" | "archivist")` gets a clean
-# "not in parent agent's subagents.allowlist" error, not a dispatch. Making
-# them genuinely id-reachable without paying for a dedicated tool needs a
-# separate "spawn-permitted but unadvertised" list threaded through
-# `AgentDefinition`, `validate_tier_hierarchy` and the RPC-facing registry
-# model — tracked as follow-up, not done here.
-#
-#   * `tools_agent` — the generalist shell/HTTP/web-search worker. The
-#     orchestrator now carries `shell`, `web_search_tool`, `web_fetch` and
-#     `run_code` itself, so the delegate was a second door onto work it can
-#     already do directly.
-#   * `archivist` — memory archiving runs on its own post-turn hook, so the
-#     model rarely needs to ask for it, and asking is not how it usually happens.
 [subagents]
 allowlist = [
     # Task-source/workflow/artifact specialist. Route any request to add,
@@ -345,8 +286,8 @@ named = [
     # Unpacked in `toolpacks::registry` so it can be declared here at all —
     # packed, `closed_by_direct_handoff` denied it to this agent and every
     # route out was closed: `use_skill{composio}` answers "no tools available",
-    # and the `plan` hand-off it names describes itself as DAG decomposition,
-    # which gives a model no reason to try it for a catalogue lookup. Measured:
+    # and the only hand-off it named described itself as DAG decomposition,
+    # which gave a model no reason to try it for a catalogue lookup. Measured:
     # asked to list Composio apps, this agent ran `use_skill`, six
     # `tool_search` calls, a 404 and two doc fetches, then reported a marketing
     # "1,552+ apps" instead of this install's real 119.
