@@ -310,17 +310,19 @@ fn build_includes_direct_first_decision_tree() {
 }
 
 #[test]
-fn build_routes_live_facts_to_research_tool() {
+fn build_routes_live_facts_to_the_web_tools_directly() {
     let body = build(&ctx_with(&[])).unwrap();
-    assert!(body.contains("via `research`"));
+    // There is no research sub-agent: broad research is a deep web answer or
+    // search plus a batched contents read, done by the orchestrator itself.
+    assert!(body.contains("anything broader via deep `web_answer_tool`"));
+    assert!(body.contains("`depth: \"deep\"`"));
+    assert!(body.contains("`web_contents_tool`"));
+    assert!(!body.contains("`research`"), "the removed research delegate must not be named");
     assert!(body.contains("weather, forecasts, prices, recent news"));
     assert!(body.contains("\"use live data\""));
     // A lead-in line is welcome, but only in the same message as the call.
     assert!(body.contains("an announced search never runs: emit it"));
-    assert!(
-        !body.contains("delegate_researcher"),
-        "orchestrator prompt should name the synthesized researcher tool"
-    );
+    assert!(!body.contains("researcher"));
 }
 
 // Code tasks retain an explicit direct-execution contract in the prompt.
