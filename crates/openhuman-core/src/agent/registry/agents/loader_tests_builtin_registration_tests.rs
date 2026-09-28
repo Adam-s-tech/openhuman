@@ -280,7 +280,6 @@ fn vision_agent_loads_on_its_pinned_multimodal_model() {
 #[test]
 fn low_context_workers_use_burst_hint() {
     for id in [
-        "researcher",
         "context_scout",
         // NOTE: `flow_memory_agent` is intentionally NOT listed here. It is
         // a `#[cfg(feature = "flows")]` agent, and an array literal can't

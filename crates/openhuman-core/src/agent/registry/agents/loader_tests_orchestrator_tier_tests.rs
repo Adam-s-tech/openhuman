@@ -115,7 +115,6 @@ fn crypto_agent_has_narrow_wallet_market_tools_and_safety_on() {
                 // Synthesised delegation tools use the unprefixed
                 // `delegate_name` overrides — forbid those names too.
                 "run_code",
-                "research",
                 "plan",
             ] {
                 assert!(
@@ -462,8 +461,8 @@ fn rejects_reasoning_to_reasoning_delegation() {
 #[test]
 fn rejects_worker_with_subagents() {
     let mut defs = load_builtins().unwrap();
-    let researcher = defs.iter_mut().find(|d| d.id == "researcher").unwrap();
-    researcher
+    let worker = defs.iter_mut().find(|d| d.id == "code_executor").unwrap();
+    worker
         .subagents
         .push(SubagentEntry::AgentId("critic".into()));
 

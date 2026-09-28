@@ -487,39 +487,6 @@ fn chatty_sub_agents_have_bounded_output() {
 }
 
 #[test]
-fn researcher_is_bounded_to_search_and_fetch() {
-    let def = find("researcher");
-    assert_eq!(
-        def.max_iterations, 10,
-        "researcher keeps enough turns to recover from bad search results without broadening its tool surface"
-    );
-    assert_eq!(
-        def.max_turn_output_tokens,
-        Some(4096),
-        "researcher must cap each model turn so verbose research loops cannot flood context"
-    );
-    assert!(
-        def.extra_tools.is_empty(),
-        "researcher must not widen its tool surface via extra_tools"
-    );
-    match &def.tools {
-        ToolScope::Named(tools) => {
-            assert_eq!(
-                tools,
-                &vec![
-                    "web_search_tool".to_string(),
-                    "web_answer_tool".to_string(),
-                    "web_contents_tool".to_string(),
-                    "web_fetch".to_string()
-                ],
-                "researcher must stay limited to the web read tools so simple lookups do not fan out into deep research loops"
-            );
-        }
-        ToolScope::Wildcard => panic!("researcher must have Named tool scope"),
-    }
-}
-
-#[test]
 fn code_executor_has_curl_for_artifact_downloads() {
     let def = find("code_executor");
     match &def.tools {
