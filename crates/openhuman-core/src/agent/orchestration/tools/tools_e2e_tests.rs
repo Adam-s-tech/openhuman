@@ -416,7 +416,7 @@ fn parent_context(
     ParentExecutionContext {
         workspace_descriptor: None,
         agent_definition_id: "orchestrator".into(),
-        allowed_subagent_ids: ["researcher".to_string(), "integrations_agent".to_string()]
+        allowed_subagent_ids: ["researcher".to_string()]
             .into_iter()
             .collect(),
         turn_model_source: crate::agent::tinyagents::TurnModelSource::from_model(model),

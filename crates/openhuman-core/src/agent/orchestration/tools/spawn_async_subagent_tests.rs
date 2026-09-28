@@ -147,7 +147,7 @@ fn async_reference_matches_the_orchestrator_fleet_vocabulary() {
     let payload = async_subagent_ref_payload(
         "sub-123",
         "subsess-456",
-        "integrations_agent",
+        "researcher",
         None,
         false,
         "created",
@@ -196,7 +196,7 @@ fn async_reference_matches_the_orchestrator_fleet_vocabulary() {
         .iter()
         .any(|a| a.contains("delivered to you automatically")));
 
-    let message = format_async_subagent_accepted("integrations_agent", &serialized, &fleet);
+    let message = format_async_subagent_accepted("researcher", &serialized, &fleet);
     let prose = message.split("[async_subagent_ref]").next().unwrap();
     assert!(prose.contains("delivered to you automatically"));
     assert!(!prose.contains("wait for completion"));
