@@ -31,7 +31,7 @@ beforeEach(() => {
       },
     },
   });
-  mocks.rpc.mockResolvedValue({ result: { modules: [{ id: 'tinybrowser', state: 'available' }] } });
+  mocks.rpc.mockResolvedValue({ result: { modules: [{ id: 'tinycomputer', state: 'available' }] } });
   mocks.update.mockResolvedValue({ result: { config: {} } });
 });
 
@@ -55,12 +55,12 @@ describe('BrowserConnectionsPanel', () => {
         expect.objectContaining({ enabled: true, profile_mode: 'fresh' })
       )
     );
-    mocks.rpc.mockResolvedValueOnce({ result: { module: { id: 'tinybrowser', state: 'ready' } } });
+    mocks.rpc.mockResolvedValueOnce({ result: { module: { id: 'tinycomputer', state: 'ready' } } });
     fireEvent.click(screen.getByText('connections.browser.testModule'));
     await waitFor(() =>
       expect(mocks.rpc).toHaveBeenCalledWith({
         method: 'openhuman.modules_load',
-        params: { id: 'tinybrowser' },
+        params: { id: 'tinycomputer' },
       })
     );
   });
