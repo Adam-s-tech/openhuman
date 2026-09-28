@@ -117,27 +117,20 @@ test.describe('Harness - Cross-channel bridge flow', () => {
           content: '',
           toolCalls: [
             {
-              id: 'call_schedule_task_cb1',
-              name: 'schedule_task',
-              arguments: JSON.stringify({
-                prompt: 'Create a daily 9am standup reminder.',
-                blocking: true,
-              }),
-            },
-          ],
-        },
-        {
-          content: '',
-          toolCalls: [
-            {
+              // Scheduling is the orchestrator's `scheduling` skill pack now
+              // (the scheduler_agent / schedule_task delegate is retired).
               id: 'call_cron_add_cb1',
-              name: 'cron',
+              name: 'use_skill',
               arguments: JSON.stringify({
-                action: 'add',
-                name: 'daily_standup_reminder',
-                schedule: { kind: 'cron', expr: '0 9 * * *' },
-                prompt: 'standup reminder',
-                enabled: true,
+                skill: 'scheduling',
+                tool: 'cron',
+                args: {
+                  action: 'add',
+                  name: 'daily_standup_reminder',
+                  schedule: { kind: 'cron', expr: '0 9 * * *' },
+                  prompt: 'standup reminder',
+                  enabled: true,
+                },
               }),
             },
           ],
