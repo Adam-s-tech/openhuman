@@ -6695,7 +6695,7 @@ dependencies = [
 
 [[package]]
 name = "tinymcp"
-version = "0.3.3"
+version = "0.3.4"
 dependencies = [
  "base64 0.23.1",
  "dirs 7.0.0",
@@ -6715,7 +6715,7 @@ dependencies = [
 
 [[package]]
 name = "tinymcp-bus"
-version = "0.3.3"
+version = "0.3.4"
 dependencies = [
  "schemars",
  "serde",
