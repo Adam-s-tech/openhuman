@@ -376,8 +376,8 @@ async fn drive_subagent() {
         .clone();
     // A shipped definition with a `model.hint` would otherwise build a
     // fresh model via the workload factory and try to hit the real
-    // backend. Override to Inherit so the stub model above receives the request — same
-    // trick used in `tests/calendar_grounding_e2e.rs`.
+    // backend. Override to Inherit so the stub model above receives the
+    // request — same trick used in `tests/calendar_grounding_e2e.rs`.
     def.model = ModelSpec::Inherit;
 
     // The assertion is implicit: if the worker thread overflows its
