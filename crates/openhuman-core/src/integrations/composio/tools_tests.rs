@@ -138,3 +138,5 @@ mod direct_mode_routing_tests;
 mod host_credential_tests;
 #[path = "tools_metadata_and_sandbox_tests.rs"]
 mod metadata_and_sandbox_tests;
+#[path = "tools_redact_tests.rs"]
+mod redact_tests;

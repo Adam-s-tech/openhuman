@@ -28,7 +28,7 @@ pub(crate) fn composio_secrets(config: &Config) -> Vec<String> {
         }
     }
     secrets.retain(|s| s.len() >= MIN_SECRET_LEN);
-    secrets.sort();
+    secrets.sort_by(|a, b| b.len().cmp(&a.len()).then_with(|| a.cmp(b)));
     secrets.dedup();
     secrets
 }
