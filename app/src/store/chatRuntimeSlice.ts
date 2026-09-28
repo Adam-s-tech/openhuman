@@ -999,15 +999,22 @@ const initialState: ChatRuntimeState = {
  * current without changing its row identity.
  */
 /**
- * A row just minted by the live stream belongs to the live turn, when one is
- * known. With none (its `inference_start` was missed, e.g. a reconnect
- * mid-turn), the timeline's owner becomes unknown rather than staying the
- * turn that settled before: a stale claim would make `turnSettled` refuse to
- * freeze this turn's own rows.
+ * A row just minted by the stream belongs to the request its event names
+ * (`request_id`), else to the live turn. With neither known the owner becomes
+ * unknown rather than staying the turn that settled before: a turn whose
+ * `inference_start` was missed (a reconnect mid-turn) must still freeze its
+ * own rows. A late row of an already-settled turn names that turn, so it
+ * keeps the claim instead of erasing it. A parallel (forked) request never
+ * owns the primary timeline, as in `liveTurnStarted`.
  */
-function claimTimelineForLiveTurn(state: ChatRuntimeState, threadId: string): void {
-  const live = state.liveRequestIdByThread[threadId];
-  if (live) state.toolTimelineRequestByThread[threadId] = live;
+function claimTimelineForLiveTurn(
+  state: ChatRuntimeState,
+  threadId: string,
+  requestId: string | undefined
+): void {
+  if (requestId && state.parallelRequestThreads[requestId] !== undefined) return;
+  const claim = requestId ?? state.liveRequestIdByThread[threadId];
+  if (claim) state.toolTimelineRequestByThread[threadId] = claim;
   else delete state.toolTimelineRequestByThread[threadId];
 }
 
@@ -1475,6 +1482,8 @@ const chatRuntimeSlice = createSlice({
     toolCallReceived: (
       state,
       action: PayloadAction<{
+        /** The emitting event's `request_id`; see `claimTimelineForLiveTurn`. */
+        requestId?: string;
         threadId: string;
         round: number;
         toolName: string;
@@ -1547,7 +1556,7 @@ const chatRuntimeSlice = createSlice({
       } else {
         const seq = state.toolTimelineSeqByThread[threadId] ?? 0;
         state.toolTimelineSeqByThread[threadId] = seq + 1;
-        claimTimelineForLiveTurn(state, threadId);
+        claimTimelineForLiveTurn(state, threadId, action.payload.requestId);
         entries.push(
           decorateEntry({
             id: rowId,
@@ -1714,6 +1723,8 @@ const chatRuntimeSlice = createSlice({
     toolArgsDeltaReceived: (
       state,
       action: PayloadAction<{
+        /** The emitting event's `request_id`; see `claimTimelineForLiveTurn`. */
+        requestId?: string;
         threadId: string;
         round: number;
         delta: string;
@@ -1743,7 +1754,7 @@ const chatRuntimeSlice = createSlice({
       } else {
         const seq = state.toolTimelineSeqByThread[threadId] ?? 0;
         state.toolTimelineSeqByThread[threadId] = seq + 1;
-        claimTimelineForLiveTurn(state, threadId);
+        claimTimelineForLiveTurn(state, threadId, action.payload.requestId);
         entries.push(
           decorateEntry({
             // Same stable fallback `toolCallReceived` generates. This branch
@@ -1769,6 +1780,8 @@ const chatRuntimeSlice = createSlice({
     subagentSpawned: (
       state,
       action: PayloadAction<{
+        /** The emitting event's `request_id`; see `claimTimelineForLiveTurn`. */
+        requestId?: string;
         threadId: string;
         round: number;
         rowId: string;
@@ -1863,7 +1876,7 @@ const chatRuntimeSlice = createSlice({
         sourceToolName = spawnEntry?.name;
         seq = state.toolTimelineSeqByThread[threadId] ?? 0;
         state.toolTimelineSeqByThread[threadId] = seq + 1;
-        claimTimelineForLiveTurn(state, threadId);
+        claimTimelineForLiveTurn(state, threadId, action.payload.requestId);
         entries.push(
           decorateEntry({
             id: rowId,
@@ -1898,7 +1911,7 @@ const chatRuntimeSlice = createSlice({
         const spawnSeq = spawnIdx >= 0 ? entries[spawnIdx].seq : undefined;
         seq = spawnSeq ?? state.toolTimelineSeqByThread[threadId] ?? 0;
         if (spawnSeq === undefined) state.toolTimelineSeqByThread[threadId] = seq + 1;
-        claimTimelineForLiveTurn(state, threadId);
+        claimTimelineForLiveTurn(state, threadId, action.payload.requestId);
         const row = decorateEntry({
           id: rowId,
           name: `subagent:${agentId}`,
