@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react';
 import { cn } from '../../../lib/cn';
 import { useT } from '../../../lib/i18n/I18nContext';
 import {
-  isTauri,
   openhumanGetSandboxSettings,
   openhumanUpdateSandboxSettings,
   type SandboxBackendId,
@@ -53,7 +52,7 @@ const BACKEND_OPTIONS: BackendOption[] = [
 const SandboxSettingsPanel = () => {
   const { t } = useT();
 
-  const [isLoading, setIsLoading] = useState(isTauri());
+  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedNote, setSavedNote] = useState<string | null>(null);
@@ -72,7 +71,6 @@ const SandboxSettingsPanel = () => {
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
-      if (!isTauri()) return;
       try {
         const resp = await openhumanGetSandboxSettings();
         if (cancelled) return;
@@ -100,7 +98,6 @@ const SandboxSettingsPanel = () => {
 
   const persist = async (patch: Parameters<typeof openhumanUpdateSandboxSettings>[0]) => {
     const seq = ++persistSeqRef.current;
-    if (!isTauri()) return;
     setError(null);
     setSavedNote(null);
     setIsSaving(true);
@@ -153,16 +150,6 @@ const SandboxSettingsPanel = () => {
       void persist({ docker_cpu_limit: parsed });
     }
   };
-
-  if (!isTauri()) {
-    return (
-      <SettingsPanel description={t('settings.sandbox.menuDesc')}>
-        <Alert variant="info" density="compact">
-          <AlertDescription>{t('settings.sandbox.desktopOnly')}</AlertDescription>
-        </Alert>
-      </SettingsPanel>
-    );
-  }
 
   if (isLoading) {
     return (
