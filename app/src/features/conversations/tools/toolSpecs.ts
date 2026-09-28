@@ -610,8 +610,6 @@ export const FAMILY_TOOL_SPECS: ReadonlyArray<{ test: RegExp; spec: ToolSpec }> 
  * declare (`delegate_name`).
  */
 export const AGENT_SPECS: Record<string, ToolSpec> = {
-  researcher: spec('research', TelescopeIcon, 'agent'),
-  research: spec('research', TelescopeIcon, 'agent'),
   context_scout: spec('scoutContext', LayersIcon, 'agent'),
   orchestrator: spec('planNextSteps', BotIcon, 'agent'),
   plan: spec('planNextSteps', BotIcon, 'agent'),
