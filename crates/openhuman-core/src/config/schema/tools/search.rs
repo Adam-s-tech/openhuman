@@ -411,7 +411,7 @@ fn default_providers() -> BTreeMap<String, SearchProviderSettings> {
 }
 
 /// Legacy inputs that lived outside `[search]`.
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct LegacySearchInputs {
     /// `integrations.tinyfish.is_active()`.
     pub tinyfish_active: bool,
