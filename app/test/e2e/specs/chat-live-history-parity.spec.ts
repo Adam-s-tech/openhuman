@@ -248,10 +248,10 @@ describe('Chat live/history parity', () => {
     // Compare the stable current projection. A streaming sample can become
     // stale when the final assistant message replaces an earlier narration.
     settled = (await replyBlocks()).map(block => ({ ...block }));
-    // Adjacent rounds share one activity group, whose trigger reports the
-    // total number of calls represented in that group.
-    expect(settled.filter(block => block.kind === 'tool-group-root')).toHaveLength(1);
-    expect(settled.find(block => block.kind === 'tool-group-root')?.text).toContain('2 tool calls');
+    // Each scripted tool round appears as its own activity group.
+    const toolGroups = settled.filter(block => block.kind === 'tool-group-root');
+    expect(toolGroups).toHaveLength(2);
+    expect(toolGroups.map(group => group.text)).toEqual(['1 tool call', '1 tool call']);
     const finalBlock = settled.find(
       block => block.kind === 'text' && block.text.includes(CANARY_FINAL)
     );
