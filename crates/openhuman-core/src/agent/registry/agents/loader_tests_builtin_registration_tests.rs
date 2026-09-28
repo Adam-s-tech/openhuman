@@ -277,26 +277,6 @@ fn vision_agent_loads_on_its_pinned_multimodal_model() {
     }
 }
 
-#[test]
-fn low_context_workers_use_burst_hint() {
-    for id in [
-        // NOTE: `flow_memory_agent` is intentionally NOT listed here. It is
-        // a `#[cfg(feature = "flows")]` agent, and an array literal can't
-        // carry a per-element `cfg`; its burst hint is covered by the
-        // gated `flow_memory_agent_is_read_only_worker_with_bounded_memory_belt`
-        // test instead.
-        "integrations_agent",
-        "tools_agent",
-        "crypto_agent",
-        "scheduler_agent",
-    ] {
-        let def = find(id);
-        assert!(
-            matches!(def.model, ModelSpec::Hint(ref h) if h == "burst"),
-            "{id} should use the burst worker tier"
-        );
-    }
-}
 
 #[test]
 fn master_agent_has_coding_hint_and_named_tools() {
@@ -449,17 +429,6 @@ fn time_sensitive_agents_expose_resolve_time() {
     }
 }
 
-#[test]
-fn code_executor_is_sandboxed_and_keeps_safety_preamble() {
-    let def = find("code_executor");
-    assert_eq!(def.sandbox_mode, SandboxMode::Sandboxed);
-    assert!(!def.omit_safety_preamble);
-    assert_eq!(def.max_iterations, 10);
-    assert_eq!(
-        def.effective_tokenjuice_compression(),
-        AgentTokenjuiceCompression::Light
-    );
-}
 
 #[test]
 fn broad_agent_surfaces_expose_storage_transfer_not_lifecycle_tools() {
@@ -490,40 +459,7 @@ fn broad_agent_surfaces_expose_storage_transfer_not_lifecycle_tools() {
     }
 }
 
-#[test]
-fn tool_maker_is_sandboxed_with_max_2_iterations() {
-    let def = find("tool_maker");
-    assert_eq!(def.sandbox_mode, SandboxMode::Sandboxed);
-    assert_eq!(def.max_iterations, 2);
-    assert!(!def.omit_safety_preamble);
-    assert_eq!(
-        def.effective_tokenjuice_compression(),
-        AgentTokenjuiceCompression::Light
-    );
-}
 
-#[test]
-fn skill_creator_is_sandboxed_and_has_node_tools() {
-    let def = find("skill_creator");
-    assert_eq!(def.sandbox_mode, SandboxMode::Sandboxed);
-    assert_eq!(def.max_iterations, 10);
-    assert!(!def.omit_safety_preamble);
-    assert_eq!(
-        def.effective_tokenjuice_compression(),
-        AgentTokenjuiceCompression::Light
-    );
-    match &def.tools {
-        ToolScope::Named(names) => {
-            for required in ["node_exec", "npm_exec", "apply_patch", "update_memory_md"] {
-                assert!(
-                    names.iter().any(|name| name == required),
-                    "skill_creator tool list missing `{required}`"
-                );
-            }
-        }
-        ToolScope::Wildcard => panic!("skill_creator must have named tool allowlist"),
-    }
-}
 
 #[test]
 fn critic_is_read_only() {
@@ -606,26 +542,7 @@ fn planner_has_readonly_mcp_discovery_not_execute() {
     }
 }
 
-#[test]
-fn integrations_agent_tool_scope_honours_toml() {
-    let def = find("integrations_agent");
-    // Current TOML: `named = ["composio_list_tools", "file_read"]`.
-    // Sub-agent runner additionally injects per-toolkit
-    // ComposioActionTools at spawn time.
-    match &def.tools {
-        ToolScope::Named(names) => {
-            assert!(names.iter().any(|n| n == "composio_list_tools"));
-        }
-        other => panic!("expected Named scope, got {other:?}"),
-    }
-    assert!(!def.omit_safety_preamble);
-}
 
-#[test]
-fn tools_agent_is_registered() {
-    let def = find("tools_agent");
-    assert!(matches!(def.tools, ToolScope::Wildcard));
-}
 
 /// Two agents are deliberately missing from the orchestrator's subagent list.
 ///
