@@ -1,4 +1,3 @@
-import { ChevronDownIcon } from 'lucide-react';
 import { useEffect, useId, useState } from 'react';
 
 import { useT } from '../../../lib/i18n/I18nContext';
@@ -11,17 +10,14 @@ import {
   type SearchSettings,
   type SearchSettingsUpdate,
 } from '../../../utils/tauriCommands/config';
-import PanelPage from '../../layout/PanelPage';
+import ChipTabs from '../../layout/ChipTabs';
 import { Alert, AlertDescription } from '../../ui/Alert';
-import Card from '../../ui/Card';
-import { CollapsibleContent, CollapsibleRoot, CollapsibleTrigger } from '../../ui/Collapsible';
 import { CenteredLoadingState } from '../../ui/LoadingState';
 import StatusLine from '../../ui/StatusLine';
 import Switch from '../../ui/Switch';
-import SettingsBackButton from '../components/SettingsBackButton';
-import { useSettingsNavigation } from '../hooks/useSettingsNavigation';
+import SettingsTabbedPage from '../layout/SettingsTabbedPage';
 import SearchPanelAllowedSites from './SearchPanelAllowedSites';
-import SearchPanelProviderCard from './SearchPanelProviderCard';
+import SearchPanelProviders from './SearchPanelProviders';
 import SearchPanelRoles from './SearchPanelRoles';
 
 type Status =
@@ -31,24 +27,32 @@ type Status =
   | { kind: 'saved' }
   | { kind: 'error'; message: string };
 
+export type SearchPanelTab = 'providers' | 'routing' | 'websites';
+
 const errorMessage = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
 /**
- * Web search settings. Everything is rendered from the core's
- * `config_get_search_settings` response: the global switch, one card per
- * provider, the per-role provider order, the allowed-websites list and the
- * advanced tool-presentation toggle. Every update returns the full settings
- * object, which replaces local state, so the view never guesses what the core
- * decided (for example which provider now serves a role).
+ * Web search settings, laid out like the LLM page: a page header carrying the
+ * global on/off switch, then three chip tabs —
+ *  - Providers: what is connected, and a catalogue of what can be added;
+ *  - Routing: which provider serves each role (search / answer / contents);
+ *  - Websites: the host allowlist for opening and reading pages.
+ *
+ * Everything is rendered from the core's `config_get_search_settings`
+ * response. Every update returns the full settings object, which replaces
+ * local state, so the view never guesses what the core decided (for example
+ * which provider now serves a role).
+ *
+ * `embedded` renders without the page title (the onboarding wizard owns its
+ * own heading); the switch and tabs then sit at the top of the body.
  */
 const SearchPanel = ({ embedded = false }: { embedded?: boolean }) => {
   const { t } = useT();
-  const { navigateBack } = useSettingsNavigation();
   const { snapshot } = useCoreState();
   const isLocalSession = isLocalSessionToken(snapshot.sessionToken);
   const enabledId = useId();
-  const presentationId = useId();
 
+  const [tab, setTab] = useState<SearchPanelTab>('providers');
   const [settings, setSettings] = useState<SearchSettings | null>(null);
   const [status, setStatus] = useState<Status>({ kind: 'loading' });
   const saving = status.kind === 'saving';
@@ -90,116 +94,105 @@ const SearchPanel = ({ embedded = false }: { embedded?: boolean }) => {
 
   const managedUnavailable = isLocalSession || (settings ? !settings.managed_available : false);
 
-  return (
-    <PanelPage
-      className="z-10"
-      testId="search-settings-panel"
-      contentClassName=""
-      description={embedded ? undefined : t('settings.search.menuDesc')}
-      leading={embedded ? undefined : <SettingsBackButton onBack={navigateBack} />}>
-      <div className={embedded ? 'space-y-5' : 'space-y-5 p-4'}>
-        {managedUnavailable && (
-          <Alert variant="info">
-            <AlertDescription>{t('settings.search.localManagedUnavailable')}</AlertDescription>
-          </Alert>
-        )}
+  const enabledSwitch = settings ? (
+    <label
+      htmlFor={enabledId}
+      className="flex items-center gap-2.5 rounded-lg border border-line bg-surface px-3 py-1.5"
+      data-testid="search-enabled">
+      <span className="text-sm font-medium text-content">{t('settings.search.enabledLabel')}</span>
+      <Switch
+        id={enabledId}
+        data-testid="search-enabled-toggle"
+        aria-label={t('settings.search.enabledLabel')}
+        checked={settings.enabled}
+        disabled={saving}
+        onCheckedChange={next => void persist({ enabled: next })}
+      />
+    </label>
+  ) : null;
 
-        {status.kind === 'loading' && <CenteredLoadingState label={t('common.loading')} />}
+  const tabs = [
+    { id: 'providers' as const, label: t('settings.search.tabProviders') },
+    { id: 'routing' as const, label: t('settings.search.tabRouting') },
+    { id: 'websites' as const, label: t('settings.search.tabWebsites') },
+  ];
 
-        {settings && (
-          <>
-            {/* ── Search on/off ─────────────────────────────────────── */}
-            <Card data-testid="search-enabled">
-              <div className="flex items-center gap-3 p-4">
-                <div className="min-w-0 flex-1">
-                  <label htmlFor={enabledId} className="block text-sm font-semibold text-content">
-                    {t('settings.search.enabledLabel')}
-                  </label>
-                  <p className="mt-0.5 text-xs text-content-muted">
-                    {t('settings.search.enabledDesc')}
-                  </p>
-                </div>
-                <Switch
-                  id={enabledId}
-                  data-testid="search-enabled-toggle"
-                  aria-label={t('settings.search.enabledLabel')}
-                  checked={settings.enabled}
-                  disabled={saving}
-                  onCheckedChange={next => void persist({ enabled: next })}
-                />
-              </div>
-              <p className="px-4 py-3 text-xs leading-relaxed text-content-muted">
-                {t('settings.search.description')}
-              </p>
-            </Card>
+  const body = (
+    <div className="flex w-full flex-col gap-4" data-testid="search-settings-panel">
+      {managedUnavailable && (
+        <Alert variant="info">
+          <AlertDescription>{t('settings.search.localManagedUnavailable')}</AlertDescription>
+        </Alert>
+      )}
 
-            {/* ── Providers, one row each ───────────────────────────── */}
-            <Card
-              data-testid="search-providers"
-              title={t('settings.search.providersTitle')}
-              description={t('settings.search.providersDesc')}>
-              {settings.providers.map(provider => (
-                <SearchPanelProviderCard
-                  key={provider.id}
-                  provider={provider}
-                  saving={saving}
-                  onUpdate={patch => updateProvider(provider.id, patch)}
-                  t={t}
-                />
-              ))}
-            </Card>
+      {settings && !settings.enabled && (
+        <Alert variant="warning" data-testid="search-off-notice">
+          <AlertDescription>{t('settings.search.offNotice')}</AlertDescription>
+        </Alert>
+      )}
 
-            <SearchPanelRoles settings={settings} saving={saving} persist={persist} t={t} />
+      {status.kind === 'loading' && <CenteredLoadingState label={t('common.loading')} />}
 
-            <SearchPanelAllowedSites settings={settings} saving={saving} persist={persist} t={t} />
-
-            {/* ── Advanced ──────────────────────────────────────────── */}
-            <CollapsibleRoot variant="card" data-testid="search-advanced">
-              <CollapsibleTrigger>
-                {t('settings.search.advancedTitle')}
-                <ChevronDownIcon
-                  className="size-3.5 transition-transform group-data-[state=open]:rotate-180"
-                  aria-hidden="true"
-                />
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <div className="flex items-center gap-3 pt-1">
-                  <label htmlFor={presentationId} className="min-w-0 flex-1">
-                    <span className="block text-sm text-content">
-                      {t('settings.search.exposeProviderTools')}
-                    </span>
-                    <span className="mt-0.5 block text-xs leading-relaxed text-content-muted">
-                      {t('settings.search.exposeProviderToolsDesc')}
-                    </span>
-                  </label>
-                  <Switch
-                    id={presentationId}
-                    data-testid="search-presentation-toggle"
-                    aria-label={t('settings.search.exposeProviderTools')}
-                    checked={settings.presentation === 'all_tools'}
-                    disabled={saving}
-                    onCheckedChange={next =>
-                      void persist({ presentation: next ? 'all_tools' : 'roles' })
-                    }
-                  />
-                </div>
-              </CollapsibleContent>
-            </CollapsibleRoot>
-          </>
-        )}
-
-        <StatusLine
+      {settings && tab === 'providers' && (
+        <SearchPanelProviders
+          settings={settings}
           saving={saving}
-          savedNote={status.kind === 'saved' ? t('settings.search.statusSaved') : null}
-          error={
-            status.kind === 'error'
-              ? `${t('settings.search.statusError')}: ${status.message}`
-              : null
-          }
-          savingLabel={t('settings.search.statusSaving')}
+          managedUnavailable={managedUnavailable}
+          updateProvider={updateProvider}
+          t={t}
         />
+      )}
+      {settings && tab === 'routing' && (
+        <SearchPanelRoles settings={settings} saving={saving} persist={persist} t={t} />
+      )}
+      {settings && tab === 'websites' && (
+        <SearchPanelAllowedSites settings={settings} saving={saving} persist={persist} t={t} />
+      )}
+
+      <StatusLine
+        saving={saving}
+        savedNote={status.kind === 'saved' ? t('settings.search.statusSaved') : null}
+        error={
+          status.kind === 'error'
+            ? `${t('settings.search.statusError')}: ${status.message}`
+            : null
+        }
+        savingLabel={t('settings.search.statusSaving')}
+      />
+    </div>
+  );
+
+  if (embedded) {
+    return (
+      <div className="flex w-full flex-col gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <ChipTabs
+            className="flex flex-wrap gap-1.5"
+            ariaLabel={t('settings.search.title')}
+            testIdPrefix="search-tab"
+            items={tabs}
+            value={tab}
+            onChange={setTab}
+          />
+          {enabledSwitch}
+        </div>
+        {body}
       </div>
-    </PanelPage>
+    );
+  }
+
+  return (
+    <SettingsTabbedPage
+      title={t('settings.search.title')}
+      description={t('connections.header.search')}
+      headerAction={enabledSwitch}
+      tabs={tabs}
+      value={tab}
+      onChange={setTab}
+      tabsAriaLabel={t('settings.search.title')}
+      tabsTestIdPrefix="search-tab">
+      {body}
+    </SettingsTabbedPage>
   );
 };
 
