@@ -215,6 +215,7 @@ const SearchPanelProviders = ({
               }
               control={
                 <Switch
+                  id={`${testId}-toggle`}
                   data-testid={`${testId}-toggle`}
                   aria-label={withProvider(t('settings.search.providerToggleAria'), provider.label)}
                   checked
