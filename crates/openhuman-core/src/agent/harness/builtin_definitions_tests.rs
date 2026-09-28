@@ -100,7 +100,6 @@ fn expected_builtin_ids_are_present() {
         "profile_memory_agent",
         "tool_maker",
         "skill_creator",
-        "researcher",
         "critic",
         "archivist",
         "summarizer",
