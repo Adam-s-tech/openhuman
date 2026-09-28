@@ -258,7 +258,20 @@ fn archivist_runs_in_background() {
 fn morning_briefing_is_read_only() {
     let def = find("morning_briefing");
     assert_eq!(def.sandbox_mode, SandboxMode::ReadOnly);
-    assert!(matches!(def.tools, ToolScope::Wildcard));
+    // A named belt, not a wildcard: a cron-driven read-only job has no use
+    // for every registered tool.
+    match &def.tools {
+        ToolScope::Named(tools) => {
+            for required in ["memory_tree", "composio_execute", "tool_search", "current_time"] {
+                assert!(
+                    tools.iter().any(|t| t == required),
+                    "morning_briefing needs `{required}`"
+                );
+            }
+            assert!(!tools.iter().any(|t| t == "shell" || t == "file_write"));
+        }
+        ToolScope::Wildcard => panic!("morning_briefing must have a named belt"),
+    }
     // The brief pulls its own last-24h memory via the `memory_tree`
     // `cover_window` tool, so the stale all-time memory blob is suppressed.
     assert!(def.omit_memory_context);

@@ -72,9 +72,11 @@ fn trigger_reactor_has_agentic_hint_and_narrow_tools() {
                 tools.iter().any(|t| t == "memory_store"),
                 "trigger_reactor needs memory_store"
             );
+            // A worker with no `[subagents]` allowlist can never dispatch a
+            // spawn, so listing the tool only advertised a dead route.
             assert!(
-                tools.iter().any(|t| t == "spawn_subagent"),
-                "trigger_reactor needs spawn_subagent for escalation"
+                !tools.iter().any(|t| t == "spawn_subagent"),
+                "trigger_reactor cannot escalate by spawning; it must not list spawn_subagent"
             );
             // No shell / file_write — reactor does not execute code.
             assert!(!tools.iter().any(|t| t == "shell"));
