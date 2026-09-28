@@ -1114,26 +1114,26 @@ async fn subagent_delegation_happy_path_inner() {
     stack.shutdown();
 }
 
-// ─── Task 4: Scheduling clarification flow ────────────────────────────────────
+// ─── Task 4: Delegated clarification flow ─────────────────────────────────────
 //
-// `schedule_task` is scheduler_agent's synthesised delegate (its `agent.toml`
+// `manage_tasks` is task_manager_agent's synthesised delegate (its `agent.toml`
 // `delegate_name`), and `ask_user_clarification` IS in that agent's named tools.
 // So a blocking delegation that needs a detail pauses the *child*, and
 // `dispatch_subagent` hands the parent a `[SUBAGENT_AWAITING_USER]` envelope as
-// the `schedule_task` tool result (#4291). That envelope is an ordinary tool
-// result to the orchestrator — `schedule_task` is not in its `early_exit_tools`
+// the `manage_tasks` tool result (#4291). That envelope is an ordinary tool
+// result to the orchestrator — `manage_tasks` is not in its `early_exit_tools`
 // — so the orchestrator relays the question in its OWN next reply, and turn 1
 // ends on that text.
 //
 // Actual LLM request ordering (4 upstream calls total):
-//   request[0] = orchestrator turn 1 → schedule_task (blocking) tool call
-//   request[1] = scheduler_agent → ask_user_clarification pauses the child
+//   request[0] = orchestrator turn 1 → manage_tasks (blocking) tool call
+//   request[1] = task_manager_agent → ask_user_clarification pauses the child
 //   request[2] = orchestrator, with the awaiting-user envelope in context →
 //                relays the question as text; turn 1 ends (chat_done)
 //   request[3] = orchestrator turn 2 with "version 2" user reply in full context →
 //                synthesis; turn 2 ends (chat_done with ANSWER_CANARY_V2)
 
-/// A scheduling request that needs clarification surfaces its question in turn 1,
+/// A delegated request whose specialist needs clarification surfaces its question in turn 1,
 /// then preserves that question in the context used to answer turn 2.
 #[test]
 #[ignore = "TODO(#6375): hosted TinyAgents continuation is replaying the prior clarification"]
@@ -1148,21 +1148,21 @@ async fn scheduling_clarification_flow_inner() {
     let _lock = env_lock();
     reset_script(vec![
         // ── turn 1 ──
-        // request[0]: Orchestrator delegates to scheduler_agent via schedule_task.
+        // request[0]: Orchestrator delegates to task_manager_agent via manage_tasks.
         tool_call_completion(
-            "schedule_task",
-            json!({ "prompt": "Schedule a weekly reminder", "blocking": true }),
+            "manage_tasks",
+            json!({ "prompt": "Add my GitHub issues as a task source", "blocking": true }),
         ),
-        // request[1]: scheduler_agent asks for the missing detail. This pauses
+        // request[1]: task_manager_agent asks for the missing detail. This pauses
         //   the child; the question comes back to the orchestrator inside the
-        //   `[SUBAGENT_AWAITING_USER]` envelope as the schedule_task result.
+        //   `[SUBAGENT_AWAITING_USER]` envelope as the manage_tasks result.
         tool_call_completion(
             "ask_user_clarification",
             json!({ "question": "WHICH_VERSION_CANARY?" }),
         ),
         // request[2]: Orchestrator relays the sub-agent's question to the user,
         //   as the envelope instructs; turn 1 ends on this text.
-        text_completion("The scheduler needs one detail: WHICH_VERSION_CANARY?"),
+        text_completion("The task manager needs one detail: WHICH_VERSION_CANARY?"),
         // ── turn 2 (user replied "version 2") ──
         // request[3]: Orchestrator processes user reply with full turn-1 context →
         //   synthesizes final answer; turn 2 ends here.
@@ -1182,7 +1182,7 @@ async fn scheduling_clarification_flow_inner() {
         400,
         "harness-clarify",
         "thread-clarify",
-        "schedule a weekly reminder",
+        "add my GitHub issues as a task source",
     )
     .await;
     let first =
@@ -1229,9 +1229,9 @@ async fn scheduling_clarification_flow_inner() {
     let requests = with_captured(|c| c.clone());
 
     // ── No unknown-tool result in any captured request ──
-    // Proves schedule_task was recognised by the orchestrator. This is the guard
+    // Proves manage_tasks was recognised by the orchestrator. This is the guard
     // that let the 3-completion version of this test pass vacuously: with the
-    // delegate unresolved, the engine's lowercase "unknown tool `schedule_task`"
+    // delegate unresolved, the engine's lowercase "unknown tool `manage_tasks`"
     // result never matched the old `"Unknown tool:"` literal, and the
     // orchestrator consumed the child's clarification completion itself.
     assert!(
@@ -1242,33 +1242,33 @@ async fn scheduling_clarification_flow_inner() {
     );
 
     // ── Both turns traversed the expected four upstream requests ──
-    // request[0] = orchestrator (schedule_task call),
-    // request[1] = scheduler_agent (ask_user_clarification pause),
+    // request[0] = orchestrator (manage_tasks call),
+    // request[1] = task_manager_agent (ask_user_clarification pause),
     // request[2] = orchestrator (relays the question; turn-1 end),
     // request[3] = orchestrator turn-2 synthesis (turn-2 end).
     assert!(
         requests.len() >= 4,
-        "expected ≥4 upstream requests (schedule + child clarification + relay + \
+        "expected ≥4 upstream requests (delegation + child clarification + relay + \
          turn-2 synthesis), got {};\nall requests: {}",
         requests.len(),
         serde_json::to_string_pretty(&requests).unwrap_or_default()
     );
 
-    // ── request[1] went to scheduler_agent, not the orchestrator ──
+    // ── request[1] went to task_manager_agent, not the orchestrator ──
     // Proves the blocking delegate really ran (the child's system prompt is
-    // scheduler-specific; both agents share the project-context prefix, so
+    // task-manager-specific; both agents share the project-context prefix, so
     // message 0 alone cannot tell them apart). Without this the flow degrades
     // to "orchestrator asks the user itself", which never exercises the pause.
-    let scheduler_request = requests.get(1).map(Value::to_string).unwrap_or_default();
+    let child_request = requests.get(1).map(Value::to_string).unwrap_or_default();
     assert!(
-        scheduler_request.contains("Scheduler OpenHumanSessionHost"),
-        "request[1] did not carry the scheduler_agent prompt — schedule_task did not \
-         delegate; request: {scheduler_request}"
+        child_request.contains("You own the user's task-source feeds and artifacts"),
+        "request[1] did not carry the task_manager_agent prompt — manage_tasks did not \
+         delegate; request: {child_request}"
     );
 
     // ── request[2] saw the child's pause as a `[SUBAGENT_AWAITING_USER]` envelope ──
     // Proves `dispatch_subagent` surfaced the pause the #4291 way (structured
-    // envelope carrying the question, as the schedule_task tool result) rather
+    // envelope carrying the question, as the manage_tasks tool result) rather
     // than as a plain success the model could read as "answered".
     let relay_request = requests.get(2).map(Value::to_string).unwrap_or_default();
     assert!(
