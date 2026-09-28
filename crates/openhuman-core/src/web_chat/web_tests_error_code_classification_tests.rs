@@ -608,3 +608,26 @@ fn fingerprint_identical_inputs_are_cache_hit() {
         "identical fingerprints must compare equal (cache hit)"
     );
 }
+
+#[test]
+fn classify_inference_error_in_stream_tool_history_rejection_uses_malformed_history_copy() {
+    // #6724: a provider failure delivered inside an HTTP 200 stream reaches
+    // classification as the session driver wraps the re-surfaced
+    // `ProviderError`, whose status comes from the stream's numeric `code`
+    // (tinyinference#37). It must land on the purpose-built canned copy, and
+    // the raw provider text must not be shown.
+    let raw = "driver failed: OpenHuman returned HTTP 400: Message at index 2 has role 'tool' \
+               but is not preceded by an assistant message with a matching tool_call";
+    let classified = classify_inference_error(raw);
+    assert_eq!(classified.error_type, "provider_request_rejected");
+    assert!(
+        classified.message.contains("we've cleared it"),
+        "{}",
+        classified.message
+    );
+    assert!(
+        !classified.message.contains("index 2"),
+        "{}",
+        classified.message
+    );
+}

@@ -408,6 +408,91 @@ pub(crate) fn forward_provider_delta(tx: &UnboundedSender<ModelStreamItem>, delt
 /// the runner can re-surface the downcastable error after the run fails.
 pub(super) type ModelErrorSlot = Arc<Mutex<Option<anyhow::Error>>>;
 
+/// Fills the turn's [`ModelErrorSlot`] with the provider failure that ended a
+/// model call, and empties it again when a later call succeeds, so the runner
+/// re-surfaces the real failure instead of the harness's sanitized
+/// "hosted agent invocation failed" (#6724).
+///
+/// Covers both an `Err` from `invoke`/`stream` and a failure reported *inside*
+/// a stream (`ProviderFailed`, e.g. an HTTP 200 SSE `{"error":…}` payload).
+/// The recorded error only feeds `web_errors` classification, which picks the
+/// user-facing copy; it is never rendered verbatim.
+pub(super) struct ErrorSlotModel {
+    inner: Arc<dyn ChatModel<()>>,
+    slot: ModelErrorSlot,
+}
+
+impl ErrorSlotModel {
+    pub(super) fn new(inner: Arc<dyn ChatModel<()>>, slot: ModelErrorSlot) -> Self {
+        Self { inner, slot }
+    }
+}
+
+fn store_model_error(slot: &ModelErrorSlot, error: Option<anyhow::Error>) {
+    *slot
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner) = error;
+}
+
+fn slot_error(error: &tinyinference_llm::Error) -> anyhow::Error {
+    match error {
+        tinyinference_llm::Error::Provider(provider_error) => {
+            anyhow::Error::new(tinyinference_llm::Error::Provider(provider_error.clone()))
+        }
+        other => anyhow::anyhow!("{other}"),
+    }
+}
+
+#[async_trait]
+impl ChatModel<()> for ErrorSlotModel {
+    fn profile(&self) -> Option<&ModelProfile> {
+        self.inner.profile()
+    }
+
+    fn cache_identity(&self) -> Option<String> {
+        self.inner.cache_identity()
+    }
+
+    async fn invoke(
+        &self,
+        state: &(),
+        request: ModelRequest,
+    ) -> tinyinference_llm::Result<ModelResponse> {
+        let result = self.inner.invoke(state, request).await;
+        store_model_error(&self.slot, result.as_ref().err().map(slot_error));
+        result
+    }
+
+    async fn stream(
+        &self,
+        state: &(),
+        request: ModelRequest,
+    ) -> tinyinference_llm::Result<ModelStream> {
+        match self.inner.stream(state, request).await {
+            Ok(stream) => {
+                let slot = self.slot.clone();
+                Ok(stream.map_items(move |item| {
+                    match &item {
+                        ModelStreamItem::ProviderFailed(error) => store_model_error(
+                            &slot,
+                            Some(anyhow::Error::new(tinyinference_llm::Error::Provider(
+                                Box::new(error.clone()),
+                            ))),
+                        ),
+                        ModelStreamItem::Completed(_) => store_model_error(&slot, None),
+                        _ => {}
+                    }
+                    item
+                }))
+            }
+            Err(error) => {
+                store_model_error(&self.slot, Some(slot_error(&error)));
+                Err(error)
+            }
+        }
+    }
+}
+
 pub(super) struct MaxTokensModel {
     inner: Arc<dyn ChatModel<()>>,
     max_tokens: u32,
@@ -539,3 +624,7 @@ impl ChatModel<()> for MaxTokensModel {
 #[cfg(test)]
 #[path = "model_g1_usage_tests_tests.rs"]
 mod g1_usage_tests;
+
+#[cfg(test)]
+#[path = "error_slot_model_tests.rs"]
+mod error_slot_model_tests;

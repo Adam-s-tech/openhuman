@@ -6,7 +6,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 
 use crate::agent::tinyagents::model::{
-    BuiltTurnModels, ProfileOverrideModel, TierRoutes, TurnChatModel,
+    BuiltTurnModels, ErrorSlotModel, ProfileOverrideModel, TierRoutes, TurnChatModel,
 };
 use crate::agent::tinyagents::routes;
 use tinyagents_harness::host::{ModelResolveRequest, ModelResolver};
@@ -291,11 +291,24 @@ fn build_turn_models_crate(
             anyhow::Ok((primary, routes, summarizer))
         })?;
 
+    // The primary and every tier route share one slot: a failure on one and a
+    // successful fallback on another must leave the slot empty.
+    let error_slot: crate::agent::tinyagents::model::ModelErrorSlot =
+        Arc::new(std::sync::Mutex::new(None));
+    let primary: TurnChatModel = Arc::new(ErrorSlotModel::new(primary, error_slot.clone()));
+    let routes = routes
+        .into_iter()
+        .map(|(tier, route)| {
+            let route: TurnChatModel = Arc::new(ErrorSlotModel::new(route, error_slot.clone()));
+            (tier, route)
+        })
+        .collect();
+
     Ok(TurnModels {
         primary,
         routes,
         summarizer,
-        error_slot: Arc::new(std::sync::Mutex::new(None)),
+        error_slot,
         provider_id,
         context_window,
         native_tools,
@@ -482,16 +495,21 @@ impl TurnModelSource {
             let native_tools = profile.tool_calling;
             let supports_vision = profile.modalities.image_in;
             let context_window = context_window.or(profile.max_input_tokens);
-            let primary: TurnChatModel = Arc::new(
-                ProfileOverrideModel::new(direct.clone(), profile)
-                    .with_request_model(model)
-                    .with_request_temperature(temperature),
-            );
+            let error_slot: crate::agent::tinyagents::model::ModelErrorSlot =
+                Arc::new(std::sync::Mutex::new(None));
+            let primary: TurnChatModel = Arc::new(ErrorSlotModel::new(
+                Arc::new(
+                    ProfileOverrideModel::new(direct.clone(), profile)
+                        .with_request_model(model)
+                        .with_request_temperature(temperature),
+                ),
+                error_slot.clone(),
+            ));
             return Ok(TurnModels {
                 primary,
                 routes: Vec::new(),
                 summarizer: direct.clone(),
-                error_slot: Arc::new(std::sync::Mutex::new(None)),
+                error_slot,
                 provider_id,
                 context_window,
                 native_tools,

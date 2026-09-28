@@ -223,3 +223,79 @@ async fn a_streamed_delta_reaches_the_progress_channel_exactly_once() {
         "the deferring seam must emit no TurnCompleted — the caller owns it"
     );
 }
+
+/// A model whose every stream ends in a provider failure reported inside the
+/// stream, the shape of an HTTP 200 SSE `{"error":{"code":400,…}}` (#6724).
+struct InStreamRejectionModel;
+
+const IN_STREAM_REJECTION: &str = "Message at index 2 has role 'tool' but is not preceded \
+                                   by an assistant message with a matching tool_call";
+
+#[async_trait::async_trait]
+impl tinyinference_llm::model::ChatModel<()> for InStreamRejectionModel {
+    async fn invoke(
+        &self,
+        _state: &(),
+        _request: tinyinference_llm::model::ModelRequest,
+    ) -> tinyinference_llm::Result<tinyinference_llm::model::ModelResponse> {
+        unreachable!("the hosted root streams")
+    }
+
+    async fn stream(
+        &self,
+        _state: &(),
+        _request: tinyinference_llm::model::ModelRequest,
+    ) -> tinyinference_llm::Result<tinyinference_llm::model::ModelStream> {
+        let failure = tinyinference_llm::model::ProviderError {
+            provider: "OpenHuman".to_string(),
+            status: Some(400),
+            message: IN_STREAM_REJECTION.to_string(),
+            retryable: false,
+            ..Default::default()
+        };
+        Ok(tinyinference_llm::model::ModelStream::new(Box::pin(
+            futures::stream::iter(vec![
+                tinyinference_llm::model::ModelStreamItem::ProviderFailed(failure),
+            ]),
+        )))
+    }
+}
+
+/// The harness sanitizes a failed stream to "hosted agent invocation failed";
+/// the turn's error slot must carry the real provider failure past it so
+/// `web_errors` can classify it (#6724).
+#[tokio::test]
+async fn an_in_stream_provider_failure_is_re_surfaced_past_the_hosted_sanitizer() {
+    let model: Arc<dyn tinyinference_llm::model::ChatModel<()>> = Arc::new(InStreamRejectionModel);
+    let models = TurnModelSource::from_model(model)
+        .build("root-test-model", 0.0, None, None)
+        .expect("turn models build");
+    let (tx, _rx) = tokio::sync::mpsc::channel(8);
+    let error = run_root_turn_via_hosted_agent(
+        root_context("in-stream", "/tmp/in-stream", tx),
+        hosted_base(),
+        "main".to_string(),
+        models,
+        "test".to_string(),
+        "root-test-model",
+        root_messages("in-stream"),
+        vec![Arc::new(Vec::new())],
+        Some(Default::default()),
+        2,
+        None,
+        None,
+        &[],
+        false,
+        None,
+        TurnContextMiddleware::default(),
+        None,
+        true,
+    )
+    .await
+    .expect_err("the provider rejected the request");
+    let text = error.to_string();
+    assert!(
+        text.contains(IN_STREAM_REJECTION),
+        "the run failure must be the provider's, not the sanitized one: {text}"
+    );
+}

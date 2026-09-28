@@ -30,7 +30,8 @@ use std::time::Duration;
 
 use tinyinference_llm::message::Message;
 use tinyinference_llm::model::{
-    ChatModel, Modalities, ModelProfile, ModelRequest, ModelResponse, ModelStream, ProviderError,
+    ChatModel, Modalities, ModelProfile, ModelRequest, ModelResponse, ModelStream, ModelStreamItem,
+    ProviderError,
 };
 use tinyinference_llm::providers::openai::OpenAiModel;
 use tinyinference_llm::Error as TiError;
@@ -549,16 +550,7 @@ fn maybe_publish_session_expired(err: &TiError, operation: &str) {
 /// by [`sanitize_api_error`] before it's logged — no tokens, no full PII.
 fn log_managed_dispatch_error(err: &TiError, operation: &str) {
     match err {
-        TiError::Provider(pe) => {
-            log::warn!(
-                "[providers][openhuman-backend] managed {operation} failed: status={:?} code={:?} provider={} retryable={} detail={}",
-                pe.status,
-                pe.code,
-                pe.provider,
-                pe.retryable,
-                tinyinference_core::sanitize::sanitize_api_error(&pe.message),
-            );
-        }
+        TiError::Provider(pe) => log_managed_provider_error(pe, operation),
         other => {
             log::warn!(
                 "[providers][openhuman-backend] managed {operation} failed (non-provider error): {}",
@@ -566,6 +558,19 @@ fn log_managed_dispatch_error(err: &TiError, operation: &str) {
             );
         }
     }
+}
+
+/// Logs a structured provider failure; the detail is secret-scrubbed and
+/// truncated because a provider error can echo request content.
+fn log_managed_provider_error(pe: &ProviderError, operation: &str) {
+    log::warn!(
+        "[providers][openhuman-backend] managed {operation} failed: status={:?} code={:?} provider={} retryable={} detail={}",
+        pe.status,
+        pe.code,
+        pe.provider,
+        pe.retryable,
+        tinyinference_core::sanitize::sanitize_api_error(&pe.message),
+    );
 }
 
 #[async_trait]
@@ -622,7 +627,14 @@ impl ChatModel<()> for OpenHumanBackendModel {
             .stream(state, with_thread_id(request, self.thread_id.as_deref()))
             .await
         {
-            Ok(stream) => Ok(stream),
+            // A failure can also arrive *inside* an HTTP 200 stream as an SSE
+            // `{"error":…}` payload; it never reaches the `Err` arm (#6724).
+            Ok(stream) => Ok(stream.map_items(|item| {
+                if let ModelStreamItem::ProviderFailed(pe) = &item {
+                    log_managed_provider_error(pe, "stream (in-band)");
+                }
+                item
+            })),
             Err(e) => {
                 log_managed_dispatch_error(&e, "stream");
                 maybe_publish_session_expired(&e, "stream");
