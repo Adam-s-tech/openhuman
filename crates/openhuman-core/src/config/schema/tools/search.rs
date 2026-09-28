@@ -353,6 +353,10 @@ pub struct SearchConfig {
     /// Parallel route.
     #[serde(default)]
     pub parallel: SearchEngineCredentials,
+    /// TinyFish key. TinyFish is bring-your-own-key only: the TinyHumans
+    /// backend does not proxy it.
+    #[serde(default)]
+    pub tinyfish: SearchEngineCredentials,
 
     // ── Legacy single-engine fields: read for migration, never written ──
     #[serde(default, skip_serializing)]
@@ -390,6 +394,7 @@ impl Default for SearchConfig {
             parallel_route: None,
             gemini_route: None,
             parallel: SearchEngineCredentials::default(),
+            tinyfish: SearchEngineCredentials::default(),
         }
     }
 }
@@ -429,6 +434,7 @@ impl SearchConfig {
             "tavily" => Some(&self.tavily),
             "gemini" | "gemini_deep_research" => Some(&self.gemini),
             "parallel" => Some(&self.parallel),
+            "tinyfish" => Some(&self.tinyfish),
             _ => None,
         }
     }
@@ -441,6 +447,7 @@ impl SearchConfig {
             "tavily" => Some(&mut self.tavily),
             "gemini" | "gemini_deep_research" => Some(&mut self.gemini),
             "parallel" => Some(&mut self.parallel),
+            "tinyfish" => Some(&mut self.tinyfish),
             _ => None,
         }
     }

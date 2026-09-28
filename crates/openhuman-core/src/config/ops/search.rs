@@ -82,6 +82,7 @@ fn docs_url(provider: &str) -> Option<&'static str> {
         "querit" => Some("https://querit.ai/"),
         "seltz" => Some("https://seltz.ai/"),
         "searxng" => Some("https://docs.searxng.org/"),
+        "tinyfish" => Some("https://agent.tinyfish.ai/api-keys"),
         _ => None,
     }
 }
@@ -89,14 +90,11 @@ fn docs_url(provider: &str) -> Option<&'static str> {
 /// Routes a provider supports, in UI order.
 fn supported_routes(provider: &str) -> Vec<&'static str> {
     let managed = MANAGED_SEARCH_PROVIDERS.contains(&provider);
-    let direct = provider != "tinyfish";
     let mut routes = Vec::new();
     if managed {
         routes.push(SearchRoute::Managed.as_str());
     }
-    if direct {
-        routes.push(SearchRoute::Direct.as_str());
-    }
+    routes.push(SearchRoute::Direct.as_str());
     routes
 }
 
@@ -157,7 +155,7 @@ fn apply_provider_patch(
     if let Some(key) = patch.api_key {
         match provider {
             "seltz" => config.seltz.api_key = nonempty(&key),
-            "searxng" | "tinyfish" => {
+            "searxng" => {
                 return Err(format!("{provider} does not take an API key"));
             }
             other => {
@@ -339,7 +337,7 @@ pub(crate) fn search_settings_json_with(config: &Config, managed_available: bool
                 "routes": supported_routes(p.id),
                 "managed_available": p.managed_available,
                 "key_configured": p.key_configured,
-                "takes_key": !matches!(p.id, "searxng" | "tinyfish"),
+                "takes_key": p.id != "searxng",
                 "usable": p.usable,
                 "status": p.status(search_enabled),
                 "roles": p.roles,

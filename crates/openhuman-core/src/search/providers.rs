@@ -69,7 +69,6 @@ pub fn direct_configured(config: &Config, provider: &str) -> bool {
             .as_deref()
             .is_some_and(|key| !key.trim().is_empty()),
         "searxng" => !config.searxng.base_url.trim().is_empty(),
-        "tinyfish" => false,
         other => config
             .search
             .credentials(other)
