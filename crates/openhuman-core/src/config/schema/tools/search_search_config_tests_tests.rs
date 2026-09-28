@@ -340,9 +340,8 @@ fn credentials_resolve_per_provider() {
 
 #[test]
 fn v2_managed_tinyfish_without_a_key_is_turned_off() {
-    let mut cfg = legacy(
-        "schema_version = 2\n[providers.tinyfish]\nenabled = true\nroute = \"managed\"\n",
-    );
+    let mut cfg =
+        legacy("schema_version = 2\n[providers.tinyfish]\nenabled = true\nroute = \"managed\"\n");
     assert!(cfg.migrate_legacy(LegacySearchInputs::default()));
     assert_eq!(
         provider(&cfg, "tinyfish"),

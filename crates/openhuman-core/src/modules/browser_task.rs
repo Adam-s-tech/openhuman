@@ -127,8 +127,7 @@ pub async fn cancel(config: &Config, id: TaskId) -> Result<TaskView, String> {
 }
 
 async fn follow(config: &Config, mut view: TaskView) -> Result<TaskView, String> {
-    let deadline =
-        Instant::now() + Duration::from_secs(config.browser.task_timeout_secs.max(1));
+    let deadline = Instant::now() + Duration::from_secs(config.browser.task_timeout_secs.max(1));
     while matches!(view.status, tinycomputer_bus::agent::TaskStatus::Running) {
         let left = deadline.saturating_duration_since(Instant::now());
         if left.is_zero() {

@@ -15,7 +15,10 @@ fn patch_selects_decision_model_and_rescue_settings() {
     .unwrap();
     assert_eq!(next.decision_model, DecisionModel::OpenJev);
     assert_eq!(next.rescue_model.as_deref(), Some("openai/gpt-6-luna"));
-    assert_eq!(next.planner_model.as_deref(), Some("anthropic/claude-sonnet-5"));
+    assert_eq!(
+        next.planner_model.as_deref(),
+        Some("anthropic/claude-sonnet-5")
+    );
     assert_eq!(next.max_rescues, Some(0));
     assert!(next.sage_fast);
 }

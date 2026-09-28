@@ -43,7 +43,10 @@ fn model_id(raw: String) -> Result<Option<String>, String> {
 }
 
 /// Apply `update` to a copy of `[computer]`, validating every field first.
-pub fn patched(current: &ComputerConfig, update: ComputerSettingsPatch) -> Result<ComputerConfig, String> {
+pub fn patched(
+    current: &ComputerConfig,
+    update: ComputerSettingsPatch,
+) -> Result<ComputerConfig, String> {
     let mut computer = current.clone();
     if let Some(raw) = update.decision_model {
         computer.decision_model = parse_decision_model(&raw)?;

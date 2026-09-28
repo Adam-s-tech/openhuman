@@ -299,7 +299,5 @@ pub(crate) fn effective_max_iterations(max_iterations: usize) -> usize {
 /// (`subagent_host::ops::runner`). Widen this predicate in lockstep if that
 /// ever stops being true.
 pub(crate) fn is_subagent_spawn_or_delegate_tool(name: &str) -> bool {
-    name == "spawn_subagent"
-        || name.starts_with("delegate_")
-        || name == "spawn_worker_thread"
+    name == "spawn_subagent" || name.starts_with("delegate_") || name == "spawn_worker_thread"
 }

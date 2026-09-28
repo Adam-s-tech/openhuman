@@ -125,7 +125,13 @@ async fn needs_approval_view_is_held_behind_a_token_and_cleared_by_other_states(
     let output = tool.report(paused).await.unwrap();
     let token = output["pending"]["token"].as_str().unwrap().to_owned();
     assert_eq!(output["pending"]["task_id"], "t-1");
-    assert!(tool.pending.lock().await.as_ref().unwrap().matches(&json!({"token": token})));
+    assert!(tool
+        .pending
+        .lock()
+        .await
+        .as_ref()
+        .unwrap()
+        .matches(&json!({"token": token})));
 
     let done: TaskView = serde_json::from_value(json!({
         "id": "t-1",

@@ -10,9 +10,9 @@ use std::sync::Arc;
 use serde::{de::DeserializeOwned, Serialize};
 use tinycomputer_bus::agent::Capabilities;
 use tinycomputer_bus::browser::{
-    names, Action, ActionOutcome, DownloadInfo, DownloadWaitRequest, NavigateRequest, PageState, PageText,
-    ReadRequest, SessionId, SessionInfo, SessionOptions, SessionRef, SessionRequest, Snapshot,
-    SnapshotRequest, Viewport,
+    names, Action, ActionOutcome, DownloadInfo, DownloadWaitRequest, NavigateRequest, PageState,
+    PageText, ReadRequest, SessionId, SessionInfo, SessionOptions, SessionRef, SessionRequest,
+    Snapshot, SnapshotRequest, Viewport,
 };
 use tinycomputer_bus::DesktopResponse;
 
@@ -190,7 +190,10 @@ impl BrowserClient {
     ) -> Result<PageState, BrowserCallError> {
         self.check_url(&request.url)?;
         let page: PageState = self
-            .call(names::methods::NAVIGATE, SessionRequest::new(session.clone(), request))
+            .call(
+                names::methods::NAVIGATE,
+                SessionRequest::new(session.clone(), request),
+            )
             .await?;
         self.check_returned_url(&page.url)?;
         Ok(page)
@@ -202,7 +205,10 @@ impl BrowserClient {
         request: SnapshotRequest,
     ) -> Result<Snapshot, BrowserCallError> {
         let snapshot: Snapshot = self
-            .call(names::methods::SNAPSHOT, SessionRequest::new(session.clone(), request))
+            .call(
+                names::methods::SNAPSHOT,
+                SessionRequest::new(session.clone(), request),
+            )
             .await?;
         self.check_returned_url(&snapshot.url)?;
         Ok(snapshot)
@@ -214,7 +220,10 @@ impl BrowserClient {
         action: Action,
     ) -> Result<ActionOutcome, BrowserCallError> {
         let outcome: ActionOutcome = self
-            .call(names::methods::PERFORM, SessionRequest::new(session.clone(), action))
+            .call(
+                names::methods::PERFORM,
+                SessionRequest::new(session.clone(), action),
+            )
             .await?;
         self.check_returned_url(&outcome.page.url)?;
         Ok(outcome)
@@ -226,7 +235,10 @@ impl BrowserClient {
         request: ReadRequest,
     ) -> Result<PageText, BrowserCallError> {
         let page: PageText = self
-            .call(names::methods::READ_PAGE, SessionRequest::new(session.clone(), request))
+            .call(
+                names::methods::READ_PAGE,
+                SessionRequest::new(session.clone(), request),
+            )
             .await?;
         self.check_returned_url(&page.url)?;
         Ok(page)
@@ -249,7 +261,7 @@ impl BrowserClient {
             names::methods::WAIT_DOWNLOAD,
             SessionRequest::new(session.clone(), request),
         )
-            .await
+        .await
     }
 
     pub async fn close_session(&self, session: &SessionId) -> Result<(), BrowserCallError> {

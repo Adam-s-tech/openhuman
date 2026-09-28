@@ -317,7 +317,10 @@ fn build_routes_live_facts_to_the_web_tools_directly() {
     assert!(body.contains("anything broader via deep `web_answer_tool`"));
     assert!(body.contains("`depth: \"deep\"`"));
     assert!(body.contains("`web_contents_tool`"));
-    assert!(!body.contains("`research`"), "the removed research delegate must not be named");
+    assert!(
+        !body.contains("`research`"),
+        "the removed research delegate must not be named"
+    );
     assert!(body.contains("weather, forecasts, prices, recent news"));
     assert!(body.contains("\"use live data\""));
     // A lead-in line is welcome, but only in the same message as the call.

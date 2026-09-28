@@ -19,9 +19,9 @@ use std::{
     sync::{Arc, Mutex as StdMutex},
     time::Instant,
 };
-use tinycomputer_bus::agent::{ContinueTaskRequest, TaskId, TaskStatus, TaskView};
 #[cfg(test)]
 use std::{collections::HashMap, time::Duration};
+use tinycomputer_bus::agent::{ContinueTaskRequest, TaskId, TaskStatus, TaskView};
 use tinycomputer_bus::browser::{
     Action, DownloadState, DownloadWaitRequest, LocateBy, Locator, NavigateRequest, ReadRequest,
     ScrollDirection, SessionId, SessionOptions, SnapshotRequest, Target, WaitState,
@@ -560,13 +560,15 @@ async fn approve_task_action(pending: &Pending) -> anyhow::Result<bool> {
         &digest_hex[..12]
     );
     let args = json!({"action": "task_step", "target": summary, "exact_action_sha256": digest_hex});
-    Ok(match gate.intercept_forced("browser", &summary, args).await {
-        GateOutcome::Allow => true,
-        GateOutcome::Deny { reason } => {
-            tracing::debug!(%reason, "[browser] task action denied by host");
-            false
-        }
-    })
+    Ok(
+        match gate.intercept_forced("browser", &summary, args).await {
+            GateOutcome::Allow => true,
+            GateOutcome::Deny { reason } => {
+                tracing::debug!(%reason, "[browser] task action denied by host");
+                false
+            }
+        },
+    )
 }
 
 fn required<'a>(args: &'a Value, key: &str) -> anyhow::Result<&'a str> {

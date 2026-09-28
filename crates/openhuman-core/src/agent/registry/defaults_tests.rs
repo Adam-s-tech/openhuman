@@ -6,7 +6,10 @@ fn default_agents_include_core_personas() {
     let ids: Vec<&str> = agents.iter().map(|agent| agent.id.as_str()).collect();
     assert!(ids.contains(&"orchestrator"));
     assert!(ids.contains(&"planner"));
-    assert!(!ids.contains(&"researcher"), "the researcher agent was removed");
+    assert!(
+        !ids.contains(&"researcher"),
+        "the researcher agent was removed"
+    );
     assert!(ids.contains(&"code_executor"));
     assert!(agents
         .iter()
