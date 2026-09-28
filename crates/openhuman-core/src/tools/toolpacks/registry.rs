@@ -58,9 +58,10 @@ pub const PACKS: &[ToolPack] = &[
             "list_connectable_toolkits",
         ],
         owners: &["workflow_builder", "flow_discovery"],
+        guide: "",
     },
     ToolPack {
-        id: "crypto",
+        id: "web3",
         summary: "Crypto wallet and market actions: quotes, swaps, bridges, contract calls, x402.",
         // `wallet_balances`, `wallet_network_defaults`, `wallet_supported_assets`,
         // `wallet_encode_erc20_transfer` and `wallet_execute_prepared` are NOT
@@ -68,7 +69,6 @@ pub const PACKS: &[ToolPack] = &[
         // wrapper, and `render_pack_filtered` skips an unresolvable name
         // silently — so listing them only made the rendered menu quietly short.
         tools: &[
-            "do_crypto",
             "wallet_status",
             "wallet_chain_status",
             "wallet_prepare_transfer",
@@ -83,11 +83,14 @@ pub const PACKS: &[ToolPack] = &[
             "web3_dapp_call",
             "web3_dapp_execute",
             "x402_request",
+            "stock_crypto_series",
+            "stock_exchange_rate",
         ],
-        owners: &["crypto_agent"],
+        owners: &[],
+        guide: include_str!("guides/web3.md"),
     },
     ToolPack {
-        id: "integrations",
+        id: "mcp",
         // The orchestrator carries a narrow named set of MCP tools directly;
         // keep those schemas visible without exposing every server tool.
         summary: "MCP servers: search the catalog, connect, disconnect, check status, call tools.",
@@ -102,7 +105,11 @@ pub const PACKS: &[ToolPack] = &[
             "mcp_registry_tool_call",
             "mcp_registry_uninstall",
         ],
-        owners: &["mcp_agent", "planner", "orchestrator"],
+        // The orchestrator owns it so the four registry tools on its belt stay
+        // advertised; the catalogue readers are `Deferred` and reached through
+        // `tool_search` or this skill.
+        owners: &["orchestrator"],
+        guide: include_str!("guides/mcp.md"),
     },
     ToolPack {
         id: "composio",
@@ -126,10 +133,7 @@ pub const PACKS: &[ToolPack] = &[
         // reported a marketing figure of "1,552+ apps" instead of this
         // install's real 119.
         //
-        // Its own owners keep it by DECLARING it: `planner/agent.toml:72` and
-        // `workflow_builder/agent.toml:109`. `integrations_agent` reached it
-        // only through this pack, so it now declares it too — unpacking must
-        // not quietly take a capability from a second consumer.
+        // Its own owner keeps it by DECLARING it (`workflow_builder/agent.toml`).
         tools: &[
             "composio",
             "composio_authorize",
@@ -137,13 +141,15 @@ pub const PACKS: &[ToolPack] = &[
             "composio_list_connections",
             "composio_list_tools",
         ],
-        owners: &["integrations_agent", "workflow_builder", "planner"],
+        owners: &["workflow_builder"],
+        guide: "",
     },
     ToolPack {
         id: "skills",
-        // The install and run hand-offs (`setup_skills`, `run_skill`) are not
-        // members: they are the orchestrator's direct route into this family.
-        // See `DELIBERATELY_UNPACKED_HANDOFFS`.
+        // The install hand-off (`setup_skills`) is not a member: it is the
+        // orchestrator's direct route into this family. See
+        // `DELIBERATELY_UNPACKED_HANDOFFS`. Running an installed skill is the
+        // orchestrator's own `run_workflow`.
         summary: "Skills: search installed, browse and install from registries, read resources.",
         tools: &[
             // In the pack, not outside it. A search tool advertised while the
@@ -164,14 +170,9 @@ pub const PACKS: &[ToolPack] = &[
             "install_workflow_from_url",
             "uninstall_workflow",
             "read_workflow_resource",
-            // The delegate into `skill_creator`, which owns this pack.
-            "create_skill",
         ],
         owners: &[
             "skill_setup",
-            "skill_executor",
-            "skill_creator",
-            "context_scout",
             // `workflow_builder` owns exactly ONE tool from this pack —
             // `read_workflow_resource`, which fetches a page of the
             // `flow-authoring` builtin skill, the reference manual its own
@@ -184,6 +185,7 @@ pub const PACKS: &[ToolPack] = &[
             // of the tool's own ~500 B — measured, not estimated.
             "workflow_builder",
         ],
+        guide: "",
     },
     ToolPack {
         id: "documents",
@@ -198,6 +200,7 @@ pub const PACKS: &[ToolPack] = &[
             "make_presentation",
         ],
         owners: &["presentation_agent"],
+        guide: "",
     },
     ToolPack {
         id: "audio",
@@ -208,10 +211,11 @@ pub const PACKS: &[ToolPack] = &[
             "audio_generate_and_email_podcast",
         ],
         owners: &[],
+        guide: "",
     },
     ToolPack {
         id: "system",
-        summary: "OpenHuman health, diagnostics, costs, services, proxy, read-only config.",
+        summary: "OpenHuman settings: config, health, diagnostics, costs, service, proxy, credentials, app updates.",
         tools: &[
             "config_snapshot",
             "config_get_client_config",
@@ -239,15 +243,19 @@ pub const PACKS: &[ToolPack] = &[
             "daemon_host_prefs_get",
             "daemon_host_prefs_set",
             "proxy_config",
-            // The delegate into this same family. `settings_agent` owns the
-            // pack, so it keeps seeing the whole belt including this.
-            "manage_settings",
+            "session_state",
+            "credential_list",
+            "oauth_connect_url",
+            "oauth_list",
+            "update_check",
+            "update_apply",
         ],
-        owners: &["settings_agent"],
+        owners: &[],
+        guide: include_str!("guides/system.md"),
     },
     ToolPack {
-        id: "files",
-        summary: "Files and repositories: grep, glob, list, git.",
+        id: "coding",
+        summary: "Code and repositories: search, edit, run scripts, test, lint, review a diff, git.",
         // `shell` covers every one of these for an agent that has it, so on a
         // belt that also carries `shell` the family is duplicate surface
         // charged on every turn. It stays one `use_skill` away, and the
@@ -282,19 +290,28 @@ pub const PACKS: &[ToolPack] = &[
         // preview, got `unknown tool file_read`, then invented `ranges` and
         // `tool_read_file`, misused `desktop_continue_goal` and `plan`, and ran
         // out of iterations without reading its own result.
-        tools: &["grep", "glob", "list", "git_operations"],
-        owners: &[
-            "code_executor",
-            "critic",
-            "planner",
-            "skill_creator",
-            "skill_executor",
-            "tool_maker",
-            "image_agent",
-            "video_agent",
-            "vision_agent",
-            "integrations_agent",
+        //
+        // The rest of the family is `Deferred` rather than on any belt:
+        // `tool_search` finds one of them, and this skill hands out the whole
+        // loop with its playbook. It replaced the `code_executor` / `critic` /
+        // `tool_maker` specialists, whose value was that playbook.
+        tools: &[
+            "grep",
+            "glob",
+            "list",
+            "git_operations",
+            "edit",
+            "lsp",
+            "node_exec",
+            "npm_exec",
+            "python_exec",
+            "curl",
+            "read_diff",
+            "run_linter",
+            "run_tests",
         ],
+        owners: &["image_agent", "video_agent", "vision_agent"],
+        guide: include_str!("guides/coding.md"),
     },
     ToolPack {
         id: "storage",
@@ -305,24 +322,15 @@ pub const PACKS: &[ToolPack] = &[
             "storage_list_files",
             "storage_get_link",
         ],
-        // Not ownerless: `code_executor` and `integrations_agent` both declare
-        // the family on their own belts, and an agent that uploads its own
-        // artifacts should not pay a `use_skill` round trip to hand one back.
-        owners: &["code_executor", "integrations_agent"],
+        owners: &[],
+        guide: "",
     },
     ToolPack {
         id: "scheduling",
         summary: "Reminders and scheduled jobs: create, list, update, remove, run, inspect.",
-        tools: &[
-            "schedule_task",
-            "cron_add",
-            "cron_list",
-            "cron_update",
-            "cron_remove",
-            "cron_run",
-            "cron_runs",
-        ],
-        owners: &["scheduler_agent"],
+        tools: &["cron"],
+        owners: &[],
+        guide: include_str!("guides/scheduling.md"),
     },
     ToolPack {
         id: "profile",
@@ -336,6 +344,7 @@ pub const PACKS: &[ToolPack] = &[
             "manage_profile_memory",
         ],
         owners: &["profile_memory_agent"],
+        guide: "",
     },
     ToolPack {
         id: "media",
@@ -352,12 +361,14 @@ pub const PACKS: &[ToolPack] = &[
             "media_list_models",
         ],
         owners: &["image_agent", "video_agent", "vision_agent"],
+        guide: "",
     },
     ToolPack {
         id: "tasks",
         summary: "Task sources, workflows, artifacts: add, preview, fetch, update, remove.",
         tools: &["manage_tasks"],
         owners: &["task_manager_agent"],
+        guide: "",
     },
     ToolPack {
         id: "goals",
@@ -379,12 +390,14 @@ pub const PACKS: &[ToolPack] = &[
         summary: "Long-term goals and this thread's objective: read, add, edit.",
         tools: &["goals", "goal_get", "goal_set"],
         owners: &["goals_agent"],
+        guide: "",
     },
     ToolPack {
-        id: "app_update",
-        summary: "Check for and apply OpenHuman application updates.",
-        tools: &["update_check", "update_apply"],
-        owners: &["settings_agent"],
+        id: "docs",
+        summary: "OpenHuman's own product docs: how a feature works, setup steps, where a setting lives.",
+        tools: &["gitbooks_search", "gitbooks_get_page"],
+        owners: &[],
+        guide: include_str!("guides/docs.md"),
     },
 ];
 
@@ -429,7 +442,7 @@ pub(crate) const DELIBERATELY_UNPACKED_FLEET_TOOLS: &[&str] = &[
 /// token-cost decision, and the same closing rule takes effect for any of them
 /// as soon as it is unpacked and listed here.
 #[cfg(test)]
-pub(crate) const DELIBERATELY_UNPACKED_HANDOFFS: &[&str] = &["setup_skills", "run_skill"];
+pub(crate) const DELIBERATELY_UNPACKED_HANDOFFS: &[&str] = &["setup_skills"];
 
 pub fn pack(id: &str) -> Option<&'static ToolPack> {
     PACKS.iter().find(|p| p.id == id)
