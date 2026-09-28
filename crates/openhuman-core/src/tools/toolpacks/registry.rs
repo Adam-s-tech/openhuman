@@ -133,8 +133,8 @@ pub const PACKS: &[ToolPack] = &[
         // reported a marketing figure of "1,552+ apps" instead of this
         // install's real 119.
         //
-        // Its own owners keep it by DECLARING it (`workflow_builder/agent.toml`,
-        // `planner/agent.toml`).
+        // Its own owners keep it by DECLARING it (`workflow_builder`, `planner`
+        // and `morning_briefing` agent.toml).
         tools: &[
             "composio",
             "composio_authorize",
@@ -142,7 +142,7 @@ pub const PACKS: &[ToolPack] = &[
             "composio_list_connections",
             "composio_list_tools",
         ],
-        owners: &["workflow_builder", "planner"],
+        owners: &["workflow_builder", "planner", "morning_briefing"],
         guide: "",
     },
     ToolPack {
