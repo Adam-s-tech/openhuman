@@ -47,7 +47,7 @@ if (localModule) {
     { mode: 0o600 });
   console.log('Local debug module copied and operator allowlist written.');
   const canonical = await realpath(destination);
-  console.log(`Add [[modules.overrides]] with id = "tinydesktop" and path = ${JSON.stringify(canonical)} to the isolated core config, then restart the core.`);
+  console.log(`Add [[modules.overrides]] with id = "tinycomputer" and path = ${JSON.stringify(canonical)} to the isolated core config, then restart the core.`);
   process.exit(0);
 }
 if (!process.argv.includes('--live')) fail('Pass --live to run real desktop actions.');

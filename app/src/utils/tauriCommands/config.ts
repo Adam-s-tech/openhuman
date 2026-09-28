@@ -151,7 +151,7 @@ export interface RuntimeSettingsUpdate {
 
 export interface BrowserSettingsUpdate {
   enabled?: boolean | null;
-  backend?: 'tinybrowser' | null;
+  backend?: 'tinycomputer' | null;
   headless?: boolean;
   viewport_width?: number;
   viewport_height?: number;

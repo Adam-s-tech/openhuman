@@ -137,7 +137,10 @@ fn nonempty(value: String) -> Option<String> {
 fn normalize_browser_backend(raw: &str) -> Result<String, String> {
     let key = raw.trim().to_ascii_lowercase().replace('-', "_");
     match key.as_str() {
-        "tinybrowser" | "tiny_browser" => Ok("tinybrowser".to_string()),
+        // TinyBrowser was folded into TinyComputer; old values migrate.
+        "tinycomputer" | "tiny_computer" | "tinybrowser" | "tiny_browser" => {
+            Ok("tinycomputer".to_string())
+        }
         "agent_browser" | "agentbrowser" => Ok("agent_browser".to_string()),
         "playwright" => Ok("playwright".to_string()),
         "rust_native" | "native" => Ok("rust_native".to_string()),

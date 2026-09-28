@@ -333,10 +333,7 @@ tinychannels = { version = "0.1", features = ["relay-websocket"], optional = tru
 # never loads a module. The kernel-floor ratchet catches exactly that, and did.
 tinybus = { path = "../../vendor/tinybus/crates/tinybus", default-features = false, features = ["macros", "uds"] }
 tinysearch-bus = { path = "../../vendor/tinysearch/crates/tinysearch-bus" }
-tinycomputer-bus = { path = "../../vendor/tinydesktop/crates/tinycomputer-bus", optional = true }
-tinybrowser-bus = { path = "../../vendor/tinybrowser/crates/tinybrowser-bus" }
-tinybrowser-control = { path = "../../vendor/tinybrowser/crates/tinybrowser-control", default-features = false }
-tinyjevclient = { path = "../../vendor/tinybrowser/vendor/tinyjevclient/crates/tinyjevclient" }
+tinycomputer-bus = { path = "../../vendor/tinycomputer/crates/tinycomputer-bus", optional = true }
 # Portable skill metadata, parsing, discovery, and filesystem hardening.
 tinyskills = { path = "../../vendor/tinyskills/crates/tinyskills" }
 serde = { version = "1", features = ["derive"] }

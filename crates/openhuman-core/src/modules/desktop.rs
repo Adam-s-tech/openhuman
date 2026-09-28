@@ -1,4 +1,4 @@
-//! Host calls to the attested tinydesktop module.
+//! Host calls to the attested tinycomputer module.
 
 use std::hash::{Hash, Hasher};
 use std::sync::OnceLock;
@@ -13,7 +13,7 @@ use crate::config::Config;
 #[path = "desktop_tests.rs"]
 mod tests;
 
-pub const MODULE_ID: &str = "tinydesktop";
+pub const MODULE_ID: &str = "tinycomputer";
 
 /// This confidential payload is sent only to the module lifecycle callback.
 /// Missing or expired host credentials remove the old Jev client on refresh.
@@ -57,6 +57,18 @@ pub fn module_config(config: &Config) -> serde_json::Value {
     }
 }
 
+/// Which account pays for TinyComputer's Jev decisions, for the settings UI:
+/// `hosted` (TinyHumans credits), `direct_openrouter` (the user's key), or
+/// `unavailable` (no credential yet).
+#[must_use]
+pub fn billing_route(config: &Config) -> &'static str {
+    match module_config(config)["jev"]["provider"].as_str() {
+        Some("tiny_humans_open_router") => "hosted",
+        Some("open_router") => "direct_openrouter",
+        _ => "unavailable",
+    }
+}
+
 pub fn jev_ready(config: &Config) -> bool {
     module_config(config)["jev"].is_object()
 }
@@ -72,7 +84,9 @@ fn fingerprint(value: &serde_json::Value) -> u64 {
     hasher.finish()
 }
 
-async fn proxy(config: &Config) -> Result<Proxy, String> {
+/// Load the module, refresh its private configuration when it changed, and
+/// return a proxy for its one interface (desktop, browser and task members).
+pub(crate) async fn proxy(config: &Config) -> Result<Proxy, String> {
     crate::modules::ops::ensure_loaded_within(
         config,
         MODULE_ID,
@@ -130,8 +144,11 @@ async fn call_with_proxy<Request: Serialize + Send>(
             .with_timeout(std::time::Duration::from_secs(330))
     });
     let proxy = goal_proxy.as_ref().unwrap_or(proxy);
-    let response = if member == names::methods::RUN_GOAL || member == names::methods::RESOLVE_INTENT
-    {
+    // The contract's catalogue marks which members carry facts, credentials
+    // or page data; those travel confidentially.
+    let confidential =
+        tinycomputer_bus::catalogue::member(member).is_some_and(|entry| entry.confidential);
+    let response = if confidential {
         proxy
             .call_confidential::<DesktopResponse>(member, (request,))
             .await

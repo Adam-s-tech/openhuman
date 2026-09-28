@@ -78,11 +78,10 @@ const ROOT = resolve(process.argv[2] ?? join(HERE, "..", ".."));
 // `vendor/tinyruntime` via `sharesWith`.
 const PIN_MAP = {
   tinysearch: { submodule: "vendor/tinysearch" },
-  tinydesktop: { submodule: "vendor/tinydesktop" },
+  tinycomputer: { submodule: "vendor/tinycomputer" },
   tinybox: { submodule: "vendor/tinybox" },
   tinychannels: { submodule: "vendor/tinychannels" },
   tinyhosts: { submodule: "vendor/tinyhosts" },
-  tinybrowser: { submodule: "vendor/tinybrowser" },
   tinydocs: { submodule: "vendor/tinydocs" },
   tinywallet: { submodule: "vendor/tinywallet" },
   tinymemory: { submodule: "vendor/tinymemory" },

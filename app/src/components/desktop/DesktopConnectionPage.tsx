@@ -76,7 +76,14 @@ function permissionSettingsUrl(kind: PermissionKind, platform: string): string |
   return null;
 }
 
-export default function DesktopConnectionPage() {
+export interface DesktopConnectionPageProps {
+  /** Render only the body, for hosting inside the Computer panel's chip tabs. */
+  embedded?: boolean;
+}
+
+export default function DesktopConnectionPage({
+  embedded = false,
+}: DesktopConnectionPageProps = {}) {
   const { t } = useT();
   const [localHost, setLocalHost] = useState<boolean | null>(null);
   const [status, setStatus] = useState<DesktopStatus | null>(null);
@@ -258,181 +265,190 @@ export default function DesktopConnectionPage() {
     </Badge>
   ) : null;
 
+  const refreshButton = (
+    <Button
+      variant="secondary"
+      size="sm"
+      leadingIcon={<RefreshCw className="h-3.5 w-3.5" aria-hidden />}
+      onClick={() => {
+        void refresh();
+        if (status?.enabled && status.approvals_enabled) void refreshPending();
+      }}
+      disabled={loading}>
+      {t('common.refresh')}
+    </Button>
+  );
+
+  const body = (
+    <div className="space-y-4" data-testid="desktop-connection-page">
+      <Alert variant="warning" density="compact" role={undefined}>
+        <AlertDescription>{t('connections.earlyAlphaNotice')}</AlertDescription>
+      </Alert>
+
+      {loading && !status && <CenteredLoadingState label={t('common.loading')} />}
+
+      {status && !status.supported && (
+        <Alert variant="info" density="compact">
+          <AlertDescription>{t('desktop.unsupported')}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* ── Master switch: on/off, where it stands, and why ────────────── */}
+      {status?.supported && (
+        <Card data-testid="desktop-status-card">
+          <div className="flex items-center gap-3 p-4">
+            <IconTile icon={Monitor} active={status.enabled} size="lg" />
+            <div className="min-w-0 flex-1">
+              <label
+                htmlFor="desktop-enabled-switch"
+                className="flex flex-wrap items-center gap-2 text-sm font-semibold text-content">
+                {t('desktop.enableLabel')}
+                {statusBadge}
+              </label>
+              <p className="mt-0.5 text-xs text-content-muted">{t('desktop.localOnly')}</p>
+            </div>
+            <Switch
+              id="desktop-enabled-switch"
+              checked={status.enabled}
+              disabled={busy}
+              onCheckedChange={() => void setEnabled()}
+              aria-label={status.enabled ? t('common.disable') : t('common.enable')}
+            />
+          </div>
+          {(status.reason || (status.enabled && !ready)) && (
+            <div className="px-4 py-3 text-xs text-content-muted">
+              {status.reason ??
+                (status.module_state === 'failed'
+                  ? t('desktop.moduleUnavailable')
+                  : t('desktop.enabledPending'))}
+            </div>
+          )}
+        </Card>
+      )}
+
+      {status?.supported && status.enabled && (
+        <>
+          {/* ── Pending approvals ──────────────────────────────────────── */}
+          {status.approvals_enabled && pending.length > 0 && (
+            <Card
+              title={t('chat.approval.title')}
+              headerRight={<Badge variant="warning">{pending.length}</Badge>}
+              data-testid="desktop-pending-card">
+              {pending.map(entry => (
+                <div
+                  key={entry.confirmation_id}
+                  className="flex flex-wrap items-center gap-3 px-4 py-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-content">
+                      {entry.target_name
+                        ? t('desktop.approvalSummary')
+                            .replace(
+                              '{operation}',
+                              t(`desktop.action.${entry.operation.toLowerCase()}`, entry.operation)
+                            )
+                            .replace('{target}', entry.target_name)
+                            .replace('{app}', entry.app)
+                        : t('common.notAvailable')}
+                    </p>
+                    <p className="mt-0.5 text-xs text-content-muted">{entry.reason}</p>
+                  </div>
+                  <div className="flex shrink-0 gap-2">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      leadingIcon={<X className="h-3.5 w-3.5" aria-hidden />}
+                      disabled={busy}
+                      onClick={() => void decide(entry.confirmation_id, false)}>
+                      {t('chat.approval.deny')}
+                    </Button>
+                    <Button
+                      size="sm"
+                      leadingIcon={<Check className="h-3.5 w-3.5" aria-hidden />}
+                      disabled={busy || !entry.action_summary || !entry.target_name}
+                      onClick={() => void decide(entry.confirmation_id, true)}>
+                      {t('chat.approval.approve')}
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </Card>
+          )}
+        </>
+      )}
+
+      {/* Permissions and the access check are short cards: side by side. */}
+      {status?.supported && (
+        <TileGrid columns={2}>
+          <Card
+            title={t('desktop.permissions')}
+            description={t('desktop.captureNote')}
+            className="h-full">
+            {permissionRow('accessibility', status.accessibility)}
+            {permissionRow('screen_recording', status.screen_recording)}
+          </Card>
+          {/* ── Access check ───────────────────────────────────────── */}
+          {status.enabled && (
+            <Card title={t('desktop.checkHeading')} className="h-full">
+              <Field
+                label={t('desktop.checkLabel')}
+                description={t('desktop.testDescription')}
+                control={
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    leadingIcon={
+                      busy ? <Spinner /> : <Activity className="h-3.5 w-3.5" aria-hidden />
+                    }
+                    onClick={() => void runProbe()}
+                    disabled={busy}>
+                    {t('desktop.testButton')}
+                  </Button>
+                }
+              />
+              {probe && (
+                <div className="p-4">
+                  <Alert variant={probe.ok ? 'success' : 'warning'} density="compact" role="status">
+                    <AlertDescription>
+                      {probe.ok
+                        ? t('desktop.testPassed')
+                        : (probe.reason ?? t('desktop.testFailed'))}
+                    </AlertDescription>
+                  </Alert>
+                </div>
+              )}
+            </Card>
+          )}
+        </TileGrid>
+      )}
+
+      {error && (
+        <Alert variant="destructive" density="compact">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      {pendingError && (
+        <Alert variant="destructive" density="compact">
+          <AlertDescription>{pendingError}</AlertDescription>
+        </Alert>
+      )}
+    </div>
+  );
+
+  if (embedded) {
+    return (
+      <div className="space-y-4">
+        <div className="flex justify-end">{refreshButton}</div>
+        {body}
+      </div>
+    );
+  }
+
   return (
     <SettingsTabbedPage
       title={t('desktop.title')}
       description={t('desktop.description')}
-      headerAction={
-        <Button
-          variant="secondary"
-          size="sm"
-          leadingIcon={<RefreshCw className="h-3.5 w-3.5" aria-hidden />}
-          onClick={() => {
-            void refresh();
-            if (status?.enabled && status.approvals_enabled) void refreshPending();
-          }}
-          disabled={loading}>
-          {t('common.refresh')}
-        </Button>
-      }>
-      <div className="space-y-4" data-testid="desktop-connection-page">
-        <Alert variant="warning" density="compact" role={undefined}>
-          <AlertDescription>{t('connections.earlyAlphaNotice')}</AlertDescription>
-        </Alert>
-
-        {loading && !status && <CenteredLoadingState label={t('common.loading')} />}
-
-        {status && !status.supported && (
-          <Alert variant="info" density="compact">
-            <AlertDescription>{t('desktop.unsupported')}</AlertDescription>
-          </Alert>
-        )}
-
-        {/* ── Master switch: on/off, where it stands, and why ────────────── */}
-        {status?.supported && (
-          <Card data-testid="desktop-status-card">
-            <div className="flex items-center gap-3 p-4">
-              <IconTile icon={Monitor} active={status.enabled} size="lg" />
-              <div className="min-w-0 flex-1">
-                <label
-                  htmlFor="desktop-enabled-switch"
-                  className="flex flex-wrap items-center gap-2 text-sm font-semibold text-content">
-                  {t('desktop.enableLabel')}
-                  {statusBadge}
-                </label>
-                <p className="mt-0.5 text-xs text-content-muted">{t('desktop.localOnly')}</p>
-              </div>
-              <Switch
-                id="desktop-enabled-switch"
-                checked={status.enabled}
-                disabled={busy}
-                onCheckedChange={() => void setEnabled()}
-                aria-label={status.enabled ? t('common.disable') : t('common.enable')}
-              />
-            </div>
-            {(status.reason || (status.enabled && !ready)) && (
-              <div className="px-4 py-3 text-xs text-content-muted">
-                {status.reason ??
-                  (status.module_state === 'failed'
-                    ? t('desktop.moduleUnavailable')
-                    : t('desktop.enabledPending'))}
-              </div>
-            )}
-          </Card>
-        )}
-
-        {status?.supported && status.enabled && (
-          <>
-            {/* ── Pending approvals ──────────────────────────────────────── */}
-            {status.approvals_enabled && pending.length > 0 && (
-              <Card
-                title={t('chat.approval.title')}
-                headerRight={<Badge variant="warning">{pending.length}</Badge>}
-                data-testid="desktop-pending-card">
-                {pending.map(entry => (
-                  <div
-                    key={entry.confirmation_id}
-                    className="flex flex-wrap items-center gap-3 px-4 py-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-content">
-                        {entry.target_name
-                          ? t('desktop.approvalSummary')
-                              .replace(
-                                '{operation}',
-                                t(
-                                  `desktop.action.${entry.operation.toLowerCase()}`,
-                                  entry.operation
-                                )
-                              )
-                              .replace('{target}', entry.target_name)
-                              .replace('{app}', entry.app)
-                          : t('common.notAvailable')}
-                      </p>
-                      <p className="mt-0.5 text-xs text-content-muted">{entry.reason}</p>
-                    </div>
-                    <div className="flex shrink-0 gap-2">
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        leadingIcon={<X className="h-3.5 w-3.5" aria-hidden />}
-                        disabled={busy}
-                        onClick={() => void decide(entry.confirmation_id, false)}>
-                        {t('chat.approval.deny')}
-                      </Button>
-                      <Button
-                        size="sm"
-                        leadingIcon={<Check className="h-3.5 w-3.5" aria-hidden />}
-                        disabled={busy || !entry.action_summary || !entry.target_name}
-                        onClick={() => void decide(entry.confirmation_id, true)}>
-                        {t('chat.approval.approve')}
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </Card>
-            )}
-          </>
-        )}
-
-        {/* Permissions and the access check are short cards: side by side. */}
-        {status?.supported && (
-          <TileGrid columns={2}>
-            <Card
-              title={t('desktop.permissions')}
-              description={t('desktop.captureNote')}
-              className="h-full">
-              {permissionRow('accessibility', status.accessibility)}
-              {permissionRow('screen_recording', status.screen_recording)}
-            </Card>
-            {/* ── Access check ───────────────────────────────────────── */}
-            {status.enabled && (
-              <Card title={t('desktop.checkHeading')} className="h-full">
-                <Field
-                  label={t('desktop.checkLabel')}
-                  description={t('desktop.testDescription')}
-                  control={
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      leadingIcon={
-                        busy ? <Spinner /> : <Activity className="h-3.5 w-3.5" aria-hidden />
-                      }
-                      onClick={() => void runProbe()}
-                      disabled={busy}>
-                      {t('desktop.testButton')}
-                    </Button>
-                  }
-                />
-                {probe && (
-                  <div className="p-4">
-                    <Alert
-                      variant={probe.ok ? 'success' : 'warning'}
-                      density="compact"
-                      role="status">
-                      <AlertDescription>
-                        {probe.ok
-                          ? t('desktop.testPassed')
-                          : (probe.reason ?? t('desktop.testFailed'))}
-                      </AlertDescription>
-                    </Alert>
-                  </div>
-                )}
-              </Card>
-            )}
-          </TileGrid>
-        )}
-
-        {error && (
-          <Alert variant="destructive" density="compact">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-        {pendingError && (
-          <Alert variant="destructive" density="compact">
-            <AlertDescription>{pendingError}</AlertDescription>
-          </Alert>
-        )}
-      </div>
+      headerAction={refreshButton}>
+      {body}
     </SettingsTabbedPage>
   );
 }

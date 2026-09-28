@@ -11,7 +11,7 @@
 
 use serde_json::{Map, Value};
 use std::sync::Arc;
-use tinybrowser_bus::SessionOptions;
+use tinycomputer_bus::browser::SessionOptions;
 
 use super::ops;
 use crate::config::rpc as config_rpc;
@@ -99,13 +99,13 @@ pub fn schemas(function: &str) -> ControllerSchema {
         "browser_check_readiness" => ControllerSchema {
             namespace: "modules",
             function: "browser_check_readiness",
-            description: "Load TinyBrowser and briefly launch Chrome to check readiness.",
+            description: "Load TinyComputer and briefly launch Chrome to check browser readiness.",
             inputs: vec![],
             outputs: vec![
                 FieldSchema {
                     name: "module_ready",
                     ty: TypeSchema::Bool,
-                    comment: "TinyBrowser module is serving.",
+                    comment: "TinyComputer module is serving its browser members.",
                     required: true,
                 },
                 FieldSchema {
@@ -146,7 +146,7 @@ fn handle_browser_check_readiness(_params: Map<String, Value>) -> ControllerFutu
         let client = super::browser::BrowserClient::new(Arc::new(config));
         if client.ensure_ready().await.is_err() {
             return Ok(
-                serde_json::json!({"module_ready": false, "chrome_ready": false, "error": "TinyBrowser module is unavailable; configure a local module override"}),
+                serde_json::json!({"module_ready": false, "chrome_ready": false, "error": "TinyComputer module is unavailable; configure a local module override"}),
             );
         }
         let opened = tokio::time::timeout(

@@ -1,10 +1,10 @@
-//! Simple TinyBrowser entry point for opening a permitted page.
+//! Simple TinyComputer entry point for opening a permitted page.
 use crate::modules::browser::BrowserClient;
 use crate::security::SecurityPolicy;
 use async_trait::async_trait;
 use serde_json::json;
 use std::sync::Arc;
-use tinybrowser_bus::NavigateRequest;
+use tinycomputer_bus::browser::NavigateRequest;
 use tinytools::{Tool, ToolResult};
 
 pub struct BrowserOpenTool {
@@ -38,7 +38,7 @@ impl Tool for BrowserOpenTool {
         "browser_open"
     }
     fn description(&self) -> &str {
-        "Open an approved HTTPS URL in a one-shot TinyBrowser session, report its title and URL, then close it. For DOM inspection or tasks, use browser action=open in the persistent conversation session."
+        "Open an approved HTTPS URL in a one-shot TinyComputer browser session, report its title and URL, then close it. For DOM inspection or tasks, use browser action=open in the persistent conversation session."
     }
     fn parameters_schema(&self) -> serde_json::Value {
         json!({"type":"object","properties":{"url":{"type":"string","description":"HTTPS URL to open"}},"required":["url"]})

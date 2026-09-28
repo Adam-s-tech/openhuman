@@ -113,7 +113,7 @@ pub(super) fn lookup(function: &str) -> Option<ControllerSchema> {
                 optional_bool("enabled", "Enable browser integration."),
                 optional_string(
                     "backend",
-                    "Browser backend: tinybrowser (legacy values accepted for migration).",
+                    "Browser backend: tinycomputer (legacy values, including tinybrowser, accepted for migration).",
                 ),
                 optional_bool("headless", "Run Chrome without a visible window."),
                 optional_number("viewport_width", "Chrome viewport width in pixels (320-3840)."),

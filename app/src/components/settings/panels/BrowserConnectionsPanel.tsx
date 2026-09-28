@@ -55,7 +55,14 @@ const defaults: BrowserSettings = {
   task_timeout_secs: 120,
 };
 
-export default function BrowserConnectionsPanel() {
+export interface BrowserConnectionsPanelProps {
+  /** Render only the body, for hosting inside the Computer panel's chip tabs. */
+  embedded?: boolean;
+}
+
+export default function BrowserConnectionsPanel({
+  embedded = false,
+}: BrowserConnectionsPanelProps = {}) {
   const { t } = useT();
   const [settings, setSettings] = useState<BrowserSettings>(defaults);
   const [module, setModule] = useState<ModuleStatus | null>(null);
@@ -76,7 +83,7 @@ export default function BrowserConnectionsPanel() {
     setBillingRoute(configResponse.result.browser_billing_route ?? null);
     const httpRequest = (config.http_request ?? {}) as { allowed_domains?: string[] };
     setAllowedDomains(httpRequest.allowed_domains ?? []);
-    setModule(moduleResponse.result.modules.find(item => item.id === 'tinybrowser') ?? null);
+    setModule(moduleResponse.result.modules.find(item => item.id === 'tinycomputer') ?? null);
   }, []);
 
   useEffect(() => {
@@ -122,7 +129,7 @@ export default function BrowserConnectionsPanel() {
     try {
       const response = await callCoreRpc<{ result: { module: ModuleStatus } }>({
         method: 'openhuman.modules_load',
-        params: { id: 'tinybrowser' },
+        params: { id: 'tinycomputer' },
       });
       setModule(response.result.module);
       setMessage(response.result.module.detail ?? t('connections.browser.moduleChecked'));
@@ -179,136 +186,140 @@ export default function BrowserConnectionsPanel() {
         ? t('connections.browser.routeHosted')
         : t('connections.browser.unknown');
 
+  const body = (
+    <div className="max-w-5xl space-y-4 text-sm text-content">
+      <Alert variant="warning" role={undefined}>
+        <AlertDescription>{t('connections.earlyAlphaNotice')}</AlertDescription>
+      </Alert>
+      <Card title={t('connections.browser.module')} padded divided={false}>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <Badge variant={module?.state === 'ready' ? 'success' : 'neutral'}>
+              {module?.state ?? t('connections.browser.unknown')}
+            </Badge>
+            <span className="text-content-muted">{t('connections.browser.chrome')}</span>
+            <Badge
+              variant={
+                chromeReady === true ? 'success' : chromeReady === false ? 'warning' : 'neutral'
+              }>
+              {chromeReady === true
+                ? t('connections.browser.chromeReady')
+                : chromeReady === false
+                  ? t('connections.browser.chromeNotReady')
+                  : t('connections.browser.notVerified')}
+            </Badge>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="secondary" size="sm" disabled={busy} onClick={testModule}>
+              {t('connections.browser.testModule')}
+            </Button>
+            <Button variant="secondary" size="sm" disabled={busy} onClick={testBrowser}>
+              {t('connections.browser.testBrowser')}
+            </Button>
+          </div>
+        </div>
+        {module?.detail && <p className="mt-3 text-content-muted">{module.detail}</p>}
+        <p className="mt-3 text-xs text-content-muted">{t('connections.browser.localOverride')}</p>
+      </Card>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card title={t('connections.tabs.browser')} padded divided={false}>
+          <div className="space-y-5">
+            <div className="flex items-center justify-between gap-4">
+              <Label htmlFor="browser-enabled">{t('connections.browser.enabled')}</Label>
+              <Switch
+                id="browser-enabled"
+                checked={settings.enabled}
+                onCheckedChange={enabled => setSettings(current => ({ ...current, enabled }))}
+              />
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <Label htmlFor="browser-headless">{t('connections.browser.headless')}</Label>
+              <Switch
+                id="browser-headless"
+                checked={settings.headless}
+                onCheckedChange={headless => setSettings(current => ({ ...current, headless }))}
+              />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {field('viewport_width', t('connections.browser.width'), 'number')}
+              {field('viewport_height', t('connections.browser.height'), 'number')}
+            </div>
+          </div>
+        </Card>
+
+        <Card title={t('connections.browser.profileMode')} padded divided={false}>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="browser-profile-mode">{t('connections.browser.profileMode')}</Label>
+              <NativeSelect
+                id="browser-profile-mode"
+                className="w-full"
+                value={settings.profile_mode ?? 'fresh'}
+                onChange={event =>
+                  setSettings(current => ({
+                    ...current,
+                    profile_mode: event.target.value as 'fresh' | 'persistent',
+                  }))
+                }>
+                <option value="fresh">{t('connections.browser.fresh')}</option>
+                <option value="persistent">{t('connections.browser.persistent')}</option>
+              </NativeSelect>
+            </div>
+            {settings.profile_mode === 'persistent' &&
+              field('profile_path', t('connections.browser.profilePath'))}
+            {field('chrome_path', t('connections.browser.chromePath'))}
+            {field('download_dir', t('connections.browser.downloadDir'))}
+          </div>
+        </Card>
+
+        <Card title={t('connections.browser.maxSteps')} padded divided={false}>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {field('max_task_steps', t('connections.browser.maxSteps'), 'number')}
+            {field('task_timeout_secs', t('connections.browser.timeout'), 'number')}
+          </div>
+          <p className="mt-4 text-xs text-content-muted">
+            {t('connections.browser.testInConversation')}
+          </p>
+        </Card>
+
+        <Card title={t('connections.browser.allowedWebsites')} padded divided={false}>
+          <p className="text-content-muted">{t('connections.browser.sharedPolicy')}</p>
+          <p className="mt-3 break-words font-medium">
+            {allowedDomains.length
+              ? allowedDomains.join(', ')
+              : t('connections.browser.noneAllowed')}
+          </p>
+          <Button asChild variant="tertiary" size="sm" className="mt-3 px-0">
+            <Link to="/connections?tab=search">{t('connections.browser.manageWebsites')}</Link>
+          </Button>
+        </Card>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-content-muted">
+          {t('connections.browser.jevRoute')}:{' '}
+          <span className="font-medium text-content">{agenticRoute}</span>
+        </p>
+        <Button disabled={busy} onClick={save}>
+          {t('connections.browser.save')}
+        </Button>
+      </div>
+      {message && (
+        <Alert variant="info" role="status">
+          <AlertDescription>{message}</AlertDescription>
+        </Alert>
+      )}
+    </div>
+  );
+
+  if (embedded) return body;
+
   return (
     <SettingsTabbedPage
       title={t('connections.tabs.browser')}
       description={t('connections.browser.description')}>
-      <div className="max-w-5xl space-y-4 text-sm text-content">
-        <Alert variant="warning" role={undefined}>
-          <AlertDescription>{t('connections.earlyAlphaNotice')}</AlertDescription>
-        </Alert>
-        <Card title={t('connections.browser.module')} padded divided={false}>
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex flex-wrap items-center gap-3">
-              <Badge variant={module?.state === 'ready' ? 'success' : 'neutral'}>
-                {module?.state ?? t('connections.browser.unknown')}
-              </Badge>
-              <span className="text-content-muted">{t('connections.browser.chrome')}</span>
-              <Badge
-                variant={
-                  chromeReady === true ? 'success' : chromeReady === false ? 'warning' : 'neutral'
-                }>
-                {chromeReady === true
-                  ? t('connections.browser.chromeReady')
-                  : chromeReady === false
-                    ? t('connections.browser.chromeNotReady')
-                    : t('connections.browser.notVerified')}
-              </Badge>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button variant="secondary" size="sm" disabled={busy} onClick={testModule}>
-                {t('connections.browser.testModule')}
-              </Button>
-              <Button variant="secondary" size="sm" disabled={busy} onClick={testBrowser}>
-                {t('connections.browser.testBrowser')}
-              </Button>
-            </div>
-          </div>
-          {module?.detail && <p className="mt-3 text-content-muted">{module.detail}</p>}
-          <p className="mt-3 text-xs text-content-muted">
-            {t('connections.browser.localOverride')}
-          </p>
-        </Card>
-
-        <div className="grid gap-4 lg:grid-cols-2">
-          <Card title={t('connections.tabs.browser')} padded divided={false}>
-            <div className="space-y-5">
-              <div className="flex items-center justify-between gap-4">
-                <Label htmlFor="browser-enabled">{t('connections.browser.enabled')}</Label>
-                <Switch
-                  id="browser-enabled"
-                  checked={settings.enabled}
-                  onCheckedChange={enabled => setSettings(current => ({ ...current, enabled }))}
-                />
-              </div>
-              <div className="flex items-center justify-between gap-4">
-                <Label htmlFor="browser-headless">{t('connections.browser.headless')}</Label>
-                <Switch
-                  id="browser-headless"
-                  checked={settings.headless}
-                  onCheckedChange={headless => setSettings(current => ({ ...current, headless }))}
-                />
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                {field('viewport_width', t('connections.browser.width'), 'number')}
-                {field('viewport_height', t('connections.browser.height'), 'number')}
-              </div>
-            </div>
-          </Card>
-
-          <Card title={t('connections.browser.profileMode')} padded divided={false}>
-            <div className="space-y-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="browser-profile-mode">{t('connections.browser.profileMode')}</Label>
-                <NativeSelect
-                  id="browser-profile-mode"
-                  className="w-full"
-                  value={settings.profile_mode ?? 'fresh'}
-                  onChange={event =>
-                    setSettings(current => ({
-                      ...current,
-                      profile_mode: event.target.value as 'fresh' | 'persistent',
-                    }))
-                  }>
-                  <option value="fresh">{t('connections.browser.fresh')}</option>
-                  <option value="persistent">{t('connections.browser.persistent')}</option>
-                </NativeSelect>
-              </div>
-              {settings.profile_mode === 'persistent' &&
-                field('profile_path', t('connections.browser.profilePath'))}
-              {field('chrome_path', t('connections.browser.chromePath'))}
-              {field('download_dir', t('connections.browser.downloadDir'))}
-            </div>
-          </Card>
-
-          <Card title={t('connections.browser.maxSteps')} padded divided={false}>
-            <div className="grid gap-4 sm:grid-cols-2">
-              {field('max_task_steps', t('connections.browser.maxSteps'), 'number')}
-              {field('task_timeout_secs', t('connections.browser.timeout'), 'number')}
-            </div>
-            <p className="mt-4 text-xs text-content-muted">
-              {t('connections.browser.testInConversation')}
-            </p>
-          </Card>
-
-          <Card title={t('connections.browser.allowedWebsites')} padded divided={false}>
-            <p className="text-content-muted">{t('connections.browser.sharedPolicy')}</p>
-            <p className="mt-3 break-words font-medium">
-              {allowedDomains.length
-                ? allowedDomains.join(', ')
-                : t('connections.browser.noneAllowed')}
-            </p>
-            <Button asChild variant="tertiary" size="sm" className="mt-3 px-0">
-              <Link to="/connections?tab=search">{t('connections.browser.manageWebsites')}</Link>
-            </Button>
-          </Card>
-        </div>
-
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-content-muted">
-            {t('connections.browser.jevRoute')}:{' '}
-            <span className="font-medium text-content">{agenticRoute}</span>
-          </p>
-          <Button disabled={busy} onClick={save}>
-            {t('connections.browser.save')}
-          </Button>
-        </div>
-        {message && (
-          <Alert variant="info" role="status">
-            <AlertDescription>{message}</AlertDescription>
-          </Alert>
-        )}
-      </div>
+      {body}
     </SettingsTabbedPage>
   );
 }

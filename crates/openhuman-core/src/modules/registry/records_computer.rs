@@ -1,11 +1,11 @@
-//! Native desktop module. Published digests are added only from its release manifest.
+//! Native computer-use module (desktop and browser control). Published digests are added only from its release manifest.
 
 use crate::modules::types::{LoadPolicy, ModuleRecord, PlatformAsset};
 use tinycomputer_bus::names;
 
-pub(crate) const TINYDESKTOP: ModuleRecord = ModuleRecord {
-    id: "tinydesktop",
-    description: "Permission-aware native desktop observation and control",
+pub(crate) const TINYCOMPUTER: ModuleRecord = ModuleRecord {
+    id: "tinycomputer",
+    description: "Permission-aware desktop and browser observation and control",
     bus_name: names::INTERFACE,
     object_path: names::OBJECT_PATH,
     version: "0.5.2",
