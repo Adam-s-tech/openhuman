@@ -272,21 +272,11 @@ const KNOWN_UNCALLABLE: &[(&str, &str, &str)] = &[
         "withheld by the `composio` pack",
     ),
     (
-        "context_scout",
-        "list_workflows",
-        "on its belt but withheld by the `workflows` pack",
-    ),
-    (
         "skill_executor",
         "describe_workflow",
         "step 1 of its procedure; on its belt but withheld by the `workflows` pack",
     ),
     // Collision.
-    (
-        "context_scout",
-        "run_workflow",
-        "names the orchestrator's call, not its own",
-    ),
     (
         "scheduler_agent",
         "schedule",

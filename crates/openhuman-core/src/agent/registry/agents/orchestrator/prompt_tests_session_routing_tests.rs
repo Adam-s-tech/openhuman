@@ -188,7 +188,7 @@ fn skill_sections_name_the_hand_off_this_session_can_call() {
         Some("`use_skill { \"skill\": \"crypto\", \"tool\": \"do_crypto\" }`")
     );
     // Not in the orchestrator's allowlist: no route, so name nothing.
-    assert_eq!(hand_off_route(&ctx, "context_scout"), None);
+    assert_eq!(hand_off_route(&ctx, "summarizer"), None);
 
     // The generated withheld block no longer lists the unpacked hand-offs.
     let block = render_withheld_specialists(&ctx);
