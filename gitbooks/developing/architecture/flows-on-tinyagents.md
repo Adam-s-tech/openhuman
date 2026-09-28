@@ -170,7 +170,7 @@ approvals reuse the engine's pause-and-`flows_resume` fallback.
 ## Agent nodes: a graph within the graph
 
 A flow `agent` node names a **registered agent kind** through a trusted
-`agent_ref` in its config (researcher, code_executor, a custom specialist, …).
+`agent_ref` in its config (code_executor, critic, a custom specialist, …).
 `OpenHumanAgentRunner::run_agent` resolves that ref and routes on what it finds:
 
 - **A harness `AgentDefinition` exists** → build a full harness `Agent`

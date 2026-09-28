@@ -62,8 +62,8 @@ directly into `AgentDefinition`), a `prompt.md` holding the static archetype
 body, and a `prompt.rs` that `include_str!`s that body and exposes
 `pub fn build(&PromptContext) -> anyhow::Result<String>`, appending
 runtime-dependent sections (rendered tool list, user files, workspace) to it.
-`researcher` additionally owns a `graph.rs` for a bespoke `AgentGraph`; every
-other archetype uses `AgentGraph::Default`. The per-archetype contract is
+Every archetype currently uses `AgentGraph::Default`; an archetype that needs a
+bespoke `AgentGraph` adds a `graph.rs` and sets `BuiltinAgent::graph_fn`. The per-archetype contract is
 documented on [`agents/mod.rs`](agents/mod.rs).
 
 [`agents/loader.rs`](agents/loader.rs) owns the `BUILTINS` slice and
@@ -104,7 +104,6 @@ The 29 archetypes in this directory:
 | `planner` | Read-only `reasoning`-tier architect: breaks a task into a DAG of subtasks with acceptance criteria |
 | `presentation_agent` (feature `documents`) | Builds decks from evidence; owns grounding/citations/image verification |
 | `profile_memory_agent` | Profile, persona, preferences, people-graph specialist |
-| `researcher` | Web/docs crawler that compresses findings to dense markdown; has a custom `graph.rs` |
 | `scheduler_agent` | Reminders, recurring jobs, cron: time/cron tools only, no live calendar reads |
 | `settings_agent` | App/core config, health/model diagnostics, service lifecycle, security policy |
 | `skill_creator` | Creates/updates SKILL.md packages and Node-backed JS helpers |

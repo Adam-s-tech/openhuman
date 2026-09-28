@@ -134,7 +134,7 @@ scoring proves too coarse.
 | `composio-gmail-read` | composio | reads the latest Gmail subject via `tool_search` and a direct `GMAIL_*` call; never sends, deletes or reconnects | nothing |
 | `skill-notion-read` | skills | lists Notion pages through `run_skill`; never installs a skill | nothing |
 | `mcp-none-configured` | MCP, **error path** | with no MCP server configured, says so; never installs one, never fabricates results | nothing |
-| `web-search-fact` | web search | one built-in `web_search_tool` lookup, not a `research` spawn | nothing |
+| `web-search-fact` | web search | one built-in `web_search_tool` lookup, not a sub-agent spawn | nothing |
 
 (Rows are listed here by surface; `cases.json` holds them in run order.)
 

@@ -308,14 +308,14 @@ Note `action_dir/workspace/` is a scratch folder inside the agent's action root.
 
 Two halves enforce the convention:
 
-- **Prompt.** A sub-agent that actually holds `file_write` gets a Long-horizon Artifact Offload contract in its system prompt: results past roughly 2 000 tokens go to a file under `outputs/`, and the reply is that relative path plus a short abstract. The gate is deliberate, a prompt may only name tools the agent can really call, or the model emits calls that fail. `researcher` (search + fetch only) and skill-filtered specialists get no contract text, and dedicated guards assert their prompts never mention a filesystem tool. They stay covered by the harness half below, which needs no cooperation from the model. The relevant archetype prompts (`researcher`, `planner`) spell out what the convention means for their own work; the planner is told to reference artifact paths across DAG nodes rather than pasting payloads forward.
+- **Prompt.** A sub-agent that actually holds `file_write` gets a Long-horizon Artifact Offload contract in its system prompt: results past roughly 2 000 tokens go to a file under `outputs/`, and the reply is that relative path plus a short abstract. The gate is deliberate, a prompt may only name tools the agent can really call, or the model emits calls that fail. Skill-filtered specialists get no contract text, and a dedicated guard asserts their prompts never mention a filesystem tool. They stay covered by the harness half below, which needs no cooperation from the model. The `planner` prompt spells out what the convention means for its own work; the planner is told to reference artifact paths across DAG nodes rather than pasting payloads forward.
 - **Harness.** `offload_oversized_result` runs on every sub-agent outcome, so an oversized result is offloaded even when the worker inlined it anyway. It fires **before** the definition's `max_result_chars` cap, so the full body lands on disk instead of being cut.
 
 What the parent receives is a pointer, not a payload:
 
 ```text
-[artifact] kind=output path=outputs/researcher/sub-1234-result.md bytes=52318
-read_with: file_read {"path":"outputs/researcher/sub-1234-result.md"}
+[artifact] kind=output path=outputs/code_executor/sub-1234-result.md bytes=52318
+read_with: file_read {"path":"outputs/code_executor/sub-1234-result.md"}
 note: The full result was written to the action workspace instead of being inlined. …
 
 [abstract]
@@ -369,7 +369,6 @@ Each archetype lives under `agents/<name>/` with an `agent.toml` (metadata, tool
 | -------------------- | ---------------------------------------------------------------------------------------- |
 | `orchestrator`       | The Master Agent: top-level, direct-capable default. Never spawned by another orchestrator. |
 | `planner`            | Multi-step decomposition - break a complex request into ordered sub-tasks.               |
-| `researcher`         | Web/doc lookups, citation hunting.                                                       |
 | `code_executor`      | Writing, running, and debugging code in the workspace.                                   |
 | `critic`             | Code review, quality checks on another agent's output.                                   |
 | `summarizer`         | Compressing oversized tool results (called by the harness, not usually the model).       |
@@ -429,7 +428,7 @@ Each `AgentDefinition` carries an `agent_tier` field (`chat` / `reasoning` / `wo
 | ----------- | --------------------- | ------------------------------- | ------------------------------------------------------------------------------- |
 | `chat`      | `reasoning`, `worker` | another `chat`                  | `orchestrator`                                                                  |
 | `reasoning` | `worker`              | another `reasoning`, any `chat` | `planner` (today the canonical one)                                             |
-| `worker`    | nothing[^1]           | anything                        | researcher, code_executor, critic, archivist, tool_maker, integrations_agent, … |
+| `worker`    | nothing[^1]           | anything                        | code_executor, critic, archivist, tool_maker, integrations_agent, … |
 
 [^1]: Skill-wildcard entries (`{ skills = "*" }`) are exempt because they name no agent: they expand to the connected Composio actions as `Deferred` tools the agent reaches through `tool_search`, not to a spawn.
 
