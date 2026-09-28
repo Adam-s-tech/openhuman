@@ -6884,7 +6884,7 @@ dependencies = [
 
 [[package]]
 name = "tinywallet"
-version = "0.5.2"
+version = "0.5.3"
 dependencies = [
  "coins-bip32",
  "coins-bip39",
@@ -6900,7 +6900,7 @@ dependencies = [
 
 [[package]]
 name = "tinywallet-bus"
-version = "0.5.2"
+version = "0.5.3"
 dependencies = [
  "async-trait",
  "bech32 0.12.0",
