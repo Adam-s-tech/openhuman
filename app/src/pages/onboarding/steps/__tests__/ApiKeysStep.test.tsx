@@ -87,9 +87,7 @@ describe('ApiKeysStep OpenAI OAuth', () => {
 
     fireEvent.click(screen.getByTestId('onboarding-openai-oauth-connect'));
 
-    await waitFor(() =>
-      expect(openUrl).toHaveBeenCalledWith('https://auth.openai.com/oauth?x=1')
-    );
+    await waitFor(() => expect(openUrl).toHaveBeenCalledWith('https://auth.openai.com/oauth?x=1'));
     expect(
       screen.queryByText('ChatGPT sign-in is only available in the desktop app.')
     ).not.toBeInTheDocument();

@@ -19,7 +19,6 @@ export interface ComposioTriggerHistoryResult {
 export async function openhumanComposioListTriggerHistory(
   limit = 100
 ): Promise<CommandResponse<{ result: ComposioTriggerHistoryResult }>> {
-
   return await callCoreRpc<CommandResponse<{ result: ComposioTriggerHistoryResult }>>({
     method: 'openhuman.composio_list_trigger_history',
     params: { limit },
