@@ -1,5 +1,6 @@
-//! One-time migration from the single-engine `[search]` format to providers,
-//! routes and roles.
+//! One-time migrations of the `[search]` section: the single-engine format to
+//! providers, routes and roles (v2), then the routed role tools as the
+//! presentation for files v2 had moved to `all_tools` (v3).
 
 use std::collections::BTreeMap;
 
@@ -7,17 +8,48 @@ use super::{
     LegacySearchInputs, SearchConfig, SearchProviderSettings, SearchRoute, SEARCH_ENGINE_BRAVE,
     SEARCH_ENGINE_DISABLED, SEARCH_ENGINE_EXA, SEARCH_ENGINE_MANAGED, SEARCH_ENGINE_PARALLEL,
     SEARCH_ENGINE_QUERIT, SEARCH_ENGINE_TAVILY, SEARCH_PROVIDERS, SEARCH_ROLE_SEARCH,
-    SEARCH_SCHEMA_VERSION,
+    SEARCH_SCHEMA_PROVIDERS, SEARCH_SCHEMA_VERSION,
 };
 
 impl SearchConfig {
-    /// Whether this file still carries the single-engine format.
+    /// Whether this file was written by an older settings format.
     pub fn needs_migration(&self) -> bool {
         self.schema_version < SEARCH_SCHEMA_VERSION
     }
 
-    /// Convert the single-engine format into providers, routes and roles.
+    /// Bring an older `[search]` section up to [`SEARCH_SCHEMA_VERSION`].
     /// Idempotent: returns `false` and changes nothing on a current file.
+    pub fn migrate_legacy(&mut self, legacy: LegacySearchInputs) -> bool {
+        if !self.needs_migration() {
+            return false;
+        }
+        if self.schema_version < SEARCH_SCHEMA_PROVIDERS {
+            self.migrate_single_engine(legacy);
+        }
+        self.migrate_presentation_to_roles();
+        self.schema_version = SEARCH_SCHEMA_VERSION;
+        true
+    }
+
+    /// v2 → v3: put `all_tools` files back on the routed role tools.
+    ///
+    /// Agent tool scopes (orchestrator, researcher, planner, …) allowlist
+    /// `web_search_tool` / `web_answer_tool` / `web_contents_tool`. Under
+    /// `all_tools` TinySearch advertises only provider tools (`exa_search`,
+    /// …), so those agents had no web search at all and called the missing
+    /// routed names until the turn aborted. Router and one-provider choices
+    /// were never forced by a migration, so they are left alone.
+    fn migrate_presentation_to_roles(&mut self) {
+        if self.presentation == super::SearchPresentation::AllTools {
+            tracing::info!(
+                "[config][migrate][search] presentation all_tools -> roles (routed web tools)"
+            );
+            self.presentation = super::SearchPresentation::Roles;
+        }
+    }
+
+    /// v0/1 → v2: convert the single-engine format into providers, routes and
+    /// roles.
     ///
     /// Managed selections map to managed Exa (search, contents) plus managed
     /// Gemini (answer) regardless of whether a session exists right now; the
@@ -25,10 +57,7 @@ impl SearchConfig {
     /// Parallel stays as a bring-your-own-key provider. Only managed
     /// (backend-routed) Parallel is gone: a selection that relied on it
     /// without a key is dropped, and Exa and Gemini cover those roles.
-    pub fn migrate_legacy(&mut self, legacy: LegacySearchInputs) -> bool {
-        if !self.needs_migration() {
-            return false;
-        }
+    fn migrate_single_engine(&mut self, legacy: LegacySearchInputs) {
         let engine = self
             .engine
             .as_deref()
@@ -191,17 +220,13 @@ impl SearchConfig {
         {
             self.presentation_provider = None;
         }
-        // `roles` did not exist in the legacy presentation vocabulary; its
-        // serde default means the old file omitted the field. Preserve the
-        // legacy default while fresh configs use Roles.
-        if self.presentation == super::SearchPresentation::Roles {
-            self.presentation = super::SearchPresentation::AllTools;
-        }
+        // A legacy file that omitted `presentation` gets the routed role
+        // tools like a fresh one; an explicit legacy choice is kept (and
+        // `all_tools` then goes through the v3 step).
         self.engine = None;
         self.parallel_route = None;
         self.gemini_route = None;
-        self.schema_version = SEARCH_SCHEMA_VERSION;
-        true
+        self.schema_version = SEARCH_SCHEMA_PROVIDERS;
     }
 
     /// Apply a legacy single-engine selection (`SEARCH_ENGINE`, or an older

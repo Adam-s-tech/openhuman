@@ -129,9 +129,17 @@ impl Default for WebSearchConfig {
 // execution lives in the TinySearch module; this file only owns the settings
 // and the one-time migration from the single-engine format.
 
-/// Settings format written by this build. Files without the field (or with a
-/// lower value) carry the legacy single-engine fields and are migrated on load.
-pub const SEARCH_SCHEMA_VERSION: u32 = 2;
+/// Settings format written by this build, migrated on load:
+/// - absent/0–1: the legacy single-engine fields → providers, routes, roles;
+/// - 2: `presentation = "all_tools"` → `roles`. The v2 migration used to force
+///   `all_tools` on every upgraded file, which hides the routed
+///   `web_*_tool`s that agent tool scopes name, so those agents lost web
+///   search. v3 moves them back to the routed tools once; a later explicit
+///   choice is saved as v3 and kept.
+pub const SEARCH_SCHEMA_VERSION: u32 = 3;
+
+/// First format with providers, routes and roles.
+pub(crate) const SEARCH_SCHEMA_PROVIDERS: u32 = 2;
 
 pub const SEARCH_ROLE_SEARCH: &str = "search";
 pub const SEARCH_ROLE_ANSWER: &str = "answer";
