@@ -198,8 +198,8 @@ pub fn render_subagent_system_prompt_with_format(
     out.push_str("\nUse the provided tools to accomplish the task. Reply with a concise, dense final answer when you have one — the parent agent will weave it back into the user-visible response.\n\n");
 
     // 3b. Optional safety preamble. Definitions that do work with real
-    //     side-effects set `omit_safety_preamble = false` so the narrow renderer used to
-    //     silently drop that instruction — we now honour the flag.
+    //     side-effects set `omit_safety_preamble = false`, which the narrow
+    //     renderer used to silently drop — we now honour the flag.
     //     Byte-identical to `SafetySection::build`.
     if options.include_safety_preamble {
         out.push_str(
