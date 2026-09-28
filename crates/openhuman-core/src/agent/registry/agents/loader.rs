@@ -160,12 +160,6 @@ pub const BUILTINS: &[BuiltinAgent] = &[
         graph_fn: None,
     },
     BuiltinAgent {
-        id: "researcher",
-        toml: include_str!("researcher/agent.toml"),
-        prompt_fn: super::researcher::prompt::build,
-        graph_fn: Some(super::researcher::graph::graph),
-    },
-    BuiltinAgent {
         id: "context_scout",
         toml: include_str!("context_scout/agent.toml"),
         prompt_fn: super::context_scout::prompt::build,

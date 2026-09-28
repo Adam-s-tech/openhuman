@@ -16,7 +16,7 @@
 //!   [`BUILTINS`] installs it as `PromptSource::Dynamic` on the parsed
 //!   definition. Most archetypes keep a `prompt_tests.rs` beside it.
 //!
-//! `researcher` additionally owns a `graph.rs` exposing
+//! An archetype may additionally own a `graph.rs` exposing
 //! `fn graph() -> AgentGraph` for a bespoke turn graph; see
 //! [`BuiltinAgent::graph_fn`].
 //!
@@ -50,7 +50,6 @@ pub mod orchestrator;
 pub mod planner;
 pub mod presentation_agent;
 pub mod profile_memory_agent;
-pub mod researcher;
 pub mod scheduler_agent;
 pub mod settings_agent;
 pub mod skill_creator;
