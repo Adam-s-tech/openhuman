@@ -390,8 +390,8 @@ pub(crate) async fn dispatch_subagent_with_live_parent(
     );
 
     // Propagate a per-call toolkit scope into the subagent runner as
-    // `toolkit_override` (the `{TOOLKIT}_` prefix check on skill-category
-    // tools), never as `skill_filter_override` (which matches `{skill}__`
+    // `toolkit_override` (narrows the child's Connected Integrations
+    // section), never as `skill_filter_override` (which matches `{skill}__`
     // QuickJS-style names and would exclude every Composio action). The
     // delegation tools synthesised today all pass `None` here.
     let worktree_action_dir = parent_workspace_descriptor
