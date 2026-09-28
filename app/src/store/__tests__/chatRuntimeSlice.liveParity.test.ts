@@ -226,6 +226,80 @@ describe('turnSettled', () => {
     ]);
   });
 
+  it("a late row of the settled turn keeps that turn's claim", () => {
+    // A bridge that had not drained when `chat_done` was delivered, or a
+    // detached child spawning a nested one, reports on the settled turn's
+    // request after it settled. That row names req-1, so the claim stands and
+    // the bare delivery that follows still does not adopt req-1's rows.
+    const late = [
+      toolCallReceived({
+        threadId: T,
+        requestId: 'req-1',
+        round: 2,
+        toolName: 'shell',
+        toolCallId: 'call-late',
+      }),
+      subagentSpawned({
+        threadId: T,
+        requestId: 'req-1',
+        round: 2,
+        rowId: `${T}:subagent:sub-9:researcher`,
+        taskId: 'sub-9',
+        agentId: 'researcher',
+      }),
+    ];
+    for (const action of late) {
+      const settled = run(
+        [
+          turnSettled({ threadId: T, requestId: 'req-1' }),
+          action,
+          turnSettled({ threadId: T, requestId: 'bgdeliver-1' }),
+        ],
+        live()
+      );
+      expect(settled.toolTimelineRequestByThread[T]).toBe('req-1');
+      expect(settled.settledTurnsByThread[T]?.['bgdeliver-1']).toBeUndefined();
+    }
+  });
+
+  it("a missed turn's row names its own request, which then freezes", () => {
+    const settled = run(
+      [
+        turnSettled({ threadId: T, requestId: 'req-1' }),
+        toolCallReceived({
+          threadId: T,
+          requestId: 'req-2',
+          round: 1,
+          toolName: 'shell',
+          toolCallId: 'call-b',
+        }),
+        turnSettled({ threadId: T, requestId: 'req-2' }),
+      ],
+      live()
+    );
+    expect(settled.settledTurnsByThread[T]?.['req-2']?.timeline.map(row => row.id)).toEqual([
+      'call-a',
+      'call-b',
+    ]);
+  });
+
+  it('a parallel request never claims the primary timeline', () => {
+    const settled = run(
+      [
+        registerParallelRequest({ threadId: T, requestId: 'fork-1' }),
+        toolCallReceived({
+          threadId: T,
+          requestId: 'fork-1',
+          round: 1,
+          toolName: 'shell',
+          toolCallId: 'call-fork',
+        }),
+      ],
+      live()
+    );
+    expect(settled.toolTimelineRequestByThread[T]).toBe('req-1');
+  });
+
   it('still freezes rows whose owner is unknown, as before', () => {
     // No `inference_start` was seen (e.g. a reconnect mid-turn): no claim
     // either way, so the reply keeps the rows it is settling with.

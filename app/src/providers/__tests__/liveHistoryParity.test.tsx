@@ -643,6 +643,47 @@ describe("a bare chat_done does not borrow the previous turn's trail", () => {
     );
   });
 
+  it("a nested spawn reported after its turn settled does not hand that turn's rows to the delivery", async () => {
+    // A detached child that delegates again reports the nested spawn on its
+    // parent turn's channel, minutes after that turn settled
+    // (`attach_parent` hands it the turn's progress sender).
+    vi.mocked(threadApi.getTurnState).mockResolvedValue(snapshot(TURN_REQUEST, 'running') as never);
+    const listeners = renderProvider();
+    await settleAsyncTurn(listeners);
+    fire(listeners, {
+      listener: 'onSubagentSpawned',
+      event: {
+        thread_id: TURN_THREAD,
+        request_id: TURN_REQUEST,
+        round: 2,
+        tool_name: 'researcher',
+        skill_id: 'sub-nested',
+        message: '',
+        seq: 99,
+        subagent: { mode: 'async' },
+      },
+    } as SocketStep);
+    act(() =>
+      listeners.onDone?.({
+        ...DONE_EVENT,
+        request_id: DELIVERY_REQUEST,
+        full_response: 'The research finished.',
+      })
+    );
+    await waitFor(() =>
+      expect(
+        store
+          .getState()
+          .thread.messagesByThreadId[
+            TURN_THREAD
+          ]?.some(message => message.id === `agent:${DELIVERY_REQUEST}`)
+      ).toBe(true)
+    );
+    expect(toolCards().filter(([messageId]) => messageId === `agent:${DELIVERY_REQUEST}`)).toEqual(
+      []
+    );
+  });
+
   it("an older snapshot arriving after chat_done does not hide the settled turn's own trail", async () => {
     // Snapshot lag: the completed-snapshot fetch returns the PREVIOUS turn's
     // snapshot, so the live rows (and their owner) become that turn's.
