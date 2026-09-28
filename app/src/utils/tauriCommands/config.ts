@@ -848,9 +848,8 @@ export async function openhumanGetDashboardSettings(): Promise<CommandResponse<D
 }
 
 export async function openhumanGetSearchSettings(): Promise<CommandResponse<SearchSettings>> {
-  if (!isTauri()) {
-    throw new Error('Not running in Tauri');
-  }
+  // Plain core RPC: works from the desktop shell and from a browser attached
+  // to the core (`pnpm dev:app:web`), so no Tauri guard.
   return await callCoreRpc<CommandResponse<SearchSettings>>({
     method: CORE_RPC_METHODS.configGetSearchSettings,
   });
@@ -859,9 +858,8 @@ export async function openhumanGetSearchSettings(): Promise<CommandResponse<Sear
 export async function openhumanUpdateSearchSettings(
   update: SearchSettingsUpdate
 ): Promise<CommandResponse<SearchSettings>> {
-  if (!isTauri()) {
-    throw new Error('Not running in Tauri');
-  }
+  // Plain core RPC: works from the desktop shell and from a browser attached
+  // to the core (`pnpm dev:app:web`), so no Tauri guard.
   return await callCoreRpc<CommandResponse<SearchSettings>>({
     method: CORE_RPC_METHODS.configUpdateSearchSettings,
     params: update,
