@@ -167,9 +167,8 @@ fn tool_result_text(requests: &[Value], tool_name: &str) -> Option<String> {
 
 /// Tool names a captured model request advertised to the provider.
 ///
-/// Native requests carry them in `tools`. A text-mode request (the
-/// `integrations_agent` with a toolkit: its Composio schemas would blow the
-/// native tool-schema ceiling) sends no `tools` and lists each one in the
+/// Native requests carry them in `tools`. A text-mode request (a provider
+/// without native tool calling) sends no `tools` and lists each one in the
 /// system prompt's `## Tools` section as `Call as: NAME[...]` instead.
 fn advertised_tool_names(request: &Value) -> Vec<String> {
     if let Some(tools) = request.pointer("/body/tools").and_then(Value::as_array) {
@@ -183,9 +182,8 @@ fn advertised_tool_names(request: &Value) -> Vec<String> {
             })
             .collect();
     }
-    // Text-mode requests normally use `Call as: NAME[...]` declarations. The
-    // integrations prompt also renders dynamic action schemas in an
-    // `### Available Tools` block, so accept its `**NAME**:` entries too.
+    // Text-mode requests normally use `Call as: NAME[...]` declarations; an
+    // `### Available Tools` block's `**NAME**:` entries are accepted too.
     let mut in_available_tools = false;
     let mut names = Vec::new();
     for line in system_text(request).lines() {
@@ -885,38 +883,6 @@ fn orchestrator_searches_for_and_calls_the_integration_action() {
             "composio_list_tools",
             "cron_add",
         ],
-        advertises_nothing: false,
-        max_consecutive_calls_of: None,
-        extra_config: "",
-    });
-}
-
-/// The integrations specialist (still spawnable by the runner with a toolkit,
-/// no longer reachable from chat) holds the Composio execution surface and
-/// none of the orchestrator's hand-offs.
-///
-/// The toolkit-scoped integrations agent runs in text mode, so this also pins
-/// the text-mode `Call as: NAME[...]` catalogue rather than only native tool
-/// declarations.
-#[test]
-#[ignore = "TODO(#6376): hosted TinyAgents omits integrations specialist tools"]
-fn integrations_agent_holds_the_composio_surface() {
-    run_case(Case {
-        agent: "integrations_agent",
-        agent_marker: "# Integrations Agent",
-        entry: Entry::WebChat,
-        user_message: "Check my Gmail for anything from my landlord.",
-        scripted_completions: vec![
-            // The child runs in text mode, so its own calls would be
-            // `<tool_call>` text with parser-assigned ids; this case pins its
-            // belt only.
-            text_completion("No emails from your landlord."),
-            text_completion("You have no emails from your landlord."),
-        ],
-        must_call: &[],
-        must_not_call: &[],
-        must_advertise: &["composio_execute", "composio_list_tools"],
-        must_not_advertise: &["research", "schedule_task", "shell"],
         advertises_nothing: false,
         max_consecutive_calls_of: None,
         extra_config: "",
