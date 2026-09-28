@@ -11,12 +11,17 @@ import reducer, {
   beginInferenceTurn,
   liveTurnStarted,
   markInferenceTurnStreaming,
+  recordSubagentTranscriptTool,
   registerParallelRequest,
+  resolveSubagentTranscriptTool,
   setInferenceStatusForThread,
+  setToolTimelineForThread,
   streamDeltaReceived,
+  subagentIterationStarted,
   subagentSpawned,
   toolArgsDeltaReceived,
   toolCallReceived,
+  toolResultReceived,
   turnSettled,
 } from '../chatRuntimeSlice';
 
@@ -259,7 +264,157 @@ describe('turnSettled', () => {
       );
       expect(settled.toolTimelineRequestByThread[T]).toBe('req-1');
       expect(settled.settledTurnsByThread[T]?.['bgdeliver-1']).toBeUndefined();
+      // The live timeline is still req-1's own rows, so its late row joins
+      // them: the background-process panel reads the live timeline.
+      expect(settled.toolTimelineByThread[T]).toHaveLength(2);
     }
+  });
+
+  it('a late row of a settled turn stays out of the live turn, and joins its own trail', () => {
+    // req-2 is live when req-1's detached child spawns again (and a late tool
+    // call of req-1 lands). Neither may join req-2's timeline: claiming would
+    // make req-2's own rows look foreign, joining would hand req-1's row to
+    // req-2's trail. They go to req-1's frozen trail, results included.
+    const late = (requestId: string) => [
+      toolCallReceived({
+        threadId: T,
+        requestId,
+        round: 2,
+        toolName: 'shell',
+        toolCallId: 'call-late',
+      }),
+      subagentSpawned({
+        threadId: T,
+        requestId,
+        round: 2,
+        rowId: `${T}:subagent:sub-9:researcher`,
+        taskId: 'sub-9',
+        agentId: 'researcher',
+      }),
+      toolResultReceived({
+        threadId: T,
+        requestId,
+        round: 2,
+        toolName: 'shell',
+        toolCallId: 'call-late',
+        success: true,
+      }),
+    ];
+    const settled = run(
+      [
+        turnSettled({ threadId: T, requestId: 'req-1' }),
+        setToolTimelineForThread({ threadId: T, entries: [] }),
+        liveTurnStarted({ threadId: T, requestId: 'req-2' }),
+        toolCallReceived({
+          threadId: T,
+          requestId: 'req-2',
+          round: 1,
+          toolName: 'shell',
+          toolCallId: 'call-b',
+        }),
+        ...late('req-1'),
+        turnSettled({ threadId: T, requestId: 'req-2' }),
+      ],
+      live()
+    );
+    expect(settled.settledTurnsByThread[T]?.['req-2']?.timeline.map(row => row.id)).toEqual([
+      'call-b',
+    ]);
+    expect(
+      settled.settledTurnsByThread[T]?.['req-1']?.timeline.map(row => [row.id, row.status])
+    ).toEqual([
+      ['call-a', 'running'],
+      ['call-late', 'success'],
+      [`${T}:subagent:sub-9:researcher`, 'running'],
+    ]);
+  });
+
+  it("with no turn live, a late row of an earlier turn joins its own trail, not the last turn's rows", () => {
+    // req-1 and req-2 both settled; the live timeline still holds req-2's
+    // rows. A late req-1 row appended there (and claiming) would hand req-2's
+    // whole timeline to req-1.
+    const settled = run(
+      [
+        turnSettled({ threadId: T, requestId: 'req-1' }),
+        setToolTimelineForThread({ threadId: T, entries: [] }),
+        liveTurnStarted({ threadId: T, requestId: 'req-2' }),
+        toolCallReceived({
+          threadId: T,
+          requestId: 'req-2',
+          round: 1,
+          toolName: 'shell',
+          toolCallId: 'call-b',
+        }),
+        turnSettled({ threadId: T, requestId: 'req-2' }),
+        toolCallReceived({
+          threadId: T,
+          requestId: 'req-1',
+          round: 2,
+          toolName: 'shell',
+          toolCallId: 'call-late',
+        }),
+      ],
+      live()
+    );
+    expect(settled.toolTimelineByThread[T]?.map(row => row.id)).toEqual(['call-b']);
+    expect(settled.toolTimelineRequestByThread[T]).toBe('req-2');
+    expect(settled.settledTurnsByThread[T]?.['req-1']?.timeline.map(row => row.id)).toEqual([
+      'call-a',
+      'call-late',
+    ]);
+  });
+
+  it("a detached child's progress reaches its card in a frozen trail", () => {
+    const rowId = `${T}:subagent:sub-9:researcher`;
+    const settled = run(
+      [
+        turnSettled({ threadId: T, requestId: 'req-1' }),
+        setToolTimelineForThread({ threadId: T, entries: [] }),
+        liveTurnStarted({ threadId: T, requestId: 'req-2' }),
+        subagentSpawned({
+          threadId: T,
+          requestId: 'req-1',
+          round: 2,
+          rowId,
+          taskId: 'sub-9',
+          agentId: 'researcher',
+        }),
+        subagentIterationStarted({ threadId: T, rowId, childIteration: 3, childMaxIterations: 9 }),
+        recordSubagentTranscriptTool({
+          threadId: T,
+          rowId,
+          callId: 'child-1',
+          toolName: 'web_search',
+        }),
+        resolveSubagentTranscriptTool({ threadId: T, rowId, callId: 'child-1', success: true }),
+      ],
+      live()
+    );
+    const card = settled.settledTurnsByThread[T]?.['req-1']?.timeline.find(row => row.id === rowId);
+    expect([card?.subagent?.childIteration, card?.subagent?.childMaxIterations]).toEqual([3, 9]);
+    expect(
+      card?.subagent?.transcript?.map(item => (item.kind === 'tool' ? item.status : item.kind))
+    ).toEqual(['success']);
+  });
+
+  it('a late row of a turn this session never froze is left to the core projection', () => {
+    const settled = run(
+      [
+        turnSettled({ threadId: T, requestId: 'req-1' }),
+        setToolTimelineForThread({ threadId: T, entries: [] }),
+        liveTurnStarted({ threadId: T, requestId: 'req-2' }),
+        toolCallReceived({
+          threadId: T,
+          requestId: 'req-0',
+          round: 1,
+          toolName: 'shell',
+          toolCallId: 'call-old',
+        }),
+      ],
+      live()
+    );
+    expect(settled.toolTimelineByThread[T]).toEqual([]);
+    expect(settled.toolTimelineRequestByThread[T]).toBe('req-2');
   });
 
   it("a missed turn's row names its own request, which then freezes", () => {
@@ -286,6 +441,9 @@ describe('turnSettled', () => {
   it('a parallel request never claims the primary timeline', () => {
     const settled = run(
       [
+        // No primary turn is live (req-1 settled): only the parallel guard
+        // keeps the fork's row from claiming the timeline.
+        turnSettled({ threadId: T, requestId: 'req-1' }),
         registerParallelRequest({ threadId: T, requestId: 'fork-1' }),
         toolCallReceived({
           threadId: T,
