@@ -82,31 +82,31 @@ case "$(uname -s):$(uname -m)" in
     module_ext=dylib
     if [ "$(sw_vers -productVersion | cut -d. -f1)" -ge 26 ]; then
       wallet_platform=macos-26-arm64
-      wallet_sha256=4e517d4a3440c2aad852cf5ec23d12863dc9748ecad256dc1578b9f21f4f0ace
+      wallet_sha256=6409e1bfcd542f4fba5d867bd6b06b094a24d8e9bd994aae46894dcd979d3291
     else
       wallet_platform=macos-15-arm64
-      wallet_sha256=95e1f1905e0c358ae03b448c11b8c8a413d67951fd02b9f0d78f811f7e5e3037
+      wallet_sha256=06d66492a7ba9b3793810ff9e644231deacf6fbdf9e32008fcef866f8228cbd2
     fi
     ;;
   Darwin:x86_64)
     module_ext=dylib
     if [ "$(sw_vers -productVersion | cut -d. -f1)" -ge 26 ]; then
       wallet_platform=macos-26-x86_64
-      wallet_sha256=94a6270d07aa0f0788312383552c1baec26ba2db6856c1ab425ddafc4d61b3bb
+      wallet_sha256=3ad698d3f6ee549ee4c724717e78a2b16b5504ea4bea89af3ccf06cf3e7c88dc
     else
       wallet_platform=macos-15-x86_64
-      wallet_sha256=55973b9a5b2c0cea8ddd380a3b9ece65c09485faeea2d1cc1e6846b8e888828a
+      wallet_sha256=db4e6b2dae244059ef9bf3401faadb6d58bd6f70bb6279135944a41bb5e3b4f5
     fi
     ;;
   Linux:x86_64)
     module_ext=so
     wallet_platform=ubuntu-22.04-x86_64
-    wallet_sha256=88b63685cab8a622416f24f1ad569153f249d6d74732ff33c79e4021cf64a611
+    wallet_sha256=4410a0d88d49f3553c01ef6f0ced3a2997388d698d57d08bc129b82807e57016
     ;;
   Linux:aarch64|Linux:arm64)
     module_ext=so
     wallet_platform=ubuntu-22.04-arm64
-    wallet_sha256=6c86be45fd260690a93f36024abc9d4f777c30233c70b0363bc23bd25dc4fdfb
+    wallet_sha256=90e391b78ebb25650d7d9cff6440869e045298d1b4976e7d61b6b20b9ca8a3d4
     ;;
   *)
     echo "Unsupported native-module test host: $(uname -s) $(uname -m)" >&2
@@ -151,13 +151,17 @@ fi
 # Wallet JSON-RPC E2E sends a recovery phrase only to an attested module. Build
 # artifacts are deliberately not treated as release-pinned recipients, so use
 # the checksum-pinned release archive and its accompanying `modules.toml`.
-wallet_dir="$REPO_ROOT/target/test-modules/tinywallet"
-wallet_archive="$wallet_dir/tinywallet-module-0.5.1-$wallet_platform.tar.gz"
+# Keyed by version: the presence check below would otherwise keep serving a
+# library from an earlier release after the pin moves, and the wallet only
+# attests the pinned release's library.
+wallet_version="0.5.3"
+wallet_dir="$REPO_ROOT/target/test-modules/tinywallet/$wallet_version"
+wallet_archive="$wallet_dir/tinywallet-module-$wallet_version-$wallet_platform.tar.gz"
 if [ ! -f "$wallet_dir/libtinywallet_module.$module_ext" ]; then
   echo "Downloading the pinned TinyWallet test module ..."
   mkdir -p "$wallet_dir"
   curl --fail --location --silent --show-error \
-    "https://github.com/tinyhumansai/tinywallet/releases/download/v0.5.1/$(basename "$wallet_archive")" \
+    "https://github.com/tinyhumansai/tinywallet/releases/download/v${wallet_version}/$(basename "$wallet_archive")" \
     --output "$wallet_archive"
   # macOS ships a `sha256sum` that does not accept GNU's stdin check mode.
   if command -v shasum >/dev/null 2>&1; then

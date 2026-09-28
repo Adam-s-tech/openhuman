@@ -316,18 +316,10 @@ fn drain_pause_count(handle: &SteeringHandle) -> usize {
         .count()
 }
 
-/// Collect the nudge system-message texts drained from `handle`. The nudge
-/// rides the `InjectMessage` lane (not `Redirect`) so it is permitted on the
-/// user's interactive turn — see the test below.
-fn drain_nudge_messages(handle: &SteeringHandle) -> Vec<String> {
-    handle
-        .drain()
-        .into_iter()
-        .filter_map(|c| match c {
-            SteeringCommand::InjectMessage(message) => Some(message.text()),
-            _ => None,
-        })
-        .collect()
+/// Collect the nudge texts queued for the next model request. Nudges are
+/// request-scoped (#6725): they never ride a steering command.
+fn drain_nudge_messages(mw: &RepeatedToolFailureMiddleware) -> Vec<String> {
+    mw.take_pending_nudges()
 }
 
 // ── RepeatedToolFailureMiddleware body-level ok:false (flows breaker) ────

@@ -210,6 +210,28 @@ describe('buildRuntimeMessages', () => {
     ]);
   });
 
+  it("hands the live rows to the settled reply they belong to, never to another request's", () => {
+    const reply = (requestId: string) =>
+      msg({ id: `agent:${requestId}`, sender: 'agent', extraMetadata: { requestId } });
+    const liveTimeline = [tool({ id: 'call-1', status: 'success' })];
+    const toolIds = (liveTimelineRequestId: string | undefined, requestId: string) => {
+      const [message] = buildRuntimeMessages([reply(requestId)], null, {
+        isRunning: false,
+        liveTimeline,
+        liveTimelineRequestId,
+      });
+      return typeof message.content === 'string'
+        ? []
+        : message.content.flatMap(part => (part.type === 'tool-call' ? [part.toolCallId] : []));
+    };
+    // The just-settled turn's own rows, and rows of unknown owner: unchanged.
+    expect(toolIds('req-1', 'req-1')).toEqual(['call-1']);
+    expect(toolIds(undefined, 'req-1')).toEqual(['call-1']);
+    // A reply that settled without an `inference_start` (a background
+    // delivery) does not show the previous turn's cards again.
+    expect(toolIds('req-1', 'bgdeliver-1')).toEqual([]);
+  });
+
   it('replays a settled turn with its reasoning, narration and tools in the order they happened', () => {
     const answer = msg({
       id: 'answer',

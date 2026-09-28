@@ -87,7 +87,7 @@ async fn enable_request_fails_closed_on_unsupported_platform_without_persisting(
 
 #[tokio::test]
 async fn enabled_status_reports_module_permissions_and_errors() {
-    use tinydesktop_bus::{DesktopError, DesktopResponse};
+    use tinycomputer_bus::{DesktopError, DesktopResponse};
 
     let dir = tempfile::tempdir().unwrap();
     let mut config = Config::default();
@@ -141,7 +141,7 @@ async fn disabling_desktop_persists_even_if_state_was_enabled() {
 
 #[tokio::test]
 async fn probe_requires_accessibility_and_snapshot_before_listing_apps() {
-    use tinydesktop_bus::{DesktopError, DesktopResponse};
+    use tinycomputer_bus::{DesktopError, DesktopResponse};
 
     let dir = tempfile::tempdir().unwrap();
     let mut config = Config::default();

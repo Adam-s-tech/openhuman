@@ -163,3 +163,48 @@ fn tool_snapshot_with_no_executable_source_fails_closed_before_graph() {
     .expect_err("a declared tool must have a request-scoped executable source");
     assert!(error.error.to_string().contains("revoked_tool"));
 }
+
+/// #6721: the req-029 → req-031 shape — an assistant issued 3 tool calls and
+/// the 50-message cut lands on the second result. The trimmed history must not
+/// open on an orphaned `tool` message.
+#[test]
+fn trim_history_keeps_tool_call_group_whole() {
+    let mut calling = Message::assistant("");
+    if let Message::Assistant(assistant) = &mut calling {
+        assistant.tool_calls = ["a", "b", "c"]
+            .iter()
+            .map(|id| tinyinference_llm::ToolCall::new(*id, "search", serde_json::json!({})))
+            .collect();
+    }
+    let mut history = vec![Message::system("s0"), Message::system("s1")];
+    history.extend([
+        Message::user("u0"),
+        calling,
+        Message::tool("a", "ra"),
+        Message::tool("b", "rb"),
+        Message::tool("c", "rc"),
+        Message::assistant("done"),
+    ]);
+    history.extend((0..47).map(|i| Message::user(format!("filler {i}"))));
+    // 53 non-system messages → the raw cut drops 3 and would land on tool "b".
+
+    trim_history(&mut history, 50);
+
+    assert!(
+        matches!(&history[2], Message::Assistant(a) if a.tool_calls.len() == 3),
+        "trimmed history must open on the tool-calling assistant, got {:?}",
+        history[2]
+    );
+    assert!(tinyagents_harness::summarization::tool_pairing_is_intact(
+        &history[2..]
+    ));
+}
+
+#[test]
+fn trim_history_without_tool_group_trims_to_the_bound() {
+    let mut history = vec![Message::system("s0")];
+    history.extend((0..60).map(|i| Message::user(format!("m{i}"))));
+    trim_history(&mut history, 50);
+    assert_eq!(history.len(), 51);
+    assert_eq!(history[1].text(), "m10");
+}

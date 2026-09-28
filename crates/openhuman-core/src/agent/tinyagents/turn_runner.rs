@@ -642,6 +642,7 @@ async fn run_turn_via_tinyagents_inner(
             AgentTurnRequest::new(agent_id, input),
             ctx,
         )
+        .with_replayed_prefix(request_base_len.saturating_sub(1)) // #6710: only the new input is screened
         .with_runtime(InvocationRuntime::new(harness));
         let state = ();
         if streaming {

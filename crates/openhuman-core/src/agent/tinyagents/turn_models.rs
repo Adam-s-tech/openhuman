@@ -6,7 +6,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 
 use crate::agent::tinyagents::model::{
-    BuiltTurnModels, ProfileOverrideModel, TierRoutes, TurnChatModel,
+    BuiltTurnModels, ErrorSlotModel, ProfileOverrideModel, TierRoutes, TurnChatModel,
 };
 use crate::agent::tinyagents::routes;
 use tinyagents_harness::host::{ModelResolveRequest, ModelResolver};
@@ -64,6 +64,13 @@ pub(crate) struct TurnModels {
 }
 
 impl TurnModels {
+    /// Adds a tier route to a test bundle (the injected-model builder has none).
+    #[cfg(test)]
+    pub(crate) fn with_test_route(mut self, name: &str, model: TurnChatModel) -> Self {
+        self.routes.push((name.to_string(), model));
+        self
+    }
+
     /// Provider telemetry id for this turn (`{provider_id}.{model}`).
     pub(crate) fn provider_id(&self) -> &str {
         &self.provider_id
@@ -105,24 +112,39 @@ impl TurnModels {
 /// Sub-agents (depth > 0) keep resolving their pin against the tier routes —
 /// that is how `integrations_agent`'s `hint = "burst"` reaches `hint:burst` —
 /// and fall back to the primary when the pin names no built route.
+///
+/// Only the lead's model records into the turn's error slot (#6724). Sub-agents
+/// resolve through this same resolver, possibly in parallel, so they get the
+/// unwrapped models: a child's attempt must neither clear the lead's recorded
+/// failure nor leave its own failure to be re-surfaced as the lead's.
 pub(crate) struct TurnModelResolver {
+    lead: TurnChatModel,
     primary: TurnChatModel,
     routes: std::collections::HashMap<String, TurnChatModel>,
 }
 
 impl TurnModelResolver {
     pub(crate) fn from_turn_models(models: &TurnModels) -> Self {
-        Self::new(
+        let mut resolver = Self::new(
             models.primary.clone(),
             models.routes.iter().cloned().collect(),
-        )
+        );
+        resolver.lead = Arc::new(ErrorSlotModel::new(
+            models.primary.clone(),
+            models.error_slot.clone(),
+        ));
+        resolver
     }
 
     pub(crate) fn new(
         primary: TurnChatModel,
         routes: std::collections::HashMap<String, TurnChatModel>,
     ) -> Self {
-        Self { primary, routes }
+        Self {
+            lead: primary.clone(),
+            primary,
+            routes,
+        }
     }
 }
 
@@ -142,7 +164,7 @@ impl ModelResolver<()> for TurnModelResolver {
                     "[models][resolver] lead keeps the turn's selected primary; definition model pin ignored"
                 );
             }
-            return Ok(self.primary.clone());
+            return Ok(self.lead.clone());
         }
         Ok(pin
             .and_then(|name| self.routes.get(name))

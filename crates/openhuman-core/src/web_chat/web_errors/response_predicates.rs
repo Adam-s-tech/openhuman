@@ -88,12 +88,18 @@ pub(crate) fn is_provider_request_rejected_text(lower: &str) -> bool {
     // `inference::provider::ops::api_error`). Matching a bare "400"/"404"
     // anywhere would misclassify unrelated errors that merely contain those
     // digits (token counts, byte offsets, timestamps). Per CodeRabbit review
-    // on PR #3199.
+    // on PR #3199. The `returned http 4xx` forms are tinyinference's
+    // `ProviderError` Display (`<provider> returned HTTP 400: …`), which is
+    // how a failure reported inside a stream reaches classification (#6724).
     const PROVIDER_4XX_MARKERS: &[&str] = &[
         "api error (400",
         "api error (404",
         "api error (409",
         "api error (422",
+        "returned http 400",
+        "returned http 404",
+        "returned http 409",
+        "returned http 422",
     ];
     PROVIDER_4XX_MARKERS
         .iter()

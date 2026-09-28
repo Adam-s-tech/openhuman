@@ -545,7 +545,12 @@ export async function clickToolGroupTrigger(
     await browser.waitUntil(
       async () => {
         matchingTriggers = [];
-        for (const candidate of await browser.$$(selector)) {
+        // Index rather than iterate: the element array's index signature is typed
+        // `ChainablePromiseElement`, its iterator `WebdriverIO.Element` (same objects).
+        const candidates = await browser.$$(selector);
+        const count = await candidates.length;
+        for (let i = 0; i < count; i++) {
+          const candidate = candidates[i]!;
           if ((await candidate.getText()).includes(label)) matchingTriggers.push(candidate);
         }
         return matchingTriggers.length > index;

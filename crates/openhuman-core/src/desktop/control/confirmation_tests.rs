@@ -1,5 +1,5 @@
 use super::*;
-use tinydesktop_bus::DesktopError;
+use tinycomputer_bus::DesktopError;
 
 fn record_save_prompt(id: &str) {
     record(
