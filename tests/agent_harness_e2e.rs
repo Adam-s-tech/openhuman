@@ -705,9 +705,9 @@ impl Drop for Stack {
 
 async fn boot_stack() -> Stack {
     // Ensure the global AgentDefinitionRegistry is populated with built-in
-    // archetypes (orchestrator, planner, task_manager_agent, etc.) before
+    // archetypes (orchestrator, presentation_agent, task_manager_agent, etc.) before
     // the RPC stack starts. Without this the session builder cannot synthesise
-    // delegation tools and every `plan`/`spawn_subagent` call becomes
+    // delegation tools and every `make_presentation`/`spawn_subagent` call becomes
     // "Unknown tool: …", making delegation tests vacuous.
     init_agent_def_registry();
 
@@ -992,23 +992,23 @@ async fn multi_turn_state_persistence_inner() {
 // ─── Task 3: Subagent delegation happy path ───────────────────────────────────
 //
 // Tool surface (crates/openhuman-core/src/tools/orchestrator_tools.rs,
-//   crates/openhuman-core/src/agent/registry/agents/planner/agent.toml):
-//   - planner has `delegate_name = "plan"`, so the orchestrator LLM sees a
-//     tool named "plan" synthesised by collect_orchestrator_tools.
+//   crates/openhuman-core/src/agent/registry/agents/presentation_agent/agent.toml):
+//   - presentation_agent has `delegate_name = "make_presentation"`, so the
+//     orchestrator LLM sees a tool named "make_presentation" synthesised by collect_orchestrator_tools.
 //   - The tool takes { "prompt": string, ... } per ArchetypeDelegationTool schema.
-//   - The orchestrator TOML lists "planner" in its subagents.allowlist.
+//   - The orchestrator TOML lists "presentation_agent" in its subagents.allowlist.
 //   - AgentDefinitionRegistry must be initialised (done in boot_stack) for the
-//     delegation tool to be synthesised; without it the call becomes "Unknown tool: plan".
+//     delegation tool to be synthesised; without it the call becomes "Unknown tool: make_presentation".
 //
 // Actual LLM request ordering (with registry init):
-//   request[0] = orchestrator → model returns { tool_calls: [plan(...)] }
-//   request[1] = planner subagent inner loop → model returns canary text
+//   request[0] = orchestrator → model returns { tool_calls: [make_presentation(...)] }
+//   request[1] = presentation_agent subagent inner loop → model returns canary text
 //   request[2] = orchestrator synthesis → model returns final text with canary
 
-/// Orchestrator delegates to planner via the `plan` tool (delegate_name
-/// on the planner agent definition); the planner subagent runs its own
-/// inner LLM call; the final orchestrator synthesis reply contains the planner
-/// canary. Three upstream requests prove the full delegation path ran.
+/// Orchestrator delegates to presentation_agent via the `make_presentation`
+/// tool (delegate_name on the presentation_agent definition); the subagent runs
+/// its own inner LLM call; the final orchestrator synthesis reply contains the
+/// subagent canary. Three upstream requests prove the full delegation path ran.
 #[test]
 fn subagent_delegation_happy_path() {
     run_on_agent_stack(
@@ -1020,15 +1020,16 @@ fn subagent_delegation_happy_path() {
 async fn subagent_delegation_happy_path_inner() {
     let _lock = env_lock();
     reset_script(vec![
-        // request[0]: Orchestrator calls the `plan` tool (planner's delegate_name).
+        // request[0]: Orchestrator calls the `make_presentation` tool
+        // (presentation_agent's delegate_name).
         tool_call_completion(
-            "plan",
+            "make_presentation",
             json!({ "prompt": "Find the marker phrase", "blocking": true }),
         ),
-        // request[1]: Planner subagent inner LLM call returns its canary.
-        text_completion("PLANNER_CANARY_42 is the marker."),
-        // request[2]: Orchestrator receives the planner result and synthesizes.
-        text_completion("Done. The result is: PLANNER_CANARY_42"),
+        // request[1]: presentation_agent subagent inner LLM call returns its canary.
+        text_completion("PRESENTATION_CANARY_42 is the marker."),
+        // request[2]: Orchestrator receives the subagent result and synthesizes.
+        text_completion("Done. The result is: PRESENTATION_CANARY_42"),
     ]);
     let stack = boot_stack().await;
 
@@ -1042,7 +1043,7 @@ async fn subagent_delegation_happy_path_inner() {
         300,
         "harness-subagent",
         "thread-sub",
-        "plan around the marker",
+        "build a deck around the marker",
     )
     .await;
 
@@ -1058,13 +1059,13 @@ async fn subagent_delegation_happy_path_inner() {
         .and_then(Value::as_str)
         .unwrap_or_else(|| panic!("chat_done missing 'full_response': {done}"));
     assert!(
-        full_response.contains("PLANNER_CANARY_42"),
-        "final response missing planner canary; full_response: {full_response}\nevent: {done}"
+        full_response.contains("PRESENTATION_CANARY_42"),
+        "final response missing subagent canary; full_response: {full_response}\nevent: {done}"
     );
 
     // Delegation evidenced by ≥3 captured upstream requests:
-    //   request[0] = orchestrator turn: plan tool call returned
-    //   request[1] = planner subagent inner LLM call: canary text returned
+    //   request[0] = orchestrator turn: make_presentation tool call returned
+    //   request[1] = presentation_agent subagent inner LLM call: canary text returned
     //   request[2] = orchestrator synthesis: canary forwarded in final reply
     //
     // NOTE: a completed turn's snapshot is now RETAINED (lifecycle `Completed`)
@@ -1075,7 +1076,7 @@ async fn subagent_delegation_happy_path_inner() {
     let requests = with_captured(|c| c.clone());
     assert!(
         requests.len() >= 3,
-        "expected ≥3 upstream requests (orchestrator + planner + orchestrator synthesis), \
+        "expected ≥3 upstream requests (orchestrator + presentation_agent + orchestrator synthesis), \
          got {};\nall requests: {}",
         requests.len(),
         serde_json::to_string_pretty(&requests).unwrap_or_default()
@@ -1090,7 +1091,7 @@ async fn subagent_delegation_happy_path_inner() {
         serde_json::to_string_pretty(&requests).unwrap_or_default()
     );
 
-    // request[1] (planner subagent) must have different system/message content
+    // request[1] (presentation_agent subagent) must have different system/message content
     // from request[0] (orchestrator) — proves a genuinely different agent context
     // ran, not the same orchestrator re-called.
     let req0_sys = requests
@@ -1106,7 +1107,7 @@ async fn subagent_delegation_happy_path_inner() {
     assert_ne!(
         req0_sys, req1_sys,
         "request[0] and request[1] share identical first-message content — \
-         planner subagent did not build its own context; \
+         presentation_agent subagent did not build its own context; \
          content: {req0_sys:?}"
     );
 
@@ -1683,7 +1684,7 @@ async fn approval_gate_deny_flow_inner() {
 // code_executor has delegate_name = "run_code" (crates/openhuman-core/src/agent/registry/
 // agents/code_executor/agent.toml:3). The orchestrator synthesizes a `run_code`
 // delegation tool from this. code_executor has file_write in its tool surface.
-// The planner agent (read-only) does NOT have file_write.
+// presentation_agent does NOT have file_write.
 //
 // Actual LLM request ordering:
 //   request[0] = orchestrator → run_code delegation tool call
@@ -2126,8 +2127,8 @@ async fn provider_error_retry_inner() {
 // parallel_subagent_fanout:
 //   spawn_parallel_agents is in the orchestrator's named tools (agent.toml:165)
 //   and is registered via ops.rs:163. Requires ≥2 tasks, each { agent_id, prompt }.
-//   The orchestrator's subagents.allowlist includes "planner", so
-//   agent_id:"planner" is valid. children run via join_all (spawn_parallel_agents.rs
+//   The orchestrator's subagents.allowlist includes "presentation_agent",
+//   so agent_id:"presentation_agent" is valid. children run via join_all (spawn_parallel_agents.rs
 //   ~line 322 — "let futures = prepared.into_iter().map(…)"). Both children
 //   consume from the same global FIFO scripted-response queue. Because
 //   join_all spawns futures concurrently but the queue pop is under a Mutex,
@@ -2135,14 +2136,14 @@ async fn provider_error_retry_inner() {
 //   carry distinct canaries; the synthesis quotes both.
 //   LLM request ordering (4 upstream calls):
 //     request[0]  = orchestrator → spawn_parallel_agents tool call
-//     request[1,2] = planner child 1 & child 2 (order nondeterministic,
+//     request[1,2] = presentation_agent child 1 & child 2 (order nondeterministic,
 //                    both return distinct canaries)
 //     request[3]  = orchestrator synthesis with both canaries
 //
 // multi_hop_delegation_chain:
-//   Depth-1 subagents (planner, code_executor, etc.) do NOT have spawn
-//   tools in their named lists. Verified: planner/agent.toml has only read-only
-//   web/file/memory tools; code_executor/agent.toml has code/file tools. Neither contains
+//   Depth-1 subagents (presentation_agent, vision_agent, etc.) do NOT have spawn
+//   tools in their named lists. Verified: presentation_agent/agent.toml has only
+//   generate_presentation plus web tools; code_executor/agent.toml has code/file tools. Neither contains
 //   spawn_subagent, spawn_worker_thread, or spawn_parallel_agents. The only
 //   agents with spawn tools are orchestrator and trigger_reactor (loader.rs:383,
 //   527). trigger_reactor is not in the orchestrator's subagents.allowlist.
@@ -2150,18 +2151,18 @@ async fn provider_error_retry_inner() {
 //   with the current built-in agent graph; the cap is a safety net for
 //   runtime-registered agents.
 //
-//   Fallback (plan Task 9, step 9.2 fallback): orchestrator → planner (via
-//   `plan`) → planner scripted to call ask_user_clarification (not in
-//   planner's named tools → SubagentToolSource::execute returns a blocked
-//   response, tool loop continues) → planner second LLM call returns
-//   DEPTH2_CANARY text → dispatch_subagent forwards as `plan` tool result
+//   Fallback (plan Task 9, step 9.2 fallback): orchestrator → presentation_agent
+//   (via `make_presentation`) → presentation_agent scripted to call ask_user_clarification (not in
+//   presentation_agent's named tools → SubagentToolSource::execute returns a blocked
+//   response, tool loop continues) → presentation_agent second LLM call returns
+//   DEPTH2_CANARY text → dispatch_subagent forwards as `make_presentation` tool result
 //   → orchestrator synthesis. The three-level synthesis path (user turn →
-//   planner subagent → tool-loop continuation → orchestrator synthesis) is
+//   presentation_agent subagent → tool-loop continuation → orchestrator synthesis) is
 //   the deepest path reachable with built-in agents without src/ changes.
 //   LLM request ordering (4 upstream calls):
-//     request[0] = orchestrator → `plan` delegation
-//     request[1] = planner (inner loop) → ask_user_clarification (blocked)
-//     request[2] = planner (inner loop continuation) → DEPTH2_CANARY text
+//     request[0] = orchestrator → `make_presentation` delegation
+//     request[1] = presentation_agent (inner loop) → ask_user_clarification (blocked)
+//     request[2] = presentation_agent (inner loop continuation) → DEPTH2_CANARY text
 //     request[3] = orchestrator synthesis
 
 /// Two `spawn_async_subagent` calls issued together really do put two workers
@@ -2213,11 +2214,11 @@ async fn parallel_subagent_fanout_inner() {
         tool_calls_completion(&[
             (
                 "spawn_async_subagent",
-                json!({ "agent_id": "planner", "prompt": "Find PARALLEL_ALPHA_CANARY" }),
+                json!({ "agent_id": "presentation_agent", "prompt": "Find PARALLEL_ALPHA_CANARY" }),
             ),
             (
                 "spawn_async_subagent",
-                json!({ "agent_id": "planner", "prompt": "Find PARALLEL_BETA_CANARY" }),
+                json!({ "agent_id": "presentation_agent", "prompt": "Find PARALLEL_BETA_CANARY" }),
             ),
         ]),
         text_completion("Spawned two workers; results will arrive as they land."),
@@ -2309,20 +2310,20 @@ async fn parallel_subagent_fanout_inner() {
     );
 }
 
-/// Orchestrator delegates to planner via `plan`; the planner calls
+/// Orchestrator delegates to presentation_agent via `make_presentation`; it calls
 /// ask_user_clarification (not in its named tools, so SubagentToolSource
-/// returns error); planner loops and returns DEPTH2_CANARY;
+/// returns error); presentation_agent loops and returns DEPTH2_CANARY;
 /// dispatch_subagent forwards the result; orchestrator synthesizes.
 ///
-/// Depth behavior discovered: planner/agent.toml has only read-only web/file/memory
-/// tools (no spawn_subagent, spawn_worker_thread, spawn_parallel_agents). MAX_SPAWN_DEPTH=3
+/// Depth behavior discovered: presentation_agent/agent.toml has only
+/// generate_presentation plus web tools (no spawn_subagent, spawn_worker_thread, spawn_parallel_agents). MAX_SPAWN_DEPTH=3
 /// (spawn_depth_context.rs:16) is unreachable with built-in agents; it guards
 /// runtime/workspace agents. The three-level synthesis (user-turn root →
-/// planner subagent → orchestrator synthesis) is the deepest path available
+/// presentation_agent subagent → orchestrator synthesis) is the deepest path available
 /// without src/ changes. Documented per plan Task 9 step 9.2 fallback.
 ///
 /// Intentionally shares the blocked-clarification mechanic with
-/// `scheduling_clarification_flow`; differs in delegate surface (plan vs
+/// `scheduling_clarification_flow`; differs in delegate surface (make_presentation vs
 /// schedule_task) and single-turn shape.
 #[test]
 fn multi_hop_delegation_chain() {
@@ -2335,24 +2336,25 @@ fn multi_hop_delegation_chain() {
 async fn multi_hop_delegation_chain_inner() {
     let _lock = env_lock();
     reset_script(vec![
-        // request[0]: Orchestrator delegates to planner via `plan`
-        // (planner's delegate_name, agent.toml:3).
+        // request[0]: Orchestrator delegates to presentation_agent via
+        // `make_presentation` (its delegate_name, agent.toml:3).
         tool_call_completion(
-            "plan",
+            "make_presentation",
             json!({ "prompt": "deep question", "blocking": true }),
         ),
-        // request[1]: Planner first inner LLM call → scripts ask_user_clarification.
-        // ask_user_clarification is NOT in planner's named tools (planner/agent.toml `[tools] named`),
+        // request[1]: presentation_agent first inner LLM call → scripts ask_user_clarification.
+        // ask_user_clarification is NOT in presentation_agent's named tools
+        // (presentation_agent/agent.toml `[tools] named`),
         // so SubagentToolSource returns a blocked/error result (tool_source.rs:36).
-        // The planner subagent loop continues to a second LLM call.
+        // The subagent loop continues to a second LLM call.
         tool_call_completion(
             "ask_user_clarification",
             json!({ "question": "depth-2 clarification?" }),
         ),
-        // request[2]: Planner second inner LLM call → text result.
-        // This becomes the `plan` tool result forwarded by dispatch_subagent.
+        // request[2]: presentation_agent second inner LLM call → text result.
+        // This becomes the `make_presentation` tool result forwarded by dispatch_subagent.
         text_completion("DEPTH2_CANARY"),
-        // request[3]: Orchestrator receives the plan result and synthesizes.
+        // request[3]: Orchestrator receives the make_presentation result and synthesizes.
         text_completion("Final answer: DEPTH2_CANARY"),
     ]);
     let stack = boot_stack().await;
@@ -2387,27 +2389,27 @@ async fn multi_hop_delegation_chain_inner() {
     );
 
     // ≥4 upstream requests prove the full delegation path ran (≥3 would
-    // false-pass if the planner inner loop early-exited):
-    //   request[0] = orchestrator (plan call),
-    //   request[1] = planner first iter (ask_user_clarification → blocked),
-    //   request[2] = planner second iter (DEPTH2_CANARY text),
+    // false-pass if the subagent inner loop early-exited):
+    //   request[0] = orchestrator (make_presentation call),
+    //   request[1] = presentation_agent first iter (ask_user_clarification → blocked),
+    //   request[2] = presentation_agent second iter (DEPTH2_CANARY text),
     //   request[3] = orchestrator synthesis.
     let requests = with_captured(|c| c.clone());
     assert!(
         requests.len() >= 4,
-        "expected ≥4 upstream requests (orchestrator + planner x2 + synthesis), got {};\
+        "expected ≥4 upstream requests (orchestrator + presentation_agent x2 + synthesis), got {};\
         \nrequests: {}",
         requests.len(),
         serde_json::to_string_pretty(&requests).unwrap_or_default()
     );
 
-    // No unknown-tool result for `plan` — delegation was synthesised correctly.
-    // Scoped to `plan`: the planner's `ask_user_clarification` call IS
+    // No unknown-tool result for `make_presentation` — delegation was synthesised correctly.
+    // Scoped to `make_presentation`: the subagent's `ask_user_clarification` call IS
     // rejected as unknown by design (see the ordering note above), so a blanket
     // check would fail on the very mechanic this test exercises.
     assert!(
-        !captured_requests_reject_tool_as_unknown(&requests, "plan"),
-        "found an unknown-tool result — `plan` delegation was not synthesised; requests: {}",
+        !captured_requests_reject_tool_as_unknown(&requests, "make_presentation"),
+        "found an unknown-tool result — `make_presentation` delegation was not synthesised; requests: {}",
         serde_json::to_string_pretty(&requests).unwrap_or_default()
     );
 
@@ -5137,7 +5139,7 @@ async fn cancelling_a_running_background_subagent_settles_it_inner() {
     reset_script(vec![
         tool_calls_completion(&[(
             "spawn_async_subagent",
-            json!({ "agent_id": "planner", "prompt": "Find CANCEL_E2E_CANARY" }),
+            json!({ "agent_id": "presentation_agent", "prompt": "Find CANCEL_E2E_CANARY" }),
         )]),
         text_completion("Spawned a worker; its result will arrive later."),
         text_completion("worker would have finished here"),
