@@ -26,6 +26,7 @@ describe('openhumanGetClientConfig', () => {
     vi.mocked(isTauri).mockReturnValueOnce(false);
     vi.mocked(callCoreRpc).mockResolvedValueOnce({} as never);
     await openhumanGetClientConfig();
+    expect(vi.mocked(callCoreRpc)).toHaveBeenCalled();
   });
 
   it('dispatches openhuman.inference_get_client_config and returns the response', async () => {
@@ -93,5 +94,6 @@ describe('Claude Code wrappers', () => {
     vi.mocked(isTauri).mockReturnValueOnce(false);
     vi.mocked(callCoreRpc).mockResolvedValueOnce({} as never);
     await call();
+    expect(vi.mocked(callCoreRpc)).toHaveBeenCalled();
   });
 });

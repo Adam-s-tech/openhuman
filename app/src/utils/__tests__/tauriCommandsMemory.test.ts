@@ -27,6 +27,7 @@ describe('memoryGraphQuery', () => {
     mockIsTauri.mockReturnValue(false);
     mockCallCoreRpc.mockResolvedValue([]);
     await memoryGraphQuery();
+    expect(mockCallCoreRpc).toHaveBeenCalled();
   });
 
   it('calls core RPC with memory.graph.query method and optional params', async () => {
@@ -74,6 +75,7 @@ describe('memoryDocIngest', () => {
     mockIsTauri.mockReturnValue(false);
     mockCallCoreRpc.mockResolvedValue([]);
     await memoryDocIngest({ namespace: 'ns', key: 'k', title: 't', content: 'c' });
+    expect(mockCallCoreRpc).toHaveBeenCalled();
   });
 
   it('calls core RPC with memory.doc.ingest and forwards all params', async () => {

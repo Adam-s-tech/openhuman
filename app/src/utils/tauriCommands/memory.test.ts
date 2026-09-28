@@ -45,6 +45,7 @@ describe('memorySyncAll', () => {
     mockIsTauri.mockReturnValue(false);
     mockCallCoreRpc.mockResolvedValue({});
     await memorySyncAll();
+    expect(mockCallCoreRpc).toHaveBeenCalled();
   });
 
   test('calls memory_sync_all and returns result', async () => {
@@ -62,6 +63,7 @@ describe('memoryLearnAll', () => {
     mockIsTauri.mockReturnValue(false);
     mockCallCoreRpc.mockResolvedValue({});
     await memoryLearnAll();
+    expect(mockCallCoreRpc).toHaveBeenCalled();
   });
 
   test('calls memory_learn_all without namespaces param when none provided', async () => {
@@ -152,5 +154,6 @@ describe('aiListMemoryFiles', () => {
     mockIsTauri.mockReturnValue(false);
     mockCallCoreRpc.mockResolvedValue({});
     await aiListMemoryFiles();
+    expect(mockCallCoreRpc).toHaveBeenCalled();
   });
 });
