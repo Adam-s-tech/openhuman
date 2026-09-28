@@ -231,9 +231,13 @@ fn explicit_provider_selection_maps_managed_and_routes() {
         provider(&cfg, "gemini"),
         Some(SearchProviderSettings::direct())
     );
+    // TinyFish is own-key only; without a key it migrates switched off.
     assert_eq!(
         provider(&cfg, "tinyfish"),
-        Some(SearchProviderSettings::managed())
+        Some(SearchProviderSettings {
+            enabled: false,
+            route: SearchRoute::Direct,
+        })
     );
     assert_eq!(
         provider(&cfg, "querit"),
@@ -250,11 +254,14 @@ fn legacy_toggles_outside_search_migrate_when_active() {
         tinyfish_active: true,
         seltz_active: true,
         searxng_active: true,
+        tinyfish_api_key: Some("tf-key".into()),
     });
+    // The legacy integration's key carries over, so TinyFish stays on (direct).
     assert_eq!(
         provider(&cfg, "tinyfish"),
-        Some(SearchProviderSettings::managed())
+        Some(SearchProviderSettings::direct())
     );
+    assert_eq!(cfg.tinyfish.key(), Some("tf-key"));
     assert_eq!(
         provider(&cfg, "seltz"),
         Some(SearchProviderSettings::direct())
@@ -329,4 +336,41 @@ fn credentials_resolve_per_provider() {
         Some("g")
     );
     assert!(cfg.credentials("seltz").is_none());
+}
+
+#[test]
+fn v2_managed_tinyfish_without_a_key_is_turned_off() {
+    let mut cfg = legacy(
+        "schema_version = 2\n[providers.tinyfish]\nenabled = true\nroute = \"managed\"\n",
+    );
+    assert!(cfg.migrate_legacy(LegacySearchInputs::default()));
+    assert_eq!(
+        provider(&cfg, "tinyfish"),
+        Some(SearchProviderSettings {
+            enabled: false,
+            route: SearchRoute::Direct,
+        })
+    );
+}
+
+#[test]
+fn v2_tinyfish_with_a_key_stays_on_and_goes_direct() {
+    let mut cfg = legacy(
+        "schema_version = 2\n[providers.tinyfish]\nenabled = true\nroute = \"managed\"\n\
+         [tinyfish]\napi_key = \"tf\"\n",
+    );
+    assert!(cfg.migrate_legacy(LegacySearchInputs::default()));
+    assert_eq!(
+        provider(&cfg, "tinyfish"),
+        Some(SearchProviderSettings::direct())
+    );
+}
+
+#[test]
+fn tinyfish_takes_its_own_key_and_is_never_managed() {
+    let mut cfg = SearchConfig::default();
+    assert!(cfg.credentials_mut("tinyfish").is_some());
+    cfg.providers
+        .insert("tinyfish".into(), SearchProviderSettings::managed());
+    assert_eq!(cfg.route("tinyfish"), SearchRoute::Direct);
 }
