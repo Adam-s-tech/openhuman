@@ -32,7 +32,7 @@ Options:
   --token <token>           RPC bearer (default: OPENHUMAN_CORE_TOKEN or <workspace>/core.token)
   --workspace <path>        Workspace containing .openhuman/subagent_sessions.json
   --task-key <key>          Durable task key (default: audit-subagent-rpc-<timestamp>)
-  --agent-id <id>           Subagent id to request (default: planner)
+  --agent-id <id>           Subagent id to request (default: presentation_agent)
   --model <model>           Optional model_override for openhuman.agent_chat
   --provider-mode <mode>    Isolated provider config: openhuman-backend or direct-openai (default: openhuman-backend)
   --rpc-timeout-ms <n>      Parent agent_chat timeout (default: 600000)
@@ -60,7 +60,7 @@ function parseArgs(argv) {
     token: process.env.OPENHUMAN_CORE_TOKEN || "",
     workspace: process.env.OPENHUMAN_WORKSPACE || "",
     taskKey: `audit-subagent-rpc-${Date.now().toString(36)}`,
-    agentId: "planner",
+    agentId: "presentation_agent",
     model: "",
     providerMode: "openhuman-backend",
     rpcTimeoutMs: 600_000,
@@ -489,7 +489,7 @@ Do not call wait_subagent.`;
 function parallelPrompt(opts) {
   return `Harness parallel subagent audit.
 Call spawn_parallel_agents exactly once with these two tasks:
-1. agent_id "planner", ownership "website research", prompt "Research https://example.com and return a concise factual note with the page title or domain purpose. Include one short evidence phrase. Do not browse unrelated sites."
+1. agent_id "presentation_agent", ownership "website research", prompt "Research https://example.com and return a concise factual note with the page title or domain purpose. Include one short evidence phrase. Do not browse unrelated sites."
 2. agent_id "code_executor", ownership "code draft", prompt "Write a small Python function normalize_title(title: str) -> str that trims whitespace, collapses internal whitespace, and title-cases the result. Include one tiny assert-style example. Return only the code block; do not modify files."
 After spawn_parallel_agents returns, reply with one concise sentence summarizing that both parallel workers completed.
 Audit marker: ${opts.taskKey}.`;
@@ -570,7 +570,7 @@ After the requested tool call or calls return, provide one concise sentence. Do 
 named = ["spawn_subagent", "spawn_parallel_agents", "wait_subagent"]
 
 [subagents]
-allowlist = ["async_audit_worker", "planner", "code_executor"]
+allowlist = ["async_audit_worker", "presentation_agent", "code_executor"]
 `,
   );
   await writeFile(
