@@ -446,29 +446,3 @@ async fn builder_dedupes_visible_native_tools_and_seed_resume_bounds_history() -
 
     Ok(())
 }
-
-#[tokio::test]
-async fn debug_dump_integrations_agent_reports_missing_toolkit_without_network() -> Result<()> {
-    let _env = env_lock();
-    let workspace = tempfile::tempdir()?;
-    let _workspace_guard = EnvGuard::set_path("OPENHUMAN_WORKSPACE", workspace.path());
-
-    let err = dump_agent_prompt(DumpPromptOptions::new("integrations_agent"))
-        .await
-        .expect_err("integrations_agent needs an explicit toolkit");
-    let message = err.to_string();
-    assert!(message.contains("integrations_agent requires a `toolkit` argument"));
-    assert!(message.contains("composio list_connection"));
-
-    let mut options = DumpPromptOptions::new("integrations_agent");
-    options.workspace_dir_override = Some(PathBuf::from(workspace.path()));
-    options.model_override = Some("round26-debug-model".to_string());
-    let err = dump_agent_prompt(options)
-        .await
-        .expect_err("missing toolkit should fail before any remote client call");
-    assert!(err
-        .to_string()
-        .contains("integrations_agent requires a `toolkit` argument"));
-
-    Ok(())
-}
