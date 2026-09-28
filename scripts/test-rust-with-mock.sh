@@ -151,13 +151,17 @@ fi
 # Wallet JSON-RPC E2E sends a recovery phrase only to an attested module. Build
 # artifacts are deliberately not treated as release-pinned recipients, so use
 # the checksum-pinned release archive and its accompanying `modules.toml`.
-wallet_dir="$REPO_ROOT/target/test-modules/tinywallet"
-wallet_archive="$wallet_dir/tinywallet-module-0.5.3-$wallet_platform.tar.gz"
+# Keyed by version: the presence check below would otherwise keep serving a
+# library from an earlier release after the pin moves, and the wallet only
+# attests the pinned release's library.
+wallet_version="0.5.3"
+wallet_dir="$REPO_ROOT/target/test-modules/tinywallet/$wallet_version"
+wallet_archive="$wallet_dir/tinywallet-module-$wallet_version-$wallet_platform.tar.gz"
 if [ ! -f "$wallet_dir/libtinywallet_module.$module_ext" ]; then
   echo "Downloading the pinned TinyWallet test module ..."
   mkdir -p "$wallet_dir"
   curl --fail --location --silent --show-error \
-    "https://github.com/tinyhumansai/tinywallet/releases/download/v0.5.3/$(basename "$wallet_archive")" \
+    "https://github.com/tinyhumansai/tinywallet/releases/download/v${wallet_version}/$(basename "$wallet_archive")" \
     --output "$wallet_archive"
   # macOS ships a `sha256sum` that does not accept GNU's stdin check mode.
   if command -v shasum >/dev/null 2>&1; then
