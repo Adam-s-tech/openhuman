@@ -180,7 +180,7 @@ impl Tool for TinySearchTool {
     }
 }
 
-fn local_only_search_block(tool_name: &str) -> Option<String> {
+pub(crate) fn local_only_search_block(tool_name: &str) -> Option<String> {
     crate::security::egress::local_only_tool_block(&crate::security::egress::EgressDescriptor::new(
         "tinysearch",
         tool_name,

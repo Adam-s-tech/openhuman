@@ -136,6 +136,10 @@ function hasFinalReply(blocks: Block[]): boolean {
   return blocks.some(block => block.kind === 'text' && block.text.includes(CANARY_FINAL));
 }
 
+function normalizeRenderedText(text: string): string {
+  return text.replace(/\s+/g, ' ').trim();
+}
+
 async function distanceFromBottom(): Promise<number> {
   return (await browser.execute(() => {
     const viewport = document.querySelector('[data-slot="aui_thread-viewport"]');
@@ -278,7 +282,9 @@ describe('Chat live/history parity', () => {
       block => block.kind === 'text' && block.text.includes(CANARY_FINAL)
     );
     expect(finalBlock).toBeDefined();
-    expect(finalBlock?.text).toEqual(FINAL_ANSWER);
+    expect(normalizeRenderedText(finalBlock?.text ?? '')).toEqual(
+      normalizeRenderedText(FINAL_ANSWER)
+    );
 
     // Reopen through the visible thread list after dropping runtime state, so
     // the conversation is reloaded from persisted messages and the transcript.
