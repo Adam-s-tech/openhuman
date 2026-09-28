@@ -15,9 +15,8 @@ const TIER_STANDARD_CONTEXT: u64 = 128_000;
 const TIER_LOCAL_CONTEXT: u64 = 8_192;
 
 /// DeepSeek v4 Flash window (~1M tokens) — the managed default model
-/// (`MODEL_MANAGED_DEFAULT`) and the backing of the retired flash tiers.
-/// `extract_from_result` relies on this window to single-shot whole oversized
-/// payloads instead of chunking, so it must reflect the real model's capacity.
+/// (`MODEL_MANAGED_DEFAULT`) and the backing of the retired flash tiers. It
+/// must reflect the real model's capacity.
 const TIER_FLASH_CONTEXT: u64 = 1_000_000;
 
 /// Resolve the context window (in tokens) for a model id or OpenHuman tier alias.
