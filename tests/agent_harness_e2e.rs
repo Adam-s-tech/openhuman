@@ -992,7 +992,7 @@ async fn multi_turn_state_persistence_inner() {
 // ─── Task 3: Subagent delegation happy path ───────────────────────────────────
 //
 // Tool surface (crates/openhuman-core/src/tools/orchestrator_tools.rs,
-//   crates/openhuman-core/src/agent/registry/agents/agent_memory/agent.toml):
+//   crates/openhuman-core/src/memory/agent/agent/agent.toml):
 //   - agent_memory has `delegate_name = "retrieve_memory"`, so the
 //     orchestrator LLM sees a tool named "retrieve_memory" synthesised by collect_orchestrator_tools.
 //   - The tool takes { "prompt": string, ... } per ArchetypeDelegationTool schema.
