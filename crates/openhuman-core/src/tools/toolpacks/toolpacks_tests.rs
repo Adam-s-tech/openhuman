@@ -832,10 +832,9 @@ async fn loading_a_skill_prints_its_guide_before_the_tool_schemas() {
         .await
         .unwrap();
     assert!(!result.is_error);
-    let text = result.output();
-    let guide_at = text
-        .find(web3.guide.trim().lines().next().unwrap())
-        .expect("guide rendered");
+    let text = format!("{:?}", result.content);
+    let opening: String = web3.guide.trim().chars().take(40).collect();
+    let guide_at = text.find(&opening).expect("guide rendered");
     let schema_at = text.find("## `wallet_status`").expect("tool rendered");
     assert!(guide_at < schema_at, "guide must precede the schemas:\n{text}");
 }
