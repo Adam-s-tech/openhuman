@@ -874,14 +874,13 @@ fn orchestrator_searches_for_and_calls_the_integration_action() {
         ],
         must_call: &["tool_search", "GMAIL_FETCH_EMAILS"],
         must_not_call: &["composio_execute", "delegate_to_integrations_agent"],
-        // Not `schedule_task`: it resolves when called (see the scheduler case)
-        // but a named agent's up-front belt does not list synthesised delegates.
-        must_advertise: &["tool_search", "research"],
+        // Web research is direct now (there is no research delegate).
+        must_advertise: &["tool_search", "web_search_tool"],
         must_not_advertise: &[
             "delegate_to_integrations_agent",
             "composio_execute",
             "composio_list_tools",
-            "cron_add",
+            "cron",
         ],
         advertises_nothing: false,
         max_consecutive_calls_of: None,
@@ -889,28 +888,27 @@ fn orchestrator_searches_for_and_calls_the_integration_action() {
     });
 }
 
-/// `schedule_task` lands in scheduler_agent, which owns cron and nothing else.
+/// Scheduling is an inline skill, not a specialist: the orchestrator reaches
+/// the `cron` tool through the `scheduling` pack (`use_skill`), and neither the
+/// raw `cron` schema nor the retired `schedule_task` delegate is on its belt.
 #[test]
-#[ignore = "TODO(#6376): hosted TinyAgents omits scheduler specialist tools"]
-fn scheduler_agent_owns_the_cron_surface() {
+fn orchestrator_reaches_cron_through_the_scheduling_pack() {
     run_case(Case {
-        agent: "scheduler_agent",
-        agent_marker: "# Scheduler Agent",
+        agent: "orchestrator",
+        agent_marker: "## How you work",
         entry: Entry::WebChat,
         user_message: "What reminders do I have scheduled?",
         scripted_completions: vec![
             call(
-                "schedule_task",
-                json!({ "prompt": "List my scheduled reminders.", "blocking": true }),
+                "use_skill",
+                json!({ "skill": "scheduling", "tool": "cron", "args": { "action": "list" } }),
             ),
-            call("cron_list", json!({})),
-            text_completion("You have no scheduled reminders."),
             text_completion("You have no scheduled reminders."),
         ],
-        must_call: &["cron_list"],
-        must_not_call: &[],
-        must_advertise: &["cron_add", "cron_list", "cron_remove"],
-        must_not_advertise: &["composio_execute", "shell", "schedule_task"],
+        must_call: &["use_skill"],
+        must_not_call: &["schedule_task"],
+        must_advertise: &["use_skill", "current_time", "resolve_time"],
+        must_not_advertise: &["cron", "schedule_task", "composio_execute"],
         advertises_nothing: false,
         max_consecutive_calls_of: None,
         extra_config: "",
