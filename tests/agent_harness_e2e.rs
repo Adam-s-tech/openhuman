@@ -3187,7 +3187,8 @@ async fn model_call_ceiling_bounds_a_wedged_call_below_the_turn_deadline_inner()
 // "installed" or "connected". These go one step further: the skill comes from a
 // loopback registry through the real install path, the MCP server is found in a
 // loopback registry and then declared in `mcp.json` the way a user would, and a
-// scripted turn reaches the skill through `setup_skills` / `run_skill` and
+// scripted turn installs the skill through `setup_skills`, reads it back with the
+// orchestrator's own `describe_workflow`, and
 // calls the MCP server directly through the registry tools.
 //
 // The proof is the tool result the model receives, never the scripted reply:
@@ -3291,9 +3292,9 @@ async fn serve_skill_registry_fixture() -> (
 }
 
 /// A skill found in the registry is installed by the agent (behind the approval
-/// gate), lands on disk, and is then loaded by the skill executor, with its body
-/// reaching the model.
-// `skills` off drops `skill_setup`/`skill_executor` from the builtins, and this
+/// gate), lands on disk, and is then loaded by the orchestrator itself
+/// (`describe_workflow`), with its body reaching the model.
+// `skills` off drops `skill_setup` from the builtins, and this
 // target declares no `required-features`, so an ungated skill test would run
 // and fail instead of being skipped.
 #[cfg(feature = "skills")]
@@ -3343,16 +3344,12 @@ async fn agent_installs_a_registry_skill_then_runs_it_inner() {
             json!({ "entry_id": REGISTRY_SKILL_ID }),
         ),
         text_completion("Installed the skill."),
-        // Orchestrator hands the run to `skill_executor`, which loads the skill.
-        tool_call_completion(
-            "run_skill",
-            json!({ "prompt": format!("Run the {REGISTRY_SKILL_ID} skill"), "blocking": true }),
-        ),
+        // The orchestrator loads the installed skill itself — there is no
+        // skill-executor hand-off; running one is its own `run_workflow`.
         tool_call_completion(
             "describe_workflow",
             json!({ "workflow_id": REGISTRY_SKILL_ID }),
         ),
-        text_completion("Ran the skill."),
         text_completion("The skill is installed and ran."),
     ]);
     let stack = boot_stack().await;
@@ -3451,7 +3448,7 @@ async fn agent_installs_a_registry_skill_then_runs_it_inner() {
         "the installed SKILL.md is not the one the registry served: {body}"
     );
 
-    // Usable: the executor loaded the installed skill and its body reached the model.
+    // Usable: the orchestrator loaded the installed skill and its body reached the model.
     let described = tool_result_text(&requests, "describe_workflow")
         .unwrap_or_else(|| panic!("no tool result for describe_workflow; requests: {}", dump()));
     assert!(
@@ -3465,8 +3462,8 @@ async fn agent_installs_a_registry_skill_then_runs_it_inner() {
 
 // ─── #6302: the orchestrator calls MCP tools and hands off skill work ───────
 //
-// The skill hand-offs (`setup_skills`, `run_skill`) and the MCP registry tools
-// are direct tools on the orchestrator's belt. The raw `skill_registry_*`
+// The skill hand-off (`setup_skills`), the orchestrator's own `run_workflow`,
+// and the MCP registry tools are direct tools on the orchestrator's belt. The raw `skill_registry_*`
 // tools remain closed to it. These tests pin both paths against a real session.
 
 /// Tool names a captured model request advertised to the provider.
@@ -3584,19 +3581,20 @@ async fn assert_hand_off_reaches_specialist(
     );
 }
 
-/// Skill requests reach `skill_setup` and `skill_executor` through their
-/// hand-offs, called directly.
+/// Skill installs reach `skill_setup` through its hand-off, called directly;
+/// running an installed skill is the orchestrator's own `run_workflow`, not a
+/// hand-off to a retired `skill_executor` (`run_skill`).
 #[cfg(feature = "skills")]
 #[test]
-fn orchestrator_hands_skill_requests_to_the_skill_specialists_directly() {
+fn orchestrator_hands_skill_installs_to_skill_setup_directly() {
     run_on_agent_stack(
-        "orchestrator_hands_skill_requests_to_the_skill_specialists_directly",
-        orchestrator_hands_skill_requests_to_the_skill_specialists_directly_inner,
+        "orchestrator_hands_skill_installs_to_skill_setup_directly",
+        orchestrator_hands_skill_installs_to_skill_setup_directly_inner,
     );
 }
 
 #[cfg(feature = "skills")]
-async fn orchestrator_hands_skill_requests_to_the_skill_specialists_directly_inner() {
+async fn orchestrator_hands_skill_installs_to_skill_setup_directly_inner() {
     let _lock = env_lock();
     reset_script(Vec::new());
     let stack = boot_stack().await;
@@ -3618,15 +3616,17 @@ async fn orchestrator_hands_skill_requests_to_the_skill_specialists_directly_inn
         ],
     )
     .await;
-    assert_hand_off_reaches_specialist(
-        &stack,
-        &mut events,
-        911,
-        "harness-skill-handoff",
-        "run_skill",
-        &["skill_runtime_resolve_runtimes", "read_workflow_resource"],
-    )
-    .await;
+    // Same turn's requests: the orchestrator runs skills itself.
+    let requests = with_captured(|c| c.clone());
+    let belt = advertised_tool_names(requests.first().expect("orchestrator model request"));
+    assert!(
+        belt.iter().any(|name| name == "run_workflow"),
+        "the orchestrator must advertise `run_workflow` directly; it advertised {belt:?}"
+    );
+    assert!(
+        !belt.iter().any(|name| name == "run_skill"),
+        "the retired `run_skill` hand-off must not be advertised: {belt:?}"
+    );
     stack.shutdown();
 }
 
