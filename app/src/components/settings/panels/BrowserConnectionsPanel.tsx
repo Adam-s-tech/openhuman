@@ -67,7 +67,7 @@ export default function BrowserConnectionsPanel({
   const [settings, setSettings] = useState<BrowserSettings>(defaults);
   const [module, setModule] = useState<ModuleStatus | null>(null);
   const [chromeReady, setChromeReady] = useState<boolean | null>(null);
-  const [billingRoute, setBillingRoute] = useState<'direct_openrouter' | 'hosted' | null>(null);
+  const [billingRoute, setBillingRoute] = useState<'direct_openrouter' | 'hosted' | 'unavailable' | null>(null);
   const [allowedDomains, setAllowedDomains] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
