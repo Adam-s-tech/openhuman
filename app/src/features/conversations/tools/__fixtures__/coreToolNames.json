@@ -1,5 +1,4 @@
 [
-  "agent_prepare_context",
   "apply_patch",
   "artifact_delete",
   "artifact_get",

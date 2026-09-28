@@ -3566,8 +3566,6 @@ const messages: TranslationMap = {
   'conversations.tools.planNextSteps.done': '다음 단계 계획함',
   'conversations.tools.reviewWork.active': '작업 검토 중',
   'conversations.tools.reviewWork.done': '작업 검토함',
-  'conversations.tools.scoutContext.active': '컨텍스트 파악 중',
-  'conversations.tools.scoutContext.done': '컨텍스트 파악함',
   'conversations.tools.useTools.active': '도구 사용 중',
   'conversations.tools.useTools.done': '도구 사용함',
   'conversations.tools.checkConnectedApp.active': '연결된 앱 확인 중',

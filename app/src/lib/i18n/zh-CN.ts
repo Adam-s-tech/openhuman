@@ -3404,8 +3404,6 @@ const messages: TranslationMap = {
   'conversations.tools.planNextSteps.done': '已规划后续步骤',
   'conversations.tools.reviewWork.active': '正在审查工作',
   'conversations.tools.reviewWork.done': '已审查工作',
-  'conversations.tools.scoutContext.active': '正在探查上下文',
-  'conversations.tools.scoutContext.done': '已探查上下文',
   'conversations.tools.useTools.active': '正在使用工具',
   'conversations.tools.useTools.done': '已使用工具',
   'conversations.tools.checkConnectedApp.active': '正在检查你已连接的应用',

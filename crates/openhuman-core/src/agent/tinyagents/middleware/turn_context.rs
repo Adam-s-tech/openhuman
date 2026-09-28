@@ -1,6 +1,6 @@
 //! [`TurnContextMiddleware`]: the per-turn config bundle that installs the
-//! context middlewares, plus the small observation/handoff hooks it owns
-//! (transcript snapshot, progressive-disclosure handoff).
+//! context middlewares, plus the small observation hook it owns (transcript
+//! snapshot).
 
 use std::collections::HashMap;
 use std::sync::Arc;

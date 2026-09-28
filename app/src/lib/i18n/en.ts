@@ -4037,8 +4037,6 @@ const en: TranslationMap = {
   'conversations.tools.planNextSteps.done': 'Planned next steps',
   'conversations.tools.reviewWork.active': 'Reviewing the work',
   'conversations.tools.reviewWork.done': 'Reviewed the work',
-  'conversations.tools.scoutContext.active': 'Scouting context',
-  'conversations.tools.scoutContext.done': 'Scouted context',
   'conversations.tools.useTools.active': 'Using tools',
   'conversations.tools.useTools.done': 'Used tools',
   'conversations.tools.checkConnectedApp.active': 'Checking your connected app',

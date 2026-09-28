@@ -333,9 +333,6 @@ export const EXACT_TOOL_SPECS: Record<string, ToolSpec> = {
   ask_user_clarification: spec('askQuestion', MessageCircleQuestionIcon, 'agent', {
     chip: chip.text('question'),
   }),
-  agent_prepare_context: spec('prepareContext', LayersIcon, 'agent', {
-    chip: chip.text('question'),
-  }),
   extract_from_result: spec('extractDetails', LayersIcon, 'agent'),
 
   // ── Planning ────────────────────────────────────────────────────────────
@@ -610,7 +607,6 @@ export const FAMILY_TOOL_SPECS: ReadonlyArray<{ test: RegExp; spec: ToolSpec }> 
  * declare (`delegate_name`).
  */
 export const AGENT_SPECS: Record<string, ToolSpec> = {
-  context_scout: spec('scoutContext', LayersIcon, 'agent'),
   orchestrator: spec('planNextSteps', BotIcon, 'agent'),
   plan: spec('planNextSteps', BotIcon, 'agent'),
   planner: spec('planNextSteps', BotIcon, 'agent'),

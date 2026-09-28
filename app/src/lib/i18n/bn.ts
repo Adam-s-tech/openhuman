@@ -3598,8 +3598,6 @@ const messages: TranslationMap = {
   'conversations.tools.planNextSteps.done': 'পরবর্তী ধাপের পরিকল্পনা করা হয়েছে',
   'conversations.tools.reviewWork.active': 'কাজ পর্যালোচনা করা হচ্ছে',
   'conversations.tools.reviewWork.done': 'কাজ পর্যালোচনা করা হয়েছে',
-  'conversations.tools.scoutContext.active': 'প্রসঙ্গ অনুসন্ধান করা হচ্ছে',
-  'conversations.tools.scoutContext.done': 'প্রসঙ্গ অনুসন্ধান করা হয়েছে',
   'conversations.tools.useTools.active': 'টুল ব্যবহার করা হচ্ছে',
   'conversations.tools.useTools.done': 'টুল ব্যবহার করা হয়েছে',
   'conversations.tools.checkConnectedApp.active': 'আপনার সংযুক্ত অ্যাপ যাচাই করা হচ্ছে',
