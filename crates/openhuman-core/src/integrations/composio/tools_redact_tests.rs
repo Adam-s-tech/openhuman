@@ -3,6 +3,7 @@
 use serde_json::json;
 
 use crate::config::{Config, ComposioHostCredential};
+use crate::integrations::composio::tools::redact::redact_and_report;
 use crate::integrations::composio::tools::redact_composio_outcome;
 
 const SHORT_KEY: &str = "abcdefgh";
@@ -64,4 +65,20 @@ fn secret_used_as_a_json_object_key_is_redacted() {
     let serialized = serde_json::to_string(&outcome).unwrap();
     assert!(!serialized.contains(LONG_KEY), "{serialized}");
     assert!(serialized.contains("[REDACTED]"), "{serialized}");
+}
+
+/// `redact_and_report` is the single call site that both reports a
+/// direct-mode error to observability and supplies the caller's returned
+/// error text — one redacted value serves both, so this return value is
+/// exactly what reaches `report_composio_op_error`.
+#[test]
+fn redact_and_report_returns_no_raw_secret() {
+    let config = config_with_overlapping_secrets();
+    let rendered = format!(
+        "[composio-direct] composio_list_connections (direct) failed: invalid credential {LONG_KEY}"
+    );
+    let redacted = redact_and_report(&config, "test_op", &rendered);
+    assert!(!redacted.contains(LONG_KEY), "{redacted}");
+    assert!(!redacted.contains(SHORT_KEY), "{redacted}");
+    assert!(redacted.contains("[REDACTED]"), "{redacted}");
 }
