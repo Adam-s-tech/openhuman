@@ -127,6 +127,19 @@ pub(super) fn lookup(function: &str) -> Option<ControllerSchema> {
             ],
             outputs: vec![json_output("snapshot", "Updated config snapshot.")],
         }),
+"update_computer_settings" => Some( ControllerSchema {
+            namespace: "config",
+            function: "update_computer_settings",
+            description: "Update TinyComputer's decision, planner and rescue models.",
+            inputs: vec![
+                optional_string("decision_model", "Decision model: jev, open_jev, or sage."),
+                optional_bool("sage_fast", "Use Sage's fast mode."),
+                optional_string("planner_model", "Planner model id; empty restores the module default."),
+                optional_string("rescue_model", "Rescue model id for failed steps; empty restores the module default."),
+                optional_number("max_rescues", "Rescues allowed per task (0-5); 0 turns rescue off."),
+            ],
+            outputs: vec![json_output("snapshot", "Updated config snapshot.")],
+        }),
 "set_browser_allow_all" => Some( ControllerSchema {
             namespace: "config",
             function: "set_browser_allow_all",
