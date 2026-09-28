@@ -105,24 +105,39 @@ impl TurnModels {
 /// Sub-agents (depth > 0) keep resolving their pin against the tier routes —
 /// that is how `integrations_agent`'s `hint = "burst"` reaches `hint:burst` —
 /// and fall back to the primary when the pin names no built route.
+///
+/// Only the lead's model records into the turn's error slot (#6724). Sub-agents
+/// resolve through this same resolver, possibly in parallel, so they get the
+/// unwrapped models: a child's attempt must neither clear the lead's recorded
+/// failure nor leave its own failure to be re-surfaced as the lead's.
 pub(crate) struct TurnModelResolver {
+    lead: TurnChatModel,
     primary: TurnChatModel,
     routes: std::collections::HashMap<String, TurnChatModel>,
 }
 
 impl TurnModelResolver {
     pub(crate) fn from_turn_models(models: &TurnModels) -> Self {
-        Self::new(
+        let mut resolver = Self::new(
             models.primary.clone(),
             models.routes.iter().cloned().collect(),
-        )
+        );
+        resolver.lead = Arc::new(ErrorSlotModel::new(
+            models.primary.clone(),
+            models.error_slot.clone(),
+        ));
+        resolver
     }
 
     pub(crate) fn new(
         primary: TurnChatModel,
         routes: std::collections::HashMap<String, TurnChatModel>,
     ) -> Self {
-        Self { primary, routes }
+        Self {
+            lead: primary.clone(),
+            primary,
+            routes,
+        }
     }
 }
 
@@ -142,7 +157,7 @@ impl ModelResolver<()> for TurnModelResolver {
                     "[models][resolver] lead keeps the turn's selected primary; definition model pin ignored"
                 );
             }
-            return Ok(self.primary.clone());
+            return Ok(self.lead.clone());
         }
         Ok(pin
             .and_then(|name| self.routes.get(name))
@@ -291,24 +306,11 @@ fn build_turn_models_crate(
             anyhow::Ok((primary, routes, summarizer))
         })?;
 
-    // The primary and every tier route share one slot: a failure on one and a
-    // successful fallback on another must leave the slot empty.
-    let error_slot: crate::agent::tinyagents::model::ModelErrorSlot =
-        Arc::new(std::sync::Mutex::new(None));
-    let primary: TurnChatModel = Arc::new(ErrorSlotModel::new(primary, error_slot.clone()));
-    let routes = routes
-        .into_iter()
-        .map(|(tier, route)| {
-            let route: TurnChatModel = Arc::new(ErrorSlotModel::new(route, error_slot.clone()));
-            (tier, route)
-        })
-        .collect();
-
     Ok(TurnModels {
         primary,
         routes,
         summarizer,
-        error_slot,
+        error_slot: Arc::new(std::sync::Mutex::new(None)),
         provider_id,
         context_window,
         native_tools,
@@ -495,21 +497,16 @@ impl TurnModelSource {
             let native_tools = profile.tool_calling;
             let supports_vision = profile.modalities.image_in;
             let context_window = context_window.or(profile.max_input_tokens);
-            let error_slot: crate::agent::tinyagents::model::ModelErrorSlot =
-                Arc::new(std::sync::Mutex::new(None));
-            let primary: TurnChatModel = Arc::new(ErrorSlotModel::new(
-                Arc::new(
-                    ProfileOverrideModel::new(direct.clone(), profile)
-                        .with_request_model(model)
-                        .with_request_temperature(temperature),
-                ),
-                error_slot.clone(),
-            ));
+            let primary: TurnChatModel = Arc::new(
+                ProfileOverrideModel::new(direct.clone(), profile)
+                    .with_request_model(model)
+                    .with_request_temperature(temperature),
+            );
             return Ok(TurnModels {
                 primary,
                 routes: Vec::new(),
                 summarizer: direct.clone(),
-                error_slot,
+                error_slot: Arc::new(std::sync::Mutex::new(None)),
                 provider_id,
                 context_window,
                 native_tools,

@@ -6,7 +6,8 @@ use tinyagents_harness::host::{ModelResolveRequest, ModelResolver};
 use tinyinference_llm::message::ContentBlock;
 use tinyinference_llm::model::{ChatModel, ModelRequest, ModelResponse};
 
-use super::TurnModelResolver;
+use super::{TurnModelResolver, TurnModels};
+use crate::agent::tinyagents::TurnModelSource;
 
 /// A stub that answers with its own name so a test can tell which model the
 /// resolver handed back.
@@ -90,5 +91,123 @@ async fn subagent_pin_without_route_falls_back_to_primary() {
     assert_eq!(
         name_of(&model).await,
         "openrouter/deepseek/deepseek-v4.1-flash"
+    );
+}
+
+/// Streams the next scripted terminal item on each call.
+struct ScriptedTerminalModel(std::sync::Mutex<Vec<tinyinference_llm::model::ModelStreamItem>>);
+
+#[async_trait::async_trait]
+impl ChatModel<()> for ScriptedTerminalModel {
+    async fn invoke(
+        &self,
+        _state: &(),
+        _request: tinyinference_llm::model::ModelRequest,
+    ) -> tinyinference_llm::Result<tinyinference_llm::model::ModelResponse> {
+        unreachable!("these tests stream")
+    }
+
+    async fn stream(
+        &self,
+        _state: &(),
+        _request: tinyinference_llm::model::ModelRequest,
+    ) -> tinyinference_llm::Result<tinyinference_llm::model::ModelStream> {
+        let item = self.0.lock().unwrap().remove(0);
+        Ok(tinyinference_llm::model::ModelStream::new(Box::pin(
+            futures::stream::iter(vec![item]),
+        )))
+    }
+}
+
+fn provider_failure(message: &str) -> tinyinference_llm::model::ModelStreamItem {
+    tinyinference_llm::model::ModelStreamItem::ProviderFailed(
+        tinyinference_llm::model::ProviderError {
+            provider: "OpenHuman".to_string(),
+            status: Some(400),
+            message: message.to_string(),
+            ..Default::default()
+        },
+    )
+}
+
+fn completed() -> tinyinference_llm::model::ModelStreamItem {
+    tinyinference_llm::model::ModelStreamItem::Completed(
+        serde_json::from_value(serde_json::json!({
+            "message": {"content": [], "tool_calls": []}
+        }))
+        .expect("minimal response"),
+    )
+}
+
+async fn drain(model: &Arc<dyn ChatModel<()>>) {
+    use futures::StreamExt;
+    let mut stream = model
+        .stream(&(), tinyinference_llm::model::ModelRequest::default())
+        .await
+        .unwrap();
+    while stream.next().await.is_some() {}
+}
+
+fn slot_text(models: &TurnModels) -> Option<String> {
+    models
+        .error_slot
+        .lock()
+        .unwrap()
+        .as_ref()
+        .map(|error| error.to_string())
+}
+
+/// #6724: sub-agents resolve through the lead's resolver, possibly in
+/// parallel. A child's provider failure must not become the lead's run error.
+#[tokio::test]
+async fn a_sub_agents_provider_failure_is_not_recorded_as_the_leads() {
+    let model: Arc<dyn ChatModel<()>> =
+        Arc::new(ScriptedTerminalModel(std::sync::Mutex::new(vec![
+            provider_failure("CHILD_FAILURE"),
+        ])));
+    let models = TurnModelSource::from_model(model)
+        .build("m", 0.0, None, None)
+        .expect("turn models");
+    let resolver = TurnModelResolver::from_turn_models(&models);
+    let child = resolver
+        .resolve(&ModelResolveRequest::new("researcher"))
+        .await
+        .unwrap();
+    drain(&child).await;
+    assert_eq!(
+        slot_text(&models),
+        None,
+        "a child failure leaked into the lead's slot"
+    );
+}
+
+/// #6724: a child's attempt (here a success) must not clear the failure the
+/// lead already recorded.
+#[tokio::test]
+async fn a_sub_agents_success_does_not_clear_the_leads_recorded_failure() {
+    let model: Arc<dyn ChatModel<()>> =
+        Arc::new(ScriptedTerminalModel(std::sync::Mutex::new(vec![
+            provider_failure("LEAD_FAILURE"),
+            completed(),
+        ])));
+    let models = TurnModelSource::from_model(model)
+        .build("m", 0.0, None, None)
+        .expect("turn models");
+    let resolver = TurnModelResolver::from_turn_models(&models);
+    let lead = resolver
+        .resolve(&ModelResolveRequest::new("orchestrator").as_team_lead())
+        .await
+        .unwrap();
+    drain(&lead).await;
+    assert!(slot_text(&models).is_some_and(|text| text.contains("LEAD_FAILURE")));
+
+    let child = resolver
+        .resolve(&ModelResolveRequest::new("researcher"))
+        .await
+        .unwrap();
+    drain(&child).await;
+    assert!(
+        slot_text(&models).is_some_and(|text| text.contains("LEAD_FAILURE")),
+        "a child's attempt cleared the lead's recorded failure"
     );
 }
