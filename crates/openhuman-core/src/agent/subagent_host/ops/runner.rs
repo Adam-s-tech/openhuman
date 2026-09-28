@@ -32,7 +32,7 @@ use crate::agent::prompts::{
 use crate::agent::subagent_host::subagent_iter_cap_with_autonomous_lift;
 use crate::agent::subagent_host::tool_prep::{
     filter_tool_indices, is_subagent_spawn_tool, load_prompt_source,
-    strip_spawn_tools_from_dynamic, subagent_prompt_protocol,
+    subagent_prompt_protocol,
 };
 use crate::agent::subagent_host::types::{
     SubagentMode, SubagentRunError, SubagentRunOptions, SubagentRunOutcome, SubagentRunStatus,
@@ -883,7 +883,7 @@ async fn run_typed_mode(
     // Resolve model source + model. See `resolve_subagent_source` for the
     // semantics of each ModelSpec variant; the helper itself is sync and
     // unit-tested, and takes the config the caller already loaded.
-    let (mut subagent_source, model) = resolve_subagent_source(
+    let (subagent_source, model) = resolve_subagent_source(
         &definition.model,
         &definition.id,
         config.as_ref().ok().map(|c| c.as_ref()),
@@ -994,10 +994,6 @@ async fn run_typed_mode(
         }
     }
 
-    // Runner-owned dynamic tools. No archetype registers one today; the
-    // vector stays because the graph and custom-graph seams take it.
-    let mut dynamic_tools: Vec<Box<dyn Tool>> = Vec::new();
-
     // A child may only narrow an explicit profile/channel ceiling, never widen
     // it back to `all_tools`. The parent's own role-specific prompt surface is
     // intentionally not a ceiling: coordinators delegate effectful work to
@@ -1008,34 +1004,14 @@ async fn run_typed_mode(
         &parent.subagent_tool_ceiling_names,
     );
 
-    // Dynamic tools are effectful too. Do not let delegation synthesize one
-    // that the parent profile/policy did not expose.
-    if !parent.subagent_tool_ceiling_names.is_empty() {
-        dynamic_tools.retain(|tool| parent.subagent_tool_ceiling_names.contains(tool.name()));
-    }
-
-    // Dynamic tools never pass through `allowed_indices`, so the strip above has
-    // not seen them — the one route by which a spawn/delegate name can reach a
-    // child admitted (issue #6157). Strip before their five consumers below.
-    strip_spawn_tools_from_dynamic(&mut dynamic_tools, &definition.id);
-
-    // Build provider-visible tool schemas in EXECUTION-PRECEDENCE order:
-    // `dynamic_tools` (extra_tools at runtime) before parent specs.
-    let mut filtered_specs: Vec<ToolSpec> = dynamic_tools.iter().map(|t| t.spec()).collect();
-    filtered_specs.extend(
-        allowed_indices
-            .iter()
-            .map(|&i| parent.all_tool_specs[i].as_ref().clone()),
-    );
-    let mut allowed_names: HashSet<String> = allowed_indices
+    let filtered_specs: Vec<ToolSpec> = allowed_indices
+        .iter()
+        .map(|&i| parent.all_tool_specs[i].as_ref().clone())
+        .collect();
+    let allowed_names: HashSet<String> = allowed_indices
         .iter()
         .map(|&i| parent.all_tools[i].name().to_string())
         .collect();
-    // Dynamic tool names must also be in the allowlist so the inner loop
-    // accepts model tool_calls that reference them.
-    for tool in &dynamic_tools {
-        allowed_names.insert(tool.name().to_string());
-    }
     let filtered_specs = crate::agent::session_host::dedup_visible_tool_specs(filtered_specs);
     let filtered_specs = dedup_tool_specs_by_name(&definition.id, filtered_specs);
 
@@ -1080,11 +1056,6 @@ async fn run_typed_mode(
                 parameters_schema: Some(t.parameters_schema().to_string()),
             }
         })
-        .chain(dynamic_tools.iter().map(|t| PromptTool {
-            name: std::borrow::Cow::Borrowed(t.name()),
-            description: std::borrow::Cow::Borrowed(t.description()),
-            parameters_schema: Some(t.parameters_schema().to_string()),
-        }))
         .collect();
     let visible_tool_names: std::collections::HashSet<String> =
         prompt_tools.iter().map(|t| t.name.to_string()).collect();
@@ -1154,7 +1125,7 @@ async fn run_typed_mode(
                 &model,
                 &allowed_indices,
                 &parent.all_tools,
-                &dynamic_tools,
+                &[],
                 &archetype_prompt_body,
                 render_options,
                 prompt_tool_call_format,
@@ -1290,7 +1261,7 @@ async fn run_typed_mode(
                     temperature,
                     &mut history,
                     parent.all_tools.clone(),
-                    dynamic_tools,
+                    Vec::new(),
                     filtered_specs.clone(),
                     allowed_names,
                     subagent_iter_cap_with_autonomous_lift(definition.effective_max_iterations()),
@@ -1328,7 +1299,7 @@ async fn run_typed_mode(
                     temperature,
                     history: std::mem::take(&mut history),
                     parent_tools: parent.all_tools.clone(),
-                    dynamic_tools,
+                    dynamic_tools: Vec::new(),
                     specs: filtered_specs.clone(),
                     allowed_names,
                     max_iterations: subagent_iter_cap_with_autonomous_lift(
