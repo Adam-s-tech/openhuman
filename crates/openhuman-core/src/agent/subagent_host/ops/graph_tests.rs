@@ -132,7 +132,6 @@ async fn explicit_worker_thread_replaces_parent_for_model_run_and_transcript() {
         false,
         "root__worker-thread",
         "test",
-        None,
         AgentTokenjuiceCompression::Off,
         None,
     )
@@ -184,7 +183,6 @@ async fn subagent_runs_through_the_graph_engine_with_real_tools() {
         false,
         "root-session__real_tools",
         "mock-channel",
-        None,
         AgentTokenjuiceCompression::Off,
         // No host config in tests: the graph takes byte-cap-only
         // context defaults instead of reading the developer machine's
@@ -271,7 +269,6 @@ async fn child_text_and_thinking_deltas_are_scoped_to_the_subagent() {
         false,
         "root-session__scoped_deltas",
         "mock-channel",
-        None,
         AgentTokenjuiceCompression::Off,
         // No host config in tests: the graph takes byte-cap-only
         // context defaults instead of reading the developer machine's
@@ -408,7 +405,6 @@ async fn ask_user_clarification_pauses_and_surfaces_the_question() {
         false,
         "root-session__clarification",
         "mock-channel",
-        None,
         AgentTokenjuiceCompression::Off,
         // No host config in tests: the graph takes byte-cap-only
         // context defaults instead of reading the developer machine's
@@ -501,7 +497,6 @@ async fn cap_hit_summarizes_a_resumable_checkpoint() {
         false,
         "root-session__cap_hit",
         "mock-channel",
-        None,
         AgentTokenjuiceCompression::Off,
         // No host config in tests: the graph takes byte-cap-only
         // context defaults instead of reading the developer machine's
