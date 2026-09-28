@@ -7338,7 +7338,7 @@ dependencies = [
 
 [[package]]
 name = "tinydocs-bus"
-version = "0.1.16"
+version = "0.1.17"
 dependencies = [
  "serde",
  "thiserror 2.0.20",
@@ -7401,7 +7401,7 @@ dependencies = [
 
 [[package]]
 name = "tinyhosts"
-version = "0.1.8"
+version = "0.1.9"
 dependencies = [
  "async-trait",
  "base64 0.23.1",
@@ -7586,7 +7586,7 @@ dependencies = [
 
 [[package]]
 name = "tinyjuice"
-version = "0.3.2"
+version = "0.3.4"
 dependencies = [
  "async-trait",
  "dirs 7.0.0",
@@ -7606,7 +7606,7 @@ dependencies = [
 
 [[package]]
 name = "tinyjuice-bus"
-version = "0.3.2"
+version = "0.3.4"
 dependencies = [
  "serde",
  "serde_json",
@@ -7614,7 +7614,7 @@ dependencies = [
 
 [[package]]
 name = "tinymcp"
-version = "0.3.3"
+version = "0.3.4"
 dependencies = [
  "base64 0.23.1",
  "dirs 7.0.0",
@@ -7634,7 +7634,7 @@ dependencies = [
 
 [[package]]
 name = "tinymcp-bus"
-version = "0.3.3"
+version = "0.3.4"
 dependencies = [
  "schemars 1.2.2",
  "serde",
@@ -7690,7 +7690,7 @@ dependencies = [
 
 [[package]]
 name = "tinyruntime-bus"
-version = "0.2.5"
+version = "0.2.7"
 dependencies = [
  "serde",
  "serde_json",
@@ -7698,7 +7698,7 @@ dependencies = [
 
 [[package]]
 name = "tinysearch-bus"
-version = "0.2.1"
+version = "0.3.1"
 dependencies = [
  "serde",
  "serde_json",
@@ -7706,7 +7706,7 @@ dependencies = [
 
 [[package]]
 name = "tinyskills"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "rustix",
  "serde",
@@ -7793,7 +7793,7 @@ dependencies = [
 
 [[package]]
 name = "tinywallet-bus"
-version = "0.5.2"
+version = "0.5.3"
 dependencies = [
  "async-trait",
  "bech32",
