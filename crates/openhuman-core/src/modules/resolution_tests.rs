@@ -113,3 +113,23 @@ fn test_hooks_plant_and_remove_a_slot() {
     table.reset_for_test("m");
     assert_eq!(table.peek("m"), ResolutionState::Unresolved);
 }
+
+#[test]
+fn a_ready_module_that_faults_settles_as_failed() {
+    let table = ResolutionTable::default();
+    // Nothing resolved yet: a fault report has nothing to downgrade.
+    table.mark_faulted("m", "refused".into());
+    assert_eq!(table.peek("m"), ResolutionState::Unresolved);
+
+    let (sender, _receiver) = run_claim(&table, "m");
+    table.mark_faulted("m", "refused".into());
+    assert_eq!(table.peek("m"), ResolutionState::Loading);
+
+    table.complete("m", Resolution::Ready, sender);
+    table.mark_faulted("m", "configuration refused".into());
+    assert_eq!(
+        table.peek("m"),
+        ResolutionState::Failed("configuration refused".into())
+    );
+    assert!(matches!(table.claim("m"), Claim::Done(Resolution::Failed(_))));
+}
