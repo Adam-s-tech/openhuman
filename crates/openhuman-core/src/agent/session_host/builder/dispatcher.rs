@@ -24,7 +24,6 @@ pub(super) enum DispatcherKind {
 /// supports it, otherwise JSON-in-tag — **never** P-Format or a code dialect,
 /// which are opt-in (`"pformat"`, `"python"`, `"typescript"`) because their
 /// compact syntaxes mis-parse on some models.
-///
 pub(super) fn resolve_dispatcher_kind(
     dispatcher_choice: &str,
     supports_native: bool,
