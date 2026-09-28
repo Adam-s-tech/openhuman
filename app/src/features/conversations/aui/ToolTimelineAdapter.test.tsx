@@ -257,15 +257,15 @@ describe('ToolTimelineAdapter — subagent rendering', () => {
 describe('ToolTimelineAdapter — worker thread ref status propagation', () => {
   const WORKER_REF_DETAIL = `summary text\n[worker_thread_ref]\n${JSON.stringify({
     thread_id: 't-worker-1',
-    label: 'researcher',
-    agent_id: 'researcher',
+    label: 'code_executor',
+    agent_id: 'code_executor',
     task_id: 'task-42',
   })}\n[/worker_thread_ref]`;
 
   function entryWithStatus(status: ToolTimelineEntry['status']): ToolTimelineEntry {
     return {
-      id: `tid:subagent:task-42:researcher:${status}`,
-      name: 'subagent:researcher',
+      id: `tid:subagent:task-42:code_executor:${status}`,
+      name: 'subagent:code_executor',
       round: 1,
       seq: 0,
       status,
