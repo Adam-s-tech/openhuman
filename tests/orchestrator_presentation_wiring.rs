@@ -91,7 +91,9 @@ fn only_the_documents_skill_carries_generate_presentation() {
     let documents_at = TOOLPACK_REGISTRY
         .find("id: \"documents\"")
         .expect("documents pack");
-    let coding_at = TOOLPACK_REGISTRY.find("id: \"coding\"").expect("coding pack");
+    let coding_at = TOOLPACK_REGISTRY
+        .find("id: \"coding\"")
+        .expect("coding pack");
     let member_at = TOOLPACK_REGISTRY.find(&quoted).unwrap();
     assert!(
         member_at > documents_at && (coding_at < documents_at || member_at < coding_at),

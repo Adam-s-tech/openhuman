@@ -213,7 +213,11 @@ fn specialist_agents_are_registered_with_narrow_tools() {
     // Scheduling is the `scheduling` skill over the collapsed `cron` tool,
     // with the time tools the orchestrator holds directly.
     let scheduling = crate::tools::toolpacks::pack("scheduling").expect("scheduling skill");
-    assert_eq!(scheduling.tools, &["cron"], "the skill uses collapsed `cron`");
+    assert_eq!(
+        scheduling.tools,
+        &["cron"],
+        "the skill uses collapsed `cron`"
+    );
     match &find("orchestrator").tools {
         ToolScope::Named(names) => {
             for required in ["current_time", "resolve_time"] {
@@ -262,7 +266,12 @@ fn morning_briefing_is_read_only() {
     // for every registered tool.
     match &def.tools {
         ToolScope::Named(tools) => {
-            for required in ["memory_tree", "composio_execute", "tool_search", "current_time"] {
+            for required in [
+                "memory_tree",
+                "composio_execute",
+                "tool_search",
+                "current_time",
+            ] {
                 assert!(
                     tools.iter().any(|t| t == required),
                     "morning_briefing needs `{required}`"
@@ -279,7 +288,6 @@ fn morning_briefing_is_read_only() {
     assert!(def.omit_safety_preamble);
     assert_eq!(def.max_iterations, 8);
 }
-
 
 #[cfg(feature = "flows")]
 #[test]
@@ -365,7 +373,6 @@ fn chatty_sub_agents_have_bounded_output() {
         "archivist output must be bounded so memory summaries stay concise"
     );
 }
-
 
 /// R4 regression: `hint:vision` is deprecated (`vision-v1` silently falls
 /// back to the chat default on managed routes, with no error), so no

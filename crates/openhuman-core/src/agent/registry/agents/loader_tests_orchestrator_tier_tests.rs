@@ -1,7 +1,5 @@
 use super::*;
 
-
-
 /// Wallet and market actions are the `web3` skill now, not a specialist. The
 /// money-safety contract the `crypto_agent` enforced has to survive the move:
 /// the guide carries the read → quote → confirm → execute order, and the
@@ -28,7 +26,10 @@ fn the_web3_skill_keeps_the_crypto_safety_contract() {
         "`quote_id`",
         "Never auto-retry a write",
     ] {
-        assert!(web3.guide.contains(rule), "web3 guide lost the rule `{rule}`");
+        assert!(
+            web3.guide.contains(rule),
+            "web3 guide lost the rule `{rule}`"
+        );
     }
     let prompt = include_str!("orchestrator/prompt.md");
     assert!(
@@ -76,7 +77,6 @@ fn orchestrator_tolerates_unresolvable_subagent_id() {
         .expect("validate_tier_hierarchy must tolerate an unresolvable subagent id");
 }
 
-
 /// MCP discovery and invocation are direct; skill setup keeps its specialist
 /// route, and running a skill is the orchestrator's own `run_workflow`.
 #[test]
@@ -112,8 +112,6 @@ fn orchestrator_reaches_mcp_directly_and_skills_through_hand_offs() {
         );
     }
 }
-
-
 
 #[test]
 fn orchestrator_subagents_include_control_specialists() {

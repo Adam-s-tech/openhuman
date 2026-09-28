@@ -607,10 +607,7 @@ fn every_pack_declares_the_tools_it_is_named_for() {
                 "storage_get_link",
             ],
         ),
-        (
-            "scheduling",
-            &["cron"],
-        ),
+        ("scheduling", &["cron"]),
         (
             "profile",
             &[
@@ -632,10 +629,7 @@ fn every_pack_declares_the_tools_it_is_named_for() {
         ),
         ("tasks", &["manage_tasks"]),
         ("goals", &["goals", "goal_get", "goal_set"]),
-        (
-            "docs",
-            &["gitbooks_search", "gitbooks_get_page"],
-        ),
+        ("docs", &["gitbooks_search", "gitbooks_get_page"]),
     ];
 
     for (id, tools) in expect {
@@ -696,9 +690,10 @@ fn thread_renamed_orchestrator_keeps_its_mcp_tools_advertised() {
 fn a_packs_owner_still_loses_every_other_pack() {
     // Ownership is per pack, not a blanket exemption: `workflow_builder` owns
     // `workflows` and `composio`, and must still lose `web3`.
-    let mut visible: HashSet<String> = ["propose_workflow".to_string(), "wallet_status".to_string()]
-        .into_iter()
-        .collect();
+    let mut visible: HashSet<String> =
+        ["propose_workflow".to_string(), "wallet_status".to_string()]
+            .into_iter()
+            .collect();
     strip_packed_from_visible(&mut visible, "workflow_builder");
     assert!(visible.contains("propose_workflow"));
     assert!(
@@ -843,5 +838,8 @@ async fn loading_a_skill_prints_its_guide_before_the_tool_schemas() {
     let opening: String = web3.guide.trim().chars().take(40).collect();
     let guide_at = text.find(&opening).expect("guide rendered");
     let schema_at = text.find("## `wallet_status`").expect("tool rendered");
-    assert!(guide_at < schema_at, "guide must precede the schemas:\n{text}");
+    assert!(
+        guide_at < schema_at,
+        "guide must precede the schemas:\n{text}"
+    );
 }

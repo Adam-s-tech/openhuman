@@ -281,7 +281,6 @@ fn vision_agent_loads_on_its_pinned_multimodal_model() {
     }
 }
 
-
 #[test]
 fn master_agent_has_coding_hint_and_named_tools() {
     let def = find("orchestrator");
@@ -427,7 +426,6 @@ fn time_sensitive_agents_expose_resolve_time() {
     }
 }
 
-
 #[test]
 fn broad_agent_surfaces_expose_storage_transfer_not_lifecycle_tools() {
     for id in ["orchestrator"] {
@@ -456,8 +454,6 @@ fn broad_agent_surfaces_expose_storage_transfer_not_lifecycle_tools() {
         }
     }
 }
-
-
 
 #[test]
 fn critic_is_read_only() {
@@ -540,8 +536,6 @@ fn planner_has_readonly_mcp_discovery_not_execute() {
     }
 }
 
-
-
 /// The archivist is registered but deliberately not a chat delegate: the
 /// post-commit session-memory extraction runs it by id
 /// (`runtime_session.rs`), and a delegate would add its schema to every turn.
@@ -555,7 +549,11 @@ fn the_orchestrator_does_not_delegate_to_the_archivist() {
             .any(|entry| matches!(entry, SubagentEntry::AgentId(id) if id == "archivist")),
         "`archivist` is back on the orchestrator's subagent list"
     );
-    assert_eq!(find("archivist").id, "archivist", "archivist must stay registered");
+    assert_eq!(
+        find("archivist").id,
+        "archivist",
+        "archivist must stay registered"
+    );
 }
 
 /// The specialists the inline skills replaced must not come back as

@@ -1679,9 +1679,7 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
         .expect("agent_list_definitions should return definitions array");
     let memory_agent = definitions
         .iter()
-        .find(|definition| {
-            definition.get("id").and_then(Value::as_str) == Some("agent_memory")
-        })
+        .find(|definition| definition.get("id").and_then(Value::as_str) == Some("agent_memory"))
         .expect("safe agent library should include agent_memory");
     assert_eq!(
         memory_agent.get("display_name").and_then(Value::as_str),
@@ -1825,9 +1823,7 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
         })
         .expect("include_disabled should retain disabled image_agent");
     assert_eq!(
-        disabled_image_agent
-            .get("enabled")
-            .and_then(Value::as_bool),
+        disabled_image_agent.get("enabled").and_then(Value::as_bool),
         Some(false)
     );
 

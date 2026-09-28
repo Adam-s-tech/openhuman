@@ -250,8 +250,14 @@ fn orchestrator_reaches_the_replaced_specialists_tools_through_discovery() {
         "run_tests",
         "mcp_registry_installed_list",
     ] {
-        assert!(deferred.contains(tool), "`{tool}` must be deferred; got {deferred:?}");
+        assert!(
+            deferred.contains(tool),
+            "`{tool}` must be deferred; got {deferred:?}"
+        );
         assert!(!visible.contains(tool), "`{tool}` must stay off the wire");
-        assert!(policy.is_allowed(tool), "`{tool}` must be callable once found");
+        assert!(
+            policy.is_allowed(tool),
+            "`{tool}` must be callable once found"
+        );
     }
 }
