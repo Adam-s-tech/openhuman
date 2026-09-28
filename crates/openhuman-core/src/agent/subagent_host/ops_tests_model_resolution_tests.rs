@@ -353,7 +353,7 @@ fn resolve_subagent_source_inline_override_wins_over_config_model() {
 }
 
 #[test]
-fn resolve_subagent_source_config_alias_matches_issue_team_examples() {
+fn resolve_subagent_source_agent_suffix_resolves_its_team_pin() {
     use crate::config::{Config, TeamModelConfig};
 
     let mut config = Config::default();
@@ -368,7 +368,7 @@ fn resolve_subagent_source_config_alias_matches_issue_team_examples() {
     let parent: Arc<dyn ChatModel<()>> = ScriptedProvider::new(vec![]);
     let (_source, resolved_model) = super::super::resolve_subagent_source(
         &ModelSpec::Hint("agentic".to_string()),
-        "researcher",
+        "research_agent",
         Some(&config),
         crate::agent::tinyagents::TurnModelSource::from_model(parent),
         "parent-model-x".to_string(),
