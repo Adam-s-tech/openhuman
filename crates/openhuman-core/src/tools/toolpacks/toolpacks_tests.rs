@@ -309,7 +309,7 @@ async fn use_skill_dispatches_to_the_packed_tool() {
 async fn use_skill_refuses_a_tool_from_another_skill() {
     // Cross-skill dispatch would make the `skill` argument decoration and let a
     // workflow skill reach a crypto write.
-    let web3 = pack("web3").unwrap().tools[0];
+    let crypto = pack("web3").unwrap().tools[0];
     let tools = registry_with(crypto, PermissionLevel::Dangerous);
     let result = find(&tools, USE_SKILL)
         .execute(json!({"skill": "workflows", "tool": crypto, "args": {}}))
