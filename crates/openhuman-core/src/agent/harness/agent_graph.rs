@@ -67,7 +67,6 @@ pub struct AgentTurnRequest {
     pub model_vision: bool,
     pub transcript_stem: String,
     pub provider_label: String,
-    pub(crate) handoff_cache: Option<Arc<crate::agent::subagent_host::ResultHandoffCache>>,
     /// Agent-level TokenJuice compaction profile
     /// (`definition.effective_tokenjuice_compression()`), threaded into the
     /// sub-agent `TurnContextMiddleware` so tool outputs compact like the chat
