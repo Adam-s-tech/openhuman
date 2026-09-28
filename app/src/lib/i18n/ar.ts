@@ -1503,7 +1503,7 @@ const messages: TranslationMap = {
   'settings.search.advancedTitle': 'متقدم',
   'settings.search.exposeProviderTools': 'إظهار الأدوات الخاصة بكل مزوّد',
   'settings.search.exposeProviderToolsDesc':
-    'امنح الوكيل أدوات كل مزوّد مفعّل بدلًا من أداة واحدة لكل دور. يستهلك هذا مساحة أكبر من نافذة السياق.',
+    'يستبدل أدوات البحث الموجَّهة بالأدوات الخاصة بكل مزوّد مفعّل. عندها تفقد الوكلاء التي لا تعرف إلا الأدوات الموجَّهة، بما فيها الوكيل الرئيسي، البحث على الويب، كما تستهلك الأدوات الإضافية جزءًا أكبر من نافذة السياق. اترك هذا الخيار متوقفًا ما لم تكن تختبر مزوّدًا.',
   'settings.search.tabProviders': 'المزوّدون',
   'settings.search.tabRouting': 'التوجيه',
   'settings.search.tabWebsites': 'المواقع',

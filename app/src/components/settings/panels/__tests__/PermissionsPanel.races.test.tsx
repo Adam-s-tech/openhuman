@@ -283,14 +283,18 @@ describe('PermissionsPanel — off-Tauri', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockIsTauri.mockReturnValue(false);
+    mockGet.mockResolvedValue({ result: autonomy(), logs: [] });
+    mockGetPaths.mockResolvedValue({ result: agentPaths(), logs: [] });
+    mockUpdate.mockResolvedValue({ result: {} as never, logs: [] });
   });
 
-  it('does not persist a tier change in the browser', async () => {
+  it('persists a tier change over core RPC in the browser', async () => {
     renderWithProviders(<PermissionsPanel />);
+    await screen.findByText(/Full control/i);
 
     fireEvent.click(preset(/Full control/i));
 
-    await waitFor(() => expect(screen.getByText(/desktop app/i)).toBeInTheDocument());
-    expect(mockUpdate).not.toHaveBeenCalled();
+    await waitFor(() => expect(mockUpdate).toHaveBeenCalled());
+    expect(screen.queryByText(/desktop app/i)).not.toBeInTheDocument();
   });
 });

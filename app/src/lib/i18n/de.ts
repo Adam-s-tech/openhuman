@@ -1587,7 +1587,7 @@ const messages: TranslationMap = {
   'settings.search.advancedTitle': 'Erweitert',
   'settings.search.exposeProviderTools': 'Eigene Werkzeuge jedes Anbieters freigeben',
   'settings.search.exposeProviderToolsDesc':
-    'Gibt dem Agenten die Werkzeuge jedes aktiven Anbieters anstelle eines Werkzeugs pro Rolle. Das belegt mehr vom Kontextfenster.',
+    'Ersetzt die gerouteten Suchwerkzeuge durch die eigenen Werkzeuge jedes aktiven Anbieters. Agenten, die nur die gerouteten Werkzeuge kennen, einschließlich des Hauptagenten, haben dann keine Websuche mehr, und die zusätzlichen Werkzeuge belegen mehr vom Kontextfenster. Lassen Sie diese Option aus, außer Sie testen einen Anbieter.',
   'settings.search.tabProviders': 'Anbieter',
   'settings.search.tabRouting': 'Reihenfolge',
   'settings.search.tabWebsites': 'Webseiten',

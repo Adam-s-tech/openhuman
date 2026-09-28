@@ -1565,7 +1565,7 @@ const messages: TranslationMap = {
   'settings.search.advancedTitle': 'Zaawansowane',
   'settings.search.exposeProviderTools': 'Udostępnij własne narzędzia każdego dostawcy',
   'settings.search.exposeProviderToolsDesc':
-    'Daje agentowi narzędzia każdego włączonego dostawcy zamiast jednego narzędzia na rolę. Zajmuje to więcej okna kontekstu.',
+    'Zastępuje kierowane narzędzia wyszukiwania własnymi narzędziami każdego włączonego dostawcy. Agenci, którzy znają tylko kierowane narzędzia, w tym agent główny, tracą wtedy wyszukiwanie w sieci, a dodatkowe narzędzia zajmują więcej okna kontekstu. Pozostaw wyłączone, chyba że testujesz dostawcę.',
   'settings.search.tabProviders': 'Dostawcy',
   'settings.search.tabRouting': 'Kolejność',
   'settings.search.tabWebsites': 'Strony',

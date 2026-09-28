@@ -1537,7 +1537,7 @@ const messages: TranslationMap = {
   'settings.search.advancedTitle': 'उन्नत',
   'settings.search.exposeProviderTools': 'हर प्रदाता के अपने टूल दिखाएँ',
   'settings.search.exposeProviderToolsDesc':
-    'हर भूमिका के एक टूल की जगह एजेंट को हर चालू प्रदाता के अपने टूल दें। इससे कॉन्टेक्स्ट विंडो ज़्यादा भरती है।',
+    'रूट किए गए सर्च टूल की जगह हर चालू प्रदाता के अपने टूल इस्तेमाल करें। जो एजेंट सिर्फ़ रूट किए गए टूल जानते हैं, मुख्य एजेंट समेत, उनके पास तब वेब सर्च नहीं रहेगा, और अतिरिक्त टूल कॉन्टेक्स्ट विंडो का ज़्यादा हिस्सा लेते हैं। जब तक आप किसी प्रदाता की जाँच नहीं कर रहे, इसे बंद ही रखें।',
   'settings.search.tabProviders': 'प्रदाता',
   'settings.search.tabRouting': 'रूटिंग',
   'settings.search.tabWebsites': 'वेबसाइटें',

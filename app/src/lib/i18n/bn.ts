@@ -1536,7 +1536,7 @@ const messages: TranslationMap = {
   'settings.search.advancedTitle': 'উন্নত',
   'settings.search.exposeProviderTools': 'প্রতিটি প্রদানকারীর নিজস্ব টুল দেখান',
   'settings.search.exposeProviderToolsDesc':
-    'প্রতি ভূমিকায় একটি টুলের বদলে প্রতিটি চালু প্রদানকারীর নিজস্ব টুল এজেন্টকে দিন। এতে কনটেক্সট উইন্ডো বেশি লাগে।',
+    'রাউট করা সার্চ টুলের বদলে প্রতিটি চালু প্রদানকারীর নিজস্ব টুল ব্যবহার করে। যে এজেন্টরা শুধু রাউট করা টুল চেনে, প্রধান এজেন্টসহ, তারা তখন ওয়েব সার্চ পাবে না, আর অতিরিক্ত টুল কনটেক্সট উইন্ডোর বেশি জায়গা নেয়। কোনো প্রদানকারী পরীক্ষা না করলে এটি বন্ধ রাখুন।',
   'settings.search.tabProviders': 'প্রদানকারী',
   'settings.search.tabRouting': 'রাউটিং',
   'settings.search.tabWebsites': 'ওয়েবসাইট',

@@ -117,11 +117,11 @@ describe('SandboxSettingsPanel', () => {
     expect(screen.getByText('TERM')).toBeInTheDocument();
   });
 
-  it('shows desktop-only message when not in Tauri', async () => {
+  it('loads settings over core RPC when not in Tauri', async () => {
     vi.mocked(isTauri).mockReturnValue(false);
     renderWithProviders(<SandboxSettingsPanel />);
-    expect(await screen.findByText(/sandbox settings are only available/i)).toBeInTheDocument();
-    expect(mockGet).not.toHaveBeenCalled();
+    await waitFor(() => expect(mockGet).toHaveBeenCalled());
+    expect(screen.queryByText(/sandbox settings are only available/i)).not.toBeInTheDocument();
   });
 
   it('shows error when settings fail to load', async () => {

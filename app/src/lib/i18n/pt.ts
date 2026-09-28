@@ -1576,7 +1576,7 @@ const messages: TranslationMap = {
   'settings.search.advancedTitle': 'Avançado',
   'settings.search.exposeProviderTools': 'Expor as ferramentas próprias de cada provedor',
   'settings.search.exposeProviderToolsDesc':
-    'Dá ao agente as ferramentas de cada provedor ativo em vez de uma ferramenta por função. Isso ocupa mais da janela de contexto.',
+    'Substitui as ferramentas de pesquisa roteadas pelas ferramentas próprias de cada provedor ativo. Os agentes que só conhecem as ferramentas roteadas, incluindo o agente principal, ficam sem pesquisa na web, e as ferramentas extras ocupam mais da janela de contexto. Deixe desativado, a menos que esteja testando um provedor.',
   'settings.search.tabProviders': 'Provedores',
   'settings.search.tabRouting': 'Roteamento',
   'settings.search.tabWebsites': 'Sites',

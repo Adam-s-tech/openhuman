@@ -1571,7 +1571,7 @@ const messages: TranslationMap = {
   'settings.search.advancedTitle': 'Avanzate',
   'settings.search.exposeProviderTools': 'Mostra gli strumenti propri di ogni fornitore',
   'settings.search.exposeProviderToolsDesc':
-    "Fornisce all'agente gli strumenti di ogni fornitore attivo al posto di uno strumento per ruolo. Occupa più finestra di contesto.",
+    "Sostituisce gli strumenti di ricerca instradati con gli strumenti propri di ogni fornitore attivo. Gli agenti che conoscono solo gli strumenti instradati, incluso l'agente principale, restano senza ricerca web, e gli strumenti aggiuntivi occupano più finestra di contesto. Lascia disattivato a meno che tu non stia testando un fornitore.",
   'settings.search.tabProviders': 'Fornitori',
   'settings.search.tabRouting': 'Instradamento',
   'settings.search.tabWebsites': 'Siti web',

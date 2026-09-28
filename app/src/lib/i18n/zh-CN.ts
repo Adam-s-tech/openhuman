@@ -1443,7 +1443,7 @@ const messages: TranslationMap = {
   'settings.search.advancedTitle': '高级',
   'settings.search.exposeProviderTools': '公开每个提供商自己的工具',
   'settings.search.exposeProviderToolsDesc':
-    '让智能体使用每个已启用提供商自己的工具，取代每个角色一个工具。这会占用更多上下文窗口。',
+    '用每个已启用提供商自己的工具替换路由后的搜索工具。只认识路由工具的智能体（包括主智能体）将无法进行网页搜索，而且额外的工具会占用更多上下文窗口。除非你在测试某个提供商，否则请保持关闭。',
   'settings.search.tabProviders': '提供商',
   'settings.search.tabRouting': '路由',
   'settings.search.tabWebsites': '网站',

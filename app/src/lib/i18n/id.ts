@@ -1557,7 +1557,7 @@ const messages: TranslationMap = {
   'settings.search.advancedTitle': 'Lanjutan',
   'settings.search.exposeProviderTools': 'Tampilkan alat bawaan setiap penyedia',
   'settings.search.exposeProviderToolsDesc':
-    'Beri agen alat dari setiap penyedia yang aktif, sebagai ganti satu alat per peran. Ini memakai lebih banyak jendela konteks.',
+    'Mengganti alat pencarian yang dirutekan dengan alat milik setiap penyedia yang aktif. Agen yang hanya mengenal alat yang dirutekan, termasuk agen utama, tidak lagi punya pencarian web, dan alat tambahan memakai lebih banyak jendela konteks. Biarkan nonaktif kecuali Anda sedang menguji penyedia.',
   'settings.search.tabProviders': 'Penyedia',
   'settings.search.tabRouting': 'Perutean',
   'settings.search.tabWebsites': 'Situs web',

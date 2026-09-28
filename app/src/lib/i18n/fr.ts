@@ -1588,7 +1588,7 @@ const messages: TranslationMap = {
   'settings.search.advancedTitle': 'Avancé',
   'settings.search.exposeProviderTools': 'Exposer les outils propres à chaque fournisseur',
   'settings.search.exposeProviderToolsDesc':
-    "Donne à l'agent les outils de chaque fournisseur actif au lieu d'un outil par rôle. Cela occupe davantage la fenêtre de contexte.",
+    "Remplace les outils de recherche routés par les outils propres à chaque fournisseur activé. Les agents qui ne connaissent que les outils routés, y compris l'agent principal, n'ont alors plus de recherche web, et les outils supplémentaires occupent davantage la fenêtre de contexte. Laissez cette option désactivée sauf si vous testez un fournisseur.",
   'settings.search.tabProviders': 'Fournisseurs',
   'settings.search.tabRouting': 'Routage',
   'settings.search.tabWebsites': 'Sites web',

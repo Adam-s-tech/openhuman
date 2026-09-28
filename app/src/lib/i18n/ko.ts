@@ -1527,7 +1527,7 @@ const messages: TranslationMap = {
   'settings.search.advancedTitle': '고급',
   'settings.search.exposeProviderTools': '각 제공자의 자체 도구 노출',
   'settings.search.exposeProviderToolsDesc':
-    '역할마다 도구 하나 대신, 켜진 각 제공자가 제공하는 도구를 에이전트에 줍니다. 컨텍스트 창을 더 많이 사용합니다.',
+    '라우팅된 검색 도구를 켜진 각 제공자의 자체 도구로 대체합니다. 라우팅된 도구만 아는 에이전트는 메인 에이전트를 포함해 웹 검색을 쓸 수 없게 되며, 추가 도구가 컨텍스트 창을 더 많이 차지합니다. 제공자를 테스트하는 경우가 아니라면 꺼 두세요.',
   'settings.search.tabProviders': '제공자',
   'settings.search.tabRouting': '라우팅',
   'settings.search.tabWebsites': '웹사이트',
