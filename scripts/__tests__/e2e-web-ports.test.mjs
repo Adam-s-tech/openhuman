@@ -91,6 +91,25 @@ fi
   return { root, bin, calls, cleanup };
 }
 
+/**
+ * Install a stub `openhuman-core` that reports binding `boundPort`.
+ *
+ * The real core does not exit when its port is held: it falls back to a
+ * neighbouring one and keeps running, so the session reads the address it
+ * logs rather than trusting an HTTP probe.
+ */
+function stubCore(tree, boundPort) {
+  const bin = path.join(tree.root, "target", "debug", "openhuman-core");
+  writeExecutable(
+    bin,
+    `#!/usr/bin/env bash
+echo "[core] OpenHuman core is ready \u2014 listening on http://127.0.0.1:${boundPort} (version test)"
+sleep 30
+`,
+  );
+  return bin;
+}
+
 /** Mark dist-web as an E2E bundle built for these ports. */
 function markBundle(tree, { mockPort, corePort }) {
   const distWeb = path.join(tree.root, "app", "dist-web");
@@ -131,11 +150,11 @@ function run(tree, script, env = {}) {
 }
 
 /** Hold a real listener on `port` for the duration of `body`. */
-async function whileListening(port, body) {
+async function whileListening(port, body, host = "127.0.0.1") {
   const server = net.createServer();
   await new Promise((resolve, reject) => {
     server.once("error", reject);
-    server.listen(port, "127.0.0.1", resolve);
+    server.listen(port, host, resolve);
   });
   try {
     return await body();
@@ -329,7 +348,9 @@ test("the default block is unchanged when no base is set", () => {
 test("an unusable E2E_PORT_BASE is rejected, not silently ignored", () => {
   const tree = makeTree();
   try {
-    for (const base of ["abc", "80", "65534"]) {
+    // `031000` would resolve base+1 as octal 12801 and `08000` would fail as an
+    // invalid octal digit, both after passing a decimal range check.
+    for (const base of ["abc", "80", "65534", "031000", "08000"]) {
       const res = run(tree, "e2e-web-session.sh", { E2E_PORT_BASE: base });
       assert.equal(res.status, 1, `E2E_PORT_BASE=${base} should be refused: ${res.output}`);
       assert.match(res.output, /E2E_PORT_BASE must be/);
@@ -375,6 +396,96 @@ test("a session on a different base than the build is refused", async () => {
 
     assert.equal(res.status, 1, res.output);
     assert.match(res.output, /dist-web was built for E2E_MOCK_PORT/);
+  } finally {
+    tree.cleanup();
+  }
+});
+
+test("a wildcard listener on one of the ports is still detected", async () => {
+  // A bind probe would call this port free: with SO_REUSEADDR a 127.0.0.1 bind
+  // coexists with an existing 0.0.0.0 listener on macOS and BSD, while that
+  // listener keeps answering every HTTP probe the session makes.
+  const tree = makeTree();
+  try {
+    const base = await freeBase();
+    markBundle(tree, { mockPort: base, corePort: base + 1 });
+
+    const res = await whileListening(
+      base,
+      () => run(tree, "e2e-web-session.sh", { E2E_PORT_BASE: String(base) }),
+      "0.0.0.0",
+    );
+
+    assert.equal(res.status, 1, res.output);
+    assert.match(res.output, new RegExp(`already in use on 127\\.0\\.0\\.1:.*${base}`));
+  } finally {
+    tree.cleanup();
+  }
+});
+
+// ── the core reports the port it actually bound ──────────────────────────
+
+test("a core that fell back to another port fails the session", async () => {
+  // Two sessions starting at once can both pass the preflight. The mock and the
+  // web host then die on EADDRINUSE, but the core survives on a neighbouring
+  // port while the probes are answered by whoever holds the requested one.
+  const tree = makeTree();
+  try {
+    const base = await freeBase();
+    markBundle(tree, { mockPort: base, corePort: base + 1 });
+    stubCore(tree, base + 7);
+
+    const res = run(tree, "e2e-web-session.sh", { E2E_PORT_BASE: String(base) });
+
+    assert.equal(res.status, 1, res.output);
+    assert.match(res.output, new RegExp(`the core bound 127\\.0\\.0\\.1:${base + 7}`));
+    assert.match(res.output, new RegExp(`not 127\\.0\\.0\\.1:${base + 1}`));
+  } finally {
+    tree.cleanup();
+  }
+});
+
+test("a core on the requested port runs the specs", async () => {
+  // The other half of the check: it must not fail a session whose core bound
+  // what it asked for.
+  const tree = makeTree();
+  try {
+    const base = await freeBase();
+    markBundle(tree, { mockPort: base, corePort: base + 1 });
+    stubCore(tree, base + 1);
+
+    const res = run(tree, "e2e-web-session.sh", { E2E_PORT_BASE: String(base) });
+
+    assert.doesNotMatch(res.output, /the core bound/);
+    assert.ok(
+      waitForCall(tree, "exec playwright"),
+      `expected the specs to run:\n${tree.calls().join("\n")}`,
+    );
+  } finally {
+    tree.cleanup();
+  }
+});
+
+test("the recorded build ports come from the pre-dotenv selection", async () => {
+  // `.env` configures normal development and must not change what the bundle
+  // was built for, so the ports recorded next to it are the ones resolved
+  // before it was sourced — the same values baked into VITE_BACKEND_URL.
+  const tree = makeTree();
+  try {
+    const base = await freeBase();
+    fs.writeFileSync(
+      path.join(tree.root, ".env"),
+      "E2E_MOCK_PORT=28473\nOPENHUMAN_CORE_PORT=27788\n",
+    );
+
+    assert.equal(run(tree, "e2e-web-build.sh", { E2E_PORT_BASE: String(base) }).status, 0);
+
+    const recorded = JSON.parse(
+      fs.readFileSync(path.join(tree.root, "app", "dist-web", ".e2e-build-ports.json"), "utf8"),
+    );
+    assert.equal(recorded.e2e_mock_port, String(base));
+    assert.equal(recorded.openhuman_core_port, String(base + 1));
+    assert.equal(recorded.vite_backend_url, `http://127.0.0.1:${base}`);
   } finally {
     tree.cleanup();
   }
