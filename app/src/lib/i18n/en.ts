@@ -1751,7 +1751,7 @@ const en: TranslationMap = {
   'settings.search.advancedTitle': 'Advanced',
   'settings.search.exposeProviderTools': "Expose each provider's own tools",
   'settings.search.exposeProviderToolsDesc':
-    'Give the agent the tools each enabled provider offers instead of one tool per role. This uses more of the context window.',
+    "Replace the routed search tools with each enabled provider's own tools. Agents that only know the routed tools, including the main agent, then have no web search, and the extra tools use more of the context window. Leave this off unless you are testing a provider.",
   'settings.search.tabProviders': 'Providers',
   'settings.search.tabRouting': 'Routing',
   'settings.search.tabWebsites': 'Websites',
