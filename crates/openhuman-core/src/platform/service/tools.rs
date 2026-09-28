@@ -47,6 +47,9 @@ macro_rules! config_tool {
             fn name(&self) -> &str {
                 $name
             }
+            fn exposure(&self) -> tinytools::ToolExposure {
+                tinytools::ToolExposure::Deferred
+            }
             fn description(&self) -> &str {
                 $desc
             }
