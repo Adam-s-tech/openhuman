@@ -119,7 +119,6 @@ fn parent_context(max_parallel_tools: usize) -> ParentExecutionContext {
         allowed_subagent_ids: [
             "researcher".to_string(),
             "critic".to_string(),
-            "integrations_agent".to_string(),
         ]
         .into_iter()
         .collect(),
