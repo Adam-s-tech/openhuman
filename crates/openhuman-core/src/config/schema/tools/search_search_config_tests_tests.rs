@@ -28,9 +28,54 @@ fn fresh_defaults_are_managed_exa_and_gemini_with_roles_presentation() {
 }
 
 #[test]
-fn legacy_omitted_presentation_keeps_all_tools_default() {
+fn legacy_omitted_presentation_migrates_to_routed_roles() {
     let mut cfg = legacy("engine = \"managed\"\n");
     cfg.migrate_legacy(LegacySearchInputs::default());
+    assert_eq!(cfg.presentation, SearchPresentation::Roles);
+    assert_eq!(cfg.schema_version, SEARCH_SCHEMA_VERSION);
+}
+
+#[test]
+fn legacy_all_tools_migrates_to_routed_roles() {
+    let mut cfg = legacy("engine = \"managed\"\npresentation = \"all_tools\"\n");
+    cfg.migrate_legacy(LegacySearchInputs::default());
+    assert_eq!(cfg.presentation, SearchPresentation::Roles);
+}
+
+// v2 files were forced onto `all_tools`, which hides the routed
+// `web_*_tool`s that agent tool scopes allowlist (no web search at all).
+#[test]
+fn v2_all_tools_moves_back_to_roles_once() {
+    let mut cfg = legacy("schema_version = 2\npresentation = \"all_tools\"\n");
+    assert!(cfg.needs_migration());
+    assert!(cfg.migrate_legacy(LegacySearchInputs::default()));
+    assert_eq!(cfg.presentation, SearchPresentation::Roles);
+    assert_eq!(cfg.schema_version, SEARCH_SCHEMA_VERSION);
+    assert!(!cfg.migrate_legacy(LegacySearchInputs::default()));
+}
+
+#[test]
+fn v2_migration_keeps_providers_roles_and_other_presentations() {
+    let mut cfg = legacy(
+        "schema_version = 2\npresentation = \"router\"\n\
+         [providers.brave]\nenabled = true\nroute = \"direct\"\n\
+         [roles]\nsearch = [\"brave\", \"exa\"]\n",
+    );
+    let before_providers = cfg.providers.clone();
+    let before_roles = cfg.roles.clone();
+    assert!(cfg.migrate_legacy(LegacySearchInputs::default()));
+    assert_eq!(cfg.presentation, SearchPresentation::Router);
+    assert_eq!(cfg.providers, before_providers);
+    assert_eq!(cfg.roles, before_roles);
+    assert!(provider(&cfg, "brave").is_some());
+}
+
+#[test]
+fn a_current_all_tools_choice_is_kept() {
+    let mut cfg = legacy(&format!(
+        "schema_version = {SEARCH_SCHEMA_VERSION}\npresentation = \"all_tools\"\n"
+    ));
+    assert!(!cfg.migrate_legacy(LegacySearchInputs::default()));
     assert_eq!(cfg.presentation, SearchPresentation::AllTools);
 }
 
