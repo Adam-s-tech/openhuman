@@ -23,6 +23,7 @@ import NativeSelect from '../../ui/NativeSelect';
 import Switch from '../../ui/Switch';
 import SettingsTabbedPage from '../layout/SettingsTabbedPage';
 import BrowserConnectionsPanel from './BrowserConnectionsPanel';
+import ComputerStatusCard from './ComputerStatusCard';
 
 export type ComputerSection = 'desktop' | 'browser' | 'models';
 
@@ -205,9 +206,15 @@ export default function ComputerPanel({
       onChange={change}
       tabsAriaLabel={t('computer.title')}
       tabsTestIdPrefix="computer-tab">
-      {section === 'desktop' && <DesktopConnectionPage embedded />}
-      {section === 'browser' && <BrowserConnectionsPanel embedded />}
-      {section === 'models' && <ComputerModelsSection />}
+      <div className="space-y-4">
+        <Alert variant="warning" density="compact" role={undefined}>
+          <AlertDescription>{t('connections.earlyAlphaNotice')}</AlertDescription>
+        </Alert>
+        <ComputerStatusCard />
+        {section === 'desktop' && <DesktopConnectionPage embedded />}
+        {section === 'browser' && <BrowserConnectionsPanel embedded />}
+        {section === 'models' && <ComputerModelsSection />}
+      </div>
     </SettingsTabbedPage>
   );
 }
