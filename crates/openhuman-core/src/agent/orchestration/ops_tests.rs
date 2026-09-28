@@ -78,7 +78,7 @@ fn parent_context(model: Arc<dyn ChatModel<()>>) -> ParentExecutionContext {
     ParentExecutionContext {
         workspace_descriptor: None,
         agent_definition_id: "orchestrator".to_string(),
-        allowed_subagent_ids: ["researcher".to_string()].into_iter().collect(),
+        allowed_subagent_ids: ["task_manager_agent".to_string()].into_iter().collect(),
         turn_model_source: crate::agent::tinyagents::TurnModelSource::from_model_with_profile(
             model,
             ModelProfile {
@@ -273,7 +273,7 @@ async fn e2e_orchestrator_answers_coding_agent_question_and_resumes_child() {
     let first = with_parent_context(parent.clone(), async {
         session
             .spawn_agent(SpawnAgentRequest {
-                agent_id: "code_executor".to_string(),
+                agent_id: "task_manager_agent".to_string(),
                 prompt: "Implement RPC wiring for AGENT_ORCH_E2E".to_string(),
                 model: Some("test-model".to_string()),
                 ..Default::default()
@@ -283,7 +283,7 @@ async fn e2e_orchestrator_answers_coding_agent_question_and_resumes_child() {
     .await
     .expect("spawn coding agent");
 
-    // These waits spawn a *real* builtin (`code_executor`) sub-agent on the
+    // These waits spawn a *real* builtin (`task_manager_agent`) sub-agent on the
     // detached executor, which builds the full agent (prompt assembly, tool
     // resolution, registry) before the mock model returns — ~2.7s per child.
     // The wait budget must clear that with CI headroom; a tight 2s expires first
@@ -310,7 +310,7 @@ async fn e2e_orchestrator_answers_coding_agent_question_and_resumes_child() {
     let follow_up = with_parent_context(parent, async {
         session
             .spawn_agent(SpawnAgentRequest {
-                agent_id: "code_executor".to_string(),
+                agent_id: "task_manager_agent".to_string(),
                 prompt: "Continue after the orchestrator answered: ORCH_ANSWER_USE_RPC".to_string(),
                 context: Some("Parent answered: use controller registry".to_string()),
                 model: Some("test-model".to_string()),
@@ -363,7 +363,7 @@ async fn e2e_orchestrator_waits_for_multiple_parallel_coding_subagents() {
     let spawned = with_parent_context(parent, async {
         let alpha = session
             .spawn_agent(SpawnAgentRequest {
-                agent_id: "code_executor".to_string(),
+                agent_id: "task_manager_agent".to_string(),
                 prompt: "Work independently on PARALLEL_ALPHA".to_string(),
                 model: Some("test-model".to_string()),
                 ..Default::default()
@@ -371,7 +371,7 @@ async fn e2e_orchestrator_waits_for_multiple_parallel_coding_subagents() {
             .await?;
         let beta = session
             .spawn_agent(SpawnAgentRequest {
-                agent_id: "code_executor".to_string(),
+                agent_id: "task_manager_agent".to_string(),
                 prompt: "Work independently on PARALLEL_BETA".to_string(),
                 model: Some("test-model".to_string()),
                 ..Default::default()
@@ -379,7 +379,7 @@ async fn e2e_orchestrator_waits_for_multiple_parallel_coding_subagents() {
             .await?;
         let gamma = session
             .spawn_agent(SpawnAgentRequest {
-                agent_id: "code_executor".to_string(),
+                agent_id: "task_manager_agent".to_string(),
                 prompt: "Work independently on PARALLEL_GAMMA".to_string(),
                 model: Some("test-model".to_string()),
                 ..Default::default()
@@ -487,7 +487,7 @@ async fn e2e_abort_all_cancels_an_in_flight_child_for_a_concurrent_waiter() {
     let spawned = with_parent_context(parent, async {
         session
             .spawn_agent(SpawnAgentRequest {
-                agent_id: "code_executor".to_string(),
+                agent_id: "task_manager_agent".to_string(),
                 prompt: "Park until the orchestrator interrupts".to_string(),
                 model: Some("test-model".to_string()),
                 ..Default::default()

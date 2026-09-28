@@ -150,7 +150,7 @@ async fn spawn_from_thread(workspace: &std::path::Path, thread_id: &str) -> tiny
             &(),
             tinyagents_harness::ids::CallId::new("spawn-worker-thread-test"),
             json!({
-                "agent_id": "researcher",
+                "agent_id": "task_manager_agent",
                 "prompt": "do it",
                 "task_title": "Task"
             }),
@@ -171,7 +171,7 @@ async fn rejects_agent_outside_parent_allowlist() {
         let tool = SpawnWorkerThreadTool::new();
         let result = tool
             .execute(json!({
-                "agent_id": "researcher",
+                "agent_id": "task_manager_agent",
                 "prompt": "do it",
                 "task_title": "Task"
             }))
@@ -180,7 +180,7 @@ async fn rejects_agent_outside_parent_allowlist() {
 
         assert!(result.is_error);
         assert!(result.output().contains(
-            "spawn_worker_thread: agent 'researcher' is not in parent agent 'orchestrator' subagents.allowlist"
+            "spawn_worker_thread: agent 'task_manager_agent' is not in parent agent 'orchestrator' subagents.allowlist"
         ));
     })
     .await;

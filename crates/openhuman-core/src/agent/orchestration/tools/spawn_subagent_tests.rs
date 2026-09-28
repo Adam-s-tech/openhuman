@@ -5,7 +5,7 @@ use tempfile::TempDir;
 
 fn sample_outcome(output: &str) -> SubagentRunOutcome {
     SubagentRunOutcome {
-        agent_id: "researcher".into(),
+        agent_id: "task_manager_agent".into(),
         task_id: "sub-test-1".into(),
         output: output.to_string(),
         elapsed: Duration::from_millis(120),
@@ -70,7 +70,7 @@ fn parameters_schema_advertises_optional_model_override() {
 #[test]
 fn render_worker_thread_result_carries_machine_readable_envelope() {
     let outcome = sample_outcome("done");
-    let rendered = render_worker_thread_result("worker-abc", "researcher", &outcome);
+    let rendered = render_worker_thread_result("worker-abc", "task_manager_agent", &outcome);
     assert!(rendered.contains("Spawned worker thread `worker-abc`"));
     assert!(rendered.contains("[worker_thread_ref]"));
     assert!(rendered.contains("[/worker_thread_ref]"));
@@ -81,7 +81,7 @@ fn render_worker_thread_result_carries_machine_readable_envelope() {
         serde_json::from_str(&rendered[start..end]).expect("valid json envelope");
     assert_eq!(payload["thread_id"], "worker-abc");
     assert_eq!(payload["label"], "worker");
-    assert_eq!(payload["agent_id"], "researcher");
+    assert_eq!(payload["agent_id"], "task_manager_agent");
     assert_eq!(payload["task_id"], "sub-test-1");
     assert_eq!(payload["iterations"], 3);
 }
@@ -92,7 +92,7 @@ fn persist_worker_thread_creates_thread_with_tasks_label_and_messages() {
     let outcome = sample_outcome("the answer is 42");
     let thread_id = persist_worker_thread(
         temp.path(),
-        "researcher",
+        "task_manager_agent",
         "draft a long research plan",
         &outcome,
     )
@@ -137,7 +137,7 @@ async fn missing_prompt_returns_error() {
     let tool = SpawnSubagentTool;
     let result = tool
         .execute(json!({
-            "agent_id": "researcher"
+            "agent_id": "task_manager_agent"
         }))
         .await
         .unwrap();
@@ -151,7 +151,7 @@ async fn no_registry_returns_clear_error() {
     let tool = SpawnSubagentTool;
     let result = tool
         .execute(json!({
-            "agent_id": "researcher",
+            "agent_id": "task_manager_agent",
             "prompt": "find x",
         }))
         .await
@@ -178,7 +178,7 @@ async fn unknown_agent_id_lists_available() {
     assert!(result.is_error);
     let out = result.output();
     // Should list at least one valid built-in.
-    assert!(out.contains("code_executor") || out.contains("researcher"));
+    assert!(out.contains("code_executor") || out.contains("task_manager_agent"));
 }
 
 #[test]
@@ -196,7 +196,7 @@ async fn dedicated_thread_flag_no_longer_returns_disabled_error() {
     let tool = SpawnSubagentTool;
     let result = tool
         .execute(json!({
-            "agent_id": "researcher",
+            "agent_id": "task_manager_agent",
             "prompt": "find x",
             "dedicated_thread": true,
         }))
@@ -229,7 +229,7 @@ async fn legacy_archetype_alias_is_normalized_to_agent_id() {
     let tool = SpawnSubagentTool;
     let result = tool
         .execute(json!({
-            "archetype": "researcher",
+            "archetype": "task_manager_agent",
             "prompt": "research the reusable async default path",
         }))
         .await
@@ -262,7 +262,7 @@ async fn async_default_self_heals_to_blocking_without_delivery_thread() {
     let _ = AgentDefinitionRegistry::init_global_builtins();
     let result = SpawnSubagentTool
         .execute(json!({
-            "agent_id": "researcher",
+            "agent_id": "task_manager_agent",
             "prompt": "work with no delivery thread",
         }))
         .await
