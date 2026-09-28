@@ -1,9 +1,7 @@
 #![cfg(any())] // TODO(#6382): migrate this raw-coverage fixture to hosted TinyAgents APIs.
 use anyhow::Result;
 use async_trait::async_trait;
-use openhuman_core::agent::debug::{
-    dump_agent_prompt, write_prompt_dumps, DumpPromptOptions, DumpedPrompt,
-};
+use openhuman_core::agent::debug::{write_prompt_dumps, DumpedPrompt};
 use openhuman_core::agent::harness::archivist::ArchivistHook;
 use openhuman_core::agent::harness::{
     run_subagent, with_parent_context, AgentDefinition, DefinitionSource, ModelSpec,
