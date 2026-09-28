@@ -475,7 +475,7 @@ const messages: TranslationMap = {
   'settings.analysisViews.title': 'Аналитические виды',
   'settings.analysisViews.menuDesc':
     'Анализ графа памяти: диаграмма, центральность, связность, ассоциации, свежесть, временная шкала, пути и пространства имён',
-  'settings.tokenUsage.title': 'Токены и стоимость',
+  'settings.tokenUsage.title': 'Экономия токенов',
   'settings.tokenUsage.menuDesc': 'Настройки сжатия и сколько токенов и долларов они сэкономили',
   'settings.tokenUsage.saving': 'Сохранение…',
   'settings.tokenUsage.saved': 'Сохранено',

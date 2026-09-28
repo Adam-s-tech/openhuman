@@ -489,7 +489,7 @@ const messages: TranslationMap = {
   'settings.analysisViews.title': 'Analyseansichten',
   'settings.analysisViews.menuDesc':
     'Speichergraph-Analyse: Diagramm, Zentralität, Kohäsion, Verknüpfungen, Aktualität, Zeitachse, Pfade und Namensräume',
-  'settings.tokenUsage.title': 'Tokens & Kosten',
+  'settings.tokenUsage.title': 'Token-Einsparungen',
   'settings.tokenUsage.menuDesc':
     'Komprimierungseinstellungen und wie viele Tokens und Dollar sie eingespart haben',
   'settings.tokenUsage.saving': 'Wird gespeichert…',

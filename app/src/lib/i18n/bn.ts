@@ -468,7 +468,7 @@ const messages: TranslationMap = {
   'settings.analysisViews.title': 'বিশ্লেষণ ভিউ',
   'settings.analysisViews.menuDesc':
     'মেমরি গ্রাফ বিশ্লেষণ: ডায়াগ্রাম, কেন্দ্রীয়তা, সংহতি, সংযোগ, সতেজতা, টাইমলাইন, পাথ এবং নেমস্পেস',
-  'settings.tokenUsage.title': 'টোকেন ও খরচ',
+  'settings.tokenUsage.title': 'টোকেন সাশ্রয়',
   'settings.tokenUsage.menuDesc': 'সংকোচন সেটিংস এবং সেগুলি কত টোকেন ও ডলার সাশ্রয় করেছে',
   'settings.tokenUsage.saving': 'সংরক্ষণ করা হচ্ছে…',
   'settings.tokenUsage.saved': 'সংরক্ষিত হয়েছে',

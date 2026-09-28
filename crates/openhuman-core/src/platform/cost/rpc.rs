@@ -21,7 +21,7 @@ use crate::config::{Config, CostConfig};
 use crate::rpc::RpcOutcome;
 
 use super::global::try_global;
-use super::tracker::CostTracker;
+use super::tracker::{non_negative_zero, CostTracker};
 use super::types::{
     BudgetStatus, CostDashboard, CostRecord, CostSource, CostSummary, DailyCostEntry, ModelStats,
 };
@@ -183,7 +183,8 @@ fn usage_log_to_dto(
     days: u32,
     limit: usize,
 ) -> UsageLogDto {
-    let total_cost_usd: f64 = records.iter().map(|record| record.usage.cost_usd).sum();
+    let total_cost_usd: f64 =
+        non_negative_zero(records.iter().map(|record| record.usage.cost_usd).sum());
     let total_tokens: u64 = records.iter().map(|record| record.usage.total_tokens).sum();
     let request_count = records.len();
     let mut by_category: HashMap<String, CategoryStatsDto> = HashMap::new();

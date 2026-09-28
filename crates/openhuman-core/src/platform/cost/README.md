@@ -19,7 +19,7 @@ Local API-usage cost tracking for the agent. Records per-call token usage and co
 | `crates/openhuman-core/src/platform/cost/mod.rs`           | Export-focused module root; re-exports tracker, types, global helpers, and the `all_cost_*` controller schema/registry pair.                                                                                            |
 | `crates/openhuman-core/src/platform/cost/types.rs`         | Serde domain types: `TokenUsage`, `CostSource`, `CostRecord`, `UsagePeriod`, `CostSummary`, `ModelStats`, `DailyCostEntry`, `BudgetStatus`, `CostDashboard`. Cost-calc logic lives in `TokenUsage::new`. |
 | `crates/openhuman-core/src/platform/cost/tracker.rs`       | `CostTracker` (recording, summaries, daily history, dashboard build) plus the private `CostStorage` JSONL persistence + aggregate-cache layer. Functions as both `ops` and `store`.                      |
-| `crates/openhuman-core/src/platform/cost/global.rs`        | Process-global `OnceCell<Arc<CostTracker>>` singleton: `init_global`, `try_global`, `record_provider_usage`, and `build_token_usage` (provider `UsageInfo` → `TokenUsage`).                                             |
+| `crates/openhuman-core/src/platform/cost/global.rs`        | Process-global `RwLock<Option<Arc<CostTracker>>>` singleton: `init_global`, `rebind_global` (follows the active workspace on sign-in/out), `try_global`, `record_provider_usage`, and `build_token_usage` (provider `UsageInfo` → `TokenUsage`).                                             |
 | `crates/openhuman-core/src/platform/cost/rpc.rs`           | RPC-facing handlers (`dashboard`, `daily_history`, `summary`) returning `RpcOutcome<Value>`; DTO types; `resolve_tracker` with a cached fallback tracker + error-replay TTL.                                            |
 | `crates/openhuman-core/src/platform/cost/schemas.rs`       | Controller schemas + `handle_*` JSON-RPC dispatchers; `all_controller_schemas` / `all_registered_controllers`.                                                                                                          |
 | `crates/openhuman-core/src/platform/cost/tracker_tests.rs` | Sibling test suite for `tracker.rs` (`#[path]`-included).                                                                                                                                                               |
@@ -32,7 +32,7 @@ Local API-usage cost tracking for the agent. Records per-call token usage and co
 From `mod.rs` re-exports:
 
 - `CostTracker`: the tracker (`tracker`).
-- `init_global`, `try_global`, `record_provider_usage` (`global`).
+- `init_global`, `rebind_global`, `try_global`, `record_provider_usage` (`global`).
 - `all_cost_controller_schemas`, `all_cost_registered_controllers` (`schemas`).
 - Types: `BudgetStatus`, `CostDashboard`, `CostRecord`, `CostSource`, `CostSummary`, `DailyCostEntry`, `ModelStats`, `TokenUsage`, `UsagePeriod`.
 
