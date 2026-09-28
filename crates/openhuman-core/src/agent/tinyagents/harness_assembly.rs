@@ -360,12 +360,15 @@ pub(super) fn assemble_turn_harness(
     // error `REPEATED_TOOL_FAILURE_THRESHOLD` times in a row, so a deterministic
     // security/approval denial or terminal tool error surfaces its root cause
     // instead of burning the whole iteration budget (legacy ProgressGuard parity).
-    if let Some(handle) = &handle {
-        harness.push_middleware(Arc::new(middleware::RepeatedToolFailureMiddleware::new(
+    let repeated_failure = handle.as_ref().map(|handle| {
+        Arc::new(middleware::RepeatedToolFailureMiddleware::new(
             handle.clone(),
             REPEATED_TOOL_FAILURE_THRESHOLD,
             halt_summary.clone(),
-        )));
+        ))
+    });
+    if let Some(mw) = &repeated_failure {
+        harness.push_middleware(mw.clone());
     }
 
     // Policy-driven stop hooks (budget cap, thread-goal budget, ad-hoc iteration
@@ -686,6 +689,12 @@ pub(super) fn assemble_turn_harness(
     // repeat-progress recurrence ledger restarts (#6275).
     if let Some(mw) = &repeat_progress {
         harness.push_middleware(Arc::new(mw.eviction_observer()));
+    }
+    // Registered after it: the breaker's corrective nudges ride the next
+    // request only. Anything earlier (notably the transcript snapshot a failed
+    // turn persists) must not see them, or they become durable history (#6725).
+    if let Some(mw) = &repeated_failure {
+        harness.push_middleware(Arc::new(mw.nudge_injector()));
     }
 
     AssembledTurnHarness {
