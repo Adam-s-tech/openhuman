@@ -214,7 +214,7 @@ describe('Credential channels — Yuanbao and Email (IMAP/SMTP)', () => {
 
         const credentials =
           channel === 'email'
-            ? { ...validCredentials, imap_host: 'imap.e2e.invalid', imap_port: '993' }
+            ? { ...validCredentials, imap_host: '127.0.0.1', imap_port: '0' }
             : { ...validCredentials, api_domain: `http://127.0.0.1:${getMockServerPort()}` };
         const out = await callOpenhumanRpc('openhuman.channels_connect', {
           channel,

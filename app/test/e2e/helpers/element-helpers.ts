@@ -95,20 +95,23 @@ async function clickAtElement(el: ChainablePromiseElement): Promise<void> {
   const centerX = Math.round(location.x + size.width / 2);
   const centerY = Math.round(location.y + size.height / 2);
 
-  await browser.performActions([
-    {
-      type: 'pointer',
-      id: 'mouse1',
-      parameters: { pointerType: 'mouse' },
-      actions: [
-        { type: 'pointerMove', duration: 10, x: centerX, y: centerY },
-        { type: 'pointerDown', button: 0 },
-        { type: 'pause', duration: 50 },
-        { type: 'pointerUp', button: 0 },
-      ],
-    },
-  ]);
-  await browser.releaseActions();
+  try {
+    await browser.performActions([
+      {
+        type: 'pointer',
+        id: 'mouse1',
+        parameters: { pointerType: 'mouse' },
+        actions: [
+          { type: 'pointerMove', duration: 10, x: centerX, y: centerY },
+          { type: 'pointerDown', button: 0 },
+          { type: 'pause', duration: 50 },
+          { type: 'pointerUp', button: 0 },
+        ],
+      },
+    ]);
+  } finally {
+    await browser.releaseActions();
+  }
 }
 
 /** Click an existing element through the shared cross-platform click path. */
