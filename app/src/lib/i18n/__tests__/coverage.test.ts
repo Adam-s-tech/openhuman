@@ -61,5 +61,4 @@ describe('i18n coverage', () => {
       .map(([key]) => key);
     expect(keysWithEmDashes).toEqual([]);
   });
-
 });
