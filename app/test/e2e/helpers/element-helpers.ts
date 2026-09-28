@@ -541,11 +541,18 @@ export async function clickToolGroupTrigger(
   let trigger: ChainablePromiseElement;
   if (isTauriDriver()) {
     const selector = '[data-slot="tool-group-root"] [data-slot="tool-group-trigger"]';
-    await browser.waitUntil(async () => (await browser.$$(selector)).length > index, {
-      timeout,
-      timeoutMsg: `Tool group trigger ${index + 1} (${label}) was not found`,
-    });
-    trigger = (await browser.$$(selector))[index]!;
+    let matchingTriggers: ChainablePromiseElement[] = [];
+    await browser.waitUntil(
+      async () => {
+        matchingTriggers = [];
+        for (const candidate of await browser.$$(selector)) {
+          if ((await candidate.getText()).includes(label)) matchingTriggers.push(candidate);
+        }
+        return matchingTriggers.length > index;
+      },
+      { timeout, timeoutMsg: `Tool group trigger ${index + 1} (${label}) was not found` }
+    );
+    trigger = matchingTriggers[index]!;
   } else {
     trigger = await browser.$(`(${matches})[${index + 1}]`);
   }
