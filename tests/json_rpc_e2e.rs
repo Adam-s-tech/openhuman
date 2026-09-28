@@ -1768,7 +1768,7 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
         &rpc_base,
         28_622,
         "openhuman.agent_registry_set_enabled",
-        json!({ "id": "code_executor", "enabled": false }),
+        json!({ "id": "image_agent", "enabled": false }),
     )
     .await;
     let disabled_result = assert_no_jsonrpc_error(&disabled, "agent_registry_set_enabled");
@@ -1777,7 +1777,7 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
             .get("agent")
             .and_then(|agent| agent.get("id"))
             .and_then(Value::as_str),
-        Some("code_executor")
+        Some("image_agent")
     );
     assert_eq!(
         disabled_result
@@ -1802,7 +1802,7 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
     assert!(
         !visible_agents
             .iter()
-            .any(|agent| agent.get("id").and_then(Value::as_str) == Some("code_executor")),
+            .any(|agent| agent.get("id").and_then(Value::as_str) == Some("image_agent")),
         "disabled default agent should be hidden unless include_disabled=true"
     );
 
@@ -1815,17 +1815,17 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
     .await;
     let all_after_disable_result =
         assert_no_jsonrpc_error(&all_after_disable, "agent_registry_list include disabled");
-    let disabled_code_executor = all_after_disable_result
+    let disabled_image_agent = all_after_disable_result
         .get("agents")
         .and_then(Value::as_array)
         .and_then(|agents| {
             agents
                 .iter()
-                .find(|agent| agent.get("id").and_then(Value::as_str) == Some("code_executor"))
+                .find(|agent| agent.get("id").and_then(Value::as_str) == Some("image_agent"))
         })
-        .expect("include_disabled should retain disabled code_executor");
+        .expect("include_disabled should retain disabled image_agent");
     assert_eq!(
-        disabled_code_executor
+        disabled_image_agent
             .get("enabled")
             .and_then(Value::as_bool),
         Some(false)
@@ -1835,7 +1835,7 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
         &rpc_base,
         286_214,
         "openhuman.agent_registry_set_enabled",
-        json!({ "id": "code_executor", "enabled": true }),
+        json!({ "id": "image_agent", "enabled": true }),
     )
     .await;
     assert_eq!(
@@ -2146,32 +2146,32 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
         Some(true)
     );
 
-    let reset_code_executor = post_json_rpc(
+    let reset_image_agent = post_json_rpc(
         &rpc_base,
         286_222,
         "openhuman.agent_registry_remove",
-        json!({ "id": "code_executor" }),
+        json!({ "id": "image_agent" }),
     )
     .await;
     assert_eq!(
         assert_no_jsonrpc_error(
-            &reset_code_executor,
-            "agent_registry_remove code_executor override"
+            &reset_image_agent,
+            "agent_registry_remove image_agent override"
         )
         .get("removed")
         .and_then(Value::as_bool),
         Some(true)
     );
 
-    let code_executor = post_json_rpc(
+    let image_agent = post_json_rpc(
         &rpc_base,
         286_223,
         "openhuman.agent_registry_get",
-        json!({ "id": "code_executor" }),
+        json!({ "id": "image_agent" }),
     )
     .await;
     assert_eq!(
-        assert_no_jsonrpc_error(&code_executor, "agent_registry_get reset default")
+        assert_no_jsonrpc_error(&image_agent, "agent_registry_get reset default")
             .get("agent")
             .and_then(|agent| agent.get("enabled"))
             .and_then(Value::as_bool),
