@@ -214,7 +214,7 @@ describe('Credential channels — Yuanbao and Email (IMAP/SMTP)', () => {
 
         const credentials =
           channel === 'email'
-            ? { ...validCredentials, imap_host: '127.0.0.1', imap_port: '1' }
+            ? { ...validCredentials, imap_host: 'imap.e2e.invalid', imap_port: '993' }
             : { ...validCredentials, api_domain: `http://127.0.0.1:${getMockServerPort()}` };
         const out = await callOpenhumanRpc('openhuman.channels_connect', {
           channel,
@@ -224,7 +224,9 @@ describe('Credential channels — Yuanbao and Email (IMAP/SMTP)', () => {
         if (channel === 'email') {
           expect(out.ok).toBe(false);
           expect(out.error).toContain('IMAP connection failed');
-          expect(isConnected(await statusFor(channel))).toBe(false);
+          const status = await statusFor(channel);
+          expect(isConnected(status)).toBe(false);
+          expect(status?.hasCredentials ?? status?.has_credentials).toBe(false);
           console.log(`${LOG_PREFIX} D.3 email: local IMAP verification rejected`);
           return;
         }

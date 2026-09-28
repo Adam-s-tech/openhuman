@@ -517,6 +517,11 @@ export async function clickTestIdWithPointer(
   timeout: number = 15_000
 ): Promise<ChainablePromiseElement> {
   const el = await waitForTestId(testId, timeout);
+  await browser.execute(
+    (element: HTMLElement) => element.scrollIntoView({ block: 'center', behavior: 'instant' }),
+    el as unknown as HTMLElement
+  );
+  await browser.pause(200);
   const location = await el.getLocation();
   const size = await el.getSize();
   try {

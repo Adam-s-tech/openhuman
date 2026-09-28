@@ -102,6 +102,12 @@ async function replyBlocks(): Promise<Block[]> {
       .map(node => {
         const slot = node.getAttribute('data-slot');
         const kind = slot ?? 'text';
+        const text =
+          kind === 'tool-group-root'
+            ? (node.querySelector('[data-slot="tool-group-trigger"]')?.textContent ?? '').trim()
+            : kind === 'text'
+              ? (node.textContent ?? '').trim()
+              : '';
         const label =
           slot === 'aui_openhuman-tool-call'
             ? (node.querySelector('button .font-medium')?.textContent ?? '')
@@ -110,7 +116,7 @@ async function replyBlocks(): Promise<Block[]> {
           kind,
           label,
           state: node.getAttribute('data-state'),
-          text: kind === 'text' ? (node.textContent ?? '').trim() : '',
+          text,
         };
       });
   })) as Block[];
@@ -247,10 +253,10 @@ describe('Chat live/history parity', () => {
     // Compare the stable current projection. A streaming sample can become
     // stale when the final assistant message replaces an earlier narration.
     settled = (await replyBlocks()).map(block => ({ ...block }));
-    // The activity projection can consolidate adjacent tool rounds into one
-    // group. Pin the meaningful structure, then compare the complete live and
-    // reloaded projections below.
-    expect(settled.some(block => block.kind === 'tool-group-root')).toBe(true);
+    // Adjacent rounds share one activity group, whose trigger reports the
+    // total number of calls represented in that group.
+    expect(settled.filter(block => block.kind === 'tool-group-root')).toHaveLength(1);
+    expect(settled.find(block => block.kind === 'tool-group-root')?.text).toContain('2 tool calls');
     const finalBlock = settled.find(
       block => block.kind === 'text' && block.text.includes(CANARY_FINAL)
     );
