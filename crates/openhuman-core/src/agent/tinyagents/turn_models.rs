@@ -110,7 +110,7 @@ impl TurnModels {
 /// stronger, more explicit signal.
 ///
 /// Sub-agents (depth > 0) keep resolving their pin against the tier routes —
-/// that is how `integrations_agent`'s `hint = "burst"` reaches `hint:burst` —
+/// that is how a sub-agent's `hint = "burst"` reaches `hint:burst` —
 /// and fall back to the primary when the pin names no built route.
 ///
 /// Only the lead's model records into the turn's error slot (#6724). Sub-agents
@@ -199,7 +199,6 @@ fn build_turn_models_crate(
     provider_id: String,
     native_tools: bool,
     supports_vision: bool,
-    force_text_mode: bool,
     thread_id: Option<&str>,
 ) -> anyhow::Result<TurnModels> {
     use crate::inference::provider::factory;
@@ -218,7 +217,7 @@ fn build_turn_models_crate(
                 role,
                 config,
                 m,
-                !force_text_mode,
+                true,
                 thread_id,
             )?;
             return Ok(Arc::new(RouteRecordingModel::new(
@@ -233,14 +232,14 @@ fn build_turn_models_crate(
                 config,
                 m,
                 temperature,
-                !force_text_mode,
+                true,
             ),
             None => factory::create_turn_chat_model_with_native_tools_and_route(
                 role,
                 config,
                 m,
                 temperature,
-                !force_text_mode,
+                true,
             ),
         }?;
         Ok(Arc::new(RouteRecordingModel::new(
@@ -273,7 +272,7 @@ fn build_turn_models_crate(
                         tier_role,
                         config,
                         tier,
-                        !force_text_mode,
+                        true,
                         thread_id,
                     )
                     .map(|(backend, _)| (backend, "openhuman".to_string(), tier.to_string()))
@@ -283,7 +282,7 @@ fn build_turn_models_crate(
                         config,
                         tier,
                         temperature,
-                        !force_text_mode,
+                        true,
                     )
                 };
                 match route {
@@ -346,7 +345,6 @@ pub struct TurnModelSource {
     /// `None`; build failures propagate instead of falling back to the host wire
     /// client.
     pub(crate) crate_native: Option<CrateNativeSource>,
-    force_text_mode: bool,
 }
 
 /// The `(role, config)` a crate-native [`TurnModelSource`] builds its tiered
@@ -361,7 +359,6 @@ pub(crate) struct CrateNativeSource {
     /// (`build_remote_provider`). `None` builds the primary from `role`. Routes
     /// always use the standard workload tiers.
     primary_override: Option<String>,
-    pub(crate) force_text_mode: bool,
 }
 
 impl TurnModelSource {
@@ -372,7 +369,6 @@ impl TurnModelSource {
         Self {
             direct_model: Some(model),
             crate_native: None,
-            force_text_mode: false,
         }
     }
 
@@ -400,9 +396,7 @@ impl TurnModelSource {
                 role: role.into(),
                 config,
                 primary_override: None,
-                force_text_mode: false,
             }),
-            force_text_mode: false,
         }
     }
 
@@ -422,19 +416,8 @@ impl TurnModelSource {
                 role: role.into(),
                 config,
                 primary_override: Some(provider_string.into()),
-                force_text_mode: false,
             }),
-            force_text_mode: false,
         }
-    }
-
-    /// Force prompt-guided tool calling without resolving a host provider.
-    pub(crate) fn with_text_mode(mut self) -> Self {
-        self.force_text_mode = true;
-        if let Some(source) = self.crate_native.as_mut() {
-            source.force_text_mode = true;
-        }
-        self
     }
 
     /// Resolve the model's effective context window (async provider probe) — the
@@ -493,10 +476,6 @@ impl TurnModelSource {
             if let Some(window) = context_window.filter(|window| *window > 0) {
                 profile.max_input_tokens = Some(window);
             }
-            if self.force_text_mode {
-                profile.tool_calling = false;
-                profile.parallel_tool_calls = false;
-            }
             let provider_id = profile
                 .provider
                 .clone()
@@ -547,7 +526,6 @@ impl TurnModelSource {
                 provider_id,
                 !is_local,
                 !is_local,
-                cn.force_text_mode,
                 thread_id,
             );
         }
@@ -591,7 +569,7 @@ impl TurnModelSource {
                     &cn.role,
                     &cn.config,
                     model,
-                    !cn.force_text_mode,
+                    true,
                     thread_id,
                 )
                 .map(|(model, _)| model);
