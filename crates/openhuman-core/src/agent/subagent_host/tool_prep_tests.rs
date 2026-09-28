@@ -17,22 +17,15 @@ fn unprefixed_delegate_name_overrides_are_treated_as_spawn_tools() {
     crate::agent::harness::definition::AgentDefinitionRegistry::init_global(tmp.path()).unwrap();
     for delegate in [
         "plan",
-        "run_code",
-        "research",
         "review_code",
-        "do_crypto",
-        "schedule_task",
+        "manage_tasks",
+        "create_image",
         // `make_presentation` is `presentation_agent`'s `delegate_name`; the agent —
         // and therefore this delegate tool — is compiled out with the
         // `documents` feature.
         #[cfg(feature = "documents")]
         "make_presentation",
         "archive_session",
-        // `use_mcp_server` is `mcp_agent`'s `delegate_name`; the agent —
-        // and therefore this delegate tool — is compiled out with the
-        // `mcp` feature (#4799).
-        #[cfg(feature = "mcp")]
-        "use_mcp_server",
     ] {
         assert!(
             is_subagent_spawn_tool(delegate),
