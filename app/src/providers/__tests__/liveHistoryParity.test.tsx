@@ -28,6 +28,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import * as chatService from '../../services/chatService';
 import { mapDisplayItems } from '../../features/conversations/derived/mapDisplayItems';
+import { selectBackgroundProcesses } from '../../features/conversations/selectors/backgroundProcesses';
 import { threadApi } from '../../services/api/threadApi';
 import { store } from '../../store';
 import { beginInferenceTurn, clearAllChatRuntime } from '../../store/chatRuntimeSlice';
@@ -469,6 +470,13 @@ describe('async delegation settles after its turn', () => {
     // Minutes later the child finishes, then its result is delivered as a
     // host-authored turn: a bare `chat_done`, no `inference_start`.
     fire(listeners, doneStep);
+    // The hydrated row (core id) settles too: the background-process panel
+    // reads the live timeline, and a missed row read "running" there forever.
+    expect(
+      selectBackgroundProcesses(
+        store.getState().chatRuntime.toolTimelineByThread[TURN_THREAD] ?? []
+      ).map(process => [process.taskId, process.status])
+    ).toEqual([['sub-1', 'success']]);
     vi.mocked(threadApi.getTurnState).mockResolvedValue(snapshot('success') as never);
     act(() =>
       listeners.onDone?.({
