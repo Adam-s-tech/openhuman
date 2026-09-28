@@ -602,7 +602,7 @@ async fn agent_team_close_flips_the_status_the_list_filter_selects_on() {
                 "parentThreadId": "thread-team-e2e",
                 "summary": "ship the e2e wave",
                 "members": [
-                    { "name": "Ada", "agentId": "researcher" },
+                    { "name": "Ada", "agentId": "orchestrator" },
                     { "name": "Grace" }
                 ],
             }),

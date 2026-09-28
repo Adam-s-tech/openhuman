@@ -3233,7 +3233,7 @@ async fn json_rpc_run_ledger_lifecycle() {
             kind: tinyagents_session::run_ledger::AgentRunKind::WorkerThread,
             parent_run_id: Some("req-run-1".to_string()),
             parent_thread_id: Some("thread-run-1".to_string()),
-            agent_id: Some("researcher".to_string()),
+            agent_id: Some("task_manager_agent".to_string()),
             status: tinyagents_session::run_ledger::AgentRunStatus::AwaitingUser,
             prompt_ref: Some("thread:worker-1:message:seed".to_string()),
             worker_thread_id: Some("worker-1".to_string()),
@@ -3351,7 +3351,7 @@ async fn json_rpc_agent_work_list_groups_runs_by_bucket() {
         kind: AgentRunKind::Subagent,
         parent_run_id: None,
         parent_thread_id: Some("thread-work-1".to_string()),
-        agent_id: Some("researcher".to_string()),
+        agent_id: Some("task_manager_agent".to_string()),
         status,
         prompt_ref: None,
         worker_thread_id: None,
@@ -3565,8 +3565,8 @@ async fn json_rpc_agent_team_coordination_roundtrip() {
             "parentThreadId": "thread-team-e2e",
             "summary": "ship feature",
             "members": [
-                { "name": "alice", "agentId": "researcher" },
-                { "name": "bob", "agentId": "researcher" }
+                { "name": "alice", "agentId": "orchestrator" },
+                { "name": "bob", "agentId": "orchestrator" }
             ]
         }),
     )
