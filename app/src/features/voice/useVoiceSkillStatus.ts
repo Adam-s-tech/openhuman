@@ -7,7 +7,6 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { isTauri } from '../../utils/tauriCommands/common';
 import {
   openhumanVoiceServerStatus,
   openhumanVoiceStatus,
@@ -38,7 +37,6 @@ export function useVoiceSkillStatus(): VoiceSkillStatus {
   const [serverStatus, setServerStatus] = useState<VoiceServerStatus | null>(null);
 
   const fetchStatuses = useCallback(async () => {
-    if (!isTauri()) return;
     try {
       const [vs, ss] = await Promise.all([openhumanVoiceStatus(), openhumanVoiceServerStatus()]);
       setVoiceStatus(vs);
