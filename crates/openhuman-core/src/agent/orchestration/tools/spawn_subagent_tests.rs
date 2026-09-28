@@ -178,7 +178,7 @@ async fn unknown_agent_id_lists_available() {
     assert!(result.is_error);
     let out = result.output();
     // Should list at least one valid built-in.
-    assert!(out.contains("code_executor") || out.contains("task_manager_agent"));
+    assert!(out.contains("task_manager_agent"));
 }
 
 #[test]
