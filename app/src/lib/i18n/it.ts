@@ -959,6 +959,10 @@ const messages: TranslationMap = {
   'computer.status.state.unsupported': 'Non supportato su questo dispositivo',
   'connections.browser.chromeHint':
     'Il browser viene eseguito nel modulo TinyComputer. Il test avvia Chrome per un attimo e lo chiude.',
+  'computer.models.openJevKey': 'Chiave API di OpenJev',
+  'computer.models.sageKey': 'Chiave API di Sage',
+  'computer.models.keyHint':
+    'Salvata cifrata su questo dispositivo. Lascia vuoto per mantenere la chiave salvata.',
   'desktop.title': 'Controllo desktop',
   'desktop.description': 'Consenti al tuo agente di usare le app su questo computer.',
   'desktop.enabledPending':

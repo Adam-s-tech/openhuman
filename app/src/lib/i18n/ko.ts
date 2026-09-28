@@ -926,6 +926,9 @@ const messages: TranslationMap = {
   'computer.status.state.unsupported': '이 기기에서 지원되지 않음',
   'connections.browser.chromeHint':
     '브라우저는 TinyComputer 모듈 안에서 실행됩니다. 테스트는 Chrome을 잠시 실행한 뒤 닫습니다.',
+  'computer.models.openJevKey': 'OpenJev API 키',
+  'computer.models.sageKey': 'Sage API 키',
+  'computer.models.keyHint': '이 기기에 암호화되어 저장됩니다. 저장된 키를 유지하려면 비워 두세요.',
   'desktop.title': '데스크톱 제어',
   'desktop.description': '에이전트가 이 컴퓨터의 앱에서 작업하도록 허용합니다.',
   'desktop.enabledPending':

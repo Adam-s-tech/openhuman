@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { useT } from '../../../lib/i18n/I18nContext';
+import { setCloudProviderKey } from '../../../services/api/aiSettingsApi';
 import {
   type ComputerSettings,
   type DecisionModel,
@@ -45,8 +46,17 @@ export interface ComputerPanelProps {
 export function ComputerModelsSection() {
   const { t } = useT();
   const [settings, setSettings] = useState<ComputerSettings>(defaults);
+  const [apiKey, setApiKey] = useState('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
+  // OpenJev and Sage bill their own accounts; Jev rides the TinyHumans
+  // session or the OpenRouter key from the LLM settings.
+  const keySlug =
+    settings.decision_model === 'open_jev'
+      ? 'openjev'
+      : settings.decision_model === 'sage'
+        ? 'sage'
+        : null;
 
   const refresh = useCallback(async () => {
     const response = await openhumanGetConfig();
@@ -73,6 +83,10 @@ export function ComputerModelsSection() {
     setBusy(true);
     setMessage('');
     try {
+      if (keySlug && apiKey.trim()) {
+        await setCloudProviderKey(keySlug, apiKey.trim());
+        setApiKey('');
+      }
       await openhumanUpdateComputerSettings({
         decision_model: settings.decision_model,
         sage_fast: settings.sage_fast,
@@ -111,6 +125,23 @@ export function ComputerModelsSection() {
               <option value="sage">{t('computer.models.sage')}</option>
             </NativeSelect>
           </div>
+          {keySlug && (
+            <div className="space-y-1.5">
+              <Label htmlFor="computer-decision-key">
+                {keySlug === 'sage'
+                  ? t('computer.models.sageKey')
+                  : t('computer.models.openJevKey')}
+              </Label>
+              <Input
+                id="computer-decision-key"
+                type="password"
+                autoComplete="off"
+                value={apiKey}
+                onChange={event => setApiKey(event.target.value)}
+              />
+              <p className="text-xs text-content-muted">{t('computer.models.keyHint')}</p>
+            </div>
+          )}
           {settings.decision_model === 'sage' && (
             <div className="flex items-center justify-between gap-3">
               <Label htmlFor="computer-sage-fast">{t('computer.models.sageFast')}</Label>

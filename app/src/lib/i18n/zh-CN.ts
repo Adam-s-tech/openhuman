@@ -875,6 +875,9 @@ const messages: TranslationMap = {
   'computer.status.state.unsupported': '此设备不支持',
   'connections.browser.chromeHint':
     '浏览器在 TinyComputer 模块中运行。测试会短暂启动 Chrome 然后关闭。',
+  'computer.models.openJevKey': 'OpenJev API 密钥',
+  'computer.models.sageKey': 'Sage API 密钥',
+  'computer.models.keyHint': '加密存储在此设备上。留空则保留已保存的密钥。',
   'desktop.title': '桌面控制',
   'desktop.description': '让智能体操作这台电脑上的应用。',
   'desktop.enabledPending': '已启用。使用桌面工具前，请完成下方设置。',

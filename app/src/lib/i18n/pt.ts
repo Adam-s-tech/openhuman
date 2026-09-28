@@ -956,6 +956,10 @@ const messages: TranslationMap = {
   'computer.status.state.unsupported': 'Não compatível com este dispositivo',
   'connections.browser.chromeHint':
     'O navegador roda dentro do módulo TinyComputer. O teste abre o Chrome por um instante e o fecha.',
+  'computer.models.openJevKey': 'Chave de API do OpenJev',
+  'computer.models.sageKey': 'Chave de API do Sage',
+  'computer.models.keyHint':
+    'Armazenada criptografada neste dispositivo. Deixe em branco para manter a chave salva.',
   'desktop.title': 'Controle do computador',
   'desktop.description': 'Permita que seu agente trabalhe nos aplicativos deste computador.',
   'desktop.enabledPending':

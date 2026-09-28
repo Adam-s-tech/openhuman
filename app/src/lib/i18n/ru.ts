@@ -946,6 +946,10 @@ const messages: TranslationMap = {
   'computer.status.state.unsupported': 'Не поддерживается на этом устройстве',
   'connections.browser.chromeHint':
     'Браузер работает внутри модуля TinyComputer. Проверка ненадолго запускает Chrome и закрывает его.',
+  'computer.models.openJevKey': 'API-ключ OpenJev',
+  'computer.models.sageKey': 'API-ключ Sage',
+  'computer.models.keyHint':
+    'Хранится в зашифрованном виде на этом устройстве. Оставьте пустым, чтобы сохранить текущий ключ.',
   'desktop.title': 'Управление рабочим столом',
   'desktop.description': 'Разрешите агенту работать с приложениями на этом компьютере.',
   'desktop.enabledPending':

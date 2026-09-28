@@ -439,7 +439,7 @@ export default function DesktopConnectionPage({
   if (embedded) {
     return (
       <div className="space-y-4">
-        <div className="flex justify-end">{refreshButton}</div>
+        {status?.supported && <div className="flex justify-end">{refreshButton}</div>}
         {body}
       </div>
     );

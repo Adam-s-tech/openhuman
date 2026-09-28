@@ -913,6 +913,10 @@ const messages: TranslationMap = {
   'computer.status.state.unsupported': 'غير مدعومة على هذا الجهاز',
   'connections.browser.chromeHint':
     'يعمل المتصفح داخل وحدة TinyComputer. يشغّل الاختبار Chrome لوقت قصير ثم يغلقه.',
+  'computer.models.openJevKey': 'مفتاح API لـ OpenJev',
+  'computer.models.sageKey': 'مفتاح API لـ Sage',
+  'computer.models.keyHint':
+    'يُخزَّن مشفّرًا على هذا الجهاز. اتركه فارغًا للإبقاء على المفتاح المحفوظ.',
   'desktop.title': 'التحكم بسطح المكتب',
   'desktop.description': 'دع وكيلك يعمل في التطبيقات على هذا الكمبيوتر.',
   'desktop.enabledPending': 'تم التمكين. أكمل الإعداد أدناه قبل استخدام أدوات سطح المكتب.',

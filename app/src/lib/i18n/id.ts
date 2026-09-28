@@ -947,6 +947,10 @@ const messages: TranslationMap = {
   'computer.status.state.unsupported': 'Tidak didukung di perangkat ini',
   'connections.browser.chromeHint':
     'Browser berjalan di dalam modul TinyComputer. Pengujian membuka Chrome sebentar lalu menutupnya.',
+  'computer.models.openJevKey': 'Kunci API OpenJev',
+  'computer.models.sageKey': 'Kunci API Sage',
+  'computer.models.keyHint':
+    'Disimpan terenkripsi di perangkat ini. Kosongkan untuk mempertahankan kunci yang tersimpan.',
   'desktop.title': 'Kontrol desktop',
   'desktop.description': 'Izinkan agen Anda bekerja di aplikasi pada komputer ini.',
   'desktop.enabledPending':

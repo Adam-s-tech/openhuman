@@ -806,6 +806,9 @@ const en: TranslationMap = {
   'computer.status.state.unsupported': 'Unsupported on this device',
   'connections.browser.chromeHint':
     'The browser runs inside the TinyComputer module. Test starts Chrome briefly and closes it.',
+  'computer.models.openJevKey': 'OpenJev API key',
+  'computer.models.sageKey': 'Sage API key',
+  'computer.models.keyHint': 'Stored encrypted on this device. Leave blank to keep the saved key.',
   'desktop.title': 'Desktop Control',
   'desktop.description': 'Let your agent work in apps on this computer.',
   'desktop.enabledPending': 'Enabled. Finish setup below before using desktop tools.',

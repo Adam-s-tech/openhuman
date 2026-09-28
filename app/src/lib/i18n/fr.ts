@@ -969,6 +969,10 @@ const messages: TranslationMap = {
   'computer.status.state.unsupported': 'Non pris en charge sur cet appareil',
   'connections.browser.chromeHint':
     "Le navigateur s'exécute dans le module TinyComputer. Le test lance brièvement Chrome puis le ferme.",
+  'computer.models.openJevKey': 'Clé API OpenJev',
+  'computer.models.sageKey': 'Clé API Sage',
+  'computer.models.keyHint':
+    'Stockée chiffrée sur cet appareil. Laissez vide pour conserver la clé enregistrée.',
   'desktop.title': 'Contrôle du bureau',
   'desktop.description': 'Laissez votre agent travailler dans les applications de cet ordinateur.',
   'desktop.enabledPending':

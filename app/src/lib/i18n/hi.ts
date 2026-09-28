@@ -934,6 +934,10 @@ const messages: TranslationMap = {
   'computer.status.state.unsupported': 'इस डिवाइस पर समर्थित नहीं',
   'connections.browser.chromeHint':
     'ब्राउज़र TinyComputer मॉड्यूल के अंदर चलता है। परीक्षण Chrome को थोड़ी देर के लिए खोलकर बंद कर देता है।',
+  'computer.models.openJevKey': 'OpenJev API कुंजी',
+  'computer.models.sageKey': 'Sage API कुंजी',
+  'computer.models.keyHint':
+    'इस डिवाइस पर एन्क्रिप्ट करके सहेजी जाती है। सहेजी गई कुंजी रखने के लिए खाली छोड़ें।',
   'desktop.title': 'डेस्कटॉप नियंत्रण',
   'desktop.description': 'अपने एजेंट को इस कंप्यूटर के ऐप्स में काम करने दें।',
   'desktop.enabledPending': 'चालू है। डेस्कटॉप टूल इस्तेमाल करने से पहले नीचे का सेटअप पूरा करें।',
