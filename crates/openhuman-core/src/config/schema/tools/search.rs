@@ -135,7 +135,9 @@ impl Default for WebSearchConfig {
 ///   `all_tools` on every upgraded file, which hides the routed
 ///   `web_*_tool`s that agent tool scopes name, so those agents lost web
 ///   search. v3 moves them back to the routed tools once; a later explicit
-///   choice is saved as v3 and kept.
+///   choice is saved as v3 and kept. v3 also makes TinyFish own-key: the
+///   backend never proxied it, so a managed TinyFish is turned off unless a
+///   key is available.
 pub const SEARCH_SCHEMA_VERSION: u32 = 3;
 
 /// First format with providers, routes and roles.
@@ -417,6 +419,9 @@ pub struct LegacySearchInputs {
     pub seltz_active: bool,
     /// `searxng.enabled`.
     pub searxng_active: bool,
+    /// The key the legacy `integrations.tinyfish` toggle held, if any. TinyFish
+    /// is own-key only now; this seeds `search.tinyfish` when it has none.
+    pub tinyfish_api_key: Option<String>,
 }
 
 impl SearchConfig {

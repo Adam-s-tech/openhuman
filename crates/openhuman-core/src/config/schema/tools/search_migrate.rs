@@ -23,12 +23,37 @@ impl SearchConfig {
         if !self.needs_migration() {
             return false;
         }
+        let legacy_tinyfish_key = legacy.tinyfish_api_key.clone();
         if self.schema_version < SEARCH_SCHEMA_PROVIDERS {
             self.migrate_single_engine(legacy);
         }
         self.migrate_presentation_to_roles();
+        self.migrate_tinyfish_to_own_key(legacy_tinyfish_key);
         self.schema_version = SEARCH_SCHEMA_VERSION;
         true
+    }
+
+    /// v2 → v3: TinyFish is own-key only (the TinyHumans backend never
+    /// proxied it, so every managed TinyFish call failed). Seed its key from
+    /// the legacy integration toggle when there is one, and turn it off when
+    /// there is no key, so it waits in "With your own key" instead of sitting
+    /// in the connected list as "Needs API key".
+    fn migrate_tinyfish_to_own_key(&mut self, legacy_key: Option<String>) {
+        if !self.tinyfish.has_key() {
+            if let Some(key) = legacy_key.filter(|k| !k.trim().is_empty()) {
+                self.tinyfish.api_key = Some(key);
+            }
+        }
+        let has_key = self.tinyfish.has_key();
+        if let Some(settings) = self.providers.get_mut("tinyfish") {
+            settings.route = SearchRoute::Direct;
+            if settings.enabled && !has_key {
+                tracing::info!(
+                    "[config][migrate][search] TinyFish needs your own key now; turned it off"
+                );
+                settings.enabled = false;
+            }
+        }
     }
 
     /// v2 → v3: put `all_tools` files back on the routed role tools.
