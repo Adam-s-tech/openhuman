@@ -2,9 +2,9 @@
 //!
 //! Owns the byte-stable file layout the CLI previously inlined:
 //!
-//! * `{idx}_{agent}[_{toolkit}].md`       — raw system prompt bytes
-//! * `{idx}_{agent}[_{toolkit}].meta.txt` — key/value metadata sidecar
-//! * `SUMMARY.txt`                        — one fixed-width row per dump
+//! * `{idx}_{agent}.md`       — raw system prompt bytes
+//! * `{idx}_{agent}.meta.txt` — key/value metadata sidecar
+//! * `SUMMARY.txt`            — one fixed-width row per dump
 //!
 //! Format is exercised by the golden test in this file; any field
 //! reorder or width change is a breaking artefact change and must land
@@ -95,30 +95,12 @@ pub fn write_prompt_dumps(dir: &Path, dumps: &[DumpedPrompt]) -> Result<DumpWrit
 
 fn stem_for(idx: usize, dumped: &DumpedPrompt) -> String {
     let safe_agent = sanitise_filename_component(&dumped.agent_id);
-    match &dumped.toolkit {
-        Some(tk) => format!(
-            "{}_{}_{}",
-            idx + 1,
-            safe_agent,
-            sanitise_filename_component(tk)
-        ),
-        None => format!("{}_{}", idx + 1, safe_agent),
-    }
-}
-
-fn label_for(dumped: &DumpedPrompt) -> String {
-    match &dumped.toolkit {
-        Some(tk) => format!("{}@{}", dumped.agent_id, tk),
-        None => dumped.agent_id.clone(),
-    }
+    format!("{}_{}", idx + 1, safe_agent)
 }
 
 fn render_meta(dumped: &DumpedPrompt) -> String {
     let mut meta = String::new();
     let _ = writeln!(meta, "agent:          {}", dumped.agent_id);
-    if let Some(tk) = &dumped.toolkit {
-        let _ = writeln!(meta, "toolkit:        {tk}");
-    }
     let _ = writeln!(meta, "mode:           {}", dumped.mode);
     let _ = writeln!(meta, "model:          {}", dumped.model);
     let _ = writeln!(meta, "workspace:      {}", dumped.workspace_dir.display());
