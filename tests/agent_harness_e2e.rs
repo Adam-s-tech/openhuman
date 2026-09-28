@@ -1137,14 +1137,14 @@ async fn subagent_delegation_happy_path_inner() {
 /// then preserves that question in the context used to answer turn 2.
 #[test]
 #[ignore = "TODO(#6375): hosted TinyAgents continuation is replaying the prior clarification"]
-fn scheduling_clarification_flow() {
+fn delegated_clarification_flow() {
     run_on_agent_stack(
-        "scheduling_clarification_flow",
-        scheduling_clarification_flow_inner,
+        "delegated_clarification_flow",
+        delegated_clarification_flow_inner,
     );
 }
 
-async fn scheduling_clarification_flow_inner() {
+async fn delegated_clarification_flow_inner() {
     let _lock = env_lock();
     reset_script(vec![
         // ── turn 1 ──
@@ -2327,7 +2327,7 @@ async fn parallel_subagent_fanout_inner() {
 ///
 /// The out-of-scope call is `file_write`, not `ask_user_clarification`:
 /// agent_memory owns `ask_user_clarification`, so that call would park the
-/// child (the `scheduling_clarification_flow` mechanic) instead of being
+/// child (the `delegated_clarification_flow` mechanic) instead of being
 /// refused and letting the inner loop continue.
 #[test]
 fn multi_hop_delegation_chain() {
