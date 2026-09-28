@@ -1921,6 +1921,8 @@ const chatRuntimeSlice = createSlice({
       action: PayloadAction<{
         threadId: string;
         rowId: string;
+        /** The delegation's task id (`skill_id`); see the match below. */
+        taskId?: string;
         success: boolean;
         iterations?: number;
         elapsedMs?: number;
@@ -1935,6 +1937,7 @@ const chatRuntimeSlice = createSlice({
       const {
         threadId,
         rowId,
+        taskId,
         success,
         iterations,
         elapsedMs,
@@ -1947,15 +1950,38 @@ const chatRuntimeSlice = createSlice({
       // Settle a still-in-flight row: `running`, or `awaiting_user` (a subagent
       // paused for input that then completes must not stay stuck at
       // awaiting_user). Already-terminal rows are left as-is.
-      const entries = subagentRows(
-        state,
-        threadId,
-        e => e.id === rowId && (e.status === 'running' || e.status === 'awaiting_user')
-      );
+      //
+      // Also the same delegation under the core's row id: a detached (`async`)
+      // child outlives its turn, and that turn's `chat_done` replaces the live
+      // timeline with the completed snapshot, whose row is `subagent:<task>`,
+      // not this socket `rowId`. Matching the socket id alone left that row
+      // running, and a background delivery (a `chat_done` with no
+      // `inference_start`) then froze it as its own trail: a card that spun
+      // forever under the reply announcing the child's result. Both ids are
+      // turn-independent, so a run resumed by `continue_subagent` (same task
+      // id) also settles the earlier turn's card for it. That is how a paused
+      // `awaiting_user` card clears: the resumed run's completion carries the
+      // new `continue_subagent` call as its parent, never the original spawn.
+      // Restored past-turn timelines too, like `subagentCancelResolved`: they
+      // hold persisted (core-id) rows the process-source panel shows.
+      const coreRowId = taskId !== undefined ? `subagent:${taskId}` : undefined;
+      const matches = (e: ToolTimelineEntry) =>
+        (e.id === rowId || e.id === coreRowId) &&
+        (e.status === 'running' || e.status === 'awaiting_user');
+      const entries = [
+        ...subagentRows(state, threadId, matches),
+        ...Object.values(state.turnTimelinesByThread[threadId] ?? {})
+          .flat()
+          .filter(matches),
+      ];
       for (const entry of entries) {
         entry.status = success ? 'success' : 'error';
         if (!entry.subagent) continue;
         const s = entry.subagent;
+        // The nested activity settles with the row: it drives the card's own
+        // transcript status and the live tail's `requires-action` state, and a
+        // hydrated row carries the snapshot's `running` / `awaiting_user`.
+        s.status = success ? 'completed' : 'failed';
         if (iterations !== undefined) s.iterations = iterations;
         if (elapsedMs !== undefined) s.elapsedMs = elapsedMs;
         if (outputChars !== undefined) s.outputChars = outputChars;

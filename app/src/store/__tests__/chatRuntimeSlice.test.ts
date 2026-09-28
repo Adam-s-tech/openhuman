@@ -34,6 +34,7 @@ import reducer, {
   toolArgsDeltaReceived,
   toolCallReceived,
   toolResultReceived,
+  turnSettled,
   upsertArtifactFailedForThread,
   upsertArtifactInProgressForThread,
   upsertArtifactReadyForThread,
@@ -1455,6 +1456,94 @@ describe('subagent event reducers (Phase 3)', () => {
     // A second done cannot re-settle a terminal row.
     const again = reducer(state, subagentDone({ threadId: 't1', rowId: row, success: false }));
     expect(again.toolTimelineByThread['t1'][0].status).toBe('success');
+  });
+
+  it('subagentDone settles the delegation under both of its ids, across turns', () => {
+    // After its turn settles, an async delegation lives twice: in the frozen
+    // trail under the socket row id, and in the live timeline as the completed
+    // snapshot's row under the core id. A paused card from an earlier turn is
+    // the same delegation when `continue_subagent` resumes it (same task id),
+    // and must stop asking once that run finishes.
+    const socketRow = 't1:subagent:task-1:researcher';
+    let state = reducer(
+      undefined,
+      subagentSpawned({
+        threadId: 't1',
+        round: 0,
+        rowId: socketRow,
+        taskId: 'task-1',
+        agentId: 'researcher',
+      })
+    );
+    state = reducer(state, subagentAwaitingUser({ threadId: 't1', rowId: socketRow }));
+    state = reducer(state, turnSettled({ threadId: 't1', requestId: 'req-old' }));
+    state = reducer(
+      state,
+      setToolTimelineForThread({
+        threadId: 't1',
+        entries: [
+          {
+            id: 'subagent:task-1',
+            name: 'subagent:researcher',
+            round: 0,
+            seq: 0,
+            status: 'running',
+            subagent: { taskId: 'task-1', agentId: 'researcher', status: 'running', toolCalls: [] },
+          },
+          {
+            id: 'subagent:task-2',
+            name: 'subagent:researcher',
+            round: 0,
+            seq: 1,
+            status: 'running',
+            subagent: { taskId: 'task-2', agentId: 'researcher', toolCalls: [] },
+          },
+        ],
+      })
+    );
+    const done = reducer(
+      state,
+      subagentDone({ threadId: 't1', rowId: socketRow, taskId: 'task-1', success: true })
+    );
+    const frozen = done.settledTurnsByThread['t1']['req-old'].timeline[0];
+    expect([frozen.status, frozen.subagent?.status]).toEqual(['success', 'completed']);
+    expect(done.toolTimelineByThread['t1'].map(e => [e.id, e.status, e.subagent?.status])).toEqual([
+      ['subagent:task-1', 'success', 'completed'],
+      // Another delegation's row is untouched.
+      ['subagent:task-2', 'running', undefined],
+    ]);
+  });
+
+  it('subagentDone also settles the delegation in a restored past-turn timeline', () => {
+    const state = reducer(
+      undefined,
+      setTurnTimelinesForThread({
+        threadId: 't1',
+        timelines: {
+          'req-old': [
+            {
+              id: 'subagent:task-1',
+              name: 'subagent:researcher',
+              round: 0,
+              seq: 0,
+              status: 'running',
+              subagent: { taskId: 'task-1', agentId: 'researcher', toolCalls: [] },
+            },
+          ],
+        },
+      })
+    );
+    const done = reducer(
+      state,
+      subagentDone({
+        threadId: 't1',
+        rowId: 't1:subagent:task-1:researcher',
+        taskId: 'task-1',
+        success: false,
+      })
+    );
+    const row = done.turnTimelinesByThread['t1']['req-old'][0];
+    expect([row.status, row.subagent?.status]).toEqual(['error', 'failed']);
   });
 
   it('subagentCancelResolved settles a spinning row by task id from the cancel answer', () => {
