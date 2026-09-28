@@ -70,8 +70,7 @@ pub(crate) use crate::agent::message_convert::{reasoning_from_content, ta_call_t
 #[allow(unused_imports)] // Wired into the recall/retrieval facade in workstream 09.2.
 pub(crate) use embeddings::ProviderEmbeddingModel;
 pub(crate) use middleware::{
-    render_unanswered_steps, TranscriptSnapshot, TranscriptSnapshotSink,
-    TurnContextMiddleware,
+    render_unanswered_steps, TranscriptSnapshot, TranscriptSnapshotSink, TurnContextMiddleware,
 };
 pub(crate) use observability::SubagentScope;
 pub(crate) use topology::all_graph_topologies;
