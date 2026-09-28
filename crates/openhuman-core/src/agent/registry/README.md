@@ -90,7 +90,6 @@ The 29 archetypes in this directory:
 | --- | --- |
 | `archivist` | Background: extracts lessons from a completed session into `MEMORY.md` and FTS5 |
 | `code_executor` | Repo-scoped worker: locate/read/edit/build/test/git for any repo work |
-| `context_scout` | Read-only pre-flight context bundle (memory, goals, integrations, web) |
 | `critic` | Adversarial, read-only reviewer of diffs/code against project rules |
 | `crypto_agent` | Wallet/market specialist: balances, swaps, contract calls, x402 paid requests |
 | `flow_memory_agent` (feature `flows`) | Read-only context/memory retrieval for automation-flow `agent` nodes |
