@@ -40,10 +40,10 @@ impl Tool for ListAgentDefinitionsTool {
 
     fn description(&self) -> &str {
         "List the agent KINDS an `agent` node can run via its `agent_ref` config \
-         field (e.g. researcher, code_executor, crypto_agent). Read-only. Returns \
+         field (e.g. agent_memory, vision_agent, presentation_agent). Read-only. Returns \
          a JSON array of { id, name, description, model, tools, tags }. Use this to \
-         pick a real agent_ref — a coding step should reference the coding agent, a \
-         research step the researcher — instead of guessing an id. Note: setting \
+         pick a real agent_ref — a memory-lookup step should reference agent_memory, \
+         an image-reading step vision_agent — instead of guessing an id. Note: setting \
          agent_ref runs the step as a REAL agent turn (its own `run_single`), with \
          the selected specialist's full persona, model, tool loop, and iteration \
          cap — not just a persona-flavored completion. A plain `agent` node with \
