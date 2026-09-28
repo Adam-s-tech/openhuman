@@ -24,6 +24,7 @@ pub fn all_controller_schemas() -> Vec<ControllerSchema> {
         schemas("status"),
         schemas("load"),
         schemas("browser_check_readiness"),
+        schemas("computer_status"),
     ]
 }
 
@@ -44,6 +45,10 @@ pub fn all_registered_controllers() -> Vec<RegisteredController> {
         RegisteredController {
             schema: schemas("browser_check_readiness"),
             handler: handle_browser_check_readiness,
+        },
+        RegisteredController {
+            schema: schemas("computer_status"),
+            handler: handle_computer_status,
         },
     ]
 }
@@ -122,6 +127,23 @@ pub fn schemas(function: &str) -> ControllerSchema {
                 },
             ],
         },
+        "computer_status" => ControllerSchema {
+            namespace: "modules",
+            function: "computer_status",
+            description: "Report the TinyComputer module, its decision and planner routes, and optionally what it says is configured.",
+            inputs: vec![FieldSchema {
+                name: "load",
+                ty: TypeSchema::Option(Box::new(TypeSchema::Bool)),
+                comment: "Load the module and ask it (Describe) even when it is not serving yet.",
+                required: false,
+            }],
+            outputs: vec![FieldSchema {
+                name: "status",
+                ty: TypeSchema::Json,
+                comment: "Module status, decision_model, decision_route, planner_route, and capabilities or error.",
+                required: true,
+            }],
+        },
         _ => ControllerSchema {
             namespace: "modules",
             function: "unknown",
@@ -172,6 +194,15 @@ fn handle_browser_check_readiness(_params: Map<String, Value>) -> ControllerFutu
                 "error": "Chrome launch timed out"}),
             ),
         }
+    })
+}
+
+fn handle_computer_status(params: Map<String, Value>) -> ControllerFuture {
+    Box::pin(async move {
+        let load = params.get("load").and_then(Value::as_bool).unwrap_or(false);
+        let config = config_rpc::load_config_with_timeout().await?;
+        Ok(serde_json::to_value(super::computer::status(&config, load).await)
+            .map_err(|error| error.to_string())?)
     })
 }
 
