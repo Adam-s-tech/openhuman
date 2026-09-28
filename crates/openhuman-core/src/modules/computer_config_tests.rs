@@ -62,7 +62,10 @@ fn open_jev_and_sage_use_their_own_keys() {
 
     config.computer.decision_model = DecisionModel::OpenJev;
     let value = module_config(&config);
-    assert_eq!(value["jev"], json!({"api_key": "oj_test", "provider": "open_jev"}));
+    assert_eq!(
+        value["jev"],
+        json!({"api_key": "oj_test", "provider": "open_jev"})
+    );
     assert_eq!(billing_route(&config), "open_jev");
 
     config.computer.decision_model = DecisionModel::Sage;
@@ -81,5 +84,8 @@ fn chrome_path_is_the_module_browser_executable() {
     let mut config = config_in(dir.path());
     config.browser.chrome_path = Some("/Applications/Chrome.app".into());
     let value = module_config(&config);
-    assert_eq!(value["browser"], json!({"executable": "/Applications/Chrome.app"}));
+    assert_eq!(
+        value["browser"],
+        json!({"executable": "/Applications/Chrome.app"})
+    );
 }

@@ -131,5 +131,8 @@ fn a_ready_module_that_faults_settles_as_failed() {
         table.peek("m"),
         ResolutionState::Failed("configuration refused".into())
     );
-    assert!(matches!(table.claim("m"), Claim::Done(Resolution::Failed(_))));
+    assert!(matches!(
+        table.claim("m"),
+        Claim::Done(Resolution::Failed(_))
+    ));
 }

@@ -76,7 +76,10 @@ pub async fn status(config: &Config, load: bool) -> ComputerStatus {
             .find(|item| item.id == super::desktop::MODULE_ID)
     };
     let before = module();
-    let ask = load || before.as_ref().is_some_and(|m| m.state == ModuleState::Ready);
+    let ask = load
+        || before
+            .as_ref()
+            .is_some_and(|m| m.state == ModuleState::Ready);
     let (capabilities, error) = if ask {
         match describe(config).await {
             Ok(capabilities) => (Some(capabilities.into()), None),

@@ -66,7 +66,15 @@ fn summarize(view: &TaskView) -> String {
     let step = view
         .step
         .as_ref()
-        .map(|step| format!(" step {}/{} {} ({})", step.index + 1, step.total, step.kind, step.intent))
+        .map(|step| {
+            format!(
+                " step {}/{} {} ({})",
+                step.index + 1,
+                step.total,
+                step.kind,
+                step.intent
+            )
+        })
         .unwrap_or_default();
     format!("[{:>3.0}%]{step} — {}", view.progress * 100.0, view.summary)
 }
@@ -94,7 +102,11 @@ async fn books_a_bali_flight_up_to_the_payment_page() {
     let capabilities = status
         .capabilities
         .unwrap_or_else(|| panic!("TinyComputer did not describe itself: {:?}", status.error));
-    assert!(capabilities.compatible, "contract {:?}", capabilities.contract_version);
+    assert!(
+        capabilities.compatible,
+        "contract {:?}",
+        capabilities.contract_version
+    );
     assert!(capabilities.jev_configured, "no decision model configured");
     assert!(capabilities.planner_configured, "no planner configured");
     assert!(capabilities.rescue_configured, "no rescue model configured");
@@ -111,19 +123,30 @@ async fn books_a_bali_flight_up_to_the_payment_page() {
         .unwrap_or(20u64);
     let deadline = Instant::now() + Duration::from_secs(minutes * 60);
 
-    let mut view = browser_task::start(&config, &task).await.expect("StartTask");
+    let mut view = browser_task::start(&config, &task)
+        .await
+        .expect("StartTask");
     println!("task {} started", view.id);
     loop {
         println!("{}", summarize(&view));
         match &view.status {
             TaskStatus::Running => {
-                assert!(Instant::now() < deadline, "task still running after {minutes} min");
-                view = browser_task::wait(&config, view.id.clone()).await.expect("AwaitTask");
+                assert!(
+                    Instant::now() < deadline,
+                    "task still running after {minutes} min"
+                );
+                view = browser_task::wait(&config, view.id.clone())
+                    .await
+                    .expect("AwaitTask");
             }
             TaskStatus::NeedsInput { fields } => {
                 let inputs: BTreeMap<String, String> = fields
                     .iter()
-                    .filter_map(|field| facts.get(&field.name).map(|v| (field.name.clone(), v.clone())))
+                    .filter_map(|field| {
+                        facts
+                            .get(&field.name)
+                            .map(|v| (field.name.clone(), v.clone()))
+                    })
                     .collect();
                 assert!(
                     !inputs.is_empty(),

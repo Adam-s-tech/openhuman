@@ -4001,6 +4001,7 @@ dependencies = [
  "tinyagents-session",
  "tinybus",
  "tinychannels",
+ "tinycomputer-bus",
  "tinyinference-core",
  "tinyinference-llm",
  "tinyinference-local",
