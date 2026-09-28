@@ -525,17 +525,21 @@ fn maybe_publish_local_session_expiry() {
 /// crate-native path bypasses.
 fn maybe_publish_session_expired(err: &TiError, operation: &str) {
     if let TiError::Provider(pe) = err {
-        if pe.provider.as_str() == "OpenHuman" && matches!(pe.status, Some(401 | 403)) {
-            let reason = tinyinference_core::sanitize::sanitize_api_error(&pe.message);
-            crate::core::bus::BUS.publish(crate::core::events::DomainEvent::SessionExpired {
-                source: format!(
-                    "openhuman_backend_model.{}({})",
-                    operation,
-                    pe.status.unwrap_or(0)
-                ),
-                reason,
-            });
-        }
+        maybe_publish_provider_session_expired(pe, operation);
+    }
+}
+
+fn maybe_publish_provider_session_expired(pe: &ProviderError, operation: &str) {
+    if pe.provider.as_str() == "OpenHuman" && matches!(pe.status, Some(401 | 403)) {
+        let reason = tinyinference_core::sanitize::sanitize_api_error(&pe.message);
+        crate::core::bus::BUS.publish(crate::core::events::DomainEvent::SessionExpired {
+            source: format!(
+                "openhuman_backend_model.{}({})",
+                operation,
+                pe.status.unwrap_or(0)
+            ),
+            reason,
+        });
     }
 }
 
@@ -571,6 +575,15 @@ fn log_managed_provider_error(pe: &ProviderError, operation: &str) {
         pe.retryable,
         tinyinference_core::sanitize::sanitize_api_error(&pe.message),
     );
+}
+
+/// Gives a failure reported inside a stream the same handling as a failed
+/// `stream()` call: logged, and an expired session starts re-authentication.
+fn observe_in_band_failure(item: &ModelStreamItem) {
+    if let ModelStreamItem::ProviderFailed(pe) = item {
+        log_managed_provider_error(pe, "stream (in-band)");
+        maybe_publish_provider_session_expired(pe, "stream");
+    }
 }
 
 #[async_trait]
@@ -630,9 +643,7 @@ impl ChatModel<()> for OpenHumanBackendModel {
             // A failure can also arrive *inside* an HTTP 200 stream as an SSE
             // `{"error":…}` payload; it never reaches the `Err` arm (#6724).
             Ok(stream) => Ok(stream.map_items(|item| {
-                if let ModelStreamItem::ProviderFailed(pe) = &item {
-                    log_managed_provider_error(pe, "stream (in-band)");
-                }
+                observe_in_band_failure(&item);
                 item
             })),
             Err(e) => {

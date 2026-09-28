@@ -106,3 +106,45 @@ async fn an_invoke_error_fills_the_slot() {
         .expect_err("scripted invoke fails");
     assert!(slot_text(&slot).is_some_and(|text| text.contains(REJECTION)));
 }
+
+#[tokio::test]
+async fn an_attempt_that_is_dropped_after_a_failed_one_leaves_no_stale_error() {
+    // In-band 503, then the retry hangs and the harness drops it on a call
+    // timeout: the 503 must not be re-surfaced as the cause.
+    let slot: ModelErrorSlot = Arc::new(Mutex::new(None));
+    let model = ErrorSlotModel::new(
+        Arc::new(ScriptedStreamModel(Mutex::new(vec![
+            ModelStreamItem::ProviderFailed(ProviderError {
+                status: Some(503),
+                ..rejection()
+            }),
+            ModelStreamItem::Completed(completed()),
+        ]))),
+        slot.clone(),
+    );
+    drain(&model).await;
+    assert!(slot_text(&slot).is_some());
+
+    let retry = model.stream(&(), ModelRequest::default()).await.unwrap();
+    drop(retry);
+    assert_eq!(slot_text(&slot), None, "a new attempt clears the old error");
+}
+
+#[tokio::test]
+async fn the_recorded_error_is_secret_scrubbed() {
+    // The slot's error reaches logs and Sentry via the run failure.
+    let slot: ModelErrorSlot = Arc::new(Mutex::new(None));
+    let model = ErrorSlotModel::new(
+        Arc::new(ScriptedStreamModel(Mutex::new(vec![
+            ModelStreamItem::ProviderFailed(ProviderError {
+                message: "bad key sk-live0123456789abcdefghij in request".to_string(),
+                ..rejection()
+            }),
+        ]))),
+        slot.clone(),
+    );
+    drain(&model).await;
+    let recorded = slot_text(&slot).expect("recorded");
+    assert!(!recorded.contains("sk-live0123456789"), "{recorded}");
+    assert!(recorded.contains("[REDACTED]"), "{recorded}");
+}

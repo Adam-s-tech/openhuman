@@ -409,9 +409,12 @@ pub(crate) fn forward_provider_delta(tx: &UnboundedSender<ModelStreamItem>, delt
 pub(super) type ModelErrorSlot = Arc<Mutex<Option<anyhow::Error>>>;
 
 /// Fills the turn's [`ModelErrorSlot`] with the provider failure that ended a
-/// model call, and empties it again when a later call succeeds, so the runner
-/// re-surfaces the real failure instead of the harness's sanitized
-/// "hosted agent invocation failed" (#6724).
+/// model call, so the runner re-surfaces the real failure instead of the
+/// harness's sanitized "hosted agent invocation failed" (#6724).
+///
+/// The slot is emptied when each attempt *starts*, not only when one succeeds:
+/// an attempt that is dropped (call timeout), cancelled, or ends without a
+/// terminal item must not leave the previous attempt's error behind.
 ///
 /// Covers both an `Err` from `invoke`/`stream` and a failure reported *inside*
 /// a stream (`ProviderFailed`, e.g. an HTTP 200 SSE `{"error":…}` payload).
@@ -434,12 +437,23 @@ fn store_model_error(slot: &ModelErrorSlot, error: Option<anyhow::Error>) {
         .unwrap_or_else(std::sync::PoisonError::into_inner) = error;
 }
 
+/// The slot's error flows into logs, Sentry and classification, and a provider
+/// message can echo request content, so it is secret-scrubbed and truncated
+/// here, once, before any of them sees it.
+fn slot_provider_error(error: &tinyinference_llm::model::ProviderError) -> anyhow::Error {
+    let mut error = error.clone();
+    error.message = tinyinference_core::sanitize::sanitize_api_error(&error.message);
+    error.raw = None;
+    anyhow::Error::new(tinyinference_llm::Error::Provider(Box::new(error)))
+}
+
 fn slot_error(error: &tinyinference_llm::Error) -> anyhow::Error {
     match error {
-        tinyinference_llm::Error::Provider(provider_error) => {
-            anyhow::Error::new(tinyinference_llm::Error::Provider(provider_error.clone()))
-        }
-        other => anyhow::anyhow!("{other}"),
+        tinyinference_llm::Error::Provider(provider_error) => slot_provider_error(provider_error),
+        other => anyhow::anyhow!(
+            "{}",
+            tinyinference_core::sanitize::sanitize_api_error(&other.to_string())
+        ),
     }
 }
 
@@ -458,6 +472,7 @@ impl ChatModel<()> for ErrorSlotModel {
         state: &(),
         request: ModelRequest,
     ) -> tinyinference_llm::Result<ModelResponse> {
+        store_model_error(&self.slot, None);
         let result = self.inner.invoke(state, request).await;
         store_model_error(&self.slot, result.as_ref().err().map(slot_error));
         result
@@ -468,17 +483,15 @@ impl ChatModel<()> for ErrorSlotModel {
         state: &(),
         request: ModelRequest,
     ) -> tinyinference_llm::Result<ModelStream> {
+        store_model_error(&self.slot, None);
         match self.inner.stream(state, request).await {
             Ok(stream) => {
                 let slot = self.slot.clone();
                 Ok(stream.map_items(move |item| {
                     match &item {
-                        ModelStreamItem::ProviderFailed(error) => store_model_error(
-                            &slot,
-                            Some(anyhow::Error::new(tinyinference_llm::Error::Provider(
-                                Box::new(error.clone()),
-                            ))),
-                        ),
+                        ModelStreamItem::ProviderFailed(error) => {
+                            store_model_error(&slot, Some(slot_provider_error(error)))
+                        }
                         ModelStreamItem::Completed(_) => store_model_error(&slot, None),
                         _ => {}
                     }
