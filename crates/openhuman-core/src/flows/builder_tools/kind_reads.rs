@@ -10,7 +10,7 @@ use tinytools::{PermissionLevel, Tool, ToolResult};
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// `list_agent_definitions`: read-only listing of the agent **definitions** an `agent`
-/// node can select via `agent_ref` (code_executor, critic, crypto_agent, …).
+/// node can select via `agent_ref` (agent_memory, vision_agent, planner, …).
 ///
 /// Grounds the builder's `agent_ref` choice in real registry ids — the agent
 /// analogue of `search_tool_catalog` for `tool_call` slugs — so it never
