@@ -35,6 +35,8 @@
  * can be sent.
  */
 import { createServer } from 'node:net';
+import fs from 'node:fs';
+import path from 'node:path';
 import { waitForApp } from '../helpers/app-helpers';
 import { callOpenhumanRpc } from '../helpers/core-rpc';
 import { resetApp } from '../helpers/reset-app';
@@ -58,6 +60,18 @@ async function startImapHandshakeRejector(): Promise<{ port: number; close: () =
         server.close(error => (error ? reject(error) : resolve()))
       ),
   };
+}
+
+function seedEmailConfigForDisconnect(): string {
+  const workspace = process.env.OPENHUMAN_WORKSPACE?.trim();
+  if (!workspace) throw new Error('OPENHUMAN_WORKSPACE is required to seed the email config');
+  const file = path.join(workspace, 'config.toml');
+  const contents = fs.readFileSync(file, 'utf8');
+  fs.writeFileSync(
+    file,
+    `${contents.trimEnd()}\n\n[channels_config.email]\nimap_host = "127.0.0.1"\nsmtp_host = "127.0.0.1"\nusername = "e2e@example.invalid"\npassword = ""\nfrom_address = "e2e@example.invalid"\nallowed_senders = ["*"]\n`
+  );
+  return file;
 }
 
 interface AuthModeSpec {
@@ -298,10 +312,21 @@ describe('Credential channels — Yuanbao and Email (IMAP/SMTP)', () => {
       this.timeout(60_000);
       if (channel === 'email') {
         await callOpenhumanRpc('openhuman.channels_disconnect', { channel, authMode: 'api_key' });
+        const configFile = seedEmailConfigForDisconnect();
+        const seededConfig = fs.readFileSync(configFile, 'utf8');
+        expect(seededConfig).toContain('[channels_config.email]');
+
+        const out = await callOpenhumanRpc('openhuman.channels_disconnect', {
+          channel,
+          authMode: 'api_key',
+        });
+        expect(out.ok).toBe(true);
+        const clearedConfig = fs.readFileSync(configFile, 'utf8');
+        expect(clearedConfig).not.toContain('[channels_config.email]');
         const status = await statusFor(channel);
         expect(isConnected(status)).toBe(false);
         expect(status?.hasCredentials ?? status?.has_credentials).toBe(false);
-        console.log(`${LOG_PREFIX} D.5 email: disconnected state verified`);
+        console.log(`${LOG_PREFIX} D.5 email: persisted config removed by disconnect RPC`);
         return;
       }
       await callOpenhumanRpc('openhuman.channels_connect', {
