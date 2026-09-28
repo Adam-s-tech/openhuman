@@ -38,16 +38,22 @@ beforeEach(() => {
 });
 
 describe('BrowserConnectionsPanel', () => {
-  it('shows actual module state and shared website policy', async () => {
+  it('shows Chrome readiness and the shared website policy', async () => {
     renderWithProviders(<BrowserConnectionsPanel />);
     expect(screen.getByText('connections.earlyAlphaNotice')).toBeInTheDocument();
     expect(await screen.findByText('selenium.dev')).toBeInTheDocument();
-    expect(screen.getByText('available')).toBeInTheDocument();
-    expect(screen.getByText('connections.browser.routeDirect')).toBeInTheDocument();
     expect(screen.getByText('connections.browser.notVerified')).toBeInTheDocument();
+    // Module state lives on the Computer page's status card now.
+    expect(mocks.rpc).not.toHaveBeenCalled();
   });
 
-  it('saves browser settings and tests the module through core RPC', async () => {
+  it('leaves the alpha notice to the Computer page when embedded', async () => {
+    renderWithProviders(<BrowserConnectionsPanel embedded />);
+    expect(await screen.findByText('selenium.dev')).toBeInTheDocument();
+    expect(screen.queryByText('connections.earlyAlphaNotice')).not.toBeInTheDocument();
+  });
+
+  it('saves browser settings through core RPC', async () => {
     renderWithProviders(<BrowserConnectionsPanel />);
     await screen.findByText('selenium.dev');
     fireEvent.click(screen.getByLabelText('connections.browser.enabled'));
@@ -56,14 +62,6 @@ describe('BrowserConnectionsPanel', () => {
       expect(mocks.update).toHaveBeenCalledWith(
         expect.objectContaining({ enabled: true, profile_mode: 'fresh' })
       )
-    );
-    mocks.rpc.mockResolvedValueOnce({ result: { module: { id: 'tinycomputer', state: 'ready' } } });
-    fireEvent.click(screen.getByText('connections.browser.testModule'));
-    await waitFor(() =>
-      expect(mocks.rpc).toHaveBeenCalledWith({
-        method: 'openhuman.modules_load',
-        params: { id: 'tinycomputer' },
-      })
     );
   });
 
