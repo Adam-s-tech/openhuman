@@ -557,6 +557,13 @@ fn build_includes_evidence_aware_synthesis_contract() {
     // `web_search_tool` sat in its tool list (thread-7e52b, 2026-09-22).
     assert!(!body.contains("listed in this prompt"), "{body}");
     assert!(body.contains("`web_search_tool` and `web_fetch` are usually in it"));
+    // With no search tool in its list the model called `web_search_tool` three
+    // times and the turn aborted on a validation blocker (Bali trip thread,
+    // 2026-09-29): an unlisted name must never be retried.
+    assert!(body.contains("an unlisted name fails as unknown every time, so never retry one"));
+    // The web tools are routed across providers with fallback; forcing a
+    // provider disables it.
+    assert!(body.contains("leave `provider` unset unless the user names one"));
     assert!(body.contains(
         "anything public on the web (a public repository, a product page, docs) never go to a service"
     ));
