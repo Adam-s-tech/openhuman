@@ -1755,16 +1755,19 @@ const en: TranslationMap = {
   'settings.search.tabProviders': 'Providers',
   'settings.search.tabRouting': 'Routing',
   'settings.search.tabWebsites': 'Websites',
-  'settings.search.offNotice': 'Web search is off. The agent cannot search or read the web until you turn it back on.',
+  'settings.search.offNotice':
+    'Web search is off. The agent cannot search or read the web until you turn it back on.',
   'settings.search.connectedTitle': 'Connected',
-  'settings.search.connectedDesc': 'Providers the agent can use. Several can be on at once; the Routing tab decides which one is tried first.',
+  'settings.search.connectedDesc':
+    'Providers the agent can use. Several can be on at once; the Routing tab decides which one is tried first.',
   'settings.search.connectedEmpty': 'No provider is connected yet. Pick one below.',
   'settings.search.catalogTitle': 'Add a provider',
   'settings.search.catalogDesc': 'Pick a provider to connect. You can add more at any time.',
   'settings.search.catalogManagedTitle': 'via TinyHumans',
   'settings.search.catalogManagedHelper': 'No setup needed: one click and it is ready.',
   'settings.search.catalogOwnTitle': 'With your own key',
-  'settings.search.catalogOwnHelper': 'Bring an API key from the provider, or point to your own instance.',
+  'settings.search.catalogOwnHelper':
+    'Bring an API key from the provider, or point to your own instance.',
   'settings.search.addProviderAria': 'Connect {provider}',
   'settings.search.detailOwnKey': 'Your own API key',
   'settings.search.detailNoKey': 'No API key yet',
@@ -1785,7 +1788,8 @@ const en: TranslationMap = {
   'settings.search.roleNoProviderShort': 'No provider available',
   'settings.search.roleFallbacks': 'Falls back to {providers}',
   'settings.search.roleNoFallback': 'No fallback',
-  'settings.search.roleDialogDesc': 'The first available provider serves this task. If it fails or is unavailable, the next one is tried.',
+  'settings.search.roleDialogDesc':
+    'The first available provider serves this task. If it fails or is unavailable, the next one is tried.',
   // ─── Settings global search bar ────────────────────────────
   // ─── Embeddings settings ───────────────────────────────────
   'settings.embeddings.title': 'Embeddings',
