@@ -57,10 +57,10 @@ fn published_browser_release_covers_desktop_platforms() {
     let record = registry::find(MODULE_ID).unwrap();
     assert_eq!(record.bus_name, names::INTERFACE);
     assert_eq!(record.object_path, names::OBJECT_PATH);
-    assert_eq!(record.version, "0.2.2");
+    assert_eq!(record.version, "0.2.3");
     assert_eq!(
         record.release_url,
-        "https://github.com/tinyhumansai/tinybrowser/releases/tag/v0.2.2"
+        "https://github.com/tinyhumansai/tinybrowser/releases/tag/v0.2.3"
     );
     assert_eq!(record.assets.len(), 16);
     let keys = record
@@ -70,7 +70,7 @@ fn published_browser_release_covers_desktop_platforms() {
         .collect::<std::collections::HashSet<_>>();
     assert_eq!(keys.len(), record.assets.len());
     for asset in record.assets {
-        assert!(asset.archive.starts_with("tinybrowser-0.2.2-"));
+        assert!(asset.archive.starts_with("tinybrowser-0.2.3-"));
         assert_eq!(asset.sha256.len(), 64);
     }
 }
