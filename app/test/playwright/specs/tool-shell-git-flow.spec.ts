@@ -22,6 +22,7 @@ function unwrapStatus(raw: unknown): ServerStatus {
 interface AgentDef {
   id?: string;
   tools?: unknown;
+  direct_tool_names?: string[];
   disallowed_tools?: string[];
 }
 
