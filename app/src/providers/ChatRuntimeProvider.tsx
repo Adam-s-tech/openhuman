@@ -841,6 +841,7 @@ const ChatRuntimeProvider = ({ children }: { children: React.ReactNode }) => {
           dispatch(
             toolResultReceived({
               threadId: event.thread_id,
+              requestId: event.request_id,
               round: event.round,
               toolName: event.tool_name,
               toolCallId: event.tool_call_id,

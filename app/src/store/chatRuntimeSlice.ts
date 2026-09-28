@@ -1013,9 +1013,53 @@ function claimTimelineForLiveTurn(
   requestId: string | undefined
 ): void {
   if (requestId && state.parallelRequestThreads[requestId] !== undefined) return;
-  const claim = requestId ?? state.liveRequestIdByThread[threadId];
+  const live = state.liveRequestIdByThread[threadId];
+  // Another turn's row never reaches the live timeline (see `rowTarget`).
+  if (live && requestId && requestId !== live) return;
+  const claim = requestId ?? live;
   if (claim) state.toolTimelineRequestByThread[threadId] = claim;
   else delete state.toolTimelineRequestByThread[threadId];
+}
+
+/**
+ * Where a newly streamed row belongs. A row naming a request other than the
+ * live one (a settled turn's detached child spawning again, a late
+ * `tool_call` from an undrained bridge) is that turn's, not the live turn's:
+ * it goes into that turn's frozen trail when this session has one, and is
+ * otherwise left to the core projection (`null`). Joining the live timeline
+ * would either hand it to the live turn's trail or, by claiming, make the
+ * live turn's own rows look foreign. With no live turn known, or for the live
+ * turn's own rows and parallel requests, the live timeline as before.
+ */
+function rowTarget(
+  state: ChatRuntimeState,
+  threadId: string,
+  requestId: string | undefined
+): { entries: ToolTimelineEntry[]; transcript?: ProcessingTranscriptItem[] } | null {
+  const frozen = foreignTrail(state, threadId, requestId);
+  if (frozen !== undefined) {
+    return frozen ? { entries: frozen.timeline, transcript: frozen.transcript } : null;
+  }
+  return { entries: (state.toolTimelineByThread[threadId] ??= []) };
+}
+
+/**
+ * `undefined` when a row naming `requestId` belongs on the live timeline;
+ * otherwise that request's frozen trail, or `null` when this session has none.
+ */
+function foreignTrail(
+  state: ChatRuntimeState,
+  threadId: string,
+  requestId: string | undefined
+): { timeline: ToolTimelineEntry[]; transcript: ProcessingTranscriptItem[] } | null | undefined {
+  const live = state.liveRequestIdByThread[threadId];
+  const foreign =
+    requestId !== undefined &&
+    live !== undefined &&
+    requestId !== live &&
+    state.parallelRequestThreads[requestId] === undefined;
+  if (!foreign) return undefined;
+  return state.settledTurnsByThread[threadId]?.[requestId] ?? null;
 }
 
 function subagentRows(
@@ -1513,8 +1557,10 @@ const chatRuntimeSlice = createSlice({
       // treated `""` as absent (both are truthiness checks); only the id
       // fallback disagreed.
       const toolCallId = action.payload.toolCallId || undefined;
-      const entries = (state.toolTimelineByThread[threadId] ??= []);
-      const list = (state.processingByThread[threadId] ??= []);
+      const target = rowTarget(state, threadId, action.payload.requestId);
+      if (!target) return;
+      const entries = target.entries;
+      const list = target.transcript ?? (state.processingByThread[threadId] ??= []);
       let existingIdx = toolCallId ? entries.findIndex(e => e.id === toolCallId) : -1;
       // A `tool_args_delta` can land before its `tool_call` and mint the row
       // under a fallback id. Adopt that row rather than pushing a second one
@@ -1584,6 +1630,8 @@ const chatRuntimeSlice = createSlice({
     toolResultReceived: (
       state,
       action: PayloadAction<{
+        /** The emitting event's `request_id`; a late result settles its own turn's row. */
+        requestId?: string;
         threadId: string;
         round: number;
         toolName: string;
@@ -1598,12 +1646,14 @@ const chatRuntimeSlice = createSlice({
         displayDetail?: string;
       }>
     ) => {
-      const { threadId, round, toolName, success, output, failure } = action.payload;
+      const { threadId, round, toolName, success, output, failure, requestId } = action.payload;
       // Same normalisation as `toolCallReceived` — an empty id must not match a
       // row whose id is the generated fallback, and must fall through to the
       // name+round scan below.
       const toolCallId = action.payload.toolCallId || undefined;
-      const entries = state.toolTimelineByThread[threadId];
+      // A late result settles its own turn's row, wherever `rowTarget` put it.
+      const trail = foreignTrail(state, threadId, requestId);
+      const entries = trail === undefined ? state.toolTimelineByThread[threadId] : trail?.timeline;
       if (!entries || entries.length === 0) return;
       const status: ToolTimelineEntryStatus = success ? 'success' : 'error';
       // On failure, parse the optional structured explanation (#4254); a
@@ -1736,7 +1786,9 @@ const chatRuntimeSlice = createSlice({
       // `""` means "no id" — see `toolCallReceived` for why the empty string
       // must never reach a row id.
       const toolCallId = action.payload.toolCallId || undefined;
-      const entries = (state.toolTimelineByThread[threadId] ??= []);
+      const target = rowTarget(state, threadId, action.payload.requestId);
+      if (!target) return;
+      const entries = target.entries;
       let matchIdx = -1;
       if (toolCallId) matchIdx = entries.findIndex(e => e.id === toolCallId);
       if (matchIdx < 0 && toolName) {
@@ -1810,7 +1862,9 @@ const chatRuntimeSlice = createSlice({
         spawnEventId,
         parentCallId,
       } = action.payload;
-      const entries = (state.toolTimelineByThread[threadId] ??= []);
+      const target = rowTarget(state, threadId, action.payload.requestId);
+      if (!target) return;
+      const entries = target.entries;
       // Idempotent: a socket redelivery must not append a second row with the
       // same id (later updates find only the first). Not gated by the provider's
       // event-seen map, so guard here.
@@ -1935,7 +1989,7 @@ const chatRuntimeSlice = createSlice({
         });
         if (spawnIdx >= 0) {
           entries[spawnIdx] = row;
-          const pointer = state.processingByThread[threadId]?.find(
+          const pointer = (target.transcript ?? state.processingByThread[threadId])?.find(
             item => item.kind === 'toolCall' && item.callId === pending.spawnEntryId
           );
           if (pointer && pointer.kind === 'toolCall') pointer.callId = rowId;
