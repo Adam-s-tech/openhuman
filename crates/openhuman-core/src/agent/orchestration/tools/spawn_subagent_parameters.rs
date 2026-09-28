@@ -57,7 +57,7 @@ fn spawn_subagent_parameters_schema() -> serde_json::Value {
             },
             "toolkit": {
                 "type": "string",
-                "description": "Composio toolkit slug to scope this spawn to — e.g. `gmail`, `notion`, `slack`. REQUIRED when `agent_id = \"integrations_agent\"`. Narrows the sub-agent's visible Composio actions AND its Connected Integrations prompt section to only that toolkit's catalogue, so the sub-agent's context window only carries the platform it was asked to operate on. Must match a currently-connected integration (see the Delegation Guide)."
+                "description": "Optional Composio toolkit slug (e.g. `gmail`, `notion`). Narrows the Connected Integrations section of the sub-agent's prompt to that toolkit."
             },
             "dedicated_thread": {
                 "type": "boolean",
