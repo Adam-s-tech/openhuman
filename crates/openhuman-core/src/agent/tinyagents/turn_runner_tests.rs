@@ -349,6 +349,8 @@ async fn an_in_stream_provider_failure_is_re_surfaced_past_the_hosted_sanitizer(
     assert!(
         text.contains(IN_STREAM_REJECTION),
         "the run failure must be the provider's, not the sanitized one: {text}"
+    );
+}
 
 /// #6710, end to end through the real session driver. The prefix is computed
 /// after every core shaping step between the runtime and the harness (the
