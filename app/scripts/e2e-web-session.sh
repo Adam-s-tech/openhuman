@@ -9,9 +9,13 @@ cd "$APP_DIR"
 
 RUST_HOST_TRIPLE="${RUST_HOST_TRIPLE:-$(rustc -vV | awk '/^host: / { print $2 }')}"
 E2E_WEB_CORE_TARGET_DIR="${E2E_WEB_CORE_TARGET_DIR:-$REPO_ROOT/target/e2e-web-${RUST_HOST_TRIPLE}}"
-E2E_MOCK_PORT="${E2E_MOCK_PORT:-18473}"
-OPENHUMAN_CORE_PORT="${OPENHUMAN_CORE_PORT:-17788}"
-E2E_WEB_PORT="${E2E_WEB_PORT:-4173}"
+# shellcheck source=./e2e-ports.sh
+source "$SCRIPT_DIR/e2e-ports.sh"
+e2e_resolve_ports
+# The Playwright specs reach the mock's admin API themselves
+# (`MOCK_ADMIN_BASE`), and default to 18473 when this is unset. Without the
+# export a session on a derived block served its specs the wrong mock.
+export E2E_MOCK_PORT
 PW_CORE_RPC_TOKEN="${PW_CORE_RPC_TOKEN:-openhuman-playwright-token}"
 PW_CORE_RPC_URL="http://127.0.0.1:${OPENHUMAN_CORE_PORT}/rpc"
 PW_BASE_URL="http://127.0.0.1:${E2E_WEB_PORT}"
@@ -172,6 +176,10 @@ if [ ! -f "$E2E_BUNDLE_MARKER" ]; then
   echo "ERROR: $APP_DIR/dist-web was not built for E2E (no $(basename "$E2E_BUNDLE_MARKER")). Run pnpm --filter openhuman-app test:e2e:web:build first; pnpm build:web alone omits the E2E backend and affordances." >&2
   exit 1
 fi
+
+# Nothing below tolerates a port that is already taken (#5918): the probes are
+# plain HTTP GETs, so they are answered by whatever is listening.
+e2e_require_free_ports "$E2E_MOCK_PORT" "$OPENHUMAN_CORE_PORT" "$E2E_WEB_PORT"
 
 node "$REPO_ROOT/scripts/mock-api-server.mjs" --port "$E2E_MOCK_PORT" >"$OPENHUMAN_WORKSPACE/mock.log" 2>&1 &
 MOCK_PID=$!
