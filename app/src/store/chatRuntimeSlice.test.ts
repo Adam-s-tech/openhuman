@@ -130,7 +130,7 @@ describe('chatRuntimeSlice recordChatTurnUsage', () => {
         contextWindow: 1_000_000,
         subAgents: [
           { agentId: 'researcher', inputTokens: 600_000, outputTokens: 30_000, costUsd: 0.6 },
-          { agentId: 'context_scout', inputTokens: 150_000, outputTokens: 10_000, costUsd: 0.15 },
+          { agentId: 'summarizer', inputTokens: 150_000, outputTokens: 10_000, costUsd: 0.15 },
         ],
       })
     );
