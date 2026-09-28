@@ -64,6 +64,13 @@ pub(crate) struct TurnModels {
 }
 
 impl TurnModels {
+    /// Adds a tier route to a test bundle (the injected-model builder has none).
+    #[cfg(test)]
+    pub(crate) fn with_test_route(mut self, name: &str, model: TurnChatModel) -> Self {
+        self.routes.push((name.to_string(), model));
+        self
+    }
+
     /// Provider telemetry id for this turn (`{provider_id}.{model}`).
     pub(crate) fn provider_id(&self) -> &str {
         &self.provider_id

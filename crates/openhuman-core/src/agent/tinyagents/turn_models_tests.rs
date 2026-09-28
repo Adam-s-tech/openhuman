@@ -211,3 +211,76 @@ async fn a_sub_agents_success_does_not_clear_the_leads_recorded_failure() {
         "a child's attempt cleared the lead's recorded failure"
     );
 }
+
+/// #6724: a child that resolves a real tier route (not the primary fallback)
+/// and fails must leave the lead's recorded failure untouched.
+#[tokio::test]
+async fn a_sub_agents_route_failure_leaves_the_leads_slot_untouched() {
+    let primary: Arc<dyn ChatModel<()>> =
+        Arc::new(ScriptedTerminalModel(std::sync::Mutex::new(vec![
+            provider_failure("LEAD_FAILURE"),
+        ])));
+    let route: Arc<dyn ChatModel<()>> =
+        Arc::new(ScriptedTerminalModel(std::sync::Mutex::new(vec![
+            provider_failure("CHILD_ROUTE_FAILURE"),
+        ])));
+    let models = TurnModelSource::from_model(primary)
+        .build("m", 0.0, None, None)
+        .expect("turn models")
+        .with_test_route("hint:burst", route);
+    let resolver = TurnModelResolver::from_turn_models(&models);
+
+    let lead = resolver
+        .resolve(&ModelResolveRequest::new("orchestrator").as_team_lead())
+        .await
+        .unwrap();
+    drain(&lead).await;
+
+    let child = resolver
+        .resolve(&ModelResolveRequest::new("integrations_agent").with_model_pin("hint:burst"))
+        .await
+        .unwrap();
+    drain(&child).await;
+
+    let recorded = slot_text(&models).expect("the lead's failure is still recorded");
+    assert!(recorded.contains("LEAD_FAILURE"), "{recorded}");
+    assert!(
+        !recorded.contains("CHILD_ROUTE_FAILURE"),
+        "a child's route failure replaced the lead's: {recorded}"
+    );
+}
+
+/// #6724: a child's successful call on a real route must not clear the failure
+/// the lead already recorded.
+#[tokio::test]
+async fn a_sub_agents_route_success_does_not_clear_the_leads_slot() {
+    let primary: Arc<dyn ChatModel<()>> =
+        Arc::new(ScriptedTerminalModel(std::sync::Mutex::new(vec![
+            provider_failure("LEAD_FAILURE"),
+        ])));
+    let route: Arc<dyn ChatModel<()>> =
+        Arc::new(ScriptedTerminalModel(std::sync::Mutex::new(vec![
+            completed(),
+        ])));
+    let models = TurnModelSource::from_model(primary)
+        .build("m", 0.0, None, None)
+        .expect("turn models")
+        .with_test_route("hint:burst", route);
+    let resolver = TurnModelResolver::from_turn_models(&models);
+
+    let lead = resolver
+        .resolve(&ModelResolveRequest::new("orchestrator").as_team_lead())
+        .await
+        .unwrap();
+    drain(&lead).await;
+    let child = resolver
+        .resolve(&ModelResolveRequest::new("integrations_agent").with_model_pin("hint:burst"))
+        .await
+        .unwrap();
+    drain(&child).await;
+
+    assert!(
+        slot_text(&models).is_some_and(|text| text.contains("LEAD_FAILURE")),
+        "a child's route success cleared the lead's recorded failure"
+    );
+}
