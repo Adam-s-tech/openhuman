@@ -235,13 +235,18 @@ fn orchestrator_reaches_the_replaced_specialists_tools_through_discovery() {
     let deferred = agent.deferred_tool_names_for_test();
     let visible = agent.visible_tool_names_for_test();
     let policy = agent.tool_policy_session_for_test();
+    // Unconditionally registered members only: `node_exec` / `npm_exec` need
+    // the managed Node runtime and the wallet family needs the `web3`
+    // feature, so a test profile without them cannot see them either way.
     for tool in [
         "cron",
         "config_snapshot",
         "service_restart",
         "gitbooks_search",
-        "node_exec",
+        "edit",
+        "curl",
         "read_diff",
+        "run_linter",
         "run_tests",
         "mcp_registry_installed_list",
     ] {
