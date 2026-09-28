@@ -9,8 +9,6 @@ import {
   type SandboxBackendId,
 } from '../../../utils/tauriCommands';
 import {
-  Alert,
-  AlertDescription,
   Badge,
   Card,
   CenteredLoadingState,
