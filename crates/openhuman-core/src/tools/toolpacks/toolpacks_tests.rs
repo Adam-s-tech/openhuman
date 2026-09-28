@@ -471,8 +471,6 @@ fn every_pack_declares_the_tools_it_is_named_for() {
                 "web3_dapp_call",
                 "web3_dapp_execute",
                 "x402_request",
-                "stock_crypto_series",
-                "stock_exchange_rate",
             ],
         ),
         (
@@ -591,7 +589,6 @@ fn every_pack_declares_the_tools_it_is_named_for() {
                 "list",
                 "git_operations",
                 "edit",
-                "lsp",
                 "node_exec",
                 "npm_exec",
                 "python_exec",
