@@ -44,7 +44,7 @@ Observed on 2026-06-22:
 - Without explicit `thread_id`: `68.56%` cache hit, `$0.011535`.
 - With explicit `thread_id`: `85.49%` cache hit, `$0.040142`.
 
-Note: the generic prompt may route to heavier agents such as `researcher`.
+Note: when these numbers were recorded, the generic prompt could route to the heavier `researcher` sub-agent. That agent has since been removed; the orchestrator now does web research itself (`web_answer_tool` with `depth: "deep"`), so re-measure before comparing.
 
 ## Case 2: Complex Internal Tool Loop
 
