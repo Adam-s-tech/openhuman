@@ -2,10 +2,7 @@
 //! body before [`super::run_typed_mode`] spins up its tool-loop.
 //!
 //! Kept together because they share a theme (what does the sub-agent
-//! actually see?). Only the text-mode protocol renderer is exposed outside
-//! this module so the debug-dump path in [`crate::agent::debug`] can
-//! mirror the live runner byte-for-byte instead of carrying its own drifting
-//! copy.
+//! actually see?).
 
 use super::types::SubagentRunError;
 use crate::agent::harness::definition::{PromptSource, ToolScope};
