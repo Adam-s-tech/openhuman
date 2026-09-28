@@ -130,6 +130,25 @@ async function replyBlocks(): Promise<Block[]> {
 async function expandToolGroups(): Promise<void> {
   await clickToolGroupTrigger(0, '1 tool call');
   await clickToolGroupTrigger(1, '1 tool call');
+  await browser.execute(() => {
+    const messages = document.querySelectorAll('[data-testid="agent-message"]');
+    const last = messages[messages.length - 1];
+    last
+      ?.querySelectorAll('[data-testid="assistant-ui-tool-call"] button[aria-expanded="false"]')
+      .forEach(button => (button as HTMLButtonElement).click());
+  });
+  await browser.waitUntil(
+    async () => {
+      const blocks = await replyBlocks();
+      const toolCalls = blocks
+        .filter(block => block.kind === 'tool-group-root')
+        .flatMap(block => block.toolCalls ?? []);
+      return (
+        toolCalls.length === 2 && toolCalls.every(toolCall => toolCall.input.trim().length > 0)
+      );
+    },
+    { timeout: 5_000, timeoutMsg: 'tool call input details did not expand' }
+  );
 }
 
 function hasFinalReply(blocks: Block[]): boolean {
