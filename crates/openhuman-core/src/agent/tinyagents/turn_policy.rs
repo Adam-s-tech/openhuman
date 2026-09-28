@@ -301,6 +301,5 @@ pub(crate) fn effective_max_iterations(max_iterations: usize) -> usize {
 pub(crate) fn is_subagent_spawn_or_delegate_tool(name: &str) -> bool {
     name == "spawn_subagent"
         || name.starts_with("delegate_")
-        || name == "agent_prepare_context"
         || name == "spawn_worker_thread"
 }

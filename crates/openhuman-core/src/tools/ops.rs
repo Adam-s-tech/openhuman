@@ -190,11 +190,6 @@ pub fn all_tools_with_runtime(
         // tree) rooted at the agent action dir. Named by the orchestrator and
         // planner scopes.
         Box::new(WorkspaceStateTool::new(action_dir.to_path_buf())),
-        // "Plan mode as a subagent": runs the read-only `context_scout`
-        // inline and returns a bounded context bundle + recommended next
-        // tool calls. Visible only to agents that allowlist it
-        // (orchestrator / planner).
-        Box::new(AgentPrepareContextTool::new()),
         // Steer/list/close reusable async sub-agents and collect results by
         // durable `subagent_session_id` (preferred) or transient `task_id`.
         Box::new(ListSubagentsTool::new()),
@@ -1232,7 +1227,6 @@ fn tool_group(name: &str) -> crate::core::all::DomainGroup {
         || matches!(
             name,
             "ask_user_clarification"
-                | "agent_prepare_context"
                 | "delegate"
                 | "delegate_graph"
                 | "delegate_to_personality"
