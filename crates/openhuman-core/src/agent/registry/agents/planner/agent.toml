@@ -28,8 +28,7 @@ hint = "reasoning"
 [tools]
 # Read + research only. The planner produces plans — it never mutates
 # the workspace, memory, or state. Any writes the plan requires get
-# executed by downstream agents (code_executor, archivist, …) at the
-# orchestrator's direction.
+# executed by the caller after the workflow run.
 #
 # Composio meta-tools are included so the planner can inspect connected
 # integrations, list available actions, and pull data needed to ground
@@ -84,7 +83,7 @@ named = [
     # here: unlike `composio_execute` (gated to Read-scoped slugs by the
     # sandbox), an MCP tool call invokes an arbitrary server tool the core
     # cannot classify as read vs. write, so there is no safe read-only gate.
-    # Executing connected-MCP tools stays with `mcp_agent` (`use_mcp_server`).
+    # Executing connected-MCP tools stays with the orchestrator (`tool_search`).
     "mcp_registry_status",
     "mcp_registry_installed_list",
     "mcp_registry_list_tools",
