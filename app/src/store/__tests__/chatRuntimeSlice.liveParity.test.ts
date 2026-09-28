@@ -188,6 +188,56 @@ describe('turnSettled', () => {
     expect(kept).toHaveLength(20);
     expect(kept.at(-1)).toBe('req-29');
   });
+
+  it("does not freeze another turn's rows as the trail of a reply with no inference_start", () => {
+    // A background delivery settles with a bare `chat_done`: the live rows are
+    // still the turn before it, which settled already.
+    const settled = run(
+      [
+        turnSettled({ threadId: T, requestId: 'req-1' }),
+        turnSettled({ threadId: T, requestId: 'bgdeliver-1' }),
+      ],
+      live()
+    );
+    expect(settled.settledTurnsByThread[T]?.['bgdeliver-1']).toBeUndefined();
+    expect(settled.settledTurnsByThread[T]?.['req-1']?.timeline.map(row => row.id)).toEqual([
+      'call-a',
+    ]);
+    // The rows stay where they are (the background-process panel reads them).
+    expect(settled.toolTimelineByThread[T]?.map(row => row.id)).toEqual(['call-a']);
+    expect(settled.toolTimelineRequestByThread[T]).toBe('req-1');
+  });
+
+  it('a turn whose inference_start was missed still freezes its own rows', () => {
+    // req-1 settled and left its claim; req-2's `inference_start` never
+    // arrived (a reconnect mid-turn), but its own rows did. The rows it
+    // mints drop the stale claim, so req-2 freezes as it always did.
+    const settled = run(
+      [
+        turnSettled({ threadId: T, requestId: 'req-1' }),
+        toolCallReceived({ threadId: T, round: 1, toolName: 'shell', toolCallId: 'call-b' }),
+        turnSettled({ threadId: T, requestId: 'req-2' }),
+      ],
+      live()
+    );
+    expect(settled.settledTurnsByThread[T]?.['req-2']?.timeline.map(row => row.id)).toEqual([
+      'call-a',
+      'call-b',
+    ]);
+  });
+
+  it('still freezes rows whose owner is unknown, as before', () => {
+    // No `inference_start` was seen (e.g. a reconnect mid-turn): no claim
+    // either way, so the reply keeps the rows it is settling with.
+    const settled = run([
+      toolCallReceived({ threadId: T, round: 1, toolName: 'shell', toolCallId: 'call-a' }),
+      turnSettled({ threadId: T, requestId: 'req-9' }),
+    ]);
+    expect(settled.toolTimelineRequestByThread[T]).toBeUndefined();
+    expect(settled.settledTurnsByThread[T]?.['req-9']?.timeline.map(row => row.id)).toEqual([
+      'call-a',
+    ]);
+  });
 });
 
 describe('turn boundaries', () => {
