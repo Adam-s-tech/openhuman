@@ -919,6 +919,30 @@ const messages: TranslationMap = {
   'desktop.action.expand': 'Espandi',
   'desktop.action.collapse': 'Comprimi',
   'desktop.action.scroll': 'Scorri',
+  'computer.title': 'Controllo del computer',
+  'computer.description':
+    'Lascia che il tuo agente lavori nelle app e nei siti web di questo computer.',
+  'computer.tabs.desktop': 'Desktop',
+  'computer.tabs.browser': 'Browser',
+  'computer.tabs.models': 'Modelli',
+  'computer.models.decisionTitle': 'Modello decisionale',
+  'computer.models.decisionDescription':
+    'Il modello che sceglie ogni passaggio sul desktop o nel browser.',
+  'computer.models.decisionModel': 'Modello decisionale',
+  'computer.models.jev': 'Jev',
+  'computer.models.openJev': 'OpenJev',
+  'computer.models.sage': 'Sage',
+  'computer.models.sageFast': 'Modalità veloce di Sage',
+  'computer.models.rescueTitle': 'Pianificazione e recupero',
+  'computer.models.rescueDescription':
+    "Quando un passaggio di un'attività fallisce, il modello di recupero suggerisce come riprendersi prima che l'attività si arrenda.",
+  'computer.models.rescueModel': 'Modello di recupero',
+  'computer.models.maxRescues': 'Recuperi per attività',
+  'computer.models.plannerModel': 'Modello di pianificazione',
+  'computer.models.moduleDefault': 'Predefinito del modulo',
+  'computer.models.rescuesBounds':
+    'I recuperi per attività devono essere un numero intero da 0 a 5.',
+  'computer.models.saved': 'Modelli del computer salvati.',
   'desktop.title': 'Controllo desktop',
   'desktop.description': 'Consenti al tuo agente di usare le app su questo computer.',
   'desktop.enabledPending':

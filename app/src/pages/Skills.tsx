@@ -19,8 +19,8 @@ import { SidebarContent } from '../components/layout/shell/SidebarSlot';
 import TwoPaneNav from '../components/layout/TwoPaneNav';
 import { SettingsLayoutProvider } from '../components/settings/layout/SettingsLayoutContext';
 import SettingsTabbedPage from '../components/settings/layout/SettingsTabbedPage';
-import ComputerPanel, { type ComputerSection } from '../components/settings/panels/ComputerPanel';
 import ComposioPanel from '../components/settings/panels/ComposioPanel';
+import ComputerPanel, { type ComputerSection } from '../components/settings/panels/ComputerPanel';
 import EmbeddingsPanel from '../components/settings/panels/EmbeddingsPanel';
 import LlmConnectionsPanel from '../components/settings/panels/LlmConnectionsPanel';
 import SearchPanel from '../components/settings/panels/SearchPanel';
@@ -1192,7 +1192,10 @@ export default function Skills() {
                   </SettingsTabbedPage>
                 )}
                 {activeTab === 'computer' && (
-                  <ComputerPanel section={computerSection} onSectionChange={handleComputerSection} />
+                  <ComputerPanel
+                    section={computerSection}
+                    onSectionChange={handleComputerSection}
+                  />
                 )}
                 {/* Search owns its page shell (header switch + chip tabs), like LLM. */}
                 {activeTab === 'search' && <SearchPanel />}
