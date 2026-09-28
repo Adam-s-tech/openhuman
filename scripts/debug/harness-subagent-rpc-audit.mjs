@@ -490,7 +490,7 @@ function parallelPrompt(opts) {
   return `Harness parallel subagent audit.
 Call spawn_parallel_agents exactly once with these two tasks:
 1. agent_id "agent_memory", ownership "memory recall", prompt "Recall what memory holds about title normalization or text cleanup helpers and return a concise factual note. Include one short evidence phrase, or say plainly that nothing relevant is stored."
-2. agent_id "code_executor", ownership "code draft", prompt "Write a small Python function normalize_title(title: str) -> str that trims whitespace, collapses internal whitespace, and title-cases the result. Include one tiny assert-style example. Return only the code block; do not modify files."
+2. agent_id "task_manager_agent", ownership "task-source inventory", prompt "List the task sources and artifacts currently configured and return a concise factual note, or say plainly that none are configured. Read only; do not add, update, or remove anything."
 After spawn_parallel_agents returns, reply with one concise sentence summarizing that both parallel workers completed.
 Audit marker: ${opts.taskKey}.`;
 }
@@ -570,7 +570,7 @@ After the requested tool call or calls return, provide one concise sentence. Do 
 named = ["spawn_subagent", "spawn_parallel_agents", "wait_subagent"]
 
 [subagents]
-allowlist = ["async_audit_worker", "agent_memory", "code_executor"]
+allowlist = ["async_audit_worker", "agent_memory", "task_manager_agent"]
 `,
   );
   await writeFile(
