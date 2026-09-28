@@ -1921,6 +1921,8 @@ const chatRuntimeSlice = createSlice({
       action: PayloadAction<{
         threadId: string;
         rowId: string;
+        /** The delegation's task id (`skill_id`); see the match below. */
+        taskId?: string;
         success: boolean;
         iterations?: number;
         elapsedMs?: number;
@@ -1935,6 +1937,7 @@ const chatRuntimeSlice = createSlice({
       const {
         threadId,
         rowId,
+        taskId,
         success,
         iterations,
         elapsedMs,
@@ -1947,10 +1950,20 @@ const chatRuntimeSlice = createSlice({
       // Settle a still-in-flight row: `running`, or `awaiting_user` (a subagent
       // paused for input that then completes must not stay stuck at
       // awaiting_user). Already-terminal rows are left as-is.
+      //
+      // Also matched by task id: a detached (`async`) child outlives its turn,
+      // and that turn's `chat_done` replaces the live timeline with the
+      // completed snapshot, whose row id is the core's `subagent:<task>`, not
+      // this socket `rowId`. Matching the id alone left that row running, and
+      // a background delivery (a `chat_done` with no `inference_start`) then
+      // froze it as its own trail: a card that spun forever under the reply
+      // announcing the child's result.
       const entries = subagentRows(
         state,
         threadId,
-        e => e.id === rowId && (e.status === 'running' || e.status === 'awaiting_user')
+        e =>
+          (e.id === rowId || (taskId !== undefined && e.subagent?.taskId === taskId)) &&
+          (e.status === 'running' || e.status === 'awaiting_user')
       );
       for (const entry of entries) {
         entry.status = success ? 'success' : 'error';

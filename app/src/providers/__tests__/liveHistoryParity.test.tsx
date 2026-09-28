@@ -363,3 +363,131 @@ describe('live ≡ history rendering of one turn', () => {
     expect(after.map(partKey)).toEqual(before.map(partKey));
   });
 });
+
+/**
+ * A detached (`async`) delegation outlives the turn that spawned it. Seen
+ * live: after the child finished and the background delivery posted its
+ * result, a "Delegated to … · async" card kept spinning with "Cancel task"
+ * under that delivery reply. The turn's `chat_done` hydrates the completed
+ * snapshot, whose async row carries the core's id (`subagent:<task>`), so the
+ * late `subagent_completed` (socket row id) missed it; the delivery then
+ * arrived as a bare `chat_done` and froze that stale row as its own trail.
+ */
+describe('async delegation settles after its turn', () => {
+  const spawnedStep = LIVE_TURN_STEPS.find(step => step.listener === 'onSubagentSpawned');
+  const doneStep = LIVE_TURN_STEPS.find(step => step.listener === 'onSubagentDone');
+  if (!spawnedStep || !doneStep) throw new Error('fixture lost its delegation');
+  const asyncSteps = LIVE_TURN_STEPS.filter(step => step !== doneStep).map(step =>
+    step === spawnedStep
+      ? ({
+          ...step,
+          event: { ...step.event, subagent: { mode: 'async', parent_call_id: 'call-spawn' } },
+        } as SocketStep)
+      : step
+  );
+  const DELIVERY_REQUEST = 'bgdeliver-1';
+  // The completed snapshot as the core persists it: same delegation, core ids.
+  const snapshot = (status: 'running' | 'success') => ({
+    threadId: TURN_THREAD,
+    requestId: TURN_REQUEST,
+    lifecycle: 'completed' as const,
+    iteration: 3,
+    maxIterations: 10,
+    streamingText: '',
+    thinking: '',
+    startedAt: '2026-09-28T11:03:05Z',
+    updatedAt: '2026-09-28T11:04:06Z',
+    toolTimeline: [
+      { id: 'call-spawn', name: 'spawn_subagent', status: 'success' as const, round: 2 },
+      {
+        id: 'subagent:sub-1',
+        name: 'subagent:researcher',
+        status,
+        round: 2,
+        subagent: {
+          taskId: 'sub-1',
+          agentId: 'researcher',
+          mode: 'async',
+          parentCallId: 'call-spawn',
+          toolCalls: [],
+        },
+      },
+    ],
+  });
+
+  /** Every delegation card on screen: `[message, settled status | 'running']`. */
+  function delegationCards(): [string | undefined, string][] {
+    return project().flatMap(message =>
+      typeof message.content === 'string'
+        ? []
+        : message.content.flatMap(part =>
+            part.type === 'tool-call' && part.toolName === 'task'
+              ? [
+                  [
+                    message.id,
+                    (part.result as { status?: string } | undefined)?.status ?? 'running',
+                  ] as [string | undefined, string],
+                ]
+              : []
+          )
+    );
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    store.dispatch(clearAllThreads());
+    store.dispatch(clearAllChatRuntime());
+    vi.mocked(threadApi.appendMessage).mockImplementation(async (_tid, message) => message);
+    vi.mocked(threadApi.getThreads).mockResolvedValue({ threads: [], count: 0 });
+    vi.mocked(threadApi.listRuns).mockResolvedValue([]);
+    vi.mocked(threadApi.generateTitleIfNeeded).mockResolvedValue({
+      id: TURN_THREAD,
+      title: 'Today',
+    } as never);
+  });
+
+  afterEach(() => {
+    store.dispatch(setStatusForUser({ userId: '__pending__', status: 'disconnected' }));
+  });
+
+  it('a late subagent_completed settles the card, and the delivery turn adds no spinner', async () => {
+    vi.mocked(threadApi.getTurnState).mockResolvedValue(snapshot('running') as never);
+    const listeners = renderProvider();
+    await store.dispatch(addMessageLocal({ threadId: TURN_THREAD, message: USER_MESSAGE }));
+    store.dispatch(beginInferenceTurn({ threadId: TURN_THREAD }));
+    for (const step of asyncSteps) fire(listeners, step);
+    act(() => listeners.onDone?.(DONE_EVENT));
+    // The completed snapshot (child still running) replaces the live rows.
+    await waitFor(() =>
+      expect(store.getState().chatRuntime.toolTimelineByThread[TURN_THREAD]?.[1]?.id).toBe(
+        'subagent:sub-1'
+      )
+    );
+    expect(delegationCards()).toEqual([[`agent:${TURN_REQUEST}`, 'running']]);
+
+    // Minutes later the child finishes, then its result is delivered as a
+    // host-authored turn: a bare `chat_done`, no `inference_start`.
+    fire(listeners, doneStep);
+    vi.mocked(threadApi.getTurnState).mockResolvedValue(snapshot('success') as never);
+    act(() =>
+      listeners.onDone?.({
+        ...DONE_EVENT,
+        request_id: DELIVERY_REQUEST,
+        full_response: 'The research finished.',
+      })
+    );
+    await waitFor(() =>
+      expect(
+        store
+          .getState()
+          .thread.messagesByThreadId[
+            TURN_THREAD
+          ]?.some(message => message.id === `agent:${DELIVERY_REQUEST}`)
+      ).toBe(true)
+    );
+
+    const cards = delegationCards();
+    expect(cards).toContainEqual([`agent:${TURN_REQUEST}`, 'success']);
+    expect(cards.filter(([, status]) => status === 'running')).toEqual([]);
+  });
+});

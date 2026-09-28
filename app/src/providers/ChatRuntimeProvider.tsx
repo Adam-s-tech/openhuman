@@ -965,6 +965,7 @@ const ChatRuntimeProvider = ({ children }: { children: React.ReactNode }) => {
             subagentDone({
               threadId: event.thread_id,
               rowId: `${event.thread_id}:subagent:${event.skill_id}:${event.tool_name}`,
+              taskId: event.skill_id,
               success: event.success,
               iterations: event.subagent?.iterations,
               elapsedMs: event.subagent?.elapsed_ms,
