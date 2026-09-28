@@ -1677,27 +1677,27 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
         .get("definitions")
         .and_then(Value::as_array)
         .expect("agent_list_definitions should return definitions array");
-    let presentation = definitions
+    let memory_agent = definitions
         .iter()
         .find(|definition| {
-            definition.get("id").and_then(Value::as_str) == Some("presentation_agent")
+            definition.get("id").and_then(Value::as_str) == Some("agent_memory")
         })
-        .expect("safe agent library should include presentation_agent");
+        .expect("safe agent library should include agent_memory");
     assert_eq!(
-        presentation.get("display_name").and_then(Value::as_str),
-        Some("Presentation Agent")
+        memory_agent.get("display_name").and_then(Value::as_str),
+        Some("Memory Agent")
     );
-    assert!(presentation
+    assert!(memory_agent
         .get("when_to_use")
         .and_then(Value::as_str)
         .is_some());
-    assert!(presentation.get("system_prompt").is_none());
-    assert!(presentation.get("tools").is_some());
-    assert!(presentation
+    assert!(memory_agent.get("system_prompt").is_none());
+    assert!(memory_agent.get("tools").is_some());
+    assert!(memory_agent
         .get("direct_tool_count")
         .and_then(Value::as_u64)
         .is_some());
-    assert!(presentation
+    assert!(memory_agent
         .get("can_run_as_user_facing_worker")
         .and_then(Value::as_bool)
         .is_some());
@@ -1719,13 +1719,13 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
         286_211,
         "openhuman.agent_registry_update",
         json!({
-            "id": "presentation_agent",
-            "name": "Deck Specialist",
-            "description": "Workspace-specific presentation specialist.",
+            "id": "agent_memory",
+            "name": "Recall Specialist",
+            "description": "Workspace-specific memory recall specialist.",
             "model": "hint:reasoning",
             "tool_allowlist": ["tools.web_search", "memory.search"],
             "tool_denylist": ["wallet.execute_prepared"],
-            "tags": ["presentation", "workspace"],
+            "tags": ["memory", "workspace"],
             "metadata": { "pinned_by": "json_rpc_e2e" }
         }),
     )
@@ -1736,7 +1736,7 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
             .expect("update default should return agent");
     assert_eq!(
         update_default_agent.get("name").and_then(Value::as_str),
-        Some("Deck Specialist")
+        Some("Recall Specialist")
     );
     assert_eq!(
         update_default_agent
@@ -1952,7 +1952,7 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
             "system_prompt": "Write concise updates with citations when available.",
             "tool_allowlist": ["memory.search"],
             "tool_denylist": ["shell"],
-            "subagents": ["presentation_agent"],
+            "subagents": ["agent_memory"],
             "tags": ["writing", "custom", "disabled"],
             "metadata": { "updated_by": "json_rpc_e2e" }
         }),
@@ -1977,7 +1977,7 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
             .and_then(Value::as_array)
             .and_then(|allowlist| allowlist.first())
             .and_then(Value::as_str),
-        Some("presentation_agent")
+        Some("agent_memory")
     );
 
     let reenabled_custom = post_json_rpc(
@@ -2136,7 +2136,7 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
         &rpc_base,
         286_221,
         "openhuman.agent_registry_remove",
-        json!({ "id": "presentation_agent" }),
+        json!({ "id": "agent_memory" }),
     )
     .await;
     assert_eq!(
@@ -13079,8 +13079,8 @@ async fn json_rpc_agent_team_live_member_run_roundtrip_inner() {
             "leadAgentId": "lead",
             "summary": "live run e2e",
             "members": [
-                { "name": "alice", "agentId": "presentation_agent" },
-                { "name": "bob", "agentId": "presentation_agent" }
+                { "name": "alice", "agentId": "agent_memory" },
+                { "name": "bob", "agentId": "agent_memory" }
             ]
         }),
     )
