@@ -221,6 +221,18 @@ describe('SearchPanel — page and on/off', () => {
 });
 
 describe('SearchPanel — connected providers', () => {
+  // #5136: the managed path must not read as an unattributed black box, so
+  // every provider reached via TinyHumans is named on its own row.
+  test('providers reached via TinyHumans are each named', async () => {
+    await renderPanel();
+    for (const id of ['exa', 'gemini']) {
+      expect(row(id)).toHaveTextContent(id === 'exa' ? 'Exa' : 'Gemini');
+      expect(screen.getByTestId(`search-provider-${id}-detail`)).toHaveTextContent(
+        'settings.search.routeManaged'
+      );
+    }
+  });
+
   test('lists only enabled providers, each with how it is reached', async () => {
     await renderPanel();
     expect(row('exa')).toBeInTheDocument();
