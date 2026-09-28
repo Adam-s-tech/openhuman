@@ -112,12 +112,7 @@ async function replyBlocks(): Promise<Block[]> {
           slot === 'aui_openhuman-tool-call'
             ? (node.querySelector('button .font-medium')?.textContent ?? '')
             : '';
-        return {
-          kind,
-          label,
-          state: node.getAttribute('data-state'),
-          text,
-        };
+        return { kind, label, state: node.getAttribute('data-state'), text };
       });
   })) as Block[];
 }
