@@ -9,8 +9,8 @@
  * (`providers/__tests__/liveHistoryParity.test.tsx`); this pins the real DOM.
  *
  * Scripted turn (three LLM rounds):
- *   1. narration + current_time
- *   2. narration + resolve_time
+ *   1. narration + goal_set
+ *   2. narration + todo
  *   3. a long final answer (taller than the viewport, so following matters)
  *
  * Verifies:
@@ -37,7 +37,7 @@ import { clearRequestLog, setMockBehavior, startMockServer, stopMockServer } fro
 
 const LOG_PREFIX = '[chat-live-history-parity]';
 const USER_ID = 'e2e-chat-live-history-parity';
-const PROMPT = 'Check the current time, resolve five minutes from now, then explain it.';
+const PROMPT = 'Set a goal to prepare the release, add one checklist item, then explain it.';
 const CANARY_FINAL = 'canary-parity-7c1e';
 const FINAL_ANSWER = [
   `Here is what I found (${CANARY_FINAL}).`,
@@ -52,9 +52,9 @@ const FORCED_RESPONSES = [
     content: 'I will check the current time first.',
     toolCalls: [
       {
-        id: 'call_parity_time',
-        name: 'current_time',
-        arguments: JSON.stringify({ timezone: 'UTC' }),
+        id: 'call_parity_goal',
+        name: 'goal_set',
+        arguments: JSON.stringify({ objective: 'Prepare the release', token_budget: 50000 }),
       },
     ],
   },
@@ -62,9 +62,11 @@ const FORCED_RESPONSES = [
     content: 'Now I will resolve the five-minute interval.',
     toolCalls: [
       {
-        id: 'call_parity_resolve',
-        name: 'resolve_time',
-        arguments: JSON.stringify({ expr: 'in 5 minutes', timezone: 'UTC' }),
+        id: 'call_parity_todo',
+        name: 'todo',
+        arguments: JSON.stringify({
+          todos: [{ content: 'Review the release', status: 'in_progress' }],
+        }),
       },
     ],
   },
@@ -274,10 +276,10 @@ describe('Chat live/history parity', () => {
     expect(toolGroups.map(group => group.text)).toEqual(['1 tool call', '1 tool call']);
     const toolCalls = toolGroups.flatMap(group => group.toolCalls ?? []);
     expect(toolCalls).toHaveLength(2);
-    expect(toolCalls[0]).toMatchObject({ name: 'current_time' });
-    expect(toolCalls[0]?.input).toContain('UTC');
-    expect(toolCalls[1]).toMatchObject({ name: 'resolve_time' });
-    expect(toolCalls[1]?.input).toContain('in 5 minutes');
+    expect(toolCalls[0]).toMatchObject({ name: 'goal_set' });
+    expect(toolCalls[0]?.input).toContain('Prepare the release');
+    expect(toolCalls[1]).toMatchObject({ name: 'todo' });
+    expect(toolCalls[1]?.input).toContain('Review the release');
     const finalBlock = settled.find(
       block => block.kind === 'text' && block.text.includes(CANARY_FINAL)
     );
