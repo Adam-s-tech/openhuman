@@ -23,9 +23,10 @@ vi.mock('../../services/coreRpcClient', () => ({
 }));
 
 describe('memoryGraphQuery', () => {
-  it('throws when not running in Tauri', async () => {
+  it('calls core RPC when not running in Tauri', async () => {
     mockIsTauri.mockReturnValue(false);
-    await expect(memoryGraphQuery()).rejects.toThrow('Not running in Tauri');
+    mockCallCoreRpc.mockResolvedValue([]);
+    await memoryGraphQuery();
   });
 
   it('calls core RPC with memory.graph.query method and optional params', async () => {
@@ -69,11 +70,10 @@ describe('memoryGraphQuery', () => {
 });
 
 describe('memoryDocIngest', () => {
-  it('throws when not running in Tauri', async () => {
+  it('calls core RPC when not running in Tauri', async () => {
     mockIsTauri.mockReturnValue(false);
-    await expect(
-      memoryDocIngest({ namespace: 'ns', key: 'k', title: 't', content: 'c' })
-    ).rejects.toThrow('Not running in Tauri');
+    mockCallCoreRpc.mockResolvedValue([]);
+    await memoryDocIngest({ namespace: 'ns', key: 'k', title: 't', content: 'c' });
   });
 
   it('calls core RPC with memory.doc.ingest and forwards all params', async () => {

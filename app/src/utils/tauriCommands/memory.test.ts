@@ -19,10 +19,11 @@ beforeEach(() => {
 });
 
 describe('memorySyncChannel', () => {
-  test('throws when not in Tauri', async () => {
+  test('calls core RPC outside Tauri', async () => {
     mockIsTauri.mockReturnValue(false);
-    await expect(memorySyncChannel('ch-1')).rejects.toThrow('Not running in Tauri');
-    expect(mockCallCoreRpc).not.toHaveBeenCalled();
+    mockCallCoreRpc.mockResolvedValue({});
+    await memorySyncChannel('ch-1');
+    expect(mockCallCoreRpc).toHaveBeenCalled();
   });
 
   test('calls memory_sync_channel with correct channel_id', async () => {
@@ -40,9 +41,10 @@ describe('memorySyncChannel', () => {
 });
 
 describe('memorySyncAll', () => {
-  test('throws when not in Tauri', async () => {
+  test('calls core RPC outside Tauri', async () => {
     mockIsTauri.mockReturnValue(false);
-    await expect(memorySyncAll()).rejects.toThrow('Not running in Tauri');
+    mockCallCoreRpc.mockResolvedValue({});
+    await memorySyncAll();
   });
 
   test('calls memory_sync_all and returns result', async () => {
@@ -56,9 +58,10 @@ describe('memorySyncAll', () => {
 });
 
 describe('memoryLearnAll', () => {
-  test('throws when not in Tauri', async () => {
+  test('calls core RPC outside Tauri', async () => {
     mockIsTauri.mockReturnValue(false);
-    await expect(memoryLearnAll()).rejects.toThrow('Not running in Tauri');
+    mockCallCoreRpc.mockResolvedValue({});
+    await memoryLearnAll();
   });
 
   test('calls memory_learn_all without namespaces param when none provided', async () => {
@@ -145,8 +148,9 @@ describe('aiListMemoryFiles', () => {
     expect(await aiListMemoryFiles()).toEqual([]);
   });
 
-  test('throws when not running in Tauri', async () => {
+  test('calls core RPC when not running in Tauri', async () => {
     mockIsTauri.mockReturnValue(false);
-    await expect(aiListMemoryFiles()).rejects.toThrow(/Not running in Tauri/);
+    mockCallCoreRpc.mockResolvedValue({});
+    await aiListMemoryFiles();
   });
 });
