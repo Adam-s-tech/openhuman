@@ -68,8 +68,8 @@ jobs:
           # tinybus validates every directory ancestor. GitHub mounts the
           # checkout as the host runner uid while this container runs as root,
           # so keep native fixtures in a root-owned, ephemeral tree.
-          memory_version="1.16.1"
-          memory_sha256="c025f4a5743bb975ed7cdc5306a16a6aa4ac2ef3c87fa83820d038321123daee"
+          memory_version="1.16.2"
+          memory_sha256="dd6aed6050e6acdd762583bcc44030f967f56e9022c9cad4b29d935eec4af78c"
           module_root="/opt/openhuman-test-modules/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           memory_dir="$module_root/tinymemory"
           juice_dir="$module_root/tinyjuice"
