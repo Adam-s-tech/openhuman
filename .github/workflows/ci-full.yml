@@ -367,7 +367,6 @@ jobs:
           echo "TINYJUICE_TEST_MODULE=$juice_dir/libtinyjuice_module.so" >> "$GITHUB_ENV"
           echo "TINYCONNECTORS_TEST_MODULE=$connectors_dir/libtinyconnectors.so" >> "$GITHUB_ENV"
           echo "TINYSEARCH_TEST_MODULE=$search_dir/libtinysearch.so" >> "$GITHUB_ENV"
-
       - name: Install Playwright Chromium dependencies
         run: bash scripts/ci-cancel-aware.sh pnpm --filter openhuman-app exec playwright install-deps chromium
 
