@@ -15,59 +15,7 @@ mod tests;
 
 pub const MODULE_ID: &str = "tinycomputer";
 
-/// This confidential payload is sent only to the module lifecycle callback.
-/// Missing or expired host credentials remove the old Jev client on refresh.
-pub fn module_config(config: &Config) -> serde_json::Value {
-    let credential =
-        crate::security::credentials::session_support::resolve_backend_credential(config)
-            .ok()
-            .map(crate::security::credentials::session_support::BackendCredential::into_secret)
-            .filter(|token| {
-                !crate::security::credentials::session_support::is_local_session_token(token)
-            });
-    match credential {
-        Some(api_key) => serde_json::json!({
-            "jev": {
-                "api_key": api_key,
-                "provider": "tiny_humans_open_router",
-                "sdk_name": crate::backend::product_identity()
-            }
-        }),
-        None => {
-            // A headless or BYOK host may have no TinyHumans session. Direct
-            // OpenRouter Jev remains usable with its own scoped credential.
-            let direct =
-                crate::inference::provider::factory::lookup_key_for_slug("openrouter", config)
-                    .ok()
-                    .filter(|key| !key.trim().is_empty())
-                    .or_else(|| {
-                        std::env::var("OPENROUTER_API_KEY")
-                            .ok()
-                            .filter(|key| !key.trim().is_empty())
-                    });
-            direct.map_or_else(
-                || serde_json::json!({}),
-                |api_key| {
-                    serde_json::json!({
-                        "jev": { "api_key": api_key, "provider": "open_router" }
-                    })
-                },
-            )
-        }
-    }
-}
-
-/// Which account pays for TinyComputer's Jev decisions, for the settings UI:
-/// `hosted` (TinyHumans credits), `direct_openrouter` (the user's key), or
-/// `unavailable` (no credential yet).
-#[must_use]
-pub fn billing_route(config: &Config) -> &'static str {
-    match module_config(config)["jev"]["provider"].as_str() {
-        Some("tiny_humans_open_router") => "hosted",
-        Some("open_router") => "direct_openrouter",
-        _ => "unavailable",
-    }
-}
+pub use super::computer_config::{billing_route, module_config};
 
 pub fn jev_ready(config: &Config) -> bool {
     module_config(config)["jev"].is_object()
