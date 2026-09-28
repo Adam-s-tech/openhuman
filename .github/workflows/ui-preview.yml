@@ -46,7 +46,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: Check out the head
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
@@ -64,7 +64,7 @@ jobs:
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
       - name: Check out the merge-base beside it
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ steps.base.outputs.sha }}
           path: before
@@ -108,7 +108,7 @@ jobs:
           echo "bin=$target/debug/openhuman-core" >> "$GITHUB_OUTPUT"
 
       - name: Check out the pinned Tinysweeper preview runner
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           repository: tinyhumansai/tinysweeper
           ref: 2afdd90d1ced1ea8433d4f6f825ac148c6b783c7
