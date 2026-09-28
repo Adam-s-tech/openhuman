@@ -92,7 +92,7 @@ fn trigger_reactor_has_agentic_hint_and_narrow_tools() {
 
 #[test]
 fn orchestrator_can_resume_paused_subagents_via_continue_subagent() {
-    // #4291: when a delegated sub-agent (e.g. crypto_agent) pauses on
+    // #4291: when a delegated sub-agent (e.g. task_manager_agent) pauses on
     // ask_user_clarification, the orchestrator gets a
     // [SUBAGENT_AWAITING_USER] envelope and must resume that exact
     // checkpoint with `continue_subagent`. Without the tool in scope the
@@ -154,15 +154,17 @@ fn folder_ids_match_toml_ids() {
 /// at `cargo test` time before the bad prompt ships.
 #[test]
 fn coding_agent_prompts_reference_action_sandbox_not_stale_workspace() {
-    let code_executor = include_str!("code_executor/prompt.md");
+    // The coding playbook is the `coding` skill's guide now (the
+    // `code_executor` specialist it replaced is gone).
+    let coding = include_str!("../../../tools/toolpacks/guides/coding.md");
     assert!(
-        !code_executor.contains("sandboxed environment"),
-        "code_executor/prompt.md still says 'sandboxed environment' \
-         generically — anchor in the action sandbox path (see #3236)"
+        !coding.contains("sandboxed environment"),
+        "guides/coding.md says 'sandboxed environment' generically — anchor in \
+         the action sandbox path (see #3236)"
     );
     assert!(
-        code_executor.contains("action sandbox") || code_executor.contains("action_dir"),
-        "code_executor/prompt.md must reference the action sandbox or action_dir (see #3236)"
+        coding.contains("action sandbox") || coding.contains("action_dir"),
+        "guides/coding.md must reference the action sandbox or action_dir (see #3236)"
     );
 
     let planner = include_str!("planner/prompt.md");
@@ -407,13 +409,7 @@ fn master_agent_has_coding_hint_and_named_tools() {
 /// drops `resolve_time`, this test fails loudly.
 #[test]
 fn time_sensitive_agents_expose_resolve_time() {
-    let ids = vec![
-        "orchestrator",
-        "integrations_agent",
-        "scheduler_agent",
-        "task_manager_agent",
-        "crypto_agent",
-    ];
+    let ids = vec!["orchestrator", "task_manager_agent"];
     for id in ids {
         let def = find(id);
         match def.tools {
@@ -432,7 +428,7 @@ fn time_sensitive_agents_expose_resolve_time() {
 
 #[test]
 fn broad_agent_surfaces_expose_storage_transfer_not_lifecycle_tools() {
-    for id in ["code_executor", "integrations_agent", "orchestrator"] {
+    for id in ["orchestrator"] {
         let def = find(id);
         match &def.tools {
             ToolScope::Named(tools) => {
@@ -508,7 +504,7 @@ fn planner_is_read_only_with_composio_meta_tools() {
 /// tools (`status` / `installed_list` / `list_tools`, all
 /// `PermissionLevel::ReadOnly`) and must NOT carry `mcp_registry_tool_call`
 /// (no read-only gate exists for an arbitrary MCP tool call) nor the
-/// install/connect mutators. Execution stays with `mcp_agent`.
+/// install/connect mutators. Execution stays with the orchestrator.
 #[test]
 fn planner_has_readonly_mcp_discovery_not_execute() {
     let def = find("planner");
@@ -534,7 +530,7 @@ fn planner_has_readonly_mcp_discovery_not_execute() {
                 assert!(
                     !names.iter().any(|n| n == forbidden),
                     "planner must NOT have `{forbidden}` — it is read-only; MCP execution \
-                     belongs to mcp_agent"
+                     belongs to the orchestrator"
                 );
             }
         }
@@ -544,55 +540,50 @@ fn planner_has_readonly_mcp_discovery_not_execute() {
 
 
 
-/// Two agents are deliberately missing from the orchestrator's subagent list.
-///
-/// Dropping an entry removes a synthesised `delegate_*` schema from every turn
-/// without removing the agent — cheaper than packing it, because a packed
-/// delegate still costs a row in the prompt's withheld-capability block.
-///
-/// This test pins registry membership only. It does NOT pin that either
-/// agent is dispatchable through `spawn_async_subagent` — today it is not:
-/// `execute_with_context_inner` additionally checks
-/// `parent.allowed_subagent_ids`, which is derived from this very
-/// `subagents.allowlist` (see `session/turn/tools.rs`), so a model that asks
-/// for either id gets a clean allowlist error rather than a spawn. See the
-/// comment above `[subagents]` in `orchestrator/agent.toml` for the tracked
-/// follow-up. Do not read `registry.get(dropped).is_some()` below as "and
-/// therefore spawnable" — it only proves the definition was not deleted.
+/// The archivist is registered but deliberately not a chat delegate: the
+/// post-commit session-memory extraction runs it by id
+/// (`runtime_session.rs`), and a delegate would add its schema to every turn.
 #[test]
-fn the_orchestrator_does_not_delegate_to_the_generalist_or_the_archivist() {
-    let registry = crate::agent::harness::definition::AgentDefinitionRegistry::global()
-        .or_else(|| {
-            crate::agent::harness::definition::AgentDefinitionRegistry::init_global_builtins()
-                .ok()?;
-            crate::agent::harness::definition::AgentDefinitionRegistry::global()
-        })
-        .expect("builtin agent definitions must load");
-    let orchestrator = registry
-        .get("orchestrator")
-        .expect("orchestrator is builtin");
+fn the_orchestrator_does_not_delegate_to_the_archivist() {
+    let orchestrator = find("orchestrator");
+    assert!(
+        !orchestrator
+            .subagents
+            .iter()
+            .any(|entry| matches!(entry, SubagentEntry::AgentId(id) if id == "archivist")),
+        "`archivist` is back on the orchestrator's subagent list"
+    );
+    assert_eq!(find("archivist").id, "archivist", "archivist must stay registered");
+}
 
-    let listed: Vec<&str> = orchestrator
-        .subagents
-        .iter()
-        .filter_map(|entry| match entry {
-            crate::agent::harness::definition::SubagentEntry::AgentId(id) => Some(id.as_str()),
-            _ => None,
-        })
-        .collect();
-    for dropped in ["tools_agent", "archivist"] {
+/// The specialists the inline skills replaced must not come back as
+/// orchestrator delegates, and the ones kept for workflow runs must not
+/// become chat delegates.
+#[test]
+fn the_orchestrator_lists_no_replaced_or_workflow_only_specialist() {
+    let orchestrator = find("orchestrator");
+    for id in [
+        "planner",
+        "critic",
+        "code_executor",
+        "settings_agent",
+        "scheduler_agent",
+        "crypto_agent",
+        "mcp_agent",
+        "tools_agent",
+        "help",
+        "skill_creator",
+        "skill_executor",
+        "integrations_agent",
+        "tool_maker",
+        "context_scout",
+    ] {
         assert!(
-            !listed.contains(&dropped),
-            "`{dropped}` is back on the orchestrator's subagent list, which \
-             re-adds its delegate schema to every turn"
-        );
-        // Still a real agent, resolvable by id in the registry — NOT a claim
-        // that it is currently reachable via spawn_async_subagent (it isn't;
-        // see the doc comment above).
-        assert!(
-            registry.get(dropped).is_some(),
-            "`{dropped}` must stay registered — its definition should not be \
-             deleted, only dropped from the orchestrator's advertised list"
+            !orchestrator
+                .subagents
+                .iter()
+                .any(|entry| matches!(entry, SubagentEntry::AgentId(listed) if listed == id)),
+            "`{id}` must not be an orchestrator delegate"
         );
     }
 }
@@ -609,7 +600,7 @@ fn orchestrator_omits_removed_prompt_tools() {
             "`{removed}` must not appear in the orchestrator tool list"
         );
     }
-    for removed in ["critic", "help"] {
+    for removed in ["critic", "planner"] {
         assert!(
             !orchestrator
                 .subagents
