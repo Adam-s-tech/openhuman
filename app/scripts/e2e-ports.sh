@@ -28,9 +28,12 @@ e2e_resolve_ports() {
   local base="${E2E_PORT_BASE:-}"
 
   if [ -n "$base" ]; then
+    # A leading zero would be read as octal by `$((base + 1))`: `031000`
+    # resolves to 12801 and `08000` fails outright as an invalid digit, both
+    # while passing the decimal range check below.
     case "$base" in
-      '' | *[!0-9]*)
-        echo "ERROR: E2E_PORT_BASE must be a port number, got '$base'" >&2
+      '' | *[!0-9]* | 0*)
+        echo "ERROR: E2E_PORT_BASE must be a port number without a leading zero, got '$base'" >&2
         return 1
         ;;
     esac
@@ -59,6 +62,14 @@ e2e_resolve_ports() {
 # preferred+1..+10 (`pick_listen_port_for_host_with`), so it stays alive on a
 # port nothing probes while `/health` and the authenticated RPC probe are
 # answered by the other session's core.
+#
+# The probe connects rather than binds. A bind answers only whether THIS
+# process could take the address, which is a different question: with
+# `SO_REUSEADDR` a `127.0.0.1:port` bind coexists with an existing
+# `0.0.0.0:port` listener on macOS and BSD, so the port reads as free while
+# that listener goes on answering every probe the session makes. A successful
+# connect is the condition that actually matters — something is serving this
+# port — and it is not fooled by a `TIME_WAIT` socket from a previous run.
 e2e_require_free_ports() {
   local blocked=""
   local port
@@ -67,16 +78,11 @@ e2e_require_free_ports() {
     if ! python3 - "$port" <<'PY'
 import socket, sys
 
-probe = socket.socket()
-# SO_REUSEADDR so a TIME_WAIT socket left by a previous session is not
-# mistaken for a live listener; an actual listener still refuses the bind.
-probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 try:
-    probe.bind(("127.0.0.1", int(sys.argv[1])))
+    with socket.create_connection(("127.0.0.1", int(sys.argv[1])), timeout=1):
+        sys.exit(1)  # something answered: the port is taken
 except OSError:
-    sys.exit(1)
-finally:
-    probe.close()
+    pass  # refused, unreachable or timed out: nothing is serving it
 PY
     then
       blocked="${blocked} ${port}"
