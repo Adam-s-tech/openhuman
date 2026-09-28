@@ -18,7 +18,7 @@ Beyond doing the work, the agent has tools for _organising_ the work - planning 
 | `list_subagents` / `close_subagent`               | Inspect reusable workers for the parent thread or explicitly retire one.                                        |
 | `spawn_worker_thread`                             | Explicit background work tracked as a separate worker thread.                                                   |
 | `delegate`                                        | Hand a task to a specialist (e.g. an archetype with different prompts/tools/permissions).                       |
-| `archetype_delegation`                            | Route to a named archetype - coder, planner, critic, etc.                                                     |
+| `archetype_delegation`                            | Route to a named archetype - coder, planner, critic, etc.                                                       |
 | `skill_delegation`                                | Hand off to a [skill](../integrations/README.md#skills) installed in the workspace.                             |
 | `ask_clarification`                               | Pause and ask the user a precise question instead of guessing.                                                  |
 | `plan_exit`                                       | Exit a planning phase and start executing.                                                                      |
