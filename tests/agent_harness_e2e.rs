@@ -1437,26 +1437,20 @@ async fn approval_gate_installed_after_ensure_inner() {
 
 // ─── 5.2 approval_gate_approve_flow ──────────────────────────────────────────
 //
-// Architecture: the orchestrator delegates to code_executor via the `run_code`
-// tool (code_executor's delegate_name in agent.toml:3). code_executor has
-// file_write in its tool surface (agent.toml:named). The subagent runs inside
-// the orchestrator's WebChat task-local context (dispatch_subagent does NOT
-// re-scope turn_origin or APPROVAL_CHAT_CONTEXT), so file_write inside the
-// subagent parks at the approval gate and publishes approval_request SSE.
+// Architecture: `file_write` is a direct tool on the orchestrator's belt (the
+// coding surface it owns since the `code_executor` specialist was retired). The
+// orchestrator's WebChat turn scopes `turn_origin` + APPROVAL_CHAT_CONTEXT, so a
+// file_write on an existing file parks at the approval gate and publishes
+// approval_request over SSE.
 //
-// LLM request ordering (4 calls total):
-//   request[0] = orchestrator → run_code delegation tool call
-//   request[1] = code_executor → file_write tool call (approval parks)
-//   request[2] = code_executor → text completion after approve
-//   request[3] = orchestrator synthesis
+// LLM request ordering (2 calls total):
+//   request[0] = orchestrator → file_write tool call (approval parks)
+//   request[1] = orchestrator → text completion after the decision
 
-/// Orchestrator delegates to code_executor via `run_code`; code_executor calls
-/// file_write (on an existing file) → approval gate parks in the subagent's
-/// inherited WebChat context → approval_request surfaces over SSE → approve_once
-/// resumes → subagent completes → orchestrator synthesizes with APPROVED_WRITE_CANARY.
-/// The file IS written under the tempdir.
+/// Orchestrator calls file_write (on an existing file) → approval gate parks →
+/// approval_request surfaces over SSE → approve_once resumes → orchestrator
+/// finishes with APPROVED_WRITE_CANARY. The file IS written under the tempdir.
 #[test]
-#[ignore = "TODO(#6554): code_executor no longer reaches the approval gate with file_write"]
 fn approval_gate_approve_flow() {
     run_on_agent_stack(
         "approval_gate_approve_flow",
@@ -1473,23 +1467,12 @@ async fn approval_gate_approve_flow_inner() {
     // test's runtime drops (see register_approval_bridge docstring for details).
     let _approval_bridge = register_approval_bridge();
     reset_script(vec![
-        // request[0]: Orchestrator delegates to code_executor via run_code.
-        // run_code (ArchetypeDelegationTool) requires "prompt" key; empty/missing → error.
-        tool_call_completion(
-            "run_code",
-            json!({
-                "prompt": "write approval-canary.txt with APPROVED_WRITE_CANARY",
-                "blocking": true
-            }),
-        ),
-        // request[1]: code_executor calls file_write → gate parks.
+        // request[0]: Orchestrator calls file_write → gate parks.
         tool_call_completion(
             "file_write",
             json!({ "path": "approval-canary.txt", "content": "APPROVED_WRITE_CANARY" }),
         ),
-        // request[2]: code_executor text after approval.
-        text_completion("File written: APPROVED_WRITE_CANARY"),
-        // request[3]: Orchestrator synthesis.
+        // request[1]: Orchestrator text after approval.
         text_completion("Done. File written: APPROVED_WRITE_CANARY"),
     ]);
     let stack = boot_stack().await;
@@ -1577,7 +1560,6 @@ async fn approval_gate_approve_flow_inner() {
 /// agent to acknowledge the denial; turn completes with DENIAL_ACK_CANARY.
 /// denied-canary.txt content must remain as the placeholder (not the canary).
 #[test]
-#[ignore = "TODO(#6554): code_executor no longer reaches the approval gate with file_write"]
 fn approval_gate_deny_flow() {
     run_on_agent_stack("approval_gate_deny_flow", approval_gate_deny_flow_inner);
 }
@@ -1587,24 +1569,17 @@ async fn approval_gate_deny_flow_inner() {
     let _ttl = EnvVarGuard::set("OPENHUMAN_APPROVAL_TTL_SECS", "120");
     ensure_approval_gate().await;
     let _approval_bridge = register_approval_bridge();
-    // Same delegation chain as approve_flow: orchestrator → run_code → code_executor
-    // → file_write. After denial, code_executor receives the denial marker from the
-    // gate and returns a text response; orchestrator synthesizes with DENIAL_ACK_CANARY.
+    // Same shape as approve_flow: orchestrator → file_write. After denial the
+    // orchestrator receives the denial marker from the gate and acknowledges it
+    // with DENIAL_ACK_CANARY.
     reset_script(vec![
-        // request[0]: Orchestrator delegates to code_executor.
-        tool_call_completion(
-            "run_code",
-            json!({ "prompt": "write denied-canary.txt", "blocking": true }),
-        ),
-        // request[1]: code_executor calls file_write → gate parks, user denies.
+        // request[0]: Orchestrator calls file_write → gate parks, user denies.
         tool_call_completion(
             "file_write",
             json!({ "path": "denied-canary.txt", "content": "DENIED_WRITE_CANARY" }),
         ),
-        // request[2]: code_executor text after denial (gate returns POLICY_DENIED_MARKER).
+        // request[1]: Orchestrator text after denial (gate returns POLICY_DENIED_MARKER).
         text_completion("Understood — the write was denied. DENIAL_ACK_CANARY"),
-        // request[3]: Orchestrator synthesis.
-        text_completion("Acknowledged: DENIAL_ACK_CANARY"),
     ]);
     let stack = boot_stack().await;
 
@@ -1669,166 +1644,11 @@ async fn approval_gate_deny_flow_inner() {
     stack.shutdown();
 }
 
-// ─── 5.4 subagent_with_approval_gate ─────────────────────────────────────────
-//
-// Architecture: The approval gate fires for file_write inside a subagent context
-// only when the subagent run carries a WebChat turn origin. `dispatch_subagent`
-// (crates/openhuman-core/src/agent/orchestration/tools/dispatch.rs) invokes `run_subagent`
-// which runs the subagent's tool loop inside the SAME task that the orchestrator's
-// WebChat turn started in. Because `APPROVAL_CHAT_CONTEXT` and `turn_origin` are
-// tokio task-locals (not thread-locals), and `run_subagent` does NOT re-scope them,
-// the subagent inherits the WebChat origin from the orchestrator's task scope.
-// Therefore file_write inside a ArchetypeDelegationTool subagent CAN trigger the
-// approval gate and publish approval_request events.
-//
-// code_executor has delegate_name = "run_code" (crates/openhuman-core/src/agent/registry/
-// agents/code_executor/agent.toml:3). The orchestrator synthesizes a `run_code`
-// delegation tool from this. code_executor has file_write in its tool surface.
-// agent_memory does NOT have file_write.
-//
-// Actual LLM request ordering:
-//   request[0] = orchestrator → run_code delegation tool call
-//   request[1] = code_executor subagent → file_write tool call (approval parks)
-//   request[2] = code_executor subagent → text completion after approve
-//   request[3] = orchestrator → synthesis with SUBAGENT_WRITE_CANARY
-
-/// Orchestrator delegates to code_executor via the `run_code` tool (code_executor's
-/// delegate_name); the code_executor subagent calls file_write (on an existing file) →
-/// the approval gate parks inside the subagent's inherited WebChat context →
-/// approval_request fires → approve_once resumes it → subagent completes →
-/// orchestrator synthesizes. Three-plus upstream requests confirm the full path.
-#[test]
-#[ignore = "TODO(#6554): code_executor no longer reaches the approval gate with file_write"]
-fn subagent_with_approval_gate() {
-    run_on_agent_stack(
-        "subagent_with_approval_gate",
-        subagent_with_approval_gate_inner,
-    );
-}
-
-async fn subagent_with_approval_gate_inner() {
-    let _lock = env_lock();
-    let _ttl = EnvVarGuard::set("OPENHUMAN_APPROVAL_TTL_SECS", "120");
-    ensure_approval_gate().await;
-    let _approval_bridge = register_approval_bridge();
-    reset_script(vec![
-        // request[0]: Orchestrator delegates to code_executor via run_code.
-        // code_executor's delegate_name = "run_code" (agent.toml:3).
-        // ArchetypeDelegationTool requires "prompt" key (archetype_delegation.rs:82-89).
-        tool_call_completion(
-            "run_code",
-            json!({ "prompt": "write the artifact", "blocking": true }),
-        ),
-        // request[1]: code_executor subagent calls file_write → gate parks.
-        tool_call_completion(
-            "file_write",
-            json!({ "path": "subagent-artifact.txt", "content": "SUBAGENT_WRITE_CANARY" }),
-        ),
-        // request[2]: code_executor subagent after approval → text completion.
-        text_completion("Artifact written: SUBAGENT_WRITE_CANARY"),
-        // request[3]: Orchestrator synthesis.
-        text_completion("All done: SUBAGENT_WRITE_CANARY"),
-    ]);
-    let stack = boot_stack().await;
-
-    // Pre-create the target file so file_write sees it as existing.
-    let home = stack._tmp.path().to_path_buf();
-    pre_create_for_approval(&home, "subagent-artifact.txt");
-
-    let mut events = spawn_sse_collector(format!(
-        "{}/events?client_id=harness-subapproval",
-        stack.rpc_base
-    ))
-    .await;
-    send_web_chat(
-        &stack.rpc_base,
-        530,
-        "harness-subapproval",
-        "thread-subapproval",
-        "delegate the write",
-    )
-    .await;
-
-    // The approval gate fires because the subagent inherits the orchestrator's
-    // WebChat task-local origin (turn_origin + APPROVAL_CHAT_CONTEXT are not
-    // re-scoped by dispatch_subagent/run_subagent — crates/openhuman-core/src/agent/harness/
-    // subagent_runner/ and crates/openhuman-core/src/agent/orchestration/tools/dispatch.rs).
-    // If approval_request never fires within 120s, the event JSON is dumped.
-    let approval = wait_for_event(&mut events, "approval_request", Duration::from_secs(120)).await;
-    let request_id = approval
-        .pointer("/data/request_id")
-        .or_else(|| approval.get("request_id"))
-        .and_then(Value::as_str)
-        .unwrap_or_else(|| {
-            panic!("subagent approval_request missing request_id; event: {approval}")
-        })
-        .to_string();
-    assert!(
-        approval.to_string().contains("file_write"),
-        "subagent approval_request must mention file_write; event: {approval}"
-    );
-
-    let decide = post_json_rpc(
-        &stack.rpc_base,
-        531,
-        "openhuman.approval_decide",
-        json!({ "request_id": request_id, "decision": "approve_once" }),
-    )
-    .await;
-    assert_no_jsonrpc_error(&decide, "approval_decide subagent approve");
-
-    let done = wait_for_terminal(&mut events, Duration::from_secs(120)).await;
-    assert_eq!(
-        done.get("event").and_then(Value::as_str),
-        Some("chat_done"),
-        "expected chat_done after subagent+approval; got: {done}"
-    );
-    let full_response = done
-        .get("full_response")
-        .and_then(Value::as_str)
-        .unwrap_or_else(|| panic!("chat_done missing full_response: {done}"));
-    assert!(
-        full_response.contains("SUBAGENT_WRITE_CANARY"),
-        "full_response must contain SUBAGENT_WRITE_CANARY; got: {full_response}"
-    );
-
-    // Three-plus upstream requests: orchestrator + code_executor(file_write) +
-    // code_executor(text after approve) + orchestrator synthesis.
-    let requests = with_captured(|c| c.clone());
-    assert!(
-        requests.len() >= 3,
-        "expected ≥3 upstream requests (orchestrator + code_executor x2 + orchestrator synthesis), \
-         got {};\nrequests: {}",
-        requests.len(),
-        serde_json::to_string_pretty(&requests).unwrap_or_default()
-    );
-
-    assert!(
-        !captured_requests_mention_unknown_tool(&requests),
-        "found an unknown-tool result — run_code delegation was not synthesised; requests: {}",
-        serde_json::to_string_pretty(&requests).unwrap_or_default()
-    );
-
-    // The file must have been written with the canary content, proving that the
-    // approved tool execution actually ran (not just that the decision propagated).
-    let action_dir = stack._tmp.path().join("OpenHuman").join("projects");
-    let artifact_path = action_dir.join("subagent-artifact.txt");
-    let artifact_content = std::fs::read_to_string(&artifact_path)
-        .unwrap_or_else(|e| panic!("subagent-artifact.txt missing after approve: {e}"));
-    assert!(
-        artifact_content.contains("SUBAGENT_WRITE_CANARY"),
-        "subagent-artifact.txt must contain SUBAGENT_WRITE_CANARY after approve; got: {artifact_content:?}"
-    );
-
-    stack.shutdown();
-}
-
 // ─── 5.5 approval_gate_timeout ───────────────────────────────────────────────
 
 /// No decision within the TTL → gate auto-denies; turn completes with
 /// TIMEOUT_ACK_CANARY (not a hang). The file's content must not be overwritten.
 #[test]
-#[ignore = "TODO(#6554): code_executor no longer reaches the approval gate with file_write"]
 fn approval_gate_timeout() {
     run_on_agent_stack("approval_gate_timeout", approval_gate_timeout_inner);
 }
@@ -1839,24 +1659,16 @@ async fn approval_gate_timeout_inner() {
     let _ttl = EnvVarGuard::set("OPENHUMAN_APPROVAL_TTL_SECS", "2");
     ensure_approval_gate().await;
     let _approval_bridge = register_approval_bridge();
-    // Same delegation chain as approve/deny: orchestrator → run_code → code_executor
-    // → file_write. The gate parks and TTL-denies after 2 seconds. code_executor
-    // receives the denial, returns text; orchestrator synthesizes with TIMEOUT_ACK_CANARY.
+    // Same shape as approve/deny: orchestrator → file_write. The gate parks and
+    // TTL-denies after 2 seconds; the orchestrator acknowledges with TIMEOUT_ACK_CANARY.
     reset_script(vec![
-        // request[0]: Orchestrator delegates to code_executor.
-        tool_call_completion(
-            "run_code",
-            json!({ "prompt": "write timeout-canary.txt", "blocking": true }),
-        ),
-        // request[1]: code_executor calls file_write → gate parks, TTL expires.
+        // request[0]: Orchestrator calls file_write → gate parks, TTL expires.
         tool_call_completion(
             "file_write",
             json!({ "path": "timeout-canary.txt", "content": "TIMEOUT_WRITE_CANARY" }),
         ),
-        // request[2]: code_executor text after TTL auto-denial.
+        // request[1]: Orchestrator text after TTL auto-denial.
         text_completion("The write timed out awaiting approval. TIMEOUT_ACK_CANARY"),
-        // request[3]: Orchestrator synthesis.
-        text_completion("Acknowledged: TIMEOUT_ACK_CANARY"),
     ]);
     let stack = boot_stack().await;
 
