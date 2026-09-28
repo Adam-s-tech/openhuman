@@ -9,8 +9,8 @@
  * (`providers/__tests__/liveHistoryParity.test.tsx`); this pins the real DOM.
  *
  * Scripted turn (three LLM rounds):
- *   1. narration + web_fetch
- *   2. narration + web_fetch
+ *   1. narration + current_time
+ *   2. narration + resolve_time
  *   3. a long final answer (taller than the viewport, so following matters)
  *
  * Verifies:
@@ -37,7 +37,7 @@ import { clearRequestLog, setMockBehavior, startMockServer, stopMockServer } fro
 
 const LOG_PREFIX = '[chat-live-history-parity]';
 const USER_ID = 'e2e-chat-live-history-parity';
-const PROMPT = 'Fetch two pages, compare them, then explain the result.';
+const PROMPT = 'Check the current time, resolve five minutes from now, then explain it.';
 const CANARY_FINAL = 'canary-parity-7c1e';
 const FINAL_ANSWER = [
   `Here is what I found (${CANARY_FINAL}).`,
@@ -49,22 +49,22 @@ const FINAL_ANSWER = [
 
 const FORCED_RESPONSES = [
   {
-    content: 'I will fetch the first page.',
+    content: 'I will check the current time first.',
     toolCalls: [
       {
-        id: 'call_parity_fetch_one',
-        name: 'web_fetch',
-        arguments: JSON.stringify({ url: 'https://example.com' }),
+        id: 'call_parity_time',
+        name: 'current_time',
+        arguments: JSON.stringify({ timezone: 'UTC' }),
       },
     ],
   },
   {
-    content: 'Now I will fetch the second page.',
+    content: 'Now I will resolve the five-minute interval.',
     toolCalls: [
       {
-        id: 'call_parity_fetch_two',
-        name: 'web_fetch',
-        arguments: JSON.stringify({ url: 'https://example.org' }),
+        id: 'call_parity_resolve',
+        name: 'resolve_time',
+        arguments: JSON.stringify({ expr: 'in 5 minutes', timezone: 'UTC' }),
       },
     ],
   },
@@ -293,10 +293,10 @@ describe('Chat live/history parity', () => {
     expect(toolGroups.map(group => group.text)).toEqual(['1 tool call', '1 tool call']);
     const toolCalls = toolGroups.flatMap(group => group.toolCalls ?? []);
     expect(toolCalls).toHaveLength(2);
-    expect(toolCalls[0]).toMatchObject({ name: 'web_fetch' });
-    expect(toolCalls[0]?.input).toContain('example.com');
-    expect(toolCalls[1]).toMatchObject({ name: 'web_fetch' });
-    expect(toolCalls[1]?.input).toContain('example.org');
+    expect(toolCalls[0]).toMatchObject({ name: 'current_time' });
+    expect(toolCalls[0]?.input).toContain('UTC');
+    expect(toolCalls[1]).toMatchObject({ name: 'resolve_time' });
+    expect(toolCalls[1]?.input).toContain('in 5 minutes');
     const finalBlock = settled.find(
       block => block.kind === 'text' && block.text.includes(CANARY_FINAL)
     );
