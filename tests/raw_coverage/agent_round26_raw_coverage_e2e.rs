@@ -9,7 +9,6 @@ use openhuman_core::agent::prompts::{
     PromptContext, PromptTool, SubagentRenderOptions, SystemPromptBuilder, ToolCallFormat,
     UserIdentity,
 };
-use openhuman_core::agent::debug::{dump_agent_prompt, DumpPromptOptions};
 use openhuman_core::tinytools_agent::dialect::NativeDialect;
 use openhuman_core::agent::OpenHumanSessionHost;
 use openhuman_core::config::AgentConfig;
@@ -22,40 +21,10 @@ use tinytools::{PermissionLevel, Tool, ToolResult};
 use parking_lot::Mutex;
 use serde_json::json;
 use std::collections::{HashSet, VecDeque};
-use std::path::PathBuf;
 use std::sync::{Arc, OnceLock};
 use tinyinference_llm::message::Message;
 use tinyinference_llm::model::{ChatModel, ModelProfile, ModelRequest, ModelResponse};
 use tinyinference_llm::usage::Usage;
-
-struct EnvGuard {
-    key: &'static str,
-    previous: Option<std::ffi::OsString>,
-}
-
-impl EnvGuard {
-    fn set_path(key: &'static str, value: &std::path::Path) -> Self {
-        let previous = std::env::var_os(key);
-        unsafe { std::env::set_var(key, value) };
-        Self { key, previous }
-    }
-}
-
-impl Drop for EnvGuard {
-    fn drop(&mut self) {
-        match self.previous.take() {
-            Some(value) => unsafe { std::env::set_var(self.key, value) },
-            None => unsafe { std::env::remove_var(self.key) },
-        }
-    }
-}
-
-fn env_lock() -> std::sync::MutexGuard<'static, ()> {
-    static LOCK: &std::sync::OnceLock<std::sync::Mutex<()>> = &crate::SHARED_ENV_LOCK;
-    LOCK.get_or_init(|| std::sync::Mutex::new(()))
-        .lock()
-        .unwrap_or_else(|e| e.into_inner())
-}
 
 #[derive(Clone, Debug)]
 struct CapturedRequest {

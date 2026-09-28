@@ -4,7 +4,6 @@ use openhuman_core::core::bus::BUS;
 use openhuman_core::agent::bus::{
     register_agent_handlers, AgentTurnRequest, AgentTurnResponse, AGENT_RUN_TURN_METHOD,
 };
-use openhuman_core::agent::debug::{dump_agent_prompt, DumpPromptOptions};
 use openhuman_core::tinytools_agent::dialect::XmlDialect;
 use openhuman_core::agent::{OpenHumanSessionHost, SessionHostBuilder};
 use openhuman_core::config::{AgentConfig, MultimodalConfig, MultimodalFileConfig};
