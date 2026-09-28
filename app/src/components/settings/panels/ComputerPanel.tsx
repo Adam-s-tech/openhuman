@@ -43,7 +43,7 @@ export interface ComputerPanelProps {
   onSectionChange?: (section: ComputerSection) => void;
 }
 
-export function ComputerModelsSection() {
+export function ComputerModelsSection({ onSaved }: { onSaved?: () => void } = {}) {
   const { t } = useT();
   const [settings, setSettings] = useState<ComputerSettings>(defaults);
   const [apiKey, setApiKey] = useState('');
@@ -96,6 +96,7 @@ export function ComputerModelsSection() {
       });
       await refresh();
       setMessage(t('computer.models.saved'));
+      onSaved?.();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : String(error));
     } finally {
@@ -218,6 +219,7 @@ export default function ComputerPanel({
 }: ComputerPanelProps = {}) {
   const { t } = useT();
   const [local, setLocal] = useState<ComputerSection>('desktop');
+  const [statusKey, setStatusKey] = useState(0);
   const section = controlled ?? local;
   const change = (next: ComputerSection) => {
     setLocal(next);
@@ -241,10 +243,12 @@ export default function ComputerPanel({
         <Alert variant="warning" density="compact" role={undefined}>
           <AlertDescription>{t('connections.earlyAlphaNotice')}</AlertDescription>
         </Alert>
-        <ComputerStatusCard />
+        <ComputerStatusCard refreshKey={statusKey} />
         {section === 'desktop' && <DesktopConnectionPage embedded />}
         {section === 'browser' && <BrowserConnectionsPanel embedded />}
-        {section === 'models' && <ComputerModelsSection />}
+        {section === 'models' && (
+          <ComputerModelsSection onSaved={() => setStatusKey(key => key + 1)} />
+        )}
       </div>
     </SettingsTabbedPage>
   );

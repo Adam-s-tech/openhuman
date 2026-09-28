@@ -40,7 +40,7 @@ const stateVariant = (state?: ModuleState) =>
       ? ('danger' as const)
       : ('neutral' as const);
 
-export default function ComputerStatusCard() {
+export default function ComputerStatusCard({ refreshKey = 0 }: { refreshKey?: number } = {}) {
   const { t } = useT();
   const [status, setStatus] = useState<ComputerStatus | null>(null);
   const [busy, setBusy] = useState(false);
@@ -65,7 +65,7 @@ export default function ComputerStatusCard() {
 
   useEffect(() => {
     void Promise.resolve().then(() => load(false));
-  }, [load]);
+  }, [load, refreshKey]);
 
   const model = (value?: string) =>
     value === 'open_jev'
