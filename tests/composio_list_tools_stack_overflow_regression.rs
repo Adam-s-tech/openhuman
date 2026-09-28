@@ -4,9 +4,9 @@
 //!
 //! While a user chat went through
 //! `web_channel → orchestrator turn → delegate_to_integrations_agent
-//! → integrations_agent → composio_list_tools` (the orchestrator has since
-//! stopped spawning `integrations_agent` — it searches for and calls the
-//! action itself — but the sub-agent runner path below is unchanged), the
+//! → integrations_agent → composio_list_tools` (that specialist has since
+//! been removed — the orchestrator searches for and calls the action itself
+//! — but the sub-agent runner path below is the one every delegation takes), the
 //! in-process core
 //! aborted with `EXC_BAD_ACCESS (SIGBUS) — KERN_PROTECTION_FAILURE`
 //! at an address inside the **stack guard page** of a `tokio-rt-worker`
@@ -95,7 +95,7 @@
 //!     hide for longer,
 //!   * `OPENHUMAN_WORKSPACE` pointed at a tempdir with a representative
 //!     `config.toml` so the TOML parser does real work,
-//!   * `run_subagent(integrations_agent)` exactly like a delegation tool
+//!   * `run_subagent(critic)` exactly like a delegation tool
 //!     does, with a stubbed `ChatModel`
 //!     that emits one `composio_list_tools` tool call on iteration 1
 //!     and stops on iteration 2.
@@ -341,7 +341,7 @@ async fn drive_subagent() {
 
     let parent = ParentExecutionContext {
         agent_definition_id: "orchestrator".into(),
-        allowed_subagent_ids: ["integrations_agent".to_string()].into_iter().collect(),
+        allowed_subagent_ids: ["critic".to_string()].into_iter().collect(),
         turn_model_source: openhuman_core::agent::tinyagents::TurnModelSource::from_model(model),
         all_tools: Arc::new(vec![]),
         all_tool_specs: Arc::new(vec![]),
@@ -371,11 +371,11 @@ async fn drive_subagent() {
 
     let mut def = AgentDefinitionRegistry::global()
         .expect("registry initialised")
-        .get("integrations_agent")
-        .expect("integrations_agent built-in must exist")
+        .get("critic")
+        .expect("critic built-in must exist")
         .clone();
-    // The shipped `integrations_agent` definition has `model.hint =
-    // "agentic"`, which would otherwise build a fresh model via the
+    // A shipped definition with a `model.hint` would otherwise build a
+    // fresh model via the
     // workload factory and try to hit the real backend. Override to
     // Inherit so the stub model above receives the request — same
     // trick used in `tests/calendar_grounding_e2e.rs`.
