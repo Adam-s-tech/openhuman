@@ -93,3 +93,21 @@ async fn start_serves_files_with_basic_auth() {
     assert_eq!(stopped.server_id, server.server_id);
     assert!(list_hosted_dir_servers().unwrap().is_empty());
 }
+
+#[test]
+fn register_controllers_adds_http_host_namespace_idempotently() {
+    crate::http_host::register_controllers().expect("first registration");
+    crate::http_host::register_controllers().expect("re-registration is a no-op");
+    let schemas = openhuman_core::core::all::all_controller_schemas();
+    let functions: Vec<&str> = schemas
+        .iter()
+        .filter(|s| s.namespace == "http_host")
+        .map(|s| s.function)
+        .collect();
+    for expected in ["start", "stop", "get", "list"] {
+        assert!(
+            functions.contains(&expected),
+            "http_host.{expected} must be registered: {functions:?}"
+        );
+    }
+}
