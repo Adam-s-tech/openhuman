@@ -1028,7 +1028,7 @@ async fn run_typed_mode(
         definition.omit_memory_md,
     );
 
-    let narrowed_integrations: Vec<crate::agent::prompts::ConnectedIntegration> =
+    let connected_integrations_for_prompt: Vec<crate::agent::prompts::ConnectedIntegration> =
         live_integrations
             .iter()
             .filter(|ci| ci.connected)
@@ -1089,7 +1089,7 @@ async fn run_typed_mode(
         learned: crate::agent::prompts::LearnedContextData::default(),
         visible_tool_names: &visible_tool_names,
         tool_call_format: prompt_tool_call_format,
-        connected_integrations: &narrowed_integrations,
+        connected_integrations: &connected_integrations_for_prompt,
         connected_identities_md: crate::agent::prompts::render_connected_identities(),
         include_profile: !definition.omit_profile,
         include_memory_md: !definition.omit_memory_md,
@@ -1118,7 +1118,7 @@ async fn run_typed_mode(
                 &archetype_prompt_body,
                 render_options,
                 prompt_tool_call_format,
-                &narrowed_integrations,
+                &connected_integrations_for_prompt,
                 agents_md.global.as_deref(),
                 agents_md.local.as_deref(),
             )
