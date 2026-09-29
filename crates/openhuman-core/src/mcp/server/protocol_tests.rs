@@ -292,6 +292,44 @@ async fn tools_call_rejects_missing_required_query() {
 }
 
 #[tokio::test]
+async fn tools_call_decodes_json_encoded_arguments_before_dispatch() {
+    // A client that JSON-encodes `arguments` reaches the tool with an object:
+    // the call fails on the tool's own missing field, not on the argument type.
+    let response = request(json!({
+        "jsonrpc": "2.0",
+        "id": 4,
+        "method": "tools/call",
+        "params": {
+            "name": "memory.search",
+            "arguments": "{\"limit\": 3}"
+        }
+    }))
+    .await;
+
+    assert_eq!(response["error"]["code"], -32602);
+    assert!(response["error"]["data"]
+        .as_str()
+        .expect("error data")
+        .contains("missing required argument `query`"));
+}
+
+#[tokio::test]
+async fn tools_call_rejects_arguments_that_are_not_an_object() {
+    let response = request(json!({
+        "jsonrpc": "2.0",
+        "id": 5,
+        "method": "tools/call",
+        "params": { "name": "memory.search", "arguments": [1, 2] }
+    }))
+    .await;
+
+    assert_eq!(response["error"]["code"], -32602);
+    let data = response["error"]["data"].as_str().expect("error data");
+    assert!(data.contains("tools/call params.arguments"), "{data}");
+    assert!(data.contains("an array"), "{data}");
+}
+
+#[tokio::test]
 async fn batch_returns_only_request_responses() {
     let responses = handle_json_value(json!([
         {
