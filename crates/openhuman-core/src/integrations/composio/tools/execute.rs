@@ -15,7 +15,6 @@ use crate::agent::harness::definition::SandboxMode;
 use crate::config::Config;
 use tinytools::{PermissionLevel, Tool, ToolCategory, ToolResult};
 
-use super::super::client::create_composio_client;
 use super::super::ops::load_user_scope_pref;
 use super::super::providers::{toolkit_from_slug, ToolScope};
 use super::visibility::{
