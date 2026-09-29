@@ -225,7 +225,6 @@ pub(super) fn connected_with_fallback(
 pub(super) fn build_visible_tool_set(
     definition: &AgentDefinition,
     extra_tools: &[Box<dyn Tool>],
-    deferred_tools: Vec::new(),
 ) -> Option<HashSet<String>> {
     match &definition.tools {
         ToolScope::Wildcard => None,

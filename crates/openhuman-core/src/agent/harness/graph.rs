@@ -49,7 +49,6 @@ pub(crate) async fn run_channel_turn_via_graph(
     history: &mut Vec<ChatMessage>,
     tools_registry: Arc<Vec<Box<dyn Tool>>>,
     extra_tools: Vec<Box<dyn Tool>>,
-    deferred_tools: Vec::new(),
     visible_tool_names: Option<&HashSet<String>>,
     model: &str,
     temperature: f64,
