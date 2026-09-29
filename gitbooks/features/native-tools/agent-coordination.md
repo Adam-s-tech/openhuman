@@ -25,7 +25,7 @@ Beyond doing the work, the agent has tools for _organising_ the work - planning 
 | `plan_exit`                                       | Exit a planning phase and start executing.                                                                      |
 | `check_onboarding_status` / `complete_onboarding` | Gate behaviour on whether the user has finished onboarding.                                                     |
 
-`spawn_subagent` and archetype delegation calls accept an optional `model` field for a one-off exact model pin. If it is omitted, the harness uses config-level per-agent pins when present and otherwise falls back to the normal model-routing hints. Model, toolkit, sandbox mode, parent thread, action root, and task key are part of reusable sub-agent compatibility, so materially different work gets a separate worker.
+`spawn_subagent` and archetype delegation calls accept an optional `model` field for a one-off exact model pin. If it is omitted, the harness uses config-level per-agent pins when present and otherwise falls back to the normal model-routing hints. Model, sandbox mode, parent thread, action root, and task key are part of reusable sub-agent compatibility, so materially different work gets a separate worker.
 
 Reusable delegation returns both a transient `task_id` and a durable `subagent_session_id`. Prefer the durable id for cross-turn follow-ups. Pass `fresh: true` only when the user or task needs a clean worker; pass `blocking: true` only when the parent must wait inline for the child result.
 

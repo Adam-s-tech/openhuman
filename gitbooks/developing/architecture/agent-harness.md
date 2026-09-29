@@ -397,7 +397,7 @@ Custom archetypes ship as TOML files under `$OPENHUMAN_WORKSPACE/agents/*.toml` 
 
 ### Running a reusable sub-agent
 
-When the orchestrator calls `spawn_subagent`, the default contract is durable and asynchronous. The tool builds a deterministic compatibility selector from the parent session/thread, agent id, toolkit scope, model override, sandbox mode, action root, and normalized task key/title. It then checks `orchestration::subagent_sessions` before spawning:
+When the orchestrator calls `spawn_subagent`, the default contract is durable and asynchronous. The tool builds a deterministic compatibility selector from the parent session/thread, agent id, model override, sandbox mode, action root, and normalized task key/title. It then checks `orchestration::subagent_sessions` before spawning:
 
 - If a compatible worker is already running, the instruction is injected through its `RunQueue` and the parent gets a quick `subagent_session_id` / `task_id` reference.
 - If a compatible worker is idle or paused with reusable history, the harness starts a new transient run for the same durable `subagent_session_id` and passes the saved child history through `SubagentRunOptions.initial_history`, with the new instruction appended as a user-visible follow-up.
