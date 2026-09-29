@@ -34,7 +34,7 @@ pub struct ComposioExecuteTool {
     /// pre-baked client kept routing executions through
     /// `staging-api.tinyhumans.ai/agent-integrations/composio/execute`
     /// — silently bypassing the direct-mode user's personal Composio
-    /// tenant. Resolving the client per call via
+    /// tenant. Resolving the route per call in
     /// the connector module keeps dispatch in lockstep with the
     /// live config, matching
     /// [`crate::integrations::composio::ops::composio_execute`]. See
