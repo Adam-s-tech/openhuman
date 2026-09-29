@@ -308,6 +308,21 @@ async fn check_available_with_base_url(base_url: &str) -> Result<UpdateInfo, Str
     let update_available = is_newer(&latest_version, current);
     let platform_asset = find_platform_asset(&release.assets);
 
+    if update_available && platform_asset.is_none() {
+        let message = format!(
+            "update {latest_version} is available, but no core asset was found for {}",
+            platform_triple()
+        );
+        log::error!("[update] {message}");
+        crate::core::observability::report_error(
+            &message,
+            "update",
+            "check_releases",
+            &[("failure", "missing_platform_asset")],
+        );
+        return Err(message);
+    }
+
     let info = UpdateInfo {
         latest_version,
         current_version: current.to_string(),

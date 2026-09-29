@@ -123,6 +123,22 @@ async fn check_available_reports_no_update_for_an_older_tag() {
 }
 
 #[tokio::test]
+async fn check_available_errors_when_a_newer_release_has_no_platform_asset() {
+    let server = releases_mock(
+        200,
+        r#"{"tag_name":"v99.0.0","body":"notes","published_at":"2026-09-29T00:00:00Z","assets":[]}"#,
+    )
+    .await;
+
+    let err = check_available_with_base_url(&server.uri())
+        .await
+        .expect_err("a newer release without a platform asset must be surfaced");
+
+    assert!(err.contains("update 99.0.0 is available"));
+    assert!(err.contains(platform_triple()));
+}
+
+#[tokio::test]
 async fn check_available_surfaces_a_non_2xx_as_a_github_api_error() {
     // 403 is what the unauthenticated rate limit returns — the case the issue
     // says a caller currently cannot tell apart from "no update".
