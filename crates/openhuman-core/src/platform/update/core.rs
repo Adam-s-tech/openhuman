@@ -124,6 +124,14 @@ fn staged_binary_staging_name() -> &'static str {
     }
 }
 
+fn staged_asset_path(dir: &std::path::Path, asset_name: &str, is_archive: bool) -> std::path::PathBuf {
+    if is_archive || asset_name == staged_binary_name() {
+        dir.join(staged_binary_staging_name())
+    } else {
+        dir.join(asset_name)
+    }
+}
+
 /// Make `tmp` executable and move it onto `dest` atomically, cleaning up `tmp`
 /// if the rename fails.
 fn finalize_executable(tmp: &std::path::Path, dest: &std::path::Path) -> Result<(), String> {
@@ -462,13 +470,8 @@ pub async fn download_and_stage_with_version(
     // An archive stages as the executable it contains, not as itself: marking a
     // `.tar.gz` 0755 and restarting into it cannot work (#6766).
     let is_archive = is_archive_asset(asset_name);
-    let staged_path = if is_archive {
-        // Keep the downloaded binary separate from the running executable;
-        // the restart flow owns installing/replacing it.
-        dir.join(staged_binary_staging_name())
-    } else {
-        dir.join(asset_name)
-    };
+    // Legacy raw-binary assets can have the same name as the running executable.
+    let staged_path = staged_asset_path(&dir, asset_name, is_archive);
 
     // Write to a temp file first, then rename for atomicity.
     let tmp_path = dir.join(format!(".{asset_name}.tmp"));

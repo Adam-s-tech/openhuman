@@ -450,3 +450,12 @@ fn staging_extracts_zip_when_archive_format_is_explicit() {
         b"core binary"
     );
 }
+
+#[test]
+fn raw_core_binary_stages_separately_from_running_executable() {
+    let dir = tempfile::TempDir::new().expect("temp dir");
+    let staged = staged_asset_path(dir.path(), staged_binary_name(), false);
+
+    assert_eq!(staged, dir.path().join(staged_binary_staging_name()));
+    assert_ne!(staged, dir.path().join(staged_binary_name()));
+}
