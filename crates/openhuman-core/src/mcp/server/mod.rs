@@ -34,11 +34,7 @@ mod handler;
 #[cfg(feature = "mcp")]
 mod local;
 #[cfg(feature = "mcp")]
-mod protocol;
-#[cfg(feature = "mcp")]
 mod resources;
-#[cfg(feature = "mcp")]
-mod session;
 #[cfg(feature = "mcp")]
 mod stdio;
 #[cfg(feature = "mcp")]

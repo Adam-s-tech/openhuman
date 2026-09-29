@@ -7,7 +7,14 @@
 /// Answer one newline-delimited JSON-RPC line on a fresh session, exactly as
 /// the stdio transport would.
 pub(super) async fn dispatch_line(line: &str) -> Option<String> {
-    super::protocol::handle_json_line(line).await
+    let mut session = tinymcp::ClientSession::new("mcp");
+    tinymcp::server::handle_line(
+        &super::handler::OpenHumanMcpHandler,
+        &mut session,
+        &tinymcp::RequestHeaders::new(),
+        line,
+    )
+    .await
 }
 
 /// Start the Streamable HTTP server on an ephemeral loopback port and return
