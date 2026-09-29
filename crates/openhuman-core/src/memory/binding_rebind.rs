@@ -19,9 +19,10 @@ use super::binding::{for_workspace, MemoryBinding, BINDINGS};
 /// built-in (`Module`/`Null`) bound under exactly `new_cfg`. An `External`
 /// binding is evicted even when its config is unchanged, because the thing that
 /// changed may be the keychain entry behind `credential_ref`, which the cache
-/// key cannot see. Evicted `External` drivers are shut down in the background;
-/// the module is never shut down here — it is process-global and a switch back
-/// to it must find it running.
+/// key cannot see. Evicted drivers are not shut down: remote providers have no
+/// teardown of their own (the trait default is a no-op) and may still be held by
+/// a running session, which releases them on drop. The module is process-global
+/// and a switch back to it must find it running.
 ///
 /// Callers that already hold a resolved `Arc<MemoryBinding>` (a running agent
 /// session, the archivist) keep it until they resolve again; only new
@@ -66,18 +67,11 @@ pub fn rebind(
         ctx.set_memory_subsystem(workspace_dir, new_cfg.clone())?;
     }
 
-    for binding in evicted
-        .into_iter()
-        .filter(|b| b.class() == DriverClass::External)
-    {
-        if let Ok(handle) = tokio::runtime::Handle::try_current() {
-            handle.spawn(async move {
-                if let Err(e) = binding.provider().shutdown().await {
-                    log::debug!("[memory:binding] evicted driver shutdown failed: {e}");
-                }
-            });
-        }
-    }
+    // No explicit `shutdown()` on the evicted drivers: the remote adapters keep
+    // the trait's default (a no-op) and hold nothing but an HTTP client, and a
+    // session or the archivist may still be using the old binding. Dropping our
+    // reference lets each one release when its last holder goes.
+    drop(evicted);
 
     let binding = for_workspace(workspace_dir, new_cfg)?;
     log::info!(
