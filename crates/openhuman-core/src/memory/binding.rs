@@ -814,6 +814,7 @@ pub fn rebind(
 ///
 /// Only lock poisoning, as [`for_workspace`].
 pub fn for_config(config: &crate::config::Config) -> Result<Arc<MemoryBinding>, String> {
+    super::binding_remote::note_api_url(&config.workspace_dir, &config.api_url);
     for_workspace(&config.workspace_dir, &config.subsystems.memory)
 }
 

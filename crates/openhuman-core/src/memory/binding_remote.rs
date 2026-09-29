@@ -121,15 +121,44 @@ impl EngineTarget {
     }
 }
 
-/// Best-effort, synchronous read of the `api_url` override for a workspace.
+/// `api_url` overrides recorded by callers that hold a whole `Config`.
+static NOTED_API_URLS: std::sync::OnceLock<
+    std::sync::RwLock<std::collections::HashMap<std::path::PathBuf, Option<String>>>,
+> = std::sync::OnceLock::new();
+
+/// Record the operator's `api_url` override for `workspace_dir`.
 ///
 /// [`crate::memory::binding`] binds synchronously and holds no `Config`, but
-/// the hosted engine's endpoint depends on the operator's `api_url` (staging,
-/// self-hosted backend). The config file is looked for in the same two layouts
-/// `load_config_for_workspace_with_timeout` uses; a missing or unparsable file
-/// means "no override".
+/// the hosted engine's endpoint depends on the override (staging, self-hosted
+/// backend). Every caller that does hold a `Config` (`binding::for_config`, the
+/// boot warm-up, the engine RPCs) notes it here first, so the bind sees the
+/// same value the rest of the core does whatever the config-file layout is.
+pub fn note_api_url(workspace_dir: &Path, api_url: &Option<String>) {
+    let value = api_url
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(str::to_string);
+    let map = NOTED_API_URLS.get_or_init(Default::default);
+    if let Ok(mut map) = map.write() {
+        map.insert(workspace_dir.to_path_buf(), value);
+    }
+}
+
+/// The `api_url` override for a workspace: the value a caller noted with
+/// [`note_api_url`], else a best-effort synchronous read of the workspace's
+/// `config.toml` (looked for in the same two layouts
+/// `load_config_for_workspace_with_timeout` uses). Missing or unparsable means
+/// "no override".
 #[must_use]
 pub fn configured_api_url(workspace_dir: &Path) -> Option<String> {
+    if let Some(noted) = NOTED_API_URLS
+        .get()
+        .and_then(|m| m.read().ok())
+        .and_then(|m| m.get(workspace_dir).cloned())
+    {
+        return noted;
+    }
     let candidates = [
         workspace_dir.join("config.toml"),
         workspace_dir
