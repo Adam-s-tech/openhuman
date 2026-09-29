@@ -9,7 +9,6 @@ interface MemoryEngineSwitchDialogProps {
   /** Set once "Copy & switch" started; swaps the choices for a progress view. */
   migration: MemoryEngineMigrateStatus | null;
   busy: boolean;
-  errorMessage: string | null;
   onCopy: () => void;
   onSkipCopy: () => void;
   onCancel: () => void;
@@ -21,7 +20,6 @@ export default function MemoryEngineSwitchDialog({
   lacking,
   migration,
   busy,
-  errorMessage,
   onCopy,
   onSkipCopy,
   onCancel,
@@ -105,11 +103,6 @@ export default function MemoryEngineSwitchDialog({
             ) : null}
           </>
         )}
-        {errorMessage ? (
-          <p role="alert" className="text-xs text-coral-600">
-            {errorMessage}
-          </p>
-        ) : null}
       </div>
     </ModalShell>
   );

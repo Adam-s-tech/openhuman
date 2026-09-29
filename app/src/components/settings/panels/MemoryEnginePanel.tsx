@@ -82,6 +82,8 @@ export default function MemoryEnginePanel() {
   const [jobId, setJobId] = useState<string | null>(null);
   const [migration, setMigration] = useState<MemoryEngineMigrateStatus | null>(null);
   const mounted = useRef(true);
+  // Driver the running migration is copying into (finishSwitch needs it after polling).
+  const targetDriverRef = useRef<string>('');
 
   useEffect(() => {
     mounted.current = true;
@@ -135,12 +137,11 @@ export default function MemoryEnginePanel() {
 
   const dirty = useMemo(() => {
     if (!isSameDriver || !form || !current) return false;
-    return (
-      form.apiKey.trim() !== '' ||
-      (selected?.needs_endpoint === true && form.endpoint !== (current.endpoint ?? '')) ||
-      (selected ? selected.deployments.length > 0 : false) &&
-        form.deployment !== (current.deployment ?? '')
-    );
+    const endpointChanged =
+      selected?.needs_endpoint === true && form.endpoint !== (current.endpoint ?? '');
+    const deploymentChanged =
+      (selected?.deployments.length ?? 0) > 0 && form.deployment !== (current.deployment ?? '');
+    return form.apiKey.trim() !== '' || endpointChanged || deploymentChanged;
   }, [isSameDriver, form, current, selected]);
 
   const buildTarget = (): MemoryEngineTarget | null => {
@@ -194,6 +195,7 @@ export default function MemoryEnginePanel() {
     setSaving(true);
     setError(null);
     try {
+      targetDriverRef.current = target.driver;
       const { job_id } = await memoryEngineMigrate(target);
       log('migrate started job=%s driver=%s', job_id, target.driver);
       if (!mounted.current) return;
@@ -226,7 +228,7 @@ export default function MemoryEnginePanel() {
         setSaving(false);
         if (status.state === 'done') {
           log('migrate done job=%s copied=%d', jobId, status.copied);
-          await finishSwitch(selectedIdRef.current ?? '');
+          await finishSwitch(targetDriverRef.current);
         } else {
           log('migrate failed job=%s', jobId);
           setJobId(null);
@@ -250,9 +252,6 @@ export default function MemoryEnginePanel() {
       if (timer) clearTimeout(timer);
     };
   }, [jobId, finishSwitch]);
-
-  const selectedIdRef = useRef<string | null>(null);
-  selectedIdRef.current = selectedId;
 
   const onSwitchClick = () => {
     if (isSameDriver) {
@@ -364,7 +363,6 @@ export default function MemoryEnginePanel() {
             lacking={lacking}
             migration={migration}
             busy={saving}
-            errorMessage={null}
             onCopy={() => void doMigrate()}
             onSkipCopy={() => void doSet()}
             onCancel={() => setConfirming(false)}
