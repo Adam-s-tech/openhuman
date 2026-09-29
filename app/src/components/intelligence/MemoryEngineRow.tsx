@@ -1,12 +1,8 @@
-import debug from 'debug';
-import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { useT } from '../../lib/i18n/I18nContext';
-import { memoryEngineGet, memoryEnginesList } from '../../utils/tauriCommands/memoryEngine';
 import { Button } from '../ui';
-
-const log = debug('brain:memory-engine-row');
+import { useMemoryEngine } from './useMemoryEngineCapabilities';
 
 /**
  * "Memory engine: <label> · Change" — a one-line summary on the Brain page that
@@ -16,24 +12,8 @@ const log = debug('brain:memory-engine-row');
 export default function MemoryEngineRow() {
   const { t } = useT();
   const navigate = useNavigate();
-  const [engine, setEngine] = useState<{ id: string; label: string } | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      try {
-        const [list, state] = await Promise.all([memoryEnginesList(), memoryEngineGet()]);
-        if (cancelled) return;
-        const label = list.engines.find(e => e.id === state.driver)?.label ?? state.driver;
-        setEngine({ id: state.driver, label });
-      } catch (err) {
-        log('unavailable: %o', err);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const { id, label } = useMemoryEngine();
+  const engine = id ? { id, label: label ?? id } : null;
 
   if (!engine) return null;
   return (
