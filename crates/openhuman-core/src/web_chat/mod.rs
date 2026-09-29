@@ -25,6 +25,7 @@
 //! `web_errors*.rs` (provider error classification), `schemas.rs` (RPC
 //! contract), `types.rs` (shared param/state types).
 
+mod channel_event;
 mod egress_surface;
 mod event_bus;
 mod journal_shadow;
@@ -52,6 +53,10 @@ pub(crate) use web_errors::{
 };
 
 // Public API — event bus
+pub use channel_event::{
+    ChatSuggestion, GuardrailPayload, GuardrailReason, QueueItemPayload, SubagentProgressDetail,
+    SubagentUsagePayload, TurnTimingPayload, TurnUsagePayload, WebChannelEvent,
+};
 pub use egress_surface::register_egress_surface_subscriber;
 pub use event_bus::{
     approval_request_event, plan_review_request_event, publish_web_channel_event,
@@ -59,6 +64,7 @@ pub use event_bus::{
     register_artifact_surface_subscriber, register_memory_activity_surface_subscriber,
     subscribe_web_channel_events,
 };
+pub use progress_bridge::unix_epoch_ms;
 
 // Test-only: OnceLock-bypassing approval bridge for per-runtime integration tests.
 // Compiled only in debug builds so it cannot be linked into a release binary.

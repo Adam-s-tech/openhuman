@@ -9,22 +9,27 @@ use crate::security::{SecurityPolicy, ToolOperation};
 
 use super::super::write_dispatch;
 use super::params::{build_rpc_params, validate_controller_params};
-use super::specs::{
-    base_tool_specs, list_tools_result_for_config, list_tools_result_from_specs,
-    tool_specs_for_config,
-};
-use super::types::ToolCallError;
+use super::specs::{base_tool_specs, tool_specs_for_loaded_config};
+use super::types::McpToolSpec;
+use tinymcp::ToolCallError;
 
-pub async fn list_tools_result() -> Value {
+/// The tools `tools/list` advertises and `tools/call` accepts: every tool the
+/// loaded config can serve, or only the config-independent base set when the
+/// config will not load. `method` names the MCP method for the log line.
+async fn available_tool_specs(method: &str) -> Vec<McpToolSpec> {
     match config_rpc::load_config_with_timeout().await {
-        Ok(config) => list_tools_result_for_config(&config),
+        Ok(config) => tool_specs_for_loaded_config(&config),
         Err(err) => {
             log::warn!(
-                "[mcp_server] tools/list config load failed; omitting config-gated tools: {err}"
+                "[mcp_server] {method} config load failed; omitting config-gated tools: {err}"
             );
-            list_tools_result_from_specs(base_tool_specs())
+            base_tool_specs()
         }
     }
+}
+
+pub async fn list_tool_specs() -> Vec<McpToolSpec> {
+    available_tool_specs("tools/list").await
 }
 
 pub async fn call_tool(
@@ -32,18 +37,7 @@ pub async fn call_tool(
     arguments: Value,
     client_info: &str,
 ) -> Result<Value, ToolCallError> {
-    let specs = match config_rpc::load_config_with_timeout().await {
-        Ok(config) => tool_specs_for_config(
-            &config,
-            crate::search::providers::backend_credential_available(&config),
-        ),
-        Err(err) => {
-            log::warn!(
-                "[mcp_server] tools/call config load failed; omitting config-gated tools: {err}"
-            );
-            base_tool_specs()
-        }
-    };
+    let specs = available_tool_specs("tools/call").await;
     let spec = specs
         .into_iter()
         .find(|tool| tool.name == name)
@@ -320,7 +314,7 @@ async fn list_subagents() -> Result<Value, ToolCallError> {
 
 async fn run_subagent_tool(params: &Map<String, Value>) -> Result<Value, ToolCallError> {
     use super::super::subagent_depth;
-    use super::params::required_non_empty_string;
+    use tinymcp::server::args::required_non_empty_string;
 
     let agent_id = required_non_empty_string(params, "agent_id")?;
     let prompt = required_non_empty_string(params, "prompt")?;

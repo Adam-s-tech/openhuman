@@ -50,7 +50,7 @@ Flat files: `bus.rs` (`agent.run_turn` native request handler), `context_breakdo
 
 `agent`, `agent_registry`, `harness_init`, `session_import`, `plan_review`, `run_ledger` (session_db), `agent_experience` (experience), `ai` (artifacts), `learning`, `agent_team`, `agent_work` (orchestration/command_center), `workflow_run`, `worktree`, `subagent` (orchestration/subagent_control): all registered under `DomainGroup::Agent` in `core/all.rs`.
 
-`crate::rpc` is `pub use openhuman_rpc as rpc` in `lib.rs`; shared RPC contracts, response decoding, and the HTTP client live in the separate `crates/openhuman-rpc` crate, not under `agent/`.
+`crate::core::Outcome` is the controller result type; the JSON-RPC protocol, client and server that expose controllers live in the separate `crates/openhuman-rpc` crate, which depends on this one.
 
 ## Calls into
 

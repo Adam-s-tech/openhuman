@@ -10,23 +10,22 @@
 //!    background loops. After `build`, [`CoreRuntime::invoke`] can dispatch any
 //!    RPC method in-process, and agent turns can run — so a harness-only embedder
 //!    (`ServiceSet::none`) needs nothing more.
-//! 2. [`CoreRuntime::serve`] — *transport + background services*: bind the HTTP
-//!    listener, mount the router, fire the readiness signal, spawn the selected
-//!    background services, and serve until shutdown.
+//! 2. *Transport + background services*: `openhuman_rpc::server::serve` binds
+//!    the HTTP listener, mounts the router, fires the readiness signal, calls
+//!    [`CoreRuntime::start_services`], and serves until shutdown. A runtime
+//!    with no transport calls `start_services` itself.
 //!
-//! The legacy entry points (`run_server`, `run_server_embedded`,
-//! `run_server_embedded_with_ready`) are now thin shims over this builder, so
-//! the desktop shell, the standalone CLI, and any new embedder share one path.
+//! The server entry points in `openhuman-rpc` (`run_server`,
+//! `run_server_embedded`, `run_server_embedded_with_ready`) are thin shims over
+//! this builder, so the desktop shell, the standalone CLI, and any new embedder
+//! share one path.
 //! See the pluggable-core work (`core::runtime`) for how this fits with
 //! [`context`](crate::core::runtime::context) and `services`.
 
 use std::sync::Arc;
 
-use tokio_util::sync::CancellationToken;
-
 use crate::config::Config;
 use crate::core::all::DomainGroup;
-use crate::core::jsonrpc::{self, EmbeddedReadySignal};
 use crate::core::runtime::context::CoreContext;
 use crate::core::types::HostKind;
 
@@ -502,7 +501,7 @@ impl CoreBuilder {
         self
     }
 
-    /// Choose which background services / transports [`CoreRuntime::serve`] runs.
+    /// Choose which background services and transports this runtime runs.
     pub fn services(mut self, services: ServiceSet) -> Self {
         self.services = services;
         self
@@ -679,7 +678,8 @@ impl CoreBuilder {
 }
 
 /// A built, initialized core. Dispatch RPC in-process with [`CoreRuntime::invoke`],
-/// or run the selected transport + background services with [`CoreRuntime::serve`].
+/// start its background services with [`CoreRuntime::start_services`], or hand it
+/// to `openhuman_rpc::server::serve` to run the selected transport as well.
 pub struct CoreRuntime {
     ctx: Arc<CoreContext>,
     config: Option<Config>,
@@ -701,7 +701,7 @@ impl CoreRuntime {
     }
 
     /// Dispatch an RPC method in-process — the same path the HTTP `/rpc` handler
-    /// and the CLI use ([`jsonrpc::invoke_method`]). No network involved.
+    /// and the CLI use ([`crate::core::invoke::invoke_method`]). No network involved.
     pub async fn invoke(
         &self,
         method: &str,
@@ -723,7 +723,11 @@ impl CoreRuntime {
         log::trace!("[core-runtime] invoke_in method={method}");
         CoreContext::scope(
             ctx,
-            jsonrpc::invoke_method(jsonrpc::default_state(), method, params),
+            crate::core::invoke::invoke_method(
+                crate::core::invoke::default_state(),
+                method,
+                params,
+            ),
         )
         .await
     }
@@ -737,253 +741,52 @@ impl CoreRuntime {
         CoreContext::scope(ctx, fut).await
     }
 
-    /// Spawn the selected background services and, when `rpc_http` is set, bind
-    /// the HTTP listener and serve until shutdown.
-    ///
-    /// When `rpc_http` is not selected this returns immediately (a harness-only
-    /// embedder has no transport to run); background services selected in the
-    /// [`ServiceSet`] are still spawned.
-    ///
-    /// In a slim build compiled without the `http-server` feature an `rpc_http`
-    /// request cannot be honoured — the axum / Socket.IO transport is compiled
-    /// out — so `serve` returns a build-feature `Err` rather than binding no
-    /// listener and reporting success. The no-transport (`!rpc_http`) path above
-    /// is unaffected and still returns `Ok(())`.
-    pub async fn serve(
-        &self,
-        ready_tx: Option<tokio::sync::oneshot::Sender<EmbeddedReadySignal>>,
-        shutdown_token: Option<CancellationToken>,
-    ) -> anyhow::Result<()> {
-        if !self.services.rpc_http {
-            // No transport: just spawn the selected background services and
-            // return. The caller owns the process lifetime.
-            self.start_selected_services().await;
-            return Ok(());
-        }
-
-        // Transport compiled out (#5048): run the selected background services
-        // and return without binding an HTTP/Socket.IO listener — same shape as
-        // the no-`rpc_http` guard above. The desktop shell always ships
-        // `http-server`; this keeps slim / headless-embedding builds linkable.
-        #[cfg(not(feature = "http-server"))]
-        {
-            // `rpc_http` was requested (we passed the guard above) but the HTTP +
-            // Socket.IO transport is compiled out of this slim build. Fail loudly
-            // rather than returning Ok with no listener bound — a supervisor / CLI
-            // (`openhuman run`, `serve`, `--headless-api`) would otherwise observe
-            // a clean start while the requested API is unavailable. Embedders that
-            // genuinely want no transport leave `ServiceSet::rpc_http` unset, which
-            // is handled by the early return above.
-            //
-            // The bind inputs are only read by the compiled-out `serve_http`; touch
-            // them so they don't read as dead fields in the slim build.
-            let _ = (
-                ready_tx,
-                shutdown_token,
-                self.has_operator_token,
-                self.host.as_ref(),
-                self.port,
-            );
-            anyhow::bail!(
-                "rpc_http transport was requested but this build was compiled \
-                 without the `http-server` feature; rebuild with the default \
-                 `http-server` feature, or use an embedding that does not set \
-                 `ServiceSet::rpc_http`"
-            );
-        }
-
-        #[cfg(feature = "http-server")]
-        {
-            self.serve_http(ready_tx, shutdown_token).await
-        }
+    /// The host this runtime was built to bind, when the builder set one.
+    pub fn host(&self) -> Option<&str> {
+        self.host.as_deref()
     }
 
-    /// HTTP + Socket.IO transport body of [`Self::serve`].
-    ///
-    /// Compiled only under the `http-server` feature (#5048): builds the axum
-    /// router, binds the listener, starts the selected background services, and
-    /// serves until shutdown. With the feature off, [`serve`](Self::serve) runs
-    /// background services and returns without binding (see the arms above).
-    #[cfg(feature = "http-server")]
-    async fn serve_http(
-        &self,
-        ready_tx: Option<tokio::sync::oneshot::Sender<EmbeddedReadySignal>>,
-        shutdown_token: Option<CancellationToken>,
-    ) -> anyhow::Result<()> {
-        // --- Host / port resolution ---
-        let (resolved_port, port_source) = match self.port {
-            Some(p) => (p, "builder port"),
-            None => (
-                jsonrpc::core_port(),
-                if std::env::var("OPENHUMAN_CORE_PORT").is_ok() {
-                    "env OPENHUMAN_CORE_PORT"
-                } else {
-                    "default"
-                },
-            ),
-        };
-        let (resolved_host, host_source) = match &self.host {
-            Some(h) => (h.clone(), "builder host"),
-            None => (
-                jsonrpc::core_host(),
-                if std::env::var("OPENHUMAN_CORE_HOST")
-                    .ok()
-                    .filter(|s| !s.is_empty())
-                    .is_some()
-                {
-                    "env OPENHUMAN_CORE_HOST"
-                } else {
-                    "default"
-                },
-            ),
-        };
+    /// The port this runtime was built to bind, when the builder set one.
+    pub fn port(&self) -> Option<u16> {
+        self.port
+    }
 
-        log::debug!(
-            "[core] Bind resolution: host={resolved_host} (from {host_source}), port={resolved_port} (from {port_source})"
-        );
+    /// Whether the RPC bearer came from the operator (env or an in-memory
+    /// handoff) rather than the self-generated `{workspace}/core.token`. A
+    /// server must not bind a public address without one (#1919).
+    pub fn has_operator_token(&self) -> bool {
+        self.has_operator_token
+    }
 
-        // Safety check: refuse to bind on a non-loopback address without an
-        // explicit operator-supplied RPC token. Without this, the entire RPC
-        // surface (tool execution, file access, credentials) is unauthenticated
-        // and reachable from the network. See issue #1919. The self-generated
-        // {workspace}/core.token does NOT count — remote clients cannot read it,
-        // so treating it as "explicit" would be fail-open.
-        if crate::security::pairing::is_public_bind(&resolved_host) && !self.has_operator_token {
-            log::error!(
-                "[core] SECURITY: refusing to bind on public address {resolved_host} without an \
-                 explicit operator-supplied RPC token. Set {} in your environment (or hand the \
-                 bearer in-memory via the embedded core handle) to secure the RPC endpoint.",
-                crate::core::auth::CORE_TOKEN_ENV_VAR
-            );
-            eprintln!(
-                "\n\x1b[1;31m[SECURITY]\x1b[0m Refusing to bind on {resolved_host} without {}.\n\
-                 The auto-generated {{workspace}}/core.token does NOT secure a public bind —\n\
-                 remote clients cannot read it. Set {} in your environment to secure the\n\
-                 RPC endpoint, or bind on a loopback address.\n",
-                crate::core::auth::CORE_TOKEN_ENV_VAR,
-                crate::core::auth::CORE_TOKEN_ENV_VAR
-            );
-            anyhow::bail!(
-                "refusing to bind on non-loopback address {resolved_host} without an explicit \
-                 operator-supplied RPC token ({})",
-                crate::core::auth::CORE_TOKEN_ENV_VAR
-            );
-        }
-
-        let preferred_port = resolved_port;
-        let host = resolved_host;
-        // The desktop shell hands in `ready_tx` and owns the stale-listener
-        // takeover (#1130) for its own leftover core. A headless `serve` has
-        // nothing to take over: another live core on the port (the desktop
-        // app's, another checkout's) is a neighbour, so move to a free port.
-        let occupied_by_core = if ready_tx.is_some() {
-            crate::platform::connectivity::rpc::OccupiedByCore::Takeover
-        } else {
-            crate::platform::connectivity::rpc::OccupiedByCore::Fallback
-        };
-        let pick = crate::platform::connectivity::rpc::pick_listen_port_for_host_with(
-            host.as_str(),
-            preferred_port,
-            occupied_by_core,
-        )
-        .await
-        .map_err(|err| {
-            log::error!("[core] Failed to bind to {host}:{preferred_port}: {err}");
-            anyhow::Error::new(err)
-        })?;
-        let listen_port = pick.port;
-        let bind_addr = format!("{host}:{listen_port}");
-        let listener = pick.listener;
+    /// Record that a transport bound its listener at `local_addr`.
+    pub fn listener_bound(&self, local_addr: std::net::SocketAddr) {
         #[cfg(feature = "modules")]
-        crate::desktop::control::set_listener_is_loopback(
-            listener
-                .local_addr()
-                .is_ok_and(|address| address.ip().is_loopback()),
-        );
+        crate::desktop::control::set_listener_is_loopback(local_addr.ip().is_loopback());
+        #[cfg(not(feature = "modules"))]
+        let _ = local_addr;
+    }
 
-        // Synchronize OPENHUMAN_CORE_RPC_URL with the actual bound port so
-        // connectivity::rpc::resolve_listen_port() reports the live listener
-        // instead of the originally-requested port when fallback engaged.
-        //
-        // SAFETY: set_var is process-global; this runs once during bind. Flagged
-        // in the pluggable-core drift ledger as single-runtime-per-process.
-        unsafe {
-            std::env::set_var("OPENHUMAN_CORE_RPC_URL", format!("http://{bind_addr}/rpc"));
-        }
-
-        let ctx = Arc::clone(&self.ctx);
-        let app = jsonrpc::build_core_http_router(self.services.socketio).layer(
-            axum::middleware::from_fn(
-                move |req: axum::extract::Request, next: axum::middleware::Next| {
-                    let ctx = Arc::clone(&ctx);
-                    async move { CoreContext::scope(ctx, next.run(req)).await }
-                },
-            ),
-        );
-
-        // Await startup migrations before publishing readiness or allowing
-        // background writers to touch their crate-backed stores.
-        self.start_selected_services().await;
-
-        log::info!(
-            "[core] OpenHuman core is ready — listening on http://{bind_addr} (version {})",
-            env!("CARGO_PKG_VERSION")
-        );
-        log::info!("[rpc:http] JSON-RPC — POST http://{bind_addr}/rpc (JSON-RPC 2.0)");
-        if self.services.socketio {
-            log::info!("[rpc:socketio] Socket.IO — ws://{bind_addr}/socket.io/ (same HTTP server)");
-        } else {
-            log::info!("[rpc:socketio] disabled (--jsonrpc-only)");
-        }
-
-        if let Some(tx) = ready_tx {
-            let _ = tx.send(EmbeddedReadySignal {
-                port: listen_port,
-                fallback_from: pick.fallback_from,
-            });
-        }
-
-        // Arms memory's exit gate for the eventual exit (and clears one a
-        // previous server in this process may have left): from here on a
-        // memory binding built during exit is refused rather than missed.
+    /// Mark the start of serving. Arms memory's exit gate for the eventual
+    /// exit (and clears one a previous server in this process may have left):
+    /// from here on a memory binding built during exit is refused rather than
+    /// missed.
+    pub fn serving_started(&self) {
         crate::memory::exit::server_starting();
+    }
 
-        // The serve result is held, not propagated, until the exit work below
-        // has run. A `?` here on a server error would skip the memory teardown
-        // on exactly the exits where a wedged store is likeliest, and the
-        // callers only forward the error — nobody else runs the cleanup.
-        let served = if let Some(shutdown_token) = shutdown_token {
-            log::info!(
-                "[core] embedded server waiting on cancellation token for graceful shutdown"
-            );
-            axum::serve(listener, app)
-                .with_graceful_shutdown(async move {
-                    shutdown_token.cancelled().await;
-                })
-                .await
-        } else {
-            axum::serve(listener, app)
-                .with_graceful_shutdown(crate::core::shutdown::signal())
-                .await
-        };
-        if let Err(error) = &served {
-            log::warn!(
-                "[core] embedded server ended with an error; running exit cleanup before \
-                 reporting it: {error}"
-            );
-        }
-
-        // Memory first. The engine's queue worker holds leases on in-flight
-        // jobs, and releasing them is a write to the store, so it has to happen
-        // while the store is still open and before anything else on the way
-        // out (tinymemory#133). Bounded inside, on one shared deadline: a
-        // wedged store costs at most that budget, never the exit.
+    /// Cleanup to run once a transport has stopped serving, whether it ended
+    /// cleanly or with an error.
+    ///
+    /// Memory goes first. The engine's queue worker holds leases on in-flight
+    /// jobs, and releasing them is a write to the store, so it has to happen
+    /// while the store is still open and before anything else on the way out
+    /// (tinymemory#133). Bounded inside, on one shared deadline: a wedged
+    /// store costs at most that budget, never the exit. Then any `ollama
+    /// serve` openhuman itself spawned is stopped (no-op when externally
+    /// managed), bounded so a wedged Ollama can't hold up shutdown.
+    pub async fn exit_cleanup(&self) {
         crate::memory::exit::shutdown_for_exit().await;
 
-        // Server has stopped accepting and in-flight requests drained. Kill any
-        // `ollama serve` openhuman itself spawned (no-op when externally
-        // managed) so the next launch doesn't try to reclaim a dead daemon.
-        // Bounded so a wedged Ollama can't hold up app shutdown.
         if let Some(svc) = crate::inference::host_runtime::try_global() {
             let cfg = crate::config::Config::load_or_init()
                 .await
@@ -1000,16 +803,17 @@ impl CoreRuntime {
                 );
             }
         }
-
-        served?;
-        Ok(())
     }
 
-    /// Spawn each selected background service. Selection is by [`ServiceSet`];
-    /// each service keeps its own runtime config gate.
-    async fn start_selected_services(&self) {
+    /// Spawn each selected background service.
+    ///
+    /// A transport calls this once its listener is bound, so a failed bind
+    /// never leaves pollers, one-shot jobs, MCP processes or socket
+    /// reconnect work running without a live runtime. A runtime with no
+    /// transport calls it directly.
+    pub async fn start_services(&self) {
         use crate::core::runtime::services;
-        jsonrpc::start_core_runtime_services(self.services, self.config.as_ref()).await;
+        super::bootstrap::start_core_runtime_services(self.services, self.config.as_ref()).await;
 
         if self.services.heartbeat {
             services::spawn_login_gated_services(self.ctx.host_kind().is_desktop_shell());

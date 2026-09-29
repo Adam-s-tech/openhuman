@@ -320,7 +320,7 @@ pub(crate) fn config_aware_engine_compatibility_errors(
 /// save. Pure (no persistence, no config) — `valid == false` is a normal
 /// result, NOT an `Err`; `Err` is reserved for internal serialization faults
 /// (there are none on this path today).
-pub fn flows_validate(graph_json: Value) -> RpcOutcome<crate::flows::FlowValidation> {
+pub fn flows_validate(graph_json: Value) -> Outcome<crate::flows::FlowValidation> {
     use crate::flows::FlowValidation;
     tracing::debug!(target: "flows", "[flows] flows_validate: validating candidate graph");
     // Split migrate/deserialize (a genuinely single failure) from structural
@@ -332,7 +332,7 @@ pub fn flows_validate(graph_json: Value) -> RpcOutcome<crate::flows::FlowValidat
         Ok(graph) => graph,
         Err(error) => {
             tracing::debug!(target: "flows", %error, "[flows] flows_validate: graph could not be migrated/parsed");
-            return RpcOutcome::single_log(
+            return Outcome::single_log(
                 FlowValidation {
                     valid: false,
                     errors: vec![error.clone()],
@@ -358,7 +358,7 @@ pub fn flows_validate(graph_json: Value) -> RpcOutcome<crate::flows::FlowValidat
             error_count = errors.len(),
             "[flows] flows_validate: graph is structurally invalid"
         );
-        return RpcOutcome::single_log(
+        return Outcome::single_log(
             FlowValidation {
                 valid: false,
                 errors,
@@ -380,7 +380,7 @@ pub fn flows_validate(graph_json: Value) -> RpcOutcome<crate::flows::FlowValidat
             error_count = error_details.len(),
             "[flows] flows_validate: graph uses an unsupported engine topology"
         );
-        return RpcOutcome::single_log(
+        return Outcome::single_log(
             FlowValidation {
                 valid: false,
                 errors,
@@ -401,7 +401,7 @@ pub fn flows_validate(graph_json: Value) -> RpcOutcome<crate::flows::FlowValidat
         warning_count = warnings.len(),
         "[flows] flows_validate: graph is structurally valid"
     );
-    RpcOutcome::single_log(
+    Outcome::single_log(
         FlowValidation {
             valid: true,
             errors: Vec::new(),
@@ -437,7 +437,7 @@ pub fn flows_validate(graph_json: Value) -> RpcOutcome<crate::flows::FlowValidat
 pub fn flows_import(
     graph_json: Value,
     format: Option<String>,
-) -> Result<RpcOutcome<crate::flows::FlowImport>, String> {
+) -> Result<Outcome<crate::flows::FlowImport>, String> {
     use crate::flows::{n8n_import, FlowImport};
 
     let requested = format
@@ -483,7 +483,7 @@ pub fn flows_import(
         warning_count = warnings.len(),
         "[flows] flows_import: import normalized and validated"
     );
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         FlowImport { graph, warnings },
         "flow imported",
     ))

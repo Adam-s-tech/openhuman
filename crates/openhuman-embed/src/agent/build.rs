@@ -113,7 +113,16 @@ pub(crate) fn instantiate(runtime: &Runtime, spec: AgentSpec) -> Result<AgentInn
     }
 
     // ── definition ───────────────────────────────────────────────────────
-    let definition = parts.definition.into_core(&id)?;
+    #[cfg_attr(not(feature = "mcp"), allow(unused_mut))]
+    let mut definition = parts.definition.into_core(&id)?;
+    // Every declared server's tools are registered as their own
+    // `mcp_<server>_<tool>`, deferred by default. A wildcard belt reaches them
+    // through `tool_search` already; a named belt reaches deferred tools only
+    // when it lists `tool_search`, so declaring a server implies it.
+    #[cfg(feature = "mcp")]
+    if !parts.mcp_servers.is_empty() {
+        opt_named_belt_into_discovery(&mut definition.tools);
+    }
 
     // ── narrowing ────────────────────────────────────────────────────────
     let domains = match parts.domains {
@@ -161,6 +170,22 @@ pub(crate) fn instantiate(runtime: &Runtime, spec: AgentSpec) -> Result<AgentInn
         layout,
         host_tools: parts.host_tools,
     })
+}
+
+/// Adds `tool_search` to a named belt that lacks it. A wildcard belt already
+/// has discovery.
+#[cfg(feature = "mcp")]
+fn opt_named_belt_into_discovery(
+    scope: &mut openhuman_core::agent::harness::definition::ToolScope,
+) {
+    use openhuman_core::agent::harness::definition::ToolScope;
+    const TOOL_SEARCH: &str = "tool_search";
+    if let ToolScope::Named(names) = scope {
+        if !names.iter().any(|name| name == TOOL_SEARCH) {
+            names.push(TOOL_SEARCH.to_string());
+            log::debug!("[embed][agent] declared MCP servers opt the named belt into tool_search");
+        }
+    }
 }
 
 fn validate_agent_id(id: &str) -> Result<(), String> {
@@ -235,3 +260,7 @@ fn map_harness_err(err: crate::HarnessError) -> AgentError {
         crate::HarnessError::AlreadyRunning => AgentError::Invalid(err.to_string()),
     }
 }
+
+#[cfg(test)]
+#[path = "build_tests.rs"]
+mod tests;

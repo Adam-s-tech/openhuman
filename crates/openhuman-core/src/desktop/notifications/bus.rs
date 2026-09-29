@@ -5,7 +5,7 @@
 //! plus a [`EventHandler`] implementation that translates relevant
 //! [`DomainEvent`] variants into [`CoreNotificationEvent`] payloads.
 //!
-//! The Socket.IO bridge in `core::socketio::spawn_web_channel_bridge`
+//! The Socket.IO bridge in `openhuman_rpc::server::socketio::spawn_web_channel_bridge`
 //! subscribes to this bus and forwards every event to all connected clients
 //! as `core_notification` / `core:notification` Socket.IO messages.
 
@@ -111,7 +111,7 @@ impl NotificationBridgeSubscriber {
     /// Whether a notification should reach connected clients.
     ///
     /// Storing an event under its own workspace is only half the answer. The
-    /// live path has no per-client routing at all — `core::socketio`'s bridge
+    /// live path has no per-client routing at all — `openhuman_rpc::server::socketio`'s bridge
     /// emits `core_notification` to *every* connected client, and the banner
     /// prints the server's qualified name and its error — so a supervisor
     /// event from a workspace the user has switched away from would show one

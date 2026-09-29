@@ -1,8 +1,8 @@
 //! Aggregated token/cost usage for a thread, re-audited at current pricing.
 
 use super::support::{counts, envelope, workspace_dir};
+use crate::core::Outcome;
 use crate::memory::ApiEnvelope;
-use crate::rpc::RpcOutcome;
 use std::collections::BTreeMap;
 use std::path::Path;
 use tinyagents_session::transcript::{
@@ -255,7 +255,7 @@ pub(super) fn thread_spend(workspace_dir: &Path, thread_id: &str) -> ThreadSpend
 /// Total a thread's persisted token/cost usage across its root transcripts.
 pub async fn token_usage(
     request: ThreadTokenUsageRequest,
-) -> Result<RpcOutcome<ApiEnvelope<ThreadTokenUsageResponse>>, String> {
+) -> Result<Outcome<ApiEnvelope<ThreadTokenUsageResponse>>, String> {
     let dir = workspace_dir().await?;
     let spend = thread_spend(&dir, &request.thread_id);
 

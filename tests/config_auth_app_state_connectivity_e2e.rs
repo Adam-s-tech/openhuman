@@ -36,7 +36,6 @@ use openhuman_core::config::{
 };
 use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
 use openhuman_core::core::events::DomainEvent;
-use openhuman_core::core::jsonrpc::build_core_http_router;
 use openhuman_core::desktop::app_state::app_state_schemas;
 use openhuman_core::platform::connectivity::{
     all_connectivity_controller_schemas, all_connectivity_registered_controllers,
@@ -54,6 +53,7 @@ use openhuman_core::security::credentials::{
     list_provider_credentials_by_prefix, normalize_provider, rpc_store_composio_api_key,
     store_composio_api_key, AuthService, APP_SESSION_PROVIDER, COMPOSIO_DIRECT_PROVIDER,
 };
+use openhuman_rpc::server::build_core_http_router;
 use openhuman_tinyhumans::backend::url::{
     api_base_from_env, app_env_from_env, default_api_base_url_for_env, effective_api_url,
     effective_backend_api_url, effective_inference_url, join_url as api_url,

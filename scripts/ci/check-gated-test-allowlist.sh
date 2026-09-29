@@ -32,12 +32,13 @@ core/all.rs
 core/all_tests.rs
 core/cli_tests.rs
 core/dispatch_tests.rs
-core/jsonrpc.rs
-core/jsonrpc_tests.rs
+core/invoke_tests.rs
 core/legacy_aliases_tests.rs
 core/runtime/services.rs
+core/runtime/subscribers.rs
 flows/mod.rs
 mcp/server/resources.rs
+mcp/server/mod.rs
 mcp/server/tools/mod.rs
 platform/socket/event_handlers.rs
 skills/bundled/mod.rs

@@ -138,7 +138,7 @@ export interface ChatDoneEvent {
   timing?: TurnTimingWire | null;
 }
 
-/** Mirrors the Rust `TurnTimingPayload` (`crates/openhuman-core/src/core/socketio.rs`). */
+/** Mirrors the Rust `TurnTimingPayload` (`crates/openhuman-rpc/src/server/socketio.rs`). */
 export interface TurnTimingWire {
   first_token_ms?: number;
   first_tool_ms?: number;
@@ -231,7 +231,7 @@ export interface ChatErrorEvent {
   round: number | null;
   /**
    * Present only when `error_type === 'guardrail'`. Mirrors the Rust
-   * `GuardrailPayload` (`crates/openhuman-core/src/core/socketio.rs`) carried
+   * `GuardrailPayload` (`crates/openhuman-rpc/src/server/socketio.rs`) carried
    * on `chat_error` — the policy verdict that blocked the turn, with the
    * reasons the guardrail cited.
    */
@@ -247,7 +247,7 @@ export interface GuardrailReason {
 /**
  * The guardrail verdict carried on a `chat_error` whose `error_type` is
  * `"guardrail"`. Mirrors the Rust `GuardrailPayload`
- * (`crates/openhuman-core/src/core/socketio.rs`).
+ * (`crates/openhuman-rpc/src/server/socketio.rs`).
  */
 export interface GuardrailPayload {
   verdict: string;
@@ -603,7 +603,7 @@ export interface ChatSubagentDoneEvent {
  * `subagent_tool_call`, `subagent_tool_result`).
  *
  * Matches the Rust `SubagentProgressDetail` struct in
- * `crates/openhuman-core/src/core/socketio.rs` — every field is optional so older cores that
+ * `crates/openhuman-rpc/src/server/socketio.rs` — every field is optional so older cores that
  * don't emit it stay parseable.
  */
 export interface SubagentProgressDetail {
@@ -649,7 +649,7 @@ export interface SubagentProgressDetail {
    * Provider-assigned id of the `spawn_subagent`/`spawn_async_subagent`/
    * `delegate_*` tool call that started this delegation
    * (`AgentProgress::SubagentSpawned::parent_call_id`, threaded onto every
-   * event in the `subagent_*` family — see `crates/openhuman-core/src/core/socketio.rs`).
+   * event in the `subagent_*` family — see `crates/openhuman-rpc/src/server/socketio.rs`).
    * Lets the frontend attach the delegation's live activity to the EXACT
    * spawn tool-call part instead of guessing which running row started it.
    * Absent on cores that predate this field.
@@ -1711,7 +1711,7 @@ export async function chatClearQueue(threadId: string): Promise<number | null> {
   }
 }
 
-/** One run-queue item (`QueueItemPayload` in `core/socketio.rs`). */
+/** One run-queue item (`QueueItemPayload` in `openhuman-rpc/src/server/socketio.rs`). */
 export interface QueueItemPayload {
   id: string;
   /** `steer` / `followup` / `collect`; absent when the core does not say. */
@@ -1763,7 +1763,7 @@ export function subscribeQueueEvents(listeners: QueueEventListeners): () => void
   };
 }
 
-/** One follow-up suggestion (`ChatSuggestion` in `core/socketio.rs`). */
+/** One follow-up suggestion (`ChatSuggestion` in `openhuman-rpc/src/server/socketio.rs`). */
 export interface ChatSuggestionWire {
   /** The message sent when the chip is picked. */
   prompt: string;

@@ -25,7 +25,7 @@ use serde_json::{json, Value};
 use tempfile::{tempdir, TempDir};
 
 use openhuman_core::core::auth::{get_rpc_token, init_rpc_token, CORE_TOKEN_ENV_VAR};
-use openhuman_core::core::jsonrpc::build_core_http_router;
+use openhuman_rpc::server::build_core_http_router;
 
 /// Seeded only if this suite is the first in the aggregated binary to
 /// initialise the token; the bearer actually sent is always read back from
@@ -222,7 +222,6 @@ impl Harness {
 }
 
 async fn setup() -> Harness {
-
     crate::tinyhumans_boot::boot();
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
@@ -309,7 +308,10 @@ async fn flows_draft_surface_round_trips_and_promotes_into_a_saved_flow() {
         "an unlinked draft carries no flow_id: {draft}"
     );
     assert_eq!(
-        draft.pointer("/graph/nodes").and_then(Value::as_array).map(Vec::len),
+        draft
+            .pointer("/graph/nodes")
+            .and_then(Value::as_array)
+            .map(Vec::len),
         Some(1),
         "draft_create stores the graph verbatim: {draft}"
     );
@@ -345,7 +347,10 @@ async fn flows_draft_surface_round_trips_and_promotes_into_a_saved_flow() {
         .await;
     assert_eq!(str_at(&updated, "/name"), "Draft Renamed");
     assert_eq!(
-        updated.pointer("/graph/nodes").and_then(Value::as_array).map(Vec::len),
+        updated
+            .pointer("/graph/nodes")
+            .and_then(Value::as_array)
+            .map(Vec::len),
         Some(2),
         "draft_update replaces the graph: {updated}"
     );
@@ -399,7 +404,10 @@ async fn flows_draft_surface_round_trips_and_promotes_into_a_saved_flow() {
             json!({ "id": draft_id }),
         )
         .await;
-    assert_eq!(deleted.get("id").and_then(Value::as_str), Some(draft_id.as_str()));
+    assert_eq!(
+        deleted.get("id").and_then(Value::as_str),
+        Some(draft_id.as_str())
+    );
     assert_eq!(
         deleted.get("deleted").and_then(Value::as_bool),
         Some(false),
@@ -521,7 +529,9 @@ async fn flows_duplicate_copies_the_graph_and_lands_disabled() {
         "a duplicate is born disabled: {copy}"
     );
     assert_eq!(
-        copy.pointer("/graph/nodes").and_then(Value::as_array).map(Vec::len),
+        copy.pointer("/graph/nodes")
+            .and_then(Value::as_array)
+            .map(Vec::len),
         Some(2),
         "the copy carries the source graph: {copy}"
     );
@@ -668,7 +678,10 @@ async fn flows_history_records_prior_graphs_and_rollback_restores_them() {
         Some(flow_id.as_str())
     );
     assert_eq!(
-        revision.pointer("/graph/nodes").and_then(Value::as_array).map(Vec::len),
+        revision
+            .pointer("/graph/nodes")
+            .and_then(Value::as_array)
+            .map(Vec::len),
         Some(1),
         "the snapshot holds the ORIGINAL one-node graph, not the new one: {revision}"
     );
@@ -681,7 +694,10 @@ async fn flows_history_records_prior_graphs_and_rollback_restores_them() {
         )
         .await;
     assert_eq!(
-        rolled.pointer("/graph/nodes").and_then(Value::as_array).map(Vec::len),
+        rolled
+            .pointer("/graph/nodes")
+            .and_then(Value::as_array)
+            .map(Vec::len),
         Some(1),
         "rollback restored the one-node graph: {rolled}"
     );
@@ -755,8 +771,10 @@ async fn flows_list_all_runs_spans_flows_and_prune_reports_the_retention_cap() {
         .await;
     let second_id = str_at(&second, "/id").to_string();
 
-    h.ok(1503, "openhuman.flows_run", json!({ "id": first_id })).await;
-    h.ok(1504, "openhuman.flows_run", json!({ "id": second_id })).await;
+    h.ok(1503, "openhuman.flows_run", json!({ "id": first_id }))
+        .await;
+    h.ok(1504, "openhuman.flows_run", json!({ "id": second_id }))
+        .await;
 
     let all = h.ok(1505, "openhuman.flows_list_all_runs", json!({})).await;
     let runs = all.as_array().expect("list_all_runs returns an array");
@@ -812,9 +830,7 @@ async fn flows_list_all_runs_spans_flows_and_prune_reports_the_retention_cap() {
         "a no-op prune must not delete live history: {still_there}"
     );
 
-    let missing_id = h
-        .err(1509, "openhuman.flows_prune_runs", json!({}))
-        .await;
+    let missing_id = h.err(1509, "openhuman.flows_prune_runs", json!({})).await;
     assert!(
         missing_id.contains("id"),
         "prune_runs names its required param: {missing_id}"
@@ -885,17 +901,17 @@ async fn flows_approval_manifest_classifies_every_gated_node_kind() {
     assert_eq!(code.get("class").and_then(Value::as_str), Some("Write"));
 
     assert!(
-        entries
-            .iter()
-            .any(|entry| entry.get("kind").and_then(Value::as_str) == Some("dynamic")
-                && entry.get("node_id").and_then(Value::as_str) == Some("dyn")),
+        entries.iter().any(
+            |entry| entry.get("kind").and_then(Value::as_str) == Some("dynamic")
+                && entry.get("node_id").and_then(Value::as_str) == Some("dyn")
+        ),
         "an `=` slug cannot be pre-approved and must be disclosed as dynamic: {manifest}"
     );
     assert!(
-        entries
-            .iter()
-            .any(|entry| entry.get("kind").and_then(Value::as_str) == Some("agent")
-                && entry.get("node_id").and_then(Value::as_str) == Some("ai")),
+        entries.iter().any(
+            |entry| entry.get("kind").and_then(Value::as_str) == Some("agent")
+                && entry.get("node_id").and_then(Value::as_str) == Some("ai")
+        ),
         "an agent node's inner tool calls are unknowable and must be disclosed: {manifest}"
     );
 
@@ -1021,7 +1037,10 @@ async fn flows_required_connections_lists_only_composio_toolkits() {
         1,
         "only the Composio slug needs a connection — `oh:` and http_request do not: {out}"
     );
-    assert_eq!(required[0].get("toolkit").and_then(Value::as_str), Some("gmail"));
+    assert_eq!(
+        required[0].get("toolkit").and_then(Value::as_str),
+        Some("gmail")
+    );
     assert_eq!(
         required[0].get("status").and_then(Value::as_str),
         Some("missing"),
@@ -1036,7 +1055,9 @@ async fn flows_required_connections_lists_only_composio_toolkits() {
         )
         .await;
     assert_eq!(
-        none.get("required_connections").and_then(Value::as_array).map(Vec::len),
+        none.get("required_connections")
+            .and_then(Value::as_array)
+            .map(Vec::len),
         Some(0),
         "a trigger-only graph needs no connection: {none}"
     );
@@ -1185,9 +1206,7 @@ async fn flows_build_cancel_reports_no_turn_in_flight_without_erroring() {
         "a scoped cancel for an unregistered turn is also a no-op: {scoped}"
     );
 
-    let no_thread = h
-        .err(1903, "openhuman.flows_build_cancel", json!({}))
-        .await;
+    let no_thread = h.err(1903, "openhuman.flows_build_cancel", json!({})).await;
     assert!(
         no_thread.contains("thread_id"),
         "the required `thread_id` param is named: {no_thread}"

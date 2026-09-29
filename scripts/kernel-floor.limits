@@ -13,6 +13,13 @@
 # Simulate with: scripts/dep-sim.py --cut <crates>
 #
 # History
+#   303/282/2  2026-09-29  Merge the JSON-RPC split: removes openhuman-rpc
+#                      from the core flows graph; the resolved profile is
+#                      measured after the upstream TinyMCP v0.3.5 update.
+#   304/283/2  2026-09-29  Measured after advancing tinymcp to v0.3.5.
+#                      The required MCP server APIs resolve three fewer
+#                      packages and names in the `flows` profile than the
+#                      previous ratchet. Native builds remain unchanged.
 #   307/286/2  2026-09-27  The multi-provider search config directly uses the
 #                      required TinySearch bus contract in always-on settings
 #                      and policy code. This adds one resolved crate/name and
@@ -604,4 +611,4 @@
 #                      into the required host runtime. The migration adds five
 #                      resolved packages and four unique crate names; it does
 #                      not add a native build dependency.
-flows:304:283:2
+flows:303:282:2

@@ -53,7 +53,7 @@ fn build_token_usage_emits_when_tokens_present_even_with_zero_cost() {
 ///
 /// The tracker is a process-wide `OnceCell` shared by every test in this
 /// binary — including the runtime-bootstrap tests, which call
-/// `platform::cost::init_global` through `core/jsonrpc.rs`. A test therefore
+/// `platform::cost::init_global` through `core/runtime/bootstrap.rs`. A test therefore
 /// cannot assume it owns the global, and **cannot assume the global is
 /// absent**: that is precisely why the two tests below assert on records
 /// written through whichever tracker is installed, rather than on

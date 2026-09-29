@@ -3,7 +3,7 @@
 use serde_json::Value;
 
 use crate::config::Config;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 use super::super::super::definitions::{find_channel_definition, ChannelAuthMode};
 use super::super::types::ChannelTestResult;
@@ -15,7 +15,7 @@ pub async fn test_channel(
     channel_id: &str,
     auth_mode: ChannelAuthMode,
     credentials_value: Value,
-) -> Result<RpcOutcome<ChannelTestResult>, String> {
+) -> Result<Outcome<ChannelTestResult>, String> {
     let def = find_channel_definition(channel_id)
         .ok_or_else(|| format!("unknown channel: {channel_id}"))?;
 
@@ -31,7 +31,7 @@ pub async fn test_channel(
     if channel_id == "email" && auth_mode == ChannelAuthMode::ApiKey {
         let email_cfg = build_email_config(creds_map, None)?;
         verify_email_credentials(&email_cfg).await?;
-        return Ok(RpcOutcome::new(
+        return Ok(Outcome::new(
             ChannelTestResult {
                 success: true,
                 message: "IMAP login succeeded.".to_string(),
@@ -42,7 +42,7 @@ pub async fn test_channel(
 
     // For other channels, field validation is the test. A future version can
     // instantiate the channel provider and call health_check().
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         ChannelTestResult {
             success: true,
             message: format!(

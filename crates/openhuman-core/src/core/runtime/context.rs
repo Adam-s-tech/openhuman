@@ -203,7 +203,7 @@ fn warn_if_memory_module_outlived_its_profile(_workspace_dir: &std::path::Path) 
 impl CoreContext {
     /// Run the core initialization sequence and return the context plus whether
     /// an operator-supplied RPC bearer exists (for the public-bind safety check
-    /// in `CoreRuntime::serve`) plus the loaded config, when boot reached
+    /// in `openhuman_rpc::server::serve`) plus the loaded config, when boot reached
     /// workspace-bound init. Order is load-bearing and mirrors the original
     /// `run_server_inner` sequence:
     ///
@@ -335,14 +335,14 @@ impl CoreContext {
         // 6. Long-lived runtime infrastructure: event bus, domain subscribers,
         //    ledgers, agent-definition registry, live security policy, approval
         //    gate, socket manager. Idempotent (Once-guarded internally). Selected
-        //    background jobs start later, from CoreRuntime::serve(), after bind
+        //    background jobs start later, from CoreRuntime::start_services(), after a transport binds
         //    succeeds.
         let runtime_config = config.clone();
         let memory_subsystem = config
             .as_ref()
             .map(|cfg| cfg.subsystems.memory.clone())
             .unwrap_or_default();
-        crate::core::jsonrpc::bootstrap_core_runtime(host_kind, config, domains).await;
+        super::bootstrap::bootstrap_core_runtime(host_kind, config, domains).await;
 
         let ctx = Arc::new(CoreContext {
             host_kind,

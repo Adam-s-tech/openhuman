@@ -17,7 +17,7 @@
 //!      broadcast to the overlay window as `overlay:attention`.
 //!
 //! Keep this module light: it is export-focused and owns one broadcast
-//! bus. The Socket.IO bridge lives in `crates/openhuman-core/src/core/socketio.rs`.
+//! bus. The Socket.IO bridge lives in `crates/openhuman-rpc/src/server/socketio.rs`.
 
 pub mod bus;
 pub mod types;
