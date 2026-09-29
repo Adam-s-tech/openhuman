@@ -520,8 +520,15 @@ pub async fn memory_engine_get() -> Result<RpcOutcome<EngineState>, String> {
 pub async fn memory_engine_set(
     params: EngineTargetParams,
 ) -> Result<RpcOutcome<EngineState>, String> {
-    let config = load_config().await?;
     let prepared = prepare_target(params)?;
+    // One switch at a time, and never while a migration owns the switch.
+    let _switch = SWITCH_LOCK.lock().await;
+    if super::engine_migrate::migration_running() {
+        return Err(
+            "a memory migration is running; wait for it to finish or cancel it before switching"
+                .to_string(),
+        );
+    }
     log::debug!(
         "{LOG_PREFIX} engine_set engine='{}' has_key={} has_endpoint={}",
         prepared.id,
@@ -531,14 +538,8 @@ pub async fn memory_engine_set(
     if prepared.id != MODULE_ID {
         // Fail before touching the keychain or config when the engine cannot
         // even be built (no transport, missing endpoint/key, bad deployment).
+        let config = load_config().await?;
         build_target_provider(&config, &prepared)?;
-    }
-    let _switch = SWITCH_LOCK.lock().await;
-    if super::engine_migrate::migration_running() {
-        return Err(
-            "a memory migration is running; wait for it to finish or cancel it before switching"
-                .to_string(),
-        );
     }
     let state = commit_engine_locked(&prepared).await?;
     Ok(RpcOutcome::new(state, vec![]))
