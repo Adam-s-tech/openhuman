@@ -44,6 +44,7 @@ pub mod api;
 /// how much a block may carry, and the switch are product decisions.
 pub mod auto_recall;
 pub mod binding;
+mod binding_build;
 pub mod binding_rebind;
 pub mod binding_remote;
 pub mod driver;

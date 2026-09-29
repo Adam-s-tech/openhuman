@@ -716,3 +716,66 @@ mod remote_binding {
         assert!(!Arc::ptr_eq(&first, &again));
     }
 }
+
+#[cfg(feature = "memory-remote")]
+mod transient_bind {
+    use super::*;
+
+    fn bad_credential_cfg() -> MemorySubsystemConfig {
+        let mut cfg = MemorySubsystemConfig {
+            driver: "supermemory".into(),
+            ..Default::default()
+        };
+        cfg.drivers.insert(
+            "supermemory".into(),
+            MemoryDriverConfig {
+                class: Some("external".into()),
+                transport: Some("http".into()),
+                endpoint: Some("https://api.supermemory.ai".into()),
+                // Unparseable reference: the driver is admitted but cannot be built.
+                credential_ref: Some("not-a-reference".into()),
+                trust_state: "trusted".into(),
+                deployment: None,
+            },
+        );
+        cfg
+    }
+
+    #[tokio::test]
+    async fn a_construction_failure_of_an_external_driver_falls_back_to_null_and_retries() {
+        let dir = tempfile::tempdir().unwrap();
+        let cfg = bad_credential_cfg();
+        let first = for_workspace(dir.path(), &cfg).unwrap();
+        assert_eq!(first.driver_id(), "null", "never the module: that would split the data");
+        assert_eq!(first.fallback().unwrap().configured_driver, "supermemory");
+        assert!(first.retry_at.is_some(), "a construction failure is transient");
+        assert!(!first.retry_due());
+
+        // Within the backoff the cached fallback is served (no hammering).
+        let again = for_workspace(dir.path(), &cfg).unwrap();
+        assert!(Arc::ptr_eq(&first, &again));
+
+        // Once the backoff has passed, the next resolve retries the bind.
+        let key = (dir.path().to_path_buf(), "memory".to_string(), cfg.clone());
+        let expired = Arc::new(
+            super::super::binding_build::build(dir.path(), "memory", &cfg)
+                .retry_after(std::time::Duration::ZERO),
+        );
+        BINDINGS.get().unwrap().write().unwrap().insert(key, Arc::clone(&expired));
+        assert!(expired.retry_due());
+        let retried = for_workspace(dir.path(), &cfg).unwrap();
+        assert!(!Arc::ptr_eq(&expired, &retried), "an expired fallback is rebuilt");
+        let cached = for_workspace(dir.path(), &cfg).unwrap();
+        assert!(Arc::ptr_eq(&retried, &cached), "the retry result is cached again");
+    }
+
+    #[tokio::test]
+    async fn an_admission_refusal_is_not_transient() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut cfg = bad_credential_cfg();
+        cfg.drivers.get_mut("supermemory").unwrap().trust_state = "untrusted".into();
+        let binding = for_workspace(dir.path(), &cfg).unwrap();
+        assert!(binding.fallback().is_some());
+        assert!(binding.retry_at.is_none(), "a deterministic refusal stays cached");
+    }
+}

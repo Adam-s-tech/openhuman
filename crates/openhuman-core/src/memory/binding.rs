@@ -45,7 +45,9 @@ use crate::memory::api::health::MemoryHealth;
 use crate::memory::api::provider::MemoryProvider;
 use crate::memory::api::CONTRACT_VERSION;
 use crate::memory::guard::{GuardPolicy, MemoryGuard};
-use tinymemory_api::null::{NullMemoryProvider, NULL_DRIVER_ID};
+use tinymemory_api::null::NULL_DRIVER_ID;
+#[cfg(test)]
+use tinymemory_api::null::NullMemoryProvider;
 
 use crate::config::schema::MemorySubsystemConfig;
 use crate::core::subsystem::{
@@ -86,9 +88,27 @@ pub struct MemoryBinding {
     /// surface drift underneath an already-filtered RPC/tool registration.
     capabilities: Capabilities,
     fallback: Option<FallbackReason>,
+    /// Set on a fallback caused by an `External` driver failing to *construct*
+    /// (keychain locked, transport not installed yet): the cache re-tries the
+    /// bind once this instant passes instead of pinning the fallback.
+    retry_at: Option<std::time::Instant>,
 }
 
+/// Minimum gap between retries of a transiently failed external bind.
+pub(super) const TRANSIENT_RETRY_AFTER: std::time::Duration = std::time::Duration::from_secs(30);
+
 impl MemoryBinding {
+    /// Mark this fallback as transient: it is retried after `after`.
+    pub(super) fn retry_after(mut self, after: std::time::Duration) -> Self {
+        self.retry_at = Some(std::time::Instant::now() + after);
+        self
+    }
+
+    /// Whether a transient fallback is due for another bind attempt.
+    pub(crate) fn retry_due(&self) -> bool {
+        self.retry_at.is_some_and(|at| std::time::Instant::now() >= at)
+    }
+
     /// The bound driver.
     pub fn provider(&self) -> &Arc<dyn MemoryProvider> {
         &self.provider
@@ -311,100 +331,8 @@ pub fn admit(cfg: &MemorySubsystemConfig) -> Result<(String, DriverClass), Fallb
     Ok((id.to_string(), class))
 }
 
-/// Construct the provider an admitted driver binds.
-///
-/// `Null` and `Module` are the two built-ins; `External` goes through the
-/// engine factory (`memory-remote`). A construction failure is a
-/// [`FallbackReason`] like an admission failure — the slot is never left empty.
-fn construct(
-    workspace_dir: &Path,
-    memory_subdir: &str,
-    cfg: &MemorySubsystemConfig,
-    driver_id: &str,
-    class: DriverClass,
-) -> Result<(Arc<dyn MemoryProvider>, DriverClass), FallbackReason> {
-    match class {
-        DriverClass::Null => Ok((Arc::new(NullMemoryProvider::new()), DriverClass::Null)),
-        #[cfg(feature = "memory-remote")]
-        DriverClass::External => {
-            use super::binding_remote::{build_engine, configured_api_url, EngineTarget};
-            let target = EngineTarget::from_entry(driver_id, cfg.drivers.get(driver_id));
-            let api_url = configured_api_url(workspace_dir);
-            build_engine(workspace_dir, &api_url, &target)
-                .map(|provider| (provider, DriverClass::External))
-                .map_err(|reason| FallbackReason {
-                    configured_driver: driver_id.to_string(),
-                    reason,
-                })
-        }
-        _ => {
-            let _ = (cfg, driver_id);
-            Ok(module_provider(workspace_dir, memory_subdir))
-        }
-    }
-}
-
-/// Build the binding for a workspace. Infallible by design: an inadmissible
-/// driver falls back to the placeholder rather than leaving the slot empty
-/// (kernel.md §3.7 — "logged loudly, surfaced in status, never silent").
-fn build(workspace_dir: &Path, memory_subdir: &str, cfg: &MemorySubsystemConfig) -> MemoryBinding {
-    let resolved = admit(cfg).and_then(|(driver_id, class)| {
-        construct(workspace_dir, memory_subdir, cfg, &driver_id, class)
-            .map(|(provider, reported)| (driver_id, provider, reported))
-    });
-    match resolved {
-        Ok((driver_id, provider, reported_class)) => {
-            let binding = bind_provider(
-                provider,
-                driver_id,
-                memory_subdir.to_string(),
-                reported_class,
-                None,
-            );
-            log::info!(
-                "[memory:binding] workspace={} bound driver='{}' class={} capabilities=[{}]",
-                workspace_dir.display(),
-                binding.driver_id(),
-                binding.class(),
-                binding
-                    .capabilities()
-                    .iter()
-                    .map(|c| c.as_str())
-                    .collect::<Vec<_>>()
-                    .join(",")
-            );
-            binding
-        }
-        Err(fallback) => {
-            log::warn!(
-                "[memory:binding] workspace={} driver '{}' refused to bind ({}); \
-                 falling back to '{NULL_DRIVER_ID}' — memory writes are DISCARDED this run",
-                workspace_dir.display(),
-                fallback.configured_driver,
-                fallback.reason
-            );
-            // Sync, and a no-op when the bus is not yet initialized, so this is
-            // safe to call pre-boot with no `#[cfg(test)]` guard.
-            crate::core::bus::BUS.publish(
-                crate::core::events::DomainEvent::MemoryDriverBindFailed {
-                    configured_driver: fallback.configured_driver.clone(),
-                    bound_driver: NULL_DRIVER_ID.to_string(),
-                    reason: fallback.reason.clone(),
-                },
-            );
-            bind_provider(
-                Arc::new(NullMemoryProvider::new()),
-                NULL_DRIVER_ID.to_string(),
-                memory_subdir.to_string(),
-                DriverClass::Null,
-                Some(fallback),
-            )
-        }
-    }
-}
-
 #[cfg(all(feature = "modules", not(test)))]
-fn module_provider(
+pub(super) fn module_provider(
     _workspace_dir: &Path,
     memory_subdir: &str,
 ) -> (Arc<dyn MemoryProvider>, DriverClass) {
@@ -451,7 +379,7 @@ pub(crate) fn test_module_config() -> crate::config::Config {
 }
 
 #[cfg(all(feature = "modules", test))]
-fn module_provider(
+pub(super) fn module_provider(
     _workspace_dir: &Path,
     memory_subdir: &str,
 ) -> (Arc<dyn MemoryProvider>, DriverClass) {
@@ -465,7 +393,7 @@ fn module_provider(
 }
 
 #[cfg(not(feature = "modules"))]
-fn module_provider(
+pub(super) fn module_provider(
     _workspace_dir: &Path,
     _memory_subdir: &str,
 ) -> (Arc<dyn MemoryProvider>, DriverClass) {
@@ -478,7 +406,7 @@ fn module_provider(
 /// The single place `capabilities()` is asked. Every construction path — real
 /// bind, fallback, and the test seam — goes through here, so the "asked once
 /// per bind" property holds by construction rather than by convention.
-fn bind_provider(
+pub(super) fn bind_provider(
     provider: Arc<dyn MemoryProvider>,
     driver_id: String,
     memory_subdir: String,
@@ -503,6 +431,7 @@ fn bind_provider(
         class,
         capabilities,
         fallback,
+        retry_at: None,
     }
 }
 
@@ -709,11 +638,12 @@ pub fn for_subtree(
         .read()
         .map_err(|e| format!("[memory:binding] cache read lock poisoned: {e}"))?
         .get(&key)
+        .filter(|binding| !binding.retry_due())
     {
         return Ok(Arc::clone(binding));
     }
 
-    let binding = Arc::new(build(workspace_dir, memory_subdir, cfg));
+    let binding = Arc::new(super::binding_build::build(workspace_dir, memory_subdir, cfg));
 
     let mut guard = cache
         .write()
@@ -732,6 +662,10 @@ pub fn for_subtree(
     // workspace while we were building. Reuse theirs so one workspace never has
     // two live drivers (kernel.md §3.1) and `capabilities()` stays asked once.
     let entry = guard.entry(key).or_insert_with(|| Arc::clone(&binding));
+    if entry.retry_due() {
+        // A transient fallback whose backoff has passed: this attempt replaces it.
+        *entry = Arc::clone(&binding);
+    }
     Ok(Arc::clone(entry))
 }
 
