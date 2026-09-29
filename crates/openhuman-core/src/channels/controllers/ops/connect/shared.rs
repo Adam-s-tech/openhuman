@@ -1,6 +1,5 @@
 //! Small helpers shared across the connect/disconnect/status operations.
 
-
 pub(crate) use tinychannels::controllers::{
     channel_config_connected, channel_credential_provider as credential_provider,
     parse_allowed_users, parse_optional_bool,
