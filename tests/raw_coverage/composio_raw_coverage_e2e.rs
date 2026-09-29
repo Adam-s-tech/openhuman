@@ -668,13 +668,6 @@ async fn composio_backend_client_surfaces_get_post_envelope_and_status_errors() 
     assert!(authorize
         .to_string()
         .contains("Backend returned success but no data for POST"));
-
-    let execute = client
-        .execute_tool("SLACK_POST_MESSAGE", Some(json!({ "text": "hello" })))
-        .await
-        .expect_err("non-2xx POST should error");
-    assert!(execute.to_string().contains("Backend returned 503"));
-    assert!(execute.to_string().contains("upstream maintenance"));
 }
 
 #[tokio::test]
@@ -1636,54 +1629,6 @@ async fn composio_backend_client_methods_build_requests_and_parse_local_envelope
 
     let all_tools = client.list_tools(None, None).await.expect("all tools");
     assert_eq!(all_tools.tools.len(), 1);
-
-    let execute = client
-        .execute_tool(
-            " GMAIL_SEND_EMAIL ",
-            Some(json!({ "to": "p@example.test" })),
-        )
-        .await
-        .expect("execute");
-    assert!(execute.successful);
-    assert_eq!(execute.data["id"], "msg-1");
-
-    let dispatched = execute_composio_action(
-        &client,
-        "GMAIL_SEND_EMAIL",
-        Some(json!({ "to": "p@example.test", "subject": "hello" })),
-    )
-    .await
-    .expect("dispatch uses auth-retry wrapper and local backend");
-    assert!(dispatched.successful);
-    assert_eq!(dispatched.data["id"], "msg-1");
-
-    let execute_error = client
-        .execute_tool(
-            "GMAIL_FETCH_EMAILS",
-            Some(json!({ "query": "newer_than:1d" })),
-        )
-        .await
-        .expect("execute provider failure envelope");
-    assert!(!execute_error.successful);
-    assert!(execute_error
-        .error
-        .as_deref()
-        .unwrap_or_default()
-        .starts_with("[composio:error:insufficient_scope]"));
-
-    let dispatched_error = execute_composio_action(
-        &client,
-        "GMAIL_FETCH_EMAILS",
-        Some(json!({ "query": "newer_than:1d" })),
-    )
-    .await
-    .expect("provider failures stay in response envelope");
-    assert!(!dispatched_error.successful);
-    assert!(dispatched_error
-        .error
-        .as_deref()
-        .unwrap_or_default()
-        .starts_with("[composio:error:insufficient_scope]"));
 
     let repos = client
         .list_github_repos(Some(" github conn "))

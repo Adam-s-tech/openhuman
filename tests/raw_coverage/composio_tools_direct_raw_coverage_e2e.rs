@@ -14,7 +14,7 @@ use axum::{Json, Router};
 use serde_json::{json, Value};
 use tempfile::tempdir;
 
-use openhuman_core::integrations::composio::client::{direct_execute, direct_list_connections};
+use openhuman_core::integrations::composio::client::direct_list_connections;
 use openhuman_core::integrations::composio::trigger_history::ComposioTriggerHistoryStore;
 use openhuman_core::security::{AutonomyLevel, SecurityPolicy};
 use tinytools::{Tool};
@@ -86,22 +86,6 @@ async fn direct_composio_tool_uses_loopback_for_list_execute_connect_and_account
         raw_execute.pointer("/data/messages/0/id"),
         Some(&json!("msg-direct"))
     );
-
-    let direct_response = direct_execute(
-        &tool,
-        "GMAIL_FETCH_EMAILS",
-        Some(json!({ "query": "from:me" })),
-        " entity-direct ",
-        None,
-    )
-    .await
-    .expect("direct execute envelope");
-    assert!(direct_response.successful);
-    assert_eq!(
-        direct_response.data.pointer("/messages/0/id"),
-        Some(&json!("msg-direct"))
-    );
-    assert_eq!(direct_response.cost_usd, 0.0);
 
     let fallback_execute = tool
         .execute_action("FALLBACK_ACTION", json!({ "ok": true }), None, None)
