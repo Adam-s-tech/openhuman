@@ -32,10 +32,6 @@ pub const TEST_RPC_TOKEN: &str = "memory-engine-e2e-token";
 pub const TEST_API_KEY: &str = "tiny_live_memory_engine_e2e";
 pub const NS: &str = "engine-e2e";
 
-pub const TEST_RPC_TOKEN: &str = "memory-engine-e2e-token";
-pub const TEST_API_KEY: &str = "tiny_live_memory_engine_e2e";
-pub const NS: &str = "engine-e2e";
-
 // ── Hosted CortexDB double ──────────────────────────────────────────────────
 
 #[derive(Default)]
