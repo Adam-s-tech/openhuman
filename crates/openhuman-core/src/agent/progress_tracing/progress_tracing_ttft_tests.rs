@@ -3,6 +3,9 @@
 
 use super::*;
 
+use crate::agent::progress_tracing::otlp::otlp_requests;
+use crate::agent::progress_tracing::types::SpanKind;
+
 fn iteration(iteration: u32) -> AgentProgress {
     AgentProgress::IterationStarted {
         iteration,
@@ -128,7 +131,7 @@ fn otlp_exports_completion_start_time_for_langfuse_ttft() {
         (completed(1), 1_700_000_001_000),
     ]);
     let spans = c.spans().to_vec();
-    let payloads = super::super::otlp::otlp_requests(&spans, "production");
+    let payloads = otlp_requests(&spans, "production");
     let exported = payloads[0]["resourceSpans"][0]["scopeSpans"][0]["spans"]
         .as_array()
         .unwrap();
