@@ -7404,7 +7404,8 @@ const messages: TranslationMap = {
   'memoryEngine.apiKeyOptional': 'Chave de API (opcional)',
   'memoryEngine.keySaved': 'Há uma chave salva. Deixe em branco para mantê-la.',
   'memoryEngine.keySavedPlaceholder': 'Salva (oculta)',
-  'memoryEngine.fallback': 'A memória está em pausa: {engine} está indisponível, então nada é salvo ou recuperado até que volte. {reason}',
+  'memoryEngine.fallback':
+    'A memória está em pausa: {engine} está indisponível, então nada é salvo ou recuperado até que volte. {reason}',
   'memoryEngine.paused': 'A memória está em pausa',
   'memoryEngine.dialog.cancelMigration': 'Cancelar cópia',
   'memoryEngine.lastError':

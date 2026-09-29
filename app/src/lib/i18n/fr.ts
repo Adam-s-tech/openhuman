@@ -7466,7 +7466,8 @@ const messages: TranslationMap = {
   'memoryEngine.apiKeyOptional': "Clé d'API (facultative)",
   'memoryEngine.keySaved': 'Une clé est enregistrée. Laissez vide pour la conserver.',
   'memoryEngine.keySavedPlaceholder': 'Enregistrée (masquée)',
-  'memoryEngine.fallback': 'La mémoire est en pause : {engine} est indisponible, donc rien n\'est enregistré ni rappelé tant qu\'il n\'est pas de retour. {reason}',
+  'memoryEngine.fallback':
+    "La mémoire est en pause : {engine} est indisponible, donc rien n'est enregistré ni rappelé tant qu'il n'est pas de retour. {reason}",
   'memoryEngine.paused': 'La mémoire est en pause',
   'memoryEngine.dialog.cancelMigration': 'Annuler la copie',
   'memoryEngine.lastError':

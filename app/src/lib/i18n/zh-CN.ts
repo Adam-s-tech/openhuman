@@ -6906,7 +6906,8 @@ const messages: TranslationMap = {
   'memoryEngine.apiKeyOptional': 'API 密钥（可选）',
   'memoryEngine.keySaved': '已保存密钥。留空则保持不变。',
   'memoryEngine.keySavedPlaceholder': '已保存（已隐藏）',
-  'memoryEngine.fallback': '记忆已暂停：{engine} 不可用，在其恢复之前不会保存或回忆任何内容。{reason}',
+  'memoryEngine.fallback':
+    '记忆已暂停：{engine} 不可用，在其恢复之前不会保存或回忆任何内容。{reason}',
   'memoryEngine.paused': '记忆已暂停',
   'memoryEngine.dialog.cancelMigration': '取消复制',
   'memoryEngine.lastError': '最近一次记忆引擎请求失败。请检查引擎设置。',

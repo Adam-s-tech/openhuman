@@ -7286,7 +7286,8 @@ const messages: TranslationMap = {
   'memoryEngine.apiKeyOptional': 'API कुंजी (वैकल्पिक)',
   'memoryEngine.keySaved': 'एक कुंजी सहेजी हुई है। उसे रखने के लिए खाली छोड़ें।',
   'memoryEngine.keySavedPlaceholder': 'सहेजी गई (छिपी हुई)',
-  'memoryEngine.fallback': 'मेमोरी रुकी हुई है: इंजन {engine} उपलब्ध नहीं है, इसलिए उसके लौटने तक कुछ भी सहेजा या याद नहीं किया जा रहा। {reason}',
+  'memoryEngine.fallback':
+    'मेमोरी रुकी हुई है: इंजन {engine} उपलब्ध नहीं है, इसलिए उसके लौटने तक कुछ भी सहेजा या याद नहीं किया जा रहा। {reason}',
   'memoryEngine.paused': 'मेमोरी रुकी हुई है',
   'memoryEngine.dialog.cancelMigration': 'कॉपी रद्द करें',
   'memoryEngine.lastError': 'मेमोरी इंजन का पिछला अनुरोध विफल रहा। इंजन की सेटिंग जाँचें।',

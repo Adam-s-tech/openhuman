@@ -7597,7 +7597,8 @@ const en: TranslationMap = {
   'memoryEngine.apiKeyOptional': 'API key (optional)',
   'memoryEngine.keySaved': 'A key is saved. Leave blank to keep it.',
   'memoryEngine.keySavedPlaceholder': 'Saved (hidden)',
-  'memoryEngine.fallback': 'Memory is paused: {engine} is unavailable, so nothing is being saved or recalled until it is back. {reason}',
+  'memoryEngine.fallback':
+    'Memory is paused: {engine} is unavailable, so nothing is being saved or recalled until it is back. {reason}',
   'memoryEngine.paused': 'Memory is paused',
   'memoryEngine.dialog.cancelMigration': 'Cancel copy',
   'memoryEngine.lastError': 'The last memory engine request failed. Check the engine settings.',

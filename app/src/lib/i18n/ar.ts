@@ -7132,7 +7132,8 @@ const messages: TranslationMap = {
   'memoryEngine.apiKeyOptional': 'مفتاح API (اختياري)',
   'memoryEngine.keySaved': 'يوجد مفتاح محفوظ. اتركه فارغًا للإبقاء عليه.',
   'memoryEngine.keySavedPlaceholder': 'محفوظ (مخفي)',
-  'memoryEngine.fallback': 'الذاكرة متوقفة مؤقتًا: المحرك {engine} غير متاح، لذا لا يتم حفظ أو استدعاء أي شيء حتى يعود. {reason}',
+  'memoryEngine.fallback':
+    'الذاكرة متوقفة مؤقتًا: المحرك {engine} غير متاح، لذا لا يتم حفظ أو استدعاء أي شيء حتى يعود. {reason}',
   'memoryEngine.paused': 'الذاكرة متوقفة مؤقتًا',
   'memoryEngine.dialog.cancelMigration': 'إلغاء النسخ',
   'memoryEngine.lastError': 'فشل آخر طلب إلى محرك الذاكرة. تحقق من إعدادات المحرك.',

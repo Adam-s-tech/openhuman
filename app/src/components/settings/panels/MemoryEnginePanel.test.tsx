@@ -96,7 +96,8 @@ async function renderPanel() {
   await screen.findByTestId('memory-engine-option-tinymemory');
 }
 
-const pick = (id: string) => fireEvent.click(screen.getByRole('radio', { name: new RegExp(id, 'i') }));
+const pick = (id: string) =>
+  fireEvent.click(screen.getByRole('radio', { name: new RegExp(id, 'i') }));
 
 beforeEach(() => {
   vi.clearAllMocks();

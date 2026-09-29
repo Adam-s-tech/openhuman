@@ -57,7 +57,8 @@ function publish(next: Snapshot) {
  */
 function fetchSnapshot(force: boolean): Promise<void> {
   if (inflight) return inflight;
-  const fresh = snapshot.fetchedAt > 0 && Date.now() - snapshot.fetchedAt < MEMORY_ENGINE_CACHE_TTL_MS;
+  const fresh =
+    snapshot.fetchedAt > 0 && Date.now() - snapshot.fetchedAt < MEMORY_ENGINE_CACHE_TTL_MS;
   if (!force && fresh && snapshot.error === null) return Promise.resolve();
   inflight = (async () => {
     try {

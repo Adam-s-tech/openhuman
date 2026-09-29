@@ -7282,7 +7282,8 @@ const messages: TranslationMap = {
   'memoryEngine.apiKeyOptional': 'API কী (ঐচ্ছিক)',
   'memoryEngine.keySaved': 'একটি কী সংরক্ষিত আছে। রাখতে ফাঁকা রাখুন।',
   'memoryEngine.keySavedPlaceholder': 'সংরক্ষিত (লুকানো)',
-  'memoryEngine.fallback': 'মেমোরি বিরতিতে আছে: ইঞ্জিন {engine} পাওয়া যাচ্ছে না, তাই এটি ফিরে না আসা পর্যন্ত কিছু সংরক্ষণ বা স্মরণ করা হচ্ছে না। {reason}',
+  'memoryEngine.fallback':
+    'মেমোরি বিরতিতে আছে: ইঞ্জিন {engine} পাওয়া যাচ্ছে না, তাই এটি ফিরে না আসা পর্যন্ত কিছু সংরক্ষণ বা স্মরণ করা হচ্ছে না। {reason}',
   'memoryEngine.paused': 'মেমোরি বিরতিতে আছে',
   'memoryEngine.dialog.cancelMigration': 'কপি বাতিল করুন',
   'memoryEngine.lastError':

@@ -7359,7 +7359,8 @@ const messages: TranslationMap = {
   'memoryEngine.apiKeyOptional': 'API-ключ (необязательно)',
   'memoryEngine.keySaved': 'Ключ сохранён. Оставьте поле пустым, чтобы сохранить его.',
   'memoryEngine.keySavedPlaceholder': 'Сохранён (скрыт)',
-  'memoryEngine.fallback': 'Память приостановлена: {engine} недоступен, поэтому ничего не сохраняется и не вспоминается, пока он не вернётся. {reason}',
+  'memoryEngine.fallback':
+    'Память приостановлена: {engine} недоступен, поэтому ничего не сохраняется и не вспоминается, пока он не вернётся. {reason}',
   'memoryEngine.paused': 'Память приостановлена',
   'memoryEngine.dialog.cancelMigration': 'Отменить копирование',
   'memoryEngine.lastError':
