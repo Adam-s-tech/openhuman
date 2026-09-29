@@ -155,14 +155,14 @@ pub(crate) async fn document_list(
         .map(|entry| {
             let ts = entry_epoch(&entry);
             json!({
-                "document_id": entry.id,
+                "documentId": entry.id,
                 "namespace": entry.namespace.or_else(|| namespace.map(str::to_string)).unwrap_or_default(),
                 "key": entry.key,
                 "title": entry.key,
-                "source_type": "memory",
+                "sourceType": "memory",
                 "priority": "medium",
-                "created_at": ts,
-                "updated_at": ts,
+                "createdAt": ts,
+                "updatedAt": ts,
             })
         })
         .collect::<Vec<_>>();
