@@ -37,6 +37,12 @@ const ALL_FUNCTIONS: &[&str] = &[
     "scheduler_override",
     // The bound memory driver (kernel.md §6 item 6, plan-memory.md §5)
     "provider_status",
+    // The memory-engine selector, registered with the provider family
+    "engines_list",
+    "engine_get",
+    "engine_set",
+    "engine_migrate",
+    "engine_migrate_status",
     // Tool-scoped memory (#1400)
     "tool_rule_put",
     "tool_rule_get",
@@ -103,8 +109,13 @@ const REGISTRATION_ORDER: &[&str] = &[
     "scheduler_override",
     // learn
     "learn_all",
-    // provider
+    // provider (status + the engine selector)
     "provider_status",
+    "engines_list",
+    "engine_get",
+    "engine_set",
+    "engine_migrate",
+    "engine_migrate_status",
     // tool_memory
     "tool_rule_put",
     "tool_rule_get",

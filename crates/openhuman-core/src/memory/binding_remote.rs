@@ -268,3 +268,7 @@ mod imp {
             .map_err(|e| format!("engine '{id}' could not be built: {}", scrub(&e.to_string(), &secrets)))
     }
 }
+
+#[cfg(test)]
+#[path = "binding_remote_tests.rs"]
+mod tests;
