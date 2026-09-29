@@ -862,9 +862,7 @@ async fn inference_registry_drives_config_oauth_models_and_provider_chat() {
             "base_url": format!("{provider_base}/v1"),
             "chat_model_id": "demo-chat",
             "usage_embeddings": false,
-            "usage_heartbeat": true,
-            "usage_learning_reflection": true,
-            "usage_subconscious": false
+            "usage_learning_reflection": true
         }),
     )
     .await
