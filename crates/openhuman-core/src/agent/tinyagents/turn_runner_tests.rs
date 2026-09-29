@@ -89,8 +89,23 @@ fn root_messages(label: &str) -> Vec<ChatMessage> {
     ]
 }
 
-#[tokio::test]
-async fn scoped_tool_limit_is_honored_by_the_hosted_runner() {
+#[test]
+fn scoped_tool_limit_is_honored_by_the_hosted_runner() {
+    std::thread::Builder::new()
+        .stack_size(crate::core::runtime::AGENT_WORKER_STACK_BYTES)
+        .spawn(|| {
+            tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+                .expect("test runtime")
+                .block_on(scoped_tool_limit_is_honored_by_the_hosted_runner_inner());
+        })
+        .expect("test thread")
+        .join()
+        .expect("test thread panicked");
+}
+
+async fn scoped_tool_limit_is_honored_by_the_hosted_runner_inner() {
     let tool_calls = Arc::new(std::sync::atomic::AtomicUsize::new(0));
     let model_calls = Arc::new(std::sync::atomic::AtomicUsize::new(0));
     let model: Arc<dyn ChatModel<()>> = Arc::new(RequestLimitedToolModel(model_calls.clone()));
