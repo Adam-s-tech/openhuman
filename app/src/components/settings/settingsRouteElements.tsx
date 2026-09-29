@@ -15,6 +15,7 @@ import FeedbackPanel from './panels/FeedbackPanel';
 import MascotPanel from './panels/MascotPanel';
 import MemoryDataPanel from './panels/MemoryDataPanel';
 import MemoryDebugPanel from './panels/MemoryDebugPanel';
+import MemoryEnginePanel from './panels/MemoryEnginePanel';
 import MigrationPanel from './panels/MigrationPanel';
 import PermissionsPanel from './panels/PermissionsPanel';
 import PersonaPanel from './panels/PersonaPanel';
@@ -191,6 +192,7 @@ export function settingsRouteElements(): ReactNode {
           window, vault health, and connected-source controls. */}
       <Route path="memory-data" element={wrapSettingsPage(<MemoryDataPanel />)} />
       <Route path="memory-debug" element={wrapSettingsPage(<MemoryDebugPanel />)} />
+      <Route path="memory-engine" element={wrapSettingsPage(<MemoryEnginePanel />)} />
       <Route path="analysis-views" element={<Navigate to="/brain" replace />} />
       <Route path="intelligence" element={<Navigate to="/brain" replace />} />
       {/* Composio trigger-triage config merged into the Connections Composio page. */}
