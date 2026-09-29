@@ -90,7 +90,7 @@ impl Drop for EnvVarGuard {
     }
 }
 
-/// See the note in `sandbox_runtime_platform_e2e.rs`: `core::auth::RPC_TOKEN`
+/// `core::auth::RPC_TOKEN`
 /// is a process-global `OnceLock` and `init_rpc_token` is idempotent, so inside
 /// the aggregated binary the first suite to initialise pins the bearer. Use the
 /// token this process actually validates rather than assuming ours won.

@@ -12,10 +12,9 @@
 //! one had a green tick on it. The gate fix in the same change makes the real
 //! figure 24/31; the seven cases below are the gap it exposes.
 //!
-//! These are NOT in `tests/raw_coverage/memory_goals_people_e2e.rs`, the file
-//! that already drives `memory_tree_*`, because that file opens with
-//! `#![cfg(any())]` (the #6382 quarantine) and compiles to nothing. Adding a
-//! case there would credit the coverage gate and run no code at all.
+//! They live in their own target rather than under `tests/raw_coverage/`; the old
+//! `memory_goals_people_e2e.rs` fixture that also drove `memory_tree_*` was
+//! quarantined under #6382 and has been removed.
 //!
 //! # What is asserted, and what is not
 //!
