@@ -14,7 +14,7 @@ use crate::agent::harness::definition::SubagentEntry;
 use crate::agent::harness::AgentDefinitionRegistry;
 use crate::agent::prompts::{
     render_datetime, render_identity, render_tools, render_user_files, render_workspace,
-    ConnectedIntegration, PromptContext,
+    ConnectedIntegration, PromptContext, ToolCallFormat,
 };
 use crate::skills::ops_types::Workflow;
 use crate::tools::orchestrator_tools::sanitise_slug;
@@ -41,9 +41,16 @@ pub fn build(ctx: &PromptContext<'_>) -> Result<String> {
     let skill_install = hand_off_route(ctx, "skill_setup");
     // An empty visibility set is the builder's unfiltered sentinel. Preserve
     // the MCP route for those sessions while suppressing it in gated-off builds.
+    // Registered is enough: the orchestrator defers the registry tools
+    // (`deferred_tools` in its agent.toml), so they are reachable through
+    // `tool_search` and by name without being in the visible set.
     let mcp_available = cfg!(feature = "mcp")
         && (ctx.visible_tool_names.is_empty()
-            || ctx.visible_tool_names.contains("mcp_registry_tool_call"));
+            || ctx.visible_tool_names.contains("mcp_registry_tool_call")
+            || ctx
+                .tools
+                .iter()
+                .any(|tool| tool.name.as_ref() == "mcp_registry_tool_call"));
 
     // ── Stable tier: identical across sessions for a given build ─────────
     //
@@ -61,23 +68,24 @@ pub fn build(ctx: &PromptContext<'_>) -> Result<String> {
             mcp_available,
         ),
     );
-    push(&mut out, &render_tools(ctx)?);
+    // A native-tool-calling provider carries the schemas in the request, and
+    // the only prose `render_tools` adds there is the generic Tool Use
+    // Protocol, whose one rule ("call it in the same message") is the first
+    // line of this agent's `## Grounding and tool use`. Text dialects still
+    // need the catalogue and their protocol block.
+    if ctx.tool_call_format != ToolCallFormat::Native {
+        push(&mut out, &render_tools(ctx)?);
+    }
     push(&mut out, &render_datetime(ctx)?);
 
     // ── Context tier: stable for the session, not across installs ────────
     out.push_str(PROMPT_TIER_CONTEXT_MARKER);
     out.push('\n');
     push(&mut out, &render_workspace(ctx)?);
-    // Model families that stop after announcing a plan get one short block of
-    // execution discipline; the rest (Claude, Gemini) pay nothing. The text
-    // and the gate are tinyagents', so every host renders the same words.
-    if let Some(guidance) = tinyagents_harness::prompt::execution_discipline_for(ctx.model_name) {
-        tracing::debug!(
-            model = ctx.model_name,
-            "[orchestrator-prompt] rendering model-gated execution discipline"
-        );
-        push(&mut out, guidance);
-    }
+    // No model-gated execution-discipline block here: its rules (act in the
+    // same response, keep going until done, batch calls, ask only when the
+    // ambiguity changes the tool) are this agent's own `## Grounding and tool
+    // use`, stated once for every model.
 
     // ── Volatile tier: the user's state, changes between sessions ────────
     out.push_str(PROMPT_TIER_VOLATILE_MARKER);
@@ -198,14 +206,15 @@ fn render_withheld_specialists(ctx: &PromptContext<'_>) -> String {
     for (tool, pack) in rows {
         by_pack.entry(pack).or_default().push(format!("`{tool}`"));
     }
-    let mut out = String::from(
-        "## Capabilities not in your tool list\n\nAvailable through `use_skill` (`skill` \
-         alone lists arguments; add `tool` + `args` to run):\n\n",
-    );
-    for (pack, tools) in by_pack {
-        let _ = writeln!(out, "- skill `{pack}`: {}", tools.join(", "));
-    }
-    out
+    let entries: Vec<String> = by_pack
+        .into_iter()
+        .map(|(pack, tools)| format!("`{pack}` ({})", tools.join(", ")))
+        .collect();
+    format!(
+        "## Capabilities not in your tool list\n\nThrough `use_skill` (`skill` alone lists \
+         arguments; add `tool` + `args` to run): {}.",
+        entries.join(", ")
+    )
 }
 
 /// How this session can reach `specialist` right now, as the call to name.
