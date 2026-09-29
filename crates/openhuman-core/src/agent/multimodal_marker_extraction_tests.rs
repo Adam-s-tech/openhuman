@@ -21,8 +21,6 @@ async fn prepare_messages_rejects_too_many_images() {
         .contains("multimodal image limit exceeded"));
 }
 
-// ── #5146 P6: a reference that is not base64 must not reach Ollama ──────────
-
 #[tokio::test]
 async fn prepare_messages_extracts_text_from_pdf() {
     let temp = tempfile::tempdir().unwrap();
