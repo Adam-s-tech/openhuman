@@ -86,12 +86,12 @@ fn start_job() -> Result<String, String> {
     if map.values().any(|j| j.state == "running") {
         return Err("a memory migration is already running".to_string());
     }
-    let finished: Vec<String> = map.keys().cloned().collect();
-    if finished.len() >= MAX_FINISHED_JOBS {
-        // Only finished jobs are left here (a running one was refused above).
-        for key in finished.into_iter().take(finished_overflow(map.len())) {
-            map.remove(&key);
-        }
+    // Only finished jobs can be here (a running one was refused above).
+    while map.len() >= MAX_FINISHED_JOBS {
+        let Some(oldest) = map.keys().next().cloned() else {
+            break;
+        };
+        map.remove(&oldest);
     }
     let job_id = uuid::Uuid::new_v4().to_string();
     map.insert(
@@ -106,8 +106,39 @@ fn start_job() -> Result<String, String> {
     Ok(job_id)
 }
 
-fn finished_overflow(len: usize) -> usize {
-    len.saturating_sub(MAX_FINISHED_JOBS - 1)
+/// What a finished copy reports.
+struct CopyReport {
+    records: usize,
+    imported: usize,
+    skipped: usize,
+    failed: usize,
+    errors: Vec<String>,
+}
+
+#[cfg(feature = "memory-remote")]
+async fn run_copy(
+    source: &dyn crate::memory::api::provider::MemoryProvider,
+    target: &dyn crate::memory::api::provider::MemoryProvider,
+    on_progress: impl FnMut(usize),
+) -> anyhow::Result<CopyReport> {
+    let mut on_progress = on_progress;
+    let report = tinymemory::migrate::copy(source, target, |p| on_progress(p.records)).await?;
+    Ok(CopyReport {
+        records: report.records,
+        imported: report.imported,
+        skipped: report.skipped,
+        failed: report.failed,
+        errors: report.errors,
+    })
+}
+
+#[cfg(not(feature = "memory-remote"))]
+async fn run_copy(
+    _source: &dyn crate::memory::api::provider::MemoryProvider,
+    _target: &dyn crate::memory::api::provider::MemoryProvider,
+    _on_progress: impl FnMut(usize),
+) -> anyhow::Result<CopyReport> {
+    anyhow::bail!("memory engine migration is not compiled into this build")
 }
 
 /// `memory.engine_migrate`.
@@ -144,8 +175,8 @@ pub async fn memory_engine_migrate(params: MigrateParams) -> Result<RpcOutcome<M
     let task_job_id = job_id.clone();
     tokio::spawn(CoreContext::propagate(async move {
         let progress_id = task_job_id.clone();
-        let copied = tinymemory::migrate::copy(source.as_ref(), target.as_ref(), move |p| {
-            update_job(&progress_id, |j| j.copied = p.records);
+        let copied = run_copy(source.as_ref(), target.as_ref(), move |records| {
+            update_job(&progress_id, |j| j.copied = records);
         })
         .await;
         match copied {
