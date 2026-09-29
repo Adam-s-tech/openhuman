@@ -13,6 +13,9 @@
 # Simulate with: scripts/dep-sim.py --cut <crates>
 #
 # History
+#   304/283/2  2026-09-29  The current flows graph sheds three resolved
+#                      packages and three crate names without changing native
+#                      builds. Ratcheted after the kernel-floor smoke check.
 #   307/286/2  2026-09-27  The multi-provider search config directly uses the
 #                      required TinySearch bus contract in always-on settings
 #                      and policy code. This adds one resolved crate/name and
@@ -604,4 +607,4 @@
 #                      into the required host runtime. The migration adds five
 #                      resolved packages and four unique crate names; it does
 #                      not add a native build dependency.
-flows:307:286:2
+flows:304:283:2
