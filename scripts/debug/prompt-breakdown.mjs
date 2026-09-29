@@ -83,7 +83,10 @@ export function splitSections(text) {
     if (!inFence && !openTag) {
       const h = /^(#{1,6})\s+(.*)$/.exec(line);
       if (h) {
-        push({ title: `${h[1]} ${h[2].trim()}`, level: h[1].length, lines: [line], children: [] });
+        // `### SOUL.md`-style lines mark an injected workspace file: they sit
+        // above the file's own `#` headings, whatever their hash count.
+        const level = /^[\w.-]+\.md$/.test(h[2].trim()) ? 0.25 : h[1].length;
+        push({ title: `${h[1]} ${h[2].trim()}`, level, lines: [line], children: [] });
         continue;
       }
       const t = /^<([A-Za-z_][\w.-]*)(\s[^>]*)?>\s*$/.exec(line);
