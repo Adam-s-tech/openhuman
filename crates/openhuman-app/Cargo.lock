@@ -4231,7 +4231,7 @@ dependencies = [
 
 [[package]]
 name = "openhuman"
-version = "0.64.6"
+version = "0.64.7"
 dependencies = [
  "aes-gcm",
  "aho-corasick",
@@ -4349,7 +4349,7 @@ dependencies = [
 
 [[package]]
 name = "openhuman-app"
-version = "0.64.6"
+version = "0.64.7"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4398,7 +4398,7 @@ dependencies = [
 
 [[package]]
 name = "openhuman-embed"
-version = "0.64.6"
+version = "0.64.7"
 dependencies = [
  "anyhow",
  "log",
@@ -4414,7 +4414,7 @@ dependencies = [
 
 [[package]]
 name = "openhuman-rpc"
-version = "0.64.6"
+version = "0.64.7"
 dependencies = [
  "log",
  "reqwest 0.12.28",
@@ -4425,7 +4425,7 @@ dependencies = [
 
 [[package]]
 name = "openhuman-tinyhumans"
-version = "0.64.6"
+version = "0.64.7"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -7301,7 +7301,7 @@ dependencies = [
 
 [[package]]
 name = "tinycomputer-bus"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "serde",
  "serde_json",
