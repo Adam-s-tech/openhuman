@@ -15,9 +15,35 @@ impl SessionHostBuilder {
     /// setting up the context manager, and initializing the conversation history.
     /// It ensures that all required fields (provider, tools, memory, etc.) are present.
     pub fn build(self) -> Result<OpenHumanSessionHost> {
-        let tools = self
+        let mut tools = self
             .tools
             .ok_or_else(|| anyhow::anyhow!("tools are required"))?;
+        // Advertise only the spawnable ids on the wire: see
+        // `SpawnAsyncSubagentTool::scoped` for why the spec-view narrowing
+        // alone did not reach a native-tool-calling provider.
+        let spawn_scope_id = self
+            .session_definition
+            .as_deref()
+            .map(|definition| definition.id.clone())
+            .or_else(|| self.agent_definition_name.clone());
+        if let Some(agent_id) = spawn_scope_id {
+            let allowed = super::allowed_subagent_ids_for(agent_id.trim());
+            if !allowed.is_empty() {
+                if let Some(slot) = tools
+                    .iter_mut()
+                    .find(|tool| tool.name() == "spawn_async_subagent")
+                {
+                    tracing::debug!(
+                        agent = %agent_id,
+                        ids = allowed.len(),
+                        "[tools] scoping spawn_async_subagent schema to the subagent allowlist"
+                    );
+                    *slot = Box::new(
+                        crate::agent::orchestration::tools::SpawnAsyncSubagentTool::scoped(allowed),
+                    );
+                }
+            }
+        }
         // The synthesised set lives beside the durable registry, never inside
         // it (`OpenHumanSessionHost::synthesized_tools`); a durable name wins a collision.
         let synthesized_tools = super::drop_synthesized_name_collisions(
