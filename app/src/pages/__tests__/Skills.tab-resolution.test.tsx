@@ -59,8 +59,8 @@ vi.mock('../../components/skills/SkillsExplorerTab', () => ({
 vi.mock('../../components/channels/mcp/McpServersPage', () => ({
   default: () => <div data-testid="tab-body-mcp-servers" />,
 }));
-vi.mock('../../components/desktop/DesktopConnectionPage', () => ({
-  default: () => <div data-testid="tab-body-desktop" />,
+vi.mock('../../components/settings/panels/ComputerPanel', () => ({
+  default: () => <div data-testid="tab-body-computer" />,
 }));
 
 vi.mock('../../lib/skills/skillsApi', () => ({
@@ -155,13 +155,19 @@ describe('Connections ?tab= resolution — legacy aliases', () => {
 });
 
 describe('Connections ?tab= resolution — canonical values', () => {
-  it.each([['composio'], ['channels'], ['mcp'], ['skills'], ['wallet'], ['desktop']])(
+  it.each([['composio'], ['channels'], ['mcp'], ['skills'], ['wallet'], ['computer']])(
     '?tab=%s passes through unchanged',
     async tab => {
       renderAt(`?tab=${tab}`);
       expect(await selectedTab()).toBe(tab);
     }
   );
+
+  it('?tab=desktop resolves to the Computer tab', async () => {
+    renderAt('?tab=desktop');
+    expect(await selectedTab()).toBe('computer');
+    expect(screen.getByTestId('tab-body-computer')).toBeInTheDocument();
+  });
 
   it('?tab=welcome renders the landing overview', async () => {
     // `welcome` is the one value with no nav row of its own -- it is the

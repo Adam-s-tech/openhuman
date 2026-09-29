@@ -23,8 +23,6 @@ pub const PACKS: &[ToolPack] = &[
         tools: &[
             "build_workflow",
             "discover_workflows",
-            "run_workflow",
-            "await_workflow",
             "describe_workflow",
             "list_workflows",
             "list_workflow_runs",
@@ -147,7 +145,7 @@ pub const PACKS: &[ToolPack] = &[
         id: "skills",
         // The install hand-off (`setup_skills`) is not a member: it is the
         // orchestrator's direct route into this family. See
-        // `DELIBERATELY_UNPACKED_HANDOFFS`. Running an installed skill is the
+        // `DELIBERATELY_UNPACKED_DIRECT_TOOLS`. Running an installed skill is the
         // orchestrator's own `run_workflow`.
         summary: "Skills: search installed, browse and install from registries, read resources.",
         tools: &[
@@ -427,16 +425,15 @@ pub(crate) const DELIBERATELY_UNPACKED_FLEET_TOOLS: &[&str] = &[
     "spawn_parallel_agents",
 ];
 
-/// The skill hand-offs are deliberately not packed (#6302).
+/// Direct tool routes are deliberately not packed (#6302).
 ///
-/// `setup_skills` and `run_skill` are the orchestrator's route into the
-/// skills family. Packed, they sat in the same listing as the raw
-/// `skill_registry_*` tools, one `use_skill` round trip
+/// `setup_skills` is the orchestrator's route into skill installation, and
+/// `run_workflow` / `await_workflow` are its route into running installed
+/// skills. Packed, those routes sat one `use_skill` round trip
 /// away, and a live account showed the cost: across 11 turns the orchestrator
 /// called the raw tools itself, guessed at tool names, and never handed off.
-/// Handing off is the most common thing it does with these families, so the
-/// `collapsed_delegation.rs` argument applies: frequency of use decides, and
-/// delegation should not pay a round trip.
+/// These are direct tools on the orchestrator's belt, so users do not pay a
+/// discovery round trip to reach the common path.
 ///
 /// With a hand-off on the belt, `ops::closed_by_direct_handoff` closes the
 /// owning pack's raw tools to the caller, so the hand-off is its only route.
@@ -445,7 +442,8 @@ pub(crate) const DELIBERATELY_UNPACKED_FLEET_TOOLS: &[&str] = &[
 /// token-cost decision, and the same closing rule takes effect for any of them
 /// as soon as it is unpacked and listed here.
 #[cfg(test)]
-pub(crate) const DELIBERATELY_UNPACKED_HANDOFFS: &[&str] = &["setup_skills"];
+pub(crate) const DELIBERATELY_UNPACKED_DIRECT_TOOLS: &[&str] =
+    &["setup_skills", "run_workflow", "await_workflow"];
 
 pub fn pack(id: &str) -> Option<&'static ToolPack> {
     PACKS.iter().find(|p| p.id == id)

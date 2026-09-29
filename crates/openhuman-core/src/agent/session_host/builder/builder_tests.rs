@@ -132,7 +132,7 @@ fn visible_specs_scope_use_skills_index_to_the_session() {
     let visible: std::collections::HashSet<String> = specs.iter().map(|s| s.name.clone()).collect();
     // Reachable: one workflows tool. Everything else in every other pack is
     // denied, exactly like the orchestrator against `system` / `audio`.
-    let session = session_allowing(&["run_workflow", crate::tools::toolpacks::USE_SKILL]);
+    let session = session_allowing(&["list_workflows", crate::tools::toolpacks::USE_SKILL]);
 
     let out = visible_tool_specs_for_policy(&specs, &visible, &session);
     let load = out
@@ -276,8 +276,8 @@ fn a_realistic_withheld_session_keeps_its_packs_advertised() {
 fn use_skill_survives_a_ceiling_that_excludes_it_when_a_pack_is_still_reachable() {
     // `allowed_tool_names` deliberately omits `USE_SKILL` itself — simulating
     // the real engine having excluded it because *some* packed tool (not
-    // `run_workflow`) exceeded the channel's permission ceiling.
-    let session = session_allowing(&["run_workflow"]);
+    // `list_workflows`) exceeded the channel's permission ceiling.
+    let session = session_allowing(&["list_workflows"]);
     assert!(
         !session
             .allowed_tool_names
