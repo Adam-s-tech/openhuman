@@ -49,11 +49,11 @@ pub fn register_controllers() -> Result<(), String> {
     })
 }
 
-/// [`register_controllers`] for call sites that cannot propagate an error:
-/// a failure means a namespace collision in the registry, which is a build
-/// bug, so it is logged loudly rather than aborting the server.
+/// [`register_controllers`] for server setup paths that cannot return an
+/// error. A registration failure is a broken host invariant, so fail before
+/// installing the server or building its router.
 pub(crate) fn ensure_registered() {
-    if let Err(error) = register_controllers() {
-        log::error!("{LOG_PREFIX} controller registration failed: {error}");
-    }
+    register_controllers().unwrap_or_else(|error| {
+        panic!("{LOG_PREFIX} controller registration failed: {error}");
+    });
 }
