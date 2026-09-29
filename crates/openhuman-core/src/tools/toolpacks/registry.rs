@@ -103,9 +103,10 @@ pub const PACKS: &[ToolPack] = &[
             "mcp_registry_tool_call",
             "mcp_registry_uninstall",
         ],
-        // The orchestrator owns it so the four registry tools on its belt stay
-        // advertised; the catalogue readers are `Deferred` and reached through
-        // `tool_search` or this skill.
+        // The orchestrator owns it so the four registry tools it names are not
+        // withheld; its `deferred_tools` then takes them off its wire, so they
+        // are found through `tool_search` like the catalogue readers (which are
+        // `Deferred` for every agent) and stay callable by name.
         owners: &["orchestrator", "planner"],
         guide: include_str!("guides/mcp.md"),
     },
@@ -145,12 +146,16 @@ pub const PACKS: &[ToolPack] = &[
     },
     ToolPack {
         id: "skills",
-        // The install hand-off (`setup_skills`) is not a member: it is the
-        // orchestrator's direct route into this family. See
-        // `DELIBERATELY_UNPACKED_HANDOFFS`. Running an installed skill is the
-        // orchestrator's own `run_workflow`.
-        summary: "Skills: search installed, browse and install from registries, read resources.",
+        // The install hand-off (`setup_skills`) is a member like the other
+        // packed hand-offs (`build_workflow`, `manage_tasks`): it cost ~270
+        // tokens on every orchestrator request for a family used a few times a
+        // week. Packed, it no longer closes this pack to the orchestrator
+        // (`ops::closed_by_direct_handoff` keys on UNPACKED hand-offs), so the
+        // listing offers the hand-off beside the raw registry tools. Running an
+        // installed skill is the orchestrator's own `run_workflow`.
+        summary: "Skills: install or find agent skills (setup_skills hands the whole request to the installer), browse registries, read resources.",
         tools: &[
+            "setup_skills",
             // In the pack, not outside it. A search tool advertised while the
             // tool it hands off to (`describe_workflow`) stays
             // withheld would cost 748 B on every wildcard agent to produce an id
@@ -446,7 +451,7 @@ pub(crate) const DELIBERATELY_UNPACKED_FLEET_TOOLS: &[&str] = &[
 /// token-cost decision, and the same closing rule takes effect for any of them
 /// as soon as it is unpacked and listed here.
 #[cfg(test)]
-pub(crate) const DELIBERATELY_UNPACKED_HANDOFFS: &[&str] = &["setup_skills"];
+pub(crate) const DELIBERATELY_UNPACKED_HANDOFFS: &[&str] = &[];
 
 pub fn pack(id: &str) -> Option<&'static ToolPack> {
     PACKS.iter().find(|p| p.id == id)
