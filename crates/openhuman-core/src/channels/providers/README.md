@@ -4,23 +4,23 @@ Implementations live in `vendor/tinychannels/src/providers/`, not here. `mod.rs`
 
 ## Providers
 
-| Provider | Re-exported struct | Feature gate |
-| --- | --- | --- |
-| `dingtalk` | `DingTalkChannel` | `channels` |
-| `discord` | `DiscordChannel` | `channels` |
-| `email_channel` | `EmailChannel` | `channels` |
-| `imessage` | `IMessageChannel` | `channels` |
-| `irc` | `IrcChannel` | `channels` |
-| `lark` | `LarkChannel` | `channels` |
-| `linq` | `LinqChannel` | `channels` |
-| `mattermost` | `MattermostChannel` | `channels` |
-| `qq` | `QQChannel` | `channels` |
-| `signal` | `SignalChannel` | `channels` |
-| `slack` | `SlackChannel` | `channels` |
-| `telegram` | `TelegramChannel` | `channels` |
-| `whatsapp` | `WhatsAppChannel` | `channels` |
-| `whatsapp_web` | `WhatsAppWebChannel` | `whatsapp-web` (forwards to `tinychannels/whatsapp-web`) |
-| `yuanbao` | `YuanbaoChannel` | `channels` |
+| Provider        | Re-exported struct   | Feature gate                                             |
+| --------------- | -------------------- | -------------------------------------------------------- |
+| `dingtalk`      | `DingTalkChannel`    | `channels`                                               |
+| `discord`       | `DiscordChannel`     | `channels`                                               |
+| `email_channel` | `EmailChannel`       | `channels`                                               |
+| `imessage`      | `IMessageChannel`    | `channels`                                               |
+| `irc`           | `IrcChannel`         | `channels`                                               |
+| `lark`          | `LarkChannel`        | `channels`                                               |
+| `linq`          | `LinqChannel`        | `channels`                                               |
+| `mattermost`    | `MattermostChannel`  | `channels`                                               |
+| `qq`            | `QQChannel`          | `channels`                                               |
+| `signal`        | `SignalChannel`      | `channels`                                               |
+| `slack`         | `SlackChannel`       | `channels`                                               |
+| `telegram`      | `TelegramChannel`    | `channels`                                               |
+| `whatsapp`      | `WhatsAppChannel`    | `channels`                                               |
+| `whatsapp_web`  | `WhatsAppWebChannel` | `whatsapp-web` (forwards to `tinychannels/whatsapp-web`) |
+| `yuanbao`       | `YuanbaoChannel`     | `channels`                                               |
 
 `CliChannel` is not a provider re-export: `channels/mod.rs` takes it from the ungated `tinychannels-runtime` crate.
 
