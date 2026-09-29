@@ -9,7 +9,7 @@
     "is a deliberate edit to this file, which is a reviewable diff.",
     "",
     "Delete an entry the moment the pins are reconciled. An exemption that has",
-    "stopped being true fails the gate too \u2014 `expect` must still match."
+    "stopped being true fails the gate too — `expect` must still match."
   ],
   "exemptions": [
     {
@@ -29,6 +29,12 @@
       "submodule": "vendor/tinyruntime",
       "expect": "v0.2.7",
       "reason": "The provider is published independently at v0.2.3 while the shared source pin is tinyruntime v0.2.7. v0.2.3 was built against tinyruntime 09f9646 (v0.2.4-5); git diff 09f9646..v0.2.7 changes no crate source (only CI, toolchain, versions, Cargo.lock and the tinybus pin), and the tinybus module ABI is revision 1 on both. Registry retains its matching published v0.2.3 provider artifact."
+    },
+    {
+      "id": "tinymemory",
+      "submodule": "vendor/tinymemory",
+      "expect": "v1.16.2-3-g5e508b5a",
+      "reason": "The pin is v1.16.2 plus only the new pure-library crate tinymemory-conversations (tinymemory#170), which the core links as a Rust path dependency. No module, contract or bus source changes relative to v1.16.2, so the registry's v1.16.2 artifact still matches the contract compiled here. Remove when tinymemory#170 ships in a release and both pins move to it."
     }
   ]
 }
