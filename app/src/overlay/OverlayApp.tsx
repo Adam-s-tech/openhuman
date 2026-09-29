@@ -15,8 +15,8 @@
  *      overlay into STT mode; "released" (or the final transcription)
  *      dismisses it.
  *
- *   2. **Attention message** — when the core (subconscious loop, heartbeat,
- *      …) publishes an `OverlayAttentionEvent` via
+ *   2. **Attention message** — when the core (a scheduled cron job, a
+ *      proactive notification, …) publishes an `OverlayAttentionEvent` via
  *      `openhuman::overlay::publish_attention(...)`. The bridge in
  *      `core::socketio` forwards this as an `overlay:attention` event.
  *      The bubble auto-dismisses after its ttl.
@@ -252,7 +252,7 @@ export default function OverlayApp() {
     [scheduleDismiss]
   );
 
-  // ── Attention from subconscious / core ─────────────────────────────────
+  // ── Attention from the core ─────────────────────────────────────────────
   const handleAttention = useCallback(
     (payload: OverlayAttentionPayload) => {
       const message = payload?.message?.trim();
