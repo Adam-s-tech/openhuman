@@ -168,7 +168,6 @@ fn the_default_origin_is_still_the_pinned_github_api() {
     );
 }
 
-
 // ---------------------------------------------------------------------------
 // #6766: the release publishes the core as `openhuman-core-<version>-<triple>`
 // with the version BETWEEN the prefix and the triple, so matching on
@@ -181,7 +180,11 @@ fn the_default_origin_is_still_the_pinned_github_api() {
 
 /// The archive extension the release workflow publishes for this platform.
 fn archive_ext() -> &'static str {
-    if cfg!(windows) { ".zip" } else { ".tar.gz" }
+    if cfg!(windows) {
+        ".zip"
+    } else {
+        ".tar.gz"
+    }
 }
 
 fn asset(name: &str) -> GitHubAsset {
@@ -204,7 +207,10 @@ fn find_platform_asset_matches_the_versioned_archive() {
 
     let picked = find_platform_asset(&assets).expect("the versioned archive must be selected");
 
-    assert_eq!(picked.name, wanted, "another triple's archive must not be selected");
+    assert_eq!(
+        picked.name, wanted,
+        "another triple's archive must not be selected"
+    );
 }
 
 #[test]
@@ -268,8 +274,12 @@ fn find_platform_asset_returns_none_when_no_core_asset_is_published() {
 
 #[test]
 fn is_archive_asset_classifies_the_published_shapes() {
-    assert!(is_archive_asset("openhuman-core-0.64.7-x86_64-unknown-linux-gnu.tar.gz"));
-    assert!(is_archive_asset("openhuman-core-0.64.7-x86_64-pc-windows-msvc.zip"));
+    assert!(is_archive_asset(
+        "openhuman-core-0.64.7-x86_64-unknown-linux-gnu.tar.gz"
+    ));
+    assert!(is_archive_asset(
+        "openhuman-core-0.64.7-x86_64-pc-windows-msvc.zip"
+    ));
     assert!(is_archive_asset("core.tgz"));
     assert!(!is_archive_asset("openhuman-core-x86_64-unknown-linux-gnu"));
     assert!(!is_archive_asset("openhuman-core.exe"));
@@ -315,7 +325,12 @@ async fn check_available_picks_the_versioned_archive() {
 /// Build a `.tar.gz` holding one entry named `entry_name`, with `body` as its
 /// contents, and return its path.
 #[cfg(unix)]
-fn write_tar_gz(dir: &std::path::Path, archive_name: &str, entry_name: &str, body: &[u8]) -> std::path::PathBuf {
+fn write_tar_gz(
+    dir: &std::path::Path,
+    archive_name: &str,
+    entry_name: &str,
+    body: &[u8],
+) -> std::path::PathBuf {
     let archive_path = dir.join(archive_name);
     let file = std::fs::File::create(&archive_path).expect("create archive");
     let encoder = flate2::write::GzEncoder::new(file, flate2::Compression::fast());
@@ -327,7 +342,11 @@ fn write_tar_gz(dir: &std::path::Path, archive_name: &str, entry_name: &str, bod
     builder
         .append_data(&mut header, entry_name, body)
         .expect("append entry");
-    builder.into_inner().expect("finish tar").finish().expect("finish gz");
+    builder
+        .into_inner()
+        .expect("finish tar")
+        .finish()
+        .expect("finish gz");
     archive_path
 }
 
@@ -352,8 +371,15 @@ fn staging_extracts_the_core_binary_out_of_the_archive() {
         b"#!/bin/sh\nexit 0\n",
         "the staged file must be the inner binary, not the archive"
     );
-    let mode = std::fs::metadata(&dest).expect("stat staged binary").permissions().mode();
-    assert_eq!(mode & 0o111, 0o111, "the staged binary must be executable, mode was {mode:o}");
+    let mode = std::fs::metadata(&dest)
+        .expect("stat staged binary")
+        .permissions()
+        .mode();
+    assert_eq!(
+        mode & 0o111,
+        0o111,
+        "the staged binary must be executable, mode was {mode:o}"
+    );
 }
 
 #[cfg(unix)]
@@ -376,5 +402,8 @@ fn staging_refuses_an_archive_without_the_core_binary() {
         err.contains(staged_binary_name()),
         "the error must name the entry it looked for, got: {err}"
     );
-    assert!(!dest.exists(), "nothing may be staged when extraction fails");
+    assert!(
+        !dest.exists(),
+        "nothing may be staged when extraction fails"
+    );
 }

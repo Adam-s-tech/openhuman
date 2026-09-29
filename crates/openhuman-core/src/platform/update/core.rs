@@ -136,7 +136,10 @@ fn finalize_executable(tmp: &std::path::Path, dest: &std::path::Path) -> Result<
 /// Without this the archive itself was written to the staging path and marked
 /// executable, so a restart would try to exec a tarball. Restored from #908,
 /// which added it for exactly that reason.
-fn extract_core_binary(archive_path: &std::path::Path, dest: &std::path::Path) -> Result<(), String> {
+fn extract_core_binary(
+    archive_path: &std::path::Path,
+    dest: &std::path::Path,
+) -> Result<(), String> {
     let inner_name = staged_binary_name();
     let archive_name = archive_path
         .file_name()
@@ -152,10 +155,11 @@ fn extract_core_binary(archive_path: &std::path::Path, dest: &std::path::Path) -
             .by_name(inner_name)
             .map_err(|e| format!("archive has no '{inner_name}' entry: {e}"))?;
         {
-            let mut out =
-                std::fs::File::create(&tmp_path).map_err(|e| format!("create staging temp: {e}"))?;
+            let mut out = std::fs::File::create(&tmp_path)
+                .map_err(|e| format!("create staging temp: {e}"))?;
             std::io::copy(&mut entry, &mut out).map_err(|e| format!("extract zip entry: {e}"))?;
-            out.flush().map_err(|e| format!("flush extracted binary: {e}"))?;
+            out.flush()
+                .map_err(|e| format!("flush extracted binary: {e}"))?;
         }
         return finalize_executable(&tmp_path, dest);
     }
@@ -167,7 +171,9 @@ fn extract_core_binary(archive_path: &std::path::Path, dest: &std::path::Path) -
         .map_err(|e| format!("read tar entries: {e}"))?;
     for entry in entries {
         let mut entry = entry.map_err(|e| format!("read tar entry: {e}"))?;
-        let path = entry.path().map_err(|e| format!("read tar entry path: {e}"))?;
+        let path = entry
+            .path()
+            .map_err(|e| format!("read tar entry path: {e}"))?;
         let is_core = path
             .file_name()
             .and_then(|s| s.to_str())
@@ -176,10 +182,11 @@ fn extract_core_binary(archive_path: &std::path::Path, dest: &std::path::Path) -
             continue;
         }
         {
-            let mut out =
-                std::fs::File::create(&tmp_path).map_err(|e| format!("create staging temp: {e}"))?;
+            let mut out = std::fs::File::create(&tmp_path)
+                .map_err(|e| format!("create staging temp: {e}"))?;
             std::io::copy(&mut entry, &mut out).map_err(|e| format!("extract tar entry: {e}"))?;
-            out.flush().map_err(|e| format!("flush extracted binary: {e}"))?;
+            out.flush()
+                .map_err(|e| format!("flush extracted binary: {e}"))?;
         }
         return finalize_executable(&tmp_path, dest);
     }
