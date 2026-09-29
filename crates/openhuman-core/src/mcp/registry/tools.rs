@@ -24,7 +24,7 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use serde_json::{Value};
+use serde_json::Value;
 
 use crate::config::Config;
 use tinymcp_bus::agent_tools::{
@@ -125,7 +125,6 @@ registry_tool! {
 impl Tool for McpRegistrySearchTool {
     spec_metadata!();
 
-
     async fn execute(&self, args: serde_json::Value) -> anyhow::Result<ToolResult> {
         let query = args
             .get("query")
@@ -155,7 +154,6 @@ registry_tool! {
 impl Tool for McpRegistryGetTool {
     spec_metadata!();
 
-
     async fn execute(&self, args: serde_json::Value) -> anyhow::Result<ToolResult> {
         let qn = req_str(&args, "qualified_name")?;
         emit!(
@@ -172,7 +170,6 @@ registry_tool! {
 #[async_trait]
 impl Tool for McpRegistryInstalledListTool {
     spec_metadata!();
-
 
     async fn execute(&self, _args: serde_json::Value) -> anyhow::Result<ToolResult> {
         emit!(
@@ -260,7 +257,12 @@ impl Tool for McpRegistryToolCallTool {
     async fn execute(&self, args: serde_json::Value) -> anyhow::Result<ToolResult> {
         let sid = req_str(&args, "server_id")?;
         let tool_name = req_str(&args, "tool_name")?;
-        let arguments = args.get("arguments").cloned().unwrap_or(json!({}));
+        // Tolerant at execution, unchanged in the schema: an object that
+        // arrived JSON-encoded in a string is decoded, and anything that
+        // cannot hold one is refused here, naming what arrived.
+        let arguments = normalize_tool_arguments(args.get("arguments").cloned())
+            .map(Value::Object)
+            .map_err(|error| anyhow::anyhow!("mcp_registry_tool_call: {error}"))?;
         emit!(
             ops::mcp_clients_tool_call(&self.config, sid, tool_name, arguments).await,
             "mcp_registry_tool_call"
