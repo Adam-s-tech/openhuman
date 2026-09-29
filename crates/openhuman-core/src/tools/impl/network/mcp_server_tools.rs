@@ -201,7 +201,12 @@ impl Tool for ConfiguredMcpServerTool {
             .map_err(|err| anyhow::anyhow!(err))?;
         let server = self.inner.server_id();
         let tool = self.inner.remote_name();
-        if !self.registry.list().iter().any(|definition| definition.name == server) {
+        if !self
+            .registry
+            .list()
+            .iter()
+            .any(|definition| definition.name == server)
+        {
             anyhow::bail!("MCP server is no longer configured: {server}");
         }
         let live = self.registry.list_tools(server).await?;
