@@ -13,6 +13,10 @@
 # Simulate with: scripts/dep-sim.py --cut <crates>
 #
 # History
+#   304/283/2  2026-09-29  The current vendored dependency graph resolves three
+#                      fewer packages and crate names in the flows profile;
+#                      native build dependencies remain unchanged. Measured by
+#                      `scripts/kernel-floor.sh flows --json` on Linux.
 #   307/286/2  2026-09-27  The multi-provider search config directly uses the
 #                      required TinySearch bus contract in always-on settings
 #                      and policy code. This adds one resolved crate/name and
