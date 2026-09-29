@@ -82,35 +82,20 @@ impl Tool for ArchetypeDelegationTool {
     ///
     /// Enforced by `envelope_descriptions_stay_within_budget` below. If you
     /// are about to add a description here, put it in prompt.md instead.
+    /// Only `prompt` and `blocking` are advertised. The structured hand-off
+    /// fields (`objective`, `evidence`, `constraints`, `must_not_assume`,
+    /// `expected_output`, `citation_requirement`, `model`) are still parsed by
+    /// `execute_with_context`, so a caller that sends them keeps working, but
+    /// they cost ~150 tokens per delegate on every request and a
+    /// self-contained `prompt` carries the same content.
     fn parameters_schema(&self) -> serde_json::Value {
         json!({
             "type": "object",
             "required": ["prompt"],
             "properties": {
-                "prompt": { "type": "string" },
-                "objective": { "type": "string" },
-                "evidence": {
-                    "type": "array",
-                    "items": { "type": "string" },
-                    "description": "Only facts, paths, URLs, ids or tool outputs you actually observed."
-                },
-                "constraints": {
-                    "type": "array",
-                    "items": { "type": "string" }
-                },
-                "must_not_assume": {
-                    "type": "array",
-                    "items": { "type": "string" }
-                },
-                "expected_output": { "type": "string" },
-                "citation_requirement": {
+                "prompt": {
                     "type": "string",
-                    "enum": ["none", "file_paths", "urls", "retrieval_hits", "tool_outputs"],
-                    "description": "Evidence style the child must preserve in its result."
-                },
-                "model": {
-                    "type": "string",
-                    "description": "Pin the child to this exact model id. Omit unless you have a reason."
+                    "description": "The whole task, self-contained: the worker has no memory of this chat."
                 },
                 "blocking": {
                     "type": "boolean",
