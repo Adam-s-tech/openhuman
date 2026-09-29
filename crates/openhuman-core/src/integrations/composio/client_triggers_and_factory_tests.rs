@@ -366,19 +366,6 @@ async fn direct_list_connections_stops_hitting_composio_after_repeated_invalid_a
 }
 
 #[tokio::test]
-async fn direct_authorize_rejects_empty_toolkit() {
-    let tool = direct_tool_for_test();
-    let err = super::super::direct_authorize(&tool, "   ", "default")
-        .await
-        .err()
-        .expect("empty toolkit must error before any HTTP call");
-    assert!(
-        err.to_string().contains("toolkit must not be empty"),
-        "unexpected error: {err}"
-    );
-}
-
-#[tokio::test]
 async fn direct_list_tools_forwards_tags_and_reshapes_v3_envelope() {
     use axum::extract::RawQuery;
     use std::sync::Mutex;

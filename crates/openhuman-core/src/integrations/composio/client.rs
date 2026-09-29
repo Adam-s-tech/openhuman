@@ -20,7 +20,7 @@ mod triggers;
 mod tests;
 
 pub use connections::ComposioClient;
-pub(crate) use direct::{direct_authorize, direct_list_tools};
+pub(crate) use direct::direct_list_tools;
 pub use direct::direct_list_connections;
 pub(crate) use factory::{build_composio_client, create_direct_composio_tool_for_api_key};
 pub use factory::{create_composio_client, ComposioClientKind};

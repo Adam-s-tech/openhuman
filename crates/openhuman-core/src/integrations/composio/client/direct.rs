@@ -1,5 +1,4 @@
-//! Direct-mode response reshapers: `direct_authorize`,
-//! `direct_list_connections`, and `direct_list_tools`. Mirror the
+//! Direct-mode response reshapers: `direct_list_connections`, and `direct_list_tools`. Mirror the
 //! backend-proxied [`super::connections::ComposioClient`] methods but call
 //! Composio's v3 API directly (via a bound [`crate::tools::ComposioTool`])
 //! and reshape the v3 response into the same envelope types, so downstream
@@ -9,60 +8,8 @@ use std::sync::Arc;
 
 use super::super::direct_auth;
 use super::super::types::{
-    ComposioAuthorizeResponse, ComposioConnection, ComposioConnectionsResponse,
-    ComposioExecuteResponse, ComposioToolsResponse,
+    ComposioConnection, ComposioConnectionsResponse, ComposioToolsResponse,
 };
-
-/// Direct-mode counterpart to [`ComposioClient::authorize`]. Calls
-/// Composio v3 `/connected_accounts/link` via
-/// [`crate::tools::ComposioTool::get_connection_url`] and
-/// reshapes the response into the [`ComposioAuthorizeResponse`] the
-/// backend-proxied path emits.
-///
-/// The v3 endpoint returns a redirect URL but does NOT (currently)
-/// surface a stable `connection_id` in the same call — the connection
-/// row is created lazily when the user completes OAuth on Composio's
-/// hosted page. To preserve the response contract the frontend already
-/// consumes, we emit an empty `connection_id` for now. The 5 s
-/// `list_connections` poll (now live in direct mode too — see
-/// [`direct_list_connections`]) is what ultimately surfaces the new
-/// row to the UI.
-pub(crate) async fn direct_authorize(
-    direct: &Arc<crate::tools::ComposioTool>,
-    toolkit: &str,
-    entity_id: &str,
-) -> anyhow::Result<ComposioAuthorizeResponse> {
-    let toolkit = toolkit.trim();
-    if toolkit.is_empty() {
-        anyhow::bail!("composio direct authorize: toolkit must not be empty");
-    }
-    let entity_id = entity_id.trim();
-    let entity_id = if entity_id.is_empty() {
-        "default"
-    } else {
-        entity_id
-    };
-    tracing::debug!(
-        toolkit = %toolkit,
-        entity_id = %entity_id,
-        "[composio-direct] authorize: requesting hosted connect URL"
-    );
-    let connect_url = direct
-        .get_connection_url(Some(toolkit), None, entity_id)
-        .await?;
-    tracing::debug!(
-        toolkit = %toolkit,
-        url_len = connect_url.len(),
-        "[composio-direct] authorize: got connect url (redacted)"
-    );
-    Ok(ComposioAuthorizeResponse {
-        connect_url,
-        // No stable connection id in the v3 link response — see fn-level
-        // doc. The frontend uses `connectUrl` to open the browser and
-        // `listConnections` polling to detect the resulting row.
-        connection_id: String::new(),
-    })
-}
 
 /// Direct-mode counterpart to [`ComposioClient::list_connections`].
 ///
