@@ -31,7 +31,7 @@ const hashToTab = (hash: string): TabId => {
  * shell as Connections → LLM): the cost dashboard, the per-call usage log,
  * Tokenjuice token savings, and background loops + the credit ledger. The
  * active tab is reflected in the URL hash (`#log` / `#tokens` / `#background`)
- * so deep links and the legacy heartbeat/ledger-usage/token-usage redirects
+ * so deep links and the legacy ledger-usage/token-usage redirects
  * land on the right view.
  */
 const UsagePanel = () => {
