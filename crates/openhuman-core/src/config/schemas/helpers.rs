@@ -69,9 +69,7 @@ pub(super) struct ModelSettingsUpdate {
     pub(super) vision_provider: Option<String>,
     pub(super) memory_provider: Option<String>,
     pub(super) embeddings_provider: Option<String>,
-    pub(super) heartbeat_provider: Option<String>,
     pub(super) learning_provider: Option<String>,
-    pub(super) subconscious_provider: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -135,9 +133,7 @@ pub(super) struct LocalAiSettingsUpdate {
     pub(super) model_id: Option<String>,
     pub(super) chat_model_id: Option<String>,
     pub(super) usage_embeddings: Option<bool>,
-    pub(super) usage_heartbeat: Option<bool>,
     pub(super) usage_learning_reflection: Option<bool>,
-    pub(super) usage_subconscious: Option<bool>,
     pub(super) api_key: Option<String>,
 }
 

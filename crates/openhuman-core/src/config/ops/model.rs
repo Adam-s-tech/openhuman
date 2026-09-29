@@ -39,9 +39,7 @@ pub struct ModelSettingsPatch {
     pub vision_provider: Option<String>,
     pub memory_provider: Option<String>,
     pub embeddings_provider: Option<String>,
-    pub heartbeat_provider: Option<String>,
     pub learning_provider: Option<String>,
-    pub subconscious_provider: Option<String>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -79,9 +77,7 @@ pub struct LocalAiSettingsPatch {
     pub model_id: Option<String>,
     pub chat_model_id: Option<String>,
     pub usage_embeddings: Option<bool>,
-    pub usage_heartbeat: Option<bool>,
     pub usage_learning_reflection: Option<bool>,
-    pub usage_subconscious: Option<bool>,
     pub api_key: Option<String>,
 }
 
@@ -400,14 +396,8 @@ pub async fn apply_model_settings(
     if let Some(s) = update.embeddings_provider {
         config.embeddings_provider = normalise_provider(s);
     }
-    if let Some(s) = update.heartbeat_provider {
-        config.heartbeat_provider = normalise_provider(s);
-    }
     if let Some(s) = update.learning_provider {
         config.learning_provider = normalise_provider(s);
-    }
-    if let Some(s) = update.subconscious_provider {
-        config.subconscious_provider = normalise_provider(s);
     }
 
     complete_byok_route(config, &explicit_role_pins);
@@ -620,14 +610,8 @@ pub async fn apply_local_ai_settings(
     if let Some(v) = update.usage_embeddings {
         config.local_ai.usage.embeddings = v;
     }
-    if let Some(v) = update.usage_heartbeat {
-        config.local_ai.usage.heartbeat = v;
-    }
     if let Some(v) = update.usage_learning_reflection {
         config.local_ai.usage.learning_reflection = v;
-    }
-    if let Some(v) = update.usage_subconscious {
-        config.local_ai.usage.subconscious = v;
     }
     if let Some(api_key) = update.api_key {
         let trimmed = api_key.trim();
