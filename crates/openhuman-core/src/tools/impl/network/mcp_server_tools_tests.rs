@@ -2,6 +2,10 @@ use super::*;
 use crate::config::{McpAuthConfig, McpServerConfig};
 use serde_json::json;
 
+fn name(tool: &str) -> String {
+    tinymcp::tools::naming::disambiguated_tool_name("ticktick", "ticktick", tool)
+}
+
 const SECRET: &str = "sk-live-configured-secret-123";
 
 struct Server;
@@ -93,7 +97,8 @@ async fn cached_tools_become_deferred_mcp_server_tool_names() {
 
     let tools = configured_server_tools(&config, &registry, &security(), &HashSet::new());
     let names: Vec<&str> = tools.iter().map(|tool| tool.name()).collect();
-    assert_eq!(names, ["mcp_ticktick_archive", "mcp_ticktick_read_goals"]);
+    assert_eq!(names, [name("archive"), name("readGoals")]);
+    assert!(names[1].starts_with("mcp_ticktick_read_goals_"));
     assert!(tools
         .iter()
         .all(|tool| tool.exposure() == ToolExposure::Deferred));
@@ -112,7 +117,7 @@ async fn a_call_reaches_the_server_and_its_output_is_scrubbed() {
 
     let read = tools
         .iter()
-        .find(|tool| tool.name() == "mcp_ticktick_read_goals")
+        .find(|tool| tool.name() == name("readGoals"))
         .unwrap();
     let result = read.execute(json!({ "list": "work" })).await.unwrap();
     assert!(!result.is_error, "{}", result.text());
@@ -139,15 +144,15 @@ async fn expose_direct_and_direct_tools_are_honoured() {
     });
     let registry = warmed(&config_pinned).await;
     let tools = configured_server_tools(&config_pinned, &registry, &security(), &HashSet::new());
-    let exposure = |name: &str| {
+    let exposure = |remote: &str| {
         tools
             .iter()
-            .find(|tool| tool.name() == name)
+            .find(|tool| tool.name() == name(remote))
             .unwrap()
             .exposure()
     };
-    assert_eq!(exposure("mcp_ticktick_read_goals"), ToolExposure::Direct);
-    assert_eq!(exposure("mcp_ticktick_archive"), ToolExposure::Deferred);
+    assert_eq!(exposure("readGoals"), ToolExposure::Direct);
+    assert_eq!(exposure("archive"), ToolExposure::Deferred);
 }
 
 #[tokio::test]
@@ -160,8 +165,46 @@ async fn a_cold_cache_yields_no_tools_and_reserved_names_are_kept() {
     assert!(configured_server_tools(&config, &cold, &security(), &HashSet::new()).is_empty());
 
     let registry = warmed(&config).await;
-    let reserved: HashSet<String> = ["mcp_ticktick_archive".to_string()].into_iter().collect();
+    let reserved: HashSet<String> = [name("archive")].into_iter().collect();
     let tools = configured_server_tools(&config, &registry, &security(), &reserved);
     let names: Vec<&str> = tools.iter().map(|tool| tool.name()).collect();
-    assert_eq!(names, ["mcp_ticktick_read_goals"]);
+    assert_eq!(names, [name("readGoals")]);
+}
+
+async fn tools_list_requests(mock: &wiremock::MockServer) -> usize {
+    mock.received_requests()
+        .await
+        .unwrap_or_default()
+        .iter()
+        .filter(|request| {
+            serde_json::from_slice::<Value>(&request.body)
+                .map(|body| body["method"] == "tools/list")
+                .unwrap_or(false)
+        })
+        .count()
+}
+
+#[tokio::test]
+async fn the_app_load_refresh_fills_the_cache_and_builds_do_not_relist() {
+    let mock = server().await;
+    let dir = tempfile::tempdir().unwrap();
+    let config = config(dir.path(), &format!("{}/mcp", mock.uri()), |_| {});
+
+    crate::mcp::refresh_configured_tool_cache(&config).await;
+    assert_eq!(tools_list_requests(&mock).await, 1);
+
+    // Later builds read the cache: no listing until the next app load or an
+    // MCP change.
+    for _ in 0..3 {
+        let registry = Arc::new(crate::mcp::host::static_registry(&config));
+        let tools = configured_server_tools(&config, &registry, &security(), &HashSet::new());
+        assert_eq!(tools.len(), 2);
+    }
+    assert_eq!(tools_list_requests(&mock).await, 1);
+
+    // An edited definition is an MCP change: its cache misses.
+    let mut edited = config.clone();
+    edited.mcp_client.servers[0].disallowed_tools = vec!["archive".into()];
+    let registry = Arc::new(crate::mcp::host::static_registry(&edited));
+    assert!(configured_server_tools(&edited, &registry, &security(), &HashSet::new()).is_empty());
 }
