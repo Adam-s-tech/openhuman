@@ -110,6 +110,7 @@ impl Tool for MockCalendarTool {
 async fn test_orchestrator_has_current_date_context() -> Result<()> {
     let captured_messages = Arc::new(Mutex::new(Vec::new()));
     let model = calendar_model(captured_messages.clone());
+    let workspace = tempfile::tempdir()?;
     let _ =
         openhuman_core::agent::harness::definition::AgentDefinitionRegistry::init_global_builtins();
 
@@ -119,7 +120,7 @@ async fn test_orchestrator_has_current_date_context() -> Result<()> {
         .tool_dispatcher(Box::new(NativeDialect))
         .agent_definition_name("orchestrator")
         .memory(Arc::new(StubMemory))
-        .workspace_dir(std::env::temp_dir())
+        .workspace_dir(workspace.path().to_path_buf())
         .build()?;
 
     // Trigger a turn
