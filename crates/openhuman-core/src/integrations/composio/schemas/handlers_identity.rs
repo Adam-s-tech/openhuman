@@ -82,7 +82,7 @@ pub(super) fn handle_get_user_scopes(params: Map<String, Value>) -> ControllerFu
             admin = pref.admin,
             "[composio:scopes] handler exit"
         );
-        to_json(crate::rpc::RpcOutcome::new(pref, vec![]))
+        to_json(crate::core::Outcome::new(pref, vec![]))
     })
 }
 
@@ -134,6 +134,6 @@ pub(super) fn handle_set_user_scopes(params: Map<String, Value>) -> ControllerFu
             admin = pref.admin,
             "[composio:scopes] handler exit"
         );
-        to_json(crate::rpc::RpcOutcome::new(pref, vec![]))
+        to_json(crate::core::Outcome::new(pref, vec![]))
     })
 }

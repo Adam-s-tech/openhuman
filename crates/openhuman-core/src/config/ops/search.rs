@@ -13,7 +13,7 @@ use serde_json::{json, Value};
 use crate::config::{
     Config, SearchPresentation, SearchRoute, MANAGED_SEARCH_PROVIDERS, SEARCH_PROVIDERS,
 };
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 use crate::search::providers::{self, parse_role, role_key, ROLES};
 
 use super::loader::load_config_with_timeout;
@@ -82,6 +82,7 @@ fn docs_url(provider: &str) -> Option<&'static str> {
         "querit" => Some("https://querit.ai/"),
         "seltz" => Some("https://seltz.ai/"),
         "searxng" => Some("https://docs.searxng.org/"),
+        "tinyfish" => Some("https://agent.tinyfish.ai/api-keys"),
         _ => None,
     }
 }
@@ -89,14 +90,11 @@ fn docs_url(provider: &str) -> Option<&'static str> {
 /// Routes a provider supports, in UI order.
 fn supported_routes(provider: &str) -> Vec<&'static str> {
     let managed = MANAGED_SEARCH_PROVIDERS.contains(&provider);
-    let direct = provider != "tinyfish";
     let mut routes = Vec::new();
     if managed {
         routes.push(SearchRoute::Managed.as_str());
     }
-    if direct {
-        routes.push(SearchRoute::Direct.as_str());
-    }
+    routes.push(SearchRoute::Direct.as_str());
     routes
 }
 
@@ -157,7 +155,7 @@ fn apply_provider_patch(
     if let Some(key) = patch.api_key {
         match provider {
             "seltz" => config.seltz.api_key = nonempty(&key),
-            "searxng" | "tinyfish" => {
+            "searxng" => {
                 return Err(format!("{provider} does not take an API key"));
             }
             other => {
@@ -291,7 +289,7 @@ pub fn apply_search_patch(config: &mut Config, update: SearchSettingsPatch) -> R
 pub async fn apply_search_settings(
     config: &mut Config,
     update: SearchSettingsPatch,
-) -> Result<RpcOutcome<Value>, String> {
+) -> Result<Outcome<Value>, String> {
     apply_search_patch(config, update)?;
     config.save().await.map_err(|e| e.to_string())?;
     #[cfg(feature = "modules")]
@@ -301,7 +299,7 @@ pub async fn apply_search_settings(
         providers = ?config.search.enabled_provider_names(),
         "[config][search] settings saved"
     );
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         search_settings_json(config),
         vec![format!(
             "search settings saved to {}",
@@ -312,7 +310,7 @@ pub async fn apply_search_settings(
 
 pub async fn load_and_apply_search_settings(
     update: SearchSettingsPatch,
-) -> Result<RpcOutcome<Value>, String> {
+) -> Result<Outcome<Value>, String> {
     let mut config = load_config_with_timeout().await?;
     apply_search_settings(&mut config, update).await
 }
@@ -339,7 +337,7 @@ pub(crate) fn search_settings_json_with(config: &Config, managed_available: bool
                 "routes": supported_routes(p.id),
                 "managed_available": p.managed_available,
                 "key_configured": p.key_configured,
-                "takes_key": !matches!(p.id, "searxng" | "tinyfish"),
+                "takes_key": p.id != "searxng",
                 "usable": p.usable,
                 "status": p.status(search_enabled),
                 "roles": p.roles,
@@ -388,9 +386,9 @@ pub(crate) fn search_settings_json_with(config: &Config, managed_available: bool
 }
 
 /// Read the current search settings. Keys are reported only as booleans.
-pub async fn get_search_settings() -> Result<RpcOutcome<Value>, String> {
+pub async fn get_search_settings() -> Result<Outcome<Value>, String> {
     let config = load_config_with_timeout().await?;
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         search_settings_json(&config),
         vec!["search settings read".to_string()],
     ))

@@ -5,7 +5,6 @@ use crate::agent::debug::DumpedPrompt;
 fn sample_dump() -> DumpedPrompt {
     DumpedPrompt {
         agent_id: "orchestrator".into(),
-        toolkit: None,
         mode: "session",
         model: "gpt-4o-mini".into(),
         workspace_dir: std::path::PathBuf::from("/tmp"),

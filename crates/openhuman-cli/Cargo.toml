@@ -123,6 +123,12 @@ path = "../../tests/observability_smoke.rs"
 required-features = ["crash-reporting"]
 
 [[test]]
+name = "computer_bali_live_e2e"
+path = "../../tests/computer_bali_live_e2e.rs"
+# Loads the TinyComputer module through the registry.
+required-features = ["modules"]
+
+[[test]]
 name = "x402_twit_sh_live"
 path = "../../tests/x402_twit_sh_live.rs"
 # `x402::tools::X402RequestTool` — the x402 domain is part of the web3 family.
@@ -343,7 +349,7 @@ path = "../../examples/run_memory_reconcile.rs"
 openhuman-core = { path = "../openhuman-core", package = "openhuman", default-features = false }
 openhuman-embed = { path = "../openhuman-embed", default-features = false }
 openhuman-tinyhumans = { path = "../openhuman-tinyhumans", default-features = false }
-openhuman-rpc.workspace = true
+openhuman-rpc = { workspace = true, features = ["server"] }
 anyhow = "1.0"
 async-trait = "0.1"
 axum = { version = "0.8", default-features = false, features = ["http1", "json", "tokio", "query", "ws", "macros"] }
@@ -374,6 +380,8 @@ uuid = { version = "1", features = ["v4"] }
 
 [dev-dependencies]
 aes-gcm = "0.10"
+# The TinyComputer contract, for the live computer-use e2e (`computer_bali_live_e2e`).
+tinycomputer-bus = { path = "../../vendor/tinycomputer/crates/tinycomputer-bus" }
 # sentry's TestTransport for the observability before_send smoke tests;
 # `default-features = false` keeps actix out of the graph (see the core manifest).
 sentry = { version = "0.47.0", default-features = false, features = ["test"] }

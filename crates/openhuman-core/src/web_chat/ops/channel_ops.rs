@@ -4,8 +4,8 @@
 
 use serde_json::{json, Value};
 
-use crate::core::socketio::WebChannelEvent;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
+use crate::web_chat::WebChannelEvent;
 
 use super::super::event_bus::publish_web_channel_event;
 use super::super::types::ChatRequestMetadata;
@@ -181,9 +181,9 @@ pub async fn channel_web_chat(
     queue_mode: Option<String>,
     run_mode: Option<String>,
     metadata: ChatRequestMetadata,
-) -> Result<RpcOutcome<Value>, String> {
+) -> Result<Outcome<Value>, String> {
     // Mirrors the socket `chat:start` payload's `run_mode` handling
-    // (`core::socketio`): apply it before starting the turn so
+    // (`openhuman_rpc::server::socketio`): apply it before starting the turn so
     // `plan_mode_middleware` sees the requested mode from the first tool
     // check of this turn, rather than racing a separate
     // `agent.set_run_mode` RPC. Unrecognized values are logged and ignored
@@ -212,10 +212,10 @@ pub async fn channel_web_chat(
     .await?;
 
     if let Ok(parsed) = serde_json::from_str::<Value>(&result) {
-        return Ok(RpcOutcome::single_log(parsed, "web channel message queued"));
+        return Ok(Outcome::single_log(parsed, "web channel message queued"));
     }
 
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         json!({
             "accepted": true,
             "client_id": client_id.trim(),
@@ -239,7 +239,7 @@ fn queue_item_json(
     })
 }
 
-pub async fn channel_web_queue_status(thread_id: &str) -> Result<RpcOutcome<Value>, String> {
+pub async fn channel_web_queue_status(thread_id: &str) -> Result<Outcome<Value>, String> {
     let map_key = key_for(thread_id);
     let in_flight = IN_FLIGHT.lock().await;
     if let Some(entry) = in_flight.get(&map_key) {
@@ -251,7 +251,7 @@ pub async fn channel_web_queue_status(thread_id: &str) -> Result<RpcOutcome<Valu
             .iter()
             .map(|(lane, item)| queue_item_json(*lane, item))
             .collect();
-        Ok(RpcOutcome::single_log(
+        Ok(Outcome::single_log(
             json!({
                 "thread_id": thread_id.trim(),
                 "active": true,
@@ -265,7 +265,7 @@ pub async fn channel_web_queue_status(thread_id: &str) -> Result<RpcOutcome<Valu
             "queue status retrieved",
         ))
     } else {
-        Ok(RpcOutcome::single_log(
+        Ok(Outcome::single_log(
             json!({
                 "thread_id": thread_id.trim(),
                 "active": false,
@@ -289,7 +289,7 @@ pub async fn channel_web_queue_remove(
     client_id: &str,
     thread_id: &str,
     item_id: &str,
-) -> Result<RpcOutcome<Value>, String> {
+) -> Result<Outcome<Value>, String> {
     let client_id = client_id.trim();
     let thread_id = thread_id.trim();
     let item_id = item_id.trim();
@@ -299,7 +299,7 @@ pub async fn channel_web_queue_remove(
     let map_key = key_for(thread_id);
     let in_flight = IN_FLIGHT.lock().await;
     let Some(entry) = in_flight.get(&map_key) else {
-        return Ok(RpcOutcome::single_log(
+        return Ok(Outcome::single_log(
             json!({
                 "thread_id": thread_id,
                 "item_id": item_id,
@@ -319,7 +319,7 @@ pub async fn channel_web_queue_remove(
             event: "queue_item_removed".to_string(),
             client_id: client_id.to_string(),
             thread_id: thread_id.to_string(),
-            queue_item: Some(crate::core::socketio::QueueItemPayload {
+            queue_item: Some(crate::web_chat::QueueItemPayload {
                 id: item_id.to_string(),
                 lane: None,
                 text_preview: None,
@@ -327,7 +327,7 @@ pub async fn channel_web_queue_remove(
             ..Default::default()
         });
     }
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         json!({
             "thread_id": thread_id,
             "item_id": item_id,
@@ -337,7 +337,7 @@ pub async fn channel_web_queue_remove(
     ))
 }
 
-pub async fn channel_web_queue_clear(thread_id: &str) -> Result<RpcOutcome<Value>, String> {
+pub async fn channel_web_queue_clear(thread_id: &str) -> Result<Outcome<Value>, String> {
     let map_key = key_for(thread_id);
     let in_flight = IN_FLIGHT.lock().await;
     if let Some(entry) = in_flight.get(&map_key) {
@@ -347,7 +347,7 @@ pub async fn channel_web_queue_clear(thread_id: &str) -> Result<RpcOutcome<Value
             thread_id,
             dropped
         );
-        Ok(RpcOutcome::single_log(
+        Ok(Outcome::single_log(
             json!({
                 "thread_id": thread_id.trim(),
                 "cleared": true,
@@ -356,7 +356,7 @@ pub async fn channel_web_queue_clear(thread_id: &str) -> Result<RpcOutcome<Value
             "queue cleared",
         ))
     } else {
-        Ok(RpcOutcome::single_log(
+        Ok(Outcome::single_log(
             json!({
                 "thread_id": thread_id.trim(),
                 "cleared": false,
@@ -371,7 +371,7 @@ pub async fn channel_web_cancel(
     client_id: &str,
     thread_id: &str,
     request_id: Option<&str>,
-) -> Result<RpcOutcome<Value>, String> {
+) -> Result<Outcome<Value>, String> {
     let outcome = cancel_chat_inner(client_id, thread_id, request_id).await?;
 
     // `request_id` is set only when a turn was torn down, and only then does a
@@ -379,7 +379,7 @@ pub async fn channel_web_cancel(
     // no terminal event is coming and must settle its own running state.
     let cancelled = outcome.request_id.is_some() || outcome.subagents_cancelled > 0;
 
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         json!({
             "cancelled": cancelled,
             "client_id": client_id.trim(),

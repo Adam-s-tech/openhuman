@@ -2,8 +2,8 @@ use serde::de::{DeserializeOwned, Deserializer};
 use serde::Deserialize;
 use serde_json::{Map, Value};
 
+use crate::core::Outcome;
 use crate::core::{FieldSchema, TypeSchema};
-use crate::rpc::RpcOutcome;
 
 pub(super) const DEFAULT_ONBOARDING_FLAG_NAME: &str = ".skip_onboarding";
 
@@ -69,9 +69,7 @@ pub(super) struct ModelSettingsUpdate {
     pub(super) vision_provider: Option<String>,
     pub(super) memory_provider: Option<String>,
     pub(super) embeddings_provider: Option<String>,
-    pub(super) heartbeat_provider: Option<String>,
     pub(super) learning_provider: Option<String>,
-    pub(super) subconscious_provider: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -107,6 +105,16 @@ pub(super) struct BrowserSettingsUpdate {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(super) struct ComputerSettingsUpdate {
+    pub(super) decision_model: Option<String>,
+    pub(super) sage_fast: Option<bool>,
+    pub(super) planner_model: Option<String>,
+    pub(super) rescue_model: Option<String>,
+    pub(super) max_rescues: Option<u32>,
+}
+
+#[derive(Debug, Deserialize)]
 pub(super) struct AnalyticsSettingsUpdate {
     pub(super) enabled: Option<bool>,
 }
@@ -125,9 +133,7 @@ pub(super) struct LocalAiSettingsUpdate {
     pub(super) model_id: Option<String>,
     pub(super) chat_model_id: Option<String>,
     pub(super) usage_embeddings: Option<bool>,
-    pub(super) usage_heartbeat: Option<bool>,
     pub(super) usage_learning_reflection: Option<bool>,
-    pub(super) usage_subconscious: Option<bool>,
     pub(super) api_key: Option<String>,
 }
 
@@ -205,9 +211,8 @@ pub(super) struct AutonomySettingsUpdate {
     /// Replaces the "Always allow" allowlist wholesale — tool names the agent
     /// may run without an approval prompt. Empty list clears it.
     pub(super) auto_approve: Option<Vec<String>>,
-    /// Blanket "auto-approve everything" bypass. `SubconsciousTainted` and
-    /// `Unknown` origins are still denied by the gate regardless of this
-    /// setting.
+    /// Blanket "auto-approve everything" bypass. `Unknown` origins are still
+    /// denied by the gate regardless of this setting.
     pub(super) auto_approve_all: Option<bool>,
 }
 
@@ -317,6 +322,6 @@ pub fn json_output(name: &'static str, comment: &'static str) -> FieldSchema {
     }
 }
 
-pub(super) fn to_json<T: serde::Serialize>(outcome: RpcOutcome<T>) -> Result<Value, String> {
+pub(super) fn to_json<T: serde::Serialize>(outcome: Outcome<T>) -> Result<Value, String> {
     outcome.into_cli_compatible_json()
 }

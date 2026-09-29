@@ -33,13 +33,9 @@
 //! | ----------------- | ----------------------------------------------------------- |
 //! | `types.rs`        | `SubagentRun{Options,Outcome,Error}`, `SubagentMode`        |
 //! | `ops/`            | `run_subagent`, typed/fork mode, TinyAgents graph route     |
-//! | `handoff.rs`      | Oversized-tool-result cache + hygiene helpers               |
-//! | `extract_tool.rs` | `extract_from_result` tool (direct provider extraction)     |
-//! | `tool_prep.rs`    | Tool filtering + prompt loading + text-mode protocol block  |
+//! | `tool_prep.rs`    | Tool filtering + prompt loading + prompt protocol block     |
 
 mod autonomous;
-mod extract_tool;
-mod handoff;
 mod lifecycle;
 mod ops;
 mod tool_prep;
@@ -68,16 +64,11 @@ pub use types::{
     SubagentRunStatus, SubagentUsage,
 };
 
-// Progressive-disclosure handoff: the tinyagents `HandoffMiddleware` intercepts
-// oversized sub-agent tool results via `apply_handoff`, sharing the per-spawn
-// `ResultHandoffCache` with the `extract_from_result` tool.
-pub(crate) use handoff::{apply_handoff, ResultHandoffCache};
-pub(crate) use ops::run_agent_turn_request_via_default_graph;
 pub(crate) use ops::{append_subagent_role_contract, resolve_subagent_source};
 
 // `user_is_signed_in_to_composio` is the mode-aware "can the user call
 // composio at all?" probe added in Wave 2 (#1710). Re-exported here so
-// non-composio probe sites (registration gates, heartbeat telemetry)
+// non-composio probe sites (registration gates, telemetry)
 // can call it as
 // `crate::agent::subagent_host::user_is_signed_in_to_composio`
 // without reaching into a private sibling module.

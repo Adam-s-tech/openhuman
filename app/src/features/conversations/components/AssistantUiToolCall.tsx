@@ -172,6 +172,7 @@ export function AssistantUiToolCallCard({
   return (
     <ToolCall
       data-testid="assistant-ui-tool-call"
+      data-tool-name={toolName}
       className="max-w-none"
       label={doneLabel}
       activeLabel={activeLabel}

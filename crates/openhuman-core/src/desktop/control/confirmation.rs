@@ -7,7 +7,7 @@ use std::time::{Duration, Instant};
 
 use serde::Serialize;
 use serde_json::{json, Value};
-use tinydesktop_bus::{names, DesktopResponse};
+use tinycomputer_bus::{names, DesktopResponse};
 
 use crate::config::Config;
 

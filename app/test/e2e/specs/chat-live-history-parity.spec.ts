@@ -9,8 +9,8 @@
  * (`providers/__tests__/liveHistoryParity.test.tsx`); this pins the real DOM.
  *
  * Scripted turn (three LLM rounds):
- *   1. narration + file_read
- *   2. narration + grep
+ *   1. narration + current_time
+ *   2. narration + resolve_time
  *   3. a long final answer (taller than the viewport, so following matters)
  *
  * Verifies:
@@ -30,17 +30,15 @@ import {
   waitForSocketConnected,
 } from '../helpers/chat-harness';
 import { callOpenhumanRpc } from '../helpers/core-rpc';
-import { textExists } from '../helpers/element-helpers';
+import { clickTestIdOrText, clickToolGroupTrigger } from '../helpers/element-helpers';
 import { resetApp } from '../helpers/reset-app';
 import { navigateViaHash } from '../helpers/shared-flows';
 import { clearRequestLog, setMockBehavior, startMockServer, stopMockServer } from '../mock-server';
 
 const LOG_PREFIX = '[chat-live-history-parity]';
 const USER_ID = 'e2e-chat-live-history-parity';
-const PROMPT = 'Check the config, then search for the setting, then explain it.';
+const PROMPT = 'Check the current time, resolve five minutes from now, then explain it.';
 const CANARY_FINAL = 'canary-parity-7c1e';
-const NARRATION_1 = 'Let me read the config first.';
-const NARRATION_2 = 'Now I will search for the setting.';
 const FINAL_ANSWER = [
   `Here is what I found (${CANARY_FINAL}).`,
   ...Array.from(
@@ -51,22 +49,22 @@ const FINAL_ANSWER = [
 
 const FORCED_RESPONSES = [
   {
-    content: NARRATION_1,
+    content: 'I will check the current time first.',
     toolCalls: [
       {
-        id: 'call_parity_read',
-        name: 'file_read',
-        arguments: JSON.stringify({ path: '/etc/openhuman/config.toml' }),
+        id: 'call_parity_time',
+        name: 'current_time',
+        arguments: JSON.stringify({ timezone: 'UTC' }),
       },
     ],
   },
   {
-    content: NARRATION_2,
+    content: 'Now I will resolve the five-minute interval.',
     toolCalls: [
       {
-        id: 'call_parity_grep',
-        name: 'grep',
-        arguments: JSON.stringify({ pattern: 'setting', path: '/etc/openhuman' }),
+        id: 'call_parity_resolve',
+        name: 'resolve_time',
+        arguments: JSON.stringify({ expr: 'in 5 minutes', timezone: 'UTC' }),
       },
     ],
   },
@@ -78,6 +76,7 @@ interface Block {
   label: string;
   state: string | null;
   text: string;
+  toolCalls?: { name: string | null; input: string }[];
 }
 
 /**
@@ -91,7 +90,7 @@ async function replyBlocks(): Promise<Block[]> {
       // An activity group (reasoning + tool calls of one run) is ONE block: it
       // collapses once the answer leads, and its cards unmount with it.
       '[data-slot="tool-group-root"]',
-      '[data-slot="aui_openhuman-tool-call"]',
+      '[data-slot="tool-call"]',
       '[data-slot="aui_subagent-call"]',
       '[data-slot="reasoning-root"]',
       '.aui-md',
@@ -104,18 +103,67 @@ async function replyBlocks(): Promise<Block[]> {
       .map(node => {
         const slot = node.getAttribute('data-slot');
         const kind = slot ?? 'text';
+        const text =
+          kind === 'tool-group-root'
+            ? (node.querySelector('[data-slot="tool-group-trigger"]')?.textContent ?? '').trim()
+            : kind === 'text'
+              ? (node.textContent ?? '').trim()
+              : '';
         const label =
-          slot === 'aui_openhuman-tool-call'
-            ? (node.querySelector('button .font-medium')?.textContent ?? '')
-            : '';
-        return {
-          kind,
-          label,
-          state: node.getAttribute('data-state'),
-          text: kind === 'text' ? (node.textContent ?? '').trim() : '',
-        };
+          kind === 'tool-call' ? (node.querySelector('button')?.textContent ?? '').trim() : '';
+        const toolCalls =
+          kind === 'tool-group-root'
+            ? Array.from(node.querySelectorAll('[data-testid="assistant-ui-tool-call"]')).map(
+                toolCall => ({
+                  name: toolCall.getAttribute('data-tool-name'),
+                  input:
+                    toolCall.querySelector('[data-testid="assistant-ui-tool-input"]')
+                      ?.textContent ?? '',
+                })
+              )
+            : undefined;
+        return { kind, label, state: node.getAttribute('data-state'), text, toolCalls };
       });
   })) as Block[];
+}
+
+async function expandToolGroups(): Promise<void> {
+  await browser.waitUntil(
+    async () => (await browser.$$('[data-slot="tool-group-root"]')).length === 2,
+    {
+      timeout: 5_000,
+      timeoutMsg: 'expected the settled reply to contain both tool activity groups',
+    }
+  );
+  await clickToolGroupTrigger(0, '1 tool call');
+  await clickToolGroupTrigger(1, '1 tool call');
+  await browser.execute(() => {
+    const messages = document.querySelectorAll('[data-testid="agent-message"]');
+    const last = messages[messages.length - 1];
+    last
+      ?.querySelectorAll('[data-testid="assistant-ui-tool-call"] button[aria-expanded="false"]')
+      .forEach(button => (button as HTMLButtonElement).click());
+  });
+  await browser.waitUntil(
+    async () => {
+      const blocks = await replyBlocks();
+      const toolCalls = blocks
+        .filter(block => block.kind === 'tool-group-root')
+        .flatMap(block => block.toolCalls ?? []);
+      return (
+        toolCalls.length === 2 && toolCalls.every(toolCall => toolCall.input.trim().length > 0)
+      );
+    },
+    { timeout: 5_000, timeoutMsg: 'tool call input details did not expand' }
+  );
+}
+
+function hasFinalReply(blocks: Block[]): boolean {
+  return blocks.some(block => block.kind === 'text' && block.text.includes(CANARY_FINAL));
+}
+
+function normalizeRenderedText(text: string): string {
+  return text.replace(/\s+/g, ' ').trim();
 }
 
 async function distanceFromBottom(): Promise<number> {
@@ -185,7 +233,13 @@ describe('Chat live/history parity', () => {
     while (Date.now() < deadline) {
       const blocks = await replyBlocks();
       if (blocks.length > 0) samples.push(blocks);
-      if ((await textExists(CANARY_FINAL)) && (await turnDrained())) break;
+      if (
+        (await getSelectedThreadId()) === threadId &&
+        hasFinalReply(blocks) &&
+        (await turnDrained())
+      ) {
+        break;
+      }
       await browser.pause(100);
     }
     expect(samples.length).toBeGreaterThan(3);
@@ -212,34 +266,95 @@ describe('Chat live/history parity', () => {
   });
 
   it('P3 — the settled reply equals the same turn reopened from history', async () => {
-    settled = await replyBlocks();
-    expect(settled.map(block => block.kind)).toEqual([
-      'text',
-      'tool-group-root',
-      'text',
-      'tool-group-root',
-      'text',
-    ]);
+    let previous: Block[] | undefined;
+    let stableSamples = 0;
+    await browser.waitUntil(
+      async () => {
+        const blocks = await replyBlocks();
+        const stable =
+          (await getSelectedThreadId()) === threadId &&
+          hasFinalReply(blocks) &&
+          (await turnDrained());
+        if (!stable) {
+          previous = undefined;
+          stableSamples = 0;
+          return false;
+        }
+        if (JSON.stringify(blocks) === JSON.stringify(previous)) stableSamples += 1;
+        else stableSamples = 1;
+        previous = blocks;
+        return stableSamples >= 3;
+      },
+      {
+        timeout: 15_000,
+        timeoutMsg: 'selected thread never rendered a stable, settled final reply',
+      }
+    );
+    // Compare the stable current projection. A streaming sample can become
+    // stale when the final assistant message replaces an earlier narration.
+    await expandToolGroups();
+    settled = (await replyBlocks()).map(block => ({ ...block }));
+    // Each scripted tool round appears as its own activity group.
+    const toolGroups = settled.filter(block => block.kind === 'tool-group-root');
+    expect(toolGroups).toHaveLength(2);
+    expect(toolGroups.map(group => group.text)).toEqual(['1 tool call', '1 tool call']);
+    const toolCalls = toolGroups.flatMap(group => group.toolCalls ?? []);
+    expect(toolCalls).toHaveLength(2);
+    expect(toolCalls[0]).toMatchObject({ name: 'current_time' });
+    expect(toolCalls[0]?.input).toContain('UTC');
+    expect(toolCalls[1]).toMatchObject({ name: 'resolve_time' });
+    expect(toolCalls[1]?.input).toContain('in 5 minutes');
+    const finalBlock = settled.find(
+      block => block.kind === 'text' && block.text.includes(CANARY_FINAL)
+    );
+    expect(finalBlock).toBeDefined();
+    expect(settled.some(block => block.text.includes(FORCED_RESPONSES[0].content))).toBe(true);
+    expect(settled.some(block => block.text.includes(FORCED_RESPONSES[1].content))).toBe(true);
+    expect(normalizeRenderedText(finalBlock?.text ?? '')).toEqual(
+      normalizeRenderedText(FINAL_ANSWER)
+    );
 
-    // Reopen the thread as a fresh load: drop this session's runtime state for
-    // it (including the frozen trail) and select it from another thread, so it
-    // renders from the persisted messages plus the core transcript projection.
+    // Reopen through the visible thread list after dropping runtime state, so
+    // the conversation is reloaded from persisted messages and the transcript.
     expect(await clickByTitle('New thread', 8_000)).toBe(true);
-    await browser.execute(tid => {
+    await browser.waitUntil(
+      async () => (await getSelectedThreadId()) !== threadId && (await replyBlocks()).length === 0,
+      {
+        timeout: 10_000,
+        timeoutMsg: 'new thread did not clear the prior conversation before reopening it',
+      }
+    );
+    await browser.execute(() => {
       const store = (
         window as unknown as { __OPENHUMAN_STORE__?: { dispatch: (a: unknown) => void } }
       ).__OPENHUMAN_STORE__;
       store?.dispatch({ type: 'chatRuntime/clearAllChatRuntime' });
-      store?.dispatch({ type: 'thread/setSelectedThread', payload: tid });
-    }, threadId);
+    });
+    await clickTestIdOrText(`thread-row-${threadId}`, PROMPT, 10_000);
 
+    previous = undefined;
+    stableSamples = 0;
     await browser.waitUntil(
       async () => {
         const blocks = await replyBlocks();
-        return blocks.length === settled.length && (await textExists(CANARY_FINAL));
+        const stable =
+          (await getSelectedThreadId()) === threadId &&
+          blocks.length === settled.length &&
+          hasFinalReply(blocks) &&
+          (await turnDrained());
+        if (!stable) {
+          previous = undefined;
+          stableSamples = 0;
+          return false;
+        }
+        if (JSON.stringify(blocks) === JSON.stringify(previous)) stableSamples += 1;
+        else stableSamples = 1;
+        previous = blocks;
+        return stableSamples >= 3;
       },
-      { timeout: 15_000, timeoutMsg: 'reopened thread never rendered the full reply' }
+      { timeout: 15_000, timeoutMsg: 'reopened thread never rendered a stable full reply' }
     );
+    await expandToolGroups();
     const reopened = await replyBlocks();
     expect(reopened).toEqual(settled);
     console.log(`${LOG_PREFIX} P3: ${reopened.length} blocks identical live and reopened`);

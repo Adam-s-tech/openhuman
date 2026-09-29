@@ -36,6 +36,10 @@ impl Web3BridgeExecuteTool {
 
 #[async_trait]
 impl Tool for Web3BridgeQuoteTool {
+    fn exposure(&self) -> tinytools::ToolExposure {
+        tinytools::ToolExposure::Deferred
+    }
+
     fn name(&self) -> &str {
         "web3_bridge_quote"
     }
@@ -79,6 +83,10 @@ impl Tool for Web3BridgeQuoteTool {
 
 #[async_trait]
 impl Tool for Web3BridgeExecuteTool {
+    fn exposure(&self) -> tinytools::ToolExposure {
+        tinytools::ToolExposure::Deferred
+    }
+
     fn name(&self) -> &str {
         "web3_bridge_execute"
     }

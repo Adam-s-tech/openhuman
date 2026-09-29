@@ -215,8 +215,9 @@ pub(crate) fn run_policy_for(max_iterations: usize, response_cache_enabled: bool
     // deleted sentinel was exactly that) and, when it hits, *silently* executes
     // that tool and emits `AgentEvent::UnknownToolCall { recovery: "rewrite:.." }`
     // WITHOUT injecting a tool message. `ReturnToolError` instead injects a
-    // recoverable `unknown tool `<name>` (arguments: ..); valid tools: [..]`
-    // result naming the originally-requested tool. Two live consumers depend on
+    // recoverable `unknown tool `<name>`: ...` result naming the originally
+    // requested tool, a few close matches and (when discovery is on) a pointer
+    // to `tool_search` rather than a dump of every callable name. Two live consumers depend on
     // that message: (1) the #4419 attempted-tool-name UX and (2) the failure
     // classifier in `agent::hooks::sanitize_tool_output`, which labels the result
     // `unknown_tool` by matching the "unknown tool" substring. Flipping to Rewrite
@@ -228,7 +229,16 @@ pub(crate) fn run_policy_for(max_iterations: usize, response_cache_enabled: bool
     // owns this admission behavior directly; the former host SchemaGuard had
     // to manufacture valid stub arguments only because this policy was left at
     // its historical fail-fast default.
-    policy.invalid_args = InvalidArgsPolicy::ReturnToolError;
+    //
+    // Normalize first: some providers (DeepSeek via OpenRouter) JSON-encode a
+    // nested object-typed argument, e.g. `mcp_registry_tool_call` with
+    // `"arguments": "{}"`. `ArgRecoveryMiddleware` only repairs a top-level
+    // string, so without the harness's schema-guided coercion every such call
+    // failed validation — and a parallel batch of them tripped the
+    // classified-failure breaker before the model could correct itself.
+    // Normalization keeps a rewrite only when it validates, so genuinely
+    // invalid arguments still come back as a corrective tool error.
+    policy.invalid_args = InvalidArgsPolicy::NormalizeThenReturnToolError;
     // Prompt-prefix protection is always on (issue #4249, 03.2). Two things
     // ride on it, and both were inert until the harness started stamping this
     // effective policy onto the outgoing request (tinyagents `model_call`):
@@ -290,7 +300,7 @@ pub(crate) fn effective_max_iterations(max_iterations: usize) -> usize {
 /// **This is a strict subset of the caller-side strip**, not a mirror of it
 /// (issue #6157). `subagent_host::tool_prep::is_subagent_spawn_tool` also
 /// resolves each archetype's `delegate_name` override through the definition
-/// registry — `plan`, `research`, `run_code`, `review_code`, … — none of which
+/// registry — `manage_tasks`, `create_image`, `setup_skills`, … — none of which
 /// carry the `delegate_` prefix this match relies on. Matching them here would
 /// put a registry lookup on the per-tool registration loop, so the caller
 /// stays responsible for the override names: every path that feeds `allowed`
@@ -298,8 +308,5 @@ pub(crate) fn effective_max_iterations(max_iterations: usize) -> usize {
 /// (`subagent_host::ops::runner`). Widen this predicate in lockstep if that
 /// ever stops being true.
 pub(crate) fn is_subagent_spawn_or_delegate_tool(name: &str) -> bool {
-    name == "spawn_subagent"
-        || name.starts_with("delegate_")
-        || name == "agent_prepare_context"
-        || name == "spawn_worker_thread"
+    name == "spawn_subagent" || name.starts_with("delegate_") || name == "spawn_worker_thread"
 }

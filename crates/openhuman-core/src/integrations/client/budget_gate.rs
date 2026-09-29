@@ -22,7 +22,7 @@ use serde_json::Value;
 
 use crate::backend::BackendClient;
 use crate::config::Config;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 use crate::security::credentials::session_support::BackendCredential;
 
 /// Fetch `GET /teams/me/usage` for the pre-call probe with an
@@ -107,7 +107,7 @@ static USAGE_FAILURE_CACHE: UsageFailureCache = UsageFailureCache::new();
 pub async fn usage_with_failure_backoff<F, Fut>(
     backend_key: &str,
     fetch: F,
-) -> Result<RpcOutcome<Value>, String>
+) -> Result<Outcome<Value>, String>
 where
     F: FnOnce() -> Fut,
     Fut: std::future::Future<Output = Result<Value, String>>,
@@ -151,7 +151,7 @@ async fn get_usage_with_cache<F, Fut>(
     ttl: Duration,
     now: Instant,
     fetch: F,
-) -> Result<RpcOutcome<Value>, String>
+) -> Result<Outcome<Value>, String>
 where
     F: FnOnce() -> Fut,
     Fut: std::future::Future<Output = Result<Value, String>>,
@@ -169,10 +169,7 @@ where
     match fetch().await {
         Ok(data) => {
             cache.clear();
-            Ok(RpcOutcome::single_log(
-                data,
-                "team usage fetched from backend",
-            ))
+            Ok(Outcome::single_log(data, "team usage fetched from backend"))
         }
         Err(err) => {
             if crate::core::observability::is_session_expired_message(&err) {

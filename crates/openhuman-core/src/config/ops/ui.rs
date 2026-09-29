@@ -4,7 +4,7 @@
 use serde_json::json;
 
 use crate::config::Config;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 use super::loader::{fallback_workspace_dir, load_config_with_timeout, snapshot_config_json};
 
@@ -58,7 +58,7 @@ pub struct VoiceServerSettingsPatch {
 pub async fn apply_browser_settings(
     config: &mut Config,
     update: BrowserSettingsPatch,
-) -> Result<RpcOutcome<serde_json::Value>, String> {
+) -> Result<Outcome<serde_json::Value>, String> {
     let normalized_backend = update
         .backend
         .as_deref()
@@ -120,7 +120,7 @@ pub async fn apply_browser_settings(
     config.browser = browser;
     config.save().await.map_err(|e| e.to_string())?;
     let snapshot = snapshot_config_json(config)?;
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         snapshot,
         vec![format!(
             "browser settings saved to {}",
@@ -137,7 +137,10 @@ fn nonempty(value: String) -> Option<String> {
 fn normalize_browser_backend(raw: &str) -> Result<String, String> {
     let key = raw.trim().to_ascii_lowercase().replace('-', "_");
     match key.as_str() {
-        "tinybrowser" | "tiny_browser" => Ok("tinybrowser".to_string()),
+        // TinyBrowser was folded into TinyComputer; old values migrate.
+        "tinycomputer" | "tiny_computer" | "tinybrowser" | "tiny_browser" => {
+            Ok("tinycomputer".to_string())
+        }
         "agent_browser" | "agentbrowser" => Ok("agent_browser".to_string()),
         "playwright" => Ok("playwright".to_string()),
         "rust_native" | "native" => Ok("rust_native".to_string()),
@@ -152,7 +155,7 @@ fn normalize_browser_backend(raw: &str) -> Result<String, String> {
 /// Loads the configuration, applies browser settings updates, and saves it.
 pub async fn load_and_apply_browser_settings(
     update: BrowserSettingsPatch,
-) -> Result<RpcOutcome<serde_json::Value>, String> {
+) -> Result<Outcome<serde_json::Value>, String> {
     let mut config = load_config_with_timeout().await?;
     apply_browser_settings(&mut config, update).await
 }
@@ -161,13 +164,13 @@ pub async fn load_and_apply_browser_settings(
 pub async fn apply_analytics_settings(
     config: &mut Config,
     update: AnalyticsSettingsPatch,
-) -> Result<RpcOutcome<serde_json::Value>, String> {
+) -> Result<Outcome<serde_json::Value>, String> {
     if let Some(enabled) = update.enabled {
         config.observability.analytics_enabled = enabled;
     }
     config.save().await.map_err(|e| e.to_string())?;
     let snapshot = snapshot_config_json(config)?;
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         snapshot,
         vec![format!(
             "analytics settings saved to {}",
@@ -179,7 +182,7 @@ pub async fn apply_analytics_settings(
 /// Loads the configuration, applies analytics settings updates, and saves it.
 pub async fn load_and_apply_analytics_settings(
     update: AnalyticsSettingsPatch,
-) -> Result<RpcOutcome<serde_json::Value>, String> {
+) -> Result<Outcome<serde_json::Value>, String> {
     let mut config = load_config_with_timeout().await?;
     apply_analytics_settings(&mut config, update).await
 }
@@ -188,7 +191,7 @@ pub async fn load_and_apply_analytics_settings(
 pub async fn workspace_onboarding_flag_resolve(
     flag_name: Option<String>,
     default_name: &str,
-) -> Result<RpcOutcome<bool>, String> {
+) -> Result<Outcome<bool>, String> {
     let name = flag_name.unwrap_or_else(|| default_name.to_string());
     let trimmed = name.trim();
     if trimmed.is_empty()
@@ -209,7 +212,7 @@ pub async fn workspace_onboarding_flag_resolve(
 pub fn workspace_onboarding_flag_exists(
     workspace_dir: std::path::PathBuf,
     flag_name: &str,
-) -> Result<RpcOutcome<bool>, String> {
+) -> Result<Outcome<bool>, String> {
     let trimmed = flag_name.trim();
     if trimmed.is_empty()
         || trimmed.contains('/')
@@ -218,7 +221,7 @@ pub fn workspace_onboarding_flag_exists(
     {
         return Err("Invalid onboarding flag name".to_string());
     }
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         workspace_dir.join(trimmed).is_file(),
         "onboarding flag checked",
     ))
@@ -229,7 +232,7 @@ pub async fn workspace_onboarding_flag_set(
     flag_name: Option<String>,
     default_name: &str,
     value: bool,
-) -> Result<RpcOutcome<bool>, String> {
+) -> Result<Outcome<bool>, String> {
     let name = flag_name.unwrap_or_else(|| default_name.to_string());
     let trimmed = name.trim();
     if trimmed.is_empty()
@@ -255,16 +258,16 @@ pub async fn workspace_onboarding_flag_set(
         std::fs::remove_file(&flag_path)
             .map_err(|e| format!("Failed to remove onboarding flag: {e}"))?;
     }
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         flag_path.is_file(),
         "onboarding flag updated",
     ))
 }
 
 /// Returns whether the onboarding process has been marked as completed.
-pub async fn get_onboarding_completed() -> Result<RpcOutcome<bool>, String> {
+pub async fn get_onboarding_completed() -> Result<Outcome<bool>, String> {
     let config = load_config_with_timeout().await?;
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         config.onboarding_completed,
         "onboarding_completed read from config",
     ))
@@ -274,7 +277,7 @@ pub async fn get_onboarding_completed() -> Result<RpcOutcome<bool>, String> {
 ///
 /// On a false→true transition, seeds the recurring morning-briefing
 /// cron job via [`crate::cron::seed::seed_proactive_agents`].
-pub async fn set_onboarding_completed(value: bool) -> Result<RpcOutcome<bool>, String> {
+pub async fn set_onboarding_completed(value: bool) -> Result<Outcome<bool>, String> {
     tracing::debug!(value, "[onboarding] set_onboarding_completed called");
     let mut config = load_config_with_timeout().await?;
     let was_completed = config.onboarding_completed;
@@ -300,14 +303,14 @@ pub async fn set_onboarding_completed(value: bool) -> Result<RpcOutcome<bool>, S
         );
     }
 
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         config.onboarding_completed,
         "onboarding_completed saved to config",
     ))
 }
 
 /// Returns the current dictation settings as a JSON object.
-pub async fn get_dictation_settings() -> Result<RpcOutcome<serde_json::Value>, String> {
+pub async fn get_dictation_settings() -> Result<Outcome<serde_json::Value>, String> {
     let config = load_config_with_timeout().await?;
     let result = json!({
         "enabled": config.dictation.enabled,
@@ -317,7 +320,7 @@ pub async fn get_dictation_settings() -> Result<RpcOutcome<serde_json::Value>, S
         "streaming": config.dictation.streaming,
         "streaming_interval_ms": config.dictation.streaming_interval_ms,
     });
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         result,
         vec!["dictation settings read".to_string()],
     ))
@@ -326,7 +329,7 @@ pub async fn get_dictation_settings() -> Result<RpcOutcome<serde_json::Value>, S
 /// Loads configuration, applies dictation settings updates, and saves it.
 pub async fn load_and_apply_dictation_settings(
     update: DictationSettingsPatch,
-) -> Result<RpcOutcome<serde_json::Value>, String> {
+) -> Result<Outcome<serde_json::Value>, String> {
     let mut config = load_config_with_timeout().await?;
     if let Some(enabled) = update.enabled {
         config.dictation.enabled = enabled;
@@ -360,7 +363,7 @@ pub async fn load_and_apply_dictation_settings(
     }
     config.save().await.map_err(|e| e.to_string())?;
     let snapshot = snapshot_config_json(&config)?;
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         snapshot,
         vec![format!(
             "dictation settings saved to {}",
@@ -370,7 +373,7 @@ pub async fn load_and_apply_dictation_settings(
 }
 
 /// Returns the current voice server settings as a JSON object.
-pub async fn get_voice_server_settings() -> Result<RpcOutcome<serde_json::Value>, String> {
+pub async fn get_voice_server_settings() -> Result<Outcome<serde_json::Value>, String> {
     let config = load_config_with_timeout().await?;
     let result = json!({
         "auto_start": config.voice_server.auto_start,
@@ -384,7 +387,7 @@ pub async fn get_voice_server_settings() -> Result<RpcOutcome<serde_json::Value>
         "wake_word": config.voice_server.wake_word,
         "stt_engine": config.voice_server.stt_engine,
     });
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         result,
         vec!["voice server settings read".to_string()],
     ))
@@ -393,7 +396,7 @@ pub async fn get_voice_server_settings() -> Result<RpcOutcome<serde_json::Value>
 /// Loads configuration, applies voice server settings updates, and saves it.
 pub async fn load_and_apply_voice_server_settings(
     update: VoiceServerSettingsPatch,
-) -> Result<RpcOutcome<serde_json::Value>, String> {
+) -> Result<Outcome<serde_json::Value>, String> {
     let mut config = load_config_with_timeout().await?;
     if let Some(auto_start) = update.auto_start {
         config.voice_server.auto_start = auto_start;
@@ -445,7 +448,7 @@ pub async fn load_and_apply_voice_server_settings(
     }
     config.save().await.map_err(|e| e.to_string())?;
     let snapshot = snapshot_config_json(&config)?;
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         snapshot,
         vec![format!(
             "voice server settings saved to {}",

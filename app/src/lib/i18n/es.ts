@@ -307,13 +307,6 @@ const messages: TranslationMap = {
   'conversations.backgroundTasks.cronSchedCron': 'Cron {expr}',
   'conversations.backgroundTasks.cronSchedEvery': 'Cada {duration}',
   'conversations.backgroundTasks.cronSchedAt': 'Una vez',
-  'conversations.backgroundTasks.subOff': 'Desactivado',
-  'conversations.backgroundTasks.subWorking': 'Trabajando…',
-  'conversations.backgroundTasks.subIdle': 'Inactivo',
-  'conversations.backgroundTasks.subLastRan': 'Última ejecución {time}',
-  'conversations.backgroundTasks.subNeverRan': 'Aún no se ha ejecutado',
-  'conversations.backgroundTasks.subTicks': '{count} ejecuciones',
-  'conversations.backgroundTasks.subQueued': '{count} en cola',
   'conversations.backgroundTasks.memUpToDate': 'Todas las memorias actualizadas',
   'conversations.backgroundTasks.memIngesting': 'Indexando {title}',
   'conversations.backgroundTasks.memIngestingUntitled': 'Indexando memorias',
@@ -459,9 +452,6 @@ const messages: TranslationMap = {
   'settings.assistant.personality': 'Personalidad',
   'settings.assistant.voice': 'Voz',
   'settings.assistant.voiceDesc': 'Configuración de voz a texto y texto a voz',
-  'settings.assistant.backgroundActivity': 'Subconsciente',
-  'settings.assistant.backgroundActivityDesc':
-    'Controla qué tan activo trabaja tu asistente en segundo plano',
   'settings.assistant.permissions': 'Permisos',
   'settings.assistant.permissionsDesc': 'Elige qué puede hacer el asistente y dónde puede trabajar',
   'settings.privacySecurity.privacy': 'Privacidad',
@@ -920,6 +910,48 @@ const messages: TranslationMap = {
   'desktop.action.expand': 'Expande',
   'desktop.action.collapse': 'Contrae',
   'desktop.action.scroll': 'Desplázate por',
+  'computer.title': 'Control del ordenador',
+  'computer.description': 'Deja que tu agente trabaje en las apps y sitios web de este ordenador.',
+  'computer.tabs.desktop': 'Escritorio',
+  'computer.tabs.browser': 'Navegador',
+  'computer.tabs.models': 'Modelos',
+  'computer.models.decisionTitle': 'Modelo de decisión',
+  'computer.models.decisionDescription':
+    'El modelo que elige cada paso en el escritorio o el navegador.',
+  'computer.models.decisionModel': 'Modelo de decisión',
+  'computer.models.jev': 'Jev',
+  'computer.models.openJev': 'OpenJev',
+  'computer.models.sage': 'Sage',
+  'computer.models.sageFast': 'Modo rápido de Sage',
+  'computer.models.rescueTitle': 'Planificación y rescate',
+  'computer.models.rescueDescription':
+    'Cuando falla un paso de una tarea, el modelo de rescate sugiere cómo recuperarse antes de que la tarea se rinda.',
+  'computer.models.rescueModel': 'Modelo de rescate',
+  'computer.models.maxRescues': 'Rescates por tarea',
+  'computer.models.plannerModel': 'Modelo de planificación',
+  'computer.models.moduleDefault': 'Valor predeterminado del módulo',
+  'computer.models.rescuesBounds': 'Los rescates por tarea deben ser un número entero entre 0 y 5.',
+  'computer.models.saved': 'Modelos del ordenador guardados.',
+  'computer.status.title': 'Módulo TinyComputer',
+  'computer.status.check': 'Comprobar módulo',
+  'computer.status.configured': 'configurado',
+  'computer.status.missing': 'falta',
+  'computer.status.available': 'disponible',
+  'computer.status.unavailable': 'no disponible',
+  'computer.status.incompatible': 'La versión del módulo no es compatible; actualiza la app',
+  'computer.status.ownKey': 'Clave de API propia',
+  'computer.status.noCredential': 'Aún no hay credencial',
+  'computer.status.state.available': 'No cargado',
+  'computer.status.state.loading': 'Cargando',
+  'computer.status.state.ready': 'Listo',
+  'computer.status.state.failed': 'Error',
+  'computer.status.state.unsupported': 'No compatible con este dispositivo',
+  'connections.browser.chromeHint':
+    'El navegador se ejecuta dentro del módulo TinyComputer. La prueba abre Chrome un momento y lo cierra.',
+  'computer.models.openJevKey': 'Clave de API de OpenJev',
+  'computer.models.sageKey': 'Clave de API de Sage',
+  'computer.models.keyHint':
+    'Se guarda cifrada en este dispositivo. Déjala en blanco para conservar la clave guardada.',
   'desktop.title': 'Control del escritorio',
   'desktop.description': 'Permite que tu agente trabaje en las aplicaciones de este equipo.',
   'desktop.enabledPending':
@@ -951,7 +983,6 @@ const messages: TranslationMap = {
   'memory.empty': 'Sin recuerdos aún. Los recuerdos se crean automáticamente mientras interactúas.',
   'memory.tab.memory': 'Memoria',
   'memory.tab.memoryTree': 'Árbol de memoria',
-  'memory.tab.subconscious': 'Subconsciente',
   'memory.tab.agentWork': 'Trabajo del agente',
   'memory.tab.agentWorkDescription':
     'Un centro de mando para cada ejecución de agente en segundo plano, agrupado según lo que necesita tu intervención, lo que está en curso y lo que ha terminado.',
@@ -1445,7 +1476,6 @@ const messages: TranslationMap = {
     'Generado en el proceso por la shell Tauri al iniciar la aplicación. El puerto se elige al inicio, por lo que este URL cambia entre lanzamientos.',
   'settings.about.connectionHelperCloud':
     'Conectado a un núcleo remoto. Cambia esto en BootCheck o en el selector de modo en la nube.',
-  'settings.heartbeat.title': 'Latidos y bucles',
   'settings.usage.title': 'Uso',
   'settings.usage.menuDesc':
     'Costos, ahorro de tokens, registros de uso y actividad en segundo plano',
@@ -1523,12 +1553,8 @@ const messages: TranslationMap = {
   'settings.costDashboard.noDataHint':
     'Envía un mensaje de agente: el uso de tokens de la próxima llamada al proveedor se mostrará en el gráfico en aproximadamente 10 segundos.',
   'settings.search.title': 'motor de búsqueda',
-  'settings.search.menuDesc':
-    'Por defecto, usa la búsqueda gestionada por OpenHuman o conecta tu propio proveedor con una clave API.',
   'settings.search.statusNeedsKey': 'Necesita la clave API',
   'settings.search.getApiKey': 'Obtener la clave API',
-  'settings.search.save': 'Guardar',
-  'settings.search.clear': 'Borrar',
   'settings.search.show': 'Mostrar',
   'settings.search.hide': 'Ocultar',
   'settings.search.statusSaving': 'Guardando…',
@@ -1548,29 +1574,18 @@ const messages: TranslationMap = {
   'settings.search.accessBlockAll': 'Bloquear todo',
   'settings.search.accessBlockAllHint':
     'Todo el acceso web está bloqueado: el asistente no puede abrir ni leer ningún sitio web.',
-  'settings.search.description':
-    'La búsqueda puede usar varios proveedores a la vez. Exa y Gemini están incluidos con TinyHumans y no requieren configuración; los demás proveedores funcionan con tu propia clave de API. Cada rol de abajo usa el primer proveedor disponible y recurre al siguiente si falla.',
   'settings.search.localManagedUnavailable':
-    'Los proveedores incluidos con TinyHumans requieren iniciar sesión. Activa un proveedor con tu propia clave de API para usar la búsqueda web en una sesión local.',
+    'Los proveedores a través de TinyHumans requieren iniciar sesión. Conecta un proveedor con tu propia clave de API para usar la búsqueda web en una sesión local.',
   'settings.search.enabledLabel': 'Búsqueda web',
-  'settings.search.enabledDesc':
-    'Permite al agente buscar en la web, responder preguntas con fuentes web y leer páginas.',
-  'settings.search.providersTitle': 'Proveedores',
-  'settings.search.providersDesc':
-    'Activa los proveedores que quieras. Puede haber varios activos a la vez; los roles de abajo deciden cuál se prueba primero.',
   'settings.search.providerToggleAria': 'Usar {provider}',
-  'settings.search.routeAria': 'Conexión de {provider}',
-  'settings.search.routeManaged': 'Incluido con TinyHumans',
-  'settings.search.routeDirect': 'Clave propia',
+  'settings.search.routeManaged': 'a través de TinyHumans',
+  'settings.search.routeDirect': 'Tu propia clave',
   'settings.search.apiKeyLabel': 'Clave de API de {provider}',
   'settings.search.placeholderKey': 'Pega tu clave de API de {provider}',
   'settings.search.baseUrlLabel': 'URL de la instancia',
-  'settings.search.baseUrlSave': 'Guardar URL',
   'settings.search.statusReady': 'Listo',
   'settings.search.statusSignInRequired': 'Requiere iniciar sesión',
   'settings.search.statusOff': 'Desactivado',
-  'settings.search.deepResearchAvailable':
-    'La investigación profunda está disponible: el agente puede pedir a {provider} un informe más largo y completo.',
   'settings.search.deepResearchHint':
     'Añade tu propia clave de {provider} para activar la investigación profunda.',
   'settings.search.rolesTitle': 'Funciones',
@@ -1582,9 +1597,6 @@ const messages: TranslationMap = {
   'settings.search.roleAnswerDesc': 'Una respuesta redactada a partir de fuentes web, con citas.',
   'settings.search.roleContents': 'Contenido',
   'settings.search.roleContentsDesc': 'Obtiene las páginas indicadas y extrae su texto.',
-  'settings.search.roleServedBy': 'Atendido por {provider}',
-  'settings.search.roleNoProvider':
-    'No hay proveedor disponible: el agente no tiene esta herramienta por ahora.',
   'settings.search.roleMoveUp': 'Subir {provider}',
   'settings.search.roleMoveDown': 'Bajar {provider}',
   'settings.search.roleRemove': 'Quitar {provider}',
@@ -1594,7 +1606,46 @@ const messages: TranslationMap = {
   'settings.search.advancedTitle': 'Avanzado',
   'settings.search.exposeProviderTools': 'Mostrar las herramientas propias de cada proveedor',
   'settings.search.exposeProviderToolsDesc':
-    'Da al agente las herramientas de cada proveedor activo en lugar de una herramienta por rol. Esto ocupa más ventana de contexto.',
+    'Sustituye las herramientas de búsqueda enrutadas por las herramientas propias de cada proveedor activo. Los agentes que solo conocen las herramientas enrutadas, incluido el agente principal, se quedan sin búsqueda web, y las herramientas adicionales ocupan más de la ventana de contexto. Déjalo desactivado salvo que estés probando un proveedor.',
+  'settings.search.tabProviders': 'Proveedores',
+  'settings.search.tabRouting': 'Enrutamiento',
+  'settings.search.tabWebsites': 'Sitios web',
+  'settings.search.offNotice':
+    'La búsqueda web está desactivada. El agente no puede buscar ni leer la web hasta que vuelvas a activarla.',
+  'settings.search.connectedTitle': 'Conectados',
+  'settings.search.connectedDesc':
+    'Proveedores que el agente puede usar. Puede haber varios activos a la vez; la pestaña Enrutamiento decide cuál se prueba primero.',
+  'settings.search.connectedEmpty': 'Todavía no hay ningún proveedor conectado. Elige uno abajo.',
+  'settings.search.catalogTitle': 'Añadir un proveedor',
+  'settings.search.catalogDesc':
+    'Elige un proveedor para conectarlo. Puedes añadir más en cualquier momento.',
+  'settings.search.catalogManagedTitle': 'A través de TinyHumans',
+  'settings.search.catalogManagedHelper': 'Sin configuración: un clic y listo.',
+  'settings.search.catalogOwnTitle': 'Con tu propia clave',
+  'settings.search.catalogOwnHelper':
+    'Usa una clave de API del proveedor o indica tu propia instancia.',
+  'settings.search.addProviderAria': 'Conectar {provider}',
+  'settings.search.detailOwnKey': 'Tu propia clave de API',
+  'settings.search.detailNoKey': 'Aún no hay clave de API',
+  'settings.search.detailNoUrl': 'Aún no hay URL de la instancia',
+  'settings.search.deepResearchBadge': 'Investigación profunda',
+  'settings.search.rowActions': 'Opciones de {provider}',
+  'settings.search.actionUseOwnKey': 'Usar tu propia clave',
+  'settings.search.actionUseManaged': 'Usar a través de TinyHumans',
+  'settings.search.actionAddKey': 'Añadir clave de API',
+  'settings.search.actionAddDeepResearchKey': 'Añadir una clave para investigación profunda',
+  'settings.search.actionReplaceKey': 'Reemplazar clave de API',
+  'settings.search.actionRemoveKey': 'Quitar clave de API',
+  'settings.search.actionEditUrl': 'Cambiar URL de la instancia',
+  'settings.search.connectTitle': 'Conectar {provider}',
+  'settings.search.connect': 'Conectar',
+  'settings.search.baseUrlHint': 'La dirección de tu instancia de SearXNG, incluido el puerto.',
+  'settings.search.roleServing': 'En uso',
+  'settings.search.roleNoProviderShort': 'Ningún proveedor disponible',
+  'settings.search.roleFallbacks': 'Alternativas: {providers}',
+  'settings.search.roleNoFallback': 'Sin alternativa',
+  'settings.search.roleDialogDesc':
+    'El primer proveedor disponible se encarga de esta tarea. Si falla o no está disponible, se prueba el siguiente.',
   // ─── Settings global search bar ────────────────────────────
   'settings.embeddings.title': 'Incrustaciones',
   'settings.embeddings.description':
@@ -2398,7 +2449,6 @@ const messages: TranslationMap = {
   'chat.safetyTimeout':
     'Sin respuesta del agente después de 2 minutos. Intenta de nuevo o verifica tu conexión.',
   'chat.filter.general': 'General',
-  'chat.filter.subconscious': 'Subconsciente',
   'chat.filter.meetings': 'Reuniones',
   'chat.filter.tasks': 'Tareas',
   'chat.selectThread': 'Selecciona un hilo',
@@ -3643,8 +3693,6 @@ const messages: TranslationMap = {
   'conversations.tools.planNextSteps.done': 'Próximos pasos planificados',
   'conversations.tools.reviewWork.active': 'Revisando el trabajo',
   'conversations.tools.reviewWork.done': 'Trabajo revisado',
-  'conversations.tools.scoutContext.active': 'Explorando el contexto',
-  'conversations.tools.scoutContext.done': 'Contexto explorado',
   'conversations.tools.useTools.active': 'Usando herramientas',
   'conversations.tools.useTools.done': 'Herramientas usadas',
   'conversations.tools.checkConnectedApp.active': 'Comprobando tu app conectada',
@@ -4849,7 +4897,7 @@ const messages: TranslationMap = {
     'Usa el inicio de sesión existente de Codex CLI desde ~/.codex/auth.json.',
   'settings.ai.backgroundLoops': 'Bucles de fondo',
   'settings.ai.backgroundLoopsDesc':
-    'Vea qué se ejecuta sin un mensaje de chat, pause el trabajo de latido y examine las filas recientes del libro mayor de créditos.',
+    'Vea qué se ejecuta sin un mensaje de chat y examine las filas recientes del libro mayor de créditos.',
   'settings.ai.loopMap': 'Mapa de bucle',
   'settings.ai.routeLabel': 'ruta: {route}',
   'settings.ai.on': 'en',
@@ -4974,7 +5022,7 @@ const messages: TranslationMap = {
     'Modelos utilizados durante la interacción directa con el usuario, respuestas, razonamiento, bucles de agentes y ayuda en programación.',
   'settings.ai.routing.backgroundTasks': 'Tareas en segundo plano',
   'settings.ai.routing.bgTasksDesc':
-    'Modelos utilizados fuera del flujo principal de la conversación para resumen, latido, aprendizaje y evaluación subconsciente.',
+    'Modelos utilizados fuera del flujo principal de la conversación para el resumen de memoria y el aprendizaje.',
   'settings.ai.routing.workload.chat.label': 'Chat',
   'settings.ai.routing.workload.chat.description':
     'Intercambio conversacional directo: modo “Rápido” en Conversaciones',
@@ -5004,21 +5052,11 @@ const messages: TranslationMap = {
   'settings.ai.routing.workload.memory.description': 'Extractos de árboles y consolidaciones.',
   'settings.ai.routing.workload.memory.hint':
     'Recomendado: un modelo de resumen más económico. Debe ser coherente y compacto, pero no necesita un razonamiento de primer nivel.',
-  'settings.ai.routing.workload.heartbeat.label': 'Heartbeat',
-  'settings.ai.routing.workload.heartbeat.description':
-    'Razonamiento en segundo plano entre turnos de usuario.',
-  'settings.ai.routing.workload.heartbeat.hint':
-    'Recomendado: un modelo en segundo plano económico y eficiente. Esto ocurre a menudo entre turnos, por lo que el bajo costo importa más que la máxima inteligencia.',
   'settings.ai.routing.workload.learning.label': 'Aprendizaje · Reflexiones',
   'settings.ai.routing.workload.learning.description':
     'Reflexión periódica sobre la historia reciente',
   'settings.ai.routing.workload.learning.hint':
     'Recomendado: un modelo reflectante más fuerte. Esto puede ser de costo medio o premium porque se beneficia de una mejor síntesis a lo largo de la historia reciente.',
-  'settings.ai.routing.workload.subconscious.label': 'Subconscious',
-  'settings.ai.routing.workload.subconscious.description':
-    'Puntuación de acontecimientos + comprobaciones de deriva',
-  'settings.ai.routing.workload.subconscious.hint':
-    'Recomendado: un modelo de seguimiento muy económico, idealmente uno que sea ligero y predecible. Esto es para puntuación de acontecimientos, verificaciones de deriva y evaluación de antecedentes silenciosa.',
   'settings.ai.routing.addCustomProvider': 'Agregar proveedor personalizado',
   'settings.ai.globalModel.title': 'Elige un modelo para todo',
   'settings.ai.globalModel.desc':
@@ -5029,8 +5067,6 @@ const messages: TranslationMap = {
   'settings.ai.globalModel.model': 'modelo',
   'settings.ai.globalModel.loadingModels': 'Cargando modelos…',
   'settings.ai.globalModel.enterModelId': 'Ingrese la identificación del modelo',
-  'settings.ai.globalModel.appliesToAll':
-    'Aplica el mismo proveedor + modelo a chat, razonamiento, codificación, memoria, latido, aprendizaje y subconsciente. Los embeddings se configuran por separado. Los cambios se guardan cuando haces clic en guardar.',
   'settings.ai.globalModel.saving': 'Guardando…',
   'settings.ai.globalModel.saved': 'Guardado',
   'settings.ai.workload.noModel': 'Ningún modelo seleccionado',
@@ -5215,6 +5251,7 @@ const messages: TranslationMap = {
   'settings.cron.jobs.removing': 'Eliminando',
   'settings.cron.jobs.resume': 'Reanudar',
   'settings.cron.jobs.runningNow': 'Ejecutando ahora',
+  'settings.cron.jobs.runNow': 'Ejecutar ahora',
   'settings.cron.jobs.saving': 'Guardando…',
   'settings.cron.jobs.schedule': 'Programación',
   'settings.cron.jobs.title': 'Tareas cron del core',
@@ -5415,8 +5452,6 @@ const messages: TranslationMap = {
   'settings.developerMenu.eventLog.badge.comp': 'COMP',
   'settings.developerMenu.eventLog.badge.mcp': 'MCP',
   'settings.developerMenu.intelligence.title': 'Inteligencia',
-  'settings.developerMenu.intelligence.desc':
-    'Espacio de trabajo de memoria, motor subconsciente, sueños y ajustes',
   'settings.developerMenu.notificationRouting.title': 'Enrutamiento de notificaciones',
   'settings.developerMenu.notificationRouting.desc':
     'Puntuación de importancia con IA y escalado al orquestador para alertas de integración',
@@ -6292,8 +6327,6 @@ const messages: TranslationMap = {
   'devOptions.menuWebhooksDebugDesc':
     'Inspeccionar los registros de webhooks en tiempo de ejecución y los registros de solicitudes capturados',
   'devOptions.menuIntelligence': 'Inteligencia',
-  'devOptions.menuIntelligenceDesc':
-    'Espacio de trabajo de la memoria, motor subconsciente, sueños y escenarios.',
   'devOptions.menuNotificationRouting': 'Enrutamiento de notificaciones',
   'devOptions.menuNotificationRoutingDesc':
     'Puntuación de importancia de la IA y escalamiento del orquestador para alertas de integración',
@@ -7076,8 +7109,8 @@ const messages: TranslationMap = {
   'settings.ai.perWeek': '{count}/semana',
   'settings.ai.perWeekMax': '{count}/semana como máximo',
   'settings.ai.perHour': '{amount}/h',
-  'settings.ai.plannerSyncBreakdown': '{planner} del planificador + {sync} de sincronización',
   'settings.ai.memoryPollsDetail': '{count} sondeos de memoria',
+  'settings.ai.connectionSyncBreakdown': '{sync} de sincronización de conexiones',
   'settings.ai.rowsLeftFormula': 'restante / fila media = {remaining} / {avgRow}',
   'settings.ai.needSpendRowsToEstimate': 'Se necesitan filas de gasto recientes para estimar.',
   'settings.ai.rowsPerBudgetFormula': 'presupuesto del ciclo / fila media = {budget} / {avgRow}',
@@ -7237,7 +7270,6 @@ const messages: TranslationMap = {
     'Listo para enviar y recibir mensajes. Escoge uno como el predeterminado.',
   'channels.availableDesc': 'Aplicaciones de chat que puedes conectar. Abre uno para configurarlo.',
   'settings.about.resources': 'Recursos',
-  'settings.search.keyStored': 'Almacenado',
   'settings.embeddings.modelCardTitle': 'Modelo &quot; dimensiones &quot;',
   'mcp.rows.searchPlaceholder': 'Buscar servidores...',
   'mcp.tab.section.clients': 'Clientes',

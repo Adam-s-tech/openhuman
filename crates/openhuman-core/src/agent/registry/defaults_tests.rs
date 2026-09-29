@@ -5,8 +5,23 @@ fn default_agents_include_core_personas() {
     let agents = default_agents();
     let ids: Vec<&str> = agents.iter().map(|agent| agent.id.as_str()).collect();
     assert!(ids.contains(&"orchestrator"));
-    assert!(ids.contains(&"researcher"));
-    assert!(ids.contains(&"code_executor"));
+    assert!(ids.contains(&"archivist"));
+    assert!(
+        !ids.contains(&"researcher"),
+        "the researcher agent was removed"
+    );
+    for removed in [
+        "code_executor",
+        "tools_agent",
+        "settings_agent",
+        "crypto_agent",
+    ] {
+        assert!(
+            !ids.contains(&removed),
+            "`{removed}` was replaced by an inline skill"
+        );
+    }
+    assert!(ids.contains(&"planner"), "planner stays for workflow runs");
     assert!(agents
         .iter()
         .all(|agent| agent.source == AgentRegistrySource::Default));

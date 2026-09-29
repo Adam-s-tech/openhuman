@@ -136,7 +136,7 @@ pub enum DisplayItem {
     /// file-stem suffix — never the agent name, which repeats across runs.
     Subagent {
         id: String,
-        /// Sub-agent definition id (e.g. `researcher`).
+        /// Sub-agent definition id (e.g. `code_executor`).
         #[serde(skip_serializing_if = "Option::is_none")]
         agent_id: Option<String>,
         /// Spawn task id (`sub-…`), when the transcript recorded one.

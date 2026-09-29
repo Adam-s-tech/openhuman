@@ -317,8 +317,8 @@ fn tier_transition_rejects_reasoning_to_reasoning() {
 
 #[test]
 fn tier_transition_allows_upward_reasoning_to_chat() {
-    // Upward delegation is intentionally legal: the `subconscious` reasoner
-    // hands follow-ups back to the `orchestrator` chat agent. Only same-tier
+    // Upward delegation is intentionally legal: a reasoning agent may hand
+    // follow-ups back to the `orchestrator` chat agent. Only same-tier
     // and worker-as-parent hops are forbidden.
     assert!(validate_tier_transition(AgentTier::Reasoning, AgentTier::Chat).is_ok());
 }
@@ -366,46 +366,29 @@ fn all_builtin_agent_definitions_have_expected_effective_max_iterations() {
     let expected: &[(&str, usize)] = &[
         // Extended policy (or high `max_iterations`) -> effective cap raised.
         ("orchestrator", 15),
-        ("code_executor", 50),
-        ("context_scout", 50),
         // #5204: general-purpose read-only flow context/memory retrieval
         // agent — `iteration_policy = "extended"` so it can loop across
         // several retrievals in one turn. `#[cfg(feature = "flows")]`-gated
         // (like the other flow agents), so this audit entry is too.
         #[cfg(feature = "flows")]
         ("flow_memory_agent", 50),
-        ("integrations_agent", 50),
-        // `mcp_agent` is compiled out with the `mcp` feature (#4799).
-        #[cfg(feature = "mcp")]
-        ("mcp_agent", 50),
         ("planner", 50),
-        ("researcher", 50),
-        ("skill_creator", 50),
         ("task_manager_agent", 50),
-        ("tools_agent", 50),
         // Gated with `flows` (#4797) — absent from a slim build.
         #[cfg(feature = "flows")]
         ("flow_discovery", 50),
         #[cfg(feature = "flows")]
         ("workflow_builder", 50),
-        // Compiled out with the `skills` gate — see `openhuman::skills::stub`.
-        #[cfg(feature = "skills")]
-        ("skill_executor", 50),
         // Strict policy, declared `max_iterations` below the old global
         // default (10) -> effective cap lowered.
         ("agent_memory", 6),
         ("archivist", 3),
         ("critic", 5),
-        ("crypto_agent", 8),
         ("goals_agent", 5),
-        ("help", 6),
         ("image_agent", 8),
         ("morning_briefing", 8),
         ("profile_memory_agent", 8),
-        ("scheduler_agent", 8),
-        ("settings_agent", 8),
         ("summarizer", 1),
-        ("tool_maker", 2),
         ("trigger_reactor", 6),
         ("trigger_triage", 2),
         ("video_agent", 8),

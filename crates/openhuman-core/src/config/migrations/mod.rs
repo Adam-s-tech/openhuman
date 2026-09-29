@@ -422,7 +422,7 @@ pub async fn run_pending(config: &mut Config) {
     // 7 -> 8: retire the two stale OpenHuman reasoning-tier `default_model`
     // defaults to `chat-v1`. `reasoning-v1` (a former DEFAULT_MODEL) and the
     // deprecated `reasoning-quick-v1` alias were the persisted default for older
-    // builds and drive the implicit managed turns (triage, the subconscious tick,
+    // builds and drive the implicit managed turns (triage,
     // escalation base, chat-fallback) onto a stale tier, since app updates never
     // refresh `default_model`. Only those two values are rewritten — `default_model`
     // round-trips arbitrary custom/BYOK ids (config-mutation contract), so anything
@@ -602,8 +602,9 @@ pub async fn run_pending(config: &mut Config) {
         );
     }
 
-    // 11 -> 12: reserialize the legacy subconscious engine name as `local`.
-    // Deserialization accepts the retired name so old configs still start.
+    // 11 -> 12: reserialize the config. This step once rewrote a retired
+    // background-engine name; that config block no longer exists, so the save
+    // now just drops it. Kept so the schema_version sequence stays contiguous.
     if config.schema_version == 11 {
         let previous_version = config.schema_version;
         config.schema_version = 12;

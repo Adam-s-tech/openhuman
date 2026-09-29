@@ -21,8 +21,10 @@ vi.mock('../../components/settings/panels/EmbeddingsPanel', () => ({
 vi.mock('../../components/settings/panels/SearchPanel', () => ({
   default: () => <div data-testid="skills-search-panel" />,
 }));
-vi.mock('../../components/settings/panels/BrowserConnectionsPanel', () => ({
-  default: () => <div data-testid="skills-browser-panel" />,
+vi.mock('../../components/settings/panels/ComputerPanel', () => ({
+  default: ({ section }: { section: string }) => (
+    <div data-testid="skills-computer-panel" data-section={section} />
+  ),
 }));
 vi.mock('../../components/settings/panels/ComposioPanel', () => ({
   default: () => <div data-testid="skills-composio-panel" />,
@@ -75,12 +77,25 @@ vi.mock('../../utils/tauriCommands', async () => {
 });
 
 describe('Skills page — API keys (intelligence) tabs', () => {
-  it('groups Browser and Desktop Control with integrations', () => {
-    renderWithProviders(<Skills />, { initialEntries: ['/connections?tab=browser'] });
+  it('groups Computer (desktop and browser) with integrations', () => {
+    renderWithProviders(<Skills />, { initialEntries: ['/connections?tab=computer'] });
     const group = screen.getByText('Integrations').parentElement?.parentElement;
     expect(group).toBeTruthy();
-    expect(within(group!).getByTestId('two-pane-nav-browser')).toBeInTheDocument();
-    expect(within(group!).getByTestId('two-pane-nav-desktop')).toBeInTheDocument();
+    expect(within(group!).getByTestId('two-pane-nav-computer')).toBeInTheDocument();
+    expect(within(group!).queryByTestId('two-pane-nav-browser')).not.toBeInTheDocument();
+    expect(within(group!).queryByTestId('two-pane-nav-desktop')).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ['/connections?tab=browser', 'browser'],
+    ['/connections?tab=desktop', 'desktop'],
+    ['/connections?tab=computer&section=models', 'models'],
+    ['/connections?tab=computer', 'desktop'],
+  ])('routes %s to the Computer %s section', async (entry, section) => {
+    renderWithProviders(<Skills />, { initialEntries: [entry] });
+    await waitFor(() => {
+      expect(screen.getByTestId('skills-computer-panel')).toHaveAttribute('data-section', section);
+    });
   });
 
   it.each([
@@ -88,7 +103,7 @@ describe('Skills page — API keys (intelligence) tabs', () => {
     ['voice', 'skills-voice-panel'],
     ['embeddings', 'skills-embeddings-panel'],
     ['search', 'skills-search-panel'],
-    ['browser', 'skills-browser-panel'],
+    ['computer', 'skills-computer-panel'],
     ['usage', 'skills-usage-panel'],
     ['composio-key', 'skills-composio-panel'],
   ])('renders the %s panel for ?tab=%s', async (tab, testId) => {

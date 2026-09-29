@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react';
 import { cn } from '../../../lib/cn';
 import { useT } from '../../../lib/i18n/I18nContext';
 import {
-  isTauri,
   MEMORY_CONTEXT_WINDOWS,
   type MemoryContextWindow,
   openhumanGetConfig,
@@ -75,10 +74,6 @@ const MemoryWindowControl = ({ onError, onSaved }: Props) => {
   };
 
   useEffect(() => {
-    if (!isTauri()) {
-      setLoaded(true);
-      return;
-    }
     let cancelled = false;
     const load = async () => {
       try {
@@ -103,9 +98,7 @@ const MemoryWindowControl = ({ onError, onSaved }: Props) => {
     setPending(next);
     setSaving(next);
     try {
-      if (isTauri()) {
-        await openhumanUpdateMemorySettings({ memory_window: next });
-      }
+      await openhumanUpdateMemorySettings({ memory_window: next });
       setCurrent(next);
       onSaved?.(next);
     } catch (err) {

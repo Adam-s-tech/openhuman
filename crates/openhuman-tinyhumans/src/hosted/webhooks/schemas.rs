@@ -5,8 +5,8 @@ use tinyhumans_sdk::api::webhooks::UpdateWebhookTunnelRequest;
 
 use openhuman_core::config::rpc as config_rpc;
 use openhuman_core::core::all::{ControllerFuture, RegisteredController};
+use openhuman_core::core::Outcome;
 use openhuman_core::core::{ControllerSchema, FieldSchema, TypeSchema};
-use openhuman_core::rpc::RpcOutcome;
 
 #[derive(Debug, Deserialize)]
 struct WebhookCreateTunnelParams {
@@ -240,7 +240,7 @@ fn deserialize_params<T: DeserializeOwned>(params: Map<String, Value>) -> Result
     serde_json::from_value(Value::Object(params)).map_err(|e| format!("invalid params: {e}"))
 }
 
-fn to_json<T: serde::Serialize>(outcome: RpcOutcome<T>) -> Result<Value, String> {
+fn to_json<T: serde::Serialize>(outcome: Outcome<T>) -> Result<Value, String> {
     outcome.into_cli_compatible_json()
 }
 

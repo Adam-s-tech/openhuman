@@ -170,12 +170,12 @@ approvals reuse the engine's pause-and-`flows_resume` fallback.
 ## Agent nodes: a graph within the graph
 
 A flow `agent` node names a **registered agent kind** through a trusted
-`agent_ref` in its config (researcher, code_executor, a custom specialist, …).
+`agent_ref` in its config (flow_memory_agent, a custom specialist, …).
 `OpenHumanAgentRunner::run_agent` resolves that ref and routes on what it finds:
 
 - **A harness `AgentDefinition` exists** → build a full harness `Agent`
   (`Agent::from_config_for_agent`) and run the node's request through
-  `run_single`. That is the _same_ entry the builder/scout and cron/subconscious
+  `run_single`. That is the _same_ entry the builder/scout and cron
   jobs use, and internally it drives `run_turn_via_tinyagents_shared`
   ([`crates/openhuman-core/src/agent/tinyagents/mod.rs`](../../../crates/openhuman-core/src/agent/tinyagents/mod.rs)) -
   the tinyagents `AgentHarness` tool-call loop. The definition's ToolScope,

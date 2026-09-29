@@ -190,11 +190,6 @@ pub fn all_tools_with_runtime(
         // tree) rooted at the agent action dir. Named by the orchestrator and
         // planner scopes.
         Box::new(WorkspaceStateTool::new(action_dir.to_path_buf())),
-        // "Plan mode as a subagent": runs the read-only `context_scout`
-        // inline and returns a bounded context bundle + recommended next
-        // tool calls. Visible only to agents that allowlist it
-        // (orchestrator / planner).
-        Box::new(AgentPrepareContextTool::new()),
         // Steer/list/close reusable async sub-agents and collect results by
         // durable `subagent_session_id` (preferred) or transient `task_id`.
         Box::new(ListSubagentsTool::new()),
@@ -328,7 +323,7 @@ pub fn all_tools_with_runtime(
         #[cfg(feature = "flows")]
         Box::new(GetToolOutputSampleTool::new(config.clone())),
         // Ground an `agent` node's `agent_ref` in real registered agent-kind ids
-        // (researcher / code_executor / …) — the agent analogue of
+        // (code_executor / critic / …) — the agent analogue of
         // search_tool_catalog. Read-only.
         #[cfg(feature = "flows")]
         Box::new(ListAgentDefinitionsTool::new()),
@@ -453,6 +448,19 @@ pub fn all_tools_with_runtime(
         Box::new(UpdateApplyTool::new(security.clone())),
         Box::new(GitOperationsTool::new(
             security.clone(),
+            action_dir.to_path_buf(),
+        )),
+        // Review loop for skill `coding` (and the workflow-run `critic`):
+        // diff, lint and test the working tree in the action sandbox. They
+        // were defined but never registered, so the belts naming them held
+        // nothing. `Deferred`, so they cost no schema until found.
+        Box::new(crate::tools::implementations::ReadDiffTool::new(
+            action_dir.to_path_buf(),
+        )),
+        Box::new(crate::tools::implementations::RunLinterTool::new(
+            action_dir.to_path_buf(),
+        )),
+        Box::new(crate::tools::implementations::RunTestsTool::new(
             action_dir.to_path_buf(),
         )),
         Box::new(PushoverTool::new(
@@ -806,6 +814,19 @@ pub fn all_tools_with_runtime(
                 count = mcp_registry.list().len(),
                 "[mcp_client] registered generic MCP bridge tools"
             );
+            // And every cached server tool as its own `mcp_<server>_<tool>`,
+            // deferred unless the server asks for direct exposure. Names
+            // already taken keep their owner.
+            let reserved: std::collections::HashSet<String> =
+                tools.iter().map(|tool| tool.name().to_string()).collect();
+            tools.extend(
+                crate::tools::implementations::network::configured_server_tools(
+                    root_config,
+                    &mcp_registry,
+                    security,
+                    &reserved,
+                ),
+            );
         } else {
             tracing::debug!("[mcp_client] no MCP servers registered — bridge tools skipped");
         }
@@ -1156,7 +1177,7 @@ fn tool_group(name: &str) -> crate::core::all::DomainGroup {
         "audio_generate_and_email_podcast",
     ];
     // Threads: thread_* / todo_* handled by prefix below; these are the extras.
-    // Subconscious monitor + proactive-notify tools (Automation family).
+    // Monitor + proactive-notify tools (Automation family).
     const MONITORS: &[&str] = &[
         "monitor",
         "monitor_list",
@@ -1232,7 +1253,6 @@ fn tool_group(name: &str) -> crate::core::all::DomainGroup {
         || matches!(
             name,
             "ask_user_clarification"
-                | "agent_prepare_context"
                 | "delegate"
                 | "delegate_graph"
                 | "delegate_to_personality"
@@ -1262,7 +1282,7 @@ fn tool_group(name: &str) -> crate::core::all::DomainGroup {
     // leak the #4808 review flagged. Keep these in
     // lockstep with the `push(...)` tags in `core::all`.
     //
-    // Automation: scheduled jobs (`cron_*`) plus the subconscious monitor +
+    // Automation: scheduled jobs (`cron_*`) plus the monitor +
     // proactive-notify surface.
     if name.starts_with("cron_") || name == "schedule" || MONITORS.contains(&name) {
         return DomainGroup::Automation;

@@ -148,6 +148,10 @@ struct OpenHumanTurnPreludeMutable {
     /// turn so disconnects remove their deferred executors immediately.
     #[cfg(feature = "mcp")]
     connected_mcp_tools: Vec<crate::mcp::registry::types::ConnectedServerOverview>,
+    /// `mcp_*` tool names a resumed thread was sent, so a tool recorded under
+    /// its pre-readable hashed name is restored under that name too.
+    #[cfg(feature = "mcp")]
+    recorded_mcp_tool_names: std::collections::HashSet<String>,
     announced_skills: std::collections::HashSet<String>,
     pending_skill_announcement: Vec<String>,
     pending_skill_retraction: Vec<String>,
@@ -1214,9 +1218,9 @@ fn render_agent_context_status_note(
     };
     format!(
         "## Agent context status\n\nAgent context retrieval/preparation has already run once \
-         for this turn in code via {sources}. Do not call `agent_prepare_context` again for \
-         general context preparation. Use the prepared context below, and call only specific \
-         follow-up tools if a concrete missing detail is required."
+         for this turn in code via {sources}. Do not gather general context again. Use the \
+         prepared context below, and call only specific follow-up tools if a concrete missing \
+         detail is required."
     )
 }
 
@@ -1422,7 +1426,6 @@ impl OpenHumanSessionHost {
             runtime_config: self.runtime_config.clone(),
             microcompact_keep_recent,
             autocompact_enabled,
-            handoff: None,
             transcript_snapshot: None,
         };
         let driver = Arc::new(OpenHumanSessionDriver::new(
@@ -1538,6 +1541,8 @@ impl OpenHumanSessionHost {
                     pending_mcp_announcement: self.pending_mcp_announcement.clone(),
                     #[cfg(feature = "mcp")]
                     connected_mcp_tools: Vec::new(),
+                    #[cfg(feature = "mcp")]
+                    recorded_mcp_tool_names: std::collections::HashSet::new(),
                     announced_skills: self.announced_skills.clone(),
                     pending_skill_announcement: self.pending_skill_announcement.clone(),
                     pending_skill_retraction: self.pending_skill_retraction.clone(),

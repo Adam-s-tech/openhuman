@@ -101,7 +101,7 @@ pub(super) async fn run_flow_body(
     no_actionable_nodes: bool,
     cancel_token: tokio_util::sync::CancellationToken,
     _run_guard: run_registry::RunGuard,
-) -> Result<RpcOutcome<Value>, String> {
+) -> Result<Outcome<Value>, String> {
     let config: &Config = config_arc.as_ref();
     let flow_id: &str = flow_id.as_str();
 
@@ -309,7 +309,7 @@ pub(super) async fn run_flow_body(
             );
             finalizer.disarm();
             drop_checkpoint(config, &thread_id).await;
-            return Ok(RpcOutcome::single_log(
+            return Ok(Outcome::single_log(
                 json!({
                     "output": Value::Null,
                     "pending_approvals": Vec::<String>::new(),
@@ -402,7 +402,7 @@ pub(super) async fn run_flow_body(
         logs.push(NO_ACTIONABLE_NODES_NOTE.to_string());
     }
 
-    Ok(RpcOutcome::new(result, logs))
+    Ok(Outcome::new(result, logs))
 }
 
 /// Milliseconds since the Unix epoch, for `CoreNotificationEvent::timestamp_ms`.

@@ -129,9 +129,19 @@ impl Default for WebSearchConfig {
 // execution lives in the TinySearch module; this file only owns the settings
 // and the one-time migration from the single-engine format.
 
-/// Settings format written by this build. Files without the field (or with a
-/// lower value) carry the legacy single-engine fields and are migrated on load.
-pub const SEARCH_SCHEMA_VERSION: u32 = 2;
+/// Settings format written by this build, migrated on load:
+/// - absent/0–1: the legacy single-engine fields → providers, routes, roles;
+/// - 2: `presentation = "all_tools"` → `roles`. The v2 migration used to force
+///   `all_tools` on every upgraded file, which hides the routed
+///   `web_*_tool`s that agent tool scopes name, so those agents lost web
+///   search. v3 moves them back to the routed tools once; a later explicit
+///   choice is saved as v3 and kept. v3 also makes TinyFish own-key: the
+///   backend never proxied it, so a managed TinyFish is turned off unless a
+///   key is available.
+pub const SEARCH_SCHEMA_VERSION: u32 = 3;
+
+/// First format with providers, routes and roles.
+pub(crate) const SEARCH_SCHEMA_PROVIDERS: u32 = 2;
 
 pub const SEARCH_ROLE_SEARCH: &str = "search";
 pub const SEARCH_ROLE_ANSWER: &str = "answer";
@@ -345,6 +355,10 @@ pub struct SearchConfig {
     /// Parallel route.
     #[serde(default)]
     pub parallel: SearchEngineCredentials,
+    /// TinyFish key. TinyFish is bring-your-own-key only: the TinyHumans
+    /// backend does not proxy it.
+    #[serde(default)]
+    pub tinyfish: SearchEngineCredentials,
 
     // ── Legacy single-engine fields: read for migration, never written ──
     #[serde(default, skip_serializing)]
@@ -382,6 +396,7 @@ impl Default for SearchConfig {
             parallel_route: None,
             gemini_route: None,
             parallel: SearchEngineCredentials::default(),
+            tinyfish: SearchEngineCredentials::default(),
         }
     }
 }
@@ -396,7 +411,7 @@ fn default_providers() -> BTreeMap<String, SearchProviderSettings> {
 }
 
 /// Legacy inputs that lived outside `[search]`.
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct LegacySearchInputs {
     /// `integrations.tinyfish.is_active()`.
     pub tinyfish_active: bool,
@@ -404,6 +419,9 @@ pub struct LegacySearchInputs {
     pub seltz_active: bool,
     /// `searxng.enabled`.
     pub searxng_active: bool,
+    /// The key the legacy `integrations.tinyfish` toggle held, if any. TinyFish
+    /// is own-key only now; this seeds `search.tinyfish` when it has none.
+    pub tinyfish_api_key: Option<String>,
 }
 
 impl SearchConfig {
@@ -421,6 +439,7 @@ impl SearchConfig {
             "tavily" => Some(&self.tavily),
             "gemini" | "gemini_deep_research" => Some(&self.gemini),
             "parallel" => Some(&self.parallel),
+            "tinyfish" => Some(&self.tinyfish),
             _ => None,
         }
     }
@@ -433,6 +452,7 @@ impl SearchConfig {
             "tavily" => Some(&mut self.tavily),
             "gemini" | "gemini_deep_research" => Some(&mut self.gemini),
             "parallel" => Some(&mut self.parallel),
+            "tinyfish" => Some(&mut self.tinyfish),
             _ => None,
         }
     }

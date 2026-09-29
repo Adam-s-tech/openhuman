@@ -1,10 +1,10 @@
 {
   "openhuman-app": 5,
   "openhuman-cli": 0,
-  "openhuman-core": 90,
+  "openhuman-core": 89,
   "openhuman-embed": 0,
-  "openhuman-rpc": 0,
+  "openhuman-rpc": 1,
   "openhuman-tinyhumans": 0,
   "openhuman-tui": 0,
-  "tests": 31
+  "tests": 26
 }

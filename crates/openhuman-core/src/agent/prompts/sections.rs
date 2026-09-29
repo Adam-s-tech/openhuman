@@ -46,8 +46,8 @@ impl PromptSection for ArchetypePromptSection {
 }
 
 /// Section that defers to a [`crate::agent::harness::definition::PromptBuilder`]
-/// every time it renders, so dynamic prompts (orchestrator, welcome,
-/// integrations_agent, …) get to see the live runtime
+/// every time it renders, so dynamic prompts (orchestrator, welcome, …)
+/// get to see the live runtime
 /// [`PromptContext`] — including `connected_integrations`, which are
 /// fetched asynchronously after the builder itself has been
 /// constructed.
@@ -117,10 +117,9 @@ pub struct GroundingSection;
 // `WorkflowsSection` and `ConnectedIntegrationsSection` previously lived
 // here and branched on `ctx.agent_id` to pick between the skill-
 // executor and delegator voice. They've been removed — each agent's
-// `prompt.rs` now renders its own block inline (integrations_agent owns the
-// `## Available Skills` + executor-voice `## Connected Integrations`
-// blocks, orchestrator owns `## Delegation Guide — Integrations`,
-// welcome owns its onboarding-flavoured connected list).
+// `prompt.rs` now renders its own block inline (orchestrator owns
+// `## Delegation Guide — Integrations`, welcome owns its
+// onboarding-flavoured connected list).
 pub struct WorkspaceSection;
 pub struct RuntimeSection;
 pub struct DateTimeSection;
@@ -245,10 +244,10 @@ impl PromptSection for IdentitySection {
         // orchestrator: a specialist sub-agent has its own role prompt and
         // must not be told it is the Master Agent.
         //
-        // HEARTBEAT.md used to ride along here. It was the periodic-task list
-        // the subconscious engine read, and that domain was deleted — nothing
-        // consumed the file any more, so every agent but the orchestrator was
-        // paying for an empty template. Its `WORKSPACE_INTERNAL_FILES` entry
+        // HEARTBEAT.md used to ride along here. It was a periodic-task list
+        // for a background loop that has since been removed — nothing consumed
+        // the file any more, so every agent but the orchestrator was paying
+        // for an empty template. Its `WORKSPACE_INTERNAL_FILES` entry
         // deliberately stays, so a file a user still has on disk keeps its
         // not-agent-writable protection.
         let is_orchestrator = !ctx.visible_tool_names.is_empty();
@@ -448,7 +447,7 @@ impl PromptSection for SafetySection {
 /// anti-fabrication rules every agent inherits. Before this block existed,
 /// the same "never invent ids / a tool not in your list does not exist"
 /// paragraph was copy-pasted (and slowly drifting) across crypto, markets,
-/// integrations, account-admin, mcp-setup, morning-briefing, researcher, …
+/// integrations, account-admin, mcp-setup, morning-briefing, …
 /// agent prompts. Centralising it kills that drift and guarantees a uniform
 /// floor of grounding discipline.
 ///

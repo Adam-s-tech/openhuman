@@ -251,11 +251,12 @@ pub const MEMORY_STORE_TOOL: &str = "memory_store";
 /// tool.
 ///
 /// Synthesised from `profile_memory_agent`'s `delegate_name`, and the write-side
-/// counterpart of `retrieve_memory` in [`MEMORY_READ_TOOLS`]. The orchestrator
-/// is configured this way: its visible set carries this delegate and neither
-/// [`MEMORY_STORE_TOOL`] nor [`SAVE_PREFERENCE_TOOL`], so keying the section on
-/// the direct pair alone dropped the rule for the agent that needed it most —
-/// the #6048 case, "got it, saved" with no tool call behind it.
+/// counterpart of `retrieve_memory` in [`MEMORY_READ_TOOLS`]. An agent whose
+/// visible set carries this delegate and neither [`MEMORY_STORE_TOOL`] nor
+/// [`SAVE_PREFERENCE_TOOL`] would lose the rule if the section keyed on the
+/// direct pair alone — the #6048 case, "got it, saved" with no tool call behind
+/// it. (The orchestrator itself now holds `memory_store` directly, so it takes
+/// the direct route; the delegate route covers belts that only delegate.)
 ///
 /// The section's promise survives the indirection **only under a blocking
 /// delegation**. `profile_memory_agent` holds both direct tools, so a delegated

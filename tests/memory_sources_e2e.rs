@@ -18,7 +18,7 @@ use serde_json::{json, Value};
 use tempfile::tempdir;
 
 use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
-use openhuman_core::core::jsonrpc::build_core_http_router;
+use openhuman_rpc::server::build_core_http_router;
 
 const TEST_RPC_TOKEN: &str = "memory-sources-e2e-token";
 static AUTH_INIT: OnceLock<()> = OnceLock::new();
@@ -164,7 +164,7 @@ fn ok(v: &Value, ctx: &str) -> Value {
     let outer = v
         .get("result")
         .unwrap_or_else(|| panic!("{ctx}: missing result: {v}"));
-    // RpcOutcome wraps the payload under an inner "result" key alongside "logs".
+    // Outcome wraps the payload under an inner "result" key alongside "logs".
     if let Some(inner) = outer.get("result") {
         inner.clone()
     } else {

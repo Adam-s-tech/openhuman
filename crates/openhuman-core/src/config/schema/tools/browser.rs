@@ -109,7 +109,7 @@ fn default_true() -> bool {
 }
 
 fn default_browser_backend() -> String {
-    "tinybrowser".into()
+    "tinycomputer".into()
 }
 
 fn default_browser_webdriver_url() -> String {

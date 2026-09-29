@@ -34,7 +34,7 @@ Inside it, the things you care about migrating:
 | ------------------------------------------------------ | --------------------------------------------- | --------------------------------- |
 | **Memory Tree** (the database)                         | `…/memory_tree/chunks.db`                     | ✅ Yes                            |
 | **Obsidian vault** (readable memory)                   | `…/wiki/`                                     | ✅ Yes                            |
-| **Persona & behavior**                                 | `SOUL.md`, `IDENTITY.md`, `HEARTBEAT.md`      | ✅ Yes                            |
+| **Persona & behavior**                                 | `SOUL.md`, `IDENTITY.md`, `ROLE.md`           | ✅ Yes                            |
 | **Config** (models, providers, routing, autonomy)      | `config.toml`                                 | ✅ Yes                            |
 | **Session history**                                    | `sessions/`, `session_raw/`                   | ✅ Yes                            |
 | **Approval history**                                   | `approval/approval.db`                        | ✅ Yes                            |

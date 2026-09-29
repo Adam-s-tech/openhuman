@@ -89,6 +89,10 @@ impl PythonExecTool {
 
 #[async_trait]
 impl Tool for PythonExecTool {
+    fn exposure(&self) -> tinytools::ToolExposure {
+        tinytools::ToolExposure::Deferred
+    }
+
     fn name(&self) -> &str {
         "python_exec"
     }

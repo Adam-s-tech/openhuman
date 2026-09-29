@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use super::super::client::{create_composio_client, direct_list_connections, ComposioClientKind};
 use super::super::module_client::{self as connectors, methods};
 use crate::config::Config;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 use super::super::connected_integrations::{
     fetch_connected_integrations_status, invalidate_connected_integrations_cache,
@@ -25,14 +25,14 @@ use tinymemory_api::composio::normalize_connection_identifier;
 
 pub async fn composio_list_connections(
     config: &Config,
-) -> OpResult<RpcOutcome<ComposioConnectionsResponse>> {
+) -> OpResult<Outcome<ComposioConnectionsResponse>> {
     tracing::debug!("[composio] rpc list_connections");
     if direct_mode_without_key(config)? {
         tracing::debug!(
             "[composio] list_connections: direct mode selected, no api key configured yet \
              — returning empty connection list (valid setup state, not an error)"
         );
-        return Ok(RpcOutcome::new(
+        return Ok(Outcome::new(
             ComposioConnectionsResponse {
                 connections: Vec::new(),
             },
@@ -101,7 +101,7 @@ pub async fn composio_list_connections(
         });
     }
     let resp = enrich_connections_with_identity(config, resp).await;
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         resp,
         vec![format!(
             "composio: {total} connection(s) listed ({active} active)"
@@ -113,7 +113,7 @@ pub async fn composio_authorize(
     config: &Config,
     toolkit: &str,
     extra_params: Option<serde_json::Value>,
-) -> OpResult<RpcOutcome<ComposioAuthorizeResponse>> {
+) -> OpResult<Outcome<ComposioAuthorizeResponse>> {
     tracing::debug!(toolkit = %toolkit, has_extra_params = extra_params.is_some(), "[composio] rpc authorize");
     // The module owns the whole handoff: the Meta pre-clean, the 429 backoff,
     // and the guidance message that replaces an unhelpful rate-limit error.
@@ -141,7 +141,7 @@ pub async fn composio_authorize(
         },
     );
 
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         resp,
         vec![format!("composio: authorize flow started for {toolkit}")],
     ))
@@ -151,7 +151,7 @@ pub async fn composio_delete_connection(
     config: &Config,
     connection_id: &str,
     clear_memory: bool,
-) -> OpResult<RpcOutcome<ComposioDeleteResponse>> {
+) -> OpResult<Outcome<ComposioDeleteResponse>> {
     tracing::debug!(connection_id = %connection_id, "[composio] rpc delete_connection");
     let toolkit = match resolve_toolkit_for_connection(config, connection_id).await {
         Ok(toolkit) => Some(toolkit),
@@ -283,7 +283,7 @@ pub async fn composio_delete_connection(
     if !memory_clear_errors.is_empty() {
         return Err(memory_clear_errors.join("; "));
     }
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         resp,
         vec![format!("composio: connection {connection_id} deleted")],
     ))

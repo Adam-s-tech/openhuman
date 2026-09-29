@@ -1,10 +1,14 @@
 //! MCP tool catalog, parameter validation, and dispatch logic.
 //!
 //! Split into focused sub-modules:
-//!   - `types`    — `McpToolSpec`, `ToolCallError`, shared constants
-//!   - `specs`    — tool spec builders and schema helpers
-//!   - `params`   — argument parsing and RPC param construction
-//!   - `dispatch` — `call_tool`, `list_tools_result`, agent/subagent handlers
+//!   - `types`    — `McpToolSpec` and the argument/limit constants
+//!   - `specs`    — tool spec builders, schema helpers, and the conversion to
+//!     `tinymcp::ServerToolSpec`
+//!   - `params`   — OpenHuman's per-tool argument policy and RPC param
+//!     construction, over `tinymcp::server::args`' generic validators
+//!   - `dispatch` — `call_tool`, `list_tool_specs`, agent/subagent handlers
+//!
+//! `ToolCallError` is `tinymcp`'s, re-exported here for the sibling modules.
 
 //! ## Compile-time gate (`mcp` feature)
 //!
@@ -25,11 +29,11 @@ mod types;
 
 // Public API consumed by the rest of `mcp::server`
 #[cfg(feature = "mcp")]
-pub use dispatch::{call_tool, list_tools_result, tool_error, tool_success};
+pub use dispatch::{call_tool, list_tool_specs, tool_error, tool_success};
 #[cfg(feature = "mcp")]
-pub use specs::tool_specs;
+pub use specs::{server_tool_spec, tool_specs};
 #[cfg(feature = "mcp")]
-pub use types::ToolCallError;
+pub use tinymcp::ToolCallError;
 
 pub use types::McpToolSpec;
 
@@ -39,8 +43,6 @@ pub use types::McpToolSpec;
 pub use crate::config::rpc as config_rpc;
 #[cfg(all(test, feature = "mcp"))]
 pub use crate::core::all;
-#[cfg(all(test, feature = "mcp"))]
-pub use dispatch::{mcp_dispatch_block_reason, subagent_summary_line};
 #[cfg(all(test, feature = "mcp"))]
 pub use params::{build_rpc_params, slug_from};
 #[cfg(all(test, feature = "mcp"))]

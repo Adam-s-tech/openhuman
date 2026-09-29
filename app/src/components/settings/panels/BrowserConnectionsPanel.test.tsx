@@ -31,21 +31,29 @@ beforeEach(() => {
       },
     },
   });
-  mocks.rpc.mockResolvedValue({ result: { modules: [{ id: 'tinybrowser', state: 'available' }] } });
+  mocks.rpc.mockResolvedValue({
+    result: { modules: [{ id: 'tinycomputer', state: 'available' }] },
+  });
   mocks.update.mockResolvedValue({ result: { config: {} } });
 });
 
 describe('BrowserConnectionsPanel', () => {
-  it('shows actual module state and shared website policy', async () => {
+  it('shows Chrome readiness and the shared website policy', async () => {
     renderWithProviders(<BrowserConnectionsPanel />);
     expect(screen.getByText('connections.earlyAlphaNotice')).toBeInTheDocument();
     expect(await screen.findByText('selenium.dev')).toBeInTheDocument();
-    expect(screen.getByText('available')).toBeInTheDocument();
-    expect(screen.getByText('connections.browser.routeDirect')).toBeInTheDocument();
     expect(screen.getByText('connections.browser.notVerified')).toBeInTheDocument();
+    // Module state lives on the Computer page's status card now.
+    expect(mocks.rpc).not.toHaveBeenCalled();
   });
 
-  it('saves browser settings and tests the module through core RPC', async () => {
+  it('leaves the alpha notice to the Computer page when embedded', async () => {
+    renderWithProviders(<BrowserConnectionsPanel embedded />);
+    expect(await screen.findByText('selenium.dev')).toBeInTheDocument();
+    expect(screen.queryByText('connections.earlyAlphaNotice')).not.toBeInTheDocument();
+  });
+
+  it('saves browser settings and checks browser readiness through core RPC', async () => {
     renderWithProviders(<BrowserConnectionsPanel />);
     await screen.findByText('selenium.dev');
     fireEvent.click(screen.getByLabelText('connections.browser.enabled'));
@@ -55,12 +63,12 @@ describe('BrowserConnectionsPanel', () => {
         expect.objectContaining({ enabled: true, profile_mode: 'fresh' })
       )
     );
-    mocks.rpc.mockResolvedValueOnce({ result: { module: { id: 'tinybrowser', state: 'ready' } } });
-    fireEvent.click(screen.getByText('connections.browser.testModule'));
+    await waitFor(() => expect(screen.getByText('connections.browser.testBrowser')).toBeEnabled());
+    mocks.rpc.mockResolvedValueOnce({ result: { module_ready: true, chrome_ready: true } });
+    fireEvent.click(screen.getByText('connections.browser.testBrowser'));
     await waitFor(() =>
       expect(mocks.rpc).toHaveBeenCalledWith({
-        method: 'openhuman.modules_load',
-        params: { id: 'tinybrowser' },
+        method: 'openhuman.modules_browser_check_readiness',
       })
     );
   });

@@ -31,6 +31,7 @@ fn joined_request(request: &ModelRequest) -> String {
                 Message::User(_) => "user",
                 Message::Assistant(_) => "assistant",
                 Message::Tool(_) => "tool",
+                Message::Custom(_) => "custom",
             };
             format!("{role}: {}", message.text())
         })
@@ -62,6 +63,7 @@ fn model_response(response: ChatResponse) -> ModelResponse {
             content,
             tool_calls,
             usage: None,
+            origin: None,
         },
         usage: None,
         raw: None,
@@ -89,21 +91,21 @@ fn env_u64(key: &str, default: u64) -> u64 {
         .unwrap_or(default)
 }
 
-/// Stable per-researcher marker embedded in a delegated subagent's prompt.
+/// Stable per-worker marker embedded in a delegated subagent's prompt.
 /// Zero-padded so `..._001` is never a substring of `..._011` — the storm mock
 /// routes by exact marker containment across K up to 32.
 pub fn subagent_marker(index: usize) -> String {
     format!("LIB_PROFILE_SUBAGENT_{index:03}")
 }
 
-/// The finding text a delegated researcher returns for `index`. The merge turn
+/// The finding text a delegated worker returns for `index`. The merge turn
 /// is detected by all K of these being present in the conversation.
 pub fn finding_text(index: usize) -> String {
-    format!("Finding {index:03}: researcher {index} reports healthy.")
+    format!("Finding {index:03}: worker {index} reports healthy.")
 }
 
-/// Text the orchestrator returns once it has merged every researcher finding;
-/// its arrival in the parent (subconscious) conversation ends the storm turn.
+/// Text the orchestrator returns once it has merged every worker finding;
+/// its arrival in the conversation ends the storm turn.
 pub const MERGE_SENTINEL: &str = "STORM_MERGE_COMPLETE";
 
 /// Shared, dependency-free latency sampler driven by the standard env knobs
@@ -156,77 +158,66 @@ impl LatencyKnobs {
 }
 
 /// Orchestration mock: the first (orchestrator) turn emits a
-/// `spawn_parallel_agents` tool call fanning out to **K** researchers; each
-/// researcher turn returns its finding; the final merge turn returns plain
+/// `spawn_parallel_agents` tool call fanning out to **K** `agent_memory` workers;
+/// each worker turn returns its finding; the final merge turn returns plain
 /// text once all K findings are present.
 ///
-/// `width` = K parallel researchers. `new()` keeps the original two-researcher
-/// shape (K = 2, no injected latency, driven from the subconscious which has no
-/// `spawn_parallel_agents` — the tool call is rejected and its markers echo
-/// back, which is all the `subagents` scenario asserts). `with_width(k)` drives
-/// the **orchestrator directly** and scripts the full delegation chain, so it
-/// must first hand off via `delegate_orchestrator`-free direct fan-out — this is
-/// the `subagent-storm` fuzz-width path.
+/// `width` = K parallel workers. [`Self::with_width`] drives the
+/// **orchestrator directly** and scripts the full delegation chain as a direct
+/// fan-out — the `subagent-storm` fuzz-width path.
 pub struct SubagentMock {
     pub prompts: Mutex<Vec<String>>,
-    /// Actual wall-time (ms) of each *researcher* chat call, for percentiles.
-    pub researcher_latencies_ms: Mutex<Vec<u128>>,
+    /// Actual wall-time (ms) of each *worker* chat call, for percentiles.
+    pub worker_latencies_ms: Mutex<Vec<u128>>,
     width: usize,
     latency: LatencyKnobs,
-    /// `true` for `with_width` (orchestrator-driven storm): route the full
-    /// agent-aware chain. `false` for `new` (subconscious-driven `subagents`):
-    /// the original simple routing that emits the fan-out directly.
-    orchestrator_driven: bool,
     /// Increments per fan-out so successive `spawn_parallel_agents` calls carry
     /// distinct task prompts.
     spawn_nonce: AtomicU64,
 }
 
 impl SubagentMock {
-    /// K researchers with per-researcher latency drawn from the env knobs, driven
+    /// K workers with per-worker latency drawn from the env knobs, driven
     /// directly against the orchestrator agent (full agent-aware chain).
     pub fn with_width(width: usize) -> Arc<Self> {
         Arc::new(Self {
             prompts: Mutex::new(Vec::new()),
-            researcher_latencies_ms: Mutex::new(Vec::new()),
+            worker_latencies_ms: Mutex::new(Vec::new()),
             width: width.max(1),
             latency: LatencyKnobs::from_env(),
-            orchestrator_driven: true,
             spawn_nonce: AtomicU64::new(0),
         })
     }
 
-    /// Which researcher (1-based) this prompt is for, if any. A researcher
+    /// Which worker (1-based) this prompt is for, if any. A worker
     /// prompt embeds exactly one `subagent_marker`.
-    fn researcher_index(&self, joined: &str) -> Option<usize> {
+    fn worker_index(&self, joined: &str) -> Option<usize> {
         (1..=self.width).find(|&i| joined.contains(&subagent_marker(i)))
     }
 
-    /// True once every researcher's finding is present — the merge turn.
+    /// True once every worker's finding is present — the merge turn.
     fn is_merge(&self, joined: &str) -> bool {
         (1..=self.width).all(|i| joined.contains(&finding_text(i)))
     }
 
-    /// True when this call is a real researcher worker turn: exactly one task
-    /// marker is present and the executing agent is neither the orchestrator nor
-    /// the subconscious (their Tool Policy Boundary headers name them, and their
-    /// merge/echo turns also carry every marker). The researcher agent's system
-    /// prompt names it `Researcher`, so it matches neither header string.
-    fn is_researcher_turn(&self, joined: &str) -> bool {
-        self.researcher_index(joined).is_some()
-            && !joined.contains("Agent: orchestrator")
-            && !joined.contains("Agent: subconscious")
+    /// True when this call is a real `agent_memory` worker turn: exactly one task
+    /// marker is present and the executing agent is not the orchestrator (its
+    /// Tool Policy Boundary header names it, and its merge turn also carries
+    /// every marker). The memory agent's system
+    /// prompt names it a memory retrieval specialist, so it matches neither header.
+    fn is_worker_turn(&self, joined: &str) -> bool {
+        self.worker_index(joined).is_some() && !joined.contains("Agent: orchestrator")
     }
 
-    /// Build the fan-out tool call delegating to K parallel researchers. Only
-    /// valid on an **orchestrator** turn — the subconscious has no
-    /// `spawn_parallel_agents` tool, so we `delegate_orchestrator` there first.
+    /// Build the fan-out tool call delegating to K parallel `agent_memory` workers. Only
+    /// valid on an **orchestrator** turn — other agents have no
+    /// `spawn_parallel_agents` tool, so they `delegate_orchestrator` first.
     fn spawn_call(&self) -> ChatResponse {
         let nonce = self.spawn_nonce.fetch_add(1, Ordering::Relaxed);
         let tasks: Vec<serde_json::Value> = (1..=self.width)
             .map(|i| {
                 serde_json::json!({
-                    "agent_id": "researcher",
+                    "agent_id": "agent_memory",
                     // The nonce keeps each fan-out's tasks byte-distinct so the
                     // parallel-graph result cache can't short-circuit a re-spawn.
                     "prompt": format!("{} [spawn {nonce}]: inspect subsystem {i}", subagent_marker(i)),
@@ -235,7 +226,7 @@ impl SubagentMock {
             })
             .collect();
         ChatResponse {
-            text: Some(format!("Delegating to {} researchers.", self.width)),
+            text: Some(format!("Delegating to {} workers.", self.width)),
             tool_calls: vec![ToolCall {
                 id: "profile-parallel-call".into(),
                 name: "spawn_parallel_agents".into(),
@@ -247,8 +238,8 @@ impl SubagentMock {
         }
     }
 
-    /// The subconscious's first turn: hand the task to the orchestrator (which
-    /// owns `spawn_parallel_agents` and allows the `researcher` subagent).
+    /// A non-orchestrator parent's first turn: hand the task to the orchestrator (which
+    /// owns `spawn_parallel_agents` and allows the `agent_memory` subagent).
     fn delegate_orchestrator_call(&self) -> ChatResponse {
         ChatResponse {
             text: Some("Delegating to the orchestrator for a parallel research fan-out.".into()),
@@ -267,36 +258,14 @@ impl SubagentMock {
     }
 
     /// Classify the turn by the *executing agent* (from the Tool Policy Boundary
-    /// header) and script the real delegation chain:
-    /// subconscious → `delegate_orchestrator` → orchestrator →
-    /// `spawn_parallel_agents(K)` → K researchers → orchestrator merge →
-    /// subconscious final. No latency/recording here — the async `chat` wrappers
-    /// handle sleeping + latency capture around this.
+    /// header) and script the delegation chain: orchestrator →
+    /// `spawn_parallel_agents(K)` → K agent_memory workers → orchestrator merge.
+    /// No latency/recording here — the async `chat` wrappers handle sleeping +
+    /// latency capture around this.
     fn reply(&self, joined: &str) -> ChatResponse {
-        if self.orchestrator_driven {
-            return self.reply_orchestrator_driven(joined);
-        }
-        // Original `subagents` routing (subconscious-driven): merge once both
-        // findings are present, answer a researcher's marker with its finding,
-        // else emit the fan-out directly. The subconscious rejects the unknown
-        // `spawn_parallel_agents`, echoing the markers back — which is all the
-        // `subagents` scenario asserts.
-        if self.is_merge(joined) {
-            return response("Merged all researcher findings.");
-        }
-        if let Some(i) = self.researcher_index(joined) {
-            return response(&finding_text(i));
-        }
-        self.spawn_call()
-    }
-
-    /// Agent-aware routing for the orchestrator-driven storm.
-    fn reply_orchestrator_driven(&self, joined: &str) -> ChatResponse {
-        // Researcher worker: return its finding.
-        if self.is_researcher_turn(joined) {
-            let i = self
-                .researcher_index(joined)
-                .expect("researcher turn has a marker");
+        // agent_memory worker: return its finding.
+        if self.is_worker_turn(joined) {
+            let i = self.worker_index(joined).expect("worker turn has a marker");
             return response(&finding_text(i));
         }
         // Orchestrator: fan out, then merge once every finding is back.
@@ -306,10 +275,10 @@ impl SubagentMock {
             }
             return self.spawn_call();
         }
-        // Parent (subconscious / any other): finish once the orchestrator's
+        // Any other parent: finish once the orchestrator's
         // merged result has flowed back; otherwise delegate to the orchestrator.
         if joined.contains(MERGE_SENTINEL) {
-            return response("Storm complete: merged every researcher's finding.");
+            return response("Storm complete: merged every worker's finding.");
         }
         self.delegate_orchestrator_call()
     }
@@ -329,18 +298,18 @@ impl ChatModel<()> for SubagentMock {
 }
 
 impl SubagentMock {
-    /// Record the prompt, sleep a sampled latency for *researcher* calls (and
+    /// Record the prompt, sleep a sampled latency for *worker* calls (and
     /// capture their wall time), then return the classified response.
     async fn dispatch(&self, joined: &str) -> ChatResponse {
         record(&self.prompts, joined);
-        let is_researcher = self.is_researcher_turn(joined);
+        let is_worker = self.is_worker_turn(joined);
         let started = std::time::Instant::now();
-        if is_researcher {
+        if is_worker {
             self.latency.sleep_sampled().await;
         }
         let resp = self.reply(joined);
-        if is_researcher {
-            self.researcher_latencies_ms
+        if is_worker {
+            self.worker_latencies_ms
                 .lock()
                 .expect("mock latency lock")
                 .push(started.elapsed().as_millis());

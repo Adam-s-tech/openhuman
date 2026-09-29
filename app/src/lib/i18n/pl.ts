@@ -307,13 +307,6 @@ const messages: TranslationMap = {
   'conversations.backgroundTasks.cronSchedCron': 'Cron {expr}',
   'conversations.backgroundTasks.cronSchedEvery': 'Co {duration}',
   'conversations.backgroundTasks.cronSchedAt': 'Jednorazowo',
-  'conversations.backgroundTasks.subOff': 'Wyłączone',
-  'conversations.backgroundTasks.subWorking': 'Pracuje…',
-  'conversations.backgroundTasks.subIdle': 'Bezczynne',
-  'conversations.backgroundTasks.subLastRan': 'Ostatnie uruchomienie {time}',
-  'conversations.backgroundTasks.subNeverRan': 'Jeszcze nie uruchomiono',
-  'conversations.backgroundTasks.subTicks': '{count} uruchomień',
-  'conversations.backgroundTasks.subQueued': '{count} w kolejce',
   'conversations.backgroundTasks.memUpToDate': 'Wszystkie wspomnienia aktualne',
   'conversations.backgroundTasks.memIngesting': 'Indeksowanie {title}',
   'conversations.backgroundTasks.memIngestingUntitled': 'Indeksowanie wspomnień',
@@ -459,8 +452,6 @@ const messages: TranslationMap = {
   'settings.assistant.personality': 'Osobowość',
   'settings.assistant.voice': 'Głos',
   'settings.assistant.voiceDesc': 'Ustawienia mowy na tekst i tekstu na mowę',
-  'settings.assistant.backgroundActivity': 'Podświadomość',
-  'settings.assistant.backgroundActivityDesc': 'Kontroluj, jak aktywnie asystent pracuje w tle',
   'settings.assistant.permissions': 'Uprawnienia',
   'settings.assistant.permissionsDesc': 'Wybierz, co może robić asystent i gdzie może pracować',
   'settings.privacySecurity.privacy': 'Prywatność',
@@ -913,6 +904,49 @@ const messages: TranslationMap = {
   'desktop.action.expand': 'Rozwiń',
   'desktop.action.collapse': 'Zwiń',
   'desktop.action.scroll': 'Przewiń',
+  'computer.title': 'Sterowanie komputerem',
+  'computer.description': 'Pozwól agentowi pracować w aplikacjach i witrynach na tym komputerze.',
+  'computer.tabs.desktop': 'Pulpit',
+  'computer.tabs.browser': 'Przeglądarka',
+  'computer.tabs.models': 'Modele',
+  'computer.models.decisionTitle': 'Model decyzyjny',
+  'computer.models.decisionDescription':
+    'Model, który wybiera każdy krok na pulpicie lub w przeglądarce.',
+  'computer.models.decisionModel': 'Model decyzyjny',
+  'computer.models.jev': 'Jev',
+  'computer.models.openJev': 'OpenJev',
+  'computer.models.sage': 'Sage',
+  'computer.models.sageFast': 'Tryb szybki Sage',
+  'computer.models.rescueTitle': 'Planowanie i ratunek',
+  'computer.models.rescueDescription':
+    'Gdy krok zadania się nie powiedzie, model ratunkowy podpowiada, jak się podnieść, zanim zadanie zostanie przerwane.',
+  'computer.models.rescueModel': 'Model ratunkowy',
+  'computer.models.maxRescues': 'Ratunki na zadanie',
+  'computer.models.plannerModel': 'Model planowania',
+  'computer.models.moduleDefault': 'Domyślny modułu',
+  'computer.models.rescuesBounds':
+    'Liczba ratunków na zadanie musi być liczbą całkowitą od 0 do 5.',
+  'computer.models.saved': 'Modele komputera zapisane.',
+  'computer.status.title': 'Moduł TinyComputer',
+  'computer.status.check': 'Sprawdź moduł',
+  'computer.status.configured': 'skonfigurowano',
+  'computer.status.missing': 'brak',
+  'computer.status.available': 'dostępne',
+  'computer.status.unavailable': 'niedostępne',
+  'computer.status.incompatible': 'Wersja modułu jest niezgodna; zaktualizuj aplikację',
+  'computer.status.ownKey': 'Własny klucz API',
+  'computer.status.noCredential': 'Brak jeszcze poświadczeń',
+  'computer.status.state.available': 'Nie załadowano',
+  'computer.status.state.loading': 'Ładowanie',
+  'computer.status.state.ready': 'Gotowy',
+  'computer.status.state.failed': 'Błąd',
+  'computer.status.state.unsupported': 'Nieobsługiwane na tym urządzeniu',
+  'connections.browser.chromeHint':
+    'Przeglądarka działa w module TinyComputer. Test na chwilę uruchamia Chrome i go zamyka.',
+  'computer.models.openJevKey': 'Klucz API OpenJev',
+  'computer.models.sageKey': 'Klucz API Sage',
+  'computer.models.keyHint':
+    'Przechowywany w postaci zaszyfrowanej na tym urządzeniu. Zostaw puste, aby zachować zapisany klucz.',
   'desktop.title': 'Sterowanie pulpitem',
   'desktop.description': 'Pozwól agentowi pracować w aplikacjach na tym komputerze.',
   'desktop.enabledPending':
@@ -944,7 +978,6 @@ const messages: TranslationMap = {
     'Brak wspomnień. Wspomnienia powstają automatycznie podczas korzystania z aplikacji.',
   'memory.tab.memory': 'Pamięć',
   'memory.tab.memoryTree': 'Drzewo pamięci',
-  'memory.tab.subconscious': 'Podświadomość',
   'memory.tab.agentWork': 'Praca agenta',
   'memory.tab.agentWorkDescription':
     'Centrum dowodzenia dla każdego przebiegu agenta w tle: pogrupowane według tego, co wymaga Twojej reakcji, co działa i co zostało ukończone.',
@@ -1435,7 +1468,6 @@ const messages: TranslationMap = {
     'Uruchomiony w procesie przez powłokę Tauri przy starcie aplikacji. Port wybierany jest przy każdym starcie, więc URL zmienia się między uruchomieniami.',
   'settings.about.connectionHelperCloud':
     'Połączono ze zdalnym rdzeniem. Zmień to w BootCheck lub w wyborze trybu chmury.',
-  'settings.heartbeat.title': 'Heartbeat i pętle',
   'settings.usage.title': 'Użycie',
   'settings.usage.menuDesc': 'Koszty, oszczędność tokenów, dziennik użycia i aktywność w tle',
   'settings.costDashboard.monthToDate': 'Od początku miesiąca',
@@ -1512,12 +1544,8 @@ const messages: TranslationMap = {
   'settings.costDashboard.noDataHint':
     'Wyślij wiadomość do agenta: zużycie tokenów z następnego wywołania dostawcy pojawi się na wykresie w ciągu około 10 sekund.',
   'settings.search.title': 'Wyszukiwarka',
-  'settings.search.menuDesc':
-    'Użyj domyślnie wyszukiwarki zarządzanej przez OpenHuman lub podłącz własnego dostawcę z kluczem API.',
   'settings.search.statusNeedsKey': 'Wymaga klucza API',
   'settings.search.getApiKey': 'Pobierz klucz API',
-  'settings.search.save': 'Zapisz',
-  'settings.search.clear': 'Wyczyść',
   'settings.search.show': 'Pokaż',
   'settings.search.hide': 'Ukryj',
   'settings.search.statusSaving': 'Zapisywanie…',
@@ -1537,29 +1565,18 @@ const messages: TranslationMap = {
   'settings.search.accessBlockAll': 'Blokuj wszystko',
   'settings.search.accessBlockAllHint':
     'Cały dostęp do sieci jest zablokowany: asystent nie może otwierać ani czytać żadnej witryny.',
-  'settings.search.description':
-    'Wyszukiwanie może korzystać z kilku dostawców jednocześnie. Exa i Gemini są wliczone w TinyHumans i nie wymagają konfiguracji; pozostali dostawcy działają z Twoim własnym kluczem API. Każda rola poniżej używa pierwszego dostępnego dostawcy, a w razie potrzeby przechodzi do kolejnego.',
   'settings.search.localManagedUnavailable':
-    'Dostawcy wliczeni w TinyHumans wymagają zalogowania. Włącz dostawcę z własnym kluczem API, aby korzystać z wyszukiwania w sesji lokalnej.',
+    'Dostawcy przez TinyHumans wymagają zalogowania. Połącz dostawcę z własnym kluczem API, aby korzystać z wyszukiwania w sesji lokalnej.',
   'settings.search.enabledLabel': 'Wyszukiwanie w sieci',
-  'settings.search.enabledDesc':
-    'Pozwala agentowi szukać w sieci, odpowiadać na pytania na podstawie źródeł i czytać strony.',
-  'settings.search.providersTitle': 'Dostawcy',
-  'settings.search.providersDesc':
-    'Włącz wybranych dostawców. Kilku może działać jednocześnie; role poniżej decydują, który jest próbowany jako pierwszy.',
   'settings.search.providerToggleAria': 'Używaj {provider}',
-  'settings.search.routeAria': 'Połączenie z {provider}',
-  'settings.search.routeManaged': 'Wliczone w TinyHumans',
+  'settings.search.routeManaged': 'przez TinyHumans',
   'settings.search.routeDirect': 'Własny klucz',
   'settings.search.apiKeyLabel': 'Klucz API {provider}',
   'settings.search.placeholderKey': 'Wklej swój klucz API {provider}',
   'settings.search.baseUrlLabel': 'Adres URL instancji',
-  'settings.search.baseUrlSave': 'Zapisz URL',
   'settings.search.statusReady': 'Gotowy',
   'settings.search.statusSignInRequired': 'Wymagane logowanie',
   'settings.search.statusOff': 'Wyłączony',
-  'settings.search.deepResearchAvailable':
-    'Dogłębne badanie jest dostępne: agent może poprosić {provider} o dłuższy, dokładniejszy raport.',
   'settings.search.deepResearchHint':
     'Dodaj własny klucz {provider}, aby odblokować dogłębne badanie.',
   'settings.search.rolesTitle': 'Role',
@@ -1571,8 +1588,6 @@ const messages: TranslationMap = {
   'settings.search.roleAnswerDesc': 'Napisana odpowiedź oparta na źródłach z sieci, z cytowaniami.',
   'settings.search.roleContents': 'Treść',
   'settings.search.roleContentsDesc': 'Pobiera wskazane strony i wyodrębnia ich tekst.',
-  'settings.search.roleServedBy': 'Obsługuje {provider}',
-  'settings.search.roleNoProvider': 'Brak dostępnego dostawcy: agent nie ma teraz tego narzędzia.',
   'settings.search.roleMoveUp': 'Przesuń {provider} w górę',
   'settings.search.roleMoveDown': 'Przesuń {provider} w dół',
   'settings.search.roleRemove': 'Usuń {provider}',
@@ -1582,7 +1597,46 @@ const messages: TranslationMap = {
   'settings.search.advancedTitle': 'Zaawansowane',
   'settings.search.exposeProviderTools': 'Udostępnij własne narzędzia każdego dostawcy',
   'settings.search.exposeProviderToolsDesc':
-    'Daje agentowi narzędzia każdego włączonego dostawcy zamiast jednego narzędzia na rolę. Zajmuje to więcej okna kontekstu.',
+    'Zastępuje kierowane narzędzia wyszukiwania własnymi narzędziami każdego włączonego dostawcy. Agenci, którzy znają tylko kierowane narzędzia, w tym agent główny, tracą wtedy wyszukiwanie w sieci, a dodatkowe narzędzia zajmują więcej okna kontekstu. Pozostaw wyłączone, chyba że testujesz dostawcę.',
+  'settings.search.tabProviders': 'Dostawcy',
+  'settings.search.tabRouting': 'Kolejność',
+  'settings.search.tabWebsites': 'Strony',
+  'settings.search.offNotice':
+    'Wyszukiwanie w sieci jest wyłączone. Agent nie może szukać ani czytać w sieci, dopóki go ponownie nie włączysz.',
+  'settings.search.connectedTitle': 'Połączeni',
+  'settings.search.connectedDesc':
+    'Dostawcy, z których agent może korzystać. Kilku może działać jednocześnie; karta Kolejność decyduje, który jest próbowany jako pierwszy.',
+  'settings.search.connectedEmpty':
+    'Nie połączono jeszcze żadnego dostawcy. Wybierz jednego poniżej.',
+  'settings.search.catalogTitle': 'Dodaj dostawcę',
+  'settings.search.catalogDesc':
+    'Wybierz dostawcę do połączenia. Kolejnych możesz dodać w dowolnej chwili.',
+  'settings.search.catalogManagedTitle': 'Przez TinyHumans',
+  'settings.search.catalogManagedHelper': 'Bez konfiguracji: jedno kliknięcie i gotowe.',
+  'settings.search.catalogOwnTitle': 'Z własnym kluczem',
+  'settings.search.catalogOwnHelper': 'Użyj klucza API od dostawcy albo wskaż własną instancję.',
+  'settings.search.addProviderAria': 'Połącz {provider}',
+  'settings.search.detailOwnKey': 'Własny klucz API',
+  'settings.search.detailNoKey': 'Brak klucza API',
+  'settings.search.detailNoUrl': 'Brak adresu URL instancji',
+  'settings.search.deepResearchBadge': 'Dogłębne badanie',
+  'settings.search.rowActions': 'Opcje {provider}',
+  'settings.search.actionUseOwnKey': 'Użyj własnego klucza',
+  'settings.search.actionUseManaged': 'Używaj przez TinyHumans',
+  'settings.search.actionAddKey': 'Dodaj klucz API',
+  'settings.search.actionAddDeepResearchKey': 'Dodaj klucz do dogłębnego badania',
+  'settings.search.actionReplaceKey': 'Zastąp klucz API',
+  'settings.search.actionRemoveKey': 'Usuń klucz API',
+  'settings.search.actionEditUrl': 'Zmień adres URL instancji',
+  'settings.search.connectTitle': 'Połącz {provider}',
+  'settings.search.connect': 'Połącz',
+  'settings.search.baseUrlHint': 'Adres Twojej instancji SearXNG, łącznie z portem.',
+  'settings.search.roleServing': 'W użyciu',
+  'settings.search.roleNoProviderShort': 'Brak dostępnego dostawcy',
+  'settings.search.roleFallbacks': 'Zapasowi: {providers}',
+  'settings.search.roleNoFallback': 'Brak zapasowego',
+  'settings.search.roleDialogDesc':
+    'To zadanie obsługuje pierwszy dostępny dostawca. Jeśli zawiedzie lub jest niedostępny, próbowany jest następny.',
   // ─── Settings global search bar ────────────────────────────
   'settings.embeddings.title': 'Embeddings',
   'settings.embeddings.description':
@@ -2373,7 +2427,6 @@ const messages: TranslationMap = {
   'chat.safetyTimeout':
     'Brak odpowiedzi agenta po 2 minutach. Spróbuj ponownie lub sprawdź połączenie.',
   'chat.filter.general': 'Ogólne',
-  'chat.filter.subconscious': 'Podświadomość',
   'chat.filter.meetings': 'Spotkania',
   'chat.filter.tasks': 'Zadania',
   'chat.selectThread': 'Wybierz wątek',
@@ -3618,8 +3671,6 @@ const messages: TranslationMap = {
   'conversations.tools.planNextSteps.done': 'Zaplanowano kolejne kroki',
   'conversations.tools.reviewWork.active': 'Przeglądanie pracy',
   'conversations.tools.reviewWork.done': 'Przejrzano pracę',
-  'conversations.tools.scoutContext.active': 'Rozpoznawanie kontekstu',
-  'conversations.tools.scoutContext.done': 'Rozpoznano kontekst',
   'conversations.tools.useTools.active': 'Korzystanie z narzędzi',
   'conversations.tools.useTools.done': 'Skorzystano z narzędzi',
   'conversations.tools.checkConnectedApp.active': 'Sprawdzanie połączonej aplikacji',
@@ -4833,7 +4884,7 @@ const messages: TranslationMap = {
   'settings.ai.codexAuthHelper': 'Używa istniejącego logowania Codex CLI z ~/.codex/auth.json.',
   'settings.ai.backgroundLoops': 'Pętle w tle',
   'settings.ai.backgroundLoopsDesc':
-    'Zobacz, co działa bez wiadomości na czacie, wstrzymaj pracę heartbeat i sprawdź ostatnie wiersze księgi kredytów.',
+    'Zobacz, co działa bez wiadomości na czacie, i sprawdź ostatnie wiersze księgi kredytów.',
   'settings.ai.loopMap': 'Mapa pętli',
   'settings.ai.routeLabel': 'trasa: {route}',
   'settings.ai.on': 'wł.',
@@ -4957,7 +5008,7 @@ const messages: TranslationMap = {
     'Modele używane podczas bezpośredniej interakcji z użytkownikiem, odpowiedzi, rozumowania, pętli agentów i pomocy w kodowaniu.',
   'settings.ai.routing.backgroundTasks': 'Zadania w tle',
   'settings.ai.routing.bgTasksDesc':
-    'Modele używane poza głównym przepływem rozmowy do podsumowań, heartbeat, uczenia i oceny podświadomości.',
+    'Modele używane poza głównym przepływem rozmowy do podsumowywania pamięci i uczenia.',
   'settings.ai.routing.workload.chat.label': 'Chat',
   'settings.ai.routing.workload.chat.description':
     'Bezpośrednia konwersacja tam i z powrotem: tryb „Szybki” w Rozmowach',
@@ -4987,19 +5038,10 @@ const messages: TranslationMap = {
   'settings.ai.routing.workload.memory.description': 'Ekstrakty i konsolidacje z drzew',
   'settings.ai.routing.workload.memory.hint':
     'Zalecane: tańszy model podsumowujący. Powinien być spójny i zwarty, ale nie wymaga zaawansowanego rozumowania na poziomie pionierskim.',
-  'settings.ai.routing.workload.heartbeat.label': 'Heartbeat',
-  'settings.ai.routing.workload.heartbeat.description':
-    'Rozumowanie w tle pomiędzy turami użytkownika',
-  'settings.ai.routing.workload.heartbeat.hint':
-    'Zalecane: tani, wydajny model tła. Dzieje się to często pomiędzy turami, więc niski koszt ma większe znaczenie niż maksymalna inteligencja.',
   'settings.ai.routing.workload.learning.label': 'Nauka · Refleksje',
   'settings.ai.routing.workload.learning.description': 'Okresowa refleksja nad historią najnowszą',
   'settings.ai.routing.workload.learning.hint':
     'Zalecane: mocniejszy model odblaskowy. Może to być produkt średniej klasy lub premium, ponieważ korzysta z lepszej syntezy w najnowszej historii.',
-  'settings.ai.routing.workload.subconscious.label': 'Subconscious',
-  'settings.ai.routing.workload.subconscious.description': 'Punktacja zdarzeń + kontrole dryfu',
-  'settings.ai.routing.workload.subconscious.hint':
-    'Zalecane: bardzo tani model monitorowania, najlepiej lekki i przewidywalny. Służy do oceniania zdarzeń, sprawdzania dryfu i cichej oceny tła.',
   'settings.ai.routing.addCustomProvider': 'Dodaj własnego dostawcę',
   'settings.ai.globalModel.title': 'Wybierz jeden model do wszystkiego',
   'settings.ai.globalModel.desc':
@@ -5010,8 +5052,6 @@ const messages: TranslationMap = {
   'settings.ai.globalModel.model': 'Model AI',
   'settings.ai.globalModel.loadingModels': 'Ładowanie modeli…',
   'settings.ai.globalModel.enterModelId': 'Wpisz ID modelu',
-  'settings.ai.globalModel.appliesToAll':
-    'Stosuje tego samego dostawcę i model do czatu, rozumowania, kodowania, pamięci, heartbeat, uczenia i podświadomości. Embeddingi są konfigurowane osobno. Zmiany zapiszą się po kliknięciu zapisz.',
   'settings.ai.globalModel.saving': 'Zapisywanie…',
   'settings.ai.globalModel.saved': 'Zapisano',
   'settings.ai.workload.noModel': 'Nie wybrano modelu',
@@ -5198,6 +5238,7 @@ const messages: TranslationMap = {
   'settings.cron.jobs.removing': 'Usuwanie',
   'settings.cron.jobs.resume': 'Wznów',
   'settings.cron.jobs.runningNow': 'Uruchamiane teraz',
+  'settings.cron.jobs.runNow': 'Uruchom teraz',
   'settings.cron.jobs.saving': 'Zapisywanie…',
   'settings.cron.jobs.schedule': 'Harmonogram',
   'settings.cron.jobs.title': 'Zadania cron rdzenia',
@@ -5398,8 +5439,6 @@ const messages: TranslationMap = {
   'settings.developerMenu.eventLog.badge.comp': 'COMP',
   'settings.developerMenu.eventLog.badge.mcp': 'MCP',
   'settings.developerMenu.intelligence.title': 'Inteligencja',
-  'settings.developerMenu.intelligence.desc':
-    'Przestrzeń pamięci, silnik podświadomości, sny i ustawienia',
   'settings.developerMenu.notificationRouting.title': 'Trasowanie powiadomień',
   'settings.developerMenu.notificationRouting.desc':
     'Punktacja ważności AI i eskalacja orkiestratora dla alertów integracji',
@@ -6257,7 +6296,6 @@ const messages: TranslationMap = {
   'devOptions.menuWebhooksDebugDesc':
     'Sprawdź rejestracje webhooków w runtime i logi przechwyconych żądań',
   'devOptions.menuIntelligence': 'Inteligencja',
-  'devOptions.menuIntelligenceDesc': 'Przestrzeń pamięci, silnik podświadomości, sny i ustawienia',
   'devOptions.menuNotificationRouting': 'Trasowanie powiadomień',
   'devOptions.menuNotificationRoutingDesc':
     'Punktacja ważności AI i eskalacja przez orkiestrator dla alertów integracji',
@@ -7029,8 +7067,8 @@ const messages: TranslationMap = {
   'settings.ai.perWeek': '{count}/tydzień',
   'settings.ai.perWeekMax': '{count}/tydzień maks.',
   'settings.ai.perHour': '{amount}/godz.',
-  'settings.ai.plannerSyncBreakdown': '{planner} planer + {sync} synchronizacja',
   'settings.ai.memoryPollsDetail': '{count} odpytań pamięci',
+  'settings.ai.connectionSyncBreakdown': '{sync} synchronizacja połączeń',
   'settings.ai.rowsLeftFormula': 'pozostało / średni wiersz = {remaining} / {avgRow}',
   'settings.ai.needSpendRowsToEstimate': 'Do oszacowania potrzebne są ostatnie wiersze wydatków.',
   'settings.ai.rowsPerBudgetFormula': 'budżet cyklu / średni wiersz = {budget} / {avgRow}',
@@ -7186,7 +7224,6 @@ const messages: TranslationMap = {
     'Gotowy do wysyłania i odbierania wiadomości. Wybierz jeden jako domyślny.',
   'channels.availableDesc': 'Aplikacje do rozmowy można połączyć. Otwórz jeden, żeby to ustawić.',
   'settings.about.resources': 'Zasoby',
-  'settings.search.keyStored': 'Przechowywane',
   'settings.embeddings.modelCardTitle': 'Wzór i wymiary',
   'mcp.rows.searchPlaceholder': 'Wyszukiwanie serwerów...',
   'mcp.tab.section.clients': 'Klienci',

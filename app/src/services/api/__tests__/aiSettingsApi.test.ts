@@ -96,9 +96,7 @@ function makeClientConfigResult(overrides: Record<string, unknown> = {}) {
       coding_provider: null,
       memory_provider: null,
       embeddings_provider: null,
-      heartbeat_provider: null,
       learning_provider: null,
-      subconscious_provider: null,
       ...overrides,
     },
   };
@@ -393,9 +391,7 @@ describe('loadAISettings', () => {
         coding_provider: 'ollama:codellama:13b',
         memory_provider: null,
         embeddings_provider: null,
-        heartbeat_provider: null,
         learning_provider: null,
-        subconscious_provider: null,
       })
     );
     mockAuthListProviderCredentials.mockResolvedValue(makeAuthProfileResult([]));
@@ -611,9 +607,7 @@ describe('saveAISettings', () => {
         vision: { kind: 'openhuman' },
         memory: { kind: 'openhuman' },
 
-        heartbeat: { kind: 'openhuman' },
         learning: { kind: 'openhuman' },
-        subconscious: { kind: 'openhuman' },
       },
       modelRegistry: [],
       creditsBypass: { chat: false, reasoning: false },
@@ -712,9 +706,7 @@ describe('saveAISettings', () => {
         vision: { kind: 'openhuman' },
         memory: { kind: 'openhuman' },
 
-        heartbeat: { kind: 'openhuman' },
         learning: { kind: 'openhuman' },
-        subconscious: { kind: 'openhuman' },
       },
       modelRegistry: [],
     };
@@ -924,13 +916,14 @@ describe('listProviderModels', () => {
     expect(models[1].id).toBe('gpt-4o-mini');
   });
 
-  it('returns empty array when not running in Tauri', async () => {
+  it('calls core RPC when not running in Tauri', async () => {
     mockIsTauri.mockReturnValue(false);
+    mockCallCoreRpc.mockResolvedValue({ result: { models: [] } });
 
     const models = await listProviderModels('openai');
 
     expect(models).toEqual([]);
-    expect(mockCallCoreRpc).not.toHaveBeenCalled();
+    expect(mockCallCoreRpc).toHaveBeenCalled();
   });
 
   it('throws on RPC error so callers can surface retry UI', async () => {
@@ -980,13 +973,14 @@ describe('loadProviderAuthErrors', () => {
     expect(errors[0].status).toBe(401);
   });
 
-  it('returns empty array when not running in Tauri', async () => {
+  it('calls core RPC when not running in Tauri', async () => {
     mockIsTauri.mockReturnValue(false);
+    mockCallCoreRpc.mockResolvedValue({ result: { errors: [] } });
 
     const errors = await loadProviderAuthErrors();
 
     expect(errors).toEqual([]);
-    expect(mockCallCoreRpc).not.toHaveBeenCalled();
+    expect(mockCallCoreRpc).toHaveBeenCalled();
   });
 
   it('returns empty array when result has no errors field', async () => {
@@ -1017,13 +1011,14 @@ describe('testProviderModel', () => {
     expect(result).toEqual({ reply: 'Hello from model' });
   });
 
-  it('throws when not running in Tauri', async () => {
+  it('calls core RPC when not running in Tauri', async () => {
     mockIsTauri.mockReturnValue(false);
+    mockCallCoreRpc.mockResolvedValueOnce({ result: { reply: 'Hello from model' } });
 
-    await expect(testProviderModel('reasoning', 'openai:gpt-4o')).rejects.toThrow(
-      'Model testing is only available in the desktop app.'
-    );
-    expect(mockCallCoreRpc).not.toHaveBeenCalled();
+    await expect(testProviderModel('reasoning', 'openai:gpt-4o')).resolves.toEqual({
+      reply: 'Hello from model',
+    });
+    expect(mockCallCoreRpc).toHaveBeenCalled();
   });
 });
 
@@ -1050,10 +1045,10 @@ describe('flushCloudProviders', () => {
     expect(mockOpenhumanUpdateModelSettings).toHaveBeenCalledWith({ cloud_providers: providers });
   });
 
-  it('no-ops when not running in Tauri', async () => {
+  it('persists over core RPC when not running in Tauri', async () => {
     mockIsTauri.mockReturnValue(false);
     await flushCloudProviders([]);
-    expect(mockOpenhumanUpdateModelSettings).not.toHaveBeenCalled();
+    expect(mockOpenhumanUpdateModelSettings).toHaveBeenCalledWith({ cloud_providers: [] });
   });
 });
 

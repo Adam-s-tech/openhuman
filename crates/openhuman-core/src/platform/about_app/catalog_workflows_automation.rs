@@ -92,17 +92,17 @@ Capability {
         privacy: DERIVED_TO_BACKEND,
     },
 Capability {
-        id: "workflows.tinybrowser_automation",
+        id: "workflows.computer_browser_automation",
         name: "Browser Automation",
         domain: "workflows",
         category: CapabilityCategory::Workflows,
-        description: "Inspect pages and run bounded browser tasks in Chrome through TinyBrowser.",
-        how_to: "Connections > Browser, then ask the assistant to use the browser",
+        description: "Inspect pages and run bounded browser tasks in Chrome through TinyComputer, with a rescue model for failed steps.",
+        how_to: "Connections > Computer > Browser, then ask the assistant to use the browser",
         status: CapabilityStatus::Beta,
         privacy: Some(CapabilityPrivacy {
             leaves_device: true,
             data_kind: PrivacyDataKind::Raw,
-            destinations: &["Visited websites", "OpenRouter or OpenHuman backend for Jev tasks"],
+            destinations: &["Visited websites", "OpenRouter, OpenHuman backend, OpenJev or Sage for task decisions"],
         }),
     },
 Capability {
@@ -332,16 +332,15 @@ Capability {
     },
 Capability {
         id: "automation.crypto_agent",
-        name: "Crypto Agent",
+        name: "Crypto Wallet",
         domain: "automation",
         category: CapabilityCategory::Automation,
-        description: "Dedicated wallet & market specialist sub-agent. The orchestrator \
-                      routes transfers, swaps, contract calls, balance lookups, and \
-                      exchange trading requests here. The agent enforces a read → \
-                      simulate → confirm → execute flow, refuses to fabricate chain ids \
-                      or token addresses, and gates every write call behind explicit \
-                      user confirmation.",
-        how_to: "Automatic — invoked by the orchestrator when a crypto wallet or market action is requested. Connect a wallet via Settings > Recovery Phrase first.",
+        description: "Wallet and market actions as a built-in skill (`web3`): quotes, \
+                      swaps, bridges, contract calls and x402 payments. The assistant \
+                      follows a read → quote → confirm → execute flow, refuses to \
+                      fabricate chain ids or token addresses, and runs no swap, bridge \
+                      or contract call without explicit user confirmation.",
+        how_to: "Automatic — the assistant loads the web3 skill when a crypto wallet or market action is requested. Connect a wallet via Settings > Recovery Phrase first.",
         status: CapabilityStatus::Beta,
         privacy: LOCAL_CREDENTIALS,
     },

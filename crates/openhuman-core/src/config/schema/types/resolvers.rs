@@ -26,8 +26,8 @@ impl Config {
     /// when the workload is routed to Ollama.
     ///
     /// Recognised workload names:
-    /// `"chat"`, `"reasoning"`, `"agentic"`, `"coding"`, `"memory"`, `"embeddings"`,
-    /// `"heartbeat"`, `"learning"`, `"subconscious"`.
+    /// `"chat"`, `"reasoning"`, `"agentic"`, `"coding"`, `"vision"`, `"memory"`,
+    /// `"embeddings"`, `"learning"`.
     ///
     /// Returns `None` when the provider isn't `"ollama:<model>"` (including
     /// when the field is unset, blank, `"cloud"`, or any other prefix).
@@ -44,9 +44,7 @@ impl Config {
             "vision" => self.vision_provider.as_deref(),
             "memory" => self.memory_provider.as_deref(),
             "embeddings" => self.embeddings_provider.as_deref(),
-            "heartbeat" => self.heartbeat_provider.as_deref(),
             "learning" => self.learning_provider.as_deref(),
-            "subconscious" => self.subconscious_provider.as_deref(),
             _ => None,
         }?;
         let trimmed = raw.trim();
@@ -76,8 +74,8 @@ impl Config {
     /// 1. `orchestrator.model` when resolving the front-line orchestrator.
     /// 2. `[teams.<agent_id>]` entries, with `lead_model` used for agents
     ///    that can delegate and `agent_model` used for leaf workers.
-    /// 3. Built-in aliases such as `[teams.research]` for `researcher` and
-    ///    `[teams.code]` for `code_executor`, matching the issue examples.
+    /// 3. `[teams.<name>]` for an `<name>_agent` id (e.g. `[teams.code]` for
+    ///    `code_agent`).
     ///
     /// Empty strings are ignored so partially-written configs fall back to
     /// the existing auto-routing path.
@@ -105,28 +103,9 @@ impl Config {
             return Some(model);
         }
 
-        if let Some(stripped) = agent_id.strip_suffix("_agent") {
-            if let Some(model) = self
-                .teams
-                .get(stripped)
-                .and_then(|team| team.model_for_role(is_team_lead))
-            {
-                return Some(model);
-            }
-        }
-
-        let aliases: &[&str] = match agent_id {
-            "researcher" => &["research"],
-            "code_executor" => &["code"],
-            "tool_maker" | "tools_agent" => &["tools"],
-            "integrations_agent" => &["integrations"],
-            _ => &[],
-        };
-
-        aliases.iter().find_map(|alias| {
-            self.teams
-                .get(*alias)
-                .and_then(|team| team.model_for_role(is_team_lead))
-        })
+        let stripped = agent_id.strip_suffix("_agent")?;
+        self.teams
+            .get(stripped)
+            .and_then(|team| team.model_for_role(is_team_lead))
     }
 }

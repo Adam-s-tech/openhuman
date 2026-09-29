@@ -36,9 +36,8 @@ describe('Settings - Account Preferences', function () {
     await navigateViaHash('/settings/account');
 
     await waitForText('Account', 15_000);
-    await waitForText('Recovery phrase', 15_000);
-    await waitForText('Connections', 15_000);
-    await waitForText('Privacy', 15_000);
+    await waitForText('Preferences', 15_000);
+    await waitForText('Language', 15_000);
   });
 
   it.skip('saves a generated recovery phrase and exposes configured wallet state', async function () {

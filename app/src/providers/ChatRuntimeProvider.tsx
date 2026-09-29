@@ -536,7 +536,7 @@ const ChatRuntimeProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       // Reuse an existing thread for proactive delivery ONLY when it is
-      // fresh (no messages). Injecting a morning brief / subconscious
+      // fresh (no messages). Injecting a morning brief / scheduled-job
       // update into a thread that already holds a conversation interrupts
       // the active chat flow (#3713). Candidate priority is selected >
       // first thread; if the candidate already has messages we fall
@@ -819,6 +819,7 @@ const ChatRuntimeProvider = ({ children }: { children: React.ReactNode }) => {
           dispatch(
             toolCallReceived({
               threadId: event.thread_id,
+              requestId: event.request_id,
               round: event.round,
               toolName: event.tool_name,
               toolCallId: event.tool_call_id,
@@ -840,6 +841,7 @@ const ChatRuntimeProvider = ({ children }: { children: React.ReactNode }) => {
           dispatch(
             toolResultReceived({
               threadId: event.thread_id,
+              requestId: event.request_id,
               round: event.round,
               toolName: event.tool_name,
               toolCallId: event.tool_call_id,
@@ -919,6 +921,7 @@ const ChatRuntimeProvider = ({ children }: { children: React.ReactNode }) => {
           dispatch(
             subagentSpawned({
               threadId: event.thread_id,
+              requestId: event.request_id,
               round: event.round,
               rowId: `${event.thread_id}:subagent:${event.skill_id}:${event.tool_name}`,
               taskId: event.skill_id,
@@ -965,6 +968,7 @@ const ChatRuntimeProvider = ({ children }: { children: React.ReactNode }) => {
             subagentDone({
               threadId: event.thread_id,
               rowId: `${event.thread_id}:subagent:${event.skill_id}:${event.tool_name}`,
+              taskId: event.skill_id,
               success: event.success,
               iterations: event.subagent?.iterations,
               elapsedMs: event.subagent?.elapsed_ms,
@@ -1275,6 +1279,7 @@ const ChatRuntimeProvider = ({ children }: { children: React.ReactNode }) => {
           dispatch(
             toolArgsDeltaReceived({
               threadId: event.thread_id,
+              requestId: event.request_id,
               round: event.round,
               delta: event.delta,
               toolName: event.tool_name,

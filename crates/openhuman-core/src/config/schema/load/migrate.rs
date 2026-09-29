@@ -165,9 +165,7 @@ pub(crate) fn migrate_cloud_provider_slugs(config: &mut Config) {
     rewrite(&mut config.vision_provider);
     rewrite(&mut config.memory_provider);
     rewrite(&mut config.embeddings_provider);
-    rewrite(&mut config.heartbeat_provider);
     rewrite(&mut config.learning_provider);
-    rewrite(&mut config.subconscious_provider);
 
     fn normalize_provider_endpoint(url: &str) -> String {
         url.trim().trim_end_matches('/').to_ascii_lowercase()
@@ -211,6 +209,7 @@ pub(crate) fn migrate_search_settings(config: &mut Config) {
                 .as_deref()
                 .is_some_and(|key| !key.trim().is_empty()),
         searxng_active: config.searxng.enabled,
+        tinyfish_api_key: config.integrations.tinyfish.api_key.clone(),
     };
     config.search.migrate_legacy(legacy);
 }

@@ -29,10 +29,23 @@ impl OpenHumanTurnPrelude {
         actions.extend(super::super::recorded_tools::recorded_search_tools(
             recorded.specs(),
         ));
-        self.mutable
+        let mut mutable = self
+            .mutable
             .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
-            .recorded_integration_actions = actions;
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        mutable.recorded_integration_actions = actions;
+        // MCP tools are rebuilt from the tool cache every turn; all a resumed
+        // thread needs remembered is which names it was sent, so a tool it
+        // knew under the pre-readable hashed name keeps resolving.
+        #[cfg(feature = "mcp")]
+        {
+            mutable.recorded_mcp_tool_names = recorded
+                .specs()
+                .iter()
+                .filter(|spec| spec.name.starts_with("mcp_"))
+                .map(|spec| spec.name.clone())
+                .collect();
+        }
     }
 
     /// Executors for tool declarations the resumed thread was sent that the
@@ -110,13 +123,16 @@ impl OpenHumanTurnPrelude {
         self.refresh_delegation_tool_surface();
     }
 
-    /// Snapshot the currently connected server actions for this workspace.
-    /// A disconnected server drops out of the next turn's search catalogue.
+    /// Snapshot the installed servers' tools for this workspace, from the
+    /// persistent tool cache when a server is not connected yet. A disabled or
+    /// uninstalled server drops out of the next turn's search catalogue; a
+    /// merely disconnected one stays listed and its calls report that it is
+    /// not connected.
     #[cfg(feature = "mcp")]
     async fn refresh_connected_mcp_tools(&self) {
         let servers = match self.runtime_config.as_deref() {
             Some(config) => {
-                crate::mcp::registry::connections::connected_overview_for_config(config).await
+                crate::mcp::registry::connections::cached_overview_for_config(config).await
             }
             None => Vec::new(),
         };
@@ -146,13 +162,21 @@ impl OpenHumanTurnPrelude {
         let Some(config) = self.runtime_config.as_ref() else {
             return Vec::new();
         };
-        let servers = self
-            .mutable
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
-            .connected_mcp_tools
-            .clone();
-        crate::mcp::registry::action_tool::deferred_connected_tools(Arc::clone(config), &servers)
+        let (servers, recorded) = {
+            let mutable = self
+                .mutable
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner);
+            (
+                mutable.connected_mcp_tools.clone(),
+                mutable.recorded_mcp_tool_names.clone(),
+            )
+        };
+        crate::mcp::registry::action_tool::deferred_connected_tools_with_legacy(
+            Arc::clone(config),
+            &servers,
+            &recorded,
+        )
     }
 
     pub(super) async fn refresh_cold_integrations(&self) {
@@ -310,7 +334,7 @@ impl OpenHumanTurnPrelude {
 }
 
 /// Live connected integrations, falling back to the last cached snapshot
-/// (even past its TTL) when the backend is unreachable. `None` only when
+/// when the backend is unreachable. `None` only when
 /// there is neither a live answer nor any snapshot to fall back to.
 async fn load_connected_integrations(
     config: &crate::config::Config,

@@ -14,12 +14,12 @@ Architecture: [overview](gitbooks/developing/architecture.md),
 | --- | --- |
 | `app/src/` | Vite and React frontend |
 | `crates/openhuman-app/` | Thin desktop host; excluded from the root workspace, build with `--manifest-path crates/openhuman-app/Cargo.toml` |
-| `crates/openhuman-core/` | Package `openhuman`: business domains under `src/<domain>/`, transport/dispatch/auth under `src/core/` |
+| `crates/openhuman-core/` | Package `openhuman`: business domains under `src/<domain>/`, the controller contract, dispatch and auth under `src/core/` |
 | `crates/openhuman-core/src/<domain>/` | Flat business-domain modules (agent, memory, tools, security, channels, ...) |
-| `crates/openhuman-core/src/core/` | CLI, JSON-RPC and HTTP dispatch, controller registry, event bus, runtime composition; no business logic |
+| `crates/openhuman-core/src/core/` | CLI, controller contract (`Outcome`, schemas) and in-process dispatch, controller registry, event bus, runtime composition; no business logic and no JSON-RPC server |
 | `crates/openhuman-cli/` | The `openhuman-core` binary (`src/main.rs`), the developer/benchmark bins (`src/bin/`), and every root `tests/*.rs` / `examples/*.rs` target; depends on `openhuman-tinyhumans` for the backend transport the core does not carry |
 | `crates/openhuman-embed/` | Typed library facade for embedding the core in another product |
-| `crates/openhuman-rpc/` | Shared RPC contracts, response decoding, and HTTP client used by app and TUI |
+| `crates/openhuman-rpc/` | JSON-RPC 2.0 over the core: envelopes, HTTP client, and the server (router, Socket.IO, listener, `run_server*`) used by app, CLI and TUI |
 | `crates/openhuman-tinyhumans/` | The TinyHumans layer above embed: SDK-backed backend transport, a `RuntimeBuilder` that boots connected, and the host-side login/session owner (login-token exchange, `/auth/me`, current-user cache, credential handoff) used by app and TUI |
 | `crates/openhuman-tui/` | Standalone terminal frontend |
 | `tests/` | Rust integration and JSON-RPC tests |
@@ -86,7 +86,7 @@ DevTools client can attach to it. Run the same SPA in Chrome instead:
   finds the running desktop core, starts Vite, and prints
   `http://127.0.0.1:<core>/dev/connect?app=http://localhost:<vite>`. Open that
   URL with the chrome-devtools MCP (`new_page` / `navigate_page`). The core's
-  dev-only `GET /dev/connect` (`crates/openhuman-core/src/core/dev_connect.rs`)
+  dev-only `GET /dev/connect` (`crates/openhuman-rpc/src/server/dev_connect.rs`)
   redirects to Vite's `/__dev-connect` page with the RPC URL and bearer in the
   URL fragment. That page seeds them into `localStorage`, so the browser runs on
   the desktop core with its signed-in user, and nothing is pasted. The route
@@ -294,7 +294,7 @@ Preferred module shape:
 | `mod.rs` | Module declarations, re-exports, and controller aggregators |
 | `types.rs` | Serde domain types |
 | `store.rs` | Persistence |
-| `ops.rs` | Business operations returning `RpcOutcome<T>` |
+| `ops.rs` | Business operations returning `Outcome<T>` |
 | `schemas.rs` | Controller schemas and thin handlers |
 | `tools.rs` | Domain-owned agent tools |
 | `bus.rs` | Event subscribers |
@@ -303,7 +303,7 @@ Preferred module shape:
 Additional rules:
 
 - Wire controllers through the registry in `crates/openhuman-core/src/core/all.rs`. Do not add
-  namespace branches to `cli.rs` or `jsonrpc.rs`.
+  namespace branches to `cli.rs` or the JSON-RPC server.
 - RPC namespace strings are wire contracts and do not follow directory
   renames.
 - Domain tools live with their domain and are re-exported through
@@ -313,13 +313,22 @@ Additional rules:
   are deduplication keys.
 - Update `crates/openhuman-core/src/platform/about_app/` when user-visible capabilities
   change.
-- `RpcOutcome<T>`, `StructuredRpcError`, `unwrap_rpc`, and the JSON-RPC HTTP
-  client live in `crates/openhuman-rpc/`; the core re-exports the crate as
-  `crate::rpc` (`pub use openhuman_rpc as rpc;` in
-  `crates/openhuman-core/src/lib.rs`), and `openhuman-app` and `openhuman-tui`
-  depend on it directly. Keep it free of business logic and core dependencies
-  (its only deps are serde, serde_json, and optional log/reqwest/url behind
-  the `http-client` feature).
+- The controller contract lives in core: every domain operation returns
+  `crate::core::Outcome<T>`; `crate::core::StructuredRpcError`, the params
+  rules (`core::params`) and in-process dispatch (`core::invoke::invoke_method`)
+  sit beside `ControllerSchema`. Core has no JSON-RPC server and does not
+  depend on `openhuman-rpc`.
+- `crates/openhuman-rpc/` sits above core and owns JSON-RPC 2.0: the envelopes
+  (`RpcRequest`, `RpcSuccess`, `RpcFailure`, `request_body`,
+  `decode_response`), the browser-origin allowlist, the HTTP client
+  (`http-client` feature), and the whole server (`server` feature): the axum
+  router and handlers, auth middleware, Socket.IO, `/dev/connect`, the
+  listener bind (`openhuman_rpc::server::serve`) and the `run_server*` entry
+  points. A host that runs `openhuman-core run`/`serve` calls
+  `openhuman_rpc::server::install_cli_server()` before `run_core_from_args`.
+  Domain-owned HTTP handlers the router mounts (`inference::http`, the
+  dictation WebSocket) stay in their domains behind core's `http-server`
+  feature.
 
 ## Tool, harness, and runtime boundaries
 
@@ -454,11 +463,10 @@ Direct rendered submodules under `vendor/`:
 | --- | --- |
 | `tinyagents` | Provider-neutral agent harness and durable typed state graph: model/tool loop, tool-call dialects and parsing, middleware, retries, caching, sessions/transcripts, and graph execution. |
 | `tinybox` | Isolated execution environments for code the host does not trust; box lifecycle and isolation backends. |
-| `tinybrowser` | Browser automation as a TinyBus module, including browser launch/control, navigation, accessibility snapshots, input, extraction, and screenshots. |
 | `tinybus` | TinyBus runtime and module contracts: discovery/loading, ABI and manifest admission, transport, proxies, lifecycle, and module bus behavior. |
 | `tinychannels` | Portable channel/message contracts, configuration/schema, routing metadata, and channel backend abstractions. OpenHuman owns its concrete product/backend adapters. |
 | `tinyconnectors` | OAuth connector module behavior: account linking, available actions, action execution, and connector webhooks. |
-| `tinydesktop` | Native desktop accessibility observation and interaction exposed through TinyBus. |
+| `tinycomputer` | Computer use as one TinyBus module: native desktop accessibility observation and interaction, browser sessions and control (the `Browser*` members), and tasks (`StartTask`/`AwaitTask`/`ContinueTask`) driven by a selectable decision model (Jev, OpenJev, Sage) with planner and rescue models. |
 | `tinydocs` | Document extraction and synthesis, including PDF reading and DOCX/PPTX generation. |
 | `tinyflows` | Host-agnostic workflow graph definition, validation, compilation, and execution engine. |
 | `tinyhosts` | Hosting provider APIs and deployment/database/domain/analytics operations, as library and TinyBus module. |
@@ -483,8 +491,8 @@ own canonical repositories as well:
 | `tinyagents/vendor/tinyinference` and `tinymemory/vendor/tinyinference` | Inference/provider, embedding, local model, and voice inference libraries. OpenHuman patches the TinyAgents copy in its Cargo workspace; do not create a competing copy. |
 | `tinymemory/vendor/tinycortex` | TinyCortex engine implementation for the TinyMemory contracts. |
 | `*/vendor/tinybus` | Shared TinyBus contract/runtime dependency; change the owning TinyBus project, not a vendored duplicate. |
-| `tinybrowser/vendor/agent-browser` | Browser-control library used by TinyBrowser. |
-| `tinydesktop/vendor/agent-desktop` | Cross-platform desktop accessibility and interaction library used by TinyDesktop. |
+| `tinycomputer/vendor/agent-browser` | Browser-control library used by TinyComputer. |
+| `tinycomputer/vendor/agent-desktop` | Cross-platform desktop accessibility and interaction library used by TinyComputer. |
 | `*/vendor/tinyjevclient` | Shared TinyJEV client used by the browser and desktop modules. |
 | `tinyagents/wiki`, `tinychannels/wiki`, `tinyjuice/wiki` | Project documentation content, not runtime implementation. |
 

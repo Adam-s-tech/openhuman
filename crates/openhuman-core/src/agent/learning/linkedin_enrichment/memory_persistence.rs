@@ -57,8 +57,8 @@ pub(super) async fn profile_memory_writer(
 /// `put_doc`, which is what `MemoryDocuments::put_document` resolves to on the
 /// embedded driver — same upsert, same background graph-extraction enqueue.
 /// `ExternalSync` is carried explicitly for the same reason `store_skill_sync`
-/// hard-coded it: a scraped third-party profile is not user-authored, and the
-/// subconscious gate reads that provenance off the persisted chunk.
+/// hard-coded it: a scraped third-party profile is not user-authored, and that
+/// provenance must survive on the persisted chunk.
 ///
 /// The dedup key is the title, matching `store_skill_sync`'s `document_id: None`
 /// branch — LinkedIn enrichment has no stable upstream id to key on.

@@ -47,6 +47,11 @@ async fn run_role_tool_with(
     if !config.search.is_enabled() {
         return Err("web search is disabled in settings".to_string());
     }
+    // JSON-RPC, MCP, and agent callers share this dispatcher; enforce egress
+    // policy here so non-agent routes cannot bypass LocalOnly mode.
+    if let Some(message) = crate::search::tools::local_only_search_block(tool) {
+        return Err(message);
+    }
     ensure_servable(config, tool, &arguments)?;
     let request = tinysearch_bus::ExecuteToolRequest {
         name: tool.to_string(),
@@ -71,7 +76,7 @@ async fn run_role_tool_with(
         response.results.len(),
         response.fallback_from.len()
     )];
-    crate::rpc::RpcOutcome::new(payload, log).into_cli_compatible_json()
+    crate::core::Outcome::new(payload, log).into_cli_compatible_json()
 }
 
 /// Refuse early, without loading the module, when nothing can serve the call.

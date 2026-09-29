@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { callCoreRpc } from '../../../services/coreRpcClient';
-import { isTauri } from '../../../utils/tauriCommands/common';
 import { type CoreCronJob, openhumanCronList } from '../../../utils/tauriCommands/cron';
 import {
   memorySyncStatusList,
@@ -68,12 +67,6 @@ export function useBackgroundActivity(open: boolean): BackgroundActivity {
   const busyRef = useRef(false);
 
   const fetchOnce = useCallback(async () => {
-    if (!isTauri()) {
-      // Non-Tauri / dev preview: nothing to surface, just stop the spinner.
-      setLoading(false);
-      return;
-    }
-
     const [cronRes, ingestRes, providerRes] = await Promise.allSettled([
       openhumanCronList(),
       callCoreRpc<IngestionStatusEnvelope>({ method: 'openhuman.memory_ingestion_status' }),

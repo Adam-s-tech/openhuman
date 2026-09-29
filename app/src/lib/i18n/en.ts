@@ -254,9 +254,6 @@ const en: TranslationMap = {
   'settings.assistant.personality': 'Personality',
   'settings.assistant.voice': 'Voice',
   'settings.assistant.voiceDesc': 'Speech-to-text and text-to-speech settings',
-  'settings.assistant.backgroundActivity': 'Subconscious',
-  'settings.assistant.backgroundActivityDesc':
-    'Control how actively your assistant works in the background',
   'settings.assistant.permissions': 'Permissions',
   'settings.assistant.permissionsDesc': 'Choose what the assistant can do and where it can work',
 
@@ -769,6 +766,46 @@ const en: TranslationMap = {
   'desktop.action.expand': 'Expand',
   'desktop.action.collapse': 'Collapse',
   'desktop.action.scroll': 'Scroll',
+  'computer.title': 'Computer Control',
+  'computer.description': 'Let your agent work in apps and websites on this computer.',
+  'computer.tabs.desktop': 'Desktop',
+  'computer.tabs.browser': 'Browser',
+  'computer.tabs.models': 'Models',
+  'computer.models.decisionTitle': 'Decision model',
+  'computer.models.decisionDescription': 'The model that chooses each desktop or browser step.',
+  'computer.models.decisionModel': 'Decision model',
+  'computer.models.jev': 'Jev',
+  'computer.models.openJev': 'OpenJev',
+  'computer.models.sage': 'Sage',
+  'computer.models.sageFast': 'Sage fast mode',
+  'computer.models.rescueTitle': 'Planning and rescue',
+  'computer.models.rescueDescription':
+    'When a task step fails, the rescue model suggests how to recover before the task gives up.',
+  'computer.models.rescueModel': 'Rescue model',
+  'computer.models.maxRescues': 'Rescues per task',
+  'computer.models.plannerModel': 'Planner model',
+  'computer.models.moduleDefault': 'Module default',
+  'computer.models.rescuesBounds': 'Rescues per task must be a whole number from 0 to 5.',
+  'computer.models.saved': 'Computer models saved.',
+  'computer.status.title': 'TinyComputer module',
+  'computer.status.check': 'Check module',
+  'computer.status.configured': 'configured',
+  'computer.status.missing': 'missing',
+  'computer.status.available': 'available',
+  'computer.status.unavailable': 'unavailable',
+  'computer.status.incompatible': 'Module version is incompatible; update the app',
+  'computer.status.ownKey': 'Own API key',
+  'computer.status.noCredential': 'No credential yet',
+  'computer.status.state.available': 'Not loaded',
+  'computer.status.state.loading': 'Loading',
+  'computer.status.state.ready': 'Ready',
+  'computer.status.state.failed': 'Failed',
+  'computer.status.state.unsupported': 'Unsupported on this device',
+  'connections.browser.chromeHint':
+    'The browser runs inside the TinyComputer module. Test starts Chrome briefly and closes it.',
+  'computer.models.openJevKey': 'OpenJev API key',
+  'computer.models.sageKey': 'Sage API key',
+  'computer.models.keyHint': 'Stored encrypted on this device. Leave blank to keep the saved key.',
   'desktop.title': 'Desktop Control',
   'desktop.description': 'Let your agent work in apps on this computer.',
   'desktop.enabledPending': 'Enabled. Finish setup below before using desktop tools.',
@@ -836,7 +873,6 @@ const en: TranslationMap = {
   'memory.empty': 'No memories yet. Memories are created automatically as you interact.',
   'memory.tab.memory': 'Memory',
   'memory.tab.memoryTree': 'Memory Tree',
-  'memory.tab.subconscious': 'Subconscious',
   'memory.tab.agentWork': 'Agent Work',
   'memory.tab.agentWorkDescription':
     'A command center for every background agent run: grouped by what needs your input, what is working, and what has finished.',
@@ -1622,7 +1658,6 @@ const en: TranslationMap = {
   'settings.gateway.imageRequired': 'Enter the container image to run.',
   'settings.gateway.binaryRequired': 'Enter the path to openhuman-core on that machine.',
   'settings.gateway.portInvalid': 'The SSH port must be a number.',
-  'settings.heartbeat.title': 'Heartbeat & loops',
   'settings.usage.title': 'Usage',
   'settings.usage.menuDesc': 'Costs, token savings, usage records, and background activity',
   'settings.costDashboard.monthToDate': 'Month to date',
@@ -1699,13 +1734,8 @@ const en: TranslationMap = {
   'settings.costDashboard.noDataHint':
     'Send an agent message: token usage from the next provider call will populate the chart within ~10 seconds.',
   'settings.search.title': 'Search engine',
-  'settings.search.menuDesc':
-    'Default to OpenHuman-managed search or wire up your own provider with an API key.',
   'settings.search.statusNeedsKey': 'Needs API key',
   'settings.search.getApiKey': 'Get API key',
-  'settings.search.keyStored': 'Stored',
-  'settings.search.save': 'Save',
-  'settings.search.clear': 'Clear',
   'settings.search.show': 'Show',
   'settings.search.hide': 'Hide',
   'settings.search.statusSaving': 'Saving…',
@@ -1725,29 +1755,18 @@ const en: TranslationMap = {
   'settings.search.accessBlockAll': 'Block all',
   'settings.search.accessBlockAllHint':
     'All web access is blocked: the assistant cannot open or read any website.',
-  'settings.search.description':
-    'Search can use several providers at once. Exa and Gemini are included with TinyHumans and need no setup; other providers work with your own API key. Each role below uses the first available provider and falls back to the next.',
   'settings.search.localManagedUnavailable':
-    'Providers included with TinyHumans need you to be signed in. Turn on a provider with your own API key to use web search in a local session.',
+    'Providers via TinyHumans need you to be signed in. Connect a provider with your own API key to use web search in a local session.',
   'settings.search.enabledLabel': 'Web search',
-  'settings.search.enabledDesc':
-    'Let the agent search the web, answer questions from web sources, and read pages.',
-  'settings.search.providersTitle': 'Providers',
-  'settings.search.providersDesc':
-    'Turn on the providers you want. Several can be on at once; the roles below decide which one is tried first.',
   'settings.search.providerToggleAria': 'Use {provider}',
-  'settings.search.routeAria': '{provider} connection',
-  'settings.search.routeManaged': 'Included with TinyHumans',
-  'settings.search.routeDirect': 'Own key',
+  'settings.search.routeManaged': 'via TinyHumans',
+  'settings.search.routeDirect': 'Your own key',
   'settings.search.apiKeyLabel': '{provider} API key',
   'settings.search.placeholderKey': 'Paste your {provider} API key',
   'settings.search.baseUrlLabel': 'Instance URL',
-  'settings.search.baseUrlSave': 'Save URL',
   'settings.search.statusReady': 'Ready',
   'settings.search.statusSignInRequired': 'Sign in required',
   'settings.search.statusOff': 'Off',
-  'settings.search.deepResearchAvailable':
-    'Deep research is available: the agent can ask {provider} for a longer, more thorough report.',
   'settings.search.deepResearchHint': 'Add your own {provider} key to unlock deep research.',
   'settings.search.rolesTitle': 'Roles',
   'settings.search.rolesDesc':
@@ -1758,9 +1777,6 @@ const en: TranslationMap = {
   'settings.search.roleAnswerDesc': 'A written answer grounded in web sources, with citations.',
   'settings.search.roleContents': 'Contents',
   'settings.search.roleContentsDesc': 'Fetches and extracts the text of given pages.',
-  'settings.search.roleServedBy': 'Served by {provider}',
-  'settings.search.roleNoProvider':
-    'No provider available: the agent does not get this tool right now.',
   'settings.search.roleMoveUp': 'Move {provider} up',
   'settings.search.roleMoveDown': 'Move {provider} down',
   'settings.search.roleRemove': 'Remove {provider}',
@@ -1770,7 +1786,45 @@ const en: TranslationMap = {
   'settings.search.advancedTitle': 'Advanced',
   'settings.search.exposeProviderTools': "Expose each provider's own tools",
   'settings.search.exposeProviderToolsDesc':
-    'Give the agent the tools each enabled provider offers instead of one tool per role. This uses more of the context window.',
+    "Replace the routed search tools with each enabled provider's own tools. Agents that only know the routed tools, including the main agent, then have no web search, and the extra tools use more of the context window. Leave this off unless you are testing a provider.",
+  'settings.search.tabProviders': 'Providers',
+  'settings.search.tabRouting': 'Routing',
+  'settings.search.tabWebsites': 'Websites',
+  'settings.search.offNotice':
+    'Web search is off. The agent cannot search or read the web until you turn it back on.',
+  'settings.search.connectedTitle': 'Connected',
+  'settings.search.connectedDesc':
+    'Providers the agent can use. Several can be on at once; the Routing tab decides which one is tried first.',
+  'settings.search.connectedEmpty': 'No provider is connected yet. Pick one below.',
+  'settings.search.catalogTitle': 'Add a provider',
+  'settings.search.catalogDesc': 'Pick a provider to connect. You can add more at any time.',
+  'settings.search.catalogManagedTitle': 'via TinyHumans',
+  'settings.search.catalogManagedHelper': 'No setup needed: one click and it is ready.',
+  'settings.search.catalogOwnTitle': 'With your own key',
+  'settings.search.catalogOwnHelper':
+    'Bring an API key from the provider, or point to your own instance.',
+  'settings.search.addProviderAria': 'Connect {provider}',
+  'settings.search.detailOwnKey': 'Your own API key',
+  'settings.search.detailNoKey': 'No API key yet',
+  'settings.search.detailNoUrl': 'No instance URL yet',
+  'settings.search.deepResearchBadge': 'Deep research',
+  'settings.search.rowActions': '{provider} options',
+  'settings.search.actionUseOwnKey': 'Use your own key',
+  'settings.search.actionUseManaged': 'Use via TinyHumans',
+  'settings.search.actionAddKey': 'Add API key',
+  'settings.search.actionAddDeepResearchKey': 'Add a key for deep research',
+  'settings.search.actionReplaceKey': 'Replace API key',
+  'settings.search.actionRemoveKey': 'Remove API key',
+  'settings.search.actionEditUrl': 'Change instance URL',
+  'settings.search.connectTitle': 'Connect {provider}',
+  'settings.search.connect': 'Connect',
+  'settings.search.baseUrlHint': 'The address of your SearXNG instance, including the port.',
+  'settings.search.roleServing': 'In use',
+  'settings.search.roleNoProviderShort': 'No provider available',
+  'settings.search.roleFallbacks': 'Falls back to {providers}',
+  'settings.search.roleNoFallback': 'No fallback',
+  'settings.search.roleDialogDesc':
+    'The first available provider serves this task. If it fails or is unavailable, the next one is tried.',
   // ─── Settings global search bar ────────────────────────────
   // ─── Embeddings settings ───────────────────────────────────
   'settings.embeddings.title': 'Embeddings',
@@ -2614,7 +2668,6 @@ const en: TranslationMap = {
   'chat.safetyTimeout':
     'No response from the agent after 2 minutes. Try again or check your connection.',
   'chat.filter.general': 'General',
-  'chat.filter.subconscious': 'Subconscious',
   'chat.filter.meetings': 'Meetings',
   'chat.filter.tasks': 'Tasks',
   'chat.selectThread': 'Select a thread',
@@ -2965,8 +3018,6 @@ const en: TranslationMap = {
   'reflections.dismiss': 'Dismiss',
   'reflections.viewConversation': 'View',
 
-  // Subconscious mode selector
-
   // WhatsApp
 
   // Sync
@@ -3132,10 +3183,6 @@ const en: TranslationMap = {
   'backend.localDescription':
     'Run models on your own machine using Ollama. Full privacy, requires setup.',
   'backend.ramRecommended': '16GB+ RAM recommended',
-
-  // Subconscious
-
-  // Subconscious triggers (event-driven orchestrator) debug panel
 
   // Actionable
   'actionable.complete': 'Complete',
@@ -4018,8 +4065,6 @@ const en: TranslationMap = {
   'conversations.tools.planNextSteps.done': 'Planned next steps',
   'conversations.tools.reviewWork.active': 'Reviewing the work',
   'conversations.tools.reviewWork.done': 'Reviewed the work',
-  'conversations.tools.scoutContext.active': 'Scouting context',
-  'conversations.tools.scoutContext.done': 'Scouted context',
   'conversations.tools.useTools.active': 'Using tools',
   'conversations.tools.useTools.done': 'Used tools',
   'conversations.tools.checkConnectedApp.active': 'Checking your connected app',
@@ -4280,14 +4325,6 @@ const en: TranslationMap = {
   'conversations.backgroundTasks.cronSchedCron': 'Cron {expr}',
   'conversations.backgroundTasks.cronSchedEvery': 'Every {duration}',
   'conversations.backgroundTasks.cronSchedAt': 'Once',
-  // Subconscious / heartbeat loop.
-  'conversations.backgroundTasks.subOff': 'Off',
-  'conversations.backgroundTasks.subWorking': 'Working…',
-  'conversations.backgroundTasks.subIdle': 'Idle',
-  'conversations.backgroundTasks.subLastRan': 'Last ran {time}',
-  'conversations.backgroundTasks.subNeverRan': 'Hasn’t run yet',
-  'conversations.backgroundTasks.subTicks': '{count} runs',
-  'conversations.backgroundTasks.subQueued': '{count} queued',
   // Memory syncing / ingestion.
   'conversations.backgroundTasks.memUpToDate': 'All memories up to date',
   'conversations.backgroundTasks.memIngesting': 'Indexing {title}',
@@ -5503,7 +5540,7 @@ const en: TranslationMap = {
   'settings.ai.codexAuthHelper': 'Uses the existing Codex CLI login from ~/.codex/auth.json.',
   'settings.ai.backgroundLoops': 'Background loops',
   'settings.ai.backgroundLoopsDesc':
-    'See what runs without a chat message, pause heartbeat work, and inspect recent credit ledger rows.',
+    'See what runs without a chat message and inspect recent credit ledger rows.',
   'settings.ai.loopMap': 'Loop map',
   'settings.ai.routeLabel': 'route: {route}',
   'settings.ai.on': 'on',
@@ -5626,8 +5663,8 @@ const en: TranslationMap = {
   'settings.ai.perWeek': '{count}/week',
   'settings.ai.perWeekMax': '{count}/week max',
   'settings.ai.perHour': '{amount}/hr',
-  'settings.ai.plannerSyncBreakdown': '{planner} planner + {sync} sync',
   'settings.ai.memoryPollsDetail': '{count} memory polls',
+  'settings.ai.connectionSyncBreakdown': '{sync} connection sync',
   'settings.ai.rowsLeftFormula': 'remaining / avg row = {remaining} / {avgRow}',
   'settings.ai.needSpendRowsToEstimate': 'Need recent spend rows to estimate.',
   'settings.ai.rowsPerBudgetFormula': 'cycle budget / avg row = {budget} / {avgRow}',
@@ -5673,7 +5710,7 @@ const en: TranslationMap = {
     'Models used during direct user interaction, replies, reasoning, agent loops, and coding help.',
   'settings.ai.routing.backgroundTasks': 'Background Tasks',
   'settings.ai.routing.bgTasksDesc':
-    'Models used outside the main conversation flow for summarization, heartbeat, learning, and subconscious evaluation.',
+    'Models used outside the main conversation flow for memory summarization and learning.',
   'settings.ai.routing.workload.chat.label': 'Chat',
   'settings.ai.routing.workload.chat.description':
     'Direct conversational back-and-forth: “Quick” mode in Conversations',
@@ -5702,18 +5739,10 @@ const en: TranslationMap = {
   'settings.ai.routing.workload.memory.description': 'Tree-extracts and consolidations',
   'settings.ai.routing.workload.memory.hint':
     'Recommended: a cheaper summarization model. It should be consistent and compact, but it does not need premium frontier-level reasoning.',
-  'settings.ai.routing.workload.heartbeat.label': 'Heartbeat',
-  'settings.ai.routing.workload.heartbeat.description': 'Background reasoning between user turns',
-  'settings.ai.routing.workload.heartbeat.hint':
-    'Recommended: a cheap, efficient background model. This runs often between turns, so low cost matters more than maximum intelligence.',
   'settings.ai.routing.workload.learning.label': 'Learning · Reflections',
   'settings.ai.routing.workload.learning.description': 'Periodic reflection over recent history',
   'settings.ai.routing.workload.learning.hint':
     'Recommended: a stronger reflective model. This can be mid-cost or premium because it benefits from better synthesis over recent history.',
-  'settings.ai.routing.workload.subconscious.label': 'Subconscious',
-  'settings.ai.routing.workload.subconscious.description': 'Eventfulness scoring + drift checks',
-  'settings.ai.routing.workload.subconscious.hint':
-    'Recommended: a very cheap monitoring model, ideally one that is lightweight and predictable. This is for eventfulness scoring, drift checks, and quiet background evaluation.',
   'settings.ai.routing.addCustomProvider': 'Add Custom Provider',
   'settings.ai.globalModel.title': 'Choose one model for everything',
   'settings.ai.globalModel.desc':
@@ -5724,8 +5753,6 @@ const en: TranslationMap = {
   'settings.ai.globalModel.model': 'Model',
   'settings.ai.globalModel.loadingModels': 'Loading models…',
   'settings.ai.globalModel.enterModelId': 'Enter model id',
-  'settings.ai.globalModel.appliesToAll':
-    'Applies the same provider + model to chat, reasoning, coding, memory, heartbeat, learning, and subconscious. Embeddings are configured separately. Changes save when you click save.',
   'settings.ai.globalModel.saving': 'Saving…',
   'settings.ai.globalModel.saved': 'Saved',
   'settings.ai.workload.noModel': 'No model selected',
@@ -5915,6 +5942,7 @@ const en: TranslationMap = {
   'settings.cron.jobs.resume': 'Resume',
   'settings.cron.jobs.runFinishedAt': '{status} at {time}',
   'settings.cron.jobs.runningNow': 'Running now…',
+  'settings.cron.jobs.runNow': 'Run now',
   'settings.cron.jobs.saving': 'Saving…',
   'settings.cron.jobs.schedule': 'Schedule',
   'settings.cron.jobs.scheduleAt': 'at {time}',
@@ -6119,8 +6147,6 @@ const en: TranslationMap = {
   'settings.developerMenu.eventLog.badge.comp': 'COMP',
   'settings.developerMenu.eventLog.badge.mcp': 'MCP',
   'settings.developerMenu.intelligence.title': 'Intelligence',
-  'settings.developerMenu.intelligence.desc':
-    'Memory workspace, subconscious engine, dreams, and settings',
   'settings.developerMenu.notificationRouting.title': 'Notification Routing',
   'settings.developerMenu.notificationRouting.desc':
     'AI importance scoring and orchestrator escalation for integration alerts',
@@ -7028,7 +7054,6 @@ const en: TranslationMap = {
   'devOptions.menuWebhooksDebugDesc':
     'Inspect runtime webhook registrations and captured request logs',
   'devOptions.menuIntelligence': 'Intelligence',
-  'devOptions.menuIntelligenceDesc': 'Memory workspace, subconscious engine, dreams, and settings',
   'devOptions.menuNotificationRouting': 'Notification Routing',
   'devOptions.menuNotificationRoutingDesc':
     'AI importance scoring and orchestrator escalation for integration alerts',

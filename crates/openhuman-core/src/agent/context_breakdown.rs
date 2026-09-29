@@ -20,7 +20,7 @@ use serde::{Deserialize, Serialize};
 use crate::agent::debug::prompt_size::{PromptSizeReport, SectionSize, ToolSize};
 use crate::agent::debug::DumpPromptOptions;
 use crate::config::Config;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 /// Default agent whose prompt is measured when the caller names none — the
 /// one every main chat turn actually runs under.
@@ -111,7 +111,6 @@ async fn cached_report(agent_id: &str, config: &Config) -> Result<PromptSizeRepo
     );
     let options = DumpPromptOptions {
         agent_id: agent_id.to_string(),
-        toolkit: None,
         workspace_dir_override: Some(config.workspace_dir.clone()),
         config_path_override: Some(config.config_path.clone()),
         model_override: None,
@@ -176,7 +175,7 @@ fn tools_section(tools: &[ToolSize]) -> ContextSection {
 /// given) a `history` section.
 pub async fn context_breakdown(
     params: ContextBreakdownParams,
-) -> Result<RpcOutcome<ContextBreakdownResponse>, String> {
+) -> Result<Outcome<ContextBreakdownResponse>, String> {
     let config = crate::config::rpc::load_config_with_timeout().await?;
     let agent_id = params
         .agent_id
@@ -214,7 +213,7 @@ pub async fn context_breakdown(
         total_est_tokens,
         context_window,
     };
-    Ok(RpcOutcome::new(response, Vec::new()))
+    Ok(Outcome::new(response, Vec::new()))
 }
 
 #[cfg(test)]

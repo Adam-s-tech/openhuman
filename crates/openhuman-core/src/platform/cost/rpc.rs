@@ -18,7 +18,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use crate::config::{Config, CostConfig};
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 use super::global::try_global;
 use super::tracker::{non_negative_zero, CostTracker};
@@ -378,7 +378,7 @@ fn resolve_tracker(config: &Config) -> Result<Arc<CostTracker>> {
 }
 
 /// Build the dashboard payload for the current config.
-pub fn dashboard(config: &Config) -> Result<RpcOutcome<Value>> {
+pub fn dashboard(config: &Config) -> Result<Outcome<Value>> {
     log::debug!(target: "cost_rpc", "[cost_rpc] dashboard.entry");
     let tracker = resolve_tracker(config).inspect_err(|err| {
         log::warn!(target: "cost_rpc", "[cost_rpc] dashboard.resolve_failed err={err:#}");
@@ -401,11 +401,11 @@ pub fn dashboard(config: &Config) -> Result<RpcOutcome<Value>> {
         target: "cost_rpc",
         "[cost_rpc] dashboard.exit days={day_count} models={model_count}"
     );
-    Ok(RpcOutcome::new(value, Vec::new()))
+    Ok(Outcome::new(value, Vec::new()))
 }
 
 /// Return the per-day cost history for the requested span.
-pub fn daily_history(config: &Config, days: u32) -> Result<RpcOutcome<Value>> {
+pub fn daily_history(config: &Config, days: u32) -> Result<Outcome<Value>> {
     log::debug!(target: "cost_rpc", "[cost_rpc] daily_history.entry days={days}");
     let tracker = resolve_tracker(config).inspect_err(|err| {
         log::warn!(target: "cost_rpc", "[cost_rpc] daily_history.resolve_failed err={err:#}");
@@ -420,11 +420,11 @@ pub fn daily_history(config: &Config, days: u32) -> Result<RpcOutcome<Value>> {
     let dto: Vec<DailyCostEntryDto> = entries.iter().map(daily_entry_to_dto).collect();
     let value = serde_json::to_value(dto).context("cost daily history serialize failed")?;
     log::debug!(target: "cost_rpc", "[cost_rpc] daily_history.exit entries={entry_count}");
-    Ok(RpcOutcome::new(value, Vec::new()))
+    Ok(Outcome::new(value, Vec::new()))
 }
 
 /// Return the live session / daily / monthly summary.
-pub fn summary(config: &Config) -> Result<RpcOutcome<Value>> {
+pub fn summary(config: &Config) -> Result<Outcome<Value>> {
     log::debug!(target: "cost_rpc", "[cost_rpc] summary.entry");
     let tracker = resolve_tracker(config).inspect_err(|err| {
         log::warn!(target: "cost_rpc", "[cost_rpc] summary.resolve_failed err={err:#}");
@@ -439,11 +439,11 @@ pub fn summary(config: &Config) -> Result<RpcOutcome<Value>> {
     let dto = summary_to_dto(&s);
     let value = serde_json::to_value(dto).context("cost summary serialize failed")?;
     log::debug!(target: "cost_rpc", "[cost_rpc] summary.exit requests={request_count}");
-    Ok(RpcOutcome::new(value, Vec::new()))
+    Ok(Outcome::new(value, Vec::new()))
 }
 
 /// Return a recent, bounded usage log plus spend distribution by category.
-pub fn usage_log(config: &Config, days: u32, limit: usize) -> Result<RpcOutcome<Value>> {
+pub fn usage_log(config: &Config, days: u32, limit: usize) -> Result<Outcome<Value>> {
     log::debug!(target: "cost_rpc", "[cost_rpc] usage_log.entry days={days} limit={limit}");
     let tracker = resolve_tracker(config).inspect_err(|err| {
         log::warn!(target: "cost_rpc", "[cost_rpc] usage_log.resolve_failed err={err:#}");
@@ -465,7 +465,7 @@ pub fn usage_log(config: &Config, days: u32, limit: usize) -> Result<RpcOutcome<
     );
     let value = serde_json::to_value(dto).context("cost usage log serialize failed")?;
     log::debug!(target: "cost_rpc", "[cost_rpc] usage_log.exit records={request_count}");
-    Ok(RpcOutcome::new(value, Vec::new()))
+    Ok(Outcome::new(value, Vec::new()))
 }
 
 #[cfg(test)]

@@ -45,7 +45,7 @@ pub fn append_query_param(url: &str, key: &str, value: &str) -> String {
 
 pub async fn list_configured_models(
     provider_id: &str,
-) -> Result<crate::rpc::RpcOutcome<serde_json::Value>, String> {
+) -> Result<crate::core::Outcome<serde_json::Value>, String> {
     let config = crate::config::Config::load_or_init()
         .await
         .map_err(|e| e.to_string())?;
@@ -56,7 +56,7 @@ pub async fn list_configured_models(
 pub async fn list_configured_models_from_config(
     provider_id: &str,
     config: &crate::config::Config,
-) -> Result<crate::rpc::RpcOutcome<serde_json::Value>, String> {
+) -> Result<crate::core::Outcome<serde_json::Value>, String> {
     let provider_id = provider_id.trim().to_string();
     if provider_id.is_empty() {
         return Err("provider_id must not be empty".to_string());
@@ -168,7 +168,7 @@ pub async fn list_configured_models_from_config(
                 log::info!(
                     "[providers][list_models] managed catalog unavailable — {reason}; returning an empty list"
                 );
-                return Ok(crate::rpc::RpcOutcome::new(
+                return Ok(crate::core::Outcome::new(
                     serde_json::json!({ "models": Vec::<ModelInfo>::new() }),
                     vec![format!("{reason}; managed catalog is empty")],
                 ));
@@ -186,7 +186,7 @@ pub async fn list_configured_models_from_config(
             log::info!(
                 "[providers][list_models] managed catalog unavailable — no backend transport; returning an empty list"
             );
-            return Ok(crate::rpc::RpcOutcome::new(
+            return Ok(crate::core::Outcome::new(
                 serde_json::json!({ "models": Vec::<ModelInfo>::new() }),
                 vec!["no hosted backend; managed catalog is empty".to_string()],
             ));
@@ -297,7 +297,7 @@ pub async fn list_configured_models_from_config(
             log::info!(
                 "[providers][list_models] managed catalog unavailable — backend rejected the session token (401); returning an empty list"
             );
-            return Ok(crate::rpc::RpcOutcome::new(
+            return Ok(crate::core::Outcome::new(
                 serde_json::json!({ "models": Vec::<ModelInfo>::new() }),
                 vec!["session not accepted; managed catalog is empty".to_string()],
             ));
@@ -386,7 +386,7 @@ pub async fn list_configured_models_from_config(
         models.len()
     );
 
-    Ok(crate::rpc::RpcOutcome::new(
+    Ok(crate::core::Outcome::new(
         serde_json::json!({ "models": models }),
         vec![format!("fetched {} models", models.len())],
     ))

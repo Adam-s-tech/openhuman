@@ -33,7 +33,7 @@ use serde_json::{json, Value};
 use tempfile::TempDir;
 
 use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
-use openhuman_core::core::jsonrpc::build_core_http_router;
+use openhuman_rpc::server::build_core_http_router;
 
 const TEST_RPC_TOKEN: &str = "tree-summarizer-e2e-token";
 const NAMESPACE: &str = "tree-summarizer-e2e";
@@ -194,7 +194,7 @@ fn ok(v: &Value, ctx: &str) -> Value {
     let outer = v
         .get("result")
         .unwrap_or_else(|| panic!("{ctx}: missing result: {v}"));
-    // RpcOutcome wraps its payload under an inner "result" alongside "logs".
+    // Outcome wraps its payload under an inner "result" alongside "logs".
     outer
         .get("result")
         .cloned()

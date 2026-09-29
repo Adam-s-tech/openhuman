@@ -85,13 +85,6 @@
   },
   {
     "rule": "openhuman-task-local",
-    "path": "crates/openhuman-core/src/agent/goals/runtime.rs",
-    "line": 150,
-    "text": "crate::agent::turn_origin::current(),",
-    "occurrence": 1
-  },
-  {
-    "rule": "openhuman-task-local",
     "path": "crates/openhuman-core/src/agent/harness/fork_context.rs",
     "line": 171,
     "text": "tokio::task_local! {",
@@ -347,13 +340,6 @@
     "path": "crates/openhuman-core/src/agent/orchestration/tools.rs",
     "line": 73,
     "text": "crate::agent::harness::current_parent().map(|parent| {",
-    "occurrence": 1
-  },
-  {
-    "rule": "openhuman-task-local",
-    "path": "crates/openhuman-core/src/agent/orchestration/tools/agent_prepare_context/tool.rs",
-    "line": 277,
-    "text": "crate::agent::harness::current_agent_context_prepared_sources();",
     "occurrence": 1
   },
   {
@@ -1086,13 +1072,6 @@
   },
   {
     "rule": "openhuman-upstream-reexport",
-    "path": "crates/openhuman-core/src/agent/subagent_host/handoff.rs",
-    "line": 37,
-    "text": "pub(crate) use tinyagents_harness::handoff::{",
-    "occurrence": 1
-  },
-  {
-    "rule": "openhuman-upstream-reexport",
     "path": "crates/openhuman-core/src/agent/todos/ops.rs",
     "line": 16,
     "text": "pub use tinyagents_graph::todos::TodosSnapshot;",
@@ -1409,8 +1388,8 @@
   {
     "rule": "tinyagents-tool-calling-facade",
     "path": "vendor/tinyagents/crates/tinyagents-harness/src/agent_loop/dialect.rs",
-    "line": 21,
-    "text": "use tinytools_agent::types::{ParseOptions, ParsedToolCall};",
+    "line": 22,
+    "text": "use tinytools_agent::types::{ParseDiagnostic, ParseOptions, ParsedToolCall};",
     "occurrence": 1
   },
   {

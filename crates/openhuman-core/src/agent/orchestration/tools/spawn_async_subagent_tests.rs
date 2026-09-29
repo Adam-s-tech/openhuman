@@ -32,9 +32,13 @@ fn parameters_schema_advertises_fire_and_forget_fields() {
         .get("properties")
         .and_then(|v| v.as_object())
         .expect("properties");
-    for key in ["context", "model", "toolkit", "task_title"] {
+    for key in ["context", "model", "task_title"] {
         assert!(props.contains_key(key), "missing {key}");
     }
+    assert!(
+        !props.contains_key("toolkit"),
+        "the retired toolkit spawn argument must not be advertised"
+    );
 }
 
 #[test]
@@ -78,7 +82,7 @@ fn wait_only_fleet_omits_steering_guidance_and_instruction() {
     let payload = async_subagent_ref_payload(
         "sub-123",
         "subsess-456",
-        "researcher",
+        "task_manager_agent",
         Some("thread-worker"),
         false,
         "created",
@@ -99,7 +103,7 @@ fn wait_only_fleet_omits_steering_guidance_and_instruction() {
         "steer_subagent leaked into the envelope"
     );
 
-    let message = format_async_subagent_accepted("researcher", &serialized, &fleet);
+    let message = format_async_subagent_accepted("task_manager_agent", &serialized, &fleet);
     let prose = message.split("[async_subagent_ref]").next().unwrap();
     assert!(prose.contains("wait for completion"));
     assert!(
@@ -113,7 +117,7 @@ fn async_reference_payload_includes_agent_id_and_control_instructions() {
     let payload = async_subagent_ref_payload(
         "sub-123",
         "subsess-456",
-        "researcher",
+        "task_manager_agent",
         Some("thread-worker"),
         false,
         "created",
@@ -121,8 +125,8 @@ fn async_reference_payload_includes_agent_id_and_control_instructions() {
         &FleetToolSet::all(),
     );
 
-    assert_eq!(payload["agent_id"], "researcher");
-    assert_eq!(payload["agentId"], "researcher");
+    assert_eq!(payload["agent_id"], "task_manager_agent");
+    assert_eq!(payload["agentId"], "task_manager_agent");
     assert_eq!(payload["instructions"]["wait"]["tool"], "wait_subagent");
     assert_eq!(
         payload["instructions"]["timeout_tick"]["arguments"]["timeout_secs"],
@@ -147,7 +151,7 @@ fn async_reference_matches_the_orchestrator_fleet_vocabulary() {
     let payload = async_subagent_ref_payload(
         "sub-123",
         "subsess-456",
-        "integrations_agent",
+        "task_manager_agent",
         None,
         false,
         "created",
@@ -196,7 +200,7 @@ fn async_reference_matches_the_orchestrator_fleet_vocabulary() {
         .iter()
         .any(|a| a.contains("delivered to you automatically")));
 
-    let message = format_async_subagent_accepted("integrations_agent", &serialized, &fleet);
+    let message = format_async_subagent_accepted("task_manager_agent", &serialized, &fleet);
     let prose = message.split("[async_subagent_ref]").next().unwrap();
     assert!(prose.contains("delivered to you automatically"));
     assert!(!prose.contains("wait for completion"));
@@ -343,7 +347,7 @@ fn attach_workflow_proposal_without_proposal_returns_summary_unchanged() {
         temp.path(),
         Some("thread-x"),
         "sub-task-2",
-        "researcher",
+        "task_manager_agent",
         &[ChatMessage::tool("no proposal here")],
         "research done".to_string(),
     );
@@ -369,7 +373,7 @@ async fn missing_prompt_returns_error() {
     assert!(result.output().contains("prompt"));
 }
 
-/// B40 / Gap 4: a delegating agent (orchestrator/subconscious) calling
+/// B40 / Gap 4: a delegating agent (e.g. the orchestrator) calling
 /// `spawn_async_subagent` directly from a thread-less context (flow
 /// `agent` node, CLI, cron) must get a clear, actionable error instead of
 /// silently accepting the spawn and later dropping its result in
@@ -387,7 +391,7 @@ async fn errors_clearly_when_no_parent_thread_for_delivery() {
     let result = with_parent_context(parent_context(workspace.path()), async {
         SpawnAsyncSubagentTool::new()
             .execute(json!({
-                "agent_id": "researcher",
+                "agent_id": "task_manager_agent",
                 "prompt": "investigate x",
             }))
             .await
@@ -432,7 +436,7 @@ async fn guard_does_not_fire_when_parent_thread_is_bound() {
         SpawnAsyncSubagentTool::new()
             .execute_with_context(
                 json!({
-                    "agent_id": "researcher",
+                    "agent_id": "task_manager_agent",
                     "prompt": "investigate x",
                 }),
                 ToolCallOptions::default(),
@@ -454,7 +458,7 @@ fn parent_context(workspace_dir: &Path) -> ParentExecutionContext {
     ParentExecutionContext {
         workspace_descriptor: None,
         agent_definition_id: "orchestrator".into(),
-        allowed_subagent_ids: HashSet::from(["researcher".to_string()]),
+        allowed_subagent_ids: HashSet::from(["task_manager_agent".to_string()]),
         turn_model_source: crate::agent::tinyagents::TurnModelSource::from_model(Arc::new(
             tinyagents_harness::testkit::ScriptedModel::replies(vec!["done"]),
         )),

@@ -2,7 +2,7 @@
 //!
 //! The domain itself lives in the extracted engine crates; what stays here is
 //! its JSON-RPC surface — handlers and controller schemas name OpenHuman's
-//! `RpcOutcome` and `ControllerSchema`, which the engine crate cannot see.
+//! `Outcome` and `ControllerSchema`, which the engine crate cannot see.
 //!
 //! # The `pub use tinymemory_core::tree::*` shim is gone (#5560)
 //!

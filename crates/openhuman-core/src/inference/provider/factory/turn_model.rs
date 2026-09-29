@@ -161,7 +161,7 @@ pub(super) fn create_turn_chat_model_with_native_tools_and_route_inner(
 ///
 /// The triage path needs this: [`build_remote_provider`](crate::agent::triage::routing)
 /// forces the managed backend (`provider_string == `[`PROVIDER_OPENHUMAN`]) when the
-/// subconscious route is local / BYOK-incomplete — the #1257 *"triage never goes
+/// chat route is local / BYOK-incomplete — the #1257 *"triage never goes
 /// local"* invariant — which a plain [`create_turn_chat_model`] (role → `provider_for_role`)
 /// would violate by building the local model.
 ///

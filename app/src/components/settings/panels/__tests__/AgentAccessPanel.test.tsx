@@ -175,14 +175,14 @@ describe('AgentAccessPanel (advanced)', () => {
     expect(await screen.findByText('boom')).toBeInTheDocument();
   });
 
-  it('shows the desktop-only notice and skips loading off-Tauri', async () => {
+  it('loads settings over core RPC off-Tauri without a desktop-only notice', async () => {
     vi.mocked(isTauri).mockReturnValue(false);
     renderWithProviders(<AgentAccessPanel />);
+    await waitFor(() => expect(mockGet).toHaveBeenCalled());
+    expect(mockGetAgent).toHaveBeenCalled();
     expect(
-      await screen.findByText('Access settings are only available in the desktop app.')
-    ).toBeInTheDocument();
-    expect(mockGet).not.toHaveBeenCalled();
-    expect(mockGetAgent).not.toHaveBeenCalled();
+      screen.queryByText('Access settings are only available in the desktop app.')
+    ).not.toBeInTheDocument();
   });
 
   it('loads the configured action timeout into the input', async () => {

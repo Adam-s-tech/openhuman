@@ -58,6 +58,11 @@ pub use privacy::{
     apply_privacy_settings, get_privacy_mode, load_and_apply_privacy_settings, PrivacySettingsPatch,
 };
 
+mod computer;
+pub use computer::{
+    apply_computer_settings, load_and_apply_computer_settings, ComputerSettingsPatch,
+};
+
 pub use sandbox::{
     apply_sandbox_settings, get_sandbox_settings, load_and_apply_sandbox_settings,
     SandboxSettingsPatch,

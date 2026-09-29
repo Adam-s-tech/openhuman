@@ -1,7 +1,7 @@
 id = "planner"
 display_name = "Planner"
 delegate_name = "plan"
-when_to_use = "Break a genuinely complex task into a small DAG of subtasks with acceptance criteria, grounded in memory and the web. Read-only; returns JSON, not code."
+when_to_use = "Workflow-run worker: decompose a question into independent research angles, or research one angle, grounded in memory and the web. Read-only; not a chat delegate."
 temperature = 0.4
 max_iterations = 8
 iteration_policy = "extended"
@@ -28,8 +28,7 @@ hint = "reasoning"
 [tools]
 # Read + research only. The planner produces plans — it never mutates
 # the workspace, memory, or state. Any writes the plan requires get
-# executed by downstream agents (code_executor, archivist, …) at the
-# orchestrator's direction.
+# executed by the caller after the workflow run.
 #
 # Composio meta-tools are included so the planner can inspect connected
 # integrations, list available actions, and pull data needed to ground
@@ -41,12 +40,6 @@ hint = "reasoning"
 named = [
     "memory_recall",
     "file_read",
-    # NOTE: `agent_prepare_context` is intentionally NOT here. When the planner
-    # runs via `delegate_plan` it executes under the orchestrator's
-    # PARENT_CONTEXT (run_subagent filters the child tool surface but does not
-    # install a planner-scoped ParentExecutionContext), so a nested scout would
-    # render the orchestrator's visible catalog/session, not the planner's.
-    # Context scouting is the orchestrator's first-message job; keep it there.
     # Read-only nav primitives from #1208. `edit`, `apply_patch`, `lsp`
     # are intentionally NOT included — sandbox_mode = "read_only" above
     # forbids workspace mutations, and downstream agents do the writing.
@@ -63,6 +56,10 @@ named = [
     # real numbers (stock/crypto prices) and current web context, not just
     # whatever the model happens to remember.
     "web_answer_tool",
+    # Reads up to ten pages per call; with `web_answer_tool` `depth: "deep"`
+    # this is how the planner does its own multi-source research (there is no
+    # research sub-agent to hand it to).
+    "web_contents_tool",
     "stock_quote",
     "stock_exchange_rate",
     "stock_crypto_series",
@@ -80,7 +77,7 @@ named = [
     # here: unlike `composio_execute` (gated to Read-scoped slugs by the
     # sandbox), an MCP tool call invokes an arbitrary server tool the core
     # cannot classify as read vs. write, so there is no safe read-only gate.
-    # Executing connected-MCP tools stays with `mcp_agent` (`use_mcp_server`).
+    # Executing connected-MCP tools stays with the orchestrator (`tool_search`).
     "mcp_registry_status",
     "mcp_registry_installed_list",
     "mcp_registry_list_tools",

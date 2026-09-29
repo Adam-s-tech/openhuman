@@ -303,13 +303,6 @@ const messages: TranslationMap = {
   'conversations.backgroundTasks.cronSchedCron': 'Cron {expr}',
   'conversations.backgroundTasks.cronSchedEvery': 'Setiap {duration}',
   'conversations.backgroundTasks.cronSchedAt': 'Sekali',
-  'conversations.backgroundTasks.subOff': 'Mati',
-  'conversations.backgroundTasks.subWorking': 'Bekerja…',
-  'conversations.backgroundTasks.subIdle': 'Diam',
-  'conversations.backgroundTasks.subLastRan': 'Terakhir dijalankan {time}',
-  'conversations.backgroundTasks.subNeverRan': 'Belum pernah dijalankan',
-  'conversations.backgroundTasks.subTicks': '{count} kali dijalankan',
-  'conversations.backgroundTasks.subQueued': '{count} dalam antrean',
   'conversations.backgroundTasks.memUpToDate': 'Semua memori terkini',
   'conversations.backgroundTasks.memIngesting': 'Mengindeks {title}',
   'conversations.backgroundTasks.memIngestingUntitled': 'Mengindeks memori',
@@ -454,9 +447,6 @@ const messages: TranslationMap = {
   'settings.assistant.personality': 'Kepribadian',
   'settings.assistant.voice': 'Suara',
   'settings.assistant.voiceDesc': 'Pengaturan ucapan-ke-teks dan teks-ke-ucapan',
-  'settings.assistant.backgroundActivity': 'Bawah sadar',
-  'settings.assistant.backgroundActivityDesc':
-    'Kontrol seberapa aktif asisten Anda bekerja di latar belakang',
   'settings.assistant.permissions': 'Izin',
   'settings.assistant.permissionsDesc':
     'Pilih apa yang dapat dilakukan asisten dan di mana ia dapat bekerja',
@@ -909,6 +899,48 @@ const messages: TranslationMap = {
   'desktop.action.expand': 'Perluas',
   'desktop.action.collapse': 'Ciutkan',
   'desktop.action.scroll': 'Gulir',
+  'computer.title': 'Kontrol komputer',
+  'computer.description': 'Biarkan agen Anda bekerja di aplikasi dan situs web di komputer ini.',
+  'computer.tabs.desktop': 'Desktop',
+  'computer.tabs.browser': 'Browser',
+  'computer.tabs.models': 'Model',
+  'computer.models.decisionTitle': 'Model keputusan',
+  'computer.models.decisionDescription':
+    'Model yang memilih setiap langkah di desktop atau browser.',
+  'computer.models.decisionModel': 'Model keputusan',
+  'computer.models.jev': 'Jev',
+  'computer.models.openJev': 'OpenJev',
+  'computer.models.sage': 'Sage',
+  'computer.models.sageFast': 'Mode cepat Sage',
+  'computer.models.rescueTitle': 'Perencanaan dan penyelamatan',
+  'computer.models.rescueDescription':
+    'Saat langkah tugas gagal, model penyelamat menyarankan cara memulihkannya sebelum tugas menyerah.',
+  'computer.models.rescueModel': 'Model penyelamat',
+  'computer.models.maxRescues': 'Penyelamatan per tugas',
+  'computer.models.plannerModel': 'Model perencana',
+  'computer.models.moduleDefault': 'Bawaan modul',
+  'computer.models.rescuesBounds': 'Penyelamatan per tugas harus bilangan bulat dari 0 hingga 5.',
+  'computer.models.saved': 'Model komputer disimpan.',
+  'computer.status.title': 'Modul TinyComputer',
+  'computer.status.check': 'Periksa modul',
+  'computer.status.configured': 'terkonfigurasi',
+  'computer.status.missing': 'tidak ada',
+  'computer.status.available': 'tersedia',
+  'computer.status.unavailable': 'tidak tersedia',
+  'computer.status.incompatible': 'Versi modul tidak kompatibel; perbarui aplikasi',
+  'computer.status.ownKey': 'Kunci API sendiri',
+  'computer.status.noCredential': 'Belum ada kredensial',
+  'computer.status.state.available': 'Belum dimuat',
+  'computer.status.state.loading': 'Memuat',
+  'computer.status.state.ready': 'Siap',
+  'computer.status.state.failed': 'Gagal',
+  'computer.status.state.unsupported': 'Tidak didukung di perangkat ini',
+  'connections.browser.chromeHint':
+    'Browser berjalan di dalam modul TinyComputer. Pengujian membuka Chrome sebentar lalu menutupnya.',
+  'computer.models.openJevKey': 'Kunci API OpenJev',
+  'computer.models.sageKey': 'Kunci API Sage',
+  'computer.models.keyHint':
+    'Disimpan terenkripsi di perangkat ini. Kosongkan untuk mempertahankan kunci yang tersimpan.',
   'desktop.title': 'Kontrol desktop',
   'desktop.description': 'Izinkan agen Anda bekerja di aplikasi pada komputer ini.',
   'desktop.enabledPending':
@@ -939,7 +971,6 @@ const messages: TranslationMap = {
   'memory.empty': 'Belum ada memori. Memori dibuat otomatis saat Anda berinteraksi.',
   'memory.tab.memory': 'Memori',
   'memory.tab.memoryTree': 'Pohon Memori',
-  'memory.tab.subconscious': 'Bawah sadar',
   'memory.tab.agentWork': 'Kerja agen',
   'memory.tab.agentWorkDescription':
     'Pusat kendali untuk setiap proses agen latar belakang: dikelompokkan berdasarkan apa yang butuh masukan Anda, apa yang sedang berjalan, dan apa yang sudah selesai.',
@@ -1425,7 +1456,6 @@ const messages: TranslationMap = {
     'Spawn in- proses oleh Tauri shell pada aplikasi peluncuran. Port dipilih saat startup, jadi URL ini berubah antara peluncuran.',
   'settings.about.connectionHelperCloud':
     'Terhubung ke inti remote. Ubah ini dalam BootCheck atau mode awan picker.',
-  'settings.heartbeat.title': 'Detak jantung & loop',
   'settings.usage.title': 'Penggunaan',
   'settings.usage.menuDesc':
     'Biaya, penghematan token, catatan penggunaan, dan aktivitas latar belakang',
@@ -1503,12 +1533,8 @@ const messages: TranslationMap = {
   'settings.costDashboard.noDataHint':
     'Kirim pesan agen - penggunaan token dari panggilan penyedia berikutnya akan mengisi bagan dalam waktu ~10.',
   'settings.search.title': 'Mesin pencari',
-  'settings.search.menuDesc':
-    'Baku bagi OpenHuman- mengatur pencarian atau menghubungkan penyedia anda sendiri dengan kunci API.',
   'settings.search.statusNeedsKey': 'Memerlukan kunci API',
   'settings.search.getApiKey': 'Dapatkan kunci API',
-  'settings.search.save': 'Simpan',
-  'settings.search.clear': 'Hapus',
   'settings.search.show': 'Tampilkan',
   'settings.search.hide': 'Sembunyikan',
   'settings.search.statusSaving': 'Menyimpan…',
@@ -1528,29 +1554,18 @@ const messages: TranslationMap = {
   'settings.search.accessBlockAll': 'Blokir semua',
   'settings.search.accessBlockAllHint':
     'Semua akses web diblokir - asisten tidak dapat membuka atau membaca website apapun.',
-  'settings.search.description':
-    'Pencarian dapat memakai beberapa penyedia sekaligus. Exa dan Gemini sudah termasuk dalam TinyHumans tanpa pengaturan; penyedia lain bekerja dengan kunci API milik Anda. Setiap peran di bawah memakai penyedia pertama yang tersedia lalu beralih ke penyedia berikutnya.',
   'settings.search.localManagedUnavailable':
-    'Penyedia yang termasuk dalam TinyHumans memerlukan Anda masuk. Aktifkan penyedia dengan kunci API milik Anda untuk memakai pencarian web di sesi lokal.',
+    'Penyedia melalui TinyHumans memerlukan Anda masuk. Hubungkan penyedia dengan kunci API milik Anda untuk memakai pencarian web di sesi lokal.',
   'settings.search.enabledLabel': 'Pencarian web',
-  'settings.search.enabledDesc':
-    'Izinkan agen mencari di web, menjawab pertanyaan dari sumber web, dan membaca halaman.',
-  'settings.search.providersTitle': 'Penyedia',
-  'settings.search.providersDesc':
-    'Aktifkan penyedia yang Anda inginkan. Beberapa bisa aktif sekaligus; peran di bawah menentukan mana yang dicoba lebih dulu.',
   'settings.search.providerToggleAria': 'Gunakan {provider}',
-  'settings.search.routeAria': 'Koneksi {provider}',
-  'settings.search.routeManaged': 'Termasuk dalam TinyHumans',
-  'settings.search.routeDirect': 'Kunci sendiri',
+  'settings.search.routeManaged': 'melalui TinyHumans',
+  'settings.search.routeDirect': 'Kunci milik Anda',
   'settings.search.apiKeyLabel': 'Kunci API {provider}',
   'settings.search.placeholderKey': 'Tempel kunci API {provider} Anda',
   'settings.search.baseUrlLabel': 'URL instans',
-  'settings.search.baseUrlSave': 'Simpan URL',
   'settings.search.statusReady': 'Siap',
   'settings.search.statusSignInRequired': 'Perlu masuk',
   'settings.search.statusOff': 'Nonaktif',
-  'settings.search.deepResearchAvailable':
-    'Riset mendalam tersedia: agen dapat meminta laporan yang lebih panjang dan menyeluruh dari {provider}.',
   'settings.search.deepResearchHint':
     'Tambahkan kunci {provider} milik Anda untuk membuka riset mendalam.',
   'settings.search.rolesTitle': 'Peran',
@@ -1563,9 +1578,6 @@ const messages: TranslationMap = {
     'Jawaban tertulis berdasarkan sumber web, lengkap dengan kutipan.',
   'settings.search.roleContents': 'Konten',
   'settings.search.roleContentsDesc': 'Mengambil halaman yang diberikan dan mengekstrak teksnya.',
-  'settings.search.roleServedBy': 'Dilayani oleh {provider}',
-  'settings.search.roleNoProvider':
-    'Tidak ada penyedia yang tersedia: agen belum mendapat alat ini sekarang.',
   'settings.search.roleMoveUp': 'Naikkan {provider}',
   'settings.search.roleMoveDown': 'Turunkan {provider}',
   'settings.search.roleRemove': 'Hapus {provider}',
@@ -1575,7 +1587,46 @@ const messages: TranslationMap = {
   'settings.search.advancedTitle': 'Lanjutan',
   'settings.search.exposeProviderTools': 'Tampilkan alat bawaan setiap penyedia',
   'settings.search.exposeProviderToolsDesc':
-    'Beri agen alat dari setiap penyedia yang aktif, sebagai ganti satu alat per peran. Ini memakai lebih banyak jendela konteks.',
+    'Mengganti alat pencarian yang dirutekan dengan alat milik setiap penyedia yang aktif. Agen yang hanya mengenal alat yang dirutekan, termasuk agen utama, tidak lagi punya pencarian web, dan alat tambahan memakai lebih banyak jendela konteks. Biarkan nonaktif kecuali Anda sedang menguji penyedia.',
+  'settings.search.tabProviders': 'Penyedia',
+  'settings.search.tabRouting': 'Perutean',
+  'settings.search.tabWebsites': 'Situs web',
+  'settings.search.offNotice':
+    'Pencarian web nonaktif. Agen tidak dapat mencari atau membaca web sampai Anda mengaktifkannya kembali.',
+  'settings.search.connectedTitle': 'Terhubung',
+  'settings.search.connectedDesc':
+    'Penyedia yang dapat dipakai agen. Beberapa bisa aktif sekaligus; tab Perutean menentukan mana yang dicoba lebih dulu.',
+  'settings.search.connectedEmpty': 'Belum ada penyedia yang terhubung. Pilih salah satu di bawah.',
+  'settings.search.catalogTitle': 'Tambah penyedia',
+  'settings.search.catalogDesc':
+    'Pilih penyedia untuk dihubungkan. Anda bisa menambahkan lagi kapan saja.',
+  'settings.search.catalogManagedTitle': 'Melalui TinyHumans',
+  'settings.search.catalogManagedHelper': 'Tanpa pengaturan: sekali klik langsung siap.',
+  'settings.search.catalogOwnTitle': 'Dengan kunci milik Anda',
+  'settings.search.catalogOwnHelper':
+    'Gunakan kunci API dari penyedia, atau arahkan ke instans milik Anda.',
+  'settings.search.addProviderAria': 'Hubungkan {provider}',
+  'settings.search.detailOwnKey': 'Kunci API milik Anda',
+  'settings.search.detailNoKey': 'Belum ada kunci API',
+  'settings.search.detailNoUrl': 'Belum ada URL instans',
+  'settings.search.deepResearchBadge': 'Riset mendalam',
+  'settings.search.rowActions': 'Opsi {provider}',
+  'settings.search.actionUseOwnKey': 'Pakai kunci milik Anda',
+  'settings.search.actionUseManaged': 'Pakai melalui TinyHumans',
+  'settings.search.actionAddKey': 'Tambah kunci API',
+  'settings.search.actionAddDeepResearchKey': 'Tambah kunci untuk riset mendalam',
+  'settings.search.actionReplaceKey': 'Ganti kunci API',
+  'settings.search.actionRemoveKey': 'Hapus kunci API',
+  'settings.search.actionEditUrl': 'Ubah URL instans',
+  'settings.search.connectTitle': 'Hubungkan {provider}',
+  'settings.search.connect': 'Hubungkan',
+  'settings.search.baseUrlHint': 'Alamat instans SearXNG Anda, termasuk port.',
+  'settings.search.roleServing': 'Digunakan',
+  'settings.search.roleNoProviderShort': 'Tidak ada penyedia yang tersedia',
+  'settings.search.roleFallbacks': 'Cadangan: {providers}',
+  'settings.search.roleNoFallback': 'Tanpa cadangan',
+  'settings.search.roleDialogDesc':
+    'Penyedia pertama yang tersedia menangani tugas ini. Jika gagal atau tidak tersedia, penyedia berikutnya dicoba.',
   // ─── Settings global search bar ────────────────────────────
   'settings.embeddings.title': 'Sematan',
   'settings.embeddings.description':
@@ -2363,7 +2414,6 @@ const messages: TranslationMap = {
   'common.enable': 'Aktifkan',
   'chat.safetyTimeout': 'Tidak ada respons dari agen setelah 2 menit. Coba lagi atau cek koneksi.',
   'chat.filter.general': 'Umum',
-  'chat.filter.subconscious': 'Bawah sadar',
   'chat.filter.meetings': 'Rapat',
   'chat.filter.tasks': 'Tugas',
   'chat.selectThread': 'Pilih thread',
@@ -3600,8 +3650,6 @@ const messages: TranslationMap = {
   'conversations.tools.planNextSteps.done': 'Langkah berikutnya direncanakan',
   'conversations.tools.reviewWork.active': 'Meninjau pekerjaan',
   'conversations.tools.reviewWork.done': 'Pekerjaan ditinjau',
-  'conversations.tools.scoutContext.active': 'Menelusuri konteks',
-  'conversations.tools.scoutContext.done': 'Konteks ditelusuri',
   'conversations.tools.useTools.active': 'Menggunakan alat',
   'conversations.tools.useTools.done': 'Alat digunakan',
   'conversations.tools.checkConnectedApp.active': 'Memeriksa aplikasi terhubung Anda',
@@ -4796,7 +4844,7 @@ const messages: TranslationMap = {
   'settings.ai.codexAuthHelper': 'Menggunakan login Codex CLI yang ada dari ~/.codex/auth.json.',
   'settings.ai.backgroundLoops': 'Perulangan latar belakang',
   'settings.ai.backgroundLoopsDesc':
-    'Lihat apa yang berjalan tanpa pesan obrolan, jeda kerja detak jantung, dan memeriksa buku kas kredit baru-baru ini.',
+    'Lihat apa yang berjalan tanpa pesan obrolan dan periksa baris buku kas kredit terbaru.',
   'settings.ai.loopMap': 'Peta loop',
   'settings.ai.routeLabel': 'rute: {route}',
   'settings.ai.on': 'aktif',
@@ -4920,7 +4968,7 @@ const messages: TranslationMap = {
     'Model digunakan selama interaksi pengguna langsung, membalas, penalaran, loop agen, dan bantuan coding.',
   'settings.ai.routing.backgroundTasks': 'Tugas Latar Belakang',
   'settings.ai.routing.bgTasksDesc':
-    'Model digunakan di luar aliran percakapan utama untuk summarisasi, detak jantung, pembelajaran, dan evaluasi bawah sadar.',
+    'Model yang digunakan di luar alur percakapan utama untuk ringkasan memori dan pembelajaran.',
   'settings.ai.routing.workload.chat.label': 'Chat',
   'settings.ai.routing.workload.chat.description':
     'Percakapan langsung bolak-balik: Mode “Cepat” dalam Percakapan',
@@ -4950,20 +4998,10 @@ const messages: TranslationMap = {
   'settings.ai.routing.workload.memory.description': 'Ekstraksi dan konsolidasi pohon',
   'settings.ai.routing.workload.memory.hint':
     'Direkomendasikan: model peringkasan yang lebih murah. Hal ini harus konsisten dan kompak, namun tidak memerlukan penalaran tingkat premium.',
-  'settings.ai.routing.workload.heartbeat.label': 'Heartbeat',
-  'settings.ai.routing.workload.heartbeat.description':
-    'Alasan latar belakang antar giliran pengguna',
-  'settings.ai.routing.workload.heartbeat.hint':
-    'Direkomendasikan: model latar belakang yang murah dan efisien. Hal ini sering terjadi di antara belokan, jadi biaya rendah lebih penting daripada kecerdasan maksimal.',
   'settings.ai.routing.workload.learning.label': 'Pembelajaran · Refleksi',
   'settings.ai.routing.workload.learning.description': 'Refleksi berkala atas sejarah terkini',
   'settings.ai.routing.workload.learning.hint':
     'Direkomendasikan: model reflektif yang lebih kuat. Ini bisa menjadi biaya menengah atau premium karena mendapat manfaat dari sintesis yang lebih baik dalam sejarah terkini.',
-  'settings.ai.routing.workload.subconscious.label': 'Subconscious',
-  'settings.ai.routing.workload.subconscious.description':
-    'Penilaian kejadian + pemeriksaan penyimpangan',
-  'settings.ai.routing.workload.subconscious.hint':
-    'Direkomendasikan: model pemantauan yang sangat murah, idealnya model yang ringan dan dapat diprediksi. Ini untuk penilaian kejadian, pemeriksaan penyimpangan, dan evaluasi latar belakang yang tenang.',
   'settings.ai.routing.addCustomProvider': 'Tambahkan Penyedia Khusus',
   'settings.ai.globalModel.title': 'Pilih satu model untuk semuanya',
   'settings.ai.globalModel.desc':
@@ -4974,8 +5012,6 @@ const messages: TranslationMap = {
   'settings.ai.globalModel.model': 'Model AI',
   'settings.ai.globalModel.loadingModels': 'Memuat model…',
   'settings.ai.globalModel.enterModelId': 'Masukkan id model',
-  'settings.ai.globalModel.appliesToAll':
-    'Applies penyedia + model yang sama untuk chatting, penalaran, coding, memori, detak jantung, belajar, dan bawah sadar. Embeddings dikonfigurasi secara terpisah. Perubahan simpan ketika Anda klik save.',
   'settings.ai.globalModel.saving': 'Menyimpan…',
   'settings.ai.globalModel.saved': 'Tersimpan',
   'settings.ai.workload.noModel': 'Tidak ada model yang dipilih',
@@ -5159,6 +5195,7 @@ const messages: TranslationMap = {
   'settings.cron.jobs.removing': 'Menghapus',
   'settings.cron.jobs.resume': 'Lanjutkan',
   'settings.cron.jobs.runningNow': 'Sedang berjalan',
+  'settings.cron.jobs.runNow': 'Jalankan sekarang',
   'settings.cron.jobs.saving': 'Menyimpan...',
   'settings.cron.jobs.schedule': 'Jadwal',
   'settings.cron.jobs.title': 'Cron Job Core',
@@ -5360,8 +5397,6 @@ const messages: TranslationMap = {
   'settings.developerMenu.eventLog.badge.comp': 'COMP',
   'settings.developerMenu.eventLog.badge.mcp': 'MCP',
   'settings.developerMenu.intelligence.title': 'Kecerdasan',
-  'settings.developerMenu.intelligence.desc':
-    'Ruang kerja memori, mesin bawah sadar, mimpi, dan pengaturan',
   'settings.developerMenu.notificationRouting.title': 'Routing Notifikasi',
   'settings.developerMenu.notificationRouting.desc':
     'Penilaian kepentingan AI dan eskalasi orkestrator untuk peringatan integrasi',
@@ -6213,7 +6248,6 @@ const messages: TranslationMap = {
   'devOptions.menuWebhooksDebugDesc':
     'Periksa pendaftaran webhook runtime dan log permintaan yang ditangkap',
   'devOptions.menuIntelligence': 'Kecerdasan',
-  'devOptions.menuIntelligenceDesc': 'Workspace memori, mesin subconscious, mimpi, dan pengaturan',
   'devOptions.menuNotificationRouting': 'Routing Notifikasi',
   'devOptions.menuNotificationRoutingDesc':
     'Skor kepentingan AI dan eskalasi orkestrator untuk alert integrasi',
@@ -6973,8 +7007,8 @@ const messages: TranslationMap = {
   'settings.ai.perWeek': '{count}/minggu',
   'settings.ai.perWeekMax': '{count}/minggu maksimum',
   'settings.ai.perHour': '{amount}/jam',
-  'settings.ai.plannerSyncBreakdown': '{planner} perencana + {sync} sinkronisasi',
   'settings.ai.memoryPollsDetail': '{count} pemeriksaan memori',
+  'settings.ai.connectionSyncBreakdown': '{sync} sinkronisasi koneksi',
   'settings.ai.rowsLeftFormula': 'sisa / rata-rata baris = {remaining} / {avgRow}',
   'settings.ai.needSpendRowsToEstimate':
     'Baris pengeluaran terbaru diperlukan untuk memperkirakan.',
@@ -7126,7 +7160,6 @@ const messages: TranslationMap = {
   'channels.availableDesc':
     'Aplikasi percakapan yang dapat Anda hubungkan. Buka satu untuk mengaturnya.',
   'settings.about.resources': 'Sumber Daya',
-  'settings.search.keyStored': 'Tersimpan',
   'settings.embeddings.modelCardTitle': '& dimensi model',
   'mcp.rows.searchPlaceholder': 'Cari server...',
   'mcp.tab.section.clients': 'Klien',

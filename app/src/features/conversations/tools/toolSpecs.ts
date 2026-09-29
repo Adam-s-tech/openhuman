@@ -333,9 +333,6 @@ export const EXACT_TOOL_SPECS: Record<string, ToolSpec> = {
   ask_user_clarification: spec('askQuestion', MessageCircleQuestionIcon, 'agent', {
     chip: chip.text('question'),
   }),
-  agent_prepare_context: spec('prepareContext', LayersIcon, 'agent', {
-    chip: chip.text('question'),
-  }),
   extract_from_result: spec('extractDetails', LayersIcon, 'agent'),
 
   // ── Planning ────────────────────────────────────────────────────────────
@@ -608,11 +605,14 @@ export const FAMILY_TOOL_SPECS: ReadonlyArray<{ test: RegExp; spec: ToolSpec }> 
  * Named agents, reached as `subagent:<id>`, as `spawn_subagent { agent_id }`,
  * as `delegate_<id>`, or as the custom delegate tool names agent TOMLs
  * declare (`delegate_name`).
+ *
+ * Some entries name specialists the core no longer ships (`code_executor`,
+ * `tools_agent`, `do_crypto`, `manage_settings`, `schedule_task`,
+ * `use_mcp_server`, `ask_docs`, `run_code`, `review_code`, `plan`): they are
+ * now inline skills, but existing transcripts still replay those calls, so the
+ * labels stay for history.
  */
 export const AGENT_SPECS: Record<string, ToolSpec> = {
-  researcher: spec('research', TelescopeIcon, 'agent'),
-  research: spec('research', TelescopeIcon, 'agent'),
-  context_scout: spec('scoutContext', LayersIcon, 'agent'),
   orchestrator: spec('planNextSteps', BotIcon, 'agent'),
   plan: spec('planNextSteps', BotIcon, 'agent'),
   planner: spec('planNextSteps', BotIcon, 'agent'),

@@ -246,7 +246,7 @@ are documented rather than hidden; each is a candidate follow-up in the core.
   `summarizer`, …) for your agents.
 - Sub-agents an agent spawns, the tinyagents journal and the experience store
   re-read the runtime's on-disk config rather than the agent's overlay.
-- Agents sharing a workspace share the dynamic (`use_mcp_server`) MCP
+- Agents sharing a workspace share the dynamic (`mcp_registry_*`) MCP
   registry; `[[mcp_client.servers]]` declared through `AgentSpec::mcp` are
   per agent. The host-seeded documentation server is visible to every agent.
 - `install_skill` / `create_skill` still write to `~/.openhuman`. With
@@ -345,8 +345,7 @@ time. Run them with `cargo test -p openhuman-embed --features inference,mcp,skil
 
 Its only in-repo dependency is `openhuman-core` (package `openhuman`) with
 `default-features = false`: every capability comes from a feature forwarded
-above. It does not depend on `openhuman-rpc` directly; the shared
-`RpcOutcome` and `StructuredRpcError` types reach it through
-`openhuman_core::rpc`. `openhuman-app` and `openhuman-tui` depend on
-`openhuman-rpc` for its HTTP client and on `openhuman-core`; neither uses
-`openhuman-embed`.
+above. It does not depend on `openhuman-rpc`; `Outcome` and `StructuredRpcError`
+are core types (`openhuman_core::core`). `openhuman-app` and `openhuman-tui`
+depend on `openhuman-rpc` for its client (and the app on its server) and on
+`openhuman-core`; neither uses `openhuman-embed`.

@@ -354,8 +354,7 @@ fn parent_context(workspace: PathBuf, provider: Arc<ScriptedModel>) -> ParentExe
         agent_definition_id: "orchestrator".into(),
         allowed_subagent_ids: [
             "test".to_string(),
-            "tools_agent".to_string(),
-            "integrations_agent".to_string(),
+            "task_manager_agent".to_string(),
         ]
         .into_iter()
         .collect(),
@@ -588,6 +587,7 @@ fn round16_all_tools_registry_branches_and_browser_allowlist() {
         disallowed_tools: Vec::new(),
         timeout_secs: 10,
         auth: McpAuthConfig::None,
+        ..Default::default()
     });
 
     let tools = all_tools(

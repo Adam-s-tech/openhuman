@@ -20,9 +20,7 @@ fn background_roles_fall_back_to_cloud() {
         "embeddings",
         "memory",
         "summarization",
-        "heartbeat",
         "learning",
-        "subconscious",
         "agentic",
         "burst",
     ] {
@@ -64,9 +62,9 @@ fn fallback_notice_names_capability_local_model_and_override() {
 
 #[test]
 fn fallback_notice_for_role_without_capability_label_uses_role_name() {
-    let msg = cloud_fallback_notice("heartbeat", "ollama:gemma3:1b", "openhuman");
-    assert!(msg.contains("Heartbeat"), "got: {msg}");
-    assert!(msg.contains("heartbeat_provider"), "got: {msg}");
+    let msg = cloud_fallback_notice("learning", "ollama:gemma3:1b", "openhuman");
+    assert!(msg.contains("Learning"), "got: {msg}");
+    assert!(msg.contains("learning_provider"), "got: {msg}");
 }
 
 #[test]

@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use serde_json::{json, Value};
-use tinydesktop_bus::{
+use tinycomputer_bus::{
     names, FindRequest, LaunchRequest, ListAppsRequest, ListWindowsRequest, RefRequest,
     RunGoalRequest, SnapshotRequest, TypeRequest, VisiblePredicate,
 };
