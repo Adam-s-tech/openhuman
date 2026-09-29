@@ -32,7 +32,7 @@ struct AuthOauthRevokeParams {
     integration_id: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct AuthOauthClientKeyParams {
     integration_id: String,
