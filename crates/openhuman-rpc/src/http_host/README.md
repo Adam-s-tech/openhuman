@@ -1,6 +1,6 @@
 # http_host
 
-Static directory hosting over ad-hoc, in-process HTTP listeners owned by the core. Lets trusted callers (RPC/CLI) start, inspect, list, and stop lightweight file servers that expose a chosen directory on a chosen TCP port. Each server runs as an in-process `axum` task sharing the core's lifetime, and defaults to HTTP Basic authentication using the active user's identity plus a randomly generated password. There is no on-disk persistence. The registry of running servers lives in process memory and is torn down on shutdown.
+Static directory hosting over ad-hoc, in-process HTTP listeners. Lives in `openhuman-rpc` (feature `server`) rather than the core, because it is HTTP transport. Lets trusted callers (RPC/CLI) start, inspect, list, and stop lightweight file servers that expose a chosen directory on a chosen TCP port. Each server runs as an in-process `axum` task sharing the core's lifetime, and defaults to HTTP Basic authentication using the active user's identity plus a randomly generated password. There is no on-disk persistence. The registry of running servers lives in process memory and is torn down on shutdown.
 
 ## Responsibilities
 
@@ -16,16 +16,16 @@ Static directory hosting over ad-hoc, in-process HTTP listeners owned by the cor
 
 | File | Role |
 | --- | --- |
-| `crates/openhuman-core/src/http_host/mod.rs` | Module docstring + declarations; re-exports controller schema/registry pair; defines `LOG_PREFIX = "[http_host]"`. |
-| `crates/openhuman-core/src/http_host/types.rs` | Serde types: `StartHostedDirParams`, `HostedDirLookupParams`, `HostedDirServerInfo`, `HostedDirAuth`, and the `*Result` response shapes. |
-| `crates/openhuman-core/src/http_host/ops.rs` | In-process server manager: `HostedDirRegistry` (Mutex<HashMap>) + `OnceLock` singleton, `start/list/get/stop/stop_all` ops, shutdown-hook registration, finished-task pruning, collision checks. |
-| `crates/openhuman-core/src/http_host/handlers.rs` | `axum` router + request handlers (`HostedDirState`, `build_router`, root/path/file/directory serving, streamed file responses, generated directory listing HTML). |
-| `crates/openhuman-core/src/http_host/auth.rs` | Basic-auth verification (`ensure_authorized`), default username resolution from session/env, username sanitization, random password generation. |
-| `crates/openhuman-core/src/http_host/path_utils.rs` | Path safety + URL/HTML helpers: directory canonicalization, request-path traversal resolution, bind-host/label sanitization, href builders, `escape_html`, `content_type_for_path`, `redact_path_for_log`. |
-| `crates/openhuman-core/src/http_host/rpc.rs` | RPC adapters wrapping ops into `Outcome<T>` (`start`/`stop`/`get`/`list`). |
-| `crates/openhuman-core/src/http_host/schemas.rs` | `ControllerSchema`s + `handle_*` controller handlers; `all_controller_schemas` / `all_registered_controllers`. |
-| `crates/openhuman-core/src/http_host/http_host_tests.rs` | Module-level tests (start/list/stop round-trip with Basic auth, path traversal rejection, username sanitization/resolution); mounted from `mod.rs` via `#[path = "http_host_tests.rs"] mod tests`. |
-| `crates/openhuman-core/src/http_host/schemas_tests.rs` | Controller-schema tests (schema/handler inventory parity, required inputs, unknown-function fallback); mounted from `schemas.rs` the same way. |
+| `crates/openhuman-rpc/src/http_host/mod.rs` | Module docstring + declarations; re-exports controller schema/registry pair; defines `LOG_PREFIX = "[http_host]"`. |
+| `crates/openhuman-rpc/src/http_host/types.rs` | Serde types: `StartHostedDirParams`, `HostedDirLookupParams`, `HostedDirServerInfo`, `HostedDirAuth`, and the `*Result` response shapes. |
+| `crates/openhuman-rpc/src/http_host/ops.rs` | In-process server manager: `HostedDirRegistry` (Mutex<HashMap>) + `OnceLock` singleton, `start/list/get/stop/stop_all` ops, shutdown-hook registration, finished-task pruning, collision checks. |
+| `crates/openhuman-rpc/src/http_host/handlers.rs` | `axum` router + request handlers (`HostedDirState`, `build_router`, root/path/file/directory serving, streamed file responses, generated directory listing HTML). |
+| `crates/openhuman-rpc/src/http_host/auth.rs` | Basic-auth verification (`ensure_authorized`), default username resolution from session/env, username sanitization, random password generation. |
+| `crates/openhuman-rpc/src/http_host/path_utils.rs` | Path safety + URL/HTML helpers: directory canonicalization, request-path traversal resolution, bind-host/label sanitization, href builders, `escape_html`, `content_type_for_path`, `redact_path_for_log`. |
+| `crates/openhuman-rpc/src/http_host/rpc.rs` | RPC adapters wrapping ops into `Outcome<T>` (`start`/`stop`/`get`/`list`). |
+| `crates/openhuman-rpc/src/http_host/schemas.rs` | `ControllerSchema`s + `handle_*` controller handlers; `all_controller_schemas` / `all_registered_controllers`. |
+| `crates/openhuman-rpc/src/http_host/http_host_tests.rs` | Module-level tests (start/list/stop round-trip with Basic auth, path traversal rejection, username sanitization/resolution); mounted from `mod.rs` via `#[path = "http_host_tests.rs"] mod tests`. |
+| `crates/openhuman-rpc/src/http_host/schemas_tests.rs` | Controller-schema tests (schema/handler inventory parity, required inputs, unknown-function fallback); mounted from `schemas.rs` the same way. |
 
 ## Public surface
 
