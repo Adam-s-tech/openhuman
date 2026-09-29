@@ -12,6 +12,7 @@ const log = debug('brain:memory-engine');
 
 /** How long a fetched engine snapshot is reused by views mounting close together. */
 export const MEMORY_ENGINE_CACHE_TTL_MS = 5000;
+const MEMORY_ENGINE_REQUEST_TIMEOUT_MS = 10_000;
 
 export interface MemoryEngineView {
   /** True until the first answer (or failure) arrives. */
@@ -44,6 +45,7 @@ const INITIAL: Snapshot = { loading: true, engines: [], current: null, error: nu
 
 let snapshot: Snapshot = INITIAL;
 let inflight: Promise<void> | null = null;
+let revision = 0;
 const listeners = new Set<(s: Snapshot) => void>();
 
 function publish(next: Snapshot) {
@@ -56,13 +58,24 @@ function publish(next: Snapshot) {
  * in-flight request and callers within the TTL share its result.
  */
 function fetchSnapshot(force: boolean): Promise<void> {
-  if (inflight) return inflight;
+  if (inflight) {
+    return inflight.then(() =>
+      force && snapshot.fetchedAt === 0 ? fetchSnapshot(true) : undefined
+    );
+  }
   const fresh =
     snapshot.fetchedAt > 0 && Date.now() - snapshot.fetchedAt < MEMORY_ENGINE_CACHE_TTL_MS;
   if (!force && fresh && snapshot.error === null) return Promise.resolve();
+  const requestedRevision = revision;
   inflight = (async () => {
     try {
-      const [list, current] = await Promise.all([memoryEnginesList(), memoryEngineGet()]);
+      const [list, current] = await Promise.race([
+        Promise.all([memoryEnginesList(), memoryEngineGet()]),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("Memory engine status request timed out")), MEMORY_ENGINE_REQUEST_TIMEOUT_MS)
+        ),
+      ]);
+      if (requestedRevision !== revision) return;
       log('loaded engines=%d active=%s', list.engines.length, current.driver);
       publish({
         loading: false,
@@ -73,7 +86,9 @@ function fetchSnapshot(force: boolean): Promise<void> {
       });
     } catch (err) {
       log('unavailable: %o', err);
-      publish({ ...snapshot, loading: false, error: err, fetchedAt: Date.now() });
+      if (requestedRevision === revision) {
+        publish({ ...snapshot, loading: false, error: err, fetchedAt: Date.now() });
+      }
     } finally {
       inflight = null;
     }
@@ -83,13 +98,15 @@ function fetchSnapshot(force: boolean): Promise<void> {
 
 /** Drop the cached snapshot (after a switch) so the next reader re-fetches. */
 export function invalidateMemoryEngine(): void {
-  snapshot = { ...snapshot, fetchedAt: 0 };
+  revision += 1;
+  publish({ ...snapshot, fetchedAt: 0 });
 }
 
 /** Test seam: forget everything, including subscribers' last value. */
 export function resetMemoryEngineCacheForTests(): void {
   snapshot = INITIAL;
   inflight = null;
+  revision = 0;
 }
 
 /**

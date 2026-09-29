@@ -261,6 +261,9 @@ async fn run_job<F, Fut>(
             );
         }
         CopyEnd::Finished(Ok(report)) => {
+            // The copy is past its cancellation point. Removing the signal
+            // makes concurrent cancel requests report `cancelled: false`.
+            cancels().remove(&job_id);
             update_job(&job_id, |j| j.copied = report.records);
             match commit().await {
                 Ok(()) => {
@@ -283,8 +286,7 @@ async fn run_job<F, Fut>(
 
 /// Shown on a finished job: what the copy cannot promise.
 const WRITES_DURING_COPY_NOTE: &str =
-    "Memories written while the copy was running may not have been \
-     copied. The previous engine still holds them; migrate again to copy any that are missing.";
+    "Memories written while the copy was running may not have been copied. The previous engine still holds them; this migration does not provide a second-pass delta copy.";
 
 /// Spawn [`run_job`] under a supervisor so a panic fails the job instead of
 /// leaving it "running" forever.

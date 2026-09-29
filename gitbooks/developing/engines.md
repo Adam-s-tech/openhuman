@@ -94,8 +94,7 @@ switches only after a clean copy; the source is never modified, and a failed
 run leaves the active engine alone. A running copy can be cancelled (`engine_migrate_cancel`, between pages), is
 bounded by `OPENHUMAN_MEMORY_MIGRATE_TIMEOUT_SECS` (default 2 hours) and fails, not
 hangs, if its task panics. Records written while a copy runs may be missing from
-the new engine; the job result carries a `note` saying so, and migrating again
-copies them. `OPENHUMAN_MEMORY_DRIVER` pins the engine and makes the switch RPCs
+the new engine; the job result carries a `note` saying so, and this migration does not provide a second-pass delta copy. `OPENHUMAN_MEMORY_DRIVER` pins the engine and makes the switch RPCs
 refuse.
 
 `binding::admit` admits `tinymemory` (with `tinycortex` kept as a legacy

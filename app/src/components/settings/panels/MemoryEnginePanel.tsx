@@ -26,7 +26,7 @@ import {
   type MemoryEngineState,
   type MemoryEngineTarget,
 } from '../../../utils/tauriCommands/memoryEngine';
-import { useMemoryEngine } from '../../intelligence/useMemoryEngineCapabilities';
+import { invalidateMemoryEngine, useMemoryEngine } from '../../intelligence/useMemoryEngineCapabilities';
 import { Alert, AlertDescription, Button, CenteredLoadingState } from '../../ui';
 import { RadioGroupRoot } from '../../ui/RadioGroup';
 import SettingsPanel from '../layout/SettingsPanel';
@@ -225,6 +225,8 @@ export default function MemoryEnginePanel() {
     try {
       await memoryEngineSet(target);
       log('engine set driver=%s', target.driver);
+      invalidateMemoryEngine();
+      await refresh();
       if (!mounted.current) return;
       await finishSwitch(target.driver);
     } catch (err) {

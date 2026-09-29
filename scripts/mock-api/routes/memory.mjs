@@ -125,6 +125,11 @@ export async function handleMemory(ctx) {
   const body = parsedBody && typeof parsedBody === "object" ? parsedBody : {};
 
   if (route === "experience" && method === "POST") {
+    const key = String(body.idempotency_key || "").trim();
+    if (!key) {
+      fail(res, 400, "MISSING_IDEMPOTENCY_KEY", "idempotency_key is required");
+      return true;
+    }
     const claim = req.headers?.["idempotency-key"];
     if (claim) {
       if (store.claims.has(claim)) {
@@ -133,7 +138,6 @@ export async function handleMemory(ctx) {
       }
       store.claims.add(claim);
     }
-    const key = String(body.idempotency_key || "");
     const text = String(textOf(body) ?? "");
     const seen = store.idempotency.get(key);
     if (seen) {
@@ -201,10 +205,14 @@ export async function handleMemory(ctx) {
     const ids = Array.isArray(body.selector?.memory_ids)
       ? body.selector.memory_ids.map(String)
       : [];
-    const narrowed = ["about_subject", "about_entity", "predicate"].some(
+    const unsupported = ["about_subject", "about_entity", "predicate"].some(
       (f) => body.selector && body.selector[f] !== undefined,
     );
-    const selective = ids.length > 0 || narrowed;
+    if (unsupported) {
+      fail(res, 400, "UNSUPPORTED_SELECTOR", "the memory mock supports only memory_ids selectors");
+      return true;
+    }
+    const selective = ids.length > 0;
     if (selective && body.confirm_all === true) {
       fail(res, 400, "AMBIGUOUS_SELECTOR_CONFIRM_ALL");
       return true;
@@ -214,8 +222,9 @@ export async function handleMemory(ctx) {
       return true;
     }
     const before = store.events.length;
+    const requestedIds = new Set(ids);
     store.events = selective
-      ? store.events.filter((e) => !ids.includes(e.id))
+      ? store.events.filter((e) => e.scope !== scope || !requestedIds.has(e.id))
       : store.events.filter((e) => e.scope !== scope);
     const deleted = before - store.events.length;
     ok(res, {
