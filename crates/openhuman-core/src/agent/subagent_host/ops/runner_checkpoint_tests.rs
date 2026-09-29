@@ -158,3 +158,18 @@ fn the_ids_this_system_actually_mints_are_accepted() {
         );
     }
 }
+
+#[test]
+fn a_legacy_checkpoint_with_toolkit_override_still_parses() {
+    // Checkpoints written before the `toolkit` spawn argument was retired
+    // carry a `toolkit_override` key. Resume must still read them.
+    let mut value = serde_json::to_value(checkpoint_data("task-legacy")).expect("serialise");
+    value
+        .as_object_mut()
+        .expect("checkpoint is an object")
+        .insert("toolkit_override".into(), serde_json::json!("gmail"));
+    let parsed: SubagentCheckpointData =
+        serde_json::from_value(value).expect("legacy checkpoint parses");
+    assert_eq!(parsed.task_id, "task-legacy");
+    assert_eq!(parsed.question, "Which region?");
+}
