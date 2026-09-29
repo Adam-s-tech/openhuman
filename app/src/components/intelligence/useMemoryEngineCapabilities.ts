@@ -72,7 +72,10 @@ function fetchSnapshot(force: boolean): Promise<void> {
       const [list, current] = await Promise.race([
         Promise.all([memoryEnginesList(), memoryEngineGet()]),
         new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("Memory engine status request timed out")), MEMORY_ENGINE_REQUEST_TIMEOUT_MS)
+          setTimeout(
+            () => reject(new Error('Memory engine status request timed out')),
+            MEMORY_ENGINE_REQUEST_TIMEOUT_MS
+          )
         ),
       ]);
       if (requestedRevision !== revision) return;
