@@ -45,7 +45,7 @@ use crate::memory::api::health::MemoryHealth;
 use crate::memory::api::provider::MemoryProvider;
 use crate::memory::api::CONTRACT_VERSION;
 use crate::memory::guard::{GuardPolicy, MemoryGuard};
-#[cfg(test)]
+#[cfg(not(feature = "modules"))]
 use tinymemory_api::null::NullMemoryProvider;
 use tinymemory_api::null::NULL_DRIVER_ID;
 
