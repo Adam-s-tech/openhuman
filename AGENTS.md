@@ -588,8 +588,12 @@ ProductIdentity}`).
 client (`BackendClient`, renamed from `BackendOAuthClient`) and error
 classification. Authenticated `BackendClient` requests go through
 `authed_json`, whose private `finish_authed_json` classifies transient
-transport failures and maps 401/404 responses to typed `BackendApiError`
-variants; `IntegrationClient::map_transport_error`
+transport failures and maps 401s and the transport's typed channel-message
+404s (`ChannelMessageNotFound` / `ChannelMessageRouteMissing`) to typed
+`BackendApiError` variants. What a backend response *means* is decided in
+the transport (`tinyhumans_sdk::classify`, applied by
+`openhuman-tinyhumans`'s `map_sdk_error`), never by reading bodies in the
+core; the recovery stays in the core. `IntegrationClient::map_transport_error`
 (`crates/openhuman-core/src/integrations/client/errors.rs`) plays the same
 role for integrations. Route new backend calls through those helpers instead
 of matching `BackendTransportError` by hand.

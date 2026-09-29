@@ -12,7 +12,7 @@ use openhuman_core::config::Config;
 use openhuman_core::core::Outcome;
 
 use super::types::{IntegrationSummary, IntegrationTokensHandoff};
-use crate::hosted::client::HostedClient;
+use crate::hosted::client::{CredentialKind, HostedClient};
 
 const LOG_PREFIX: &str = "[hosted][oauth]";
 
@@ -145,6 +145,44 @@ pub async fn oauth_revoke_integration(
     Ok(Outcome::single_log(
         json!({ "revoked": true, "integrationId": integration_id }),
         "integration revoked",
+    ))
+}
+
+/// `POST /auth/integrations/{id}/client-key` — the one-time client key share
+/// for an encrypted integration. The backend deletes it from temporary storage
+/// once read.
+///
+/// The route has no typed SDK method and is absent from the backend's
+/// published contract, so it rides the SDK's raw primitive (which still
+/// applies the SDK's route policy). Session-only, as it always was: a
+/// library-mode API key has no integrations to hand off.
+pub async fn oauth_fetch_client_key(
+    config: &Config,
+    integration_id: &str,
+) -> Result<Outcome<Value>, String> {
+    let id = require_integration_id(integration_id)?;
+    let client = HostedClient::from_config(config)?;
+    if client.kind() != CredentialKind::Session {
+        return Err("session JWT required".to_string());
+    }
+    let path = format!("/auth/integrations/{}/client-key", tinyhumans_sdk::enc(id));
+    log::debug!("{LOG_PREFIX} fetching client key for integration {id}");
+    let value = client.finish(
+        "POST /auth/integrations/{integrationId}/client-key",
+        client
+            .sdk()
+            .raw()
+            .send(reqwest::Method::POST, &path, &[], None, true)
+            .await,
+    )?;
+    let client_key = value
+        .get("clientKey")
+        .and_then(Value::as_str)
+        .ok_or_else(|| "fetch client key: missing clientKey in response".to_string())?;
+    log::debug!("{LOG_PREFIX} client key retrieved for integration {id}");
+    Ok(Outcome::single_log(
+        json!({ "clientKey": client_key, "integrationId": id }),
+        "client key retrieved (one-time handoff)",
     ))
 }
 
