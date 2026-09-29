@@ -610,6 +610,11 @@ tinyhosts = { path = "../../vendor/tinyhosts", default-features = false, feature
 # shipped binary, so that does not undo the shed.
 tinywallet-bus = { path = "../../vendor/tinywallet/crates/tinywallet-bus", default-features = false, features = ["btc", "evm", "solana", "tron", "keccak", "net", "wire", "eip712", "abi", "tx-codec"], optional = true }
 
+# The x402 wire types (`tinywallet::x402`) only: the root crate's `x402` gate is
+# serde + the already-linked `eip712` contract gate, so this does not bring back
+# the key/tx/bitcoin stack that the note above keeps out of the binary.
+tinywallet = { path = "../../vendor/tinywallet", default-features = false, features = ["x402"], optional = true }
+
 # secp256k1 signing over the digests the wallet module hands back. Pure Rust,
 # and already in the graph beneath `coins-bip32` (which derives the key being
 # used, via tinywallet's `key` gate), so naming it directly costs nothing and
@@ -919,6 +924,7 @@ voice = [
 # to derive a Solana ATA, which is address arithmetic rather than signing.
 web3 = [
     "dep:tinywallet-bus",
+    "dep:tinywallet",
     "dep:curve25519-dalek",
     "modules",
 ]
