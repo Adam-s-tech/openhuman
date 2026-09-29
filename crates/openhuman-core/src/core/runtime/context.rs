@@ -54,7 +54,9 @@ pub struct CoreContext {
     /// input. They must be read and updated together: a caller that observes a
     /// new workspace with the previous user's memory config could cache a
     /// permanently incorrect memory binding for that workspace.
-    workspace_binding: RwLock<WorkspaceBinding>,
+    /// Shared (`Arc`) so a context derived without a memory override follows
+    /// the parent when the memory engine is switched.
+    workspace_binding: Arc<RwLock<WorkspaceBinding>>,
     /// Which domain families are live for this context (#4796). The registry
     /// filters its controller/schema/dispatch surface by this set via
     /// [`CoreContext::current`] → [`CoreContext::domains`]. `full()` for the
@@ -346,10 +348,10 @@ impl CoreContext {
 
         let ctx = Arc::new(CoreContext {
             host_kind,
-            workspace_binding: RwLock::new(WorkspaceBinding {
+            workspace_binding: Arc::new(RwLock::new(WorkspaceBinding {
                 workspace_dir,
                 memory_subsystem,
-            }),
+            })),
             domains,
             tool_groups,
             embedder_config,
@@ -434,12 +436,28 @@ impl CoreContext {
             overlay.tool_groups,
             overlay.user_skill_roots
         );
+        // A derived context that keeps the parent's workspace and memory config
+        // shares the parent's binding handle, so an engine switch reaches it. One
+        // that deliberately carries its own (another workspace, or its own
+        // `[subsystems.memory]`) keeps that override.
+        let shared_binding = {
+            let parent = self.workspace_binding.read();
+            match parent {
+                Ok(parent)
+                    if parent.workspace_dir.as_deref() == Some(overlay.config.workspace_dir.as_path())
+                        && parent.memory_subsystem == overlay.config.subsystems.memory =>
+                {
+                    Arc::clone(&self.workspace_binding)
+                }
+                _ => Arc::new(RwLock::new(WorkspaceBinding {
+                    workspace_dir: Some(overlay.config.workspace_dir.clone()),
+                    memory_subsystem: overlay.config.subsystems.memory.clone(),
+                })),
+            }
+        };
         Arc::new(CoreContext {
             host_kind: self.host_kind,
-            workspace_binding: RwLock::new(WorkspaceBinding {
-                workspace_dir: Some(overlay.config.workspace_dir.clone()),
-                memory_subsystem: overlay.config.subsystems.memory.clone(),
-            }),
+            workspace_binding: shared_binding,
             domains,
             tool_groups: overlay.tool_groups,
             embedder_config: Some(overlay.config),
@@ -725,10 +743,10 @@ impl CoreContext {
     ) -> Arc<CoreContext> {
         Arc::new(CoreContext {
             host_kind: HostKind::Cli,
-            workspace_binding: RwLock::new(WorkspaceBinding {
+            workspace_binding: Arc::new(RwLock::new(WorkspaceBinding {
                 workspace_dir,
                 memory_subsystem: memory_subsystem.unwrap_or_default(),
-            }),
+            })),
             domains,
             tool_groups: Default::default(),
             embedder_config: None,
@@ -754,10 +772,10 @@ impl CoreContext {
     ) -> Arc<CoreContext> {
         Arc::new(CoreContext {
             host_kind: HostKind::Cli,
-            workspace_binding: RwLock::new(WorkspaceBinding {
+            workspace_binding: Arc::new(RwLock::new(WorkspaceBinding {
                 workspace_dir: Some(config.workspace_dir.clone()),
                 memory_subsystem: Default::default(),
-            }),
+            })),
             domains,
             tool_groups: Default::default(),
             embedder_config: Some(config),
