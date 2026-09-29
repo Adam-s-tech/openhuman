@@ -725,7 +725,6 @@ fn dispatch_task(
         agent_id: agent_id.into(),
         prompt: "do the thing".into(),
         context: None,
-        toolkit: None,
         ownership: ownership.map(str::to_string),
         isolation: isolation.map(str::to_string),
         base_ref: None,

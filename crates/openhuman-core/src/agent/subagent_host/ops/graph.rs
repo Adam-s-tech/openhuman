@@ -45,7 +45,6 @@ mod worker_mirror;
 // unaffected by the responsibility split.
 #[cfg(test)]
 pub(super) use dispatch::inherited_thread_id;
-pub(crate) use dispatch::run_agent_turn_request_via_default_graph;
 pub(super) use dispatch::{run_subagent_via_graph, AggregatedUsage};
 
 // Only what `graph_tests.rs`'s `use super::*` still needs directly (the rest

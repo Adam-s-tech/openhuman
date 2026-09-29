@@ -270,7 +270,6 @@ fn delegation_subagent_options(
         .map(|descriptor| descriptor.root.clone());
     SubagentRunOptions {
         skill_filter_override: None,
-        toolkit_override: None,
         context: None,
         model_override: None,
         task_id: None,
