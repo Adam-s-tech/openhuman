@@ -21,6 +21,8 @@ import PageWelcome from '../components/layout/PageWelcome';
 import { SidebarContent } from '../components/layout/shell/SidebarSlot';
 import TwoPaneNav from '../components/layout/TwoPaneNav';
 import SettingsTabbedPage from '../components/settings/layout/SettingsTabbedPage';
+import MemoryEngineErrorAlert from '../components/settings/panels/MemoryEngineErrorAlert';
+import { classifyMemoryEngineError } from '../components/settings/panels/memoryEngineUtils';
 import { Alert, AlertDescription, Card } from '../components/ui';
 import { useT } from '../lib/i18n/I18nContext';
 import { useCoreState } from '../providers/CoreStateProvider';
@@ -401,9 +403,13 @@ export default function Brain() {
                         again — the exact defect this PR exists to remove.
                       */}
                         {error !== null && graph ? (
-                          <Alert variant="warning">
-                            <AlertDescription>{t('brain.refreshError')}</AlertDescription>
-                          </Alert>
+                          classifyMemoryEngineError(error) !== 'other' ? (
+                            <MemoryEngineErrorAlert error={error} />
+                          ) : (
+                            <Alert variant="warning">
+                              <AlertDescription>{t('brain.refreshError')}</AlertDescription>
+                            </Alert>
+                          )
                         ) : null}
 
                         {graph ? (
@@ -414,9 +420,7 @@ export default function Brain() {
                             emptyHint={t('brain.empty')}
                           />
                         ) : error !== null ? (
-                          <Alert variant="destructive">
-                            <AlertDescription>{t('brain.error')}</AlertDescription>
-                          </Alert>
+                          <MemoryEngineErrorAlert error={error} fallbackText={t('brain.error')} />
                         ) : null}
                       </div>
                     </MemoryFamilyGate>

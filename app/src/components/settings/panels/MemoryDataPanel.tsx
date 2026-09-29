@@ -30,11 +30,18 @@ const MemoryDataPanel = ({ embedded = false }: MemoryDataPanelProps = {}) => {
     setToasts(prev => prev.filter(t => t.id !== id));
   };
 
+  const engineErrorText = useMemoryEngineErrorText();
   const handleWindowError = useCallback(
     (message: string) => {
-      addToast({ type: 'error', title: t('memoryData.windowError'), message });
+      // A hosted engine's 402 / expired session reads as a top-up / sign-in hint.
+      const kind = classifyMemoryEngineError(message);
+      addToast({
+        type: 'error',
+        title: t('memoryData.windowError'),
+        message: kind === 'other' ? message : engineErrorText(kind),
+      });
     },
-    [addToast, t]
+    [addToast, t, engineErrorText]
   );
 
   const handleWindowSaved = useCallback(
