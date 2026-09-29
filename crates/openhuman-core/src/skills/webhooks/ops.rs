@@ -200,7 +200,7 @@ pub async fn trigger_agent(
             }),
             format!("webhooks.trigger_agent deferred for {source}/{caller_id}"),
         )),
-        crate::agent::triage::TriageOutcome::Terminal { reason } => Ok(RpcOutcome::single_log(
+        crate::agent::triage::TriageOutcome::Terminal { reason } => Ok(Outcome::single_log(
             serde_json::json!({
                 "decision": "terminal",
                 "resolution_path": "terminal",
