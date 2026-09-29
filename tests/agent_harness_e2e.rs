@@ -3552,19 +3552,23 @@ fn system_prompt_text(request: &Value) -> String {
 #[cfg(feature = "skills")]
 fn use_skill_offers_pack(request: &Value, pack: &str) -> bool {
     let quoted = format!("\"{pack}\"");
-    let in_schema = request
+    let Some(tools) = request
         .pointer("/body/tools")
         .and_then(Value::as_array)
-        .into_iter()
-        .flatten()
+        .filter(|tools| !tools.is_empty())
+    else {
+        return system_prompt_text(request).contains(&format!("`{pack}`"))
+            || system_prompt_text(request).contains(&quoted);
+    };
+    tools
+        .iter()
         .filter(|tool| {
             tool.pointer("/function/name")
                 .or_else(|| tool.get("name"))
                 .and_then(Value::as_str)
                 == Some("use_skill")
         })
-        .any(|tool| tool.to_string().contains(&quoted));
-    in_schema || system_prompt_text(request).contains(pack)
+        .any(|tool| tool.to_string().contains(&quoted))
 }
 
 /// One scripted turn in which the orchestrator hands a request to a specialist
