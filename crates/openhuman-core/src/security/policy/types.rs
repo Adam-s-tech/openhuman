@@ -186,7 +186,6 @@ pub(super) const WORKSPACE_INTERNAL_DIRS: &[&str] = &[
     "cron",
     "devices",
     "mcp_clients",
-    "subconscious",
     "vault",
     "task_sources",
     // The whatsapp_data store was removed along with the scanner that wrote it,
@@ -194,6 +193,10 @@ pub(super) const WORKSPACE_INTERNAL_DIRS: &[&str] = &[
     // (chat and message history) from an older version. Keep the directory on
     // the internal denylist so agents with workspace access cannot read it.
     "whatsapp_data",
+    // The retired background-reasoning engine kept its SQLite state under
+    // `subconscious/`. The engine is gone, but an upgraded profile can still
+    // hold that database (memory-derived reflections). Keep it denied.
+    "subconscious",
     // The redirect_links domain was removed (#5051), but an upgraded profile can
     // still hold a legacy `redirect_links/links.db` (stored URL history) written
     // by an older version. Keep the directory on the internal denylist so agents
@@ -281,8 +284,7 @@ pub struct SecurityPolicy {
     pub auto_approve: Vec<String>,
     /// When true, the approval gate auto-approves ALL tool calls without
     /// prompting — a blanket bypass, not just the `auto_approve` allowlist
-    /// above. `TrustedAutomationSource::SubconsciousTainted` and
-    /// `AgentTurnOrigin::Unknown` origins are still denied by the gate
+    /// above. `AgentTurnOrigin::Unknown` origins are still denied by the gate
     /// regardless of this flag. A remote-origin triage dispatch is *not* in
     /// that protected set: with this flag on it is allowed without parking and
     /// without a `pending_approvals` audit row (openhuman#5634, accepted).

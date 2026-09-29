@@ -4767,7 +4767,8 @@ const messages: TranslationMap = {
   'settings.ai.codexAuthButton': 'Codex 연결',
   'settings.ai.codexAuthHelper': '~/.codex/auth.json의 기존 Codex CLI 로그인을 사용합니다.',
   'settings.ai.backgroundLoops': '백그라운드 루프',
-  'settings.ai.backgroundLoopsDesc': '채팅 메시지 없이 실행되는 항목을 확인하고 최근 크레딧 원장 행을 검사합니다.',
+  'settings.ai.backgroundLoopsDesc':
+    '채팅 메시지 없이 실행되는 항목을 확인하고 최근 크레딧 원장 행을 검사합니다.',
   'settings.ai.loopMap': '루프 맵',
   'settings.ai.routeLabel': '경로: {route}',
   'settings.ai.on': '켜짐',
@@ -4890,7 +4891,8 @@ const messages: TranslationMap = {
   'settings.ai.routing.chatDesc':
     '직접 사용자 상호작용, 답변, 추론, 에이전트 루프 및 코딩 도움에 사용되는 모델입니다.',
   'settings.ai.routing.backgroundTasks': '백그라운드 작업',
-  'settings.ai.routing.bgTasksDesc': '메모리 요약과 학습처럼 기본 대화 흐름 밖에서 사용되는 모델입니다.',
+  'settings.ai.routing.bgTasksDesc':
+    '메모리 요약과 학습처럼 기본 대화 흐름 밖에서 사용되는 모델입니다.',
   'settings.ai.routing.workload.chat.label': 'Chat',
   'settings.ai.routing.workload.chat.description': '직접 대화 앞뒤로: 대화의 "빠른" 모드',
   'settings.ai.routing.workload.chat.hint':

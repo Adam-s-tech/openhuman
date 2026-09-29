@@ -1,11 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Thread } from '../../../types/thread';
-import {
-  GENERAL_TAB_VALUE,
-  isThreadVisibleInTab,
-  TASKS_TAB_VALUE,
-} from './threadFilter';
+import { GENERAL_TAB_VALUE, isThreadVisibleInTab, TASKS_TAB_VALUE } from './threadFilter';
 
 function thread(overrides: Partial<Thread>): Thread {
   return {

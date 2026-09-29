@@ -3018,7 +3018,6 @@ const en: TranslationMap = {
   'reflections.dismiss': 'Dismiss',
   'reflections.viewConversation': 'View',
 
-
   // WhatsApp
 
   // Sync
@@ -3184,8 +3183,6 @@ const en: TranslationMap = {
   'backend.localDescription':
     'Run models on your own machine using Ollama. Full privacy, requires setup.',
   'backend.ramRecommended': '16GB+ RAM recommended',
-
-
 
   // Actionable
   'actionable.complete': 'Complete',

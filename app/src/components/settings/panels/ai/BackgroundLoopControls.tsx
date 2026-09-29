@@ -111,9 +111,7 @@ export const BackgroundLoopControls = ({
   const composioConnectionScansPerWeek = composioPeriodicTicksPerWeek * activeConnections.length;
   const backgroundApiReadsPerWeek = composioConnectionScansPerWeek;
   const backgroundWakeupsPerWeek =
-    composioPeriodicTicksPerWeek +
-    learningTicksPerWeek +
-    memoryPollsPerWeek;
+    composioPeriodicTicksPerWeek + learningTicksPerWeek + memoryPollsPerWeek;
   const scheduledCallsPerRemainingDollar =
     usage && usage.remainingUsd > 0 ? backgroundApiReadsPerWeek / usage.remainingUsd : null;
   const estimatedRowsLeft =

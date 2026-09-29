@@ -4923,7 +4923,7 @@ const messages: TranslationMap = {
     'Utilise la connexion Codex CLI existante depuis ~/.codex/auth.json.',
   'settings.ai.backgroundLoops': 'Boucles de fond',
   'settings.ai.backgroundLoopsDesc':
-    'Voyez ce qui s\'exécute sans message de discussion et inspectez les lignes récentes du grand livre de crédit.',
+    "Voyez ce qui s'exécute sans message de discussion et inspectez les lignes récentes du grand livre de crédit.",
   'settings.ai.loopMap': 'Carte de boucle',
   'settings.ai.routeLabel': 'itinéraire : {route}',
   'settings.ai.on': 'activée',
@@ -5047,7 +5047,7 @@ const messages: TranslationMap = {
     "Modèles utilisés lors de l'interaction directe avec l'utilisateur, des réponses, du raisonnement, des boucles d'agents et de l'aide à la programmation.",
   'settings.ai.routing.backgroundTasks': 'Tâches en arrière-plan',
   'settings.ai.routing.bgTasksDesc':
-    'Modèles utilisés en dehors du flux principal de conversation pour la synthèse de la mémoire et l\'apprentissage.',
+    "Modèles utilisés en dehors du flux principal de conversation pour la synthèse de la mémoire et l'apprentissage.",
   'settings.ai.routing.workload.chat.label': 'Chat',
   'settings.ai.routing.workload.chat.description':
     'Aller-retour conversationnel direct : mode « Rapide » dans Conversations',

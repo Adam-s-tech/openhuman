@@ -36,15 +36,7 @@ import AIPanel, {
 vi.mock('../../../../services/api/aiSettingsApi', async importOriginal => {
   const actual = await importOriginal<typeof import('../../../../services/api/aiSettingsApi')>();
   return {
-    ALL_WORKLOADS: [
-      'chat',
-      'reasoning',
-      'agentic',
-      'coding',
-      'memory',
-      'embeddings',
-      'learning',
-    ],
+    ALL_WORKLOADS: ['chat', 'reasoning', 'agentic', 'coding', 'memory', 'embeddings', 'learning'],
     loadAISettings: vi.fn(),
     saveAISettings: vi.fn(),
     loadLocalProviderSnapshot: vi.fn(),

@@ -5013,7 +5013,7 @@ const messages: TranslationMap = {
     "Modelli utilizzati durante l'interazione diretta con l'utente, risposte, ragionamento, cicli dell'agente e assistenza alla codifica.",
   'settings.ai.routing.backgroundTasks': 'Attività in background',
   'settings.ai.routing.bgTasksDesc':
-    'Modelli utilizzati al di fuori del flusso principale della conversazione per la sintesi della memoria e l\'apprendimento.',
+    "Modelli utilizzati al di fuori del flusso principale della conversazione per la sintesi della memoria e l'apprendimento.",
   'settings.ai.routing.workload.chat.label': 'Chat',
   'settings.ai.routing.workload.chat.description':
     'Conversazione diretta avanti e indietro: modalità "Rapida" in Conversazioni',
