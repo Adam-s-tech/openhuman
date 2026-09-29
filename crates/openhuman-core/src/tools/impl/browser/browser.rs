@@ -18,7 +18,6 @@ use session_pool::{
 use session_pool::{MAX_THREAD_SESSIONS, SESSION_IDLE_TTL};
 use sha2::{Digest, Sha256};
 use std::{
-    collections::BTreeMap,
     sync::{Arc, Mutex as StdMutex},
     time::Instant,
 };
