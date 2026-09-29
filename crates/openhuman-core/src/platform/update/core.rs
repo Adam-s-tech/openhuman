@@ -124,7 +124,11 @@ fn staged_binary_staging_name() -> &'static str {
     }
 }
 
-fn staged_asset_path(dir: &std::path::Path, asset_name: &str, is_archive: bool) -> std::path::PathBuf {
+fn staged_asset_path(
+    dir: &std::path::Path,
+    asset_name: &str,
+    is_archive: bool,
+) -> std::path::PathBuf {
     if is_archive || asset_name == staged_binary_name() {
         dir.join(staged_binary_staging_name())
     } else {
