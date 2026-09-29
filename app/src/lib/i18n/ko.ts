@@ -7226,6 +7226,8 @@ const messages: TranslationMap = {
   'memoryEngine.error.signIn': '로그인',
   'memoryEngine.row.label': '메모리 엔진:',
   'memoryEngine.row.change': '변경',
+  'memoryEngine.unavailable': '{engine}에서는 사용할 수 없음',
+  'memoryEngine.unavailableHint': '이 기능을 사용하려면 메모리 엔진을 바꾸세요.',
   'memoryEngine.engine.tinymemory.label': '로컬 (TinyCortex)',
   'memoryEngine.engine.tinymemory.description':
     'TinyCortex로 이 기기에 저장됩니다. 비공개, 무료이며 기본값입니다.',

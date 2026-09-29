@@ -6926,6 +6926,8 @@ const messages: TranslationMap = {
   'memoryEngine.error.signIn': '登录',
   'memoryEngine.row.label': '记忆引擎：',
   'memoryEngine.row.change': '更改',
+  'memoryEngine.unavailable': '{engine} 不支持此功能',
+  'memoryEngine.unavailableHint': '请切换记忆引擎以使用此功能。',
   'memoryEngine.engine.tinymemory.label': '本地（TinyCortex）',
   'memoryEngine.engine.tinymemory.description':
     '通过 TinyCortex 存储在此设备上。私密、免费，为默认选项。',

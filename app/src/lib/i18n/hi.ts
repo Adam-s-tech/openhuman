@@ -7309,6 +7309,8 @@ const messages: TranslationMap = {
   'memoryEngine.error.signIn': 'साइन इन करें',
   'memoryEngine.row.label': 'मेमोरी इंजन:',
   'memoryEngine.row.change': 'बदलें',
+  'memoryEngine.unavailable': '{engine} के साथ उपलब्ध नहीं',
+  'memoryEngine.unavailableHint': 'इस सुविधा का उपयोग करने के लिए मेमोरी इंजन बदलें।',
   'memoryEngine.engine.tinymemory.label': 'लोकल (TinyCortex)',
   'memoryEngine.engine.tinymemory.description':
     'TinyCortex के साथ इसी डिवाइस पर सहेजा जाता है। निजी, मुफ़्त और डिफ़ॉल्ट।',

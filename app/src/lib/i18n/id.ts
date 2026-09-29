@@ -7357,6 +7357,8 @@ const messages: TranslationMap = {
   'memoryEngine.error.signIn': 'Masuk',
   'memoryEngine.row.label': 'Mesin memori:',
   'memoryEngine.row.change': 'Ubah',
+  'memoryEngine.unavailable': 'Tidak tersedia dengan {engine}',
+  'memoryEngine.unavailableHint': 'Ganti mesin memori untuk memakai fitur ini.',
   'memoryEngine.engine.tinymemory.label': 'Lokal (TinyCortex)',
   'memoryEngine.engine.tinymemory.description':
     'Disimpan di perangkat ini dengan TinyCortex. Privat, gratis, dan bawaan.',

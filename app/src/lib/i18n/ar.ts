@@ -7153,6 +7153,8 @@ const messages: TranslationMap = {
   'memoryEngine.error.signIn': 'تسجيل الدخول',
   'memoryEngine.row.label': 'محرك الذاكرة:',
   'memoryEngine.row.change': 'تغيير',
+  'memoryEngine.unavailable': 'غير متاح مع {engine}',
+  'memoryEngine.unavailableHint': 'بدّل محرك الذاكرة لاستخدام هذه الميزة.',
   'memoryEngine.engine.tinymemory.label': 'محلي (TinyCortex)',
   'memoryEngine.engine.tinymemory.description':
     'يُحفظ على هذا الجهاز باستخدام TinyCortex. خاص ومجاني وهو الخيار الافتراضي.',

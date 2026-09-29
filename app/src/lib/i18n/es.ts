@@ -7463,6 +7463,8 @@ const messages: TranslationMap = {
   'memoryEngine.error.signIn': 'Iniciar sesión',
   'memoryEngine.row.label': 'Motor de memoria:',
   'memoryEngine.row.change': 'Cambiar',
+  'memoryEngine.unavailable': 'No disponible con {engine}',
+  'memoryEngine.unavailableHint': 'Cambia el motor de memoria para usar esta función.',
   'memoryEngine.engine.tinymemory.label': 'En este equipo (TinyCortex)',
   'memoryEngine.engine.tinymemory.description':
     'Guardada en este dispositivo con TinyCortex. Privada, gratuita y predeterminada.',

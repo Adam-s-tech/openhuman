@@ -7509,6 +7509,8 @@ const messages: TranslationMap = {
   'memoryEngine.error.signIn': 'Anmelden',
   'memoryEngine.row.label': 'Speicher-Engine:',
   'memoryEngine.row.change': 'Ändern',
+  'memoryEngine.unavailable': 'Mit {engine} nicht verfügbar',
+  'memoryEngine.unavailableHint': 'Wechsle die Speicher-Engine, um diese Funktion zu nutzen.',
   'memoryEngine.engine.tinymemory.label': 'Lokal (TinyCortex)',
   'memoryEngine.engine.tinymemory.description':
     'Auf diesem Gerät mit TinyCortex gespeichert. Privat, kostenlos und der Standard.',

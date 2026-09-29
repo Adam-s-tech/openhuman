@@ -7622,6 +7622,8 @@ const en: TranslationMap = {
   'memoryEngine.error.signIn': 'Sign in',
   'memoryEngine.row.label': 'Memory engine:',
   'memoryEngine.row.change': 'Change',
+  'memoryEngine.unavailable': 'Not available with {engine}',
+  'memoryEngine.unavailableHint': 'Switch memory engine to use this feature.',
   'memoryEngine.engine.tinymemory.label': 'Local (TinyCortex)',
   'memoryEngine.engine.tinymemory.description':
     'Stored on this device with TinyCortex. Private, free and the default.',

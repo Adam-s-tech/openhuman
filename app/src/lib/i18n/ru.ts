@@ -7384,6 +7384,8 @@ const messages: TranslationMap = {
   'memoryEngine.error.signIn': 'Войти',
   'memoryEngine.row.label': 'Движок памяти:',
   'memoryEngine.row.change': 'Изменить',
+  'memoryEngine.unavailable': 'Недоступно с {engine}',
+  'memoryEngine.unavailableHint': 'Смените движок памяти, чтобы использовать эту функцию.',
   'memoryEngine.engine.tinymemory.label': 'Локальный (TinyCortex)',
   'memoryEngine.engine.tinymemory.description':
     'Хранится на этом устройстве с помощью TinyCortex. Приватно, бесплатно и по умолчанию.',

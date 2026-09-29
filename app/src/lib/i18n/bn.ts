@@ -7308,6 +7308,8 @@ const messages: TranslationMap = {
   'memoryEngine.error.signIn': 'সাইন ইন',
   'memoryEngine.row.label': 'মেমোরি ইঞ্জিন:',
   'memoryEngine.row.change': 'পরিবর্তন',
+  'memoryEngine.unavailable': '{engine}-এ উপলব্ধ নয়',
+  'memoryEngine.unavailableHint': 'এই ফিচারটি ব্যবহার করতে মেমোরি ইঞ্জিন পরিবর্তন করুন।',
   'memoryEngine.engine.tinymemory.label': 'লোকাল (TinyCortex)',
   'memoryEngine.engine.tinymemory.description':
     'TinyCortex দিয়ে এই ডিভাইসে সংরক্ষিত। ব্যক্তিগত, বিনামূল্যে এবং ডিফল্ট।',
