@@ -1,8 +1,9 @@
 //! Streamable HTTP + SSE transport for the OpenHuman MCP server.
 //!
 //! Reuses [`super::protocol`] for JSON-RPC dispatch. Session lifecycle and header
-//! names match [`crate::mcp::http_client::McpHttpClient`] so remote
-//! MCP clients can talk to this server without custom glue.
+//! names match `tinymcp`'s Streamable HTTP client (the header names are the
+//! `tinymcp_bus` constants both sides use) so remote MCP clients can talk to
+//! this server without custom glue.
 
 use std::collections::HashMap;
 use std::convert::Infallible;
@@ -33,8 +34,9 @@ use uuid::Uuid;
 
 use super::protocol;
 
-pub const HEADER_PROTOCOL_VERSION: &str = "MCP-Protocol-Version";
-pub const HEADER_SESSION_ID: &str = "Mcp-Session-Id";
+/// The Streamable HTTP header names, from the contract the client transport
+/// sends, so this server and remote MCP clients spell them alike.
+pub use tinymcp_bus::{HEADER_PROTOCOL_VERSION, HEADER_SESSION_ID};
 
 #[derive(Debug, Clone)]
 pub struct HttpServerConfig {

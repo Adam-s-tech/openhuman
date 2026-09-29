@@ -2,13 +2,10 @@ use serde_json::{json, Map, Value};
 
 use super::{resources, session::McpSession, tools};
 
-pub const LATEST_PROTOCOL_VERSION: &str = "2025-11-25";
-const SUPPORTED_PROTOCOL_VERSIONS: &[&str] = &[
-    "2024-11-05",
-    "2025-03-26",
-    "2025-06-18",
-    LATEST_PROTOCOL_VERSION,
-];
+/// The protocol versions this server negotiates are the contract's, the same
+/// ones `tinymcp`'s client transports accept, so the two cannot drift.
+pub use tinymcp_bus::LATEST_PROTOCOL_VERSION;
+use tinymcp_bus::SUPPORTED_PROTOCOL_VERSIONS;
 
 pub async fn handle_json_line(line: &str) -> Option<String> {
     let mut session = McpSession::default();
