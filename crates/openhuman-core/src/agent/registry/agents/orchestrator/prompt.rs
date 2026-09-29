@@ -38,7 +38,10 @@ pub fn build(ctx: &PromptContext<'_>) -> Result<String> {
     // Resolved once: the skill routes decide both the static rows below
     // and the generated sections further down, and they must agree (#6302).
     let skill_run = run_workflow_route(ctx);
-    let skill_install = hand_off_route(ctx, "skill_setup");
+    // A packed install route is already named under "Capabilities not in your
+    // tool list"; the skills section names it only when it is on the belt.
+    let skill_install =
+        hand_off_route(ctx, "skill_setup").filter(|route| !route.contains(toolpacks::USE_SKILL));
     // An empty visibility set is the builder's unfiltered sentinel. Preserve
     // the MCP route for those sessions while suppressing it in gated-off builds.
     // Registered is enough: the orchestrator defers the registry tools
