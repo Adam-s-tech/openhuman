@@ -2591,6 +2591,7 @@ async fn worker_a_controller_schemas_are_fully_exposed() {
                 "openhuman.config_update_analytics_settings",
                 "openhuman.config_update_autonomy_settings",
                 "openhuman.config_update_browser_settings",
+                "openhuman.config_update_computer_settings",
                 "openhuman.config_update_composio_trigger_settings",
                 "openhuman.config_update_dictation_settings",
                 "openhuman.config_update_local_ai_settings",
