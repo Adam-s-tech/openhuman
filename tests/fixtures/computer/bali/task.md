@@ -15,6 +15,8 @@ Where to look:
   source city button, a destination city button that opens a search box
   ("Denpasar" or "Bali"), and a departure date button that opens a calendar.
   The search button is labelled "Search".
+  The booking widget is already open on the homepage: do not press the "Book"
+  tab or any "Book" link to reach it. Start with the "One Way" option.
 
 Plan: compare fares on Google Flights, then book the IndiGo flight for that
 date on goindigo.in as a guest. Choose the lowest fare type (e.g. "Saver"),
