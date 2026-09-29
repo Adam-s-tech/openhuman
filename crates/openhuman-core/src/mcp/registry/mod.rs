@@ -120,6 +120,31 @@ pub mod connections {
         }
     }
 
+    /// Every enabled installed server's identity and tools in `config`'s
+    /// workspace, without dialling: live tools for a connected server, the
+    /// persistent tool cache for one that is not (yet).
+    ///
+    /// What the agent's MCP tool surface is built from, so a server's tools
+    /// are offered from the first turn after a restart rather than only once
+    /// its connect finishes. Listing is not authorization — a call still
+    /// needs a live connection.
+    pub async fn cached_overview_for_config(config: &Config) -> Vec<ConnectedServerOverview> {
+        let service = match host::for_config(config) {
+            Ok(service) => service,
+            Err(error) => {
+                tracing::debug!(?error, "[mcp] no host for workspace; no cached tools");
+                return Vec::new();
+            }
+        };
+        match service.dynamic().cached_overview().await {
+            Ok(overview) => overview,
+            Err(error) => {
+                tracing::debug!(%error, "[mcp] falling back to live servers only");
+                service.dynamic().connected_overview().await
+            }
+        }
+    }
+
     /// Every tool on every connected server in `config`'s workspace.
     ///
     /// The counterpart to [`all_connected_tools`] for a caller that holds a

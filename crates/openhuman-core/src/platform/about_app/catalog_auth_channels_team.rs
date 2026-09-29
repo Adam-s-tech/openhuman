@@ -233,6 +233,20 @@ Capability {
         }),
     },
 Capability {
+        id: "channels.mcp_server_tools",
+        name: "Call MCP Server Tools by Name",
+        domain: "channels",
+        category: CapabilityCategory::Channels,
+        description: "Every tool on a connected or configured MCP server is its own agent tool, named `mcp_<server>_<tool>`. Tools are found through tool search by default, or sent every turn for a server set to `expose = \"direct\"`. Each server's tool list is cached locally, so its tools are offered right after a restart, before the server reconnects.",
+        how_to: "Connect an MCP server, then ask the agent for something it can do. Set `expose` or `direct_tools` on a configured server to keep its tools in view.",
+        status: CapabilityStatus::Beta,
+        privacy: Some(CapabilityPrivacy {
+            leaves_device: true,
+            data_kind: PrivacyDataKind::Derived,
+            destinations: &["Configured MCP endpoint(s)"],
+        }),
+    },
+Capability {
         id: "channels.mcp_connection_alerts",
         name: "MCP Connection Health Alerts",
         domain: "channels",

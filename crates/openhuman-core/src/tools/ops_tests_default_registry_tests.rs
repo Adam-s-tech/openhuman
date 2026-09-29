@@ -483,16 +483,13 @@ fn all_tools_registers_generic_mcp_bridge_tools_when_servers_exist() {
     cfg.mcp_client.servers.push(crate::config::McpServerConfig {
         name: "docs".into(),
         endpoint: "https://example.com/mcp".into(),
-        command: String::new(),
-        args: Vec::new(),
-        env: std::collections::HashMap::new(),
-        cwd: None,
         description: Some("Example docs MCP".into()),
         enabled: true,
         allowed_tools: Vec::new(),
         disallowed_tools: Vec::new(),
         timeout_secs: 30,
         auth: crate::config::McpAuthConfig::None,
+        ..Default::default()
     });
 
     let tools = integration_tools_for_config(&tmp, &cfg);
@@ -520,16 +517,13 @@ fn all_tools_omits_mcp_tools_when_gate_off() {
     cfg.mcp_client.servers.push(crate::config::McpServerConfig {
         name: "docs".into(),
         endpoint: "https://example.com/mcp".into(),
-        command: String::new(),
-        args: Vec::new(),
-        env: std::collections::HashMap::new(),
-        cwd: None,
         description: Some("Example docs MCP".into()),
         enabled: true,
         allowed_tools: Vec::new(),
         disallowed_tools: Vec::new(),
         timeout_secs: 30,
         auth: crate::config::McpAuthConfig::None,
+        ..Default::default()
     });
 
     let names = tool_names(&integration_tools_for_config(&tmp, &cfg));
