@@ -301,7 +301,7 @@ async fn tools_call_decodes_json_encoded_arguments_before_dispatch() {
         "method": "tools/call",
         "params": {
             "name": "memory.search",
-            "arguments": "{\"limit\": 3}"
+            "arguments": "{}"
         }
     }))
     .await;
