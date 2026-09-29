@@ -149,3 +149,7 @@ impl BackendTransport for SdkBackendTransport {
 #[cfg(test)]
 #[path = "transport_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "channel_404_tests.rs"]
+mod channel_404_tests;
