@@ -27,7 +27,7 @@ printf '%s\n' one two
     `#!/usr/bin/env bash
 printf '%s\n' "$*" >> "${log}"
 if [[ "$*" == *"--list"* ]]; then
-  printf '%s\n' 'openhuman::memory::tests::one: test' 'openhuman::memory::tests::two: test'
+  printf '%s\n' 'openhuman::memory::tests::one: test' 'openhuman::memory::tests::one_extra: test' 'openhuman::memory::tests::two: test'
 fi
 `,
     { mode: 0o755 },
@@ -42,6 +42,7 @@ fi
   assert.match(result.stdout, /skipped: 0/);
   assert.match(calls, /--ignored --list/);
   assert.match(calls, /openhuman::memory::tests::one -- --ignored --exact --test-threads=1/);
+  assert.doesNotMatch(calls, /openhuman::memory::tests::one_extra -- --ignored/);
   assert.match(calls, /openhuman::memory::tests::two -- --ignored --exact --test-threads=1/);
 });
 

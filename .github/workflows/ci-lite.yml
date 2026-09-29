@@ -724,6 +724,15 @@ jobs:
         env:
           CARGO_BUILD_JOBS: "1"
 
+      - name: Run ignored TinyJuice tool-output regression
+        run: >-
+          bash scripts/ci-cancel-aware.sh cargo test -p openhuman --lib
+          --features modules
+          agent::tinyagents::middleware_tool_output_compaction_tests::tool_output_tabulates_a_large_graph_for_a_non_exempt_tool
+          -- --ignored --exact --test-threads=1
+        env:
+          CARGO_BUILD_JOBS: "1"
+
       - name: Run complete root Rust suite with cargo llvm-cov
         run: bash scripts/ci/rust-coverage.sh
         env:

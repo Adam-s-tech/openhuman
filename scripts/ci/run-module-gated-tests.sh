@@ -16,11 +16,15 @@ if [ "${#TEST_NAMES[@]}" -eq 0 ]; then
   exit 1
 fi
 
+for name in "${SKIPPED_NAMES[@]}"; do
+  echo "module-gated Rust test skipped: $name (tinydocs artifact is not staged in this lane)"
+done
+
 bash scripts/ci-cancel-aware.sh cargo test -p openhuman --lib --features "$FEATURES" -- --ignored --list >"$LIST_OUTPUT"
 
 run_count=0
 for name in "${TEST_NAMES[@]}"; do
-  matches="$(sed -n 's/: test$//p' "$LIST_OUTPUT" | grep -F "::${name}" || true)"
+  matches="$(sed -n 's/: test$//p' "$LIST_OUTPUT" | grep -F "::${name}" | grep -E "::${name}$" || true)"
   match_count="$(printf '%s\n' "$matches" | sed '/^$/d' | wc -l | tr -d ' ')"
   if [ "$match_count" -eq 0 ]; then
     echo "::error::module-gated test '$name' resolved to $match_count tests" >&2
