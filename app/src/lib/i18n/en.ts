@@ -274,7 +274,7 @@ const en: TranslationMap = {
   'settings.analysisViews.title': 'Analysis views',
   'settings.analysisViews.menuDesc':
     'Memory graph analysis: diagram, centrality, cohesion, associations, freshness, timeline, paths, and namespaces',
-  'settings.tokenUsage.title': 'Token & Cost',
+  'settings.tokenUsage.title': 'Token savings',
   'settings.tokenUsage.menuDesc':
     'Compression settings and how many tokens and dollars they have saved',
   'settings.tokenUsage.saving': 'Saving…',

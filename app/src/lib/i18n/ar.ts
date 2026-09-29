@@ -442,7 +442,7 @@ const messages: TranslationMap = {
   'settings.analysisViews.title': 'طرق العرض التحليلية',
   'settings.analysisViews.menuDesc':
     'تحليل رسم الذاكرة البياني: المخطط، والمركزية، والتماسك، والارتباطات، والحداثة، والجدول الزمني، والمسارات، والمساحات',
-  'settings.tokenUsage.title': 'الرموز والتكلفة',
+  'settings.tokenUsage.title': 'توفير الرموز',
   'settings.tokenUsage.menuDesc': 'إعدادات الضغط ومقدار ما وفّرته من رموز ودولارات',
   'settings.tokenUsage.saving': 'جارٍ الحفظ…',
   'settings.tokenUsage.saved': 'تم الحفظ',

@@ -454,7 +454,7 @@ const messages: TranslationMap = {
   'settings.analysisViews.title': '분석 보기',
   'settings.analysisViews.menuDesc':
     '메모리 그래프 분석: 다이어그램, 중심성, 응집도, 연관, 최신성, 타임라인, 경로 및 네임스페이스',
-  'settings.tokenUsage.title': '토큰 및 비용',
+  'settings.tokenUsage.title': '토큰 절감',
   'settings.tokenUsage.menuDesc': '압축 설정과 그것이 절약한 토큰 및 달러의 양',
   'settings.tokenUsage.saving': '저장 중…',
   'settings.tokenUsage.saved': '저장됨',

@@ -117,8 +117,9 @@ pub(super) async fn reload_config_or(_fallback: &Config) -> Result<Config, Strin
 
 /// Point every process-global store at `config`'s workspace after a
 /// credential change: cron seeds, the core context (which carries the memory
-/// binding — see `CoreContext::memory_binding`, #5560), and conversation
-/// persistence. Returns log lines for the RPC outcome.
+/// binding — see `CoreContext::memory_binding`, #5560), conversation
+/// persistence, and the process-global cost tracker. Returns log lines for
+/// the RPC outcome.
 pub(super) fn rebind_after_credential_change(
     config: &Config,
     _reason: &str,
@@ -136,5 +137,7 @@ pub(super) fn rebind_after_credential_change(
     ));
     conversations::register_conversation_persistence_subscriber(config.workspace_dir.clone());
     logs.push("conversation persistence bound to active workspace".to_string());
+    crate::platform::cost::rebind_global(config.cost.clone(), &config.workspace_dir);
+    logs.push("cost tracker bound to active workspace".to_string());
     Ok(logs)
 }

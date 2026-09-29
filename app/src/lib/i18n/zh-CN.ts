@@ -425,7 +425,7 @@ const messages: TranslationMap = {
   'settings.analysisViews.title': '分析视图',
   'settings.analysisViews.menuDesc':
     '内存图分析：关系图、中心性、内聚性、关联、新鲜度、时间线、路径和命名空间',
-  'settings.tokenUsage.title': '令牌与成本',
+  'settings.tokenUsage.title': '令牌节省',
   'settings.tokenUsage.menuDesc': '压缩设置以及它们已节省的令牌和美元数量',
   'settings.tokenUsage.saving': '正在保存…',
   'settings.tokenUsage.saved': '已保存',

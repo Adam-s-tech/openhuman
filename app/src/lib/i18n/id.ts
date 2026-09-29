@@ -464,7 +464,7 @@ const messages: TranslationMap = {
   'settings.analysisViews.title': 'Tampilan analisis',
   'settings.analysisViews.menuDesc':
     'Analisis grafik memori: diagram, sentralitas, kohesi, asosiasi, kesegaran, lini masa, jalur, dan namespace',
-  'settings.tokenUsage.title': 'Token & Biaya',
+  'settings.tokenUsage.title': 'Penghematan token',
   'settings.tokenUsage.menuDesc':
     'Pengaturan kompresi dan berapa banyak token dan dolar yang telah dihemat',
   'settings.tokenUsage.saving': 'Menyimpan…',

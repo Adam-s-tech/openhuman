@@ -469,7 +469,7 @@ const messages: TranslationMap = {
   'settings.analysisViews.title': 'Vistas de análisis',
   'settings.analysisViews.menuDesc':
     'Análisis del grafo de memoria: diagrama, centralidad, cohesión, asociaciones, frescura, línea de tiempo, rutas y espacios de nombres',
-  'settings.tokenUsage.title': 'Tokens y coste',
+  'settings.tokenUsage.title': 'Ahorro de tokens',
   'settings.tokenUsage.menuDesc': 'Ajustes de compresión y cuántos tokens y dólares han ahorrado',
   'settings.tokenUsage.saving': 'Guardando…',
   'settings.tokenUsage.saved': 'Guardado',

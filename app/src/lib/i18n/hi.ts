@@ -459,7 +459,7 @@ const messages: TranslationMap = {
   'settings.analysisViews.title': 'विश्लेषण दृश्य',
   'settings.analysisViews.menuDesc':
     'मेमोरी ग्राफ़ विश्लेषण: डायग्राम, केंद्रीयता, संसक्ति, संबंध, ताज़गी, टाइमलाइन, पथ और नेमस्पेस',
-  'settings.tokenUsage.title': 'टोकन और लागत',
+  'settings.tokenUsage.title': 'टोकन बचत',
   'settings.tokenUsage.menuDesc': 'संपीड़न सेटिंग्स और उन्होंने कितने टोकन और डॉलर बचाए हैं',
   'settings.tokenUsage.saving': 'सहेजा जा रहा है…',
   'settings.tokenUsage.saved': 'सहेजा गया',
