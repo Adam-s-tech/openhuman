@@ -24,6 +24,8 @@
 //! - [`files`] — `ai_*_memory_file` handlers (use `tokio::fs`).
 
 pub mod documents;
+pub mod engine;
+pub mod engine_migrate;
 pub mod envelope;
 pub mod files;
 pub mod guard;
@@ -57,6 +59,13 @@ pub use kv_graph::{
     GraphUpsertParams, KvGetDeleteParams, KvSetParams,
 };
 pub use learn::{memory_learn_all, LearnAllParams, LearnAllResult, NamespaceLearnResult};
+pub use engine::{
+    memory_engine_get, memory_engine_set, memory_engines_list, EngineState, EngineTargetParams,
+    EnginesList,
+};
+pub use engine_migrate::{
+    memory_engine_migrate, memory_engine_migrate_status, MigrateParams, MigrateStatusParams,
+};
 pub use provider::{memory_provider_status, memory_subsystem_status};
 pub use sync::{
     memory_ingestion_status, memory_scheduler_override, memory_sync_all, memory_sync_channel,

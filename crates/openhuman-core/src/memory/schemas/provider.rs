@@ -7,15 +7,25 @@ use crate::core::all::{ControllerFuture, RegisteredController};
 use crate::core::{ControllerSchema, FieldSchema, TypeSchema};
 use crate::memory::rpc;
 
-use super::to_json;
+use super::{engine, to_json};
 
-pub(super) const FUNCTIONS: &[&str] = &["provider_status"];
+pub(super) const FUNCTIONS: &[&str] = &[
+    "provider_status",
+    "engines_list",
+    "engine_get",
+    "engine_set",
+    "engine_migrate",
+    "engine_migrate_status",
+];
 
 pub(super) fn controllers() -> Vec<RegisteredController> {
-    vec![RegisteredController {
+    let mut controllers = vec![RegisteredController {
         schema: schema("provider_status").unwrap(),
         handler: handle_provider_status,
-    }]
+    }];
+    // The engine selector rides with the status RPC: same never-gated rule.
+    controllers.extend(engine::controllers());
+    controllers
 }
 
 pub(super) fn schema(function: &str) -> Option<ControllerSchema> {
@@ -82,7 +92,7 @@ pub(super) fn schema(function: &str) -> Option<ControllerSchema> {
                 },
             ],
         },
-        _ => return None,
+        other => return engine::schema(other),
     })
 }
 
