@@ -74,6 +74,13 @@ export function splitSections(text) {
   let openTag = null; // name of the tag block we are inside, if any
 
   const push = node => {
+    // A file marker owns only its file's first `#` heading: the wire text
+    // carries no end-of-file marker, so a second `#` heading is taken to be
+    // the next top-level block (the agent body, STYLE.md) and pops out.
+    if (node.level === 1) {
+      const file = stack.findLast(n => n.level === 0.25);
+      if (file?.children.some(c => c.level === 1)) stack.length = 1;
+    }
     while (stack.length > 1 && stack[stack.length - 1].level >= node.level) stack.pop();
     stack[stack.length - 1].children.push(node);
     stack.push(node);
