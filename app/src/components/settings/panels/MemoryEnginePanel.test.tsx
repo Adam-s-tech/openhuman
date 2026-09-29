@@ -74,6 +74,7 @@ const ENGINES: MemoryEngineDescriptor[] = [
     key_optional: true,
     deployments: ['cloud', 'self_hosted'],
     default_endpoint: 'https://api.mem0.ai',
+    capabilities: ['recall'],
   }),
 ];
 
