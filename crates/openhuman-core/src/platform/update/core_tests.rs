@@ -378,7 +378,7 @@ fn staging_extracts_the_core_binary_out_of_the_archive() {
     );
     let dest = dir.path().join(staged_binary_name());
 
-    extract_core_binary(&archive, &dest).expect("the inner binary must extract");
+    extract_core_binary(&archive, &dest, false).expect("the inner binary must extract");
 
     assert_eq!(
         std::fs::read(&dest).expect("read staged binary"),
@@ -410,7 +410,8 @@ fn staging_refuses_an_archive_without_the_core_binary() {
     );
     let dest = dir.path().join(staged_binary_name());
 
-    let err = extract_core_binary(&archive, &dest).expect_err("a wrong-named entry must fail");
+    let err = extract_core_binary(&archive, &dest, false)
+        .expect_err("a wrong-named entry must fail");
 
     assert!(
         err.contains(staged_binary_name()),
