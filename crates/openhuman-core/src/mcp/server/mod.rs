@@ -27,10 +27,10 @@
 // `local`/`stdio` gate their own HTTP-serve paths so `openhuman mcp` (stdio)
 // and the Claude-Code in-process MCP bridge still degrade gracefully when
 // `http-server` is off.
-#[cfg(all(feature = "mcp", feature = "http-server"))]
-mod http;
 #[cfg(feature = "mcp")]
 mod handler;
+#[cfg(all(feature = "mcp", feature = "http-server"))]
+mod http;
 #[cfg(feature = "mcp")]
 mod local;
 #[cfg(feature = "mcp")]

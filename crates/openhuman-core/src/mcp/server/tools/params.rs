@@ -10,11 +10,11 @@ use tinymcp::ToolCallError;
 use crate::core::all;
 
 use super::types::{
-    McpToolSpec, DEFAULT_LIMIT, MAX_LIMIT, MEMORY_NOTE_ARGUMENTS,
-    MEMORY_STORE_ARGUMENTS, QUERY_ARGUMENTS, SEARCH_MAX_RESULTS, SEARXNG_SEARCH_ARGUMENTS,
-    SUBAGENT_RUN_ARGUMENTS, TREE_BROWSE_ARGUMENTS, TREE_LIST_SOURCES_ARGUMENTS,
-    TREE_READ_CHUNK_ARGUMENTS, TREE_TAG_ARGUMENTS, TREE_TAG_MAX_TAGS, TREE_TAG_MAX_TAG_LENGTH,
-    TREE_TOP_ENTITIES_ARGUMENTS, WEB_ANSWER_ARGUMENTS, WEB_SEARCH_ARGUMENTS,
+    McpToolSpec, DEFAULT_LIMIT, MAX_LIMIT, MEMORY_NOTE_ARGUMENTS, MEMORY_STORE_ARGUMENTS,
+    QUERY_ARGUMENTS, SEARCH_MAX_RESULTS, SEARXNG_SEARCH_ARGUMENTS, SUBAGENT_RUN_ARGUMENTS,
+    TREE_BROWSE_ARGUMENTS, TREE_LIST_SOURCES_ARGUMENTS, TREE_READ_CHUNK_ARGUMENTS,
+    TREE_TAG_ARGUMENTS, TREE_TAG_MAX_TAGS, TREE_TAG_MAX_TAG_LENGTH, TREE_TOP_ENTITIES_ARGUMENTS,
+    WEB_ANSWER_ARGUMENTS, WEB_SEARCH_ARGUMENTS,
 };
 
 pub fn build_rpc_params(
@@ -56,7 +56,9 @@ pub fn build_rpc_params(
             let query = required_non_empty_string(&args, "query")?;
             let mut params = Map::new();
             params.insert("query".to_string(), Value::String(query));
-            if let Some(max_results) = optional_positive_u64(&args, "max_results", SEARCH_MAX_RESULTS as u64)? {
+            if let Some(max_results) =
+                optional_positive_u64(&args, "max_results", SEARCH_MAX_RESULTS as u64)?
+            {
                 params.insert("max_results".to_string(), Value::from(max_results));
             }
             if let Some(provider) = optional_non_empty_string(&args, "provider")? {
@@ -95,7 +97,15 @@ pub fn build_rpc_params(
             // controller itself accepts up to 1000, but the MCP layer keeps
             // the surface narrow so the LLM doesn't waste tokens pulling a
             // huge page.
-            params.insert("limit".to_string(), Value::from(positive_u64_or_default(&args, "k", DEFAULT_LIMIT, MAX_LIMIT)?));
+            params.insert(
+                "limit".to_string(),
+                Value::from(positive_u64_or_default(
+                    &args,
+                    "k",
+                    DEFAULT_LIMIT,
+                    MAX_LIMIT,
+                )?),
+            );
             if let Some(values) = optional_string_array(&args, "source_kinds")? {
                 params.insert("source_kinds".to_string(), Value::from(values));
             }
@@ -124,7 +134,15 @@ pub fn build_rpc_params(
             // The controller's `limit` is required; default + cap at the MCP
             // layer so the LLM doesn't have to know the underlying contract.
             let mut params = Map::new();
-            params.insert("limit".to_string(), Value::from(positive_u64_or_default(&args, "k", DEFAULT_LIMIT, MAX_LIMIT)?));
+            params.insert(
+                "limit".to_string(),
+                Value::from(positive_u64_or_default(
+                    &args,
+                    "k",
+                    DEFAULT_LIMIT,
+                    MAX_LIMIT,
+                )?),
+            );
             if let Some(value) = optional_non_empty_string(&args, "kind")? {
                 params.insert("kind".to_string(), Value::String(value));
             }

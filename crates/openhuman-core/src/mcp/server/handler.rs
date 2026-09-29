@@ -64,8 +64,7 @@ impl McpServerHandler for OpenHumanMcpHandler {
         name: &'a str,
         arguments: Map<String, Value>,
     ) -> BoxFuture<'a, Result<Value, ToolCallError>> {
-        let depth =
-            subagent_depth::parse_header(ctx.header(subagent_depth::HEADER_SUBAGENT_DEPTH));
+        let depth = subagent_depth::parse_header(ctx.header(subagent_depth::HEADER_SUBAGENT_DEPTH));
         log::trace!(
             "[mcp_server] tools/call tool={name} client_source_type={} chain_depth={depth}",
             ctx.source_type()

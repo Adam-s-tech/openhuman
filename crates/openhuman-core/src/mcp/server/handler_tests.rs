@@ -27,8 +27,16 @@ async fn list_tools_advertises_the_base_catalog_with_annotations() {
     let tools = OpenHumanMcpHandler
         .list_tools(&context(RequestHeaders::new()))
         .await;
-    let names = tools.iter().map(|tool| tool.name.as_str()).collect::<Vec<_>>();
-    for expected in ["core.list_tools", "agent.run_subagent", "memory.search", "tree.tag"] {
+    let names = tools
+        .iter()
+        .map(|tool| tool.name.as_str())
+        .collect::<Vec<_>>();
+    for expected in [
+        "core.list_tools",
+        "agent.run_subagent",
+        "memory.search",
+        "tree.tag",
+    ] {
         assert!(names.contains(&expected), "missing {expected}: {names:?}");
     }
     assert!(tools
@@ -46,7 +54,10 @@ async fn resources_are_the_bundled_prompt_catalog() {
         .read_resource("openhuman://prompts/identity")
         .await
         .expect("identity resource");
-    assert_eq!(identity["contents"][0]["uri"], "openhuman://prompts/identity");
+    assert_eq!(
+        identity["contents"][0]["uri"],
+        "openhuman://prompts/identity"
+    );
     let err = OpenHumanMcpHandler
         .read_resource("openhuman://prompts/nope")
         .await
