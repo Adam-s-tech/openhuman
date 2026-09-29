@@ -59,7 +59,6 @@ fn every_known_schema_key_returns_a_non_unknown_schema() {
         "auth_store_provider_credentials",
         "auth_remove_provider_credentials",
         "auth_list_provider_credentials",
-        "auth_oauth_fetch_client_key",
     ];
     for k in keys {
         let s = schemas(k);
