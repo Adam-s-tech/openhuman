@@ -15,7 +15,7 @@ use tokio::sync::mpsc::Sender;
 use crate::agent::progress::AgentProgress;
 use crate::agent::tinyagents::journal::TurnJournal;
 use crate::agent::tinyagents::observability::{self, OpenhumanEventBridge, SubagentScope};
-use crate::agent::tinyagents::tools::EarlyExitHook;
+use tinyagents_harness::tool::EarlyExitHook;
 use crate::agent::tinyagents::turn_outcome::{
     HaltSummarySlot, TinyagentsTurnOutcome, ToolOutcomeSink,
 };

@@ -17,7 +17,7 @@ use super::*;
 use crate::agent::harness::definition::AgentDefinitionRegistry;
 use crate::agent::harness::ParentExecutionContext;
 use crate::agent::prompts::ToolCallFormat;
-use crate::agent::tinyagents::tools::CanonicalSharedToolAdapter;
+use tinyagents_harness::tool::CanonicalSharedToolAdapter;
 use crate::memory::{Memory, MemoryCategory, MemoryEntry, NamespaceSummary, RecallOpts};
 use crate::tools::toolpacks::tools::{PackRegistryHandle, UseSkillTool};
 use async_trait::async_trait;

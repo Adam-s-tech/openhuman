@@ -104,7 +104,7 @@ impl ToolDispatch<(), OpenHumanRunContext> for UseSkillDispatch {
         // had the model reached `name` directly instead of through
         // `use_skill`.
         let Some(inner_adapter) =
-            super::tools::CanonicalSharedToolAdapter::for_name(vec![tools], &name)
+            tinyagents_harness::tool::CanonicalSharedToolAdapter::for_name(vec![tools], &name)
                 .map(|adapter| Arc::new(adapter) as Arc<dyn Tool>)
         else {
             return self

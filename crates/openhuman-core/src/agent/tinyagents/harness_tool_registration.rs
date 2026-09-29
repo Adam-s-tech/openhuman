@@ -18,7 +18,7 @@ use crate::agent::orchestration::tools::{
     SpawnSubagentDispatch, SpawnWorkerThreadDispatch, SteerSubagentDispatch, WaitSubagentDispatch,
 };
 use crate::agent::tinyagents::host::OpenHumanRunContext;
-use crate::agent::tinyagents::tools::{CanonicalSharedToolAdapter, EarlyExitHook};
+use tinyagents_harness::tool::{CanonicalSharedToolAdapter, EarlyExitHook};
 use crate::agent::tinyagents::turn_policy::is_subagent_spawn_or_delegate_tool;
 use crate::agent::tinyagents::use_skill_dispatch::UseSkillDispatch;
 use crate::agent::tools::{DelegateToolDispatch, TodoToolDispatch};
