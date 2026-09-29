@@ -97,6 +97,37 @@ fn direct_actions_use_typed_targets_and_reject_unbounded_inputs() {
 }
 
 #[test]
+fn browser_action_parser_covers_supported_direct_and_find_actions() {
+    for (args, expected) in [
+        (json!({"action":"fill","selector":"#email","value":"x"}), "fill"),
+        (json!({"action":"type","text":"hello"}), "type"),
+        (json!({"action":"get_text","selector":"#title"}), "get_text"),
+        (json!({"action":"is_visible","selector":"#title"}), "is_visible"),
+        (json!({"action":"hover","selector":"#title"}), "hover"),
+        (json!({"action":"press","key":"Enter"}), "press"),
+        (json!({"action":"scroll","direction":"left","pixels":32}), "scroll"),
+        (json!({"action":"wait","text":"Ready","ms":5,"timeout_ms":25}), "wait"),
+    ] {
+        let parsed = parse_action(&args).unwrap();
+        assert!(format!("{parsed:?}").to_lowercase().contains(expected));
+    }
+
+    for find_action in ["click", "fill", "text", "hover"] {
+        let mut args = json!({
+            "action":"find", "by":"role", "value":"button", "find_action":find_action
+        });
+        if find_action == "fill" {
+            args["fill_value"] = json!("hello");
+        }
+        assert!(parse_action(&args).is_ok(), "{find_action}");
+    }
+
+    assert!(parse_action(&json!({"action":"scroll","direction":"up","pixels":u64::MAX})).is_ok());
+    assert!(parse_action(&json!({"action":"find","by":"text","value":"Save","find_action":"text"})).is_ok());
+    assert!(parse_action(&json!({"action":"wait","selector":"#ready"})).is_ok());
+}
+
+#[test]
 fn confirmation_is_bound_to_one_pending_task_token() {
     let pending = Pending {
         task: TaskId::new("t-1"),
