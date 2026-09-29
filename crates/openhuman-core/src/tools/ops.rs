@@ -684,16 +684,9 @@ pub fn all_tools_with_runtime(
     // taken. `goal_get`/`goal_set`/`goal_complete` — pause/resume/budget are
     // system-driven and have no model tool.
     {
-        let goal_dir = root_config.workspace_dir.clone();
-        tools.push(Box::new(crate::agent::goals::GoalGetTool::new(
-            goal_dir.clone(),
-        )));
-        tools.push(Box::new(crate::agent::goals::GoalSetTool::new(
-            goal_dir.clone(),
-        )));
-        tools.push(Box::new(crate::agent::goals::GoalCompleteTool::new(
-            goal_dir,
-        )));
+        tools.extend(crate::agent::goals::goal_tools(
+            &root_config.workspace_dir,
+        ));
     }
 
     #[cfg(feature = "modules")]
