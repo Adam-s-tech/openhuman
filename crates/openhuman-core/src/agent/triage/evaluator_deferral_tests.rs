@@ -52,7 +52,6 @@ fn healthy_attempts_can_overlap_and_stale_failure_is_deferred() {
     ));
 }
 
-
 #[test]
 fn outage_state_isolated_by_model() {
     let state = std::sync::Mutex::new(std::collections::HashMap::new());
