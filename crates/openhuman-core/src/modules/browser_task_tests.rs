@@ -7,6 +7,7 @@ fn task() -> BrowserTask {
         facts: BTreeMap::from([("name".into(), "Asha".into())]),
         origins: vec!["https://.example.com".into()],
         max_actions: 12,
+        flow: None,
     }
 }
 
@@ -65,4 +66,18 @@ fn unwrap_response_returns_data_or_the_structured_error() {
     assert!(unwrap_response("AwaitTask", empty)
         .unwrap_err()
         .contains("no result"));
+}
+
+#[test]
+fn a_saved_flow_is_run_instead_of_planned() {
+    let flow: tinycomputer_bus::Flow = serde_json::from_value(serde_json::json!({
+        "app": "browser",
+        "steps": [{"browse": "https://www.example.com/"}, {"stop_before": "paying"}]
+    }))
+    .unwrap();
+    let mut saved = task();
+    saved.flow = Some(flow.clone());
+    let request = start_request(&Config::default(), &saved);
+    assert_eq!(request.flow, Some(flow));
+    assert_eq!(request.task.as_deref(), Some("Find the opening hours"));
 }

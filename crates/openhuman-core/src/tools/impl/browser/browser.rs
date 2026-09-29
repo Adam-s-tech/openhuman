@@ -321,11 +321,19 @@ impl BrowserTool {
             None => self.client.task_origins(),
         };
         let facts = task_inputs(args)?;
+        let flow = match args.get("flow").filter(|flow| !flow.is_null()) {
+            Some(flow) => Some(
+                serde_json::from_value::<tinycomputer_bus::Flow>(flow.clone())
+                    .map_err(|error| anyhow::anyhow!("Invalid flow: {error}"))?,
+            ),
+            None => None,
+        };
         let task = crate::modules::browser_task::BrowserTask {
             goal,
             facts,
             origins,
             max_actions: u32::try_from(self.max_steps).unwrap_or(u32::MAX),
+            flow,
         };
         let view = crate::modules::browser_task::start(self.client.config(), &task)
             .await
@@ -677,7 +685,7 @@ impl Tool for BrowserTool {
     fn parameters_schema(&self) -> Value {
         json!({"type":"object","properties":{
         "action":{"type":"string","enum":["open","snapshot","read_page","click","fill","type","get_text","get_title","get_url","wait","press","hover","scroll","is_visible","find","task","task_continue","task_cancel","confirm_pending","list_downloads","wait_download","close"]},
-        "url":{"type":"string","description":"Starting HTTPS URL for open or an optional starting URL for task"},"selector":{"type":"string"},"value":{"type":"string"},"text":{"type":"string"},"key":{"type":"string"},"direction":{"type":"string"},"pixels":{"type":"integer"},"ms":{"type":"integer"},"timeout_ms":{"type":"integer"},"interactive_only":{"type":"boolean"},"compact":{"type":"boolean"},"depth":{"type":"integer"},"by":{"type":"string"},"find_action":{"type":"string"},"fill_value":{"type":"string"},"goal":{"type":"string"},"inputs":{"type":"object","additionalProperties":{"type":"string"}},"task_id":{"type":"string","description":"Task id returned by task, for task_continue and task_cancel"},"answer":{"type":"string","description":"Free-text answer for a paused task; done after a needs_human pause"},"token":{"type":"string","description":"Token returned with the exact pending action"}
+        "url":{"type":"string","description":"Starting HTTPS URL for open or an optional starting URL for task"},"selector":{"type":"string"},"value":{"type":"string"},"text":{"type":"string"},"key":{"type":"string"},"direction":{"type":"string"},"pixels":{"type":"integer"},"ms":{"type":"integer"},"timeout_ms":{"type":"integer"},"interactive_only":{"type":"boolean"},"compact":{"type":"boolean"},"depth":{"type":"integer"},"by":{"type":"string"},"find_action":{"type":"string"},"fill_value":{"type":"string"},"goal":{"type":"string"},"inputs":{"type":"object","additionalProperties":{"type":"string"}},"task_id":{"type":"string","description":"Task id returned by task, for task_continue and task_cancel"},"flow":{"type":"object","description":"Optional TinyComputer flow ({app, vars, steps}) to run instead of planning one from goal, e.g. a plan saved from an earlier successful run"},"answer":{"type":"string","description":"Free-text answer for a paused task; done after a needs_human pause"},"token":{"type":"string","description":"Token returned with the exact pending action"}
     },"required":["action"]})
     }
     fn external_effect_with_args(&self, args: &Value) -> bool {
