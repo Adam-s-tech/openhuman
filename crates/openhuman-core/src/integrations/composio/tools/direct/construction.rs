@@ -165,7 +165,10 @@ impl ComposioTool {
             )
         };
         builder().build().unwrap_or_else(|error| {
-            tracing::warn!(service_key = "tool.composio", "Failed to build proxied Composio client: {error}");
+            tracing::warn!(
+                service_key = "tool.composio",
+                "Failed to build proxied Composio client: {error}"
+            );
             crate::util::tls::tls_client_builder()
                 .redirect(reqwest::redirect::Policy::none())
                 .timeout(std::time::Duration::from_secs(60))
