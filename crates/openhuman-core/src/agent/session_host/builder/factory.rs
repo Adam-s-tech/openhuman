@@ -326,29 +326,14 @@ impl OpenHumanSessionHost {
         let target_is_lead = target_def
             .map(|def| !def.subagents.is_empty())
             .unwrap_or(true);
-        // The `subconscious` workload's model is governed by `subconscious_provider`
-        // + the managed-tier registry — NOT by an interactive agent model pin.
-        // The tick reuses the orchestrator definition (agent_id="orchestrator"),
-        // so without this guard a configured `[orchestrator].model` pin would
-        // clobber the resolved subconscious model and send an unrelated tier to
-        // the Subconscious provider (Codex P2).
-        if provider_role != "subconscious" {
-            if let Some(pinned_model) =
-                config.configured_agent_model(target_agent_id, target_is_lead)
-            {
-                log::debug!(
-                    "[session-builder] agent_id={} using config-level model pin model={}",
-                    target_agent_id,
-                    pinned_model
-                );
-                model_name = pinned_model.to_string();
-            }
-        } else {
+        if let Some(pinned_model) = config.configured_agent_model(target_agent_id, target_is_lead)
+        {
             log::debug!(
-                "[session-builder] agent_id={} provider_role=subconscious — skipping agent model \
-                 pin so the subconscious provider/registry model is preserved",
-                target_agent_id
+                "[session-builder] agent_id={} using config-level model pin model={}",
+                target_agent_id,
+                pinned_model
             );
+            model_name = pinned_model.to_string();
         }
 
         // Resolve the user-configured vision flag for the (now-final) model while
@@ -1169,28 +1154,15 @@ fn definition_disallows_tool(disallowed: &[String], name: &str) -> bool {
 
 /// Resolve the provider/workload role for a session build.
 ///
-/// The `subconscious` workload has two entry points and both must route here:
-/// - the cloud tick builds via `OpenHumanSessionHost::from_config` (agent_id `"orchestrator"`)
-///   with `default_model = "hint:subconscious"`;
-/// - the event-driven long-lived session builds via
-///   `OpenHumanSessionHost::from_config_for_agent(_, "subconscious")` and does NOT set the hint.
-///
-/// Routing on `agent_id == "subconscious"` covers the second case (Codex P2:
-/// otherwise promoted background turns fall through to `chat_provider` and ignore
-/// Connections → API keys → LLM "Subconscious"). Other explicit `hint:<role>` markers route to
-/// their workload; everything else (incl. the legacy `default_model` tier the
+/// Explicit `hint:<role>` markers route to their workload; everything else (incl. the legacy `default_model` tier the
 /// bootstrap pinned) falls through to `chat` so `chat_provider` drives the
 /// user-facing turn.
-pub(crate) fn provider_role_for(agent_id: &str, default_model: Option<&str>) -> &'static str {
-    if agent_id.trim() == "subconscious" {
-        return "subconscious";
-    }
+pub(crate) fn provider_role_for(_agent_id: &str, default_model: Option<&str>) -> &'static str {
     match default_model.map(str::trim) {
         Some("hint:agentic") => "agentic",
         Some("hint:coding") => "coding",
         Some("hint:summarization") => "summarization",
         Some("hint:reasoning") => "reasoning",
-        Some("hint:subconscious") => "subconscious",
         _ => "chat",
     }
 }

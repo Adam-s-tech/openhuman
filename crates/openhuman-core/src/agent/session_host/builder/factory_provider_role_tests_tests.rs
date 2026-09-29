@@ -26,23 +26,6 @@ fn explicit_hints_route_to_workload() {
         provider_role_for("orchestrator", Some("hint:coding")),
         "coding"
     );
-    // The cloud tick: orchestrator agent_id + the subconscious hint.
-    assert_eq!(
-        provider_role_for("orchestrator", Some("hint:subconscious")),
-        "subconscious"
-    );
-}
-
-#[test]
-fn subconscious_agent_id_routes_to_subconscious_without_hint() {
-    // The event-driven long-lived session builds with agent_id="subconscious"
-    // and no hint — it must still resolve the subconscious workload (Codex P2).
-    assert_eq!(provider_role_for("subconscious", None), "subconscious");
-    assert_eq!(
-        provider_role_for("subconscious", Some("chat-v1")),
-        "subconscious"
-    );
-    assert_eq!(provider_role_for(" subconscious ", None), "subconscious");
 }
 
 #[test]
