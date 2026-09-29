@@ -422,3 +422,28 @@ fn staging_refuses_an_archive_without_the_core_binary() {
         "nothing may be staged when extraction fails"
     );
 }
+
+#[test]
+fn staging_extracts_zip_when_archive_format_is_explicit() {
+    let dir = tempfile::TempDir::new().expect("temp dir");
+    let archive = dir.path().join("release.zip");
+    let file = std::fs::File::create(&archive).expect("create zip");
+    let mut zip = zip::ZipWriter::new(file);
+    zip.start_file(
+        staged_binary_name(),
+        zip::write::SimpleFileOptions::default(),
+    )
+    .expect("start binary entry");
+    zip.write_all(b"core binary").expect("write binary entry");
+    zip.finish().expect("finish zip");
+
+    // Download staging uses a `.tmp` suffix, so decoder choice must not rely
+    // on the temporary archive path's extension.
+    let downloaded = dir.path().join(".release.zip.tmp");
+    std::fs::copy(&archive, &downloaded).expect("copy to download temp path");
+    let dest = dir.path().join(format!("{}.staged", staged_binary_name()));
+
+    extract_core_binary(&downloaded, &dest, true).expect("zip binary must extract");
+
+    assert_eq!(std::fs::read(&dest).expect("read staged binary"), b"core binary");
+}
