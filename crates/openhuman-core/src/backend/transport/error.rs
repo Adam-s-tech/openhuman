@@ -29,12 +29,6 @@ pub enum BackendTransportError {
     /// body when it parsed, otherwise the raw text as a JSON string.
     #[error("http {status}: {body}")]
     Status { status: u16, body: Value },
-    /// The backend rejected the request's credential (`401`). The transport
-    /// reports it as its own variant so the core never inspects status codes
-    /// to decide on session recovery; which recovery applies (session expiry
-    /// vs. a rejected API key) stays the caller's decision.
-    #[error("http 401: credential rejected")]
-    Unauthorized,
     /// `404` on a channel-message route answered by a backend handler: that
     /// message no longer exists (deleted provider-side or garbage-collected).
     #[error("http 404: channel message {provider}/{message_id} not found")]
@@ -82,7 +76,6 @@ impl BackendTransportError {
     pub fn status(&self) -> Option<u16> {
         match self {
             Self::Status { status, .. } => Some(*status),
-            Self::Unauthorized => Some(401),
             Self::ChannelMessageNotFound { .. } | Self::ChannelMessageRouteMissing { .. } => {
                 Some(404)
             }
