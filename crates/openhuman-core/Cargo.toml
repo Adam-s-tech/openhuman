@@ -802,9 +802,10 @@ default = ["media", "skills", "flows", "mcp", "channels", "http-server", "schedu
 # `None`; and the three `ops` entry points always-on code calls return a
 # build-fact error, so a post-sync snapshot or a subconscious diff is logged and
 # skipped rather than silently reported as "nothing changed".
-# `tinymcp` 0.3.5 does not expose a `server-http` feature; the host's in-tree
-# Streamable HTTP server is gated by its own axum dependency.
-http-server = ["dep:axum", "dep:socketioxide"]
+# `tinymcp/server-http` is the MCP Streamable HTTP server transport
+# (`mcp::server::run_http`, the in-process loopback server). It is axum too, so
+# it rides this gate exactly as the in-tree transport did (#5048).
+http-server = ["dep:axum", "dep:socketioxide", "tinymcp/server-http"]
 # Local audio-device access: the `cpal` capture stack behind voice recording
 # and the accessibility microphone-permission probe. Default-ON. Slim /
 # headless builds opt out via `--no-default-features --features "<explicit list
