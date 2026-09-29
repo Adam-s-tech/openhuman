@@ -30,7 +30,7 @@ use super::super::helpers::{
 };
 use super::super::routing::resolve_target_agent;
 use super::approval::{channel_has_approval_surface, try_route_approval_reply};
-use super::message::RuntimeChannelMessage;
+use super::RuntimeChannelMessage;
 
 pub(crate) async fn process_channel_message(
     ctx: Arc<ChannelRuntimeContext>,
