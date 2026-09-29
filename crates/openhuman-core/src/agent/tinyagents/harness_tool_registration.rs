@@ -18,12 +18,12 @@ use crate::agent::orchestration::tools::{
     SpawnSubagentDispatch, SpawnWorkerThreadDispatch, SteerSubagentDispatch, WaitSubagentDispatch,
 };
 use crate::agent::tinyagents::host::OpenHumanRunContext;
-use tinyagents_harness::tool::{CanonicalSharedToolAdapter, EarlyExitHook};
 use crate::agent::tinyagents::turn_policy::is_subagent_spawn_or_delegate_tool;
 use crate::agent::tinyagents::use_skill_dispatch::UseSkillDispatch;
 use crate::agent::tools::{DelegateToolDispatch, TodoToolDispatch};
 use crate::memory::agent::CallMemoryAgentDispatch;
 use crate::tools::toolpacks::USE_SKILL;
+use tinyagents_harness::tool::{CanonicalSharedToolAdapter, EarlyExitHook};
 
 /// Typed-dispatch selection shared by the direct per-turn registration below
 /// and by [`UseSkillDispatch`], which must resolve the SAME live-parent

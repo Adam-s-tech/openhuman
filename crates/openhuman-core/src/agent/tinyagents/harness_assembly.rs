@@ -28,10 +28,10 @@ use crate::agent::tinyagents::observability::{
 };
 use crate::agent::tinyagents::routes;
 use crate::agent::tinyagents::stop_hooks;
-use tinyagents_harness::tool::EarlyExitHook;
 use crate::agent::tinyagents::turn_models::TurnModels;
 use crate::agent::tinyagents::turn_outcome::{HaltSummarySlot, ToolOutcomeSink};
 use crate::agent::tinyagents::turn_policy::{run_policy_for, REPEATED_TOOL_FAILURE_THRESHOLD};
+use tinyagents_harness::tool::EarlyExitHook;
 
 use super::ToolPolicyEnforcement;
 
