@@ -151,8 +151,8 @@ fn record_to_entry(record: crate::memory::api::provider::types::ExportRecord) ->
     let category = payload
         .get("category")
         .and_then(Value::as_str)
-        .map(|c| c.parse().unwrap_or_default())
-        .unwrap_or_default();
+        .and_then(|c| c.parse().ok())
+        .unwrap_or(crate::memory::api::types::MemoryCategory::Core);
     Some(MemoryEntry {
         id: record.id,
         key,
