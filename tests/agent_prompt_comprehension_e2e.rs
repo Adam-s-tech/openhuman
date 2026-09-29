@@ -662,10 +662,10 @@ fn called_tools(request: &Value) -> Vec<String> {
             let Some((payload, after_close)) = after_open.split_once("</tool_call>") else {
                 break;
             };
-            if let Ok(call) = serde_json::from_str::<Value>(payload.trim())
-                && let Some(name) = call.get("name").and_then(Value::as_str)
-            {
-                calls.push(name.to_string());
+            if let Ok(call) = serde_json::from_str::<Value>(payload.trim()) {
+                if let Some(name) = call.get("name").and_then(Value::as_str) {
+                    calls.push(name.to_string());
+                }
             }
             content = after_close;
         }
