@@ -39,7 +39,7 @@ const BODY = {
     { role: 'user', content: 'hello' },
   ],
   tools: [
-    { type: 'function', function: { name: 'big_tool', description: `${REPEATED} ${'word '.repeat(200)}`, parameters: { type: 'object', properties: {} } } },
+    { type: 'function', function: { name: 'big_tool', description: `${REPEATED}\n\n${'word '.repeat(200)}`, parameters: { type: 'object', properties: {} } } },
     { type: 'function', function: { name: 'small_tool', description: 'Tiny.', parameters: { type: 'object', properties: { q: { type: 'string' } } } } },
   ],
 };
