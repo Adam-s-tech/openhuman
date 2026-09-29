@@ -35,8 +35,8 @@ pub(super) async fn dictation_ws_handler(
 ) -> Response {
     log::info!("[ws] dictation WebSocket upgrade requested");
 
-    if let Err(response) = authorize_dictation_request(&headers, &query) {
-        return response;
+    if let Err(error) = authorize_dictation_request(&headers, &query) {
+        return error.into_response();
     }
 
     ws.on_upgrade(|socket| async move {
@@ -54,7 +54,7 @@ pub(super) async fn dictation_ws_handler(
 fn authorize_dictation_request(
     headers: &axum::http::HeaderMap,
     query: &DictationQuery,
-) -> Result<(), Response> {
+) -> Result<(), DictationAuthError> {
     // Origin check (same allowlist Socket.IO enforces): native clients send no
     // Origin and are accepted; cross-origin browser pages are rejected even if
     // they somehow hold the bearer.
@@ -64,15 +64,7 @@ fn authorize_dictation_request(
         .map(str::trim);
     if !crate::server::socketio::origin_is_allowed(origin) {
         log::warn!("[ws] dictation upgrade rejected: disallowed origin {origin:?}");
-        return Err((
-            StatusCode::FORBIDDEN,
-            Json(json!({
-                "ok": false,
-                "error": "forbidden",
-                "message": "Origin not allowed for the dictation WebSocket."
-            })),
-        )
-            .into_response());
+        return Err(DictationAuthError::Forbidden);
     }
 
     // Bearer check: header first, then `?token=` for browser WebSocket clients.
@@ -95,18 +87,45 @@ fn authorize_dictation_request(
             .unwrap_or(false);
     if !bearer_ok {
         log::warn!("[ws] dictation upgrade rejected: missing or invalid bearer token");
-        return Err((
-            StatusCode::UNAUTHORIZED,
-            Json(json!({
-                "ok": false,
-                "error": "unauthorized",
-                "message": "Missing or invalid token. Supply 'Authorization: Bearer <core>' or ?token=<core>."
-            })),
-        )
-            .into_response());
+        return Err(DictationAuthError::Unauthorized);
     }
 
     Ok(())
+}
+
+#[derive(Clone, Copy, Debug)]
+enum DictationAuthError {
+    Forbidden,
+    Unauthorized,
+}
+
+impl DictationAuthError {
+    fn status(self) -> StatusCode {
+        match self {
+            Self::Forbidden => StatusCode::FORBIDDEN,
+            Self::Unauthorized => StatusCode::UNAUTHORIZED,
+        }
+    }
+}
+
+impl IntoResponse for DictationAuthError {
+    fn into_response(self) -> Response {
+        let (error, message) = match self {
+            Self::Forbidden => (
+                "forbidden",
+                "Origin not allowed for the dictation WebSocket.",
+            ),
+            Self::Unauthorized => (
+                "unauthorized",
+                "Missing or invalid token. Supply 'Authorization: Bearer <core>' or ?token=<core>.",
+            ),
+        };
+        (
+            self.status(),
+            Json(json!({"ok": false, "error": error, "message": message})),
+        )
+            .into_response()
+    }
 }
 
 #[cfg(test)]

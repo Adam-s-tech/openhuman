@@ -30,18 +30,18 @@ fn dictation_rejects_disallowed_origin_before_authentication() {
         HeaderValue::from_static("https://attacker.example"),
     );
 
-    let response = authorize_dictation_request(&headers, &query(Some(&test_token())))
+    let error = authorize_dictation_request(&headers, &query(Some(&test_token())))
         .expect_err("cross-origin request rejected");
 
-    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+    assert_eq!(error.status(), StatusCode::FORBIDDEN);
 }
 
 #[test]
 fn dictation_rejects_missing_and_invalid_credentials() {
     for query in [query(None), query(Some("invalid"))] {
-        let response = authorize_dictation_request(&HeaderMap::new(), &query)
+        let error = authorize_dictation_request(&HeaderMap::new(), &query)
             .expect_err("missing or invalid token rejected");
-        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+        assert_eq!(error.status(), StatusCode::UNAUTHORIZED);
     }
 }
 

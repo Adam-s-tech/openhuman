@@ -295,6 +295,9 @@ tinymemory-sources = { path = "../../vendor/tinymemory/crates/tinymemory-sources
 # library directly and has no use for a bus inside it.
 tinymcp = { path = "../../vendor/tinymcp/crates/tinymcp", default-features = false, features = [
     "rustls-tls",
+    # Server tools as `tinytools::Tool`s over the persistent tool cache. Needs
+    # the root `[patch]` that redirects tinymcp's git tinytools to ours.
+    "tools",
 ] }
 tinymcp-bus = { path = "../../vendor/tinymcp/crates/tinymcp-bus", features = ["schemars"] }
 # The transport-free channel vocabulary: inbound envelopes, outbound intents,
@@ -793,7 +796,7 @@ default = ["media", "skills", "flows", "mcp", "channels", "http-server", "schedu
 # `None`; and the three `ops` entry points always-on code calls return a
 # build-fact error, so a post-sync snapshot or a subconscious diff is logged and
 # skipped rather than silently reported as "nothing changed".
-http-server = ["dep:axum"]
+http-server = ["dep:axum", "tinymcp/server-http"]
 # Local audio-device access: the `cpal` capture stack behind voice recording
 # and the accessibility microphone-permission probe. Default-ON. Slim /
 # headless builds opt out via `--no-default-features --features "<explicit list
