@@ -6664,7 +6664,7 @@ dependencies = [
 
 [[package]]
 name = "tinymcp"
-version = "0.3.4"
+version = "0.3.5"
 dependencies = [
  "base64 0.23.1",
  "dirs 7.0.0",
@@ -6684,7 +6684,7 @@ dependencies = [
 
 [[package]]
 name = "tinymcp-bus"
-version = "0.3.4"
+version = "0.3.5"
 dependencies = [
  "schemars",
  "serde",
@@ -6693,7 +6693,7 @@ dependencies = [
 
 [[package]]
 name = "tinymemory"
-version = "1.16.2"
+version = "1.17.0"
 dependencies = [
  "anyhow",
  "async-trait",
