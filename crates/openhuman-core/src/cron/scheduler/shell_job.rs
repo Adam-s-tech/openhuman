@@ -5,7 +5,6 @@ use crate::config::Config;
 use crate::cron::CronJob;
 use crate::security::SecurityPolicy;
 use std::process::Stdio;
-use tokio::process::Command;
 use tokio::time::{self, Duration};
 
 pub(super) const SHELL_JOB_TIMEOUT_SECS: u64 = 120;
@@ -126,9 +125,12 @@ pub(super) async fn run_job_command_with_timeout(
         );
     }
 
-    let child = match Command::new("sh")
-        .arg("-lc")
-        .arg(&job.command)
+    // Through `platform_shell`, like every other shell spawn in this crate.
+    // `Command::new("sh")` fails at `CreateProcessW` on Windows, which is the
+    // whole reason that module exists — this call site was the one that still
+    // named the program itself. The Unix behaviour is unchanged: that arm is
+    // also `-lc`, and adds `set -o pipefail` when bash is present.
+    let child = match crate::agent::platform_shell::build_tokio_command(&job.command)
         .current_dir(&config.action_dir)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())

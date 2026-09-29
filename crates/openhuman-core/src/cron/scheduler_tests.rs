@@ -246,3 +246,35 @@ async fn security_policy_block_halts_without_spending_the_retry_budget() {
          only delays the user's error by the full retry budget (here about 4 s)."
     );
 }
+
+/// A shell job runs on every platform this crate supports.
+///
+/// The spawn used to name `sh` itself, and `CreateProcessW` cannot resolve that
+/// on Windows — so every scheduled shell job failed there with `spawn error:
+/// program not found` while the identical job ran on macOS and Linux. Routing it
+/// through `agent::platform_shell`, which every other shell spawn in the crate
+/// already used, is what makes this pass.
+///
+/// `echo` and the assertion on its output are deliberately shell-agnostic: the
+/// test names neither `sh` nor `cmd`, so it keeps holding if the platform matrix
+/// in `platform_shell` changes.
+#[tokio::test]
+async fn a_shell_job_runs_on_this_platform() {
+    let tmp = TempDir::new().unwrap();
+    let config = test_config(&tmp).await;
+    let security =
+        SecurityPolicy::from_config(&config.autonomy, &config.workspace_dir, &config.action_dir);
+    // Fixture guard: a policy that refused to act would make this pass by
+    // never spawning anything.
+    assert!(security.can_act(), "the fixture policy must permit acting");
+
+    let job = test_job("echo tinyhumans");
+
+    let (success, output) = run_job_command(&config, &security, &job).await;
+
+    assert!(success, "the shell job did not succeed: {output}");
+    assert!(
+        output.contains("tinyhumans"),
+        "the job's stdout was not captured: {output}"
+    );
+}
