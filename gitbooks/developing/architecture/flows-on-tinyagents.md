@@ -175,7 +175,7 @@ A flow `agent` node names a **registered agent kind** through a trusted
 
 - **A harness `AgentDefinition` exists** → build a full harness `Agent`
   (`Agent::from_config_for_agent`) and run the node's request through
-  `run_single`. That is the _same_ entry the builder/scout and cron/subconscious
+  `run_single`. That is the _same_ entry the builder/scout and cron
   jobs use, and internally it drives `run_turn_via_tinyagents_shared`
   ([`crates/openhuman-core/src/agent/tinyagents/mod.rs`](../../../crates/openhuman-core/src/agent/tinyagents/mod.rs)) -
   the tinyagents `AgentHarness` tool-call loop. The definition's ToolScope,

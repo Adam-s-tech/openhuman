@@ -436,7 +436,7 @@
 #                      that touch git2), the impls written against `Ledger`,
 #                      and `DiffEngine` sit behind the feature. OpenHuman
 #                      mirrors the split: `memory::diff::types` compiles in
-#                      both directions because the always-on subconscious
+#                      both directions because the always-on memory
 #                      profile renders those types into prompts.
 #                      Off-state: `memory_diff` is unknown-method, the
 #                      `memory_diff` agent tool is absent, the embedded driver
