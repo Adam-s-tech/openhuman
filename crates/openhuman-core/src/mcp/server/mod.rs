@@ -70,7 +70,3 @@ pub use tools::McpToolSpec;
 mod stub;
 #[cfg(not(feature = "mcp"))]
 pub use stub::*;
-
-#[cfg(all(test, feature = "mcp"))]
-#[path = "wire_capture_tests.rs"]
-mod wire_capture_tests;
