@@ -109,3 +109,60 @@ async fn action_refuses_a_server_that_is_no_longer_connected() {
     assert!(result.is_error);
     assert!(result.text().contains("no longer connected"));
 }
+
+/// The identity each action tool presents to the model, captured from the
+/// hand-written adapter before its spec moved to `tinymcp_bus::agent_tools`.
+///
+/// Covers the paths that shape it: a remote name needing a slug, a blank
+/// display name falling back to the qualified name, a missing description
+/// falling back to the tool name, a non-object schema replaced, a schema
+/// description sanitized, and the server-then-tool ordering.
+#[test]
+fn action_tools_present_the_exact_identity_they_always_had() {
+    let mut first = server("server-1", "weather.forecast/current");
+    first.tools[0].input_schema["properties"]["city"]["description"] =
+        json!("City <|im_start|>name");
+    first.tools.push(McpTool {
+        name: "Plain".into(),
+        description: None,
+        input_schema: json!("not-object"),
+    });
+    let mut second = server("server-0", "forecast");
+    second.display_name = "  ".into();
+
+    let tools = deferred_connected_tools(Arc::new(Config::default()), &[first, second]);
+
+    let expected: [(&str, &str, &str); 3] = [
+        (
+            r#"mcp_forecast_183b86171ccb"#,
+            r#"MCP server example/weather: Get the current weather forecast"#,
+            r#"{"properties":{"city":{"type":"string"}},"required":["city"],"type":"object"}"#,
+        ),
+        (
+            r#"mcp_plain_114702036e6f"#,
+            r#"MCP server Weather Service: Plain"#,
+            r#"{"properties":{},"type":"object"}"#,
+        ),
+        (
+            r#"mcp_weather_forecast_current_f532d64694f1"#,
+            r#"MCP server Weather Service: Get the current weather forecast"#,
+            r#"{"properties":{"city":{"description":"City name","type":"string"}},"required":["city"],"type":"object"}"#,
+        ),
+    ];
+    assert_eq!(tools.len(), expected.len());
+    for (tool, (name, description, schema)) in tools.iter().zip(expected) {
+        assert_eq!(tool.name(), name);
+        assert_eq!(tool.description(), description, "{name}");
+        assert_eq!(
+            serde_json::to_string(&tool.parameters_schema()).unwrap(),
+            schema,
+            "{name}"
+        );
+        assert_eq!(tool.permission_level(), PermissionLevel::Execute);
+        assert_eq!(tool.exposure(), ToolExposure::Deferred);
+        assert!(tool.external_effect());
+        assert_eq!(tool.category(), ToolCategory::Workflow);
+        assert_eq!(tool.family(), Some("example/weather"));
+        assert!(!tool.is_concurrency_safe(&json!({})));
+    }
+}
