@@ -35,7 +35,7 @@ fn core_listener_settings_use_valid_environment_values_and_safe_defaults() {
 #[test]
 fn server_shim_refuses_public_bind_without_operator_token() {
     tokio::runtime::Builder::new_multi_thread()
-        .worker_stack_size(8 * 1024 * 1024)
+        .thread_stack_size(8 * 1024 * 1024)
         .enable_all()
         .build()
         .expect("tokio runtime")
