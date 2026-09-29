@@ -306,11 +306,9 @@ async fn tools_call_decodes_json_encoded_arguments_before_dispatch() {
     }))
     .await;
 
-    assert_eq!(response["error"]["code"], -32602);
-    assert!(response["error"]["data"]
-        .as_str()
-        .expect("error data")
-        .contains("missing required argument `query`"));
+    assert_eq!(response["error"]["code"], -32602, "{response}");
+    let data = response["error"]["data"].as_str().expect("error data");
+    assert!(data.contains("missing required argument `query`"), "{data}");
 }
 
 #[tokio::test]
