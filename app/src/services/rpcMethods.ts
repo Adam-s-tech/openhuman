@@ -36,6 +36,7 @@ export const CORE_RPC_METHODS = {
   corePing: 'core.ping',
   memoryEngineGet: 'openhuman.memory_engine_get',
   memoryEngineMigrate: 'openhuman.memory_engine_migrate',
+  memoryEngineMigrateCancel: 'openhuman.memory_engine_migrate_cancel',
   memoryEngineMigrateStatus: 'openhuman.memory_engine_migrate_status',
   memoryEngineSet: 'openhuman.memory_engine_set',
   memoryEnginesList: 'openhuman.memory_engines_list',

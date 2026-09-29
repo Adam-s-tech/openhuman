@@ -45,13 +45,15 @@ export interface MemoryEngineTarget {
   api_key?: string;
 }
 
-export type MemoryEngineMigrateState = 'running' | 'done' | 'failed';
+export type MemoryEngineMigrateState = 'running' | 'done' | 'failed' | 'cancelled';
 
 export interface MemoryEngineMigrateStatus {
   state: MemoryEngineMigrateState;
   copied: number;
   total: number | null;
   error: string | null;
+  /** Caveat on a finished job (writes made while the copy ran); absent otherwise. */
+  note?: string | null;
 }
 
 export async function memoryEnginesList(): Promise<MemoryEnginesList> {
@@ -80,6 +82,14 @@ export async function memoryEngineMigrate(to: MemoryEngineTarget): Promise<{ job
 export async function memoryEngineMigrateStatus(jobId: string): Promise<MemoryEngineMigrateStatus> {
   return await callCoreRpc<MemoryEngineMigrateStatus>({
     method: CORE_RPC_METHODS.memoryEngineMigrateStatus,
+    params: { job_id: jobId },
+  });
+}
+
+/** Stops a running migration; the active engine is left unchanged. */
+export async function memoryEngineMigrateCancel(jobId: string): Promise<{ cancelled: boolean }> {
+  return await callCoreRpc<{ cancelled: boolean }>({
+    method: CORE_RPC_METHODS.memoryEngineMigrateCancel,
     params: { job_id: jobId },
   });
 }
