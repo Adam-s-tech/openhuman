@@ -3908,6 +3908,7 @@ dependencies = [
  "tinybus",
  "tinychannels",
  "tinychannels-bus",
+ "tinychannels-runtime",
  "tinycomputer-bus",
  "tinyconnectors-bus",
  "tinydocs-bus",
@@ -6389,6 +6390,7 @@ name = "tinychannels-runtime"
 version = "0.1.4"
 dependencies = [
  "anyhow",
+ "async-trait",
  "rand 0.10.2",
  "tinychannels-bus",
  "tokio",
