@@ -337,7 +337,7 @@ async fn use_skill_reaches_a_withheld_packed_tool() {
     // packed names for a non-owner.
     let mut visible: std::collections::HashSet<String> =
         tools.iter().map(|t| t.name().to_string()).collect();
-    strip_packed_from_visible(&mut visible, "orchestrator");
+    strip_packed_from_visible(&mut visible, "unrelated_agent");
     let session = ToolPolicyEngine::build_session(
         "orchestrator",
         "web_chat",
