@@ -432,7 +432,6 @@ pub(crate) const DELIBERATELY_UNPACKED_FLEET_TOOLS: &[&str] = &[
     "spawn_parallel_agents",
 ];
 
-
 pub fn pack(id: &str) -> Option<&'static ToolPack> {
     PACKS.iter().find(|p| p.id == id)
 }
