@@ -226,15 +226,6 @@ pub struct Config {
     pub embedding_routes: Vec<EmbeddingRouteConfig>,
 
     #[serde(default)]
-    pub heartbeat: HeartbeatConfig,
-
-    /// Subconscious engine selection (local tinyagents graph vs. local
-    /// retired engine). Default `local` — omitting this block preserves
-    /// the historical behavior exactly.
-    #[serde(default)]
-    pub subconscious: crate::config::schema::SubconsciousConfig,
-
-    #[serde(default)]
     pub cron: CronConfig,
 
     /// Task-sources domain defaults — master switch + new-source
@@ -419,17 +410,9 @@ pub struct Config {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub custom_embeddings: Option<CustomEmbeddingsConfig>,
 
-    /// Provider string for the heartbeat background-reasoning loop.
-    #[serde(default)]
-    pub heartbeat_provider: Option<String>,
-
     /// Provider string for learning / reflection passes.
     #[serde(default)]
     pub learning_provider: Option<String>,
-
-    /// Provider string for subconscious evaluation and drift checks.
-    #[serde(default)]
-    pub subconscious_provider: Option<String>,
 
     /// Node.js managed runtime configuration (skills that need `node`/`npm`).
     #[serde(default)]
