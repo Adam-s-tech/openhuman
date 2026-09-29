@@ -37,6 +37,7 @@ const FUNCTIONS: &[&str] = &[
     "auth_oauth_list_integrations",
     "auth_oauth_fetch_integration_tokens",
     "auth_oauth_revoke_integration",
+    "auth_oauth_fetch_client_key",
 ];
 
 pub fn all_oauth_controller_schemas() -> Vec<ControllerSchema> {
@@ -60,6 +61,10 @@ pub fn all_oauth_registered_controllers() -> Vec<RegisteredController> {
         RegisteredController {
             schema: oauth_schemas("auth_oauth_revoke_integration"),
             handler: handle_auth_oauth_revoke_integration,
+        },
+        RegisteredController {
+            schema: oauth_schemas("auth_oauth_fetch_client_key"),
+            handler: handle_auth_oauth_fetch_client_key,
         },
     ]
 }
@@ -102,6 +107,16 @@ pub fn oauth_schemas(function: &str) -> ControllerSchema {
             description: "Revoke OAuth integration.",
             inputs: vec![required_string("integrationId", "Integration id.")],
             outputs: vec![json_output("result", "Integration revoke result.")],
+        },
+        "auth_oauth_fetch_client_key" => ControllerSchema {
+            namespace: "auth",
+            function: "oauth_fetch_client_key",
+            description: "Fetch one-time client key share for an encrypted OAuth integration.",
+            inputs: vec![required_string(
+                "integrationId",
+                "Integration id (24-char hex).",
+            )],
+            outputs: vec![json_output("result", "Client key share payload (base64).")],
         },
         _ => ControllerSchema {
             namespace: "auth",
@@ -163,6 +178,17 @@ fn handle_auth_oauth_revoke_integration(params: Map<String, Value>) -> Controlle
         let payload = deserialize_params::<AuthOauthRevokeParams>(params)?;
         to_json(
             crate::hosted::oauth::oauth_revoke_integration(&config, payload.integration_id.trim())
+                .await?,
+        )
+    })
+}
+
+fn handle_auth_oauth_fetch_client_key(params: Map<String, Value>) -> ControllerFuture {
+    Box::pin(async move {
+        let config = config_rpc::load_config_with_timeout().await?;
+        let payload = deserialize_params::<AuthOauthRevokeParams>(params)?;
+        to_json(
+            crate::hosted::oauth::oauth_fetch_client_key(&config, payload.integration_id.trim())
                 .await?,
         )
     })
