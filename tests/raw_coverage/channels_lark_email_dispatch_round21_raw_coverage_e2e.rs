@@ -13,7 +13,6 @@ use openhuman_core::channels::test_support::{
     run_dispatch_harness, DispatchHarnessOptions, TestMemoryEntry,
 };
 use openhuman_core::channels::LarkChannel;
-use reqwest::StatusCode as ReqwestStatusCode;
 use serde_json::json;
 // Lark's WS seam lives in tinychannels (tungstenite 0.29); use its re-export so
 // the message type matches the function signature across the version boundary.
