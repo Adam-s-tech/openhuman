@@ -155,6 +155,7 @@ async fn canonical_adapter_fails_closed_when_the_registered_tool_is_gone() {
         description: "missing".to_string(),
         parameters_schema: serde_json::json!({"type": "object"}),
         early_exit: None,
+        force_deferred: false,
     };
 
     let result = adapter
