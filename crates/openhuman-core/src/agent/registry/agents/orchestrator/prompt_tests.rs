@@ -304,37 +304,32 @@ fn build_includes_datetime() {
 #[test]
 fn build_includes_direct_first_decision_tree() {
     let body = build(&ctx_with(&[])).unwrap();
-    assert!(body.contains("## How you work"));
-    assert!(body.contains("Take the first branch that applies:"));
-    assert!(body.contains("**Answerable without tools**: reply."));
-    // Step 2 of the decision tree routes live external-service requests to
-    // a `tool_search` + direct call rather than memory or a sub-agent.
-    assert!(body.contains("Needs a connected service's own data or actions"));
-    assert!(body.contains("Use the live service even when memory could plausibly answer"));
-    assert!(body.contains("No sub-agent runs it for you"));
-    // The lead-in rule lives on the branch where the failure was observed: a
-    // live run had the model answer "let me search for the right tool" and
-    // end the turn without emitting the `tool_search` call.
-    assert!(body.contains("an announced search never runs"));
+    assert!(body.contains("## Routing"));
+    assert!(body.contains("First match wins:"));
+    assert!(body.contains("- Chat or general knowledge: answer."));
+    // The service branch routes live external-service requests to a
+    // `tool_search` + direct call rather than memory or a sub-agent.
+    assert!(body.contains("The user's own data or actions on a connected service"));
+    assert!(body.contains("call it yourself, now, even if memory might answer"));
+    // The lead-in rule: a live run had the model answer "let me search for
+    // the right tool" and end the turn without emitting the call.
+    assert!(body.contains("Make a tool call in the message that announces it"));
     assert!(!body.contains("delegate_to_integrations_agent"));
 }
 
 #[test]
 fn build_routes_live_facts_to_the_web_tools_directly() {
     let body = build(&ctx_with(&[])).unwrap();
-    // There is no research sub-agent: broad research is a deep web answer or
-    // search plus a batched contents read, done by the orchestrator itself.
-    assert!(body.contains("anything broader via deep `web_answer_tool`"));
-    assert!(body.contains("`depth: \"deep\"`"));
-    assert!(body.contains("`web_contents_tool`"));
+    // There is no research sub-agent: broad research is a deep web answer,
+    // done by the orchestrator itself with the web tools on its belt.
+    assert!(body.contains("`depth: \"deep\"` for research"));
+    assert!(body.contains("`provider` unset unless named"));
     assert!(
         !body.contains("`research`"),
         "the removed research delegate must not be named"
     );
-    assert!(body.contains("weather, forecasts, prices, recent news"));
-    assert!(body.contains("\"use live data\""));
-    // A lead-in line is welcome, but only in the same message as the call.
-    assert!(body.contains("an announced search never runs: emit it"));
+    // Live or time-sensitive asks are answered now, with a tool call.
+    assert!(body.contains("Live asks get a tool call now."));
     assert!(!body.contains("researcher"));
 }
 
@@ -343,7 +338,7 @@ fn build_routes_live_facts_to_the_web_tools_directly() {
 #[test]
 fn build_keeps_code_work_direct_with_no_coding_hand_off() {
     let body = build(&ctx_with(&[])).unwrap();
-    assert!(body.contains("Keep code work end-to-end"));
+    assert!(body.contains("edit and verify in the same turn"));
     for gone in ["run_code", "delegate_run_code", "review_code"] {
         assert!(
             !body.contains(gone),
@@ -357,7 +352,7 @@ fn build_keeps_code_work_direct_with_no_coding_hand_off() {
 /// not against itself, so a rename on either side fails here.
 #[test]
 fn prompt_names_only_guided_skills_that_exist() {
-    assert!(ARCHETYPE.contains("`use_skill` skill `coding`, `system`, `web3` or `docs` first"));
+    assert!(ARCHETYPE.contains("`use_skill` `coding`/`system`/`web3`/`docs` first"));
     for skill in ["coding", "system", "web3", "docs"] {
         let pack = crate::tools::toolpacks::pack(skill)
             .unwrap_or_else(|| panic!("prompt names skill `{skill}`, which is not a pack"));
@@ -373,7 +368,7 @@ fn prompt_names_only_guided_skills_that_exist() {
 #[test]
 fn prompt_binds_money_and_service_actions_to_explicit_consent() {
     assert!(ARCHETYPE.contains(
-        "except moving funds and stopping, uninstalling or updating OpenHuman's service: those need the user's explicit yes"
+        "Explicit yes only before moving funds or stopping, uninstalling or updating OpenHuman."
     ));
 }
 
@@ -390,59 +385,45 @@ fn build_emits_connected_integrations_as_search_then_call() {
     }];
     let body = build(&ctx_with(&integrations)).unwrap();
     assert!(body.contains("## Connected Integrations"));
-    assert!(body.contains("toolkit: \"gmail\""));
-    // The route is the harness's search bridge, not a sub-agent.
-    assert!(body.contains("`tool_search` for the action"));
-    assert!(body.contains("no sub-agent"));
+    assert!(body.contains("`gmail`"));
+    // Vendor descriptions are not rendered: `tool_search` says what a toolkit
+    // can do, and the blurbs cost tokens on every request.
+    assert!(!body.contains("Email access."));
+    // The route is the harness's search bridge, called directly.
+    assert!(body.contains("`tool_search` their actions"));
+    assert!(body.contains("call it yourself"));
     // The removed delegate and the old per-toolkit fan-out must be gone.
     assert!(!body.contains("delegate_to_integrations_agent"));
     assert!(!body.contains("delegate_gmail"));
     assert!(!body.contains("integrations_agent"));
     assert!(!body.contains("spawn_subagent(agent_id=\"integrations_agent\""));
-    // The "you have direct access" skill-executor wording stays out: the
-    // actions are not on the wire, they are searchable.
     assert!(!body.contains("You have direct access"));
-    // Must keep the always-try contract for real service asks.
+    // Search before refusing: the search, not priors, decides capability.
     assert!(
-        body.contains("Never claim you cannot access one without searching first"),
-        "the block must instruct the model to search before refusing"
+        body.contains("not prior knowledge or past answers"),
+        "the block must make the search the truth about a toolkit"
     );
+    assert!(body.contains("`tool_search` in plain words before declining"));
 }
 
 #[test]
 fn build_scope_gates_integrations_delegation() {
     // Regression: a connected service (e.g. Gmail) is not, by itself, a
     // reason to operate on it — a general-knowledge / web / date ask that
-    // names no service must NOT reach for a service action.
-    // Guards both the static Step-2 scope gate and the rendered
-    // connected-integrations clause.
-    let no_integrations = build(&ctx_with(&[])).unwrap();
-    assert!(
-        no_integrations.contains("general knowledge, web/news lookups, headlines, date/time, math, and anything public on the web (a public repository, a product page, docs) never go to a service"),
-        "Step-2 scope gate must keep general/web/date asks off integration actions"
-    );
-    assert!(
-        no_integrations.contains("A service being connected is not a reason to touch it"),
-        "Step-2 scope gate must forbid reaching into an unreferenced service"
-    );
-
-    let gmail = vec![ConnectedIntegration {
-        toolkit: "gmail".into(),
-        description: "Email access.".into(),
-        tools: Vec::new(),
-        gated_tools: Vec::new(),
-        connected: true,
-        connections: Vec::new(),
-        non_active_status: None,
-    }];
-    let with_gmail = build(&ctx_with(&gmail)).unwrap();
-    assert!(
-        with_gmail
-            .contains("a connected service is not a reason to touch it for general-knowledge"),
-        "connected-integrations block must carry the scoping clause when integrations are connected"
-    );
-    // The existing always-try contract for real service asks is preserved.
-    assert!(with_gmail.contains("Never claim you cannot access one without searching first"));
+    // names no service must NOT reach for a service action. The gate lives
+    // in the always-rendered routing, so it holds with or without
+    // integrations connected.
+    for integrations in [Vec::new(), gmail_only()] {
+        let body = build(&ctx_with(&integrations)).unwrap();
+        assert!(
+            body.contains("Public facts, news, time and math never go to a service."),
+            "scope gate must keep general/web/date asks off integration actions"
+        );
+        assert!(
+            body.contains("The user's own data or actions on a connected service"),
+            "the service branch must be scoped to the user's own data"
+        );
+    }
 }
 
 #[test]
@@ -451,9 +432,8 @@ fn build_does_not_route_scope_errors_as_disconnected() {
     // A scope error from the connect call is relayed, never rewritten as
     // "unsupported"; and the connected list is never treated as the
     // connectable list.
-    assert!(body.contains("If the connect call reports the toolkit unavailable, relay its message"));
-    assert!(body.contains("that is the only honest refusal"));
-    assert!(body.contains("the list shows what is connected, not what is connectable"));
+    assert!(body.contains("relay an \"unavailable\" reply"));
+    assert!(body.contains("never refuse from the list"));
     assert!(body.contains("`composio_connect`"));
 }
 
