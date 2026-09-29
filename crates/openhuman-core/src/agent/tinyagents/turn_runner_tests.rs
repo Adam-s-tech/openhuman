@@ -170,7 +170,7 @@ async fn positive_scoped_tool_limit_caps_hosted_runner_inner() {
         .expect("scripted turn models build");
     let (tx, _rx) = tokio::sync::mpsc::channel(8);
 
-    let _ = crate::agent::stop_hooks::with_tool_call_limit(Some(1), async {
+    let outcome = crate::agent::stop_hooks::with_tool_call_limit(Some(1), async {
         run_root_turn_via_hosted_agent(
             root_context(
                 "limited-runner-positive",
@@ -201,6 +201,9 @@ async fn positive_scoped_tool_limit_caps_hosted_runner_inner() {
     })
     .await;
 
+    let outcome = outcome.expect("hosted runner succeeds with one permitted tool call");
+    assert_eq!(outcome.tool_calls, 1);
+    assert!(!outcome.hit_cap);
     assert_eq!(tool_calls.load(std::sync::atomic::Ordering::SeqCst), 1);
     assert!(model_calls.load(std::sync::atomic::Ordering::SeqCst) >= 1);
 }
