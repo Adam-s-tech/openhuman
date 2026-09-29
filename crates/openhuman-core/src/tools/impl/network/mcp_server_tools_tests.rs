@@ -125,6 +125,35 @@ async fn a_call_reaches_the_server_and_its_output_is_scrubbed() {
 }
 
 #[tokio::test]
+async fn act_policy_denial_prevents_configured_server_call() {
+    let mock = server().await;
+    let dir = tempfile::tempdir().unwrap();
+    let config = config(dir.path(), &format!("{}/mcp", mock.uri()), |_| {});
+    let registry = warmed(&config).await;
+    let denied = Arc::new(SecurityPolicy {
+        enabled: true,
+        autonomy: crate::security::AutonomyLevel::ReadOnly,
+        ..SecurityPolicy::default()
+    });
+    let tools = configured_server_tools(&config, &registry, &denied, &HashSet::new());
+    let read = tools
+        .iter()
+        .find(|tool| tool.name() == name("readGoals"))
+        .unwrap();
+
+    let result = read.execute(json!({ "list": "work" })).await.unwrap();
+    assert!(result.is_error);
+    assert!(result.text().contains("read-only mode"), "{}", result.text());
+    assert_eq!(tools_list_requests(&mock).await, 1);
+    let calls = mock.received_requests().await.unwrap_or_default();
+    assert!(!calls.iter().any(|request| {
+        serde_json::from_slice::<Value>(&request.body)
+            .map(|body| body["method"] == "tools/call")
+            .unwrap_or(false)
+    }));
+}
+
+#[tokio::test]
 async fn expose_direct_and_direct_tools_are_honoured() {
     let mock = server().await;
     let dir = tempfile::tempdir().unwrap();
