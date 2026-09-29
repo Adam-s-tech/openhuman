@@ -133,11 +133,12 @@ impl SessionHostBuilder {
             // synthesised per session (`collect_orchestrator_tools`) and
             // declares `Deferred` too. The synthesised set's `Hidden` members
             // are left alone on purpose — see the comment above.
-            deferred_names.extend(crate::tools::implementations::meta::deferred_tool_names(
+            // Plus the tools this agent's definition defers for itself
+            // (`deferred_tools`); see `meta::deferred_set`.
+            deferred_names.extend(crate::tools::implementations::meta::deferred_set(
                 tools.as_slice(),
-            ));
-            deferred_names.extend(crate::tools::implementations::meta::deferred_tool_names(
                 synthesized_tools.as_slice(),
+                &self.deferred_tools,
             ));
             visible_names.retain(|name| !deferred_names.contains(name));
         } else {
@@ -365,6 +366,7 @@ impl SessionHostBuilder {
             visible_tool_names: visible_names,
             deferred_tool_names: deferred_names,
             discovery_enabled,
+            requested_deferred_tools: Arc::from(self.deferred_tools.clone()),
             subagent_tool_ceiling_names,
             tool_policy_session,
             memory,
