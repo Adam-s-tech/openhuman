@@ -8,7 +8,10 @@ use reqwest::Method;
 use tinyhumans_sdk::Error as SdkError;
 
 fn channel_message_path(path: &str) -> Option<(&str, &str)> {
-    let segments = path.split('/').filter(|segment| !segment.is_empty()).collect::<Vec<_>>();
+    let segments = path
+        .split('/')
+        .filter(|segment| !segment.is_empty())
+        .collect::<Vec<_>>();
     let channels = segments.iter().position(|segment| *segment == "channels")?;
     if segments.get(channels + 2).copied() != Some("messages") {
         return None;
