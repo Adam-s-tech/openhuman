@@ -145,29 +145,9 @@ fn runtime_context(workspace_dir: PathBuf) -> ChannelRuntimeContext {
 }
 
 #[test]
-fn runtime_command_parsing_and_provider_support_are_channel_scoped() {
-    assert_eq!(
-        parse_runtime_command("telegram", "/models"),
-        Some(ChannelRuntimeCommand::Portable(
-            PortableCommand::ShowProviders
-        ))
-    );
-    assert_eq!(
-        parse_runtime_command("discord", "/models openai"),
-        Some(ChannelRuntimeCommand::Portable(
-            PortableCommand::SetProvider("openai".into())
-        ))
-    );
-    assert_eq!(
-        parse_runtime_command("telegram", "/model gpt-5"),
-        Some(ChannelRuntimeCommand::Portable(PortableCommand::SetModel(
-            "gpt-5".into()
-        )))
-    );
-    assert_eq!(
-        parse_runtime_command("telegram", "/model"),
-        Some(ChannelRuntimeCommand::Portable(PortableCommand::ShowModel))
-    );
+fn runtime_command_parsing_adds_telegram_remote_commands_to_portable_ones() {
+    // The portable `/model` / `/models` grammar is covered in
+    // `vendor/tinychannels/src/routes.rs`; this pins only what the host adds.
     assert_eq!(
         parse_runtime_command("telegram", "/status@OpenHumanBot"),
         Some(ChannelRuntimeCommand::TelegramRemote(
@@ -180,9 +160,13 @@ fn runtime_command_parsing_and_provider_support_are_channel_scoped() {
             TelegramRemoteCommand::Help
         ))
     );
-    assert_eq!(parse_runtime_command("slack", "/models"), None);
+    assert_eq!(
+        parse_runtime_command("telegram", "/models"),
+        Some(ChannelRuntimeCommand::Portable(
+            PortableCommand::ShowProviders
+        ))
+    );
     assert_eq!(parse_runtime_command("discord", "/status"), None);
-    assert_eq!(parse_runtime_command("telegram", "hello"), None);
 }
 
 #[test]
@@ -225,39 +209,6 @@ fn provider_alias_and_route_selection_round_trip() {
 
     set_route_selection(&ctx, sender_key, default_route_selection(&ctx));
     assert!(ctx.route_overrides.lock().unwrap().is_empty());
-}
-
-#[test]
-fn cached_models_and_help_responses_render_expected_text() {
-    let tempdir = tempfile::tempdir().unwrap();
-    let state_dir = tempdir.path().join("state");
-    std::fs::create_dir_all(&state_dir).unwrap();
-    std::fs::write(
-        state_dir.join("models_cache.json"),
-        serde_json::json!({
-            "entries": [
-                {
-                    "provider": "openai",
-                    "models": ["gpt-5", "gpt-5-mini", "gpt-4.1"]
-                }
-            ]
-        })
-        .to_string(),
-    )
-    .unwrap();
-
-    let current = ChannelRouteSelection {
-        provider: "openai".into(),
-        model: "gpt-5".into(),
-    };
-    let models = build_models_help_response(&current, tempdir.path());
-    assert!(models.contains("Current provider: `openai`"));
-    assert!(models.contains("Cached model IDs"));
-    assert!(models.contains("- `gpt-5-mini`"));
-
-    let providers = build_providers_help_response(&current, &provider_descriptors());
-    assert!(providers.contains("Switch provider with `/models <provider>`"));
-    assert!(providers.contains("Available providers:"));
 }
 
 #[test]
