@@ -3929,6 +3929,7 @@ dependencies = [
  "tinymemory-api",
  "tinymemory-bus",
  "tinymemory-conformance",
+ "tinymemory-conversations",
  "tinymemory-sources",
  "tinyruntime-bus",
  "tinysearch-bus",
@@ -6743,6 +6744,19 @@ dependencies = [
  "async-trait",
  "serde_json",
  "tinymemory-api",
+]
+
+[[package]]
+name = "tinymemory-conversations"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "chrono",
+ "parking_lot",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "uuid",
 ]
 
 [[package]]
