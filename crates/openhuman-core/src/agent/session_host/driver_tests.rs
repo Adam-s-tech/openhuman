@@ -165,8 +165,8 @@ fn tool_snapshot_with_no_executable_source_fails_closed_before_graph() {
 }
 
 /// #6721: the req-029 → req-031 shape — an assistant issued 3 tool calls and
-/// the 50-message cut lands on the second result. The trimmed history must not
-/// open on an orphaned `tool` message.
+/// the cut lands on the second result. The trimmed history must not open on an
+/// orphaned `tool` message.
 #[test]
 fn trim_history_keeps_tool_call_group_whole() {
     let mut calling = Message::assistant("");
@@ -177,6 +177,7 @@ fn trim_history_keeps_tool_call_group_whole() {
             .collect();
     }
     let mut history = vec![Message::system("s0"), Message::system("s1")];
+    history.extend((0..20).map(|i| Message::user(format!("early {i}"))));
     history.extend([
         Message::user("u0"),
         calling,
@@ -185,8 +186,9 @@ fn trim_history_keeps_tool_call_group_whole() {
         Message::tool("c", "rc"),
         Message::assistant("done"),
     ]);
-    history.extend((0..47).map(|i| Message::user(format!("filler {i}"))));
-    // 53 non-system messages → the raw cut drops 3 and would land on tool "b".
+    history.extend((0..27).map(|i| Message::user(format!("filler {i}"))));
+    // 53 non-system messages, bound 50 → the step cut keeps 30, so it drops 23:
+    // the 20 early messages, u0, the calling turn and tool "a" — landing on "b".
 
     trim_history(&mut history, 50);
 
@@ -201,10 +203,56 @@ fn trim_history_keeps_tool_call_group_whole() {
 }
 
 #[test]
-fn trim_history_without_tool_group_trims_to_the_bound() {
+fn trim_history_without_tool_group_step_trims_to_sixty_percent() {
     let mut history = vec![Message::system("s0")];
     history.extend((0..60).map(|i| Message::user(format!("m{i}"))));
     trim_history(&mut history, 50);
-    assert_eq!(history.len(), 51);
-    assert_eq!(history[1].text(), "m10");
+    assert_eq!(history.len(), 31);
+    assert_eq!(history[1].text(), "m30");
+}
+
+#[test]
+fn trim_history_leaves_history_within_the_bound_untouched() {
+    let mut history = vec![Message::system("s0")];
+    history.extend((0..50).map(|i| Message::user(format!("m{i}"))));
+    let before = history.clone();
+    trim_history(&mut history, 50);
+    assert_eq!(history, before);
+}
+
+#[test]
+fn history_trim_target_edges() {
+    assert_eq!(history_trim_target(0), 0);
+    assert_eq!(history_trim_target(1), 1);
+    assert_eq!(history_trim_target(50), 30);
+}
+
+/// Prompt-cache regression: the message right after the system prompt is the
+/// head of the provider's cached prefix. Before the step cut, a thread past the
+/// bound shed its oldest messages every turn, so the head moved (and the whole
+/// prompt missed the cache) on every one of these 30 turns.
+#[test]
+fn trim_history_keeps_the_cached_prefix_stable_across_turns() {
+    let mut history = vec![Message::system("s0")];
+    history.extend((0..50).map(|i| Message::user(format!("m{i}"))));
+    let mut next = 50;
+    let mut head_changes = 0;
+    let mut head = history[1].text();
+    for _turn in 0..30 {
+        // One turn: user message + assistant reply.
+        history.push(Message::user(format!("m{next}")));
+        history.push(Message::assistant(format!("r{next}")));
+        next += 1;
+        trim_history(&mut history, 50);
+        assert!(history.len() - 1 <= 50, "history stays within the bound");
+        if history[1].text() != head {
+            head_changes += 1;
+            head = history[1].text();
+        }
+    }
+    // Each cut frees 20 slots = 10 turns, so 30 turns cut at most 3 times.
+    assert!(
+        head_changes <= 3,
+        "cached prefix moved {head_changes} times in 30 turns"
+    );
 }
