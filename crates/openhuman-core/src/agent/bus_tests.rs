@@ -26,7 +26,6 @@ fn test_request() -> AgentTurnRequest {
         target_agent_id: None,
         visible_tool_names: None,
         extra_tools: Vec::new(),
-        deferred_tools: Vec::new(),
         on_progress: None,
         origin: AgentTurnOrigin::Cli,
     }
