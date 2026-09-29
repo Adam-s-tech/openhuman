@@ -32,12 +32,13 @@ use super::types::ConnectedServerOverview;
 
 /// The name an installed server's tool is exposed under.
 ///
-/// `mcp_<server>_<tool>`, from the server's qualified name; see
-/// `tinymcp::tools::naming`. Only the first of two colliding tools gets this
-/// exact name — [`deferred_connected_tools`] disambiguates the second.
+/// `mcp_<server>_<tool>_<digest>`: the server part from its qualified name,
+/// plus a short digest of the install and tool so the name never changes
+/// when another server with the same slug comes or goes; see
+/// `tinymcp::tools::naming`.
 #[must_use]
-pub fn searchable_name(qualified_name: &str, tool_name: &str) -> String {
-    tinymcp::tools::naming::tool_name(qualified_name, tool_name)
+pub fn searchable_name(server_id: &str, qualified_name: &str, tool_name: &str) -> String {
+    tinymcp::tools::naming::disambiguated_tool_name(server_id, qualified_name, tool_name)
 }
 
 /// One deferred tool per action of each installed server in `servers`.

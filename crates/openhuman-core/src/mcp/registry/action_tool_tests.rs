@@ -24,11 +24,18 @@ fn server(server_id: &str, tool_name: &str) -> ConnectedServerOverview {
 
 #[test]
 fn names_read_as_server_then_tool_and_are_provider_safe() {
-    let name = searchable_name("example/weather", "weather.forecast/current");
-    assert_eq!(name, "mcp_weather_weather_forecast_current");
+    let name = searchable_name("server-1", "example/weather", "weather.forecast/current");
+    assert!(
+        name.starts_with("mcp_weather_weather_forecast_current_"),
+        "{name}"
+    );
     assert_eq!(
         name,
-        searchable_name("example/weather", "weather.forecast/current")
+        searchable_name("server-1", "example/weather", "weather.forecast/current")
+    );
+    assert_ne!(
+        name,
+        searchable_name("server-2", "example/weather", "weather.forecast/current")
     );
     assert!(name.len() <= 64);
     assert!(name
@@ -42,7 +49,11 @@ fn tools_are_named_mcp_server_tool() {
         Arc::new(Config::default()),
         &[server("server-1", "readGoals")],
     );
-    assert_eq!(tools[0].name(), "mcp_weather_read_goals");
+    assert_eq!(
+        tools[0].name(),
+        searchable_name("server-1", "example/weather", "readGoals")
+    );
+    assert!(tools[0].name().starts_with("mcp_weather_read_goals_"));
 }
 
 #[test]
@@ -68,7 +79,8 @@ fn a_recorded_legacy_name_is_restored_as_an_alias() {
         &recorded,
     );
     let names: Vec<&str> = tools.iter().map(|tool| tool.name()).collect();
-    assert_eq!(names, ["mcp_weather_forecast", legacy.as_str()]);
+    let current = searchable_name("server-1", "example/weather", "forecast");
+    assert_eq!(names, [current.as_str(), legacy.as_str()]);
 
     let none = deferred_connected_tools_with_legacy(
         Arc::new(Config::default()),

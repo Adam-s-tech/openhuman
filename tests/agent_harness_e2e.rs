@@ -4042,9 +4042,12 @@ async fn orchestrator_calls_a_connected_mcp_tool_directly_inner() {
     reset_script(Vec::new());
     let stack = boot_stack().await;
     // Connecting also writes the tool cache the orchestrator's surface reads.
-    declare_and_connect_registry_echo_server(&stack.rpc_base, 940).await;
-    let action =
-        openhuman_core::mcp::registry::action_tool::searchable_name(REGISTRY_MCP_SERVER, "echo");
+    let server_id = declare_and_connect_registry_echo_server(&stack.rpc_base, 940).await;
+    let action = openhuman_core::mcp::registry::action_tool::searchable_name(
+        &server_id,
+        REGISTRY_MCP_SERVER,
+        "echo",
+    );
 
     reset_script(vec![
         tool_call_completion(
