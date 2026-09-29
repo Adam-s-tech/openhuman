@@ -13,6 +13,12 @@
   ],
   "exemptions": [
     {
+      "id": "tinymcp",
+      "submodule": "vendor/tinymcp",
+      "expect": "v0.3.4-45-gb6be9887",
+      "reason": "tinyhumansai/tinymcp#27 adds the host-side tools adapter and persistent tool cache used by OpenHuman. The released v0.3.4 module artifact remains selected in the registry because the added APIs are consumed by the host crate; the compiled module bus name, object path, and contract version are unchanged. Remove this exemption when a matching tinymcp module release is published and the registry digest is updated."
+    },
+    {
       "id": "tinyruntime-nodejs",
       "submodule": "vendor/tinyruntime",
       "expect": "v0.2.7",
