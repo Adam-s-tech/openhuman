@@ -326,3 +326,53 @@ fn product_identity_and_attribution_come_from_this_crate() {
     );
     assert!(headers.get("x-core-version").is_some());
 }
+
+#[tokio::test]
+async fn core_channel_routes_recover_from_the_transports_typed_404s() {
+    use openhuman_core::backend::BackendApiError;
+    // POST + DELETE only, mirroring the deployed router: PATCH falls through
+    // to Express's HTML 404 (#5230); DELETE answers a handler-level 404.
+    let server = MockServer::start().await;
+    Mock::given(method("PATCH"))
+        .and(path("/channels/telegram/messages/1103"))
+        .respond_with(ResponseTemplate::new(404).set_body_string("Cannot PATCH"))
+        .mount(&server)
+        .await;
+    Mock::given(method("DELETE"))
+        .and(path("/channels/telegram/messages/1103"))
+        .respond_with(
+            ResponseTemplate::new(404).set_body_json(json!({"success": false, "error": "gone"})),
+        )
+        .mount(&server)
+        .await;
+
+    let _guard = global_lock().lock().await;
+    let _t = crate::install(crate::InstallOptions::default()).unwrap();
+    let client = openhuman_core::backend::BackendClient::new(&server.uri()).unwrap();
+
+    let err = client
+        .send_channel_edit("telegram", "1103", "jwt", json!({}))
+        .await
+        .unwrap_err();
+    assert!(
+        matches!(
+            err.downcast_ref::<BackendApiError>(),
+            Some(BackendApiError::ChannelEditUnsupported { provider, message_id })
+                if provider == "telegram" && message_id == "1103"
+        ),
+        "edit: {err:#}"
+    );
+
+    let err = client
+        .send_channel_delete("telegram", "1103", "jwt")
+        .await
+        .unwrap_err();
+    assert!(
+        matches!(
+            err.downcast_ref::<BackendApiError>(),
+            Some(BackendApiError::MessageNotFound { provider, message_id })
+                if provider == "telegram" && message_id == "1103"
+        ),
+        "delete: {err:#}"
+    );
+}
