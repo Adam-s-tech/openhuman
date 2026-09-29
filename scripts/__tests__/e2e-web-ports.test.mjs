@@ -456,6 +456,7 @@ test("a second session cannot acquire the same port block", async () => {
 
     assert.equal(res.status, 1, res.output);
     assert.match(res.output, /another web E2E session is starting or using ports/);
+    assert.match(res.output, new RegExp(`Lock: ${lock.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&")}`));
     assert.ok(fs.existsSync(lock), "the failed contender must not remove the active session's lock");
   } finally {
     tree.cleanup();

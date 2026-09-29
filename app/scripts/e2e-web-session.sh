@@ -187,6 +187,7 @@ fi
 # are starting or running.
 if ! mkdir "$PORT_LOCK_DIR" 2>/dev/null; then
   echo "ERROR: another web E2E session is starting or using ports ${E2E_MOCK_PORT},${OPENHUMAN_CORE_PORT},${E2E_WEB_PORT}." >&2
+  echo "       Lock: $PORT_LOCK_DIR" >&2
   echo "       Choose a different E2E_PORT_BASE for concurrent sessions." >&2
   exit 1
 fi
