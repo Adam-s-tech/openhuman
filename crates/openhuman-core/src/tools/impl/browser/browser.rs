@@ -16,12 +16,12 @@ use session_pool::{
 #[cfg(test)]
 use session_pool::{MAX_THREAD_SESSIONS, SESSION_IDLE_TTL};
 use sha2::{Digest, Sha256};
+#[cfg(test)]
+use std::{collections::HashMap, time::Duration};
 use std::{
     sync::{Arc, Mutex as StdMutex},
     time::Instant,
 };
-#[cfg(test)]
-use std::{collections::HashMap, time::Duration};
 use task_actions::{approve_task_action, parse_action, required, task_inputs};
 use tinycomputer_bus::agent::{ContinueTaskRequest, TaskId, TaskStatus, TaskView};
 use tinycomputer_bus::browser::{
