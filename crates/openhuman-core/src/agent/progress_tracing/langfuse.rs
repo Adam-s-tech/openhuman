@@ -20,7 +20,6 @@ use std::time::Duration;
 
 mod environment;
 mod ingestion_batch;
-#[allow(dead_code)] // Child-run rooting is still shared with the OTLP path.
 mod journal_export;
 
 pub(crate) use environment::{environment_for_base, ingestion_url, skip_push};
@@ -29,7 +28,9 @@ pub(crate) use journal_export::journal_push_ready;
 pub(crate) use journal_export::push_observations;
 pub(crate) use journal_export::root_subagent_observations;
 
-use super::{SpanStatus, TraceContext, TraceSpan};
+use super::TraceContext;
+#[cfg(test)]
+use super::{SpanStatus, TraceSpan};
 
 #[cfg(test)]
 use crate::config::Config;
