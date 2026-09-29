@@ -3932,7 +3932,6 @@ dependencies = [
  "tinymemory-api",
  "tinymemory-bus",
  "tinymemory-conformance",
- "tinymemory-remote",
  "tinymemory-sources",
  "tinyruntime-bus",
  "tinysearch-bus",
