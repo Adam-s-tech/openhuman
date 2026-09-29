@@ -297,11 +297,11 @@ fn parse_tool_call_params(params: Value) -> Result<(String, Value), String> {
         .map(str::trim)
         .filter(|name| !name.is_empty())
         .ok_or_else(|| "tools/call params.name must be a non-empty string".to_string())?;
-    let arguments = object
-        .get("arguments")
-        .cloned()
-        .unwrap_or_else(|| Value::Object(Map::new()));
-    Ok((name.to_string(), arguments))
+    // Absent/null → `{}`, and an object JSON-encoded into a string is
+    // decoded; anything else is refused naming what arrived.
+    let arguments = tinymcp_bus::normalize_tool_arguments(object.get("arguments").cloned())
+        .map_err(|error| format!("tools/call params.arguments: {error}"))?;
+    Ok((name.to_string(), Value::Object(arguments)))
 }
 
 fn success_response(id: Value, result: Value) -> Value {
