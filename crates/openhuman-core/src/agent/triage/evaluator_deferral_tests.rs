@@ -29,7 +29,29 @@ fn outage_backoff_is_exponential_and_has_terminal_limit() {
     let outcome =
         record_outage(Some(&state), "stub-cloud", Some(generation)).expect("terminal outcome");
     assert!(matches!(outcome, TriageOutcome::Terminal { .. }));
+    let states = state.lock().expect("terminal outage state");
+    let outage = states.get("stub-cloud").expect("terminal outage retained");
+    assert_eq!(outage.consecutive_failures, 8);
+    assert!(outage.next_attempt_ms > chrono::Utc::now().timestamp_millis());
+    assert!(begin_outage_attempt(Some(&state), "stub-cloud").is_none());
 }
+
+#[test]
+fn healthy_attempts_can_overlap_and_stale_failure_is_deferred() {
+    let state = std::sync::Mutex::new(std::collections::HashMap::new());
+    let first = begin_outage_attempt(Some(&state), "stub-cloud").expect("first attempt");
+    let second = begin_outage_attempt(Some(&state), "stub-cloud").expect("overlapping attempt");
+
+    assert!(matches!(
+        record_outage(Some(&state), "stub-cloud", Some(first)),
+        Some(TriageOutcome::Deferred { .. })
+    ));
+    assert!(matches!(
+        record_outage(Some(&state), "stub-cloud", Some(second)),
+        Some(TriageOutcome::Deferred { .. })
+    ));
+}
+
 
 #[test]
 fn outage_state_isolated_by_model() {
