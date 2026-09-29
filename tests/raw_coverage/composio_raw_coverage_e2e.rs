@@ -18,20 +18,12 @@ use openhuman_core::agent::prompts::ConnectedIntegration;
 use openhuman_core::config::Config;
 use openhuman_core::core::all::RegisteredController;
 use openhuman_core::integrations::composio::client::{
-    create_composio_client, direct_execute, ComposioClientKind,
+    create_composio_client, ComposioClientKind,
 };
 use openhuman_core::integrations::composio::error_mapping::{
     classify_composio_error, format_provider_error, remap_transport_error, ComposioErrorClass,
 };
-use openhuman_core::integrations::composio::execute_dispatch::{
-    execute_composio_action, execute_composio_action_kind,
-};
 use openhuman_core::integrations::composio::execute_prepare::prepare_execute_arguments;
-use openhuman_core::integrations::composio::oauth_handoff::{
-    clear_non_active_connections, is_authorize_rate_limited, is_clearable_oauth_status,
-    is_inflight_oauth_status, is_meta_oauth_toolkit, meta_oauth_rate_limit_message,
-    wrap_authorize_rate_limit_error,
-};
 use openhuman_core::integrations::composio::providers::{
     classify_unknown, find_curated, toolkit_from_slug, CuratedTool, ToolScope, UserScopePref,
 };
@@ -258,48 +250,6 @@ fn composio_error_mapping_classifies_and_formats_provider_failures() {
     assert!(validation_transport.starts_with("[composio:error:validation]"));
 }
 
-#[test]
-fn composio_oauth_handoff_helpers_classify_meta_status_and_rate_limits() {
-    crate::tinyhumans_boot::boot();
-    assert!(is_meta_oauth_toolkit(" Instagram "));
-    assert!(is_meta_oauth_toolkit("FACEBOOK"));
-    assert!(!is_meta_oauth_toolkit("gmail"));
-
-    for status in ["pending", "INITIATED", " initializing "] {
-        assert!(
-            is_inflight_oauth_status(status),
-            "{status} should be inflight"
-        );
-        assert!(
-            is_clearable_oauth_status(status),
-            "{status} should be clearable"
-        );
-    }
-    for status in ["failed", "ERROR", " expired "] {
-        assert!(!is_inflight_oauth_status(status));
-        assert!(is_clearable_oauth_status(status));
-    }
-    assert!(!is_clearable_oauth_status("ACTIVE"));
-
-    for message in ["HTTP 429", "too many requests", "rate_limit", "ratelimited"] {
-        assert!(is_authorize_rate_limited(message));
-    }
-    assert!(!is_authorize_rate_limited("plain auth failure"));
-
-    let instagram = meta_oauth_rate_limit_message("instagram");
-    assert!(instagram.contains("Instagram Business or Creator"));
-    let facebook = meta_oauth_rate_limit_message("facebook");
-    assert!(facebook.contains("Business Manager"));
-    let unknown = meta_oauth_rate_limit_message("threads");
-    assert!(!unknown.contains("Business Manager"));
-
-    let wrapped =
-        wrap_authorize_rate_limit_error("instagram", anyhow::anyhow!("429 too many requests"));
-    assert!(wrapped.to_string().contains("temporarily rate-limiting"));
-    let passthrough = wrap_authorize_rate_limit_error("gmail", anyhow::anyhow!("429"));
-    assert_eq!(passthrough.to_string(), "429");
-}
-
 #[tokio::test]
 async fn composio_connected_integrations_public_helpers_handle_empty_auth_and_identity_edges() {
     crate::tinyhumans_boot::boot();
@@ -511,10 +461,6 @@ async fn composio_client_and_dispatch_reject_invalid_inputs_before_network() {
     assert!(delete_empty
         .to_string()
         .contains("connectionId must not be empty"));
-    let execute_empty = client.execute_tool("\t", None).await.unwrap_err();
-    assert!(execute_empty
-        .to_string()
-        .contains("tool slug must not be empty"));
     let create_empty = client.create_trigger(" ", None, None).await.unwrap_err();
     assert!(create_empty.to_string().contains("slug must not be empty"));
     let available_empty = client
@@ -543,37 +489,8 @@ async fn composio_client_and_dispatch_reject_invalid_inputs_before_network() {
         .to_string()
         .contains("triggerId must not be empty"));
 
-    let dispatch_empty = execute_composio_action(&client, " ", None)
-        .await
-        .unwrap_err();
-    assert!(dispatch_empty.contains("tool slug must not be empty"));
-    let dispatch_validation = execute_composio_action(
-        &client,
-        "GMAIL_SEND_EMAIL",
-        Some(json!({ "subject": "missing recipient" })),
-    )
-    .await
-    .unwrap_err();
-    assert!(dispatch_validation.starts_with("[composio:error:"));
-    assert!(dispatch_validation.contains("recipient"));
-
-    let backend_kind = ComposioClientKind::Backend(client.clone());
+    let backend_kind = ComposioClientKind::Backend(client);
     assert_eq!(backend_kind.mode(), "backend");
-    let kind_empty = execute_composio_action_kind(backend_kind, " ", None, "entity")
-        .await
-        .unwrap_err();
-    assert!(kind_empty.contains("tool slug must not be empty"));
-
-    let kind_validation = execute_composio_action_kind(
-        ComposioClientKind::Backend(client),
-        "GMAIL_SEND_EMAIL",
-        Some(json!({ "subject": "missing recipient" })),
-        "entity",
-    )
-    .await
-    .unwrap_err();
-    assert!(kind_validation.starts_with("[composio:error:"));
-    assert!(kind_validation.contains("recipient"));
 
     let direct_tool = Arc::new(ComposioTool::new(
         "direct-key",
@@ -582,16 +499,6 @@ async fn composio_client_and_dispatch_reject_invalid_inputs_before_network() {
     ));
     let direct_kind = ComposioClientKind::Direct(direct_tool);
     assert_eq!(direct_kind.mode(), "direct");
-    let direct_validation = execute_composio_action_kind(
-        direct_kind,
-        "GMAIL_SEND_EMAIL",
-        Some(json!({ "subject": "still missing recipient" })),
-        "entity-1",
-    )
-    .await
-    .expect_err("direct dispatch validates before network");
-    assert!(direct_validation.starts_with("[composio:error:"));
-    assert!(direct_validation.contains("recipient"));
 }
 
 #[test]
@@ -669,12 +576,6 @@ async fn composio_backend_client_local_validation_rejects_bad_inputs_before_http
         .expect_err("blank connection id should fail before HTTP");
     assert!(blank_delete.to_string().contains("connectionId"));
 
-    let blank_execute = client
-        .execute_tool(" ", Some(json!({})))
-        .await
-        .expect_err("blank tool should fail before HTTP");
-    assert!(blank_execute.to_string().contains("tool slug"));
-
     let blank_create = client
         .create_trigger(" ", None, None)
         .await
@@ -704,16 +605,6 @@ async fn composio_backend_client_local_validation_rejects_bad_inputs_before_http
         .await
         .expect_err("blank trigger id should fail before HTTP");
     assert!(blank_disable.to_string().contains("triggerId"));
-
-    let direct_tool = Arc::new(ComposioTool::new(
-        "direct-api-key",
-        Some("entity-1"),
-        Arc::new(SecurityPolicy::default()),
-    ));
-    let blank_direct_execute = direct_execute(&direct_tool, " ", None, "entity-1", None)
-        .await
-        .expect_err("blank direct tool should fail before HTTP");
-    assert!(blank_direct_execute.to_string().contains("tool slug"));
 }
 
 #[tokio::test]

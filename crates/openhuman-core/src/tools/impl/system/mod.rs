@@ -5,7 +5,6 @@
 //! `SecurityPolicy` resolver that must stay in step with the `filesystem` copy.
 
 mod command_output;
-mod current_time;
 mod detect_tools;
 mod insert_sql_record;
 mod install_tool;
@@ -15,7 +14,6 @@ mod npm_exec;
 mod proxy_config;
 mod pushover;
 mod python_exec;
-mod resolve_time;
 mod retrieve_tool_output;
 mod schedule;
 mod shell;
@@ -28,7 +26,7 @@ use crate::security::policy::{TrustedAccess, TrustedRoot};
 use crate::security::SecurityPolicy;
 use tinytools::ToolRunContext;
 
-pub use current_time::CurrentTimeTool;
+pub use tinyagents_harness::tools::{CurrentTimeTool, ResolveTimeTool};
 pub use detect_tools::DetectToolsTool;
 pub use insert_sql_record::InsertSqlRecordTool;
 pub use install_tool::InstallToolTool;
@@ -38,7 +36,6 @@ pub use npm_exec::NpmExecTool;
 pub use proxy_config::ProxyConfigTool;
 pub use pushover::PushoverTool;
 pub use python_exec::PythonExecTool;
-pub use resolve_time::ResolveTimeTool;
 pub use retrieve_tool_output::RetrieveToolOutputTool;
 pub use schedule::ScheduleTool;
 pub use shell::ShellTool;
