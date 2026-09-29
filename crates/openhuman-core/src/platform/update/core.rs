@@ -11,7 +11,9 @@ fn staging_lock(dest: &std::path::Path) -> Arc<tokio::sync::Mutex<()>> {
     static LOCKS: OnceLock<Mutex<std::collections::HashMap<PathBuf, Arc<tokio::sync::Mutex<()>>>>> =
         OnceLock::new();
     let locks = LOCKS.get_or_init(Default::default);
-    let mut locks = locks.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+    let mut locks = locks
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
     Arc::clone(
         locks
             .entry(dest.to_path_buf())
