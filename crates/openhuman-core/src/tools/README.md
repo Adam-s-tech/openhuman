@@ -8,7 +8,6 @@ The agent tool layer. Defines the core [`Tool`] trait every agent-callable capab
 - Assemble the registry the agent loop runs against: `default_tools[_with_runtime]` (minimal: shell + file read/write) and `all_tools[_with_runtime]` (full, config-gated set).
 - Gate registration on config flags / env (`browser.enabled`, `node.enabled`, `runtime_python.enabled`, `learning.*`, `integrations.*`, `[search]` providers, `gitbooks.enabled`, MCP registry presence, `OPENHUMAN_LSP_ENABLED`).
 - Own the cross-cutting built-in tool impls under `impl/` (filesystem, browser, generic system, generic network, meta, and the `documents`-gated document/presentation tools).
-- Provide the pre-execution [`ToolPolicy`] middleware (allow/deny gate) and the default allow-all policy.
 - Normalize tool JSON schemas for provider compatibility (`SchemaCleanr`).
 - Synthesize per-subagent orchestrator tools at agent-build time (`orchestrator_tools`).
 - Wrap runtime-generated capability tools (`generated`).
@@ -25,7 +24,6 @@ The agent tool layer. Defines the core [`Tool`] trait every agent-callable capab
 | `crates/openhuman-core/src/tools/host_extensions.rs` | OpenHuman-only readers over erased `host_extension` slots: `pack_registry_handle`, `delegation_target`, and `generated_runtime_context`. Import the shared `Tool` vocabulary from `tinytools` directly. |
 | `crates/openhuman-core/src/tools/ops.rs` | Registry assembly: `default_tools`, `default_tools_with_runtime`, `all_tools`, `all_tools_with_runtime`, `browser_allowed_domains`. All config-gating logic lives here. |
 | `crates/openhuman-core/src/tools/schemas.rs` (thin shell over the `schemas/` submodule: `apify.rs`, `composio.rs`, `registry.rs`, `web_search.rs`) | JSON-RPC `tools` namespace controllers + `handle_*` fns. `all_controller_schemas` / `all_registered_controllers` (re-exported as `all_tools_*`). |
-| `crates/openhuman-core/src/tools/policy.rs` | `ToolPolicy` trait + `PolicyDecision` (`Allow`/`Deny`) + allow-all `DefaultToolPolicy`. Evaluated on the agent hot path before each `execute()`. |
 | `crates/openhuman-core/src/tools/schema.rs` | Re-exports `SchemaCleanr`, `CleaningStrategy` and `GEMINI_UNSUPPORTED_KEYWORDS` from `tinyagents_harness::tool` (local `$ref` resolution, provider-rejected keyword stripping, literal-union flattening). The only in-crate caller is `generated.rs`, which runs `SchemaCleanr::validate` on generated tool schemas at admission. |
 | `crates/openhuman-core/src/tools/orchestrator_tools.rs` | Synthesizes named per-subagent tools from the orchestrator's `subagents = [...]` definition; expands the skills wildcard into one `Deferred` `ComposioActionTool` per connected action (reached through `tool_search`, no delegate). |
 | [`crates/openhuman-core/src/mcp/registry/action_tool.rs`](../mcp/registry/action_tool.rs) | Registers connected MCP server actions as deferred tools for the orchestrator. Their searchable schemas use the same `tool_search` catalogue and JEV ranker as other deferred tools. |
@@ -51,7 +49,6 @@ The agent tool layer. Defines the core [`Tool`] trait every agent-callable capab
 
 - Trait + types: `Tool`, `ToolSpec`, `ToolResult`, `ToolContent`, `ToolExposure`, `PermissionLevel`, `ToolScope`, `ToolCategory`, `ToolCallOptions`.
 - Registry constructors: `ops::default_tools`, `ops::default_tools_with_runtime`, `ops::all_tools`, `ops::all_tools_with_runtime`.
-- Policy: `ToolPolicy`, `DefaultToolPolicy`, `PolicyDecision`.
 - Schema: `SchemaCleanr`, `CleaningStrategy`.
 - Controllers: `all_tools_controller_schemas`, `all_tools_registered_controllers`.
 - All built-in tool structs (e.g. `ShellTool`, `FileReadTool`, `EditFileTool`, `GrepTool`, `BrowserTool`, `HttpRequestTool`, `CurlTool`, `DocumentTool`, `PresentationTool`, …) via `pub use implementations::*`, plus every re-exported domain tool set listed in `mod.rs` (agent, config, cron, desktop dashboard, flows, integrations, mcp registry, memory, platform, search, security, skills, threads todos, voice audio toolkit, web3 wallet).
