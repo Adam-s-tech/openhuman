@@ -33,6 +33,7 @@ fn outage_backoff_is_exponential_and_has_terminal_limit() {
     let outage = states.get("stub-cloud").expect("terminal outage retained");
     assert_eq!(outage.consecutive_failures, 8);
     assert!(outage.next_attempt_ms > chrono::Utc::now().timestamp_millis());
+    drop(states);
     assert!(begin_outage_attempt(Some(&state), "stub-cloud").is_none());
 }
 
