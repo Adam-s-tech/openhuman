@@ -213,10 +213,13 @@ impl Tool for ConfiguredMcpServerTool {
         let safe = crate::mcp::registry::tools_safe_for_agent(
             server,
             live.into_iter()
-                .map(|remote| tinymcp_bus::McpTool {
-                    name: remote.name,
-                    description: remote.display_description(),
-                    input_schema: remote.input_schema,
+                .map(|remote| {
+                    let description = remote.display_description();
+                    tinymcp_bus::McpTool {
+                        name: remote.name,
+                        description,
+                        input_schema: remote.input_schema,
+                    }
                 })
                 .collect(),
         );
