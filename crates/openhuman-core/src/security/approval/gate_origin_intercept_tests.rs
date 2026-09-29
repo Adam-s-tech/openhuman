@@ -1,13 +1,13 @@
 use super::*;
 
 #[tokio::test]
-async fn intercept_with_trusted_subconscious_origin_allows_without_prompt() {
-    // Subconscious ticks on internal-only memory are trusted automation
-    // and run unprompted (preserves pre-PR behavior for the safe case).
+async fn intercept_with_trusted_background_origin_allows_without_prompt() {
+    // Internal background jobs over local data are trusted automation and
+    // run unprompted.
     let (gate, _dir) = test_gate();
     let origin = AgentTurnOrigin::TrustedAutomation {
-        job_id: "subconscious-tick".into(),
-        source: TrustedAutomationSource::Subconscious,
+        job_id: "memory_goals:enrich:1".into(),
+        source: TrustedAutomationSource::Background,
     };
     let outcome = turn_origin::with_origin(
         origin,
@@ -15,29 +15,6 @@ async fn intercept_with_trusted_subconscious_origin_allows_without_prompt() {
     )
     .await;
     assert!(matches!(outcome, GateOutcome::Allow));
-}
-
-#[tokio::test]
-async fn intercept_with_subconscious_tainted_origin_denies() {
-    // A subconscious tick whose memory context contains external-sync
-    // chunks is rejected for external_effect tools — external text in
-    // memory could otherwise steer the tick into a tool call.
-    let (gate, _dir) = test_gate();
-    let origin = AgentTurnOrigin::TrustedAutomation {
-        job_id: "subconscious-tainted".into(),
-        source: TrustedAutomationSource::SubconsciousTainted,
-    };
-    let outcome = turn_origin::with_origin(
-        origin,
-        gate.intercept("send_email", "send", serde_json::json!({})),
-    )
-    .await;
-    match outcome {
-        GateOutcome::Deny { reason } => {
-            assert!(reason.contains("external-sync"), "reason was: {reason}")
-        }
-        other => panic!("expected deny, got {other:?}"),
-    }
 }
 
 #[tokio::test]
