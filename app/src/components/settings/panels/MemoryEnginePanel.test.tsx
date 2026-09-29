@@ -95,7 +95,7 @@ async function renderPanel() {
   await screen.findByTestId('memory-engine-option-tinymemory');
 }
 
-const pick = (id: string) => fireEvent.click(screen.getByRole('radio', { name: new RegExp(id) }));
+const pick = (id: string) => fireEvent.click(screen.getByRole('radio', { name: new RegExp(id, 'i') }));
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -257,9 +257,9 @@ describe('MemoryEnginePanel', () => {
     const hosted = screen.getByTestId('memory-engine-option-tinyhumans');
     expect(hosted).toHaveTextContent('Billed to your OpenHuman credits.');
     expect(hosted).toHaveTextContent('Sign in to use this engine.');
-    expect(screen.getByRole('radio', { name: /tinyhumans/ })).toBeDisabled();
+    expect(screen.getByRole('radio', { name: /tinyhumans/i })).toBeDisabled();
     // Non-hosted engines stay selectable.
-    expect(screen.getByRole('radio', { name: /supermemory/ })).toBeEnabled();
+    expect(screen.getByRole('radio', { name: /supermemory/i })).toBeEnabled();
   });
 
   test('shows a fallback warning when the core fell back to local memory', async () => {
