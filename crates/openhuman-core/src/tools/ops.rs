@@ -683,11 +683,7 @@ pub fn all_tools_with_runtime(
     // thread is resolved from the ambient `thread_id`, so no thread arg is
     // taken. `goal_get`/`goal_set`/`goal_complete` — pause/resume/budget are
     // system-driven and have no model tool.
-    {
-        tools.extend(crate::agent::goals::goal_tools(
-            &root_config.workspace_dir,
-        ));
-    }
+    tools.extend(crate::agent::goals::goal_tools(&root_config.workspace_dir));
 
     #[cfg(feature = "modules")]
     if browser_config.enabled {
