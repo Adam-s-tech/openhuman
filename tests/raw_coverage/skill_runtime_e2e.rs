@@ -50,7 +50,7 @@ use serde_json::{json, Value};
 use tempfile::{tempdir, TempDir};
 
 use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
-use openhuman_core::core::jsonrpc::build_core_http_router;
+use openhuman_rpc::server::build_core_http_router;
 
 /// The bearer this suite *proposes*. It is only used if this suite happens to
 /// be the first in the aggregated binary to initialise the token subsystem —
@@ -247,7 +247,7 @@ fn ok<'a>(value: &'a Value, context: &str) -> &'a Value {
 /// The controller payload, unwrapping the `{result, logs}` envelope when one
 /// is present.
 ///
-/// `RpcOutcome::into_cli_compatible_json` (`crates/openhuman-rpc/src/mod.rs:54-62`) wraps the
+/// `Outcome::into_cli_compatible_json` (`crates/openhuman-rpc/src/mod.rs:54-62`) wraps the
 /// value in `{result, logs}` **only when the handler emitted at least one log
 /// line**, and returns it bare otherwise. So the response shape of a single
 /// namespace varies with whether its handler happened to log — `javascript_*`

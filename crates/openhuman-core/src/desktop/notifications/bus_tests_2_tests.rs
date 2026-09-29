@@ -459,7 +459,7 @@ async fn an_outage_is_filed_under_its_own_workspace_not_the_bridge_s() {
 // ── Live announcement gating (#5931) ────────────────────────────────────────
 //
 // Routing the *store* by the event's workspace is only half the answer: the
-// live path has no per-client routing at all (`core::socketio` emits
+// live path has no per-client routing at all (`openhuman_rpc::server::socketio` emits
 // `core_notification` to every connected client), so an outage from a
 // workspace the user has switched away from would raise a banner naming that
 // workspace's server and its error inside the account they are in.

@@ -2,7 +2,7 @@
  * Unit tests for memory_tree RPC wrappers. Mirror the pattern used by
  * `memory.test.ts` — mock the underlying `callCoreRpc` and assert that
  * each helper dispatches the right method name + params and unwraps
- * `RpcOutcome`'s `{ result, logs }` envelope correctly.
+ * `Outcome`'s `{ result, logs }` envelope correctly.
  */
 import { beforeEach, describe, expect, type Mock, test, vi } from 'vitest';
 

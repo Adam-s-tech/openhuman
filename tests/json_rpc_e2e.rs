@@ -26,9 +26,9 @@ use tinyinference_llm::message::Message;
 use tinyinference_llm::model::ModelRequest;
 
 use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
-use openhuman_core::core::jsonrpc::build_core_http_router;
 use openhuman_core::memory::tree::all_memory_tree_registered_controllers;
 use openhuman_core::platform::connectivity::rpc::pick_listen_port;
+use openhuman_rpc::server::build_core_http_router;
 
 const TEST_RPC_TOKEN: &str = "json-rpc-e2e-local-token";
 static JSON_RPC_AUTH_INIT: OnceLock<()> = OnceLock::new();
@@ -1147,7 +1147,7 @@ fn extract_string_outcome(result: &Value) -> String {
 }
 
 /// Peel the `{"result": inner, "logs": [...]}` envelope that
-/// `RpcOutcome::into_cli_compatible_json` adds when logs are present.
+/// `Outcome::into_cli_compatible_json` adds when logs are present.
 fn peel_logs_envelope(v: &Value) -> &Value {
     if v.get("logs").is_some() {
         v.get("result").unwrap_or(v)
@@ -2859,7 +2859,7 @@ async fn json_rpc_thread_not_found_errors_are_structured() {
     assert_eq!(append_err["data"]["thread_id"], thread_id);
     // The transport layer no longer stamps the RPC method into the structured
     // error data — the domain controller emits a method-agnostic envelope and
-    // jsonrpc.rs surfaces it verbatim. The frontend keys on `kind` +
+    // openhuman-rpc/src/server/http/rpc_handler.rs surfaces it verbatim. The frontend keys on `kind` +
     // `thread_id` (see `coreRpcClient.isThreadNotFoundRpcData`), not method.
     assert!(
         append_err["data"]["method"].is_null(),
@@ -7825,7 +7825,7 @@ async fn credentials_crud_roundtrip() {
     )
     .await;
     // assert_no_jsonrpc_error returns the JSON-RPC `result` field which is the
-    // RpcOutcome envelope: {"logs": [...], "result": { <AuthProfileSummary> }}.
+    // Outcome envelope: {"logs": [...], "result": { <AuthProfileSummary> }}.
     let store_outer = assert_no_jsonrpc_error(&store, "auth_store_provider_credentials");
     let store_result = store_outer.get("result").unwrap_or(store_outer);
     assert_eq!(

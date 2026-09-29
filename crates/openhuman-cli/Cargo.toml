@@ -349,7 +349,7 @@ path = "../../examples/run_memory_reconcile.rs"
 openhuman-core = { path = "../openhuman-core", package = "openhuman", default-features = false }
 openhuman-embed = { path = "../openhuman-embed", default-features = false }
 openhuman-tinyhumans = { path = "../openhuman-tinyhumans", default-features = false }
-openhuman-rpc.workspace = true
+openhuman-rpc = { workspace = true, features = ["server"] }
 anyhow = "1.0"
 async-trait = "0.1"
 axum = { version = "0.8", default-features = false, features = ["http1", "json", "tokio", "query", "ws", "macros"] }

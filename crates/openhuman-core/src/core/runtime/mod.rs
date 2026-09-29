@@ -3,7 +3,7 @@
 //!
 //! This module is the seam that separates *initialization* (workspace-bound
 //! store setup — [`context`]) from *background services* (cron, channels,
-//! heartbeat, update scheduler — [`services`]) so alternate hosts can compose
+//! login-gated services, update scheduler — [`services`]) so alternate hosts can compose
 //! them without going through the monolithic `run_server_inner`. See the
 //! pluggable-core work (`core::runtime::builder`, `core::runtime::context`) for
 //! the builder/context split this module composes.
@@ -42,9 +42,11 @@ pub const AGENT_WORKER_STACK_BYTES: usize = 16 * 1024 * 1024;
 /// `.thread_stack_size(AGENT_WORKER_STACK_BYTES)` on every such runtime.
 pub const MAX_BLOCKING_THREADS: usize = 64;
 
+mod bootstrap;
 pub mod builder;
 pub mod context;
 pub mod services;
+pub(crate) mod subscribers;
 
 pub use builder::{CoreBuilder, CoreRuntime, DomainSet, ServiceSet, TokenSource};
 pub use context::{ContextOverlay, CoreContext};

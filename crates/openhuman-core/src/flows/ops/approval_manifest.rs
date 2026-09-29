@@ -227,7 +227,7 @@ pub async fn flows_approval_manifest(
     config: &Config,
     id: Option<&str>,
     graph_json: Option<Value>,
-) -> Result<RpcOutcome<Value>, String> {
+) -> Result<Outcome<Value>, String> {
     tracing::debug!(target: "flows", id = ?id, has_graph = graph_json.is_some(), "[flows] flows_approval_manifest: entry");
     let (graph, flow_id) = match (id, graph_json) {
         (Some(id), _) => {
@@ -263,7 +263,7 @@ pub async fn flows_approval_manifest(
         missing.len()
     );
     tracing::debug!(target: "flows", entries = entries.len(), missing = missing.len(), gate_installed, "[flows] flows_approval_manifest: exit");
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         json!({
             "entries": entries,
             "missing": missing,

@@ -182,7 +182,7 @@ async fn load_dump_config(
     // The contract event sink still installs, idempotently, for the same reason
     // as in `runtime::context`: it is a `tinymemory-api` seam with a live
     // production publisher, and it drops silently rather than loudly when
-    // unwired. Same rationale as `memory_cli` / `subconscious_cli`.
+    // unwired. Same rationale as `memory_cli`.
     crate::memory::host::install_memory_event_sink();
 
     Ok(config)

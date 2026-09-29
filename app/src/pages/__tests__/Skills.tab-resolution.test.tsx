@@ -133,6 +133,8 @@ describe('Connections ?tab= resolution — legacy aliases', () => {
     ['messaging', 'channels'],
     ['tools', 'mcp'],
     ['explorer', 'skills'],
+    ['browser', 'computer'],
+    ['desktop', 'computer'],
   ])('?tab=%s resolves to the %s tab', async (alias, canonical) => {
     renderAt(`?tab=${alias}`);
     expect(await selectedTab()).toBe(canonical);

@@ -587,6 +587,7 @@ fn round16_all_tools_registry_branches_and_browser_allowlist() {
         disallowed_tools: Vec::new(),
         timeout_secs: 10,
         auth: McpAuthConfig::None,
+        ..Default::default()
     });
 
     let tools = all_tools(

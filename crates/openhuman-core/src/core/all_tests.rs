@@ -1576,7 +1576,7 @@ fn every_domain_group_is_accounted_for_in_store_init_plan() {
 /// subscribers or is declared subscriber-less.
 #[test]
 fn every_domain_group_is_accounted_for_in_subscriber_plan() {
-    use crate::core::jsonrpc::DomainSubscriberPlan;
+    use crate::core::runtime::subscribers::DomainSubscriberPlan;
 
     const REGISTERS: &[DomainGroup] = &[
         DomainGroup::Platform,
@@ -2255,7 +2255,7 @@ async fn rpc_method_from_parts_stays_unfiltered_by_capability() {
 // WIRING is right, using the tree family as the named vehicle. They target
 // `try_invoke_registered_rpc`, `schema_for_rpc_method` and
 // `all_controller_schemas` — the same three functions the HTTP layer calls
-// (`core::jsonrpc::invoke_method_inner` resolves the schema then dispatches;
+// (`core::invoke::invoke_method_inner` resolves the schema then dispatches;
 // `/schema` renders `all_http_method_schemas()`, which extends from
 // `all_controller_schemas()`). Asserting on them IS asserting on the wire
 // surface; there is no more faithful vehicle available at this level, and an

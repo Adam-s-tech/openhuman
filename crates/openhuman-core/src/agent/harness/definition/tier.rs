@@ -70,9 +70,8 @@ impl std::fmt::Display for AgentTier {
 ///   not into each other (a depth-blowing recursion of slow models).
 ///
 /// Note this forbids same-tier and worker-as-parent hops, **not** upward hops:
-/// `reasoning → chat` is a real, intentional builtin edge (the `subconscious`
-/// reasoner can hand a follow-up back to the `orchestrator` chat agent), so it
-/// must stay legal. The harness'es `MAX_SPAWN_DEPTH` cap bounds chain length
+/// `reasoning → chat` is a legal edge (a reasoning agent can hand a follow-up
+/// back to the `orchestrator` chat agent), so it must stay allowed. The harness'es `MAX_SPAWN_DEPTH` cap bounds chain length
 /// independently of tier direction.
 ///
 /// This is the static authoring rule the loader walks over declared `subagents`

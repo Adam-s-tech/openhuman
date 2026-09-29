@@ -7,7 +7,7 @@
 //!   `crate::agent::prompts`) — `SystemPromptBuilder`,
 //!   `PromptContext`, `LearnedContextData`, `ConnectedIntegration`,
 //!   `ToolCallFormat`, `load_agents_md_layers`, `render_connected_identities`.
-//!   The `SOUL.md` / `IDENTITY.md` / `HEARTBEAT.md` bootstrap files under
+//!   The `SOUL.md` / `IDENTITY.md` / `ROLE.md` bootstrap files under
 //!   `crates/openhuman-core/src/agent/prompts/` are loaded (and synced to the workspace)
 //!   by `IdentitySection` inside `SystemPromptBuilder::build`, so this adapter
 //!   never reads them itself.

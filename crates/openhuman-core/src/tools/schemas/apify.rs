@@ -4,7 +4,7 @@ use serde_json::{json, Map, Value};
 
 use crate::config::rpc as config_rpc;
 use crate::core::all::ControllerFuture;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 pub(super) fn handle_apify_linkedin_scrape(params: Map<String, Value>) -> ControllerFuture {
     Box::pin(async move {
@@ -38,6 +38,6 @@ pub(super) fn handle_apify_linkedin_scrape(params: Map<String, Value>) -> Contro
             "tools.apify_linkedin_scrape: url={profile_url} markdown_chars={}",
             markdown.chars().count()
         )];
-        RpcOutcome::new(payload, log).into_cli_compatible_json()
+        Outcome::new(payload, log).into_cli_compatible_json()
     })
 }

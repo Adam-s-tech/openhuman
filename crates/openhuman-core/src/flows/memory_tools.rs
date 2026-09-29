@@ -15,7 +15,7 @@
 //! `namespace` parameter a caller could override. Every write is tainted
 //! [`MemoryTaint::ExternalSync`] (automation output, not user-authored
 //! fact), matching the same taint sync pipelines use for third-party
-//! content, so the subconscious gate treats it exactly as conservatively.
+//! content, so it is treated exactly as conservatively.
 //! [`FlowMemoryRecallTool`]'s `scope: "flows"` is read-only cross-flow
 //! visibility — it can never be used to write outside a flow's own
 //! namespace either.

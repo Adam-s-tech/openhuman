@@ -53,7 +53,7 @@ describe('BrowserConnectionsPanel', () => {
     expect(screen.queryByText('connections.earlyAlphaNotice')).not.toBeInTheDocument();
   });
 
-  it('saves browser settings through core RPC', async () => {
+  it('saves browser settings and checks browser readiness through core RPC', async () => {
     renderWithProviders(<BrowserConnectionsPanel />);
     await screen.findByText('selenium.dev');
     fireEvent.click(screen.getByLabelText('connections.browser.enabled'));
@@ -62,6 +62,14 @@ describe('BrowserConnectionsPanel', () => {
       expect(mocks.update).toHaveBeenCalledWith(
         expect.objectContaining({ enabled: true, profile_mode: 'fresh' })
       )
+    );
+    await waitFor(() => expect(screen.getByText('connections.browser.testBrowser')).toBeEnabled());
+    mocks.rpc.mockResolvedValueOnce({ result: { module_ready: true, chrome_ready: true } });
+    fireEvent.click(screen.getByText('connections.browser.testBrowser'));
+    await waitFor(() =>
+      expect(mocks.rpc).toHaveBeenCalledWith({
+        method: 'openhuman.modules_browser_check_readiness',
+      })
     );
   });
 

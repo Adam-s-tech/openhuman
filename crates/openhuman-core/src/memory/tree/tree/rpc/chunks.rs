@@ -3,8 +3,8 @@
 use serde::{Deserialize, Serialize};
 
 use crate::config::Config;
+use crate::core::Outcome;
 use crate::memory::api::provider::ChunkQuery;
-use crate::rpc::RpcOutcome;
 use tinymemory_api::chunks::{Chunk, SourceKind};
 
 /// Query shape for the `list_chunks` RPC.
@@ -41,7 +41,7 @@ pub struct ListChunksResponse {
 pub async fn list_chunks_rpc(
     config: &Config,
     req: ListChunksRequest,
-) -> Result<RpcOutcome<ListChunksResponse>, String> {
+) -> Result<Outcome<ListChunksResponse>, String> {
     // Parsed before the driver is resolved so an unknown kind stays a caller
     // error naming the offending value, rather than a driver round trip that
     // returns nothing and looks like an empty store.
@@ -84,7 +84,7 @@ pub async fn list_chunks_rpc(
     };
 
     let n = rows.len();
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         ListChunksResponse { chunks: rows },
         format!("memory_tree: list_chunks n={n}"),
     ))
@@ -106,7 +106,7 @@ pub struct GetChunkResponse {
 pub async fn get_chunk_rpc(
     config: &Config,
     req: GetChunkRequest,
-) -> Result<RpcOutcome<GetChunkResponse>, String> {
+) -> Result<Outcome<GetChunkResponse>, String> {
     let binding = crate::memory::binding::for_config(config)?;
     let chunk = match binding.provider().as_chunks() {
         Some(chunks) => chunks
@@ -125,7 +125,7 @@ pub async fn get_chunk_rpc(
             None
         }
     };
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         GetChunkResponse { chunk },
         format!("memory_tree: get_chunk id={}", req.id),
     ))

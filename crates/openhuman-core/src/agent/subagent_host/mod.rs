@@ -68,7 +68,7 @@ pub(crate) use ops::{append_subagent_role_contract, resolve_subagent_source};
 
 // `user_is_signed_in_to_composio` is the mode-aware "can the user call
 // composio at all?" probe added in Wave 2 (#1710). Re-exported here so
-// non-composio probe sites (registration gates, heartbeat telemetry)
+// non-composio probe sites (registration gates, telemetry)
 // can call it as
 // `crate::agent::subagent_host::user_is_signed_in_to_composio`
 // without reaching into a private sibling module.

@@ -82,7 +82,7 @@ fn core_process_handle_new_creates_instance() {
 #[test]
 fn ready_signal_updates_runtime_port_and_fallback_notice() {
     let handle = CoreProcessHandle::new(7788);
-    handle.apply_embedded_ready_signal(openhuman_core::core::jsonrpc::EmbeddedReadySignal {
+    handle.apply_embedded_ready_signal(openhuman_rpc::server::EmbeddedReadySignal {
         port: 7789,
         fallback_from: Some(7788),
     });
@@ -266,7 +266,7 @@ fn ensure_running_reuses_unknown_listener_when_override_set() {
 
 #[test]
 fn is_openhuman_root_body_matches_canonical_root_response() {
-    // Mirrors the JSON shape produced by `core/jsonrpc.rs::root_handler`.
+    // Mirrors the JSON shape produced by `openhuman-rpc/src/server/http/mod.rs::root_handler`.
     let body = r#"{
         "name": "openhuman",
         "ok": true,

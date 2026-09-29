@@ -4,13 +4,12 @@ use anyhow::{bail, Result};
 // (the default, used by Claude Desktop / Cursor) works under `mcp` alone.
 #[cfg(feature = "http-server")]
 use std::net::SocketAddr;
-use tokio::io::{AsyncBufReadExt, AsyncRead, AsyncWrite, AsyncWriteExt, BufReader};
 
 use crate::core::logging::CliLogDefault;
 
+use super::handler::handler;
 #[cfg(feature = "http-server")]
 use super::http::{run_http, HttpServerConfig};
-use super::{protocol, session::McpSession};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum McpTransport {
@@ -86,7 +85,11 @@ pub fn run_stdio_from_cli(args: &[String]) -> Result<()> {
     match transport {
         McpTransport::Stdio => {
             log::debug!("[mcp_server] starting stdio MCP server");
-            rt.block_on(async { run_stdio(tokio::io::stdin(), tokio::io::stdout()).await })?;
+            rt.block_on(tinymcp::run_stdio(
+                handler(),
+                tokio::io::stdin(),
+                tokio::io::stdout(),
+            ))?;
         }
         McpTransport::Http => {
             #[cfg(feature = "http-server")]
@@ -133,29 +136,6 @@ fn init_mcp_logging(verbose: bool) {
         std::env::set_var("RUST_LOG", level);
     }
     crate::core::logging::init_for_cli_run(verbose, CliLogDefault::Global);
-}
-
-pub async fn run_stdio<R, W>(reader: R, mut writer: W) -> Result<()>
-where
-    R: AsyncRead + Unpin,
-    W: AsyncWrite + Unpin,
-{
-    let mut session = McpSession::default();
-    let mut lines = BufReader::new(reader).lines();
-    while let Some(line) = lines.next_line().await? {
-        let trimmed = line.trim();
-        if trimmed.is_empty() {
-            continue;
-        }
-        if let Some(response) = protocol::handle_json_line_with_session(trimmed, &mut session).await
-        {
-            writer.write_all(response.as_bytes()).await?;
-            writer.write_all(b"\n").await?;
-            writer.flush().await?;
-        }
-    }
-    log::debug!("[mcp_server] stdin closed; exiting");
-    Ok(())
 }
 
 fn print_help() {

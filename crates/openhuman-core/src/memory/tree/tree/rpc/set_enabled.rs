@@ -4,7 +4,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::config::Config;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 /// Request shape for `memory_tree_set_enabled`. Single field — the caller
 /// asks to enable (auto-mode) or pause (off-mode) all LLM-bound background
@@ -42,7 +42,7 @@ pub struct SetEnabledResponse {
 pub async fn set_enabled_rpc(
     config: &mut Config,
     req: SetEnabledRequest,
-) -> Result<RpcOutcome<SetEnabledResponse>, String> {
+) -> Result<Outcome<SetEnabledResponse>, String> {
     use tinymemory_api::host::SchedulerGateMode;
 
     let prev_mode = config.scheduler_gate.mode;
@@ -64,7 +64,7 @@ pub async fn set_enabled_rpc(
             "[memory-tree][rpc] set_enabled: no-op (mode already {})",
             new_mode.as_str()
         );
-        return Ok(RpcOutcome::single_log(
+        return Ok(Outcome::single_log(
             SetEnabledResponse {
                 enabled: req.enabled,
                 changed: false,
@@ -96,7 +96,7 @@ pub async fn set_enabled_rpc(
         req.enabled,
     );
 
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         SetEnabledResponse {
             enabled: req.enabled,
             changed: true,

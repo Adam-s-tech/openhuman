@@ -22,7 +22,7 @@ pub struct CommandResponse<T> {
 /// Success payload from a core RPC handler before JSON-RPC wrapping.
 ///
 /// This internal type allows handlers to return a generic JSON value along
-/// with optional logs. It is transformed into a [`RpcSuccess`] or a
+/// with optional logs. It is transformed into a [`crate::core::RpcSuccess`] or a
 /// combined object by [`invocation_to_rpc_json`].
 #[derive(Debug, Clone)]
 pub struct InvocationResult {
@@ -65,71 +65,11 @@ impl InvocationResult {
 /// - `!logs.is_empty()` -> `{ "result": inv.value, "logs": inv.logs }`
 pub fn invocation_to_rpc_json(inv: InvocationResult) -> serde_json::Value {
     // Delegates rather than repeating the rule. This function and
-    // `RpcOutcome::into_cli_compatible_json` are the two ways a controller
+    // `Outcome::into_cli_compatible_json` are the two ways a controller
     // result reaches a caller, and they carried independent copies of the same
     // six lines — so a fix to one would have silently left the other on the old
-    // shape. See `crate::rpc::apply_log_envelope` (#6080).
-    crate::rpc::apply_log_envelope(inv.value, inv.logs)
-}
-
-/// Standard JSON-RPC 2.0 request format.
-///
-/// As defined in the [JSON-RPC 2.0 Specification](https://www.jsonrpc.org/specification).
-#[derive(Debug, Deserialize)]
-pub struct RpcRequest {
-    /// The JSON-RPC version. MUST be exactly "2.0".
-    #[allow(dead_code)]
-    pub jsonrpc: String,
-    /// Unique identifier for the request. MUST be a String, Number, or Null.
-    /// The server will return this same ID in the response.
-    pub id: serde_json::Value,
-    /// The name of the method to be invoked (e.g., `openhuman.memory_doc_put`).
-    pub method: String,
-    /// Parameters for the method call. MUST be a structured value (Object or Array).
-    /// Defaults to null if not provided.
-    #[serde(default)]
-    pub params: serde_json::Value,
-}
-
-/// Standard JSON-RPC 2.0 success response format.
-#[derive(Debug, Serialize)]
-pub struct RpcSuccess {
-    /// The JSON-RPC version. ALWAYS "2.0".
-    pub jsonrpc: &'static str,
-    /// The identifier mirrored from the original request.
-    pub id: serde_json::Value,
-    /// The result of the successful method invocation.
-    pub result: serde_json::Value,
-}
-
-/// Standard JSON-RPC 2.0 error response format.
-#[derive(Debug, Serialize)]
-pub struct RpcFailure {
-    /// The JSON-RPC version. ALWAYS "2.0".
-    pub jsonrpc: &'static str,
-    /// The identifier mirrored from the original request.
-    pub id: serde_json::Value,
-    /// Information about the error that occurred.
-    pub error: RpcError,
-}
-
-/// Detail about an RPC invocation error.
-///
-/// Contains a code, a message, and optional extra data for debugging.
-#[derive(Debug, Serialize)]
-pub struct RpcError {
-    /// Standardized error code.
-    /// - -32700: Parse error
-    /// - -32600: Invalid Request
-    /// - -32601: Method not found
-    /// - -32602: Invalid params
-    /// - -32603: Internal error
-    /// - -32000 to -32099: Reserved for implementation-defined server-errors.
-    pub code: i64,
-    /// A short, human-readable error message.
-    pub message: String,
-    /// Optional additional diagnostic data, which can be any JSON value.
-    pub data: Option<serde_json::Value>,
+    // shape. See `crate::core::apply_log_envelope` (#6080).
+    crate::core::apply_log_envelope(inv.value, inv.logs)
 }
 
 /// Global core-level application state.

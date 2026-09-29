@@ -167,6 +167,6 @@ pub(super) fn parse<T: DeserializeOwned>(params: Map<String, Value>) -> Result<T
     serde_json::from_value(Value::Object(params)).map_err(|e| format!("invalid params: {e}"))
 }
 
-fn to_json<T: serde::Serialize>(outcome: crate::rpc::RpcOutcome<T>) -> Result<Value, String> {
+fn to_json<T: serde::Serialize>(outcome: crate::core::Outcome<T>) -> Result<Value, String> {
     outcome.into_cli_compatible_json()
 }

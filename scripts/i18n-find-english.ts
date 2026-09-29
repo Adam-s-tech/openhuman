@@ -102,12 +102,7 @@ const INTENTIONAL_ENGLISH = new Set([
   "skills.meetingBots.wakePhraseHint",
   "skills.meetingBots.platforms.gmeet",
   "skills.meetingBots.platforms.teams",
-  "subconscious.interval.minutes",
-  "subconscious.interval.fifteenMinutes",
   "conversations.goal.inlineSummary", // "{objective} ({status})" — both segments are variable placeholders, untranslatable data
-  "subconscious.interval.fiveMinutes",
-  "subconscious.interval.tenMinutes",
-  "subconscious.interval.thirtyMinutes",
   "vault.excludesPlaceholder",
   "vault.syncSummaryDuration",
   "voice.providers.chip.piper",

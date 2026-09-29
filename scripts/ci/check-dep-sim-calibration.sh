@@ -57,10 +57,21 @@
 # 280 -> 282 on 2026-09-25: TinyChannels 0.1.3 resolves HMAC 0.13 and
 # activates digest 0.11's ctutils/cmov tail, adding two names but no native
 # build dependency. See the matching kernel-floor history entry.
-# The current flow profile resolves 283 names on Linux. Keep this calibration
-# aligned with the measured `flows:304:283:2` floor below.
+# 286 -> 283 on 2026-09-29: the updated locked dependency graph resolves
+# three fewer unique names in the Linux flows profile; no native build
+# dependencies changed. See kernel-floor.limits.
+# 285 -> 286 on 2026-09-27: multi-provider search uses the required
+# tinysearch-bus contract in always-on config and policy code; one name,
+# no native dependency. See kernel-floor.limits.
+# 286 -> 283 on 2026-09-29: current vendored dependency resolution sheds
+# three package names without changing the native build dependency count.
 # 282 -> 285 on 2026-09-26: the required TinyBrowser integration adds
 # tinybrowser-bus, tinybrowser-control, and tinyjevclient. Native count stays 2.
+# 286 -> 283 on 2026-09-29: the current `flows` graph resolves three fewer
+# crate names after the TinyMCP v0.3.5 update. 283 -> 282 on 2026-09-29: the
+# JSON-RPC split removes openhuman-rpc from the core dependency graph. Both
+# counts are measured with `scripts/dep-sim.py --cut-nothing`; native count
+# remains 2.
 #
 # Called by ci-lite.yml's feature-gate smoke lane and by the lane runner, so the
 # expected count lives here once (plus scripts/kernel-floor.limits).
