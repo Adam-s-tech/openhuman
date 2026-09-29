@@ -164,7 +164,7 @@ pub async fn graph_query(
     let guard = active_memory_guard().await?;
     let graph = guard
         .as_graph()
-        .ok_or_else(|| "memory driver does not support the graph family".to_string())?;
+        .ok_or_else(|| super::fallback::unsupported_family("graph"))?;
     let rows = graph
         .relations(
             params.namespace.as_deref(),

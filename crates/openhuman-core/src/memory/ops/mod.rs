@@ -27,6 +27,7 @@ pub mod documents;
 pub mod engine;
 pub mod engine_migrate;
 pub mod envelope;
+pub(crate) mod fallback;
 pub mod files;
 pub mod guard;
 #[cfg(test)]

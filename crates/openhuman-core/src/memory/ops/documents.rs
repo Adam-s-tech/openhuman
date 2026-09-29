@@ -18,6 +18,7 @@ use crate::memory::{
 use crate::rpc::RpcOutcome;
 
 use super::envelope::{envelope, error_envelope, memory_counts};
+use super::fallback;
 use super::guard::active_memory_guard;
 use super::helpers::{
     build_retrieval_context, current_workspace_dir, filter_hits_by_document_ids,
@@ -165,13 +166,13 @@ pub struct PutDocResult {
 /// Lists all namespaces in the memory system.
 pub async fn namespace_list() -> Result<RpcOutcome<Vec<String>>, String> {
     let guard = active_memory_guard().await?;
-    let documents = guard
-        .as_documents()
-        .ok_or_else(|| "memory driver does not support the documents family".to_string())?;
-    let namespaces = documents
-        .list_namespaces()
-        .await
-        .map_err(|error| error.to_string())?;
+    let namespaces = match guard.as_documents() {
+        Some(documents) => documents
+            .list_namespaces()
+            .await
+            .map_err(|error| error.to_string())?,
+        None => fallback::namespace_names(&guard).await?,
+    };
     Ok(RpcOutcome::single_log(
         namespaces,
         "memory namespaces listed",
@@ -282,13 +283,14 @@ pub async fn doc_list(
     params: Option<NamespaceOnlyParams>,
 ) -> Result<RpcOutcome<serde_json::Value>, String> {
     let guard = active_memory_guard().await?;
-    let documents = guard
-        .as_documents()
-        .ok_or_else(|| "memory driver does not support the documents family".to_string())?;
-    let docs = documents
-        .list_documents(params.as_ref().map(|value| value.namespace.as_str()))
-        .await
-        .map_err(|error| error.to_string())?;
+    let namespace = params.as_ref().map(|value| value.namespace.as_str());
+    let docs = match guard.as_documents() {
+        Some(documents) => documents
+            .list_documents(namespace)
+            .await
+            .map_err(|error| error.to_string())?,
+        None => fallback::document_list(&guard, namespace).await?,
+    };
     Ok(RpcOutcome::single_log(docs, "memory documents listed"))
 }
 
@@ -418,13 +420,13 @@ pub async fn memory_list_documents(
     request: ListDocumentsRequest,
 ) -> Result<RpcOutcome<ApiEnvelope<ListDocumentsResponse>>, String> {
     let guard = active_memory_guard().await?;
-    let documents = guard
-        .as_documents()
-        .ok_or_else(|| "memory driver does not support the documents family".to_string())?;
-    let raw = documents
-        .list_documents(request.namespace.as_deref())
-        .await
-        .map_err(|error| error.to_string())?;
+    let raw = match guard.as_documents() {
+        Some(documents) => documents
+            .list_documents(request.namespace.as_deref())
+            .await
+            .map_err(|error| error.to_string())?,
+        None => fallback::document_list(&guard, request.namespace.as_deref()).await?,
+    };
     let documents = parse_memory_document_summaries(raw)?;
     let count = documents.len();
     Ok(envelope(
@@ -478,13 +480,13 @@ pub async fn memory_list_namespaces(
     _request: EmptyRequest,
 ) -> Result<RpcOutcome<ApiEnvelope<ListNamespacesResponse>>, String> {
     let guard = active_memory_guard().await?;
-    let documents = guard
-        .as_documents()
-        .ok_or_else(|| "memory driver does not support the documents family".to_string())?;
-    let namespaces = documents
-        .list_namespaces()
-        .await
-        .map_err(|error| error.to_string())?;
+    let namespaces = match guard.as_documents() {
+        Some(documents) => documents
+            .list_namespaces()
+            .await
+            .map_err(|error| error.to_string())?,
+        None => fallback::namespace_names(&guard).await?,
+    };
     let count = namespaces.len();
     Ok(envelope(
         ListNamespacesResponse { namespaces, count },
@@ -551,17 +553,26 @@ pub async fn memory_query_namespace(
         // (`recall_namespace_memories`), which is a different code path with no
         // bus twin — an empty query does not degrade to recency. See the gap
         // note in `memory::direct_engine_refs_tests`.
-        let hits = guard
-            .as_retrieval()
-            .ok_or_else(|| "memory driver does not support the retrieval family".to_string())?
-            .recall_namespace_scored(
-                &request.namespace,
-                &request.query,
-                retrieval_limit as usize,
-                None,
-            )
-            .await
-            .map_err(|error| error.to_string())?;
+        let hits = match guard.as_retrieval() {
+            Some(retrieval) => retrieval
+                .recall_namespace_scored(
+                    &request.namespace,
+                    &request.query,
+                    retrieval_limit as usize,
+                    None,
+                )
+                .await
+                .map_err(|error| error.to_string())?,
+            None => {
+                fallback::recall_hits(
+                    &guard,
+                    &request.namespace,
+                    &request.query,
+                    retrieval_limit as usize,
+                )
+                .await?
+            }
+        };
         let mut context = NamespaceRetrievalContext {
             namespace: request.namespace.clone(),
             query: Some(request.query.clone()),
@@ -615,12 +626,16 @@ pub async fn memory_recall_context(
     // own from the hits.
     let result = async {
         let guard = active_memory_guard().await?;
-        guard
-            .as_retrieval()
-            .ok_or_else(|| "memory driver does not support the retrieval family".to_string())?
-            .recall_namespace_recent(&request.namespace, request.resolved_limit() as usize)
-            .await
-            .map_err(|e| format!("memory.recall_context: {e}"))
+        let limit = request.resolved_limit() as usize;
+        match guard.as_retrieval() {
+            Some(retrieval) => retrieval
+                .recall_namespace_recent(&request.namespace, limit)
+                .await
+                .map_err(|e| format!("memory.recall_context: {e}")),
+            None => fallback::recent_hits(&guard, &request.namespace, limit)
+                .await
+                .map_err(|e| format!("memory.recall_context: {e}")),
+        }
     }
     .await;
 
@@ -652,12 +667,16 @@ pub async fn memory_recall_memories(
 ) -> Result<RpcOutcome<ApiEnvelope<RecallMemoriesResponse>>, String> {
     let result = async {
         let guard = active_memory_guard().await?;
-        guard
-            .as_retrieval()
-            .ok_or_else(|| "memory driver does not support the retrieval family".to_string())?
-            .recall_namespace_recent(&request.namespace, request.resolved_limit() as usize)
-            .await
-            .map_err(|e| format!("memory.recall_memories: {e}"))
+        let limit = request.resolved_limit() as usize;
+        match guard.as_retrieval() {
+            Some(retrieval) => retrieval
+                .recall_namespace_recent(&request.namespace, limit)
+                .await
+                .map_err(|e| format!("memory.recall_memories: {e}")),
+            None => fallback::recent_hits(&guard, &request.namespace, limit)
+                .await
+                .map_err(|e| format!("memory.recall_memories: {e}")),
+        }
     }
     .await;
 
