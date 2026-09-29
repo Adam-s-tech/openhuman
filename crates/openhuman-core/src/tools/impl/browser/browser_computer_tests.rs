@@ -1,4 +1,5 @@
 use super::*;
+use tinycomputer_bus::browser::{LocateBy, Locator};
 
 fn session_entry(client: Arc<BrowserClient>, id: SessionId, last_used: Instant) -> ThreadSession {
     let config_fingerprint = browser_session_fingerprint(&client);
