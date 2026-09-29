@@ -272,8 +272,8 @@ fn parent_context(workspace: PathBuf, provider: Arc<ScriptedModel>) -> ParentExe
         agent_definition_id: "orchestrator".into(),
         allowed_subagent_ids: [
             "test".to_string(),
-            "researcher".to_string(),
-            "code_executor".to_string(),
+            "task_manager_agent".to_string(),
+            "vision_agent".to_string(),
         ]
         .into_iter()
         .collect(),

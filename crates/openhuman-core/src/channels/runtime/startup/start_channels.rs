@@ -79,6 +79,17 @@ async fn start_channels_inner(mut config: Config) -> Result<()> {
     // `external_transfer_pending` web-channel events so the frontend can show a
     // per-action "what leaves, to where, why" card (privacy epic S2, #4436).
     crate::web_chat::register_egress_surface_subscriber();
+    // Surface thread-goal / thread-todo / run-queue lifecycle events
+    // (ThreadGoalUpdated/Cleared, ThreadTodosChanged, RunQueue*) as
+    // `thread_goal_updated`/`thread_goal_cleared`/`thread_todos_changed`/
+    // `queue_item_queued`/`queue_item_delivered` web-channel events so the
+    // desktop goal chip, todo drawer, and message-queue UI stay live (C3).
+    crate::web_chat::register_agent_surface_subscriber();
+    // Surface memory store/recall activity (MemoryStored/MemoryRecalled) as
+    // `memory_activity` web-channel events, routed to the turn's own
+    // thread/client only (C5) — never carries memory content or the raw
+    // recall query, only a short clipped preview.
+    crate::web_chat::register_memory_activity_surface_subscriber();
     // Spawn the per-toolkit provider periodic sync scheduler. This is
     // a thin tokio task that ticks every minute and dispatches into
     // any provider whose `sync_interval_secs` has elapsed for an
@@ -255,8 +266,7 @@ async fn start_channels_inner(mut config: Config) -> Result<()> {
         ));
     }
     // Composio tool descriptions are intentionally excluded from the main
-    // agent prompt — those tools are only available to the integrations_agent
-    // subagent via category_filter = "skill".
+    // agent prompt — integration actions are reached through tool search.
     tool_descs.push((
         "schedule",
         "Manage scheduled tasks (create/list/get/cancel/pause/resume). Supports recurring cron and one-shot delays.",
@@ -278,8 +288,7 @@ async fn start_channels_inner(mut config: Config) -> Result<()> {
         None
     };
     // Filter out Workflow-category tools (e.g. Composio, Apify) from the
-    // main agent prompt — those are only available to the integrations_agent
-    // subagent via category_filter = "skill".
+    // main agent prompt — integration actions are reached through tool search.
     let non_skill_tools: Vec<&Box<dyn tinytools::Tool>> = tools_registry
         .iter()
         .filter(|t| t.category() != tinytools::ToolCategory::Workflow)

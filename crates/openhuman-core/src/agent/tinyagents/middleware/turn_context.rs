@@ -1,6 +1,6 @@
 //! [`TurnContextMiddleware`]: the per-turn config bundle that installs the
-//! context middlewares, plus the small observation/handoff hooks it owns
-//! (transcript snapshot, progressive-disclosure handoff).
+//! context middlewares, plus the small observation hook it owns (transcript
+//! snapshot).
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -55,11 +55,6 @@ pub(crate) struct TurnContextMiddleware {
     /// summarizer tokens or rewrite history. The deterministic hard-trim backstop
     /// still installs regardless. Defaults to `true` (see [`defaults`](Self::defaults)).
     pub(crate) autocompact_enabled: bool,
-    /// Progressive-disclosure handoff: when set (integrations_agent with a
-    /// resolved toolkit), oversized tool results are stashed in the shared
-    /// [`ResultHandoffCache`] and replaced with an `extract_from_result` drill-in
-    /// placeholder. `None` everywhere else.
-    pub(crate) handoff: Option<HandoffConfig>,
     /// Live transcript snapshot sink (#4466). When set, a
     /// [`TranscriptSnapshotMiddleware`] mirrors the running conversation into
     /// this shared buffer before every model call, so an erroring run can still
@@ -327,15 +322,6 @@ impl Middleware<(), crate::agent::tinyagents::host::OpenHumanRunContext>
     }
 }
 
-/// Config for the [`HandoffMiddleware`]: the per-spawn cache (shared with the
-/// `extract_from_result` tool) plus the ids used in handoff log lines.
-#[derive(Clone)]
-pub(crate) struct HandoffConfig {
-    pub(crate) cache: Arc<crate::agent::subagent_host::ResultHandoffCache>,
-    pub(crate) agent_id: String,
-    pub(crate) task_id: String,
-}
-
 impl TurnContextMiddleware {
     /// A sensible default for turn paths without a session `ContextManager`
     /// (channel / sub-agent): the default tool-result byte cap, no summarizer or
@@ -363,7 +349,6 @@ impl TurnContextMiddleware {
             runtime_config: None,
             microcompact_keep_recent: 0,
             autocompact_enabled: true,
-            handoff: None,
             transcript_snapshot: None,
         }
     }
@@ -374,7 +359,6 @@ impl TurnContextMiddleware {
             && self.payload_summarizer.is_none()
             && !self.tokenjuice_compaction_enabled
             && self.microcompact_keep_recent == 0
-            && self.handoff.is_none()
             && self.transcript_snapshot.is_none()
     }
 
@@ -388,6 +372,7 @@ impl TurnContextMiddleware {
         self,
         harness: &mut AgentHarness<(), crate::agent::tinyagents::host::OpenHumanRunContext>,
         tool_policies: HashMap<String, TaToolPolicy>,
+        summary_focus_tools: std::collections::HashSet<String>,
     ) {
         // Transcript snapshot (#4466) runs first among before_model hooks so it
         // mirrors the *incoming* request transcript (every prior completed round)
@@ -407,15 +392,6 @@ impl TurnContextMiddleware {
         // component able to preserve those results in condensed form never saw
         // them. The caller now sites it AFTER compression, so the ladder reads
         // summarize → blank → evict. See `assemble_turn_harness`.
-        // REVERSE-ORDER RULE (issue #4464): the crate runs `after_tool` hooks in
-        // REVERSE registration order (`MiddlewareStack::run_after_tool` iterates
-        // `self.middlewares.iter().rev()`, tinyagents src/harness/middleware/mod.rs).
-        // So the LAST-pushed middleware's `after_tool` runs FIRST. To make the
-        // effective `after_tool` chain be handoff(raw) → tool-output budget/caps,
-        // the handoff MUST be pushed AFTER the tool-output budget.
-        //
-        // Push the tool-output budget FIRST (so its `after_tool` runs SECOND):
-        // it truncates the oversized payload to the 16 KiB byte cap.
         if self.tool_result_budget_bytes > 0
             || self.payload_summarizer.is_some()
             || self.tokenjuice_compaction_enabled
@@ -430,108 +406,10 @@ impl TurnContextMiddleware {
                 tool_policies,
                 artifact_reads: Default::default(),
                 focus_by_call: Default::default(),
+                summary_focus_tools,
+                raw_fetches: Default::default(),
             }));
         }
-        // Push the handoff LAST (so its `after_tool` runs FIRST): it observes the
-        // RAW, uncapped payload, stashes an oversized result into the
-        // `ResultHandoffCache`, and swaps in a short pointer BEFORE the tool-output
-        // budget can shrink it below the 50k-token handoff threshold and defeat the
-        // drill-in.
-        if let Some(handoff) = self.handoff {
-            harness.push_middleware(Arc::new(HandoffMiddleware::new(handoff)));
-        }
-    }
-}
-
-/// `after_tool`: progressive-disclosure handoff (issue #4249 1b). An oversized
-/// sub-agent tool result is stashed in the shared [`ResultHandoffCache`] and its
-/// content replaced with a short placeholder naming a `result_id` the model can
-/// drill into via `extract_from_result`. Restores the seam the legacy
-/// `SubagentToolSource` ran on every tool result (via `apply_handoff`), which the
-/// agent_graph rewrite dropped. Errors and `extract_from_result`'s own output
-/// pass through unchanged (handled inside `apply_handoff`).
-///
-/// A read of a persisted tool-result artifact also passes through: this hook
-/// runs before `ToolOutputMiddleware`'s, so stashing the read here would hand
-/// the artifact pager a short `extract_from_result` pointer instead of the
-/// bytes the model asked for (#6284).
-pub(crate) struct HandoffMiddleware {
-    cache: Arc<crate::agent::subagent_host::ResultHandoffCache>,
-    agent_id: String,
-    task_id: String,
-    /// Call ids of artifact reads, recorded in `before_tool` (where the
-    /// arguments are visible) and consumed in `after_tool`.
-    artifact_reads: std::sync::Mutex<std::collections::HashSet<String>>,
-}
-
-impl HandoffMiddleware {
-    pub(crate) fn new(config: HandoffConfig) -> Self {
-        Self {
-            cache: config.cache,
-            agent_id: config.agent_id,
-            task_id: config.task_id,
-            artifact_reads: Default::default(),
-        }
-    }
-}
-
-#[async_trait]
-impl Middleware<(), crate::agent::tinyagents::host::OpenHumanRunContext> for HandoffMiddleware {
-    fn name(&self) -> &str {
-        "result_handoff"
-    }
-
-    async fn before_tool(
-        &self,
-        _ctx: &mut RunContext<crate::agent::tinyagents::host::OpenHumanRunContext>,
-        _state: &(),
-        call: &mut tinyinference_llm::tool::ToolCall,
-    ) -> TaResult<()> {
-        if crate::agent::harness::tool_result_artifacts::artifact_read_target(
-            &call.name,
-            &call.arguments,
-        )
-        .is_some()
-        {
-            if let Ok(mut reads) = self.artifact_reads.lock() {
-                reads.insert(call.id.clone());
-            }
-        }
-        Ok(())
-    }
-
-    async fn after_tool(
-        &self,
-        _ctx: &mut RunContext<crate::agent::tinyagents::host::OpenHumanRunContext>,
-        _state: &(),
-        invocation: &ToolInvocationIdentity,
-        result: &mut TaToolResult,
-    ) -> TaResult<()> {
-        let tool_name = invocation.tool_name();
-        let call_id = invocation.call_id().to_string();
-        let artifact_read = self
-            .artifact_reads
-            .lock()
-            .map(|mut reads| reads.remove(&call_id))
-            .unwrap_or(false);
-        if artifact_read {
-            tracing::debug!(
-                tool = tool_name,
-                call_id = %call_id,
-                task_id = %self.task_id,
-                "[tinyagents::mw] artifact read: skipping result handoff so the artifact pager sees the bytes"
-            );
-            return Ok(());
-        }
-        let handoff = crate::agent::subagent_host::apply_handoff(
-            &self.cache,
-            tool_name,
-            &self.task_id,
-            &self.agent_id,
-            crate::agent::tinyagents::middleware::tool_result_text(result),
-        );
-        crate::agent::tinyagents::middleware::replace_tool_result_text(result, handoff);
-        Ok(())
     }
 }
 

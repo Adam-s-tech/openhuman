@@ -13,6 +13,22 @@
 # Simulate with: scripts/dep-sim.py --cut <crates>
 #
 # History
+#   307/286/2  2026-09-27  The multi-provider search config directly uses the
+#                      required TinySearch bus contract in always-on settings
+#                      and policy code. This adds one resolved crate/name and
+#                      no native build dependency.
+#   306/285/2  2026-09-26  The required TinyBrowser integration adds
+#                      tinybrowser-bus, tinybrowser-control, and tinyjevclient
+#                      to the flows profile compared with the 303/282 baseline.
+#                      No new native build dependency is introduced. The
+#                      macOS graph remains three packages/names above Linux.
+#   303/282/2  2026-09-25  The TinyChannels 0.1.3 contract refresh moves its
+#                      required HMAC path to hmac 0.13. The flows graph keeps
+#                      hmac 0.12 elsewhere, so this adds one package version;
+#                      digest 0.11 then resolves ctutils and cmov, adding two
+#                      names and two more packages. Comparing the pre-refresh
+#                      and current graphs gives +3 packages, +2 names, and no
+#                      new native build (still libsqlite3-sys and ring).
 #   300/280/2  2026-09-22  The TinyAgents 2.1.2 graph update moves its
 #                      runtime/session/graph split into the required agent
 #                      harness path. The `flows` profile therefore resolves
@@ -588,4 +604,4 @@
 #                      into the required host runtime. The migration adds five
 #                      resolved packages and four unique crate names; it does
 #                      not add a native build dependency.
-flows:300:280:2
+flows:307:286:2

@@ -702,6 +702,8 @@ use support_tests::*;
 mod agent_binding_tests;
 #[path = "ops_approval_manifest_and_catalog_tests.rs"]
 mod approval_manifest_and_catalog_tests;
+#[path = "ops_builder_repair_tests.rs"]
+mod builder_repair_tests;
 #[path = "ops_builder_trail_off_tests.rs"]
 mod builder_trail_off_tests;
 #[path = "ops_connection_ref_gate_tests.rs"]
@@ -712,6 +714,9 @@ mod engine_compatibility_tests;
 mod inference_gate_tests;
 #[path = "ops_migration_and_side_effect_tests.rs"]
 mod migration_and_side_effect_tests;
+#[cfg(test)]
+#[path = "ops_migration_tests.rs"]
+mod migration_tests;
 #[path = "ops_resume_checkpoint_tests.rs"]
 mod resume_checkpoint_tests;
 #[path = "ops_run_lifecycle_tests.rs"]

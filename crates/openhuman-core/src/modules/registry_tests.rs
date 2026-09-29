@@ -2,6 +2,19 @@ use super::{find, ALL};
 use crate::modules::platform::candidates_for;
 
 #[test]
+fn tinycomputer_registry_matches_bus_contract_and_published_release() {
+    let desktop = find("tinycomputer").expect("compiled computer module");
+    assert_eq!(desktop.bus_name, tinycomputer_bus::names::INTERFACE);
+    assert_eq!(desktop.object_path, tinycomputer_bus::names::OBJECT_PATH);
+    assert_eq!(desktop.version, "0.7.0");
+    assert_eq!(desktop.assets.len(), 7);
+    assert_eq!(
+        desktop.asset_for("macos-26-arm64").unwrap().sha256,
+        "5b529cbf4b3403fe49b6a49ba3774e394cda54ee9a2fc44e8b536bc025ec7ba1"
+    );
+}
+
+#[test]
 fn ids_and_bus_names_are_unique() {
     // Two records claiming one bus name is a conflict tinybus would only
     // surface at load time, on whichever one happened to be second.
@@ -105,7 +118,7 @@ fn every_asset_name_carries_the_pinned_version() {
 fn the_release_url_is_a_tag_on_github() {
     // tinybus refuses a URL that is not a tag, because a branch URL names
     // bytes that can change under a digest that was checked once.
-    for record in ALL {
+    for record in ALL.iter().filter(|record| !record.assets.is_empty()) {
         assert!(
             record
                 .release_url
@@ -148,6 +161,13 @@ fn every_host_key() -> Vec<String> {
     keys
 }
 
+fn supported_host_keys(record: &super::ModuleRecord) -> Vec<String> {
+    every_host_key()
+        .into_iter()
+        .filter(|key| record.id != "tinycomputer" || !key.starts_with("ubuntu-"))
+        .collect()
+}
+
 #[test]
 fn a_record_that_pins_a_release_covers_every_host_the_platform_table_offers() {
     // The two tables are written independently and would drift silently:
@@ -161,7 +181,7 @@ fn a_record_that_pins_a_release_covers_every_host_the_platform_table_offers() {
     // that it does not exist. The partial-coverage case — the one that is
     // actually a bug — is caught below.
     for record in ALL.iter().filter(|record| !record.assets.is_empty()) {
-        for key in every_host_key() {
+        for key in supported_host_keys(record) {
             assert!(
                 record.asset_for(&key).is_some(),
                 "{} publishes no asset for {key}, which the platform table would ask for",
@@ -177,15 +197,16 @@ fn a_record_publishes_for_every_host_or_for_none() {
     // user on the missing platform reaches the feature. All-or-nothing keeps
     // "not published yet" distinguishable from "published and incomplete".
     for record in ALL {
-        let covered = every_host_key()
+        let host_keys = supported_host_keys(record);
+        let covered = host_keys
             .into_iter()
             .filter(|key| record.asset_for(key).is_some())
             .count();
         assert!(
-            covered == 0 || covered == every_host_key().len(),
+            covered == 0 || covered == supported_host_keys(record).len(),
             "{} publishes assets for {covered} of {} host keys",
             record.id,
-            every_host_key().len()
+            supported_host_keys(record).len()
         );
     }
 }

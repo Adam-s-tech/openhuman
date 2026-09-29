@@ -161,6 +161,19 @@ pub struct SubagentActivity {
     /// from memory after a cold boot / interrupted turn.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub worker_thread_id: Option<String>,
+    /// The parent turn's tool-call id (the `spawn_subagent` / dispatch call)
+    /// this delegation is attributed to. Mirrors
+    /// [`crate::agent::progress::AgentProgress::SubagentSpawned::parent_call_id`].
+    /// `None` for legacy snapshots and spawn sites the harness gave no call
+    /// context (e.g. `orchestration::ops`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parent_call_id: Option<String>,
+    /// Size-capped final assistant text, persisted so a rehydrated row can
+    /// still show what the sub-agent answered — mirrors the live
+    /// `subagent_completed` socket payload's `subagent.output`. `None`
+    /// while running, on failure, and on legacy snapshots.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub output: Option<String>,
     #[serde(default)]
     pub tool_calls: Vec<SubagentToolCall>,
     /// Ordered reasoning/narration/tool transcript for this sub-agent — what
@@ -292,7 +305,19 @@ pub enum TranscriptItem {
     /// The agent's visible assistant text between tool calls.
     Narration { round: u32, seq: u32, text: String },
     /// The agent's hidden reasoning (when the model emits it).
-    Thinking { round: u32, seq: u32, text: String },
+    ///
+    /// `started_at` / `ended_at` are epoch milliseconds of the block's first
+    /// and latest delta, so the UI can show "Thought for 12s" after a reload.
+    /// Absent on rows written before timing was recorded.
+    Thinking {
+        round: u32,
+        seq: u32,
+        text: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        started_at: Option<u64>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        ended_at: Option<u64>,
+    },
     /// A pointer to a tool row in [`TurnState::tool_timeline`].
     ToolCall {
         round: u32,

@@ -23,6 +23,8 @@ fn artifact_mw(
         tool_policies: HashMap::new(),
         artifact_reads: Default::default(),
         focus_by_call: Default::default(),
+        summary_focus_tools: Default::default(),
+        raw_fetches: Default::default(),
     }
 }
 
@@ -126,51 +128,5 @@ async fn a_raw_result_file_read_cannot_open_is_stored_as_the_processed_copy() {
     assert_eq!(
         stored, summary,
         "a raw body over file_read's limit would be unreadable, so the processed copy is stored"
-    );
-}
-
-/// #6284 review: `HandoffMiddleware` runs before the artifact pager, so it must
-/// leave an artifact read alone or the pager only ever sees a handoff pointer.
-#[tokio::test]
-async fn handoff_leaves_an_artifact_read_for_the_pager_but_still_hands_off_other_results() {
-    use crate::agent::tinyagents::middleware::turn_context::{HandoffConfig, HandoffMiddleware};
-    let mw = HandoffMiddleware::new(HandoffConfig {
-        cache: Arc::new(crate::agent::subagent_host::ResultHandoffCache::new()),
-        agent_id: "agent-1".to_string(),
-        task_id: "task-1".to_string(),
-    });
-    // ~100k estimated tokens, above the 50k handoff threshold.
-    let oversized = "y".repeat(400_000);
-
-    let mut ordinary = tool_result("echo", &oversized);
-    mw.after_tool(
-        &mut ctx(),
-        &(),
-        &invocation("ordinary", "echo"),
-        &mut ordinary,
-    )
-    .await
-    .unwrap();
-    assert_ne!(
-        result_text(&ordinary).len(),
-        oversized.len(),
-        "control: an oversized ordinary result is still handed off"
-    );
-
-    let mut call = TaToolCall::new(
-        "c1",
-        "file_read",
-        json!({"path": "artifacts/tool-results/s/shell/c.txt"}),
-    );
-    let mut ctx = ctx();
-    mw.before_tool(&mut ctx, &(), &mut call).await.unwrap();
-    let mut read = tool_result("file_read", &oversized);
-    mw.after_tool(&mut ctx, &(), &invocation("c1", "file_read"), &mut read)
-        .await
-        .unwrap();
-    assert_eq!(
-        result_text(&read).len(),
-        oversized.len(),
-        "an artifact read must reach the artifact pager with its bytes, not a handoff pointer"
     );
 }

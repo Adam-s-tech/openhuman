@@ -49,6 +49,7 @@ fn meta(thread_id: &str) -> TranscriptMeta {
         created: "2024-01-01T00:00:00Z".to_string(),
         updated: "2024-01-01T00:05:00Z".to_string(),
         turn_count: 1,
+        prefix_message_count: None,
         input_tokens: 100,
         output_tokens: 50,
         cached_input_tokens: 20,
@@ -317,6 +318,7 @@ async fn in_memory_store_reconstruction_diverges_from_legacy_on_sidecar_metadata
         .expect("assistant message present");
     attach_chat_turn_usage_metadata(&mut live_messages[last_assistant], &usage);
     let reconstructed = SessionTranscript {
+        tools: None,
         meta: meta.clone(),
         messages: durable_messages(&live_messages),
     };
@@ -352,6 +354,7 @@ async fn shadow_read_unavailable_and_divergence() {
     // No store write yet: empty/absent stream against a non-empty legacy
     // transcript → Unavailable (no shadow), never a divergence.
     let legacy = SessionTranscript {
+        tools: None,
         meta: meta.clone(),
         messages: durable_messages(&[ChatMessage::user("hi"), ChatMessage::assistant("done")]),
     };
@@ -367,6 +370,7 @@ async fn shadow_read_unavailable_and_divergence() {
         .await
         .expect("live dual-write");
     let diverging = SessionTranscript {
+        tools: None,
         meta,
         messages: durable_messages(&[
             ChatMessage::user("hi"),

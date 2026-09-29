@@ -1,10 +1,22 @@
-# AgentBox Marketplace Deployment
+# AgentBox marketplace deployment (historical)
 
-OpenHuman ships as a containerized agent on GMI Cloud's
-[AgentBox marketplace](https://docs.gmicloud.ai/agentbox-marketplace/overview).
-This page is the operator runbook for new deployments and version bumps.
+This page describes a container surface that no longer exists in
+`openhuman-core`. A regression test,
+`agentbox_run_and_jobs_paths_are_no_longer_public` in
+`crates/openhuman-core/src/core/auth_tests.rs`, asserts that `/run` and
+`/jobs/{job_id}` are gone and pins the reason in a comment: the AgentBox
+marketplace surface moved out of this codebase. `OPENHUMAN_AGENTBOX_MODE`
+has no remaining reader anywhere in `crates/openhuman-core/src` today, even
+though the Dockerfile and `.env.example` still mention it; those references
+are themselves stale and due for cleanup.
 
-## Container contract
+If you need to run OpenHuman on GMI Cloud's AgentBox marketplace today, this
+is not the current integration path; check with the team that owns the
+GMI Cloud deployment for where that surface lives now. The rest of this page
+is kept as a historical record of how the integration worked before removal,
+in case you are debugging an older build that still has it.
+
+## Container contract (as it worked before removal)
 
 When `OPENHUMAN_AGENTBOX_MODE=1`, the core HTTP server exposes:
 
@@ -94,6 +106,6 @@ curl http://127.0.0.1:7788/jobs/<job_id>
 - `[agentbox::gmi] not registering GMI MaaS provider: missing/blank: GMI_MAAS_API_KEY`:
   the platform did not inject the key. Re-check the wizard's "MaaS
   integration toggle" in Step 2.
-- `[agentbox::gmi] current-thread runtime detected — skipping provider registration`:
+- `[agentbox::gmi] current-thread runtime detected, skipping provider registration`:
   the core was booted in a single-threaded tokio runtime. Use the standard
   `serve` subcommand, which spawns a multi-thread runtime.

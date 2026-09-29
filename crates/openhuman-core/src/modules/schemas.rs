@@ -10,6 +10,8 @@
 //! an arbitrary path would turn this namespace into remote code execution.
 
 use serde_json::{Map, Value};
+use std::sync::Arc;
+use tinycomputer_bus::browser::SessionOptions;
 
 use super::ops;
 use crate::config::rpc as config_rpc;
@@ -17,7 +19,13 @@ use crate::core::all::{ControllerFuture, RegisteredController};
 use crate::core::{ControllerSchema, FieldSchema, TypeSchema};
 
 pub fn all_controller_schemas() -> Vec<ControllerSchema> {
-    vec![schemas("list"), schemas("status"), schemas("load")]
+    vec![
+        schemas("list"),
+        schemas("status"),
+        schemas("load"),
+        schemas("browser_check_readiness"),
+        schemas("computer_status"),
+    ]
 }
 
 pub fn all_registered_controllers() -> Vec<RegisteredController> {
@@ -33,6 +41,14 @@ pub fn all_registered_controllers() -> Vec<RegisteredController> {
         RegisteredController {
             schema: schemas("load"),
             handler: handle_load,
+        },
+        RegisteredController {
+            schema: schemas("browser_check_readiness"),
+            handler: handle_browser_check_readiness,
+        },
+        RegisteredController {
+            schema: schemas("computer_status"),
+            handler: handle_computer_status,
         },
     ]
 }
@@ -85,6 +101,49 @@ pub fn schemas(function: &str) -> ControllerSchema {
                 required: true,
             }],
         },
+        "browser_check_readiness" => ControllerSchema {
+            namespace: "modules",
+            function: "browser_check_readiness",
+            description: "Load TinyComputer and briefly launch Chrome to check browser readiness.",
+            inputs: vec![],
+            outputs: vec![
+                FieldSchema {
+                    name: "module_ready",
+                    ty: TypeSchema::Bool,
+                    comment: "TinyComputer module is serving its browser members.",
+                    required: true,
+                },
+                FieldSchema {
+                    name: "chrome_ready",
+                    ty: TypeSchema::Bool,
+                    comment: "Chrome launched and closed successfully.",
+                    required: true,
+                },
+                FieldSchema {
+                    name: "error",
+                    ty: TypeSchema::Option(Box::new(TypeSchema::String)),
+                    comment: "Sanitized setup failure, if any.",
+                    required: false,
+                },
+            ],
+        },
+        "computer_status" => ControllerSchema {
+            namespace: "modules",
+            function: "computer_status",
+            description: "Report the TinyComputer module, its decision and planner routes, and optionally what it says is configured.",
+            inputs: vec![FieldSchema {
+                name: "load",
+                ty: TypeSchema::Option(Box::new(TypeSchema::Bool)),
+                comment: "Load the module and ask it (Describe) even when it is not serving yet.",
+                required: false,
+            }],
+            outputs: vec![FieldSchema {
+                name: "status",
+                ty: TypeSchema::Json,
+                comment: "Module status, decision_model, decision_route, planner_route, and capabilities or error.",
+                required: true,
+            }],
+        },
         _ => ControllerSchema {
             namespace: "modules",
             function: "unknown",
@@ -98,6 +157,53 @@ pub fn schemas(function: &str) -> ControllerSchema {
             }],
         },
     }
+}
+
+fn handle_browser_check_readiness(_params: Map<String, Value>) -> ControllerFuture {
+    Box::pin(async move {
+        let mut config = config_rpc::load_config_with_timeout().await?;
+        // The probe never navigates. Give its disposable session a non-routable
+        // origin so an empty website allowlist does not prevent a Chrome check.
+        config.http_request.allowed_domains = vec!["example.invalid".into()];
+        let client = super::browser::BrowserClient::new(Arc::new(config));
+        if client.ensure_ready().await.is_err() {
+            return Ok(
+                serde_json::json!({"module_ready": false, "chrome_ready": false, "error": "TinyComputer module is unavailable; configure a local module override"}),
+            );
+        }
+        let opened = tokio::time::timeout(
+            std::time::Duration::from_secs(30),
+            client.open_session(SessionOptions::default()),
+        )
+        .await;
+        match opened {
+            Ok(Ok(session)) => {
+                // A session is always closed after this non-navigating probe.
+                let closed = client.close_session(&session.id).await.is_ok();
+                Ok(
+                    serde_json::json!({"module_ready": true, "chrome_ready": closed,
+                    "error": if closed { None } else { Some("Chrome session could not close cleanly") }}),
+                )
+            }
+            Ok(Err(_)) => Ok(
+                serde_json::json!({"module_ready": true, "chrome_ready": false,
+                "error": "Chrome could not start; check browser settings and allowed websites"}),
+            ),
+            Err(_) => Ok(
+                serde_json::json!({"module_ready": true, "chrome_ready": false,
+                "error": "Chrome launch timed out"}),
+            ),
+        }
+    })
+}
+
+fn handle_computer_status(params: Map<String, Value>) -> ControllerFuture {
+    Box::pin(async move {
+        let load = params.get("load").and_then(Value::as_bool).unwrap_or(false);
+        let config = config_rpc::load_config_with_timeout().await?;
+        serde_json::to_value(super::computer::status(&config, load).await)
+            .map_err(|error| error.to_string())
+    })
 }
 
 fn handle_list(_params: Map<String, Value>) -> ControllerFuture {

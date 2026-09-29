@@ -20,11 +20,10 @@ pub const ARTIFACT_OFFLOAD_HEADING: &str = "## Long-horizon Artifact Offload";
 /// Tool a sub-agent must actually hold before the contract is worth rendering.
 ///
 /// A prompt may only name tools the agent can really call: advertising one it
-/// lacks produces hallucinated calls that fail. `researcher` (search + fetch
-/// only) and every skill-filtered specialist have no filesystem tools, and
-/// dedicated guards assert their prompts never mention one — see
-/// `agent_registry::agents::researcher::prompt::tests::build_returns_nonempty_body`
-/// and `subagent_host::ops_tests::typed_mode_filters_tools_by_skill_filter`.
+/// lacks produces hallucinated calls that fail. Every skill-filtered specialist
+/// has no filesystem tools, and a dedicated guard asserts its prompt never
+/// mentions one — see
+/// `subagent_host::ops_tests::typed_mode_filters_tools_by_skill_filter`.
 pub const OFFLOAD_WRITE_TOOL: &str = "file_write";
 
 /// Whether the offload contract should be rendered for an agent whose visible

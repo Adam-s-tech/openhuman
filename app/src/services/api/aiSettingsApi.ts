@@ -22,7 +22,6 @@ import {
   authRemoveProviderCredentials,
   authStoreProviderCredentials,
 } from '../../utils/tauriCommands/auth';
-import { isTauri } from '../../utils/tauriCommands/common';
 import {
   type ClientConfig,
   type CloudProviderCreds,
@@ -775,7 +774,6 @@ export async function importOpenAiCodexCliAuth(): Promise<void> {
  * (they're written via `setCloudProviderKey` on their own path).
  */
 export async function flushCloudProviders(providers: CloudProviderCreds[]): Promise<void> {
-  if (!isTauri()) return;
   await openhumanUpdateModelSettings({ cloud_providers: providers });
 }
 
@@ -784,13 +782,9 @@ export async function flushCloudProviders(providers: CloudProviderCreds[]): Prom
  * `providerId` may be either the provider's opaque id or its slug — Rust
  * accepts both. Prefer passing the slug so lookup works before the provider
  * config has been persisted to disk (i.e. before the user clicks Save).
- * Throws on error so callers can surface retry UI. Returns [] when not
- * running in Tauri (browser dev mode has no RPC bridge).
+ * Throws on error so callers can surface retry UI.
  */
 export async function listProviderModels(providerId: string): Promise<ModelInfo[]> {
-  if (!isTauri()) {
-    return [];
-  }
   const res = await callCoreRpc<{ result: { models: ModelInfo[] } }>({
     method: 'openhuman.inference_list_models',
     params: { provider_id: providerId },
@@ -814,9 +808,6 @@ export interface ProviderAuthError {
 
 /** Fetch BYO provider auth failures recorded this process, keyed by slug. */
 export async function loadProviderAuthErrors(): Promise<ProviderAuthError[]> {
-  if (!isTauri()) {
-    return [];
-  }
   const res = await callCoreRpc<{ result: { errors: ProviderAuthError[] } }>({
     method: 'openhuman.inference_provider_auth_errors',
     params: {},
@@ -829,9 +820,6 @@ export async function testProviderModel(
   provider: string,
   prompt = 'Hello world'
 ): Promise<ProviderModelTestResult> {
-  if (!isTauri()) {
-    throw new Error('Model testing is only available in the desktop app.');
-  }
   const res = await callCoreRpc<{ result: ProviderModelTestResult }>({
     method: 'openhuman.inference_test_provider_model',
     params: { workload, provider, prompt },

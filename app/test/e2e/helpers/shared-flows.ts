@@ -9,6 +9,7 @@
 import { waitForAppReady, waitForAuthBootstrap as waitForAuthenticatedCore } from './app-helpers';
 import { triggerAuthDeepLink } from './deep-link-helpers';
 import {
+  clickButton,
   clickText,
   dumpAccessibilityTree,
   textExists,
@@ -168,7 +169,9 @@ const HASH_REDIRECTS = {
   '/settings/features': '/settings',
   '/settings/screen-intelligence': '/settings',
   '/settings/screen-awareness-debug': '/settings',
-  '/settings/mascot': '/settings/personality#face',
+  '/settings/mascot': '/settings/face',
+  '/settings/notifications': '/settings/account',
+  '/settings/tools': '/connections?tab=agent-tools',
   '/settings/composio-triggers': '/connections?tab=composio-key',
   '/settings/autonomy': '/settings/agent-access',
   '/settings/composio-routing': '/connections?tab=composio-key',
@@ -849,38 +852,14 @@ export async function logoutViaSettings(logPrefix = '[E2E]') {
   // renders the buttons.
   await navigateViaHash('/settings/account');
 
-  const loggedOut = await browser.execute(() => {
-    const candidates = ['Log out', 'Logout', 'Sign out'];
-    const allElements = document.querySelectorAll('*');
-    for (const label of candidates) {
-      for (const el of allElements) {
-        const text = el.textContent?.trim() || '';
-        if (text !== label) continue;
-        const clickable = el.closest(
-          'button, [role="button"], a, [class*="MenuItem"]'
-        ) as HTMLElement | null;
-        if (clickable) {
-          clickable.click();
-          return label;
-        }
-        (el as HTMLElement).click();
-        return label;
-      }
-    }
-    return null;
-  });
-
-  if (!loggedOut) {
-    const clicked = await clickFirstMatch(['Log out', 'Logout', 'Sign out'], 10_000);
-    if (!clicked) {
-      const tree = await dumpAccessibilityTree();
-      console.log(`${logPrefix} Logout button not found. Tree:\n`, tree.slice(0, 4000));
-      throw new Error('Could not find logout button in Settings');
-    }
-    console.log(`${logPrefix} Logout clicked via text helper: "${clicked}"`);
-  } else {
-    console.log(`${logPrefix} Logout clicked: "${loggedOut}"`);
+  try {
+    await clickButton('Log out', 10_000);
+  } catch (err) {
+    const tree = await dumpAccessibilityTree();
+    console.log(`${logPrefix} Logout button not found. Tree:\n`, tree.slice(0, 4000));
+    throw new Error('Could not find logout button in Settings', { cause: err });
   }
+  console.log(`${logPrefix} Logout clicked through the account action button`);
 
   await browser.pause(2_000);
 

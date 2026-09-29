@@ -1,7 +1,13 @@
-import { AssistantRuntimeProvider, useExternalStoreRuntime } from '@assistant-ui/react';
+import {
+  AssistantRuntimeProvider,
+  AuiConfig,
+  Tools,
+  useExternalStoreRuntime,
+} from '@assistant-ui/react';
 import debugFactory from 'debug';
-import { createContext, type ReactNode, useContext } from 'react';
+import { createContext, type ReactNode, useContext, useMemo } from 'react';
 
+import { useOpenHumanToolkit } from '../features/conversations/aui/toolkit';
 import { useAppSelector } from '../store/hooks';
 import { useOpenHumanExternalStore } from './useOpenHumanExternalStore';
 
@@ -37,11 +43,9 @@ export function useAuiThreadId(): string | null {
  * It used to read `state.thread.selectedThreadId` itself. That is wrong for any
  * surface whose thread is NOT the selected one, and there is exactly such a
  * surface: the Workflow Copilot (`WorkflowCopilotPanel`) renders the shared
- * `ChatThreadView` against its own dedicated builder thread, which is never
- * equal to `selectedThreadId`. While nothing inside `ChatThreadView` read
- * assistant-ui context the mismatch was invisible; the moment the transcript
- * renders from `ThreadPrimitive`/`MessagePrimitive` it would paint the HOME
- * chat's messages inside the copilot. So the thread is chosen by whoever mounts
+ * assistant-ui `Thread` against its own dedicated builder thread, which is
+ * never equal to `selectedThreadId`. Reading the selection here would paint
+ * the HOME chat's messages inside the copilot. So the thread is chosen by whoever mounts
  * the runtime, and two instances with different thread ids can coexist —
  * assistant-ui's `AssistantRuntimeProvider` is ordinary React context, so the
  * nearest one wins for each subtree.
@@ -57,6 +61,7 @@ export function useAuiThreadId(): string | null {
  */
 export function AssistantUiRuntimeProvider({
   threadId,
+  welcomeSuggestions = true,
   children,
 }: {
   /**
@@ -65,6 +70,8 @@ export function AssistantUiRuntimeProvider({
    * created it yet.
    */
   threadId?: string | null;
+  /** Offer the home chat's starter prompts on an empty thread; see the store. */
+  welcomeSuggestions?: boolean;
   children: ReactNode;
 }) {
   const selectedThreadId = useAppSelector(state => state.thread.selectedThreadId);
@@ -74,10 +81,16 @@ export function AssistantUiRuntimeProvider({
     effectiveThreadId ?? '(none)',
     threadId === undefined ? 'selection' : 'explicit'
   );
-  const adapter = useOpenHumanExternalStore(effectiveThreadId);
+  const adapter = useOpenHumanExternalStore(effectiveThreadId, { welcomeSuggestions });
   const runtime = useExternalStoreRuntime(adapter);
+  // Registers every `aui/toolkit.tsx` entry (currently just `task`) so
+  // assistant-ui resolves them ahead of the surface's own `ToolFallback`.
+  // Every tool name not in the registry is unaffected: it still renders
+  // through `components.ToolFallback` (`ChatToolFallback`) exactly as today.
+  const toolkit = useOpenHumanToolkit();
+  const config = useMemo(() => AuiConfig({ tools: Tools({ toolkit }) }), [toolkit]);
   return (
-    <AssistantRuntimeProvider runtime={runtime}>
+    <AssistantRuntimeProvider runtime={runtime} config={config}>
       <AuiThreadIdContext.Provider value={effectiveThreadId}>
         {children}
       </AuiThreadIdContext.Provider>

@@ -80,8 +80,7 @@ impl TurnStateStore {
         tmp.as_file()
             .sync_all()
             .map_err(|e| format!("fsync turn-state tempfile: {e}"))?;
-        tmp.persist(&path)
-            .map_err(|e| format!("persist turn-state file {}: {e}", path.display()))?;
+        persist_temp_file(tmp, &path)?;
         // Sync the directory entry created by the rename — without this a crash
         // or power loss between persist() and the next fs flush can drop the
         // snapshot, defeating the cold-boot recovery guarantee. Best-effort on
@@ -145,6 +144,26 @@ impl TurnStateStore {
             debug!("{LOG_PREFIX} deleted snapshots thread={}", thread_id);
         }
         Ok(removed)
+    }
+
+    /// Delete one turn's snapshot by `request_id`, leaving every other turn on
+    /// the thread untouched. Returns `true` if a file was removed.
+    ///
+    /// Backs edit/regenerate (`threads.edit_message` / `threads.regenerate`):
+    /// truncating the message log after a cut point orphans the turn
+    /// snapshots for every dropped request — `delete(thread_id)` would also
+    /// discard the turns kept *before* the cut, which a client's "Agentic
+    /// task insights" trail for an earlier answer still needs.
+    pub fn delete_turn(&self, thread_id: &str, request_id: &str) -> Result<bool, String> {
+        let _guard = TURN_STATE_LOCK.lock();
+        self.migrate_thread_locked(thread_id);
+        let path = self.turn_path(thread_id, request_id);
+        if !path.exists() {
+            return Ok(false);
+        }
+        fs::remove_file(&path).map_err(|e| format!("remove turn-state {}: {e}", path.display()))?;
+        debug!("{LOG_PREFIX} deleted snapshot thread={thread_id} request={request_id}");
+        Ok(true)
     }
 
     /// List the latest turn for every thread. Used by the UI on cold boot to
@@ -263,6 +282,48 @@ impl TurnStateStore {
             debug!("{LOG_PREFIX} marked {count} snapshots as interrupted on startup");
         }
         Ok(count)
+    }
+
+    /// Force one turn's snapshot to a terminal `lifecycle` if it is still
+    /// `Started`/`Streaming`. Returns `true` when it changed something; a
+    /// missing or already-terminal snapshot is a no-op.
+    ///
+    /// The progress bridge is normally the only writer that marks a snapshot
+    /// terminal, and it does so on its way out — but it only exits once its
+    /// progress sender drops, and for a cached per-thread session that does not
+    /// happen until the *next* turn replaces the sink. The last turn of a thread
+    /// would otherwise keep a non-terminal snapshot on disk indefinitely
+    /// (`prune_completed_locked` only prunes `Completed` turns, and the startup
+    /// sweep runs once per process), so re-entering the thread hydrates a
+    /// live-looking "Thinking…" indicator under a reply that already landed.
+    /// The turn driver calls this the moment the turn ends, which is the
+    /// earliest point that is known for certain.
+    pub fn settle_turn(
+        &self,
+        thread_id: &str,
+        request_id: &str,
+        lifecycle: TurnLifecycle,
+        now_rfc3339: &str,
+    ) -> Result<bool, String> {
+        let Some(mut snapshot) = self.get_turn(thread_id, request_id)? else {
+            return Ok(false);
+        };
+        if matches!(
+            snapshot.lifecycle,
+            TurnLifecycle::Interrupted | TurnLifecycle::Completed
+        ) {
+            return Ok(false);
+        }
+        snapshot.lifecycle = lifecycle;
+        snapshot.phase = None;
+        snapshot.active_tool = None;
+        snapshot.active_subagent = None;
+        snapshot.updated_at = now_rfc3339.to_string();
+        self.put(&snapshot)?;
+        debug!(
+            "{LOG_PREFIX} settled non-terminal snapshot thread={thread_id} request={request_id} lifecycle={lifecycle:?}"
+        );
+        Ok(true)
     }
 
     // --- internals -------------------------------------------------------
@@ -454,8 +515,7 @@ impl TurnStateStore {
         tmp.as_file()
             .sync_all()
             .map_err(|e| format!("fsync turn-state tempfile: {e}"))?;
-        tmp.persist(&path)
-            .map_err(|e| format!("persist turn-state file {}: {e}", path.display()))?;
+        persist_temp_file(tmp, &path)?;
         if let Err(err) = sync_dir(&dir) {
             log::warn!("{LOG_PREFIX} failed to fsync {}: {err}", dir.display());
         }
@@ -494,6 +554,84 @@ impl TurnStateStore {
             }
         }
     }
+}
+
+#[cfg(windows)]
+fn persist_temp_file(tmp: NamedTempFile, path: &Path) -> Result<(), String> {
+    use std::os::windows::ffi::OsStrExt;
+    use windows_sys::Win32::Storage::FileSystem::{MoveFileExW, MOVEFILE_REPLACE_EXISTING};
+
+    let wide_path = |path: &Path| -> Result<Vec<u16>, String> {
+        let filename = path
+            .file_name()
+            .ok_or_else(|| format!("resolve turn-state filename {}", path.display()))?;
+        let parent = path
+            .parent()
+            .ok_or_else(|| format!("resolve turn-state parent {}", path.display()))?
+            // Canonicalizing the existing parent gives Windows a verbatim
+            // long-path form before appending the not-yet-existing filename.
+            .canonicalize()
+            .map_err(|e| format!("resolve turn-state parent {}: {e}", path.display()))?;
+        let resolved = parent.join(filename);
+        let raw: Vec<u16> = resolved.as_os_str().encode_wide().collect();
+        let mut extended =
+            if raw.starts_with(&[b'\\' as u16, b'\\' as u16, b'?' as u16, b'\\' as u16]) {
+                raw
+            } else if raw.starts_with(&[b'\\' as u16, b'\\' as u16]) {
+                // Convert a UNC path from `\\server\share` to
+                // `\\?\UNC\server\share`.
+                let mut prefixed: Vec<u16> = r"\\?\UNC\".encode_utf16().collect();
+                prefixed.extend_from_slice(&raw[2..]);
+                prefixed
+            } else {
+                let mut prefixed: Vec<u16> = r"\\?\".encode_utf16().collect();
+                prefixed.extend_from_slice(&raw);
+                prefixed
+            };
+        extended.push(0);
+        Ok(extended)
+    };
+    // Compute both paths while `tmp` still owns its file, so any preparation
+    // error lets NamedTempFile clean the tempfile up automatically.
+    let source = wide_path(tmp.path())?;
+    let destination = wide_path(path)?;
+    let (file, temp_path) = tmp
+        .keep()
+        .map_err(|e| format!("persist turn-state file {}: {e}", path.display()))?;
+    // `keep` transfers ownership to us, so close the handle before replacing
+    // the destination and explicitly clean it up if the replacement fails.
+    drop(file);
+    // SAFETY: both buffers are NUL-terminated and remain alive for the call.
+    // The paths share a directory, so this is an atomic replacement rather
+    // than a cross-volume copy-and-delete move.
+    let moved = unsafe {
+        MoveFileExW(
+            source.as_ptr(),
+            destination.as_ptr(),
+            MOVEFILE_REPLACE_EXISTING,
+        )
+    };
+    if moved != 0 {
+        return Ok(());
+    }
+
+    let error = std::io::Error::last_os_error();
+    Err({
+        if let Err(cleanup_err) = fs::remove_file(&temp_path) {
+            warn!(
+                "{LOG_PREFIX} failed to remove turn-state tempfile {} after rename failure: {cleanup_err}",
+                temp_path.display()
+            );
+        }
+        format!("persist turn-state file {}: {error}", path.display())
+    })
+}
+
+#[cfg(not(windows))]
+fn persist_temp_file(tmp: NamedTempFile, path: &Path) -> Result<(), String> {
+    tmp.persist(path)
+        .map(|_| ())
+        .map_err(|e| format!("persist turn-state file {}: {e}", path.display()))
 }
 
 /// Pick the latest turn (greatest `started_at`, ties broken by `updated_at`).
@@ -549,6 +687,14 @@ pub fn get_turn(
 
 pub fn delete(workspace_dir: PathBuf, thread_id: &str) -> Result<bool, String> {
     TurnStateStore::new(workspace_dir).delete(thread_id)
+}
+
+pub fn delete_turn(
+    workspace_dir: PathBuf,
+    thread_id: &str,
+    request_id: &str,
+) -> Result<bool, String> {
+    TurnStateStore::new(workspace_dir).delete_turn(thread_id, request_id)
 }
 
 pub fn list(workspace_dir: PathBuf) -> Result<Vec<TurnState>, String> {

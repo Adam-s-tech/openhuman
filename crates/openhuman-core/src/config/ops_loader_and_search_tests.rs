@@ -331,6 +331,27 @@ fn snapshot_config_json_emits_config_and_workspace_and_config_path() {
     assert!(ws.contains(tmp.path().to_str().unwrap_or("")));
 }
 
+#[test]
+fn snapshot_config_json_redacts_every_search_key_but_keeps_settings() {
+    let mut cfg = Config::default();
+    cfg.search.max_results = 13;
+    cfg.search.parallel.api_key = Some("parallel-sentinel".into());
+    cfg.search.brave.api_key = Some("brave-sentinel".into());
+    cfg.search.querit.api_key = Some("querit-sentinel".into());
+    cfg.search.exa.api_key = Some("exa-sentinel".into());
+    cfg.search.tavily.api_key = Some("tavily-sentinel".into());
+    cfg.search.gemini.api_key = Some("gemini-sentinel".into());
+    cfg.seltz.api_key = Some("seltz-sentinel".into());
+    let snapshot = snapshot_config_json(&cfg).unwrap();
+    let serialized = snapshot.to_string();
+    assert!(!serialized.contains("-sentinel"));
+    assert_eq!(snapshot["config"]["search"]["max_results"], 13);
+    for provider in ["parallel", "brave", "querit", "exa", "tavily", "gemini"] {
+        assert!(snapshot["config"]["search"][provider]["api_key"].is_null());
+    }
+    assert!(snapshot["config"]["seltz"]["api_key"].is_null());
+}
+
 // ── agent_server_status ────────────────────────────────────────
 
 #[test]
@@ -591,7 +612,7 @@ async fn apply_search_settings_accepts_disabled_engine() {
     let tmp = tempdir().unwrap();
     let mut cfg = tmp_config(&tmp);
 
-    apply_search_settings(
+    let result = apply_search_settings(
         &mut cfg,
         SearchSettingsPatch {
             engine: Some("disabled".to_string()),
@@ -601,11 +622,8 @@ async fn apply_search_settings_accepts_disabled_engine() {
     .await
     .expect("apply disabled search engine");
 
-    assert_eq!(cfg.search.engine, "disabled");
-    assert_eq!(
-        cfg.search.effective_engine(),
-        crate::config::SearchEngine::Disabled
-    );
+    assert!(!cfg.search.is_enabled());
+    assert_eq!(result.value["enabled"], false);
 }
 
 #[tokio::test]
@@ -613,39 +631,40 @@ async fn apply_search_settings_stores_and_clears_tavily_key() {
     let tmp = tempdir().unwrap();
     let mut cfg = tmp_config(&tmp);
 
-    apply_search_settings(
-        &mut cfg,
-        SearchSettingsPatch {
-            engine: Some("tavily".to_string()),
-            tavily_api_key: Some(" tvly-test-key ".to_string()),
-            ..Default::default()
-        },
-    )
-    .await
-    .expect("save Tavily settings");
-
-    assert_eq!(cfg.search.engine, "tavily");
+    let enable: SearchSettingsPatch = serde_json::from_value(serde_json::json!({
+        "providers": {"tavily": {"enabled": true, "api_key": " tvly-test-key "}},
+        "roles": {"search": ["tavily", "exa"]}
+    }))
+    .unwrap();
+    let result = apply_search_settings(&mut cfg, enable)
+        .await
+        .expect("save Tavily settings");
+    let tavily = result.value["providers"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|p| p["id"] == "tavily")
+        .unwrap()
+        .clone();
+    assert_eq!(tavily["key_configured"], true);
+    assert_eq!(tavily["status"], "ready");
+    assert_eq!(result.value["effective_roles"]["search"][0], "tavily");
+    assert!(!result.value.to_string().contains("tvly-test-key"));
     assert_eq!(cfg.search.tavily.api_key.as_deref(), Some("tvly-test-key"));
-    assert_eq!(
-        cfg.search.effective_engine(),
-        crate::config::SearchEngine::Tavily
-    );
 
-    apply_search_settings(
-        &mut cfg,
-        SearchSettingsPatch {
-            tavily_api_key: Some("  ".to_string()),
-            ..Default::default()
-        },
-    )
-    .await
-    .expect("clear Tavily key");
-
+    let clear: SearchSettingsPatch = serde_json::from_value(serde_json::json!({
+        "providers": {"tavily": {"api_key": "  "}}
+    }))
+    .unwrap();
+    let result = apply_search_settings(&mut cfg, clear)
+        .await
+        .expect("clear Tavily key");
     assert!(cfg.search.tavily.api_key.is_none());
-    assert_eq!(
-        cfg.search.effective_engine(),
-        crate::config::SearchEngine::Managed
-    );
+    assert!(!result.value["effective_roles"]["search"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|p| p == "tavily"));
 }
 
 #[tokio::test]
@@ -663,5 +682,5 @@ async fn apply_search_settings_rejects_unknown_search_engine() {
     .await
     .expect_err("unknown engine should be rejected");
 
-    assert!(err.contains("disabled/managed/parallel/brave/querit/exa/tavily"));
+    assert!(err.contains("unknown search engine"), "{err}");
 }

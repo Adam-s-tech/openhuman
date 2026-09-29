@@ -276,9 +276,6 @@ async fn halt_on_missing_connection_asks_the_user_instead_of_reporting_back() {
 
 #[tokio::test]
 async fn repeated_tool_failure_nudges_change_of_strategy_before_the_halt() {
-    use crate::agent::tinyagents::host::steering::{openhuman_steering_handle, SteeringRunClass};
-    use tinyagents_harness::steering::SteeringCommandKind;
-
     // #4089: before the same-strategy retry cap, the breaker must feed a
     // structured "no progress since step X" corrective back into the loop so
     // the model changes approach rather than retrying the identical failing
@@ -303,7 +300,7 @@ async fn repeated_tool_failure_nudges_change_of_strategy_before_the_halt() {
     mw.after_tool(&mut ctx(), &(), &invocation("read-2", "read_file"), &mut r)
         .await
         .unwrap();
-    let nudges = drain_nudge_messages(&handle);
+    let nudges = drain_nudge_messages(&mw);
     assert_eq!(
         nudges.len(),
         1,
@@ -319,22 +316,13 @@ async fn repeated_tool_failure_nudges_change_of_strategy_before_the_halt() {
         "the nudge names the failing call so the model knows what not to repeat: {nudge}"
     );
 
-    // Regression for the #4473 crash: the nudge must ride a steering lane the
-    // user's *interactive* turn permits. `Redirect` is Background-only, so a
-    // Redirect nudge aborted interactive turns; `InjectMessage` is permitted
-    // on both classes. Assert the interactive policy accepts the lane we use.
-    let interactive = openhuman_steering_handle(SteeringRunClass::Interactive);
+    // Regression for the #4473 crash (a `Redirect` nudge was refused by the
+    // interactive run policy and aborted the turn) and for #6725 (an
+    // `InjectMessage` nudge was committed into durable history): the nudge
+    // must not ride steering at all.
     assert!(
-        interactive
-            .policy()
-            .is_allowed(SteeringCommandKind::InjectMessage),
-        "the no-progress nudge must use a lane the interactive turn permits"
-    );
-    assert!(
-        !interactive
-            .policy()
-            .is_allowed(SteeringCommandKind::Redirect),
-        "sanity: interactive still refuses Redirect (the lane that crashed it)"
+        handle.drain().is_empty(),
+        "the nudge must not be sent as a steering command"
     );
 }
 
@@ -593,52 +581,6 @@ async fn successful_repeat_tracker_resets_failed_and_exempt_batches() {
     );
 }
 
-// ── ApprovalSecurityMiddleware ──────────────────────────────────────────
-
-#[test]
-fn approval_external_effect_resolution_walks_the_tool_sets() {
-    let tools: Arc<Vec<Box<dyn Tool>>> = Arc::new(vec![
-        Box::new(FakeTool {
-            name: "send_email",
-            cap: None,
-            external: true,
-        }),
-        Box::new(FakeTool {
-            name: "read_file",
-            cap: None,
-            external: false,
-        }),
-    ]);
-    let mw = ApprovalSecurityMiddleware::new(vec![tools]);
-    assert!(mw.has_external_effect("send_email", &json!({})));
-    assert!(!mw.has_external_effect("read_file", &json!({})));
-    // Unknown tool defaults to no external effect (nothing to gate).
-    assert!(!mw.has_external_effect("missing", &json!({})));
-}
-
-#[test]
-fn approval_identity_scopes_composio_dispatcher_grants_to_one_action() {
-    assert_eq!(
-        approval_tool_name(
-            "composio_execute",
-            &json!({ "tool": "  GMAIL_SEND_EMAIL  " })
-        ),
-        "composio_execute:GMAIL_SEND_EMAIL"
-    );
-    assert_eq!(
-        approval_tool_name("composio_execute", &json!({ "tool": "GMAIL_DELETE_EMAIL" })),
-        "composio_execute:GMAIL_DELETE_EMAIL"
-    );
-    assert_eq!(
-        approval_tool_name("composio_execute", &json!({})),
-        "composio_execute:<invalid-action>"
-    );
-    assert_eq!(
-        approval_tool_name("send_email", &json!({ "tool": "ignored" })),
-        "send_email"
-    );
-}
-
 #[tokio::test]
 async fn memory_write_without_index_read_gets_a_corrective_note() {
     let mw = MemoryProtocolMiddleware::new();
@@ -652,6 +594,19 @@ async fn memory_write_without_index_read_gets_a_corrective_note() {
     assert!(result_text(&result).contains("update_memory_md"));
     // The original tool output is preserved, guidance is appended.
     assert!(result_text(&result).starts_with("stored entry 42"));
+}
+
+#[tokio::test]
+async fn memory_write_without_index_tool_still_gets_dedupe_guidance() {
+    let mw = MemoryProtocolMiddleware::with_index_update_tool(false);
+    let result = run_cycle(&mw, "memory_store", json!({}), "stored entry", None).await;
+    let text = result_text(&result);
+    assert!(text.contains("without first reading the memory index"));
+    assert!(!text.contains("update_memory_md"));
+
+    run_cycle(&mw, "memory_recall", json!({}), "found entry", None).await;
+    let after_read = run_cycle(&mw, "memory_store", json!({}), "stored another", None).await;
+    assert!(!result_text(&after_read).contains("update_memory_md"));
 }
 
 #[tokio::test]

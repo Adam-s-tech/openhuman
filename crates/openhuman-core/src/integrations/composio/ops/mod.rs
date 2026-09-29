@@ -83,7 +83,7 @@ pub(crate) use user_scopes::{
 
 pub use super::connected_integrations::{
     cached_active_integrations, cached_active_integrations_including_expired, connected_set_hash,
-    fetch_connected_integrations, fetch_connected_integrations_status, fetch_toolkit_actions,
+    fetch_connected_integrations, fetch_connected_integrations_status,
     invalidate_connected_integrations_cache, FetchConnectedIntegrationsStatus,
 };
 
@@ -96,7 +96,7 @@ pub use super::types::{ComposioConnection as Connection, ComposioToolSchema as T
 #[cfg(test)]
 pub(crate) use super::connected_integrations::cache_key;
 #[cfg(test)]
-pub(crate) use super::connected_integrations::{CachedIntegrations, CACHE_TTL, INTEGRATIONS_CACHE};
+pub(crate) use super::connected_integrations::{CachedIntegrations, INTEGRATIONS_CACHE};
 #[cfg(test)]
 pub(crate) use crate::agent::prompts::ConnectedIntegration;
 #[cfg(test)]

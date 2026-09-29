@@ -190,11 +190,6 @@ pub fn all_tools_with_runtime(
         // tree) rooted at the agent action dir. Named by the orchestrator and
         // planner scopes.
         Box::new(WorkspaceStateTool::new(action_dir.to_path_buf())),
-        // "Plan mode as a subagent": runs the read-only `context_scout`
-        // inline and returns a bounded context bundle + recommended next
-        // tool calls. Visible only to agents that allowlist it
-        // (orchestrator / planner).
-        Box::new(AgentPrepareContextTool::new()),
         // Steer/list/close reusable async sub-agents and collect results by
         // durable `subagent_session_id` (preferred) or transient `task_id`.
         Box::new(ListSubagentsTool::new()),
@@ -213,7 +208,7 @@ pub fn all_tools_with_runtime(
         // The session todo list (Claude/Codex style): one whole-list write per
         // call, scoped to the conversation thread. `plan_exit` is the marker
         // that hands a plan-mode pass off to a build-mode pass.
-        Box::new(TodoTool::new()),
+        Box::new(TodoTool::new(root_config.workspace_dir.clone())),
         // Interactive plan-review gate: parks the live turn on a thread-scoped
         // plan the user must approve before execution (Codex/Claude plan mode).
         Box::new(crate::agent::plan_review::RequestPlanReviewTool::new()),
@@ -328,7 +323,7 @@ pub fn all_tools_with_runtime(
         #[cfg(feature = "flows")]
         Box::new(GetToolOutputSampleTool::new(config.clone())),
         // Ground an `agent` node's `agent_ref` in real registered agent-kind ids
-        // (researcher / code_executor / …) — the agent analogue of
+        // (code_executor / critic / …) — the agent analogue of
         // search_tool_catalog. Read-only.
         #[cfg(feature = "flows")]
         Box::new(ListAgentDefinitionsTool::new()),
@@ -455,6 +450,19 @@ pub fn all_tools_with_runtime(
             security.clone(),
             action_dir.to_path_buf(),
         )),
+        // Review loop for skill `coding` (and the workflow-run `critic`):
+        // diff, lint and test the working tree in the action sandbox. They
+        // were defined but never registered, so the belts naming them held
+        // nothing. `Deferred`, so they cost no schema until found.
+        Box::new(crate::tools::implementations::ReadDiffTool::new(
+            action_dir.to_path_buf(),
+        )),
+        Box::new(crate::tools::implementations::RunLinterTool::new(
+            action_dir.to_path_buf(),
+        )),
+        Box::new(crate::tools::implementations::RunTestsTool::new(
+            action_dir.to_path_buf(),
+        )),
         Box::new(PushoverTool::new(
             security.clone(),
             action_dir.to_path_buf(),
@@ -559,6 +567,23 @@ pub fn all_tools_with_runtime(
         Box::new(CostDailyHistoryTool::new(config.clone())),
         Box::new(CostSummaryTool::new(config.clone())),
         Box::new(DashboardModelHealthTool::new(config.clone())),
+        #[cfg(feature = "modules")]
+        Box::new(DesktopTool::new(config.clone(), DesktopToolKind::Apps)),
+        #[cfg(feature = "modules")]
+        Box::new(DesktopTool::new(config.clone(), DesktopToolKind::Windows)),
+        #[cfg(feature = "modules")]
+        Box::new(DesktopTool::new(config.clone(), DesktopToolKind::Launch)),
+        #[cfg(feature = "modules")]
+        Box::new(DesktopTool::new(config.clone(), DesktopToolKind::Snapshot)),
+        #[cfg(feature = "modules")]
+        Box::new(DesktopTool::new(config.clone(), DesktopToolKind::Find)),
+        #[cfg(feature = "modules")]
+        Box::new(DesktopTool::new(config.clone(), DesktopToolKind::Goal)),
+        #[cfg(feature = "modules")]
+        Box::new(DesktopTool::new(
+            config.clone(),
+            DesktopToolKind::ContinueGoal,
+        )),
         Box::new(SecurityPolicyInfoTool::new(config.clone())),
         Box::new(ServiceStatusTool::new(config.clone())),
         Box::new(DaemonHostPrefsGetTool::new(config.clone())),
@@ -671,35 +696,19 @@ pub fn all_tools_with_runtime(
         )));
     }
 
+    #[cfg(feature = "modules")]
     if browser_config.enabled {
-        // Unified web-access allowlist (merge fetch + browser firewalls): the
-        // browser tool shares the single `http_request.allowed_domains` host
-        // list rather than the now-deprecated `[browser].allowed_domains`. See
-        // `browser_allowed_domains` for why the `"*"` wildcard is stripped.
-        let browser_allowed_domains = browser_allowed_domains(&http_config.allowed_domains);
-        // Add legacy browser_open tool for simple URL opening
+        // BrowserClient enforces the shared `http_request.allowed_domains`
+        // policy for both browser tools.
+        let browser_client = Arc::new(crate::modules::browser::BrowserClient::new(config.clone()));
         tools.push(Box::new(BrowserOpenTool::new(
             security.clone(),
-            browser_allowed_domains.clone(),
+            browser_client.clone(),
         )));
-        // Add full browser automation tool (pluggable backend)
-        tools.push(Box::new(BrowserTool::new_with_backend(
+        tools.push(Box::new(BrowserTool::new(
             security.clone(),
-            browser_allowed_domains.clone(),
-            browser_config.session_name.clone(),
-            browser_config.backend.clone(),
-            browser_config.native_headless,
-            browser_config.native_webdriver_url.clone(),
-            browser_config.native_chrome_path.clone(),
-            ComputerUseConfig {
-                endpoint: browser_config.computer_use.endpoint.clone(),
-                api_key: None,
-                timeout_ms: browser_config.computer_use.timeout_ms,
-                allow_remote_endpoint: browser_config.computer_use.allow_remote_endpoint,
-                window_allowlist: browser_config.computer_use.window_allowlist.clone(),
-                max_coordinate_x: browser_config.computer_use.max_coordinate_x,
-                max_coordinate_y: browser_config.computer_use.max_coordinate_y,
-            },
+            browser_client,
+            browser_config.max_task_steps,
         )));
     }
 
@@ -940,17 +949,10 @@ pub fn all_tools_with_runtime(
         } else {
             tracing::debug!("[integrations] google_places disabled — skipping");
         }
-        // NOTE: parallel tools moved to the unified [search] engine
-        // selector above. `integrations.parallel` is parsed but no
-        // longer registers tools directly — set
-        // `search.engine = "parallel"` instead.
-        if root_config.integrations.parallel.is_active() {
-            tracing::debug!(
-                "[integrations] parallel toggle is active but tools are governed by search.engine now"
-            );
-        }
-        // TinyFish is search-owned and registers through the unified search
-        // surface above so `search.engine = "disabled"` suppresses it too.
+        // Web search providers (Exa, Gemini, TinyFish, ...) register through
+        // the TinySearch module above, so `[search] enabled = false`
+        // suppresses them too. `integrations.parallel` is parsed for old
+        // config files and no longer does anything.
         if root_config.integrations.stock_prices.is_active() {
             tools.push(Box::new(crate::tools::StockQuoteTool::new(Arc::clone(
                 &client,
@@ -1238,7 +1240,6 @@ fn tool_group(name: &str) -> crate::core::all::DomainGroup {
         || matches!(
             name,
             "ask_user_clarification"
-                | "agent_prepare_context"
                 | "delegate"
                 | "delegate_graph"
                 | "delegate_to_personality"
@@ -1276,11 +1277,18 @@ fn tool_group(name: &str) -> crate::core::all::DomainGroup {
     // Integrations: every external connector reached on the user's behalf.
     if name.starts_with("composio")
         || name == "web_search_tool"
+        || name == "web_answer_tool"
+        || name == "web_contents_tool"
+        || name == "search"
         || name.starts_with("tinyfish_")
         || name.starts_with("exa_")
-        || name.starts_with("brave_")
+        || name.starts_with("gemini_")
         || name.starts_with("parallel_")
-        || name.starts_with("querit_") || name.starts_with("tavily_")
+        || name.starts_with("brave_")
+        || name.starts_with("querit_")
+        || name.starts_with("tavily_")
+        || name.starts_with("seltz_")
+        || name.starts_with("searxng_")
         || name.starts_with("google_places_")
         || name.starts_with("stock_")
         || name.starts_with("storage_")
@@ -1303,7 +1311,7 @@ fn tool_group(name: &str) -> crate::core::all::DomainGroup {
         return DomainGroup::Hosted;
     }
     // Desktop: shell-facing surfaces.
-    if name.starts_with("dashboard_") {
+    if name.starts_with("dashboard_") || name.starts_with("desktop_") {
         return DomainGroup::Desktop;
     }
     // Runtimes: the managed Node/Python execution tools. These live under

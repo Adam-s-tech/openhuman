@@ -71,7 +71,7 @@ export interface WorkflowDefinition {
 export interface WorkflowPhaseOutput {
   /** Orchestration id of the spawned child agent. */
   orchestrationId: string;
-  /** Agent definition id (e.g. "researcher"). */
+  /** Agent definition id (e.g. "code_executor"). */
   agentId: string;
   /** The child's result summary. */
   output: string;

@@ -81,8 +81,11 @@ impl OpenHumanSessionDriver {
 impl SessionDriver<OpenHumanRunContext> for OpenHumanSessionDriver {
     async fn execute(
         &self,
-        request: DriverRequest<OpenHumanRunContext>,
+        mut request: DriverRequest<OpenHumanRunContext>,
     ) -> Result<DriverOutcome, DriverFailure> {
+        // Heal a head persisted before #6721 was fixed, before anything reads
+        // the history: this turn then commits a clean generation.
+        repair_orphaned_tool_head(&mut request.history);
         // These two inputs are prepared by the OpenHuman lifecycle hook for
         // this exact request.  Falling back to the snapshots captured when the
         // long-lived driver was constructed would let a later channel/tool
@@ -303,7 +306,29 @@ impl SessionDriver<OpenHumanRunContext> for OpenHumanSessionDriver {
         history.extend(appended);
 
         let required_output = request.run_context.data.required_output.clone();
+        let classified_halt = outcome
+            .breaker_halt
+            .as_deref()
+            .is_some_and(|reason| reason.starts_with("Stopping after "));
         let required_repair = match required_output.as_ref() {
+            Some(contract) if classified_halt => {
+                if !crate::agent::harness::required_output::output_satisfies_contract(
+                    &output, contract,
+                ) {
+                    output.push_str("\n\n");
+                    output.push_str(&crate::agent::harness::required_output::synthesize_block(
+                        contract,
+                    ));
+                    if history
+                        .last()
+                        .is_some_and(|message| matches!(message, Message::Assistant(_)))
+                    {
+                        history.pop();
+                    }
+                    history.push(Message::assistant(output.clone()));
+                }
+                None
+            }
             Some(contract) => {
                 grounded_close::repair_required_output(
                     &self.turn_model_source,
@@ -402,14 +427,44 @@ impl SessionDriver<OpenHumanRunContext> for OpenHumanSessionDriver {
 /// Preserve the stable system prefix while bounding durable conversational
 /// history.  The runtime owns history replacement, so this must happen before
 /// its successful `DriverOutcome` is committed.
+///
+/// The cut never splits an assistant tool-call turn from its results (#6721):
+/// a history opening on an orphaned `tool` message is rejected by the provider
+/// on every later turn. `find_safe_cutoff_point` moves the cut back to keep the
+/// owning assistant turn (so the bound may be exceeded by one tool group).
 fn trim_history(history: &mut Vec<Message>, max_history_messages: usize) {
-    let prefix_len = history
-        .iter()
-        .take_while(|message| matches!(message, Message::System(_)))
-        .count();
+    let prefix_len = system_prefix_len(history);
     let retained = history.len().saturating_sub(prefix_len);
     if retained > max_history_messages {
-        history.drain(prefix_len..prefix_len + retained - max_history_messages);
+        let cut = tinyagents_harness::summarization::find_safe_cutoff_point(
+            &history[prefix_len..],
+            retained - max_history_messages,
+        );
+        history.drain(prefix_len..prefix_len + cut);
+    }
+}
+
+fn system_prefix_len(history: &[Message]) -> usize {
+    history
+        .iter()
+        .take_while(|message| matches!(message, Message::System(_)))
+        .count()
+}
+
+/// Drop `tool` messages that open the history right after the system prefix.
+/// Their assistant turn is gone (an old unpaired trim, #6721), and the provider
+/// rejects every request that carries them, so the thread can never recover
+/// without this. Later system rows (e.g. a steering nudge) are kept.
+fn repair_orphaned_tool_head(history: &mut Vec<Message>) {
+    let prefix_len = system_prefix_len(history);
+    let orphans =
+        tinyagents_harness::summarization::advance_past_orphan_tools(&history[prefix_len..], 0);
+    if orphans > 0 {
+        tracing::warn!(
+            orphans,
+            "[session_host::driver] repaired orphaned tool head: dropped {orphans} leading tool message(s)"
+        );
+        history.drain(prefix_len..prefix_len + orphans);
     }
 }
 
@@ -512,9 +567,27 @@ fn driver_error_with_snapshot(
     let history = guard.messages[..accepted_end].to_vec();
     let unanswered =
         crate::agent::tinyagents::render_unanswered_steps(&guard.messages[accepted_end..]);
-    let display = match unanswered {
-        Some(steps) => format!("The turn stopped before completion: {error}.\n\n{steps}"),
-        None => format!("The turn stopped before completion: {error}."),
+    let display = if error
+        .contains(&tinyagents_harness::TinyAgentsError::GenerationStalled.to_string())
+    {
+        // The model's streamed narration was stopped before it could repeat
+        // indefinitely. Preserve the completed tools as a useful, bounded
+        // partial rather than showing only the failed model's process text.
+        let results = crate::agent::session_host::turn_checkpoint::results_from_tool_outcomes(
+            &guard.tool_outcomes,
+        );
+        let evidence = crate::agent::session_host::turn_checkpoint::render_tool_results(
+            &results,
+            crate::agent::session_host::turn_checkpoint::CHECKPOINT_TOTAL_CHARS,
+        );
+        format!(
+            "I stopped a repetitive model response before it could finish. Here are the completed tool results I can report:\n{evidence}"
+        )
+    } else {
+        match unanswered {
+            Some(steps) => format!("The turn stopped before completion: {error}.\n\n{steps}"),
+            None => format!("The turn stopped before completion: {error}."),
+        }
     };
     DriverFailure {
         error: RuntimeError::Driver(error),

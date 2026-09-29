@@ -46,8 +46,8 @@ impl PromptSection for ArchetypePromptSection {
 }
 
 /// Section that defers to a [`crate::agent::harness::definition::PromptBuilder`]
-/// every time it renders, so dynamic prompts (orchestrator, welcome,
-/// integrations_agent, …) get to see the live runtime
+/// every time it renders, so dynamic prompts (orchestrator, welcome, …)
+/// get to see the live runtime
 /// [`PromptContext`] — including `connected_integrations`, which are
 /// fetched asynchronously after the builder itself has been
 /// constructed.
@@ -117,10 +117,9 @@ pub struct GroundingSection;
 // `WorkflowsSection` and `ConnectedIntegrationsSection` previously lived
 // here and branched on `ctx.agent_id` to pick between the skill-
 // executor and delegator voice. They've been removed — each agent's
-// `prompt.rs` now renders its own block inline (integrations_agent owns the
-// `## Available Skills` + executor-voice `## Connected Integrations`
-// blocks, orchestrator owns `## Delegation Guide — Integrations`,
-// welcome owns its onboarding-flavoured connected list).
+// `prompt.rs` now renders its own block inline (orchestrator owns
+// `## Delegation Guide — Integrations`, welcome owns its
+// onboarding-flavoured connected list).
 pub struct WorkspaceSection;
 pub struct RuntimeSection;
 pub struct DateTimeSection;
@@ -360,17 +359,22 @@ impl PromptSection for ToolsSection {
     }
 
     fn build(&self, ctx: &PromptContext<'_>) -> Result<String> {
-        // Native function-calling: the provider already sends full JSON
-        // schemas in the API request — no need to repeat the tool catalogue
-        // in the system prompt (pure token bloat). However, any non-empty
-        // `dispatcher_instructions` (e.g. the "## Tool Use Protocol" block
-        // from NativeDialect) must still be included so the model
-        // receives its behavioural guidance.
+        let browser_deferred = ctx.tools.iter().any(|tool| {
+            matches!(tool.name.as_ref(), "browser" | "browser_open")
+                && !ctx.visible_tool_names.contains(tool.name.as_ref())
+        }) && ctx.visible_tool_names.contains("tool_search");
+        const BROWSER_HINT: &str = "For website tasks, use tool_search to find browser tools.";
+        // Native providers receive schemas in the request. Keep dispatcher
+        // instructions and the browser discovery hint in the prompt.
         if ctx.tool_call_format == ToolCallFormat::Native {
-            if ctx.dispatcher_instructions.trim().is_empty() {
-                return Ok(String::new());
+            let mut out = ctx.dispatcher_instructions.to_string();
+            if browser_deferred {
+                if !out.is_empty() {
+                    out.push('\n');
+                }
+                out.push_str(BROWSER_HINT);
             }
-            return Ok(ctx.dispatcher_instructions.to_string());
+            return Ok(out);
         }
         // TinyTools renders the compact catalogue from the same schemas and
         // argument order that its parser consumes. For `Native` dispatchers
@@ -419,6 +423,10 @@ impl PromptSection for ToolsSection {
             out.push('\n');
             out.push_str(ctx.dispatcher_instructions);
         }
+        if browser_deferred {
+            out.push('\n');
+            out.push_str(BROWSER_HINT);
+        }
         Ok(out)
     }
 }
@@ -439,7 +447,7 @@ impl PromptSection for SafetySection {
 /// anti-fabrication rules every agent inherits. Before this block existed,
 /// the same "never invent ids / a tool not in your list does not exist"
 /// paragraph was copy-pasted (and slowly drifting) across crypto, markets,
-/// integrations, account-admin, mcp-setup, morning-briefing, researcher, …
+/// integrations, account-admin, mcp-setup, morning-briefing, …
 /// agent prompts. Centralising it kills that drift and guarantees a uniform
 /// floor of grounding discipline.
 ///

@@ -16,12 +16,14 @@ import { handleCron } from "./routes/cron.mjs";
 import { handleIntegrations } from "./routes/integrations.mjs";
 import { handleInvites } from "./routes/invites.mjs";
 import { handleLlmCompletions, handleModelListing } from "./routes/llm.mjs";
+import { handleMedia } from "./routes/media.mjs";
 import { handleOAuth } from "./routes/oauth.mjs";
 import { handlePayments } from "./routes/payments.mjs";
 import { handleTelegram } from "./routes/telegram.mjs";
 import { handleUser } from "./routes/user.mjs";
 import { handleVersion } from "./routes/version.mjs";
 import { handleWebhooks } from "./routes/webhooks.mjs";
+import { handleYuanbao } from "./routes/yuanbao.mjs";
 import { handleSocketRequest, handleWebSocketUpgrade } from "./socket.mjs";
 import {
   appendRequest,
@@ -42,6 +44,7 @@ const ROUTE_HANDLERS = [
   // Telegram Bot API paths start with /bot<token>/… — check before the
   // general-purpose handlers so the distinctive prefix routes cleanly.
   handleTelegram,
+  handleYuanbao,
   handleOAuth,
   handleAuth,
   handleUser,
@@ -53,6 +56,8 @@ const ROUTE_HANDLERS = [
   // the default "Hello from e2e mock agent" reply.
   handleLlmCompletions,
   handleModelListing,
+  // OpenRouter media proxy; before the generic integrations handler.
+  handleMedia,
   handleIntegrations,
   handleWebhooks,
   handleCron,

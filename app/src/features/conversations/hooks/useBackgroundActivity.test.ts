@@ -74,12 +74,11 @@ describe('useBackgroundActivity', () => {
     expect(result.current.memory.providers).toHaveLength(1);
   });
 
-  it('surfaces nothing (and stops loading) outside Tauri', async () => {
+  it('polls core RPC outside Tauri too (browser attached to a core)', async () => {
     mockIsTauri.mockReturnValue(false);
     const { result } = renderHook(() => useBackgroundActivity(true));
     await waitFor(() => expect(result.current.loading).toBe(false));
-    expect(mockCron).not.toHaveBeenCalled();
-    expect(result.current.cronJobs).toHaveLength(0);
+    expect(mockCron).toHaveBeenCalled();
   });
 
   it('tolerates a failing source without dropping the others', async () => {

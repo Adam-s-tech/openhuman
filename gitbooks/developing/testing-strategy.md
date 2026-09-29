@@ -79,7 +79,7 @@ A spec that asserts only the happy path is incomplete.
 - **Element helpers**: `clickNativeButton`, `waitForWebView`, `clickToggle` in `helpers/element-helpers.ts`, use these instead of raw `XCUIElementType*` selectors.
 - **Shared flows**: `completeOnboardingIfVisible`, `navigateViaHash`, `navigateToSkills`, `walkOnboarding` in `helpers/shared-flows.ts`.
 - **Core RPC from spec**: `callOpenhumanRpc` in `helpers/core-rpc.ts`, drives the embedded core directly when a UI step would be brittle.
-- **Platform guards**: `isTauriDriver`, `isMac2`, `supportsExecuteScript` in `helpers/platform.ts` (the first two are legacy shims — everything runs on the Appium Chromium driver now).
+- **Platform guards**: `isTauriDriver`, `isMac2`, `supportsExecuteScript` in `helpers/platform.ts` (the first two are legacy shims; everything runs on the Appium Chromium driver now).
 - **Artifact capture on failure**: `captureFailureArtifacts` runs from `wdio.conf.ts`, screenshots + DOM dumps land under `app/test/e2e/artifacts/`.
 
 ---
@@ -153,11 +153,11 @@ When you add / remove / rename a feature, **update the matrix row in the same PR
 
 Most local Rust failures in this repo are environmental, and the environments
 fail in ways that look exactly like product defects. Work down this list before
-concluding anything — each step is one command, and every one of them has caught
+concluding anything. Each step is one command, and every one of them has caught
 a wrong conclusion that was already on its way into an issue.
 
 **Every prerequisite below carries the failure you get without it.** A step with
-its failure attached is self-auditing — anyone can check in thirty seconds
+its failure attached is self-auditing: anyone can check in thirty seconds
 whether it is still true, and a stale one announces itself. A bare list of steps
 cannot be audited at all, which is how it rots into folklore. *If you cannot
 produce the failure for an item, it does not belong here.*
@@ -165,7 +165,7 @@ produce the failure for an item, it does not belong here.*
 **A note that tells you the cause is not evidence of the cause.** A line in a
 doc or a memory saying "these fail locally, it is provisioning" is a
 *pre-supplied conclusion*. It terminates the investigation before it starts,
-which is worse than no note at all — one such note sent a worker looking for a
+which is worse than no note at all: one such note sent a worker looking for a
 provisioning gap when the real cause was a product defect
 (`agent definition \`harness\` was not found`, openhuman#6487). Use the steps,
 not the folklore.
@@ -187,7 +187,7 @@ Zero `test result` lines means the question is *compilation or abort*, never
 - `fatal runtime error: stack overflow` with `signal: 6, SIGABRT` and no
   `test result` line at all → the process aborted; see step 3.
 
-### 2. Are the submodules actually there — at every depth?
+### 2. Are the submodules actually there, at every depth?
 
 Some crates depend on submodules **nested inside other submodules**.
 `openhuman-tinyhumans` is the clearest case: it needs `vendor/tinyhumans-sdk`
@@ -211,7 +211,7 @@ error: failed to get `tinytools` as a dependency of package `openhuman-cli v0.63
 ```
 
 **Check content, never status.** `git submodule status` prints `-` only for
-*unregistered* modules, and registration happens **before** checkout — so a
+*unregistered* modules, and registration happens **before** checkout, so a
 mid-flight init reads as ready while every working tree is still empty.
 Observed mid-`update --init`: **13 `+`, 3 ` `, zero `-`** while `du -sh vendor`
 was **120K** and `ls vendor/tinychannels` was empty.
@@ -231,8 +231,8 @@ The mechanism is worth understanding because it is invisible in the output: a
 feature flag can gate the *registration* of a tool, a test's expected side is a
 static allowlist while its actual side is computed by **introspecting the built
 binary**, and so the flag silently moves the actual. Nothing is stubbed, nothing
-is skipped, and the failure names a product concept —
-*"agents that carry tools but whose prompt names none of them"* — with no
+is skipped, and the failure names a product concept,
+*"agents that carry tools but whose prompt names none of them,"* with no
 mention of a feature anywhere.
 
 *Falsified, from the two runs side by side:* on `0f1ecc9d2`, `openhuman --lib`
@@ -256,16 +256,16 @@ Tracked as openhuman#6512; per-profile detail in openhuman#6486.
 
 *Reported for `openhuman --lib`:* `web_chat` aborts with
 `fatal runtime error: stack overflow` without it, which is why `ci-lite.yml`
-exports it. Not reproduced here — treat as the reason the CI command above
+exports it. Not reproduced here: treat that as the reason the CI command above
 carries it, and re-verify before relying on it elsewhere.
 
 Two crates, one variable, opposite answers. That is the argument against a
 single blanket recipe: do not add a prerequisite by reflex. One that is not
 needed teaches contributors the docs are unreliable, and it is precisely how the
-misleading note above came to exist — someone's defensively-accumulated setup,
+misleading note above came to exist: someone's defensively-accumulated setup,
 written down as necessity, never falsified.
 
-### 4. Only now suspect a defect — and make the silence speak
+### 4. Only now suspect a defect, and make the silence speak
 
 If it compiled, the submodules are present and the feature set matches CI, then
 a failure may be real. The trap at this stage is a layer that *correctly*
@@ -275,7 +275,7 @@ message where a specific one was produced.
 Patch the discarding line to print what it drops, run once, and read the
 underlying error. On openhuman#6487 a sanitized
 `hosted agent invocation was rejected by policy` was hiding
-`Validation("agent definition \`harness\` was not found")` — which named the
+`Validation("agent definition \`harness\` was not found")`, which named the
 defect outright. **Reading seven links of a chain correctly is not the same as
 watching it fire.**
 
@@ -284,7 +284,7 @@ watching it fire.**
 The cheap checks are first because a wrong answer early is invisible later: a
 suite that never compiled reports the same exit code as one that failed, and a
 plausible-but-wrong explanation gets *confirmed* rather than tested, because
-confirming it succeeds. Knowing that features matter is not enough — the rule is
+confirming it succeeds. Knowing that features matter is not enough: the rule is
 not applied at the moment of asserting. Running CI's literal command is.
 
 ---

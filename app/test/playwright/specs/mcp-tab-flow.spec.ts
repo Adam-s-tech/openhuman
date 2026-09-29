@@ -387,7 +387,7 @@ test.describe('MCP page — Servers tab', () => {
     await expect(page.getByRole('tab', { name: 'mcp.json' })).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Registry' })).toBeVisible();
     await expect(page.getByTestId('mcp-servers-section')).toBeVisible();
-    await expect(page.getByRole('heading', { level: 2, name: 'Installed servers' })).toBeVisible();
+    await expect(installedRow(page, 'Memory Server')).toBeVisible();
   });
 
   test('displays declared servers with their dial, status and icon controls', async ({ page }) => {

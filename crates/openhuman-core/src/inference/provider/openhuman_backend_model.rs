@@ -30,16 +30,25 @@ use std::time::Duration;
 
 use tinyinference_llm::message::Message;
 use tinyinference_llm::model::{
-    ChatModel, Modalities, ModelProfile, ModelRequest, ModelResponse, ModelStream, ProviderError,
+    ChatModel, Modalities, ModelProfile, ModelRequest, ModelResponse, ModelStream, ModelStreamItem,
+    ProviderError,
 };
 use tinyinference_llm::providers::openai::OpenAiModel;
 use tinyinference_llm::Error as TiError;
 
 use super::ProviderRuntimeOptions;
-use crate::api::config::effective_api_url;
 use crate::security::credentials::{AuthService, APP_SESSION_PROVIDER};
 
 pub const PROVIDER_LABEL: &str = "OpenHuman";
+
+fn is_loopback_host(url: &url::Url) -> bool {
+    match url.host() {
+        Some(url::Host::Domain("localhost")) => true,
+        Some(url::Host::Ipv4(address)) => address.is_loopback(),
+        Some(url::Host::Ipv6(address)) => address.is_loopback(),
+        _ => false,
+    }
+}
 
 /// Whether `endpoint` is safe to carry the TinyHumans API key as a bearer.
 ///
@@ -51,7 +60,7 @@ pub const PROVIDER_LABEL: &str = "OpenHuman";
 /// Deliberately narrow to the managed-key bearer path: `normalize_api_base_url`
 /// itself must stay permissive, because a library host's BYOK/local `api_url`
 /// can legitimately be plain HTTP.
-fn is_safe_endpoint_for_managed_bearer(endpoint: &str) -> bool {
+pub(crate) fn is_safe_endpoint_for_managed_bearer(endpoint: &str) -> bool {
     let Ok(url) = url::Url::parse(endpoint) else {
         return false;
     };
@@ -61,13 +70,23 @@ fn is_safe_endpoint_for_managed_bearer(endpoint: &str) -> bool {
     if url.scheme() != "http" {
         return false;
     }
-    let Some(host) = url.host_str() else {
+    is_loopback_host(&url)
+}
+
+/// API keys belong to TinyHumans. A loopback endpoint is permitted for local
+/// development; an arbitrary TLS host is not a trusted key recipient.
+pub(crate) fn is_managed_endpoint_for_api_key(endpoint: &str) -> bool {
+    let Ok(url) = url::Url::parse(endpoint) else {
         return false;
     };
+    if !is_safe_endpoint_for_managed_bearer(endpoint) {
+        return false;
+    }
     matches!(
-        host,
-        "127.0.0.1" | "localhost" | "::1" | "[::1]" | "[0:0:0:0:0:0:0:1]" | "0:0:0:0:0:0:0:1"
-    ) || host.starts_with("127.")
+        url.host_str(),
+        Some("api.tinyhumans.ai" | "staging-api.tinyhumans.ai")
+    ) && url.scheme() == "https"
+        || is_loopback_host(&url)
 }
 
 /// The managed OpenHuman backend as a crate [`ChatModel`]. Holds the backend
@@ -164,16 +183,15 @@ impl OpenHumanBackendModel {
         )? {
             // Refuse to send the key over a plaintext channel it could leak
             // from. Scoped to this managed-key path only — `base_url()`
-            // comes from `effective_api_url`, which a library host can point
+            // comes from the backend transport, which a library host can point
             // at anything (a BYOK/local endpoint legitimately runs over
             // plain HTTP on loopback), so this cannot tighten
             // `normalize_api_base_url` itself without breaking those.
-            let endpoint = self.base_url();
-            if !is_safe_endpoint_for_managed_bearer(&endpoint) {
+            let endpoint = self.base_url()?;
+            if !is_managed_endpoint_for_api_key(&endpoint) {
                 anyhow::bail!(
-                    "refusing to send the TinyHumans API key as a bearer over a non-HTTPS, \
-                     non-loopback endpoint: {endpoint} — set a https:// api_url or a loopback \
-                     one for local testing"
+                    "refusing to send the TinyHumans API key to an unmanaged or insecure \
+                     endpoint: {endpoint} — use the managed backend or loopback for local testing"
                 );
             }
             log::debug!(
@@ -217,11 +235,16 @@ impl OpenHumanBackendModel {
         }
     }
 
-    fn base_url(&self) -> String {
-        format!(
-            "{}/openai/v1",
-            effective_api_url(&self.api_url).trim_end_matches('/')
-        )
+    /// The managed OpenAI-compatible endpoint, from the installed backend
+    /// transport. Without one there is no managed backend to reach.
+    fn base_url(&self) -> anyhow::Result<String> {
+        let base = crate::backend::inference_base_url(&self.api_url).map_err(|_| {
+            anyhow::anyhow!(
+                "{} managed inference needs a backend transport",
+                crate::core::observability::BACKEND_UNAVAILABLE_PREFIX
+            )
+        })?;
+        Ok(format!("{}/openai/v1", base.trim_end_matches('/')))
     }
 
     /// Resolve the current JWT + base URL and build a fresh crate `OpenAiModel`
@@ -230,7 +253,7 @@ impl OpenHumanBackendModel {
         let token = self
             .resolve_bearer()
             .map_err(|e| TiError::Model(e.to_string()))?;
-        let base_url = self.base_url();
+        let base_url = self.base_url().map_err(|e| TiError::Model(e.to_string()))?;
         // The hosted API is chat-completions only (no `/v1/responses`); auth is a
         // plain bearer JWT. The tier/model rides `request.model`, which the backend
         // resolves — the baked default only applies when a request omits it.
@@ -502,17 +525,21 @@ fn maybe_publish_local_session_expiry() {
 /// crate-native path bypasses.
 fn maybe_publish_session_expired(err: &TiError, operation: &str) {
     if let TiError::Provider(pe) = err {
-        if pe.provider.as_str() == "OpenHuman" && matches!(pe.status, Some(401 | 403)) {
-            let reason = tinyinference_core::sanitize::sanitize_api_error(&pe.message);
-            crate::core::bus::BUS.publish(crate::core::events::DomainEvent::SessionExpired {
-                source: format!(
-                    "openhuman_backend_model.{}({})",
-                    operation,
-                    pe.status.unwrap_or(0)
-                ),
-                reason,
-            });
-        }
+        maybe_publish_provider_session_expired(pe, operation);
+    }
+}
+
+fn maybe_publish_provider_session_expired(pe: &ProviderError, operation: &str) {
+    if pe.provider.as_str() == "OpenHuman" && matches!(pe.status, Some(401 | 403)) {
+        let reason = tinyinference_core::sanitize::sanitize_api_error(&pe.message);
+        crate::core::bus::BUS.publish(crate::core::events::DomainEvent::SessionExpired {
+            source: format!(
+                "openhuman_backend_model.{}({})",
+                operation,
+                pe.status.unwrap_or(0)
+            ),
+            reason,
+        });
     }
 }
 
@@ -527,22 +554,35 @@ fn maybe_publish_session_expired(err: &TiError, operation: &str) {
 /// by [`sanitize_api_error`] before it's logged — no tokens, no full PII.
 fn log_managed_dispatch_error(err: &TiError, operation: &str) {
     match err {
-        TiError::Provider(pe) => {
-            log::warn!(
-                "[providers][openhuman-backend] managed {operation} failed: status={:?} code={:?} provider={} retryable={} detail={}",
-                pe.status,
-                pe.code,
-                pe.provider,
-                pe.retryable,
-                tinyinference_core::sanitize::sanitize_api_error(&pe.message),
-            );
-        }
+        TiError::Provider(pe) => log_managed_provider_error(pe, operation),
         other => {
             log::warn!(
                 "[providers][openhuman-backend] managed {operation} failed (non-provider error): {}",
                 tinyinference_core::sanitize::sanitize_api_error(&other.to_string()),
             );
         }
+    }
+}
+
+/// Logs a structured provider failure; the detail is secret-scrubbed and
+/// truncated because a provider error can echo request content.
+fn log_managed_provider_error(pe: &ProviderError, operation: &str) {
+    log::warn!(
+        "[providers][openhuman-backend] managed {operation} failed: status={:?} code={:?} provider={} retryable={} detail={}",
+        pe.status,
+        pe.code,
+        pe.provider,
+        pe.retryable,
+        tinyinference_core::sanitize::sanitize_api_error(&pe.message),
+    );
+}
+
+/// Gives a failure reported inside a stream the same handling as a failed
+/// `stream()` call: logged, and an expired session starts re-authentication.
+fn observe_in_band_failure(item: &ModelStreamItem) {
+    if let ModelStreamItem::ProviderFailed(pe) = item {
+        log_managed_provider_error(pe, "stream (in-band)");
+        maybe_publish_provider_session_expired(pe, "stream");
     }
 }
 
@@ -558,11 +598,9 @@ impl ChatModel<()> for OpenHumanBackendModel {
     /// backend resolves the tier per account anyway, so two accounts sharing
     /// a cache would need their own namespace, not a credential in the key.
     fn cache_identity(&self) -> Option<String> {
-        Some(format!(
-            "openhuman:{}:{}",
-            self.base_url(),
-            self.default_model
-        ))
+        self.base_url()
+            .ok()
+            .map(|base| format!("openhuman:{base}:{}", self.default_model))
     }
 
     async fn invoke(
@@ -602,7 +640,12 @@ impl ChatModel<()> for OpenHumanBackendModel {
             .stream(state, with_thread_id(request, self.thread_id.as_deref()))
             .await
         {
-            Ok(stream) => Ok(stream),
+            // A failure can also arrive *inside* an HTTP 200 stream as an SSE
+            // `{"error":…}` payload; it never reaches the `Err` arm (#6724).
+            Ok(stream) => Ok(stream.map_items(|item| {
+                observe_in_band_failure(&item);
+                item
+            })),
             Err(e) => {
                 log_managed_dispatch_error(&e, "stream");
                 maybe_publish_session_expired(&e, "stream");

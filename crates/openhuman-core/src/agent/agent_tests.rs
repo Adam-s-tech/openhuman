@@ -44,12 +44,15 @@ use tinytools_agent::dialect::{NativeDialect, ToolDialect, XmlDialect};
 /// When the queue is exhausted it returns a simple "done" text response.
 struct ScriptedProvider {
     responses: Mutex<Vec<ChatResponse>>,
+    /// Model calls made, including any answered by the exhausted-queue default.
+    calls: std::sync::atomic::AtomicUsize,
 }
 
 impl ScriptedProvider {
     fn new(responses: Vec<ChatResponse>) -> Self {
         Self {
             responses: Mutex::new(responses),
+            calls: std::sync::atomic::AtomicUsize::new(0),
         }
     }
 }
@@ -72,6 +75,7 @@ impl ChatModel<()> for ScriptedProvider {
         _state: &(),
         request: ModelRequest,
     ) -> tinyinference_llm::Result<ModelResponse> {
+        self.calls.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         let mut guard = self.responses.lock().unwrap();
         let response = if guard.is_empty() {
             ChatResponse {
@@ -333,6 +337,8 @@ fn xml_tool_response(name: &str, args: &str) -> ChatResponse {
 
 #[path = "agent_memory_attribution_tests.rs"]
 mod agent_memory_attribution_tests;
+#[path = "agent_turn_loop_nudge_tests.rs"]
+mod agent_turn_loop_nudge_tests;
 #[path = "agent_turn_loop_packed_tool_tests.rs"]
 mod agent_turn_loop_packed_tool_tests;
 #[path = "agent_turn_loop_tests.rs"]

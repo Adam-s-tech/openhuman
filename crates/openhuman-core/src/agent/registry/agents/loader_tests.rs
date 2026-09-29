@@ -2,7 +2,6 @@ use super::*;
 use crate::agent::harness::definition::{
     ModelSpec, SandboxMode, SubagentEntry, ToolScope, TriggerMemoryAgent,
 };
-use crate::inference::tokenjuice::AgentTokenjuiceCompression;
 
 fn find(id: &str) -> AgentDefinition {
     load_builtins()

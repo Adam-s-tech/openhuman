@@ -26,7 +26,9 @@ const LEGACY_LIMITS = new Map([
   // visibility change in `subagent_sessions`, which is follow-up, not this PR.
   [
     "crates/openhuman-core/src/agent/orchestration/tools/spawn_async_subagent_execute.rs",
-    821,
+    // 821 -> 809: the terminal progress sends go through `AbortReport::deliver`
+    // (one call instead of an `if let` around `tx.send`). Pinned at the new size.
+    809,
   ],
   // `spawn_subagent_tool_impl.rs` had its entry DELETED, not lowered: the
   // parameter schema moved to `spawn_subagent_parameters.rs` and the file is
@@ -44,7 +46,6 @@ const LEGACY_LIMITS = new Map([
   ["crates/openhuman-core/src/agent/session_host/builder/factory.rs", 1245],
   ["crates/openhuman-core/src/agent/subagent_host/lifecycle.rs", 1318],
   ["crates/openhuman-core/src/agent/subagent_host/ops/runner.rs", 1793],
-  ["crates/openhuman-core/src/agent/orchestration/tools/spawn_subagent_tool_impl.rs", 796],
   ["crates/openhuman-core/src/tools/ops.rs", 1502],
   ["crates/openhuman-core/src/web_chat/progress_bridge.rs", 1547],
   // These established external test modules grew with upstream coverage. Pin
