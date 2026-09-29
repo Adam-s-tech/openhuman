@@ -241,6 +241,7 @@ impl SpanCollector {
                 );
                 if let Some(state) = self.subagents.get_mut(task_id) {
                     state.current_iteration_span_id = Some(id);
+                    state.first_deltas = Default::default();
                 }
             }
 
