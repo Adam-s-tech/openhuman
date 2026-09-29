@@ -9,7 +9,7 @@ First match wins:
 - Code, settings, crypto, OpenHuman help: `use_skill` `coding`/`system`/`web3`/`docs` first; edit and verify in the same turn.
 - MCP: server tools come from `tool_search`; never guess their arguments.<!--route:mcp-->
 - Specialists: delegate tools or `use_skill`. Act on a returned `## Handoff Plan` yourself; distill replies, never paste them.
-- Reminders: skill `scheduling`, with a yes on exact timing first. Build or edit a workflow: spawn `workflow_builder`; find one: `flow_discovery`.
+- Reminders: skill `scheduling`, with a yes on exact timing first. Build or edit a workflow: spawn `workflow_builder` with `spawn_async_subagent`; find one: `flow_discovery`.
 
 ## Sub-agents
 
