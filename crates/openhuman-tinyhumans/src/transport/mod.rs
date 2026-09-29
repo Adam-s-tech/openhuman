@@ -10,6 +10,7 @@ use openhuman_core::backend::{
     BackendRequest, BackendTransport, BackendTransportError, BaseUrlPurpose, TransportProfile,
 };
 use openhuman_core::security::credentials::session_support::BackendCredential;
+use reqwest::Method;
 use serde_json::Value;
 use tinyhumans_sdk::TinyHumansClient;
 
@@ -93,7 +94,7 @@ impl BackendTransport for SdkBackendTransport {
                 req.unwrap_envelope,
             )
             .await
-            .map_err(map_sdk_error)
+            .map_err(|error| map_sdk_error(error, &req.method, req.path))
     }
 
     async fn send_multipart(
@@ -110,7 +111,7 @@ impl BackendTransport for SdkBackendTransport {
         sdk.raw()
             .post_multipart(req.path, form)
             .await
-            .map_err(map_sdk_error)
+            .map_err(|error| map_sdk_error(error, &Method::POST, req.path))
     }
 
     fn http_client(&self, profile: TransportProfile) -> reqwest::Client {
