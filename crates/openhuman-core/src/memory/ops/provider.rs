@@ -62,7 +62,8 @@ async fn standalone_status() -> SubsystemStatus {
         }
     };
 
-    match crate::memory::binding::for_config(&config) {
+    crate::memory::binding_remote::note_api_url(&config.workspace_dir, &config.api_url);
+    match crate::memory::binding::for_workspace(&config.workspace_dir, &config.subsystems.memory) {
         Ok(binding) => status_from_binding(&binding).await,
         Err(err) => {
             log::debug!(

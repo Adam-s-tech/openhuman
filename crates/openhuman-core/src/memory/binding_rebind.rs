@@ -72,7 +72,7 @@ pub fn rebind(
     {
         if let Ok(handle) = tokio::runtime::Handle::try_current() {
             handle.spawn(async move {
-                if let Err(e) = binding.unguarded_provider().shutdown().await {
+                if let Err(e) = binding.provider().shutdown().await {
                     log::debug!("[memory:binding] evicted driver shutdown failed: {e}");
                 }
             });

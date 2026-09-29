@@ -270,8 +270,9 @@ pub(super) fn prepare_target(params: EngineTargetParams) -> Result<Prepared, Str
             _ => return Err("endpoint must be an http(s) URL".to_string()),
         }
     }
+    let hosted = entry.hosted || id == HOSTED_ENGINE_ID;
     let deployment = blank_to_none(params.deployment);
-    if let Some(deployment) = deployment.as_deref() {
+    if let Some(deployment) = deployment.as_deref().filter(|_| !hosted) {
         if !entry.deployments.iter().any(|d| d == deployment) {
             return Err(format!(
                 "deployment must be one of [{}]",
@@ -279,7 +280,6 @@ pub(super) fn prepare_target(params: EngineTargetParams) -> Result<Prepared, Str
             ));
         }
     }
-    let hosted = entry.hosted || id == HOSTED_ENGINE_ID;
     Ok(Prepared {
         id: id.to_string(),
         // First-party engines own their endpoint; a caller-supplied one is

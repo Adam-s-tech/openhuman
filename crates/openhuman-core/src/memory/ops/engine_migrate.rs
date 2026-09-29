@@ -160,7 +160,7 @@ pub async fn memory_engine_migrate(params: MigrateParams) -> Result<RpcOutcome<M
     let target = if prepared.id == MODULE_ID {
         let mut cfg = config.subsystems.memory.clone();
         cfg.driver = MODULE_ID.to_string();
-        Arc::clone(binding::for_workspace(&config.workspace_dir, &cfg)?.provider())
+        Arc::clone(binding::for_subtree(&config.workspace_dir, "memory", &cfg)?.provider())
     } else {
         build_target_provider(&config, &prepared)?
     };
