@@ -55,39 +55,21 @@ impl Tool for ArchetypeDelegationTool {
         Some(&self.agent_id)
     }
 
-    /// The delegation envelope — deliberately description-light.
+    /// The delegation envelope: `prompt` and `blocking` only.
     ///
-    /// This one literal is emitted for **every** synthesised `delegate_*` tool
-    /// (19 of them on the Master Agent after tool-pack withholding), so each
-    /// word of `description` here is billed 19× on every single turn. Fully
-    /// described the envelope was 356 tokens × 19 = 6,764 tokens — 39% of the
-    /// orchestrator's whole tool-schema budget, for the same JSON 19 times.
+    /// This schema is emitted for every synthesised `delegate_*` tool on the
+    /// wire, so each word is billed per delegate on every request. Fully
+    /// described it was 356 tokens per delegate; the structured hand-off fields
+    /// (`objective`, `evidence`, `constraints`, `must_not_assume`,
+    /// `expected_output`, `citation_requirement`, `model`) are no longer
+    /// advertised because a self-contained `prompt` carries the same content.
+    /// They are still read by [`render_structured_handoff`], so a caller that
+    /// sends them keeps working. `blocking` keeps its description because its
+    /// default is behaviour-critical and not inferable from the name.
     ///
-    /// The field *semantics* now live once in the parent's system prompt
-    /// (`registry/agents/orchestrator/prompt.md`, "Structured handoffs"),
-    /// which is where policy like "only observed facts" belonged anyway. The
-    /// property names stay self-describing, and they are the only thing
-    /// `render_structured_handoff` below reads.
-    ///
-    /// Four descriptions survive, each well under the 50-token cap, because
-    /// their property name does not carry the meaning:
-    ///
-    /// * `blocking` — the default is behaviour-critical and not inferable from
-    ///   the name. Getting it wrong is silent and asymmetric: async when it
-    ///   should have blocked finalizes the turn before the result lands, the
-    ///   exact failure the prompt's result-gating rule exists to prevent.
-    /// * `evidence` — "actually observed" is the anti-fabrication contract,
-    ///   not a label.
-    /// * `citation_requirement` / `model` — a bare name reads as neither.
-    ///
-    /// Enforced by `envelope_descriptions_stay_within_budget` below. If you
-    /// are about to add a description here, put it in prompt.md instead.
-    /// Only `prompt` and `blocking` are advertised. The structured hand-off
-    /// fields (`objective`, `evidence`, `constraints`, `must_not_assume`,
-    /// `expected_output`, `citation_requirement`, `model`) are still parsed by
-    /// `execute_with_context`, so a caller that sends them keeps working, but
-    /// they cost ~150 tokens per delegate on every request and a
-    /// self-contained `prompt` carries the same content.
+    /// Shared with the collapsed `delegate_to` through
+    /// [`delegation_envelope_properties`]; enforced by
+    /// `envelope_descriptions_stay_within_budget`.
     fn parameters_schema(&self) -> serde_json::Value {
         json!({
             "type": "object",
