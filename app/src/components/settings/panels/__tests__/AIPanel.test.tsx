@@ -235,7 +235,7 @@ const baseTransactions = [
   {
     id: 'latest',
     type: 'SPEND' as const,
-    action: 'HEARTBEAT',
+    action: 'MEMORY_SUMMARY',
     amountUsd: -0.5,
     balanceAfterUsd: 9.25,
     createdAt: '2026-05-17T03:00:00.000Z',
@@ -379,9 +379,7 @@ describe('AIPanel', () => {
       'Coding',
       'Vision',
       'Memory summarization',
-      'Heartbeat',
       /Learning/,
-      'Subconscious',
     ]) {
       expect(screen.getByText(label)).toBeInTheDocument();
     }
@@ -2210,7 +2208,7 @@ describe('AIPanel', () => {
     expect(screen.getByText('Composio sync scans')).toBeInTheDocument();
     expect(screen.getByText('Memory worker polls')).toBeInTheDocument();
 
-    expect(screen.getByText('HEARTBEAT')).toBeInTheDocument();
+    expect(screen.getByText('MEMORY_SUMMARY')).toBeInTheDocument();
     expect(screen.getByText('SPEND:USAGE_DEDUCTION:USER')).toBeInTheDocument();
     expect(screen.getByText(/Latest spend: \$0\.5000/)).toBeInTheDocument();
   });
