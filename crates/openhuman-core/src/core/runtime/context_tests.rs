@@ -4,10 +4,10 @@ use std::path::PathBuf;
 fn ctx(dir: &str) -> Arc<CoreContext> {
     Arc::new(CoreContext {
         host_kind: HostKind::Cli,
-        workspace_binding: Arc::new(RwLock::new(WorkspaceBinding {
+        workspace_binding: RwLock::new(Arc::new(RwLock::new(WorkspaceBinding {
             workspace_dir: Some(PathBuf::from(dir)),
             memory_subsystem: Default::default(),
-        })),
+        }))),
         domains: crate::core::runtime::DomainSet::full(),
         tool_groups: Default::default(),
         embedder_config: None,
@@ -34,10 +34,10 @@ fn ctx(dir: &str) -> Arc<CoreContext> {
 fn ctx_with_config(config: crate::config::Config) -> Arc<CoreContext> {
     Arc::new(CoreContext {
         host_kind: HostKind::Cli,
-        workspace_binding: Arc::new(RwLock::new(WorkspaceBinding {
+        workspace_binding: RwLock::new(Arc::new(RwLock::new(WorkspaceBinding {
             workspace_dir: Some(config.workspace_dir.clone()),
             memory_subsystem: Default::default(),
-        })),
+        }))),
         domains: crate::core::runtime::DomainSet::full(),
         tool_groups: Default::default(),
         embedder_config: Some(config),
@@ -346,10 +346,10 @@ async fn nested_scope_overrides_then_restores() {
 fn degraded_context_rejects_workspace_bound_stores() {
     let ctx = CoreContext {
         host_kind: HostKind::Cli,
-        workspace_binding: Arc::new(RwLock::new(WorkspaceBinding {
+        workspace_binding: RwLock::new(Arc::new(RwLock::new(WorkspaceBinding {
             workspace_dir: None,
             memory_subsystem: Default::default(),
-        })),
+        }))),
         domains: crate::core::runtime::DomainSet::full(),
         tool_groups: Default::default(),
         embedder_config: None,
@@ -397,10 +397,10 @@ fn memory_binding_is_isolated_per_context_workspace() {
     let dir_b = tempfile::tempdir().unwrap();
     let a = Arc::new(CoreContext {
         host_kind: HostKind::Cli,
-        workspace_binding: Arc::new(RwLock::new(WorkspaceBinding {
+        workspace_binding: RwLock::new(Arc::new(RwLock::new(WorkspaceBinding {
             workspace_dir: Some(dir_a.path().to_path_buf()),
             memory_subsystem: Default::default(),
-        })),
+        }))),
         domains: crate::core::runtime::DomainSet::full(),
         tool_groups: Default::default(),
         embedder_config: None,
@@ -409,10 +409,10 @@ fn memory_binding_is_isolated_per_context_workspace() {
     });
     let b = Arc::new(CoreContext {
         host_kind: HostKind::Cli,
-        workspace_binding: Arc::new(RwLock::new(WorkspaceBinding {
+        workspace_binding: RwLock::new(Arc::new(RwLock::new(WorkspaceBinding {
             workspace_dir: Some(dir_b.path().to_path_buf()),
             memory_subsystem: Default::default(),
-        })),
+        }))),
         domains: crate::core::runtime::DomainSet::full(),
         tool_groups: Default::default(),
         embedder_config: None,
@@ -437,10 +437,10 @@ fn rebind_workspace_updates_context_memory_binding() {
     let dir_b = tempfile::tempdir().unwrap();
     let ctx = CoreContext {
         host_kind: HostKind::Cli,
-        workspace_binding: Arc::new(RwLock::new(WorkspaceBinding {
+        workspace_binding: RwLock::new(Arc::new(RwLock::new(WorkspaceBinding {
             workspace_dir: Some(dir_a.path().to_path_buf()),
             memory_subsystem: Default::default(),
-        })),
+        }))),
         domains: crate::core::runtime::DomainSet::full(),
         tool_groups: Default::default(),
         embedder_config: None,
@@ -466,10 +466,10 @@ fn rebind_workspace_refreshes_memory_subsystem_config() {
     let dir_a = tempfile::tempdir().unwrap();
     let ctx = CoreContext {
         host_kind: HostKind::Cli,
-        workspace_binding: Arc::new(RwLock::new(WorkspaceBinding {
+        workspace_binding: RwLock::new(Arc::new(RwLock::new(WorkspaceBinding {
             workspace_dir: Some(dir_a.path().to_path_buf()),
             memory_subsystem: Default::default(),
-        })),
+        }))),
         domains: crate::core::runtime::DomainSet::full(),
         tool_groups: Default::default(),
         embedder_config: None,
@@ -508,10 +508,10 @@ fn failed_bind_never_returns_previous_workspace_binding() {
     let dir_b = tempfile::tempdir().unwrap();
     let a = CoreContext {
         host_kind: HostKind::Cli,
-        workspace_binding: Arc::new(RwLock::new(WorkspaceBinding {
+        workspace_binding: RwLock::new(Arc::new(RwLock::new(WorkspaceBinding {
             workspace_dir: Some(dir_a.path().to_path_buf()),
             memory_subsystem: Default::default(),
-        })),
+        }))),
         domains: crate::core::runtime::DomainSet::full(),
         tool_groups: Default::default(),
         embedder_config: None,
@@ -520,10 +520,10 @@ fn failed_bind_never_returns_previous_workspace_binding() {
     };
     let b = CoreContext {
         host_kind: HostKind::Cli,
-        workspace_binding: Arc::new(RwLock::new(WorkspaceBinding {
+        workspace_binding: RwLock::new(Arc::new(RwLock::new(WorkspaceBinding {
             workspace_dir: Some(dir_b.path().to_path_buf()),
             memory_subsystem: untrusted_external_memory_cfg(),
-        })),
+        }))),
         domains: crate::core::runtime::DomainSet::full(),
         tool_groups: Default::default(),
         embedder_config: None,
@@ -552,10 +552,10 @@ fn failed_bind_never_returns_previous_workspace_binding() {
 fn memory_capabilities_defaults_open_without_a_workspace() {
     let ctx = CoreContext {
         host_kind: HostKind::Cli,
-        workspace_binding: Arc::new(RwLock::new(WorkspaceBinding {
+        workspace_binding: RwLock::new(Arc::new(RwLock::new(WorkspaceBinding {
             workspace_dir: None,
             memory_subsystem: Default::default(),
-        })),
+        }))),
         domains: crate::core::runtime::DomainSet::full(),
         tool_groups: Default::default(),
         embedder_config: None,

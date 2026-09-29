@@ -453,7 +453,7 @@ impl CoreContext {
                         == Some(overlay.config.workspace_dir.as_path())
                         && parent.memory_subsystem == overlay.config.subsystems.memory =>
                 {
-                    parent_handle.expect("parent handle was read")
+                    Arc::clone(parent_handle.as_ref().expect("parent handle was read"))
                 }
                 _ => Arc::new(RwLock::new(WorkspaceBinding {
                     workspace_dir: Some(overlay.config.workspace_dir.clone()),
