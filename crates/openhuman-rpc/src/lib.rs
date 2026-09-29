@@ -21,9 +21,9 @@
 #[cfg(feature = "http-client")]
 mod client;
 mod envelope;
-mod origin;
 #[cfg(feature = "server")]
 pub mod http_host;
+mod origin;
 #[cfg(feature = "server")]
 pub mod server;
 
