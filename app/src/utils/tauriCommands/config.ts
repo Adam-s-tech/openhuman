@@ -468,8 +468,8 @@ export interface AutonomySettings {
   /**
    * When true, the approval gate auto-approves ALL tool calls without
    * prompting — a blanket bypass, not just the `auto_approve` allowlist
-   * above. Tainted automation and unlabelled origins are still denied by
-   * the gate regardless of this flag; hard security blocks are unaffected.
+   * above. Unlabelled origins are still denied by the gate regardless of
+   * this flag; hard security blocks are unaffected.
    * Defaults to `false`.
    */
   auto_approve_all?: boolean;
