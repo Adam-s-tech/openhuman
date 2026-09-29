@@ -34,6 +34,7 @@ use tinyinference_llm::model::{
     ProviderError,
 };
 use tinyinference_llm::providers::openai::OpenAiModel;
+use tinyinference_llm::providers::ProviderRequestOptions;
 use tinyinference_llm::Error as TiError;
 
 use super::ProviderRuntimeOptions;
@@ -248,7 +249,9 @@ impl OpenHumanBackendModel {
     }
 
     /// Resolve the current JWT + base URL and build a fresh crate `OpenAiModel`
-    /// (Bearer). Rebuilt per call because the session JWT rotates.
+    /// (Bearer). Rebuilt per call because the session JWT rotates, but every
+    /// build shares one pooled HTTP client ([`managed_inference_http_client`]),
+    /// so consecutive calls reuse a warm TLS connection to the backend.
     fn build_wire_model(&self) -> tinyinference_llm::Result<OpenAiModel> {
         let token = self
             .resolve_bearer()
@@ -259,7 +262,11 @@ impl OpenHumanBackendModel {
         // resolves — the baked default only applies when a request omits it.
         Ok(
             OpenAiModel::compatible_provider(PROVIDER_LABEL, token, base_url, &self.default_model)
-                .with_native_tool_calling(self.native_tool_calling),
+                .with_native_tool_calling(self.native_tool_calling)
+                .with_request_options(ProviderRequestOptions {
+                    http: Some(managed_inference_http_client()),
+                    ..ProviderRequestOptions::default()
+                }),
         )
     }
 
@@ -653,6 +660,48 @@ impl ChatModel<()> for OpenHumanBackendModel {
             }
         }
     }
+}
+
+
+/// Connect timeout for the shared managed-inference client; matches the
+/// adapter's own default.
+const MANAGED_INFERENCE_CONNECT_TIMEOUT: Duration = Duration::from_secs(30);
+
+/// How long an idle pooled connection is kept. Below the AWS ALB's default 60s
+/// idle timeout in front of the backend, so the pool never hands out a
+/// connection the load balancer has already closed.
+const MANAGED_INFERENCE_POOL_IDLE_TIMEOUT: Duration = Duration::from_secs(50);
+
+/// The one HTTP client every managed-inference call in the process shares.
+///
+/// `OpenAiModel` otherwise builds its own `reqwest::Client` per instance, and
+/// [`OpenHumanBackendModel::build_wire_model`] builds an instance per model
+/// call, so each call paid a fresh TCP + TLS handshake to the backend (about
+/// 150-300 ms measured to `api.tinyhumans.ai`) before its first token. A
+/// `reqwest::Client` is a cheap handle over a shared connection pool, so
+/// cloning it keeps connections warm across calls, turns and threads.
+fn managed_inference_http_client() -> reqwest::Client {
+    static CLIENT: std::sync::OnceLock<reqwest::Client> = std::sync::OnceLock::new();
+    CLIENT
+        .get_or_init(|| {
+            tracing::debug!(
+                idle_timeout_secs = MANAGED_INFERENCE_POOL_IDLE_TIMEOUT.as_secs(),
+                "[inference][managed] building shared pooled HTTP client"
+            );
+            reqwest::Client::builder()
+                .connect_timeout(MANAGED_INFERENCE_CONNECT_TIMEOUT)
+                .pool_idle_timeout(MANAGED_INFERENCE_POOL_IDLE_TIMEOUT)
+                .tcp_keepalive(Duration::from_secs(30))
+                .build()
+                .unwrap_or_else(|error| {
+                    tracing::warn!(
+                        error = %error,
+                        "[inference][managed] pooled client build failed; using reqwest defaults"
+                    );
+                    reqwest::Client::new()
+                })
+        })
+        .clone()
 }
 
 #[cfg(test)]
