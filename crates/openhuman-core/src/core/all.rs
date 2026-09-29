@@ -116,8 +116,8 @@ pub enum DomainGroup {
     /// External connectors reached on the user's behalf — Composio, calendar,
     /// file storage, task sources (`integrations/`).
     Integrations,
-    /// Background initiative: scheduled jobs and the subconscious tick loop
-    /// (`cron/`, `subconscious/`). Pairs with `ServiceSet::{cron, heartbeat}`.
+    /// Background initiative: scheduled cron jobs (`cron/`). Pairs with
+    /// `ServiceSet::cron`.
     Automation,
     /// Code-execution substrate: the managed Node/Python runtimes, the worker
     /// pool, and the sandbox/CWD-jail confinement (`runtime/`, `sandbox/`).

@@ -46,8 +46,8 @@ pub struct ServiceSet {
     pub cron: bool,
     /// Spawn realtime channel listeners (Telegram, Discord, …).
     pub channels: bool,
-    /// Spawn login-gated services (local AI, voice, autocomplete) + subconscious/heartbeat.
-    pub heartbeat: bool,
+    /// Spawn login-gated services (local AI, voice, autocomplete).
+    pub login_gated: bool,
     /// Spawn the periodic self-update checker.
     pub update_scheduler: bool,
     /// Start memory queue workers during runtime bootstrap.
@@ -72,7 +72,7 @@ impl ServiceSet {
             socketio: true,
             cron: true,
             channels: true,
-            heartbeat: true,
+            login_gated: true,
             update_scheduler: true,
             memory_queue: true,
             harness_init: true,
@@ -84,14 +84,14 @@ impl ServiceSet {
     }
 
     /// HTTP JSON-RPC only — a single-core cloud/server deployment. No Socket.IO,
-    /// no cron/channels/heartbeat; the supervisor decides those per plan.
+    /// no cron/channels/login-gated services; the supervisor decides those per plan.
     pub fn headless_api() -> Self {
         Self {
             rpc_http: true,
             socketio: false,
             cron: false,
             channels: false,
-            heartbeat: false,
+            login_gated: false,
             update_scheduler: false,
             memory_queue: false,
             harness_init: false,
@@ -110,7 +110,7 @@ impl ServiceSet {
             socketio: false,
             cron: false,
             channels: false,
-            heartbeat: false,
+            login_gated: false,
             update_scheduler: false,
             memory_queue: false,
             harness_init: false,
@@ -139,7 +139,7 @@ impl ServiceSet {
             socketio: false,
             cron: true,
             channels: false,
-            heartbeat: true,
+            login_gated: true,
             update_scheduler: false,
             memory_queue: true,
             harness_init: true,
@@ -202,7 +202,7 @@ pub struct DomainSet {
     pub inference: bool,
     /// External connectors (Composio, calendar, file storage, task sources).
     pub integrations: bool,
-    /// Background initiative: cron + the subconscious tick loop.
+    /// Background initiative: scheduled cron jobs.
     pub automation: bool,
     /// Code-execution substrate: Node/Python runtimes, pool, sandbox.
     pub runtimes: bool,
@@ -1011,7 +1011,7 @@ impl CoreRuntime {
         use crate::core::runtime::services;
         jsonrpc::start_core_runtime_services(self.services, self.config.as_ref()).await;
 
-        if self.services.heartbeat {
+        if self.services.login_gated {
             services::spawn_login_gated_services(self.ctx.host_kind().is_desktop_shell());
         }
         if self.services.update_scheduler {
