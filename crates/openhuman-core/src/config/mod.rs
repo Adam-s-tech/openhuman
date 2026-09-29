@@ -46,7 +46,7 @@ pub use schema::{
     ComposioConfig, ComputerConfig, Config, ContextConfig, CostConfig, CronConfig, CurlConfig,
     DashboardConfig, DecisionModel, DelegateAgentConfig, DiagramViewerConfig,
     DictationActivationMode, DictationConfig, DiscordConfig, DockerRuntimeConfig, EmailConfig,
-    EmbeddingRouteConfig, GitbooksConfig, HeartbeatConfig, HttpHeader, HttpRequestConfig,
+    EmbeddingRouteConfig, GitbooksConfig, HttpHeader, HttpRequestConfig,
     IMessageConfig, IntegrationToggle, IntegrationsConfig, LarkConfig, LearningConfig,
     LegacySearchInputs, LinqConfig, LlmBackend, LocalAiConfig, MatrixConfig, McpAuthConfig,
     McpClientConfig, McpClientIdentityConfig, McpServerConfig, MemoryConfig, MemoryTreeConfig,
