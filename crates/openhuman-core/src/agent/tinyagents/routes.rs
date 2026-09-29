@@ -26,8 +26,8 @@ pub(super) const ROUTE_VISION: &str = "hint:vision";
 /// The workload routes projected into the registry, keyed by role alias.
 ///
 /// This is the canonical workload inventory (`chat`, `reasoning`, `agentic`,
-/// `coding`, `burst`, `summarization`, `vision`). `subconscious`/`memory` are
-/// intentionally absent — they are role aliases that ride the chat route rather
+/// `coding`, `burst`, `summarization`, `vision`). `memory` is
+/// intentionally absent — it is a role alias that ride the chat route rather
 /// than distinct router entries.
 pub(super) const WORKLOAD_ROUTE_TIERS: &[&str] = &[
     ROUTE_CHAT,
