@@ -122,7 +122,7 @@ pub(super) async fn finalize_flow_stream(
             .await;
         }
         Err(err) => {
-            crate::web_chat::publish_web_channel_event(crate::core::socketio::WebChannelEvent {
+            crate::web_chat::publish_web_channel_event(crate::web_chat::WebChannelEvent {
                 event: "chat_error".to_string(),
                 client_id: "system".to_string(),
                 thread_id: target.thread_id.clone(),

@@ -244,10 +244,10 @@ impl PromptSection for IdentitySection {
         // orchestrator: a specialist sub-agent has its own role prompt and
         // must not be told it is the Master Agent.
         //
-        // HEARTBEAT.md used to ride along here. It was the periodic-task list
-        // the subconscious engine read, and that domain was deleted — nothing
-        // consumed the file any more, so every agent but the orchestrator was
-        // paying for an empty template. Its `WORKSPACE_INTERNAL_FILES` entry
+        // HEARTBEAT.md used to ride along here. It was a periodic-task list
+        // for a background loop that has since been removed — nothing consumed
+        // the file any more, so every agent but the orchestrator was paying
+        // for an empty template. Its `WORKSPACE_INTERNAL_FILES` entry
         // deliberately stays, so a file a user still has on disk keeps its
         // not-agent-writable protection.
         let is_orchestrator = !ctx.visible_tool_names.is_empty();

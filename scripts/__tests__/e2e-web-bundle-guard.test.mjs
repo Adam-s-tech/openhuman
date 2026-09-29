@@ -40,6 +40,7 @@ function makeTree(script) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "e2e-web-bundle-guard-"));
   const bin = path.join(root, "bin");
   const log = path.join(root, "calls.log");
+  const mockStarted = path.join(root, "mock-started");
   fs.mkdirSync(path.join(root, "app", "scripts"), { recursive: true });
   fs.copyFileSync(
     path.join(repoRoot, "app", "scripts", script),
@@ -57,14 +58,17 @@ function makeTree(script) {
   // The mock backend "starts" and exits at once. Its launch is a background
   // job, so the health probe waits for the stub to record the launch before
   // reporting ready; otherwise a fast runner can race the child process.
-  writeExecutable(path.join(bin, "node"), `#!/usr/bin/env bash\n${record("node")}\n`);
+  writeExecutable(
+    path.join(bin, "node"),
+    `#!/usr/bin/env bash\n${record("node")}\ntouch "${mockStarted}"\n`,
+  );
   writeExecutable(
     path.join(bin, "curl"),
     `#!/usr/bin/env bash
 ${record("curl")}
-if [[ "$1" == *"/__admin/health" ]]; then
-  for _ in {1..100}; do
-    grep -q 'mock-api-server.mjs' "${log}" && exit 0
+if [[ "$*" == *"/__admin/health"* ]]; then
+  for _ in {1..500}; do
+    [ -f "${mockStarted}" ] && exit 0
     sleep 0.01
   done
   exit 1

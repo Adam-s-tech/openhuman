@@ -42,7 +42,7 @@ use serde_json::{json, Value};
 use tempfile::{tempdir, TempDir};
 
 use openhuman_core::core::auth::{get_rpc_token, init_rpc_token, CORE_TOKEN_ENV_VAR};
-use openhuman_core::core::jsonrpc::build_core_http_router;
+use openhuman_rpc::server::build_core_http_router;
 
 const TEST_RPC_TOKEN: &str = "sandbox-runtime-platform-e2e-token";
 
@@ -288,7 +288,7 @@ fn err_message(value: &Value, context: &str) -> String {
         .to_string()
 }
 
-/// Controllers wrap their payload in `RpcOutcome::into_cli_compatible_json`,
+/// Controllers wrap their payload in `Outcome::into_cli_compatible_json`,
 /// which nests the value under `result` and carries `logs` alongside. Handlers
 /// that return a bare `serde_json::json!` do not. Unwrap one level when it is
 /// there so a case can assert on the payload either way.

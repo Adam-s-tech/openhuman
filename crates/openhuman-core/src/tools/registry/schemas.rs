@@ -1,8 +1,8 @@
 use serde_json::{Map, Value};
 
 use crate::core::all::{ControllerFuture, RegisteredController};
+use crate::core::Outcome;
 use crate::core::{ControllerSchema, FieldSchema, TypeSchema};
-use crate::rpc::RpcOutcome;
 
 /// Declared controller schemas for the `tool_registry` namespace.
 pub fn all_controller_schemas() -> Vec<ControllerSchema> {
@@ -130,7 +130,7 @@ fn required_tool_id(params: &Map<String, Value>) -> Result<&str, String> {
         .ok_or_else(|| "tool_id must be a non-empty string".to_string())
 }
 
-fn to_json<T: serde::Serialize>(outcome: RpcOutcome<T>) -> Result<Value, String> {
+fn to_json<T: serde::Serialize>(outcome: Outcome<T>) -> Result<Value, String> {
     outcome.into_cli_compatible_json()
 }
 

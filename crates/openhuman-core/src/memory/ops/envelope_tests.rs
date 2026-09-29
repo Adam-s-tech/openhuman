@@ -18,7 +18,7 @@ fn envelope_wraps_data_with_meta() {
 
 #[test]
 fn error_envelope_wraps_code_and_message() {
-    let outcome: RpcOutcome<ApiEnvelope<serde_json::Value>> =
+    let outcome: Outcome<ApiEnvelope<serde_json::Value>> =
         error_envelope("bad_request", "boom".to_string());
     let value = outcome.into_cli_compatible_json().unwrap();
     assert_eq!(value["error"]["code"], "bad_request");

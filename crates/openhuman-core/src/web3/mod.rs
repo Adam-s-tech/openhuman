@@ -54,9 +54,9 @@ use serde::Serialize;
 #[cfg(feature = "web3")]
 use crate::core::all::RegisteredController;
 #[cfg(feature = "web3")]
-use crate::core::{ControllerSchema, FieldSchema, TypeSchema};
+use crate::core::Outcome;
 #[cfg(feature = "web3")]
-use crate::rpc::RpcOutcome;
+use crate::core::{ControllerSchema, FieldSchema, TypeSchema};
 #[cfg(feature = "web3")]
 use tinytools::{Tool, ToolResult};
 
@@ -130,7 +130,7 @@ pub(crate) fn execute_tool_schema() -> serde_json::Value {
 
 /// Convert an op result into a `ToolResult` with pretty-printed JSON on success.
 #[cfg(feature = "web3")]
-pub(crate) fn to_tool_result<T: Serialize>(result: Result<RpcOutcome<T>, String>) -> ToolResult {
+pub(crate) fn to_tool_result<T: Serialize>(result: Result<Outcome<T>, String>) -> ToolResult {
     match result {
         Ok(outcome) => match serde_json::to_string_pretty(&outcome.value) {
             Ok(s) => ToolResult::success(s),

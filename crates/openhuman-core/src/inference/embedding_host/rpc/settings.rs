@@ -2,7 +2,7 @@
 //! update, including the save-time verification of a custom endpoint.
 
 use crate::config::Config;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 use crate::security::credentials::AuthService;
 
 use super::{resolve_api_key, LOG_PREFIX};
@@ -15,15 +15,15 @@ use tinyinference_embeddings::served_models::{
     check_requested_model_served, fetch_served_model_ids, ModelNotServed,
 };
 
-fn probe_rejection_outcome(reject: EmbeddingProbeRejection) -> RpcOutcome<serde_json::Value> {
+fn probe_rejection_outcome(reject: EmbeddingProbeRejection) -> Outcome<serde_json::Value> {
     let mut body = serde_json::json!({ "error": reject.error, "message": reject.message });
     if let Some(detail) = reject.detail {
         body["detail"] = serde_json::Value::String(detail);
     }
-    RpcOutcome::new(body, vec![reject.summary.to_string()])
+    Outcome::new(body, vec![reject.summary.to_string()])
 }
 
-fn model_rejection_outcome(reject: ModelNotServed) -> RpcOutcome<serde_json::Value> {
+fn model_rejection_outcome(reject: ModelNotServed) -> Outcome<serde_json::Value> {
     let mut body = serde_json::json!({
         "error": reject.error,
         "message": reject.message,
@@ -33,7 +33,7 @@ fn model_rejection_outcome(reject: ModelNotServed) -> RpcOutcome<serde_json::Val
     if let Some(suggestion) = reject.suggested_model {
         body["suggested_model"] = serde_json::Value::String(suggestion);
     }
-    RpcOutcome::new(body, vec![reject.summary.to_string()])
+    Outcome::new(body, vec![reject.summary.to_string()])
 }
 
 /// Slug naming the embedder ingestion will actually use, resolved host-side
@@ -125,7 +125,7 @@ pub(super) fn remember_active_custom_profile(config: &mut Config) {
 }
 
 /// Returns the current embedding settings plus the provider catalog.
-pub async fn get_settings(config: &Config) -> Result<RpcOutcome<serde_json::Value>, String> {
+pub async fn get_settings(config: &Config) -> Result<Outcome<serde_json::Value>, String> {
     let provider = &config.memory.embedding_provider;
     let model = &config.memory.embedding_model;
     let dimensions = config.memory.embedding_dimensions;
@@ -207,7 +207,7 @@ pub async fn get_settings(config: &Config) -> Result<RpcOutcome<serde_json::Valu
         "{LOG_PREFIX} get_settings"
     );
 
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         payload,
         vec!["embeddings settings loaded".into()],
     ))
@@ -222,7 +222,7 @@ pub async fn update_settings(
     custom_endpoint: Option<String>,
     rate_limit_per_min: Option<u32>,
     confirm_wipe: bool,
-) -> Result<RpcOutcome<serde_json::Value>, String> {
+) -> Result<Outcome<serde_json::Value>, String> {
     use crate::config::ops as config_rpc;
     use crate::inference::embedding_host::format_embedding_signature;
 
@@ -410,7 +410,7 @@ pub async fn update_settings(
             "message": "Changing embedding dimensions invalidates all stored vectors. \
                         Pass confirm_wipe=true to wipe memory and apply.",
         });
-        return Ok(RpcOutcome::new(
+        return Ok(Outcome::new(
             payload,
             vec!["embedding dimension change requires wipe confirmation".into()],
         ));
@@ -514,7 +514,7 @@ pub async fn update_settings(
         "requeue_error": requeue_error,
     });
 
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         payload,
         vec![format!(
             "embeddings settings updated (sig_changed={sig_changed} requeued_failed={requeued_note})"

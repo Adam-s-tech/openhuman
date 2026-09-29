@@ -15,6 +15,24 @@ fn navigation_uses_shared_allowlist_and_blocks_private_hosts() {
 }
 
 #[test]
+fn non_global_ip_literals_stay_blocked() {
+    for host in [
+        "198.18.0.1",
+        "240.0.0.1",
+        "255.255.255.255",
+        "198.51.100.1",
+        "0.1.2.3",
+        "[2001:db8::1]",
+    ] {
+        assert!(
+            private_or_local(host.trim_matches(['[', ']'])),
+            "{host} must be blocked"
+        );
+    }
+    assert!(!private_or_local("93.184.216.34"));
+}
+
+#[test]
 fn module_origin_list_requires_https_for_allowed_host_tree() {
     if browser_allow_all() {
         return;
@@ -135,4 +153,23 @@ fn blank_session_page_is_reportable_but_not_an_explicit_navigation_target() {
     let client = BrowserClient::new(Arc::new(Config::default()));
     assert!(client.check_returned_url("about:blank").is_ok());
     assert!(client.check_url("about:blank").is_err());
+}
+
+/// Drives real URLs through `check_url` (parsing, host extraction, policy),
+/// so the non-global block is proven on the path the browser tool uses, not
+/// only on the helper.
+#[test]
+fn navigation_rejects_non_global_ip_literal_urls() {
+    let client = BrowserClient::new(Arc::new(Config::default()));
+    for url in [
+        "https://198.18.0.1/",
+        "https://240.0.0.1/",
+        "https://0.1.2.3/",
+        "https://198.51.100.1/path",
+        "https://203.0.113.9/",
+        "https://[2001:db8::1]/",
+    ] {
+        let error = client.check_url(url).expect_err(url).to_string();
+        assert!(error.contains("is blocked"), "{url}: {error}");
+    }
 }

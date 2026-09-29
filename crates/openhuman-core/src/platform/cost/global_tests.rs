@@ -53,7 +53,7 @@ fn build_token_usage_emits_when_tokens_present_even_with_zero_cost() {
 ///
 /// The tracker is a process-wide `OnceCell` shared by every test in this
 /// binary — including the runtime-bootstrap tests, which call
-/// `platform::cost::init_global` through `core/jsonrpc.rs`. A test therefore
+/// `platform::cost::init_global` through `core/runtime/bootstrap.rs`. A test therefore
 /// cannot assume it owns the global, and **cannot assume the global is
 /// absent**: that is precisely why the two tests below assert on records
 /// written through whichever tracker is installed, rather than on
@@ -140,9 +140,9 @@ fn init_global_is_idempotent() {
     // A second `init_global` must be a no-op and must preserve the tracker the
     // first caller installed (`global.rs` early-returns when the cell is set).
     //
-    // Asserting that through `try_global()` alone would be vacuous: the cell is
-    // a `OnceCell`, so `set` refuses the replacement even with the early return
-    // deleted, and the *pointer* stays equal either way. The observable that
+    // Asserting that through `try_global()` alone would be vacuous: the slot is
+    // only filled when empty, so it refuses the replacement even with the early
+    // return deleted, and the *pointer* stays equal either way. The observable that
     // actually distinguishes the two is one level down — `CostTracker::new`
     // eagerly creates `<workspace>/state/` (`CostStorage::new` ->
     // `fs::create_dir_all`). So if the guard is removed, the second call
@@ -181,4 +181,43 @@ fn init_global_is_idempotent() {
         std::sync::Arc::ptr_eq(&before, &after),
         "second init_global replaced the installed tracker instance"
     );
+}
+
+#[test]
+fn rebind_global_moves_recording_to_the_new_workspace() {
+    let _lock = tracker_test_lock();
+    const MODEL_A: &str = "test-model/rebind-before-login";
+    const MODEL_B: &str = "test-model/rebind-after-login";
+    let previous = try_global();
+    let before_login = TempDir::new().unwrap();
+    let after_login = TempDir::new().unwrap();
+    let mut cfg = CostConfig::default();
+    cfg.enabled = true;
+
+    rebind_global(cfg.clone(), before_login.path());
+    record_provider_usage(MODEL_A, &make_usage(10, 5, 0.1));
+
+    rebind_global(cfg.clone(), after_login.path());
+    let bound = try_global().expect("rebind leaves a tracker installed");
+    assert_eq!(bound.workspace_dir(), after_login.path());
+    record_provider_usage(MODEL_B, &make_usage(20, 10, 0.2));
+
+    let ledger = |dir: &TempDir| {
+        std::fs::read_to_string(dir.path().join("state").join("costs.jsonl")).unwrap_or_default()
+    };
+    assert!(ledger(&before_login).contains(MODEL_A));
+    assert!(!ledger(&before_login).contains(MODEL_B));
+    assert!(ledger(&after_login).contains(MODEL_B));
+    assert!(!ledger(&after_login).contains(MODEL_A));
+    assert_eq!(records_for_model(&bound, MODEL_B).len(), 1);
+    assert!(records_for_model(&bound, MODEL_A).is_empty());
+
+    rebind_global(cfg, after_login.path());
+    let unchanged = try_global().unwrap();
+    assert!(
+        std::sync::Arc::ptr_eq(&bound, &unchanged),
+        "rebinding to the workspace already served must keep the tracker"
+    );
+
+    *GLOBAL_TRACKER.write() = previous;
 }

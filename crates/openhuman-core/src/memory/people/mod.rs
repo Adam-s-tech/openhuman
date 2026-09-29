@@ -1,6 +1,6 @@
 //! Host layer over the people domain: its JSON-RPC surface, and nothing else.
 //!
-//! Handlers and controller schemas name OpenHuman's `RpcOutcome` and
+//! Handlers and controller schemas name OpenHuman's `Outcome` and
 //! `ControllerSchema`, which the driver cannot see; the ranking, scoring and
 //! address-book work happens driver-side, behind
 //! [`MemoryPeople`](crate::memory::api::provider::MemoryPeople).

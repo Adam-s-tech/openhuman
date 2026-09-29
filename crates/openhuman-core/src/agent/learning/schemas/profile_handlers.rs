@@ -5,7 +5,7 @@ use serde_json::{Map, Value};
 
 use crate::config::rpc as config_rpc;
 use crate::core::all::ControllerFuture;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 pub(super) fn handle_linkedin_enrichment(params: Map<String, Value>) -> ControllerFuture {
     Box::pin(async move {
@@ -28,7 +28,7 @@ pub(super) fn handle_linkedin_enrichment(params: Map<String, Value>) -> Controll
             "log": result.log,
         });
 
-        RpcOutcome::new(payload, result.log.clone()).into_cli_compatible_json()
+        Outcome::new(payload, result.log.clone()).into_cli_compatible_json()
     })
 }
 
@@ -75,7 +75,7 @@ pub(super) fn handle_save_profile(params: Map<String, Value>) -> ControllerFutur
         let log = vec![format!(
             "learning.save_profile: wrote {bytes} bytes to {path_display} (summarize={summarize})"
         )];
-        RpcOutcome::new(payload, log).into_cli_compatible_json()
+        Outcome::new(payload, log).into_cli_compatible_json()
     })
 }
 
@@ -116,7 +116,7 @@ pub(super) fn handle_rebuild_cache(_params: Map<String, Value>) -> ControllerFut
             "total_size": outcome.total_size,
         });
 
-        RpcOutcome::new(payload, log).into_cli_compatible_json()
+        Outcome::new(payload, log).into_cli_compatible_json()
     })
 }
 
@@ -182,6 +182,6 @@ pub(super) fn handle_cache_stats(_params: Map<String, Value>) -> ControllerFutur
             "by_class": by_class,
         });
 
-        RpcOutcome::new(payload, log).into_cli_compatible_json()
+        Outcome::new(payload, log).into_cli_compatible_json()
     })
 }

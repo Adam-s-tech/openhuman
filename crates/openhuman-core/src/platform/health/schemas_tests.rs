@@ -67,7 +67,7 @@ async fn handle_system_info_returns_json_object() {
 
 #[test]
 fn to_json_helper() {
-    let outcome = RpcOutcome::single_log(serde_json::json!({"ok": true}), "log");
+    let outcome = Outcome::single_log(serde_json::json!({"ok": true}), "log");
     assert!(to_json(outcome).is_ok());
 }
 

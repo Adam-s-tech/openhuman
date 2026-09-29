@@ -19,7 +19,11 @@ export const LEARNING_REBUILD_MINUTES = 30;
 export const MEMORY_WORKERS = 4;
 export const MEMORY_POLL_SECONDS = 5;
 
-export const formatUsd = (value: number): string => USD.format(Number.isFinite(value) ? value : 0);
+export const formatUsd = (value: number): string => {
+  const safe = Number.isFinite(value) ? value : 0;
+  if (safe > 0 && safe < 0.000001) return `<${USD.format(0.000001)}`;
+  return USD.format(safe);
+};
 
 export const spendAmount = (tx: CreditTransaction): number => {
   const amount = Number(tx.amountUsd);

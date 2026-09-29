@@ -86,6 +86,27 @@ pub struct McpServerConfig {
     /// transport separately when a server returns an auth challenge.
     #[serde(default)]
     pub auth: McpAuthConfig,
+    /// How this server's tools reach the model. Every remote tool becomes its
+    /// own `mcp_<server>_<tool>` tool; `deferred` (the default) leaves them
+    /// out of the catalogue until `tool_search` finds them, `direct` sends
+    /// them every turn.
+    #[serde(default)]
+    pub expose: McpToolExposure,
+    /// Remote tool names sent to the model every turn even when `expose` is
+    /// `deferred` — the handful this server is used for most.
+    #[serde(default)]
+    pub direct_tools: Vec<String>,
+}
+
+/// How a configured MCP server's tools enter the model's catalogue.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum McpToolExposure {
+    /// Found through `tool_search`, then callable by name.
+    #[default]
+    Deferred,
+    /// Sent to the model every turn.
+    Direct,
 }
 
 fn default_mcp_timeout_secs() -> u64 {
@@ -107,6 +128,8 @@ impl Default for McpServerConfig {
             disallowed_tools: Vec::new(),
             timeout_secs: default_mcp_timeout_secs(),
             auth: McpAuthConfig::None,
+            expose: McpToolExposure::Deferred,
+            direct_tools: Vec::new(),
         }
     }
 }

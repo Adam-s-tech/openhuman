@@ -14,7 +14,7 @@ use tinyagents_session::run_ledger::{
     AgentRunKind, AgentRunStatus, AgentRunUpsert, RunEventAppend, RunTelemetryUpsert,
 };
 
-use crate::core::socketio::{SubagentProgressDetail, WebChannelEvent};
+use crate::web_chat::{SubagentProgressDetail, WebChannelEvent};
 
 use super::{
     cap_wire_args, cap_wire_output, ledger_append_event, ledger_upsert_agent_run,
