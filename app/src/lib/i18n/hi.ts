@@ -7273,7 +7273,8 @@ const messages: TranslationMap = {
 
   // Memory engine settings panel
   'memoryEngine.title': 'मेमोरी इंजन',
-  'memoryEngine.description': 'चुनें कि OpenHuman आपकी यादें कहाँ सहेजे और कहाँ से याद करे। एक समय में सिर्फ़ एक इंजन सक्रिय रहता है।',
+  'memoryEngine.description':
+    'चुनें कि OpenHuman आपकी यादें कहाँ सहेजे और कहाँ से याद करे। एक समय में सिर्फ़ एक इंजन सक्रिय रहता है।',
   'memoryEngine.active': 'सक्रिय',
   'memoryEngine.hostedNote': 'आपके OpenHuman क्रेडिट से बिल किया जाएगा।',
   'memoryEngine.signInRequired': 'इस इंजन का उपयोग करने के लिए साइन इन करें।',
@@ -7297,20 +7298,26 @@ const messages: TranslationMap = {
   'memoryEngine.dialog.progress': '{total} में से {copied} कॉपी हुईं',
   'memoryEngine.dialog.progressUnknown': 'अब तक {copied} यादें कॉपी हुईं',
   'memoryEngine.dialog.lacking': 'नया इंजन आपके मौजूदा इंजन की इन सुविधाओं का समर्थन नहीं करता:',
-  'memoryEngine.error.insufficientCredits': 'आपके OpenHuman क्रेडिट खत्म हो गए हैं। इस इंजन का उपयोग करने के लिए क्रेडिट जोड़ें।',
-  'memoryEngine.error.sessionExpired': 'आपका सत्र समाप्त हो गया है। जारी रखने के लिए फिर से साइन इन करें।',
-  'memoryEngine.error.backendUnavailable': 'मेमोरी सेवा अभी उपलब्ध नहीं है। थोड़ी देर बाद फिर कोशिश करें।',
+  'memoryEngine.error.insufficientCredits':
+    'आपके OpenHuman क्रेडिट खत्म हो गए हैं। इस इंजन का उपयोग करने के लिए क्रेडिट जोड़ें।',
+  'memoryEngine.error.sessionExpired':
+    'आपका सत्र समाप्त हो गया है। जारी रखने के लिए फिर से साइन इन करें।',
+  'memoryEngine.error.backendUnavailable':
+    'मेमोरी सेवा अभी उपलब्ध नहीं है। थोड़ी देर बाद फिर कोशिश करें।',
   'memoryEngine.error.generic': 'मेमोरी इंजन बदला नहीं जा सका। सेटिंग जाँचकर फिर कोशिश करें।',
   'memoryEngine.error.openBilling': 'बिलिंग खोलें',
   'memoryEngine.error.signIn': 'साइन इन करें',
   'memoryEngine.row.label': 'मेमोरी इंजन:',
   'memoryEngine.row.change': 'बदलें',
   'memoryEngine.engine.tinymemory.label': 'लोकल (TinyCortex)',
-  'memoryEngine.engine.tinymemory.description': 'TinyCortex के साथ इसी डिवाइस पर सहेजा जाता है। निजी, मुफ़्त और डिफ़ॉल्ट।',
+  'memoryEngine.engine.tinymemory.description':
+    'TinyCortex के साथ इसी डिवाइस पर सहेजा जाता है। निजी, मुफ़्त और डिफ़ॉल्ट।',
   'memoryEngine.engine.tinyhumans.label': 'CortexDB (TinyHumans के माध्यम से)',
-  'memoryEngine.engine.tinyhumans.description': 'TinyHumans द्वारा होस्ट किया गया CortexDB। आपके साइन-इन खाते का उपयोग करता है, कुंजी की ज़रूरत नहीं।',
+  'memoryEngine.engine.tinyhumans.description':
+    'TinyHumans द्वारा होस्ट किया गया CortexDB। आपके साइन-इन खाते का उपयोग करता है, कुंजी की ज़रूरत नहीं।',
   'memoryEngine.engine.cortex.label': 'CortexDB (अपनी कुंजी)',
-  'memoryEngine.engine.cortex.description': 'आपका अपना CortexDB खाता या इंस्टेंस, आपकी API कुंजी के साथ।',
+  'memoryEngine.engine.cortex.description':
+    'आपका अपना CortexDB खाता या इंस्टेंस, आपकी API कुंजी के साथ।',
   'memoryEngine.engine.supermemory.label': 'Supermemory',
   'memoryEngine.engine.supermemory.description': 'आपकी API कुंजी के साथ Supermemory क्लाउड मेमोरी।',
   'memoryEngine.engine.mem0.label': 'Mem0',

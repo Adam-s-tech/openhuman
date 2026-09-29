@@ -109,7 +109,9 @@ export default function MemoryEngineOption({
                   <label
                     htmlFor={`${inputId}-key`}
                     className="mb-1 block text-xs font-medium text-content-secondary">
-                    {engine.key_optional ? t('memoryEngine.apiKeyOptional') : t('memoryEngine.apiKey')}
+                    {engine.key_optional
+                      ? t('memoryEngine.apiKeyOptional')
+                      : t('memoryEngine.apiKey')}
                   </label>
                   <TextField
                     id={`${inputId}-key`}

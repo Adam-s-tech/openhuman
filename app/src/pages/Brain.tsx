@@ -8,8 +8,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 
 import { CodingSessionsCard } from '../components/intelligence/CodingSessionsCard';
 import GoalsPanel from '../components/intelligence/GoalsPanel';
-import MemoryEngineRow from '../components/intelligence/MemoryEngineRow';
 import { MemoryControls } from '../components/intelligence/MemoryControls';
+import MemoryEngineRow from '../components/intelligence/MemoryEngineRow';
 import { MemoryGraph } from '../components/intelligence/MemoryGraph';
 import { MemorySourcesRegistry } from '../components/intelligence/MemorySourcesRegistry';
 import { MemoryTreeStatusPanel } from '../components/intelligence/MemoryTreeStatusPanel';

@@ -6893,7 +6893,8 @@ const messages: TranslationMap = {
 
   // Memory engine settings panel
   'memoryEngine.title': '记忆引擎',
-  'memoryEngine.description': '选择 OpenHuman 存储和回忆记忆的位置。同一时间只有一个引擎处于活动状态。',
+  'memoryEngine.description':
+    '选择 OpenHuman 存储和回忆记忆的位置。同一时间只有一个引擎处于活动状态。',
   'memoryEngine.active': '当前使用',
   'memoryEngine.hostedNote': '将从你的 OpenHuman 额度中扣费。',
   'memoryEngine.signInRequired': '请登录后使用此引擎。',
@@ -6926,9 +6927,11 @@ const messages: TranslationMap = {
   'memoryEngine.row.label': '记忆引擎：',
   'memoryEngine.row.change': '更改',
   'memoryEngine.engine.tinymemory.label': '本地（TinyCortex）',
-  'memoryEngine.engine.tinymemory.description': '通过 TinyCortex 存储在此设备上。私密、免费，为默认选项。',
+  'memoryEngine.engine.tinymemory.description':
+    '通过 TinyCortex 存储在此设备上。私密、免费，为默认选项。',
   'memoryEngine.engine.tinyhumans.label': 'CortexDB (通过 TinyHumans)',
-  'memoryEngine.engine.tinyhumans.description': '由 TinyHumans 托管的 CortexDB。使用你已登录的账户，无需密钥。',
+  'memoryEngine.engine.tinyhumans.description':
+    '由 TinyHumans 托管的 CortexDB。使用你已登录的账户，无需密钥。',
   'memoryEngine.engine.cortex.label': 'CortexDB（自有密钥）',
   'memoryEngine.engine.cortex.description': '你自己的 CortexDB 账户或实例，使用你的 API 密钥。',
   'memoryEngine.engine.supermemory.label': 'Supermemory',

@@ -7189,7 +7189,8 @@ const messages: TranslationMap = {
 
   // Memory engine settings panel
   'memoryEngine.title': '메모리 엔진',
-  'memoryEngine.description': 'OpenHuman이 기억을 저장하고 불러올 위치를 선택하세요. 한 번에 하나의 엔진만 활성화됩니다.',
+  'memoryEngine.description':
+    'OpenHuman이 기억을 저장하고 불러올 위치를 선택하세요. 한 번에 하나의 엔진만 활성화됩니다.',
   'memoryEngine.active': '사용 중',
   'memoryEngine.hostedNote': 'OpenHuman 크레딧으로 청구됩니다.',
   'memoryEngine.signInRequired': '이 엔진을 사용하려면 로그인하세요.',
@@ -7201,7 +7202,8 @@ const messages: TranslationMap = {
   'memoryEngine.apiKeyOptional': 'API 키(선택)',
   'memoryEngine.keySaved': '키가 저장되어 있습니다. 유지하려면 비워 두세요.',
   'memoryEngine.keySavedPlaceholder': '저장됨(숨김)',
-  'memoryEngine.fallback': '엔진 {engine}을(를) 사용할 수 없어 OpenHuman이 로컬 메모리로 전환했습니다.',
+  'memoryEngine.fallback':
+    '엔진 {engine}을(를) 사용할 수 없어 OpenHuman이 로컬 메모리로 전환했습니다.',
   'memoryEngine.lastError': '마지막 메모리 엔진 요청이 실패했습니다. 엔진 설정을 확인하세요.',
   'memoryEngine.switch': '전환',
   'memoryEngine.save': '변경 사항 저장',
@@ -7213,22 +7215,29 @@ const messages: TranslationMap = {
   'memoryEngine.dialog.progress': '{total}개 중 {copied}개 복사됨',
   'memoryEngine.dialog.progressUnknown': '지금까지 기억 {copied}개 복사됨',
   'memoryEngine.dialog.lacking': '새 엔진은 현재 엔진의 다음 기능을 지원하지 않습니다:',
-  'memoryEngine.error.insufficientCredits': 'OpenHuman 크레딧이 모두 소진되었습니다. 이 엔진을 사용하려면 크레딧을 추가하세요.',
+  'memoryEngine.error.insufficientCredits':
+    'OpenHuman 크레딧이 모두 소진되었습니다. 이 엔진을 사용하려면 크레딧을 추가하세요.',
   'memoryEngine.error.sessionExpired': '세션이 만료되었습니다. 계속하려면 다시 로그인하세요.',
-  'memoryEngine.error.backendUnavailable': '메모리 서비스를 지금 사용할 수 없습니다. 잠시 후 다시 시도하세요.',
-  'memoryEngine.error.generic': '메모리 엔진을 변경할 수 없습니다. 설정을 확인하고 다시 시도하세요.',
+  'memoryEngine.error.backendUnavailable':
+    '메모리 서비스를 지금 사용할 수 없습니다. 잠시 후 다시 시도하세요.',
+  'memoryEngine.error.generic':
+    '메모리 엔진을 변경할 수 없습니다. 설정을 확인하고 다시 시도하세요.',
   'memoryEngine.error.openBilling': '결제 열기',
   'memoryEngine.error.signIn': '로그인',
   'memoryEngine.row.label': '메모리 엔진:',
   'memoryEngine.row.change': '변경',
   'memoryEngine.engine.tinymemory.label': '로컬 (TinyCortex)',
-  'memoryEngine.engine.tinymemory.description': 'TinyCortex로 이 기기에 저장됩니다. 비공개, 무료이며 기본값입니다.',
+  'memoryEngine.engine.tinymemory.description':
+    'TinyCortex로 이 기기에 저장됩니다. 비공개, 무료이며 기본값입니다.',
   'memoryEngine.engine.tinyhumans.label': 'CortexDB (TinyHumans 경유)',
-  'memoryEngine.engine.tinyhumans.description': 'TinyHumans가 호스팅하는 CortexDB. 로그인한 계정을 사용하며 키가 필요 없습니다.',
+  'memoryEngine.engine.tinyhumans.description':
+    'TinyHumans가 호스팅하는 CortexDB. 로그인한 계정을 사용하며 키가 필요 없습니다.',
   'memoryEngine.engine.cortex.label': 'CortexDB (내 키)',
-  'memoryEngine.engine.cortex.description': '내 CortexDB 계정 또는 인스턴스를 내 API 키로 사용합니다.',
+  'memoryEngine.engine.cortex.description':
+    '내 CortexDB 계정 또는 인스턴스를 내 API 키로 사용합니다.',
   'memoryEngine.engine.supermemory.label': 'Supermemory',
-  'memoryEngine.engine.supermemory.description': '내 API 키를 사용하는 Supermemory 클라우드 메모리.',
+  'memoryEngine.engine.supermemory.description':
+    '내 API 키를 사용하는 Supermemory 클라우드 메모리.',
   'memoryEngine.engine.mem0.label': 'Mem0',
   'memoryEngine.engine.mem0.description': 'Mem0 메모리 계층, 클라우드 또는 자체 호스팅.',
   'memoryEngine.engine.cognee.label': 'Cognee',

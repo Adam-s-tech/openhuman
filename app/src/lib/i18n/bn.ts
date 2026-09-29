@@ -7269,7 +7269,8 @@ const messages: TranslationMap = {
 
   // Memory engine settings panel
   'memoryEngine.title': 'মেমোরি ইঞ্জিন',
-  'memoryEngine.description': 'OpenHuman আপনার স্মৃতি কোথায় সংরক্ষণ ও মনে করবে তা বেছে নিন। একবারে কেবল একটি ইঞ্জিন সক্রিয় থাকে।',
+  'memoryEngine.description':
+    'OpenHuman আপনার স্মৃতি কোথায় সংরক্ষণ ও মনে করবে তা বেছে নিন। একবারে কেবল একটি ইঞ্জিন সক্রিয় থাকে।',
   'memoryEngine.active': 'সক্রিয়',
   'memoryEngine.hostedNote': 'আপনার OpenHuman ক্রেডিট থেকে বিল করা হবে।',
   'memoryEngine.signInRequired': 'এই ইঞ্জিন ব্যবহার করতে সাইন ইন করুন।',
@@ -7282,7 +7283,8 @@ const messages: TranslationMap = {
   'memoryEngine.keySaved': 'একটি কী সংরক্ষিত আছে। রাখতে ফাঁকা রাখুন।',
   'memoryEngine.keySavedPlaceholder': 'সংরক্ষিত (লুকানো)',
   'memoryEngine.fallback': '{engine} ইঞ্জিন পাওয়া যায়নি, তাই OpenHuman লোকাল মেমোরিতে ফিরে গেছে।',
-  'memoryEngine.lastError': 'মেমোরি ইঞ্জিনের সর্বশেষ অনুরোধ ব্যর্থ হয়েছে। ইঞ্জিনের সেটিংস পরীক্ষা করুন।',
+  'memoryEngine.lastError':
+    'মেমোরি ইঞ্জিনের সর্বশেষ অনুরোধ ব্যর্থ হয়েছে। ইঞ্জিনের সেটিংস পরীক্ষা করুন।',
   'memoryEngine.switch': 'পরিবর্তন করুন',
   'memoryEngine.save': 'পরিবর্তন সংরক্ষণ করুন',
   'memoryEngine.dialog.title': '{engine}-এ পরিবর্তন করবেন?',
@@ -7292,21 +7294,29 @@ const messages: TranslationMap = {
   'memoryEngine.dialog.copying': 'আপনার স্মৃতি কপি হচ্ছে…',
   'memoryEngine.dialog.progress': '{total}টির মধ্যে {copied}টি কপি হয়েছে',
   'memoryEngine.dialog.progressUnknown': 'এখন পর্যন্ত {copied}টি স্মৃতি কপি হয়েছে',
-  'memoryEngine.dialog.lacking': 'নতুন ইঞ্জিন আপনার বর্তমান ইঞ্জিনের এই বৈশিষ্ট্যগুলো সমর্থন করে না:',
-  'memoryEngine.error.insufficientCredits': 'আপনার OpenHuman ক্রেডিট শেষ হয়ে গেছে। এই ইঞ্জিন ব্যবহার করতে ক্রেডিট যোগ করুন।',
-  'memoryEngine.error.sessionExpired': 'আপনার সেশনের মেয়াদ শেষ হয়েছে। চালিয়ে যেতে আবার সাইন ইন করুন।',
-  'memoryEngine.error.backendUnavailable': 'মেমোরি পরিষেবা এখন অনুপলব্ধ। একটু পরে আবার চেষ্টা করুন।',
-  'memoryEngine.error.generic': 'মেমোরি ইঞ্জিন পরিবর্তন করা যায়নি। সেটিংস পরীক্ষা করে আবার চেষ্টা করুন।',
+  'memoryEngine.dialog.lacking':
+    'নতুন ইঞ্জিন আপনার বর্তমান ইঞ্জিনের এই বৈশিষ্ট্যগুলো সমর্থন করে না:',
+  'memoryEngine.error.insufficientCredits':
+    'আপনার OpenHuman ক্রেডিট শেষ হয়ে গেছে। এই ইঞ্জিন ব্যবহার করতে ক্রেডিট যোগ করুন।',
+  'memoryEngine.error.sessionExpired':
+    'আপনার সেশনের মেয়াদ শেষ হয়েছে। চালিয়ে যেতে আবার সাইন ইন করুন।',
+  'memoryEngine.error.backendUnavailable':
+    'মেমোরি পরিষেবা এখন অনুপলব্ধ। একটু পরে আবার চেষ্টা করুন।',
+  'memoryEngine.error.generic':
+    'মেমোরি ইঞ্জিন পরিবর্তন করা যায়নি। সেটিংস পরীক্ষা করে আবার চেষ্টা করুন।',
   'memoryEngine.error.openBilling': 'বিলিং খুলুন',
   'memoryEngine.error.signIn': 'সাইন ইন',
   'memoryEngine.row.label': 'মেমোরি ইঞ্জিন:',
   'memoryEngine.row.change': 'পরিবর্তন',
   'memoryEngine.engine.tinymemory.label': 'লোকাল (TinyCortex)',
-  'memoryEngine.engine.tinymemory.description': 'TinyCortex দিয়ে এই ডিভাইসে সংরক্ষিত। ব্যক্তিগত, বিনামূল্যে এবং ডিফল্ট।',
+  'memoryEngine.engine.tinymemory.description':
+    'TinyCortex দিয়ে এই ডিভাইসে সংরক্ষিত। ব্যক্তিগত, বিনামূল্যে এবং ডিফল্ট।',
   'memoryEngine.engine.tinyhumans.label': 'CortexDB (TinyHumans-এর মাধ্যমে)',
-  'memoryEngine.engine.tinyhumans.description': 'TinyHumans-এর হোস্ট করা CortexDB। আপনার সাইন-ইন করা অ্যাকাউন্ট ব্যবহার করে, কী লাগে না।',
+  'memoryEngine.engine.tinyhumans.description':
+    'TinyHumans-এর হোস্ট করা CortexDB। আপনার সাইন-ইন করা অ্যাকাউন্ট ব্যবহার করে, কী লাগে না।',
   'memoryEngine.engine.cortex.label': 'CortexDB (নিজের কী)',
-  'memoryEngine.engine.cortex.description': 'আপনার নিজের CortexDB অ্যাকাউন্ট বা ইনস্ট্যান্স, আপনার API কী দিয়ে।',
+  'memoryEngine.engine.cortex.description':
+    'আপনার নিজের CortexDB অ্যাকাউন্ট বা ইনস্ট্যান্স, আপনার API কী দিয়ে।',
   'memoryEngine.engine.supermemory.label': 'Supermemory',
   'memoryEngine.engine.supermemory.description': 'আপনার API কী দিয়ে Supermemory ক্লাউড মেমোরি।',
   'memoryEngine.engine.mem0.label': 'Mem0',

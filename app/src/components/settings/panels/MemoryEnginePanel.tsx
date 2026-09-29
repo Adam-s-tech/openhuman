@@ -23,9 +23,9 @@ import {
   memoryEngineMigrateStatus,
   type MemoryEngineMigrateStatus,
   memoryEngineSet,
+  memoryEnginesList,
   type MemoryEngineState,
   type MemoryEngineTarget,
-  memoryEnginesList,
 } from '../../../utils/tauriCommands/memoryEngine';
 import { Alert, AlertDescription, Button, CenteredLoadingState } from '../../ui';
 import { RadioGroupRoot } from '../../ui/RadioGroup';
@@ -56,7 +56,10 @@ function toPanelError(err: unknown): PanelError {
   };
 }
 
-function formFor(engine: MemoryEngineDescriptor, current: MemoryEngineState | null): EngineFormValues {
+function formFor(
+  engine: MemoryEngineDescriptor,
+  current: MemoryEngineState | null
+): EngineFormValues {
   const same = current?.driver === engine.id;
   return {
     endpoint: (same ? current?.endpoint : null) ?? engine.default_endpoint ?? '',
@@ -336,9 +339,7 @@ export default function MemoryEnginePanel() {
                   isSelected={engine.id === selectedId}
                   keySaved={engine.id === activeId && Boolean(current?.has_credential)}
                   disabledReason={engine.hosted && !signedIn ? 'signed_out' : null}
-                  form={
-                    engine.id === selectedId && form ? form : formFor(engine, current)
-                  }
+                  form={engine.id === selectedId && form ? form : formFor(engine, current)}
                   onFormChange={patchForm}
                 />
               ))}

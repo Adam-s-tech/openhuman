@@ -7401,7 +7401,8 @@ const messages: TranslationMap = {
 
   // Memory engine settings panel
   'memoryEngine.title': 'Motore di memoria',
-  'memoryEngine.description': 'Scegli dove OpenHuman salva e recupera i tuoi ricordi. È attivo un solo motore alla volta.',
+  'memoryEngine.description':
+    'Scegli dove OpenHuman salva e recupera i tuoi ricordi. È attivo un solo motore alla volta.',
   'memoryEngine.active': 'Attivo',
   'memoryEngine.hostedNote': 'Addebitato sui tuoi crediti OpenHuman.',
   'memoryEngine.signInRequired': 'Accedi per usare questo motore.',
@@ -7413,8 +7414,10 @@ const messages: TranslationMap = {
   'memoryEngine.apiKeyOptional': 'Chiave API (facoltativa)',
   'memoryEngine.keySaved': 'Una chiave è salvata. Lascia vuoto per mantenerla.',
   'memoryEngine.keySavedPlaceholder': 'Salvata (nascosta)',
-  'memoryEngine.fallback': 'Il motore {engine} non era disponibile, quindi OpenHuman è tornato alla memoria locale.',
-  'memoryEngine.lastError': 'L\'ultima richiesta al motore di memoria non è riuscita. Controlla le impostazioni del motore.',
+  'memoryEngine.fallback':
+    'Il motore {engine} non era disponibile, quindi OpenHuman è tornato alla memoria locale.',
+  'memoryEngine.lastError':
+    "L'ultima richiesta al motore di memoria non è riuscita. Controlla le impostazioni del motore.",
   'memoryEngine.switch': 'Cambia',
   'memoryEngine.save': 'Salva modifiche',
   'memoryEngine.dialog.title': 'Passare a {engine}?',
@@ -7424,27 +7427,36 @@ const messages: TranslationMap = {
   'memoryEngine.dialog.copying': 'Copia dei tuoi ricordi in corso…',
   'memoryEngine.dialog.progress': 'Copiati {copied} di {total}',
   'memoryEngine.dialog.progressUnknown': 'Finora copiati {copied} ricordi',
-  'memoryEngine.dialog.lacking': 'Il nuovo motore non supporta queste funzioni del tuo motore attuale:',
-  'memoryEngine.error.insufficientCredits': 'Hai esaurito i crediti OpenHuman. Aggiungi crediti per usare questo motore.',
+  'memoryEngine.dialog.lacking':
+    'Il nuovo motore non supporta queste funzioni del tuo motore attuale:',
+  'memoryEngine.error.insufficientCredits':
+    'Hai esaurito i crediti OpenHuman. Aggiungi crediti per usare questo motore.',
   'memoryEngine.error.sessionExpired': 'La sessione è scaduta. Accedi di nuovo per continuare.',
-  'memoryEngine.error.backendUnavailable': 'Il servizio di memoria non è disponibile al momento. Riprova tra poco.',
-  'memoryEngine.error.generic': 'Impossibile cambiare il motore di memoria. Controlla le impostazioni e riprova.',
+  'memoryEngine.error.backendUnavailable':
+    'Il servizio di memoria non è disponibile al momento. Riprova tra poco.',
+  'memoryEngine.error.generic':
+    'Impossibile cambiare il motore di memoria. Controlla le impostazioni e riprova.',
   'memoryEngine.error.openBilling': 'Apri fatturazione',
   'memoryEngine.error.signIn': 'Accedi',
   'memoryEngine.row.label': 'Motore di memoria:',
   'memoryEngine.row.change': 'Modifica',
   'memoryEngine.engine.tinymemory.label': 'Locale (TinyCortex)',
-  'memoryEngine.engine.tinymemory.description': 'Salvata su questo dispositivo con TinyCortex. Privata, gratuita e predefinita.',
+  'memoryEngine.engine.tinymemory.description':
+    'Salvata su questo dispositivo con TinyCortex. Privata, gratuita e predefinita.',
   'memoryEngine.engine.tinyhumans.label': 'CortexDB (tramite TinyHumans)',
-  'memoryEngine.engine.tinyhumans.description': 'CortexDB ospitato da TinyHumans. Usa il tuo account connesso, nessuna chiave necessaria.',
+  'memoryEngine.engine.tinyhumans.description':
+    'CortexDB ospitato da TinyHumans. Usa il tuo account connesso, nessuna chiave necessaria.',
   'memoryEngine.engine.cortex.label': 'CortexDB (chiave propria)',
-  'memoryEngine.engine.cortex.description': 'Il tuo account o la tua istanza CortexDB, con la tua chiave API.',
+  'memoryEngine.engine.cortex.description':
+    'Il tuo account o la tua istanza CortexDB, con la tua chiave API.',
   'memoryEngine.engine.supermemory.label': 'Supermemory',
-  'memoryEngine.engine.supermemory.description': 'Memoria cloud Supermemory, con la tua chiave API.',
+  'memoryEngine.engine.supermemory.description':
+    'Memoria cloud Supermemory, con la tua chiave API.',
   'memoryEngine.engine.mem0.label': 'Mem0',
   'memoryEngine.engine.mem0.description': 'Livello di memoria Mem0, cloud o self-hosted.',
   'memoryEngine.engine.cognee.label': 'Cognee',
-  'memoryEngine.engine.cognee.description': 'Memoria a grafo di conoscenza Cognee, cloud o self-hosted.',
+  'memoryEngine.engine.cognee.description':
+    'Memoria a grafo di conoscenza Cognee, cloud o self-hosted.',
   'memoryEngine.engine.agentmemory.label': 'AgentMemory',
   'memoryEngine.engine.agentmemory.description': 'Un server AgentMemory che gestisci tu stesso.',
 };

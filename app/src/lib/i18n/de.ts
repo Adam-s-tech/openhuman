@@ -7469,7 +7469,8 @@ const messages: TranslationMap = {
 
   // Memory engine settings panel
   'memoryEngine.title': 'Speicher-Engine',
-  'memoryEngine.description': 'Lege fest, wo OpenHuman deine Erinnerungen speichert und abruft. Es ist immer genau eine Engine aktiv.',
+  'memoryEngine.description':
+    'Lege fest, wo OpenHuman deine Erinnerungen speichert und abruft. Es ist immer genau eine Engine aktiv.',
   'memoryEngine.active': 'Aktiv',
   'memoryEngine.hostedNote': 'Wird deinen OpenHuman-Credits belastet.',
   'memoryEngine.signInRequired': 'Melde dich an, um diese Engine zu nutzen.',
@@ -7481,8 +7482,10 @@ const messages: TranslationMap = {
   'memoryEngine.apiKeyOptional': 'API-Schlüssel (optional)',
   'memoryEngine.keySaved': 'Ein Schlüssel ist gespeichert. Leer lassen, um ihn zu behalten.',
   'memoryEngine.keySavedPlaceholder': 'Gespeichert (verborgen)',
-  'memoryEngine.fallback': 'Die Engine {engine} war nicht verfügbar, daher greift OpenHuman auf den lokalen Speicher zurück.',
-  'memoryEngine.lastError': 'Die letzte Anfrage an die Speicher-Engine ist fehlgeschlagen. Prüfe die Engine-Einstellungen.',
+  'memoryEngine.fallback':
+    'Die Engine {engine} war nicht verfügbar, daher greift OpenHuman auf den lokalen Speicher zurück.',
+  'memoryEngine.lastError':
+    'Die letzte Anfrage an die Speicher-Engine ist fehlgeschlagen. Prüfe die Engine-Einstellungen.',
   'memoryEngine.switch': 'Wechseln',
   'memoryEngine.save': 'Änderungen speichern',
   'memoryEngine.dialog.title': 'Zu {engine} wechseln?',
@@ -7492,27 +7495,38 @@ const messages: TranslationMap = {
   'memoryEngine.dialog.copying': 'Deine Erinnerungen werden kopiert…',
   'memoryEngine.dialog.progress': '{copied} von {total} kopiert',
   'memoryEngine.dialog.progressUnknown': 'Bisher {copied} Erinnerungen kopiert',
-  'memoryEngine.dialog.lacking': 'Die neue Engine unterstützt diese Funktionen deiner aktuellen Engine nicht:',
-  'memoryEngine.error.insufficientCredits': 'Deine OpenHuman-Credits sind aufgebraucht. Lade Credits auf, um diese Engine zu nutzen.',
-  'memoryEngine.error.sessionExpired': 'Deine Sitzung ist abgelaufen. Melde dich erneut an, um fortzufahren.',
-  'memoryEngine.error.backendUnavailable': 'Der Speicherdienst ist derzeit nicht erreichbar. Versuche es gleich noch einmal.',
-  'memoryEngine.error.generic': 'Die Speicher-Engine konnte nicht geändert werden. Prüfe die Einstellungen und versuche es erneut.',
+  'memoryEngine.dialog.lacking':
+    'Die neue Engine unterstützt diese Funktionen deiner aktuellen Engine nicht:',
+  'memoryEngine.error.insufficientCredits':
+    'Deine OpenHuman-Credits sind aufgebraucht. Lade Credits auf, um diese Engine zu nutzen.',
+  'memoryEngine.error.sessionExpired':
+    'Deine Sitzung ist abgelaufen. Melde dich erneut an, um fortzufahren.',
+  'memoryEngine.error.backendUnavailable':
+    'Der Speicherdienst ist derzeit nicht erreichbar. Versuche es gleich noch einmal.',
+  'memoryEngine.error.generic':
+    'Die Speicher-Engine konnte nicht geändert werden. Prüfe die Einstellungen und versuche es erneut.',
   'memoryEngine.error.openBilling': 'Abrechnung öffnen',
   'memoryEngine.error.signIn': 'Anmelden',
   'memoryEngine.row.label': 'Speicher-Engine:',
   'memoryEngine.row.change': 'Ändern',
   'memoryEngine.engine.tinymemory.label': 'Lokal (TinyCortex)',
-  'memoryEngine.engine.tinymemory.description': 'Auf diesem Gerät mit TinyCortex gespeichert. Privat, kostenlos und der Standard.',
+  'memoryEngine.engine.tinymemory.description':
+    'Auf diesem Gerät mit TinyCortex gespeichert. Privat, kostenlos und der Standard.',
   'memoryEngine.engine.tinyhumans.label': 'CortexDB (über TinyHumans)',
-  'memoryEngine.engine.tinyhumans.description': 'CortexDB, gehostet von TinyHumans. Nutzt dein angemeldetes Konto, kein Schlüssel nötig.',
+  'memoryEngine.engine.tinyhumans.description':
+    'CortexDB, gehostet von TinyHumans. Nutzt dein angemeldetes Konto, kein Schlüssel nötig.',
   'memoryEngine.engine.cortex.label': 'CortexDB (eigener Schlüssel)',
-  'memoryEngine.engine.cortex.description': 'Dein eigenes CortexDB-Konto oder deine eigene Instanz mit deinem API-Schlüssel.',
+  'memoryEngine.engine.cortex.description':
+    'Dein eigenes CortexDB-Konto oder deine eigene Instanz mit deinem API-Schlüssel.',
   'memoryEngine.engine.supermemory.label': 'Supermemory',
-  'memoryEngine.engine.supermemory.description': 'Supermemory-Cloud-Speicher mit deinem API-Schlüssel.',
+  'memoryEngine.engine.supermemory.description':
+    'Supermemory-Cloud-Speicher mit deinem API-Schlüssel.',
   'memoryEngine.engine.mem0.label': 'Mem0',
-  'memoryEngine.engine.mem0.description': 'Mem0-Speicherschicht, in der Cloud oder selbst gehostet.',
+  'memoryEngine.engine.mem0.description':
+    'Mem0-Speicherschicht, in der Cloud oder selbst gehostet.',
   'memoryEngine.engine.cognee.label': 'Cognee',
-  'memoryEngine.engine.cognee.description': 'Cognee-Wissensgraph-Speicher, in der Cloud oder selbst gehostet.',
+  'memoryEngine.engine.cognee.description':
+    'Cognee-Wissensgraph-Speicher, in der Cloud oder selbst gehostet.',
   'memoryEngine.engine.agentmemory.label': 'AgentMemory',
   'memoryEngine.engine.agentmemory.description': 'Ein AgentMemory-Server, den du selbst betreibst.',
 };

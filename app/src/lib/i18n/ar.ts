@@ -7119,7 +7119,8 @@ const messages: TranslationMap = {
 
   // Memory engine settings panel
   'memoryEngine.title': 'محرك الذاكرة',
-  'memoryEngine.description': 'اختر أين يحفظ OpenHuman ذكرياتك ويسترجعها. يكون محرك واحد فقط نشطًا في كل مرة.',
+  'memoryEngine.description':
+    'اختر أين يحفظ OpenHuman ذكرياتك ويسترجعها. يكون محرك واحد فقط نشطًا في كل مرة.',
   'memoryEngine.active': 'نشط',
   'memoryEngine.hostedNote': 'تُحتسب الرسوم على رصيد OpenHuman الخاص بك.',
   'memoryEngine.signInRequired': 'سجّل الدخول لاستخدام هذا المحرك.',
@@ -7143,7 +7144,8 @@ const messages: TranslationMap = {
   'memoryEngine.dialog.progress': 'تم نسخ {copied} من {total}',
   'memoryEngine.dialog.progressUnknown': 'تم نسخ {copied} ذكرى حتى الآن',
   'memoryEngine.dialog.lacking': 'لا يدعم المحرك الجديد هذه الميزات الموجودة في محركك الحالي:',
-  'memoryEngine.error.insufficientCredits': 'نفد رصيد OpenHuman لديك. أضف رصيدًا لاستخدام هذا المحرك.',
+  'memoryEngine.error.insufficientCredits':
+    'نفد رصيد OpenHuman لديك. أضف رصيدًا لاستخدام هذا المحرك.',
   'memoryEngine.error.sessionExpired': 'انتهت جلستك. سجّل الدخول مرة أخرى للمتابعة.',
   'memoryEngine.error.backendUnavailable': 'خدمة الذاكرة غير متاحة حاليًا. حاول مرة أخرى بعد قليل.',
   'memoryEngine.error.generic': 'تعذّر تغيير محرك الذاكرة. تحقق من الإعدادات وحاول مرة أخرى.',
@@ -7152,17 +7154,22 @@ const messages: TranslationMap = {
   'memoryEngine.row.label': 'محرك الذاكرة:',
   'memoryEngine.row.change': 'تغيير',
   'memoryEngine.engine.tinymemory.label': 'محلي (TinyCortex)',
-  'memoryEngine.engine.tinymemory.description': 'يُحفظ على هذا الجهاز باستخدام TinyCortex. خاص ومجاني وهو الخيار الافتراضي.',
+  'memoryEngine.engine.tinymemory.description':
+    'يُحفظ على هذا الجهاز باستخدام TinyCortex. خاص ومجاني وهو الخيار الافتراضي.',
   'memoryEngine.engine.tinyhumans.label': 'CortexDB (عبر TinyHumans)',
-  'memoryEngine.engine.tinyhumans.description': 'CortexDB مستضاف لدى TinyHumans. يستخدم حسابك المسجَّل دخوله دون الحاجة إلى مفتاح.',
+  'memoryEngine.engine.tinyhumans.description':
+    'CortexDB مستضاف لدى TinyHumans. يستخدم حسابك المسجَّل دخوله دون الحاجة إلى مفتاح.',
   'memoryEngine.engine.cortex.label': 'CortexDB (مفتاحك الخاص)',
-  'memoryEngine.engine.cortex.description': 'حسابك أو نسختك الخاصة من CortexDB باستخدام مفتاح API الخاص بك.',
+  'memoryEngine.engine.cortex.description':
+    'حسابك أو نسختك الخاصة من CortexDB باستخدام مفتاح API الخاص بك.',
   'memoryEngine.engine.supermemory.label': 'Supermemory',
-  'memoryEngine.engine.supermemory.description': 'ذاكرة Supermemory السحابية باستخدام مفتاح API الخاص بك.',
+  'memoryEngine.engine.supermemory.description':
+    'ذاكرة Supermemory السحابية باستخدام مفتاح API الخاص بك.',
   'memoryEngine.engine.mem0.label': 'Mem0',
   'memoryEngine.engine.mem0.description': 'طبقة ذاكرة Mem0، سحابية أو بالاستضافة الذاتية.',
   'memoryEngine.engine.cognee.label': 'Cognee',
-  'memoryEngine.engine.cognee.description': 'ذاكرة Cognee القائمة على مخطط المعرفة، سحابية أو بالاستضافة الذاتية.',
+  'memoryEngine.engine.cognee.description':
+    'ذاكرة Cognee القائمة على مخطط المعرفة، سحابية أو بالاستضافة الذاتية.',
   'memoryEngine.engine.agentmemory.label': 'AgentMemory',
   'memoryEngine.engine.agentmemory.description': 'خادم AgentMemory تشغّله بنفسك.',
 };

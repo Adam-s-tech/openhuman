@@ -77,9 +77,7 @@ export async function memoryEngineMigrate(to: MemoryEngineTarget): Promise<{ job
   });
 }
 
-export async function memoryEngineMigrateStatus(
-  jobId: string
-): Promise<MemoryEngineMigrateStatus> {
+export async function memoryEngineMigrateStatus(jobId: string): Promise<MemoryEngineMigrateStatus> {
   return await callCoreRpc<MemoryEngineMigrateStatus>({
     method: CORE_RPC_METHODS.memoryEngineMigrateStatus,
     params: { job_id: jobId },

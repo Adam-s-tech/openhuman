@@ -7346,7 +7346,8 @@ const messages: TranslationMap = {
 
   // Memory engine settings panel
   'memoryEngine.title': 'Движок памяти',
-  'memoryEngine.description': 'Выберите, где OpenHuman хранит и извлекает ваши воспоминания. Одновременно активен только один движок.',
+  'memoryEngine.description':
+    'Выберите, где OpenHuman хранит и извлекает ваши воспоминания. Одновременно активен только один движок.',
   'memoryEngine.active': 'Активен',
   'memoryEngine.hostedNote': 'Оплачивается из ваших кредитов OpenHuman.',
   'memoryEngine.signInRequired': 'Войдите, чтобы использовать этот движок.',
@@ -7358,8 +7359,10 @@ const messages: TranslationMap = {
   'memoryEngine.apiKeyOptional': 'API-ключ (необязательно)',
   'memoryEngine.keySaved': 'Ключ сохранён. Оставьте поле пустым, чтобы сохранить его.',
   'memoryEngine.keySavedPlaceholder': 'Сохранён (скрыт)',
-  'memoryEngine.fallback': 'Движок {engine} был недоступен, поэтому OpenHuman переключился на локальную память.',
-  'memoryEngine.lastError': 'Последний запрос к движку памяти не удался. Проверьте настройки движка.',
+  'memoryEngine.fallback':
+    'Движок {engine} был недоступен, поэтому OpenHuman переключился на локальную память.',
+  'memoryEngine.lastError':
+    'Последний запрос к движку памяти не удался. Проверьте настройки движка.',
   'memoryEngine.switch': 'Переключить',
   'memoryEngine.save': 'Сохранить изменения',
   'memoryEngine.dialog.title': 'Переключиться на {engine}?',
@@ -7370,26 +7373,33 @@ const messages: TranslationMap = {
   'memoryEngine.dialog.progress': 'Скопировано {copied} из {total}',
   'memoryEngine.dialog.progressUnknown': 'Скопировано воспоминаний: {copied}',
   'memoryEngine.dialog.lacking': 'Новый движок не поддерживает эти функции вашего текущего движка:',
-  'memoryEngine.error.insufficientCredits': 'Кредиты OpenHuman закончились. Пополните кредиты, чтобы использовать этот движок.',
+  'memoryEngine.error.insufficientCredits':
+    'Кредиты OpenHuman закончились. Пополните кредиты, чтобы использовать этот движок.',
   'memoryEngine.error.sessionExpired': 'Сеанс истёк. Войдите снова, чтобы продолжить.',
-  'memoryEngine.error.backendUnavailable': 'Служба памяти сейчас недоступна. Повторите попытку чуть позже.',
-  'memoryEngine.error.generic': 'Не удалось сменить движок памяти. Проверьте настройки и повторите попытку.',
+  'memoryEngine.error.backendUnavailable':
+    'Служба памяти сейчас недоступна. Повторите попытку чуть позже.',
+  'memoryEngine.error.generic':
+    'Не удалось сменить движок памяти. Проверьте настройки и повторите попытку.',
   'memoryEngine.error.openBilling': 'Открыть оплату',
   'memoryEngine.error.signIn': 'Войти',
   'memoryEngine.row.label': 'Движок памяти:',
   'memoryEngine.row.change': 'Изменить',
   'memoryEngine.engine.tinymemory.label': 'Локальный (TinyCortex)',
-  'memoryEngine.engine.tinymemory.description': 'Хранится на этом устройстве с помощью TinyCortex. Приватно, бесплатно и по умолчанию.',
+  'memoryEngine.engine.tinymemory.description':
+    'Хранится на этом устройстве с помощью TinyCortex. Приватно, бесплатно и по умолчанию.',
   'memoryEngine.engine.tinyhumans.label': 'CortexDB (через TinyHumans)',
-  'memoryEngine.engine.tinyhumans.description': 'CortexDB, размещённая TinyHumans. Использует вашу учётную запись, ключ не нужен.',
+  'memoryEngine.engine.tinyhumans.description':
+    'CortexDB, размещённая TinyHumans. Использует вашу учётную запись, ключ не нужен.',
   'memoryEngine.engine.cortex.label': 'CortexDB (свой ключ)',
-  'memoryEngine.engine.cortex.description': 'Ваша собственная учётная запись или экземпляр CortexDB с вашим API-ключом.',
+  'memoryEngine.engine.cortex.description':
+    'Ваша собственная учётная запись или экземпляр CortexDB с вашим API-ключом.',
   'memoryEngine.engine.supermemory.label': 'Supermemory',
   'memoryEngine.engine.supermemory.description': 'Облачная память Supermemory с вашим API-ключом.',
   'memoryEngine.engine.mem0.label': 'Mem0',
   'memoryEngine.engine.mem0.description': 'Слой памяти Mem0, в облаке или на собственном сервере.',
   'memoryEngine.engine.cognee.label': 'Cognee',
-  'memoryEngine.engine.cognee.description': 'Память на графе знаний Cognee, в облаке или на собственном сервере.',
+  'memoryEngine.engine.cognee.description':
+    'Память на графе знаний Cognee, в облаке или на собственном сервере.',
   'memoryEngine.engine.agentmemory.label': 'AgentMemory',
   'memoryEngine.engine.agentmemory.description': 'Сервер AgentMemory, который вы запускаете сами.',
 };
