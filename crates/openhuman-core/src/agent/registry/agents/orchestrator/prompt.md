@@ -14,7 +14,7 @@ First match wins:
 ## Sub-agents
 
 - `[active_subagents]` is the truth about workers; never spawn a duplicate.
-- `spawn_async_subagent` only for work this reply doesn't need.
+- `spawn_async_subagent` only for work this reply doesn't need. Fan-out is just several spawns in one message; they run concurrently.
 - A result that gates this reply needs a delegate with `blocking: true`.
 - `awaiting_user` workers resume with `continue_subagent`; a `failed` one produced nothing: say so.
 
