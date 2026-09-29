@@ -16,6 +16,10 @@ use anyhow::Context;
 use crate::config::Config;
 use crate::inference::provider::{self, INFERENCE_BACKEND_ID};
 
+/// Workload role every triage arm runs under. Triage classification is a
+/// short chat-shaped call, so it follows the user's `chat` route.
+const TRIAGE_ROLE: &str = "chat";
+
 /// The concrete provider + metadata that [`crate::agent::triage::evaluator::run_triage`]
 /// should use for this particular triage turn.
 pub struct ResolvedProvider {
