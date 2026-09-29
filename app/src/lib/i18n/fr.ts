@@ -7466,8 +7466,9 @@ const messages: TranslationMap = {
   'memoryEngine.apiKeyOptional': "Clé d'API (facultative)",
   'memoryEngine.keySaved': 'Une clé est enregistrée. Laissez vide pour la conserver.',
   'memoryEngine.keySavedPlaceholder': 'Enregistrée (masquée)',
-  'memoryEngine.fallback':
-    'Le moteur {engine} était indisponible, OpenHuman est donc revenu à la mémoire locale.',
+  'memoryEngine.fallback': 'La mémoire est en pause : {engine} est indisponible, donc rien n\'est enregistré ni rappelé tant qu\'il n\'est pas de retour. {reason}',
+  'memoryEngine.paused': 'La mémoire est en pause',
+  'memoryEngine.dialog.cancelMigration': 'Annuler la copie',
   'memoryEngine.lastError':
     'La dernière requête au moteur de mémoire a échoué. Vérifiez les paramètres du moteur.',
   'memoryEngine.switch': 'Changer',

@@ -7333,8 +7333,9 @@ const messages: TranslationMap = {
   'memoryEngine.apiKeyOptional': 'Kunci API (opsional)',
   'memoryEngine.keySaved': 'Kunci sudah tersimpan. Kosongkan untuk mempertahankannya.',
   'memoryEngine.keySavedPlaceholder': 'Tersimpan (disembunyikan)',
-  'memoryEngine.fallback':
-    'Mesin {engine} tidak tersedia, sehingga OpenHuman beralih ke memori lokal.',
+  'memoryEngine.fallback': 'Memori dijeda: {engine} tidak tersedia, sehingga tidak ada yang disimpan atau diingat sampai kembali tersedia. {reason}',
+  'memoryEngine.paused': 'Memori dijeda',
+  'memoryEngine.dialog.cancelMigration': 'Batalkan penyalinan',
   'memoryEngine.lastError': 'Permintaan terakhir ke mesin memori gagal. Periksa pengaturan mesin.',
   'memoryEngine.switch': 'Beralih',
   'memoryEngine.save': 'Simpan perubahan',

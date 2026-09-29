@@ -7202,8 +7202,9 @@ const messages: TranslationMap = {
   'memoryEngine.apiKeyOptional': 'API 키(선택)',
   'memoryEngine.keySaved': '키가 저장되어 있습니다. 유지하려면 비워 두세요.',
   'memoryEngine.keySavedPlaceholder': '저장됨(숨김)',
-  'memoryEngine.fallback':
-    '엔진 {engine}을(를) 사용할 수 없어 OpenHuman이 로컬 메모리로 전환했습니다.',
+  'memoryEngine.fallback': '메모리가 일시 중지되었습니다. {engine}을(를) 사용할 수 없어 다시 사용할 수 있을 때까지 저장이나 회상이 이루어지지 않습니다. {reason}',
+  'memoryEngine.paused': '메모리가 일시 중지되었습니다',
+  'memoryEngine.dialog.cancelMigration': '복사 취소',
   'memoryEngine.lastError': '마지막 메모리 엔진 요청이 실패했습니다. 엔진 설정을 확인하세요.',
   'memoryEngine.switch': '전환',
   'memoryEngine.save': '변경 사항 저장',

@@ -7359,8 +7359,9 @@ const messages: TranslationMap = {
   'memoryEngine.apiKeyOptional': 'API-ключ (необязательно)',
   'memoryEngine.keySaved': 'Ключ сохранён. Оставьте поле пустым, чтобы сохранить его.',
   'memoryEngine.keySavedPlaceholder': 'Сохранён (скрыт)',
-  'memoryEngine.fallback':
-    'Движок {engine} был недоступен, поэтому OpenHuman переключился на локальную память.',
+  'memoryEngine.fallback': 'Память приостановлена: {engine} недоступен, поэтому ничего не сохраняется и не вспоминается, пока он не вернётся. {reason}',
+  'memoryEngine.paused': 'Память приостановлена',
+  'memoryEngine.dialog.cancelMigration': 'Отменить копирование',
   'memoryEngine.lastError':
     'Последний запрос к движку памяти не удался. Проверьте настройки движка.',
   'memoryEngine.switch': 'Переключить',

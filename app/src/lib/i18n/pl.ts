@@ -7391,8 +7391,9 @@ const messages: TranslationMap = {
   'memoryEngine.apiKeyOptional': 'Klucz API (opcjonalnie)',
   'memoryEngine.keySaved': 'Klucz jest zapisany. Zostaw puste, aby go zachować.',
   'memoryEngine.keySavedPlaceholder': 'Zapisany (ukryty)',
-  'memoryEngine.fallback':
-    'Silnik {engine} był niedostępny, więc OpenHuman wrócił do pamięci lokalnej.',
+  'memoryEngine.fallback': 'Pamięć jest wstrzymana: {engine} jest niedostępny, więc nic nie jest zapisywane ani przywoływane, dopóki nie wróci. {reason}',
+  'memoryEngine.paused': 'Pamięć jest wstrzymana',
+  'memoryEngine.dialog.cancelMigration': 'Anuluj kopiowanie',
   'memoryEngine.lastError':
     'Ostatnie żądanie do silnika pamięci nie powiodło się. Sprawdź ustawienia silnika.',
   'memoryEngine.switch': 'Przełącz',

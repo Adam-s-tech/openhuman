@@ -7282,7 +7282,9 @@ const messages: TranslationMap = {
   'memoryEngine.apiKeyOptional': 'API কী (ঐচ্ছিক)',
   'memoryEngine.keySaved': 'একটি কী সংরক্ষিত আছে। রাখতে ফাঁকা রাখুন।',
   'memoryEngine.keySavedPlaceholder': 'সংরক্ষিত (লুকানো)',
-  'memoryEngine.fallback': '{engine} ইঞ্জিন পাওয়া যায়নি, তাই OpenHuman লোকাল মেমোরিতে ফিরে গেছে।',
+  'memoryEngine.fallback': 'মেমোরি বিরতিতে আছে: ইঞ্জিন {engine} পাওয়া যাচ্ছে না, তাই এটি ফিরে না আসা পর্যন্ত কিছু সংরক্ষণ বা স্মরণ করা হচ্ছে না। {reason}',
+  'memoryEngine.paused': 'মেমোরি বিরতিতে আছে',
+  'memoryEngine.dialog.cancelMigration': 'কপি বাতিল করুন',
   'memoryEngine.lastError':
     'মেমোরি ইঞ্জিনের সর্বশেষ অনুরোধ ব্যর্থ হয়েছে। ইঞ্জিনের সেটিংস পরীক্ষা করুন।',
   'memoryEngine.switch': 'পরিবর্তন করুন',
