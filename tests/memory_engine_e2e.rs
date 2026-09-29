@@ -590,7 +590,10 @@ fn engine_set_binds_the_hosted_engine_without_a_restart_and_switches_back() {
             .recall(
                 "hosted engine",
                 5,
-                &openhuman_core::memory::api::recall::OwnedRecallOpts::default(),
+                &openhuman_core::memory::api::recall::OwnedRecallOpts {
+                    namespace: Some(NS.to_string()),
+                    ..Default::default()
+                },
                 None,
             )
             .await
