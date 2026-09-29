@@ -1,5 +1,5 @@
 use super::*;
-use serde_json::json;
+use serde_json::{json, Value};
 
 #[test]
 fn schema_array_path_prefers_the_shallowest_array() {
