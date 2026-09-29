@@ -1347,7 +1347,8 @@ fn platform_holds_only_kernel_surfaces() {
         .map(|g| g.controller.schema.namespace)
         .collect();
     // Namespaces legitimately without a family: platform/, tools/,
-    // test_support/, and the `http_host` extension `openhuman-rpc` registers. Anything else here is a missed tag.
+    // test_support/, and the `http_host` extension `openhuman-rpc` registers.
+    // Anything else here is a missed tag.
     for ns in &platform {
         assert!(
             !matches!(
