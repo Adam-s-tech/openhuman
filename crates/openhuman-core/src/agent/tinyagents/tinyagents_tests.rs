@@ -84,7 +84,11 @@ fn scripted_response(
     } else {
         vec![ContentBlock::Text(text.to_string())]
     };
-    let finish = if tool_calls.is_empty() { "stop" } else { "tool_calls" };
+    let finish = if tool_calls.is_empty() {
+        "stop"
+    } else {
+        "tool_calls"
+    };
     tinyinference_llm::model::ModelResponse {
         message: AssistantMessage {
             id: None,
