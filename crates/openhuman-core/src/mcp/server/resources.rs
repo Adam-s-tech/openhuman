@@ -58,61 +58,13 @@ const RESOURCE_CATALOG: &[PromptResource] = &[
     PromptResource {
         uri: "openhuman://prompts/agents/planner",
         name: "planner",
-        description: "Reasoning-tier planner that grounds multi-step plans in integration data.",
+        description: "Read-only reasoning worker that decomposes and researches a question for workflow runs.",
         content: include_str!("../../agent/registry/agents/planner/prompt.md"),
-    },
-    PromptResource {
-        uri: "openhuman://prompts/agents/code_executor",
-        name: "code_executor",
-        description: "Sandboxed worker that writes and executes code.",
-        content: include_str!("../../agent/registry/agents/code_executor/prompt.md"),
-    },
-    PromptResource {
-        uri: "openhuman://prompts/agents/integrations_agent",
-        name: "integrations_agent",
-        description: "Worker that executes Composio integration actions.",
-        content: include_str!("../../agent/registry/agents/integrations_agent/prompt.md"),
-    },
-    PromptResource {
-        uri: "openhuman://prompts/agents/crypto_agent",
-        name: "crypto_agent",
-        description: "Specialist worker for wallet and on-chain operations.",
-        content: include_str!("../../agent/registry/agents/crypto_agent/prompt.md"),
-    },
-    PromptResource {
-        uri: "openhuman://prompts/agents/tools_agent",
-        name: "tools_agent",
-        description: "Generalist worker with access to the full tool surface.",
-        content: include_str!("../../agent/registry/agents/tools_agent/prompt.md"),
-    },
-    PromptResource {
-        uri: "openhuman://prompts/agents/tool_maker",
-        name: "tool_maker",
-        description: "Sandboxed worker that creates new tools from descriptions.",
-        content: include_str!("../../agent/registry/agents/tool_maker/prompt.md"),
-    },
-    PromptResource {
-        uri: "openhuman://prompts/agents/skill_creator",
-        name: "skill_creator",
-        description: "Sandboxed worker that authors and publishes skill packages.",
-        content: include_str!("../../agent/registry/agents/skill_creator/prompt.md"),
-    },
-    PromptResource {
-        uri: "openhuman://prompts/agents/researcher",
-        name: "researcher",
-        description: "Worker that searches the web and synthesises research findings.",
-        content: include_str!("../../agent/registry/agents/researcher/prompt.md"),
-    },
-    PromptResource {
-        uri: "openhuman://prompts/agents/context_scout",
-        name: "context_scout",
-        description: "Read-only pre-flight worker that gathers context (memory, transcripts, goals, skills, integrations, web) and returns a bounded context bundle.",
-        content: include_str!("../../agent/registry/agents/context_scout/prompt.md"),
     },
     PromptResource {
         uri: "openhuman://prompts/agents/critic",
         name: "critic",
-        description: "Read-only worker that critiques plans and outputs.",
+        description: "Read-only worker that cross-checks claims and reviews changes for workflow runs.",
         content: include_str!("../../agent/registry/agents/critic/prompt.md"),
     },
     PromptResource {
@@ -170,40 +122,16 @@ const RESOURCE_CATALOG: &[PromptResource] = &[
         content: crate::agent::registry::agents::summarizer::prompt::ARCHETYPE,
     },
     PromptResource {
-        uri: "openhuman://prompts/agents/help",
-        name: "help",
-        description: "Read-only worker that answers questions from documentation.",
-        content: include_str!("../../agent/registry/agents/help/prompt.md"),
-    },
-    PromptResource {
-        uri: "openhuman://prompts/agents/scheduler_agent",
-        name: "scheduler_agent",
-        description: "Specialist worker for reminders, recurring jobs, and cron inspection.",
-        content: include_str!("../../agent/registry/agents/scheduler_agent/prompt.md"),
-    },
-    PromptResource {
         uri: "openhuman://prompts/agents/presentation_agent",
         name: "presentation_agent",
         description: "Specialist worker for evidence-grounded presentation generation.",
         content: include_str!("../../agent/registry/agents/presentation_agent/prompt.md"),
     },
     PromptResource {
-        uri: "openhuman://prompts/agents/mcp_agent",
-        name: "mcp_agent",
-        description: "Worker that discovers and calls tools on already-connected MCP servers.",
-        content: include_str!("../../agent/registry/agents/mcp_agent/prompt.md"),
-    },
-    PromptResource {
         uri: "openhuman://prompts/agents/task_manager_agent",
         name: "task_manager_agent",
         description: "Specialist worker for task-source feeds, workflow bundles, and artifacts.",
         content: include_str!("../../agent/registry/agents/task_manager_agent/prompt.md"),
-    },
-    PromptResource {
-        uri: "openhuman://prompts/agents/settings_agent",
-        name: "settings_agent",
-        description: "Specialist worker for inspecting and updating OpenHuman settings.",
-        content: include_str!("../../agent/registry/agents/settings_agent/prompt.md"),
     },
     PromptResource {
         uri: "openhuman://prompts/agents/profile_memory_agent",
@@ -244,13 +172,6 @@ const RESOURCE_CATALOG: &[PromptResource] = &[
         name: "skill_setup",
         description: "Worker that guides skill installation and backend configuration.",
         content: include_str!("../../skills/catalog/agent/skill_setup/prompt.md"),
-    },
-    #[cfg(feature = "skills")]
-    PromptResource {
-        uri: "openhuman://prompts/agents/skill_executor",
-        name: "skill_executor",
-        description: "Sandboxed worker that runs installed skill packages.",
-        content: include_str!("../../skills/runtime/agent/skill_executor/prompt.md"),
     },
 ];
 

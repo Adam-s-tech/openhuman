@@ -81,8 +81,8 @@ fn def_with_scope(scope: ToolScope) -> AgentDefinition {
 
 /// `ToolScope::Wildcard` must yield `None` — the prompt builder
 /// treats `None` as "no filter, every tool visible", which is the
-/// correct behaviour for agents like `integrations_agent` that want the
-/// full skill-category catalogue. Even when extras are present, a
+/// correct behaviour for agents that want the full skill-category
+/// catalogue. Even when extras are present, a
 /// wildcard agent should not start filtering.
 #[test]
 fn wildcard_scope_yields_none_filter() {

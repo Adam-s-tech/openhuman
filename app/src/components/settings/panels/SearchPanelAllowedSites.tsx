@@ -6,7 +6,12 @@ import Button from '../../ui/Button';
 import Card from '../../ui/Card';
 import TextArea from '../../ui/TextArea';
 import { ToggleGroupItem, ToggleGroupRoot } from '../../ui/ToggleGroup';
-import { SEGMENTED_ITEM_CLASS, SEGMENTED_ROOT_CLASS } from './SearchPanelProviderCard';
+
+/** Segmented-control look for the access-mode picker. */
+const SEGMENTED_ROOT_CLASS =
+  'gap-0 overflow-hidden rounded-lg border border-line *:rounded-none *:border-0';
+const SEGMENTED_ITEM_CLASS =
+  'h-auto px-2.5 py-1 text-xs font-medium data-[state=on]:bg-primary-500 data-[state=on]:text-content-inverted';
 
 /**
  * Tri-state web-access mode for the unified fetch + browser allowlist.

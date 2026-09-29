@@ -61,7 +61,7 @@ pub enum DomainEvent {
     SubagentSpawned {
         /// Parent agent's session id.
         parent_session: String,
-        /// Sub-agent definition id (e.g. `researcher`, `notion_specialist`, `fork`).
+        /// Sub-agent definition id (e.g. `code_executor`, `notion_specialist`, `fork`).
         agent_id: String,
         /// Spawn mode — `"typed"` or `"fork"`.
         mode: String,

@@ -211,6 +211,7 @@ pub(crate) fn migrate_search_settings(config: &mut Config) {
                 .as_deref()
                 .is_some_and(|key| !key.trim().is_empty()),
         searxng_active: config.searxng.enabled,
+        tinyfish_api_key: config.integrations.tinyfish.api_key.clone(),
     };
     config.search.migrate_legacy(legacy);
 }

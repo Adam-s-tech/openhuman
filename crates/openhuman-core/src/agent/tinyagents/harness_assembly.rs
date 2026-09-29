@@ -578,8 +578,8 @@ pub(super) fn assemble_turn_harness(
 
     // Direct web lookup is for a bounded answer. Once enough search/fetch
     // results have returned, spend the next model call on synthesis rather
-    // than another variation of the same query. Specialist research runs keep
-    // their own budgets and are not narrowed here.
+    // than another variation of the same query. Sub-agent runs keep their own
+    // budgets and are not narrowed here.
     if subagent_scope.is_none() {
         harness.push_middleware(Arc::new(middleware::ResearchBudgetMiddleware::new()));
     }

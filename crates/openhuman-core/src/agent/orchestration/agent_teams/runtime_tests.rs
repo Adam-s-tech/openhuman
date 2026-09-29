@@ -220,7 +220,7 @@ async fn drive_member_completes_task_with_worker_output_as_evidence() {
     AgentDefinitionRegistry::init_global_builtins().unwrap();
     let (_dir, config) = test_config();
     seed_team(&config, "team-1");
-    seed_member(&config, "team-1", "m1", Some("code_executor"));
+    seed_member(&config, "team-1", "m1", Some("task_manager_agent"));
     seed_task(
         &config,
         "team-1",
@@ -254,7 +254,7 @@ async fn drive_member_completes_task_with_worker_output_as_evidence() {
             &config,
             "team-1",
             "m1",
-            "code_executor",
+            "task_manager_agent",
             &task,
             "teamrun-x",
             Some("test-model".into()),
@@ -289,7 +289,7 @@ async fn run_member_loop_drives_member_under_ambient_parent() {
     AgentDefinitionRegistry::init_global_builtins().unwrap();
     let (_dir, config) = test_config();
     seed_team(&config, "team-1");
-    seed_member(&config, "team-1", "m1", Some("code_executor"));
+    seed_member(&config, "team-1", "m1", Some("task_manager_agent"));
     seed_task(
         &config,
         "team-1",
@@ -322,7 +322,7 @@ async fn run_member_loop_drives_member_under_ambient_parent() {
             &config,
             "team-1",
             "m1",
-            "code_executor",
+            "task_manager_agent",
             task,
             "teamrun-y",
             Some("test-model".into()),
@@ -346,7 +346,7 @@ async fn drive_member_releases_task_when_worker_fails() {
     AgentDefinitionRegistry::init_global_builtins().unwrap();
     let (_dir, config) = test_config();
     seed_team(&config, "team-1");
-    seed_member(&config, "team-1", "m1", Some("code_executor"));
+    seed_member(&config, "team-1", "m1", Some("task_manager_agent"));
     seed_task(
         &config,
         "team-1",
@@ -379,7 +379,7 @@ async fn drive_member_releases_task_when_worker_fails() {
             &config,
             "team-1",
             "m1",
-            "code_executor",
+            "task_manager_agent",
             &task,
             "teamrun-x",
             Some("test-model".into()),
@@ -408,7 +408,7 @@ async fn drive_member_releases_task_when_worker_fails() {
 async fn start_member_run_blocks_on_unmet_dependency() {
     let (_dir, config) = test_config();
     seed_team(&config, "team-1");
-    seed_member(&config, "team-1", "m1", Some("code_executor"));
+    seed_member(&config, "team-1", "m1", Some("task_manager_agent"));
     seed_task(
         &config,
         "team-1",
@@ -440,8 +440,8 @@ async fn start_member_run_blocks_on_unmet_dependency() {
 async fn start_member_run_reports_already_claimed() {
     let (_dir, config) = test_config();
     seed_team(&config, "team-1");
-    seed_member(&config, "team-1", "m1", Some("code_executor"));
-    seed_member(&config, "team-1", "m2", Some("code_executor"));
+    seed_member(&config, "team-1", "m1", Some("task_manager_agent"));
+    seed_member(&config, "team-1", "m2", Some("task_manager_agent"));
     seed_task(
         &config,
         "team-1",
@@ -464,7 +464,7 @@ async fn start_member_run_reports_already_claimed() {
 async fn start_member_run_no_claimable_and_unknown_task() {
     let (_dir, config) = test_config();
     seed_team(&config, "team-1");
-    seed_member(&config, "team-1", "m1", Some("code_executor"));
+    seed_member(&config, "team-1", "m1", Some("task_manager_agent"));
     // No tasks at all → nothing claimable.
     let none = start_member_run(&config, "team-1", "m1", None, None)
         .await

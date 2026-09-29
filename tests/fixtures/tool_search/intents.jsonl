@@ -90,13 +90,13 @@
 {"intent": "remind me every morning at 8 to drink water", "expected": "cron_add"}
 {"intent": "what scheduled jobs do I have?", "expected": "cron_list"}
 {"intent": "cancel the weekly report cron", "expected": "cron_remove"}
-{"intent": "add buy milk to my todo list", "expected": "todo_add"}
-{"intent": "show me my todos", "expected": "todo_list"}
+{"intent": "add buy milk to my todo list", "expected": "todo"}
+{"intent": "show me my todos", "expected": "todo"}
 {"intent": "draw a picture of a cat astronaut", "expected": "create_image"}
 {"intent": "make a short video of waves at sunset", "expected": "create_video"}
 {"intent": "what's in this screenshot?", "expected": "analyze_image"}
-{"intent": "do a deep dive on competitors in the AI note-taking space", "expected": "research"}
-{"intent": "write and run a python script that sums a list", "expected": "run_code"}
+{"intent": "do a deep dive on competitors in the AI note-taking space", "expected": "web_search_tool"}
+{"intent": "write and run a python script that sums a list", "expected": "python_exec"}
 {"intent": "run this python snippet: print(2**10)", "expected": "python_exec"}
 {"intent": "is there a skill for summarizing PDFs?", "expected": "skill_search"}
 {"intent": "search the skill registry for a stripe integration", "expected": "skill_registry_search"}
@@ -115,9 +115,9 @@
 {"intent": "export these results as a csv", "expected": "csv_export"}
 {"intent": "send a pushover notification to my phone", "expected": "pushover"}
 {"intent": "unsubscribe me from all these marketing emails", "expected": "gmail_unsubscribe"}
-{"intent": "swap 0.1 eth for usdc", "expected": "do_crypto"}
-{"intent": "schedule the report to run tomorrow at noon", "expected": "schedule_task"}
-{"intent": "how do I set up the proxy in openhuman?", "expected": "ask_docs"}
+{"intent": "swap 0.1 eth for usdc", "expected": "web3_swap_quote"}
+{"intent": "schedule the report to run tomorrow at noon", "expected": "cron_add"}
+{"intent": "how do I set up the proxy in openhuman?", "expected": "gitbooks_search"}
 {"intent": "what does the persona file say about me?", "expected": "workspace_read_persona"}
 {"intent": "what did we discuss in last month's emails about the merger?", "expected": "retrieve_memory"}
 {"intent": "turn this into a reusable skill", "expected": "create_skill"}

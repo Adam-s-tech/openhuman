@@ -22,12 +22,8 @@ pub struct SubagentRunOptions {
     pub skill_filter_override: Option<String>,
 
     /// Optional Composio toolkit scope (e.g. `"gmail"`, `"notion"`).
-    /// When set, skill-category tools are further restricted to those
-    /// whose name starts with the uppercased `{toolkit}_` prefix, and
-    /// the sub-agent's rendered `Connected Integrations` section is
-    /// narrowed to only that toolkit's entry. Used by main/orchestrator
-    /// when spawning `integrations_agent` for a specific platform so the
-    /// sub-agent only sees one integration's tool catalogue.
+    /// When set, the sub-agent's rendered `Connected Integrations`
+    /// section is narrowed to only that toolkit's entry.
     pub toolkit_override: Option<String>,
 
     /// Optional context blob the parent wants to inject before the
@@ -149,7 +145,7 @@ pub enum SubagentRunStatus {
 pub struct SubagentRunOutcome {
     /// Unique identifier for this sub-task run.
     pub task_id: String,
-    /// The ID of the agent archetype used (e.g., `researcher`).
+    /// The ID of the agent archetype used (e.g., `code_executor`).
     pub agent_id: String,
     /// The final text response produced by the sub-agent.
     pub output: String,

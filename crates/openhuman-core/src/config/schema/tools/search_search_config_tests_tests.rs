@@ -28,9 +28,54 @@ fn fresh_defaults_are_managed_exa_and_gemini_with_roles_presentation() {
 }
 
 #[test]
-fn legacy_omitted_presentation_keeps_all_tools_default() {
+fn legacy_omitted_presentation_migrates_to_routed_roles() {
     let mut cfg = legacy("engine = \"managed\"\n");
     cfg.migrate_legacy(LegacySearchInputs::default());
+    assert_eq!(cfg.presentation, SearchPresentation::Roles);
+    assert_eq!(cfg.schema_version, SEARCH_SCHEMA_VERSION);
+}
+
+#[test]
+fn legacy_all_tools_migrates_to_routed_roles() {
+    let mut cfg = legacy("engine = \"managed\"\npresentation = \"all_tools\"\n");
+    cfg.migrate_legacy(LegacySearchInputs::default());
+    assert_eq!(cfg.presentation, SearchPresentation::Roles);
+}
+
+// v2 files were forced onto `all_tools`, which hides the routed
+// `web_*_tool`s that agent tool scopes allowlist (no web search at all).
+#[test]
+fn v2_all_tools_moves_back_to_roles_once() {
+    let mut cfg = legacy("schema_version = 2\npresentation = \"all_tools\"\n");
+    assert!(cfg.needs_migration());
+    assert!(cfg.migrate_legacy(LegacySearchInputs::default()));
+    assert_eq!(cfg.presentation, SearchPresentation::Roles);
+    assert_eq!(cfg.schema_version, SEARCH_SCHEMA_VERSION);
+    assert!(!cfg.migrate_legacy(LegacySearchInputs::default()));
+}
+
+#[test]
+fn v2_migration_keeps_providers_roles_and_other_presentations() {
+    let mut cfg = legacy(
+        "schema_version = 2\npresentation = \"router\"\n\
+         [providers.brave]\nenabled = true\nroute = \"direct\"\n\
+         [roles]\nsearch = [\"brave\", \"exa\"]\n",
+    );
+    let before_providers = cfg.providers.clone();
+    let before_roles = cfg.roles.clone();
+    assert!(cfg.migrate_legacy(LegacySearchInputs::default()));
+    assert_eq!(cfg.presentation, SearchPresentation::Router);
+    assert_eq!(cfg.providers, before_providers);
+    assert_eq!(cfg.roles, before_roles);
+    assert!(provider(&cfg, "brave").is_some());
+}
+
+#[test]
+fn a_current_all_tools_choice_is_kept() {
+    let mut cfg = legacy(&format!(
+        "schema_version = {SEARCH_SCHEMA_VERSION}\npresentation = \"all_tools\"\n"
+    ));
+    assert!(!cfg.migrate_legacy(LegacySearchInputs::default()));
     assert_eq!(cfg.presentation, SearchPresentation::AllTools);
 }
 
@@ -186,9 +231,13 @@ fn explicit_provider_selection_maps_managed_and_routes() {
         provider(&cfg, "gemini"),
         Some(SearchProviderSettings::direct())
     );
+    // TinyFish is own-key only; without a key it migrates switched off.
     assert_eq!(
         provider(&cfg, "tinyfish"),
-        Some(SearchProviderSettings::managed())
+        Some(SearchProviderSettings {
+            enabled: false,
+            route: SearchRoute::Direct,
+        })
     );
     assert_eq!(
         provider(&cfg, "querit"),
@@ -205,11 +254,14 @@ fn legacy_toggles_outside_search_migrate_when_active() {
         tinyfish_active: true,
         seltz_active: true,
         searxng_active: true,
+        tinyfish_api_key: Some("tf-key".into()),
     });
+    // The legacy integration's key carries over, so TinyFish stays on (direct).
     assert_eq!(
         provider(&cfg, "tinyfish"),
-        Some(SearchProviderSettings::managed())
+        Some(SearchProviderSettings::direct())
     );
+    assert_eq!(cfg.tinyfish.key(), Some("tf-key"));
     assert_eq!(
         provider(&cfg, "seltz"),
         Some(SearchProviderSettings::direct())
@@ -284,4 +336,40 @@ fn credentials_resolve_per_provider() {
         Some("g")
     );
     assert!(cfg.credentials("seltz").is_none());
+}
+
+#[test]
+fn v2_managed_tinyfish_without_a_key_is_turned_off() {
+    let mut cfg =
+        legacy("schema_version = 2\n[providers.tinyfish]\nenabled = true\nroute = \"managed\"\n");
+    assert!(cfg.migrate_legacy(LegacySearchInputs::default()));
+    assert_eq!(
+        provider(&cfg, "tinyfish"),
+        Some(SearchProviderSettings {
+            enabled: false,
+            route: SearchRoute::Direct,
+        })
+    );
+}
+
+#[test]
+fn v2_tinyfish_with_a_key_stays_on_and_goes_direct() {
+    let mut cfg = legacy(
+        "schema_version = 2\n[providers.tinyfish]\nenabled = true\nroute = \"managed\"\n\
+         [tinyfish]\napi_key = \"tf\"\n",
+    );
+    assert!(cfg.migrate_legacy(LegacySearchInputs::default()));
+    assert_eq!(
+        provider(&cfg, "tinyfish"),
+        Some(SearchProviderSettings::direct())
+    );
+}
+
+#[test]
+fn tinyfish_takes_its_own_key_and_is_never_managed() {
+    let mut cfg = SearchConfig::default();
+    assert!(cfg.credentials_mut("tinyfish").is_some());
+    cfg.providers
+        .insert("tinyfish".into(), SearchProviderSettings::managed());
+    assert_eq!(cfg.route("tinyfish"), SearchRoute::Direct);
 }

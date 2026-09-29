@@ -95,7 +95,7 @@ impl Tool for SpawnWorkerThreadTool {
         let agent_id_schema = if agent_ids.is_empty() {
             json!({
                 "type": "string",
-                "description": "Sub-agent id (e.g. code_executor, researcher, planner)."
+                "description": "Sub-agent id (e.g. code_executor, critic, planner)."
             })
         } else {
             json!({

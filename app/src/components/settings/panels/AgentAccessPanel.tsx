@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react';
 import { useT } from '../../../lib/i18n/I18nContext';
 import {
   type AutonomyLevel,
-  isTauri,
   openhumanGetAgentSettings,
   openhumanGetAutonomySettings,
   openhumanUpdateAgentSettings,
@@ -79,10 +78,6 @@ const AgentAccessPanel = () => {
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
-      if (!isTauri()) {
-        setIsLoading(false);
-        return;
-      }
       try {
         const autonomyResp = await openhumanGetAutonomySettings();
         if (cancelled) return;
@@ -145,7 +140,6 @@ const AgentAccessPanel = () => {
     onError?: () => void
   ) => {
     const seq = ++persistSeqRef.current;
-    if (!isTauri()) return;
     setError(null);
     setSavedNote(null);
     setIsSaving(true);
@@ -224,7 +218,6 @@ const AgentAccessPanel = () => {
   // from the autonomy `persist` path so a timeout edit can't clobber the
   // autonomy block and vice-versa.
   const commitTimeout = async () => {
-    if (!isTauri()) return;
     const trimmed = timeoutInput.trim();
     const parsed = Number(trimmed);
     if (!Number.isInteger(parsed) || parsed < timeoutMin || parsed > timeoutMax) {
@@ -261,13 +254,6 @@ const AgentAccessPanel = () => {
 
   return (
     <SettingsPanel description={t('settings.agentAccess.menuDesc')}>
-      {/* Desktop-only notice */}
-      {!isTauri() && (
-        <Alert variant="info" density="compact">
-          <AlertDescription>{t('settings.agentAccess.desktopOnly')}</AlertDescription>
-        </Alert>
-      )}
-
       {isLoading ? (
         <p className="text-sm text-content-muted">{t('settings.agentAccess.loading')}</p>
       ) : (

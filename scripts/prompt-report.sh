@@ -10,10 +10,7 @@
 #
 #   (default)          Hermetic: a fresh empty workspace and config, so the
 #                      numbers describe the repo, not whoever is logged in.
-#   --workspace <dir>  Measure a real, signed-in workspace instead. The only way
-#                      to see `integrations_agent`, which renders once per
-#                      *connected* toolkit and so has nothing to render
-#                      hermetically.
+#   --workspace <dir>  Measure a real, signed-in workspace instead.
 #
 # Units are bytes. `~tok` is bytes / `EST_BYTES_PER_TOKEN` (agent/debug/
 # prompt_size.rs, read at run time), the same reading aid `prompt-size` prints —
@@ -49,7 +46,7 @@ import json, os, sys
 TOK = int(os.environ["TOK"])  # EST_BYTES_PER_TOKEN
 rows = []
 for r in json.loads(sys.argv[1])["agents"]:
-    name = r["agent"] + (f"[{r['toolkit']}]" if r.get("toolkit") else "")
+    name = r["agent"]
     worst = max(r["tools"], key=lambda t: t["bytes"], default=None)
     rows.append((name, r["prompt_bytes"], r["tool_bytes"], r["fixed_prefix_bytes"],
                  f"{worst['name']} ({worst['bytes']})" if worst else "-"))
@@ -62,8 +59,4 @@ for name, p, t, f, w in rows:
 tp, tt, tf = (sum(row[i] for row in rows) for i in (1, 2, 3))
 # A sum no single turn pays: each prefix is paid only when that agent runs.
 print(fmt.format(f"sum of {len(rows)} (not a turn cost)", tp, tt, tf, tf // TOK, ""))
-
-if not any(row[0].startswith("integrations_agent") for row in rows):
-    print("integrations_agent — not measurable hermetically; run with "
-          "--workspace ~/.openhuman/workspace to measure per connected toolkit")
 PY

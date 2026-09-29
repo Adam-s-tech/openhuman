@@ -125,7 +125,6 @@ export const TOOL_PHRASES = {
   extractDetails: { active: 'Extracting details', done: 'Extracted details' },
   planNextSteps: { active: 'Planning next steps', done: 'Planned next steps' },
   reviewWork: { active: 'Reviewing the work', done: 'Reviewed the work' },
-  scoutContext: { active: 'Scouting context', done: 'Scouted context' },
   useTools: { active: 'Using tools', done: 'Used tools' },
   checkConnectedApp: { active: 'Checking your connected app', done: 'Checked your connected app' },
 

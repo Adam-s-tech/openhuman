@@ -98,7 +98,7 @@ pub use types::{ConnStatus, InstalledServer, McpTool};
 ## Called by
 
 - Core startup, via `mcp::host::init` and the reconnect-supervisor loop.
-- Frontend Connections UI: the **MCP Servers** page (`McpServersTab`) is three tabs over the `openhuman.mcp_clients_*` RPC namespace: **Servers** (rows, status, the credential form: connect/disconnect, `update_env`, sign-in), **mcp.json** (`config_get` / `config_set`, the only way a server is added or removed) and **Registry** (`registry_search`, browse-only; a row opens the server's own page in the browser). `registry_settings_get` / `registry_settings_set` hold the Smithery / official-registry credentials (secret values are write-only). Agents use connected servers through `mcp_agent` (`use_mcp_server`); they do not install them.
+- Frontend Connections UI: the **MCP Servers** page (`McpServersTab`) is three tabs over the `openhuman.mcp_clients_*` RPC namespace: **Servers** (rows, status, the credential form: connect/disconnect, `update_env`, sign-in), **mcp.json** (`config_get` / `config_set`, the only way a server is added or removed) and **Registry** (`registry_search`, browse-only; a row opens the server's own page in the browser). `registry_settings_get` / `registry_settings_set` hold the Smithery / official-registry credentials (secret values are write-only). Agents use connected servers directly: the orchestrator finds a connected server's tool through `tool_search`, or loads the `mcp` skill (`use_skill`, guide in `crates/openhuman-core/src/tools/toolpacks/guides/mcp.md`) for the `mcp_registry_*` status / list-tools / tool-call fallback; they do not install them.
 
 ## Tests
 

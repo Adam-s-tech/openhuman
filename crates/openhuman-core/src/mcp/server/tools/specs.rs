@@ -96,7 +96,7 @@ pub fn base_tool_specs() -> Vec<McpToolSpec> {
                 "properties": {
                     "agent_id": {
                         "type": "string",
-                        "description": "Registered sub-agent id (for example `researcher`, `planner`, `code_executor`)."
+                        "description": "Registered sub-agent id (for example `planner`, `code_executor`, `critic`)."
                     },
                     "prompt": {
                         "type": "string",

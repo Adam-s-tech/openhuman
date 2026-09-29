@@ -107,7 +107,7 @@ export interface InferenceStatus {
 export interface SubagentActivity {
   /** Spawn task id (`sub-…`). Stable for the lifetime of one delegation. */
   taskId: string;
-  /** Sub-agent definition id (e.g. `researcher`). */
+  /** Sub-agent definition id (e.g. `code_executor`). */
   agentId: string;
   /** High-level status: `"running"`, `"awaiting_user"`, `"completed"`, `"failed"`. */
   status?: string;
@@ -487,7 +487,7 @@ export type InferenceTurnLifecycle = 'started' | 'streaming' | 'interrupted';
 
 /**
  * Per-sub-agent token/cost contribution, accumulated across the session and
- * keyed by the sub-agent archetype id (e.g. `researcher`). Drives the hover
+ * keyed by the sub-agent archetype id (e.g. `code_executor`). Drives the hover
  * breakdown under the composer footer's cost/context cluster.
  */
 export interface SubAgentUsage {

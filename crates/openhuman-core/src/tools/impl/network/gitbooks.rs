@@ -33,6 +33,10 @@ impl GitbooksSearchTool {
 
 #[async_trait]
 impl Tool for GitbooksSearchTool {
+    fn exposure(&self) -> tinytools::ToolExposure {
+        tinytools::ToolExposure::Deferred
+    }
+
     fn name(&self) -> &str {
         "gitbooks_search"
     }
@@ -114,6 +118,10 @@ impl GitbooksGetPageTool {
 
 #[async_trait]
 impl Tool for GitbooksGetPageTool {
+    fn exposure(&self) -> tinytools::ToolExposure {
+        tinytools::ToolExposure::Deferred
+    }
+
     fn name(&self) -> &str {
         "gitbooks_get_page"
     }

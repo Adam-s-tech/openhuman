@@ -84,7 +84,7 @@ This module owns the cross-cutting built-in tools (the only ones that belong her
 - Documents (`documents` feature): `generate_document` (`DocumentTool`), `generate_presentation` (`PresentationTool`).
 - Search: `web_search` and provider-specific search families are registered through the provider-based host integration in `crate::search`; disabling all providers suppresses this surface. Legacy `search.engine` settings are handled during config migration.
 
-Domain-owned tools (memory, cron, wallet, composio, integrations, skills, voice::audio_toolkit, agent sub-dispatch like `spawn_subagent`/`spawn_async_subagent`/`delegate`/`todo`/`plan_exit`/`run_skill`) are registered in `all_tools` but implemented in their respective domains and only re-exported through this module.
+Domain-owned tools (memory, cron, wallet, composio, integrations, skills, voice::audio_toolkit, agent sub-dispatch like `spawn_subagent`/`spawn_async_subagent`/`delegate`/`todo`/`plan_exit`) are registered in `all_tools` but implemented in their respective domains and only re-exported through this module.
 
 ## Events
 

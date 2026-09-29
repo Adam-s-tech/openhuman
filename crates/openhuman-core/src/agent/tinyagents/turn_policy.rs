@@ -215,8 +215,9 @@ pub(crate) fn run_policy_for(max_iterations: usize, response_cache_enabled: bool
     // deleted sentinel was exactly that) and, when it hits, *silently* executes
     // that tool and emits `AgentEvent::UnknownToolCall { recovery: "rewrite:.." }`
     // WITHOUT injecting a tool message. `ReturnToolError` instead injects a
-    // recoverable `unknown tool `<name>` (arguments: ..); valid tools: [..]`
-    // result naming the originally-requested tool. Two live consumers depend on
+    // recoverable `unknown tool `<name>`: ...` result naming the originally
+    // requested tool, a few close matches and (when discovery is on) a pointer
+    // to `tool_search` rather than a dump of every callable name. Two live consumers depend on
     // that message: (1) the #4419 attempted-tool-name UX and (2) the failure
     // classifier in `agent::hooks::sanitize_tool_output`, which labels the result
     // `unknown_tool` by matching the "unknown tool" substring. Flipping to Rewrite
@@ -298,8 +299,5 @@ pub(crate) fn effective_max_iterations(max_iterations: usize) -> usize {
 /// (`subagent_host::ops::runner`). Widen this predicate in lockstep if that
 /// ever stops being true.
 pub(crate) fn is_subagent_spawn_or_delegate_tool(name: &str) -> bool {
-    name == "spawn_subagent"
-        || name.starts_with("delegate_")
-        || name == "agent_prepare_context"
-        || name == "spawn_worker_thread"
+    name == "spawn_subagent" || name.starts_with("delegate_") || name == "spawn_worker_thread"
 }

@@ -1522,12 +1522,8 @@ const messages: TranslationMap = {
   'settings.costDashboard.noDataHint':
     'Envie uma mensagem de agente: o uso de tokens na próxima chamada do provedor preencherá o gráfico em cerca de 10 segundos.',
   'settings.search.title': 'Mecanismo de pesquisa',
-  'settings.search.menuDesc':
-    'Padrão para pesquisa gerenciada por OpenHuman ou conecte seu próprio provedor com uma chave API.',
   'settings.search.statusNeedsKey': 'Precisa da chave API',
   'settings.search.getApiKey': 'Obtenha a chave API',
-  'settings.search.save': 'Salvar',
-  'settings.search.clear': 'Limpar',
   'settings.search.show': 'Mostrar',
   'settings.search.hide': 'Ocultar',
   'settings.search.statusSaving': 'Salvando…',
@@ -1547,29 +1543,18 @@ const messages: TranslationMap = {
   'settings.search.accessBlockAll': 'Bloquear tudo',
   'settings.search.accessBlockAllHint':
     'Todo o acesso à web está bloqueado: o assistente não pode abrir ou ler nenhum site.',
-  'settings.search.description':
-    'A pesquisa pode usar vários provedores ao mesmo tempo. Exa e Gemini estão incluídos no TinyHumans e não precisam de configuração; os outros provedores funcionam com sua própria chave de API. Cada função abaixo usa o primeiro provedor disponível e recorre ao próximo.',
   'settings.search.localManagedUnavailable':
-    'Os provedores incluídos no TinyHumans exigem login. Ative um provedor com sua própria chave de API para usar a pesquisa na web numa sessão local.',
+    'Os provedores pela TinyHumans exigem login. Conecte um provedor com sua própria chave de API para usar a pesquisa na web numa sessão local.',
   'settings.search.enabledLabel': 'Pesquisa na web',
-  'settings.search.enabledDesc':
-    'Permite que o agente pesquise na web, responda com base em fontes da web e leia páginas.',
-  'settings.search.providersTitle': 'Provedores',
-  'settings.search.providersDesc':
-    'Ative os provedores que quiser. Vários podem ficar ativos ao mesmo tempo; as funções abaixo decidem qual é tentado primeiro.',
   'settings.search.providerToggleAria': 'Usar {provider}',
-  'settings.search.routeAria': 'Conexão do {provider}',
-  'settings.search.routeManaged': 'Incluído no TinyHumans',
-  'settings.search.routeDirect': 'Chave própria',
+  'settings.search.routeManaged': 'pela TinyHumans',
+  'settings.search.routeDirect': 'Sua própria chave',
   'settings.search.apiKeyLabel': 'Chave de API do {provider}',
   'settings.search.placeholderKey': 'Cole sua chave de API do {provider}',
   'settings.search.baseUrlLabel': 'URL da instância',
-  'settings.search.baseUrlSave': 'Salvar URL',
   'settings.search.statusReady': 'Pronto',
   'settings.search.statusSignInRequired': 'Login necessário',
   'settings.search.statusOff': 'Desativado',
-  'settings.search.deepResearchAvailable':
-    'A pesquisa aprofundada está disponível: o agente pode pedir ao {provider} um relatório mais longo e completo.',
   'settings.search.deepResearchHint':
     'Adicione sua própria chave do {provider} para liberar a pesquisa aprofundada.',
   'settings.search.rolesTitle': 'Funções',
@@ -1582,9 +1567,6 @@ const messages: TranslationMap = {
     'Uma resposta redigida com base em fontes da web, com citações.',
   'settings.search.roleContents': 'Conteúdo',
   'settings.search.roleContentsDesc': 'Busca as páginas indicadas e extrai o texto delas.',
-  'settings.search.roleServedBy': 'Atendido por {provider}',
-  'settings.search.roleNoProvider':
-    'Nenhum provedor disponível: o agente não tem esta ferramenta no momento.',
   'settings.search.roleMoveUp': 'Mover {provider} para cima',
   'settings.search.roleMoveDown': 'Mover {provider} para baixo',
   'settings.search.roleRemove': 'Remover {provider}',
@@ -1594,7 +1576,46 @@ const messages: TranslationMap = {
   'settings.search.advancedTitle': 'Avançado',
   'settings.search.exposeProviderTools': 'Expor as ferramentas próprias de cada provedor',
   'settings.search.exposeProviderToolsDesc':
-    'Dá ao agente as ferramentas de cada provedor ativo em vez de uma ferramenta por função. Isso ocupa mais da janela de contexto.',
+    'Substitui as ferramentas de pesquisa roteadas pelas ferramentas próprias de cada provedor ativo. Os agentes que só conhecem as ferramentas roteadas, incluindo o agente principal, ficam sem pesquisa na web, e as ferramentas extras ocupam mais da janela de contexto. Deixe desativado, a menos que esteja testando um provedor.',
+  'settings.search.tabProviders': 'Provedores',
+  'settings.search.tabRouting': 'Roteamento',
+  'settings.search.tabWebsites': 'Sites',
+  'settings.search.offNotice':
+    'A pesquisa na web está desativada. O agente não pode pesquisar nem ler a web até você reativá-la.',
+  'settings.search.connectedTitle': 'Conectados',
+  'settings.search.connectedDesc':
+    'Provedores que o agente pode usar. Vários podem ficar ativos ao mesmo tempo; a aba Roteamento decide qual é tentado primeiro.',
+  'settings.search.connectedEmpty': 'Nenhum provedor conectado ainda. Escolha um abaixo.',
+  'settings.search.catalogTitle': 'Adicionar um provedor',
+  'settings.search.catalogDesc':
+    'Escolha um provedor para conectar. Você pode adicionar mais a qualquer momento.',
+  'settings.search.catalogManagedTitle': 'Pela TinyHumans',
+  'settings.search.catalogManagedHelper': 'Nenhuma configuração: um clique e está pronto.',
+  'settings.search.catalogOwnTitle': 'Com sua própria chave',
+  'settings.search.catalogOwnHelper':
+    'Use uma chave de API do provedor ou aponte para sua própria instância.',
+  'settings.search.addProviderAria': 'Conectar {provider}',
+  'settings.search.detailOwnKey': 'Sua própria chave de API',
+  'settings.search.detailNoKey': 'Ainda sem chave de API',
+  'settings.search.detailNoUrl': 'Ainda sem URL da instância',
+  'settings.search.deepResearchBadge': 'Pesquisa aprofundada',
+  'settings.search.rowActions': 'Opções de {provider}',
+  'settings.search.actionUseOwnKey': 'Usar sua própria chave',
+  'settings.search.actionUseManaged': 'Usar pela TinyHumans',
+  'settings.search.actionAddKey': 'Adicionar chave de API',
+  'settings.search.actionAddDeepResearchKey': 'Adicionar uma chave para pesquisa aprofundada',
+  'settings.search.actionReplaceKey': 'Substituir chave de API',
+  'settings.search.actionRemoveKey': 'Remover chave de API',
+  'settings.search.actionEditUrl': 'Alterar URL da instância',
+  'settings.search.connectTitle': 'Conectar {provider}',
+  'settings.search.connect': 'Conectar',
+  'settings.search.baseUrlHint': 'O endereço da sua instância do SearXNG, incluindo a porta.',
+  'settings.search.roleServing': 'Em uso',
+  'settings.search.roleNoProviderShort': 'Nenhum provedor disponível',
+  'settings.search.roleFallbacks': 'Alternativas: {providers}',
+  'settings.search.roleNoFallback': 'Sem alternativa',
+  'settings.search.roleDialogDesc':
+    'O primeiro provedor disponível atende esta tarefa. Se ele falhar ou estiver indisponível, o próximo é tentado.',
   // ─── Settings global search bar ────────────────────────────
   'settings.embeddings.title': 'Incorporações',
   'settings.embeddings.description':
@@ -3639,8 +3660,6 @@ const messages: TranslationMap = {
   'conversations.tools.planNextSteps.done': 'Próximos passos planejados',
   'conversations.tools.reviewWork.active': 'Revisando o trabalho',
   'conversations.tools.reviewWork.done': 'Trabalho revisado',
-  'conversations.tools.scoutContext.active': 'Explorando o contexto',
-  'conversations.tools.scoutContext.done': 'Contexto explorado',
   'conversations.tools.useTools.active': 'Usando ferramentas',
   'conversations.tools.useTools.done': 'Ferramentas usadas',
   'conversations.tools.checkConnectedApp.active': 'Verificando seu app conectado',
@@ -7199,7 +7218,6 @@ const messages: TranslationMap = {
   'channels.connectedDesc': 'Pronto para enviar e receber mensagens. Escolha um como padrão.',
   'channels.availableDesc': 'Aplicativos de chat que você pode vincular. Abra um para preparar.',
   'settings.about.resources': 'Recursos',
-  'settings.search.keyStored': 'Armazenado',
   'settings.embeddings.modelCardTitle': 'Modelo & dimensões',
   'mcp.rows.searchPlaceholder': 'Procurar servidores...',
   'mcp.tab.section.clients': 'Clientes',

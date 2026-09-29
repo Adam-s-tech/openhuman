@@ -146,7 +146,7 @@ impl Tool for SpawnAsyncSubagentTool {
         let agent_id_schema = if agent_ids.is_empty() {
             json!({
                 "type": "string",
-                "description": "Sub-agent id (e.g. archivist, researcher, tools_agent)."
+                "description": "Sub-agent id (e.g. archivist, planner, tools_agent)."
             })
         } else {
             json!({
@@ -175,7 +175,7 @@ impl Tool for SpawnAsyncSubagentTool {
                 },
                 "toolkit": {
                     "type": "string",
-                    "description": "Composio toolkit slug; required when agent_id is `integrations_agent`."
+                    "description": "Optional Composio toolkit slug (e.g. `gmail`). Narrows the Connected Integrations section of the sub-agent's prompt to that toolkit."
                 },
                 "task_title": {
                     "type": "string",

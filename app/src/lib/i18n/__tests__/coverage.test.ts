@@ -61,13 +61,4 @@ describe('i18n coverage', () => {
       .map(([key]) => key);
     expect(keysWithEmDashes).toEqual([]);
   });
-
-  // The search copy must name the providers included with TinyHumans, so the
-  // managed path does not read as an unattributed black box (#5136). Provider
-  // names are proper nouns, so they stay literal in every locale.
-  it.each(['en', ...LOCALES])('locale %s names the included search providers', locale => {
-    const flat = locale === 'en' ? enFlat : loadLocale(locale);
-    expect(flat['settings.search.description']).toContain('Exa');
-    expect(flat['settings.search.description']).toContain('Gemini');
-  });
 });

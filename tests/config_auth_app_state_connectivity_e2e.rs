@@ -783,9 +783,11 @@ encrypt = false
         Some("research-agent")
     );
     assert_eq!(
-        config.configured_agent_model("tool_maker", false),
+        config.configured_agent_model("tools", false),
         Some("tools-agent")
     );
+    // The retired built-in aliases (`tool_maker` → `[teams.tools]`) are gone.
+    assert_eq!(config.configured_agent_model("tool_maker", false), None);
     config.teams.insert(
         "code".into(),
         TeamModelConfig {
@@ -801,11 +803,11 @@ encrypt = false
         },
     );
     assert_eq!(
-        config.configured_agent_model("code_executor", true),
+        config.configured_agent_model("code_agent", true),
         Some("code-lead")
     );
     assert_eq!(
-        config.configured_agent_model("integrations_agent", false),
+        config.configured_agent_model("integrations", false),
         Some("integrations-agent")
     );
     assert_eq!(config.configured_agent_model("   ", false), None);

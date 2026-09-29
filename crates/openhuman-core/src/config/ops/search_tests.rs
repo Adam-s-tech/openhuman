@@ -57,12 +57,13 @@ fn routes_a_provider_cannot_take_are_rejected() {
     )
     .unwrap_err();
     assert!(err.contains("does not support the managed route"), "{err}");
+    // TinyFish is own-key only: the backend never proxied it.
     let err = apply_search_patch(
         &mut config,
-        patch(json!({"providers": {"tinyfish": {"route": "direct"}}})),
+        patch(json!({"providers": {"tinyfish": {"route": "managed"}}})),
     )
     .unwrap_err();
-    assert!(err.contains("does not support the direct route"), "{err}");
+    assert!(err.contains("does not support the managed route"), "{err}");
     assert!(apply_search_patch(
         &mut config,
         patch(json!({"providers": {"bing": {"enabled": true}}}))
@@ -169,7 +170,10 @@ fn settings_view_reports_status_roles_and_never_keys() {
     assert_eq!(exa["routes"], json!(["managed", "direct"]));
     let gemini = provider(&view, "gemini");
     assert_eq!(gemini["deep_research_available"], true);
-    assert_eq!(provider(&view, "tinyfish")["routes"], json!(["managed"]));
+    let tinyfish = provider(&view, "tinyfish");
+    assert_eq!(tinyfish["routes"], json!(["direct"]));
+    assert_eq!(tinyfish["takes_key"], true);
+    assert_eq!(tinyfish["docs_url"], "https://agent.tinyfish.ai/api-keys");
     assert_eq!(provider(&view, "brave")["status"], "disabled");
     // Deep research rides on the Gemini key and is reported on the gemini row.
     assert_eq!(view["effective_roles"]["answer"], json!(["gemini", "exa"]));
@@ -184,4 +188,20 @@ fn settings_view_reports_status_roles_and_never_keys() {
     let signed_out = search_settings_json_with(&config, false);
     assert_eq!(provider(&signed_out, "exa")["status"], "sign_in_required");
     assert_eq!(signed_out["effective_roles"]["search"], json!([]));
+}
+
+#[test]
+fn tinyfish_takes_its_own_key() {
+    let mut config = Config::default();
+    apply_search_patch(
+        &mut config,
+        patch(json!({"providers": {"tinyfish": {"enabled": true, "api_key": " tf-key "}}})),
+    )
+    .unwrap();
+    assert_eq!(config.search.tinyfish.key(), Some("tf-key"));
+    let view = search_settings_json_with(&config, true);
+    let tinyfish = provider(&view, "tinyfish");
+    assert_eq!(tinyfish["key_configured"], true);
+    assert_eq!(tinyfish["route"], "direct");
+    assert!(!view.to_string().contains("tf-key"));
 }

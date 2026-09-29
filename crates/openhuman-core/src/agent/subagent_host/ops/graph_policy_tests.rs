@@ -142,7 +142,6 @@ async fn run_with_spawn_tool_in_parent_surface(allowed: HashSet<String>) -> (boo
         false,
         "root-session__spawn_refusal",
         "mock-channel",
-        None,
         AgentTokenjuiceCompression::Off,
         None,
     )

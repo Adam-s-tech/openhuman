@@ -1699,13 +1699,8 @@ const en: TranslationMap = {
   'settings.costDashboard.noDataHint':
     'Send an agent message: token usage from the next provider call will populate the chart within ~10 seconds.',
   'settings.search.title': 'Search engine',
-  'settings.search.menuDesc':
-    'Default to OpenHuman-managed search or wire up your own provider with an API key.',
   'settings.search.statusNeedsKey': 'Needs API key',
   'settings.search.getApiKey': 'Get API key',
-  'settings.search.keyStored': 'Stored',
-  'settings.search.save': 'Save',
-  'settings.search.clear': 'Clear',
   'settings.search.show': 'Show',
   'settings.search.hide': 'Hide',
   'settings.search.statusSaving': 'Saving…',
@@ -1725,29 +1720,18 @@ const en: TranslationMap = {
   'settings.search.accessBlockAll': 'Block all',
   'settings.search.accessBlockAllHint':
     'All web access is blocked: the assistant cannot open or read any website.',
-  'settings.search.description':
-    'Search can use several providers at once. Exa and Gemini are included with TinyHumans and need no setup; other providers work with your own API key. Each role below uses the first available provider and falls back to the next.',
   'settings.search.localManagedUnavailable':
-    'Providers included with TinyHumans need you to be signed in. Turn on a provider with your own API key to use web search in a local session.',
+    'Providers via TinyHumans need you to be signed in. Connect a provider with your own API key to use web search in a local session.',
   'settings.search.enabledLabel': 'Web search',
-  'settings.search.enabledDesc':
-    'Let the agent search the web, answer questions from web sources, and read pages.',
-  'settings.search.providersTitle': 'Providers',
-  'settings.search.providersDesc':
-    'Turn on the providers you want. Several can be on at once; the roles below decide which one is tried first.',
   'settings.search.providerToggleAria': 'Use {provider}',
-  'settings.search.routeAria': '{provider} connection',
-  'settings.search.routeManaged': 'Included with TinyHumans',
-  'settings.search.routeDirect': 'Own key',
+  'settings.search.routeManaged': 'via TinyHumans',
+  'settings.search.routeDirect': 'Your own key',
   'settings.search.apiKeyLabel': '{provider} API key',
   'settings.search.placeholderKey': 'Paste your {provider} API key',
   'settings.search.baseUrlLabel': 'Instance URL',
-  'settings.search.baseUrlSave': 'Save URL',
   'settings.search.statusReady': 'Ready',
   'settings.search.statusSignInRequired': 'Sign in required',
   'settings.search.statusOff': 'Off',
-  'settings.search.deepResearchAvailable':
-    'Deep research is available: the agent can ask {provider} for a longer, more thorough report.',
   'settings.search.deepResearchHint': 'Add your own {provider} key to unlock deep research.',
   'settings.search.rolesTitle': 'Roles',
   'settings.search.rolesDesc':
@@ -1758,9 +1742,6 @@ const en: TranslationMap = {
   'settings.search.roleAnswerDesc': 'A written answer grounded in web sources, with citations.',
   'settings.search.roleContents': 'Contents',
   'settings.search.roleContentsDesc': 'Fetches and extracts the text of given pages.',
-  'settings.search.roleServedBy': 'Served by {provider}',
-  'settings.search.roleNoProvider':
-    'No provider available: the agent does not get this tool right now.',
   'settings.search.roleMoveUp': 'Move {provider} up',
   'settings.search.roleMoveDown': 'Move {provider} down',
   'settings.search.roleRemove': 'Remove {provider}',
@@ -1770,7 +1751,45 @@ const en: TranslationMap = {
   'settings.search.advancedTitle': 'Advanced',
   'settings.search.exposeProviderTools': "Expose each provider's own tools",
   'settings.search.exposeProviderToolsDesc':
-    'Give the agent the tools each enabled provider offers instead of one tool per role. This uses more of the context window.',
+    "Replace the routed search tools with each enabled provider's own tools. Agents that only know the routed tools, including the main agent, then have no web search, and the extra tools use more of the context window. Leave this off unless you are testing a provider.",
+  'settings.search.tabProviders': 'Providers',
+  'settings.search.tabRouting': 'Routing',
+  'settings.search.tabWebsites': 'Websites',
+  'settings.search.offNotice':
+    'Web search is off. The agent cannot search or read the web until you turn it back on.',
+  'settings.search.connectedTitle': 'Connected',
+  'settings.search.connectedDesc':
+    'Providers the agent can use. Several can be on at once; the Routing tab decides which one is tried first.',
+  'settings.search.connectedEmpty': 'No provider is connected yet. Pick one below.',
+  'settings.search.catalogTitle': 'Add a provider',
+  'settings.search.catalogDesc': 'Pick a provider to connect. You can add more at any time.',
+  'settings.search.catalogManagedTitle': 'via TinyHumans',
+  'settings.search.catalogManagedHelper': 'No setup needed: one click and it is ready.',
+  'settings.search.catalogOwnTitle': 'With your own key',
+  'settings.search.catalogOwnHelper':
+    'Bring an API key from the provider, or point to your own instance.',
+  'settings.search.addProviderAria': 'Connect {provider}',
+  'settings.search.detailOwnKey': 'Your own API key',
+  'settings.search.detailNoKey': 'No API key yet',
+  'settings.search.detailNoUrl': 'No instance URL yet',
+  'settings.search.deepResearchBadge': 'Deep research',
+  'settings.search.rowActions': '{provider} options',
+  'settings.search.actionUseOwnKey': 'Use your own key',
+  'settings.search.actionUseManaged': 'Use via TinyHumans',
+  'settings.search.actionAddKey': 'Add API key',
+  'settings.search.actionAddDeepResearchKey': 'Add a key for deep research',
+  'settings.search.actionReplaceKey': 'Replace API key',
+  'settings.search.actionRemoveKey': 'Remove API key',
+  'settings.search.actionEditUrl': 'Change instance URL',
+  'settings.search.connectTitle': 'Connect {provider}',
+  'settings.search.connect': 'Connect',
+  'settings.search.baseUrlHint': 'The address of your SearXNG instance, including the port.',
+  'settings.search.roleServing': 'In use',
+  'settings.search.roleNoProviderShort': 'No provider available',
+  'settings.search.roleFallbacks': 'Falls back to {providers}',
+  'settings.search.roleNoFallback': 'No fallback',
+  'settings.search.roleDialogDesc':
+    'The first available provider serves this task. If it fails or is unavailable, the next one is tried.',
   // ─── Settings global search bar ────────────────────────────
   // ─── Embeddings settings ───────────────────────────────────
   'settings.embeddings.title': 'Embeddings',
@@ -4018,8 +4037,6 @@ const en: TranslationMap = {
   'conversations.tools.planNextSteps.done': 'Planned next steps',
   'conversations.tools.reviewWork.active': 'Reviewing the work',
   'conversations.tools.reviewWork.done': 'Reviewed the work',
-  'conversations.tools.scoutContext.active': 'Scouting context',
-  'conversations.tools.scoutContext.done': 'Scouted context',
   'conversations.tools.useTools.active': 'Using tools',
   'conversations.tools.useTools.done': 'Used tools',
   'conversations.tools.checkConnectedApp.active': 'Checking your connected app',

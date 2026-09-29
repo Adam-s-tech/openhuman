@@ -48,62 +48,34 @@ fn subconscious_agent_id_routes_to_subconscious_without_hint() {
 #[test]
 fn auto_prefers_native_when_supported_never_pformat() {
     assert_eq!(
-        resolve_dispatcher_kind("auto", true, "chat"),
+        resolve_dispatcher_kind("auto", true),
         DispatcherKind::Native
     );
     // Text-only provider defaults to JSON-in-tag, NOT P-Format.
-    assert_eq!(
-        resolve_dispatcher_kind("auto", false, "chat"),
-        DispatcherKind::Xml
-    );
+    assert_eq!(resolve_dispatcher_kind("auto", false), DispatcherKind::Xml);
     // An unrecognized value behaves like "auto".
-    assert_eq!(
-        resolve_dispatcher_kind("bogus", false, "chat"),
-        DispatcherKind::Xml
-    );
+    assert_eq!(resolve_dispatcher_kind("bogus", false), DispatcherKind::Xml);
 }
 
 #[test]
 fn explicit_choices_are_honoured_including_opt_in_pformat() {
     assert_eq!(
-        resolve_dispatcher_kind("native", false, "chat"),
+        resolve_dispatcher_kind("native", false),
         DispatcherKind::Native
     );
-    assert_eq!(
-        resolve_dispatcher_kind("xml", true, "chat"),
-        DispatcherKind::Xml
-    );
+    assert_eq!(resolve_dispatcher_kind("xml", true), DispatcherKind::Xml);
     // P-Format is only ever selected when explicitly requested.
     assert_eq!(
-        resolve_dispatcher_kind("pformat", true, "chat"),
+        resolve_dispatcher_kind("pformat", true),
         DispatcherKind::PFormat
     );
     // So are the code dialects.
     assert_eq!(
-        resolve_dispatcher_kind("python", true, "chat"),
+        resolve_dispatcher_kind("python", true),
         DispatcherKind::Code(tinytools_agent::dialect::CodeStyle::Python)
     );
     assert_eq!(
-        resolve_dispatcher_kind("typescript", false, "chat"),
+        resolve_dispatcher_kind("typescript", false),
         DispatcherKind::Code(tinytools_agent::dialect::CodeStyle::TypeScript)
-    );
-}
-
-#[test]
-fn integrations_agent_falls_off_native_to_json_in_tag() {
-    // Native would ship JSON tool specs and blow the provider grammar-rule
-    // ceiling on large Composio toolkits → force JSON-in-tag.
-    assert_eq!(
-        resolve_dispatcher_kind("auto", true, "integrations_agent"),
-        DispatcherKind::Xml
-    );
-    assert_eq!(
-        resolve_dispatcher_kind("native", true, "integrations_agent"),
-        DispatcherKind::Xml
-    );
-    // An explicit non-native choice is left untouched for that agent.
-    assert_eq!(
-        resolve_dispatcher_kind("pformat", true, "integrations_agent"),
-        DispatcherKind::PFormat
     );
 }

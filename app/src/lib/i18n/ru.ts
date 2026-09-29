@@ -1500,12 +1500,8 @@ const messages: TranslationMap = {
   'settings.costDashboard.noDataHint':
     'Отправьте сообщение агенту: использование токена при следующем вызове провайдера заполнит диаграмму в течение примерно 10 секунд.',
   'settings.search.title': 'Поисковая система',
-  'settings.search.menuDesc':
-    'По умолчанию используется поиск, управляемый OpenHuman, или подключите собственного провайдера с помощью ключа API.',
   'settings.search.statusNeedsKey': 'Требуется ключ API',
   'settings.search.getApiKey': 'Получите ключ API',
-  'settings.search.save': 'Сохранить',
-  'settings.search.clear': 'Очистить',
   'settings.search.show': 'Показать',
   'settings.search.hide': 'Скрыть',
   'settings.search.statusSaving': 'Сохранение…',
@@ -1525,29 +1521,18 @@ const messages: TranslationMap = {
   'settings.search.accessBlockAll': 'Блокировать все',
   'settings.search.accessBlockAllHint':
     'Весь веб-доступ заблокирован: помощник не может открыть или прочитать какой-либо веб-сайт.',
-  'settings.search.description':
-    'Поиск может использовать несколько провайдеров одновременно. Exa и Gemini включены в TinyHumans и не требуют настройки; другие провайдеры работают с вашим собственным API-ключом. Каждая роль ниже использует первого доступного провайдера и при сбое переходит к следующему.',
   'settings.search.localManagedUnavailable':
-    'Для провайдеров, включённых в TinyHumans, нужно войти в аккаунт. Включите провайдера со своим API-ключом, чтобы пользоваться веб-поиском в локальной сессии.',
+    'Для провайдеров через TinyHumans нужно войти в аккаунт. Подключите провайдера со своим API-ключом, чтобы пользоваться веб-поиском в локальной сессии.',
   'settings.search.enabledLabel': 'Веб-поиск',
-  'settings.search.enabledDesc':
-    'Разрешить агенту искать в интернете, отвечать на вопросы по веб-источникам и читать страницы.',
-  'settings.search.providersTitle': 'Провайдеры',
-  'settings.search.providersDesc':
-    'Включите нужных провайдеров. Несколько могут работать одновременно; роли ниже определяют, кого пробовать первым.',
   'settings.search.providerToggleAria': 'Использовать {provider}',
-  'settings.search.routeAria': 'Подключение {provider}',
-  'settings.search.routeManaged': 'Включено в TinyHumans',
+  'settings.search.routeManaged': 'через TinyHumans',
   'settings.search.routeDirect': 'Свой ключ',
   'settings.search.apiKeyLabel': 'API-ключ {provider}',
   'settings.search.placeholderKey': 'Вставьте API-ключ {provider}',
   'settings.search.baseUrlLabel': 'URL экземпляра',
-  'settings.search.baseUrlSave': 'Сохранить URL',
   'settings.search.statusReady': 'Готов',
   'settings.search.statusSignInRequired': 'Нужен вход',
   'settings.search.statusOff': 'Выключен',
-  'settings.search.deepResearchAvailable':
-    'Доступно глубокое исследование: агент может запросить у {provider} более длинный и подробный отчёт.',
   'settings.search.deepResearchHint':
     'Добавьте свой ключ {provider}, чтобы открыть глубокое исследование.',
   'settings.search.rolesTitle': 'Роли',
@@ -1559,9 +1544,6 @@ const messages: TranslationMap = {
   'settings.search.roleAnswerDesc': 'Готовый ответ на основе веб-источников со ссылками.',
   'settings.search.roleContents': 'Содержимое',
   'settings.search.roleContentsDesc': 'Загружает указанные страницы и извлекает их текст.',
-  'settings.search.roleServedBy': 'Обслуживает {provider}',
-  'settings.search.roleNoProvider':
-    'Нет доступного провайдера: сейчас у агента нет этого инструмента.',
   'settings.search.roleMoveUp': 'Переместить {provider} выше',
   'settings.search.roleMoveDown': 'Переместить {provider} ниже',
   'settings.search.roleRemove': 'Убрать {provider}',
@@ -1571,7 +1553,45 @@ const messages: TranslationMap = {
   'settings.search.advancedTitle': 'Дополнительно',
   'settings.search.exposeProviderTools': 'Показывать собственные инструменты каждого провайдера',
   'settings.search.exposeProviderToolsDesc':
-    'Дать агенту инструменты каждого включённого провайдера вместо одного инструмента на роль. Это занимает больше контекстного окна.',
+    'Заменяет маршрутизируемые инструменты поиска собственными инструментами каждого включённого провайдера. Агенты, которые знают только маршрутизируемые инструменты, включая основного агента, остаются без веб-поиска, а дополнительные инструменты занимают больше контекстного окна. Не включайте эту опцию, если вы не тестируете провайдера.',
+  'settings.search.tabProviders': 'Провайдеры',
+  'settings.search.tabRouting': 'Маршрутизация',
+  'settings.search.tabWebsites': 'Сайты',
+  'settings.search.offNotice':
+    'Веб-поиск выключен. Агент не может искать и читать в интернете, пока вы снова его не включите.',
+  'settings.search.connectedTitle': 'Подключённые',
+  'settings.search.connectedDesc':
+    'Провайдеры, которыми может пользоваться агент. Несколько могут работать одновременно; вкладка «Маршрутизация» определяет, кого пробовать первым.',
+  'settings.search.connectedEmpty': 'Пока не подключено ни одного провайдера. Выберите один ниже.',
+  'settings.search.catalogTitle': 'Добавить провайдера',
+  'settings.search.catalogDesc':
+    'Выберите провайдера для подключения. Добавить других можно в любой момент.',
+  'settings.search.catalogManagedTitle': 'Через TinyHumans',
+  'settings.search.catalogManagedHelper': 'Настройка не нужна: один клик, и всё готово.',
+  'settings.search.catalogOwnTitle': 'Со своим ключом',
+  'settings.search.catalogOwnHelper': 'Укажите API-ключ от провайдера или адрес своего экземпляра.',
+  'settings.search.addProviderAria': 'Подключить {provider}',
+  'settings.search.detailOwnKey': 'Свой API-ключ',
+  'settings.search.detailNoKey': 'API-ключа пока нет',
+  'settings.search.detailNoUrl': 'URL экземпляра пока не задан',
+  'settings.search.deepResearchBadge': 'Глубокое исследование',
+  'settings.search.rowActions': 'Параметры {provider}',
+  'settings.search.actionUseOwnKey': 'Использовать свой ключ',
+  'settings.search.actionUseManaged': 'Использовать через TinyHumans',
+  'settings.search.actionAddKey': 'Добавить API-ключ',
+  'settings.search.actionAddDeepResearchKey': 'Добавить ключ для глубокого исследования',
+  'settings.search.actionReplaceKey': 'Заменить API-ключ',
+  'settings.search.actionRemoveKey': 'Удалить API-ключ',
+  'settings.search.actionEditUrl': 'Изменить URL экземпляра',
+  'settings.search.connectTitle': 'Подключить {provider}',
+  'settings.search.connect': 'Подключить',
+  'settings.search.baseUrlHint': 'Адрес вашего экземпляра SearXNG, включая порт.',
+  'settings.search.roleServing': 'Используется',
+  'settings.search.roleNoProviderShort': 'Нет доступного провайдера',
+  'settings.search.roleFallbacks': 'Запасные: {providers}',
+  'settings.search.roleNoFallback': 'Без запасного',
+  'settings.search.roleDialogDesc':
+    'Эту задачу выполняет первый доступный провайдер. Если он не сработает или недоступен, пробуется следующий.',
   // ─── Settings global search bar ────────────────────────────
   'settings.embeddings.title': 'Эмбеддинги',
   'settings.embeddings.description':
@@ -3604,8 +3624,6 @@ const messages: TranslationMap = {
   'conversations.tools.planNextSteps.done': 'Следующие шаги спланированы',
   'conversations.tools.reviewWork.active': 'Проверка работы',
   'conversations.tools.reviewWork.done': 'Работа проверена',
-  'conversations.tools.scoutContext.active': 'Сбор контекста',
-  'conversations.tools.scoutContext.done': 'Контекст собран',
   'conversations.tools.useTools.active': 'Использование инструментов',
   'conversations.tools.useTools.done': 'Инструменты использованы',
   'conversations.tools.checkConnectedApp.active': 'Проверка подключённого приложения',
@@ -7158,7 +7176,6 @@ const messages: TranslationMap = {
   'channels.availableDesc':
     'Чат приложения, которые вы можете связать. Откройте один, чтобы настроить его.',
   'settings.about.resources': 'ресурсы',
-  'settings.search.keyStored': 'Сохранён',
   'settings.embeddings.modelCardTitle': 'Модель и размеры',
   'mcp.rows.searchPlaceholder': 'Поисковые серверы...',
   'mcp.tab.section.clients': 'Клиенты',

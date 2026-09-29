@@ -13,8 +13,9 @@ use tinytools::ToolResult;
 use crate::agent::tinyagents::host::OpenHumanRunContext;
 
 /// Direct web reads allowed before the next model call must conclude the turn.
-/// Broad research can use the dedicated research agent; this bounds the master
-/// agent's exploratory search while leaving room to read primary sources.
+/// This bounds the master agent's exploratory search while leaving room to read
+/// primary sources; broad research belongs in one deep `web_answer_tool` call or
+/// a batched `web_contents_tool` read, each of which counts once.
 pub(super) const DIRECT_WEB_READ_LIMIT: usize = 8;
 
 const RESEARCH_CLOSE_INSTRUCTION: &str = "The direct web research budget for this turn is exhausted. Answer the user's latest request now using the results already available. State any remaining uncertainty. Do not search again, repeat a page fetch, or merely describe what you plan to read.";

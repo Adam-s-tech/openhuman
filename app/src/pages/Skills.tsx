@@ -1182,13 +1182,8 @@ export default function Skills() {
                   </SettingsTabbedPage>
                 )}
                 {activeTab === 'browser' && <BrowserConnectionsPanel />}
-                {activeTab === 'search' && (
-                  <SettingsTabbedPage
-                    title={t('settings.search.title')}
-                    description={t('connections.header.search')}>
-                    <SearchPanel embedded />
-                  </SettingsTabbedPage>
-                )}
+                {/* Search owns its page shell (header switch + chip tabs), like LLM. */}
+                {activeTab === 'search' && <SearchPanel />}
                 {activeTab === 'composio-key' && (
                   <SettingsTabbedPage
                     title={t('connections.tabs.composioKey')}

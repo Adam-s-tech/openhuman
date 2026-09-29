@@ -52,6 +52,10 @@ impl McpRegistrySearchTool {
 }
 #[async_trait]
 impl Tool for McpRegistrySearchTool {
+    fn exposure(&self) -> tinytools::ToolExposure {
+        tinytools::ToolExposure::Deferred
+    }
+
     fn name(&self) -> &str {
         "mcp_registry_search"
     }
@@ -106,6 +110,10 @@ impl McpRegistryGetTool {
 }
 #[async_trait]
 impl Tool for McpRegistryGetTool {
+    fn exposure(&self) -> tinytools::ToolExposure {
+        tinytools::ToolExposure::Deferred
+    }
+
     fn name(&self) -> &str {
         "mcp_registry_get"
     }
@@ -142,6 +150,10 @@ impl McpRegistryInstalledListTool {
 }
 #[async_trait]
 impl Tool for McpRegistryInstalledListTool {
+    fn exposure(&self) -> tinytools::ToolExposure {
+        tinytools::ToolExposure::Deferred
+    }
+
     fn name(&self) -> &str {
         "mcp_registry_installed_list"
     }

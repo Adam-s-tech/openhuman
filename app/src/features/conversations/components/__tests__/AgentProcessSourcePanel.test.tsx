@@ -201,13 +201,13 @@ describe('AgentProcessSourcePanel', () => {
   it('scopes to a single step when scopedEntry is set (only that step, with its name as title)', () => {
     const scoped: ToolTimelineEntry = {
       id: 'sa-scope',
-      name: 'subagent:researcher',
+      name: 'subagent:planner',
       round: 1,
       seq: 0,
       status: 'success',
       subagent: {
         taskId: 'task-9',
-        agentId: 'researcher',
+        agentId: 'planner',
         toolCalls: [],
         transcript: [{ kind: 'thinking', iteration: 1, text: 'scoped thought' }],
       },
@@ -226,7 +226,7 @@ describe('AgentProcessSourcePanel', () => {
       />
     );
     // Header shows the step's label, not the generic title.
-    expect(screen.getByText('Researched')).toBeInTheDocument();
+    expect(screen.getByText('Planned next steps')).toBeInTheDocument();
     // Only the scoped step's activity renders…
     openFirstSubagent();
     expect(screen.getByTestId('subagent-activity').textContent).toContain('scoped thought');

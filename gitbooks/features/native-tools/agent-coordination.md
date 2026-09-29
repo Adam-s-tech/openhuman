@@ -18,7 +18,8 @@ Beyond doing the work, the agent has tools for _organising_ the work - planning 
 | `list_subagents` / `close_subagent`               | Inspect reusable workers for the parent thread or explicitly retire one.                                        |
 | `spawn_worker_thread`                             | Explicit background work tracked as a separate worker thread.                                                   |
 | `delegate`                                        | Hand a task to a specialist (e.g. an archetype with different prompts/tools/permissions).                       |
-| `archetype_delegation`                            | Route to a named archetype - coder, researcher, planner, etc.                                                   |
+| `archetype_delegation`                            | Route to a named archetype - vision, image, video, presentation, workflow builder, etc.                         |
+| `use_skill`                                       | Load an inline skill's playbook and tools (coding, web3, system, scheduling, docs, mcp) and call them directly. |
 | `skill_delegation`                                | Hand off to a [skill](../integrations/README.md#skills) installed in the workspace.                             |
 | `ask_clarification`                               | Pause and ask the user a precise question instead of guessing.                                                  |
 | `plan_exit`                                       | Exit a planning phase and start executing.                                                                      |
@@ -40,5 +41,5 @@ Asking for clarification is a tool too, on purpose: it makes "I should ask the u
 
 ## See also
 
-- [Coder](coder.md) - what a coder-archetype subagent typically uses.
+- [Coder](coder.md) - the coding tools, most of them loaded through the `coding` skill.
 - [Cron & Scheduling](cron.md) - how background agent runs get scheduled.

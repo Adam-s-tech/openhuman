@@ -50,6 +50,10 @@ impl Web3SwapRoutesTool {
 
 #[async_trait]
 impl Tool for Web3SwapQuoteTool {
+    fn exposure(&self) -> tinytools::ToolExposure {
+        tinytools::ToolExposure::Deferred
+    }
+
     fn name(&self) -> &str {
         "web3_swap_quote"
     }
@@ -91,6 +95,10 @@ impl Tool for Web3SwapQuoteTool {
 
 #[async_trait]
 impl Tool for Web3SwapExecuteTool {
+    fn exposure(&self) -> tinytools::ToolExposure {
+        tinytools::ToolExposure::Deferred
+    }
+
     fn name(&self) -> &str {
         "web3_swap_execute"
     }
@@ -119,6 +127,10 @@ impl Tool for Web3SwapExecuteTool {
 
 #[async_trait]
 impl Tool for Web3SwapRoutesTool {
+    fn exposure(&self) -> tinytools::ToolExposure {
+        tinytools::ToolExposure::Deferred
+    }
+
     fn name(&self) -> &str {
         "web3_swap_routes"
     }

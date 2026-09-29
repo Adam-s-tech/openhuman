@@ -12,7 +12,6 @@ import {
   statusLabel,
 } from '../utils/localAiHelpers';
 import {
-  isTauri,
   type LocalAiDownloadsProgress,
   type LocalAiStatus,
   openhumanLocalAiDownloadsProgress,
@@ -67,15 +66,6 @@ const LocalAIDownloadSnackbar = () => {
   // the officially recommended React pattern for adjusting state on derived-value changes).
   const [prevIsDownloading, setPrevIsDownloading] = useState(false);
 
-  // Check Tauri availability once at init
-  const tauriAvailable = (() => {
-    try {
-      return isTauri();
-    } catch {
-      return false;
-    }
-  })();
-
   // Detect an active download from the folded local-AI state in the app-state
   // snapshot (polled by CoreStateProvider) instead of a dedicated idle poll of
   // the inference RPCs. When idle this component issues ZERO inference calls;
@@ -89,7 +79,7 @@ const LocalAIDownloadSnackbar = () => {
   // reports activity and keeps going as long as the download itself is in
   // flight, then stops — so there is no steady-state inference polling.
   useEffect(() => {
-    if (!tauriAvailable || !coreDownloadActive) return;
+    if (!coreDownloadActive) return;
 
     let cancelled = false;
     log('fast poll: starting (core reports download active)');
@@ -134,7 +124,7 @@ const LocalAIDownloadSnackbar = () => {
       if (timerRef.current) clearTimeout(timerRef.current);
       log('fast poll: stopped (unmount or core reports inactive)');
     };
-  }, [tauriAvailable, coreDownloadActive]);
+  }, [coreDownloadActive]);
 
   const downloadState = downloads?.state;
   const currentState =
@@ -165,7 +155,7 @@ const LocalAIDownloadSnackbar = () => {
   const handleDismiss = useCallback(() => setDismissed(true), []);
   const handleToggleCollapse = useCallback(() => setCollapsed(prev => !prev), []);
 
-  if (!tauriAvailable || !isDownloading || dismissed) return null;
+  if (!isDownloading || dismissed) return null;
 
   // Use currentState as the source of truth for the fallback sentinel so the
   // label (derived from currentState) and the progress bar stay in sync.

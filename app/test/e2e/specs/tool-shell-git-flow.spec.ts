@@ -28,12 +28,13 @@ const USER_ID = 'e2e-tool-shell-git';
  * `crates/openhuman-core/src/tools/impl/filesystem/git_operations.rs`.
  *
  * What this spec proves end-to-end:
- *  - 6.2.1 — the agent runtime is up and the `tools_agent` definition that
- *    inherits the shell tool is wired into the live registry served over
- *    JSON-RPC (`openhuman.agent_list_definitions`).
- *  - 6.2.2 — the same agent definition surfaces the wildcard tool scope so
- *    the security policy's command-allowlist check (validated in Rust unit
- *    tests) is reachable through the live registry path. We additionally
+ *  - 6.2.1 — the agent runtime is up and the `orchestrator` definition, which
+ *    owns the coding surface directly (`shell`, `git_operations`,
+ *    `file_write`; there is no separate tools/code specialist any more), is
+ *    wired into the live registry served over JSON-RPC
+ *    (`openhuman.agent_list_definitions`).
+ *  - 6.2.2 — the security policy's command-allowlist check (validated in Rust
+ *    unit tests) sits behind that same registry path. We additionally
  *    cross-check that a denial-class command returns `ok=false` when issued
  *    via the related shell-like surface (memory_write_file with a clearly
  *    invalid argument) — this confirms the RPC denial envelope shape callers
@@ -74,6 +75,7 @@ interface ServerStatus {
 interface AgentDef {
   id?: string;
   tools?: unknown;
+  direct_tool_names?: string[];
   disallowed_tools?: string[];
 }
 
@@ -167,7 +169,7 @@ describe('System tools — Shell + Git (registry, denial envelope, fixture repo)
     await stopMockServer();
   });
 
-  it('6.2.1 sidecar runtime is reachable and `tools_agent` (shell-bearing) is registered', async () => {
+  it('6.2.1 sidecar runtime is reachable and the orchestrator carries the shell/git tools', async () => {
     // Probe the agent runtime — this is the same RPC the React UI's service
     // page hits, so failure here means the entire system-tool surface is
     // unreachable. core.ping is independent of agent-runtime bootstrap.
@@ -182,9 +184,9 @@ describe('System tools — Shell + Git (registry, denial envelope, fixture repo)
     const statusPayload = (status.result as any)?.result ?? status.result;
     expect(statusPayload?.running).toBe(true);
 
-    // tools_agent inherits the orchestrator's full built-in tool surface
-    // (shell, file_read, file_write, git_operations, browser_open, browser).
-    // Asserting it is registered proves the registry path that resolves
+    // The orchestrator owns the inspect → edit → verify loop itself: shell,
+    // git_operations and file_write are direct tools on its belt. Asserting
+    // them on the live definition proves the registry path that resolves
     // shell/git tools is live behind JSON-RPC.
     const list = await callOpenhumanRpc<ListDefinitionsResult>(
       'openhuman.agent_list_definitions',
@@ -195,11 +197,14 @@ describe('System tools — Shell + Git (registry, denial envelope, fixture repo)
     });
     expect(list.ok).toBe(true);
     const defs = list.result?.definitions ?? [];
-    const toolsAgent = defs.find(d => d?.id === 'tools_agent');
-    expect(toolsAgent).toBeDefined();
-    // The wildcard scope (`tools_agent.tools = { wildcard = {} }`) must
-    // serialise as an object rather than an empty/null sentinel.
-    expect(toolsAgent?.tools).toBeDefined();
+    const orchestrator = defs.find(d => d?.id === 'orchestrator');
+    expect(orchestrator).toBeDefined();
+    const direct = orchestrator?.direct_tool_names ?? [];
+    for (const tool of ['shell', 'git_operations', 'file_write']) {
+      expect(direct).toContain(tool);
+    }
+    // The retired `tools_agent` specialist must not come back.
+    expect(defs.find(d => d?.id === 'tools_agent')).toBeUndefined();
   });
 
   it('6.2.2 RPC denial envelope is structurally consistent (precondition for restricted-command surfacing)', async () => {

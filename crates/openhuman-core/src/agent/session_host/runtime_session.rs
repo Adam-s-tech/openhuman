@@ -1214,9 +1214,9 @@ fn render_agent_context_status_note(
     };
     format!(
         "## Agent context status\n\nAgent context retrieval/preparation has already run once \
-         for this turn in code via {sources}. Do not call `agent_prepare_context` again for \
-         general context preparation. Use the prepared context below, and call only specific \
-         follow-up tools if a concrete missing detail is required."
+         for this turn in code via {sources}. Do not gather general context again. Use the \
+         prepared context below, and call only specific follow-up tools if a concrete missing \
+         detail is required."
     )
 }
 
@@ -1422,7 +1422,6 @@ impl OpenHumanSessionHost {
             runtime_config: self.runtime_config.clone(),
             microcompact_keep_recent,
             autocompact_enabled,
-            handoff: None,
             transcript_snapshot: None,
         };
         let driver = Arc::new(OpenHumanSessionDriver::new(

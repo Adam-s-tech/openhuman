@@ -31,6 +31,10 @@ impl RunTestsTool {
 
 #[async_trait]
 impl Tool for RunTestsTool {
+    fn exposure(&self) -> tinytools::ToolExposure {
+        tinytools::ToolExposure::Deferred
+    }
+
     fn name(&self) -> &str {
         "run_tests"
     }

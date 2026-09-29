@@ -103,6 +103,10 @@ impl NpmExecTool {
 
 #[async_trait]
 impl Tool for NpmExecTool {
+    fn exposure(&self) -> tinytools::ToolExposure {
+        tinytools::ToolExposure::Deferred
+    }
+
     fn name(&self) -> &str {
         "npm_exec"
     }

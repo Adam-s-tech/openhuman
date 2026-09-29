@@ -1,19 +1,16 @@
 //! The public fetch surface for connected integrations:
 //! [`fetch_connected_integrations`] / [`fetch_connected_integrations_status`]
 //! (cache-fronted, calling [`super::fetch_uncached::fetch_connected_integrations_uncached`]
-//! on a miss) and the just-in-time [`fetch_toolkit_actions`], plus their
-//! small toolkit-membership/description helpers.
+//! on a miss), plus their small toolkit-membership/description helpers.
 
 use std::sync::atomic::Ordering;
 use std::time::Instant;
 
-use crate::agent::prompts::{ConnectedIntegration, ConnectedIntegrationTool};
+use crate::agent::prompts::ConnectedIntegration;
 use crate::config::Config;
 
 use super::cache::{cache_key, CachedIntegrations, CACHE_GENERATION, INTEGRATIONS_CACHE};
 use super::fetch_uncached::fetch_connected_integrations_uncached;
-use crate::integrations::composio::client::ComposioClient;
-use crate::integrations::composio::ops::should_forward_tags;
 
 /// Fetch the user's active Composio connections and their available
 /// tool actions, returning a prompt-ready summary.
@@ -189,74 +186,4 @@ pub(crate) fn resolve_toolkit_description(
     catalog_descriptions.get(slug).cloned().unwrap_or_else(|| {
         crate::integrations::composio::providers::toolkit_description(slug).to_string()
     })
-}
-
-/// Just-in-time fetch of every available action for a single Composio
-/// toolkit, returned in the [`ConnectedIntegrationTool`] shape the
-/// `integrations_agent` spawn path expects.
-///
-/// Unlike [`fetch_connected_integrations`] (which bulk-fetches every
-/// connected toolkit's tools once per session and caches the result),
-/// this helper is uncached and scoped to a single toolkit — meant to
-/// be called at `integrations_agent` spawn time so the sub-agent's
-/// prompt always reflects the toolkit's current action catalogue.
-///
-/// The filter `starts_with("{TOOLKIT}_")` matches
-/// `fetch_connected_integrations_uncached`'s own namespacing rule so
-/// siblings like `github` / `git` don't leak into each other's buckets.
-///
-/// `tags` narrows the result by Composio action tag (OR semantics). Only
-/// honoured for the GitHub toolkit; passed through to `list_tools` so the
-/// backend can skip the repo-list force-include and return a focused set.
-///
-/// Returns an empty vec when the backend has no actions for the
-/// toolkit (valid steady state for a freshly-authorised integration
-/// whose catalogue hasn't been published yet). Returns `Err` only for
-/// transport / auth failures the caller should surface to the user.
-pub async fn fetch_toolkit_actions(
-    config: &Config,
-    client: &ComposioClient,
-    toolkit: &str,
-    tags: Option<&[String]>,
-) -> anyhow::Result<Vec<ConnectedIntegrationTool>> {
-    let toolkit_slug = toolkit.trim();
-    if toolkit_slug.is_empty() {
-        anyhow::bail!("fetch_toolkit_actions: toolkit must not be empty");
-    }
-    let effective_tags = if should_forward_tags(Some(&[toolkit_slug.to_string()])) {
-        tags
-    } else {
-        None
-    };
-    tracing::debug!(toolkit = %toolkit_slug, ?effective_tags, "[composio] fetch_toolkit_actions");
-    let resp = client
-        .list_tools(Some(&[toolkit_slug.to_string()]), effective_tags)
-        .await
-        .map_err(|e| anyhow::anyhow!("list_tools failed for toolkit `{toolkit_slug}`: {e}"))?;
-    let action_prefix = format!("{}_", toolkit_slug.to_uppercase());
-    // Apply curated whitelist + user scope so spawn-time tool
-    // discovery agrees with the bulk path and the meta-tool layer.
-    let pref = crate::integrations::composio::ops::load_user_scope_pref(config, toolkit_slug).await;
-    let actions: Vec<ConnectedIntegrationTool> = resp
-        .tools
-        .into_iter()
-        .filter(|t| t.function.name.starts_with(&action_prefix))
-        .filter(|t| {
-            crate::integrations::composio::providers::is_action_visible_with_pref(
-                &t.function.name,
-                &pref,
-            )
-        })
-        .map(|t| ConnectedIntegrationTool {
-            name: t.function.name,
-            description: t.function.description.unwrap_or_default(),
-            parameters: t.function.parameters,
-        })
-        .collect();
-    tracing::debug!(
-        toolkit = %toolkit_slug,
-        action_count = actions.len(),
-        "[composio] fetch_toolkit_actions: done"
-    );
-    Ok(actions)
 }

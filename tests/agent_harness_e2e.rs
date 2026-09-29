@@ -705,9 +705,9 @@ impl Drop for Stack {
 
 async fn boot_stack() -> Stack {
     // Ensure the global AgentDefinitionRegistry is populated with built-in
-    // archetypes (orchestrator, researcher, task_manager_agent, etc.) before
+    // archetypes (orchestrator, agent_memory, task_manager_agent, etc.) before
     // the RPC stack starts. Without this the session builder cannot synthesise
-    // delegation tools and every `research`/`spawn_subagent` call becomes
+    // delegation tools and every `retrieve_memory`/`spawn_subagent` call becomes
     // "Unknown tool: …", making delegation tests vacuous.
     init_agent_def_registry();
 
@@ -992,23 +992,23 @@ async fn multi_turn_state_persistence_inner() {
 // ─── Task 3: Subagent delegation happy path ───────────────────────────────────
 //
 // Tool surface (crates/openhuman-core/src/tools/orchestrator_tools.rs,
-//   crates/openhuman-core/src/agent/registry/agents/researcher/agent.toml):
-//   - researcher has `delegate_name = "research"`, so the orchestrator LLM sees a
-//     tool named "research" synthesised by collect_orchestrator_tools.
+//   crates/openhuman-core/src/memory/agent/agent/agent.toml):
+//   - agent_memory has `delegate_name = "retrieve_memory"`, so the
+//     orchestrator LLM sees a tool named "retrieve_memory" synthesised by collect_orchestrator_tools.
 //   - The tool takes { "prompt": string, ... } per ArchetypeDelegationTool schema.
-//   - The orchestrator TOML lists "researcher" in its subagents.allowlist.
+//   - The orchestrator TOML lists "agent_memory" in its subagents.allowlist.
 //   - AgentDefinitionRegistry must be initialised (done in boot_stack) for the
-//     delegation tool to be synthesised; without it the call becomes "Unknown tool: research".
+//     delegation tool to be synthesised; without it the call becomes "Unknown tool: retrieve_memory".
 //
 // Actual LLM request ordering (with registry init):
-//   request[0] = orchestrator → model returns { tool_calls: [research(...)] }
-//   request[1] = researcher subagent inner loop → model returns canary text
+//   request[0] = orchestrator → model returns { tool_calls: [retrieve_memory(...)] }
+//   request[1] = agent_memory subagent inner loop → model returns canary text
 //   request[2] = orchestrator synthesis → model returns final text with canary
 
-/// Orchestrator delegates to researcher via the `research` tool (delegate_name
-/// on the researcher agent definition); the researcher subagent runs its own
-/// inner LLM call; the final orchestrator synthesis reply contains the researcher
-/// canary. Three upstream requests prove the full delegation path ran.
+/// Orchestrator delegates to agent_memory via the `retrieve_memory`
+/// tool (delegate_name on the agent_memory definition); the subagent runs
+/// its own inner LLM call; the final orchestrator synthesis reply contains the
+/// subagent canary. Three upstream requests prove the full delegation path ran.
 #[test]
 fn subagent_delegation_happy_path() {
     run_on_agent_stack(
@@ -1020,15 +1020,16 @@ fn subagent_delegation_happy_path() {
 async fn subagent_delegation_happy_path_inner() {
     let _lock = env_lock();
     reset_script(vec![
-        // request[0]: Orchestrator calls the `research` tool (researcher's delegate_name).
+        // request[0]: Orchestrator calls the `retrieve_memory` tool
+        // (agent_memory's delegate_name).
         tool_call_completion(
-            "research",
+            "retrieve_memory",
             json!({ "prompt": "Find the marker phrase", "blocking": true }),
         ),
-        // request[1]: Researcher subagent inner LLM call returns its canary.
-        text_completion("RESEARCHER_CANARY_42 is the marker."),
-        // request[2]: Orchestrator receives the researcher result and synthesizes.
-        text_completion("Done. The result is: RESEARCHER_CANARY_42"),
+        // request[1]: agent_memory subagent inner LLM call returns its canary.
+        text_completion("MEMORY_CANARY_42 is the marker."),
+        // request[2]: Orchestrator receives the subagent result and synthesizes.
+        text_completion("Done. The result is: MEMORY_CANARY_42"),
     ]);
     let stack = boot_stack().await;
 
@@ -1042,7 +1043,7 @@ async fn subagent_delegation_happy_path_inner() {
         300,
         "harness-subagent",
         "thread-sub",
-        "research the marker",
+        "recall the marker",
     )
     .await;
 
@@ -1058,13 +1059,13 @@ async fn subagent_delegation_happy_path_inner() {
         .and_then(Value::as_str)
         .unwrap_or_else(|| panic!("chat_done missing 'full_response': {done}"));
     assert!(
-        full_response.contains("RESEARCHER_CANARY_42"),
-        "final response missing researcher canary; full_response: {full_response}\nevent: {done}"
+        full_response.contains("MEMORY_CANARY_42"),
+        "final response missing subagent canary; full_response: {full_response}\nevent: {done}"
     );
 
     // Delegation evidenced by ≥3 captured upstream requests:
-    //   request[0] = orchestrator turn: research tool call returned
-    //   request[1] = researcher subagent inner LLM call: canary text returned
+    //   request[0] = orchestrator turn: retrieve_memory tool call returned
+    //   request[1] = agent_memory subagent inner LLM call: canary text returned
     //   request[2] = orchestrator synthesis: canary forwarded in final reply
     //
     // NOTE: a completed turn's snapshot is now RETAINED (lifecycle `Completed`)
@@ -1075,7 +1076,7 @@ async fn subagent_delegation_happy_path_inner() {
     let requests = with_captured(|c| c.clone());
     assert!(
         requests.len() >= 3,
-        "expected ≥3 upstream requests (orchestrator + researcher + orchestrator synthesis), \
+        "expected ≥3 upstream requests (orchestrator + agent_memory + orchestrator synthesis), \
          got {};\nall requests: {}",
         requests.len(),
         serde_json::to_string_pretty(&requests).unwrap_or_default()
@@ -1090,7 +1091,7 @@ async fn subagent_delegation_happy_path_inner() {
         serde_json::to_string_pretty(&requests).unwrap_or_default()
     );
 
-    // request[1] (researcher subagent) must have different system/message content
+    // request[1] (agent_memory subagent) must have different system/message content
     // from request[0] (orchestrator) — proves a genuinely different agent context
     // ran, not the same orchestrator re-called.
     let req0_sys = requests
@@ -1106,62 +1107,62 @@ async fn subagent_delegation_happy_path_inner() {
     assert_ne!(
         req0_sys, req1_sys,
         "request[0] and request[1] share identical first-message content — \
-         researcher subagent did not build its own context; \
+         agent_memory subagent did not build its own context; \
          content: {req0_sys:?}"
     );
 
     stack.shutdown();
 }
 
-// ─── Task 4: Scheduling clarification flow ────────────────────────────────────
+// ─── Task 4: Delegated clarification flow ─────────────────────────────────────
 //
-// `schedule_task` is scheduler_agent's synthesised delegate (its `agent.toml`
+// `manage_tasks` is task_manager_agent's synthesised delegate (its `agent.toml`
 // `delegate_name`), and `ask_user_clarification` IS in that agent's named tools.
 // So a blocking delegation that needs a detail pauses the *child*, and
 // `dispatch_subagent` hands the parent a `[SUBAGENT_AWAITING_USER]` envelope as
-// the `schedule_task` tool result (#4291). That envelope is an ordinary tool
-// result to the orchestrator — `schedule_task` is not in its `early_exit_tools`
+// the `manage_tasks` tool result (#4291). That envelope is an ordinary tool
+// result to the orchestrator — `manage_tasks` is not in its `early_exit_tools`
 // — so the orchestrator relays the question in its OWN next reply, and turn 1
 // ends on that text.
 //
 // Actual LLM request ordering (4 upstream calls total):
-//   request[0] = orchestrator turn 1 → schedule_task (blocking) tool call
-//   request[1] = scheduler_agent → ask_user_clarification pauses the child
+//   request[0] = orchestrator turn 1 → manage_tasks (blocking) tool call
+//   request[1] = task_manager_agent → ask_user_clarification pauses the child
 //   request[2] = orchestrator, with the awaiting-user envelope in context →
 //                relays the question as text; turn 1 ends (chat_done)
 //   request[3] = orchestrator turn 2 with "version 2" user reply in full context →
 //                synthesis; turn 2 ends (chat_done with ANSWER_CANARY_V2)
 
-/// A scheduling request that needs clarification surfaces its question in turn 1,
+/// A delegated request whose specialist needs clarification surfaces its question in turn 1,
 /// then preserves that question in the context used to answer turn 2.
 #[test]
 #[ignore = "TODO(#6375): hosted TinyAgents continuation is replaying the prior clarification"]
-fn scheduling_clarification_flow() {
+fn delegated_clarification_flow() {
     run_on_agent_stack(
-        "scheduling_clarification_flow",
-        scheduling_clarification_flow_inner,
+        "delegated_clarification_flow",
+        delegated_clarification_flow_inner,
     );
 }
 
-async fn scheduling_clarification_flow_inner() {
+async fn delegated_clarification_flow_inner() {
     let _lock = env_lock();
     reset_script(vec![
         // ── turn 1 ──
-        // request[0]: Orchestrator delegates to scheduler_agent via schedule_task.
+        // request[0]: Orchestrator delegates to task_manager_agent via manage_tasks.
         tool_call_completion(
-            "schedule_task",
-            json!({ "prompt": "Schedule a weekly reminder", "blocking": true }),
+            "manage_tasks",
+            json!({ "prompt": "Add my GitHub issues as a task source", "blocking": true }),
         ),
-        // request[1]: scheduler_agent asks for the missing detail. This pauses
+        // request[1]: task_manager_agent asks for the missing detail. This pauses
         //   the child; the question comes back to the orchestrator inside the
-        //   `[SUBAGENT_AWAITING_USER]` envelope as the schedule_task result.
+        //   `[SUBAGENT_AWAITING_USER]` envelope as the manage_tasks result.
         tool_call_completion(
             "ask_user_clarification",
             json!({ "question": "WHICH_VERSION_CANARY?" }),
         ),
         // request[2]: Orchestrator relays the sub-agent's question to the user,
         //   as the envelope instructs; turn 1 ends on this text.
-        text_completion("The scheduler needs one detail: WHICH_VERSION_CANARY?"),
+        text_completion("The task manager needs one detail: WHICH_VERSION_CANARY?"),
         // ── turn 2 (user replied "version 2") ──
         // request[3]: Orchestrator processes user reply with full turn-1 context →
         //   synthesizes final answer; turn 2 ends here.
@@ -1181,7 +1182,7 @@ async fn scheduling_clarification_flow_inner() {
         400,
         "harness-clarify",
         "thread-clarify",
-        "schedule a weekly reminder",
+        "add my GitHub issues as a task source",
     )
     .await;
     let first =
@@ -1228,9 +1229,9 @@ async fn scheduling_clarification_flow_inner() {
     let requests = with_captured(|c| c.clone());
 
     // ── No unknown-tool result in any captured request ──
-    // Proves schedule_task was recognised by the orchestrator. This is the guard
+    // Proves manage_tasks was recognised by the orchestrator. This is the guard
     // that let the 3-completion version of this test pass vacuously: with the
-    // delegate unresolved, the engine's lowercase "unknown tool `schedule_task`"
+    // delegate unresolved, the engine's lowercase "unknown tool `manage_tasks`"
     // result never matched the old `"Unknown tool:"` literal, and the
     // orchestrator consumed the child's clarification completion itself.
     assert!(
@@ -1241,33 +1242,33 @@ async fn scheduling_clarification_flow_inner() {
     );
 
     // ── Both turns traversed the expected four upstream requests ──
-    // request[0] = orchestrator (schedule_task call),
-    // request[1] = scheduler_agent (ask_user_clarification pause),
+    // request[0] = orchestrator (manage_tasks call),
+    // request[1] = task_manager_agent (ask_user_clarification pause),
     // request[2] = orchestrator (relays the question; turn-1 end),
     // request[3] = orchestrator turn-2 synthesis (turn-2 end).
     assert!(
         requests.len() >= 4,
-        "expected ≥4 upstream requests (schedule + child clarification + relay + \
+        "expected ≥4 upstream requests (delegation + child clarification + relay + \
          turn-2 synthesis), got {};\nall requests: {}",
         requests.len(),
         serde_json::to_string_pretty(&requests).unwrap_or_default()
     );
 
-    // ── request[1] went to scheduler_agent, not the orchestrator ──
+    // ── request[1] went to task_manager_agent, not the orchestrator ──
     // Proves the blocking delegate really ran (the child's system prompt is
-    // scheduler-specific; both agents share the project-context prefix, so
+    // task-manager-specific; both agents share the project-context prefix, so
     // message 0 alone cannot tell them apart). Without this the flow degrades
     // to "orchestrator asks the user itself", which never exercises the pause.
-    let scheduler_request = requests.get(1).map(Value::to_string).unwrap_or_default();
+    let child_request = requests.get(1).map(Value::to_string).unwrap_or_default();
     assert!(
-        scheduler_request.contains("Scheduler OpenHumanSessionHost"),
-        "request[1] did not carry the scheduler_agent prompt — schedule_task did not \
-         delegate; request: {scheduler_request}"
+        child_request.contains("You own the user's task-source feeds and artifacts"),
+        "request[1] did not carry the task_manager_agent prompt — manage_tasks did not \
+         delegate; request: {child_request}"
     );
 
     // ── request[2] saw the child's pause as a `[SUBAGENT_AWAITING_USER]` envelope ──
     // Proves `dispatch_subagent` surfaced the pause the #4291 way (structured
-    // envelope carrying the question, as the schedule_task tool result) rather
+    // envelope carrying the question, as the manage_tasks tool result) rather
     // than as a plain success the model could read as "answered".
     let relay_request = requests.get(2).map(Value::to_string).unwrap_or_default();
     assert!(
@@ -1436,26 +1437,20 @@ async fn approval_gate_installed_after_ensure_inner() {
 
 // ─── 5.2 approval_gate_approve_flow ──────────────────────────────────────────
 //
-// Architecture: the orchestrator delegates to code_executor via the `run_code`
-// tool (code_executor's delegate_name in agent.toml:3). code_executor has
-// file_write in its tool surface (agent.toml:named). The subagent runs inside
-// the orchestrator's WebChat task-local context (dispatch_subagent does NOT
-// re-scope turn_origin or APPROVAL_CHAT_CONTEXT), so file_write inside the
-// subagent parks at the approval gate and publishes approval_request SSE.
+// Architecture: `file_write` is a direct tool on the orchestrator's belt (the
+// coding surface it owns since the `code_executor` specialist was retired). The
+// orchestrator's WebChat turn scopes `turn_origin` + APPROVAL_CHAT_CONTEXT, so a
+// file_write on an existing file parks at the approval gate and publishes
+// approval_request over SSE.
 //
-// LLM request ordering (4 calls total):
-//   request[0] = orchestrator → run_code delegation tool call
-//   request[1] = code_executor → file_write tool call (approval parks)
-//   request[2] = code_executor → text completion after approve
-//   request[3] = orchestrator synthesis
+// LLM request ordering (2 calls total):
+//   request[0] = orchestrator → file_write tool call (approval parks)
+//   request[1] = orchestrator → text completion after the decision
 
-/// Orchestrator delegates to code_executor via `run_code`; code_executor calls
-/// file_write (on an existing file) → approval gate parks in the subagent's
-/// inherited WebChat context → approval_request surfaces over SSE → approve_once
-/// resumes → subagent completes → orchestrator synthesizes with APPROVED_WRITE_CANARY.
-/// The file IS written under the tempdir.
+/// Orchestrator calls file_write (on an existing file) → approval gate parks →
+/// approval_request surfaces over SSE → approve_once resumes → orchestrator
+/// finishes with APPROVED_WRITE_CANARY. The file IS written under the tempdir.
 #[test]
-#[ignore = "TODO(#6554): code_executor no longer reaches the approval gate with file_write"]
 fn approval_gate_approve_flow() {
     run_on_agent_stack(
         "approval_gate_approve_flow",
@@ -1472,23 +1467,12 @@ async fn approval_gate_approve_flow_inner() {
     // test's runtime drops (see register_approval_bridge docstring for details).
     let _approval_bridge = register_approval_bridge();
     reset_script(vec![
-        // request[0]: Orchestrator delegates to code_executor via run_code.
-        // run_code (ArchetypeDelegationTool) requires "prompt" key; empty/missing → error.
-        tool_call_completion(
-            "run_code",
-            json!({
-                "prompt": "write approval-canary.txt with APPROVED_WRITE_CANARY",
-                "blocking": true
-            }),
-        ),
-        // request[1]: code_executor calls file_write → gate parks.
+        // request[0]: Orchestrator calls file_write → gate parks.
         tool_call_completion(
             "file_write",
             json!({ "path": "approval-canary.txt", "content": "APPROVED_WRITE_CANARY" }),
         ),
-        // request[2]: code_executor text after approval.
-        text_completion("File written: APPROVED_WRITE_CANARY"),
-        // request[3]: Orchestrator synthesis.
+        // request[1]: Orchestrator text after approval.
         text_completion("Done. File written: APPROVED_WRITE_CANARY"),
     ]);
     let stack = boot_stack().await;
@@ -1576,7 +1560,6 @@ async fn approval_gate_approve_flow_inner() {
 /// agent to acknowledge the denial; turn completes with DENIAL_ACK_CANARY.
 /// denied-canary.txt content must remain as the placeholder (not the canary).
 #[test]
-#[ignore = "TODO(#6554): code_executor no longer reaches the approval gate with file_write"]
 fn approval_gate_deny_flow() {
     run_on_agent_stack("approval_gate_deny_flow", approval_gate_deny_flow_inner);
 }
@@ -1586,24 +1569,17 @@ async fn approval_gate_deny_flow_inner() {
     let _ttl = EnvVarGuard::set("OPENHUMAN_APPROVAL_TTL_SECS", "120");
     ensure_approval_gate().await;
     let _approval_bridge = register_approval_bridge();
-    // Same delegation chain as approve_flow: orchestrator → run_code → code_executor
-    // → file_write. After denial, code_executor receives the denial marker from the
-    // gate and returns a text response; orchestrator synthesizes with DENIAL_ACK_CANARY.
+    // Same shape as approve_flow: orchestrator → file_write. After denial the
+    // orchestrator receives the denial marker from the gate and acknowledges it
+    // with DENIAL_ACK_CANARY.
     reset_script(vec![
-        // request[0]: Orchestrator delegates to code_executor.
-        tool_call_completion(
-            "run_code",
-            json!({ "prompt": "write denied-canary.txt", "blocking": true }),
-        ),
-        // request[1]: code_executor calls file_write → gate parks, user denies.
+        // request[0]: Orchestrator calls file_write → gate parks, user denies.
         tool_call_completion(
             "file_write",
             json!({ "path": "denied-canary.txt", "content": "DENIED_WRITE_CANARY" }),
         ),
-        // request[2]: code_executor text after denial (gate returns POLICY_DENIED_MARKER).
+        // request[1]: Orchestrator text after denial (gate returns POLICY_DENIED_MARKER).
         text_completion("Understood — the write was denied. DENIAL_ACK_CANARY"),
-        // request[3]: Orchestrator synthesis.
-        text_completion("Acknowledged: DENIAL_ACK_CANARY"),
     ]);
     let stack = boot_stack().await;
 
@@ -1668,166 +1644,11 @@ async fn approval_gate_deny_flow_inner() {
     stack.shutdown();
 }
 
-// ─── 5.4 subagent_with_approval_gate ─────────────────────────────────────────
-//
-// Architecture: The approval gate fires for file_write inside a subagent context
-// only when the subagent run carries a WebChat turn origin. `dispatch_subagent`
-// (crates/openhuman-core/src/agent/orchestration/tools/dispatch.rs) invokes `run_subagent`
-// which runs the subagent's tool loop inside the SAME task that the orchestrator's
-// WebChat turn started in. Because `APPROVAL_CHAT_CONTEXT` and `turn_origin` are
-// tokio task-locals (not thread-locals), and `run_subagent` does NOT re-scope them,
-// the subagent inherits the WebChat origin from the orchestrator's task scope.
-// Therefore file_write inside a ArchetypeDelegationTool subagent CAN trigger the
-// approval gate and publish approval_request events.
-//
-// code_executor has delegate_name = "run_code" (crates/openhuman-core/src/agent/registry/
-// agents/code_executor/agent.toml:3). The orchestrator synthesizes a `run_code`
-// delegation tool from this. code_executor has file_write in its tool surface.
-// The researcher agent does NOT have file_write.
-//
-// Actual LLM request ordering:
-//   request[0] = orchestrator → run_code delegation tool call
-//   request[1] = code_executor subagent → file_write tool call (approval parks)
-//   request[2] = code_executor subagent → text completion after approve
-//   request[3] = orchestrator → synthesis with SUBAGENT_WRITE_CANARY
-
-/// Orchestrator delegates to code_executor via the `run_code` tool (code_executor's
-/// delegate_name); the code_executor subagent calls file_write (on an existing file) →
-/// the approval gate parks inside the subagent's inherited WebChat context →
-/// approval_request fires → approve_once resumes it → subagent completes →
-/// orchestrator synthesizes. Three-plus upstream requests confirm the full path.
-#[test]
-#[ignore = "TODO(#6554): code_executor no longer reaches the approval gate with file_write"]
-fn subagent_with_approval_gate() {
-    run_on_agent_stack(
-        "subagent_with_approval_gate",
-        subagent_with_approval_gate_inner,
-    );
-}
-
-async fn subagent_with_approval_gate_inner() {
-    let _lock = env_lock();
-    let _ttl = EnvVarGuard::set("OPENHUMAN_APPROVAL_TTL_SECS", "120");
-    ensure_approval_gate().await;
-    let _approval_bridge = register_approval_bridge();
-    reset_script(vec![
-        // request[0]: Orchestrator delegates to code_executor via run_code.
-        // code_executor's delegate_name = "run_code" (agent.toml:3).
-        // ArchetypeDelegationTool requires "prompt" key (archetype_delegation.rs:82-89).
-        tool_call_completion(
-            "run_code",
-            json!({ "prompt": "write the artifact", "blocking": true }),
-        ),
-        // request[1]: code_executor subagent calls file_write → gate parks.
-        tool_call_completion(
-            "file_write",
-            json!({ "path": "subagent-artifact.txt", "content": "SUBAGENT_WRITE_CANARY" }),
-        ),
-        // request[2]: code_executor subagent after approval → text completion.
-        text_completion("Artifact written: SUBAGENT_WRITE_CANARY"),
-        // request[3]: Orchestrator synthesis.
-        text_completion("All done: SUBAGENT_WRITE_CANARY"),
-    ]);
-    let stack = boot_stack().await;
-
-    // Pre-create the target file so file_write sees it as existing.
-    let home = stack._tmp.path().to_path_buf();
-    pre_create_for_approval(&home, "subagent-artifact.txt");
-
-    let mut events = spawn_sse_collector(format!(
-        "{}/events?client_id=harness-subapproval",
-        stack.rpc_base
-    ))
-    .await;
-    send_web_chat(
-        &stack.rpc_base,
-        530,
-        "harness-subapproval",
-        "thread-subapproval",
-        "delegate the write",
-    )
-    .await;
-
-    // The approval gate fires because the subagent inherits the orchestrator's
-    // WebChat task-local origin (turn_origin + APPROVAL_CHAT_CONTEXT are not
-    // re-scoped by dispatch_subagent/run_subagent — crates/openhuman-core/src/agent/harness/
-    // subagent_runner/ and crates/openhuman-core/src/agent/orchestration/tools/dispatch.rs).
-    // If approval_request never fires within 120s, the event JSON is dumped.
-    let approval = wait_for_event(&mut events, "approval_request", Duration::from_secs(120)).await;
-    let request_id = approval
-        .pointer("/data/request_id")
-        .or_else(|| approval.get("request_id"))
-        .and_then(Value::as_str)
-        .unwrap_or_else(|| {
-            panic!("subagent approval_request missing request_id; event: {approval}")
-        })
-        .to_string();
-    assert!(
-        approval.to_string().contains("file_write"),
-        "subagent approval_request must mention file_write; event: {approval}"
-    );
-
-    let decide = post_json_rpc(
-        &stack.rpc_base,
-        531,
-        "openhuman.approval_decide",
-        json!({ "request_id": request_id, "decision": "approve_once" }),
-    )
-    .await;
-    assert_no_jsonrpc_error(&decide, "approval_decide subagent approve");
-
-    let done = wait_for_terminal(&mut events, Duration::from_secs(120)).await;
-    assert_eq!(
-        done.get("event").and_then(Value::as_str),
-        Some("chat_done"),
-        "expected chat_done after subagent+approval; got: {done}"
-    );
-    let full_response = done
-        .get("full_response")
-        .and_then(Value::as_str)
-        .unwrap_or_else(|| panic!("chat_done missing full_response: {done}"));
-    assert!(
-        full_response.contains("SUBAGENT_WRITE_CANARY"),
-        "full_response must contain SUBAGENT_WRITE_CANARY; got: {full_response}"
-    );
-
-    // Three-plus upstream requests: orchestrator + code_executor(file_write) +
-    // code_executor(text after approve) + orchestrator synthesis.
-    let requests = with_captured(|c| c.clone());
-    assert!(
-        requests.len() >= 3,
-        "expected ≥3 upstream requests (orchestrator + code_executor x2 + orchestrator synthesis), \
-         got {};\nrequests: {}",
-        requests.len(),
-        serde_json::to_string_pretty(&requests).unwrap_or_default()
-    );
-
-    assert!(
-        !captured_requests_mention_unknown_tool(&requests),
-        "found an unknown-tool result — run_code delegation was not synthesised; requests: {}",
-        serde_json::to_string_pretty(&requests).unwrap_or_default()
-    );
-
-    // The file must have been written with the canary content, proving that the
-    // approved tool execution actually ran (not just that the decision propagated).
-    let action_dir = stack._tmp.path().join("OpenHuman").join("projects");
-    let artifact_path = action_dir.join("subagent-artifact.txt");
-    let artifact_content = std::fs::read_to_string(&artifact_path)
-        .unwrap_or_else(|e| panic!("subagent-artifact.txt missing after approve: {e}"));
-    assert!(
-        artifact_content.contains("SUBAGENT_WRITE_CANARY"),
-        "subagent-artifact.txt must contain SUBAGENT_WRITE_CANARY after approve; got: {artifact_content:?}"
-    );
-
-    stack.shutdown();
-}
-
 // ─── 5.5 approval_gate_timeout ───────────────────────────────────────────────
 
 /// No decision within the TTL → gate auto-denies; turn completes with
 /// TIMEOUT_ACK_CANARY (not a hang). The file's content must not be overwritten.
 #[test]
-#[ignore = "TODO(#6554): code_executor no longer reaches the approval gate with file_write"]
 fn approval_gate_timeout() {
     run_on_agent_stack("approval_gate_timeout", approval_gate_timeout_inner);
 }
@@ -1838,24 +1659,16 @@ async fn approval_gate_timeout_inner() {
     let _ttl = EnvVarGuard::set("OPENHUMAN_APPROVAL_TTL_SECS", "2");
     ensure_approval_gate().await;
     let _approval_bridge = register_approval_bridge();
-    // Same delegation chain as approve/deny: orchestrator → run_code → code_executor
-    // → file_write. The gate parks and TTL-denies after 2 seconds. code_executor
-    // receives the denial, returns text; orchestrator synthesizes with TIMEOUT_ACK_CANARY.
+    // Same shape as approve/deny: orchestrator → file_write. The gate parks and
+    // TTL-denies after 2 seconds; the orchestrator acknowledges with TIMEOUT_ACK_CANARY.
     reset_script(vec![
-        // request[0]: Orchestrator delegates to code_executor.
-        tool_call_completion(
-            "run_code",
-            json!({ "prompt": "write timeout-canary.txt", "blocking": true }),
-        ),
-        // request[1]: code_executor calls file_write → gate parks, TTL expires.
+        // request[0]: Orchestrator calls file_write → gate parks, TTL expires.
         tool_call_completion(
             "file_write",
             json!({ "path": "timeout-canary.txt", "content": "TIMEOUT_WRITE_CANARY" }),
         ),
-        // request[2]: code_executor text after TTL auto-denial.
+        // request[1]: Orchestrator text after TTL auto-denial.
         text_completion("The write timed out awaiting approval. TIMEOUT_ACK_CANARY"),
-        // request[3]: Orchestrator synthesis.
-        text_completion("Acknowledged: TIMEOUT_ACK_CANARY"),
     ]);
     let stack = boot_stack().await;
 
@@ -2126,8 +1939,8 @@ async fn provider_error_retry_inner() {
 // parallel_subagent_fanout:
 //   spawn_parallel_agents is in the orchestrator's named tools (agent.toml:165)
 //   and is registered via ops.rs:163. Requires ≥2 tasks, each { agent_id, prompt }.
-//   The orchestrator's subagents.allowlist includes "researcher", so
-//   agent_id:"researcher" is valid. children run via join_all (spawn_parallel_agents.rs
+//   The orchestrator's subagents.allowlist includes "agent_memory",
+//   so agent_id:"agent_memory" is valid. children run via join_all (spawn_parallel_agents.rs
 //   ~line 322 — "let futures = prepared.into_iter().map(…)"). Both children
 //   consume from the same global FIFO scripted-response queue. Because
 //   join_all spawns futures concurrently but the queue pop is under a Mutex,
@@ -2135,14 +1948,15 @@ async fn provider_error_retry_inner() {
 //   carry distinct canaries; the synthesis quotes both.
 //   LLM request ordering (4 upstream calls):
 //     request[0]  = orchestrator → spawn_parallel_agents tool call
-//     request[1,2] = researcher child 1 & child 2 (order nondeterministic,
+//     request[1,2] = agent_memory child 1 & child 2 (order nondeterministic,
 //                    both return distinct canaries)
 //     request[3]  = orchestrator synthesis with both canaries
 //
 // multi_hop_delegation_chain:
-//   Depth-1 subagents (researcher, code_executor, etc.) do NOT have spawn
-//   tools in their named lists. Verified: researcher/agent.toml has only web/
-//   file tools; code_executor/agent.toml has code/file tools. Neither contains
+//   Depth-1 subagents (agent_memory, vision_agent, etc.) do NOT have spawn
+//   tools in their named lists. Verified: agent_memory's agent.toml
+//   (memory/agent/agent/agent.toml) has only read-only memory tools plus
+//   ask_user_clarification. It contains no
 //   spawn_subagent, spawn_worker_thread, or spawn_parallel_agents. The only
 //   agents with spawn tools are orchestrator and trigger_reactor (loader.rs:383,
 //   527). trigger_reactor is not in the orchestrator's subagents.allowlist.
@@ -2150,18 +1964,19 @@ async fn provider_error_retry_inner() {
 //   with the current built-in agent graph; the cap is a safety net for
 //   runtime-registered agents.
 //
-//   Fallback (plan Task 9, step 9.2 fallback): orchestrator → researcher (via
-//   `research`) → researcher scripted to call ask_user_clarification (not in
-//   researcher's named tools → SubagentToolSource::execute returns a blocked
-//   response, tool loop continues) → researcher second LLM call returns
-//   DEPTH2_CANARY text → dispatch_subagent forwards as `research` tool result
-//   → orchestrator synthesis. The three-level synthesis path (user turn →
-//   researcher subagent → tool-loop continuation → orchestrator synthesis) is
-//   the deepest path reachable with built-in agents without src/ changes.
+//   Fallback (plan Task 9, step 9.2 fallback): orchestrator → agent_memory
+//   (via `retrieve_memory`) → agent_memory scripted to call file_write (not in
+//   agent_memory's read-only named tools → SubagentToolSource::execute returns
+//   a blocked response, tool loop continues) → agent_memory second LLM call
+//   returns DEPTH2_CANARY text → dispatch_subagent forwards as `retrieve_memory`
+//   tool result → orchestrator synthesis. The three-level synthesis path (user
+//   turn → agent_memory subagent → tool-loop continuation → orchestrator
+//   synthesis) is the deepest path reachable with built-in agents without src/
+//   changes.
 //   LLM request ordering (4 upstream calls):
-//     request[0] = orchestrator → `research` delegation
-//     request[1] = researcher (inner loop) → ask_user_clarification (blocked)
-//     request[2] = researcher (inner loop continuation) → DEPTH2_CANARY text
+//     request[0] = orchestrator → `retrieve_memory` delegation
+//     request[1] = agent_memory (inner loop) → file_write (blocked)
+//     request[2] = agent_memory (inner loop continuation) → DEPTH2_CANARY text
 //     request[3] = orchestrator synthesis
 
 /// Two `spawn_async_subagent` calls issued together really do put two workers
@@ -2213,11 +2028,11 @@ async fn parallel_subagent_fanout_inner() {
         tool_calls_completion(&[
             (
                 "spawn_async_subagent",
-                json!({ "agent_id": "researcher", "prompt": "Find PARALLEL_ALPHA_CANARY" }),
+                json!({ "agent_id": "agent_memory", "prompt": "Find PARALLEL_ALPHA_CANARY" }),
             ),
             (
                 "spawn_async_subagent",
-                json!({ "agent_id": "researcher", "prompt": "Find PARALLEL_BETA_CANARY" }),
+                json!({ "agent_id": "agent_memory", "prompt": "Find PARALLEL_BETA_CANARY" }),
             ),
         ]),
         text_completion("Spawned two workers; results will arrive as they land."),
@@ -2309,19 +2124,23 @@ async fn parallel_subagent_fanout_inner() {
     );
 }
 
-/// SubagentToolSource returns error); researcher loops and returns DEPTH2_CANARY;
+/// Orchestrator delegates to agent_memory via `retrieve_memory`; it calls
+/// file_write (not in its read-only named tools, so SubagentToolSource
+/// returns error); agent_memory loops and returns DEPTH2_CANARY;
 /// dispatch_subagent forwards the result; orchestrator synthesizes.
 ///
-/// Depth behavior discovered: researcher/agent.toml has only web/file tools
-/// (no spawn_subagent, spawn_worker_thread, spawn_parallel_agents). MAX_SPAWN_DEPTH=3
+/// Depth behavior discovered: agent_memory's agent.toml has only read-only
+/// memory tools plus ask_user_clarification (no spawn_subagent,
+/// spawn_worker_thread, spawn_parallel_agents). MAX_SPAWN_DEPTH=3
 /// (spawn_depth_context.rs:16) is unreachable with built-in agents; it guards
 /// runtime/workspace agents. The three-level synthesis (user-turn root →
-/// researcher subagent → orchestrator synthesis) is the deepest path available
-/// without src/ changes. Documented per plan Task 9 step 9.2 fallback.
+/// agent_memory subagent → orchestrator synthesis) is the deepest path
+/// available without src/ changes. Documented per plan Task 9 step 9.2 fallback.
 ///
-/// Intentionally shares the blocked-clarification mechanic with
-/// `scheduling_clarification_flow`; differs in delegate surface (research vs
-/// schedule_task) and single-turn shape.
+/// The out-of-scope call is `file_write`, not `ask_user_clarification`:
+/// agent_memory owns `ask_user_clarification`, so that call would park the
+/// child (the `delegated_clarification_flow` mechanic) instead of being
+/// refused and letting the inner loop continue.
 #[test]
 fn multi_hop_delegation_chain() {
     run_on_agent_stack(
@@ -2333,24 +2152,25 @@ fn multi_hop_delegation_chain() {
 async fn multi_hop_delegation_chain_inner() {
     let _lock = env_lock();
     reset_script(vec![
-        // request[0]: Orchestrator delegates to researcher via `research`
-        // (researcher's delegate_name, agent.toml:3).
+        // request[0]: Orchestrator delegates to agent_memory via
+        // `retrieve_memory` (its delegate_name, memory/agent/agent/agent.toml:3).
         tool_call_completion(
-            "research",
+            "retrieve_memory",
             json!({ "prompt": "deep question", "blocking": true }),
         ),
-        // request[1]: Researcher first inner LLM call → scripts ask_user_clarification.
-        // ask_user_clarification is NOT in researcher's named tools (researcher/agent.toml:21-50),
-        // so SubagentToolSource returns a blocked/error result (tool_source.rs:36).
-        // The researcher subagent loop continues to a second LLM call.
+        // request[1]: agent_memory first inner LLM call → scripts file_write.
+        // file_write is NOT in agent_memory's read-only named tools
+        // (`[tools] named`), so SubagentToolSource returns a blocked/error
+        // result (tool_source.rs:36). The subagent loop continues to a second
+        // LLM call.
         tool_call_completion(
-            "ask_user_clarification",
-            json!({ "question": "depth-2 clarification?" }),
+            "file_write",
+            json!({ "path": "depth-2.txt", "content": "depth-2 write?" }),
         ),
-        // request[2]: Researcher second inner LLM call → text result.
-        // This becomes the `research` tool result forwarded by dispatch_subagent.
+        // request[2]: agent_memory second inner LLM call → text result.
+        // This becomes the `retrieve_memory` tool result forwarded by dispatch_subagent.
         text_completion("DEPTH2_CANARY"),
-        // request[3]: Orchestrator receives the research result and synthesizes.
+        // request[3]: Orchestrator receives the retrieve_memory result and synthesizes.
         text_completion("Final answer: DEPTH2_CANARY"),
     ]);
     let stack = boot_stack().await;
@@ -2385,27 +2205,27 @@ async fn multi_hop_delegation_chain_inner() {
     );
 
     // ≥4 upstream requests prove the full delegation path ran (≥3 would
-    // false-pass if the researcher inner loop early-exited):
-    //   request[0] = orchestrator (research call),
-    //   request[1] = researcher first iter (ask_user_clarification → blocked),
-    //   request[2] = researcher second iter (DEPTH2_CANARY text),
+    // false-pass if the subagent inner loop early-exited):
+    //   request[0] = orchestrator (retrieve_memory call),
+    //   request[1] = agent_memory first iter (file_write → blocked),
+    //   request[2] = agent_memory second iter (DEPTH2_CANARY text),
     //   request[3] = orchestrator synthesis.
     let requests = with_captured(|c| c.clone());
     assert!(
         requests.len() >= 4,
-        "expected ≥4 upstream requests (orchestrator + researcher x2 + synthesis), got {};\
+        "expected ≥4 upstream requests (orchestrator + agent_memory x2 + synthesis), got {};\
         \nrequests: {}",
         requests.len(),
         serde_json::to_string_pretty(&requests).unwrap_or_default()
     );
 
-    // No unknown-tool result for `research` — delegation was synthesised correctly.
-    // Scoped to `research`: the researcher's `ask_user_clarification` call IS
+    // No unknown-tool result for `retrieve_memory` — delegation was synthesised correctly.
+    // Scoped to `retrieve_memory`: the subagent's `file_write` call IS
     // rejected as unknown by design (see the ordering note above), so a blanket
     // check would fail on the very mechanic this test exercises.
     assert!(
-        !captured_requests_reject_tool_as_unknown(&requests, "research"),
-        "found an unknown-tool result — `research` delegation was not synthesised; requests: {}",
+        !captured_requests_reject_tool_as_unknown(&requests, "retrieve_memory"),
+        "found an unknown-tool result — `retrieve_memory` delegation was not synthesised; requests: {}",
         serde_json::to_string_pretty(&requests).unwrap_or_default()
     );
 
@@ -3367,7 +3187,8 @@ async fn model_call_ceiling_bounds_a_wedged_call_below_the_turn_deadline_inner()
 // "installed" or "connected". These go one step further: the skill comes from a
 // loopback registry through the real install path, the MCP server is found in a
 // loopback registry and then declared in `mcp.json` the way a user would, and a
-// scripted turn reaches the skill through `setup_skills` / `run_skill` and
+// scripted turn installs the skill through `setup_skills`, reads it back with the
+// orchestrator's own `describe_workflow`, and
 // calls the MCP server directly through the registry tools.
 //
 // The proof is the tool result the model receives, never the scripted reply:
@@ -3471,9 +3292,9 @@ async fn serve_skill_registry_fixture() -> (
 }
 
 /// A skill found in the registry is installed by the agent (behind the approval
-/// gate), lands on disk, and is then loaded by the skill executor, with its body
-/// reaching the model.
-// `skills` off drops `skill_setup`/`skill_executor` from the builtins, and this
+/// gate), lands on disk, and is then loaded by the orchestrator itself
+/// (`describe_workflow`), with its body reaching the model.
+// `skills` off drops `skill_setup` from the builtins, and this
 // target declares no `required-features`, so an ungated skill test would run
 // and fail instead of being skipped.
 #[cfg(feature = "skills")]
@@ -3523,16 +3344,12 @@ async fn agent_installs_a_registry_skill_then_runs_it_inner() {
             json!({ "entry_id": REGISTRY_SKILL_ID }),
         ),
         text_completion("Installed the skill."),
-        // Orchestrator hands the run to `skill_executor`, which loads the skill.
-        tool_call_completion(
-            "run_skill",
-            json!({ "prompt": format!("Run the {REGISTRY_SKILL_ID} skill"), "blocking": true }),
-        ),
+        // The orchestrator loads the installed skill itself — there is no
+        // skill-executor hand-off; running one is its own `run_workflow`.
         tool_call_completion(
             "describe_workflow",
             json!({ "workflow_id": REGISTRY_SKILL_ID }),
         ),
-        text_completion("Ran the skill."),
         text_completion("The skill is installed and ran."),
     ]);
     let stack = boot_stack().await;
@@ -3631,7 +3448,7 @@ async fn agent_installs_a_registry_skill_then_runs_it_inner() {
         "the installed SKILL.md is not the one the registry served: {body}"
     );
 
-    // Usable: the executor loaded the installed skill and its body reached the model.
+    // Usable: the orchestrator loaded the installed skill and its body reached the model.
     let described = tool_result_text(&requests, "describe_workflow")
         .unwrap_or_else(|| panic!("no tool result for describe_workflow; requests: {}", dump()));
     assert!(
@@ -3645,8 +3462,8 @@ async fn agent_installs_a_registry_skill_then_runs_it_inner() {
 
 // ─── #6302: the orchestrator calls MCP tools and hands off skill work ───────
 //
-// The skill hand-offs (`setup_skills`, `run_skill`) and the MCP registry tools
-// are direct tools on the orchestrator's belt. The raw `skill_registry_*`
+// The skill hand-off (`setup_skills`), the orchestrator's own `run_workflow`,
+// and the MCP registry tools are direct tools on the orchestrator's belt. The raw `skill_registry_*`
 // tools remain closed to it. These tests pin both paths against a real session.
 
 /// Tool names a captured model request advertised to the provider.
@@ -3764,19 +3581,20 @@ async fn assert_hand_off_reaches_specialist(
     );
 }
 
-/// Skill requests reach `skill_setup` and `skill_executor` through their
-/// hand-offs, called directly.
+/// Skill installs reach `skill_setup` through its hand-off, called directly;
+/// running an installed skill is the orchestrator's own `run_workflow`, not a
+/// hand-off to a retired `skill_executor` (`run_skill`).
 #[cfg(feature = "skills")]
 #[test]
-fn orchestrator_hands_skill_requests_to_the_skill_specialists_directly() {
+fn orchestrator_hands_skill_installs_to_skill_setup_directly() {
     run_on_agent_stack(
-        "orchestrator_hands_skill_requests_to_the_skill_specialists_directly",
-        orchestrator_hands_skill_requests_to_the_skill_specialists_directly_inner,
+        "orchestrator_hands_skill_installs_to_skill_setup_directly",
+        orchestrator_hands_skill_installs_to_skill_setup_directly_inner,
     );
 }
 
 #[cfg(feature = "skills")]
-async fn orchestrator_hands_skill_requests_to_the_skill_specialists_directly_inner() {
+async fn orchestrator_hands_skill_installs_to_skill_setup_directly_inner() {
     let _lock = env_lock();
     reset_script(Vec::new());
     let stack = boot_stack().await;
@@ -3798,15 +3616,17 @@ async fn orchestrator_hands_skill_requests_to_the_skill_specialists_directly_inn
         ],
     )
     .await;
-    assert_hand_off_reaches_specialist(
-        &stack,
-        &mut events,
-        911,
-        "harness-skill-handoff",
-        "run_skill",
-        &["skill_runtime_resolve_runtimes", "read_workflow_resource"],
-    )
-    .await;
+    // Same turn's requests: the orchestrator runs skills itself.
+    let requests = with_captured(|c| c.clone());
+    let belt = advertised_tool_names(requests.first().expect("orchestrator model request"));
+    assert!(
+        belt.iter().any(|name| name == "run_workflow"),
+        "the orchestrator must advertise `run_workflow` directly; it advertised {belt:?}"
+    );
+    assert!(
+        !belt.iter().any(|name| name == "run_skill"),
+        "the retired `run_skill` hand-off must not be advertised: {belt:?}"
+    );
     stack.shutdown();
 }
 
@@ -5135,7 +4955,7 @@ async fn cancelling_a_running_background_subagent_settles_it_inner() {
     reset_script(vec![
         tool_calls_completion(&[(
             "spawn_async_subagent",
-            json!({ "agent_id": "researcher", "prompt": "Find CANCEL_E2E_CANARY" }),
+            json!({ "agent_id": "agent_memory", "prompt": "Find CANCEL_E2E_CANARY" }),
         )]),
         text_completion("Spawned a worker; its result will arrive later."),
         text_completion("worker would have finished here"),

@@ -1535,12 +1535,8 @@ const messages: TranslationMap = {
   'settings.costDashboard.noDataHint':
     "Envoyez un message agent: l'utilisation des jetons lors du prochain appel au fournisseur remplira le graphique en environ 10 secondes.",
   'settings.search.title': 'Moteur de recherche',
-  'settings.search.menuDesc':
-    'Par défaut, utilisez la recherche gérée par OpenHuman ou connectez votre propre fournisseur avec une clé API.',
   'settings.search.statusNeedsKey': 'Nécessite la clé API',
   'settings.search.getApiKey': 'Obtenir la clé API',
-  'settings.search.save': 'Enregistrer',
-  'settings.search.clear': 'Effacer',
   'settings.search.show': 'Afficher',
   'settings.search.hide': 'Masquer',
   'settings.search.statusSaving': 'Enregistrement…',
@@ -1560,29 +1556,18 @@ const messages: TranslationMap = {
   'settings.search.accessBlockAll': 'Bloquer tout',
   'settings.search.accessBlockAllHint':
     "Tout accès au web est bloqué: l'assistant ne peut ouvrir ni lire aucun site web.",
-  'settings.search.description':
-    'La recherche peut utiliser plusieurs fournisseurs à la fois. Exa et Gemini sont inclus avec TinyHumans, sans configuration ; les autres fournisseurs fonctionnent avec votre propre clé API. Chaque rôle ci-dessous utilise le premier fournisseur disponible, puis passe au suivant.',
   'settings.search.localManagedUnavailable':
-    'Les fournisseurs inclus avec TinyHumans nécessitent une connexion. Activez un fournisseur avec votre propre clé API pour utiliser la recherche web en session locale.',
+    'Les fournisseurs passant par TinyHumans nécessitent une connexion. Connectez un fournisseur avec votre propre clé API pour utiliser la recherche web en session locale.',
   'settings.search.enabledLabel': 'Recherche web',
-  'settings.search.enabledDesc':
-    "Autorise l'agent à chercher sur le web, à répondre à partir de sources web et à lire des pages.",
-  'settings.search.providersTitle': 'Fournisseurs',
-  'settings.search.providersDesc':
-    'Activez les fournisseurs voulus. Plusieurs peuvent être actifs à la fois ; les rôles ci-dessous décident lequel est essayé en premier.',
   'settings.search.providerToggleAria': 'Utiliser {provider}',
-  'settings.search.routeAria': 'Connexion à {provider}',
-  'settings.search.routeManaged': 'Inclus avec TinyHumans',
-  'settings.search.routeDirect': 'Clé personnelle',
+  'settings.search.routeManaged': 'par TinyHumans',
+  'settings.search.routeDirect': 'Votre propre clé',
   'settings.search.apiKeyLabel': 'Clé API {provider}',
   'settings.search.placeholderKey': 'Collez votre clé API {provider}',
   'settings.search.baseUrlLabel': "URL de l'instance",
-  'settings.search.baseUrlSave': "Enregistrer l'URL",
   'settings.search.statusReady': 'Prêt',
   'settings.search.statusSignInRequired': 'Connexion requise',
   'settings.search.statusOff': 'Désactivé',
-  'settings.search.deepResearchAvailable':
-    "La recherche approfondie est disponible : l'agent peut demander à {provider} un rapport plus long et plus complet.",
   'settings.search.deepResearchHint':
     'Ajoutez votre propre clé {provider} pour débloquer la recherche approfondie.',
   'settings.search.rolesTitle': 'Rôles',
@@ -1594,9 +1579,6 @@ const messages: TranslationMap = {
   'settings.search.roleAnswerDesc': 'Une réponse rédigée à partir de sources web, avec citations.',
   'settings.search.roleContents': 'Contenu',
   'settings.search.roleContentsDesc': 'Récupère les pages indiquées et en extrait le texte.',
-  'settings.search.roleServedBy': 'Assuré par {provider}',
-  'settings.search.roleNoProvider':
-    "Aucun fournisseur disponible : l'agent n'a pas cet outil pour le moment.",
   'settings.search.roleMoveUp': 'Monter {provider}',
   'settings.search.roleMoveDown': 'Descendre {provider}',
   'settings.search.roleRemove': 'Retirer {provider}',
@@ -1606,7 +1588,47 @@ const messages: TranslationMap = {
   'settings.search.advancedTitle': 'Avancé',
   'settings.search.exposeProviderTools': 'Exposer les outils propres à chaque fournisseur',
   'settings.search.exposeProviderToolsDesc':
-    "Donne à l'agent les outils de chaque fournisseur actif au lieu d'un outil par rôle. Cela occupe davantage la fenêtre de contexte.",
+    "Remplace les outils de recherche routés par les outils propres à chaque fournisseur activé. Les agents qui ne connaissent que les outils routés, y compris l'agent principal, n'ont alors plus de recherche web, et les outils supplémentaires occupent davantage la fenêtre de contexte. Laissez cette option désactivée sauf si vous testez un fournisseur.",
+  'settings.search.tabProviders': 'Fournisseurs',
+  'settings.search.tabRouting': 'Routage',
+  'settings.search.tabWebsites': 'Sites web',
+  'settings.search.offNotice':
+    "La recherche web est désactivée. L'agent ne peut ni chercher ni lire sur le web tant que vous ne la réactivez pas.",
+  'settings.search.connectedTitle': 'Connectés',
+  'settings.search.connectedDesc':
+    "Fournisseurs que l'agent peut utiliser. Plusieurs peuvent être actifs à la fois ; l'onglet Routage décide lequel est essayé en premier.",
+  'settings.search.connectedEmpty':
+    "Aucun fournisseur n'est encore connecté. Choisissez-en un ci-dessous.",
+  'settings.search.catalogTitle': 'Ajouter un fournisseur',
+  'settings.search.catalogDesc':
+    "Choisissez un fournisseur à connecter. Vous pourrez en ajouter d'autres à tout moment.",
+  'settings.search.catalogManagedTitle': 'Par TinyHumans',
+  'settings.search.catalogManagedHelper': "Aucune configuration : un clic et c'est prêt.",
+  'settings.search.catalogOwnTitle': 'Avec votre propre clé',
+  'settings.search.catalogOwnHelper':
+    'Apportez une clé API du fournisseur, ou indiquez votre propre instance.',
+  'settings.search.addProviderAria': 'Connecter {provider}',
+  'settings.search.detailOwnKey': 'Votre propre clé API',
+  'settings.search.detailNoKey': 'Pas encore de clé API',
+  'settings.search.detailNoUrl': "Pas encore d'URL d'instance",
+  'settings.search.deepResearchBadge': 'Recherche approfondie',
+  'settings.search.rowActions': 'Options de {provider}',
+  'settings.search.actionUseOwnKey': 'Utiliser votre propre clé',
+  'settings.search.actionUseManaged': 'Utiliser par TinyHumans',
+  'settings.search.actionAddKey': 'Ajouter une clé API',
+  'settings.search.actionAddDeepResearchKey': 'Ajouter une clé pour la recherche approfondie',
+  'settings.search.actionReplaceKey': 'Remplacer la clé API',
+  'settings.search.actionRemoveKey': 'Supprimer la clé API',
+  'settings.search.actionEditUrl': "Modifier l'URL de l'instance",
+  'settings.search.connectTitle': 'Connecter {provider}',
+  'settings.search.connect': 'Connecter',
+  'settings.search.baseUrlHint': "L'adresse de votre instance SearXNG, port compris.",
+  'settings.search.roleServing': 'Utilisé',
+  'settings.search.roleNoProviderShort': 'Aucun fournisseur disponible',
+  'settings.search.roleFallbacks': 'Secours : {providers}',
+  'settings.search.roleNoFallback': 'Aucun secours',
+  'settings.search.roleDialogDesc':
+    "Le premier fournisseur disponible se charge de cette tâche. S'il échoue ou n'est pas disponible, le suivant est essayé.",
   // ─── Settings global search bar ────────────────────────────
   'settings.embeddings.title': 'Encastrements',
   'settings.embeddings.description':
@@ -3661,8 +3683,6 @@ const messages: TranslationMap = {
   'conversations.tools.planNextSteps.done': 'Prochaines étapes planifiées',
   'conversations.tools.reviewWork.active': 'Relecture du travail',
   'conversations.tools.reviewWork.done': 'Travail relu',
-  'conversations.tools.scoutContext.active': 'Repérage du contexte',
-  'conversations.tools.scoutContext.done': 'Contexte repéré',
   'conversations.tools.useTools.active': 'Utilisation des outils',
   'conversations.tools.useTools.done': 'Outils utilisés',
   'conversations.tools.checkConnectedApp.active': 'Vérification de votre app connectée',
@@ -7253,7 +7273,6 @@ const messages: TranslationMap = {
   'channels.availableDesc':
     'Clavardez les applications que vous pouvez lier. Ouvrez-en un pour le mettre en place.',
   'settings.about.resources': 'Ressources',
-  'settings.search.keyStored': 'Stocké',
   'settings.embeddings.modelCardTitle': 'Modèle & dimensions',
   'mcp.rows.searchPlaceholder': 'Les serveurs de recherche...',
   'mcp.tab.section.clients': 'Clients',
