@@ -70,7 +70,9 @@ mod types;
 pub use collector::SpanCollector;
 #[cfg(test)]
 pub use types::SpanKind;
-pub use types::{trace_session_id, RunType, SpanStatus, TraceContext, TraceSpan};
+#[cfg(test)]
+pub use types::SpanStatus;
+pub use types::{trace_session_id, RunType, TraceContext, TraceSpan};
 
 pub(crate) use export::export_subagent_journal_trace;
 pub(crate) use export::{export_run_trace, export_run_trace_from_journal};
