@@ -298,30 +298,29 @@ pub(crate) async fn install_workflow_from_url_with_home(
         .join(".openhuman")
         .join("skills");
 
-    let target_file = match write_installed_document(&skills_root, &slug, &content)
-        .map_err(|e| e.to_string())?
-    {
-        DocumentWrite::Installed(path) => path,
-        DocumentWrite::AlreadyInstalled(target_file) => {
-            tracing::info!(
-                raw_url = %redacted_raw_url,
-                fetch_url = %redacted_fetch_url,
-                slug = %slug,
-                target = %target_file.display(),
-                "[skills] install_workflow_from_url: already installed"
-            );
+    let target_file =
+        match write_installed_document(&skills_root, &slug, &content).map_err(|e| e.to_string())? {
+            DocumentWrite::Installed(path) => path,
+            DocumentWrite::AlreadyInstalled(target_file) => {
+                tracing::info!(
+                    raw_url = %redacted_raw_url,
+                    fetch_url = %redacted_fetch_url,
+                    slug = %slug,
+                    target = %target_file.display(),
+                    "[skills] install_workflow_from_url: already installed"
+                );
 
-            return Ok(InstallWorkflowFromUrlOutcome {
-                url: raw_url,
-                stdout: format!(
-                    "Skill {slug:?} is already installed at {}",
-                    target_file.display()
-                ),
-                stderr: parse_warnings.join("\n"),
-                new_skills: Vec::new(),
-            });
-        }
-    };
+                return Ok(InstallWorkflowFromUrlOutcome {
+                    url: raw_url,
+                    stdout: format!(
+                        "Skill {slug:?} is already installed at {}",
+                        target_file.display()
+                    ),
+                    stderr: parse_warnings.join("\n"),
+                    new_skills: Vec::new(),
+                });
+            }
+        };
 
     let trusted_after = is_workspace_trusted(workspace_dir);
     let after = discover_workflows_inner(home, Some(workspace_dir), trusted_after);

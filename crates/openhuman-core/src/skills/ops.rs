@@ -52,8 +52,7 @@ pub(crate) use super::ops_create::create_workflow_inner;
 pub(crate) use super::ops_discover::discover_workflows_inner;
 #[cfg(test)]
 pub(crate) use super::ops_install::{
-    install_workflow_from_url_with_home, normalize_install_url,
-    should_report_install_fetch_status,
+    install_workflow_from_url_with_home, normalize_install_url, should_report_install_fetch_status,
 };
 #[cfg(test)]
 pub(crate) use super::ops_types::{

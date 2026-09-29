@@ -169,10 +169,7 @@ fn read_skill_resource_rejects_empty_inputs() {
 
     let err = read_workflow_resource(ws, "demo", Path::new(""))
         .expect_err("empty relative_path must be rejected");
-    assert!(
-        err.to_lowercase().contains("relative_path"),
-        "unexpected: {err}"
-    );
+    assert!(err.contains("non-empty relative path"), "unexpected: {err}");
 }
 
 // ── `discovery_home_dir`: the per-agent "no user roots" switch ───────────
