@@ -65,8 +65,7 @@ pub fn render_grounding() -> &'static str {
 }
 
 // `render_skills` and `render_connected_integrations` helpers are
-// gone — `## Available Skills` lives in `integrations_agent/prompt.rs`, and
-// the connected-integrations / delegation-guide blocks each live in
+// gone — the connected-integrations / delegation-guide blocks each live in
 // their owning agent's `prompt.rs` so no branching-on-agent-id logic
 // needs to exist here.
 
@@ -228,8 +227,6 @@ fn empty_prompt_context_for_static_sections() -> PromptContext<'static> {
         include_memory_md: false,
         curated_snapshot: None,
         user_identity: None,
-        personality_soul_md: None,
-        personality_memory_md: None,
         personality_roster: vec![],
         agents_md_global: None,
         agents_md_local: None,

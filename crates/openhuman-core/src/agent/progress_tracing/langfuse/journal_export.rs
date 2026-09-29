@@ -11,7 +11,7 @@ use tinyagents_harness::observability::{AgentObservation, LangfuseClient, Langfu
 use tinyagents_session::run_ledger::RunTelemetry;
 
 use crate::config::Config;
-use crate::security::credentials::session_support::require_live_session_token;
+use crate::security::credentials::session_support::direct_backend_credential;
 
 use super::ingestion_batch::{new_event_id, split_ingestion_batch, LANGFUSE_MAX_BATCH_EVENTS};
 use super::TraceContext;
@@ -33,13 +33,37 @@ pub(super) fn trace_ctx_with_run_lineage(
         return trace_ctx.clone();
     };
     trace_ctx.clone().with_run_lineage(
-        Some(first.run_id.as_str().to_string()),
-        first
-            .parent_run_id
-            .as_ref()
-            .map(|id| id.as_str().to_string()),
-        Some(first.root_run_id.as_str().to_string()),
+        trace_ctx
+            .run_id
+            .clone()
+            .or_else(|| Some(first.run_id.as_str().to_string())),
+        trace_ctx.parent_run_id.clone().or_else(|| {
+            first
+                .parent_run_id
+                .as_ref()
+                .map(|id| id.as_str().to_string())
+        }),
+        trace_ctx
+            .root_run_id
+            .clone()
+            .or_else(|| Some(first.root_run_id.as_str().to_string())),
     )
+}
+
+/// A child is a root observation within its own trace. Preserve its original
+/// run lineage on the trace metadata before calling this projection.
+pub(crate) fn root_subagent_observations(
+    observations: &[AgentObservation],
+) -> Vec<AgentObservation> {
+    observations
+        .iter()
+        .cloned()
+        .map(|mut observation| {
+            observation.parent_run_id = None;
+            observation.root_run_id = observation.run_id.clone();
+            observation
+        })
+        .collect()
 }
 
 pub(super) fn trace_config_from_context(
@@ -138,6 +162,14 @@ pub(super) fn insert_run_telemetry_generation(
     let Some(batch) = payload.get_mut("batch").and_then(Value::as_array_mut) else {
         return false;
     };
+    // Native per-call charges are already counted by Langfuse. Adding the
+    // run aggregate as another generation would double-count the same spend.
+    if batch.iter().any(|event| {
+        event["type"] == "generation-create"
+            && event["body"]["costDetails"]["total"].as_f64().is_some()
+    }) {
+        return false;
+    }
     let Some(trace_id) = batch
         .first()
         .and_then(|event| event.get("body"))
@@ -211,6 +243,21 @@ pub(super) fn insert_run_telemetry_generation(
 /// exporter. The journal is already redacted before persistence, and this
 /// exporter additionally strips model/tool payloads unless `capture_content`
 /// is explicitly enabled.
+/// Whether [`push_observations`] would actually send for `config`: the same
+/// gates it checks, for a caller that must read a journal and build
+/// observations first. Without a live session (unit tests, a signed-out or
+/// embedder host) or on a skipped environment, that work is discarded
+/// anyway — and reading a whole child journal is not free.
+pub(crate) fn journal_push_ready(config: &Config) -> bool {
+    let url = ingestion_url(config);
+    !skip_push(environment_for_base(&url))
+        && url.starts_with("http")
+        && matches!(
+            direct_backend_credential(config, "langfuse journal push"),
+            Some(crate::security::credentials::session_support::BackendCredential::Session(_))
+        )
+}
+
 pub(crate) async fn push_observations(
     config: &Config,
     trace_ctx: &TraceContext,
@@ -232,7 +279,15 @@ pub(crate) async fn push_observations(
             "could not resolve Langfuse ingestion URL from backend host (got {url:?})"
         ));
     }
-    let token = require_live_session_token(config)?;
+    // No TinyHumans connection, or no usable credential (signed out, offline
+    // local session): a configured state, so skip quietly rather than failing
+    // every turn's push.
+    let token = match direct_backend_credential(config, "langfuse journal push") {
+        Some(crate::security::credentials::session_support::BackendCredential::Session(token)) => {
+            token
+        }
+        _ => return Ok(()),
+    };
     // Stamp the run lineage from the run's own observations so a spawned
     // sub-agent's trace links back to its parent turn (#4657).
     let trace_ctx = trace_ctx_with_run_lineage(trace_ctx, observations);

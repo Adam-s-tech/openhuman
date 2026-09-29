@@ -114,9 +114,23 @@ Capability {
         name: "Suggested Questions",
         domain: "conversation",
         category: CapabilityCategory::Conversation,
-        description: "Offer prompt suggestions to help continue a conversation.",
-        how_to: "Home or Conversations > Suggested prompts",
-        status: CapabilityStatus::Beta,
+        // Not Beta: nothing produces these yet. Both chat surfaces that would
+        // show them — the welcome chips and the follow-up row — read
+        // `s.thread.suggestions`, which is only ever filled by the `suggestions`
+        // key on the assistant-ui ExternalStoreAdapter. `useOpenHumanExternalStore`
+        // does not declare it, and no other producer exists in `app/src` or in
+        // `crates/`, so the array is permanently empty and both surfaces render
+        // nothing. The previous entry advertised Beta and pointed at
+        // "Suggested prompts", sending users to look for a control that is not
+        // there (#6464). Move this back to Beta in the same change that lands a
+        // producer, not before.
+        description: "Offer prompt suggestions to help start or continue a conversation. \
+                      Not available yet: no part of OpenHuman produces suggestions, so \
+                      the chat surfaces that would display them stay empty.",
+        how_to: "Nothing to do yet — the starter prompts on a new chat are the first half \
+                 and land with the welcome-chips change; follow-up suggestions after a \
+                 reply need a producer that does not exist yet.",
+        status: CapabilityStatus::ComingSoon,
         privacy: None,
     },
 Capability {
@@ -130,12 +144,36 @@ Capability {
         privacy: None,
     },
 Capability {
+        id: "conversation.agent_sources",
+        name: "Agent Sources",
+        domain: "conversation",
+        category: CapabilityCategory::Conversation,
+        description: "List the web pages an answer was built from, derived from the agent's own \
+            fetch/browse calls rather than claimed by the model. Only http(s) addresses are \
+            linked.",
+        how_to: "Chat > Sources, under a settled answer (collapsed; click to expand). The same \
+            list, plus per-step detail and the whole run, is in Chat > the turn's process \
+            footer > Sources.",
+        status: CapabilityStatus::Beta,
+        privacy: None,
+    },
+Capability {
         id: "conversation.plan_review",
         name: "Plan Review",
         domain: "conversation",
         category: CapabilityCategory::Conversation,
-        description: "Pause an interactive turn for review whenever the assistant proposes a thread-scoped plan (a multi-step to-do list with its objective). Review the whole plan once above the composer, then Approve to run it, Reject to discard it, or send feedback to have the assistant revise and re-propose — nothing executes until you approve. Background and scheduled runs are never gated.",
-        how_to: "Conversations > review the plan card above the composer when the assistant lays out a multi-step plan",
+        description: "Pause a turn for review when a planning specialist proposes a thread-scoped plan (a multi-step to-do list with its objective). Review the whole plan once above the composer, then Approve to run it, Reject to discard it, or send feedback to have it revise and re-propose. The chat assistant itself answers research and lookup questions directly without a plan card; destructive commands and file changes are gated by the approval layer instead. Background and scheduled runs are never gated.",
+        how_to: "Conversations > review the plan card above the composer when a planning specialist lays out a multi-step plan",
+        status: CapabilityStatus::Beta,
+        privacy: None,
+    },
+Capability {
+        id: "conversation.plan_mode",
+        name: "Plan Mode",
+        domain: "conversation",
+        category: CapabilityCategory::Conversation,
+        description: "Put a thread into Plan mode to have the orchestrator lay out and review a plan before touching anything: every side-effecting tool is hidden and denied for that thread until it exits plan mode, except the plan-review card, the session to-do list, and the thread's goal. Exit plan mode (via the plan hand-off or the mode toggle) to run the plan with the full tool set restored.",
+        how_to: "Conversations > toggle Plan mode on the composer, or start a message already in Plan mode",
         status: CapabilityStatus::Beta,
         privacy: None,
     },
@@ -154,7 +192,7 @@ Capability {
         name: "Vision Sub-agent",
         domain: "agent",
         category: CapabilityCategory::Intelligence,
-        description: "Delegate image / screenshot understanding to a dedicated vision sub-agent — describe, OCR, read charts/diagrams, compare images, or locate UI elements. Rides the multimodal `vision-v1` tier so attached images are always analyzed.",
+        description: "Delegate image / screenshot understanding to a dedicated vision sub-agent — describe, OCR, read charts/diagrams, compare images, or locate UI elements. Rides the vision workload route so attached images are always analyzed.",
         how_to: "Attach an image in chat, or ask the assistant to look at a screenshot / image file",
         status: CapabilityStatus::Beta,
         privacy: IMAGE_TO_BACKEND,
@@ -164,7 +202,7 @@ Capability {
         name: "Image Generation",
         domain: "agent",
         category: CapabilityCategory::Intelligence,
-        description: "Delegate image creation to a dedicated image sub-agent — generate images from a text prompt, or edit/restyle reference images, using hosted GMI models (Seedream / SeedEdit). Results are saved to the workspace.",
+        description: "Delegate image creation to a dedicated image sub-agent — generate images from a text prompt, or edit/restyle reference images, using hosted GMI models (Seedream / SeedEdit). Each generated image is filed as a chat artifact (download card + Files panel entry).",
         how_to: "Ask the assistant to generate, draw, or edit an image",
         status: CapabilityStatus::Beta,
         privacy: MEDIA_GEN_TO_BACKEND,
@@ -174,10 +212,50 @@ Capability {
         name: "Video Generation",
         domain: "agent",
         category: CapabilityCategory::Intelligence,
-        description: "Delegate short-video creation to a dedicated video sub-agent — text-to-video or animate a reference image using hosted GMI models (Seedance / Veo). Generation is asynchronous; the finished clip is saved to the workspace.",
+        description: "Delegate short-video creation to a dedicated video sub-agent — text-to-video or animate a reference image using hosted GMI models (Seedance / Veo). Generation is asynchronous; the finished clip is filed as a chat artifact (download card + Files panel entry) when it completes.",
         how_to: "Ask the assistant to generate a video or animate an image",
         status: CapabilityStatus::Beta,
         privacy: MEDIA_GEN_TO_BACKEND,
+    },
+Capability {
+        id: "intelligence.follow_up_suggestions",
+        name: "Follow-up Suggestions",
+        domain: "conversation",
+        category: CapabilityCategory::Intelligence,
+        description: "After the assistant replies, a small local/summarization-role model call proposes 2-3 short follow-up prompts the user might ask next, shown as tappable chips below the reply. Skipped for background delivery and parallel sub-agent turns; disabled entirely via `web_chat.suggestions_enabled = false` in config.toml.",
+        how_to: "Automatic after any main chat reply; tap a suggestion chip to send it, or ignore it",
+        status: CapabilityStatus::Beta,
+        privacy: CODING_SESSION_TO_BACKEND,
+    },
+Capability {
+        id: "intelligence.memory_activity_indicator",
+        name: "Memory Activity Indicator",
+        domain: "conversation",
+        category: CapabilityCategory::Intelligence,
+        description: "Chat surfaces a brief indicator whenever the assistant stores or recalls a memory during the turn (`memory_store` / `memory_recall`). Never shows the stored content or the full recall query — only the category/namespace, or a short clipped preview of the query, plus a result count.",
+        how_to: "Automatic whenever the assistant remembers or looks something up during a chat turn",
+        status: CapabilityStatus::Beta,
+        privacy: None,
+    },
+Capability {
+        id: "intelligence.context_breakdown",
+        name: "Context Window Breakdown",
+        domain: "agent",
+        category: CapabilityCategory::Intelligence,
+        description: "Shows where an agent turn's fixed prompt budget goes — rendered system-prompt sections, advertised tool-schema bytes, and (for a selected thread) that thread's persisted history spend — as a stacked bar with byte/token estimates against the resolved model's context window.",
+        how_to: "Open the composer's context-usage indicator (`agent.context_breakdown` RPC)",
+        status: CapabilityStatus::Beta,
+        privacy: None,
+    },
+Capability {
+        id: "conversation.command_palette",
+        name: "Command Palette",
+        domain: "conversation",
+        category: CapabilityCategory::Conversation,
+        description: "The composer's slash-command menu lists the fixed built-ins (/new, /clear, /plan, /build, /goal, /todo, /stop) merged with your installed skills and saved workflows, so one menu reaches everything runnable from chat.",
+        how_to: "Type `/` in the composer",
+        status: CapabilityStatus::Beta,
+        privacy: None,
     },
 Capability {
         id: "conversation.label_filter",

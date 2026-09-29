@@ -9,7 +9,7 @@ use tinyagents_harness::cache::CacheLayoutEvent;
 use tinyagents_harness::events::{AgentEvent, EventListener, EventRecord};
 
 use crate::agent::progress::AgentProgress;
-use crate::tools::traits::humanize_tool_name;
+use tinytools::humanize_tool_name;
 
 use super::event_bridge::OpenhumanEventBridge;
 
@@ -245,8 +245,8 @@ impl EventListener for OpenhumanEventBridge {
                 // command (issue #4249, 07.3). A rejected command means the run's
                 // `SteeringPolicy` refused the kind and the crate is aborting the
                 // run with `TinyAgentsError::Steering`, so surface it louder. The
-                // bespoke ack plumbing in `harness/run_queue/` stays live (gated:
-                // web-channel followup/parallel still need a local owner); UI
+                // web-channel queue routing stays host-owned (gated: followup /
+                // parallel still need a local owner); UI
                 // projection of this event remains pending.
                 if *accepted {
                     tracing::debug!(
@@ -266,6 +266,7 @@ impl EventListener for OpenhumanEventBridge {
                 by,
                 excluded,
                 remaining,
+                ..
             } => {
                 tracing::debug!(
                     policy = by.as_str(),
@@ -307,7 +308,7 @@ impl EventListener for OpenhumanEventBridge {
                 // tool call. Classified `NotFound` (permanent) from the typed
                 // event itself (#6277): the identical call can never succeed, so
                 // "try again / run diagnostics" copy would be wrong. The model
-                // still got the "valid tools: [...]" corrective.
+                // still got the corrective (close matches + `tool_search`).
                 let iteration = self.iteration();
                 let failure = Some(crate::tools::status::describe(
                     crate::tools::status::ToolFailureClass::NotFound,
@@ -320,7 +321,7 @@ impl EventListener for OpenhumanEventBridge {
                             tool_name: requested_name.clone(),
                             arguments: arguments.clone(),
                             iteration,
-                            display_label: Some(label),
+                            display_label: Some(label.clone()),
                             display_detail: Some("tool not available".to_string()),
                         });
                         self.send(AgentProgress::ToolCallCompleted {
@@ -333,6 +334,9 @@ impl EventListener for OpenhumanEventBridge {
                             elapsed_ms: 0,
                             iteration,
                             failure,
+                            display_label: Some(label),
+                            display_detail: Some("tool not available".to_string()),
+                            structured: None,
                         });
                     }
                     Some(s) => {
@@ -343,7 +347,7 @@ impl EventListener for OpenhumanEventBridge {
                             tool_name: requested_name.clone(),
                             arguments: arguments.clone(),
                             iteration,
-                            display_label: Some(label),
+                            display_label: Some(label.clone()),
                             display_detail: Some("tool not available".to_string()),
                         });
                         self.send(AgentProgress::SubagentToolCallCompleted {
@@ -358,11 +362,136 @@ impl EventListener for OpenhumanEventBridge {
                             elapsed_ms: 0,
                             iteration,
                             failure,
+                            display_label: Some(label),
+                            display_detail: Some("tool not available".to_string()),
+                            structured: None,
                         });
                     }
                 }
             }
-            AgentEvent::ToolStarted { call_id, tool_name } => {
+            AgentEvent::ToolsAdvertised {
+                direct,
+                deferred,
+                schema_bytes,
+            } => {
+                tracing::info!(
+                    direct,
+                    deferred,
+                    schema_bytes,
+                    "[tool-search] tools advertised for run (deferred reachable via tool_search)"
+                );
+            }
+            AgentEvent::DeferredToolCall { call_id, tool_name } => {
+                // The following `ToolStarted` names the real tool; this only
+                // records that it arrived through the bridge.
+                tracing::debug!(
+                    call_id = call_id.as_str(),
+                    tool = tool_name.as_str(),
+                    "[tool-search] deferred tool invoked through tool_call"
+                );
+            }
+            AgentEvent::ToolSearched {
+                call_id,
+                query,
+                matched,
+                ranker,
+                top_confidence,
+                fallback,
+                shadow_matched,
+                latency_ms,
+            } => {
+                // The harness answers `tool_search` itself, so no
+                // `ToolStarted`/`ToolCompleted` pair exists for it. Project a
+                // synthetic pair so the timeline shows the search and the trace
+                // gets a `tool.tool_search` span carrying the ranking facts —
+                // that span is how a Jev-vs-BM25 comparison is read off live
+                // traffic. Never the query text in a log line; it is user
+                // content. The arguments ride the progress event, which is
+                // content-gated at the collector like every tool's.
+                tracing::info!(
+                    call_id = call_id.as_str(),
+                    matched,
+                    ranker = ranker.as_str(),
+                    top_confidence = ?top_confidence,
+                    fallback = ?fallback,
+                    shadow_agrees = ?shadow_matched.as_ref().map(|_| ()),
+                    latency_ms,
+                    "[tool-search] answered"
+                );
+                let iteration = self.iteration();
+                let tool_name = tinyagents_harness::tool::discover::TOOL_SEARCH_NAME.to_string();
+                let arguments = serde_json::json!({ "query": query });
+                let output = serde_json::json!({
+                    "matched": matched,
+                    "ranker": ranker,
+                    "top_confidence": top_confidence,
+                    "fallback": fallback,
+                    "shadow_matched": shadow_matched,
+                    "latency_ms": latency_ms,
+                })
+                .to_string();
+                let output_chars = output.chars().count();
+                match &self.scope {
+                    None => {
+                        self.send(AgentProgress::ToolCallStarted {
+                            call_id: call_id.as_str().to_string(),
+                            tool_name: tool_name.clone(),
+                            arguments: arguments.clone(),
+                            iteration,
+                            display_label: Some("Searching tools".to_string()),
+                            display_detail: None,
+                        });
+                        self.send(AgentProgress::ToolCallCompleted {
+                            call_id: call_id.as_str().to_string(),
+                            tool_name,
+                            success: true,
+                            output_chars,
+                            output,
+                            arguments: Some(arguments),
+                            elapsed_ms: *latency_ms,
+                            iteration,
+                            failure: None,
+                            display_label: Some("Searching tools".to_string()),
+                            display_detail: None,
+                            structured: None,
+                        });
+                    }
+                    Some(s) => {
+                        self.send(AgentProgress::SubagentToolCallStarted {
+                            agent_id: s.agent_id.clone(),
+                            task_id: s.task_id.clone(),
+                            call_id: call_id.as_str().to_string(),
+                            tool_name: tool_name.clone(),
+                            arguments: arguments.clone(),
+                            iteration,
+                            display_label: Some("Searching tools".to_string()),
+                            display_detail: None,
+                        });
+                        self.send(AgentProgress::SubagentToolCallCompleted {
+                            agent_id: s.agent_id.clone(),
+                            task_id: s.task_id.clone(),
+                            call_id: call_id.as_str().to_string(),
+                            tool_name,
+                            success: true,
+                            output_chars,
+                            output,
+                            arguments: Some(arguments),
+                            elapsed_ms: *latency_ms,
+                            iteration,
+                            failure: None,
+                            display_label: Some("Searching tools".to_string()),
+                            display_detail: None,
+                            structured: None,
+                        });
+                    }
+                }
+            }
+            AgentEvent::ToolStarted {
+                call_id,
+                tool_name,
+                input,
+                ..
+            } => {
                 // Unknown/invisible tool calls no longer produce a sentinel-named
                 // Started event: the migration replaced `UNKNOWN_TOOL_SENTINEL` +
                 // `UnknownToolRewriteMiddleware` with the crate
@@ -377,24 +506,36 @@ impl EventListener for OpenhumanEventBridge {
                     .lock()
                     .unwrap_or_else(|p| p.into_inner())
                     .insert(call_id.as_str().to_string(), std::time::Instant::now());
+                // The harness start event now carries the captured call
+                // input when payload capture is on (tinyagents#211); fall
+                // back to `Value::Null` when it's off, same as before. A
+                // tool whose label doesn't depend on its arguments (the
+                // common case: a policy label, or a name-derived default)
+                // already reads correctly with real input; one whose detail
+                // DOES depend on args (e.g. a search query) is recomputed
+                // with the real arguments on `ToolCallCompleted` below and
+                // forwarded on the wire as
+                // `tool_display_label`/`tool_display_detail` there too.
+                let arguments = input.clone().unwrap_or(serde_json::Value::Null);
+                let (display_label, display_detail) = self.resolve_display(tool_name, &arguments);
                 match &self.scope {
                     None => self.send(AgentProgress::ToolCallStarted {
                         call_id: call_id.as_str().to_string(),
                         tool_name: tool_name.clone(),
-                        arguments: serde_json::Value::Null,
+                        arguments,
                         iteration,
-                        display_label: Some(humanize_tool_name(tool_name)),
-                        display_detail: None,
+                        display_label,
+                        display_detail,
                     }),
                     Some(s) => self.send(AgentProgress::SubagentToolCallStarted {
                         agent_id: s.agent_id.clone(),
                         task_id: s.task_id.clone(),
                         call_id: call_id.as_str().to_string(),
                         tool_name: tool_name.clone(),
-                        arguments: serde_json::Value::Null,
+                        arguments,
                         iteration,
-                        display_label: Some(humanize_tool_name(tool_name)),
-                        display_detail: None,
+                        display_label,
+                        display_detail,
                     }),
                 }
             }
@@ -434,7 +575,7 @@ impl EventListener for OpenhumanEventBridge {
                     .unwrap_or(0);
                 let elapsed_ms = outcome
                     .as_ref()
-                    .map(|(_, _, e, _)| *e)
+                    .map(|(_, _, e, ..)| *e)
                     .filter(|e| *e > 0)
                     .unwrap_or(stamped_elapsed);
                 // Tool result text, captured by the harness when
@@ -447,13 +588,33 @@ impl EventListener for OpenhumanEventBridge {
                 };
                 let output_chars = outcome
                     .as_ref()
-                    .map(|(_, _, _, c)| *c)
+                    .map(|(_, _, _, c, _)| *c)
                     .filter(|c| *c > 0)
                     .unwrap_or_else(|| output_text.chars().count());
+                // Structured, tool-specific result payload the middleware
+                // copied from `ToolResult.metadata` (e.g. web search results).
+                let structured = outcome.as_ref().and_then(|(.., s)| s.clone());
                 // Carry the classified failure onto whichever completion event
                 // this projects — main-agent OR sub-agent (#4459). Previously
                 // the sub-agent branch dropped it on the floor.
-                let failure = outcome.and_then(|(_, f, _, _)| f);
+                let failure = outcome.and_then(|(_, f, ..)| f);
+                // Recompute the label/detail with the REAL call arguments
+                // (unlike `ToolCallStarted`, this event's `input` is the
+                // actual arguments the harness captured), so a tool whose
+                // detail depends on its args — a search query, a target
+                // email — surfaces it here even when the started event
+                // couldn't.
+                let args_for_display = input.clone().unwrap_or(serde_json::Value::Null);
+                let (display_label, display_detail) =
+                    self.resolve_display(tool_name, &args_for_display);
+                tracing::debug!(
+                    call_id = call_id.as_str(),
+                    tool_name = tool_name.as_str(),
+                    success,
+                    elapsed_ms,
+                    has_structured = structured.is_some(),
+                    "[tool-presentation] projecting ToolCallCompleted with resolved label/detail"
+                );
                 match &self.scope {
                     None => self.send(AgentProgress::ToolCallCompleted {
                         call_id: call_id.as_str().to_string(),
@@ -465,6 +626,9 @@ impl EventListener for OpenhumanEventBridge {
                         elapsed_ms,
                         iteration,
                         failure,
+                        display_label,
+                        display_detail,
+                        structured,
                     }),
                     Some(s) => self.send(AgentProgress::SubagentToolCallCompleted {
                         agent_id: s.agent_id.clone(),
@@ -478,6 +642,9 @@ impl EventListener for OpenhumanEventBridge {
                         elapsed_ms,
                         iteration,
                         failure,
+                        display_label,
+                        display_detail,
+                        structured,
                     }),
                 }
             }

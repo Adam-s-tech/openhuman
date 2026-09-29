@@ -1,18 +1,15 @@
 import { fireEvent, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { registry } from '../../../lib/commands/registry';
 import { renderWithProviders } from '../../../test/test-utils';
 import CollapsedNavRail from './CollapsedNavRail';
 
 const mockNavigate = vi.fn();
-const mockHome = vi.fn();
 
 vi.mock('react-router-dom', async importOriginal => {
   const actual = await importOriginal<typeof import('react-router-dom')>();
   return { ...actual, useNavigate: () => mockNavigate };
 });
-vi.mock('./useHomeNav', () => ({ useHomeNav: () => mockHome }));
 // Deterministic labels: render the i18n key so queries don't depend on locale.
 vi.mock('../../../lib/i18n/I18nContext', () => ({ useT: () => ({ t: (k: string) => k }) }));
 vi.mock('../../../services/analytics', () => ({ trackEvent: vi.fn() }));
@@ -20,24 +17,18 @@ vi.mock('../../../services/analytics', () => ({ trackEvent: vi.fn() }));
 describe('CollapsedNavRail', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('renders Home, Keyboard Shortcuts, and every primary nav destination as icon buttons', () => {
+  it('renders every primary destination with a visible label, without Home or Discord', () => {
     renderWithProviders(<CollapsedNavRail />, { initialEntries: ['/home'] });
-    for (const key of [
-      'nav.home',
-      'shortcuts.title',
-      'nav.chat',
-      'nav.brain',
-      'nav.flows',
-      'nav.connections',
-    ]) {
+    for (const key of ['nav.chat', 'nav.brain', 'nav.flows', 'nav.connections', 'nav.settings']) {
       expect(screen.getByRole('button', { name: key })).toBeInTheDocument();
+      expect(screen.getByText(key)).toBeVisible();
     }
+    expect(screen.queryByRole('button', { name: 'nav.home' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'nav.discord' })).not.toBeInTheDocument();
     // The wallet shortcut was removed from the rail.
     expect(screen.queryByRole('button', { name: 'nav.wallet' })).not.toBeInTheDocument();
     // Human is reached from the chat composer's idle button, not a nav row.
     expect(screen.queryByRole('button', { name: 'nav.human' })).not.toBeInTheDocument();
-    // Rewards is cloud-gated; this store has no resolved cloud session.
-    expect(screen.queryByRole('button', { name: 'nav.rewards' })).not.toBeInTheDocument();
   });
 
   it('renders rail icons as sidebar menu primitives', () => {
@@ -49,33 +40,17 @@ describe('CollapsedNavRail', () => {
     expect(screen.getByRole('button', { name: 'nav.chat' }).dataset.active).toBe('false');
   });
 
-  it('shortcuts button opens the keyboard-shortcuts help directory', () => {
-    const runAction = vi.spyOn(registry, 'runAction').mockReturnValue(true);
+  it('exposes every collapsed icon label as a tooltip fallback', () => {
     renderWithProviders(<CollapsedNavRail />, { initialEntries: ['/home'] });
-    fireEvent.click(screen.getByRole('button', { name: 'shortcuts.title' }));
-    expect(runAction).toHaveBeenCalledWith('meta.keyboard-shortcuts');
-    runAction.mockRestore();
-  });
-
-  it('shortcuts button has correct data-analytics-id', () => {
-    renderWithProviders(<CollapsedNavRail />, { initialEntries: ['/home'] });
-    expect(screen.getByRole('button', { name: 'shortcuts.title' })).toHaveAttribute(
-      'data-analytics-id',
-      'collapsed-rail-shortcuts'
-    );
+    for (const key of ['nav.chat', 'nav.brain', 'nav.flows', 'nav.connections', 'nav.settings']) {
+      expect(screen.getByRole('button', { name: key })).toHaveAttribute('title', key);
+    }
   });
 
   it('navigates to a destination path when its icon is clicked', () => {
     renderWithProviders(<CollapsedNavRail />, { initialEntries: ['/home'] });
     fireEvent.click(screen.getByRole('button', { name: 'nav.brain' }));
     expect(mockNavigate).toHaveBeenCalledWith('/brain');
-  });
-
-  it('runs the shared Home action when Home is clicked', () => {
-    renderWithProviders(<CollapsedNavRail />, { initialEntries: ['/home'] });
-    fireEvent.click(screen.getByRole('button', { name: 'nav.home' }));
-    expect(mockHome).toHaveBeenCalledTimes(1);
-    expect(mockNavigate).not.toHaveBeenCalled();
   });
 
   it('marks the active destination with aria-current', () => {
@@ -87,9 +62,9 @@ describe('CollapsedNavRail', () => {
     expect(screen.getByRole('button', { name: 'nav.chat' })).not.toHaveAttribute('aria-current');
   });
 
-  it('treats /chat as the active Home state', () => {
+  it('marks Chat active on nested chat routes', () => {
     renderWithProviders(<CollapsedNavRail />, { initialEntries: ['/chat/abc'] });
-    expect(screen.getByRole('button', { name: 'nav.home' })).toHaveAttribute(
+    expect(screen.getByRole('button', { name: 'nav.chat' })).toHaveAttribute(
       'aria-current',
       'page'
     );

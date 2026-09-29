@@ -33,11 +33,11 @@ mod remove_write_auto_approve;
 mod repair_http_request_limits;
 mod retire_chat_v1_model;
 mod retire_local_whisper_stt;
-mod retire_subconscious_medulla;
+mod retire_managed_tier_slugs;
 mod unify_ai_provider_settings;
 
 /// Current target schema version. Bumped alongside every new migration.
-pub const CURRENT_SCHEMA_VERSION: u32 = 12;
+pub const CURRENT_SCHEMA_VERSION: u32 = 13;
 
 /// Give a brand-new [`Config`] the managed `openhuman` cloud-provider entry.
 ///
@@ -602,33 +602,48 @@ pub async fn run_pending(config: &mut Config) {
         );
     }
 
-    // 11 -> 12: rewrite the removed Medulla subconscious engine to the
-    // supported local engine. The enum retains the legacy variant so old
-    // config files can be parsed before this migration runs.
+    // 11 -> 12: reserialize the legacy subconscious engine name as `local`.
+    // Deserialization accepts the retired name so old configs still start.
     if config.schema_version == 11 {
-        let previous_engine = config.subconscious.engine;
-        match retire_subconscious_medulla::run(config) {
-            Ok(migrated) => {
+        let previous_version = config.schema_version;
+        config.schema_version = 12;
+        if let Err(err) = config.save().await {
+            config.schema_version = previous_version;
+            log::warn!("[migrations] schema_version 12 save failed: {err:#}");
+            return;
+        }
+        log::info!("[migrations] schema_version bumped to 12");
+    }
+
+    // 12 -> 13: retire the managed tier slugs (`chat-v1`, `agentic-v1`, …).
+    // The managed backend serves OpenRouter model ids only, so every persisted
+    // tier slug — `default_model`, orchestrator/team/delegate pins, model
+    // routes — is rewritten to the managed default model. Guard on `== 12` so
+    // an earlier failed step isn't skipped.
+    if config.schema_version == 12 {
+        let snapshot = config.clone();
+        match retire_managed_tier_slugs::run(config) {
+            Ok(stats) => {
                 let previous_version = config.schema_version;
-                config.schema_version = 12;
+                config.schema_version = 13;
                 if let Err(err) = config.save().await {
-                    config.subconscious.engine = previous_engine;
-                    config.schema_version = previous_version;
+                    *config = snapshot;
                     log::warn!(
-                        "[migrations] retire_subconscious_medulla ran but config.save failed: \
+                        "[migrations] retire_managed_tier_slugs ran but config.save failed: \
                          {err:#} — rolled in-memory schema_version back to {previous_version}, \
                          will retry on next launch"
                     );
                     return;
                 }
                 log::info!(
-                    "[migrations] schema_version bumped to 12 (retire_subconscious_medulla \
-                     engine_migrated={migrated})"
+                    "[migrations] schema_version bumped to 13 (retire_managed_tier_slugs \
+                     rewritten={})",
+                    stats.rewritten
                 );
             }
             Err(err) => {
                 log::warn!(
-                    "[migrations] retire_subconscious_medulla failed: {err:#} — \
+                    "[migrations] retire_managed_tier_slugs failed: {err:#} — \
                      will retry on next launch"
                 );
             }

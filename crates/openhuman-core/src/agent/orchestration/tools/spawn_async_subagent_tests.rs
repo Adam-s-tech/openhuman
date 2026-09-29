@@ -1,12 +1,21 @@
 use super::*;
-use crate::agent::context::prompt::ToolCallFormat;
 use crate::agent::harness::definition::AgentDefinitionRegistry;
 use crate::agent::harness::fork_context::{with_parent_context, ParentExecutionContext};
+use crate::agent::prompts::ToolCallFormat;
 use crate::config::AgentConfig;
 use crate::memory::{Memory, MemoryCategory, MemoryEntry, NamespaceSummary, RecallOpts};
 use std::collections::HashSet;
 use std::path::Path;
 use std::sync::Arc;
+use tinytools::{ToolCallOptions, ToolRunContext};
+
+struct ThreadContext(&'static str);
+
+impl ToolRunContext for ThreadContext {
+    fn thread_id(&self) -> Option<&str> {
+        Some(self.0)
+    }
+}
 
 #[test]
 fn parameters_schema_advertises_fire_and_forget_fields() {
@@ -23,9 +32,13 @@ fn parameters_schema_advertises_fire_and_forget_fields() {
         .get("properties")
         .and_then(|v| v.as_object())
         .expect("properties");
-    for key in ["context", "model", "toolkit", "task_title"] {
+    for key in ["context", "model", "task_title"] {
         assert!(props.contains_key(key), "missing {key}");
     }
+    assert!(
+        !props.contains_key("toolkit"),
+        "the retired toolkit spawn argument must not be advertised"
+    );
 }
 
 #[test]
@@ -39,7 +52,7 @@ fn background_contract_forbids_user_attention() {
 #[test]
 fn accepted_message_hides_task_id_from_prose() {
     let payload = r#"{"task_id":"sub-internal-123","agent_id":"archivist","mode":"async"}"#;
-    let message = format_async_subagent_accepted("archivist", payload);
+    let message = format_async_subagent_accepted("archivist", payload, &FleetToolSet::all());
     let prose = message
         .split("[async_subagent_ref]")
         .next()
@@ -51,20 +64,69 @@ fn accepted_message_hides_task_id_from_prose() {
     assert!(message.contains("sub-internal-123"));
 }
 
+/// A parent with `wait_subagent` but not `steer_subagent` (a wait-only
+/// fleet) must be told it can wait/poll but never invited to "send more
+/// input" — that guidance, and the `send_message` instruction, require
+/// `steer_subagent` specifically. Regression for CodeRabbit finding on
+/// `format_async_subagent_accepted`/`async_subagent_ref_payload` gating both
+/// messages on `can_wait()` alone.
+#[test]
+fn wait_only_fleet_omits_steering_guidance_and_instruction() {
+    let fleet = FleetToolSet::from_scope(
+        &crate::agent::harness::definition::ToolScope::Named(vec!["wait_subagent".to_string()]),
+        &[],
+    );
+    assert!(fleet.can_wait());
+    assert!(!fleet.has("steer_subagent"));
+
+    let payload = async_subagent_ref_payload(
+        "sub-123",
+        "subsess-456",
+        "task_manager_agent",
+        Some("thread-worker"),
+        false,
+        "created",
+        "running",
+        &fleet,
+    );
+    assert_eq!(payload["instructions"]["wait"]["tool"], "wait_subagent");
+    assert!(
+        !payload["instructions"]
+            .as_object()
+            .expect("instructions map")
+            .contains_key("send_message"),
+        "send_message offered to a parent without steer_subagent"
+    );
+    let serialized = serde_json::to_string(&payload).unwrap();
+    assert!(
+        !serialized.contains("steer_subagent"),
+        "steer_subagent leaked into the envelope"
+    );
+
+    let message = format_async_subagent_accepted("task_manager_agent", &serialized, &fleet);
+    let prose = message.split("[async_subagent_ref]").next().unwrap();
+    assert!(prose.contains("wait for completion"));
+    assert!(
+        !prose.contains("send more input"),
+        "wait-only parent told to send more input it cannot send"
+    );
+}
+
 #[test]
 fn async_reference_payload_includes_agent_id_and_control_instructions() {
     let payload = async_subagent_ref_payload(
         "sub-123",
         "subsess-456",
-        "researcher",
+        "task_manager_agent",
         Some("thread-worker"),
         false,
         "created",
         "running",
+        &FleetToolSet::all(),
     );
 
-    assert_eq!(payload["agent_id"], "researcher");
-    assert_eq!(payload["agentId"], "researcher");
+    assert_eq!(payload["agent_id"], "task_manager_agent");
+    assert_eq!(payload["agentId"], "task_manager_agent");
     assert_eq!(payload["instructions"]["wait"]["tool"], "wait_subagent");
     assert_eq!(
         payload["instructions"]["timeout_tick"]["arguments"]["timeout_secs"],
@@ -76,6 +138,72 @@ fn async_reference_payload_includes_agent_id_and_control_instructions() {
         payload["instructions"]["send_message"]["tool"],
         "steer_subagent"
     );
+}
+
+/// The shipped orchestrator (#5701) has no wait/steer/close tools; the envelope
+/// must not name them, and must say the result arrives on its own.
+#[test]
+fn async_reference_matches_the_orchestrator_fleet_vocabulary() {
+    let registry = AgentDefinitionRegistry::builtins_only();
+    let def = registry.get("orchestrator").expect("built-in orchestrator");
+    let fleet = FleetToolSet::from_scope(&def.tools, &def.disallowed_tools);
+
+    let payload = async_subagent_ref_payload(
+        "sub-123",
+        "subsess-456",
+        "task_manager_agent",
+        None,
+        false,
+        "created",
+        "running",
+        &fleet,
+    );
+    let instructions = payload["instructions"]
+        .as_object()
+        .expect("instructions map");
+    for absent in [
+        "wait",
+        "timeout_tick",
+        "delayed_tick",
+        "delayed_loop",
+        "send_message",
+    ] {
+        assert!(
+            !instructions.contains_key(absent),
+            "{absent} offered to a parent without it"
+        );
+    }
+    assert_eq!(
+        payload["instructions"]["answer_or_resume"]["tool"],
+        "continue_subagent"
+    );
+    assert_eq!(payload["result_delivery"], "automatic");
+    let serialized = serde_json::to_string(&payload).unwrap();
+    for name in [
+        "wait_subagent",
+        "steer_subagent",
+        "wait_loop",
+        "close_subagent",
+    ] {
+        assert!(
+            !serialized.contains(name),
+            "{name} leaked into the envelope"
+        );
+    }
+    let next: Vec<&str> = payload["next_actions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|v| v.as_str())
+        .collect();
+    assert!(next
+        .iter()
+        .any(|a| a.contains("delivered to you automatically")));
+
+    let message = format_async_subagent_accepted("task_manager_agent", &serialized, &fleet);
+    let prose = message.split("[async_subagent_ref]").next().unwrap();
+    assert!(prose.contains("delivered to you automatically"));
+    assert!(!prose.contains("wait for completion"));
 }
 
 #[test]
@@ -219,7 +347,7 @@ fn attach_workflow_proposal_without_proposal_returns_summary_unchanged() {
         temp.path(),
         Some("thread-x"),
         "sub-task-2",
-        "researcher",
+        "task_manager_agent",
         &[ChatMessage::tool("no proposal here")],
         "research done".to_string(),
     );
@@ -252,7 +380,7 @@ async fn missing_prompt_returns_error() {
 /// `background_delivery`'s "headless batch" path. Sets up a real parent
 /// turn context (so the call gets past the `current_parent()` /
 /// allowlist / registry checks) but deliberately does NOT wrap the call
-/// in `with_thread_id`, so `current_thread_id()` is None — the exact
+/// without an explicit parent thread, so the child has no thread — the exact
 /// condition that used to sail through to `tokio::spawn` and lose the
 /// result.
 #[tokio::test]
@@ -263,7 +391,7 @@ async fn errors_clearly_when_no_parent_thread_for_delivery() {
     let result = with_parent_context(parent_context(workspace.path()), async {
         SpawnAsyncSubagentTool::new()
             .execute(json!({
-                "agent_id": "researcher",
+                "agent_id": "task_manager_agent",
                 "prompt": "investigate x",
             }))
             .await
@@ -274,10 +402,20 @@ async fn errors_clearly_when_no_parent_thread_for_delivery() {
     assert!(result.is_error);
     let out = result.output();
     assert!(out.contains("no parent chat thread"), "{out}");
-    // The recommended escape hatch must name `blocking: true` — plain
-    // `spawn_subagent` defaults to async and would otherwise be steered
-    // straight back into this same guard.
-    assert!(out.contains("spawn_subagent"), "{out}");
+    // The recommended escape hatch must name a route that does NOT loop back
+    // into this guard: a synchronous one, with the argument that makes it
+    // synchronous.
+    //
+    // The literal `spawn_subagent` is deliberately no longer asserted. The
+    // guidance used to name it; it now recommends `delegate_*` instead, which
+    // is the better advice for the reason this comment already gave — plain
+    // `spawn_subagent` defaults to async and would steer the model straight
+    // back here. Verified callable under the product feature profile:
+    // `delegate_<agent_id>` tools are generated in
+    // `tools/orchestrator_tools.rs:116`, and they accept `blocking`
+    // (`archetype_delegation.rs:115` declares it, `:245` reads it) — so the
+    // guidance names a real tool family with a real argument, not a route the
+    // model cannot take.
     assert!(out.contains("blocking: true"), "{out}");
     assert!(out.contains("delegate_"), "{out}");
 }
@@ -293,16 +431,18 @@ async fn guard_does_not_fire_when_parent_thread_is_bound() {
     let _ = AgentDefinitionRegistry::init_global_builtins();
     let workspace = tempfile::TempDir::new().expect("workspace");
 
+    let thread = ThreadContext("t-parent");
     let result = with_parent_context(parent_context(workspace.path()), async {
-        crate::agent::tinyagents::thread_context::with_thread_id("t-parent", async {
-            SpawnAsyncSubagentTool::new()
-                .execute(json!({
-                    "agent_id": "researcher",
+        SpawnAsyncSubagentTool::new()
+            .execute_with_context(
+                json!({
+                    "agent_id": "task_manager_agent",
                     "prompt": "investigate x",
-                }))
-                .await
-        })
-        .await
+                }),
+                ToolCallOptions::default(),
+                Some(&thread),
+            )
+            .await
     })
     .await
     .unwrap();
@@ -318,7 +458,7 @@ fn parent_context(workspace_dir: &Path) -> ParentExecutionContext {
     ParentExecutionContext {
         workspace_descriptor: None,
         agent_definition_id: "orchestrator".into(),
-        allowed_subagent_ids: HashSet::from(["researcher".to_string()]),
+        allowed_subagent_ids: HashSet::from(["task_manager_agent".to_string()]),
         turn_model_source: crate::agent::tinyagents::TurnModelSource::from_model(Arc::new(
             tinyagents_harness::testkit::ScriptedModel::replies(vec!["done"]),
         )),

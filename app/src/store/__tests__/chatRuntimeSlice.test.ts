@@ -4,10 +4,10 @@ import type { PersistedTurnState } from '../../types/turnState';
 import reducer, {
   beginInferenceTurn,
   bumpInferenceHeartbeatForThread,
+  cancelUnresolvedTurnTimeline,
   clearAllChatRuntime,
   clearArtifactsForThread,
   clearInferenceStatusForThread,
-  clearParallelRequest,
   clearPendingApprovalForThread,
   clearRuntimeForThread,
   clearStreamingAssistantForThread,
@@ -15,16 +15,17 @@ import reducer, {
   endInferenceTurn,
   hydrateRuntimeFromRunLedger,
   hydrateRuntimeFromSnapshot,
+  isActiveTimelineStatus,
   markInferenceTurnStreaming,
-  registerParallelRequest,
   removeArtifactForThread,
   setInferenceStatusForThread,
-  setParallelStream,
   setPendingApprovalForThread,
   setStreamingAssistantForThread,
   setToolTimelineForThread,
+  setTurnTimelinesForThread,
   streamDeltaReceived,
   subagentAwaitingUser,
+  subagentCancelResolved,
   subagentDone,
   subagentIterationStarted,
   subagentSpawned,
@@ -33,6 +34,7 @@ import reducer, {
   toolArgsDeltaReceived,
   toolCallReceived,
   toolResultReceived,
+  turnSettled,
   upsertArtifactFailedForThread,
   upsertArtifactInProgressForThread,
   upsertArtifactReadyForThread,
@@ -219,6 +221,106 @@ describe('chatRuntimeSlice', () => {
     expect(next.toolTimelineByThread['thread-i']).toEqual([]);
   });
 
+  /**
+   * A detached `spawn_async_subagent` child outlives the turn that spawned it.
+   * Settling it on the parent's `completed` snapshot made the Background tasks
+   * panel report "none running" — and the row read "Cancelled" — while the
+   * sub-agent was still making tool calls. Its own `subagent_completed` event
+   * is what settles it.
+   */
+  it('keeps a detached async subagent running when its parent turn completes', () => {
+    const asyncRow = {
+      id: 'subagent:sub-async',
+      name: 'subagent:researcher',
+      round: 1,
+      status: 'running' as const,
+      subagent: {
+        taskId: 'sub-async',
+        agentId: 'researcher',
+        status: 'running' as const,
+        mode: 'async',
+        toolCalls: [],
+      },
+    };
+    const snapshot: PersistedTurnState = {
+      threadId: 'thread-async',
+      requestId: 'req-async',
+      lifecycle: 'completed',
+      iteration: 1,
+      maxIterations: 25,
+      streamingText: '',
+      thinking: '',
+      toolTimeline: [asyncRow],
+      startedAt: '2026-09-22T00:00:00Z',
+      updatedAt: '2026-09-22T00:00:09Z',
+    };
+
+    const next = reducer(undefined, hydrateRuntimeFromSnapshot({ snapshot }));
+    const row = next.toolTimelineByThread['thread-async'][0];
+
+    expect(row.status).toBe('running');
+    expect(row.subagent?.status).toBe('running');
+  });
+
+  /**
+   * `interrupted` does NOT mean the core is gone. It is also stamped when the
+   * parent's agent loop merely errored with the core still running
+   * (`TurnStateMirror::finish`), and a detached child spawned earlier in that
+   * turn is a separate task that keeps working. So the snapshot must not
+   * settle a detached row on `interrupted` either — the ledger does that after
+   * a real restart. An ordinary (non-detached) row in the same snapshot has no
+   * driver left and must still settle.
+   */
+  it('keeps a detached async subagent running when its parent turn was interrupted', () => {
+    const snapshot: PersistedTurnState = {
+      threadId: 'thread-async-int',
+      requestId: 'req-async-int',
+      lifecycle: 'interrupted',
+      iteration: 1,
+      maxIterations: 25,
+      streamingText: '',
+      thinking: '',
+      toolTimeline: [
+        {
+          id: 'subagent:sub-async-int',
+          name: 'subagent:researcher',
+          round: 1,
+          status: 'running' as const,
+          subagent: {
+            taskId: 'sub-async-int',
+            agentId: 'researcher',
+            status: 'running' as const,
+            mode: 'async',
+            toolCalls: [],
+          },
+        },
+        {
+          id: 'subagent:sub-typed-int',
+          name: 'subagent:writer',
+          round: 1,
+          status: 'running' as const,
+          subagent: {
+            taskId: 'sub-typed-int',
+            agentId: 'writer',
+            status: 'running' as const,
+            mode: 'typed',
+            toolCalls: [],
+          },
+        },
+      ],
+      startedAt: '2026-09-22T00:00:00Z',
+      updatedAt: '2026-09-22T00:00:09Z',
+    };
+
+    const next = reducer(undefined, hydrateRuntimeFromSnapshot({ snapshot }));
+    const [detached, typed] = next.toolTimelineByThread['thread-async-int'];
+
+    expect(detached.status).toBe('running');
+    expect(detached.subagent?.status).toBe('running');
+    expect(typed.status).toBe('cancelled');
+    expect(typed.subagent?.status).toBe('cancelled');
+  });
+
   it('rehydrates historical subagent rows without live streamed prose', () => {
     const snapshot: PersistedTurnState = {
       threadId: 'thread-subagent',
@@ -329,6 +431,113 @@ describe('chatRuntimeSlice', () => {
       elapsedMs: 1200,
     });
     expect(row.subagent?.transcript).toEqual([]);
+  });
+
+  /**
+   * The detached-row keep-alive above is only truthful while the child lives.
+   * If the core dies after the parent turn completes, the snapshot stays
+   * `completed` and no `subagent_completed` is ever coming, so the row would
+   * read "Running" forever. The run ledger is the independent authority:
+   * startup stamps orphaned runs `interrupted`. A terminal ledger status must
+   * settle a detached row still shown running, and a `running` one must not.
+   */
+  describe('ledger reconciliation of a detached async row kept alive past its parent', () => {
+    const keptAlive = (lifecycle: 'completed' | 'interrupted' = 'completed') =>
+      reducer(
+        undefined,
+        hydrateRuntimeFromSnapshot({
+          snapshot: {
+            threadId: 'thread-detached',
+            requestId: 'req-detached',
+            lifecycle,
+            iteration: 1,
+            maxIterations: 25,
+            streamingText: '',
+            thinking: '',
+            toolTimeline: [
+              {
+                id: 'subagent:sub-detached',
+                name: 'subagent:researcher',
+                round: 1,
+                status: 'running',
+                subagent: {
+                  taskId: 'sub-detached',
+                  agentId: 'researcher',
+                  status: 'running',
+                  mode: 'async',
+                  toolCalls: [],
+                },
+              },
+            ],
+            startedAt: '2026-09-22T00:00:00Z',
+            updatedAt: '2026-09-22T00:00:09Z',
+          },
+        })
+      );
+    const ledgerSays = (status: 'interrupted' | 'running') =>
+      hydrateRuntimeFromRunLedger({
+        threadId: 'thread-detached',
+        runs: [
+          {
+            id: 'sub-detached',
+            kind: 'subagent',
+            parentThreadId: 'thread-detached',
+            agentId: 'researcher',
+            status,
+            metadata: { mode: 'async' },
+            startedAt: '2026-09-22T00:00:00Z',
+            updatedAt: '2026-09-22T00:05:00Z',
+          },
+        ],
+      });
+
+    it('settles the row when the ledger reports the child orphaned by a restart', () => {
+      const before = keptAlive();
+      expect(before.toolTimelineByThread['thread-detached'][0].status).toBe('running');
+
+      const rows = reducer(before, ledgerSays('interrupted')).toolTimelineByThread[
+        'thread-detached'
+      ];
+
+      expect(rows).toHaveLength(1);
+      expect(rows[0].status).toBe('cancelled');
+      expect(rows[0].subagent?.status).toBe('interrupted');
+    });
+
+    /**
+     * A crash mid-turn leaves the parent snapshot `interrupted`, and the
+     * snapshot no longer settles detached rows. The ledger must, or a child
+     * that died with the core would read "Running" forever.
+     */
+    it('settles the row after a crash mid-turn, via the ledger', () => {
+      const before = keptAlive('interrupted');
+      expect(before.toolTimelineByThread['thread-detached'][0].status).toBe('running');
+
+      const rows = reducer(before, ledgerSays('interrupted')).toolTimelineByThread[
+        'thread-detached'
+      ];
+
+      expect(rows[0].status).toBe('cancelled');
+      expect(rows[0].subagent?.status).toBe('interrupted');
+    });
+
+    /** The reviewer's scenario: the parent errored, the core and child live on. */
+    it('leaves the row running after a parent error while the child lives', () => {
+      const rows = reducer(keptAlive('interrupted'), ledgerSays('running')).toolTimelineByThread[
+        'thread-detached'
+      ];
+
+      expect(rows[0].status).toBe('running');
+    });
+
+    it('leaves the row running while the ledger says the child is still alive', () => {
+      const rows = reducer(keptAlive(), ledgerSays('running')).toolTimelineByThread[
+        'thread-detached'
+      ];
+
+      expect(rows).toHaveLength(1);
+      expect(rows[0].status).toBe('running');
+    });
   });
 
   it('maps durable run ledger status, kind, and optional metadata into timeline rows', () => {
@@ -778,110 +987,66 @@ describe('chatRuntimeSlice', () => {
       expect(cleared.artifactsByThread).toEqual({});
     });
   });
-
-  describe('parallel (forked) turn lane', () => {
-    it('registers a parallel request and streams into its own lane keyed by requestId', () => {
-      let state = reducer(
-        undefined,
-        registerParallelRequest({ threadId: 't-1', requestId: 'req-a' })
-      );
-      expect(state.parallelRequestThreads['req-a']).toBe('t-1');
-
-      state = reducer(
-        state,
-        setParallelStream({
-          threadId: 't-1',
-          streaming: { requestId: 'req-a', content: 'hi', thinking: '' },
-        })
-      );
-      expect(state.parallelStreamsByThread['t-1']['req-a'].content).toBe('hi');
-    });
-
-    it('keeps two concurrent same-thread branches separate', () => {
-      let state = reducer(undefined, registerParallelRequest({ threadId: 't-1', requestId: 'r1' }));
-      state = reducer(state, registerParallelRequest({ threadId: 't-1', requestId: 'r2' }));
-      state = reducer(
-        state,
-        setParallelStream({
-          threadId: 't-1',
-          streaming: { requestId: 'r1', content: 'one', thinking: '' },
-        })
-      );
-      state = reducer(
-        state,
-        setParallelStream({
-          threadId: 't-1',
-          streaming: { requestId: 'r2', content: 'two', thinking: '' },
-        })
-      );
-      expect(Object.keys(state.parallelStreamsByThread['t-1'])).toEqual(['r1', 'r2']);
-      expect(state.parallelStreamsByThread['t-1']['r1'].content).toBe('one');
-      expect(state.parallelStreamsByThread['t-1']['r2'].content).toBe('two');
-    });
-
-    it('clearParallelRequest removes one branch and drops the thread bucket when empty', () => {
-      let state = reducer(undefined, registerParallelRequest({ threadId: 't-1', requestId: 'r1' }));
-      state = reducer(state, registerParallelRequest({ threadId: 't-1', requestId: 'r2' }));
-      state = reducer(
-        state,
-        setParallelStream({
-          threadId: 't-1',
-          streaming: { requestId: 'r1', content: 'one', thinking: '' },
-        })
-      );
-      state = reducer(
-        state,
-        setParallelStream({
-          threadId: 't-1',
-          streaming: { requestId: 'r2', content: 'two', thinking: '' },
-        })
-      );
-
-      state = reducer(state, clearParallelRequest({ requestId: 'r1' }));
-      expect(state.parallelRequestThreads['r1']).toBeUndefined();
-      expect(state.parallelStreamsByThread['t-1']['r1']).toBeUndefined();
-      expect(state.parallelStreamsByThread['t-1']['r2'].content).toBe('two');
-
-      state = reducer(state, clearParallelRequest({ requestId: 'r2' }));
-      expect(state.parallelStreamsByThread['t-1']).toBeUndefined();
-      expect(state.parallelRequestThreads).toEqual({});
-    });
-
-    it('clearRuntimeForThread drops the thread parallel streams and their request mappings', () => {
-      let state = reducer(undefined, registerParallelRequest({ threadId: 't-1', requestId: 'r1' }));
-      state = reducer(
-        state,
-        setParallelStream({
-          threadId: 't-1',
-          streaming: { requestId: 'r1', content: 'one', thinking: '' },
-        })
-      );
-      // An unrelated thread's parallel branch must survive.
-      state = reducer(state, registerParallelRequest({ threadId: 't-2', requestId: 'r9' }));
-      state = reducer(
-        state,
-        setParallelStream({
-          threadId: 't-2',
-          streaming: { requestId: 'r9', content: 'keep', thinking: '' },
-        })
-      );
-
-      state = reducer(state, clearRuntimeForThread({ threadId: 't-1' }));
-      expect(state.parallelStreamsByThread['t-1']).toBeUndefined();
-      expect(state.parallelRequestThreads['r1']).toBeUndefined();
-      expect(state.parallelStreamsByThread['t-2']['r9'].content).toBe('keep');
-      expect(state.parallelRequestThreads['r9']).toBe('t-2');
-    });
-
-    it('clearParallelRequest is a no-op for an unknown requestId', () => {
-      const state = reducer(undefined, clearParallelRequest({ requestId: 'nope' }));
-      expect(state.parallelStreamsByThread).toEqual({});
-      expect(state.parallelRequestThreads).toEqual({});
-    });
-  });
 });
 
 describe('toolCallReceived (Phase 3 reducer-side merge)', () => {
+  it('does not reopen a settled row when a late tool_call for it arrives', () => {
+    let state = reducer(
+      undefined,
+      toolCallReceived({ threadId: 't1', round: 1, toolName: 'shell', toolCallId: 'c1' })
+    );
+    state = reducer(
+      state,
+      toolResultReceived({
+        threadId: 't1',
+        round: 1,
+        toolName: 'shell',
+        toolCallId: 'c1',
+        success: true,
+        output: 'ok',
+      })
+    );
+    state = reducer(
+      state,
+      toolCallReceived({ threadId: 't1', round: 1, toolName: 'shell', toolCallId: 'c1' })
+    );
+
+    const rows = state.toolTimelineByThread['t1'];
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ id: 'c1', status: 'success', result: 'ok' });
+  });
+
+  it('does not reopen a cancelled row when a late tool_call for it arrives', () => {
+    let state = reducer(
+      undefined,
+      toolCallReceived({ threadId: 't1', round: 1, toolName: 'shell', toolCallId: 'c1' })
+    );
+    state = reducer(state, cancelUnresolvedTurnTimeline({ threadId: 't1', rowIds: ['c1'] }));
+    state = reducer(
+      state,
+      toolCallReceived({ threadId: 't1', round: 1, toolName: 'shell', toolCallId: 'c1' })
+    );
+
+    expect(state.toolTimelineByThread['t1'][0]).toMatchObject({ id: 'c1', status: 'cancelled' });
+  });
+
+  it('only cancels the completed turn rows captured before snapshot recovery', () => {
+    let state = reducer(
+      undefined,
+      toolCallReceived({ threadId: 't1', round: 1, toolName: 'completed', toolCallId: 'old' })
+    );
+    state = reducer(
+      state,
+      toolCallReceived({ threadId: 't1', round: 1, toolName: 'new-turn', toolCallId: 'new' })
+    );
+    state = reducer(state, cancelUnresolvedTurnTimeline({ threadId: 't1', rowIds: ['old'] }));
+
+    expect(state.toolTimelineByThread['t1']).toMatchObject([
+      { id: 'old', status: 'cancelled' },
+      { id: 'new', status: 'running' },
+    ]);
+  });
+
   it('appends a new running row with a generated id and records the processing pointer', () => {
     const state = reducer(
       undefined,
@@ -1159,30 +1324,6 @@ describe('streamDeltaReceived (Phase 3 reducer-side merge)', () => {
       thinking: 'new',
     });
   });
-
-  it('routes a forked (parallel) turn into its own lane without touching the primary or processing', () => {
-    let state = reducer(
-      undefined,
-      registerParallelRequest({ threadId: 't1', requestId: 'branch' })
-    );
-    state = reducer(
-      state,
-      streamDeltaReceived({
-        threadId: 't1',
-        requestId: 'branch',
-        round: 0,
-        delta: 'B',
-        channel: 'content',
-      })
-    );
-    expect(state.parallelStreamsByThread['t1']['branch']).toEqual({
-      requestId: 'branch',
-      content: 'B',
-      thinking: '',
-    });
-    expect(state.streamingAssistantByThread['t1']).toBeUndefined();
-    expect(state.processingByThread['t1']).toBeUndefined();
-  });
 });
 
 describe('subagent event reducers (Phase 3)', () => {
@@ -1315,6 +1456,158 @@ describe('subagent event reducers (Phase 3)', () => {
     // A second done cannot re-settle a terminal row.
     const again = reducer(state, subagentDone({ threadId: 't1', rowId: row, success: false }));
     expect(again.toolTimelineByThread['t1'][0].status).toBe('success');
+  });
+
+  it('subagentDone settles the delegation under both of its ids, across turns', () => {
+    // After its turn settles, an async delegation lives twice: in the frozen
+    // trail under the socket row id, and in the live timeline as the completed
+    // snapshot's row under the core id. A paused card from an earlier turn is
+    // the same delegation when `continue_subagent` resumes it (same task id),
+    // and must stop asking once that run finishes.
+    const socketRow = 't1:subagent:task-1:researcher';
+    let state = reducer(
+      undefined,
+      subagentSpawned({
+        threadId: 't1',
+        round: 0,
+        rowId: socketRow,
+        taskId: 'task-1',
+        agentId: 'researcher',
+      })
+    );
+    state = reducer(state, subagentAwaitingUser({ threadId: 't1', rowId: socketRow }));
+    state = reducer(state, turnSettled({ threadId: 't1', requestId: 'req-old' }));
+    state = reducer(
+      state,
+      setToolTimelineForThread({
+        threadId: 't1',
+        entries: [
+          {
+            id: 'subagent:task-1',
+            name: 'subagent:researcher',
+            round: 0,
+            seq: 0,
+            status: 'running',
+            subagent: { taskId: 'task-1', agentId: 'researcher', status: 'running', toolCalls: [] },
+          },
+          {
+            id: 'subagent:task-2',
+            name: 'subagent:researcher',
+            round: 0,
+            seq: 1,
+            status: 'running',
+            subagent: { taskId: 'task-2', agentId: 'researcher', toolCalls: [] },
+          },
+        ],
+      })
+    );
+    const done = reducer(
+      state,
+      subagentDone({ threadId: 't1', rowId: socketRow, taskId: 'task-1', success: true })
+    );
+    const frozen = done.settledTurnsByThread['t1']['req-old'].timeline[0];
+    expect([frozen.status, frozen.subagent?.status]).toEqual(['success', 'completed']);
+    expect(done.toolTimelineByThread['t1'].map(e => [e.id, e.status, e.subagent?.status])).toEqual([
+      ['subagent:task-1', 'success', 'completed'],
+      // Another delegation's row is untouched.
+      ['subagent:task-2', 'running', undefined],
+    ]);
+  });
+
+  it('subagentDone also settles the delegation in a restored past-turn timeline', () => {
+    const state = reducer(
+      undefined,
+      setTurnTimelinesForThread({
+        threadId: 't1',
+        timelines: {
+          'req-old': [
+            {
+              id: 'subagent:task-1',
+              name: 'subagent:researcher',
+              round: 0,
+              seq: 0,
+              status: 'running',
+              subagent: { taskId: 'task-1', agentId: 'researcher', toolCalls: [] },
+            },
+          ],
+        },
+      })
+    );
+    const done = reducer(
+      state,
+      subagentDone({
+        threadId: 't1',
+        rowId: 't1:subagent:task-1:researcher',
+        taskId: 'task-1',
+        success: false,
+      })
+    );
+    const row = done.turnTimelinesByThread['t1']['req-old'][0];
+    expect([row.status, row.subagent?.status]).toEqual(['error', 'failed']);
+  });
+
+  it('subagentCancelResolved settles a spinning row by task id from the cancel answer', () => {
+    // Aborted: the run was cancelled.
+    const aborted = reducer(spawn(), subagentCancelResolved({ taskId: 'task-1', cancelled: true }));
+    const row = aborted.toolTimelineByThread['t1'][0];
+    expect(row.status).toBe('cancelled');
+    // Consumers decide "still running?" from these, not the raw strings: the
+    // settled row and its nested activity must both read as inactive.
+    expect(isActiveTimelineStatus(row.status)).toBe(false);
+    expect(row.subagent?.status).toBe('cancelled');
+    expect(isActiveTimelineStatus(row.subagent?.status)).toBe(false);
+
+    // Not running any more: settle on how the core says it ended — never
+    // assume success. A failed run stays failed; an unknown one reads as
+    // cancelled (the user asked to stop it and nothing is running).
+    const settle = (outcome?: 'completed' | 'failed' | 'unknown') => {
+      const r = reducer(
+        spawn(),
+        subagentCancelResolved({ taskId: 'task-1', cancelled: false, outcome })
+      ).toolTimelineByThread['t1'][0];
+      return [r.status, r.subagent?.status];
+    };
+    expect(settle('completed')).toEqual(['success', 'completed']);
+    expect(settle('failed')).toEqual(['error', 'failed']);
+    expect(settle('unknown')).toEqual(['cancelled', 'cancelled']);
+    expect(settle(undefined)).toEqual(['cancelled', 'cancelled']);
+
+    // Another task's answer leaves this row alone.
+    const other = reducer(spawn(), subagentCancelResolved({ taskId: 'task-2', cancelled: true }));
+    expect(other.toolTimelineByThread['t1'][0].status).toBe('running');
+  });
+
+  it('subagentCancelResolved also settles a row restored into a past-turn timeline', () => {
+    const restored = reducer(
+      undefined,
+      setTurnTimelinesForThread({
+        threadId: 't1',
+        timelines: {
+          'req-old': [
+            {
+              id: 't1:subagent:task-1:researcher',
+              name: 'subagent:researcher',
+              round: 0,
+              seq: 0,
+              status: 'running',
+              subagent: { taskId: 'task-1', agentId: 'researcher', toolCalls: [] },
+            },
+          ],
+        },
+      })
+    );
+    const state = reducer(restored, subagentCancelResolved({ taskId: 'task-1', cancelled: true }));
+    expect(state.turnTimelinesByThread['t1']['req-old'][0].status).toBe('cancelled');
+  });
+
+  it('subagentCancelResolved never rewrites a row that already settled', () => {
+    const row = 't1:subagent:task-1:researcher';
+    let state = reducer(spawn(), subagentDone({ threadId: 't1', rowId: row, success: false }));
+    state = reducer(
+      state,
+      subagentCancelResolved({ taskId: 'task-1', cancelled: false, outcome: 'completed' })
+    );
+    expect(state.toolTimelineByThread['t1'][0].status).toBe('error');
   });
 
   it('subagentSpawned is idempotent — a redelivered event does not duplicate the row', () => {

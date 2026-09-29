@@ -38,6 +38,7 @@ pub fn all_controller_schemas() -> Vec<ControllerSchema> {
         schemas("triage_evaluate"),
         schemas("graph_topologies"),
         schemas("registry_snapshot"),
+        schemas("context_breakdown"),
     ]
 }
 
@@ -78,6 +79,10 @@ pub fn all_registered_controllers() -> Vec<RegisteredController> {
         RegisteredController {
             schema: schemas("registry_snapshot"),
             handler: handle_registry_snapshot,
+        },
+        RegisteredController {
+            schema: schemas("context_breakdown"),
+            handler: handle_context_breakdown,
         },
     ]
 }
@@ -211,6 +216,32 @@ pub fn schemas(function: &str) -> ControllerSchema {
                 "Array of ComponentMetadata (id/kind/description/tags/aliases). Companion \
                  fields: `counts` (per-kind totals), `dot` (Graphviz DOT), `deferred` (kinds \
                  not fully projected outside a turn).",
+            )],
+        },
+        "context_breakdown" => ControllerSchema {
+            namespace: "agent",
+            function: "context_breakdown",
+            description: "Where an agent turn's fixed prompt budget goes: rendered system-prompt \
+                          sections, advertised tool-schema bytes, and (with a thread_id) that \
+                          thread's persisted history spend, as {label, bytes, est_tokens} rows \
+                          the composer's context-usage indicator can render as a stacked bar. \
+                          Expensive (rebuilds the agent and fetches live Composio connections); \
+                          cached per agent id and invalidated only when config content changes.",
+            inputs: vec![
+                optional_string(
+                    "agent_id",
+                    "Agent whose prompt to measure. Defaults to 'orchestrator'.",
+                ),
+                optional_string(
+                    "thread_id",
+                    "When given, adds a 'history' section sized from this thread's persisted \
+                     usage.",
+                ),
+            ],
+            outputs: vec![json_output(
+                "breakdown",
+                "{agent_id, model, sections: [{label, bytes, est_tokens}], tools_bytes, \
+                 total_est_tokens, context_window}.",
             )],
         },
         _ => ControllerSchema {
@@ -493,8 +524,8 @@ fn handle_graph_topologies(_params: Map<String, Value>) -> ControllerFuture {
 /// * **Model** — the static cost catalog projection
 ///   (`cost::catalog::tinyagents_catalog_snapshot`); carries model id, aliases,
 ///   provider/mode tags.
-/// * **Tool** — the baseline tool registry (`tools::default_tools`); names +
-///   descriptions. NOTE: the *full* per-agent tool surface (`tools::all_tools`)
+/// * **Tool** — the baseline tool registry (`tools::ops::default_tools`); names +
+///   descriptions. NOTE: the *full* per-agent tool surface (`tools::ops::all_tools`)
 ///   needs config/memory/audit/action-dir wiring that only exists inside a turn,
 ///   so only the baseline set is projected here. Deferred — see `deferred` in
 ///   the response and the migration follow-up.
@@ -576,7 +607,7 @@ fn handle_registry_snapshot(_params: Map<String, Value>) -> ControllerFuture {
 
         // ── Tools: baseline registry (full per-agent surface deferred) ──────
         let security = std::sync::Arc::new(crate::security::SecurityPolicy::default());
-        let baseline_tools = crate::tools::default_tools(security);
+        let baseline_tools = crate::tools::ops::default_tools(security);
         let tool_count = baseline_tools.len();
         for tool in &baseline_tools {
             components.push(
@@ -649,6 +680,14 @@ fn handle_registry_snapshot(_params: Map<String, Value>) -> ControllerFuture {
                           "task_store", "listener"],
             },
         }))
+    })
+}
+
+fn handle_context_breakdown(params: Map<String, Value>) -> ControllerFuture {
+    Box::pin(async move {
+        let p =
+            deserialize_params::<crate::agent::context_breakdown::ContextBreakdownParams>(params)?;
+        to_json(crate::agent::context_breakdown::context_breakdown(p).await?)
     })
 }
 

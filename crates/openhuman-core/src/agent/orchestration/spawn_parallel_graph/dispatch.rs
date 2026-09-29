@@ -5,7 +5,8 @@
 use std::collections::HashMap;
 use std::path::Path;
 
-use tinyagents_harness::workspace::{WorkspaceDescriptor, WorkspaceIsolation};
+use tinyagents_harness::workspace::WorkspaceIsolation;
+use tinytools::WorkspaceDescriptor;
 use tokio::sync::mpsc::Sender;
 
 use crate::agent::harness::definition::{AgentDefinition, SandboxMode};
@@ -13,12 +14,14 @@ use crate::agent::harness::fork_context::ParentExecutionContext;
 use crate::agent::orchestration::worktree;
 use crate::agent::progress::AgentProgress;
 
-use super::request::ParallelAgentTask;
 use super::staging::{
     prepare_spawn_parallel_tasks_from_defs, worktree_request_for_task, ParallelTaskRejectionKind,
     ParallelWorktreeRequest, SpawnParallelTaskPreflight, WorkerDispatchMode,
 };
-use super::types::{ParallelAgentLineage, ParallelAgentResult, SpawnParallelWorker};
+use super::types::{
+    ParallelAgentLineage, ParallelAgentResult, ParallelAgentStatus, ParallelAgentTask,
+    SpawnParallelWorker,
+};
 
 pub(crate) fn spawn_parallel_lineage(
     parent_session: &str,
@@ -49,10 +52,8 @@ async fn create_spawn_parallel_worktree(
         ParallelWorktreeRequest::Isolated { base_ref } => match action_root {
             Some(repo_root) => {
                 let sandbox = match definition.sandbox_mode {
-                    SandboxMode::Sandboxed => tinyagents_harness::tool::SandboxMode::Required,
-                    SandboxMode::None | SandboxMode::ReadOnly => {
-                        tinyagents_harness::tool::SandboxMode::Inherit
-                    }
+                    SandboxMode::Sandboxed => tinytools::SandboxMode::Required,
+                    SandboxMode::None | SandboxMode::ReadOnly => tinytools::SandboxMode::Inherit,
                 };
                 let isolation = worktree::OpenHumanWorktreeIsolation::new(repo_root)
                     .with_base_ref(base_ref)
@@ -85,8 +86,11 @@ async fn create_spawn_parallel_worktree(
                                 task_id,
                             ),
                             success: false,
+                            status: ParallelAgentStatus::Failed,
                             output: None,
                             error: Some(format!("worktree isolation failed: {err}")),
+                            awaiting_question: None,
+                            checkpoint_path: None,
                             ownership: task.ownership.clone(),
                             elapsed_ms: 0,
                             iterations: 0,
@@ -94,6 +98,7 @@ async fn create_spawn_parallel_worktree(
                             worktree_path: None,
                             changed_files: Vec::new(),
                             dirty_status: None,
+                            emit_lifecycle_effects: false,
                         })
                     }
                 }
@@ -109,10 +114,13 @@ async fn create_spawn_parallel_worktree(
                     agent_id: definition.id.clone(),
                     lineage: spawn_parallel_lineage(parent_session, session_parent_prefix, task_id),
                     success: false,
+                    status: ParallelAgentStatus::Failed,
                     output: None,
                     error: Some(
                         "worktree isolation requested but action_dir is unavailable".to_string(),
                     ),
+                    awaiting_question: None,
+                    checkpoint_path: None,
                     ownership: task.ownership.clone(),
                     elapsed_ms: 0,
                     iterations: 0,
@@ -120,6 +128,7 @@ async fn create_spawn_parallel_worktree(
                     worktree_path: None,
                     changed_files: Vec::new(),
                     dirty_status: None,
+                    emit_lifecycle_effects: false,
                 })
             }
         },
@@ -134,6 +143,7 @@ pub(crate) async fn stage_spawn_parallel_workers_from_defs(
     parent: &ParentExecutionContext,
     action_root: Option<&Path>,
     parent_workspace_descriptor: Option<&WorkspaceDescriptor>,
+    parent_call_id: Option<&str>,
 ) -> (Vec<SpawnParallelWorker>, Vec<ParallelAgentResult>) {
     let mut immediate_results = Vec::new();
     let mut prepared = Vec::new();
@@ -168,14 +178,6 @@ pub(crate) async fn stage_spawn_parallel_workers_from_defs(
                             "[spawn_parallel_agents] rejected_task_outside_subagent_allowlist"
                         );
                     }
-                    ParallelTaskRejectionKind::MissingToolkit => {
-                        tracing::debug!(
-                            parent_session = %parent_session,
-                            task_id = %rejection.task_id,
-                            agent_id = %rejection.agent_id,
-                            "[spawn_parallel_agents] invalid_task_missing_toolkit"
-                        );
-                    }
                     ParallelTaskRejectionKind::RequiresIsolation => {
                         tracing::warn!(
                             parent_session = %parent_session,
@@ -196,8 +198,11 @@ pub(crate) async fn stage_spawn_parallel_workers_from_defs(
                     agent_id: rejection.agent_id,
                     lineage,
                     success: false,
+                    status: ParallelAgentStatus::Failed,
                     output: None,
                     error: Some(rejection.error),
+                    awaiting_question: None,
+                    checkpoint_path: None,
                     ownership: rejection.ownership,
                     elapsed_ms: 0,
                     iterations: 0,
@@ -205,6 +210,7 @@ pub(crate) async fn stage_spawn_parallel_workers_from_defs(
                     worktree_path: None,
                     changed_files: Vec::new(),
                     dirty_status: None,
+                    emit_lifecycle_effects: false,
                 });
                 continue;
             }
@@ -227,6 +233,7 @@ pub(crate) async fn stage_spawn_parallel_workers_from_defs(
                 .map(str::trim)
                 .filter(|s| !s.is_empty())
                 .is_some(),
+            parent_call_id,
         )
         .await;
         let workspace_descriptor = match create_spawn_parallel_worktree(
@@ -291,6 +298,7 @@ async fn project_spawn_parallel_spawned(
     task_id: &str,
     prompt: &str,
     has_ownership: bool,
+    parent_call_id: Option<&str>,
 ) {
     let prompt_chars = prompt.chars().count();
     tracing::debug!(
@@ -319,6 +327,7 @@ async fn project_spawn_parallel_spawned(
                 prompt: prompt.to_string(),
                 worker_thread_id: None,
                 display_name: Some(definition.display_name().to_string()),
+                parent_call_id: parent_call_id.map(str::to_string),
             })
             .await
         {

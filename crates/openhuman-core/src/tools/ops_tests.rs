@@ -57,11 +57,6 @@ fn integration_test_config(tmp: &TempDir, backend_url: &str) -> Config {
     cfg.integrations.tinyfish.enabled = true;
     cfg.integrations.stock_prices.enabled = true;
     cfg.integrations.twilio.enabled = true;
-    // Parallel tools (search/extract/chat/research/enrich/dataset) are
-    // registered by the unified search-engine selector, so flip the
-    // engine to `parallel` in test setup.
-    cfg.search.engine = crate::config::SEARCH_ENGINE_PARALLEL.into();
-    cfg.search.parallel.api_key = Some("test-parallel-key".into());
     cfg
 }
 
@@ -131,14 +126,6 @@ const PRODUCTIVITY_TOOLS: &[&str] = &[
     "artifact_list",
     "artifact_get",
     "artifact_delete",
-    "todo_list",
-    "todo_add",
-    "todo_edit",
-    "todo_update_status",
-    "todo_decide_plan",
-    "todo_remove",
-    "todo_replace",
-    "todo_clear",
     "task_source_list",
     "task_source_get",
     "task_source_fetch",
@@ -152,9 +139,6 @@ const PRODUCTIVITY_TOOLS: &[&str] = &[
 
 const PRODUCTIVITY_DEFAULT_OFF: &[&str] = &[
     "artifact_delete",
-    "todo_remove",
-    "todo_replace",
-    "todo_clear",
     "task_source_add",
     "task_source_update",
     "task_source_remove",
@@ -163,8 +147,6 @@ const PRODUCTIVITY_DEFAULT_OFF: &[&str] = &[
 const PRODUCTIVITY_ALWAYS_ON: &[&str] = &[
     "artifact_list",
     "artifact_get",
-    "todo_list",
-    "todo_add",
     "task_source_fetch",
     "task_source_status",
 ];
@@ -315,10 +297,6 @@ const DESKTOP_TOOLS: &[&str] = &[
     #[cfg(feature = "mcp")]
     "mcp_registry_tool_call",
     #[cfg(feature = "mcp")]
-    "mcp_registry_config_assist",
-    #[cfg(feature = "mcp")]
-    "mcp_registry_install",
-    #[cfg(feature = "mcp")]
     "mcp_registry_uninstall",
     "workspace_read_persona",
     "workspace_update_persona",
@@ -327,8 +305,6 @@ const DESKTOP_TOOLS: &[&str] = &[
 ];
 
 const DESKTOP_DEFAULT_OFF: &[&str] = &[
-    #[cfg(feature = "mcp")]
-    "mcp_registry_install",
     #[cfg(feature = "mcp")]
     "mcp_registry_uninstall",
     "workspace_update_persona",
@@ -352,7 +328,7 @@ const REPRESENTATIVE: &[(&str, crate::core::all::DomainGroup)] = {
     &[
         ("delegate", G::Agent),
         ("memory_search", G::Memory),
-        ("todo_add", G::Threads),
+        ("goal_get", G::Threads),
         ("mcp_list_servers", G::Mcp),
         ("wallet_get_address", G::Web3),
         ("media_generate_image", G::Media),
@@ -377,14 +353,7 @@ const TOOL_LESS: &[crate::core::all::DomainGroup] = {
     // `Channels` joined this list when the three `whatsapp_data_*` tools went —
     // the channel runtime,
     // its controllers and its inbound dispatch are all still there.
-    &[
-        G::Config,
-        G::Security,
-        G::Medulla,
-        G::Modules,
-        G::Channels,
-        G::Hosted,
-    ]
+    &[G::Config, G::Security, G::Modules, G::Channels, G::Hosted]
 };
 
 // ---- tool_capability() drift guard (M5.3) ----------------------------------
@@ -455,6 +424,8 @@ const ALWAYS_PRESENT_MEMORY_TOOLS: &[&str] = &["update_memory_md", "memory_store
 
 #[path = "ops_tests_capability_gating_tests.rs"]
 mod capability_gating_tests;
+#[path = "ops_tests_catalog_fixture_tests.rs"]
+mod catalog_fixture_tests;
 #[path = "ops_tests_default_registry_tests.rs"]
 mod default_registry_tests;
 #[path = "ops_tests_domain_family_tests.rs"]

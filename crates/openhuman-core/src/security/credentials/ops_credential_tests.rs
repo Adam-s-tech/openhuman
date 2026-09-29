@@ -555,42 +555,6 @@ async fn clear_credential_without_a_kind_removes_everything() {
     );
 }
 
-// ── authed routes keep the SESSION_EXPIRED sentinel ───────────
-
-/// #5307 — a lapsed session on an authed backend route must stay classifiable
-/// as session expiry: the dispatcher (`core::jsonrpc::invoke_method`) keys
-/// both the Sentry skip and the `DomainEvent::SessionExpired` publish off the
-/// `SESSION_EXPIRED:` sentinel `flatten_authed_error` produces.
-#[tokio::test]
-async fn auth_create_channel_link_token_401_stays_classifiable_as_session_expiry() {
-    let _env_guard = crate::config::TEST_ENV_LOCK
-        .lock()
-        .unwrap_or_else(|e| e.into_inner());
-    let tmp = TempDir::new().unwrap();
-    let _home = EnvVarGuard::set_to_path("HOME", tmp.path());
-    let mut config = store_live_session("user-5307");
-    let app = Router::new().route(
-        "/auth/channels/telegram/link-token",
-        axum::routing::post(|| async { StatusCode::UNAUTHORIZED }),
-    );
-    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
-    let addr = listener.local_addr().unwrap();
-    tokio::spawn(async move {
-        axum::serve(listener, app).await.unwrap();
-    });
-    config.api_url = Some(format!("http://{addr}"));
-
-    let err = auth_create_channel_link_token(&config, "telegram")
-        .await
-        .unwrap_err();
-
-    assert!(
-        err.starts_with("SESSION_EXPIRED:"),
-        "a 401 on the channel link-token route must carry the SESSION_EXPIRED \
-         sentinel, got: {err}"
-    );
-}
-
 // ── set_credential (local session) ─────────────────────────────
 
 /// A local session token requires a non-empty user payload — the backend

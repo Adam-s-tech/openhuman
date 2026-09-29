@@ -107,13 +107,13 @@ fn rendered_subagent_system_prompt_is_byte_stable_across_repeat_calls() {
 #[test]
 fn for_subagent_builder_injects_user_files_even_when_identity_omitted() {
     // Regression pin for the review finding: the runtime Tauri chat
-    // path spins welcome/trigger_* via `Agent::from_config_for_agent`
+    // path spins welcome/trigger_* via `OpenHumanSessionHost::from_config_for_agent`
     // → `SystemPromptBuilder::for_subagent(body, omit_identity=true, …)`,
     // which deliberately drops `IdentitySection`. Before
     // `UserFilesSection` existed, our PROFILE/MEMORY injection lived
     // inside `IdentitySection::build` and got dropped along with it,
     // so the first Tauri turn never saw the user's onboarding output
-    // even though the subagent_runner path and the debug dumper did.
+    // even though the subagent-host path and the debug dumper did.
     //
     // This test exercises the exact builder call-site the runtime
     // uses for welcome (`omit_identity = true`, both user-file flags
@@ -153,8 +153,6 @@ fn for_subagent_builder_injects_user_files_even_when_identity_omitted() {
         include_memory_md: true,
         curated_snapshot: None,
         user_identity: None,
-        personality_soul_md: None,
-        personality_memory_md: None,
         personality_roster: vec![],
         agents_md_global: None,
         agents_md_local: None,
@@ -200,8 +198,6 @@ fn for_subagent_builder_injects_user_files_even_when_identity_omitted() {
         include_memory_md: false,
         curated_snapshot: None,
         user_identity: None,
-        personality_soul_md: None,
-        personality_memory_md: None,
         personality_roster: vec![],
         agents_md_global: None,
         agents_md_local: None,
@@ -345,8 +341,6 @@ fn prompt_tool_constructors_and_user_memory_skip_empty_bodies() {
         include_memory_md: false,
         curated_snapshot: None,
         user_identity: None,
-        personality_soul_md: None,
-        personality_memory_md: None,
         personality_roster: vec![],
         agents_md_global: None,
         agents_md_local: None,
@@ -468,6 +462,54 @@ fn user_reflections_render_above_user_memory_when_both_present() {
 // ─── ToolsSection native-skip tests ──────────────────────────────────────────
 
 #[test]
+fn deferred_browser_prompt_has_only_discovery_hint_in_native_and_text_modes() {
+    let tools = vec![
+        PromptTool::owned(
+            "browser".into(),
+            "browser full schema".into(),
+            r#"{"type":"object","properties":{"secret_browser_action":{"type":"string"}}}"#.into(),
+        ),
+        PromptTool::owned(
+            "browser_open".into(),
+            "browser open schema".into(),
+            r#"{"type":"object","properties":{"secret_open_url":{"type":"string"}}}"#.into(),
+        ),
+        PromptTool::owned(
+            "tool_search".into(),
+            "Find tools".into(),
+            r#"{"type":"object"}"#.into(),
+        ),
+    ];
+    let visible = std::collections::HashSet::from(["tool_search".to_string()]);
+    for format in [ToolCallFormat::Native, ToolCallFormat::Python] {
+        let ctx = PromptContext {
+            workspace_dir: Path::new("/tmp"),
+            model_name: "test-model",
+            agent_id: "",
+            tools: &tools,
+            workflows: &[],
+            dispatcher_instructions: "",
+            learned: LearnedContextData::default(),
+            visible_tool_names: &visible,
+            tool_call_format: format,
+            connected_integrations: &[],
+            connected_identities_md: String::new(),
+            include_profile: false,
+            include_memory_md: false,
+            curated_snapshot: None,
+            user_identity: None,
+            personality_roster: vec![],
+            agents_md_global: None,
+            agents_md_local: None,
+        };
+        let rendered = ToolsSection.build(&ctx).unwrap();
+        assert!(rendered.contains("For website tasks, use tool_search to find browser tools."));
+        assert!(!rendered.contains("secret_browser_action"));
+        assert!(!rendered.contains("secret_open_url"));
+    }
+}
+
+#[test]
 fn tools_section_empty_for_native() {
     // Native function-calling: the provider sends full JSON schemas in the
     // API request — repeating them in the system prompt is pure token bloat.
@@ -490,8 +532,6 @@ fn tools_section_empty_for_native() {
         include_memory_md: false,
         curated_snapshot: None,
         user_identity: None,
-        personality_soul_md: None,
-        personality_memory_md: None,
         personality_roster: vec![],
         agents_md_global: None,
         agents_md_local: None,
@@ -525,8 +565,6 @@ fn tools_section_nonempty_for_pformat() {
         include_memory_md: false,
         curated_snapshot: None,
         user_identity: None,
-        personality_soul_md: None,
-        personality_memory_md: None,
         personality_roster: vec![],
         agents_md_global: None,
         agents_md_local: None,
@@ -541,7 +579,7 @@ fn tools_section_nonempty_for_pformat() {
 #[test]
 fn tools_section_native_with_dispatcher_instructions_returns_instructions() {
     // Native mode must still include non-empty dispatcher_instructions
-    // (e.g. the "## Tool Use Protocol" block from NativeToolDispatcher) so
+    // (e.g. the "## Tool Use Protocol" block from NativeDialect) so
     // the model receives behavioural guidance even though the tool catalogue
     // itself is omitted.
     let tools: Vec<Box<dyn Tool>> = vec![Box::new(TestTool)];
@@ -562,8 +600,6 @@ fn tools_section_native_with_dispatcher_instructions_returns_instructions() {
         include_memory_md: false,
         curated_snapshot: None,
         user_identity: None,
-        personality_soul_md: None,
-        personality_memory_md: None,
         personality_roster: vec![],
         agents_md_global: None,
         agents_md_local: None,

@@ -6,7 +6,7 @@ use async_trait::async_trait;
 use serde_json::json;
 
 use crate::config::Config;
-use crate::tools::traits::{Tool, ToolResult};
+use tinytools::{Tool, ToolResult};
 
 use super::ops;
 
@@ -23,6 +23,10 @@ impl DashboardModelHealthTool {
 
 #[async_trait]
 impl Tool for DashboardModelHealthTool {
+    fn exposure(&self) -> tinytools::ToolExposure {
+        tinytools::ToolExposure::Deferred
+    }
+
     fn name(&self) -> &str {
         "dashboard_model_health"
     }

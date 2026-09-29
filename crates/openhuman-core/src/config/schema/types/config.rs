@@ -133,6 +133,13 @@ pub struct Config {
     #[serde(default)]
     pub autonomy: AutonomyConfig,
 
+    #[serde(default)]
+    pub desktop: DesktopConfig,
+
+    /// TinyComputer decision, planner and rescue models.
+    #[serde(default)]
+    pub computer: ComputerConfig,
+
     /// Host-level switches for the configurable hook system. The hooks
     /// themselves live in `hooks.json` files, not here — see
     /// [`HooksConfig`].
@@ -154,6 +161,11 @@ pub struct Config {
     #[serde(default)]
     pub shell: ShellConfig,
 
+    /// `[web_chat]` — web chat presentation-layer toggles (currently just
+    /// the post-turn follow-up-suggestions model call).
+    #[serde(default)]
+    pub web_chat: crate::config::schema::WebChatConfig,
+
     #[serde(default)]
     pub reliability: ReliabilityConfig,
 
@@ -166,12 +178,6 @@ pub struct Config {
     /// [`crate::cron::scheduler_gate`].
     #[serde(default)]
     pub scheduler_gate: SchedulerGateConfig,
-
-    /// User-facing activity-level knob (0–4) controlling how proactive
-    /// background AI work is. Maps into scheduler_gate mode, periodic sync
-    /// cadence, heartbeat/subconscious toggles. See issue #3117.
-    #[serde(default)]
-    pub agent_activity_level: AgentActivityLevel,
 
     /// Global memory-sync cadence applied to **all** opted-in memory
     /// sources, presented to the user like a backup schedule ("Sync
@@ -223,7 +229,7 @@ pub struct Config {
     pub heartbeat: HeartbeatConfig,
 
     /// Subconscious engine selection (local tinyagents graph vs. local
-    /// medulla-serve child). Default `local` — omitting this block preserves
+    /// retired engine). Default `local` — omitting this block preserves
     /// the historical behavior exactly.
     #[serde(default)]
     pub subconscious: crate::config::schema::SubconsciousConfig,
@@ -396,7 +402,7 @@ pub struct Config {
     pub coding_provider: Option<String>,
 
     /// Provider string for the multimodal / image-understanding workload
-    /// (the vision sub-agent). Managed default resolves to `vision-v1`.
+    /// (the vision sub-agent). Managed default resolves to `hint:vision`.
     #[serde(default)]
     pub vision_provider: Option<String>,
 

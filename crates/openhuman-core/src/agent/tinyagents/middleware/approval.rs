@@ -8,13 +8,13 @@ use async_trait::async_trait;
 use tinyagents_harness::context::RunContext;
 use tinyagents_harness::error::Result as TaResult;
 use tinyagents_harness::middleware::{MiddlewareToolOutcome, ToolHandler, ToolMiddleware};
-use tinyagents_harness::tool::ToolResult as TaToolResult;
 use tinyinference_llm::tool::ToolCall as TaToolCall;
+use tinytools::ToolResult as TaToolResult;
 
 use crate::security::approval::{
     redact_args, summarize_action, ApprovalGate, ExecutionOutcome, GateOutcome,
 };
-use crate::tools::Tool;
+use tinytools::Tool;
 
 /// `wrap_tool`: route OpenHuman's human-in-the-loop **approval gate** through a
 /// named tinyagents tool middleware (issue #4249, Phase 1). A tool with an
@@ -24,7 +24,7 @@ use crate::tools::Tool;
 /// once the tool resolves.
 ///
 /// This replaces the inline approval block that used to live in
-/// `execute_openhuman_tool`, giving approval a stable middleware name and
+/// canonical tool dispatch, giving approval a stable middleware name and
 /// letting it short-circuit cleanly. Tool-*internal* security (path/command
 /// policy via `live_policy`) stays inside each tool — it needs tool-specific
 /// operation semantics the harness boundary can't reconstruct generically.
@@ -75,25 +75,43 @@ impl ApprovalSecurityMiddleware {
             .map(|t| t.external_effect_with_args(args))
             .unwrap_or(false)
     }
+
+    pub(crate) async fn requires_approval(&self, name: &str, args: &serde_json::Value) -> bool {
+        #[cfg(feature = "modules")]
+        let desktop_approval_disabled = match self
+            .tool_sets
+            .iter()
+            .flat_map(|set| set.iter())
+            .find(|tool| tool.name() == name)
+        {
+            Some(tool) => crate::desktop::control::approvals_disabled_for(tool.as_ref()).await,
+            None => false,
+        };
+        #[cfg(not(feature = "modules"))]
+        let desktop_approval_disabled = false;
+        self.has_external_effect(name, args) && !desktop_approval_disabled
+    }
 }
 
 #[async_trait]
-impl ToolMiddleware<()> for ApprovalSecurityMiddleware {
+impl ToolMiddleware<(), crate::agent::tinyagents::host::OpenHumanRunContext>
+    for ApprovalSecurityMiddleware
+{
     fn name(&self) -> &str {
         "approval_security"
     }
 
     async fn wrap_tool(
         &self,
-        ctx: &mut RunContext<()>,
+        ctx: &mut RunContext<crate::agent::tinyagents::host::OpenHumanRunContext>,
         state: &(),
         call: TaToolCall,
-        next: ToolHandler<'_, (), ()>,
+        next: ToolHandler<'_, (), crate::agent::tinyagents::host::OpenHumanRunContext>,
     ) -> TaResult<MiddlewareToolOutcome> {
         // Resolve external-effect up front so no tool borrow is held across the
         // approval await.
         let mut audit_id: Option<String> = None;
-        let has_ext = self.has_external_effect(&call.name, &call.arguments);
+        let has_ext = self.requires_approval(&call.name, &call.arguments).await;
         tracing::debug!(
             tool = %call.name,
             has_external_effect = has_ext,
@@ -119,14 +137,7 @@ impl ToolMiddleware<()> for ApprovalSecurityMiddleware {
                             reason = %reason,
                             "[tinyagents::mw] approval gate denied tool call"
                         );
-                        return Ok(MiddlewareToolOutcome::Result(TaToolResult {
-                            call_id: call.id,
-                            name: call.name,
-                            content: reason.clone(),
-                            raw: None,
-                            error: Some(reason),
-                            elapsed_ms: 0,
-                        }));
+                        return Ok(MiddlewareToolOutcome::Result(TaToolResult::error(reason)));
                     }
                     GateOutcome::Allow => audit_id = request_id,
                 }
@@ -145,12 +156,13 @@ impl ToolMiddleware<()> for ApprovalSecurityMiddleware {
         if let Some(id) = audit_id {
             if let Some(gate) = ApprovalGate::try_global() {
                 if let MiddlewareToolOutcome::Result(res) = &outcome {
-                    let exec = if res.error.is_some() {
+                    let exec = if res.is_error {
                         ExecutionOutcome::Failure
                     } else {
                         ExecutionOutcome::Success
                     };
-                    gate.record_execution(&id, exec, res.error.as_deref());
+                    let error = res.is_error.then(|| res.output());
+                    gate.record_execution(&id, exec, error.as_deref());
                 }
             }
         }

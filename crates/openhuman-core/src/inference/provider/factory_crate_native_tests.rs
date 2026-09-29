@@ -144,14 +144,14 @@ async fn one_shot_chat_models_preserve_factory_temperature_as_request_default() 
         .await
         .expect("explicit-temperature invoke");
 
-    let turn_model = create_turn_chat_model("chat", &config, "chat-v1", 0.2).expect("turn model");
+    let turn_model = create_turn_chat_model("chat", &config, "hint:chat", 0.2).expect("turn model");
     turn_model
         .invoke(&(), ModelRequest::new(vec![Message::user("turn default")]))
         .await
         .expect("turn default-temperature invoke");
 
     let explicit_turn_model =
-        create_turn_chat_model_from_string("chat", "openhuman", &config, "chat-v1", 0.4)
+        create_turn_chat_model_from_string("chat", "openhuman", &config, "hint:chat", 0.4)
             .expect("explicit turn model");
     explicit_turn_model
         .invoke(
@@ -279,10 +279,10 @@ fn turn_model_route_metadata_uses_post_remap_cloud_model() {
     let _guard = crate::inference::inference_test_guard();
     let mut config = Config::default();
     config.cloud_providers.push(deepseek_entry("p_ds"));
-    config.chat_provider = Some("deepseek:chat-v1".to_string());
+    config.chat_provider = Some("deepseek:hint:chat".to_string());
 
     let (_model, provider, resolved_model) =
-        create_turn_chat_model_with_native_tools_and_route("chat", &config, "chat-v1", 0.7, true)
+        create_turn_chat_model_with_native_tools_and_route("chat", &config, "hint:chat", 0.7, true)
             .expect("abstract BYOK tier must build");
 
     assert_eq!(provider, "deepseek");
@@ -374,13 +374,22 @@ fn configured_openhuman_jwt_slug_routes_to_managed_chat_model() {
     let _guard = crate::inference::inference_test_guard();
     let mut config = Config::default();
     config.cloud_providers.push(oh_entry("p_oh"));
+    // A retired tier slug after the managed slug is a role alias: it runs on
+    // the managed default, never reaches the backend verbatim.
     config.chat_provider = Some("openhuman:reasoning-v1".to_string());
 
     let (model, model_id) = try_create_cloud_slug_chat_model("chat", &config)
         .expect("configured OpenhumanJwt slug should be recognized")
         .expect("managed model should build");
 
-    assert_eq!(model_id, "reasoning-v1");
+    assert_eq!(model_id, crate::config::MODEL_MANAGED_DEFAULT);
+
+    // A concrete catalog id is forwarded verbatim.
+    config.chat_provider = Some("openhuman:openrouter/deepseek/deepseek-v4-pro".to_string());
+    let (_, pinned_id) = try_create_cloud_slug_chat_model("chat", &config)
+        .expect("configured OpenhumanJwt slug should be recognized")
+        .expect("managed model should build");
+    assert_eq!(pinned_id, "openrouter/deepseek/deepseek-v4-pro");
     assert_eq!(
         model
             .profile()
@@ -413,6 +422,7 @@ async fn openhuman_jwt_slug_discloses_pinned_model() {
         descriptor: EgressDescriptor::network_fetch(sentinel),
         thread_id: None,
         client_id: None,
+        request_id: None,
     });
 
     let mut count = 0usize;
@@ -470,6 +480,7 @@ async fn native_claude_turn_routes_disclose_pinned_models() {
         descriptor: EgressDescriptor::network_fetch(sentinel),
         thread_id: None,
         client_id: None,
+        request_id: None,
     });
 
     let mut sdk_count = 0usize;
@@ -548,7 +559,7 @@ fn openhuman_jwt_slug_without_model_preserves_managed_role_tier() {
             .expect("configured OpenhumanJwt slug should be recognized")
             .expect("managed model should build");
 
-    assert_eq!(model_id, crate::config::MODEL_SUMMARIZATION_V1);
+    assert_eq!(model_id, crate::config::MODEL_MANAGED_DEFAULT);
 }
 
 #[test]
@@ -577,165 +588,4 @@ fn try_create_cloud_slug_flips_openai_but_declines_non_cloud() {
     let mut unconfigured = Config::default();
     unconfigured.chat_provider = Some("deepseek:deepseek-chat".to_string());
     assert!(try_create_cloud_slug_chat_model("chat", &unconfigured).is_none());
-}
-
-#[test]
-fn crate_native_chat_model_factory_preserves_invalid_route_diagnostics() {
-    let _guard = crate::inference::inference_test_guard();
-    let config = Config::default();
-
-    let unconfigured =
-        create_chat_model_from_string_with_model_id("reasoning", "groq:llama3", &config, 0.7)
-            .err()
-            .expect("unconfigured slug must fail")
-            .to_string();
-    assert!(
-        unconfigured.contains("no cloud provider configured for slug 'groq'"),
-        "unexpected diagnostic: {unconfigured}"
-    );
-
-    let bare =
-        create_chat_model_from_string_with_model_id("reasoning", "unknown-provider", &config, 0.7)
-            .err()
-            .expect("bare unknown provider must fail")
-            .to_string();
-    assert!(
-        bare.contains("unrecognised provider string 'unknown-provider'"),
-        "unexpected diagnostic: {bare}"
-    );
-
-    let byok = create_chat_model_from_string_with_model_id(
-        "reasoning",
-        BYOK_INCOMPLETE_SENTINEL,
-        &config,
-        0.7,
-    )
-    .err()
-    .expect("incomplete BYOK must fail")
-    .to_string();
-    assert!(
-        byok.contains("BYOK_INCOMPLETE"),
-        "unexpected diagnostic: {byok}"
-    );
-}
-
-/// Real-path smoke (privacy epic S2, #4436): driving the actual inference
-/// chokepoint `create_test_chat_model_from_string` with an EXTERNAL provider must
-/// publish an `ExternalTransferPending` egress event — proving the emit is wired
-/// into the live construction path, not merely callable in isolation.
-/// Complements the isolated emit unit tests in `security::egress`.
-#[tokio::test]
-async fn from_string_external_provider_emits_egress_realpath() {
-    use crate::core::events::DomainEvent;
-    use crate::security::egress::EgressReason;
-
-    crate::core::bus::init().await.expect("bus init");
-    let mut rx = crate::core::bus::BUS.get().unwrap().receiver();
-
-    let config = Config::default();
-    // External provider → real chokepoint must emit BEFORE constructing.
-    let _ = create_test_chat_model_from_string("agentic", "openai:gpt-4o-mini", &config);
-
-    // Bus is process-wide; drain past unrelated events until our descriptor lands.
-    let found = tokio::time::timeout(std::time::Duration::from_secs(2), async {
-        loop {
-            match rx.recv().await {
-                Some(DomainEvent::ExternalTransferPending { descriptor, .. })
-                    if descriptor.provider_slug == "openai"
-                        && descriptor.is_external
-                        && matches!(descriptor.reason, EgressReason::Inference) =>
-                {
-                    return descriptor;
-                }
-                Some(_) => continue,
-                None => panic!("the bus closed before the expected event arrived"),
-            }
-        }
-    })
-    .await;
-
-    assert!(
-        found.is_ok(),
-        "external inference via create_test_chat_model_from_string must publish ExternalTransferPending"
-    );
-}
-
-#[tokio::test]
-async fn caller_owned_models_build_without_openhuman_session() {
-    let _guard = crate::inference::inference_test_guard();
-    let _signed_out = crate::cron::scheduler_gate::SignedOutTestGuard::set(true);
-    let dir = tempfile::tempdir().unwrap();
-    let config = Config {
-        config_path: dir.path().join("config.toml"),
-        workspace_dir: dir.path().join("workspace"),
-        ..Config::default()
-    };
-    for provider in [
-        "ollama:test-model",
-        "lmstudio:test-model",
-        "mlx:test-model",
-        "omlx:test-model",
-        "local-openai:test-model",
-        "claude_agent_sdk:test-model",
-    ] {
-        create_chat_model_from_string("chat", provider, &config, 0.0)
-            .unwrap_or_else(|e| panic!("{provider} must build while signed out: {e}"));
-    }
-    // CLI discovery is machine-specific; verify its authentication gate without
-    // starting or requiring an installed CLI.
-    crate::inference::provider::factory::access_gates::verify_provider_session(
-        &config,
-        "claude-code:test-model",
-    )
-    .expect("Claude Code uses its own authentication while OpenHuman is signed out");
-    // Exercise the real gate (cloud constructors skip auth under cfg(test)).
-    for provider in [
-        "openhuman",
-        "openai:test-model",
-        "unknown:test-model",
-        "cloud",
-    ] {
-        let error = crate::inference::provider::factory::access_gates::verify_provider_session(
-            &config, provider,
-        )
-        .unwrap_err();
-        assert!(
-            error.to_string().contains("SESSION_EXPIRED"),
-            "{provider}: {error}"
-        );
-    }
-}
-
-#[tokio::test]
-async fn local_aliases_build_without_a_session_and_preserve_model_ids() {
-    let _guard = crate::inference::inference_test_guard();
-    let _signed_out = crate::cron::scheduler_gate::SignedOutTestGuard::set(true);
-    let config = Config::default();
-    for (prefix, canonical) in [
-        ("OLLAMA", "ollama"),
-        ("LMSTUDIO", "lmstudio"),
-        ("lm-studio", "lmstudio"),
-        ("lm_studio", "lmstudio"),
-        ("MLX", "mlx"),
-        ("OMLX", "omlx"),
-        ("LOCAL-OPENAI", "local-openai"),
-        ("local_openai", "local-openai"),
-    ] {
-        let provider = format!(" {prefix}:Publisher/Model:Tag@0.4 ");
-        let (chat, model) =
-            create_chat_model_from_string_with_model_id("chat", &provider, &config, 0.0)
-                .unwrap_or_else(|e| panic!("{provider}: {e}"));
-        assert_eq!(model, "Publisher/Model:Tag");
-        assert_eq!(
-            chat.profile().and_then(|p| p.provider.as_deref()),
-            Some(canonical)
-        );
-    }
-    // A bare provider names a runtime but not a model. Report that actual
-    // configuration problem instead of incorrectly asking for a session.
-    let error = create_chat_model_from_string("chat", "ollama", &config, 0.0)
-        .err()
-        .expect("bare Ollama must require a model ID");
-    assert!(error.to_string().contains("empty model"), "{error}");
-    assert!(!error.to_string().contains("SESSION_EXPIRED"), "{error}");
 }

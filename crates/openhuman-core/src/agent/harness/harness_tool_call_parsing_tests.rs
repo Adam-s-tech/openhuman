@@ -286,7 +286,7 @@ fn parse_tool_calls_recovers_mismatched_close_tag() {
 </arg_value>"#;
 
     let (text, calls) = parse_tool_calls(response);
-    assert!(text.is_empty());
+    assert!(text.contains("</arg_value>"));
     assert_eq!(calls.len(), 1);
     assert_eq!(calls[0].name, "shell");
     assert_eq!(
@@ -332,7 +332,7 @@ fn build_tool_instructions_includes_all_tools() {
         std::path::Path::new("/tmp"),
         std::path::Path::new("/tmp"),
     ));
-    let tools = tools::default_tools(security);
+    let tools = tools::ops::default_tools(security);
     let instructions = build_tool_instructions(&tools);
 
     assert!(instructions.contains("## Tool Use Protocol"));
@@ -350,7 +350,7 @@ fn tools_to_openai_format_produces_valid_schema() {
         std::path::Path::new("/tmp"),
         std::path::Path::new("/tmp"),
     ));
-    let tools = tools::default_tools(security);
+    let tools = tools::ops::default_tools(security);
     let formatted = tools_to_openai_format(&tools);
 
     assert!(!formatted.is_empty());

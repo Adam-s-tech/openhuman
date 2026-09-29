@@ -256,14 +256,10 @@ async fn worker_b_schema_catalog_exposes_all_controller_methods() {
         "openhuman.agent_get_definition",
         "openhuman.agent_reload_definitions",
         "openhuman.agent_triage_evaluate",
-        "openhuman.profiles_list",
-        "openhuman.profiles_select",
-        "openhuman.profiles_upsert",
-        "openhuman.profiles_delete",
         "openhuman.tools_composio_execute",
         "openhuman.tools_web_search",
-        "openhuman.tools_seltz_search",
-        "openhuman.tools_querit_search",
+        "openhuman.tools_web_answer",
+        "openhuman.tools_web_contents",
         "openhuman.tools_searxng_search",
         "openhuman.tools_apify_linkedin_scrape",
         "openhuman.tool_registry_list",
@@ -485,25 +481,6 @@ async fn agent_definitions_profiles_and_validation_paths_are_reachable() {
             "not found",
         ),
         (
-            "openhuman.profiles_upsert",
-            json!({
-                "profile": {
-                    "id": "bad-worker-b-profile",
-                    "name": "Bad Worker B",
-                    "description": "Exercise unknown agent validation",
-                    "agentId": "missing-worker-b-agent",
-                    "allowedTools": [],
-                    "builtIn": false
-                }
-            }),
-            "not found",
-        ),
-        (
-            "openhuman.profiles_select",
-            json!({ "profile_id": "missing-worker-b-profile" }),
-            "not found",
-        ),
-        (
             "openhuman.agent_chat",
             json!({}),
             "missing required param 'message'",
@@ -533,20 +510,6 @@ async fn agent_definitions_profiles_and_validation_paths_are_reachable() {
             "{method} should fail deterministically with '{expected}', got {response}"
         );
     }
-
-    let profiles = rpc(
-        &harness.rpc_base,
-        20_200,
-        "openhuman.profiles_list",
-        json!({}),
-    )
-    .await;
-    assert_eq!(
-        ok(&profiles, "profiles_list")
-            .get("activeProfileId")
-            .and_then(Value::as_str),
-        Some("default")
-    );
 
     let status = rpc(
         &harness.rpc_base,
@@ -630,22 +593,17 @@ async fn tools_and_tool_registry_paths_are_reachable_without_live_services() {
         (
             "openhuman.tools_web_search",
             json!({ "query": "worker b", "max_results": 1 }),
-            "Sign in first",
+            "No web search provider is available",
         ),
         (
-            "openhuman.tools_seltz_search",
-            json!({ "query": "worker b", "max_results": 1 }),
-            "Seltz search is not enabled",
-        ),
-        (
-            "openhuman.tools_querit_search",
-            json!({ "query": "worker b", "max_results": 1 }),
-            "Querit search is not enabled",
+            "openhuman.tools_web_answer",
+            json!({ "query": "worker b" }),
+            "No web search provider is available",
         ),
         (
             "openhuman.tools_searxng_search",
-            json!({ "query": "worker b", "categories": ["general"] }),
-            "SearXNG search is not enabled",
+            json!({ "query": "worker b", "max_results": 1 }),
+            "No web search provider is available",
         ),
         (
             "openhuman.tools_apify_linkedin_scrape",

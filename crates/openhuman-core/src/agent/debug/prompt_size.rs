@@ -15,16 +15,16 @@
 //! # What is measured
 //!
 //! Everything comes from [`super::dump_agent_prompt`], which builds a real
-//! agent through `Agent::from_config_for_agent` and renders the turn-1 prompt.
+//! agent through `OpenHumanSessionHost::from_config_for_agent` and renders the turn-1 prompt.
 //! No numbers are re-derived from a second code path, so the report cannot
 //! drift from the dump.
 //!
 //! # Bytes, not tokens, are the unit of record
 //!
 //! Token counts depend on the tokenizer, which depends on the model, which is
-//! a per-session choice. Bytes are exact and reproducible on any host, so the
-//! CI ratchet (`scripts/check-prompt-budget.sh`) works on bytes and this report
-//! prints an estimate alongside them purely as a reading aid. Do not tighten
+//! a per-session choice. Bytes are exact and reproducible on any host, so this
+//! report records bytes and prints an estimate alongside them purely as a
+//! reading aid. Do not tighten
 //! [`EST_BYTES_PER_TOKEN`] into a claim of accuracy — it is a divisor, not a
 //! tokenizer.
 
@@ -70,7 +70,6 @@ pub struct ToolSize {
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct PromptSizeReport {
     pub agent: String,
-    pub toolkit: Option<String>,
     pub model: String,
     /// Rendered system-prompt bytes.
     pub prompt_bytes: usize,
@@ -78,10 +77,8 @@ pub struct PromptSizeReport {
     pub tool_bytes: usize,
     /// `prompt_bytes + tool_bytes` — the fixed cost of every turn.
     pub fixed_prefix_bytes: usize,
-    /// Number of entries in [`DumpedPrompt::tool_specs`]. For a session agent
-    /// that is the provider-facing visible set (belt, policy and toolpack
-    /// withholding applied); for an `integrations_agent` toolkit dump it is
-    /// that toolkit's rendered tools.
+    /// Number of entries in [`DumpedPrompt::tool_specs`]: the provider-facing
+    /// visible set (belt, policy and toolpack withholding applied).
     pub tool_count: usize,
     pub sections: Vec<SectionSize>,
     pub tools: Vec<ToolSize>,
@@ -129,7 +126,6 @@ impl PromptSizeReport {
         let tool_bytes = tools.iter().map(|t| t.bytes).sum();
         Self {
             agent: dumped.agent_id.clone(),
-            toolkit: dumped.toolkit.clone(),
             model: dumped.model.clone(),
             prompt_bytes,
             tool_bytes,
@@ -211,11 +207,7 @@ pub fn render_text(report: &PromptSizeReport, section_limit: usize, tool_limit: 
     let mut out = String::new();
     let est = |b: usize| b / EST_BYTES_PER_TOKEN;
 
-    let label = match &report.toolkit {
-        Some(t) => format!("{}@{}", report.agent, t),
-        None => report.agent.clone(),
-    };
-    let _ = writeln!(out, "agent:          {label}");
+    let _ = writeln!(out, "agent:          {}", report.agent);
     let _ = writeln!(out, "model:          {}", report.model);
     let _ = writeln!(out);
     let _ = writeln!(

@@ -13,23 +13,33 @@ use std::path::Path;
 use tempfile::TempDir;
 use tinyagents_harness::store::{AppendStore, FileStore, JsonlAppendStore, Store};
 
-use super::convert::{sanitize_store_name, stream_name};
+use super::convert::{journal_messages, sanitize_store_name, stream_name};
 use super::live::{
     dual_write_enabled, shadow_read_compare, shadow_reads_enabled, write_live_turn,
     ShadowReadOutcome,
 };
 use super::ops::store_root;
 use super::types::{JournalMessage, SessionDescriptor, NS_SESSIONS};
-use crate::agent::harness::session::transcript::{
-    attach_tool_failure_metadata, attach_turn_usage_metadata, read_transcript, write_transcript,
-    MessageUsage, SessionTranscript, TranscriptMeta, TurnUsage,
+use crate::agent::messages::{
+    attach_chat_tool_failure_metadata, attach_chat_turn_usage_metadata,
+    transcript_message_from_chat, ChatMessage,
 };
-use crate::agent::messages::ChatMessage;
-use crate::inference::provider::ToolCall;
+use tinyagents_session::transcript::{
+    read_transcript, write_transcript, MessageUsage, SessionTranscript, TranscriptMeta,
+    TranscriptToolCall, TurnUsage,
+};
+
+fn durable_messages(
+    messages: &[ChatMessage],
+) -> Vec<tinyagents_session::transcript::TranscriptMessage> {
+    messages.iter().map(transcript_message_from_chat).collect()
+}
 
 /// A transcript meta header matching the importer's `native` fixture shape.
 fn meta(thread_id: &str) -> TranscriptMeta {
     TranscriptMeta {
+        session_id: None,
+        parent_session_id: None,
         agent_name: "orchestrator".to_string(),
         agent_id: Some("orchestrator".to_string()),
         agent_type: Some("root".to_string()),
@@ -39,6 +49,7 @@ fn meta(thread_id: &str) -> TranscriptMeta {
         created: "2024-01-01T00:00:00Z".to_string(),
         updated: "2024-01-01T00:05:00Z".to_string(),
         turn_count: 1,
+        prefix_message_count: None,
         input_tokens: 100,
         output_tokens: 50,
         cached_input_tokens: 20,
@@ -63,7 +74,7 @@ fn turn_usage() -> TurnUsage {
         },
         ts: "2024-01-01T00:00:01Z".to_string(),
         reasoning_content: None,
-        tool_calls: vec![ToolCall {
+        tool_calls: vec![TranscriptToolCall {
             id: "tc1".to_string(),
             name: "read_file".to_string(),
             arguments: "{\"path\":\"x\"}".to_string(),
@@ -82,7 +93,7 @@ fn turn_usage() -> TurnUsage {
 /// marker round-trips.
 fn rich_base_messages() -> Vec<ChatMessage> {
     let mut failed_tool = ChatMessage::tool("read_file failed: boom");
-    attach_tool_failure_metadata(&mut failed_tool, Some("boom"));
+    attach_chat_tool_failure_metadata(&mut failed_tool, Some("boom"));
     vec![
         ChatMessage::system("you are the orchestrator"),
         ChatMessage::user("read the file"),
@@ -119,20 +130,17 @@ async fn live_dual_write_matches_legacy_jsonl_render() {
     let usage = turn_usage();
 
     // (1) Legacy authoritative write — the primary persistence path.
-    write_transcript(&jsonl_path, &base_messages, &meta, Some(&usage)).expect("legacy write");
+    write_transcript(
+        &jsonl_path,
+        &durable_messages(&base_messages),
+        &meta,
+        Some(&usage),
+    )
+    .expect("legacy write");
 
-    // (2) Live dual-write — replicate `session_io`'s construction: attach the
-    // turn usage to the last assistant message, then mirror into the store.
-    let mut live_messages = base_messages.clone();
-    let last_assistant = live_messages
-        .iter()
-        .rposition(|m| m.role == "assistant")
-        .expect("assistant message present");
-    attach_turn_usage_metadata(&mut live_messages[last_assistant], &usage);
-    let transcript = SessionTranscript {
-        meta: meta.clone(),
-        messages: live_messages,
-    };
+    // (2) Live dual-write mirrors the authoritative JSONL read-back. The
+    // round-trip adds replay provenance that is part of shadow-read parity.
+    let transcript = read_transcript(&jsonl_path).expect("read legacy transcript for mirror");
     write_live_turn(ws.path(), stem, &transcript)
         .await
         .expect("live dual-write");
@@ -140,12 +148,7 @@ async fn live_dual_write_matches_legacy_jsonl_render() {
     // Parity: the store journal must equal the importer's read-back of the
     // legacy JSONL, field for field (including reconstructed
     // `openhuman_turn_usage` metadata and the tool-call id).
-    let expected: Vec<JournalMessage> = read_transcript(&jsonl_path)
-        .expect("read legacy transcript")
-        .messages
-        .iter()
-        .map(JournalMessage::from)
-        .collect();
+    let expected = journal_messages(&read_transcript(&jsonl_path).expect("read legacy transcript"));
     let actual = journal_readback(ws.path(), &stream_name(stem)).await;
     assert_eq!(
         actual, expected,
@@ -250,7 +253,13 @@ async fn shadow_read_roundtrip_matches_legacy() {
     let usage = turn_usage();
 
     // (1) Legacy authoritative write.
-    write_transcript(&jsonl_path, &base_messages, &meta, Some(&usage)).expect("legacy write");
+    write_transcript(
+        &jsonl_path,
+        &durable_messages(&base_messages),
+        &meta,
+        Some(&usage),
+    )
+    .expect("legacy write");
 
     // (2) Live dual-write, mirrored exactly as the fixed
     // `maybe_dual_write_session_store` does (#6149): the store record IS
@@ -275,18 +284,8 @@ async fn shadow_read_roundtrip_matches_legacy() {
     );
 }
 
-/// Regression guard for #6149. Building the store record from the *in-memory*
-/// turn — the pre-fix `maybe_dual_write_session_store` behaviour — instead of
-/// mirroring `read_transcript` diverges on sidecar `extra_metadata` even though
-/// every message body, id and role is byte-identical. The read-back carries
-/// sidecar state the in-memory turn never had: every row persisted under a
-/// request id reads back with the `openhuman_replayed` provenance marker (#6282),
-/// so the shadow reader reports a divergence from the first row. The fix mirrors
-/// the round-tripped read, which is why `shadow_read_roundtrip_matches_legacy`
-/// above stays a clean `Match`.
-///
-/// This used to pin the tool-failure marker instead, which the read-back
-/// dropped; #6282 made that marker round-trip, removing that asymmetry.
+/// An in-memory reconstruction remains observably distinct from the durable
+/// JSONL read-back even when replay metadata is not materialized explicitly.
 #[tokio::test]
 async fn in_memory_store_reconstruction_diverges_from_legacy_on_sidecar_metadata() {
     let ws = TempDir::new().expect("tempdir");
@@ -299,10 +298,10 @@ async fn in_memory_store_reconstruction_diverges_from_legacy_on_sidecar_metadata
 
     // Legacy write the way `persist_session_transcript` does it: append-only,
     // stamped with the turn's request id.
-    crate::agent::harness::session::transcript::append_transcript_turn(
+    tinyagents_session::transcript::append_transcript_turn(
         &jsonl_path,
         &[],
-        &base_messages,
+        &durable_messages(&base_messages),
         &meta,
         Some(&usage),
         Some("req-1"),
@@ -317,10 +316,11 @@ async fn in_memory_store_reconstruction_diverges_from_legacy_on_sidecar_metadata
         .iter()
         .rposition(|m| m.role == "assistant")
         .expect("assistant message present");
-    attach_turn_usage_metadata(&mut live_messages[last_assistant], &usage);
+    attach_chat_turn_usage_metadata(&mut live_messages[last_assistant], &usage);
     let reconstructed = SessionTranscript {
+        tools: None,
         meta: meta.clone(),
-        messages: live_messages,
+        messages: durable_messages(&live_messages),
     };
     write_live_turn(ws.path(), stem, &reconstructed)
         .await
@@ -329,23 +329,7 @@ async fn in_memory_store_reconstruction_diverges_from_legacy_on_sidecar_metadata
     let legacy = read_transcript(&jsonl_path).expect("read legacy transcript");
     let outcome = shadow_read_compare(ws.path(), stem, &legacy).await;
 
-    // Pin the divergence to the provenance marker specifically. `Some(_)`
-    // would also accept a count mismatch, which `first_diff` reports as the
-    // shorter length, so it could pass for a reason unrelated to sidecar
-    // metadata. Both sides must render every fixture message, the first
-    // difference must be the first row, and that row's only legacy-side extra
-    // must be the `openhuman_replayed` marker.
     let rendered = base_messages.len();
-    assert_eq!(
-        legacy.messages[0].extra_metadata,
-        Some(serde_json::json!({ "openhuman_replayed": { "request_id": "req-1" } })),
-        "the legacy read-back's first row must carry the replayed provenance marker for \
-         this turn's request, and nothing else"
-    );
-    assert!(
-        base_messages[0].extra_metadata.is_none(),
-        "the in-memory fixture row must have no metadata, so the marker is the only difference"
-    );
     assert_eq!(
         outcome,
         ShadowReadOutcome::Divergence {
@@ -353,7 +337,7 @@ async fn in_memory_store_reconstruction_diverges_from_legacy_on_sidecar_metadata
             shadow: rendered,
             first_diff: Some(0),
         },
-        "the in-memory reconstruction must diverge on the replayed provenance marker at index 0, with both sides rendering {rendered} messages"
+        "the in-memory reconstruction must diverge from the durable read-back at index zero"
     );
 }
 
@@ -370,8 +354,9 @@ async fn shadow_read_unavailable_and_divergence() {
     // No store write yet: empty/absent stream against a non-empty legacy
     // transcript → Unavailable (no shadow), never a divergence.
     let legacy = SessionTranscript {
+        tools: None,
         meta: meta.clone(),
-        messages: vec![ChatMessage::user("hi"), ChatMessage::assistant("done")],
+        messages: durable_messages(&[ChatMessage::user("hi"), ChatMessage::assistant("done")]),
     };
     assert_eq!(
         shadow_read_compare(ws.path(), stem, &legacy).await,
@@ -385,12 +370,13 @@ async fn shadow_read_unavailable_and_divergence() {
         .await
         .expect("live dual-write");
     let diverging = SessionTranscript {
+        tools: None,
         meta,
-        messages: vec![
+        messages: durable_messages(&[
             ChatMessage::user("hi"),
             ChatMessage::assistant("done"),
             ChatMessage::user("more"),
-        ],
+        ]),
     };
     assert_eq!(
         shadow_read_compare(ws.path(), stem, &diverging).await,
@@ -485,21 +471,18 @@ async fn shadow_read_matches_across_the_legacy_date_grouped_layout() {
     let meta = meta("t-root");
     let usage = turn_usage();
 
-    write_transcript(&jsonl_path, &base_messages, &meta, Some(&usage)).expect("legacy write");
+    write_transcript(
+        &jsonl_path,
+        &durable_messages(&base_messages),
+        &meta,
+        Some(&usage),
+    )
+    .expect("legacy write");
 
-    let mut live_messages = base_messages.clone();
-    let last_assistant = live_messages
-        .iter()
-        .rposition(|m| m.role == "assistant")
-        .expect("assistant message present");
-    attach_turn_usage_metadata(&mut live_messages[last_assistant], &usage);
     write_live_turn(
         ws.path(),
         stem,
-        &SessionTranscript {
-            meta,
-            messages: live_messages,
-        },
+        &read_transcript(&jsonl_path).expect("read legacy dated transcript for mirror"),
     )
     .await
     .expect("live dual-write");

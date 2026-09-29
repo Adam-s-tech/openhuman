@@ -2,12 +2,12 @@ use crate::config::{
     runtime_proxy_config, set_runtime_proxy_config, Config, ProxyConfig, ProxyScope,
 };
 use crate::security::SecurityPolicy;
-use crate::tools::traits::{Tool, ToolResult};
 use crate::util::MaybeSet;
 use async_trait::async_trait;
 use serde_json::{json, Value};
 use std::fs;
 use std::sync::Arc;
+use tinytools::{Tool, ToolResult};
 
 pub struct ProxyConfigTool {
     config: Arc<Config>,
@@ -307,6 +307,10 @@ impl ProxyConfigTool {
 
 #[async_trait]
 impl Tool for ProxyConfigTool {
+    fn exposure(&self) -> tinytools::ToolExposure {
+        tinytools::ToolExposure::Deferred
+    }
+
     fn name(&self) -> &str {
         "proxy_config"
     }

@@ -26,9 +26,10 @@ use std::sync::{Arc, OnceLock};
 use tokio::sync::watch;
 use tokio::task::AbortHandle;
 
-use crate::agent::harness::run_queue::RunQueue;
-use crate::agent::tinyagents::orchestration::{shared_steering_registry, DetachedTaskRegistry};
+use crate::agent::tinyagents::host::steering::shared_steering_registry;
+use tinyagents_graph::orchestration::DetachedTaskRegistry;
 use tinyagents_harness::ids::TaskId;
+use tinyagents_harness::run_queue::RunQueue;
 use tinyagents_harness::CancellationToken;
 
 use super::task_ledger::record_spawned;
@@ -62,7 +63,7 @@ pub(crate) struct RunningSubagentMetadata {
     /// `None` for a headless spawn with no originating thread. Used to abort the
     /// sub-agent when its parent thread is deleted (see [`super::cancel::cancel_for_thread`]).
     pub(crate) parent_thread_id: Option<String>,
-    pub(crate) run_queue: Arc<RunQueue>,
+    pub(crate) run_queue: Arc<RunQueue<crate::agent::queued_turn::QueuedTurn>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -122,10 +123,26 @@ pub(crate) fn register(
     subagent_session_id: Option<String>,
     workspace_dir: PathBuf,
     parent_thread_id: Option<String>,
-    run_queue: Arc<RunQueue>,
+    run_queue: Arc<RunQueue<crate::agent::queued_turn::QueuedTurn>>,
     abort: AbortHandle,
     status: watch::Receiver<SubagentStatus>,
 ) {
+    if let Some(thread_id) = parent_thread_id.as_deref() {
+        if crate::agent::orchestration::background_completions::mark_stopped_task_if_thread_stopped(
+            thread_id, &task_id,
+        ) {
+            // Stop landed after the child was spawned but before this registry
+            // entry existed. The completion is tombstoned above; abort promptly
+            // so the detached work does not keep consuming resources either.
+            abort.abort();
+            log::debug!(
+                "[running_subagents] aborted late registration task_id={} thread_id={}",
+                task_id,
+                thread_id
+            );
+        }
+    }
+
     // Typed lifecycle ledger: record the spawn and mirror the child's terminal
     // status into the store via a lightweight watcher (issue #4249). Done before
     // the entry is moved into the map so the metadata is still in scope.

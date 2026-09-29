@@ -57,6 +57,37 @@ fn composio_direct_mode_capabilities_are_registered() {
 }
 
 #[test]
+fn suggested_questions_stays_coming_soon_until_a_producer_exists() {
+    // #6464: this entry shipped at Beta with how_to "Home or Conversations >
+    // Suggested prompts", sending users to look for a control that cannot
+    // appear. Both surfaces that would render suggestions — the welcome chips
+    // and the follow-up row — read `s.thread.suggestions`, which is filled only
+    // by the `suggestions` key on the assistant-ui ExternalStoreAdapter.
+    // `useOpenHumanExternalStore` does not declare it and nothing else produces
+    // suggestions, so the array is permanently empty.
+    //
+    // This assertion is a ratchet, not a description. The precondition for
+    // moving it back to Beta is a producer that actually fills that array —
+    // whoever lands one changes this test in the same commit and reads this
+    // comment on the way past. The cross-language tie (a Rust catalogue entry
+    // versus a TypeScript render path) cannot be asserted from this crate; this
+    // is the part that can.
+    let cap = lookup("conversation.suggested_questions").expect("entry exists");
+    assert_eq!(
+        cap.status,
+        CapabilityStatus::ComingSoon,
+        "suggested questions must not advertise Beta while nothing fills \
+         `s.thread.suggestions`"
+    );
+    assert!(
+        !cap.how_to.contains('>'),
+        "how_to must not read as a navigation breadcrumb while there is no \
+         control to navigate to — it was `Home or Conversations > Suggested \
+         prompts`, which is what #6464 reported"
+    );
+}
+
+#[test]
 fn search_matches_keyword_across_multiple_fields() {
     let matches = search("invite");
     let ids: Vec<&str> = matches.iter().map(|capability| capability.id).collect();
@@ -458,4 +489,81 @@ fn catalog_how_to_uses_connections_nav_not_legacy_settings_paths() {
         "Connections > OAuth > Slack"
     );
     assert_eq!(how_to("workflows.connect_google"), "Connections > OAuth");
+}
+
+/// The `Settings > Local AI Model` panel no longer exists, and six `local_ai`
+/// entries still send users to it.
+///
+/// `0ec68613af` removed the local-model debug panel. Its route is now a
+/// redirect — `app/src/components/settings/settingsRouteElements.tsx` maps
+/// `local-model-debug` to `<Navigate to="/connections?tab=llm" replace />` —
+/// and no settings surface renders the string "Local AI Model" any more (the
+/// only remaining occurrence in the app is a dead i18n key, `voice.openLocalAiModel`,
+/// which nothing mounts).
+///
+/// These entries are user-visible: the Privacy panel renders whatever
+/// `about_app.list` returns, so a stale breadcrumb is a user following a
+/// navigation path that silently lands somewhere else. That is the same defect
+/// #6464 reported for `conversation.suggested_questions`, and the guard written
+/// for it (`suggested_questions_stays_coming_soon_until_a_producer_exists`,
+/// above) asserts exactly this shape — it just does not cover the `local_ai`
+/// domain.
+///
+/// This assertion is a ratchet, not a description. Two ways to satisfy it, and
+/// whoever lands either reads this comment on the way past:
+///
+///   1. The panel comes back — then the breadcrumb is true again and naming the
+///      real route satisfies the check.
+///   2. The panel stays gone — then each entry either points at the surface that
+///      actually serves it, or states in prose that the capability has no user
+///      control yet. `local_ai.python_runtime_installer` in the same table is
+///      the in-repo precedent for the second shape: no breadcrumb, status
+///      unchanged, the `how_to` says where the behaviour lives instead.
+///
+/// What this cannot assert: that the route named by a breadcrumb resolves in
+/// the React router. That tie is cross-language and belongs to a VU or PW case.
+/// This is the part that can be pinned from Rust — that no `local_ai` entry
+/// names a panel title this repo no longer contains.
+#[test]
+fn local_ai_capabilities_do_not_point_at_the_removed_local_ai_model_panel() {
+    const REMOVED_PANEL: &str = "Local AI Model";
+
+    let stale: Vec<&Capability> = all_capabilities()
+        .iter()
+        .filter(|capability| capability.domain == "local_ai")
+        .filter(|capability| capability.how_to.contains(REMOVED_PANEL))
+        .collect();
+
+    assert!(
+        stale.is_empty(),
+        "{} local_ai capabilit{} advertise the removed `{REMOVED_PANEL}` panel while \
+         /settings/local-model-debug redirects to /connections: {}",
+        stale.len(),
+        if stale.len() == 1 { "y" } else { "ies" },
+        stale
+            .iter()
+            .map(|capability| format!("{} -> {:?}", capability.id, capability.how_to))
+            .collect::<Vec<_>>()
+            .join(", ")
+    );
+}
+
+/// The `local_ai` domain must not be empty, or the check above passes vacuously.
+///
+/// Written because the assertion it guards is a filter over a const table: a
+/// refactor that renamed the domain, moved these entries to another catalog
+/// file, or dropped them would make the stale-breadcrumb check scan zero rows
+/// and report clean. A filter that matches nothing reports `ok`.
+#[test]
+fn local_ai_domain_is_populated_so_the_breadcrumb_check_is_not_vacuous() {
+    let count = all_capabilities()
+        .iter()
+        .filter(|capability| capability.domain == "local_ai")
+        .count();
+
+    assert!(
+        count >= 6,
+        "expected the local_ai domain to carry at least the six entries the \
+         breadcrumb check exists for, found {count}"
+    );
 }

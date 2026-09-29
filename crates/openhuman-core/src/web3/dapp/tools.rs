@@ -3,10 +3,10 @@
 use async_trait::async_trait;
 use serde_json::json;
 
-use crate::tools::traits::{Tool, ToolCallOptions, ToolResult};
 use crate::web3::store::execute_quote;
 use crate::web3::types::{DappCallParams, ExecuteQuoteParams};
 use crate::web3::{execute_tool_schema, ops, to_tool_result};
+use tinytools::{Tool, ToolCallOptions, ToolResult};
 
 pub struct Web3DappCallTool;
 pub struct Web3DappExecuteTool;
@@ -36,6 +36,10 @@ impl Web3DappExecuteTool {
 
 #[async_trait]
 impl Tool for Web3DappCallTool {
+    fn exposure(&self) -> tinytools::ToolExposure {
+        tinytools::ToolExposure::Deferred
+    }
+
     fn name(&self) -> &str {
         "web3_dapp_call"
     }
@@ -78,6 +82,10 @@ impl Tool for Web3DappCallTool {
 
 #[async_trait]
 impl Tool for Web3DappExecuteTool {
+    fn exposure(&self) -> tinytools::ToolExposure {
+        tinytools::ToolExposure::Deferred
+    }
+
     fn name(&self) -> &str {
         "web3_dapp_execute"
     }

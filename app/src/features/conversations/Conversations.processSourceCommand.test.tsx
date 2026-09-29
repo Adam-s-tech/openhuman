@@ -1,16 +1,12 @@
 /**
- * The agent-process-source command must not be offered in voice mode.
+ * The agent-process-source command is offered on every chat surface.
  *
- * `showProcessSource` only drives `TranscriptOverlays`, and `TranscriptOverlays`
- * mounts inside `assistantUiMainPanel` alone. The panel choice is an either/or -
- * `composer === 'mic-cloud' ? legacyMainPanel : assistantUiMainPanel` - so in
- * mic-cloud (voice/mascot) mode `legacyMainPanel` mounts instead and the state
- * the command sets has no host. Registered with `enabled: () =>
- * selectedThreadId !== null` alone, the palette listed a command that looked
- * available and silently did nothing.
- *
- * Same root cause as `Conversations.taskBoard.test.tsx` next door: something was
- * left pointing at the wrong half of the either/or.
+ * `showProcessSource` only drives `TranscriptOverlays`, which mounts inside the
+ * assistant-ui panel. That panel used to be one half of an either/or — voice
+ * (`mic-cloud`) mode mounted a separate legacy transcript instead, where the
+ * state the command set had no host, so the command had to be disabled there.
+ * Voice mode now renders the same assistant-ui panel with only the composer
+ * swapped, so the overlays (and the command) are live in both modes.
  */
 import { combineReducers, configureStore } from '@reduxjs/toolkit';
 import { act, cleanup, render } from '@testing-library/react';
@@ -20,13 +16,16 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { SidebarSlotOutlet, SidebarSlotProvider } from '../../components/layout/shell/SidebarSlot';
 import { registry } from '../../lib/commands/registry';
-import agentProfileReducer from '../../store/agentProfileSlice';
 import chatRuntimeReducer from '../../store/chatRuntimeSlice';
 import layoutReducer from '../../store/layoutSlice';
+import runModeReducer from '../../store/runModeSlice';
 import socketReducer from '../../store/socketSlice';
 import themeReducer from '../../store/themeSlice';
+import threadGoalReducer from '../../store/threadGoalSlice';
 import threadReducer from '../../store/threadSlice';
+import threadTodosReducer from '../../store/threadTodosSlice';
 import type { Thread } from '../../types/thread';
+import Conversations from './Conversations';
 
 const { mockGetThreads, mockGetThreadMessages, mockUseUsageState } = vi.hoisted(() => ({
   mockGetThreads: vi.fn().mockResolvedValue({ threads: [], count: 0 }),
@@ -47,7 +46,7 @@ const { mockGetThreads, mockGetThreadMessages, mockUseUsageState } = vi.hoisted(
 }));
 
 vi.mock('../../services/chatService', () => ({
-  chatCancel: vi.fn().mockResolvedValue(true),
+  chatCancel: vi.fn().mockResolvedValue({ accepted: true, turnCancelled: true }),
   chatClearQueue: vi.fn().mockResolvedValue(0),
   chatSend: vi.fn().mockResolvedValue(undefined),
   subscribeChatEvents: vi.fn(() => () => {}),
@@ -83,39 +82,7 @@ vi.mock('../../services/api/threadApi', () => ({
   },
 }));
 
-vi.mock('../../services/api/agentProfilesApi', () => ({
-  agentProfilesApi: {
-    list: vi.fn().mockResolvedValue({ activeProfileId: 'default', profiles: [] }),
-    select: vi.fn().mockResolvedValue({ activeProfileId: 'default', profiles: [] }),
-    upsert: vi.fn().mockResolvedValue({ activeProfileId: 'default', profiles: [] }),
-    delete: vi.fn().mockResolvedValue({ activeProfileId: 'default', profiles: [] }),
-  },
-}));
-
-vi.mock('../../services/api/openrouterFreeModels', () => ({
-  applyOpenRouterFreeModels: () => undefined,
-}));
-
 vi.mock('../../hooks/useUsageState', () => ({ useUsageState: mockUseUsageState }));
-
-vi.mock('../../components/chat/ChatNewWindowHero', () => ({ default: () => null }));
-
-vi.mock('../../store/socketSelectors', () => ({
-  selectSocketStatus: (state: { socket?: { byUser?: Record<string, { status: string }> } }) =>
-    state.socket?.byUser?.__pending__?.status ?? 'disconnected',
-}));
-
-vi.mock('../../hooks/useStickToBottom', () => ({
-  useStickToBottom: vi.fn(() => ({ containerRef: { current: null }, endRef: { current: null } })),
-}));
-
-vi.mock('../../utils/openUrl', () => ({ openUrl: vi.fn() }));
-
-const mockCallCoreRpc = vi.fn().mockResolvedValue({});
-vi.mock('../../services/coreRpcClient', async orig => {
-  const actual = await orig<typeof import('../../services/coreRpcClient')>();
-  return { ...actual, callCoreRpc: (...args: unknown[]) => mockCallCoreRpc(...args) };
-});
 
 vi.mock('../../lib/coreState/store', () => ({
   getCoreStateSnapshot: vi.fn(() => ({
@@ -158,14 +125,16 @@ function buildStore(preload: Record<string, unknown>) {
       layout: layoutReducer,
       socket: socketReducer,
       chatRuntime: chatRuntimeReducer,
-      agentProfiles: agentProfileReducer,
       theme: themeReducer,
+      threadTodos: threadTodosReducer,
+      threadGoal: threadGoalReducer,
+      runMode: runModeReducer,
     }),
     preloadedState: preload as never,
   });
 }
 
-async function renderChat(composer?: 'text' | 'mic-cloud') {
+async function renderChat(composer?: 'text' | 'mic-cloud', withProcessData = false) {
   mockGetThreads.mockResolvedValue({ threads: [thread], count: 1 });
   const store = buildStore({
     thread: {
@@ -180,9 +149,17 @@ async function renderChat(composer?: 'text' | 'mic-cloud') {
       messagesError: null,
     },
     socket: { byUser: { __pending__: { status: 'connected', socketId: 'socket-1' } } },
+    ...(withProcessData
+      ? {
+          chatRuntime: {
+            ...chatRuntimeReducer(undefined, { type: '@@init' }),
+            toolTimelineByThread: {
+              [THREAD_ID]: [{ id: 'c1', name: 'web_fetch', round: 1, seq: 0, status: 'success' }],
+            },
+          },
+        }
+      : {}),
   });
-  const { default: Conversations } = await import('./Conversations');
-
   await act(async () => {
     render(
       <Provider store={store}>
@@ -207,24 +184,30 @@ describe('the agent-process-source command follows the panel that hosts it', () 
     registry.reset();
   });
 
-  it('is enabled on the assistant-ui surface, which mounts TranscriptOverlays', async () => {
+  it('is disabled when the assistant-ui surface has no process data to show', async () => {
     await renderChat('text');
 
     const action = registry.getAction(ACTION_ID);
     expect(action, 'the command must be registered on the text composer').toBeDefined();
-    expect(action?.enabled?.()).toBe(true);
+    expect(action?.enabled?.()).toBe(false);
     // The palette runs it through `runAction`, which re-checks `enabled`.
-    expect(registry.runAction(ACTION_ID)).toBe(true);
+    expect(registry.runAction(ACTION_ID)).toBe(false);
   });
 
-  it('is disabled in mic-cloud voice mode, where nothing renders the panel', async () => {
-    await renderChat('mic-cloud');
+  it('is enabled in mic-cloud voice mode too, which renders the same assistant-ui panel', async () => {
+    // With something to show: the command is gated on process data (above),
+    // and voice mode must not add a gate of its own.
+    await renderChat('mic-cloud', true);
+
+    // Voice mode swaps only the composer: the transcript is the assistant-ui
+    // viewport and the text composer is replaced by the voice composer.
+    expect(document.querySelector('[data-slot="aui_thread-viewport"]')).not.toBeNull();
+    expect(document.querySelector('[data-testid="voice-composer"]')).not.toBeNull();
+    expect(document.querySelector('[data-slot="aui_composer-shell"]')).toBeNull();
 
     const action = registry.getAction(ACTION_ID);
-    // Registered but refused - `Conversations` is mounted either way, so the
-    // action does not disappear; it must report itself unavailable.
-    expect(action, 'the command is still registered in voice mode').toBeDefined();
-    expect(action?.enabled?.()).toBe(false);
-    expect(registry.runAction(ACTION_ID)).toBe(false);
+    expect(action, 'the command is registered in voice mode').toBeDefined();
+    expect(action?.enabled?.()).toBe(true);
+    expect(registry.runAction(ACTION_ID)).toBe(true);
   });
 });

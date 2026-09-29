@@ -178,7 +178,7 @@ pub enum ExpectedErrorKind {
     /// (`text_chars=0 thinking_chars=0 tool_calls=0`), so the agent harness
     /// bailed with the user-facing `"The model returned an empty response.
     /// Please try again."` string
-    /// (`agent::harness::session::turn`). This is a model/user-config
+    /// (`agent::session_host::turn`). This is a model/user-config
     /// condition — a quirky or broken local fine-tune that returns nothing,
     /// a provider that dropped the stream — not a code bug. The UI already
     /// surfaces the typed error and the user can retry; Sentry has no
@@ -204,6 +204,13 @@ pub enum ExpectedErrorKind {
     /// returned an empty response"` is also demoted — no per-channel typed
     /// suppression needed.
     EmptyProviderResponse,
+    /// The core has no backend transport installed (built and run without
+    /// `openhuman-tinyhumans`), so a hosted-backend call could not be sent
+    /// at all. Expected build state, not a defect: the core runs agents,
+    /// memory and tools without any TinyHumans connection, and every
+    /// backend-touching surface degrades to this typed error. Messages carry
+    /// the [`BACKEND_UNAVAILABLE_PREFIX`] sentinel.
+    BackendUnavailable,
     /// Channel supervisor (`channels::runtime::supervision::spawn_supervised_listener`)
     /// caught a transient error from a channel listener and restarted it. The
     /// wrapper shape `"Channel <name> error: <inner>; restarting"` is the
@@ -608,6 +615,15 @@ pub fn expected_error_kind(message: &str) -> Option<ExpectedErrorKind> {
     if is_session_expired_message(message) {
         return Some(ExpectedErrorKind::SessionExpired);
     }
+    // The backend rejected the stored TinyHumans API key (401 on an api-key
+    // credential, `BackendApiError::ApiKeyRejected`). User-state — the key was
+    // revoked or mistyped and only a new key recovers it — so it shares the
+    // credential-lapse bucket. Kept out of `is_session_expired_message` on
+    // purpose: that predicate feeds the `SessionExpired` publish, which must
+    // not clear a session because an API key failed.
+    if is_api_key_rejected_message(message) {
+        return Some(ExpectedErrorKind::SessionExpired);
+    }
     if is_embedding_backend_auth_failure(&lower) {
         return Some(ExpectedErrorKind::SessionExpired);
     }
@@ -648,8 +664,11 @@ pub fn expected_error_kind(message: &str) -> Option<ExpectedErrorKind> {
     if is_local_ai_capability_unavailable_message(&lower) {
         return Some(ExpectedErrorKind::LocalAiCapabilityUnavailable);
     }
-    if crate::hosted::billing::classify::is_budget_exhausted_message(message) {
+    if crate::backend::classify::is_budget_exhausted_message(message) {
         return Some(ExpectedErrorKind::BudgetExhausted);
+    }
+    if is_backend_unavailable_message(message) {
+        return Some(ExpectedErrorKind::BackendUnavailable);
     }
     if is_prompt_injection_blocked_message(&lower) {
         return Some(ExpectedErrorKind::PromptInjectionBlocked);
@@ -1949,7 +1968,7 @@ fn is_filesystem_user_path_invalid_message(lower: &str) -> bool {
 /// Detect the agent harness's empty-provider-response bail.
 ///
 /// Anchored on the literal user-facing string emitted at
-/// `agent::harness::session::turn` —
+/// `agent::session_host::turn` —
 /// `"The model returned an empty response. Please try again."` — which is
 /// preserved verbatim as the provider/model returns a body with
 /// `text_chars=0 thinking_chars=0 tool_calls=0`.
@@ -1967,7 +1986,7 @@ fn is_filesystem_user_path_invalid_message(lower: &str) -> bool {
 /// `"empty response"`) so the sibling phrases stay actionable:
 /// `"summarizer returned empty response, falling through"`
 /// (`payload_summarizer`) and `"provider returned an empty response;
-/// returning empty extraction"` (`subagent_runner::extract_tool`) are
+/// returning empty extraction"` (`subagent_host::extract_tool`) are
 /// internal fall-through paths with different wording and are NOT
 /// silenced.
 fn is_empty_provider_response_message(lower: &str) -> bool {
@@ -2214,6 +2233,18 @@ fn report_expected_message(kind: ExpectedErrorKind, message: &str, domain: &str,
                 kind = "budget",
                 error = %message,
                 "[observability] {domain}.{operation} skipped expected budget-exhausted error: {message}"
+            );
+        }
+        ExpectedErrorKind::BackendUnavailable => {
+            // Build-state condition: no backend transport is installed, so
+            // the hosted backend is unreachable by construction. Nothing to
+            // fix in Sentry — the host chose a backend-less core.
+            tracing::debug!(
+                domain = domain,
+                operation = operation,
+                kind = "backend_unavailable",
+                error = %message,
+                "[observability] {domain}.{operation} skipped expected backend-unavailable error: {message}"
             );
         }
         ExpectedErrorKind::SessionExpired => {
@@ -2834,7 +2865,7 @@ fn all_provider_attempts_are_transient(message: &str) -> bool {
 /// `crate::agent::error::MAX_ITERATIONS_ERROR_PREFIX`).
 ///
 /// Defense-in-depth filter for the Sentry `before_send` hook: the primary
-/// suppression lives at the call sites in `agent::harness::session::
+/// suppression lives at the call sites in `agent::session_host::
 /// runtime::run_single`, `channels::runtime::dispatch`, and
 /// `web_chat::run_chat_task`, all of which now skip
 /// `report_error` when this variant is detected. This filter catches any
@@ -3137,7 +3168,7 @@ pub fn is_transient_message_failure(msg: &str) -> bool {
 }
 
 /// Sentinel prefix stamped on a `/teams/me/usage` probe error that the
-/// failure-backoff in `crate::hosted::team::ops` short-circuited — i.e. an
+/// failure-backoff in `crate::integrations::client::budget_gate` short-circuited — i.e. an
 /// already-reported repeat within the backoff window. The FIRST failure of a
 /// streak propagates its real error string and reports normally; only the
 /// suppressed repeats carry this prefix so the JSON-RPC boundary can demote
@@ -3147,6 +3178,31 @@ pub fn is_transient_message_failure(msg: &str) -> bool {
 /// builds its sentinel from this constant, and [`is_suppressed_usage_probe_backoff`]
 /// matches it — coupled by a unit test so the two cannot drift.
 pub const USAGE_PROBE_BACKOFF_PREFIX: &str = "USAGE_PROBE_BACKOFF:";
+
+/// Sentinel prefix on the error string a backend-touching call returns when
+/// the core has no [`BackendTransport`](crate::backend::transport::BackendTransport)
+/// installed. `backend::client::flatten_authed_error` and the integrations client
+/// build their message from this constant; [`is_backend_unavailable_message`]
+/// classifies it as [`ExpectedErrorKind::BackendUnavailable`].
+pub const BACKEND_UNAVAILABLE_PREFIX: &str = "BACKEND_UNAVAILABLE:";
+
+/// Sentinel prefix on the error string a backend call returns when the backend
+/// rejects the stored TinyHumans API key (`backend::client::flatten_authed_error`).
+/// [`expected_error_kind`] demotes it: the fix is a new key, not a code change.
+pub const API_KEY_REJECTED_PREFIX: &str = "API_KEY_REJECTED:";
+
+/// Whether `msg` carries the [`API_KEY_REJECTED_PREFIX`] sentinel anywhere in
+/// its chain.
+pub fn is_api_key_rejected_message(msg: &str) -> bool {
+    msg.contains(API_KEY_REJECTED_PREFIX)
+}
+
+/// Whether `msg` is the backend-unavailable sentinel (see
+/// [`BACKEND_UNAVAILABLE_PREFIX`]). Matched anywhere in the chain because
+/// callers wrap it with `anyhow` context before it reaches the reporter.
+pub fn is_backend_unavailable_message(msg: &str) -> bool {
+    msg.contains(BACKEND_UNAVAILABLE_PREFIX)
+}
 
 /// Returns true when a message is the usage-probe failure-backoff sentinel
 /// (see [`USAGE_PROBE_BACKOFF_PREFIX`]). Anchored on the exact prefix so a real
@@ -3426,7 +3482,7 @@ fn event_contains_budget_exhausted_message(event: &sentry::protocol::Event<'_>) 
     if event
         .message
         .as_deref()
-        .is_some_and(crate::hosted::billing::classify::is_budget_exhausted_message)
+        .is_some_and(crate::backend::classify::is_budget_exhausted_message)
     {
         return true;
     }
@@ -3435,7 +3491,7 @@ fn event_contains_budget_exhausted_message(event: &sentry::protocol::Event<'_>) 
         exception
             .value
             .as_deref()
-            .is_some_and(crate::hosted::billing::classify::is_budget_exhausted_message)
+            .is_some_and(crate::backend::classify::is_budget_exhausted_message)
     })
 }
 

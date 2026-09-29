@@ -24,11 +24,11 @@ pub(crate) fn native_chat_messages(request: &ModelRequest) -> Vec<ChatMessage> {
     request
         .messages
         .iter()
-        .map(crate::agent::message_convert::message_to_native_chat_message)
+        .filter_map(crate::agent::message_convert::message_to_native_chat_message)
         .collect()
 }
 
-/// Build a [`PFormatRegistry`](crate::agent::pformat::PFormatRegistry)
+/// Build a [`PFormatRegistry`](tinytools_agent::PFormatRegistry)
 /// from the tool schemas advertised on a [`ModelRequest`] (issue #4465).
 ///
 /// The text-mode fallback parse needs each tool's positional parameter layout
@@ -38,14 +38,14 @@ pub(crate) fn native_chat_messages(request: &ModelRequest) -> Vec<ChatMessage> {
 /// otherwise), so the registry is available in both modes. Tool-less requests
 /// skip fallback parsing entirely; this empty registry is therefore consulted
 /// only alongside a non-empty advertised tool list.
-fn pformat_registry_from_request(request: &ModelRequest) -> crate::agent::pformat::PFormatRegistry {
+fn pformat_registry_from_request(request: &ModelRequest) -> tinytools_agent::PFormatRegistry {
     request
         .tools
         .iter()
         .map(|t| {
             (
                 t.name.clone(),
-                crate::agent::pformat::PFormatToolParams::from_schema(&t.parameters),
+                tinytools_agent::PFormatToolParams::from_schema(&t.parameters),
             )
         })
         .collect()
@@ -71,7 +71,7 @@ fn pformat_registry_from_request(request: &ModelRequest) -> crate::agent::pforma
 /// adapter preserves the provider-requested tool name.
 fn response_to_model_response(
     response: &ChatResponse,
-    pformat_registry: &crate::agent::pformat::PFormatRegistry,
+    pformat_registry: &tinytools_agent::PFormatRegistry,
     parse_text_tool_calls: bool,
 ) -> ModelResponse {
     let (visible_text, tool_calls): (String, Vec<TaToolCall>) = if !response.tool_calls.is_empty() {
@@ -89,7 +89,7 @@ fn response_to_model_response(
     } else if parse_text_tool_calls {
         let text = response.text.as_deref().unwrap_or_default();
         let (prose, parsed) =
-            crate::agent::harness::parse_tool_calls_with_pformat(text, pformat_registry);
+            tinytools_agent::parse_tool_calls_with_pformat(text, pformat_registry);
         if parsed.is_empty() {
             (text.to_string(), Vec::new())
         } else {
@@ -133,6 +133,14 @@ fn response_to_model_response(
         usage.cache_read_tokens = u.cached_input_tokens;
         usage.cache_creation_tokens = u.cache_creation_tokens;
         usage.reasoning_tokens = u.reasoning_tokens;
+        if u.charged_amount_usd.is_finite() && u.charged_amount_usd > 0.0 {
+            usage.charged_amount = Some(tinyinference_llm::usage::ChargedAmount::usd_micros(
+                (u.charged_amount_usd * 1_000_000.0).round() as i64,
+            ));
+        }
+        if u.context_window > 0 {
+            usage.context_window_tokens = Some(u.context_window);
+        }
         usage
     });
     let finish_reason = if tool_calls.is_empty() {
@@ -146,6 +154,7 @@ fn response_to_model_response(
             content,
             tool_calls,
             usage,
+            origin: None,
         },
         usage,
         finish_reason: Some(finish_reason.to_string()),
@@ -160,6 +169,8 @@ fn response_to_model_response(
         resolved_model: None,
         continue_turn: None,
         served_from_cache: false,
+        correlation: None,
+        resolved_route: None,
     }
 }
 
@@ -167,7 +178,7 @@ fn response_to_model_response(
 pub(crate) fn native_model_response(response: &ChatResponse) -> ModelResponse {
     response_to_model_response(
         response,
-        &crate::agent::pformat::PFormatRegistry::default(),
+        &tinytools_agent::PFormatRegistry::default(),
         false,
     )
 }
@@ -197,8 +208,10 @@ pub(crate) fn prompt_guided_text_response(text: String, request: &ModelRequest) 
         return ModelResponse::assistant(text);
     }
 
-    let response =
-        tinyagents_harness::tool::apply_prompt_tool_calls(ModelResponse::assistant(text.clone()));
+    let response = tinyinference_llm::prompt_tools::recover_tool_calls(
+        ModelResponse::assistant(text.clone()),
+        &request.tools,
+    );
     if !response.message.tool_calls.is_empty() {
         return response;
     }
@@ -364,6 +377,7 @@ pub(crate) fn forward_provider_delta(tx: &UnboundedSender<ModelStreamItem>, delt
                 call_id,
                 content: String::new(),
                 tool_name: Some(tool_name),
+                content_index: None,
             }));
         }
         ProviderDelta::ToolCallArgsDelta { call_id, delta } => {
@@ -377,6 +391,7 @@ pub(crate) fn forward_provider_delta(tx: &UnboundedSender<ModelStreamItem>, delt
                     call_id,
                     content: delta,
                     tool_name: None,
+                    content_index: None,
                 }));
             }
         }
@@ -393,55 +408,57 @@ pub(crate) fn forward_provider_delta(tx: &UnboundedSender<ModelStreamItem>, delt
 /// the runner can re-surface the downcastable error after the run fails.
 pub(super) type ModelErrorSlot = Arc<Mutex<Option<anyhow::Error>>>;
 
-pub(super) struct MaxTokensModel {
-    inner: Arc<dyn ChatModel<()>>,
-    max_tokens: u32,
-}
-
-/// A model wrapper that overrides capability metadata without changing wire
-/// behavior. Directly injected crate models use this when a turn supplies a
-/// more precise context window or explicitly selects prompt-guided tool mode.
-pub(super) struct ProfileOverrideModel {
-    inner: Arc<dyn ChatModel<()>>,
-    profile: ModelProfile,
-    request_model: Option<String>,
-    request_temperature: Option<f64>,
-}
-
-/// Records the concrete provider/model selected by a crate-native turn model.
+/// Fills the turn's [`ModelErrorSlot`] with the provider failure that ended a
+/// model call, so the runner re-surfaces the real failure instead of the
+/// harness's sanitized "hosted agent invocation failed" (#6724).
 ///
-/// TinyAgents' registry records the selected registry key (for example
-/// `chat-v1`) on `ModelResponse`, but channel audit events also need the
-/// provider and concrete wire model. Each registered route is wrapped with
-/// this metadata at construction time. Recording immediately before dispatch
-/// means retries are harmless and a successful fallback leaves the last
-/// attempted (therefore handling) route in the ambient turn slot.
-pub(super) struct RouteRecordingModel {
+/// The slot is emptied when each attempt *starts*, not only when one succeeds:
+/// an attempt that is dropped (call timeout), cancelled, or ends without a
+/// terminal item must not leave the previous attempt's error behind.
+///
+/// Covers both an `Err` from `invoke`/`stream` and a failure reported *inside*
+/// a stream (`ProviderFailed`, e.g. an HTTP 200 SSE `{"error":…}` payload).
+/// The recorded error only feeds `web_errors` classification, which picks the
+/// user-facing copy; it is never rendered verbatim.
+pub(super) struct ErrorSlotModel {
     inner: Arc<dyn ChatModel<()>>,
-    provider: String,
-    model: String,
+    slot: ModelErrorSlot,
 }
 
-impl RouteRecordingModel {
-    pub(super) fn new(
-        inner: Arc<dyn ChatModel<()>>,
-        provider: impl Into<String>,
-        model: impl Into<String>,
-    ) -> Self {
-        Self {
-            inner,
-            provider: provider.into(),
-            model: model.into(),
-        }
+impl ErrorSlotModel {
+    pub(super) fn new(inner: Arc<dyn ChatModel<()>>, slot: ModelErrorSlot) -> Self {
+        Self { inner, slot }
     }
+}
 
-    fn record_route(&self) {
-        super::record_resolved_provider_route(&self.provider, &self.model);
+fn store_model_error(slot: &ModelErrorSlot, error: Option<anyhow::Error>) {
+    *slot
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner) = error;
+}
+
+/// The slot's error flows into logs, Sentry and classification, and a provider
+/// message can echo request content, so it is secret-scrubbed and truncated
+/// here, once, before any of them sees it.
+fn slot_provider_error(error: &tinyinference_llm::model::ProviderError) -> anyhow::Error {
+    let mut error = error.clone();
+    error.message = tinyinference_core::sanitize::sanitize_api_error(&error.message);
+    error.raw = None;
+    anyhow::Error::new(tinyinference_llm::Error::Provider(Box::new(error)))
+}
+
+fn slot_error(error: &tinyinference_llm::Error) -> anyhow::Error {
+    match error {
+        tinyinference_llm::Error::Provider(provider_error) => slot_provider_error(provider_error),
+        other => anyhow::anyhow!(
+            "{}",
+            tinyinference_core::sanitize::sanitize_api_error(&other.to_string())
+        ),
     }
 }
 
 #[async_trait]
-impl ChatModel<()> for RouteRecordingModel {
+impl ChatModel<()> for ErrorSlotModel {
     fn profile(&self) -> Option<&ModelProfile> {
         self.inner.profile()
     }
@@ -455,8 +472,10 @@ impl ChatModel<()> for RouteRecordingModel {
         state: &(),
         request: ModelRequest,
     ) -> tinyinference_llm::Result<ModelResponse> {
-        self.record_route();
-        self.inner.invoke(state, request).await
+        store_model_error(&self.slot, None);
+        let result = self.inner.invoke(state, request).await;
+        store_model_error(&self.slot, result.as_ref().err().map(slot_error));
+        result
     }
 
     async fn stream(
@@ -464,9 +483,42 @@ impl ChatModel<()> for RouteRecordingModel {
         state: &(),
         request: ModelRequest,
     ) -> tinyinference_llm::Result<ModelStream> {
-        self.record_route();
-        self.inner.stream(state, request).await
+        store_model_error(&self.slot, None);
+        match self.inner.stream(state, request).await {
+            Ok(stream) => {
+                let slot = self.slot.clone();
+                Ok(stream.map_items(move |item| {
+                    match &item {
+                        ModelStreamItem::ProviderFailed(error) => {
+                            store_model_error(&slot, Some(slot_provider_error(error)))
+                        }
+                        ModelStreamItem::Completed(_) => store_model_error(&slot, None),
+                        _ => {}
+                    }
+                    item
+                }))
+            }
+            Err(error) => {
+                store_model_error(&self.slot, Some(slot_error(&error)));
+                Err(error)
+            }
+        }
     }
+}
+
+pub(super) struct MaxTokensModel {
+    inner: Arc<dyn ChatModel<()>>,
+    max_tokens: u32,
+}
+
+/// A model wrapper that overrides capability metadata without changing wire
+/// behavior. Directly injected crate models use this when a turn supplies a
+/// more precise context window or explicitly selects prompt-guided tool mode.
+pub(super) struct ProfileOverrideModel {
+    inner: Arc<dyn ChatModel<()>>,
+    profile: ModelProfile,
+    request_model: Option<String>,
+    request_temperature: Option<f64>,
 }
 
 impl ProfileOverrideModel {
@@ -583,9 +635,9 @@ impl ChatModel<()> for MaxTokensModel {
 }
 
 #[cfg(test)]
-#[path = "model_route_recording_tests_tests.rs"]
-mod route_recording_tests;
-
-#[cfg(test)]
 #[path = "model_g1_usage_tests_tests.rs"]
 mod g1_usage_tests;
+
+#[cfg(test)]
+#[path = "error_slot_model_tests.rs"]
+mod error_slot_model_tests;

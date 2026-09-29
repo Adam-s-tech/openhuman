@@ -5,9 +5,9 @@ use async_trait::async_trait;
 
 use tinyagents_harness::context::RunContext;
 use tinyagents_harness::error::Result as TaResult;
-use tinyagents_harness::middleware::{AgentRun, Middleware};
-use tinyagents_harness::tool::ToolResult as TaToolResult;
+use tinyagents_harness::middleware::{AgentRun, Middleware, ToolInvocationIdentity};
 use tinyinference_llm::tool::ToolCall as TaToolCall;
+use tinytools::ToolResult as TaToolResult;
 
 /// Agents are told to follow a **read-index → dedupe → write → update-index**
 /// cycle around durable memory, but the contract was never enforced, so it was
@@ -24,11 +24,12 @@ use tinyinference_llm::tool::ToolCall as TaToolCall;
 /// neither creates an entry nor obliges an index update. Non-memory tools are
 /// ignored, so this is a no-op on turns that never touch memory.
 pub struct MemoryProtocolMiddleware {
+    can_update_index: bool,
     tracker: std::sync::Mutex<crate::agent::harness::memory_protocol::MemoryProtocolTracker>,
     /// call_id → classified op, captured in `before_tool` (the tool result carries
     /// no arguments, yet `update_memory_md` and `memory_tree` can only be
     /// classified from their `file` / `mode` argument). Correlated back by
-    /// `result.call_id` in `after_tool`.
+    /// the invocation identity in `after_tool`.
     pending_ops: std::sync::Mutex<
         std::collections::HashMap<String, crate::agent::harness::memory_protocol::MemoryOp>,
     >,
@@ -36,7 +37,12 @@ pub struct MemoryProtocolMiddleware {
 
 impl MemoryProtocolMiddleware {
     pub fn new() -> Self {
+        Self::with_index_update_tool(true)
+    }
+
+    pub fn with_index_update_tool(can_update_index: bool) -> Self {
         Self {
+            can_update_index,
             tracker: std::sync::Mutex::new(
                 crate::agent::harness::memory_protocol::MemoryProtocolTracker::new(),
             ),
@@ -52,14 +58,16 @@ impl Default for MemoryProtocolMiddleware {
 }
 
 #[async_trait]
-impl Middleware<()> for MemoryProtocolMiddleware {
+impl Middleware<(), crate::agent::tinyagents::host::OpenHumanRunContext>
+    for MemoryProtocolMiddleware
+{
     fn name(&self) -> &str {
         "memory_protocol"
     }
 
     async fn before_tool(
         &self,
-        _ctx: &mut RunContext<()>,
+        _ctx: &mut RunContext<crate::agent::tinyagents::host::OpenHumanRunContext>,
         _state: &(),
         call: &mut TaToolCall,
     ) -> TaResult<()> {
@@ -78,23 +86,25 @@ impl Middleware<()> for MemoryProtocolMiddleware {
 
     async fn after_tool(
         &self,
-        _ctx: &mut RunContext<()>,
+        _ctx: &mut RunContext<crate::agent::tinyagents::host::OpenHumanRunContext>,
         _state: &(),
+        invocation: &ToolInvocationIdentity,
         result: &mut TaToolResult,
     ) -> TaResult<()> {
+        let tool_name = invocation.tool_name();
         // Consume the op captured for this call (removing it so the map can't
         // grow unbounded). Absent → a non-memory tool: nothing to enforce.
         let op = self
             .pending_ops
             .lock()
             .ok()
-            .and_then(|mut ops| ops.remove(&result.call_id));
+            .and_then(|mut ops| ops.remove(&invocation.call_id().to_string()));
         let Some(op) = op else {
             return Ok(());
         };
         // Only successful memory ops advance the protocol — a failed write did
         // not mutate memory and must not demand an index update.
-        if result.error.is_some() {
+        if result.is_error {
             return Ok(());
         }
         let observation = {
@@ -104,24 +114,25 @@ impl Middleware<()> for MemoryProtocolMiddleware {
             };
             tracker.observe(op)
         };
-        if let Some(note) = observation.guidance(&result.name) {
+        if let Some(note) = observation.guidance_with_index_update(tool_name, self.can_update_index)
+        {
             tracing::debug!(
-                tool = result.name.as_str(),
+                tool = tool_name,
                 missing_index_read = observation.missing_index_read,
                 index_drift = observation.index_drift,
                 "[tinyagents::mw] memory-protocol guidance appended to tool result"
             );
-            if !result.content.is_empty() {
-                result.content.push_str("\n\n");
-            }
-            result.content.push_str(&note);
+            crate::agent::tinyagents::middleware::append_tool_result_text(
+                result,
+                format!("\n\n{note}"),
+            );
         }
         Ok(())
     }
 
     async fn after_agent(
         &self,
-        _ctx: &mut RunContext<()>,
+        _ctx: &mut RunContext<crate::agent::tinyagents::host::OpenHumanRunContext>,
         _state: &(),
         _run: &mut AgentRun,
     ) -> TaResult<()> {
@@ -130,7 +141,7 @@ impl Middleware<()> for MemoryProtocolMiddleware {
             .lock()
             .map(|tracker| tracker.pending_index_update())
             .unwrap_or(false);
-        if pending {
+        if self.can_update_index && pending {
             tracing::warn!(
                 "[tinyagents::mw] memory-protocol: run ended with a memory write that was never \
                  followed by update_memory_md — the MEMORY.md index is left stale"

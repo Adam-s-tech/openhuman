@@ -52,28 +52,14 @@ import {
  */
 const PANELS = [
   { id: 'appearance', route: 'appearance', heading: 'Appearance', marker: 'font-size-slider' },
+  { id: 'theme', route: 'theme', heading: 'Theme Studio', marker: 'theme-studio-panel' },
   { id: 'privacy', route: 'privacy', heading: 'Privacy', marker: 'privacy-mode-options' },
-  { id: 'devices', route: 'devices', heading: 'Devices', marker: null, text: 'Pair iPhone' },
   {
     id: 'security',
     route: 'security',
-    heading: 'Security',
+    heading: 'Keychain',
     marker: null,
     text: 'Retry keychain detection',
-  },
-  {
-    id: 'notifications',
-    route: 'notifications',
-    heading: 'Notifications',
-    marker: null,
-    text: 'Categories',
-  },
-  {
-    id: 'profiles',
-    route: 'profiles',
-    heading: 'Agent Profiles',
-    marker: null,
-    text: 'New profile',
   },
   {
     id: 'agent-access',
@@ -171,7 +157,7 @@ test.describe('Settings navigation — clicking through the sidebar', () => {
   });
 
   test('walks three panels in sequence without stale content', async ({ page }) => {
-    for (const step of ['security', 'devices', 'about'] as const) {
+    for (const step of ['security', 'theme', 'about'] as const) {
       const expected = PANELS.find(p => p.id === step)!.heading;
       await page.getByTestId(`settings-nav-${step}`).click();
       // `toHaveText` retries, so this also proves the PREVIOUS panel's heading
@@ -212,7 +198,7 @@ test.describe('Settings navigation — browser history', () => {
     await expect(panelHeading(page)).toHaveText('Appearance', { timeout: 30_000 });
 
     await page.getByTestId('settings-nav-security').click();
-    await expect(panelHeading(page)).toHaveText('Security', { timeout: 30_000 });
+    await expect(panelHeading(page)).toHaveText('Keychain', { timeout: 30_000 });
 
     await page.goBack();
     await expect(panelHeading(page)).toHaveText('Appearance', { timeout: 30_000 });
@@ -222,7 +208,7 @@ test.describe('Settings navigation — browser history', () => {
       .toBe('#/settings/appearance');
 
     await page.goForward();
-    await expect(panelHeading(page)).toHaveText('Security', { timeout: 30_000 });
+    await expect(panelHeading(page)).toHaveText('Keychain', { timeout: 30_000 });
   });
 
   test('a reload keeps you on the panel you deep-linked to', async ({ page }) => {

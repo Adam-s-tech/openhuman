@@ -10,7 +10,7 @@ use std::sync::{Arc, Mutex};
 use tinyagents_harness::events::{AgentEvent, EventListener, EventRecord};
 use tinyagents_harness::steering::{SteeringCommand, SteeringHandle};
 
-use crate::agent::harness::turn_dispatch_guard::TurnDispatchState;
+use crate::agent::tinyagents::host::TurnDispatchState;
 
 /// Attribution for child (sub-agent) progress. When present, the bridge routes
 /// events to the `Subagent*` [`AgentProgress`](crate::agent::progress::AgentProgress)
@@ -22,6 +22,9 @@ pub struct SubagentScope {
     pub agent_id: String,
     pub task_id: String,
     pub extended_policy: bool,
+    /// The durable journal stream minted for this child turn. Shared with the
+    /// host so it can export the completed child as its own Langfuse trace.
+    pub journal_run_id: Option<Arc<Mutex<Option<String>>>>,
 }
 
 /// A shared 1-based model-call (iteration) cursor. The bridge advances it on
@@ -39,17 +42,21 @@ pub(crate) type IterationCursor = Arc<AtomicU32>;
 /// `tool_name` contract without the forwarder emitting those fragments itself.
 pub(crate) type ToolNameMap = Arc<Mutex<std::collections::HashMap<String, String>>>;
 
-/// Shared `call_id → (success, classified failure, elapsed_ms, output_chars)`
-/// side-channel. The crate's `AgentEvent::ToolCompleted` carries only `call_id`
-/// + `tool_name` (no success/error, duration, or output size), so
+/// Shared `call_id → (success, classified failure, elapsed_ms, output_chars,
+/// structured metadata)` side-channel. The crate's `AgentEvent::ToolCompleted`
+/// carries only `call_id` + `tool_name` (no success/error, duration, output
+/// size, or `ToolResult.metadata`), so
 ///
 /// `ToolOutcomeCaptureMiddleware::after_tool` — which does see the `ToolResult`
-/// (including the executor-measured `elapsed_ms` and the rendered content) —
-/// classifies each outcome and writes it here; the bridge reads it when
-/// projecting the live `ToolCallCompleted` event, so a failed tool surfaces real
-/// `success: false` + a user-facing `failure`, and a completed tool surfaces its
-/// real duration + output size instead of `0`/`0` (#4467, item 4). Absent entry
-/// (event projected before the middleware ran) falls back to `(true, None, 0, 0)`.
+/// (including the executor-measured `elapsed_ms`, the rendered content, and
+/// its host-only `metadata`) — classifies each outcome and writes it here; the
+/// bridge reads it when projecting the live `ToolCallCompleted` event, so a
+/// failed tool surfaces real `success: false` + a user-facing `failure`, a
+/// completed tool surfaces its real duration + output size instead of `0`/`0`
+/// (#4467, item 4), and a tool that populated `ToolResult.metadata` with a
+/// `{"kind": ...}` object (e.g. web search) surfaces it as
+/// `ToolCallCompleted::structured`. Absent entry (event projected before the
+/// middleware ran) falls back to `(true, None, 0, 0, None)`.
 pub(crate) type ToolFailureMap = Arc<
     Mutex<
         std::collections::HashMap<
@@ -59,6 +66,7 @@ pub(crate) type ToolFailureMap = Arc<
                 Option<crate::tools::status::ClassifiedFailure>,
                 u64,
                 usize,
+                Option<serde_json::Value>,
             ),
         >,
     >,
@@ -107,14 +115,14 @@ pub(crate) struct CapPauser {
     /// The current turn's dispatch guard, when this run is a turn (rather than
     /// a CLI/direct invocation). Recording the pause here is what makes it
     /// *binding* on new sub-agent dispatch instead of merely advisory — see
-    /// [`crate::agent::harness::turn_dispatch_guard`] and #5804.
+    /// [`crate::agent::tinyagents::host::TurnDispatchState`] and #5804.
     dispatch_guard: Option<Arc<TurnDispatchState>>,
 }
 
 impl CapPauser {
     /// Pause `handle` once `cap` of run `run_id`'s own model calls complete,
     /// recording the pause on `dispatch_guard` when the run is executing inside
-    /// a turn scope.
+    /// a root turn context.
     pub(crate) fn new(
         handle: SteeringHandle,
         cap: usize,

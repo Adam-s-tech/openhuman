@@ -23,8 +23,8 @@ fn custom_agent(id: &str, enabled: bool) -> AgentRegistryEntry {
 #[test]
 fn merge_entries_applies_default_overrides_and_filters_disabled() {
     let configured = vec![AgentRegistryEntry {
-        id: "researcher".to_string(),
-        name: "Researcher".to_string(),
+        id: "archivist".to_string(),
+        name: "Archivist".to_string(),
         description: "Disabled for this workspace.".to_string(),
         source: AgentRegistrySource::Default,
         enabled: false,
@@ -38,11 +38,11 @@ fn merge_entries_applies_default_overrides_and_filters_disabled() {
     }];
 
     let visible = merge_entries(&configured, false);
-    assert!(!visible.iter().any(|agent| agent.id == "researcher"));
+    assert!(!visible.iter().any(|agent| agent.id == "archivist"));
 
     let all = merge_entries(&configured, true);
-    let researcher = all.iter().find(|agent| agent.id == "researcher").unwrap();
-    assert!(!researcher.enabled);
+    let archivist = all.iter().find(|agent| agent.id == "archivist").unwrap();
+    assert!(!archivist.enabled);
 }
 
 #[test]
@@ -71,10 +71,10 @@ fn find_custom_in_config_ignores_default_source_entries() {
     let mut config = Config::default();
     config.agent_registry.entries = vec![AgentRegistryEntry {
         source: AgentRegistrySource::Default,
-        ..custom_agent("researcher", true)
+        ..custom_agent("archivist", true)
     }];
 
-    assert!(find_custom_in_config(&config, "researcher").is_none());
+    assert!(find_custom_in_config(&config, "archivist").is_none());
 }
 
 #[test]
@@ -89,7 +89,7 @@ fn find_custom_in_config_misses_unknown_id() {
 fn find_custom_in_config_ignores_disabled_custom_entries() {
     // Regression test (P2 review comment on this PR): a disabled custom
     // agent must be treated as a miss here, exactly like an unknown id —
-    // otherwise a direct factory caller (chat, task-dispatcher) that
+    // otherwise a direct factory caller (such as chat) that
     // references a disabled custom agent's id (e.g. via an existing
     // profile) would still synthesize it into a runnable definition,
     // bypassing the disabled flag that the flows path already enforces

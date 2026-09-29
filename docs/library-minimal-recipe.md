@@ -85,7 +85,7 @@ is actually for.
 | `tui` | OFF | — | **DROP** | `openhuman tui`/`chat` terminal UI — no terminal in a library host | `ratatui`, `crossterm`, `unicode-width` |
 
 **Non-default optional features** (`sandbox-landlock`, `sandbox-bubblewrap`,
-`peripheral-rpi`, `browser-native`/`fantoccini`, `landlock`, `whatsapp-web`,
+`browser-native`/`fantoccini`, `landlock`, `whatsapp-web`,
 `e2e-test-support`, `rss-bench`, `rss-bench-dhat`) are all default-OFF, so a
 `--no-default-features` build never links them unless explicitly added. None are
 needed for opencompany; `rss-bench`/`rss-bench-dhat` are dev/benchmark-only.
@@ -196,10 +196,12 @@ become unknown-method) pass under this recipe. No pre-existing failures.
 
 Nothing is added to the `default` feature list — this is a **subtractive**
 `--no-default-features` recipe, not a new default-ON gate. The **Feature
-Forwarding Gate** (`scripts/ci/check-feature-forwarding.mjs`) only inspects the
-`default` list and its forwarding into the desktop shell's `Cargo.toml`, so it
-**does not apply** here: there is nothing to forward. This recipe carries no CI
-risk and needs no `INTENTIONALLY_NOT_FORWARDED` entry.
+Forwarding Gate** (`scripts/ci/check-feature-forwarding.mjs`) inspects the
+`default` list, its forwarding into the desktop shell's `Cargo.toml`, and the
+`openhuman-embed` → `openhuman-tinyhumans` → `openhuman-cli` chain — all of
+which are about gates that exist, so the gate **does not apply** here: there is
+nothing to forward. This recipe carries no CI risk and needs no
+`INTENTIONALLY_NOT_FORWARDED` entry.
 
 ## Why no `Cargo.toml` alias
 

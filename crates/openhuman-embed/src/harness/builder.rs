@@ -31,6 +31,7 @@ pub struct HarnessBuilder {
     skills_dir: Option<PathBuf>,
     #[cfg(feature = "mcp")]
     mcp_servers: Vec<super::mcp::McpServer>,
+    host_tools: Option<openhuman_core::agent::HostTools>,
     services: Option<ServiceSet>,
     domains: Option<DomainSet>,
     tool_groups: Option<openhuman_core::tools::toolpacks::ToolGroups>,
@@ -59,6 +60,7 @@ impl HarnessBuilder {
             skills_dir: None,
             #[cfg(feature = "mcp")]
             mcp_servers: Vec::new(),
+            host_tools: None,
             services: None,
             domains: None,
             tool_groups: None,
@@ -116,6 +118,25 @@ impl HarnessBuilder {
     #[cfg(feature = "mcp")]
     pub fn mcp(mut self, server: super::mcp::McpServer) -> Self {
         self.mcp_servers.push(server);
+        self
+    }
+
+    /// The harness agent's own in-process tools, built fresh for every turn.
+    ///
+    /// [`AgentSpec::tools`](crate::AgentSpec::tools) for the one-agent
+    /// shorthand, with the same contract — including that `f` runs per turn
+    /// and may return a different belt each time.
+    #[must_use]
+    pub fn tools(
+        mut self,
+        f: impl for<'a> Fn(
+                openhuman_core::agent::TurnContext<'a>,
+            ) -> openhuman_core::agent::HostTurnTools
+            + Send
+            + Sync
+            + 'static,
+    ) -> Self {
+        self.host_tools = Some(std::sync::Arc::new(f));
         self
     }
 
@@ -229,7 +250,7 @@ impl HarnessBuilder {
 
         // Refused before any runtime is built, so a bad input never claims
         // the process slot. The new API allows skills on an inherited
-        // workspace because it copies into the agent's own profile home; the
+        // workspace because it copies into the agent's own home; the
         // harness keeps installing into `<workspace>/skills`, which under
         // `Inherit` is the operator's, so it keeps refusing.
         #[cfg(feature = "skills")]
@@ -286,6 +307,9 @@ impl HarnessBuilder {
         let mut spec = AgentSpec::new(HARNESS_AGENT_ID)
             .provider(self.provider)
             .access(self.access);
+        if let Some(host_tools) = self.host_tools {
+            spec = spec.host_tools(host_tools);
+        }
         if let Some(dir) = self.action_dir {
             spec = spec.action_dir(dir);
         } else if !inherit {

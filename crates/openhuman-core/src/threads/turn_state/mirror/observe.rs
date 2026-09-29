@@ -133,10 +133,30 @@ impl TurnStateMirror {
                 dedicated_thread,
                 worker_thread_id,
                 display_name,
+                parent_call_id,
                 ..
             } => {
                 self.state.phase = Some(TurnPhase::Subagent);
                 self.state.active_subagent = Some(agent_id.clone());
+                // Derive the real invoking tool's name from the parent row
+                // (`spawn_parallel_agents`, `spawn_async_subagent`,
+                // `continue_subagent`, a synthesized `delegate_*`, …) instead
+                // of hardcoding `spawn_subagent`, which was wrong for every
+                // other delegation path. Falls back to the historical
+                // default when there's no `parent_call_id` (e.g.
+                // `orchestration::ops`) or no matching row (e.g. it already
+                // scrolled out of the timeline).
+                let source_tool_name = parent_call_id
+                    .as_deref()
+                    .and_then(|id| {
+                        self.state
+                            .tool_timeline
+                            .iter()
+                            .rev()
+                            .find(|entry| entry.id == id)
+                    })
+                    .map(|entry| entry.name.clone())
+                    .unwrap_or_else(|| "spawn_subagent".to_string());
                 let seq = self.next_tool_seq();
                 self.state.tool_timeline.push(ToolTimelineEntry {
                     id: format!("subagent:{task_id}"),
@@ -146,7 +166,7 @@ impl TurnStateMirror {
                     args_buffer: None,
                     display_name: display_name.clone().or_else(|| Some(agent_id.clone())),
                     detail: None,
-                    source_tool_name: Some("spawn_subagent".to_string()),
+                    source_tool_name: Some(source_tool_name),
                     subagent: Some(SubagentActivity {
                         task_id: task_id.clone(),
                         agent_id: agent_id.clone(),
@@ -159,6 +179,8 @@ impl TurnStateMirror {
                         elapsed_ms: None,
                         output_chars: None,
                         worker_thread_id: worker_thread_id.clone(),
+                        parent_call_id: parent_call_id.clone(),
+                        output: None,
                         tool_calls: Vec::new(),
                         transcript: Vec::new(),
                     }),
@@ -174,6 +196,7 @@ impl TurnStateMirror {
                 elapsed_ms,
                 iterations,
                 output_chars,
+                output,
                 ..
             } => {
                 if let Some(entry) = self.find_subagent_entry_mut(task_id) {
@@ -182,6 +205,7 @@ impl TurnStateMirror {
                         activity.elapsed_ms = Some(*elapsed_ms);
                         activity.iterations = Some(*iterations);
                         activity.output_chars = Some(*output_chars);
+                        activity.output = cap_persisted_output(output);
                     }
                 }
                 self.state.active_subagent = None;
@@ -456,21 +480,35 @@ impl TurnStateMirror {
 
     /// Append a hidden-reasoning delta to the transcript, with the same
     /// coalescing rule as [`Self::push_transcript_narration`].
+    ///
+    /// Stamps the block's first delta as `started_at` and every appended delta
+    /// as `ended_at` (epoch ms), which is what the "Thought for Ns" label reads.
     fn push_transcript_thinking(&mut self, round: u32, delta: &str) {
-        if let Some(TranscriptItem::Thinking { round: r, text, .. }) =
-            self.state.transcript.last_mut()
+        let now = now_epoch_ms();
+        if let Some(TranscriptItem::Thinking {
+            round: r,
+            text,
+            ended_at,
+            ..
+        }) = self.state.transcript.last_mut()
         {
             if *r == round {
                 append_capped_transcript_text(text, delta);
+                *ended_at = Some(now);
                 return;
             }
         }
         let seq = self.next_seq();
         let mut text = String::new();
         append_capped_transcript_text(&mut text, delta);
-        self.state
-            .transcript
-            .push(TranscriptItem::Thinking { round, seq, text });
+        log::trace!("[turn_state] thinking block opened round={round} seq={seq}");
+        self.state.transcript.push(TranscriptItem::Thinking {
+            round,
+            seq,
+            text,
+            started_at: Some(now),
+            ended_at: Some(now),
+        });
     }
 
     /// Record a tool call in the transcript at the point it occurred, as a
@@ -565,4 +603,13 @@ impl TurnStateMirror {
             }
         });
     }
+}
+
+/// Wall-clock epoch milliseconds for transcript timing (0 if the clock is
+/// before the epoch, which only a broken system clock produces).
+fn now_epoch_ms() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| u64::try_from(d.as_millis()).unwrap_or(u64::MAX))
+        .unwrap_or(0)
 }

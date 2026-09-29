@@ -1,68 +1,17 @@
 import createDebug from 'debug';
 
-import { Source, Sources, SourcesContent, SourcesTrigger } from '../../../components/ai-elements';
+import { Sources, SourcesContent, SourcesTrigger } from '../../../components/ai-elements';
 import Button from '../../../components/ui/Button';
 import { SheetContent, SheetRoot, SheetTitle } from '../../../components/ui/Sheet';
 import { useT } from '../../../lib/i18n/I18nContext';
 import type { ProcessingTranscriptItem, ToolTimelineEntry } from '../../../store/chatRuntimeSlice';
-import {
-  type AgentSource,
-  extractAgentSources,
-  formatTimelineEntry,
-} from '../../../utils/toolTimelineFormatting';
-import { AgentSparkIcon } from './AgentTimelineRail';
-import { AssistantUiSubagentCall } from './AssistantUiSubagentCall';
-import { ProcessingTranscriptView } from './ProcessingTranscriptView';
-import { ToolTimelineBlock } from './ToolTimelineBlock';
+import { extractAgentSources, formatTimelineEntry } from '../../../utils/toolTimelineFormatting';
+import { SubagentActivityCard } from '../aui/SubagentActivityCard';
+import { ToolTimelineAdapter } from '../aui/ToolTimelineAdapter';
+import { AgentSparkIcon } from '../aui/toolTimelineRowHelpers';
+import { AgentSourceRow } from './AgentSourceRow';
 
 const log = createDebug('app:conversations:agent-process-source');
-
-/** Compact globe glyph for a source row. Inherits `currentColor`. */
-function GlobeIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 12 12"
-      width="12"
-      height="12"
-      aria-hidden
-      className={className}
-      focusable="false">
-      <circle cx="6" cy="6" r="5" fill="none" stroke="currentColor" strokeWidth="1" />
-      <path
-        d="M1 6h10M6 1c1.8 1.4 1.8 8.6 0 10M6 1c-1.8 1.4-1.8 8.6 0 10"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1"
-      />
-    </svg>
-  );
-}
-
-/**
- * One web-source row: globe + hostname title (left) + full URL (right).
- *
- * The anchor itself is `ai-elements`' {@link Source}, which owns the
- * `target="_blank"` + `rel` hardening and the `data-slot="source"` contract;
- * the two-column body is this panel's own, passed as children so the shared
- * primitive does not have to grow a layout variant for it.
- */
-function AgentSourceRow({ source }: { source: AgentSource }) {
-  return (
-    <li>
-      <Source
-        href={source.url}
-        rel="noreferrer noopener"
-        className="flex items-center justify-between gap-3 rounded-md px-1.5 py-1 text-[11px] text-content-secondary hover:bg-surface-hover"
-        data-testid="agent-source-row">
-        <span className="flex min-w-0 items-center gap-1.5">
-          <GlobeIcon className="shrink-0 text-content-faint" />
-          <span className="truncate text-content-secondary">{source.title}</span>
-        </span>
-        <span className="shrink-0 truncate text-content-faint">{source.url}</span>
-      </Source>
-    </li>
-  );
-}
 
 function normalizeScopedBody(value: string | undefined | null): string | undefined {
   const trimmed = value?.trim();
@@ -74,14 +23,12 @@ function normalizeScopedBody(value: string | undefined | null): string | undefin
  * design — slid in from the right (~600px) when the user clicks
  * "View full agent process Source →" beneath a settled answer.
  *
- * Unlike {@link SubagentDrawer} (which drills into one sub-agent's live
- * transcript), this panel shows the *whole* run: the full agent-insights
- * timeline plus the distinct web sources the agents visited. It reuses
- * {@link ToolTimelineBlock} as a single source of truth.
- *
- * Note: this panel IS the full-processing view, so it does NOT forward an
- * `onViewSubagent` handler — the rows render without the redundant
- * "view full processing →" affordance.
+ * This panel shows the *whole* run: the full agent-insights timeline plus
+ * the distinct web sources the agents visited. It reuses
+ * {@link ToolTimelineAdapter} as a single source of truth; a sub-agent
+ * delegation's nested activity always renders inline through its own
+ * `TaskCard` disclosure (`SubagentActivityCard`) — there is no separate
+ * "view full processing" drawer to link out to.
  */
 export function AgentProcessSourcePanel({
   open,
@@ -113,7 +60,7 @@ export function AgentProcessSourcePanel({
   // For a scoped *non*-sub-agent step, the detail (args / output) to show.
   const scopedDetail = scopedEntry
     ? (normalizeScopedBody(scopedEntry.result) ??
-      normalizeScopedBody(formatTimelineEntry(scopedEntry).detail) ??
+      normalizeScopedBody(formatTimelineEntry(scopedEntry, t).detail) ??
       normalizeScopedBody(scopedEntry.argsBuffer))
     : undefined;
 
@@ -152,7 +99,7 @@ export function AgentProcessSourcePanel({
           <SheetTitle asChild>
             <span className="min-w-0 flex-1 truncate font-semibold text-content">
               {scopedEntry
-                ? formatTimelineEntry(scopedEntry).title
+                ? formatTimelineEntry(scopedEntry, t).title
                 : t('conversations.agentTaskInsights.processSourceTitle')}
             </span>
           </SheetTitle>
@@ -176,7 +123,7 @@ export function AgentProcessSourcePanel({
             {scopedEntry ? (
               // Scoped to one step: show only that step's details.
               scopedEntry.subagent ? (
-                <AssistantUiSubagentCall activity={scopedEntry.subagent} />
+                <SubagentActivityCard activity={scopedEntry.subagent} />
               ) : scopedDetail ? (
                 <pre className="max-h-[60vh] overflow-y-auto rounded-lg bg-surface-muted px-3 py-2 text-[12px] whitespace-pre-wrap wrap-break-word text-content-secondary">
                   {scopedDetail}
@@ -186,21 +133,12 @@ export function AgentProcessSourcePanel({
                   {t('conversations.agentTaskInsights.noSteps')}
                 </p>
               )
-            ) : transcript.length > 0 ? (
-              // Hermes-style interleaved narration + grouped, human-labeled steps.
-              // `renderSubagent` restores the nested child-run activity the
-              // legacy fallback below always had — without it a delegated
-              // sub-agent collapsed to a single line here, hiding every tool
-              // call it made.
-              <ProcessingTranscriptView
-                transcript={transcript}
-                entries={entries}
-                renderSubagent={subagent => <AssistantUiSubagentCall activity={subagent} />}
-              />
-            ) : entries.length > 0 ? (
-              // Legacy snapshot (no transcript): fall back to the tool timeline,
-              // which already nests each sub-agent's full activity inline.
-              <ToolTimelineBlock entries={entries} expandAllRows />
+            ) : entries.length > 0 || transcript.length > 0 ? (
+              // Whole-run view — `ToolTimelineAdapter` already switches between
+              // the interleaved narration/tool-group view (when `transcript` is
+              // present) and the plain tool-row list (legacy snapshot),
+              // nesting each sub-agent's full activity inline either way.
+              <ToolTimelineAdapter entries={entries} transcript={transcript} expandAllRows />
             ) : (
               <p className="text-xs text-content-faint italic">
                 {t('conversations.agentTaskInsights.noSteps')}
@@ -221,9 +159,9 @@ export function AgentProcessSourcePanel({
                 {subagentEntries.map(entry => (
                   <div key={entry.id} data-testid="agent-source-subagent">
                     <p className="text-[12px] font-medium text-content-secondary">
-                      {formatTimelineEntry(entry).title}
+                      {formatTimelineEntry(entry, t).title}
                     </p>
-                    <AssistantUiSubagentCall activity={entry.subagent!} />
+                    <SubagentActivityCard activity={entry.subagent!} />
                   </div>
                 ))}
               </div>

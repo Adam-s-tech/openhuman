@@ -64,7 +64,7 @@ pub enum TriggerMemoryAgent {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentDefinition {
     // ── identity ────────────────────────────────────────────────────────
-    /// Unique identifier for this archetype (e.g., `researcher`, `code_executor`).
+    /// Unique identifier for this archetype (e.g., `planner`, `code_executor`).
     pub id: String,
 
     /// Human-readable description explaining when this agent should be used.
@@ -111,7 +111,7 @@ pub struct AgentDefinition {
     /// mid-session do not retroactively update the in-flight prompt —
     /// they are picked up on the next session. This matches the
     /// byte-stability invariant documented on
-    /// [`crate::agent::context::prompt::render_subagent_system_prompt`].
+    /// [`crate::agent::prompts::render_subagent_system_prompt`].
     #[serde(default = "defaults::true_")]
     pub omit_memory_md: bool,
 
@@ -208,18 +208,16 @@ pub struct AgentDefinition {
     ///   agent's `delegate_name` override) and whose description is the
     ///   target agent's [`AgentDefinition::when_to_use`].
     ///
-    /// * [`SubagentEntry::Skills`] — a single collapsed
-    ///   [`SkillDelegationTool`] named `delegate_to_integrations_agent`
-    ///   that takes the toolkit slug as an argument and routes to the
-    ///   generic `integrations_agent` with the corresponding
-    ///   `skill_filter` pre-populated (#1335).
+    /// * [`SubagentEntry::Skills`] — no delegation tool. The connected
+    ///   Composio toolkits' actions join this agent's `Deferred` catalogue
+    ///   (reached through `tool_search`, called directly), and the entry
+    ///   admits no sub-agent id: see [`AgentDefinition::allowed_subagent_ids`].
     ///
     /// `subagents` is intentionally separate from [`AgentDefinition::tools`]
     /// so that reading a TOML makes the distinction obvious: `tools` is
     /// "what I execute directly", `subagents` is "what I can delegate to".
     ///
     /// [`ArchetypeDelegationTool`]: crate::agent::orchestration::tools::ArchetypeDelegationTool
-    /// [`SkillDelegationTool`]: crate::agent::orchestration::tools::SkillDelegationTool
     #[serde(default, deserialize_with = "deserialize_subagent_entries")]
     pub subagents: Vec<SubagentEntry>,
 
@@ -249,8 +247,8 @@ pub struct AgentDefinition {
     /// * `Worker` MUST NOT list open-ended subagents. Workers execute;
     ///   they do not orchestrate. Pre-turn memory retrieval is configured
     ///   separately via [`AgentDefinition::trigger_memory_agent`].
-    /// * `{ skills = "*" }` entries expand to the generic
-    ///   `integrations_agent` (a `Worker`) so they are always allowed.
+    /// * `{ skills = "*" }` entries admit no sub-agent, so they are always
+    ///   allowed.
     ///
     /// Combined with the harness's `MAX_SPAWN_DEPTH = 3` task-local
     /// gate, this means any execution chain bottoms out within three
@@ -275,6 +273,22 @@ pub struct AgentDefinition {
 }
 
 impl AgentDefinition {
+    /// The agent ids this definition may spawn, derived from
+    /// [`AgentDefinition::subagents`]. Only [`SubagentEntry::AgentId`]
+    /// entries admit a target; the `{ skills = "*" }` wildcard admits none —
+    /// a chat agent searches for and calls an integration action itself. The runner's spawn gate (`parent.allowed_subagent_ids`) reads
+    /// this, so a definition without a bare id for an agent cannot reach it
+    /// through `spawn_async_subagent` either.
+    pub fn allowed_subagent_ids(&self) -> Vec<String> {
+        self.subagents
+            .iter()
+            .filter_map(|entry| match entry {
+                SubagentEntry::AgentId(id) => Some(id.clone()),
+                SubagentEntry::Skills(_) => None,
+            })
+            .collect()
+    }
+
     /// Display name with fallback to id.
     pub fn display_name(&self) -> &str {
         self.display_name.as_deref().unwrap_or(&self.id)

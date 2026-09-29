@@ -1,29 +1,24 @@
 use super::*;
 
 #[test]
-fn classify_inference_error_empty_response_copy_names_billing_remedy_and_drops_local_provider_misdirect(
-) {
-    // Issue #3335: the prior copy ("Try a different model or check your
-    // local provider in Connections → API keys → LLM") sent Managed-route users
-    // toward a remedy that does not exist for them. The common underlying
-    // cause is credit exhaustion (issue #3386), so the revised copy must
-    // name the credits / billing path explicitly, must NOT claim a "local
-    // provider" exists, and must still offer the model-switch path for
-    // users on self-hosted providers.
+fn classify_inference_error_empty_response_does_not_claim_credit_exhaustion() {
+    // An empty successful completion provides no evidence about the user's
+    // balance. A real credit error has its own backend errorCode classification.
     let raw = "run_chat_task failed client_id=abc thread_id=t-1 request_id=r-1 \
                error=The model returned an empty response. Please try again.";
     let classified = classify_inference_error(raw);
     assert_eq!(classified.error_type, "empty_response");
-    // New: names the credits / billing remedy (was absent in the old copy,
-    // so Managed users had no way to self-diagnose credit exhaustion).
     assert!(
-        classified.message.contains("Settings → Billing"),
-        "must point at the billing surface for credit exhaustion: {}",
+        classified.message.contains("Please retry"),
+        "must keep the retry guidance: {}",
         classified.message
     );
-    // New: drops the misleading "local provider" framing — the previous
-    // copy made a false claim for Managed users where no local provider
-    // exists.
+    assert!(
+        !classified.message.to_ascii_lowercase().contains("credit")
+            && !classified.message.to_ascii_lowercase().contains("billing"),
+        "must not infer credit exhaustion from an empty completion: {}",
+        classified.message
+    );
     assert!(
         !classified.message.contains("local provider"),
         "must not claim a local provider exists: {}",
@@ -168,22 +163,18 @@ fn classify_inference_error_generic_4xx_surfaces_provider_detail() {
 }
 
 #[test]
-fn classify_inference_error_deepseek_reasoning_400_stays_config_rejection() {
-    // ORDERING LOCK: the DeepSeek / Moonshot thinking-mode reasoning_content
-    // round-trip 400 is ALREADY claimed by the provider-config-rejection arm
-    // (the "thinking mode must be passed back" phrase, Sentry TAURI-RUST-2G /
-    // -2F), which is ordered BEFORE the generic 4xx arm. So it must keep its
-    // specific, actionable `model_unavailable` + Settings → LLM verdict and
-    // NOT be downgraded to the generic provider_request_rejected copy. The
-    // deeper round-trip fix (so the turn actually succeeds) is tracked in
-    // #3197; this only asserts the user-facing classification stays specific.
+fn classify_inference_error_deepseek_reasoning_400_stays_reportable_request_rejection() {
+    // The shared provider classifier deliberately keeps thinking-history
+    // contract failures reportable. Preserve that distinction here instead
+    // of treating the request-shape failure as provider configuration.
     let raw = r#"cloud API error (400 Bad Request): {"error":{"message":"The reasoning_content in the thinking mode must be passed back","type":"invalid_request_error"}}"#;
     let classified = classify_inference_error(raw);
     assert_eq!(
-        classified.error_type, "model_unavailable",
-        "DeepSeek reasoning_content 400 must stay config-rejection, not generic 4xx"
+        classified.error_type, "provider_request_rejected",
+        "DeepSeek reasoning_content 400 must stay reportable"
     );
-    assert_ne!(classified.error_type, "inference");
+    assert_eq!(classified.source, "provider");
+    assert!(!classified.retryable);
 }
 
 #[test]
@@ -450,12 +441,13 @@ fn web_channel_catalog_has_chat_and_cancel() {
     let s = all_web_channel_controller_schemas();
     let c = all_web_channel_registered_controllers();
     assert_eq!(s.len(), c.len());
-    assert_eq!(s.len(), 4);
+    assert_eq!(s.len(), 5);
     let fns: Vec<&str> = s.iter().map(|x| x.function).collect();
     assert!(fns.contains(&"web_chat"));
     assert!(fns.contains(&"web_cancel"));
     assert!(fns.contains(&"web_queue_status"));
     assert!(fns.contains(&"web_queue_clear"));
+    assert!(fns.contains(&"web_queue_remove"));
 }
 
 #[test]
@@ -479,10 +471,6 @@ fn chat_schema_requires_client_thread_message() {
         .inputs
         .iter()
         .any(|f| f.name == "temperature" && !f.required));
-    assert!(s
-        .inputs
-        .iter()
-        .any(|f| f.name == "profile_id" && !f.required));
 }
 
 #[test]
@@ -612,26 +600,34 @@ fn fingerprint_model_registry_change_is_cache_miss() {
 }
 
 #[test]
-fn fingerprint_profile_change_is_cache_miss() {
-    // Switching the active agent profile on the same thread keeps the same
-    // model/agent/provider, so without the profile signature the previous
-    // profile's tool/skill/MCP/connector visibility would leak into the new
-    // profile's turns. A different profile signature must force a rebuild.
-    let base = fp(None, None, "orchestrator", "anthropic:claude-sonnet-4-6");
-    let mut changed = fp(None, None, "orchestrator", "anthropic:claude-sonnet-4-6");
-    changed.profile_signature = "profile-after-switch".to_string();
-    assert_ne!(
-        base, changed,
-        "a different profile signature must produce a cache miss → rebuild"
-    );
-}
-
-#[test]
 fn fingerprint_identical_inputs_are_cache_hit() {
     let a = fp(None, None, "orchestrator", "anthropic:claude-sonnet-4-6");
     let b = fp(None, None, "orchestrator", "anthropic:claude-sonnet-4-6");
     assert_eq!(
         a, b,
         "identical fingerprints must compare equal (cache hit)"
+    );
+}
+
+#[test]
+fn classify_inference_error_in_stream_tool_history_rejection_uses_malformed_history_copy() {
+    // #6724: a provider failure delivered inside an HTTP 200 stream reaches
+    // classification as the session driver wraps the re-surfaced
+    // `ProviderError`, whose status comes from the stream's numeric `code`
+    // (tinyinference#37). It must land on the purpose-built canned copy, and
+    // the raw provider text must not be shown.
+    let raw = "driver failed: OpenHuman returned HTTP 400: Message at index 2 has role 'tool' \
+               but is not preceded by an assistant message with a matching tool_call";
+    let classified = classify_inference_error(raw);
+    assert_eq!(classified.error_type, "provider_request_rejected");
+    assert!(
+        classified.message.contains("we've cleared it"),
+        "{}",
+        classified.message
+    );
+    assert!(
+        !classified.message.contains("index 2"),
+        "{}",
+        classified.message
     );
 }

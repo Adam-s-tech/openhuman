@@ -44,7 +44,6 @@ vi.mock('./pages/Invites', () => ({ default: () => <div /> }));
 vi.mock('./pages/Notifications', () => ({ default: () => <div /> }));
 vi.mock('./pages/onboarding/Onboarding', () => ({ default: () => <div /> }));
 vi.mock('./pages/PttOverlayPage', () => ({ PttOverlayPage: () => <div /> }));
-vi.mock('./pages/Rewards', () => ({ default: () => <div /> }));
 vi.mock('./pages/Settings', () => ({ default: () => <div /> }));
 vi.mock('./pages/Skills', () => ({ default: () => <div /> }));
 vi.mock('./pages/Welcome', () => ({ default: () => <div /> }));
@@ -86,8 +85,8 @@ function landingFor(entry: string) {
 // below fails — the list cannot silently fall behind the code.
 const REDIRECTS: Array<{ from: string; pathname: string; search: string }> = [
   { from: '/home', pathname: '/chat', search: '' },
-  { from: '/activity', pathname: '/settings/notifications', search: '' },
-  { from: '/intelligence', pathname: '/settings/notifications', search: '' },
+  { from: '/activity', pathname: '/settings/account', search: '' },
+  { from: '/intelligence', pathname: '/settings/account', search: '' },
   { from: '/skills', pathname: '/connections', search: '' },
   { from: '/accounts', pathname: '/chat', search: '' },
   { from: '/channels', pathname: '/connections', search: '?tab=messaging' },

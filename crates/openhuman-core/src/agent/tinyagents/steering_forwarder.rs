@@ -28,14 +28,15 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
+use tinyagents_harness::ids::TaskId;
+use tinyagents_harness::run_queue::{QueueLane, RunQueue};
 use tinyagents_harness::steering::{SteeringCommand, SteeringHandle};
 use tinyinference_llm::message::Message as TaMessage;
 
-use crate::agent::harness::run_queue::{QueueMode, QueuedMessage, RunQueue};
 use crate::core::bus::BUS;
 use crate::core::events::DomainEvent;
 
-use super::orchestration::{self, TaskId};
+use super::host::steering::shared_steering_registry;
 
 /// Framing prepended to a queued **steer** message when it is injected as a user
 /// turn. Kept as a shared const so the residual-requeue path can strip it and
@@ -72,12 +73,25 @@ fn now_ms() -> u64 {
 /// bridge behind the `steer_subagent` / mid-flight-steering feature. Emits a
 /// [`DomainEvent::RunQueueMessageDelivered`] when at least one message is
 /// delivered so the delivery is visible in the event stream (issue #4456).
-pub(super) async fn forward_steers(queue: &RunQueue, handle: &SteeringHandle, thread_label: &str) {
-    let drained = queue.drain_steers().await;
+pub(super) async fn forward_steers(
+    queue: &RunQueue<crate::agent::queued_turn::QueuedTurn>,
+    handle: &SteeringHandle,
+    thread_label: &str,
+) {
+    let drained = queue.drain(QueueLane::Steer).await;
     if drained.is_empty() {
         return;
     }
     let delivered = drained.len();
+    let (item_id, text_preview) = drained
+        .first()
+        .map(|msg| {
+            (
+                Some(msg.id.clone()),
+                Some(crate::agent::queued_turn::text_preview(&msg.text)),
+            )
+        })
+        .unwrap_or((None, None));
     for msg in drained {
         handle.send(SteeringCommand::InjectMessage(TaMessage::user(format!(
             "{STEER_PREFIX}{}",
@@ -93,24 +107,35 @@ pub(super) async fn forward_steers(queue: &RunQueue, handle: &SteeringHandle, th
         thread_id: thread_label.to_string(),
         mode: "steer".to_string(),
         delivered,
+        item_id,
+        text_preview,
     });
 }
 
 /// Forward any queued **collect** messages (orchestrator/monitor lines enqueued
-/// via `QueueMode::Collect`) into the run as injected user turns so they reach
+/// via the collect queue lane into the run as injected user turns so they reach
 /// the next LLM call as additional context. Mirrors the legacy
 /// `[Additional context from user]:` framing the model was taught to read. Emits
 /// a [`DomainEvent::RunQueueMessageDelivered`] on delivery (issue #4456).
 pub(super) async fn forward_collects(
-    queue: &RunQueue,
+    queue: &RunQueue<crate::agent::queued_turn::QueuedTurn>,
     handle: &SteeringHandle,
     thread_label: &str,
 ) {
-    let drained = queue.drain_collects().await;
+    let drained = queue.drain(QueueLane::Collect).await;
     if drained.is_empty() {
         return;
     }
     let delivered = drained.len();
+    let (item_id, text_preview) = drained
+        .first()
+        .map(|msg| {
+            (
+                Some(msg.id.clone()),
+                Some(crate::agent::queued_turn::text_preview(&msg.text)),
+            )
+        })
+        .unwrap_or((None, None));
     for msg in drained {
         handle.send(SteeringCommand::InjectMessage(TaMessage::user(format!(
             "{COLLECT_PREFIX}{}",
@@ -126,6 +151,8 @@ pub(super) async fn forward_collects(
         thread_id: thread_label.to_string(),
         mode: "collect".to_string(),
         delivered,
+        item_id,
+        text_preview,
     });
 }
 
@@ -143,7 +170,7 @@ pub(super) struct SteeringForwarderGuard {
     handle: SteeringHandle,
     /// The session-owned run queue, used to requeue residual steers on drop.
     /// `None` after the requeue so a double-drop is a no-op.
-    run_queue: Option<Arc<RunQueue>>,
+    run_queue: Option<Arc<RunQueue<crate::agent::queued_turn::QueuedTurn>>>,
     /// The steering-registry key to deregister on drop (sub-agent runs only).
     registry_task_id: Option<TaskId>,
     /// Best-effort thread label for observability + requeued-message metadata.
@@ -162,7 +189,7 @@ impl SteeringForwarderGuard {
     /// steering registry) and `None` for the interactive parent turn.
     pub(super) fn new(
         handle: SteeringHandle,
-        run_queue: Option<Arc<RunQueue>>,
+        run_queue: Option<Arc<RunQueue<crate::agent::queued_turn::QueuedTurn>>>,
         registry_task_id: Option<TaskId>,
         thread_label: String,
     ) -> Self {
@@ -210,7 +237,7 @@ impl Drop for SteeringForwarderGuard {
         // 2. Deregister the sub-agent steering handle so an aborted run does not
         //    leak a registry entry keyed by a dead handle.
         if let Some(task_id) = self.registry_task_id.take() {
-            orchestration::shared_steering_registry().deregister(&task_id);
+            shared_steering_registry().deregister(&task_id);
             tracing::debug!(
                 task_id = task_id.as_str(),
                 "[tinyagents] deregistered subagent steering handle (guard drop)"
@@ -224,7 +251,11 @@ impl Drop for SteeringForwarderGuard {
         //    Control-flow-only commands (Pause/Resume/Cancel/…) are meaningless
         //    once the run is gone and are intentionally dropped.
         let residual = self.handle.drain();
-        let requeue_texts: Vec<(String, QueueMode)> = residual
+        // Each residual steer gets its requeued id minted here (Drop is
+        // synchronous) so the `RunQueueSteerRequeued` event below and the
+        // `QueuedTurn` actually pushed onto the queue in the spawned task
+        // agree on the same id.
+        let requeue_items: Vec<(String, QueueLane, String)> = residual
             .into_iter()
             .filter_map(|cmd| match cmd {
                 SteeringCommand::InjectMessage(msg) => {
@@ -234,13 +265,14 @@ impl Drop for SteeringForwarderGuard {
                     // (framed `[Additional context from user]:`) rather than being
                     // re-labeled as user Steer. Default to Steer when neither
                     // prefix is present (a raw steer that was never framed).
-                    if let Some(rest) = text.strip_prefix(STEER_PREFIX) {
-                        Some((rest.to_string(), QueueMode::Steer))
+                    let (text, lane) = if let Some(rest) = text.strip_prefix(STEER_PREFIX) {
+                        (rest.to_string(), QueueLane::Steer)
                     } else if let Some(rest) = text.strip_prefix(COLLECT_PREFIX) {
-                        Some((rest.to_string(), QueueMode::Collect))
+                        (rest.to_string(), QueueLane::Collect)
                     } else {
-                        Some((text.to_string(), QueueMode::Steer))
-                    }
+                        (text.to_string(), QueueLane::Steer)
+                    };
+                    Some((text, lane, uuid::Uuid::new_v4().to_string()))
                 }
                 _ => None,
             })
@@ -249,11 +281,20 @@ impl Drop for SteeringForwarderGuard {
         let Some(queue) = self.run_queue.take() else {
             return;
         };
-        if requeue_texts.is_empty() {
+        if requeue_items.is_empty() {
             return;
         }
-        let requeued = requeue_texts.len();
+        let requeued = requeue_items.len();
         let thread_label = self.thread_label.clone();
+        let (item_id, text_preview) = requeue_items
+            .first()
+            .map(|(text, _lane, id)| {
+                (
+                    Some(id.clone()),
+                    Some(crate::agent::queued_turn::text_preview(text)),
+                )
+            })
+            .unwrap_or((None, None));
 
         // `RunQueue::push` is async (tokio `Mutex`); `Drop` is synchronous. Push
         // the recovered steers back on a detached task so they land in the
@@ -264,19 +305,21 @@ impl Drop for SteeringForwarderGuard {
             Ok(rt) => {
                 let label = thread_label.clone();
                 rt.spawn(async move {
-                    for (text, mode) in requeue_texts {
+                    for (text, lane, id) in requeue_items {
                         queue
-                            .push(QueuedMessage {
-                                text,
-                                mode,
-                                client_id: String::new(),
-                                thread_id: label.clone(),
-                                queued_at_ms: now_ms(),
-                                model_override: None,
-                                temperature: None,
-                                profile_id: None,
-                                locale: None,
-                            })
+                            .push(
+                                lane,
+                                crate::agent::queued_turn::QueuedTurn {
+                                    id,
+                                    text,
+                                    client_id: String::new(),
+                                    thread_id: label.clone(),
+                                    queued_at_ms: now_ms(),
+                                    model_override: None,
+                                    temperature: None,
+                                    locale: None,
+                                },
+                            )
                             .await;
                     }
                 });
@@ -302,6 +345,12 @@ impl Drop for SteeringForwarderGuard {
         BUS.publish(DomainEvent::RunQueueSteerRequeued {
             thread_id: thread_label,
             requeued,
+            item_id,
+            text_preview,
         });
     }
 }
+
+#[cfg(test)]
+#[path = "steering_forwarder_tests.rs"]
+mod tests;

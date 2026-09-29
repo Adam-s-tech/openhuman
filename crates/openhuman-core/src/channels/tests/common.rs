@@ -1,6 +1,5 @@
 use crate::channels::{traits, Channel, SendMessage};
 use crate::memory::{Memory, MemoryCategory, MemoryEntry};
-use crate::tools::{Tool, ToolResult};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -8,6 +7,7 @@ use tempfile::TempDir;
 use tinyinference_llm::message::{AssistantMessage, Message};
 use tinyinference_llm::model::{ChatModel, ModelProfile, ModelRequest, ModelResponse};
 use tinyinference_llm::tool::ToolCall;
+use tinytools::{Tool, ToolResult};
 
 fn message_role(message: &Message) -> &'static str {
     match message {
@@ -15,6 +15,7 @@ fn message_role(message: &Message) -> &'static str {
         Message::User(_) => "user",
         Message::Assistant(_) => "assistant",
         Message::Tool(_) => "tool",
+        Message::Custom(_) => "custom",
     }
 }
 
@@ -39,6 +40,7 @@ fn tool_call_response(step: Option<usize>) -> ModelResponse {
             content: Vec::new(),
             tool_calls: vec![ToolCall::new("mock-price-call", "mock_price", arguments)],
             usage: None,
+            origin: None,
         },
         usage: None,
         finish_reason: Some("tool_calls".to_string()),
@@ -46,6 +48,8 @@ fn tool_call_response(step: Option<usize>) -> ModelResponse {
         resolved_model: None,
         continue_turn: None,
         served_from_cache: false,
+        correlation: None,
+        resolved_route: None,
     }
 }
 

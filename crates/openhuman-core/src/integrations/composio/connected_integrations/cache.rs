@@ -5,37 +5,16 @@
 //! helpers ([`connected_set_hash`], [`sync_cache_with_connections`]) that
 //! keep it in sync with a fresh backend `list_connections` response.
 
-use crate::agent::context::prompt::ConnectedIntegration;
+use crate::agent::prompts::ConnectedIntegration;
 use crate::config::Config;
+use sha2::{Digest, Sha256};
 
 use std::collections::{HashMap, HashSet};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{LazyLock, RwLock};
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 // ── Prompt integration discovery ────────────────────────────────────
-
-/// Defensive TTL on the integrations cache.
-///
-/// Background: the primary invalidation path is the
-/// `ComposioConnectionCreated` → `wait_for_connection_active` bus flow
-/// (see [`crate::integrations::composio::bus::ComposioConnectionCreatedSubscriber`]), which
-/// polls the backend for up to 60 s after `composio_authorize` returns
-/// a `connectUrl`. On Windows the OAuth round-trip can exceed that
-/// window (Defender SmartScreen, slower browser launch, extra consent
-/// dialogs), so the invalidation call never fires and the chat
-/// runtime's cache stays frozen on the pre-connect snapshot even
-/// though the Settings UI polls `composio_list_connections` every 5 s
-/// and shows the user as "Connected".
-///
-/// The cross-platform defenses we layer on top:
-///   1. [`composio_list_connections`] diff-invalidates the cache whenever
-///      the backend's active-toolkit set diverges from what's cached,
-///      so a running UI keeps the chat cache in sync within one poll
-///      interval.
-///   2. This TTL caps worst-case staleness at 60 s regardless of
-///      whether the UI is open, the bus fires, or the user reconnected
-///      out-of-band.
-pub(crate) const CACHE_TTL: Duration = Duration::from_secs(60);
 
 /// Cached entry: the integrations list plus the timestamp we wrote it.
 #[derive(Clone)]
@@ -47,9 +26,13 @@ pub(crate) struct CachedIntegrations {
 /// Process-wide cache for connected integrations, keyed by the config
 /// identity (the `config_path` string) so different user contexts don't
 /// collide. Each entry is populated on first fetch and returned on
-/// subsequent calls until explicitly invalidated or the TTL expires.
+/// subsequent calls until explicitly invalidated or the process exits.
 pub(crate) static INTEGRATIONS_CACHE: LazyLock<RwLock<HashMap<String, CachedIntegrations>>> =
     LazyLock::new(|| RwLock::new(HashMap::new()));
+
+/// Prevent an in-flight startup warm from restoring a snapshot that was
+/// invalidated while its backend requests were running.
+pub(crate) static CACHE_GENERATION: AtomicU64 = AtomicU64::new(0);
 
 /// Crate-wide test serialization lock for all tests that mutate or read
 /// the process-global `INTEGRATIONS_CACHE`. Defined here so it is shared
@@ -64,11 +47,39 @@ pub(crate) fn composio_cache_test_lock() -> std::sync::MutexGuard<'static, ()> {
         .unwrap_or_else(|e| e.into_inner())
 }
 
-/// Derive a stable cache key from a [`Config`]. We use the stringified
-/// `config_path` because it uniquely identifies a user context (it
-/// resolves to the per-user openhuman dir).
+/// Bind a cached integration list to the effective backend credential and
+/// endpoint as well as the local config. The digest keeps secrets out of the
+/// cache key and logs while preventing an old identity's cache hit during a
+/// credential rotation, even before invalidation completes.
 pub(crate) fn cache_key(config: &Config) -> String {
-    config.config_path.display().to_string()
+    // Match `IntegrationClient::new_inner`: the cache must follow the same
+    // control-plane origin after the transport applies its configured/default
+    // backend resolution and inference-path normalization.
+    let backend_url = crate::backend::base_url(&config.api_url)
+        .map(|url| crate::util::url::normalize_backend_api_base_url(&url))
+        .unwrap_or_default();
+    cache_key_with_backend_url(config, &backend_url)
+}
+
+fn cache_key_with_backend_url(config: &Config, backend_url: &str) -> String {
+    let mut digest = Sha256::new();
+    digest.update(b"openhuman-integrations-cache-v2\0");
+    digest.update(config.config_path.to_string_lossy().as_bytes());
+    digest.update(b"\0");
+    digest.update(backend_url.as_bytes());
+    digest.update(b"\0");
+    match crate::security::credentials::session_support::resolve_backend_credential(config) {
+        Ok(credential) => {
+            digest.update(if credential.is_api_key() {
+                b"api-key\0"
+            } else {
+                b"session\0"
+            });
+            digest.update(credential.secret().as_bytes());
+        }
+        Err(_) => digest.update(b"unavailable"),
+    }
+    hex::encode(digest.finalize())
 }
 
 /// Clear cached connected integrations so the next call to
@@ -83,6 +94,7 @@ pub fn invalidate_connected_integrations_cache() {
     if let Ok(mut guard) = INTEGRATIONS_CACHE.write() {
         let entries = guard.len();
         guard.clear();
+        CACHE_GENERATION.fetch_add(1, Ordering::SeqCst);
         tracing::info!(
             cached_keys = entries,
             "[composio][integrations] cache invalidated"
@@ -91,53 +103,33 @@ pub fn invalidate_connected_integrations_cache() {
 }
 
 /// Read-only snapshot of the currently cached connected integrations for
-/// the given config, or [`None`] when the cache is empty, expired, or
+/// the given config, or [`None`] when the cache is empty or
 /// the lock is held by a writer.
 ///
 /// Designed for hot-path callers that want a cheap "what does the cache
-/// already say?" probe without triggering a backend fetch. The agent
-/// harness uses this on every turn to detect mid-session connection
-/// changes — it relies on the desktop UI's 5 s `composio_list_connections`
-/// poll (which calls into [`fetch_connected_integrations`] and
-/// repopulates this cache) plus the event-driven invalidation path to
-/// keep the cache current.
+/// already say?" probe without triggering a backend fetch. Connection
+/// changes invalidate the snapshot and trigger a background refresh.
 ///
 /// `try_read` (not `read`) so a writer in progress — e.g. the UI poll
 /// repopulating the cache — never blocks a turn. Worst case the agent
 /// sees `None` for one turn while the writer holds the lock; the next
 /// turn picks up the value naturally.
 ///
-/// TTL is enforced defensively: entries older than [`CACHE_TTL`] are
-/// treated as missing even though they're still in the map (a stale
-/// entry would otherwise pin the agent to a frozen view if every
-/// invalidation path silently failed).
+/// Freshness is driven by connection events and the Settings connection-list
+/// reconciliation, never by an idle-time expiry on the chat critical path.
 pub fn cached_active_integrations(config: &Config) -> Option<Vec<ConnectedIntegration>> {
-    read_cached_integrations(config, false)
+    read_cached_integrations(config)
 }
 
-/// Like [`cached_active_integrations`] but returns the last cached snapshot
-/// even when it has aged past [`CACHE_TTL`].
-///
-/// Intended ONLY as a transient-failure fallback: when a live fetch reports
-/// `Unavailable`/times out, preserving the last-known integrations is strictly
-/// better than collapsing the delegation surface to an empty set (which drops
-/// `delegate_to_integrations_agent` and silently disables channel tool-calling).
-/// Without this, a backend blip that lands just after the 60 s TTL expiry still
-/// wipes tool-calling despite having a perfectly good previous snapshot. A fresh
-/// fetch repopulates the cache the moment the backend recovers, so the stale
-/// window is bounded by the outage, not by this call.
+/// Compatibility alias for callers preserving the last-known snapshot when a
+/// connection-change refresh fails. Entries have no time-based expiry.
 pub fn cached_active_integrations_including_expired(
     config: &Config,
 ) -> Option<Vec<ConnectedIntegration>> {
-    read_cached_integrations(config, true)
+    read_cached_integrations(config)
 }
 
-/// Shared reader for the integrations cache. `allow_expired` bypasses the
-/// [`CACHE_TTL`] freshness check for the transient-failure fallback path.
-fn read_cached_integrations(
-    config: &Config,
-    allow_expired: bool,
-) -> Option<Vec<ConnectedIntegration>> {
+fn read_cached_integrations(config: &Config) -> Option<Vec<ConnectedIntegration>> {
     let key = cache_key(config);
     let guard = match INTEGRATIONS_CACHE.try_read() {
         Ok(g) => g,
@@ -157,34 +149,18 @@ fn read_cached_integrations(
         return None;
     };
     let age = cached.cached_at.elapsed();
-    if !allow_expired && age > CACHE_TTL {
-        tracing::trace!(
-            key = %key,
-            age_ms = age.as_millis() as u64,
-            ttl_ms = CACHE_TTL.as_millis() as u64,
-            "[composio][integrations_cache] cached_active_integrations:expired"
-        );
-        return None;
-    }
-    // Surface a *very* stale fallback so an unusually long backend outage is
-    // observable rather than silently pinning the agent to an ancient snapshot.
-    if allow_expired && age > 5 * CACHE_TTL {
-        tracing::warn!(
-            key = %key,
-            age_ms = age.as_millis() as u64,
-            ttl_ms = CACHE_TTL.as_millis() as u64,
-            "[composio][integrations_cache] serving a heavily-stale integrations snapshot on transient-failure fallback (backend outage?)"
-        );
-    }
     tracing::trace!(
         key = %key,
         entries = cached.entries.len(),
         age_ms = age.as_millis() as u64,
-        allow_expired,
         "[composio][integrations_cache] cached_active_integrations:hit"
     );
     Some(cached.entries.clone())
 }
+
+#[cfg(test)]
+#[path = "cache_tests.rs"]
+mod tests;
 
 /// Stable hash of the *routing-relevant* slice of a connected-integrations
 /// snapshot.
@@ -253,10 +229,11 @@ fn connected_toolkit_set(integrations: &[ConnectedIntegration]) -> HashSet<Strin
 /// `fetch_connected_integrations` call. This keeps tool availability
 /// in chat in sync with the badge the user sees in Settings, even when
 /// the primary event-bus invalidation path misses (e.g. Windows OAuth
-/// flows that overrun the 60 s readiness poll).
+/// flows that overrun the 60 s readiness poll). Returns whether an entry was
+/// invalidated so the caller can eagerly re-warm it away from a chat turn.
 pub(crate) fn sync_cache_with_connections(
     connections: &[crate::integrations::composio::types::ComposioConnection],
-) {
+) -> bool {
     let live_active: HashSet<String> = connections
         .iter()
         .filter(|c| c.is_active())
@@ -285,7 +262,7 @@ pub(crate) fn sync_cache_with_connections(
     // lock before taking the write lock.
     let divergent_keys: Vec<(String, HashSet<String>, HashSet<String>)> = {
         let Ok(guard) = INTEGRATIONS_CACHE.read() else {
-            return;
+            return false;
         };
         guard
             .iter()
@@ -321,10 +298,11 @@ pub(crate) fn sync_cache_with_connections(
             live_connected = live_active.len(),
             "[composio][integrations] list_connections matches cache — no invalidation needed"
         );
-        return;
+        return false;
     }
 
     if let Ok(mut guard) = INTEGRATIONS_CACHE.write() {
+        CACHE_GENERATION.fetch_add(1, Ordering::SeqCst);
         for (key, cached_set, live_set) in divergent_keys {
             // Diff logging — makes Windows-timing regressions easy to
             // catch in user-supplied debug dumps without leaking any
@@ -339,5 +317,7 @@ pub(crate) fn sync_cache_with_connections(
             );
             guard.remove(&key);
         }
+        return true;
     }
+    false
 }

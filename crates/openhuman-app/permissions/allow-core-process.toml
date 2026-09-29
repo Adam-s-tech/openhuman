@@ -51,6 +51,9 @@ allow = [
     # Tauri capabilities and webviews keep the prior user's third-party
     # cookies.
     "restart_app",
+    # The Windows custom X and BootCheckGate's Quit action exit the host and
+    # embedded core through this command. Registration alone is insufficient.
+    "app_quit",
     # `get_active_user_id` reads `~/.openhuman/active_user.toml` so the
     # frontend can prime `userScopedStorage` from the Rust source of truth
     # BEFORE redux-persist hydrates — the prior `localStorage`-only seed
@@ -58,6 +61,19 @@ allow = [
     # restart-driven flips, causing a false re-flip and restart loop on
     # every login. (#900)
     "get_active_user_id",
+
+    # =========================
+    # SESSION OWNER
+    # =========================
+    # The renderer delegates login-token exchange, session validation, logout,
+    # and the current-user cache to the Tauri shell. Registering these commands
+    # in `generate_handler!` is not enough: Tauri v2 rejects every invoke until
+    # the active window capability also allows it.
+    "auth_login_with_token",
+    "auth_store_session",
+    "auth_logout",
+    "auth_state",
+    "auth_current_user",
 
     # =========================
     # SERVICE MANAGEMENT

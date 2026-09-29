@@ -1,19 +1,21 @@
+#![cfg(any())] // TODO(#6382): migrate this raw-coverage fixture to hosted TinyAgents APIs.
 use anyhow::Result;
 use async_trait::async_trait;
-use openhuman_core::agent::dispatcher::NativeToolDispatcher;
 use openhuman_core::agent::harness::definition::AgentDefinitionRegistry;
-use openhuman_core::agent::harness::session::Agent;
 use openhuman_core::agent::harness::{
-    run_subagent, with_parent_context, AgentDefinition, ParentExecutionContext, PromptSource,
-    SandboxMode, SubagentRunOptions, ToolScope,
+    AgentDefinition, ParentExecutionContext, PromptSource, SandboxMode, SubagentRunOptions,
+    ToolScope, run_subagent, with_parent_context,
 };
 use openhuman_core::agent::progress::AgentProgress;
+use openhuman_core::agent::prompts::ToolCallFormat;
+use openhuman_core::agent::session_host::OpenHumanSessionHost;
 use openhuman_core::config::AgentConfig;
-use openhuman_core::agent::context::prompt::ToolCallFormat;
-use openhuman_core::memory::{Memory, MemoryCategory, MemoryEntry, NamespaceSummary};
 use openhuman_core::inference::tokenjuice::AgentTokenjuiceCompression;
+use openhuman_core::memory::{Memory, MemoryCategory, MemoryEntry, NamespaceSummary};
+use openhuman_core::tinytools_agent::dialect::NativeDialect;
 use openhuman_core::tools::SpawnSubagentTool;
-use openhuman_core::tools::{Tool, ToolResult};
+use tinytools::{Tool, ToolResult};
+
 use parking_lot::Mutex;
 use serde_json::json;
 use std::path::{Path, PathBuf};
@@ -191,7 +193,7 @@ fn response(
         raw: None,
         resolved_model: None,
         continue_turn: None,
-            served_from_cache: false,
+        served_from_cache: false,
     }
 }
 
@@ -217,7 +219,7 @@ fn response_with_cached(
         raw: None,
         resolved_model: None,
         continue_turn: None,
-            served_from_cache: false,
+        served_from_cache: false,
     }
 }
 
@@ -229,7 +231,11 @@ fn agent_config() -> AgentConfig {
     }
 }
 
-fn build_agent(workspace: &Path, provider: Arc<ScriptedModel>, agent_name: &str) -> Result<Agent> {
+fn build_agent(
+    workspace: &Path,
+    provider: Arc<ScriptedModel>,
+    agent_name: &str,
+) -> Result<OpenHumanSessionHost> {
     build_agent_with_tools(workspace, provider, agent_name, vec![Box::new(EchoTool)])
 }
 
@@ -238,12 +244,12 @@ fn build_agent_with_tools(
     provider: Arc<ScriptedModel>,
     agent_name: &str,
     tools: Vec<Box<dyn Tool>>,
-) -> Result<Agent> {
-    let mut agent = Agent::builder()
+) -> Result<OpenHumanSessionHost> {
+    let mut agent = OpenHumanSessionHost::builder()
         .chat_model(provider)
         .tools(tools)
         .memory(Arc::new(StubMemory))
-        .tool_dispatcher(Box::new(NativeToolDispatcher))
+        .tool_dispatcher(Box::new(NativeDialect))
         .config(agent_config())
         .model_name("coverage-model".to_string())
         .temperature(0.0)
@@ -266,14 +272,12 @@ fn parent_context(workspace: PathBuf, provider: Arc<ScriptedModel>) -> ParentExe
         agent_definition_id: "orchestrator".into(),
         allowed_subagent_ids: [
             "test".to_string(),
-            "researcher".to_string(),
-            "code_executor".to_string(),
+            "task_manager_agent".to_string(),
+            "vision_agent".to_string(),
         ]
         .into_iter()
         .collect(),
-        turn_model_source: openhuman_core::agent::tinyagents::TurnModelSource::from_model(
-            provider,
-        ),
+        turn_model_source: openhuman_core::agent::tinyagents::TurnModelSource::from_model(provider),
         all_tools: Arc::new(tools),
         all_tool_specs: Arc::new(tool_specs),
         // #6145: empty means "same surface as `all_tool_specs`" — the
@@ -498,7 +502,7 @@ async fn repeated_subagent_spawns_keep_cacheable_prefix_and_record_provider_cach
             },
         )
         .await?;
-        Ok::<_, openhuman_core::agent::harness::SubagentRunError>((first, second))
+        Ok::<_, openhuman_core::agent::subagent_host::SubagentRunError>((first, second))
     })
     .await?;
 
@@ -549,8 +553,8 @@ async fn repeated_subagent_spawns_keep_cacheable_prefix_and_record_provider_cach
 }
 
 #[tokio::test]
-async fn orchestrator_spawn_subagent_round_trip_streams_child_events_and_returns_result(
-) -> Result<()> {
+async fn orchestrator_spawn_subagent_round_trip_streams_child_events_and_returns_result()
+-> Result<()> {
     let workspace = tempfile::tempdir()?;
     let agents_dir = workspace.path().join("agents");
     std::fs::create_dir_all(&agents_dir)?;

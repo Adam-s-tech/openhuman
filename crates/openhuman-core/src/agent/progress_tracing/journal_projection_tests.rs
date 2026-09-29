@@ -28,6 +28,7 @@ fn tool_completed(call: &str, name: &str, error: Option<&str>) -> AgentEvent {
         duration_ms: Some(30),
         output_bytes: Some(12),
         error: error.map(str::to_string),
+        metadata: None,
     }
 }
 
@@ -55,6 +56,7 @@ fn single_turn(tool_error: Option<&str>) -> Vec<AgentObservation> {
             AgentEvent::ToolStarted {
                 call_id: CallId::new("t1"),
                 tool_name: "lookup".to_string(),
+                input: None,
             },
         ),
         obs(3, 1_050, tool_completed("t1", "lookup", tool_error)),
@@ -111,6 +113,7 @@ fn subagent_turn() -> Vec<AgentObservation> {
             AgentEvent::ToolStarted {
                 call_id: CallId::new("scout-tool"),
                 tool_name: "read_file".to_string(),
+                input: None,
             },
         ),
         obs(4, 1_060, tool_completed("scout-tool", "read_file", None)),

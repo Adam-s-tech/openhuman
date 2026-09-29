@@ -1,6 +1,6 @@
 //! Comprehensive agent-loop test suite.
 //!
-//! Tests exercise the full `Agent.turn()` cycle with mock providers and tools,
+//! Tests exercise the full `OpenHumanSessionHost.turn()` cycle with mock providers and tools,
 //! covering every edge case an agentic tool loop must handle:
 //!
 //!   1. Simple text response (no tools)
@@ -24,19 +24,17 @@
 //!  19. Builder validation (missing required fields)
 //!  20. Idempotent system prompt insertion
 
-use crate::agent::dispatcher::{
-    NativeToolDispatcher, ToolDispatcher, ToolExecutionResult, XmlToolDispatcher,
-};
-use crate::agent::harness::session::Agent;
-use crate::agent::messages::{ChatMessage, ConversationMessage, ToolResultMessage};
+use crate::agent::messages::{ChatMessage, ConversationMessage};
+use crate::agent::session_host::OpenHumanSessionHost;
 use crate::config::AgentConfig;
 use crate::inference::provider::{ChatResponse, ToolCall};
 use crate::memory::Memory;
-use crate::tools::{Tool, ToolResult};
 use anyhow::Result;
 use async_trait::async_trait;
 use std::sync::{Arc, Mutex};
 use tinyinference_llm::model::{ChatModel, ModelProfile, ModelRequest, ModelResponse};
+use tinytools::{Tool, ToolResult};
+use tinytools_agent::dialect::{NativeDialect, ToolDialect, XmlDialect};
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Test Helpers — Mock Provider, Mock Tool, Mock Memory
@@ -46,12 +44,15 @@ use tinyinference_llm::model::{ChatModel, ModelProfile, ModelRequest, ModelRespo
 /// When the queue is exhausted it returns a simple "done" text response.
 struct ScriptedProvider {
     responses: Mutex<Vec<ChatResponse>>,
+    /// Model calls made, including any answered by the exhausted-queue default.
+    calls: std::sync::atomic::AtomicUsize,
 }
 
 impl ScriptedProvider {
     fn new(responses: Vec<ChatResponse>) -> Self {
         Self {
             responses: Mutex::new(responses),
+            calls: std::sync::atomic::AtomicUsize::new(0),
         }
     }
 }
@@ -74,6 +75,7 @@ impl ChatModel<()> for ScriptedProvider {
         _state: &(),
         request: ModelRequest,
     ) -> tinyinference_llm::Result<ModelResponse> {
+        self.calls.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         let mut guard = self.responses.lock().unwrap();
         let response = if guard.is_empty() {
             ChatResponse {
@@ -246,14 +248,14 @@ fn make_retaining_memory() -> (Arc<dyn Memory>, tempfile::TempDir) {
 }
 
 /// Build an agent with an isolated temp workspace.
-/// Returns `(Agent, TempDir)` — hold `_tmp` in the test to keep the dir alive.
+/// Returns `(OpenHumanSessionHost, TempDir)` — hold `_tmp` in the test to keep the dir alive.
 fn build_agent_with(
     provider: Arc<dyn ChatModel<()>>,
     tools: Vec<Box<dyn Tool>>,
-    dispatcher: Box<dyn ToolDispatcher>,
-) -> (Agent, tempfile::TempDir) {
+    dispatcher: Box<dyn ToolDialect>,
+) -> (OpenHumanSessionHost, tempfile::TempDir) {
     let (mem, tmp) = make_memory();
-    let agent = Agent::builder()
+    let agent = OpenHumanSessionHost::builder()
         .chat_model(provider)
         .tools(tools)
         .memory(mem)
@@ -269,13 +271,13 @@ fn build_agent_with_memory(
     tools: Vec<Box<dyn Tool>>,
     mem: Arc<dyn Memory>,
     auto_save: bool,
-) -> (Agent, tempfile::TempDir) {
+) -> (OpenHumanSessionHost, tempfile::TempDir) {
     let tmp = tempfile::TempDir::new().unwrap();
-    let agent = Agent::builder()
+    let agent = OpenHumanSessionHost::builder()
         .chat_model(provider)
         .tools(tools)
         .memory(mem)
-        .tool_dispatcher(Box::new(NativeToolDispatcher))
+        .tool_dispatcher(Box::new(NativeDialect))
         .workspace_dir(tmp.path().to_path_buf())
         .auto_save(auto_save)
         .build()
@@ -287,13 +289,13 @@ fn build_agent_with_config(
     provider: Arc<dyn ChatModel<()>>,
     tools: Vec<Box<dyn Tool>>,
     config: AgentConfig,
-) -> (Agent, tempfile::TempDir) {
+) -> (OpenHumanSessionHost, tempfile::TempDir) {
     let (mem, tmp) = make_memory();
-    let agent = Agent::builder()
+    let agent = OpenHumanSessionHost::builder()
         .chat_model(provider)
         .tools(tools)
         .memory(mem)
-        .tool_dispatcher(Box::new(NativeToolDispatcher))
+        .tool_dispatcher(Box::new(NativeDialect))
         .workspace_dir(tmp.path().to_path_buf())
         .config(config)
         .build()
@@ -333,11 +335,15 @@ fn xml_tool_response(name: &str, args: &str) -> ChatResponse {
     }
 }
 
-#[path = "agent_dispatch_format_tests.rs"]
-mod agent_dispatch_format_tests;
 #[path = "agent_memory_attribution_tests.rs"]
 mod agent_memory_attribution_tests;
+#[path = "agent_turn_loop_nudge_tests.rs"]
+mod agent_turn_loop_nudge_tests;
 #[path = "agent_turn_loop_packed_tool_tests.rs"]
 mod agent_turn_loop_packed_tool_tests;
 #[path = "agent_turn_loop_tests.rs"]
 mod agent_turn_loop_tests;
+#[path = "messages_tests.rs"]
+mod messages_tests;
+#[path = "pformat_tests.rs"]
+mod pformat_tests;

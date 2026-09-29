@@ -384,7 +384,7 @@ fn run_server_command(args: &[String]) -> Result<()> {
     // A single agent turn is a very large async state machine (system prompt +
     // hundreds of tool specs + the nested provider/tool loop), and delegating
     // to a sub-agent runs another full turn one level down. Even with the inner
-    // sub-agent future boxed (`subagent_runner::ops`), that nesting overflows
+    // sub-agent future boxed (`subagent_host::ops`), that nesting overflows
     // tokio's default 2 MiB worker-thread stack and aborts the whole process
     // (SIGABRT: "thread 'tokio-rt-worker' has overflowed its stack"), taking
     // the JSON-RPC server down mid-request. Give workers a roomier stack.
@@ -677,6 +677,19 @@ fn parse_input_value(ty: &TypeSchema, raw: &str) -> Result<Value, String> {
             .parse::<u64>()
             .map(|n| Value::Number(n.into()))
             .map_err(|e| format!("expected u64, got '{raw}': {e}")),
+        TypeSchema::BoundedU64 { min, max } => {
+            let n = raw
+                .parse::<u64>()
+                .map_err(|e| format!("expected unsigned integer, got '{raw}': {e}"))?;
+            // Name the crossed limit, matching `validate_params`.
+            if n > *max {
+                Err(format!("expected unsigned integer <= {max}, got '{raw}'"))
+            } else if n < *min {
+                Err(format!("expected unsigned integer >= {min}, got '{raw}'"))
+            } else {
+                Ok(Value::Number(n.into()))
+            }
+        }
         TypeSchema::F64 => {
             let n = raw
                 .parse::<f64>()

@@ -5,6 +5,8 @@ use crate::memory::conversations::CreateConversationThread;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tempfile::TempDir;
+use tinyagents_harness::context::RunConfig;
+use tinyagents_harness::tool::ToolDispatch;
 
 struct MockMemory;
 #[async_trait]
@@ -84,7 +86,7 @@ fn test_parent_ctx(workspace_dir: PathBuf) -> ParentExecutionContext {
         on_progress: None,
         run_queue: None,
         agent_config: crate::config::AgentConfig::default(),
-        tool_call_format: crate::agent::context::prompt::ToolCallFormat::Native,
+        tool_call_format: crate::agent::prompts::ToolCallFormat::Native,
     }
 }
 
@@ -105,27 +107,12 @@ async fn rejects_if_already_worker_thread() {
     )
     .unwrap();
 
-    crate::agent::tinyagents::thread_context::with_thread_id(thread_id.to_string(), async {
-        let parent = test_parent_ctx(temp.path().to_path_buf());
-        with_parent_context(parent, async {
-            let tool = SpawnWorkerThreadTool::new();
-            let result = tool
-                .execute(json!({
-                    "agent_id": "researcher",
-                    "prompt": "do it",
-                    "task_title": "Task"
-                }))
-                .await
-                .unwrap();
+    let result = spawn_from_thread(temp.path(), thread_id).await;
 
-            assert!(result.is_error);
-            assert!(result
-                .output()
-                .contains("cannot spawn other worker threads"));
-        })
-        .await;
-    })
-    .await;
+    assert!(result.is_error);
+    assert!(result
+        .output()
+        .contains("cannot spawn other worker threads"));
 }
 
 #[tokio::test]
@@ -145,27 +132,33 @@ async fn rejects_if_has_parent_thread_id() {
     )
     .unwrap();
 
-    crate::agent::tinyagents::thread_context::with_thread_id(thread_id.to_string(), async {
-        let parent = test_parent_ctx(temp.path().to_path_buf());
-        with_parent_context(parent, async {
-            let tool = SpawnWorkerThreadTool::new();
-            let result = tool
-                .execute(json!({
-                    "agent_id": "researcher",
-                    "prompt": "do it",
-                    "task_title": "Task"
-                }))
-                .await
-                .unwrap();
+    let result = spawn_from_thread(temp.path(), thread_id).await;
 
-            assert!(result.is_error);
-            assert!(result
-                .output()
-                .contains("cannot spawn other worker threads"));
-        })
-        .await;
-    })
-    .await;
+    assert!(result.is_error);
+    assert!(result
+        .output()
+        .contains("cannot spawn other worker threads"));
+}
+
+async fn spawn_from_thread(workspace: &std::path::Path, thread_id: &str) -> tinytools::ToolResult {
+    let parent = test_parent_ctx(workspace.to_path_buf());
+    let run = crate::agent::tinyagents::host::OpenHumanRunContext::new()
+        .with_parent(parent)
+        .into_tinyagents(RunConfig::new("worker-depth-test").with_thread(thread_id));
+    SpawnWorkerThreadDispatch::new(Arc::new(SpawnWorkerThreadTool::new()))
+        .execute(
+            &(),
+            tinyagents_harness::ids::CallId::new("spawn-worker-thread-test"),
+            json!({
+                "agent_id": "task_manager_agent",
+                "prompt": "do it",
+                "task_title": "Task"
+            }),
+            tinytools::ToolCallOptions::default(),
+            &run,
+        )
+        .await
+        .expect("worker dispatch")
 }
 
 #[tokio::test]
@@ -178,7 +171,7 @@ async fn rejects_agent_outside_parent_allowlist() {
         let tool = SpawnWorkerThreadTool::new();
         let result = tool
             .execute(json!({
-                "agent_id": "researcher",
+                "agent_id": "task_manager_agent",
                 "prompt": "do it",
                 "task_title": "Task"
             }))
@@ -187,7 +180,7 @@ async fn rejects_agent_outside_parent_allowlist() {
 
         assert!(result.is_error);
         assert!(result.output().contains(
-            "spawn_worker_thread: agent 'researcher' is not in parent agent 'orchestrator' subagents.allowlist"
+            "spawn_worker_thread: agent 'task_manager_agent' is not in parent agent 'orchestrator' subagents.allowlist"
         ));
     })
     .await;

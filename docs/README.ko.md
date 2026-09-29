@@ -29,7 +29,7 @@
 </p>
 
 <p align="center">
- <a href="https://discord.tinyhumans.ai/">Discord</a> •
+ <a href="https://guild.tinyhumans.ai/">Discord</a> •
  <a href="https://www.reddit.com/r/tinyhumansai/">Reddit</a> •
  <a href="https://x.com/intent/follow?screen_name=tinyhumansai">X/Twitter</a> •
  <a href="https://tinyhumans.gitbook.io/openhuman/">문서</a> •
@@ -65,7 +65,7 @@ OpenHuman은 대부분의 어시스턴트가 갖지 못한 세 가지입니다: 
 
 - **[메모리 트리(Memory Tree)](https://tinyhumans.gitbook.io/openhuman/features/memory-tree) + [Obsidian 위키](https://tinyhumans.gitbook.io/openhuman/features/obsidian-wiki)**: 당신의 데이터는 점수가 매겨진 Markdown 트리로 압축되어 당신의 머신에 있는 SQLite에 저장되고, 열어서 직접 편집할 수 있는 [Obsidian 볼트](https://x.com/karpathy/status/2039805659525644595)로 미러링됩니다. 벡터 수프 같은 블랙박스가 아닙니다.
 - **[100개 이상의 OAuth 통합, 5,000개 이상의 MCP 서버, 90,000개 이상의 Skills](https://tinyhumans.gitbook.io/openhuman/features/integrations)**: Gmail, Notion, GitHub, Slack 등 당신의 스택을 원클릭으로 연결하세요. [자동 가져오기(auto-fetch)](https://tinyhumans.gitbook.io/openhuman/features/obsidian-wiki/auto-fetch)가 20분마다 두뇌에 데이터를 공급합니다. 덕분에 오늘 아침에 이미 내일의 컨텍스트를 가지고 있습니다.
-- **[목표 및 할 일(Goals & Todos)](https://tinyhumans.gitbook.io/openhuman/features/goals-and-todos)**: 장기 목표, 스레드별 지속 목표, 그리고 대화별 공유 칸반 보드를 제공합니다.
+- **[목표 및 할 일(Goals & Todos)](https://tinyhumans.gitbook.io/openhuman/features/goals-and-todos)**: 장기 목표, 스레드별 지속 목표, 그리고 채팅에 표시되는 에이전트의 할 일 목록을 제공합니다.
 - **[TokenJuice](https://tinyhumans.gitbook.io/openhuman/features/token-compression)**: 도구 출력은 모델에 닿기 전에 압축되어, 동일한 정보가 최대 80% 적은 토큰으로 전달됩니다. 이것 없이는 이만큼 큰 두뇌를 감당할 수 없을 것입니다.
 
 ### 🕸️ 오케스트레이터
@@ -176,7 +176,7 @@ _AGI와 인공 의식을 향해 나아가고 계신가요? 저장소에 스타�
 
 # 기여자 명예의 전당
 
-기여를 통해 명예의 전당에 이름을 올리세요. 기여자에게는 무료 굿즈와 [Discord](https://discord.tinyhumans.ai/) 특별 권한이 제공됩니다.
+기여를 통해 명예의 전당에 이름을 올리세요. 기여자에게는 무료 굿즈와 [Discord](https://guild.tinyhumans.ai/) 특별 권한이 제공됩니다.
 
 <a href="https://github.com/tinyhumansai/openhuman/graphs/contributors">
  <img src="https://contrib.rocks/image?repo=tinyhumansai/openhuman" alt="OpenHuman 기여자" />

@@ -20,14 +20,29 @@ export interface InferenceStatusLineProps {
  *
  * For the `tool_use` / `subagent` phases this only restates the active row the
  * agentic-task-insights timeline already shows, so the caller suppresses it
- * once that timeline is on screen and keeps it for the `thinking` phase (which
- * has no timeline row yet) or when there is no timeline to fall back on.
+ * once that timeline is on screen, and keeps it when there is no timeline row
+ * to fall back on.
+ *
+ * The `thinking` branch renders `Thinking... (N)`. On the assistant-ui surface
+ * that caption WOULD stack a second indicator under
+ * the library's own, and the `(N)` is the harness's iteration counter, internal
+ * telemetry a reader cannot act on. That is suppressed one layer up:
+ * `AssistantUiInferenceStatus` returns null for `thinking` before reaching this
+ * component — see its doc comment for what the library's marker actually is (a
+ * message-level synthetic `indicator` part, not a CSS rule on `.aui-md`) and why
+ * that is precisely why this surface has no equivalent.
+ *
+ * So the suppression is per-surface, at the surface-specific caller, and this
+ * component stays a complete renderer for every phase.
  */
 export function InferenceStatusLine({
   status,
   activeToolEntry,
   activeSubagentEntry,
 }: InferenceStatusLineProps) {
+  // `AssistantUiInferenceStatus` returns null for `thinking` before it ever
+  // reaches this component, so the caption below cannot stack under
+  // assistant-ui's own `●` (a message-level `indicator` part).
   const { t } = useT();
   return (
     <div
@@ -48,7 +63,8 @@ export function InferenceStatusLine({
                 round: status.iteration,
                 seq: 0,
                 status: 'running',
-              }
+              },
+              t
             ).title
           }...`}
         {status.phase === 'subagent' &&
@@ -60,7 +76,8 @@ export function InferenceStatusLine({
                 round: status.iteration,
                 seq: 0,
                 status: 'running',
-              }
+              },
+              t
             ).title
           }...`}
       </span>

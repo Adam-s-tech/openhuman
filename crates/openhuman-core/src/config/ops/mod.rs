@@ -6,19 +6,18 @@ pub mod local_ai_presets;
 mod model;
 mod privacy;
 mod sandbox;
+mod search;
 mod ui;
 
 // ── Public re-exports (preserving the flat external API) ─────────────────────
 
 pub use agent::redact_home;
 pub use agent::{
-    add_auto_approve_tool, apply_activity_level_settings, apply_agent_paths_settings,
-    apply_agent_settings, apply_autonomy_settings, apply_memory_sync_settings, ensure_agent_dirs,
-    ensure_usable_cwd, expand_tilde, get_activity_level_settings, get_agent_paths,
-    get_agent_settings, get_autonomy_settings, get_memory_sync_settings,
-    load_and_apply_activity_level_settings, load_and_apply_agent_paths_settings,
-    load_and_apply_agent_settings, load_and_apply_autonomy_settings,
-    load_and_apply_memory_sync_settings, ActivityLevelSettingsPatch, AgentPathsPatch,
+    add_auto_approve_tool, apply_agent_paths_settings, apply_agent_settings,
+    apply_autonomy_settings, apply_memory_sync_settings, ensure_agent_dirs, ensure_usable_cwd,
+    expand_tilde, get_agent_paths, get_agent_settings, get_autonomy_settings,
+    get_memory_sync_settings, load_and_apply_agent_paths_settings, load_and_apply_agent_settings,
+    load_and_apply_autonomy_settings, load_and_apply_memory_sync_settings, AgentPathsPatch,
     AgentSettingsPatch, AutonomySettingsPatch, MemorySyncSettingsPatch,
 };
 
@@ -59,20 +58,28 @@ pub use privacy::{
     apply_privacy_settings, get_privacy_mode, load_and_apply_privacy_settings, PrivacySettingsPatch,
 };
 
+mod computer;
+pub use computer::{
+    apply_computer_settings, load_and_apply_computer_settings, ComputerSettingsPatch,
+};
+
 pub use sandbox::{
     apply_sandbox_settings, get_sandbox_settings, load_and_apply_sandbox_settings,
     SandboxSettingsPatch,
 };
 
+pub use search::{
+    apply_search_settings, get_search_settings, load_and_apply_search_settings,
+    search_settings_json, SearchProviderPatch, SearchSettingsPatch,
+};
 pub use ui::{
-    apply_analytics_settings, apply_browser_settings, apply_search_settings,
-    get_dictation_settings, get_onboarding_completed, get_search_settings,
-    get_voice_server_settings, load_and_apply_analytics_settings, load_and_apply_browser_settings,
-    load_and_apply_dictation_settings, load_and_apply_search_settings,
+    apply_analytics_settings, apply_browser_settings, get_dictation_settings,
+    get_onboarding_completed, get_voice_server_settings, load_and_apply_analytics_settings,
+    load_and_apply_browser_settings, load_and_apply_dictation_settings,
     load_and_apply_voice_server_settings, set_onboarding_completed,
     workspace_onboarding_flag_exists, workspace_onboarding_flag_resolve,
     workspace_onboarding_flag_set, AnalyticsSettingsPatch, BrowserSettingsPatch,
-    DictationSettingsPatch, SearchSettingsPatch, VoiceServerSettingsPatch,
+    DictationSettingsPatch, VoiceServerSettingsPatch,
 };
 
 #[cfg(test)]

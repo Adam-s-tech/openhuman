@@ -32,7 +32,7 @@ pub(crate) enum BackgroundAgentOutcome {
 pub(crate) struct CompletedBackgroundAgent {
     /// Spawn process id (`sub-…`) — the tag the agent uses to reference it.
     pub(crate) task_id: String,
-    /// Sub-agent definition id (e.g. `researcher`).
+    /// Sub-agent definition id (e.g. `code_executor`).
     pub(crate) agent_id: String,
     /// The sub-agent's final output / summary.
     pub(crate) summary: String,
@@ -57,6 +57,12 @@ const CANCELLED_TOMBSTONE_CAP: usize = 512;
 /// insertion order.
 const COLLECTED_TOMBSTONE_CAP: usize = 512;
 
+/// Cap on the delivery-error text stored in the undelivered-results notice. The
+/// notice is a permanent thread message, unlike the transient `chat_error`
+/// event that already carries the same string, so an unbounded provider error
+/// should not be able to dominate the transcript.
+const MAX_PERSISTED_ERROR_CHARS: usize = 500;
+
 /// Shared state behind a single mutex so the cancellation check in
 /// [`record_completion`] is atomic against the tombstone+sweep in
 /// [`discard_for_thread`] — otherwise the cooperative-abort race could enqueue a
@@ -73,6 +79,18 @@ struct QueueState {
     cancelled_threads: HashSet<String>,
     /// Insertion order for `cancelled_threads`, used to bound the set.
     cancelled_order: VecDeque<String>,
+    /// Threads stopped by the user. Unlike deleted threads, these are reopened
+    /// by the next user chat request, but until then late completions from a
+    /// cooperatively-aborted child must not start a delivery turn.
+    stopped_threads: HashSet<String>,
+    /// Insertion order for `stopped_threads`, used to bound the set.
+    stopped_order: VecDeque<String>,
+    /// Detached task ids stopped by the user. Once the thread gate is reopened
+    /// for a later turn, this keeps a straggling task from the old generation
+    /// from recording its completion.
+    stopped_tasks: HashSet<String>,
+    /// Insertion order for `stopped_tasks`, used to bound the set.
+    stopped_task_order: VecDeque<String>,
     /// Task ids the parent already collected inline via `wait_subagent` and will
     /// present in its own turn. A completion for a collected task is dropped by
     /// [`record_completion`] (closing the wait/record ordering race) and any
@@ -95,6 +113,44 @@ impl QueueState {
                 }
             }
         }
+    }
+
+    fn stop(&mut self, thread_id: &str) {
+        if self.stopped_threads.insert(thread_id.to_string()) {
+            self.stopped_order.push_back(thread_id.to_string());
+            while self.stopped_order.len() > CANCELLED_TOMBSTONE_CAP {
+                if let Some(evicted) = self.stopped_order.pop_front() {
+                    self.stopped_threads.remove(&evicted);
+                }
+            }
+        }
+    }
+
+    fn finish_stop(&mut self, task_ids: &[String]) {
+        for task_id in task_ids {
+            if self.stopped_tasks.insert(task_id.clone()) {
+                self.stopped_task_order.push_back(task_id.clone());
+                while self.stopped_task_order.len() > COLLECTED_TOMBSTONE_CAP {
+                    if let Some(evicted) = self.stopped_task_order.pop_front() {
+                        self.stopped_tasks.remove(&evicted);
+                    }
+                }
+            }
+        }
+    }
+
+    fn resume_thread(&mut self, thread_id: &str) {
+        if self.stopped_threads.remove(thread_id) {
+            self.stopped_order.retain(|stopped| stopped != thread_id);
+        }
+    }
+
+    fn mark_stopped_task_if_thread_stopped(&mut self, thread_id: &str, task_id: &str) -> bool {
+        if !self.stopped_threads.contains(thread_id) {
+            return false;
+        }
+        self.finish_stop(&[task_id.to_string()]);
+        true
     }
 
     /// Tombstone `task_id` so a completion that records after the parent
@@ -166,9 +222,10 @@ pub(crate) fn record_outcome(
         .lock()
         .expect("background_completions queue poisoned");
     if let Some(thread_id) = entry.parent_thread_id.as_deref() {
-        if state.cancelled_threads.contains(thread_id) {
+        if state.cancelled_threads.contains(thread_id) || state.stopped_threads.contains(thread_id)
+        {
             log::debug!(
-                "[background_completions] dropping completion task_id={} for cancelled thread_id={}",
+                "[background_completions] dropping completion task_id={} for stopped/cancelled thread_id={}",
                 entry.task_id,
                 thread_id
             );
@@ -183,6 +240,13 @@ pub(crate) fn record_outcome(
     if state.collected_tasks.contains(&entry.task_id) {
         log::debug!(
             "[background_completions] dropping completion task_id={} already collected inline",
+            entry.task_id
+        );
+        return;
+    }
+    if state.stopped_tasks.contains(&entry.task_id) {
+        log::debug!(
+            "[background_completions] dropping completion task_id={} stopped by user",
             entry.task_id
         );
         return;
@@ -227,11 +291,18 @@ pub(crate) fn record_awaiting_input(
     task_id: impl Into<String>,
     agent_id: impl Into<String>,
     question: &str,
+    checkpointed: bool,
     parent_thread_id: Option<String>,
 ) {
-    let summary = format!(
-        "[SUBAGENT_NEEDS_INPUT] the async sub-agent paused to ask the user a question and will \
-         not continue on its own: {question}"
+    let parent_session = parent_session.into();
+    let task_id = task_id.into();
+    let agent_id = agent_id.into();
+    let summary = crate::agent::orchestration::tools::awaiting_user::awaiting_user_envelope(
+        &task_id,
+        &agent_id,
+        None,
+        question,
+        checkpointed,
     );
     record_outcome(
         parent_session,
@@ -286,6 +357,79 @@ pub(crate) fn discard_for_thread(thread_id: &str) -> usize {
         .lock()
         .expect("background_completions queue poisoned");
     state.tombstone(thread_id);
+    let removed = remove_pending_for_thread(&mut state, thread_id);
+    log::debug!(
+        "[background_completions] discard_for_thread thread_id={} removed={} sessions_left={}",
+        thread_id,
+        removed,
+        state.pending.len()
+    );
+    removed
+}
+
+/// Drop every queued completion for `thread_id` and gate late results from the
+/// stopped generation.
+///
+/// The Stop-button counterpart of [`discard_for_thread`]: the user halted the
+/// thread's work, so results that finished but were not yet delivered must not
+/// start a fresh delivery turn behind their back. The thread itself stays
+/// alive; after cancellation, old task ids are tombstoned while sub-agents
+/// spawned by later turns use new ids and deliver normally. Returns the number
+/// of queued completions removed.
+pub(crate) fn discard_pending_for_thread(thread_id: &str) -> usize {
+    let mut state = queue()
+        .lock()
+        .expect("background_completions queue poisoned");
+    state.stop(thread_id);
+    let removed = remove_pending_for_thread(&mut state, thread_id);
+    log::debug!(
+        "[background_completions] discard_pending_for_thread thread_id={} removed={} sessions_left={}",
+        thread_id,
+        removed,
+        state.pending.len()
+    );
+    removed
+}
+
+/// Complete a Stop operation after its registered children have been aborted.
+///
+/// The thread gate stays in place until [`resume_stopped_thread`] starts a new
+/// user turn. That closes the spawn/register race: a child that was spawned
+/// before Stop but registered after the registry sweep still cannot enqueue a
+/// completion. Task tombstones additionally protect that stopped generation
+/// after the next turn reopens the thread.
+pub(crate) fn finish_stop_for_thread(_thread_id: &str, task_ids: &[String]) {
+    let mut state = queue()
+        .lock()
+        .expect("background_completions queue poisoned");
+    state.finish_stop(task_ids);
+}
+
+/// Reopen a thread's completion gate for a newly accepted user turn.
+///
+/// A Stop gate deliberately outlives registry cancellation, because a detached
+/// child may be between `tokio::spawn` and `running_subagents::register` when
+/// Stop is pressed. New task ids remain distinct from the stopped generation.
+pub(crate) fn resume_stopped_thread(thread_id: &str) {
+    queue()
+        .lock()
+        .expect("background_completions queue poisoned")
+        .resume_thread(thread_id);
+}
+
+/// Record a child that registers while its parent thread is stopped.
+///
+/// Registration happens after the detached task is spawned. If Stop races that
+/// narrow interval, the registry sweep cannot see the child; marking its task
+/// id here keeps it rejected even after a later user turn reopens the thread.
+pub(crate) fn mark_stopped_task_if_thread_stopped(thread_id: &str, task_id: &str) -> bool {
+    queue()
+        .lock()
+        .expect("background_completions queue poisoned")
+        .mark_stopped_task_if_thread_stopped(thread_id, task_id)
+}
+
+fn remove_pending_for_thread(state: &mut QueueState, thread_id: &str) -> usize {
     let mut removed = 0;
     for pending in state.pending.values_mut() {
         let before = pending.len();
@@ -294,13 +438,6 @@ pub(crate) fn discard_for_thread(thread_id: &str) -> usize {
     }
     // Drop now-empty session buckets so the map doesn't accumulate keys.
     state.pending.retain(|_, v| !v.is_empty());
-    let sessions_left = state.pending.len();
-    log::debug!(
-        "[background_completions] discard_for_thread thread_id={} removed={} sessions_left={}",
-        thread_id,
-        removed,
-        sessions_left
-    );
     removed
 }
 
@@ -369,6 +506,40 @@ pub(crate) fn build_batched_notice(completed: &[CompletedBackgroundAgent]) -> Op
          tagged with its sub-agent process id.]\n",
         if n == 1 { "" } else { "s" },
     ));
+    out.push_str(&render_results(completed));
+    Some(out)
+}
+
+/// Defang any sequence in untrusted sub-agent output that could forge or
+/// terminate one of the envelope tags below.
+///
+/// A sub-agent summary is arbitrary text: it can carry tool-fetched web
+/// content, file contents, or anything else the child produced. Interpolated
+/// raw, a summary containing `</background_agent_result>` closes its own
+/// envelope early and everything after it reads as if it came from the host
+/// rather than from the child — and a forged *opening* tag invents a result
+/// that no sub-agent produced. Both matter more now that this text can be
+/// persisted into the thread verbatim when delivery gives up, because a stored
+/// message is replayed to every later turn with the authority of the
+/// transcript rather than being a one-shot prompt.
+///
+/// Only the exact markers that could impersonate this envelope are escaped, so
+/// ordinary prose and code in a summary survive unchanged.
+fn neutralize_envelope_markers(summary: &str) -> String {
+    // Escape the bracket rather than prefixing it: a prefixed `\</tag>` still
+    // contains the literal marker, so it reads as a real boundary to anything
+    // scanning the text. `&lt;` removes the character that makes it a tag while
+    // keeping the content legible and recoverable.
+    summary
+        .replace("</background_agent_", "&lt;/background_agent_")
+        .replace("<background_agent_", "&lt;background_agent_")
+}
+
+/// Render each result with its outcome-specific tag. Shared by the normal
+/// delivery notice and by the undelivered fallback, so a result reads the same
+/// either way and a failure is never dressed up as a completion.
+fn render_results(completed: &[CompletedBackgroundAgent]) -> String {
+    let mut out = String::new();
     for c in completed {
         // Distinct tag per terminal outcome so a failure / awaiting-input result
         // is not presented as a normal completion (#4896).
@@ -386,15 +557,59 @@ pub(crate) fn build_batched_notice(completed: &[CompletedBackgroundAgent]) -> Op
             ),
         };
         let summary = if c.summary.trim().is_empty() {
-            empty_fallback
+            empty_fallback.to_string()
         } else {
-            c.summary.trim()
+            neutralize_envelope_markers(c.summary.trim())
         };
         out.push_str(&format!(
             "\n<{tag} id=\"{}\" agent=\"{}\">\n{}\n</{tag}>\n",
             c.task_id, c.agent_id, summary,
         ));
     }
+    out
+}
+
+/// Build the notice written **straight into the thread** when the delivery turn
+/// has failed too many times to keep retrying.
+///
+/// Delivery normally runs a system turn so the agent can present a result in
+/// context. When that turn cannot succeed, the results still exist and the user
+/// is still owed them — so they are persisted verbatim instead, with an
+/// `[BACKGROUND_DELIVERY_FAILED]` envelope saying plainly that this is a failed
+/// delivery and why. The envelope follows the `[SUBAGENT_FAILED]` precedent
+/// (#4896): the user learns the delegated work finished and could not be
+/// delivered normally, rather than the result vanishing or arriving as an
+/// unexplained raw dump.
+pub(crate) fn build_undelivered_notice(
+    completed: &[CompletedBackgroundAgent],
+    attempts: u32,
+    error: &str,
+) -> Option<String> {
+    if completed.is_empty() {
+        return None;
+    }
+    let n = completed.len();
+    // The error text is already surfaced to the client on every failed delivery
+    // (`chat_error` carries it verbatim), so including it here is not a new
+    // exposure — but a stored message is permanent where that event is
+    // transient, so bound it and defang it like any other untrusted text.
+    let error = neutralize_envelope_markers(error);
+    let error = if error.chars().count() > MAX_PERSISTED_ERROR_CHARS {
+        let truncated: String = error.chars().take(MAX_PERSISTED_ERROR_CHARS).collect();
+        format!("{truncated}… (truncated)")
+    } else {
+        error
+    };
+    let mut out = format!(
+        "[BACKGROUND_DELIVERY_FAILED] {n} background sub-agent result{} finished, but \
+         could not be delivered into this conversation after {attempts} attempts. \
+         Last error: {error}\n\nThe {} shown verbatim below so nothing is lost — it has \
+         not been reviewed or summarised, because the turn that would have done so is \
+         the thing that failed.\n",
+        if n == 1 { "" } else { "s" },
+        if n == 1 { "result is" } else { "results are" },
+    );
+    out.push_str(&render_results(completed));
     Some(out)
 }
 

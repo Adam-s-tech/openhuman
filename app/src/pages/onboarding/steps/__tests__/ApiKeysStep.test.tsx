@@ -75,18 +75,22 @@ describe('ApiKeysStep OpenAI OAuth', () => {
     expect(await screen.findByTestId('onboarding-openai-oauth-connected')).toBeInTheDocument();
   });
 
-  it('shows a desktop-only error without calling core outside Tauri', async () => {
+  it('starts OAuth over core RPC outside Tauri', async () => {
     vi.mocked(isTauri).mockReturnValue(false);
+    vi.mocked(callCoreRpc).mockImplementation(async ({ method }: { method: string }) =>
+      method === 'openhuman.inference_openai_oauth_start'
+        ? { result: { authUrl: 'https://auth.openai.com/oauth?x=1' } }
+        : { result: { connected: false } }
+    );
 
     renderWithProviders(<ApiKeysStep onNext={vi.fn()} onSkip={vi.fn()} />);
 
     fireEvent.click(screen.getByTestId('onboarding-openai-oauth-connect'));
 
+    await waitFor(() => expect(openUrl).toHaveBeenCalledWith('https://auth.openai.com/oauth?x=1'));
     expect(
-      await screen.findByText('ChatGPT sign-in is only available in the desktop app.')
-    ).toBeInTheDocument();
-    expect(callCoreRpc).not.toHaveBeenCalled();
-    expect(openUrl).not.toHaveBeenCalled();
+      screen.queryByText('ChatGPT sign-in is only available in the desktop app.')
+    ).not.toBeInTheDocument();
   });
 
   it('reports an oauth start failure when core omits authUrl', async () => {

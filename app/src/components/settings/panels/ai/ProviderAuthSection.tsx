@@ -16,16 +16,15 @@
  * internal dialog from the outside, so they keep a two-row band of their own
  * whether connected or not.
  */
+import { Plus } from 'lucide-react';
 import { useState } from 'react';
-import { LuCircleAlert, LuPlus } from 'react-icons/lu';
 
 import { useT } from '../../../../lib/i18n/I18nContext';
 import type { ProviderAuthError } from '../../../../services/api/aiSettingsApi';
-import Alert from '../../../ui/Alert';
+import Alert, { AlertDescription } from '../../../ui/Alert';
 import Badge from '../../../ui/Badge';
 import Button from '../../../ui/Button';
-import Card from '../../../ui/Card';
-import StatusLine from '../../../ui/StatusLine';
+import { CenteredLoadingState } from '../../../ui/LoadingState';
 import Switch from '../../../ui/Switch';
 import { routingWithProviderRemoved } from '../aiRouting';
 import {
@@ -46,6 +45,7 @@ import {
   providerToggleAriaLabel,
 } from './aiPanelTypes';
 import { ClaudeCodeConnect } from './ClaudeCodeStatusCard';
+import { ProviderCatalog } from './ProviderCatalog';
 import { ProviderGroup, ProviderListRow, type ProviderRowAction } from './ProviderListRow';
 
 const LOCAL_RUNTIME_SLUGS = ['lmstudio', 'ollama', 'omlx'] as const;
@@ -72,6 +72,22 @@ const hostOf = (endpoint: string): string => {
   }
 };
 
+/** The one "Add provider" control, shared by the section and any host header. */
+export const AddProviderButton = ({ onClick }: { onClick: () => void }) => {
+  const { t } = useT();
+  return (
+    <Button
+      type="button"
+      variant="primary"
+      size="sm"
+      leadingIcon={<Plus className="h-3.5 w-3.5" aria-hidden />}
+      onClick={onClick}
+      data-testid="add-provider-open">
+      {t('settings.ai.providers.addProvider')}
+    </Button>
+  );
+};
+
 export const ProviderAuthSection = ({
   draft,
   persist,
@@ -88,6 +104,8 @@ export const ProviderAuthSection = ({
   onOpenKeyDialog,
   onAddCustomProvider,
   onEditCustomProvider,
+  addOpen: controlledAddOpen,
+  onAddOpenChange,
 }: {
   draft: AISettings;
   persist: (next: AISettings) => Promise<void>;
@@ -113,9 +131,23 @@ export const ProviderAuthSection = ({
   onAddCustomProvider: () => void;
   /** Opens the full editor for a user-defined provider (name, endpoint, key). */
   onEditCustomProvider: (provider: CloudProvider) => void;
+  /**
+   * Host-controlled "Add provider" dialog. When a host owns the page header it
+   * places the button there and drives the dialog through these; the section
+   * then renders no button of its own. Left undefined, the section keeps a
+   * local button and state (the embedded onboarding case).
+   */
+  addOpen?: boolean;
+  onAddOpenChange?: (open: boolean) => void;
 }) => {
   const { t } = useT();
-  const [addOpen, setAddOpen] = useState(false);
+  const [localAddOpen, setLocalAddOpen] = useState(false);
+  const hostControlsAdd = controlledAddOpen !== undefined;
+  const addOpen = controlledAddOpen ?? localAddOpen;
+  const setAddOpen = (open: boolean) => {
+    if (!hostControlsAdd) setLocalAddOpen(open);
+    onAddOpenChange?.(open);
+  };
 
   /** Drop a provider and scrub every routing entry pinned to it, so a workload
    *  cannot keep pointing at a provider that no longer exists. */
@@ -203,55 +235,46 @@ export const ProviderAuthSection = ({
 
   return (
     <>
-      <div className="flex w-full flex-col gap-4 py-4">
-        <div className="flex w-full flex-col gap-4 px-4">
-          {/* ─── Rejected-key notices ───────────────────────────────────────
-            A BYO key the provider rejected at runtime (401/403). Surfaced
-            here, next to the key editor, because the failing path is often a
-            silent background loop and the raw error is demoted from Sentry. */}
-          {providerAuthErrors.length > 0 && (
-            <div className="flex w-full flex-col gap-2">
-              {providerAuthErrors.map(err => (
-                <ProviderSetupErrorNotice key={err.provider} error={err.message} />
-              ))}
-            </div>
-          )}
+      <div className="flex w-full flex-col gap-4">
+        {/* ─── Notices ────────────────────────────────────────────────────
+          A BYO key the provider rejected at runtime (401/403) is surfaced
+          here, next to the key editor, because the failing path is often a
+          silent background loop and the raw error is demoted from Sentry. */}
+        {providerAuthErrors.map(err => (
+          <ProviderSetupErrorNotice key={err.provider} error={err.message} />
+        ))}
 
-          {/* #5339: non-fatal "key saved, but provider unreachable" advisory.
-            Amber (not coral): the save succeeded, only reachability is in
-            question. */}
-          {providerSaveNotice && (
-            <Alert variant="warning" role="status" className="items-start gap-2 px-3 py-2 text-xs">
-              <LuCircleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-              <span className="flex-1">{providerSaveNotice.message}</span>
-              <Button
-                type="button"
-                variant="tertiary"
-                size="xs"
-                className="shrink-0 font-medium normal-case underline-offset-2 hover:underline"
-                onClick={onDismissProviderSaveNotice}>
-                {t('common.dismiss')}
-              </Button>
-            </Alert>
-          )}
-
-          {loading && <div className="text-xs text-content-muted">{t('common.loading')}</div>}
-          {error && <StatusLine saving={false} error={error} savedNote={null} savingLabel="" />}
-        </div>
-
-        <Card title={t('settings.ai.llmProviders')} description={t('settings.ai.llmProvidersDesc')}>
-          <div className="flex justify-end px-4 py-2">
+        {/* #5339: non-fatal "key saved, but provider unreachable" advisory.
+          Amber (not coral): the save succeeded, only reachability is in
+          question. */}
+        {providerSaveNotice && (
+          <Alert variant="warning" density="compact" role="status" className="items-center">
+            <AlertDescription className="flex-1">{providerSaveNotice.message}</AlertDescription>
             <Button
               type="button"
-              variant="primary"
+              variant="tertiary"
               size="xs"
-              leadingIcon={<LuPlus className="h-3.5 w-3.5" />}
-              onClick={() => setAddOpen(true)}
-              data-testid="add-provider-open">
-              {t('settings.ai.providers.addProvider')}
+              className="shrink-0"
+              onClick={onDismissProviderSaveNotice}>
+              {t('common.dismiss')}
             </Button>
+          </Alert>
+        )}
+
+        {error && (
+          <Alert variant="destructive" density="compact">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+        {codexAuthError ? <ProviderSetupErrorNotice error={codexAuthError} /> : null}
+
+        {!hostControlsAdd && (
+          <div className="flex justify-end">
+            <AddProviderButton onClick={() => setAddOpen(true)} />
           </div>
-        </Card>
+        )}
+
+        {loading && <CenteredLoadingState label={t('common.loading')} />}
 
         {/* ─── Connected ────────────────────────────────────────────────────
           Managed leads and is always present. #3760: it renders a badge, not a
@@ -259,6 +282,7 @@ export const ProviderAuthSection = ({
           invites a fight the user cannot win. */}
         <ProviderGroup
           title={t('settings.ai.providers.groupConnected')}
+          description={t('settings.ai.providers.connectedDesc')}
           card
           data-testid="provider-group-connected">
           <ProviderListRow
@@ -418,13 +442,12 @@ export const ProviderAuthSection = ({
           </ProviderGroup>
         )}
 
-        <div className="flex flex-col gap-3 px-4">
-          {codexAuthError ? <ProviderSetupErrorNotice error={codexAuthError} /> : null}
-
-          {/* #3760: point users who want a local model at the Routing card
-            below, rather than letting them hunt for a Managed off switch. */}
-          <p className="text-xs text-content-muted">{t('settings.ai.routing.managedHint')}</p>
-        </div>
+        {/* ─── Catalogue: everything not yet connected, as tiles ──────── */}
+        <ProviderCatalog
+          categories={providerCategories}
+          onPick={handlePick}
+          onAddCustom={onAddCustomProvider}
+        />
       </div>
 
       {addOpen && (

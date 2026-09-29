@@ -323,6 +323,24 @@ pub struct WebChannelEvent {
     /// shown after [`Self::tool_display_label`].
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tool_display_detail: Option<String>,
+    /// Milliseconds the tool call took to execute. Present on `tool_result` /
+    /// `subagent_tool_result`, mirroring `AgentProgress::ToolCallCompleted`'s
+    /// `elapsed_ms` / `SubagentToolCallCompleted`'s `elapsed_ms` — carried
+    /// as a plain top-level field (in addition to `subagent.elapsed_ms` for
+    /// the sub-agent case) so a frontend that only reads flat fields still
+    /// gets real timing instead of guessing from wall-clock deltas.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub elapsed_ms: Option<u64>,
+    /// Structured, tool-specific result payload copied from a tool's
+    /// `ToolResult::metadata` when it is a JSON object carrying a `"kind"`
+    /// discriminator, e.g.
+    /// `{"kind":"web_search","query":"...","provider":"...","results":[...]}`.
+    /// Present on `tool_result` / `subagent_tool_result` only for tools that
+    /// populate metadata of that shape (currently the web-search tools); the
+    /// model-facing `output` text is unaffected and stays byte-identical to
+    /// what the model itself saw.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub structured: Option<serde_json::Value>,
     /// Holistic token/cost/context usage for a completed turn (parent +
     /// sub-agents), carried on `chat_done`. Lets the UI footer show session
     /// tokens, USD cost, and real context-window utilisation, with a
@@ -339,6 +357,112 @@ pub struct WebChannelEvent {
     /// simply ignore it.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub seq: Option<u64>,
+    /// Epoch milliseconds this event was emitted at. Additive wall-clock
+    /// stamp so a frontend can order/annotate events without deriving time
+    /// from arrival order. `None` on emit sites not yet updated to stamp it.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ts: Option<u64>,
+    /// RFC3339 timestamp of when a pending approval / plan review expires,
+    /// mirrored from `PendingApproval::expires_at` (`security::approval::types`).
+    /// Present on `approval_request` / `plan_review_request` events.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<String>,
+    /// The turn/request id a lifecycle event (approval, plan review, queue
+    /// item, cancellation) correlates back to, when distinct from the
+    /// top-level `request_id` (e.g. a decision event fired outside the
+    /// original turn's request context).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub turn_request_id: Option<String>,
+    /// Time-to-first-visible timing summary, carried on `chat_done`. See
+    /// `web_chat::turn_timing`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub timing: Option<TurnTimingPayload>,
+    /// Follow-up prompt suggestions offered to the user after a turn.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub suggestions: Option<Vec<ChatSuggestion>>,
+    /// Guardrail verdict attached to a blocked/flagged turn.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub guardrail: Option<GuardrailPayload>,
+    /// Run-queue item this event reports on (queued/delivered/removed).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub queue_item: Option<QueueItemPayload>,
+    /// Session goal snapshot, carried on goal-lifecycle events. Left as a
+    /// raw `Value` because the goal shape is owned by `tinyagents-graph`,
+    /// not this crate.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub goal: Option<serde_json::Value>,
+    /// Session todo-list snapshot, carried on todo-lifecycle events. Raw
+    /// `Value` for the same reason as `goal`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub todos: Option<serde_json::Value>,
+    /// Human-readable reason a turn/queue item was cancelled.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cancel_reason: Option<String>,
+    /// Id of the turn/request that superseded this one (e.g. a steer
+    /// requeue), when applicable.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub superseded_by: Option<String>,
+}
+
+/// Time-to-first-visible timing summary for a completed turn. See
+/// `web_chat::turn_timing::TurnTiming`.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub struct TurnTimingPayload {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub first_token_ms: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub first_tool_ms: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub total_ms: Option<u64>,
+    /// `usage.output_tokens / (total_ms / 1000)`, computed at delivery time
+    /// when both a timing snapshot and the turn's output-token count are
+    /// available. `None` when either input is missing (e.g. a budget-
+    /// exhausted synthetic result, or a turn that produced no completion
+    /// tokens). Added by C4 — not in the original wire-contract prep pass;
+    /// see wire-contract.md "Added by C4".
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tokens_per_second: Option<f64>,
+}
+
+/// One follow-up prompt suggestion offered after a turn.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub struct ChatSuggestion {
+    pub prompt: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub label: Option<String>,
+}
+
+/// One guardrail rejection reason code + message.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub struct GuardrailReason {
+    pub code: String,
+    pub message: String,
+}
+
+/// Guardrail verdict attached to a blocked/flagged turn (`chat_error` with
+/// `error_type = "guardrail"`).
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub struct GuardrailPayload {
+    pub verdict: String,
+    pub score: f64,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub reasons: Vec<GuardrailReason>,
+}
+
+/// A run-queue item summary (`queue_item_queued` / `queue_item_delivered` /
+/// `queue_item_removed`).
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub struct QueueItemPayload {
+    pub id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub lane: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub text_preview: Option<String>,
 }
 
 /// Token/cost/context totals for one completed turn, attached to `chat_done`.
@@ -414,6 +538,23 @@ pub struct SubagentProgressDetail {
     /// Elapsed wall-clock for the call/run in milliseconds.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub elapsed_ms: Option<u64>,
+    /// This child's own token + cost spend (on `subagent_completed`), and
+    /// **only when it is not already inside the parent turn's totals**.
+    ///
+    /// The consumer adds these unconditionally, so an emit site that leaves
+    /// them absent contributes nothing — the safe direction. Populating them
+    /// for a child whose usage DID reach `parent_subagent_usage` silently
+    /// doubles the user's reported tokens and money, because
+    /// `holistic_last_turn_usage` already folded both into `chat_done`. See
+    /// `AgentProgress::SubagentCompleted::usage`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub input_tokens: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub output_tokens: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cached_input_tokens: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cost_usd: Option<f64>,
     /// Total iterations the sub-agent used (on `subagent_completed`).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub iterations: Option<u32>,
@@ -448,6 +589,18 @@ pub struct SubagentProgressDetail {
     /// the UI requires an explicit user decision. `None` for non-isolated.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub dirty_status: Option<bool>,
+    /// The parent turn's tool-call id that this sub-agent spawn is
+    /// attributed to (on `subagent_spawned`), mirroring
+    /// `AgentProgress::SubagentSpawned::parent_call_id`. Lets the UI
+    /// attach a spawn to the exact `spawn_subagent`/dispatch tool call
+    /// that created it instead of inferring it from arrival order.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub parent_call_id: Option<String>,
+    /// The sub-agent's final output text (on `subagent_completed`),
+    /// mirrored alongside the top-level `output` field so a consumer that
+    /// only reads `subagent.*` still gets the result text.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub output: Option<String>,
 }
 
 #[cfg(feature = "http-server")]
@@ -471,11 +624,16 @@ struct ChatStartPayload {
     #[serde(default)]
     temperature: Option<f64>,
     #[serde(default)]
-    profile_id: Option<String>,
-    #[serde(default)]
     locale: Option<String>,
     #[serde(default)]
     queue_mode: Option<String>,
+    /// Optional `"plan"` | `"build"` — lets the composer start this turn with
+    /// the thread already in the requested run mode (e.g. a "Plan" toggle),
+    /// rather than a separate `agent.set_run_mode` round-trip racing the
+    /// `chat:start` itself. Unrecognized values are ignored (logged), not
+    /// rejected — a stale/typo'd client build should not fail the whole turn.
+    #[serde(default)]
+    run_mode: Option<String>,
 }
 
 #[cfg(feature = "http-server")]
@@ -671,6 +829,16 @@ pub fn attach_socketio() -> (socketioxide::layer::SocketIoLayer, SocketIo) {
                     thread_id,
                     payload.message.len()
                 );
+                    if let Some(run_mode) = payload.run_mode.as_deref() {
+                        match crate::agent::tinyagents::run_mode::parse_mode_label(run_mode) {
+                            Some(mode) => {
+                                crate::agent::tinyagents::run_mode::set_mode(&thread_id, mode);
+                            }
+                            None => log::warn!(
+                                "[socketio] chat:start thread_id={thread_id} ignoring unrecognized run_mode={run_mode}"
+                            ),
+                        }
+                    }
 
                     // Trigger the web channel's chat logic.
                     match crate::web_chat::start_chat(
@@ -679,7 +847,6 @@ pub fn attach_socketio() -> (socketioxide::layer::SocketIoLayer, SocketIo) {
                         &payload.message,
                         model_override,
                         payload.temperature,
-                        payload.profile_id,
                         payload.locale,
                         payload.queue_mode,
                         crate::web_chat::ChatRequestMetadata::default(),
@@ -696,14 +863,33 @@ pub fn attach_socketio() -> (socketioxide::layer::SocketIoLayer, SocketIo) {
                             emit_with_aliases(&socket, "chat_accepted", &accepted_payload);
                         }
                         Err(error) => {
-                            let error_payload = json!({
+                            let mut error_payload = json!({
                                 "event": "chat_error",
                                 "client_id": client_id,
                                 "thread_id": thread_id,
                                 "request_id": "",
-                                "message": error,
+                                "message": error.to_string(),
                                 "error_type": "inference",
                             });
+                            // A guardrail rejection is structured (verdict/
+                            // score/reasons), not just a user-facing message —
+                            // surface it the same way the frontend classifies
+                            // every other `chat_error`: by `error_type`, plus
+                            // a typed `guardrail` payload it doesn't have to
+                            // parse out of `message`.
+                            if let crate::web_chat::StartChatError::Guardrail {
+                                verdict,
+                                score,
+                                reasons,
+                            } = &error
+                            {
+                                error_payload["error_type"] = json!("guardrail");
+                                error_payload["guardrail"] = json!(GuardrailPayload {
+                                    verdict: verdict.clone(),
+                                    score: *score,
+                                    reasons: reasons.clone(),
+                                });
+                            }
                             emit_with_aliases(&socket, "chat_error", &error_payload);
                         }
                     }
@@ -777,6 +963,7 @@ pub fn attach_socketio() -> (socketioxide::layer::SocketIoLayer, SocketIo) {
                     // already holds the card.
                     if joined {
                         replay_parked_approval(&socket, thread_id);
+                        replay_parked_plan_review(&socket, thread_id);
                     }
                     ack.send(&ThreadSubscribeAck { joined }).ok();
                 },
@@ -820,7 +1007,6 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
     let io_notify = io.clone();
     let io_transcription = io.clone();
     let io_auth = io.clone();
-    let io_mcp_setup = io.clone();
     let io_memory_sync = io.clone();
     let io_channel_status = io.clone();
     let io_companion = io.clone();
@@ -969,6 +1155,18 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
                 break;
             };
             if let crate::core::events::DomainEvent::SessionExpired { source, reason } = event {
+                // Other publishers may emit a backend 401 while this core is
+                // using its offline local credential. The auth subscriber
+                // correctly keeps that credential, so the UI must not receive
+                // a contradictory sign-out event from this independent bus
+                // consumer. Real JWT expiry still broadcasts as before.
+                if crate::security::credentials::session_support::current_session_is_local().await {
+                    log::info!(
+                        "[socketio] suppress auth:session_expired for local offline credential source={}",
+                        source
+                    );
+                    continue;
+                }
                 log::info!(
                     "[socketio] broadcast auth:session_expired source={} reason_len={}",
                     source,
@@ -1039,59 +1237,6 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
             }
         }
         log::debug!("[socketio] workspace_changed bridge stopped");
-    });
-
-    // 6b. McpSetupSecretRequested → broadcast `mcp_setup:secret_requested`
-    //     so the UI can render a native input dialog. Only the opaque
-    //     ref + safe display fields are forwarded; raw secret values
-    //     are not part of the event payload.
-    tokio::spawn(async move {
-        let bus = {
-            const RETRY_INTERVAL_MS: u64 = 250;
-            const MAX_WAIT_SECS: u64 = 30;
-            let max_attempts = (MAX_WAIT_SECS * 1000) / RETRY_INTERVAL_MS;
-            let mut attempts: u64 = 0;
-            loop {
-                if let Some(bus) = crate::core::bus::BUS.get() {
-                    break bus;
-                }
-                attempts += 1;
-                if attempts > max_attempts {
-                    log::warn!(
-                        "[socketio] event_bus not initialised after {}s — mcp_setup bridge giving up",
-                        MAX_WAIT_SECS
-                    );
-                    return;
-                }
-                tokio::time::sleep(std::time::Duration::from_millis(RETRY_INTERVAL_MS)).await;
-            }
-        };
-        let mut rx = bus.receiver();
-        loop {
-            let Some(event) = rx.recv().await else {
-                break;
-            };
-            if let crate::core::events::DomainEvent::McpSetupSecretRequested {
-                ref_id,
-                key_name,
-                prompt,
-            } = event
-            {
-                log::info!(
-                    "[socketio] broadcast mcp_setup:secret_requested ref={} key={}",
-                    ref_id,
-                    key_name
-                );
-                let payload = serde_json::json!({
-                    "ref_id": ref_id,
-                    "key_name": key_name,
-                    "prompt": prompt,
-                });
-                let _ = io_mcp_setup.emit("mcp_setup:secret_requested", &payload);
-                let _ = io_mcp_setup.emit("mcp_setup_secret_requested", &payload);
-            }
-        }
-        log::debug!("[socketio] mcp_setup secret_requested bridge stopped");
     });
 
     // 5. Transcription results → broadcast to all connected clients.
@@ -1596,14 +1741,21 @@ fn replay_parked_approval(socket: &SocketRef, thread_id: &str) {
         return;
     };
     let client_id = socket.id.to_string();
-    let event = crate::web_chat::approval_request_event(
+    let expires_at = row.expires_at.map(|t| t.to_rfc3339());
+    let mut event = crate::web_chat::approval_request_event(
         &row.request_id,
         &row.tool_name,
         &row.action_summary,
         &row.args_redacted,
         thread_id,
         &client_id,
+        row.tool_call_id.as_deref(),
+        expires_at.as_deref(),
     );
+    // Replay is a fresh emit to a newly-joined socket, not a resend of the
+    // original event, so stamp `ts` with "now" (same clock as
+    // `publish_web_channel_event`) rather than leaving it unset.
+    event.ts = Some(crate::web_chat::progress_bridge::unix_epoch_ms());
     let Ok(payload) = serde_json::to_value(&event) else {
         return;
     };
@@ -1613,6 +1765,37 @@ fn replay_parked_approval(socket: &SocketRef, thread_id: &str) {
         row.tool_name
     );
     emit_with_aliases(socket, "approval_request", &payload);
+}
+
+/// Re-send the plan review parked on `thread_id`, if any, to the socket that
+/// just joined that thread's room. Mirrors [`replay_parked_approval`] — a
+/// plan review is a live, in-memory park (no SQLite row), but it reaches the
+/// UI the same fire-and-forget way, so the same reconciliation applies.
+#[cfg(feature = "http-server")]
+fn replay_parked_plan_review(socket: &SocketRef, thread_id: &str) {
+    let Some(row) = crate::agent::plan_review::gate::global().parked_review_for_thread(thread_id)
+    else {
+        return;
+    };
+    let client_id = socket.id.to_string();
+    let mut event = crate::web_chat::plan_review_request_event(
+        &row.request_id,
+        &row.summary,
+        &row.steps,
+        thread_id,
+        &client_id,
+        row.tool_call_id.as_deref(),
+        row.expires_at.as_deref(),
+    );
+    event.ts = Some(crate::web_chat::progress_bridge::unix_epoch_ms());
+    let Ok(payload) = serde_json::to_value(&event) else {
+        return;
+    };
+    log::info!(
+        "[socketio] replaying parked plan_review_request to joining socket client_id={client_id} thread_id={thread_id} request_id={}",
+        row.request_id
+    );
+    emit_with_aliases(socket, "plan_review_request", &payload);
 }
 
 #[cfg(feature = "http-server")]

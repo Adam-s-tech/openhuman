@@ -131,17 +131,22 @@ fn o1_o3_segment_match_does_not_overmatch() {
 /// docs to be revisited, instead of only the two `true` arms being covered.
 #[test]
 fn oh_tier_vision_map_is_exhaustively_pinned() {
-    use crate::config::{
-        MODEL_AGENTIC_V1, MODEL_BURST_V1, MODEL_CHAT_V1, MODEL_CODING_V1, MODEL_REASONING_QUICK_V1,
-        MODEL_REASONING_V1, MODEL_SUMMARIZATION_V1, MODEL_VISION_V1,
-    };
+    use crate::config::MODEL_MANAGED_DEFAULT;
     use crate::inference::provider::factory::oh_tier_supports_vision;
 
     for tier in [
-        MODEL_REASONING_V1,
+        // The managed default (DeepSeek V4 Flash) takes images.
+        MODEL_MANAGED_DEFAULT,
+        "reasoning-v1",
         "hint:reasoning",
-        MODEL_VISION_V1,
+        "vision-v1",
         "hint:vision",
+        // The dedicated OpenRouter passthrough models the media agents
+        // (`vision_agent`, `image_agent`, `video_agent`) are pinned to now
+        // that `hint:vision` / `vision-v1` is deprecated (regression R4).
+        crate::config::MODEL_MEDIA_UNDERSTANDING,
+        crate::config::MODEL_IMAGE_GENERATION_AGENT,
+        crate::config::MODEL_VIDEO_GENERATION_AGENT,
     ] {
         assert!(
             oh_tier_supports_vision(tier),
@@ -150,16 +155,16 @@ fn oh_tier_vision_map_is_exhaustively_pinned() {
     }
 
     for tier in [
-        MODEL_CHAT_V1,
+        "chat-v1",
         "hint:chat",
-        MODEL_REASONING_QUICK_V1,
-        MODEL_AGENTIC_V1,
+        "reasoning-quick-v1",
+        "agentic-v1",
         "hint:agentic",
-        MODEL_BURST_V1,
+        "burst-v1",
         "hint:burst",
-        MODEL_CODING_V1,
+        "coding-v1",
         "hint:coding",
-        MODEL_SUMMARIZATION_V1,
+        "summarization-v1",
         "hint:summarization",
         // Anything the map does not name at all falls through to `false`.
         "gpt-5",
@@ -170,4 +175,26 @@ fn oh_tier_vision_map_is_exhaustively_pinned() {
             "{tier} must not be reported vision-capable"
         );
     }
+}
+
+/// R4 regression: the media agents' new `exact` model pin
+/// (`openrouter/qwen/qwen3.5-flash-02-23`, replacing the deprecated `hint:vision`)
+/// must be reported vision-capable through both the tier-map gate and the
+/// combined `model_supports_vision` facade — the two call sites
+/// `dispatch.rs:256` and `runner.rs:1536` actually gate image/video
+/// forwarding on.
+#[test]
+fn media_agent_pinned_model_is_vision_capable() {
+    use crate::config::{Config, MODEL_MEDIA_UNDERSTANDING};
+    use crate::inference::provider::factory::oh_tier_supports_vision;
+
+    assert!(
+        oh_tier_supports_vision(MODEL_MEDIA_UNDERSTANDING),
+        "{MODEL_MEDIA_UNDERSTANDING} must be reported vision-capable"
+    );
+    let config = Config::default();
+    assert!(
+        model_supports_vision(MODEL_MEDIA_UNDERSTANDING, &config),
+        "{MODEL_MEDIA_UNDERSTANDING} must be vision-capable through the combined facade too"
+    );
 }

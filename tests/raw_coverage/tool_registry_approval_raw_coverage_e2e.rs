@@ -95,6 +95,8 @@ fn env_lock() -> std::sync::MutexGuard<'static, ()> {
 }
 
 fn ensure_rpc_auth() {
+
+    crate::tinyhumans_boot::boot();
     AUTH_INIT.get_or_init(|| {
         std::env::set_var(CORE_TOKEN_ENV_VAR, TEST_RPC_TOKEN);
         let token_dir = std::env::temp_dir().join("openhuman-tool-registry-approval-e2e-auth");
@@ -178,6 +180,8 @@ disallowed_tools = ["write_file"]
 }
 
 async fn setup(capability_providers: &str) -> TestHarness {
+
+    crate::tinyhumans_boot::boot();
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
     let workspace = home.join("openhuman-workspace");
@@ -1281,6 +1285,9 @@ async fn approval_rpc_decision_paths_persist_always_allow_and_recent_audit() {
                 ApprovalChatContext {
                     thread_id: "approval-raw-thread".to_string(),
                     client_id: "approval-raw-client".to_string(),
+                    // No turn in scope in this fixture; the field is documented as
+                    // carried only when the caller has one (`gate.rs:91-95`).
+                    request_id: None,
                 },
                 async move {
                     gate_for_task
@@ -1496,6 +1503,9 @@ async fn approval_rpc_decision_paths_persist_always_allow_and_recent_audit() {
             ApprovalChatContext {
                 thread_id: "approval-live-policy-thread".to_string(),
                 client_id: "approval-live-policy-client".to_string(),
+                // No turn in scope in this fixture; the field is documented as
+                // carried only when the caller has one (`gate.rs:91-95`).
+                request_id: None,
             },
             gate.intercept_audited(
                 "tools.live_policy_allowed",
@@ -1522,6 +1532,9 @@ async fn approval_rpc_decision_paths_persist_always_allow_and_recent_audit() {
                 ApprovalChatContext {
                     thread_id: "approval-deny-thread".to_string(),
                     client_id: "approval-deny-client".to_string(),
+                    // No turn in scope in this fixture; the field is documented as
+                    // carried only when the caller has one (`gate.rs:91-95`).
+                    request_id: None,
                 },
                 async move {
                     gate_for_deny_task
@@ -1641,6 +1654,9 @@ async fn approval_rpc_decision_paths_persist_always_allow_and_recent_audit() {
             ApprovalChatContext {
                 thread_id: "approval-persist-failure-thread".to_string(),
                 client_id: "approval-persist-failure-client".to_string(),
+                // No turn in scope in this fixture; the field is documented as
+                // carried only when the caller has one (`gate.rs:91-95`).
+                request_id: None,
             },
             gate.intercept_audited(
                 "tools.persistence_failure",

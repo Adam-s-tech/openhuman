@@ -95,25 +95,30 @@ pub(super) struct RuntimeSettingsUpdate {
 pub(super) struct BrowserSettingsUpdate {
     pub(super) enabled: Option<bool>,
     pub(super) backend: Option<String>,
+    pub(super) headless: Option<bool>,
+    pub(super) viewport_width: Option<u32>,
+    pub(super) viewport_height: Option<u32>,
+    pub(super) chrome_path: Option<String>,
+    pub(super) profile_mode: Option<String>,
+    pub(super) profile_path: Option<String>,
+    pub(super) download_dir: Option<String>,
+    pub(super) max_task_steps: Option<usize>,
+    pub(super) task_timeout_secs: Option<u64>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(super) struct ComputerSettingsUpdate {
+    pub(super) decision_model: Option<String>,
+    pub(super) sage_fast: Option<bool>,
+    pub(super) planner_model: Option<String>,
+    pub(super) rescue_model: Option<String>,
+    pub(super) max_rescues: Option<u32>,
 }
 
 #[derive(Debug, Deserialize)]
 pub(super) struct AnalyticsSettingsUpdate {
     pub(super) enabled: Option<bool>,
-}
-
-#[derive(Debug, Deserialize)]
-pub(super) struct SearchSettingsUpdate {
-    pub(super) engine: Option<String>,
-    pub(super) max_results: Option<usize>,
-    pub(super) timeout_secs: Option<u64>,
-    pub(super) parallel_api_key: Option<String>,
-    pub(super) brave_api_key: Option<String>,
-    pub(super) querit_api_key: Option<String>,
-    pub(super) exa_api_key: Option<String>,
-    pub(super) tavily_api_key: Option<String>,
-    pub(super) allowed_domains: Option<Vec<String>>,
-    pub(super) allow_all: Option<bool>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -189,6 +194,12 @@ pub(super) struct ComposioTriggerSettingsUpdate {
 
 #[derive(Debug, Deserialize)]
 pub(super) struct AutonomySettingsUpdate {
+    /// Master switch for the whole autonomy policy. Defaults to `false`
+    /// (`AutonomyConfig::enabled`): with it off, classification, the approval
+    /// gate, the allowlist, the action budget and containment are all inert,
+    /// and every other field in this patch has no effect until it is `true`.
+    /// `is_always_forbidden` applies either way.
+    pub(super) enabled: Option<bool>,
     /// `"readonly" | "supervised" | "full"` (case-insensitive).
     pub(super) level: Option<String>,
     pub(super) workspace_only: Option<bool>,
@@ -200,13 +211,10 @@ pub(super) struct AutonomySettingsUpdate {
     /// `{ "path": "/abs/dir", "access": "read" | "readwrite" }`.
     pub(super) trusted_roots: Option<Vec<crate::security::TrustedRoot>>,
     pub(super) allow_tool_install: Option<bool>,
-    // Accept u64 to match the published schema (`TypeSchema::U64`); clamped to the
-    // internal u32 at apply time. u32::MAX/hr is already effectively unlimited.
-    pub(super) max_actions_per_hour: Option<u64>,
+    pub(super) max_actions_per_hour: Option<u32>,
     /// Replaces the "Always allow" allowlist wholesale — tool names the agent
     /// may run without an approval prompt. Empty list clears it.
     pub(super) auto_approve: Option<Vec<String>>,
-    pub(super) require_task_plan_approval: Option<bool>,
     /// Blanket "auto-approve everything" bypass. `SubconsciousTainted` and
     /// `Unknown` origins are still denied by the gate regardless of this
     /// setting.
@@ -223,6 +231,10 @@ pub(super) struct PrivacyModeUpdate {
 pub(super) struct AgentSettingsUpdate {
     /// Tool/action wall-clock timeout in seconds (1–3600). Validated server-side.
     pub(super) agent_timeout_secs: Option<u64>,
+    /// Agent id the web-chat path routes turns to. Empty string clears the
+    /// override (back to the orchestrator); omitted leaves it unchanged.
+    #[serde(default)]
+    pub(super) chat_agent_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -230,12 +242,6 @@ pub(super) struct AgentPathsUpdate {
     /// New absolute action sandbox path. Empty string clears the override;
     /// omitted leaves it unchanged. Validated server-side.
     pub(super) action_dir: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
-pub(super) struct ActivityLevelSettingsUpdate {
-    /// "off" | "minimal" | "moderate" | "active" | "always_on" (or "0"-"4").
-    pub(super) level: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -298,6 +304,15 @@ pub fn optional_bool(name: &'static str, comment: &'static str) -> FieldSchema {
     FieldSchema {
         name,
         ty: TypeSchema::Option(Box::new(TypeSchema::Bool)),
+        comment,
+        required: false,
+    }
+}
+
+pub fn optional_number(name: &'static str, comment: &'static str) -> FieldSchema {
+    FieldSchema {
+        name,
+        ty: TypeSchema::Option(Box::new(TypeSchema::U64)),
         comment,
         required: false,
     }

@@ -23,6 +23,7 @@ import type {
   RunEvent,
   RunEventListResponse,
 } from '../../types/turnState';
+import type { ChatThreadTodoItem, ThreadGoal } from '../chatService';
 import { callCoreRpc } from '../coreRpcClient';
 
 interface Envelope<T> {
@@ -44,8 +45,8 @@ const generateTitleLog = debug('threadApi.generateTitleIfNeeded');
 
 /**
  * The core's `sender` vocabulary is `user` | `agent`, but some core writers
- * stored the assistant side as `assistant` (autonomous task sessions before
- * #5933, channel-session mirrors). Fold that alias onto `agent` at the transport
+ * stored the assistant side as `assistant` (legacy system writers and
+ * channel-session mirrors). Fold that alias onto `agent` at the transport
  * boundary so every `sender === 'agent'` check in the renderers — and the
  * assistant-ui role mapping — treats such a row as the assistant instead of
  * painting it as a user turn.
@@ -164,6 +165,34 @@ export const threadApi = {
     });
     const data = unwrapEnvelope(response);
     return data?.turnStates ?? [];
+  },
+
+  /**
+   * The thread's current live todo list, for thread open / reconnect (the
+   * `thread_todos_changed` socket event covers every update after that).
+   * Wire method `openhuman.threads_todos_get`.
+   */
+  getTodos: async (threadId: string): Promise<ChatThreadTodoItem[]> => {
+    const response = await callCoreRpc<{ data?: { todos?: ChatThreadTodoItem[] } }>({
+      method: 'openhuman.threads_todos_get',
+      params: { thread_id: threadId },
+    });
+    const data = unwrapEnvelope(response);
+    return data?.todos ?? [];
+  },
+
+  /**
+   * The thread's current goal (or `null`), for thread open / reconnect (the
+   * `thread_goal_updated` / `thread_goal_cleared` socket events cover every
+   * update after that). Wire method `openhuman.threads_goal_get`.
+   */
+  getGoal: async (threadId: string): Promise<ThreadGoal | null> => {
+    const response = await callCoreRpc<{ data?: { goal?: ThreadGoal | null } }>({
+      method: 'openhuman.threads_goal_get',
+      params: { thread_id: threadId },
+    });
+    const data = unwrapEnvelope(response);
+    return data?.goal ?? null;
   },
 
   /** One specific past turn of a thread, by its producing request id (Phase 4). */

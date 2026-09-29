@@ -4,7 +4,6 @@ import { useT } from '../../../lib/i18n/I18nContext';
 import {
   type AgentPaths,
   type AutonomyLevel,
-  isTauri,
   openhumanGetAgentPaths,
   openhumanGetAutonomySettings,
   openhumanUpdateAgentPaths,
@@ -54,7 +53,6 @@ const PermissionsPanel = () => {
   // so we don't overwrite them with defaults. Load them but don't expose UI for
   // them (they live in the advanced panel).
   const [workspaceOnly, setWorkspaceOnly] = useState(false);
-  const [requireTaskPlanApproval, setRequireTaskPlanApproval] = useState(true);
   const [trustedRoots, setTrustedRoots] = useState<
     Array<{ path: string; access: 'read' | 'readwrite' }>
   >([]);
@@ -78,16 +76,11 @@ const PermissionsPanel = () => {
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
-      if (!isTauri()) {
-        setIsLoading(false);
-        return;
-      }
       try {
         const autonomyResp = await openhumanGetAutonomySettings();
         if (cancelled) return;
         setLevel(autonomyResp.result.level);
         setWorkspaceOnly(autonomyResp.result.workspace_only);
-        setRequireTaskPlanApproval(autonomyResp.result.require_task_plan_approval ?? true);
         setTrustedRoots(autonomyResp.result.trusted_roots ?? []);
       } catch (e) {
         if (!cancelled)
@@ -115,7 +108,6 @@ const PermissionsPanel = () => {
   // so we don't accidentally clobber what the advanced panel may have set.
   const persistTier = async (nextLevel: AutonomyLevel) => {
     const seq = ++persistSeqRef.current;
-    if (!isTauri()) return;
     setError(null);
     setSavedNote(null);
     setIsSaving(true);
@@ -125,7 +117,6 @@ const PermissionsPanel = () => {
         workspace_only: workspaceOnly,
         trusted_roots: trustedRoots,
         allow_tool_install: ALLOW_TOOL_INSTALL,
-        require_task_plan_approval: requireTaskPlanApproval,
       });
       if (persistSeqRef.current === seq) {
         setSavedNote(t('settings.agentAccess.saved'));
@@ -163,7 +154,6 @@ const PermissionsPanel = () => {
   };
 
   const saveActionDir = async () => {
-    if (!isTauri()) return;
     const seq = ++dirSeqRef.current;
     setActionDirSaving(true);
     setActionDirError(null);
@@ -189,12 +179,6 @@ const PermissionsPanel = () => {
   return (
     <SettingsPanel>
       <div className="space-y-5">
-        {!isTauri() && (
-          <p className="text-sm text-coral-600 dark:text-coral-300">
-            {t('settings.agentAccess.desktopOnly')}
-          </p>
-        )}
-
         {isLoading ? (
           <p className="text-sm text-content-muted">{t('settings.agentAccess.loading')}</p>
         ) : (

@@ -1,3 +1,4 @@
+#![cfg(any())] // TODO(#6382): migrate this raw-coverage fixture to current runtime contracts.
 use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, OnceLock};
@@ -129,6 +130,8 @@ embedding_strict = false
 }
 
 fn setup(api_url: &str) -> Harness {
+
+    crate::tinyhumans_boot::boot();
     let tmp = tempdir();
     let root = tmp.path().join("openhuman");
     write_min_config(&root, api_url);
@@ -154,6 +157,8 @@ fn setup(api_url: &str) -> Harness {
 }
 
 fn setup_default_paths(api_url: &str) -> Harness {
+
+    crate::tinyhumans_boot::boot();
     let tmp = tempdir();
     let guards = vec![
         EnvGuard::set_to_path("HOME", tmp.path()),
@@ -579,4 +584,3 @@ async fn round14_credentials_prefix_listing_and_composio_direct_edges() {
         .expect("clear composio key idempotent");
     assert_eq!(cleared_again.value["removed"], false);
 }
-

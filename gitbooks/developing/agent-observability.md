@@ -7,7 +7,7 @@ icon: eye
 
 This doc describes the artifact-capture layer that makes the desktop app
 inspectable by coding agents (Codex, Claude Code, Cursor) through the
-existing WDIO/Appium Chromium harness.
+existing WDIO / tauri-driver E2E harness (see [E2E Testing](e2e-testing.md)).
 
 It is intentionally narrow: one canonical onboarding + privacy flow with
 on-disk screenshots, page-source dumps, and mock backend request logs.
@@ -71,6 +71,57 @@ saveMockRequestLog("after-connect-click", getRequestLog());
 `captureCheckpoint` numbers captures so the run dir reads chronologically.
 `captureFailureArtifacts` is wired into `wdio.conf.ts` and fires
 automatically on any failing test, specs should not call it directly.
+
+## Inference on the wire: the capture proxy
+
+Logs tell you a turn was slow; they do not tell you what the harness sent or
+which endpoint answered. `scripts/debug/capture-first-inference.mjs`
+(`pnpm debug capture`) is a loopback proxy between the core and its inference
+backend that records both sides:
+
+```bash
+CAPTURE_ALL=1 pnpm debug capture                # listens on 127.0.0.1:18765
+# then, in another shell, point a core at it:
+BACKEND_URL=http://127.0.0.1:18765 ./target/debug/openhuman-core run --port 7799
+# or set api_url = "http://127.0.0.1:18765" in the user's config.toml
+```
+
+Every inference request body is written, numbered, under
+`target/debug-logs/inference-sequence/` (the exact system prompt, tool
+schemas and `prompt_cache_key` the harness assembled), and every response
+yields one summary line and one JSONL record in
+`target/debug-logs/inference-capture.jsonl`:
+
+```
+[capture] #000 200 model=z-ai/glm-5.3-flash msgs=2 tools=19 served_by=StreamLake ttfb=7.38s total=8.43s prompt=12344 cached=12288 cache_key=tap-25675927a3f2160d
+```
+
+`CAPTURE_UPSTREAM=https://openrouter.ai` captures a direct BYOK OpenRouter
+route instead of the hosted backend. Non-2xx response bodies are saved next to
+the request dumps so an HTML 503 from an ingress is not lost behind a generic
+"model error".
+
+What to look for across the turns of one thread: `cache_key` must stay
+identical (it is the harness's stable-prefix fingerprint and OpenRouter's
+sticky-routing key), `served_by` should not change, and `cached` should
+approach `prompt` from the second call on. Each of those drifting has been a
+real bug (openhuman#6434). The proxy binds loopback only and refuses a
+plaintext non-loopback upstream unless overridden, because it forwards the
+bearer verbatim; `--help` lists every `CAPTURE_*` knob.
+
+## Production agent traces are a separate mechanism
+
+Everything above is about E2E artifacts on disk. For a real agent run, the
+core can export trace spans to Langfuse instead: when
+`observability.share_usage_data` is on (the default), a completed run's spans
+go to the OpenHuman backend's Langfuse ingestion proxy over the same session
+bearer every other backend call uses, and the backend forwards them to
+Langfuse with the project keys injected server-side. Clients never hold
+Langfuse credentials directly. Prompt and reply text ride along only while
+`observability.agent_tracing.capture_content` is also on; turning it off keeps
+metadata (names, timings, token and cost figures) but drops content. See
+`crates/openhuman-core/src/agent/progress_tracing/langfuse.rs` and
+`crates/openhuman-core/src/config/schema/observability.rs`.
 
 ## What is intentionally out of scope
 

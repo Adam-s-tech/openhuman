@@ -7,7 +7,6 @@ use super::chat_workload::{resolve_chat_workload, ChatWorkloadResolution};
 use super::credentials::{hydrate_channel_credentials, RuntimeProxyClients};
 use super::prompt::format_access_context;
 use super::relay::start_relay_runtime;
-use crate::agent::harness::build_tool_instructions_filtered;
 use crate::agent::host_runtime;
 use crate::channels::context::{
     effective_channel_message_timeout_secs, ChannelRuntimeContext,
@@ -80,6 +79,17 @@ async fn start_channels_inner(mut config: Config) -> Result<()> {
     // `external_transfer_pending` web-channel events so the frontend can show a
     // per-action "what leaves, to where, why" card (privacy epic S2, #4436).
     crate::web_chat::register_egress_surface_subscriber();
+    // Surface thread-goal / thread-todo / run-queue lifecycle events
+    // (ThreadGoalUpdated/Cleared, ThreadTodosChanged, RunQueue*) as
+    // `thread_goal_updated`/`thread_goal_cleared`/`thread_todos_changed`/
+    // `queue_item_queued`/`queue_item_delivered` web-channel events so the
+    // desktop goal chip, todo drawer, and message-queue UI stay live (C3).
+    crate::web_chat::register_agent_surface_subscriber();
+    // Surface memory store/recall activity (MemoryStored/MemoryRecalled) as
+    // `memory_activity` web-channel events, routed to the turn's own
+    // thread/client only (C5) — never carries memory content or the raw
+    // recall query, only a short clipped preview.
+    crate::web_chat::register_memory_activity_surface_subscriber();
     // Spawn the per-toolkit provider periodic sync scheduler. This is
     // a thin tokio task that ticks every minute and dispatches into
     // any provider whose `sync_interval_secs` has elapsed for an
@@ -93,9 +103,6 @@ async fn start_channels_inner(mut config: Config) -> Result<()> {
     // configured external sources onto the agent's todo board.
     crate::integrations::task_sources::bus::register_task_sources_subscriber();
     crate::integrations::task_sources::start_periodic_poll();
-    // Board poller: dispatch the highest-urgency `todo` card on the
-    // task-sources board (catch-all for cards without a proactive trigger).
-    crate::agent::task_dispatcher::start_board_poller();
     // Native request handlers. Re-registering is safe (latest wins) so
     // this is idempotent even if `bootstrap_core_runtime` also runs.
     // Must happen before `run_message_dispatch_loop` begins, because
@@ -200,7 +207,7 @@ async fn start_channels_inner(mut config: Config) -> Result<()> {
     let temperature = config.default_temperature;
     // Build system prompt from workspace identity files + skills
     let workspace = config.workspace_dir.clone();
-    let tools_registry = Arc::new(tools::all_tools_with_runtime(
+    let tools_registry = Arc::new(tools::ops::all_tools_with_runtime(
         Arc::new(config.clone()),
         &security,
         runtime,
@@ -212,10 +219,6 @@ async fn start_channels_inner(mut config: Config) -> Result<()> {
         &config.action_dir,
         &config.agents,
         &config,
-        None,
-        None,
-        None,
-        None,
         None,
     ));
 
@@ -263,8 +266,7 @@ async fn start_channels_inner(mut config: Config) -> Result<()> {
         ));
     }
     // Composio tool descriptions are intentionally excluded from the main
-    // agent prompt — those tools are only available to the integrations_agent
-    // subagent via category_filter = "skill".
+    // agent prompt — integration actions are reached through tool search.
     tool_descs.push((
         "schedule",
         "Manage scheduled tasks (create/list/get/cancel/pause/resume). Supports recurring cron and one-shot delays.",
@@ -286,19 +288,18 @@ async fn start_channels_inner(mut config: Config) -> Result<()> {
         None
     };
     // Filter out Workflow-category tools (e.g. Composio, Apify) from the
-    // main agent prompt — those are only available to the integrations_agent
-    // subagent via category_filter = "skill".
-    let non_skill_tools: Vec<&Box<dyn crate::tools::Tool>> = tools_registry
+    // main agent prompt — integration actions are reached through tool search.
+    let non_skill_tools: Vec<&Box<dyn tinytools::Tool>> = tools_registry
         .iter()
-        .filter(|t| t.category() != crate::tools::traits::ToolCategory::Workflow)
+        .filter(|t| t.category() != tinytools::ToolCategory::Workflow)
         .collect();
-    let non_skill_refs: Vec<&dyn crate::tools::Tool> =
-        non_skill_tools.iter().map(|t| t.as_ref()).collect();
     // Everything after the rendered prompt is fixed for the process: the
     // tool-instruction block, then the model's current filesystem access
     // boundaries so it self-limits (advisory only — the SecurityPolicy
     // enforces these regardless).
-    let mut prompt_suffix = build_tool_instructions_filtered(&non_skill_refs);
+    let non_skill_specs: Vec<tinytools::ToolSpec> =
+        non_skill_tools.iter().map(|tool| tool.spec()).collect();
+    let mut prompt_suffix = tinytools_agent::dialect::XmlDialect::instructions(&non_skill_specs);
     prompt_suffix.push_str(&format_access_context(&security));
     // The prompt itself is rendered here for the current identity and
     // re-rendered whenever the active profile or an identity file changes

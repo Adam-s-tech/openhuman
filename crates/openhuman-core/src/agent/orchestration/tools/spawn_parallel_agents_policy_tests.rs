@@ -61,8 +61,11 @@ fn result_omits_worktree_fields_when_absent() {
         agent_id: "a".into(),
         lineage: test_lineage("t1"),
         success: true,
+        status: crate::agent::orchestration::spawn_parallel_graph::ParallelAgentStatus::Completed,
         output: Some("ok".into()),
         error: None,
+        awaiting_question: None,
+        checkpoint_path: None,
         ownership: None,
         elapsed_ms: 5,
         iterations: 1,
@@ -70,6 +73,7 @@ fn result_omits_worktree_fields_when_absent() {
         worktree_path: None,
         changed_files: Vec::new(),
         dirty_status: None,
+        emit_lifecycle_effects: false,
     };
     let v = serde_json::to_value(&result).unwrap();
     assert!(v.get("worktreePath").is_none());
@@ -84,8 +88,11 @@ fn result_serializes_worktree_fields_when_present() {
         agent_id: "coder".into(),
         lineage: test_lineage("t2"),
         success: true,
+        status: crate::agent::orchestration::spawn_parallel_graph::ParallelAgentStatus::Completed,
         output: None,
         error: None,
+        awaiting_question: None,
+        checkpoint_path: None,
         ownership: None,
         elapsed_ms: 9,
         iterations: 2,
@@ -93,6 +100,7 @@ fn result_serializes_worktree_fields_when_present() {
         worktree_path: Some("/repo/.claude/worktrees/t2".into()),
         changed_files: vec!["src/a.rs".into()],
         dirty_status: Some(true),
+        emit_lifecycle_effects: false,
     };
     let v = serde_json::to_value(&result).unwrap();
     assert_eq!(v["worktreePath"], "/repo/.claude/worktrees/t2");
@@ -110,7 +118,11 @@ async fn rejects_single_task() {
         .await
         .unwrap();
     assert!(result.is_error);
-    assert!(result.output().contains("at least two"));
+    assert!(
+        result.output().contains("at least two"),
+        "got: {}",
+        result.output()
+    );
 }
 
 #[tokio::test]
@@ -182,8 +194,7 @@ async fn collects_immediate_task_validation_failures() {
         tool.execute(json!({
             "tasks": [
                 { "agent_id": " ", "prompt": "missing agent", "ownership": "files: none" },
-                { "agent_id": "__missing_agent__", "prompt": "unknown agent" },
-                { "agent_id": "integrations_agent", "prompt": "needs toolkit" }
+                { "agent_id": "__missing_agent__", "prompt": "unknown agent" }
             ]
         }))
         .await
@@ -193,8 +204,8 @@ async fn collects_immediate_task_validation_failures() {
 
     assert!(!result.is_error, "{}", result.output());
     let body: serde_json::Value = serde_json::from_str(&result.output()).expect("json output");
-    assert_eq!(body["parallel_agents"]["total"], 3);
-    assert_eq!(body["parallel_agents"]["failed"], 3);
+    assert_eq!(body["parallel_agents"]["total"], 2);
+    assert_eq!(body["parallel_agents"]["failed"], 2);
     let errors = body["parallel_agents"]["results"]
         .as_array()
         .expect("results")
@@ -207,9 +218,6 @@ async fn collects_immediate_task_validation_failures() {
     assert!(errors
         .iter()
         .any(|error| error.contains("unknown agent_id")));
-    assert!(errors
-        .iter()
-        .any(|error| error.contains("requires toolkit")));
 }
 
 #[test]
@@ -233,7 +241,6 @@ fn shared_workspace_rejects_write_capable_named_worker_without_worktree() {
             agent_id: "researcher".into(),
             prompt: "edit a file".into(),
             context: None,
-            toolkit: None,
             ownership: None,
             isolation: None,
             base_ref: None,
@@ -281,7 +288,6 @@ fn shared_workspace_allows_readonly_or_explicitly_isolated_workers() {
                 agent_id: "researcher".into(),
                 prompt: "read only".into(),
                 context: None,
-                toolkit: None,
                 ownership: None,
                 isolation: None,
                 base_ref: None,
@@ -290,7 +296,6 @@ fn shared_workspace_allows_readonly_or_explicitly_isolated_workers() {
                 agent_id: "critic".into(),
                 prompt: "isolated edit".into(),
                 context: None,
-                toolkit: None,
                 ownership: Some("files: src/b.rs".into()),
                 isolation: Some("worktree".into()),
                 base_ref: None,

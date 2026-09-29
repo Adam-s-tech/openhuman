@@ -5,15 +5,19 @@
 //! name, description, and parameter JSON schema so the LLM's native
 //! tool-calling path can validate arguments before they hit the wire.
 //!
-//! These are constructed **dynamically at spawn time** by the sub-agent
-//! runner when `integrations_agent` is spawned with a `toolkit` argument —
-//! one tool per action in the chosen toolkit. The generic
-//! [`ComposioExecuteTool`](super::tools::ComposioExecuteTool) dispatcher
-//! is deliberately excluded from `integrations_agent`'s tool list in that
-//! path so the model doesn't see two ways to call the same action.
+//! [`ComposioActionTool::new`] builds a `ToolExposure::Direct` instance
+//! anchored to a config snapshot.
 //!
-//! Lifetime: these tools live for the duration of a single sub-agent
-//! spawn. Rather than baking a `ComposioClient` at construction time
+//! [`ComposioActionTool::deferred`] builds the same tool as a
+//! `ToolExposure::Deferred` registration for a parent session:
+//! every action of every connected toolkit is synthesised beside the
+//! delegation tools (`tools::orchestrator_tools`), stays off the wire, and
+//! is found through the harness's `tool_search` bridge — so one clear action
+//! ("send Alex a Slack message") is a search and a call, not a sub-agent
+//! run. Those instances have no spawn-time config to anchor to and resolve
+//! the live config through the core's read path instead.
+//!
+//! Rather than baking a `ComposioClient` at construction time
 //! (which would silently bypass a mid-session
 //! [`crate::config::ComposioConfig::mode`] toggle — see
 //! issue #1710), each tool keeps an [`Arc<Config>`] and resolves the
@@ -35,7 +39,7 @@ use crate::agent::harness::current_sandbox_mode;
 use crate::agent::harness::definition::SandboxMode;
 use crate::config::rpc as config_rpc;
 use crate::config::Config;
-use crate::tools::traits::{PermissionLevel, Tool, ToolCategory, ToolResult};
+use tinytools::{PermissionLevel, Tool, ToolCategory, ToolResult};
 
 /// A single Composio action exposed as a first-class tool.
 pub struct ComposioActionTool {
@@ -53,7 +57,12 @@ pub struct ComposioActionTool {
     /// [`create_composio_client`] keeps dispatch in lockstep with the
     /// live config, matching
     /// [`super::tools::ComposioExecuteTool`]. See issue #1710.
-    config: Arc<Config>,
+    ///
+    /// `None` for a deferred instance synthesised for a parent session,
+    /// which has no spawn-time config: it resolves the live config through
+    /// [`config_rpc::load_config_with_timeout`] on every call — the
+    /// embedder's config when one is bound, else the process-global one.
+    config: Option<Arc<Config>>,
     /// Action slug as-shipped to Composio, e.g. `"GMAIL_SEND_EMAIL"`.
     action_name: String,
     /// Human-readable description from the Composio tool-list response.
@@ -70,9 +79,15 @@ pub struct ComposioActionTool {
     /// gate surfaces the action's FULL live input schema/description so the
     /// model composes well-formed arguments (e.g. correctly-quoted Gmail
     /// queries) instead of guessing from the thin spawn-time schema; the retry
-    /// executes normally. Held per tool instance, which lives for one
-    /// `integrations_agent` spawn, so "seen" is scoped to that turn.
+    /// executes normally. Held per tool instance, so "seen" is scoped to that
+    /// instance's lifetime.
     gate: super::contract_gate::ContractGate,
+    /// `Direct` for a config-anchored instance, `Deferred` for the
+    /// parent-session catalogue reached through `tool_search`.
+    exposure: tinytools::ToolExposure,
+    /// The toolkit slug (`gmail`, `slack`) for a deferred instance, so the
+    /// search index can say where an action came from.
+    family: Option<String>,
 }
 
 impl ComposioActionTool {
@@ -92,6 +107,46 @@ impl ComposioActionTool {
         parameters: Option<Value>,
         connection_id: Option<String>,
     ) -> Self {
+        Self::build(
+            Some(config),
+            action_name,
+            description,
+            parameters,
+            connection_id,
+            tinytools::ToolExposure::Direct,
+            None,
+        )
+    }
+
+    /// A `Deferred` instance for a parent session's searchable catalogue:
+    /// off the wire, found through `tool_search`, resolving the live config
+    /// per call. `toolkit` is the slug the action belongs to.
+    pub fn deferred(
+        toolkit: &str,
+        action_name: String,
+        description: String,
+        parameters: Option<Value>,
+    ) -> Self {
+        Self::build(
+            None,
+            action_name,
+            description,
+            parameters,
+            None,
+            tinytools::ToolExposure::Deferred,
+            Some(toolkit.to_string()),
+        )
+    }
+
+    fn build(
+        config: Option<Arc<Config>>,
+        action_name: String,
+        description: String,
+        parameters: Option<Value>,
+        connection_id: Option<String>,
+        exposure: tinytools::ToolExposure,
+        family: Option<String>,
+    ) -> Self {
         let parameters = parameters.unwrap_or_else(|| serde_json::json!({"type": "object"}));
         Self {
             config,
@@ -100,6 +155,17 @@ impl ComposioActionTool {
             parameters,
             connection_id,
             gate: super::contract_gate::ContractGate::new(),
+            exposure,
+            family,
+        }
+    }
+
+    /// The live config for one call: a reload anchored to the spawn-time
+    /// snapshot when there is one, else the core's read path.
+    async fn live_config(&self) -> Result<Config, String> {
+        match self.config.as_deref() {
+            Some(snapshot) => config_rpc::reload_config_snapshot_with_timeout(snapshot).await,
+            None => config_rpc::load_config_with_timeout().await,
         }
     }
 }
@@ -156,6 +222,14 @@ impl Tool for ComposioActionTool {
         ToolCategory::Workflow
     }
 
+    fn exposure(&self) -> tinytools::ToolExposure {
+        self.exposure
+    }
+
+    fn family(&self) -> Option<&str> {
+        self.family.as_deref()
+    }
+
     fn display_label(&self, _args: &Value) -> Option<String> {
         // Composio slugs are UPPER_SNAKE (e.g. `GMAIL_SEND_EMAIL`). Render a
         // sentence-cased phrase ("Gmail send email") instead of the shouty
@@ -171,11 +245,7 @@ impl Tool for ComposioActionTool {
         // agent cannot slip a mutating call through the per-action
         // surface. The dispatcher path (`composio_execute`) and this
         // per-action path are the only two routes to the Composio
-        // backend; both must honour the same invariant. Today no
-        // read-only agent spawns per-action tools (only
-        // `integrations_agent` registers them and it is
-        // `sandbox_mode = "none"`), so this is strict defense-in-depth
-        // for any future configuration that pairs the two.
+        // backend; both must honour the same invariant.
         if matches!(current_sandbox_mode(), Some(SandboxMode::ReadOnly)) {
             let scope = resolve_action_scope(&self.action_name).await;
             if matches!(scope, ToolScope::Write | ToolScope::Admin) {
@@ -204,21 +274,20 @@ impl Tool for ComposioActionTool {
         // fresh routing. Anchored to this tool's original config path rather than
         // re-resolving process-global `OPENHUMAN_WORKSPACE` (the tool is scoped to
         // the user/workspace it was created for).
-        let live_config =
-            match config_rpc::reload_config_snapshot_with_timeout(self.config.as_ref()).await {
-                Ok(c) => c,
-                Err(e) => {
-                    tracing::warn!(
-                        tool = %self.action_name,
-                        error = %e,
-                        "[composio] per-action execute: load_config failed"
-                    );
-                    return Ok(ToolResult::error(format!(
-                        "{}: failed to load live config: {e}",
-                        self.action_name
-                    )));
-                }
-            };
+        let live_config = match self.live_config().await {
+            Ok(c) => c,
+            Err(e) => {
+                tracing::warn!(
+                    tool = %self.action_name,
+                    error = %e,
+                    "[composio] per-action execute: load_config failed"
+                );
+                return Ok(ToolResult::error(format!(
+                    "{}: failed to load live config: {e}",
+                    self.action_name
+                )));
+            }
+        };
 
         // Contract gate (#4853): the per-action tool is built from the thin
         // spawn-time `list_tools` schema (often `{"type":"object"}` with no
@@ -307,7 +376,7 @@ impl Tool for ComposioActionTool {
                 // envelope on absence or non-success. Keeps both routes
                 // (dispatcher + per-action) consistent so the model sees
                 // the same compact transcript regardless of which tool
-                // surface integrations_agent picked.
+                // surface the agent picked.
                 let body = if resp.successful {
                     match resp
                         .markdown_formatted

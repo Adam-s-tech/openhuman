@@ -1,97 +1,134 @@
-//! `todo` — unified CRUD tool for the agent's task board.
+//! `todo` — the session's todo list, the way Claude Code and Codex have it.
 //!
-//! Dispatches on the `op` field so a single tool exposes
-//! `add` / `edit` / `update_status` / `remove` / `replace` / `clear` /
-//! `list`. The board is persisted to the active thread (when there is
-//! one) via [`crate::agent::todos::ops`]; without a thread context the
-//! tool falls back to a process-global scratch list. Returns a markdown
-//! rendering so transcripts read cleanly.
+//! The tool itself is TinyAgents' `todos::TodoTool` (schema, argument
+//! validation, the whole-list write, markdown). This file is only the host
+//! adapter: it selects the thread-scoped list for a turn and registers the
+//! harness dispatch. Bad arguments must become a tool error, never a fatal
+//! harness error.
+//!
+//! **Scope key.** The list is keyed by the chat **thread id**
+//! (`ToolRunContext::thread_id`) rather than `ParentExecutionContext::session_id`
+//! — for the web channel, `session_id` is the `{client_id,thread_id}` JSON
+//! blob (`fork_context.rs`), which changes with the client and is not what
+//! `threads.todos_get` or the `thread_todos_changed` socket event key on. A
+//! thread id is stable across reconnects and matches every other thread-scoped
+//! surface (goals, turn state). Older lists written under the legacy
+//! `session_id` key before this change are found via a one-time fallback read
+//! (see [`current_scope`] / [`legacy_session_key`]) so an in-flight list isn't
+//! dropped by the rekey.
 
-use crate::agent::tinyagents::thread_context;
-use crate::agent::todos::ops::{self, BoardLocation, CardPatch};
-use crate::agent::todos::types::{TaskApprovalMode, TaskBoardCard, TaskCardStatus};
-use crate::tools::traits::{PermissionLevel, Tool, ToolResult};
+use crate::agent::harness::fork_context::ParentExecutionContext;
+use crate::agent::todos::ops::{self, TodoScope};
 use async_trait::async_trait;
-use serde_json::json;
+use std::path::PathBuf;
+use std::sync::Arc;
+use tinyagents_graph::todos as graph_todos;
+use tinyagents_harness::context::RunContext;
+use tinyagents_harness::tool::{ToolDispatch, ToolExecutionContext};
+use tinytools::{PermissionLevel, Tool, ToolCallOptions, ToolResult, ToolRunContext};
 
-pub struct TodoTool;
+pub struct TodoTool {
+    inner: graph_todos::TodoTool,
+    workspace_dir: PathBuf,
+}
 
-impl TodoTool {
-    pub fn new() -> Self {
-        Self
+pub(crate) struct TodoToolDispatch {
+    tool: Arc<dyn Tool>,
+}
+
+impl TodoToolDispatch {
+    pub(crate) fn new(tool: Arc<dyn Tool>) -> Self {
+        Self { tool }
     }
 }
 
-impl Default for TodoTool {
-    fn default() -> Self {
-        Self::new()
+#[async_trait]
+impl ToolDispatch<(), crate::agent::tinyagents::host::OpenHumanRunContext> for TodoToolDispatch {
+    fn tool(&self) -> Arc<dyn Tool> {
+        self.tool.clone()
+    }
+
+    async fn execute(
+        &self,
+        _state: &(),
+        call_id: tinyagents_harness::CallId,
+        arguments: serde_json::Value,
+        _options: ToolCallOptions,
+        parent: &RunContext<crate::agent::tinyagents::host::OpenHumanRunContext>,
+    ) -> anyhow::Result<ToolResult> {
+        let context = ToolExecutionContext::from_run_context(parent, call_id);
+        let workspace_dir = match parent.data.parent.as_ref() {
+            Some(parent_ctx) => parent_ctx.workspace_dir.clone(),
+            None => crate::config::Config::load_or_init()
+                .await
+                .map(|c| c.workspace_dir)
+                .map_err(|e| anyhow::anyhow!("[tool][todo] load config: {e}"))?,
+        };
+        let is_write = arguments.get("todos").is_some();
+        let scope = current_scope(parent.data.parent.as_ref(), Some(&context));
+        let result = TodoTool::new(workspace_dir)
+            .execute_with_parent_context(arguments, parent.data.parent.clone(), Some(&context))
+            .await?;
+        // Only a whole-list write changes anything the frontend's todo drawer
+        // needs to hear about; a bare read (`{}`) re-reports the same list and
+        // would just be a redundant socket event.
+        if is_write && !result.is_error {
+            if let Some(id) = scope.session_id() {
+                match serde_json::from_str::<serde_json::Value>(&result.output())
+                    .ok()
+                    .and_then(|payload| payload.get("todos").cloned())
+                {
+                    Some(todos) => {
+                        crate::core::bus::BUS.publish(
+                            crate::core::events::DomainEvent::ThreadTodosChanged {
+                                thread_id: id.to_string(),
+                                todos,
+                            },
+                        );
+                    }
+                    None => {
+                        tracing::debug!(
+                            thread_id = id,
+                            "[tool][todo] write succeeded but result had no `todos` field — skipping ThreadTodosChanged"
+                        );
+                    }
+                }
+            }
+        }
+        Ok(result)
+    }
+}
+
+impl TodoTool {
+    pub fn new(workspace_dir: PathBuf) -> Self {
+        Self {
+            inner: graph_todos::TodoTool::new(ops::store(&workspace_dir)),
+            workspace_dir,
+        }
+    }
+}
+
+/// Supplies the selected session key to TinyAgents' tool implementation.
+struct ScopedKey<'a>(&'a str);
+
+impl ToolRunContext for ScopedKey<'_> {
+    fn thread_id(&self) -> Option<&str> {
+        Some(self.0)
     }
 }
 
 #[async_trait]
 impl Tool for TodoTool {
     fn name(&self) -> &str {
-        "todo"
+        self.inner.name()
     }
 
     fn description(&self) -> &str {
-        "Maintain the visible plan for this thread; cards persist across turns. Use for requests with 3+ steps. Keep one `in_progress`; mark finished cards `done` immediately and blocked cards with a `blocker`. The board binds automatically; do not pass a thread id. Orchestrator calls use the shared board."
+        self.inner.description()
     }
 
     fn parameters_schema(&self) -> serde_json::Value {
-        json!({
-            "type": "object",
-            "properties": {
-                "op": {
-                    "type": "string",
-                    "enum": ["add", "edit", "update_status", "decide_plan", "remove", "replace", "clear", "list"]
-                },
-                "id": { "type": "string", "description": "Card id (required for edit/update_status/remove)." },
-                "content": { "type": "string", "description": "Card title (required for add; optional for edit)." },
-                "status": {
-                    "type": "string",
-                    "enum": ["todo", "pending", "in_progress", "blocked", "done", "completed"]
-                },
-                "notes": { "type": "string" },
-                "blocker": { "type": "string" },
-                "approve": {
-                    "type": "boolean",
-                    "description": "decide_plan: approve (true) or reject (false) a card awaiting plan approval."
-                },
-                "objective": { "type": "string", "description": "Desired outcome for this task." },
-                "plan": {
-                    "type": "array",
-                    "description": "Ordered lightweight execution steps.",
-                    "items": { "type": "string" }
-                },
-                "assignedAgent": { "type": "string", "description": "Agent id expected to pick up this task." },
-                "allowedTools": {
-                    "type": "array",
-                    "description": "Task-local tool names or toolkit slugs the assigned agent may use.",
-                    "items": { "type": "string" }
-                },
-                "approvalMode": {
-                    "type": ["string", "null"],
-                    "enum": ["required", "not_required", null]
-                },
-                "acceptanceCriteria": {
-                    "type": "array",
-                    "description": "Checklist that must be true before the task is done.",
-                    "items": { "type": "string" }
-                },
-                "evidence": {
-                    "type": "array",
-                    "description": "Verification output, links, files, or notes produced while executing the task.",
-                    "items": { "type": "string" }
-                },
-                "cards": {
-                    "type": "array",
-                    "description": "Full card list for op=replace.",
-                    "items": { "type": "object" }
-                }
-            },
-            "required": ["op"]
-        })
+        self.inner.parameters_schema()
     }
 
     fn permission_level(&self) -> PermissionLevel {
@@ -99,202 +136,116 @@ impl Tool for TodoTool {
     }
 
     async fn execute(&self, args: serde_json::Value) -> anyhow::Result<ToolResult> {
-        let op = args
-            .get("op")
-            .and_then(|v| v.as_str())
-            .ok_or_else(|| anyhow::anyhow!("missing required field `op`"))?
-            .trim()
-            .to_string();
+        self.execute_with_context(args, ToolCallOptions::default(), None)
+            .await
+    }
 
-        let location = current_location();
-        tracing::debug!(op = %op, thread_id = ?location.thread_id(), "[tool][todo] dispatch");
+    async fn execute_with_context(
+        &self,
+        args: serde_json::Value,
+        _options: ToolCallOptions,
+        tool_context: Option<&dyn ToolRunContext>,
+    ) -> anyhow::Result<ToolResult> {
+        self.execute_with_parent_context(args, None, tool_context)
+            .await
+    }
+}
 
-        let result = match op.as_str() {
-            "add" => {
-                let content = required_string(&args, "content")?;
-                let mut patch = patch_from_args(&args)?;
-                if patch.approval_mode.is_none() {
-                    patch.approval_mode = Some(default_task_approval_mode().await);
+impl TodoTool {
+    async fn execute_with_parent_context(
+        &self,
+        args: serde_json::Value,
+        parent: Option<ParentExecutionContext>,
+        tool_context: Option<&dyn ToolRunContext>,
+    ) -> anyhow::Result<ToolResult> {
+        let scope = current_scope(parent.as_ref(), tool_context);
+        // One-time fallback: a list written under the pre-rekey
+        // `session_id` key (the web channel's `{client_id,thread_id}` JSON
+        // blob) is otherwise invisible once `current_scope` starts keying by
+        // thread id. If the new key has no list yet and the legacy key does,
+        // migrate it forward so an in-flight list isn't dropped by the rekey.
+        if let Some(legacy_key) = legacy_session_key(parent.as_ref(), &scope) {
+            self.migrate_legacy_list_if_absent(&scope, &legacy_key)
+                .await;
+        }
+        tracing::debug!(session_id = ?scope.session_id(), "[tool][todo] dispatch");
+        let key = ScopedKey(scope.key());
+        self.inner
+            .execute_with_context(args, ToolCallOptions::default(), Some(&key))
+            .await
+    }
+
+    /// If `scope`'s list is empty and `legacy_key` has a non-empty one,
+    /// copy it forward under `scope`'s key so the rekey is transparent to an
+    /// in-flight session. Best-effort: any store error is logged and
+    /// swallowed — a failed migration just means the tool starts from an
+    /// empty list, same as any other first `todo` call.
+    async fn migrate_legacy_list_if_absent(&self, scope: &TodoScope, legacy_key: &str) {
+        let current = match ops::list(&self.workspace_dir, scope).await {
+            Ok(snapshot) => snapshot,
+            Err(e) => {
+                tracing::debug!(error = %e, "[tool][todo] legacy-migration: current list read failed");
+                return;
+            }
+        };
+        if !current.items.is_empty() {
+            return;
+        }
+        let legacy_scope = TodoScope::Session {
+            id: legacy_key.to_string(),
+        };
+        match ops::list(&self.workspace_dir, &legacy_scope).await {
+            Ok(legacy) if !legacy.items.is_empty() => {
+                tracing::info!(
+                    legacy_key,
+                    thread_key = scope.key(),
+                    items = legacy.items.len(),
+                    "[tool][todo] migrating legacy session-keyed list to thread-keyed list"
+                );
+                if let Err(e) = ops::replace(&self.workspace_dir, scope, legacy.items).await {
+                    tracing::debug!(error = %e, "[tool][todo] legacy-migration: write failed");
                 }
-                ops::add(&location, &content, patch).await
             }
-            "edit" => {
-                let id = required_string(&args, "id")?;
-                let mut patch = patch_from_args(&args)?;
-                patch.content = optional_string(&args, "content");
-                ops::edit(&location, &id, patch).await
+            Ok(_) => {}
+            Err(e) => {
+                tracing::debug!(error = %e, "[tool][todo] legacy-migration: legacy list read failed");
             }
-            "update_status" => {
-                let id = required_string(&args, "id")?;
-                let status = required_string(&args, "status")?;
-                let status = ops::parse_status(&status).map_err(anyhow::Error::msg)?;
-                ops::update_status(&location, &id, status).await
-            }
-            "remove" => {
-                let id = required_string(&args, "id")?;
-                ops::remove(&location, &id).await
-            }
-            "replace" => {
-                let cards = args
-                    .get("cards")
-                    .ok_or_else(|| anyhow::anyhow!("missing `cards` for op=replace"))?;
-                let cards: Vec<TaskBoardCard> = serde_json::from_value(cards.clone())
-                    .map_err(|e| anyhow::anyhow!("invalid `cards`: {e}"))?;
-                ops::replace(&location, cards).await
-            }
-            "decide_plan" => {
-                let id = required_string(&args, "id")?;
-                let approve = args
-                    .get("approve")
-                    .and_then(serde_json::Value::as_bool)
-                    .ok_or_else(|| anyhow::anyhow!("missing required boolean `approve`"))?;
-                ops::decide_plan(&location, &id, approve).await
-            }
-            "clear" => ops::clear(&location).await,
-            "list" => ops::list(&location).await,
-            other => {
-                return Ok(ToolResult::error(format!(
-                    "unknown op '{other}' (expected \
-                 add|edit|update_status|decide_plan|remove|replace|clear|list)"
-                )))
-            }
-        };
-
-        match result {
-            Ok(snap) => {
-                let payload = json!({
-                    "threadId": snap.thread_id,
-                    "cards": snap.cards,
-                    "markdown": snap.markdown,
-                });
-                Ok(ToolResult::success(payload.to_string()))
-            }
-            Err(err) => Ok(ToolResult::error(err)),
         }
     }
 }
 
-async fn default_task_approval_mode() -> Option<TaskApprovalMode> {
-    // Interactive plan review is handled by the `request_plan_review` gate
-    // (it parks the live turn), NOT by stamping conversation-thread cards: the
-    // background dispatcher never sweeps conversation boards, so a card status
-    // can't gate a chat turn. This default therefore just carries the
-    // config-driven behaviour for the dispatched boards (`user-tasks` /
-    // `task-sources`).
-    match crate::config::ops::load_config_with_timeout().await {
-        Ok(config) => Some(if config.autonomy.require_task_plan_approval {
-            TaskApprovalMode::Required
-        } else {
-            TaskApprovalMode::NotRequired
-        }),
-        Err(err) => {
-            tracing::debug!(
-                error = %err,
-                "[tool][todo] failed to load config for task approval default"
-            );
-            None
-        }
-    }
-}
-
-fn current_location() -> BoardLocation {
-    let Some(parent) = crate::agent::harness::fork_context::current_parent() else {
-        return BoardLocation::Scratch;
-    };
-    // The orchestrator owns ONE global task board rather than a per-thread one:
-    // its `todo` tool always targets the app-wide `orchestrator-tasks` board so a
-    // single todo graph spans every delegation.
-    if parent.agent_definition_id == "orchestrator" {
-        return BoardLocation::Thread {
-            workspace_dir: parent.workspace_dir.clone(),
-            thread_id: ops::ORCHESTRATOR_TASKS_THREAD_ID.to_string(),
+/// The scope this call resolves to: the chat thread id when available,
+/// falling back to the legacy `ParentExecutionContext::session_id` (for
+/// non-web-chat callers that never carry a `thread_id`), and finally the
+/// scratch scope for a bare `Tool::execute` with neither.
+fn current_scope(
+    parent: Option<&ParentExecutionContext>,
+    tool_context: Option<&dyn ToolRunContext>,
+) -> TodoScope {
+    if let Some(thread_id) = tool_context.and_then(ToolRunContext::thread_id) {
+        return TodoScope::Session {
+            id: thread_id.to_owned(),
         };
     }
-    let Some(thread_id) = thread_context::current_thread_id() else {
-        return BoardLocation::Scratch;
-    };
-    BoardLocation::Thread {
-        workspace_dir: parent.workspace_dir.clone(),
-        thread_id,
-    }
-}
-
-fn required_string(args: &serde_json::Value, key: &str) -> anyhow::Result<String> {
-    let value = args
-        .get(key)
-        .and_then(|v| v.as_str())
-        .ok_or_else(|| anyhow::anyhow!("missing required field `{key}`"))?;
-    let trimmed = value.trim();
-    if trimmed.is_empty() {
-        return Err(anyhow::anyhow!("missing required field `{key}`"));
-    }
-    Ok(trimmed.to_string())
-}
-
-fn optional_string(args: &serde_json::Value, key: &str) -> Option<String> {
-    args.get(key)
-        .and_then(|v| v.as_str())
-        .map(|s| s.to_string())
-}
-
-fn patch_from_args(args: &serde_json::Value) -> anyhow::Result<CardPatch> {
-    let status: Option<TaskCardStatus> = match args.get("status").and_then(|v| v.as_str()) {
-        Some(s) => Some(ops::parse_status(s).map_err(anyhow::Error::msg)?),
-        None => None,
-    };
-    let approval_mode = match args.get("approvalMode") {
-        Some(value) if value.is_null() => Some(None),
-        Some(value) => match value.as_str() {
-            Some("required") => Some(Some(TaskApprovalMode::Required)),
-            Some("not_required") => Some(Some(TaskApprovalMode::NotRequired)),
-            Some(other) => {
-                return Err(anyhow::anyhow!(
-                    "invalid approvalMode '{other}' (expected required|not_required|null)"
-                ))
-            }
-            None => {
-                return Err(anyhow::anyhow!(
-                    "invalid approvalMode type (expected required|not_required|null)"
-                ))
-            }
+    match parent {
+        Some(parent) => TodoScope::Session {
+            id: parent.session_id.clone(),
         },
-        None => None,
-    };
-    Ok(CardPatch {
-        content: None,
-        status,
-        objective: optional_string(args, "objective"),
-        plan: optional_string_array(args, "plan")?,
-        assigned_agent: optional_string(args, "assignedAgent"),
-        allowed_tools: optional_string_array(args, "allowedTools")?,
-        approval_mode,
-        acceptance_criteria: optional_string_array(args, "acceptanceCriteria")?,
-        evidence: optional_string_array(args, "evidence")?,
-        notes: optional_string(args, "notes"),
-        blocker: optional_string(args, "blocker"),
-        source_metadata: None,
-    })
+        None => TodoScope::Scratch,
+    }
 }
 
-fn optional_string_array(
-    args: &serde_json::Value,
-    key: &str,
-) -> anyhow::Result<Option<Vec<String>>> {
-    let Some(value) = args.get(key) else {
-        return Ok(None);
-    };
-    let values = value
-        .as_array()
-        .ok_or_else(|| anyhow::anyhow!("`{key}` must be an array of strings"))?;
-    values
-        .iter()
-        .map(|item| {
-            item.as_str()
-                .map(|s| s.to_string())
-                .ok_or_else(|| anyhow::anyhow!("`{key}` must be an array of strings"))
-        })
-        .collect::<anyhow::Result<Vec<_>>>()
-        .map(Some)
+/// The pre-rekey `session_id` key to check as a one-time fallback, when it
+/// differs from the scope's own (now thread-id-first) key.
+fn legacy_session_key(
+    parent: Option<&ParentExecutionContext>,
+    scope: &TodoScope,
+) -> Option<String> {
+    let parent = parent?;
+    if parent.session_id == scope.key() {
+        return None;
+    }
+    Some(parent.session_id.clone())
 }
 
 #[cfg(test)]

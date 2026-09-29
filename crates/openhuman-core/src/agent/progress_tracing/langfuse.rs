@@ -1,7 +1,6 @@
 //! Langfuse ingestion exporter for agent trace spans (issue #4249 follow-up).
 //!
-//! When `[observability.agent_tracing]` has `enabled = true` and
-//! `backend = "langfuse"`, a completed run's spans are POSTed to the OpenHuman
+//! When `observability.share_usage_data` is enabled, a completed run's spans are POSTed to the OpenHuman
 //! backend's Langfuse **proxy** route, `/telemetry/langfuse/ingestion`, derived
 //! from the **current backend hostname** (`effective_backend_api_url`). The
 //! request reuses the OpenHuman **session bearer** — the same auth every other
@@ -15,21 +14,27 @@
 //! and non-PII token/cost figures — the latter promoted into Langfuse's native
 //! `usageDetails`/`costDetails`). Prompt/reply text and truncated tool I/O
 //! ride along only while `observability.agent_tracing.capture_content` is on;
-//! with the default off, content is withheld and export stays metadata-only.
+//! disabling that flag withholds content and leaves metadata-only export.
 
 use std::time::Duration;
 
 mod environment;
+#[allow(dead_code)] // Legacy batch exporter remains for compatibility tests.
 mod ingestion_batch;
+#[allow(dead_code)] // Child-run rooting is still shared with the OTLP path.
 mod journal_export;
+#[allow(dead_code)] // Legacy batch exporter remains for compatibility tests.
 mod span_export;
 
-pub(crate) use environment::{environment_for_base, ingestion_url};
+pub(crate) use environment::{environment_for_base, ingestion_url, skip_push};
+pub(crate) use journal_export::journal_push_ready;
+#[cfg(test)]
 pub(crate) use journal_export::push_observations;
+pub(crate) use journal_export::root_subagent_observations;
+#[cfg(test)]
 pub(crate) use span_export::push_spans;
 
 use super::{SpanStatus, TraceContext, TraceSpan};
-use environment::skip_push;
 
 #[cfg(test)]
 use crate::config::Config;

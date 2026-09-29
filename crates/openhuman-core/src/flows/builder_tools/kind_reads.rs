@@ -1,24 +1,24 @@
-//! Read-only DSL/registry tools: agent profiles, node kinds, and node-kind contracts (F2).
+//! Read-only DSL/registry tools: agent definitions, node kinds, and node-kind contracts (F2).
 
 use async_trait::async_trait;
 use serde_json::{json, Value};
 
-use crate::tools::traits::{PermissionLevel, Tool, ToolResult};
+use tinytools::{PermissionLevel, Tool, ToolResult};
 
 // ─────────────────────────────────────────────────────────────────────────────
-// list_agent_profiles — read-only: selectable agent kinds for an `agent` node
+// list_agent_definitions — read-only: selectable definitions for an `agent` node
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// `list_agent_profiles`: read-only listing of the agent **kinds** an `agent`
-/// node can select via `agent_ref` (researcher, code_executor, crypto_agent, …).
+/// `list_agent_definitions`: read-only listing of the agent **definitions** an `agent`
+/// node can select via `agent_ref` (agent_memory, vision_agent, planner, …).
 ///
 /// Grounds the builder's `agent_ref` choice in real registry ids — the agent
 /// analogue of `search_tool_catalog` for `tool_call` slugs — so it never
 /// hallucinates an agent kind. Returns `{ id, name, description, model, tools,
 /// tags }` for every enabled registered agent.
-pub struct ListAgentProfilesTool;
+pub struct ListAgentDefinitionsTool;
 
-impl ListAgentProfilesTool {
+impl ListAgentDefinitionsTool {
     /// Builds the tool (no configuration — reads the process-global registry).
     #[must_use]
     pub fn new() -> Self {
@@ -26,24 +26,24 @@ impl ListAgentProfilesTool {
     }
 }
 
-impl Default for ListAgentProfilesTool {
+impl Default for ListAgentDefinitionsTool {
     fn default() -> Self {
         Self::new()
     }
 }
 
 #[async_trait]
-impl Tool for ListAgentProfilesTool {
+impl Tool for ListAgentDefinitionsTool {
     fn name(&self) -> &str {
-        "list_agent_profiles"
+        "list_agent_definitions"
     }
 
     fn description(&self) -> &str {
         "List the agent KINDS an `agent` node can run via its `agent_ref` config \
-         field (e.g. researcher, code_executor, crypto_agent). Read-only. Returns \
+         field (e.g. agent_memory, vision_agent, presentation_agent). Read-only. Returns \
          a JSON array of { id, name, description, model, tools, tags }. Use this to \
-         pick a real agent_ref — a coding step should reference the coding agent, a \
-         research step the researcher — instead of guessing an id. Note: setting \
+         pick a real agent_ref — a memory-lookup step should reference agent_memory, \
+         an image-reading step vision_agent — instead of guessing an id. Note: setting \
          agent_ref runs the step as a REAL agent turn (its own `run_single`), with \
          the selected specialist's full persona, model, tool loop, and iteration \
          cap — not just a persona-flavored completion. A plain `agent` node with \
@@ -64,10 +64,10 @@ impl Tool for ListAgentProfilesTool {
     }
 
     async fn execute(&self, _args: Value) -> anyhow::Result<ToolResult> {
-        tracing::debug!(target: "flows", "[flows] list_agent_profiles: listing registered agent kinds (read-only)");
+        tracing::debug!(target: "flows", "[flows] list_agent_definitions: listing registered definitions (read-only)");
         match crate::agent::registry::list_agents(false).await {
             Ok(agents) => {
-                let profiles: Vec<Value> = agents
+                let definitions: Vec<Value> = agents
                     .iter()
                     .map(|a| {
                         json!({
@@ -81,11 +81,11 @@ impl Tool for ListAgentProfilesTool {
                     })
                     .collect();
                 Ok(ToolResult::success(serde_json::to_string_pretty(
-                    &json!({ "agent_profiles": profiles }),
+                    &json!({ "agent_definitions": definitions }),
                 )?))
             }
             Err(e) => Ok(ToolResult::error(format!(
-                "Failed to list agent profiles: {e}"
+                "Failed to list agent definitions: {e}"
             ))),
         }
     }

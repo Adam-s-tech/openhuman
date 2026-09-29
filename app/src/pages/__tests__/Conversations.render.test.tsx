@@ -8,16 +8,15 @@
  * previously-blocked lines that are now always rendered.
  */
 import { combineReducers, configureStore } from '@reduxjs/toolkit';
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { SidebarSlotOutlet, SidebarSlotProvider } from '../../components/layout/shell/SidebarSlot';
 import { threadApi } from '../../services/api/threadApi';
-import { chatCancel, chatClearQueue, chatSend } from '../../services/chatService';
+import { chatCancel, chatRemoveQueueItem, chatSend } from '../../services/chatService';
 import { CoreRpcError } from '../../services/coreRpcClient';
-import agentProfileReducer from '../../store/agentProfileSlice';
 import chatRuntimeReducer, {
   beginInferenceTurn,
   bumpInferenceHeartbeatForThread,
@@ -29,9 +28,13 @@ import chatRuntimeReducer, {
   setWorkflowProposalForThread,
 } from '../../store/chatRuntimeSlice';
 import layoutReducer from '../../store/layoutSlice';
+import queueReducer, { queueItemQueued } from '../../store/queueSlice';
+import runModeReducer from '../../store/runModeSlice';
 import socketReducer from '../../store/socketSlice';
 import themeReducer from '../../store/themeSlice';
+import threadGoalReducer from '../../store/threadGoalSlice';
 import threadReducer from '../../store/threadSlice';
+import threadTodosReducer from '../../store/threadTodosSlice';
 import type { Thread, ThreadMessage } from '../../types/thread';
 
 // ── Hoisted mock state ─────────────────────────────────────────────────────
@@ -58,13 +61,12 @@ const { mockGetThreads, mockGetThreadMessages, mockUseUsageState } = vi.hoisted(
     refresh: vi.fn(),
   })),
 }));
-const mockUseOpenRouterFreeModels = vi.hoisted(() => vi.fn());
-
 // ── Module mocks ───────────────────────────────────────────────────────────
 
 vi.mock('../../services/chatService', () => ({
-  chatCancel: vi.fn().mockResolvedValue(true),
+  chatCancel: vi.fn().mockResolvedValue({ accepted: true, turnCancelled: true }),
   chatClearQueue: vi.fn().mockResolvedValue(0),
+  chatRemoveQueueItem: vi.fn().mockResolvedValue(true),
   chatSend: vi.fn().mockResolvedValue(undefined),
   subscribeChatEvents: vi.fn(() => () => {}),
   useRustChat: vi.fn(() => true),
@@ -97,72 +99,7 @@ vi.mock('../../services/api/threadApi', () => ({
   },
 }));
 
-vi.mock('../../services/api/agentProfilesApi', () => ({
-  agentProfilesApi: {
-    list: vi
-      .fn()
-      .mockResolvedValue({
-        activeProfileId: 'default',
-        profiles: [
-          {
-            id: 'default',
-            name: 'Default',
-            description: 'Default',
-            agentId: 'orchestrator',
-            builtIn: true,
-          },
-        ],
-      }),
-    select: vi
-      .fn()
-      .mockResolvedValue({
-        activeProfileId: 'default',
-        profiles: [
-          {
-            id: 'default',
-            name: 'Default',
-            description: 'Default',
-            agentId: 'orchestrator',
-            builtIn: true,
-          },
-        ],
-      }),
-    upsert: vi.fn().mockResolvedValue({ activeProfileId: 'default', profiles: [] }),
-    delete: vi.fn().mockResolvedValue({ activeProfileId: 'default', profiles: [] }),
-  },
-}));
-
-vi.mock('../../services/api/openrouterFreeModels', () => ({
-  applyOpenRouterFreeModels: () => mockUseOpenRouterFreeModels(),
-}));
-
 vi.mock('../../hooks/useUsageState', () => ({ useUsageState: mockUseUsageState }));
-
-// The new-window hero pulls useUser/useCoreState; stub it so the page renders
-// without a CoreStateProvider (these tests assert the sidebar/composer, not the
-// empty-state hero).
-vi.mock('../../components/chat/ChatNewWindowHero', () => ({ default: () => null }));
-
-vi.mock('../../store/socketSelectors', () => ({
-  selectSocketStatus: (state: { socket?: { byUser?: Record<string, { status: string }> } }) =>
-    state.socket?.byUser?.__pending__?.status ?? 'disconnected',
-}));
-
-// useStickToBottom returns refs; mock it so layout-effects don't fire in jsdom.
-vi.mock('../../hooks/useStickToBottom', () => ({
-  useStickToBottom: vi.fn(() => ({ containerRef: { current: null }, endRef: { current: null } })),
-}));
-
-// openUrl uses Tauri; stub it.
-vi.mock('../../utils/openUrl', () => ({ openUrl: vi.fn() }));
-
-// coreRpcClient: the PlanReviewCard resolves a parked plan via callCoreRpc.
-// Preserve the real exports (e.g. CoreRpcError) and only stub the call.
-const mockCallCoreRpc = vi.fn().mockResolvedValue({});
-vi.mock('../../services/coreRpcClient', async orig => {
-  const actual = await orig<typeof import('../../services/coreRpcClient')>();
-  return { ...actual, callCoreRpc: (...args: unknown[]) => mockCallCoreRpc(...args) };
-});
 
 // coreState/store: getCoreStateSnapshot used by selectSocketStatus.
 vi.mock('../../lib/coreState/store', () => ({
@@ -193,8 +130,11 @@ function buildStore(preload: Record<string, unknown> = {}) {
       layout: layoutReducer,
       socket: socketReducer,
       chatRuntime: chatRuntimeReducer,
-      agentProfiles: agentProfileReducer,
+      queue: queueReducer,
       theme: themeReducer,
+      threadTodos: threadTodosReducer,
+      threadGoal: threadGoalReducer,
+      runMode: runModeReducer,
     }),
     preloadedState: preload as never,
   });
@@ -611,12 +551,7 @@ describe('Conversations — smoke render (#1123 welcome-lock removal)', () => {
           messages,
         },
         socket: socketState('connected'),
-        theme: {
-          mode: 'system',
-          tabBarLabels: 'hover',
-          fontSize: 'medium',
-          agentMessageViewMode: 'text',
-        },
+        theme: { mode: 'system', tabBarLabels: 'hover', fontSize: 'medium' },
       });
     });
 
@@ -697,8 +632,10 @@ describe('Conversations — smoke render (#1123 welcome-lock removal)', () => {
       });
     });
 
-    // The past turn's core transcript is projected into assistant-ui exactly once.
-    expect(await screen.findByTestId('assistant-ui-tool-call')).toHaveTextContent('Read File');
+    // The past turn's core transcript is projected into one settled activity
+    // group. Open it before checking the contained tool card.
+    fireEvent.click(await screen.findByRole('button', { name: '1 tool call' }));
+    expect(await screen.findByTestId('assistant-ui-tool-call')).toHaveTextContent('Read file');
   });
 
   it('keeps assistant message copy available through assistant-ui', async () => {
@@ -744,12 +681,7 @@ describe('Conversations — smoke render (#1123 welcome-lock removal)', () => {
           messages,
         },
         socket: socketState('connected'),
-        theme: {
-          mode: 'system',
-          tabBarLabels: 'hover',
-          fontSize: 'medium',
-          agentMessageViewMode: 'bubbles',
-        },
+        theme: { mode: 'system', tabBarLabels: 'hover', fontSize: 'medium' },
       });
     });
 
@@ -901,7 +833,6 @@ describe('Conversations — smoke render (#1123 welcome-lock removal)', () => {
       threadId: thread.id,
       message: 'hello cloud',
       model: 'hint:chat',
-      profileId: 'default',
       locale: 'en',
     });
   });
@@ -925,7 +856,6 @@ describe('Conversations — smoke render (#1123 welcome-lock removal)', () => {
         threadId: thread.id,
         message: 'play highway to hell',
         model: 'hint:chat',
-        profileId: 'default',
         locale: 'en',
       });
     });
@@ -977,7 +907,6 @@ describe('Conversations — smoke render (#1123 welcome-lock removal)', () => {
       threadId: thread.id,
       message: 'slow backend',
       model: 'hint:chat',
-      profileId: 'default',
       locale: 'en',
     });
     // The send cleared the composer; with an empty composer mid-send the Send
@@ -1251,7 +1180,7 @@ describe('Conversations — smoke render (#1123 welcome-lock removal)', () => {
     return { store: store!, thread };
   }
 
-  it('preserves the partial reply marked stopped when Stop is clicked mid-stream (#4862)', async () => {
+  it('requests cancellation without persisting the partial before core confirmation (#4862)', async () => {
     const { thread } = await renderStreamingConversation({ streamingContent: 'half a thought' });
 
     const stopButton = await screen.findByRole('button', { name: 'Stop generating' });
@@ -1260,18 +1189,13 @@ describe('Conversations — smoke render (#1123 welcome-lock removal)', () => {
     });
 
     expect(chatCancel).toHaveBeenCalledWith(thread.id);
-    // The partial stream is persisted as its own agent message flagged stopped
-    // so it survives the cancel instead of vanishing with the live preview.
-    await waitFor(() => {
-      expect(threadApi.appendMessage).toHaveBeenCalledWith(
-        thread.id,
-        expect.objectContaining({
-          content: 'half a thought',
-          sender: 'agent',
-          extraMetadata: expect.objectContaining({ stopped: true }),
-        })
-      );
+    // Persistence belongs to ChatRuntimeProvider.onCancelled after the core
+    // confirms the turn that actually stopped. The click path must not write
+    // early because a rejected cancellation can still produce a final reply.
+    await act(async () => {
+      await Promise.resolve();
     });
+    expect(threadApi.appendMessage).not.toHaveBeenCalled();
   });
 
   it('does not persist a stopped message when nothing has streamed yet (#4862)', async () => {
@@ -1288,10 +1212,10 @@ describe('Conversations — smoke render (#1123 welcome-lock removal)', () => {
   });
 
   it('does not persist a stopped reply when the cancel is rejected (#4862)', async () => {
-    // Socket down / RPC rejected → chatCancel resolves false. The original turn
-    // may keep running and append its own final response, so we must NOT leave a
-    // misleading partial bubble behind.
-    vi.mocked(chatCancel).mockResolvedValueOnce(false);
+    // Socket down / RPC rejected → chatCancel resolves not-accepted. The original
+    // turn may keep running and append its own final response, so we must NOT
+    // leave a misleading partial bubble behind.
+    vi.mocked(chatCancel).mockResolvedValueOnce({ accepted: false, turnCancelled: false });
     const { thread } = await renderStreamingConversation({ streamingContent: 'half a thought' });
 
     const stopButton = await screen.findByRole('button', { name: 'Stop generating' });
@@ -1307,7 +1231,33 @@ describe('Conversations — smoke render (#1123 welcome-lock removal)', () => {
     expect(threadApi.appendMessage).not.toHaveBeenCalled();
   });
 
-  it('persists the stopped reply only once across repeated Stop clicks (#4862)', async () => {
+  it('settles a phantom running state when the core has no turn to cancel', async () => {
+    // The core accepted the Stop but had nothing in flight for the thread (the
+    // turn's terminal event was lost, or the marker was never a real turn). No
+    // `cancelled` chat_error will ever arrive, so the composer must leave the
+    // generating state on its own instead of offering a Stop that can't work.
+    vi.mocked(chatCancel).mockResolvedValueOnce({ accepted: true, turnCancelled: false });
+    const { thread, store } = await renderStreamingConversation({
+      streamingContent: 'half a thought',
+    });
+
+    const stopButton = await screen.findByRole('button', { name: 'Stop generating' });
+    await act(async () => {
+      fireEvent.click(stopButton);
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(chatCancel).toHaveBeenCalledWith(thread.id);
+    expect(store.getState().thread.activeThreadIds[thread.id]).toBeUndefined();
+    expect(store.getState().chatRuntime.streamingAssistantByThread[thread.id]).toBeUndefined();
+    expect(screen.queryByRole('button', { name: 'Stop generating' })).toBeNull();
+    // Nothing was cancelled, so no partial is persisted as a stopped reply.
+    expect(threadApi.appendMessage).not.toHaveBeenCalled();
+  });
+
+  it('does not locally persist a partial across repeated Stop clicks (#4862)', async () => {
     const { thread } = await renderStreamingConversation({ streamingContent: 'half a thought' });
 
     const stopButton = await screen.findByRole('button', { name: 'Stop generating' });
@@ -1317,15 +1267,13 @@ describe('Conversations — smoke render (#1123 welcome-lock removal)', () => {
       fireEvent.click(stopButton);
     });
 
-    expect(chatCancel).toHaveBeenCalledWith(thread.id);
-    // The one-shot requestId guard keeps the partial from being appended twice.
-    await waitFor(() => {
-      expect(threadApi.appendMessage).toHaveBeenCalledTimes(1);
+    expect(chatCancel).toHaveBeenCalledTimes(2);
+    expect(chatCancel).toHaveBeenNthCalledWith(1, thread.id);
+    expect(chatCancel).toHaveBeenNthCalledWith(2, thread.id);
+    await act(async () => {
+      await Promise.resolve();
     });
-    expect(threadApi.appendMessage).toHaveBeenCalledWith(
-      thread.id,
-      expect.objectContaining({ extraMetadata: expect.objectContaining({ stopped: true }) })
-    );
+    expect(threadApi.appendMessage).not.toHaveBeenCalled();
   });
 
   it('interrupts the stream and restores the last prompt into the composer on ESC (#4862)', async () => {
@@ -1504,6 +1452,218 @@ describe('Conversations — smoke render (#1123 welcome-lock removal)', () => {
         expect(screen.getByRole('button', { name: 'Send message' })).not.toBeDisabled();
       });
     } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  // A snapshot describing a turn that is still running, as the core would have
+  // persisted it at its last flush boundary.
+  function inFlightSnapshot(lifecycle: 'started' | 'streaming' = 'streaming') {
+    return {
+      threadId: 'send-thread',
+      requestId: 'req-inherited-1',
+      lifecycle,
+      iteration: 15,
+      maxIterations: 50,
+      phase: 'thinking' as const,
+      streamingText: '',
+      thinking: '',
+      toolTimeline: [],
+      startedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+  }
+
+  it('arms the silence timer for a turn inherited through hydration', async () => {
+    // Regression: `armSilenceTimer` was only called on the local send path, so
+    // a client that reloaded or reconnected mid-turn hydrated a live-looking
+    // "Thinking…" pill with no watchdog behind it. If the terminal event was
+    // then missed the pill never cleared — observed sitting on "Thinking… (15)"
+    // 25 minutes after the turn had ended.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.mocked(threadApi.getTurnState).mockResolvedValue(inFlightSnapshot());
+    try {
+      const { store } = await renderSelectedConversation();
+
+      // Hydration produced a live turn — without this the test could pass by
+      // asserting a timeout on a thread that was never rendered as running.
+      await waitFor(() => {
+        expect(store?.getState().chatRuntime.inferenceStatusByThread['send-thread']).toBeDefined();
+      });
+      expect(screen.queryByTestId('chat-send-error')).toBeNull();
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(120_000);
+      });
+
+      const banner = await screen.findByTestId('chat-send-error');
+      expect(banner).toHaveAttribute('data-chat-send-error-code', 'safety_timeout');
+      expect(store?.getState().chatRuntime.inferenceStatusByThread['send-thread']).toBeUndefined();
+    } finally {
+      vi.mocked(threadApi.getTurnState).mockResolvedValue(null);
+      vi.useRealTimers();
+    }
+  });
+
+  it.each(['interrupted', 'completed'] as const)(
+    'does not arm the silence timer for a %s snapshot',
+    async lifecycle => {
+      // A terminal snapshot has no live driver. Arming here would fire a
+      // spurious `safety_timeout` on a thread that has already settled.
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      vi.mocked(threadApi.getTurnState).mockResolvedValue({ ...inFlightSnapshot(), lifecycle });
+      try {
+        const { store } = await renderSelectedConversation();
+
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(120_000);
+        });
+
+        expect(screen.queryByTestId('chat-send-error')).toBeNull();
+        expect(
+          store?.getState().chatRuntime.inferenceStatusByThread['send-thread']
+        ).toBeUndefined();
+      } finally {
+        vi.mocked(threadApi.getTurnState).mockResolvedValue(null);
+        vi.useRealTimers();
+      }
+    }
+  );
+
+  it('rearms an inherited silence timer on a heartbeat', async () => {
+    // #4270: a silent reasoning phase emits only heartbeats. A hydrated timer
+    // must take part in the rearm effect exactly as a locally-armed one does,
+    // or a genuinely live inherited turn trips the watchdog mid-run.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.mocked(threadApi.getTurnState).mockResolvedValue(inFlightSnapshot());
+    try {
+      const { store } = await renderSelectedConversation();
+      await waitFor(() => {
+        expect(store?.getState().chatRuntime.inferenceStatusByThread['send-thread']).toBeDefined();
+      });
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(80_000);
+      });
+      await act(async () => {
+        store?.dispatch(bumpInferenceHeartbeatForThread({ threadId: 'send-thread' }));
+      });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(80_000);
+      });
+
+      // 160s since hydration, but only 80s since the beat — still armed.
+      expect(screen.queryByTestId('chat-send-error')).toBeNull();
+
+      // Control: the timer was rearmed, NOT cancelled. Without this, the
+      // assertion above would pass just as well if the heartbeat had cleared
+      // the timer outright.
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(60_000);
+      });
+      const banner = await screen.findByTestId('chat-send-error');
+      expect(banner).toHaveAttribute('data-chat-send-error-code', 'safety_timeout');
+    } finally {
+      vi.mocked(threadApi.getTurnState).mockResolvedValue(null);
+      vi.useRealTimers();
+    }
+  });
+
+  it('arms the silence timer for a prefill turn that has no iteration yet', async () => {
+    // The hydration reducer writes `inferenceStatusByThread` only when
+    // `iteration > 0 && maxIterations > 0` and deletes it otherwise, so a turn
+    // that is genuinely running but has not reported its first iteration —
+    // initial prefill — hydrates with no status entry. Keying the arming
+    // decision on that entry alone left exactly this turn unwatched. The
+    // lifecycle is written regardless of iteration, so it still identifies it.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.mocked(threadApi.getTurnState).mockResolvedValue({
+      ...inFlightSnapshot('started'),
+      iteration: 0,
+      maxIterations: 0,
+    });
+    try {
+      const { store } = await renderSelectedConversation();
+
+      // Precondition that makes this test meaningful: hydration produced a live
+      // lifecycle but NO status entry. If this ever flips, the test is no
+      // longer covering the prefill gap it was written for.
+      await waitFor(() => {
+        expect(store?.getState().chatRuntime.inferenceTurnLifecycleByThread['send-thread']).toBe(
+          'started'
+        );
+      });
+      expect(store?.getState().chatRuntime.inferenceStatusByThread['send-thread']).toBeUndefined();
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(120_000);
+      });
+
+      const banner = await screen.findByTestId('chat-send-error');
+      expect(banner).toHaveAttribute('data-chat-send-error-code', 'safety_timeout');
+    } finally {
+      vi.mocked(threadApi.getTurnState).mockResolvedValue(null);
+      vi.useRealTimers();
+    }
+  });
+
+  it('does not schedule a silence timer once the page has unmounted', async () => {
+    // The send path awaits `addMessageLocal` before arming, so an unmount that
+    // lands inside that await runs the cleanup — which finds nothing — and the
+    // continuation would then schedule a timer no cleanup can ever reach.
+    // Nothing can rearm it either, so it would survive to clear shared runtime
+    // state for a turn that may still be live.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.mocked(threadApi.getTurnState).mockResolvedValue(inFlightSnapshot());
+    try {
+      const { store } = await renderSelectedConversation();
+      await waitFor(() => {
+        expect(store?.getState().chatRuntime.inferenceStatusByThread['send-thread']).toBeDefined();
+      });
+
+      // Tear down, then let hydration's own effects settle. Any arming that
+      // happens after this point is arming onto a dead instance.
+      await act(async () => {
+        cleanup();
+      });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(120_000);
+      });
+
+      expect(store?.getState().chatRuntime.inferenceStatusByThread['send-thread']).toBeDefined();
+    } finally {
+      vi.mocked(threadApi.getTurnState).mockResolvedValue(null);
+      vi.useRealTimers();
+    }
+  });
+
+  it('does not fire an armed silence timer after the page unmounts', async () => {
+    // The timer's callback outlives this component: it dispatches
+    // `clearRuntimeForThread` / `clearThreadInferenceActive` into the shared
+    // store. Left armed past teardown it would wipe the runtime of a turn that
+    // is still in flight, up to 120s after the user navigated away.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.mocked(threadApi.getTurnState).mockResolvedValue(inFlightSnapshot());
+    try {
+      const { store } = await renderSelectedConversation();
+
+      // Prove a timer was actually armed, so this cannot pass by unmounting a
+      // page that never had one.
+      await waitFor(() => {
+        expect(store?.getState().chatRuntime.inferenceStatusByThread['send-thread']).toBeDefined();
+      });
+
+      await act(async () => {
+        cleanup();
+      });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(120_000);
+      });
+
+      // Still present: the cleanup cleared the timer, so nothing dispatched.
+      expect(store?.getState().chatRuntime.inferenceStatusByThread['send-thread']).toBeDefined();
+    } finally {
+      vi.mocked(threadApi.getTurnState).mockResolvedValue(null);
       vi.useRealTimers();
     }
   });
@@ -1752,7 +1912,6 @@ describe('Conversations — smoke render (#1123 welcome-lock removal)', () => {
         threadId: thread.id,
         message: 'enter send',
         model: 'hint:chat',
-        profileId: 'default',
         locale: 'en',
       });
     });
@@ -1827,7 +1986,6 @@ describe('Conversations — smoke render (#1123 welcome-lock removal)', () => {
         threadId: thread.id,
         message: '안녕',
         model: 'hint:chat',
-        profileId: 'default',
         locale: 'en',
       });
     });
@@ -1955,7 +2113,7 @@ describe('Conversations — queued follow-ups while a turn streams', () => {
     mockGetThreads.mockResolvedValue({ threads: [], count: 0 });
     mockGetThreadMessages.mockResolvedValue({ messages: [], count: 0 });
     vi.mocked(chatSend).mockResolvedValue(undefined);
-    vi.mocked(chatClearQueue).mockResolvedValue(0);
+    vi.mocked(chatRemoveQueueItem).mockResolvedValue(true);
   });
 
   // A selected thread that is actively streaming (`activeThreadIds`) keeps the
@@ -1976,8 +2134,17 @@ describe('Conversations — queued follow-ups while a turn streams', () => {
     return { store, textarea, thread };
   }
 
-  it('queues a plain-Enter submission as a follow-up and lists it in the strip', async () => {
-    const { textarea } = await renderStreamingConversation();
+  // What the core emits once it accepts a follow-up into the run queue.
+  function coreQueues(store: ReturnType<typeof buildStore> | undefined, id: string, text: string) {
+    act(() => {
+      store?.dispatch(
+        queueItemQueued({ threadId: 'fup-thread', item: { id, text_preview: text } })
+      );
+    });
+  }
+
+  it('queues a plain-Enter submission as a follow-up and keeps it for the transcript', async () => {
+    const { store, textarea } = await renderStreamingConversation();
 
     await act(async () => {
       setComposerText(textarea, 'and the pricing?');
@@ -1989,7 +2156,11 @@ describe('Conversations — queued follow-ups while a turn streams', () => {
     await waitFor(() => {
       expect(chatSend).toHaveBeenCalledWith(expect.objectContaining({ queueMode: 'followup' }));
     });
-    expect(await screen.findByText('and the pricing?')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        store?.getState().queue.pendingFollowupsByThread['fup-thread']?.map(p => p.preview)
+      ).toEqual(['and the pricing?'])
+    );
   });
 
   it('queues via the Send button while a turn streams', async () => {
@@ -2008,50 +2179,47 @@ describe('Conversations — queued follow-ups while a turn streams', () => {
     await waitFor(() => {
       expect(chatSend).toHaveBeenCalledWith(expect.objectContaining({ queueMode: 'followup' }));
     });
-    expect(await screen.findByText('one more thing')).toBeInTheDocument();
   });
 
-  it('clears the queued follow-ups and the backend queue on Clear', async () => {
-    const { textarea } = await renderStreamingConversation();
+  it("lists the core's queued items above the composer", async () => {
+    const { store } = await renderStreamingConversation();
+    expect(screen.queryByTestId('queued-followups')).not.toBeInTheDocument();
 
-    await act(async () => {
-      setComposerText(textarea, 'dismiss me');
-    });
-    await act(async () => {
-      fireEvent.keyDown(textarea, { key: 'Enter' });
-    });
+    coreQueues(store, 'q1', 'and the pricing?');
 
     const strip = await screen.findByTestId('queued-followups');
-    expect(within(strip).getByText('dismiss me')).toBeInTheDocument();
+    expect(within(strip).getByText('and the pricing?')).toBeInTheDocument();
+  });
 
+  it('removes a queued item through the core', async () => {
+    const { store } = await renderStreamingConversation();
+    coreQueues(store, 'q1', 'dismiss me');
+
+    const strip = await screen.findByTestId('queued-followups');
     await act(async () => {
-      fireEvent.click(within(strip).getByText('Clear'));
+      fireEvent.click(
+        within(strip).getByRole('button', { name: 'Remove "dismiss me" from the queue' })
+      );
     });
 
-    await waitFor(() => expect(chatClearQueue).toHaveBeenCalledWith('fup-thread'));
+    await waitFor(() => expect(chatRemoveQueueItem).toHaveBeenCalledWith('fup-thread', 'q1'));
     await waitFor(() => expect(screen.queryByTestId('queued-followups')).not.toBeInTheDocument());
   });
 
-  it('keeps the queued pills when the backend clear fails', async () => {
-    vi.mocked(chatClearQueue).mockResolvedValueOnce(null);
-    const { textarea } = await renderStreamingConversation();
-
-    await act(async () => {
-      setComposerText(textarea, 'still queued');
-    });
-    await act(async () => {
-      fireEvent.keyDown(textarea, { key: 'Enter' });
-    });
+  it('keeps the queued item when the core does not confirm the removal', async () => {
+    vi.mocked(chatRemoveQueueItem).mockResolvedValueOnce(false);
+    const { store } = await renderStreamingConversation();
+    coreQueues(store, 'q1', 'still queued');
 
     const strip = await screen.findByTestId('queued-followups');
     await act(async () => {
-      fireEvent.click(within(strip).getByText('Clear'));
+      fireEvent.click(
+        within(strip).getByRole('button', { name: 'Remove "still queued" from the queue' })
+      );
     });
 
-    await waitFor(() => expect(chatClearQueue).toHaveBeenCalledWith('fup-thread'));
-    // Clear failed (null) → the backend will still dispatch them, so the pills
-    // stay put instead of falsely showing the queue emptied.
-    expect(screen.getByTestId('queued-followups')).toBeInTheDocument();
+    await waitFor(() => expect(chatRemoveQueueItem).toHaveBeenCalledWith('fup-thread', 'q1'));
+    // The core still holds it and will send it, so it stays on screen.
     expect(
       within(screen.getByTestId('queued-followups')).getByText('still queued')
     ).toBeInTheDocument();
@@ -2059,7 +2227,7 @@ describe('Conversations — queued follow-ups while a turn streams', () => {
 
   it('keeps the draft intact when the follow-up send fails', async () => {
     vi.mocked(chatSend).mockRejectedValueOnce(new Error('send boom'));
-    const { textarea } = await renderStreamingConversation();
+    const { store, textarea } = await renderStreamingConversation();
 
     await act(async () => {
       setComposerText(textarea, 'keep me on failure');
@@ -2068,10 +2236,10 @@ describe('Conversations — queued follow-ups while a turn streams', () => {
       fireEvent.keyDown(textarea, { key: 'Enter' });
     });
 
-    // Send rejected → no pill queued and the composer keeps the user's text so
-    // they can retry instead of silently losing it.
+    // Send rejected → nothing recorded for the transcript, and the composer
+    // keeps the user's text so they can retry instead of silently losing it.
     await waitFor(() => expect(chatSend).toHaveBeenCalled());
-    expect(screen.queryByTestId('queued-followups')).not.toBeInTheDocument();
+    expect(store?.getState().queue.pendingFollowupsByThread['fup-thread']).toBeUndefined();
     expect(textarea).toHaveTextContent('keep me on failure');
   });
 });
@@ -2099,9 +2267,8 @@ describe('Conversations — external-transfer disclosure card removed', () => {
 });
 
 /**
- * The two turn gates the agent parks on. Both used to render only inside
- * `legacyMainPanel`, which `/chat` never mounts — the text surface is
- * assistant-ui and the two panels are an either/or — so a parked plan review
+ * The two turn gates the agent parks on. Both used to render only inside the
+ * legacy voice-mode panel, which `/chat` never mounted, so a parked plan review
  * hung the turn with nothing to decide, and a `propose_workflow` draft lost its
  * only route to `flows_create`. They are now rendered from the shared
  * `agentGateCards` fragment, which the assistant-ui composer header carries.
@@ -2191,6 +2358,12 @@ describe('Conversations — turn gates on the assistant-ui surface', () => {
       );
     });
 
+    // The feedback textarea is revealed by the "Revise" decision button
+    // (`PlanReviewCardCore` in `aui/PlanReviewPart.tsx`) rather than shown
+    // unconditionally, unlike the old `PlanReviewCard.tsx` this replaced.
+    await act(async () => {
+      fireEvent.click(screen.getByText('Revise'));
+    });
     const feedback = await screen.findByTestId('plan-review-feedback');
     await act(async () => {
       fireEvent.change(feedback, { target: { value: 'use the staging bucket' } });

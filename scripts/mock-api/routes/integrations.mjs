@@ -2,9 +2,42 @@ import { json } from "../http.mjs";
 import { behavior, parseBehaviorJson, setMockBehavior } from "../state.mjs";
 import { listMockLlmModels } from "./llm/shared.mjs";
 
+// The web E2E core must never fetch the public Hermes catalog. Keep the
+// fixture small but representative: registry smoke tests need sources and
+// browse results, while search tests need both `git` and `docker` matches.
+const SKILL_REGISTRY_CATALOG = [
+  {
+    name: "git-workflow",
+    description: "Inspect repositories and manage Git branches.",
+    category: "development",
+    source: "built-in",
+    docsPath: "bundled/development/git-workflow",
+    tags: ["git", "repository"],
+    platforms: ["linux", "macos", "windows"],
+    commands: ["git"],
+    envVars: [],
+  },
+  {
+    name: "docker-management",
+    description: "Inspect and manage Docker containers.",
+    category: "devops",
+    source: "optional",
+    docsPath: "optional/devops/devops-docker-management",
+    tags: ["docker", "containers"],
+    platforms: ["linux", "macos", "windows"],
+    commands: ["docker"],
+    envVars: [],
+  },
+];
+
 export function handleIntegrations(ctx) {
   const { method, url, parsedBody, res } = ctx;
   const mockBehavior = behavior();
+
+  if (method === "GET" && /^\/skills\/catalog\.json\/?(?:\?.*)?$/.test(url)) {
+    json(res, 200, SKILL_REGISTRY_CATALOG);
+    return true;
+  }
 
   // ── Telegram ───────────────────────────────────────────────
   if (method === "POST" && /^\/telegram\/command\/?$/.test(url)) {
@@ -585,6 +618,177 @@ export function handleIntegrations(ctx) {
         results,
         costUsd: 0.02,
       },
+    });
+    return true;
+  }
+
+  // ── Exa (managed) ──────────────────────────────────────────
+  // Mirrors backend `/agent-integrations/exa/*`: search takes
+  // `{objective, searchQueries}`; contents/answer/findSimilar proxy Exa's
+  // own REST bodies. `mockBehavior.exaInsufficientBalance = "1"` answers
+  // the backend's insufficient-credits 400.
+  if (method === "POST" && /^\/agent-integrations\/exa\//.test(url)) {
+    if (mockBehavior.exaInsufficientBalance === "1") {
+      json(res, 400, {
+        success: false,
+        error: "Insufficient balance",
+        errorCode: "USER_INSUFFICIENT_CREDITS",
+      });
+      return true;
+    }
+    if (/^\/agent-integrations\/exa\/search\/?$/.test(url)) {
+      const objective =
+        typeof parsedBody?.objective === "string"
+          ? parsedBody.objective.trim()
+          : "";
+      const queries = Array.isArray(parsedBody?.searchQueries)
+        ? parsedBody.searchQueries
+            .map((query) => String(query ?? "").trim())
+            .filter(Boolean)
+        : [];
+      if (!objective || queries.length === 0 || "mode" in (parsedBody ?? {})) {
+        json(res, 400, { success: false, error: "Invalid Exa search request" });
+        return true;
+      }
+      json(res, 200, {
+        success: true,
+        data: {
+          searchId: `exa-search-${queries.length}`,
+          results: queries.map((query, index) => ({
+            url: `https://exa.example.com/${index}`,
+            title: `Exa result for ${query}`,
+            publish_date: "2026-09-01",
+            excerpts: [`Objective: ${objective}; query: ${query}`],
+          })),
+          costUsd: 0.01,
+        },
+      });
+      return true;
+    }
+    if (/^\/agent-integrations\/exa\/contents\/?$/.test(url)) {
+      const urls = Array.isArray(parsedBody?.urls)
+        ? parsedBody.urls
+        : Array.isArray(parsedBody?.ids)
+          ? parsedBody.ids
+          : [];
+      json(res, 200, {
+        success: true,
+        data: {
+          requestId: "exa-contents",
+          results: urls.map((pageUrl) => ({
+            id: String(pageUrl),
+            url: String(pageUrl),
+            title: `Contents of ${pageUrl}`,
+            text: `Mock page text for ${pageUrl}`,
+          })),
+          costDollars: { total: 0.001 },
+        },
+      });
+      return true;
+    }
+    if (/^\/agent-integrations\/exa\/answer\/?$/.test(url)) {
+      const query = String(parsedBody?.query ?? "").trim();
+      json(res, 200, {
+        success: true,
+        data: {
+          requestId: "exa-answer",
+          answer: `Mock Exa answer for ${query}`,
+          citations: [
+            { id: "c0", url: "https://exa.example.com/answer", title: "Exa source" },
+          ],
+          costDollars: { total: 0.005 },
+        },
+      });
+      return true;
+    }
+    if (/^\/agent-integrations\/exa\/findSimilar\/?$/.test(url)) {
+      json(res, 200, {
+        success: true,
+        data: {
+          requestId: "exa-similar",
+          results: [
+            { id: "s0", url: "https://exa.example.com/similar", title: "Similar page" },
+          ],
+          costDollars: { total: 0.005 },
+        },
+      });
+      return true;
+    }
+  }
+
+  // ── Gemini grounded generate-content (managed) ─────────────
+  {
+    const match = url.match(
+      /^\/agent-integrations\/gemini\/models\/([^/?]+)\/generate-content\/?$/,
+    );
+    if (method === "POST" && match) {
+      const model = decodeURIComponent(match[1]);
+      const prompt = String(
+        parsedBody?.contents?.[0]?.parts?.[0]?.text ?? "",
+      ).trim();
+      json(res, 200, {
+        success: true,
+        data: {
+          modelVersion: model,
+          responseId: "gemini-mock",
+          candidates: [
+            {
+              content: {
+                role: "model",
+                parts: [{ text: `Mock grounded answer for ${prompt}` }],
+              },
+              groundingMetadata: {
+                webSearchQueries: [prompt],
+                groundingChunks: [
+                  {
+                    web: {
+                      uri: "https://gemini.example.com/source",
+                      title: "Grounding source",
+                    },
+                  },
+                ],
+                groundingSupports: [
+                  {
+                    segment: { startIndex: 0, endIndex: 10 },
+                    groundingChunkIndices: [0],
+                  },
+                ],
+              },
+            },
+          ],
+          usageMetadata: { promptTokenCount: 10, candidatesTokenCount: 20 },
+          costUsd: 0.002,
+        },
+      });
+      return true;
+    }
+  }
+
+  // ── TinyFish (managed) ─────────────────────────────────────
+  if (
+    method === "POST" &&
+    /^\/agent-integrations\/tinyfish\/(search|fetch)\/?$/.test(url)
+  ) {
+    const isFetch = /\/fetch\/?$/.test(url);
+    json(res, 200, {
+      success: true,
+      data: isFetch
+        ? {
+            results: (parsedBody?.urls ?? []).map((pageUrl) => ({
+              url: String(pageUrl),
+              title: `Fetched ${pageUrl}`,
+              text: `Mock fetched text for ${pageUrl}`,
+            })),
+          }
+        : {
+            results: [
+              {
+                url: "https://tinyfish.example.com/0",
+                title: `TinyFish result for ${String(parsedBody?.query ?? "")}`,
+                snippet: "Mock TinyFish snippet",
+              },
+            ],
+          },
     });
     return true;
   }

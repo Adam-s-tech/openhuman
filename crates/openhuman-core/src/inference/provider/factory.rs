@@ -58,7 +58,7 @@ pub use chat_model::{
 pub(crate) use credentials::openai_bearer_is_oauth;
 pub use credentials::{auth_key_for_slug, lookup_key_for_slug, redact_endpoint};
 pub(crate) use local_runtime::create_local_chat_model_from_string;
-pub(crate) use managed_backend::{make_openhuman_backend_model, summarization_tier_model};
+pub(crate) use managed_backend::make_openhuman_backend_model;
 pub(crate) use routing::role_uses_implicit_cloud_fallback;
 pub use routing::{provider_for_role, role_bypasses_managed_credits};
 pub(crate) use tiers::{
@@ -84,6 +84,7 @@ use local_runtime::{
     try_create_local_runtime_chat_model, try_create_local_runtime_chat_model_from_string,
     OptionalChatModelResult,
 };
+pub(crate) use managed_backend::make_openhuman_backend_model_for_thread;
 use managed_backend::{resolve_managed_backend, resolve_managed_backend_with_model_override};
 use primary_cloud::{legacy_inference_slug, resolve_primary_cloud_provider_string};
 use routing::split_model_and_temperature;
@@ -92,10 +93,10 @@ use subprocess_providers::{
     try_create_claude_agent_sdk_chat_model_from_string, try_create_claude_code_chat_model,
     try_create_claude_code_chat_model_from_string,
 };
-use tiers::is_abstract_tier_model;
+use tiers::{is_abstract_tier_model, managed_default_model};
 
 /// Test-only seam: inject a mock [`ChatModel`] so e2e tests can drive the
-/// autonomous run paths (`spawn_workflow_run_background`, the task dispatcher)
+/// autonomous run paths (for example `spawn_workflow_run_background`)
 /// with a scripted LLM and no network. Process-global because those runs are
 /// detached `tokio::spawn`s — a thread/task-local would not reach them.
 ///

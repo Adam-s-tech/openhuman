@@ -72,17 +72,20 @@ fn model_spec_resolve_exact_uses_name() {
 }
 
 #[test]
-fn model_spec_resolve_hint_appends_v1() {
+fn model_spec_resolve_hint_yields_the_role_alias() {
     let spec = ModelSpec::Hint("coding".into());
-    assert_eq!(spec.resolve("parent-model"), "coding-v1");
+    assert_eq!(spec.resolve("parent-model"), "hint:coding");
 }
 
 #[test]
-fn model_spec_resolve_vision_hint_yields_vision_v1() {
-    // The vision sub-agent's `hint = "vision"` must resolve to the `vision-v1`
-    // tier alias — which `oh_tier_supports_vision` reports as image-capable.
+fn model_spec_resolve_vision_hint_yields_the_vision_alias() {
+    // The vision sub-agent's `hint = "vision"` must resolve to the `hint:vision`
+    // alias — which `oh_tier_supports_vision` reports as image-capable.
     let spec = ModelSpec::Hint("vision".into());
-    assert_eq!(spec.resolve("parent-model"), "vision-v1");
+    assert_eq!(spec.resolve("parent-model"), "hint:vision");
+    assert!(
+        crate::inference::provider::factory::oh_tier_supports_vision(&spec.resolve("parent-model"))
+    );
 }
 
 #[test]
@@ -363,49 +366,29 @@ fn all_builtin_agent_definitions_have_expected_effective_max_iterations() {
     let expected: &[(&str, usize)] = &[
         // Extended policy (or high `max_iterations`) -> effective cap raised.
         ("orchestrator", 15),
-        ("code_executor", 50),
-        ("context_scout", 50),
         // #5204: general-purpose read-only flow context/memory retrieval
         // agent — `iteration_policy = "extended"` so it can loop across
         // several retrievals in one turn. `#[cfg(feature = "flows")]`-gated
         // (like the other flow agents), so this audit entry is too.
         #[cfg(feature = "flows")]
         ("flow_memory_agent", 50),
-        ("integrations_agent", 50),
-        // `mcp_agent` is compiled out with the `mcp` feature (#4799).
-        // `mcp_setup` is NOT — only its five tools are gated, so the agent
-        // definition still loads in both builds.
-        #[cfg(feature = "mcp")]
-        ("mcp_agent", 50),
-        ("mcp_setup", 50),
         ("planner", 50),
-        ("researcher", 50),
-        ("skill_creator", 50),
         ("task_manager_agent", 50),
-        ("tools_agent", 50),
         // Gated with `flows` (#4797) — absent from a slim build.
         #[cfg(feature = "flows")]
         ("flow_discovery", 50),
         #[cfg(feature = "flows")]
         ("workflow_builder", 50),
-        // Compiled out with the `skills` gate — see `openhuman::skills::stub`.
-        #[cfg(feature = "skills")]
-        ("skill_executor", 50),
         // Strict policy, declared `max_iterations` below the old global
         // default (10) -> effective cap lowered.
         ("agent_memory", 6),
         ("archivist", 3),
         ("critic", 5),
-        ("crypto_agent", 8),
         ("goals_agent", 5),
-        ("help", 6),
         ("image_agent", 8),
         ("morning_briefing", 8),
         ("profile_memory_agent", 8),
-        ("scheduler_agent", 8),
-        ("settings_agent", 8),
         ("summarizer", 1),
-        ("tool_maker", 2),
         ("trigger_reactor", 6),
         ("trigger_triage", 2),
         ("video_agent", 8),

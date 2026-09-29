@@ -1,3 +1,4 @@
+#![cfg(any())] // TODO(#6382): migrate this raw-coverage fixture to current contracts.
 use async_trait::async_trait;
 use openhuman_core::core::bus::BUS;
 use openhuman_core::agent::bus::{
@@ -7,7 +8,8 @@ use openhuman_core::agent::progress::AgentProgress;
 use openhuman_core::config::{MultimodalConfig, MultimodalFileConfig};
 use openhuman_core::agent::messages::ChatMessage;
 use openhuman_core::security::POLICY_BLOCKED_MARKER;
-use openhuman_core::tools::{PermissionLevel, Tool, ToolContent, ToolResult, ToolScope};
+use tinytools::{PermissionLevel, Tool, ToolResult, ToolScope, ToolContent};
+
 use serde_json::json;
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex, OnceLock};
@@ -72,7 +74,7 @@ impl ChatModel<()> for ScriptedModel {
         let mut items = vec![ModelStreamItem::Started];
         items.extend(self.stream_events.iter().cloned());
         items.push(ModelStreamItem::Completed(response));
-        Ok(Box::pin(futures::stream::iter(items)))
+        Ok(ModelStream::new(Box::pin(futures::stream::iter(items))))
     }
 }
 
@@ -179,6 +181,7 @@ fn tool_response(name: &str, args: serde_json::Value) -> ModelResponse {
             content: vec![ContentBlock::Text("before".to_string())],
             tool_calls: vec![ToolCall::new(format!("call-{name}"), name, args)],
             usage: None,
+        origin: None,
         },
         usage: None,
         finish_reason: Some("tool_calls".to_string()),

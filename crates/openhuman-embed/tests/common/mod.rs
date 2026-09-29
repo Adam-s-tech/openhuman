@@ -101,7 +101,14 @@ pub fn tool_call_completion(tool: &str, arguments: &str) -> serde_json::Value {
     })
 }
 
-/// The concatenated `tool`-role message contents of a recorded request.
+/// Prefix of the user message that carries tool results in the prompt-guided
+/// (text) tool-call dialect, which the harness uses for models it does not
+/// know to support native tool calling.
+const PROMPT_TOOL_RESULTS_PREFIX: &str = "[Tool results]";
+
+/// The concatenated tool results of a recorded request, in either dialect:
+/// `tool`-role messages (native tool calling) or the `[Tool results]` user
+/// message (prompt-guided tool calling).
 pub fn tool_results(request: &wiremock::Request) -> String {
     let body: serde_json::Value = serde_json::from_slice(&request.body).unwrap_or_default();
     body.get("messages")
@@ -109,11 +116,23 @@ pub fn tool_results(request: &wiremock::Request) -> String {
         .map(|messages| {
             messages
                 .iter()
-                .filter(|m| m.get("role").and_then(|r| r.as_str()) == Some("tool"))
-                .filter_map(|m| m.get("content"))
-                .map(|c| match c {
-                    serde_json::Value::String(s) => s.clone(),
-                    other => other.to_string(),
+                .filter_map(|m| {
+                    let content = match m.get("content")? {
+                        serde_json::Value::String(s) => s.clone(),
+                        other => other.to_string(),
+                    };
+                    match m.get("role").and_then(|r| r.as_str()) {
+                        Some("tool") => Some(content),
+                        // The harness may prepend continuation guidance and
+                        // the active user request before the tool-result block.
+                        Some("user") if content.contains(PROMPT_TOOL_RESULTS_PREFIX) => Some(
+                            content
+                                .split_once(PROMPT_TOOL_RESULTS_PREFIX)?
+                                .1
+                                .to_string(),
+                        ),
+                        _ => None,
+                    }
                 })
                 .collect::<Vec<_>>()
                 .join("\n")

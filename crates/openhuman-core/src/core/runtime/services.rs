@@ -214,9 +214,8 @@ pub(crate) struct BootstrapJobPlan {
     /// Workspace memory-source periodic sync — repos, folders, RSS, web pages
     /// (`memory_sync::workspace::start_workspace_periodic_sync`).
     pub workspace_memory_sync: bool,
-    /// Proactive task pollers (`task_sources::start_periodic_poll` +
-    /// `agent::task_dispatcher::start_board_poller`).
-    pub proactive_task_pollers: bool,
+    /// Proactive external task-source polling (`task_sources::start_periodic_poll`).
+    pub task_source_pollers: bool,
     /// Eager native-module preload (`modules::boot::load_declared_modules`):
     /// the memory module resolving at boot, off the request path.
     pub module_preload: bool,
@@ -233,7 +232,7 @@ pub(crate) fn bootstrap_job_plan(services: &ServiceSet) -> BootstrapJobPlan {
         memory_queue: services.memory_queue,
         composio_integration_sync: services.integrations,
         workspace_memory_sync: services.memory_sync,
-        proactive_task_pollers: services.cron,
+        task_source_pollers: services.cron,
         // The memory module is the only eager module, so its preload is memory
         // background work and rides the same flag as the queue.
         module_preload: services.memory_queue,
@@ -349,12 +348,11 @@ pub fn start_bootstrap_jobs(services: ServiceSet, config: &Config) {
         log::debug!("[runtime.bootstrap] workspace periodic sync disabled by ServiceSet");
     }
 
-    if plan.proactive_task_pollers {
-        log::debug!("[runtime.bootstrap] starting proactive task pollers (task sources + board)");
+    if plan.task_source_pollers {
+        log::debug!("[runtime.bootstrap] starting task-source poller");
         crate::integrations::task_sources::start_periodic_poll();
-        crate::agent::task_dispatcher::start_board_poller();
     } else {
-        log::debug!("[runtime.bootstrap] proactive task pollers disabled by ServiceSet");
+        log::debug!("[runtime.bootstrap] task-source polling disabled by ServiceSet");
     }
 
     log::debug!("[runtime.bootstrap] bootstrap job dispatch complete");
@@ -412,8 +410,8 @@ pub async fn start_boot_once_jobs(services: ServiceSet, config: &Config) {
     }
 }
 
-/// Migrates legacy goal, task-board, and run-ledger state before a built
-/// runtime can expose those crate-backed stores to in-process or HTTP callers.
+/// Prunes retired scheduled jobs before a built runtime can expose the
+/// scheduler to in-process or HTTP callers.
 pub(crate) async fn run_legacy_migrations(config: &Config) {
     match crate::cron::seed::prune_retired_jobs(config) {
         Ok(count) if count > 0 => {
@@ -422,48 +420,14 @@ pub(crate) async fn run_legacy_migrations(config: &Config) {
         Ok(_) => {}
         Err(e) => log::warn!("[cron] failed to prune retired jobs: {e}"),
     }
-
-    match crate::agent::goals::migration::migrate_legacy_goals(&config.workspace_dir).await {
-        Ok(report) if report.total > 0 => log::info!(
-            "[thread_goals] legacy→crate migration: total={} copied={} skipped={}",
-            report.total,
-            report.copied,
-            report.skipped
-        ),
-        Ok(_) => {}
-        Err(e) => log::warn!("[thread_goals] legacy→crate migration failed: {e}"),
-    }
-
-    match crate::agent::tinyagents::todos::migrate_legacy_task_boards(&config.workspace_dir).await {
-        Ok(report) if report.total > 0 => log::info!(
-            "[todos] legacy→crate migration: total={} copied={} skipped={}",
-            report.total,
-            report.copied,
-            report.skipped
-        ),
-        Ok(_) => {}
-        Err(e) => log::warn!("[todos] legacy→crate task-board migration failed: {e}"),
-    }
-
-    match crate::agent::todos::runs::migrate_legacy_task_runs(&config.workspace_dir).await {
-        Ok(report) if report.total > 0 => log::info!(
-            "[todos] legacy→crate run-ledger migration: total={} copied={} skipped={}",
-            report.total,
-            report.copied,
-            report.skipped
-        ),
-        Ok(_) => {}
-        Err(e) => log::warn!("[todos] legacy→crate run-ledger migration failed: {e}"),
-    }
 }
 
 /// Auto-connect Socket.IO to the backend when enabled by the service selection.
 pub fn spawn_socket_auto_connect(
     services: ServiceSet,
     socket_mgr: std::sync::Arc<crate::platform::socket::SocketManager>,
-    _flows_enabled: bool,
 ) {
-    if services.socketio {
+    if services.socketio && crate::backend::transport::is_installed() {
         tokio::spawn(async move {
             log::info!("[socket] Checking for stored session to auto-connect...");
             let config = match Config::load_or_init().await {
@@ -473,26 +437,34 @@ pub fn spawn_socket_auto_connect(
                     return;
                 }
             };
-            let api_url = crate::api::config::effective_backend_api_url(&config.api_url);
-            let initial_token = match crate::api::jwt::get_session_token(&config) {
-                Ok(Some(t)) => t,
-                Ok(None) => {
-                    log::info!(
+            let Ok(api_url) = crate::backend::base_url(&config.api_url) else {
+                log::debug!("[socket] No backend transport or base URL — skipping auto-connect");
+                return;
+            };
+            let initial_token =
+                match crate::security::credentials::session_support::get_session_token(&config) {
+                    Ok(Some(t)) => t,
+                    Ok(None) => {
+                        log::info!(
                         "[socket] No session token stored — skipping auto-connect (will connect after login)"
                     );
-                    return;
-                }
-                Err(e) => {
-                    log::warn!("[socket] Failed to read session token: {e}");
-                    return;
-                }
-            };
+                        return;
+                    }
+                    Err(e) => {
+                        log::warn!("[socket] Failed to read session token: {e}");
+                        return;
+                    }
+                };
+            if crate::security::credentials::session_support::is_local_session_token(&initial_token)
+            {
+                log::debug!("[socket] Offline local session — skipping auto-connect");
+                return;
+            }
             log::info!(
                 "[socket] Session token found — auto-connecting to {}",
                 api_url
             );
-            // Keep the authenticated token and user-scoped workflow bridge in
-            // one serialized identity transaction. The active profile may have
+            // Rebind the socket identity in one serialized transaction. The active profile may have
             // changed since CoreRuntime::build(), so the build-time Config is
             // not authoritative here.
             let _rebind = socket_mgr.lock_identity_rebind().await;
@@ -502,16 +474,8 @@ pub fn spawn_socket_auto_connect(
             // handshake (#6181); if it is already up for this identity there is
             // nothing to rebind.
             if socket_mgr.is_live_for(&api_url, &initial_token) {
-                // The socket is reusable, the bridge is not: it is pinned to the
-                // `Config` resolved above, which a workspace switch invalidates.
-                // `set_workflow_bridge` re-advertises over a live socket by
-                // design, so reinstall and skip only the handshake.
-                #[cfg(feature = "flows")]
-                if _flows_enabled {
-                    crate::flows::medulla_bridge::install(std::sync::Arc::clone(&config));
-                }
                 log::info!(
-                    "[socket] Auto-connect: {api_url} already connected with this session — refreshed the workflow bridge, kept the socket"
+                    "[socket] Auto-connect: {api_url} already connected with this session — kept the socket"
                 );
                 return;
             }
@@ -519,14 +483,19 @@ pub fn spawn_socket_auto_connect(
                 log::error!("[socket] Auto-connect could not stop the prior connection: {e}");
                 return;
             }
-            #[cfg(feature = "flows")]
-            if _flows_enabled {
-                crate::flows::medulla_bridge::install(std::sync::Arc::clone(&config));
-            }
             let provider =
                 crate::platform::socket::token_provider::token_provider_from_config(config);
             if let Err(e) = socket_mgr.connect_with_provider(&api_url, provider).await {
-                log::error!("[socket] Auto-connect failed: {e}");
+                // Signing out between the token check above and the provider's
+                // read leaves no token (Sentry 35911). That is a user-state
+                // race, not a fault: warn so it stays a breadcrumb.
+                if e.contains("no session token stored") {
+                    log::warn!(
+                        "[socket] Auto-connect skipped — session cleared before connect: {e}"
+                    );
+                } else {
+                    log::error!("[socket] Auto-connect failed: {e}");
+                }
             } else {
                 log::info!("[socket] Auto-connect initiated successfully");
             }

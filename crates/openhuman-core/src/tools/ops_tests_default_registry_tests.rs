@@ -10,7 +10,7 @@ fn all_tools_includes_spawn_subagent() {
     // Regression guard: the `spawn_subagent` tool must be present
     // in the default registry so parent agents can delegate to
     // sub-agents at runtime. If this test fails, the dispatch path
-    // in `agent::harness::subagent_runner` becomes unreachable.
+    // in `agent::subagent_host` becomes unreachable.
     let tmp = TempDir::new().unwrap();
     let security = Arc::new(SecurityPolicy::default());
     // The embedding seam fails loudly when unwired.
@@ -74,7 +74,9 @@ fn all_tools_registers_collapsed_memory_and_search_tools() {
         tool_capability(memory.name()),
         Some(tinymemory_api::capabilities::Capability::Core)
     );
-    assert!(tools
+    // The search half of deferral is the harness's intrinsic bridge, never a
+    // registered tool: a host `tool_search` would shadow it.
+    assert!(!tools
         .iter()
         .any(|tool| { tool.name() == crate::tools::implementations::meta::TOOL_SEARCH_NAME }));
 }
@@ -504,7 +506,7 @@ fn all_tools_registers_generic_mcp_bridge_tools_when_servers_exist() {
 /// The disabled direction of the `mcp` gate (#4799): even with MCP servers
 /// declared in config, a build without the `mcp` feature registers NO MCP tool
 /// of any family — neither the static bridge (`mcp_*`), the dynamic registry
-/// (`mcp_registry_*`), nor the setup-agent surface (`mcp_setup_*`).
+/// (`mcp_registry_*`).
 ///
 /// Deliberately asserts by prefix rather than naming the ~19 tools: a new MCP
 /// tool added later must not be able to leak into slim builds just because
@@ -674,7 +676,6 @@ fn all_tools_default_registry_contains_expected_baseline_surface() {
         "curl",
         "gitbooks_search",
         "gitbooks_get_page",
-        "web_search_tool",
         "image_info",
     ];
     // Managed Node tools exist only when the runtime is compiled in — same

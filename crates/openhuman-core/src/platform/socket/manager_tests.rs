@@ -1,6 +1,17 @@
 use super::*;
 use serde_json::json;
 
+#[tokio::test]
+async fn connection_rejects_plaintext_remote_socket_before_starting_loop() {
+    let manager = SocketManager::new();
+    let error = manager
+        .connect("http://example.com", "session-token")
+        .await
+        .unwrap_err();
+    assert!(error.contains("requires WSS or a loopback WS endpoint"));
+    assert!(!manager.is_connected());
+}
+
 #[test]
 fn new_manager_is_disconnected_with_no_sid() {
     let mgr = SocketManager::new();
@@ -208,8 +219,7 @@ async fn emit_still_succeeds_after_server_error_on_live_connection() {
 /// mutually exclusive, an `emit` that observed `ready == true` can have its
 /// `tx.send` land *after* the drain — leaving a stale message in the channel
 /// that the next reconnect (a fresh sid whose roster the backend cleared)
-/// forwards. This is the exact race `medulla::workflows::with_live_connection`
-/// already guards for the medulla handlers; the bare `emit` path is closed by
+/// forwards. This is the same connection race the bare `emit` path closes by
 /// making both critical sections take the connection's `ready` lock.
 ///
 /// The barrier: the test task takes the `ready` lock (standing in for teardown

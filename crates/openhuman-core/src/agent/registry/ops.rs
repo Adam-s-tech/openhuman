@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 
 use crate::agent::harness::AgentDefinitionRegistry;
-use crate::agent::Agent;
+use crate::agent::OpenHumanSessionHost;
 use crate::config::rpc as config_rpc;
 use crate::config::Config;
 
@@ -11,11 +11,6 @@ use super::defaults::default_agents;
 use super::types::{AgentRegistryEntry, AgentRegistryPatch, AgentRegistrySource, AgentToolInfo};
 
 const ORCHESTRATOR_AGENT_ID: &str = "orchestrator";
-
-/// Wildcard agent whose tool surface is the complete built-in tool catalog.
-/// Used as the source for [`available_tools`] — the orchestrator's curated
-/// `named` list is only a subset, so it can't back a general tool picker.
-const TOOLS_CATALOG_AGENT_ID: &str = "tools_agent";
 
 pub async fn list_agents(include_disabled: bool) -> Result<Vec<AgentRegistryEntry>, String> {
     let config = config_rpc::load_config_with_timeout().await?;
@@ -140,23 +135,24 @@ pub async fn remove_agent(id: &str) -> Result<bool, String> {
 /// List every assignable agent tool, with descriptions, for the editor's
 /// tool picker.
 ///
-/// Built from the wildcard [`TOOLS_CATALOG_AGENT_ID`] agent's `tool_specs()`:
-/// its `ToolScope::Wildcard` definition resolves to the full built-in tool
-/// catalog, so the names returned here are exactly the identifiers a
-/// `tool_allowlist` is matched against. (The orchestrator uses a curated
-/// `named` subset, so it would yield an incomplete catalog.) Connected-
-/// integration / delegation tools are intentionally not fetched — the picker
+/// Built from the orchestrator session's *durable* registry
+/// (`durable_tool_specs_arc`), not its advertised belt: every session is built
+/// over the complete built-in tool catalog and narrows only what it
+/// advertises, so the durable specs are exactly the identifiers a
+/// `tool_allowlist` is matched against, including `Deferred` tools the
+/// orchestrator reaches through `tool_search`. Synthesised delegation tools
+/// live in a separate set and are intentionally not included — the picker
 /// surfaces the stable built-in surface only. Sorted + deduped by name for a
 /// stable picker UI.
 pub async fn available_tools() -> Result<Vec<AgentToolInfo>, String> {
     let config = config_rpc::load_config_with_timeout().await?;
     AgentDefinitionRegistry::init_global(&config.workspace_dir)
         .map_err(|e| format!("failed to initialise AgentDefinitionRegistry: {e}"))?;
-    let agent = Agent::from_config_for_agent(&config, TOOLS_CATALOG_AGENT_ID)
+    let agent = OpenHumanSessionHost::from_config_for_agent(&config, ORCHESTRATOR_AGENT_ID)
         .map_err(|e| format!("failed to build tools-catalog agent: {e}"))?;
 
     let mut tools: Vec<AgentToolInfo> = agent
-        .tool_specs()
+        .durable_tool_specs_arc()
         .iter()
         .map(|spec| AgentToolInfo {
             name: spec.name.clone(),
@@ -201,11 +197,11 @@ pub fn merge_entries(
 /// Synchronous, config-only lookup for a user-authored (`Custom`-source),
 /// **enabled** agent registry entry by id.
 ///
-/// Used by the agent factory (`Agent::from_config_for_agent` family, see
-/// `agent::harness::session::builder::factory`) on a harness-registry lookup
+/// Used by the agent factory (`OpenHumanSessionHost::from_config_for_agent` family, see
+/// `agent::session_host::builder::factory`) on a harness-registry lookup
 /// miss so a custom agent can be synthesized into a real
 /// `AgentDefinition` (via `definition_from_registry_entry`) and run with its
-/// real tool belt, instead of erroring (chat/task-dispatcher) or degrading to
+/// real tool belt, instead of erroring in chat or degrading to
 /// a persona-only completion (flows). Deliberately sync — unlike
 /// [`get_agent`]/[`list_agents`] — because the factory already holds a
 /// `&Config` in scope and must not spawn an async config reload mid-build.
@@ -218,7 +214,7 @@ pub fn merge_entries(
 ///
 /// A **disabled** custom entry is deliberately treated as a miss (`None`),
 /// same as an unknown id — never synthesized into a runnable definition here.
-/// Every caller of this function (chat, task-dispatcher, flows' registry
+/// Every caller of this function (chat and flows' registry
 /// routing) resolves an agent id directly to "runnable or not"; without this
 /// filter a disabled custom agent referenced by an existing profile or a
 /// direct caller could still run through the harness path, silently

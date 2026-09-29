@@ -1,4 +1,4 @@
-//! Agent, autonomy, paths, activity-level, and memory-sync config operations.
+//! Agent, autonomy, paths, and memory-sync config operations.
 
 use std::path::{Path, PathBuf};
 
@@ -15,6 +15,12 @@ use super::loader::{load_config_with_timeout, snapshot_config_json};
 /// array wholesale.
 #[derive(Debug, Clone, Default)]
 pub struct AutonomySettingsPatch {
+    /// Master switch for the whole autonomy policy. Defaults to `false`
+    /// (`AutonomyConfig::enabled`): with it off, classification, the approval
+    /// gate, the allowlist, the action budget and containment are all inert,
+    /// and every other field in this patch has no effect until it is `true`.
+    /// `is_always_forbidden` applies either way.
+    pub enabled: Option<bool>,
     /// `"readonly" | "supervised" | "full"` (case-insensitive).
     pub level: Option<String>,
     pub workspace_only: Option<bool>,
@@ -25,7 +31,6 @@ pub struct AutonomySettingsPatch {
     pub max_actions_per_hour: Option<u32>,
     /// "Always allow" allowlist — tool names the gate skips prompting for.
     pub auto_approve: Option<Vec<String>>,
-    pub require_task_plan_approval: Option<bool>,
     /// Blanket "auto-approve everything" bypass. `SubconsciousTainted` and
     /// `Unknown` origins are still denied by the gate regardless of this
     /// setting.
@@ -41,6 +46,16 @@ pub struct AgentSettingsPatch {
     /// Tool/action wall-clock timeout in seconds. Validated to
     /// `tool_timeout::MIN_TIMEOUT_SECS..=tool_timeout::MAX_TIMEOUT_SECS`.
     pub agent_timeout_secs: Option<u64>,
+    /// Agent the web-chat path routes a turn to (`[agent] chat_agent_id`).
+    /// `Some("")`/whitespace clears the override and reverts to the
+    /// orchestrator; `Some(id)` sets it; `None` leaves it unchanged.
+    ///
+    /// Settable over RPC and not only in the TOML because the file on disk is
+    /// not reliably the file the core reads: once a user dir is active its
+    /// per-user `config.toml` takes precedence, so a value pre-written to the
+    /// root (or to a guessed user dir) is silently ignored. Going through the
+    /// running core writes wherever `Config::save` actually points.
+    pub chat_agent_id: Option<String>,
 }
 
 /// Partial update for the agent's editable filesystem roots.
@@ -52,13 +67,6 @@ pub struct AgentPathsPatch {
     /// New action sandbox root. `Some("")`/whitespace clears the override and
     /// reverts to the default; `Some(path)` sets it; `None` leaves it unchanged.
     pub action_dir: Option<String>,
-}
-
-/// Partial update for the agent activity level (0–4).
-#[derive(Debug, Clone, Default)]
-pub struct ActivityLevelSettingsPatch {
-    /// "off" | "minimal" | "moderate" | "active" | "always_on" (or "0"-"4").
-    pub level: Option<String>,
 }
 
 /// Patch for the global memory-sync cadence (#3302).
@@ -85,6 +93,9 @@ pub async fn apply_autonomy_settings(
 ) -> Result<RpcOutcome<serde_json::Value>, String> {
     use crate::security::AutonomyLevel;
 
+    if let Some(enabled) = update.enabled {
+        config.autonomy.enabled = enabled;
+    }
     if let Some(level) = update.level {
         config.autonomy.level = match level.trim().to_ascii_lowercase().as_str() {
             "readonly" | "read_only" | "read-only" => AutonomyLevel::ReadOnly,
@@ -122,9 +133,6 @@ pub async fn apply_autonomy_settings(
     }
     if let Some(auto_approve) = update.auto_approve {
         config.autonomy.auto_approve = auto_approve;
-    }
-    if let Some(require_task_plan_approval) = update.require_task_plan_approval {
-        config.autonomy.require_task_plan_approval = require_task_plan_approval;
     }
     if let Some(auto_approve_all) = update.auto_approve_all {
         config.autonomy.auto_approve_all = auto_approve_all;
@@ -212,7 +220,30 @@ pub async fn apply_agent_settings(
                 "agent_timeout_secs must be between {MIN_TIMEOUT_SECS} and {MAX_TIMEOUT_SECS} seconds (got {timeout_secs})"
             ));
         }
+    }
+
+    if let Some(chat_agent_id) = update.chat_agent_id.as_deref() {
+        let trimmed = chat_agent_id.trim();
+        if !trimmed.is_empty()
+            && !crate::agent::OpenHumanSessionHost::is_runnable_agent_id(config, trimmed)
+        {
+            return Err(format!(
+                "chat_agent_id '{trimmed}' is not a runnable agent definition"
+            ));
+        }
+    }
+
+    if let Some(timeout_secs) = update.agent_timeout_secs {
         config.agent.agent_timeout_secs = timeout_secs;
+    }
+
+    if let Some(chat_agent_id) = update.chat_agent_id {
+        let trimmed = chat_agent_id.trim();
+        config.agent.chat_agent_id = (!trimmed.is_empty()).then(|| trimmed.to_string());
+        log::debug!(
+            "[config][agent] chat_agent_id -> {:?}",
+            config.agent.chat_agent_id
+        );
     }
 
     config.save().await.map_err(|e| e.to_string())?;
@@ -344,6 +375,28 @@ pub async fn ensure_agent_dirs(config: &mut Config) {
             "[startup] could not create action sandbox dir"
         );
     }
+    // Creating the action dir is not the same as being allowed to write in it:
+    // `validate_path` only *joins* relative tool paths onto it, and the
+    // permission comes from a trusted root. `SecurityPolicy::from_config` grants
+    // it, and this is the config-side mirror so a persisted config carries the
+    // same grant. Skipped when the action dir sits at or above `workspace_dir`,
+    // where a trusted root would buy a `forbidden_paths` bypass over the whole
+    // workspace.
+    let action_path = action_dir.to_string_lossy().to_string();
+    if !action_path.is_empty()
+        && !config.workspace_dir.starts_with(&action_dir)
+        && !config
+            .autonomy
+            .trusted_roots
+            .iter()
+            .any(|r| r.path == action_path)
+    {
+        config.autonomy.trusted_roots.push(TrustedRoot {
+            path: action_path,
+            access: TrustedAccess::ReadWrite,
+        });
+    }
+
     tracing::info!(
         workspace = %redact_home(&config.workspace_dir),
         action = %redact_home(&action_dir),
@@ -508,94 +561,6 @@ pub async fn get_agent_paths() -> Result<RpcOutcome<serde_json::Value>, String> 
             action_dir_source(&config),
         )],
     ))
-}
-
-/// Returns the current activity level and its derived settings.
-pub async fn get_activity_level_settings() -> Result<RpcOutcome<serde_json::Value>, String> {
-    let config = load_config_with_timeout().await?;
-    let level = config.agent_activity_level;
-    let (cost_min, cost_max) = level.estimated_monthly_cost_range();
-    let value = serde_json::json!({
-        "level": level as u8,
-        "level_label": level.as_str(),
-        "sync_interval_secs": level.sync_interval_secs(),
-        "heartbeat_enabled": level.heartbeat_enabled(),
-        "subconscious_enabled": level.subconscious_enabled(),
-        "token_budget_per_cycle": level.token_budget_per_cycle(),
-        "estimated_monthly_cost_min_usd": cost_min,
-        "estimated_monthly_cost_max_usd": cost_max,
-    });
-    Ok(RpcOutcome::single_log(
-        value,
-        "activity level settings read",
-    ))
-}
-
-/// Updates the agent activity level and pushes it into the scheduler gate.
-pub async fn apply_activity_level_settings(
-    config: &mut Config,
-    update: ActivityLevelSettingsPatch,
-) -> Result<RpcOutcome<serde_json::Value>, String> {
-    use crate::config::schema::activity_level::AgentActivityLevel;
-    use crate::config::SchedulerGateMode;
-
-    if let Some(level_str) = update.level {
-        let level = AgentActivityLevel::from_str_opt(&level_str).ok_or_else(|| {
-            format!(
-                "invalid activity level '{}' \
-                 (expected off|minimal|moderate|active|always_on or 0-4)",
-                level_str
-            )
-        })?;
-        config.agent_activity_level = level;
-    }
-
-    let level = config.agent_activity_level;
-    let gate_mode = match level {
-        AgentActivityLevel::Off => SchedulerGateMode::Off,
-        AgentActivityLevel::Minimal | AgentActivityLevel::Moderate => SchedulerGateMode::Auto,
-        AgentActivityLevel::Active | AgentActivityLevel::AlwaysOn => SchedulerGateMode::AlwaysOn,
-    };
-    config.scheduler_gate.mode = gate_mode;
-
-    config.save().await.map_err(|e| e.to_string())?;
-
-    let gate_cfg = config.scheduler_gate.clone();
-    crate::cron::scheduler_gate::gate::update_config(gate_cfg);
-
-    tracing::info!(
-        level = %level.as_str(),
-        gate_mode = %gate_mode.as_str(),
-        "[config:activity_level] activity level updated"
-    );
-
-    let (cost_min, cost_max) = level.estimated_monthly_cost_range();
-    let value = serde_json::json!({
-        "level": level as u8,
-        "level_label": level.as_str(),
-        "sync_interval_secs": level.sync_interval_secs(),
-        "heartbeat_enabled": level.heartbeat_enabled(),
-        "subconscious_enabled": level.subconscious_enabled(),
-        "token_budget_per_cycle": level.token_budget_per_cycle(),
-        "estimated_monthly_cost_min_usd": cost_min,
-        "estimated_monthly_cost_max_usd": cost_max,
-    });
-    Ok(RpcOutcome::new(
-        value,
-        vec![format!(
-            "activity level set to '{}' — saved to {}",
-            level.as_str(),
-            config.config_path.display()
-        )],
-    ))
-}
-
-/// Loads the configuration, applies activity level settings, and saves it.
-pub async fn load_and_apply_activity_level_settings(
-    update: ActivityLevelSettingsPatch,
-) -> Result<RpcOutcome<serde_json::Value>, String> {
-    let mut config = load_config_with_timeout().await?;
-    apply_activity_level_settings(&mut config, update).await
 }
 
 fn memory_sync_settings_value(stored: Option<u64>) -> serde_json::Value {

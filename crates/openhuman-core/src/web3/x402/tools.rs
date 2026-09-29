@@ -11,7 +11,7 @@ use log::debug;
 use serde_json::json;
 use std::time::Duration;
 
-use crate::tools::traits::{PermissionLevel, Tool, ToolCallOptions, ToolResult};
+use tinytools::{PermissionLevel, Tool, ToolCallOptions, ToolResult};
 
 use super::store;
 use super::types::*;
@@ -35,6 +35,10 @@ impl X402RequestTool {
 
 #[async_trait]
 impl Tool for X402RequestTool {
+    fn exposure(&self) -> tinytools::ToolExposure {
+        tinytools::ToolExposure::Deferred
+    }
+
     fn name(&self) -> &str {
         "x402_request"
     }

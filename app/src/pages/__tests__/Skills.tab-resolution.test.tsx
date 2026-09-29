@@ -56,8 +56,11 @@ vi.mock('../../hooks/useChannelDefinitions', () => ({
 vi.mock('../../components/skills/SkillsExplorerTab', () => ({
   default: () => <div data-testid="tab-body-skills-explorer" />,
 }));
-vi.mock('../../components/channels/mcp/McpServersTab', () => ({
+vi.mock('../../components/channels/mcp/McpServersPage', () => ({
   default: () => <div data-testid="tab-body-mcp-servers" />,
+}));
+vi.mock('../../components/desktop/DesktopConnectionPage', () => ({
+  default: () => <div data-testid="tab-body-desktop" />,
 }));
 
 vi.mock('../../lib/skills/skillsApi', () => ({
@@ -152,7 +155,7 @@ describe('Connections ?tab= resolution — legacy aliases', () => {
 });
 
 describe('Connections ?tab= resolution — canonical values', () => {
-  it.each([['composio'], ['channels'], ['mcp'], ['skills'], ['wallet']])(
+  it.each([['composio'], ['channels'], ['mcp'], ['skills'], ['wallet'], ['desktop']])(
     '?tab=%s passes through unchanged',
     async tab => {
       renderAt(`?tab=${tab}`);

@@ -10,9 +10,9 @@ use crate::security::approval::{ApprovalChatContext, APPROVAL_CHAT_CONTEXT};
 #[cfg(feature = "documents")]
 use crate::security::SecurityPolicy;
 #[cfg(feature = "documents")]
-use crate::tools::traits::Tool;
-#[cfg(feature = "documents")]
 use crate::tools::PresentationTool;
+#[cfg(feature = "documents")]
+use tinytools::Tool;
 
 use super::store;
 use super::types::ArtifactKind;
@@ -213,6 +213,9 @@ async fn regenerate_presentation(
     let chat_ctx = ApprovalChatContext {
         thread_id: thread_id.to_string(),
         client_id: client_id.to_string(),
+        // No turn request_id in scope on this path (artifact regeneration is
+        // not itself a chat turn).
+        request_id: None,
     };
 
     let result = store::REGENERATE_TARGET_ID

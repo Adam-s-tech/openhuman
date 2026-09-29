@@ -4,13 +4,22 @@
 //! end-to-end without a SQLite/vector backend.
 
 use super::*;
-use crate::agent::harness::session::transcript::{SessionTranscript, TranscriptMeta};
 use crate::agent::messages::ChatMessage;
 use crate::memory::{Memory, MemoryCategory, MemoryEntry, NamespaceSummary, RecallOpts};
 use async_trait::async_trait;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Mutex;
+use tinyagents_session::transcript::{SessionTranscript, TranscriptMeta};
+
+fn durable_messages(
+    messages: impl IntoIterator<Item = ChatMessage>,
+) -> Vec<tinyagents_session::transcript::TranscriptMessage> {
+    messages
+        .into_iter()
+        .map(|message| crate::agent::messages::transcript_message_from_chat(&message))
+        .collect()
+}
 
 /// Tiny in-memory `Memory` implementation good enough to drive the
 /// transcript-ingest pipeline. Not exposed outside tests.
@@ -169,6 +178,8 @@ impl Memory for InMemory {
 
 fn fake_meta(thread_id: Option<&str>) -> TranscriptMeta {
     TranscriptMeta {
+        session_id: None,
+        parent_session_id: None,
         agent_name: "main".into(),
         agent_id: None,
         agent_type: None,
@@ -178,6 +189,7 @@ fn fake_meta(thread_id: Option<&str>) -> TranscriptMeta {
         created: "2026-05-09T11:00:00Z".into(),
         updated: "2026-05-09T12:00:00Z".into(),
         turn_count: 4,
+        prefix_message_count: None,
         input_tokens: 0,
         output_tokens: 0,
         cached_input_tokens: 0,
@@ -191,13 +203,14 @@ fn fake_meta(thread_id: Option<&str>) -> TranscriptMeta {
 async fn ingest_extracts_high_importance_preference_with_provenance() {
     let mem = InMemory::new();
     let transcript = SessionTranscript {
+        tools: None,
         meta: fake_meta(Some("thr_alpha")),
-        messages: vec![
+        messages: durable_messages([
             ChatMessage::user("hi"),
             ChatMessage::assistant("hello"),
             ChatMessage::user("I prefer Postgres over MySQL for any new metadata service we ship."),
             ChatMessage::user("Still need to migrate the auth service before Friday."),
-        ],
+        ]),
     };
 
     let report =
@@ -225,10 +238,11 @@ async fn ingest_extracts_high_importance_preference_with_provenance() {
 async fn re_ingest_is_idempotent() {
     let mem = InMemory::new();
     let transcript = SessionTranscript {
+        tools: None,
         meta: fake_meta(Some("thr_beta")),
-        messages: vec![ChatMessage::user(
+        messages: durable_messages([ChatMessage::user(
             "I prefer Postgres for everything new — please default to it.",
-        )],
+        )]),
     };
     let path = PathBuf::from("/tmp/200_main.jsonl");
 
@@ -249,8 +263,9 @@ async fn re_ingest_is_idempotent() {
 async fn ingest_captures_user_reflection_and_recurring_pattern() {
     let mem = InMemory::new();
     let transcript = SessionTranscript {
+        tools: None,
         meta: fake_meta(Some("thr_gamma")),
-        messages: vec![
+        messages: durable_messages([
             ChatMessage::user("I prefer terse responses with no preamble."),
             ChatMessage::user("Going forward I want code-first answers."),
             ChatMessage::user("I always want bullet points when listing options."),
@@ -258,7 +273,7 @@ async fn ingest_captures_user_reflection_and_recurring_pattern() {
                 "I realized we keep reintroducing the same schema bug — \
                  next time write a regression test first.",
             ),
-        ],
+        ]),
     };
 
     let report =
@@ -285,13 +300,14 @@ async fn ingest_captures_user_reflection_and_recurring_pattern() {
 async fn ingest_filters_low_signal_chatter() {
     let mem = InMemory::new();
     let transcript = SessionTranscript {
+        tools: None,
         meta: fake_meta(None),
-        messages: vec![
+        messages: durable_messages([
             ChatMessage::user("ok"),
             ChatMessage::user("thanks!"),
             ChatMessage::assistant("👍"),
             ChatMessage::user("hi there"),
-        ],
+        ]),
     };
 
     let report =
@@ -312,8 +328,9 @@ async fn ingest_persists_candidates_with_bounded_concurrency() {
     // PERSIST_CONCURRENCY (8), so an unbounded fan-out would push more than 8
     // stores in flight at once — the bound assertion below would then fail.
     let transcript = SessionTranscript {
+        tools: None,
         meta: fake_meta(Some("thr_bound")),
-        messages: vec![
+        messages: durable_messages([
             ChatMessage::user("I prefer Postgres over MySQL for new metadata services."),
             ChatMessage::user("I prefer tabs over spaces in our Go codebase."),
             ChatMessage::user("I prefer dark mode in every editor I use."),
@@ -324,7 +341,7 @@ async fn ingest_persists_candidates_with_bounded_concurrency() {
             ChatMessage::user("I prefer monorepos for tightly coupled services."),
             ChatMessage::user("I prefer integration tests over heavy mocking."),
             ChatMessage::user("I prefer ISO-8601 timestamps in all our logs."),
-        ],
+        ]),
     };
 
     let report =

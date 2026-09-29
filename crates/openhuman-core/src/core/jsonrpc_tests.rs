@@ -7,10 +7,18 @@ use std::time::Duration;
 use tokio_util::sync::CancellationToken;
 
 use super::{
-    default_state, group_first_time_when_bus_ready, invoke_method, is_session_expired_error,
-    is_unconfirmed_unauthorized_error, learning_first_time_when_bus_ready, params_to_object,
-    parse_json_params, type_name, DomainSubscriberPlan,
+    apply_e2e_tool_groups, default_state, group_first_time_when_bus_ready, invoke_method,
+    is_session_expired_error, is_unconfirmed_unauthorized_error,
+    learning_first_time_when_bus_ready, params_to_object, parse_json_params,
+    should_publish_session_expired, translate_local_session_error, type_name, DomainSubscriberPlan,
 };
+
+#[test]
+fn e2e_environment_enables_advertised_tool_groups() {
+    let _guard = EnvVarGuard::set_many(vec![("OPENHUMAN_E2E", "1".into())]);
+    let builder = crate::core::runtime::CoreBuilder::new(crate::core::types::HostKind::Cli);
+    let _ = apply_e2e_tool_groups(builder);
+}
 // These are the `http-server`-gated RPC-surface symbols (#5048); the tests that
 // name them below carry the same `#[cfg]` so the disabled-build test compile
 // (`cargo test --no-default-features`) stays green.
@@ -594,230 +602,6 @@ fn http_schema_dump_includes_openhuman_and_core_methods() {
             .any(|m| m.method == "openhuman.health_snapshot"),
         "schema dump should include migrated openhuman methods"
     );
-
-    assert!(
-        methods
-            .iter()
-            .any(|m| m.method == "openhuman.billing_get_summary"),
-        "schema dump should include billing methods"
-    );
-
-    assert!(
-        methods
-            .iter()
-            .any(|m| m.method == "openhuman.team_list_members"),
-        "schema dump should include team methods"
-    );
-}
-
-#[tokio::test]
-async fn billing_get_current_plan_rejects_unknown_param() {
-    let err = invoke_method(
-        default_state(),
-        "openhuman.billing_get_current_plan",
-        json!({ "extra": true }),
-    )
-    .await
-    .expect_err("unknown param should fail");
-    assert!(err.contains("unknown param 'extra'"));
-}
-
-#[tokio::test]
-async fn billing_get_summary_rejects_unknown_param() {
-    let err = invoke_method(
-        default_state(),
-        "openhuman.billing_get_summary",
-        json!({ "extra": true }),
-    )
-    .await
-    .expect_err("unknown param should fail");
-    assert!(err.contains("unknown param 'extra'"));
-}
-
-#[tokio::test]
-async fn billing_purchase_plan_missing_plan_fails_validation() {
-    let err = invoke_method(
-        default_state(),
-        "openhuman.billing_purchase_plan",
-        json!({}),
-    )
-    .await
-    .expect_err("missing plan should fail");
-    assert!(err.contains("missing required param 'plan'"));
-}
-
-#[tokio::test]
-async fn billing_top_up_missing_amount_fails_validation() {
-    let err = invoke_method(default_state(), "openhuman.billing_top_up", json!({}))
-        .await
-        .expect_err("missing amountUsd should fail");
-    assert!(err.contains("missing required param 'amountUsd'"));
-}
-
-#[tokio::test]
-async fn billing_top_up_rejects_unknown_param() {
-    let err = invoke_method(
-        default_state(),
-        "openhuman.billing_top_up",
-        json!({ "amountUsd": 10.0, "unknownField": true }),
-    )
-    .await
-    .expect_err("unknown param should fail");
-    assert!(err.contains("unknown param 'unknownField'"));
-}
-
-#[tokio::test]
-async fn billing_create_portal_session_rejects_unknown_param() {
-    let err = invoke_method(
-        default_state(),
-        "openhuman.billing_create_portal_session",
-        json!({ "x": 1 }),
-    )
-    .await
-    .expect_err("unknown param should fail");
-    assert!(err.contains("unknown param 'x'"));
-}
-
-#[tokio::test]
-async fn team_list_members_missing_team_id_fails_validation() {
-    let err = invoke_method(default_state(), "openhuman.team_list_members", json!({}))
-        .await
-        .expect_err("missing teamId should fail");
-    assert!(err.contains("missing required param 'teamId'"));
-}
-
-#[tokio::test]
-async fn team_list_members_rejects_unknown_param() {
-    let err = invoke_method(
-        default_state(),
-        "openhuman.team_list_members",
-        json!({ "teamId": "t1", "extra": true }),
-    )
-    .await
-    .expect_err("unknown param should fail");
-    assert!(err.contains("unknown param 'extra'"));
-}
-
-#[tokio::test]
-async fn team_create_invite_missing_team_id_fails_validation() {
-    let err = invoke_method(default_state(), "openhuman.team_create_invite", json!({}))
-        .await
-        .expect_err("missing teamId should fail");
-    assert!(err.contains("missing required param 'teamId'"));
-}
-
-#[tokio::test]
-async fn team_remove_member_missing_required_params_fails_validation() {
-    let err = invoke_method(
-        default_state(),
-        "openhuman.team_remove_member",
-        json!({ "teamId": "t1" }),
-    )
-    .await
-    .expect_err("missing userId should fail");
-    assert!(err.contains("missing required param 'userId'"));
-}
-
-#[tokio::test]
-async fn team_change_member_role_missing_role_fails_validation() {
-    let err = invoke_method(
-        default_state(),
-        "openhuman.team_change_member_role",
-        json!({ "teamId": "t1", "userId": "u1" }),
-    )
-    .await
-    .expect_err("missing role should fail");
-    assert!(err.contains("missing required param 'role'"));
-}
-
-#[tokio::test]
-async fn billing_create_coinbase_charge_missing_plan_fails_validation() {
-    let err = invoke_method(
-        default_state(),
-        "openhuman.billing_create_coinbase_charge",
-        json!({}),
-    )
-    .await
-    .expect_err("missing plan should fail");
-    assert!(err.contains("missing required param 'plan'"));
-}
-
-#[tokio::test]
-async fn billing_create_coinbase_charge_rejects_unknown_param() {
-    let err = invoke_method(
-        default_state(),
-        "openhuman.billing_create_coinbase_charge",
-        json!({ "plan": "pro", "extra": true }),
-    )
-    .await
-    .expect_err("unknown param should fail");
-    assert!(err.contains("unknown param 'extra'"));
-}
-
-#[tokio::test]
-async fn team_list_invites_missing_team_id_fails_validation() {
-    let err = invoke_method(default_state(), "openhuman.team_list_invites", json!({}))
-        .await
-        .expect_err("missing teamId should fail");
-    assert!(err.contains("missing required param 'teamId'"));
-}
-
-#[tokio::test]
-async fn team_list_invites_rejects_unknown_param() {
-    let err = invoke_method(
-        default_state(),
-        "openhuman.team_list_invites",
-        json!({ "teamId": "t1", "extra": true }),
-    )
-    .await
-    .expect_err("unknown param should fail");
-    assert!(err.contains("unknown param 'extra'"));
-}
-
-#[tokio::test]
-async fn team_revoke_invite_missing_team_id_fails_validation() {
-    let err = invoke_method(default_state(), "openhuman.team_revoke_invite", json!({}))
-        .await
-        .expect_err("missing teamId should fail");
-    assert!(err.contains("missing required param 'teamId'"));
-}
-
-#[tokio::test]
-async fn team_revoke_invite_missing_invite_id_fails_validation() {
-    let err = invoke_method(
-        default_state(),
-        "openhuman.team_revoke_invite",
-        json!({ "teamId": "t1" }),
-    )
-    .await
-    .expect_err("missing inviteId should fail");
-    assert!(err.contains("missing required param 'inviteId'"));
-}
-
-#[tokio::test]
-#[cfg(feature = "http-server")]
-async fn schema_dump_includes_new_billing_and_team_methods() {
-    let dump = build_http_schema_dump();
-    let methods: Vec<&str> = dump.methods.iter().map(|m| m.method.as_str()).collect();
-    for expected in &[
-        "openhuman.billing_get_summary",
-        "openhuman.billing_get_current_plan",
-        "openhuman.billing_purchase_plan",
-        "openhuman.billing_create_portal_session",
-        "openhuman.billing_top_up",
-        "openhuman.billing_create_coinbase_charge",
-        "openhuman.team_list_members",
-        "openhuman.team_create_invite",
-        "openhuman.team_list_invites",
-        "openhuman.team_revoke_invite",
-        "openhuman.team_remove_member",
-        "openhuman.team_change_member_role",
-    ] {
-        assert!(
-            methods.contains(expected),
-            "schema dump missing expected method: {expected}"
-        );
-    }
 }
 
 // --- helper coverage -----------------------------------------------------
@@ -896,8 +680,8 @@ fn is_session_expired_error_matches_flattened_backend_unauthorized() {
     // 401 is suppressed from Sentry (TAURI-RUST-8WY on `/teams/me/usage`,
     // TAURI-RUST-8WZ on `/payments/stripe/currentPlan`) AND triggers the
     // `SessionExpired` publish. End-to-end: build the typed error → flatten → classify.
-    let flat = crate::api::flatten_authed_error(anyhow::Error::new(
-        crate::api::BackendApiError::Unauthorized {
+    let flat = crate::backend::flatten_authed_error(anyhow::Error::new(
+        crate::backend::BackendApiError::Unauthorized {
             method: "GET".to_string(),
             path: "/teams/me/usage".to_string(),
         },
@@ -1124,6 +908,30 @@ fn is_session_expired_error_matches_missing_backend_session_token() {
     ));
     // Case-insensitive match — the helper lowercases first.
     assert!(is_session_expired_error("NO BACKEND SESSION TOKEN"));
+}
+
+#[test]
+fn local_offline_credential_does_not_publish_backend_session_expiry() {
+    let local = crate::security::credentials::session_support::is_local_session_token(
+        "header.payload.local",
+    );
+    let jwt = crate::security::credentials::session_support::is_local_session_token(
+        "header.payload.signature",
+    );
+    for error in [
+        "composio unavailable: no backend session token. Sign in first (auth_store_session).",
+        "SESSION_EXPIRED: backend rejected session token on GET /teams/me/usage",
+    ] {
+        assert!(!should_publish_session_expired(error, local), "{error}");
+        assert!(should_publish_session_expired(error, jwt), "{error}");
+        let translated = translate_local_session_error(error, local).expect("local fallback");
+        assert!(
+            translated.starts_with(crate::core::observability::BACKEND_UNAVAILABLE_PREFIX),
+            "{translated}"
+        );
+        assert!(!is_session_expired_error(&translated));
+        assert!(translate_local_session_error(error, jwt).is_none());
+    }
 }
 
 #[tokio::test(flavor = "current_thread")]

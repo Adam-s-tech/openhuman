@@ -12,8 +12,8 @@ use serde::{Deserialize, Deserializer, Serialize};
 /// ```toml
 /// [subagents]
 /// allowlist = [
-///     "researcher",            # AgentId("researcher")
-///     "code_executor",         # AgentId("code_executor")
+///     "task_manager_agent",    # AgentId("task_manager_agent")
+///     "vision_agent",          # AgentId("vision_agent")
 ///     { skills = "*" },        # Skills { pattern: "*" }
 /// ]
 /// ```
@@ -22,11 +22,11 @@ use serde::{Deserialize, Deserializer, Serialize};
 pub enum SubagentEntry {
     /// Delegate to a specific built-in or custom agent by id.
     AgentId(String),
-    /// Expand at build time to a single collapsed
-    /// `delegate_to_integrations_agent` tool whose `toolkit` argument
-    /// selects which connected Composio toolkit to route to, with
-    /// `skill_filter` pre-set on the underlying `integrations_agent`
-    /// dispatch (#1335).
+    /// Expand at build time to the connected Composio toolkits' actions as
+    /// `Deferred` tools — off the wire, found through the harness's
+    /// `tool_search`, and called directly by this agent. No sub-agent is
+    /// reachable through this entry: it widens the searchable catalogue,
+    /// not the spawnable set.
     Skills(SkillsWildcard),
 }
 

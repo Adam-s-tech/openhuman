@@ -348,10 +348,59 @@ export const generateThreadTitleIfNeeded = createAsyncThunk(
   }
 );
 
-export const persistReaction = createAsyncThunk(
-  'thread/persistReaction',
+/** The rating a user gave one assistant reply. */
+export type MessageFeedback = 'positive' | 'negative';
+
+/** `extraMetadata` key holding the rating. */
+export const FEEDBACK_METADATA_KEY = 'feedback';
+
+/**
+ * `extraMetadata` key holding every persisted row id that made up the assistant
+ * run the user actually rated.
+ *
+ * One visible assistant message is often several persisted rows (see
+ * `mergeAssistantRun`), and the adapter only ever hands us the last row's id.
+ * Recording the whole set means the rating stays attributable to what was on
+ * screen rather than to the fragment that happened to be last.
+ */
+export const FEEDBACK_ROW_IDS_METADATA_KEY = 'feedbackRowIds';
+
+/**
+ * `extraMetadata` key holding the turn's latency snapshot
+ * (`ChatDoneEvent.timing` — wire-contract.md), stamped by
+ * `ChatRuntimeProvider`'s `chatDoneExtraMetadata` and read back by
+ * `assistantUiMessages.ts` to build `ThreadMessageLike.metadata.timing` for
+ * the vendored `MessageTiming` element.
+ */
+export const TIMING_METADATA_KEY = 'timing';
+
+/**
+ * `extraMetadata` key holding a `chat_error`'s `error_type` (and, for
+ * `"guardrail"`, its `GuardrailPayload`) — wire-contract.md. Stamped by
+ * `ChatRuntimeProvider`'s `onError` handler on the assistant message it
+ * appends for the failed turn; read back by `assistantUiMessages.ts` and
+ * `ChatErrorNotice` (`features/conversations/aui/`) to render the vendored
+ * `GuardrailNotice` element in place of the plain error text.
+ */
+export const CHAT_ERROR_METADATA_KEY = 'chatError';
+
+/**
+ * Persist a thumbs rating on one assistant message: read the row from Redux,
+ * patch its `extraMetadata`, and write back the persisted row.
+ *
+ * Pressing the same rating again clears it, so a mis-click is recoverable: the
+ * assistant-ui action bar has no third "unrated" control to offer.
+ */
+export const persistMessageFeedback = createAsyncThunk(
+  'thread/persistMessageFeedback',
   async (
-    payload: { threadId: string; messageId: string; emoji: string },
+    payload: {
+      threadId: string;
+      messageId: string;
+      feedback: MessageFeedback;
+      /** Row ids of the merged run, when the rated message spans several. */
+      rowIds?: readonly string[];
+    },
     { getState, rejectWithValue }
   ) => {
     const state = getState() as { thread: ThreadState };
@@ -359,10 +408,15 @@ export const persistReaction = createAsyncThunk(
     const message = stored.find(e => e.id === payload.messageId);
     if (!message) return rejectWithValue('Message not found');
 
-    const prev = (message.extraMetadata['myReactions'] as string[] | undefined) ?? [];
-    const idx = prev.indexOf(payload.emoji);
-    const next = idx >= 0 ? prev.filter(e => e !== payload.emoji) : [...prev, payload.emoji];
-    const extraMetadata = { ...message.extraMetadata, myReactions: next };
+    const previous = message.extraMetadata[FEEDBACK_METADATA_KEY];
+    const next = previous === payload.feedback ? undefined : payload.feedback;
+    const extraMetadata: Record<string, unknown> = {
+      ...message.extraMetadata,
+      [FEEDBACK_METADATA_KEY]: next,
+    };
+    if (payload.rowIds && payload.rowIds.length > 1) {
+      extraMetadata[FEEDBACK_ROW_IDS_METADATA_KEY] = [...payload.rowIds];
+    }
 
     try {
       const persisted = await threadApi.updateMessage(
@@ -372,7 +426,7 @@ export const persistReaction = createAsyncThunk(
       );
       return { threadId: payload.threadId, message: persisted };
     } catch (error) {
-      return rejectWithValue(error instanceof Error ? error.message : 'Failed to save reaction');
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to save feedback');
     }
   }
 );
@@ -476,6 +530,35 @@ const threadSlice = createSlice({
     setWelcomeThreadId: () => {
       // intentional no-op
     },
+    /**
+     * Drop messages at or after `messageId` from `threadId`'s local cache.
+     *
+     * Backs assistant-ui's `onEdit`/`onReload` (`useOpenHumanExternalStore`):
+     * both RPCs (`threads.edit_message`, `threads.regenerate`) truncate the
+     * core's own transcript and re-run from that point, but neither returns a
+     * fresh message list — the socket events that follow only carry the NEW
+     * turn. Without this, the discarded replies would stay visible in the
+     * Redux cache until the next full `loadThreadMessages` refetch.
+     *
+     * `inclusive` distinguishes the two callers: an edit resends `messageId`
+     * itself (drop it too), a reload keeps the parent message and only drops
+     * what came after it.
+     */
+    truncateMessagesFrom: (
+      state,
+      action: PayloadAction<{ threadId: string; messageId: string; inclusive: boolean }>
+    ) => {
+      const { threadId, messageId, inclusive } = action.payload;
+      const existing = state.messagesByThreadId[threadId];
+      if (!existing) return;
+      const idx = existing.findIndex(m => m.id === messageId);
+      if (idx < 0) return;
+      const truncated = existing.slice(0, inclusive ? idx : idx + 1);
+      state.messagesByThreadId[threadId] = truncated;
+      if (state.selectedThreadId === threadId) {
+        state.messages = truncated;
+      }
+    },
   },
   extraReducers: builder => {
     builder
@@ -572,7 +655,7 @@ const threadSlice = createSlice({
         // chat_done / chat_error. Clearing on every rejected segment append
         // would re-enable the composer while the turn is still in-flight.
       })
-      .addCase(persistReaction.fulfilled, (state, action) => {
+      .addCase(persistMessageFeedback.fulfilled, (state, action) => {
         appendMessageToCache(state, action.payload.threadId, action.payload.message, true);
       })
       .addCase(deleteThread.fulfilled, (state, action) => {
@@ -599,6 +682,7 @@ export const {
   clearAllThreads,
   resetThreadCachesPreservingSelection,
   setWelcomeThreadId,
+  truncateMessagesFrom,
 } = threadSlice.actions;
 
 export default threadSlice.reducer;

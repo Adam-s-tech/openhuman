@@ -14,8 +14,8 @@ impl Default for Config {
         let openhuman_dir = crate::config::default_root_openhuman_dir().unwrap_or_else(|_| {
             let home =
                 UserDirs::new().map_or_else(|| PathBuf::from("."), |u| u.home_dir().to_path_buf());
-            let dir_name = if crate::api::config::is_staging_app_env(
-                crate::api::config::app_env_from_env().as_deref(),
+            let dir_name = if crate::config::app_env::is_staging_app_env(
+                crate::config::app_env::app_env_from_env().as_deref(),
             ) {
                 ".openhuman-staging"
             } else {
@@ -43,15 +43,17 @@ impl Default for Config {
             observability: ObservabilityConfig::default(),
             dashboard: DashboardConfig::default(),
             autonomy: AutonomyConfig::default(),
+            desktop: DesktopConfig::default(),
+            computer: ComputerConfig::default(),
             hooks: HooksConfig::default(),
             privacy: PrivacyConfig::default(),
             sandbox: SandboxConfig::default(),
             runtime: RuntimeConfig::default(),
             shell: ShellConfig::default(),
+            web_chat: WebChatConfig::default(),
             reliability: ReliabilityConfig::default(),
             scheduler: SchedulerConfig::default(),
             scheduler_gate: SchedulerGateConfig::default(),
-            agent_activity_level: AgentActivityLevel::default(),
             memory_sync_interval_secs: None,
             agent: AgentConfig::default(),
             orchestrator: OrchestratorModelConfig::default(),

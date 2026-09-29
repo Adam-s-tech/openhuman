@@ -1,7 +1,7 @@
 //! Agent turn workspace — the per-turn filesystem root an embedder binds a
 //! single agent turn to.
 //!
-//! A host that drives the core in-process (the Medulla TUI's embedded core, a
+//! A host that drives the core in-process (an embedded core, a
 //! workflow node dispatched to the `openhuman` harness) runs one turn *against
 //! a checkout it names*, not against the operator's ambient
 //! [`Config::action_dir`](crate::config::Config). Everything the
@@ -16,7 +16,7 @@
 //! a turn may work:
 //!
 //! * the session builder
-//!   ([`Agent::from_config`](crate::agent::Agent::from_config)),
+//!   ([`OpenHumanSessionHost::from_config`](crate::agent::OpenHumanSessionHost::from_config)),
 //!   which turns it into the turn's
 //!   [`WorkspaceDescriptor`](tinyagents_harness::workspace::WorkspaceDescriptor)
 //!   so acting tools (shell, file, git) resolve their default cwd there; and

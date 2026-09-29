@@ -9,7 +9,7 @@ use async_trait::async_trait;
 use serde_json::json;
 
 use crate::config::Config;
-use crate::tools::traits::{Tool, ToolResult};
+use tinytools::{Tool, ToolResult};
 
 use super::ops;
 
@@ -26,6 +26,10 @@ impl SecurityPolicyInfoTool {
 
 #[async_trait]
 impl Tool for SecurityPolicyInfoTool {
+    fn exposure(&self) -> tinytools::ToolExposure {
+        tinytools::ToolExposure::Deferred
+    }
+
     fn name(&self) -> &str {
         "security_policy_info"
     }

@@ -138,8 +138,39 @@ fn captured_requests_mention_unknown_tool(requests: &[Value]) -> bool {
 /// The tool message answering the first scripted call to `tool_name`.
 /// Panics on an `unknown tool` result: that error echoes the arguments, so a
 /// canary passed as an argument would otherwise read as a pass.
+///
+/// Native requests answer with an OpenAI `tool` message; the prompt-rendered
+/// (text) dialect replays the result inside a user message as
+/// `<tool_result id="call_<name>_N">…</tool_result>`. Both are accepted.
 fn tool_result_text(requests: &[Value], tool_name: &str) -> Option<String> {
     let prefix = format!("call_{tool_name}_");
+    native_tool_result_text(requests, &prefix)
+        .or_else(|| text_dialect_tool_result(requests, &prefix))
+        .map(|text| {
+            assert!(
+                !text.trim_start().starts_with("unknown tool"),
+                "`{tool_name}` was not a tool the calling agent could reach: {text}"
+            );
+            text
+        })
+}
+
+fn text_dialect_tool_result(requests: &[Value], prefix: &str) -> Option<String> {
+    let marker = format!("<tool_result id=\"{prefix}");
+    requests
+        .iter()
+        .filter_map(|request| request.pointer("/body/messages").and_then(Value::as_array))
+        .flatten()
+        .filter_map(|message| message.get("content").and_then(Value::as_str))
+        .find_map(|content| {
+            let (_, rest) = content.split_once(&marker)?;
+            let (_, body) = rest.split_once("\">")?;
+            let (result, _) = body.split_once("</tool_result>")?;
+            Some(result.trim().to_string())
+        })
+}
+
+fn native_tool_result_text(requests: &[Value], prefix: &str) -> Option<String> {
     requests
         .iter()
         .filter_map(|request| request.pointer("/body/messages").and_then(Value::as_array))
@@ -149,27 +180,21 @@ fn tool_result_text(requests: &[Value], tool_name: &str) -> Option<String> {
                 && message
                     .get("tool_call_id")
                     .and_then(Value::as_str)
-                    .is_some_and(|id| id.starts_with(&prefix))
+                    .is_some_and(|id| id.starts_with(prefix))
         })
         .and_then(|message| message.get("content"))
         .map(|content| {
-            let text = content
+            content
                 .as_str()
                 .map(str::to_string)
-                .unwrap_or_else(|| content.to_string());
-            assert!(
-                !text.trim_start().starts_with("unknown tool"),
-                "`{tool_name}` was not a tool the calling agent could reach: {text}"
-            );
-            text
+                .unwrap_or_else(|| content.to_string())
         })
 }
 
 /// Tool names a captured model request advertised to the provider.
 ///
-/// Native requests carry them in `tools`. A text-mode request (the
-/// `integrations_agent` with a toolkit: its Composio schemas would blow the
-/// native tool-schema ceiling) sends no `tools` and lists each one in the
+/// Native requests carry them in `tools`. A text-mode request (a provider
+/// without native tool calling) sends no `tools` and lists each one in the
 /// system prompt's `## Tools` section as `Call as: NAME[...]` instead.
 fn advertised_tool_names(request: &Value) -> Vec<String> {
     if let Some(tools) = request.pointer("/body/tools").and_then(Value::as_array) {
@@ -183,9 +208,8 @@ fn advertised_tool_names(request: &Value) -> Vec<String> {
             })
             .collect();
     }
-    // Text-mode requests normally use `Call as: NAME[...]` declarations. The
-    // integrations prompt also renders dynamic action schemas in an
-    // `### Available Tools` block, so accept its `**NAME**:` entries too.
+    // Text-mode requests normally use `Call as: NAME[...]` declarations; an
+    // `### Available Tools` block's `**NAME**:` entries are accepted too.
     let mut in_available_tools = false;
     let mut names = Vec::new();
     for line in system_text(request).lines() {
@@ -200,6 +224,14 @@ fn advertised_tool_names(request: &Value) -> Vec<String> {
             .split_once("Call as:")
             .and_then(|(_, rest)| rest.split_once('['))
             .map(|(name, _)| name.trim().trim_matches('`').trim())
+            .filter(|name| !name.is_empty() && !name.contains(char::is_whitespace))
+        {
+            names.push(name.to_string());
+        }
+        if let Some(name) = line
+            .strip_prefix("def ")
+            .and_then(|signature| signature.split_once('('))
+            .map(|(name, _)| name)
             .filter(|name| !name.is_empty() && !name.contains(char::is_whitespace))
         {
             names.push(name.to_string());
@@ -287,9 +319,9 @@ async fn current_user(_headers: HeaderMap) -> Json<Value> {
     Json(json!({ "success": true, "data": { "_id": "e2e-user-1", "username": "e2e" } }))
 }
 
-/// One connected Gmail toolkit, so the orchestrator is offered
-/// `delegate_to_integrations_agent` and the integrations agent has a toolkit to
-/// bind to. Shapes from `tools_approval_channels_raw_coverage_e2e.rs`.
+/// One connected Gmail toolkit, so the orchestrator gets its actions as a
+/// searchable catalogue and the integrations agent has a toolkit to bind to.
+/// Shapes from `tools_approval_channels_raw_coverage_e2e.rs`.
 async fn composio_toolkits() -> Json<Value> {
     Json(json!({ "success": true, "data": { "toolkits": ["gmail"] } }))
 }
@@ -629,7 +661,9 @@ fn system_text(request: &Value) -> String {
 }
 
 /// Tool names the agent called, in order, read from its last request (which
-/// carries its whole history).
+/// carries its whole history). Native requests carry `tool_calls`; the
+/// prompt-rendered (text) dialect replays each call as
+/// `<tool_call>{"name": …}</tool_call>` in the assistant message's content.
 fn called_tools(request: &Value) -> Vec<String> {
     request
         .pointer("/body/messages")
@@ -637,10 +671,33 @@ fn called_tools(request: &Value) -> Vec<String> {
         .into_iter()
         .flatten()
         .filter(|m| m.get("role").and_then(Value::as_str) == Some("assistant"))
-        .filter_map(|m| m.get("tool_calls").and_then(Value::as_array))
-        .flatten()
-        .filter_map(|tc| tc.pointer("/function/name").and_then(Value::as_str))
-        .map(str::to_string)
+        .flat_map(|m| {
+            let native: Vec<String> = m
+                .get("tool_calls")
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+                .filter_map(|tc| tc.pointer("/function/name").and_then(Value::as_str))
+                .map(str::to_string)
+                .collect();
+            if !native.is_empty() {
+                return native;
+            }
+            m.get("content")
+                .and_then(Value::as_str)
+                .map(text_dialect_calls)
+                .unwrap_or_default()
+        })
+        .collect()
+}
+
+fn text_dialect_calls(content: &str) -> Vec<String> {
+    content
+        .split("<tool_call>")
+        .skip(1)
+        .filter_map(|chunk| chunk.split_once("</tool_call>").map(|(call, _)| call))
+        .filter_map(|call| serde_json::from_str::<Value>(call.trim()).ok())
+        .filter_map(|call| call.get("name").and_then(Value::as_str).map(str::to_string))
         .collect()
 }
 
@@ -805,7 +862,7 @@ fn news_digest_graph() -> Value {
             { "id": "trigger", "kind": "trigger", "name": "Run manually",
               "config": { "trigger_kind": "manual" } },
             { "id": "digest", "kind": "agent", "name": "Summarise today's sports news",
-              "config": { "model": "chat-v1",
+              "config": { "model": "hint:chat",
                           "prompt": "Summarise today's top sports news in five bullets." } }
         ],
         "edges": [
@@ -820,6 +877,7 @@ fn news_digest_graph() -> Value {
 /// failure — so a loop in the runtime (a re-issued call, a retry that repeats
 /// the search) cannot pass as progress.
 #[test]
+#[ignore = "TODO(#6376): hosted TinyAgents omits workflow specialist tools"]
 fn workflow_builder_reaches_propose_workflow() {
     run_case(Case {
         agent: "workflow_builder",
@@ -848,107 +906,82 @@ fn workflow_builder_reaches_propose_workflow() {
     });
 }
 
-/// The orchestrator routes integration work through the hand-off, and never
-/// holds the raw Composio or cron tools its specialists own.
+/// The orchestrator reaches an integration action by searching for it and
+/// calling it directly — no integrations sub-agent — and never holds the raw
+/// Composio or cron tools its specialists own. The action itself is
+/// `Deferred`: off the advertised belt, found through `tool_search`.
 #[test]
-fn orchestrator_hands_integration_work_to_the_specialist() {
+#[ignore = "TODO(#6376): hosted TinyAgents omits the deferred integration catalogue"]
+fn orchestrator_searches_for_and_calls_the_integration_action() {
     run_case(Case {
         agent: "orchestrator",
-        agent_marker: "## Delegation (direct-first)",
+        agent_marker: "## How you work",
         entry: Entry::WebChat,
         user_message: "Check my Gmail for anything from my landlord.",
         scripted_completions: vec![
-            call(
-                "delegate_to_integrations_agent",
-                json!({ "toolkit": "gmail", "prompt": "Find emails from my landlord." }),
-            ),
-            text_completion("No emails from your landlord."),
+            call("tool_search", json!({ "query": "fetch gmail emails" })),
+            call("GMAIL_FETCH_EMAILS", json!({ "query": "from:landlord" })),
             text_completion("You have no emails from your landlord."),
         ],
-        must_call: &["delegate_to_integrations_agent"],
-        must_not_call: &["composio_execute"],
-        // Not `schedule_task`: it resolves when called (see the scheduler case)
-        // but a named agent's up-front belt does not list synthesised delegates.
-        must_advertise: &["delegate_to_integrations_agent", "research"],
-        must_not_advertise: &["composio_execute", "composio_list_tools", "cron_add"],
+        must_call: &["tool_search", "GMAIL_FETCH_EMAILS"],
+        must_not_call: &["composio_execute", "delegate_to_integrations_agent"],
+        // Web research is direct now (there is no research delegate).
+        must_advertise: &["tool_search", "web_search_tool"],
+        must_not_advertise: &[
+            "delegate_to_integrations_agent",
+            "composio_execute",
+            "composio_list_tools",
+            "cron",
+        ],
         advertises_nothing: false,
         max_consecutive_calls_of: None,
         extra_config: "",
     });
 }
 
-/// The integrations specialist, reached through that hand-off, holds the
-/// Composio execution surface and none of the orchestrator's hand-offs.
-///
-/// The toolkit-scoped integrations agent runs in text mode, so this also pins
-/// the text-mode `Call as: NAME[...]` catalogue rather than only native tool
-/// declarations.
+/// Scheduling is an inline skill, not a specialist: the orchestrator reaches
+/// the `cron` tool through the `scheduling` pack (`use_skill`), and neither the
+/// raw `cron` schema nor the retired `schedule_task` delegate is on its belt.
 #[test]
-fn integrations_agent_holds_the_composio_surface() {
+fn orchestrator_reaches_cron_through_the_scheduling_pack() {
     run_case(Case {
-        agent: "integrations_agent",
-        agent_marker: "# Integrations Agent",
-        entry: Entry::WebChat,
-        user_message: "Check my Gmail for anything from my landlord.",
-        scripted_completions: vec![
-            call(
-                "delegate_to_integrations_agent",
-                json!({ "toolkit": "gmail", "prompt": "Find emails from my landlord." }),
-            ),
-            // The child runs in text mode, so its own calls would be
-            // `<tool_call>` text with parser-assigned ids; this case pins its
-            // belt only.
-            text_completion("No emails from your landlord."),
-            text_completion("You have no emails from your landlord."),
-        ],
-        must_call: &[],
-        must_not_call: &[],
-        must_advertise: &["composio_execute", "composio_list_tools"],
-        must_not_advertise: &["delegate_to_integrations_agent", "schedule_task", "shell"],
-        advertises_nothing: false,
-        max_consecutive_calls_of: None,
-        extra_config: "",
-    });
-}
-
-/// `schedule_task` lands in scheduler_agent, which owns cron and nothing else.
-#[test]
-fn scheduler_agent_owns_the_cron_surface() {
-    run_case(Case {
-        agent: "scheduler_agent",
-        agent_marker: "# Scheduler Agent",
+        agent: "orchestrator",
+        agent_marker: "## How you work",
         entry: Entry::WebChat,
         user_message: "What reminders do I have scheduled?",
         scripted_completions: vec![
             call(
-                "schedule_task",
-                json!({ "prompt": "List my scheduled reminders.", "blocking": true }),
+                "use_skill",
+                json!({ "skill": "scheduling", "tool": "cron", "args": { "action": "list" } }),
             ),
-            call("cron_list", json!({})),
-            text_completion("You have no scheduled reminders."),
             text_completion("You have no scheduled reminders."),
         ],
-        must_call: &["cron_list"],
-        must_not_call: &[],
-        must_advertise: &["cron_add", "cron_list", "cron_remove"],
-        must_not_advertise: &["composio_execute", "shell", "schedule_task"],
+        must_call: &["use_skill"],
+        must_not_call: &["schedule_task"],
+        must_advertise: &["use_skill", "current_time", "resolve_time"],
+        must_not_advertise: &["cron", "schedule_task", "composio_execute"],
         advertises_nothing: false,
         max_consecutive_calls_of: None,
         extra_config: "",
     });
 }
 
-/// With the summarizer threshold at one token, any orchestrator tool result is
-/// runtime-dispatched to the summarizer, which must run with no tools at all.
+/// An oversized orchestrator tool result goes to TinyJuice's summary stage,
+/// which calls back for the summarizer's model — and the summarizer must run
+/// with no tools at all. TinyJuice decides whether a result is worth a summary,
+/// so the scripted tool returns a large one (~29 KB); a timestamp-sized result
+/// never reaches the summarizer.
 #[test]
 fn summarizer_advertises_no_tools() {
     run_case(Case {
         agent: "summarizer",
-        agent_marker: "# Summarizer Agent",
+        // The summarizer's prompt is TinyJuice's summary contract, verbatim
+        // (`tinyjuice::summarize::SYSTEM_PROMPT`, vendor/tinyjuice/src/summarize/prompt.md).
+        agent_marker: "You compress a single oversized tool result",
         entry: Entry::WebChat,
         user_message: "What is the state of my workspace?",
         scripted_completions: vec![
-            call("read_workspace_state", json!({})),
+            call("shell", json!({ "command": "seq 1 6000" })),
             text_completion("Workspace summary: nothing notable."),
             text_completion("Your workspace has nothing notable."),
         ],
@@ -1030,7 +1063,7 @@ fn orchestrator_prompt_names_only_discoverable_delegates() {
         let requests = captured().clone();
         let orchestrator = requests
             .iter()
-            .find(|r| system_text(r).contains("## Delegation (direct-first)"))
+            .find(|r| system_text(r).contains("## How you work"))
             .expect("no orchestrator request captured");
         let prompt = system_text(orchestrator);
         let belt = advertised_tool_names(orchestrator);

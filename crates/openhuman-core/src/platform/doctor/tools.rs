@@ -9,7 +9,7 @@ use async_trait::async_trait;
 use serde_json::json;
 
 use crate::config::Config;
-use crate::tools::traits::{Tool, ToolResult};
+use tinytools::{Tool, ToolResult};
 
 use super::ops;
 
@@ -33,6 +33,10 @@ impl DoctorHealthTool {
 
 #[async_trait]
 impl Tool for DoctorHealthTool {
+    fn exposure(&self) -> tinytools::ToolExposure {
+        tinytools::ToolExposure::Deferred
+    }
+
     fn name(&self) -> &str {
         "doctor_health"
     }
@@ -70,6 +74,10 @@ impl DoctorModelsTool {
 
 #[async_trait]
 impl Tool for DoctorModelsTool {
+    fn exposure(&self) -> tinytools::ToolExposure {
+        tinytools::ToolExposure::Deferred
+    }
+
     fn name(&self) -> &str {
         "doctor_models"
     }

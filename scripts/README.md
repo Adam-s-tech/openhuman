@@ -26,6 +26,7 @@ comments of the scripts inside them.
 | `theme-codemod/` | Codemod collapsing audited `light dark:` Tailwind pairings into the semantic theme utilities (`node scripts/theme-codemod/migrate.mjs [--write]`; see `gitbooks/developing/theming.md`). |
 | `agent-batch/` | Validates a batch spec of parallel agent branches, checks file overlap, prints per-agent launch prompts, and reports status (`pnpm agent-batch <validate\|overlap\|launch\|status> <spec.json>`). |
 | `deep-work/` | Issue-to-PR workflow automation over worktrees and AI agents: `pnpm deep-work start\|pick\|continue\|status\|list\|cleanup`. |
+| `dep-audit/` | Cargo dependency audit (unused, duplicate-version, heavy, cross-repo drift) over the root workspace, `openhuman-app`, and every Cargo submodule, driven by `tinyanalyzer` — see [dep-audit/README.md](dep-audit/README.md). |
 
 ## pnpm-wired entry points
 
@@ -37,6 +38,7 @@ comments of the scripts inside them.
 | `pnpm mock:api` | `mock-api-server.mjs` |
 | `pnpm debug ...` | `debug/cli.sh` |
 | `pnpm rust:layout` | `ci/check-openhuman-rust-layout.mjs` |
+| `pnpm dep:audit` | `dep-audit/run.sh` |
 | `pnpm test:inventory` | `generate-test-inventory.mjs` |
 | `pnpm pr:checklist` | `check-pr-checklist.mjs` |
 | `pnpm prompt:report` | `prompt-report.sh` — every agent's fixed prefix (prompt + tool schemas), largest first; report-only |
@@ -57,8 +59,7 @@ above.
   prompts, skills) distinct from the `debug/` runner directory.
 - **`check-*`** (outside `ci/`) — repo-level gates: `check-coverage-matrix.mjs`,
   `check-domain-e2e-coverage.mjs`, `check-pr-checklist.mjs`,
-  `check-kernel-floor.sh` (dependency-floor ratchet), `check-prompt-budget.sh`
-  (fixed-prefix byte ratchet, run in CI by `rust-quality`), `check-linux-tls-dependencies.sh`.
+  `check-kernel-floor.sh` (dependency-floor ratchet), `check-linux-tls-dependencies.sh`.
 - **`i18n-*`** — translation coverage and audit tools (`i18n-coverage.ts`,
   `i18n-find-english.ts`, `i18n-react-audit.ts`, behind `pnpm i18n:*`);
   `i18n-doc-scan.sh` scans the Chinese GitBook docs instead of the app.

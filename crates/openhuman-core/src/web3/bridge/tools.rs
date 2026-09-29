@@ -3,10 +3,10 @@
 use async_trait::async_trait;
 use serde_json::json;
 
-use crate::tools::traits::{Tool, ToolCallOptions, ToolResult};
 use crate::web3::store::execute_quote;
 use crate::web3::types::{BridgeQuoteParams, ExecuteQuoteParams};
 use crate::web3::{execute_tool_schema, ops, to_tool_result};
+use tinytools::{Tool, ToolCallOptions, ToolResult};
 
 pub struct Web3BridgeQuoteTool;
 pub struct Web3BridgeExecuteTool;
@@ -36,6 +36,10 @@ impl Web3BridgeExecuteTool {
 
 #[async_trait]
 impl Tool for Web3BridgeQuoteTool {
+    fn exposure(&self) -> tinytools::ToolExposure {
+        tinytools::ToolExposure::Deferred
+    }
+
     fn name(&self) -> &str {
         "web3_bridge_quote"
     }
@@ -79,6 +83,10 @@ impl Tool for Web3BridgeQuoteTool {
 
 #[async_trait]
 impl Tool for Web3BridgeExecuteTool {
+    fn exposure(&self) -> tinytools::ToolExposure {
+        tinytools::ToolExposure::Deferred
+    }
+
     fn name(&self) -> &str {
         "web3_bridge_execute"
     }

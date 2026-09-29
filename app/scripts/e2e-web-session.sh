@@ -38,8 +38,10 @@ cleanup() {
   fi
   if [ -n "$CORE_PID" ]; then
     # The core may have launched acting-tool subprocesses while an E2E case
-    # was running. It is a dedicated session leader, so stop its whole group
-    # rather than leaving descendants alive to accumulate across CI shards.
+    # was running. It leads its own process group either way it was started
+    # (`setsid` where available, otherwise bash job control — see the launch
+    # site), so stop the whole group rather than leaving descendants alive to
+    # accumulate across CI shards.
     kill -- "-$CORE_PID" 2>/dev/null || true
     wait "$CORE_PID" 2>/dev/null || true
   fi
@@ -104,6 +106,13 @@ mkdir -p "$OPENHUMAN_WORKSPACE"
 # (and retains services for) the runner's global ~/.openhuman state.
 E2E_WEB_CORE_HOME="$OPENHUMAN_WORKSPACE/home"
 mkdir -p "$E2E_WEB_CORE_HOME"
+# Keep the acting-tool sandbox inside the shard as well. Besides isolating
+# browser runs from the host's projects directory, this gives tool-call specs
+# a deterministic, readable fixture without touching the checkout.
+E2E_ACTION_DIR="$OPENHUMAN_WORKSPACE/action"
+mkdir -p "$E2E_ACTION_DIR"
+printf 'E2E tool presentation fixture\n' >"$E2E_ACTION_DIR/tool-presentation-fixture.txt"
+export OPENHUMAN_ACTION_DIR="$E2E_ACTION_DIR"
 cat > "$OPENHUMAN_WORKSPACE/config.toml" <<EOF
 api_url = "http://127.0.0.1:${E2E_MOCK_PORT}"
 primary_cloud = "p_e2e_mock"
@@ -154,17 +163,64 @@ endpoint = "http://127.0.0.1:${E2E_MOCK_PORT}/v1"
 auth_style = "openhumanjwt"
 EOF
 
+# The bundle must come from `pnpm test:e2e:web:build`, which compiles in the mock
+# backend URL and the E2E affordances. A plain `pnpm build:web` exits 0 with a
+# bundle this harness cannot drive, and every spec then fails as though the
+# product had regressed. Refuse it before starting anything (#5920).
+E2E_BUNDLE_MARKER="$APP_DIR/dist-web/openhuman-e2e-bundle.marker"
+if [ ! -f "$E2E_BUNDLE_MARKER" ]; then
+  echo "ERROR: $APP_DIR/dist-web was not built for E2E (no $(basename "$E2E_BUNDLE_MARKER")). Run pnpm --filter openhuman-app test:e2e:web:build first; pnpm build:web alone omits the E2E backend and affordances." >&2
+  exit 1
+fi
+
 node "$REPO_ROOT/scripts/mock-api-server.mjs" --port "$E2E_MOCK_PORT" >"$OPENHUMAN_WORKSPACE/mock.log" 2>&1 &
 MOCK_PID=$!
 wait_for_http "http://127.0.0.1:${E2E_MOCK_PORT}/__admin/health" "mock backend"
 
+# Refuse a bundle built for different ports (#6478).
+#
+# `VITE_BACKEND_URL` is substituted into the bundle at BUILD time and has no
+# runtime override in web mode, so a bundle built on one `E2E_MOCK_PORT` and
+# served against another sends the frontend's own API calls to a mock that is
+# not listening — while the core, reading `api_url` from the `config.toml`
+# generated below, reaches the right one. Some specs fail and others pass, with
+# nothing reporting why. Checked before anything is started so the failure is a
+# one-line message rather than a debugging session.
+BUILD_PORTS_FILE="$APP_DIR/dist-web/.e2e-build-ports.json"
+if [ ! -f "$BUILD_PORTS_FILE" ]; then
+  echo "ERROR: $APP_DIR/dist-web has no .e2e-build-ports.json, so the ports it was built for are unknown." >&2
+  echo "       It predates this check. Rebuild with: pnpm --filter openhuman-app test:e2e:web:build" >&2
+  exit 1
+fi
+BUILT_MOCK_PORT="$(sed -n 's/.*"e2e_mock_port"[[:space:]]*:[[:space:]]*"\([0-9]*\)".*/\1/p' "$BUILD_PORTS_FILE")"
+if [ -z "$BUILT_MOCK_PORT" ]; then
+  echo "ERROR: could not read e2e_mock_port from $BUILD_PORTS_FILE. Rebuild with: pnpm --filter openhuman-app test:e2e:web:build" >&2
+  exit 1
+fi
+if [ "$BUILT_MOCK_PORT" != "$E2E_MOCK_PORT" ]; then
+  echo "ERROR: dist-web was built for E2E_MOCK_PORT=$BUILT_MOCK_PORT but this session uses $E2E_MOCK_PORT." >&2
+  echo "       The backend URL is baked into the bundle and cannot be changed at run time," >&2
+  echo "       so the app would call a mock that is not listening while the core called the right one." >&2
+  echo "       Rebuild with the ports this session uses: E2E_MOCK_PORT=$E2E_MOCK_PORT pnpm --filter openhuman-app test:e2e:web:build" >&2
+  exit 1
+fi
+
 export OPENHUMAN_CORE_BIN="$E2E_WEB_CORE_TARGET_DIR/debug/openhuman-core"
 if [ ! -x "$OPENHUMAN_CORE_BIN" ]; then
-  echo "ERROR: standalone core binary is missing at $OPENHUMAN_CORE_BIN. Run pnpm test:e2e:web:build first." >&2
+  echo "ERROR: standalone core binary is missing at $OPENHUMAN_CORE_BIN. Run pnpm --filter openhuman-app test:e2e:web:build first." >&2
   exit 1
 fi
 
 export OPENHUMAN_CORE_TOKEN="$PW_CORE_RPC_TOKEN"
+# The deterministic browser lane scripts direct tool calls (cron, edits,
+# parallel agents, and similar) rather than exercising the model's `use_skill`
+# disclosure choreography. Advertise the compiled tool packs for this harness
+# core only; production hosts retain the fail-closed packed default.
+export OPENHUMAN_E2E=1
+# The skills registry defaults to a public HermesHub fetch. The browser E2E
+# lane must remain deterministic and offline, so serve its compact catalog
+# fixture from the local mock backend instead.
+export OPENHUMAN_SKILL_REGISTRY_CATALOG_URL="http://127.0.0.1:${E2E_MOCK_PORT}/skills/catalog.json"
 export OPENHUMAN_TELEGRAM_BOT_API_BASE="http://127.0.0.1:${E2E_MOCK_PORT}"
 export OPENHUMAN_COMPOSIO_DIRECT_BASE_V2="http://127.0.0.1:${E2E_MOCK_PORT}"
 export OPENHUMAN_COMPOSIO_DIRECT_BASE_V3="http://127.0.0.1:${E2E_MOCK_PORT}"
@@ -175,9 +231,26 @@ export RUST_MIN_STACK="${RUST_MIN_STACK:-16777216}"
 # Give each standalone core its own process group. Playwright shards are run
 # serially in CI, and a parent-only shutdown leaves tool children alive across
 # shards until the runner terminates the next core for resource exhaustion.
-env HOME="$E2E_WEB_CORE_HOME" setsid "$OPENHUMAN_CORE_BIN" run --host 127.0.0.1 --port "$OPENHUMAN_CORE_PORT" \
-  >"$OPENHUMAN_WORKSPACE/core.log" 2>&1 &
-CORE_PID=$!
+#
+# `setsid` is util-linux: it exists on the CI runners and not on macOS, where
+# this lane is run locally. Bash's own job control provides the part `cleanup`
+# depends on — with `set -m`, a background job becomes the leader of a new
+# process group, so `kill -- "-$CORE_PID"` addresses the core and its tool
+# children on both platforms and needs no branch of its own. `setsid` is kept
+# where it exists so the CI path is unchanged: it also detaches the controlling
+# terminal, making the core a full session leader rather than only a process
+# group leader.
+if command -v setsid >/dev/null 2>&1; then
+  env HOME="$E2E_WEB_CORE_HOME" setsid "$OPENHUMAN_CORE_BIN" run --host 127.0.0.1 --port "$OPENHUMAN_CORE_PORT" \
+    >"$OPENHUMAN_WORKSPACE/core.log" 2>&1 &
+  CORE_PID=$!
+else
+  set -m
+  env HOME="$E2E_WEB_CORE_HOME" "$OPENHUMAN_CORE_BIN" run --host 127.0.0.1 --port "$OPENHUMAN_CORE_PORT" \
+    >"$OPENHUMAN_WORKSPACE/core.log" 2>&1 &
+  CORE_PID=$!
+  set +m
+fi
 
 # Preserve the core's final resource samples for a long Playwright lane. This
 # distinguishes a likely runner OOM from an in-process failure once later tests

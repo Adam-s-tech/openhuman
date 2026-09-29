@@ -1,8 +1,8 @@
 use serde_json::{json, Map, Value};
+use tinyinference_llm::tool::ToolSchema;
 
 use crate::agent::harness::AgentDefinitionRegistry;
-use crate::agent::tinyagents::convert::spec_to_schema;
-use crate::agent::Agent;
+use crate::agent::OpenHumanSessionHost;
 use crate::config::rpc as config_rpc;
 use crate::core::all;
 use crate::security::{SecurityPolicy, ToolOperation};
@@ -10,7 +10,8 @@ use crate::security::{SecurityPolicy, ToolOperation};
 use super::super::write_dispatch;
 use super::params::{build_rpc_params, validate_controller_params};
 use super::specs::{
-    base_tool_specs, list_tools_result_for_config, list_tools_result_from_specs, tool_specs,
+    base_tool_specs, list_tools_result_for_config, list_tools_result_from_specs,
+    tool_specs_for_config,
 };
 use super::types::ToolCallError;
 
@@ -31,7 +32,19 @@ pub async fn call_tool(
     arguments: Value,
     client_info: &str,
 ) -> Result<Value, ToolCallError> {
-    let spec = tool_specs()
+    let specs = match config_rpc::load_config_with_timeout().await {
+        Ok(config) => tool_specs_for_config(
+            &config,
+            crate::search::providers::backend_credential_available(&config),
+        ),
+        Err(err) => {
+            log::warn!(
+                "[mcp_server] tools/call config load failed; omitting config-gated tools: {err}"
+            );
+            base_tool_specs()
+        }
+    };
+    let spec = specs
         .into_iter()
         .find(|tool| tool.name == name)
         .ok_or_else(|| ToolCallError::InvalidParams(format!("unknown MCP tool `{name}`")))?;
@@ -208,11 +221,12 @@ async fn load_config_and_init_registry() -> Result<crate::config::Config, ToolCa
     Ok(config)
 }
 
-async fn build_orchestrator_agent() -> Result<Agent, ToolCallError> {
+async fn build_orchestrator_agent() -> Result<OpenHumanSessionHost, ToolCallError> {
     let config = load_config_and_init_registry().await?;
-    let mut agent = Agent::from_config_for_agent(&config, "orchestrator").map_err(|err| {
-        ToolCallError::Internal(format!("failed to build orchestrator agent: {err}"))
-    })?;
+    let mut agent =
+        OpenHumanSessionHost::from_config_for_agent(&config, "orchestrator").map_err(|err| {
+            ToolCallError::Internal(format!("failed to build orchestrator agent: {err}"))
+        })?;
     agent.fetch_connected_integrations().await;
     agent.refresh_delegation_tools();
     Ok(agent)
@@ -239,36 +253,20 @@ async fn core_tool_instructions() -> Result<Value, ToolCallError> {
     let schemas: Vec<_> = agent
         .tool_specs()
         .iter()
-        .map(|spec| spec_to_schema(spec))
+        .map(|spec| {
+            ToolSchema::new(
+                spec.name.clone(),
+                spec.description.clone(),
+                spec.parameters.clone(),
+            )
+        })
         .collect();
     Ok(tool_text_success(
-        tinyagents_harness::tool::prompt_tool_instructions(&schemas),
+        tinyinference_llm::prompt_tools::tool_instructions(
+            &schemas,
+            &tinyinference_llm::model::ToolChoice::Auto,
+        ),
     ))
-}
-
-/// Why `agent.run_subagent` will refuse `agent_id`, or `None` when it will run it.
-///
-/// One source for the refusal and for what `agent.list_subagents` publishes, so
-/// the catalogue cannot advertise a delegate that dispatch turns away. The list
-/// enumerates the whole registry and each entry's `when_to_use` invites the
-/// model to delegate; before this, a brain reached `integrations_agent` through
-/// that invitation and only learned it was unreachable from the error, after
-/// spending the round trip (#5755).
-pub fn mcp_dispatch_block_reason(agent_id: &str) -> Option<&'static str> {
-    (agent_id == "integrations_agent").then_some(
-        "agent.run_subagent does not yet support `integrations_agent`; first-level MCP support is currently limited to standalone agents that do not require toolkit binding",
-    )
-}
-
-/// One bullet of the `agent.list_subagents` summary.
-///
-/// Pure so the "not dispatchable" marker is asserted without standing up a
-/// config and an agent registry.
-pub fn subagent_summary_line(id: &str, when_to_use: &str) -> String {
-    match mcp_dispatch_block_reason(id) {
-        Some(reason) => format!("- **{id}** (not dispatchable over MCP — {reason}): {when_to_use}"),
-        None => format!("- **{id}**: {when_to_use}"),
-    }
 }
 
 async fn list_subagents() -> Result<Value, ToolCallError> {
@@ -291,10 +289,6 @@ async fn list_subagents() -> Result<Value, ToolCallError> {
                 "tool_scope": def.tools,
                 "subagents": def.subagents,
                 "source": def.source,
-                // Advertised alongside the invitation, not discovered from the
-                // error of acting on it (#5755).
-                "dispatchable_over_mcp": mcp_dispatch_block_reason(&def.id).is_none(),
-                "not_dispatchable_reason": mcp_dispatch_block_reason(&def.id),
             })
         })
         .collect::<Vec<_>>();
@@ -307,7 +301,7 @@ async fn list_subagents() -> Result<Value, ToolCallError> {
             .map(|def| {
                 let id = def.get("id").and_then(Value::as_str).unwrap_or("<unknown>");
                 let when = def.get("when_to_use").and_then(Value::as_str).unwrap_or("");
-                subagent_summary_line(id, when)
+                format!("- **{id}**: {when}")
             })
             .collect::<Vec<_>>()
             .join("\n")
@@ -330,10 +324,6 @@ async fn run_subagent_tool(params: &Map<String, Value>) -> Result<Value, ToolCal
 
     let agent_id = required_non_empty_string(params, "agent_id")?;
     let prompt = required_non_empty_string(params, "prompt")?;
-    if let Some(reason) = mcp_dispatch_block_reason(&agent_id) {
-        return Err(ToolCallError::InvalidParams(reason.to_string()));
-    }
-
     // Bound nested recursion per delegation chain (CC → run_subagent → CC → …).
     // `current_depth()` is the depth of THIS chain (carried across the loopback
     // MCP hop via the depth header); the subagent we're about to spawn sits one
@@ -352,9 +342,10 @@ async fn run_subagent_tool(params: &Map<String, Value>) -> Result<Value, ToolCal
     let child_depth = chain_depth + 1;
 
     let config = load_config_and_init_registry().await?;
-    let mut agent = Agent::from_config_for_agent(&config, &agent_id).map_err(|err| {
-        ToolCallError::InvalidParams(format!("failed to build agent `{agent_id}`: {err}"))
-    })?;
+    let mut agent =
+        OpenHumanSessionHost::from_config_for_agent(&config, &agent_id).map_err(|err| {
+            ToolCallError::InvalidParams(format!("failed to build agent `{agent_id}`: {err}"))
+        })?;
     agent.set_event_context(
         format!("mcp:{}:{}", agent_id, uuid::Uuid::new_v4()),
         "mcp_server",

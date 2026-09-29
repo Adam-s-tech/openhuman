@@ -89,7 +89,7 @@ async fn authorize_tool_execute_rejects_missing_toolkit() {
         .content
         .iter()
         .filter_map(|c| match c {
-            crate::tools::traits::ToolContent::Text { text } => Some(text.clone()),
+            tinytools::ToolContent::Text { text } => Some(text.clone()),
             _ => None,
         })
         .collect::<Vec<_>>()
@@ -186,6 +186,7 @@ async fn connect_tool_validates_before_gating_in_chat_context() {
     let ctx = ApprovalChatContext {
         thread_id: "t-test".into(),
         client_id: "c-test".into(),
+        request_id: None,
     };
     let result = APPROVAL_CHAT_CONTEXT
         .scope(
@@ -268,7 +269,7 @@ async fn execute_tool_execute_rejects_missing_tool() {
         .content
         .iter()
         .filter_map(|c| match c {
-            crate::tools::traits::ToolContent::Text { text } => Some(text.clone()),
+            tinytools::ToolContent::Text { text } => Some(text.clone()),
             _ => None,
         })
         .collect::<Vec<_>>()

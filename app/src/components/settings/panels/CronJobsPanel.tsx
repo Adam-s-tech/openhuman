@@ -1,9 +1,8 @@
 import createDebug from 'debug';
+import { Plus, RefreshCw } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
 import { useT } from '../../../lib/i18n/I18nContext';
-import { loadAgentProfiles, selectAgentProfiles } from '../../../store/agentProfileSlice';
-import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
   type CoreCronJob,
   type CoreCronRun,
@@ -15,8 +14,8 @@ import {
   openhumanCronRuns,
   openhumanCronUpdate,
 } from '../../../utils/tauriCommands';
+import { Alert, AlertDescription } from '../../ui';
 import Button from '../../ui/Button';
-import { SettingsSection, SettingsStatusLine } from '../controls';
 import { SettingsLayoutProvider } from '../layout/SettingsLayoutContext';
 import SettingsPanel from '../layout/SettingsPanel';
 import CoreJobList from './cron/CoreJobList';
@@ -26,8 +25,6 @@ const loadCronJobsLog = createDebug('app:settings:CronJobsPanel:loadCronSkills')
 
 const CronJobsPanel = () => {
   const { t } = useT();
-  const dispatch = useAppDispatch();
-  const profiles = useAppSelector(selectAgentProfiles);
   const formatCronError = useCallback(
     (key: string, message: string) => t(key).replace('{message}', message),
     [t]
@@ -74,11 +71,6 @@ const CronJobsPanel = () => {
   useEffect(() => {
     void loadCoreCronJobsOnly();
   }, [loadCoreCronJobsOnly]);
-
-  // Populate the agent-profile attribution picker + job-list labels.
-  useEffect(() => {
-    void dispatch(loadAgentProfiles());
-  }, [dispatch]);
 
   const toggleCoreJob = async (job: CoreCronJob) => {
     const key = `core-toggle:${job.id}`;
@@ -209,50 +201,55 @@ const CronJobsPanel = () => {
       <SettingsPanel
         testId="cron-jobs-panel"
         title={t('settings.developerMenu.cronJobs.title')}
-        description={t('settings.developerMenu.cronJobs.desc')}>
-        <SettingsSection title={t('cron.scheduledJobs')} description={t('cron.manageCronJobs')}>
-          <div className="px-4 pb-4 space-y-4">
-            <div className="pt-2">
+        description={t('settings.developerMenu.cronJobs.desc')}
+        scrollable={false}
+        bodyClassName="flex h-full min-h-0 flex-col gap-4">
+        {/* The jobs table fills the page body; only its rows scroll. */}
+        <CoreJobList
+          title={t('cron.scheduledJobs')}
+          description={t('cron.manageCronJobs')}
+          actions={
+            <>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                data-testid="cron-refresh"
+                leadingIcon={<RefreshCw className="h-3.5 w-3.5" aria-hidden />}
+                onClick={() => void loadCoreCronJobsOnly()}>
+                {t('cron.refreshCronJobs')}
+              </Button>
               <Button
                 type="button"
                 variant="primary"
                 size="sm"
                 data-testid="cron-new-job"
+                leadingIcon={<Plus className="h-3.5 w-3.5" aria-hidden />}
                 onClick={() => {
                   setEditingJob(null);
                   setFormOpen(true);
                 }}>
                 {t('settings.cron.jobs.createJob')}
               </Button>
-            </div>
-
-            <SettingsStatusLine saving={false} error={coreError} savingLabel="" />
-
-            <CoreJobList
-              loading={loading}
-              coreJobs={coreJobs}
-              profiles={profiles}
-              coreRunsByJob={coreRunsByJob}
-              coreBusyKey={coreBusyKey}
-              onToggleCoreJob={job => void toggleCoreJob(job)}
-              onRunCoreJob={jobId => void runCoreJob(jobId)}
-              onLoadCoreRuns={jobId => void loadCoreRuns(jobId)}
-              onRemoveCoreJob={jobId => void removeCoreJob(jobId)}
-              onEditCoreJob={job => setEditingJob(job)}
-            />
-
-            <div>
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                data-testid="cron-refresh"
-                onClick={() => void loadCoreCronJobsOnly()}>
-                {t('cron.refreshCronJobs')}
-              </Button>
-            </div>
-          </div>
-        </SettingsSection>
+            </>
+          }
+          error={
+            coreError ? (
+              <Alert variant="destructive" density="compact" data-testid="cron-jobs-error">
+                <AlertDescription>{coreError}</AlertDescription>
+              </Alert>
+            ) : undefined
+          }
+          loading={loading}
+          coreJobs={coreJobs}
+          coreRunsByJob={coreRunsByJob}
+          coreBusyKey={coreBusyKey}
+          onToggleCoreJob={job => void toggleCoreJob(job)}
+          onRunCoreJob={jobId => void runCoreJob(jobId)}
+          onLoadCoreRuns={jobId => void loadCoreRuns(jobId)}
+          onRemoveCoreJob={jobId => void removeCoreJob(jobId)}
+          onEditCoreJob={job => setEditingJob(job)}
+        />
 
         {/* Create modal */}
         {formOpen && editingJob === null && (
@@ -260,7 +257,6 @@ const CronJobsPanel = () => {
             key="cron-form-create"
             mode="create"
             open={true}
-            profiles={profiles}
             onClose={() => setFormOpen(false)}
             onCreate={params => handleCreate(params)}
             onUpdate={handleUpdate}
@@ -274,7 +270,6 @@ const CronJobsPanel = () => {
             mode="edit"
             job={editingJob}
             open={true}
-            profiles={profiles}
             onClose={() => setEditingJob(null)}
             onCreate={handleCreate}
             onUpdate={handleUpdate}

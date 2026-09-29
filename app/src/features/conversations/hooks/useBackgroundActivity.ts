@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { callCoreRpc } from '../../../services/coreRpcClient';
-import { isTauri } from '../../../utils/tauriCommands/common';
 import { type CoreCronJob, openhumanCronList } from '../../../utils/tauriCommands/cron';
 import {
   memorySyncStatusList,
@@ -10,7 +9,7 @@ import {
 
 /**
  * Aggregated, view-only snapshot of the background work the app runs on the
- * user's behalf: scheduled cron jobs and memory syncing/ingestion. Surfaced in {@link BackgroundProcessesPanel}
+ * user's behalf: scheduled cron jobs and memory syncing/ingestion. Surfaced in {@link BackgroundInboxCard}
  * alongside the thread's detached sub-agents so users aren't oblivious to
  * background LLM activity.
  *
@@ -68,12 +67,6 @@ export function useBackgroundActivity(open: boolean): BackgroundActivity {
   const busyRef = useRef(false);
 
   const fetchOnce = useCallback(async () => {
-    if (!isTauri()) {
-      // Non-Tauri / dev preview: nothing to surface, just stop the spinner.
-      setLoading(false);
-      return;
-    }
-
     const [cronRes, ingestRes, providerRes] = await Promise.allSettled([
       openhumanCronList(),
       callCoreRpc<IngestionStatusEnvelope>({ method: 'openhuman.memory_ingestion_status' }),

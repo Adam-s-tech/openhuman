@@ -26,7 +26,7 @@ One deliberate carve-out: when _you_ start the build (the Workflows page prompt 
 
 ## What a workflow is made of
 
-A workflow graph is composed of **15 node kinds**: exactly one `trigger`, plus any mix of `agent` (a full agent turn with tools), `tool_call`, `http_request`, `code` (JavaScript or Python), `condition`, `switch`, `transform`, `split_out`, `merge`, `output_parser`, `sub_workflow`, `memory`, `dedup`, and `loop`.
+A workflow graph is built from **22 node kinds**: exactly one `trigger`, plus any mix of `agent` (a full agent turn with tools), `tool_call`, `http_request`, `code` (JavaScript or Python), `shell`, `condition`, `switch`, `transform`, `split_out`, `merge`, `output_parser`, `sub_workflow`, `memory`, `dedup`, `loop`, `spawn`, `gate`, `scatter`, `gather`, `approval`, and `void`.
 
 A graph is usually a straight line or a fan-out, but it may also contain a **bounded loop**: a `loop` node emits on its `body` port until its `max_iterations` cap (or an optional `condition`) says stop, then emits on `done`. You close the loop by wiring the body's last node back to the `loop` node. The cap is always finite, and `on_exceeded` decides what reaching it means: `error` fails the run and names the loop, `continue` stops looping and carries the last pass's items out through `done`.
 

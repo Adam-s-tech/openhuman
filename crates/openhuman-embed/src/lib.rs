@@ -59,10 +59,19 @@
 //! reporting a failure.
 
 pub use openhuman_core::agent::turn_origin::{AgentTurnOrigin, TrustedAutomationSource};
-pub use openhuman_core::api::{product_identity, set_product_identity, ProductIdentity};
+pub use openhuman_core::backend::{
+    install_backend_transport, installed_backend_transport, BackendRequest, BackendTransport,
+    BackendTransportError, BaseUrlPurpose, TransportProfile,
+};
 pub use openhuman_core::config::Config as RuntimeConfig;
 pub use openhuman_core::security::TrustedAccess;
 pub use openhuman_core::tools::toolpacks::{GroupMode, ToolGroups};
+// The seam `AgentSpec::tools` needs: the belt types, and `Tool` itself from the
+// vendored tinytools. An embedder that took `tinytools` as its own dependency
+// would build tools of a different, incompatible type.
+pub use openhuman_core::agent::tinyagents::host::LastTurnUsage;
+pub use openhuman_core::agent::{HostTools, HostTurnTools, TurnContext};
+pub use openhuman_core::tools::Tool;
 pub use openhuman_core::{
     CoreBuilder, CoreRuntime, DaemonConfig, DomainSet, HostKind, ServiceSet, TokenSource,
 };
@@ -82,8 +91,6 @@ mod config;
 mod core_agent;
 mod error;
 mod harness;
-#[cfg(feature = "medulla")]
-mod medulla;
 mod runtime;
 mod turn;
 
@@ -99,11 +106,6 @@ pub use harness::{
 };
 #[cfg(feature = "mcp")]
 pub use harness::{HttpHeader, McpAuthConfig, McpServer};
-#[cfg(feature = "medulla")]
-pub use medulla::{
-    AbortResult, Medulla, MedullaStatus, Message, RosterWorker, SendResult, SessionCreated,
-    SessionDetail, SessionSummary, WireEventEnvelope,
-};
 pub use runtime::{ApiKey, Runtime, RuntimeBuilder, RuntimeError};
 pub use turn::{absolute, Route, Turn, TurnOutcome, TurnRequest};
 
@@ -158,15 +160,6 @@ impl Core {
     /// skills, working directory and access tier — see [`Runtime::agent`].
     pub fn agent(&self) -> CoreAgent<'_> {
         CoreAgent(&self.rt)
-    }
-
-    /// Typed access to the Medulla orchestration backend.
-    ///
-    /// Absent unless the `medulla` feature is on, so a host built without it
-    /// fails to compile against this rather than meeting a runtime error.
-    #[cfg(feature = "medulla")]
-    pub fn medulla(&self) -> Medulla<'_> {
-        Medulla(&self.rt)
     }
 
     /// The underlying runtime, for anything this facade does not yet model.

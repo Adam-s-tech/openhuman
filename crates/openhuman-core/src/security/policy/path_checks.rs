@@ -54,9 +54,20 @@ impl SecurityPolicy {
             return false;
         }
 
-        // Credential stores are never reachable, even via a trusted-root grant.
+        // Credential stores are never reachable, even via a trusted-root grant,
+        // and never via a disabled policy either — that floor is the one path
+        // rule `enabled = false` keeps.
         if Self::is_always_forbidden(expanded_path) {
             return false;
+        }
+
+        // With the policy disabled, containment (`workspace_only`,
+        // `forbidden_paths`, trusted roots, the workspace-internal boundary) is
+        // inert; the host's container/jail is what bounds the agent. The
+        // traversal and null-byte checks above are correctness, not policy, so
+        // they stay.
+        if !self.enabled {
+            return true;
         }
 
         // A trusted root grants access to its subtree, taking precedence over
@@ -289,7 +300,6 @@ impl SecurityPolicy {
         }
         let workspace_root = self.workspace_root().await;
         self.check_resolved_against_forbidden(&resolved, &workspace_root)?;
-        self.check_cross_profile(&resolved)?;
         log::debug!(
             "[security] validate_path: '{}' resolved to '{}'",
             path,
@@ -358,7 +368,6 @@ impl SecurityPolicy {
         let workspace_root = self.workspace_root().await;
         self.check_resolved_against_forbidden(&canonical_ancestor, &workspace_root)?;
         self.check_resolved_against_forbidden(&result, &workspace_root)?;
-        self.check_cross_profile(&result)?;
 
         log::debug!(
             "[security] validate_parent_path: '{}' resolved parent to '{}'",
@@ -366,50 +375,6 @@ impl SecurityPolicy {
             resolved_parent.display()
         );
         Ok(result)
-    }
-
-    /// Cross-profile write guard (1b). A no-op unless the session runs under an
-    /// active profile (`active_profile` armed via
-    /// [`SecurityPolicy::with_active_profile`]). When armed, a resolved target
-    /// that lands inside a *sibling* profile's workspace
-    /// (`<action_dir>/profiles/<Q>/`, `Q != active`) is refused with the
-    /// permanent `[policy-blocked]` marker so the harness halts instead of
-    /// retrying. This only ever tightens: `None` leaves every path check
-    /// byte-identical, and it never loosens `is_workspace_internal_path` or any
-    /// other `SecurityPolicy` check.
-    pub(super) fn check_cross_profile(&self, resolved: &Path) -> Result<(), String> {
-        let Some(guard) = self.active_profile.as_ref() else {
-            return Ok(());
-        };
-        if let crate::agent::profiles::CrossProfileDecision::Block { other_id } =
-            crate::agent::profiles::classify_cross_profile_target(
-                &guard.action_dir,
-                &guard.profile_id,
-                resolved,
-            )
-        {
-            tracing::warn!(
-                active_profile = %guard.profile_id,
-                other_profile = %other_id,
-                target = %resolved.display(),
-                "[profiles] cross-profile write blocked"
-            );
-            if other_id == crate::agent::profiles::PROFILES_ROOT_SENTINEL {
-                return Err(format!(
-                    "{POLICY_BLOCKED_MARKER} Cross-profile access blocked: profile '{}' may not \
-                     write to the shared profiles root. Stay within your own profile directory; \
-                     do not retry this path.",
-                    guard.profile_id
-                ));
-            }
-            return Err(format!(
-                "{POLICY_BLOCKED_MARKER} Cross-profile access blocked: profile '{}' may not write \
-                 into profile '{}'s workspace. Stay within your own profile directory; do not \
-                 retry this path.",
-                guard.profile_id, other_id
-            ));
-        }
-        Ok(())
     }
 
     /// Returns `true` if `path` falls under one of the internal-state
@@ -563,6 +528,9 @@ impl SecurityPolicy {
         if Self::is_always_forbidden(resolved) {
             return false;
         }
+        if !self.enabled {
+            return true;
+        }
         let workspace_root = self.workspace_root_sync();
         resolved.starts_with(&workspace_root)
             || self.is_within_trusted_root(resolved, require_write)
@@ -582,6 +550,9 @@ impl SecurityPolicy {
                 "{POLICY_BLOCKED_MARKER} Resolved path is a protected credential store: {}",
                 resolved.display()
             ));
+        }
+        if !self.enabled {
+            return Ok(());
         }
         // Trusted roots may override user-configured forbidden paths, but never
         // the core-managed workspace-state boundary.

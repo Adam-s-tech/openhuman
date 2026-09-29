@@ -10,25 +10,27 @@ fn backend() -> OpenHumanBackendModel {
     )
 }
 
-#[tokio::test]
-async fn with_thread_id_injects_when_ambient_thread_present() {
-    thread_context::with_thread_id("thread-42", async {
-        let request = ModelRequest::new(vec![Message::user("hi")]);
-        let updated = with_thread_id(request);
-        assert_eq!(
-            updated.provider_options["thread_id"],
-            serde_json::json!("thread-42")
-        );
-    })
-    .await;
+#[test]
+fn with_thread_id_injects_explicit_thread() {
+    let request = ModelRequest::new(vec![Message::user("hi")]);
+    let updated = with_thread_id(request, Some("thread-42"));
+    assert_eq!(
+        updated.provider_options["thread_id"],
+        serde_json::json!("thread-42")
+    );
 }
 
 #[test]
-fn with_thread_id_is_noop_without_ambient_thread() {
-    // No thread scope active → provider_options stays whatever it was (null).
+fn with_thread_id_is_noop_without_explicit_thread() {
     let request = ModelRequest::new(vec![Message::user("hi")]);
-    let updated = with_thread_id(request);
+    let updated = with_thread_id(request, None);
     assert!(updated.provider_options.get("thread_id").is_none());
+}
+
+#[test]
+fn managed_model_keeps_its_explicit_thread_without_an_ambient_scope() {
+    let model = backend().with_thread_id(Some("  delegate-thread  "));
+    assert_eq!(model.thread_id.as_deref(), Some("delegate-thread"));
 }
 
 #[test]
@@ -41,8 +43,8 @@ fn managed_model_advertises_tool_and_vision_capabilities() {
 
 #[test]
 fn resolve_model_normalizes_blank_and_trims_non_empty_values() {
-    assert_eq!(resolve_model(""), crate::config::MODEL_REASONING_V1);
-    assert_eq!(resolve_model(" \t\n"), crate::config::MODEL_REASONING_V1);
+    assert_eq!(resolve_model(""), crate::config::MODEL_MANAGED_DEFAULT);
+    assert_eq!(resolve_model(" \t\n"), crate::config::MODEL_MANAGED_DEFAULT);
     assert_eq!(resolve_model("  reasoning-v1  "), "reasoning-v1");
     assert_eq!(resolve_model("hint:reasoning"), "hint:reasoning");
 }
@@ -68,6 +70,7 @@ fn project_managed_usage_recovers_charged_and_cached() {
             content: vec![],
             tool_calls: vec![],
             usage: None,
+            origin: None,
         },
         usage: Some(Usage {
             input_tokens: 1000,
@@ -79,6 +82,8 @@ fn project_managed_usage_recovers_charged_and_cached() {
         resolved_model: None,
         continue_turn: None,
         served_from_cache: false,
+        correlation: None,
+        resolved_route: None,
     };
 
     let projected = project_managed_usage(response);
@@ -108,6 +113,7 @@ fn project_managed_usage_is_noop_without_envelope() {
             content: vec![],
             tool_calls: vec![],
             usage: None,
+            origin: None,
         },
         usage: Some(Usage {
             input_tokens: 10,
@@ -120,6 +126,8 @@ fn project_managed_usage_is_noop_without_envelope() {
         resolved_model: None,
         continue_turn: None,
         served_from_cache: false,
+        correlation: None,
+        resolved_route: None,
     };
 
     let projected = project_managed_usage(response);
@@ -148,6 +156,7 @@ fn is_provider_not_configured_error_matches_exact_backend_shape() {
         retryable: false,
         retry_after_ms: None,
         raw: None,
+        ..ProviderError::default()
     };
     assert!(is_provider_not_configured_error(&err));
 }
@@ -166,6 +175,7 @@ fn is_provider_not_configured_error_rejects_other_400s() {
         retryable: false,
         retry_after_ms: None,
         raw: None,
+        ..ProviderError::default()
     };
     assert!(!is_provider_not_configured_error(&err));
 }
@@ -185,6 +195,7 @@ fn is_provider_not_configured_error_tolerates_not_configured_for_provider_wordin
         retryable: false,
         retry_after_ms: None,
         raw: None,
+        ..ProviderError::default()
     };
     assert!(is_provider_not_configured_error(&err));
 }
@@ -207,6 +218,7 @@ fn is_provider_not_configured_error_rejects_generic_not_configured_400() {
         retryable: false,
         retry_after_ms: None,
         raw: None,
+        ..ProviderError::default()
     };
     assert!(!is_provider_not_configured_error(&err));
 }
@@ -222,6 +234,7 @@ fn is_provider_not_configured_error_rejects_non_400_status() {
         retryable: false,
         retry_after_ms: None,
         raw: None,
+        ..ProviderError::default()
     };
     assert!(!is_provider_not_configured_error(&err));
 }
@@ -303,6 +316,9 @@ async fn spawn_static_chat_server(status: axum::http::StatusCode, body: Value) -
     });
     addr.to_string()
 }
+
+#[path = "openhuman_backend_model_stream_tests.rs"]
+mod stream_tests;
 
 async fn slow_chat_handler() -> axum::response::Response {
     use axum::response::IntoResponse;
@@ -466,21 +482,29 @@ fn resolve_bearer_refuses_a_stored_api_key_over_plaintext_non_loopback() {
     let msg = err.to_string();
     assert!(
         msg.contains("refusing to send")
-            && msg.contains("non-HTTPS")
+            && msg.contains("unmanaged or insecure")
             && msg.contains("api.example.test"),
         "error must name the refusal and the offending endpoint: {msg}"
     );
 }
 
 #[test]
-fn resolve_bearer_sends_a_stored_api_key_over_https() {
+fn resolve_bearer_sends_a_stored_api_key_to_managed_https() {
     let tmp = tempfile::TempDir::new().unwrap();
-    let backend = backend_with_api_key("https://api.example.test", tmp.path());
+    let backend = backend_with_api_key("https://api.tinyhumans.ai", tmp.path());
 
     let token = backend
         .resolve_bearer()
-        .expect("https must be allowed to carry the api-key bearer");
+        .expect("managed HTTPS must be allowed to carry the api-key bearer");
     assert_eq!(token, "th_test_key");
+}
+
+#[test]
+fn resolve_bearer_rejects_foreign_https_for_api_key() {
+    let tmp = tempfile::TempDir::new().unwrap();
+    let backend = backend_with_api_key("https://api.example.test", tmp.path());
+    let error = backend.resolve_bearer().unwrap_err();
+    assert!(error.to_string().contains("unmanaged or insecure"));
 }
 
 #[test]
@@ -510,4 +534,63 @@ fn resolve_bearer_returns_token_for_exp_less_offline_session() {
         .resolve_bearer()
         .expect("an exp-less offline session must resolve (presence-only)");
     assert_eq!(token, "test.session.jwt");
+}
+#[test]
+fn api_key_endpoint_is_bound_to_tinyhumans_or_loopback() {
+    use super::is_managed_endpoint_for_api_key;
+
+    assert!(is_managed_endpoint_for_api_key(
+        "https://api.tinyhumans.ai/openai/v1"
+    ));
+    assert!(is_managed_endpoint_for_api_key(
+        "http://127.0.0.1:18765/openai/v1"
+    ));
+    assert!(is_managed_endpoint_for_api_key(
+        "http://[::1]:18765/openai/v1"
+    ));
+    assert!(!is_managed_endpoint_for_api_key(
+        "https://example.com/openai/v1"
+    ));
+    assert!(!is_managed_endpoint_for_api_key(
+        "http://api.tinyhumans.ai/openai/v1"
+    ));
+}
+
+/// #6724 (review): a 401 reported *inside* a stream must start re-auth just
+/// like a failed `stream()` call does.
+#[tokio::test]
+async fn an_in_band_401_publishes_session_expired() {
+    use crate::core::events::DomainEvent;
+
+    crate::core::bus::init().await.expect("bus init");
+    let mut rx = crate::core::bus::BUS
+        .get()
+        .expect("event bus initialized")
+        .receiver();
+
+    observe_in_band_failure(&ModelStreamItem::ProviderFailed(ProviderError {
+        provider: PROVIDER_LABEL.to_string(),
+        status: Some(401),
+        message: "TEST_MARKER_IN_BAND token expired".to_string(),
+        ..ProviderError::default()
+    }));
+
+    let mut source_seen = None;
+    loop {
+        match rx.try_recv() {
+            Ok(DomainEvent::SessionExpired { source, reason })
+                if reason.contains("TEST_MARKER_IN_BAND") =>
+            {
+                source_seen = Some(source);
+                break;
+            }
+            Ok(_) | Err(tinybus::TryRecvError::Lagged(_)) => continue,
+            Err(_) => break,
+        }
+    }
+    assert_eq!(
+        source_seen.as_deref(),
+        Some("openhuman_backend_model.stream(401)"),
+        "an in-band 401 must publish SessionExpired"
+    );
 }

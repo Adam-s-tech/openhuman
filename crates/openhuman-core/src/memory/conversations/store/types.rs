@@ -126,7 +126,7 @@ pub const DETERMINISTIC_MESSAGE_ID_PREFIX: &str = "agent:";
 /// The id an autonomous run's closing reply is stored under.
 ///
 /// Two writers legitimately persist that one reply — the core's
-/// `task_session::append_final` and the client that also persists the
+/// background-delivery path and the client that also persists the
 /// `chat_done` the run announces (`ChatRuntimeProvider` mirrors this shape for
 /// `client_id: "system"` turns) — so both must derive the same id and the store
 /// must collapse the second write onto the first (#5933).
@@ -145,6 +145,19 @@ pub fn run_reply_message_id(run_id: &str) -> String {
 /// two-message worker transcript.
 pub fn is_deterministic_message_id(id: &str) -> bool {
     id.starts_with(DETERMINISTIC_MESSAGE_ID_PREFIX)
+}
+
+/// The run/request id [`run_reply_message_id`] minted `id` from, or `None`
+/// when `id` is not a deterministic reply id (see
+/// [`is_deterministic_message_id`]).
+///
+/// Backs `threads.edit_message` / `threads.regenerate`: an assistant reply's
+/// store id is the one place the conversation-store id space and the
+/// model-facing transcript's `request_id` space provably correlate, so
+/// recovering the run id from the store id is how a UI message id resolves
+/// to a transcript cut point.
+pub fn reply_run_id(id: &str) -> Option<&str> {
+    id.strip_prefix(DETERMINISTIC_MESSAGE_ID_PREFIX)
 }
 
 #[cfg(test)]

@@ -2,8 +2,10 @@
 //! already in flight on a thread, and the request- or thread-scoped
 //! cancellation paths that tear them down.
 
+use std::sync::Arc;
 use std::time::Duration;
 
+use tinyagents_harness::run_queue::RunQueue;
 use tokio_util::sync::CancellationToken;
 
 use crate::core::socketio::WebChannelEvent;
@@ -31,7 +33,6 @@ pub(crate) async fn spawn_parallel_turn(
     message: &str,
     model_override: Option<String>,
     temperature: Option<f64>,
-    profile_id: Option<String>,
     locale: Option<String>,
     metadata: ChatRequestMetadata,
 ) {
@@ -44,13 +45,14 @@ pub(crate) async fn spawn_parallel_turn(
     let user_message = message.to_string();
     // Forked turns don't participate in the steer/followup/collect queue, but
     // `run_chat_task` requires a queue handle — give each its own.
-    let run_queue = crate::agent::harness::run_queue::RunQueue::new();
+    let run_queue = Arc::new(RunQueue::new());
 
     let handle = tokio::spawn(crate::core::runtime::context::CoreContext::propagate(
         async move {
             let approval_ctx = crate::security::approval::ApprovalChatContext {
                 thread_id: thread_id_task.clone(),
                 client_id: client_id_task.clone(),
+                request_id: Some(request_id_task.clone()),
             };
             let origin = crate::agent::turn_origin::AgentTurnOrigin::WebChat {
                 thread_id: thread_id_task.clone(),
@@ -68,7 +70,6 @@ pub(crate) async fn spawn_parallel_turn(
                     &user_message,
                     model_override,
                     temperature,
-                    profile_id,
                     locale,
                     run_queue,
                     metadata,
@@ -90,21 +91,25 @@ pub(crate) async fn spawn_parallel_turn(
                         // The workspace the turn ran in, so the reply is stored
                         // there before it is announced (#6034).
                         Some(chat_result.workspace_dir.as_path()),
+                        chat_result.timing,
+                        // Parallel-fork delivery has no single human waiting
+                        // on a next-message suggestion for this reply (C5).
+                        false,
                     )
                     .await;
                 }
                 Some(Err(err)) => {
                     log::warn!(
-                    "[web-channel] parallel run_chat_task failed client_id={} thread_id={} request_id={} error={}",
-                    client_id_task,
-                    thread_id_task,
-                    request_id_task,
-                    err
-                );
+                        "[web-channel] parallel run_chat_task failed client_id={} thread_id={} request_id={} error={}",
+                        client_id_task,
+                        thread_id_task,
+                        request_id_task,
+                        err
+                    );
                     let detailed = format!(
-                    "parallel run_chat_task failed client_id={} thread_id={} request_id={} error={}",
-                    client_id_task, thread_id_task, request_id_task, err
-                );
+                        "parallel run_chat_task failed client_id={} thread_id={} request_id={} error={}",
+                        client_id_task, thread_id_task, request_id_task, err
+                    );
                     let classified = classify_inference_error(&err);
                     let classified_type = classified.error_type;
 
@@ -166,10 +171,22 @@ pub(crate) async fn spawn_parallel_turn(
                 }
                 None => {
                     log::info!(
-                    "[web-channel] parallel turn cancelled cooperatively thread_id={} request_id={}",
-                    thread_id_task,
-                    request_id_task
-                );
+                        "[web-channel] parallel turn cancelled cooperatively thread_id={} request_id={}",
+                        thread_id_task,
+                        request_id_task
+                    );
+                    // Cooperative cancel (deadline/cancel token) publishes no
+                    // `chat_error` on this path today — leaving a client
+                    // waiting on this request_id with no terminal event.
+                    // `chat_cancelled` closes it out.
+                    publish_web_channel_event(WebChannelEvent {
+                        event: "chat_cancelled".to_string(),
+                        client_id: client_id_task.clone(),
+                        thread_id: thread_id_task.clone(),
+                        request_id: request_id_task.clone(),
+                        cancel_reason: Some("user_stop".to_string()),
+                        ..Default::default()
+                    });
                 }
             }
 

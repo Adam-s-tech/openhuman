@@ -30,29 +30,53 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 # serially so CI does not link several large integration binaries at once.
 # Tests guarded by `#[ignore]` stay skipped unless the caller passes
 # `-- --ignored`.
-ALL_E2E_SUITES=(
-  agent_approval_memory_coverage_e2e
-  calendar_grounding_e2e
-  config_auth_app_state_connectivity_e2e
-  composio_post_oauth_retry_e2e
-  cwd_jail_e2e
-  domain_modules_e2e
-  embeddings_rpc_e2e
-  inference_provider_e2e
-  json_rpc_e2e
-  keyring_secretstore_fresh_e2e
-  keyring_secretstore_e2e
-  linux_cef_deb_runtime_e2e
-  live_routing_e2e
-  mcp_registry_e2e
-  mcp_setup_e2e
-  memory_roundtrip_e2e
-  memory_sources_e2e
-  observability_wallet_expected_e2e
-  skill_registry_e2e
-  worker_b_domain_e2e
-  worker_c_modules_e2e
-)
+# The suite list is DERIVED from `tests/*_e2e.rs`, not hand-maintained.
+#
+# It used to be a literal list of 20 names while 29 `tests/*_e2e.rs` targets
+# existed, so nine were silently absent from this runner — including
+# `transcript_search_e2e`, which a coverage matrix cited as existing coverage.
+# CI never had the gap: `test-reusable.yml`, `scripts/ci/rust-coverage.sh` and
+# `scripts/test-rust-with-mock.sh` all discover targets with the same `find`
+# used below. Only the documented LOCAL command was short, which made a local
+# green weaker than it read.
+#
+# Polarity matters here. An include list fails UNSAFE: a new target is omitted
+# until someone remembers to add it. The exclude list below fails SAFE: a new
+# target runs by default and must be deliberately opted out, with a cause. Keep
+# it that way, and keep it empty if you can — a target that needs an external
+# service should gate itself with `#[ignore]` or an env check, which costs
+# nothing here because the target still runs and simply reports zero tests.
+E2E_SUITE_EXCLUDE=()
+
+_discover_e2e_suites() {
+  local name
+  while IFS= read -r name; do
+    local skip=0
+    local excluded
+    for excluded in ${E2E_SUITE_EXCLUDE[@]+"${E2E_SUITE_EXCLUDE[@]}"}; do
+      [ "$name" = "$excluded" ] && skip=1 && break
+    done
+    [ $skip -eq 0 ] && printf '%s\n' "$name"
+  done < <(
+    find "$REPO_ROOT/tests" -maxdepth 1 -type f -name '*_e2e.rs' -print |
+      sed -e 's#.*/##' -e 's#\.rs$##' |
+      sort
+  )
+}
+
+ALL_E2E_SUITES=()
+while IFS= read -r _suite; do
+  ALL_E2E_SUITES+=("$_suite")
+done < <(_discover_e2e_suites)
+
+# Refuse to run on an empty discovery rather than reporting a vacuous success.
+# `SUITES` falling back to an empty `ALL_E2E_SUITES` would run nothing and exit
+# 0, which reads exactly like a passing suite.
+if [ "${#ALL_E2E_SUITES[@]}" -eq 0 ]; then
+  echo "[rust-e2e] ERROR: discovered 0 e2e suites under $REPO_ROOT/tests." >&2
+  echo "           Expected tests/*_e2e.rs targets; refusing to report success." >&2
+  exit 2
+fi
 
 # Parse args: --suite <name> can be passed multiple times to filter.
 # Everything after `--` is forwarded to cargo test as test-binary args.
@@ -153,24 +177,52 @@ if [ -z "${TINYMEMORY_TEST_MODULE:-}" ]; then
   export TINYMEMORY_TEST_MODULE="$REPO_ROOT/$memory_module"
 fi
 
+# Module-backed Composio coverage must use the pinned local artifact as well.
+# Without this override the core resolves TinyConnectors through release
+# metadata, turning an otherwise hermetic mock-backend suite into a network
+# dependency and permanently faulting that process when the lookup fails.
+if [ -z "${TINYCONNECTORS_TEST_MODULE:-}" ]; then
+  connectors_manifest="vendor/tinyconnectors/crates/tinyconnectors/Cargo.toml"
+  connectors_module="vendor/tinyconnectors/target/release/libtinyconnectors.so"
+  echo "[rust-e2e] Building pinned TinyConnectors test module ..."
+  "$CARGO_BIN" build --release --manifest-path "$connectors_manifest"
+  export TINYCONNECTORS_TEST_MODULE="$REPO_ROOT/$connectors_module"
+fi
+
 echo "[rust-e2e] Running ${#SUITES[@]} suite(s) serially."
 
 run_json_rpc_e2e_suite() {
   # JSON-RPC scenarios mutate process-global provider routes and runtime
   # configuration. Run every case in a fresh test process so a provider set by
   # one scenario cannot affect the routing assertions in another.
+  #
+  # Enumerate first, as its own checked step. The names used to be read straight
+  # from a process substitution, whose exit status nothing sees: a target that
+  # failed to compile listed nothing, the loop ran zero times, and the suite
+  # reported success. A listing that fails part-way is refused whole, so a
+  # partial list is never run as though it were complete.
+  local listing test_names test_name
+  if ! listing="$(
+    "$CARGO_BIN" test --manifest-path Cargo.toml --features "$PRODUCT_FEATURES" \
+      --test json_rpc_e2e -- --list
+  )"; then
+    echo "[rust-e2e] ERROR: could not enumerate json_rpc_e2e tests; refusing to run an empty or partial list." >&2
+    return 1
+  fi
+
+  test_names="$(printf '%s\n' "$listing" | sed -n 's/: test$//p')"
+  if [ -z "$test_names" ]; then
+    echo "[rust-e2e] ERROR: json_rpc_e2e enumeration returned no tests; refusing to report success." >&2
+    return 1
+  fi
+
   while IFS= read -r test_name; do
-    [ -n "$test_name" ] || continue
     echo "[rust-e2e]   $CARGO_BIN test --manifest-path Cargo.toml --test json_rpc_e2e $test_name"
     bash "$SCRIPT_DIR/ci-cancel-aware.sh" "$CARGO_BIN" test \
       --manifest-path Cargo.toml --features "$PRODUCT_FEATURES" \
       --test json_rpc_e2e "$test_name" -- \
       --exact --test-threads=1 "${EXTRA_ARGS[@]}"
-  done < <(
-    "$CARGO_BIN" test --manifest-path Cargo.toml --features "$PRODUCT_FEATURES" \
-      --test json_rpc_e2e -- --list \
-      | sed -n 's/: test$//p'
-  )
+  done <<<"$test_names"
 }
 
 for suite in "${SUITES[@]}"; do

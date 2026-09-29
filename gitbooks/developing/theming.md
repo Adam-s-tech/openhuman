@@ -11,11 +11,13 @@ This page is the contributor reference for the token system.
    font-role vars (`--font-title/heading/body/mono/serif`). The Light palette
    lives in `:root`; the Dark palette in `:root.dark`.
 
-2. **Tailwind wiring**: `app/tailwind.config.js` exposes the tokens as utility
-   colours via `rgb(var(--token) / <alpha-value>)`. The `<alpha-value>` form is
-   what keeps opacity modifiers working (`bg-surface/50`, `bg-primary-500/10`).
-   Channel format is mandatory for this reason: never store a token as a hex
-   string.
+2. **Tailwind wiring**: the app runs Tailwind v4, so there is no
+   `tailwind.config.js`. The `@theme` block in `app/src/index.css` exposes each
+   token as a utility colour (`--color-surface: rgb(var(--surface));`, and so
+   on), and Tailwind's opacity-modifier support handles `bg-surface/50` and
+   `bg-primary-500/10` without any extra templating. Channel format (a
+   space-separated RGB triple, never a hex string) is what makes that work: a
+   hex string can't be composed with an opacity modifier this way.
 
 3. **Runtime application**: `app/src/providers/ThemeProvider.tsx` resolves the
    active `Theme` and writes its overrides as inline `--token` / `--font-<role>`
@@ -53,7 +55,7 @@ canonical tokens. Don't add new colours there.
 ## Colour as identity: the four-ramp ceiling
 
 A recurring shape in this codebase is a lookup table that answers "which thing
-is this?" with a colour — a skill category, an event-log domain, a notification
+is this?" with a colour: a skill category, an event-log domain, a notification
 provider, a catalogue source. Those tables are where stock Tailwind ramps keep
 creeping back in, because a table with nine rows wants nine hues and the app
 ships four.
@@ -73,7 +75,7 @@ looks fine in the default skin and falls apart in every other one.
 2. **Hues that have no equivalent do not get one.** `violet`, `teal`, `sky`,
    `cyan`, `indigo`, `pink` and `purple` are not "nearly primary" or "nearly
    sage". Do not invent a fifth ramp, do not duplicate an existing one under a
-   new name, and do not reach for `--accent-lavender` and friends — those are
+   new name, and do not reach for `--accent-lavender` and friends: those are
    fixed hexes, not ramps.
 
 3. **When a table needs more than four distinct hues, send the surplus rows to
@@ -98,12 +100,12 @@ Worked examples in the tree:
 | `skills/skillIcons.tsx` `CATEGORY_META`                   | 9               | `Built-in` (primary), `Productivity` (sage), `Social` (coral), `Tools & Automation` (amber) | `Channels`, `Chat` and `Platform` share the neutral tone of `All` / `Other`                                                                   |
 | `skills/SkillsExplorerTab.tsx` `SOURCE_COLORS`            | 6               | `built-in` (sage), `optional` (primary)                                                     | The four remote catalogues print their own name; provenance tier is the distinction that matters                                              |
 | `skills/SkillsExplorerTab.tsx` `FORMAT_MAP`               | 5 rows, 3 tones | Hermes family (primary), ClawHub family (sage), `legacy` (amber)                            | Three tones fit under the ceiling, so nothing is lost                                                                                         |
-| `settings/panels/EventLogPanel.tsx` `DOMAIN_BADGE_COLORS` | 11              | `tool` (primary), `agent` (sage), `approval` (amber)                                        | Who acted, and what waits on a human. Coral stays unassigned — no domain means failure                                                        |
+| `settings/panels/EventLogPanel.tsx` `DOMAIN_BADGE_COLORS` | 11              | `tool` (primary), `agent` (sage), `approval` (amber)                                        | Who acted, and what waits on a human. Coral stays unassigned; no domain means failure                                                        |
 | `notifications/NotificationCard.tsx` provider badge       | 6               | none                                                                                        | The importance badge in the same row already spends coral/amber/sage on high/medium/low; a coral provider would read as a failed notification |
 
 ### Brand tints are a separate question
 
-A few plates are a third party's brand colour, not an app hue — Telegram's
+A few plates are a third party's brand colour, not an app hue: Telegram's
 `#249CD8`, Discord's `#5865F2`, iMessage's `#34C759` in
 `skills/skillIcons.tsx`. Flattening those to `bg-surface-subtle` erases them
 into the generic badge beside them, so they are deliberately left as hex.

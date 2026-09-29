@@ -13,6 +13,42 @@
 # Simulate with: scripts/dep-sim.py --cut <crates>
 #
 # History
+#   307/286/2  2026-09-27  The multi-provider search config directly uses the
+#                      required TinySearch bus contract in always-on settings
+#                      and policy code. This adds one resolved crate/name and
+#                      no native build dependency.
+#   306/285/2  2026-09-26  The required TinyBrowser integration adds
+#                      tinybrowser-bus, tinybrowser-control, and tinyjevclient
+#                      to the flows profile compared with the 303/282 baseline.
+#                      No new native build dependency is introduced. The
+#                      macOS graph remains three packages/names above Linux.
+#   303/282/2  2026-09-25  The TinyChannels 0.1.3 contract refresh moves its
+#                      required HMAC path to hmac 0.13. The flows graph keeps
+#                      hmac 0.12 elsewhere, so this adds one package version;
+#                      digest 0.11 then resolves ctutils and cmov, adding two
+#                      names and two more packages. Comparing the pre-refresh
+#                      and current graphs gives +3 packages, +2 names, and no
+#                      new native build (still libsqlite3-sys and ring).
+#   300/280/2  2026-09-22  The TinyAgents 2.1.2 graph update moves its
+#                      runtime/session/graph split into the required agent
+#                      harness path. The `flows` profile therefore resolves
+#                      three additional package versions and three additional
+#                      crate names. It adds no native build dependency (the
+#                      native floor remains `libsqlite3-sys` and `ring`).
+#                      Measured locally and in CI with
+#                      `scripts/kernel-floor.sh flows` after the recursive
+#                      `vendor/tinyagents` pin update.
+#   297/277/2  2026-09-22  Updating tinymcp to main moves its platform
+#                      directory helper to `dirs` 7 while the host still
+#                      needs `dirs` 6 through `directories`. The flows
+#                      profile therefore resolves one additional version of
+#                      an existing crate; it adds no unique crate name and no
+#                      native build. This is required by the current tinymcp
+#                      contract and was measured with `scripts/kernel-floor.sh
+#                      flows` on the CI Linux profile.
+#   296/277/2  2026-09-20  the merged fresh-turn and cost-routing dependency
+#                      refresh sheds two resolved packages and two crate names
+#                      from the flows profile. Native builds stay unchanged.
 #   290/272/2  2026-09-18  portable skill parsing and filesystem primitives
 #                      moved into the required `tinyskills` crate. The `flows`
 #                      profile still compiles the shared skill metadata types,
@@ -564,4 +600,8 @@
 #                      crates, which add four resolved packages and four unique
 #                      crate names to the flows profile. No native dependency
 #                      was added.
-flows:293:275:2
+# 298/279/2 2026-09-20 TinyAgents runtime/session/graph orchestration moved
+#                      into the required host runtime. The migration adds five
+#                      resolved packages and four unique crate names; it does
+#                      not add a native build dependency.
+flows:307:286:2

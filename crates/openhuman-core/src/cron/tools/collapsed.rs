@@ -39,10 +39,10 @@ use crate::tools::implementations::meta::collapse::{
     any_external_effect, args_without_action, merge_action_schemas, resolve, strictest_permission,
     unknown_action_message, CollapsedAction,
 };
-use crate::tools::traits::{PermissionLevel, Tool, ToolCallOptions, ToolResult};
+use tinytools::{PermissionLevel, Tool, ToolCallOptions, ToolResult};
 
 #[cfg(test)]
-use crate::tools::traits::ToolExposure;
+use tinytools::ToolExposure;
 
 /// The advertised name. A constant so the registration site, the legacy-alias
 /// carve-out and the tests cannot disagree.
@@ -106,6 +106,10 @@ impl CronTool {
 
 #[async_trait]
 impl Tool for CronTool {
+    fn exposure(&self) -> tinytools::ToolExposure {
+        tinytools::ToolExposure::Deferred
+    }
+
     fn name(&self) -> &str {
         CRON_TOOL_NAME
     }

@@ -16,9 +16,9 @@ import AgentAccessPanel from '../AgentAccessPanel';
 // ──────────────────────────────────────────────────────────────────────────────
 // Note: Tier-selection and action-dir editing tests live in
 // PermissionsPanel.test.tsx (those controls moved to the layman panel).
-// This file covers the ADVANCED surface: workspace confinement, task-plan
-// approval, action timeout, granted folders, always-allowed tools, and the
-// approval-history link.
+// This file covers the ADVANCED surface: workspace confinement, action
+// timeout, granted folders, always-allowed tools, and the approval-history
+// link.
 // ──────────────────────────────────────────────────────────────────────────────
 
 const autonomy = (overrides: Partial<AutonomySettings> = {}): AutonomySettings => ({
@@ -104,17 +104,6 @@ describe('AgentAccessPanel (advanced)', () => {
     );
   });
 
-  it('toggling task plan approval persists require_task_plan_approval', async () => {
-    renderWithProviders(<AgentAccessPanel />);
-    await screen.findByText('Confine to workspace');
-    fireEvent.click(screen.getByRole('switch', { name: /require task plan approval/i }));
-    await waitFor(() =>
-      expect(mockUpdate).toHaveBeenCalledWith(
-        expect.objectContaining({ require_task_plan_approval: false })
-      )
-    );
-  });
-
   it('adding then removing a granted folder persists the updated list', async () => {
     renderWithProviders(<AgentAccessPanel />);
     await screen.findByText('Granted folders');
@@ -186,14 +175,14 @@ describe('AgentAccessPanel (advanced)', () => {
     expect(await screen.findByText('boom')).toBeInTheDocument();
   });
 
-  it('shows the desktop-only notice and skips loading off-Tauri', async () => {
+  it('loads settings over core RPC off-Tauri without a desktop-only notice', async () => {
     vi.mocked(isTauri).mockReturnValue(false);
     renderWithProviders(<AgentAccessPanel />);
+    await waitFor(() => expect(mockGet).toHaveBeenCalled());
+    expect(mockGetAgent).toHaveBeenCalled();
     expect(
-      await screen.findByText('Access settings are only available in the desktop app.')
-    ).toBeInTheDocument();
-    expect(mockGet).not.toHaveBeenCalled();
-    expect(mockGetAgent).not.toHaveBeenCalled();
+      screen.queryByText('Access settings are only available in the desktop app.')
+    ).not.toBeInTheDocument();
   });
 
   it('loads the configured action timeout into the input', async () => {

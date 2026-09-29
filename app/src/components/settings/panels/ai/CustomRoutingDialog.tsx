@@ -110,7 +110,7 @@ export const CustomRoutingDialog = ({
           ? 'claude-code'
           : null;
 
-  // The Vision workload always feeds the multimodal `vision-v1` path, so any
+  // The Vision workload always feeds the multimodal vision route, so any
   // model routed here is treated as image-capable regardless of the per-model
   // registry flag. Force the flag on and lock the checkbox for this workload.
   const visionLocked = workload.id === 'vision';
@@ -300,12 +300,18 @@ export const CustomRoutingDialog = ({
           onClick={() => setPickerOpen(true)}
           className="h-auto w-full justify-between px-3 py-2.5 text-left">
           <span className="flex min-w-0 flex-col gap-0.5">
-            <span className="text-xs font-medium text-content-secondary">Provider and model</span>
+            <span className="text-xs font-medium text-content-secondary">
+              {t('settings.ai.routing.providerAndModelLabel', 'Provider and model')}
+            </span>
             <span className="truncate text-sm font-medium text-content">
-              {model ? `${selectedProviderLabel} · ${model}` : 'Select provider and model'}
+              {model
+                ? `${selectedProviderLabel} · ${model}`
+                : t('settings.ai.routing.selectProvider')}
             </span>
           </span>
-          <span className="text-xs text-content-muted">Change</span>
+          <span className="text-xs text-content-muted">
+            {t('settings.ai.routing.changeAction', 'Change')}
+          </span>
         </Button>
 
         <TemperatureOverrideField temperature={temperature} onChange={setTemperature} />

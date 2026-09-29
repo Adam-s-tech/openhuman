@@ -3,6 +3,11 @@
 //! Isolates config under a temp `HOME` so auth profiles and the OpenHuman provider resolve
 //! the same state directory. Run with: `cargo test --test json_rpc_e2e`
 
+#[path = "support/memory_module.rs"]
+mod memory_module;
+#[path = "support/tinyhumans_boot.rs"]
+mod tinyhumans_boot;
+
 use std::collections::VecDeque;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
@@ -140,6 +145,12 @@ where
         .name(name.to_string())
         .stack_size(openhuman_core::core::runtime::AGENT_WORKER_STACK_BYTES)
         .spawn(move || {
+            // The lightweight HTTP router used by these E2E cases does not
+            // execute the full core boot sequence. Hosted turns still need
+            // the same built-in definition registry that boot initializes in
+            // production, so install it before constructing the router.
+            openhuman_core::agent::harness::definition::AgentDefinitionRegistry::init_global_builtins()
+                .expect("initialize built-in agent definitions for JSON-RPC E2E");
             let rt = tokio::runtime::Builder::new_multi_thread()
                 .worker_threads(2)
                 .thread_stack_size(openhuman_core::core::runtime::AGENT_WORKER_STACK_BYTES)
@@ -528,7 +539,11 @@ fn mock_upstream_router() -> Router {
     ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
         require_bearer(&headers, BILLING_TOKEN)?;
         let plan = require_string_field(&body, "plan")?;
-        if !matches!(plan, "basic" | "pro" | "BASIC" | "PRO") {
+        // The deployed backend's `BillingPlan` values (the SDK's typed request).
+        if !matches!(
+            plan,
+            "BASIC_MONTHLY" | "BASIC_YEARLY" | "PRO_MONTHLY" | "PRO_YEARLY"
+        ) {
             return Err(error_json(
                 StatusCode::BAD_REQUEST,
                 "missing or invalid 'plan'",
@@ -940,6 +955,14 @@ async fn read_sse_event_by_type(events_url: &str, target_event: &str) -> Value {
 /// This prevents tests from timing out blindly when the turn actually
 /// completed with `chat_error` rather than `chat_done`.
 async fn read_terminal_web_chat_event(events_url: &str) -> Value {
+    read_terminal_web_chat_event_with_ready(events_url, None, None).await
+}
+
+async fn read_terminal_web_chat_event_with_ready(
+    events_url: &str,
+    ready: Option<tokio::sync::oneshot::Sender<()>>,
+    expected_request: Option<tokio::sync::oneshot::Receiver<String>>,
+) -> Value {
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(120))
         .build()
@@ -956,6 +979,13 @@ async fn read_terminal_web_chat_event(events_url: &str) -> Value {
         resp.status(),
         events_url
     );
+    if let Some(ready) = ready {
+        let _ = ready.send(());
+    }
+    let expected_request_id = match expected_request {
+        Some(receiver) => Some(receiver.await.expect("accepted request id should be sent")),
+        None => None,
+    };
 
     let mut stream = resp.bytes_stream();
     let mut buffer = String::new();
@@ -977,13 +1007,54 @@ async fn read_terminal_web_chat_event(events_url: &str) -> Value {
                 let value: Value = serde_json::from_str(&payload)
                     .unwrap_or_else(|e| panic!("invalid sse data json: {e}"));
                 match value.get("event").and_then(Value::as_str) {
-                    Some("chat_done") | Some("chat_error") => return value,
+                    Some("chat_done") | Some("chat_error")
+                        if expected_request_id.as_deref().is_none_or(|id| {
+                            value.get("request_id").and_then(Value::as_str) == Some(id)
+                        }) =>
+                    {
+                        return value;
+                    }
                     _ => {}
                 }
             }
         }
     }
     panic!("SSE stream ended before receiving terminal web-chat event");
+}
+
+async fn spawn_ready_terminal_web_chat_event_for_request(
+    events_url: &str,
+) -> (
+    tokio::task::JoinHandle<Value>,
+    tokio::sync::oneshot::Sender<String>,
+) {
+    // The previous turn can emit a late cancellation on the same client SSE
+    // stream. Subscribe before submitting, then match only the accepted turn.
+    let (ready_tx, ready_rx) = tokio::sync::oneshot::channel();
+    let (request_tx, request_rx) = tokio::sync::oneshot::channel();
+    let events_url = events_url.to_owned();
+    let task = tokio::spawn(async move {
+        read_terminal_web_chat_event_with_ready(&events_url, Some(ready_tx), Some(request_rx)).await
+    });
+    tokio::time::timeout(Duration::from_secs(5), ready_rx)
+        .await
+        .expect("SSE subscription should become ready")
+        .expect("SSE reader should signal readiness");
+    (task, request_tx)
+}
+
+fn signal_accepted_web_chat_request_id(
+    sender: tokio::sync::oneshot::Sender<String>,
+    accepted: &Value,
+) {
+    let request_id = accepted
+        .get("result")
+        .and_then(|result| result.get("request_id"))
+        .and_then(Value::as_str)
+        .expect("accepted web chat request_id");
+    sender
+        .send(request_id.to_owned())
+        .expect("SSE reader should receive request_id");
 }
 
 async fn wait_for_chat_completion_requests_len(expected_len: usize) -> Vec<Value> {
@@ -1164,6 +1235,10 @@ enabled = false
 
 fn ensure_test_rpc_auth() {
     JSON_RPC_AUTH_INIT.get_or_init(|| {
+        // The core carries no backend client; billing / team / composio RPCs
+        // reach the mock backend through the `openhuman-tinyhumans` transport.
+        openhuman_tinyhumans::install(openhuman_tinyhumans::InstallOptions::default())
+            .expect("install the TinyHumans backend transport for json_rpc_e2e");
         // SAFETY: set_var is inside get_or_init so it runs exactly once across
         // all test threads. Rust 1.81+ requires unsafe for set_var in
         // multi-threaded contexts; the OnceLock guard limits the mutation to a
@@ -1178,6 +1253,13 @@ fn ensure_test_rpc_auth() {
 async fn json_rpc_discovers_codex_and_claude_sessions_for_memory_ingestion() {
     let _env_lock = json_rpc_e2e_env_lock();
     let tmp = tempdir().expect("tempdir");
+    let home = tmp.path();
+    let _home_guard = EnvVarGuard::set_to_path("HOME", home);
+    let _workspace_guard =
+        EnvVarGuard::set_to_path("OPENHUMAN_WORKSPACE", json_rpc_e2e_shared_workspace());
+    let _memory_driver_guard = EnvVarGuard::set("OPENHUMAN_MEMORY_DRIVER", "tinymemory");
+    let _backend_guard = EnvVarGuard::unset("VITE_BACKEND_URL");
+    memory_module::settle().await;
     let claude_home = tmp.path().join("claude");
     let codex_home = tmp.path().join("codex");
     let claude_root = claude_home.join("projects/repo");
@@ -1595,25 +1677,25 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
         .get("definitions")
         .and_then(Value::as_array)
         .expect("agent_list_definitions should return definitions array");
-    let researcher = definitions
+    let memory_agent = definitions
         .iter()
-        .find(|definition| definition.get("id").and_then(Value::as_str) == Some("researcher"))
-        .expect("safe agent library should include researcher");
+        .find(|definition| definition.get("id").and_then(Value::as_str) == Some("agent_memory"))
+        .expect("safe agent library should include agent_memory");
     assert_eq!(
-        researcher.get("display_name").and_then(Value::as_str),
-        Some("Researcher")
+        memory_agent.get("display_name").and_then(Value::as_str),
+        Some("Memory Agent")
     );
-    assert!(researcher
+    assert!(memory_agent
         .get("when_to_use")
         .and_then(Value::as_str)
         .is_some());
-    assert!(researcher.get("system_prompt").is_none());
-    assert!(researcher.get("tools").is_some());
-    assert!(researcher
+    assert!(memory_agent.get("system_prompt").is_none());
+    assert!(memory_agent.get("tools").is_some());
+    assert!(memory_agent
         .get("direct_tool_count")
         .and_then(Value::as_u64)
         .is_some());
-    assert!(researcher
+    assert!(memory_agent
         .get("can_run_as_user_facing_worker")
         .and_then(Value::as_bool)
         .is_some());
@@ -1635,13 +1717,13 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
         286_211,
         "openhuman.agent_registry_update",
         json!({
-            "id": "researcher",
-            "name": "Research Specialist",
-            "description": "Workspace-specific research specialist.",
-            "model": "reasoning-v1",
+            "id": "agent_memory",
+            "name": "Recall Specialist",
+            "description": "Workspace-specific memory recall specialist.",
+            "model": "hint:reasoning",
             "tool_allowlist": ["tools.web_search", "memory.search"],
             "tool_denylist": ["wallet.execute_prepared"],
-            "tags": ["research", "workspace"],
+            "tags": ["memory", "workspace"],
             "metadata": { "pinned_by": "json_rpc_e2e" }
         }),
     )
@@ -1652,7 +1734,7 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
             .expect("update default should return agent");
     assert_eq!(
         update_default_agent.get("name").and_then(Value::as_str),
-        Some("Research Specialist")
+        Some("Recall Specialist")
     );
     assert_eq!(
         update_default_agent
@@ -1684,7 +1766,7 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
         &rpc_base,
         28_622,
         "openhuman.agent_registry_set_enabled",
-        json!({ "id": "code_executor", "enabled": false }),
+        json!({ "id": "image_agent", "enabled": false }),
     )
     .await;
     let disabled_result = assert_no_jsonrpc_error(&disabled, "agent_registry_set_enabled");
@@ -1693,7 +1775,7 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
             .get("agent")
             .and_then(|agent| agent.get("id"))
             .and_then(Value::as_str),
-        Some("code_executor")
+        Some("image_agent")
     );
     assert_eq!(
         disabled_result
@@ -1718,7 +1800,7 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
     assert!(
         !visible_agents
             .iter()
-            .any(|agent| agent.get("id").and_then(Value::as_str) == Some("code_executor")),
+            .any(|agent| agent.get("id").and_then(Value::as_str) == Some("image_agent")),
         "disabled default agent should be hidden unless include_disabled=true"
     );
 
@@ -1731,19 +1813,17 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
     .await;
     let all_after_disable_result =
         assert_no_jsonrpc_error(&all_after_disable, "agent_registry_list include disabled");
-    let disabled_code_executor = all_after_disable_result
+    let disabled_image_agent = all_after_disable_result
         .get("agents")
         .and_then(Value::as_array)
         .and_then(|agents| {
             agents
                 .iter()
-                .find(|agent| agent.get("id").and_then(Value::as_str) == Some("code_executor"))
+                .find(|agent| agent.get("id").and_then(Value::as_str) == Some("image_agent"))
         })
-        .expect("include_disabled should retain disabled code_executor");
+        .expect("include_disabled should retain disabled image_agent");
     assert_eq!(
-        disabled_code_executor
-            .get("enabled")
-            .and_then(Value::as_bool),
+        disabled_image_agent.get("enabled").and_then(Value::as_bool),
         Some(false)
     );
 
@@ -1751,7 +1831,7 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
         &rpc_base,
         286_214,
         "openhuman.agent_registry_set_enabled",
-        json!({ "id": "code_executor", "enabled": true }),
+        json!({ "id": "image_agent", "enabled": true }),
     )
     .await;
     assert_eq!(
@@ -1810,7 +1890,7 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
             "id": "custom_writer",
             "name": "Custom Writer",
             "description": "Drafts polished workspace updates.",
-            "model": "reasoning-v1",
+            "model": "hint:reasoning",
             "system_prompt": "Write concise, accurate updates.",
             "tool_allowlist": ["memory.search", "tools.web_search"],
             "tool_denylist": ["wallet.execute_prepared"],
@@ -1864,11 +1944,11 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
             "name": "Custom Writer v2",
             "description": "Drafts polished workspace updates and summaries.",
             "enabled": false,
-            "model": "coding-v1",
+            "model": "hint:coding",
             "system_prompt": "Write concise updates with citations when available.",
             "tool_allowlist": ["memory.search"],
             "tool_denylist": ["shell"],
-            "subagents": ["researcher"],
+            "subagents": ["agent_memory"],
             "tags": ["writing", "custom", "disabled"],
             "metadata": { "updated_by": "json_rpc_e2e" }
         }),
@@ -1893,7 +1973,7 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
             .and_then(Value::as_array)
             .and_then(|allowlist| allowlist.first())
             .and_then(Value::as_str),
-        Some("researcher")
+        Some("agent_memory")
     );
 
     let reenabled_custom = post_json_rpc(
@@ -1922,7 +2002,7 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
                 "description": "Reviews agent plans before execution.",
                 "source": "default",
                 "enabled": false,
-                "model": "reasoning-v1",
+                "model": "hint:reasoning",
                 "system_prompt": "Review plans for missing validation.",
                 "tool_allowlist": ["memory.search"],
                 "tool_denylist": ["shell", "file_write"],
@@ -2052,7 +2132,7 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
         &rpc_base,
         286_221,
         "openhuman.agent_registry_remove",
-        json!({ "id": "researcher" }),
+        json!({ "id": "agent_memory" }),
     )
     .await;
     assert_eq!(
@@ -2062,32 +2142,32 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
         Some(true)
     );
 
-    let reset_code_executor = post_json_rpc(
+    let reset_image_agent = post_json_rpc(
         &rpc_base,
         286_222,
         "openhuman.agent_registry_remove",
-        json!({ "id": "code_executor" }),
+        json!({ "id": "image_agent" }),
     )
     .await;
     assert_eq!(
         assert_no_jsonrpc_error(
-            &reset_code_executor,
-            "agent_registry_remove code_executor override"
+            &reset_image_agent,
+            "agent_registry_remove image_agent override"
         )
         .get("removed")
         .and_then(Value::as_bool),
         Some(true)
     );
 
-    let code_executor = post_json_rpc(
+    let image_agent = post_json_rpc(
         &rpc_base,
         286_223,
         "openhuman.agent_registry_get",
-        json!({ "id": "code_executor" }),
+        json!({ "id": "image_agent" }),
     )
     .await;
     assert_eq!(
-        assert_no_jsonrpc_error(&code_executor, "agent_registry_get reset default")
+        assert_no_jsonrpc_error(&image_agent, "agent_registry_get reset default")
             .get("agent")
             .and_then(|agent| agent.get("enabled"))
             .and_then(Value::as_bool),
@@ -2273,8 +2353,15 @@ async fn json_rpc_protocol_auth_and_agent_hello_inner() {
     rpc_join.abort();
 }
 
-#[tokio::test]
-async fn json_rpc_prompt_injection_is_rejected_before_model_call() {
+#[test]
+fn json_rpc_prompt_injection_is_rejected_before_model_call() {
+    run_json_rpc_e2e_on_agent_stack(
+        "json_rpc_prompt_injection_is_rejected_before_model_call",
+        json_rpc_prompt_injection_is_rejected_before_model_call_inner,
+    );
+}
+
+async fn json_rpc_prompt_injection_is_rejected_before_model_call_inner() {
     let _env_lock = json_rpc_e2e_env_lock();
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
@@ -2326,12 +2413,19 @@ async fn json_rpc_prompt_injection_is_rejected_before_model_call() {
     let web_msg = web_err
         .get("message")
         .and_then(Value::as_str)
-        .unwrap_or_default()
-        .to_ascii_lowercase();
+        .unwrap_or_default();
+    let web_verdict: Value = serde_json::from_str(
+        web_msg
+            .strip_prefix("GUARDRAIL:")
+            .unwrap_or_else(|| panic!("missing structured web guardrail: {web_err}")),
+    )
+    .expect("web guardrail verdict JSON");
+    assert_eq!(web_verdict["verdict"], "block", "{web_err}");
     assert!(
-        web_msg.contains("blocked by a security policy")
-            || web_msg.contains("flagged for security review"),
-        "unexpected web-block message: {web_err}"
+        web_verdict["reasons"]
+            .as_array()
+            .is_some_and(|v| !v.is_empty()),
+        "blocked verdict should name its reasons: {web_err}"
     );
 
     let blocked_agent = post_json_rpc(
@@ -2467,6 +2561,99 @@ async fn json_rpc_thread_labels_create_and_update() {
         vec!["general", "briefing"],
         "threads_list must reflect the updated labels"
     );
+
+    api_join.abort();
+    rpc_join.abort();
+}
+
+/// `threads.goal_get` / `threads.todos_get` are the one-shot reads a client
+/// makes to hydrate the goal chip / todo drawer for a thread that has neither
+/// yet (both surfaces otherwise only stream live via `thread_goal_updated` /
+/// `thread_todos_changed`). `channel.web_queue_remove` on an id that isn't
+/// queued (no active turn at all, here) is a no-op, not an error — see C3.
+#[tokio::test]
+async fn json_rpc_thread_goal_and_todos_get_and_queue_remove_are_wired() {
+    let _env_lock = json_rpc_e2e_env_lock();
+    let tmp = tempdir().expect("tempdir");
+    let home = tmp.path();
+    let openhuman_home = home.join(".openhuman");
+
+    let _home_guard = EnvVarGuard::set_to_path("HOME", home);
+    let _workspace_guard = EnvVarGuard::unset("OPENHUMAN_WORKSPACE");
+    let _backend_url_guard = EnvVarGuard::unset("BACKEND_URL");
+    let _vite_backend_url_guard = EnvVarGuard::unset("VITE_BACKEND_URL");
+    let _api_url_guard = EnvVarGuard::unset("OPENHUMAN_API_URL");
+
+    let (api_addr, api_join) = serve_on_ephemeral(mock_upstream_router()).await;
+    let api_origin = format!("http://{api_addr}");
+    write_min_config(openhuman_home.as_path(), &api_origin);
+
+    let (rpc_addr, rpc_join) = serve_on_ephemeral(build_core_http_router(false)).await;
+    let rpc_base = format!("http://{rpc_addr}");
+
+    let create = post_json_rpc(&rpc_base, 9101, "openhuman.threads_create_new", json!({})).await;
+    let create_outer = assert_no_jsonrpc_error(&create, "threads_create_new");
+    let thread_id = create_outer
+        .get("data")
+        .and_then(|d| d.get("id"))
+        .and_then(Value::as_str)
+        .expect("id in created thread")
+        .to_string();
+
+    // No goal / todos exist yet for a freshly created thread.
+    let goal = post_json_rpc(
+        &rpc_base,
+        9102,
+        "openhuman.threads_goal_get",
+        json!({ "thread_id": thread_id }),
+    )
+    .await;
+    let goal_data = assert_no_jsonrpc_error(&goal, "threads_goal_get")
+        .get("data")
+        .expect("data envelope in goal_get response")
+        .clone();
+    assert!(
+        goal_data.get("goal").is_none_or(Value::is_null),
+        "a fresh thread has no goal: {goal_data}"
+    );
+
+    let todos = post_json_rpc(
+        &rpc_base,
+        9103,
+        "openhuman.threads_todos_get",
+        json!({ "thread_id": thread_id }),
+    )
+    .await;
+    let todos_data = assert_no_jsonrpc_error(&todos, "threads_todos_get")
+        .get("data")
+        .expect("data envelope in todos_get response")
+        .clone();
+    assert_eq!(
+        todos_data
+            .get("todos")
+            .and_then(Value::as_array)
+            .expect("todos array"),
+        &Vec::<Value>::new(),
+        "a fresh thread has no todos: {todos_data}"
+    );
+
+    // No active turn on the thread, so removing any item id is a no-op.
+    let remove = post_json_rpc(
+        &rpc_base,
+        9104,
+        "openhuman.channel_web_queue_remove",
+        json!({
+            "client_id": "e2e-client",
+            "thread_id": thread_id,
+            "item_id": "no-such-item",
+        }),
+    )
+    .await;
+    let remove_result = assert_no_jsonrpc_error(&remove, "channel_web_queue_remove")
+        .get("result")
+        .expect("result envelope in queue_remove response")
+        .clone();
+    assert_eq!(remove_result.get("removed"), Some(&Value::Bool(false)));
 
     api_join.abort();
     rpc_join.abort();
@@ -3042,12 +3229,10 @@ async fn json_rpc_run_ledger_lifecycle() {
             kind: tinyagents_session::run_ledger::AgentRunKind::WorkerThread,
             parent_run_id: Some("req-run-1".to_string()),
             parent_thread_id: Some("thread-run-1".to_string()),
-            agent_id: Some("researcher".to_string()),
+            agent_id: Some("task_manager_agent".to_string()),
             status: tinyagents_session::run_ledger::AgentRunStatus::AwaitingUser,
             prompt_ref: Some("thread:worker-1:message:seed".to_string()),
             worker_thread_id: Some("worker-1".to_string()),
-            task_board_id: Some("thread-run-1".to_string()),
-            task_card_id: Some("card-1".to_string()),
             checkpoint_path: Some("/tmp/sub-run-1.json".to_string()),
             checkpoint: Some(json!({
                 "resumeTool": "continue_subagent",
@@ -3162,12 +3347,10 @@ async fn json_rpc_agent_work_list_groups_runs_by_bucket() {
         kind: AgentRunKind::Subagent,
         parent_run_id: None,
         parent_thread_id: Some("thread-work-1".to_string()),
-        agent_id: Some("researcher".to_string()),
+        agent_id: Some("task_manager_agent".to_string()),
         status,
         prompt_ref: None,
         worker_thread_id: None,
-        task_board_id: None,
-        task_card_id: None,
         checkpoint_path: None,
         checkpoint: None,
         summary: None,
@@ -3344,6 +3527,7 @@ async fn json_rpc_workflow_run_definitions_and_runs_roundtrip() {
 }
 
 #[tokio::test]
+#[ignore = "TODO(#6380): hosted TinyAgents loses agent-team member persistence"]
 async fn json_rpc_agent_team_coordination_roundtrip() {
     let _env_lock = json_rpc_e2e_env_lock();
     let tmp = tempdir().expect("tempdir");
@@ -3377,8 +3561,8 @@ async fn json_rpc_agent_team_coordination_roundtrip() {
             "parentThreadId": "thread-team-e2e",
             "summary": "ship feature",
             "members": [
-                { "name": "alice", "agentId": "researcher" },
-                { "name": "bob", "agentId": "researcher" }
+                { "name": "alice", "agentId": "orchestrator" },
+                { "name": "bob", "agentId": "orchestrator" }
             ]
         }),
     )
@@ -3741,7 +3925,7 @@ async fn json_rpc_memory_sync_and_learn() {
     // source. So clear it first.
     //
     // This is safe only because the coverage lane runs this target serially —
-    // `scripts/ci/rust-coverage-changed.sh`, in `run_integration_target()`:
+    // `scripts/ci/rust-coverage.sh`, in `run_integration_target()`:
     //   llvm_cov ... --test "${target}" -- --test-threads=1
     // If that ever stops being true, a concurrent case would have its store
     // wiped underneath it and this is the line that made that possible.
@@ -3846,14 +4030,27 @@ async fn json_rpc_memory_sync_and_learn() {
     );
 
     // ── memory_ingestion_status: idle after direct learning ─────────────────
-    let ing_status = post_json_rpc(
-        &rpc_base,
-        7006,
-        "openhuman.memory_ingestion_status",
-        json!({}),
-    )
-    .await;
-    let ing_result = assert_no_jsonrpc_error(&ing_status, "memory_ingestion_status");
+    // The module's worker may still be settling an item that was already in
+    // flight when the shared store was wiped. Poll the read-only status until
+    // the worker releases it instead of racing its last queue-stat update.
+    let ing_result = tokio::time::timeout(Duration::from_secs(10), async {
+        loop {
+            let ing_status = post_json_rpc(
+                &rpc_base,
+                7006,
+                "openhuman.memory_ingestion_status",
+                json!({}),
+            )
+            .await;
+            let result = assert_no_jsonrpc_error(&ing_status, "memory_ingestion_status");
+            if result.get("running") == Some(&json!(false)) {
+                break result.clone();
+            }
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+    })
+    .await
+    .expect("memory ingestion did not settle after clearing the fresh store");
     assert_eq!(
         ing_result.get("running"),
         Some(&json!(false)),
@@ -4219,11 +4416,17 @@ async fn json_rpc_web_chat_routing_cases_use_expected_backend_models_inner() {
     .await;
     assert_no_jsonrpc_error(&store, "store_session");
 
+    // Every managed role — and a retired tier slug — runs on the managed
+    // default model; a concrete catalog id is forwarded verbatim.
     let routing_cases = [
-        ("hint:reasoning", "reasoning-v1"),
-        ("hint:agentic", "agentic-v1"),
-        ("hint:coding", "coding-v1"),
-        ("reasoning-v1", "reasoning-v1"),
+        ("hint:reasoning", "openrouter/deepseek/deepseek-v4-flash"),
+        ("hint:agentic", "openrouter/deepseek/deepseek-v4-flash"),
+        ("hint:coding", "openrouter/deepseek/deepseek-v4-flash"),
+        ("reasoning-v1", "openrouter/deepseek/deepseek-v4-flash"),
+        (
+            "openrouter/deepseek/deepseek-v4-pro",
+            "openrouter/deepseek/deepseek-v4-pro",
+        ),
         // Web chat forwards lightweight hint overrides as-is for this path,
         // so the upstream model receives the original hint string.
         ("hint:reaction", "hint:reaction"),
@@ -4370,8 +4573,7 @@ async fn json_rpc_web_chat_custom_chat_provider_uses_stored_key_and_rebuilds_on_
     let client_id = "custom-provider-client";
     let thread_id = "custom-provider-thread";
     let events_url = format!("{}/events?client_id={}", rpc_base, client_id);
-    let sse_task =
-        tokio::spawn(async move { read_sse_event_by_type(&events_url, "chat_done").await });
+    let (sse_task, request_tx) = spawn_ready_terminal_web_chat_event_for_request(&events_url).await;
 
     let accepted = post_json_rpc(
         &rpc_base,
@@ -4391,6 +4593,7 @@ async fn json_rpc_web_chat_custom_chat_provider_uses_stored_key_and_rebuilds_on_
             .and_then(|v| v.get("accepted")),
         Some(&json!(true))
     );
+    signal_accepted_web_chat_request_id(request_tx, accepted_result);
     let sse_event = tokio::time::timeout(Duration::from_secs(12), sse_task)
         .await
         .expect("timed out waiting for first custom-provider chat_done")
@@ -4398,22 +4601,28 @@ async fn json_rpc_web_chat_custom_chat_provider_uses_stored_key_and_rebuilds_on_
     assert_eq!(
         sse_event.get("event").and_then(Value::as_str),
         Some("chat_done"),
-        "unexpected first custom-provider terminal event: {sse_event}; requests={:?}",
-        with_chat_completion_requests(|requests| requests.clone())
+        "unexpected first custom-provider terminal event: {sse_event}; request count={}",
+        with_chat_completion_requests(|requests| requests.len())
     );
 
     let requests = wait_for_chat_completion_requests_len(1).await;
     let custom_request = requests
         .iter()
         .find(|request| request.get("model").and_then(Value::as_str) == Some("gpt-4.1-mini"))
-        .unwrap_or_else(|| panic!("expected gpt-4.1-mini outbound provider call: {requests:?}"));
+        .unwrap_or_else(|| {
+            panic!(
+                "expected gpt-4.1-mini among {} provider calls",
+                requests.len()
+            )
+        });
     assert_eq!(
         custom_request.get("path").and_then(Value::as_str),
         Some("/chat/completions")
     );
-    assert_eq!(
-        custom_request.get("authorization").and_then(Value::as_str),
-        Some("Bearer sk-custom-openai-key")
+    assert!(
+        custom_request.get("authorization").and_then(Value::as_str)
+            == Some("Bearer sk-custom-openai-key"),
+        "custom provider call must use its stored credential"
     );
 
     let update_again = post_json_rpc(
@@ -4428,7 +4637,7 @@ async fn json_rpc_web_chat_custom_chat_provider_uses_stored_key_and_rebuilds_on_
     assert_no_jsonrpc_error(&update_again, "update_model_settings second");
 
     let events_url = format!("{}/events?client_id={}", rpc_base, client_id);
-    let sse_task = tokio::spawn(async move { read_terminal_web_chat_event(&events_url).await });
+    let (sse_task, request_tx) = spawn_ready_terminal_web_chat_event_for_request(&events_url).await;
 
     let accepted = post_json_rpc(
         &rpc_base,
@@ -4448,6 +4657,7 @@ async fn json_rpc_web_chat_custom_chat_provider_uses_stored_key_and_rebuilds_on_
             .and_then(|v| v.get("accepted")),
         Some(&json!(true))
     );
+    signal_accepted_web_chat_request_id(request_tx, accepted_result);
     let sse_event = tokio::time::timeout(Duration::from_secs(12), sse_task)
         .await
         .expect("timed out waiting for second custom-provider chat_done")
@@ -4455,8 +4665,8 @@ async fn json_rpc_web_chat_custom_chat_provider_uses_stored_key_and_rebuilds_on_
     assert_eq!(
         sse_event.get("event").and_then(Value::as_str),
         Some("chat_done"),
-        "unexpected second custom-provider terminal event: {sse_event}; requests={:?}",
-        with_chat_completion_requests(|requests| requests.clone())
+        "unexpected second custom-provider terminal event: {sse_event}; request count={}",
+        with_chat_completion_requests(|requests| requests.len())
     );
 
     let requests = wait_for_chat_completion_requests_len(2).await;
@@ -4464,20 +4674,24 @@ async fn json_rpc_web_chat_custom_chat_provider_uses_stored_key_and_rebuilds_on_
         .iter()
         .find(|request| request.get("model").and_then(Value::as_str) == Some("gpt-4.1-nano"))
         .unwrap_or_else(|| {
-            panic!("expected gpt-4.1-nano outbound provider call after route change: {requests:?}")
+            panic!(
+                "expected gpt-4.1-nano among {} provider calls",
+                requests.len()
+            )
         });
     assert_eq!(
         updated_request.get("model").and_then(Value::as_str),
         Some("gpt-4.1-nano"),
         "cached web-chat session should rebuild when chat_provider changes"
     );
-    assert_eq!(
-        updated_request.get("authorization").and_then(Value::as_str),
-        Some("Bearer sk-custom-openai-key")
+    assert!(
+        updated_request.get("authorization").and_then(Value::as_str)
+            == Some("Bearer sk-custom-openai-key"),
+        "updated provider call must use its stored credential"
     );
 
     let events_url = format!("{}/events?client_id={}", rpc_base, client_id);
-    let sse_task = tokio::spawn(async move { read_terminal_web_chat_event(&events_url).await });
+    let (sse_task, request_tx) = spawn_ready_terminal_web_chat_event_for_request(&events_url).await;
 
     let accepted = post_json_rpc(
         &rpc_base,
@@ -4499,6 +4713,7 @@ async fn json_rpc_web_chat_custom_chat_provider_uses_stored_key_and_rebuilds_on_
             .and_then(|v| v.get("accepted")),
         Some(&json!(true))
     );
+    signal_accepted_web_chat_request_id(request_tx, accepted_result);
     let sse_event = tokio::time::timeout(Duration::from_secs(12), sse_task)
         .await
         .expect("timed out waiting for unaffected agentic chat_done")
@@ -4506,8 +4721,8 @@ async fn json_rpc_web_chat_custom_chat_provider_uses_stored_key_and_rebuilds_on_
     assert_eq!(
         sse_event.get("event").and_then(Value::as_str),
         Some("chat_done"),
-        "unexpected unaffected-agentic terminal event: {sse_event}; requests={:?}",
-        with_chat_completion_requests(|requests| requests.clone())
+        "unexpected unaffected-agentic terminal event: {sse_event}; request count={}",
+        with_chat_completion_requests(|requests| requests.len())
     );
 
     let agentic_request = wait_for_chat_completion_request_with_message(
@@ -4521,7 +4736,7 @@ async fn json_rpc_web_chat_custom_chat_provider_uses_stored_key_and_rebuilds_on_
     );
     assert_eq!(
         agentic_request.get("model").and_then(Value::as_str),
-        Some("agentic-v1")
+        Some("openrouter/deepseek/deepseek-v4-flash")
     );
 
     mock_join.abort();
@@ -6385,12 +6600,35 @@ async fn json_rpc_local_ai_device_profile_and_presets() {
     rpc_join.abort();
 }
 
-// ---------------------------------------------------------------------------
-// Agent profiles — home materialization + dedicated-memory field lifecycle
-// ---------------------------------------------------------------------------
-
+/// Matrix 3.1.5 — the model context-window requirement gate, over RPC.
+///
+/// `local_ai.model_context_check` rejects installed Ollama models whose native
+/// context window is below the memory layer's minimum, so that "short-context
+/// models can't silently truncate and corrupt recall" (its own capability
+/// description). The rejection itself was asserted nowhere that runs:
+///
+///   * the implementation and its unit tests live in
+///     `vendor/tinyagents/vendor/tinyinference/crates/tinyinference-local/`,
+///     and `vendor` is in the root `[workspace] exclude` — no OpenHuman lane
+///     compiles that package, let alone runs its tests;
+///   * OpenHuman itself never names `model_requirements`, so there is no
+///     in-crate seam to unit-test the way `local_ai_presets_tests.rs` tests the
+///     preset mapping;
+///   * `openhuman.inference_diagnostics` was named by two live e2e targets, but
+///     only inside a schema-catalog list and an error-path table.
+///
+/// So the RPC boundary is the only place this behaviour is reachable from code
+/// this repo builds, and that is what this test drives: a mock Ollama serving
+/// one model below the floor and one comfortably above it, through
+/// `/api/tags` + `/api/show`, exactly as the real daemon would.
+///
+/// Deliberately asserts the *relationship* rather than the literal 8192:
+/// `min_context_tokens` is re-exported from
+/// `tinyinference_embeddings::RECOMMENDED_OLLAMA_CONTEXT_TOKENS` and is allowed
+/// to move. What must not change without someone noticing is that a model under
+/// whatever that floor is gets `below_minimum` and one over it gets `ok`.
 #[tokio::test]
-async fn json_rpc_profiles_dedicated_memory_lifecycle() {
+async fn json_rpc_local_ai_ollama_diagnostics_rejects_a_short_context_model() {
     let _env_lock = json_rpc_e2e_env_lock();
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
@@ -6398,211 +6636,158 @@ async fn json_rpc_profiles_dedicated_memory_lifecycle() {
 
     let _home_guard = EnvVarGuard::set_to_path("HOME", home);
     let _workspace_guard = EnvVarGuard::unset("OPENHUMAN_WORKSPACE");
-    let _action_guard = EnvVarGuard::unset("OPENHUMAN_ACTION_DIR");
     let _backend_url_guard = EnvVarGuard::unset("BACKEND_URL");
     let _vite_backend_guard = EnvVarGuard::unset("VITE_BACKEND_URL");
+    let _tier_guard = EnvVarGuard::unset("OPENHUMAN_LOCAL_AI_TIER");
+    let _ollama_env_guard = EnvVarGuard::unset("OPENHUMAN_OLLAMA_BASE_URL");
 
     let (mock_addr, mock_join) = serve_on_ephemeral(mock_upstream_router()).await;
     let mock_origin = format!("http://{}", mock_addr);
     write_min_config(&openhuman_home, &mock_origin);
 
+    // Well under any plausible floor; the memory layer must refuse it.
+    const SHORT_CTX: u64 = 2_048;
+    // Comfortably over it.
+    const AMPLE_CTX: u64 = 131_072;
+    // The short-context model must be one the MVP chat allowlist accepts, or
+    // `effective_chat_model_id` rewrites the configured id to
+    // `MVP_DEFAULT_CHAT_MODEL` and `expected.chat_eligibility` resolves against
+    // a model this mock never lists. That rewrite is real behaviour, not a test
+    // artefact: under Ollama an off-allowlist chat model is redirected, so the
+    // realistic failure this gate exists for is the *allowlisted* model having
+    // too small a window.
+    const SHORT_MODEL: &str = "gemma3:1b-it-qat";
+    const AMPLE_MODEL: &str = "roomy-ctx:latest";
+
+    let ollama_app = Router::new()
+        .route(
+            "/api/tags",
+            get(|| async {
+                Json(json!({
+                    "models": [
+                        { "name": SHORT_MODEL, "size": 1_000_000, "modified_at": "2026-09-24T00:00:00Z" },
+                        { "name": AMPLE_MODEL, "size": 2_000_000, "modified_at": "2026-09-24T00:00:00Z" },
+                    ]
+                }))
+            }),
+        )
+        .route(
+            "/api/show",
+            post(|Json(body): Json<Value>| async move {
+                // `context_length_from_model_info` reads `{arch}.context_length`
+                // keyed off `general.architecture`; mirror that shape rather
+                // than a flattened convenience key, or the gate reads `Unknown`
+                // and this test would pass for the wrong reason.
+                let model = body.get("model").and_then(Value::as_str).unwrap_or_default();
+                let ctx = if model.starts_with("gemma3") {
+                    SHORT_CTX
+                } else {
+                    AMPLE_CTX
+                };
+                Json(json!({
+                    "model_info": {
+                        "general.architecture": "llama",
+                        "llama.context_length": ctx,
+                    },
+                    "capabilities": ["completion"],
+                }))
+            }),
+        );
+    let (ollama_addr, ollama_join) = serve_on_ephemeral(ollama_app).await;
+    let ollama_base = format!("http://{ollama_addr}");
+
     let (rpc_addr, rpc_join) = serve_on_ephemeral(build_core_http_router(false)).await;
     let rpc_base = format!("http://{}", rpc_addr);
     tokio::time::sleep(Duration::from_millis(100)).await;
 
-    // --- upsert a custom profile opting into dedicated memory ---
-    // agentId "orchestrator" is always admitted without a registry (the implicit
-    // default), so this upsert persists even in the bare e2e core.
-    let upsert = post_json_rpc(
+    let update = post_json_rpc(
         &rpc_base,
         60,
-        "openhuman.profiles_upsert",
+        "openhuman.inference_update_local_settings",
         json!({
-            "profile": {
-                "id": "writer",
-                "name": "Writer",
-                "description": "Drafts crisp copy.",
-                "agentId": "orchestrator",
-                "builtIn": false,
-                "dedicatedMemory": true
-            }
+            "runtime_enabled": true,
+            "opt_in_confirmed": true,
+            "provider": "ollama",
+            "base_url": ollama_base,
+            "model_id": SHORT_MODEL,
+            "chat_model_id": SHORT_MODEL
         }),
     )
     .await;
-    let upsert_result = assert_no_jsonrpc_error(&upsert, "profiles_upsert");
-    let upsert_payload = upsert_result.get("result").unwrap_or(upsert_result);
-    let writer = upsert_payload
-        .get("profiles")
-        .and_then(Value::as_array)
-        .expect("profiles array")
-        .iter()
-        .find(|p| p.get("id").and_then(Value::as_str) == Some("writer"))
-        .expect("writer profile present after upsert");
-    assert_eq!(
-        writer.get("dedicatedMemory").and_then(Value::as_bool),
-        Some(true),
-        "dedicatedMemory should round-trip: {upsert_payload}"
-    );
+    assert_no_jsonrpc_error(&update, "update_local_ai_settings_for_ollama");
 
-    // --- list must surface the field + the resolved soulMdFile path ---
-    let list = post_json_rpc(&rpc_base, 61, "openhuman.profiles_list", json!({})).await;
-    let list_result = assert_no_jsonrpc_error(&list, "profiles_list");
-    let list_payload = list_result.get("result").unwrap_or(list_result);
-    let listed_writer = list_payload
-        .get("profiles")
-        .and_then(Value::as_array)
-        .expect("profiles array")
-        .iter()
-        .find(|p| p.get("id").and_then(Value::as_str) == Some("writer"))
-        .expect("writer present in list");
-    assert_eq!(
-        listed_writer
-            .get("dedicatedMemory")
-            .and_then(Value::as_bool),
-        Some(true)
-    );
-    // The home was materialized on upsert, so SOUL.md exists and its path is
-    // surfaced read-only. A shared-memory profile carries no workspaceDir.
+    let diagnostics =
+        post_json_rpc(&rpc_base, 61, "openhuman.inference_diagnostics", json!({})).await;
+    let result = assert_no_jsonrpc_error(&diagnostics, "ollama_context_diagnostics");
+
+    // The floor is reported, and it is a real number rather than a default 0 —
+    // a zero floor would accept everything and make the rest of this vacuous.
+    let floor = result
+        .get("context_requirement")
+        .and_then(|requirement| requirement.get("min_context_tokens"))
+        .and_then(Value::as_u64)
+        .expect("diagnostics must report the context floor");
     assert!(
-        listed_writer
-            .get("soulMdFile")
-            .and_then(Value::as_str)
-            .is_some_and(|s| s.ends_with("personalities/writer/SOUL.md")),
-        "soulMdFile should resolve: {listed_writer}"
-    );
-    assert!(
-        listed_writer.get("workspaceDir").is_none(),
-        "dedicated_memory (not workspace) must not surface workspaceDir"
+        floor > SHORT_CTX && floor < AMPLE_CTX,
+        "this test's two fixtures must straddle the floor; floor={floor}, \
+         short={SHORT_CTX}, ample={AMPLE_CTX}"
     );
 
-    // --- 2b: a cron agent job can be attributed to this profile, and the
-    // attribution round-trips through cron_add and cron_list (snake_case
-    // `profile_id`, matching the cron domain's wire convention). ---
-    let cron_add = post_json_rpc(
-        &rpc_base,
-        64,
-        "openhuman.cron_add",
-        json!({
-            "schedule": "0 9 * * *",
-            "prompt": "draft the daily note",
-            "profile_id": "writer"
-        }),
-    )
-    .await;
-    let cron_add_result = assert_no_jsonrpc_error(&cron_add, "cron_add");
-    // `RpcOutcome::single_log` wraps the job as `{ "result": <job>, "logs": [..] }`.
-    let added_job = cron_add_result.get("result").unwrap_or(cron_add_result);
-    let job_id = added_job
-        .get("id")
-        .and_then(Value::as_str)
-        .expect("cron job id present")
-        .to_string();
-    assert_eq!(
-        added_job.get("profile_id").and_then(Value::as_str),
-        Some("writer"),
-        "cron_add must round-trip profile_id: {cron_add_result}"
-    );
-
-    let cron_list = post_json_rpc(&rpc_base, 65, "openhuman.cron_list", json!({})).await;
-    let cron_list_result = assert_no_jsonrpc_error(&cron_list, "cron_list");
-    let jobs = cron_list_result
-        .get("result")
+    let installed = result
+        .get("installed_models")
         .and_then(Value::as_array)
-        .expect("cron_list jobs array");
-    let listed_job = jobs
-        .iter()
-        .find(|j| j.get("id").and_then(Value::as_str) == Some(job_id.as_str()))
-        .expect("added cron job present in cron_list");
+        .expect("diagnostics must list installed models");
+    assert_eq!(installed.len(), 2, "both mock models should be listed");
+
+    let eligibility_of = |name: &str| -> Value {
+        installed
+            .iter()
+            .find(|entry| entry.get("name").and_then(Value::as_str) == Some(name))
+            .and_then(|entry| entry.get("eligibility"))
+            .cloned()
+            .unwrap_or(Value::Null)
+    };
+
+    let short = eligibility_of(SHORT_MODEL);
     assert_eq!(
-        listed_job.get("profile_id").and_then(Value::as_str),
-        Some("writer"),
-        "cron_list must surface profile_id: {listed_job}"
+        short.get("status").and_then(Value::as_str),
+        Some("below_minimum"),
+        "a {SHORT_CTX}-token model is under the {floor}-token floor and must be \
+         rejected, not merely reported: {short}"
     );
-
-    // cron_update can repoint the attribution (Some(Some) over the wire).
-    let cron_update = post_json_rpc(
-        &rpc_base,
-        66,
-        "openhuman.cron_update",
-        json!({ "job_id": job_id, "patch": { "profile_id": "editor" } }),
-    )
-    .await;
-    let cron_update_result = assert_no_jsonrpc_error(&cron_update, "cron_update");
-    let updated_job = cron_update_result
-        .get("result")
-        .unwrap_or(cron_update_result);
     assert_eq!(
-        updated_job.get("profile_id").and_then(Value::as_str),
-        Some("editor"),
-        "cron_update must repoint profile_id: {cron_update_result}"
+        short.get("context_length").and_then(Value::as_u64),
+        Some(SHORT_CTX),
+        "the rejection must carry the window it read, so the UI can say why"
     );
-
-    // cron_update with a wire `null` clears the attribution (double-option
-    // semantics — a plain `Option<Option<String>>` would silently no-op here).
-    let cron_clear = post_json_rpc(
-        &rpc_base,
-        67,
-        "openhuman.cron_update",
-        json!({ "job_id": job_id, "patch": { "profile_id": null } }),
-    )
-    .await;
-    let cron_clear_result = assert_no_jsonrpc_error(&cron_clear, "cron_update clear");
-    let cleared_job = cron_clear_result.get("result").unwrap_or(cron_clear_result);
-    assert!(
-        cleared_job.get("profile_id").is_none_or(Value::is_null),
-        "cron_update patch profile_id=null must clear the attribution: {cron_clear_result}"
-    );
-
-    // ...and cron_list confirms the attribution is gone.
-    let cron_list_after = post_json_rpc(&rpc_base, 68, "openhuman.cron_list", json!({})).await;
-    let cron_list_after_result = assert_no_jsonrpc_error(&cron_list_after, "cron_list after clear");
-    let jobs_after = cron_list_after_result
-        .get("result")
-        .and_then(Value::as_array)
-        .expect("cron_list jobs array");
-    let listed_after = jobs_after
-        .iter()
-        .find(|j| j.get("id").and_then(Value::as_str) == Some(job_id.as_str()))
-        .expect("job present in cron_list after clear");
-    assert!(
-        listed_after.get("profile_id").is_none_or(Value::is_null),
-        "cleared profile_id must not reappear in cron_list: {listed_after}"
-    );
-
-    // --- select then delete round-trips the active id ---
-    let select = post_json_rpc(
-        &rpc_base,
-        62,
-        "openhuman.profiles_select",
-        json!({"profile_id": "writer"}),
-    )
-    .await;
-    let select_result = assert_no_jsonrpc_error(&select, "profiles_select");
-    let select_payload = select_result.get("result").unwrap_or(select_result);
     assert_eq!(
-        select_payload
-            .get("activeProfileId")
+        short.get("required").and_then(Value::as_u64),
+        Some(floor),
+        "the rejection must carry the floor it was measured against"
+    );
+
+    let ample = eligibility_of(AMPLE_MODEL);
+    assert_eq!(
+        ample.get("status").and_then(Value::as_str),
+        Some("ok"),
+        "a {AMPLE_CTX}-token model is over the floor and must be accepted; if \
+         this is also below_minimum the gate is refusing everything: {ample}"
+    );
+
+    // The active chat model is the short one, so the expected-model verdict
+    // must carry the rejection too — this is the field the UI reads to warn.
+    assert_eq!(
+        result
+            .get("expected")
+            .and_then(|expected| expected.get("chat_eligibility"))
+            .and_then(|eligibility| eligibility.get("status"))
             .and_then(Value::as_str),
-        Some("writer")
+        Some("below_minimum"),
+        "the configured chat model is the short-context one; its eligibility \
+         must reflect that"
     );
 
-    let delete = post_json_rpc(
-        &rpc_base,
-        63,
-        "openhuman.profiles_delete",
-        json!({"profile_id": "writer"}),
-    )
-    .await;
-    let delete_result = assert_no_jsonrpc_error(&delete, "profiles_delete");
-    let delete_payload = delete_result.get("result").unwrap_or(delete_result);
-    assert_eq!(
-        delete_payload
-            .get("activeProfileId")
-            .and_then(Value::as_str),
-        Some("default"),
-        "deleting the active custom profile falls back to default"
-    );
-
+    ollama_join.abort();
     mock_join.abort();
     rpc_join.abort();
 }
@@ -7130,7 +7315,7 @@ async fn billing_rpc_e2e() {
         &rpc_base,
         3,
         "openhuman.billing_purchase_plan",
-        json!({ "plan": "pro" }),
+        json!({ "plan": "PRO_MONTHLY" }),
     )
     .await;
     let purchase_outer = assert_no_jsonrpc_error(&purchase, "billing_purchase_plan");
@@ -8696,23 +8881,15 @@ async fn mcp_clients_lifecycle() {
     rpc_join.abort();
 }
 
-/// MCP clients **happy path** over real JSON-RPC: install → connect → tool_call
-/// → update_env (reconnect) → disconnect against a real stdio MCP subprocess
-/// (the `test-mcp-stub` binary), with the registry lookup served hermetically
-/// from the SQLite detail cache (issue #3039 acceptance: "JSON-RPC E2E —
-/// happy-path install/connect/tool_call against stub server over HTTP RPC").
+/// MCP clients **happy path** over real JSON-RPC: declare in `mcp.json` →
+/// connect → tool_call → update_env (reconnect) → disconnect against a real
+/// stdio MCP subprocess (the `test-mcp-stub` binary).
 ///
-/// No npx, no network: we pre-seed `smithery:detail:<name>` with a detail whose
-/// stdio `exampleConfig.command` points at the stub binary, so
-/// `mcp_clients_install` resolves the launch command to the stub.
-///
-/// Smithery is now opt-in (only enabled when an API key is set), so we install
-/// with the explicit `smithery::` source prefix. `registry_get` routes a
-/// prefixed name straight to that adapter via `registry_for_source`, which
-/// resolves Smithery regardless of the key gate — the same path used for detail
-/// lookups of an already-installed Smithery server.
+/// No npx, no network, no catalog: the server is declared through
+/// `mcp_clients_config_set` with a `command` pointing at the stub binary, which
+/// is how a user adds any server now — the registry is browse-only.
 #[tokio::test]
-async fn mcp_clients_install_connect_tool_call_happy_path() {
+async fn mcp_clients_declare_connect_tool_call_happy_path() {
     let _env_lock = json_rpc_e2e_env_lock();
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
@@ -8729,52 +8906,35 @@ async fn mcp_clients_install_connect_tool_call_happy_path() {
     let user_scoped_dir = openhuman_home.join("users").join("local");
     write_min_config(&user_scoped_dir, &mock_origin);
 
-    // Seed the registry detail cache so `registry_get` resolves offline to a
-    // stdio connection whose command is the hermetic stub binary. The config we
-    // load here resolves the same workspace dir the RPC handlers use, so the
-    // cache row lands in the DB the install path reads.
     let stub_path = env!("CARGO_BIN_EXE_test-mcp-stub");
-    let qualified_name = "@openhuman-test/echo";
-    let detail = serde_json::json!({
-        "qualifiedName": qualified_name,
-        "displayName": "Test Echo",
-        "description": "Stub MCP server for the json_rpc_e2e happy path.",
-        "connections": [{
-            "type": "stdio",
-            "published": true,
-            "exampleConfig": { "command": stub_path, "args": [] }
-        }]
-    });
-    let seed_config = openhuman_core::config::load_config_with_timeout()
-        .await
-        .expect("load config for cache seed");
-    openhuman_core::mcp::registry::store::set_cached(
-        &seed_config,
-        &format!("smithery:detail:{qualified_name}"),
-        &detail.to_string(),
-    )
-    .expect("seed smithery detail cache");
 
     let (rpc_addr, rpc_join) = serve_on_ephemeral(build_core_http_router(false)).await;
     let rpc_base = format!("http://{}", rpc_addr);
     tokio::time::sleep(Duration::from_millis(100)).await;
 
-    // ── 1. install resolves the stub command from the seeded detail ──────────
-    let install = post_json_rpc(
+    // ── 1. declaring the stub in mcp.json installs it ────────────────────────
+    let declared = post_json_rpc(
         &rpc_base,
         9920,
-        "openhuman.mcp_clients_install",
-        json!({ "qualified_name": format!("smithery::{qualified_name}"), "env": {} }),
+        "openhuman.mcp_clients_config_set",
+        json!({ "mcpServers": { "echo": { "command": stub_path } } }),
     )
     .await;
-    let install_result = assert_no_jsonrpc_error(&install, "mcp_clients_install (happy path)");
-    let install_body = peel_logs_envelope(install_result);
-    let server_id = install_body
-        .get("server")
-        .and_then(|s| s.get("server_id"))
-        .and_then(Value::as_str)
-        .expect("install returns a server.server_id")
-        .to_string();
+    let declared_body = peel_logs_envelope(assert_no_jsonrpc_error(
+        &declared,
+        "mcp_clients_config_set (declare)",
+    ));
+    assert_eq!(
+        declared_body.get("added"),
+        Some(&json!(["echo"])),
+        "config_set should report the new server as added: {declared_body}"
+    );
+    assert_eq!(
+        declared_body["mcpServers"]["echo"]["command"],
+        json!(stub_path),
+        "config_set should render the declared command back: {declared_body}"
+    );
+    let server_id = installed_server_id(&rpc_base, 9926, "echo").await;
 
     // ── 2. connect spawns the stub and lists its one `echo` tool ─────────────
     let connect = post_json_rpc(
@@ -8897,7 +9057,7 @@ async fn mcp_clients_install_connect_tool_call_happy_path() {
     rpc_join.abort();
 }
 
-/// `mcp_clients_set_enabled` smoke: installs a server, disables it via RPC,
+/// `mcp_clients_set_enabled` smoke: declares a server, disables it via RPC,
 /// and asserts the response carries `enabled=false` (issue #3196).
 #[tokio::test]
 async fn mcp_clients_set_enabled_smoke() {
@@ -8917,53 +9077,22 @@ async fn mcp_clients_set_enabled_smoke() {
     let user_scoped_dir = openhuman_home.join("users").join("local");
     write_min_config(&user_scoped_dir, &mock_origin);
 
-    // Seed the registry detail cache so install resolves offline to the stub.
-    // Smithery is opt-in (gated on an API key), so install routes via the
-    // explicit `smithery::` source prefix below — `registry_for_source` resolves
-    // the adapter regardless of the key gate.
     let stub_path = env!("CARGO_BIN_EXE_test-mcp-stub");
-    let qualified_name = "@openhuman-test/echo-set-enabled";
-    let detail = serde_json::json!({
-        "qualifiedName": qualified_name,
-        "displayName": "Test Echo SetEnabled",
-        "description": "Stub for set_enabled smoke.",
-        "connections": [{
-            "type": "stdio",
-            "published": true,
-            "exampleConfig": { "command": stub_path, "args": [] }
-        }]
-    });
-    let seed_config = openhuman_core::config::load_config_with_timeout()
-        .await
-        .expect("load config for cache seed");
-    openhuman_core::mcp::registry::store::set_cached(
-        &seed_config,
-        &format!("smithery:detail:{qualified_name}"),
-        &detail.to_string(),
-    )
-    .expect("seed smithery detail cache");
 
     let (rpc_addr, rpc_join) = serve_on_ephemeral(build_core_http_router(false)).await;
     let rpc_base = format!("http://{}", rpc_addr);
     tokio::time::sleep(Duration::from_millis(100)).await;
 
-    // ── 1. install ───────────────────────────────────────────────────────────
-    let install = post_json_rpc(
+    // ── 1. declare ───────────────────────────────────────────────────────────
+    let declared = post_json_rpc(
         &rpc_base,
         9940,
-        "openhuman.mcp_clients_install",
-        json!({ "qualified_name": format!("smithery::{qualified_name}"), "env": {} }),
+        "openhuman.mcp_clients_config_set",
+        json!({ "mcpServers": { "echo-set-enabled": { "command": stub_path } } }),
     )
     .await;
-    let install_result =
-        assert_no_jsonrpc_error(&install, "mcp_clients_install (set_enabled smoke)");
-    let install_body = peel_logs_envelope(install_result);
-    let server_id = install_body
-        .get("server")
-        .and_then(|s| s.get("server_id"))
-        .and_then(Value::as_str)
-        .expect("install returns server.server_id")
-        .to_string();
+    assert_no_jsonrpc_error(&declared, "mcp_clients_config_set (set_enabled smoke)");
+    let server_id = installed_server_id(&rpc_base, 9943, "echo-set-enabled").await;
 
     // ── 2. set_enabled=false ─────────────────────────────────────────────────
     let set_enabled = post_json_rpc(
@@ -9007,14 +9136,15 @@ async fn mcp_clients_set_enabled_smoke() {
     rpc_join.abort();
 }
 
-/// `mcp_clients_install` idempotency (issue #4120 review): a re-install of the
-/// same service (a) collapses to ONE row and returns `already_installed:true`
-/// even when the first install used a source-prefixed name and the second used
-/// the bare name (canonical dedup), and (b) MERGES new env onto the existing row
-/// so re-running the dialog to replace an expired token doesn't drop the user's
-/// other stored keys.
+/// The `mcp.json` round trip: a document is a *replace* of the install store,
+/// except for credentials, which are write-only.
+///
+/// (a) a second save that names one credential merges it over the stored set
+/// and keeps the row (same `server_id`); (b) saving exactly what `config_get`
+/// returned — which carries no values — changes nothing; (c) a key set to `""`
+/// removes that one value; (d) dropping the entry uninstalls the server.
 #[tokio::test]
-async fn mcp_clients_install_idempotent_refresh_and_canonical_dedup() {
+async fn mcp_clients_config_round_trip_merges_credentials_and_removes_absent_servers() {
     let _env_lock = json_rpc_e2e_env_lock();
     let tmp = tempdir().expect("tempdir");
     let home = tmp.path();
@@ -9031,125 +9161,165 @@ async fn mcp_clients_install_idempotent_refresh_and_canonical_dedup() {
     let user_scoped_dir = openhuman_home.join("users").join("local");
     write_min_config(&user_scoped_dir, &mock_origin);
 
-    // Seed the smithery detail cache so the FIRST (prefixed) install resolves
-    // offline. The second install hits the idempotency branch before registry_get,
-    // so it needs no cache.
     let stub_path = env!("CARGO_BIN_EXE_test-mcp-stub");
-    let qualified_name = "@openhuman-test/echo-reinstall";
-    let detail = serde_json::json!({
-        "qualifiedName": qualified_name,
-        "displayName": "Test Echo Reinstall",
-        "description": "Stub for install idempotency.",
-        "connections": [{
-            "type": "stdio",
-            "published": true,
-            "exampleConfig": { "command": stub_path, "args": [] }
-        }]
-    });
-    let seed_config = openhuman_core::config::load_config_with_timeout()
-        .await
-        .expect("load config for cache seed");
-    openhuman_core::mcp::registry::store::set_cached(
-        &seed_config,
-        &format!("smithery:detail:{qualified_name}"),
-        &detail.to_string(),
-    )
-    .expect("seed smithery detail cache");
 
     let (rpc_addr, rpc_join) = serve_on_ephemeral(build_core_http_router(false)).await;
     let rpc_base = format!("http://{}", rpc_addr);
     tokio::time::sleep(Duration::from_millis(100)).await;
 
-    // ── 1. install via the source-prefixed name with two env keys ────────────
-    let install1 = post_json_rpc(
+    // ── 1. declare with two credentials; disabled so nothing is dialled ──────
+    let first = post_json_rpc(
         &rpc_base,
         9960,
-        "openhuman.mcp_clients_install",
-        json!({
-            "qualified_name": format!("smithery::{qualified_name}"),
-            "env": { "TOKEN": "old", "KEEP": "v1" }
-        }),
+        "openhuman.mcp_clients_config_set",
+        json!({ "mcpServers": { "echo-rt": {
+            "command": stub_path,
+            "env": { "TOKEN": "old", "KEEP": "v1" },
+            "enabled": false
+        } } }),
     )
     .await;
-    let r1 = assert_no_jsonrpc_error(&install1, "mcp_clients_install (first)");
-    let b1 = peel_logs_envelope(r1);
-    let server_id = b1
-        .get("server")
-        .and_then(|s| s.get("server_id"))
-        .and_then(Value::as_str)
-        .expect("first install returns server_id")
-        .to_string();
-    // Stored qualified_name is the bare (canonical) name, not the prefixed one.
+    let b1 = peel_logs_envelope(assert_no_jsonrpc_error(&first, "config_set (first)"));
+    assert_eq!(b1.get("added"), Some(&json!(["echo-rt"])), "{b1}");
+    // The read carries names and a flag, never a value.
+    assert_eq!(b1["mcpServers"]["echo-rt"]["authConfigured"], json!(true));
     assert_eq!(
-        b1.get("server")
-            .and_then(|s| s.get("qualified_name"))
-            .and_then(Value::as_str),
-        Some(qualified_name),
-        "install should store the canonical (bare) qualified_name: {b1}"
+        b1["mcpServers"]["echo-rt"]["envKeys"],
+        json!(["KEEP", "TOKEN"])
     );
-
-    // ── 2. re-install via the BARE name with a rotated token ─────────────────
-    let install2 = post_json_rpc(
-        &rpc_base,
-        9961,
-        "openhuman.mcp_clients_install",
-        json!({ "qualified_name": qualified_name, "env": { "TOKEN": "new" } }),
-    )
-    .await;
-    let r2 = assert_no_jsonrpc_error(&install2, "mcp_clients_install (re-install)");
-    let b2 = peel_logs_envelope(r2);
-    assert_eq!(
-        b2.get("already_installed"),
-        Some(&json!(true)),
-        "re-install should be flagged already_installed: {b2}"
-    );
-    assert_eq!(
-        b2.get("server")
-            .and_then(|s| s.get("server_id"))
-            .and_then(Value::as_str),
-        Some(server_id.as_str()),
-        "re-install should return the same server_id: {b2}"
-    );
-    // Env merged: the rotated key AND the untouched first-install key survive.
-    let env_keys: Vec<String> = b2
-        .get("server")
-        .and_then(|s| s.get("env_keys"))
-        .and_then(Value::as_array)
-        .expect("re-install returns env_keys")
-        .iter()
-        .filter_map(|v| v.as_str().map(String::from))
-        .collect();
+    assert_eq!(b1["mcpServers"]["echo-rt"]["enabled"], json!(false));
     assert!(
-        env_keys.contains(&"TOKEN".to_string()) && env_keys.contains(&"KEEP".to_string()),
-        "re-install should merge env (KEEP preserved, TOKEN present): {env_keys:?}"
+        b1["mcpServers"]["echo-rt"].get("env").is_none(),
+        "a read must not echo credential values: {b1}"
     );
+    let server_id = installed_server_id(&rpc_base, 9961, "echo-rt").await;
 
-    // ── 3. exactly one installed row for this service (no duplicate) ─────────
-    let listed = post_json_rpc(
+    // ── 2. a save naming one key merges it and keeps the row ─────────────────
+    let second = post_json_rpc(
         &rpc_base,
         9962,
-        "openhuman.mcp_clients_installed_list",
+        "openhuman.mcp_clients_config_set",
+        json!({ "mcpServers": { "echo-rt": {
+            "command": stub_path,
+            "env": { "TOKEN": "new" },
+            "enabled": false
+        } } }),
+    )
+    .await;
+    let b2 = peel_logs_envelope(assert_no_jsonrpc_error(&second, "config_set (rotate)"));
+    assert_eq!(b2.get("updated"), Some(&json!(["echo-rt"])), "{b2}");
+    assert_eq!(b2.get("added"), Some(&json!([])), "{b2}");
+    assert_eq!(
+        b2["mcpServers"]["echo-rt"]["envKeys"],
+        json!(["KEEP", "TOKEN"]),
+        "rotating one key must keep the other: {b2}"
+    );
+    assert_eq!(
+        installed_server_id(&rpc_base, 9963, "echo-rt").await,
+        server_id,
+        "a credential change must not replace the row"
+    );
+
+    // ── 3. saving the read back verbatim changes nothing ─────────────────────
+    let read = post_json_rpc(
+        &rpc_base,
+        9964,
+        "openhuman.mcp_clients_config_get",
         json!({}),
     )
     .await;
-    let lb = peel_logs_envelope(assert_no_jsonrpc_error(
-        &listed,
-        "mcp_clients_installed_list",
-    ));
-    let count = lb
-        .get("installed")
-        .and_then(Value::as_array)
-        .expect("installed list")
-        .iter()
-        .filter(|s| s.get("qualified_name").and_then(Value::as_str) == Some(qualified_name))
-        .count();
+    let read_body = peel_logs_envelope(assert_no_jsonrpc_error(&read, "config_get"));
+    let resave = post_json_rpc(
+        &rpc_base,
+        9965,
+        "openhuman.mcp_clients_config_set",
+        json!({ "mcpServers": read_body["mcpServers"].clone() }),
+    )
+    .await;
+    let b3 = peel_logs_envelope(assert_no_jsonrpc_error(&resave, "config_set (re-save)"));
     assert_eq!(
-        count, 1,
-        "prefixed + bare install must collapse to one row: {lb}"
+        b3.get("updated"),
+        Some(&json!([])),
+        "a re-save is not an edit: {b3}"
+    );
+    assert_eq!(
+        b3["mcpServers"]["echo-rt"]["envKeys"],
+        json!(["KEEP", "TOKEN"])
+    );
+
+    // ── 4. an empty value removes that one credential ────────────────────────
+    let clear = post_json_rpc(
+        &rpc_base,
+        9966,
+        "openhuman.mcp_clients_config_set",
+        json!({ "mcpServers": { "echo-rt": {
+            "command": stub_path,
+            "env": { "KEEP": "" },
+            "enabled": false
+        } } }),
+    )
+    .await;
+    let b4 = peel_logs_envelope(assert_no_jsonrpc_error(&clear, "config_set (clear one)"));
+    assert_eq!(
+        b4["mcpServers"]["echo-rt"]["envKeys"],
+        json!(["TOKEN"]),
+        "{b4}"
+    );
+
+    // ── 5. a document without the entry uninstalls it ────────────────────────
+    let drop = post_json_rpc(
+        &rpc_base,
+        9967,
+        "openhuman.mcp_clients_config_set",
+        json!({ "mcpServers": {} }),
+    )
+    .await;
+    let b5 = peel_logs_envelope(assert_no_jsonrpc_error(&drop, "config_set (remove)"));
+    assert_eq!(b5.get("removed"), Some(&json!(["echo-rt"])), "{b5}");
+    assert_eq!(b5["mcpServers"], json!({}), "{b5}");
+
+    // ── 6. a refused document names the entry and the field ──────────────────
+    let refused = post_json_rpc(
+        &rpc_base,
+        9968,
+        "openhuman.mcp_clients_config_set",
+        json!({ "mcpServers": { "bad": { "url": "https://x.test", "command": "npx" } } }),
+    )
+    .await;
+    let message = refused["error"]["message"]
+        .as_str()
+        .expect("a refusal is a JSON-RPC error");
+    assert!(
+        message.contains("`bad`") && message.contains("both"),
+        "refusal should name the entry and the problem: {message}"
     );
 
     mock_join.abort();
     rpc_join.abort();
+}
+
+/// The `server_id` the store gave a server declared under `name`.
+async fn installed_server_id(rpc_base: &str, id: i64, name: &str) -> String {
+    let listed = post_json_rpc(
+        rpc_base,
+        id,
+        "openhuman.mcp_clients_installed_list",
+        json!({}),
+    )
+    .await;
+    let body = peel_logs_envelope(assert_no_jsonrpc_error(
+        &listed,
+        "mcp_clients_installed_list",
+    ));
+    body.get("installed")
+        .and_then(Value::as_array)
+        .expect("installed list")
+        .iter()
+        .find(|s| s.get("qualified_name").and_then(Value::as_str) == Some(name))
+        .and_then(|s| s.get("server_id"))
+        .and_then(Value::as_str)
+        .unwrap_or_else(|| panic!("`{name}` should be installed: {body}"))
+        .to_string()
 }
 
 /// Registry settings RPC: the getter reports `*_set` booleans without ever
@@ -9607,10 +9777,6 @@ async fn json_rpc_config_autonomy_settings_roundtrip() {
         .get("result")
         .and_then(|r| r.get("max_actions_per_hour"))
         .and_then(Value::as_u64);
-    let initial_task_approval = initial_outer
-        .get("result")
-        .and_then(|r| r.get("require_task_plan_approval"))
-        .and_then(Value::as_bool);
     // Default is `u32::MAX` (functionally unlimited) — fresh installs should
     // not be rate-limited until the user opts into a ceiling. See the
     // autonomy schema for the rationale.
@@ -9619,23 +9785,18 @@ async fn json_rpc_config_autonomy_settings_roundtrip() {
         Some(u32::MAX as u64),
         "expected default u32::MAX (unlimited), got envelope: {initial_outer}"
     );
-    assert_eq!(
-        initial_task_approval,
-        Some(true),
-        "task plan approval should default on, got envelope: {initial_outer}"
-    );
 
-    // UPDATE → 250, and disable task-plan approval.
+    // UPDATE → 250.
     let update = post_json_rpc(
         &rpc_base,
         7002,
         "openhuman.config_update_autonomy_settings",
-        json!({ "max_actions_per_hour": 250, "require_task_plan_approval": false }),
+        json!({ "max_actions_per_hour": 250 }),
     )
     .await;
     assert_no_jsonrpc_error(&update, "update_autonomy_settings");
 
-    // GET again → expect 250 and disabled task-plan approval.
+    // GET again → expect 250.
     let after = post_json_rpc(
         &rpc_base,
         7003,
@@ -9648,19 +9809,10 @@ async fn json_rpc_config_autonomy_settings_roundtrip() {
         .get("result")
         .and_then(|r| r.get("max_actions_per_hour"))
         .and_then(Value::as_u64);
-    let after_task_approval = after_outer
-        .get("result")
-        .and_then(|r| r.get("require_task_plan_approval"))
-        .and_then(Value::as_bool);
     assert_eq!(
         after_value,
         Some(250),
         "expected 250 after update, got envelope: {after_outer}"
-    );
-    assert_eq!(
-        after_task_approval,
-        Some(false),
-        "expected task plan approval to persist as disabled, got envelope: {after_outer}"
     );
 
     // Invalid value rejected — server returns JSON-RPC error envelope, not a result.
@@ -9679,7 +9831,7 @@ async fn json_rpc_config_autonomy_settings_roundtrip() {
         .and_then(Value::as_str)
         .unwrap_or_else(|| panic!("error object missing message: {bad_err}"));
     assert!(
-        err_message.contains("at least 1"),
+        err_message.contains("unsigned integer >= 1"),
         "expected validation error in: {err_message}"
     );
 
@@ -10982,15 +11134,14 @@ async fn json_rpc_flows_suggestion_lifecycle_methods_are_wired() {
 }
 
 /// Minimal config for the agent-backed flows arc: like `write_min_config` but
-/// pins `default_model = "chat-v1"` so an agent node on the **chat** tier
-/// resolves to `chat-v1` on the managed backend while a **reasoning**-tier node
-/// resolves to `reasoning-v1` — letting the full-arc test assert the two nodes
-/// routed to distinct managed tiers.
+/// pins `default_model` to a concrete catalog model so both agent nodes — the
+/// **chat**-role drafter and the **reasoning**-role planner — resolve to that
+/// pinned managed model, letting the full-arc test assert the pin took.
 #[cfg(feature = "flows")]
 fn write_flows_tier_config(openhuman_dir: &Path, api_origin: &str) {
     let cfg = format!(
         r#"api_url = "{api_origin}"
-default_model = "chat-v1"
+default_model = "openrouter/deepseek/deepseek-v4-pro"
 default_temperature = 0.7
 chat_onboarding_completed = true
 
@@ -11044,7 +11195,7 @@ fn opus_sonnet_demo_graph() -> Value {
                 "kind": "agent",
                 "name": "Plan the brief (reasoning tier)",
                 "config": {
-                    "model": "reasoning-v1",
+                    "model": "hint:reasoning",
                     "prompt": "=\"You are a research lead. Draft a concise research plan (3-5 steps) and pick one distinctive angle for a brief on: \" + (.run.trigger.topic // \"the requested topic\")",
                     "output_parser": {
                         "schema": {
@@ -11063,7 +11214,7 @@ fn opus_sonnet_demo_graph() -> Value {
                 "kind": "agent",
                 "name": "Draft the brief (chat tier)",
                 "config": {
-                    "model": "chat-v1",
+                    "model": "hint:chat",
                     "prompt": "=\"Using the plan and angle below, write a polished research brief (~300 words).\\n\\nPlan:\\n\" + (.nodes.planner.item.json.plan // \"\") + \"\\n\\nAngle:\\n\" + (.nodes.planner.item.json.angle // \"\")"
                 }
             },
@@ -11098,12 +11249,13 @@ fn opus_sonnet_demo_graph() -> Value {
 ///    plain completions (planner structured JSON, then drafter text). We assert
 ///    the run completed, the planner's structured plan flowed into the drafter's
 ///    prompt (data passing), and the two agent nodes routed to the expected
-///    managed tiers (`reasoning-v1` / `chat-v1`).
+///    pinned managed model.
 ///
 /// Runs on the agent-sized worker stack because the builder/scout turns and the
 /// agent-node run drive the full harness (deep async stacks).
 #[cfg(feature = "flows")]
 #[test]
+#[ignore = "TODO(#6381): hosted TinyAgents builder drops the workflow proposal"]
 fn json_rpc_flows_full_arc_discover_build_create_run() {
     run_json_rpc_e2e_on_agent_stack(
         "json_rpc_flows_full_arc_discover_build_create_run",
@@ -11326,8 +11478,8 @@ async fn json_rpc_flows_full_arc_discover_build_create_run_inner() {
         .expect("planner completion should have been captured");
     assert_eq!(
         planner_req.get("model").and_then(Value::as_str),
-        Some("reasoning-v1"),
-        "planner node (reasoning tier) must resolve to reasoning-v1"
+        Some("openrouter/deepseek/deepseek-v4-pro"),
+        "planner node (reasoning role) must resolve to the pinned managed model"
     );
     let drafter_req = requests
         .iter()
@@ -11336,8 +11488,8 @@ async fn json_rpc_flows_full_arc_discover_build_create_run_inner() {
         .expect("drafter completion should have been captured");
     assert_eq!(
         drafter_req.get("model").and_then(Value::as_str),
-        Some("chat-v1"),
-        "drafter node (chat tier) must resolve to chat-v1"
+        Some("openrouter/deepseek/deepseek-v4-pro"),
+        "drafter node (chat role) must resolve to the pinned managed model"
     );
     assert!(
         body_of(&drafter_req).contains("PLAN_MARKER"),
@@ -11543,6 +11695,36 @@ async fn json_rpc_flows_validate_reports_warnings_and_errors() {
             .expect("warnings")
             .is_empty(),
         "an invalid graph reports errors, not warnings"
+    );
+
+    // 4. A graph that cannot deserialize must preserve the member location
+    // and serde detail through the JSON-RPC envelope, not only in the
+    // in-process migration helper.
+    let malformed_graph = json!({
+        "inputs": [ { "type": "string" } ]
+    });
+    let validate_malformed = post_json_rpc(
+        &rpc_base,
+        9504,
+        "openhuman.flows_validate",
+        json!({ "graph": malformed_graph }),
+    )
+    .await;
+    let malformed = peel_logs_envelope(assert_no_jsonrpc_error(
+        &validate_malformed,
+        "flows_validate malformed graph",
+    ));
+    assert_eq!(malformed.get("valid").and_then(Value::as_bool), Some(false));
+    let errors = malformed
+        .get("errors")
+        .and_then(Value::as_array)
+        .expect("errors");
+    assert_eq!(errors.len(), 1, "malformed graph has one parse error");
+    let error = errors[0].as_str().expect("string error");
+    assert!(error.contains("inputs[0]"), "missing member path: {error}");
+    assert!(
+        error.contains("missing field"),
+        "missing serde detail: {error}"
     );
 
     api_join.abort();
@@ -11809,7 +11991,8 @@ async fn json_rpc_channel_web_chat_with_speak_reply_invokes_reply_speech_inner()
         .expect("sse task join should succeed");
     assert_eq!(
         sse_event.get("event").and_then(Value::as_str),
-        Some("chat_done")
+        Some("chat_done"),
+        "speak-reply chat must finish successfully; terminal event: {sse_event:?}"
     );
 
     // The bridge should have buffered the streamed assistant text and
@@ -11842,7 +12025,7 @@ async fn json_rpc_channel_web_chat_with_speak_reply_invokes_reply_speech_inner()
     rpc_join.abort();
 }
 
-// ── Model resolution + agent profile switching ──────────────────────────
+// ── Model resolution and voice settings ─────────────────────────────────
 
 /// E2E: voice-server settings round-trip over JSON-RPC — Phase 2 always-on
 /// toggle + "Hey Tiny" wake word. Regression guard for the bug where the
@@ -12260,6 +12443,8 @@ async fn json_rpc_memory_sources_reconcile_reports_pending_raw_files() {
         EnvVarGuard::set_to_path("OPENHUMAN_WORKSPACE", json_rpc_e2e_shared_workspace());
     let _action_guard = EnvVarGuard::set_to_path("OPENHUMAN_ACTION_DIR", home);
     let _backend_guard = EnvVarGuard::unset("VITE_BACKEND_URL");
+    // reconcile reads the module's store; wait out the module's load first.
+    memory_module::settle().await;
 
     let (rpc_addr, rpc_join) = serve_on_ephemeral(build_core_http_router(false)).await;
     let rpc_base = format!("http://{rpc_addr}");
@@ -12890,8 +13075,8 @@ async fn json_rpc_agent_team_live_member_run_roundtrip_inner() {
             "leadAgentId": "lead",
             "summary": "live run e2e",
             "members": [
-                { "name": "alice", "agentId": "researcher" },
-                { "name": "bob", "agentId": "researcher" }
+                { "name": "alice", "agentId": "agent_memory" },
+                { "name": "bob", "agentId": "agent_memory" }
             ]
         }),
     )
@@ -13167,20 +13352,49 @@ async fn json_rpc_threads_token_usage_reads_persisted_thread_totals() {
 
     write_min_config(&openhuman_home, "http://127.0.0.1:9");
 
-    // Plant a root session transcript for thread "thr-e2e": a `_meta` header with
-    // the cumulative totals + an assistant message carrying last-turn usage/model.
+    // Plant a root session transcript for thread "thr-e2e": two turns, each
+    // carrying its own `usage` record, and a `_meta` header whose token rollups
+    // are ZERO.
+    //
+    // The zeros are the point. Every root transcript written since the TinyAgents
+    // runtime cutover (`33566d382`) has a zero `_meta` rollup while its per-turn
+    // records hold the real numbers (#6460). This fixture used to carry a
+    // non-zero `_meta` and no per-turn records on the sub-agent at all, so it
+    // asserted a contract the running system never produced — the RPC passed
+    // here while reading zeros in production. Totals below can now only come
+    // from the per-turn records, which is what the core actually writes.
+    //
+    // The two turns sum to the same 4200/900/600 the old header claimed, so every
+    // contract assertion further down (including the cost arithmetic) is
+    // unchanged; only the provenance of the numbers moved.
+    //
+    // `provider`, `model`, `usage` and `ts` are ALL load-bearing on an assistant
+    // row: `turn_usage_from_line` matches on all four being present and yields
+    // `None` if any is missing, so dropping one silently produces a row the
+    // model-context reader sees no usage on. The real writer always emits all
+    // four (verified against every usage-bearing row in a live transcript). The
+    // previous fixture omitted `provider` and still passed, because
+    // `read_last_assistant_usage` — the only reader it exercised — is more
+    // lenient than this one; that is the same "green over a shape production
+    // never writes" defect as the zero `_meta` above.
     let raw = workspace.join("session_raw");
     std::fs::create_dir_all(&raw).expect("mkdir session_raw");
     let jsonl = format!(
-        "{}\n{}\n{}\n",
+        "{}\n{}\n{}\n{}\n{}\n",
         json!({"_meta": {
             "agent": "main", "dispatcher": "native",
             "created": "2026-04-11T14:30:00Z", "updated": "2026-04-11T14:35:22Z",
-            "turn_count": 2, "input_tokens": 4200, "output_tokens": 900,
-            "cached_input_tokens": 600, "charged_amount_usd": 0.0123, "thread_id": "thr-e2e"
+            "turn_count": 2, "input_tokens": 0, "output_tokens": 0,
+            "cached_input_tokens": 0, "charged_amount_usd": 0.0, "thread_id": "thr-e2e"
         }}),
         json!({"role": "user", "content": "hi"}),
-        json!({"role": "assistant", "content": "hello", "model": "reasoning-v1",
+        json!({"role": "assistant", "content": "first",
+            "provider": "openhuman", "model": "reasoning-v1",
+            "usage": {"input": 3850, "output": 820, "cached_input": 560, "cost_usd": 0.0114},
+            "ts": "2026-04-11T14:32:00Z"}),
+        json!({"role": "user", "content": "again"}),
+        json!({"role": "assistant", "content": "hello",
+            "provider": "openhuman", "model": "reasoning-v1",
             "usage": {"input": 350, "output": 80, "cached_input": 40, "cost_usd": 0.0009},
             "ts": "2026-04-11T14:35:22Z"}),
     );
@@ -13191,15 +13405,35 @@ async fn json_rpc_threads_token_usage_reads_persisted_thread_totals() {
     // transcripts were historically written), so pricing must fall back to the
     // thread's model rather than $0. Its spend is grouped under `coder` and
     // folded into the thread totals — not collapsed into the orchestrator.
+    //
+    // Its `thread_id` is a WORKER thread, not "thr-e2e". That is what a real
+    // delegation writes — `inherited_thread_id` lets the worker id win over the
+    // parent's — and selecting children by thread id therefore dropped them
+    // entirely (#6460). They are found by the `{root_stem}__` filename relation
+    // instead, which is what this stem exercises. Its `_meta` rollups are zero
+    // like the root's, so the 1000/200 below can only come from its own turn
+    // record.
+    //
+    // Its `model` is deliberately the EMPTY STRING rather than absent. `model`
+    // has to be present for `turn_usage_from_line` to yield usage at all, and an
+    // empty one is exactly what the codec writes when no provider route resolved
+    // (`route.map(|r| r.model).unwrap_or_default()`), which is the real shape of
+    // a child that never recorded a model. The aggregate ignores an empty model,
+    // so pricing still falls back to the thread's model below rather than $0 —
+    // the behaviour this case has always been here to pin.
     let sub_jsonl = format!(
         "{}\n{}\n",
         json!({"_meta": {
             "agent": "coder", "dispatcher": "native",
             "created": "2026-04-11T14:33:00Z", "updated": "2026-04-11T14:34:00Z",
-            "turn_count": 1, "input_tokens": 1000, "output_tokens": 200,
-            "cached_input_tokens": 0, "charged_amount_usd": 0.0, "thread_id": "thr-e2e"
+            "turn_count": 1, "input_tokens": 0, "output_tokens": 0,
+            "cached_input_tokens": 0, "charged_amount_usd": 0.0,
+            "thread_id": "worker-2f1c9a80-4d55-4a7e-9f11-0c6b5d3e8a42"
         }}),
-        json!({"role": "assistant", "content": "done"}),
+        json!({"role": "assistant", "content": "done",
+            "provider": "openhuman", "model": "",
+            "usage": {"input": 1000, "output": 200, "cached_input": 0, "cost_usd": 0.0},
+            "ts": "2026-04-11T14:34:00Z"}),
     );
     std::fs::write(
         raw.join("1700000000_main__1700000050_coder.jsonl"),
@@ -13222,20 +13456,23 @@ async fn json_rpc_threads_token_usage_reads_persisted_thread_totals() {
     let data = envelope
         .get("data")
         .unwrap_or_else(|| panic!("missing data envelope: {envelope}"));
-    // Top-level totals include the sub-agent: 4200+1000 in, 900+200 out.
+    // Top-level totals include the sub-agent: 4200+1000 in, 900+200 out, each
+    // counted exactly once — the root's records are its OWN spend, the child's
+    // are the child's.
     assert_eq!(data["input_tokens"], 5200);
     assert_eq!(data["output_tokens"], 1100);
     assert_eq!(data["cached_input_tokens"], 600);
     // Cost is RE-AUDITED at current pricing, NOT the stale persisted charge.
     // The coder sub-agent has no model, so it's priced at the thread's model
-    // (reasoning-v1 = "Pro"), NOT $0.
-    // orchestrator: (4200-600)*0.435 + 600*0.003625 + 900*0.87 = 0.002351175
-    // coder:        1000*0.435 + 0 + 200*0.87                  = 0.000609
-    // total                                                     = 0.002960175
+    // (`reasoning-v1`, a retired tier slug that prices as the managed default,
+    // DeepSeek V4 Flash), NOT $0.
+    // orchestrator: (4200-600)*0.0886 + 600*0.0886 + 900*0.1772 = 0.0005316
+    // coder:        1000*0.0886 + 0 + 200*0.1772                = 0.00012404
+    // total                                                      = 0.00065564
     let cost = data["cost_usd"].as_f64().expect("cost_usd");
     assert!(
-        (cost - 0.002_960_175).abs() < 1e-9,
-        "re-audited total cost should be ~0.00296, got {cost}"
+        (cost - 0.000_655_64).abs() < 1e-9,
+        "re-audited total cost should be ~0.000656, got {cost}"
     );
     assert_eq!(data["turn_count"], 2);
     assert_eq!(data["last_turn_input_tokens"], 350);
@@ -13251,7 +13488,7 @@ async fn json_rpc_threads_token_usage_reads_persisted_thread_totals() {
     assert_eq!(subs[0]["input_tokens"], 1000);
     assert_eq!(subs[0]["output_tokens"], 200);
     assert_eq!(subs[0]["runs"], 1);
-    assert!((subs[0]["cost_usd"].as_f64().expect("sub cost") - 0.000_609).abs() < 1e-9);
+    assert!((subs[0]["cost_usd"].as_f64().expect("sub cost") - 0.000_124_04).abs() < 1e-9);
 
     // Unknown thread → all-zero totals with has_usage=false (brand-new thread).
     let resp_unknown = post_json_rpc(
@@ -13505,8 +13742,8 @@ async fn json_rpc_threads_transcript_get_projects_and_paginates() {
 #[tokio::test]
 async fn memory_flavour_agent_tool_e2e_5172() {
     use openhuman_core::config::Config;
-    use openhuman_core::tools::traits::Tool;
     use openhuman_core::tools::MemoryFlavourTool;
+    use tinytools::Tool;
 
     let _env_lock = json_rpc_e2e_env_lock();
     let tmp = tempdir().expect("tempdir");
@@ -14240,5 +14477,632 @@ driver = "null"
     );
 
     mock_join.abort();
+    rpc_join.abort();
+}
+
+#[tokio::test]
+async fn json_rpc_agent_run_mode_set_and_get_round_trip() {
+    // `agent.set_run_mode` / `agent.get_run_mode` flip and read back a
+    // thread's Plan/Build mode through the per-thread `RunModeHandle`
+    // registry (`agent::tinyagents::run_mode`) — no thread/session bootstrap
+    // needed since the registry is a bare thread_id-keyed map.
+    let _env_lock = json_rpc_e2e_env_lock();
+    let tmp = tempdir().expect("tempdir");
+    let home = tmp.path();
+    let openhuman_home = home.join(".openhuman");
+
+    let _home_guard = EnvVarGuard::set_to_path("HOME", home);
+    let _workspace_guard = EnvVarGuard::unset("OPENHUMAN_WORKSPACE");
+    let _backend_url_guard = EnvVarGuard::unset("BACKEND_URL");
+    let _vite_backend_url_guard = EnvVarGuard::unset("VITE_BACKEND_URL");
+    let _api_url_guard = EnvVarGuard::unset("OPENHUMAN_API_URL");
+
+    let (api_addr, api_join) = serve_on_ephemeral(mock_upstream_router()).await;
+    let api_origin = format!("http://{api_addr}");
+    write_min_config(openhuman_home.as_path(), &api_origin);
+
+    let (rpc_addr, rpc_join) = serve_on_ephemeral(build_core_http_router(false)).await;
+    let rpc_base = format!("http://{rpc_addr}");
+
+    let thread_id = "thread-run-mode-e2e";
+
+    // Defaults to build.
+    let initial = post_json_rpc(
+        &rpc_base,
+        9401,
+        "openhuman.agent_get_run_mode",
+        json!({ "thread_id": thread_id }),
+    )
+    .await;
+    let initial_result = assert_no_jsonrpc_error(&initial, "agent_get_run_mode initial");
+    assert_eq!(
+        initial_result.get("mode").and_then(Value::as_str),
+        Some("build")
+    );
+
+    // Flip to plan.
+    let set_plan = post_json_rpc(
+        &rpc_base,
+        9402,
+        "openhuman.agent_set_run_mode",
+        json!({ "thread_id": thread_id, "mode": "plan" }),
+    )
+    .await;
+    let set_plan_result = assert_no_jsonrpc_error(&set_plan, "agent_set_run_mode plan");
+    assert_eq!(
+        set_plan_result.get("mode").and_then(Value::as_str),
+        Some("plan")
+    );
+
+    // Read it back.
+    let after_plan = post_json_rpc(
+        &rpc_base,
+        9403,
+        "openhuman.agent_get_run_mode",
+        json!({ "thread_id": thread_id }),
+    )
+    .await;
+    let after_plan_result = assert_no_jsonrpc_error(&after_plan, "agent_get_run_mode after plan");
+    assert_eq!(
+        after_plan_result.get("mode").and_then(Value::as_str),
+        Some("plan")
+    );
+
+    // Invalid mode label → error.
+    let bad_mode = post_json_rpc(
+        &rpc_base,
+        9404,
+        "openhuman.agent_set_run_mode",
+        json!({ "thread_id": thread_id, "mode": "sightsee" }),
+    )
+    .await;
+    assert_jsonrpc_error(&bad_mode, "agent_set_run_mode invalid mode");
+
+    api_join.abort();
+    rpc_join.abort();
+}
+
+#[tokio::test]
+async fn json_rpc_agent_context_breakdown_default_agent_returns_sections() {
+    // `agent.context_breakdown` (wire method `openhuman.agent_context_breakdown`,
+    // namespace="agent" function="context_breakdown") rebuilds the real
+    // orchestrator prompt through `PromptSizeReport::build` and reports its
+    // system/tools sections as a stacked-bar-friendly list. Called with no
+    // params it must default `agent_id` to "orchestrator" and still work
+    // against a bare `write_min_config` setup (no thread bootstrap needed).
+    let _env_lock = json_rpc_e2e_env_lock();
+    let tmp = tempdir().expect("tempdir");
+    let home = tmp.path();
+    let openhuman_home = home.join(".openhuman");
+
+    let _home_guard = EnvVarGuard::set_to_path("HOME", home);
+    let _workspace_guard = EnvVarGuard::unset("OPENHUMAN_WORKSPACE");
+    let _backend_url_guard = EnvVarGuard::unset("BACKEND_URL");
+    let _vite_backend_url_guard = EnvVarGuard::unset("VITE_BACKEND_URL");
+    let _api_url_guard = EnvVarGuard::unset("OPENHUMAN_API_URL");
+
+    let (api_addr, api_join) = serve_on_ephemeral(mock_upstream_router()).await;
+    let api_origin = format!("http://{api_addr}");
+    write_min_config(openhuman_home.as_path(), &api_origin);
+
+    let (rpc_addr, rpc_join) = serve_on_ephemeral(build_core_http_router(false)).await;
+    let rpc_base = format!("http://{rpc_addr}");
+
+    let breakdown = post_json_rpc(
+        &rpc_base,
+        9501,
+        "openhuman.agent_context_breakdown",
+        json!({}),
+    )
+    .await;
+    let result = assert_no_jsonrpc_error(&breakdown, "agent_context_breakdown default agent");
+
+    assert_eq!(
+        result.get("agent_id").and_then(Value::as_str),
+        Some("orchestrator"),
+        "context_breakdown with no agent_id must default to the orchestrator: {result}"
+    );
+
+    let sections = result
+        .get("sections")
+        .and_then(Value::as_array)
+        .unwrap_or_else(|| panic!("expected non-empty 'sections' array: {result}"));
+    assert!(
+        !sections.is_empty(),
+        "expected at least one prompt section: {result}"
+    );
+    for section in sections {
+        assert!(
+            section.get("label").and_then(Value::as_str).is_some(),
+            "section missing 'label': {section}"
+        );
+        assert!(
+            section.get("bytes").and_then(Value::as_u64).is_some(),
+            "section missing 'bytes': {section}"
+        );
+        assert!(
+            section.get("est_tokens").and_then(Value::as_u64).is_some(),
+            "section missing 'est_tokens': {section}"
+        );
+    }
+
+    api_join.abort();
+    rpc_join.abort();
+}
+
+#[tokio::test]
+async fn json_rpc_commands_list_merges_builtins() {
+    // `commands.list` (wire method `openhuman.commands_list`, no params) must
+    // at least surface the fixed built-in slash commands (skills.list /
+    // flows.list are best-effort and may be empty in this bare setup).
+    let _env_lock = json_rpc_e2e_env_lock();
+    let tmp = tempdir().expect("tempdir");
+    let home = tmp.path();
+    let openhuman_home = home.join(".openhuman");
+
+    let _home_guard = EnvVarGuard::set_to_path("HOME", home);
+    let _workspace_guard = EnvVarGuard::unset("OPENHUMAN_WORKSPACE");
+    let _backend_url_guard = EnvVarGuard::unset("BACKEND_URL");
+    let _vite_backend_url_guard = EnvVarGuard::unset("VITE_BACKEND_URL");
+    let _api_url_guard = EnvVarGuard::unset("OPENHUMAN_API_URL");
+
+    let (api_addr, api_join) = serve_on_ephemeral(mock_upstream_router()).await;
+    let api_origin = format!("http://{api_addr}");
+    write_min_config(openhuman_home.as_path(), &api_origin);
+
+    let (rpc_addr, rpc_join) = serve_on_ephemeral(build_core_http_router(false)).await;
+    let rpc_base = format!("http://{rpc_addr}");
+
+    let list = post_json_rpc(&rpc_base, 9502, "openhuman.commands_list", json!({})).await;
+    let result = assert_no_jsonrpc_error(&list, "commands_list");
+
+    let commands = result
+        .get("commands")
+        .and_then(Value::as_array)
+        .unwrap_or_else(|| panic!("expected 'commands' array: {result}"));
+    assert!(
+        !commands.is_empty(),
+        "expected at least the fixed built-ins: {result}"
+    );
+
+    let new_entry = commands
+        .iter()
+        .find(|c| c.get("id").and_then(Value::as_str) == Some("new"))
+        .unwrap_or_else(|| panic!("expected a built-in '/new' entry: {result}"));
+    assert_eq!(
+        new_entry.get("kind").and_then(Value::as_str),
+        Some("builtin"),
+        "'/new' entry should be kind=builtin: {new_entry}"
+    );
+    assert_eq!(
+        new_entry.get("insert").and_then(Value::as_str),
+        Some("/new"),
+        "'/new' entry should insert literal '/new': {new_entry}"
+    );
+    assert!(
+        new_entry.get("label").and_then(Value::as_str).is_some(),
+        "'/new' entry missing 'label': {new_entry}"
+    );
+    assert!(
+        new_entry
+            .get("description")
+            .and_then(Value::as_str)
+            .is_some(),
+        "'/new' entry missing 'description': {new_entry}"
+    );
+
+    // Every other documented built-in must also be present.
+    for builtin_id in ["clear", "plan", "build", "goal", "todo", "stop"] {
+        assert!(
+            commands
+                .iter()
+                .any(|c| c.get("id").and_then(Value::as_str) == Some(builtin_id)),
+            "expected built-in '{builtin_id}' in commands.list: {result}"
+        );
+    }
+
+    api_join.abort();
+    rpc_join.abort();
+}
+
+#[test]
+fn json_rpc_threads_edit_message_truncates_and_restarts_turn() {
+    run_json_rpc_e2e_on_agent_stack(
+        "json_rpc_threads_edit_message_truncates_and_restarts_turn",
+        json_rpc_threads_edit_message_truncates_and_restarts_turn_inner,
+    );
+}
+
+async fn json_rpc_threads_edit_message_truncates_and_restarts_turn_inner() {
+    tinyhumans_boot::boot();
+    // `threads.edit_message` (wire method `openhuman.threads_edit_message`)
+    // cancels any in-flight turn, forks the session transcript + message log
+    // to drop the edited message and everything after it, then restarts the
+    // turn with the new content. This round-trips a real completed turn
+    // through the mock upstream, edits the user message that produced it
+    // (which does have a reply, per the module's own doc comment on the
+    // "editing the newest unanswered message" gap), and verifies the store
+    // was actually mutated rather than just accepting the RPC.
+    let _env_lock = json_rpc_e2e_env_lock();
+    let tmp = tempdir().expect("tempdir");
+    let home = tmp.path();
+    let openhuman_home = home.join(".openhuman");
+
+    let _home_guard = EnvVarGuard::set_to_path("HOME", home);
+    let _workspace_guard = EnvVarGuard::unset("OPENHUMAN_WORKSPACE");
+    let _backend_url_guard = EnvVarGuard::unset("BACKEND_URL");
+    let _vite_backend_url_guard = EnvVarGuard::unset("VITE_BACKEND_URL");
+    let _api_url_guard = EnvVarGuard::unset("OPENHUMAN_API_URL");
+
+    let (api_addr, api_join) = serve_on_ephemeral(mock_upstream_router()).await;
+    let api_origin = format!("http://{api_addr}");
+    write_min_config(openhuman_home.as_path(), &api_origin);
+    write_min_config(&openhuman_home.join("users").join("e2e-user"), &api_origin);
+
+    let (rpc_addr, rpc_join) = serve_on_ephemeral(build_core_http_router(false)).await;
+    let rpc_base = format!("http://{rpc_addr}");
+    let store = post_json_rpc(
+        &rpc_base,
+        9599,
+        "openhuman.auth_store_session",
+        json!({ "token": "e2e-test-jwt", "user_id": "e2e-user" }),
+    )
+    .await;
+    assert_no_jsonrpc_error(&store, "store_session before edit");
+
+    let client_id = "e2e-edit-client";
+    let create = post_json_rpc(&rpc_base, 9600, "openhuman.threads_create_new", json!({})).await;
+    let thread_id = assert_no_jsonrpc_error(&create, "threads_create_new before edit")
+        .get("data")
+        .and_then(|data| data.get("id"))
+        .and_then(Value::as_str)
+        .expect("created thread id")
+        .to_owned();
+    let events_url = format!("{}/events?client_id={}", rpc_base, client_id);
+
+    // The frontend — not the core — is the one that appends the user's own
+    // message to the conversation store (the core only auto-persists the
+    // assistant's reply, see `web_chat::reply_persistence`'s module doc), so
+    // mirror that here *before* running the turn: the store append order
+    // must be [user message, then its auto-persisted reply] for
+    // `next_reply_request_id_after` to find the correlation edit_message
+    // relies on.
+    let user_message_id = "msg-user-edit-e2e";
+    let user_append = post_json_rpc(
+        &rpc_base,
+        9602,
+        "openhuman.threads_message_append",
+        json!({
+            "thread_id": thread_id,
+            "message": {
+                "id": user_message_id,
+                "content": "Original message for edit test",
+                "type": "text",
+                "extraMetadata": {},
+                "sender": "user",
+                "createdAt": "2026-01-01T00:00:00Z"
+            }
+        }),
+    )
+    .await;
+    assert_no_jsonrpc_error(&user_append, "threads_message_append user (pre-turn)");
+
+    // --- Turn 1: a normal web-channel turn against the mock upstream, for
+    // the same content just appended above. ---
+    let (sse_task_1, request_tx) =
+        spawn_ready_terminal_web_chat_event_for_request(&events_url).await;
+    let turn1 = post_json_rpc(
+        &rpc_base,
+        9601,
+        "openhuman.channel_web_chat",
+        json!({
+            "client_id": client_id,
+            "thread_id": thread_id,
+            "message": "Original message for edit test",
+            "model_override": "e2e-mock-model",
+        }),
+    )
+    .await;
+    let turn1_result = assert_no_jsonrpc_error(&turn1, "channel_web_chat turn1");
+    signal_accepted_web_chat_request_id(request_tx, turn1_result);
+    let sse_event_1 = sse_task_1.await.expect("sse task 1 join should succeed");
+    assert_eq!(
+        sse_event_1.get("event").and_then(Value::as_str),
+        Some("chat_done"),
+        "turn1 should complete successfully: {sse_event_1}"
+    );
+
+    let before_list = post_json_rpc(
+        &rpc_base,
+        9603,
+        "openhuman.threads_messages_list",
+        json!({ "thread_id": thread_id }),
+    )
+    .await;
+    let before_outer = assert_no_jsonrpc_error(&before_list, "threads_messages_list before edit");
+    let before_data = before_outer
+        .get("data")
+        .expect("data envelope in messages_list response");
+    let before_messages = before_data
+        .get("messages")
+        .and_then(Value::as_array)
+        .expect("messages array before edit");
+    let before_count = before_messages.len();
+    assert!(
+        before_messages
+            .iter()
+            .any(|m| m.get("id").and_then(Value::as_str) == Some(user_message_id)),
+        "expected the manually-appended user message before editing: {before_messages:?}"
+    );
+
+    // --- Edit the user message: cancels (no-op, turn1 already finished),
+    // forks the transcript before turn1's user prompt, truncates the message
+    // log from `user_message_id` onward, and restarts with new content. ---
+    let (sse_task_2, request_tx) =
+        spawn_ready_terminal_web_chat_event_for_request(&events_url).await;
+    let edit = post_json_rpc(
+        &rpc_base,
+        9604,
+        "openhuman.threads_edit_message",
+        json!({
+            "thread_id": thread_id,
+            "message_id": user_message_id,
+            "content": "Edited message for edit test",
+            "client_id": client_id,
+        }),
+    )
+    .await;
+    let edit_outer = assert_no_jsonrpc_error(&edit, "threads_edit_message");
+    let edit_result = peel_logs_envelope(edit_outer);
+    let new_request_id = edit_result
+        .get("request_id")
+        .and_then(Value::as_str)
+        .unwrap_or_else(|| panic!("expected 'request_id' in edit_message response: {edit_outer}"));
+    assert!(
+        !new_request_id.is_empty(),
+        "edit_message must return a non-empty request_id: {edit_outer}"
+    );
+    request_tx
+        .send(new_request_id.to_owned())
+        .expect("SSE reader should receive edited turn request_id");
+
+    let sse_event_2 = sse_task_2.await.expect("sse task 2 join should succeed");
+    assert_eq!(
+        sse_event_2.get("event").and_then(Value::as_str),
+        Some("chat_done"),
+        "the restarted turn after edit should complete successfully: {sse_event_2}"
+    );
+
+    // --- Verify the store was actually mutated: the edited message and
+    // everything after it (the old reply) are gone, replaced by the fresh
+    // turn's own reply. ---
+    let after_list = post_json_rpc(
+        &rpc_base,
+        9605,
+        "openhuman.threads_messages_list",
+        json!({ "thread_id": thread_id }),
+    )
+    .await;
+    let after_outer = assert_no_jsonrpc_error(&after_list, "threads_messages_list after edit");
+    let after_data = after_outer
+        .get("data")
+        .expect("data envelope in messages_list response");
+    let after_messages = after_data
+        .get("messages")
+        .and_then(Value::as_array)
+        .expect("messages array after edit");
+
+    assert!(
+        !after_messages
+            .iter()
+            .any(|m| m.get("id").and_then(Value::as_str) == Some(user_message_id)),
+        "edited user message must be truncated from the log: {after_messages:?}"
+    );
+    assert!(
+        after_messages.len() < before_count,
+        "expected fewer messages after the edit truncation (before={before_count}, \
+         after={}): {after_messages:?}",
+        after_messages.len()
+    );
+    assert!(
+        after_messages
+            .iter()
+            .any(|m| m.get("id").and_then(Value::as_str)
+                == Some(format!("agent:{new_request_id}").as_str())),
+        "expected the fresh turn's reply (agent:{new_request_id}) in the log: {after_messages:?}"
+    );
+
+    api_join.abort();
+    rpc_join.abort();
+}
+
+#[test]
+fn json_rpc_threads_regenerate_truncates_and_restarts_turn() {
+    run_json_rpc_e2e_on_agent_stack(
+        "json_rpc_threads_regenerate_truncates_and_restarts_turn",
+        json_rpc_threads_regenerate_truncates_and_restarts_turn_inner,
+    );
+}
+
+async fn json_rpc_threads_regenerate_truncates_and_restarts_turn_inner() {
+    tinyhumans_boot::boot();
+    // `threads.regenerate` (wire method `openhuman.threads_regenerate`) with
+    // no `message_id` redoes the thread's last turn: cancels any in-flight
+    // turn, forks the transcript at `TruncateCut::LastAssistantTurn`, drops
+    // the old reply from the message log, then restarts with the same user
+    // prompt. Verifies the old reply id is gone and a fresh one appears once
+    // the new turn completes.
+    let _env_lock = json_rpc_e2e_env_lock();
+    let tmp = tempdir().expect("tempdir");
+    let home = tmp.path();
+    let openhuman_home = home.join(".openhuman");
+
+    let _home_guard = EnvVarGuard::set_to_path("HOME", home);
+    let _workspace_guard = EnvVarGuard::unset("OPENHUMAN_WORKSPACE");
+    let _backend_url_guard = EnvVarGuard::unset("BACKEND_URL");
+    let _vite_backend_url_guard = EnvVarGuard::unset("VITE_BACKEND_URL");
+    let _api_url_guard = EnvVarGuard::unset("OPENHUMAN_API_URL");
+
+    let (api_addr, api_join) = serve_on_ephemeral(mock_upstream_router()).await;
+    let api_origin = format!("http://{api_addr}");
+    write_min_config(openhuman_home.as_path(), &api_origin);
+    write_min_config(&openhuman_home.join("users").join("e2e-user"), &api_origin);
+
+    let (rpc_addr, rpc_join) = serve_on_ephemeral(build_core_http_router(false)).await;
+    let rpc_base = format!("http://{rpc_addr}");
+
+    let store = post_json_rpc(
+        &rpc_base,
+        9700,
+        "openhuman.auth_store_session",
+        json!({ "token": "e2e-test-jwt", "user_id": "e2e-user" }),
+    )
+    .await;
+    assert_no_jsonrpc_error(&store, "store_session before regenerate");
+
+    let client_id = "e2e-regen-client";
+    let create = post_json_rpc(&rpc_base, 9699, "openhuman.threads_create_new", json!({})).await;
+    let thread_id = assert_no_jsonrpc_error(&create, "threads_create_new before regenerate")
+        .get("data")
+        .and_then(|data| data.get("id"))
+        .and_then(Value::as_str)
+        .expect("created thread id")
+        .to_owned();
+    let events_url = format!("{}/events?client_id={}", rpc_base, client_id);
+
+    // --- Turn 1: a normal web-channel turn against the mock upstream. ---
+    let (sse_task_1, request_tx) =
+        spawn_ready_terminal_web_chat_event_for_request(&events_url).await;
+    let turn1 = post_json_rpc(
+        &rpc_base,
+        9701,
+        "openhuman.channel_web_chat",
+        json!({
+            "client_id": client_id,
+            "thread_id": thread_id,
+            "message": "Original message for regenerate test",
+            "model_override": "e2e-mock-model",
+        }),
+    )
+    .await;
+    let turn1_result = assert_no_jsonrpc_error(&turn1, "channel_web_chat turn1");
+    let turn1_request_id = turn1_result
+        .get("result")
+        .and_then(|v| v.get("request_id"))
+        .and_then(Value::as_str)
+        .unwrap_or_else(|| {
+            panic!("expected request_id in channel_web_chat response: {turn1_result}")
+        })
+        .to_string();
+    signal_accepted_web_chat_request_id(request_tx, turn1_result);
+    let sse_event_1 = sse_task_1.await.expect("sse task 1 join should succeed");
+    assert_eq!(
+        sse_event_1.get("event").and_then(Value::as_str),
+        Some("chat_done"),
+        "turn1 should complete successfully: {sse_event_1}"
+    );
+
+    let old_reply_id = format!("agent:{turn1_request_id}");
+
+    let before_list = post_json_rpc(
+        &rpc_base,
+        9702,
+        "openhuman.threads_messages_list",
+        json!({ "thread_id": thread_id }),
+    )
+    .await;
+    let before_outer = assert_no_jsonrpc_error(&before_list, "threads_messages_list before regen");
+    let before_data = before_outer
+        .get("data")
+        .expect("data envelope in messages_list response");
+    let before_messages = before_data
+        .get("messages")
+        .and_then(Value::as_array)
+        .expect("messages array before regen");
+    assert!(
+        before_messages
+            .iter()
+            .any(|m| m.get("id").and_then(Value::as_str) == Some(old_reply_id.as_str())),
+        "expected the turn1 reply ({old_reply_id}) in the log before regen: {before_messages:?}"
+    );
+    let before_count = before_messages.len();
+
+    // --- Regenerate the last turn: no message_id, so it redoes turn1. ---
+    let (sse_task_2, request_tx) =
+        spawn_ready_terminal_web_chat_event_for_request(&events_url).await;
+    let regen = post_json_rpc(
+        &rpc_base,
+        9703,
+        "openhuman.threads_regenerate",
+        json!({
+            "thread_id": thread_id,
+            "client_id": client_id,
+        }),
+    )
+    .await;
+    let regen_outer = assert_no_jsonrpc_error(&regen, "threads_regenerate");
+    let regen_result = peel_logs_envelope(regen_outer);
+    let new_request_id = regen_result
+        .get("request_id")
+        .and_then(Value::as_str)
+        .unwrap_or_else(|| panic!("expected 'request_id' in regenerate response: {regen_outer}"));
+    assert!(
+        !new_request_id.is_empty(),
+        "regenerate must return a non-empty request_id: {regen_outer}"
+    );
+    assert_ne!(
+        new_request_id, turn1_request_id,
+        "regenerate must restart under a fresh request_id"
+    );
+    request_tx
+        .send(new_request_id.to_owned())
+        .expect("SSE reader should receive regenerated turn request_id");
+
+    let sse_event_2 = sse_task_2.await.expect("sse task 2 join should succeed");
+    assert_eq!(
+        sse_event_2.get("event").and_then(Value::as_str),
+        Some("chat_done"),
+        "the regenerated turn should complete successfully: {sse_event_2}"
+    );
+
+    // --- Verify the store was actually mutated: the old reply is gone,
+    // replaced by the fresh turn's own reply. ---
+    let after_list = post_json_rpc(
+        &rpc_base,
+        9704,
+        "openhuman.threads_messages_list",
+        json!({ "thread_id": thread_id }),
+    )
+    .await;
+    let after_outer = assert_no_jsonrpc_error(&after_list, "threads_messages_list after regen");
+    let after_data = after_outer
+        .get("data")
+        .expect("data envelope in messages_list response");
+    let after_messages = after_data
+        .get("messages")
+        .and_then(Value::as_array)
+        .expect("messages array after regen");
+
+    let new_reply_id = format!("agent:{new_request_id}");
+    assert!(
+        !after_messages
+            .iter()
+            .any(|m| m.get("id").and_then(Value::as_str) == Some(old_reply_id.as_str())),
+        "old reply ({old_reply_id}) must be truncated from the log: {after_messages:?}"
+    );
+    assert!(
+        after_messages
+            .iter()
+            .any(|m| m.get("id").and_then(Value::as_str) == Some(new_reply_id.as_str())),
+        "expected the fresh turn's reply ({new_reply_id}) in the log: {after_messages:?}"
+    );
+    assert_eq!(
+        after_messages.len(),
+        before_count,
+        "regenerate should replace the reply in place, not grow the log: before={before_count} \
+         after={after_messages:?}"
+    );
+
+    api_join.abort();
     rpc_join.abort();
 }

@@ -6,9 +6,7 @@
 //! mark it complete (`goal_complete`). Pause / resume / budget-limit are
 //! system-driven and have no model tool.
 //!
-//! The target thread is resolved from the ambient
-//! [`current_thread_id`](crate::agent::tinyagents::thread_context::current_thread_id)
-//! task-local set by the chat channel — tools never take a `thread_id` arg, so
+//! The target thread is resolved from the TinyAgents run context — tools never take a `thread_id` arg, so
 //! the model can't address another thread's goal. Each tool is sandboxed to a
 //! single `workspace_dir` captured at construction.
 
@@ -19,8 +17,7 @@ use serde_json::json;
 
 use super::store;
 use super::ThreadGoal;
-use crate::agent::tinyagents::thread_context::current_thread_id;
-use crate::tools::traits::{PermissionLevel, Tool, ToolResult};
+use tinytools::{PermissionLevel, Tool, ToolCallOptions, ToolResult, ToolRunContext};
 
 /// Render a goal as a compact, model-readable block.
 fn render_goal(goal: &ThreadGoal) -> String {
@@ -35,13 +32,29 @@ fn render_goal(goal: &ThreadGoal) -> String {
     )
 }
 
-/// Resolve the ambient thread id or return a uniform tool error.
-fn require_thread_id() -> Result<String, ToolResult> {
-    current_thread_id().ok_or_else(|| {
-        ToolResult::error(
-            "thread goal tools require an active chat thread (no ambient thread_id in this context)",
-        )
+/// The JSON every goal tool answers with: the goal as structured data (the
+/// crate's camelCase `ThreadGoal`, or `null` when the thread has none) plus a
+/// `text` rendering for transcripts. The frontend reads `goal` off the tool
+/// result to draw the goal banner; the model reads either.
+fn goal_payload(goal: Option<&ThreadGoal>, note: &str) -> String {
+    let text = match goal {
+        Some(goal) if note.is_empty() => render_goal(goal),
+        Some(goal) => format!("{note}\n{}", render_goal(goal)),
+        None => note.to_string(),
+    };
+    json!({
+        "goal": goal.map(|goal| serde_json::to_value(goal).unwrap_or(serde_json::Value::Null)),
+        "text": text,
     })
+    .to_string()
+}
+
+/// Resolve the caller thread id or return a uniform tool error.
+fn require_thread_id(context: Option<&dyn ToolRunContext>) -> Result<String, ToolResult> {
+    context
+        .and_then(ToolRunContext::thread_id)
+        .map(str::to_owned)
+        .ok_or_else(|| ToolResult::error("thread goal tools require an active chat thread"))
 }
 
 /// `goal_get` — read the current thread goal.
@@ -75,15 +88,28 @@ impl Tool for GoalGetTool {
         PermissionLevel::ReadOnly
     }
 
-    async fn execute(&self, _args: serde_json::Value) -> anyhow::Result<ToolResult> {
-        let thread_id = match require_thread_id() {
+    async fn execute(&self, args: serde_json::Value) -> anyhow::Result<ToolResult> {
+        self.execute_with_context(args, ToolCallOptions::default(), None)
+            .await
+    }
+
+    async fn execute_with_context(
+        &self,
+        _args: serde_json::Value,
+        _options: ToolCallOptions,
+        context: Option<&dyn ToolRunContext>,
+    ) -> anyhow::Result<ToolResult> {
+        let thread_id = match require_thread_id(context) {
             Ok(id) => id,
             Err(e) => return Ok(e),
         };
         log::debug!("[thread_goals] tool=goal_get thread_id={thread_id}");
         match store::get(&self.workspace_dir, &thread_id).await {
-            Ok(Some(goal)) => Ok(ToolResult::success(render_goal(&goal))),
-            Ok(None) => Ok(ToolResult::success("no goal set for this thread")),
+            Ok(Some(goal)) => Ok(ToolResult::success(goal_payload(Some(&goal), ""))),
+            Ok(None) => Ok(ToolResult::success(goal_payload(
+                None,
+                "no goal set for this thread",
+            ))),
             Err(e) => Ok(ToolResult::error(e)),
         }
     }
@@ -137,7 +163,17 @@ impl Tool for GoalSetTool {
     }
 
     async fn execute(&self, args: serde_json::Value) -> anyhow::Result<ToolResult> {
-        let thread_id = match require_thread_id() {
+        self.execute_with_context(args, ToolCallOptions::default(), None)
+            .await
+    }
+
+    async fn execute_with_context(
+        &self,
+        args: serde_json::Value,
+        _options: ToolCallOptions,
+        context: Option<&dyn ToolRunContext>,
+    ) -> anyhow::Result<ToolResult> {
+        let thread_id = match require_thread_id(context) {
             Ok(id) => id,
             Err(e) => return Ok(e),
         };
@@ -154,12 +190,10 @@ impl Tool for GoalSetTool {
                         thread_id: goal.thread_id.clone(),
                         goal_id: goal.goal_id.clone(),
                         status: goal.status.as_str().to_string(),
+                        goal: Some(super::goal_to_value(&goal)),
                     },
                 );
-                Ok(ToolResult::success(format!(
-                    "Goal set.\n{}",
-                    render_goal(&goal)
-                )))
+                Ok(ToolResult::success(goal_payload(Some(&goal), "Goal set.")))
             }
             Err(e) => Ok(ToolResult::error(e)),
         }
@@ -197,8 +231,18 @@ impl Tool for GoalCompleteTool {
         PermissionLevel::Write
     }
 
-    async fn execute(&self, _args: serde_json::Value) -> anyhow::Result<ToolResult> {
-        let thread_id = match require_thread_id() {
+    async fn execute(&self, args: serde_json::Value) -> anyhow::Result<ToolResult> {
+        self.execute_with_context(args, ToolCallOptions::default(), None)
+            .await
+    }
+
+    async fn execute_with_context(
+        &self,
+        _args: serde_json::Value,
+        _options: ToolCallOptions,
+        context: Option<&dyn ToolRunContext>,
+    ) -> anyhow::Result<ToolResult> {
+        let thread_id = match require_thread_id(context) {
             Ok(id) => id,
             Err(e) => return Ok(e),
         };
@@ -210,11 +254,12 @@ impl Tool for GoalCompleteTool {
                         thread_id: goal.thread_id.clone(),
                         goal_id: goal.goal_id.clone(),
                         status: goal.status.as_str().to_string(),
+                        goal: Some(super::goal_to_value(&goal)),
                     },
                 );
-                Ok(ToolResult::success(format!(
-                    "Goal marked complete.\n{}",
-                    render_goal(&goal)
+                Ok(ToolResult::success(goal_payload(
+                    Some(&goal),
+                    "Goal marked complete.",
                 )))
             }
             Err(e) => Ok(ToolResult::error(e)),

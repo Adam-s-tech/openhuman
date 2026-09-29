@@ -46,7 +46,6 @@ fn a_bare_hash_is_not_a_heading() {
 fn tools_are_ranked_by_cost_not_registration_order() {
     let dumped = DumpedPrompt {
         agent_id: "t".into(),
-        toolkit: None,
         mode: "session",
         model: "m".into(),
         workspace_dir: std::path::PathBuf::from("/tmp"),
@@ -87,7 +86,7 @@ fn session_report_measures_the_visible_belt_not_the_registry() {
         ..crate::config::Config::default()
     };
     std::fs::create_dir_all(&config.workspace_dir).unwrap();
-    let agent = crate::agent::Agent::from_config_for_agent(&config, "critic")
+    let agent = crate::agent::OpenHumanSessionHost::from_config_for_agent(&config, "critic")
         .expect("critic session build");
 
     let dumped = crate::agent::debug::session_dump(&agent, "critic", String::new());

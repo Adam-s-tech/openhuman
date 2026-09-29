@@ -90,7 +90,7 @@ fn sample_turn() -> TurnContext {
 fn stub_parent_context() -> ParentExecutionContext {
     ParentExecutionContext {
         agent_definition_id: "orchestrator".into(),
-        allowed_subagent_ids: ["test".to_string(), "researcher".to_string()]
+        allowed_subagent_ids: ["test".to_string(), "task_manager_agent".to_string()]
             .into_iter()
             .collect(),
         turn_model_source: openhuman_core::agent::tinyagents::TurnModelSource::from_model(
@@ -117,7 +117,7 @@ fn stub_parent_context() -> ParentExecutionContext {
         session_id: "test-session".into(),
         channel: "test-channel".into(),
         connected_integrations: vec![],
-        tool_call_format: openhuman_core::agent::context::prompt::ToolCallFormat::PFormat,
+        tool_call_format: openhuman_core::agent::prompts::ToolCallFormat::PFormat,
         session_key: "test-session".into(),
         session_parent_prefix: None,
         on_progress: None,

@@ -3,7 +3,7 @@ use super::*;
 // ─────────────────────────────────────────────────────────────────────────────
 // Copilot / scout streaming (Phase B) — bridge a builder/scout turn's live
 // AgentProgress onto the web-channel socket, keyed by a chat thread, exactly
-// like an interactive chat turn. Blueprint: `agent/task_dispatcher/executor.rs`.
+// like an interactive chat turn.
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// Where to stream a `flows_build` / `flows_discover` turn. When present, the
@@ -14,7 +14,7 @@ use super::*;
 /// tool cards, and workflow-proposal cards live instead of spinning for the
 /// whole (up to 300s) headless run.
 ///
-/// Broadcast client id is always `"system"` (like cron / task-session runs), so
+/// Broadcast client id is always `"system"` (like cron-triggered runs), so
 /// any client viewing the thread receives the events (the frontend keys by
 /// `thread_id`). The blocking `{ proposal, assistant_text }` return is
 /// unchanged — streaming is purely additive, opt-in per call.
@@ -55,7 +55,7 @@ impl FlowStreamTarget {
 /// (turn end). `source` is a short trace-attribution label (e.g.
 /// `"flows_build"`).
 pub(super) fn attach_flow_progress_bridge(
-    agent: &mut crate::agent::Agent,
+    agent: &mut crate::agent::OpenHumanSessionHost,
     target: &FlowStreamTarget,
     source: &str,
     config: &Config,
@@ -85,7 +85,7 @@ pub(super) fn attach_flow_progress_bridge(
 
 /// Emit the terminal chat event a streamed builder/scout turn owes its viewers.
 /// The progress bridge only streams intermediate deltas; without this the live
-/// session spins forever. Mirrors how `task_dispatcher/executor.rs` finalizes a
+/// session spins forever.
 /// streamed run: a success delivers a `chat_done` (via the shared presentation
 /// path, so segmentation/reaction match a normal turn), a failure publishes a
 /// `chat_error`. Broadcast as `"system"` so any viewer of the thread receives
@@ -111,6 +111,13 @@ pub(super) async fn finalize_flow_stream(
                 // stays the only persister of a flow turn's reply — unchanged
                 // from before #6034, which covered the chat surfaces.
                 None,
+                // `attach_flow_progress_bridge` discards its
+                // `ProgressBridgeHandle`, so there is no timing snapshot to
+                // forward here.
+                None,
+                // Flow Canvas copilot streaming is not the interactive chat
+                // surface follow-up suggestions are for (C5).
+                false,
             )
             .await;
         }
@@ -124,6 +131,33 @@ pub(super) async fn finalize_flow_stream(
                 error_type: Some("agent_error".to_string()),
                 ..Default::default()
             });
+        }
+    }
+    // Settle this turn's snapshot now the turn is over. `attach_flow_progress_bridge`
+    // discards its `ProgressBridgeHandle` and never waits for a drain, and the
+    // bridge is otherwise the only writer that marks a snapshot terminal — it
+    // does so on its way out, which can be minutes late or never. A snapshot
+    // left non-terminal makes `threads_turn_state_get` report the turn as still
+    // running, so re-entering the thread paints a permanent "Thinking..."
+    // indicator under a reply that already landed.
+    if let Ok(config) = crate::config::rpc::load_config_with_timeout().await {
+        let lifecycle = if result.is_ok() {
+            crate::threads::turn_state::TurnLifecycle::Completed
+        } else {
+            crate::threads::turn_state::TurnLifecycle::Interrupted
+        };
+        let now = chrono::Utc::now().to_rfc3339();
+        if let Err(err) =
+            crate::threads::turn_state::TurnStateStore::new(config.workspace_dir.clone())
+                .settle_turn(&target.thread_id, &target.request_id, lifecycle, &now)
+        {
+            tracing::warn!(
+                target: "flows",
+                thread_id = %target.thread_id,
+                request_id = %target.request_id,
+                error = %err,
+                "[flows] failed to settle turn snapshot"
+            );
         }
     }
     tracing::info!(

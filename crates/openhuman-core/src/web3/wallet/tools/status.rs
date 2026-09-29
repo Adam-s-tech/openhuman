@@ -1,7 +1,7 @@
-use crate::tools::traits::{Tool, ToolCallOptions, ToolResult};
 use crate::web3::wallet;
 use async_trait::async_trait;
 use serde_json::json;
+use tinytools::{Tool, ToolCallOptions, ToolResult};
 
 pub struct WalletStatusTool;
 
@@ -19,6 +19,10 @@ impl WalletStatusTool {
 
 #[async_trait]
 impl Tool for WalletStatusTool {
+    fn exposure(&self) -> tinytools::ToolExposure {
+        tinytools::ToolExposure::Deferred
+    }
+
     fn name(&self) -> &str {
         "wallet_status"
     }

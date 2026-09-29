@@ -1,10 +1,10 @@
 //! Tool: read_diff — structured git diff output for the Critic archetype.
 
-use crate::tools::traits::{PermissionLevel, Tool, ToolCallOptions, ToolResult};
 use async_trait::async_trait;
 use serde_json::json;
 use std::path::PathBuf;
 use tinytools::ToolRunContext;
+use tinytools::{PermissionLevel, Tool, ToolCallOptions, ToolResult};
 
 /// Returns `git diff` output in a structured format.
 pub struct ReadDiffTool {
@@ -31,6 +31,10 @@ impl ReadDiffTool {
 
 #[async_trait]
 impl Tool for ReadDiffTool {
+    fn exposure(&self) -> tinytools::ToolExposure {
+        tinytools::ToolExposure::Deferred
+    }
+
     fn name(&self) -> &str {
         "read_diff"
     }

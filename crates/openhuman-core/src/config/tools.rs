@@ -18,7 +18,7 @@ use async_trait::async_trait;
 use serde_json::json;
 
 use crate::config::Config;
-use crate::tools::traits::{Tool, ToolResult};
+use tinytools::{Tool, ToolResult};
 
 use super::ops;
 
@@ -37,6 +37,9 @@ macro_rules! read_tool {
         impl Tool for $ty {
             fn name(&self) -> &str {
                 $name
+            }
+            fn exposure(&self) -> tinytools::ToolExposure {
+                tinytools::ToolExposure::Deferred
             }
             fn description(&self) -> &str {
                 $desc
@@ -68,6 +71,10 @@ impl ConfigSnapshotTool {
 
 #[async_trait]
 impl Tool for ConfigSnapshotTool {
+    fn exposure(&self) -> tinytools::ToolExposure {
+        tinytools::ToolExposure::Deferred
+    }
+
     fn name(&self) -> &str {
         "config_snapshot"
     }
@@ -99,6 +106,10 @@ pub struct ConfigRuntimeFlagsTool;
 
 #[async_trait]
 impl Tool for ConfigRuntimeFlagsTool {
+    fn exposure(&self) -> tinytools::ToolExposure {
+        tinytools::ToolExposure::Deferred
+    }
+
     fn name(&self) -> &str {
         "config_get_runtime_flags"
     }

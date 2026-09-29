@@ -1,38 +1,29 @@
 import type { ReactNode } from 'react';
-import { Navigate, Route } from 'react-router-dom';
+import { Navigate, Route, useLocation } from 'react-router-dom';
 
 import ForwardSearch from '../routing/ForwardSearch';
 import SettingsIndexRedirect from './layout/SettingsIndexRedirect';
 import AboutPanel from './panels/AboutPanel';
 import AccountPanel from './panels/AccountPanel';
 import AgentAccessPanel from './panels/AgentAccessPanel';
-import AgentActivityPanel from './panels/AgentActivityPanel';
-import AgentEditorPage from './panels/AgentEditorPage';
-import AgentsPanel from './panels/AgentsPanel';
 import AppearancePanel from './panels/AppearancePanel';
 import ApprovalHistoryPanel from './panels/ApprovalHistoryPanel';
-import BillingPanel from './panels/BillingPanel';
 import CoreConnectionPanel from './panels/CoreConnectionPanel';
 import DeveloperOptionsPanel from './panels/DeveloperOptionsPanel';
-import DevicesPanel from './panels/DevicesPanel';
 import EventLogPanel from './panels/EventLogPanel';
 import FeedbackPanel from './panels/FeedbackPanel';
-import McpServerPanel from './panels/McpServerPanel';
+import MascotPanel from './panels/MascotPanel';
 import MemoryDataPanel from './panels/MemoryDataPanel';
 import MemoryDebugPanel from './panels/MemoryDebugPanel';
 import MigrationPanel from './panels/MigrationPanel';
-import NotificationsPanel from './panels/NotificationsPanel';
 import PermissionsPanel from './panels/PermissionsPanel';
-import PersonalityPanel from './panels/PersonalityPanel';
+import PersonaPanel from './panels/PersonaPanel';
 import PrivacyPanel from './panels/PrivacyPanel';
-import ProfileEditorPage from './panels/ProfileEditorPage';
-import ProfilesPanel from './panels/ProfilesPanel';
 import RecoveryPhrasePanel from './panels/RecoveryPhrasePanel';
 import SandboxSettingsPanel from './panels/SandboxSettingsPanel';
 import SecurityPanel from './panels/SecurityPanel';
+import ThemeStudioPanel from './panels/ThemeStudioPanel';
 import ToolPolicyDiagnosticsPanel from './panels/ToolPolicyDiagnosticsPanel';
-import ToolsPanel from './panels/ToolsPanel';
-import WorkflowRunnerPanel from './panels/WorkflowRunnerPanel';
 
 /**
  * Single vertical-scroll wrapper for a settings panel. The surrounding card
@@ -58,6 +49,17 @@ const wrapSettingsPage = (element: ReactNode) => (
 const SettingsRedirect = ({ to }: { to: string }) => <Navigate to={to} replace />;
 
 /**
+ * Personality and Face used to be two tabs of one page, with Face at
+ * `/settings/personality#face`. They are separate pages now; keep that old
+ * deep link landing on Face.
+ */
+const PersonalityRoute = () => {
+  const location = useLocation();
+  if (location.hash === '#face') return <SettingsRedirect to="/settings/face" />;
+  return wrapSettingsPage(<PersonaPanel />);
+};
+
+/**
  * The full settings route table — index, every panel, and every legacy-slug
  * redirect. Returned as a fragment of `<Route>` elements (via a function call,
  * not a nested component) so it can be embedded directly inside a `<Routes>`:
@@ -80,16 +82,19 @@ export function settingsRouteElements(): ReactNode {
           index via the catch-all. */}
       <Route path="team" element={<SettingsRedirect to="/settings/account" />} />
       <Route path="team/*" element={<SettingsRedirect to="/settings/account" />} />
-      <Route path="billing" element={wrapSettingsPage(<BillingPanel />)} />
+      <Route path="billing" element={<SettingsRedirect to="/settings/account" />} />
       <Route path="privacy" element={wrapSettingsPage(<PrivacyPanel />)} />
       <Route path="security" element={wrapSettingsPage(<SecurityPanel />)} />
       <Route path="migration" element={wrapSettingsPage(<MigrationPanel />)} />
       <Route path="appearance" element={wrapSettingsPage(<AppearancePanel />)} />
       {/* Theme studio merged into Appearance — one page for one subject. */}
-      <Route path="theme" element={<SettingsRedirect to="/settings/appearance" />} />
-      <Route path="notifications" element={wrapSettingsPage(<NotificationsPanel />)} />
+      <Route path="theme" element={wrapSettingsPage(<ThemeStudioPanel />)} />
+      {/* The Notifications settings page was removed entirely; the slug
+          redirects to Account so old deep links / bookmarks still land
+          somewhere real rather than falling through to the settings index. */}
+      <Route path="notifications" element={<SettingsRedirect to="/settings/account" />} />
       {/* Real device-pairing panel (replaces the old "Coming Soon" stub). */}
-      <Route path="devices" element={wrapSettingsPage(<DevicesPanel />)} />
+      <Route path="devices" element={<SettingsRedirect to="/settings/account" />} />
       {/* Feedback was its own top-level route reached from a sidebar-header
           icon. That icon is the command-palette trigger now, which left the
           page with no way in, so the board lives here as a General panel. The
@@ -104,16 +109,20 @@ export function settingsRouteElements(): ReactNode {
           background loops as tabs). */}
       <Route path="usage" element={<Navigate to="/connections?tab=usage" replace />} />
       <Route path="voice" element={<Navigate to="/connections?tab=voice" replace />} />
-      <Route path="personality" element={wrapSettingsPage(<PersonalityPanel />)} />
-      <Route path="agents" element={wrapSettingsPage(<AgentsPanel />)} />
-      <Route path="agents/new" element={wrapSettingsPage(<AgentEditorPage />)} />
-      <Route path="agents/edit/:id" element={wrapSettingsPage(<AgentEditorPage />)} />
-      {/* Top-level agent profiles (soul, memory, skills, MCP, connectors). */}
-      <Route path="profiles" element={wrapSettingsPage(<ProfilesPanel />)} />
-      <Route path="profiles/new" element={wrapSettingsPage(<ProfileEditorPage />)} />
-      <Route path="profiles/edit/:id" element={wrapSettingsPage(<ProfileEditorPage />)} />
+      <Route path="personality" element={<PersonalityRoute />} />
+      <Route path="face" element={wrapSettingsPage(<MascotPanel />)} />
+      <Route path="language" element={<SettingsRedirect to="/settings/account" />} />
+      {/* The Agents list and editor were removed; old links land on Connections → Tools. */}
+      <Route path="agents/*" element={<Navigate to="/connections?tab=agent-tools" replace />} />
       <Route path="agent-access" element={wrapSettingsPage(<AgentAccessPanel />)} />
-      <Route path="activity-level" element={wrapSettingsPage(<AgentActivityPanel />)} />
+      {/* Agent activity level (medulla/subconscious background-AI knob) was
+          retired along with medulla/subconscious themselves. The slug
+          redirects so any old deep link lands on Connections → Tools rather than falling
+          through to the settings index. */}
+      <Route
+        path="activity-level"
+        element={<Navigate to="/connections?tab=agent-tools" replace />}
+      />
       <Route path="sandbox-settings" element={wrapSettingsPage(<SandboxSettingsPanel />)} />
       <Route path="approval-history" element={wrapSettingsPage(<ApprovalHistoryPanel />)} />
 
@@ -128,7 +137,8 @@ export function settingsRouteElements(): ReactNode {
       {/* The Integrations settings section was retired; the composio/OAuth grid
           lives on the Connections page. */}
       <Route path="integrations" element={<ForwardSearch to="/connections" />} />
-      <Route path="tools" element={wrapSettingsPage(<ToolsPanel />)} />
+      {/* Tools moved to Connections → Tools. */}
+      <Route path="tools" element={<Navigate to="/connections?tab=agent-tools" replace />} />
 
       {/* ── System ──────────────────────────────────────────────── */}
       {/* Core connection — promotes cloud-mode remote-core config into a
@@ -149,7 +159,7 @@ export function settingsRouteElements(): ReactNode {
         path="tool-policy-diagnostics"
         element={wrapSettingsPage(<ToolPolicyDiagnosticsPanel />)}
       />
-      <Route path="mcp-server" element={wrapSettingsPage(<McpServerPanel />)} />
+      <Route path="mcp-server" element={<SettingsRedirect to="/connections?tab=mcp" />} />
       {/* Search engine settings moved to the Connections page. */}
       <Route path="search" element={<Navigate to="/connections?tab=search" replace />} />
       {/* Agent Chat debug tester retired — the panel is deleted. The slug is
@@ -165,7 +175,7 @@ export function settingsRouteElements(): ReactNode {
       <Route path="automations" element={<Navigate to="/flows" replace />} />
       {/* Dev Workflow panel retired — superseded by Workflows (/flows). */}
       <Route path="dev-workflow" element={<Navigate to="/flows" replace />} />
-      <Route path="skills-runner" element={wrapSettingsPage(<WorkflowRunnerPanel />)} />
+      <Route path="skills-runner" element={<SettingsRedirect to="/connections?tab=skills" />} />
       {/* Voice Debug page retired. */}
       <Route path="voice-debug" element={<SettingsRedirect to="/settings/developer-options" />} />
       {/* Local Model Debug retired — the panel is deleted. Redirect kept for
@@ -193,9 +203,12 @@ export function settingsRouteElements(): ReactNode {
       {/* ── Legacy slugs → redirects (deep-link compatibility) ──── */}
       {/* Old hub pages */}
       <Route path="ai" element={<Navigate to="/connections?tab=llm" replace />} />
-      <Route path="agents-settings" element={<SettingsRedirect to="/settings/agents" />} />
+      <Route
+        path="agents-settings"
+        element={<Navigate to="/connections?tab=agent-tools" replace />}
+      />
       <Route path="crypto" element={<Navigate to="/connections?tab=wallet" replace />} />
-      <Route path="notifications-hub" element={<SettingsRedirect to="/settings/notifications" />} />
+      <Route path="notifications-hub" element={<SettingsRedirect to="/settings/account" />} />
       {/* Composio (API key + routing) moved to Connections → API keys. */}
       <Route path="composio" element={<Navigate to="/connections?tab=composio-key" replace />} />
       {/* Merged Usage & Limits surface (now on Connections) */}
@@ -211,7 +224,7 @@ export function settingsRouteElements(): ReactNode {
       {/* Autonomy rate-limit lives inside Agent access now */}
       <Route path="autonomy" element={<SettingsRedirect to="/settings/agent-access" />} />
       {/* Merged Personality & Face page */}
-      <Route path="mascot" element={<SettingsRedirect to="/settings/personality#face" />} />
+      <Route path="mascot" element={<SettingsRedirect to="/settings/face" />} />
       <Route path="persona" element={<SettingsRedirect to="/settings/personality" />} />
       {/* Retired Integrations settings section → Connections page */}
       <Route path="task-sources" element={<Navigate to="/connections" replace />} />
@@ -220,12 +233,9 @@ export function settingsRouteElements(): ReactNode {
         element={<Navigate to="/connections?tab=composio-key" replace />}
       />
       <Route path="webhooks-triggers" element={<Navigate to="/connections" replace />} />
-      {/* Notification routing tab */}
-      {/* The routing tab was removed; land on the notifications page itself. */}
-      <Route
-        path="notification-routing"
-        element={<SettingsRedirect to="/settings/notifications" />}
-      />
+      {/* Notification routing tab and the Notifications settings page itself
+          were both removed; land on Account instead. */}
+      <Route path="notification-routing" element={<SettingsRedirect to="/settings/account" />} />
       {/* Fallback */}
       <Route path="*" element={<SettingsRedirect to="/settings" />} />
     </>

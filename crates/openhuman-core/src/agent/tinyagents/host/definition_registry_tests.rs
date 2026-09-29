@@ -38,6 +38,17 @@ fn registry_of(defs: Vec<HostAgentDefinition>) -> OpenHumanDefinitionRegistry {
     OpenHumanDefinitionRegistry::new(Arc::new(registry))
 }
 
+#[test]
+fn projection_supplies_the_validated_tier_as_the_model_routing_role() {
+    for tier in [AgentTier::Chat, AgentTier::Reasoning, AgentTier::Worker] {
+        let def = synthetic("tiered", tier, &[]);
+        assert_eq!(
+            registry_of(vec![def.clone()]).project(&def).role.as_deref(),
+            Some(tier.as_str())
+        );
+    }
+}
+
 // ── the absence contract ──────────────────────────────────────────────
 
 #[tokio::test]
@@ -192,10 +203,10 @@ fn model_spec_maps_inherit_to_no_preference() {
         Some("neocortex-mk1".to_string())
     );
     // Hints go through `ModelSpec::resolve`, which is the one place the
-    // `{hint}-v1` convention lives.
+    // `hint:{hint}` alias spelling lives.
     assert_eq!(
         model_for(&ModelSpec::Hint("reasoning".into())),
-        Some("reasoning-v1".to_string())
+        Some("hint:reasoning".to_string())
     );
 }
 
@@ -217,21 +228,64 @@ fn denylist_supports_exact_and_prefix_forms() {
     assert!(!disallows_tool(&denied, "file_read"));
 }
 
-/// A wildcard scope with nothing denied is the one case where the crate's
-/// "empty means unrestricted" marker is the faithful projection.
+/// A wildcard scope materializes the session's registered tool surface.
 #[test]
-fn an_undenied_wildcard_scope_projects_the_unrestricted_marker() {
+fn an_undenied_wildcard_scope_projects_registered_tools() {
     let mut def = synthetic("wide", AgentTier::Worker, &[]);
     def.tools = ToolScope::Wildcard;
     def.disallowed_tools = Vec::new();
 
-    assert!(
+    assert_eq!(
         registry_of(vec![def.clone()])
+            .with_registered_tools(Arc::new(vec!["file_read".to_string()]))
             .project(&def)
-            .tools
-            .is_empty(),
-        "an undenied wildcard is genuinely unrestricted"
+            .tools,
+        vec!["file_read".to_string()]
     );
+}
+
+#[test]
+fn named_tool_search_grants_deferred_tools_to_hosted_run() {
+    let mut with_search = synthetic("searcher", AgentTier::Chat, &[]);
+    with_search.tools = ToolScope::Named(vec!["tool_search".to_owned()]);
+    let registry = registry_of(vec![with_search.clone()]).with_deferred_tools(Arc::new(vec![
+        "desktop_list_apps".to_owned(),
+        "desktop_goal".to_owned(),
+    ]));
+    let tools = registry.project(&with_search).tools;
+    assert!(tools.iter().any(|name| name == "tool_search"));
+    assert!(tools.iter().any(|name| name == "desktop_list_apps"));
+    assert!(tools.iter().any(|name| name == "desktop_goal"));
+
+    let mut without_search = synthetic("no-search", AgentTier::Chat, &[]);
+    without_search.tools = ToolScope::Named(vec!["file_read".to_owned()]);
+    let tools = registry.project(&without_search).tools;
+    assert!(!tools.iter().any(|name| name.starts_with("desktop_")));
+}
+
+#[test]
+fn named_discovery_scope_authorizes_only_registered_deferred_tools() {
+    let mut def = synthetic("searcher", AgentTier::Chat, &[]);
+    def.tools = ToolScope::Named(vec!["file_read".into(), "tool_search".into()]);
+    def.disallowed_tools = vec!["blocked_*".into()];
+    let projected = registry_of(vec![def.clone()])
+        .with_deferred_tools(Arc::new(vec![
+            "browser_open".into(),
+            "browser".into(),
+            "blocked_secret".into(),
+        ]))
+        .project(&def);
+    assert!(projected.tools.contains(&"browser_open".to_string()));
+    assert!(projected.tools.contains(&"browser".to_string()));
+    assert!(!projected.tools.contains(&"blocked_secret".to_string()));
+
+    def.tools = ToolScope::Named(vec!["file_read".into()]);
+    let without_discovery = registry_of(vec![def.clone()])
+        .with_deferred_tools(Arc::new(vec!["browser_open".into()]))
+        .project(&def);
+    assert!(!without_discovery
+        .tools
+        .contains(&"browser_open".to_string()));
 }
 
 /// A wildcard scope carrying a denylist must be materialised against the
@@ -274,7 +328,7 @@ fn a_wildcard_denylist_without_registered_tools_fails_closed() {
 
     assert_eq!(
         projected.tools,
-        vec![PROFILE_NO_TOOLS_SENTINEL.to_string()],
+        vec![NO_TOOLS_SENTINEL.to_string()],
         "an unexpressible denylist must not read back as 'all tools'"
     );
 }
@@ -289,7 +343,7 @@ fn an_explicitly_tool_less_named_scope_projects_the_no_tools_sentinel() {
 
     assert_eq!(
         registry_of(vec![def.clone()]).project(&def).tools,
-        vec![PROFILE_NO_TOOLS_SENTINEL.to_string()]
+        vec![NO_TOOLS_SENTINEL.to_string()]
     );
 }
 
@@ -303,7 +357,7 @@ fn a_named_scope_emptied_by_its_denylist_projects_the_no_tools_sentinel() {
 
     assert_eq!(
         registry_of(vec![def.clone()]).project(&def).tools,
-        vec![PROFILE_NO_TOOLS_SENTINEL.to_string()]
+        vec![NO_TOOLS_SENTINEL.to_string()]
     );
 }
 
@@ -319,51 +373,6 @@ fn named_scope_drops_denied_tools_and_keeps_extras() {
         registry.project(&def).tools,
         vec!["file_read".to_string(), "grep".to_string()]
     );
-}
-
-// ── profile restriction ───────────────────────────────────────────────
-
-fn profile_allowing(tools: &[&str]) -> Arc<AgentProfile> {
-    let mut profile = crate::agent::profiles::built_in_profiles()
-        .into_iter()
-        .next()
-        .expect("at least one built-in profile ships");
-    profile.allowed_tools = Some(tools.iter().map(|t| t.to_string()).collect());
-    Arc::new(profile)
-}
-
-#[test]
-fn profile_allowlist_narrows_a_named_scope() {
-    let mut def = synthetic("worker", AgentTier::Worker, &[]);
-    def.tools = ToolScope::Named(vec!["file_read".into(), "grep".into()]);
-
-    let registry = registry_of(vec![def.clone()]).with_profile(profile_allowing(&["grep"]));
-    assert_eq!(registry.project(&def).tools, vec!["grep".to_string()]);
-}
-
-#[test]
-fn a_disjoint_profile_allowlist_yields_zero_tools_not_all_tools() {
-    // The failure mode the host's sentinel exists to prevent: an empty list
-    // reads as "unrestricted", so a disjoint intersection must stay
-    // non-empty with an unregistered name.
-    let mut def = synthetic("worker", AgentTier::Worker, &[]);
-    def.tools = ToolScope::Named(vec!["file_read".into()]);
-
-    let registry =
-        registry_of(vec![def.clone()]).with_profile(profile_allowing(&["something_else"]));
-    assert_eq!(
-        registry.project(&def).tools,
-        vec![PROFILE_NO_TOOLS_SENTINEL.to_string()]
-    );
-}
-
-#[test]
-fn profile_allowlist_becomes_the_visible_set_for_a_wildcard_agent() {
-    let mut def = synthetic("worker", AgentTier::Worker, &[]);
-    def.tools = ToolScope::Wildcard;
-
-    let registry = registry_of(vec![def.clone()]).with_profile(profile_allowing(&[" grep ", ""]));
-    assert_eq!(registry.project(&def).tools, vec!["grep".to_string()]);
 }
 
 // ── config-backed custom agents ───────────────────────────────────────
@@ -402,7 +411,7 @@ async fn an_enabled_custom_config_agent_resolves_and_lists() {
         .expect("resolve")
         .expect("an enabled custom agent is in the catalogue");
     assert_eq!(def.name, "Finance Analyst");
-    assert_eq!(def.model.as_deref(), Some("reasoning-v1"));
+    assert_eq!(def.model.as_deref(), Some("hint:reasoning"));
     assert_eq!(def.tools, vec!["memory_recall".to_string()]);
 
     let listed = registry.list().await.expect("list");
@@ -468,4 +477,94 @@ async fn an_empty_catalogue_misses_everything_without_erroring() {
         .await
         .expect("delegates")
         .is_empty());
+}
+
+/// The defect behind #6404 / #6392 / #6393, at the layer that caused it.
+///
+/// A library host builds its agent from a definition it owns and never
+/// registers: `AgentSpec::into_core` re-stamps the built-in orchestrator under
+/// the caller's id, so `harness` / `alpha` / `beta` reach hosted resolution as
+/// ids no registry holds. Before the session-definition seam this lookup
+/// missed, `prepare_agent_turn` raised `TinyAgentsError::Validation`, and the
+/// harness's `hosted_error` sanitized that into "hosted agent invocation was
+/// rejected by policy" — reported with zero provider calls, because the miss
+/// happens during turn preparation, before the loop runs.
+#[tokio::test]
+async fn a_caller_supplied_definition_resolves_under_its_own_unregistered_id() {
+    // Exactly the shape the embed harness produces: an id no registry knows.
+    let caller = synthetic("harness", AgentTier::Worker, &[]);
+    let registry = registry_of(vec![synthetic("orchestrator", AgentTier::Chat, &[])]);
+
+    // Without the session definition the id is simply absent — this is the
+    // miss that became "rejected by policy".
+    assert!(
+        registry.resolve("harness").await.unwrap().is_none(),
+        "precondition: an unregistered caller id must not resolve from the registry alone"
+    );
+
+    let with_session = registry_of(vec![synthetic("orchestrator", AgentTier::Chat, &[])])
+        .with_session_definition(Arc::new(caller));
+    let resolved = with_session
+        .resolve("harness")
+        .await
+        .unwrap()
+        .expect("the session's own definition must resolve under its own id");
+    assert_eq!(resolved.id, "harness");
+}
+
+/// The session's own definition outranks a same-id registry entry.
+///
+/// This is the precedence `OpenHumanSessionHost::resolved_definition` already
+/// documents and `resolved_definition_prefers_the_sessions_own_over_a_same_id_registry_entry`
+/// pins for the session's own reads; hosted resolution must not disagree with
+/// it, or a library host reusing a built-in id would silently run the
+/// built-in's definition instead of its own.
+#[tokio::test]
+async fn the_sessions_own_definition_outranks_a_same_id_registry_entry() {
+    let mut caller = synthetic("orchestrator", AgentTier::Worker, &[]);
+    caller.display_name = Some("the caller's own".to_string());
+
+    let registry = registry_of(vec![synthetic("orchestrator", AgentTier::Chat, &[])])
+        .with_session_definition(Arc::new(caller));
+
+    let resolved = registry
+        .resolve("orchestrator")
+        .await
+        .unwrap()
+        .expect("orchestrator resolves");
+    // `project` maps `name` from `display_name()`, which only the caller's copy
+    // sets — had the registry entry won, this would be its own display name.
+    assert_eq!(
+        resolved.name, "the caller's own",
+        "the session's own definition must win over the same-id registry entry"
+    );
+    // And the tier travels with it: the registry entry is Chat-tier (what the
+    // real `orchestrator` is), the caller's copy is a Worker, so a stale
+    // registry hit would show up here too.
+    assert_eq!(
+        resolved.role.as_deref(),
+        Some(AgentTier::Worker.to_string()).as_deref(),
+        "the winning definition's tier must be the caller's"
+    );
+}
+
+/// A session definition must not answer for an id that is not its own.
+#[tokio::test]
+async fn a_session_definition_does_not_shadow_other_ids() {
+    let registry = registry_of(vec![synthetic("orchestrator", AgentTier::Chat, &[])])
+        .with_session_definition(Arc::new(synthetic("harness", AgentTier::Worker, &[])));
+
+    assert_eq!(
+        registry
+            .resolve("orchestrator")
+            .await
+            .unwrap()
+            .map(|def| def.id),
+        Some("orchestrator".to_string()),
+        "a session definition must not capture lookups for other ids"
+    );
+    assert!(
+        registry.resolve("no-such-agent").await.unwrap().is_none(),
+        "a session definition must not answer for an unrelated missing id"
+    );
 }

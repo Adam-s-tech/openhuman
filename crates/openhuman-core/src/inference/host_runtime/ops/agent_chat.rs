@@ -1,6 +1,6 @@
 //! Agent chat turns: the full tool-using turn and the simple no-tools variant.
 
-use crate::agent::Agent;
+use crate::agent::OpenHumanSessionHost;
 use crate::config::Config;
 use crate::inference::provider as providers;
 use crate::rpc::RpcOutcome;
@@ -72,40 +72,93 @@ pub async fn agent_chat(
 }
 
 /// Which session [`agent_chat_for`] builds the turn on.
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy)]
 pub enum AgentChatTarget<'a> {
-    /// The orchestrator — [`Agent::from_config`], today's `agent_chat`.
+    /// The orchestrator — [`OpenHumanSessionHost::from_config`], today's `agent_chat`.
     Orchestrator,
     /// Resolve `id` the way every other id-keyed entry point does: the
     /// process registry first, then `config.agent_registry.entries`.
     AgentId(&'a str),
     /// A definition the caller already holds; nothing is resolved by id. The
     /// entry point for a library host running its own per-agent specs — see
-    /// [`Agent::from_config_with_definition`].
+    /// [`OpenHumanSessionHost::from_config_with_definition`].
+    ///
+    /// `host` carries the caller's own `dyn Tool` objects. It rides the target
+    /// rather than `agent_chat_for`'s argument list because only this target
+    /// can honour it: the other two resolve a definition the caller does not
+    /// hold, so there is no agent for a host belt to belong to.
     Definition {
         definition: &'a crate::agent::harness::definition::AgentDefinition,
-        profile: Option<&'a crate::agent::profiles::AgentProfile>,
-        profile_prompt_suffix: Option<&'a str>,
+        host: Option<&'a crate::agent::HostTools>,
+        /// History to seed this turn with, as `(role, content)` rows, instead
+        /// of whatever the session would otherwise resume.
+        ///
+        /// Rides the target for the same reason `host` does, and it is the
+        /// per-turn half of the same idea: a host whose history lives in its
+        /// own log -- a journal, a board, an episode -- is the only thing that
+        /// can say what this turn should have seen. Seeding is how that view
+        /// reaches the session with roles intact; passing it as prose in the
+        /// message would flatten the host's own prior turns into quoted text.
+        ///
+        /// `None` leaves resume untouched, which is every existing caller.
+        seed: Option<&'a [(String, String)]>,
+        /// Where to report what the turn spent.
+        ///
+        /// An out-parameter because this is the only target that can fill it:
+        /// the turn runs in-process here, so the session that counted the
+        /// tokens is still in hand when it ends. The other two answer over
+        /// `AGENT_CHAT`, whose reply is a string.
+        ///
+        /// Written whether the turn succeeded or failed -- a turn that ended
+        /// badly still spent what it spent, and a host that meters only
+        /// successes bills nothing for the ones that cost most.
+        usage: Option<&'a std::sync::Mutex<Option<crate::agent::tinyagents::host::LastTurnUsage>>>,
     },
 }
 
-fn build_turn_agent(config: &Config, target: &AgentChatTarget<'_>) -> Result<Agent, String> {
+// Hand-written because a host belt is a closure, and a closure is not `Debug`.
+// Reporting whether one is present is what a log line here is ever for; the
+// belt it would return is not known until the turn builds it.
+impl std::fmt::Debug for AgentChatTarget<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Orchestrator => f.write_str("Orchestrator"),
+            Self::AgentId(id) => f.debug_tuple("AgentId").field(id).finish(),
+            Self::Definition {
+                definition,
+                host,
+                seed,
+                usage,
+            } => f
+                .debug_struct("Definition")
+                .field("definition", &definition.id)
+                .field("host_tools", &host.is_some())
+                .field("seed_rows", &seed.map_or(0, <[(String, String)]>::len))
+                .field("meters", &usage.is_some())
+                .finish(),
+        }
+    }
+}
+
+fn build_turn_agent(
+    config: &Config,
+    target: &AgentChatTarget<'_>,
+    session_id: Option<&str>,
+) -> Result<OpenHumanSessionHost, String> {
     match target {
-        AgentChatTarget::Orchestrator => Agent::from_config(config),
+        AgentChatTarget::Orchestrator => OpenHumanSessionHost::from_config(config),
         AgentChatTarget::AgentId(id) => {
             log::debug!("[inference] agent_chat building agent_id={id}");
-            Agent::from_config_for_agent(config, id)
+            OpenHumanSessionHost::from_config_for_agent(config, id)
         }
         AgentChatTarget::Definition {
-            definition,
-            profile,
-            profile_prompt_suffix,
-        } => Agent::from_config_with_definition(
-            config,
-            definition,
-            *profile,
-            profile_prompt_suffix.map(str::to_string),
-        ),
+            definition, host, ..
+        } => match host {
+            Some(host) => OpenHumanSessionHost::from_config_with_host_tools(
+                config, definition, host, session_id,
+            ),
+            None => OpenHumanSessionHost::from_config_with_definition(config, definition),
+        },
     }
     .map_err(|e| e.to_string())
 }
@@ -114,11 +167,10 @@ fn build_turn_agent(config: &Config, target: &AgentChatTarget<'_>) -> Result<Age
 ///
 /// Two differences from the historical `agent_chat` beyond the target:
 ///
-/// * A non-empty `thread_id` resumes **that thread's** transcript
-///   (`Agent::seed_resume_from_thread_transcript`). When the thread has no
-///   transcript yet, auto-resume is suppressed for the turn so a fresh thread
-///   never splices in the agent's newest transcript from some other thread —
-///   `Agent::turn` resolves the latest transcript per agent *name*, not per
+/// * A non-empty `thread_id` binds the session's durable identity, so the turn
+///   resumes **that conversation's** transcript exactly
+///   (`ResumeMode::Session`). A fresh thread simply has nothing to resume; it
+///   can no longer fall back to the agent's newest transcript from some other
 ///   thread.
 /// * The agent is built by `target`, so a library host can run one booted
 ///   core with many independently defined agents.
@@ -150,6 +202,13 @@ pub async fn agent_chat_for(
     if let Some(route) = route {
         crate::config::schema::ephemeral_route::apply(config, route);
     }
+    // The conversation this turn runs in, normalised once: the factory below is
+    // told the same id `set_thread_id` will bind, so a belt keyed on the
+    // session cannot disagree with the session it is built for.
+    let turn_session_id = thread_id
+        .as_deref()
+        .map(str::trim)
+        .filter(|id| !id.is_empty());
     let turn_cwd = resolve_turn_cwd(cwd)?;
     let mut agent = match turn_cwd.as_ref() {
         // Per-turn root. Building from a config clone whose `action_dir` is the
@@ -168,50 +227,59 @@ pub async fn agent_chat_for(
                 "[inference] agent_chat rooting turn tools at cwd={}",
                 root.display()
             );
-            let mut agent = build_turn_agent(&scoped, &target)?;
+            let mut agent = build_turn_agent(&scoped, &target, turn_session_id)?;
             // Also thread it as the turn's workspace descriptor so acting tools
             // that read `ToolExecutionContext::workspace` (shell) resolve their
             // default cwd here, and so spawned sub-agents inherit the same root.
-            agent.set_workspace_descriptor(Some(
-                tinyagents_harness::workspace::WorkspaceDescriptor::new(root.clone()),
-            ));
+            agent.set_workspace_descriptor(Some(tinytools::WorkspaceDescriptor::new(root.clone())));
             agent
         }
-        None => build_turn_agent(config, &target)?,
+        None => build_turn_agent(config, &target, turn_session_id)?,
     };
-    // Thread-correct resume. `Agent::turn` would otherwise auto-load the
+    // Thread-correct resume. `OpenHumanSessionHost::turn` would otherwise auto-load the
     // newest transcript for the agent *name*, which is another thread's
     // history whenever the same agent serves several threads (every library
     // host does exactly that). Seed from this thread's transcript when it has
     // one; when it has none, keep the turn from falling back to that autoload.
-    if let Some(id) = thread_id
-        .as_deref()
-        .map(str::trim)
-        .filter(|id| !id.is_empty())
-    {
-        // Scoped to this call's agent identity, when it has one: a library
-        // host can hand the same caller-supplied thread_id to several
-        // independently configured runtime agents, and unscoped matching
-        // would resume whichever agent's transcript for that thread is
-        // newest into this one's turn. `Orchestrator` has no such identity
-        // and keeps the original unscoped lookup (#5351's cross-profile
-        // resume depends on it).
-        let resume_agent_id: Option<&str> = match &target {
-            AgentChatTarget::Orchestrator => None,
-            AgentChatTarget::AgentId(agent_id) => Some(agent_id),
-            AgentChatTarget::Definition { definition, .. } => Some(definition.id.as_str()),
-        };
-        if agent.seed_resume_from_thread_transcript_scoped(id, resume_agent_id) {
-            log::debug!("[inference] agent_chat resumed thread transcript thread_id={id}");
-        } else {
-            log::debug!("[inference] agent_chat fresh thread thread_id={id}; autoload suppressed");
-            agent.set_next_turn_overrides(crate::agent::harness::session::TurnOverrides {
-                suppress_transcript_autoload: true,
-                ..Default::default()
-            });
-        }
+    if let Some(id) = turn_session_id {
+        // Binding the thread also binds the session's durable identity, and
+        // the turn resumes by that identity. Nothing here has to seed history
+        // by hand, suppress an autoload, or reason about which transcript is
+        // newest: one conversation resolves to one transcript, scoped to this
+        // agent so a caller-supplied thread id shared by several runtime
+        // agents cannot splice one agent's history into another's turn.
+        agent.set_thread_id(Some(id));
+        log::debug!("[inference] agent_chat bound session for thread_id={id}");
     }
-    // Live progress for in-process embedders. `Agent::from_config` never
+    // A seeded turn replaces resume rather than adding to it.
+    //
+    // The three calls are one operation and the order is load-bearing:
+    // `clear_history` drops the composed session so `seed_resume_from_messages`
+    // -- which returns `Ok(())` and seeds NOTHING on a live one, so getting
+    // this order wrong runs the turn blind rather than failing -- can take
+    // effect, and the override
+    // stops the runtime reloading from its own durable transcript the history
+    // that was just replaced. A caller seeding from its own log means that log
+    // to be the whole of what this turn has seen; leaving either of the other
+    // two off would quietly reunite it with a second source.
+    if let AgentChatTarget::Definition {
+        seed: Some(seed), ..
+    } = target
+    {
+        agent.clear_history();
+        agent
+            .seed_resume_from_messages(seed.to_vec(), message)
+            .map_err(|e| e.to_string())?;
+        agent.set_next_turn_overrides(crate::agent::session_host::TurnOverrides {
+            suppress_transcript_autoload: true,
+            ..Default::default()
+        });
+        log::debug!(
+            "[inference] agent_chat seeded {} row(s); transcript autoload suppressed",
+            seed.len()
+        );
+    }
+    // Live progress for in-process embedders. `OpenHumanSessionHost::from_config` never
     // attaches a sink itself, so there is nothing to clobber here; callers that
     // set one explicitly (web chat, platform socket, flows, skills) hold their
     // own `Agent` and never reach this path — where both could apply, the
@@ -231,17 +299,18 @@ pub async fn agent_chat_for(
         effective_agent_chat_origin(),
         agent.run_single(message),
     );
-    let response = match thread_id.as_deref() {
-        Some(id) if !id.trim().is_empty() => {
-            log::debug!("[inference] agent_chat routing with thread_id={id}");
-            crate::agent::tinyagents::thread_context::with_thread_id(id, run).await
-        }
-        _ => {
-            log::debug!("[inference] agent_chat routing without thread_id");
-            run.await
-        }
+    let outcome = run.await;
+    // Before the `?`. A turn that failed still spent what it spent, and the
+    // session that counted it is about to go out of scope with the error.
+    if let AgentChatTarget::Definition {
+        usage: Some(sink), ..
+    } = target
+    {
+        *sink
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = agent.last_turn_usage();
     }
-    .map_err(|e| e.to_string())?;
+    let response = outcome.map_err(|e| e.to_string())?;
     Ok(RpcOutcome::single_log(response, "agent chat completed"))
 }
 
@@ -269,12 +338,28 @@ pub async fn agent_chat_simple(
         .clone()
         .unwrap_or_else(|| crate::config::DEFAULT_MODEL.to_string());
 
-    let (model, resolved_model) = providers::create_chat_model_with_model_id(
-        "chat",
-        &effective,
-        effective.default_temperature,
-    )
-    .map_err(|e| e.to_string())?;
+    let (model, resolved_model): (
+        std::sync::Arc<dyn tinyinference_llm::model::ChatModel<()>>,
+        String,
+    ) = if providers::factory::resolves_to_managed_backend("chat", &effective) {
+        let (backend, resolved_model) =
+            providers::factory::make_openhuman_backend_model_for_thread(
+                "chat",
+                &effective,
+                &default_model,
+                true,
+                thread_id.as_deref(),
+            )
+            .map_err(|e| e.to_string())?;
+        (backend, resolved_model)
+    } else {
+        providers::create_chat_model_with_model_id(
+            "chat",
+            &effective,
+            effective.default_temperature,
+        )
+        .map_err(|e| e.to_string())?
+    };
     tracing::debug!(
         requested_model = %default_model,
         resolved_model = %resolved_model,
@@ -289,18 +374,7 @@ pub async fn agent_chat_simple(
         .with_model(default_model.clone())
         .with_temperature(effective.default_temperature),
     );
-    let response = match thread_id.as_deref() {
-        Some(id) if !id.trim().is_empty() => {
-            log::debug!("[inference] agent_chat_simple routing with thread_id={id}");
-            crate::agent::tinyagents::thread_context::with_thread_id(id, run).await
-        }
-        _ => {
-            log::debug!("[inference] agent_chat_simple routing without thread_id");
-            run.await
-        }
-    }
-    .map_err(|e| e.to_string())?
-    .text();
+    let response = run.await.map_err(|e| e.to_string())?.text();
 
     Ok(RpcOutcome::single_log(
         response,

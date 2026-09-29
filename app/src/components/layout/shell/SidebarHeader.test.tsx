@@ -7,21 +7,34 @@ import SidebarHeader from './SidebarHeader';
 
 const mockNavigate = vi.fn();
 const mockHide = vi.fn();
+const mockIsWindowsDesktop = vi.fn(() => false);
+vi.mock('./WindowsWindowControls', () => ({ isWindowsDesktop: () => mockIsWindowsDesktop() }));
 
 vi.mock('react-router-dom', async importOriginal => {
   const actual = await importOriginal<typeof import('react-router-dom')>();
   return { ...actual, useNavigate: () => mockNavigate };
 });
 vi.mock('./RootShellLayout', () => ({ useRootSidebar: () => ({ hide: mockHide }) }));
+const openUrl = vi.fn().mockResolvedValue(undefined);
+vi.mock('../../../utils/openUrl', () => ({ openUrl: (...args: unknown[]) => openUrl(...args) }));
 // Return i18n keys verbatim so queries don't depend on locale.
 vi.mock('../../../lib/i18n/I18nContext', () => ({ useT: () => ({ t: (k: string) => k }) }));
 
 describe('SidebarHeader', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockIsWindowsDesktop.mockReturnValue(false);
+  });
 
-  it('renders Keyboard Shortcuts, Search, Settings, and Collapse buttons', () => {
+  it('centers the utility icons on Windows', () => {
+    mockIsWindowsDesktop.mockReturnValue(true);
+    const { container } = renderWithProviders(<SidebarHeader />, { initialEntries: ['/home'] });
+    expect(container.querySelector('[data-tauri-drag-region]')).toHaveClass('justify-center');
+  });
+
+  it('renders Discord, Search, Settings, and Collapse buttons', () => {
     renderWithProviders(<SidebarHeader />, { initialEntries: ['/home'] });
-    expect(screen.getByRole('button', { name: 'shortcuts.title' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'nav.discord' })).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'shortcuts.action.commandPalette' })
     ).toBeInTheDocument();
@@ -33,29 +46,27 @@ describe('SidebarHeader', () => {
     expect(screen.queryByRole('button', { name: 'nav.home' })).not.toBeInTheDocument();
   });
 
-  it('shortcuts button opens the keyboard-shortcuts help directory', () => {
-    const runAction = vi.spyOn(registry, 'runAction').mockReturnValue(true);
+  it('Discord button opens the community invite in the browser', () => {
     renderWithProviders(<SidebarHeader />, { initialEntries: ['/home'] });
-    fireEvent.click(screen.getByRole('button', { name: 'shortcuts.title' }));
-    expect(runAction).toHaveBeenCalledWith('meta.keyboard-shortcuts');
-    runAction.mockRestore();
+    fireEvent.click(screen.getByRole('button', { name: 'nav.discord' }));
+    expect(openUrl).toHaveBeenCalledWith('https://guild.tinyhumans.ai');
   });
 
-  it('shortcuts button has correct data-analytics-id', () => {
+  it('Discord button has correct data-analytics-id', () => {
     renderWithProviders(<SidebarHeader />, { initialEntries: ['/home'] });
-    expect(screen.getByRole('button', { name: 'shortcuts.title' })).toHaveAttribute(
+    expect(screen.getByRole('button', { name: 'nav.discord' })).toHaveAttribute(
       'data-analytics-id',
-      'sidebar-header-shortcuts'
+      'sidebar-header-discord'
     );
   });
 
-  it('shortcuts button has matching aria-label and title', () => {
+  it('Discord button has matching aria-label and title', () => {
     renderWithProviders(<SidebarHeader />, { initialEntries: ['/home'] });
-    const btn = screen.getByRole('button', { name: 'shortcuts.title' });
-    expect(btn).toHaveAttribute('aria-label', 'shortcuts.title');
+    const btn = screen.getByRole('button', { name: 'nav.discord' });
+    expect(btn).toHaveAttribute('aria-label', 'nav.discord');
     // The styled <Tooltip> wrapper re-applies a native `title` fallback so the
     // label still surfaces if the portal pill is occluded by a CEF webview.
-    expect(btn).toHaveAttribute('title', 'shortcuts.title');
+    expect(btn).toHaveAttribute('title', 'nav.discord');
   });
 
   it('settings button navigates to /settings', () => {
@@ -86,6 +97,7 @@ describe('SidebarHeader', () => {
     const { container } = renderWithProviders(<SidebarHeader />, { initialEntries: ['/home'] });
     const region = container.querySelector('[data-tauri-drag-region]') as HTMLElement;
     expect(region.getAttribute('data-tauri-drag-region')).toBe('deep');
+    expect(region).toHaveClass('pt-[7px]');
     // The icons sit inside the region and keep their clicks: `isDragRegion`
     // short-circuits on a clickable element before it reaches `deep`, and
     // resolving them by button role is what asserts they are still clickable.

@@ -2,7 +2,7 @@
 //!
 //! Consumers (e.g. the web channel provider) create an
 //! `mpsc::Sender<AgentProgress>` and attach it to the [`Agent`] via
-//! [`Agent::set_on_progress`] before calling [`Agent::run_single`].
+//! [`OpenHumanSessionHost::set_on_progress`] before calling [`OpenHumanSessionHost::run_single`].
 //! The agent's turn loop sends events through this channel as it
 //! progresses — tool calls starting/completing, iteration boundaries,
 //! sub-agent lifecycle, etc.
@@ -39,7 +39,7 @@ pub enum AgentProgress {
         iteration: u32,
         /// Server-computed human label for the chat processing timeline
         /// (e.g. "Reading messages"), or `None` to defer to the client
-        /// formatter. Set from [`crate::tools::traits::Tool::display_label`].
+        /// formatter. Set from [`tinytools::Tool::display_label`].
         display_label: Option<String>,
         /// Server-computed contextual detail shown after the label
         /// (e.g. "steven@gmail.com"), from `Tool::display_detail`.
@@ -74,6 +74,21 @@ pub enum AgentProgress {
         /// the chat "View processing" timeline renders. `None` on success and
         /// on legacy snapshots. See `crate::tools::status`.
         failure: Option<crate::tools::status::ClassifiedFailure>,
+        /// Server-computed human label recomputed from the tool's OWN
+        /// [`tinytools::Tool::display_label`] using the real call arguments
+        /// (the matching `ToolCallStarted.display_label` was computed with no
+        /// arguments, since the harness start event carries none). Forwarded
+        /// on the wire as `tool_display_label` so a completed row can pick up
+        /// a label that only became knowable once the arguments existed.
+        display_label: Option<String>,
+        /// Server-computed contextual detail (e.g. "steven@gmail.com"),
+        /// recomputed the same way from `Tool::display_detail`.
+        display_detail: Option<String>,
+        /// Structured, tool-specific result payload copied from
+        /// [`tinytools::ToolResult::metadata`] when it is a JSON object
+        /// carrying a `"kind"` discriminator (e.g. `{"kind":"web_search",...}`).
+        /// `None` for tools that don't populate metadata of that shape.
+        structured: Option<serde_json::Value>,
     },
 
     /// A sub-agent was spawned during tool execution.
@@ -106,6 +121,13 @@ pub enum AgentProgress {
         /// as the subagent span's input so a delegation is inspectable
         /// end-to-end in Langfuse.
         prompt: String,
+        /// The parent turn's tool-call id (the `spawn_subagent` /
+        /// dispatch call) this spawn is attributed to. `None` until
+        /// every emit site is updated to pass it through; additive so
+        /// existing consumers reading only the other fields are
+        /// unaffected. Mirrors
+        /// [`crate::core::socketio::SubagentProgressDetail::parent_call_id`].
+        parent_call_id: Option<String>,
     },
 
     /// A sub-agent completed successfully.
@@ -115,11 +137,31 @@ pub enum AgentProgress {
         elapsed_ms: u64,
         /// Number of LLM iterations the sub-agent actually used. The
         /// UI surfaces this in the parent thread's subagent row so a
-        /// completed delegation reads as "researcher · 3 turns · 4.2s"
+        /// completed delegation reads as "code_executor · 3 turns · 4.2s"
         /// instead of just "done".
         iterations: u32,
         /// Character length of the sub-agent's final assistant text.
         output_chars: usize,
+        /// This child's own token + cost totals, **and only when they did not
+        /// already reach the parent turn's ledger**.
+        ///
+        /// ## Populate this ONLY when the spend is not already counted
+        ///
+        /// A blocking spawn records into `parent_subagent_usage`, and
+        /// `holistic_last_turn_usage` then folds those child tokens AND
+        /// `charged_amount_usd` into the figures `chat_done` carries. A
+        /// detached spawn does not: `detached_child()` sets
+        /// `parent_subagent_usage` to `None` and swaps in a fresh ledger, so
+        /// the entry lands somewhere the parent never reads.
+        ///
+        /// The consumer adds whatever arrives here, unconditionally. That is
+        /// what makes the omission safe — a site that does not populate this
+        /// contributes nothing, which is the status quo — and it is also why
+        /// populating it for a child that DID reach the parent ledger silently
+        /// doubles the user's reported spend, money included, with no test
+        /// failing. **Check the ledger, not the spawn mode**: spawn mode is a
+        /// proxy and proxies drift.
+        usage: Option<crate::agent::subagent_host::SubagentUsage>,
         /// The sub-agent's full final assistant text. Trace exporters record
         /// this (truncated + content-gated) as the subagent span's output.
         output: String,
@@ -164,7 +206,7 @@ pub enum AgentProgress {
     },
 
     /// A sub-agent's inner LLM iteration is starting. Emitted **only
-    /// from inside [`crate::agent::harness::subagent_runner`]**
+    /// from inside [`crate::agent::subagent_host`]**
     /// when the parent context carries an `on_progress` sink — the
     /// outer parent loop uses [`Self::IterationStarted`] for its own
     /// rounds. Carries the child's `task_id` so the UI can attribute
@@ -229,6 +271,14 @@ pub enum AgentProgress {
         /// a failed sub-agent row carries the same "why + what to do next" copy
         /// instead of discarding the already-computed classification (#4459).
         failure: Option<crate::tools::status::ClassifiedFailure>,
+        /// Mirrors [`Self::ToolCallCompleted::display_label`], recomputed from
+        /// the child tool's own `Tool::display_label` using the real call
+        /// arguments.
+        display_label: Option<String>,
+        /// Mirrors [`Self::ToolCallCompleted::display_detail`].
+        display_detail: Option<String>,
+        /// Mirrors [`Self::ToolCallCompleted::structured`].
+        structured: Option<serde_json::Value>,
     },
 
     /// A chunk of a sub-agent's visible assistant text arrived from the
@@ -237,7 +287,7 @@ pub enum AgentProgress {
     /// streamed token to a specific live subagent row (via `task_id`)
     /// and render it inside that row's transcript instead of merging it
     /// into the parent's own streaming buffer. Emitted **only from
-    /// inside [`crate::agent::harness::subagent_runner`]** when
+    /// inside [`crate::agent::subagent_host`]** when
     /// the parent context carries an `on_progress` sink.
     SubagentTextDelta {
         agent_id: String,
@@ -328,7 +378,7 @@ pub enum AgentProgress {
         model: String,
         /// Provider that served this call (`"managed"`, `"openai"`,
         /// `"ollama"`, …). Trace exporters render the Langfuse model as
-        /// `{provider_id}.{model}` (e.g. `managed.chat-v1`).
+        /// `{provider_id}.{model}` (e.g. `managed.hint:chat`).
         provider_id: String,
         /// Owning subagent task id when this call ran inside a child run
         /// (`spawn_subagent` / Context Scout). `None` for parent-scope calls.

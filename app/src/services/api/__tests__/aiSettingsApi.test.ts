@@ -641,6 +641,18 @@ describe('saveAISettings', () => {
     expect(patch.cloud_providers).toBeUndefined();
   });
 
+  it('sends default_model only when the pinned default model changed', async () => {
+    const prev = makeSettings({ defaultModel: 'chat-v1' });
+    const next = makeSettings({ defaultModel: 'openrouter/deepseek/deepseek-v4-flash' });
+
+    await saveAISettings(prev, next);
+
+    expect(mockOpenhumanUpdateModelSettings).toHaveBeenCalledOnce();
+    const patch = mockOpenhumanUpdateModelSettings.mock.calls[0][0];
+    expect(patch.default_model).toBe('openrouter/deepseek/deepseek-v4-flash');
+    expect(patch.chat_provider).toBeUndefined();
+  });
+
   it('sends cloud_providers list when a provider is added', async () => {
     const prev = makeSettings({ cloudProviders: [] });
     const next = makeSettings();
@@ -912,13 +924,14 @@ describe('listProviderModels', () => {
     expect(models[1].id).toBe('gpt-4o-mini');
   });
 
-  it('returns empty array when not running in Tauri', async () => {
+  it('calls core RPC when not running in Tauri', async () => {
     mockIsTauri.mockReturnValue(false);
+    mockCallCoreRpc.mockResolvedValue({ result: { models: [] } });
 
     const models = await listProviderModels('openai');
 
     expect(models).toEqual([]);
-    expect(mockCallCoreRpc).not.toHaveBeenCalled();
+    expect(mockCallCoreRpc).toHaveBeenCalled();
   });
 
   it('throws on RPC error so callers can surface retry UI', async () => {
@@ -968,13 +981,14 @@ describe('loadProviderAuthErrors', () => {
     expect(errors[0].status).toBe(401);
   });
 
-  it('returns empty array when not running in Tauri', async () => {
+  it('calls core RPC when not running in Tauri', async () => {
     mockIsTauri.mockReturnValue(false);
+    mockCallCoreRpc.mockResolvedValue({ result: { errors: [] } });
 
     const errors = await loadProviderAuthErrors();
 
     expect(errors).toEqual([]);
-    expect(mockCallCoreRpc).not.toHaveBeenCalled();
+    expect(mockCallCoreRpc).toHaveBeenCalled();
   });
 
   it('returns empty array when result has no errors field', async () => {
@@ -1005,13 +1019,14 @@ describe('testProviderModel', () => {
     expect(result).toEqual({ reply: 'Hello from model' });
   });
 
-  it('throws when not running in Tauri', async () => {
+  it('calls core RPC when not running in Tauri', async () => {
     mockIsTauri.mockReturnValue(false);
+    mockCallCoreRpc.mockResolvedValueOnce({ result: { reply: 'Hello from model' } });
 
-    await expect(testProviderModel('reasoning', 'openai:gpt-4o')).rejects.toThrow(
-      'Model testing is only available in the desktop app.'
-    );
-    expect(mockCallCoreRpc).not.toHaveBeenCalled();
+    await expect(testProviderModel('reasoning', 'openai:gpt-4o')).resolves.toEqual({
+      reply: 'Hello from model',
+    });
+    expect(mockCallCoreRpc).toHaveBeenCalled();
   });
 });
 
@@ -1038,10 +1053,10 @@ describe('flushCloudProviders', () => {
     expect(mockOpenhumanUpdateModelSettings).toHaveBeenCalledWith({ cloud_providers: providers });
   });
 
-  it('no-ops when not running in Tauri', async () => {
+  it('persists over core RPC when not running in Tauri', async () => {
     mockIsTauri.mockReturnValue(false);
     await flushCloudProviders([]);
-    expect(mockOpenhumanUpdateModelSettings).not.toHaveBeenCalled();
+    expect(mockOpenhumanUpdateModelSettings).toHaveBeenCalledWith({ cloud_providers: [] });
   });
 });
 

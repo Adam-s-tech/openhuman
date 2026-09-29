@@ -4,16 +4,16 @@
  *
  * Two related properties on the same chat surface:
  *
- *   1. Scroll: the message column is anchored to the bottom by the
- *      `useStickToBottom` hook (`app/src/hooks/useStickToBottom.ts`).
+ *   1. Scroll: the assistant-ui thread viewport
+ *      (`[data-slot="aui_thread-viewport"]`, `components/assistant-ui/thread.tsx`)
+ *      follows the bottom while the reader is at it (`useFollowBottom`).
  *      After several messages, the container's `scrollTop` must sit
  *      within a small margin of `scrollHeight - clientHeight`.
  *      When the user manually scrolls UP, the auto-stick releases
  *      (so we don't yank them away from the message they're reading).
  *
- *   2. Markdown rendering: `BubbleMarkdown` (in
- *      `app/src/pages/conversations/components/AgentMessageBubble.tsx`)
- *      runs assistant content through `Markdown`. Bold, code blocks
+ *   2. Markdown rendering: the assistant-ui message renders assistant
+ *      content through its markdown renderer. Bold, code blocks
  *      and links must produce the right DOM tags (`<strong>`, `<pre>`,
  *      `<code>`, `<a>`).
  *
@@ -40,17 +40,6 @@ const CANARY_BOLD = 'BOLD-CANARY-22ff';
 const CANARY_CODE = 'CODE-CANARY-93b1';
 const LINK_URL = 'https://example.com/canary';
 
-const REPLY_MARKDOWN = [
-  `**${CANARY_BOLD}** is bold.`,
-  '',
-  '```',
-  `${CANARY_CODE}`,
-  'line 2',
-  '```',
-  '',
-  `Visit [the docs](${LINK_URL}) for more.`,
-].join('\n');
-
 // Lots of message lines so the column actually has overflow.
 const FILLER_LINES = Array.from(
   { length: 80 },
@@ -59,9 +48,16 @@ const FILLER_LINES = Array.from(
 
 const STREAM_SCRIPT = [
   ...FILLER_LINES.map(line => ({ text: line + '\n', delayMs: 5 })),
-  { text: '\n', delayMs: 5 },
-  { text: REPLY_MARKDOWN, delayMs: 10 },
-  { finish: 'stop' },
+  // Keep the markdown constructs in separate deltas. This reflects a real
+  // streamed response and gives the renderer a turn to reconcile each block
+  // before the terminal SSE event closes the stream.
+  { text: `\n**${CANARY_BOLD}** is bold.\n\n`, delayMs: 30 },
+  // The harness protects fenced blocks while it scans streamed narration for
+  // legacy tool-call dialects. An indented Markdown block exercises the same
+  // rendered <pre><code> contract without entering that protected path.
+  { text: `    ${CANARY_CODE}\n    line 2\n\n`, delayMs: 30 },
+  { text: `Visit [the docs](${LINK_URL}) for more.`, delayMs: 30 },
+  { finish: 'stop', delayMs: 30 },
 ];
 
 async function scrollMetrics(): Promise<{
@@ -72,16 +68,26 @@ async function scrollMetrics(): Promise<{
 }> {
   return (await browser.execute(() => {
     const messageColumn = document.querySelector(
-      '[data-testid="chat-messages-scroll"]'
+      '[data-slot="aui_thread-viewport"]'
     ) as HTMLElement | null;
     // Wry can place the overflow owner on a layout ancestor (or the document)
-    // rather than directly on Conversation. Measure the element that is
-    // actually scrollable, while preferring Conversation when it owns scroll.
+    // rather than directly on the viewport. Measure the element that is
+    // actually scrollable, while preferring the viewport when it owns scroll.
     const candidates: HTMLElement[] = [];
     for (let el = messageColumn; el; el = el.parentElement) candidates.push(el);
     if (document.scrollingElement instanceof HTMLElement)
       candidates.push(document.scrollingElement);
-    const el = candidates.find(node => node.scrollHeight > node.clientHeight) ?? messageColumn;
+    // A layout ancestor can be taller than the viewport without owning a
+    // scrollbar. Treating it as the message scroller produces a false
+    // negative in Wry, where the document layout may overflow while the
+    // native webview owns the actual scroll position.
+    const el =
+      candidates.find(node => {
+        const overflowY = getComputedStyle(node).overflowY;
+        return (
+          node.scrollHeight > node.clientHeight && (overflowY === 'auto' || overflowY === 'scroll')
+        );
+      }) ?? messageColumn;
     if (!el) return { scrollTop: 0, scrollHeight: 0, clientHeight: 0, found: false };
     return {
       scrollTop: el.scrollTop,
@@ -95,13 +101,19 @@ async function scrollMetrics(): Promise<{
 async function scrollMessageColumn(top: number): Promise<void> {
   await browser.execute((y: number) => {
     const messageColumn = document.querySelector(
-      '[data-testid="chat-messages-scroll"]'
+      '[data-slot="aui_thread-viewport"]'
     ) as HTMLElement | null;
     const candidates: HTMLElement[] = [];
     for (let node = messageColumn; node; node = node.parentElement) candidates.push(node);
     if (document.scrollingElement instanceof HTMLElement)
       candidates.push(document.scrollingElement);
-    const el = candidates.find(node => node.scrollHeight > node.clientHeight) ?? messageColumn;
+    const el =
+      candidates.find(node => {
+        const overflowY = getComputedStyle(node).overflowY;
+        return (
+          node.scrollHeight > node.clientHeight && (overflowY === 'auto' || overflowY === 'scroll')
+        );
+      }) ?? messageColumn;
     if (el) el.scrollTo({ top: y, behavior: 'auto' });
   }, top);
 }

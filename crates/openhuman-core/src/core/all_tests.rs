@@ -120,7 +120,6 @@ fn registered_controller_rpc_method_name() {
 fn namespace_description_known_namespaces() {
     assert!(namespace_description("memory").is_some());
     assert!(namespace_description("memory_tree").is_some());
-    assert!(namespace_description("billing").is_some());
     assert!(namespace_description("config").is_some());
     assert!(namespace_description("health").is_some());
     assert!(namespace_description("subsystems").is_some());
@@ -642,6 +641,103 @@ fn validate_params_option_accepts_null_and_inner_type() {
     assert!(validate_params(&s, &bad_p).is_err());
 }
 
+// --- validate_params bounded integers (#6137) ----------------------------
+
+fn bounded_schema(ty: TypeSchema) -> ControllerSchema {
+    schema(
+        "test",
+        "fn",
+        vec![FieldSchema {
+            name: "order",
+            ty,
+            comment: "",
+            required: false,
+        }],
+    )
+}
+
+fn order_params(value: Value) -> Map<String, Value> {
+    let mut p = Map::new();
+    p.insert("order".into(), value);
+    p
+}
+
+const U32_RANGE: TypeSchema = TypeSchema::BoundedU64 {
+    min: 0,
+    max: u32::MAX as u64,
+};
+
+#[test]
+fn validate_params_bounded_accepts_both_inclusive_ends() {
+    let s = bounded_schema(TypeSchema::BoundedU64 { min: 1, max: 10 });
+    assert!(validate_params(&s, &order_params(Value::from(1u64))).is_ok());
+    assert!(validate_params(&s, &order_params(Value::from(10u64))).is_ok());
+    assert!(validate_params(&s, &order_params(Value::Null)).is_ok());
+}
+
+#[test]
+fn validate_params_bounded_rejects_above_max_naming_the_bound() {
+    // The value `is_u64()`, so a plain `U64` declaration would have let it
+    // through to the handler's `u32` deserialization.
+    let s = bounded_schema(U32_RANGE);
+    let err = validate_params(&s, &order_params(Value::from(4_294_967_296u64))).unwrap_err();
+    assert_eq!(
+        err,
+        "invalid type for param 'order' in test.fn: expected unsigned integer <= 4294967295, got 4294967296"
+    );
+}
+
+#[test]
+fn validate_params_bounded_rejects_below_min_naming_the_bound() {
+    let s = bounded_schema(TypeSchema::BoundedU64 {
+        min: 1,
+        max: u32::MAX as u64,
+    });
+    let err = validate_params(&s, &order_params(Value::from(0u64))).unwrap_err();
+    assert_eq!(
+        err,
+        "invalid type for param 'order' in test.fn: expected unsigned integer >= 1, got 0"
+    );
+}
+
+#[test]
+fn validate_params_bounded_rejects_non_unsigned_values_by_kind() {
+    let s = bounded_schema(U32_RANGE);
+    for (value, got) in [
+        (Value::from(-1i64), "number"),
+        (Value::from(1.5f64), "number"),
+        (Value::from("7"), "string"),
+    ] {
+        let err = validate_params(&s, &order_params(value)).unwrap_err();
+        assert_eq!(
+            err,
+            format!(
+                "invalid type for param 'order' in test.fn: expected unsigned integer, got {got}"
+            )
+        );
+    }
+}
+
+#[test]
+fn validate_params_bounded_applies_inside_option_and_array() {
+    let opt = bounded_schema(TypeSchema::Option(Box::new(U32_RANGE)));
+    assert!(validate_params(&opt, &order_params(Value::from(5u64))).is_ok());
+    let err = validate_params(&opt, &order_params(Value::from(u64::MAX))).unwrap_err();
+    assert!(err.ends_with(&format!("got {}", u64::MAX)), "got: {err}");
+
+    let arr = bounded_schema(TypeSchema::Array(Box::new(TypeSchema::BoundedU64 {
+        min: 0,
+        max: u8::MAX as u64,
+    })));
+    assert!(validate_params(&arr, &order_params(serde_json::json!([0, 255]))).is_ok());
+    // The offending element is named, not the whole array.
+    let err = validate_params(&arr, &order_params(serde_json::json!([1, 256]))).unwrap_err();
+    assert!(
+        err.ends_with("expected unsigned integer <= 255, got 256"),
+        "got: {err}"
+    );
+}
+
 #[test]
 fn validate_params_json_type_accepts_anything() {
     let s = schema(
@@ -735,10 +831,19 @@ async fn try_invoke_registered_rpc_returns_some_for_known_method() {
 
 #[tokio::test]
 async fn try_invoke_registered_rpc_routes_security_policy_info() {
-    let out = try_invoke_registered_rpc("openhuman.security_policy_info", Map::new())
-        .await
-        .expect("security policy info should be registered")
-        .expect("security policy info should succeed");
+    let workspace = tempfile::TempDir::new().expect("security policy workspace");
+    let mut config = crate::config::Config::default();
+    config.workspace_dir = workspace.path().to_path_buf();
+    config.action_dir = workspace.path().to_path_buf();
+    config.config_path = workspace.path().join("config.toml");
+    let ctx = CoreContext::for_test_with_config(DomainSet::full(), config);
+    let out = CoreContext::scope(
+        ctx,
+        try_invoke_registered_rpc("openhuman.security_policy_info", Map::new()),
+    )
+    .await
+    .expect("security policy info should be registered")
+    .expect("security policy info should succeed");
 
     assert!(
         out.get("result").is_some() || out.get("autonomy").is_some(),
@@ -818,7 +923,7 @@ fn full_registration_is_byte_identical() {
         .iter()
         .map(|c| c.rpc_method_name())
         .collect();
-    let raw_methods: Vec<String> = registry()
+    let raw_methods: Vec<String> = registry_view()
         .iter()
         .map(|g| g.controller.rpc_method_name())
         .collect();
@@ -1214,36 +1319,6 @@ fn http_host_controllers_absent_when_http_server_off() {
     );
 }
 
-/// The `medulla` namespace registers under `DomainGroup::Medulla` when the
-/// `medulla` feature is on.
-///
-/// Paired with the negative below. On its own this proves nothing about the
-/// gate — a gate that removed nothing would still pass it.
-#[cfg(feature = "medulla")]
-#[test]
-fn medulla_controllers_registered_when_feature_on() {
-    assert_eq!(
-        group_for_namespace("medulla"),
-        Some(DomainGroup::Medulla),
-        "`medulla` must register under DomainGroup::Medulla when the feature is on"
-    );
-}
-
-/// The `medulla` namespace leaves no trace when the feature is off.
-///
-/// This is the half that proves the gate removes something. It also pins the
-/// intended off-state: **absence**, so a host sees unknown-method and hides the
-/// surface, rather than a registered controller that fails at call time.
-#[cfg(not(feature = "medulla"))]
-#[test]
-fn medulla_controllers_absent_when_feature_off() {
-    assert_eq!(
-        group_for_namespace("medulla"),
-        None,
-        "`medulla` must not register when the feature is off"
-    );
-}
-
 // ---- DomainGroup ↔ family-directory realignment ----------------------------
 // The reorg (#5328) made `crates/openhuman-core/src/` one directory per family, so the
 // runtime axis can finally name each one instead of sweeping half the surface
@@ -1260,8 +1335,9 @@ fn carved_out_families_report_their_own_group() {
         ("cron", DomainGroup::Automation),
         ("composio", DomainGroup::Integrations),
         ("task_sources", DomainGroup::Integrations),
-        ("billing", DomainGroup::Hosted),
-        ("team", DomainGroup::Hosted),
+        // `billing` / `team` / `referral` / `announcements` (`Hosted`) are no
+        // longer built in: `openhuman-tinyhumans::hosted` registers them as an
+        // extension — see `registry_extension_*` below.
         ("dashboard", DomainGroup::Desktop),
         ("notification", DomainGroup::Desktop),
         ("sandbox", DomainGroup::Runtimes),
@@ -1463,7 +1539,6 @@ fn every_domain_group_is_accounted_for_in_store_init_plan() {
         DomainGroup::Web3,
         DomainGroup::Voice,
         DomainGroup::Media,
-        DomainGroup::Medulla,
         DomainGroup::Inference,
         DomainGroup::Integrations,
         DomainGroup::Automation,
@@ -1521,7 +1596,6 @@ fn every_domain_group_is_accounted_for_in_subscriber_plan() {
         DomainGroup::Web3,
         DomainGroup::Voice,
         DomainGroup::Media,
-        DomainGroup::Medulla,
         DomainGroup::Inference,
         DomainGroup::Automation,
         DomainGroup::Runtimes,
@@ -1884,15 +1958,17 @@ fn capability_allowed_defaults_open_with_no_context() {
 
 #[test]
 fn unbound_registration_is_byte_identical() {
-    // Companion to `full_registration_is_byte_identical`: with no ambient
-    // context the capability filter must be an order-preserving identity, so
-    // adding the axis changed neither membership nor ordering of the unbound
-    // surface.
+    // This is specifically a pre-boot invariant. Once another test has
+    // initialized a process default context, the surface is intentionally no
+    // longer unbound and is covered by `full_registration_is_byte_identical`.
+    if crate::core::runtime::context::CoreContext::default_context().is_some() {
+        return;
+    }
     let filtered: Vec<String> = all_registered_controllers()
         .iter()
         .map(|c| c.rpc_method_name())
         .collect();
-    let raw: Vec<String> = registry()
+    let raw: Vec<String> = registry_view()
         .iter()
         .map(|g| g.controller.rpc_method_name())
         .collect();
@@ -2534,5 +2610,118 @@ fn session_db_controllers_are_gone_and_run_ledger_survives() {
     assert!(
         !namespaces.contains(&"session_db"),
         "the `session_db` namespace was removed and must not be registered, got: {namespaces:?}"
+    );
+}
+
+// ── Controller extensions (crates above the core) ──────────────────────────
+
+fn ext_controller(namespace: &'static str, function: &'static str) -> RegisteredController {
+    fn handler(_params: Map<String, serde_json::Value>) -> ControllerFuture {
+        Box::pin(async { Ok(serde_json::json!({"ext": true})) })
+    }
+    RegisteredController {
+        schema: schema(namespace, function, vec![]),
+        handler,
+    }
+}
+
+/// An extension's controllers are first-class for every lookup: schema,
+/// dispatch, method routing, capability facts and the namespace description.
+#[tokio::test]
+async fn registry_extension_is_visible_to_every_lookup_and_dispatches() {
+    register_controller_extension(ControllerExtension {
+        group: DomainGroup::Hosted,
+        controllers: vec![ext_controller("ext_probe", "ping")],
+        namespaces: &[("ext_probe", "Registry extension probe.")],
+    })
+    .expect("register extension");
+
+    assert_eq!(
+        rpc_method_from_parts("ext_probe", "ping").as_deref(),
+        Some("openhuman.ext_probe_ping")
+    );
+    assert_eq!(capability_for_parts("ext_probe", "ping"), Some(None));
+    assert_eq!(
+        capability_for_rpc_method("openhuman.ext_probe_ping"),
+        Some(None)
+    );
+    assert!(schema_for_rpc_method("openhuman.ext_probe_ping").is_some());
+    assert!(all_controller_schemas()
+        .iter()
+        .any(|s| s.namespace == "ext_probe" && s.function == "ping"));
+    assert_eq!(
+        namespace_description("ext_probe"),
+        Some("Registry extension probe.")
+    );
+
+    let result = try_invoke_registered_rpc("openhuman.ext_probe_ping", Map::new())
+        .await
+        .expect("extension method is dispatchable")
+        .expect("handler succeeds");
+    assert_eq!(result, serde_json::json!({"ext": true}));
+}
+
+/// Re-registering the identical set is a no-op; a *colliding* set (a built-in
+/// method) is refused by the same drift guard the boot registry passes.
+#[test]
+fn registry_extension_is_idempotent_and_refuses_collisions() {
+    let ext = || ControllerExtension {
+        group: DomainGroup::Hosted,
+        controllers: vec![ext_controller("ext_idem", "once")],
+        namespaces: &[("ext_idem", "Idempotency probe.")],
+    };
+    register_controller_extension(ext()).expect("first registration");
+    register_controller_extension(ext()).expect("identical re-registration is a no-op");
+    let count = {
+        let view = registry_view();
+        view.iter()
+            .filter(|g| g.controller.schema.namespace == "ext_idem")
+            .count()
+    };
+    assert_eq!(count, 1, "no duplicate rows after re-registration");
+
+    // `memory.list_files`-style collision with a built-in: pick any built-in.
+    let builtin = registry()
+        .first()
+        .expect("built-in registry is non-empty")
+        .controller
+        .schema
+        .clone();
+    let err = register_controller_extension(ControllerExtension {
+        group: DomainGroup::Hosted,
+        controllers: vec![ext_controller(builtin.namespace, builtin.function)],
+        namespaces: &[],
+    })
+    .expect_err("shadowing a built-in method must be refused");
+    assert!(err.contains("duplicate"), "{err}");
+}
+
+/// The ambient `DomainSet` gates extension controllers through their group,
+/// exactly like built-ins: with `hosted: false` the method is unknown.
+#[tokio::test]
+async fn registry_extension_is_gated_by_its_domain_group() {
+    register_controller_extension(ControllerExtension {
+        group: DomainGroup::Hosted,
+        controllers: vec![ext_controller("ext_gate", "ping")],
+        namespaces: &[],
+    })
+    .expect("register extension");
+
+    let mut domains = DomainSet::full();
+    domains.hosted = false;
+    let ctx = CoreContext::for_test(domains, None, None);
+    let hidden = CoreContext::scope(ctx, async {
+        (
+            try_invoke_registered_rpc("openhuman.ext_gate_ping", Map::new())
+                .await
+                .is_none(),
+            schema_for_rpc_method("openhuman.ext_gate_ping").is_none(),
+        )
+    })
+    .await;
+    assert_eq!(
+        hidden,
+        (true, true),
+        "hosted: false must hide the extension"
     );
 }

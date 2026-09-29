@@ -1,5 +1,5 @@
-//! UI-facing config operations: browser, analytics,
-//! search, dictation, voice server, onboarding flags.
+//! UI-facing config operations: browser, analytics, dictation, voice server,
+//! onboarding flags. Search settings live in `search.rs`.
 
 use serde_json::json;
 
@@ -12,44 +12,20 @@ use super::loader::{fallback_workspace_dir, load_config_with_timeout, snapshot_c
 pub struct BrowserSettingsPatch {
     pub enabled: Option<bool>,
     pub backend: Option<String>,
+    pub headless: Option<bool>,
+    pub viewport_width: Option<u32>,
+    pub viewport_height: Option<u32>,
+    pub chrome_path: Option<String>,
+    pub profile_mode: Option<String>,
+    pub profile_path: Option<String>,
+    pub download_dir: Option<String>,
+    pub max_task_steps: Option<usize>,
+    pub task_timeout_secs: Option<u64>,
 }
 
 #[derive(Debug, Clone, Default)]
 pub struct AnalyticsSettingsPatch {
     pub enabled: Option<bool>,
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct SearchSettingsPatch {
-    /// One of `disabled` | `managed` | `parallel` | `brave` | `querit` |
-    /// `exa` | `tavily`.
-    /// Empty/unknown values are rejected by `apply_search_settings`.
-    /// Runtime fallback to `managed` applies only to persisted/legacy config
-    /// values resolved by `SearchConfig::effective_engine()`.
-    pub engine: Option<String>,
-    /// 1..=20. Clamped silently at apply time.
-    pub max_results: Option<usize>,
-    /// Per-request timeout in seconds (default 15).
-    pub timeout_secs: Option<u64>,
-    /// Parallel API key. An empty string clears the stored key.
-    pub parallel_api_key: Option<String>,
-    /// Brave Search API key. An empty string clears the stored key.
-    pub brave_api_key: Option<String>,
-    /// Querit API key. An empty string clears the stored key.
-    pub querit_api_key: Option<String>,
-    /// Exa API key (BYOK). An empty string clears the stored key.
-    pub exa_api_key: Option<String>,
-    /// Tavily API key (BYOK). An empty string clears the stored key.
-    pub tavily_api_key: Option<String>,
-    /// Websites the assistant may open/read (`web_fetch` / `curl`), as a
-    /// host allowlist. Entries are exact hosts (`reuters.com`), which also
-    /// match their subdomains, or `"*"` for all public sites. Empty list
-    /// blocks all web access. Mirrors `[http_request].allowed_domains`.
-    pub allowed_domains: Option<Vec<String>>,
-    /// Convenience toggle for the "Allow all sites" switch. `Some(true)`
-    /// sets the allowlist to `["*"]`; `Some(false)` drops the wildcard while
-    /// keeping any explicit hosts. Applied after `allowed_domains`.
-    pub allow_all: Option<bool>,
 }
 
 /// Represents a partial update to dictation-related settings.
@@ -88,13 +64,60 @@ pub async fn apply_browser_settings(
         .as_deref()
         .map(normalize_browser_backend)
         .transpose()?;
+    let mut browser = config.browser.clone();
 
     if let Some(enabled) = update.enabled {
-        config.browser.enabled = enabled;
+        browser.enabled = enabled;
     }
     if let Some(backend) = normalized_backend {
-        config.browser.backend = backend;
+        browser.backend = backend;
     }
+    if let Some(headless) = update.headless {
+        browser.headless = headless;
+    }
+    if let Some(width) = update.viewport_width {
+        if !(320..=3840).contains(&width) {
+            return Err("viewport_width must be 320..=3840".into());
+        }
+        browser.viewport_width = width;
+    }
+    if let Some(height) = update.viewport_height {
+        if !(240..=2160).contains(&height) {
+            return Err("viewport_height must be 240..=2160".into());
+        }
+        browser.viewport_height = height;
+    }
+    if let Some(path) = update.chrome_path {
+        browser.chrome_path = nonempty(path);
+    }
+    if let Some(mode) = update.profile_mode {
+        if mode != "fresh" && mode != "persistent" {
+            return Err("profile_mode must be fresh or persistent".into());
+        }
+        browser.profile_mode = mode;
+    }
+    if let Some(path) = update.profile_path {
+        browser.profile_path = nonempty(path);
+    }
+    if let Some(path) = update.download_dir {
+        browser.download_dir = nonempty(path);
+    }
+    if browser.profile_mode == "persistent" && browser.profile_path.is_none() {
+        return Err("persistent profile requires profile_path".into());
+    }
+    if let Some(steps) = update.max_task_steps {
+        if !(1..=100).contains(&steps) {
+            return Err("max_task_steps must be 1..=100".into());
+        }
+        browser.max_task_steps = steps;
+    }
+    if let Some(timeout) = update.task_timeout_secs {
+        if !(5..=600).contains(&timeout) {
+            return Err("task_timeout_secs must be 5..=600".into());
+        }
+        browser.task_timeout_secs = timeout;
+    }
+    config.browser = browser;
     config.save().await.map_err(|e| e.to_string())?;
     let snapshot = snapshot_config_json(config)?;
     Ok(RpcOutcome::new(
@@ -106,9 +129,18 @@ pub async fn apply_browser_settings(
     ))
 }
 
+fn nonempty(value: String) -> Option<String> {
+    let value = value.trim();
+    (!value.is_empty()).then(|| value.to_string())
+}
+
 fn normalize_browser_backend(raw: &str) -> Result<String, String> {
     let key = raw.trim().to_ascii_lowercase().replace('-', "_");
     match key.as_str() {
+        // TinyBrowser was folded into TinyComputer; old values migrate.
+        "tinycomputer" | "tiny_computer" | "tinybrowser" | "tiny_browser" => {
+            Ok("tinycomputer".to_string())
+        }
         "agent_browser" | "agentbrowser" => Ok("agent_browser".to_string()),
         "playwright" => Ok("playwright".to_string()),
         "rust_native" | "native" => Ok("rust_native".to_string()),
@@ -153,160 +185,6 @@ pub async fn load_and_apply_analytics_settings(
 ) -> Result<RpcOutcome<serde_json::Value>, String> {
     let mut config = load_config_with_timeout().await?;
     apply_analytics_settings(&mut config, update).await
-}
-
-/// Updates the search engine configuration. Empty API-key strings clear the
-/// stored value rather than treat empty-string as "credential present".
-pub async fn apply_search_settings(
-    config: &mut Config,
-    update: SearchSettingsPatch,
-) -> Result<RpcOutcome<serde_json::Value>, String> {
-    if let Some(engine) = update.engine {
-        let trimmed = engine.trim();
-        match trimmed {
-            "disabled" | "managed" | "parallel" | "brave" | "querit" | "exa" | "tavily" => {
-                config.search.engine = trimmed.to_string();
-            }
-            other => {
-                return Err(format!(
-                    "engine must be one of disabled/managed/parallel/brave/querit/exa/tavily (got {other:?})"
-                ));
-            }
-        }
-    }
-    if let Some(n) = update.max_results {
-        if !(1..=20).contains(&n) {
-            return Err(format!("max_results must be between 1 and 20 (got {n})"));
-        }
-        config.search.max_results = n;
-    }
-    if let Some(secs) = update.timeout_secs {
-        if !(1..=120).contains(&secs) {
-            return Err(format!(
-                "timeout_secs must be between 1 and 120 (got {secs})"
-            ));
-        }
-        config.search.timeout_secs = secs;
-    }
-    if let Some(raw) = update.parallel_api_key {
-        let trimmed = raw.trim();
-        config.search.parallel.api_key = if trimmed.is_empty() {
-            None
-        } else {
-            Some(trimmed.to_string())
-        };
-    }
-    if let Some(raw) = update.brave_api_key {
-        let trimmed = raw.trim();
-        config.search.brave.api_key = if trimmed.is_empty() {
-            None
-        } else {
-            Some(trimmed.to_string())
-        };
-    }
-    if let Some(raw) = update.querit_api_key {
-        let trimmed = raw.trim();
-        config.search.querit.api_key = if trimmed.is_empty() {
-            None
-        } else {
-            Some(trimmed.to_string())
-        };
-    }
-    if let Some(raw) = update.exa_api_key {
-        let trimmed = raw.trim();
-        config.search.exa.api_key = if trimmed.is_empty() {
-            None
-        } else {
-            Some(trimmed.to_string())
-        };
-    }
-    if let Some(raw) = update.tavily_api_key {
-        let trimmed = raw.trim();
-        config.search.tavily.api_key = if trimmed.is_empty() {
-            None
-        } else {
-            Some(trimmed.to_string())
-        };
-    }
-    let allowlist_touched = update.allowed_domains.is_some() || update.allow_all.is_some();
-    let before_count = config.http_request.allowed_domains.len();
-    let before_allow_all = config.http_request.allowed_domains.iter().any(|d| d == "*");
-    if let Some(domains) = update.allowed_domains {
-        let mut cleaned: Vec<String> = domains
-            .into_iter()
-            .map(|d| d.trim().to_string())
-            .filter(|d| !d.is_empty())
-            .collect();
-        cleaned.sort();
-        cleaned.dedup();
-        config.http_request.allowed_domains = cleaned;
-    }
-    if let Some(allow_all) = update.allow_all {
-        if allow_all {
-            config.http_request.allowed_domains = vec!["*".to_string()];
-        } else {
-            config.http_request.allowed_domains.retain(|d| d != "*");
-        }
-    }
-    if allowlist_touched {
-        let after_count = config.http_request.allowed_domains.len();
-        let after_allow_all = config.http_request.allowed_domains.iter().any(|d| d == "*");
-        tracing::info!(
-            before_count,
-            after_count,
-            before_allow_all,
-            after_allow_all,
-            "[config] http_request.allowed_domains updated"
-        );
-    }
-    config.save().await.map_err(|e| e.to_string())?;
-    let snapshot = snapshot_config_json(config)?;
-    Ok(RpcOutcome::new(
-        snapshot,
-        vec![format!(
-            "search settings saved to {}",
-            config.config_path.display()
-        )],
-    ))
-}
-
-pub async fn load_and_apply_search_settings(
-    update: SearchSettingsPatch,
-) -> Result<RpcOutcome<serde_json::Value>, String> {
-    let mut config = load_config_with_timeout().await?;
-    apply_search_settings(&mut config, update).await
-}
-
-/// Read the current search engine settings (with API keys redacted to a
-/// presence boolean so the UI can show "configured" without ever rendering
-/// the raw secret).
-pub async fn get_search_settings() -> Result<RpcOutcome<serde_json::Value>, String> {
-    let config = load_config_with_timeout().await?;
-    let result = serde_json::json!({
-        "engine": config.search.requested_engine_str(),
-        "effective_engine": match config.search.effective_engine() {
-            crate::config::SearchEngine::Disabled => "disabled",
-            crate::config::SearchEngine::Managed => "managed",
-            crate::config::SearchEngine::Parallel => "parallel",
-            crate::config::SearchEngine::Brave => "brave",
-            crate::config::SearchEngine::Querit => "querit",
-            crate::config::SearchEngine::Exa => "exa",
-            crate::config::SearchEngine::Tavily => "tavily",
-        },
-        "max_results": config.search.max_results,
-        "timeout_secs": config.search.timeout_secs,
-        "parallel_configured": config.search.parallel.has_key(),
-        "brave_configured": config.search.brave.has_key(),
-        "querit_configured": config.search.querit.has_key(),
-        "exa_configured": config.search.exa.has_key(),
-        "tavily_configured": config.search.tavily.has_key(),
-        "allowed_domains": config.http_request.allowed_domains,
-        "allow_all": config.http_request.allowed_domains.iter().any(|d| d == "*"),
-    });
-    Ok(RpcOutcome::new(
-        result,
-        vec!["search settings read".to_string()],
-    ))
 }
 
 /// Resolves a workspace onboarding flag, creating or checking its existence.

@@ -5,8 +5,8 @@ use std::{
     hash::{Hash, Hasher},
 };
 
-use crate::agent::harness::subagent_runner::SubagentRunStatus;
 use crate::agent::messages::ChatMessage;
+use crate::agent::subagent_host::SubagentRunStatus;
 
 use super::types::{
     DurableSubagentSession, DurableSubagentStatus, ReuseDecision, SubagentSessionSelector,
@@ -114,7 +114,6 @@ pub fn upsert_running(
             worker_thread_id: upsert.worker_thread_id.clone(),
             agent_id: upsert.selector.agent_id.clone(),
             display_name: upsert.display_name.clone(),
-            toolkit: upsert.selector.toolkit.clone(),
             model: upsert.selector.model.clone(),
             sandbox_mode: upsert.selector.sandbox_mode.clone(),
             action_root: upsert.selector.action_root.clone(),

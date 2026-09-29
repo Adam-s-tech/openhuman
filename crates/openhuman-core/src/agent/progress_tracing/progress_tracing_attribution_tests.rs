@@ -89,6 +89,9 @@ fn tool_io_is_captured_when_capture_content_is_on() {
             elapsed_ms: 4,
             iteration: 1,
             failure: None,
+            display_label: None,
+            display_detail: None,
+            structured: None,
         },
         4,
     );
@@ -138,6 +141,9 @@ fn tool_io_is_never_recorded_when_capture_content_is_off() {
                 elapsed_ms: 4,
                 iteration: 1,
                 failure: None,
+                display_label: None,
+                display_detail: None,
+                structured: None,
             },
             4,
         ),
@@ -228,7 +234,7 @@ fn model_call_completed_emits_generation_span_with_usage_cost_and_pricing() {
     // Pricing basis is auditable.
     assert_eq!(
         a["gen_ai.pricing.input_per_mtok_usd"],
-        serde_json::json!(0.435)
+        serde_json::json!(0.0886)
     );
     assert!(a.get("gen_ai.pricing.output_per_mtok_usd").is_some());
     // Zero reasoning / cache-write tokens are omitted on the generation.
@@ -413,6 +419,9 @@ fn failed_tool_records_classified_cause_only_when_capture_on() {
             next_action: "Try again".to_string(),
             recoverable: true,
         }),
+        display_label: None,
+        display_detail: None,
+        structured: None,
     };
 
     // Capture ON → plain-language cause lands as error.message.
@@ -509,10 +518,10 @@ fn generation_withholds_content_when_capture_off() {
 fn subagent_model_call_nests_generation_and_stamps_model_on_subagent_span() {
     let mut c = collect_with_capture(&[
         (AgentProgress::TurnStarted, 0),
-        (spawn("task-9", "Context Scout"), 5),
+        (spawn("task-9", "Critic"), 5),
         (
             AgentProgress::SubagentIterationStarted {
-                agent_id: "context_scout".to_string(),
+                agent_id: "critic".to_string(),
                 task_id: "task-9".to_string(),
                 iteration: 1,
                 max_iterations: 8,
@@ -535,7 +544,7 @@ fn subagent_model_call_nests_generation_and_stamps_model_on_subagent_span() {
     assert!(generation.input.is_some(), "child generation carries input");
 
     // The subagent span itself surfaces the provider-labeled model + usage.
-    let sub = find(spans, "subagent.Context Scout");
+    let sub = find(spans, "subagent.Critic");
     assert_eq!(
         sub.attributes["gen_ai.request.model"],
         serde_json::json!("managed.chat-v1")
@@ -581,6 +590,9 @@ fn parent_tool_completion_backfills_arguments_and_records_output() {
                 elapsed_ms: 40,
                 iteration: 1,
                 failure: None,
+                display_label: None,
+                display_detail: None,
+                structured: None,
             },
             45,
         ),
@@ -613,6 +625,7 @@ fn subagent_span_records_prompt_and_final_output_when_capture_on() {
                 elapsed_ms: 100,
                 iterations: 2,
                 output_chars: 12,
+                usage: None,
                 output: "final answer".to_string(),
                 worktree_path: None,
                 changed_files: vec![],

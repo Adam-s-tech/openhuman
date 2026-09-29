@@ -186,6 +186,7 @@ fn crate_model_response_preserves_flow_completion_contract() {
                 invalid: None,
             }],
             usage: Some(usage),
+            origin: None,
         },
         usage: Some(usage),
         finish_reason: Some("tool_calls".to_string()),
@@ -193,6 +194,8 @@ fn crate_model_response_preserves_flow_completion_contract() {
         resolved_model: None,
         continue_turn: None,
         served_from_cache: false,
+        correlation: None,
+        resolved_route: None,
     };
 
     let value = model_response_to_completion_value(&response);

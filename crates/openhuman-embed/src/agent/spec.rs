@@ -4,12 +4,10 @@
 //! [`Runtime::agent`](crate::Runtime::agent), in a fixed order, onto a clone
 //! of the runtime's base config — access tier, provider model, MCP servers,
 //! then the [`config`](AgentSpec::config) escape hatch last — and onto a
-//! per-agent [`AgentProfile`](openhuman_core::agent::profiles::AgentProfile)
-//! and [`AgentDefinitionSpec`].
+//! [`AgentDefinitionSpec`].
 
 use std::path::PathBuf;
 
-use openhuman_core::agent::profiles::AgentProfile;
 use openhuman_core::config::Config;
 use openhuman_core::core::runtime::DomainSet;
 use openhuman_core::security::TrustedAccess;
@@ -25,8 +23,8 @@ type ConfigEdit = Box<dyn FnOnce(&mut Config) + Send>;
 #[cfg(feature = "skills")]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum SkillsDest {
-    /// `<workspace>/personalities/<id>/skills/` — seen only by this agent.
-    ProfileLocal,
+    /// `<workspace>/agents/<id>/skills/` — seen only by this agent.
+    AgentLocal,
     /// `<workspace>/skills/` — the legacy workspace root the one-agent
     /// [`Harness`](crate::Harness) always used; kept for its callers.
     WorkspaceLegacy,
@@ -36,13 +34,10 @@ pub(crate) enum SkillsDest {
 pub struct AgentSpec {
     id: String,
     definition: AgentDefinitionSpec,
-    system_prompt_suffix: Option<String>,
     provider: Option<Provider>,
     access: Option<Access>,
     tool_groups: Option<ToolGroups>,
     domains: Option<DomainSet>,
-    allowed_tools: Option<Vec<String>>,
-    allowed_skills: Option<Vec<String>>,
     #[cfg(feature = "mcp")]
     mcp_servers: Vec<crate::harness::McpServer>,
     #[cfg(feature = "skills")]
@@ -52,8 +47,8 @@ pub struct AgentSpec {
     include_user_skills: bool,
     action_dir: Option<PathBuf>,
     trusted: Vec<(String, TrustedAccess)>,
-    dedicated_memory: bool,
     config_fn: Option<ConfigEdit>,
+    host_tools: Option<openhuman_core::agent::HostTools>,
 }
 
 impl AgentSpec {
@@ -68,24 +63,21 @@ impl AgentSpec {
         Self {
             id: id.into(),
             definition: AgentDefinitionSpec::new(),
-            system_prompt_suffix: None,
             provider: None,
             access: None,
             tool_groups: None,
             domains: None,
-            allowed_tools: None,
-            allowed_skills: None,
             #[cfg(feature = "mcp")]
             mcp_servers: Vec::new(),
             #[cfg(feature = "skills")]
             skills_dir: None,
             #[cfg(feature = "skills")]
-            skills_dest: SkillsDest::ProfileLocal,
+            skills_dest: SkillsDest::AgentLocal,
             include_user_skills: false,
             action_dir: None,
             trusted: Vec::new(),
-            dedicated_memory: false,
             config_fn: None,
+            host_tools: None,
         }
     }
 
@@ -103,12 +95,6 @@ impl AgentSpec {
     /// Shorthand for [`AgentDefinitionSpec::system_prompt`].
     pub fn system_prompt(mut self, prompt: impl Into<String>) -> Self {
         self.definition = self.definition.system_prompt(prompt);
-        self
-    }
-
-    /// Text appended to the system prompt, after the definition's body.
-    pub fn system_prompt_suffix(mut self, suffix: impl Into<String>) -> Self {
-        self.system_prompt_suffix = Some(suffix.into());
         self
     }
 
@@ -147,27 +133,6 @@ impl AgentSpec {
         self
     }
 
-    /// Tool names this agent may see. Unset means every registered tool.
-    pub fn allowed_tools<I, S>(mut self, tools: I) -> Self
-    where
-        I: IntoIterator<Item = S>,
-        S: Into<String>,
-    {
-        self.allowed_tools = Some(tools.into_iter().map(Into::into).collect());
-        self
-    }
-
-    /// Skill ids this agent may list and run. Unset means every discovered
-    /// skill.
-    pub fn allowed_skills<I, S>(mut self, skills: I) -> Self
-    where
-        I: IntoIterator<Item = S>,
-        S: Into<String>,
-    {
-        self.allowed_skills = Some(skills.into_iter().map(Into::into).collect());
-        self
-    }
-
     /// Declare an MCP server this agent may call tools on. Call repeatedly to
     /// add several. Other agents on the runtime do not see it.
     #[cfg(feature = "mcp")]
@@ -178,12 +143,12 @@ impl AgentSpec {
 
     /// Make the skill bundles in `dir` available to this agent alone.
     ///
-    /// Copied into `<workspace>/personalities/<id>/skills/` — copied rather
+    /// Copied into `<workspace>/agents/<id>/skills/` — copied rather
     /// than linked because skill discovery rejects symlinked bundles.
     #[cfg(feature = "skills")]
     pub fn skills_dir(mut self, dir: impl Into<PathBuf>) -> Self {
         self.skills_dir = Some(dir.into());
-        self.skills_dest = SkillsDest::ProfileLocal;
+        self.skills_dest = SkillsDest::AgentLocal;
         self
     }
 
@@ -208,7 +173,7 @@ impl AgentSpec {
     /// The agent's read/write root for acting tools.
     ///
     /// Defaults to `<root>/agents/<id>/action` (or, on an inherited
-    /// workspace, `<action_dir>/profiles/<id>`). Point it at the project the
+    /// workspace, `<action_dir>/agents/<id>`). Point it at the project the
     /// agent should work in — this is the directory whose contents it can
     /// change.
     pub fn action_dir(mut self, dir: impl Into<PathBuf>) -> Self {
@@ -223,22 +188,6 @@ impl AgentSpec {
         self
     }
 
-    /// Give this agent its own memory store and transcript tree
-    /// (`memory-<id>`, `session_raw-<id>`) instead of the workspace's shared
-    /// ones.
-    ///
-    /// Off by default. Transcripts are already kept apart without it — they
-    /// are keyed by agent name and every turn resumes only its own thread —
-    /// and a dedicated store is opened through the memory module, which a
-    /// library runtime only has when its host preloads modules
-    /// (`ServiceSet::memory_queue`). Without the module the open times out
-    /// on every turn. Turn this on only when memory itself must not be
-    /// shared between agents and the module is running.
-    pub fn dedicated_memory(mut self, dedicated: bool) -> Self {
-        self.dedicated_memory = dedicated;
-        self
-    }
-
     /// Arbitrary edits to the agent's config, applied last.
     ///
     /// The escape hatch for the config fields the spec does not model — not
@@ -249,19 +198,88 @@ impl AgentSpec {
         self
     }
 
+    /// The agent's own in-process tools, built fresh for every turn.
+    ///
+    /// Until this existed, an embedder's tools could only reach an agent over
+    /// [`mcp`](Self::mcp): a spec is data, and the session behind it is rebuilt
+    /// from that data on every turn, so a `Box<dyn Tool>` had nowhere to live
+    /// in between. The cost was paid by the model — a discovery call to learn
+    /// what the server offers, an `mcp_call_tool` envelope whose inner
+    /// `arguments` object no provider can validate or constrain decoding
+    /// against, and a prompt section explaining the indirection.
+    ///
+    /// A tool named here is a real tool: its own schema on the wire, called by
+    /// its own name.
+    ///
+    /// # A factory, not a belt
+    ///
+    /// `f` runs once per session build, and this path builds a session for
+    /// every turn, so in practice it runs per turn. That is forced —
+    /// [`Agent`](super::Agent) is `Clone` and `Box<dyn Tool>` is not, so a
+    /// stored belt could not survive the rebuild — but it is also useful: a
+    /// host whose tools are bound to
+    /// something shorter-lived than the agent (one episode, one room, one
+    /// assignment) can return a different belt each turn rather than
+    /// registering a second agent for it.
+    ///
+    /// The prompt's tool catalogue is rendered from the same belt in the same
+    /// build, so a belt that changes stays consistent with its description on
+    /// any turn that composes a prompt. A **resumed** session reuses its
+    /// persisted system messages, so a belt that moves under a long-lived
+    /// thread will be described by the prompt that thread opened with. Vary a
+    /// belt only on turns that run on a session of their own.
+    ///
+    /// # What the factory is told
+    ///
+    /// `f` receives a [`TurnContext`](openhuman_core::agent::TurnContext): the
+    /// agent, and the conversation the turn runs in when the caller named one
+    /// with [`Turn::session`](crate::Turn::session). A belt that varies has to
+    /// vary on something, and without this the factory would have to infer its
+    /// own occasion from state it closed over -- which holds only while the
+    /// agent serves one conversation at a time. The moment it serves two, a
+    /// belt bound to "the current episode" is a race rather than a decision.
+    ///
+    /// ```no_run
+    /// use openhuman_embed::{AgentSpec, HostTurnTools, Tool};
+    ///
+    /// # fn belt_for(_chat: Option<&str>) -> Vec<Box<dyn Tool>> { Vec::new() }
+    /// let spec = AgentSpec::new("reviewer")
+    ///     .tools(|turn| HostTurnTools::advertised(belt_for(turn.session_id())));
+    /// ```
+    #[must_use]
+    pub fn tools(
+        mut self,
+        f: impl for<'a> Fn(
+                openhuman_core::agent::TurnContext<'a>,
+            ) -> openhuman_core::agent::HostTurnTools
+            + Send
+            + Sync
+            + 'static,
+    ) -> Self {
+        self.host_tools = Some(std::sync::Arc::new(f));
+        self
+    }
+
+    /// [`Self::tools`] for a caller that already holds the factory.
+    ///
+    /// `HarnessBuilder` forwards its own `tools` through here rather than
+    /// wrapping the factory in a second closure.
+    #[must_use]
+    pub(crate) fn host_tools(mut self, factory: openhuman_core::agent::HostTools) -> Self {
+        self.host_tools = Some(factory);
+        self
+    }
+
     // ── accessors for the build step ─────────────────────────────────────
 
     pub(crate) fn into_parts(self) -> AgentSpecParts {
         AgentSpecParts {
             id: self.id,
             definition: self.definition,
-            system_prompt_suffix: self.system_prompt_suffix,
             provider: self.provider,
             access: self.access,
             tool_groups: self.tool_groups,
             domains: self.domains,
-            allowed_tools: self.allowed_tools,
-            allowed_skills: self.allowed_skills,
             #[cfg(feature = "mcp")]
             mcp_servers: self.mcp_servers,
             #[cfg(feature = "skills")]
@@ -271,8 +289,8 @@ impl AgentSpec {
             include_user_skills: self.include_user_skills,
             action_dir: self.action_dir,
             trusted: self.trusted,
-            dedicated_memory: self.dedicated_memory,
             config_fn: self.config_fn,
+            host_tools: self.host_tools,
         }
     }
 }
@@ -281,13 +299,10 @@ impl AgentSpec {
 pub(crate) struct AgentSpecParts {
     pub(crate) id: String,
     pub(crate) definition: AgentDefinitionSpec,
-    pub(crate) system_prompt_suffix: Option<String>,
     pub(crate) provider: Option<Provider>,
     pub(crate) access: Option<Access>,
     pub(crate) tool_groups: Option<ToolGroups>,
     pub(crate) domains: Option<DomainSet>,
-    pub(crate) allowed_tools: Option<Vec<String>>,
-    pub(crate) allowed_skills: Option<Vec<String>>,
     #[cfg(feature = "mcp")]
     pub(crate) mcp_servers: Vec<crate::harness::McpServer>,
     #[cfg(feature = "skills")]
@@ -297,8 +312,8 @@ pub(crate) struct AgentSpecParts {
     pub(crate) include_user_skills: bool,
     pub(crate) action_dir: Option<PathBuf>,
     pub(crate) trusted: Vec<(String, TrustedAccess)>,
-    pub(crate) dedicated_memory: bool,
     pub(crate) config_fn: Option<ConfigEdit>,
+    pub(crate) host_tools: Option<openhuman_core::agent::HostTools>,
 }
 
 impl std::fmt::Debug for AgentSpec {
@@ -308,37 +323,7 @@ impl std::fmt::Debug for AgentSpec {
             .field("id", &self.id)
             .field("access", &self.access)
             .field("action_dir", &self.action_dir)
-            .field("dedicated_memory", &self.dedicated_memory)
             .finish_non_exhaustive()
-    }
-}
-
-/// An [`AgentProfile`] for `id` with nothing enabled beyond the id itself.
-pub(crate) fn blank_profile(id: &str) -> AgentProfile {
-    AgentProfile {
-        id: id.to_string(),
-        name: id.to_string(),
-        description: String::new(),
-        agent_id: id.to_string(),
-        model_override: None,
-        temperature: None,
-        system_prompt_suffix: None,
-        allowed_tools: None,
-        built_in: false,
-        avatar_url: None,
-        voice_id: None,
-        soul_md: None,
-        soul_md_path: None,
-        composio_integrations: None,
-        memory_sources: None,
-        include_agent_conversations: true,
-        allowed_skills: None,
-        allowed_mcp_servers: None,
-        memory_dir_suffix: None,
-        is_master: false,
-        sort_order: None,
-        dedicated_memory: false,
-        dedicated_workspace: false,
     }
 }
 

@@ -19,7 +19,7 @@ use super::types::ToolPack;
 pub const PACKS: &[ToolPack] = &[
     ToolPack {
         id: "workflows",
-        summary: "Build, discover, run and inspect saved automation workflows (flows) and their run logs.",
+        summary: "Saved automation workflows: build, discover, run, inspect runs.",
         tools: &[
             "build_workflow",
             "discover_workflows",
@@ -54,21 +54,21 @@ pub const PACKS: &[ToolPack] = &[
             "get_tool_output_sample",
             "list_node_kinds",
             "get_node_kind_contract",
-            "list_agent_profiles",
+            "list_agent_definitions",
             "list_connectable_toolkits",
         ],
         owners: &["workflow_builder", "flow_discovery"],
+        guide: "",
     },
     ToolPack {
-        id: "crypto",
-        summary: "Crypto wallet and market actions: transfer quotes, swaps, bridges, contract calls and x402 paid requests.",
+        id: "web3",
+        summary: "Crypto wallet and market actions: quotes, swaps, bridges, contract calls, x402.",
         // `wallet_balances`, `wallet_network_defaults`, `wallet_supported_assets`,
         // `wallet_encode_erc20_transfer` and `wallet_execute_prepared` are NOT
         // listed: they exist as `wallet.*` RPC methods but have no agent Tool
         // wrapper, and `render_pack_filtered` skips an unresolvable name
         // silently — so listing them only made the rendered menu quietly short.
         tools: &[
-            "do_crypto",
             "wallet_status",
             "wallet_chain_status",
             "wallet_prepare_transfer",
@@ -84,14 +84,14 @@ pub const PACKS: &[ToolPack] = &[
             "web3_dapp_execute",
             "x402_request",
         ],
-        owners: &["crypto_agent"],
+        owners: &[],
+        guide: include_str!("guides/web3.md"),
     },
     ToolPack {
-        id: "integrations",
-        // The setup and use hand-offs (`setup_mcp_server`, `use_mcp_server`) are
-        // not members: they are the orchestrator's direct route into this family.
-        // See `DELIBERATELY_UNPACKED_HANDOFFS`.
-        summary: "MCP registry tools: search, inspect, install, connect and disconnect servers, check their status, and call a connected server's tools.",
+        id: "mcp",
+        // The orchestrator carries a narrow named set of MCP tools directly;
+        // keep those schemas visible without exposing every server tool.
+        summary: "MCP servers: search the catalog, connect, disconnect, check status, call tools.",
         tools: &[
             "mcp_registry_status",
             "mcp_registry_search",
@@ -101,33 +101,55 @@ pub const PACKS: &[ToolPack] = &[
             "mcp_registry_connect",
             "mcp_registry_disconnect",
             "mcp_registry_tool_call",
-            "mcp_registry_config_assist",
-            "mcp_registry_install",
             "mcp_registry_uninstall",
         ],
-        owners: &["mcp_agent", "mcp_setup", "planner"],
+        // The orchestrator owns it so the four registry tools on its belt stay
+        // advertised; the catalogue readers are `Deferred` and reached through
+        // `tool_search` or this skill.
+        owners: &["orchestrator", "planner"],
+        guide: include_str!("guides/mcp.md"),
     },
     ToolPack {
         id: "composio",
-        summary: "Connect and use third-party Composio toolkits: list connections and toolkits, raise a connect card, list and execute a toolkit's actions.",
+        summary: "Composio toolkits: list connections, list and execute actions.",
+        // `composio_connect` is deliberately not a member: it is the
+        // orchestrator's inline connect card. Packed, it sat in a pack that
+        // `ops::closed_by_direct_handoff` closes to the orchestrator (the
+        // planner, one `plan` hand-off away, owns this pack), so the prompt's
+        // "raise a connect card" route was a tool the model could not reach.
+        //
+        // `composio_list_toolkits` is unpacked for the same reason, one bug
+        // later. It answers "what can I connect?" — the backend allowlist as
+        // `{toolkits, catalog:[{slug, name, description, categories}]}` — and
+        // the orchestrator owns that conversation. Packed, it was `Deny`ed to
+        // the orchestrator by the rule above, and the only escapes were a
+        // `use_skill` that answers "no tools available" and a `plan` hand-off
+        // whose description ("break a task into a DAG of subtasks") gives a
+        // model no reason to associate it with a catalogue lookup. Observed:
+        // asked to list Composio apps, the orchestrator tried `use_skill`,
+        // then six `tool_search` calls, then scraped docs.composio.dev and
+        // reported a marketing figure of "1,552+ apps" instead of this
+        // install's real 119.
+        //
+        // Its own owners keep it by DECLARING it (`workflow_builder`, `planner`
+        // and `morning_briefing` agent.toml).
         tools: &[
             "composio",
             "composio_authorize",
-            "composio_connect",
             "composio_execute",
             "composio_list_connections",
-            "composio_list_toolkits",
             "composio_list_tools",
         ],
-        owners: &["integrations_agent", "workflow_builder", "planner"],
+        owners: &["workflow_builder", "planner", "morning_briefing"],
+        guide: "",
     },
     ToolPack {
         id: "skills",
-        // The install and run hand-offs (`setup_skills`, `run_skill`) are not
-        // members: they are the orchestrator's direct route into this family.
-        // See `DELIBERATELY_UNPACKED_HANDOFFS`.
-        summary: "Skill registry and runtime tools: search installed skills, browse, install \
-                  and uninstall from community registries, and read a skill's resources.",
+        // The install hand-off (`setup_skills`) is not a member: it is the
+        // orchestrator's direct route into this family. See
+        // `DELIBERATELY_UNPACKED_HANDOFFS`. Running an installed skill is the
+        // orchestrator's own `run_workflow`.
+        summary: "Skills: search installed, browse and install from registries, read resources.",
         tools: &[
             // In the pack, not outside it. A search tool advertised while the
             // tool it hands off to (`describe_workflow`) stays
@@ -147,14 +169,9 @@ pub const PACKS: &[ToolPack] = &[
             "install_workflow_from_url",
             "uninstall_workflow",
             "read_workflow_resource",
-            // The delegate into `skill_creator`, which owns this pack.
-            "create_skill",
         ],
         owners: &[
             "skill_setup",
-            "skill_executor",
-            "skill_creator",
-            "context_scout",
             // `workflow_builder` owns exactly ONE tool from this pack —
             // `read_workflow_resource`, which fetches a page of the
             // `flow-authoring` builtin skill, the reference manual its own
@@ -167,6 +184,7 @@ pub const PACKS: &[ToolPack] = &[
             // of the tool's own ~500 B — measured, not estimated.
             "workflow_builder",
         ],
+        guide: "",
     },
     ToolPack {
         id: "documents",
@@ -181,6 +199,7 @@ pub const PACKS: &[ToolPack] = &[
             "make_presentation",
         ],
         owners: &["presentation_agent"],
+        guide: "",
     },
     ToolPack {
         id: "audio",
@@ -191,10 +210,11 @@ pub const PACKS: &[ToolPack] = &[
             "audio_generate_and_email_podcast",
         ],
         owners: &[],
+        guide: "",
     },
     ToolPack {
         id: "system",
-        summary: "OpenHuman's own health, diagnostics, cost dashboard, service lifecycle, proxy and read-only config.",
+        summary: "OpenHuman settings: config, health, diagnostics, costs, service, proxy, credentials, app updates.",
         tools: &[
             "config_snapshot",
             "config_get_client_config",
@@ -222,15 +242,19 @@ pub const PACKS: &[ToolPack] = &[
             "daemon_host_prefs_get",
             "daemon_host_prefs_set",
             "proxy_config",
-            // The delegate into this same family. `settings_agent` owns the
-            // pack, so it keeps seeing the whole belt including this.
-            "manage_settings",
+            "session_state",
+            "credential_list",
+            "oauth_connect_url",
+            "oauth_list",
+            "update_check",
+            "update_apply",
         ],
-        owners: &["settings_agent"],
+        owners: &[],
+        guide: include_str!("guides/system.md"),
     },
     ToolPack {
-        id: "files",
-        summary: "Direct file and repository access: read, write, search by content, match by glob, list a directory, and read git state.",
+        id: "coding",
+        summary: "Code and repositories: search, edit, run scripts, test, lint, review a diff, git.",
         // `shell` covers every one of these for an agent that has it, so on a
         // belt that also carries `shell` the family is duplicate surface
         // charged on every turn. It stays one `use_skill` away, and the
@@ -240,58 +264,80 @@ pub const PACKS: &[ToolPack] = &[
         // `apply_patch` is deliberately NOT here. Editing an existing file
         // through a shell heredoc is the failure mode the patch tool exists to
         // prevent, so it is not duplicate surface in the way a `cat` is.
+        //
+        // `file_write` left for the same reason, and a measured one. It is the
+        // only tool on any belt that can CREATE a file: `apply_patch` and `edit`
+        // both canonicalize an existing target, and `shell` means a heredoc.
+        // Packed, it was not one `use_skill` away either — every owner below is
+        // in the orchestrator's `[subagents]` allowlist, so
+        // `ops::closed_by_direct_handoff` DENIED the whole pack to the agent
+        // whose own `agent.toml` says "`file_write` creates new files". The
+        // life-scenario benchmark caught the result: four of six tasks produced
+        // no file at all, and `meal-plan` burned eleven rounds discovering it
+        // had no writer. One ~300 B schema per turn is the right price for the
+        // single most common assistant task.
+        //
+        // `file_read` left too, because the harness itself tells the model to
+        // call it. Every oversized tool result is replaced by a
+        // `[tool_result_preview]` whose `read_with:` line is
+        // `file_read {"path": …}` (`agent/harness/tool_result_artifacts`), and
+        // the orchestrator is the agent that receives most of those previews
+        // (Gmail listings, catalogue dumps, search results). Packed, the same
+        // rule DENIED it, and the bare-name router (`packed_tool_route`) does
+        // not route a denied tool, so the call answered `unknown tool`. Observed
+        // on v0.64.0: asked to list ten emails, the orchestrator followed the
+        // preview, got `unknown tool file_read`, then invented `ranges` and
+        // `tool_read_file`, misused `desktop_continue_goal` and `plan`, and ran
+        // out of iterations without reading its own result.
+        //
+        // The rest of the family is `Deferred` rather than on any belt:
+        // `tool_search` finds one of them, and this skill hands out the whole
+        // loop with its playbook. It replaced the `code_executor` / `critic` /
+        // `tool_maker` specialists, whose value was that playbook.
+        // `lsp` is not listed: it registers only behind its capability gate,
+        // and every pack member must resolve in a default build. It is
+        // `Deferred` too, so `tool_search` still finds it when enabled.
         tools: &[
-            "file_read",
-            "file_write",
             "grep",
             "glob",
             "list",
             "git_operations",
+            "edit",
+            "node_exec",
+            "npm_exec",
+            "python_exec",
+            "curl",
+            "read_diff",
+            "run_linter",
+            "run_tests",
         ],
-        owners: &[
-            "code_executor",
-            "critic",
-            "planner",
-            "skill_creator",
-            "skill_executor",
-            "tool_maker",
-            "image_agent",
-            "video_agent",
-            "vision_agent",
-            "integrations_agent",
-        ],
+        // `planner` and `critic` are workflow-run workers, not chat
+        // delegates; inspecting files is their loop, so they keep the family.
+        owners: &["planner", "critic", "image_agent", "video_agent", "vision_agent"],
+        guide: include_str!("guides/coding.md"),
     },
     ToolPack {
         id: "storage",
-        summary: "Workspace file storage: upload a file, download one, list what is stored, and mint a shareable link.",
+        summary: "Workspace file storage: upload, download, list, shareable link.",
         tools: &[
             "storage_upload_file",
             "storage_download_file",
             "storage_list_files",
             "storage_get_link",
         ],
-        // Not ownerless: `code_executor` and `integrations_agent` both declare
-        // the family on their own belts, and an agent that uploads its own
-        // artifacts should not pay a `use_skill` round trip to hand one back.
-        owners: &["code_executor", "integrations_agent"],
+        owners: &[],
+        guide: "",
     },
     ToolPack {
         id: "scheduling",
-        summary: "Reminders and scheduled jobs: create, list, update, remove, run and inspect one-shot and recurring jobs.",
-        tools: &[
-            "schedule_task",
-            "cron_add",
-            "cron_list",
-            "cron_remove",
-            "cron_update",
-            "cron_run",
-            "cron_runs",
-        ],
-        owners: &["scheduler_agent"],
+        summary: "Reminders and scheduled jobs: create, list, update, remove, run, inspect.",
+        tools: &["cron"],
+        owners: &[],
+        guide: include_str!("guides/scheduling.md"),
     },
     ToolPack {
         id: "profile",
-        summary: "What OpenHuman durably knows about the user: record a preference (tone, defaults, working style), and edit the profile, persona or people-graph behind it.",
+        summary: "The user's profile: record preferences, edit persona and people graph.",
         // The delegate and the two raw tools belong together because they are
         // one question from the model's side — "remember this about the user" —
         // split only by how much editing it needs.
@@ -301,10 +347,11 @@ pub const PACKS: &[ToolPack] = &[
             "manage_profile_memory",
         ],
         owners: &["profile_memory_agent"],
+        guide: "",
     },
     ToolPack {
         id: "media",
-        summary: "Anything centred on a picture or a clip: generate one, or read one (describe, OCR, charts, UI elements).",
+        summary: "Images and clips: generate, or read (describe, OCR, charts, UI elements).",
         tools: &[
             "create_image",
             "create_video",
@@ -317,12 +364,14 @@ pub const PACKS: &[ToolPack] = &[
             "media_list_models",
         ],
         owners: &["image_agent", "video_agent", "vision_agent"],
+        guide: "",
     },
     ToolPack {
         id: "tasks",
-        summary: "The agent task board: create, edit, approve, clear and summarize agent tasks, task sources and their artifacts.",
+        summary: "Task sources, workflows, artifacts: add, preview, fetch, update, remove.",
         tools: &["manage_tasks"],
         owners: &["task_manager_agent"],
+        guide: "",
     },
     ToolPack {
         id: "goals",
@@ -341,15 +390,17 @@ pub const PACKS: &[ToolPack] = &[
         // moment buys nothing: the alternative to a visible `goal_complete` is
         // an objective that silently stays open and keeps driving autonomous
         // continuation. Same reasoning as `DELIBERATELY_UNPACKED_FLEET_TOOLS`.
-        summary: "Read, add and edit the user's durable long-term objectives, plus the agent-owned objective this thread is working toward. Closing one is the separate, always-available `goal_complete`.",
+        summary: "Long-term goals and this thread's objective: read, add, edit.",
         tools: &["goals", "goal_get", "goal_set"],
         owners: &["goals_agent"],
+        guide: "",
     },
     ToolPack {
-        id: "app_update",
-        summary: "Check for and apply OpenHuman application updates.",
-        tools: &["update_check", "update_apply"],
-        owners: &["settings_agent"],
+        id: "docs",
+        summary: "OpenHuman's own product docs: how a feature works, setup steps, where a setting lives.",
+        tools: &["gitbooks_search", "gitbooks_get_page"],
+        owners: &[],
+        guide: include_str!("guides/docs.md"),
     },
 ];
 
@@ -376,13 +427,12 @@ pub(crate) const DELIBERATELY_UNPACKED_FLEET_TOOLS: &[&str] = &[
     "spawn_parallel_agents",
 ];
 
-/// The MCP and skill hand-offs are deliberately NOT packed either (#6302).
+/// The skill hand-offs are deliberately not packed (#6302).
 ///
-/// `setup_mcp_server`, `use_mcp_server`, `setup_skills` and `run_skill` are the
-/// orchestrator's whole route into two families: it installs and uses MCP
-/// servers and skills only by handing the task to the specialist that owns
-/// that family. Packed, they sat in the same listing as the raw
-/// `mcp_registry_*` / `skill_registry_*` tools, one `use_skill` round trip
+/// `setup_skills` is the orchestrator's route into the skills family (it once
+/// shared this list with `run_skill`, whose job is now the orchestrator's own
+/// `run_workflow`). Packed, they sat in the same listing as the raw
+/// `skill_registry_*` tools, one `use_skill` round trip
 /// away, and a live account showed the cost: across 11 turns the orchestrator
 /// called the raw tools itself, guessed at tool names, and never handed off.
 /// Handing off is the most common thing it does with these families, so the
@@ -391,17 +441,12 @@ pub(crate) const DELIBERATELY_UNPACKED_FLEET_TOOLS: &[&str] = &[
 ///
 /// With a hand-off on the belt, `ops::closed_by_direct_handoff` closes the
 /// owning pack's raw tools to the caller, so the hand-off is its only route.
-/// The other packed hand-offs (`do_crypto`, `build_workflow`,
+/// The other packed hand-offs (`manage_tasks`, `build_workflow`,
 /// `discover_workflows`, `make_presentation`, ...) stay packed: each is its own
 /// token-cost decision, and the same closing rule takes effect for any of them
 /// as soon as it is unpacked and listed here.
 #[cfg(test)]
-pub(crate) const DELIBERATELY_UNPACKED_HANDOFFS: &[&str] = &[
-    "setup_mcp_server",
-    "use_mcp_server",
-    "setup_skills",
-    "run_skill",
-];
+pub(crate) const DELIBERATELY_UNPACKED_HANDOFFS: &[&str] = &["setup_skills"];
 
 pub fn pack(id: &str) -> Option<&'static ToolPack> {
     PACKS.iter().find(|p| p.id == id)
@@ -419,9 +464,9 @@ pub fn all_packed_tool_names() -> Vec<&'static str> {
 
 /// Every packed tool name that applies to `agent_id`.
 ///
-/// A pack is skipped entirely for the specialist that owns its family — see
-/// [`ToolPack::owners`]. The orchestrator owns no pack, so it sees the full
-/// withholding.
+/// A pack is skipped entirely for agents listed as its owners — see
+/// [`ToolPack::owners`]. The orchestrator owns the MCP integrations pack so
+/// its small named MCP tool set remains directly callable.
 pub fn packed_tool_names_for_agent(agent_id: &str) -> Vec<&'static str> {
     PACKS
         .iter()

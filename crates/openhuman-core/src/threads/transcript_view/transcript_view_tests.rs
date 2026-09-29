@@ -1,12 +1,14 @@
 //! Projection + pagination + sanitization tests for the transcript view.
 
+use super::get_page;
 use super::project::{project_records, project_thread};
 use super::types::{DisplayItem, ToolCallStatus};
-use super::{get_page, DEFAULT_LIMIT};
-use crate::agent::harness::session::transcript::{self, read_transcript_display};
-use crate::agent::messages::ChatMessage;
+use crate::agent::messages::{
+    attach_chat_tool_failure_metadata, transcript_message_from_chat, ChatMessage,
+};
 use std::path::{Path, PathBuf};
 use tempfile::TempDir;
+use tinyagents_session::transcript::{self, read_transcript_display};
 
 fn meta_line(thread_id: &str) -> String {
     format!(
@@ -16,7 +18,7 @@ fn meta_line(thread_id: &str) -> String {
 
 /// Write a raw JSONL transcript (meta header + given body lines) into
 /// `session_raw/{stem}.jsonl` and return the path.
-fn write_raw(workspace: &Path, stem: &str, thread_id: &str, body: &[&str]) -> PathBuf {
+pub(super) fn write_raw(workspace: &Path, stem: &str, thread_id: &str, body: &[&str]) -> PathBuf {
     let path = transcript::resolve_keyed_transcript_path(workspace, stem).expect("resolve");
     write_raw_at(&path, thread_id, body);
     path
@@ -65,6 +67,7 @@ fn projects_turn_with_tools_reasoning_and_sanitization() {
             content,
             display_content,
             request_id,
+            ..
         } => {
             assert!(content.starts_with("Current Date & Time:"), "raw kept");
             assert_eq!(
@@ -77,15 +80,30 @@ fn projects_turn_with_tools_reasoning_and_sanitization() {
         other => panic!("expected userMessage, got {other:?}"),
     }
     match &items[2] {
-        DisplayItem::Reasoning { text } => assert_eq!(text, "I should call the weather tool."),
+        DisplayItem::Reasoning { text, iteration } => {
+            assert_eq!(text, "I should call the weather tool.");
+            assert_eq!(
+                *iteration,
+                Some(1),
+                "reasoning carries its step's iteration"
+            );
+        }
         other => panic!("expected reasoning, got {other:?}"),
     }
     match &items[3] {
         DisplayItem::AssistantMessage {
-            content, interim, ..
+            content,
+            interim,
+            ts,
+            ..
         } => {
             assert_eq!(content, "Let me check.");
             assert!(*interim, "tool-calling assistant step is interim");
+            assert_eq!(
+                ts.as_deref(),
+                Some("2026-07-21T09:00:01Z"),
+                "assistantMessage carries the underlying record's ts"
+            );
         }
         other => panic!("expected interim assistantMessage, got {other:?}"),
     }
@@ -97,6 +115,7 @@ fn projects_turn_with_tools_reasoning_and_sanitization() {
             result,
             status,
             failure,
+            ..
         } => {
             assert_eq!(call_id, "call-1");
             assert_eq!(name, "get_weather");
@@ -114,13 +133,56 @@ fn projects_turn_with_tools_reasoning_and_sanitization() {
     }
     match &items[5] {
         DisplayItem::AssistantMessage {
-            content, interim, ..
+            content,
+            interim,
+            ts,
+            ..
         } => {
             assert_eq!(content, "It's 72F and sunny in NYC.");
             assert!(!*interim, "final answer is not interim");
+            assert_eq!(
+                ts.as_deref(),
+                Some("2026-07-21T09:00:02Z"),
+                "final assistantMessage carries its own record's ts, not the interim step's"
+            );
         }
         other => panic!("expected final assistantMessage, got {other:?}"),
     }
+}
+
+#[test]
+fn reuses_synthetic_tool_call_ids_in_a_later_turn() {
+    let dir = TempDir::new().unwrap();
+    let path = write_raw(
+        dir.path(),
+        "synthetic_ids",
+        "thr_synthetic",
+        &[
+            r#"{"role":"user","content":"one","request_id":"req-1"}"#,
+            r#"{"role":"assistant","content":"","provider":"test","model":"test","usage":{"input":1,"output":1,"cached_input":0,"cost_usd":0.0},"ts":"2026-07-21T00:00:01Z","tool_calls":[{"id":"call_0","name":"first","arguments":"{}"}],"request_id":"req-1"}"#,
+            r#"{"role":"tool","content":"first result","id":"call_0","request_id":"req-1"}"#,
+            r#"{"role":"user","content":"two","request_id":"req-2"}"#,
+            r#"{"role":"assistant","content":"","provider":"test","model":"test","usage":{"input":1,"output":1,"cached_input":0,"cost_usd":0.0},"ts":"2026-07-21T00:00:02Z","tool_calls":[{"id":"call_0","name":"second","arguments":"{}"}],"request_id":"req-2"}"#,
+            r#"{"role":"tool","content":"second result","id":"call_0","request_id":"req-2"}"#,
+        ],
+    );
+    let display = read_transcript_display(&path).unwrap();
+    let items = project_records(&display.records);
+
+    let calls: Vec<_> = items
+        .iter()
+        .filter_map(|item| match item {
+            DisplayItem::ToolCall { name, result, .. } => Some((name.as_str(), result.as_deref())),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(
+        calls,
+        vec![
+            ("first", Some("first result")),
+            ("second", Some("second result"))
+        ]
+    );
 }
 
 #[test]
@@ -282,19 +344,19 @@ fn subagent_file_projects_as_nested_item() {
             _ => None,
         })
         .expect("subagent item present");
-    assert_eq!(subagent.0, "orchestrator");
+    assert_eq!(subagent.0, "100_coder", "unique run id, not the agent name");
     assert!(subagent.1.iter().any(
         |i| matches!(i, DisplayItem::AssistantMessage { content, .. } if content == "sub work done")
     ));
 }
 
 #[test]
-fn profile_scoped_root_and_subagent_project_together() {
+fn canonical_root_and_subagent_project_together() {
     let dir = TempDir::new().unwrap();
-    let raw_dir = dir.path().join("session_raw-alice");
+    let raw_dir = dir.path().join("session_raw");
     std::fs::create_dir_all(&raw_dir).unwrap();
     let root_stem = "450_orchestrator";
-    let thread_id = "thr_profile";
+    let thread_id = "thr_canonical";
 
     write_raw_at(
         &raw_dir.join(format!("{root_stem}.jsonl")),
@@ -388,6 +450,8 @@ fn tool_failure_metadata_round_trips_write_to_display_line() {
     let dir = TempDir::new().unwrap();
     let now = "2026-07-21T09:00:00Z".to_string();
     let meta = transcript::TranscriptMeta {
+        session_id: None,
+        parent_session_id: None,
         agent_name: "orchestrator".into(),
         agent_id: Some("orchestrator".into()),
         agent_type: Some("root".into()),
@@ -397,6 +461,7 @@ fn tool_failure_metadata_round_trips_write_to_display_line() {
         created: now.clone(),
         updated: now,
         turn_count: 1,
+        prefix_message_count: None,
         input_tokens: 0,
         output_tokens: 0,
         cached_input_tokens: 0,
@@ -412,7 +477,7 @@ fn tool_failure_metadata_round_trips_write_to_display_line() {
         extra_metadata: None,
         cache_breakpoints: Vec::new(),
     };
-    transcript::attach_tool_failure_metadata(&mut tool_msg, Some("boom: exit 1"));
+    attach_chat_tool_failure_metadata(&mut tool_msg, Some("boom: exit 1"));
 
     let messages = vec![
         ChatMessage {
@@ -425,6 +490,7 @@ fn tool_failure_metadata_round_trips_write_to_display_line() {
         tool_msg,
     ];
     let path = transcript::resolve_keyed_transcript_path(dir.path(), "700_orchestrator").unwrap();
+    let messages: Vec<_> = messages.iter().map(transcript_message_from_chat).collect();
     transcript::write_transcript(&path, &messages, &meta, None).unwrap();
 
     let display = read_transcript_display(&path).unwrap();
@@ -466,6 +532,8 @@ fn append_transcript_turn_projects_full_display_shape() {
     let dir = TempDir::new().unwrap();
     let now = "2026-07-21T09:00:00Z".to_string();
     let meta = transcript::TranscriptMeta {
+        session_id: None,
+        parent_session_id: None,
         agent_name: "orchestrator".into(),
         agent_id: Some("orchestrator".into()),
         agent_type: Some("root".into()),
@@ -475,6 +543,7 @@ fn append_transcript_turn_projects_full_display_shape() {
         created: now.clone(),
         updated: now,
         turn_count: 1,
+        prefix_message_count: None,
         input_tokens: 30,
         output_tokens: 13,
         cached_input_tokens: 0,
@@ -500,7 +569,7 @@ fn append_transcript_turn_projects_full_display_shape() {
         usage: usage(0.001),
         ts: "2026-07-21T09:00:01Z".into(),
         reasoning_content: Some("I should call the weather tool.".into()),
-        tool_calls: vec![crate::inference::provider::ToolCall {
+        tool_calls: vec![transcript::TranscriptToolCall {
             id: "call-1".into(),
             name: "get_weather".into(),
             arguments: r#"{"city":"NYC"}"#.into(),
@@ -519,12 +588,17 @@ fn append_transcript_turn_projects_full_display_shape() {
         iteration: 2,
     };
 
-    let msg = |id: Option<&str>, role: &str, content: &str| ChatMessage {
+    let msg = |id: Option<&str>, role: &str, content: &str| transcript::TranscriptMessage {
         id: id.map(str::to_string),
         role: role.into(),
         content: content.into(),
         extra_metadata: None,
         cache_breakpoints: Vec::new(),
+        turn_usage: None,
+        request_id: None,
+        preserve_request_id: false,
+        interrupted: false,
+        tool_failure: None,
     };
 
     let first = vec![
@@ -574,7 +648,7 @@ fn append_transcript_turn_projects_full_display_shape() {
     let reasoning = items
         .iter()
         .find_map(|i| match i {
-            DisplayItem::Reasoning { text } => Some(text.clone()),
+            DisplayItem::Reasoning { text, .. } => Some(text.clone()),
             _ => None,
         })
         .expect("reasoning projected from turn_usage");
@@ -651,84 +725,5 @@ fn append_transcript_turn_projects_full_display_shape() {
     assert!(!assistants[1].4, "final answer is not interim");
 }
 
-#[test]
-fn subagent_anchors_to_parent_turn_by_spawn_timestamp() {
-    let dir = TempDir::new().unwrap();
-    let root_stem = "800_orchestrator";
-    let thread_id = "thr_anchor";
-
-    let t1 = chrono::DateTime::from_timestamp(1_000_000, 0)
-        .unwrap()
-        .to_rfc3339();
-    let t2 = chrono::DateTime::from_timestamp(2_000_000, 0)
-        .unwrap()
-        .to_rfc3339();
-
-    // Two turns: req-1 (assistant ts t1), req-2 (assistant ts t2).
-    let root_body = vec![
-        r#"{"role":"user","content":"one","request_id":"req-1"}"#.to_string(),
-        format!(
-            r#"{{"role":"assistant","content":"a1","provider":"anthropic","model":"m","usage":{{"input":1,"output":1,"cached_input":0,"cost_usd":0.0}},"ts":"{t1}","iteration":1,"request_id":"req-1"}}"#
-        ),
-        r#"{"role":"user","content":"two","request_id":"req-2"}"#.to_string(),
-        format!(
-            r#"{{"role":"assistant","content":"a2","provider":"anthropic","model":"m","usage":{{"input":1,"output":1,"cached_input":0,"cost_usd":0.0}},"ts":"{t2}","iteration":1,"request_id":"req-2"}}"#
-        ),
-    ];
-    let root_refs: Vec<&str> = root_body.iter().map(String::as_str).collect();
-    write_raw(dir.path(), root_stem, thread_id, &root_refs);
-
-    // Sub-agent stems encode the spawn unix timestamp: coder spawned during
-    // turn 1 (1_000_050), planner during turn 2 (2_000_050).
-    write_raw(
-        dir.path(),
-        &format!("{root_stem}__1000050_coder"),
-        thread_id,
-        &[r#"{"role":"assistant","content":"coder work"}"#],
-    );
-    write_raw(
-        dir.path(),
-        &format!("{root_stem}__2000050_planner"),
-        thread_id,
-        &[r#"{"role":"assistant","content":"planner work"}"#],
-    );
-
-    let projected = project_thread(dir.path(), thread_id).expect("project thread");
-    // The seeded sub-agent files share the `orchestrator` meta agent name, so
-    // key the anchoring by each sub-agent's inner work content instead of `id`.
-    let mut anchors: Vec<(String, Option<String>)> = projected
-        .items
-        .iter()
-        .filter_map(|i| match i {
-            DisplayItem::Subagent {
-                request_id, items, ..
-            } => {
-                let marker = items.iter().find_map(|inner| match inner {
-                    DisplayItem::AssistantMessage { content, .. } => Some(content.clone()),
-                    _ => None,
-                })?;
-                Some((marker, request_id.clone()))
-            }
-            _ => None,
-        })
-        .collect();
-    anchors.sort();
-
-    assert_eq!(
-        anchors,
-        vec![
-            ("coder work".to_string(), Some("req-1".to_string())),
-            ("planner work".to_string(), Some("req-2".to_string())),
-        ],
-        "each sub-agent anchors to the turn active at its spawn time"
-    );
-}
-
-#[test]
-fn get_page_missing_thread_is_empty_not_error() {
-    let dir = TempDir::new().unwrap();
-    let page = get_page(dir.path(), "no_such_thread", None, Some(DEFAULT_LIMIT));
-    assert!(!page.has_transcript);
-    assert_eq!(page.total, 0);
-    assert!(page.items.is_empty());
-}
+#[path = "transcript_view_subagent_tests.rs"]
+mod subagent_tests;

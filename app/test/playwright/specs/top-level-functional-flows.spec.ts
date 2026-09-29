@@ -103,9 +103,8 @@ test.describe('Top-level functional flows', () => {
       ['/home', /Assistant|Message|Chat/],
       ['/connections', /Composio Integrations|Composio|Channels|MCP Servers/],
       ['/chat', /Assistant|Message|Chat/],
-      ['/settings/notifications-hub', /Notifications/],
+      ['/settings/notifications-hub', /Account|Plan & billing/],
       ['/notifications', /Notifications|System Events/],
-      ['/rewards', /Rewards|Referrals|Redeem/],
     ];
 
     for (const [hash, text] of routes) {

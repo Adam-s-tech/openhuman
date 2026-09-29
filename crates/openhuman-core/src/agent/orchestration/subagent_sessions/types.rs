@@ -2,8 +2,8 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
-use crate::agent::harness::subagent_runner::SubagentRunStatus;
 use crate::agent::messages::ChatMessage;
+use crate::agent::subagent_host::SubagentRunStatus;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -24,6 +24,7 @@ impl DurableSubagentStatus {
             // active and can be resumed/reused, so it maps to Idle — not Failed
             // (no hard error) and not AwaitingUser (not paused for input).
             SubagentRunStatus::Incomplete { .. } => Self::Idle,
+            SubagentRunStatus::Cancelled => Self::Failed,
         }
     }
 
@@ -38,7 +39,6 @@ pub struct SubagentSessionSelector {
     pub parent_session: String,
     pub parent_thread_id: Option<String>,
     pub agent_id: String,
-    pub toolkit: Option<String>,
     pub model: Option<String>,
     pub sandbox_mode: String,
     pub action_root: Option<String>,
@@ -54,7 +54,6 @@ pub struct DurableSubagentSession {
     pub worker_thread_id: Option<String>,
     pub agent_id: String,
     pub display_name: Option<String>,
-    pub toolkit: Option<String>,
     pub model: Option<String>,
     pub sandbox_mode: String,
     pub action_root: Option<String>,
@@ -78,7 +77,6 @@ pub struct DurableSubagentSessionSummary {
     pub worker_thread_id: Option<String>,
     pub agent_id: String,
     pub display_name: Option<String>,
-    pub toolkit: Option<String>,
     pub model: Option<String>,
     pub sandbox_mode: String,
     pub action_root: Option<String>,
@@ -101,7 +99,6 @@ impl From<&DurableSubagentSession> for DurableSubagentSessionSummary {
             worker_thread_id: session.worker_thread_id.clone(),
             agent_id: session.agent_id.clone(),
             display_name: session.display_name.clone(),
-            toolkit: session.toolkit.clone(),
             model: session.model.clone(),
             sandbox_mode: session.sandbox_mode.clone(),
             action_root: session.action_root.clone(),
@@ -125,7 +122,6 @@ impl DurableSubagentSession {
             && self.parent_session == selector.parent_session
             && self.parent_thread_id == selector.parent_thread_id
             && self.agent_id == selector.agent_id
-            && self.toolkit == selector.toolkit
             && self.model == selector.model
             && self.sandbox_mode == selector.sandbox_mode
             && self.action_root == selector.action_root

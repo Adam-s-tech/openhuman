@@ -5,8 +5,7 @@ fn both_timeout_shapes_still_render_the_same_user_facing_copy() {
     // The telemetry split must not change what the user sees: either way the
     // turn ran out of time and the graceful `turn_timeout` copy is correct.
     let marker = super::super::web_errors::turn_timeout_error_message(600);
-    let harness =
-        "run timed out: tool call for run `agent_turn` exceeded its remaining wall-clock budget (26375 ms)";
+    let harness = "run timed out: tool call for run `agent_turn` exceeded its remaining wall-clock budget (26375 ms)";
     assert_eq!(classify_inference_error(&marker).error_type, "turn_timeout");
     assert_eq!(classify_inference_error(harness).error_type, "turn_timeout");
 }
@@ -193,7 +192,6 @@ async fn start_chat_chat_error_event_serializes_structured_fields_to_json_wire()
         None,
         None,
         None,
-        None,
         ChatRequestMetadata::default(),
     )
     .await
@@ -284,7 +282,6 @@ async fn start_chat_emits_structured_rate_limit_metadata_on_chat_error_event() {
         "rate-limit-client",
         "rate-limit-thread",
         "Please summarize this in one line.",
-        None,
         None,
         None,
         None,
@@ -580,13 +577,9 @@ fn classify_inference_error_retryable_429_message_keeps_retry_hint() {
 }
 
 #[test]
-fn generic_error_copy_is_sanitized_and_has_discord_report_action() {
+fn generic_error_copy_is_plain_text_for_the_error_card() {
     let message = generic_inference_error_user_message();
-    assert!(message.contains("Something went wrong. Please try again."));
-    assert!(message.contains("This error has been reported."));
-    assert!(message.contains(
-        "<openhuman-link path=\"community/discord-report\">Report on Discord</openhuman-link>"
-    ));
+    assert_eq!(message, "Something went wrong. Please try again.");
 }
 
 #[test]

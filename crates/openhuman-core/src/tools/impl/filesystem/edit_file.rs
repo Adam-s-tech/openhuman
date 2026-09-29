@@ -8,11 +8,11 @@
 
 use crate::agent::file_state;
 use crate::security::{CommandClass, GateDecision, SecurityPolicy};
-use crate::tools::traits::{PermissionLevel, Tool, ToolCallOptions, ToolResult};
 use async_trait::async_trait;
 use serde_json::json;
 use std::sync::Arc;
 use tinytools::ToolRunContext;
+use tinytools::{PermissionLevel, Tool, ToolCallOptions, ToolResult};
 
 const MAX_FILE_BYTES: u64 = 5 * 1024 * 1024;
 
@@ -39,6 +39,10 @@ impl EditFileTool {
 
 #[async_trait]
 impl Tool for EditFileTool {
+    fn exposure(&self) -> tinytools::ToolExposure {
+        tinytools::ToolExposure::Deferred
+    }
+
     fn name(&self) -> &str {
         "edit"
     }

@@ -8,6 +8,7 @@ mod channel_ops;
 mod parallel_turn;
 mod start_chat;
 mod state;
+mod system_turn;
 #[cfg(any(test, debug_assertions))]
 mod test_hooks;
 mod turn_guards;
@@ -19,11 +20,20 @@ pub(super) use budget_correlation::{
 
 pub use channel_ops::{
     cancel_chat, cancel_chat_scoped, channel_web_cancel, channel_web_chat, channel_web_queue_clear,
-    channel_web_queue_status,
+    channel_web_queue_remove, channel_web_queue_status,
 };
 
-pub use start_chat::start_chat;
+// `is_guardrail_error_message` / `GUARDRAIL_ERROR_PREFIX` are for a future
+// RPC-layer classifier (mirrors `is_backend_unavailable_message`) — nothing
+// in-crate consumes them yet, hence the allow.
+#[allow(unused_imports)]
+pub use start_chat::{
+    is_guardrail_error_message, start_chat, StartChatError, GUARDRAIL_ERROR_PREFIX,
+};
+pub use system_turn::{run_system_turn_on_thread, SESSION_CHECKOUT_FAILURE, SYSTEM_CLIENT_ID};
 
+#[cfg(test)]
+pub use state::drain_queued_turns_for_test;
 #[cfg(any(test, debug_assertions))]
 pub use state::parallel_in_flight_entries_for_test;
 pub(super) use state::THREAD_SESSIONS;

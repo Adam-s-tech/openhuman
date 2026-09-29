@@ -3,7 +3,7 @@
 //! These tests avoid live Composio/backend calls and exercise public helper
 //! surfaces that feed the JSON-RPC and agent-tool paths.
 
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, OnceLock};
 
 use axum::body::to_bytes;
 use axum::extract::{Request, State};
@@ -14,6 +14,8 @@ use axum::{Json, Router};
 use serde_json::{json, Value};
 use tempfile::tempdir;
 
+use openhuman_core::agent::prompts::ConnectedIntegration;
+use openhuman_core::config::Config;
 use openhuman_core::core::all::RegisteredController;
 use openhuman_core::integrations::composio::client::{
     create_composio_client, direct_execute, ComposioClientKind,
@@ -52,22 +54,23 @@ use openhuman_core::integrations::composio::{
     all_composio_agent_tools, all_composio_controller_schemas, all_composio_registered_controllers,
     cached_active_integrations, connected_set_hash, connection_identity,
     fetch_connected_integrations, fetch_connected_integrations_status,
-    invalidate_connected_integrations_cache, ComposioActionTool,
-    ComposioClient, FetchConnectedIntegrationsStatus,
+    invalidate_connected_integrations_cache, ComposioActionTool, ComposioClient,
+    FetchConnectedIntegrationsStatus,
 };
-use openhuman_core::config::Config;
-use openhuman_core::agent::context::prompt::ConnectedIntegration;
 use openhuman_core::security::credentials::{
     AuthService, APP_SESSION_PROVIDER, DEFAULT_AUTH_PROFILE_NAME,
 };
+
 use openhuman_core::integrations::IntegrationClient;
 use openhuman_core::security::{AutonomyLevel, SecurityPolicy};
-use openhuman_core::tools::{
-    ComposioTool, PermissionLevel, Tool, ToolCallOptions, ToolCategory,
-};
+use openhuman_core::tools::ComposioTool;
+use tinytools::{PermissionLevel, Tool, ToolCallOptions, ToolCategory};
+
+static ENV_LOCK: &OnceLock<Mutex<()>> = &crate::SHARED_ENV_LOCK;
 
 #[test]
 fn composio_prepare_execute_arguments_normalizes_calendar_and_notion_payloads() {
+    crate::tinyhumans_boot::boot();
     let calendar = prepare_execute_arguments(
         " GOOGLECALENDAR_EVENTS_LIST ",
         Some(json!({
@@ -119,6 +122,7 @@ fn composio_prepare_execute_arguments_normalizes_calendar_and_notion_payloads() 
 
 #[test]
 fn composio_prepare_execute_arguments_validates_gmail_mutations() {
+    crate::tinyhumans_boot::boot();
     let empty = prepare_execute_arguments("GMAIL_SEND_EMAIL", None)
         .expect_err("gmail send needs a recipient");
     assert!(empty.contains("recipient"));
@@ -164,6 +168,7 @@ fn composio_prepare_execute_arguments_validates_gmail_mutations() {
 
 #[test]
 fn composio_error_mapping_classifies_and_formats_provider_failures() {
+    crate::tinyhumans_boot::boot();
     assert_eq!(ComposioErrorClass::Validation.as_str(), "validation");
     assert_eq!(
         ComposioErrorClass::InsufficientScope.as_str(),
@@ -255,6 +260,7 @@ fn composio_error_mapping_classifies_and_formats_provider_failures() {
 
 #[test]
 fn composio_oauth_handoff_helpers_classify_meta_status_and_rate_limits() {
+    crate::tinyhumans_boot::boot();
     assert!(is_meta_oauth_toolkit(" Instagram "));
     assert!(is_meta_oauth_toolkit("FACEBOOK"));
     assert!(!is_meta_oauth_toolkit("gmail"));
@@ -296,6 +302,7 @@ fn composio_oauth_handoff_helpers_classify_meta_status_and_rate_limits() {
 
 #[tokio::test]
 async fn composio_connected_integrations_public_helpers_handle_empty_auth_and_identity_edges() {
+    crate::tinyhumans_boot::boot();
     let dir = tempdir().expect("tempdir");
     let config = Config {
         workspace_dir: dir.path().to_path_buf(),
@@ -364,6 +371,7 @@ async fn composio_connected_integrations_public_helpers_handle_empty_auth_and_id
 
 #[tokio::test]
 async fn composio_ops_mode_is_local_and_trigger_history_reflects_module_archive_availability() {
+    crate::tinyhumans_boot::boot();
     let dir = tempdir().expect("tempdir");
     let mut config = Config {
         workspace_dir: dir.path().to_path_buf(),
@@ -410,6 +418,7 @@ async fn composio_ops_mode_is_local_and_trigger_history_reflects_module_archive_
 
 #[test]
 fn composio_action_tool_metadata_is_stable_without_network_execution() {
+    crate::tinyhumans_boot::boot();
     let dir = tempdir().expect("tempdir");
     let config = Config {
         workspace_dir: dir.path().to_path_buf(),
@@ -449,6 +458,7 @@ fn composio_action_tool_metadata_is_stable_without_network_execution() {
 
 #[tokio::test]
 async fn composio_action_tool_execute_reports_missing_route_without_network() {
+    crate::tinyhumans_boot::boot();
     let tmp = tempfile::tempdir().expect("temp config directory");
     let mut config = Config::default();
     config.config_path = tmp.path().join("config.toml");
@@ -471,6 +481,7 @@ async fn composio_action_tool_execute_reports_missing_route_without_network() {
 
 #[tokio::test]
 async fn composio_client_and_dispatch_reject_invalid_inputs_before_network() {
+    crate::tinyhumans_boot::boot();
     let inner = Arc::new(IntegrationClient::new(
         "http://127.0.0.1:0".into(),
         "test-token".into(),
@@ -585,6 +596,7 @@ async fn composio_client_and_dispatch_reject_invalid_inputs_before_network() {
 
 #[test]
 fn composio_client_factory_modes_are_deterministic_without_network() {
+    crate::tinyhumans_boot::boot();
     let dir = tempdir().expect("tempdir");
     let mut config = Config {
         workspace_dir: dir.path().to_path_buf(),
@@ -621,6 +633,7 @@ fn composio_client_factory_modes_are_deterministic_without_network() {
 
 #[tokio::test]
 async fn composio_backend_client_local_validation_rejects_bad_inputs_before_http() {
+    crate::tinyhumans_boot::boot();
     let client = ComposioClient::new(Arc::new(IntegrationClient::new(
         "http://127.0.0.1:9".to_string(),
         "unused-token".to_string(),
@@ -705,6 +718,7 @@ async fn composio_backend_client_local_validation_rejects_bad_inputs_before_http
 
 #[tokio::test]
 async fn composio_backend_client_surfaces_get_post_envelope_and_status_errors() {
+    crate::tinyhumans_boot::boot();
     async fn handler(request: Request) -> Response {
         let method = request.method().clone();
         let path = request.uri().path().to_string();
@@ -774,6 +788,7 @@ async fn composio_backend_client_surfaces_get_post_envelope_and_status_errors() 
 
 #[tokio::test]
 async fn composio_backend_factory_uses_stored_session_and_configured_backend() {
+    crate::tinyhumans_boot::boot();
     async fn handler(request: Request) -> Response {
         let auth = request
             .headers()
@@ -831,6 +846,21 @@ async fn composio_backend_factory_uses_stored_session_and_configured_backend() {
 
 #[tokio::test]
 async fn composio_controller_registry_and_scope_handlers_cover_validation_edges() {
+    let _env_lock = ENV_LOCK
+        .get_or_init(|| Mutex::new(()))
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    crate::tinyhumans_boot::boot();
+    // The controller loads config through the process workspace resolver. Pin
+    // this test to a null memory driver so its fail-closed assertion does not
+    // depend on a developer's local config or attempt to load TinyMemory.
+    let workspace = tempdir().expect("isolated workspace");
+    std::fs::write(
+        workspace.path().join("config.toml"),
+        "[subsystems.memory]\ndriver = \"null\"\n",
+    )
+    .expect("write isolated memory config");
+    let _workspace = WorkspaceEnvGuard::set(workspace.path());
     let schemas = all_composio_controller_schemas();
     let registered = all_composio_registered_controllers();
     assert_eq!(schemas.len(), registered.len());
@@ -871,45 +901,49 @@ async fn composio_controller_registry_and_scope_handlers_cover_validation_edges(
     assert!(invalid_write.contains("invalid 'write'"));
     // The storage half must refuse rather than report a write it did not do.
     //
-    // This used to assert "memory client not initialised", the refusal the
-    // in-process engine handle produced. `1bf2037a0` ("Stop booting the second
-    // in-process memory engine", openhuman#5725) removed that handle and moved
-    // the storage half onto the bound driver, so the string stopped existing
-    // anywhere in `src/` — and this assertion went on asserting it, failing every
-    // lane that runs raw_coverage. It survived review because the coverage lane
-    // is changed-modules-scoped and did not run this target.
-    //
-    // Re-anchored on the arm this path actually reaches. `save` refuses on three
-    // grounds and they are deliberately distinguishable: "memory driver
-    // unavailable" (nothing bound), "does not serve Graph" (bound, wrong family),
-    // and "kv_put failed" (bound, right family, the write itself failed). Here
-    // the module provider binds and does serve Graph, so it is the third — the
-    // module cdylib is never loaded in a test binary that runs no boot sequence.
-    //
-    // The tag and the arm are pinned; the reason after the colon is NOT. That
-    // text belongs to the module loader, not to this handler, and pinning
-    // another component's wording here is how the previous assertion became
-    // orphaned in the first place.
+    // This transport-only test does not configure a memory module, so the
+    // workspace binds the null driver. Pin the refusal at the driver's family
+    // boundary instead of claiming to reach the module's `kv_put` path.
     let memory_missing = composio_call(
         set_scopes,
         json!({ "toolkit": "gmail", "read": true, "write": true, "admin": false }),
     )
     .await
-    .expect_err("the backing write must fail with no module host policy published");
+    .expect_err("the backing write must fail when the bound driver has no Graph family");
     assert!(
         memory_missing.starts_with("[composio][scopes] "),
         "the refusal must be tagged as the scopes storage half's, so a failure here \
          points at this handler rather than at whatever it called; got: {memory_missing}"
     );
     assert!(
-        memory_missing.contains("kv_put failed"),
-        "set_user_scopes must fail CLOSED on the backing write rather than reporting \
-         a save it did not perform; got: {memory_missing}"
+        memory_missing.contains("does not serve Graph"),
+        "set_user_scopes must fail CLOSED when the bound driver cannot store scopes; \
+         got: {memory_missing}"
     );
+}
+
+struct WorkspaceEnvGuard(Option<std::ffi::OsString>);
+
+impl WorkspaceEnvGuard {
+    fn set(path: &std::path::Path) -> Self {
+        let previous = std::env::var_os("OPENHUMAN_WORKSPACE");
+        unsafe { std::env::set_var("OPENHUMAN_WORKSPACE", path) };
+        Self(previous)
+    }
+}
+
+impl Drop for WorkspaceEnvGuard {
+    fn drop(&mut self) {
+        match self.0.take() {
+            Some(previous) => unsafe { std::env::set_var("OPENHUMAN_WORKSPACE", previous) },
+            None => unsafe { std::env::remove_var("OPENHUMAN_WORKSPACE") },
+        }
+    }
 }
 
 #[test]
 fn composio_controller_schema_catalog_covers_all_declared_functions() {
+    crate::tinyhumans_boot::boot();
     // (function, required input names, first output name). Assert the required
     // inputs are *present* rather than pinning `inputs.len() == N` — the exact
     // count broke whenever an additive optional param was declared (plan.md §3).
@@ -957,6 +991,7 @@ fn composio_controller_schema_catalog_covers_all_declared_functions() {
 
 #[tokio::test]
 async fn composio_controller_handlers_reject_bad_params_before_network() {
+    crate::tinyhumans_boot::boot();
     let registered = all_composio_registered_controllers();
 
     let missing_authorize = composio_call(composio_controller(&registered, "authorize"), json!({}))
@@ -1088,6 +1123,7 @@ async fn composio_call(controller: &RegisteredController, params: Value) -> Resu
 
 #[tokio::test]
 async fn composio_agent_tools_cover_metadata_missing_params_and_scope_helpers() {
+    crate::tinyhumans_boot::boot();
     let dir = tempdir().expect("tempdir");
     let config = Config {
         workspace_dir: dir.path().to_path_buf(),
@@ -1223,6 +1259,7 @@ async fn composio_agent_tools_cover_metadata_missing_params_and_scope_helpers() 
 
 #[tokio::test]
 async fn composio_agent_tools_direct_mode_take_local_branches_without_backend() {
+    crate::tinyhumans_boot::boot();
     let dir = tempdir().expect("tempdir");
     let mut config = Config {
         workspace_dir: dir.path().join("workspace"),
@@ -1290,6 +1327,7 @@ async fn composio_agent_tools_direct_mode_take_local_branches_without_backend() 
 
 #[test]
 fn composio_types_roundtrip_connection_tool_trigger_and_history_shapes() {
+    crate::tinyhumans_boot::boot();
     let toolkits: ComposioToolkitsResponse = serde_json::from_value(json!({})).unwrap();
     assert!(toolkits.toolkits.is_empty());
 
@@ -1579,6 +1617,7 @@ fn composio_types_roundtrip_connection_tool_trigger_and_history_shapes() {
 
 #[test]
 fn composio_direct_public_types_deserialize_polymorphic_toolkits() {
+    crate::tinyhumans_boot::boot();
     let action: ComposioAction = serde_json::from_value(json!({
         "name": "GMAIL_SEND_EMAIL",
         "appName": "gmail",
@@ -1642,6 +1681,7 @@ fn composio_direct_public_types_deserialize_polymorphic_toolkits() {
 
 #[tokio::test]
 async fn composio_backend_client_methods_build_requests_and_parse_local_envelopes() {
+    crate::tinyhumans_boot::boot();
     let app = Router::new().fallback(any(composio_round8_backend_handler));
     let base = start_composio_round8_backend(app).await;
     let client = ComposioClient::new(Arc::new(IntegrationClient::new(
@@ -1853,6 +1893,7 @@ async fn composio_backend_client_methods_build_requests_and_parse_local_envelope
 
 #[tokio::test]
 async fn composio_authorize_scope_merging_and_meta_cleanup_use_local_backend() {
+    crate::tinyhumans_boot::boot();
     #[derive(Clone, Default)]
     struct CleanupState {
         deleted: Arc<Mutex<Vec<String>>>,
@@ -1968,6 +2009,7 @@ async fn composio_authorize_scope_merging_and_meta_cleanup_use_local_backend() {
 
 #[tokio::test]
 async fn composio_direct_tool_public_surface_handles_local_metadata_and_errors() {
+    crate::tinyhumans_boot::boot();
     let tool = ComposioTool::new(
         "  direct-api-key  ",
         Some("  entity-123  "),
@@ -2059,6 +2101,7 @@ async fn composio_direct_tool_public_surface_handles_local_metadata_and_errors()
 
 #[test]
 fn composio_trigger_history_store_handles_limits_and_bad_archive_lines() {
+    crate::tinyhumans_boot::boot();
     let dir = tempdir().expect("tempdir");
     let store = ComposioTriggerHistoryStore::new(dir.path()).expect("history store");
     let empty = store.list_recent(0).expect("empty history");

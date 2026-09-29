@@ -20,10 +20,10 @@ use openhuman_core::security::credentials::{
     AuthService, APP_SESSION_PROVIDER, DEFAULT_AUTH_PROFILE_NAME,
 };
 use openhuman_core::security::SecurityPolicy;
+use tinytools::{Tool, ToolCallOptions};
 use openhuman_core::tools::{
     ComposioAuthorizeTool, ComposioListConnectionsTool, ComposioListToolkitsTool,
-    ComposioListToolsTool, ComposioTool, SpawnSubagentTool, Tool, ToolCallOptions,
-};
+    ComposioListToolsTool, ComposioTool, SpawnSubagentTool};
 
 static ENV_LOCK: &OnceLock<Mutex<()>> = &crate::SHARED_ENV_LOCK;
 
@@ -92,6 +92,8 @@ fn tempdir() -> TempDir {
 }
 
 async fn setup_config() -> Harness {
+
+    crate::tinyhumans_boot::boot();
     let tmp = tempdir();
     let root = tmp.path().join("openhuman");
     let workspace = root.join("workspace");
@@ -468,10 +470,11 @@ async fn round20_spawn_subagent_covers_validation_schema_and_disabled_worker_bra
     assert_eq!(tool.name(), "spawn_subagent");
     assert_eq!(tool.permission_level().to_string(), "Execute");
     let schema = tool.parameters_schema();
-    assert!(schema["properties"]["toolkit"]
-        .as_object()
-        .expect("toolkit schema")
-        .contains_key("description"));
+    // The per-toolkit spawn argument went with the integrations specialist.
+    assert!(
+        schema["properties"].get("toolkit").is_none(),
+        "spawn_subagent must not advertise the removed `toolkit` argument"
+    );
     assert!(schema["properties"]["dedicated_thread"]
         .as_object()
         .expect("dedicated_thread schema")

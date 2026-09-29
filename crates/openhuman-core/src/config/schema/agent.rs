@@ -232,6 +232,21 @@ pub struct AgentConfig {
     pub compact_context: bool,
     #[serde(default = "default_agent_max_tool_iterations")]
     pub max_tool_iterations: usize,
+    /// Agent the web-chat path (`channel_web_chat`, what the desktop composer
+    /// calls) routes a turn to. `None` — the default — means `orchestrator`,
+    /// which is what the shipped app runs.
+    ///
+    /// This is the only way to move that path off the orchestrator. A named
+    /// definition's `effective_max_iterations()` *overwrites*
+    /// `max_tool_iterations` at the single resolution point in
+    /// `session_host::builder::factory`, so raising the global cap cannot lift
+    /// an agent that declares its own — the choice has to be which definition
+    /// answers, not which number is larger. The RPC path already takes an
+    /// `agent_id` per call; web chat carries no such field, and adding one to
+    /// that wire contract to satisfy an operator preference would be the wrong
+    /// seam.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub chat_agent_id: Option<String>,
     #[serde(default = "default_agent_max_history_messages")]
     pub max_history_messages: usize,
     #[serde(default)]
@@ -239,13 +254,22 @@ pub struct AgentConfig {
     /// Maximum number of tool calls to execute concurrently when `parallel_tools` is true.
     #[serde(default = "default_max_parallel_tools")]
     pub max_parallel_tools: usize,
-    /// How the agent formats tool calls to text-only providers.
-    /// - `"auto"` (default): native structured tool-calling when the provider
-    ///   supports it, otherwise JSON-in-tag (`<tool_call>{…}</tool_call>`).
+    /// How the agent formats tool calls to its provider.
+    /// - `"python"` (default): code-style calls against Python signatures in
+    ///   the prompt (`def read_file(path: str, limit: int = None) -> str`,
+    ///   called as `read_file(path="x")`). The cheapest catalogue on the wire
+    ///   and a syntax every code-trained model already writes.
+    /// - `"auto"`: native structured tool-calling when the provider supports
+    ///   it, otherwise JSON-in-tag (`<tool_call>{…}</tool_call>`).
     /// - `"native"`: force provider-native structured tool calls.
     /// - `"xml"`: force JSON-in-tag.
-    /// - `"pformat"`: force compact positional P-Format (`tool[a|b]`) — most
-    ///   token-efficient, but mis-parses on some models, so it is opt-in only.
+    /// - `"pformat"`: force compact positional P-Format (`tool[a|b]`); it
+    ///   mis-parses on some models.
+    /// - `"typescript"`: like `"python"` with TypeScript signatures and
+    ///   `read_file({path: "x"})` calls.
+    ///
+    /// The `OPENHUMAN_TOOL_DISPATCHER` environment variable overrides this
+    /// field for one launch.
     #[serde(default = "default_agent_tool_dispatcher")]
     pub tool_dispatcher: String,
     /// **Legacy** — maximum characters of memory context to inject per
@@ -379,6 +403,43 @@ pub struct AgentConfig {
     /// `AGENTS.md`.
     #[serde(default = "default_agents_md_enabled")]
     pub agents_md_enabled: bool,
+
+    /// How the harness's `tool_search` bridge ranks deferred tools against
+    /// the model's query. See [`ToolSearchConfig`].
+    #[serde(default)]
+    pub tool_search: ToolSearchConfig,
+}
+
+/// Configuration of the `tool_search` bridge: which ranker answers a search
+/// over the tools that left the wire under `ToolExposure::Deferred`.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(default)]
+pub struct ToolSearchConfig {
+    /// Which ranker serves the search.
+    ///
+    /// - `"jev"` (default): the installed decision-model ranker (Jev, via
+    ///   `openhuman-tinyhumans`), falling back to BM25 only when it fails or
+    ///   the process has no TinyHumans credential.
+    /// - `"auto"`: the installed ranker when the process has one and a
+    ///   TinyHumans credential; BM25 otherwise.
+    /// - `"bm25"`: the built-in lexical ranker alone, no network.
+    /// - `"compare"`: serve the installed ranker and record the BM25 ranking
+    ///   alongside it in the `tool.searched` telemetry, so the two can be
+    ///   judged on live traffic without changing what the model sees.
+    pub ranker: String,
+    /// Matches a search returns when the model does not ask for a number.
+    /// Three: enough for the model to choose, few enough that the schemas
+    /// returned do not undo the saving deferral made.
+    pub top_k: usize,
+}
+
+impl Default for ToolSearchConfig {
+    fn default() -> Self {
+        Self {
+            ranker: "jev".into(),
+            top_k: 3,
+        }
+    }
 }
 
 fn default_agents_md_enabled() -> bool {
@@ -423,7 +484,7 @@ fn default_max_parallel_tools() -> usize {
 }
 
 fn default_agent_tool_dispatcher() -> String {
-    "auto".into()
+    "python".into()
 }
 
 fn default_max_memory_context_chars() -> usize {
@@ -522,6 +583,7 @@ impl Default for AgentConfig {
         Self {
             compact_context: false,
             max_tool_iterations: default_agent_max_tool_iterations(),
+            chat_agent_id: None,
             max_history_messages: default_agent_max_history_messages(),
             parallel_tools: false,
             max_parallel_tools: default_max_parallel_tools(),
@@ -535,6 +597,7 @@ impl Default for AgentConfig {
             session_shadow_reads: default_session_shadow_reads(),
             required_output: None,
             agents_md_enabled: default_agents_md_enabled(),
+            tool_search: ToolSearchConfig::default(),
         }
     }
 }

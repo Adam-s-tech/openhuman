@@ -7,12 +7,64 @@ use std::collections::HashSet;
 use std::sync::Arc;
 
 use tinyagents_harness::runtime::AgentHarness;
+use tinyagents_harness::tool::ToolDispatch;
 use tinyagents_registry::{
     CapabilityRegistry, ComponentKind, RegistryDiagnostic, RegistrySnapshot,
 };
 
-use crate::agent::tinyagents::tools::{EarlyExitHook, SharedToolAdapter};
+use crate::agent::orchestration::tools::{
+    CloseSubagentDispatch, ContinueSubagentDispatch, DelegateGraphDispatch, DelegationDispatch,
+    ListSubagentsDispatch, SpawnAsyncSubagentDispatch, SpawnParallelAgentsDispatch,
+    SpawnSubagentDispatch, SpawnWorkerThreadDispatch, SteerSubagentDispatch, WaitSubagentDispatch,
+};
+use crate::agent::tinyagents::host::OpenHumanRunContext;
+use crate::agent::tinyagents::tools::{CanonicalSharedToolAdapter, EarlyExitHook};
 use crate::agent::tinyagents::turn_policy::is_subagent_spawn_or_delegate_tool;
+use crate::agent::tinyagents::use_skill_dispatch::UseSkillDispatch;
+use crate::agent::tools::{DelegateToolDispatch, TodoToolDispatch};
+use crate::memory::agent::CallMemoryAgentDispatch;
+use crate::tools::toolpacks::USE_SKILL;
+
+/// Typed-dispatch selection shared by the direct per-turn registration below
+/// and by [`UseSkillDispatch`], which must resolve the SAME live-parent
+/// dispatch for a packed archetype delegation (`create_image`, `do_crypto`,
+/// `make_presentation`, …) reached through `use_skill` instead of natively
+/// advertised (regression R3: `use_skill` used to hand every packed tool to
+/// plain `Tool::execute_with_context`, which has no live parent, so a packed
+/// delegation always failed with "delegation requires a live harness run
+/// context.").
+///
+/// `adapter` is expected to be the same `CanonicalSharedToolAdapter` seam
+/// used at registration: dispatch selection keys off `name` and the tool's
+/// own schema (via [`DelegationDispatch::for_tool`]'s fallback), not object
+/// identity, so a freshly built adapter over the resolved tool's registry
+/// slot is equivalent to the one the harness itself would have registered.
+pub(crate) fn typed_dispatch_for(
+    name: &str,
+    adapter: Arc<dyn tinytools::Tool>,
+) -> Option<Arc<dyn ToolDispatch<(), OpenHumanRunContext>>> {
+    let dispatch: Arc<dyn ToolDispatch<(), OpenHumanRunContext>> = match name {
+        "spawn_parallel_agents" => Arc::new(SpawnParallelAgentsDispatch::new(adapter)),
+        "spawn_async_subagent" => Arc::new(SpawnAsyncSubagentDispatch::new(adapter)),
+        "spawn_worker_thread" => Arc::new(SpawnWorkerThreadDispatch::new(adapter)),
+        "spawn_subagent" => Arc::new(SpawnSubagentDispatch::new(adapter)),
+        "continue_subagent" => Arc::new(ContinueSubagentDispatch::new(adapter)),
+        "wait_subagent" => Arc::new(WaitSubagentDispatch::new(adapter)),
+        "steer_subagent" => Arc::new(SteerSubagentDispatch::new(adapter)),
+        "close_subagent" => Arc::new(CloseSubagentDispatch::new(adapter)),
+        "list_subagents" => Arc::new(ListSubagentsDispatch::new(adapter)),
+        "delegate_graph" => Arc::new(DelegateGraphDispatch::new(adapter)),
+        "delegate" => Arc::new(DelegateToolDispatch::new(adapter)),
+        "todo" => Arc::new(TodoToolDispatch::new(adapter)),
+        "call_memory_agent" => Arc::new(CallMemoryAgentDispatch::new(adapter)),
+        _ => {
+            return DelegationDispatch::for_tool(adapter).map(|dispatch| {
+                Arc::new(dispatch) as Arc<dyn ToolDispatch<(), OpenHumanRunContext>>
+            })
+        }
+    };
+    Some(dispatch)
+}
 
 /// Register every admitted tool from `tool_sets` onto `harness` (and its
 /// `capability_registry` projection), project the visible agent set as
@@ -29,9 +81,9 @@ use crate::agent::tinyagents::turn_policy::is_subagent_spawn_or_delegate_tool;
 /// fail-open.
 #[allow(clippy::too_many_arguments)]
 pub(super) fn register_turn_tools_and_agents(
-    harness: &mut AgentHarness<()>,
+    harness: &mut AgentHarness<(), OpenHumanRunContext>,
     capability_registry: &mut CapabilityRegistry<()>,
-    tool_sets: &[Arc<Vec<Box<dyn crate::tools::Tool>>>],
+    tool_sets: &[Arc<Vec<Box<dyn tinytools::Tool>>>],
     allowed: &Option<HashSet<String>>,
     early_exit_set: &HashSet<&str>,
     early_exit_hook: Option<&EarlyExitHook>,
@@ -79,7 +131,9 @@ pub(super) fn register_turn_tools_and_agents(
             );
         }
         if !registered.contains(name) && admitted && !spawn_stripped {
-            if let Some(mut adapter) = SharedToolAdapter::for_name(tool_sets.to_vec(), name) {
+            if let Some(mut adapter) =
+                CanonicalSharedToolAdapter::for_name(tool_sets.to_vec(), name)
+            {
                 if early_exit_set.contains(name) {
                     if let Some(hook) = early_exit_hook {
                         adapter = adapter.with_early_exit(hook.clone());
@@ -88,7 +142,34 @@ pub(super) fn register_turn_tools_and_agents(
                 registered.insert(name.to_string());
                 let adapter = Arc::new(adapter);
                 capability_registry.replace_tool(adapter.clone());
-                harness.register_tool(adapter);
+                if name == USE_SKILL {
+                    // `use_skill` needs its own typed dispatch (regression
+                    // R3): it is the proxy every packed archetype delegation
+                    // (`create_image`, `do_crypto`, `make_presentation`, …)
+                    // is reached through, and it must resolve the SAME live
+                    // parent `typed_dispatch_for` gives a natively advertised
+                    // delegate tool. The pack-registry handle comes off the
+                    // raw registered tool (not this adapter, which has no
+                    // erased host extension of its own).
+                    let handle = tool_sets
+                        .iter()
+                        .flat_map(|set| set.iter())
+                        .find(|tool| tool.name() == name)
+                        .and_then(|tool| {
+                            crate::tools::host_extensions::pack_registry_handle(tool.as_ref())
+                        })
+                        .cloned();
+                    match handle {
+                        Some(handle) => harness.register_tool_dispatch(Arc::new(
+                            UseSkillDispatch::new(adapter, handle),
+                        )),
+                        None => harness.register_tool(adapter),
+                    };
+                } else if let Some(dispatch) = typed_dispatch_for(name, adapter.clone()) {
+                    harness.register_tool_dispatch(dispatch);
+                } else {
+                    harness.register_tool(adapter);
+                }
             }
         }
     }
@@ -169,7 +250,7 @@ pub(super) fn register_turn_tools_and_agents(
     // into that stream. The harness is deliberately NOT switched over to these
     // projections yet — that glue swap is explicitly deferred.
     let projected_models = capability_registry.to_model_registry();
-    let projected_tools = capability_registry.to_tool_registry();
+    let projected_tools = capability_registry.to_tool_registry::<OpenHumanRunContext>();
     tracing::debug!(
         models = projected_models.names().len(),
         tools = projected_tools.names().len(),

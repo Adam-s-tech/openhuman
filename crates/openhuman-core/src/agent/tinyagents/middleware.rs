@@ -39,6 +39,7 @@ mod packed_tool_route;
 mod prompt_cache;
 mod repeat_progress;
 mod repeated_failure;
+mod research_budget;
 mod tool_exposure;
 mod tool_outcome_capture;
 mod tool_output;
@@ -59,13 +60,34 @@ pub(crate) use packed_tool_route::PackedToolRouteMiddleware;
 pub(crate) use prompt_cache::PromptCacheSegmentMiddleware;
 pub(crate) use repeat_progress::RepeatProgressMiddleware;
 pub(crate) use repeated_failure::RepeatedToolFailureMiddleware;
+pub(crate) use research_budget::ResearchBudgetMiddleware;
 pub(crate) use tool_exposure::OpenHumanToolExposureShadowMiddleware;
 pub(crate) use tool_outcome_capture::ToolOutcomeCaptureMiddleware;
 pub(crate) use tool_policy::ToolPolicyMiddleware;
 pub(crate) use turn_context::{
-    render_unanswered_steps, HandoffConfig, TranscriptSnapshot, TranscriptSnapshotSink,
-    TurnContextMiddleware,
+    render_unanswered_steps, TranscriptSnapshot, TranscriptSnapshotSink, TurnContextMiddleware,
 };
+
+/// Render the canonical TinyTools content blocks at the OpenHuman boundary.
+/// Middleware that used the retired string-shaped harness result must not
+/// invent a second result type merely to edit text.
+pub(crate) fn tool_result_text(result: &tinytools::ToolResult) -> String {
+    result.output()
+}
+
+/// Replaces the model-visible canonical content while retaining its reported
+/// success/failure flag. Markdown is cleared because it no longer describes
+/// the transformed blocks.
+pub(crate) fn replace_tool_result_text(result: &mut tinytools::ToolResult, text: String) {
+    result.content = vec![tinytools::ToolContent::Text { text }];
+    result.markdown_formatted = None;
+}
+
+/// Appends a host note as a distinct canonical text block.
+pub(crate) fn append_tool_result_text(result: &mut tinytools::ToolResult, text: String) {
+    result.content.push(tinytools::ToolContent::Text { text });
+    result.markdown_formatted = None;
+}
 
 #[cfg(test)]
 #[path = "middleware_tests.rs"]

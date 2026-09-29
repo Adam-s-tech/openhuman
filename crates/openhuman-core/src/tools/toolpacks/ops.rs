@@ -5,7 +5,7 @@ use std::sync::{Arc, Weak};
 
 use super::registry;
 use super::tools::{PackRegistryHandle, UseSkillTool, USE_SKILL};
-use crate::tools::traits::Tool;
+use tinytools::Tool;
 
 /// Append `use_skill` to a freshly built registry.
 ///
@@ -64,7 +64,7 @@ fn for_each_pack_tool(
         if tool.name() != USE_SKILL {
             continue;
         }
-        if let Some(handle) = crate::tools::traits::pack_registry_handle(tool.as_ref()) {
+        if let Some(handle) = crate::tools::host_extensions::pack_registry_handle(tool.as_ref()) {
             edit(handle);
             bound += 1;
         }
@@ -126,7 +126,7 @@ pub fn strip_packed_from_visible(visible: &mut HashSet<String>, agent_id: &str) 
 ///
 /// That distinction is load-bearing. Collapsing the archetype delegates without
 /// it silently re-advertised seven routes the pack table deliberately withholds
-/// (`do_crypto`, `setup_mcp_server`, `use_mcp_server`, `setup_skills`,
+/// (`do_crypto`, `use_mcp_server`, `setup_skills`,
 /// `run_skill`, `build_workflow`, `discover_workflows`): each one stopped being
 /// a tool — so `strip_packed_from_visible` had nothing to remove — and became a
 /// string inside another tool's schema instead. A collapse must never widen
@@ -155,7 +155,7 @@ pub fn is_withheld_from(agent_id: &str, tool: &str) -> bool {
 ///   agent carries **unpacked** — a delegate no pack withholds, and therefore
 ///   one it advertises by construction.
 ///
-/// [`delegation_target`]: crate::tools::traits::delegation_target
+/// [`delegation_target`]: crate::tools::host_extensions::delegation_target
 ///
 /// Inside a closed pack, a tool that is itself a hand-off (e.g. `create_skill`)
 /// stays reachable: it is a route, not a raw tool. A tool whose group an embedder
@@ -176,14 +176,14 @@ pub fn closed_by_direct_handoff(agent_id: &str, tools: &[&dyn Tool]) -> Vec<&'st
     let reachable_owners: HashSet<&str> = tools
         .iter()
         .filter(|tool| registry::pack_for_tool(tool.name()).is_none())
-        .filter_map(|tool| crate::tools::traits::delegation_target(*tool))
+        .filter_map(|tool| crate::tools::host_extensions::delegation_target(*tool))
         .collect();
     if reachable_owners.is_empty() {
         return Vec::new();
     }
     let handoffs: HashSet<&str> = tools
         .iter()
-        .filter(|tool| crate::tools::traits::delegation_target(**tool).is_some())
+        .filter(|tool| crate::tools::host_extensions::delegation_target(**tool).is_some())
         .map(|tool| tool.name())
         .collect();
     let groups = super::groups::current();

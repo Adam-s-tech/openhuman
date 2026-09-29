@@ -1,10 +1,8 @@
 //! Contract gate for late-bound Composio actions (#4853).
 //!
-//! Per-action Composio tools handed to `integrations_agent` are built from
-//! the lightweight `list_tools` response — a one-line description with a
-//! parameter schema that is often thin or absent (see
-//! `fetch_toolkit_actions`, consumed in the
-//! sub-agent runner). The model therefore composes calls before the action's
+//! Per-action Composio tools are built from the lightweight `list_tools`
+//! response — a one-line description with a parameter schema that is often
+//! thin or absent. The model therefore composes calls before the action's
 //! FULL contract is in context and guesses argument formats — most visibly, it
 //! sends Gmail `query` strings without the quoting Gmail search syntax requires,
 //! so `GMAIL_FETCH_EMAILS` returns zero results.
@@ -37,47 +35,51 @@ use crate::integrations::composio::providers::toolkit_from_slug;
 /// so the gate blocks a given action at most once per gate instance.
 ///
 /// One [`ContractGate`] is held per [`super::action_tool::ComposioActionTool`]
-/// instance; those tools are constructed fresh per `integrations_agent` spawn
-/// and live for that spawn's tool loop. That loop is a single agent turn in the
-/// common case, so "seen" behaves as per-turn state without any task-local
-/// plumbing — but a long-lived spawn can span multiple turns, and this gate
+/// instance, so "seen" is scoped to that instance without any task-local
+/// plumbing — but an instance can span multiple turns, and this gate
 /// does NOT reset when the surfaced schema drops out of context via compaction
 /// (tracked as follow-up; see the module-level note). Interior-mutable so the
 /// gate can record state through the tool's `&self` `execute`.
 ///
 /// ## Auto-proceed safety net (#5119)
 ///
-/// When the main agent re-delegates to a fresh `integrations_agent` sub-agent,
-/// each spawn creates a new tool with a fresh `ContractGate`. Without a
+/// When a fresh tool instance is built for the same action, it carries a fresh
+/// `ContractGate`. Without a
 /// process-wide cross-instance consult counter, every fresh gate would surface
 /// the same contract and the action would never execute — causing an infinite
 /// loop ("same tool call 3× in a row" guard).
 ///
-/// A global [`OnceLock`] map tracks how many *unique gate instances* have
-/// consulted each slug for the "first time". After 3+ fresh instances have all
-/// surfaced the same contract, the next instance auto-proceeds: the model has
-/// clearly been given the schema and needs execution, not another schema dump.
+/// A global [`OnceLock`] map tracks, per slug, how many times the contract has
+/// been surfaced **with no execution in between**. After
+/// [`AUTO_PROCEED_THRESHOLD`] consecutive surfaces the next instance
+/// auto-proceeds: the model has clearly been given the schema and needs
+/// execution, not another schema dump.
 ///
-/// The threshold is generous (3+ instances = at least 3 surfaced contracts in
-/// different sub-agent iterations) so that the normal surface-once-then-execute
-/// path within a single spawn is never disrupted.
+/// The streak resets on any execution, so the normal
+/// surface-once-then-execute path never moves it and a slug cannot accumulate
+/// its way to the threshold over a long session (#6407).
 #[derive(Default)]
 pub struct ContractGate {
     seen: Mutex<HashSet<String>>,
 }
 
-/// Process-wide consult counter: tracks how many unique [`ContractGate`]
-/// instances have consulted each slug for the first time. Used by the
-/// auto-proceed safety net (#5119) to detect the re-delegation pattern where
-/// fresh tools keep surfacing the same contract without ever executing.
+/// Process-wide surface streak: how many times each slug's contract has been
+/// surfaced **without a following execution**. Used by the auto-proceed safety
+/// net (#5119) to detect the re-delegation pattern where fresh tools keep
+/// surfacing the same contract without ever executing.
+///
+/// The streak is bumped only by [`record_surface`] and cleared by
+/// [`clear_surface_streak`] as soon as the action executes, so it measures a
+/// *current run* rather than a lifetime total. It counted first consults and
+/// never reset before (#6407), which meant ordinary use eventually pushed every
+/// slug past the threshold and permanently disabled the #4853 surfacing.
 static GLOBAL_FIRST_CONSULT_COUNT: OnceLock<Mutex<HashMap<String, u32>>> = OnceLock::new();
 
-/// After this many unique fresh gate instances have all surfaced the same
-/// contract as "first time", the next instance auto-proceeds. Set conservatively
-/// high (3+ instances) so the normal surface-once-then-execute pattern within a
-/// single spawn is never affected: the threshold fires only when the model has
-/// been shown the schema in at least 3 separate sub-agent iterations without
-/// any of them advancing to execution.
+/// After this many consecutive surfaces of the same contract with no execution
+/// in between, the next fresh gate instance auto-proceeds. Set conservatively
+/// high (3) so the normal surface-once-then-execute pattern is never affected:
+/// any execution clears the streak, so the threshold is reached only when the
+/// model has been shown the schema three times running without advancing.
 const AUTO_PROCEED_THRESHOLD: u32 = 3;
 
 impl ContractGate {
@@ -120,30 +122,69 @@ impl ContractGate {
             return GateConsultOutcome::Proceed;
         }
 
-        // 2. Increment the global first-time consult counter.
-        let global_count = {
-            let mut map = GLOBAL_FIRST_CONSULT_COUNT
-                .get_or_init(|| Mutex::new(HashMap::new()))
-                .lock()
-                .unwrap_or_else(|poisoned| poisoned.into_inner());
-            let entry = map.entry(norm).or_insert(0);
-            *entry += 1;
-            *entry
-        };
+        // 2. Read the streak of surfaces that have not yet led to an execution.
+        //    Reading rather than incrementing here is what keeps the counter
+        //    meaning what its name says: it is bumped at the point the contract
+        //    is actually surfaced (`record_surface`) and cleared the moment the
+        //    action executes (`clear_surface_streak`), both in `consult`.
+        let streak = surface_streak(&norm);
 
         // 3. Auto-proceed safety net.
-        if global_count > AUTO_PROCEED_THRESHOLD {
+        if streak >= AUTO_PROCEED_THRESHOLD {
             tracing::warn!(
                 target: "composio",
                 slug = %slug,
-                global_count,
-                "[composio][contract-gate] auto-proceeding after {global_count} fresh instances surfaced this contract without execution"
+                global_count = streak,
+                "[composio][contract-gate] auto-proceeding after {streak} consecutive surfaces of this contract without execution"
             );
             return GateConsultOutcome::AutoProceed;
         }
 
         GateConsultOutcome::FirstTime
     }
+}
+
+/// Current run of surfaces for `slug` that have not been followed by an
+/// execution. Read-only: the streak moves in [`record_surface`] and
+/// [`clear_surface_streak`].
+fn surface_streak(norm_slug: &str) -> u32 {
+    GLOBAL_FIRST_CONSULT_COUNT
+        .get_or_init(|| Mutex::new(HashMap::new()))
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .get(norm_slug)
+        .copied()
+        .unwrap_or(0)
+}
+
+/// Count one surface of `slug`'s contract that has not yet produced an
+/// execution. Only the surfacing path calls this, so a call that executed
+/// without ever being bounced never moves the safety net closer to firing.
+fn record_surface(slug: &str) {
+    let norm = slug.to_ascii_uppercase();
+    let mut map = GLOBAL_FIRST_CONSULT_COUNT
+        .get_or_init(|| Mutex::new(HashMap::new()))
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    *map.entry(norm).or_insert(0) += 1;
+}
+
+/// Clear `slug`'s surface streak because the action is about to execute.
+///
+/// This is the half that was missing (#6407). The safety net exists to break a
+/// surface-but-never-execute loop, so an execution is exactly the event that
+/// proves the loop is not happening. Without this the counter only ever rose:
+/// after enough separate, healthy turns each spawned a fresh gate, every slug
+/// eventually crossed the threshold and the #4853 contract surfacing was dead
+/// for that slug for the rest of the process — the gate silently turning itself
+/// off rather than doing its job.
+fn clear_surface_streak(slug: &str) {
+    let norm = slug.to_ascii_uppercase();
+    GLOBAL_FIRST_CONSULT_COUNT
+        .get_or_init(|| Mutex::new(HashMap::new()))
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .remove(&norm);
 }
 
 /// Outcome from [`ContractGate::gate_consult`].
@@ -176,10 +217,10 @@ pub enum GateDecision {
 ///
 /// - **Args already satisfy the contract** (all required present, every supplied
 ///   key a known property, types compatible) → [`GateDecision::Proceed`]. The
-///   model did not need the schema, so bouncing would be pure overhead — and, on
-///   the weak text-mode `integrations_agent` path, forcing a needless retry lets
-///   a Kimi-family model corrupt the re-issued call (`<|"|>` sentinel-token leak)
-///   and loop forever without ever executing (#5119).
+///   model did not need the schema, so bouncing would be pure overhead — and
+///   forcing a needless retry lets a Kimi-family model corrupt the re-issued
+///   call (`<|"|>` sentinel-token leak) and loop forever without ever executing
+///   (#5119).
 /// - **Args do NOT satisfy the contract** (missing required, unknown key, wrong
 ///   type — i.e. the model *guessed*) → [`GateDecision::Surface`] with the
 ///   formatted contract, exactly the case the gate exists for (#4853).
@@ -192,16 +233,22 @@ pub enum GateDecision {
 ///
 /// ## Auto-proceed safety net (#5119)
 ///
-/// When the main agent re-delegates to a fresh `integrations_agent` sub-agent,
-/// each new spawn builds fresh tools with fresh [`ContractGate`] instances.
+/// When fresh tools are built for the same action, each carries a fresh
+/// [`ContractGate`] instance.
 /// Every fresh gate sees each slug for the "first time" and surfaces the
 /// full contract — so the action never executes, looping forever.
 ///
-/// A process-wide consult counter tracks how many fresh gate instances have
-/// consulted each slug. After [`AUTO_PROCEED_THRESHOLD`] (3+) fresh instances
-/// have surfaced the same contract, the gate auto-proceeds: the model has
-/// been given the schema across multiple iterations without advancing, and
-/// the next call should execute instead of surfacing the contract again.
+/// A process-wide streak counts how many times each slug's contract has been
+/// surfaced with no execution in between. After [`AUTO_PROCEED_THRESHOLD`]
+/// consecutive surfaces the gate auto-proceeds: the model has been given the
+/// schema repeatedly without advancing, and the next call should execute
+/// instead of surfacing the contract again.
+///
+/// Any execution clears the streak (#6407), so the net tracks a live loop
+/// rather than a lifetime total. Counting every first consult and never
+/// resetting meant a slug used normally across enough turns eventually crossed
+/// the threshold for good, after which this gate stopped surfacing anything for
+/// that slug — the safety net quietly disabling the feature it guards.
 pub async fn consult(
     gate: &ContractGate,
     config: &Config,
@@ -220,6 +267,9 @@ pub async fn consult(
                 slug = %action_slug,
                 "[composio][contract-gate] auto-proceeding after threshold; executing without surfacing"
             );
+            // The net has done its job for this slug; let the next genuine
+            // surface-loop earn the threshold again instead of latching on.
+            clear_surface_streak(action_slug);
             return GateDecision::Proceed;
         }
         // Already surfaced by this gate instance → proceed.
@@ -229,6 +279,7 @@ pub async fn consult(
                 slug = %action_slug,
                 "[composio][contract-gate] contract already surfaced this turn; proceeding"
             );
+            clear_surface_streak(action_slug);
             return GateDecision::Proceed;
         }
         // First time for this gate instance → check if we need to surface.
@@ -244,6 +295,7 @@ pub async fn consult(
                 slug = %action_slug,
                 "[composio][contract-gate] args already satisfy the live contract; proceeding without surfacing"
             );
+            clear_surface_streak(action_slug);
             return GateDecision::Proceed;
         }
         tracing::debug!(
@@ -253,6 +305,9 @@ pub async fn consult(
             required_arg_count = contract.required_args.len(),
             "[composio][contract-gate] surfacing full contract before first execute"
         );
+        // This is the only path that moves the safety net: a surface that has
+        // not (yet) been followed by an execution.
+        record_surface(action_slug);
         return GateDecision::Surface(format_contract(action_slug, &contract));
     }
 
@@ -261,6 +316,7 @@ pub async fn consult(
         slug = %action_slug,
         "[composio][contract-gate] no live contract available; proceeding without gating"
     );
+    clear_surface_streak(action_slug);
     GateDecision::Proceed
 }
 

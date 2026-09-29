@@ -4,6 +4,8 @@
 //! classifies and reports a failure.
 
 use serde_json::json;
+use std::sync::Arc;
+use tinyagents_harness::run_queue::{QueueLane, RunQueue};
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
@@ -15,13 +17,113 @@ use crate::security::prompt_injection::{
 
 use super::super::event_bus::publish_web_channel_event;
 use super::super::run_task::run_chat_task;
-use super::super::types::{ChatRequestMetadata, InFlightEntry};
+use super::super::types::{ChatRequestMetadata, InFlightEntry, QueueMode};
 use super::super::web_errors::classify_inference_error;
 use super::parallel_turn::spawn_parallel_turn;
 use super::state::{cancel_in_flight_gracefully, key_for, IN_FLIGHT};
 use super::turn_guards::{
     run_turn_under_cancel_and_deadline, sentry_suppression_reason, timeout_bound_tag,
 };
+
+/// `start_chat`'s error type.
+///
+/// `Guardrail` is a structured verdict from the prompt-injection/security
+/// guardrail (`security::prompt_injection::enforce_prompt_input`) — the
+/// frontend classifies on this variant (`chat_error.error_type == "guardrail"`
+/// and a `guardrail` payload) instead of pattern-matching the user-facing
+/// message string. Every other rejection (validation, a configured
+/// `beforeSubmitPrompt` hook block, an approval-routing failure) stays
+/// `Other`, which `Display`s exactly like the plain `String` errors this
+/// replaced — existing `.to_string()` / `{err}` call sites need no other
+/// change.
+#[derive(Debug, Clone)]
+pub enum StartChatError {
+    Guardrail {
+        verdict: String,
+        score: f64,
+        reasons: Vec<crate::core::socketio::GuardrailReason>,
+    },
+    Other(String),
+}
+
+impl std::fmt::Display for StartChatError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            // The same user-facing copy `prompt_guard_user_message` gives a
+            // fresh rejection — a caller that only has `.to_string()` (a
+            // plain-string RPC error, a `{err}` log line) still gets an
+            // actionable message, not a bare verdict/score dump.
+            StartChatError::Guardrail { verdict, .. } => {
+                f.write_str(guardrail_verdict_user_message(verdict))
+            }
+            StartChatError::Other(message) => write!(f, "{message}"),
+        }
+    }
+}
+
+/// User-facing copy for a guardrail verdict string (`"block"` /
+/// `"review_blocked"` / `"allow"` — see the `match` in [`start_chat`] that
+/// builds [`StartChatError::Guardrail`]). Shared by `Display` above so a
+/// plain-string consumer of the error still reads the same rejection copy
+/// [`prompt_guard_user_message`] gives a fresh (non-error-wrapped) decision.
+fn guardrail_verdict_user_message(verdict: &str) -> &'static str {
+    match verdict {
+        "block" => prompt_guard_user_message(PromptEnforcementAction::Blocked),
+        "review_blocked" => prompt_guard_user_message(PromptEnforcementAction::ReviewBlocked),
+        _ => prompt_guard_user_message(PromptEnforcementAction::Allow),
+    }
+}
+
+impl std::error::Error for StartChatError {}
+
+impl From<String> for StartChatError {
+    fn from(message: String) -> Self {
+        StartChatError::Other(message)
+    }
+}
+
+impl From<&str> for StartChatError {
+    fn from(message: &str) -> Self {
+        StartChatError::Other(message.to_string())
+    }
+}
+
+/// Sentinel prefix a JSON-RPC/string-error caller can match on to recover the
+/// structured guardrail verdict, the same pattern as
+/// `core::observability::BACKEND_UNAVAILABLE_PREFIX`: the RPC surface only
+/// carries `Result<_, String>`, so the socket path's `chat_error.guardrail`
+/// payload gets a string-shaped equivalent here rather than a second, looser
+/// error shape.
+pub const GUARDRAIL_ERROR_PREFIX: &str = "GUARDRAIL:";
+
+impl From<StartChatError> for String {
+    fn from(error: StartChatError) -> Self {
+        match error {
+            StartChatError::Guardrail {
+                verdict,
+                score,
+                reasons,
+            } => {
+                let payload = crate::core::socketio::GuardrailPayload {
+                    verdict,
+                    score,
+                    reasons,
+                };
+                format!(
+                    "{GUARDRAIL_ERROR_PREFIX}{}",
+                    serde_json::to_string(&payload).unwrap_or_default()
+                )
+            }
+            StartChatError::Other(message) => message,
+        }
+    }
+}
+
+/// Whether `msg` is the [`GUARDRAIL_ERROR_PREFIX`] sentinel — mirrors
+/// [`crate::core::observability::is_backend_unavailable_message`].
+pub fn is_guardrail_error_message(msg: &str) -> bool {
+    msg.starts_with(GUARDRAIL_ERROR_PREFIX)
+}
 
 fn prompt_guard_user_message(action: PromptEnforcementAction) -> &'static str {
     match action {
@@ -41,23 +143,22 @@ pub async fn start_chat(
     message: &str,
     model_override: Option<String>,
     temperature: Option<f64>,
-    profile_id: Option<String>,
     locale: Option<String>,
     queue_mode: Option<String>,
     metadata: ChatRequestMetadata,
-) -> Result<String, String> {
+) -> Result<String, StartChatError> {
     let client_id = client_id.trim().to_string();
     let thread_id = thread_id.trim().to_string();
     let message = message.trim().to_string();
 
     if client_id.is_empty() {
-        return Err("client_id is required".to_string());
+        return Err(StartChatError::Other("client_id is required".to_string()));
     }
     if thread_id.is_empty() {
-        return Err("thread_id is required".to_string());
+        return Err(StartChatError::Other("thread_id is required".to_string()));
     }
     if message.is_empty() {
-        return Err("message is required".to_string());
+        return Err(StartChatError::Other("message is required".to_string()));
     }
 
     // [pdf/image-attach fix] Process attachments at ingress, BEFORE the message is
@@ -145,7 +246,24 @@ pub async fn start_chat(
             prompt_decision.prompt_hash,
             prompt_decision.prompt_chars,
         );
-        return Err(prompt_guard_user_message(prompt_decision.action).to_string());
+        let verdict = match prompt_decision.action {
+            PromptEnforcementAction::Allow => "allow",
+            PromptEnforcementAction::Blocked => "block",
+            PromptEnforcementAction::ReviewBlocked => "review_blocked",
+        }
+        .to_string();
+        return Err(StartChatError::Guardrail {
+            verdict,
+            score: prompt_decision.score as f64,
+            reasons: prompt_decision
+                .reasons
+                .iter()
+                .map(|r| crate::core::socketio::GuardrailReason {
+                    code: r.code.clone(),
+                    message: r.message.clone(),
+                })
+                .collect(),
+        });
     }
 
     // Chat-native approval: if this thread has a parked approval and the message
@@ -217,27 +335,29 @@ pub async fn start_chat(
             log::info!(
                 "[web-channel] prompt blocked by a configured hook thread_id={thread_id}: {reason}"
             );
-            return Err(reason);
+            return Err(StartChatError::Other(reason));
         }
     }
+
+    // A fresh accepted user request is the explicit boundary after Stop. Keep
+    // the gate installed through validation and registry cancellation so a
+    // child registering late cannot deliver into the stopped generation.
+    crate::agent::orchestration::background_completions::resume_stopped_thread(&thread_id);
 
     let map_key = key_for(&thread_id);
 
     let parsed_mode = match queue_mode.as_deref() {
-        Some("steer") => crate::agent::harness::run_queue::QueueMode::Steer,
-        Some("followup") => crate::agent::harness::run_queue::QueueMode::Followup,
-        Some("collect") => crate::agent::harness::run_queue::QueueMode::Collect,
-        Some("parallel") => crate::agent::harness::run_queue::QueueMode::Parallel,
-        _ => crate::agent::harness::run_queue::QueueMode::Interrupt,
+        Some("steer") => QueueMode::Steer,
+        Some("followup") => QueueMode::Followup,
+        Some("collect") => QueueMode::Collect,
+        Some("parallel") => QueueMode::Parallel,
+        _ => QueueMode::Interrupt,
     };
 
     // Parallel mode: spawn an independent forked turn that runs alongside any
     // in-flight turn for this thread. It does not touch IN_FLIGHT (no
     // interrupt/steer/queue) — it lives in its own request-keyed lane.
-    if matches!(
-        parsed_mode,
-        crate::agent::harness::run_queue::QueueMode::Parallel
-    ) {
+    if matches!(parsed_mode, QueueMode::Parallel) {
         log::info!(
             "[web-channel] starting PARALLEL forked turn thread_id={} request_id={}",
             thread_id,
@@ -250,7 +370,6 @@ pub async fn start_chat(
             &message,
             model_override,
             temperature,
-            profile_id,
             locale,
             metadata,
         )
@@ -259,15 +378,14 @@ pub async fn start_chat(
     }
 
     // Non-interrupt modes: push into the running turn's queue and return.
-    if !matches!(
-        parsed_mode,
-        crate::agent::harness::run_queue::QueueMode::Interrupt
-    ) {
+    if !matches!(parsed_mode, QueueMode::Interrupt) {
         let in_flight = IN_FLIGHT.lock().await;
         if let Some(existing) = in_flight.get(&map_key) {
-            let queued_msg = crate::agent::harness::run_queue::QueuedMessage {
+            let item_id = uuid::Uuid::new_v4().to_string();
+            let text_preview = crate::agent::queued_turn::text_preview(&message);
+            let queued_msg = crate::agent::queued_turn::QueuedTurn {
+                id: item_id.clone(),
                 text: message.clone(),
-                mode: parsed_mode,
                 client_id: client_id.clone(),
                 thread_id: thread_id.clone(),
                 queued_at_ms: std::time::SystemTime::now()
@@ -276,13 +394,15 @@ pub async fn start_chat(
                     .as_millis() as u64,
                 model_override: model_override.clone(),
                 temperature,
-                profile_id: profile_id.clone(),
                 locale: locale.clone(),
             };
-            existing.run_queue.push(queued_msg).await;
+            let lane = parsed_mode
+                .queue_lane()
+                .expect("only queueable modes reach an active run queue");
+            existing.run_queue.push(lane, queued_msg).await;
             let status = existing.run_queue.status().await;
             log::info!(
-                "[web-channel] queued {} message thread_id={} request_id={} queue_depth={}",
+                "[web-channel] queued {} message thread_id={} request_id={} queue_depth={} item_id={item_id}",
                 parsed_mode,
                 thread_id,
                 request_id,
@@ -292,6 +412,8 @@ pub async fn start_chat(
                 thread_id: thread_id.clone(),
                 mode: parsed_mode.to_string(),
                 queue_depth: status.total,
+                item_id: Some(item_id),
+                text_preview: Some(text_preview),
             });
             return Ok(json!({
                 "queued": true,
@@ -323,20 +445,34 @@ pub async fn start_chat(
             crate::core::bus::BUS.publish(DomainEvent::RunQueueInterrupted {
                 thread_id: thread_id.clone(),
                 cancelled_request_id: cancelled_id.clone(),
+                item_id: Some(request_id.clone()),
+                text_preview: Some(crate::agent::queued_turn::text_preview(&message)),
             });
             publish_web_channel_event(WebChannelEvent {
                 event: "chat_error".to_string(),
                 client_id: client_id.clone(),
                 thread_id: thread_id.clone(),
-                request_id: cancelled_id,
+                request_id: cancelled_id.clone(),
                 message: Some("Cancelled by newer request".to_string()),
                 error_type: Some("cancelled".to_string()),
+                ..Default::default()
+            });
+            // See channel_ops::cancel_chat_inner — `chat_cancelled` is the
+            // structured successor to `chat_error{error_type:"cancelled"}`,
+            // kept alongside it for one release.
+            publish_web_channel_event(WebChannelEvent {
+                event: "chat_cancelled".to_string(),
+                client_id: client_id.clone(),
+                thread_id: thread_id.clone(),
+                request_id: cancelled_id,
+                cancel_reason: Some("superseded".to_string()),
+                superseded_by: Some(request_id.clone()),
                 ..Default::default()
             });
         }
     }
 
-    let turn_run_queue = crate::agent::harness::run_queue::RunQueue::new();
+    let turn_run_queue = Arc::new(RunQueue::new());
     let turn_run_queue_task = turn_run_queue.clone();
 
     let client_id_task = client_id.clone();
@@ -356,6 +492,7 @@ pub async fn start_chat(
             let approval_ctx = crate::security::approval::ApprovalChatContext {
                 thread_id: thread_id_task.clone(),
                 client_id: client_id_task.clone(),
+                request_id: Some(request_id_task.clone()),
             };
             let origin = crate::agent::turn_origin::AgentTurnOrigin::WebChat {
                 thread_id: thread_id_task.clone(),
@@ -376,7 +513,6 @@ pub async fn start_chat(
                     &user_message,
                     model_override,
                     temperature,
-                    profile_id,
                     locale,
                     turn_run_queue_task,
                     metadata,
@@ -389,11 +525,11 @@ pub async fn start_chat(
                 Some(res) => res,
                 None => {
                     log::info!(
-                    "[web-channel] turn cancelled cooperatively client_id={} thread_id={} request_id={}",
-                    client_id_task,
-                    thread_id_task,
-                    request_id_task
-                );
+                        "[web-channel] turn cancelled cooperatively client_id={} thread_id={} request_id={}",
+                        client_id_task,
+                        thread_id_task,
+                        request_id_task
+                    );
                     // Release any in-flight slot we still own and stop. The
                     // `request_id` guard below prevents clobbering a newer turn that
                     // replaced us on the interrupt path.
@@ -407,7 +543,12 @@ pub async fn start_chat(
                 }
             };
 
-            match result {
+            // A terminal socket event is also the UI's permission to submit a
+            // replacement turn.  Defer `chat_error` until after the in-flight
+            // slot below has been removed: publishing it while the failed slot
+            // is still present lets an immediate retry interrupt the dead run
+            // and inherit its failed model state.
+            let deferred_error = match result {
                 Ok(chat_result) => {
                     crate::web_chat::presentation::deliver_response(
                         &client_id_task,
@@ -420,17 +561,22 @@ pub async fn start_chat(
                         // The workspace the turn ran in, so the reply is stored
                         // there before it is announced (#6034).
                         Some(chat_result.workspace_dir.as_path()),
+                        chat_result.timing,
+                        // The main single-user turn is the only surface with
+                        // a human waiting on a next-message suggestion (C5).
+                        true,
                     )
                     .await;
+                    None
                 }
                 Err(err) => {
                     log::warn!(
-                    "[web-channel] run_chat_task failed client_id={} thread_id={} request_id={} error={}",
-                    client_id_task,
-                    thread_id_task,
-                    request_id_task,
-                    err
-                );
+                        "[web-channel] run_chat_task failed client_id={} thread_id={} request_id={} error={}",
+                        client_id_task,
+                        thread_id_task,
+                        request_id_task,
+                        err
+                    );
                     let detailed = format!(
                         "run_chat_task failed client_id={} thread_id={} request_id={} error={}",
                         client_id_task, thread_id_task, request_id_task, err
@@ -467,7 +613,7 @@ pub async fn start_chat(
                             ],
                         );
                     }
-                    publish_web_channel_event(WebChannelEvent {
+                    Some(WebChannelEvent {
                         event: "chat_error".to_string(),
                         client_id: client_id_task.clone(),
                         thread_id: thread_id_task.clone(),
@@ -480,16 +626,16 @@ pub async fn start_chat(
                         error_provider: classified.provider,
                         error_fallback_available: classified.fallback_available,
                         ..Default::default()
-                    });
+                    })
                 }
-            }
+            };
 
             // Drain followup messages queued during this turn.
             let followups = {
                 let mut in_flight = IN_FLIGHT.lock().await;
                 let followups = if let Some(current) = in_flight.get(&map_key_task) {
                     if current.request_id == request_id_task {
-                        let fups = current.run_queue.drain_followups().await;
+                        let fups = current.run_queue.drain(QueueLane::Followup).await;
                         in_flight.remove(&map_key_task);
                         fups
                     } else {
@@ -500,16 +646,30 @@ pub async fn start_chat(
                 };
                 followups
             };
+            // Announce the failed turn before starting its queued successor.
+            // Socket subscribers then observe the old terminal event before
+            // any inference_start from the follow-up, even if it starts at
+            // once on another task.
+            if let Some(event) = deferred_error {
+                publish_web_channel_event(event);
+            }
             if !followups.is_empty() {
                 log::info!(
                     "[web-channel] dispatching {} followup(s) thread_id={}",
                     followups.len(),
                     thread_id_task
                 );
+                // `followups` can carry more than one drained item; the event's
+                // `item_id`/`text_preview` describe the first one so the UI has
+                // something concrete to show even when several dispatch at once.
+                let first_followup = followups.first();
                 crate::core::bus::BUS.publish(
                     crate::core::events::DomainEvent::RunQueueFollowupDispatched {
                         thread_id: thread_id_task.clone(),
                         followup_count: followups.len(),
+                        item_id: first_followup.map(|f| f.id.clone()),
+                        text_preview: first_followup
+                            .map(|f| crate::agent::queued_turn::text_preview(&f.text)),
                     },
                 );
                 dispatch_followups(followups);
@@ -533,7 +693,7 @@ pub async fn start_chat(
     Ok(request_id)
 }
 
-fn dispatch_followups(followups: Vec<crate::agent::harness::run_queue::QueuedMessage>) {
+fn dispatch_followups(followups: Vec<crate::agent::queued_turn::QueuedTurn>) {
     for fup in followups {
         tokio::spawn(crate::core::runtime::context::CoreContext::propagate(
             async move {
@@ -543,7 +703,6 @@ fn dispatch_followups(followups: Vec<crate::agent::harness::run_queue::QueuedMes
                     &fup.text,
                     fup.model_override,
                     fup.temperature,
-                    fup.profile_id,
                     fup.locale,
                     Some("followup".to_string()),
                     ChatRequestMetadata::default(),
@@ -560,3 +719,7 @@ fn dispatch_followups(followups: Vec<crate::agent::harness::run_queue::QueuedMes
         ));
     }
 }
+
+#[cfg(test)]
+#[path = "start_chat_tests.rs"]
+mod tests;

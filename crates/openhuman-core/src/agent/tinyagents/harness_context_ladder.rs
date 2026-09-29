@@ -13,6 +13,7 @@ use std::sync::Arc;
 use tinyagents_harness::middleware::ContextCompressionMiddleware;
 use tinyagents_harness::runtime::AgentHarness;
 
+use crate::agent::tinyagents::host::OpenHumanRunContext;
 use crate::agent::tinyagents::middleware;
 use crate::agent::tinyagents::model::TurnChatModel;
 use crate::agent::tinyagents::summarize;
@@ -28,7 +29,7 @@ use crate::agent::tinyagents::turn_outcome::ToolOutcomeSink;
 /// erroring runs are excluded.
 #[allow(clippy::too_many_arguments)]
 pub(super) fn install_context_ladder(
-    harness: &mut AgentHarness<()>,
+    harness: &mut AgentHarness<(), OpenHumanRunContext>,
     model: &str,
     context_window: Option<u64>,
     autocompact_enabled: bool,
@@ -146,7 +147,7 @@ pub(super) fn install_context_ladder(
     // **Top-level turns only**, the same cut `CapPauser`'s dispatch guard takes.
     // A sub-agent reaching its own cap is a routine outcome, not a user-visible
     // dead end: it summarises, hands the result back to its parent, and
-    // `subagent_runner` already owns that checkpoint. The harm this fixes — a
+    // `subagent_host` already owns that checkpoint. The harm this fixes — a
     // person left with a status line where an answer should be — belongs to the
     // turn that answers a human. It also leaves a child's budget alone: the
     // conclusion costs a call, and turning every delegated run's N tool rounds
@@ -163,7 +164,8 @@ pub(super) fn install_context_ladder(
 
     let wrap_up_mw = wrap_up_at_cap.then(|| {
         Arc::new(middleware::FinalCallWrapUpMiddleware::new(
-            crate::agent::harness::session::turn_checkpoint::MAX_ITER_CHECKPOINT_INSTRUCTION,
+            crate::agent::session_host::turn_checkpoint::MAX_ITER_CHECKPOINT_INSTRUCTION,
+            crate::agent::session_host::turn_checkpoint::FINAL_WRITE_INSTRUCTION,
             tool_outcome_sink.clone(),
             // What is left after the contents list's share, so restoration
             // stops short of provoking an eviction (see the middleware).
