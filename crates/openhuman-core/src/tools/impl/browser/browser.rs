@@ -1,6 +1,6 @@
 //! Agent-facing browser backed by the TinyComputer module's browser and task members.
 #[path = "browser_lifecycle.rs"]
-mod lifecycle;
+mod cleanup;
 #[path = "browser_pending.rs"]
 mod pending;
 #[path = "browser_session_pool.rs"]
@@ -32,9 +32,6 @@ use tinycomputer_bus::browser::{
     Action, DownloadState, DownloadWaitRequest, NavigateRequest, ReadRequest, SessionId,
     SessionOptions, SnapshotRequest,
 };
-// Only the colocated tests name `Target` (through `use super::*`).
-#[cfg(test)]
-use tinycomputer_bus::browser::Target;
 use tinytools::{Tool, ToolCallOptions, ToolResult, ToolRunContext};
 use tokio::sync::Mutex;
 
