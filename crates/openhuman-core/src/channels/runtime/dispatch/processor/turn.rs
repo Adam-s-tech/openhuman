@@ -405,6 +405,7 @@ pub(crate) async fn process_channel_runtime_message(
         target_agent_id: scoping.target_agent_id,
         visible_tool_names,
         extra_tools: scoping.extra_tools,
+        deferred_tools: Vec::new(),
         on_progress: progress_tx,
         origin: turn_origin,
     };

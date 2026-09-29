@@ -127,6 +127,7 @@ pub(super) async fn try_arm(
         target_agent_id: Some("trigger_triage".to_string()),
         visible_tool_names: None,
         extra_tools: Vec::new(),
+        deferred_tools: Vec::new(),
         on_progress: None,
         // Triage processes untrusted inbound channel text. Label it as
         // ExternalChannel so the approval gate treats any external_effect
