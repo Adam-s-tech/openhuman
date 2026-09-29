@@ -2,7 +2,7 @@
 //! rescue models the module runs a task with.
 
 use crate::config::{ComputerConfig, Config, DecisionModel};
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 use super::loader::{load_config_with_timeout, snapshot_config_json};
 
@@ -73,7 +73,7 @@ pub fn patched(
 pub async fn apply_computer_settings(
     config: &mut Config,
     update: ComputerSettingsPatch,
-) -> Result<RpcOutcome<serde_json::Value>, String> {
+) -> Result<Outcome<serde_json::Value>, String> {
     config.computer = patched(&config.computer, update)?;
     tracing::debug!(
         decision_model = config.computer.decision_model.as_str(),
@@ -83,7 +83,7 @@ pub async fn apply_computer_settings(
     );
     config.save().await.map_err(|e| e.to_string())?;
     let snapshot = snapshot_config_json(config)?;
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         snapshot,
         vec![format!(
             "computer settings saved to {}",
@@ -95,7 +95,7 @@ pub async fn apply_computer_settings(
 /// Load the configuration, update `[computer]`, and save it.
 pub async fn load_and_apply_computer_settings(
     update: ComputerSettingsPatch,
-) -> Result<RpcOutcome<serde_json::Value>, String> {
+) -> Result<Outcome<serde_json::Value>, String> {
     let mut config = load_config_with_timeout().await?;
     apply_computer_settings(&mut config, update).await
 }
