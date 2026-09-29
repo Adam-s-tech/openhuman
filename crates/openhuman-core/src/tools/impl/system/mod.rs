@@ -26,7 +26,6 @@ use crate::security::policy::{TrustedAccess, TrustedRoot};
 use crate::security::SecurityPolicy;
 use tinytools::ToolRunContext;
 
-pub use tinyagents_harness::tools::{CurrentTimeTool, ResolveTimeTool};
 pub use detect_tools::DetectToolsTool;
 pub use insert_sql_record::InsertSqlRecordTool;
 pub use install_tool::InstallToolTool;
@@ -39,6 +38,7 @@ pub use python_exec::PythonExecTool;
 pub use retrieve_tool_output::RetrieveToolOutputTool;
 pub use schedule::ScheduleTool;
 pub use shell::ShellTool;
+pub use tinyagents_harness::tools::{CurrentTimeTool, ResolveTimeTool};
 pub use tool_stats::ToolStatsTool;
 pub use update_apply::UpdateApplyTool;
 pub use update_check::UpdateCheckTool;
