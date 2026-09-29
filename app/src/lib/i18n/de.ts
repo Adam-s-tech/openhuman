@@ -7444,7 +7444,7 @@ const messages: TranslationMap = {
   'memoryEngine.description':
     'Lege fest, wo OpenHuman deine Erinnerungen speichert und abruft. Es ist immer genau eine Engine aktiv.',
   'memoryEngine.active': 'Aktiv',
-  'memoryEngine.hostedNote': 'Wird deinen OpenHuman-Credits belastet.',
+  'memoryEngine.hostedNote': 'Die Nutzung wird von deinem OpenHuman-Plan oder deinen Credits abgezogen.',
   'memoryEngine.signInRequired': 'Melde dich an, um diese Engine zu nutzen.',
   'memoryEngine.endpoint': 'Endpunkt',
   'memoryEngine.deployment': 'Bereitstellung',

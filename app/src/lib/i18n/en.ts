@@ -7555,7 +7555,7 @@ const en: TranslationMap = {
   'memoryEngine.description':
     'Choose where OpenHuman stores and recalls your memories. Exactly one engine is active at a time.',
   'memoryEngine.active': 'Active',
-  'memoryEngine.hostedNote': 'Billed to your OpenHuman credits.',
+  'memoryEngine.hostedNote': 'Billed through your OpenHuman plan or credits.',
   'memoryEngine.signInRequired': 'Sign in to use this engine.',
   'memoryEngine.endpoint': 'Endpoint',
   'memoryEngine.deployment': 'Deployment',

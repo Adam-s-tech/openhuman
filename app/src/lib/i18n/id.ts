@@ -7296,7 +7296,7 @@ const messages: TranslationMap = {
   'memoryEngine.description':
     'Pilih tempat OpenHuman menyimpan dan mengingat memori Anda. Hanya satu mesin yang aktif pada satu waktu.',
   'memoryEngine.active': 'Aktif',
-  'memoryEngine.hostedNote': 'Ditagihkan ke kredit OpenHuman Anda.',
+  'memoryEngine.hostedNote': 'Ditagihkan ke langganan atau kredit OpenHuman Anda.',
   'memoryEngine.signInRequired': 'Masuk untuk menggunakan mesin ini.',
   'memoryEngine.endpoint': 'Endpoint',
   'memoryEngine.deployment': 'Penerapan',

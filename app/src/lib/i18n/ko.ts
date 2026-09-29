@@ -7168,7 +7168,7 @@ const messages: TranslationMap = {
   'memoryEngine.description':
     'OpenHuman이 기억을 저장하고 불러올 위치를 선택하세요. 한 번에 하나의 엔진만 활성화됩니다.',
   'memoryEngine.active': '사용 중',
-  'memoryEngine.hostedNote': 'OpenHuman 크레딧으로 청구됩니다.',
+  'memoryEngine.hostedNote': 'OpenHuman 구독 또는 크레딧으로 청구됩니다.',
   'memoryEngine.signInRequired': '이 엔진을 사용하려면 로그인하세요.',
   'memoryEngine.endpoint': '엔드포인트',
   'memoryEngine.deployment': '배포 방식',

@@ -7247,7 +7247,7 @@ const messages: TranslationMap = {
   'memoryEngine.description':
     'OpenHuman আপনার স্মৃতি কোথায় সংরক্ষণ ও মনে করবে তা বেছে নিন। একবারে কেবল একটি ইঞ্জিন সক্রিয় থাকে।',
   'memoryEngine.active': 'সক্রিয়',
-  'memoryEngine.hostedNote': 'আপনার OpenHuman ক্রেডিট থেকে বিল করা হবে।',
+  'memoryEngine.hostedNote': 'আপনার OpenHuman সাবস্ক্রিপশন বা ক্রেডিট থেকে বিল করা হবে।',
   'memoryEngine.signInRequired': 'এই ইঞ্জিন ব্যবহার করতে সাইন ইন করুন।',
   'memoryEngine.endpoint': 'এন্ডপয়েন্ট',
   'memoryEngine.deployment': 'ডিপ্লয়মেন্ট',

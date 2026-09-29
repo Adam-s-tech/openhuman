@@ -7428,7 +7428,7 @@ const messages: TranslationMap = {
   'memoryEngine.description':
     'Choisissez où OpenHuman stocke et retrouve vos souvenirs. Un seul moteur est actif à la fois.',
   'memoryEngine.active': 'Actif',
-  'memoryEngine.hostedNote': 'Facturé sur vos crédits OpenHuman.',
+  'memoryEngine.hostedNote': 'Facturé via votre abonnement ou vos crédits OpenHuman.',
   'memoryEngine.signInRequired': 'Connectez-vous pour utiliser ce moteur.',
   'memoryEngine.endpoint': 'Point de terminaison',
   'memoryEngine.deployment': 'Déploiement',
