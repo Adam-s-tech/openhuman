@@ -56,7 +56,7 @@ pub(crate) use super::ops_install::{
 };
 #[cfg(test)]
 pub(crate) use super::ops_types::{
-    MAX_NAME_LEN, RESOURCE_DIRS, SKILL_MD, TRUST_MARKER, WORKFLOW_MD, WORKFLOW_TOML,
+    RESOURCE_DIRS, SKILL_MD, TRUST_MARKER, WORKFLOW_MD, WORKFLOW_TOML,
 };
 #[cfg(test)]
 pub(crate) use std::path::{Path, PathBuf};
