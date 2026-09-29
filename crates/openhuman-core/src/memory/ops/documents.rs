@@ -565,7 +565,7 @@ pub async fn memory_query_namespace(
                 .map_err(|error| error.to_string())?,
             None => {
                 fallback::recall_hits(
-                    &guard,
+                    guard.as_ref(),
                     &request.namespace,
                     &request.query,
                     retrieval_limit as usize,
