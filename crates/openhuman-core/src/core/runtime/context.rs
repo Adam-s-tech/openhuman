@@ -445,7 +445,7 @@ impl CoreContext {
             let parent_handle = parent_handle.as_ref().ok().map(Arc::clone);
             let parent = parent_handle.as_ref().and_then(|h| h.read().ok());
             match parent {
-                Ok(parent)
+                Some(parent)
                     if parent.workspace_dir.as_deref()
                         == Some(overlay.config.workspace_dir.as_path())
                         && parent.memory_subsystem == overlay.config.subsystems.memory =>
@@ -660,10 +660,9 @@ impl CoreContext {
         workspace_dir: &std::path::Path,
         memory_subsystem: crate::config::schema::MemorySubsystemConfig,
     ) -> Result<(), String> {
-        let binding_handle = self
-            .workspace_binding
-            .write()
-            .map_err(|e| format!("memory subsystem update failed: binding handle lock poisoned: {e}"))?;
+        let binding_handle = self.workspace_binding.write().map_err(|e| {
+            format!("memory subsystem update failed: binding handle lock poisoned: {e}")
+        })?;
         let mut binding = binding_handle
             .write()
             .map_err(|e| format!("memory subsystem update failed: binding lock poisoned: {e}"))?;
