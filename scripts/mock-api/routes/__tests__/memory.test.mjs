@@ -112,3 +112,33 @@ test("forget refuses an empty selector without confirm_all", async () => {
   const del = await call("POST", "/memory/forget", { scope: "s", selector: {}, confirm_all: true });
   assert.equal(del.json.data.deleted.events, 1);
 });
+
+
+test("experience rejects missing or blank idempotency keys without poisoning later writes", async () => {
+  for (const key of [undefined, "", "  "]) {
+    const response = await call("POST", "/memory/experience", {
+      scope: "s", idempotency_key: key, modality: "text", content: { text: "x" },
+    });
+    assert.equal(response.status, 400);
+    assert.equal(response.json.errorCode, "MISSING_IDEMPOTENCY_KEY");
+  }
+  const valid = await write("s", "k1", "x");
+  assert.equal(valid.status, 200);
+  assert.equal(valid.json.data.event_id, "evt_1");
+});
+
+test("forget rejects unsupported selectors and scopes ID deletion", async () => {
+  const first = await write("scope-a", "k1", "one");
+  await write("scope-b", "k2", "two");
+  const unsupported = await call("POST", "/memory/forget", {
+    scope: "scope-a", selector: { about_subject: "person" },
+  });
+  assert.equal(unsupported.status, 400);
+  assert.equal(unsupported.json.errorCode, "UNSUPPORTED_SELECTOR");
+  const del = await call("POST", "/memory/forget", {
+    scope: "scope-a", selector: { memory_ids: [first.json.data.event_id, "evt_2"] },
+  });
+  assert.equal(del.json.data.deleted.events, 1);
+  const otherScope = await call("POST", "/memory/recall", { scope: "scope-b" });
+  assert.equal(otherScope.json.data.layers.events.length, 1);
+});
