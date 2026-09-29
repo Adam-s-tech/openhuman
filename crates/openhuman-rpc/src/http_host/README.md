@@ -29,7 +29,8 @@ Static directory hosting over ad-hoc, in-process HTTP listeners. Lives in `openh
 
 ## Public surface
 
-- `all_http_host_controller_schemas()` / `all_http_host_registered_controllers()`: re-exported from `schemas`; wired into the core controller registry.
+- `all_http_host_controller_schemas()` / `all_http_host_registered_controllers()`: re-exported from `schemas`.
+- `register_controllers()`: registers those controllers with the core registry as a `ControllerExtension` (`DomainGroup::Platform`). Idempotent.
 - `pub mod ops`: `start_hosted_dir_server`, `list_hosted_dir_servers`, `get_hosted_dir_server`, `stop_hosted_dir_server`, `stop_all_hosted_dir_servers`.
 - `pub mod rpc`: async `start`/`stop`/`get`/`list` returning `Outcome<...>`.
 
@@ -52,19 +53,20 @@ None on disk. Running servers are held in a process-global `HostedDirRegistry` (
 
 ## Dependencies
 
-- `crate::config`: `load_config_with_timeout` to resolve the active config when deriving the default Basic-auth username (`auth.rs`).
-- `crate::security::credentials::session_support`: `build_session_state` to read the active user identity for the default auth username (`auth.rs`).
-- `crate::core::shutdown`: `register` a one-time hook so all hosted servers stop when the core shuts down (`ops.rs`).
-- `crate::core::all`: `ControllerFuture`, `RegisteredController` for controller registration (`schemas.rs`).
-- `crate::core::{ControllerSchema, FieldSchema, TypeSchema}`: controller schema types (`schemas.rs`).
-- `crate::core::Outcome`: controller result type (`rpc.rs`).
+- `openhuman_core::config`: `load_config_with_timeout` to resolve the active config when deriving the default Basic-auth username (`auth.rs`).
+- `openhuman_core::security::credentials::session_support`: `build_session_state` to read the active user identity for the default auth username (`auth.rs`).
+- `openhuman_core::core::shutdown`: `register` a one-time hook so all hosted servers stop when the core shuts down (`ops.rs`).
+- `openhuman_core::core::all`: `ControllerFuture`, `RegisteredController` (`schemas.rs`) and `register_controller_extension` (`mod.rs`).
+- `openhuman_core::core::{ControllerSchema, FieldSchema, TypeSchema}`: controller schema types (`schemas.rs`).
+- `openhuman_core::core::Outcome`: controller result type (`rpc.rs`).
 - External crates: `axum` (HTTP server/router), `tokio` (`TcpListener`, tasks), `tokio_util` (`CancellationToken`, `ReaderStream`), `uuid`, `base64`, `rand`, `urlencoding`, `serde`/`serde_json`.
 
 ## Used by
 
-- `crates/openhuman-core/src/core/all.rs`: registers `all_http_host_registered_controllers()` into the core controller registry, exposing the RPC/CLI surface.
-- `crates/openhuman-core/src/lib.rs`: declares `pub mod http_host;`, gated by `#[cfg(feature = "http-server")]`; a slim build without that feature has no `http_host.*` controllers (see the `default` feature list and `http-server` feature notes in `crates/openhuman-core/Cargo.toml`).
-- `crates/openhuman-core/src/core/observability.rs` references `http_host::path_utils` paths in error-classification docs/tests (`http_host` directory-not-found maps to a filesystem user-path-invalid class).
+- `crates/openhuman-rpc/src/server/cli.rs` (`install_cli_server`) and `crates/openhuman-rpc/src/server/http/mod.rs` (`build_core_http_router`) call `register_controllers()`, so every host that runs the RPC server (desktop app, CLI, TUI) exposes `http_host.*`. A host that embeds the core without `openhuman-rpc` has no `http_host` surface.
+- `crates/openhuman-rpc/src/lib.rs`: declares `pub mod http_host;`, gated by the `server` feature.
+- `crates/openhuman-core/src/core/observability.rs` names `http_host::path_utils` in error-classification docs/tests (`http_host` directory-not-found maps to a filesystem user-path-invalid class).
+- `tests/raw_coverage/sandbox_runtime_platform_e2e.rs`: JSON-RPC round-trips over `build_core_http_router`.
 
 ## Notes / gotchas
 
