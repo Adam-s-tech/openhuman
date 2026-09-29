@@ -1,3 +1,5 @@
+#![allow(clippy::await_holding_lock)]
+
 use std::io::Write as _;
 use std::sync::Mutex;
 
@@ -13,6 +15,8 @@ use crate::http_host::ops::{
 use crate::http_host::path_utils::resolve_request_path;
 use crate::http_host::types::StartHostedDirParams;
 
+// Serializes tests that share the process-global server registry; the guard is
+// deliberately held across the awaits of each test.
 static TEST_MUTEX: Mutex<()> = Mutex::new(());
 
 #[test]
