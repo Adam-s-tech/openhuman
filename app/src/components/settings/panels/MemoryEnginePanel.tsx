@@ -10,26 +10,26 @@
  */
 import debug from 'debug';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-
 import { useT } from '../../../lib/i18n/I18nContext';
 import { useCoreState } from '../../../providers/CoreStateProvider';
 import { trackAnalyticsEvent } from '../../../services/analytics';
+import { userScopedStorage } from '../../../store/userScopedStorage';
 import { isLocalSessionToken } from '../../../utils/localSession';
 import {
   type MemoryEngineDescriptor,
-  memoryEngineGet,
   memoryEngineMigrate,
+  memoryEngineMigrateCancel,
   memoryEngineMigrateStatus,
   type MemoryEngineMigrateStatus,
   memoryEngineSet,
-  memoryEnginesList,
   type MemoryEngineState,
   type MemoryEngineTarget,
 } from '../../../utils/tauriCommands/memoryEngine';
+import { useMemoryEngine } from '../../intelligence/useMemoryEngineCapabilities';
 import { Alert, AlertDescription, Button, CenteredLoadingState } from '../../ui';
 import { RadioGroupRoot } from '../../ui/RadioGroup';
 import SettingsPanel from '../layout/SettingsPanel';
+import MemoryEngineErrorAlert from './MemoryEngineErrorAlert';
 import MemoryEngineOption, { type EngineFormValues } from './MemoryEngineOption';
 import MemoryEngineSwitchDialog from './MemoryEngineSwitchDialog';
 import {
@@ -43,6 +43,30 @@ const log = debug('settings:memory-engine');
 
 /** How often a running migration is polled. */
 export const MIGRATE_POLL_INTERVAL_MS = 1000;
+
+/** userScopedStorage key of the running migration `{ jobId, driver }`. */
+export const MIGRATE_JOB_STORAGE_KEY = 'memoryEngine.migrateJob';
+
+async function storeJob(jobId: string, driver: string): Promise<void> {
+  await userScopedStorage.setItem(MIGRATE_JOB_STORAGE_KEY, JSON.stringify({ jobId, driver }));
+}
+
+async function clearStoredJob(): Promise<void> {
+  await userScopedStorage.removeItem(MIGRATE_JOB_STORAGE_KEY);
+}
+
+async function readStoredJob(): Promise<{ jobId: string; driver: string } | null> {
+  try {
+    const raw = await userScopedStorage.getItem(MIGRATE_JOB_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { jobId?: unknown; driver?: unknown };
+    return typeof parsed.jobId === 'string' && typeof parsed.driver === 'string'
+      ? { jobId: parsed.jobId, driver: parsed.driver }
+      : null;
+  } catch {
+    return null;
+  }
+}
 
 interface PanelError {
   kind: MemoryEngineErrorKind;
@@ -70,13 +94,11 @@ function formFor(
 
 export default function MemoryEnginePanel() {
   const { t } = useT();
-  const navigate = useNavigate();
   const { snapshot } = useCoreState();
   const signedIn = snapshot.auth.isAuthenticated && !isLocalSessionToken(snapshot.sessionToken);
 
-  const [engines, setEngines] = useState<MemoryEngineDescriptor[]>([]);
-  const [current, setCurrent] = useState<MemoryEngineState | null>(null);
-  const [loading, setLoading] = useState(true);
+  // One shared engines_list + engine_get for this view (and the Brain row / gates).
+  const { engines, current, loading, error: loadError, refresh } = useMemoryEngine();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [forms, setForms] = useState<Record<string, EngineFormValues>>({});
   const [error, setError] = useState<PanelError | null>(null);
@@ -96,24 +118,46 @@ export default function MemoryEnginePanel() {
   }, []);
 
   const load = useCallback(async () => {
-    try {
-      const [list, state] = await Promise.all([memoryEnginesList(), memoryEngineGet()]);
-      if (!mounted.current) return;
-      log('loaded engines=%d active=%s', list.engines.length, state.driver);
-      setEngines(list.engines);
-      setCurrent(state);
-      setSelectedId(prev => prev ?? state.driver);
-      setError(null);
-    } catch (err) {
-      log('load failed: %o', err);
-      if (mounted.current) setError(toPanelError(err));
-    } finally {
-      if (mounted.current) setLoading(false);
-    }
-  }, []);
+    await refresh();
+  }, [refresh]);
+
+  // Always show fresh data on entry, then pick the active engine once known.
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
 
   useEffect(() => {
-    void load();
+    if (current) setSelectedId(prev => prev ?? current.driver);
+  }, [current]);
+
+  // Resume a migration that was running when the panel was left.
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const stored = await readStoredJob();
+      if (!stored || cancelled) return;
+      try {
+        const status = await memoryEngineMigrateStatus(stored.jobId);
+        if (cancelled || !mounted.current) return;
+        if (status.state === 'running') {
+          log('resuming migration job=%s driver=%s', stored.jobId, stored.driver);
+          targetDriverRef.current = stored.driver;
+          setSelectedId(stored.driver);
+          setMigration(status);
+          setSaving(true);
+          setConfirming(true);
+          setJobId(stored.jobId);
+          return;
+        }
+        await clearStoredJob();
+        if (status.state === 'done') await load();
+      } catch {
+        await clearStoredJob();
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [load]);
 
   const activeId = current?.driver ?? null;
@@ -164,6 +208,7 @@ export default function MemoryEnginePanel() {
       setConfirming(false);
       setJobId(null);
       setMigration(null);
+      void clearStoredJob();
       setForms({});
       setSelectedId(driver);
       await load();
@@ -204,6 +249,7 @@ export default function MemoryEnginePanel() {
       if (!mounted.current) return;
       setMigration({ state: 'running', copied: 0, total: null, error: null });
       setJobId(job_id);
+      void storeJob(job_id, target.driver);
     } catch (err) {
       log('migrate start failed: %o', err);
       if (mounted.current) {
@@ -232,8 +278,15 @@ export default function MemoryEnginePanel() {
         if (status.state === 'done') {
           log('migrate done job=%s copied=%d', jobId, status.copied);
           await finishSwitch(targetDriverRef.current);
+        } else if (status.state === 'cancelled') {
+          log('migrate cancelled job=%s', jobId);
+          void clearStoredJob();
+          setJobId(null);
+          setConfirming(false);
+          setMigration(null);
         } else {
           log('migrate failed job=%s', jobId);
+          void clearStoredJob();
           setJobId(null);
           setConfirming(false);
           setMigration(null);
@@ -242,6 +295,7 @@ export default function MemoryEnginePanel() {
       } catch (err) {
         if (cancelled) return;
         log('migrate status failed: %o', err);
+        void clearStoredJob();
         setSaving(false);
         setJobId(null);
         setConfirming(false);
@@ -256,6 +310,17 @@ export default function MemoryEnginePanel() {
     };
   }, [jobId, finishSwitch]);
 
+  const doCancelMigration = async () => {
+    if (!jobId) return;
+    try {
+      await memoryEngineMigrateCancel(jobId);
+      log('cancel requested job=%s', jobId);
+    } catch (err) {
+      log('cancel failed: %o', err);
+      if (mounted.current) setError(toPanelError(err));
+    }
+  };
+
   const onSwitchClick = () => {
     if (isSameDriver) {
       void doSet();
@@ -263,15 +328,6 @@ export default function MemoryEnginePanel() {
       setConfirming(true);
     }
   };
-
-  const errorText = (e: PanelError) =>
-    e.kind === 'insufficient_credits'
-      ? t('memoryEngine.error.insufficientCredits')
-      : e.kind === 'session_expired'
-        ? t('memoryEngine.error.sessionExpired')
-        : e.kind === 'backend_unavailable'
-          ? t('memoryEngine.error.backendUnavailable')
-          : t('memoryEngine.error.generic');
 
   const lacking = missingCapabilities(activeEngine, selected).map(humanizeCapability);
   const switchDisabled =
@@ -284,40 +340,18 @@ export default function MemoryEnginePanel() {
           <Alert variant="warning" data-testid="memory-engine-fallback">
             <AlertDescription>
               {current.fell_back_from
-                ? t('memoryEngine.fallback').replace('{engine}', current.fell_back_from)
+                ? t('memoryEngine.fallback')
+                    .replace('{engine}', current.fell_back_from)
+                    .replace('{reason}', current.last_error ?? '')
                 : t('memoryEngine.lastError')}
             </AlertDescription>
           </Alert>
         ) : null}
 
         {error ? (
-          <Alert variant="destructive" data-testid={`memory-engine-error-${error.kind}`}>
-            <AlertDescription>
-              <span>{errorText(error)}</span>
-              {error.kind === 'insufficient_credits' ? (
-                <Button
-                  variant="tertiary"
-                  size="xs"
-                  className="ml-2"
-                  analyticsId="memory-engine-open-billing"
-                  data-testid="memory-engine-open-billing"
-                  onClick={() => navigate('/settings/account')}>
-                  {t('memoryEngine.error.openBilling')}
-                </Button>
-              ) : null}
-              {error.kind === 'session_expired' ? (
-                <Button
-                  variant="tertiary"
-                  size="xs"
-                  className="ml-2"
-                  analyticsId="memory-engine-sign-in"
-                  data-testid="memory-engine-sign-in"
-                  onClick={() => navigate('/')}>
-                  {t('memoryEngine.error.signIn')}
-                </Button>
-              ) : null}
-            </AlertDescription>
-          </Alert>
+          <MemoryEngineErrorAlert error={error.message} kind={error.kind} />
+        ) : loadError ? (
+          <MemoryEngineErrorAlert error={loadError} />
         ) : null}
 
         {loading ? (
@@ -367,6 +401,7 @@ export default function MemoryEnginePanel() {
             onCopy={() => void doMigrate()}
             onSkipCopy={() => void doSet()}
             onCancel={() => setConfirming(false)}
+            onCancelMigration={() => void doCancelMigration()}
           />
         ) : null}
       </div>

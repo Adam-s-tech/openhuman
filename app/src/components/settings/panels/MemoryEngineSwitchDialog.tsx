@@ -12,6 +12,8 @@ interface MemoryEngineSwitchDialogProps {
   onCopy: () => void;
   onSkipCopy: () => void;
   onCancel: () => void;
+  /** Stops the running copy (the active engine is left unchanged). */
+  onCancelMigration: () => void;
 }
 
 /** "Copy my existing memories?" confirmation, then migration progress. */
@@ -23,6 +25,7 @@ export default function MemoryEngineSwitchDialog({
   onCopy,
   onSkipCopy,
   onCancel,
+  onCancelMigration,
 }: MemoryEngineSwitchDialogProps) {
   const { t } = useT();
   const migrating = migration !== null && migration.state === 'running';
@@ -40,7 +43,18 @@ export default function MemoryEngineSwitchDialog({
       maxWidthClassName="max-w-md"
       closePolicy={busy ? { escape: false, backdrop: false, button: false } : undefined}
       footer={
-        migrating ? null : (
+        migrating ? (
+          <div className="flex justify-end">
+            <Button
+              variant="tertiary"
+              size="sm"
+              analyticsId="memory-engine-cancel-migration"
+              data-testid="memory-engine-cancel-migration"
+              onClick={onCancelMigration}>
+              {t('memoryEngine.dialog.cancelMigration')}
+            </Button>
+          </div>
+        ) : (
           <div className="flex flex-wrap justify-end gap-2">
             <Button
               variant="tertiary"
