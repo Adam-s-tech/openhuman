@@ -686,7 +686,7 @@ impl PromptSection for DateTimeSection {
         // tool never see the rule.
         if ctx.tools.iter().any(|t| t.name == "resolve_time") {
             out.push_str(
-                " Time arguments come from `resolve_time`.",
+                " Time arguments come from `resolve_time`, never hand-computed.",
             );
         }
         Ok(out)
