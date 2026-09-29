@@ -1,4 +1,4 @@
-use super::BrowserTool;
+use super::*;
 
 impl Drop for BrowserTool {
     fn drop(&mut self) {
