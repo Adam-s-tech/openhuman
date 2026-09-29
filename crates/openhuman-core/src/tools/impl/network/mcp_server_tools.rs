@@ -77,6 +77,8 @@ pub fn configured_server_tools(
                 tool,
                 Arc::clone(registry),
                 Arc::clone(security),
+                config.config_path.clone(),
+                config.workspace_dir.clone(),
             )) as Box<dyn Tool>
         })
         .collect();
@@ -143,6 +145,8 @@ pub struct ConfiguredMcpServerTool {
     registry: Arc<McpServerRegistry>,
     security: Arc<SecurityPolicy>,
     scrubber: SecretScrubber,
+    config_path: std::path::PathBuf,
+    workspace_dir: std::path::PathBuf,
 }
 
 impl ConfiguredMcpServerTool {
@@ -150,6 +154,8 @@ impl ConfiguredMcpServerTool {
         inner: McpServerTool,
         registry: Arc<McpServerRegistry>,
         security: Arc<SecurityPolicy>,
+        config_path: std::path::PathBuf,
+        workspace_dir: std::path::PathBuf,
     ) -> Self {
         let scrubber = SecretScrubber::for_server(&registry, inner.server_id());
         Self {
@@ -157,6 +163,8 @@ impl ConfiguredMcpServerTool {
             registry,
             security,
             scrubber,
+            config_path,
+            workspace_dir,
         }
     }
 }
@@ -201,9 +209,10 @@ impl Tool for ConfiguredMcpServerTool {
             .map_err(|err| anyhow::anyhow!(err))?;
         let server = self.inner.server_id();
         let tool = self.inner.remote_name();
-        let config = crate::config::ops::load_config_with_timeout()
-            .await
-            .map_err(|error| anyhow::anyhow!("could not reload MCP configuration: {error}"))?;
+        let config =
+            crate::config::ops::reload_config_from_paths(&self.config_path, &self.workspace_dir)
+                .await
+                .map_err(|error| anyhow::anyhow!("could not reload MCP configuration: {error}"))?;
         let current_registry = crate::mcp::host::static_registry(&config);
         let Some(current_definition) = current_registry.get(server) else {
             anyhow::bail!("MCP server is no longer configured: {server}");
@@ -212,7 +221,9 @@ impl Tool for ConfiguredMcpServerTool {
             anyhow::bail!("MCP server is no longer configured: {server}");
         };
         if current_definition.fingerprint() != captured_definition.fingerprint() {
-            anyhow::bail!("MCP server configuration changed; rebuild tools before calling {server}");
+            anyhow::bail!(
+                "MCP server configuration changed; rebuild tools before calling {server}"
+            );
         }
         let live = current_registry.list_tools(server).await?;
         let safe = crate::mcp::registry::tools_safe_for_agent(

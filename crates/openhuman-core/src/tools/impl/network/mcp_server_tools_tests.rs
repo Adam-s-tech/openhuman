@@ -76,6 +76,15 @@ fn config(
 }
 
 async fn warmed(config: &Config) -> Arc<McpServerRegistry> {
+    tokio::fs::create_dir_all(config.config_path.parent().unwrap())
+        .await
+        .unwrap();
+    tokio::fs::write(
+        &config.config_path,
+        toml::to_string(config).expect("serialize config"),
+    )
+    .await
+    .unwrap();
     let registry = Arc::new(crate::mcp::host::static_registry(config));
     let host = crate::mcp::host::for_config(config).expect("host");
     for (name, outcome) in registry.refresh_tool_cache(host.dynamic().store()).await {
