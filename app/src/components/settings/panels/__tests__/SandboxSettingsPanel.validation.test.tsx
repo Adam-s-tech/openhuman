@@ -194,12 +194,12 @@ describe('SandboxSettingsPanel — load shape', () => {
     expect(screen.queryByDisplayValue('1')).not.toBeInTheDocument();
   });
 
-  it('does not call the core at all off-Tauri', async () => {
+  it('loads over core RPC off-Tauri (browser attached to a core)', async () => {
     mockIsTauri.mockReturnValue(false);
-    renderWithProviders(<SandboxSettingsPanel />);
+    await renderLoaded({ docker_image: 'alpine:3.20' });
 
-    await waitFor(() => expect(screen.getByText(/desktop app/i)).toBeInTheDocument());
-    expect(mockGet).not.toHaveBeenCalled();
+    expect(mockGet).toHaveBeenCalled();
+    expect(screen.queryByText(/desktop app/i)).not.toBeInTheDocument();
   });
 });
 

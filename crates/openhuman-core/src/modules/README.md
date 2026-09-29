@@ -34,7 +34,8 @@ directory on `modules`.
 | `boot.rs` | What loads at startup: search-path artifacts, then every `LoadPolicy::Eager` record: deliberately not every registry entry |
 | `schemas.rs` | The `modules` RPC namespace (`list`, `status`, `load`) |
 | `documents.rs` | Host half of `tinydocs` (feature `documents`): the three document operations |
-| `browser.rs`, `browser_task.rs` | Typed TinyBrowser bus calls, shared website policy, and bounded Jev task routing; the browser engine remains in the loadable module |
+| `browser.rs`, `browser_task.rs` | Typed TinyComputer `Browser*` calls, shared website policy, and browser tasks over `StartTask`/`AwaitTask`/`ContinueTask`; the browser engine remains in the loadable module |
+| `computer_config.rs` | The private TinyComputer configuration: decision model (`jev`), planner and rescue route (`planner`), and browser executable, rebuilt from `[computer]` and the stored credentials on every call |
 
 | `wallet.rs` | Host half of `tinywallet` (feature `web3`): confidential and split transaction-signing flows |
 | `voice.rs` | Host half of `tinyvoice` (feature `voice`): the voice primitives |
@@ -89,22 +90,32 @@ are installed first). It never fails the boot. Everything else is
 `LoadPolicy::Lazy` and resolves on first `ensure_loaded` call: deliberately
 not eager, so a user who never touches a feature never pays its download.
 
-## TinySearch development pin
+## TinySearch
 
-The `tinysearch` registry record has no platform assets until a published
-release provides verified checksums. Use `[[modules.overrides]]` with
-`id = "tinysearch"` and an absolute local library `path` during development.
-The host sends provider keys and the typed backend credential only in private
-module initialization and reinitialization payloads. Settings changes refresh
-a loaded module; `search::list_tools` and `search::execute_tool` reload current
-settings before each call so a captured config cannot keep old credentials.
-`search::configured_tool_specs` uses the bus contract to declare tools
-synchronously during registration.
+`search/` is the host adapter for the TinySearch module (`vendor/tinysearch`),
+which owns every web-search provider, its tool schemas, and role dispatch.
 
-TinySearch has one route per provider. Managed search maps to backend Parallel;
-when direct Parallel is explicitly selected, it takes precedence. Gemini
-Deep Research remains direct with a Gemini key even when grounded Gemini search
-uses the backend route.
+- `search/mod.rs` — `module_config` builds the private module configuration
+  from `crate::search::providers` (the host's resolved policy): per-provider
+  route (`managed` → `ProviderRoute::Backend`), direct keys and limits, the
+  backend credential (`resolve_backend_credential`: API key as `x-api-key`,
+  else the session JWT as a bearer), `x-sdk-name`, and the per-role provider
+  order. `configured_tool_specs` computes the tool declarations synchronously
+  from that same configuration.
+- `search/proxy.rs` — lazy load (`ensure_loaded_within`), private
+  reinitialization when the configuration fingerprint changes (the first call
+  after a load keeps the load-time configuration; a reinitialize that lands
+  while the module is still initializing waits and retries), and serialized
+  `ListTools` / `ExecuteTool` calls. `ExecuteTool` is an ordinary call: keys
+  travel only in the configuration, never in a call.
+- Credentials: `refresh_loaded` runs after a search settings save and on
+  `DomainEvent::CredentialChanged` (`search::credential_refresh`), so managed
+  providers follow login and logout without waiting for the next call.
+- Tests and local development load a local build through
+  `TINYSEARCH_TEST_MODULE` or `[[modules.overrides]]` (`id = "tinysearch"`);
+  `scripts/test-rust-with-mock.sh` and CI build the pinned submodule. Release
+  checksums are pinned in `registry/records_search.rs` from the published
+  `checksum.toml`, never from a local build.
 
 ## Contract crates
 

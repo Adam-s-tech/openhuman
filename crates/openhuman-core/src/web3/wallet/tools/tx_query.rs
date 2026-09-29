@@ -62,6 +62,10 @@ impl WalletTxStatusTool {
 
 #[async_trait]
 impl Tool for WalletTxStatusTool {
+    fn exposure(&self) -> tinytools::ToolExposure {
+        tinytools::ToolExposure::Deferred
+    }
+
     fn name(&self) -> &str {
         "wallet_tx_status"
     }
@@ -113,6 +117,10 @@ impl WalletTxReceiptTool {
 
 #[async_trait]
 impl Tool for WalletTxReceiptTool {
+    fn exposure(&self) -> tinytools::ToolExposure {
+        tinytools::ToolExposure::Deferred
+    }
+
     fn name(&self) -> &str {
         "wallet_tx_receipt"
     }
@@ -164,6 +172,10 @@ impl WalletLookupTxTool {
 
 #[async_trait]
 impl Tool for WalletLookupTxTool {
+    fn exposure(&self) -> tinytools::ToolExposure {
+        tinytools::ToolExposure::Deferred
+    }
+
     fn name(&self) -> &str {
         "wallet_lookup_tx"
     }

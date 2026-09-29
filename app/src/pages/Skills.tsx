@@ -11,7 +11,6 @@ import {
   type ComposioToolkitMeta,
   KNOWN_COMPOSIO_TOOLKITS,
 } from '../components/composio/toolkitMeta';
-import DesktopConnectionPage from '../components/desktop/DesktopConnectionPage';
 import EmptyStateCard from '../components/EmptyStateCard';
 import { ToastContainer } from '../components/intelligence/Toast';
 import PageSectionHeader from '../components/layout/PageSectionHeader';
@@ -20,8 +19,8 @@ import { SidebarContent } from '../components/layout/shell/SidebarSlot';
 import TwoPaneNav from '../components/layout/TwoPaneNav';
 import { SettingsLayoutProvider } from '../components/settings/layout/SettingsLayoutContext';
 import SettingsTabbedPage from '../components/settings/layout/SettingsTabbedPage';
-import BrowserConnectionsPanel from '../components/settings/panels/BrowserConnectionsPanel';
 import ComposioPanel from '../components/settings/panels/ComposioPanel';
+import ComputerPanel, { type ComputerSection } from '../components/settings/panels/ComputerPanel';
 import EmbeddingsPanel from '../components/settings/panels/EmbeddingsPanel';
 import LlmConnectionsPanel from '../components/settings/panels/LlmConnectionsPanel';
 import SearchPanel from '../components/settings/panels/SearchPanel';
@@ -485,11 +484,10 @@ type ConnectionsTab =
   | 'voice'
   | 'embeddings'
   | 'search'
-  | 'browser'
+  | 'computer'
   | 'usage'
   | 'composio-key'
-  | 'wallet'
-  | 'desktop';
+  | 'wallet';
 
 /**
  * Tabs that render a relocated settings panel inside the shared card surface.
@@ -528,11 +526,10 @@ const SELF_HEADER_TABS: ReadonlySet<ConnectionsTab> = new Set<ConnectionsTab>([
   'voice',
   'embeddings',
   'search',
-  'browser',
+  'computer',
   'composio-key',
   'usage',
   'wallet',
-  'desktop',
 ]);
 
 const INTELLIGENCE_TABS: ReadonlySet<ConnectionsTab> = new Set<ConnectionsTab>([
@@ -541,11 +538,10 @@ const INTELLIGENCE_TABS: ReadonlySet<ConnectionsTab> = new Set<ConnectionsTab>([
   'voice',
   'embeddings',
   'search',
-  'browser',
+  'computer',
   'usage',
   'composio-key',
   'wallet',
-  'desktop',
 ]);
 
 export default function Skills() {
@@ -572,11 +568,10 @@ export default function Skills() {
       raw === 'voice' ||
       raw === 'embeddings' ||
       raw === 'search' ||
-      raw === 'browser' ||
+      raw === 'computer' ||
       raw === 'usage' ||
       raw === 'composio-key' ||
-      raw === 'wallet' ||
-      raw === 'desktop'
+      raw === 'wallet'
     )
       return raw;
     // Legacy back-compat aliases
@@ -584,9 +579,29 @@ export default function Skills() {
     if (raw === 'messaging') return 'channels';
     if (raw === 'tools') return 'mcp';
     if (raw === 'explorer') return 'skills';
+    // Browser and Desktop are sub-tabs of Computer now.
+    if (raw === 'browser' || raw === 'desktop') return 'computer';
     // Default landing is the Welcome overview for the Connections page.
     return 'welcome';
   }, [location.search]);
+
+  // `?section=` picks Computer's sub-tab; the legacy `?tab=browser|desktop`
+  // deep links land on the matching one.
+  const computerSection = useMemo<ComputerSection>(() => {
+    const params = new URLSearchParams(location.search);
+    const raw = params.get('section') ?? params.get('tab');
+    return raw === 'browser' || raw === 'models' ? raw : 'desktop';
+  }, [location.search]);
+
+  const handleComputerSection = useCallback(
+    (section: ComputerSection) => {
+      const params = new URLSearchParams(location.search);
+      params.set('tab', 'computer');
+      params.set('section', section);
+      navigate({ pathname: location.pathname, search: `?${params.toString()}` });
+    },
+    [location.pathname, location.search, navigate]
+  );
 
   const handleTabChange = useCallback(
     (tab: ConnectionsTab) => {
@@ -1022,13 +1037,8 @@ export default function Skills() {
                     ),
                   },
                   {
-                    value: 'browser',
-                    label: t('connections.tabs.browser'),
-                    icon: navIcon('M3 5h18v14H3zM3 10h18M9 10v9'),
-                  },
-                  {
-                    value: 'desktop',
-                    label: t('desktop.title'),
+                    value: 'computer',
+                    label: t('computer.title'),
                     icon: navIcon('M4 5h16v11H4zM8 20h8m-4-4v4'),
                   },
                   {
@@ -1181,14 +1191,14 @@ export default function Skills() {
                     <ToolsPanel bare />
                   </SettingsTabbedPage>
                 )}
-                {activeTab === 'browser' && <BrowserConnectionsPanel />}
-                {activeTab === 'search' && (
-                  <SettingsTabbedPage
-                    title={t('settings.search.title')}
-                    description={t('connections.header.search')}>
-                    <SearchPanel embedded />
-                  </SettingsTabbedPage>
+                {activeTab === 'computer' && (
+                  <ComputerPanel
+                    section={computerSection}
+                    onSectionChange={handleComputerSection}
+                  />
                 )}
+                {/* Search owns its page shell (header switch + chip tabs), like LLM. */}
+                {activeTab === 'search' && <SearchPanel />}
                 {activeTab === 'composio-key' && (
                   <SettingsTabbedPage
                     title={t('connections.tabs.composioKey')}
@@ -1199,7 +1209,6 @@ export default function Skills() {
                 {/* Usage owns its page shell (header chip tabs), like LLM. */}
                 {activeTab === 'usage' && <UsagePanel />}
                 {activeTab === 'wallet' && <WalletPanel />}
-                {activeTab === 'desktop' && <DesktopConnectionPage />}
               </SettingsLayoutProvider>
             ) : (
               <>

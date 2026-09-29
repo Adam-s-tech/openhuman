@@ -22,6 +22,7 @@ use crate::agent::tinyagents::harness_tool_registration::register_turn_tools_and
 use crate::agent::tinyagents::host::steering;
 use crate::agent::tinyagents::host::OpenHumanRunContext;
 use crate::agent::tinyagents::middleware::{self, TurnContextMiddleware};
+use crate::agent::tinyagents::model::{ErrorSlotModel, TurnChatModel};
 use crate::agent::tinyagents::observability::{
     IterationCursor, ProviderUsageCarry, SubagentScope, ToolFailureMap, ToolNameMap,
 };
@@ -215,6 +216,17 @@ pub(super) fn assemble_turn_harness(
         // caller before dispatch, not by harness assembly.
         ..
     } = turn_models;
+    // A non-hosted run owns its registry, so its models record into the run's
+    // error slot (#6724). A hosted root shares its runtime registry with its
+    // sub-agents; there only the resolver's lead model records.
+    let slotted = |model: TurnChatModel| -> TurnChatModel {
+        if hosted_security_gate {
+            model
+        } else {
+            Arc::new(ErrorSlotModel::new(model, error_slot.clone()))
+        }
+    };
+    let primary = slotted(primary);
     capability_registry.replace_model(model, primary.clone());
     harness
         .register_model(model, primary)
@@ -227,6 +239,7 @@ pub(super) fn assemble_turn_harness(
     // fallback/selection (02.2) chooses among the routes. `build_turn_models`
     // already skipped the turn's own model, so we don't shadow the default.
     for (name, route_model) in routes {
+        let route_model = slotted(route_model);
         capability_registry.replace_model(name.as_str(), route_model.clone());
         harness.register_model(name, route_model);
     }
@@ -347,12 +360,15 @@ pub(super) fn assemble_turn_harness(
     // error `REPEATED_TOOL_FAILURE_THRESHOLD` times in a row, so a deterministic
     // security/approval denial or terminal tool error surfaces its root cause
     // instead of burning the whole iteration budget (legacy ProgressGuard parity).
-    if let Some(handle) = &handle {
-        harness.push_middleware(Arc::new(middleware::RepeatedToolFailureMiddleware::new(
+    let repeated_failure = handle.as_ref().map(|handle| {
+        Arc::new(middleware::RepeatedToolFailureMiddleware::new(
             handle.clone(),
             REPEATED_TOOL_FAILURE_THRESHOLD,
             halt_summary.clone(),
-        )));
+        ))
+    });
+    if let Some(mw) = &repeated_failure {
+        harness.push_middleware(mw.clone());
     }
 
     // Policy-driven stop hooks (budget cap, thread-goal budget, ad-hoc iteration
@@ -562,8 +578,8 @@ pub(super) fn assemble_turn_harness(
 
     // Direct web lookup is for a bounded answer. Once enough search/fetch
     // results have returned, spend the next model call on synthesis rather
-    // than another variation of the same query. Specialist research runs keep
-    // their own budgets and are not narrowed here.
+    // than another variation of the same query. Sub-agent runs keep their own
+    // budgets and are not narrowed here.
     if subagent_scope.is_none() {
         harness.push_middleware(Arc::new(middleware::ResearchBudgetMiddleware::new()));
     }
@@ -673,6 +689,12 @@ pub(super) fn assemble_turn_harness(
     // repeat-progress recurrence ledger restarts (#6275).
     if let Some(mw) = &repeat_progress {
         harness.push_middleware(Arc::new(mw.eviction_observer()));
+    }
+    // Registered after it: the breaker's corrective nudges ride the next
+    // request only. Anything earlier (notably the transcript snapshot a failed
+    // turn persists) must not see them, or they become durable history (#6725).
+    if let Some(mw) = &repeated_failure {
+        harness.push_middleware(Arc::new(mw.nudge_injector()));
     }
 
     AssembledTurnHarness {

@@ -391,6 +391,9 @@ export function useOpenHumanExternalStore(
   const liveRequestId = useAppSelector(state =>
     threadId ? state.chatRuntime.liveRequestIdByThread?.[threadId] : undefined
   );
+  const liveTimelineRequestId = useAppSelector(state =>
+    threadId ? state.chatRuntime.toolTimelineRequestByThread?.[threadId] : undefined
+  );
   const settledTurns = useAppSelector(state =>
     threadId ? (state.chatRuntime.settledTurnsByThread?.[threadId] ?? EMPTY_SETTLED) : EMPTY_SETTLED
   );
@@ -412,6 +415,7 @@ export function useOpenHumanExternalStore(
         isRunning,
         liveTimeline,
         liveTranscript,
+        liveTimelineRequestId,
         pendingApproval,
         turnTimelines: coreTranscript.timelines,
         turnTranscripts: coreTranscript.transcripts,
@@ -424,6 +428,7 @@ export function useOpenHumanExternalStore(
       isRunning,
       liveTimeline,
       liveTranscript,
+      liveTimelineRequestId,
       pendingApproval,
       coreTranscript,
       settledTurns,

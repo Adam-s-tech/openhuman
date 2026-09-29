@@ -255,43 +255,8 @@ fn deferred_rows_name_deferred_tools_the_prompt_routes_through_tool_search() {
 ///   with its route, `tool_search`, which makes it callable by name afterwards.
 ///   It is off the belt by design, so no fix is owed.
 const KNOWN_UNCALLABLE: &[(&str, &str, &str)] = &[
-    // Real.
-    (
-        "morning_briefing",
-        "composio_list_connections",
-        "withheld by the `composio` pack",
-    ),
-    (
-        "morning_briefing",
-        "composio_list_tools",
-        "withheld by the `composio` pack",
-    ),
-    (
-        "morning_briefing",
-        "composio_execute",
-        "withheld by the `composio` pack",
-    ),
-    (
-        "context_scout",
-        "list_workflows",
-        "on its belt but withheld by the `workflows` pack",
-    ),
-    (
-        "skill_executor",
-        "describe_workflow",
-        "step 1 of its procedure; on its belt but withheld by the `workflows` pack",
-    ),
+    // Real: none outstanding.
     // Collision.
-    (
-        "context_scout",
-        "run_workflow",
-        "names the orchestrator's call, not its own",
-    ),
-    (
-        "scheduler_agent",
-        "schedule",
-        "the `schedule` argument of `cron_add`",
-    ),
     (
         "summarizer",
         "file_read",
@@ -376,7 +341,7 @@ fn every_prompt_names_only_tools_its_agent_can_call() {
 
 /// Agents whose prompt defers to the rendered tool list instead of naming a
 /// tool; [`every_prompt_names_at_least_one_tool_it_can_call`] skips them.
-const NAMES_NO_TOOL: &[&str] = &["tools_agent", "tool_maker", "critic", "archivist"];
+const NAMES_NO_TOOL: &[&str] = &["critic", "archivist"];
 
 const SKILL_SETUP_NAME: Option<&str> = if cfg!(feature = "skills") {
     Some("skill_setup")

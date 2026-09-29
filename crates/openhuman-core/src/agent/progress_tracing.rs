@@ -10,7 +10,7 @@
 //! agent.turn                      (root, trace_id = session id)
 //! ├─ agent.iteration #1
 //! │  ├─ tool.web_search
-//! │  └─ subagent.researcher
+//! │  └─ subagent.code_executor
 //! │     ├─ subagent.iteration #1
 //! │     │  └─ tool.read_file
 //! │     └─ (closed on SubagentCompleted)

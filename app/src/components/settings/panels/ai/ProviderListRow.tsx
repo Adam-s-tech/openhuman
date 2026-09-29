@@ -148,6 +148,7 @@ export const ProviderListRow = ({
   control,
   actions = [],
   actionsLabel,
+  swatch,
   'data-testid': testId,
 }: {
   /** Provider slug, used to look up the brand mark. */
@@ -169,12 +170,15 @@ export const ProviderListRow = ({
   /** Accessible name for the overflow trigger. Required when `actions` is
    *  non-empty — an unnamed icon button is announced as just "button". */
   actionsLabel?: string;
+  /** Replaces the LLM brand swatch, for lists whose providers are not LLM
+   *  providers (web search) and so have no entry in the LLM icon map. */
+  swatch?: ReactNode;
   'data-testid'?: string;
 }) => {
   const { t } = useT();
   return (
     <li data-slot="provider-row" data-testid={testId} className="flex items-center gap-3 px-4 py-3">
-      <ProviderSwatch slug={slug} label={label} tone={tone} />
+      {swatch ?? <ProviderSwatch slug={slug} label={label} tone={tone} />}
 
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <div className="flex min-w-0 items-center gap-2">

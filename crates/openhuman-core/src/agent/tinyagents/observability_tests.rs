@@ -173,7 +173,7 @@ async fn subagent_model_completed_carries_task_attribution() {
         "managed",
         8,
         Some(SubagentScope {
-            agent_id: "context_scout".to_string(),
+            agent_id: "researcher".to_string(),
             task_id: "ctx-1".to_string(),
             extended_policy: true,
             journal_run_id: None,

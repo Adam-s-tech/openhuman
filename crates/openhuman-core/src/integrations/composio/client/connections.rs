@@ -157,7 +157,7 @@ impl ComposioClient {
 
         let resp = http_client
             .delete(&url)
-            .header("Authorization", format!("Bearer {}", self.inner.auth_token))
+            .headers(self.inner.auth_headers()?)
             .send()
             .await?;
 

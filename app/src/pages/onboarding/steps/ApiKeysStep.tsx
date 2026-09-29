@@ -6,7 +6,6 @@ import { useT } from '../../../lib/i18n/I18nContext';
 import { setCloudProviderKey } from '../../../services/api/aiSettingsApi';
 import { callCoreRpc } from '../../../services/coreRpcClient';
 import { openUrl } from '../../../utils/openUrl';
-import { isTauri } from '../../../utils/tauriCommands/common';
 import OnboardingNextButton from '../components/OnboardingNextButton';
 
 interface ApiKeysStepProps {
@@ -37,9 +36,6 @@ const ApiKeysStep = ({ onNext, onSkip }: ApiKeysStepProps) => {
   const [oauthCallbackUrl, setOauthCallbackUrl] = useState('');
 
   const refreshOAuthStatus = useCallback(async () => {
-    if (!isTauri()) {
-      return;
-    }
     try {
       const res = await callCoreRpc<{ result: OpenAiOAuthStatus }>({
         method: 'openhuman.inference_openai_oauth_status',
@@ -56,10 +52,6 @@ const ApiKeysStep = ({ onNext, onSkip }: ApiKeysStepProps) => {
   }, [refreshOAuthStatus]);
 
   const handleOpenAiOAuthStart = async () => {
-    if (!isTauri()) {
-      setError(t('onboarding.apiKeys.oauthDesktopOnly'));
-      return;
-    }
     setOauthBusy(true);
     setError(null);
     try {

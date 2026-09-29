@@ -16,7 +16,6 @@ use serde_json::Value;
 use crate::backend::BackendClient;
 use crate::config::Config;
 use crate::rpc::RpcOutcome;
-use crate::security::credentials::jwt::get_session_token;
 
 const LOG_PREFIX: &str = "[voice-realtime]";
 
@@ -75,31 +74,28 @@ fn authority_host(rest: &str) -> &str {
 
 /// Mint a realtime voice-agent signed URL by proxying the hosted backend.
 ///
-/// Follows the `reply_speech::synthesize_reply` auth pattern: session token →
+/// Follows the `reply_speech::synthesize_reply` auth pattern: backend credential →
 /// [`BackendClient`] → `authed_json`, with `flatten_authed_error` so a
 /// lapsed-session 401 classifies as `SESSION_EXPIRED` and skips Sentry rather
 /// than leaking as a raw error string.
 pub async fn mint_voice_agent_signed_url(
     config: &Config,
 ) -> Result<RpcOutcome<VoiceAgentSignedUrl>, String> {
-    let token = get_session_token(config)
-        .map_err(|e| e.to_string())?
-        .and_then(|t| {
-            let s = t.trim().to_string();
-            if s.is_empty() {
-                None
-            } else {
-                Some(s)
-            }
-        })
-        .ok_or_else(|| "no backend session token; sign in first".to_string())?;
+    // API key (sent as `x-api-key`) or live session JWT (sent as Bearer).
+    let credential =
+        crate::security::credentials::session_support::resolve_backend_credential(config)?;
 
     let api_url = crate::backend::require_base_url(&config.api_url)?;
     ensure_secure_backend_url(&api_url)?;
     let client = BackendClient::new(&api_url).map_err(|e| e.to_string())?;
 
     let raw = client
-        .authed_json(&token, Method::GET, "/voice-agent/get-signed-url", None)
+        .authed_json(
+            &credential,
+            Method::GET,
+            "/voice-agent/get-signed-url",
+            None,
+        )
         .await
         .map_err(crate::backend::flatten_authed_error)?;
 

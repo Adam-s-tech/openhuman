@@ -376,7 +376,7 @@ fn call_targets_agent(name: &str, args: Option<&serde_json::Value>, agent_id: &s
     if named_in_args {
         return true;
     }
-    // Alias tools such as `research` → `researcher`. The length floor keeps a
+    // Alias tools such as `plan` → `planner`. The length floor keeps a
     // short generic tool name from matching an agent by accident.
     let stripped = name
         .strip_prefix("delegate_to_")

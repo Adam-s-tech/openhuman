@@ -82,6 +82,7 @@ export function buildPlan({ profile, areas, env = {}, isPullRequest = true }) {
     );
   }
   const rust = areas.rustCore || areas.rustTauri;
+  const gateSmoke = rust || areas.inventory;
   // ex63: the slot's persistent /cache disk keeps the frontend tools' caches
   // (tsc build info, eslint and prettier caches) from job to job. All three
   // key on file content, so a stale entry can only cost a re-check.
@@ -361,7 +362,7 @@ export function buildPlan({ profile, areas, env = {}, isPullRequest = true }) {
       checks: [
         {
           name: "gate-contract-tests",
-          when: rust,
+          when: gateSmoke,
           run:
             "cargo test --manifest-path Cargo.toml -p openhuman --no-default-features --lib --" +
             " core::all:: core::cli:: core::jsonrpc:: core::legacy_aliases:: core::runtime::" +
@@ -378,7 +379,7 @@ export function buildPlan({ profile, areas, env = {}, isPullRequest = true }) {
           // the e2e-test-support set runs on pushes to main (CI Lite): this
           // build already compiles that set, under cfg(test).
           name: "gate-contract-tests-features",
-          when: rust,
+          when: gateSmoke,
           run:
             "cargo test --manifest-path Cargo.toml -p openhuman --no-default-features" +
             " --features mcp,e2e-test-support --lib --" +
@@ -386,12 +387,12 @@ export function buildPlan({ profile, areas, env = {}, isPullRequest = true }) {
         },
         {
           name: "kernel-floor",
-          when: rust,
+          when: gateSmoke,
           run: "bash scripts/check-kernel-floor.sh --verbose",
         },
         {
           name: "dep-sim-calibration",
-          when: rust,
+          when: gateSmoke,
           run: "bash scripts/ci/check-dep-sim-calibration.sh",
         },
       ],

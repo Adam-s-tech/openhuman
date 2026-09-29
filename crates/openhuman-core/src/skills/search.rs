@@ -162,7 +162,7 @@ impl Tool for SkillSearchTool {
          best-matching skills with their id and description. Prefer this over \
          `list_workflows` when you know the capability you want but not the \
          name — it returns only what matched. Then `describe_workflow` for the \
-         details, or `run_skill` to run it. Searches only what is installed \
+         details, or `run_workflow` to run it. Searches only what is installed \
          locally; use `skill_registry_search` to find skills to install."
     }
 

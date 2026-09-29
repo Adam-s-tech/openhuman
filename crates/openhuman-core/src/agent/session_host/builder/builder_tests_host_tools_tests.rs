@@ -33,10 +33,7 @@ impl tinytools::Tool for Marker {
 }
 
 fn definition() -> crate::agent::harness::definition::AgentDefinition {
-    crate::agent::harness::AgentDefinitionRegistry::builtins_only()
-        .get("tools_agent")
-        .cloned()
-        .expect("tools_agent built-in definition")
+    super::wildcard_probe_def()
 }
 
 /// The whole point: a name the host supplied is callable, and the model is

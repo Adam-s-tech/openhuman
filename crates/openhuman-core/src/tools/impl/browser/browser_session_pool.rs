@@ -8,7 +8,7 @@ use std::{
     sync::{Arc, OnceLock},
     time::{Duration, Instant},
 };
-use tinybrowser_bus::SessionId;
+use tinycomputer_bus::browser::SessionId;
 use tokio::sync::Mutex;
 
 pub(super) const MAX_THREAD_SESSIONS: usize = 6;

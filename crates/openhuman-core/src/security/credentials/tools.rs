@@ -71,6 +71,10 @@ impl CredentialListTool {
 }
 #[async_trait]
 impl Tool for CredentialListTool {
+    fn exposure(&self) -> tinytools::ToolExposure {
+        tinytools::ToolExposure::Deferred
+    }
+
     fn name(&self) -> &str {
         "credential_list"
     }
@@ -108,6 +112,10 @@ impl SessionStateTool {
 }
 #[async_trait]
 impl Tool for SessionStateTool {
+    fn exposure(&self) -> tinytools::ToolExposure {
+        tinytools::ToolExposure::Deferred
+    }
+
     fn name(&self) -> &str {
         "session_state"
     }
@@ -141,6 +149,10 @@ impl OAuthConnectUrlTool {
 }
 #[async_trait]
 impl Tool for OAuthConnectUrlTool {
+    fn exposure(&self) -> tinytools::ToolExposure {
+        tinytools::ToolExposure::Deferred
+    }
+
     fn name(&self) -> &str {
         "oauth_connect_url"
     }
@@ -190,6 +202,10 @@ impl OAuthListTool {
 }
 #[async_trait]
 impl Tool for OAuthListTool {
+    fn exposure(&self) -> tinytools::ToolExposure {
+        tinytools::ToolExposure::Deferred
+    }
+
     fn name(&self) -> &str {
         "oauth_list"
     }

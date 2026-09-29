@@ -101,6 +101,24 @@ describe('tool labels: regressions', () => {
     expect(done('brave_image_search')).toBe('Searched images');
   });
 
+  it('covers the search role tools and provider answer tools', () => {
+    expect(done('web_answer_tool', { query: 'q' })).toBe('Asked the web');
+    expect(describeToolCall({ name: 'web_answer_tool', args: { query: 'q' } }).chip).toBe('q');
+    for (const name of ['web_answer_tool', 'gemini_agentic_search', 'exa_answer']) {
+      expect(describeToolCall({ name }).body, name).toBe('webSearch');
+    }
+    expect(done('gemini_deep_research')).toBe('Researched');
+    expect(describeToolCall({ name: 'gemini_deep_research' }).body).toBe('webSearch');
+    expect(done('web_contents_tool', { urls: ['https://a.dev/x', 'https://b.dev'] })).toBe(
+      'Read pages'
+    );
+    expect(
+      describeToolCall({ name: 'web_contents_tool', args: { urls: ['https://a.dev/x'] } }).body
+    ).toBe('webFetch');
+    // Parallel was removed from the core, but old transcripts still render.
+    expect(done('parallel_research')).toBe('Researched');
+  });
+
   it('describes the deferred-tool bridge as the tool it calls', () => {
     expect(done('tool_call', { name: 'SLACK_SEND_MESSAGE', arguments: {} })).toBe('Used Slack');
     expect(done('tool_call', { name: 'file_read', arguments: { path: '/a/b/c/d.ts' } })).toBe(
@@ -116,7 +134,7 @@ describe('tool labels: regressions', () => {
   });
 
   it('labels named agents and delegations by what they do', () => {
-    expect(done('subagent:researcher')).toBe('Researched');
+    expect(done('subagent:planner')).toBe('Planned next steps');
     expect(done('spawn_subagent', { agent_id: 'critic' })).toBe('Reviewed the work');
     expect(done('delegate_gmail')).toBe('Used Gmail');
     expect(active('run_code')).toBe('Running code');

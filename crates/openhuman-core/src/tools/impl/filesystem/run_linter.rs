@@ -31,6 +31,10 @@ impl RunLinterTool {
 
 #[async_trait]
 impl Tool for RunLinterTool {
+    fn exposure(&self) -> tinytools::ToolExposure {
+        tinytools::ToolExposure::Deferred
+    }
+
     fn name(&self) -> &str {
         "run_linter"
     }

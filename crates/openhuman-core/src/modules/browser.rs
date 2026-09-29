@@ -1,22 +1,28 @@
-//! Host adapter for the loadable TinyBrowser module.
+//! Host adapter for the browser members of the loadable TinyComputer module.
+//!
+//! TinyComputer serves its browser members (`BrowserOpenSession`,
+//! `BrowserNavigate`, ...) on the same interface as its desktop members, so
+//! this adapter shares the desktop adapter's proxy, which loads the module and
+//! refreshes its private configuration before a call.
 
 use std::sync::Arc;
 
 use serde::{de::DeserializeOwned, Serialize};
-use tinybrowser_bus::{
+use tinycomputer_bus::agent::Capabilities;
+use tinycomputer_bus::browser::{
     names, Action, ActionOutcome, DownloadInfo, DownloadWaitRequest, NavigateRequest, PageState,
-    PageText, ReadRequest, SessionId, SessionInfo, SessionOptions, Snapshot, SnapshotRequest,
-    Viewport,
+    PageText, ReadRequest, SessionId, SessionInfo, SessionOptions, SessionRef, SessionRequest,
+    Snapshot, SnapshotRequest, Viewport,
 };
+use tinycomputer_bus::DesktopResponse;
 
-use super::{host, ops, registry};
 use crate::config::Config;
 
-pub const MODULE_ID: &str = "tinybrowser";
+pub const MODULE_ID: &str = super::desktop::MODULE_ID;
 
 #[derive(Debug, thiserror::Error)]
 pub enum BrowserCallError {
-    #[error("TinyBrowser unavailable: {0}")]
+    #[error("TinyComputer browser unavailable: {0}")]
     Unavailable(String),
     #[error("browser request blocked: {0}")]
     Policy(String),
@@ -31,9 +37,32 @@ impl BrowserCallError {
             message: error.to_string(),
         }
     }
+
+    /// A failed reply names its error in `details.name` (the
+    /// `ai.tinyhumans.tinycomputer.Browser.Error.*` spelling); older replies
+    /// carry only the envelope code.
+    fn from_response(response: &DesktopResponse) -> Self {
+        let Some(error) = response.error.as_ref() else {
+            return Self::Bus {
+                name: "ModuleFailed".into(),
+                message: format!("{} failed without an error", response.command),
+            };
+        };
+        let name = error
+            .details
+            .as_ref()
+            .and_then(|details| details.get("name"))
+            .and_then(serde_json::Value::as_str)
+            .map(|name| name.rsplit('.').next().unwrap_or(name).to_owned())
+            .unwrap_or_else(|| error.code.clone());
+        Self::Bus {
+            name,
+            message: error.message.clone(),
+        }
+    }
 }
 
-/// A TinyBrowser connection that applies this host's settings and shared web policy.
+/// A TinyComputer browser connection that applies this host's settings and shared web policy.
 #[derive(Clone)]
 pub struct BrowserClient {
     config: Arc<Config>,
@@ -49,21 +78,27 @@ impl BrowserClient {
     }
 
     pub async fn ensure_ready(&self) -> Result<(), BrowserCallError> {
-        ops::ensure_loaded(&self.config, MODULE_ID)
-            .await
-            .map_err(BrowserCallError::Unavailable)?;
         let version = self.contract_version().await?;
-        if !tinybrowser_bus::is_compatible(version) {
+        if !tinycomputer_bus::is_compatible(version) {
             return Err(BrowserCallError::Unavailable(format!(
-                "incompatible TinyBrowser contract: module {version:?}, host {:?}",
-                tinybrowser_bus::CONTRACT_VERSION
+                "incompatible TinyComputer contract: module {version:?}, host {:?}",
+                tinycomputer_bus::CONTRACT_VERSION
             )));
         }
         Ok(())
     }
 
+    /// The module's contract version, from `Describe` (which answers raw
+    /// [`Capabilities`], not an envelope).
     pub async fn contract_version(&self) -> Result<(u32, u32), BrowserCallError> {
-        self.call(names::methods::CONTRACT_VERSION, ()).await
+        let proxy = super::desktop::proxy(&self.config)
+            .await
+            .map_err(BrowserCallError::Unavailable)?;
+        let capabilities: Capabilities = proxy
+            .call(tinycomputer_bus::agent::names::methods::DESCRIBE, ())
+            .await
+            .map_err(BrowserCallError::from_bus)?;
+        Ok(capabilities.contract_version)
     }
 
     pub async fn open_session(
@@ -117,7 +152,7 @@ impl BrowserClient {
         options.default_timeout_ms = browser.task_timeout_secs.saturating_mul(1000);
         options.allowed_origins =
             origin.map_or_else(|| self.browser_origins(), |origin| vec![origin]);
-        self.call(names::methods::OPEN_SESSION, (options,)).await
+        self.call(names::methods::OPEN_SESSION, options).await
     }
 
     /// Open a session bound to the host tree of an explicit destination.
@@ -155,7 +190,10 @@ impl BrowserClient {
     ) -> Result<PageState, BrowserCallError> {
         self.check_url(&request.url)?;
         let page: PageState = self
-            .call(names::methods::NAVIGATE, (session, request))
+            .call(
+                names::methods::NAVIGATE,
+                SessionRequest::new(session.clone(), request),
+            )
             .await?;
         self.check_returned_url(&page.url)?;
         Ok(page)
@@ -167,7 +205,10 @@ impl BrowserClient {
         request: SnapshotRequest,
     ) -> Result<Snapshot, BrowserCallError> {
         let snapshot: Snapshot = self
-            .call(names::methods::SNAPSHOT, (session, request))
+            .call(
+                names::methods::SNAPSHOT,
+                SessionRequest::new(session.clone(), request),
+            )
             .await?;
         self.check_returned_url(&snapshot.url)?;
         Ok(snapshot)
@@ -179,7 +220,10 @@ impl BrowserClient {
         action: Action,
     ) -> Result<ActionOutcome, BrowserCallError> {
         let outcome: ActionOutcome = self
-            .call(names::methods::PERFORM, (session, action))
+            .call(
+                names::methods::PERFORM,
+                SessionRequest::new(session.clone(), action),
+            )
             .await?;
         self.check_returned_url(&outcome.page.url)?;
         Ok(outcome)
@@ -191,7 +235,10 @@ impl BrowserClient {
         request: ReadRequest,
     ) -> Result<PageText, BrowserCallError> {
         let page: PageText = self
-            .call(names::methods::READ_PAGE, (session, request))
+            .call(
+                names::methods::READ_PAGE,
+                SessionRequest::new(session.clone(), request),
+            )
             .await?;
         self.check_returned_url(&page.url)?;
         Ok(page)
@@ -201,7 +248,8 @@ impl BrowserClient {
         &self,
         session: &SessionId,
     ) -> Result<Vec<DownloadInfo>, BrowserCallError> {
-        self.call(names::methods::LIST_DOWNLOADS, (session,)).await
+        self.call(names::methods::LIST_DOWNLOADS, session_ref(session))
+            .await
     }
 
     pub async fn wait_download(
@@ -209,12 +257,18 @@ impl BrowserClient {
         session: &SessionId,
         request: DownloadWaitRequest,
     ) -> Result<DownloadInfo, BrowserCallError> {
-        self.call(names::methods::WAIT_DOWNLOAD, (session, request))
-            .await
+        self.call(
+            names::methods::WAIT_DOWNLOAD,
+            SessionRequest::new(session.clone(), request),
+        )
+        .await
     }
 
     pub async fn close_session(&self, session: &SessionId) -> Result<(), BrowserCallError> {
-        self.call(names::methods::CLOSE_SESSION, (session,)).await
+        let _closed: serde_json::Value = self
+            .call(names::methods::CLOSE_SESSION, session_ref(session))
+            .await?;
+        Ok(())
     }
 
     pub(crate) fn check_url(&self, raw: &str) -> Result<(), BrowserCallError> {
@@ -284,13 +338,20 @@ impl BrowserClient {
             .collect()
     }
 
+    /// Origins a TinyComputer task may load: the allowed websites, in the
+    /// module's `https://.host` spelling. Empty when none are allowed, which a
+    /// task refuses, since an empty list means any origin to the module.
+    pub(crate) fn task_origins(&self) -> Vec<String> {
+        self.browser_origins()
+    }
+
     fn browser_origins(&self) -> Vec<String> {
         self.browser_origins_for_mode(browser_allow_all())
     }
 
     fn browser_origins_for_mode(&self, allow_all: bool) -> Vec<String> {
         if allow_all {
-            // A nonempty, unmatchable origin keeps TinyBrowser's document
+            // A nonempty, unmatchable origin keeps TinyComputer's document
             // guard active before the caller supplies an explicit URL.
             return vec!["https://.".to_owned()];
         }
@@ -306,23 +367,36 @@ impl BrowserClient {
             .collect()
     }
 
-    async fn call<A: Serialize, R: DeserializeOwned>(
+    async fn call<A: Serialize + Send, R: DeserializeOwned>(
         &self,
         member: &str,
-        args: A,
+        request: A,
     ) -> Result<R, BrowserCallError> {
-        let record = registry::find(MODULE_ID)
-            .ok_or_else(|| BrowserCallError::Unavailable("TinyBrowser is not registered".into()))?;
-        let runtime = host::runtime()
+        let proxy = super::desktop::proxy(&self.config)
             .await
-            .map_err(|_| BrowserCallError::Unavailable("the module bus is not running".into()))?;
-        let proxy = runtime
-            .proxy(record.bus_name, record.object_path)
+            .map_err(BrowserCallError::Unavailable)?;
+        tracing::debug!(member, "[browser] tinycomputer call");
+        let response: DesktopResponse = proxy
+            .call(member, (request,))
+            .await
             .map_err(BrowserCallError::from_bus)?;
-        proxy
-            .call(member, args)
-            .await
-            .map_err(BrowserCallError::from_bus)
+        if !response.ok {
+            let error = BrowserCallError::from_response(&response);
+            tracing::debug!(member, error = %error, "[browser] tinycomputer call failed");
+            return Err(error);
+        }
+        serde_json::from_value(response.data.unwrap_or(serde_json::Value::Null)).map_err(|error| {
+            BrowserCallError::Bus {
+                name: "InvalidReply".into(),
+                message: format!("{member} returned an unexpected reply: {error}"),
+            }
+        })
+    }
+}
+
+fn session_ref(session: &SessionId) -> SessionRef {
+    SessionRef {
+        session: session.clone(),
     }
 }
 
@@ -354,40 +428,6 @@ fn private_or_local(host: &str) -> bool {
         }
         Ok(std::net::IpAddr::V6(ip)) => crate::tools::implementations::is_non_global_v6(ip),
         Err(_) => false,
-    }
-}
-
-impl tinybrowser_control::BrowserControl for BrowserClient {
-    async fn snapshot(
-        &self,
-        session: &SessionId,
-        request: &SnapshotRequest,
-    ) -> Result<Snapshot, tinybrowser_control::BrowserControlError> {
-        BrowserClient::snapshot(self, session, request.clone())
-            .await
-            .map_err(control_error)
-    }
-
-    async fn perform(
-        &self,
-        session: &SessionId,
-        action: &Action,
-    ) -> Result<ActionOutcome, tinybrowser_control::BrowserControlError> {
-        BrowserClient::perform(self, session, action.clone())
-            .await
-            .map_err(control_error)
-    }
-}
-
-fn control_error(error: BrowserCallError) -> tinybrowser_control::BrowserControlError {
-    let name = match &error {
-        BrowserCallError::Bus { name, .. } => name.clone(),
-        BrowserCallError::Policy(_) => "PolicyDenied".into(),
-        BrowserCallError::Unavailable(_) => "ModuleUnavailable".into(),
-    };
-    tinybrowser_control::BrowserControlError {
-        name,
-        message: error.to_string(),
     }
 }
 

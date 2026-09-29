@@ -621,6 +621,12 @@ fn local_override(config: &Config, id: &str) -> Option<PathBuf> {
                 .map(PathBuf::from)
         })
         .or_else(|| {
+            (id == super::search::MODULE_ID)
+                .then(|| std::env::var_os("TINYSEARCH_TEST_MODULE"))
+                .flatten()
+                .map(PathBuf::from)
+        })
+        .or_else(|| {
             // TinyConnectors exposes its contract to the host, but has no
             // host-side module namespace: it is resolved by its registry ID.
             (id == "tinyconnectors")

@@ -337,6 +337,8 @@ fn xml_tool_response(name: &str, args: &str) -> ChatResponse {
 
 #[path = "agent_memory_attribution_tests.rs"]
 mod agent_memory_attribution_tests;
+#[path = "agent_turn_loop_nudge_tests.rs"]
+mod agent_turn_loop_nudge_tests;
 #[path = "agent_turn_loop_packed_tool_tests.rs"]
 mod agent_turn_loop_packed_tool_tests;
 #[path = "agent_turn_loop_tests.rs"]

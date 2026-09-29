@@ -44,6 +44,19 @@ fn builtin_def(id: &str) -> crate::agent::harness::definition::AgentDefinition {
         .unwrap_or_else(|| panic!("builtin agent definition not found: {id}"))
 }
 
+/// A wildcard-belt definition for tests that need the whole registry on the
+/// wire. No built-in keeps a wildcard belt any more (the generalist
+/// `tools_agent` was removed), so the shape is synthesised from a real
+/// built-in: same parsing and defaults, only the id and the belt differ.
+fn wildcard_probe_def() -> crate::agent::harness::definition::AgentDefinition {
+    let mut def = builtin_def("archivist");
+    def.id = "wildcard_probe".to_string();
+    def.delegate_name = None;
+    def.tools = crate::agent::harness::definition::ToolScope::Wildcard;
+    def.subagents = Vec::new();
+    def
+}
+
 #[path = "builder_tests_explicit_definition_tests.rs"]
 mod explicit_definition_tests;
 #[path = "builder_tests_host_tools_tests.rs"]

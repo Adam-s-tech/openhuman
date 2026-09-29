@@ -57,7 +57,7 @@ const _: () = assert!(
 );
 
 // The desktop shell runs the same in-process core as the CLI. Keep its module
-// loader and TinyBrowser host adapter compiled in; the verified release module
+// loader and TinyComputer browser adapter compiled in; the verified release module
 // is resolved by that core at first use.
 const _: &str = openhuman_core::modules::browser::MODULE_ID;
 

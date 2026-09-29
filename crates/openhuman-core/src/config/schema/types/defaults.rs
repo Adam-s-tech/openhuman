@@ -44,6 +44,7 @@ impl Default for Config {
             dashboard: DashboardConfig::default(),
             autonomy: AutonomyConfig::default(),
             desktop: DesktopConfig::default(),
+            computer: ComputerConfig::default(),
             hooks: HooksConfig::default(),
             privacy: PrivacyConfig::default(),
             sandbox: SandboxConfig::default(),

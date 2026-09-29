@@ -64,7 +64,7 @@ pub enum TriggerMemoryAgent {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentDefinition {
     // ── identity ────────────────────────────────────────────────────────
-    /// Unique identifier for this archetype (e.g., `researcher`, `code_executor`).
+    /// Unique identifier for this archetype (e.g., `planner`, `code_executor`).
     pub id: String,
 
     /// Human-readable description explaining when this agent should be used.
@@ -247,8 +247,8 @@ pub struct AgentDefinition {
     /// * `Worker` MUST NOT list open-ended subagents. Workers execute;
     ///   they do not orchestrate. Pre-turn memory retrieval is configured
     ///   separately via [`AgentDefinition::trigger_memory_agent`].
-    /// * `{ skills = "*" }` entries expand to the generic
-    ///   `integrations_agent` (a `Worker`) so they are always allowed.
+    /// * `{ skills = "*" }` entries admit no sub-agent, so they are always
+    ///   allowed.
     ///
     /// Combined with the harness's `MAX_SPAWN_DEPTH = 3` task-local
     /// gate, this means any execution chain bottoms out within three
@@ -275,10 +275,8 @@ pub struct AgentDefinition {
 impl AgentDefinition {
     /// The agent ids this definition may spawn, derived from
     /// [`AgentDefinition::subagents`]. Only [`SubagentEntry::AgentId`]
-    /// entries admit a target; the `{ skills = "*" }` wildcard used to map to
-    /// `integrations_agent` here, which is what let a chat agent spin up a
-    /// sub-agent for one integration action it can now search for and call
-    /// itself. The runner's spawn gate (`parent.allowed_subagent_ids`) reads
+    /// entries admit a target; the `{ skills = "*" }` wildcard admits none —
+    /// a chat agent searches for and calls an integration action itself. The runner's spawn gate (`parent.allowed_subagent_ids`) reads
     /// this, so a definition without a bare id for an agent cannot reach it
     /// through `spawn_async_subagent` either.
     pub fn allowed_subagent_ids(&self) -> Vec<String> {

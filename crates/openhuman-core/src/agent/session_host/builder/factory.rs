@@ -856,8 +856,7 @@ impl OpenHumanSessionHost {
                 .chain(delegation_tools.iter())
                 .map(|tool| (tool.name(), tool.parameters_schema())),
         );
-        let dispatcher_kind =
-            resolve_dispatcher_kind(&dispatcher_choice, supports_native, agent_id);
+        let dispatcher_kind = resolve_dispatcher_kind(&dispatcher_choice, supports_native);
         let tool_dispatcher: Box<dyn ToolDialect> = match dispatcher_kind {
             DispatcherKind::Native => Box::new(NativeDialect),
             DispatcherKind::Xml => Box::new(XmlDialect),

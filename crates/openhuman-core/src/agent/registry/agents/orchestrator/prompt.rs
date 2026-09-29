@@ -37,7 +37,7 @@ pub fn build(ctx: &PromptContext<'_>) -> Result<String> {
 
     // Resolved once: the skill routes decide both the static rows below
     // and the generated sections further down, and they must agree (#6302).
-    let skill_run = hand_off_route(ctx, "skill_executor");
+    let skill_run = run_workflow_route(ctx);
     let skill_install = hand_off_route(ctx, "skill_setup");
     // An empty visibility set is the builder's unfiltered sentinel. Preserve
     // the MCP route for those sessions while suppressing it in gated-off builds.
@@ -248,11 +248,21 @@ fn hand_off_route(ctx: &PromptContext<'_>, specialist: &str) -> Option<String> {
     })
 }
 
+/// How this session runs an installed skill: its own `run_workflow`, when the
+/// belt carries it. There is no skill-running specialist any more — the
+/// orchestrator's `run_workflow` already spawns the skill as an isolated run
+/// (`spawn_skill_run_background`), so a second hand-off was a second door.
+fn run_workflow_route(ctx: &PromptContext<'_>) -> Option<String> {
+    const RUN_WORKFLOW: &str = "run_workflow";
+    (ctx.visible_tool_names.is_empty() || ctx.visible_tool_names.contains(RUN_WORKFLOW))
+        .then(|| format!("`{RUN_WORKFLOW}`"))
+}
+
 /// `prompt.md` with the route-tagged rows this build cannot honour removed.
 ///
 /// A row tagged `<!--route:skills-->` or `<!--route:mcp-->` names a hand-off
 /// that exists only while that family is compiled in: with `skills` off the
-/// loader drops `skill_setup` and `skill_executor` from the builtins, so no
+/// loader drops `skill_setup` from the builtins, so no
 /// delegate is synthesised and the static row would order the model to call a
 /// tool nobody has — the very failure this issue is about (#6302). The tag is
 /// stripped from every row that stays, so it never reaches the model.
@@ -286,8 +296,8 @@ fn strip_route_lines(archetype: &str, skills: bool, mcp: bool) -> String {
 ///
 /// So: exact match first, then the longest registry id that `agent_id` extends
 /// at an `_` boundary. Longest wins because ids are not prefix-free —
-/// `integrations_agent` starts with no other id today, but `skill_setup` and
-/// `skill_executor` share a stem, and a shorter accidental match would resolve
+/// no id is a prefix of another today, but ids that share a stem (`goals_agent`
+/// vs a future `goals`) would, and a shorter accidental match would resolve
 /// a renamed session onto the wrong agent's subagent list.
 fn resolve_definition<'r>(
     registry: &'r AgentDefinitionRegistry,

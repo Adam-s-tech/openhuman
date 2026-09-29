@@ -1,6 +1,21 @@
 use super::*;
 
 #[test]
+fn credential_socket_endpoint_requires_tls_or_loopback() {
+    assert!(is_safe_socket_endpoint(
+        "wss://api.tinyhumans.ai/socket.io/"
+    ));
+    assert!(is_safe_socket_endpoint("ws://127.0.0.1:3000/socket.io/"));
+    assert!(!is_safe_socket_endpoint(
+        "ws://api.tinyhumans.ai/socket.io/"
+    ));
+    assert!(!is_safe_socket_endpoint("ws://example.com/socket.io/"));
+    assert!(!is_safe_socket_endpoint(
+        "ws://127.attacker.example/socket.io/"
+    ));
+}
+
+#[test]
 fn converts_https_to_wss() {
     let url = websocket_url("https://api.tinyhumans.ai");
     assert_eq!(

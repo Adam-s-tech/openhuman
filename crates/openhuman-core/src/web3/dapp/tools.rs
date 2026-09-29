@@ -36,6 +36,10 @@ impl Web3DappExecuteTool {
 
 #[async_trait]
 impl Tool for Web3DappCallTool {
+    fn exposure(&self) -> tinytools::ToolExposure {
+        tinytools::ToolExposure::Deferred
+    }
+
     fn name(&self) -> &str {
         "web3_dapp_call"
     }
@@ -78,6 +82,10 @@ impl Tool for Web3DappCallTool {
 
 #[async_trait]
 impl Tool for Web3DappExecuteTool {
+    fn exposure(&self) -> tinytools::ToolExposure {
+        tinytools::ToolExposure::Deferred
+    }
+
     fn name(&self) -> &str {
         "web3_dapp_execute"
     }

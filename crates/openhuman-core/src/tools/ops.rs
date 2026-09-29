@@ -190,11 +190,6 @@ pub fn all_tools_with_runtime(
         // tree) rooted at the agent action dir. Named by the orchestrator and
         // planner scopes.
         Box::new(WorkspaceStateTool::new(action_dir.to_path_buf())),
-        // "Plan mode as a subagent": runs the read-only `context_scout`
-        // inline and returns a bounded context bundle + recommended next
-        // tool calls. Visible only to agents that allowlist it
-        // (orchestrator / planner).
-        Box::new(AgentPrepareContextTool::new()),
         // Steer/list/close reusable async sub-agents and collect results by
         // durable `subagent_session_id` (preferred) or transient `task_id`.
         Box::new(ListSubagentsTool::new()),
@@ -328,7 +323,7 @@ pub fn all_tools_with_runtime(
         #[cfg(feature = "flows")]
         Box::new(GetToolOutputSampleTool::new(config.clone())),
         // Ground an `agent` node's `agent_ref` in real registered agent-kind ids
-        // (researcher / code_executor / …) — the agent analogue of
+        // (code_executor / critic / …) — the agent analogue of
         // search_tool_catalog. Read-only.
         #[cfg(feature = "flows")]
         Box::new(ListAgentDefinitionsTool::new()),
@@ -453,6 +448,19 @@ pub fn all_tools_with_runtime(
         Box::new(UpdateApplyTool::new(security.clone())),
         Box::new(GitOperationsTool::new(
             security.clone(),
+            action_dir.to_path_buf(),
+        )),
+        // Review loop for skill `coding` (and the workflow-run `critic`):
+        // diff, lint and test the working tree in the action sandbox. They
+        // were defined but never registered, so the belts naming them held
+        // nothing. `Deferred`, so they cost no schema until found.
+        Box::new(crate::tools::implementations::ReadDiffTool::new(
+            action_dir.to_path_buf(),
+        )),
+        Box::new(crate::tools::implementations::RunLinterTool::new(
+            action_dir.to_path_buf(),
+        )),
+        Box::new(crate::tools::implementations::RunTestsTool::new(
             action_dir.to_path_buf(),
         )),
         Box::new(PushoverTool::new(
@@ -941,17 +949,10 @@ pub fn all_tools_with_runtime(
         } else {
             tracing::debug!("[integrations] google_places disabled — skipping");
         }
-        // NOTE: parallel tools moved to the unified [search] engine
-        // selector above. `integrations.parallel` is parsed but no
-        // longer registers tools directly — set
-        // `search.engine = "parallel"` instead.
-        if root_config.integrations.parallel.is_active() {
-            tracing::debug!(
-                "[integrations] parallel toggle is active but tools are governed by search.engine now"
-            );
-        }
-        // TinyFish is search-owned and registers through the unified search
-        // surface above so `search.engine = "disabled"` suppresses it too.
+        // Web search providers (Exa, Gemini, TinyFish, ...) register through
+        // the TinySearch module above, so `[search] enabled = false`
+        // suppresses them too. `integrations.parallel` is parsed for old
+        // config files and no longer does anything.
         if root_config.integrations.stock_prices.is_active() {
             tools.push(Box::new(crate::tools::StockQuoteTool::new(Arc::clone(
                 &client,
@@ -1239,7 +1240,6 @@ fn tool_group(name: &str) -> crate::core::all::DomainGroup {
         || matches!(
             name,
             "ask_user_clarification"
-                | "agent_prepare_context"
                 | "delegate"
                 | "delegate_graph"
                 | "delegate_to_personality"
@@ -1277,11 +1277,18 @@ fn tool_group(name: &str) -> crate::core::all::DomainGroup {
     // Integrations: every external connector reached on the user's behalf.
     if name.starts_with("composio")
         || name == "web_search_tool"
+        || name == "web_answer_tool"
+        || name == "web_contents_tool"
+        || name == "search"
         || name.starts_with("tinyfish_")
         || name.starts_with("exa_")
-        || name.starts_with("brave_")
+        || name.starts_with("gemini_")
         || name.starts_with("parallel_")
-        || name.starts_with("querit_") || name.starts_with("tavily_")
+        || name.starts_with("brave_")
+        || name.starts_with("querit_")
+        || name.starts_with("tavily_")
+        || name.starts_with("seltz_")
+        || name.starts_with("searxng_")
         || name.starts_with("google_places_")
         || name.starts_with("stock_")
         || name.starts_with("storage_")

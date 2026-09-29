@@ -308,7 +308,7 @@ impl EventListener for OpenhumanEventBridge {
                 // tool call. Classified `NotFound` (permanent) from the typed
                 // event itself (#6277): the identical call can never succeed, so
                 // "try again / run diagnostics" copy would be wrong. The model
-                // still got the "valid tools: [...]" corrective.
+                // still got the corrective (close matches + `tool_search`).
                 let iteration = self.iteration();
                 let failure = Some(crate::tools::status::describe(
                     crate::tools::status::ToolFailureClass::NotFound,
