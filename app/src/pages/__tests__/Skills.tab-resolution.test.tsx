@@ -125,7 +125,7 @@ async function selectedTab(): Promise<string> {
 }
 
 describe('Connections ?tab= resolution — legacy aliases', () => {
-  // Each of these four has a canonical successor. `Skills.tsx:537-540` maps
+  // Each of these aliases has a canonical successor. `Skills.tsx` maps
   // them, per its own comment, "so that e.g. `/skills?tab=composio` still works
   // after the redirect". None had a test.
   it.each([

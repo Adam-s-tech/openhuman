@@ -1,6 +1,10 @@
 //! Agent-facing browser backed by the TinyComputer module's browser and task members.
+#[path = "browser_cleanup.rs"]
+mod cleanup;
 #[path = "browser_drop.rs"]
 mod browser_drop;
+#[path = "browser_pending.rs"]
+mod pending;
 #[path = "browser_session_pool.rs"]
 mod session_pool;
 #[path = "browser_task_actions.rs"]
@@ -9,6 +13,7 @@ use crate::modules::browser::BrowserClient;
 use crate::security::approval::{ApprovalGate, GateOutcome};
 use crate::security::SecurityPolicy;
 use async_trait::async_trait;
+use pending::{approval_target, needs_host_confirmation, Pending};
 use serde_json::{json, Value};
 use session_pool::{
     browser_session_fingerprint, evict_thread_sessions, requires_rebind, thread_sessions,
@@ -31,71 +36,7 @@ use tinycomputer_bus::browser::{
 };
 use tinytools::{Tool, ToolCallOptions, ToolResult, ToolRunContext};
 use tokio::sync::Mutex;
-/// A task paused before an irreversible action, waiting for host approval.
-struct Pending {
-    task: TaskId,
-    action: String,
-    target: String,
-    token: String,
-}
-impl Pending {
-    fn matches(&self, args: &Value) -> bool {
-        args["token"].as_str() == Some(self.token.as_str())
-    }
-}
-fn needs_host_confirmation(action: &Action) -> bool {
-    matches!(
-        action,
-        Action::Click { .. }
-            | Action::DoubleClick { .. }
-            | Action::Fill { .. }
-            | Action::Type { .. }
-            | Action::Press { .. }
-            | Action::Select { .. }
-            | Action::Check { .. }
-    )
-}
-fn approval_target(action: &Action) -> (Option<&str>, String) {
-    let target = match action {
-        Action::Click { target, .. }
-        | Action::DoubleClick { target }
-        | Action::Fill { target, .. }
-        | Action::Select { target, .. }
-        | Action::Check { target, .. } => Some(target),
-        Action::Type { target, .. } => target.as_ref(),
-        _ => None,
-    };
-    let preview = |raw: &str| {
-        let cleaned = raw.chars().filter(|c| !c.is_control()).collect::<String>();
-        let mut short = cleaned.chars().take(96).collect::<String>();
-        if cleaned.chars().count() > 96 {
-            short.push('…');
-        }
-        short
-    };
-    match target {
-        Some(Target::Ref { value }) => (Some(value), format!(" @{value}")),
-        Some(Target::Selector { value }) => (None, format!(" CSS selector {:?}", preview(value))),
-        Some(Target::Locator { value }) => {
-            let name = value
-                .name
-                .as_deref()
-                .map(|name| format!(" named {:?}", preview(name)))
-                .unwrap_or_default();
-            (
-                None,
-                format!(
-                    " {:?} locator {:?}{name} (match {}, exact={})",
-                    value.by,
-                    preview(&value.value),
-                    value.index.saturating_add(1),
-                    value.exact
-                ),
-            )
-        }
-        None => (None, String::new()),
-    }
-}
+
 async fn approve_browser_action(
     client: &BrowserClient,
     session: &SessionId,
