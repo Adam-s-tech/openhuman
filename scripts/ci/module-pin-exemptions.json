@@ -13,6 +13,12 @@
   ],
   "exemptions": [
     {
+      "id": "tinymcp",
+      "submodule": "vendor/tinymcp",
+      "expect": "v0.3.5-46-g56e48076",
+      "reason": "Upstream tinymcp PR #30 is merged at 56e48076 and supplies the host library APIs this change uses, but no matching tinymcp module release has been published. Keep the registry artifact pinned to the verified v0.3.5 release and remove this exact source/artifact drift exemption when a matching release and digest are available."
+    },
+    {
       "id": "tinyruntime-nodejs",
       "submodule": "vendor/tinyruntime",
       "expect": "v0.2.7",

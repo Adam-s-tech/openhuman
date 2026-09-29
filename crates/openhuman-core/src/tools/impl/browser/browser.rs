@@ -25,8 +25,8 @@ use std::{
 use task_actions::{approve_task_action, parse_action, required, task_inputs};
 use tinycomputer_bus::agent::{ContinueTaskRequest, TaskId, TaskStatus, TaskView};
 use tinycomputer_bus::browser::{
-    Action, DownloadState, DownloadWaitRequest, LocateBy, Locator, NavigateRequest, ReadRequest,
-    SessionId, SessionOptions, SnapshotRequest, Target,
+    Action, DownloadState, DownloadWaitRequest, NavigateRequest, ReadRequest, SessionId,
+    SessionOptions, SnapshotRequest, Target,
 };
 use tinytools::{Tool, ToolCallOptions, ToolResult, ToolRunContext};
 use tokio::sync::Mutex;
