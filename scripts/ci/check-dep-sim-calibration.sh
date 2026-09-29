@@ -60,6 +60,8 @@
 # 285 -> 286 on 2026-09-27: multi-provider search uses the required
 # tinysearch-bus contract in always-on config and policy code; one name,
 # no native dependency. See kernel-floor.limits.
+# 286 -> 283 on 2026-09-29: current vendored dependency resolution sheds
+# three package names without changing the native build dependency count.
 # 282 -> 285 on 2026-09-26: the required TinyBrowser integration adds
 # tinybrowser-bus, tinybrowser-control, and tinyjevclient. Native count stays 2.
 # 286 -> 283 on 2026-09-29: the current `flows` graph resolves three fewer

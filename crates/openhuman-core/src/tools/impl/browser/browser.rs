@@ -3,7 +3,6 @@
 mod session_pool;
 #[path = "browser_task_actions.rs"]
 mod task_actions;
-
 use crate::modules::browser::BrowserClient;
 use crate::security::approval::{ApprovalGate, GateOutcome};
 use crate::security::SecurityPolicy;
@@ -30,7 +29,6 @@ use tinycomputer_bus::browser::{
 };
 use tinytools::{Tool, ToolCallOptions, ToolResult, ToolRunContext};
 use tokio::sync::Mutex;
-
 /// A task paused before an irreversible action, waiting for host approval.
 struct Pending {
     task: TaskId,
@@ -38,13 +36,11 @@ struct Pending {
     target: String,
     token: String,
 }
-
 impl Pending {
     fn matches(&self, args: &Value) -> bool {
         args["token"].as_str() == Some(self.token.as_str())
     }
 }
-
 fn needs_host_confirmation(action: &Action) -> bool {
     matches!(
         action,
@@ -57,7 +53,6 @@ fn needs_host_confirmation(action: &Action) -> bool {
             | Action::Check { .. }
     )
 }
-
 fn approval_target(action: &Action) -> (Option<&str>, String) {
     let target = match action {
         Action::Click { target, .. }
@@ -99,7 +94,6 @@ fn approval_target(action: &Action) -> (Option<&str>, String) {
         None => (None, String::new()),
     }
 }
-
 async fn approve_browser_action(
     client: &BrowserClient,
     session: &SessionId,
@@ -143,9 +137,7 @@ async fn approve_browser_action(
         &digest_hex[..12]
     );
     let summary = format!("Browser {display_target}");
-    // A digest binds the prompt to the complete action and URL without
-    // persisting form values or sensitive URL query parameters. The bounded
-    // selector/locator preview lets the host review which element is targeted.
+    // Bind action and URL with a digest, and show a bounded selector preview.
     let args = json!({"action": kind, "origin": origin, "target": display_target,
         "target_ref": target_ref, "exact_action_sha256": digest_hex});
     match gate.intercept_forced("browser", &summary, args).await {
@@ -222,9 +214,7 @@ impl BrowserTool {
                 *held = None;
                 *bound = None;
                 *self.pending.lock().await = None;
-                // The previous module session retains its original allowed
-                // origins. Keep its entry until close succeeds so a failed
-                // close is retried before any replacement can open.
+                // Keep its entry until close succeeds; retry before replacement.
                 stale.client.close_session(&stale.id).await?;
                 sessions.remove(&key);
             }
@@ -561,10 +551,8 @@ impl Tool for BrowserTool {
     },"required":["action"]})
     }
     fn external_effect_with_args(&self, args: &Value) -> bool {
-        // Direct mutating actions use the forced gate immediately before
-        // perform, and a task's irreversible step pauses as needs_approval for
-        // confirm_pending. Declaring an outer effect would park the same call
-        // twice and cannot cover the steps chosen inside `task`.
+        // Gate direct mutations before perform; task steps pause for approval.
+        // An outer effect would gate twice without covering task-selected steps.
         let _ = args;
         false
     }
