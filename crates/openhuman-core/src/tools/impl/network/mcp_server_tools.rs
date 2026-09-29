@@ -210,7 +210,16 @@ impl Tool for ConfiguredMcpServerTool {
             anyhow::bail!("MCP server is no longer configured: {server}");
         }
         let live = self.registry.list_tools(server).await?;
-        let safe = crate::mcp::registry::tools_safe_for_agent(server, live);
+        let safe = crate::mcp::registry::tools_safe_for_agent(
+            server,
+            live.into_iter()
+                .map(|remote| tinymcp_bus::McpTool {
+                    name: remote.name,
+                    description: remote.display_description().map(str::to_owned),
+                    input_schema: remote.input_schema,
+                })
+                .collect(),
+        );
         if !safe.iter().any(|candidate| candidate.name == tool) {
             anyhow::bail!("MCP tool is no longer available or safe: {server}/{tool}");
         }
