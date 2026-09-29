@@ -3,10 +3,10 @@ use axum::response::{IntoResponse, Response};
 use base64::Engine as _;
 use rand::RngExt as _;
 
-use crate::config;
+use openhuman_core::config;
 use crate::http_host::types::HostedDirAuth;
 use crate::http_host::LOG_PREFIX;
-use crate::security::credentials::session_support;
+use openhuman_core::security::credentials::session_support;
 
 pub(crate) fn ensure_authorized(headers: &HeaderMap, auth: &HostedDirAuth) -> Result<(), Response> {
     if !auth.enabled {

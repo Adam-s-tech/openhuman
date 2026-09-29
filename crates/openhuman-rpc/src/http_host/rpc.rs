@@ -1,6 +1,6 @@
 //! RPC adapters for the `http_host` domain.
 
-use crate::core::Outcome;
+use openhuman_core::core::Outcome;
 use crate::http_host::ops;
 use crate::http_host::types::{
     HostedDirGetResult, HostedDirListResult, HostedDirLookupParams, HostedDirStartResult,
