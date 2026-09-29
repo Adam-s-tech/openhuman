@@ -719,11 +719,18 @@ jobs:
           echo "TINYSEARCH_TEST_MODULE=$search_dir/libtinysearch.so" \
             >> "$GITHUB_ENV"
 
-      - name: Run TinyJuice host-module regression
+      - name: Run module-gated Rust tests
+        run: bash scripts/ci/run-module-gated-tests.sh
+        env:
+          CARGO_BUILD_JOBS: "1"
+
+      - name: Run ignored TinyJuice tool-output regression
         run: |
-          cargo test --lib --features modules \
-            openhuman::agent::tinyagents::middleware::tests::tool_output_tabulates_a_large_graph_for_a_non_exempt_tool \
-            -- --ignored --exact
+          test_path="agent::tinyagents::middleware::tests::tool_output_tests::compaction_tests::tool_output_tabulates_a_large_graph_for_a_non_exempt_tool"
+          bash scripts/ci-cancel-aware.sh cargo test -p openhuman --lib --features modules -- --ignored --list \
+            | grep -Fx "${test_path}: test"
+          bash scripts/ci-cancel-aware.sh cargo test -p openhuman --lib \
+            --features modules "${test_path}" -- --ignored --exact --test-threads=1
         env:
           CARGO_BUILD_JOBS: "1"
 
