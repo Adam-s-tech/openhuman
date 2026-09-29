@@ -56,7 +56,7 @@ pub struct CoreContext {
     /// permanently incorrect memory binding for that workspace.
     /// Shared (`Arc`) so a context derived without a memory override follows
     /// the parent when the memory engine is switched.
-    workspace_binding: Arc<RwLock<WorkspaceBinding>>,
+    workspace_binding: RwLock<Arc<RwLock<WorkspaceBinding>>>,
     /// Which domain families are live for this context (#4796). The registry
     /// filters its controller/schema/dispatch surface by this set via
     /// [`CoreContext::current`] → [`CoreContext::domains`]. `full()` for the
@@ -348,10 +348,10 @@ impl CoreContext {
 
         let ctx = Arc::new(CoreContext {
             host_kind,
-            workspace_binding: Arc::new(RwLock::new(WorkspaceBinding {
+            workspace_binding: RwLock::new(Arc::new(RwLock::new(WorkspaceBinding {
                 workspace_dir,
                 memory_subsystem,
-            })),
+            }))),
             domains,
             tool_groups,
             embedder_config,
@@ -441,14 +441,16 @@ impl CoreContext {
         // that deliberately carries its own (another workspace, or its own
         // `[subsystems.memory]`) keeps that override.
         let shared_binding = {
-            let parent = self.workspace_binding.read();
+            let parent_handle = self.workspace_binding.read();
+            let parent_handle = parent_handle.as_ref().ok().map(Arc::clone);
+            let parent = parent_handle.as_ref().and_then(|h| h.read().ok());
             match parent {
                 Ok(parent)
                     if parent.workspace_dir.as_deref()
                         == Some(overlay.config.workspace_dir.as_path())
                         && parent.memory_subsystem == overlay.config.subsystems.memory =>
                 {
-                    Arc::clone(&self.workspace_binding)
+                    parent_handle.expect("parent handle was read")
                 }
                 _ => Arc::new(RwLock::new(WorkspaceBinding {
                     workspace_dir: Some(overlay.config.workspace_dir.clone()),
@@ -458,7 +460,7 @@ impl CoreContext {
         };
         Arc::new(CoreContext {
             host_kind: self.host_kind,
-            workspace_binding: shared_binding,
+            workspace_binding: RwLock::new(shared_binding),
             domains,
             tool_groups: overlay.tool_groups,
             embedder_config: Some(overlay.config),
@@ -479,6 +481,8 @@ impl CoreContext {
         self.workspace_binding
             .read()
             .map_err(|e| format!("workspace unavailable: context lock poisoned: {e}"))?
+            .read()
+            .map_err(|e| format!("workspace unavailable: binding lock poisoned: {e}"))?
             .workspace_dir
             .clone()
             .ok_or_else(|| {
@@ -508,8 +512,11 @@ impl CoreContext {
     /// cannot hand back workspace A's driver. Pinned by
     /// `failed_bind_never_returns_previous_workspace_binding`.
     pub fn memory_binding(&self) -> Result<Arc<crate::memory::binding::MemoryBinding>, String> {
-        let binding = self
+        let binding_handle = self
             .workspace_binding
+            .read()
+            .map_err(|e| format!("[core-context] binding handle lock poisoned: {e}"))?;
+        let binding = binding_handle
             .read()
             .map_err(|e| format!("[core-context] workspace binding lock poisoned: {e}"))?;
         let workspace_dir = binding.workspace_dir.clone();
@@ -653,8 +660,11 @@ impl CoreContext {
         workspace_dir: &std::path::Path,
         memory_subsystem: crate::config::schema::MemorySubsystemConfig,
     ) -> Result<(), String> {
-        let mut binding = self
+        let binding_handle = self
             .workspace_binding
+            .write()
+            .map_err(|e| format!("memory subsystem update failed: binding handle lock poisoned: {e}"))?;
+        let mut binding = binding_handle
             .write()
             .map_err(|e| format!("memory subsystem update failed: binding lock poisoned: {e}"))?;
         if binding.workspace_dir.as_deref() != Some(workspace_dir)
@@ -676,9 +686,12 @@ impl CoreContext {
         workspace_dir: &std::path::Path,
         memory_subsystem: crate::config::schema::MemorySubsystemConfig,
     ) -> Result<(), String> {
-        let mut binding = self
+        let mut binding_handle = self
             .workspace_binding
             .write()
+            .map_err(|e| format!("workspace rebind failed: binding handle lock poisoned: {e}"))?;
+        let binding = binding_handle
+            .read()
             .map_err(|e| format!("workspace rebind failed: binding lock poisoned: {e}"))?;
         if binding.workspace_dir.as_deref() == Some(workspace_dir)
             && binding.memory_subsystem == memory_subsystem
@@ -694,10 +707,11 @@ impl CoreContext {
             workspace_dir.display(),
             memory_subsystem.driver
         );
-        *binding = WorkspaceBinding {
+        drop(binding);
+        *binding_handle = Arc::new(RwLock::new(WorkspaceBinding {
             workspace_dir: Some(workspace_dir.to_path_buf()),
             memory_subsystem,
-        };
+        }));
         warn_if_memory_module_outlived_its_profile(workspace_dir);
         Ok(())
     }
@@ -744,10 +758,10 @@ impl CoreContext {
     ) -> Arc<CoreContext> {
         Arc::new(CoreContext {
             host_kind: HostKind::Cli,
-            workspace_binding: Arc::new(RwLock::new(WorkspaceBinding {
+            workspace_binding: RwLock::new(Arc::new(RwLock::new(WorkspaceBinding {
                 workspace_dir,
                 memory_subsystem: memory_subsystem.unwrap_or_default(),
-            })),
+            }))),
             domains,
             tool_groups: Default::default(),
             embedder_config: None,
@@ -773,10 +787,10 @@ impl CoreContext {
     ) -> Arc<CoreContext> {
         Arc::new(CoreContext {
             host_kind: HostKind::Cli,
-            workspace_binding: Arc::new(RwLock::new(WorkspaceBinding {
+            workspace_binding: RwLock::new(Arc::new(RwLock::new(WorkspaceBinding {
                 workspace_dir: Some(config.workspace_dir.clone()),
                 memory_subsystem: Default::default(),
-            })),
+            }))),
             domains,
             tool_groups: Default::default(),
             embedder_config: Some(config),
