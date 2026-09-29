@@ -31,7 +31,4 @@ pub use factory::{create_composio_client, ComposioClientKind};
 // when this was one un-split file. See each item's `pub(super)` in its
 // owning submodule.
 #[cfg(test)]
-use super::types::ComposioExecuteResponse;
-#[cfg(test)]
-#[cfg(test)]
 use std::sync::Arc;
