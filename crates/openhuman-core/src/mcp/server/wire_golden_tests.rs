@@ -23,15 +23,21 @@ const CONFIG_GATED_TOOLS: &[&str] = &["searxng_search", "web_search", "web_answe
 const LINE_CASES: &[(&str, Option<&str>)] = &[
     (
         r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"Claude Desktop","version":"0"}}}"#,
-        Some(r#"{"id":1,"jsonrpc":"2.0","result":{"capabilities":{"resources":{"listChanged":false,"subscribe":false},"tools":{}},"instructions":"OpenHuman MCP exposes first-level core integration: inspect the live tool catalog with core.list_tools or core.tool_instructions, inspect subagents with agent.list_subagents, run a standalone subagent with agent.run_subagent, use web_search or web_answer for live web lookups (and searxng_search when self-hosted search is enabled), and use memory.search or memory.recall plus tree.read_chunk for local memory reads.","protocolVersion":"2025-06-18","serverInfo":{"name":"openhuman-core","version":"{{CARGO_PKG_VERSION}}"}}}"#),
+        Some(
+            r#"{"id":1,"jsonrpc":"2.0","result":{"capabilities":{"resources":{"listChanged":false,"subscribe":false},"tools":{}},"instructions":"OpenHuman MCP exposes first-level core integration: inspect the live tool catalog with core.list_tools or core.tool_instructions, inspect subagents with agent.list_subagents, run a standalone subagent with agent.run_subagent, use web_search or web_answer for live web lookups (and searxng_search when self-hosted search is enabled), and use memory.search or memory.recall plus tree.read_chunk for local memory reads.","protocolVersion":"2025-06-18","serverInfo":{"name":"openhuman-core","version":"{{CARGO_PKG_VERSION}}"}}}"#,
+        ),
     ),
     (
         r#"{"jsonrpc":"2.0","id":"init","method":"initialize","params":{"protocolVersion":"1999-01-01"}}"#,
-        Some(r#"{"id":"init","jsonrpc":"2.0","result":{"capabilities":{"resources":{"listChanged":false,"subscribe":false},"tools":{}},"instructions":"OpenHuman MCP exposes first-level core integration: inspect the live tool catalog with core.list_tools or core.tool_instructions, inspect subagents with agent.list_subagents, run a standalone subagent with agent.run_subagent, use web_search or web_answer for live web lookups (and searxng_search when self-hosted search is enabled), and use memory.search or memory.recall plus tree.read_chunk for local memory reads.","protocolVersion":"2025-11-25","serverInfo":{"name":"openhuman-core","version":"{{CARGO_PKG_VERSION}}"}}}"#),
+        Some(
+            r#"{"id":"init","jsonrpc":"2.0","result":{"capabilities":{"resources":{"listChanged":false,"subscribe":false},"tools":{}},"instructions":"OpenHuman MCP exposes first-level core integration: inspect the live tool catalog with core.list_tools or core.tool_instructions, inspect subagents with agent.list_subagents, run a standalone subagent with agent.run_subagent, use web_search or web_answer for live web lookups (and searxng_search when self-hosted search is enabled), and use memory.search or memory.recall plus tree.read_chunk for local memory reads.","protocolVersion":"2025-11-25","serverInfo":{"name":"openhuman-core","version":"{{CARGO_PKG_VERSION}}"}}}"#,
+        ),
     ),
     (
         r#"{"jsonrpc":"2.0","id":7,"method":"initialize"}"#,
-        Some(r#"{"id":7,"jsonrpc":"2.0","result":{"capabilities":{"resources":{"listChanged":false,"subscribe":false},"tools":{}},"instructions":"OpenHuman MCP exposes first-level core integration: inspect the live tool catalog with core.list_tools or core.tool_instructions, inspect subagents with agent.list_subagents, run a standalone subagent with agent.run_subagent, use web_search or web_answer for live web lookups (and searxng_search when self-hosted search is enabled), and use memory.search or memory.recall plus tree.read_chunk for local memory reads.","protocolVersion":"2025-11-25","serverInfo":{"name":"openhuman-core","version":"{{CARGO_PKG_VERSION}}"}}}"#),
+        Some(
+            r#"{"id":7,"jsonrpc":"2.0","result":{"capabilities":{"resources":{"listChanged":false,"subscribe":false},"tools":{}},"instructions":"OpenHuman MCP exposes first-level core integration: inspect the live tool catalog with core.list_tools or core.tool_instructions, inspect subagents with agent.list_subagents, run a standalone subagent with agent.run_subagent, use web_search or web_answer for live web lookups (and searxng_search when self-hosted search is enabled), and use memory.search or memory.recall plus tree.read_chunk for local memory reads.","protocolVersion":"2025-11-25","serverInfo":{"name":"openhuman-core","version":"{{CARGO_PKG_VERSION}}"}}}"#,
+        ),
     ),
     (
         r#"{"jsonrpc":"2.0","id":"abc","method":"ping"}"#,
@@ -45,17 +51,18 @@ const LINE_CASES: &[(&str, Option<&str>)] = &[
         r#"{"jsonrpc":"2.0","method":"notifications/cancelled","params":{"requestId":1}}"#,
         None,
     ),
-    (
-        r#"{"jsonrpc":"2.0","method":"notifications/other"}"#,
-        None,
-    ),
+    (r#"{"jsonrpc":"2.0","method":"notifications/other"}"#, None),
     (
         r#"[]"#,
-        Some(r#"{"error":{"code":-32600,"data":"batch must not be empty","message":"Invalid Request"},"id":null,"jsonrpc":"2.0"}"#),
+        Some(
+            r#"{"error":{"code":-32600,"data":"batch must not be empty","message":"Invalid Request"},"id":null,"jsonrpc":"2.0"}"#,
+        ),
     ),
     (
         r#"[{"jsonrpc":"2.0","id":1,"method":"ping"},{"jsonrpc":"2.0","method":"notifications/initialized"},42,{"jsonrpc":"2.0","id":3,"method":"nope"}]"#,
-        Some(r#"[{"id":1,"jsonrpc":"2.0","result":{}},{"error":{"code":-32600,"data":"message must be a JSON object","message":"Invalid Request"},"id":null,"jsonrpc":"2.0"},{"error":{"code":-32601,"data":"unsupported MCP method `nope`","message":"Method not found"},"id":3,"jsonrpc":"2.0"}]"#),
+        Some(
+            r#"[{"id":1,"jsonrpc":"2.0","result":{}},{"error":{"code":-32600,"data":"message must be a JSON object","message":"Invalid Request"},"id":null,"jsonrpc":"2.0"},{"error":{"code":-32601,"data":"unsupported MCP method `nope`","message":"Method not found"},"id":3,"jsonrpc":"2.0"}]"#,
+        ),
     ),
     (
         r#"[{"jsonrpc":"2.0","method":"notifications/initialized"}]"#,
@@ -63,107 +70,159 @@ const LINE_CASES: &[(&str, Option<&str>)] = &[
     ),
     (
         r#"42"#,
-        Some(r#"{"error":{"code":-32600,"data":"message must be a JSON object","message":"Invalid Request"},"id":null,"jsonrpc":"2.0"}"#),
+        Some(
+            r#"{"error":{"code":-32600,"data":"message must be a JSON object","message":"Invalid Request"},"id":null,"jsonrpc":"2.0"}"#,
+        ),
     ),
     (
         r#"{"jsonrpc":"2.0","id":1.5,"method":"ping"}"#,
-        Some(r#"{"error":{"code":-32600,"data":"id must be a string or integer","message":"Invalid Request"},"id":null,"jsonrpc":"2.0"}"#),
+        Some(
+            r#"{"error":{"code":-32600,"data":"id must be a string or integer","message":"Invalid Request"},"id":null,"jsonrpc":"2.0"}"#,
+        ),
     ),
     (
         r#"{"jsonrpc":"2.0","id":true,"method":"ping"}"#,
-        Some(r#"{"error":{"code":-32600,"data":"id must be a string or integer","message":"Invalid Request"},"id":null,"jsonrpc":"2.0"}"#),
+        Some(
+            r#"{"error":{"code":-32600,"data":"id must be a string or integer","message":"Invalid Request"},"id":null,"jsonrpc":"2.0"}"#,
+        ),
     ),
     (
         r#"{"jsonrpc":"2.0","id":null,"method":"ping"}"#,
-        Some(r#"{"error":{"code":-32600,"data":"id must be a string or integer","message":"Invalid Request"},"id":null,"jsonrpc":"2.0"}"#),
+        Some(
+            r#"{"error":{"code":-32600,"data":"id must be a string or integer","message":"Invalid Request"},"id":null,"jsonrpc":"2.0"}"#,
+        ),
     ),
     (
         r#"{"id":1,"method":"ping"}"#,
-        Some(r#"{"error":{"code":-32600,"data":"jsonrpc must be \"2.0\"","message":"Invalid Request"},"id":1,"jsonrpc":"2.0"}"#),
+        Some(
+            r#"{"error":{"code":-32600,"data":"jsonrpc must be \"2.0\"","message":"Invalid Request"},"id":1,"jsonrpc":"2.0"}"#,
+        ),
     ),
     (
         r#"{"jsonrpc":"1.0","id":1,"method":"ping"}"#,
-        Some(r#"{"error":{"code":-32600,"data":"jsonrpc must be \"2.0\"","message":"Invalid Request"},"id":1,"jsonrpc":"2.0"}"#),
+        Some(
+            r#"{"error":{"code":-32600,"data":"jsonrpc must be \"2.0\"","message":"Invalid Request"},"id":1,"jsonrpc":"2.0"}"#,
+        ),
     ),
     (
         r#"{"jsonrpc":"2.0","id":1}"#,
-        Some(r#"{"error":{"code":-32600,"data":"method must be a string","message":"Invalid Request"},"id":1,"jsonrpc":"2.0"}"#),
+        Some(
+            r#"{"error":{"code":-32600,"data":"method must be a string","message":"Invalid Request"},"id":1,"jsonrpc":"2.0"}"#,
+        ),
     ),
     (
         r#"{"jsonrpc":"2.0","id":1,"method":5}"#,
-        Some(r#"{"error":{"code":-32600,"data":"method must be a string","message":"Invalid Request"},"id":1,"jsonrpc":"2.0"}"#),
+        Some(
+            r#"{"error":{"code":-32600,"data":"method must be a string","message":"Invalid Request"},"id":1,"jsonrpc":"2.0"}"#,
+        ),
     ),
     (
         r#"{"jsonrpc":"2.0","id":1,"method":"prompts/list"}"#,
-        Some(r#"{"error":{"code":-32601,"data":"unsupported MCP method `prompts/list`","message":"Method not found"},"id":1,"jsonrpc":"2.0"}"#),
+        Some(
+            r#"{"error":{"code":-32601,"data":"unsupported MCP method `prompts/list`","message":"Method not found"},"id":1,"jsonrpc":"2.0"}"#,
+        ),
     ),
     (
         r#"{not-json"#,
-        Some(r#"{"error":{"code":-32700,"data":"key must be a string at line 1 column 2","message":"Parse error"},"id":null,"jsonrpc":"2.0"}"#),
+        Some(
+            r#"{"error":{"code":-32700,"data":"key must be a string at line 1 column 2","message":"Parse error"},"id":null,"jsonrpc":"2.0"}"#,
+        ),
     ),
     (
         r#"{"jsonrpc":"2.0","id":1,"method":"tools/call"}"#,
-        Some(r#"{"error":{"code":-32602,"data":"tools/call params must be an object","message":"Invalid params"},"id":1,"jsonrpc":"2.0"}"#),
+        Some(
+            r#"{"error":{"code":-32602,"data":"tools/call params must be an object","message":"Invalid params"},"id":1,"jsonrpc":"2.0"}"#,
+        ),
     ),
     (
         r#"{"jsonrpc":"2.0","id":1,"method":"tools/call","params":[]}"#,
-        Some(r#"{"error":{"code":-32602,"data":"tools/call params must be an object","message":"Invalid params"},"id":1,"jsonrpc":"2.0"}"#),
+        Some(
+            r#"{"error":{"code":-32602,"data":"tools/call params must be an object","message":"Invalid params"},"id":1,"jsonrpc":"2.0"}"#,
+        ),
     ),
     (
         r#"{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{}}"#,
-        Some(r#"{"error":{"code":-32602,"data":"tools/call params.name must be a non-empty string","message":"Invalid params"},"id":1,"jsonrpc":"2.0"}"#),
+        Some(
+            r#"{"error":{"code":-32602,"data":"tools/call params.name must be a non-empty string","message":"Invalid params"},"id":1,"jsonrpc":"2.0"}"#,
+        ),
     ),
     (
         r#"{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"   "}}"#,
-        Some(r#"{"error":{"code":-32602,"data":"tools/call params.name must be a non-empty string","message":"Invalid params"},"id":1,"jsonrpc":"2.0"}"#),
+        Some(
+            r#"{"error":{"code":-32602,"data":"tools/call params.name must be a non-empty string","message":"Invalid params"},"id":1,"jsonrpc":"2.0"}"#,
+        ),
     ),
     (
         r#"{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"memory.search","arguments":[1,2]}}"#,
-        Some(r#"{"error":{"code":-32602,"data":"tools/call params.arguments: tool arguments must be a JSON object, not an array","message":"Invalid params"},"id":1,"jsonrpc":"2.0"}"#),
+        Some(
+            r#"{"error":{"code":-32602,"data":"tools/call params.arguments: tool arguments must be a JSON object, not an array","message":"Invalid params"},"id":1,"jsonrpc":"2.0"}"#,
+        ),
     ),
     (
         r#"{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"memory.search","arguments":"not json"}}"#,
-        Some(r#"{"error":{"code":-32602,"data":"tools/call params.arguments: tool arguments must be a JSON object, not a string that is not JSON","message":"Invalid params"},"id":1,"jsonrpc":"2.0"}"#),
+        Some(
+            r#"{"error":{"code":-32602,"data":"tools/call params.arguments: tool arguments must be a JSON object, not a string that is not JSON","message":"Invalid params"},"id":1,"jsonrpc":"2.0"}"#,
+        ),
     ),
     (
         r#"{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"memory.search","arguments":7}}"#,
-        Some(r#"{"error":{"code":-32602,"data":"tools/call params.arguments: tool arguments must be a JSON object, not a number","message":"Invalid params"},"id":1,"jsonrpc":"2.0"}"#),
+        Some(
+            r#"{"error":{"code":-32602,"data":"tools/call params.arguments: tool arguments must be a JSON object, not a number","message":"Invalid params"},"id":1,"jsonrpc":"2.0"}"#,
+        ),
     ),
     (
         r#"{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"memory.search","arguments":{}}}"#,
-        Some(r#"{"error":{"code":-32602,"data":"missing required argument `query`","message":"Invalid params"},"id":1,"jsonrpc":"2.0"}"#),
+        Some(
+            r#"{"error":{"code":-32602,"data":"missing required argument `query`","message":"Invalid params"},"id":1,"jsonrpc":"2.0"}"#,
+        ),
     ),
     (
         r#"{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"memory.search","arguments":"{}"}}"#,
-        Some(r#"{"error":{"code":-32602,"data":"missing required argument `query`","message":"Invalid params"},"id":1,"jsonrpc":"2.0"}"#),
+        Some(
+            r#"{"error":{"code":-32602,"data":"missing required argument `query`","message":"Invalid params"},"id":1,"jsonrpc":"2.0"}"#,
+        ),
     ),
     (
         r#"{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"memory.search"}}"#,
-        Some(r#"{"error":{"code":-32602,"data":"missing required argument `query`","message":"Invalid params"},"id":1,"jsonrpc":"2.0"}"#),
+        Some(
+            r#"{"error":{"code":-32602,"data":"missing required argument `query`","message":"Invalid params"},"id":1,"jsonrpc":"2.0"}"#,
+        ),
     ),
     (
         r#"{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"memory.search","arguments":{"query":"x","bogus":1}}}"#,
-        Some(r#"{"error":{"code":-32602,"data":"unexpected argument `bogus`","message":"Invalid params"},"id":1,"jsonrpc":"2.0"}"#),
+        Some(
+            r#"{"error":{"code":-32602,"data":"unexpected argument `bogus`","message":"Invalid params"},"id":1,"jsonrpc":"2.0"}"#,
+        ),
     ),
     (
         r#"{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"no.such_tool","arguments":{}}}"#,
-        Some(r#"{"error":{"code":-32602,"data":"unknown MCP tool `no.such_tool`","message":"Invalid params"},"id":1,"jsonrpc":"2.0"}"#),
+        Some(
+            r#"{"error":{"code":-32602,"data":"unknown MCP tool `no.such_tool`","message":"Invalid params"},"id":1,"jsonrpc":"2.0"}"#,
+        ),
     ),
     (
         r#"{"jsonrpc":"2.0","id":12,"method":"resources/read","params":{"uri":"openhuman://prompts/agents/does_not_exist"}}"#,
-        Some(r#"{"error":{"code":-32002,"data":"no resource with uri `openhuman://prompts/agents/does_not_exist`","message":"Resource not found"},"id":12,"jsonrpc":"2.0"}"#),
+        Some(
+            r#"{"error":{"code":-32002,"data":"no resource with uri `openhuman://prompts/agents/does_not_exist`","message":"Resource not found"},"id":12,"jsonrpc":"2.0"}"#,
+        ),
     ),
     (
         r#"{"jsonrpc":"2.0","id":13,"method":"resources/read","params":{}}"#,
-        Some(r#"{"error":{"code":-32602,"data":"resources/read params.uri must be a non-empty string","message":"Invalid params"},"id":13,"jsonrpc":"2.0"}"#),
+        Some(
+            r#"{"error":{"code":-32602,"data":"resources/read params.uri must be a non-empty string","message":"Invalid params"},"id":13,"jsonrpc":"2.0"}"#,
+        ),
     ),
     (
         r#"{"jsonrpc":"2.0","id":13,"method":"resources/read","params":{"uri":"  "}}"#,
-        Some(r#"{"error":{"code":-32602,"data":"resources/read params.uri must be a non-empty string","message":"Invalid params"},"id":13,"jsonrpc":"2.0"}"#),
+        Some(
+            r#"{"error":{"code":-32602,"data":"resources/read params.uri must be a non-empty string","message":"Invalid params"},"id":13,"jsonrpc":"2.0"}"#,
+        ),
     ),
     (
         r#"{"jsonrpc":"2.0","id":13,"method":"resources/read"}"#,
-        Some(r#"{"error":{"code":-32602,"data":"resources/read params.uri must be a non-empty string","message":"Invalid params"},"id":13,"jsonrpc":"2.0"}"#),
+        Some(
+            r#"{"error":{"code":-32602,"data":"resources/read params.uri must be a non-empty string","message":"Invalid params"},"id":13,"jsonrpc":"2.0"}"#,
+        ),
     ),
     (
         r#"{"jsonrpc":"2.0","id":14,"method":"resources/templates/list"}"#,
@@ -206,9 +265,7 @@ async fn tools_list_answers_with_the_golden_base_catalog() {
     response["result"]["tools"]
         .as_array_mut()
         .expect("tools array")
-        .retain(|tool| {
-            !CONFIG_GATED_TOOLS.contains(&tool["name"].as_str().expect("tool name"))
-        });
+        .retain(|tool| !CONFIG_GATED_TOOLS.contains(&tool["name"].as_str().expect("tool name")));
     assert_eq!(response.to_string(), TOOLS_LIST_BASE);
 }
 
