@@ -47,6 +47,8 @@ pub struct HostedState {
     pub next_id: Mutex<u64>,
     /// When non-zero every `/memory/*` call fails with this status.
     pub force_status: AtomicU16,
+    /// Milliseconds every `experience` write is delayed by (0 = none).
+    pub delay_ms: AtomicU64,
 }
 
 pub type Hosted = Arc<HostedState>;
@@ -90,6 +92,10 @@ pub async fn experience(
 ) -> (StatusCode, Json<Value>) {
     if let Some(early) = gate(&state, &headers) {
         return early;
+    }
+    let delay = state.delay_ms.load(Ordering::SeqCst);
+    if delay > 0 {
+        tokio::time::sleep(Duration::from_millis(delay)).await;
     }
     if let Some(claim) = headers.get("idempotency-key").and_then(|v| v.to_str().ok()) {
         if !state.claims.lock().unwrap().insert(claim.to_string()) {
