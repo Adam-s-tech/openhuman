@@ -1,7 +1,60 @@
 use super::*;
+use async_trait::async_trait;
 use crate::agent::tinyagents::TurnModelSource;
 use std::sync::Arc;
 use tinyagents_harness::host::{ContextComposer, TurnContextRequest};
+use tinyinference_llm::message::ModelProfile;
+use tinyinference_llm::model::{ChatModel, ModelRequest, ModelResponse};
+use tinyinference_llm::tool::ToolCall;
+use tinytools::{Tool, ToolResult};
+
+struct LimitedTool(Arc<std::sync::atomic::AtomicUsize>);
+
+#[async_trait]
+impl Tool for LimitedTool {
+    fn name(&self) -> &str {
+        "limited_tool"
+    }
+
+    fn description(&self) -> &str {
+        "test tool for scoped run limits"
+    }
+
+    fn parameters_schema(&self) -> serde_json::Value {
+        serde_json::json!({"type": "object"})
+    }
+
+    async fn execute(&self, _args: serde_json::Value) -> anyhow::Result<ToolResult> {
+        self.0.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        Ok(ToolResult::text("executed"))
+    }
+}
+
+struct RequestLimitedToolModel(Arc<std::sync::atomic::AtomicUsize>);
+
+#[async_trait]
+impl ChatModel<()> for RequestLimitedToolModel {
+    fn profile(&self) -> Option<&ModelProfile> {
+        static PROFILE: std::sync::OnceLock<ModelProfile> = std::sync::OnceLock::new();
+        Some(PROFILE.get_or_init(|| {
+            let mut profile = ModelProfile::default();
+            profile.tool_calling = true;
+            profile
+        }))
+    }
+
+    async fn invoke(
+        &self,
+        _state: &(),
+        _request: ModelRequest,
+    ) -> tinyinference_llm::Result<ModelResponse> {
+        self.0.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        let mut response = ModelResponse::assistant("");
+        response.message.tool_calls = vec![ToolCall::new("limited-call", "limited_tool", serde_json::json!({}))];
+        response.finish_reason = Some("tool_calls".to_string());
+        Ok(response)
+    }
+}
 
 fn hosted_base() -> Arc<crate::agent::tinyagents::host::OpenHumanHostBase> {
     Arc::new(crate::agent::tinyagents::host::OpenHumanHostBase {
@@ -31,6 +84,45 @@ fn root_messages(label: &str) -> Vec<ChatMessage> {
         ChatMessage::system(format!("system-{label}")),
         ChatMessage::user(format!("user-{label}")),
     ]
+}
+
+#[tokio::test]
+async fn scoped_tool_limit_is_honored_by_the_hosted_runner() {
+    let tool_calls = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let model_calls = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let model: Arc<dyn ChatModel<()>> = Arc::new(RequestLimitedToolModel(model_calls.clone()));
+    let models = TurnModelSource::from_model(model)
+        .build("root-test-model", 0.0, None, None)
+        .expect("scripted turn models build");
+    let (tx, _rx) = tokio::sync::mpsc::channel(8);
+
+    let _ = crate::agent::stop_hooks::with_tool_call_limit(Some(0), async {
+        run_root_turn_via_hosted_agent(
+            root_context("limited-runner", "/tmp/limited-runner", tx),
+            hosted_base(),
+            "main".to_string(),
+            models,
+            "test".to_string(),
+            "root-test-model",
+            root_messages("limited-runner"),
+            vec![Arc::new(vec![Box::new(LimitedTool(tool_calls.clone())) as Box<dyn Tool>])],
+            Some(Default::default()),
+            2,
+            None,
+            None,
+            &[],
+            false,
+            None,
+            TurnContextMiddleware::default(),
+            None,
+            true,
+        )
+        .await
+    })
+    .await;
+
+    assert!(model_calls.load(std::sync::atomic::Ordering::SeqCst) > 0);
+    assert_eq!(tool_calls.load(std::sync::atomic::Ordering::SeqCst), 0);
 }
 
 fn root_context(
