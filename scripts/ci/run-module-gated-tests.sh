@@ -10,7 +10,11 @@ LIST_OUTPUT="$(mktemp)"
 trap 'rm -f "$LIST_OUTPUT"' EXIT
 
 TEST_NAMES_OUTPUT="$(node scripts/ci/list-module-gated-tests.mjs)"
-SKIPPED_NAMES_OUTPUT="$(node scripts/ci/list-module-gated-tests.mjs --skipped)"
+SKIPPED_NAMES_OUTPUT="$(node scripts/ci/list-module-gated-tests.mjs --skipped)" || {
+  status=$?
+  echo "::error::module-gated skipped-test inventory failed" >&2
+  exit "$status"
+}
 TEST_NAMES=()
 SKIPPED_NAMES=()
 if [ -n "$TEST_NAMES_OUTPUT" ]; then mapfile -t TEST_NAMES <<< "$TEST_NAMES_OUTPUT"; fi
