@@ -79,7 +79,7 @@ fn tier_gate_denies_chat_to_chat() {
 #[test]
 fn tier_gate_allows_upward_reasoning_to_chat() {
     use crate::agent::harness::definition::AgentTier;
-    // Upward delegation is intentionally legal (subconscious reasoner →
+    // Upward delegation is intentionally legal (reasoning agent →
     // orchestrator chat). The gate must not deny it.
     let mut parent = make_def_named_tools(&[]);
     let mut child = make_def_named_tools(&[]);

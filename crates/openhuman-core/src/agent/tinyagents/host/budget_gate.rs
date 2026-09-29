@@ -108,7 +108,7 @@ pub struct OpenHumanBudgetGate {
     /// deliberately never enter it. Routing a user-initiated turn through it
     /// would stall the chat until the turn timeout for anyone who is signed out
     /// on a local/BYOK model, or who merely paused background AI. Cron and
-    /// subconscious wiring sites opt in with
+    /// other background wiring sites opt in with
     /// [`Self::as_background_work`](Self::as_background_work).
     background: bool,
 }
@@ -141,7 +141,7 @@ impl OpenHumanBudgetGate {
     ///
     /// Only then does [`acquire`](Self::acquire) queue behind
     /// [`scheduler_gate`], which is the concurrency limiter for background AI —
-    /// cron jobs, the subconscious tick, memory workers. Interactive turns must
+    /// cron jobs, memory workers. Interactive turns must
     /// **not** opt in: the gate's `Paused` arm waits for background work to be
     /// re-enabled, which for a user-initiated chat means waiting until the turn
     /// times out.

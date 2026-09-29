@@ -143,7 +143,7 @@ impl HarnessBuilder {
     /// Override which background services run.
     ///
     /// The default is deliberately minimal — see [`Harness`] — because cron,
-    /// heartbeat and the memory queue are what make a second core in the same
+    /// the login-gated services and the memory queue are what make a second core in the same
     /// process corrupt shared state. Widen it only if you need what they do.
     pub fn services(mut self, services: ServiceSet) -> Self {
         self.services = Some(services);

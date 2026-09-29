@@ -55,8 +55,7 @@
 //!   `Memory::store_with_taint`. It **fails closed to
 //!   [`MemoryTaint::ExternalSync`]**: an agent turn may have been summarizing an
 //!   email or a web page, this adapter cannot tell, and `ExternalSync` is the
-//!   value OpenHuman's subconscious gate treats as "unknown origin, refuse
-//!   external-effect tools". [`OpenHumanAgentMemory::with_taint`] lets a wiring
+//!   conservative "not user-authored" provenance. [`OpenHumanAgentMemory::with_taint`] lets a wiring
 //!   site that genuinely knows better relax it.
 //!
 //! # Contract mismatches resolved
