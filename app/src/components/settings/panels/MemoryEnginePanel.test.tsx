@@ -11,7 +11,11 @@ import type {
   MemoryEngineDescriptor,
   MemoryEngineState,
 } from '../../../utils/tauriCommands/memoryEngine';
-import MemoryEnginePanel, { MIGRATE_POLL_INTERVAL_MS } from './MemoryEnginePanel';
+import { resetMemoryEngineCacheForTests } from '../../intelligence/useMemoryEngineCapabilities';
+import MemoryEnginePanel, {
+  MIGRATE_JOB_STORAGE_KEY,
+  MIGRATE_POLL_INTERVAL_MS,
+} from './MemoryEnginePanel';
 
 const hoisted = vi.hoisted(() => ({
   list: vi.fn(),
@@ -19,6 +23,8 @@ const hoisted = vi.hoisted(() => ({
   set: vi.fn(),
   migrate: vi.fn(),
   status: vi.fn(),
+  cancel: vi.fn(),
+  storage: new Map<string, string>(),
   track: vi.fn(),
   auth: { isAuthenticated: true },
 }));
@@ -29,6 +35,19 @@ vi.mock('../../../utils/tauriCommands/memoryEngine', () => ({
   memoryEngineSet: (...a: unknown[]) => hoisted.set(...a),
   memoryEngineMigrate: (...a: unknown[]) => hoisted.migrate(...a),
   memoryEngineMigrateStatus: (...a: unknown[]) => hoisted.status(...a),
+  memoryEngineMigrateCancel: (...a: unknown[]) => hoisted.cancel(...a),
+}));
+
+vi.mock('../../../store/userScopedStorage', () => ({
+  userScopedStorage: {
+    getItem: async (k: string) => hoisted.storage.get(k) ?? null,
+    setItem: async (k: string, v: string) => {
+      hoisted.storage.set(k, v);
+    },
+    removeItem: async (k: string) => {
+      hoisted.storage.delete(k);
+    },
+  },
 }));
 
 vi.mock('../../../services/analytics', () => ({
@@ -101,6 +120,8 @@ const pick = (id: string) =>
 
 beforeEach(() => {
   vi.clearAllMocks();
+  resetMemoryEngineCacheForTests();
+  hoisted.storage.clear();
   hoisted.auth = { isAuthenticated: true };
   hoisted.list.mockResolvedValue({ engines: ENGINES, active: 'tinymemory' });
   hoisted.get.mockResolvedValue(state());
@@ -267,9 +288,87 @@ describe('MemoryEnginePanel', () => {
     expect(screen.getByRole('radio', { name: /supermemory/i })).toBeEnabled();
   });
 
-  test('shows a fallback warning when the core fell back to local memory', async () => {
-    hoisted.get.mockResolvedValue(state({ fell_back_from: 'mem0', last_error: 'timeout' }));
+  test('a failed bind says memory is paused (not local) and shows the reason', async () => {
+    hoisted.get.mockResolvedValue(
+      state({ driver: 'null', fell_back_from: 'mem0', last_error: 'engine credential unavailable' })
+    );
     await renderPanel();
-    expect(screen.getByTestId('memory-engine-fallback')).toHaveTextContent('mem0');
+    const warning = screen.getByTestId('memory-engine-fallback');
+    expect(warning).toHaveTextContent('Memory is paused');
+    expect(warning).toHaveTextContent('mem0');
+    expect(warning).toHaveTextContent('engine credential unavailable');
+    expect(warning).not.toHaveTextContent(/local memory/i);
+  });
+
+  test('cancel stops a running copy and leaves the panel on the previous engine', async () => {
+    vi.useFakeTimers();
+    hoisted.migrate.mockResolvedValue({ job_id: 'job-c' });
+    hoisted.cancel.mockResolvedValue({ cancelled: true });
+    hoisted.status
+      .mockResolvedValueOnce({ state: 'running', copied: 1, total: null, error: null })
+      .mockResolvedValue({ state: 'cancelled', copied: 1, total: null, error: null });
+    renderWithProviders(<MemoryEnginePanel />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    pick('mem0');
+    fireEvent.click(screen.getByTestId('memory-engine-switch'));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    fireEvent.click(screen.getByTestId('memory-engine-copy-switch'));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    fireEvent.click(screen.getByTestId('memory-engine-cancel-migration'));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(hoisted.cancel).toHaveBeenCalledWith('job-c');
+
+    for (let i = 0; i < 2; i += 1) {
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(MIGRATE_POLL_INTERVAL_MS);
+      });
+    }
+    expect(screen.queryByTestId('memory-engine-switch-dialog')).not.toBeInTheDocument();
+    expect(hoisted.track).not.toHaveBeenCalled();
+    expect(hoisted.storage.has(MIGRATE_JOB_STORAGE_KEY)).toBe(false);
+  });
+
+  test('the running migration job id is persisted and resumed on return', async () => {
+    vi.useFakeTimers();
+    hoisted.storage.set(
+      MIGRATE_JOB_STORAGE_KEY,
+      JSON.stringify({ jobId: 'job-r', driver: 'mem0' })
+    );
+    hoisted.status.mockResolvedValue({ state: 'running', copied: 3, total: null, error: null });
+    renderWithProviders(<MemoryEnginePanel />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(hoisted.status).toHaveBeenCalledWith('job-r');
+    expect(screen.getByTestId('memory-engine-progress')).toHaveTextContent('Copied 3 memories');
+  });
+
+  test('a stored job that already finished is cleared without a dialog', async () => {
+    hoisted.storage.set(
+      MIGRATE_JOB_STORAGE_KEY,
+      JSON.stringify({ jobId: 'job-x', driver: 'mem0' })
+    );
+    hoisted.status.mockResolvedValue({ state: 'failed', copied: 0, total: null, error: 'x' });
+    await renderPanel();
+    await waitFor(() => expect(hoisted.storage.has(MIGRATE_JOB_STORAGE_KEY)).toBe(false));
+    expect(screen.queryByTestId('memory-engine-switch-dialog')).not.toBeInTheDocument();
+  });
+
+  test('starting a copy persists the job id', async () => {
+    hoisted.migrate.mockResolvedValue({ job_id: 'job-p' });
+    hoisted.status.mockResolvedValue({ state: 'running', copied: 0, total: null, error: null });
+    await renderPanel();
+    pick('mem0');
+    fireEvent.click(screen.getByTestId('memory-engine-switch'));
+    fireEvent.click(await screen.findByTestId('memory-engine-copy-switch'));
+    await waitFor(() => expect(hoisted.storage.get(MIGRATE_JOB_STORAGE_KEY)).toContain('job-p'));
   });
 });
