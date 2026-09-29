@@ -4,8 +4,8 @@
 //! `vendor/tinyagents/crates/tinyagents-harness/src/workspace/git/test.rs`.
 
 use super::*;
-
 use tinyagents_harness::workspace::GitWorktreeStatus;
+
 /// Pins the JSON-RPC wire shape of [`GitWorktreeStatus`].
 ///
 /// `worktree_schemas.rs` serializes this type straight to the desktop UI, so a
