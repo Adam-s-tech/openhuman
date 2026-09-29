@@ -1,4 +1,4 @@
-use super::evaluator::chain::{begin_outage_attempt, OutageAttempt, RetryState};
+use super::*;
 
 #[test]
 fn dropped_attempt_releases_in_flight_state() {

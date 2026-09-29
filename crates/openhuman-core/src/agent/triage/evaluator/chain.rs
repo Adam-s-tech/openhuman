@@ -455,5 +455,5 @@ pub(crate) fn record_outage(
 }
 
 #[cfg(test)]
-#[path = "../evaluator_chain_tests.rs"]
+#[path = "chain_tests.rs"]
 mod outage_attempt_tests;
