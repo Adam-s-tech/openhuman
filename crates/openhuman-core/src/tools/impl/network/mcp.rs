@@ -405,6 +405,10 @@ impl SecretScrubber {
         self.scrub_text(text, true)
     }
 
+    pub(super) fn scrub_error(&self, error: &anyhow::Error) -> String {
+        self.scrub(&error.to_string())
+    }
+
     fn scrub_key(&self, text: &str) -> String {
         // Object keys carry structure (tool names and JSON schema fields). Keep
         // short query credentials from matching inside those names while still

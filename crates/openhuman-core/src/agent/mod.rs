@@ -79,8 +79,8 @@ pub mod tool_policy;
 pub mod tools;
 pub mod triage;
 /// Turn-origin task-local — explicit trust/routing label scoped by every
-/// entry point that invokes the agent (web chat, channel runtime,
-/// subconscious, cron, CLI). Read by the approval gate to make
+/// entry point that invokes the agent (web chat, channel runtime, cron,
+/// background jobs, CLI). Read by the approval gate to make
 /// origin-aware decisions rather than inferring trust from the absence of
 /// `APPROVAL_CHAT_CONTEXT`.
 pub mod turn_origin;

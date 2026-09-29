@@ -13,13 +13,18 @@
 # Simulate with: scripts/dep-sim.py --cut <crates>
 #
 # History
+#   304/283/2  2026-09-29  The merged lockfile and dependency graph resolve
+#                      three fewer packages and three fewer crate names for
+#                      the flows profile, with no change to native builds.
+#                      Measured by the gates-off CI lane; this lowers the
+#                      recorded floor without adding dependencies.
 #   303/282/2  2026-09-29  Merge the JSON-RPC split: removes openhuman-rpc
 #                      from the core flows graph; the resolved profile is
 #                      measured after the upstream TinyMCP v0.3.5 update.
-#   304/283/2  2026-09-29  Measured after advancing tinymcp to v0.3.5.
-#                      The required MCP server APIs resolve three fewer
-#                      packages and names in the `flows` profile than the
-#                      previous ratchet. Native builds remain unchanged.
+#   304/283/2  2026-09-29  The TinyMCP 0.3.5 dependency refresh lowers
+#                      the measured flows profile by three resolved package
+#                      versions and three unique crate names; native builds
+#                      remain unchanged. Ratchet to the new floor.
 #   307/286/2  2026-09-27  The multi-provider search config directly uses the
 #                      required TinySearch bus contract in always-on settings
 #                      and policy code. This adds one resolved crate/name and
@@ -443,7 +448,7 @@
 #                      that touch git2), the impls written against `Ledger`,
 #                      and `DiffEngine` sit behind the feature. OpenHuman
 #                      mirrors the split: `memory::diff::types` compiles in
-#                      both directions because the always-on subconscious
+#                      both directions because the always-on memory
 #                      profile renders those types into prompts.
 #                      Off-state: `memory_diff` is unknown-method, the
 #                      `memory_diff` agent tool is absent, the embedded driver

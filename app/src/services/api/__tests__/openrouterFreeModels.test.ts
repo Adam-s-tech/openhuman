@@ -54,9 +54,7 @@ function settings(hasOpenRouterKey = false) {
       agentic: { kind: 'openhuman' },
       coding: { kind: 'openhuman' },
       memory: { kind: 'openhuman' },
-      heartbeat: { kind: 'openhuman' },
       learning: { kind: 'openhuman' },
-      subconscious: { kind: 'openhuman' },
     },
   };
 }

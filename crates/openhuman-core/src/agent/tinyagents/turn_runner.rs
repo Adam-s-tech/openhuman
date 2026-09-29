@@ -343,7 +343,7 @@ async fn run_turn_via_tinyagents_inner(
             "openhuman-agent-turn"
         })
         .with_max_model_calls(max_iterations)
-        .with_max_tool_calls(max_iterations.saturating_mul(8).max(8))
+        .with_max_tool_calls(crate::agent::stop_hooks::tool_call_limit(max_iterations))
         .with_max_depth(MAX_SPAWN_DEPTH)
         .with_tag("openhuman")
         .with_tag(if subagent_scope.is_some() {

@@ -42,7 +42,7 @@ Embedding products should set their product identity once during startup,
 before constructing backend clients:
 
 ```rust
-use openhuman_embed::{set_product_identity, ProductIdentity};
+use openhuman_tinyhumans::{set_product_identity, ProductIdentity};
 
 if let Some(identity) = ProductIdentity::new("opencompany") {
     set_product_identity(identity);

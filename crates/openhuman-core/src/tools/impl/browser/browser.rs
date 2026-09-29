@@ -1,13 +1,19 @@
 //! Agent-facing browser backed by the TinyComputer module's browser and task members.
+#[path = "browser_cleanup.rs"]
+mod cleanup;
+#[path = "browser_drop.rs"]
+mod browser_drop;
+#[path = "browser_pending.rs"]
+mod pending;
 #[path = "browser_session_pool.rs"]
 mod session_pool;
 #[path = "browser_task_actions.rs"]
 mod task_actions;
-
 use crate::modules::browser::BrowserClient;
 use crate::security::approval::{ApprovalGate, GateOutcome};
 use crate::security::SecurityPolicy;
 use async_trait::async_trait;
+use pending::{approval_target, needs_host_confirmation, Pending};
 use serde_json::{json, Value};
 use session_pool::{
     browser_session_fingerprint, evict_thread_sessions, requires_rebind, thread_sessions,
@@ -30,75 +36,6 @@ use tinycomputer_bus::browser::{
 };
 use tinytools::{Tool, ToolCallOptions, ToolResult, ToolRunContext};
 use tokio::sync::Mutex;
-
-/// A task paused before an irreversible action, waiting for host approval.
-struct Pending {
-    task: TaskId,
-    action: String,
-    target: String,
-    token: String,
-}
-
-impl Pending {
-    fn matches(&self, args: &Value) -> bool {
-        args["token"].as_str() == Some(self.token.as_str())
-    }
-}
-
-fn needs_host_confirmation(action: &Action) -> bool {
-    matches!(
-        action,
-        Action::Click { .. }
-            | Action::DoubleClick { .. }
-            | Action::Fill { .. }
-            | Action::Type { .. }
-            | Action::Press { .. }
-            | Action::Select { .. }
-            | Action::Check { .. }
-    )
-}
-
-fn approval_target(action: &Action) -> (Option<&str>, String) {
-    let target = match action {
-        Action::Click { target, .. }
-        | Action::DoubleClick { target }
-        | Action::Fill { target, .. }
-        | Action::Select { target, .. }
-        | Action::Check { target, .. } => Some(target),
-        Action::Type { target, .. } => target.as_ref(),
-        _ => None,
-    };
-    let preview = |raw: &str| {
-        let cleaned = raw.chars().filter(|c| !c.is_control()).collect::<String>();
-        let mut short = cleaned.chars().take(96).collect::<String>();
-        if cleaned.chars().count() > 96 {
-            short.push('…');
-        }
-        short
-    };
-    match target {
-        Some(Target::Ref { value }) => (Some(value), format!(" @{value}")),
-        Some(Target::Selector { value }) => (None, format!(" CSS selector {:?}", preview(value))),
-        Some(Target::Locator { value }) => {
-            let name = value
-                .name
-                .as_deref()
-                .map(|name| format!(" named {:?}", preview(name)))
-                .unwrap_or_default();
-            (
-                None,
-                format!(
-                    " {:?} locator {:?}{name} (match {}, exact={})",
-                    value.by,
-                    preview(&value.value),
-                    value.index.saturating_add(1),
-                    value.exact
-                ),
-            )
-        }
-        None => (None, String::new()),
-    }
-}
 
 async fn approve_browser_action(
     client: &BrowserClient,
@@ -143,9 +80,7 @@ async fn approve_browser_action(
         &digest_hex[..12]
     );
     let summary = format!("Browser {display_target}");
-    // A digest binds the prompt to the complete action and URL without
-    // persisting form values or sensitive URL query parameters. The bounded
-    // selector/locator preview lets the host review which element is targeted.
+    // Bind action and URL with a digest, and show a bounded selector preview.
     let args = json!({"action": kind, "origin": origin, "target": display_target,
         "target_ref": target_ref, "exact_action_sha256": digest_hex});
     match gate.intercept_forced("browser", &summary, args).await {
@@ -222,9 +157,7 @@ impl BrowserTool {
                 *held = None;
                 *bound = None;
                 *self.pending.lock().await = None;
-                // The previous module session retains its original allowed
-                // origins. Keep its entry until close succeeds so a failed
-                // close is retried before any replacement can open.
+                // Keep its entry until close succeeds; retry before replacement.
                 stale.client.close_session(&stale.id).await?;
                 sessions.remove(&key);
             }
@@ -561,10 +494,8 @@ impl Tool for BrowserTool {
     },"required":["action"]})
     }
     fn external_effect_with_args(&self, args: &Value) -> bool {
-        // Direct mutating actions use the forced gate immediately before
-        // perform, and a task's irreversible step pauses as needs_approval for
-        // confirm_pending. Declaring an outer effect would park the same call
-        // twice and cannot cover the steps chosen inside `task`.
+        // Gate direct mutations before perform; task steps pause for approval.
+        // An outer effect would gate twice without covering task-selected steps.
         let _ = args;
         false
     }
@@ -600,26 +531,6 @@ impl Tool for BrowserTool {
             }
         }
         self.execute(args).await
-    }
-}
-
-impl Drop for BrowserTool {
-    fn drop(&mut self) {
-        if self.thread_key.lock().ok().is_some_and(|key| key.is_some()) {
-            // A later turn in this conversation reuses the module session.
-            // Explicit `close` removes it; module shutdown owns final cleanup.
-            return;
-        }
-        if let Ok(mut held) = self.session.try_lock() {
-            if let Some(id) = held.take() {
-                let client = self.client.clone();
-                if let Ok(runtime) = tokio::runtime::Handle::try_current() {
-                    runtime.spawn(async move {
-                        let _ = client.close_session(&id).await;
-                    });
-                }
-            }
-        }
     }
 }
 

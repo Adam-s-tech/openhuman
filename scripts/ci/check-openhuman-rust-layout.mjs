@@ -47,6 +47,9 @@ const LEGACY_LIMITS = new Map([
   ["crates/openhuman-core/src/agent/subagent_host/lifecycle.rs", 1318],
   ["crates/openhuman-core/src/agent/subagent_host/ops/runner.rs", 1793],
   ["crates/openhuman-core/src/tools/ops.rs", 1502],
+  // Existing browser assembly file is slightly over the general limit; pin
+  // its merged-base size so this PR does not grow the established seam.
+  ["crates/openhuman-core/src/tools/impl/browser/browser.rs", 756],
   ["crates/openhuman-core/src/web_chat/progress_bridge.rs", 1547],
   // These established external test modules grew with upstream coverage. Pin
   // their current sizes while follow-up work separates their test concerns.
