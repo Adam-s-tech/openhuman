@@ -946,7 +946,6 @@ async fn run_typed_mode(
     };
 
     // ── Filter tools per definition + per-spawn override ───────────────
-    let toolkit_filter = options.toolkit_override.as_deref();
     let mut allowed_indices = filter_tool_indices(
         &parent.all_tools,
         &definition.tools,
@@ -1030,18 +1029,11 @@ async fn run_typed_mode(
     );
 
     let narrowed_integrations: Vec<crate::agent::prompts::ConnectedIntegration> =
-        match toolkit_filter {
-            Some(tk) => live_integrations
-                .iter()
-                .filter(|ci| ci.connected && ci.toolkit.eq_ignore_ascii_case(tk))
-                .cloned()
-                .collect(),
-            None => live_integrations
-                .iter()
-                .filter(|ci| ci.connected)
-                .cloned()
-                .collect(),
-        };
+        live_integrations
+            .iter()
+            .filter(|ci| ci.connected)
+            .cloned()
+            .collect();
 
     let prompt_tools: Vec<PromptTool<'_>> = allowed_indices
         .iter()
