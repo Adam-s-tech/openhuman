@@ -432,7 +432,7 @@ async fn handle_runtime_command_telegram_help_replies_with_remote_command_list()
     assert_eq!(sent.len(), 1);
     assert!(sent[0]
         .content
-        .contains("OpenHuman Telegram remote control (phase 1):"));
+        .contains("Remote control:"));
     assert!(sent[0].content.contains("`/status`"));
     assert!(sent[0].content.contains("`/sessions`"));
     assert!(sent[0].content.contains("`/new`"));
