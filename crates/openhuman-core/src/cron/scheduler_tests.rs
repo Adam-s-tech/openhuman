@@ -278,3 +278,39 @@ async fn a_shell_job_runs_on_this_platform() {
         "the job's stdout was not captured: {output}"
     );
 }
+
+/// A pipeline keeps the shell's own exit status, not `pipefail`'s.
+///
+/// Regression guard for a behaviour change review caught on this branch. Routing
+/// this call site through `platform_shell::build_tokio_command` would have added
+/// `set -o pipefail`, and `false | true` — which a plain `-lc` reports as
+/// success, because only the last stage counts — would have started reporting
+/// failure. Any existing job ending in a tolerated pipe stage (a `… | grep -q`
+/// that finds nothing, say) would have flipped from success to failure with
+/// nothing about the job having changed, and cron would have begun spending a
+/// retry budget on it.
+///
+/// `#[cfg(unix)]` because the command is POSIX pipeline syntax. `cmd.exe` has no
+/// `pipefail` to preserve — a Windows pipeline already reports its last stage —
+/// so there is nothing for this to assert there.
+#[cfg(unix)]
+#[tokio::test]
+async fn a_pipeline_reports_its_last_stage_rather_than_pipefail() {
+    let tmp = TempDir::new().unwrap();
+    let config = test_config(&tmp).await;
+    let security =
+        SecurityPolicy::from_config(&config.autonomy, &config.workspace_dir, &config.action_dir);
+    // Fixture guard: a policy that refused to act would report failure for a
+    // reason that has nothing to do with the pipeline.
+    assert!(security.can_act(), "the fixture policy must permit acting");
+
+    let job = test_job("false | true");
+
+    let (success, output) = run_job_command(&config, &security, &job).await;
+
+    assert!(
+        success,
+        "`false | true` is a success under a plain `-lc`; pipefail would make it \
+         a failure and re-status every existing job with a pipeline in it: {output}"
+    );
+}
