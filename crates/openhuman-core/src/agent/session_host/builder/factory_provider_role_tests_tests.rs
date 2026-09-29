@@ -3,46 +3,17 @@ use super::provider_role_for;
 
 #[test]
 fn legacy_orchestrator_fallback_defaults_to_chat() {
-    assert_eq!(provider_role_for("orchestrator", Some("chat-v1")), "chat");
-    assert_eq!(provider_role_for("orchestrator", None), "chat");
+    assert_eq!(provider_role_for(Some("chat-v1")), "chat");
+    assert_eq!(provider_role_for(None), "chat");
     // A legacy heavy default_model tier still falls through to chat.
-    assert_eq!(
-        provider_role_for("orchestrator", Some("reasoning-v1")),
-        "chat"
-    );
+    assert_eq!(provider_role_for(Some("reasoning-v1")), "chat");
 }
 
 #[test]
 fn explicit_hints_route_to_workload() {
-    assert_eq!(
-        provider_role_for("orchestrator", Some("hint:agentic")),
-        "agentic"
-    );
-    assert_eq!(
-        provider_role_for("orchestrator", Some("hint:reasoning")),
-        "reasoning"
-    );
-    assert_eq!(
-        provider_role_for("orchestrator", Some("hint:coding")),
-        "coding"
-    );
-    // The cloud tick: orchestrator agent_id + the subconscious hint.
-    assert_eq!(
-        provider_role_for("orchestrator", Some("hint:subconscious")),
-        "subconscious"
-    );
-}
-
-#[test]
-fn subconscious_agent_id_routes_to_subconscious_without_hint() {
-    // The event-driven long-lived session builds with agent_id="subconscious"
-    // and no hint — it must still resolve the subconscious workload (Codex P2).
-    assert_eq!(provider_role_for("subconscious", None), "subconscious");
-    assert_eq!(
-        provider_role_for("subconscious", Some("chat-v1")),
-        "subconscious"
-    );
-    assert_eq!(provider_role_for(" subconscious ", None), "subconscious");
+    assert_eq!(provider_role_for(Some("hint:agentic")), "agentic");
+    assert_eq!(provider_role_for(Some("hint:reasoning")), "reasoning");
+    assert_eq!(provider_role_for(Some("hint:coding")), "coding");
 }
 
 #[test]

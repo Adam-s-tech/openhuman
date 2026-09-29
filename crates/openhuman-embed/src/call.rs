@@ -22,7 +22,7 @@
 //! # The response envelope
 //!
 //! Controller handlers serialize through
-//! [`RpcOutcome::into_cli_compatible_json`](openhuman_core::rpc::RpcOutcome), which emits
+//! [`Outcome::into_cli_compatible_json`](openhuman_core::core::Outcome), which emits
 //! a **variable shape**:
 //!
 //! - no logs  → the value itself

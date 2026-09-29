@@ -4,7 +4,7 @@
 
 use log::warn;
 
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 use super::super::chains::{
     btc as chain_btc, evm as chain_evm, solana as chain_sol, tron as chain_tron,
@@ -37,7 +37,7 @@ pub(crate) async fn sign_and_broadcast_solana(
 
 pub async fn execute_prepared(
     params: ExecutePreparedParams,
-) -> Result<RpcOutcome<ExecutionResult>, String> {
+) -> Result<Outcome<ExecutionResult>, String> {
     if !params.confirmed {
         return Err("execute_prepared requires `confirmed: true`".to_string());
     }
@@ -84,7 +84,7 @@ pub async fn execute_prepared(
     if final_result.explorer_url.is_none() {
         final_result.explorer_url = explorer_fallback;
     }
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         final_result,
         vec!["wallet transaction broadcast".to_string()],
     ))

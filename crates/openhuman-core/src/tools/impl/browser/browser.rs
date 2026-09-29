@@ -1,12 +1,13 @@
 //! Agent-facing browser backed by the TinyComputer module's browser and task members.
+#[path = "browser_drop.rs"]
+mod browser_drop;
 #[path = "browser_session_pool.rs"]
 mod session_pool;
-
+#[path = "browser_task_actions.rs"]
+mod task_actions;
 use crate::modules::browser::BrowserClient;
 use crate::security::approval::{ApprovalGate, GateOutcome};
 use crate::security::SecurityPolicy;
-#[path = "task_inputs.rs"]
-mod task_inputs;
 use async_trait::async_trait;
 use serde_json::{json, Value};
 use session_pool::{
@@ -22,15 +23,14 @@ use std::{
     sync::{Arc, Mutex as StdMutex},
     time::Instant,
 };
-use task_inputs::task_inputs;
+use task_actions::{approve_task_action, parse_action, required, task_inputs};
 use tinycomputer_bus::agent::{ContinueTaskRequest, TaskId, TaskStatus, TaskView};
 use tinycomputer_bus::browser::{
-    Action, DownloadState, DownloadWaitRequest, LocateBy, Locator, NavigateRequest, ReadRequest,
-    ScrollDirection, SessionId, SessionOptions, SnapshotRequest, Target, WaitState,
+    Action, DownloadState, DownloadWaitRequest, NavigateRequest, ReadRequest, SessionId,
+    SessionOptions, SnapshotRequest, Target,
 };
 use tinytools::{Tool, ToolCallOptions, ToolResult, ToolRunContext};
 use tokio::sync::Mutex;
-
 /// A task paused before an irreversible action, waiting for host approval.
 struct Pending {
     task: TaskId,
@@ -38,13 +38,11 @@ struct Pending {
     target: String,
     token: String,
 }
-
 impl Pending {
     fn matches(&self, args: &Value) -> bool {
         args["token"].as_str() == Some(self.token.as_str())
     }
 }
-
 fn needs_host_confirmation(action: &Action) -> bool {
     matches!(
         action,
@@ -57,7 +55,6 @@ fn needs_host_confirmation(action: &Action) -> bool {
             | Action::Check { .. }
     )
 }
-
 fn approval_target(action: &Action) -> (Option<&str>, String) {
     let target = match action {
         Action::Click { target, .. }
@@ -99,7 +96,6 @@ fn approval_target(action: &Action) -> (Option<&str>, String) {
         None => (None, String::new()),
     }
 }
-
 async fn approve_browser_action(
     client: &BrowserClient,
     session: &SessionId,
@@ -143,9 +139,7 @@ async fn approve_browser_action(
         &digest_hex[..12]
     );
     let summary = format!("Browser {display_target}");
-    // A digest binds the prompt to the complete action and URL without
-    // persisting form values or sensitive URL query parameters. The bounded
-    // selector/locator preview lets the host review which element is targeted.
+    // Bind action and URL with a digest, and show a bounded selector preview.
     let args = json!({"action": kind, "origin": origin, "target": display_target,
         "target_ref": target_ref, "exact_action_sha256": digest_hex});
     match gate.intercept_forced("browser", &summary, args).await {
@@ -222,9 +216,7 @@ impl BrowserTool {
                 *held = None;
                 *bound = None;
                 *self.pending.lock().await = None;
-                // The previous module session retains its original allowed
-                // origins. Keep its entry until close succeeds so a failed
-                // close is retried before any replacement can open.
+                // Keep its entry until close succeeds; retry before replacement.
                 stale.client.close_session(&stale.id).await?;
                 sessions.remove(&key);
             }
@@ -526,117 +518,6 @@ impl BrowserTool {
     }
 }
 
-/// Ask the host approval gate about a paused task's exact action. A missing
-/// gate denies: a task never takes an irreversible step unapproved.
-async fn approve_task_action(pending: &Pending) -> anyhow::Result<bool> {
-    let gate = ApprovalGate::try_global().ok_or_else(|| {
-        anyhow::anyhow!("[policy-denied] Browser action needs an interactive host approval gate")
-    })?;
-    let clean = |raw: &str| {
-        let cleaned = raw.chars().filter(|c| !c.is_control()).collect::<String>();
-        let mut short = cleaned.chars().take(160).collect::<String>();
-        if cleaned.chars().count() > 160 {
-            short.push('…');
-        }
-        short
-    };
-    let digest = Sha256::digest(serde_json::to_vec(&json!({
-        "task": pending.task, "action": pending.action, "target": pending.target
-    }))?);
-    let digest_hex = format!("{digest:x}");
-    let summary = format!(
-        "Browser task: {} — {} [action {}]",
-        clean(&pending.action),
-        clean(&pending.target),
-        &digest_hex[..12]
-    );
-    let args = json!({"action": "task_step", "target": summary, "exact_action_sha256": digest_hex});
-    Ok(
-        match gate.intercept_forced("browser", &summary, args).await {
-            GateOutcome::Allow => true,
-            GateOutcome::Deny { reason } => {
-                tracing::debug!(%reason, "[browser] task action denied by host");
-                false
-            }
-        },
-    )
-}
-
-fn required<'a>(args: &'a Value, key: &str) -> anyhow::Result<&'a str> {
-    args.get(key)
-        .and_then(Value::as_str)
-        .filter(|s| !s.trim().is_empty())
-        .ok_or_else(|| anyhow::anyhow!("Missing '{key}' parameter"))
-}
-
-fn parse_action(args: &Value) -> anyhow::Result<Action> {
-    let target = || required(args, "selector").map(Target::parse);
-    Ok(match required(args, "action")? {
-        "click" => Action::Click {
-            target: target()?,
-            new_tab: false,
-        },
-        "fill" => Action::Fill {
-            target: target()?,
-            value: required(args, "value")?.into(),
-        },
-        "type" => Action::Type {
-            target: args["selector"].as_str().map(Target::parse),
-            text: required(args, "text")?.into(),
-            delay_ms: None,
-        },
-        "get_text" => Action::GetText { target: target()? },
-        "is_visible" => Action::IsVisible { target: target()? },
-        "hover" => Action::Hover { target: target()? },
-        "press" => Action::Press {
-            key: required(args, "key")?.into(),
-        },
-        "scroll" => Action::Scroll {
-            direction: match required(args, "direction")? {
-                "up" => ScrollDirection::Up,
-                "down" => ScrollDirection::Down,
-                "left" => ScrollDirection::Left,
-                "right" => ScrollDirection::Right,
-                x => anyhow::bail!("Invalid direction: {x}"),
-            },
-            pixels: args["pixels"].as_u64().and_then(|v| u32::try_from(v).ok()),
-            target: None,
-        },
-        "wait" => Action::WaitFor {
-            target: args["selector"].as_str().map(Target::parse),
-            text: args["text"].as_str().map(str::to_owned),
-            state: WaitState::Visible,
-            ms: args["ms"].as_u64(),
-            timeout_ms: args["timeout_ms"].as_u64(),
-        },
-        "find" => {
-            let by = match required(args, "by")? {
-                "role" => LocateBy::Role,
-                "text" => LocateBy::Text,
-                "label" => LocateBy::Label,
-                "placeholder" => LocateBy::Placeholder,
-                "testid" => LocateBy::TestId,
-                x => anyhow::bail!("Invalid locator: {x}"),
-            };
-            let target = Target::locator(Locator::new(by, required(args, "value")?));
-            match required(args, "find_action")? {
-                "click" => Action::Click {
-                    target,
-                    new_tab: false,
-                },
-                "fill" => Action::Fill {
-                    target,
-                    value: required(args, "fill_value")?.into(),
-                },
-                "text" => Action::GetText { target },
-                "hover" => Action::Hover { target },
-                x => anyhow::bail!("Invalid find action: {x}"),
-            }
-        }
-        x => anyhow::bail!("Unsupported browser action: {x}"),
-    })
-}
-
 #[async_trait]
 impl Tool for BrowserTool {
     fn exposure(&self) -> tinytools::ToolExposure {
@@ -672,10 +553,8 @@ impl Tool for BrowserTool {
     },"required":["action"]})
     }
     fn external_effect_with_args(&self, args: &Value) -> bool {
-        // Direct mutating actions use the forced gate immediately before
-        // perform, and a task's irreversible step pauses as needs_approval for
-        // confirm_pending. Declaring an outer effect would park the same call
-        // twice and cannot cover the steps chosen inside `task`.
+        // Gate direct mutations before perform; task steps pause for approval.
+        // An outer effect would gate twice without covering task-selected steps.
         let _ = args;
         false
     }
@@ -711,26 +590,6 @@ impl Tool for BrowserTool {
             }
         }
         self.execute(args).await
-    }
-}
-
-impl Drop for BrowserTool {
-    fn drop(&mut self) {
-        if self.thread_key.lock().ok().is_some_and(|key| key.is_some()) {
-            // A later turn in this conversation reuses the module session.
-            // Explicit `close` removes it; module shutdown owns final cleanup.
-            return;
-        }
-        if let Ok(mut held) = self.session.try_lock() {
-            if let Some(id) = held.take() {
-                let client = self.client.clone();
-                if let Ok(runtime) = tokio::runtime::Handle::try_current() {
-                    runtime.spawn(async move {
-                        let _ = client.close_session(&id).await;
-                    });
-                }
-            }
-        }
     }
 }
 

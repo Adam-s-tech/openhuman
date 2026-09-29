@@ -30,14 +30,14 @@ use axum::{Json, Router};
 use serde_json::{json, Value};
 use tempfile::tempdir;
 
-use openhuman_core::core::auth::{get_rpc_token, init_rpc_token};
-use openhuman_core::core::jsonrpc::build_core_http_router;
 use openhuman_core::config::rpc::load_config_with_timeout;
+use openhuman_core::core::auth::{get_rpc_token, init_rpc_token};
 use openhuman_core::desktop::notifications::store as notification_store;
 use openhuman_core::desktop::notifications::types::{
     CoreNotificationCategory, CoreNotificationEvent,
 };
 use openhuman_core::platform::health::{mark_component_error, mark_component_ok};
+use openhuman_rpc::server::build_core_http_router;
 
 // ── env serialisation ────────────────────────────────────────────────────────
 
@@ -72,7 +72,6 @@ fn rpc_bearer() -> &'static str {
 }
 
 fn ensure_rpc_auth() {
-
     crate::tinyhumans_boot::boot();
     let _ = rpc_bearer();
 }
@@ -179,7 +178,9 @@ async fn mock_composio_connections(
     if !is_authed(&headers) {
         return Err(unauthorized());
     }
-    Ok(Json(json!({ "success": true, "data": (*state.connections).clone() })))
+    Ok(Json(
+        json!({ "success": true, "data": (*state.connections).clone() }),
+    ))
 }
 
 fn mock_backend_router(state: BackendState) -> Router {
@@ -433,7 +434,10 @@ async fn notification_centre_lifecycle_over_rpc() {
         Some("The Q3 numbers are attached.")
     );
     assert_eq!(row.get("provider").and_then(Value::as_str), Some("gmail"));
-    assert_eq!(row.get("account_id").and_then(Value::as_str), Some("acct-e2e"));
+    assert_eq!(
+        row.get("account_id").and_then(Value::as_str),
+        Some("acct-e2e")
+    );
     assert_eq!(
         row.get("raw_payload").and_then(|p| p.get("messageId")),
         Some(&json!("m-1")),
@@ -828,7 +832,10 @@ async fn health_snapshot_and_system_info_report_this_process() {
     let h = Harness::start(default_state()).await;
 
     mark_component_ok("e2e_platform_probe_ok");
-    mark_component_error("e2e_platform_probe_bad", "synthetic failure for the e2e probe");
+    mark_component_error(
+        "e2e_platform_probe_bad",
+        "synthetic failure for the e2e probe",
+    );
 
     let snapshot = post_json_rpc(&h.rpc_base, 9201, "openhuman.health_snapshot", json!({})).await;
     let result = peel(assert_no_jsonrpc_error(&snapshot, "health_snapshot"));
@@ -875,7 +882,10 @@ async fn health_snapshot_and_system_info_report_this_process() {
         "the snapshot describes *this* process"
     );
     assert!(
-        result.get("uptime_seconds").and_then(Value::as_u64).is_some(),
+        result
+            .get("uptime_seconds")
+            .and_then(Value::as_u64)
+            .is_some(),
         "snapshot must carry uptime_seconds: {result}"
     );
     assert!(
@@ -1038,9 +1048,12 @@ async fn doctor_report_and_models_are_internally_consistent() {
         .unwrap_or_else(|| panic!("doctor_models must return a summary: {result}"));
     let total: u64 = ["ok", "skipped", "auth_or_access", "errors"]
         .iter()
-        .map(|k| summary.get(*k).and_then(Value::as_u64).unwrap_or_else(|| {
-            panic!("summary must carry {k}: {result}")
-        }))
+        .map(|k| {
+            summary
+                .get(*k)
+                .and_then(Value::as_u64)
+                .unwrap_or_else(|| panic!("summary must carry {k}: {result}"))
+        })
         .sum();
     assert_eq!(
         total,
@@ -1151,9 +1164,12 @@ async fn service_daemon_host_preferences_round_trip_to_disk() {
     )
     .await;
     assert_eq!(
-        peel(assert_no_jsonrpc_error(&reread, "service_daemon_host_get after set"))
-            .get("showTray")
-            .and_then(Value::as_bool),
+        peel(assert_no_jsonrpc_error(
+            &reread,
+            "service_daemon_host_get after set"
+        ))
+        .get("showTray")
+        .and_then(Value::as_bool),
         Some(false),
         "get must read back what set wrote, not the default"
     );
@@ -1497,7 +1513,10 @@ async fn announcements_get_latest_passes_through_and_folds_404_to_null() {
         json!({}),
     )
     .await;
-    let result = peel(assert_no_jsonrpc_error(&present, "announcements_get_latest"));
+    let result = peel(assert_no_jsonrpc_error(
+        &present,
+        "announcements_get_latest",
+    ));
     assert_eq!(
         result.get("id").and_then(Value::as_str),
         Some("ann-1"),

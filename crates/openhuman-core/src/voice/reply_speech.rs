@@ -22,7 +22,7 @@ use serde_json::{json, Value};
 
 use crate::backend::BackendClient;
 use crate::config::Config;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 const LOG_PREFIX: &str = "[voice_reply]";
 
@@ -124,7 +124,7 @@ pub async fn synthesize_reply(
     config: &Config,
     text: &str,
     opts: &ReplySpeechOptions,
-) -> Result<RpcOutcome<ReplySpeechResult>, String> {
+) -> Result<Outcome<ReplySpeechResult>, String> {
     let trimmed = text.trim();
     if trimmed.is_empty() {
         return Err("text is required".to_string());
@@ -144,7 +144,7 @@ pub async fn synthesize_reply(
             .lock()
             .unwrap()
             .push(trimmed.to_string());
-        return Ok(RpcOutcome::single_log(
+        return Ok(Outcome::single_log(
             ReplySpeechResult {
                 audio_base64: String::new(),
                 audio_mime: "audio/mpeg".to_string(),
@@ -228,7 +228,7 @@ pub async fn synthesize_reply(
         result.alignment.as_ref().map_or(0, Vec::len)
     );
 
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         result,
         "voice reply synthesized via POST /openai/v1/audio/speech",
     ))

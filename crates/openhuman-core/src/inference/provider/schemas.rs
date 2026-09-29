@@ -10,7 +10,7 @@ use serde_json::{Map, Value};
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-fn to_json<T: serde::Serialize>(outcome: crate::rpc::RpcOutcome<T>) -> Result<Value, String> {
+fn to_json<T: serde::Serialize>(outcome: crate::core::Outcome<T>) -> Result<Value, String> {
     outcome.into_cli_compatible_json()
 }
 

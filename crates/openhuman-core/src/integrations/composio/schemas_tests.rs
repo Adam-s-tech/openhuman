@@ -163,7 +163,7 @@ fn read_optional_errors_on_type_mismatch() {
 
 #[test]
 fn to_json_wraps_outcome() {
-    let v = to_json(RpcOutcome::single_log(json!({"x": 1}), "note")).unwrap();
+    let v = to_json(Outcome::single_log(json!({"x": 1}), "note")).unwrap();
     assert!(v.get("logs").is_some() || v.get("result").is_some() || v.get("x").is_some());
 }
 

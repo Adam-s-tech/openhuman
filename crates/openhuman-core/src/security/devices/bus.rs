@@ -526,8 +526,8 @@ async fn handle_encrypted_rpc_frame(channel_id: &str, frame_bytes: &[u8]) {
         envelope.request_id
     );
 
-    let result = crate::core::jsonrpc::invoke_method(
-        crate::core::jsonrpc::default_state(),
+    let result = crate::core::invoke::invoke_method(
+        crate::core::invoke::default_state(),
         &request.method,
         request.params,
     )

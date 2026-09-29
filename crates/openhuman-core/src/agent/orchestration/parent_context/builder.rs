@@ -124,7 +124,7 @@ pub(crate) async fn build_root_parent(
 /// Ensure a parent execution context is installed for `fut`, then run it — the
 /// single blessed entry point for **controller-spawned background orchestration
 /// surfaces** that have no enclosing agent turn (the workflow-run engine, the
-/// agent-team runtime, the subconscious tick).
+/// agent-team runtime, cron jobs).
 ///
 /// Folds [`build_root_parent`] + [`with_parent_context`] into one call so a
 /// surface cannot install a hand-rolled parent, and — the TAURI-RUST-HMW

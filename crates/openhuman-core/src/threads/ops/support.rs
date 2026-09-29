@@ -4,12 +4,12 @@
 
 use crate::config::Config;
 use crate::core::runtime::context::CoreContext;
+use crate::core::Outcome;
 use crate::memory::conversations;
 use crate::memory::conversations::{ConversationMessage, ConversationThread};
 use crate::memory::{
     ApiEnvelope, ApiMeta, ConversationMessageRecord, ConversationThreadSummary, PaginationMeta,
 };
-use crate::rpc::RpcOutcome;
 use crate::threads::title::{
     title_from_user_message, title_log_fingerprint, THREAD_TITLE_LOG_PREFIX,
 };
@@ -34,8 +34,8 @@ pub(super) fn envelope<T: Serialize>(
     data: T,
     counts: Option<BTreeMap<String, usize>>,
     pagination: Option<PaginationMeta>,
-) -> RpcOutcome<ApiEnvelope<T>> {
-    RpcOutcome::new(
+) -> Outcome<ApiEnvelope<T>> {
+    Outcome::new(
         ApiEnvelope {
             data: Some(data),
             error: None,

@@ -8,7 +8,7 @@ use super::super::reply_speech::{synthesize_reply, ReplySpeechOptions, ReplySpee
 use super::traits::TtsProvider;
 use crate::config::schema::voice_providers::TtsApiStyle;
 use crate::config::Config;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 const LOG_PREFIX: &str = "[voice-factory]";
 
@@ -38,7 +38,7 @@ impl TtsProvider for CloudTtsProvider {
         config: &Config,
         text: &str,
         voice: Option<&str>,
-    ) -> Result<RpcOutcome<ReplySpeechResult>, String> {
+    ) -> Result<Outcome<ReplySpeechResult>, String> {
         let resolved_voice = voice
             .map(str::to_string)
             .or_else(|| self.voice.clone())
@@ -91,7 +91,7 @@ impl TtsProvider for PiperTtsProvider {
         config: &Config,
         text: &str,
         voice: Option<&str>,
-    ) -> Result<RpcOutcome<ReplySpeechResult>, String> {
+    ) -> Result<Outcome<ReplySpeechResult>, String> {
         let resolved_voice = voice
             .map(str::to_string)
             .filter(|s| !s.trim().is_empty())
@@ -156,7 +156,7 @@ impl TtsProvider for ExternalTtsProvider {
         _config: &Config,
         text: &str,
         voice: Option<&str>,
-    ) -> Result<RpcOutcome<ReplySpeechResult>, String> {
+    ) -> Result<Outcome<ReplySpeechResult>, String> {
         let resolved_voice = voice
             .filter(|s| !s.trim().is_empty())
             .unwrap_or(&self.default_voice);
@@ -177,7 +177,7 @@ impl TtsProvider for ExternalTtsProvider {
         use base64::Engine;
         let audio_base64 = base64::engine::general_purpose::STANDARD.encode(&audio_bytes);
 
-        Ok(RpcOutcome::single_log(
+        Ok(Outcome::single_log(
             ReplySpeechResult {
                 audio_base64,
                 audio_mime,

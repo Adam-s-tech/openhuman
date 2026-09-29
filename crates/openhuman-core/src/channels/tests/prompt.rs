@@ -60,13 +60,6 @@ fn prompt_injects_workspace_files() {
         "missing IDENTITY content"
     );
     assert!(prompt.contains("### PROFILE.md"), "missing PROFILE.md");
-    // HEARTBEAT.md is intentionally excluded from channel prompts — it's only
-    // relevant to the heartbeat worker and causes LLMs to emit spurious
-    // "HEARTBEAT_OK" acknowledgments in channel conversations.
-    assert!(
-        !prompt.contains("### HEARTBEAT.md"),
-        "HEARTBEAT.md should not be in channel prompt"
-    );
     // MEMORY.md is optional — the archivist writes it over time. When present
     // in the workspace it should be inlined.
     assert!(prompt.contains("### MEMORY.md"), "missing MEMORY.md");

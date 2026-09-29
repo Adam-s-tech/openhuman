@@ -140,7 +140,7 @@ fn embedded_service_set_binds_no_transport() {
 
     // But a long-lived operator session still wants background work.
     assert!(services.cron);
-    assert!(services.heartbeat);
+    assert!(services.login_gated);
     assert!(services.memory_queue);
     assert!(services.harness_init);
     assert!(services.memory_sync);
@@ -150,7 +150,7 @@ fn embedded_service_set_binds_no_transport() {
 fn boot_jobs_are_independent_from_runtime_service_flags() {
     let mut custom = ServiceSet::none();
     custom.rpc_http = true;
-    custom.heartbeat = true;
+    custom.login_gated = true;
     custom.update_scheduler = true;
     assert!(!custom.memory_queue);
     assert!(!custom.harness_init);

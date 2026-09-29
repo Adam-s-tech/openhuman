@@ -6,7 +6,7 @@ use serde_json::Value;
 use crate::channels::email_channel::EmailConfig;
 use crate::channels::providers::yuanbao::YuanbaoConfig;
 use crate::config::{Config, DiscordConfig, IMessageConfig, TelegramConfig};
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 use crate::security::credentials;
 
 use super::super::super::definitions::{find_channel_definition, ChannelAuthMode};
@@ -26,7 +26,7 @@ pub async fn connect_channel(
     channel_id: &str,
     auth_mode: ChannelAuthMode,
     credentials_value: Value,
-) -> Result<RpcOutcome<ChannelConnectionResult>, String> {
+) -> Result<Outcome<ChannelConnectionResult>, String> {
     let def = find_channel_definition(channel_id)
         .ok_or_else(|| format!("unknown channel: {channel_id}"))?;
 
@@ -39,7 +39,7 @@ pub async fn connect_channel(
 
     // For OAuth/managed modes, return the auth action without storing credentials.
     if let Some(action) = spec.auth_action {
-        return Ok(RpcOutcome::new(
+        return Ok(Outcome::new(
             ChannelConnectionResult {
                 status: "pending_auth".to_string(),
                 restart_required: false,
@@ -102,7 +102,7 @@ pub async fn connect_channel(
             "[imessage] connect_channel: wrote channels_config.imessage; restart core for AppleScript bridge to load"
         );
 
-        return Ok(RpcOutcome::single_log(
+        return Ok(Outcome::single_log(
             ChannelConnectionResult {
                 status: "connected".to_string(),
                 restart_required: true,
@@ -300,7 +300,7 @@ pub async fn connect_channel(
         persist_email_config(config, email_cfg).await?;
     }
 
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         ChannelConnectionResult {
             status: "connected".to_string(),
             restart_required: true,

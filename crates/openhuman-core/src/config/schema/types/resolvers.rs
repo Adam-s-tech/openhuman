@@ -26,8 +26,8 @@ impl Config {
     /// when the workload is routed to Ollama.
     ///
     /// Recognised workload names:
-    /// `"chat"`, `"reasoning"`, `"agentic"`, `"coding"`, `"memory"`, `"embeddings"`,
-    /// `"heartbeat"`, `"learning"`, `"subconscious"`.
+    /// `"chat"`, `"reasoning"`, `"agentic"`, `"coding"`, `"vision"`, `"memory"`,
+    /// `"embeddings"`, `"learning"`.
     ///
     /// Returns `None` when the provider isn't `"ollama:<model>"` (including
     /// when the field is unset, blank, `"cloud"`, or any other prefix).
@@ -44,9 +44,7 @@ impl Config {
             "vision" => self.vision_provider.as_deref(),
             "memory" => self.memory_provider.as_deref(),
             "embeddings" => self.embeddings_provider.as_deref(),
-            "heartbeat" => self.heartbeat_provider.as_deref(),
             "learning" => self.learning_provider.as_deref(),
-            "subconscious" => self.subconscious_provider.as_deref(),
             _ => None,
         }?;
         let trimmed = raw.trim();
