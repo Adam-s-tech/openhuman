@@ -470,10 +470,11 @@ async fn round20_spawn_subagent_covers_validation_schema_and_disabled_worker_bra
     assert_eq!(tool.name(), "spawn_subagent");
     assert_eq!(tool.permission_level().to_string(), "Execute");
     let schema = tool.parameters_schema();
-    assert!(schema["properties"]["toolkit"]
-        .as_object()
-        .expect("toolkit schema")
-        .contains_key("description"));
+    // The per-toolkit spawn argument went with the integrations specialist.
+    assert!(
+        schema["properties"].get("toolkit").is_none(),
+        "spawn_subagent must not advertise the removed `toolkit` argument"
+    );
     assert!(schema["properties"]["dedicated_thread"]
         .as_object()
         .expect("dedicated_thread schema")
