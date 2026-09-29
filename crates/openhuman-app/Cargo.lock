@@ -7581,7 +7581,7 @@ dependencies = [
 
 [[package]]
 name = "tinymcp"
-version = "0.3.4"
+version = "0.3.5"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -7604,7 +7604,7 @@ dependencies = [
 
 [[package]]
 name = "tinymcp-bus"
-version = "0.3.4"
+version = "0.3.5"
 dependencies = [
  "schemars 1.2.2",
  "serde",
