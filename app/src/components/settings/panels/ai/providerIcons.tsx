@@ -29,7 +29,6 @@ import {
 } from 'react-icons/si';
 
 import cerebrasLogo from '../../../../assets/provider-icons/cerebras.svg';
-import cheaperinferenceLogo from '../../../../assets/provider-icons/cheaperinference.svg';
 import deepinfraLogo from '../../../../assets/provider-icons/deepinfra.svg';
 import deepseekLogo from '../../../../assets/provider-icons/deepseek.svg';
 import fireworksLogo from '../../../../assets/provider-icons/fireworks.svg';
@@ -78,7 +77,6 @@ type ProviderAsset = { src: string; monochrome: boolean };
 
 const PROVIDER_ASSETS: Record<string, ProviderAsset> = {
   cerebras: { src: cerebrasLogo, monochrome: true },
-  cheaperinference: { src: cheaperinferenceLogo, monochrome: true },
   deepinfra: { src: deepinfraLogo, monochrome: true },
   openrouter: { src: openrouterLogo, monochrome: true },
   deepseek: { src: deepseekLogo, monochrome: true },
