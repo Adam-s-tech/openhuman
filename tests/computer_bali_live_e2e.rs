@@ -62,6 +62,30 @@ fn config(workspace: &std::path::Path) -> Config {
     config
 }
 
+/// Print what the task did and every rescue, so a failed live run says why.
+async fn print_report(config: &Config, view: &TaskView) {
+    match browser_task::report(config, view.id.clone()).await {
+        Ok(report) => {
+            for (index, step) in report.steps.iter().enumerate() {
+                println!(
+                    "  step {index}: {}",
+                    serde_json::to_string(step).unwrap_or_default()
+                );
+            }
+            for rescue in &report.rescues {
+                println!(
+                    "  rescue of step {}: {:?} — {} ({})",
+                    rescue.step, rescue.outcome, rescue.reason, rescue.failure
+                );
+            }
+            if report.rescues.is_empty() {
+                println!("  no rescues");
+            }
+        }
+        Err(error) => println!("  report unavailable: {error}"),
+    }
+}
+
 fn summarize(view: &TaskView) -> String {
     let step = view
         .step
@@ -194,6 +218,7 @@ async fn books_a_bali_flight_up_to_the_payment_page() {
                 ..
             } => {
                 println!("checkpoint at {location}: {reason}\n{summary}");
+                print_report(&config, &view).await;
                 assert!(
                     location.contains("goindigo") || reason.to_lowercase().contains("pay"),
                     "stopped at an unexpected checkpoint: {reason} ({location})"
@@ -209,7 +234,10 @@ async fn books_a_bali_flight_up_to_the_payment_page() {
                 panic!("task needs a person: {reason}");
             }
             TaskStatus::NeedsPlan { .. } => panic!("the planner is not configured"),
-            TaskStatus::Failed { reason, hint, .. } => panic!("task failed: {reason} ({hint})"),
+            TaskStatus::Failed { reason, hint, .. } => {
+                print_report(&config, &view).await;
+                panic!("task failed: {reason} ({hint})")
+            }
             TaskStatus::Cancelled => panic!("task was cancelled"),
         }
     }

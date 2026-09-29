@@ -14,7 +14,8 @@ use std::time::{Duration, Instant};
 use serde::{de::DeserializeOwned, Serialize};
 use tinycomputer_bus::agent::{
     names::methods, AgentResponse, AwaitTaskRequest, ContinueTaskRequest, PaymentMode,
-    StartTaskRequest, SurfaceKind, TaskBudget, TaskConstraints, TaskId, TaskRef, TaskView,
+    StartTaskRequest, SurfaceKind, TaskBudget, TaskConstraints, TaskId, TaskRef, TaskReport,
+    TaskReportRequest, TaskView,
 };
 
 use crate::config::Config;
@@ -124,6 +125,23 @@ pub async fn wait(config: &Config, id: TaskId) -> Result<TaskView, String> {
 pub async fn cancel(config: &Config, id: TaskId) -> Result<TaskView, String> {
     tracing::debug!(task = %id, "[browser-task] cancelling");
     call(config, methods::CANCEL_TASK, TaskRef { id }, false).await
+}
+
+/// The task's record: its steps, what it collected, and every rescue. Page
+/// data can appear in it, so it is fetched confidentially and without the Jev
+/// trace.
+///
+/// # Errors
+///
+/// Returns a module or transport error.
+pub async fn report(config: &Config, id: TaskId) -> Result<TaskReport, String> {
+    call(
+        config,
+        methods::TASK_REPORT,
+        TaskReportRequest { id, trace: false },
+        true,
+    )
+    .await
 }
 
 async fn follow(config: &Config, mut view: TaskView) -> Result<TaskView, String> {
