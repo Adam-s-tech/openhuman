@@ -276,3 +276,10 @@ fn dashboard_query_includes_persisted_record() {
         .unwrap();
     assert!((1.24..=1.26).contains(&total), "got total {total}");
 }
+
+#[test]
+fn usage_log_total_of_no_records_is_not_negative_zero() {
+    let dto = usage_log_to_dto(Vec::new(), "USD".to_string(), 30, 100);
+    assert!(dto.total_cost_usd.is_sign_positive());
+    assert!(!serde_json::to_string(&dto).unwrap().contains("-0.0"));
+}

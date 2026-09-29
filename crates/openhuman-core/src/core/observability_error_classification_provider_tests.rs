@@ -189,7 +189,7 @@ fn does_not_classify_unrelated_messages_as_context_window_exceeded() {
 #[test]
 fn classifies_provider_rate_cap_413_tpm_rereport_as_provider_user_state() {
     // TAURI-RUST-HXF: verbatim groq `on_demand` free-tier body — a single
-    // subconscious request (42084 tokens) exceeds the 8000 tokens-per-minute
+    // background request (42084 tokens) exceeds the 8000 tokens-per-minute
     // cap, so groq returns 413 and no retry can ever fit it. When re-raised
     // by `agent.run_single` under `domain=agent`, `report_error_or_expected`
     // must demote it to expected user-config state (the user's account tier

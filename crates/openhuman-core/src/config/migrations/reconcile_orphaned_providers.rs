@@ -180,7 +180,7 @@ pub fn run(config: &mut Config) -> anyhow::Result<MigrationStats> {
 /// can't enforce this at compile time without a field-reflection macro, and a
 /// serde-based count guard doesn't work because the `Option<String>` fields
 /// default to `None` and are omitted from the serialized table.
-fn workload_fields(config: &mut Config) -> [(&'static str, &mut Option<String>); 10] {
+fn workload_fields(config: &mut Config) -> [(&'static str, &mut Option<String>); 8] {
     [
         ("chat", &mut config.chat_provider),
         ("reasoning", &mut config.reasoning_provider),
@@ -189,9 +189,7 @@ fn workload_fields(config: &mut Config) -> [(&'static str, &mut Option<String>);
         ("vision", &mut config.vision_provider),
         ("memory", &mut config.memory_provider),
         ("embeddings", &mut config.embeddings_provider),
-        ("heartbeat", &mut config.heartbeat_provider),
         ("learning", &mut config.learning_provider),
-        ("subconscious", &mut config.subconscious_provider),
     ]
 }
 

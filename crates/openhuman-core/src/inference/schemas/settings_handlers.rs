@@ -56,9 +56,7 @@ pub(super) struct InferenceUpdateModelSettingsParams {
     vision_provider: Option<String>,
     memory_provider: Option<String>,
     embeddings_provider: Option<String>,
-    heartbeat_provider: Option<String>,
     learning_provider: Option<String>,
-    subconscious_provider: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -71,9 +69,7 @@ pub(super) struct InferenceUpdateLocalSettingsParams {
     model_id: Option<String>,
     chat_model_id: Option<String>,
     usage_embeddings: Option<bool>,
-    usage_heartbeat: Option<bool>,
     usage_learning_reflection: Option<bool>,
-    usage_subconscious: Option<bool>,
     api_key: Option<String>,
 }
 
@@ -228,9 +224,7 @@ pub(super) fn handle_inference_update_model_settings(
             vision_provider: update.vision_provider,
             memory_provider: update.memory_provider,
             embeddings_provider: update.embeddings_provider,
-            heartbeat_provider: update.heartbeat_provider,
             learning_provider: update.learning_provider,
-            subconscious_provider: update.subconscious_provider,
         };
         to_json(crate::inference::rpc::inference_update_model_settings(patch).await?)
     })
@@ -255,9 +249,7 @@ pub(super) fn handle_inference_update_local_settings(
             model_id: update.model_id,
             chat_model_id: update.chat_model_id,
             usage_embeddings: update.usage_embeddings,
-            usage_heartbeat: update.usage_heartbeat,
             usage_learning_reflection: update.usage_learning_reflection,
-            usage_subconscious: update.usage_subconscious,
             api_key: update.api_key,
         };
         to_json(crate::inference::rpc::inference_update_local_settings(patch).await?)

@@ -10,7 +10,7 @@ compatibility aliases in `crates/openhuman-core/src/core/legacy_aliases.rs`.
 
 ## Responsibilities
 
-- Resolve workload names (`chat`, `reasoning`, `agentic`, `coding`, `memory`, `embeddings`, `heartbeat`, `learning`, etc.) and provider strings (`openhuman`, `cloud`, `ollama:<model>`, `lmstudio:<model>`, `claude_agent_sdk:<model>`, `claude-code:<model>`, `<slug>:<model>[@<temp>]`) to a concrete `Arc<dyn tinyinference_llm::ChatModel<()>>` + model id.
+- Resolve workload names (`chat`, `reasoning`, `agentic`, `coding`, `memory`, `embeddings`, `learning`, etc.) and provider strings (`openhuman`, `cloud`, `ollama:<model>`, `lmstudio:<model>`, `claude_agent_sdk:<model>`, `claude-code:<model>`, `<slug>:<model>[@<temp>]`) to a concrete `Arc<dyn tinyinference_llm::ChatModel<()>>` + model id.
 - Manage the local AI runtime: detect/spawn/adopt `ollama serve`, probe LM Studio over HTTP (never spawned), select OpenHuman-owned artifact paths, invoke TinyInference's Ollama/Piper installers, and enforce a minimum-context-window floor. Local STT (whisper.cpp) was retired; STT is now cloud/engine-configurable via `voice_server.stt_engine` (see `config/migrations/retire_local_whisper_stt.rs`).
 - Provide chat, vision (multimodal), summarization, embeddings, sentiment, and "should react" inference operations.
 - Preserve product-specific config-rejection, billing, and authentication policy while TinyInference owns provider-failure classification and TinyAgents owns model-call retry execution.

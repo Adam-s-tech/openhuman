@@ -17,7 +17,7 @@ use super::connections::ComposioClient;
 /// direct-mode rollout (#1710), where the backend-only nature caused
 /// direct-mode users to false-negative the "signed in" check (the
 /// agent-tool registration gate, slack sync RPC, `tools.composio_execute`
-/// controller, and heartbeat calendar collector all silently dropped
+/// controller all silently dropped
 /// direct-mode users). Locking down here prevents future regressions —
 /// any new probe or execution path is forced through the mode-aware
 /// surface.

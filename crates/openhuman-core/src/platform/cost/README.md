@@ -32,7 +32,7 @@ Local API-usage cost tracking for the agent. Records per-call token usage and co
 From `mod.rs` re-exports:
 
 - `CostTracker`: the tracker (`tracker`).
-- `init_global`, `try_global`, `record_provider_usage` (`global`).
+- `init_global`, `rebind_global`, `try_global`, `record_provider_usage` (`global`).
 - `all_cost_controller_schemas`, `all_cost_registered_controllers` (`schemas`).
 - Types: `BudgetStatus`, `CostDashboard`, `CostRecord`, `CostSource`, `CostSummary`, `DailyCostEntry`, `ModelStats`, `TokenUsage`, `UsagePeriod`.
 
