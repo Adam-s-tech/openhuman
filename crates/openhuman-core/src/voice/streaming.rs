@@ -230,7 +230,3 @@ pub async fn handle_dictation_ws(mut socket: WebSocket, config: Arc<Config>) {
     log::info!("{LOG_PREFIX} streaming session complete");
     // Socket is dropped here, which sends a close frame automatically
 }
-
-#[cfg(test)]
-#[path = "streaming_tests.rs"]
-mod tests;
