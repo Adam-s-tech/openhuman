@@ -122,7 +122,8 @@ pub use tokenjuice::TokenjuiceConfig;
 pub use tools::{
     BrowserComputerUseConfig, BrowserConfig, ComposioConfig, CurlConfig, GitbooksConfig,
     HttpHeader, HttpRequestConfig, IntegrationToggle, IntegrationsConfig, LegacySearchInputs,
-    McpAuthConfig, McpClientConfig, McpClientIdentityConfig, McpServerConfig, MultimodalConfig,
+    McpAuthConfig, McpClientConfig, McpClientIdentityConfig, McpServerConfig, McpToolExposure,
+    MultimodalConfig,
     MultimodalFileConfig, SearchConfig, SearchEngineCredentials, SearchPresentation,
     SearchProviderSettings, SearchRoute, SearxngConfig, SecretsConfig, SeltzConfig,
     WebSearchConfig, COMPOSIO_MODE_BACKEND, COMPOSIO_MODE_DIRECT, MANAGED_SEARCH_PROVIDERS,
