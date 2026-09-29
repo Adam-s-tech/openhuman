@@ -69,7 +69,10 @@ fn err(status: u16, code: &str) -> (StatusCode, Json<Value>) {
 }
 
 fn ok(data: Value) -> (StatusCode, Json<Value>) {
-    (StatusCode::OK, Json(json!({ "success": true, "data": data })))
+    (
+        StatusCode::OK,
+        Json(json!({ "success": true, "data": data })),
+    )
 }
 
 fn gate(state: &Hosted, headers: &HeaderMap) -> Option<(StatusCode, Json<Value>)> {
@@ -103,8 +106,14 @@ async fn experience(
             return err(409, "CONFLICT");
         }
     }
-    let key = body["idempotency_key"].as_str().unwrap_or_default().to_string();
-    let text = body["content"]["text"].as_str().unwrap_or_default().to_string();
+    let key = body["idempotency_key"]
+        .as_str()
+        .unwrap_or_default()
+        .to_string();
+    let text = body["content"]["text"]
+        .as_str()
+        .unwrap_or_default()
+        .to_string();
     if let Some((seen, id)) = state.idempotency.lock().unwrap().get(&key) {
         return if seen == &text {
             ok(json!({ "event_id": id, "replayed_from_idempotency": true }))
@@ -143,8 +152,14 @@ async fn events(
         return early;
     }
     let scope = params.get("scope").cloned().unwrap_or_default();
-    let cursor: usize = params.get("cursor").and_then(|v| v.parse().ok()).unwrap_or(0);
-    let limit: usize = params.get("limit").and_then(|v| v.parse().ok()).unwrap_or(50);
+    let cursor: usize = params
+        .get("cursor")
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(0);
+    let limit: usize = params
+        .get("limit")
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(50);
     let mut stream = Vec::new();
     for event in state.events.lock().unwrap().iter().rev() {
         if event["scope"].as_str() == Some(scope.as_str()) {
@@ -198,7 +213,10 @@ async fn scopes(
     if let Some(early) = gate(&state, &headers) {
         return early;
     }
-    let limit: usize = params.get("limit").and_then(|v| v.parse().ok()).unwrap_or(50);
+    let limit: usize = params
+        .get("limit")
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(50);
     let mut paths: Vec<String> = state
         .events
         .lock()
@@ -222,7 +240,11 @@ async fn forget(
     }
     let ids: Vec<String> = body["selector"]["memory_ids"]
         .as_array()
-        .map(|a| a.iter().filter_map(|v| v.as_str().map(str::to_string)).collect())
+        .map(|a| {
+            a.iter()
+                .filter_map(|v| v.as_str().map(str::to_string))
+                .collect()
+        })
         .unwrap_or_default();
     let before = state.events.lock().unwrap().len();
     state
@@ -377,7 +399,11 @@ async fn rpc(base: &str, method: &str, params: Value) -> Value {
         .send()
         .await
         .unwrap_or_else(|e| panic!("POST {method}: {e}"));
-    assert!(resp.status().is_success(), "HTTP {} for {method}", resp.status());
+    assert!(
+        resp.status().is_success(),
+        "HTTP {} for {method}",
+        resp.status()
+    );
     resp.json().await.expect("json body")
 }
 
@@ -385,7 +411,9 @@ fn result_of<'a>(v: &'a Value, ctx: &str) -> &'a Value {
     if let Some(e) = v.get("error") {
         panic!("{ctx}: JSON-RPC error: {e}");
     }
-    let r = v.get("result").unwrap_or_else(|| panic!("{ctx}: no result: {v}"));
+    let r = v
+        .get("result")
+        .unwrap_or_else(|| panic!("{ctx}: no result: {v}"));
     if r.get("logs").is_some() {
         r.get("result").unwrap_or(r)
     } else {
@@ -474,7 +502,10 @@ impl Fixture {
     async fn wait_job(&self, job_id: &str) -> Value {
         for _ in 0..200 {
             let v = self
-                .call("openhuman.memory_engine_migrate_status", json!({ "job_id": job_id }))
+                .call(
+                    "openhuman.memory_engine_migrate_status",
+                    json!({ "job_id": job_id }),
+                )
                 .await;
             let status = result_of(&v, "engine_migrate_status").clone();
             if status["state"] != "running" {
@@ -519,15 +550,29 @@ fn engines_list_and_get_report_the_module_by_default() {
 
         assert_eq!(ids[0], "tinymemory", "module first: {ids:?}");
         assert_eq!(engines[0]["label"], "TinyCortex (local)");
-        for expected in ["tinyhumans", "supermemory", "mem0", "cognee", "cortex", "agentmemory"] {
+        for expected in [
+            "tinyhumans",
+            "supermemory",
+            "mem0",
+            "cognee",
+            "cortex",
+            "agentmemory",
+        ] {
             assert!(ids.contains(&expected), "{expected} missing from {ids:?}");
         }
         assert!(!ids.contains(&"null"), "null must not be offered: {ids:?}");
-        assert!(!ids.contains(&"tinycortex"), "in-memory tinycortex must not be offered: {ids:?}");
+        assert!(
+            !ids.contains(&"tinycortex"),
+            "in-memory tinycortex must not be offered: {ids:?}"
+        );
         assert_eq!(list["active"], "tinymemory");
         let hosted = engines.iter().find(|e| e["id"] == "tinyhumans").unwrap();
         assert_eq!(hosted["hosted"], true);
-        assert!(hosted["capabilities"].as_array().unwrap().iter().any(|c| c == "answer"));
+        assert!(hosted["capabilities"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|c| c == "answer"));
 
         let state = fx.state().await;
         assert_eq!(state["driver"], "tinymemory");
@@ -544,24 +589,38 @@ fn engine_set_binds_the_hosted_engine_without_a_restart_and_switches_back() {
         let fx = Fixture::new().await;
 
         let v = fx
-            .call("openhuman.memory_engine_set", json!({ "driver": "tinyhumans" }))
+            .call(
+                "openhuman.memory_engine_set",
+                json!({ "driver": "tinyhumans" }),
+            )
             .await;
         let state = result_of(&v, "engine_set tinyhumans");
         assert_eq!(state["driver"], "tinyhumans", "{state}");
         assert_eq!(state["class"], "external");
-        assert_eq!(state["has_credential"], true, "the live api key is the credential");
+        assert_eq!(
+            state["has_credential"], true,
+            "the live api key is the credential"
+        );
         assert_eq!(state["endpoint"], fx.origin.as_str());
         assert!(state["fell_back_from"].is_null(), "{state}");
-        assert!(!state.to_string().contains(TEST_API_KEY), "a secret leaked: {state}");
+        assert!(
+            !state.to_string().contains(TEST_API_KEY),
+            "a secret leaked: {state}"
+        );
 
         // The switch persisted: a fresh `get` (new config load) sees it.
         assert_eq!(fx.state().await["driver"], "tinyhumans");
         let status = fx.call("openhuman.memory_provider_status", json!({})).await;
-        assert_eq!(result_of(&status, "provider_status")["driver"], "tinyhumans");
+        assert_eq!(
+            result_of(&status, "provider_status")["driver"],
+            "tinyhumans"
+        );
 
         // A write through the bound provider reaches the double under the
         // session bearer, and reads back through the normal recall RPC.
-        let config = openhuman_core::config::load_config_with_timeout().await.unwrap();
+        let config = openhuman_core::config::load_config_with_timeout()
+            .await
+            .unwrap();
         let binding = openhuman_core::memory::binding::for_config(&config).unwrap();
         assert_eq!(binding.driver_id(), "tinyhumans");
         binding
@@ -577,13 +636,23 @@ fn engine_set_binds_the_hosted_engine_without_a_restart_and_switches_back() {
             .await
             .expect("store through the hosted engine");
         assert!(
-            fx.hosted.events.lock().unwrap().iter().any(|e| e["content"]["text"]
-                .as_str()
-                .is_some_and(|t| t.contains("the hosted engine stores this"))),
+            fx.hosted
+                .events
+                .lock()
+                .unwrap()
+                .iter()
+                .any(|e| e["content"]["text"]
+                    .as_str()
+                    .is_some_and(|t| t.contains("the hosted engine stores this"))),
             "the write must land in the hosted double"
         );
         assert!(
-            fx.hosted.bearers.lock().unwrap().iter().all(|b| b == TEST_API_KEY),
+            fx.hosted
+                .bearers
+                .lock()
+                .unwrap()
+                .iter()
+                .all(|b| b == TEST_API_KEY),
             "every hosted call carries the live credential"
         );
         // Reads through the mandatory recall family reach the hosted engine.
@@ -601,7 +670,9 @@ fn engine_set_binds_the_hosted_engine_without_a_restart_and_switches_back() {
             .await
             .expect("recall through the hosted engine");
         assert!(
-            recalled.iter().any(|e| e.content.contains("the hosted engine stores this")),
+            recalled
+                .iter()
+                .any(|e| e.content.contains("the hosted engine stores this")),
             "recall must be served by the hosted engine: {recalled:?}"
         );
         // The core memory RPCs work on a remote engine through the mandatory
@@ -612,23 +683,36 @@ fn engine_set_binds_the_hosted_engine_without_a_restart_and_switches_back() {
             namespaces.to_string().contains(NS),
             "list_namespaces must report the hosted namespace: {namespaces}"
         );
-        assert!(namespaces.pointer("/data").is_some(), "envelope data: {namespaces}");
+        assert!(
+            namespaces.pointer("/data").is_some(),
+            "envelope data: {namespaces}"
+        );
 
         let v = fx
-            .call("openhuman.memory_recall_memories", json!({ "namespace": NS, "limit": 5 }))
+            .call(
+                "openhuman.memory_recall_memories",
+                json!({ "namespace": NS, "limit": 5 }),
+            )
             .await;
         let recalled = result_of(&v, "recall_memories on hosted");
         assert!(
-            recalled.to_string().contains("the hosted engine stores this"),
+            recalled
+                .to_string()
+                .contains("the hosted engine stores this"),
             "recall_memories must return the stored memory: {recalled}"
         );
 
         let v = fx
-            .call("openhuman.memory_recall_context", json!({ "namespace": NS, "limit": 5 }))
+            .call(
+                "openhuman.memory_recall_context",
+                json!({ "namespace": NS, "limit": 5 }),
+            )
             .await;
         let context = result_of(&v, "recall_context on hosted");
         assert!(
-            context.to_string().contains("the hosted engine stores this"),
+            context
+                .to_string()
+                .contains("the hosted engine stores this"),
             "recall_context must return the stored memory: {context}"
         );
 
@@ -640,11 +724,15 @@ fn engine_set_binds_the_hosted_engine_without_a_restart_and_switches_back() {
             .await;
         let queried = result_of(&v, "query_namespace on hosted");
         assert!(
-            queried.to_string().contains("the hosted engine stores this"),
+            queried
+                .to_string()
+                .contains("the hosted engine stores this"),
             "query_namespace must return the ranked hit: {queried}"
         );
 
-        let v = fx.call("openhuman.memory_doc_list", json!({ "namespace": NS })).await;
+        let v = fx
+            .call("openhuman.memory_doc_list", json!({ "namespace": NS }))
+            .await;
         let docs = result_of(&v, "doc_list on hosted");
         assert!(
             docs.to_string().contains("engine-note"),
@@ -652,7 +740,9 @@ fn engine_set_binds_the_hosted_engine_without_a_restart_and_switches_back() {
         );
 
         // Graph stays capability-gated, with the stable recognisable error.
-        let v = fx.call("openhuman.memory_graph_query", json!({ "namespace": NS })).await;
+        let v = fx
+            .call("openhuman.memory_graph_query", json!({ "namespace": NS }))
+            .await;
         let message = error_message(&v, "graph_query on hosted");
         assert!(
             message.contains("does not support the graph family"),
@@ -672,11 +762,17 @@ fn engine_set_binds_the_hosted_engine_without_a_restart_and_switches_back() {
             .await;
         // Either the RPC is unregistered for this capability set or the handler
         // reports the missing family; both are clean errors.
-        assert!(doc.get("error").is_some(), "doc_put on the hosted engine: {doc}");
+        assert!(
+            doc.get("error").is_some(),
+            "doc_put on the hosted engine: {doc}"
+        );
 
         // And back to the module, live.
         let v = fx
-            .call("openhuman.memory_engine_set", json!({ "driver": "tinymemory" }))
+            .call(
+                "openhuman.memory_engine_set",
+                json!({ "driver": "tinymemory" }),
+            )
             .await;
         let state = result_of(&v, "engine_set tinymemory");
         assert_eq!(state["driver"], "tinymemory");
@@ -710,7 +806,11 @@ fn engine_set_validates_and_never_stores_or_returns_a_key_in_config() {
             )
             .await;
         assert!(error_message(&v, "bad deployment").contains("deployment"));
-        assert_eq!(fx.state().await["driver"], "tinymemory", "a rejected set changes nothing");
+        assert_eq!(
+            fx.state().await["driver"],
+            "tinymemory",
+            "a rejected set changes nothing"
+        );
 
         let secret = "sm_secret_key_that_must_never_leak";
         let v = fx
@@ -727,13 +827,23 @@ fn engine_set_validates_and_never_stores_or_returns_a_key_in_config() {
         assert_eq!(state["driver"], "supermemory", "{state}");
         assert_eq!(state["class"], "external");
         assert_eq!(state["has_credential"], true);
-        assert!(!state.to_string().contains(secret), "key echoed in response: {state}");
+        assert!(
+            !state.to_string().contains(secret),
+            "key echoed in response: {state}"
+        );
         let toml = std::fs::read_to_string(shared_config_path()).unwrap();
         assert!(!toml.contains(secret), "key written to config.toml");
-        assert!(toml.contains("keychain:memory-supermemory"), "config should carry the ref: {toml}");
+        assert!(
+            toml.contains("keychain:memory-supermemory"),
+            "config should carry the ref: {toml}"
+        );
         assert!(toml.contains("trust_state = \"trusted\""), "{toml}");
 
-        fx.call("openhuman.memory_engine_set", json!({ "driver": "tinymemory" })).await;
+        fx.call(
+            "openhuman.memory_engine_set",
+            json!({ "driver": "tinymemory" }),
+        )
+        .await;
     });
 }
 
@@ -741,7 +851,8 @@ fn engine_set_validates_and_never_stores_or_returns_a_key_in_config() {
 fn engine_migrate_copies_the_module_into_the_hosted_engine_then_switches() {
     run_on_big_stack("engine-migrate", || async {
         let fx = Fixture::new().await;
-        fx.put_doc("migrate-canary", "canary fact carried across engines").await;
+        fx.put_doc("migrate-canary", "canary fact carried across engines")
+            .await;
 
         let v = fx
             .call(
@@ -759,16 +870,27 @@ fn engine_migrate_copies_the_module_into_the_hosted_engine_then_switches() {
         assert!(status["copied"].as_u64().unwrap_or(0) >= 1, "{status}");
 
         assert!(
-            fx.hosted.events.lock().unwrap().iter().any(|e| e["content"]["text"]
-                .as_str()
-                .is_some_and(|t| t.contains("canary fact carried across engines"))),
+            fx.hosted
+                .events
+                .lock()
+                .unwrap()
+                .iter()
+                .any(|e| e["content"]["text"]
+                    .as_str()
+                    .is_some_and(|t| t.contains("canary fact carried across engines"))),
             "the migrated record must exist in the hosted engine"
         );
         let state = fx.state().await;
-        assert_eq!(state["driver"], "tinyhumans", "the switch commits after the copy: {state}");
+        assert_eq!(
+            state["driver"], "tinyhumans",
+            "the switch commits after the copy: {state}"
+        );
 
         let unknown = fx
-            .call("openhuman.memory_engine_migrate_status", json!({ "job_id": "nope" }))
+            .call(
+                "openhuman.memory_engine_migrate_status",
+                json!({ "job_id": "nope" }),
+            )
             .await;
         assert!(error_message(&unknown, "unknown job").contains("unknown"));
 
@@ -781,7 +903,11 @@ fn engine_migrate_copies_the_module_into_the_hosted_engine_then_switches() {
             .await;
         assert!(error_message(&again, "same engine").contains("already"));
 
-        fx.call("openhuman.memory_engine_set", json!({ "driver": "tinymemory" })).await;
+        fx.call(
+            "openhuman.memory_engine_set",
+            json!({ "driver": "tinymemory" }),
+        )
+        .await;
     });
 }
 
@@ -789,7 +915,8 @@ fn engine_migrate_copies_the_module_into_the_hosted_engine_then_switches() {
 fn insufficient_credits_fails_the_migration_and_keeps_the_active_engine() {
     run_on_big_stack("engine-migrate-402", || async {
         let fx = Fixture::new().await;
-        fx.put_doc("credits-canary", "record that cannot be copied").await;
+        fx.put_doc("credits-canary", "record that cannot be copied")
+            .await;
         fx.hosted.force_status.store(402, Ordering::SeqCst);
 
         let v = fx
@@ -798,7 +925,10 @@ fn insufficient_credits_fails_the_migration_and_keeps_the_active_engine() {
                 json!({ "to": { "driver": "tinyhumans" } }),
             )
             .await;
-        let job_id = result_of(&v, "engine_migrate")["job_id"].as_str().unwrap().to_string();
+        let job_id = result_of(&v, "engine_migrate")["job_id"]
+            .as_str()
+            .unwrap()
+            .to_string();
         let status = fx.wait_job(&job_id).await;
         assert_eq!(status["state"], "failed", "{status}");
         let message = status["error"].as_str().expect("failure reason");
@@ -808,7 +938,10 @@ fn insufficient_credits_fails_the_migration_and_keeps_the_active_engine() {
         );
 
         let state = fx.state().await;
-        assert_eq!(state["driver"], "tinymemory", "a failed migration must not switch: {state}");
+        assert_eq!(
+            state["driver"], "tinymemory",
+            "a failed migration must not switch: {state}"
+        );
         assert_eq!(state["class"], "module");
     });
 }

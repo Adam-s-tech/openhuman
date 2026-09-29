@@ -44,14 +44,18 @@ async fn namespace_names_come_from_the_core_surface() {
 #[tokio::test]
 async fn recall_hits_use_mandatory_recall_scoped_to_the_namespace() {
     let guard = seeded().await;
-    let hits = recall_hits(guard.as_ref(), "notes", "rust", 5).await.unwrap();
+    let hits = recall_hits(guard.as_ref(), "notes", "rust", 5)
+        .await
+        .unwrap();
     assert_eq!(hits.len(), 1, "namespace scoping must hold: {hits:?}");
     assert_eq!(hits[0].key, "a");
     assert_eq!(hits[0].namespace, "notes");
     assert_eq!(hits[0].content, "alpha rust note");
     assert_eq!(hits[0].source_type.as_deref(), Some("recall"));
 
-    let limited = recall_hits(guard.as_ref(), "notes", "note", 1).await.unwrap();
+    let limited = recall_hits(guard.as_ref(), "notes", "note", 1)
+        .await
+        .unwrap();
     assert_eq!(limited.len(), 1, "limit must be honoured");
 }
 
