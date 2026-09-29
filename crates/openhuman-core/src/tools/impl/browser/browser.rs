@@ -5,7 +5,7 @@ mod session_pool;
 use crate::modules::browser::BrowserClient;
 use crate::security::approval::{ApprovalGate, GateOutcome};
 use crate::security::SecurityPolicy;
-#[path = "browser/task_inputs.rs"]
+#[path = "task_inputs.rs"]
 mod task_inputs;
 use task_inputs::task_inputs;
 use async_trait::async_trait;
