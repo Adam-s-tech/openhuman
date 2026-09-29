@@ -441,6 +441,27 @@ test("a wildcard listener on one of the ports is still detected", async () => {
   }
 });
 
+test("a second session cannot acquire the same port block", async () => {
+  const tree = makeTree();
+  try {
+    const base = await freeBase();
+    markBundle(tree, { mockPort: base, corePort: base + 1 });
+    const lock = path.join(tree.root, `openhuman-e2e-ports-${base}-${base + 1}-${base + 2}.lock`);
+    fs.mkdirSync(lock);
+
+    const res = run(tree, "e2e-web-session.sh", {
+      E2E_PORT_BASE: String(base),
+      TMPDIR: tree.root,
+    });
+
+    assert.equal(res.status, 1, res.output);
+    assert.match(res.output, /another web E2E session is starting or using ports/);
+    assert.ok(fs.existsSync(lock), "the failed contender must not remove the active session's lock");
+  } finally {
+    tree.cleanup();
+  }
+});
+
 // ── the core reports the port it actually bound ──────────────────────────
 
 test("a core that fell back to another port fails the session", async () => {
