@@ -46,10 +46,7 @@ describe('Memory engine settings panel (real UI flow)', () => {
 
   it('gates Switch until the selected engine has what it needs', async function () {
     this.timeout(60_000);
-    await clickTestId('memory-engine-option-supermemory', 10_000).catch(async () => {
-      // The option row is a container; click its radio through the label text.
-      await waitForText('Supermemory', 5_000);
-    });
+    await clickTestId('memory-engine-radio-supermemory', 10_000);
     // The key field is a password input; without one the switch stays disabled.
     const sw = await waitForTestId('memory-engine-switch', 10_000);
     expect(await sw.isEnabled()).toBe(false);

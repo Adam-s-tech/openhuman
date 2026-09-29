@@ -45,6 +45,7 @@ export default function MemoryEngineOption({
         <RadioGroupItem
           id={inputId}
           value={engine.id}
+          data-testid={`memory-engine-radio-${engine.id}`}
           disabled={disabledReason !== null}
           className="mt-0.5"
         />
