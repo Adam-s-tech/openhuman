@@ -215,7 +215,7 @@ impl Tool for ConfiguredMcpServerTool {
             live.into_iter()
                 .map(|remote| tinymcp_bus::McpTool {
                     name: remote.name,
-                    description: remote.display_description().map(str::to_owned),
+                    description: remote.display_description(),
                     input_schema: remote.input_schema,
                 })
                 .collect(),
