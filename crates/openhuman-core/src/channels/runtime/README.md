@@ -13,12 +13,12 @@ Boots every enabled channel, keeps their listeners alive, and dispatches inbound
 
 ## Account lifetime
 
-Model authentication and account lifetime are separate. A local or CLI model can run without an OpenHuman backend session, but explicit logout cancels the old account's channel runtime. `spawn_channels_service` captures the channel lifetime before awaiting config loading, so logout also cancels a partially started runtime. `session.rs` stops the runtime on invalidation; owned listener/bridge tasks, dispatch workers, draft updaters, typing tasks, and relay reconnect supervision terminate when their owners drop. A runtime explicitly started again obtains a fresh lifetime; logout does not automatically start listeners for another account.
+Model authentication and account lifetime are separate. A local or CLI model can run without an OpenHuman backend session, but explicit logout cancels the old account's channel runtime. `spawn_channels_service` captures the channel lifetime before awaiting config loading, so logout also cancels a partially started runtime. `session.rs` holds the process's `tinychannels::runtime::ChannelSession` and stops the runtime on invalidation; owned listener/bridge tasks, dispatch workers, draft updaters, typing tasks, and relay reconnect supervision terminate when their owners drop. A runtime explicitly started again obtains a fresh lifetime; logout does not automatically start listeners for another account.
 
 ## Inbound path
 
 1. Each provider listener (`spawn_supervised_listener`, one per channel from `tinychannels::build_channels`) sends `traits::ChannelMessage`s on a bounded `mpsc` (capacity 100). A bridge task in `startup/start_channels.rs` wraps each into `RuntimeChannelMessage` and forwards it to the dispatch queue (also capacity 100). The relay runtime (`start_relay_runtime`) writes `RuntimeChannelMessage`s to that queue directly so relay inbound keeps its original TinyChannels envelope.
-2. `run_message_dispatch_loop` (`dispatch/processor/dispatch_loop.rs`) drains the queue under a semaphore sized by `compute_max_in_flight_messages(listener_count)` and spawns a worker per message that calls `process_channel_runtime_message` (`processor/turn.rs`). `process_channel_message` is the `traits::ChannelMessage` wrapper for the same pipeline.
+2. `run_message_dispatch_loop` (`dispatch/processor.rs`, over `tinychannels::runtime::run_dispatch_loop`) drains the queue under a semaphore sized by `compute_max_in_flight_messages(listener_count)` and spawns a worker per message that calls `process_channel_runtime_message` (`processor/turn.rs`). `process_channel_message` is the `traits::ChannelMessage` wrapper for the same pipeline.
 3. `process_channel_runtime_message` publishes `DomainEvent::ChannelMessageReceived`, then: if `channel_has_approval_surface` and `try_route_approval_reply` claims the message as a yes/no answer to a parked approval, stops there; otherwise starts typing, sends the ACK reaction (`select_acknowledgment_reaction`, threaded messages only), opens a streaming draft when the channel supports it, resolves scoping (`resolve_target_agent` + `build_visible_tool_set`), dispatches the turn over `BUS.native()` to the `agent.run_turn` handler (`agent::bus::register_agent_handlers`), sends the reply, and publishes `DomainEvent::ChannelMessageProcessed`.
 
 ## `dispatch/`
@@ -27,10 +27,10 @@ Model authentication and account lifetime are separate. A local or CLI model can
 | --- | --- |
 | `helpers.rs` | Stateless helpers: per-turn context block for non-web channels, deterministic ACK-emoji picker, worker join logging, scoped typing task |
 | `routing.rs` | `AgentScoping`, `resolve_target_agent`, `build_visible_tool_set`, `connected_with_fallback`: picks the active agent for the channel and its visible/delegation tool surface from `Config`, `AgentDefinitionRegistry`, and the connected-integrations snapshot |
-| `processor.rs` (+ `processor/`: `message.rs`, `approval.rs`, `turn.rs`, `dispatch_loop.rs`) | `RuntimeChannelMessage`, `channel_has_approval_surface`, `try_route_approval_reply`, `process_channel_message`, `process_channel_runtime_message`, `run_message_dispatch_loop` |
+| `processor.rs` (+ `processor/`: `approval.rs`, `turn.rs`) | `RuntimeChannelMessage` (re-exported from `tinychannels::runtime`), `channel_has_approval_surface`, `try_route_approval_reply`, `process_channel_message`, `process_channel_runtime_message`, `run_message_dispatch_loop` |
 | `mod.rs` | Declares the three submodules and the `#[cfg(test)]` / `#[cfg(any(test, debug_assertions))]` re-exports the test modules reach through `super::*` |
 
-Two policy points here: `channel_has_approval_surface` is `true` only for `TELEGRAM_APPROVAL_CLIENT_ID`, so other channels still run in the legacy "no chat context, silently allow" state until they get a surface subscriber; and scoping is per channel (`resolve_target_agent(&msg.channel)`), falling back to `AgentScoping::unscoped()` (every registered tool visible) when the registry is not initialised or the target agent is unknown.
+Two policy points here: `channel_has_approval_surface` follows the provider's `chat_approvals` capability (every chat provider; not email, the CLI or webhooks, which keep the "no chat context, silently allow" behaviour); and scoping is per channel (`resolve_target_agent(&msg.channel)`), falling back to `AgentScoping::unscoped()` (every registered tool visible) when the registry is not initialised or the target agent is unknown.
 
 ## Called by
 
