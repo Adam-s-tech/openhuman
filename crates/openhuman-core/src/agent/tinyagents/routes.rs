@@ -27,8 +27,8 @@ pub(super) const ROUTE_VISION: &str = "hint:vision";
 ///
 /// This is the canonical workload inventory (`chat`, `reasoning`, `agentic`,
 /// `coding`, `burst`, `summarization`, `vision`). `memory` is
-/// intentionally absent — it is a role alias that ride the chat route rather
-/// than distinct router entries.
+/// intentionally absent — it is a role alias that rides the chat route rather
+/// than a distinct router entry.
 pub(super) const WORKLOAD_ROUTE_TIERS: &[&str] = &[
     ROUTE_CHAT,
     ROUTE_REASONING,
