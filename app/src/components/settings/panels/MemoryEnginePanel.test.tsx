@@ -281,7 +281,7 @@ describe('MemoryEnginePanel', () => {
     hoisted.auth = { isAuthenticated: false };
     await renderPanel();
     const hosted = screen.getByTestId('memory-engine-option-tinyhumans');
-    expect(hosted).toHaveTextContent('Billed to your OpenHuman credits.');
+    expect(hosted).toHaveTextContent('Billed through your OpenHuman plan or credits.');
     expect(hosted).toHaveTextContent('Sign in to use this engine.');
     expect(screen.getByRole('radio', { name: /tinyhumans/i })).toBeDisabled();
     // Non-hosted engines stay selectable.
