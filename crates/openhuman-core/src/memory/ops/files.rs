@@ -4,11 +4,11 @@
 //! All filesystem I/O here is performed via `tokio::fs` so the handlers stay
 //! async-friendly and never block the executor.
 
+use crate::core::Outcome;
 use crate::memory::{
     ApiEnvelope, ListMemoryFilesRequest, ListMemoryFilesResponse, ReadMemoryFileRequest,
     ReadMemoryFileResponse, WriteMemoryFileRequest, WriteMemoryFileResponse,
 };
-use crate::rpc::RpcOutcome;
 
 use super::envelope::{envelope, memory_counts};
 use super::helpers::{
@@ -18,7 +18,7 @@ use super::helpers::{
 /// Lists files in a memory directory.
 pub async fn ai_list_memory_files(
     request: ListMemoryFilesRequest,
-) -> Result<RpcOutcome<ApiEnvelope<ListMemoryFilesResponse>>, String> {
+) -> Result<Outcome<ApiEnvelope<ListMemoryFilesResponse>>, String> {
     validate_memory_relative_path(&request.relative_dir)?;
     let directory = resolve_existing_memory_path(&request.relative_dir).await?;
     if !directory.is_dir() {
@@ -75,7 +75,7 @@ pub async fn ai_list_memory_files(
 /// Reads the contents of a memory file.
 pub async fn ai_read_memory_file(
     request: ReadMemoryFileRequest,
-) -> Result<RpcOutcome<ApiEnvelope<ReadMemoryFileResponse>>, String> {
+) -> Result<Outcome<ApiEnvelope<ReadMemoryFileResponse>>, String> {
     let path = resolve_existing_memory_path(&request.relative_path).await?;
     let content = tokio::fs::read_to_string(&path)
         .await
@@ -93,7 +93,7 @@ pub async fn ai_read_memory_file(
 /// Writes content to a memory file.
 pub async fn ai_write_memory_file(
     request: WriteMemoryFileRequest,
-) -> Result<RpcOutcome<ApiEnvelope<WriteMemoryFileResponse>>, String> {
+) -> Result<Outcome<ApiEnvelope<WriteMemoryFileResponse>>, String> {
     let path = resolve_writable_memory_path(&request.relative_path).await?;
     tokio::fs::write(&path, request.content.as_bytes())
         .await

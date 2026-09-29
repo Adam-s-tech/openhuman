@@ -80,11 +80,6 @@ pub(super) fn make_workspace() -> TempDir {
         "# User Profile\nName: Test User",
     )
     .unwrap();
-    std::fs::write(
-        tmp.path().join("HEARTBEAT.md"),
-        "# Heartbeat\nCheck status.",
-    )
-    .unwrap();
     std::fs::write(tmp.path().join("MEMORY.md"), "# Memory\nUser likes Rust.").unwrap();
     tmp
 }

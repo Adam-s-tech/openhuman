@@ -26,7 +26,7 @@ use serde_json::{json, Value};
 use tempfile::tempdir;
 
 use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
-use openhuman_core::core::jsonrpc::build_core_http_router;
+use openhuman_rpc::server::build_core_http_router;
 
 pub const TEST_RPC_TOKEN: &str = "memory-engine-e2e-token";
 pub const TEST_API_KEY: &str = "tiny_live_memory_engine_e2e";

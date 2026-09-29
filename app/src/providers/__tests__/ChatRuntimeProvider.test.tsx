@@ -941,7 +941,7 @@ describe('ChatRuntimeProvider — dedupe, proactive resolution, mid-turn invaria
       });
 
       // The user is mid-conversation: the selected thread already holds
-      // messages, so a proactive morning brief / subconscious update must
+      // messages, so a proactive morning brief / scheduled-job update must
       // NOT be injected into it.
       store.dispatch(
         loadThreads.fulfilled(

@@ -94,6 +94,13 @@ pub struct McpHost {
     audit: AuditStore,
 }
 
+/// Lets `tinymcp::Supervisor::run_many` reach the registry inside a host.
+impl AsRef<McpRegistry> for McpHost {
+    fn as_ref(&self) -> &McpRegistry {
+        &self.dynamic
+    }
+}
+
 impl McpHost {
     /// Builds a host from `config`, without installing it as the process one.
     ///

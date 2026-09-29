@@ -15,11 +15,11 @@
 use serde::{Deserialize, Serialize};
 
 use crate::config::schema::{Config, MemoryDriverConfig};
+use crate::core::Outcome;
 use crate::memory::binding::{self, MODULE_ID};
 use crate::memory::binding_remote::{
     credential_ref_for, is_remote_engine, keyring_user_id, CREDENTIAL_NAME_PREFIX, HOSTED_ENGINE_ID,
 };
-use crate::rpc::RpcOutcome;
 
 const LOG_PREFIX: &str = "[memory:engine]";
 
@@ -502,10 +502,10 @@ async fn load_config() -> Result<Config, String> {
 }
 
 /// `memory.engines_list`.
-pub async fn memory_engines_list() -> Result<RpcOutcome<EnginesList>, String> {
+pub async fn memory_engines_list() -> Result<Outcome<EnginesList>, String> {
     let config = load_config().await?;
     let active = state_for(&config).map_or_else(|_| normalized_driver(&config), |s| s.driver);
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         EnginesList {
             engines: available_engines(),
             active,
@@ -515,15 +515,13 @@ pub async fn memory_engines_list() -> Result<RpcOutcome<EnginesList>, String> {
 }
 
 /// `memory.engine_get`.
-pub async fn memory_engine_get() -> Result<RpcOutcome<EngineState>, String> {
+pub async fn memory_engine_get() -> Result<Outcome<EngineState>, String> {
     let config = load_config().await?;
-    Ok(RpcOutcome::new(state_for(&config)?, vec![]))
+    Ok(Outcome::new(state_for(&config)?, vec![]))
 }
 
 /// `memory.engine_set`.
-pub async fn memory_engine_set(
-    params: EngineTargetParams,
-) -> Result<RpcOutcome<EngineState>, String> {
+pub async fn memory_engine_set(params: EngineTargetParams) -> Result<Outcome<EngineState>, String> {
     let prepared = prepare_target(params)?;
     // One switch at a time, and never while a migration owns the switch.
     let _switch = SWITCH_LOCK.lock().await;
@@ -546,7 +544,7 @@ pub async fn memory_engine_set(
         build_target_provider(&config, &prepared)?;
     }
     let state = commit_engine_locked(&prepared).await?;
-    Ok(RpcOutcome::new(state, vec![]))
+    Ok(Outcome::new(state, vec![]))
 }
 
 #[cfg(test)]

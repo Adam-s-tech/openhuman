@@ -4,7 +4,7 @@
 use serde_json::{Map, Value};
 
 use crate::core::all::ControllerFuture;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 use super::{facet_to_json, forget_facet_log, full_key, get_cache};
 
@@ -69,7 +69,7 @@ pub(super) fn handle_list_facets(params: Map<String, Value>) -> ControllerFuture
         )];
 
         let payload = serde_json::json!({ "facets": facets, "count": count });
-        RpcOutcome::new(payload, log).into_cli_compatible_json()
+        Outcome::new(payload, log).into_cli_compatible_json()
     })
 }
 
@@ -112,7 +112,7 @@ pub(super) fn handle_get_facet(params: Map<String, Value>) -> ControllerFuture {
 
         let log = vec![format!("learning.get_facet: key={fk} found={found}")];
         let payload = serde_json::json!({ "facet": facet_val, "found": found });
-        RpcOutcome::new(payload, log).into_cli_compatible_json()
+        Outcome::new(payload, log).into_cli_compatible_json()
     })
 }
 
@@ -170,7 +170,7 @@ pub(super) fn handle_update_facet(params: Map<String, Value>) -> ControllerFutur
             "learning.update_facet: key={fk} new_value={new_value} user_state=pinned"
         )];
         let payload = serde_json::json!({ "facet": facet_to_json(&updated) });
-        RpcOutcome::new(payload, log).into_cli_compatible_json()
+        Outcome::new(payload, log).into_cli_compatible_json()
     })
 }
 
@@ -214,7 +214,7 @@ pub(super) fn handle_pin_facet(params: Map<String, Value>) -> ControllerFuture {
 
         let log = vec![format!("learning.pin_facet: key={fk} user_state=pinned")];
         let payload = serde_json::json!({ "facet": facet_to_json(&facet) });
-        RpcOutcome::new(payload, log).into_cli_compatible_json()
+        Outcome::new(payload, log).into_cli_compatible_json()
     })
 }
 
@@ -258,7 +258,7 @@ pub(super) fn handle_unpin_facet(params: Map<String, Value>) -> ControllerFuture
 
         let log = vec![format!("learning.unpin_facet: key={fk} user_state=auto")];
         let payload = serde_json::json!({ "facet": facet_to_json(&facet) });
-        RpcOutcome::new(payload, log).into_cli_compatible_json()
+        Outcome::new(payload, log).into_cli_compatible_json()
     })
 }
 
@@ -316,7 +316,7 @@ pub(super) fn handle_forget_facet(params: Map<String, Value>) -> ControllerFutur
 
         let log = forget_facet_log(&fk, dropped);
         let payload = serde_json::json!({ "facet": facet_json });
-        RpcOutcome::new(payload, log).into_cli_compatible_json()
+        Outcome::new(payload, log).into_cli_compatible_json()
     })
 }
 
@@ -343,6 +343,6 @@ pub(super) fn handle_reset_cache(_params: Map<String, Value>) -> ControllerFutur
             "deleted": deleted,
             "pinned_preserved": pinned_preserved,
         });
-        RpcOutcome::new(payload, log).into_cli_compatible_json()
+        Outcome::new(payload, log).into_cli_compatible_json()
     })
 }

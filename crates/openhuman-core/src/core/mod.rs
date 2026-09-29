@@ -13,8 +13,6 @@ pub mod bus;
 pub mod bus_testing;
 pub mod cli;
 pub mod cli_capability;
-#[cfg(feature = "http-server")]
-pub mod dev_connect;
 pub mod dispatch;
 pub mod event_bind_tokens;
 pub mod events;
@@ -22,21 +20,28 @@ pub mod events;
 // shell asserts `HTTP_SERVER_COMPILED_IN` so a listener-less core fails the
 // build instead of shipping silently (cf. voice #4901).
 pub mod http_server_status;
-pub mod jsonrpc;
+pub mod invoke;
 pub mod legacy_aliases;
 pub mod log_redaction;
 pub mod logging;
 pub mod memory_cli;
 pub mod observability;
+pub mod outcome;
+pub mod params;
 pub mod rpc_log;
 pub mod runtime;
 #[cfg(feature = "crash-reporting")]
 pub mod sentry_transport;
+pub mod server_launcher;
+pub mod session_expiry;
 pub mod shutdown;
-pub mod socketio;
+pub mod structured_error;
 pub mod subsystem;
 pub mod subsystems_cli;
 pub mod types;
+
+pub use outcome::{apply_log_envelope, unwrap_rpc, Outcome};
+pub use structured_error::{StructuredRpcError, STRUCTURED_RPC_ERROR_SENTINEL};
 
 /// Canonical function contract for domain controllers.
 ///

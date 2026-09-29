@@ -12,11 +12,11 @@ pub async fn flows_search_tool_catalog(
     query: &str,
     toolkit: Option<&str>,
     limit: usize,
-) -> Result<RpcOutcome<Value>, String> {
+) -> Result<Outcome<Value>, String> {
     tracing::debug!(target: "flows", %query, toolkit = toolkit.unwrap_or("<all>"), "[flows] flows_search_tool_catalog: searching live catalog");
     let tools =
         crate::flows::builder_tools::search_live_catalog(config, query, toolkit, limit).await;
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         json!({ "tools": tools }),
         "tool catalog searched",
     ))
@@ -55,7 +55,7 @@ pub(crate) fn toolkit_for_contract_slug(slug: &str) -> Option<String> {
 pub async fn flows_get_tool_contract(
     config: &Config,
     slug: &str,
-) -> Result<RpcOutcome<Value>, String> {
+) -> Result<Outcome<Value>, String> {
     let trimmed = slug.trim();
     // Shape-check before `toolkit_from_slug`, and before any I/O: the shared
     // helper is deliberately permissive, so an unshaped slug would otherwise
@@ -83,7 +83,7 @@ pub async fn flows_get_tool_contract(
         Some(contract) => {
             let contract = crate::flows::tinyflows::caps::apply_probe_override(contract.clone());
             let value = serde_json::to_value(&contract).map_err(|e| e.to_string())?;
-            Ok(RpcOutcome::single_log(
+            Ok(Outcome::single_log(
                 json!({ "contract": value }),
                 "tool contract fetched",
             ))

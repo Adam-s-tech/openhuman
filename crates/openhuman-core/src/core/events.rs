@@ -126,21 +126,6 @@ pub enum DomainEvent {
         orchestration_id: String,
         reason: Option<String>,
     },
-    // ── Subconscious orchestrator ───────────────────────────────────────
-    /// A subconscious trigger finished gate evaluation (promote or drop).
-    /// Observability only — lets dashboards see ingestion volume and the
-    /// gate's promote/drop ratio without reading logs.
-    SubconsciousTriggerProcessed {
-        /// Trigger source family (`cron` / `user_message` / …).
-        source: String,
-        /// Gate decision (`promote` / `drop`).
-        decision: String,
-        /// Whether the trigger was promoted into the long-lived session.
-        promoted: bool,
-        /// Gate evaluation latency in milliseconds.
-        latency_ms: u64,
-    },
-
     // ── Run Queue ──────────────────────────────────────────────────────
     /// A message was queued into the active-run queue instead of interrupting.
     RunQueueMessageQueued {
@@ -708,7 +693,7 @@ pub enum DomainEvent {
     /// (`web_chat::event_bus::ApprovalSurfaceSubscriber`)
     /// silently drops it (that gap was the original silent-deadlock bug).
     /// Published by `ApprovalGate::intercept_audited` alongside the existing
-    /// `ApprovalRequested`, bridged by `core::socketio` directly to a
+    /// `ApprovalRequested`, bridged by `openhuman_rpc::server::socketio` directly to a
     /// broadcast (not per-room) `flow_approval_request` Socket.IO event so
     /// the Workflows UI can surface and resolve the park without polling.
     FlowApprovalRequested {
@@ -1656,8 +1641,6 @@ impl DomainEvent {
             | Self::ThreadTodosChanged { .. }
             | Self::ThreadRunModeChanged { .. } => "agent",
 
-            Self::SubconsciousTriggerProcessed { .. } => "subconscious",
-
             Self::Voice(_) => "voice",
 
             Self::ApprovalRequested { .. }
@@ -1701,7 +1684,6 @@ impl DomainEvent {
             Self::AgentOrchestrationCompleted { .. } => "AgentOrchestrationCompleted",
             Self::AgentOrchestrationFailed { .. } => "AgentOrchestrationFailed",
             Self::AgentOrchestrationClosed { .. } => "AgentOrchestrationClosed",
-            Self::SubconsciousTriggerProcessed { .. } => "SubconsciousTriggerProcessed",
             Self::RunQueueMessageQueued { .. } => "RunQueueMessageQueued",
             Self::RunQueueFollowupDispatched { .. } => "RunQueueFollowupDispatched",
             Self::RunQueueInterrupted { .. } => "RunQueueInterrupted",

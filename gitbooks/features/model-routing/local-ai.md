@@ -64,9 +64,7 @@ Local runtime startup is gated in the core config (`crates/openhuman-core/src/co
 | `local_ai.provider`                  | `ollama` | Local provider: `ollama` or `lm_studio`.                                 |
 | `local_ai.base_url`                  | unset    | Optional provider URL. LM Studio defaults to `http://localhost:1234/v1`. |
 | `local_ai.usage.embeddings`          | `false`  | Legacy preset/migration flag for memory embeddings.                      |
-| `local_ai.usage.heartbeat`           | `false`  | Legacy preset/migration flag; the heartbeat loop is not in this build.   |
 | `local_ai.usage.learning_reflection` | `false`  | Legacy preset/migration flag for learning passes.                        |
-| `local_ai.usage.subconscious`        | `false`  | Legacy preset/migration flag; the subconscious loop is not in this build. |
 
 Unified workload provider fields control chat/reasoning routing. Set them to an Ollama provider string when you want those paths on-device:
 
@@ -77,7 +75,7 @@ reasoning_provider = "ollama:qwen2.5:14b"
 
 On current configs, the `*_provider` fields are the source of truth for workload routing (`Config::workload_local_model(...)` in `crates/openhuman-core/src/config/schema/types.rs`). Unset, blank, `cloud`, `openhuman`, or any non-`ollama:` value keeps that workload on the cloud/default route. Setting a provider string such as `ollama:all-minilm:latest` or `ollama:qwen2.5:14b` routes that workload on-device when `local_ai.runtime_enabled = true` and the provider health check passes.
 
-The legacy `local_ai.usage.*` booleans are kept for presets and migration compatibility; they do not override the unified provider fields after migration. For deterministic routing, either set the workload provider field explicitly, or leave it unset / set it to `cloud` to force the default cloud route. The same provider-string pattern is used by `agentic_provider`, `coding_provider`, `memory_provider`, `embeddings_provider`, `heartbeat_provider`, `learning_provider`, and `subconscious_provider`.
+The legacy `local_ai.usage.*` booleans are kept for presets and migration compatibility; they do not override the unified provider fields after migration. For deterministic routing, either set the workload provider field explicitly, or leave it unset / set it to `cloud` to force the default cloud route. The same provider-string pattern is used by `agentic_provider`, `coding_provider`, `memory_provider`, `embeddings_provider`, and `learning_provider`.
 
 ### Legacy flag behavior
 

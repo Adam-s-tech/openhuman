@@ -31,7 +31,6 @@ export const UsageLedgerSection = ({
   formatSpendAmount,
   backgroundApiReadsPerWeek,
   backgroundWakeupsPerWeek,
-  calendarPlannerCallsPerWeek,
   composioConnectionScansPerWeek,
   memoryPollsPerWeek,
   estimatedRowsLeft,
@@ -56,7 +55,6 @@ export const UsageLedgerSection = ({
   formatSpendAmount: (tx: CreditTransaction) => number;
   backgroundApiReadsPerWeek: number;
   backgroundWakeupsPerWeek: number;
-  calendarPlannerCallsPerWeek: number;
   composioConnectionScansPerWeek: number;
   memoryPollsPerWeek: number;
   estimatedRowsLeft: number | null;
@@ -121,9 +119,10 @@ export const UsageLedgerSection = ({
             '{count}',
             formatCount(backgroundApiReadsPerWeek)
           )}
-          detail={t('settings.ai.plannerSyncBreakdown')
-            .replace('{planner}', formatCount(calendarPlannerCallsPerWeek))
-            .replace('{sync}', formatCount(composioConnectionScansPerWeek))}
+          detail={t('settings.ai.connectionSyncBreakdown').replace(
+            '{sync}',
+            formatCount(composioConnectionScansPerWeek)
+          )}
         />
         <MetricTile
           label={t('settings.ai.backgroundWakeups')}

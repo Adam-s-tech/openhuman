@@ -31,7 +31,7 @@ use crate::memory::binding::MemoryBinding;
 /// a hook still pending. Releasing a lease is one write per in-flight job;
 /// anything slower is a store that is not going to answer, and its leases
 /// expire by themselves. The shell sizes its drain budget from this constant
-/// plus the ollama cleanup that follows it in `serve_http`.
+/// plus the ollama cleanup that follows it in `CoreRuntime::exit_cleanup`.
 pub const EXIT_BUDGET: Duration = Duration::from_secs(2);
 
 /// The least the hook registry gets even when the drivers spent the budget.

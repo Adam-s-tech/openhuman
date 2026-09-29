@@ -2,7 +2,7 @@
 //!
 //! The domain itself lives in the extracted crate; what stays here is its
 //! JSON-RPC surface — handlers and controller schemas name OpenHuman's
-//! `RpcOutcome` and `ControllerSchema`, which the engine crate cannot see.
+//! `Outcome` and `ControllerSchema`, which the engine crate cannot see.
 //!
 //! # The engine glob is gone — it had no production caller left (#5560)
 //!

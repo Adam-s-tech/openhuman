@@ -36,8 +36,8 @@ use super::engine::{
 };
 use crate::config::schema::Config;
 use crate::core::runtime::context::CoreContext;
+use crate::core::Outcome;
 use crate::memory::binding::{self, MODULE_ID};
-use crate::rpc::RpcOutcome;
 
 const LOG_PREFIX: &str = "[memory:engine-migrate]";
 /// Finished jobs kept for status polling.
@@ -317,7 +317,7 @@ fn spawn_job<F, Fut>(
 /// `memory.engine_migrate`.
 pub async fn memory_engine_migrate(
     params: MigrateParams,
-) -> Result<RpcOutcome<MigrateStarted>, String> {
+) -> Result<Outcome<MigrateStarted>, String> {
     let config: Config = crate::config::rpc::load_config_with_timeout().await?;
     let prepared = prepare_target(params.to)?;
 
@@ -360,13 +360,13 @@ pub async fn memory_engine_migrate(
         move || async move { commit_engine(&prepared).await.map(|_| ()) },
     );
 
-    Ok(RpcOutcome::new(MigrateStarted { job_id }, vec![]))
+    Ok(Outcome::new(MigrateStarted { job_id }, vec![]))
 }
 
 /// `memory.engine_migrate_cancel`.
 pub async fn memory_engine_migrate_cancel(
     params: MigrateCancelParams,
-) -> Result<RpcOutcome<MigrateCancelled>, String> {
+) -> Result<Outcome<MigrateCancelled>, String> {
     let job_id = params.job_id.trim();
     let running = jobs()
         .get(job_id)
@@ -380,18 +380,18 @@ pub async fn memory_engine_migrate_cancel(
             false
         }
     };
-    Ok(RpcOutcome::new(MigrateCancelled { cancelled }, vec![]))
+    Ok(Outcome::new(MigrateCancelled { cancelled }, vec![]))
 }
 
 /// `memory.engine_migrate_status`.
 pub async fn memory_engine_migrate_status(
     params: MigrateStatusParams,
-) -> Result<RpcOutcome<MigrateStatus>, String> {
+) -> Result<Outcome<MigrateStatus>, String> {
     let status = jobs()
         .get(params.job_id.trim())
         .cloned()
         .ok_or_else(|| "unknown migration job".to_string())?;
-    Ok(RpcOutcome::new(status, vec![]))
+    Ok(Outcome::new(status, vec![]))
 }
 
 #[cfg(test)]

@@ -314,9 +314,7 @@ async fn apply_model_settings_trims_and_clears_optional_provider_fields() {
         vision_provider: Some(" provider-vision ".into()),
         memory_provider: Some(" provider-memory ".into()),
         embeddings_provider: Some(" provider-embed ".into()),
-        heartbeat_provider: Some(" provider-heartbeat ".into()),
         learning_provider: Some(" provider-learning ".into()),
-        subconscious_provider: Some(" provider-sub ".into()),
         ..Default::default()
     };
     apply_model_settings(&mut cfg, set)
@@ -331,7 +329,6 @@ async fn apply_model_settings_trims_and_clears_optional_provider_fields() {
         cfg.reasoning_provider.as_deref(),
         Some("provider-reasoning")
     );
-    assert_eq!(cfg.subconscious_provider.as_deref(), Some("provider-sub"));
     assert_eq!(cfg.vision_provider.as_deref(), Some("provider-vision"));
 
     let clear = ModelSettingsPatch {
@@ -343,9 +340,7 @@ async fn apply_model_settings_trims_and_clears_optional_provider_fields() {
         vision_provider: Some(" ".into()),
         memory_provider: Some(" ".into()),
         embeddings_provider: Some(" ".into()),
-        heartbeat_provider: Some(" ".into()),
         learning_provider: Some(" ".into()),
-        subconscious_provider: Some(" ".into()),
         ..Default::default()
     };
     apply_model_settings(&mut cfg, clear)
@@ -359,9 +354,7 @@ async fn apply_model_settings_trims_and_clears_optional_provider_fields() {
     assert!(cfg.vision_provider.is_none());
     assert!(cfg.memory_provider.is_none());
     assert!(cfg.embeddings_provider.is_none());
-    assert!(cfg.heartbeat_provider.is_none());
     assert!(cfg.learning_provider.is_none());
-    assert!(cfg.subconscious_provider.is_none());
 }
 
 // ── apply_autonomy_settings ────────────────────────────────────

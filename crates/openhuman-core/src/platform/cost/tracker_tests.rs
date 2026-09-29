@@ -513,3 +513,55 @@ fn daily_history_still_counts_calendar_days_inclusive_of_today() {
     );
     assert_eq!(history[0].request_count, 1);
 }
+
+#[test]
+fn legacy_host_estimated_rows_are_ignored_by_every_read() {
+    let tmp = TempDir::new().unwrap();
+    let mut real = TokenUsage::new("openrouter/vendor/real-model", 1000, 500, 0.0, 0.0);
+    real.cost_usd = 0.25;
+    real.cost_source = CostSource::ProviderCharged;
+    let duplicate = TokenUsage::new("host:orchestrator", 1000, 500, 0.0, 0.0);
+    assert_eq!(duplicate.cost_source, CostSource::Estimated);
+    let mut kept_host = TokenUsage::new("host:kept", 40, 10, 0.0, 0.0);
+    kept_host.cost_usd = 0.5;
+    kept_host.cost_source = CostSource::ProviderCharged;
+    for usage in [real, duplicate, kept_host] {
+        write_raw_record(tmp.path(), &CostRecord::new("s", usage));
+    }
+
+    let tracker = CostTracker::new(enabled_config(), tmp.path()).unwrap();
+
+    let today = Utc::now().date_naive();
+    let day = tracker
+        .get_daily_history(1)
+        .unwrap()
+        .into_iter()
+        .find(|entry| entry.date == today)
+        .unwrap();
+    assert_eq!(
+        day.request_count, 2,
+        "the estimated host: row is a duplicate"
+    );
+    assert_eq!(day.total_tokens, 1500 + 50);
+    assert!(!day.by_model.contains_key("host:orchestrator"));
+    assert!(day.by_model.contains_key("host:kept"));
+
+    let recent = tracker.get_recent_records(1, 100).unwrap();
+    assert_eq!(recent.len(), 2);
+    assert!(recent.iter().all(|r| r.usage.model != "host:orchestrator"));
+}
+
+#[test]
+fn empty_ledger_sums_are_not_negative_zero() {
+    let tmp = TempDir::new().unwrap();
+    let tracker = CostTracker::new(enabled_config(), tmp.path()).unwrap();
+
+    let summary = tracker.get_summary().unwrap();
+    assert!(summary.session_cost_usd.is_sign_positive());
+    assert!(!serde_json::to_string(&summary).unwrap().contains("-0.0"));
+
+    let dashboard = tracker.get_dashboard("USD", 0.8, 0.95).unwrap();
+    assert!(dashboard.period_total_usd.is_sign_positive());
+    assert!(dashboard.monthly_pace_usd.is_sign_positive());
+    assert!(!serde_json::to_string(&dashboard).unwrap().contains("-0.0"));
+}

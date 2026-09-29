@@ -70,7 +70,7 @@ fn tier_context_window(model: &str) -> Option<u64> {
         "reasoning" => Some(TIER_REASONING_CONTEXT),
         "agentic" | "coding" => Some(TIER_LARGE_CONTEXT),
         "burst" => Some(TIER_STANDARD_CONTEXT),
-        "chat" | "summarization" | "subconscious" => Some(TIER_FLASH_CONTEXT),
+        "chat" | "summarization" => Some(TIER_FLASH_CONTEXT),
         _ if model == "chat" => Some(TIER_FLASH_CONTEXT),
         _ if model.starts_with("gemma") || model.contains(":1b") || model.contains("270m") => {
             Some(TIER_LOCAL_CONTEXT)

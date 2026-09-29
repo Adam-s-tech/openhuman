@@ -249,29 +249,6 @@ pub enum ExpectedErrorKind {
     /// locale rendering observed in Sentry TAURI-RUST-QT0 — 6,050 events from
     /// 1 Windows user — is `".. (os error 665)"`, matching any locale).
     WindowsFileSystemLimitation,
-    /// The subconscious engine's SQLite schema init couldn't open its database
-    /// file at all — a host-filesystem condition, not a code bug. Two canonical
-    /// renderings, both bound to the user's local FS:
-    ///
-    /// - `SQLITE_CANTOPEN` (14): `unable to open the database file` — the
-    ///   `subconscious/` dir or DB file isn't writable/openable (permissions,
-    ///   a vanished mount, a read-only volume).
-    /// - `SQLITE_IOERR_SHMMAP` (4618): `I/O error within the xShmMap method` —
-    ///   the filesystem can't back WAL's mmap'd `-shm` segment (network mounts,
-    ///   FUSE, some sandboxed/synced macOS paths).
-    ///
-    /// The `xShmMap` case is now *prevented* at the source by
-    /// `subconscious::store::apply_journal_mode`, which degrades WAL to a
-    /// rollback journal that needs no shared memory (issue #3231). This kind
-    /// demotes the *residual* genuine `CANTOPEN` failures — where even opening
-    /// the file fails — which the user must resolve locally (fix permissions,
-    /// remount, free the volume) and which Sentry has no remediation path for.
-    ///
-    /// Anchored to the subconscious schema/open envelope plus the SQLite
-    /// cant-open / shared-memory IO text, so transient `database is locked`
-    /// contention (handled by the store's busy-retry loop) and unrelated DB
-    /// failures in other domains still reach Sentry.
-    SubconsciousSchemaUnavailable,
     /// The user invoked "Import Codex CLI login" (Connections → API keys → LLM → Codex auth)
     /// but the Codex CLI auth at `~/.codex/auth.json` is absent or unusable:
     /// the file doesn't exist (the user never ran `codex login`), can't be
@@ -372,7 +349,7 @@ pub enum ExpectedErrorKind {
     /// succeed until the user creates one — so this is user-state, not a
     /// defect.
     ///
-    /// `jsonrpc.rs` already demoted the *bare* message via
+    /// `openhuman-rpc/src/server/http/rpc_handler.rs` already demoted the *bare* message via
     /// `is_wallet_not_configured_error`, but that predicate is exact equality,
     /// so it stops matching the moment any caller adds context — and callers
     /// do: `format!("{context}: {e}")` appears ~800 times in `src/`. One such
@@ -684,9 +661,6 @@ pub fn expected_error_kind(message: &str) -> Option<ExpectedErrorKind> {
     if is_memory_store_breaker_open(&lower) {
         return Some(ExpectedErrorKind::MemoryStoreBreakerOpen);
     }
-    if is_subconscious_schema_unavailable_message(&lower) {
-        return Some(ExpectedErrorKind::SubconsciousSchemaUnavailable);
-    }
     if is_disk_full_message(&lower) {
         return Some(ExpectedErrorKind::DiskFull);
     }
@@ -908,26 +882,6 @@ fn is_config_read_io_failure_message(lower: &str) -> bool {
 // (The whatsapp_data SQLite busy/corrupt matchers were removed with the
 // store's move to the Tauri shell — the core no longer produces the
 // `[whatsapp_data] ingest failed:` envelope they anchored on.)
-
-/// Match subconscious-engine SQLite schema-init failures caused by the host
-/// filesystem being unable to open the DB file (`SQLITE_CANTOPEN` /
-/// `SQLITE_IOERR_SHMMAP`). Anchored to the subconscious open/DDL envelope so it
-/// can't demote unrelated DB failures, and deliberately scoped to cant-open /
-/// shared-memory IO text — *not* `database is locked`, which the store retries
-/// and which (if persistent) is a real contention signal worth surfacing.
-///
-/// See [`ExpectedErrorKind::SubconsciousSchemaUnavailable`].
-fn is_subconscious_schema_unavailable_message(lower: &str) -> bool {
-    let in_subconscious_envelope = lower.contains("subconscious schema ddl")
-        || lower.contains("failed to open subconscious db");
-    if !in_subconscious_envelope {
-        return false;
-    }
-    lower.contains("unable to open the database file")
-        || lower.contains("xshmmap")
-        || lower.contains("error code 14")
-        || lower.contains("error code 4618")
-}
 
 fn is_embedding_backend_auth_failure(lower: &str) -> bool {
     tinyinference_embeddings::probe::is_embedding_backend_auth_failure(lower)
@@ -1685,8 +1639,8 @@ fn is_provider_user_state_message(lower: &str) -> bool {
     // user-config state, not a product bug. NOTE: a *managed-backend*
     // `PAYLOAD_TOO_LARGE` guard-leak is force-captured (returns `None`) earlier
     // in `expected_error_kind`, before this matcher runs, so this arm only ever
-    // sees direct-provider TPM rejections. Shared matcher (single source of
-    // truth with the subconscious circuit breaker) so the wording can't drift.
+    // sees direct-provider TPM rejections. Shared matcher so the wording can't
+    // drift.
     if crate::inference::provider::is_provider_rate_cap_exceeded_message(lower) {
         return true;
     }
@@ -2155,7 +2109,7 @@ fn report_expected_message(kind: ExpectedErrorKind, message: &str, domain: &str,
             // is the sentinel itself, and it is a constant. `domain` and
             // `operation` carry the correlation, which is what a breadcrumb is
             // for. Same reasoning as the param-validation skip in
-            // `jsonrpc.rs`, which redacts because its messages embed
+            // `openhuman-rpc/src/server/http/rpc_handler.rs`, which redacts because its messages embed
             // caller-supplied param names.
             tracing::info!(
                 domain = domain,
@@ -2445,26 +2399,6 @@ fn report_expected_message(kind: ExpectedErrorKind, message: &str, domain: &str,
                 "[observability] {domain}.{operation} skipped expected config-read io failure (OS access denied/locked)"
             );
         }
-        ExpectedErrorKind::SubconsciousSchemaUnavailable => {
-            // Host-filesystem condition: SQLite couldn't open the subconscious
-            // DB file (CANTOPEN / xShmMap). The WAL-fallback in
-            // `subconscious::store` already prevents the shared-memory variant;
-            // what reaches here is a genuine local open failure the user must
-            // fix on their machine (permissions, remount, free the volume) —
-            // Sentry has no remediation path. Demote at `warn!` so a sustained
-            // spike still shows in operator dashboards without turning every
-            // affected session into a Sentry error event. Drops TAURI-RUST-8WM.
-            // Do not include the raw `message`: it can embed the absolute
-            // subconscious DB path (home dir / username). Mirror the
-            // metadata-only demotions (`DiskFull`, `FilesystemUserPathInvalid`)
-            // and log only domain/operation/kind — no PII in the breadcrumb.
-            tracing::warn!(
-                domain = domain,
-                operation = operation,
-                kind = "subconscious_schema_unavailable",
-                "[observability] {domain}.{operation} skipped expected subconscious schema DB-unavailable error"
-            );
-        }
         ExpectedErrorKind::CodexCliAuthUnavailable => {
             // User-state condition: the Codex CLI login at `~/.codex/auth.json`
             // is missing / unparseable / has no tokens. The import RPC already
@@ -2681,12 +2615,7 @@ pub(crate) fn report_error_message(
 // reporting, #3567), so it has no caller in a slim build (#5048). Kept compiled
 // for the crash-reporting carve-out; the allow keeps the disabled build quiet.
 #[cfg_attr(not(feature = "http-server"), allow(dead_code))]
-pub(crate) fn report_warning_message(
-    message: &str,
-    domain: &str,
-    operation: &str,
-    extra: &[Tag<'_>],
-) {
+pub fn report_warning_message(message: &str, domain: &str, operation: &str, extra: &[Tag<'_>]) {
     // Redact secret-looking spans before `message` reaches any log sink or
     // Sentry event — see the note in `report_error_message`.
     let scrubbed = crate::core::log_redaction::scrub_secrets(message);

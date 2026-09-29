@@ -290,8 +290,8 @@ const Conversations = ({
     keywords: ['agent', 'process', 'source', 'timeline', 'run'],
   });
   // Thread-list filtering is fixed to the General bucket — the in-sidebar
-  // General/Subconscious/Tasks chips were removed. Subconscious reflections and
-  // task/worker threads have dedicated surfaces (Intelligence, Tasks board).
+  // General/Tasks chips were removed. Task/worker threads have a dedicated
+  // surface (Tasks board).
   const selectedLabel = GENERAL_TAB_VALUE;
   const [sendError, setSendError] = useState<ChatSendError | null>(null);
   // Recorded by the slice for *every* create path (#5156) — including the shell's
@@ -666,7 +666,7 @@ const Conversations = ({
         // via redux-persist on the `thread` slice, and kept in-memory across
         // in-app navigation — whenever it still exists server-side. This must
         // run BEFORE the General-only default below: a non-General active
-        // session (task / worker / subconscious / meeting) is filtered out of
+        // session (task / worker / meeting) is filtered out of
         // `visibleThreads`, so without this branch, navigating away from the
         // Chat tab and back would drop the active thread and either resume an
         // unrelated General thread or spawn a fresh chat — losing the

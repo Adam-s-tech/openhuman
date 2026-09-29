@@ -4,7 +4,7 @@ use super::*;
 ///
 /// Non-negotiable for these tests: `IdentitySection` calls
 /// `sync_workspace_file`, which **writes** `SOUL.md` / `IDENTITY.md` /
-/// `HEARTBEAT.md` into `workspace_dir`. Composing against
+/// `ROLE.md` into `workspace_dir`. Composing against
 /// `Config::default()` would scribble into the developer's real
 /// `~/.openhuman` workspace.
 fn config_in(dir: &std::path::Path) -> Arc<Config> {

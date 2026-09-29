@@ -208,7 +208,7 @@ async fn fetch_imessage_gate() -> anyhow::Result<Option<Vec<String>>> {
         anyhow::bail!("config_get http {}", res.status());
     }
     let v: serde_json::Value = res.json().await?;
-    // JSON-RPC envelope is `{"result": {"logs": [...], "result": <RpcOutcome body>}}`
+    // JSON-RPC envelope is `{"result": {"logs": [...], "result": <Outcome body>}}`
     // so the config lives at `/result/result/config/...`, not `/result/config/...`.
     let imessage = v
         .pointer("/result/result/config/channels_config/imessage")

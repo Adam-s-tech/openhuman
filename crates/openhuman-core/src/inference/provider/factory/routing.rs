@@ -30,9 +30,7 @@ pub(super) fn configured_route_for_role<'a>(role: &str, config: &'a Config) -> O
         // for a separate config knob.
         "memory" | "summarization" => config.memory_provider.as_deref(),
         "embeddings" => config.embeddings_provider.as_deref(),
-        "heartbeat" => config.heartbeat_provider.as_deref(),
         "learning" => config.learning_provider.as_deref(),
-        "subconscious" => config.subconscious_provider.as_deref(),
         _ => None,
     }
 }

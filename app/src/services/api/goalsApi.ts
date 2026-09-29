@@ -42,7 +42,7 @@ function pruneParams<T extends Record<string, unknown>>(params: T): Partial<T> {
 /** Pull the goal items out of any of the handler response shapes. */
 function extractItems(res: unknown): GoalItem[] {
   if (!res || typeof res !== 'object') return [];
-  // Unwrap the RpcOutcome `{ result, logs }` envelope when present.
+  // Unwrap the Outcome `{ result, logs }` envelope when present.
   const value =
     'result' in (res as Record<string, unknown>) ? (res as { result: unknown }).result : res;
   if (!value || typeof value !== 'object') return [];
