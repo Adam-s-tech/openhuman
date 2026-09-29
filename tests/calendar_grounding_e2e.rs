@@ -157,7 +157,7 @@ async fn test_orchestrator_has_current_date_context() -> Result<()> {
 }
 
 #[tokio::test]
-async fn test_integrations_agent_has_current_date_context() -> Result<()> {
+async fn test_subagent_has_current_date_context() -> Result<()> {
     let captured_messages = Arc::new(Mutex::new(Vec::new()));
     let model = calendar_model(captured_messages.clone());
 
@@ -166,7 +166,7 @@ async fn test_integrations_agent_has_current_date_context() -> Result<()> {
 
     let parent = openhuman_core::agent::harness::ParentExecutionContext {
         agent_definition_id: "orchestrator".into(),
-        allowed_subagent_ids: ["integrations_agent".to_string()].into_iter().collect(),
+        allowed_subagent_ids: ["critic".to_string()].into_iter().collect(),
         turn_model_source: openhuman_core::agent::tinyagents::TurnModelSource::from_model(model),
         all_tools: Arc::new(vec![Box::new(MockCalendarTool)]),
         all_tool_specs: Arc::new(vec![Arc::new(MockCalendarTool.spec())]),
@@ -196,18 +196,16 @@ async fn test_integrations_agent_has_current_date_context() -> Result<()> {
 
     let mut def = openhuman_core::agent::harness::definition::AgentDefinitionRegistry::global()
         .unwrap()
-        .get("integrations_agent")
+        .get("critic")
         .unwrap()
         .clone();
-    // `integrations_agent` ships with `[model] hint = "agentic"`. After
-    // #1710, a Hint sub-agent builds a fresh provider via the workload
-    // factory instead of inheriting `parent.provider` — which here would
-    // resolve to the OpenHuman backend and fail with "No backend session"
-    // before the MockCalendarModel ever sees a request. This test only
-    // asserts prompt construction (the "Current Date & Time" context), so
-    // override the model spec to Inherit to keep the real integrations_agent
-    // definition (prompt, tools, scope) while routing through the captured
-    // mock provider. Provider *routing* for Hint sub-agents is covered by
+    // A Hint sub-agent builds a fresh provider via the workload factory
+    // instead of inheriting `parent.provider` — which here would resolve to
+    // the OpenHuman backend and fail with "No backend session" before the
+    // MockCalendarModel ever sees a request. This test only asserts prompt
+    // construction (the "Current Date & Time" context), so override the
+    // model spec to Inherit to keep the real definition (prompt, tools,
+    // scope) while routing through the captured mock provider. Provider *routing* for Hint sub-agents is covered by
     // `subagent_runner::ops::tests::resolve_subagent_provider_*`.
     def.model = openhuman_core::agent::harness::definition::ModelSpec::Inherit;
 

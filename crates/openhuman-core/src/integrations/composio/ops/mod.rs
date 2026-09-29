@@ -83,7 +83,7 @@ pub(crate) use user_scopes::{
 
 pub use super::connected_integrations::{
     cached_active_integrations, cached_active_integrations_including_expired, connected_set_hash,
-    fetch_connected_integrations, fetch_connected_integrations_status, fetch_toolkit_actions,
+    fetch_connected_integrations, fetch_connected_integrations_status,
     invalidate_connected_integrations_cache, FetchConnectedIntegrationsStatus,
 };
 

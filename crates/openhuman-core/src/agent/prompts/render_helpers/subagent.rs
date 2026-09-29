@@ -198,9 +198,8 @@ pub fn render_subagent_system_prompt_with_format(
     out.push_str("\nUse the provided tools to accomplish the task. Reply with a concise, dense final answer when you have one — the parent agent will weave it back into the user-visible response.\n\n");
 
     // 3b. Optional safety preamble. Definitions that do work with real
-    //     side-effects (code_executor, tool_maker, integrations_agent) set
-    //     `omit_safety_preamble = false` so the narrow renderer used to
-    //     silently drop that instruction — we now honour the flag.
+    //     side-effects set `omit_safety_preamble = false`, which the narrow
+    //     renderer used to silently drop — we now honour the flag.
     //     Byte-identical to `SafetySection::build`.
     if options.include_safety_preamble {
         out.push_str(
@@ -217,9 +216,8 @@ pub fn render_subagent_system_prompt_with_format(
 
     // 3c/3d. `## Available Skills` and `## Connected Integrations`
     //        are no longer emitted here. Each agent that needs them
-    //        renders its own block in its `prompt.rs` (integrations_agent
-    //        owns the executor voice, orchestrator/welcome own the
-    //        delegator voice). Legacy Inline/File-sourced TOML agents
+    //        renders its own block in its `prompt.rs`
+    //        (orchestrator/welcome own the delegator voice). Legacy Inline/File-sourced TOML agents
     //        that still route through this helper simply don't get
     //        either block — which matches the fact that none of them
     //        currently opt in.

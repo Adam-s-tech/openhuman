@@ -83,8 +83,6 @@ pub const PACKS: &[ToolPack] = &[
             "web3_dapp_call",
             "web3_dapp_execute",
             "x402_request",
-            "stock_crypto_series",
-            "stock_exchange_rate",
         ],
         owners: &[],
         guide: include_str!("guides/web3.md"),
@@ -108,7 +106,7 @@ pub const PACKS: &[ToolPack] = &[
         // The orchestrator owns it so the four registry tools on its belt stay
         // advertised; the catalogue readers are `Deferred` and reached through
         // `tool_search` or this skill.
-        owners: &["orchestrator"],
+        owners: &["orchestrator", "planner"],
         guide: include_str!("guides/mcp.md"),
     },
     ToolPack {
@@ -133,7 +131,8 @@ pub const PACKS: &[ToolPack] = &[
         // reported a marketing figure of "1,552+ apps" instead of this
         // install's real 119.
         //
-        // Its own owner keeps it by DECLARING it (`workflow_builder/agent.toml`).
+        // Its own owners keep it by DECLARING it (`workflow_builder`, `planner`
+        // and `morning_briefing` agent.toml).
         tools: &[
             "composio",
             "composio_authorize",
@@ -141,7 +140,7 @@ pub const PACKS: &[ToolPack] = &[
             "composio_list_connections",
             "composio_list_tools",
         ],
-        owners: &["workflow_builder"],
+        owners: &["workflow_builder", "planner", "morning_briefing"],
         guide: "",
     },
     ToolPack {
@@ -295,13 +294,15 @@ pub const PACKS: &[ToolPack] = &[
         // `tool_search` finds one of them, and this skill hands out the whole
         // loop with its playbook. It replaced the `code_executor` / `critic` /
         // `tool_maker` specialists, whose value was that playbook.
+        // `lsp` is not listed: it registers only behind its capability gate,
+        // and every pack member must resolve in a default build. It is
+        // `Deferred` too, so `tool_search` still finds it when enabled.
         tools: &[
             "grep",
             "glob",
             "list",
             "git_operations",
             "edit",
-            "lsp",
             "node_exec",
             "npm_exec",
             "python_exec",
@@ -310,7 +311,9 @@ pub const PACKS: &[ToolPack] = &[
             "run_linter",
             "run_tests",
         ],
-        owners: &["image_agent", "video_agent", "vision_agent"],
+        // `planner` and `critic` are workflow-run workers, not chat
+        // delegates; inspecting files is their loop, so they keep the family.
+        owners: &["planner", "critic", "image_agent", "video_agent", "vision_agent"],
         guide: include_str!("guides/coding.md"),
     },
     ToolPack {

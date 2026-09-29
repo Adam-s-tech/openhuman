@@ -3644,8 +3644,6 @@ const messages: TranslationMap = {
   'conversations.tools.planNextSteps.done': 'अगले कदमों की योजना बनाई',
   'conversations.tools.reviewWork.active': 'काम की समीक्षा कर रहा है',
   'conversations.tools.reviewWork.done': 'काम की समीक्षा की',
-  'conversations.tools.scoutContext.active': 'संदर्भ टटोल रहा है',
-  'conversations.tools.scoutContext.done': 'संदर्भ टटोला',
   'conversations.tools.useTools.active': 'टूल का उपयोग कर रहा है',
   'conversations.tools.useTools.done': 'टूल का उपयोग किया',
   'conversations.tools.checkConnectedApp.active': 'आपका कनेक्टेड ऐप जाँच रहा है',

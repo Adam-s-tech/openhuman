@@ -91,12 +91,6 @@ impl SpawnAsyncSubagentTool {
             )));
         }
 
-        if definition.id == "integrations_agent" && toolkit_override.is_none() {
-            return Ok(ToolResult::error(
-                "spawn_async_subagent(integrations_agent): the `toolkit` argument is required",
-            ));
-        }
-
         let parent_session = parent.session_id.clone();
         let progress_sink = parent.on_progress.clone();
         let parent_thread_id = tool_context

@@ -19,10 +19,10 @@ fn render_installed_skills_lists_skills_and_names_the_hand_offs_it_is_given() {
     ];
     // #6302: the section names the hand-offs in the form the session can call
     // (`hand_off_route`), never a pack route or a tool it cannot see.
-    let out = render_installed_skills(&skills, Some("`run_skill`"), Some("`setup_skills`"));
+    let out = render_installed_skills(&skills, Some("`run_workflow`"), Some("`setup_skills`"));
     assert!(out.contains("## Installed Skills"));
     assert!(
-        out.contains("`run_skill`") && out.contains("`setup_skills`"),
+        out.contains("`run_workflow`") && out.contains("`setup_skills`"),
         "catalogue must name the run and install hand-offs it was given: {out}"
     );
     assert!(
@@ -42,7 +42,7 @@ fn render_installed_skills_lists_skills_and_names_the_hand_offs_it_is_given() {
     // No route: the section lists the skills and names no call at all.
     let unrouted = render_installed_skills(&skills, None, None);
     assert!(
-        !unrouted.contains("run_skill") && !unrouted.contains("setup_skills"),
+        !unrouted.contains("run_workflow") && !unrouted.contains("setup_skills"),
         "with no route, no hand-off may be named: {unrouted}"
     );
 }
@@ -50,7 +50,7 @@ fn render_installed_skills_lists_skills_and_names_the_hand_offs_it_is_given() {
 #[test]
 fn render_installed_skills_empty_is_omitted() {
     assert_eq!(
-        render_installed_skills(&[], Some("`run_skill`"), Some("`setup_skills`")),
+        render_installed_skills(&[], Some("`run_workflow`"), Some("`setup_skills`")),
         ""
     );
 }
@@ -328,16 +328,43 @@ fn build_routes_live_facts_to_the_web_tools_directly() {
     assert!(!body.contains("researcher"));
 }
 
-// Code tasks retain an explicit direct-execution contract in the prompt.
+// Code tasks retain an explicit direct-execution contract in the prompt, and
+// there is no coding specialist to hand them to any more.
 #[test]
-fn build_routes_code_repo_work_to_run_code_tool() {
+fn build_keeps_code_work_direct_with_no_coding_hand_off() {
     let body = build(&ctx_with(&[])).unwrap();
     assert!(body.contains("Keep code work end-to-end"));
-    assert!(
-        !body.contains("delegate_run_code"),
-        "orchestrator prompt must name the synthesized `run_code` tool, \
-         not the nonexistent `delegate_run_code`"
-    );
+    for gone in ["run_code", "delegate_run_code", "review_code"] {
+        assert!(
+            !body.contains(gone),
+            "orchestrator prompt names `{gone}`, a hand-off that no longer exists"
+        );
+    }
+}
+
+/// The skills that replaced specialists are named in the prompt, and every one
+/// it names is a real pack carrying a guide. The prompt against the pack table,
+/// not against itself, so a rename on either side fails here.
+#[test]
+fn prompt_names_only_guided_skills_that_exist() {
+    assert!(ARCHETYPE.contains("`use_skill` skill `coding`, `system`, `web3` or `docs` first"));
+    for skill in ["coding", "system", "web3", "docs"] {
+        let pack = crate::tools::toolpacks::pack(skill)
+            .unwrap_or_else(|| panic!("prompt names skill `{skill}`, which is not a pack"));
+        assert!(
+            !pack.guide.trim().is_empty(),
+            "skill `{skill}` has no guide"
+        );
+    }
+}
+
+/// Two rules bind before the model thinks to load a skill, so they live in the
+/// prompt, not in a guide a model may never open.
+#[test]
+fn prompt_binds_money_and_service_actions_to_explicit_consent() {
+    assert!(ARCHETYPE.contains(
+        "except moving funds and stopping, uninstalling or updating OpenHuman's service: those need the user's explicit yes"
+    ));
 }
 
 #[test]

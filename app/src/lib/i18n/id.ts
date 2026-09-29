@@ -3663,8 +3663,6 @@ const messages: TranslationMap = {
   'conversations.tools.planNextSteps.done': 'Langkah berikutnya direncanakan',
   'conversations.tools.reviewWork.active': 'Meninjau pekerjaan',
   'conversations.tools.reviewWork.done': 'Pekerjaan ditinjau',
-  'conversations.tools.scoutContext.active': 'Menelusuri konteks',
-  'conversations.tools.scoutContext.done': 'Konteks ditelusuri',
   'conversations.tools.useTools.active': 'Menggunakan alat',
   'conversations.tools.useTools.done': 'Alat digunakan',
   'conversations.tools.checkConnectedApp.active': 'Memeriksa aplikasi terhubung Anda',

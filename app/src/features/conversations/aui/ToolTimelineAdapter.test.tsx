@@ -299,12 +299,12 @@ describe('ToolTimelineAdapter — compact chat mode (onViewDetails)', () => {
   const entries: ToolTimelineEntry[] = [
     {
       id: 'tl-1',
-      name: 'agent_prepare_context',
+      name: 'read_file',
       round: 1,
       seq: 0,
       status: 'success',
-      detail: 'fetch X',
-      result: 'Prepared context from 3 sources.',
+      detail: 'notes.md',
+      result: 'Read 3 lines.',
     },
     {
       id: 'sa-1',

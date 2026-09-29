@@ -450,6 +450,19 @@ pub fn all_tools_with_runtime(
             security.clone(),
             action_dir.to_path_buf(),
         )),
+        // Review loop for skill `coding` (and the workflow-run `critic`):
+        // diff, lint and test the working tree in the action sandbox. They
+        // were defined but never registered, so the belts naming them held
+        // nothing. `Deferred`, so they cost no schema until found.
+        Box::new(crate::tools::implementations::ReadDiffTool::new(
+            action_dir.to_path_buf(),
+        )),
+        Box::new(crate::tools::implementations::RunLinterTool::new(
+            action_dir.to_path_buf(),
+        )),
+        Box::new(crate::tools::implementations::RunTestsTool::new(
+            action_dir.to_path_buf(),
+        )),
         Box::new(PushoverTool::new(
             security.clone(),
             action_dir.to_path_buf(),

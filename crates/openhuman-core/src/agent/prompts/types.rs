@@ -168,12 +168,8 @@ pub struct ConnectedIntegration {
     /// `ACTIVE` (use `connected = true`) OR there is no connection
     /// row at all (truly disconnected).
     ///
-    /// Used by the `integrations_agent` spawn-gate to surface the
-    /// real reason a delegation can't proceed — see issue #2365
-    /// ("Agent says Gmail is disconnected when sending email"). The
-    /// gate previously emitted the same "not authorized yet" message
-    /// regardless of whether OAuth was mid-flight, the token had
-    /// expired, or the user had simply never started the flow.
+    /// Distinguishes an OAuth flow still in flight, an expired token and
+    /// a connection never started (issue #2365).
     pub non_active_status: Option<String>,
 }
 

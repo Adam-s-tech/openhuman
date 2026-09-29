@@ -167,9 +167,8 @@ fn tool_result_text(requests: &[Value], tool_name: &str) -> Option<String> {
 
 /// Tool names a captured model request advertised to the provider.
 ///
-/// Native requests carry them in `tools`. A text-mode request (the
-/// `integrations_agent` with a toolkit: its Composio schemas would blow the
-/// native tool-schema ceiling) sends no `tools` and lists each one in the
+/// Native requests carry them in `tools`. A text-mode request (a provider
+/// without native tool calling) sends no `tools` and lists each one in the
 /// system prompt's `## Tools` section as `Call as: NAME[...]` instead.
 fn advertised_tool_names(request: &Value) -> Vec<String> {
     if let Some(tools) = request.pointer("/body/tools").and_then(Value::as_array) {
@@ -183,9 +182,8 @@ fn advertised_tool_names(request: &Value) -> Vec<String> {
             })
             .collect();
     }
-    // Text-mode requests normally use `Call as: NAME[...]` declarations. The
-    // integrations prompt also renders dynamic action schemas in an
-    // `### Available Tools` block, so accept its `**NAME**:` entries too.
+    // Text-mode requests normally use `Call as: NAME[...]` declarations; an
+    // `### Available Tools` block's `**NAME**:` entries are accepted too.
     let mut in_available_tools = false;
     let mut names = Vec::new();
     for line in system_text(request).lines() {
@@ -876,14 +874,13 @@ fn orchestrator_searches_for_and_calls_the_integration_action() {
         ],
         must_call: &["tool_search", "GMAIL_FETCH_EMAILS"],
         must_not_call: &["composio_execute", "delegate_to_integrations_agent"],
-        // Not `schedule_task`: it resolves when called (see the scheduler case)
-        // but a named agent's up-front belt does not list synthesised delegates.
-        must_advertise: &["tool_search", "research"],
+        // Web research is direct now (there is no research delegate).
+        must_advertise: &["tool_search", "web_search_tool"],
         must_not_advertise: &[
             "delegate_to_integrations_agent",
             "composio_execute",
             "composio_list_tools",
-            "cron_add",
+            "cron",
         ],
         advertises_nothing: false,
         max_consecutive_calls_of: None,
@@ -891,60 +888,27 @@ fn orchestrator_searches_for_and_calls_the_integration_action() {
     });
 }
 
-/// The integrations specialist (still spawnable by the runner with a toolkit,
-/// no longer reachable from chat) holds the Composio execution surface and
-/// none of the orchestrator's hand-offs.
-///
-/// The toolkit-scoped integrations agent runs in text mode, so this also pins
-/// the text-mode `Call as: NAME[...]` catalogue rather than only native tool
-/// declarations.
+/// Scheduling is an inline skill, not a specialist: the orchestrator reaches
+/// the `cron` tool through the `scheduling` pack (`use_skill`), and neither the
+/// raw `cron` schema nor the retired `schedule_task` delegate is on its belt.
 #[test]
-#[ignore = "TODO(#6376): hosted TinyAgents omits integrations specialist tools"]
-fn integrations_agent_holds_the_composio_surface() {
+fn orchestrator_reaches_cron_through_the_scheduling_pack() {
     run_case(Case {
-        agent: "integrations_agent",
-        agent_marker: "# Integrations Agent",
-        entry: Entry::WebChat,
-        user_message: "Check my Gmail for anything from my landlord.",
-        scripted_completions: vec![
-            // The child runs in text mode, so its own calls would be
-            // `<tool_call>` text with parser-assigned ids; this case pins its
-            // belt only.
-            text_completion("No emails from your landlord."),
-            text_completion("You have no emails from your landlord."),
-        ],
-        must_call: &[],
-        must_not_call: &[],
-        must_advertise: &["composio_execute", "composio_list_tools"],
-        must_not_advertise: &["research", "schedule_task", "shell"],
-        advertises_nothing: false,
-        max_consecutive_calls_of: None,
-        extra_config: "",
-    });
-}
-
-/// `schedule_task` lands in scheduler_agent, which owns cron and nothing else.
-#[test]
-#[ignore = "TODO(#6376): hosted TinyAgents omits scheduler specialist tools"]
-fn scheduler_agent_owns_the_cron_surface() {
-    run_case(Case {
-        agent: "scheduler_agent",
-        agent_marker: "# Scheduler Agent",
+        agent: "orchestrator",
+        agent_marker: "## How you work",
         entry: Entry::WebChat,
         user_message: "What reminders do I have scheduled?",
         scripted_completions: vec![
             call(
-                "schedule_task",
-                json!({ "prompt": "List my scheduled reminders.", "blocking": true }),
+                "use_skill",
+                json!({ "skill": "scheduling", "tool": "cron", "args": { "action": "list" } }),
             ),
-            call("cron_list", json!({})),
-            text_completion("You have no scheduled reminders."),
             text_completion("You have no scheduled reminders."),
         ],
-        must_call: &["cron_list"],
-        must_not_call: &[],
-        must_advertise: &["cron_add", "cron_list", "cron_remove"],
-        must_not_advertise: &["composio_execute", "shell", "schedule_task"],
+        must_call: &["use_skill"],
+        must_not_call: &["schedule_task"],
+        must_advertise: &["use_skill", "current_time", "resolve_time"],
+        must_not_advertise: &["cron", "schedule_task", "composio_execute"],
         advertises_nothing: false,
         max_consecutive_calls_of: None,
         extra_config: "",

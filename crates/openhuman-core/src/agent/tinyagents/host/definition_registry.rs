@@ -20,8 +20,8 @@
 //! # Contract mismatches resolved here
 //!
 //! **1. Absence must never be an error.** OpenHuman's own catalogue relies on
-//! this: `orchestrator/agent.toml` lists `mcp_agent` in `subagents` even in a
-//! build with the `mcp` feature off, and both existing resolution sites
+//! this: an agent may list a subagent id that a feature gate compiled out of
+//! the build (`presentation_agent` without `documents`), and both existing resolution sites
 //! tolerate it (`collect_orchestrator_tools` warns and skips;
 //! [`validate_tier_hierarchy`](crate::agent::registry::agents::validate_tier_hierarchy) explicitly `continue`s past unknown ids). So
 //! `OpenHumanDefinitionRegistry::resolve` returns `Ok(None)` for every miss

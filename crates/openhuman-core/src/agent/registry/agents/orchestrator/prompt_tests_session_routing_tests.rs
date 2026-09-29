@@ -44,7 +44,7 @@ fn the_withheld_block_renders_for_a_renamed_session_with_a_filter() {
 
     // A visible set shaped like the live one: the advertised delegates are in,
     // the packed ones are not.
-    let visible: HashSet<String> = ["run_code", "plan", "file_read", "goal_complete"]
+    let visible: HashSet<String> = ["file_read", "goal_complete"]
         .iter()
         .map(|s| s.to_string())
         .collect();
@@ -87,7 +87,7 @@ fn the_withheld_block_renders_for_a_renamed_session_with_a_filter() {
 fn the_generated_block_has_no_stray_whitespace_runs() {
     crate::agent::harness::definition::AgentDefinitionRegistry::init_global_builtins()
         .expect("builtin agent definitions must load");
-    let visible: HashSet<String> = ["run_code".to_string()].into_iter().collect();
+    let visible: HashSet<String> = ["file_read".to_string()].into_iter().collect();
     let mut ctx = ctx_with(&[]);
     ctx.agent_id = "orchestrator";
     ctx.visible_tool_names = &visible;
@@ -165,7 +165,7 @@ fn prompt_routes_workflow_authoring_to_the_builder_not_use_skill() {
 fn skill_sections_name_the_hand_off_this_session_can_call() {
     crate::agent::harness::definition::AgentDefinitionRegistry::init_global_builtins()
         .expect("builtin agent definitions must load");
-    let belt: HashSet<String> = ["setup_skills", "run_skill", "run_code", "use_skill"]
+    let belt: HashSet<String> = ["setup_skills", "run_workflow", "file_read", "use_skill"]
         .iter()
         .map(|s| s.to_string())
         .collect();
@@ -177,22 +177,21 @@ fn skill_sections_name_the_hand_off_this_session_can_call() {
         hand_off_route(&ctx, "skill_setup").as_deref(),
         Some("`setup_skills`")
     );
-    assert_eq!(
-        hand_off_route(&ctx, "skill_executor").as_deref(),
-        Some("`run_skill`")
-    );
-    assert_eq!(hand_off_route(&ctx, "mcp_agent"), None);
+    // Running a skill is the orchestrator's own `run_workflow`, not a hand-off.
+    assert_eq!(run_workflow_route(&ctx).as_deref(), Some("`run_workflow`"));
     // Listed but held by a pack: name the call that actually reaches it.
     assert_eq!(
-        hand_off_route(&ctx, "crypto_agent").as_deref(),
-        Some("`use_skill { \"skill\": \"crypto\", \"tool\": \"do_crypto\" }`")
+        hand_off_route(&ctx, "image_agent").as_deref(),
+        Some("`use_skill { \"skill\": \"media\", \"tool\": \"create_image\" }`")
     );
-    // Not in the orchestrator's allowlist: no route, so name nothing.
-    assert_eq!(hand_off_route(&ctx, "context_scout"), None);
+    // Not in the orchestrator's allowlist: no route, so name nothing. `planner`
+    // is registered for workflow runs but is not a chat delegate.
+    assert_eq!(hand_off_route(&ctx, "summarizer"), None);
+    assert_eq!(hand_off_route(&ctx, "planner"), None);
 
     // The generated withheld block no longer lists the unpacked hand-offs.
     let block = render_withheld_specialists(&ctx);
-    for handoff in ["setup_skills", "run_skill"] {
+    for handoff in ["setup_skills", "run_workflow"] {
         assert!(
             !block.contains(handoff),
             "`{handoff}` is a direct tool and must not be listed as withheld:\n{block}"
@@ -202,15 +201,20 @@ fn skill_sections_name_the_hand_off_this_session_can_call() {
     // A packed route needs `use_skill` on the belt. A session filtered down to
     // neither the delegate nor `use_skill` cannot reach the specialist at all,
     // and naming a call it cannot make is the bug, not the fix.
-    let no_use_skill: HashSet<String> = ["setup_skills", "run_code"]
+    let no_use_skill: HashSet<String> = ["setup_skills", "file_read"]
         .iter()
         .map(|s| s.to_string())
         .collect();
     ctx.visible_tool_names = &no_use_skill;
     assert_eq!(
-        hand_off_route(&ctx, "crypto_agent"),
+        hand_off_route(&ctx, "image_agent"),
         None,
         "without `use_skill` there is no packed route to name"
+    );
+    assert_eq!(
+        run_workflow_route(&ctx),
+        None,
+        "without `run_workflow` on the belt there is no way to run a skill"
     );
     assert_eq!(
         hand_off_route(&ctx, "skill_setup").as_deref(),

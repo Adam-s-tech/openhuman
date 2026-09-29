@@ -58,7 +58,7 @@ impl SearchConfig {
 
     /// v2 → v3: put `all_tools` files back on the routed role tools.
     ///
-    /// Agent tool scopes (orchestrator, researcher, planner, …) allowlist
+    /// Agent tool scopes (orchestrator, planner, …) allowlist
     /// `web_search_tool` / `web_answer_tool` / `web_contents_tool`. Under
     /// `all_tools` TinySearch advertises only provider tools (`exa_search`,
     /// …), so those agents had no web search at all and called the missing

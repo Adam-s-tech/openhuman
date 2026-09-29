@@ -116,13 +116,9 @@ fn parent_context(max_parallel_tools: usize) -> ParentExecutionContext {
     ParentExecutionContext {
         workspace_descriptor: None,
         agent_definition_id: "orchestrator".into(),
-        allowed_subagent_ids: [
-            "researcher".to_string(),
-            "critic".to_string(),
-            "integrations_agent".to_string(),
-        ]
-        .into_iter()
-        .collect(),
+        allowed_subagent_ids: ["researcher".to_string(), "critic".to_string()]
+            .into_iter()
+            .collect(),
         turn_model_source: crate::agent::tinyagents::TurnModelSource::from_model(model),
         all_tools: Arc::new(Vec::new()),
         all_tool_specs: Arc::new(Vec::new()),

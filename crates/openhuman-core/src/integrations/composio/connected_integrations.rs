@@ -22,7 +22,7 @@ pub use cache::{
     invalidate_connected_integrations_cache,
 };
 pub use fetch::{
-    fetch_connected_integrations, fetch_connected_integrations_status, fetch_toolkit_actions,
+    fetch_connected_integrations, fetch_connected_integrations_status,
     FetchConnectedIntegrationsStatus,
 };
 

@@ -33,7 +33,7 @@ async fn spawn_subagent_tool_runs_child_agent_e2e() {
         async {
             SpawnSubagentTool::new()
                 .execute(json!({
-                    "agent_id": "researcher",
+                    "agent_id": "task_manager_agent",
                     "prompt": format!("Investigate {SPAWN_SUBAGENT_CANARY}"),
                     "context": "parent supplied context",
                     "model": "test-model",
@@ -60,8 +60,8 @@ async fn archetype_delegation_tool_runs_child_agent_e2e() {
         "archetype-delegation-child-answer",
     )]));
     let tool = ArchetypeDelegationTool {
-        tool_name: "delegate_researcher".to_string(),
-        agent_id: DelegationTarget("researcher".to_string()),
+        tool_name: "delegate_task_manager_agent".to_string(),
+        agent_id: DelegationTarget("task_manager_agent".to_string()),
         tool_description: "Delegate research work.".to_string(),
     };
 
@@ -109,8 +109,8 @@ async fn archetype_delegation_defaults_to_async_with_durable_session_e2e() {
         "async-delegation-child-answer",
     )]));
     let tool = ArchetypeDelegationTool {
-        tool_name: "delegate_researcher".to_string(),
-        agent_id: DelegationTarget("researcher".to_string()),
+        tool_name: "delegate_task_manager_agent".to_string(),
+        agent_id: DelegationTarget("task_manager_agent".to_string()),
         tool_description: "Delegate research work.".to_string(),
     };
 
@@ -169,7 +169,7 @@ async fn archetype_delegation_defaults_to_async_with_durable_session_e2e() {
         tokio::time::sleep(std::time::Duration::from_millis(50)).await;
     }
     let session = finished.expect("durable session reached Idle after background completion");
-    assert_eq!(session.agent_id, "researcher");
+    assert_eq!(session.agent_id, "task_manager_agent");
     assert!(
         session
             .latest_history
@@ -202,7 +202,9 @@ async fn continue_subagent_resumes_idle_durable_session_e2e() {
     let _ = env_logger::builder().is_test(true).try_init();
     let _ = AgentDefinitionRegistry::init_global_builtins();
     let registry = AgentDefinitionRegistry::global().expect("registry");
-    let definition = registry.get("researcher").expect("researcher definition");
+    let definition = registry
+        .get("task_manager_agent")
+        .expect("task_manager_agent definition");
     let workspace = tempfile::TempDir::new().expect("workspace");
     let provider = Arc::new(ScriptedModel::new(vec![(
         "continue-durable-canary",
@@ -223,7 +225,7 @@ async fn continue_subagent_resumes_idle_durable_session_e2e() {
             selector: SubagentSessionSelector {
                 parent_session: "tools-e2e-continue-session".into(),
                 parent_thread_id: Some("thread-continue-parent".into()),
-                agent_id: "researcher".into(),
+                agent_id: "task_manager_agent".into(),
                 toolkit: None,
                 // Pin the seeded session to the parent's scripted provider —
                 // continue_subagent forwards session.model into the resume, so
@@ -341,7 +343,7 @@ async fn continue_subagent_without_checkpoint_or_durable_session_names_the_roste
         ContinueSubagentTool::new()
             .execute(json!({
                 "task_id": "sub-does-not-exist",
-                "agent_id": "researcher",
+                "agent_id": "task_manager_agent",
                 "message": "hello?"
             }))
             .await
@@ -375,7 +377,7 @@ async fn spawn_worker_thread_tool_persists_worker_thread_e2e() {
         async {
             SpawnWorkerThreadTool::new()
                 .execute(json!({
-                    "agent_id": "researcher",
+                    "agent_id": "task_manager_agent",
                     "prompt": format!("Handle long task {WORKER_THREAD_CANARY}"),
                     "task_title": "Long delegated task",
                     "model": "test-model"
@@ -416,9 +418,7 @@ fn parent_context(
     ParentExecutionContext {
         workspace_descriptor: None,
         agent_definition_id: "orchestrator".into(),
-        allowed_subagent_ids: ["researcher".to_string(), "integrations_agent".to_string()]
-            .into_iter()
-            .collect(),
+        allowed_subagent_ids: ["task_manager_agent".to_string()].into_iter().collect(),
         turn_model_source: crate::agent::tinyagents::TurnModelSource::from_model(model),
         all_tools: Arc::new(Vec::new()),
         all_tool_specs: Arc::new(Vec::new()),

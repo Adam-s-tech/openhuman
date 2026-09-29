@@ -31,7 +31,7 @@ pub fn builtin_definitions() -> Vec<WorkflowDefinition> {
         description: "Decompose a question into angles, research them in parallel, cross-check the claims with a critic, then synthesize a cited report. Read-only.".to_owned(),
         phases: vec![
             WorkflowPhase { name: "decompose".into(), description: "Break the question into independent research angles.".into(), agent_ids: vec!["planner".into()], depends_on: vec![] },
-            WorkflowPhase { name: "research".into(), description: "Research each angle in parallel.".into(), agent_ids: vec!["context_scout".into(), "context_scout".into()], depends_on: vec!["decompose".into()] },
+            WorkflowPhase { name: "research".into(), description: "Research each angle in parallel.".into(), agent_ids: vec!["planner".into(), "planner".into()], depends_on: vec!["decompose".into()] },
             WorkflowPhase { name: "cross_check".into(), description: "Adversarially cross-check the gathered claims.".into(), agent_ids: vec!["critic".into()], depends_on: vec!["research".into()] },
             WorkflowPhase { name: "synthesize".into(), description: "Synthesize a single cited report.".into(), agent_ids: vec!["summarizer".into()], depends_on: vec!["cross_check".into()] },
         ],
