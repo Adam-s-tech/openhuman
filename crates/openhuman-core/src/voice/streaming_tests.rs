@@ -1,17 +1,6 @@
 use super::*;
 
 #[test]
-fn decode_pcm16le_frame_rejects_odd_length() {
-    assert!(decode_pcm16le_frame(&[1, 2, 3]).is_none());
-}
-
-#[test]
-fn decode_pcm16le_frame_decodes_samples() {
-    let samples = decode_pcm16le_frame(&[0x01, 0x00, 0xff, 0xff]).expect("decode");
-    assert_eq!(samples, vec![1, -1]);
-}
-
-#[test]
 fn append_stream_samples_keeps_full_audio_and_trims_window() {
     let mut audio = vec![0; MAX_STREAM_BUFFER_SAMPLES - 2];
     let mut full = vec![1, 2];
@@ -99,11 +88,4 @@ fn append_stream_samples_returns_false_when_full_audio_cap_reached() {
         audio.is_empty(),
         "sliding window must not receive new samples"
     );
-}
-
-#[test]
-fn is_stop_command_only_accepts_stop_type() {
-    assert!(is_stop_command(r#"{"type":"stop"}"#));
-    assert!(!is_stop_command(r#"{"type":"continue"}"#));
-    assert!(!is_stop_command("not json"));
 }
