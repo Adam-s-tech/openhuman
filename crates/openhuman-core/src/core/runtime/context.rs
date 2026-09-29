@@ -444,7 +444,8 @@ impl CoreContext {
             let parent = self.workspace_binding.read();
             match parent {
                 Ok(parent)
-                    if parent.workspace_dir.as_deref() == Some(overlay.config.workspace_dir.as_path())
+                    if parent.workspace_dir.as_deref()
+                        == Some(overlay.config.workspace_dir.as_path())
                         && parent.memory_subsystem == overlay.config.subsystems.memory =>
                 {
                     Arc::clone(&self.workspace_binding)

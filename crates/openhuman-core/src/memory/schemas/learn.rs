@@ -52,7 +52,11 @@ pub(super) fn schema(function: &str) -> Option<ControllerSchema> {
 fn handle_learn_all(params: Map<String, Value>) -> ControllerFuture {
     Box::pin(async move {
         let payload = parse_params::<LearnAllParams>(params)?;
-        to_json(rpc::memory_learn_all(payload).await.map_err(classify_rpc_error)?)
+        to_json(
+            rpc::memory_learn_all(payload)
+                .await
+                .map_err(classify_rpc_error)?,
+        )
     })
 }
 

@@ -11,9 +11,7 @@ use async_trait::async_trait;
 use crate::memory::api::capabilities::Capabilities;
 use crate::memory::api::error::MemoryError;
 use crate::memory::api::health::MemoryHealth;
-use crate::memory::api::provider::types::{
-    ExportPage, ExportRecord, ImportOutcome, SourceScope,
-};
+use crate::memory::api::provider::types::{ExportPage, ExportRecord, ImportOutcome, SourceScope};
 use crate::memory::api::provider::{MemoryCore, MemoryPortability, MemoryProvider, MemoryRecall};
 use crate::memory::api::recall::OwnedRecallOpts;
 use crate::memory::api::types::{MemoryCategory, MemoryEntry, MemoryTaint, NamespaceSummary};

@@ -601,3 +601,82 @@ fn capabilities_are_open_under_a_harness_domain_set() {
         tinymemory_api::capabilities::Capabilities::all()
     );
 }
+
+fn overlay_for(workspace: &str, driver: Option<&str>) -> ContextOverlay {
+    let mut config = crate::config::Config::default();
+    config.workspace_dir = PathBuf::from(workspace);
+    if let Some(driver) = driver {
+        config.subsystems.memory.driver = driver.to_string();
+    }
+    ContextOverlay::new(
+        config,
+        crate::core::runtime::DomainSet::kernel(),
+        crate::tools::toolpacks::ToolGroups::none(),
+    )
+}
+
+#[test]
+fn a_derived_context_without_a_memory_override_follows_the_parents_engine_switch() {
+    let parent = ctx("/tmp/share-ws");
+    let child = parent.derive_with(overlay_for("/tmp/share-ws", None));
+
+    let mut switched = crate::config::schema::MemorySubsystemConfig::default();
+    switched.driver = "null".to_string();
+    parent
+        .set_memory_subsystem(std::path::Path::new("/tmp/share-ws"), switched.clone())
+        .unwrap();
+
+    let child_driver = child
+        .workspace_binding
+        .read()
+        .unwrap()
+        .memory_subsystem
+        .driver
+        .clone();
+    assert_eq!(
+        child_driver, "null",
+        "a rebind must reach the derived context"
+    );
+}
+
+#[test]
+fn a_derived_context_with_its_own_memory_config_keeps_the_override() {
+    let parent = ctx("/tmp/override-ws");
+    let child = parent.derive_with(overlay_for("/tmp/override-ws", Some("null")));
+
+    let mut switched = crate::config::schema::MemorySubsystemConfig::default();
+    switched.driver = "tinymemory".to_string();
+    parent
+        .set_memory_subsystem(std::path::Path::new("/tmp/override-ws"), switched)
+        .unwrap();
+    assert_eq!(
+        child
+            .workspace_binding
+            .read()
+            .unwrap()
+            .memory_subsystem
+            .driver,
+        "null",
+        "a deliberate per-agent memory config is not overwritten by the parent"
+    );
+}
+
+#[test]
+fn a_derived_context_on_another_workspace_is_not_shared() {
+    let parent = ctx("/tmp/parent-only-ws");
+    let child = parent.derive_with(overlay_for("/tmp/child-only-ws", None));
+    let mut switched = crate::config::schema::MemorySubsystemConfig::default();
+    switched.driver = "null".to_string();
+    parent
+        .set_memory_subsystem(std::path::Path::new("/tmp/parent-only-ws"), switched)
+        .unwrap();
+    assert_ne!(
+        child
+            .workspace_binding
+            .read()
+            .unwrap()
+            .memory_subsystem
+            .driver,
+        "null"
+    );
+}

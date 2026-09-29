@@ -157,7 +157,9 @@ pub(crate) async fn recall_hits<P: MemoryRecall + ?Sized>(
 
 /// Read one export record back as an entry (the mandatory driver's payload
 /// shape: `key`, `content`, `category`, `session_id`, `timestamp`).
-fn record_to_entry(record: crate::memory::api::provider::types::ExportRecord) -> Option<MemoryEntry> {
+fn record_to_entry(
+    record: crate::memory::api::provider::types::ExportRecord,
+) -> Option<MemoryEntry> {
     let payload = &record.payload;
     let key = payload.get("key")?.as_str()?.to_string();
     let content = payload.get("content")?.as_str()?.to_string();

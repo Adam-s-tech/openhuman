@@ -90,3 +90,126 @@ fn the_capability_gate_error_is_stable_and_recognisable() {
     assert!(is_unsupported_family_error(&message));
     assert!(!is_unsupported_family_error("connection refused"));
 }
+
+// ── Bounded provider calls ──────────────────────────────────────────────────
+
+use crate::memory::guard::in_memory::guard_over;
+use crate::memory::ops::engine_fakes_tests::{entry, ScriptedProvider};
+use std::sync::atomic::Ordering;
+
+fn guarded(p: &std::sync::Arc<ScriptedProvider>) -> std::sync::Arc<MemoryGuard> {
+    guard_over(std::sync::Arc::clone(p) as std::sync::Arc<dyn MemoryProvider>)
+}
+
+#[tokio::test]
+async fn recent_hits_read_one_bounded_export_page_and_never_list() {
+    let provider = ScriptedProvider::spread(1000, 1);
+    let guard = guarded(&provider);
+    let hits = recent_hits(&guard, "ns0", 5).await.unwrap();
+    assert_eq!(hits.len(), 5);
+    assert_eq!(
+        provider.export_calls.load(Ordering::SeqCst),
+        1,
+        "one page suffices"
+    );
+    assert_eq!(
+        provider.list_calls.load(Ordering::SeqCst),
+        0,
+        "never a full list"
+    );
+    assert_eq!(
+        provider.max_export_limit.load(Ordering::SeqCst),
+        20,
+        "page size is limit * 4"
+    );
+    // Newest first: the scripted timestamps grow with the index.
+    assert!(hits[0].updated_at >= hits[4].updated_at);
+}
+
+#[tokio::test]
+async fn recent_hits_page_size_is_capped_at_200() {
+    let provider = ScriptedProvider::spread(1000, 1);
+    let guard = guarded(&provider);
+    recent_hits(&guard, "ns0", 500).await.unwrap();
+    assert_eq!(
+        provider.max_export_limit.load(Ordering::SeqCst),
+        RECENT_PAGE_CAP
+    );
+}
+
+#[tokio::test]
+async fn recent_hits_read_at_most_two_pages_when_the_namespace_is_absent() {
+    // Everything lives in another namespace: the reader must give up after two
+    // pages instead of walking the whole store.
+    let provider = ScriptedProvider::new(
+        (0..500)
+            .map(|i| entry("elsewhere", &format!("k{i}"), "x", "2026-01-01T00:00:00Z"))
+            .collect(),
+    );
+    let guard = guarded(&provider);
+    let hits = recent_hits(&guard, "wanted", 5).await.unwrap();
+    assert!(hits.is_empty());
+    assert_eq!(
+        provider.export_calls.load(Ordering::SeqCst),
+        RECENT_MAX_PAGES
+    );
+    assert_eq!(provider.list_calls.load(Ordering::SeqCst), 0);
+}
+
+#[tokio::test]
+async fn document_list_without_a_namespace_scans_a_bounded_number_of_namespaces() {
+    let provider = ScriptedProvider::spread(3000, 40);
+    let guard = guarded(&provider);
+    let raw = document_list(&guard, None).await.unwrap();
+    assert_eq!(provider.namespaces_calls.load(Ordering::SeqCst), 1);
+    assert!(
+        provider.list_calls.load(Ordering::SeqCst) <= DOC_LIST_MAX_NAMESPACES,
+        "at most {DOC_LIST_MAX_NAMESPACES} namespaces are listed"
+    );
+    assert!(raw["documents"].as_array().unwrap().len() <= DOC_LIST_CAP);
+    assert_eq!(raw["truncated"], true, "40 namespaces cannot all be listed");
+}
+
+#[tokio::test]
+async fn document_list_for_one_namespace_is_one_call_capped_at_200() {
+    let provider = ScriptedProvider::spread(600, 2);
+    let guard = guarded(&provider);
+    let raw = document_list(&guard, Some("ns0")).await.unwrap();
+    assert_eq!(provider.list_calls.load(Ordering::SeqCst), 1);
+    assert_eq!(raw["documents"].as_array().unwrap().len(), DOC_LIST_CAP);
+    assert_eq!(raw["truncated"], true);
+
+    let small = ScriptedProvider::spread(10, 2);
+    let raw = document_list(&guarded(&small), Some("ns1")).await.unwrap();
+    assert_eq!(raw["documents"].as_array().unwrap().len(), 5);
+    assert_eq!(raw["truncated"], false);
+}
+
+#[test]
+fn hosted_errors_are_classified_only_for_external_engines() {
+    let credits =
+        "budget exceeded: [USER_INSUFFICIENT_CREDITS] memory API x (HTTP 402)".to_string();
+    assert!(classify_for_engine(true, credits.clone()).starts_with("INSUFFICIENT_CREDITS:"));
+    assert_eq!(classify_for_engine(false, credits.clone()), credits);
+
+    let session = "unauthorized: [UNAUTHORIZED] memory API x (HTTP 401)".to_string();
+    assert!(classify_for_engine(true, session).starts_with("SESSION_EXPIRED:"));
+
+    let gate = unsupported_family("graph");
+    assert_eq!(
+        classify_for_engine(true, gate.clone()),
+        gate,
+        "the gate error is stable"
+    );
+    assert_eq!(classify_for_engine(true, "boom".into()), "boom");
+}
+
+#[test]
+fn error_envelopes_carry_the_classified_message() {
+    let outcome = crate::memory::ops::envelope::error_envelope::<()>(
+        "memory.recall_failed",
+        "budget exceeded: [USER_INSUFFICIENT_CREDITS] memory API x (HTTP 402)".to_string(),
+    );
+    let message = outcome.value.error.expect("error").message;
+    assert!(message.starts_with("INSUFFICIENT_CREDITS:"), "{message}");
+}

@@ -107,3 +107,33 @@ async fn the_hosted_bearer_reads_the_live_credential_and_reports_a_missing_sessi
     let error = source.bearer().await.expect_err("no credential");
     assert!(error.to_string().starts_with("SESSION_EXPIRED:"), "{error}");
 }
+
+#[cfg(feature = "memory-remote")]
+#[tokio::test]
+async fn the_hosted_bearer_is_cached_for_its_ttl_and_failures_are_not() {
+    use tinymemory::factory::BearerSource;
+    let dir = tempfile::tempdir().unwrap();
+    let workspace = dir.path().join("workspace");
+    std::fs::create_dir_all(&workspace).unwrap();
+    std::fs::write(
+        dir.path().join("config.toml"),
+        "[secrets]\nencrypt = false\n",
+    )
+    .unwrap();
+    let config = crate::config::ops::load_config_for_workspace_with_timeout(&workspace)
+        .await
+        .expect("load config");
+
+    let cached = LiveSessionBearer::with_ttl(&workspace, std::time::Duration::from_secs(60));
+    // No credential yet: an error, and the error is not cached.
+    assert!(cached.bearer().await.is_err());
+    crate::security::credentials::api_key::store_api_key(&config, "tiny_live_first").unwrap();
+    assert_eq!(cached.bearer().await.unwrap(), "tiny_live_first");
+
+    // Removing the credential does not disturb a cached bearer within the TTL...
+    crate::security::credentials::api_key::clear_api_key(&config).unwrap();
+    assert_eq!(cached.bearer().await.unwrap(), "tiny_live_first");
+    // ...but a source with no cache window sees the change immediately.
+    let uncached = LiveSessionBearer::with_ttl(&workspace, std::time::Duration::ZERO);
+    assert!(uncached.bearer().await.is_err());
+}

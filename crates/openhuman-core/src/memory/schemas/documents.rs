@@ -493,50 +493,86 @@ pub(super) fn schema(function: &str) -> Option<ControllerSchema> {
 fn handle_init(params: Map<String, Value>) -> ControllerFuture {
     Box::pin(async move {
         let payload = parse_params::<MemoryInitRequest>(params)?;
-        to_json(rpc::memory_init(payload).await.map_err(classify_rpc_error)?)
+        to_json(
+            rpc::memory_init(payload)
+                .await
+                .map_err(classify_rpc_error)?,
+        )
     })
 }
 
 fn handle_list_documents(params: Map<String, Value>) -> ControllerFuture {
     Box::pin(async move {
         let payload = parse_params::<ListDocumentsRequest>(params)?;
-        to_json(rpc::memory_list_documents(payload).await.map_err(classify_rpc_error)?)
+        to_json(
+            rpc::memory_list_documents(payload)
+                .await
+                .map_err(classify_rpc_error)?,
+        )
     })
 }
 
 fn handle_list_namespaces(_params: Map<String, Value>) -> ControllerFuture {
-    Box::pin(async move { to_json(rpc::memory_list_namespaces(EmptyRequest {}).await.map_err(classify_rpc_error)?) })
+    Box::pin(async move {
+        to_json(
+            rpc::memory_list_namespaces(EmptyRequest {})
+                .await
+                .map_err(classify_rpc_error)?,
+        )
+    })
 }
 
 fn handle_namespace_summaries(_params: Map<String, Value>) -> ControllerFuture {
-    Box::pin(async move { to_json(rpc::memory_namespace_summaries().await.map_err(classify_rpc_error)?) })
+    Box::pin(async move {
+        to_json(
+            rpc::memory_namespace_summaries()
+                .await
+                .map_err(classify_rpc_error)?,
+        )
+    })
 }
 
 fn handle_delete_document(params: Map<String, Value>) -> ControllerFuture {
     Box::pin(async move {
         let payload = parse_params::<DeleteDocumentRequest>(params)?;
-        to_json(rpc::memory_delete_document(payload).await.map_err(classify_rpc_error)?)
+        to_json(
+            rpc::memory_delete_document(payload)
+                .await
+                .map_err(classify_rpc_error)?,
+        )
     })
 }
 
 fn handle_query_namespace(params: Map<String, Value>) -> ControllerFuture {
     Box::pin(async move {
         let payload = parse_params::<QueryNamespaceRequest>(params)?;
-        to_json(rpc::memory_query_namespace(payload).await.map_err(classify_rpc_error)?)
+        to_json(
+            rpc::memory_query_namespace(payload)
+                .await
+                .map_err(classify_rpc_error)?,
+        )
     })
 }
 
 fn handle_recall_context(params: Map<String, Value>) -> ControllerFuture {
     Box::pin(async move {
         let payload = parse_params::<RecallContextRequest>(params)?;
-        to_json(rpc::memory_recall_context(payload).await.map_err(classify_rpc_error)?)
+        to_json(
+            rpc::memory_recall_context(payload)
+                .await
+                .map_err(classify_rpc_error)?,
+        )
     })
 }
 
 fn handle_recall_memories(params: Map<String, Value>) -> ControllerFuture {
     Box::pin(async move {
         let payload = parse_params::<RecallMemoriesRequest>(params)?;
-        to_json(rpc::memory_recall_memories(payload).await.map_err(classify_rpc_error)?)
+        to_json(
+            rpc::memory_recall_memories(payload)
+                .await
+                .map_err(classify_rpc_error)?,
+        )
     })
 }
 
@@ -586,21 +622,33 @@ fn handle_doc_delete(params: Map<String, Value>) -> ControllerFuture {
 fn handle_context_query(params: Map<String, Value>) -> ControllerFuture {
     Box::pin(async move {
         let payload = parse_params::<QueryNamespaceParams>(params)?;
-        to_json(rpc::context_query(payload).await.map_err(classify_rpc_error)?)
+        to_json(
+            rpc::context_query(payload)
+                .await
+                .map_err(classify_rpc_error)?,
+        )
     })
 }
 
 fn handle_context_recall(params: Map<String, Value>) -> ControllerFuture {
     Box::pin(async move {
         let payload = parse_params::<RecallNamespaceParams>(params)?;
-        to_json(rpc::context_recall(payload).await.map_err(classify_rpc_error)?)
+        to_json(
+            rpc::context_recall(payload)
+                .await
+                .map_err(classify_rpc_error)?,
+        )
     })
 }
 
 fn handle_clear_namespace(params: Map<String, Value>) -> ControllerFuture {
     Box::pin(async move {
         let payload = parse_params::<ClearNamespaceParams>(params)?;
-        to_json(rpc::clear_namespace(payload).await.map_err(classify_rpc_error)?)
+        to_json(
+            rpc::clear_namespace(payload)
+                .await
+                .map_err(classify_rpc_error)?,
+        )
     })
 }
 

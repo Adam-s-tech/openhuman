@@ -237,3 +237,39 @@ fn state_and_list_serialise_to_the_bare_wire_shapes_the_ui_reads() {
         );
     }
 }
+
+#[test]
+fn endpoints_with_userinfo_or_link_local_hosts_are_rejected_without_echoing_them() {
+    for bad in [
+        "https://user:secret@example.com",
+        "https://user@example.com",
+        "http://169.254.169.254/latest/meta-data",
+        "http://[fe80::1]:8080",
+        "http://[::ffff:169.254.169.254]",
+        "http://metadata.google.internal",
+        "ftp://example.com",
+        "not a url",
+    ] {
+        let err = validate_endpoint(bad).expect_err(bad);
+        assert!(
+            !err.contains("secret") && !err.contains("user:") && !err.contains("169.254"),
+            "the rejection must not echo the endpoint: {err}"
+        );
+    }
+    for good in [
+        "https://api.supermemory.ai",
+        "http://localhost:3111",
+        "http://10.0.0.5:8080",
+        "https://[2001:db8::1]/x",
+    ] {
+        validate_endpoint(good).unwrap_or_else(|e| panic!("{good}: {e}"));
+    }
+}
+
+#[test]
+fn a_rejected_endpoint_never_reaches_prepare_target_output() {
+    let mut params = target("supermemory");
+    params.endpoint = Some("https://u:p@example.com".into());
+    let err = prepare_target(params).unwrap_err();
+    assert!(!err.contains("u:p"));
+}

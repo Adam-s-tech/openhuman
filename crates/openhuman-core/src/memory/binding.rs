@@ -45,9 +45,9 @@ use crate::memory::api::health::MemoryHealth;
 use crate::memory::api::provider::MemoryProvider;
 use crate::memory::api::CONTRACT_VERSION;
 use crate::memory::guard::{GuardPolicy, MemoryGuard};
-use tinymemory_api::null::NULL_DRIVER_ID;
 #[cfg(test)]
 use tinymemory_api::null::NullMemoryProvider;
+use tinymemory_api::null::NULL_DRIVER_ID;
 
 use crate::config::schema::MemorySubsystemConfig;
 use crate::core::subsystem::{
@@ -106,7 +106,8 @@ impl MemoryBinding {
 
     /// Whether a transient fallback is due for another bind attempt.
     pub(crate) fn retry_due(&self) -> bool {
-        self.retry_at.is_some_and(|at| std::time::Instant::now() >= at)
+        self.retry_at
+            .is_some_and(|at| std::time::Instant::now() >= at)
     }
 
     /// The bound driver.
@@ -643,7 +644,11 @@ pub fn for_subtree(
         return Ok(Arc::clone(binding));
     }
 
-    let binding = Arc::new(super::binding_build::build(workspace_dir, memory_subdir, cfg));
+    let binding = Arc::new(super::binding_build::build(
+        workspace_dir,
+        memory_subdir,
+        cfg,
+    ));
 
     let mut guard = cache
         .write()

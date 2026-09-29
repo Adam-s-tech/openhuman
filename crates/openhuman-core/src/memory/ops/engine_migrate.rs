@@ -282,7 +282,8 @@ async fn run_job<F, Fut>(
 }
 
 /// Shown on a finished job: what the copy cannot promise.
-const WRITES_DURING_COPY_NOTE: &str = "Memories written while the copy was running may not have been \
+const WRITES_DURING_COPY_NOTE: &str =
+    "Memories written while the copy was running may not have been \
      copied. The previous engine still holds them; migrate again to copy any that are missing.";
 
 /// Spawn [`run_job`] under a supervisor so a panic fails the job instead of
