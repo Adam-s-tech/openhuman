@@ -584,66 +584,13 @@ pub fn for_workspace(
     for_subtree(workspace_dir, "memory", cfg)
 }
 
-/// A driver that reports the diagnostics it was handed, and does nothing else.
-///
-/// Reads that used to hit the engine's tables go through the contract now, and
-/// the real driver is a compiled module that cannot load inside a unit test —
-/// so a test workspace binds the null driver and every diagnostic answers
-/// empty. A handler that used to be provable by writing rows and calling it
-/// needs a driver in between.
-///
-/// The split that leaves is the honest one. What a handler *derives* from the
-/// numbers is the host's rule and belongs in the host's tests, which is what
-/// this exists for. What a given store *is* — that an ingest raises the chunk
-/// count, that a deferred job stays ready without becoming eligible — is the
-/// driver's rule, pinned in the driver's own conformance suite against a real
-/// store.
-///
-/// Everything outside `Maintenance` delegates to the null driver: a test that
-/// needed those would be testing something this double is the wrong shape for.
-#[cfg(test)]
-pub(crate) struct FixedDiagnostics {
-    inner: NullMemoryProvider,
-    /// How many times the host has asked this driver to retry failed work,
-    /// and how many jobs it should say it requeued when asked.
-    ///
-    /// The gate in front of the ask is host logic — only an embedder change
-    /// should un-park anything — so a test needs to see whether the ask
-    /// happened, separately from what the driver would have done.
-    retry_calls: std::sync::atomic::AtomicUsize,
-    retry_requeues: u64,
-    /// How many times the host has asked this driver to re-embed.
-    ///
-    /// `reembed` enqueues work rather than doing it, so the host's side of that
-    /// contract is only that it *asked* — whether a row appears is the driver's
-    /// business, and pinning it here would test the driver through the host.
-    reembed_calls: std::sync::atomic::AtomicUsize,
-    store: crate::memory::api::provider::types::StoreStats,
-    queue: crate::memory::api::provider::types::QueueStats,
-    failure: Option<crate::memory::api::provider::types::QueueFailure>,
-    /// What this driver says about a backfill running in its process.
-    ///
-    /// Separate from [`Self::queue`] on purpose, mirroring the contract: the
-    /// flag is not derivable from the counts, and a test that needs the gap
-    /// between them — nothing ready, nothing running, backfill unfinished —
-    /// has to set the two independently.
-    backfill: bool,
-    /// What [`MemoryMaintenance::backfill_connector_trees`] answers, when a test
-    /// sets it.
-    ///
-    /// Distinct from [`Self::backfill`], which is the unrelated
-    /// `backfill_in_progress` flag — one is "is a re-embed running", the other
-    /// is the connector-tree pass's counters.
-    backfill_trees: crate::memory::api::provider::types::BackfillTreesOutcome,
-    /// What [`MemoryMaintenance::flush_pending`] answers, when a test sets it.
-    flush: crate::memory::api::provider::types::FlushOutcome,
-    /// What [`MemoryMaintenance::reset_derived_index`] answers, likewise.
-    reset: crate::memory::api::provider::types::ResetOutcome,
-}
-
 #[cfg(test)]
 #[path = "binding_fixed_diagnostics_impl_tests.rs"]
 mod fixed_diagnostics_impl;
+// The double itself is defined beside its impls, to keep this file within the
+// layout limit.
+#[cfg(test)]
+pub(crate) use fixed_diagnostics_impl::FixedDiagnostics;
 
 /// Bind a driver reporting fixed diagnostics as this workspace's driver.
 ///
