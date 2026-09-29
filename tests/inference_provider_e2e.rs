@@ -17,7 +17,7 @@ use axum::http::{header, Method, Request, StatusCode};
 use serde_json::{json, Value};
 use tempfile::tempdir;
 use tower::ServiceExt;
-use wiremock::matchers::{header as wm_header, method, path};
+use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
