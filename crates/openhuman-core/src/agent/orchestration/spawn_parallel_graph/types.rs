@@ -12,8 +12,7 @@ use super::staging::WorkerDispatchMode;
 
 /// One worker admitted by the `spawn_parallel_agents` tool.
 ///
-/// This is intentionally a host request contract: its `toolkit`, ownership
-/// syntax, and worktree options are OpenHuman product policy. The tool owns
+/// This is intentionally a host request contract: its ownership syntax and worktree options are OpenHuman product policy. The tool owns
 /// JSON decoding; the execution pipeline receives this typed value only.
 #[derive(Debug, Clone, Deserialize)]
 pub(crate) struct ParallelAgentTask {
@@ -21,8 +20,6 @@ pub(crate) struct ParallelAgentTask {
     pub(crate) prompt: String,
     #[serde(default)]
     pub(crate) context: Option<String>,
-    #[serde(default)]
-    pub(crate) toolkit: Option<String>,
     #[serde(default)]
     pub(crate) ownership: Option<String>,
     #[serde(default)]
