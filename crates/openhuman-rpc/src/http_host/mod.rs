@@ -1,10 +1,14 @@
-//! Static directory hosting over ad-hoc HTTP listeners owned by the core.
+//! Static directory hosting over ad-hoc HTTP listeners.
 //!
 //! This domain lets trusted callers start, inspect, list, and stop lightweight
 //! file servers that expose a chosen directory on a chosen TCP port. Each
 //! server runs in-process, shares the core's lifetime, and defaults to HTTP
 //! Basic authentication using the active user's identity plus a generated
 //! password.
+//!
+//! The domain is HTTP transport, so it lives with the JSON-RPC server rather
+//! than in the core. Its controllers join the core's registry as an extension
+//! ([`register_controllers`]), which the server entry points install.
 
 mod auth;
 mod handlers;
@@ -23,3 +27,33 @@ pub use schemas::{
 };
 
 pub(crate) const LOG_PREFIX: &str = "[http_host]";
+
+use openhuman_core::core::all::{register_controller_extension, ControllerExtension, DomainGroup};
+
+const NAMESPACES: &[(&str, &str)] = &[(
+    "http_host",
+    "Serve a local directory over an ad-hoc, Basic-auth-protected HTTP listener.",
+)];
+
+/// Registers the `http_host.*` controllers with the core's registry.
+///
+/// Idempotent: the core treats an identical re-registration as a no-op, so
+/// every server entry point may call it. Kernel surface with no family of its
+/// own, so it is gated as [`DomainGroup::Platform`].
+pub fn register_controllers() -> Result<(), String> {
+    log::debug!("{LOG_PREFIX} registering controller extension");
+    register_controller_extension(ControllerExtension {
+        group: DomainGroup::Platform,
+        controllers: all_http_host_registered_controllers(),
+        namespaces: NAMESPACES,
+    })
+}
+
+/// [`register_controllers`] for call sites that cannot propagate an error:
+/// a failure means a namespace collision in the registry, which is a build
+/// bug, so it is logged loudly rather than aborting the server.
+pub(crate) fn ensure_registered() {
+    if let Err(error) = register_controllers() {
+        log::error!("{LOG_PREFIX} controller registration failed: {error}");
+    }
+}

@@ -14,12 +14,16 @@
 //! - Behind `http-client`: [`post_json_rpc`], [`bearer_header`],
 //!   [`redact_url_for_log`] and [`HttpRpcResponse`].
 //! - Behind `server`: [`server`], the core's HTTP router, Socket.IO transport
-//!   and listener, plus the `run_server*` entry points hosts call.
+//!   and listener, plus the `run_server*` entry points hosts call; and
+//!   [`http_host`], the static-directory file server whose `http_host.*`
+//!   controllers the server registers with the core.
 
 #[cfg(feature = "http-client")]
 mod client;
 mod envelope;
 mod origin;
+#[cfg(feature = "server")]
+pub mod http_host;
 #[cfg(feature = "server")]
 pub mod server;
 
