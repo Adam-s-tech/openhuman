@@ -155,7 +155,24 @@ impl ComposioTool {
     }
 
     pub(super) fn client(&self) -> Client {
-        crate::config::build_runtime_proxy_client_with_timeouts("tool.composio", 60, 10)
+        let builder = || {
+            crate::config::apply_runtime_proxy_to_builder(
+                crate::util::tls::tls_client_builder()
+                    .redirect(reqwest::redirect::Policy::none())
+                    .timeout(std::time::Duration::from_secs(60))
+                    .connect_timeout(std::time::Duration::from_secs(10)),
+                "tool.composio",
+            )
+        };
+        builder().build().unwrap_or_else(|error| {
+            tracing::warn!(service_key = "tool.composio", "Failed to build proxied Composio client: {error}");
+            crate::util::tls::tls_client_builder()
+                .redirect(reqwest::redirect::Policy::none())
+                .timeout(std::time::Duration::from_secs(60))
+                .connect_timeout(std::time::Duration::from_secs(10))
+                .build()
+                .unwrap_or_default()
+        })
     }
 
     pub(super) fn ensure_request_url(&self, url: &str) -> anyhow::Result<()> {
