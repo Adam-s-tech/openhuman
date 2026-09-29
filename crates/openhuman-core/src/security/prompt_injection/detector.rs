@@ -160,7 +160,7 @@ static BASE64_RE: Lazy<Regex> = Lazy::new(|| {
 //     writing and strongly imply adversarial intent.
 //   - override.role_hijack: "you are now" only counts when a role follows it
 //     ("you are now a…", "you are now DAN"), and the DAN branches only count
-//     when "unrestricted"/"no restrictions" sits within four words of "dan".
+//     when "unrestricted"/"no restrictions" sits within two words of "dan".
 //     Bare "you are now" ("you are now done with the doc?") and a colleague
 //     named Dan anywhere in a pasted transcript that also says "unrestricted"
 //     used to score 0.30 on their own.
@@ -175,7 +175,7 @@ static DETECTION_RULES: &[DetectionRule] = &[
         code: "override.role_hijack",
         message: "Attempts to redefine assistant role or policy scope.",
         score: 0.30,
-        pattern: r"(you\s+are\s+now\s+(a|an|my|dan|free|unrestricted|unfiltered|uncensored|jailbroken|evil|no\s+longer|not\s+bound)\b|developer\s+mode|jailbreak|unrestricted\s+mode|(you\s+are|pretend\s+you\s+are|act\s+as)\s+dan\b|(no\s+restrictions|unrestricted)\s+(\S+\s+){0,4}dan\b|\bdan\b\s+(\S+\s+){0,4}(no\s+restrictions|unrestricted))",
+        pattern: r"(you\s+are\s+now\s+(a|an|my|dan|free|unrestricted|unfiltered|uncensored|jailbroken|evil|no\s+longer|not\s+bound)\b|developer\s+mode|jailbreak|unrestricted\s+mode|(you\s+are|pretend\s+you\s+are|act\s+as)\s+dan\b|(no\s+restrictions|unrestricted)\s+(\S+\s+){0,2}dan\b|\bdan\b\s+(\S+\s+){0,2}(no\s+restrictions|unrestricted))",
     },
     DetectionRule {
         code: "exfiltrate.system_prompt",
