@@ -139,6 +139,7 @@ tinyflows-copilot = { path = "../../vendor/tinyflows/crates/tinyflows-copilot", 
 tinyagents-harness = { path = "../../vendor/tinyagents/crates/tinyagents-harness", features = [
     "sqlite",
     "multimodal",
+    "builtin-tools",
 ] }
 tinyagents-definition = { path = "../../vendor/tinyagents/crates/tinyagents-definition" }
 tinyagents-graph = { path = "../../vendor/tinyagents/crates/tinyagents-graph", features = [
