@@ -899,7 +899,7 @@ pub async fn init_stores(cfg: &crate::config::Config, domains: crate::core::runt
         // than lazily so a bad `[subsystems.memory]` is loud at boot instead of
         // at the first recall. Infallible by design: an inadmissible driver
         // falls back, publishes `MemoryDriverBindFailed`, and records why.
-        match crate::memory::binding::for_config(&cfg) {
+        match crate::memory::binding::for_config(cfg) {
             Ok(binding) => log::info!(
                 "[boot] memory driver bound: id={} class={} capabilities=[{}] fallback={:?}",
                 binding.driver_id(),
