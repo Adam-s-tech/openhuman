@@ -579,32 +579,6 @@ impl BackendClient {
             );
         }
     }
-
-    /// Fetches the client key share for a specific integration.
-    ///
-    /// This is a one-time handoff; the key is deleted from the backend's
-    /// temporary storage (Redis) after retrieval.
-    pub async fn fetch_client_key(&self, integration_id: &str, bearer_jwt: &str) -> Result<String> {
-        let id = integration_id.trim();
-        anyhow::ensure!(
-            !id.is_empty() && id.len() == 24,
-            "integrationId must be a 24-char hex id"
-        );
-        let value = self
-            .authed_json(
-                bearer_jwt,
-                Method::POST,
-                &format!("auth/integrations/{id}/client-key"),
-                None,
-            )
-            .await
-            .context("fetch client key")?;
-        let client_key = value
-            .get("clientKey")
-            .and_then(|k| k.as_str())
-            .context("missing clientKey in response")?;
-        Ok(client_key.to_string())
-    }
 }
 
 #[cfg(test)]
