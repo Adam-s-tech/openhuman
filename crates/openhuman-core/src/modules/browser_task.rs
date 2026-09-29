@@ -41,6 +41,9 @@ pub struct BrowserTask {
     pub origins: Vec<String>,
     /// Upper bound on the actions the task may take.
     pub max_actions: u32,
+    /// A flow to run instead of having the module plan one from `goal`, such
+    /// as a plan saved from an earlier run. `goal` then explains it.
+    pub flow: Option<tinycomputer_bus::Flow>,
 }
 
 /// Build the `StartTask` request for a browser-only task under host policy.
@@ -48,6 +51,7 @@ pub struct BrowserTask {
 pub fn start_request(config: &Config, task: &BrowserTask) -> StartTaskRequest {
     StartTaskRequest {
         task: Some(task.goal.clone()),
+        flow: task.flow.clone(),
         facts: task.facts.clone(),
         constraints: TaskConstraints {
             payment: PaymentMode::StopAtPayment,
@@ -81,6 +85,7 @@ pub async fn start(config: &Config, task: &BrowserTask) -> Result<TaskView, Stri
     tracing::debug!(
         origins = task.origins.len(),
         max_actions = task.max_actions,
+        saved_flow = task.flow.is_some(),
         "[browser-task] starting"
     );
     let view: TaskView = call(config, methods::START_TASK, request, true).await?;
