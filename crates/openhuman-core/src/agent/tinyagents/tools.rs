@@ -157,7 +157,14 @@ impl Tool for CanonicalSharedToolAdapter {
     fn exposure(&self) -> tinytools::ToolExposure {
         match self.resolved_tool().map(Tool::exposure) {
             Some(tinytools::ToolExposure::Deferred) => tinytools::ToolExposure::Deferred,
-            _ if self.force_deferred => tinytools::ToolExposure::Deferred,
+            // Deferral only subtracts: a session-deferred `Hidden` tool stays
+            // hidden rather than becoming searchable.
+            Some(tinytools::ToolExposure::Hidden) if self.force_deferred => {
+                tinytools::ToolExposure::Hidden
+            }
+            Some(tinytools::ToolExposure::Direct) if self.force_deferred => {
+                tinytools::ToolExposure::Deferred
+            }
             _ => tinytools::ToolExposure::Direct,
         }
     }
