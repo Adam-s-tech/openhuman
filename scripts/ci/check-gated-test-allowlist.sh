@@ -38,6 +38,7 @@ core/legacy_aliases_tests.rs
 core/runtime/services.rs
 flows/mod.rs
 mcp/server/resources.rs
+mcp/server/mod.rs
 mcp/server/tools/mod.rs
 platform/socket/event_handlers.rs
 skills/bundled/mod.rs

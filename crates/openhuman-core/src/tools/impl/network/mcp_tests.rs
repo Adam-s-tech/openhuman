@@ -554,3 +554,40 @@ fn scrub_value_keeps_both_entries_when_keys_collide_after_redaction() {
     assert_eq!(map.get("[redacted]"), Some(&json!("a")));
     assert_eq!(map.get("[redacted] (2)"), Some(&json!("b")));
 }
+
+#[tokio::test]
+async fn call_tool_decodes_json_encoded_arguments() {
+    // A model that JSON-encodes `arguments` still reaches the remote tool,
+    // and the server receives an object.
+    let server = echoing_server("plain", None).await;
+    let registry = registry_with(
+        &format!("{}/mcp", server.uri()),
+        crate::config::McpAuthConfig::None,
+    );
+    let result = call_tool(registry)
+        .execute(json!({ "server": "docs", "tool": "whoami", "arguments": "{\"q\":1}" }))
+        .await
+        .expect("execute");
+    assert!(!result.is_error, "{}", full_output(&result));
+
+    let sent: Vec<Value> = server
+        .received_requests()
+        .await
+        .expect("recording")
+        .iter()
+        .filter_map(|request| serde_json::from_slice::<Value>(&request.body).ok())
+        .filter(|body| body["method"] == "tools/call")
+        .map(|body| body["params"]["arguments"].clone())
+        .collect();
+    assert_eq!(sent, [json!({ "q": 1 })]);
+}
+
+#[tokio::test]
+async fn call_tool_refuses_arguments_that_are_not_an_object_naming_the_type() {
+    let result = call_tool(test_registry())
+        .execute(json!({ "server": "docs", "tool": "whoami", "arguments": 7 }))
+        .await
+        .expect("execute");
+    assert!(result.is_error);
+    assert!(result.output().contains("a number"), "{}", result.output());
+}

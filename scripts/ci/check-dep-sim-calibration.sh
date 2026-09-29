@@ -64,6 +64,9 @@
 # three package names without changing the native build dependency count.
 # 282 -> 285 on 2026-09-26: the required TinyBrowser integration adds
 # tinybrowser-bus, tinybrowser-control, and tinyjevclient. Native count stays 2.
+# 286 -> 283 on 2026-09-29: the current `flows` graph resolves three fewer
+# crate names; measured with `scripts/dep-sim.py --cut-nothing` alongside the
+# matching lowered kernel floor. Native count remains 2.
 #
 # Called by ci-lite.yml's feature-gate smoke lane and by the lane runner, so the
 # expected count lives here once (plus scripts/kernel-floor.limits).

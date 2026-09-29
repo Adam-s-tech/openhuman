@@ -7585,6 +7585,7 @@ version = "0.3.5"
 dependencies = [
  "anyhow",
  "async-trait",
+ "axum",
  "base64 0.23.1",
  "dirs 7.0.0",
  "futures-util",
@@ -7598,6 +7599,7 @@ dependencies = [
  "tinymcp-bus",
  "tinytools 0.4.1",
  "tokio",
+ "tokio-stream",
  "tracing",
  "uuid",
 ]
