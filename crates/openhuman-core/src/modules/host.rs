@@ -11,7 +11,7 @@
 //! That is a real limitation and worth naming: a module on this bus cannot
 //! publish a `DomainEvent`, so it can serve requests but cannot participate in
 //! the core's event flow. For a codec that is exactly right — a document writer
-//! has nothing to say to the subconscious. A module that did need to emit events
+//! has no events to publish. A module that did need to emit events
 //! would need `OnceBus` to share its broker first.
 //!
 //! # What loading a module means

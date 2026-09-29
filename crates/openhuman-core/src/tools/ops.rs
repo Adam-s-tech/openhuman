@@ -1164,7 +1164,7 @@ fn tool_group(name: &str) -> crate::core::all::DomainGroup {
         "audio_generate_and_email_podcast",
     ];
     // Threads: thread_* / todo_* handled by prefix below; these are the extras.
-    // Subconscious monitor + proactive-notify tools (Automation family).
+    // Monitor + proactive-notify tools (Automation family).
     const MONITORS: &[&str] = &[
         "monitor",
         "monitor_list",
@@ -1269,7 +1269,7 @@ fn tool_group(name: &str) -> crate::core::all::DomainGroup {
     // leak the #4808 review flagged. Keep these in
     // lockstep with the `push(...)` tags in `core::all`.
     //
-    // Automation: scheduled jobs (`cron_*`) plus the subconscious monitor +
+    // Automation: scheduled jobs (`cron_*`) plus the monitor +
     // proactive-notify surface.
     if name.starts_with("cron_") || name == "schedule" || MONITORS.contains(&name) {
         return DomainGroup::Automation;
