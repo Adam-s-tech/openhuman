@@ -230,6 +230,8 @@ openhuman_core = { path = "../openhuman-core", package = "openhuman", default-fe
     # credential-gated in tools/ops.rs, so a host with no hosting credential
     # sees no new tools.
     "hosting",
+    # Remote memory engines (TinyHumans-hosted CortexDB, Supermemory, Mem0, ...).
+    "memory-remote",
 ] }
 
 [target.'cfg(unix)'.dependencies]

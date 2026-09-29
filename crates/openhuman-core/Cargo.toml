@@ -221,6 +221,11 @@ tinyruntime-bus = { path = "../../vendor/tinyruntime/crates/tinyruntime-bus" }
 # matching against `MODULE_ID` and refuses `DriverClass::Embedded` outright,
 # so nothing here resolves an engine through the facade's registry.
 tinymemory-api = { path = "../../vendor/tinymemory/crates/tinymemory-api" }
+# The engine factory + migration over the same `tinymemory-api`. Optional: only
+# the `memory-remote` gate (remote memory engines: TinyHumans-hosted CortexDB,
+# Supermemory, Mem0, Cognee, CortexDB, AgentMemory) links the HTTP adapter.
+tinymemory = { path = "../../vendor/tinymemory/crates/tinymemory", default-features = false, features = ["factory", "engines"], optional = true }
+tinymemory-remote = { path = "../../vendor/tinymemory/crates/tinymemory-remote", optional = true }
 # tinyconnectors-bus — the OAuth connector wire contract
 # (https://github.com/tinyhumansai/tinyconnectors). Payload types and member
 # names for the connector surface, with no transport and no behaviour: this
@@ -752,7 +757,7 @@ proptest = "1"
 # (`modules`: Contrib=ON, Product=ON) and with `scripts/ci/product-features.txt`,
 # which already lists it. This does NOT move the kernel floor: that profile is
 # `--no-default-features --features flows` and never reads this list.
-default = ["media", "skills", "flows", "mcp", "channels", "http-server", "scheduler-gate", "file-logging", "modules"]
+default = ["media", "skills", "flows", "mcp", "channels", "http-server", "scheduler-gate", "file-logging", "modules", "memory-remote"]
 # HTTP + Socket.IO server transport (#5048): the `/rpc` JSON-RPC endpoint and
 # its auth middleware/CORS layer (`core::jsonrpc`, `core::auth`), the `/v1`
 # OpenAI-compatible router (`inference::http`), the ad-hoc static-dir file
@@ -920,6 +925,12 @@ voice = [
 #
 # `curve25519-dalek` stays: `associated_token_account` needs the off-curve check
 # to derive a Solana ATA, which is address arithmetic rather than signing.
+# Remote memory engines: bind an External memory driver (`tinyhumans`,
+# `supermemory`, `mem0`, `cognee`, `cortex`, `agentmemory`) through
+# `tinymemory::factory`, plus the `memory.engine*` RPCs and migration. Off, an
+# External driver is refused at admission and the engine RPCs answer with the
+# module engine only.
+memory-remote = ["dep:tinymemory", "dep:tinymemory-remote"]
 web3 = [
     "dep:tinywallet-bus",
     "dep:curve25519-dalek",
