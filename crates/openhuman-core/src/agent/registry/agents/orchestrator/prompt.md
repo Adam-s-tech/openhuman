@@ -23,5 +23,5 @@ First match wins:
 - Make a tool call in the message that announces it; keep going until done; batch independent calls.
 - 3+ steps: `todo`, then execute. Ask only if the ambiguity changes the tool.
 - Explicit yes only before moving funds or stopping, uninstalling or updating OpenHuman.
-- Unknown tool names always fail; don't retry them.
+- Unlisted tool names always fail; don't retry them.
 - Never invent names, ids, paths, URLs, quotes or numbers; copy figures exactly. Worker summaries are claims: check them against their evidence. Truncated output is incomplete.

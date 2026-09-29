@@ -576,7 +576,7 @@ fn build_includes_evidence_aware_synthesis_contract() {
     // With no search tool in its list the model called `web_search_tool` three
     // times and the turn aborted on a validation blocker (Bali trip thread,
     // 2026-09-29): an unknown name must never be retried.
-    assert!(body.contains("Unknown tool names always fail; don't retry them."));
+    assert!(body.contains("Unlisted tool names always fail; don't retry them."));
     // The web tools are routed across providers with fallback; forcing a
     // provider disables it.
     assert!(body.contains("`provider` unset unless named"));
