@@ -202,7 +202,10 @@ async fn positive_scoped_tool_limit_caps_hosted_runner_inner() {
     .await;
 
     let error = outcome.expect_err("hosted runner must stop at its one-call tool budget");
-    assert!(format!("{error:#}").contains("tool-call limit"), "{error:#}");
+    assert!(
+        format!("{error:#}").contains("tool-call limit"),
+        "{error:#}"
+    );
     assert_eq!(tool_calls.load(std::sync::atomic::Ordering::SeqCst), 1);
     assert!(model_calls.load(std::sync::atomic::Ordering::SeqCst) >= 1);
 }
