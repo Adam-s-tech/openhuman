@@ -317,13 +317,6 @@ const messages: TranslationMap = {
   'conversations.backgroundTasks.cronSchedCron': 'Cron {expr}',
   'conversations.backgroundTasks.cronSchedEvery': 'Alle {duration}',
   'conversations.backgroundTasks.cronSchedAt': 'Einmalig',
-  'conversations.backgroundTasks.subOff': 'Aus',
-  'conversations.backgroundTasks.subWorking': 'Arbeitet…',
-  'conversations.backgroundTasks.subIdle': 'Inaktiv',
-  'conversations.backgroundTasks.subLastRan': 'Zuletzt ausgeführt {time}',
-  'conversations.backgroundTasks.subNeverRan': 'Noch nicht ausgeführt',
-  'conversations.backgroundTasks.subTicks': '{count} Durchläufe',
-  'conversations.backgroundTasks.subQueued': '{count} in Warteschlange',
   'conversations.backgroundTasks.memUpToDate': 'Alle Erinnerungen aktuell',
   'conversations.backgroundTasks.memIngesting': '{title} wird indexiert',
   'conversations.backgroundTasks.memIngestingUntitled': 'Erinnerungen werden indexiert',
@@ -469,9 +462,6 @@ const messages: TranslationMap = {
   'settings.assistant.personality': 'Persönlichkeit',
   'settings.assistant.voice': 'Stimme',
   'settings.assistant.voiceDesc': 'Sprache-zu-Text und Text-zu-Sprache Einstellungen',
-  'settings.assistant.backgroundActivity': 'Unterbewusstsein',
-  'settings.assistant.backgroundActivityDesc':
-    'Steuern, wie aktiv Ihr Assistent im Hintergrund arbeitet',
   'settings.assistant.permissions': 'Berechtigungen',
   'settings.assistant.permissionsDesc': 'Wähle, was der Assistent tun darf und wo er arbeiten kann',
   'settings.privacySecurity.privacy': 'Datenschutz',
@@ -1003,7 +993,6 @@ const messages: TranslationMap = {
     'Noch keine Erinnerungen. Erinnerungen werden automatisch erstellt, während du interagierst.',
   'memory.tab.memory': 'Erinnerung',
   'memory.tab.memoryTree': 'Erinnerungsbaum',
-  'memory.tab.subconscious': 'Unterbewusstsein',
   'memory.tab.agentWork': 'Agentenarbeit',
   'memory.tab.agentWorkDescription':
     'Eine Kommandozentrale für jeden Hintergrund-Agentenlauf: gruppiert danach, was deine Eingabe braucht, was läuft und was abgeschlossen ist.',
@@ -1497,7 +1486,6 @@ const messages: TranslationMap = {
     'Wird beim Start der App von der Tauri-Shell im Prozess erzeugt. Der Port wird beim Start ausgewählt, sodass dieser URL zwischen den Starts wechselt.',
   'settings.about.connectionHelperCloud':
     'Verbunden mit einem Remote-Core. Ändern Sie dies in BootCheck oder in der Cloud-Modus-Auswahl.',
-  'settings.heartbeat.title': 'Heartbeat und Schleifen',
   'settings.usage.title': 'Nutzung',
   'settings.usage.menuDesc':
     'Kosten, Token-Einsparungen, Nutzungsprotokoll und Hintergrundaktivität',
@@ -2477,7 +2465,6 @@ const messages: TranslationMap = {
   'chat.safetyTimeout':
     'Keine Antwort vom Agenten nach 2 Minuten. Versuche es erneut oder prüfe deine Verbindung.',
   'chat.filter.general': 'Allgemein',
-  'chat.filter.subconscious': 'Unterbewusstsein',
   'chat.filter.meetings': 'Meetings',
   'chat.filter.tasks': 'Aufgaben',
   'chat.selectThread': 'Wähle einen Thread aus',
@@ -4956,7 +4943,7 @@ const messages: TranslationMap = {
     'Verwendet die vorhandene Codex-CLI-Anmeldung aus ~/.codex/auth.json.',
   'settings.ai.backgroundLoops': 'Hintergrundschleifen',
   'settings.ai.backgroundLoopsDesc':
-    'Sehen Sie, was ohne Chat-Nachricht läuft, pausieren Sie die Herzschlagarbeit und überprüfen Sie die letzten Kreditbuchzeilen.',
+    'Sehen Sie, was ohne Chat-Nachricht läuft, und überprüfen Sie die letzten Kreditbuchzeilen.',
   'settings.ai.loopMap': 'Schleifenzuordnung',
   'settings.ai.routeLabel': 'Route: {route}',
   'settings.ai.on': 'ein',
@@ -5080,7 +5067,7 @@ const messages: TranslationMap = {
     'Modelle, die während der direkten Benutzerinteraktion verwendet werden, Antworten, Argumentation, Agentenschleifen und Codierungshilfe.',
   'settings.ai.routing.backgroundTasks': 'Hintergrundaufgaben',
   'settings.ai.routing.bgTasksDesc':
-    'Modelle, die außerhalb des Hauptgesprächsflusses für Zusammenfassung, Herzschlag, Lernen und unbewusste Bewertung verwendet werden.',
+    'Modelle, die außerhalb des Hauptgesprächsflusses für Speicherzusammenfassung und Lernen verwendet werden.',
   'settings.ai.routing.workload.chat.label': 'Chat',
   'settings.ai.routing.workload.chat.description':
     'Direkter dialogischer Austausch hin und her – „Schnell“-Modus in Unterhaltungen',
@@ -5109,21 +5096,11 @@ const messages: TranslationMap = {
   'settings.ai.routing.workload.memory.description': 'Baum-Extraktionen und Konsolidierungen',
   'settings.ai.routing.workload.memory.hint':
     'Empfohlen: ein günstigeres Zusammenfassungsmodell. Es sollte konsistent und kompakt sein, braucht aber keine erstklassige Frontier-Reasoning-Leistung.',
-  'settings.ai.routing.workload.heartbeat.label': 'Heartbeat',
-  'settings.ai.routing.workload.heartbeat.description':
-    'Hintergrund-Reasoning zwischen Nutzer-Eingaben',
-  'settings.ai.routing.workload.heartbeat.hint':
-    'Empfohlen: ein günstiges, effizientes Hintergrundmodell. Läuft häufig zwischen den Eingaben, daher zählen niedrige Kosten mehr als maximale Intelligenz.',
   'settings.ai.routing.workload.learning.label': 'Lernen · Reflexionen',
   'settings.ai.routing.workload.learning.description':
     'Periodische Reflexion über den jüngsten Verlauf',
   'settings.ai.routing.workload.learning.hint':
     'Empfohlen: ein stärkeres reflektierendes Modell. Kann mittelpreisig oder Premium sein, da es von besserer Synthese über den jüngsten Verlauf profitiert.',
-  'settings.ai.routing.workload.subconscious.label': 'Unterbewusstsein',
-  'settings.ai.routing.workload.subconscious.description':
-    'Bewertung der Ereignishaftigkeit + Drift-Prüfungen',
-  'settings.ai.routing.workload.subconscious.hint':
-    'Empfohlen: ein sehr günstiges Überwachungsmodell, idealerweise leichtgewichtig und vorhersehbar. Für Ereignishaftigkeits-Bewertung, Drift-Prüfungen und stille Hintergrundauswertung.',
   'settings.ai.routing.addCustomProvider': 'Benutzerdefinierten Anbieter hinzufügen',
   'settings.ai.globalModel.title': 'Wählen Sie ein Modell für alles',
   'settings.ai.globalModel.desc':
@@ -5134,8 +5111,6 @@ const messages: TranslationMap = {
   'settings.ai.globalModel.model': 'Modell',
   'settings.ai.globalModel.loadingModels': 'Modelle werden geladen…',
   'settings.ai.globalModel.enterModelId': 'Modell-ID eingeben',
-  'settings.ai.globalModel.appliesToAll':
-    'Wendet das gleiche Anbieter + -Modell auf Chat, Argumentation, Codierung, Gedächtnis, Herzschlag, Lernen und Unterbewusstsein an. Einbettungen werden separat konfiguriert. Änderungen speichern, wenn Sie auf Speichern klicken.',
   'settings.ai.globalModel.saving': 'Speichern…',
   'settings.ai.globalModel.saved': 'Gespeichert',
   'settings.ai.workload.noModel': 'Kein Modell ausgewählt',
@@ -5319,6 +5294,7 @@ const messages: TranslationMap = {
   'settings.cron.jobs.removing': 'Entfernen',
   'settings.cron.jobs.resume': 'Lebenslauf',
   'settings.cron.jobs.runningNow': 'Läuft jetzt',
+  'settings.cron.jobs.runNow': 'Jetzt ausführen',
   'settings.cron.jobs.saving': 'Sparen…',
   'settings.cron.jobs.schedule': 'Zeitplan',
   'settings.cron.jobs.title': 'Kern-Cron-Jobs',
@@ -5521,8 +5497,6 @@ const messages: TranslationMap = {
   'settings.developerMenu.eventLog.badge.comp': 'COMP',
   'settings.developerMenu.eventLog.badge.mcp': 'MCP',
   'settings.developerMenu.intelligence.title': 'Intelligenz',
-  'settings.developerMenu.intelligence.desc':
-    'Gedächtnisarbeitsbereich, Unterbewusstseinsmotor, Träume und Einstellungen',
   'settings.developerMenu.notificationRouting.title': 'Benachrichtigungsweiterleitung',
   'settings.developerMenu.notificationRouting.desc':
     'KI-Wichtigkeitsbewertung und Orchestrator-Eskalation für Integrationswarnungen',
@@ -6392,8 +6366,6 @@ const messages: TranslationMap = {
   'devOptions.menuWebhooksDebugDesc':
     'Prüfe Laufzeit-Webhook-Registrierungen und erfasste Anforderungsprotokolle',
   'devOptions.menuIntelligence': 'Intelligenz',
-  'devOptions.menuIntelligenceDesc':
-    'Gedächtnisarbeitsbereich, Unterbewusstseinsmotor, Träume und Einstellungen',
   'devOptions.menuNotificationRouting': 'Benachrichtigungsweiterleitung',
   'devOptions.menuNotificationRoutingDesc':
     'KI-Wichtigkeitsbewertung und Orchestrator-Eskalation für Integrationswarnungen',
@@ -7179,8 +7151,8 @@ const messages: TranslationMap = {
   'settings.ai.perWeek': '{count}/Woche',
   'settings.ai.perWeekMax': '{count}/Woche max.',
   'settings.ai.perHour': '{amount}/Std.',
-  'settings.ai.plannerSyncBreakdown': '{planner} Planer + {sync} Synchronisierung',
   'settings.ai.memoryPollsDetail': '{count} Speicherabfragen',
+  'settings.ai.connectionSyncBreakdown': '{sync} Verbindungssynchronisierung',
   'settings.ai.rowsLeftFormula': 'verbleibend / durchschnittliche Zeile = {remaining} / {avgRow}',
   'settings.ai.needSpendRowsToEstimate':
     'Für eine Schätzung werden aktuelle Ausgabenzeilen benötigt.',

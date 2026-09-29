@@ -2,9 +2,8 @@
 //!
 //! Background (issue #1714): when the agent asks Composio for calendar
 //! events on behalf of the user, the per-call argument object is built
-//! either inside the agent loop (model-constructed) or inside the
-//! heartbeat planner (`heartbeat/planner/collectors.rs`). Both paths
-//! historically went out with UTC-encoded `timeMin` / `timeMax` and no
+//! inside the agent loop (model-constructed) or by a direct call site.
+//! Both historically went out with UTC-encoded `timeMin` / `timeMax` and no
 //! `timeZone` / `singleEvents` field.
 //!
 //! Two practical consequences for users in non-UTC timezones (real
@@ -23,8 +22,7 @@
 //!    against a different zone slide outside the window.
 //!
 //! The fix is to default both fields at the *execute* boundary so the
-//! agent's prompt template, the heartbeat planner, and any future
-//! direct call site all benefit — no per-call-site discipline required.
+//! agent's prompt template and any direct call site all benefit — no per-call-site discipline required.
 //! Callers that pass either field explicitly win; we never overwrite
 //! user-supplied intent.
 

@@ -728,9 +728,7 @@ encrypt = false
     config.coding_provider = Some("ollama:code-local".into());
     config.memory_provider = Some("ollama:memory-local".into());
     config.embeddings_provider = Some("ollama:embed-local".into());
-    config.heartbeat_provider = Some("ollama:heartbeat-local".into());
     config.learning_provider = Some("ollama:learning-local".into());
-    config.subconscious_provider = Some("ollama:subconscious-local".into());
     assert_eq!(
         config.workload_local_model("chat").as_deref(),
         Some("chat-local")
@@ -743,9 +741,7 @@ encrypt = false
     assert!(config.workload_uses_local("coding"));
     assert!(config.workload_uses_local("memory"));
     assert!(config.workload_uses_local("embeddings"));
-    assert!(config.workload_uses_local("heartbeat"));
     assert!(config.workload_uses_local("learning"));
-    assert!(config.workload_uses_local("subconscious"));
     assert!(!config.workload_uses_local("unknown"));
     config.output_language = Some("fr".into());
     assert!(config
@@ -2710,9 +2706,7 @@ async fn config_controller_mutations_round_trip_over_json_rpc() {
             "coding_provider": "worker-a-cloud:code",
             "memory_provider": "worker-a-cloud:memory",
             "embeddings_provider": "worker-a-cloud:embeddings",
-            "heartbeat_provider": "worker-a-cloud:heartbeat",
-            "learning_provider": "worker-a-cloud:learning",
-            "subconscious_provider": "worker-a-cloud:subconscious"
+            "learning_provider": "worker-a-cloud:learning"
         }),
     )
     .await;
@@ -2836,9 +2830,7 @@ async fn config_controller_mutations_round_trip_over_json_rpc() {
                 "model_id": "llama3",
                 "chat_model_id": "llama3",
                 "usage_embeddings": false,
-                "usage_heartbeat": false,
-                "usage_learning_reflection": false,
-                "usage_subconscious": false
+                "usage_learning_reflection": false
             }),
         ),
         (

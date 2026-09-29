@@ -85,13 +85,6 @@
   },
   {
     "rule": "openhuman-task-local",
-    "path": "crates/openhuman-core/src/agent/goals/runtime.rs",
-    "line": 150,
-    "text": "crate::agent::turn_origin::current(),",
-    "occurrence": 1
-  },
-  {
-    "rule": "openhuman-task-local",
     "path": "crates/openhuman-core/src/agent/harness/fork_context.rs",
     "line": 171,
     "text": "tokio::task_local! {",

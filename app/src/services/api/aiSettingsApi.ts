@@ -51,12 +51,10 @@ export type WorkloadId =
   | 'coding'
   | 'vision'
   | 'memory'
-  | 'heartbeat'
-  | 'learning'
-  | 'subconscious';
+  | 'learning';
 
 export const CHAT_WORKLOADS: WorkloadId[] = ['chat', 'reasoning', 'agentic', 'coding'];
-const BACKGROUND_WORKLOADS: WorkloadId[] = ['memory', 'heartbeat', 'learning', 'subconscious'];
+const BACKGROUND_WORKLOADS: WorkloadId[] = ['memory', 'learning'];
 export const ALL_WORKLOADS: WorkloadId[] = [...CHAT_WORKLOADS, ...BACKGROUND_WORKLOADS];
 
 // Workloads that own a `<id>_provider` config field and must round-trip through
@@ -318,9 +316,7 @@ export async function loadAISettings(): Promise<AISettings> {
     coding: parseProviderString(config.coding_provider),
     vision: parseProviderString(config.vision_provider),
     memory: parseProviderString(config.memory_provider),
-    heartbeat: parseProviderString(config.heartbeat_provider),
     learning: parseProviderString(config.learning_provider),
-    subconscious: parseProviderString(config.subconscious_provider),
   };
 
   // Diagnostic: detect partial BYOK routing — some workloads have a BYOK cloud

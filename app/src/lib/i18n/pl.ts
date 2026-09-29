@@ -307,13 +307,6 @@ const messages: TranslationMap = {
   'conversations.backgroundTasks.cronSchedCron': 'Cron {expr}',
   'conversations.backgroundTasks.cronSchedEvery': 'Co {duration}',
   'conversations.backgroundTasks.cronSchedAt': 'Jednorazowo',
-  'conversations.backgroundTasks.subOff': 'Wyłączone',
-  'conversations.backgroundTasks.subWorking': 'Pracuje…',
-  'conversations.backgroundTasks.subIdle': 'Bezczynne',
-  'conversations.backgroundTasks.subLastRan': 'Ostatnie uruchomienie {time}',
-  'conversations.backgroundTasks.subNeverRan': 'Jeszcze nie uruchomiono',
-  'conversations.backgroundTasks.subTicks': '{count} uruchomień',
-  'conversations.backgroundTasks.subQueued': '{count} w kolejce',
   'conversations.backgroundTasks.memUpToDate': 'Wszystkie wspomnienia aktualne',
   'conversations.backgroundTasks.memIngesting': 'Indeksowanie {title}',
   'conversations.backgroundTasks.memIngestingUntitled': 'Indeksowanie wspomnień',
@@ -459,8 +452,6 @@ const messages: TranslationMap = {
   'settings.assistant.personality': 'Osobowość',
   'settings.assistant.voice': 'Głos',
   'settings.assistant.voiceDesc': 'Ustawienia mowy na tekst i tekstu na mowę',
-  'settings.assistant.backgroundActivity': 'Podświadomość',
-  'settings.assistant.backgroundActivityDesc': 'Kontroluj, jak aktywnie asystent pracuje w tle',
   'settings.assistant.permissions': 'Uprawnienia',
   'settings.assistant.permissionsDesc': 'Wybierz, co może robić asystent i gdzie może pracować',
   'settings.privacySecurity.privacy': 'Prywatność',
@@ -987,7 +978,6 @@ const messages: TranslationMap = {
     'Brak wspomnień. Wspomnienia powstają automatycznie podczas korzystania z aplikacji.',
   'memory.tab.memory': 'Pamięć',
   'memory.tab.memoryTree': 'Drzewo pamięci',
-  'memory.tab.subconscious': 'Podświadomość',
   'memory.tab.agentWork': 'Praca agenta',
   'memory.tab.agentWorkDescription':
     'Centrum dowodzenia dla każdego przebiegu agenta w tle: pogrupowane według tego, co wymaga Twojej reakcji, co działa i co zostało ukończone.',
@@ -1478,7 +1468,6 @@ const messages: TranslationMap = {
     'Uruchomiony w procesie przez powłokę Tauri przy starcie aplikacji. Port wybierany jest przy każdym starcie, więc URL zmienia się między uruchomieniami.',
   'settings.about.connectionHelperCloud':
     'Połączono ze zdalnym rdzeniem. Zmień to w BootCheck lub w wyborze trybu chmury.',
-  'settings.heartbeat.title': 'Heartbeat i pętle',
   'settings.usage.title': 'Użycie',
   'settings.usage.menuDesc': 'Koszty, oszczędność tokenów, dziennik użycia i aktywność w tle',
   'settings.costDashboard.monthToDate': 'Od początku miesiąca',
@@ -2438,7 +2427,6 @@ const messages: TranslationMap = {
   'chat.safetyTimeout':
     'Brak odpowiedzi agenta po 2 minutach. Spróbuj ponownie lub sprawdź połączenie.',
   'chat.filter.general': 'Ogólne',
-  'chat.filter.subconscious': 'Podświadomość',
   'chat.filter.meetings': 'Spotkania',
   'chat.filter.tasks': 'Zadania',
   'chat.selectThread': 'Wybierz wątek',
@@ -4896,7 +4884,7 @@ const messages: TranslationMap = {
   'settings.ai.codexAuthHelper': 'Używa istniejącego logowania Codex CLI z ~/.codex/auth.json.',
   'settings.ai.backgroundLoops': 'Pętle w tle',
   'settings.ai.backgroundLoopsDesc':
-    'Zobacz, co działa bez wiadomości na czacie, wstrzymaj pracę heartbeat i sprawdź ostatnie wiersze księgi kredytów.',
+    'Zobacz, co działa bez wiadomości na czacie, i sprawdź ostatnie wiersze księgi kredytów.',
   'settings.ai.loopMap': 'Mapa pętli',
   'settings.ai.routeLabel': 'trasa: {route}',
   'settings.ai.on': 'wł.',
@@ -5020,7 +5008,7 @@ const messages: TranslationMap = {
     'Modele używane podczas bezpośredniej interakcji z użytkownikiem, odpowiedzi, rozumowania, pętli agentów i pomocy w kodowaniu.',
   'settings.ai.routing.backgroundTasks': 'Zadania w tle',
   'settings.ai.routing.bgTasksDesc':
-    'Modele używane poza głównym przepływem rozmowy do podsumowań, heartbeat, uczenia i oceny podświadomości.',
+    'Modele używane poza głównym przepływem rozmowy do podsumowywania pamięci i uczenia.',
   'settings.ai.routing.workload.chat.label': 'Chat',
   'settings.ai.routing.workload.chat.description':
     'Bezpośrednia konwersacja tam i z powrotem: tryb „Szybki” w Rozmowach',
@@ -5050,19 +5038,10 @@ const messages: TranslationMap = {
   'settings.ai.routing.workload.memory.description': 'Ekstrakty i konsolidacje z drzew',
   'settings.ai.routing.workload.memory.hint':
     'Zalecane: tańszy model podsumowujący. Powinien być spójny i zwarty, ale nie wymaga zaawansowanego rozumowania na poziomie pionierskim.',
-  'settings.ai.routing.workload.heartbeat.label': 'Heartbeat',
-  'settings.ai.routing.workload.heartbeat.description':
-    'Rozumowanie w tle pomiędzy turami użytkownika',
-  'settings.ai.routing.workload.heartbeat.hint':
-    'Zalecane: tani, wydajny model tła. Dzieje się to często pomiędzy turami, więc niski koszt ma większe znaczenie niż maksymalna inteligencja.',
   'settings.ai.routing.workload.learning.label': 'Nauka · Refleksje',
   'settings.ai.routing.workload.learning.description': 'Okresowa refleksja nad historią najnowszą',
   'settings.ai.routing.workload.learning.hint':
     'Zalecane: mocniejszy model odblaskowy. Może to być produkt średniej klasy lub premium, ponieważ korzysta z lepszej syntezy w najnowszej historii.',
-  'settings.ai.routing.workload.subconscious.label': 'Subconscious',
-  'settings.ai.routing.workload.subconscious.description': 'Punktacja zdarzeń + kontrole dryfu',
-  'settings.ai.routing.workload.subconscious.hint':
-    'Zalecane: bardzo tani model monitorowania, najlepiej lekki i przewidywalny. Służy do oceniania zdarzeń, sprawdzania dryfu i cichej oceny tła.',
   'settings.ai.routing.addCustomProvider': 'Dodaj własnego dostawcę',
   'settings.ai.globalModel.title': 'Wybierz jeden model do wszystkiego',
   'settings.ai.globalModel.desc':
@@ -5073,8 +5052,6 @@ const messages: TranslationMap = {
   'settings.ai.globalModel.model': 'Model AI',
   'settings.ai.globalModel.loadingModels': 'Ładowanie modeli…',
   'settings.ai.globalModel.enterModelId': 'Wpisz ID modelu',
-  'settings.ai.globalModel.appliesToAll':
-    'Stosuje tego samego dostawcę i model do czatu, rozumowania, kodowania, pamięci, heartbeat, uczenia i podświadomości. Embeddingi są konfigurowane osobno. Zmiany zapiszą się po kliknięciu zapisz.',
   'settings.ai.globalModel.saving': 'Zapisywanie…',
   'settings.ai.globalModel.saved': 'Zapisano',
   'settings.ai.workload.noModel': 'Nie wybrano modelu',
@@ -5261,6 +5238,7 @@ const messages: TranslationMap = {
   'settings.cron.jobs.removing': 'Usuwanie',
   'settings.cron.jobs.resume': 'Wznów',
   'settings.cron.jobs.runningNow': 'Uruchamiane teraz',
+  'settings.cron.jobs.runNow': 'Uruchom teraz',
   'settings.cron.jobs.saving': 'Zapisywanie…',
   'settings.cron.jobs.schedule': 'Harmonogram',
   'settings.cron.jobs.title': 'Zadania cron rdzenia',
@@ -5461,8 +5439,6 @@ const messages: TranslationMap = {
   'settings.developerMenu.eventLog.badge.comp': 'COMP',
   'settings.developerMenu.eventLog.badge.mcp': 'MCP',
   'settings.developerMenu.intelligence.title': 'Inteligencja',
-  'settings.developerMenu.intelligence.desc':
-    'Przestrzeń pamięci, silnik podświadomości, sny i ustawienia',
   'settings.developerMenu.notificationRouting.title': 'Trasowanie powiadomień',
   'settings.developerMenu.notificationRouting.desc':
     'Punktacja ważności AI i eskalacja orkiestratora dla alertów integracji',
@@ -6320,7 +6296,6 @@ const messages: TranslationMap = {
   'devOptions.menuWebhooksDebugDesc':
     'Sprawdź rejestracje webhooków w runtime i logi przechwyconych żądań',
   'devOptions.menuIntelligence': 'Inteligencja',
-  'devOptions.menuIntelligenceDesc': 'Przestrzeń pamięci, silnik podświadomości, sny i ustawienia',
   'devOptions.menuNotificationRouting': 'Trasowanie powiadomień',
   'devOptions.menuNotificationRoutingDesc':
     'Punktacja ważności AI i eskalacja przez orkiestrator dla alertów integracji',
@@ -7092,8 +7067,8 @@ const messages: TranslationMap = {
   'settings.ai.perWeek': '{count}/tydzień',
   'settings.ai.perWeekMax': '{count}/tydzień maks.',
   'settings.ai.perHour': '{amount}/godz.',
-  'settings.ai.plannerSyncBreakdown': '{planner} planer + {sync} synchronizacja',
   'settings.ai.memoryPollsDetail': '{count} odpytań pamięci',
+  'settings.ai.connectionSyncBreakdown': '{sync} synchronizacja połączeń',
   'settings.ai.rowsLeftFormula': 'pozostało / średni wiersz = {remaining} / {avgRow}',
   'settings.ai.needSpendRowsToEstimate': 'Do oszacowania potrzebne są ostatnie wiersze wydatków.',
   'settings.ai.rowsPerBudgetFormula': 'budżet cyklu / średni wiersz = {budget} / {avgRow}',

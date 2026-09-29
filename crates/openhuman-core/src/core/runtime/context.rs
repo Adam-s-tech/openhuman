@@ -924,7 +924,7 @@ pub async fn init_stores(cfg: &crate::config::Config, domains: crate::core::runt
     // Boot-time Sentry user binding — issue #3135. If the user is
     // already signed in (typical desktop restart), the auth-profile
     // store has their `user_id` *now*, before any background loop
-    // (Composio sync tick, heartbeat, etc.) fires its first event.
+    // (Composio sync tick, cron, etc.) fires its first event.
     // Reading from the store here means subsequent events carry
     // `user.id` even when no `app_state_snapshot` RPC has run yet.
     match crate::security::credentials::session_support::build_session_state(cfg) {

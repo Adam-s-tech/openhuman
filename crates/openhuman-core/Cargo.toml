@@ -785,7 +785,7 @@ default = ["media", "skills", "flows", "mcp", "channels", "http-server", "schedu
 #
 # TYPE CARVE-OUT (see AGENTS.md): `memory::diff::types` stays compiled in BOTH
 # builds. It re-exports tinycortex's `serde`-only diff wire types, which the
-# always-on subconscious memory profile renders into prompts; a stub copy would
+# always-on memory profile renders into prompts; a stub copy would
 # be a second definition of one serde shape, free to drift. tinycortex makes the
 # same split — its `memory::diff::{types,source}` are ungated, and only the
 # git-touching `ledger`/`DiffEngine` half sits behind `git-diff`.
@@ -794,7 +794,7 @@ default = ["media", "skills", "flows", "mcp", "channels", "http-server", "schedu
 # `/schema`; the `memory_diff` agent tool is absent from the tool list; the
 # embedded driver stops advertising `Capability::Diff` and `as_diff()` returns
 # `None`; and the three `ops` entry points always-on code calls return a
-# build-fact error, so a post-sync snapshot or a subconscious diff is logged and
+# build-fact error, so a post-sync snapshot or diff is logged and
 # skipped rather than silently reported as "nothing changed".
 http-server = ["dep:axum", "tinymcp/server-http"]
 # Local audio-device access: the `cpal` capture stack behind voice recording

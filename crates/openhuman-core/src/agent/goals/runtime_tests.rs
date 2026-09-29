@@ -99,9 +99,14 @@ async fn account_turn_clears_suppression_without_losing_usage() {
     let goal = store::set(&dir, "t-suppressed", "obj", Some(1000))
         .await
         .unwrap();
-    store::set_continuation_suppressed_if(&dir, "t-suppressed", &goal.goal_id, true)
-        .await
-        .unwrap();
+    tinyagents_graph::goals::store::set_continuation_suppressed_if(
+        &goals_store(&dir),
+        "t-suppressed",
+        &goal.goal_id,
+        true,
+    )
+    .await
+    .unwrap();
 
     account_turn_against_goal(&dir, Some("t-suppressed"), 80, 40, 3).await;
 

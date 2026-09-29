@@ -31,8 +31,8 @@ pub(super) const VOICE_CHAT_THREAD_ID: &str = "proactive:voice";
 pub(super) const VOICE_CHAT_CLIENT_ID: &str = "system";
 
 /// Deliver a deferred voice turn's answer into the user's in-app chat. Publishes
-/// a `proactive_message` on the web-channel event bus — the same seam cron and the
-/// subconscious use — which the frontend renders as an assistant message in a
+/// a `proactive_message` on the web-channel event bus — the same seam cron
+/// uses — which the frontend renders as an assistant message in a
 /// visible thread. Web-only: it does not fan out to external channels (#5399).
 pub(super) fn deliver_voice_result_to_chat(
     correlation_id: &str,

@@ -119,8 +119,8 @@ tokio::task_local! {
 /// so a tool call parked from that run can correlate
 /// [`PendingApproval::source_context`](super::types::PendingApproval) back to
 /// the exact flow + run (the origin alone only carries `flow_id`, not
-/// `run_id`). Absent for every non-flow caller — chat, cron, subconscious,
-/// CLI never scope this.
+/// `run_id`). Absent for every non-flow caller — chat, cron, background
+/// jobs, CLI never scope this.
 #[derive(Clone, Debug)]
 pub struct FlowRunContext {
     pub flow_id: String,

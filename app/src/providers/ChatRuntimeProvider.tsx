@@ -536,7 +536,7 @@ const ChatRuntimeProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       // Reuse an existing thread for proactive delivery ONLY when it is
-      // fresh (no messages). Injecting a morning brief / subconscious
+      // fresh (no messages). Injecting a morning brief / scheduled-job
       // update into a thread that already holds a conversation interrupts
       // the active chat flow (#3713). Candidate priority is selected >
       // first thread; if the candidate already has messages we fall

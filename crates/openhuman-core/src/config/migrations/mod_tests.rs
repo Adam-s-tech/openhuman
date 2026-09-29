@@ -152,24 +152,27 @@ async fn run_pending_rewrites_v11_config() {
     let tmp = TempDir::new().unwrap();
     fs::create_dir_all(tmp.path().join("workspace")).unwrap();
 
-    let mut config = config_in(&tmp);
-    config.schema_version = 11;
+    let config = config_in(&tmp);
+    let config_path = config.config_path.clone();
+    let mut legacy_toml = toml::to_string(&Config {
+        schema_version: 11,
+        ..config
+    })
+    .unwrap();
+    legacy_toml.push_str("\n[subconscious]\nenabled = true\n\n[heartbeat]\nenabled = true\n");
+    fs::write(&config_path, &legacy_toml).unwrap();
+    let mut config: Config = toml::from_str(&legacy_toml).unwrap();
+    config.config_path = config_path;
 
     run_pending(&mut config).await;
 
     assert_eq!(config.schema_version, CURRENT_SCHEMA_VERSION);
-    assert_eq!(
-        config.subconscious.engine,
-        crate::config::schema::SubconsciousEngine::Local
-    );
 
     let on_disk = fs::read_to_string(&config.config_path).unwrap();
     let persisted: Config = toml::from_str(&on_disk).unwrap();
     assert_eq!(persisted.schema_version, CURRENT_SCHEMA_VERSION);
-    assert_eq!(
-        persisted.subconscious.engine,
-        crate::config::schema::SubconsciousEngine::Local
-    );
+    assert!(!on_disk.contains("[subconscious]"), "{on_disk}");
+    assert!(!on_disk.contains("[heartbeat]"), "{on_disk}");
 }
 
 #[tokio::test]

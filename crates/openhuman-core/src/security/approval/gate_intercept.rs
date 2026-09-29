@@ -17,7 +17,7 @@ impl ApprovalGate {
         forced: bool,
     ) -> (GateOutcome, Option<String>) {
         // Origin tells us who scheduled this turn. Entry points (web channel,
-        // channel runtime, subconscious, cron, CLI) scope a typed
+        // channel runtime, cron, background jobs, CLI) scope a typed
         // `AgentTurnOrigin` around `run_turn`. Unlabelled callers map to
         // `Unknown`, which is denied — the gate refuses to execute an
         // external_effect tool from an unlabelled call site.
@@ -45,9 +45,6 @@ impl ApprovalGate {
             bypass_auto = matches!(
                 &origin,
                 AgentTurnOrigin::TrustedAutomation {
-                    source: TrustedAutomationSource::GoalContinuation,
-                    ..
-                } | AgentTurnOrigin::TrustedAutomation {
                     source: TrustedAutomationSource::Workflow {
                         require_approval: true
                     },
@@ -98,20 +95,14 @@ impl ApprovalGate {
             }
         }
 
-        // An autonomous goal continuation runs with no user present, so an
-        // irreversible external action must never be auto-allowed — not even via
-        // the `autonomy.auto_approve` allowlist. Skip the shortcut for that
-        // origin and fall through to the parking flow below. A workflow run
-        // whose flow has `require_approval` set gets the same treatment — the
-        // user explicitly asked for every outbound action on that flow to be
-        // gated, and a global tool allowlist must not silently override that
-        // per-flow choice.
+        // A workflow run whose flow has `require_approval` set must never be
+        // auto-allowed via the `autonomy.auto_approve` allowlist — the user
+        // explicitly asked for every outbound action on that flow to be gated,
+        // and a global tool allowlist must not silently override that per-flow
+        // choice. Skip the shortcut and fall through to the parking flow below.
         let bypass_auto_approve_shortcut = matches!(
             &origin,
             AgentTurnOrigin::TrustedAutomation {
-                source: TrustedAutomationSource::GoalContinuation,
-                ..
-            } | AgentTurnOrigin::TrustedAutomation {
                 source: TrustedAutomationSource::Workflow {
                     require_approval: true
                 },
@@ -121,12 +112,10 @@ impl ApprovalGate {
 
         // Blanket "auto-approve everything" bypass (opt-in, off by default).
         // Sits ABOVE the origin match below so it prevents parking entirely
-        // for every origin except the two that must never be silently
-        // allowed: a subconscious tick whose memory context is tainted by
-        // external-sync content (indirect prompt injection defense) and an
-        // unlabelled call site (fail-closed default). Both are excluded here
-        // so they still fall through to the origin match and hit their Deny
-        // arms unchanged. This check is independent of — and does not
+        // for every origin except an unlabelled call site, which must never be
+        // silently allowed (fail-closed default). It is excluded here so it
+        // still falls through to the origin match and hits its Deny arm
+        // unchanged. This check is independent of — and does not
         // weaken — `is_always_forbidden`, `is_workspace_internal_path`, or
         // `ToolPolicyMiddleware`, which all run inside the tool
         // implementation itself, not the approval gate.
@@ -147,14 +136,8 @@ impl ApprovalGate {
         // `auto_approve_all_allows_a_remote_triage_dispatch_without_an_audit_row`
         // below pins that outcome, so a change to this exclusion list has to
         // confront the decision rather than discover it.
-        let auto_all = self.is_auto_approve_all_enabled()
-            && !matches!(
-                &origin,
-                AgentTurnOrigin::TrustedAutomation {
-                    source: TrustedAutomationSource::SubconsciousTainted,
-                    ..
-                } | AgentTurnOrigin::Unknown
-            );
+        let auto_all =
+            self.is_auto_approve_all_enabled() && !matches!(&origin, AgentTurnOrigin::Unknown);
 
         if auto_all && !forced {
             // `origin_class` is the sanitized variant label (no thread/client
@@ -242,11 +225,9 @@ impl ApprovalGate {
 
         // Branch by origin. Web chat parks for an in-app approval; external
         // channel persists an audit row and TTL-denies (no routable approval
-        // surface yet); trusted automation (cron, internal-only subconscious)
-        // is allowed through unchanged; tainted subconscious — a tick whose
-        // memory context contains external-sync chunks — is denied because
-        // remote text could otherwise steer it into an external_effect tool;
-        // CLI keeps the legacy allow; Unknown fails closed.
+        // surface yet); trusted automation (cron, internal background jobs)
+        // is allowed through unchanged; CLI keeps the legacy allow; Unknown
+        // fails closed.
         match &origin {
             AgentTurnOrigin::WebChat { .. } => {
                 // Fall through to the existing chat-routed parking flow below.
@@ -283,51 +264,15 @@ impl ApprovalGate {
                 return (GateOutcome::Allow, None);
             }
             AgentTurnOrigin::TrustedAutomation {
-                source: TrustedAutomationSource::Subconscious,
+                source: TrustedAutomationSource::Background,
                 job_id,
             } => {
                 tracing::debug!(
                     tool = tool_name,
                     job_id = %job_id,
-                    "[approval::gate] trusted internal subconscious tick — allowing without prompt"
+                    "[approval::gate] trusted internal background job — allowing without prompt"
                 );
                 return (GateOutcome::Allow, None);
-            }
-            AgentTurnOrigin::TrustedAutomation {
-                source: TrustedAutomationSource::SubconsciousTainted,
-                job_id,
-            } => {
-                tracing::warn!(
-                    tool = tool_name,
-                    job_id = %job_id,
-                    "[approval::gate] subconscious tick with external-sync memory in context — \
-                     rejecting external_effect tool"
-                );
-                return (
-                    GateOutcome::Deny {
-                        reason: format!(
-                            "{POLICY_DENIED_MARKER} Tool '{tool_name}' rejected: subconscious turn \
-                             whose memory context includes external-sync chunks may not run \
-                             external_effect tools."
-                        ),
-                    },
-                    None,
-                );
-            }
-            AgentTurnOrigin::TrustedAutomation {
-                source: TrustedAutomationSource::GoalContinuation,
-                job_id,
-            } => {
-                tracing::debug!(
-                    tool = tool_name,
-                    job_id = %job_id,
-                    "[approval::gate] autonomous goal continuation — external_effect tool parks \
-                     (no present user to authorize); TTL-denies without a routable surface"
-                );
-                // Fall through to the parking flow: an autonomous continuation
-                // runs with no user present, so we must NOT auto-allow an
-                // irreversible external action. Read/compute tools (not gated
-                // here) still make progress on the goal.
             }
             AgentTurnOrigin::TrustedAutomation {
                 source:
@@ -357,8 +302,7 @@ impl ApprovalGate {
                     "[approval::gate] workflow run has require_approval enabled — parking for \
                      HITL review instead of auto-allowing the trust root"
                 );
-                // Fall through to the parking flow (same shape as
-                // GoalContinuation): persists a `pending_approvals` audit row
+                // Fall through to the parking flow: persists a `pending_approvals` audit row
                 // and publishes `ApprovalRequested`. There is no chat thread to
                 // route the prompt to for a background/triggered flow run yet
                 // (B3 will add a dedicated review surface) — a caller can still
@@ -423,7 +367,7 @@ impl ApprovalGate {
         // that comes from the `APPROVAL_FLOW_RUN_CONTEXT` task-local
         // `flows::ops::flows_run`/`flows_resume` scope alongside `with_origin`.
         // `try_with` returns `Err` for every non-flow caller (chat, cron,
-        // subconscious, CLI, and even a Workflow origin reached without the
+        // background jobs, CLI, and even a Workflow origin reached without the
         // flows module's scope, which "should never happen" but must not
         // panic), so `source_context` stays `None` there — unchanged chat
         // behavior.
