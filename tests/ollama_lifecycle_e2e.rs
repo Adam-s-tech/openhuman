@@ -3,8 +3,8 @@
 //! These tests exercise the ownership model through the public `LocalAiService`
 //! API without launching a real Ollama binary. Three flows are covered:
 //!
-//! 1. **Owned-spawn → graceful exit**: `shutdown_owned_ollama` kills the child
-//!    process and clears the on-disk spawn marker.
+//! 1. **Owned-spawn → graceful exit**: covered upstream by
+//!    `shutdown_owned_ollama_clears_marker_and_kills_child` in tinyinference-local.
 //! 2. **External adoption → graceful exit**: when the daemon on `:11434` was not
 //!    spawned by openhuman (`owned_ollama == None`), `shutdown_owned_ollama` is
 //!    a no-op; a substitute long-running process stands in for the "external"
@@ -102,88 +102,6 @@ fn write_marker(path: &std::path::Path, pid: u32) {
     let tmp = path.with_extension("spawn.tmp");
     std::fs::write(&tmp, &json).expect("write marker tmp");
     std::fs::rename(&tmp, path).expect("rename marker");
-}
-
-// ── Test 1: owned-spawn lifecycle — graceful exit ─────────────────────────────
-
-/// When openhuman spawned Ollama itself (owned_ollama is Some), calling
-/// `shutdown_owned_ollama` must:
-///   - kill the owned child process,
-///   - clear the on-disk spawn marker.
-#[tokio::test]
-async fn owned_spawn_shutdown_kills_child_and_clears_marker() {
-    let _guard = env_lock();
-    let tmp = tempfile::tempdir().unwrap();
-
-    // Set OPENHUMAN_WORKSPACE so the marker path resolves under our tempdir.
-    // EnvVarGuard restores the previous value on drop — even if an assertion panics.
-    let _ws_guard = EnvVarGuard::set("OPENHUMAN_WORKSPACE", tmp.path().as_os_str());
-    let mut config = Config::default();
-    config.workspace_dir = tmp.path().to_path_buf();
-    config.config_path = tmp.path().join("config.toml");
-
-    let runtime = openhuman_core::inference::local_runtime_config(&config);
-    let service = LocalAiService::new(&runtime);
-
-    // Spawn a long-running stub process (acts as the "owned ollama" child).
-    let mut cmd = if cfg!(windows) {
-        let mut c = tokio::process::Command::new("powershell");
-        c.args(["-NoProfile", "-Command", "Start-Sleep -Seconds 30"]);
-        c
-    } else {
-        let mut c = tokio::process::Command::new("sleep");
-        c.arg("30");
-        c
-    };
-    cmd.stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null());
-    let child = cmd.spawn().expect("spawn stub child");
-    let child_pid = child.id().expect("child pid");
-
-    // Inject it as the owned child (mirrors what start_and_wait_for_server does).
-    service.inject_owned_ollama(child);
-
-    // Write the spawn marker (mirrors what start_and_wait_for_server does after
-    // the daemon health poll succeeds).
-    let marker_path = marker_path_for(&config);
-    write_marker(&marker_path, child_pid);
-    assert!(
-        marker_path.exists(),
-        "marker must be on disk before shutdown"
-    );
-
-    // Exercise the public shutdown hook.
-    service.shutdown_owned_ollama(&runtime).await;
-
-    // Marker must be gone.
-    assert!(
-        !marker_path.exists(),
-        "shutdown_owned_ollama must remove the spawn marker"
-    );
-
-    // Owned handle must be cleared.
-    assert!(
-        !service.has_owned_ollama(),
-        "owned_ollama must be None after shutdown"
-    );
-
-    // The child process must be dead within a brief settle window.
-    let mut still_alive = true;
-    for _ in 0..40 {
-        let mut sys = sysinfo::System::new();
-        let target = sysinfo::Pid::from_u32(child_pid);
-        sys.refresh_processes(sysinfo::ProcessesToUpdate::Some(&[target]), true);
-        if sys.process(target).is_none() {
-            still_alive = false;
-            break;
-        }
-        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
-    }
-    assert!(
-        !still_alive,
-        "child pid {child_pid} should be dead after shutdown_owned_ollama"
-    );
-    // _ws_guard restores OPENHUMAN_WORKSPACE when it drops.
 }
 
 // ── Test 2: external adoption — shutdown leaves external daemon untouched ─────
