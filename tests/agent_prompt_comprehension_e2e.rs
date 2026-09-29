@@ -140,7 +140,7 @@ fn captured_requests_mention_unknown_tool(requests: &[Value]) -> bool {
 /// canary passed as an argument would otherwise read as a pass.
 fn tool_result_text(requests: &[Value], tool_name: &str) -> Option<String> {
     let prefix = format!("call_{tool_name}_");
-    requests
+    let native = requests
         .iter()
         .filter_map(|request| request.pointer("/body/messages").and_then(Value::as_array))
         .flatten()
@@ -162,7 +162,29 @@ fn tool_result_text(requests: &[Value], tool_name: &str) -> Option<String> {
                 "`{tool_name}` was not a tool the calling agent could reach: {text}"
             );
             text
-        })
+        });
+    native.or_else(|| {
+        requests
+            .iter()
+            .filter_map(|request| request.pointer("/body/messages").and_then(Value::as_array))
+            .flatten()
+            .filter_map(|message| message.get("content").and_then(Value::as_str))
+            .find_map(|content| {
+                let marker = content.find("<tool_result id=\"")?;
+                let after_tag = content[marker..].find('>')? + marker + 1;
+                let id = &content[marker..after_tag];
+                if !id.contains(&prefix) {
+                    return None;
+                }
+                let end = content[after_tag..].find("</tool_result>")? + after_tag;
+                let text = content[after_tag..end].trim().to_string();
+                assert!(
+                    !text.starts_with("unknown tool"),
+                    "`{tool_name}` was not a tool the calling agent could reach: {text}"
+                );
+                Some(text)
+            })
+    })
 }
 
 /// Tool names a captured model request advertised to the provider.
