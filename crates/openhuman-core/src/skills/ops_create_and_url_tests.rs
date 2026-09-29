@@ -296,6 +296,25 @@ fn create_skill_rejects_empty_description() {
     );
 }
 
+// -- install URL host policy (portable guards are tested in tinyskills) ------
+
+#[test]
+fn normalize_install_url_accepts_a_file_api_that_names_the_md_in_its_query() {
+    let url = "https://clawhub.ai/api/v1/skills/apple-design/file?path=SKILL.md";
+    assert_eq!(normalize_install_url(url).unwrap(), url);
+    let err =
+        normalize_install_url("https://clawhub.ai/api/v1/skills/x/file?path=run.sh").unwrap_err();
+    assert!(err.contains(".md"), "{err}");
+    // Only ClawHub's file endpoint may name the file in its query.
+    for other in [
+        "https://example.com/api/v1/skills/x/file?path=SKILL.md",
+        "https://clawhub.ai/download?path=SKILL.md",
+    ] {
+        let err = normalize_install_url(other).unwrap_err();
+        assert!(err.contains(".md"), "{other}: {err}");
+    }
+}
+
 #[tokio::test]
 async fn install_workflow_from_url_is_idempotent_when_skill_already_exists() {
     use wiremock::matchers::{method, path};
