@@ -149,9 +149,11 @@ async fn a_remote_call_error_is_scrubbed() {
     let tools = configured_server_tools(&config, &registry, &security(), &HashSet::new());
     let read = tools.iter().find(|tool| tool.name() == name("readGoals")).unwrap();
 
-    let error = read.execute(json!({ "name": "fail" })).await.unwrap_err();
-    assert!(error.to_string().contains("[redacted]"), "{error}");
-    assert!(!error.to_string().contains(SECRET));
+    let result = read.execute(json!({ "name": "fail" })).await.unwrap();
+    assert!(result.is_error);
+    let text = result.text();
+    assert!(text.contains("[redacted]"), "{text}");
+    assert!(!text.contains(SECRET));
 }
 
 #[tokio::test]
@@ -161,7 +163,8 @@ async fn a_configured_tool_rejects_unreadable_current_configuration() {
     let config = config(dir.path(), &format!("{}/mcp", mock.uri()), |_| {});
     let registry = warmed(&config).await;
     let tools = configured_server_tools(&config, &registry, &security(), &HashSet::new());
-    tokio::fs::write(&config.config_path, "not valid toml = [").await.unwrap();
+    tokio::fs::remove_file(&config.config_path).await.unwrap();
+    tokio::fs::create_dir(&config.config_path).await.unwrap();
 
     let read = tools.iter().find(|tool| tool.name() == name("readGoals")).unwrap();
     let error = read.execute(json!({})).await.unwrap_err();
