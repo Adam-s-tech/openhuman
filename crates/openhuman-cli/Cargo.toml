@@ -131,7 +131,7 @@ required-features = ["modules"]
 [[test]]
 name = "x402_twit_sh_live"
 path = "../../tests/x402_twit_sh_live.rs"
-# `x402::tools::X402RequestTool` — the x402 domain is part of the web3 family.
+# `x402::request_tool()` — the x402 domain is part of the web3 family.
 required-features = ["web3"]
 
 [[test]]
