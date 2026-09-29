@@ -629,16 +629,3 @@ fn response_fields_from_schema_empty_for_none_or_non_object() {
 // Direct unit tests for the pure name-validity check — see
 // `openhuman::flows::ops_tests` for the end-to-end
 // `validate_tool_contracts` coverage of the same behavior.
-
-#[test]
-fn unsupported_arg_names_flags_a_name_not_in_properties() {
-    let schema = json!({
-        "type": "object",
-        "properties": { "channel": {"type": "string"}, "markdown_text": {"type": "string"} }
-    });
-    let args = json!({ "channel": "#general", "text": "hi" });
-    assert_eq!(
-        unsupported_arg_names(Some(&schema), &args),
-        Some(vec!["text".to_string()])
-    );
-}

@@ -19,7 +19,6 @@
 use std::time::Duration;
 
 mod environment;
-#[allow(dead_code)] // Legacy batch exporter remains for compatibility tests.
 mod ingestion_batch;
 #[allow(dead_code)] // Child-run rooting is still shared with the OTLP path.
 mod journal_export;
