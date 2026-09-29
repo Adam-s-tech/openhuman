@@ -147,7 +147,10 @@ async fn a_remote_call_error_is_scrubbed() {
     let config = config(dir.path(), &format!("{}/mcp", mock.uri()), |_| {});
     let registry = warmed(&config).await;
     let tools = configured_server_tools(&config, &registry, &security(), &HashSet::new());
-    let read = tools.iter().find(|tool| tool.name() == name("readGoals")).unwrap();
+    let read = tools
+        .iter()
+        .find(|tool| tool.name() == name("readGoals"))
+        .unwrap();
 
     let result = read.execute(json!({ "name": "fail" })).await.unwrap();
     assert!(result.is_error);
@@ -166,9 +169,14 @@ async fn a_configured_tool_rejects_unreadable_current_configuration() {
     tokio::fs::remove_file(&config.config_path).await.unwrap();
     tokio::fs::create_dir(&config.config_path).await.unwrap();
 
-    let read = tools.iter().find(|tool| tool.name() == name("readGoals")).unwrap();
+    let read = tools
+        .iter()
+        .find(|tool| tool.name() == name("readGoals"))
+        .unwrap();
     let error = read.execute(json!({})).await.unwrap_err();
-    assert!(error.to_string().contains("could not reload MCP configuration"));
+    assert!(error
+        .to_string()
+        .contains("could not reload MCP configuration"));
     assert_eq!(tools_list_requests(&mock).await, 1);
 }
 
