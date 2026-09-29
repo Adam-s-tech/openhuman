@@ -625,6 +625,33 @@ impl CoreContext {
         ctx.rebind_workspace(workspace_dir, memory_subsystem)
     }
 
+    /// Replace only the `[subsystems.memory]` half of this context's workspace
+    /// binding, keeping the workspace dir. The memory-engine switch
+    /// (`memory::binding::rebind`) uses it so [`Self::memory_binding`] resolves
+    /// the new driver without a restart. A no-op when the config is unchanged.
+    pub(crate) fn set_memory_subsystem(
+        &self,
+        workspace_dir: &std::path::Path,
+        memory_subsystem: crate::config::schema::MemorySubsystemConfig,
+    ) -> Result<(), String> {
+        let mut binding = self
+            .workspace_binding
+            .write()
+            .map_err(|e| format!("memory subsystem update failed: binding lock poisoned: {e}"))?;
+        if binding.workspace_dir.as_deref() != Some(workspace_dir)
+            || binding.memory_subsystem == memory_subsystem
+        {
+            return Ok(());
+        }
+        log::info!(
+            "[core-context] memory subsystem driver set to '{}' for {}",
+            memory_subsystem.driver,
+            workspace_dir.display()
+        );
+        binding.memory_subsystem = memory_subsystem;
+        Ok(())
+    }
+
     fn rebind_workspace(
         &self,
         workspace_dir: &std::path::Path,
