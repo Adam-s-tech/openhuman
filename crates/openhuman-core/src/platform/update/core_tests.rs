@@ -410,8 +410,8 @@ fn staging_refuses_an_archive_without_the_core_binary() {
     );
     let dest = dir.path().join(staged_binary_name());
 
-    let err = extract_core_binary(&archive, &dest, false)
-        .expect_err("a wrong-named entry must fail");
+    let err =
+        extract_core_binary(&archive, &dest, false).expect_err("a wrong-named entry must fail");
 
     assert!(
         err.contains(staged_binary_name()),
@@ -445,5 +445,8 @@ fn staging_extracts_zip_when_archive_format_is_explicit() {
 
     extract_core_binary(&downloaded, &dest, true).expect("zip binary must extract");
 
-    assert_eq!(std::fs::read(&dest).expect("read staged binary"), b"core binary");
+    assert_eq!(
+        std::fs::read(&dest).expect("read staged binary"),
+        b"core binary"
+    );
 }
