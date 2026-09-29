@@ -64,6 +64,9 @@ pub use types::{
     SubagentRunStatus, SubagentUsage,
 };
 
+// Custom `AgentGraph` implementations use this adapter after their own
+// routing nodes; no built-in agent currently selects a custom graph.
+#[allow(unused_imports)]
 pub(crate) use ops::run_agent_turn_request_via_default_graph;
 pub(crate) use ops::{append_subagent_role_contract, resolve_subagent_source};
 
