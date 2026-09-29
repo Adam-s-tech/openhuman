@@ -1758,6 +1758,14 @@ const MEMORY_FUNCTION_CAPABILITY: &[(&str, Option<Capability>)] = &[
     ("learn_all", Some(Capability::Tree)),
     // never gated: this is the RPC that reports the capability set
     ("provider_status", None),
+    // Engine selection and migration controls must remain visible even when
+    // the selected driver lacks optional memory capability families.
+    ("engines_list", None),
+    ("engine_get", None),
+    ("engine_set", None),
+    ("engine_migrate", None),
+    ("engine_migrate_status", None),
+    ("engine_migrate_cancel", None),
     // per-tool learned memory
     ("tool_rule_put", Some(Capability::ToolMemory)),
     ("tool_rule_get", Some(Capability::ToolMemory)),
