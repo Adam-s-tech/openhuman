@@ -3,8 +3,7 @@ use async_trait::async_trait;
 use crate::agent::tinyagents::TurnModelSource;
 use std::sync::Arc;
 use tinyagents_harness::host::{ContextComposer, TurnContextRequest};
-use tinyinference_llm::message::ModelProfile;
-use tinyinference_llm::model::{ChatModel, ModelRequest, ModelResponse};
+use tinyinference_llm::model::{ChatModel, ModelProfile, ModelRequest, ModelResponse};
 use tinyinference_llm::tool::ToolCall;
 use tinytools::{Tool, ToolResult};
 
@@ -26,7 +25,7 @@ impl Tool for LimitedTool {
 
     async fn execute(&self, _args: serde_json::Value) -> anyhow::Result<ToolResult> {
         self.0.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-        Ok(ToolResult::text("executed"))
+        Ok(ToolResult::success("executed"))
     }
 }
 
@@ -106,7 +105,7 @@ async fn scoped_tool_limit_is_honored_by_the_hosted_runner() {
             "root-test-model",
             root_messages("limited-runner"),
             vec![Arc::new(vec![Box::new(LimitedTool(tool_calls.clone())) as Box<dyn Tool>])],
-            Some(Default::default()),
+            None,
             2,
             None,
             None,
