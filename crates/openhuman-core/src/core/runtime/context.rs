@@ -442,7 +442,10 @@ impl CoreContext {
         // `[subsystems.memory]`) keeps that override.
         let shared_binding = {
             let parent_handle = self.workspace_binding.read();
-            let parent_handle = parent_handle.as_ref().ok().map(Arc::clone);
+            let parent_handle = parent_handle
+                .as_ref()
+                .ok()
+                .map(|handle| Arc::clone(&**handle));
             let parent = parent_handle.as_ref().and_then(|h| h.read().ok());
             match parent {
                 Some(parent)
