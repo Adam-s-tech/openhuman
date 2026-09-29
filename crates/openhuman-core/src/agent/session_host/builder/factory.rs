@@ -296,7 +296,7 @@ impl OpenHumanSessionHost {
         // `hint:coding`, while existing pre-registry callers continue using
         // `config.default_model` unchanged.
         let provider_role =
-            provider_role_for_definition(agent_id, config.default_model.as_deref(), target_def);
+            provider_role_for_definition(config.default_model.as_deref(), target_def);
         // Retry/backoff is now owned by the crate `RetryPolicy` at the harness
         // model call (issue #4249, Phase 3a) — see `tinyagents::run_policy_for`.
         // The turn path therefore no longer wraps the resolved provider in
@@ -1154,10 +1154,10 @@ fn definition_disallows_tool(disallowed: &[String], name: &str) -> bool {
 
 /// Resolve the provider/workload role for a session build.
 ///
-/// Explicit `hint:<role>` markers route to their workload; everything else (incl. the legacy `default_model` tier the
-/// bootstrap pinned) falls through to `chat` so `chat_provider` drives the
-/// user-facing turn.
-pub(crate) fn provider_role_for(_agent_id: &str, default_model: Option<&str>) -> &'static str {
+/// Explicit `hint:<role>` markers route to their workload; everything else
+/// (incl. the legacy `default_model` tier the bootstrap pinned) falls through
+/// to `chat` so `chat_provider` drives the user-facing turn.
+pub(crate) fn provider_role_for(default_model: Option<&str>) -> &'static str {
     match default_model.map(str::trim) {
         Some("hint:agentic") => "agentic",
         Some("hint:coding") => "coding",
@@ -1174,7 +1174,6 @@ mod provider_role_tests;
 /// Resolve the initial harness workload without constructing a session.
 /// Flow readiness shares this path so it checks the provider used at runtime.
 pub(crate) fn provider_role_for_definition(
-    agent_id: &str,
     default_model: Option<&str>,
     target_def: Option<&crate::agent::harness::definition::AgentDefinition>,
 ) -> &'static str {
@@ -1195,7 +1194,7 @@ pub(crate) fn provider_role_for_definition(
             })
         })
         .flatten();
-    provider_role_for(agent_id, master_hint.as_deref().or(default_model))
+    provider_role_for(master_hint.as_deref().or(default_model))
 }
 
 fn derive_turn_workspace_descriptor() -> Option<tinytools::WorkspaceDescriptor> {

@@ -3,11 +3,11 @@ use super::provider_role_for;
 
 #[test]
 fn legacy_orchestrator_fallback_defaults_to_chat() {
-    assert_eq!(provider_role_for("orchestrator", Some("chat-v1")), "chat");
-    assert_eq!(provider_role_for("orchestrator", None), "chat");
+    assert_eq!(provider_role_for(Some("chat-v1")), "chat");
+    assert_eq!(provider_role_for(None), "chat");
     // A legacy heavy default_model tier still falls through to chat.
     assert_eq!(
-        provider_role_for("orchestrator", Some("reasoning-v1")),
+        provider_role_for(Some("reasoning-v1")),
         "chat"
     );
 }
@@ -15,15 +15,15 @@ fn legacy_orchestrator_fallback_defaults_to_chat() {
 #[test]
 fn explicit_hints_route_to_workload() {
     assert_eq!(
-        provider_role_for("orchestrator", Some("hint:agentic")),
+        provider_role_for(Some("hint:agentic")),
         "agentic"
     );
     assert_eq!(
-        provider_role_for("orchestrator", Some("hint:reasoning")),
+        provider_role_for(Some("hint:reasoning")),
         "reasoning"
     );
     assert_eq!(
-        provider_role_for("orchestrator", Some("hint:coding")),
+        provider_role_for(Some("hint:coding")),
         "coding"
     );
 }
