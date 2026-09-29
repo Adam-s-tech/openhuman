@@ -103,7 +103,7 @@ function stubCore(tree, boundPort) {
   writeExecutable(
     bin,
     `#!/usr/bin/env bash
-echo "[core] OpenHuman core is ready \u2014 listening on http://127.0.0.1:${boundPort} (version test)"
+${boundPort == null ? "" : `echo "[core] OpenHuman core is ready \u2014 listening on http://127.0.0.1:${boundPort} (version test)"`}
 sleep 30
 `,
   );
@@ -501,6 +501,24 @@ test("a core on the requested port runs the specs", async () => {
       waitForCall(tree, "exec playwright"),
       `expected the specs to run:\n${tree.calls().join("\n")}`,
     );
+  } finally {
+    tree.cleanup();
+  }
+});
+
+test("a core without binding evidence fails the session", async () => {
+  const tree = makeTree();
+  try {
+    const base = await freeBase();
+    markBundle(tree, { mockPort: base, corePort: base + 1 });
+    stubCore(tree, null);
+
+    const res = run(tree, "e2e-web-session.sh", { E2E_PORT_BASE: String(base) });
+
+    assert.equal(res.status, 1, res.output);
+    assert.match(res.output, /could not read the core's bound address/);
+    assert.match(res.output, /Refusing to continue without binding evidence/);
+    assert.doesNotMatch(res.output, /Core RPC authentication failed/);
   } finally {
     tree.cleanup();
   }
