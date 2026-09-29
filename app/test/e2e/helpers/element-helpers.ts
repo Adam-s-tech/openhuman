@@ -66,17 +66,17 @@ function xpathContainsText(text: string): string {
  * is only called from the Mac2 code path.
  */
 async function clickAtElement(el: ChainablePromiseElement): Promise<void> {
+  try {
+    await browser.execute(
+      (element: HTMLElement) => element.scrollIntoView({ block: 'center', behavior: 'instant' }),
+      el as unknown as HTMLElement
+    );
+    await browser.pause(200);
+  } catch {
+    // The element may have been detached while the click was being prepared.
+  }
+
   if (isTauriDriver()) {
-    // Scroll element into view first — webkit2gtk may not auto-scroll
-    try {
-      await browser.execute(
-        (e: HTMLElement) => e.scrollIntoView({ block: 'center', behavior: 'instant' }),
-        el as unknown as HTMLElement
-      );
-      await browser.pause(200);
-    } catch {
-      // scrollIntoView may fail if element is detached
-    }
     // Use JS click directly on tauri-driver — bypasses "element not interactable"
     // and "element click intercepted" errors that WebDriver click triggers
     // (WDIO retries WebDriver clicks 3 times internally before reaching catch,
@@ -95,20 +95,28 @@ async function clickAtElement(el: ChainablePromiseElement): Promise<void> {
   const centerX = Math.round(location.x + size.width / 2);
   const centerY = Math.round(location.y + size.height / 2);
 
-  await browser.performActions([
-    {
-      type: 'pointer',
-      id: 'mouse1',
-      parameters: { pointerType: 'mouse' },
-      actions: [
-        { type: 'pointerMove', duration: 10, x: centerX, y: centerY },
-        { type: 'pointerDown', button: 0 },
-        { type: 'pause', duration: 50 },
-        { type: 'pointerUp', button: 0 },
-      ],
-    },
-  ]);
-  await browser.releaseActions();
+  try {
+    await browser.performActions([
+      {
+        type: 'pointer',
+        id: 'mouse1',
+        parameters: { pointerType: 'mouse' },
+        actions: [
+          { type: 'pointerMove', duration: 10, x: centerX, y: centerY },
+          { type: 'pointerDown', button: 0 },
+          { type: 'pause', duration: 50 },
+          { type: 'pointerUp', button: 0 },
+        ],
+      },
+    ]);
+  } finally {
+    await browser.releaseActions();
+  }
+}
+
+/** Click an existing element through the shared cross-platform click path. */
+export async function clickElement(el: ChainablePromiseElement): Promise<void> {
+  await clickAtElement(el);
 }
 
 // ---------------------------------------------------------------------------
@@ -385,6 +393,63 @@ export async function waitForTestId(
   return el;
 }
 
+/** Wait until a selector is absent from the DOM. */
+export async function waitForElementAbsence(
+  selector: string,
+  timeout: number = 15_000
+): Promise<void> {
+  const activeSelector =
+    !isTauriDriver() && selector.startsWith('[data-testid="')
+      ? `//*[@data-testid=${xpathStringLiteral(selector.slice('[data-testid="'.length, -2))}]`
+      : selector;
+  await browser.waitUntil(async () => !(await browser.$(activeSelector).isExisting()), {
+    timeout,
+    timeoutMsg: `Element ${activeSelector} remained present after ${timeout}ms`,
+  });
+}
+
+/** Read the checked state of a settings switch by its accessible label. */
+export async function getSwitchCheckedByLabel(
+  testId: string,
+  label: string,
+  timeout: number = 15_000
+): Promise<boolean> {
+  const literal = xpathStringLiteral(label);
+  const selector = isTauriDriver()
+    ? `[data-testid="${testId}"]`
+    : `//XCUIElementTypeSwitch[contains(@label, ${literal}) or contains(@title, ${literal})]`;
+  const element = await browser.$(selector);
+  await element.waitForExist({ timeout, timeoutMsg: `Switch "${label}" was not found` });
+  if (isTauriDriver()) return (await element.getAttribute('aria-checked')) === 'true';
+  const value = await element.getAttribute('value');
+  return value === '1' || value === 'true' || (await element.isSelected());
+}
+
+/** Toggle a settings switch through its accessible label. */
+export async function toggleSwitchByLabel(
+  testId: string,
+  label: string,
+  timeout: number = 15_000
+): Promise<void> {
+  const literal = xpathStringLiteral(label);
+  const selector = isTauriDriver()
+    ? `[data-testid="${testId}"]`
+    : `//XCUIElementTypeSwitch[contains(@label, ${literal}) or contains(@title, ${literal})]`;
+  const element = await browser.$(selector);
+  await element.waitForExist({ timeout, timeoutMsg: `Switch "${label}" was not found` });
+  await clickAtElement(element);
+}
+
+/** Read an attribute from a stable test id. */
+export async function getAttributeByTestId(
+  testId: string,
+  attribute: string,
+  timeout: number = 15_000
+): Promise<string | null> {
+  const element = await waitForTestId(testId, timeout);
+  return element.getAttribute(attribute);
+}
+
 /**
  * Wait for an element by its stable assistant-ui data slot.
  *
@@ -453,6 +518,90 @@ export async function clickTestId(
 ): Promise<ChainablePromiseElement> {
   const el = await waitForTestId(testId, timeout);
   await clickAtElement(el);
+  return el;
+}
+
+/** Click a test id in DOM-backed runs or its visible text on Mac2. */
+export async function clickTestIdOrText(
+  testId: string,
+  text: string,
+  timeout: number = 15_000
+): Promise<ChainablePromiseElement> {
+  return isTauriDriver() ? clickTestId(testId, timeout) : clickText(text, timeout);
+}
+
+/** Click a tool activity group trigger by its visible count label and position. */
+export async function clickToolGroupTrigger(
+  index: number,
+  label: string,
+  timeout: number = 15_000
+): Promise<void> {
+  const literal = xpathStringLiteral(label);
+  const matches = `//XCUIElementTypeButton[contains(@label, ${literal}) or contains(@value, ${literal}) or contains(@title, ${literal})]`;
+  let trigger: ChainablePromiseElement;
+  if (isTauriDriver()) {
+    const selector = '[data-slot="tool-group-root"] [data-slot="tool-group-trigger"]';
+    let matchingTriggers: ChainablePromiseElement[] = [];
+    await browser.waitUntil(
+      async () => {
+        matchingTriggers = [];
+        // Index rather than iterate: the element array's index signature is typed
+        // `ChainablePromiseElement`, its iterator `WebdriverIO.Element` (same objects).
+        const candidates = await browser.$$(selector);
+        const count = await candidates.length;
+        for (let i = 0; i < count; i++) {
+          const candidate = candidates[i]!;
+          if ((await candidate.getText()).includes(label)) matchingTriggers.push(candidate);
+        }
+        return matchingTriggers.length > index;
+      },
+      { timeout, timeoutMsg: `Tool group trigger ${index + 1} (${label}) was not found` }
+    );
+    trigger = matchingTriggers[index]!;
+  } else {
+    trigger = await browser.$(`(${matches})[${index + 1}]`);
+  }
+  await trigger.waitForExist({ timeout, timeoutMsg: `Tool group trigger "${label}" not found` });
+  await clickAtElement(trigger);
+}
+
+/** Click a test id with a physical pointer sequence. Use for controls, such as
+ * Radix menu triggers, that listen for pointerdown instead of a synthetic click.
+ */
+export async function clickTestIdWithPointer(
+  testId: string,
+  timeout: number = 15_000
+): Promise<ChainablePromiseElement> {
+  const el = await waitForTestId(testId, timeout);
+  await browser.execute(
+    (element: HTMLElement) => element.scrollIntoView({ block: 'center', behavior: 'instant' }),
+    el as unknown as HTMLElement
+  );
+  await browser.pause(200);
+  const location = await el.getLocation();
+  const size = await el.getSize();
+  try {
+    await browser.performActions([
+      {
+        type: 'pointer',
+        id: 'mouse1',
+        parameters: { pointerType: 'mouse' },
+        actions: [
+          {
+            type: 'pointerMove',
+            duration: 10,
+            x: Math.round(location.x + size.width / 2),
+            y: Math.round(location.y + size.height / 2),
+          },
+          { type: 'pointerDown', button: 0 },
+          { type: 'pause', duration: 50 },
+          { type: 'pointerUp', button: 0 },
+        ],
+      },
+    ]);
+  } finally {
+    await browser.releaseActions();
+  }
   return el;
 }
 

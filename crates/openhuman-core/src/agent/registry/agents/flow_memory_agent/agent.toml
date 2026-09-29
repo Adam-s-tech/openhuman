@@ -1,7 +1,7 @@
 id = "flow_memory_agent"
 display_name = "Flow Memory Agent"
 delegate_name = "retrieve_flow_context"
-when_to_use = "General-purpose read-only context and memory retrieval specialist for automation flows. A flow `agent` node routes here via `config.agent_ref` for ANY step that needs the user's context, style, history, or people — not a fixed list of cases: drafting in the user's tone, resolving 'the customer I talked to last week', checking a preference before acting, looking up a contact, or any other run-time memory need a flow author can't fully predict at build time. It may loop across several retrievals in one turn to gather what the step needs, then returns a concise, source-attributed text answer — never a structured bundle, never an action. `context_scout` remains the right choice only when a step specifically needs the scout's structured `[context_bundle]` output; for everything else, prefer this agent."
+when_to_use = "General-purpose read-only context and memory retrieval specialist for automation flows. A flow `agent` node routes here via `config.agent_ref` for ANY step that needs the user's context, style, history, or people — not a fixed list of cases: drafting in the user's tone, resolving 'the customer I talked to last week', checking a preference before acting, looking up a contact, or any other run-time memory need a flow author can't fully predict at build time. It may loop across several retrievals in one turn to gather what the step needs, then returns a concise, source-attributed text answer — never a structured bundle, never an action."
 temperature = 0.3
 # Multi-step gathering loop: recall → maybe hybrid search → maybe people/thread
 # lookups → assess, potentially several times per flow step. 10 gives headroom
@@ -31,8 +31,7 @@ omit_profile = false
 omit_memory_md = false
 
 [model]
-# Multi-step gathering loop (recall → maybe hybrid search → assess), same
-# shape as `context_scout`. Rides the high-throughput `burst` tier: this is a
+# Multi-step gathering loop (recall → maybe hybrid search → assess). Rides the high-throughput `burst` tier: this is a
 # cheap, latency-tolerant, non-reasoning retrieval pass invoked from inside a
 # flow run, so raw throughput on a fast model beats the pricier
 # agentic/reasoning tiers. Resolves to `hint:burst` on the managed backend.

@@ -53,26 +53,64 @@ fn allow_all_starts_denied_and_explicit_urls_bind_one_https_host_tree() {
 }
 
 #[test]
-fn published_browser_release_covers_desktop_platforms() {
-    let record = registry::find(MODULE_ID).unwrap();
+fn browser_members_share_the_tinycomputer_record() {
+    let record = crate::modules::registry::find(MODULE_ID).unwrap();
+    assert_eq!(MODULE_ID, "tinycomputer");
     assert_eq!(record.bus_name, names::INTERFACE);
     assert_eq!(record.object_path, names::OBJECT_PATH);
-    assert_eq!(record.version, "0.2.2");
-    assert_eq!(
-        record.release_url,
-        "https://github.com/tinyhumansai/tinybrowser/releases/tag/v0.2.2"
-    );
-    assert_eq!(record.assets.len(), 16);
-    let keys = record
-        .assets
-        .iter()
-        .map(|asset| asset.host_key)
-        .collect::<std::collections::HashSet<_>>();
-    assert_eq!(keys.len(), record.assets.len());
-    for asset in record.assets {
-        assert!(asset.archive.starts_with("tinybrowser-0.2.2-"));
-        assert_eq!(asset.sha256.len(), 64);
+    assert_eq!(names::INTERFACE, tinycomputer_bus::names::INTERFACE);
+    for member in [
+        names::methods::OPEN_SESSION,
+        names::methods::NAVIGATE,
+        names::methods::SNAPSHOT,
+        names::methods::PERFORM,
+        names::methods::READ_PAGE,
+        names::methods::LIST_DOWNLOADS,
+        names::methods::WAIT_DOWNLOAD,
+        names::methods::CLOSE_SESSION,
+    ] {
+        assert!(
+            tinycomputer_bus::names::METHODS.contains(&member),
+            "{member} is not served"
+        );
     }
+}
+
+#[test]
+fn failed_reply_maps_to_the_browser_error_name() {
+    let response: DesktopResponse = serde_json::from_value(serde_json::json!({
+        "version": "2.5",
+        "ok": false,
+        "command": "browser-navigate",
+        "error": {
+            "code": "POLICY_DENIED",
+            "message": "origin is not allowed",
+            "details": {"name": "ai.tinyhumans.tinycomputer.Browser.Error.BlockedByPolicy"}
+        }
+    }))
+    .unwrap();
+    match BrowserCallError::from_response(&response) {
+        BrowserCallError::Bus { name, message } => {
+            assert_eq!(name, "BlockedByPolicy");
+            assert_eq!(message, "origin is not allowed");
+        }
+        other => panic!("unexpected {other:?}"),
+    }
+}
+
+#[test]
+fn failed_reply_without_a_name_falls_back_to_the_code() {
+    let response: DesktopResponse = serde_json::from_value(serde_json::json!({
+        "version": "2.5",
+        "ok": false,
+        "command": "browser-open-session",
+        "error": {"code": "BROWSER_UNAVAILABLE", "message": "no chrome"}
+    }))
+    .unwrap();
+    assert!(matches!(
+        BrowserCallError::from_response(&response),
+        BrowserCallError::Bus { name, .. } if name == "BROWSER_UNAVAILABLE"
+    ));
 }
 
 #[test]

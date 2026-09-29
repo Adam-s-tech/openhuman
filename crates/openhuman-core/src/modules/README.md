@@ -1,9 +1,9 @@
 # modules
 
-The native loadable-module host. A module is a first-party `cdylib` — `tinydocs`,
+The native loadable-module host. A module is a first-party `cdylib`: `tinydocs`,
 `tinywallet`, `tinymemory`, `tinyjuice`, `tinyvoice`, `tinyruntime` (+
 `tinyruntime-nodejs` / `tinyruntime-python`), `tinymcp`, `tinyconnectors`,
-`tinybox`, `tinychannels`, `tinyhosts`, `tinysearch` — that
+`tinybox`, `tinychannels`, `tinyhosts`, `tinysearch`, that
 speaks the tinybus module ABI. It is downloaded from a pinned GitHub release,
 verified against a digest compiled into [`registry.rs`](registry.rs), admitted
 through tinybus's ABI/manifest gates, and attached to a private in-process
@@ -31,10 +31,11 @@ directory on `modules`.
 | `host.rs` | The module broker: a dedicated process-lifetime tokio runtime, its `ModuleHost`, and the host's own `Connection` for calling into loaded modules |
 | `resolution.rs` | One resolution slot per module id, replacing a single global lock so unrelated modules never queue behind each other |
 | `ops.rs` | `ensure_loaded` / `ensure_loaded_within` / `state_of` / `LoadError`; the release cache under `install_dir`; failure caching |
-| `boot.rs` | What loads at startup: search-path artifacts, then every `LoadPolicy::Eager` record — deliberately not every registry entry |
+| `boot.rs` | What loads at startup: search-path artifacts, then every `LoadPolicy::Eager` record: deliberately not every registry entry |
 | `schemas.rs` | The `modules` RPC namespace (`list`, `status`, `load`) |
 | `documents.rs` | Host half of `tinydocs` (feature `documents`): the three document operations |
-| `browser.rs`, `browser_task.rs` | Typed TinyBrowser bus calls, shared website policy, and bounded Jev task routing; the browser engine remains in the loadable module |
+| `browser.rs`, `browser_task.rs` | Typed TinyComputer `Browser*` calls, shared website policy, and browser tasks over `StartTask`/`AwaitTask`/`ContinueTask`; the browser engine remains in the loadable module |
+| `computer_config.rs` | The private TinyComputer configuration: decision model (`jev`), planner and rescue route (`planner`), and browser executable, rebuilt from `[computer]` and the stored credentials on every call |
 
 | `wallet.rs` | Host half of `tinywallet` (feature `web3`): confidential and split transaction-signing flows |
 | `voice.rs` | Host half of `tinyvoice` (feature `voice`): the voice primitives |
@@ -55,7 +56,7 @@ layer.
 ## Loading pipeline
 
 1. `registry::find(id)` looks up the compiled-in `ModuleRecord`.
-2. `resolution::table().claim(id)` gives the caller `Run`, `Wait`, or `Done` —
+2. `resolution::table().claim(id)` gives the caller `Run`, `Wait`, or `Done`:
    the first caller for a module resolves it as a process-lifetime task;
    everyone else waits on a watch channel (`ops.rs`).
 3. Resolution order is cheapest first: already serving on the host's broker,
@@ -67,7 +68,7 @@ layer.
 5. The release cache (`tinybus::module::CachedRelease`) downloads if
    `modules.allow_download`, fetches the release's own `checksum.toml`, checks
    it against the digest pinned in `registry.rs`, hashes the archive, extracts,
-   and `dlopen`s — on the module runtime's blocking pool so a cold download
+   and `dlopen`s: on the module runtime's blocking pool so a cold download
    never stalls another task.
    On Windows desktop installs, the installer contains the registry-pinned
    `windows-2022-x86_64` archives and their extracted DLLs under
@@ -78,7 +79,7 @@ layer.
 6. tinybus's ABI descriptor, manifest, and dependency gates decide whether the
    artifact is *admitted*; a faulted or refused module is recorded as
    `Resolution::Failed` in the resolution table (surfaced as
-   `LoadError::Failed`) and never retried in this process — restart is the
+   `LoadError::Failed`) and never retried in this process: restart is the
    only recovery, because tinybus never unloads a library.
 
 `boot::load_declared_modules` does two things at startup: it loads search-path
@@ -86,25 +87,35 @@ artifacts directly through the host, then calls `ensure_loaded` for every
 `LoadPolicy::Eager` record (currently only `tinymemory`, and only when
 `memory::binding::admit` selects the module-backed driver; its host callbacks
 are installed first). It never fails the boot. Everything else is
-`LoadPolicy::Lazy` and resolves on first `ensure_loaded` call — deliberately
+`LoadPolicy::Lazy` and resolves on first `ensure_loaded` call: deliberately
 not eager, so a user who never touches a feature never pays its download.
 
-## TinySearch development pin
+## TinySearch
 
-The `tinysearch` registry record has no platform assets until a published
-release provides verified checksums. Use `[[modules.overrides]]` with
-`id = "tinysearch"` and an absolute local library `path` during development.
-The host sends provider keys and the typed backend credential only in private
-module initialization and reinitialization payloads. Settings changes refresh
-a loaded module; `search::list_tools` and `search::execute_tool` reload current
-settings before each call so a captured config cannot keep old credentials.
-`search::configured_tool_specs` uses the bus contract to declare tools
-synchronously during registration.
+`search/` is the host adapter for the TinySearch module (`vendor/tinysearch`),
+which owns every web-search provider, its tool schemas, and role dispatch.
 
-TinySearch has one route per provider. Managed search maps to backend Parallel;
-when direct Parallel is explicitly selected, it takes precedence. Gemini
-Deep Research remains direct with a Gemini key even when grounded Gemini search
-uses the backend route.
+- `search/mod.rs` — `module_config` builds the private module configuration
+  from `crate::search::providers` (the host's resolved policy): per-provider
+  route (`managed` → `ProviderRoute::Backend`), direct keys and limits, the
+  backend credential (`resolve_backend_credential`: API key as `x-api-key`,
+  else the session JWT as a bearer), `x-sdk-name`, and the per-role provider
+  order. `configured_tool_specs` computes the tool declarations synchronously
+  from that same configuration.
+- `search/proxy.rs` — lazy load (`ensure_loaded_within`), private
+  reinitialization when the configuration fingerprint changes (the first call
+  after a load keeps the load-time configuration; a reinitialize that lands
+  while the module is still initializing waits and retries), and serialized
+  `ListTools` / `ExecuteTool` calls. `ExecuteTool` is an ordinary call: keys
+  travel only in the configuration, never in a call.
+- Credentials: `refresh_loaded` runs after a search settings save and on
+  `DomainEvent::CredentialChanged` (`search::credential_refresh`), so managed
+  providers follow login and logout without waiting for the next call.
+- Tests and local development load a local build through
+  `TINYSEARCH_TEST_MODULE` or `[[modules.overrides]]` (`id = "tinysearch"`);
+  `scripts/test-rust-with-mock.sh` and CI build the pinned submodule. Release
+  checksums are pinned in `registry/records_search.rs` from the published
+  `checksum.toml`, never from a local build.
 
 ## Contract crates
 
@@ -133,13 +144,13 @@ contract, runtime/config/security policy stays in this host.
 ## Security and operational invariants
 
 A loaded module shares this process's address space, privileges, and crash
-domain — it is first-party code that happens to ship separately, not a
+domain: it is first-party code that happens to ship separately, not a
 sandbox boundary. From `AGENTS.md`, do not weaken these:
 
 - Only the compiled registry (`registry.rs`) may select which artifacts can
   load. There is no RPC method to name an arbitrary path.
 - Pin release checksums verbatim from the release's own `checksum.toml`. Never
-  compute a replacement digest from a local build — that would make the check
+  compute a replacement digest from a local build: that would make the check
   agree with whatever was served instead of with what the release published.
 - Keep the ABI, manifest, dependency, and digest admission checks intact.
 - Never unload or repeatedly retry a faulted module in the same process; a
@@ -154,14 +165,14 @@ sandbox boundary. From `AGENTS.md`, do not weaken these:
 
 ## Used by
 
-- `crate::runtime::client` — the ungated facade re-exporting `resolve`,
+- `crate::runtime::client`: the ungated facade re-exporting `resolve`,
   `execute`, `pool_stats`, and `RuntimeCallError` from `modules::runtime`, so
   a build without `modules` still compiles.
-- `memory::binding` — binds `ModuleMemoryProvider` when the memory driver
+- `memory::binding`: binds `ModuleMemoryProvider` when the memory driver
   selects the module-backed class.
-- `core::all::all_registered_controllers` — wires the `modules` RPC namespace
+- `core::all::all_registered_controllers`: wires the `modules` RPC namespace
   (`crate::modules::all_registered_controllers()`).
-- `config::schema::modules::ModulesConfig` — `enabled`, `allow_download`,
+- `config::schema::modules::ModulesConfig`: `enabled`, `allow_download`,
   `install_dir`, and `overrides` control only whether (and from where) the
   compiled-in modules in this directory load, never what is loadable.
 - The per-module host halves are called from their domains:
@@ -170,3 +181,13 @@ sandbox boundary. From `AGENTS.md`, do not weaken these:
   `inference/voice` (`voice.rs`), `integrations/composio/module_client.rs`
   (`connectors.rs`), and `inference/tokenjuice`, which `ensure_loaded`s
   `tinyjuice` and is called back through `tokenjuice_host.rs`.
+
+## Where next
+
+- [`modules/registry`](registry/README.md) for how a module's record is
+  admitted (checksum, ABI, manifest).
+- [`modules/memory`](memory/README.md) for one concrete example of a module's
+  host-side half, `tinymemory`.
+- `gitbooks/developing/performance.md` for how loading modules on demand
+  (rather than linking everything in) keeps a minimal build small and a full
+  one modular without paying for what a given install never uses.

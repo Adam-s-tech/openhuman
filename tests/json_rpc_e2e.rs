@@ -539,7 +539,11 @@ fn mock_upstream_router() -> Router {
     ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
         require_bearer(&headers, BILLING_TOKEN)?;
         let plan = require_string_field(&body, "plan")?;
-        if !matches!(plan, "basic" | "pro" | "BASIC" | "PRO") {
+        // The deployed backend's `BillingPlan` values (the SDK's typed request).
+        if !matches!(
+            plan,
+            "BASIC_MONTHLY" | "BASIC_YEARLY" | "PRO_MONTHLY" | "PRO_YEARLY"
+        ) {
             return Err(error_json(
                 StatusCode::BAD_REQUEST,
                 "missing or invalid 'plan'",
@@ -1249,6 +1253,13 @@ fn ensure_test_rpc_auth() {
 async fn json_rpc_discovers_codex_and_claude_sessions_for_memory_ingestion() {
     let _env_lock = json_rpc_e2e_env_lock();
     let tmp = tempdir().expect("tempdir");
+    let home = tmp.path();
+    let _home_guard = EnvVarGuard::set_to_path("HOME", home);
+    let _workspace_guard =
+        EnvVarGuard::set_to_path("OPENHUMAN_WORKSPACE", json_rpc_e2e_shared_workspace());
+    let _memory_driver_guard = EnvVarGuard::set("OPENHUMAN_MEMORY_DRIVER", "tinymemory");
+    let _backend_guard = EnvVarGuard::unset("VITE_BACKEND_URL");
+    memory_module::settle().await;
     let claude_home = tmp.path().join("claude");
     let codex_home = tmp.path().join("codex");
     let claude_root = claude_home.join("projects/repo");
@@ -1666,25 +1677,25 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
         .get("definitions")
         .and_then(Value::as_array)
         .expect("agent_list_definitions should return definitions array");
-    let researcher = definitions
+    let memory_agent = definitions
         .iter()
-        .find(|definition| definition.get("id").and_then(Value::as_str) == Some("researcher"))
-        .expect("safe agent library should include researcher");
+        .find(|definition| definition.get("id").and_then(Value::as_str) == Some("agent_memory"))
+        .expect("safe agent library should include agent_memory");
     assert_eq!(
-        researcher.get("display_name").and_then(Value::as_str),
-        Some("Researcher")
+        memory_agent.get("display_name").and_then(Value::as_str),
+        Some("Memory Agent")
     );
-    assert!(researcher
+    assert!(memory_agent
         .get("when_to_use")
         .and_then(Value::as_str)
         .is_some());
-    assert!(researcher.get("system_prompt").is_none());
-    assert!(researcher.get("tools").is_some());
-    assert!(researcher
+    assert!(memory_agent.get("system_prompt").is_none());
+    assert!(memory_agent.get("tools").is_some());
+    assert!(memory_agent
         .get("direct_tool_count")
         .and_then(Value::as_u64)
         .is_some());
-    assert!(researcher
+    assert!(memory_agent
         .get("can_run_as_user_facing_worker")
         .and_then(Value::as_bool)
         .is_some());
@@ -1706,13 +1717,13 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
         286_211,
         "openhuman.agent_registry_update",
         json!({
-            "id": "researcher",
-            "name": "Research Specialist",
-            "description": "Workspace-specific research specialist.",
+            "id": "agent_memory",
+            "name": "Recall Specialist",
+            "description": "Workspace-specific memory recall specialist.",
             "model": "hint:reasoning",
             "tool_allowlist": ["tools.web_search", "memory.search"],
             "tool_denylist": ["wallet.execute_prepared"],
-            "tags": ["research", "workspace"],
+            "tags": ["memory", "workspace"],
             "metadata": { "pinned_by": "json_rpc_e2e" }
         }),
     )
@@ -1723,7 +1734,7 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
             .expect("update default should return agent");
     assert_eq!(
         update_default_agent.get("name").and_then(Value::as_str),
-        Some("Research Specialist")
+        Some("Recall Specialist")
     );
     assert_eq!(
         update_default_agent
@@ -1755,7 +1766,7 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
         &rpc_base,
         28_622,
         "openhuman.agent_registry_set_enabled",
-        json!({ "id": "code_executor", "enabled": false }),
+        json!({ "id": "image_agent", "enabled": false }),
     )
     .await;
     let disabled_result = assert_no_jsonrpc_error(&disabled, "agent_registry_set_enabled");
@@ -1764,7 +1775,7 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
             .get("agent")
             .and_then(|agent| agent.get("id"))
             .and_then(Value::as_str),
-        Some("code_executor")
+        Some("image_agent")
     );
     assert_eq!(
         disabled_result
@@ -1789,7 +1800,7 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
     assert!(
         !visible_agents
             .iter()
-            .any(|agent| agent.get("id").and_then(Value::as_str) == Some("code_executor")),
+            .any(|agent| agent.get("id").and_then(Value::as_str) == Some("image_agent")),
         "disabled default agent should be hidden unless include_disabled=true"
     );
 
@@ -1802,19 +1813,17 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
     .await;
     let all_after_disable_result =
         assert_no_jsonrpc_error(&all_after_disable, "agent_registry_list include disabled");
-    let disabled_code_executor = all_after_disable_result
+    let disabled_image_agent = all_after_disable_result
         .get("agents")
         .and_then(Value::as_array)
         .and_then(|agents| {
             agents
                 .iter()
-                .find(|agent| agent.get("id").and_then(Value::as_str) == Some("code_executor"))
+                .find(|agent| agent.get("id").and_then(Value::as_str) == Some("image_agent"))
         })
-        .expect("include_disabled should retain disabled code_executor");
+        .expect("include_disabled should retain disabled image_agent");
     assert_eq!(
-        disabled_code_executor
-            .get("enabled")
-            .and_then(Value::as_bool),
+        disabled_image_agent.get("enabled").and_then(Value::as_bool),
         Some(false)
     );
 
@@ -1822,7 +1831,7 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
         &rpc_base,
         286_214,
         "openhuman.agent_registry_set_enabled",
-        json!({ "id": "code_executor", "enabled": true }),
+        json!({ "id": "image_agent", "enabled": true }),
     )
     .await;
     assert_eq!(
@@ -1939,7 +1948,7 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
             "system_prompt": "Write concise updates with citations when available.",
             "tool_allowlist": ["memory.search"],
             "tool_denylist": ["shell"],
-            "subagents": ["researcher"],
+            "subagents": ["agent_memory"],
             "tags": ["writing", "custom", "disabled"],
             "metadata": { "updated_by": "json_rpc_e2e" }
         }),
@@ -1964,7 +1973,7 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
             .and_then(Value::as_array)
             .and_then(|allowlist| allowlist.first())
             .and_then(Value::as_str),
-        Some("researcher")
+        Some("agent_memory")
     );
 
     let reenabled_custom = post_json_rpc(
@@ -2123,7 +2132,7 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
         &rpc_base,
         286_221,
         "openhuman.agent_registry_remove",
-        json!({ "id": "researcher" }),
+        json!({ "id": "agent_memory" }),
     )
     .await;
     assert_eq!(
@@ -2133,32 +2142,32 @@ async fn json_rpc_agent_registry_manages_defaults_and_custom_agents() {
         Some(true)
     );
 
-    let reset_code_executor = post_json_rpc(
+    let reset_image_agent = post_json_rpc(
         &rpc_base,
         286_222,
         "openhuman.agent_registry_remove",
-        json!({ "id": "code_executor" }),
+        json!({ "id": "image_agent" }),
     )
     .await;
     assert_eq!(
         assert_no_jsonrpc_error(
-            &reset_code_executor,
-            "agent_registry_remove code_executor override"
+            &reset_image_agent,
+            "agent_registry_remove image_agent override"
         )
         .get("removed")
         .and_then(Value::as_bool),
         Some(true)
     );
 
-    let code_executor = post_json_rpc(
+    let image_agent = post_json_rpc(
         &rpc_base,
         286_223,
         "openhuman.agent_registry_get",
-        json!({ "id": "code_executor" }),
+        json!({ "id": "image_agent" }),
     )
     .await;
     assert_eq!(
-        assert_no_jsonrpc_error(&code_executor, "agent_registry_get reset default")
+        assert_no_jsonrpc_error(&image_agent, "agent_registry_get reset default")
             .get("agent")
             .and_then(|agent| agent.get("enabled"))
             .and_then(Value::as_bool),
@@ -3220,7 +3229,7 @@ async fn json_rpc_run_ledger_lifecycle() {
             kind: tinyagents_session::run_ledger::AgentRunKind::WorkerThread,
             parent_run_id: Some("req-run-1".to_string()),
             parent_thread_id: Some("thread-run-1".to_string()),
-            agent_id: Some("researcher".to_string()),
+            agent_id: Some("task_manager_agent".to_string()),
             status: tinyagents_session::run_ledger::AgentRunStatus::AwaitingUser,
             prompt_ref: Some("thread:worker-1:message:seed".to_string()),
             worker_thread_id: Some("worker-1".to_string()),
@@ -3338,7 +3347,7 @@ async fn json_rpc_agent_work_list_groups_runs_by_bucket() {
         kind: AgentRunKind::Subagent,
         parent_run_id: None,
         parent_thread_id: Some("thread-work-1".to_string()),
-        agent_id: Some("researcher".to_string()),
+        agent_id: Some("task_manager_agent".to_string()),
         status,
         prompt_ref: None,
         worker_thread_id: None,
@@ -3552,8 +3561,8 @@ async fn json_rpc_agent_team_coordination_roundtrip() {
             "parentThreadId": "thread-team-e2e",
             "summary": "ship feature",
             "members": [
-                { "name": "alice", "agentId": "researcher" },
-                { "name": "bob", "agentId": "researcher" }
+                { "name": "alice", "agentId": "orchestrator" },
+                { "name": "bob", "agentId": "orchestrator" }
             ]
         }),
     )
@@ -4021,14 +4030,27 @@ async fn json_rpc_memory_sync_and_learn() {
     );
 
     // ── memory_ingestion_status: idle after direct learning ─────────────────
-    let ing_status = post_json_rpc(
-        &rpc_base,
-        7006,
-        "openhuman.memory_ingestion_status",
-        json!({}),
-    )
-    .await;
-    let ing_result = assert_no_jsonrpc_error(&ing_status, "memory_ingestion_status");
+    // The module's worker may still be settling an item that was already in
+    // flight when the shared store was wiped. Poll the read-only status until
+    // the worker releases it instead of racing its last queue-stat update.
+    let ing_result = tokio::time::timeout(Duration::from_secs(10), async {
+        loop {
+            let ing_status = post_json_rpc(
+                &rpc_base,
+                7006,
+                "openhuman.memory_ingestion_status",
+                json!({}),
+            )
+            .await;
+            let result = assert_no_jsonrpc_error(&ing_status, "memory_ingestion_status");
+            if result.get("running") == Some(&json!(false)) {
+                break result.clone();
+            }
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+    })
+    .await
+    .expect("memory ingestion did not settle after clearing the fresh store");
     assert_eq!(
         ing_result.get("running"),
         Some(&json!(false)),
@@ -7293,7 +7315,7 @@ async fn billing_rpc_e2e() {
         &rpc_base,
         3,
         "openhuman.billing_purchase_plan",
-        json!({ "plan": "pro" }),
+        json!({ "plan": "PRO_MONTHLY" }),
     )
     .await;
     let purchase_outer = assert_no_jsonrpc_error(&purchase, "billing_purchase_plan");
@@ -13053,8 +13075,8 @@ async fn json_rpc_agent_team_live_member_run_roundtrip_inner() {
             "leadAgentId": "lead",
             "summary": "live run e2e",
             "members": [
-                { "name": "alice", "agentId": "researcher" },
-                { "name": "bob", "agentId": "researcher" }
+                { "name": "alice", "agentId": "agent_memory" },
+                { "name": "bob", "agentId": "agent_memory" }
             ]
         }),
     )

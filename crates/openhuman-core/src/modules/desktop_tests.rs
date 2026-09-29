@@ -7,7 +7,7 @@ use tinybus::broker::Broker;
 use tinybus::service::Interface;
 use tinybus::transport::memory::MemoryBus;
 use tinybus::{Connection, InterfaceName, MemberName, ObjectPath};
-use tinydesktop_bus::{names, DesktopError, DesktopResponse};
+use tinycomputer_bus::{names, DesktopError, DesktopResponse};
 
 use super::{call, call_with_proxy, fingerprint, jev_ready, module_config, state, MODULE_ID};
 use crate::config::Config;
@@ -98,7 +98,7 @@ impl Interface for MockDesktop {
             .push((member.as_str().to_owned(), args));
         if member.as_str() == names::methods::PERMISSIONS {
             return Err(tinybus::Error::MethodFailed {
-                name: "ai.tinyhumans.tinydesktop.Error.Permission".to_owned(),
+                name: "ai.tinyhumans.tinycomputer.Desktop.Error.Permission".to_owned(),
                 message: "permission denied".to_owned(),
             });
         }

@@ -8,6 +8,7 @@
  * math. `view` lets a host panel (UsagePanel) mount just the ledger.
  */
 import debug from 'debug';
+import { RefreshCw } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
 import { listConnections as listComposioConnections } from '../../../../lib/composio/composioApi';
@@ -18,8 +19,7 @@ import {
   type CreditTransaction,
   type TeamUsage,
 } from '../../../../services/api/creditsApi';
-import Button from '../../../ui/Button';
-import StatusLine from '../../../ui/StatusLine';
+import { Badge, Button, Card, StatusLine } from '../../../ui';
 import type { RoutingMap } from './aiPanelTypes';
 import {
   activeConnection,
@@ -182,8 +182,6 @@ export const BackgroundLoopControls = ({
   ];
 
   const showLedger = view === 'all' || view === 'ledger';
-  const gridCols =
-    view === 'all' ? 'md:grid-cols-[minmax(0,1fr)_minmax(260px,0.8fr)]' : 'grid-cols-1';
 
   return (
     <div className="space-y-4">
@@ -200,72 +198,71 @@ export const BackgroundLoopControls = ({
 
       {error && <StatusLine saving={false} error={error} savedNote={null} savingLabel="" />}
 
-      <section className={`grid gap-3 ${gridCols}`}>
-        <div className="overflow-hidden rounded-lg border border-line bg-surface-muted">
-          <div className="flex items-center justify-between gap-3 border-b border-line px-3 py-2">
-            <span className="text-xs font-semibold uppercase tracking-wide text-content-faint">
-              {t('settings.ai.loopMap')}
-            </span>
-            <Button
-              type="button"
-              variant="secondary"
-              size="xs"
-              onClick={() => void refresh()}
-              disabled={loading}>
-              {t('common.refresh')}
-            </Button>
-          </div>
-          <div className="divide-y divide-line">
-            {loops.map(loop => (
-              <div key={loop.name} className="grid gap-2 px-3 py-3 md:grid-cols-[150px_1fr]">
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-medium text-content">{loop.name}</div>
-                  <div className="mt-0.5 flex flex-wrap gap-1 text-[11px] text-content-muted">
-                    <span>{loop.enabled ? t('settings.ai.on') : t('settings.ai.off')}</span>
-                    <span>{loop.cadence}</span>
-                  </div>
-                </div>
-                <div className="min-w-0 text-xs text-content-secondary">
-                  <div>{loop.work}</div>
-                  <div className="mt-1 font-mono text-[11px] text-content-muted">
-                    {t('settings.ai.routeLabel').replace('{route}', loop.route)}
-                  </div>
-                  <div className="mt-1 text-content-muted">{loop.risk}</div>
-                </div>
+      {/* Loop map on top, the ledger + budget math below — stacked, so each
+          card gets the full width instead of a cramped side column. */}
+      <Card
+        title={t('settings.ai.loopMap')}
+        headerRight={
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            leadingIcon={<RefreshCw className="h-3.5 w-3.5" aria-hidden />}
+            onClick={() => void refresh()}
+            disabled={loading}>
+            {t('common.refresh')}
+          </Button>
+        }>
+        {loops.map(loop => (
+          <div key={loop.name} className="grid gap-x-6 gap-y-2 px-4 py-3 md:grid-cols-[200px_1fr]">
+            <div className="min-w-0 space-y-1.5">
+              <div className="truncate text-sm font-medium text-content">{loop.name}</div>
+              <div className="flex flex-wrap gap-1.5">
+                <Badge variant={loop.enabled ? 'success' : 'neutral'}>
+                  {loop.enabled ? t('settings.ai.on') : t('settings.ai.off')}
+                </Badge>
+                <Badge>{loop.cadence}</Badge>
               </div>
-            ))}
+            </div>
+            <div className="min-w-0 space-y-1 text-xs">
+              <div className="text-content-secondary">{loop.work}</div>
+              <div className="truncate font-mono text-content-muted">
+                {t('settings.ai.routeLabel').replace('{route}', loop.route)}
+              </div>
+              <div className="text-content-faint">{loop.risk}</div>
+            </div>
           </div>
-        </div>
+        ))}
+      </Card>
 
-        {showLedger && (
-          <UsageLedgerSection
-            t={t}
-            loading={loading}
-            onRefresh={() => void refresh()}
-            usage={usage}
-            spendRows={spendRows}
-            spendAvgRowUsd={spendSample.avgRowUsd}
-            spendSampleHours={spendSample.sampleHours}
-            spendPerHour={spendSample.spendPerHour}
-            rowsPerHour={spendSample.rowsPerHour}
-            actionSummary={actionSummary}
-            hourSummary={hourSummary}
-            latestSpend={latestSpend}
-            formatSpendAmount={spendAmount}
-            backgroundApiReadsPerWeek={backgroundApiReadsPerWeek}
-            backgroundWakeupsPerWeek={backgroundWakeupsPerWeek}
-            calendarPlannerCallsPerWeek={calendarPlannerCallsPerWeek}
-            composioConnectionScansPerWeek={composioConnectionScansPerWeek}
-            memoryPollsPerWeek={memoryPollsPerWeek}
-            estimatedRowsLeft={estimatedRowsLeft}
-            estimatedRowsPerBudget={estimatedRowsPerBudget}
-            projectedExhaustAt={projectedExhaustAt}
-            projectedHoursLeft={projectedHoursLeft}
-            scheduledCallsPerRemainingDollar={scheduledCallsPerRemainingDollar}
-            activeConnectionsCount={activeConnections.length}
-          />
-        )}
-      </section>
+      {showLedger && (
+        <UsageLedgerSection
+          t={t}
+          loading={loading}
+          onRefresh={() => void refresh()}
+          usage={usage}
+          spendRows={spendRows}
+          spendAvgRowUsd={spendSample.avgRowUsd}
+          spendSampleHours={spendSample.sampleHours}
+          spendPerHour={spendSample.spendPerHour}
+          rowsPerHour={spendSample.rowsPerHour}
+          actionSummary={actionSummary}
+          hourSummary={hourSummary}
+          latestSpend={latestSpend}
+          formatSpendAmount={spendAmount}
+          backgroundApiReadsPerWeek={backgroundApiReadsPerWeek}
+          backgroundWakeupsPerWeek={backgroundWakeupsPerWeek}
+          calendarPlannerCallsPerWeek={calendarPlannerCallsPerWeek}
+          composioConnectionScansPerWeek={composioConnectionScansPerWeek}
+          memoryPollsPerWeek={memoryPollsPerWeek}
+          estimatedRowsLeft={estimatedRowsLeft}
+          estimatedRowsPerBudget={estimatedRowsPerBudget}
+          projectedExhaustAt={projectedExhaustAt}
+          projectedHoursLeft={projectedHoursLeft}
+          scheduledCallsPerRemainingDollar={scheduledCallsPerRemainingDollar}
+          activeConnectionsCount={activeConnections.length}
+        />
+      )}
     </div>
   );
 };

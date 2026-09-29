@@ -136,6 +136,10 @@ pub struct Config {
     #[serde(default)]
     pub desktop: DesktopConfig,
 
+    /// TinyComputer decision, planner and rescue models.
+    #[serde(default)]
+    pub computer: ComputerConfig,
+
     /// Host-level switches for the configurable hook system. The hooks
     /// themselves live in `hooks.json` files, not here — see
     /// [`HooksConfig`].
@@ -174,12 +178,6 @@ pub struct Config {
     /// [`crate::cron::scheduler_gate`].
     #[serde(default)]
     pub scheduler_gate: SchedulerGateConfig,
-
-    /// User-facing activity-level knob (0–4) controlling how proactive
-    /// background AI work is. Maps into scheduler_gate mode, periodic sync
-    /// cadence, heartbeat/subconscious toggles. See issue #3117.
-    #[serde(default)]
-    pub agent_activity_level: AgentActivityLevel,
 
     /// Global memory-sync cadence applied to **all** opted-in memory
     /// sources, presented to the user like a backup schedule ("Sync

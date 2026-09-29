@@ -1,99 +1,207 @@
-//! Jev browser tasks, billed through the configured agentic route.
+//! Browser tasks run by TinyComputer's task members.
 //!
-//! The controller links only the browser bus contract. `BrowserClient` supplies
-//! its browser port, while the same credential routing as other agentic work
-//! chooses direct OpenRouter or the hosted TinyHumans System One proxy.
+//! A task is handed to the module with `StartTask` and followed with
+//! `AwaitTask` until it finishes or pauses. The module drives its own browser
+//! session, asks its decision model (Jev, OpenJev or Sage) for each step, and
+//! hands a failed step to its rescue model before giving up. The host keeps
+//! the policy: which surfaces and origins a task may touch, how many actions
+//! it may take, and the approval for anything irreversible, which the module
+//! surfaces as `needs_approval` and only `ContinueTask.approve` releases.
 
-use std::time::Duration;
+use std::collections::BTreeMap;
+use std::time::{Duration, Instant};
 
-use tinybrowser_bus::SessionId;
-use tinybrowser_control::{BrowserControl, ControlLimits, JevController, TaskRequest, TaskResult};
-use tinyjevclient::{Client, ClientConfig};
+use serde::{de::DeserializeOwned, Serialize};
+use tinycomputer_bus::agent::{
+    names::methods, AgentResponse, AwaitTaskRequest, ContinueTaskRequest, PaymentMode,
+    StartTaskRequest, SurfaceKind, TaskBudget, TaskConstraints, TaskId, TaskRef, TaskReport,
+    TaskReportRequest, TaskView,
+};
 
-use crate::api::config::effective_backend_api_url;
 use crate::config::Config;
-use crate::inference::provider::factory::{lookup_key_for_slug, provider_for_role};
-use crate::security::credentials::session_support::resolve_backend_credential;
 
 #[cfg(test)]
 #[path = "browser_task_tests.rs"]
 mod tests;
 
-/// The account charged for Jev decisions in a browser task.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum BillingRoute {
-    /// The user's configured OpenRouter credential.
-    DirectOpenRouter,
-    /// OpenHuman's hosted System One proxy and managed credits.
-    Hosted,
+/// The longest one `AwaitTask` long-poll asks for. The module caps it at 60s.
+const AWAIT_SLICE_MS: u64 = 30_000;
+/// The bus deadline for one call; beyond the longest long-poll.
+const CALL_TIMEOUT: Duration = Duration::from_secs(75);
+
+/// What the browser tool asks for.
+#[derive(Debug, Clone, Default)]
+pub struct BrowserTask {
+    /// The goal, in plain language.
+    pub goal: String,
+    /// Values the task may use, such as a name or an email address.
+    pub facts: BTreeMap<String, String>,
+    /// Origins the task's browser may load, in TinyComputer's
+    /// `https://.host` spelling. Never empty: empty means any origin.
+    pub origins: Vec<String>,
+    /// Upper bound on the actions the task may take.
+    pub max_actions: u32,
+    /// A flow to run instead of having the module plan one from `goal`, such
+    /// as a plan saved from an earlier run. `goal` then explains it.
+    pub flow: Option<tinycomputer_bus::Flow>,
 }
 
-/// Resolve the browser decision route from the configured agentic provider.
+/// Build the `StartTask` request for a browser-only task under host policy.
 #[must_use]
-pub fn billing_route(config: &Config) -> BillingRoute {
-    let agentic = provider_for_role("agentic", config);
-    if agentic.starts_with("openrouter:") {
-        BillingRoute::DirectOpenRouter
-    } else {
-        BillingRoute::Hosted
+pub fn start_request(config: &Config, task: &BrowserTask) -> StartTaskRequest {
+    StartTaskRequest {
+        task: Some(task.goal.clone()),
+        flow: task.flow.clone(),
+        facts: task.facts.clone(),
+        constraints: TaskConstraints {
+            payment: PaymentMode::StopAtPayment,
+            surfaces: vec![SurfaceKind::Browser],
+            origins: task.origins.clone(),
+            allow_destructive: false,
+            browser_endpoint: None,
+            headed: !config.browser.headless,
+        },
+        budget: TaskBudget {
+            max_actions: Some(task.max_actions),
+            max_elapsed_ms: Some(config.browser.task_timeout_secs.saturating_mul(1000)),
+            max_rescues: config.computer.max_rescues,
+            ..TaskBudget::default()
+        },
+        ..StartTaskRequest::default()
     }
 }
 
-fn jev_client(config: &Config) -> Result<Client, String> {
-    let client_config = match billing_route(config) {
-        BillingRoute::DirectOpenRouter => {
-            let key = lookup_key_for_slug("openrouter", config)
-                .map_err(|_| "OpenRouter agentic credential is unavailable".to_owned())?;
-            if key.trim().is_empty() {
-                return Err("OpenRouter agentic credential is unavailable".to_owned());
-            }
-            ClientConfig::openrouter(key)
-        }
-        BillingRoute::Hosted => {
-            let credential = resolve_backend_credential(config)
-                .map_err(|_| "TinyHumans credential is unavailable".to_owned())?;
-            let mut client_config = ClientConfig::tinyhumans_openrouter(credential.into_secret());
-            client_config.base_url = effective_backend_api_url(&config.api_url);
-            client_config
-        }
-    };
-    Client::new(client_config).map_err(|_| "Jev client configuration is invalid".to_owned())
-}
-
-/// Run a bounded task in an existing browser session.
-///
-/// A consequential action returns `NeedsConfirmation` with an exact pending
-/// decision. The caller must obtain host confirmation before performing it.
+/// Start a browser task and follow it until it pauses, finishes, or the host
+/// deadline passes (then the view still says `running`).
 ///
 /// # Errors
 ///
-/// Returns a credential, provider, browser, or timeout error without exposing
-/// credentials or page content in the message.
-pub async fn run(
-    browser: &impl BrowserControl,
+/// Returns a module, transport, or task error without page content.
+pub async fn start(config: &Config, task: &BrowserTask) -> Result<TaskView, String> {
+    if task.origins.is_empty() {
+        return Err("a browser task needs at least one allowed origin".to_owned());
+    }
+    let request = start_request(config, task);
+    tracing::debug!(
+        origins = task.origins.len(),
+        max_actions = task.max_actions,
+        saved_flow = task.flow.is_some(),
+        "[browser-task] starting"
+    );
+    let view: TaskView = call(config, methods::START_TASK, request, true).await?;
+    follow(config, view).await
+}
+
+/// Answer a paused task and follow it again.
+///
+/// # Errors
+///
+/// Returns a module, transport, or task error.
+pub async fn resume(config: &Config, request: ContinueTaskRequest) -> Result<TaskView, String> {
+    tracing::debug!(task = %request.id, approve = ?request.approve, "[browser-task] continuing");
+    let view: TaskView = call(config, methods::CONTINUE_TASK, request, true).await?;
+    follow(config, view).await
+}
+
+/// Keep following a task that was still running when the last call returned.
+///
+/// # Errors
+///
+/// Returns a module, transport, or task error.
+pub async fn wait(config: &Config, id: TaskId) -> Result<TaskView, String> {
+    let view: TaskView = call(
+        config,
+        methods::AWAIT_TASK,
+        AwaitTaskRequest {
+            id,
+            timeout_ms: AWAIT_SLICE_MS,
+        },
+        false,
+    )
+    .await?;
+    follow(config, view).await
+}
+
+/// Cancel a task.
+///
+/// # Errors
+///
+/// Returns a module or transport error.
+pub async fn cancel(config: &Config, id: TaskId) -> Result<TaskView, String> {
+    tracing::debug!(task = %id, "[browser-task] cancelling");
+    call(config, methods::CANCEL_TASK, TaskRef { id }, false).await
+}
+
+/// The task's record: its steps, what it collected, and every rescue. Page
+/// data can appear in it, so it is fetched confidentially and without the Jev
+/// trace.
+///
+/// # Errors
+///
+/// Returns a module or transport error.
+pub async fn report(config: &Config, id: TaskId) -> Result<TaskReport, String> {
+    call(
+        config,
+        methods::TASK_REPORT,
+        TaskReportRequest { id, trace: false },
+        true,
+    )
+    .await
+}
+
+async fn follow(config: &Config, mut view: TaskView) -> Result<TaskView, String> {
+    let deadline = Instant::now() + Duration::from_secs(config.browser.task_timeout_secs.max(1));
+    while matches!(view.status, tinycomputer_bus::agent::TaskStatus::Running) {
+        let left = deadline.saturating_duration_since(Instant::now());
+        if left.is_zero() {
+            tracing::debug!(task = %view.id, "[browser-task] host deadline reached while running");
+            break;
+        }
+        let timeout_ms = u64::try_from(left.as_millis())
+            .unwrap_or(u64::MAX)
+            .min(AWAIT_SLICE_MS);
+        view = call(
+            config,
+            methods::AWAIT_TASK,
+            AwaitTaskRequest {
+                id: view.id.clone(),
+                timeout_ms,
+            },
+            false,
+        )
+        .await?;
+    }
+    tracing::debug!(task = %view.id, progress = view.progress, "[browser-task] paused or finished");
+    Ok(view)
+}
+
+async fn call<Request: Serialize + Send, Reply: DeserializeOwned>(
     config: &Config,
-    session: &SessionId,
-    task: TaskRequest,
-    max_steps: usize,
-) -> Result<TaskResult, String> {
-    let limits = ControlLimits {
-        max_steps: max_steps.min(config.browser.max_task_steps),
-        ..ControlLimits::default()
-    };
-    let controller = JevController::new(jev_client(config)?).with_limits(limits);
-    let deadline = Duration::from_secs(config.browser.task_timeout_secs);
-    tracing::debug!(route = ?billing_route(config), max_steps = limits.max_steps, "[browser-task] starting");
-    tokio::time::timeout(deadline, controller.run(browser, session, &task))
-        .await
-        .map_err(|_| "browser task timed out".to_owned())?
-        .map_err(|error| match error {
-            tinybrowser_control::Error::InvalidTask { .. } => "invalid browser task".to_owned(),
-            tinybrowser_control::Error::InvalidDecision { .. } => {
-                "Jev returned an unusable browser decision".to_owned()
-            }
-            tinybrowser_control::Error::Provider { .. } => "Jev decision request failed".to_owned(),
-            tinybrowser_control::Error::Browser { source } => {
-                format!("browser operation failed: {}", source.wire_name())
-            }
-        })
+    member: &str,
+    request: Request,
+    confidential: bool,
+) -> Result<Reply, String> {
+    let proxy = super::desktop::proxy(config)
+        .await?
+        .with_timeout(CALL_TIMEOUT);
+    let response: AgentResponse<Reply> = if confidential {
+        proxy.call_confidential(member, (request,)).await
+    } else {
+        proxy.call(member, (request,)).await
+    }
+    .map_err(|error| format!("browser task {member} failed: {error}"))?;
+    unwrap_response(member, response)
+}
+
+fn unwrap_response<Reply>(member: &str, response: AgentResponse<Reply>) -> Result<Reply, String> {
+    match (response.ok, response.data, response.error) {
+        (true, Some(data), _) => Ok(data),
+        (_, _, Some(error)) => Err(format!(
+            "browser task {member} failed [{}]: {} {}",
+            error.code, error.message, error.hint
+        )
+        .trim_end()
+        .to_owned()),
+        _ => Err(format!("browser task {member} returned no result")),
+    }
 }

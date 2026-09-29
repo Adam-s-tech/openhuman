@@ -2,8 +2,6 @@
 //!
 //! Split into submodules; this module re-exports the main `Config` and all public types.
 
-pub mod activity_level;
-pub use activity_level::AgentActivityLevel;
 pub mod cloud_providers;
 pub use cloud_providers::{
     generate_provider_id, is_slug_reserved, migrate_legacy_fields, AuthStyle, CloudProviderCreds,
@@ -20,6 +18,8 @@ mod channels;
 mod cli_overrides;
 #[doc(hidden)]
 pub use cli_overrides::AppliedInferenceOverride;
+mod computer;
+pub use computer::{ComputerConfig, DecisionModel};
 mod context;
 mod dashboard;
 mod desktop;
@@ -123,11 +123,13 @@ pub use tools::{
     BrowserComputerUseConfig, BrowserConfig, ComposioConfig, ComposioDirectBaseUrls,
     ComposioHostCredential, CurlConfig, GitbooksConfig, HttpHeader, HttpRequestConfig,
     IntegrationToggle, IntegrationsConfig, McpAuthConfig, McpClientConfig, McpClientIdentityConfig,
-    McpServerConfig, MultimodalConfig, MultimodalFileConfig, SearchConfig, SearchEngine,
+    McpServerConfig, MultimodalConfig, MultimodalFileConfig, SearchConfig,
     SearchEngineCredentials, SearxngConfig, SecretsConfig, SeltzConfig, WebSearchConfig,
     COMPOSIO_MODE_BACKEND, COMPOSIO_MODE_DIRECT, SEARCH_ENGINE_BRAVE, SEARCH_ENGINE_DISABLED,
     SEARCH_ENGINE_EXA, SEARCH_ENGINE_MANAGED, SEARCH_ENGINE_PARALLEL, SEARCH_ENGINE_QUERIT,
-    SEARCH_ENGINE_TAVILY, SEARCH_PROVIDERS,
+    SEARCH_ENGINE_TAVILY, SEARCH_PROVIDERS, SEARCH_ROLES, SEARCH_ROLE_ANSWER, SEARCH_ROLE_CONTENTS,
+    SEARCH_ROLE_SEARCH, LegacySearchInputs, SearchPresentation, SearchProviderSettings, SearchRoute,
+    MANAGED_SEARCH_PROVIDERS,
 };
 pub use update::{UpdateConfig, UpdateRestartStrategy};
 pub use web_chat_config::WebChatConfig;

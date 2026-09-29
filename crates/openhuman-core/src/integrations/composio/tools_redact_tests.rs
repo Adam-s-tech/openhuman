@@ -67,6 +67,27 @@ fn secret_used_as_a_json_object_key_is_redacted() {
     assert!(serialized.contains("[REDACTED]"), "{serialized}");
 }
 
+#[test]
+fn colliding_redacted_object_keys_keep_both_values() {
+    let config = config_with_overlapping_secrets();
+    let outcome = redact_composio_outcome(
+        &config,
+        Ok(tinytools::ToolResult::json(json!({
+            (SHORT_KEY): "short value",
+            (LONG_KEY): "long value",
+        }))),
+    )
+    .unwrap();
+    let value = &outcome.content[0];
+    let tinytools::ToolContent::Json { data } = value else {
+        panic!("expected JSON content");
+    };
+    let object = data.as_object().expect("JSON object");
+    assert_eq!(object.len(), 2);
+    assert_eq!(object.get("[REDACTED]").unwrap(), "short value");
+    assert_eq!(object.get("[REDACTED] (2)").unwrap(), "long value");
+}
+
 /// `redact_and_report` is the single call site that both reports a
 /// direct-mode error to observability and supplies the caller's returned
 /// error text — one redacted value serves both, so this return value is

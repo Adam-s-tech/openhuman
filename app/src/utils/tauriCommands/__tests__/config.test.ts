@@ -21,10 +21,12 @@ describe('openhumanGetClientConfig', () => {
     vi.resetAllMocks();
   });
 
-  it('throws when not running inside the Tauri shell', async () => {
+  it('calls core RPC outside the Tauri shell', async () => {
     const { isTauri } = await import('../common');
     vi.mocked(isTauri).mockReturnValueOnce(false);
-    await expect(openhumanGetClientConfig()).rejects.toThrow(/Not running in Tauri/i);
+    vi.mocked(callCoreRpc).mockResolvedValueOnce({} as never);
+    await openhumanGetClientConfig();
+    expect(vi.mocked(callCoreRpc)).toHaveBeenCalled();
   });
 
   it('dispatches openhuman.inference_get_client_config and returns the response', async () => {
@@ -87,9 +89,11 @@ describe('Claude Code wrappers', () => {
     ['openhumanClaudeCodeAuthStatus', () => openhumanClaudeCodeAuthStatus()],
     ['openhumanClaudeCodeSettings', () => openhumanClaudeCodeSettings()],
     ['openhumanClaudeCodeSetFullAccess', () => openhumanClaudeCodeSetFullAccess(true)],
-  ])('%s throws outside the Tauri shell', async (_name, call) => {
+  ])('%s calls core RPC outside the Tauri shell', async (_name, call) => {
     const { isTauri } = await import('../common');
     vi.mocked(isTauri).mockReturnValueOnce(false);
-    await expect(call()).rejects.toThrow(/Not running in Tauri/i);
+    vi.mocked(callCoreRpc).mockResolvedValueOnce({} as never);
+    await call();
+    expect(vi.mocked(callCoreRpc)).toHaveBeenCalled();
   });
 });

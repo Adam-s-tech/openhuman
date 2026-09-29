@@ -20,16 +20,27 @@ pub struct ToolPack {
     /// Agent ids for which this pack is **not** applied.
     ///
     /// Withholding is a bet that the tools are idle in most turns. That bet is
-    /// wrong for the specialist a family was delegated to: `settings_agent`
-    /// exists precisely to run `config_*` / `health_*` / `service_*`, so
-    /// packing them would put a `use_skill` round trip in front of the first
-    /// call of every one of its turns and buy nothing — its whole belt is the
-    /// pack.
+    /// wrong for the specialist a family was delegated to: `workflow_builder`
+    /// exists precisely to run the flow authoring tools, so packing them would
+    /// put a `use_skill` round trip in front of the first call of every one of
+    /// its turns and buy nothing — its whole belt is the pack.
     ///
     /// The earlier packs did not need this because they held only synthesised
     /// `delegate_*` tools, which exist on the orchestrator alone. Packs over
     /// raw tools do, and an owner list is the narrowest way to say so.
     pub owners: &'static [&'static str],
+    /// The skill's playbook, printed when `use_skill` loads the pack, between
+    /// the summary and the tool schemas. Empty for a pack that is only a
+    /// schema bundle.
+    ///
+    /// This is what replaced most single-belt specialists: a sub-agent whose
+    /// whole value was a prompt over a handful of tools is a ~500-token guide
+    /// here plus `Deferred` tools the orchestrator reaches itself, instead of
+    /// a separate context, model call and hand-off envelope. Lookup detail
+    /// belongs in the guide; a rule that must bind before the model thinks to
+    /// load the skill (confirm before moving money) stays in the orchestrator
+    /// prompt. Kept under ~550 tokens by `toolpacks_tests.rs`.
+    pub guide: &'static str,
 }
 
 impl ToolPack {

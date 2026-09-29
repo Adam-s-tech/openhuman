@@ -1026,6 +1026,12 @@ export type AssistantUiProjection = {
   pendingApproval?: PendingApproval | null;
   liveTimeline?: readonly ToolTimelineEntry[];
   liveTranscript?: readonly ProcessingTranscriptItem[];
+  /**
+   * The request whose rows `liveTimeline` holds, when known
+   * (`chatRuntime.toolTimelineRequestByThread`). A settled message never
+   * borrows another request's live rows as its trail.
+   */
+  liveTimelineRequestId?: string;
   turnTimelines?: Readonly<Record<string, readonly ToolTimelineEntry[]>>;
   turnTranscripts?: Readonly<Record<string, readonly ProcessingTranscriptItem[]>>;
   /**
@@ -1148,12 +1154,20 @@ export function buildRuntimeMessages(
     // Not while a gate is parked: the tail below is minted unconditionally in
     // that case and would emit the same rows a second time, and a repeated
     // `toolCallId` throws inside assistant-ui rather than dropping a row.
+    // Nor when those rows are provably another turn's: a reply that settled
+    // with no `inference_start` of its own (a background delivery) otherwise
+    // showed the previous turn's tool cards a second time under itself.
+    const liveRowsAreForeign =
+      projection.liveTimelineRequestId !== undefined &&
+      requestId !== undefined &&
+      projection.liveTimelineRequestId !== requestId;
     const useSettledLiveFallback =
       projection.isRunning === false &&
       !pendingApproval &&
       msg.id === lastVisibleAgentId &&
       !persistedTimeline &&
-      !persistedTranscript;
+      !persistedTranscript &&
+      !liveRowsAreForeign;
     out.push(
       toThreadMessageLike(
         msg,

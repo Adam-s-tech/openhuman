@@ -149,7 +149,7 @@ impl AgentOrchestrationSession {
     /// Spawn a child agent from the active parent agent turn.
     ///
     /// `request` must provide a non-empty `agent_id` and `prompt`; optional
-    /// context, toolkit, model, parent id, and metadata are carried into the
+    /// context, model, parent id, and metadata are carried into the
     /// child record and sub-agent run options. On success this returns the
     /// accepted child id and initial status while a background task executes the
     /// child through [`run_subagent`].
@@ -385,7 +385,6 @@ impl AgentOrchestrationSession {
 
         let options = SubagentRunOptions {
             skill_filter_override: None,
-            toolkit_override: request.toolkit,
             context: request.context,
             model_override: request.model,
             task_id: Some(orchestration_id.clone()),

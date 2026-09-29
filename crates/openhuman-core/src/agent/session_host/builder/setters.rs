@@ -254,7 +254,7 @@ impl SessionHostBuilder {
     }
 
     /// Sets the agent definition id this session is running
-    /// (`welcome`, `orchestrator`, `integrations_agent`, …).
+    /// (`welcome`, `orchestrator`, `planner`, …).
     ///
     /// This value is stamped onto the built [`OpenHumanSessionHost`] and surfaces in
     /// the following places:
@@ -273,18 +273,12 @@ impl SessionHostBuilder {
     ///   signal for "which agent definition ran this session" when
     ///   inspecting transcripts after the fact.
     /// * **[`PromptContext::agent_id`]** at prompt-build time (see
-    ///   `turn.rs`). Today only one prompt section reads this field —
-    ///   the `Connected Integrations` branch in `agent/prompts`
-    ///   that special-cases `integrations_agent` vs every other agent — so
-    ///   the current user-visible impact of a wrong id is limited to
-    ///   the two bullets above. The stamped `prompt_builder` injected
-    ///   by [`OpenHumanSessionHost::from_config_for_agent`] is what actually drives
-    ///   prompt flavour per archetype, independent of this field. That
-    ///   said, any future prompt section that branches on a
-    ///   non-`integrations_agent` id (e.g. welcome-specific banner, planner-
-    ///   specific rubric) would silently never fire if the field were
-    ///   left at `"main"`, so keeping it correctly stamped closes a
-    ///   latent foot-gun for code that hasn't been written yet.
+    ///   `turn.rs`). The stamped `prompt_builder` injected by
+    ///   [`OpenHumanSessionHost::from_config_for_agent`] is what actually
+    ///   drives prompt flavour per archetype, independent of this field,
+    ///   but any prompt section that branches on the id (e.g. a
+    ///   welcome-specific banner) would silently never fire if the field
+    ///   were left at `"main"`.
     ///
     /// Callers building via [`OpenHumanSessionHost::from_config_for_agent`] get this
     /// wired automatically inside `build_session_agent_inner`; direct

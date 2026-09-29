@@ -1,3 +1,5 @@
+import Badge from '../ui/Badge';
+
 interface ChannelCapabilitiesProps {
   capabilities: string[];
 }
@@ -7,11 +9,9 @@ const ChannelCapabilities = ({ capabilities }: ChannelCapabilitiesProps) => {
   return (
     <div className="flex flex-wrap gap-1.5 mt-2">
       {capabilities.map(cap => (
-        <span
-          key={cap}
-          className="px-1.5 py-0.5 text-[10px] rounded bg-surface-subtle text-content-muted border border-line">
+        <Badge key={cap} dot={false}>
           {cap.replace(/_/g, ' ')}
-        </span>
+        </Badge>
       ))}
     </div>
   );

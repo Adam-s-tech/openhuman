@@ -1,11 +1,11 @@
-//! Host calls to the attested tinydesktop module.
+//! Host calls to the attested tinycomputer module.
 
 use std::hash::{Hash, Hasher};
 use std::sync::OnceLock;
 
 use serde::Serialize;
 use tinybus::Proxy;
-use tinydesktop_bus::{names, DesktopResponse, PermissionsRequest};
+use tinycomputer_bus::{names, DesktopResponse, PermissionsRequest};
 
 use crate::config::Config;
 
@@ -13,49 +13,9 @@ use crate::config::Config;
 #[path = "desktop_tests.rs"]
 mod tests;
 
-pub const MODULE_ID: &str = "tinydesktop";
+pub const MODULE_ID: &str = "tinycomputer";
 
-/// This confidential payload is sent only to the module lifecycle callback.
-/// Missing or expired host credentials remove the old Jev client on refresh.
-pub fn module_config(config: &Config) -> serde_json::Value {
-    let credential =
-        crate::security::credentials::session_support::resolve_backend_credential(config)
-            .ok()
-            .map(crate::security::credentials::session_support::BackendCredential::into_secret)
-            .filter(|token| {
-                !crate::security::credentials::session_support::is_local_session_token(token)
-            });
-    match credential {
-        Some(api_key) => serde_json::json!({
-            "jev": {
-                "api_key": api_key,
-                "provider": "tiny_humans_open_router",
-                "sdk_name": crate::api::product_identity().as_str()
-            }
-        }),
-        None => {
-            // A headless or BYOK host may have no TinyHumans session. Direct
-            // OpenRouter Jev remains usable with its own scoped credential.
-            let direct =
-                crate::inference::provider::factory::lookup_key_for_slug("openrouter", config)
-                    .ok()
-                    .filter(|key| !key.trim().is_empty())
-                    .or_else(|| {
-                        std::env::var("OPENROUTER_API_KEY")
-                            .ok()
-                            .filter(|key| !key.trim().is_empty())
-                    });
-            direct.map_or_else(
-                || serde_json::json!({}),
-                |api_key| {
-                    serde_json::json!({
-                        "jev": { "api_key": api_key, "provider": "open_router" }
-                    })
-                },
-            )
-        }
-    }
-}
+pub use super::computer_config::{billing_route, module_config};
 
 pub fn jev_ready(config: &Config) -> bool {
     module_config(config)["jev"].is_object()
@@ -72,7 +32,9 @@ fn fingerprint(value: &serde_json::Value) -> u64 {
     hasher.finish()
 }
 
-async fn proxy(config: &Config) -> Result<Proxy, String> {
+/// Load the module, refresh its private configuration when it changed, and
+/// return a proxy for its one interface (desktop, browser and task members).
+pub(crate) async fn proxy(config: &Config) -> Result<Proxy, String> {
     crate::modules::ops::ensure_loaded_within(
         config,
         MODULE_ID,
@@ -82,9 +44,9 @@ async fn proxy(config: &Config) -> Result<Proxy, String> {
     .map_err(crate::modules::ops::LoadError::into_message)?;
     let runtime = crate::modules::host::runtime()
         .await
-        .map_err(|error| format!("desktop module bus unavailable: {error}"))?;
+        .map_err(|error| format!("TinyComputer module bus unavailable: {error}"))?;
     crate::modules::registry::find(MODULE_ID)
-        .ok_or_else(|| "desktop module is not in the compiled registry".to_owned())?;
+        .ok_or_else(|| "TinyComputer module is not in the compiled registry".to_owned())?;
 
     // Reinitialization is private and retains no plaintext secret in this host.
     // The lock makes credential rotation atomic across concurrent tool calls.
@@ -96,13 +58,22 @@ async fn proxy(config: &Config) -> Result<Proxy, String> {
             .connection()
             .reinitialize_module(MODULE_ID, configuration)
             .await
-            .map_err(|error| format!("desktop module credential refresh failed: {error}"))?;
+            .map_err(|error| {
+                let message = format!("TinyComputer configuration refresh failed: {error}");
+                if error.wire_name().ends_with("ModuleUnavailable") {
+                    // The module refused its configuration and faulted; it
+                    // stays unusable in this process, so report it that way.
+                    tracing::warn!(%message, "[computer] module faulted on reinitialization");
+                    super::resolution::table().mark_faulted(MODULE_ID, message.clone());
+                }
+                message
+            })?;
     }
     *previous = Some(current);
     drop(previous);
     runtime
         .proxy(names::INTERFACE, names::OBJECT_PATH)
-        .map_err(|error| format!("desktop module proxy unavailable: {error}"))
+        .map_err(|error| format!("TinyComputer module proxy unavailable: {error}"))
 }
 
 /// Call one contract member, preserving the structured error envelope.
@@ -130,8 +101,11 @@ async fn call_with_proxy<Request: Serialize + Send>(
             .with_timeout(std::time::Duration::from_secs(330))
     });
     let proxy = goal_proxy.as_ref().unwrap_or(proxy);
-    let response = if member == names::methods::RUN_GOAL || member == names::methods::RESOLVE_INTENT
-    {
+    // The contract's catalogue marks which members carry facts, credentials
+    // or page data; those travel confidentially.
+    let confidential =
+        tinycomputer_bus::catalogue::member(member).is_some_and(|entry| entry.confidential);
+    let response = if confidential {
         proxy
             .call_confidential::<DesktopResponse>(member, (request,))
             .await
@@ -158,7 +132,7 @@ pub fn state(config: &Config) -> (String, Option<String>) {
             || {
                 (
                     "failed".to_owned(),
-                    Some("desktop module is not registered".to_owned()),
+                    Some("TinyComputer module is not registered".to_owned()),
                 )
             },
             |item| (format!("{:?}", item.state).to_lowercase(), item.detail),

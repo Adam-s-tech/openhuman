@@ -14,6 +14,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useT } from '../../../lib/i18n/I18nContext';
 import { mcpClientsApi } from '../../../services/api/mcpClientsApi';
+import { Alert, AlertDescription } from '../../ui';
 import Button from '../../ui/Button';
 import InstalledServerDetail from './InstalledServerDetail';
 import McpJsonEditor from './McpJsonEditor';
@@ -177,10 +178,12 @@ const McpServersTab = ({ tab, onTabChange }: McpServersTabProps) => {
     );
   }
 
-  // Detail view — a server's own page, reached from a row's name.
+  // Detail view — a server's own page, reached from a row's name. The page
+  // body does not scroll on this tab (the rows table owns its scroll), so the
+  // detail view brings its own.
   if (view.mode === 'detail' && selectedServer) {
     return (
-      <div className="space-y-3">
+      <div className="-mr-4 h-full space-y-3 overflow-y-auto pb-4 pr-4">
         <Button
           variant="tertiary"
           size="xs"
@@ -208,13 +211,11 @@ const McpServersTab = ({ tab, onTabChange }: McpServersTabProps) => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex h-full min-h-0 flex-col gap-3">
       {loadError && (
-        <p
-          role="alert"
-          className="rounded-md border border-coral-500/30 bg-coral-500/10 px-3 py-2 text-xs text-coral-700 dark:text-coral-300">
-          {loadError}
-        </p>
+        <Alert variant="destructive" density="compact">
+          <AlertDescription>{loadError}</AlertDescription>
+        </Alert>
       )}
 
       <McpServerRows

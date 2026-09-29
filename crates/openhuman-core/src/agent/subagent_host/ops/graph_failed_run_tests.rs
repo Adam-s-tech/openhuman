@@ -71,7 +71,6 @@ async fn failed_subagent_run_keeps_its_unanswered_round_out_of_history() {
         false,
         stem,
         "mock-channel",
-        None,
         AgentTokenjuiceCompression::Off,
         None,
     )

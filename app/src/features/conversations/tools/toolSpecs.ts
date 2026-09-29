@@ -208,6 +208,14 @@ export const EXACT_TOOL_SPECS: Record<string, ToolSpec> = {
   // ── Web ─────────────────────────────────────────────────────────────────
   web_search: webSearch('searchWeb'),
   web_search_tool: webSearch('searchWeb'),
+  // Role tools: `web_answer_tool` returns a grounded answer with citations
+  // (and runs deep research on `depth: "deep"`); `web_contents_tool` reads
+  // the given URLs.
+  web_answer_tool: webSearch('askTheWeb'),
+  web_contents_tool: readPages,
+  gemini_agentic_search: webSearch('askTheWeb'),
+  gemini_deep_research: webSearch('research', TelescopeIcon),
+  exa_answer: webSearch('askTheWeb'),
   exa_search: webSearch('searchWeb'),
   tavily_search: webSearch('searchWeb'),
   querit_search: webSearch('searchWeb'),
@@ -226,6 +234,8 @@ export const EXACT_TOOL_SPECS: Record<string, ToolSpec> = {
   tavily_extract: readPages,
   parallel_extract: readPages,
   tinyfish_fetch: readPages,
+  // Parallel was removed from the core; these stay so old transcripts still
+  // render with a meaningful label.
   parallel_research: spec('research', TelescopeIcon, 'web', { chip: chip.query() }),
   parallel_chat: spec('askTheWeb', GlobeIcon, 'web', { chip: chip.query() }),
   parallel_enrich: spec('enrichData', SparklesIcon, 'web', { chip: chip.query() }),
@@ -321,9 +331,6 @@ export const EXACT_TOOL_SPECS: Record<string, ToolSpec> = {
   wait: spec('wait', HourglassIcon, 'agent'),
   wait_loop: spec('wait', HourglassIcon, 'agent'),
   ask_user_clarification: spec('askQuestion', MessageCircleQuestionIcon, 'agent', {
-    chip: chip.text('question'),
-  }),
-  agent_prepare_context: spec('prepareContext', LayersIcon, 'agent', {
     chip: chip.text('question'),
   }),
   extract_from_result: spec('extractDetails', LayersIcon, 'agent'),
@@ -598,11 +605,14 @@ export const FAMILY_TOOL_SPECS: ReadonlyArray<{ test: RegExp; spec: ToolSpec }> 
  * Named agents, reached as `subagent:<id>`, as `spawn_subagent { agent_id }`,
  * as `delegate_<id>`, or as the custom delegate tool names agent TOMLs
  * declare (`delegate_name`).
+ *
+ * Some entries name specialists the core no longer ships (`code_executor`,
+ * `tools_agent`, `do_crypto`, `manage_settings`, `schedule_task`,
+ * `use_mcp_server`, `ask_docs`, `run_code`, `review_code`, `plan`): they are
+ * now inline skills, but existing transcripts still replay those calls, so the
+ * labels stay for history.
  */
 export const AGENT_SPECS: Record<string, ToolSpec> = {
-  researcher: spec('research', TelescopeIcon, 'agent'),
-  research: spec('research', TelescopeIcon, 'agent'),
-  context_scout: spec('scoutContext', LayersIcon, 'agent'),
   orchestrator: spec('planNextSteps', BotIcon, 'agent'),
   plan: spec('planNextSteps', BotIcon, 'agent'),
   planner: spec('planNextSteps', BotIcon, 'agent'),

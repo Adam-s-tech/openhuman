@@ -1,4 +1,4 @@
-//! Handlers for agent behaviour settings: autonomy, privacy, browser, sandbox, activity level, and memory sync.
+//! Handlers for agent behaviour settings: autonomy, privacy, browser, sandbox, and memory sync.
 
 use serde_json::{Map, Value};
 
@@ -6,8 +6,8 @@ use crate::config::rpc as config_rpc;
 use crate::core::all::ControllerFuture;
 
 use super::super::helpers::{
-    deserialize_params, to_json, ActivityLevelSettingsUpdate, AgentSettingsUpdate,
-    AutonomySettingsUpdate, BrowserSettingsUpdate, MemorySyncSettingsUpdate, PrivacyModeUpdate,
+    deserialize_params, to_json, AgentSettingsUpdate, AutonomySettingsUpdate,
+    BrowserSettingsUpdate, ComputerSettingsUpdate, MemorySyncSettingsUpdate, PrivacyModeUpdate,
     SandboxSettingsUpdate, SetBrowserAllowAllParams,
 };
 
@@ -109,26 +109,24 @@ pub(super) fn handle_update_browser_settings(params: Map<String, Value>) -> Cont
     })
 }
 
+pub(super) fn handle_update_computer_settings(params: Map<String, Value>) -> ControllerFuture {
+    Box::pin(async move {
+        let update = deserialize_params::<ComputerSettingsUpdate>(params)?;
+        let patch = config_rpc::ComputerSettingsPatch {
+            decision_model: update.decision_model,
+            sage_fast: update.sage_fast,
+            planner_model: update.planner_model,
+            rescue_model: update.rescue_model,
+            max_rescues: update.max_rescues,
+        };
+        to_json(config_rpc::load_and_apply_computer_settings(patch).await?)
+    })
+}
+
 pub(super) fn handle_set_browser_allow_all(params: Map<String, Value>) -> ControllerFuture {
     Box::pin(async move {
         let payload = deserialize_params::<SetBrowserAllowAllParams>(params)?;
         to_json(config_rpc::set_browser_allow_all(payload.enabled)?)
-    })
-}
-
-pub(super) fn handle_get_activity_level_settings(_params: Map<String, Value>) -> ControllerFuture {
-    Box::pin(async move { to_json(config_rpc::get_activity_level_settings().await?) })
-}
-
-pub(super) fn handle_update_activity_level_settings(
-    params: Map<String, Value>,
-) -> ControllerFuture {
-    Box::pin(async move {
-        let update = deserialize_params::<ActivityLevelSettingsUpdate>(params)?;
-        let patch = config_rpc::ActivityLevelSettingsPatch {
-            level: update.level,
-        };
-        to_json(config_rpc::load_and_apply_activity_level_settings(patch).await?)
     })
 }
 

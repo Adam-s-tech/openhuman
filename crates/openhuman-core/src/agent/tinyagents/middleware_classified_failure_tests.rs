@@ -232,6 +232,8 @@ fn an_unknown_tool_is_a_correctable_call_not_a_blocker() {
     for error in [
         "unknown tool `forbidden_tool` (arguments: {}); valid tools: [file_read]",
         "unknown tool `ranges` (arguments: {}); valid tools: [GITHUB_LIST_UNAUTHORIZED_USERS, file_write]",
+        // Current tinyagents corrective: close matches + a `tool_search` pointer.
+        "unknown tool `forbidden_tool`: no tool with that name is available to you, and calling it again will fail the same way. Closest available: `forbidden_list_unauthorized`. To find the right tool, call `tool_search` with what you want to do in plain words, then call a tool it returns.",
     ] {
         assert_eq!(
             super::super::repeated_failure::recovery_policy("forbidden_tool", error, false),

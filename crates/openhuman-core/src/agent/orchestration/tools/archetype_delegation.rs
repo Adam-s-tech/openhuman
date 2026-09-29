@@ -255,7 +255,6 @@ pub(crate) async fn execute_archetype_delegation_with_live_parent(
         agent_id,
         tool_name,
         &prompt,
-        None,
         model_override,
         tool_context,
         mode,

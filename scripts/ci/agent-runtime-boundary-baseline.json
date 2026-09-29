@@ -351,13 +351,6 @@
   },
   {
     "rule": "openhuman-task-local",
-    "path": "crates/openhuman-core/src/agent/orchestration/tools/agent_prepare_context/tool.rs",
-    "line": 277,
-    "text": "crate::agent::harness::current_agent_context_prepared_sources();",
-    "occurrence": 1
-  },
-  {
-    "rule": "openhuman-task-local",
     "path": "crates/openhuman-core/src/agent/orchestration/tools/close_subagent.rs",
     "line": 98,
     "text": "crate::agent::harness::current_parent(),",
@@ -1409,8 +1402,8 @@
   {
     "rule": "tinyagents-tool-calling-facade",
     "path": "vendor/tinyagents/crates/tinyagents-harness/src/agent_loop/dialect.rs",
-    "line": 21,
-    "text": "use tinytools_agent::types::{ParseOptions, ParsedToolCall};",
+    "line": 22,
+    "text": "use tinytools_agent::types::{ParseDiagnostic, ParseOptions, ParsedToolCall};",
     "occurrence": 1
   },
   {

@@ -1,6 +1,7 @@
 import { Dialog as DialogPrimitive } from 'radix-ui';
 
 import { cn } from '../../../../lib/cn';
+import { useT } from '../../../../lib/i18n/I18nContext';
 import type { NetworkFilterId } from '../WalletBalancesPanel';
 
 interface SelectNetworkModalProps {
@@ -20,6 +21,7 @@ export default function SelectNetworkModal({
   networkFilters,
   chainIcons,
 }: SelectNetworkModalProps) {
+  const { t } = useT();
   return (
     <DialogPrimitive.Root open={open} onOpenChange={(next: boolean) => !next && onClose()}>
       <DialogPrimitive.Portal>
@@ -30,12 +32,12 @@ export default function SelectNetworkModal({
           <div className="flex items-center justify-between border-b border-line-subtle px-4 py-4">
             <div className="w-8" />
             <DialogPrimitive.Title className="text-sm font-semibold text-content m-0 p-0">
-              Select network
+              {t('wallet.selectNetwork.title', 'Select network')}
             </DialogPrimitive.Title>
             <button
               onClick={onClose}
               className="flex h-8 w-8 items-center justify-center rounded-full text-content-muted hover:bg-surface-hover hover:text-content transition-colors"
-              aria-label="Close">
+              aria-label={t('common.close', 'Close')}>
               <svg
                 className="h-5 w-5"
                 fill="none"

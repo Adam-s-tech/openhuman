@@ -1,6 +1,8 @@
 import debug from 'debug';
+import { ArrowRight, AudioLines } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { cn } from '../../../lib/cn';
 import { useT } from '../../../lib/i18n/I18nContext';
 import PttSettingsPanel from '../../../pages/settings/voice/PttSettingsPanel';
 import {
@@ -27,9 +29,8 @@ import {
   type VoiceStatus,
 } from '../../../utils/tauriCommands';
 import PanelPage from '../../layout/PanelPage';
-import { Button } from '../../ui';
+import { Button, Card, Field, StatusLine, Switch } from '../../ui';
 import SettingsBackButton from '../components/SettingsBackButton';
-import { SettingsRow, SettingsSection, SettingsStatusLine, SettingsSwitch } from '../controls';
 import { useSettingsNavigation } from '../hooks/useSettingsNavigation';
 import VoicePanelKeyModal from './VoicePanelKeyModal';
 import VoicePanelProviderChips, { BUILTIN_VOICE_PROVIDER_META } from './VoicePanelProviderChips';
@@ -470,23 +471,34 @@ const VoicePanel = ({ embedded = false, scrollable = true }: VoicePanelProps = {
       leading={embedded ? undefined : <SettingsBackButton onBack={navigateBack} />}
       scrollable={scrollable}>
       <div className={embedded ? 'space-y-5' : 'p-4 space-y-5'}>
-        <SettingsSection title={t('voice.debug.alwaysOn')}>
-          <SettingsRow
-            htmlFor="voice-always-on"
-            label={t('voice.debug.alwaysOn')}
-            description={t('voice.debug.alwaysOnDesc')}
-            control={
-              <SettingsSwitch
-                id="voice-always-on"
-                data-testid="voice-always-on-toggle"
-                checked={settings?.always_on_enabled ?? false}
-                disabled={!settings || isUpdatingAlwaysOn}
-                onCheckedChange={next => void toggleAlwaysOn(next)}
-                aria-label={t('voice.debug.alwaysOn')}
-              />
-            }
-          />
-        </SettingsSection>
+        {/* Always-on listening: the one switch that changes how you talk to it. */}
+        <Card data-testid="voice-always-on-card">
+          <div className="flex items-center gap-3 p-4">
+            <span
+              className={cn(
+                'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg',
+                settings?.always_on_enabled
+                  ? 'bg-primary-500 text-content-inverted'
+                  : 'bg-surface-muted text-content-secondary'
+              )}>
+              <AudioLines className="h-5 w-5" aria-hidden />
+            </span>
+            <div className="min-w-0 flex-1">
+              <label htmlFor="voice-always-on" className="block text-sm font-semibold text-content">
+                {t('voice.debug.alwaysOn')}
+              </label>
+              <p className="mt-0.5 text-xs text-content-muted">{t('voice.debug.alwaysOnDesc')}</p>
+            </div>
+            <Switch
+              id="voice-always-on"
+              data-testid="voice-always-on-toggle"
+              checked={settings?.always_on_enabled ?? false}
+              disabled={!settings || isUpdatingAlwaysOn}
+              onCheckedChange={next => void toggleAlwaysOn(next)}
+              aria-label={t('voice.debug.alwaysOn')}
+            />
+          </div>
+        </Card>
 
         {/* Realtime voice is always on now — its controls live on the Human tab,
             so the former flag-gated toggle here was removed. */}
@@ -570,32 +582,26 @@ const VoicePanel = ({ embedded = false, scrollable = true }: VoicePanelProps = {
         {/* Mascot voice picker now lives in Mascot settings. Link
             kept here so users hunting in Voice settings can find it. */}
         {ttsProvider !== 'piper' && (
-          <section data-testid="mascot-voice-link">
-            <SettingsSection>
-              <SettingsRow
-                stacked
-                label={t('voice.providers.mascotVoice')}
-                control={
-                  <p className="text-xs text-content-muted">
-                    {t('voice.providers.mascotVoiceDescPrefix')}{' '}
-                    <Button
-                      type="button"
-                      variant="tertiary"
-                      size="xs"
-                      className="h-auto px-0 py-0 underline text-primary-600 dark:text-primary-300 hover:bg-transparent hover:text-primary-700 dark:hover:text-primary-200"
-                      onClick={() => navigateToSettings('personality#face')}>
-                      {t('voice.providers.mascotSettings')}
-                    </Button>
-                    {t('voice.providers.mascotVoiceDescSuffix')}
-                  </p>
-                }
-              />
-            </SettingsSection>
-          </section>
+          <Card data-testid="mascot-voice-link">
+            <Field
+              label={t('voice.providers.mascotVoice')}
+              description={t('voice.providers.mascotVoiceCardDesc')}
+              control={
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  trailingIcon={<ArrowRight className="h-3.5 w-3.5" aria-hidden />}
+                  onClick={() => navigateToSettings('face')}>
+                  {t('voice.providers.mascotSettings')}
+                </Button>
+              }
+            />
+          </Card>
         )}
 
         {/* Status line */}
-        <SettingsStatusLine
+        <StatusLine
           saving={isSavingProviders || isSavingRouting || isUpdatingAlwaysOn}
           savedNote={notice}
           error={error}

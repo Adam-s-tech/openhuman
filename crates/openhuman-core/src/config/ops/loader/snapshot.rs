@@ -11,15 +11,12 @@ pub fn snapshot_config_json(config: &Config) -> Result<serde_json::Value, String
     let mut value = serde_json::to_value(config).map_err(|e| e.to_string())?;
     // The full snapshot is sent over RPC. Keep search settings visible while
     // removing credentials, including the legacy Seltz key.
-    for provider in ["parallel", "brave", "querit", "exa", "tavily", "gemini"] {
+    for provider in ["brave", "querit", "exa", "tavily", "gemini", "parallel"] {
         value["search"][provider]["api_key"] = serde_json::Value::Null;
     }
     value["seltz"]["api_key"] = serde_json::Value::Null;
     #[cfg(feature = "modules")]
-    let browser_billing_route = match crate::modules::browser_task::billing_route(config) {
-        crate::modules::browser_task::BillingRoute::DirectOpenRouter => "direct_openrouter",
-        crate::modules::browser_task::BillingRoute::Hosted => "hosted",
-    };
+    let browser_billing_route = crate::modules::desktop::billing_route(config);
     #[cfg(not(feature = "modules"))]
     let browser_billing_route = "unavailable";
     Ok(json!({

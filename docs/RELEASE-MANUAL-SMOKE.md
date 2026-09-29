@@ -27,6 +27,10 @@ Applies to every release, all platforms.
 - [ ] **A failed chat turn does not offer an invalid regenerate action** — Trigger a provider failure in a test profile and inspect its error card. Expected: the diagnostic text remains visible, with no Retry or Refresh button on that failed message. A completed assistant reply still offers Refresh (#6613).
 - [ ] **A failed turn leaves its thread usable** — In a test profile, get one successful reply, trigger a streamed provider failure on the next turn, then send another message in the same thread. Expected: the error card appears, the composer re-enables, the next reply streams normally, and the agent still has the first turn's context. If a queued follow-up starts as the failed turn ends, its stream and composer state stay active.
 
+### Refreshed application UI
+
+- [ ] **Settings, Connections, theme, and workflow surfaces remain usable** — On desktop, navigate between Settings sections and Connections tabs, switch between light/dark and at least one named theme family, export and re-import a custom theme, then open a workflow canvas and its run history. Expected: each route renders its own content without stale panels or horizontal overflow; imported themes can be selected and theme selection and run details survive a reload where persistence is expected.
+
 ### Native desktop control
 
 - [ ] **Connections enables the published desktop module on an unlocked macOS or Windows session** — Open Connections → Integrations → Desktop Control, verify the Early Alpha notice, enable it, grant Accessibility if prompted, and run the read-only test. Expected: the module loads from the pinned release, the panel reports the actual permission state, and the test sees an accessibility snapshot. Screen Recording is required only when testing capture. A locked macOS screen must not be reported as a successful probe.
@@ -35,7 +39,7 @@ Applies to every release, all platforms.
 
 ### Browser module
 
-- [ ] **Browser readiness and setup** — Open Connections → Integrations → Browser Control on each desktop platform and verify the Early Alpha notice. Expected: the checksum-pinned TinyBrowser module loads from the installer on Windows or the release cache on other platforms and passes TinyBus admission, module and Chrome readiness are reported separately, Test works, and saved viewport, profile, download folder, task limits, and allowed websites survive relaunch.
+- [ ] **Browser readiness and setup** — Open Connections → Integrations → Computer → Browser on each desktop platform and verify the Early Alpha notice. Expected: the checksum-pinned TinyComputer module loads from the installer on Windows or the release cache on other platforms and passes TinyBus admission, module and Chrome readiness are reported separately, Test works, and saved viewport, profile, download folder, task limits, and allowed websites survive relaunch.
 - [ ] **Browser task and policy** — With an allowed Selenium test site, use a conversation to submit its web form and download File 1. Expected: `tool_search` discovers `browser`, consequential actions wait for the exact host approval, the submitted page shows “Received!”, and a completed download is verified on disk. Then restrict allowed websites and confirm a disallowed navigation is blocked.
 
 ### Wallet balances
@@ -87,6 +91,7 @@ Applies to every release, all platforms.
 ### Cross-platform
 
 - [ ] **Caller-owned inference works without an OpenHuman session** — In a local workspace without an OpenHuman login, configure Ollama/LM Studio/MLX/oMLX/local-openai or an independently authenticated Claude Code/Agent SDK provider. Run chat and an agent flow routed entirely to that provider. For a named harness agent, also configure the summarization route to managed inference and verify that the agent still uses its local route; reversing those routes must retain the managed agent's session requirement. Expected: no OpenHuman session requirement. Select managed inference instead: it must still require a backend session. With LocalOnly privacy enabled, local runtimes remain allowed and Claude subprocesses remain blocked as external inference.
+- [ ] **LocalOnly blocks remote search** — Configure a remote search provider and enable LocalOnly privacy. Invoke `web_search_tool` with a harmless query. Expected: the tool returns a policy-blocked result and does not dispatch to the provider. Switch privacy to Standard and confirm the same tool can complete.
 
 - [ ] **Chat links open in the default browser and the app stays on the chat** — Ask the agent for a GitHub URL and click the link in its reply. Expected: the default browser opens the page and OpenHuman stays on the same conversation (no remote page inside the app window, no stranded screen). Then click a link in Settings > About. Expected: same result, and in-app navigation (Chat, Settings) still works.
 - [ ] **ChatGPT sign-in works after onboarding** — In desktop Settings > AI > Providers, add OpenAI and complete ChatGPT sign-in from its provider dialog. Expected: OpenAI is registered without an API key and existing workload routes are preserved. Reopen the provider dialog and disconnect. Expected: the connected badge clears, OpenAI is removed, and workloads no longer reference it. A failed callback shows a localized error without logging the redirect URL.

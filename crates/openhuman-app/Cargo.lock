@@ -4231,7 +4231,7 @@ dependencies = [
 
 [[package]]
 name = "openhuman"
-version = "0.64.4"
+version = "0.64.7"
 dependencies = [
  "aes-gcm",
  "aho-corasick",
@@ -4297,13 +4297,11 @@ dependencies = [
  "tinyagents-registry",
  "tinyagents-runtime",
  "tinyagents-session",
- "tinybrowser-bus",
- "tinybrowser-control",
  "tinybus",
  "tinychannels",
  "tinychannels-bus",
+ "tinycomputer-bus",
  "tinyconnectors-bus",
- "tinydesktop-bus",
  "tinydocs-bus",
  "tinyflows",
  "tinyflows-catalog",
@@ -4316,7 +4314,6 @@ dependencies = [
  "tinyinference-local",
  "tinyinference-providers",
  "tinyinference-voice",
- "tinyjevclient 0.2.1",
  "tinyjuice",
  "tinyjuice-bus",
  "tinymcp",
@@ -4325,6 +4322,7 @@ dependencies = [
  "tinymemory-bus",
  "tinymemory-sources",
  "tinyruntime-bus",
+ "tinysearch-bus",
  "tinyskills",
  "tinytools 0.4.1",
  "tinytools-agent 0.4.1",
@@ -4351,7 +4349,7 @@ dependencies = [
 
 [[package]]
 name = "openhuman-app"
-version = "0.64.4"
+version = "0.64.7"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4400,7 +4398,7 @@ dependencies = [
 
 [[package]]
 name = "openhuman-embed"
-version = "0.64.4"
+version = "0.64.7"
 dependencies = [
  "anyhow",
  "log",
@@ -4416,7 +4414,7 @@ dependencies = [
 
 [[package]]
 name = "openhuman-rpc"
-version = "0.64.4"
+version = "0.64.7"
 dependencies = [
  "log",
  "reqwest 0.12.28",
@@ -4427,10 +4425,12 @@ dependencies = [
 
 [[package]]
 name = "openhuman-tinyhumans"
-version = "0.64.4"
+version = "0.64.7"
 dependencies = [
+ "aes-gcm",
  "anyhow",
  "async-trait",
+ "base64 0.22.1",
  "chrono",
  "log",
  "openhuman",
@@ -4439,11 +4439,13 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror 2.0.20",
+ "tinychannels-bus",
  "tinyhumans-sdk",
- "tinyjevclient 0.2.1 (git+https://github.com/tinyhumansai/tinyjevclient?rev=84b3983c7e1e14f7515658ceafabb6c4e7967c94)",
+ "tinyjevclient",
  "tinytools 0.4.1",
  "tinytools-jev",
  "tokio",
+ "tracing",
  "url",
  "urlencoding",
 ]
@@ -7162,7 +7164,7 @@ dependencies = [
 
 [[package]]
 name = "tinybox-core"
-version = "0.1.7"
+version = "0.1.8"
 dependencies = [
  "async-trait",
  "serde",
@@ -7171,7 +7173,7 @@ dependencies = [
 
 [[package]]
 name = "tinybox-docker"
-version = "0.1.7"
+version = "0.1.8"
 dependencies = [
  "async-trait",
  "tinybox-core",
@@ -7179,7 +7181,7 @@ dependencies = [
 
 [[package]]
 name = "tinybox-host"
-version = "0.1.7"
+version = "0.1.8"
 dependencies = [
  "async-trait",
  "tinybox-core",
@@ -7188,29 +7190,11 @@ dependencies = [
 
 [[package]]
 name = "tinybox-ssh"
-version = "0.1.7"
+version = "0.1.8"
 dependencies = [
  "async-trait",
  "tinybox-core",
  "tokio",
-]
-
-[[package]]
-name = "tinybrowser-bus"
-version = "0.2.2"
-dependencies = [
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "tinybrowser-control"
-version = "0.2.2"
-dependencies = [
- "serde_json",
- "thiserror 2.0.20",
- "tinybrowser-bus",
- "tinyjevclient 0.2.1",
 ]
 
 [[package]]
@@ -7243,7 +7227,7 @@ dependencies = [
 
 [[package]]
 name = "tinychannels"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "anyhow",
  "async-imap",
@@ -7285,7 +7269,7 @@ dependencies = [
 
 [[package]]
 name = "tinychannels-bus"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -7306,7 +7290,7 @@ dependencies = [
 
 [[package]]
 name = "tinychannels-runtime"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "rand 0.10.2",
  "tinychannels-bus",
@@ -7316,16 +7300,16 @@ dependencies = [
 ]
 
 [[package]]
-name = "tinyconnectors-bus"
-version = "0.10.1"
+name = "tinycomputer-bus"
+version = "0.7.0"
 dependencies = [
  "serde",
  "serde_json",
 ]
 
 [[package]]
-name = "tinydesktop-bus"
-version = "0.5.1"
+name = "tinyconnectors-bus"
+version = "0.10.3"
 dependencies = [
  "serde",
  "serde_json",
@@ -7333,7 +7317,7 @@ dependencies = [
 
 [[package]]
 name = "tinydocs-bus"
-version = "0.1.16"
+version = "0.1.17"
 dependencies = [
  "serde",
  "thiserror 2.0.20",
@@ -7396,7 +7380,7 @@ dependencies = [
 
 [[package]]
 name = "tinyhosts"
-version = "0.1.8"
+version = "0.1.9"
 dependencies = [
  "async-trait",
  "base64 0.23.1",
@@ -7557,18 +7541,6 @@ dependencies = [
 [[package]]
 name = "tinyjevclient"
 version = "0.2.1"
-dependencies = [
- "httpdate",
- "reqwest 0.12.28",
- "serde",
- "serde_json",
- "thiserror 2.0.20",
- "tokio",
-]
-
-[[package]]
-name = "tinyjevclient"
-version = "0.2.1"
 source = "git+https://github.com/tinyhumansai/tinyjevclient?rev=84b3983c7e1e14f7515658ceafabb6c4e7967c94#84b3983c7e1e14f7515658ceafabb6c4e7967c94"
 dependencies = [
  "httpdate",
@@ -7581,7 +7553,7 @@ dependencies = [
 
 [[package]]
 name = "tinyjuice"
-version = "0.3.2"
+version = "0.3.4"
 dependencies = [
  "async-trait",
  "dirs 7.0.0",
@@ -7601,7 +7573,7 @@ dependencies = [
 
 [[package]]
 name = "tinyjuice-bus"
-version = "0.3.2"
+version = "0.3.4"
 dependencies = [
  "serde",
  "serde_json",
@@ -7609,7 +7581,7 @@ dependencies = [
 
 [[package]]
 name = "tinymcp"
-version = "0.3.3"
+version = "0.3.4"
 dependencies = [
  "base64 0.23.1",
  "dirs 7.0.0",
@@ -7629,7 +7601,7 @@ dependencies = [
 
 [[package]]
 name = "tinymcp-bus"
-version = "0.3.3"
+version = "0.3.4"
 dependencies = [
  "schemars 1.2.2",
  "serde",
@@ -7685,7 +7657,15 @@ dependencies = [
 
 [[package]]
 name = "tinyruntime-bus"
-version = "0.2.5"
+version = "0.2.7"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "tinysearch-bus"
+version = "0.3.2"
 dependencies = [
  "serde",
  "serde_json",
@@ -7693,7 +7673,7 @@ dependencies = [
 
 [[package]]
 name = "tinyskills"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "rustix",
  "serde",
@@ -7780,7 +7760,7 @@ dependencies = [
 
 [[package]]
 name = "tinywallet-bus"
-version = "0.5.2"
+version = "0.5.3"
 dependencies = [
  "async-trait",
  "bech32",

@@ -184,6 +184,10 @@ pub fn render_pack_filtered(
     }
 
     let mut out = format!("# Skill `{}`\n\n{}\n\n", pack.id, pack.summary);
+    if !pack.guide.trim().is_empty() {
+        out.push_str(pack.guide.trim());
+        out.push_str("\n\n");
+    }
     out.push_str(&format!(
         "Call these with `use_skill {{ \"skill\": \"{}\", \"tool\": \"<name>\", \"args\": {{ … }} }}`. \
          `args` is the tool's own argument object, exactly as documented below.\n\n",

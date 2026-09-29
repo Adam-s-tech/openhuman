@@ -70,7 +70,6 @@ pub struct ToolSize {
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct PromptSizeReport {
     pub agent: String,
-    pub toolkit: Option<String>,
     pub model: String,
     /// Rendered system-prompt bytes.
     pub prompt_bytes: usize,
@@ -78,10 +77,8 @@ pub struct PromptSizeReport {
     pub tool_bytes: usize,
     /// `prompt_bytes + tool_bytes` — the fixed cost of every turn.
     pub fixed_prefix_bytes: usize,
-    /// Number of entries in [`DumpedPrompt::tool_specs`]. For a session agent
-    /// that is the provider-facing visible set (belt, policy and toolpack
-    /// withholding applied); for an `integrations_agent` toolkit dump it is
-    /// that toolkit's rendered tools.
+    /// Number of entries in [`DumpedPrompt::tool_specs`]: the provider-facing
+    /// visible set (belt, policy and toolpack withholding applied).
     pub tool_count: usize,
     pub sections: Vec<SectionSize>,
     pub tools: Vec<ToolSize>,
@@ -129,7 +126,6 @@ impl PromptSizeReport {
         let tool_bytes = tools.iter().map(|t| t.bytes).sum();
         Self {
             agent: dumped.agent_id.clone(),
-            toolkit: dumped.toolkit.clone(),
             model: dumped.model.clone(),
             prompt_bytes,
             tool_bytes,
@@ -211,11 +207,7 @@ pub fn render_text(report: &PromptSizeReport, section_limit: usize, tool_limit: 
     let mut out = String::new();
     let est = |b: usize| b / EST_BYTES_PER_TOKEN;
 
-    let label = match &report.toolkit {
-        Some(t) => format!("{}@{}", report.agent, t),
-        None => report.agent.clone(),
-    };
-    let _ = writeln!(out, "agent:          {label}");
+    let _ = writeln!(out, "agent:          {}", report.agent);
     let _ = writeln!(out, "model:          {}", report.model);
     let _ = writeln!(out);
     let _ = writeln!(

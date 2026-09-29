@@ -6,7 +6,6 @@ use crate::agent::subagent_host::ops::checkpoint;
 use std::collections::HashSet;
 use std::sync::Arc;
 
-use crate::agent::harness::agent_graph::{AgentTurnRequest, AgentTurnResult, AgentTurnUsage};
 use crate::agent::messages::{ChatMessage, ConversationMessage};
 use crate::agent::progress::AgentProgress;
 use crate::agent::subagent_host::types::SubagentRunError;
@@ -26,90 +25,6 @@ pub(in super::super) struct AggregatedUsage {
     pub(in super::super) output_tokens: u64,
     pub(in super::super) cached_input_tokens: u64,
     pub(in super::super) charged_amount_usd: f64,
-}
-
-/// Run an assembled custom per-agent turn through the shared default sub-agent
-/// leaf. Bespoke `AgentGraph::Custom` graphs use this after their own routing
-/// nodes so transcript persistence, worker-thread mirroring, progress events,
-/// handoff middleware, cap summaries, and usage aggregation stay byte-for-byte
-/// on the default path.
-pub(crate) async fn run_agent_turn_request_via_default_graph(
-    req: AgentTurnRequest,
-) -> Result<AgentTurnResult, SubagentRunError> {
-    let AgentTurnRequest {
-        turn_model_source,
-        model,
-        temperature,
-        mut history,
-        parent_tools,
-        dynamic_tools,
-        specs,
-        allowed_names,
-        max_iterations,
-        run_queue,
-        on_progress,
-        agent_id,
-        task_id,
-        extended_policy,
-        thread_id,
-        run_context,
-        worker_thread_id,
-        workspace_dir,
-        workspace_descriptor,
-        max_output_tokens,
-        model_vision,
-        transcript_stem,
-        provider_label,
-        handoff_cache,
-        tokenjuice_compression,
-        config,
-    } = req;
-
-    let (output, iterations, usage, early_exit_tool, hit_cap, breaker_halt) =
-        run_subagent_via_graph(
-            turn_model_source,
-            &model,
-            temperature,
-            &mut history,
-            parent_tools,
-            dynamic_tools,
-            specs,
-            allowed_names,
-            max_iterations,
-            run_queue,
-            on_progress,
-            &agent_id,
-            &task_id,
-            extended_policy,
-            thread_id,
-            run_context,
-            worker_thread_id,
-            workspace_dir,
-            workspace_descriptor,
-            max_output_tokens,
-            model_vision,
-            &transcript_stem,
-            &provider_label,
-            handoff_cache,
-            tokenjuice_compression,
-            config.as_deref(),
-        )
-        .await?;
-
-    Ok(AgentTurnResult {
-        history,
-        output,
-        iterations,
-        usage: AgentTurnUsage {
-            input_tokens: usage.input_tokens,
-            output_tokens: usage.output_tokens,
-            cached_input_tokens: usage.cached_input_tokens,
-            charged_amount_usd: usage.charged_amount_usd,
-        },
-        early_exit_tool,
-        hit_cap,
-        breaker_halt,
-    })
 }
 
 /// Drive a sub-agent turn on the tinyagents harness. Returns
@@ -146,10 +61,6 @@ pub(in super::super) async fn run_subagent_via_graph(
     // `SubagentObserver::persist_transcript`.
     transcript_stem: &str,
     provider_label: &str,
-    // Progressive-disclosure handoff cache (integrations_agent with a resolved
-    // toolkit); `Some` installs the `HandoffMiddleware` that stashes oversized
-    // tool results and shares the cache with the `extract_from_result` tool.
-    handoff_cache: Option<std::sync::Arc<crate::agent::subagent_host::ResultHandoffCache>>,
     // Agent-level TokenJuice profile (`definition.effective_tokenjuice_compression()`,
     // #4466). Threaded into the sub-agent `TurnContextMiddleware` so sub-agent
     // tool outputs get the same content-aware compaction the chat path applies
@@ -319,17 +230,9 @@ pub(in super::super) async fn run_subagent_via_graph(
         Some(max_output_tokens),
         // Context middlewares (#4466): config-sourced TokenJuice compaction +
         // tool-result byte cap + microcompact + summarization opt-outs (built
-        // above), plus the progressive-disclosure handoff when a cache is
-        // attached, plus the live transcript-snapshot sink for error recovery.
+        // above), plus the live transcript-snapshot sink for error recovery.
         {
             let mut mw = context_mw;
-            if let Some(cache) = handoff_cache {
-                mw.handoff = Some(crate::agent::tinyagents::HandoffConfig {
-                    cache,
-                    agent_id: agent_id.to_string(),
-                    task_id: task_id.to_string(),
-                });
-            }
             mw.transcript_snapshot = Some(transcript_snapshot.clone());
             mw
         },

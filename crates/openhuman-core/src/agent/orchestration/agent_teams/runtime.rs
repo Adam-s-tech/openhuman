@@ -49,8 +49,11 @@ use tinyagents_orchestration::teams::{
 use crate::agent::tinyagents::observability::GraphTracingSink;
 
 const LOG_TARGET: &str = "agent_team_runtime";
-/// Fallback worker archetype when a member carries no explicit `agent_id`.
-const DEFAULT_TEAMMATE_AGENT_ID: &str = "researcher";
+/// Fallback archetype when a member carries no explicit `agent_id`: the
+/// orchestrator, the one general-purpose agent with the full direct belt plus
+/// `tool_search` and skills. Same fallback a cron job with an unknown agent
+/// uses (`cron/scheduler/agent_run.rs`).
+const DEFAULT_TEAMMATE_AGENT_ID: &str = "orchestrator";
 /// Event recorded when a worker run ends without completing its task.
 const MEMBER_FAILED_EVENT: &str = "team_member_failed";
 /// Cap on how much worker output is captured as evidence (UTF-8 safe).

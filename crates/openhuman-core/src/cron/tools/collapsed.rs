@@ -106,6 +106,10 @@ impl CronTool {
 
 #[async_trait]
 impl Tool for CronTool {
+    fn exposure(&self) -> tinytools::ToolExposure {
+        tinytools::ToolExposure::Deferred
+    }
+
     fn name(&self) -> &str {
         CRON_TOOL_NAME
     }

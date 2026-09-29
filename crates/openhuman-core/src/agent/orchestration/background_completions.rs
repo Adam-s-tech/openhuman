@@ -32,7 +32,7 @@ pub(crate) enum BackgroundAgentOutcome {
 pub(crate) struct CompletedBackgroundAgent {
     /// Spawn process id (`sub-…`) — the tag the agent uses to reference it.
     pub(crate) task_id: String,
-    /// Sub-agent definition id (e.g. `researcher`).
+    /// Sub-agent definition id (e.g. `code_executor`).
     pub(crate) agent_id: String,
     /// The sub-agent's final output / summary.
     pub(crate) summary: String,

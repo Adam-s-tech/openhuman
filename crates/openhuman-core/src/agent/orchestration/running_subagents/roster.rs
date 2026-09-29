@@ -9,7 +9,7 @@ use crate::agent::orchestration::fleet_tools::FleetToolSet;
 /// into a parent's turn context (see [`active_subagents_context_block`]).
 #[derive(Debug, Clone)]
 pub(crate) struct SubagentSnapshot {
-    /// Worker *type* (e.g. `researcher`). Not unique — two parallel researchers
+    /// Worker *type* (e.g. `code_executor`). Not unique — two parallel workers
     /// share this; disambiguate on `subagent_session_id` / `task_id`.
     pub(crate) agent_id: String,
     /// Durable, stable per-worker reference the prompt steers/waits/closes by.

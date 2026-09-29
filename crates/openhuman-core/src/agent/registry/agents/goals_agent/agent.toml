@@ -11,7 +11,7 @@ omit_memory_context = true
 omit_safety_preamble = true
 omit_memory_md = true
 
-# Cloud "agentic" model like other background specialists (researcher,
+# Cloud "agentic" model like other background specialists (e.g.
 # profile_memory_agent). NOT "local": the goals agent must run a real LLM turn
 # to curate the list and has no heuristic fallback, so a local-only hint leaves
 # enrichment blank in production where the local runtime is disabled.

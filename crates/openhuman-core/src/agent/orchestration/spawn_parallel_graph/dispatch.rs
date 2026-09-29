@@ -178,14 +178,6 @@ pub(crate) async fn stage_spawn_parallel_workers_from_defs(
                             "[spawn_parallel_agents] rejected_task_outside_subagent_allowlist"
                         );
                     }
-                    ParallelTaskRejectionKind::MissingToolkit => {
-                        tracing::debug!(
-                            parent_session = %parent_session,
-                            task_id = %rejection.task_id,
-                            agent_id = %rejection.agent_id,
-                            "[spawn_parallel_agents] invalid_task_missing_toolkit"
-                        );
-                    }
                     ParallelTaskRejectionKind::RequiresIsolation => {
                         tracing::warn!(
                             parent_session = %parent_session,
