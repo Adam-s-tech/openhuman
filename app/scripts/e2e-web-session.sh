@@ -32,6 +32,8 @@ MOCK_PID=""
 CORE_PID=""
 WEB_PID=""
 CORE_MONITOR_PID=""
+PORT_LOCK_DIR="${TMPDIR:-/tmp}/openhuman-e2e-ports-${E2E_MOCK_PORT}-${OPENHUMAN_CORE_PORT}-${E2E_WEB_PORT}.lock"
+PORT_LOCK_ACQUIRED=""
 
 cleanup() {
   local status=$?
@@ -59,6 +61,9 @@ cleanup() {
   fi
   if [ -n "$CREATED_TEMP_WORKSPACE" ]; then
     rm -rf "$CREATED_TEMP_WORKSPACE"
+  fi
+  if [ -n "$PORT_LOCK_ACQUIRED" ]; then
+    rmdir "$PORT_LOCK_DIR" 2>/dev/null || true
   fi
   return "$status"
 }
@@ -177,6 +182,16 @@ if [ ! -f "$E2E_BUNDLE_MARKER" ]; then
   exit 1
 fi
 
+# Serialize cooperating sessions that selected the same block. Keep the lock
+# until cleanup so no second session can pass preflight while these processes
+# are starting or running.
+if ! mkdir "$PORT_LOCK_DIR" 2>/dev/null; then
+  echo "ERROR: another web E2E session is starting or using ports ${E2E_MOCK_PORT},${OPENHUMAN_CORE_PORT},${E2E_WEB_PORT}." >&2
+  echo "       Choose a different E2E_PORT_BASE for concurrent sessions." >&2
+  exit 1
+fi
+PORT_LOCK_ACQUIRED=1
+
 # Nothing below tolerates a port that is already taken (#5918): the probes are
 # plain HTTP GETs, so they are answered by whatever is listening.
 e2e_require_free_ports "$E2E_MOCK_PORT" "$OPENHUMAN_CORE_PORT" "$E2E_WEB_PORT"
@@ -201,8 +216,13 @@ if [ ! -f "$BUILD_PORTS_FILE" ]; then
   exit 1
 fi
 BUILT_MOCK_PORT="$(sed -n 's/.*"e2e_mock_port"[[:space:]]*:[[:space:]]*"\([0-9]*\)".*/\1/p' "$BUILD_PORTS_FILE")"
+BUILT_CORE_PORT="$(sed -n 's/.*"openhuman_core_port"[[:space:]]*:[[:space:]]*"\([0-9]*\)".*/\1/p' "$BUILD_PORTS_FILE")"
 if [ -z "$BUILT_MOCK_PORT" ]; then
   echo "ERROR: could not read e2e_mock_port from $BUILD_PORTS_FILE. Rebuild with: pnpm --filter openhuman-app test:e2e:web:build" >&2
+  exit 1
+fi
+if [ -z "$BUILT_CORE_PORT" ]; then
+  echo "ERROR: could not read openhuman_core_port from $BUILD_PORTS_FILE. Rebuild with: pnpm --filter openhuman-app test:e2e:web:build" >&2
   exit 1
 fi
 if [ "$BUILT_MOCK_PORT" != "$E2E_MOCK_PORT" ]; then
@@ -210,6 +230,11 @@ if [ "$BUILT_MOCK_PORT" != "$E2E_MOCK_PORT" ]; then
   echo "       The backend URL is baked into the bundle and cannot be changed at run time," >&2
   echo "       so the app would call a mock that is not listening while the core called the right one." >&2
   echo "       Rebuild with the ports this session uses: E2E_MOCK_PORT=$E2E_MOCK_PORT pnpm --filter openhuman-app test:e2e:web:build" >&2
+  exit 1
+fi
+if [ "$BUILT_CORE_PORT" != "$OPENHUMAN_CORE_PORT" ]; then
+  echo "ERROR: dist-web was built for OPENHUMAN_CORE_PORT=$BUILT_CORE_PORT but this session uses $OPENHUMAN_CORE_PORT." >&2
+  echo "       Rebuild with the ports this session uses: OPENHUMAN_CORE_PORT=$OPENHUMAN_CORE_PORT pnpm --filter openhuman-app test:e2e:web:build" >&2
   exit 1
 fi
 

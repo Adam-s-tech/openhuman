@@ -64,8 +64,8 @@ MARKER
 # contract before serving: a web bundle cannot change its backend at runtime.
 cat >"$APP_DIR/dist-web/.e2e-build-ports.json" <<JSON
 {
-  "e2e_mock_port": "${E2E_MOCK_PORT}",
-  "openhuman_core_port": "${OPENHUMAN_CORE_PORT}",
+  "e2e_mock_port": "${SELECTED_E2E_MOCK_PORT}",
+  "openhuman_core_port": "${SELECTED_OPENHUMAN_CORE_PORT}",
   "vite_backend_url": "${VITE_BACKEND_URL}"
 }
 JSON
