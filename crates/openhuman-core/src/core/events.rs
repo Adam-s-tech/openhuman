@@ -285,6 +285,17 @@ pub enum DomainEvent {
         /// Why the configured driver was refused.
         reason: String,
     },
+    /// The user switched the memory engine (`memory.engine_set` /
+    /// `memory.engine_migrate`) and the binding was rebound in process.
+    ///
+    /// Carries driver ids only — never an endpoint, credential or reference,
+    /// same rule as [`Self::MemoryDriverBindFailed`].
+    MemoryDriverChanged {
+        /// The driver id that was active before the switch.
+        from: String,
+        /// The driver id that is configured now.
+        to: String,
+    },
     /// The memory policy guard refused a call before it reached the bound
     /// driver (`docs/specs/kernel.md` §3.4).
     ///
@@ -1545,6 +1556,7 @@ impl DomainEvent {
             | Self::MemoryStored { .. }
             | Self::MemoryRecalled { .. }
             | Self::MemoryDriverBindFailed { .. }
+            | Self::MemoryDriverChanged { .. }
             | Self::MemoryGuardDenied { .. }
             | Self::MemorySyncRequested { .. }
             | Self::MemorySyncStageChanged { .. }
@@ -1700,6 +1712,7 @@ impl DomainEvent {
             Self::MemoryStored { .. } => "MemoryStored",
             Self::MemoryRecalled { .. } => "MemoryRecalled",
             Self::MemoryDriverBindFailed { .. } => "MemoryDriverBindFailed",
+            Self::MemoryDriverChanged { .. } => "MemoryDriverChanged",
             Self::MemoryGuardDenied { .. } => "MemoryGuardDenied",
             Self::MemorySyncRequested { .. } => "MemorySyncRequested",
             Self::MemorySyncStageChanged { .. } => "MemorySyncStageChanged",
