@@ -12,7 +12,6 @@
 mod fixture;
 
 use std::sync::atomic::Ordering;
-use std::time::Duration;
 
 use fixture::*;
 use serde_json::json;
