@@ -60,7 +60,7 @@ const UsagePanel = () => {
         { id: 'costs', label: t('settings.costDashboard.title') },
         { id: 'log', label: t('settings.costDashboard.usageLog') },
         { id: 'tokens', label: t('settings.tokenUsage.title') },
-        { id: 'background', label: t('settings.heartbeat.title') },
+        { id: 'background', label: t('settings.ai.backgroundLoops') },
       ]}>
       {tab === 'costs' && <CostDashboardPanel embedded />}
       {tab === 'log' && <UsageLogPanel />}
