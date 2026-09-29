@@ -76,6 +76,7 @@ pub fn gate(state: &Hosted, headers: &HeaderMap) -> Option<(StatusCode, Json<Val
     }
     match state.force_status.load(Ordering::SeqCst) {
         0 => None,
+        401 => Some(err(401, "UNAUTHORIZED")),
         402 => Some(err(402, "USER_INSUFFICIENT_CREDITS")),
         other => Some(err(other, "UPSTREAM_ERROR")),
     }
