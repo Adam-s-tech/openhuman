@@ -1,6 +1,8 @@
 //! Agent-facing browser backed by the TinyComputer module's browser and task members.
 #[path = "browser_session_pool.rs"]
 mod session_pool;
+#[path = "browser_task_actions.rs"]
+mod task_actions;
 
 use crate::modules::browser::BrowserClient;
 use crate::security::approval::{ApprovalGate, GateOutcome};
@@ -11,20 +13,17 @@ use session_pool::{
     browser_session_fingerprint, evict_thread_sessions, requires_rebind, thread_sessions,
     ThreadSession,
 };
+use task_actions::{approve_task_action, parse_action, required, task_inputs};
 #[cfg(test)]
 use session_pool::{MAX_THREAD_SESSIONS, SESSION_IDLE_TTL};
 use sha2::{Digest, Sha256};
-use std::{
-    collections::BTreeMap,
-    sync::{Arc, Mutex as StdMutex},
-    time::Instant,
-};
+use std::sync::{Arc, Mutex as StdMutex};
 #[cfg(test)]
 use std::{collections::HashMap, time::Duration};
 use tinycomputer_bus::agent::{ContinueTaskRequest, TaskId, TaskStatus, TaskView};
 use tinycomputer_bus::browser::{
-    Action, DownloadState, DownloadWaitRequest, LocateBy, Locator, NavigateRequest, ReadRequest,
-    ScrollDirection, SessionId, SessionOptions, SnapshotRequest, Target, WaitState,
+    Action, DownloadState, DownloadWaitRequest, NavigateRequest, ReadRequest, SessionId,
+    SessionOptions, SnapshotRequest, Target,
 };
 use tinytools::{Tool, ToolCallOptions, ToolResult, ToolRunContext};
 use tokio::sync::Mutex;
@@ -522,136 +521,6 @@ impl BrowserTool {
             }
         }
     }
-}
-
-fn task_inputs(args: &Value) -> anyhow::Result<BTreeMap<String, String>> {
-    args["inputs"].as_object().map_or_else(
-        || Ok(BTreeMap::new()),
-        |inputs| {
-            inputs
-                .iter()
-                .map(|(k, v)| {
-                    Ok((
-                        k.clone(),
-                        v.as_str()
-                            .ok_or_else(|| anyhow::anyhow!("Task input '{k}' must be text"))?
-                            .to_owned(),
-                    ))
-                })
-                .collect()
-        },
-    )
-}
-
-/// Ask the host approval gate about a paused task's exact action. A missing
-/// gate denies: a task never takes an irreversible step unapproved.
-async fn approve_task_action(pending: &Pending) -> anyhow::Result<bool> {
-    let gate = ApprovalGate::try_global().ok_or_else(|| {
-        anyhow::anyhow!("[policy-denied] Browser action needs an interactive host approval gate")
-    })?;
-    let clean = |raw: &str| {
-        let cleaned = raw.chars().filter(|c| !c.is_control()).collect::<String>();
-        let mut short = cleaned.chars().take(160).collect::<String>();
-        if cleaned.chars().count() > 160 {
-            short.push('…');
-        }
-        short
-    };
-    let digest = Sha256::digest(serde_json::to_vec(&json!({
-        "task": pending.task, "action": pending.action, "target": pending.target
-    }))?);
-    let digest_hex = format!("{digest:x}");
-    let summary = format!(
-        "Browser task: {} — {} [action {}]",
-        clean(&pending.action),
-        clean(&pending.target),
-        &digest_hex[..12]
-    );
-    let args = json!({"action": "task_step", "target": summary, "exact_action_sha256": digest_hex});
-    Ok(
-        match gate.intercept_forced("browser", &summary, args).await {
-            GateOutcome::Allow => true,
-            GateOutcome::Deny { reason } => {
-                tracing::debug!(%reason, "[browser] task action denied by host");
-                false
-            }
-        },
-    )
-}
-
-fn required<'a>(args: &'a Value, key: &str) -> anyhow::Result<&'a str> {
-    args.get(key)
-        .and_then(Value::as_str)
-        .filter(|s| !s.trim().is_empty())
-        .ok_or_else(|| anyhow::anyhow!("Missing '{key}' parameter"))
-}
-
-fn parse_action(args: &Value) -> anyhow::Result<Action> {
-    let target = || required(args, "selector").map(Target::parse);
-    Ok(match required(args, "action")? {
-        "click" => Action::Click {
-            target: target()?,
-            new_tab: false,
-        },
-        "fill" => Action::Fill {
-            target: target()?,
-            value: required(args, "value")?.into(),
-        },
-        "type" => Action::Type {
-            target: args["selector"].as_str().map(Target::parse),
-            text: required(args, "text")?.into(),
-            delay_ms: None,
-        },
-        "get_text" => Action::GetText { target: target()? },
-        "is_visible" => Action::IsVisible { target: target()? },
-        "hover" => Action::Hover { target: target()? },
-        "press" => Action::Press {
-            key: required(args, "key")?.into(),
-        },
-        "scroll" => Action::Scroll {
-            direction: match required(args, "direction")? {
-                "up" => ScrollDirection::Up,
-                "down" => ScrollDirection::Down,
-                "left" => ScrollDirection::Left,
-                "right" => ScrollDirection::Right,
-                x => anyhow::bail!("Invalid direction: {x}"),
-            },
-            pixels: args["pixels"].as_u64().and_then(|v| u32::try_from(v).ok()),
-            target: None,
-        },
-        "wait" => Action::WaitFor {
-            target: args["selector"].as_str().map(Target::parse),
-            text: args["text"].as_str().map(str::to_owned),
-            state: WaitState::Visible,
-            ms: args["ms"].as_u64(),
-            timeout_ms: args["timeout_ms"].as_u64(),
-        },
-        "find" => {
-            let by = match required(args, "by")? {
-                "role" => LocateBy::Role,
-                "text" => LocateBy::Text,
-                "label" => LocateBy::Label,
-                "placeholder" => LocateBy::Placeholder,
-                "testid" => LocateBy::TestId,
-                x => anyhow::bail!("Invalid locator: {x}"),
-            };
-            let target = Target::locator(Locator::new(by, required(args, "value")?));
-            match required(args, "find_action")? {
-                "click" => Action::Click {
-                    target,
-                    new_tab: false,
-                },
-                "fill" => Action::Fill {
-                    target,
-                    value: required(args, "fill_value")?.into(),
-                },
-                "text" => Action::GetText { target },
-                "hover" => Action::Hover { target },
-                x => anyhow::bail!("Invalid find action: {x}"),
-            }
-        }
-        x => anyhow::bail!("Unsupported browser action: {x}"),
-    })
 }
 
 #[async_trait]
