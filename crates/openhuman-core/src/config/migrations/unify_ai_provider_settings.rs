@@ -14,14 +14,17 @@
 //! - `memory_tree.llm_backend` (+ `cloud_llm_model`) — memory summariser
 //!
 //! After this migration there is one grammar — provider strings parsed by
-//! [`crate::inference::provider::factory`] — addressing all eight workloads
+//! [`crate::inference::provider::factory`] — addressing every workload
 //! uniformly:
 //!
 //! ```text
 //! reasoning_provider, agentic_provider, coding_provider,
-//! memory_provider,    embeddings_provider, heartbeat_provider,
-//! learning_provider,  subconscious_provider
+//! memory_provider,    embeddings_provider, learning_provider
 //! ```
+//!
+//! The legacy `local_ai.usage.heartbeat` / `local_ai.usage.subconscious`
+//! booleans are not carried forward: the background loops they routed were
+//! removed, so there is no workload left to derive.
 //!
 //! plus `cloud_providers: Vec<CloudProviderCreds>` and `primary_cloud` for
 //! the credential side.
@@ -226,15 +229,7 @@ fn derive_workload_providers(config: &mut Config, stats: &mut MigrationStats) {
         };
     set_field(&mut config.embeddings_provider, embeddings_value, stats);
 
-    // The remaining three use the chat model when local.
-    let heartbeat_value = if config.local_ai.usage.heartbeat && runtime_on && !chat_model.is_empty()
-    {
-        format!("ollama:{}", chat_model)
-    } else {
-        "cloud".to_string()
-    };
-    set_field(&mut config.heartbeat_provider, heartbeat_value, stats);
-
+    // Learning uses the chat model when local.
     let learning_value =
         if config.local_ai.usage.learning_reflection && runtime_on && !chat_model.is_empty() {
             format!("ollama:{}", chat_model)
@@ -242,14 +237,6 @@ fn derive_workload_providers(config: &mut Config, stats: &mut MigrationStats) {
             "cloud".to_string()
         };
     set_field(&mut config.learning_provider, learning_value, stats);
-
-    let subconscious_value =
-        if config.local_ai.usage.subconscious && runtime_on && !chat_model.is_empty() {
-            format!("ollama:{}", chat_model)
-        } else {
-            "cloud".to_string()
-        };
-    set_field(&mut config.subconscious_provider, subconscious_value, stats);
 
     // The three chat workloads (reasoning/agentic/coding) intentionally
     // stay None — the factory treats unset as "cloud" which routes to
