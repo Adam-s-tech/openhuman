@@ -46,6 +46,7 @@ fn external_driver_cfg(trust_state: &str) -> MemorySubsystemConfig {
             endpoint: Some("https://api.supermemory.ai".into()),
             credential_ref: Some("keychain:supermemory".into()),
             trust_state: trust_state.into(),
+            deployment: None,
         },
     );
     cfg
