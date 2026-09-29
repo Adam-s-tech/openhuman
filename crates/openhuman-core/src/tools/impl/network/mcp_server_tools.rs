@@ -201,15 +201,20 @@ impl Tool for ConfiguredMcpServerTool {
             .map_err(|err| anyhow::anyhow!(err))?;
         let server = self.inner.server_id();
         let tool = self.inner.remote_name();
-        if !self
-            .registry
-            .list()
-            .iter()
-            .any(|definition| definition.name == server)
-        {
+        let config = crate::config::ops::load_config_with_timeout()
+            .await
+            .map_err(|error| anyhow::anyhow!("could not reload MCP configuration: {error}"))?;
+        let current_registry = crate::mcp::host::static_registry(&config);
+        let Some(current_definition) = current_registry.get(server) else {
             anyhow::bail!("MCP server is no longer configured: {server}");
+        };
+        let Some(captured_definition) = self.registry.get(server) else {
+            anyhow::bail!("MCP server is no longer configured: {server}");
+        };
+        if current_definition.fingerprint() != captured_definition.fingerprint() {
+            anyhow::bail!("MCP server configuration changed; rebuild tools before calling {server}");
         }
-        let live = self.registry.list_tools(server).await?;
+        let live = current_registry.list_tools(server).await?;
         let safe = crate::mcp::registry::tools_safe_for_agent(
             server,
             live.into_iter()
