@@ -184,3 +184,6 @@ fn cfg_with_class(driver: &str, class: &str) -> MemorySubsystemConfig {
 
 #[path = "binding_admission_tests.rs"]
 mod binding_admission_tests;
+
+#[path = "binding_remote_bind_tests.rs"]
+mod binding_remote_bind_tests;
