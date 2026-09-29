@@ -221,10 +221,11 @@ tinyruntime-bus = { path = "../../vendor/tinyruntime/crates/tinyruntime-bus" }
 # matching against `MODULE_ID` and refuses `DriverClass::Embedded` outright,
 # so nothing here resolves an engine through the facade's registry.
 tinymemory-api = { path = "../../vendor/tinymemory/crates/tinymemory-api" }
-# The engine factory + migration over the same `tinymemory-api`. Optional: only
+# The engine factory + migration over every remote engine (deliberately NOT the
+# in-memory `tinycortex` one, which would link the embedded engine), over the same `tinymemory-api`. Optional: only
 # the `memory-remote` gate (remote memory engines: TinyHumans-hosted CortexDB,
 # Supermemory, Mem0, Cognee, CortexDB, AgentMemory) links the HTTP adapter.
-tinymemory = { path = "../../vendor/tinymemory/crates/tinymemory", default-features = false, features = ["factory", "engines"], optional = true }
+tinymemory = { path = "../../vendor/tinymemory/crates/tinymemory", default-features = false, features = ["factory", "supermemory", "mem0", "cognee", "cortex", "agentmemory", "tinyhumans"], optional = true }
 tinymemory-remote = { path = "../../vendor/tinymemory/crates/tinymemory-remote", optional = true }
 # tinyconnectors-bus — the OAuth connector wire contract
 # (https://github.com/tinyhumansai/tinyconnectors). Payload types and member
