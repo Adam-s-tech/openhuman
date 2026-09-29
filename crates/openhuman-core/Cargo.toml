@@ -226,7 +226,6 @@ tinymemory-api = { path = "../../vendor/tinymemory/crates/tinymemory-api" }
 # the `memory-remote` gate (remote memory engines: TinyHumans-hosted CortexDB,
 # Supermemory, Mem0, Cognee, CortexDB, AgentMemory) links the HTTP adapter.
 tinymemory = { path = "../../vendor/tinymemory/crates/tinymemory", default-features = false, features = ["factory", "supermemory", "mem0", "cognee", "cortex", "agentmemory", "tinyhumans"], optional = true }
-tinymemory-remote = { path = "../../vendor/tinymemory/crates/tinymemory-remote", optional = true }
 # tinyconnectors-bus — the OAuth connector wire contract
 # (https://github.com/tinyhumansai/tinyconnectors). Payload types and member
 # names for the connector surface, with no transport and no behaviour: this
@@ -931,7 +930,7 @@ voice = [
 # `tinymemory::factory`, plus the `memory.engine*` RPCs and migration. Off, an
 # External driver is refused at admission and the engine RPCs answer with the
 # module engine only.
-memory-remote = ["dep:tinymemory", "dep:tinymemory-remote"]
+memory-remote = ["dep:tinymemory"]
 web3 = [
     "dep:tinywallet-bus",
     "dep:curve25519-dalek",
