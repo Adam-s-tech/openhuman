@@ -443,7 +443,9 @@ pub mod supervisor {
             // reaches the user (#5931). The workspace goes with them: a
             // subscriber that persists or announces one must not take a
             // switched-away workspace's outage for its own.
-            |workspace, report| super::supervisor_events::publish(workspace, report),
+            |workspace, report| {
+                super::supervisor_events::publish(workspace, report);
+            },
         )
         .await;
     }
