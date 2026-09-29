@@ -783,7 +783,8 @@ async fn run_case_inner(case: Case) {
     for tool in case.must_call {
         assert!(
             calls.iter().any(|c| c == tool),
-            "[{agent}] must call `{tool}`; called {calls:?}"
+            "[{agent}] must call `{tool}`; called {calls:?}; requests: {}",
+            dump()
         );
         tool_result_text(&requests, tool)
             .unwrap_or_else(|| panic!("[{agent}] no tool result for `{tool}`: {}", dump()));
