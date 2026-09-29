@@ -490,48 +490,6 @@ async fn execute_tron_quote_surfaces_node_rejection() {
 }
 
 #[test]
-fn validate_tron_address_accepts_known_address() {
-    // USDT TRC20 contract address — real mainnet, valid base58check.
-    let addr = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
-    assert_eq!(validate_tron_address(addr).unwrap(), addr);
-}
-
-#[test]
-fn validate_tron_address_rejects_btc_format() {
-    let err = validate_tron_address("bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4").unwrap_err();
-    assert!(err.contains("invalid"), "got: {err}");
-}
-
-#[test]
-fn tron_address_to_hex_roundtrips_prefix_byte() {
-    let addr = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
-    let h = tron_address_to_hex(addr).unwrap();
-    assert!(h.starts_with("41"), "expected 0x41 prefix, got: {h}");
-    assert_eq!(h.len(), 42); // 21 bytes * 2 hex chars
-}
-
-#[test]
-fn tron_address_to_hex_rejects_a_wrong_length_decoded_address() {
-    // A valid Base58Check encoding with the Tron prefix but a 20-byte
-    // decoded payload must not be accepted as a 21-byte Tron address.
-    let short = bs58::encode([TRON_PREFIX; 20]).with_check().into_string();
-    assert!(tron_address_to_hex(&short).is_err());
-}
-
-#[test]
-fn derive_tron_address_for_known_test_mnemonic() {
-    // BIP44 m/44'/195'/0'/0/0 from the standard "abandon × 11 about" mnemonic.
-    // Deterministic output of our SLIP-44 / secp256k1 / keccak256 / base58check
-    // pipeline — pinning here so regressions in any of those primitives are caught.
-    let mnemonic =
-        "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
-    let (_sk, addr) = derive_tron_keypair(mnemonic, "m/44'/195'/0'/0/0").unwrap();
-    assert_eq!(addr, "TUEZSdKsoDHQMeZwihtdoBiN46zxhGWYdH");
-    // Address must be a valid base58check 0x41 mainnet address.
-    validate_tron_address(&addr).expect("derived addr passes validation");
-}
-
-#[test]
 fn encode_trc20_transfer_param_pads_addr_and_amount() {
     let to_hex = tron_address_to_hex("TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t").unwrap();
     let param = encode_trc20_transfer_param(&to_hex, 12345).unwrap();

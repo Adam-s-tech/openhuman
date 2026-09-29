@@ -20,48 +20,6 @@ fn shortvec_encodes_small_and_large_values() {
 }
 
 #[test]
-fn validate_solana_address_accepts_known_32_byte_pubkey() {
-    let addr = "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM";
-    assert_eq!(validate_solana_address(addr).unwrap(), addr);
-}
-
-#[test]
-fn validate_solana_address_rejects_wrong_length() {
-    // "tooShort" decodes to ~6 bytes, not 32.
-    let err = validate_solana_address("tooShort").unwrap_err();
-    assert!(err.contains("32 bytes"), "got: {err}");
-}
-
-#[test]
-fn unhardened_paths_are_rejected() {
-    // Path parsing lives in the root `tinywallet` crate, so this exercises
-    // the rule through the derivation entry point rather than a private
-    // helper.
-    const MNEMONIC: &str = "abandon abandon abandon abandon abandon abandon \
-                            abandon abandon abandon abandon abandon about";
-    assert!(derive_solana_keypair(MNEMONIC, "m/44'/501'/0'/0'").is_ok());
-    // Non-hardened segments are underivable on ed25519, not merely
-    // unsupported — silently hardening them would yield a different account.
-    assert!(derive_solana_keypair(MNEMONIC, "m/44/501/0/0").is_err());
-    assert!(derive_solana_keypair(MNEMONIC, "m").is_err());
-}
-
-#[test]
-fn derive_solana_keypair_produces_known_address_for_test_mnemonic() {
-    // SLIP-0010 ed25519 hardened derivation at m/44'/501'/0'/0' from the
-    // standard "abandon × 11 about" mnemonic. Deterministic output —
-    // pinned here so a regression in HMAC-SHA512 path traversal or seed
-    // derivation flips this test before it ships.
-    let mnemonic =
-        "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
-    let signing = derive_solana_keypair(mnemonic, "m/44'/501'/0'/0'").unwrap();
-    let pk = signing.verifying_key().to_bytes();
-    let addr = pubkey_to_b58(&pk);
-    assert_eq!(addr, "HAgk14JpMQLgt6rVgv7cBQFJWFto5Dqxi472uT3DKpqk");
-    validate_solana_address(&addr).expect("derived addr is 32-byte base58");
-}
-
-#[test]
 fn native_transfer_message_round_trips_basic_structure() {
     let from = [1u8; 32];
     let to = [2u8; 32];

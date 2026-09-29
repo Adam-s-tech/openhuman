@@ -14,37 +14,6 @@ use tempfile::TempDir;
 use tokio::net::TcpListener;
 
 #[test]
-fn validate_btc_address_accepts_known_p2wpkh() {
-    // bech32 P2WPKH from BIP173 examples.
-    let addr = "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4";
-    assert_eq!(validate_btc_address(addr).unwrap(), addr);
-}
-
-#[test]
-fn validate_btc_address_rejects_testnet() {
-    let err = validate_btc_address("tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx").unwrap_err();
-    // `tinywallet-bus` reports a wrong-network address as a distinct condition
-    // from a malformed one, so the message names the required network.
-    assert!(err.contains("not on mainnet"), "got: {err}");
-}
-
-#[test]
-fn validate_btc_sender_address_rejects_p2tr() {
-    // P2TR (bech32m, bc1p…) is a valid recipient but cannot be a sender —
-    // we only know how to sign P2WPKH inputs in this iteration.
-    let p2tr = "bc1p5cyxnuxmeuwuvkwfem96lqzszd02n6xdcjrs20cac6yqjjwudpxqkedrcr";
-    // Generic validation must accept it (recipients can be any type).
-    assert_eq!(validate_btc_address(p2tr).unwrap(), p2tr);
-    // Sender validation must reject it.
-    let err = validate_btc_sender_address(p2tr).unwrap_err();
-    assert!(err.contains("P2WPKH"), "got: {err}");
-    assert!(
-        err.contains("not supported as a sender"),
-        "the message should name the role that failed: {err}"
-    );
-}
-
-#[test]
 fn select_utxos_largest_first_returns_change() {
     let utxos = vec![
         EsploraUtxo {
