@@ -150,56 +150,6 @@ pub fn flatten_authed_error(err: anyhow::Error) -> String {
     }
 }
 
-/// Whether a 404 body came from *no route matching* rather than from a handler
-/// reporting a missing resource.
-///
-/// The backend registers no catch-all 404, so an unmatched route falls through
-/// to Express's built-in `finalhandler`, which answers with an HTML page whose
-/// body reads `Cannot PATCH /channels/…`. Every handler-level 404 answers with a
-/// JSON envelope instead — `DELETE /channels/:channel/messages/:messageId`
-/// already returns `{"success": false, "error": …}`, and a future `PATCH`
-/// handler would mirror it.
-///
-/// So: parses as JSON ⇒ a handler answered ⇒ the message is missing, not the
-/// route. Anything else (HTML, plain text, empty) ⇒ treat as route absence.
-///
-/// The asymmetry is deliberate. Misreading route absence as message absence only
-/// costs one wasted edit attempt per message; misreading a message-missing 404 as
-/// route absence disables progressive edits for the entire provider for the rest
-/// of the process (#5230 review). Defaulting the ambiguous shapes to route
-/// absence also preserves today's behaviour, where no backend implements the
-/// route at all.
-fn is_unmatched_route_404(body: &str) -> bool {
-    let trimmed = body.trim();
-    if trimmed.is_empty() {
-        return true;
-    }
-    serde_json::from_str::<Value>(trimmed).is_err()
-}
-
-/// Extract `(provider, message_id)` from a backend channel path of the
-/// shape `…/channels/<provider>/messages/<id>`. Returns `None` for paths
-/// that do not contain this four-segment subsequence.
-///
-/// Handles both the canonical four-segment form and paths with an arbitrary
-/// base-path prefix (e.g. `/api/v1/channels/telegram/messages/1103`) via a
-/// sliding window so that `BACKEND_URL` variants with path prefixes do not
-/// silently fall through to `report_error` (OPENHUMAN-TAURI-R7).
-fn parse_message_path(path: &str) -> Option<(&str, &str)> {
-    let segments: Vec<&str> = path.split('/').filter(|s| !s.is_empty()).collect();
-    // Fast path: exact four-segment canonical form /channels/<p>/messages/<id>
-    if segments.len() == 4 && segments[0] == "channels" && segments[2] == "messages" {
-        return Some((segments[1], segments[3]));
-    }
-    // Sliding window: handles base-path prefixes like /api/v1/channels/<p>/messages/<id>
-    for window in segments.windows(4) {
-        if window[0] == "channels" && window[2] == "messages" {
-            return Some((window[1], window[3]));
-        }
-    }
-    None
-}
-
 /// Max bytes of the `body_shape` key-name list echoed into the `authed_json`
 /// report. Bounded so a body with pathologically many keys can't bloat the
 /// event; truncation is UTF-8-safe.
@@ -261,39 +211,6 @@ fn is_schema_like_key(key: &str) -> bool {
         && key
             .bytes()
             .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'_' | b'-' | b'.'))
-}
-
-/// Normalize the backend envelope while preserving OpenHuman's historical
-/// response shape. In particular, `/auth/me` returns `{success,user}` rather
-/// than `{success,data}`; SDK transport must not expose that envelope detail to
-/// existing callers.
-fn parse_api_response_value(value: Value) -> Result<Value> {
-    let Some(object) = value.as_object() else {
-        return Ok(value);
-    };
-    if let Some(user) = object.get("user").filter(|user| !user.is_null()) {
-        return Ok(user.clone());
-    }
-    let Some(success) = object.get("success").and_then(Value::as_bool) else {
-        return Ok(value);
-    };
-    if !success {
-        let message = object
-            .get("message")
-            .or_else(|| object.get("error"))
-            .and_then(Value::as_str)
-            .unwrap_or("request unsuccessful");
-        anyhow::bail!("API request failed: {message}");
-    }
-    if let Some(data) = object.get("data").filter(|data| !data.is_null()) {
-        return Ok(data.clone());
-    }
-    if let Some(user) = object.get("user").filter(|user| !user.is_null()) {
-        return Ok(user.clone());
-    }
-    let mut unwrapped = object.clone();
-    unwrapped.remove("success");
-    Ok(Value::Object(unwrapped))
 }
 
 /// A client for authenticated hosted-backend routes.
@@ -451,7 +368,7 @@ impl BackendClient {
     ) -> Result<Value> {
         let url = self.url_for(path)?;
         let value = match response {
-            Ok(value) => return parse_api_response_value(value),
+            Ok(value) => return Ok(value),
             Err(BackendTransportError::Unavailable) => {
                 return Err(anyhow::Error::new(BackendApiError::BackendUnavailable {
                     method: method.as_str().to_string(),
@@ -501,6 +418,46 @@ impl BackendClient {
                     method.as_str(),
                     url.path()
                 )));
+            }
+            // The transport classifies channel-message 404s (it owns the
+            // backend's wire behaviour); the recovery each one implies is ours.
+            Err(BackendTransportError::ChannelMessageRouteMissing {
+                provider,
+                message_id,
+            }) => {
+                tracing::warn!(
+                    domain = "backend_api",
+                    operation = "authed_json",
+                    provider = provider,
+                    message_id = message_id,
+                    "[backend_api] channel-message 404 on {} {} — backend implements no such \
+                     route; surfacing ChannelEditUnsupported so callers degrade instead of \
+                     forgetting the message id (#5230)",
+                    method.as_str(),
+                    url.path(),
+                );
+                return Err(anyhow::Error::new(BackendApiError::ChannelEditUnsupported {
+                    provider,
+                    message_id,
+                }));
+            }
+            Err(BackendTransportError::ChannelMessageNotFound {
+                provider,
+                message_id,
+            }) => {
+                tracing::info!(
+                    domain = "backend_api",
+                    operation = "authed_json",
+                    provider = provider,
+                    message_id = message_id,
+                    "[backend_api] message-not-found 404 on {} {} — surfacing typed error",
+                    method.as_str(),
+                    url.path(),
+                );
+                return Err(anyhow::Error::new(BackendApiError::MessageNotFound {
+                    provider,
+                    message_id,
+                }));
             }
             Err(BackendTransportError::Status { status, body }) => (status, body),
             Err(error) => {
@@ -558,98 +515,6 @@ impl BackendClient {
                         path: url.path().to_string(),
                     }
                 }));
-            }
-
-            // 404 on `/channels/<provider>/messages/<id>` is an expected
-            // state (user deleted the message provider-side, or backend
-            // GC'd the relay row) — not a code bug. Surface a typed
-            // `BackendApiError::MessageNotFound` so callers (`bus.rs`
-            // streaming/thinking/delete/final paths) can clear stale
-            // ids and skip retry, without funneling the 404 into
-            // `report_error`. Targets `OPENHUMAN-TAURI-2Y` (~454 events).
-            if status_code == 404 {
-                let channel_message = parse_message_path(url.path());
-                // A 404 on the *edit* route is normally route absence, not
-                // message absence — today the backend implements no `PATCH
-                // /channels/:channel/messages/:messageId` at all (#5230). Answer
-                // with a distinct typed error so `bus.rs` keeps the message id
-                // (it still owns that message and must be able to delete it)
-                // and only disables the edit capability. Checked before the
-                // `MessageNotFound` arm below, which would otherwise swallow it.
-                //
-                // `is_unmatched_route_404` is what keeps this honest once the
-                // route *does* exist (staging, a custom backend, or after the
-                // backend PR lands): a handler-level "that message is gone" 404
-                // must stay a per-message `MessageNotFound`, because
-                // `ChannelEditUnsupported` makes `bus.rs` call
-                // `mark_channel_edits_unsupported` and disable progressive edits
-                // for the whole provider for the rest of the process.
-                if method == Method::PATCH
-                    && (channel_message.is_some()
-                        || (url.path().contains("/channels/") && url.path().contains("/messages/")))
-                    && is_unmatched_route_404(&text)
-                {
-                    let (provider, message_id) = channel_message
-                        .map(|(provider, id)| (provider.to_string(), id.to_string()))
-                        .unwrap_or_else(|| ("unknown".to_string(), "unknown".to_string()));
-                    tracing::warn!(
-                        domain = "backend_api",
-                        operation = "authed_json",
-                        provider = provider,
-                        message_id = message_id,
-                        "[backend_api] channel-message edit 404 on {} {} — backend implements no \
-                         edit route; surfacing ChannelEditUnsupported so callers degrade instead \
-                         of forgetting the message id (#5230)",
-                        method.as_str(),
-                        url.path(),
-                    );
-                    return Err(anyhow::Error::new(
-                        BackendApiError::ChannelEditUnsupported {
-                            provider,
-                            message_id,
-                        },
-                    ));
-                }
-
-                if let Some((provider, message_id)) = channel_message {
-                    tracing::info!(
-                        domain = "backend_api",
-                        operation = "authed_json",
-                        provider = provider,
-                        message_id = message_id,
-                        "[backend_api] message-not-found 404 on {} {} — surfacing typed error",
-                        method.as_str(),
-                        url.path(),
-                    );
-                    return Err(anyhow::Error::new(BackendApiError::MessageNotFound {
-                        provider: provider.to_string(),
-                        message_id: message_id.to_string(),
-                    }));
-                }
-                // Defense-in-depth: DELETE 404s on any channel-message path that
-                // parse_message_path could not parse (e.g. exotic URL variant with extra
-                // segments). Still an expected backend state — suppress the Sentry event
-                // without propagating a typed error. Targets OPENHUMAN-TAURI-R7.
-                // PATCH is handled above and returns the typed
-                // `ChannelEditUnsupported` for both the parsed and unparsed shapes.
-                if method == Method::DELETE
-                    && url.path().contains("/channels/")
-                    && url.path().contains("/messages/")
-                {
-                    tracing::debug!(
-                        domain = "backend_api",
-                        operation = "authed_json",
-                        "[backend_api] channel-message 404 on {} {} — path not matched by \
-                         parse_message_path, suppressing Sentry (TAURI-R7 defense-in-depth)",
-                        method.as_str(),
-                        url.path(),
-                    );
-                    anyhow::bail!(
-                        "channel message not found (404) on {} {}",
-                        method.as_str(),
-                        url.path(),
-                    );
-                }
             }
 
             // These are transient infrastructure errors (proxy/CDN/backend
