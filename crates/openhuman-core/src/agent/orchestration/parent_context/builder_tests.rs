@@ -30,13 +30,9 @@ async fn no_ambient_parent_outside_with_root_parent() {
 #[tokio::test]
 async fn with_root_parent_installs_parent_for_inner_future() {
     let (_dir, config) = test_config();
-    let observed = with_root_parent(
-        &config,
-        "cron",
-        "cron",
-        "cron",
-        async { current_parent().map(|p| p.agent_definition_id) },
-    )
+    let observed = with_root_parent(&config, "cron", "cron", "cron", async {
+        current_parent().map(|p| p.agent_definition_id)
+    })
     .await
     .expect("root parent builds from config");
     assert_eq!(

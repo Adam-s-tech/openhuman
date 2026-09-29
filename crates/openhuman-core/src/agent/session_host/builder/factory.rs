@@ -326,8 +326,7 @@ impl OpenHumanSessionHost {
         let target_is_lead = target_def
             .map(|def| !def.subagents.is_empty())
             .unwrap_or(true);
-        if let Some(pinned_model) = config.configured_agent_model(target_agent_id, target_is_lead)
-        {
+        if let Some(pinned_model) = config.configured_agent_model(target_agent_id, target_is_lead) {
             log::debug!(
                 "[session-builder] agent_id={} using config-level model pin model={}",
                 target_agent_id,

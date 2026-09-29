@@ -185,8 +185,7 @@ pub async fn account_turn_against_goal(
     let prev_tokens_used = prev.tokens_used;
 
     let store = goals_store(workspace_dir);
-    match crate_budget::account_turn(&store, &thread_id, input, output, secs, true).await
-    {
+    match crate_budget::account_turn(&store, &thread_id, input, output, secs, true).await {
         Ok(Some(updated)) => {
             tracing::debug!(
                 thread_id = %thread_id,

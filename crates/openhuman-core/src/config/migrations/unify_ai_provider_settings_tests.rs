@@ -97,7 +97,10 @@ fn retired_background_usage_flags_derive_no_route() {
     let _ = run(&mut c).unwrap();
     let serialized = toml::to_string(&c).unwrap();
     assert!(!serialized.contains("heartbeat_provider"), "{serialized}");
-    assert!(!serialized.contains("subconscious_provider"), "{serialized}");
+    assert!(
+        !serialized.contains("subconscious_provider"),
+        "{serialized}"
+    );
 }
 
 #[test]

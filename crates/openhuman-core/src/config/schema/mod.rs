@@ -86,9 +86,9 @@ pub use channels::{
 };
 pub(crate) use cli_overrides::set_cli_inference_overrides;
 pub use context::ContextConfig;
+pub use cron::CronConfig;
 pub use dashboard::{DashboardConfig, DiagramViewerConfig, EventStreamConfig, ModelHealthConfig};
 pub use dictation::{DictationActivationMode, DictationConfig};
-pub use cron::CronConfig;
 pub use identity_cost::{CostConfig, ModelPricing};
 pub use learning::{LearningConfig, ReflectionSource};
 pub use local_ai::{LocalAiConfig, LocalAiUsage};
