@@ -33,6 +33,5 @@ pub use factory::{create_composio_client, ComposioClientKind};
 #[cfg(test)]
 use super::types::ComposioExecuteResponse;
 #[cfg(test)]
-use execute::is_post_oauth_auth_readiness_error;
 #[cfg(test)]
 use std::sync::Arc;
