@@ -6,6 +6,7 @@ use crate::core::all::{ControllerFuture, RegisteredController};
 use crate::core::{ControllerSchema, FieldSchema, TypeSchema};
 use crate::memory::rpc::{self, LearnAllParams};
 
+use super::classify_rpc_error;
 use super::{parse_params, to_json};
 
 pub(super) const FUNCTIONS: &[&str] = &["learn_all"];
@@ -51,7 +52,7 @@ pub(super) fn schema(function: &str) -> Option<ControllerSchema> {
 fn handle_learn_all(params: Map<String, Value>) -> ControllerFuture {
     Box::pin(async move {
         let payload = parse_params::<LearnAllParams>(params)?;
-        to_json(rpc::memory_learn_all(payload).await?)
+        to_json(rpc::memory_learn_all(payload).await.map_err(classify_rpc_error)?)
     })
 }
 

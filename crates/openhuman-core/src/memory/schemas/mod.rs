@@ -251,6 +251,8 @@ fn unknown_schema() -> ControllerSchema {
 // Helpers shared by every handler submodule
 // ---------------------------------------------------------------------------
 
+pub(super) use super::ops::fallback::classify_rpc_error;
+
 pub(super) fn parse_params<T: DeserializeOwned>(params: Map<String, Value>) -> Result<T, String> {
     serde_json::from_value(Value::Object(params)).map_err(|e| format!("invalid params: {e}"))
 }

@@ -8,6 +8,7 @@ use crate::memory::rpc::{
     self, GraphQueryParams, GraphUpsertParams, KvGetDeleteParams, KvSetParams, NamespaceOnlyParams,
 };
 
+use super::classify_rpc_error;
 use super::{parse_params, to_json};
 
 pub(super) const FUNCTIONS: &[&str] = &[
@@ -229,42 +230,42 @@ pub(super) fn schema(function: &str) -> Option<ControllerSchema> {
 fn handle_kv_set(params: Map<String, Value>) -> ControllerFuture {
     Box::pin(async move {
         let payload = parse_params::<KvSetParams>(params)?;
-        to_json(rpc::kv_set(payload).await?)
+        to_json(rpc::kv_set(payload).await.map_err(classify_rpc_error)?)
     })
 }
 
 fn handle_kv_get(params: Map<String, Value>) -> ControllerFuture {
     Box::pin(async move {
         let payload = parse_params::<KvGetDeleteParams>(params)?;
-        to_json(rpc::kv_get(payload).await?)
+        to_json(rpc::kv_get(payload).await.map_err(classify_rpc_error)?)
     })
 }
 
 fn handle_kv_delete(params: Map<String, Value>) -> ControllerFuture {
     Box::pin(async move {
         let payload = parse_params::<KvGetDeleteParams>(params)?;
-        to_json(rpc::kv_delete(payload).await?)
+        to_json(rpc::kv_delete(payload).await.map_err(classify_rpc_error)?)
     })
 }
 
 fn handle_kv_list_namespace(params: Map<String, Value>) -> ControllerFuture {
     Box::pin(async move {
         let payload = parse_params::<NamespaceOnlyParams>(params)?;
-        to_json(rpc::kv_list_namespace(payload).await?)
+        to_json(rpc::kv_list_namespace(payload).await.map_err(classify_rpc_error)?)
     })
 }
 
 fn handle_graph_upsert(params: Map<String, Value>) -> ControllerFuture {
     Box::pin(async move {
         let payload = parse_params::<GraphUpsertParams>(params)?;
-        to_json(rpc::graph_upsert(payload).await?)
+        to_json(rpc::graph_upsert(payload).await.map_err(classify_rpc_error)?)
     })
 }
 
 fn handle_graph_query(params: Map<String, Value>) -> ControllerFuture {
     Box::pin(async move {
         let payload = parse_params::<GraphQueryParams>(params)?;
-        to_json(rpc::graph_query(payload).await?)
+        to_json(rpc::graph_query(payload).await.map_err(classify_rpc_error)?)
     })
 }
 

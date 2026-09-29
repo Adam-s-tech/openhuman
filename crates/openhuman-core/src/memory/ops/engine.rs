@@ -228,7 +228,7 @@ pub fn classify_engine_message(message: &str) -> String {
     if message.contains("USER_INSUFFICIENT_CREDITS") {
         return format!("{INSUFFICIENT_CREDITS_PREFIX} the memory engine is out of credits");
     }
-    if message.contains(SESSION_EXPIRED_PREFIX) {
+    if message.contains(SESSION_EXPIRED_PREFIX) || message.contains("[UNAUTHORIZED]") {
         return format!("{SESSION_EXPIRED_PREFIX} no TinyHumans session");
     }
     message.to_string()

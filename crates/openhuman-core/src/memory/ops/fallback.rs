@@ -58,6 +58,19 @@ pub(crate) fn classify_for_engine(external: bool, message: String) -> String {
     super::engine::classify_engine_message(&message)
 }
 
+/// [`classify_for_engine`] for the engine bound to the ambient context. With no
+/// context the message is classified on its content alone: the hosted
+/// dialect's `[USER_INSUFFICIENT_CREDITS]` / `[UNAUTHORIZED]` codes only ever
+/// come from a remote engine.
+pub(crate) fn classify_rpc_error(message: String) -> String {
+    let external = crate::core::runtime::context::CoreContext::current()
+        .and_then(|ctx| ctx.memory_binding().ok())
+        .map_or(true, |binding| {
+            binding.class() == crate::core::subsystem::DriverClass::External
+        });
+    classify_for_engine(external, message)
+}
+
 /// Records fetched per page by [`recent_hits`], at most.
 pub(crate) const RECENT_PAGE_CAP: usize = 200;
 /// Pages [`recent_hits`] reads, at most.
