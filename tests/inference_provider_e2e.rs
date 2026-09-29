@@ -1,9 +1,8 @@
 //! Inference provider end-to-end tests using wiremock.
 //!
-//! These tests spin up a wiremock HTTP server on a random port and verify
-//! that TinyAgents' crate-native `OpenAiModel` sends correct request bodies
-//! and correctly interprets responses for the major provider shapes (OpenAI-compat,
-//! Anthropic auth, streaming, temperature suppression, Ollama endpoint).
+//! Non-streaming request/response, auth-header and temperature wire behavior of
+//! `OpenAiModel` is covered in tinyinference-llm (`providers/openai/wire_test.rs`);
+//! the streaming test below drives the SSE path over a real wiremock socket.
 //!
 //! The `/v1/chat/completions` and `/v1/models` HTTP endpoint tests verify the
 //! full axum router layer (auth middleware + provider routing) end-to-end.
@@ -57,47 +56,11 @@ fn ensure_rpc_auth() {
     });
 }
 
-// ── Canned OpenAI-compatible response body ────────────────────────────────────
-
-fn openai_chat_response(content: &str) -> Value {
-    json!({
-        "id": "chatcmpl-test",
-        "object": "chat.completion",
-        "created": 1_700_000_000_u64,
-        "model": "gpt-4o-mini",
-        "choices": [{
-            "index": 0,
-            "message": { "role": "assistant", "content": content },
-            "finish_reason": "stop"
-        }],
-        "usage": { "prompt_tokens": 5, "completion_tokens": 10, "total_tokens": 15 }
-    })
-}
-
 fn openai_model(provider: &str, endpoint: &str, api_key: &str, auth: AuthStyle) -> OpenAiModel {
     OpenAiModel::new(api_key)
         .with_provider(provider)
         .with_base_url(endpoint)
         .with_auth_style(auth)
-}
-
-fn model_request(prompt: &str, model: &str, temperature: f64) -> ModelRequest {
-    ModelRequest::new(vec![Message::user(prompt)])
-        .with_model(model)
-        .with_temperature(temperature)
-}
-
-async fn invoke_text(
-    model_client: &OpenAiModel,
-    prompt: &str,
-    model: &str,
-    temperature: f64,
-) -> String {
-    model_client
-        .invoke(&(), model_request(prompt, model, temperature))
-        .await
-        .expect("model invocation should succeed")
-        .text()
 }
 
 // ── Helper: build an env-isolated Config pointing at tempdir ─────────────────
