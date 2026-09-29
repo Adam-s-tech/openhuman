@@ -25,6 +25,8 @@
 
 pub mod documents;
 pub mod engine;
+#[cfg(test)]
+pub(crate) mod engine_fakes_tests;
 pub mod engine_migrate;
 pub mod envelope;
 pub(crate) mod fallback;
