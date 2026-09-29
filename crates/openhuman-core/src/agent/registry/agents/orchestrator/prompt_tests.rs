@@ -35,7 +35,10 @@ fn render_installed_skills_lists_skills_and_names_the_hand_offs_it_is_given() {
             "catalogue names `{not_callable}` as if callable"
         );
     }
-    assert!(out.contains("Handoff Plan"));
+    // The Handoff Plan contract is stated once, in the routing text, rather
+    // than again in every skills section.
+    assert!(!out.contains("Handoff Plan"));
+    assert!(ARCHETYPE.contains("Act on a returned `## Handoff Plan` yourself"));
     assert!(out.contains("- **ascii-art**: ASCII art via pyfiglet"));
     assert!(out.contains("- **no-dir**: (no description)"));
 
@@ -62,7 +65,7 @@ fn prompt_routes_result_gating_tasks_to_synchronous_delegation() {
     // finalized before the critique ran. The orchestrator prompt must
     // explicitly route result-gating work to a synchronous/awaited path.
     assert!(
-        ARCHETYPE.contains("A result that must gate this reply goes through a `delegate_*` specialist with `blocking: true`"),
+        ARCHETYPE.contains("A result that gates this reply needs a delegate with `blocking: true`"),
         "orchestrator prompt must carry the result-gating delegation rule"
     );
     // The only primitive that returns inside the turn is a blocking
@@ -161,33 +164,40 @@ fn connected_mcp_block_empty_when_none() {
 }
 
 #[test]
-fn mcp_prompt_instruction_requires_direct_tool_visibility() {
+fn mcp_prompt_instruction_requires_a_reachable_registry_tool() {
+    const MCP_LINE: &str = "MCP: server tools come from `tool_search`";
     let mut ctx = ctx_with(&[]);
+    // Neither visible nor registered: no MCP route.
     let hidden = ["web_fetch".to_string()].into_iter().collect();
     ctx.visible_tool_names = &hidden;
     let without = build(&ctx).unwrap();
-    assert!(!without.contains("Before searching elsewhere, check **Connected MCP Servers**"));
+    assert!(!without.contains(MCP_LINE));
 
     let unfiltered = std::collections::HashSet::new();
     ctx.visible_tool_names = &unfiltered;
     let wildcard = build(&ctx).unwrap();
-    assert_eq!(
-        wildcard.contains("Before searching elsewhere, check **Connected MCP Servers**"),
-        cfg!(feature = "mcp")
-    );
+    assert_eq!(wildcard.contains(MCP_LINE), cfg!(feature = "mcp"));
 
     let visible = ["mcp_registry_tool_call".to_string()].into_iter().collect();
     ctx.visible_tool_names = &visible;
     let with = build(&ctx).unwrap();
-    assert_eq!(
-        with.contains("Before searching elsewhere, check **Connected MCP Servers**"),
-        cfg!(feature = "mcp")
-    );
+    assert_eq!(with.contains(MCP_LINE), cfg!(feature = "mcp"));
     if cfg!(feature = "mcp") {
-        assert!(with.contains("`tool_search` for the action"));
-        assert!(with.contains("mcp_registry_list_tools"));
+        assert!(with.contains("never guess their arguments"));
     }
     assert!(!with.contains("use_mcp_server"));
+
+    // Registered but deferred (the orchestrator's `deferred_tools` takes the
+    // registry tools off its wire): still a route, reached through
+    // `tool_search`, so the line must stay.
+    let registered = [crate::agent::prompts::PromptTool::new(
+        "mcp_registry_tool_call",
+        "Invoke a tool on a connected MCP server.",
+    )];
+    ctx.visible_tool_names = &hidden;
+    ctx.tools = &registered;
+    let deferred = build(&ctx).unwrap();
+    assert_eq!(deferred.contains(MCP_LINE), cfg!(feature = "mcp"));
 }
 
 #[test]

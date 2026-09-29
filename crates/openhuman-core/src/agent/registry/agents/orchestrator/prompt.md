@@ -14,7 +14,8 @@ First match wins:
 ## Sub-agents
 
 - `[active_subagents]` is the truth about workers; never spawn a duplicate.
-- `spawn_async_subagent` only for work this reply doesn't need; a gating result needs a delegate with `blocking: true`.
+- `spawn_async_subagent` only for work this reply doesn't need.
+- A result that gates this reply needs a delegate with `blocking: true`.
 - `awaiting_user` workers resume with `continue_subagent`; a `failed` one produced nothing: say so.
 
 ## Grounding and tool use
