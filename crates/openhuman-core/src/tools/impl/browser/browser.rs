@@ -13,16 +13,16 @@ use session_pool::{
     browser_session_fingerprint, evict_thread_sessions, requires_rebind, thread_sessions,
     ThreadSession,
 };
-use task_approval::{approve_task_action, task_inputs};
 #[cfg(test)]
 use session_pool::{MAX_THREAD_SESSIONS, SESSION_IDLE_TTL};
 use sha2::{Digest, Sha256};
+#[cfg(test)]
+use std::{collections::HashMap, time::Duration};
 use std::{
     sync::{Arc, Mutex as StdMutex},
     time::Instant,
 };
-#[cfg(test)]
-use std::{collections::HashMap, time::Duration};
+use task_approval::{approve_task_action, task_inputs};
 use tinycomputer_bus::agent::{ContinueTaskRequest, TaskId, TaskStatus, TaskView};
 use tinycomputer_bus::browser::{
     Action, DownloadState, DownloadWaitRequest, LocateBy, Locator, NavigateRequest, ReadRequest,
