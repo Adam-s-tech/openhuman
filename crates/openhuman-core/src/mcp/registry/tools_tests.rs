@@ -203,3 +203,111 @@ fn registry_tools_present_the_exact_identity_they_always_had() {
         assert_eq!(tool.family(), None, "{}", golden.name);
     }
 }
+
+#[tokio::test]
+async fn tool_call_refuses_arguments_that_are_not_an_object() {
+    let err = McpRegistryToolCallTool::new(cfg())
+        .execute(json!({ "server_id": "srv", "tool_name": "t", "arguments": 5 }))
+        .await
+        .expect_err("a number is not arguments");
+    let message = err.to_string();
+    assert!(message.contains("mcp_registry_tool_call"), "{message}");
+    assert!(message.contains("a number"), "{message}");
+}
+
+/// A workspace of its own, so the host this opens is not shared.
+fn workspace_config(dir: &std::path::Path) -> Arc<Config> {
+    Arc::new(Config {
+        workspace_dir: dir.join("workspace"),
+        action_dir: dir.join("workspace"),
+        config_path: dir.join("config.toml"),
+        ..Default::default()
+    })
+}
+
+/// Answers the MCP handshake and one tool over Streamable HTTP.
+struct LoopbackMcp;
+
+impl wiremock::Respond for LoopbackMcp {
+    fn respond(&self, request: &wiremock::Request) -> wiremock::ResponseTemplate {
+        let body: Value = serde_json::from_slice(&request.body).unwrap_or_default();
+        let result = match body["method"].as_str().unwrap_or_default() {
+            "initialize" => json!({
+                "protocolVersion": tinymcp_bus::LATEST_PROTOCOL_VERSION,
+                "capabilities": { "tools": {} },
+                "serverInfo": { "name": "loopback", "version": "1.0.0" },
+            }),
+            "notifications/initialized" => return wiremock::ResponseTemplate::new(202),
+            "tools/list" => json!({
+                "tools": [{ "name": "forecast", "inputSchema": { "type": "object" } }]
+            }),
+            "tools/call" => json!({ "content": [{ "type": "text", "text": "sunny" }] }),
+            _ => json!({}),
+        };
+        wiremock::ResponseTemplate::new(200).set_body_json(json!({
+            "jsonrpc": "2.0",
+            "id": body["id"].clone(),
+            "result": result,
+        }))
+    }
+}
+
+#[tokio::test]
+async fn tool_call_with_string_arguments_reaches_the_server_as_an_object() {
+    // The reported failure: a model called `mcp_registry_tool_call` with
+    // `"arguments": "{...}"`, a JSON-encoded string where MCP needs an object.
+    let server = wiremock::MockServer::start().await;
+    wiremock::Mock::given(wiremock::matchers::method("POST"))
+        .respond_with(LoopbackMcp)
+        .mount(&server)
+        .await;
+    let dir = tempfile::tempdir().expect("temp workspace");
+    let config = workspace_config(dir.path());
+    let host = crate::mcp::host::for_config(&config).expect("host");
+    host.dynamic()
+        .store()
+        .insert_server(&crate::mcp::registry::InstalledServer {
+            server_id: "srv-1".into(),
+            qualified_name: "loopback".into(),
+            display_name: "loopback".into(),
+            description: None,
+            icon_url: None,
+            command_kind: tinymcp_bus::CommandKind::Node,
+            command: String::new(),
+            args: Vec::new(),
+            env_keys: Vec::new(),
+            config: None,
+            installed_at: 1,
+            last_connected_at: None,
+            transport: tinymcp_bus::Transport::HttpRemote {
+                url: format!("{}/mcp", server.uri()),
+            },
+            enabled: true,
+        })
+        .expect("insert");
+    McpRegistryConnectTool::new(Arc::clone(&config))
+        .execute(json!({ "server_id": "srv-1" }))
+        .await
+        .expect("connect");
+
+    let result = McpRegistryToolCallTool::new(Arc::clone(&config))
+        .execute(json!({
+            "server_id": "srv-1",
+            "tool_name": "forecast",
+            "arguments": "{\"city\":\"Paris\"}"
+        }))
+        .await
+        .expect("call");
+    assert!(!result.is_error, "{}", result.text());
+
+    let calls: Vec<Value> = server
+        .received_requests()
+        .await
+        .expect("recording")
+        .iter()
+        .filter_map(|request| serde_json::from_slice::<Value>(&request.body).ok())
+        .filter(|body| body["method"] == "tools/call")
+        .collect();
+    assert_eq!(calls.len(), 1);
+    assert_eq!(calls[0]["params"]["arguments"], json!({ "city": "Paris" }));
+}
