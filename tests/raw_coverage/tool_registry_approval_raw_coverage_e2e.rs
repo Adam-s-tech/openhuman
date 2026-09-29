@@ -662,6 +662,12 @@ async fn tool_registry_entries_include_connected_mcp_client_tools() {
         ..Config::default()
     };
     let server = test_mcp_server();
+    openhuman_core::mcp::host::for_config(&config)
+        .expect("MCP host")
+        .dynamic()
+        .store()
+        .insert_server(&server)
+        .expect("install test MCP server");
     let tools = connections::connect(&config, &server)
         .await
         .expect("connect test mcp server");
@@ -676,6 +682,12 @@ async fn tool_registry_entries_include_connected_mcp_client_tools() {
         ..Config::default()
     };
     let other_server = test_mcp_server();
+    openhuman_core::mcp::host::for_config(&other_config)
+        .expect("second MCP host")
+        .dynamic()
+        .store()
+        .insert_server(&other_server)
+        .expect("install second test MCP server");
     connections::connect(&other_config, &other_server)
         .await
         .expect("connect second test mcp server");
