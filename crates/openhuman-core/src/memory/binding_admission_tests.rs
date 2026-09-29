@@ -613,3 +613,90 @@ fn a_module_driver_reports_the_module_class_when_the_feature_is_on() {
         "a real module binding must report the module class"
     );
 }
+
+#[cfg(feature = "memory-remote")]
+mod remote_binding {
+    use super::*;
+
+    fn remote_cfg(id: &str, endpoint: &str) -> MemorySubsystemConfig {
+        let mut cfg = MemorySubsystemConfig {
+            driver: id.into(),
+            ..Default::default()
+        };
+        cfg.drivers.insert(
+            id.into(),
+            MemoryDriverConfig {
+                class: Some("external".into()),
+                transport: Some("http".into()),
+                endpoint: Some(endpoint.into()),
+                credential_ref: None,
+                trust_state: "trusted".into(),
+                deployment: None,
+            },
+        );
+        cfg
+    }
+
+    #[tokio::test]
+    async fn a_trusted_remote_engine_binds_as_external() {
+        let dir = tempfile::tempdir().unwrap();
+        let cfg = remote_cfg("supermemory", "https://api.supermemory.ai");
+        let binding = for_workspace(dir.path(), &cfg).expect("binding resolves");
+        assert_eq!(binding.driver_id(), "supermemory");
+        assert_eq!(binding.class(), DriverClass::External);
+        assert!(binding.fallback().is_none(), "{:?}", binding.fallback());
+    }
+
+    #[tokio::test]
+    async fn the_hosted_engine_without_a_backend_transport_falls_back_loudly() {
+        let dir = tempfile::tempdir().unwrap();
+        let cfg = MemorySubsystemConfig {
+            driver: "tinyhumans".into(),
+            ..Default::default()
+        };
+        let binding = for_workspace(dir.path(), &cfg).expect("binding resolves");
+        // The core carries no transport of its own, so the hosted engine has no
+        // backend origin and must fall back rather than bind half-built.
+        assert_eq!(binding.driver_id(), "null");
+        let fallback = binding.fallback().expect("fallback recorded");
+        assert_eq!(fallback.configured_driver, "tinyhumans");
+        assert!(
+            fallback.reason.contains("BACKEND_UNAVAILABLE"),
+            "{}",
+            fallback.reason
+        );
+    }
+
+    #[tokio::test]
+    async fn a_failed_engine_build_never_leaks_the_endpoint() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut cfg = remote_cfg("mem0", "https://leaky-host.example");
+        cfg.drivers.get_mut("mem0").unwrap().deployment = Some("bogus".into());
+        let binding = for_workspace(dir.path(), &cfg).expect("binding resolves");
+        let fallback = binding.fallback().expect("a bad deployment falls back");
+        assert!(
+            !fallback.reason.contains("leaky-host"),
+            "endpoint leaked into an operator-facing string: {}",
+            fallback.reason
+        );
+    }
+
+    #[tokio::test]
+    async fn rebind_evicts_the_external_binding_and_binds_the_new_config() {
+        let dir = tempfile::tempdir().unwrap();
+        let ext = remote_cfg("supermemory", "https://api.supermemory.ai");
+        let first = for_workspace(dir.path(), &ext).unwrap();
+        assert_eq!(first.class(), DriverClass::External);
+
+        let null_cfg = MemorySubsystemConfig {
+            driver: "null".into(),
+            ..Default::default()
+        };
+        let after = rebind(dir.path(), "supermemory", &null_cfg).unwrap();
+        assert_eq!(after.driver_id(), "null");
+        // The old external binding is gone from the cache: resolving its
+        // config again builds a fresh one instead of returning the old Arc.
+        let again = for_workspace(dir.path(), &ext).unwrap();
+        assert!(!Arc::ptr_eq(&first, &again));
+    }
+}
