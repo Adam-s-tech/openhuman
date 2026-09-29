@@ -1526,7 +1526,7 @@ async fn announcements_get_latest_passes_through_and_folds_404_to_null() {
         result.get("title").and_then(Value::as_str),
         Some("Scheduled maintenance")
     );
-    assert_eq!(result.get("severity").and_then(Value::as_str), Some("info"));
+    assert_eq!(result.get("severity").and_then(Value::as_str), Some("INFO"));
     h.stop();
 
     // ── signed in, backend 404: folded into `null`, not surfaced as an error.
