@@ -59,7 +59,7 @@ Namespace `auth` (JSON-RPC `openhuman.auth_*` / CLI `openhuman-core auth <functi
 | `auth_remove_provider_credentials` | Remove provider credentials. |
 | `auth_list_provider_credentials` | List stored provider credentials (optional provider filter). |
 
-The account-bound `auth` methods `auth_create_channel_link_token`, `auth_oauth_connect`, `auth_oauth_list_integrations`, `auth_oauth_fetch_integration_tokens` and `auth_oauth_revoke_integration` keep their wire names but are served by `openhuman-tinyhumans` (`hosted::{channel_link, oauth}`, on the TinyHumans SDK), registered only when `openhuman_tinyhumans::install` runs.
+The account-bound `auth` methods `auth_create_channel_link_token`, `auth_oauth_connect`, `auth_oauth_list_integrations`, `auth_oauth_fetch_integration_tokens`, `auth_oauth_revoke_integration` and `auth_oauth_fetch_client_key` keep their wire names but are served by `openhuman-tinyhumans` (`hosted::{channel_link, oauth}`, on the TinyHumans SDK), registered only when `openhuman_tinyhumans::install` runs.
 
 `openhuman.auth_store_session` and `openhuman.auth_clear_session` survive as legacy aliases (`core/legacy_aliases.rs`) of the credential pair for bundles that predate it.
 
