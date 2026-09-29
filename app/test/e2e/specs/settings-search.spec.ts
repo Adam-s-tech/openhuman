@@ -97,10 +97,11 @@ describe('Settings - Search', () => {
     const reset = await callOpenhumanRpc('openhuman.config_update_search_settings', {
       enabled: true,
       providers: { brave: { enabled: false } },
-      roles: { search: [] },
+      roles: { search: ['exa'] },
     });
     expect(reset.ok).toBe(true);
 
+    await clickTestId('search-tab-providers');
     await waitForTestId('search-settings-panel', 15_000);
     await waitForTestId('search-catalog-brave', 15_000);
     await clickTestId('search-catalog-brave');
