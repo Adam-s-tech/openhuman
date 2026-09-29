@@ -334,7 +334,7 @@ impl OpenHumanTurnPrelude {
 }
 
 /// Live connected integrations, falling back to the last cached snapshot
-/// (even past its TTL) when the backend is unreachable. `None` only when
+/// when the backend is unreachable. `None` only when
 /// there is neither a live answer nor any snapshot to fall back to.
 async fn load_connected_integrations(
     config: &crate::config::Config,

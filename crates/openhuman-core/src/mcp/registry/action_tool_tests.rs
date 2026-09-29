@@ -49,7 +49,10 @@ fn tools_are_named_mcp_server_tool() {
 fn equal_tool_names_on_two_servers_stay_distinct() {
     let tools = deferred_connected_tools(
         Arc::new(Config::default()),
-        &[server("server-1", "forecast"), server("server-2", "forecast")],
+        &[
+            server("server-1", "forecast"),
+            server("server-2", "forecast"),
+        ],
     );
     assert_eq!(tools.len(), 2);
     assert_ne!(tools[0].name(), tools[1].name());

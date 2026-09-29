@@ -46,7 +46,11 @@ async fn server() -> wiremock::MockServer {
     server
 }
 
-fn config(workspace: &std::path::Path, endpoint: &str, customize: impl FnOnce(&mut McpServerConfig)) -> Config {
+fn config(
+    workspace: &std::path::Path,
+    endpoint: &str,
+    customize: impl FnOnce(&mut McpServerConfig),
+) -> Config {
     let mut config = Config {
         workspace_dir: workspace.join("workspace"),
         action_dir: workspace.join("workspace"),
@@ -126,7 +130,9 @@ async fn expose_direct_and_direct_tools_are_honoured() {
     });
     let registry = warmed(&config_direct).await;
     let tools = configured_server_tools(&config_direct, &registry, &security(), &HashSet::new());
-    assert!(tools.iter().all(|tool| tool.exposure() == ToolExposure::Direct));
+    assert!(tools
+        .iter()
+        .all(|tool| tool.exposure() == ToolExposure::Direct));
 
     let config_pinned = config(dir.path(), &endpoint, |server| {
         server.direct_tools = vec!["readGoals".into()];

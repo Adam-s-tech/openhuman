@@ -823,7 +823,7 @@ pub fn all_tools_with_runtime(
                 crate::tools::implementations::network::configured_server_tools(
                     root_config,
                     &mcp_registry,
-                    &security,
+                    security,
                     &reserved,
                 ),
             );

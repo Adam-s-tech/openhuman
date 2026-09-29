@@ -24,6 +24,7 @@ fn registry_with(endpoint: &str, auth: crate::config::McpAuthConfig) -> Arc<McpS
         disallowed_tools: Vec::new(),
         timeout_secs: 30,
         auth,
+        ..Default::default()
     });
     // Through the host conversion, so the test builds the registry the
     // same way the application does.

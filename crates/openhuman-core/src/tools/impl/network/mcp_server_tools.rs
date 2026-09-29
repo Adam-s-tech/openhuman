@@ -42,7 +42,10 @@ pub fn configured_server_tools(
     let host = match crate::mcp::host::for_config(config) {
         Ok(host) => host,
         Err(error) => {
-            tracing::debug!(?error, "[mcp_client] no host for workspace; no server tools");
+            tracing::debug!(
+                ?error,
+                "[mcp_client] no host for workspace; no server tools"
+            );
             return Vec::new();
         }
     };

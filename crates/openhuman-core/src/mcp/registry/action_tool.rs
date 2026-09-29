@@ -130,7 +130,11 @@ impl McpToolInvoker for InstalledServerInvoker {
             .ok_or_else(not_connected)?;
         let safe = super::tools_safe_for_agent(server_id, live);
         if !safe.iter().any(|candidate| candidate.name == tool) {
-            tracing::debug!(server_id, tool, "[mcp] tool is no longer offered by the live server");
+            tracing::debug!(
+                server_id,
+                tool,
+                "[mcp] tool is no longer offered by the live server"
+            );
             return Err(tinymcp::Error::ToolNotAllowed {
                 server: server_id.to_string(),
                 tool: tool.to_string(),
