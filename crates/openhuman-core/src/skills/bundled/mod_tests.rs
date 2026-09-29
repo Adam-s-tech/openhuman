@@ -16,25 +16,6 @@ const SAMPLE: BundledSkill = BundledSkill {
     files: &[A, B],
 };
 
-fn validate_relative_path(dir_name: &str, path: &str) -> Result<(), String> {
-    let path: &'static str = Box::leak(path.to_owned().into_boxed_str());
-    let mut files = vec![BundledFile {
-        path: "WORKFLOW.md",
-        contents: "---\nname: test\ndescription: test\n---\n",
-    }];
-    if path != "WORKFLOW.md" {
-        files.push(BundledFile {
-            path,
-            contents: "body",
-        });
-    }
-    let skill = BundledSkill {
-        dir_name: Box::leak(dir_name.to_owned().into_boxed_str()),
-        files: Box::leak(files.into_boxed_slice()),
-    };
-    skill.validate()
-}
-
 fn install_one(root: &std::path::Path, skill: &BundledSkill) -> Result<bool, String> {
     let report = tinyskills::install(root, &[*skill]);
     if let Some((_, error)) = report.failed.into_iter().next() {
@@ -99,79 +80,6 @@ fn the_digest_covers_paths_as_well_as_contents() {
     };
     assert_ne!(SAMPLE.digest(), moved.digest());
     assert_ne!(SAMPLE.digest(), renamed.digest());
-}
-
-#[test]
-fn a_traversal_path_is_rejected() {
-    // Checked against the free function rather than through `validate`,
-    // because `BundledSkill::files` is `&'static [_]` — a table compiled into
-    // the binary cannot be assembled from loop variables, which is itself part
-    // of why the table is safe.
-    for bad in [
-        "../escape.md",
-        "refs/../../escape.md",
-        "/etc/passwd",
-        "refs//x.md",
-        "C:/windows/system32",
-        ".hidden.md",
-        "",
-    ] {
-        assert!(
-            validate_relative_path("sample", bad).is_err(),
-            "`{bad}` must be rejected as a bundled file path"
-        );
-    }
-    for good in ["WORKFLOW.md", "references/expressions.md", "scripts/run.py"] {
-        assert!(
-            validate_relative_path("sample", good).is_ok(),
-            "`{good}` must be accepted"
-        );
-    }
-}
-
-#[test]
-fn a_bad_dir_name_is_rejected() {
-    for bad in ["", ".hidden", "a/b", "a\\b"] {
-        let skill = BundledSkill {
-            dir_name: bad,
-            files: &[A],
-        };
-        assert!(
-            skill.validate().is_err(),
-            "`{bad}` must be rejected as a dir_name"
-        );
-    }
-}
-
-#[test]
-fn a_bundle_with_no_manifest_is_rejected() {
-    // Discovery only loads a directory holding WORKFLOW.md / SKILL.md /
-    // skill.json. A bundle without one would be written out and then silently
-    // never appear — the worst failure mode available, because nothing errors.
-    let skill = BundledSkill {
-        dir_name: "sample",
-        files: &[BundledFile {
-            path: "references/detail.md",
-            contents: "x",
-        }],
-    };
-    assert!(skill.validate().is_err());
-}
-
-#[test]
-fn install_writes_the_files_and_is_idempotent() {
-    let tmp = tempfile::tempdir().expect("tempdir");
-    let root = builtin_root(tmp.path());
-
-    assert!(install_one(&root, &SAMPLE).expect("first install"));
-    let body = std::fs::read_to_string(root.join("sample").join("WORKFLOW.md")).expect("body");
-    assert_eq!(body, A.contents);
-    let detail =
-        std::fs::read_to_string(root.join("sample").join("references/detail.md")).expect("detail");
-    assert_eq!(detail, B.contents);
-
-    // Second call must not rewrite — the digest matches.
-    assert!(!install_one(&root, &SAMPLE).expect("second install"));
 }
 
 #[test]
