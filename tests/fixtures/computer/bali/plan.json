@@ -2,12 +2,12 @@
   "app": "browser",
   "vars": {
     "destination": "Denpasar, Bali (DPS)",
-    "origin": "Bengaluru (BLR)",
+    "origin": "Delhi (DEL)",
     "travel_date": "Sunday 15 November 2026"
   },
   "steps": [
     {
-      "browse": "https://www.google.com/travel/flights?q=Flights%20to%20DPS%20from%20BLR%20on%202026-11-15%20oneway&curr=INR&hl=en&gl=IN"
+      "browse": "https://www.google.com/travel/flights?q=Flights%20to%20DPS%20from%20DEL%20on%202026-11-15%20oneway&curr=INR&hl=en&gl=IN"
     },
     {
       "wait_for": "a list of one-way flight results from ${origin} to ${destination} is showing"
@@ -35,12 +35,7 @@
       }
     },
     "choose the One Way trip type",
-    {
-      "choose": {
-        "what": "the source city selector",
-        "option": "Bengaluru"
-      }
-    },
+    "confirm the source city is ${origin}",
     {
       "choose": {
         "what": "the destination city selector",
