@@ -75,7 +75,7 @@ pub fn configured_server_tools(
         .map(|tool| {
             Box::new(ConfiguredMcpServerTool::new(
                 tool,
-                registry,
+                Arc::clone(registry),
                 Arc::clone(security),
             )) as Box<dyn Tool>
         })
@@ -140,6 +140,7 @@ fn warm_in_background(
 /// A configured server's tool under this application's call policy.
 pub struct ConfiguredMcpServerTool {
     inner: McpServerTool,
+    registry: Arc<McpServerRegistry>,
     security: Arc<SecurityPolicy>,
     scrubber: SecretScrubber,
 }
@@ -147,12 +148,13 @@ pub struct ConfiguredMcpServerTool {
 impl ConfiguredMcpServerTool {
     fn new(
         inner: McpServerTool,
-        registry: &McpServerRegistry,
+        registry: Arc<McpServerRegistry>,
         security: Arc<SecurityPolicy>,
     ) -> Self {
-        let scrubber = SecretScrubber::for_server(registry, inner.server_id());
+        let scrubber = SecretScrubber::for_server(&registry, inner.server_id());
         Self {
             inner,
+            registry,
             security,
             scrubber,
         }
@@ -197,6 +199,16 @@ impl Tool for ConfiguredMcpServerTool {
         self.security
             .enforce_tool_operation(ToolOperation::Act, self.name())
             .map_err(|err| anyhow::anyhow!(err))?;
+        let server = self.inner.server_id();
+        let tool = self.inner.remote_name();
+        if !self.registry.list().iter().any(|definition| definition.name == server) {
+            anyhow::bail!("MCP server is no longer configured: {server}");
+        }
+        let live = self.registry.list_tools(server).await?;
+        let safe = crate::mcp::registry::tools_safe_for_agent(server, live);
+        if !safe.iter().any(|candidate| candidate.name == tool) {
+            anyhow::bail!("MCP tool is no longer available or safe: {server}/{tool}");
+        }
         let result = self.inner.execute(args).await?;
         Ok(self.scrubber.scrub_result(result))
     }

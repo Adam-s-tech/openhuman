@@ -1,7 +1,6 @@
 //! Agent-facing browser backed by the TinyComputer module's browser and task members.
 #[path = "browser_session_pool.rs"]
 mod session_pool;
-
 use crate::modules::browser::BrowserClient;
 use crate::security::approval::{ApprovalGate, GateOutcome};
 use crate::security::SecurityPolicy;
@@ -28,7 +27,6 @@ use tinycomputer_bus::browser::{
 };
 use tinytools::{Tool, ToolCallOptions, ToolResult, ToolRunContext};
 use tokio::sync::Mutex;
-
 /// A task paused before an irreversible action, waiting for host approval.
 struct Pending {
     task: TaskId,
@@ -36,13 +34,11 @@ struct Pending {
     target: String,
     token: String,
 }
-
 impl Pending {
     fn matches(&self, args: &Value) -> bool {
         args["token"].as_str() == Some(self.token.as_str())
     }
 }
-
 fn needs_host_confirmation(action: &Action) -> bool {
     matches!(
         action,
@@ -55,7 +51,6 @@ fn needs_host_confirmation(action: &Action) -> bool {
             | Action::Check { .. }
     )
 }
-
 fn approval_target(action: &Action) -> (Option<&str>, String) {
     let target = match action {
         Action::Click { target, .. }
@@ -97,7 +92,6 @@ fn approval_target(action: &Action) -> (Option<&str>, String) {
         None => (None, String::new()),
     }
 }
-
 async fn approve_browser_action(
     client: &BrowserClient,
     session: &SessionId,
