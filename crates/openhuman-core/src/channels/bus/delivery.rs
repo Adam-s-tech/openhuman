@@ -131,7 +131,7 @@ mod tests {
         let second = channel_message_body_with_idempotency("telegram", body);
 
         assert_eq!(first, second);
-        assert!(first.get("idempotency_key").is_some());
+        assert!(first.get("idempotencyKey").is_some());
     }
 
     #[tokio::test]
