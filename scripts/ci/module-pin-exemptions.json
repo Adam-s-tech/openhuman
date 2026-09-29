@@ -15,8 +15,8 @@
     {
       "id": "tinymcp",
       "submodule": "vendor/tinymcp",
-      "expect": "v0.3.4-97-gd2feb798",
-      "reason": "The TinyMCP submodule pin includes upstream changes after the v0.3.4 release, while no matching tinymcp module release and digest have been published. Keep the registry artifact pinned to its verified release and remove this exact source/artifact drift exemption when a matching release and digest are available."
+      "expect": "v0.3.5-97-gd2feb798",
+      "reason": "The main-branch TinyMCP submodule pin includes upstream changes after PR #30, while no matching tinymcp module release and digest have been published. Keep the registry artifact pinned to the verified v0.3.5 release and remove this exact source/artifact drift exemption when a matching release and digest are available."
     },
     {
       "id": "tinyruntime-nodejs",
