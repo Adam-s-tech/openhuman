@@ -22,10 +22,7 @@ agent/session_host/builder/factory.rs
 agent/session_host/runtime_session.rs
 agent/session_host/runtime_session_tests.rs
 agent/session_host/turn/tools.rs
-agent/subagent_host/tool_prep_tests.rs
 agent/registry/agents/loader.rs
-agent/registry/agents/loader_tests_builtin_registration_tests.rs
-agent/registry/agents/loader_tests_orchestrator_tier_tests.rs
 agent/registry/agents/loader_tests_specialist_agents_tests.rs
 agent/registry/agents/mod.rs
 agent/tinyagents/mod.rs
