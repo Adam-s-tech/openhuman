@@ -34,38 +34,44 @@ fn core_listener_settings_use_valid_environment_values_and_safe_defaults() {
 
 #[test]
 fn server_shim_refuses_public_bind_without_operator_token() {
-    tokio::runtime::Builder::new_multi_thread()
-        .thread_stack_size(8 * 1024 * 1024)
-        .enable_all()
-        .build()
-        .expect("tokio runtime")
-        .block_on(async {
-            let workspace = tempfile::tempdir().expect("workspace tempdir");
-            let _env = EnvVarGuard::set_many(vec![
-                (
-                    "OPENHUMAN_WORKSPACE",
-                    workspace.path().as_os_str().to_os_string(),
-                ),
-                ("OPENHUMAN_CORE_TOKEN", OsString::from("")),
-            ]);
-            let services = openhuman_core::core::runtime::ServiceSet::headless_api();
+    std::thread::Builder::new()
+        .stack_size(16 * 1024 * 1024)
+        .spawn(|| {
+            tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+                .expect("tokio runtime")
+                .block_on(async {
+                    let workspace = tempfile::tempdir().expect("workspace tempdir");
+                    let _env = EnvVarGuard::set_many(vec![
+                        (
+                            "OPENHUMAN_WORKSPACE",
+                            workspace.path().as_os_str().to_os_string(),
+                        ),
+                        ("OPENHUMAN_CORE_TOKEN", OsString::from("")),
+                    ]);
+                    let services = openhuman_core::core::runtime::ServiceSet::headless_api();
 
-            let error = super::run_server_with_services(
-                Some("0.0.0.0"),
-                Some(0),
-                services,
-                true,
-                None,
-                None,
-                None,
-            )
-            .await
-            .expect_err("public bind must require an operator-supplied token");
+                    let error = super::run_server_with_services(
+                        Some("0.0.0.0"),
+                        Some(0),
+                        services,
+                        true,
+                        None,
+                        None,
+                        None,
+                    )
+                    .await
+                    .expect_err("public bind must require an operator-supplied token");
 
-            assert!(error
-                .to_string()
-                .contains("refusing to bind on non-loopback"));
-        });
+                    assert!(error
+                        .to_string()
+                        .contains("refusing to bind on non-loopback"));
+                });
+        })
+        .expect("test thread")
+        .join()
+        .expect("test thread should not panic");
 }
 
 async fn wait_until_port_accepts(port: u16) {
