@@ -67,4 +67,3 @@ async fn prepare_messages_rejects_oversized_file() {
         .to_string()
         .contains("multimodal file size limit exceeded"));
 }
-

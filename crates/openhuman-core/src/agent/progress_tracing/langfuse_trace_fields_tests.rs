@@ -13,4 +13,3 @@ fn an_unparseable_base_is_external() {
         );
     }
 }
-
