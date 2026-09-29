@@ -4,7 +4,7 @@ mod args;
 #[path = "browser_session_pool.rs"]
 mod session_pool;
 
-use args::{parse_action, task_inputs};
+use args::{parse_action, required, task_inputs};
 
 use crate::modules::browser::BrowserClient;
 use crate::security::approval::{ApprovalGate, GateOutcome};
