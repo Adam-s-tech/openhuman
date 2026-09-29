@@ -43,9 +43,7 @@ vi.mock('../../../../services/api/aiSettingsApi', async importOriginal => {
       'coding',
       'memory',
       'embeddings',
-      'heartbeat',
       'learning',
-      'subconscious',
     ],
     loadAISettings: vi.fn(),
     saveAISettings: vi.fn(),
@@ -139,9 +137,7 @@ const baseSettings = {
     vision: { kind: 'openhuman' as const },
     memory: { kind: 'openhuman' as const },
     embeddings: { kind: 'openhuman' as const },
-    heartbeat: { kind: 'openhuman' as const },
     learning: { kind: 'openhuman' as const },
-    subconscious: { kind: 'openhuman' as const },
   },
   modelRegistry: [],
 };
@@ -901,9 +897,7 @@ describe('AIPanel', () => {
         vision: { kind: 'openhuman' as const },
         memory: { kind: 'openhuman' as const },
         embeddings: { kind: 'openhuman' as const },
-        heartbeat: { kind: 'openhuman' as const },
         learning: { kind: 'openhuman' as const },
-        subconscious: { kind: 'openhuman' as const },
       },
       modelRegistry: [],
     };
@@ -1529,9 +1523,7 @@ describe('AIPanel', () => {
         vision: { kind: 'openhuman' as const },
         memory: { kind: 'openhuman' as const },
         embeddings: { kind: 'openhuman' as const },
-        heartbeat: { kind: 'openhuman' as const },
         learning: { kind: 'openhuman' as const },
-        subconscious: { kind: 'openhuman' as const },
       },
       modelRegistry: [],
     };
@@ -1586,9 +1578,7 @@ describe('AIPanel', () => {
         vision: { kind: 'openhuman' as const },
         memory: { kind: 'openhuman' as const },
         embeddings: { kind: 'openhuman' as const },
-        heartbeat: { kind: 'openhuman' as const },
         learning: { kind: 'openhuman' as const },
-        subconscious: { kind: 'openhuman' as const },
       },
       modelRegistry: [],
     };
@@ -2234,9 +2224,7 @@ describe('buildRoutingDiffSummary', () => {
     coding: { kind: 'default' },
     vision: { kind: 'default' },
     memory: { kind: 'default' },
-    heartbeat: { kind: 'default' },
     learning: { kind: 'default' },
-    subconscious: { kind: 'default' },
   });
 
   it('emits one "<label> → <target>" entry per changed workload and skips unchanged ones', () => {

@@ -39,9 +39,7 @@ const ALL_OPENHUMAN_AI_SETTINGS = {
     coding: { kind: 'openhuman' as const },
     memory: { kind: 'openhuman' as const },
     embeddings: { kind: 'openhuman' as const },
-    heartbeat: { kind: 'openhuman' as const },
     learning: { kind: 'openhuman' as const },
-    subconscious: { kind: 'openhuman' as const },
   },
 };
 
@@ -54,9 +52,7 @@ const ALL_LOCAL_AI_SETTINGS = {
     coding: { kind: 'local' as const, model: 'qwen3:8b' },
     memory: { kind: 'local' as const, model: 'nomic-embed-text' },
     embeddings: { kind: 'local' as const, model: 'nomic-embed-text' },
-    heartbeat: { kind: 'local' as const, model: 'qwen3:8b' },
     learning: { kind: 'local' as const, model: 'qwen3:8b' },
-    subconscious: { kind: 'local' as const, model: 'qwen3:8b' },
   },
 };
 
@@ -314,9 +310,7 @@ describe('useUsageState', () => {
         // logic only consults CHAT_WORKLOADS (chat/reasoning/agentic/coding).
         memory: { kind: 'openhuman' },
         embeddings: { kind: 'openhuman' },
-        heartbeat: { kind: 'openhuman' },
         learning: { kind: 'openhuman' },
-        subconscious: { kind: 'openhuman' },
       },
     });
 
@@ -448,9 +442,7 @@ describe('useUsageState', () => {
         coding: { kind: 'cloud', providerSlug: 'openrouter', model: 'anthropic/claude-sonnet-4.6' },
         memory: { kind: 'openhuman' },
         embeddings: { kind: 'openhuman' },
-        heartbeat: { kind: 'openhuman' },
         learning: { kind: 'openhuman' },
-        subconscious: { kind: 'openhuman' },
       },
     });
 
@@ -555,9 +547,7 @@ describe('useUsageState', () => {
         // prove the gate is keyed on chat workloads only.
         memory: { kind: 'openhuman' },
         embeddings: { kind: 'openhuman' },
-        heartbeat: { kind: 'openhuman' },
         learning: { kind: 'openhuman' },
-        subconscious: { kind: 'openhuman' },
       },
     });
 
@@ -645,9 +635,7 @@ describe('useUsageState', () => {
         // background workloads still on OpenHuman → billing API is still called
         memory: { kind: 'openhuman' as const },
         embeddings: { kind: 'openhuman' as const },
-        heartbeat: { kind: 'openhuman' as const },
         learning: { kind: 'openhuman' as const },
-        subconscious: { kind: 'openhuman' as const },
       },
     });
 

@@ -13,9 +13,7 @@ const WORKLOADS = [
   'agentic',
   'coding',
   'memory',
-  'heartbeat',
   'learning',
-  'subconscious',
 ] as const;
 
 /** Build a full 8-workload routing map defaulting every slot to managed. */
