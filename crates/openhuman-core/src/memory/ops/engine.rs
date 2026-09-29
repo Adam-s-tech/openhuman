@@ -90,6 +90,19 @@ pub(super) struct Prepared {
     pub takes_key: bool,
 }
 
+impl std::fmt::Debug for Prepared {
+    // Manual: `api_key` is a secret and must never reach `Debug` output.
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Prepared")
+            .field("id", &self.id)
+            .field("endpoint", &self.endpoint)
+            .field("deployment", &self.deployment)
+            .field("api_key", &self.api_key.as_ref().map(|_| "<redacted>"))
+            .field("takes_key", &self.takes_key)
+            .finish()
+    }
+}
+
 fn blank_to_none(value: Option<String>) -> Option<String> {
     value
         .map(|v| v.trim().to_string())
