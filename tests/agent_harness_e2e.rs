@@ -20,15 +20,15 @@ use std::time::Duration;
 /// Prevents `ApprovalGate` from writing `./approval/approval.db` into the repo root.
 static GATE_WORKSPACE: OnceLock<tempfile::TempDir> = OnceLock::new();
 
-use axum::http::{HeaderMap, StatusCode, Uri, header::AUTHORIZATION};
+use axum::http::{header::AUTHORIZATION, HeaderMap, StatusCode, Uri};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use futures_util::StreamExt;
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use tempfile::tempdir;
 
 use openhuman_core::agent::harness::AgentDefinitionRegistry;
-use openhuman_core::core::auth::{CORE_TOKEN_ENV_VAR, init_rpc_token};
+use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
 use openhuman_core::core::jsonrpc::build_core_http_router;
 
 const TEST_RPC_TOKEN: &str = "json-rpc-e2e-local-token";
@@ -2614,8 +2614,8 @@ async fn streaming_tool_call_accumulation() {
     use openhuman_core::agent::progress::AgentProgress;
     use std::sync::Mutex;
     use streaming_support::{
-        EchoTool, ScriptedProvider, agent_with_s, native_tool_response_s, text_response_s,
-        workspace_s,
+        agent_with_s, native_tool_response_s, text_response_s, workspace_s, EchoTool,
+        ScriptedProvider,
     };
     use tinyinference_llm::model::{ModelProfile, ModelStreamItem};
     use tinyinference_llm::tool::ToolDelta;
@@ -4233,8 +4233,8 @@ async fn orchestrator_calls_a_connected_mcp_tool_directly_inner() {
 mod tool_policy_boundary_placement {
     use anyhow::Result;
     use async_trait::async_trait;
-    use openhuman_core::agent::OpenHumanSessionHost;
     use openhuman_core::agent::prompts::LearnedContextData;
+    use openhuman_core::agent::OpenHumanSessionHost;
     use openhuman_core::config::AgentConfig;
     use openhuman_core::memory::{
         Memory, MemoryCategory, MemoryEntry, NamespaceSummary as MemoryNamespaceSummary, RecallOpts,
