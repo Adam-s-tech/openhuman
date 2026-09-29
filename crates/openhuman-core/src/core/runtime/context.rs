@@ -448,8 +448,7 @@ impl CoreContext {
                 .map(|handle| Arc::clone(&**handle));
             let can_share = parent_handle.as_ref().is_some_and(|handle| {
                 handle.read().ok().is_some_and(|parent| {
-                    parent.workspace_dir.as_deref()
-                        == Some(overlay.config.workspace_dir.as_path())
+                    parent.workspace_dir.as_deref() == Some(overlay.config.workspace_dir.as_path())
                         && (parent.memory_subsystem == overlay.config.subsystems.memory
                             || self.embedder_config.as_ref().is_some_and(|config| {
                                 config.workspace_dir == overlay.config.workspace_dir
