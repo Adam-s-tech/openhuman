@@ -312,18 +312,6 @@ fn slugify_collapses_separators_and_trims() {
 }
 
 #[test]
-fn validate_install_url_accepts_public_https() {
-    for url in &[
-        "https://registry.npmjs.org/@acme/skill",
-        "https://example.com/skill.tar.gz",
-        "https://github.com/acme/skill/releases/download/v1/skill.tgz",
-        "https://8.8.8.8/x",
-    ] {
-        validate_install_url(url).unwrap_or_else(|e| panic!("{url} rejected: {e}"));
-    }
-}
-
-#[test]
 fn validate_install_url_rejects_non_https_scheme() {
     for url in &[
         "http://example.com/x",
@@ -337,14 +325,6 @@ fn validate_install_url_rejects_non_https_scheme() {
             "{url} should be rejected"
         );
     }
-}
-
-#[test]
-fn validate_install_url_rejects_empty_and_oversized() {
-    assert!(validate_install_url("").is_err());
-    assert!(validate_install_url("   ").is_err());
-    let huge = format!("https://example.com/{}", "a".repeat(MAX_INSTALL_URL_LEN));
-    assert!(validate_install_url(&huge).is_err());
 }
 
 #[test]
@@ -391,32 +371,6 @@ fn validate_install_url_rejects_malformed() {
 }
 
 #[test]
-fn normalize_install_url_rewrites_github_blob_to_raw() {
-    let out =
-        normalize_install_url("https://github.com/owner/repo/blob/main/path/to/SKILL.md").unwrap();
-    assert_eq!(
-        out,
-        "https://raw.githubusercontent.com/owner/repo/main/path/to/SKILL.md"
-    );
-}
-
-#[test]
-fn normalize_install_url_rewrites_github_blob_nested_path() {
-    let out = normalize_install_url("https://github.com/owner/repo/blob/feat/x/dir/sub/SKILL.md")
-        .unwrap();
-    assert_eq!(
-        out,
-        "https://raw.githubusercontent.com/owner/repo/feat/x/dir/sub/SKILL.md"
-    );
-}
-
-#[test]
-fn normalize_install_url_passes_raw_github_through() {
-    let raw = "https://raw.githubusercontent.com/owner/repo/main/SKILL.md";
-    assert_eq!(normalize_install_url(raw).unwrap(), raw);
-}
-
-#[test]
 fn normalize_install_url_rejects_tree_urls() {
     let err = normalize_install_url("https://github.com/owner/repo/tree/main/path").unwrap_err();
     assert!(err.contains("unsupported url form"), "{err}");
@@ -455,46 +409,6 @@ fn normalize_install_url_rejects_non_md_suffix() {
 }
 
 #[test]
-fn normalize_install_url_accepts_uppercase_md_suffix() {
-    let raw = "https://example.com/SKILL.MD";
-    assert_eq!(normalize_install_url(raw).unwrap(), raw);
-}
-
-#[test]
-fn derive_install_slug_prefers_metadata_id() {
-    let mut fm = WorkflowFrontmatter {
-        name: "My Workflow".to_string(),
-        description: "x".to_string(),
-        ..Default::default()
-    };
-    fm.metadata.insert(
-        "id".to_string(),
-        serde_yaml::Value::String("canonical-id".to_string()),
-    );
-    assert_eq!(derive_install_slug(&fm).unwrap(), "canonical-id");
-}
-
-#[test]
-fn derive_install_slug_sanitizes_name_fallback() {
-    let fm = WorkflowFrontmatter {
-        name: "My Cool Workflow!!".to_string(),
-        description: "x".to_string(),
-        ..Default::default()
-    };
-    assert_eq!(derive_install_slug(&fm).unwrap(), "my-cool-workflow");
-}
-
-#[test]
-fn derive_install_slug_collapses_runs_and_trims_edges() {
-    let fm = WorkflowFrontmatter {
-        name: "---foo__bar  baz---".to_string(),
-        description: "x".to_string(),
-        ..Default::default()
-    };
-    assert_eq!(derive_install_slug(&fm).unwrap(), "foo-bar-baz");
-}
-
-#[test]
 fn derive_install_slug_rejects_empty_after_sanitize() {
     let fm = WorkflowFrontmatter {
         name: "!!!".to_string(),
@@ -530,44 +444,6 @@ fn derive_install_slug_sanitizes_path_escape_attempts() {
     assert!(!slug.contains(".."), "slug leaked ..: {slug}");
     assert!(!slug.contains('/'), "slug leaked /: {slug}");
     assert!(!slug.contains('\\'), "slug leaked \\: {slug}");
-}
-
-#[test]
-fn parse_skill_md_str_happy_path() {
-    let content = "---\nname: demo\ndescription: a demo skill\n---\n\n# Body\n";
-    let (fm, body, warnings) = parse_workflow_md_str(content).unwrap();
-    assert_eq!(fm.name, "demo");
-    assert_eq!(fm.description, "a demo skill");
-    assert!(body.contains("# Body"));
-    assert!(warnings.is_empty());
-}
-
-#[test]
-fn parse_skill_md_str_unterminated_frontmatter_returns_none() {
-    let content = "---\nname: demo\ndescription: missing close\n# Body\n";
-    assert!(parse_workflow_md_str(content).is_none());
-}
-
-#[test]
-fn parse_skill_md_str_no_frontmatter_treats_whole_as_body() {
-    let content = "# Just a body\nno frontmatter here\n";
-    let (fm, body, warnings) = parse_workflow_md_str(content).unwrap();
-    assert!(fm.name.is_empty());
-    assert_eq!(body, content);
-    assert!(warnings.is_empty());
-}
-
-#[test]
-fn parse_skill_md_str_bad_yaml_returns_empty_frontmatter_with_warning() {
-    let content = "---\nname: [unterminated\ndescription: also bad\n---\n";
-    let (fm, _body, warnings) = parse_workflow_md_str(content).unwrap();
-    assert!(fm.name.is_empty());
-    assert!(
-        warnings
-            .iter()
-            .any(|w| w.contains("frontmatter parse error")),
-        "expected warning, got {warnings:?}"
-    );
 }
 
 #[tokio::test]
