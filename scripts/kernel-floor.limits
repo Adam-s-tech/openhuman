@@ -16,4 +16,4 @@
 #   305/284/2  2026-09-27  Moving the JSON-RPC server above openhuman-core
 #                      removes openhuman-rpc from the no-default + flows graph.
 #                      Measured with scripts/kernel-floor.sh flows --json.
-flows:307:286:2
+flows:303:282:2
