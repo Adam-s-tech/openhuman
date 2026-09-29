@@ -7412,7 +7412,7 @@ const messages: TranslationMap = {
   'memoryEngine.row.change': 'Zmień',
   'memoryEngine.engine.tinymemory.label': 'Lokalny (TinyCortex)',
   'memoryEngine.engine.tinymemory.description': 'Przechowywana na tym urządzeniu za pomocą TinyCortex. Prywatna, bezpłatna i domyślna.',
-  'memoryEngine.engine.tinyhumans.label': 'CortexDB (via TinyHumans)',
+  'memoryEngine.engine.tinyhumans.label': 'CortexDB (przez TinyHumans)',
   'memoryEngine.engine.tinyhumans.description': 'CortexDB hostowany przez TinyHumans. Używa Twojego zalogowanego konta, klucz nie jest potrzebny.',
   'memoryEngine.engine.cortex.label': 'CortexDB (własny klucz)',
   'memoryEngine.engine.cortex.description': 'Twoje własne konto lub instancja CortexDB z Twoim kluczem API.',

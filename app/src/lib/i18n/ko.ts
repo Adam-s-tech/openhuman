@@ -7223,7 +7223,7 @@ const messages: TranslationMap = {
   'memoryEngine.row.change': '변경',
   'memoryEngine.engine.tinymemory.label': '로컬 (TinyCortex)',
   'memoryEngine.engine.tinymemory.description': 'TinyCortex로 이 기기에 저장됩니다. 비공개, 무료이며 기본값입니다.',
-  'memoryEngine.engine.tinyhumans.label': 'CortexDB (via TinyHumans)',
+  'memoryEngine.engine.tinyhumans.label': 'CortexDB (TinyHumans 경유)',
   'memoryEngine.engine.tinyhumans.description': 'TinyHumans가 호스팅하는 CortexDB. 로그인한 계정을 사용하며 키가 필요 없습니다.',
   'memoryEngine.engine.cortex.label': 'CortexDB (내 키)',
   'memoryEngine.engine.cortex.description': '내 CortexDB 계정 또는 인스턴스를 내 API 키로 사용합니다.',

@@ -7354,7 +7354,7 @@ const messages: TranslationMap = {
   'memoryEngine.row.change': 'Ubah',
   'memoryEngine.engine.tinymemory.label': 'Lokal (TinyCortex)',
   'memoryEngine.engine.tinymemory.description': 'Disimpan di perangkat ini dengan TinyCortex. Privat, gratis, dan bawaan.',
-  'memoryEngine.engine.tinyhumans.label': 'CortexDB (via TinyHumans)',
+  'memoryEngine.engine.tinyhumans.label': 'CortexDB (melalui TinyHumans)',
   'memoryEngine.engine.tinyhumans.description': 'CortexDB yang dihosting TinyHumans. Memakai akun Anda yang sedang masuk, tanpa kunci.',
   'memoryEngine.engine.cortex.label': 'CortexDB (kunci sendiri)',
   'memoryEngine.engine.cortex.description': 'Akun atau instans CortexDB milik Anda sendiri, dengan kunci API Anda.',

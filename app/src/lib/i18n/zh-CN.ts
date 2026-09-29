@@ -6927,7 +6927,7 @@ const messages: TranslationMap = {
   'memoryEngine.row.change': '更改',
   'memoryEngine.engine.tinymemory.label': '本地（TinyCortex）',
   'memoryEngine.engine.tinymemory.description': '通过 TinyCortex 存储在此设备上。私密、免费，为默认选项。',
-  'memoryEngine.engine.tinyhumans.label': 'CortexDB (via TinyHumans)',
+  'memoryEngine.engine.tinyhumans.label': 'CortexDB (通过 TinyHumans)',
   'memoryEngine.engine.tinyhumans.description': '由 TinyHumans 托管的 CortexDB。使用你已登录的账户，无需密钥。',
   'memoryEngine.engine.cortex.label': 'CortexDB（自有密钥）',
   'memoryEngine.engine.cortex.description': '你自己的 CortexDB 账户或实例，使用你的 API 密钥。',

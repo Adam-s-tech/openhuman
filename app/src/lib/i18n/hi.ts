@@ -7307,7 +7307,7 @@ const messages: TranslationMap = {
   'memoryEngine.row.change': 'बदलें',
   'memoryEngine.engine.tinymemory.label': 'लोकल (TinyCortex)',
   'memoryEngine.engine.tinymemory.description': 'TinyCortex के साथ इसी डिवाइस पर सहेजा जाता है। निजी, मुफ़्त और डिफ़ॉल्ट।',
-  'memoryEngine.engine.tinyhumans.label': 'CortexDB (via TinyHumans)',
+  'memoryEngine.engine.tinyhumans.label': 'CortexDB (TinyHumans के माध्यम से)',
   'memoryEngine.engine.tinyhumans.description': 'TinyHumans द्वारा होस्ट किया गया CortexDB। आपके साइन-इन खाते का उपयोग करता है, कुंजी की ज़रूरत नहीं।',
   'memoryEngine.engine.cortex.label': 'CortexDB (अपनी कुंजी)',
   'memoryEngine.engine.cortex.description': 'आपका अपना CortexDB खाता या इंस्टेंस, आपकी API कुंजी के साथ।',
