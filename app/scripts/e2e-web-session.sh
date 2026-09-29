@@ -325,8 +325,9 @@ fi
 CORE_BOUND="$(sed -n 's/.*listening on http:\/\/\([^ ]*\).*/\1/p' \
   "$OPENHUMAN_WORKSPACE/core.log" | tail -n 1)"
 if [ -z "$CORE_BOUND" ]; then
-  echo "WARNING: could not read the core's bound address from core.log; the" >&2
-  echo "         requested-port check below is skipped for this run." >&2
+  echo "ERROR: could not read the core's bound address from core.log." >&2
+  echo "       Refusing to continue without binding evidence." >&2
+  exit 1
 elif [ "$CORE_BOUND" != "127.0.0.1:${OPENHUMAN_CORE_PORT}" ]; then
   echo "ERROR: the core bound ${CORE_BOUND}, not 127.0.0.1:${OPENHUMAN_CORE_PORT}." >&2
   echo "       Something took that port between the preflight check and startup, so the" >&2
