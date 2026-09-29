@@ -28,6 +28,13 @@ impl wiremock::Respond for Server {
                 },
                 { "name": "archive", "description": "Archive a goal" },
             ]}),
+            "tools/call" if body["params"]["arguments"]["name"] == "fail" => {
+                return wiremock::ResponseTemplate::new(200).set_body_json(json!({
+                    "jsonrpc": "2.0",
+                    "id": body["id"].clone(),
+                    "error": { "code": -1, "message": format!("failed with {SECRET}") },
+                }));
+            }
             "tools/call" => json!({
                 "content": [{ "type": "text", "text": format!("goals for {SECRET}") }],
             }),
@@ -131,6 +138,35 @@ async fn a_call_reaches_the_server_and_its_output_is_scrubbed() {
     let result = read.execute(json!({ "list": "work" })).await.unwrap();
     assert!(!result.is_error, "{}", result.text());
     assert_eq!(result.text(), "goals for [redacted]");
+}
+
+#[tokio::test]
+async fn a_remote_call_error_is_scrubbed() {
+    let mock = server().await;
+    let dir = tempfile::tempdir().unwrap();
+    let config = config(dir.path(), &format!("{}/mcp", mock.uri()), |_| {});
+    let registry = warmed(&config).await;
+    let tools = configured_server_tools(&config, &registry, &security(), &HashSet::new());
+    let read = tools.iter().find(|tool| tool.name() == name("readGoals")).unwrap();
+
+    let error = read.execute(json!({ "name": "fail" })).await.unwrap_err();
+    assert!(error.to_string().contains("[redacted]"), "{error}");
+    assert!(!error.to_string().contains(SECRET));
+}
+
+#[tokio::test]
+async fn a_configured_tool_rejects_unreadable_current_configuration() {
+    let mock = server().await;
+    let dir = tempfile::tempdir().unwrap();
+    let config = config(dir.path(), &format!("{}/mcp", mock.uri()), |_| {});
+    let registry = warmed(&config).await;
+    let tools = configured_server_tools(&config, &registry, &security(), &HashSet::new());
+    tokio::fs::write(&config.config_path, "not valid toml = [").await.unwrap();
+
+    let read = tools.iter().find(|tool| tool.name() == name("readGoals")).unwrap();
+    let error = read.execute(json!({})).await.unwrap_err();
+    assert!(error.to_string().contains("could not reload MCP configuration"));
+    assert_eq!(tools_list_requests(&mock).await, 1);
 }
 
 #[tokio::test]
