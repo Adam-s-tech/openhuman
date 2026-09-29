@@ -1,6 +1,6 @@
 use super::*;
-use async_trait::async_trait;
 use crate::agent::tinyagents::TurnModelSource;
+use async_trait::async_trait;
 use std::sync::Arc;
 use tinyagents_harness::host::{ContextComposer, TurnContextRequest};
 use tinyinference_llm::model::{ChatModel, ModelProfile, ModelRequest, ModelResponse};
@@ -49,7 +49,11 @@ impl ChatModel<()> for RequestLimitedToolModel {
     ) -> tinyinference_llm::Result<ModelResponse> {
         self.0.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         let mut response = ModelResponse::assistant("");
-        response.message.tool_calls = vec![ToolCall::new("limited-call", "limited_tool", serde_json::json!({}))];
+        response.message.tool_calls = vec![ToolCall::new(
+            "limited-call",
+            "limited_tool",
+            serde_json::json!({}),
+        )];
         response.finish_reason = Some("tool_calls".to_string());
         Ok(response)
     }
@@ -104,7 +108,9 @@ async fn scoped_tool_limit_is_honored_by_the_hosted_runner() {
             "test".to_string(),
             "root-test-model",
             root_messages("limited-runner"),
-            vec![Arc::new(vec![Box::new(LimitedTool(tool_calls.clone())) as Box<dyn Tool>])],
+            vec![Arc::new(vec![
+                Box::new(LimitedTool(tool_calls.clone())) as Box<dyn Tool>
+            ])],
             None,
             2,
             None,
