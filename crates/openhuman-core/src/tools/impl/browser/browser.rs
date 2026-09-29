@@ -1,8 +1,8 @@
 //! Agent-facing browser backed by the TinyComputer module's browser and task members.
-#[path = "browser_session_pool.rs"]
-mod session_pool;
 #[path = "browser_cleanup.rs"]
 mod cleanup;
+#[path = "browser_session_pool.rs"]
+mod session_pool;
 
 use crate::modules::browser::BrowserClient;
 use crate::security::approval::{ApprovalGate, GateOutcome};
