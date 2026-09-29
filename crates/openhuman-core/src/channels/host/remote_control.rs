@@ -9,7 +9,9 @@
 use async_trait::async_trait;
 use tinychannels::remote::{NewRemoteThread, RemoteControlHost, RemoteRoute, RemoteThreadSummary};
 
-use crate::channels::context::{clear_sender_history, ChannelRouteSelection, ChannelRuntimeContext};
+use crate::channels::context::{
+    clear_sender_history, ChannelRouteSelection, ChannelRuntimeContext,
+};
 use crate::memory::conversations::{self as conversations, CreateConversationThread};
 
 /// Remote-control host state for one command, borrowed from the runtime.

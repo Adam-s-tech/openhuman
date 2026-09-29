@@ -430,9 +430,7 @@ async fn handle_runtime_command_telegram_help_replies_with_remote_command_list()
 
     let sent = channel_impl.sent.lock().unwrap();
     assert_eq!(sent.len(), 1);
-    assert!(sent[0]
-        .content
-        .contains("Remote control:"));
+    assert!(sent[0].content.contains("Remote control:"));
     assert!(sent[0].content.contains("`/status`"));
     assert!(sent[0].content.contains("`/sessions`"));
     assert!(sent[0].content.contains("`/new`"));

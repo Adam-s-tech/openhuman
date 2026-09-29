@@ -40,7 +40,12 @@ fn approval_subscriber(channels: &[Arc<RecordingChannel>]) -> ChannelApprovalSur
     ChannelApprovalSurfaceSubscriber::new(Arc::new(map))
 }
 
-fn received(channel: &str, reply_target: &str, thread_ts: Option<&str>, ws: &PathBuf) -> DomainEvent {
+fn received(
+    channel: &str,
+    reply_target: &str,
+    thread_ts: Option<&str>,
+    ws: &PathBuf,
+) -> DomainEvent {
     DomainEvent::ChannelMessageReceived {
         channel: channel.into(),
         message_id: "m1".into(),
@@ -95,7 +100,8 @@ async fn approval_prompts_reach_every_chat_channel() {
         let sub = approval_subscriber(&[Arc::clone(&ch)]);
         assert_eq!(sub.name(), "channels::approval_surface");
         assert_eq!(sub.domains(), Some(&["channel", "approval"][..]));
-        sub.handle(&received(channel, "chat-1", thread_ts, &ws)).await;
+        sub.handle(&received(channel, "chat-1", thread_ts, &ws))
+            .await;
         assert!(sub.surface().reply_context(key).is_some(), "{channel}");
         sub.handle(&approval(Some(key), Some(channel))).await;
         let sent = ch.sent.lock().unwrap().clone();
@@ -113,12 +119,15 @@ async fn approvals_for_web_email_or_unrouted_requests_are_ignored() {
     let discord = recording("discord");
     let sub = approval_subscriber(&[Arc::clone(&email), Arc::clone(&discord)]);
     sub.handle(&received("email", "a@b.c", None, &ws)).await;
-    sub.handle(&approval(Some("email_alice_a@b.c"), Some("email"))).await;
-    sub.handle(&approval(Some("web-thread"), Some("web-client-1"))).await;
+    sub.handle(&approval(Some("email_alice_a@b.c"), Some("email")))
+        .await;
+    sub.handle(&approval(Some("web-thread"), Some("web-client-1")))
+        .await;
     sub.handle(&approval(Some("x"), None)).await;
     sub.handle(&approval(None, Some("discord"))).await;
     // No recorded context for this conversation → nothing sent.
-    sub.handle(&approval(Some("discord_bob_c"), Some("discord"))).await;
+    sub.handle(&approval(Some("discord_bob_c"), Some("discord")))
+        .await;
     sub.handle(&DomainEvent::SystemStartup {
         component: "test".into(),
     })
@@ -154,6 +163,7 @@ async fn turn_state_ignores_non_remote_channels_and_stale_workspaces() {
     sub.handle(&received("email", "a@b.c", None, &ws)).await;
     assert!(!busy(&ws, "email", "a@b.c"));
     let other = tempdir().unwrap().path().to_path_buf();
-    sub.handle(&received("telegram", "chat-1", None, &other)).await;
+    sub.handle(&received("telegram", "chat-1", None, &other))
+        .await;
     assert!(!busy(&ws, "telegram", "chat-1"));
 }

@@ -5,9 +5,9 @@ pub(crate) mod session;
 mod startup;
 mod supervision;
 
-pub(crate) use startup::{hydrate_channel_credentials, RuntimeProxyClients};
 pub use startup::start_channels;
 pub(crate) use startup::start_channels_with_session;
+pub(crate) use startup::{hydrate_channel_credentials, RuntimeProxyClients};
 
 #[cfg(any(test, debug_assertions))]
 pub mod test_support;

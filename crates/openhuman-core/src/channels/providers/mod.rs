@@ -5,9 +5,9 @@
 
 pub use tinychannels::providers::email_channel;
 pub use tinychannels::providers::lark;
+#[cfg(feature = "whatsapp-web")]
+pub use tinychannels::providers::whatsapp_web;
 pub use tinychannels::providers::{
     dingtalk, discord, imessage, irc, linq, mattermost, qq, signal, slack, telegram, whatsapp,
     yuanbao,
 };
-#[cfg(feature = "whatsapp-web")]
-pub use tinychannels::providers::whatsapp_web;

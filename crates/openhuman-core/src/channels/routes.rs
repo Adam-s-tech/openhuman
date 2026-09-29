@@ -7,8 +7,8 @@ use super::traits;
 use super::{Channel, ChannelSendExt, SendMessage};
 use crate::inference::provider;
 use std::sync::Arc;
-use tinychannels::remote::{execute_remote_command, parse_remote_command, RemoteCommand};
 use tinychannels::remote::RemoteCommandContext;
+use tinychannels::remote::{execute_remote_command, parse_remote_command, RemoteCommand};
 use tinychannels::routes::{
     build_models_help_response, build_providers_help_response,
     parse_runtime_command as parse_portable_runtime_command,
