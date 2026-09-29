@@ -85,10 +85,18 @@ stores any key under the keychain entry `memory-<id>`, writes
 `memory::binding::rebind`, which drops the stale bindings, re-points the
 context and publishes `MemoryDriverChanged`. Bindings already held by a running
 agent session or the learning facet cache keep the previous engine until that
-session or the app restarts. Migration (`engine_migrate`) copies first and
+session or the app restarts (derived contexts that keep the parent's memory
+config share its binding handle, so they follow a switch; one with its own
+`[subsystems.memory]` keeps that override). Every switch runs under one process-wide
+lock, `engine_set` is refused while a migration runs, and the commit reloads the
+config fresh and patches only `[subsystems.memory]`. Migration (`engine_migrate`) copies first and
 switches only after a clean copy; the source is never modified, and a failed
-run leaves the active engine alone. `OPENHUMAN_MEMORY_DRIVER` pins the engine
-and makes the switch RPCs refuse.
+run leaves the active engine alone. A running copy can be cancelled (`engine_migrate_cancel`, between pages), is
+bounded by `OPENHUMAN_MEMORY_MIGRATE_TIMEOUT_SECS` (default 2 hours) and fails, not
+hangs, if its task panics. Records written while a copy runs may be missing from
+the new engine; the job result carries a `note` saying so, and migrating again
+copies them. `OPENHUMAN_MEMORY_DRIVER` pins the engine and makes the switch RPCs
+refuse.
 
 `binding::admit` admits `tinymemory` (with `tinycortex` kept as a legacy
 alias), `null`, the first-party `tinyhumans` (no `drivers` entry, implicitly
@@ -97,7 +105,18 @@ trusted) and any factory engine configured `class = "external"` with
 does not know, is still refused, and a build without the `memory-remote` gate
 refuses every external driver ("external driver transport is not implemented
 yet"). A driver that fails to build falls back to `null` with the reason
-surfaced in `memory.engine_get` and on the event bus, never silently.
+surfaced in `memory.engine_get` and on the event bus, never silently. It falls
+back to `null`, not to the local module, so nothing is written locally while the
+user chose a remote engine; the UI says memory is paused. A construction failure
+(keychain locked, transport not installed yet) is retried on the next resolve after
+30 seconds; an admission refusal stays cached.
+
+On a remote engine the mandatory-surface fallbacks are bounded: recency reads at
+most two `export_page` calls of `min(limit*4, 200)` records, and the document list
+scans at most 10 namespaces and returns at most 200 documents with a `truncated`
+flag. The proper fix is a bounded `recent(namespace, limit)` on the tinymemory
+contract, an upstream follow-up. Hosted 402 and 401 errors from ordinary memory
+RPCs read `INSUFFICIENT_CREDITS:` and `SESSION_EXPIRED:` too.
 
 Not every engine advertises every capability family. The hosted and CortexDB
 engines have no `documents`, `tree`, `sources` or `graph` families, so the
