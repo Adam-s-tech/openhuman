@@ -729,7 +729,7 @@ jobs:
           test_path="agent::tinyagents::middleware::tests::tool_output_tests::compaction_tests::tool_output_tabulates_a_large_graph_for_a_non_exempt_tool"
           bash scripts/ci-cancel-aware.sh cargo test -p openhuman --lib --features modules -- --ignored --list \
             | grep -Fx "${test_path}: test"
-          bash scripts/ci-cancel-aware.sh cargo test -p openhuman --lib
+          bash scripts/ci-cancel-aware.sh cargo test -p openhuman --lib \
             --features modules "${test_path}" -- --ignored --exact --test-threads=1
         env:
           CARGO_BUILD_JOBS: "1"
