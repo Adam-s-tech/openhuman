@@ -30,6 +30,8 @@
 #[cfg(all(feature = "mcp", feature = "http-server"))]
 mod http;
 #[cfg(feature = "mcp")]
+mod handler;
+#[cfg(feature = "mcp")]
 mod local;
 #[cfg(feature = "mcp")]
 mod protocol;
