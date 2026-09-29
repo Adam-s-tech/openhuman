@@ -9,15 +9,30 @@
 //!
 //! Jobs live in an in-process map (one at a time). They do not survive a
 //! restart: an interrupted migration is simply run again.
+//!
+//! - **Cancel** (`engine_migrate_cancel`): the copy future is raced against a
+//!   cancel signal and dropped, which stops it between awaits (i.e. between
+//!   pages). The previous engine is untouched.
+//! - **Timeout**: the whole copy is bounded by `OPENHUMAN_MEMORY_MIGRATE_TIMEOUT_SECS`
+//!   (default 2 hours). A panic in the task also fails the job.
+//! - **Writes during the copy**: the export contract has no portable record
+//!   timestamp, so no delta pass is attempted. A successful job carries a
+//!   `note` saying records written while it ran may be missing from the new
+//!   engine; the old engine still holds them and a second migration copies them
+//!   (targets skip records they already have).
 
 use std::collections::HashMap;
+use std::future::Future;
 use std::sync::{Arc, Mutex, OnceLock};
+use std::time::Duration;
+
+use tokio::sync::Notify;
 
 use serde::{Deserialize, Serialize};
 
 use super::engine::{
     build_target_provider, classify_engine_error, classify_engine_message, commit_engine,
-    prepare_target, EngineTargetParams,
+    prepare_target, EngineTargetParams, SWITCH_LOCK,
 };
 use crate::config::schema::Config;
 use crate::core::runtime::context::CoreContext;
@@ -32,6 +47,32 @@ const MAX_FINISHED_JOBS: usize = 16;
 #[derive(Clone, Deserialize)]
 pub struct MigrateParams {
     pub to: EngineTargetParams,
+}
+
+/// Parameters of `memory.engine_migrate_cancel`.
+#[derive(Debug, Clone, Deserialize)]
+pub struct MigrateCancelParams {
+    pub job_id: String,
+}
+
+/// Result of `memory.engine_migrate_cancel`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MigrateCancelled {
+    /// Whether a running job was signalled. `false` when it had already
+    /// finished (or is past the point of no return, committing the switch).
+    pub cancelled: bool,
+}
+
+/// Default bound on one migration's copy phase.
+const DEFAULT_TIMEOUT_SECS: u64 = 2 * 60 * 60;
+
+fn migrate_timeout() -> Duration {
+    let secs = std::env::var("OPENHUMAN_MEMORY_MIGRATE_TIMEOUT_SECS")
+        .ok()
+        .and_then(|v| v.trim().parse::<u64>().ok())
+        .filter(|s| *s > 0)
+        .unwrap_or(DEFAULT_TIMEOUT_SECS);
+    Duration::from_secs(secs)
 }
 
 /// Parameters of `memory.engine_migrate_status`.
@@ -49,13 +90,31 @@ pub struct MigrateStarted {
 /// Result of `memory.engine_migrate_status`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct MigrateStatus {
-    /// `running` | `done` | `failed`.
+    /// `running` | `done` | `failed` | `cancelled`.
     pub state: String,
     /// Records read from the source and handed to the target so far.
     pub copied: usize,
     /// Total records when known; the export cursor does not report one.
     pub total: Option<usize>,
     pub error: Option<String>,
+    /// A caveat on a finished job (see the module docs on writes during the
+    /// copy); `None` otherwise.
+    pub note: Option<String>,
+}
+
+/// Cancel signals of the jobs in [`JOBS`].
+static CANCELS: OnceLock<Mutex<HashMap<String, Arc<Notify>>>> = OnceLock::new();
+
+fn cancels() -> std::sync::MutexGuard<'static, HashMap<String, Arc<Notify>>> {
+    CANCELS
+        .get_or_init(Default::default)
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+}
+
+/// Whether any migration job is still running. `engine_set` refuses meanwhile.
+pub(super) fn migration_running() -> bool {
+    jobs().values().any(|j| j.state == "running")
 }
 
 static JOBS: OnceLock<Mutex<HashMap<String, MigrateStatus>>> = OnceLock::new();
@@ -92,6 +151,7 @@ fn start_job() -> Result<String, String> {
             break;
         };
         map.remove(&oldest);
+        cancels().remove(&oldest);
     }
     let job_id = uuid::Uuid::new_v4().to_string();
     map.insert(
@@ -101,8 +161,10 @@ fn start_job() -> Result<String, String> {
             copied: 0,
             total: None,
             error: None,
+            note: None,
         },
     );
+    cancels().insert(job_id.clone(), Arc::new(Notify::new()));
     Ok(job_id)
 }
 
@@ -141,6 +203,116 @@ async fn run_copy(
     anyhow::bail!("memory engine migration is not compiled into this build")
 }
 
+/// How the copy phase ended.
+enum CopyEnd {
+    Finished(anyhow::Result<CopyReport>),
+    Cancelled,
+    TimedOut,
+}
+
+/// Run one job to a terminal state: copy (cancellable, bounded), then — only on
+/// a clean copy — `commit` the engine switch. Never panics into the caller; a
+/// failure at any point leaves the active engine unchanged.
+async fn run_job<F, Fut>(
+    job_id: String,
+    source: Arc<dyn crate::memory::api::provider::MemoryProvider>,
+    target: Arc<dyn crate::memory::api::provider::MemoryProvider>,
+    timeout: Duration,
+    commit: F,
+) where
+    F: FnOnce() -> Fut,
+    Fut: Future<Output = Result<(), String>>,
+{
+    let cancel = cancels().get(&job_id).cloned().unwrap_or_default();
+    let progress_id = job_id.clone();
+    let copy = run_copy(source.as_ref(), target.as_ref(), move |records| {
+        update_job(&progress_id, |j| j.copied = records);
+    });
+    // Dropping the copy future on cancel/timeout stops it at its next await,
+    // i.e. between export/import pages.
+    let end = tokio::select! {
+        result = tokio::time::timeout(timeout, copy) => match result {
+            Ok(result) => CopyEnd::Finished(result),
+            Err(_) => CopyEnd::TimedOut,
+        },
+        () = cancel.notified() => CopyEnd::Cancelled,
+    };
+    match end {
+        CopyEnd::Cancelled => {
+            log::info!("{LOG_PREFIX} job={job_id} cancelled");
+            update_job(&job_id, |j| j.state = "cancelled".to_string());
+        }
+        CopyEnd::TimedOut => fail_job(
+            &job_id,
+            format!(
+                "the migration timed out after {}s; the active engine was not changed",
+                timeout.as_secs()
+            ),
+        ),
+        CopyEnd::Finished(Err(error)) => fail_job(&job_id, classify_engine_error(&error)),
+        CopyEnd::Finished(Ok(report)) if report.failed > 0 => {
+            let first = report.errors.first().map_or("", String::as_str);
+            fail_job(
+                &job_id,
+                classify_engine_message(&format!(
+                    "{} of {} records could not be copied; the active engine was not changed. {first}",
+                    report.failed, report.records
+                )),
+            );
+        }
+        CopyEnd::Finished(Ok(report)) => {
+            update_job(&job_id, |j| j.copied = report.records);
+            match commit().await {
+                Ok(()) => {
+                    log::info!(
+                        "{LOG_PREFIX} job={job_id} done records={} imported={} skipped={}",
+                        report.records,
+                        report.imported,
+                        report.skipped
+                    );
+                    update_job(&job_id, |j| {
+                        j.state = "done".to_string();
+                        j.note = Some(WRITES_DURING_COPY_NOTE.to_string());
+                    });
+                }
+                Err(error) => fail_job(&job_id, classify_engine_message(&error)),
+            }
+        }
+    }
+}
+
+/// Shown on a finished job: what the copy cannot promise.
+const WRITES_DURING_COPY_NOTE: &str = "Memories written while the copy was running may not have been \
+     copied. The previous engine still holds them; migrate again to copy any that are missing.";
+
+/// Spawn [`run_job`] under a supervisor so a panic fails the job instead of
+/// leaving it "running" forever.
+fn spawn_job<F, Fut>(
+    job_id: String,
+    source: Arc<dyn crate::memory::api::provider::MemoryProvider>,
+    target: Arc<dyn crate::memory::api::provider::MemoryProvider>,
+    timeout: Duration,
+    commit: F,
+) where
+    F: FnOnce() -> Fut + Send + 'static,
+    Fut: Future<Output = Result<(), String>> + Send + 'static,
+{
+    let worker_id = job_id.clone();
+    let worker = tokio::spawn(CoreContext::propagate(run_job(
+        worker_id, source, target, timeout, commit,
+    )));
+    tokio::spawn(async move {
+        if let Err(join_error) = worker.await {
+            let reason = if join_error.is_panic() {
+                "the migration task panicked; the active engine was not changed"
+            } else {
+                "the migration task was aborted; the active engine was not changed"
+            };
+            fail_job(&job_id, reason.to_string());
+        }
+    });
+}
+
 /// `memory.engine_migrate`.
 pub async fn memory_engine_migrate(
     params: MigrateParams,
@@ -167,51 +339,47 @@ pub async fn memory_engine_migrate(
         build_target_provider(&config, &prepared)?
     };
 
-    let job_id = start_job()?;
+    // Registering the job under the switch lock keeps it from interleaving with
+    // an `engine_set` that has already checked for running jobs.
+    let job_id = {
+        let _switch = SWITCH_LOCK.lock().await;
+        start_job()?
+    };
     log::info!(
         "{LOG_PREFIX} job={job_id} started source='{}' target='{}'",
         source_binding.driver_id(),
         prepared.id
     );
 
-    let task_job_id = job_id.clone();
-    tokio::spawn(CoreContext::propagate(async move {
-        let progress_id = task_job_id.clone();
-        let copied = run_copy(source.as_ref(), target.as_ref(), move |records| {
-            update_job(&progress_id, |j| j.copied = records);
-        })
-        .await;
-        match copied {
-            Err(error) => fail_job(&task_job_id, classify_engine_error(&error)),
-            Ok(report) if report.failed > 0 => {
-                let first = report.errors.first().map_or("", String::as_str);
-                fail_job(
-                    &task_job_id,
-                    classify_engine_message(&format!(
-                        "{} of {} records could not be copied; the active engine was not changed. {first}",
-                        report.failed, report.records
-                    )),
-                );
-            }
-            Ok(report) => {
-                update_job(&task_job_id, |j| j.copied = report.records);
-                match commit_engine(config, &prepared).await {
-                    Ok(_) => {
-                        log::info!(
-                            "{LOG_PREFIX} job={task_job_id} done records={} imported={} skipped={}",
-                            report.records,
-                            report.imported,
-                            report.skipped
-                        );
-                        update_job(&task_job_id, |j| j.state = "done".to_string());
-                    }
-                    Err(error) => fail_job(&task_job_id, classify_engine_message(&error)),
-                }
-            }
-        }
-    }));
+    spawn_job(
+        job_id.clone(),
+        source,
+        target,
+        migrate_timeout(),
+        move || async move { commit_engine(&prepared).await.map(|_| ()) },
+    );
 
     Ok(RpcOutcome::new(MigrateStarted { job_id }, vec![]))
+}
+
+/// `memory.engine_migrate_cancel`.
+pub async fn memory_engine_migrate_cancel(
+    params: MigrateCancelParams,
+) -> Result<RpcOutcome<MigrateCancelled>, String> {
+    let job_id = params.job_id.trim();
+    let running = jobs()
+        .get(job_id)
+        .map(|j| j.state == "running")
+        .ok_or_else(|| "unknown migration job".to_string())?;
+    let cancelled = running && {
+        if let Some(signal) = cancels().get(job_id) {
+            signal.notify_one();
+            true
+        } else {
+            false
+        }
+    };
+    Ok(RpcOutcome::new(MigrateCancelled { cancelled }, vec![]))
 }
 
 /// `memory.engine_migrate_status`.
