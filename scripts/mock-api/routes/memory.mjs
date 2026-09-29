@@ -139,11 +139,11 @@ export async function handleMemory(ctx) {
       store.claims.add(claim);
     }
     const text = String(textOf(body) ?? "");
+    const scope = String(body.scope || "");
+    const modality = String(body.modality || "");
+    const content = body.content ?? {};
     const seen = store.idempotency.get(key);
     if (seen) {
-      const scope = String(body.scope || "");
-      const modality = String(body.modality || "");
-      const content = body.content ?? {};
       if (
         seen.text !== text ||
         seen.scope !== scope ||
@@ -159,7 +159,7 @@ export async function handleMemory(ctx) {
     store.nextOffset += 2;
     store.nextId += 1;
     const id = `evt_${store.nextId}`;
-    store.idempotency.set(key, { text, id });
+    store.idempotency.set(key, { text, scope, modality, content, id });
     store.events.push({
       id,
       scope,
