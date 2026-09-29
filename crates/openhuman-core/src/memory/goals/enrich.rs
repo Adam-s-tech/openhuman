@@ -7,9 +7,8 @@
 //! several turns. On an empty list (first run) it bootstraps the list from
 //! the context.
 //!
-//! This mirrors the standalone background-agent spawn pattern used by the
-//! `subconscious` engine: build the agent from its registry definition, run
-//! a single external turn (which drives the full internal tool loop) under a
+//! It follows the standalone background-agent spawn pattern: build the agent
+//! from its registry definition, run a single external turn (which drives the full internal tool loop) under a
 //! `TrustedAutomation` turn origin.
 
 use std::path::Path;
