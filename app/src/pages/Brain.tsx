@@ -10,6 +10,7 @@ import { CodingSessionsCard } from '../components/intelligence/CodingSessionsCar
 import GoalsPanel from '../components/intelligence/GoalsPanel';
 import { MemoryControls } from '../components/intelligence/MemoryControls';
 import MemoryEngineRow from '../components/intelligence/MemoryEngineRow';
+import MemoryFamilyGate from '../components/intelligence/MemoryFamilyGate';
 import { MemoryGraph } from '../components/intelligence/MemoryGraph';
 import { MemorySourcesRegistry } from '../components/intelligence/MemorySourcesRegistry';
 import { MemoryTreeStatusPanel } from '../components/intelligence/MemoryTreeStatusPanel';
@@ -365,16 +366,17 @@ export default function Brain() {
                       : 'w-full space-y-5'
                   }>
                   {activeTab === 'graph' && (
-                    <div className="space-y-5 animate-fade-up">
-                      <MemoryControls
-                        mode={mode}
-                        onModeChange={setMode}
-                        onRefresh={refresh}
-                        onToast={addToast}
-                        contentRootAbs={graph?.content_root_abs}
-                      />
+                    <MemoryFamilyGate family="tree">
+                      <div className="space-y-5 animate-fade-up">
+                        <MemoryControls
+                          mode={mode}
+                          onModeChange={setMode}
+                          onRefresh={refresh}
+                          onToast={addToast}
+                          contentRootAbs={graph?.content_root_abs}
+                        />
 
-                      {/*
+                        {/*
                         A failed refresh AFTER a good load keeps the graph on
                         screen and warns, rather than replacing it with an
                         error. The graph is expensive to rebuild and stays
@@ -391,49 +393,58 @@ export default function Brain() {
                         this one means "what you see is old", the one below
                         means "there is nothing to see".
                       */}
-                      {/*
+                        {/*
                         `error !== null`, not truthiness: `load()`'s catch does
                         `setError(err.message)`, and an Error carrying an empty
                         message yields `''`, which is falsy. Under a truthiness
                         test that failure suppresses BOTH alerts and is silent
                         again — the exact defect this PR exists to remove.
                       */}
-                      {error !== null && graph ? (
-                        <Alert variant="warning">
-                          <AlertDescription>{t('brain.refreshError')}</AlertDescription>
-                        </Alert>
-                      ) : null}
+                        {error !== null && graph ? (
+                          <Alert variant="warning">
+                            <AlertDescription>{t('brain.refreshError')}</AlertDescription>
+                          </Alert>
+                        ) : null}
 
-                      {graph ? (
-                        <MemoryGraph
-                          nodes={graph.nodes}
-                          edges={graph.edges}
-                          mode={mode}
-                          emptyHint={t('brain.empty')}
-                        />
-                      ) : error !== null ? (
-                        <Alert variant="destructive">
-                          <AlertDescription>{t('brain.error')}</AlertDescription>
-                        </Alert>
-                      ) : null}
-                    </div>
+                        {graph ? (
+                          <MemoryGraph
+                            nodes={graph.nodes}
+                            edges={graph.edges}
+                            mode={mode}
+                            emptyHint={t('brain.empty')}
+                          />
+                        ) : error !== null ? (
+                          <Alert variant="destructive">
+                            <AlertDescription>{t('brain.error')}</AlertDescription>
+                          </Alert>
+                        ) : null}
+                      </div>
+                    </MemoryFamilyGate>
                   )}
 
-                  {activeTab === 'goals' && <GoalsPanel />}
+                  {activeTab === 'goals' && (
+                    <MemoryFamilyGate family="goals">
+                      <GoalsPanel />
+                    </MemoryFamilyGate>
+                  )}
 
                   {activeTab === 'sources' && (
                     <div className="space-y-5 animate-fade-up">
                       <MemoryEngineRow />
                       <CodingSessionsCard onToast={addToast} />
-                      <MemorySourcesRegistry onToast={addToast} />
+                      <MemoryFamilyGate family="sources">
+                        <MemorySourcesRegistry onToast={addToast} />
+                      </MemoryFamilyGate>
                     </div>
                   )}
 
                   {activeTab === 'sync' && syncView === 'status' && (
                     <div className="space-y-5 animate-fade-up">
-                      <Card padded divided={false}>
-                        <MemoryTreeStatusPanel onToast={addToast} />
-                      </Card>
+                      <MemoryFamilyGate family="tree">
+                        <Card padded divided={false}>
+                          <MemoryTreeStatusPanel onToast={addToast} />
+                        </Card>
+                      </MemoryFamilyGate>
                       {/* openhuman#6257: what is syncing right now, beside the
                       history of what already ran. */}
                       <Card padded divided={false} data-testid="brain-sync-activity">

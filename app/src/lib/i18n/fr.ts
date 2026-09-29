@@ -7493,7 +7493,8 @@ const messages: TranslationMap = {
   'memoryEngine.row.label': 'Moteur de mémoire :',
   'memoryEngine.row.change': 'Modifier',
   'memoryEngine.unavailable': 'Non disponible avec {engine}',
-  'memoryEngine.unavailableHint': 'Changez de moteur de mémoire pour utiliser cette fonctionnalité.',
+  'memoryEngine.unavailableHint':
+    'Changez de moteur de mémoire pour utiliser cette fonctionnalité.',
   'memoryEngine.engine.tinymemory.label': 'Sur cet appareil (TinyCortex)',
   'memoryEngine.engine.tinymemory.description':
     'Stockée sur cet appareil avec TinyCortex. Privée, gratuite et par défaut.',

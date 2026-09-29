@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 
 import { useT } from '../../../lib/i18n/I18nContext';
 import type { ToastNotification } from '../../../types/intelligence';
+import MemoryFamilyGate from '../../intelligence/MemoryFamilyGate';
 import { MemoryWorkspace } from '../../intelligence/MemoryWorkspace';
 import { ToastContainer } from '../../intelligence/Toast';
 import { VaultHealthChecklist } from '../../intelligence/VaultHealthChecklist';
@@ -80,7 +81,9 @@ const MemoryDataPanel = ({ embedded = false }: MemoryDataPanelProps = {}) => {
         </SettingsSection>
         <VaultHealthChecklist onToast={addToast} title={t('vaultHealth.setupTitle')} />
         <MemoryWindowControl onError={handleWindowError} onSaved={handleWindowSaved} />
-        <MemoryWorkspace onToast={addToast} />
+        <MemoryFamilyGate family="tree">
+          <MemoryWorkspace onToast={addToast} />
+        </MemoryFamilyGate>
       </div>
       <ToastContainer notifications={toasts} onRemove={removeToast} />
     </>
