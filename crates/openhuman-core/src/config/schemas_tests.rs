@@ -219,7 +219,6 @@ fn deserialize_params_parses_local_ai_settings_update() {
     m.insert("model_id".into(), Value::String("local-default".into()));
     m.insert("chat_model_id".into(), Value::String("local-chat".into()));
     m.insert("usage_embeddings".into(), Value::Bool(true));
-    m.insert("usage_subconscious".into(), Value::Bool(false));
 
     let out: LocalAiSettingsUpdate = deserialize_params(m).unwrap();
     assert_eq!(out.runtime_enabled, Some(true));
@@ -232,7 +231,6 @@ fn deserialize_params_parses_local_ai_settings_update() {
     assert_eq!(out.model_id.as_deref(), Some("local-default"));
     assert_eq!(out.chat_model_id.as_deref(), Some("local-chat"));
     assert_eq!(out.usage_embeddings, Some(true));
-    assert_eq!(out.usage_subconscious, Some(false));
 }
 
 #[test]
