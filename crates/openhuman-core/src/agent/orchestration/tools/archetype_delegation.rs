@@ -92,16 +92,7 @@ impl Tool for ArchetypeDelegationTool {
         json!({
             "type": "object",
             "required": ["prompt"],
-            "properties": {
-                "prompt": {
-                    "type": "string",
-                    "description": "The whole task, self-contained: the worker has no memory of this chat."
-                },
-                "blocking": {
-                    "type": "boolean",
-                    "description": "Default false: async worker, result arrives as a later turn. true: waits, and the result gates this reply."
-                }
-            }
+            "properties": delegation_envelope_properties()
         })
     }
 
@@ -268,20 +259,22 @@ pub(super) fn render_structured_handoff(prompt: &str, args: &Value) -> String {
     out
 }
 
+/// The advertised hand-off envelope, shared by every member delegate and the
+/// collapsed `delegate_to` so the two cannot drift. Only `prompt` and
+/// `blocking` are offered; the structured fields (`objective`, `evidence`,
+/// `constraints`, `must_not_assume`, `expected_output`,
+/// `citation_requirement`, `model`) are still read by
+/// [`render_structured_handoff`] when a caller sends them.
 pub(super) fn delegation_envelope_properties() -> Value {
     serde_json::json!({
-        "prompt": {"type": "string"},
-        "objective": {"type": "string"},
-        "evidence": {"type": "array", "items": {"type": "string"}},
-        "constraints": {"type": "array", "items": {"type": "string"}},
-        "must_not_assume": {"type": "array", "items": {"type": "string"}},
-        "expected_output": {"type": "string"},
-        "citation_requirement": {
+        "prompt": {
             "type": "string",
-            "enum": ["none", "file_paths", "urls", "retrieval_hits", "tool_outputs"]
+            "description": "The whole task, self-contained: the worker has no memory of this chat."
         },
-        "model": {"type": "string"},
-        "blocking": {"type": "boolean"}
+        "blocking": {
+            "type": "boolean",
+            "description": "Default false: async worker, result arrives as a later turn. true: waits, and the result gates this reply."
+        }
     })
 }
 
