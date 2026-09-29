@@ -101,7 +101,7 @@ pub fn build_local_provider_with_config(config: &Config) -> Option<ResolvedProvi
     );
     Some(ResolvedProvider {
         turn_model_source: crate::agent::tinyagents::TurnModelSource::new_crate_native_from_string(
-            "subconscious",
+            TRIAGE_ROLE,
             provider_string,
             Arc::new(config.clone()),
         ),
@@ -128,17 +128,15 @@ fn is_local_cli_route(provider_string: &str) -> bool {
 // ── Provider builder ────────────────────────────────────────────────────
 
 /// Build the remote provider for a triage turn, routed through the
-/// **`subconscious`** background workload so the Connections → API keys → LLM
-/// "Subconscious" provider control governs triage classification.
+/// [`TRIAGE_ROLE`] (`chat`) workload.
 ///
 /// The managed model id comes from `make_openhuman_backend` →
-/// [`managed_tier_for_role`]`("subconscious")` (i.e. `hint:chat`), the same
-/// registry the subconscious tick and the agent harness use — NOT from
-/// `default_model`. So triage stays consistent with the tick: one place pins
-/// the managed model.
+/// [`managed_tier_for_role`]`("chat")` (i.e. `hint:chat`), the same registry
+/// the agent harness uses — NOT from `default_model`, so one place pins the
+/// managed model.
 ///
 /// #1257 invariant — *triage never goes local*: when the resolved
-/// `subconscious_provider` is a local runtime (Ollama/LM Studio/MLX/…) or a
+/// `chat_provider` is a local runtime (Ollama/LM Studio/MLX/…) or a
 /// BYOK-incomplete sentinel, we force the managed backend so a trigger never
 /// errors because a local model is down. Only a concrete BYOK **cloud** route is
 /// honoured as-is. A build failure also falls back to the managed backend.
@@ -148,7 +146,7 @@ fn build_remote_provider(config: &Config) -> anyhow::Result<ResolvedProvider> {
     };
     use tinyinference_local::profile::is_local_provider_string;
 
-    let resolved = provider::provider_for_role("subconscious", config);
+    let resolved = provider::provider_for_role(TRIAGE_ROLE, config);
     let r = resolved.trim();
 
     // #1257: triage must never depend on a local model/CLI being up, and a
@@ -165,7 +163,7 @@ fn build_remote_provider(config: &Config) -> anyhow::Result<ResolvedProvider> {
     if force_managed {
         tracing::info!(
             resolved = %r,
-            "[triage::routing] subconscious workload not usable for triage (local/incomplete) — \
+            "[triage::routing] chat workload not usable for triage (local/incomplete) — \
              forcing managed backend (#1257: triage never goes local)"
         );
     }
@@ -175,7 +173,7 @@ fn build_remote_provider(config: &Config) -> anyhow::Result<ResolvedProvider> {
     // via the slug's configured model.
     let build = |provider_string: &str| -> anyhow::Result<ResolvedProvider> {
         let (_chat_model, model) = create_chat_model_from_string_with_model_id(
-            "subconscious",
+            TRIAGE_ROLE,
             provider_string,
             config,
             config.default_temperature,
@@ -192,7 +190,7 @@ fn build_remote_provider(config: &Config) -> anyhow::Result<ResolvedProvider> {
         Ok(ResolvedProvider {
             turn_model_source:
                 crate::agent::tinyagents::TurnModelSource::new_crate_native_from_string(
-                    "subconscious",
+                    TRIAGE_ROLE,
                     provider_string,
                     Arc::new(config.clone()),
                 ),
@@ -207,7 +205,7 @@ fn build_remote_provider(config: &Config) -> anyhow::Result<ResolvedProvider> {
             tracing::debug!(
                 provider = %rp.provider_name,
                 model = %rp.model,
-                "[triage::routing] resolved remote provider via subconscious workload"
+                "[triage::routing] resolved remote provider via chat workload"
             );
             Ok(rp)
         }
@@ -215,7 +213,7 @@ fn build_remote_provider(config: &Config) -> anyhow::Result<ResolvedProvider> {
             tracing::warn!(
                 resolved = %effective,
                 error = %err,
-                "[triage::routing] subconscious workload provider build failed — \
+                "[triage::routing] chat workload provider build failed — \
                  falling back to managed backend"
             );
             build(PROVIDER_OPENHUMAN)
