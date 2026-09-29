@@ -446,19 +446,19 @@ impl CoreContext {
                 .as_ref()
                 .ok()
                 .map(|handle| Arc::clone(&**handle));
-            let parent = parent_handle.as_ref().and_then(|h| h.read().ok());
-            match (parent_handle.as_ref(), parent) {
-                (Some(handle), Some(parent))
-                    if parent.workspace_dir.as_deref()
+            let can_share = parent_handle.as_ref().is_some_and(|handle| {
+                handle.read().ok().is_some_and(|parent| {
+                    parent.workspace_dir.as_deref()
                         == Some(overlay.config.workspace_dir.as_path())
                         && (parent.memory_subsystem == overlay.config.subsystems.memory
                             || self.embedder_config.as_ref().is_some_and(|config| {
                                 config.workspace_dir == overlay.config.workspace_dir
                                     && config.subsystems.memory == overlay.config.subsystems.memory
-                            })) =>
-                {
-                    Arc::clone(handle)
-                }
+                            }))
+                })
+            });
+            match (can_share, parent_handle.as_ref()) {
+                (true, Some(handle)) => Arc::clone(handle),
                 _ => Arc::new(RwLock::new(WorkspaceBinding {
                     workspace_dir: Some(overlay.config.workspace_dir.clone()),
                     memory_subsystem: overlay.config.subsystems.memory.clone(),
