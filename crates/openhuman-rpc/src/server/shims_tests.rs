@@ -32,6 +32,33 @@ fn core_listener_settings_use_valid_environment_values_and_safe_defaults() {
     assert_eq!(super::core_host(), "127.0.0.1");
 }
 
+#[tokio::test]
+async fn server_shim_refuses_public_bind_without_operator_token() {
+    let workspace = tempfile::tempdir().expect("workspace tempdir");
+    let _env = EnvVarGuard::set_many(vec![
+        (
+            "OPENHUMAN_WORKSPACE",
+            workspace.path().as_os_str().to_os_string(),
+        ),
+        ("OPENHUMAN_CORE_TOKEN", OsString::from("")),
+    ]);
+    let services = openhuman_core::core::runtime::ServiceSet::headless_api();
+
+    let error = super::run_server_with_services(
+        Some("0.0.0.0"),
+        Some(0),
+        services,
+        true,
+        None,
+        None,
+        None,
+    )
+    .await
+    .expect_err("public bind must require an operator-supplied token");
+
+    assert!(error.to_string().contains("refusing to bind on non-loopback"));
+}
+
 async fn wait_until_port_accepts(port: u16) {
     let deadline = tokio::time::Instant::now() + Duration::from_secs(2);
     loop {
