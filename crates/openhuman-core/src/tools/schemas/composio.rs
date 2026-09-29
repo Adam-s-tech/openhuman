@@ -25,32 +25,6 @@ pub(super) fn handle_composio_execute(params: Map<String, Value>) -> ControllerF
         .map_err(|e| format!("composio execute failed: {e}"))?;
         tracing::debug!(
             action = %action,
-            mode = %config.composio.mode,
-            "[tools][composio_execute] executing action"
-        );
-        let resp = match kind {
-            ComposioClientKind::Backend(client) => {
-                tracing::debug!(action = %action, "[tools][composio_execute] branch=backend");
-                client
-                    .execute_tool(&action, action_args)
-                    .await
-                    .map_err(|e| format!("composio execute_tool (backend) failed: {e:#}"))?
-            }
-            ComposioClientKind::Direct(direct) => {
-                tracing::debug!(action = %action, "[tools][composio_execute] branch=direct");
-                direct_execute(
-                    &direct,
-                    &action,
-                    action_args,
-                    &config.composio.entity_id,
-                    None,
-                )
-                .await
-                .map_err(|e| format!("composio execute_tool (direct) failed: {e:#}"))?
-            }
-        };
-        tracing::debug!(
-            action = %action,
             successful = resp.successful,
             "[tools][composio_execute] complete"
         );
