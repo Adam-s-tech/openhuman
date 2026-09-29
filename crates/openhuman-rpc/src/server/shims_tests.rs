@@ -13,6 +13,25 @@ fn e2e_environment_enables_advertised_tool_groups() {
     let _ = super::apply_e2e_tool_groups(builder);
 }
 
+#[test]
+fn core_listener_settings_use_valid_environment_values_and_safe_defaults() {
+    {
+        let _guard = EnvVarGuard::set_many(vec![
+            ("OPENHUMAN_CORE_PORT", "8123".into()),
+            ("OPENHUMAN_CORE_HOST", "0.0.0.0".into()),
+        ]);
+        assert_eq!(super::core_port(), 8123);
+        assert_eq!(super::core_host(), "0.0.0.0");
+    }
+
+    let _invalid = EnvVarGuard::set_many(vec![
+        ("OPENHUMAN_CORE_PORT", "not-a-port".into()),
+        ("OPENHUMAN_CORE_HOST", "".into()),
+    ]);
+    assert_eq!(super::core_port(), 7788);
+    assert_eq!(super::core_host(), "127.0.0.1");
+}
+
 async fn wait_until_port_accepts(port: u16) {
     let deadline = tokio::time::Instant::now() + Duration::from_secs(2);
     loop {
