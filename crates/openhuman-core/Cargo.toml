@@ -796,6 +796,8 @@ default = ["media", "skills", "flows", "mcp", "channels", "http-server", "schedu
 # `None`; and the three `ops` entry points always-on code calls return a
 # build-fact error, so a post-sync snapshot or diff is logged and
 # skipped rather than silently reported as "nothing changed".
+# TinyMCP HTTP serving is kept optional with the rest of this server surface.
+# Keep vendor/tinymcp pinned to a revision that defines `server-http`.
 http-server = ["dep:axum", "tinymcp/server-http"]
 # Local audio-device access: the `cpal` capture stack behind voice recording
 # and the accessibility microphone-permission probe. Default-ON. Slim /
