@@ -36,7 +36,10 @@
 # 270 -> 271 on 2026-09-18: `tinytools-agent` becomes the shared
 # provider-neutral tool-call protocol crate; it adds one Rust crate
 # and no native build dependency.
-# See the kernel-floor history for why these raises are justified. The current
+# 286 -> 283 on 2026-09-29: the merged dependency graph now resolves three
+# fewer unique crate names in the flows profile; keep calibration aligned
+# with the lowered kernel floor.
+# See the kernel-floor history for prior raises. The current
 # macOS graph resolves three more names than CI Linux; this calibrates against
 # the Linux target used by CI.
 #

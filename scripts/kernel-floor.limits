@@ -13,6 +13,11 @@
 # Simulate with: scripts/dep-sim.py --cut <crates>
 #
 # History
+#   304/283/2  2026-09-29  The merged lockfile and dependency graph resolve
+#                      three fewer packages and three fewer crate names for
+#                      the flows profile, with no change to native builds.
+#                      Measured by the gates-off CI lane; this lowers the
+#                      recorded floor without adding dependencies.
 #   303/282/2  2026-09-29  Merge the JSON-RPC split: removes openhuman-rpc
 #                      from the core flows graph; the resolved profile is
 #                      measured after the upstream TinyMCP v0.3.5 update.
