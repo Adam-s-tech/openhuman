@@ -30,7 +30,10 @@ function scan(file) {
 }
 
 visit(sourceRoot);
-const result = { run: run.sort(), skipped: skipped.sort() };
+const result = {
+  run: [...new Set(run)].sort(),
+  skipped: [...new Set(skipped)].sort(),
+};
 
 if (process.argv.includes("--json")) console.log(JSON.stringify(result));
 else if (process.argv.includes("--skipped")) console.log(result.skipped.join("\n"));

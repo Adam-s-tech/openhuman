@@ -60,6 +60,19 @@ test("rejects a vacuous ignored-test inventory", () => {
   assert.match(result.stderr, /inventory is empty/);
 });
 
+test("module-gated source inventory contains unique sorted names", () => {
+  const inventory = spawnSync(
+    "node",
+    [path.join(repoRoot, "scripts", "ci", "list-module-gated-tests.mjs"), "--json"],
+    { cwd: repoRoot, encoding: "utf8" },
+  );
+
+  assert.equal(inventory.status, 0, inventory.stderr);
+  const { run, skipped } = JSON.parse(inventory.stdout);
+  assert.deepEqual(run, [...new Set(run)].sort());
+  assert.deepEqual(skipped, [...new Set(skipped)].sort());
+});
+
 test("fails when the skipped-test inventory command fails", () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "openhuman-module-tests-skipped-failure-"));
   const bin = path.join(root, "bin");
