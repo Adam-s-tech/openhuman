@@ -275,12 +275,12 @@ pub struct EnvVarGuard {
 }
 
 impl EnvVarGuard {
-    pub fnset_to_path(key: &'static str, path: &Path) -> Self {
+    pub fn set_to_path(key: &'static str, path: &Path) -> Self {
         let old = std::env::var(key).ok();
         std::env::set_var(key, path.as_os_str());
         Self { key, old }
     }
-    pub fnunset(key: &'static str) -> Self {
+    pub fn unset(key: &'static str) -> Self {
         let old = std::env::var(key).ok();
         std::env::remove_var(key);
         Self { key, old }
@@ -288,7 +288,7 @@ impl EnvVarGuard {
 }
 
 impl Drop for EnvVarGuard {
-    pub fndrop(&mut self) {
+    fn drop(&mut self) {
         match &self.old {
             Some(v) => std::env::set_var(self.key, v),
             None => std::env::remove_var(self.key),
@@ -436,7 +436,7 @@ pub struct Fixture {
 }
 
 impl Fixture {
-    pub async fnnew() -> Self {
+    pub async fn new() -> Self {
         let lock = env_lock();
         let tmp = tempdir().expect("home tempdir");
         let guards = vec![
@@ -485,17 +485,17 @@ impl Fixture {
         }
     }
 
-    pub async fncall(&self, method: &str, params: Value) -> Value {
+    pub async fn call(&self, method: &str, params: Value) -> Value {
         rpc(&self.base, method, params).await
     }
 
-    pub async fnstate(&self) -> Value {
+    pub async fn state(&self) -> Value {
         let v = self.call("openhuman.memory_engine_get", json!({})).await;
         result_of(&v, "engine_get").clone()
     }
 
     /// Poll a migration job to a terminal state.
-    pub async fnwait_job(&self, job_id: &str) -> Value {
+    pub async fn wait_job(&self, job_id: &str) -> Value {
         for _ in 0..200 {
             let v = self
                 .call(
@@ -512,7 +512,7 @@ impl Fixture {
         panic!("migration job {job_id} did not finish");
     }
 
-    pub async fnput_doc(&self, key: &str, content: &str) {
+    pub async fn put_doc(&self, key: &str, content: &str) {
         let v = self
             .call(
                 "openhuman.memory_doc_put",
@@ -528,8 +528,7 @@ impl Fixture {
 }
 
 impl Drop for Fixture {
-    pub fndrop(&mut self) {
+    fn drop(&mut self) {
         self.join.abort();
     }
 }
-

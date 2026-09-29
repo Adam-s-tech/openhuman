@@ -115,3 +115,108 @@ fn insufficient_credits_fails_the_migration_and_keeps_the_active_engine() {
         assert_eq!(state["class"], "module");
     });
 }
+
+/// Seed enough records that a delayed hosted write keeps a migration running.
+async fn seed_and_start_slow_migration(fx: &Fixture) -> String {
+    for i in 0..3 {
+        fx.put_doc(&format!("slow-{i}"), &format!("slow record {i}"))
+            .await;
+    }
+    fx.hosted.delay_ms.store(700, Ordering::SeqCst);
+    let v = fx
+        .call(
+            "openhuman.memory_engine_migrate",
+            json!({ "to": { "driver": "tinyhumans" } }),
+        )
+        .await;
+    result_of(&v, "engine_migrate")["job_id"]
+        .as_str()
+        .expect("job_id")
+        .to_string()
+}
+
+#[test]
+fn cancel_stops_a_running_migration_and_keeps_the_active_engine() {
+    run_on_big_stack("engine-migrate-cancel", || async {
+        let fx = Fixture::new().await;
+        let job_id = seed_and_start_slow_migration(&fx).await;
+        tokio::time::sleep(Duration::from_millis(150)).await;
+
+        let v = fx
+            .call(
+                "openhuman.memory_engine_migrate_cancel",
+                json!({ "job_id": job_id }),
+            )
+            .await;
+        assert_eq!(result_of(&v, "cancel")["cancelled"], true);
+        let status = fx.wait_job(&job_id).await;
+        assert_eq!(status["state"], "cancelled", "{status}");
+        assert_eq!(
+            fx.state().await["driver"],
+            "tinymemory",
+            "a cancelled job must not switch"
+        );
+        fx.hosted.delay_ms.store(0, Ordering::SeqCst);
+    });
+}
+
+#[test]
+fn engine_set_is_refused_while_a_migration_runs() {
+    run_on_big_stack("engine-set-during-migrate", || async {
+        let fx = Fixture::new().await;
+        let job_id = seed_and_start_slow_migration(&fx).await;
+        tokio::time::sleep(Duration::from_millis(100)).await;
+
+        let v = fx
+            .call(
+                "openhuman.memory_engine_set",
+                json!({ "driver": "tinymemory" }),
+            )
+            .await;
+        assert!(
+            error_message(&v, "engine_set during migration").contains("migration is running"),
+            "{v}"
+        );
+        fx.call(
+            "openhuman.memory_engine_migrate_cancel",
+            json!({ "job_id": job_id.clone() }),
+        )
+        .await;
+        fx.wait_job(&job_id).await;
+        fx.hosted.delay_ms.store(0, Ordering::SeqCst);
+    });
+}
+
+#[test]
+fn a_config_edited_during_the_copy_survives_the_switch() {
+    run_on_big_stack("engine-migrate-stale-config", || async {
+        let fx = Fixture::new().await;
+        let job_id = seed_and_start_slow_migration(&fx).await;
+
+        // Edit an unrelated setting on disk while the copy runs. The commit must
+        // reload the config and patch only `[subsystems.memory]`, not write back
+        // the snapshot taken when the RPC started.
+        let path = shared_config_path();
+        let mut toml = std::fs::read_to_string(&path).unwrap();
+        toml = toml.replace(
+            "default_model = \"e2e-mock-model\"",
+            "default_model = \"edited-during-copy\"",
+        );
+        std::fs::write(&path, &toml).unwrap();
+
+        let status = fx.wait_job(&job_id).await;
+        assert_eq!(status["state"], "done", "{status}");
+        let after = std::fs::read_to_string(&path).unwrap();
+        assert!(
+            after.contains("edited-during-copy"),
+            "the commit clobbered a concurrent edit:\n{after}"
+        );
+        assert!(after.contains("driver = \"tinyhumans\""), "{after}");
+        fx.hosted.delay_ms.store(0, Ordering::SeqCst);
+        fx.call(
+            "openhuman.memory_engine_set",
+            json!({ "driver": "tinymemory" }),
+        )
+        .await;
+    });
+}

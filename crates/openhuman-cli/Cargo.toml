@@ -278,6 +278,12 @@ path = "../../tests/memory_engine_e2e.rs"
 required-features = ["modules", "memory-remote"]
 
 [[test]]
+# Engine migration, cancel, credits and config safety.
+name = "memory_engine_migrate_e2e"
+path = "../../tests/memory_engine_migrate_e2e.rs"
+required-features = ["modules", "memory-remote"]
+
+[[test]]
 name = "memory_roundtrip_e2e"
 path = "../../tests/memory_roundtrip_e2e.rs"
 

@@ -238,11 +238,10 @@ fn engine_set_binds_the_hosted_engine_without_a_restart_and_switches_back() {
                 }),
             )
             .await;
-        // Either the RPC is unregistered for this capability set or the handler
-        // reports the missing family; both are clean errors.
         assert!(
-            doc.get("error").is_some(),
-            "doc_put on the hosted engine: {doc}"
+            error_message(&doc, "doc_put on the hosted engine")
+                .contains("memory driver does not support the documents family"),
+            "doc_put must name the missing family: {doc}"
         );
 
         // And back to the module, live.
@@ -325,3 +324,37 @@ fn engine_set_validates_and_never_stores_or_returns_a_key_in_config() {
     });
 }
 
+#[test]
+fn hosted_failures_on_ordinary_memory_rpcs_use_the_engine_error_vocabulary() {
+    run_on_big_stack("engine-classify", || async {
+        let fx = Fixture::new().await;
+        fx.call(
+            "openhuman.memory_engine_set",
+            json!({ "driver": "tinyhumans" }),
+        )
+        .await;
+
+        fx.hosted.force_status.store(402, Ordering::SeqCst);
+        let v = fx.call("openhuman.memory_list_namespaces", json!({})).await;
+        let message = error_message(&v, "list_namespaces on 402");
+        assert!(
+            message.starts_with("INSUFFICIENT_CREDITS:"),
+            "a hosted 402 must read INSUFFICIENT_CREDITS: {message}"
+        );
+
+        fx.hosted.force_status.store(401, Ordering::SeqCst);
+        let v = fx.call("openhuman.memory_list_namespaces", json!({})).await;
+        let message = error_message(&v, "list_namespaces on 401");
+        assert!(
+            message.starts_with("SESSION_EXPIRED:"),
+            "a hosted 401 must read SESSION_EXPIRED: {message}"
+        );
+
+        fx.hosted.force_status.store(0, Ordering::SeqCst);
+        fx.call(
+            "openhuman.memory_engine_set",
+            json!({ "driver": "tinymemory" }),
+        )
+        .await;
+    });
+}
