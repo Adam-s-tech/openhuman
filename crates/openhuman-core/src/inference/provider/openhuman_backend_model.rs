@@ -662,7 +662,6 @@ impl ChatModel<()> for OpenHumanBackendModel {
     }
 }
 
-
 /// Connect timeout for the shared managed-inference client; matches the
 /// adapter's own default.
 const MANAGED_INFERENCE_CONNECT_TIMEOUT: Duration = Duration::from_secs(30);
