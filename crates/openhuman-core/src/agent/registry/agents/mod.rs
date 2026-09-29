@@ -33,12 +33,14 @@ mod loader;
 mod fleet_prompt_tests;
 
 pub mod archivist;
+pub mod critic;
 #[cfg(feature = "flows")]
 pub mod flow_memory_agent;
 pub mod goals_agent;
 pub mod image_agent;
 pub mod morning_briefing;
 pub mod orchestrator;
+pub mod planner;
 pub mod presentation_agent;
 pub mod profile_memory_agent;
 pub mod summarizer;

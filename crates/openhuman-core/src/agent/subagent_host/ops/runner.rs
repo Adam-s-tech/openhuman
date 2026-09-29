@@ -29,13 +29,9 @@ use crate::agent::harness::{
 use crate::agent::prompts::{
     render_subagent_system_prompt_with_format, PromptContext, PromptTool, SubagentRenderOptions,
 };
-use crate::agent::subagent_host::extract_tool::ExtractFromResultTool;
-use crate::agent::subagent_host::handoff::ResultHandoffCache;
 use crate::agent::subagent_host::subagent_iter_cap_with_autonomous_lift;
 use crate::agent::subagent_host::tool_prep::{
-    filter_tool_indices, is_subagent_spawn_tool, load_prompt_source,
-    select_actions_with_essentials, strip_spawn_tools_from_dynamic, subagent_prompt_protocol,
-    top_k_for_toolkit,
+    filter_tool_indices, is_subagent_spawn_tool, load_prompt_source, subagent_prompt_protocol,
 };
 use crate::agent::subagent_host::types::{
     SubagentMode, SubagentRunError, SubagentRunOptions, SubagentRunOutcome, SubagentRunStatus,
@@ -44,17 +40,12 @@ use crate::agent::subagent_host::types::{
 use crate::inference::provider::AGENT_TURN_MAX_OUTPUT_TOKENS;
 use crate::memory::api::provider::retrieval::{FastRetrieveQuery, RetrievalResponse};
 use crate::memory::source_scope::as_bus_scope;
-use tinyagents_harness::tool::{rank_tools_by_prompt, SelectableTool, MIN_CONFIDENT_HITS};
-use tinytools::{
-    SandboxMode as TinyagentsSandboxMode, Tool, ToolCategory, ToolSpec, WorkspaceDescriptor,
-};
+use tinytools::{SandboxMode as TinyagentsSandboxMode, ToolSpec, WorkspaceDescriptor};
 
 use super::prompt::{
     append_artifact_offload_contract, append_subagent_role_contract, dedup_tool_specs_by_name,
 };
-use super::provider::{
-    resolve_subagent_source, user_is_signed_in_to_composio, LazyToolkitResolver,
-};
+use super::provider::{resolve_subagent_source, user_is_signed_in_to_composio};
 
 /// Runtime spawn-hierarchy gate decision for one delegation hop.
 ///
@@ -858,10 +849,9 @@ fn workspace_descriptor_for_subagent(
 /// observe six *different* configs if the file changed mid-spawn. One snapshot
 /// is both cheaper and more coherent.
 ///
-/// The error is captured as a `String` rather than dropped to `Option` because
-/// the `integrations_agent` path reports it to the caller; the other five sites
-/// degrade without it. Keeping both shapes available is what lets each site
-/// preserve its original failure behaviour.
+/// The error is captured as a `String` rather than dropped to `Option` so the
+/// sites that log it can say why the config was unavailable; every site
+/// degrades without it.
 ///
 /// Threading this in as a parameter (rather than loading it inside the runtime)
 /// is `docs/specs/plan-agents.md` Phase 3: the sub-agent runner is slated to
@@ -871,9 +861,6 @@ type LoadedConfig = Result<std::sync::Arc<crate::config::Config>, String>;
 // ─────────────────────────────────────────────────────────────────────────────
 // Typed mode — narrow prompt, filtered tools, cheaper model
 // ─────────────────────────────────────────────────────────────────────────────
-
-mod toolkit_scope_filter;
-use toolkit_scope_filter::filter_cached_toolkit_actions_with_current_scope;
 
 /// Execute a sub-agent in "Typed" mode.
 ///
@@ -893,7 +880,7 @@ async fn run_typed_mode(
     // Resolve model source + model. See `resolve_subagent_source` for the
     // semantics of each ModelSpec variant; the helper itself is sync and
     // unit-tested, and takes the config the caller already loaded.
-    let (mut subagent_source, model) = resolve_subagent_source(
+    let (subagent_source, model) = resolve_subagent_source(
         &definition.model,
         &definition.id,
         config.as_ref().ok().map(|c| c.as_ref()),
@@ -1004,16 +991,6 @@ async fn run_typed_mode(
         }
     }
 
-    // ── Dynamic per-action toolkit tools (integrations_agent + toolkit) ──────
-    let mut dynamic_tools: Vec<Box<dyn Tool>> = Vec::new();
-    let mut lazy_resolver: Option<LazyToolkitResolver> = None;
-    let is_integrations_agent_with_toolkit =
-        definition.id == "integrations_agent" && toolkit_filter.is_some();
-
-    // `tools_agent` must never see Workflow-category tools.
-    if definition.id == "tools_agent" {
-        allowed_indices.retain(|&i| parent.all_tools[i].category() != ToolCategory::Workflow);
-    }
     // A child may only narrow an explicit profile/channel ceiling, never widen
     // it back to `all_tools`. The parent's own role-specific prompt surface is
     // intentionally not a ceiling: coordinators delegate effectful work to
@@ -1024,313 +1001,14 @@ async fn run_typed_mode(
         &parent.subagent_tool_ceiling_names,
     );
 
-    if is_integrations_agent_with_toolkit {
-        if let Some(tk) = toolkit_filter {
-            let arc_config = match config.as_ref() {
-                Ok(c) => std::sync::Arc::clone(c),
-                Err(e) => {
-                    tracing::warn!(
-                        agent_id = %definition.id,
-                        toolkit = %tk,
-                        error = %e,
-                        "[subagent_host:typed] config load failed; dynamic composio tools won't be registered"
-                    );
-                    return Err(SubagentRunError::Provider(anyhow::anyhow!(
-                        "subagent_runner: config load failed building integrations_agent for toolkit `{tk}`: {e}"
-                    )));
-                }
-            };
-
-            use crate::integrations::composio::client::{
-                create_composio_client, ComposioClientKind,
-            };
-            let client_kind = match create_composio_client(arc_config.as_ref()) {
-                Ok(k) => Some(k),
-                Err(e) => {
-                    tracing::warn!(
-                        agent_id = %definition.id,
-                        toolkit = %tk,
-                        error = %e,
-                        "[subagent_host:typed] composio factory failed; dynamic per-action tools fall back to cached catalogue"
-                    );
-                    None
-                }
-            };
-
-            if let Some(cached_integration) = live_integrations
-                .iter()
-                .find(|ci| ci.connected && ci.toolkit.eq_ignore_ascii_case(tk))
-            {
-                let fresh_actions = if !cached_integration.tools.is_empty() {
-                    tracing::debug!(
-                        agent_id = %definition.id,
-                        toolkit = %tk,
-                        cached_actions = cached_integration.tools.len(),
-                        "[subagent_host:typed] using cached toolkit catalogue"
-                    );
-                    filter_cached_toolkit_actions_with_current_scope(
-                        &definition.id,
-                        tk,
-                        arc_config.as_ref(),
-                        &cached_integration.tools,
-                    )
-                    .await
-                } else {
-                    match &client_kind {
-                        Some(ComposioClientKind::Backend(client)) => {
-                            match crate::integrations::composio::fetch_toolkit_actions(
-                                arc_config.as_ref(),
-                                client,
-                                tk,
-                                None,
-                            )
-                            .await
-                            {
-                                Ok(actions) if !actions.is_empty() => actions,
-                                Ok(_) => {
-                                    tracing::debug!(
-                                        agent_id = %definition.id,
-                                        toolkit = %tk,
-                                        "[subagent_host:typed] fresh list_tools returned empty; falling back to cached catalogue"
-                                    );
-                                    cached_integration.tools.clone()
-                                }
-                                Err(e) => {
-                                    tracing::warn!(
-                                        agent_id = %definition.id,
-                                        toolkit = %tk,
-                                        error = %e,
-                                        "[subagent_host:typed] fresh list_tools failed; falling back to cached catalogue"
-                                    );
-                                    cached_integration.tools.clone()
-                                }
-                            }
-                        }
-                        Some(ComposioClientKind::Direct(_)) => {
-                            tracing::info!(
-                                agent_id = %definition.id,
-                                toolkit = %tk,
-                                cached_actions = cached_integration.tools.len(),
-                                "[composio-direct] subagent_runner:typed: direct mode active — using cached catalogue, skipping backend list_tools refresh"
-                            );
-                            cached_integration.tools.clone()
-                        }
-                        None => {
-                            tracing::debug!(
-                                agent_id = %definition.id,
-                                toolkit = %tk,
-                                cached_actions = cached_integration.tools.len(),
-                                "[subagent_host:typed] composio client unavailable; using cached catalogue"
-                            );
-                            cached_integration.tools.clone()
-                        }
-                    }
-                };
-                let integration = crate::agent::prompts::ConnectedIntegration {
-                    toolkit: cached_integration.toolkit.clone(),
-                    description: cached_integration.description.clone(),
-                    tools: fresh_actions,
-                    gated_tools: cached_integration.gated_tools.clone(),
-                    connected: cached_integration.connected,
-                    connections: cached_integration.connections.clone(),
-                    non_active_status: cached_integration.non_active_status.clone(),
-                };
-                let integration = &integration;
-                let top_k = top_k_for_toolkit(tk);
-                let candidates: Vec<_> = integration
-                    .tools
-                    .iter()
-                    .map(|tool| SelectableTool::new(&tool.name, &tool.description))
-                    .collect();
-                let filter_hits = rank_tools_by_prompt(task_prompt, &candidates, top_k);
-                let selected: Vec<&crate::agent::prompts::ConnectedIntegrationTool> = if filter_hits
-                    .len()
-                    >= MIN_CONFIDENT_HITS
-                {
-                    // The ranker's verb gate can drop every content-returning
-                    // action for a find/search prompt, so the toolkit's
-                    // essentials are reserved inside the same budget (#6033).
-                    let kept_idx =
-                        select_actions_with_essentials(tk, &integration.tools, &filter_hits, top_k);
-                    let kept: Vec<_> = kept_idx.iter().map(|&i| &integration.tools[i]).collect();
-                    tracing::info!(
-                        agent_id = %definition.id,
-                        toolkit = %tk,
-                        total = integration.tools.len(),
-                        kept = kept.len(),
-                        top_k = top_k,
-                        kept_actions = %kept
-                            .iter()
-                            .map(|a| a.name.as_str())
-                            .collect::<Vec<_>>()
-                            .join(","),
-                        "[subagent_host:typed] fuzzy tool filter narrowed toolkit"
-                    );
-                    kept
-                } else {
-                    tracing::info!(
-                        agent_id = %definition.id,
-                        toolkit = %tk,
-                        total = integration.tools.len(),
-                        filter_hits = filter_hits.len(),
-                        "[subagent_host:typed] fuzzy filter thin; falling back to full toolkit"
-                    );
-                    integration.tools.iter().collect()
-                };
-
-                for action in selected {
-                    dynamic_tools.push(Box::new(
-                        crate::integrations::composio::ComposioActionTool::new(
-                            arc_config.clone(),
-                            action.name.clone(),
-                            action.description.clone(),
-                            action.parameters.clone(),
-                        ),
-                    ));
-                }
-                tracing::debug!(
-                    agent_id = %definition.id,
-                    toolkit = %tk,
-                    action_count = dynamic_tools.len(),
-                    "[subagent_host:typed] dynamically registered per-action composio tools"
-                );
-                lazy_resolver = Some(LazyToolkitResolver {
-                    config: arc_config.clone(),
-                    actions: integration.tools.clone(),
-                    resolved: std::sync::Mutex::default(),
-                });
-            } else {
-                tracing::warn!(
-                    agent_id = %definition.id,
-                    toolkit = %tk,
-                    "[subagent_host:typed] toolkit not found among parent's connected integrations; sub-agent will have no callable actions (spawn_subagent pre-flight should have caught this)"
-                );
-            }
-        }
-    }
-
-    // Dynamic Composio action tools are effectful too. Do not let delegation
-    // synthesize one that the parent profile/policy did not expose. Internal
-    // runner-only tools (such as extract_from_result below) are added after
-    // this intersection and cannot access the filesystem/process surface.
-    if !parent.subagent_tool_ceiling_names.is_empty() {
-        dynamic_tools.retain(|tool| parent.subagent_tool_ceiling_names.contains(tool.name()));
-    }
-
-    // ── Progressive-disclosure handoff cache ───────────────────────────
-    let handoff_cache: Option<Arc<ResultHandoffCache>> = if is_integrations_agent_with_toolkit {
-        let cache = Arc::new(ResultHandoffCache::new());
-        let parent_chain = match parent.session_parent_prefix.as_deref() {
-            Some(prefix) => format!("{}__{}", prefix, parent.session_key),
-            None => parent.session_key.clone(),
-        };
-        // Resolve the extraction provider + model through the `summarization`
-        // role so extraction follows the user's `memory_provider` routing.
-        //
-        // When summarization routes to the **managed** backend, the parent
-        // provider already speaks the managed tier names, so we reuse it with the
-        // fixed `hint:summarization` model — no redundant provider build, and (with
-        // no live backend) no network dependency. Only when summarization routes
-        // to a **concrete BYOK/local** provider — exactly where passing the
-        // parent agent's (agentic) provider the literal `hint:summarization` would
-        // 400/404 — do we build the dedicated summarization provider so the call
-        // lands on the right endpoint + model.
-        //
-        // A local parent never reuses (its runtime would 404 on the managed tier
-        // string): it falls through to building the managed summarization
-        // provider. Any config/factory glitch degrades to parent + the fixed tier
-        // id rather than dead-ending extraction.
-        let summarization_tier =
-            crate::inference::provider::factory::summarization_tier_model().to_string();
-        // The extract summarizer stays on the resolved `Provider` (the extract's own
-        // summarization resolution, incl. test-injected mocks + the managed-vs-local
-        // decision). It is NOT flipped to a role-resolved crate-native source: that
-        // would re-resolve "summarization" from config and bypass the resolved
-        // provider — production stays managed either way, but a test mock injected on
-        // the parent/extract provider would no longer be observed (issue #4249 P3-B:
-        // the extract flip is deferred; the turn-path flip goes through the primary
-        // producers instead).
-        let (extract_source, extract_model) = match config.as_ref() {
-            Ok(cfg) => {
-                let route = crate::inference::provider::provider_for_role("summarization", cfg);
-                let r = route.trim();
-                let route_is_managed = r.is_empty() || r == "cloud" || r == "openhuman";
-                if route_is_managed && !parent.turn_model_source.is_local_provider() {
-                    (parent.turn_model_source.clone(), summarization_tier.clone())
-                } else {
-                    match crate::inference::provider::create_chat_model_with_model_id(
-                        "summarization",
-                        cfg,
-                        parent.temperature,
-                    ) {
-                        Ok((_model, resolved_model)) => (
-                            crate::agent::tinyagents::TurnModelSource::new_crate_native(
-                                "summarization",
-                                // Already an `Arc` from the spawn-wide snapshot —
-                                // share it rather than deep-copying the Config.
-                                Arc::clone(cfg),
-                            ),
-                            resolved_model,
-                        ),
-                        Err(e) => {
-                            tracing::warn!(
-                                agent_id = %definition.id,
-                                error = %e,
-                                "[subagent_host:typed] extract summarization provider build failed; falling back to parent provider"
-                            );
-                            (parent.turn_model_source.clone(), summarization_tier.clone())
-                        }
-                    }
-                }
-            }
-            Err(e) => {
-                tracing::warn!(
-                    agent_id = %definition.id,
-                    error = %e,
-                    "[subagent_host:typed] config load failed for extract provider; falling back to parent provider + hint:summarization"
-                );
-                (parent.turn_model_source.clone(), summarization_tier.clone())
-            }
-        };
-        dynamic_tools.push(Box::new(ExtractFromResultTool::new(
-            cache.clone(),
-            extract_source,
-            extract_model,
-            parent.workspace_dir.clone(),
-            parent_chain,
-            definition.id.clone(),
-        )));
-        tracing::debug!(
-            agent_id = %definition.id,
-            "[subagent_host:typed] registered extract_from_result tool + handoff cache"
-        );
-        Some(cache)
-    } else {
-        None
-    };
-
-    // Dynamic tools never pass through `allowed_indices`, so the strip above has
-    // not seen them — the one route by which a spawn/delegate name can reach a
-    // child admitted (issue #6157). Strip before their five consumers below.
-    strip_spawn_tools_from_dynamic(&mut dynamic_tools, &definition.id);
-
-    // Build provider-visible tool schemas in EXECUTION-PRECEDENCE order:
-    // `dynamic_tools` (extra_tools at runtime) before parent specs.
-    let mut filtered_specs: Vec<ToolSpec> = dynamic_tools.iter().map(|t| t.spec()).collect();
-    filtered_specs.extend(
-        allowed_indices
-            .iter()
-            .map(|&i| parent.all_tool_specs[i].as_ref().clone()),
-    );
-    let mut allowed_names: HashSet<String> = allowed_indices
+    let filtered_specs: Vec<ToolSpec> = allowed_indices
+        .iter()
+        .map(|&i| parent.all_tool_specs[i].as_ref().clone())
+        .collect();
+    let allowed_names: HashSet<String> = allowed_indices
         .iter()
         .map(|&i| parent.all_tools[i].name().to_string())
         .collect();
-    // Dynamic tool names must also be in the allowlist so the inner loop
-    // accepts model tool_calls that reference them.
-    for tool in &dynamic_tools {
-        allowed_names.insert(tool.name().to_string());
-    }
     let filtered_specs = crate::agent::session_host::dedup_visible_tool_specs(filtered_specs);
     let filtered_specs = dedup_tool_specs_by_name(&definition.id, filtered_specs);
 
@@ -1375,19 +1053,11 @@ async fn run_typed_mode(
                 parameters_schema: Some(t.parameters_schema().to_string()),
             }
         })
-        .chain(dynamic_tools.iter().map(|t| PromptTool {
-            name: std::borrow::Cow::Borrowed(t.name()),
-            description: std::borrow::Cow::Borrowed(t.description()),
-            parameters_schema: Some(t.parameters_schema().to_string()),
-        }))
         .collect();
     let visible_tool_names: std::collections::HashSet<String> =
         prompt_tools.iter().map(|t| t.name.to_string()).collect();
-    let (prompt_tool_call_format, dispatcher_instructions) = subagent_prompt_protocol(
-        parent.tool_call_format,
-        is_integrations_agent_with_toolkit,
-        &filtered_specs,
-    );
+    let (prompt_tool_call_format, dispatcher_instructions) =
+        subagent_prompt_protocol(parent.tool_call_format, &filtered_specs);
     // Load AGENTS.md instruction layers once, at prompt-build time, when the
     // config gate is on. The global layer comes from the workspace dir; the
     // project layer comes from the sub-agent's `worktree_action_dir` override
@@ -1452,7 +1122,7 @@ async fn run_typed_mode(
                 &model,
                 &allowed_indices,
                 &parent.all_tools,
-                &dynamic_tools,
+                &[],
                 &archetype_prompt_body,
                 render_options,
                 prompt_tool_call_format,
@@ -1508,24 +1178,6 @@ async fn run_typed_mode(
             ]
         };
 
-    // `integrations_agent` with a resolved toolkit runs in **text mode**: its
-    // large per-action Composio toolkit compiles into a provider grammar that
-    // blows the native tool-schema ceiling, so omit native tool advertisement and
-    // describe the tools in the system prompt as prose, parsing `<tool_call>` tags
-    // from the response (legacy `force_text_mode` parity — the tinyagents rewrite
-    // dropped it, so integrations turns advertised native schemas the backend then
-    // rejected). Wrapping the provider clears `native_tool_calling`, which makes
-    // the model adapter skip native advertisement and fall back to XML parsing.
-    if is_integrations_agent_with_toolkit {
-        tracing::info!(
-            agent_id = %definition.id,
-            task_id = %task_id,
-            tool_count = filtered_specs.len(),
-            "[subagent_host:text-mode] omitting native tool schemas; TinyTools JSON dialect owns the prompt protocol"
-        );
-        subagent_source = subagent_source.with_text_mode();
-    }
-
     // ── Run the inner tool-call loop ───────────────────────────────────
     // Resolve the sub-agent model's user-configured vision flag; defaults to
     // `false` when config can't be loaded. Combined with the provider capability
@@ -1541,7 +1193,6 @@ async fn run_typed_mode(
         model_vision,
         "[subagent_host] resolved sub-agent model vision capability"
     );
-    let _ = &lazy_resolver;
     // Per-agent turn graph (issue #4249): `Default` runs the shared sub-agent
     // graph; `Custom` hands the assembled turn to this agent's own graph runner
     // (declared in its `graph.rs::graph()`). Every built-in agent selects
@@ -1607,7 +1258,7 @@ async fn run_typed_mode(
                     temperature,
                     &mut history,
                     parent.all_tools.clone(),
-                    dynamic_tools,
+                    Vec::new(),
                     filtered_specs.clone(),
                     allowed_names,
                     subagent_iter_cap_with_autonomous_lift(definition.effective_max_iterations()),
@@ -1629,9 +1280,6 @@ async fn run_typed_mode(
                     // provenance), distinguishing delegated spend from the parent's
                     // own channel in per-thread usage reads.
                     "subagent",
-                    // Progressive-disclosure handoff cache (shared with the
-                    // extract_from_result tool registered above).
-                    handoff_cache.clone(),
                     // Agent-level TokenJuice profile → sub-agent context middleware
                     // (#4466), so sub-agent tool outputs compact like the chat path.
                     definition.effective_tokenjuice_compression(),
@@ -1648,7 +1296,7 @@ async fn run_typed_mode(
                     temperature,
                     history: std::mem::take(&mut history),
                     parent_tools: parent.all_tools.clone(),
-                    dynamic_tools,
+                    dynamic_tools: Vec::new(),
                     specs: filtered_specs.clone(),
                     allowed_names,
                     max_iterations: subagent_iter_cap_with_autonomous_lift(
@@ -1668,7 +1316,6 @@ async fn run_typed_mode(
                     model_vision,
                     transcript_stem: transcript_stem.clone(),
                     provider_label: "subagent".to_string(),
-                    handoff_cache: handoff_cache.clone(),
                     tokenjuice_compression: definition.effective_tokenjuice_compression(),
                     config: config.as_ref().ok().map(Arc::clone),
                 };

@@ -50,17 +50,20 @@ fn config_parses_orchestrator_and_team_model_pins() {
         Some("deepseek/deepseek-r2")
     );
     assert_eq!(
-        config.configured_agent_model("tool_maker", false),
+        config.configured_agent_model("tools", false),
         Some("deepseek/v3.2")
     );
     assert_eq!(
-        config.configured_agent_model("tool_maker", true),
+        config.configured_agent_model("tools", true),
         Some("minimax/m3")
     );
+    // `<name>_agent` falls back to `[teams.<name>]`.
     assert_eq!(
-        config.configured_agent_model("code_executor", false),
+        config.configured_agent_model("code_agent", false),
         Some("qwen/qwen3")
     );
+    // The retired built-in aliases no longer resolve.
+    assert_eq!(config.configured_agent_model("code_executor", false), None);
 }
 
 #[test]
@@ -119,5 +122,5 @@ fn empty_model_pin_values_fall_back_to_auto_routing() {
     );
 
     assert_eq!(config.configured_agent_model("orchestrator", true), None);
-    assert_eq!(config.configured_agent_model("tool_maker", false), None);
+    assert_eq!(config.configured_agent_model("tools_agent", false), None);
 }

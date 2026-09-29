@@ -3702,8 +3702,6 @@ const messages: TranslationMap = {
   'conversations.tools.planNextSteps.done': 'Próximos passos planejados',
   'conversations.tools.reviewWork.active': 'Revisando o trabalho',
   'conversations.tools.reviewWork.done': 'Trabalho revisado',
-  'conversations.tools.scoutContext.active': 'Explorando o contexto',
-  'conversations.tools.scoutContext.done': 'Contexto explorado',
   'conversations.tools.useTools.active': 'Usando ferramentas',
   'conversations.tools.useTools.done': 'Ferramentas usadas',
   'conversations.tools.checkConnectedApp.active': 'Verificando seu app conectado',

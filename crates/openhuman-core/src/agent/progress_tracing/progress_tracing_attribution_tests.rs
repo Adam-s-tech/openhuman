@@ -518,10 +518,10 @@ fn generation_withholds_content_when_capture_off() {
 fn subagent_model_call_nests_generation_and_stamps_model_on_subagent_span() {
     let mut c = collect_with_capture(&[
         (AgentProgress::TurnStarted, 0),
-        (spawn("task-9", "Researcher"), 5),
+        (spawn("task-9", "Critic"), 5),
         (
             AgentProgress::SubagentIterationStarted {
-                agent_id: "researcher".to_string(),
+                agent_id: "critic".to_string(),
                 task_id: "task-9".to_string(),
                 iteration: 1,
                 max_iterations: 8,
@@ -544,7 +544,7 @@ fn subagent_model_call_nests_generation_and_stamps_model_on_subagent_span() {
     assert!(generation.input.is_some(), "child generation carries input");
 
     // The subagent span itself surfaces the provider-labeled model + usage.
-    let sub = find(spans, "subagent.Context Scout");
+    let sub = find(spans, "subagent.Critic");
     assert_eq!(
         sub.attributes["gen_ai.request.model"],
         serde_json::json!("managed.chat-v1")

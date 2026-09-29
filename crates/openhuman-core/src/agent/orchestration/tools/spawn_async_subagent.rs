@@ -175,7 +175,7 @@ impl Tool for SpawnAsyncSubagentTool {
                 },
                 "toolkit": {
                     "type": "string",
-                    "description": "Composio toolkit slug; required when agent_id is `integrations_agent`."
+                    "description": "Optional Composio toolkit slug (e.g. `gmail`). Narrows the Connected Integrations section of the sub-agent's prompt to that toolkit."
                 },
                 "task_title": {
                     "type": "string",

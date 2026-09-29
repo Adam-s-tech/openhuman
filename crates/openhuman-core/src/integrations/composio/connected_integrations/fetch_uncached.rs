@@ -182,9 +182,7 @@ pub(super) async fn fetch_connected_integrations_uncached(
             // execution itself (via `ComposioActionTool` / Wave 1
             // factory) still routes to the user's tenant. Direct-only
             // users without a backend session get empty tools — that
-            // matches `composio_list_tools`'s direct-mode policy and
-            // the `subagent_host` LazyToolkitResolver still resolves
-            // tools lazily at delegation time.
+            // matches `composio_list_tools`'s direct-mode policy.
             let connections = match direct_list_connections(direct).await {
                 Ok(resp) => resp.connections,
                 Err(e) => {
@@ -263,9 +261,8 @@ pub(super) async fn fetch_connected_integrations_uncached(
         .filter(|toolkit| !toolkit.is_empty())
         .collect();
 
-    // Most-informative *non-active* status per toolkit slug. Lets the
-    // integrations_agent spawn-gate (#2365) emit a precise message
-    // when a connection row exists but isn't usable yet (`INITIATED`
+    // Most-informative *non-active* status per toolkit slug (#2365):
+    // distinguishes a connection row that isn't usable yet (`INITIATED`
     // — OAuth still in progress) or any longer (`EXPIRED` / `FAILED`)
     // — instead of the legacy generic "available but not authorized".
     //
@@ -363,9 +360,8 @@ pub(super) async fn fetch_connected_integrations_uncached(
         let (tools, gated_tools): (Vec<ConnectedIntegrationTool>, Vec<GatedIntegrationTool>) =
             if connected {
                 // Apply the same curated-whitelist + user-scope filter the
-                // meta-tool layer uses, so the integrations_agent prompt
-                // only advertises actions the agent is actually allowed to
-                // call. One pref load per toolkit (not per action).
+                // meta-tool layer uses, so a prompt only advertises actions
+                // the agent is actually allowed to call. One pref load per toolkit (not per action).
                 //
                 // Actions that the catalog *does* know about but the user's
                 // current scope pref denies are routed into `gated_tools` so

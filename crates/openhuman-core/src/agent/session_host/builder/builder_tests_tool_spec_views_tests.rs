@@ -91,7 +91,8 @@ fn the_three_spec_views_share_their_leaf_schemas() {
                 "the orchestrator cannot spawn itself: {ids:?}"
             );
             assert!(
-                ids.iter().any(|id| id.as_str() == Some("researcher")),
+                ids.iter()
+                    .any(|id| id.as_str() == Some("task_manager_agent")),
                 "an allowlisted id survives: {ids:?}"
             );
             saw_scoped_spawn = true;

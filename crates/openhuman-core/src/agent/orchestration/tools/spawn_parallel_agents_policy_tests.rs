@@ -194,8 +194,7 @@ async fn collects_immediate_task_validation_failures() {
         tool.execute(json!({
             "tasks": [
                 { "agent_id": " ", "prompt": "missing agent", "ownership": "files: none" },
-                { "agent_id": "__missing_agent__", "prompt": "unknown agent" },
-                { "agent_id": "integrations_agent", "prompt": "needs toolkit" }
+                { "agent_id": "__missing_agent__", "prompt": "unknown agent" }
             ]
         }))
         .await
@@ -205,8 +204,8 @@ async fn collects_immediate_task_validation_failures() {
 
     assert!(!result.is_error, "{}", result.output());
     let body: serde_json::Value = serde_json::from_str(&result.output()).expect("json output");
-    assert_eq!(body["parallel_agents"]["total"], 3);
-    assert_eq!(body["parallel_agents"]["failed"], 3);
+    assert_eq!(body["parallel_agents"]["total"], 2);
+    assert_eq!(body["parallel_agents"]["failed"], 2);
     let errors = body["parallel_agents"]["results"]
         .as_array()
         .expect("results")
@@ -219,9 +218,6 @@ async fn collects_immediate_task_validation_failures() {
     assert!(errors
         .iter()
         .any(|error| error.contains("unknown agent_id")));
-    assert!(errors
-        .iter()
-        .any(|error| error.contains("requires toolkit")));
 }
 
 #[test]

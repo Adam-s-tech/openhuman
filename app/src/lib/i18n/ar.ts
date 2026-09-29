@@ -3562,8 +3562,6 @@ const messages: TranslationMap = {
   'conversations.tools.planNextSteps.done': 'تم تخطيط الخطوات التالية',
   'conversations.tools.reviewWork.active': 'جارٍ مراجعة العمل',
   'conversations.tools.reviewWork.done': 'تمت مراجعة العمل',
-  'conversations.tools.scoutContext.active': 'جارٍ استطلاع السياق',
-  'conversations.tools.scoutContext.done': 'تم استطلاع السياق',
   'conversations.tools.useTools.active': 'جارٍ استخدام الأدوات',
   'conversations.tools.useTools.done': 'تم استخدام الأدوات',
   'conversations.tools.checkConnectedApp.active': 'جارٍ فحص تطبيقك المتصل',

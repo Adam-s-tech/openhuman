@@ -93,13 +93,8 @@ fn expected_builtin_ids_are_present() {
     for expected in [
         "orchestrator",
         "planner",
-        "code_executor",
-        "integrations_agent",
         "task_manager_agent",
-        "settings_agent",
         "profile_memory_agent",
-        "tool_maker",
-        "skill_creator",
         "critic",
         "archivist",
         "summarizer",

@@ -229,7 +229,7 @@ fn real_data_full_funnel_report() {
 
 // ── Repro: issue #3152 — Composio write action unreachable ──────────
 //
-// `integrations_agent` asked to CREATE a Notion page. Notion is a
+// A sub-agent asked to CREATE a Notion page. Notion is a
 // HEAVY_SCHEMA toolkit → production top_k = 12. The verb gate + score cull
 // advertise only read-leaning actions, so `NOTION_CREATE_NOTION_PAGE` never
 // reaches the model. Asserts DESIRED post-fix behaviour → RED until the

@@ -22,6 +22,7 @@ function unwrapStatus(raw: unknown): ServerStatus {
 interface AgentDef {
   id?: string;
   tools?: unknown;
+  direct_tool_names?: string[];
   disallowed_tools?: string[];
 }
 
@@ -102,7 +103,7 @@ test.describe('System tools - Shell + Git', () => {
     await makeFixtureRepo(repoDir);
   });
 
-  test('sidecar runtime is reachable and tools_agent is registered', async () => {
+  test('sidecar runtime is reachable and the orchestrator carries the shell/git tools', async () => {
     const ping = await callCoreRpc<{ ok?: boolean }>('core.ping', {});
     expect(ping.ok).toBe(true);
 
@@ -111,9 +112,13 @@ test.describe('System tools - Shell + Git', () => {
 
     const list = await callCoreRpc<ListDefinitionsResult>('openhuman.agent_list_definitions', {});
     const defs = list.definitions ?? [];
-    const toolsAgent = defs.find(def => def?.id === 'tools_agent');
-    expect(toolsAgent).toBeDefined();
-    expect(toolsAgent?.tools).toBeDefined();
+    const orchestrator = defs.find(def => def?.id === 'orchestrator');
+    expect(orchestrator).toBeDefined();
+    const direct = orchestrator?.direct_tool_names ?? [];
+    for (const tool of ['shell', 'git_operations', 'file_write']) {
+      expect(direct).toContain(tool);
+    }
+    expect(defs.find(def => def?.id === 'tools_agent')).toBeUndefined();
   });
 
   test('denial envelope is structurally consistent for invalid write args', async () => {
