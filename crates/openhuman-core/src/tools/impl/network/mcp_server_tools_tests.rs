@@ -141,13 +141,8 @@ async fn act_policy_denial_prevents_configured_server_call() {
         .find(|tool| tool.name() == name("readGoals"))
         .unwrap();
 
-    let result = read.execute(json!({ "list": "work" })).await.unwrap();
-    assert!(result.is_error);
-    assert!(
-        result.text().contains("read-only mode"),
-        "{}",
-        result.text()
-    );
+    let error = read.execute(json!({ "list": "work" })).await.unwrap_err();
+    assert!(error.to_string().contains("read-only mode"), "{error}");
     assert_eq!(tools_list_requests(&mock).await, 1);
     let calls = mock.received_requests().await.unwrap_or_default();
     assert!(!calls.iter().any(|request| {
