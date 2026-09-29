@@ -242,7 +242,11 @@ impl Tool for ConfiguredMcpServerTool {
         if !safe.iter().any(|candidate| candidate.name == tool) {
             anyhow::bail!("MCP tool is no longer available or safe: {server}/{tool}");
         }
-        let result = self.inner.execute(args).await?;
+        let result = self
+            .inner
+            .execute(args)
+            .await
+            .map_err(|error| anyhow::anyhow!(self.scrubber.scrub_error(&error)))?;
         Ok(self.scrubber.scrub_result(result))
     }
 }
