@@ -16,6 +16,10 @@
 //! Serialised on one env lock: `HOME`, `OPENHUMAN_WORKSPACE` and the memory
 //! module's captured workspace are process-global.
 
+// The env lock is deliberately held across awaits: it serialises tests that
+// share process-global `HOME` / workspace state.
+#![allow(clippy::await_holding_lock)]
+
 #[path = "support/memory_module.rs"]
 mod memory_module;
 #[path = "support/tinyhumans_boot.rs"]
@@ -37,7 +41,6 @@ use tempfile::tempdir;
 
 use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
 use openhuman_core::core::jsonrpc::build_core_http_router;
-use openhuman_core::memory::api::provider::MemoryCore;
 
 const TEST_RPC_TOKEN: &str = "memory-engine-e2e-token";
 const TEST_API_KEY: &str = "tiny_live_memory_engine_e2e";
