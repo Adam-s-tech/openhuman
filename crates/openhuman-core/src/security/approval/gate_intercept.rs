@@ -302,8 +302,7 @@ impl ApprovalGate {
                     "[approval::gate] workflow run has require_approval enabled — parking for \
                      HITL review instead of auto-allowing the trust root"
                 );
-                // Fall through to the parking flow (same shape as
-                // GoalContinuation): persists a `pending_approvals` audit row
+                // Fall through to the parking flow: persists a `pending_approvals` audit row
                 // and publishes `ApprovalRequested`. There is no chat thread to
                 // route the prompt to for a background/triggered flow run yet
                 // (B3 will add a dedicated review surface) — a caller can still
@@ -368,7 +367,7 @@ impl ApprovalGate {
         // that comes from the `APPROVAL_FLOW_RUN_CONTEXT` task-local
         // `flows::ops::flows_run`/`flows_resume` scope alongside `with_origin`.
         // `try_with` returns `Err` for every non-flow caller (chat, cron,
-        // subconscious, CLI, and even a Workflow origin reached without the
+        // background jobs, CLI, and even a Workflow origin reached without the
         // flows module's scope, which "should never happen" but must not
         // panic), so `source_context` stays `None` there — unchanged chat
         // behavior.

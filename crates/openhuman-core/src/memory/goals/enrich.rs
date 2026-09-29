@@ -129,8 +129,8 @@ pub async fn enrich_goals(
     let origin = AgentTurnOrigin::TrustedAutomation {
         job_id,
         // Internal curation of locally-stored goals — no external content
-        // is forwarded to external-effect tools, so the untainted source.
-        source: TrustedAutomationSource::Subconscious,
+        // is forwarded to external-effect tools.
+        source: TrustedAutomationSource::Background,
     };
 
     let response = with_origin(origin, agent.run_single(&prompt))
