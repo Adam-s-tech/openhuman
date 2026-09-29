@@ -640,17 +640,37 @@ fn system_text(request: &Value) -> String {
 /// Tool names the agent called, in order, read from its last request (which
 /// carries its whole history).
 fn called_tools(request: &Value) -> Vec<String> {
-    request
+    let messages = request
         .pointer("/body/messages")
-        .and_then(Value::as_array)
-        .into_iter()
-        .flatten()
-        .filter(|m| m.get("role").and_then(Value::as_str) == Some("assistant"))
-        .filter_map(|m| m.get("tool_calls").and_then(Value::as_array))
-        .flatten()
-        .filter_map(|tc| tc.pointer("/function/name").and_then(Value::as_str))
-        .map(str::to_string)
-        .collect()
+        .and_then(Value::as_array);
+    let mut calls = Vec::new();
+    for message in messages.into_iter().flatten().filter(|message| {
+        message.get("role").and_then(Value::as_str) == Some("assistant")
+    }) {
+        if let Some(structured) = message.get("tool_calls").and_then(Value::as_array) {
+            calls.extend(
+                structured
+                    .iter()
+                    .filter_map(|call| call.pointer("/function/name").and_then(Value::as_str))
+                    .map(str::to_string),
+            );
+        }
+        let Some(mut content) = message.get("content").and_then(Value::as_str) else {
+            continue;
+        };
+        while let Some((_, after_open)) = content.split_once("<tool_call>") {
+            let Some((payload, after_close)) = after_open.split_once("</tool_call>") else {
+                break;
+            };
+            if let Ok(call) = serde_json::from_str::<Value>(payload.trim())
+                && let Some(name) = call.get("name").and_then(Value::as_str)
+            {
+                calls.push(name.to_string());
+            }
+            content = after_close;
+        }
+    }
+    calls
 }
 
 fn max_consecutive(calls: &[String], tool: &str) -> usize {
