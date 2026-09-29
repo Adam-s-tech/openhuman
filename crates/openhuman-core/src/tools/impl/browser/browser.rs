@@ -1,6 +1,8 @@
 //! Agent-facing browser backed by the TinyComputer module's browser and task members.
-#[path = "browser_cleanup.rs"]
+#[path = "browser_lifecycle.rs"]
 mod cleanup;
+#[path = "browser_drop.rs"]
+mod browser_drop;
 #[path = "browser_pending.rs"]
 mod pending;
 #[path = "browser_session_pool.rs"]
