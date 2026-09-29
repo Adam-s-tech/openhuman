@@ -145,6 +145,62 @@ async fn scoped_tool_limit_is_honored_by_the_hosted_runner_inner() {
     assert_eq!(tool_calls.load(std::sync::atomic::Ordering::SeqCst), 0);
 }
 
+#[test]
+fn positive_scoped_tool_limit_caps_hosted_runner_calls() {
+    std::thread::Builder::new()
+        .stack_size(crate::core::runtime::AGENT_WORKER_STACK_BYTES)
+        .spawn(|| {
+            tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+                .expect("test runtime")
+                .block_on(positive_scoped_tool_limit_caps_hosted_runner_inner());
+        })
+        .expect("test thread")
+        .join()
+        .expect("test thread panicked");
+}
+
+async fn positive_scoped_tool_limit_caps_hosted_runner_inner() {
+    let tool_calls = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let model_calls = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let model: Arc<dyn ChatModel<()>> = Arc::new(RequestLimitedToolModel(model_calls.clone()));
+    let models = TurnModelSource::from_model(model)
+        .build("root-test-model", 0.0, None, None)
+        .expect("scripted turn models build");
+    let (tx, _rx) = tokio::sync::mpsc::channel(8);
+
+    let _ = crate::agent::stop_hooks::with_tool_call_limit(Some(1), async {
+        run_root_turn_via_hosted_agent(
+            root_context("limited-runner-positive", "/tmp/limited-runner-positive", tx),
+            hosted_base(),
+            "main".to_string(),
+            models,
+            "test".to_string(),
+            "root-test-model",
+            root_messages("limited-runner-positive"),
+            vec![Arc::new(vec![
+                Box::new(LimitedTool(tool_calls.clone())) as Box<dyn Tool>
+            ])],
+            None,
+            3,
+            None,
+            None,
+            &[],
+            false,
+            None,
+            TurnContextMiddleware::default(),
+            None,
+            true,
+        )
+        .await
+    })
+    .await;
+
+    assert_eq!(tool_calls.load(std::sync::atomic::Ordering::SeqCst), 1);
+    assert!(model_calls.load(std::sync::atomic::Ordering::SeqCst) >= 1);
+}
+
 fn root_context(
     thread_id: &str,
     workspace: &str,
