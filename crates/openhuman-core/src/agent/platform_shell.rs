@@ -29,14 +29,48 @@
 
 use std::path::Path;
 
+/// Whether the Unix arm prefixes `set -o pipefail`.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum PipeFail {
+    /// Surface a masked pipe-stage failure, so `curl … | sh` failing in the
+    /// first stage is not reported as a success.
+    Surface,
+    /// Leave a pipeline's exit status as the shell's own default.
+    ///
+    /// For a caller whose exit status is a contract with something outside this
+    /// process. `pipefail` makes `false | true` fail where a plain `sh -lc`
+    /// succeeded, so switching an existing surface onto the `Surface` arm
+    /// silently re-statuses every command with a pipeline in it.
+    AsShellDefault,
+}
+
 /// Build a [`tokio::process::Command`] that runs `command` under the
 /// platform's default shell. Callers are responsible for setting
 /// `current_dir`, environment, and stdio.
 pub fn build_tokio_command(command: &str) -> tokio::process::Command {
+    build_tokio_command_with(command, PipeFail::Surface)
+}
+
+/// [`build_tokio_command`] without the `set -o pipefail` prefix.
+///
+/// For a caller that records its command's exit status and acts on it —
+/// [`crate::cron`]'s shell jobs report `success`/`failure` per run and spend a
+/// retry budget on it. Turning `pipefail` on for those would flip an existing
+/// job whose command ends in a tolerated pipe stage from success to failure,
+/// which is a behaviour change to somebody's schedule rather than a lint.
+///
+/// Everything else about the platform matrix is shared with
+/// [`build_tokio_command`], so a caller here still gets `cmd /C` on Windows
+/// rather than a shell that does not exist there.
+pub fn build_tokio_command_preserving_pipe_status(command: &str) -> tokio::process::Command {
+    build_tokio_command_with(command, PipeFail::AsShellDefault)
+}
+
+fn build_tokio_command_with(command: &str, pipefail: PipeFail) -> tokio::process::Command {
     let mut cmd = tokio::process::Command::new(shell_program());
     // `as_std_mut()` so the Windows arm can reach `raw_arg` (only defined on
     // `std::process::Command`); the tokio wrapper forwards the raw arg.
-    configure_shell_args(cmd.as_std_mut(), command);
+    configure_shell_args(cmd.as_std_mut(), command, pipefail);
     cmd
 }
 
@@ -45,7 +79,7 @@ pub fn build_tokio_command(command: &str) -> tokio::process::Command {
 /// `std::process::Command` (not the tokio variant).
 pub fn build_std_command(command: &str) -> std::process::Command {
     let mut cmd = std::process::Command::new(shell_program());
-    configure_shell_args(&mut cmd, command);
+    configure_shell_args(&mut cmd, command, PipeFail::Surface);
     cmd
 }
 
@@ -73,16 +107,18 @@ fn shell_program() -> &'static str {
 /// string to cmd verbatim, which is exactly the byte-transparent contract this
 /// module promises. `/C` itself has no special characters.
 #[cfg(windows)]
-fn configure_shell_args(cmd: &mut std::process::Command, command: &str) {
+fn configure_shell_args(cmd: &mut std::process::Command, command: &str, _pipefail: PipeFail) {
     use std::os::windows::process::CommandExt;
+    // `cmd.exe` has no `pipefail` equivalent, so the flag cannot be honoured
+    // here: a Windows pipeline's exit status is its last stage either way.
     cmd.arg("/C").raw_arg(command);
 }
 
-/// Unix arm: `bash -lc "set -o pipefail\n<command>"` when bash is present
-/// (so a masked pipe-stage failure still surfaces), else plain `sh -lc`.
+/// Unix arm: `bash -lc "set -o pipefail\n<command>"` when bash is present **and**
+/// the caller asked to surface pipe-stage failures, else a plain `-lc`.
 #[cfg(not(windows))]
-fn configure_shell_args(cmd: &mut std::process::Command, command: &str) {
-    if bash_path().is_some() {
+fn configure_shell_args(cmd: &mut std::process::Command, command: &str, pipefail: PipeFail) {
+    if bash_path().is_some() && pipefail == PipeFail::Surface {
         cmd.arg("-lc").arg(format!("set -o pipefail\n{command}"));
     } else {
         cmd.arg("-lc").arg(command);

@@ -304,7 +304,6 @@ async fn snapshot_and_block_scope_to_parent_and_reflect_live_status() {
                     parent_session: "cold-parent".into(),
                     parent_thread_id: Some("thread-cold".into()),
                     agent_id: "workflow_builder".into(),
-                    toolkit: None,
                     model: None,
                     sandbox_mode: "None".into(),
                     action_root: None,
