@@ -240,8 +240,7 @@ function report(a, opts) {
   }
 
   w('');
-  w(`== tool schemas, largest first (top ${opts.top} of ${a.tools.length})`);
-  w(`${''.padStart(22)}desc  params  name`);
+  w(`== tool schemas, largest first (${Math.min(opts.top, a.tools.length)} of ${a.tools.length})`);
   for (const t of [...a.tools].sort((x, y) => y.tokens - x.tokens).slice(0, opts.top)) {
     w(fmtRow(t.name, t.tokens, totals.all, scale, `   [desc ${t.description} / params ${t.parameters}]`));
   }
