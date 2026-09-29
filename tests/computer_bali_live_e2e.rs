@@ -26,7 +26,8 @@
 //! ```
 //!
 //! Optional: `COMPUTER_E2E_CHROME` (Chrome executable), `COMPUTER_E2E_HEADLESS=1`,
-//! `COMPUTER_E2E_MINUTES` (default 20), `COMPUTER_E2E_DECISION_MODEL`
+//! `COMPUTER_E2E_MINUTES` (default 20), `COMPUTER_E2E_PLAN=1` (plan instead of
+//! replaying `fixtures/computer/bali/plan.json`), `COMPUTER_E2E_DECISION_MODEL`
 //! (`jev`, `open_jev`, `sage`), `COMPUTER_E2E_OUT` (report directory).
 
 use std::collections::BTreeMap;
@@ -38,6 +39,10 @@ use tinycomputer_bus::agent::{ContinueTaskRequest, TaskStatus, TaskView};
 
 const TASK: &str = include_str!("fixtures/computer/bali/task.md");
 const FACTS: &str = include_str!("fixtures/computer/bali/facts.json");
+/// The flow to replay, adapted from the Kashmir demo's recorded plan. Replaying
+/// a saved flow is how that demo's passing runs were made; set
+/// `COMPUTER_E2E_PLAN=1` to let the planner write a fresh one instead.
+const PLAN: &str = include_str!("fixtures/computer/bali/plan.json");
 const DEFAULT_CHROME: &str = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 
 fn config(workspace: &std::path::Path) -> Config {
@@ -140,6 +145,11 @@ async fn books_a_bali_flight_up_to_the_payment_page() {
         facts: facts.clone(),
         origins: vec!["https://.google.com".into(), "https://.goindigo.in".into()],
         max_actions: 200,
+        flow: if std::env::var("COMPUTER_E2E_PLAN").is_ok_and(|v| v == "1") {
+            None
+        } else {
+            Some(serde_json::from_str(PLAN).expect("saved Bali flow"))
+        },
     };
     let minutes = std::env::var("COMPUTER_E2E_MINUTES")
         .ok()

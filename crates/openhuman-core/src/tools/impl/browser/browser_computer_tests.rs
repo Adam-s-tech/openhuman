@@ -366,3 +366,16 @@ fn idle_and_oldest_sessions_are_bounded() {
     assert_eq!(evicted.len(), 1);
     assert_eq!(evicted[0].id.as_str(), "expired-browser");
 }
+
+#[tokio::test]
+async fn task_rejects_a_malformed_flow_before_the_module() {
+    let client = Arc::new(BrowserClient::new(Arc::new(
+        crate::config::Config::default(),
+    )));
+    let tool = BrowserTool::new(Arc::new(SecurityPolicy::default()), client, 3);
+    let error = tool
+        .run(&json!({"action":"task","goal":"Read the news","flow":{"steps":"not a list"}}))
+        .await
+        .unwrap_err();
+    assert!(error.to_string().contains("Invalid flow"), "{error}");
+}
