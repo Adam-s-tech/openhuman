@@ -591,7 +591,7 @@ fn the_module_driver_never_disables_memory() {
 #[test]
 fn a_module_driver_reports_the_null_class_when_the_feature_is_off() {
     let cfg = cfg_with_class("tinymemory", "module");
-    let binding = super::super::build(
+    let binding = crate::memory::binding_build::build(
         std::path::Path::new("/tmp/openhuman-binding-test"),
         "memory",
         &cfg,
@@ -610,7 +610,7 @@ fn a_module_driver_reports_the_module_class_when_the_feature_is_on() {
     // module binding report Null. Construction stays I/O-free, so this needs no
     // runtime and loads nothing.
     let cfg = cfg_with_class("tinymemory", "module");
-    let binding = super::super::build(
+    let binding = crate::memory::binding_build::build(
         std::path::Path::new("/tmp/openhuman-binding-test"),
         "memory",
         &cfg,
@@ -765,7 +765,7 @@ mod transient_bind {
         // Once the backoff has passed, the next resolve retries the bind.
         let key = (dir.path().to_path_buf(), "memory".to_string(), cfg.clone());
         let expired = Arc::new(
-            super::super::binding_build::build(dir.path(), "memory", &cfg)
+            crate::memory::binding_build::build(dir.path(), "memory", &cfg)
                 .retry_after(std::time::Duration::ZERO),
         );
         BINDINGS
