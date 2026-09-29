@@ -1,5 +1,5 @@
 use super::*;
-use crate::core::socketio::GuardrailReason;
+use crate::web_chat::GuardrailReason;
 
 /// `is_guardrail_error_message` recognizes the `GUARDRAIL:` sentinel and
 /// nothing else — mirrors `is_backend_unavailable_message`'s contract.
@@ -52,7 +52,7 @@ fn guardrail_variant_converts_to_sentinel_plus_json_payload() {
     assert!(is_guardrail_error_message(&message));
 
     let json_part = message.strip_prefix(GUARDRAIL_ERROR_PREFIX).unwrap();
-    let payload: crate::core::socketio::GuardrailPayload =
+    let payload: crate::web_chat::GuardrailPayload =
         serde_json::from_str(json_part).expect("payload must be valid JSON");
     assert_eq!(payload.verdict, "block");
     assert_eq!(payload.score, 0.87);

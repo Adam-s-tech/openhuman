@@ -1,12 +1,12 @@
 //! Socket.IO live-event bridge to the desktop shell.
 //!
 //! `spawn_web_channel_bridge` spawns one forwarding task per source. Domain
-//! broadcast channels: web-chat events (`crate::web_chat`), dictation hotkeys
-//! and transcription results (`crate::voice::dictation_listener`), overlay
-//! attention bubbles (`crate::desktop::overlay::subscribe_attention_events`,
+//! broadcast channels: web-chat events (`openhuman_core::web_chat`), dictation hotkeys
+//! and transcription results (`openhuman_core::voice::dictation_listener`), overlay
+//! attention bubbles (`openhuman_core::desktop::overlay::subscribe_attention_events`,
 //! see `desktop/overlay/README.md`), core notifications
-//! (`crate::desktop::notifications`), and shell companion state
-//! (`COMPANION_STATE_BUS`). `DomainEvent`s read off `crate::core::bus::BUS`:
+//! (`openhuman_core::desktop::notifications`), and shell companion state
+//! (`COMPANION_STATE_BUS`). `DomainEvent`s read off `openhuman_core::core::bus::BUS`:
 //! session expiry, MCP setup secret requests, memory sync and tree-build
 //! progress, channel listener health, and active-workspace changes. Web-chat
 //! events go to the initiating client's room and the `thread:<id>` room
@@ -32,21 +32,12 @@
 
 use serde::Deserialize;
 use serde::Serialize;
-use serde_json::Value;
-// `json!` + socketioxide are used only by the socketioxide event-transport
-// bodies below, all gated with the `http-server` feature (#5048). The inert
-// event payload types further down (`WebChannelEvent`, `TurnUsagePayload`,
-// `SubagentUsagePayload`, `SubagentProgressDetail`) stay compiled in every build
-// — ~10 always-on domains (web_chat, cron, channels, agent, …)
-// construct them — so `serde` stays ungated and only the transport surface is
-// gated (type carve-out; see AGENTS.md and this module's `pub mod` in
-// `core::mod`, which is intentionally NOT gated).
-#[cfg(feature = "http-server")]
 use serde_json::json;
-#[cfg(feature = "http-server")]
+use serde_json::Value;
 use socketioxide::extract::{AckSender, Data, SocketRef, TryData};
-#[cfg(feature = "http-server")]
 use socketioxide::SocketIo;
+
+use openhuman_core::web_chat::{GuardrailPayload, WebChannelEvent};
 
 /// Shell-originated companion lifecycle events that still need to reach
 /// Socket.IO-only surfaces such as the native macOS notch WKWebView.
@@ -66,7 +57,6 @@ pub fn publish_companion_state_changed(payload: Value) -> usize {
     COMPANION_STATE_BUS.send(payload).unwrap_or_default()
 }
 
-#[cfg(feature = "http-server")]
 fn subscribe_companion_state_changed() -> tokio::sync::broadcast::Receiver<Value> {
     COMPANION_STATE_BUS.subscribe()
 }
@@ -78,7 +68,6 @@ fn subscribe_companion_state_changed() -> tokio::sync::broadcast::Receiver<Value
 /// into the JSON-RPC dispatcher or the web-chat orchestrator: an unauthenticated
 /// socket that never picked up the marker is allowed to receive broadcast-style
 /// events (read-only) but cannot trigger executable work.
-#[cfg(feature = "http-server")]
 #[derive(Clone, Copy, Debug)]
 struct AuthedConnection;
 
@@ -88,7 +77,6 @@ struct AuthedConnection;
 /// headers, so the handshake `auth` map is the only header-equivalent slot
 /// available for our per-process bearer. The socket-IO Node/JS clients all
 /// surface `io(url, { auth: { token: "<hex>" } })` for this.
-#[cfg(feature = "http-server")]
 #[derive(Debug, Default, Deserialize)]
 struct HandshakeAuth {
     #[serde(default)]
@@ -116,15 +104,11 @@ struct HandshakeAuth {
 /// A missing `Origin` header is treated as a native (non-browser) client
 /// and accepted — only the cross-origin browser-page case is the targeted
 /// bad actor here.
-/// Same env var the JSON-RPC CORS layer reads (`jsonrpc::ALLOWED_ORIGINS_ENV`).
-/// Comma-separated, exact-match origins for operator-controlled surfaces that
-/// are not on loopback — a tailnet host, an E2E driver, a reverse proxy.
-#[cfg(feature = "http-server")]
-const ALLOWED_ORIGINS_ENV: &str = "OPENHUMAN_CORE_ALLOWED_ORIGINS";
-
-#[cfg(feature = "http-server")]
 pub(crate) fn origin_is_allowed(origin: Option<&str>) -> bool {
-    origin_is_allowed_with_extra(origin, std::env::var(ALLOWED_ORIGINS_ENV).ok().as_deref())
+    origin_is_allowed_with_extra(
+        origin,
+        std::env::var(crate::ALLOWED_ORIGINS_ENV).ok().as_deref(),
+    )
 }
 
 /// Origin gate with the extra allowlist passed explicitly so tests do not have
@@ -136,7 +120,6 @@ pub(crate) fn origin_is_allowed(origin: Option<&str>) -> bool {
 /// still dropped here: the page loaded and every read RPC succeeded, but the
 /// socket was disconnected at handshake and pressing Send did nothing, with no
 /// error surfaced to the user.
-#[cfg(feature = "http-server")]
 pub(crate) fn origin_is_allowed_with_extra(
     origin: Option<&str>,
     extra_origins: Option<&str>,
@@ -181,7 +164,6 @@ pub(crate) fn origin_is_allowed_with_extra(
 }
 
 /// True when `socket` finished the handshake with a valid bearer token.
-#[cfg(feature = "http-server")]
 fn socket_is_authed(socket: &SocketRef) -> bool {
     socket.extensions.get::<AuthedConnection>().is_some()
 }
@@ -189,7 +171,6 @@ fn socket_is_authed(socket: &SocketRef) -> bool {
 /// Best-effort disconnect. Called when we discover an unauthenticated socket
 /// inside an event handler — the connect path already disconnects the bad
 /// origins / wrong tokens, so this is purely a defense-in-depth path.
-#[cfg(feature = "http-server")]
 fn drop_unauthed(socket: &SocketRef, reason: &'static str) {
     log::warn!(
         "[socketio] dropping unauthenticated socket id={} reason={}",
@@ -199,411 +180,6 @@ fn drop_unauthed(socket: &SocketRef, reason: &'static str) {
     let _ = socket.clone().disconnect();
 }
 
-/// Standard event payload for the web channel transport.
-///
-/// This structure defines the data sent to Socket.IO clients for various
-/// chat-related events, such as message delivery, tool execution, and errors.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub struct WebChannelEvent {
-    /// The event name (e.g., `chat_message`, `tool_call`).
-    pub event: String,
-    /// Unique identifier for the Socket.IO client.
-    pub client_id: String,
-    /// Identifier for the specific chat thread.
-    pub thread_id: String,
-    /// Unique identifier for the individual request/turn.
-    pub request_id: String,
-    /// The full text of the assistant's response (sent on completion).
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub full_response: Option<String>,
-    /// A partial message segment or an error description.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub message: Option<String>,
-    /// Type of error, if the event represents a failure.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub error_type: Option<String>,
-    /// Structured rate-limit / error metadata produced by
-    /// `classify_inference_error` (issue #2606). All four fields are
-    /// additive — older FE clients that only read `message`/`error_type`
-    /// keep working; new clients can read these to render countdown,
-    /// retry-button, and fallback-CTA UI without regexing the message.
-    ///
-    /// Where the limit originated:
-    /// `"provider"` | `"openhuman_budget"` | `"agent_loop"`
-    /// | `"openhuman_billing"` | `"transport"` | `"config"`.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub error_source: Option<String>,
-    /// Whether the same prompt can be retried in this same thread.
-    /// `false` for non-retryable business 429s, auth, model_unavailable,
-    /// context_overflow, and billing exhaustion.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub error_retryable: Option<bool>,
-    /// Milliseconds to wait before retrying, as supplied by the upstream
-    /// `Retry-After:` / `retry_after:` header. `None` when the upstream
-    /// didn't supply one or the error class has no retry-after concept.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub error_retry_after_ms: Option<u64>,
-    /// Provider name extracted from `"<provider> API error (...)"`
-    /// envelopes. `None` for non-provider errors (OpenHuman budget cap,
-    /// agent loop) and for transport failures without a provider prefix.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub error_provider: Option<String>,
-    /// `Some(false)` once the reliable-provider chain has exhausted
-    /// every configured `model_fallbacks` entry. `None` means "unknown
-    /// — FE should not promise a fallback".
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub error_fallback_available: Option<bool>,
-    /// Name of the tool being called.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub tool_name: Option<String>,
-    /// ID of the skill owning the tool.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub skill_id: Option<String>,
-    /// Arguments passed to the tool.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub args: Option<serde_json::Value>,
-    /// The raw output from the tool execution.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub output: Option<String>,
-    /// Whether the tool execution or request was successful.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub success: Option<bool>,
-    /// The current iteration/round number in a tool-call loop.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub round: Option<u32>,
-    /// Emoji reaction the assistant wants to add to the user's message.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub reaction_emoji: Option<String>,
-    /// 0-based index when a response is delivered as multiple segments.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub segment_index: Option<u32>,
-    /// Total number of segments in a segmented delivery.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub segment_total: Option<u32>,
-    /// Fine-grained streaming payload for `text_delta`, `thinking_delta`,
-    /// and `tool_args_delta` events. Concatenating `delta`s in order
-    /// yields the full text/thinking/arguments string.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub delta: Option<String>,
-    /// Discriminator for the `delta` payload: `"text"`, `"thinking"`,
-    /// or `"tool_args"`. Only set on streaming delta events.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub delta_kind: Option<String>,
-    /// Provider-assigned tool call id that groups `tool_args_delta`
-    /// chunks together and ties them to the eventual `tool_call` /
-    /// `tool_result` events.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub tool_call_id: Option<String>,
-    /// Structured, user-facing classification of a failed tool call (class,
-    /// category, plain-language cause + next action). Present on `tool_result`
-    /// events when the tool failed; the chat "View processing" timeline renders
-    /// the "why / what to do next" pair. `None` on success.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub failure: Option<serde_json::Value>,
-    /// Optional citations attached to `chat_done` payloads.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub citations: Option<serde_json::Value>,
-    /// Sub-agent specific progress detail. Populated on
-    /// `subagent_spawned`, `subagent_completed`, `subagent_iteration_start`,
-    /// `subagent_tool_call`, and `subagent_tool_result` events so the UI
-    /// can attribute child activity to the parent's live subagent row
-    /// without overloading the flat top-level fields. `None` for any
-    /// non-subagent event.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub subagent: Option<SubagentProgressDetail>,
-    /// Server-computed human label for a tool call (on `tool_call` /
-    /// `subagent_tool_call`), e.g. "Reading messages". The frontend renders
-    /// this verbatim for dynamic Composio/MCP/integration tools it can't
-    /// label itself, falling back to its own formatter when absent.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub tool_display_label: Option<String>,
-    /// Server-computed contextual detail for a tool call (on `tool_call` /
-    /// `subagent_tool_call`), e.g. "steven@gmail.com" — the bracketed target
-    /// shown after [`Self::tool_display_label`].
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub tool_display_detail: Option<String>,
-    /// Milliseconds the tool call took to execute. Present on `tool_result` /
-    /// `subagent_tool_result`, mirroring `AgentProgress::ToolCallCompleted`'s
-    /// `elapsed_ms` / `SubagentToolCallCompleted`'s `elapsed_ms` — carried
-    /// as a plain top-level field (in addition to `subagent.elapsed_ms` for
-    /// the sub-agent case) so a frontend that only reads flat fields still
-    /// gets real timing instead of guessing from wall-clock deltas.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub elapsed_ms: Option<u64>,
-    /// Structured, tool-specific result payload copied from a tool's
-    /// `ToolResult::metadata` when it is a JSON object carrying a `"kind"`
-    /// discriminator, e.g.
-    /// `{"kind":"web_search","query":"...","provider":"...","results":[...]}`.
-    /// Present on `tool_result` / `subagent_tool_result` only for tools that
-    /// populate metadata of that shape (currently the web-search tools); the
-    /// model-facing `output` text is unaffected and stays byte-identical to
-    /// what the model itself saw.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub structured: Option<serde_json::Value>,
-    /// Holistic token/cost/context usage for a completed turn (parent +
-    /// sub-agents), carried on `chat_done`. Lets the UI footer show session
-    /// tokens, USD cost, and real context-window utilisation, with a
-    /// per-sub-agent hover breakdown. `None` for every non-`chat_done` event and
-    /// for synthetic done events that never ran a real turn.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub usage: Option<TurnUsagePayload>,
-    /// Additive per-request monotonic ordering key stamped by the web-channel
-    /// progress bridge on every event it emits (conversations-timeline-refactor,
-    /// Phase 4). Together with the always-present `request_id`, the frontend
-    /// dedups replayed vs live events by `(request_id, seq)` and orders them
-    /// identically to the persisted turn-state snapshot. `None` on events not
-    /// emitted through the stamping bridge and on older cores — older frontends
-    /// simply ignore it.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub seq: Option<u64>,
-    /// Epoch milliseconds this event was emitted at. Additive wall-clock
-    /// stamp so a frontend can order/annotate events without deriving time
-    /// from arrival order. `None` on emit sites not yet updated to stamp it.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub ts: Option<u64>,
-    /// RFC3339 timestamp of when a pending approval / plan review expires,
-    /// mirrored from `PendingApproval::expires_at` (`security::approval::types`).
-    /// Present on `approval_request` / `plan_review_request` events.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub expires_at: Option<String>,
-    /// The turn/request id a lifecycle event (approval, plan review, queue
-    /// item, cancellation) correlates back to, when distinct from the
-    /// top-level `request_id` (e.g. a decision event fired outside the
-    /// original turn's request context).
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub turn_request_id: Option<String>,
-    /// Time-to-first-visible timing summary, carried on `chat_done`. See
-    /// `web_chat::turn_timing`.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub timing: Option<TurnTimingPayload>,
-    /// Follow-up prompt suggestions offered to the user after a turn.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub suggestions: Option<Vec<ChatSuggestion>>,
-    /// Guardrail verdict attached to a blocked/flagged turn.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub guardrail: Option<GuardrailPayload>,
-    /// Run-queue item this event reports on (queued/delivered/removed).
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub queue_item: Option<QueueItemPayload>,
-    /// Session goal snapshot, carried on goal-lifecycle events. Left as a
-    /// raw `Value` because the goal shape is owned by `tinyagents-graph`,
-    /// not this crate.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub goal: Option<serde_json::Value>,
-    /// Session todo-list snapshot, carried on todo-lifecycle events. Raw
-    /// `Value` for the same reason as `goal`.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub todos: Option<serde_json::Value>,
-    /// Human-readable reason a turn/queue item was cancelled.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub cancel_reason: Option<String>,
-    /// Id of the turn/request that superseded this one (e.g. a steer
-    /// requeue), when applicable.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub superseded_by: Option<String>,
-}
-
-/// Time-to-first-visible timing summary for a completed turn. See
-/// `web_chat::turn_timing::TurnTiming`.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub struct TurnTimingPayload {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub first_token_ms: Option<u64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub first_tool_ms: Option<u64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub total_ms: Option<u64>,
-    /// `usage.output_tokens / (total_ms / 1000)`, computed at delivery time
-    /// when both a timing snapshot and the turn's output-token count are
-    /// available. `None` when either input is missing (e.g. a budget-
-    /// exhausted synthetic result, or a turn that produced no completion
-    /// tokens). Added by C4 — not in the original wire-contract prep pass;
-    /// see wire-contract.md "Added by C4".
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub tokens_per_second: Option<f64>,
-}
-
-/// One follow-up prompt suggestion offered after a turn.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub struct ChatSuggestion {
-    pub prompt: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub label: Option<String>,
-}
-
-/// One guardrail rejection reason code + message.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub struct GuardrailReason {
-    pub code: String,
-    pub message: String,
-}
-
-/// Guardrail verdict attached to a blocked/flagged turn (`chat_error` with
-/// `error_type = "guardrail"`).
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub struct GuardrailPayload {
-    pub verdict: String,
-    pub score: f64,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub reasons: Vec<GuardrailReason>,
-}
-
-/// A run-queue item summary (`queue_item_queued` / `queue_item_delivered` /
-/// `queue_item_removed`).
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub struct QueueItemPayload {
-    pub id: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub lane: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub text_preview: Option<String>,
-}
-
-/// Token/cost/context totals for one completed turn, attached to `chat_done`.
-///
-/// Every numeric is a turn total (parent agent **plus** any sub-agents spawned
-/// during the turn); the `subagents` list breaks the same spend down per child
-/// for the UI hover. `context_window` is `0` when the core couldn't resolve the
-/// model's window (e.g. an unknown cloud model) — the UI falls back to a
-/// default in that case.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub struct TurnUsagePayload {
-    pub input_tokens: u64,
-    pub output_tokens: u64,
-    pub cached_input_tokens: u64,
-    pub cost_usd: f64,
-    pub context_window: u64,
-    /// Per-sub-agent spend, omitted from the wire when no sub-agents ran.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub subagents: Vec<SubagentUsagePayload>,
-}
-
-/// One sub-agent's token/cost contribution within a turn (hover breakdown).
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub struct SubagentUsagePayload {
-    pub task_id: String,
-    pub agent_id: String,
-    pub input_tokens: u64,
-    pub output_tokens: u64,
-    pub cost_usd: f64,
-}
-
-/// Per-event subagent progress detail attached to `WebChannelEvent`.
-///
-/// Carries the fields the parent thread's UI needs to render a live
-/// subagent block — child iteration counters, mode, child task/agent
-/// ids when distinct from the flat `tool_name` (which already carries
-/// the agent id on top-level subagent events but not on nested
-/// `subagent_tool_*` events where `tool_name` is the *child's* tool),
-/// and final-run statistics on `subagent_completed`.
-///
-/// Every field is optional and skipped from the JSON payload when
-/// absent — this keeps the wire format compact for non-subagent events
-/// (where the whole struct is `None`) and lets new fields land
-/// non-breakingly behind older clients.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub struct SubagentProgressDetail {
-    /// Resolved spawn mode — `"typed"` or `"fork"`.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub mode: Option<String>,
-    /// Whether the spawn requested a dedicated worker thread.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub dedicated_thread: Option<bool>,
-    /// Character length of the delegation prompt (on `subagent_spawned`).
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub prompt_chars: Option<u64>,
-    /// Sub-agent's child iteration counter (on `subagent_iteration_start`,
-    /// `subagent_tool_call`, `subagent_tool_result`). 1-based.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub child_iteration: Option<u32>,
-    /// Sub-agent's configured iteration cap.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub child_max_iterations: Option<u32>,
-    /// Child agent id (on nested `subagent_tool_*` events where the flat
-    /// `tool_name` is the child's tool, not the agent).
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub agent_id: Option<String>,
-    /// Spawn task id (on nested `subagent_tool_*` events).
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub task_id: Option<String>,
-    /// Elapsed wall-clock for the call/run in milliseconds.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub elapsed_ms: Option<u64>,
-    /// This child's own token + cost spend (on `subagent_completed`), and
-    /// **only when it is not already inside the parent turn's totals**.
-    ///
-    /// The consumer adds these unconditionally, so an emit site that leaves
-    /// them absent contributes nothing — the safe direction. Populating them
-    /// for a child whose usage DID reach `parent_subagent_usage` silently
-    /// doubles the user's reported tokens and money, because
-    /// `holistic_last_turn_usage` already folded both into `chat_done`. See
-    /// `AgentProgress::SubagentCompleted::usage`.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub input_tokens: Option<u64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub output_tokens: Option<u64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub cached_input_tokens: Option<u64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub cost_usd: Option<f64>,
-    /// Total iterations the sub-agent used (on `subagent_completed`).
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub iterations: Option<u32>,
-    /// Character length of the sub-agent's final assistant text
-    /// (on `subagent_completed`) or the tool result
-    /// (on `subagent_tool_result`).
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub output_chars: Option<u64>,
-    /// Persistent worker sub-thread id backing the delegation (on
-    /// `subagent_spawned`). The frontend stores it on the subagent row and
-    /// uses it to reopen the full parent↔subagent conversation from memory.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub worker_thread_id: Option<String>,
-    /// Human-readable display name from the agent registry (e.g.
-    /// "Researcher", "Coding Agent"). The frontend uses this for
-    /// consistent agent labels across timeline, sub-mascots, and drawer.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub display_name: Option<String>,
-    /// Absolute path to the worker's isolated `git worktree` checkout
-    /// (on `subagent_completed`, when the worker ran with
-    /// `isolation = "worktree"`). Drives the inline worktree row's
-    /// open/diff/remove actions. `None` for non-isolated workers (#3376).
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub worktree_path: Option<String>,
-    /// Files (relative to the worktree root) the worker changed, snapshot
-    /// after the run (on `subagent_completed`). Absent for non-isolated
-    /// workers and clean worktrees.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub changed_files: Option<Vec<String>>,
-    /// Whether the worker's worktree had uncommitted changes after the run
-    /// (on `subagent_completed`). A dirty worktree must not be auto-removed —
-    /// the UI requires an explicit user decision. `None` for non-isolated.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub dirty_status: Option<bool>,
-    /// The parent turn's tool-call id that this sub-agent spawn is
-    /// attributed to (on `subagent_spawned`), mirroring
-    /// `AgentProgress::SubagentSpawned::parent_call_id`. Lets the UI
-    /// attach a spawn to the exact `spawn_subagent`/dispatch tool call
-    /// that created it instead of inferring it from arrival order.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub parent_call_id: Option<String>,
-    /// The sub-agent's final output text (on `subagent_completed`),
-    /// mirrored alongside the top-level `output` field so a consumer that
-    /// only reads `subagent.*` still gets the result text.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub output: Option<String>,
-}
-
-#[cfg(feature = "http-server")]
 #[derive(Debug, Deserialize)]
 struct SocketRpcRequest {
     id: serde_json::Value,
@@ -612,7 +188,6 @@ struct SocketRpcRequest {
     params: serde_json::Value,
 }
 
-#[cfg(feature = "http-server")]
 #[derive(Debug, Deserialize)]
 struct ChatStartPayload {
     thread_id: String,
@@ -636,7 +211,6 @@ struct ChatStartPayload {
     run_mode: Option<String>,
 }
 
-#[cfg(feature = "http-server")]
 #[derive(Debug, Deserialize)]
 struct ChatCancelPayload {
     thread_id: String,
@@ -647,14 +221,12 @@ struct ChatCancelPayload {
     request_id: Option<String>,
 }
 
-#[cfg(feature = "http-server")]
 #[derive(Debug, Deserialize)]
 struct ThreadSubscribePayload {
     thread_id: String,
 }
 
 /// Reply to `thread:subscribe`, so a client can order a read after the join.
-#[cfg(feature = "http-server")]
 #[derive(Debug, Serialize)]
 struct ThreadSubscribeAck {
     joined: bool,
@@ -667,7 +239,6 @@ struct ThreadSubscribeAck {
 /// - `rpc:request`: Invoking JSON-RPC methods over WebSocket.
 /// - `chat:start`: Initiating a new chat turn.
 /// - `chat:cancel`: Aborting an active chat turn.
-#[cfg(feature = "http-server")]
 pub fn attach_socketio() -> (socketioxide::layer::SocketIoLayer, SocketIo) {
     let (layer, io) = SocketIo::new_layer();
 
@@ -705,7 +276,7 @@ pub fn attach_socketio() -> (socketioxide::layer::SocketIoLayer, SocketIo) {
             // `TryData` lets us treat a missing/malformed `auth` payload as a
             // soft failure (no panic) and reject the connect cleanly.
             let supplied = handshake.ok().and_then(|h| h.token).unwrap_or_default();
-            if !crate::core::auth::verify_bearer_token(&supplied) {
+            if !openhuman_core::core::auth::verify_bearer_token(&supplied) {
                 log::warn!(
                     "[socketio] rejecting connect: missing or invalid bearer client={}",
                     client_id
@@ -746,9 +317,9 @@ pub fn attach_socketio() -> (socketioxide::layer::SocketIoLayer, SocketIo) {
                 let socket = socket.clone();
                 let client_id = client_id.clone();
                 tokio::spawn(async move {
-                    match crate::config::active_workspace_snapshot().await {
+                    match openhuman_core::config::active_workspace_snapshot().await {
                         Ok((dir, revision)) => {
-                            let handle = crate::config::workspace_handle(&dir);
+                            let handle = openhuman_core::config::workspace_handle(&dir);
                             // One snapshot, not two reads: resolved
                             // separately, a switch between them would pair
                             // this workspace with the *next* one's revision,
@@ -788,8 +359,8 @@ pub fn attach_socketio() -> (socketioxide::layer::SocketIoLayer, SocketIo) {
                     );
 
                     // Invoke the method through the same logic used by the HTTP RPC endpoint.
-                    let response = match crate::core::jsonrpc::invoke_method(
-                        crate::core::jsonrpc::default_state(),
+                    let response = match openhuman_core::core::invoke::invoke_method(
+                        openhuman_core::core::invoke::default_state(),
                         payload.method.as_str(),
                         payload.params,
                     )
@@ -830,9 +401,9 @@ pub fn attach_socketio() -> (socketioxide::layer::SocketIoLayer, SocketIo) {
                     payload.message.len()
                 );
                     if let Some(run_mode) = payload.run_mode.as_deref() {
-                        match crate::agent::tinyagents::run_mode::parse_mode_label(run_mode) {
+                        match openhuman_core::agent::tinyagents::run_mode::parse_mode_label(run_mode) {
                             Some(mode) => {
-                                crate::agent::tinyagents::run_mode::set_mode(&thread_id, mode);
+                                openhuman_core::agent::tinyagents::run_mode::set_mode(&thread_id, mode);
                             }
                             None => log::warn!(
                                 "[socketio] chat:start thread_id={thread_id} ignoring unrecognized run_mode={run_mode}"
@@ -841,7 +412,7 @@ pub fn attach_socketio() -> (socketioxide::layer::SocketIoLayer, SocketIo) {
                     }
 
                     // Trigger the web channel's chat logic.
-                    match crate::web_chat::start_chat(
+                    match openhuman_core::web_chat::start_chat(
                         &client_id,
                         &payload.thread_id,
                         &payload.message,
@@ -849,7 +420,7 @@ pub fn attach_socketio() -> (socketioxide::layer::SocketIoLayer, SocketIo) {
                         payload.temperature,
                         payload.locale,
                         payload.queue_mode,
-                        crate::web_chat::ChatRequestMetadata::default(),
+                        openhuman_core::web_chat::ChatRequestMetadata::default(),
                     )
                     .await
                     {
@@ -877,7 +448,7 @@ pub fn attach_socketio() -> (socketioxide::layer::SocketIoLayer, SocketIo) {
                             // every other `chat_error`: by `error_type`, plus
                             // a typed `guardrail` payload it doesn't have to
                             // parse out of `message`.
-                            if let crate::web_chat::StartChatError::Guardrail {
+                            if let openhuman_core::web_chat::StartChatError::Guardrail {
                                 verdict,
                                 score,
                                 reasons,
@@ -910,7 +481,7 @@ pub fn attach_socketio() -> (socketioxide::layer::SocketIoLayer, SocketIo) {
                         client_id,
                         payload.thread_id
                     );
-                    let _ = crate::web_chat::cancel_chat_scoped(
+                    let _ = openhuman_core::web_chat::cancel_chat_scoped(
                         &client_id,
                         &payload.thread_id,
                         payload.request_id.as_deref(),
@@ -982,12 +553,11 @@ pub fn attach_socketio() -> (socketioxide::layer::SocketIoLayer, SocketIo) {
 /// 3. **Overlay Bridge**: Forwards attention bubble events to all clients.
 /// 4. **Core Notification Bridge**: Forwards core notification events to all clients.
 /// 5. **Transcription Bridge**: Forwards real-time speech-to-text results to all clients.
-#[cfg(feature = "http-server")]
 pub fn spawn_web_channel_bridge(io: SocketIo) {
     // 1. Web channel events → per-client rooms.
     let io_web = io.clone();
     tokio::spawn(async move {
-        let mut rx = crate::web_chat::subscribe_web_channel_events();
+        let mut rx = openhuman_core::web_chat::subscribe_web_channel_events();
         loop {
             let event = match rx.recv().await {
                 Ok(event) => event,
@@ -1014,7 +584,7 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
 
     // 2. Dictation hotkey events → broadcast to all connected clients.
     tokio::spawn(async move {
-        let mut rx = crate::voice::dictation_listener::subscribe_dictation_events();
+        let mut rx = openhuman_core::voice::dictation_listener::subscribe_dictation_events();
         loop {
             let event = match rx.recv().await {
                 Ok(event) => event,
@@ -1064,7 +634,7 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
 
     // 3. Overlay attention events → broadcast to all clients.
     tokio::spawn(async move {
-        let mut rx = crate::desktop::overlay::subscribe_attention_events();
+        let mut rx = openhuman_core::desktop::overlay::subscribe_attention_events();
         loop {
             let event = match rx.recv().await {
                 Ok(event) => event,
@@ -1092,7 +662,7 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
     //    chat session is active. Pattern mirrors the overlay attention
     //    bridge above — fire-and-forget, no per-client routing.
     tokio::spawn(async move {
-        let mut rx = crate::desktop::notifications::subscribe_core_notifications();
+        let mut rx = openhuman_core::desktop::notifications::subscribe_core_notifications();
         loop {
             let event = match rx.recv().await {
                 Ok(event) => event,
@@ -1135,7 +705,7 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
             let max_attempts = (MAX_WAIT_SECS * 1000) / RETRY_INTERVAL_MS;
             let mut attempts: u64 = 0;
             loop {
-                if let Some(bus) = crate::core::bus::BUS.get() {
+                if let Some(bus) = openhuman_core::core::bus::BUS.get() {
                     break bus;
                 }
                 attempts += 1;
@@ -1154,13 +724,18 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
             let Some(event) = rx.recv().await else {
                 break;
             };
-            if let crate::core::events::DomainEvent::SessionExpired { source, reason } = event {
+            if let openhuman_core::core::events::DomainEvent::SessionExpired { source, reason } =
+                event
+            {
                 // Other publishers may emit a backend 401 while this core is
                 // using its offline local credential. The auth subscriber
                 // correctly keeps that credential, so the UI must not receive
                 // a contradictory sign-out event from this independent bus
                 // consumer. Real JWT expiry still broadcasts as before.
-                if crate::security::credentials::session_support::current_session_is_local().await {
+                if openhuman_core::security::credentials::session_support::current_session_is_local(
+                )
+                .await
+                {
                     log::info!(
                         "[socketio] suppress auth:session_expired for local offline credential source={}",
                         source
@@ -1203,7 +778,7 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
             let max_attempts = (MAX_WAIT_SECS * 1000) / RETRY_INTERVAL_MS;
             let mut attempts: u64 = 0;
             loop {
-                if let Some(bus) = crate::core::bus::BUS.get() {
+                if let Some(bus) = openhuman_core::core::bus::BUS.get() {
                     break bus;
                 }
                 attempts += 1;
@@ -1222,12 +797,12 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
             let Some(event) = rx.recv().await else {
                 break;
             };
-            if let crate::core::events::DomainEvent::ActiveWorkspaceChanged {
+            if let openhuman_core::core::events::DomainEvent::ActiveWorkspaceChanged {
                 workspace_dir,
                 revision,
             } = event
             {
-                let handle = crate::config::workspace_handle(&workspace_dir);
+                let handle = openhuman_core::config::workspace_handle(&workspace_dir);
                 log::info!(
                     "[socketio] broadcast workspace_changed workspace={handle} revision={revision}"
                 );
@@ -1241,7 +816,7 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
 
     // 5. Transcription results → broadcast to all connected clients.
     tokio::spawn(async move {
-        let mut rx = crate::voice::dictation_listener::subscribe_transcription_results();
+        let mut rx = openhuman_core::voice::dictation_listener::subscribe_transcription_results();
         loop {
             let text = match rx.recv().await {
                 Ok(text) => text,
@@ -1274,7 +849,7 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
             let max_attempts = (MAX_WAIT_SECS * 1000) / RETRY_INTERVAL_MS;
             let mut attempts: u64 = 0;
             loop {
-                if let Some(bus) = crate::core::bus::BUS.get() {
+                if let Some(bus) = openhuman_core::core::bus::BUS.get() {
                     break bus;
                 }
                 attempts += 1;
@@ -1294,7 +869,7 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
                 break;
             };
             match event {
-                crate::core::events::DomainEvent::MemorySyncStageChanged {
+                openhuman_core::core::events::DomainEvent::MemorySyncStageChanged {
                     trigger,
                     stage,
                     provider,
@@ -1315,7 +890,7 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
                     });
                     let _ = io_memory_sync.emit("memory:sync_stage", &payload);
                 }
-                crate::core::events::DomainEvent::TreeSummarizerPropagated {
+                openhuman_core::core::events::DomainEvent::TreeSummarizerPropagated {
                     namespace,
                     node_id,
                     level,
@@ -1329,7 +904,7 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
                     });
                     let _ = io_memory_sync.emit("memory:tree_progress", &payload);
                 }
-                crate::core::events::DomainEvent::TreeSummarizerRebuildCompleted {
+                openhuman_core::core::events::DomainEvent::TreeSummarizerRebuildCompleted {
                     namespace,
                     total_nodes,
                 } => {
@@ -1339,7 +914,7 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
                     });
                     let _ = io_memory_sync.emit("memory:tree_completed", &payload);
                 }
-                crate::core::events::DomainEvent::MemoryTreeBuildProgress {
+                openhuman_core::core::events::DomainEvent::MemoryTreeBuildProgress {
                     phase,
                     step,
                     tree_scope,
@@ -1357,7 +932,7 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
                     });
                     let _ = io_memory_sync.emit("memory:build_progress", &payload);
                 }
-                crate::core::events::DomainEvent::HarnessInitProgress {
+                openhuman_core::core::events::DomainEvent::HarnessInitProgress {
                     step_id,
                     state,
                     message,
@@ -1371,7 +946,7 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
                     });
                     let _ = io_memory_sync.emit("init:progress", &payload);
                 }
-                crate::core::events::DomainEvent::HarnessInitCompleted {
+                openhuman_core::core::events::DomainEvent::HarnessInitCompleted {
                     overall,
                     failed_required,
                 } => {
@@ -1386,7 +961,7 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
                 // truth and the Workflows UI keeps a 2s poller as fallback, so
                 // a dropped event here (broadcast lag) only delays the live
                 // update, never corrupts run history.
-                crate::core::events::DomainEvent::FlowRunProgress {
+                openhuman_core::core::events::DomainEvent::FlowRunProgress {
                     run_id,
                     node_id,
                     status,
@@ -1411,7 +986,7 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
                 // instead of waiting for the blocking `flows_run` RPC to
                 // resolve or the first `FlowRunProgress` step. Best-effort,
                 // same rationale as `flow:run_progress` above.
-                crate::core::events::DomainEvent::FlowRunStarted { flow_id, run_id } => {
+                openhuman_core::core::events::DomainEvent::FlowRunStarted { flow_id, run_id } => {
                     let payload = serde_json::json!({
                         "flow_id": flow_id,
                         "run_id": run_id,
@@ -1430,7 +1005,7 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
                 // canvas/sidebar can flip a run to Completed/Failed live
                 // instead of relying on a poll to notice. Best-effort, same
                 // rationale as the other `flow:*` bridges.
-                crate::core::events::DomainEvent::FlowRunFinished {
+                openhuman_core::core::events::DomainEvent::FlowRunFinished {
                     flow_id,
                     run_id,
                     status,
@@ -1454,7 +1029,7 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
                 // — most importantly, so an agent `save_workflow` becomes
                 // visible in a canvas the user has open (audit F6). Best-effort;
                 // the UI's refetch-on-focus is the backstop.
-                crate::core::events::DomainEvent::FlowChanged {
+                openhuman_core::core::events::DomainEvent::FlowChanged {
                     flow_id,
                     kind,
                     actor,
@@ -1479,7 +1054,7 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
                 // bridge — because a flow run has no chat thread/client to
                 // target; the Workflows UI listens process-wide and filters
                 // by `flow_id`/`run_id` client-side.
-                crate::core::events::DomainEvent::FlowApprovalRequested {
+                openhuman_core::core::events::DomainEvent::FlowApprovalRequested {
                     request_id,
                     flow_id,
                     run_id,
@@ -1524,7 +1099,7 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
             let max_attempts = (MAX_WAIT_SECS * 1000) / RETRY_INTERVAL_MS;
             let mut attempts: u64 = 0;
             loop {
-                if let Some(bus) = crate::core::bus::BUS.get() {
+                if let Some(bus) = openhuman_core::core::bus::BUS.get() {
                     break bus;
                 }
                 attempts += 1;
@@ -1544,7 +1119,7 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
                 break;
             };
             let payload = match event {
-                crate::core::events::DomainEvent::ChannelConnected { channel } => {
+                openhuman_core::core::events::DomainEvent::ChannelConnected { channel } => {
                     log::debug!(
                         "[socketio] broadcast channel:connection-updated {channel} -> connected"
                     );
@@ -1554,7 +1129,10 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
                         None,
                     ))
                 }
-                crate::core::events::DomainEvent::ChannelDisconnected { channel, reason } => {
+                openhuman_core::core::events::DomainEvent::ChannelDisconnected {
+                    channel,
+                    reason,
+                } => {
                     log::debug!(
                         "[socketio] broadcast channel:connection-updated {channel} -> error reason_len={}",
                         reason.len()
@@ -1583,7 +1161,6 @@ pub fn spawn_web_channel_bridge(io: SocketIo) {
 /// listener for telegram/discord); `last_error` carries the disconnect reason.
 /// Matches the shape consumed by the frontend
 /// `normalizeChannelConnectionUpdatePayload`.
-#[cfg(feature = "http-server")]
 pub(crate) fn channel_connection_update_payload(
     channel: &str,
     status: &str,
@@ -1614,7 +1191,6 @@ pub(crate) fn channel_connection_update_payload(
 /// client told it is in a room it never joined reads the thread, waits for
 /// events that will never be routed to it, and reproduces the invisible-reply
 /// bug this room exists to prevent (#6034).
-#[cfg(feature = "http-server")]
 fn join_room_logged(socket: &SocketRef, room: &str, client_id: &str) -> bool {
     match socket.join(room.to_string()) {
         Ok(()) => {
@@ -1628,7 +1204,6 @@ fn join_room_logged(socket: &SocketRef, room: &str, client_id: &str) -> bool {
     }
 }
 
-#[cfg(feature = "http-server")]
 fn emit_web_channel_event(io: &SocketIo, event: WebChannelEvent) {
     let name = event.event.clone();
     // Deliver to the initiating client's own room AND the per-thread room. The
@@ -1691,10 +1266,8 @@ fn emit_web_channel_event(io: &SocketIo, event: WebChannelEvent) {
 /// is suppressed for exactly these. Enumerated explicitly rather than matched by
 /// a `*_delta` suffix, so a future *discrete* event whose name happens to end in
 /// `_delta` still gets its compat alias instead of being silently dropped.
-#[cfg(feature = "http-server")]
 const STREAMING_DELTA_EVENTS: &[&str] = &["text_delta", "thinking_delta", "tool_args_delta"];
 
-#[cfg(feature = "http-server")]
 fn event_alias(name: &str) -> Option<String> {
     // Match against the canonical underscore form after stripping a `subagent_`
     // prefix (subagent streaming mirrors the parent's deltas), so `text_delta`,
@@ -1732,9 +1305,8 @@ fn event_alias(name: &str) -> Option<String> {
 /// safe to repeat: the client keys the card by `request_id` and a decided
 /// request is no longer parked, so a socket that already has the card just
 /// re-renders the same one.
-#[cfg(feature = "http-server")]
 fn replay_parked_approval(socket: &SocketRef, thread_id: &str) {
-    let Some(gate) = crate::security::approval::ApprovalGate::try_global() else {
+    let Some(gate) = openhuman_core::security::approval::ApprovalGate::try_global() else {
         return;
     };
     let Some(row) = gate.parked_request_for_thread(thread_id) else {
@@ -1742,7 +1314,7 @@ fn replay_parked_approval(socket: &SocketRef, thread_id: &str) {
     };
     let client_id = socket.id.to_string();
     let expires_at = row.expires_at.map(|t| t.to_rfc3339());
-    let mut event = crate::web_chat::approval_request_event(
+    let mut event = openhuman_core::web_chat::approval_request_event(
         &row.request_id,
         &row.tool_name,
         &row.action_summary,
@@ -1755,7 +1327,7 @@ fn replay_parked_approval(socket: &SocketRef, thread_id: &str) {
     // Replay is a fresh emit to a newly-joined socket, not a resend of the
     // original event, so stamp `ts` with "now" (same clock as
     // `publish_web_channel_event`) rather than leaving it unset.
-    event.ts = Some(crate::web_chat::progress_bridge::unix_epoch_ms());
+    event.ts = Some(openhuman_core::web_chat::unix_epoch_ms());
     let Ok(payload) = serde_json::to_value(&event) else {
         return;
     };
@@ -1771,14 +1343,14 @@ fn replay_parked_approval(socket: &SocketRef, thread_id: &str) {
 /// just joined that thread's room. Mirrors [`replay_parked_approval`] — a
 /// plan review is a live, in-memory park (no SQLite row), but it reaches the
 /// UI the same fire-and-forget way, so the same reconciliation applies.
-#[cfg(feature = "http-server")]
 fn replay_parked_plan_review(socket: &SocketRef, thread_id: &str) {
-    let Some(row) = crate::agent::plan_review::gate::global().parked_review_for_thread(thread_id)
+    let Some(row) =
+        openhuman_core::agent::plan_review::gate::global().parked_review_for_thread(thread_id)
     else {
         return;
     };
     let client_id = socket.id.to_string();
-    let mut event = crate::web_chat::plan_review_request_event(
+    let mut event = openhuman_core::web_chat::plan_review_request_event(
         &row.request_id,
         &row.summary,
         &row.steps,
@@ -1787,7 +1359,7 @@ fn replay_parked_plan_review(socket: &SocketRef, thread_id: &str) {
         row.tool_call_id.as_deref(),
         row.expires_at.as_deref(),
     );
-    event.ts = Some(crate::web_chat::progress_bridge::unix_epoch_ms());
+    event.ts = Some(openhuman_core::web_chat::unix_epoch_ms());
     let Ok(payload) = serde_json::to_value(&event) else {
         return;
     };
@@ -1798,7 +1370,6 @@ fn replay_parked_plan_review(socket: &SocketRef, thread_id: &str) {
     emit_with_aliases(socket, "plan_review_request", &payload);
 }
 
-#[cfg(feature = "http-server")]
 fn emit_with_aliases(socket: &SocketRef, name: &str, payload: &serde_json::Value) {
     let _ = socket.emit(name, payload);
     if let Some(alias) = event_alias(name) {
@@ -1808,6 +1379,6 @@ fn emit_with_aliases(socket: &SocketRef, name: &str, payload: &serde_json::Value
 
 // Every test here names a gated fn (`channel_connection_update_payload`,
 // `event_alias`, `origin_is_allowed`), so the module gates in lockstep (#5048).
-#[cfg(all(test, feature = "http-server"))]
+#[cfg(test)]
 #[path = "socketio_tests.rs"]
 mod tests;

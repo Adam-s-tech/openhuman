@@ -4,10 +4,14 @@
 //! sent with and hands them back on resume (`SessionStateView::recorded_tools`).
 //! A new process, though, rebuilds its live tool surface from state that may
 //! not be there yet: Composio actions are synthesised from the connected
-//! integrations list, which comes from a 60 s process cache that is empty
+//! integrations list, which comes from an in-process cache that is empty
 //! after a restart and may be unreachable. Without a fallback, a resumed
 //! thread whose prompt says "search for the Gmail action" loses every
 //! integration action — and with it the `tool_search` bridge — for the turn.
+//!
+//! MCP tools do not need this: they are rebuilt every turn from tinymcp's
+//! persistent tool cache, which survives a restart (see
+//! `mcp::registry::action_tool`).
 //!
 //! This module turns the recorded Composio action declarations back into
 //! executable deferred tools, so the tool list a thread was sent never

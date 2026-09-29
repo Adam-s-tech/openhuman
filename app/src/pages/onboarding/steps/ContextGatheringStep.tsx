@@ -46,7 +46,7 @@ interface ContextGatheringStepProps {
   onBack?: () => void;
 }
 
-/** Unwrap the RpcOutcome CLI envelope the core wraps around responses. */
+/** Unwrap the Outcome CLI envelope the core wraps around responses. */
 function unwrapCliEnvelope<T>(value: unknown): T {
   if (
     value !== null &&

@@ -9,7 +9,7 @@ use serde_json::{Map, Value};
 use super::{deserialize_params, to_json};
 use crate::config::rpc as config_rpc;
 use crate::core::all::ControllerFuture;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 #[derive(Debug, Deserialize)]
 pub(super) struct InferenceResolveModelParams {
@@ -96,7 +96,7 @@ pub(super) fn handle_inference_resolve_model(params: Map<String, Value>) -> Cont
         // tier; custom/BYOK models are covered by the user's per-model
         // `model_registry.vision` flag.
         let vision = crate::inference::model_context::model_supports_vision(&resolved, &config);
-        to_json(RpcOutcome::new(
+        to_json(Outcome::new(
             serde_json::json!({ "model": resolved, "vision": vision }),
             vec![],
         ))

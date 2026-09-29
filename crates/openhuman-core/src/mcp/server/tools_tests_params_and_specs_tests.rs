@@ -333,26 +333,6 @@ fn memory_search_accepts_k_at_max() {
 }
 
 #[test]
-fn tool_call_error_invalid_params_maps_to_jsonrpc_invalid_params() {
-    let err = ToolCallError::InvalidParams("missing query".to_string());
-    assert_eq!(err.code(), -32602);
-    assert_eq!(err.jsonrpc_message(), "Invalid params");
-    assert_eq!(err.message(), "missing query");
-}
-
-#[test]
-fn tool_call_error_internal_maps_to_jsonrpc_internal_error() {
-    // Server-side failures (config load, missing resources) must surface
-    // as `-32603 Internal error`, not `-32602 Invalid params`, so the MCP
-    // client doesn't mislead the user / LLM into retrying with different
-    // arguments.
-    let err = ToolCallError::Internal("disk read failed".to_string());
-    assert_eq!(err.code(), -32603);
-    assert_eq!(err.jsonrpc_message(), "Internal error");
-    assert_eq!(err.message(), "disk read failed");
-}
-
-#[test]
 fn memory_recall_requires_query() {
     let err = build_rpc_params("memory.recall", json!({})).expect_err("must reject");
     assert!(err.message().contains("missing required argument `query`"));

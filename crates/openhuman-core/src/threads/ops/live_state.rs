@@ -9,8 +9,8 @@
 use super::support::{envelope, workspace_dir};
 use crate::agent::goals::goal_to_value;
 use crate::agent::todos::ops::{self as todos_ops, TodoScope};
+use crate::core::Outcome;
 use crate::memory::ApiEnvelope;
-use crate::rpc::RpcOutcome;
 
 /// Request for [`goal_get`] / [`todos_get`]: the thread to read.
 #[derive(Debug, Clone, serde::Deserialize)]
@@ -39,7 +39,7 @@ pub struct ThreadTodosGetResponse {
 /// user reopens a thread that already had a goal in flight).
 pub async fn goal_get(
     request: ThreadLiveStateRequest,
-) -> Result<RpcOutcome<ApiEnvelope<ThreadGoalGetResponse>>, String> {
+) -> Result<Outcome<ApiEnvelope<ThreadGoalGetResponse>>, String> {
     let dir = workspace_dir().await?;
     let thread_id = request.thread_id.trim();
     if thread_id.is_empty() {
@@ -56,7 +56,7 @@ pub async fn goal_get(
 /// waiting for the next `thread_todos_changed` push.
 pub async fn todos_get(
     request: ThreadLiveStateRequest,
-) -> Result<RpcOutcome<ApiEnvelope<ThreadTodosGetResponse>>, String> {
+) -> Result<Outcome<ApiEnvelope<ThreadTodosGetResponse>>, String> {
     let dir = workspace_dir().await?;
     let thread_id = request.thread_id.trim();
     if thread_id.is_empty() {

@@ -171,7 +171,7 @@ fn main() {
             // lives at the call sites (`openhuman::inference::provider::ops::api_error`
             // publishes a SessionExpired event_bus signal and short-circuits;
             // the rpc dispatcher's `is_session_expired_error` skip-path in
-            // `crates/openhuman-core/src/core/jsonrpc.rs` redirects to a tracing::info). This
+            // `crates/openhuman-rpc/src/server/http/rpc_handler.rs` redirects to a tracing::info). This
             // filter catches any future call site that re-emits the same
             // shape — keeping OPENHUMAN-TAURI-25 / -1Q / -27 / -1G off
             // Sentry permanently (~185 events/day combined).
@@ -280,6 +280,10 @@ fn main() {
         eprintln!("failed to install the TinyHumans backend transport: {err}");
         std::process::exit(1);
     }
+
+    // `run` / `serve` start the JSON-RPC server from `openhuman-rpc`, which the
+    // core cannot depend on; hand it the launcher before dispatching.
+    openhuman_rpc::server::install_cli_server();
 
     // Delegate to the core library to handle the command.
     if let Err(err) = openhuman_core::run_core_from_args(&args) {

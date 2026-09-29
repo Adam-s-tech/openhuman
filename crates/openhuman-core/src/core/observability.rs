@@ -349,7 +349,7 @@ pub enum ExpectedErrorKind {
     /// succeed until the user creates one — so this is user-state, not a
     /// defect.
     ///
-    /// `jsonrpc.rs` already demoted the *bare* message via
+    /// `openhuman-rpc/src/server/http/rpc_handler.rs` already demoted the *bare* message via
     /// `is_wallet_not_configured_error`, but that predicate is exact equality,
     /// so it stops matching the moment any caller adds context — and callers
     /// do: `format!("{context}: {e}")` appears ~800 times in `src/`. One such
@@ -2109,7 +2109,7 @@ fn report_expected_message(kind: ExpectedErrorKind, message: &str, domain: &str,
             // is the sentinel itself, and it is a constant. `domain` and
             // `operation` carry the correlation, which is what a breadcrumb is
             // for. Same reasoning as the param-validation skip in
-            // `jsonrpc.rs`, which redacts because its messages embed
+            // `openhuman-rpc/src/server/http/rpc_handler.rs`, which redacts because its messages embed
             // caller-supplied param names.
             tracing::info!(
                 domain = domain,
@@ -2615,12 +2615,7 @@ pub(crate) fn report_error_message(
 // reporting, #3567), so it has no caller in a slim build (#5048). Kept compiled
 // for the crash-reporting carve-out; the allow keeps the disabled build quiet.
 #[cfg_attr(not(feature = "http-server"), allow(dead_code))]
-pub(crate) fn report_warning_message(
-    message: &str,
-    domain: &str,
-    operation: &str,
-    extra: &[Tag<'_>],
-) {
+pub fn report_warning_message(message: &str, domain: &str, operation: &str, extra: &[Tag<'_>]) {
     // Redact secret-looking spans before `message` reaches any log sink or
     // Sentry event — see the note in `report_error_message`.
     let scrubbed = crate::core::log_redaction::scrub_secrets(message);

@@ -6,7 +6,7 @@
 //! the existing `Result<Value, String>` channel that controller handlers
 //! already use, without changing every handler signature.
 //!
-//! The JSON-RPC transport layer (`crates/openhuman-core/src/core/jsonrpc.rs`) decodes the envelope
+//! The JSON-RPC transport layer (`crates/openhuman-rpc/src/server/http/rpc_handler.rs`) decodes the envelope
 //! transparently — it has zero knowledge of which domain produced the error,
 //! and never branches on the RPC method name. New domains that want
 //! structured RPC errors just emit a [`StructuredRpcError`] at their
@@ -31,7 +31,7 @@ pub const STRUCTURED_RPC_ERROR_SENTINEL: &str = "__OPENHUMAN_STRUCTURED_RPC_ERRO
 ///
 /// The transport layer decodes this without inspecting the RPC method name
 /// or the message contents, so new domains can adopt it without touching
-/// `crates/openhuman-core/src/core/jsonrpc.rs`.
+/// `crates/openhuman-rpc/src/server/http/rpc_handler.rs`.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct StructuredRpcError {
     /// Human-readable error text for the JSON-RPC `error.message` field.

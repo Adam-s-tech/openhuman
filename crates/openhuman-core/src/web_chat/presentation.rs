@@ -11,7 +11,7 @@
 
 use crate::agent::tinyagents::host::LastTurnUsage;
 use crate::config::rpc as config_rpc;
-use crate::core::socketio::{SubagentUsagePayload, TurnUsagePayload, WebChannelEvent};
+use crate::web_chat::{SubagentUsagePayload, TurnUsagePayload, WebChannelEvent};
 
 use super::publish_web_channel_event;
 
@@ -306,7 +306,7 @@ fn publish_chat_done(
     reaction_emoji: Option<String>,
     citations: &[crate::memory::agent::memory_loader::MemoryCitation],
     usage_payload: Option<TurnUsagePayload>,
-    timing_payload: Option<crate::core::socketio::TurnTimingPayload>,
+    timing_payload: Option<crate::web_chat::TurnTimingPayload>,
 ) {
     publish_web_channel_event(WebChannelEvent {
         event: "chat_done".to_string(),

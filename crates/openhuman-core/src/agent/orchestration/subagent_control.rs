@@ -19,8 +19,8 @@ use serde_json::{json, Map, Value};
 use crate::agent::orchestration::running_subagents::{CancelledSubagent, SteerError};
 use crate::agent::orchestration::{background_completions, running_subagents, subagent_sessions};
 use crate::core::all::{ControllerFuture, RegisteredController};
+use crate::core::Outcome;
 use crate::core::{ControllerSchema, FieldSchema, TypeSchema};
-use crate::rpc::RpcOutcome;
 use tinyagents_harness::run_queue::QueueLane;
 
 /// Controller schemas exposed for detached sub-agent control.
@@ -232,7 +232,7 @@ fn handle_subagent_steer(params: Map<String, Value>) -> ControllerFuture {
 }
 
 fn to_json<T: serde::Serialize>(value: T) -> Result<Value, String> {
-    RpcOutcome::new(value, vec![]).into_cli_compatible_json()
+    Outcome::new(value, vec![]).into_cli_compatible_json()
 }
 
 fn new_correlation_id() -> String {

@@ -60,7 +60,7 @@ fn migrate_openclaw_params_parses_both_fields() {
 
 #[test]
 fn to_json_wraps_rpc_outcome_result_envelope() {
-    let v = to_json(RpcOutcome::single_log(json!({"done": true}), "done")).unwrap();
+    let v = to_json(Outcome::single_log(json!({"done": true}), "done")).unwrap();
     assert!(v.get("logs").is_some() || v.get("result").is_some());
 }
 

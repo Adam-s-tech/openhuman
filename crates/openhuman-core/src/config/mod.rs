@@ -49,7 +49,7 @@ pub use schema::{
     EmbeddingRouteConfig, GitbooksConfig, HttpHeader, HttpRequestConfig, IMessageConfig,
     IntegrationToggle, IntegrationsConfig, LarkConfig, LearningConfig, LegacySearchInputs,
     LinqConfig, LlmBackend, LocalAiConfig, MatrixConfig, McpAuthConfig, McpClientConfig,
-    McpClientIdentityConfig, McpServerConfig, MemoryConfig, MemoryTreeConfig, ModelRouteConfig,
+    McpClientIdentityConfig, McpServerConfig, McpToolExposure, MemoryConfig, MemoryTreeConfig, ModelRouteConfig,
     MultimodalConfig, MultimodalFileConfig, ObservabilityConfig, OrchestratorModelConfig,
     PrivacyConfig, PrivacyMode, ProxyConfig, ProxyScope, ReflectionSource, ReliabilityConfig,
     ResourceLimitsConfig, RuntimeConfig, RuntimePoolConfig, RuntimePoolLangConfig, SandboxBackend,

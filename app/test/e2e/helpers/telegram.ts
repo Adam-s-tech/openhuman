@@ -151,7 +151,7 @@ export async function connectTelegramBot(
   }
 
   // The result shape from ops.rs is { status, restart_required, message? }.
-  // It is wrapped by RpcOutcome which the Node RPC client unwraps one level.
+  // It is wrapped by Outcome which the Node RPC client unwraps one level.
   const result = (out.result as Record<string, unknown> | null) ?? {};
   const inner =
     typeof result.result === 'object' && result.result !== null
@@ -207,7 +207,7 @@ export async function getTelegramChannelStatus(): Promise<TelegramStatusEntry | 
   }
 
   // channels_status returns entries: ChannelStatusEntry[].
-  // The core wraps with RpcOutcome so the Node client may unwrap one level.
+  // The core wraps with Outcome so the Node client may unwrap one level.
   const result = (out.result as Record<string, unknown> | null) ?? {};
   const entries: TelegramStatusEntry[] = Array.isArray(result)
     ? result

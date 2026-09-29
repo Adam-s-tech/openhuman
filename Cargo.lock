@@ -3878,7 +3878,6 @@ dependencies = [
  "log",
  "nu-ansi-term",
  "once_cell",
- "openhuman-rpc",
  "parking_lot",
  "proptest",
  "rand 0.10.2",
@@ -3894,7 +3893,6 @@ dependencies = [
  "serde_repr",
  "serde_yaml",
  "sha2 0.10.9",
- "socketioxide",
  "starship-battery",
  "sysinfo 0.33.1",
  "tar",
@@ -4050,10 +4048,26 @@ dependencies = [
 name = "openhuman-rpc"
 version = "0.64.7"
 dependencies = [
+ "anyhow",
+ "axum",
+ "chrono",
+ "futures",
  "log",
+ "once_cell",
+ "openhuman",
  "reqwest",
+ "sentry",
  "serde",
  "serde_json",
+ "socketioxide",
+ "tempfile",
+ "tinyinference-core",
+ "tokio",
+ "tokio-stream",
+ "tokio-util",
+ "tower",
+ "tracing",
+ "tracing-subscriber",
  "url",
 ]
 
@@ -6665,6 +6679,9 @@ dependencies = [
 name = "tinymcp"
 version = "0.3.4"
 dependencies = [
+ "anyhow",
+ "async-trait",
+ "axum",
  "base64 0.23.1",
  "dirs 7.0.0",
  "futures-util",
@@ -6676,7 +6693,9 @@ dependencies = [
  "sha2 0.11.0",
  "thiserror 2.0.20",
  "tinymcp-bus",
+ "tinytools 0.4.1",
  "tokio",
+ "tokio-stream",
  "tracing",
  "uuid",
 ]

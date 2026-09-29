@@ -34,7 +34,7 @@ tauri-build = { version = "2", features = [] }
 serde_json = "1"
 
 [dependencies]
-openhuman-rpc = { path = "../openhuman-rpc", features = ["http-client"] }
+openhuman-rpc = { path = "../openhuman-rpc", default-features = false, features = ["http-client", "server"] }
 # The desktop session owner (login-token exchange, /auth/me, current-user
 # cache) and the SDK-backed backend transport the core needs installed at
 # boot. `default-features = false`: the shell controls every product gate
@@ -318,6 +318,13 @@ e2e-test-support = ["openhuman_core/e2e-test-support"]
 # workspace carries; the key has no `.git` suffix, matching the dep URL.
 [patch."https://github.com/tinyhumansai/tinymemory"]
 tinymemory-api = { path = "../../vendor/tinymemory/crates/tinymemory-api" }
+
+[patch."https://github.com/tinyhumansai/tinytools"]
+# tinymcp's `tools` feature names tinytools by git rev so it can be built on its
+# own. Redirect it to the copy tinyagents vendors — the one the harness and
+# every host tool link — so there is exactly one `tinytools` package and one
+# `Tool` trait. Without this, MCP tools would not satisfy the harness's trait.
+tinytools = { path = "../../vendor/tinyagents/vendor/tinytools/crates/tinytools" }
 
 [patch."https://github.com/tinyhumansai/tinyinference"]
 # Crates in this world name tinyinference by git rev; without this the shell

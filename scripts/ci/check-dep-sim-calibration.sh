@@ -62,6 +62,11 @@
 # no native dependency. See kernel-floor.limits.
 # 282 -> 285 on 2026-09-26: the required TinyBrowser integration adds
 # tinybrowser-bus, tinybrowser-control, and tinyjevclient. Native count stays 2.
+# 286 -> 283 on 2026-09-29: the current `flows` graph resolves three fewer
+# crate names after the TinyMCP v0.3.5 update. 283 -> 282 on 2026-09-29: the
+# JSON-RPC split removes openhuman-rpc from the core dependency graph. Both
+# counts are measured with `scripts/dep-sim.py --cut-nothing`; native count
+# remains 2.
 #
 # Called by ci-lite.yml's feature-gate smoke lane and by the lane runner, so the
 # expected count lives here once (plus scripts/kernel-floor.limits).

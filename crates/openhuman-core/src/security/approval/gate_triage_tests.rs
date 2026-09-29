@@ -214,7 +214,7 @@ async fn intercept_with_workflow_require_approval_persists_and_ttl_denies() {
 /// A parked approval must be recoverable from its thread alone.
 ///
 /// The card is delivered to the UI as ONE fire-and-forget socket emit
-/// (`web_chat::event_bus` → `core::socketio::emit_web_channel_event`). If that
+/// (`web_chat::event_bus` → `openhuman_rpc::server::socketio::emit_web_channel_event`). If that
 /// emit misses — the addressed client's room is empty because it reloaded, the
 /// rejoining socket was not yet in the thread room, or the bridge dropped the
 /// frame on broadcast lag — nothing re-sends it, and the turn stays parked with

@@ -37,7 +37,7 @@ use serde_json::{json, Value};
 use tempfile::tempdir;
 
 use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
-use openhuman_core::core::jsonrpc::build_core_http_router;
+use openhuman_rpc::server::build_core_http_router;
 
 const TEST_RPC_TOKEN: &str = "memory-tree-health-e2e-token";
 static AUTH_INIT: OnceLock<()> = OnceLock::new();
@@ -184,7 +184,7 @@ fn ok(v: &Value, ctx: &str) -> Value {
     let outer = v
         .get("result")
         .unwrap_or_else(|| panic!("{ctx}: missing result: {v}"));
-    // RpcOutcome wraps the payload under an inner "result" key alongside "logs".
+    // Outcome wraps the payload under an inner "result" key alongside "logs".
     if let Some(inner) = outer.get("result") {
         inner.clone()
     } else {
@@ -712,7 +712,7 @@ async fn memory_tree_smart_walk_answers_over_ingested_content() {
 /// covers the same ground one layer down by calling
 /// `openhuman_core::memory::ops::memory_namespace_summaries` directly. Both are
 /// worth having and only this one exercises dispatch, parameter decoding and the
-/// `RpcOutcome` envelope.
+/// `Outcome` envelope.
 #[tokio::test]
 async fn memory_namespace_summaries_counts_each_namespace_it_was_given() {
     let _guard = env_lock();
