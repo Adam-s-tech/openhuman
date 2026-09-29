@@ -9,7 +9,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::config::Config;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 /// The driver's identifier for a re-embed backfill job.
 ///
@@ -115,7 +115,7 @@ pub struct BackfillStatusResponse {
 /// the user that semantic recall is reduced until it drains.
 pub async fn backfill_status_rpc(
     config: &Config,
-) -> Result<RpcOutcome<BackfillStatusResponse>, String> {
+) -> Result<Outcome<BackfillStatusResponse>, String> {
     log::debug!("[memory::rpc] backfill_status: entry");
     // Asked of the bound driver rather than of TinyCortex's tables. No
     // `spawn_blocking` here any more: the driver owns whether its own reads
@@ -146,7 +146,7 @@ pub async fn backfill_status_rpc(
         false
     });
     let in_progress = driver_backfilling || pending_jobs > 0;
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         BackfillStatusResponse {
             in_progress,
             pending_jobs,

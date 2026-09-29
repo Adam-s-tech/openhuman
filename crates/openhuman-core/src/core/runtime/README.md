@@ -14,14 +14,14 @@ binary both build on to host the core without duplicating
    `CoreRuntime::invoke` can dispatch any RPC method in-process and agent
    turns can run: a harness-only embedder using `ServiceSet::none()` needs
    nothing more.
-2. **`CoreRuntime::serve()`: transport + background services.** Binds the
-   HTTP listener (when `ServiceSet::rpc_http` is set), mounts the router,
-   fires the readiness signal, spawns the selected background services, and
-   serves until shutdown. When `rpc_http` is unset it just spawns the
-   selected background services and returns immediately: the caller owns
-   the process lifetime. In a build compiled without the `http-server`
-   feature, requesting `rpc_http` returns an `Err` rather than silently
-   binding nothing.
+2. **`openhuman_rpc::server::serve(&runtime, …)`: transport + background
+   services.** Binds the HTTP listener (when `ServiceSet::rpc_http` is set),
+   mounts the router, fires the readiness signal, calls
+   `CoreRuntime::start_services`, and serves until shutdown, then runs
+   `CoreRuntime::exit_cleanup`. When `rpc_http` is unset it just starts the
+   selected background services and returns: the caller owns the process
+   lifetime. The server lives in `openhuman-rpc`, above this crate; a
+   runtime that needs no transport calls `start_services` directly.
 
 `CoreRuntime::invoke(method, params)` dispatches an RPC method in-process
 through `jsonrpc::invoke_method`: the same path the HTTP `/rpc` handler and

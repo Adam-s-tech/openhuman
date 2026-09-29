@@ -34,7 +34,7 @@ tauri-build = { version = "2", features = [] }
 serde_json = "1"
 
 [dependencies]
-openhuman-rpc = { path = "../openhuman-rpc", features = ["http-client"] }
+openhuman-rpc = { path = "../openhuman-rpc", default-features = false, features = ["http-client", "server"] }
 # The desktop session owner (login-token exchange, /auth/me, current-user
 # cache) and the SDK-backed backend transport the core needs installed at
 # boot. `default-features = false`: the shell controls every product gate

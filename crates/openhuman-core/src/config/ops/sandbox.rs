@@ -1,7 +1,7 @@
 //! Sandbox / Docker runtime config operations.
 
 use crate::config::Config;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 use super::loader::{load_config_with_timeout, snapshot_config_json};
 
@@ -16,7 +16,7 @@ pub struct SandboxSettingsPatch {
     pub env_passthrough: Option<Vec<String>>,
 }
 
-pub async fn get_sandbox_settings() -> Result<RpcOutcome<serde_json::Value>, String> {
+pub async fn get_sandbox_settings() -> Result<Outcome<serde_json::Value>, String> {
     let config = load_config_with_timeout().await?;
     let sandbox = &config.sandbox;
     let docker = &config.runtime.docker;
@@ -45,13 +45,13 @@ pub async fn get_sandbox_settings() -> Result<RpcOutcome<serde_json::Value>, Str
         "env_passthrough": crate::sandbox::ops::SANDBOX_ENV_PASSTHROUGH,
     });
     log::debug!("[config][sandbox] get_sandbox_settings: backend={backend_str}, docker_available={docker_available}");
-    Ok(RpcOutcome::single_log(value, "sandbox settings read"))
+    Ok(Outcome::single_log(value, "sandbox settings read"))
 }
 
 pub async fn apply_sandbox_settings(
     config: &mut Config,
     update: SandboxSettingsPatch,
-) -> Result<RpcOutcome<serde_json::Value>, String> {
+) -> Result<Outcome<serde_json::Value>, String> {
     if let Some(ref backend) = update.backend {
         config.sandbox.backend = match backend.as_str() {
             "auto" => crate::config::SandboxBackend::Auto,
@@ -101,7 +101,7 @@ pub async fn apply_sandbox_settings(
         config.config_path.display()
     );
     let snapshot = snapshot_config_json(config)?;
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         snapshot,
         vec![format!(
             "sandbox settings saved to {}",
@@ -112,7 +112,7 @@ pub async fn apply_sandbox_settings(
 
 pub async fn load_and_apply_sandbox_settings(
     update: SandboxSettingsPatch,
-) -> Result<RpcOutcome<serde_json::Value>, String> {
+) -> Result<Outcome<serde_json::Value>, String> {
     let mut config = load_config_with_timeout().await?;
     apply_sandbox_settings(&mut config, update).await
 }

@@ -2,11 +2,11 @@
 
 use super::coding_sessions::unserved;
 use crate::config::rpc as config_rpc;
+use crate::core::Outcome;
 use crate::memory::api::provider::sync::SyncAuditEntry;
 use crate::memory::sources::readers;
 use crate::memory::sources::registry;
 use crate::memory::sources::run_history;
-use crate::rpc::RpcOutcome;
 
 // ── Sync Audit Log ──
 
@@ -45,7 +45,7 @@ pub struct SyncAuditLogResponse {
 /// ended in `unwrap_or_default()`, so an unreadable file was reported as "no
 /// syncs have run" — the one answer a caller cannot distinguish from the truth.
 /// The host's log follows the same rule.
-pub async fn sync_audit_log_rpc() -> Result<RpcOutcome<SyncAuditLogResponse>, String> {
+pub async fn sync_audit_log_rpc() -> Result<Outcome<SyncAuditLogResponse>, String> {
     tracing::debug!("[memory_sources] sync_audit_log_rpc: entry");
     let config = config_rpc::load_config_with_timeout().await?;
     let binding = crate::memory::binding::for_config(&config)?;
@@ -72,7 +72,7 @@ pub async fn sync_audit_log_rpc() -> Result<RpcOutcome<SyncAuditLogResponse>, St
         entries = entries.len(),
         "[memory_sources] sync_audit_log_rpc: exit"
     );
-    Ok(RpcOutcome::new(SyncAuditLogResponse { entries }, vec![]))
+    Ok(Outcome::new(SyncAuditLogResponse { entries }, vec![]))
 }
 
 // ── Estimate Sync Cost ──
@@ -102,7 +102,7 @@ pub struct EstimateSyncCostResponse {
 /// `0.0`, which would read as "syncing this is free".
 pub async fn estimate_sync_cost_rpc(
     req: EstimateSyncCostRequest,
-) -> Result<RpcOutcome<EstimateSyncCostResponse>, String> {
+) -> Result<Outcome<EstimateSyncCostResponse>, String> {
     tracing::debug!(source_id = %req.source_id, "[memory_sources] estimate_sync_cost_rpc: entry");
 
     let source = registry::get_source(&req.source_id)
@@ -137,7 +137,7 @@ pub async fn estimate_sync_cost_rpc(
         estimated_cost_usd,
         "[memory_sources] estimate_sync_cost_rpc: exit"
     );
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         EstimateSyncCostResponse {
             source_id: req.source_id,
             item_count,
@@ -263,7 +263,7 @@ pub(super) fn summarise_logs(
     }
 }
 
-pub async fn monthly_cost_summary_rpc() -> Result<RpcOutcome<MonthlyCostSummaryResponse>, String> {
+pub async fn monthly_cost_summary_rpc() -> Result<Outcome<MonthlyCostSummaryResponse>, String> {
     tracing::debug!("[memory_sources] monthly_cost_summary_rpc: entry");
     let config = config_rpc::load_config_with_timeout().await?;
     let binding = crate::memory::binding::for_config(&config)?;
@@ -290,5 +290,5 @@ pub async fn monthly_cost_summary_rpc() -> Result<RpcOutcome<MonthlyCostSummaryR
         totals_complete = summary.totals_complete,
         "[memory_sources] monthly_cost_summary_rpc: exit"
     );
-    Ok(RpcOutcome::new(summary, vec![]))
+    Ok(Outcome::new(summary, vec![]))
 }

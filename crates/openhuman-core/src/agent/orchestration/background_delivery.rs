@@ -391,7 +391,7 @@ async fn run_system_turn_on_thread(thread_id: String, prompt: String) -> Result<
                 "system", &thread_id, &run_id, response, None,
             ),
             Err(error) => {
-                crate::web_chat::publish_web_channel_event(crate::core::socketio::WebChannelEvent {
+                crate::web_chat::publish_web_channel_event(crate::web_chat::WebChannelEvent {
                     event: "chat_error".to_string(),
                     client_id: "system".to_string(),
                     thread_id: thread_id.clone(),

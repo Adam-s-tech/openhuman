@@ -2,8 +2,8 @@ use serde::de::{DeserializeOwned, Deserializer};
 use serde::Deserialize;
 use serde_json::{Map, Value};
 
+use crate::core::Outcome;
 use crate::core::{FieldSchema, TypeSchema};
-use crate::rpc::RpcOutcome;
 
 pub(super) const DEFAULT_ONBOARDING_FLAG_NAME: &str = ".skip_onboarding";
 
@@ -327,6 +327,6 @@ pub fn json_output(name: &'static str, comment: &'static str) -> FieldSchema {
     }
 }
 
-pub(super) fn to_json<T: serde::Serialize>(outcome: RpcOutcome<T>) -> Result<Value, String> {
+pub(super) fn to_json<T: serde::Serialize>(outcome: Outcome<T>) -> Result<Value, String> {
     outcome.into_cli_compatible_json()
 }

@@ -697,7 +697,7 @@ pub enum DomainEvent {
     /// (`web_chat::event_bus::ApprovalSurfaceSubscriber`)
     /// silently drops it (that gap was the original silent-deadlock bug).
     /// Published by `ApprovalGate::intercept_audited` alongside the existing
-    /// `ApprovalRequested`, bridged by `core::socketio` directly to a
+    /// `ApprovalRequested`, bridged by `openhuman_rpc::server::socketio` directly to a
     /// broadcast (not per-room) `flow_approval_request` Socket.IO event so
     /// the Workflows UI can surface and resolve the park without polling.
     FlowApprovalRequested {

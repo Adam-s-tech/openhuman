@@ -4,7 +4,7 @@ use serde_json::json;
 
 use super::load::load_config_with_timeout;
 use crate::config::Config;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 /// Serializes the current configuration into a JSON snapshot for the UI.
 pub fn snapshot_config_json(config: &Config) -> Result<serde_json::Value, String> {
@@ -127,20 +127,19 @@ pub fn client_config_json(config: &Config) -> serde_json::Value {
 }
 
 /// Loads config and returns the client-facing AI config slice.
-pub async fn load_and_get_client_config_snapshot() -> Result<RpcOutcome<serde_json::Value>, String>
-{
+pub async fn load_and_get_client_config_snapshot() -> Result<Outcome<serde_json::Value>, String> {
     let config = load_config_with_timeout().await?;
     let snapshot = client_config_json(&config);
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         snapshot,
         vec!["client config read".to_string()],
     ))
 }
 
 /// Returns a full configuration snapshot for the UI.
-pub async fn get_config_snapshot(config: &Config) -> Result<RpcOutcome<serde_json::Value>, String> {
+pub async fn get_config_snapshot(config: &Config) -> Result<Outcome<serde_json::Value>, String> {
     let snapshot = snapshot_config_json(config)?;
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         snapshot,
         vec![format!(
             "config loaded from {}",
@@ -150,13 +149,13 @@ pub async fn get_config_snapshot(config: &Config) -> Result<RpcOutcome<serde_jso
 }
 
 /// Loads the configuration from disk and returns a snapshot.
-pub async fn load_and_get_config_snapshot() -> Result<RpcOutcome<serde_json::Value>, String> {
+pub async fn load_and_get_config_snapshot() -> Result<Outcome<serde_json::Value>, String> {
     let config = load_config_with_timeout().await?;
     get_config_snapshot(&config).await
 }
 
 /// Reads dashboard settings exposed to the desktop UI.
-pub async fn get_dashboard_settings() -> Result<RpcOutcome<serde_json::Value>, String> {
+pub async fn get_dashboard_settings() -> Result<Outcome<serde_json::Value>, String> {
     let request_id = uuid::Uuid::new_v4().to_string();
     tracing::debug!(
         target: "openhuman_core::config",
@@ -206,7 +205,7 @@ pub async fn get_dashboard_settings() -> Result<RpcOutcome<serde_json::Value>, S
         method = "openhuman.config_get_dashboard_settings",
         "OPENHUMAN: get_dashboard_settings exit"
     );
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         result,
         vec!["dashboard settings read".to_string()],
     ))

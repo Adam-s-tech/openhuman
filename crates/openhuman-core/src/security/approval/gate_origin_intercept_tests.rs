@@ -504,7 +504,7 @@ async fn flow_origin_park_publishes_flow_approval_request_and_notification() {
     // no chat thread/client, so the generic `ApprovalRequested` event's
     // web-channel bridge silently drops it. This test asserts the two new
     // surfaces fire instead — the `flow_approval_request` DomainEvent
-    // (bridged to a broadcast Socket.IO event by `core::socketio`) and
+    // (bridged to a broadcast Socket.IO event by `openhuman_rpc::server::socketio`) and
     // the `flow-gate-approval` CoreNotification with its three actions.
     crate::core::bus::init().await.expect("bus init");
     let mut event_rx = crate::core::bus::BUS

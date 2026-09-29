@@ -86,7 +86,6 @@ describe('Claude Code wrappers', () => {
   });
 
   it.each([
-    ['openhumanClaudeCodeAuthStatus', () => openhumanClaudeCodeAuthStatus()],
     ['openhumanClaudeCodeSettings', () => openhumanClaudeCodeSettings()],
     ['openhumanClaudeCodeSetFullAccess', () => openhumanClaudeCodeSetFullAccess(true)],
   ])('%s calls core RPC outside the Tauri shell', async (_name, call) => {

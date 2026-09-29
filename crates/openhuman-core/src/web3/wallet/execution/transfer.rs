@@ -4,7 +4,7 @@
 
 use log::debug;
 
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 use super::super::defaults::{evm_asset_catalog, find_asset_for_network, EvmNetwork};
 use super::super::ops::WalletChain;
@@ -18,7 +18,7 @@ use super::LOG_PREFIX;
 
 pub async fn prepare_transfer(
     params: PrepareTransferParams,
-) -> Result<RpcOutcome<PreparedTransaction>, String> {
+) -> Result<Outcome<PreparedTransaction>, String> {
     let to = validate_address(params.chain, &params.to_address)?;
     let amount = validate_amount(&params.amount_raw)?;
     if amount == 0 {
@@ -102,7 +102,7 @@ pub async fn prepare_transfer(
         quote.amount_raw,
         quote.asset_symbol
     );
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         store_quote(quote),
         vec!["wallet transfer prepared".to_string()],
     ))

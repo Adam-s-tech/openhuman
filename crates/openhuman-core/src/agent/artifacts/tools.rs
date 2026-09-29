@@ -1,7 +1,7 @@
 //! LLM-callable wrappers over the artifacts metadata domain.
 //!
 //! Each tool is a thin shim over a read/delete handler in
-//! [`crate::agent::artifacts::ops`], unwrapping the `RpcOutcome`
+//! [`crate::agent::artifacts::ops`], unwrapping the `Outcome`
 //! envelope and emitting the inner JSON value. The artifacts domain owns
 //! agent-generated files (presentations/documents/images) under
 //! `<workspace>/artifacts/`; these tools let the agent enumerate and
