@@ -9,6 +9,41 @@ fn composio_tool_has_correct_name() {
     assert_eq!(tool.name(), "composio");
 }
 
+#[tokio::test]
+async fn direct_client_does_not_forward_credentials_across_redirects() {
+    let redirected_request_seen = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let observed = redirected_request_seen.clone();
+    let destination = start_mock_backend(axum::Router::new().route(
+        "/tools",
+        axum::routing::get(move || {
+            let observed = observed.clone();
+            async move {
+                observed.store(true, std::sync::atomic::Ordering::SeqCst);
+                axum::Json(json!({"items": []}))
+            }
+        }),
+    ))
+    .await;
+    let redirect = format!("{destination}/tools");
+    let source = start_mock_backend(axum::Router::new().route(
+        "/tools",
+        axum::routing::get(move || {
+            let redirect = redirect.clone();
+            async move { axum::response::Redirect::temporary(&redirect) }
+        }),
+    ))
+    .await;
+
+    let tool = ComposioTool::new_with_v3_base(
+        "ck_secret_value",
+        None,
+        test_security(),
+        format!("{source}/tools"),
+    );
+    assert!(tool.list_tool_schemas_v3(&[], None).await.is_err());
+    assert!(!redirected_request_seen.load(std::sync::atomic::Ordering::SeqCst));
+}
+
 #[test]
 fn composio_tool_has_description() {
     let tool = ComposioTool::new("test-key", None, test_security());
