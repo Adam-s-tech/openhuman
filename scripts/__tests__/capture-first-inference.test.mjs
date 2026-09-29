@@ -221,8 +221,13 @@ test('capture proxy forwards an inference call, dumps the body, and summarises t
   assert.equal(record.cached_tokens, 12288);
   assert.equal(record.error, null);
   assert.ok(record.ttfb_ms >= 0 && record.total_ms >= record.ttfb_ms, JSON.stringify(record));
+  assert.equal(record.stream, true);
+  // The stub streams visible content straight away, so the first token is the
+  // first content, and both land no earlier than the first byte.
+  assert.ok(record.first_token_ms >= record.ttfb_ms, JSON.stringify(record));
+  assert.equal(record.first_content_ms, record.first_token_ms);
   const summaryLine =
-    /\[capture\] #000 200 model=z-ai\/glm-5\.3-flash msgs=2 tools=1 served_by=StreamLake ttfb=\d+\.\d\ds total=\d+\.\d\ds prompt=12344 cached=12288 cache_key=tap-25675927a3f2160d/;
+    /\[capture\] #000 200 model=z-ai\/glm-5\.3-flash msgs=2 tools=1 served_by=StreamLake ttfb=\d+\.\d\ds total=\d+\.\d\ds prompt=12344 cached=12288 cache_key=tap-25675927a3f2160d stream=yes ttft=\d+\.\d\ds ttfc=\d+\.\d\ds thread=thread-1/;
   assert.match(await waitForOutput(proxy.output, summaryLine), summaryLine);
 });
 

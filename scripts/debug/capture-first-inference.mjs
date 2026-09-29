@@ -24,7 +24,9 @@ const USAGE = `Usage: node scripts/debug/capture-first-inference.mjs [--help]
 
 Loopback proxy between the OpenHuman core and its inference backend. Records the
 exact request bodies the harness sends and prints one summary line per inference
-response: serving endpoint, time to first byte, prompt / cached tokens, status.
+response: serving endpoint, time to first byte, time to the first model token
+(ttft, reasoning or text) and first visible text (ttfc), prompt / cached tokens,
+stream flag, thread id, status.
 
 Configure with environment variables:
   CAPTURE_PORT       listen port (default 18765)
@@ -184,6 +186,35 @@ function summarizeResponseBody(text) {
   return out;
 }
 
+// A streamed delta that carries model output: reasoning (OpenRouter's
+// `reasoning`, DeepSeek's `reasoning_content`) or visible `content`.
+const FIRST_TOKEN_RE = /"(?:content|reasoning|reasoning_content)":"[^"]/;
+const FIRST_CONTENT_RE = /"content":"[^"]/;
+
+/**
+ * Tracks when a streamed response produced its first model token (reasoning
+ * or content) and its first visible content, across arbitrary chunk
+ * boundaries: each chunk is scanned together with the tail of the previous one.
+ */
+function createFirstTokenTracker(startedAt) {
+  let tail = '';
+  const out = { first_token_ms: null, first_content_ms: null };
+  return {
+    observe(chunk, now = Date.now()) {
+      if (out.first_token_ms !== null && out.first_content_ms !== null) return;
+      const window = tail + chunk.toString('utf8');
+      tail = window.slice(-256);
+      if (out.first_token_ms === null && FIRST_TOKEN_RE.test(window)) {
+        out.first_token_ms = now - startedAt;
+      }
+      if (out.first_content_ms === null && FIRST_CONTENT_RE.test(window)) {
+        out.first_content_ms = now - startedAt;
+      }
+    },
+    result: () => ({ ...out }),
+  };
+}
+
 function formatSummaryLine(record) {
   const ms = value => (value == null ? '-' : `${(value / 1000).toFixed(2)}s`);
   return (
@@ -191,7 +222,9 @@ function formatSummaryLine(record) {
     `model=${record.model ?? '?'} msgs=${record.messages ?? '?'} tools=${record.tools} ` +
     `served_by=${record.provider ?? '?'} ttfb=${ms(record.ttfb_ms)} total=${ms(record.total_ms)} ` +
     `prompt=${record.prompt_tokens ?? '?'} cached=${record.cached_tokens ?? '?'} ` +
-    `cache_key=${record.prompt_cache_key ?? '-'}` +
+    `cache_key=${record.prompt_cache_key ?? '-'} ` +
+    `stream=${record.stream ? 'yes' : 'no'} ttft=${ms(record.first_token_ms)} ` +
+    `ttfc=${ms(record.first_content_ms)} thread=${record.thread_id ?? '-'}` +
     (record.error ? ` error=${JSON.stringify(record.error)}` : '')
   );
 }
@@ -256,9 +289,11 @@ const server = http.createServer((req, res) => {
         // copy into the summary. Inference bodies are small (a few hundred KB
         // at most), so buffering the copy is fine.
         let firstByteAt = null;
+        const firstTokens = createFirstTokenTracker(startedAt);
         const pieces = [];
         upstreamRes.on('data', chunk => {
           if (firstByteAt === null) firstByteAt = Date.now();
+          firstTokens.observe(chunk);
           pieces.push(chunk);
           res.write(chunk);
         });
@@ -275,6 +310,7 @@ const server = http.createServer((req, res) => {
             ...summarizeRequestBody(body),
             ...summarizeResponseBody(text),
             ttfb_ms: firstByteAt === null ? null : firstByteAt - startedAt,
+            ...firstTokens.result(),
             total_ms: Date.now() - startedAt,
           };
           if (captureResponses || (captureAll && (status < 200 || status >= 300))) {
