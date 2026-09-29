@@ -12,7 +12,6 @@ use tinytools::{PermissionLevel, Tool, ToolResult};
 
 use super::super::ops_create::{create_workflow, CreateWorkflowParams};
 use super::super::ops_install::{install_workflow_from_url, InstallWorkflowFromUrlParams};
-use super::helpers::read_required_str;
 
 /// Scaffold a new user skill. **Writes to disk** — default-OFF.
 pub struct WorkflowCreateTool {
