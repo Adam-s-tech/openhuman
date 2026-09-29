@@ -93,4 +93,3 @@ pub(super) fn parse_action(args: &Value) -> anyhow::Result<Action> {
         x => anyhow::bail!("Unsupported browser action: {x}"),
     })
 }
-

@@ -1,8 +1,8 @@
 //! Agent-facing browser backed by the TinyComputer module's browser and task members.
-#[path = "browser_session_pool.rs"]
-mod session_pool;
 #[path = "browser_args.rs"]
 mod args;
+#[path = "browser_session_pool.rs"]
+mod session_pool;
 
 use args::{parse_action, task_inputs};
 
