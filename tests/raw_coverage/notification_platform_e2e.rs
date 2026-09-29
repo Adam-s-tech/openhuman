@@ -160,7 +160,7 @@ async fn mock_announcements_latest(
                 "id": "ann-1",
                 "title": "Scheduled maintenance",
                 "body": "The backend is being upgraded.",
-                "severity": "info"
+                "severity": "INFO"
             }
         }))),
         AnnouncementMode::NotFound => Err((
