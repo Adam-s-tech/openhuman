@@ -13,6 +13,10 @@
 # Simulate with: scripts/dep-sim.py --cut <crates>
 #
 # History
+#   307/283/2  2026-09-29  Tighten the flows crate-name ceiling to the current
+#                      release branch's resolved graph. CI measured 304 packages,
+#                      283 unique names, and the existing two native builds;
+#                      no dependency policy was relaxed.
 #   307/286/2  2026-09-27  The multi-provider search config directly uses the
 #                      required TinySearch bus contract in always-on settings
 #                      and policy code. This adds one resolved crate/name and
@@ -604,4 +608,4 @@
 #                      into the required host runtime. The migration adds five
 #                      resolved packages and four unique crate names; it does
 #                      not add a native build dependency.
-flows:307:286:2
+flows:307:283:2
