@@ -234,6 +234,45 @@ pub fn classify_engine_message(message: &str) -> String {
     message.to_string()
 }
 
+/// Reject endpoints that carry credentials or point at link-local / cloud
+/// metadata addresses. Error text never echoes the endpoint (it may hold
+/// userinfo).
+fn validate_endpoint(endpoint: &str) -> Result<(), String> {
+    use std::net::{IpAddr, Ipv6Addr};
+    let Ok(parsed) = url::Url::parse(endpoint) else {
+        return Err("endpoint must be an http(s) URL".to_string());
+    };
+    if !matches!(parsed.scheme(), "http" | "https") || parsed.host_str().is_none() {
+        return Err("endpoint must be an http(s) URL".to_string());
+    }
+    if !parsed.username().is_empty() || parsed.password().is_some() {
+        return Err(
+            "endpoint must not contain credentials (user:pass@); use the API key field".to_string(),
+        );
+    }
+    let link_local = match parsed.host() {
+        Some(url::Host::Ipv4(ip)) => ip.is_link_local(),
+        Some(url::Host::Ipv6(ip)) => {
+            let v6: Ipv6Addr = ip;
+            (v6.segments()[0] & 0xffc0) == 0xfe80
+                || v6.to_ipv4_mapped().is_some_and(|v4| v4.is_link_local())
+        }
+        Some(url::Host::Domain(name)) => {
+            let name = name.trim_end_matches('.').to_ascii_lowercase();
+            name == "metadata.google.internal"
+                || name.parse::<IpAddr>().is_ok_and(|ip| match ip {
+                    IpAddr::V4(v4) => v4.is_link_local(),
+                    IpAddr::V6(v6) => (v6.segments()[0] & 0xffc0) == 0xfe80,
+                })
+        }
+        None => false,
+    };
+    if link_local {
+        return Err("endpoint must not be a link-local or metadata address".to_string());
+    }
+    Ok(())
+}
+
 /// Validate a requested engine. No I/O.
 ///
 /// # Errors
@@ -268,10 +307,7 @@ pub(super) fn prepare_target(params: EngineTargetParams) -> Result<Prepared, Str
 
     let endpoint = blank_to_none(params.endpoint);
     if let Some(endpoint) = endpoint.as_deref() {
-        match url::Url::parse(endpoint) {
-            Ok(u) if matches!(u.scheme(), "http" | "https") && u.host_str().is_some() => {}
-            _ => return Err("endpoint must be an http(s) URL".to_string()),
-        }
+        validate_endpoint(endpoint)?;
     }
     let hosted = entry.hosted || id == HOSTED_ENGINE_ID;
     let deployment = blank_to_none(params.deployment);
@@ -357,10 +393,25 @@ fn env_pins_driver() -> bool {
 /// Order: key → config → rebind. A failure before the config write leaves the
 /// previous engine active; the key write is the only step that survives a later
 /// failure, and it is harmless (an unused keychain entry).
-pub(super) async fn commit_engine(
-    mut config: Config,
-    prepared: &Prepared,
-) -> Result<EngineState, String> {
+/// One process-wide lock serialises every engine switch (`engine_set` and a
+/// migration's commit), so two switches never interleave their config
+/// read-modify-write or their rebind.
+pub(super) static SWITCH_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+
+/// [`commit_engine_locked`] under the switch lock.
+pub(super) async fn commit_engine(prepared: &Prepared) -> Result<EngineState, String> {
+    let _switch = SWITCH_LOCK.lock().await;
+    commit_engine_locked(prepared).await
+}
+
+/// The commit itself; the caller holds [`SWITCH_LOCK`].
+///
+/// Reloads the config fresh and patches only `[subsystems.memory]` (the driver
+/// and that driver's entry), so a config edited while a migration ran, or a
+/// stale snapshot taken when the RPC started, is never written back. `from` is
+/// recomputed from that fresh config.
+pub(super) async fn commit_engine_locked(prepared: &Prepared) -> Result<EngineState, String> {
+    let mut config = load_config().await?;
     if env_pins_driver() {
         return Err(
             "the memory engine is pinned by OPENHUMAN_MEMORY_DRIVER; unset it to switch engines"
@@ -398,7 +449,12 @@ pub(super) async fn commit_engine(
         config.workspace_dir.display()
     );
     crate::memory::binding_remote::note_api_url(&config.workspace_dir, &config.api_url);
-    binding::rebind(&config.workspace_dir, &from, &config.subsystems.memory)?;
+    binding::rebind(&config.workspace_dir, &from, &config.subsystems.memory).map_err(|e| {
+        format!(
+            "the engine switch was saved but could not be applied in this session and takes \
+             effect after a restart: {e}"
+        )
+    })?;
     state_for(&config)
 }
 
@@ -477,7 +533,14 @@ pub async fn memory_engine_set(
         // even be built (no transport, missing endpoint/key, bad deployment).
         build_target_provider(&config, &prepared)?;
     }
-    let state = commit_engine(config, &prepared).await?;
+    let _switch = SWITCH_LOCK.lock().await;
+    if super::engine_migrate::migration_running() {
+        return Err(
+            "a memory migration is running; wait for it to finish or cancel it before switching"
+                .to_string(),
+        );
+    }
+    let state = commit_engine_locked(&prepared).await?;
     Ok(RpcOutcome::new(state, vec![]))
 }
 
