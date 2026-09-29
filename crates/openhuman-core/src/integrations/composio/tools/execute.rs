@@ -272,25 +272,15 @@ impl ComposioExecuteTool {
                 );
             }
         };
-        let kind = match create_composio_client(&live_config) {
-            Ok(kind) => kind,
-            Err(e) => {
-                tracing::warn!(error = %e, "[composio] tool execute.execute: factory failed");
-                return (
-                    live_config,
-                    Ok(ToolResult::error(format!("composio_execute failed: {e}"))),
-                );
-            }
-        };
-
         let started = std::time::Instant::now();
-        // Centralized prepare → retry → error-mapping pipeline (#1797),
-        // mode-aware over the backend/direct split (#1710).
-        let res = super::super::execute_dispatch::execute_composio_action_kind(
-            kind,
+        // Egress gate + module call (prepare -> retry -> error mapping run in
+        // the connector module, mode-aware over the backend/direct split
+        // (#1710, #1797)).
+        let res = super::super::execute_dispatch::execute_composio_action(
+            &live_config,
             &tool,
             arguments,
-            &live_config.composio.entity_id,
+            None,
         )
         .await;
         let elapsed_ms = started.elapsed().as_millis() as u64;
