@@ -281,6 +281,7 @@ async fn run_turn_via_tinyagents_inner(
         hosted_root.is_some(),
         pause_at_cap,
         run_context.tool_dialect,
+        Arc::clone(&run_context.deferred_tool_names),
         run_context
             .thread_id
             .as_deref()

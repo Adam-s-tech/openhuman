@@ -195,6 +195,16 @@ impl OpenHumanTurnPrelude {
         )
     }
 
+    /// The session's deferred set for this turn; see
+    /// `OpenHumanRunContext::deferred_tool_names`.
+    fn current_deferred_tool_names(&self) -> std::collections::HashSet<String> {
+        self.tool_surface
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .deferred_tool_names
+            .clone()
+    }
+
     fn replace_tool_surface(&self, surface: OpenHumanTurnToolSurface) {
         *self
             .tool_surface
@@ -1675,6 +1685,10 @@ impl OpenHumanSessionHost {
                         middleware.transcript_snapshot = Some(transcript_snapshot);
                         options.run_context.data.context_middleware = Some(middleware);
                         options.run_context.data.current_tools = Some(current_tools);
+                        if !overrides.suppress_tools {
+                            options.run_context.data.deferred_tool_names =
+                                Arc::new(prelude.current_deferred_tool_names());
+                        }
                         options.run_context.data.current_synthesized_tools =
                             Some(current_synthesized_tools);
                         options.run_context.data.tool_policy =
