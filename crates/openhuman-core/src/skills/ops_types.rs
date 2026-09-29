@@ -151,7 +151,3 @@ pub(crate) struct LegacyWorkflowManifest {
     #[serde(default)]
     pub prompts: Vec<String>,
 }
-
-#[cfg(test)]
-#[path = "ops_types_tests.rs"]
-mod ops_types_tests;

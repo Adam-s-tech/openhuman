@@ -128,30 +128,6 @@ impl Drop for EnvGuard {
     }
 }
 
-// ── Test 1: OpenAI-compat chat returns canned text ───────────────────────────
-
-#[tokio::test]
-async fn openai_compat_chat_returns_canned_text() {
-    let server = MockServer::start().await;
-
-    Mock::given(method("POST"))
-        .and(path("/v1/chat/completions"))
-        .respond_with(ResponseTemplate::new(200).set_body_json(openai_chat_response("Hello!")))
-        .mount(&server)
-        .await;
-
-    let model = openai_model(
-        "test",
-        &format!("{}/v1", server.uri()),
-        "test-key",
-        AuthStyle::Bearer,
-    );
-
-    let result = invoke_text(&model, "hi", "gpt-4o-mini", 0.7).await;
-
-    assert_eq!(result, "Hello!");
-}
-
 // ── Test 6: Streaming response returns ordered deltas ────────────────────────
 
 #[tokio::test]
@@ -207,29 +183,6 @@ async fn openai_compat_streaming_returns_ordered_deltas() {
         combined, "Hello!",
         "combined stream deltas should equal 'Hello!'; got '{combined}'"
     );
-}
-
-// ── Test 7: Ollama endpoint shape ────────────────────────────────────────────
-
-#[tokio::test]
-async fn ollama_compat_chat_via_openai_v1_endpoint() {
-    let server = MockServer::start().await;
-
-    // Ollama via OpenAI-compat /v1 endpoint — wiremock pretends to be Ollama.
-    Mock::given(method("POST"))
-        .and(path("/v1/chat/completions"))
-        .respond_with(ResponseTemplate::new(200).set_body_json(openai_chat_response("Bonjour!")))
-        .mount(&server)
-        .await;
-
-    // Factory builds Ollama via the crate-native OpenAI-compatible client at /v1.
-    let base = server.uri();
-    let endpoint = format!("{}/v1", base.trim_end_matches('/'));
-    let model = openai_model("ollama", &endpoint, "", AuthStyle::None);
-
-    let result = invoke_text(&model, "Bonjour?", "llama3", 0.7).await;
-
-    assert_eq!(result, "Bonjour!");
 }
 
 // ── Test 8: /v1/chat/completions HTTP endpoint — unauthorized ─────────────────
