@@ -467,7 +467,8 @@ fn connected_integrations_block_is_format_independent() {
 #[test]
 fn connected_integrations_block_routes_capability_questions_to_search() {
     let guide = render_connected_integrations(&gmail_only());
-    assert!(guide.contains("Its results, not prior knowledge or past answers, say what a toolkit can do."));
+    assert!(guide
+        .contains("Its results, not prior knowledge or past answers, say what a toolkit can do."));
     assert!(!guide.contains("integrations_agent"));
 }
 

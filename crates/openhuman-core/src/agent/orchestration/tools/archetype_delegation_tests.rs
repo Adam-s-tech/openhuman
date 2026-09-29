@@ -151,11 +151,7 @@ fn prompt_documents_the_stripped_envelope_fields() {
             "orchestrator/prompt.md no longer teaches `{needle}`"
         );
     }
-    for stale in [
-        "must_not_assume",
-        "expected_output",
-        "citation_requirement",
-    ] {
+    for stale in ["must_not_assume", "expected_output", "citation_requirement"] {
         assert!(
             !ORCHESTRATOR_PROMPT.contains(stale),
             "orchestrator/prompt.md still names `{stale}`, which the delegation \
