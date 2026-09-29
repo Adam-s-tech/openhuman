@@ -64,9 +64,9 @@ pub(crate) fn classify_for_engine(external: bool, message: String) -> String {
 /// come from a remote engine.
 pub(crate) fn classify_rpc_error(message: String) -> String {
     let external = crate::core::runtime::context::CoreContext::current()
-        .and_then(|ctx| ctx.memory_binding().ok())
-        .map_or(true, |binding| {
-            binding.class() == crate::core::subsystem::DriverClass::External
+        .and_then(|ctx| ctx.memory().ok())
+        .map_or(true, |guard| {
+            guard.class() == crate::core::subsystem::DriverClass::External
         });
     classify_for_engine(external, message)
 }

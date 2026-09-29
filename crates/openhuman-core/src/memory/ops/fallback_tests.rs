@@ -60,11 +60,16 @@ async fn recall_hits_use_mandatory_recall_scoped_to_the_namespace() {
 }
 
 #[tokio::test]
-async fn recent_hits_list_the_namespace_newest_first_within_the_limit() {
-    let guard = seeded().await;
-    let hits = recent_hits(&guard, "notes", 10).await.unwrap();
-    assert_eq!(hits.len(), 2);
-    let one = recent_hits(&guard, "notes", 1).await.unwrap();
+async fn recent_hits_return_the_namespace_newest_first_within_the_limit() {
+    use crate::memory::guard::in_memory::guard_over;
+    use crate::memory::ops::engine_fakes_tests::ScriptedProvider;
+    let provider = ScriptedProvider::spread(10, 2);
+    let guard = guard_over(provider as std::sync::Arc<dyn MemoryProvider>);
+    let hits = recent_hits(&guard, "ns0", 10).await.unwrap();
+    assert_eq!(hits.len(), 5);
+    assert!(hits.iter().all(|h| h.namespace == "ns0"));
+    assert!(hits.windows(2).all(|w| w[0].updated_at >= w[1].updated_at));
+    let one = recent_hits(&guard, "ns0", 1).await.unwrap();
     assert_eq!(one.len(), 1);
     assert!(recent_hits(&guard, "missing", 5).await.unwrap().is_empty());
 }

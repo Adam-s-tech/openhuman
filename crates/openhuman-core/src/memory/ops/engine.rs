@@ -247,7 +247,8 @@ fn validate_endpoint(endpoint: &str) -> Result<(), String> {
     }
     if !parsed.username().is_empty() || parsed.password().is_some() {
         return Err(
-            "endpoint must not contain credentials (user:pass@); use the API key field".to_string(),
+            "endpoint must not embed credentials before the host; use the API key field"
+                .to_string(),
         );
     }
     let link_local = match parsed.host() {
