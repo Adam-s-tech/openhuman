@@ -1,6 +1,5 @@
 //! Small helpers shared across the connect/disconnect/status operations.
 
-use serde_json::Value;
 
 pub(crate) use tinychannels::controllers::{
     channel_config_connected, channel_credential_provider as credential_provider,
