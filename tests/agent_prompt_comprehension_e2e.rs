@@ -958,8 +958,11 @@ fn orchestrator_reaches_cron_through_the_scheduling_pack() {
         ],
         must_call: &["use_skill"],
         must_not_call: &["schedule_task"],
-        must_advertise: &["use_skill", "current_time", "resolve_time"],
-        must_not_advertise: &["cron", "schedule_task", "composio_execute"],
+        // `current_time` is deferred for the orchestrator (`deferred_tools`):
+        // every turn carries the date line and `resolve_time` converts, so it
+        // is searchable and callable by name but not advertised.
+        must_advertise: &["use_skill", "resolve_time"],
+        must_not_advertise: &["cron", "schedule_task", "composio_execute", "current_time"],
         advertises_nothing: false,
         max_consecutive_calls_of: None,
         extra_config: "",
