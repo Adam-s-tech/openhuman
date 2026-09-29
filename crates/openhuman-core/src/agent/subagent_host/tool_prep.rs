@@ -70,8 +70,8 @@ pub(super) fn is_subagent_spawn_tool(name: &str) -> bool {
     }
     // Synthesised delegation tools are named by the target agent's
     // `delegate_name` override, which mostly does NOT carry the `delegate_`
-    // prefix (`plan`, `run_code`, `research`, `review_code`, `do_crypto`,
-    // `schedule_task`, …). The prefix check above misses every one of them,
+    // prefix (`manage_tasks`, `create_image`, `setup_skills`,
+    // `build_workflow`, …). The prefix check above misses every one of them,
     // which let wildcard-scoped children inherit the orchestrator's spawn
     // surface. Resolve the override names via the registry so the strip
     // stays in lockstep with `collect_orchestrator_tools`'s naming.

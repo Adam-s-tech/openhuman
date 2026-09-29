@@ -3494,7 +3494,6 @@ async fn agent_subagent_public_types_cover_task_local_and_error_display_paths() 
 
     let options = SubagentRunOptions {
         skill_filter_override: Some("docs".to_string()),
-        toolkit_override: Some("github".to_string()),
         context: Some("parent context".to_string()),
         model_override: Some("specialist-model".to_string()),
         task_id: Some("task-1".to_string()),
@@ -3506,7 +3505,6 @@ async fn agent_subagent_public_types_cover_task_local_and_error_display_paths() 
         run_queue: None,
     };
     assert_eq!(options.skill_filter_override.as_deref(), Some("docs"));
-    assert_eq!(options.toolkit_override.as_deref(), Some("github"));
     assert_eq!(options.model_override.as_deref(), Some("specialist-model"));
 
     let outcome = SubagentRunOutcome {

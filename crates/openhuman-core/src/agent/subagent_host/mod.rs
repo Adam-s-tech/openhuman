@@ -64,7 +64,6 @@ pub use types::{
     SubagentRunStatus, SubagentUsage,
 };
 
-pub(crate) use ops::run_agent_turn_request_via_default_graph;
 pub(crate) use ops::{append_subagent_role_contract, resolve_subagent_source};
 
 // `user_is_signed_in_to_composio` is the mode-aware "can the user call

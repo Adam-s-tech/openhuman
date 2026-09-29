@@ -226,7 +226,6 @@ async fn continue_subagent_resumes_idle_durable_session_e2e() {
                 parent_session: "tools-e2e-continue-session".into(),
                 parent_thread_id: Some("thread-continue-parent".into()),
                 agent_id: "task_manager_agent".into(),
-                toolkit: None,
                 // Pin the seeded session to the parent's scripted provider —
                 // continue_subagent forwards session.model into the resume, so
                 // without this the child would resolve the definition's managed

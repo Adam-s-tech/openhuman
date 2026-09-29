@@ -107,7 +107,7 @@ impl SessionHostBuilder {
         // Only the DURABLE registry is passed, never `synthesized_tools`: every
         // `ArchetypeDelegationTool` reports `Hidden`, and on a wildcard belt the
         // synthesised delegates are the agent's only hand-off routes. Stripping
-        // them would delete every `research`/`run_code`/… route.
+        // them would delete every `manage_tasks`/`build_workflow`/… route.
         //
         // This is the one site that turns the "all visible" sentinel into a
         // concrete set for a session, so the refresh paths never re-admit a
