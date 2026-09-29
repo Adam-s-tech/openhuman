@@ -4,7 +4,8 @@
 //! the SQLite store, the live connection map, the subprocess supervisor and the
 //! browser sign-in flow all live there now. What is left here is what belongs
 //! to *this* application. The catalogs are browse-only: a server is declared
-//! in the user's `mcp.json` ([`config_doc`]), never installed from a listing.
+//! in the user's `mcp.json` (`tinymcp::registry::config_doc`), never installed
+//! from a listing.
 //!
 //! # Modules
 //!
