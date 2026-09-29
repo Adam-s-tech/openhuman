@@ -109,25 +109,3 @@ async fn action_refuses_a_server_that_is_no_longer_connected() {
     assert!(result.is_error);
     assert!(result.text().contains("no longer connected"));
 }
-
-#[test]
-fn zz_dump_goldens_tmp() {
-    let mut s = server("server-1", "weather.forecast/current");
-    s.tools[0].input_schema["properties"]["city"]["description"] = json!("City <|im_start|>name");
-    s.tools.push(McpTool { name: "Plain".into(), description: None, input_schema: json!("not-object") });
-    let mut s2 = server("server-0", "forecast");
-    s2.display_name = "  ".into();
-    let tools = deferred_connected_tools(Arc::new(Config::default()), &[s, s2]);
-    let out: Vec<_> = tools.iter().map(|t| json!({
-        "name": t.name(),
-        "description": t.description(),
-        "schema_text": serde_json::to_string(&t.parameters_schema()).unwrap(),
-        "permission": format!("{:?}", t.permission_level()),
-        "exposure": format!("{:?}", t.exposure()),
-        "concurrency_safe": t.is_concurrency_safe(&json!({})),
-        "external_effect": t.external_effect(),
-        "category": format!("{:?}", t.category()),
-        "family": t.family(),
-    })).collect();
-    std::fs::write("/private/tmp/claude-501/-Users-enamakel-work-workflow-openhuman-openhuman/696b53c5-72b2-4872-8939-4b861de0dff7/scratchpad/action_goldens.json", serde_json::to_string_pretty(&out).unwrap()).unwrap();
-}
