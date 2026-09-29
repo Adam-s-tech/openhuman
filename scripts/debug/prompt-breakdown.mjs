@@ -13,6 +13,12 @@
 // --prompt-tokens) supplies the provider's own `usage.prompt_tokens`, every row
 // also gets a calibrated column scaled to that total.
 //
+// Section attribution follows the wire text only. An injected workspace file
+// (`### SOUL.md`) owns its first `#` heading's subtree, and nothing marks where
+// a file ends, so text that follows it under the same `#` heading (the agent
+// body's `##` sections after ROLE.md, for example) is counted under that file.
+// Use --depth 3 to see those sections one by one.
+//
 // Usage:
 //   node scripts/debug/prompt-breakdown.mjs <request.json>
 //        [--response <response.json|sse>] [--prompt-tokens N]
