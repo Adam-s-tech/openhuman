@@ -88,6 +88,13 @@ test("a reused body key with different text is IDEMPOTENCY_CONFLICT", async () =
   assert.equal(r.json.errorCode, "IDEMPOTENCY_CONFLICT");
 });
 
+test("a reused body key with a different scope is IDEMPOTENCY_CONFLICT", async () => {
+  await write("scope-a", "k1", "same text");
+  const r = await write("scope-b", "k1", "same text");
+  assert.equal(r.status, 409);
+  assert.equal(r.json.errorCode, "IDEMPOTENCY_CONFLICT");
+});
+
 test("scopes honours limit and caps at 50 without it", async () => {
   for (let i = 0; i < 60; i += 1) await write(`scope/${String(i).padStart(2, "0")}`, `k${i}`, "x");
   const all = await call("GET", "/memory/scopes?limit=100");
