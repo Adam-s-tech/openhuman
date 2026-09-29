@@ -280,6 +280,7 @@ export default function MemoryEnginePanel() {
         setSaving(false);
         if (status.state === 'done') {
           log('migrate done job=%s copied=%d', jobId, status.copied);
+          invalidateMemoryEngine();
           await finishSwitch(targetDriverRef.current);
         } else if (status.state === 'cancelled') {
           log('migrate cancelled job=%s', jobId);

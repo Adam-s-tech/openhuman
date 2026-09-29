@@ -447,13 +447,18 @@ impl CoreContext {
                 .ok()
                 .map(|handle| Arc::clone(&**handle));
             let parent = parent_handle.as_ref().and_then(|h| h.read().ok());
-            match parent {
-                Some(parent)
+            match (parent_handle.as_ref(), parent) {
+                (Some(handle), Some(parent))
                     if parent.workspace_dir.as_deref()
                         == Some(overlay.config.workspace_dir.as_path())
-                        && parent.memory_subsystem == overlay.config.subsystems.memory =>
+                        && (parent.memory_subsystem == overlay.config.subsystems.memory
+                            || self.embedder_config.as_ref().is_some_and(|config| {
+                                config.workspace_dir == overlay.config.workspace_dir
+                                    && config.subsystems.memory
+                                        == overlay.config.subsystems.memory
+                            })) =>
                 {
-                    Arc::clone(parent_handle.as_ref().expect("parent handle was read"))
+                    Arc::clone(handle)
                 }
                 _ => Arc::new(RwLock::new(WorkspaceBinding {
                     workspace_dir: Some(overlay.config.workspace_dir.clone()),
@@ -695,13 +700,24 @@ impl CoreContext {
         let binding = binding_handle
             .read()
             .map_err(|e| format!("workspace rebind failed: binding lock poisoned: {e}"))?;
-        if binding.workspace_dir.as_deref() == Some(workspace_dir)
-            && binding.memory_subsystem == memory_subsystem
-        {
-            log::debug!(
-                "[core-context] workspace {} already bound with the current subsystem config",
-                workspace_dir.display()
-            );
+        if binding.workspace_dir.as_deref() == Some(workspace_dir) {
+            if binding.memory_subsystem != memory_subsystem {
+                log::info!(
+                    "[core-context] rebound memory subsystem for {} to driver='{}'",
+                    workspace_dir.display(),
+                    memory_subsystem.driver
+                );
+                drop(binding);
+                binding_handle
+                    .write()
+                    .map_err(|e| format!("workspace rebind failed: binding lock poisoned: {e}"))?
+                    .memory_subsystem = memory_subsystem;
+            } else {
+                log::debug!(
+                    "[core-context] workspace {} already bound with the current subsystem config",
+                    workspace_dir.display()
+                );
+            }
             return Ok(());
         }
         log::info!(

@@ -103,9 +103,14 @@ pub struct MigrateStatus {
 }
 
 /// Cancel signals of the jobs in [`JOBS`].
-static CANCELS: OnceLock<Mutex<HashMap<String, Arc<Notify>>>> = OnceLock::new();
+struct CancelSlot {
+    notify: Arc<Notify>,
+    requested: bool,
+}
 
-fn cancels() -> std::sync::MutexGuard<'static, HashMap<String, Arc<Notify>>> {
+static CANCELS: OnceLock<Mutex<HashMap<String, CancelSlot>>> = OnceLock::new();
+
+fn cancels() -> std::sync::MutexGuard<'static, HashMap<String, CancelSlot>> {
     CANCELS
         .get_or_init(Default::default)
         .lock()
@@ -164,7 +169,10 @@ fn start_job() -> Result<String, String> {
             note: None,
         },
     );
-    cancels().insert(job_id.clone(), Arc::new(Notify::new()));
+    cancels().insert(
+        job_id.clone(),
+        CancelSlot { notify: Arc::new(Notify::new()), requested: false },
+    );
     Ok(job_id)
 }
 
@@ -223,7 +231,10 @@ async fn run_job<F, Fut>(
     F: FnOnce() -> Fut,
     Fut: Future<Output = Result<(), String>>,
 {
-    let cancel = cancels().get(&job_id).cloned().unwrap_or_default();
+    let cancel = cancels()
+        .get(&job_id)
+        .map(|slot| Arc::clone(&slot.notify))
+        .unwrap_or_default();
     let progress_id = job_id.clone();
     let copy = run_copy(source.as_ref(), target.as_ref(), move |records| {
         update_job(&progress_id, |j| j.copied = records);
@@ -263,7 +274,13 @@ async fn run_job<F, Fut>(
         CopyEnd::Finished(Ok(report)) => {
             // The copy is past its cancellation point. Removing the signal
             // makes concurrent cancel requests report `cancelled: false`.
-            cancels().remove(&job_id);
+            if cancels()
+                .remove(&job_id)
+                .is_some_and(|slot| slot.requested)
+            {
+                update_job(&job_id, |j| j.state = "cancelled".to_string());
+                return;
+            }
             update_job(&job_id, |j| j.copied = report.records);
             match commit().await {
                 Ok(()) => {
@@ -375,8 +392,9 @@ pub async fn memory_engine_migrate_cancel(
         .map(|j| j.state == "running")
         .ok_or_else(|| "unknown migration job".to_string())?;
     let cancelled = running && {
-        if let Some(signal) = cancels().get(job_id) {
-            signal.notify_one();
+        if let Some(slot) = cancels().get_mut(job_id) {
+            slot.requested = true;
+            slot.notify.notify_one();
             true
         } else {
             false

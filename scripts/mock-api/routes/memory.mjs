@@ -141,7 +141,15 @@ export async function handleMemory(ctx) {
     const text = String(textOf(body) ?? "");
     const seen = store.idempotency.get(key);
     if (seen) {
-      if (seen.text !== text) {
+      const scope = String(body.scope || "");
+      const modality = String(body.modality || "");
+      const content = body.content ?? {};
+      if (
+        seen.text !== text ||
+        seen.scope !== scope ||
+        seen.modality !== modality ||
+        JSON.stringify(seen.content) !== JSON.stringify(content)
+      ) {
         fail(res, 409, "IDEMPOTENCY_CONFLICT", "idempotency key reused");
         return true;
       }
@@ -154,10 +162,10 @@ export async function handleMemory(ctx) {
     store.idempotency.set(key, { text, id });
     store.events.push({
       id,
-      scope: String(body.scope || ""),
-      modality: String(body.modality || ""),
+      scope,
+      modality,
       wal_offset: store.nextOffset,
-      content: body.content ?? {},
+      content,
       context: { recorded_at: new Date().toISOString() },
     });
     ok(res, { event_id: id, status: "captured", replayed_from_idempotency: false });
