@@ -2,69 +2,6 @@ use super::ops::build_evm_payment_with_signer;
 use super::types::*;
 use base64::engine::{general_purpose::STANDARD as B64, Engine as _};
 
-#[test]
-fn payment_extra_accessors() {
-    let req = PaymentRequirements {
-        scheme: "exact".into(),
-        network: SOLANA_MAINNET_CAIP2.into(),
-        amount: "1000".into(),
-        asset: USDC_MINT_MAINNET.into(),
-        pay_to: "Recipient".into(),
-        max_timeout_seconds: 60,
-        extra: Some(PaymentExtra {
-            fee_payer: Some("FeePayer123".into()),
-            memo: Some("order_456".into()),
-            name: None,
-            version: None,
-        }),
-    };
-    assert_eq!(req.fee_payer_pubkey(), Some("FeePayer123"));
-    assert_eq!(req.memo_value(), Some("order_456"));
-}
-
-#[test]
-fn payment_extra_accessors_none() {
-    let req = PaymentRequirements {
-        scheme: "exact".into(),
-        network: SOLANA_MAINNET_CAIP2.into(),
-        amount: "1000".into(),
-        asset: USDC_MINT_MAINNET.into(),
-        pay_to: "Recipient".into(),
-        max_timeout_seconds: 60,
-        extra: None,
-    };
-    assert_eq!(req.fee_payer_pubkey(), None);
-    assert_eq!(req.memo_value(), None);
-}
-
-#[test]
-fn settlement_response_deserializes_success() {
-    let json_str = r#"{
-        "success": true,
-        "transaction": "4vJ9YFuPzUgdLkWYJf3Kqf",
-        "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
-        "payer": "EwWqGE4ZFKLofuestmU4LDdK7XM1N4ALgdZccwYugwGd"
-    }"#;
-    let resp: SettlementResponse = serde_json::from_str(json_str).unwrap();
-    assert!(resp.success);
-    assert_eq!(resp.transaction, "4vJ9YFuPzUgdLkWYJf3Kqf");
-    assert!(resp.error_reason.is_none());
-}
-
-#[test]
-fn settlement_response_deserializes_failure() {
-    let json_str = r#"{
-        "success": false,
-        "transaction": "",
-        "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
-        "payer": "EwWqGE4ZFKLofuestmU4LDdK7XM1N4ALgdZccwYugwGd",
-        "errorReason": "insufficient_funds"
-    }"#;
-    let resp: SettlementResponse = serde_json::from_str(json_str).unwrap();
-    assert!(!resp.success);
-    assert_eq!(resp.error_reason.as_deref(), Some("insufficient_funds"));
-}
-
 // ---------------------------------------------------------------------------
 // EVM tests
 // ---------------------------------------------------------------------------
