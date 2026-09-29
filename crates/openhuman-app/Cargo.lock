@@ -4416,11 +4416,13 @@ version = "0.64.7"
 dependencies = [
  "anyhow",
  "axum",
+ "base64 0.22.1",
  "chrono",
  "futures",
  "log",
  "once_cell",
  "openhuman",
+ "rand 0.10.2",
  "reqwest 0.12.28",
  "serde",
  "serde_json",
@@ -4431,6 +4433,8 @@ dependencies = [
  "tokio-util",
  "tracing",
  "url",
+ "urlencoding",
+ "uuid",
 ]
 
 [[package]]
