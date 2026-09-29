@@ -32,6 +32,12 @@ struct AuthOauthRevokeParams {
     integration_id: String,
 }
 
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AuthOauthClientKeyParams {
+    integration_id: String,
+}
+
 const FUNCTIONS: &[&str] = &[
     "auth_oauth_connect",
     "auth_oauth_list_integrations",
@@ -186,7 +192,7 @@ fn handle_auth_oauth_revoke_integration(params: Map<String, Value>) -> Controlle
 fn handle_auth_oauth_fetch_client_key(params: Map<String, Value>) -> ControllerFuture {
     Box::pin(async move {
         let config = config_rpc::load_config_with_timeout().await?;
-        let payload = deserialize_params::<AuthOauthRevokeParams>(params)?;
+        let payload = deserialize_params::<AuthOauthClientKeyParams>(params)?;
         to_json(
             crate::hosted::oauth::oauth_fetch_client_key(&config, payload.integration_id.trim())
                 .await?,
