@@ -1,0 +1,128 @@
+{
+  "name": "static",
+  "heavyWaitS": null,
+  "targetDir": null,
+  "targetBytes": null,
+  "checks": [
+    {
+      "name": "rust-fmt",
+      "status": "success",
+      "reportOnly": false,
+      "exitCode": 0,
+      "start": "2026-09-29T15:55:47.321Z",
+      "end": "2026-09-29T15:55:58.800Z",
+      "durationS": 11,
+      "peakRssMiB": 382
+    },
+    {
+      "name": "rust-layout",
+      "status": "success",
+      "reportOnly": false,
+      "exitCode": 0,
+      "start": "2026-09-29T15:55:58.800Z",
+      "end": "2026-09-29T15:55:59.034Z",
+      "durationS": 0,
+      "peakRssMiB": 0
+    },
+    {
+      "name": "agent-runtime-boundary",
+      "status": "success",
+      "reportOnly": false,
+      "exitCode": 0,
+      "start": "2026-09-29T15:55:59.034Z",
+      "end": "2026-09-29T15:56:07.762Z",
+      "durationS": 9,
+      "peakRssMiB": 240
+    },
+    {
+      "name": "ignored-tests-ratchet",
+      "status": "success",
+      "reportOnly": false,
+      "exitCode": 0,
+      "start": "2026-09-29T15:56:07.762Z",
+      "end": "2026-09-29T15:56:08.501Z",
+      "durationS": 1,
+      "peakRssMiB": 0
+    },
+    {
+      "name": "linux-tls-policy",
+      "status": "success",
+      "reportOnly": false,
+      "exitCode": 0,
+      "start": "2026-09-29T15:56:08.501Z",
+      "end": "2026-09-29T15:56:10.238Z",
+      "durationS": 2,
+      "peakRssMiB": 0
+    },
+    {
+      "name": "gated-test-allowlist",
+      "status": "success",
+      "reportOnly": false,
+      "exitCode": 0,
+      "start": "2026-09-29T15:56:10.239Z",
+      "end": "2026-09-29T15:56:10.367Z",
+      "durationS": 0,
+      "peakRssMiB": 0
+    },
+    {
+      "name": "orch-ip-gate",
+      "status": "success",
+      "reportOnly": false,
+      "exitCode": 0,
+      "start": "2026-09-29T15:56:10.367Z",
+      "end": "2026-09-29T15:56:10.378Z",
+      "durationS": 0,
+      "peakRssMiB": 0
+    },
+    {
+      "name": "feature-forwarding",
+      "status": "success",
+      "reportOnly": false,
+      "exitCode": 0,
+      "start": "2026-09-29T15:56:10.378Z",
+      "end": "2026-09-29T15:56:10.433Z",
+      "durationS": 0,
+      "peakRssMiB": 0
+    },
+    {
+      "name": "module-pins",
+      "status": "success",
+      "reportOnly": false,
+      "exitCode": 0,
+      "start": "2026-09-29T15:56:10.434Z",
+      "end": "2026-09-29T15:56:14.822Z",
+      "durationS": 4,
+      "peakRssMiB": 29
+    },
+    {
+      "name": "submodule-monotonic",
+      "status": "success",
+      "reportOnly": false,
+      "exitCode": 0,
+      "start": "2026-09-29T15:56:14.822Z",
+      "end": "2026-09-29T15:56:14.930Z",
+      "durationS": 0,
+      "peakRssMiB": 0
+    },
+    {
+      "name": "toolchain-image-drift",
+      "status": "success",
+      "reportOnly": false,
+      "exitCode": 0,
+      "start": "2026-09-29T15:56:14.930Z",
+      "end": "2026-09-29T15:56:14.975Z",
+      "durationS": 0,
+      "peakRssMiB": 0
+    },
+    {
+      "name": "test-inventory",
+      "status": "success",
+      "reportOnly": false,
+      "exitCode": 0,
+      "start": "2026-09-29T15:56:14.975Z",
+      "end": "2026-09-29T15:56:15.302Z",
+      "durationS": 0,
+      "peakRssMiB": 0
+    }
+  ]
+}

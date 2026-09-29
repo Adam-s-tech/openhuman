@@ -1,0 +1,28 @@
+{
+  "name": "tauri",
+  "heavyWaitS": 313,
+  "targetDir": "/scratch/target/tauri",
+  "targetBytes": 8064672526,
+  "checks": [
+    {
+      "name": "clippy-tauri",
+      "status": "success",
+      "reportOnly": false,
+      "exitCode": 0,
+      "start": "2026-09-29T16:01:00.385Z",
+      "end": "2026-09-29T16:03:41.163Z",
+      "durationS": 161,
+      "peakRssMiB": 1002
+    },
+    {
+      "name": "tauri-coverage",
+      "status": "success",
+      "reportOnly": false,
+      "exitCode": 0,
+      "start": "2026-09-29T16:03:41.163Z",
+      "end": "2026-09-29T16:07:11.764Z",
+      "durationS": 211,
+      "peakRssMiB": 2205
+    }
+  ]
+}

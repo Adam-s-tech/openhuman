@@ -1,0 +1,28 @@
+{
+  "name": "rust-cov",
+  "heavyWaitS": 0,
+  "targetDir": "/scratch/target/cov",
+  "targetBytes": 17348439738,
+  "checks": [
+    {
+      "name": "test-modules",
+      "status": "success",
+      "reportOnly": false,
+      "exitCode": 0,
+      "start": "2026-09-29T15:55:47.333Z",
+      "end": "2026-09-29T15:55:48.053Z",
+      "durationS": 1,
+      "peakRssMiB": 0
+    },
+    {
+      "name": "rust-core-coverage",
+      "status": "success",
+      "reportOnly": false,
+      "exitCode": 0,
+      "start": "2026-09-29T15:55:48.053Z",
+      "end": "2026-09-29T16:06:09.019Z",
+      "durationS": 621,
+      "peakRssMiB": 25745
+    }
+  ]
+}
