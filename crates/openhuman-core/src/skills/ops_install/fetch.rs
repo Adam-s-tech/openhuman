@@ -5,31 +5,16 @@ use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 
+use tinyskills::{
+    check_document_size, redact_url, validate_fetched_document, write_installed_document,
+    DocumentWrite, MAX_INSTALL_DOCUMENT_BYTES,
+};
+
 use super::super::ops_discover::{discover_workflows_inner, is_workspace_trusted};
-use super::super::ops_parse::parse_workflow_md_str;
-use super::super::ops_types::SKILL_MD;
 use super::url_validation::{is_loopback_http_url, read_allow_local_http_env};
 use super::url_validation::{
     normalize_install_url, validate_install_url_with_config, validate_resolved_host,
 };
-
-/// Strip userinfo, query, and fragment from a URL for safe inclusion in
-/// observability tags. Returns `<scheme>://<host>[:<port>]<path>` on success,
-/// or `"<unparseable>"` on parse failure. Never returns the raw URL — even
-/// validated install URLs may carry signed query params or embedded creds we
-/// don't want flowing to Sentry.
-fn redact_url(raw: &str) -> String {
-    match url::Url::parse(raw) {
-        Ok(u) => {
-            let scheme = u.scheme();
-            let host = u.host_str().unwrap_or("");
-            let port = u.port().map(|p| format!(":{p}")).unwrap_or_default();
-            let path = u.path();
-            format!("{scheme}://{host}{port}{path}")
-        }
-        Err(_) => "<unparseable>".to_string(),
-    }
-}
 
 /// Default wall-clock budget for the SKILL.md fetch.
 pub const DEFAULT_INSTALL_TIMEOUT_SECS: u64 = 60;
@@ -43,7 +28,7 @@ pub const MAX_INSTALL_TIMEOUT_SECS: u64 = 600;
 /// Upper bound on the fetched SKILL.md body. Single-file skills rarely exceed
 /// a few KB; the 1 MiB cap here is a defensive limit against a hostile or
 /// misconfigured host streaming an unbounded response into memory.
-pub const MAX_WORKFLOW_MD_BYTES: usize = 1024 * 1024;
+pub const MAX_WORKFLOW_MD_BYTES: usize = MAX_INSTALL_DOCUMENT_BYTES;
 
 /// Input for [`install_workflow_from_url`]. Mirrors the `skills.install_from_url`
 /// JSON-RPC payload.
@@ -283,12 +268,7 @@ pub(crate) async fn install_workflow_from_url_with_home(
     }
 
     if let Some(len) = response.content_length() {
-        if len > MAX_WORKFLOW_MD_BYTES as u64 {
-            return Err(format!(
-                "fetch too large: {} bytes exceeds {MAX_WORKFLOW_MD_BYTES} limit",
-                len
-            ));
-        }
+        check_document_size(len).map_err(|e| e.to_string())?;
     }
 
     let bytes = match response.bytes().await {
@@ -301,29 +281,13 @@ pub(crate) async fn install_workflow_from_url_with_home(
         }
     };
 
-    if bytes.len() > MAX_WORKFLOW_MD_BYTES {
-        return Err(format!(
-            "fetch too large: {} bytes exceeds {MAX_WORKFLOW_MD_BYTES} limit",
-            bytes.len()
-        ));
-    }
-
-    let content = String::from_utf8(bytes.to_vec())
-        .map_err(|e| format!("invalid SKILL.md: body is not valid utf-8: {e}"))?;
-
-    let (frontmatter, _body, parse_warnings) =
-        parse_workflow_md_str(&content).ok_or_else(|| {
-            "invalid SKILL.md: frontmatter block opened with `---` but never terminated".to_string()
-        })?;
-
-    if frontmatter.name.trim().is_empty() {
-        return Err("invalid SKILL.md: missing required field 'name'".to_string());
-    }
-    if frontmatter.description.trim().is_empty() {
-        return Err("invalid SKILL.md: missing required field 'description'".to_string());
-    }
-
-    let slug = super::url_validation::derive_install_slug(&frontmatter)?;
+    // Size, UTF-8, frontmatter, required fields and slug derivation are
+    // owned by tinyskills; the second size check guards against a lying
+    // Content-Length header.
+    let document = validate_fetched_document(&bytes).map_err(|e| e.to_string())?;
+    let slug = document.slug;
+    let content = document.content;
+    let parse_warnings = document.warnings;
 
     // Install to user scope (`~/.openhuman/skills/<slug>`), which `discover_workflows`
     // scans unconditionally. Project scope (`<ws>/.openhuman/skills/`) is gated on
@@ -333,84 +297,31 @@ pub(crate) async fn install_workflow_from_url_with_home(
         .ok_or_else(|| "write failed: unable to resolve home directory".to_string())?
         .join(".openhuman")
         .join("skills");
-    let target_dir = skills_root.join(&slug);
-    if target_dir.exists() {
-        let target_file = target_dir.join(SKILL_MD);
-        if !target_file.is_file() {
-            return Err(format!(
-                "skill install target already exists but has no {SKILL_MD}: {}",
-                target_dir.display()
-            ));
-        }
 
-        tracing::info!(
-            raw_url = %redacted_raw_url,
-            fetch_url = %redacted_fetch_url,
-            slug = %slug,
-            target = %target_file.display(),
-            "[skills] install_workflow_from_url: already installed"
-        );
-
-        return Ok(InstallWorkflowFromUrlOutcome {
-            url: raw_url,
-            stdout: format!(
-                "Skill {slug:?} is already installed at {}",
-                target_file.display()
-            ),
-            stderr: parse_warnings.join("\n"),
-            new_skills: Vec::new(),
-        });
-    }
-
-    std::fs::create_dir_all(&target_dir).map_err(|e| {
-        format!(
-            "write failed: create directory {}: {e}",
-            target_dir.display()
-        )
-    })?;
-
-    let target_file = target_dir.join(SKILL_MD);
-    let temp_file = target_dir.join("SKILL.md.tmp");
-
-    // Roll the partial install back if either filesystem op fails so the
-    // next retry isn't blocked by a leftover empty directory. Cleanup is
-    // best-effort — if it fails, we surface the original write error.
-    let write_result: Result<(), String> = std::fs::write(&temp_file, &content)
-        .map_err(|e| format!("write failed: {}: {e}", temp_file.display()))
-        .and_then(|_| {
-            std::fs::rename(&temp_file, &target_file)
-                .map_err(|e| format!("write failed: rename {}: {e}", target_file.display()))
-        });
-
-    if let Err(e) = write_result {
-        let _ = std::fs::remove_file(&temp_file);
-        if let Err(rm_err) = std::fs::remove_dir(&target_dir) {
-            tracing::warn!(
-                target_dir = %target_dir.display(),
-                error = %rm_err,
-                "[skills] install_workflow_from_url: rollback remove_dir failed (non-fatal)"
-            );
-        } else {
-            tracing::warn!(
-                target_dir = %target_dir.display(),
-                "[skills] install_workflow_from_url: rolled back partial install after write failure"
-            );
-        }
-        return Err(e);
-    }
-
-    #[cfg(unix)]
+    let target_file = match write_installed_document(&skills_root, &slug, &content)
+        .map_err(|e| e.to_string())?
     {
-        use std::os::unix::fs::PermissionsExt;
-        let perms = std::fs::Permissions::from_mode(0o644);
-        if let Err(e) = std::fs::set_permissions(&target_file, perms) {
-            tracing::warn!(
+        DocumentWrite::Installed(path) => path,
+        DocumentWrite::AlreadyInstalled(target_file) => {
+            tracing::info!(
+                raw_url = %redacted_raw_url,
+                fetch_url = %redacted_fetch_url,
+                slug = %slug,
                 target = %target_file.display(),
-                error = %e,
-                "[skills] install_workflow_from_url: chmod 0644 failed (non-fatal)"
+                "[skills] install_workflow_from_url: already installed"
             );
+
+            return Ok(InstallWorkflowFromUrlOutcome {
+                url: raw_url,
+                stdout: format!(
+                    "Skill {slug:?} is already installed at {}",
+                    target_file.display()
+                ),
+                stderr: parse_warnings.join("\n"),
+                new_skills: Vec::new(),
+            });
         }
-    }
+    };
 
     let trusted_after = is_workspace_trusted(workspace_dir);
     let after = discover_workflows_inner(home, Some(workspace_dir), trusted_after);
