@@ -411,7 +411,9 @@ pub(crate) fn begin_outage_attempt(state: Option<&RetryState>, key: &str) -> Opt
     let state = state?;
     let mut states = state.lock().expect("triage retry state lock poisoned");
     let outage = states.entry(key.to_string()).or_default();
-    if outage.consecutive_failures > 0 && (outage.in_flight || outage.next_attempt_ms > now_ms()) {
+    if outage.in_flight
+        || (outage.consecutive_failures > 0 && outage.next_attempt_ms > now_ms())
+    {
         return None;
     }
     outage.in_flight = true;
@@ -426,7 +428,12 @@ pub(crate) fn record_outage(
 ) -> Option<TriageOutcome> {
     let state = state?;
     let mut states = state.lock().expect("triage retry state lock poisoned");
-    let outage = states.get_mut(key)?;
+    let Some(outage) = states.get_mut(key) else {
+        return (generation.is_some()).then(|| TriageOutcome::Deferred {
+            defer_until_ms: now_ms().saturating_add(OUTAGE_BACKOFF_BASE_MS),
+            reason: "managed backend recovered during another attempt".to_string(),
+        });
+    };
     if !outage.in_flight || Some(outage.generation) != generation {
         return Some(TriageOutcome::Deferred {
             defer_until_ms: now_ms().saturating_add(OUTAGE_BACKOFF_BASE_MS),
