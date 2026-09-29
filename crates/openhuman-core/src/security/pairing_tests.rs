@@ -69,5 +69,3 @@ async fn public_bind_uses_nonempty_env_token_without_writing_file() {
     assert!(!tmp.join("core.token").exists());
     std::fs::remove_dir_all(&tmp).ok();
 }
-
-// ── constant_time_eq ─────────────────────────────────────
