@@ -10,6 +10,8 @@ import PanelPage from '../../layout/PanelPage';
 import MemoryWindowControl from '../components/MemoryWindowControl';
 import { SettingsSection } from '../controls';
 import SettingsPanel from '../layout/SettingsPanel';
+import { useMemoryEngineErrorText } from './MemoryEngineErrorAlert';
+import { classifyMemoryEngineError } from './memoryEngineUtils';
 
 interface MemoryDataPanelProps {
   /** When true, render without the SettingsHeader chrome (used when embedded
