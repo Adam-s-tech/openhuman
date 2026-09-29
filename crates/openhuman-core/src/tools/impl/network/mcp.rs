@@ -260,9 +260,12 @@ impl Tool for McpCallTool {
             .get("arguments")
             .cloned()
             .ok_or_else(|| anyhow::anyhow!("missing required `arguments` object"))?;
-        if !arguments.is_object() {
-            return Ok(ToolResult::error("`arguments` must be an object"));
-        }
+        // An object JSON-encoded into a string is decoded; anything that
+        // cannot hold one is refused naming what arrived.
+        let arguments = match tinymcp_bus::normalize_tool_arguments(arguments) {
+            Ok(arguments) => Value::Object(arguments),
+            Err(error) => return Ok(ToolResult::error(format!("`arguments`: {error}"))),
+        };
 
         let scrubber = SecretScrubber::for_server(&self.registry, &server);
         let mut result = match self.registry.call_tool(&server, &tool, arguments).await {
@@ -304,7 +307,7 @@ pub(super) struct SecretScrubber {
 }
 
 impl SecretScrubber {
-    fn for_server(registry: &McpServerRegistry, server: &str) -> Self {
+    pub(super) fn for_server(registry: &McpServerRegistry, server: &str) -> Self {
         let Some(definition) = registry.get(server) else {
             return Self {
                 secrets: Vec::new(),
@@ -464,7 +467,7 @@ impl SecretScrubber {
         }
     }
 
-    fn scrub_result(&self, mut result: ToolResult) -> ToolResult {
+    pub(super) fn scrub_result(&self, mut result: ToolResult) -> ToolResult {
         if self.secrets.is_empty() {
             return result;
         }

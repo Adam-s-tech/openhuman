@@ -15,7 +15,7 @@ pub use integrations::{
 };
 pub use mcp::{
     GitbooksConfig, HttpHeader, McpAuthConfig, McpClientConfig, McpClientIdentityConfig,
-    McpServerConfig,
+    McpServerConfig, McpToolExposure,
 };
 pub use multimodal::{MultimodalConfig, MultimodalFileConfig};
 pub use search::{

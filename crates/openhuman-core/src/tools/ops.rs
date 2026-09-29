@@ -814,6 +814,19 @@ pub fn all_tools_with_runtime(
                 count = mcp_registry.list().len(),
                 "[mcp_client] registered generic MCP bridge tools"
             );
+            // And every cached server tool as its own `mcp_<server>_<tool>`,
+            // deferred unless the server asks for direct exposure. Names
+            // already taken keep their owner.
+            let reserved: std::collections::HashSet<String> =
+                tools.iter().map(|tool| tool.name().to_string()).collect();
+            tools.extend(
+                crate::tools::implementations::network::configured_server_tools(
+                    root_config,
+                    &mcp_registry,
+                    security,
+                    &reserved,
+                ),
+            );
         } else {
             tracing::debug!("[mcp_client] no MCP servers registered — bridge tools skipped");
         }

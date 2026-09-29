@@ -175,7 +175,7 @@ fn connected_mcp_actions_enter_search_and_leave_on_disconnect() {
         }],
     }];
 
-    let action = searchable_name("server-1", "forecast");
+    let action = searchable_name("server-1", "example/weather", "forecast");
     prelude.refresh_delegation_tool_surface();
     assert!(prelude.synthesized_tool_names_for_test().contains(&action));
     {

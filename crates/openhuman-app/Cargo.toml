@@ -319,6 +319,13 @@ e2e-test-support = ["openhuman_core/e2e-test-support"]
 [patch."https://github.com/tinyhumansai/tinymemory"]
 tinymemory-api = { path = "../../vendor/tinymemory/crates/tinymemory-api" }
 
+[patch."https://github.com/tinyhumansai/tinytools"]
+# tinymcp's `tools` feature names tinytools by git rev so it can be built on its
+# own. Redirect it to the copy tinyagents vendors — the one the harness and
+# every host tool link — so there is exactly one `tinytools` package and one
+# `Tool` trait. Without this, MCP tools would not satisfy the harness's trait.
+tinytools = { path = "../../vendor/tinyagents/vendor/tinytools/crates/tinytools" }
+
 [patch."https://github.com/tinyhumansai/tinyinference"]
 # Crates in this world name tinyinference by git rev; without this the shell
 # world resolves TWO copies of the same types. Mirrors the root Cargo.toml.
