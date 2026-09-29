@@ -26,6 +26,8 @@
 //! ```
 //!
 //! Optional: `COMPUTER_E2E_CHROME` (Chrome executable), `COMPUTER_E2E_HEADLESS=1`,
+//! `COMPUTER_E2E_TASK_FILE` / `COMPUTER_E2E_FACTS_FILE` / `COMPUTER_E2E_FLOW_FILE`
+//! (replay another saved task, e.g. TinyComputer's Kashmir demo),
 //! `COMPUTER_E2E_MINUTES` (default 20), `COMPUTER_E2E_PLAN=1` (plan instead of
 //! replaying `fixtures/computer/bali/plan.json`), `COMPUTER_E2E_DECISION_MODEL`
 //! (`jev`, `open_jev`, `sage`), `COMPUTER_E2E_OUT` (report directory).
@@ -117,7 +119,18 @@ async fn books_a_bali_flight_up_to_the_payment_page() {
     }
     let dir = tempfile::tempdir().expect("tempdir");
     let config = config(dir.path());
-    let facts: BTreeMap<String, String> = serde_json::from_str(FACTS).expect("facts");
+    // Overrides let the same harness replay another saved task, such as
+    // TinyComputer's own Kashmir demo, to tell site drift from host bugs.
+    let read = |var: &str, default: &str| {
+        std::env::var(var).map_or_else(
+            |_| default.to_owned(),
+            |path| std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{var}={path}: {e}")),
+        )
+    };
+    let task_text = read("COMPUTER_E2E_TASK_FILE", TASK);
+    let facts_text = read("COMPUTER_E2E_FACTS_FILE", FACTS);
+    let plan_text = read("COMPUTER_E2E_FLOW_FILE", PLAN);
+    let facts: BTreeMap<String, String> = serde_json::from_str(&facts_text).expect("facts");
 
     let status = openhuman_core::modules::computer::status(&config, true).await;
     println!(
@@ -141,14 +154,14 @@ async fn books_a_bali_flight_up_to_the_payment_page() {
     assert!(capabilities.rescue_configured, "no rescue model configured");
 
     let task = BrowserTask {
-        goal: TASK.to_owned(),
+        goal: task_text,
         facts: facts.clone(),
         origins: vec!["https://.google.com".into(), "https://.goindigo.in".into()],
         max_actions: 200,
         flow: if std::env::var("COMPUTER_E2E_PLAN").is_ok_and(|v| v == "1") {
             None
         } else {
-            Some(serde_json::from_str(PLAN).expect("saved Bali flow"))
+            Some(serde_json::from_str(&plan_text).expect("saved flow"))
         },
     };
     let minutes = std::env::var("COMPUTER_E2E_MINUTES")
