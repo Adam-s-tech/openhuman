@@ -28,7 +28,6 @@ fn hint_role(hint: &str) -> Option<&'static str> {
         "coding" => Some("coding"),
         "vision" => Some("vision"),
         "summarization" => Some("summarization"),
-        "subconscious" => Some("subconscious"),
         _ => None,
     }
 }
@@ -84,14 +83,9 @@ pub fn resolve_model_for_hint(hint_or_tier: &str, config: &Config) -> String {
 /// `create_chat_model` with it so the completion follows the role's route.
 pub fn role_for_model_tier(hint_or_tier: &str) -> &'static str {
     let trimmed = hint_or_tier.trim();
-    match hint_role(trimmed).or_else(|| legacy_tier_role(trimmed)) {
-        // The background subconscious *role* keeps its own `subconscious_provider`
-        // (see `resolve_model_for_hint`), but as a model-tier spelling it has
-        // always ridden the chat route.
-        Some("subconscious") => "chat",
-        Some(role) => role,
-        None => "chat",
-    }
+    hint_role(trimmed)
+        .or_else(|| legacy_tier_role(trimmed))
+        .unwrap_or("chat")
 }
 
 /// The user's pinned managed **default model** — `config.default_model` when
