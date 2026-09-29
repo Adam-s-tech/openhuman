@@ -2,7 +2,7 @@
 
 use serde_json::json;
 
-use crate::config::{Config, ComposioHostCredential};
+use crate::config::{ComposioHostCredential, Config};
 use crate::integrations::composio::tools::redact::redact_and_report;
 use crate::integrations::composio::tools::redact_composio_outcome;
 

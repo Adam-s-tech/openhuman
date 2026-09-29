@@ -65,7 +65,11 @@ fn cache_key_with_backend_url(config: &Config, backend_url: &str) -> String {
     digest.update(b"\0");
     match crate::security::credentials::session_support::resolve_backend_credential(config) {
         Ok(credential) => {
-            digest.update(if credential.is_api_key() { b"api-key\0" } else { b"session\0" });
+            digest.update(if credential.is_api_key() {
+                b"api-key\0"
+            } else {
+                b"session\0"
+            });
             digest.update(credential.secret().as_bytes());
         }
         Err(_) => digest.update(b"unavailable"),
@@ -86,7 +90,11 @@ fn cache_key_with_backend_url(config: &Config, backend_url: &str) -> String {
             digest.update(urls.v3.as_bytes());
         }
     } else {
-        let inline_key = composio.api_key.as_deref().map(str::trim).filter(|key| !key.is_empty());
+        let inline_key = composio
+            .api_key
+            .as_deref()
+            .map(str::trim)
+            .filter(|key| !key.is_empty());
         if let Some(key) = inline_key {
             digest.update(key.as_bytes());
         } else if composio.mode.trim() == crate::config::schema::COMPOSIO_MODE_DIRECT {
