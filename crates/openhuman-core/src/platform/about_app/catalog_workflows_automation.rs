@@ -92,17 +92,17 @@ Capability {
         privacy: DERIVED_TO_BACKEND,
     },
 Capability {
-        id: "workflows.tinybrowser_automation",
+        id: "workflows.computer_browser_automation",
         name: "Browser Automation",
         domain: "workflows",
         category: CapabilityCategory::Workflows,
-        description: "Inspect pages and run bounded browser tasks in Chrome through TinyBrowser.",
-        how_to: "Connections > Browser, then ask the assistant to use the browser",
+        description: "Inspect pages and run bounded browser tasks in Chrome through TinyComputer, with a rescue model for failed steps.",
+        how_to: "Connections > Computer > Browser, then ask the assistant to use the browser",
         status: CapabilityStatus::Beta,
         privacy: Some(CapabilityPrivacy {
             leaves_device: true,
             data_kind: PrivacyDataKind::Raw,
-            destinations: &["Visited websites", "OpenRouter or OpenHuman backend for Jev tasks"],
+            destinations: &["Visited websites", "OpenRouter, OpenHuman backend, OpenJev or Sage for task decisions"],
         }),
     },
 Capability {

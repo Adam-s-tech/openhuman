@@ -18,6 +18,8 @@ mod channels;
 mod cli_overrides;
 #[doc(hidden)]
 pub use cli_overrides::AppliedInferenceOverride;
+mod computer;
+pub use computer::{ComputerConfig, DecisionModel};
 mod context;
 mod dashboard;
 mod desktop;

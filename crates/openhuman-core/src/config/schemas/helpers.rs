@@ -107,6 +107,16 @@ pub(super) struct BrowserSettingsUpdate {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(super) struct ComputerSettingsUpdate {
+    pub(super) decision_model: Option<String>,
+    pub(super) sage_fast: Option<bool>,
+    pub(super) planner_model: Option<String>,
+    pub(super) rescue_model: Option<String>,
+    pub(super) max_rescues: Option<u32>,
+}
+
+#[derive(Debug, Deserialize)]
 pub(super) struct AnalyticsSettingsUpdate {
     pub(super) enabled: Option<bool>,
 }

@@ -318,8 +318,8 @@ End-to-end coverage of the agent harness via the web-chat RPC surface against an
 
 | ID    | Feature            | Layer | Test path(s)                                                                                             | Status | Notes                                                                                               |
 | ----- | ------------------ | ----- | -------------------------------------------------------------------------------------------------------- | ------ | --------------------------------------------------------------------------------------------------- |
-| 7.1.1 | Open URL           | RU+WD | `crates/openhuman-core/src/tools/impl/browser/browser_open_tests.rs`, `app/test/e2e/specs/tool-browser-flow.spec.ts` | ✅     | `browser_open` is a deferred one-shot TinyBrowser entry point. |
-| 7.1.2 | Browser Automation | RU+WD | `crates/openhuman-core/src/tools/impl/browser/browser_tinybrowser_tests.rs`, `app/test/e2e/specs/tool-browser-flow.spec.ts` | ✅     | `browser` is deferred until `tool_search`; tests cover task limits, session reuse, policy rebinds, and host confirmation. |
+| 7.1.1 | Open URL           | RU+WD | `crates/openhuman-core/src/tools/impl/browser/browser_open_tests.rs`, `app/test/e2e/specs/tool-browser-flow.spec.ts` | ✅     | `browser_open` is a deferred one-shot TinyComputer entry point. |
+| 7.1.2 | Browser Automation | RU+WD | `crates/openhuman-core/src/tools/impl/browser/browser_computer_tests.rs`, `app/test/e2e/specs/tool-browser-flow.spec.ts` | ✅     | `browser` is deferred until `tool_search`; tests cover task limits, TinyComputer task pauses, session reuse, policy rebinds, and host confirmation. |
 | 7.1.3 | Browser Connections | VU+RU | `app/src/components/settings/panels/BrowserConnectionsPanel.test.tsx`, `crates/openhuman-core/src/modules/browser_tests.rs` | ✅ | Readiness, launch settings, and the shared website policy are configured in Connections. |
 
 ### 7.2 Network

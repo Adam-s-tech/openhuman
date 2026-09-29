@@ -136,6 +136,10 @@ pub struct Config {
     #[serde(default)]
     pub desktop: DesktopConfig,
 
+    /// TinyComputer decision, planner and rescue models.
+    #[serde(default)]
+    pub computer: ComputerConfig,
+
     /// Host-level switches for the configurable hook system. The hooks
     /// themselves live in `hooks.json` files, not here — see
     /// [`HooksConfig`].

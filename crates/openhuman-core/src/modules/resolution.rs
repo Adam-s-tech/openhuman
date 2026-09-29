@@ -128,6 +128,20 @@ impl ResolutionTable {
         let _ = sender.send(Some(resolution));
     }
 
+    /// Record that a module which resolved `Ready` has since faulted, such as
+    /// when a lifecycle reinitialization is refused. tinybus never recovers a
+    /// faulted module in-process, so the slot settles as failed and later
+    /// callers get the reason instead of a retry.
+    pub(crate) fn mark_faulted(&self, id: &str, reason: String) {
+        let mut slots = self
+            .slots
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if matches!(slots.get(id), Some(Slot::Done(Resolution::Ready))) {
+            slots.insert(id.to_string(), Slot::Done(Resolution::Failed(reason)));
+        }
+    }
+
     /// The state of `id` without touching it.
     pub(super) fn peek(&self, id: &str) -> ResolutionState {
         let slots = self

@@ -25,6 +25,8 @@ fn browser_tools_are_deferred_and_task_is_bounded() {
         .clone();
     assert!(actions.contains(&json!("task")));
     assert!(actions.contains(&json!("confirm_pending")));
+    assert!(actions.contains(&json!("task_continue")));
+    assert!(actions.contains(&json!("task_cancel")));
     // The tool gates immediately before dispatch, including controller steps.
     // The outer middleware must not prompt a second time for the same action.
     assert!(!tool.external_effect_with_args(&json!({"action":"confirm_pending"})));
@@ -94,39 +96,92 @@ fn direct_actions_use_typed_targets_and_reject_unbounded_inputs() {
 }
 
 #[test]
-fn confirmation_is_bound_to_one_pending_action() {
+fn confirmation_is_bound_to_one_pending_task_token() {
     let pending = Pending {
-        session: SessionId::new("one"),
-        action: Action::Click {
-            target: Target::reference("e1"),
-            new_tab: false,
-        },
-        url: "https://example.com".into(),
+        task: TaskId::new("t-1"),
+        action: "Submit the booking".into(),
+        target: "Confirm button".into(),
         token: "token-one".into(),
     };
-    let exact = json!({"token":"token-one","pending_action":pending.action.clone()});
-    assert!(pending.matches(&exact));
-    assert!(!pending.matches(&json!({"token":"token-two","pending_action":pending.action.clone()})));
-    assert!(!pending.matches(&json!({"token":"token-one","pending_action":{"action":"back"}})));
+    assert!(pending.matches(&json!({"token":"token-one"})));
+    assert!(!pending.matches(&json!({"token":"token-two"})));
+    assert!(!pending.matches(&json!({})));
 }
 
 #[tokio::test]
-async fn jev_action_budget_stops_before_module_dispatch() {
-    let client = BrowserClient::new(Arc::new(crate::config::Config::default()));
-    let security = SecurityPolicy {
-        enabled: true,
-        max_actions_per_hour: 0,
-        ..SecurityPolicy::default()
-    };
-    let browser = BudgetedBrowser {
-        client: &client,
-        security: &security,
-    };
-    let error = browser
-        .perform(&SessionId::new("not-open"), &Action::Back)
+async fn needs_approval_view_is_held_behind_a_token_and_cleared_by_other_states() {
+    let client = Arc::new(BrowserClient::new(Arc::new(
+        crate::config::Config::default(),
+    )));
+    let tool = BrowserTool::new(Arc::new(SecurityPolicy::default()), client, 3);
+    let paused: TaskView = serde_json::from_value(json!({
+        "id": "t-1",
+        "status": {"state": "needs_approval", "action": "Send the message", "target": "Send"},
+        "summary": "Ready to send.",
+        "progress": 0.9,
+        "next": ["ContinueTask"]
+    }))
+    .unwrap();
+    let output = tool.report(paused).await.unwrap();
+    let token = output["pending"]["token"].as_str().unwrap().to_owned();
+    assert_eq!(output["pending"]["task_id"], "t-1");
+    assert!(tool
+        .pending
+        .lock()
+        .await
+        .as_ref()
+        .unwrap()
+        .matches(&json!({"token": token})));
+
+    let done: TaskView = serde_json::from_value(json!({
+        "id": "t-1",
+        "status": {"state": "done", "answer": "Sent.", "records": {}},
+        "summary": "Sent.",
+        "progress": 1.0,
+        "next": []
+    }))
+    .unwrap();
+    let output = tool.report(done).await.unwrap();
+    assert!(output.get("pending").is_none());
+    assert!(tool.pending.lock().await.is_none());
+}
+
+#[tokio::test]
+async fn confirm_pending_without_a_held_action_is_refused() {
+    let client = Arc::new(BrowserClient::new(Arc::new(
+        crate::config::Config::default(),
+    )));
+    let tool = BrowserTool::new(Arc::new(SecurityPolicy::default()), client, 3);
+    let error = tool
+        .run(&json!({"action":"confirm_pending","token":"x"}))
         .await
         .unwrap_err();
-    assert_eq!(error.name, "ActionBudgetExceeded");
+    assert!(error.to_string().contains("No pending"), "{error}");
+}
+
+#[tokio::test]
+async fn task_inputs_must_be_text() {
+    assert_eq!(
+        task_inputs(&json!({"inputs":{"name":"Asha"}})).unwrap()["name"],
+        "Asha"
+    );
+    assert!(task_inputs(&json!({"inputs":{"age":3}})).is_err());
+    assert!(task_inputs(&json!({})).unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn task_without_allowed_websites_is_refused_before_the_module() {
+    let client = Arc::new(BrowserClient::new(Arc::new(
+        crate::config::Config::default(),
+    )));
+    if client.task_origins().is_empty() {
+        let tool = BrowserTool::new(Arc::new(SecurityPolicy::default()), client, 3);
+        let error = tool
+            .run(&json!({"action":"task","goal":"Read the news"}))
+            .await
+            .unwrap_err();
+        assert!(error.to_string().contains("allowed origin"), "{error}");
+    }
 }
 
 #[tokio::test]

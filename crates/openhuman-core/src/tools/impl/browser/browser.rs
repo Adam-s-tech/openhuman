@@ -1,4 +1,4 @@
-//! Agent-facing browser backed by the TinyBrowser module.
+//! Agent-facing browser backed by the TinyComputer module's browser and task members.
 #[path = "browser_session_pool.rs"]
 mod session_pool;
 
@@ -21,31 +21,26 @@ use std::{
 };
 #[cfg(test)]
 use std::{collections::HashMap, time::Duration};
-use tinybrowser_bus::{
+use tinycomputer_bus::agent::{ContinueTaskRequest, TaskId, TaskStatus, TaskView};
+use tinycomputer_bus::browser::{
     Action, DownloadState, DownloadWaitRequest, LocateBy, Locator, NavigateRequest, ReadRequest,
-    ScrollDirection, SessionId, SessionOptions, Snapshot, SnapshotRequest, Target, WaitState,
+    ScrollDirection, SessionId, SessionOptions, SnapshotRequest, Target, WaitState,
 };
-use tinybrowser_control::{BrowserControl, BrowserControlError, TaskRequest, TaskStatus};
 use tinytools::{Tool, ToolCallOptions, ToolResult, ToolRunContext};
 use tokio::sync::Mutex;
 
+/// A task paused before an irreversible action, waiting for host approval.
 struct Pending {
-    session: SessionId,
-    action: Action,
-    url: String,
+    task: TaskId,
+    action: String,
+    target: String,
     token: String,
 }
 
 impl Pending {
     fn matches(&self, args: &Value) -> bool {
         args["token"].as_str() == Some(self.token.as_str())
-            && serde_json::to_value(&self.action).ok().as_ref() == Some(&args["pending_action"])
     }
-}
-
-struct BudgetedBrowser<'a> {
-    client: &'a BrowserClient,
-    security: &'a SecurityPolicy,
 }
 
 fn needs_host_confirmation(action: &Action) -> bool {
@@ -168,36 +163,6 @@ async fn approve_browser_action(
         anyhow::bail!("Browser page changed during host approval");
     }
     Ok(())
-}
-
-impl BrowserControl for BudgetedBrowser<'_> {
-    async fn snapshot(
-        &self,
-        session: &SessionId,
-        request: &SnapshotRequest,
-    ) -> Result<Snapshot, BrowserControlError> {
-        BrowserControl::snapshot(self.client, session, request).await
-    }
-
-    async fn perform(
-        &self,
-        session: &SessionId,
-        action: &Action,
-    ) -> Result<tinybrowser_bus::ActionOutcome, BrowserControlError> {
-        approve_browser_action(self.client, session, action, false)
-            .await
-            .map_err(|error| BrowserControlError {
-                name: "HostApprovalDenied".into(),
-                message: error.to_string(),
-            })?;
-        if !self.security.record_action() {
-            return Err(BrowserControlError {
-                name: "ActionBudgetExceeded".into(),
-                message: "Browser action budget exceeded".into(),
-            });
-        }
-        BrowserControl::perform(self.client, session, action).await
-    }
 }
 
 pub struct BrowserTool {
@@ -343,75 +308,78 @@ impl BrowserTool {
         Ok(json!({"closed": true}))
     }
 
-    async fn task(&self, id: &SessionId, args: &Value) -> anyhow::Result<Value> {
-        let mut request = TaskRequest::new(required(args, "goal")?);
-        if let Some(inputs) = args["inputs"].as_object() {
-            let values = inputs
-                .iter()
-                .map(|(k, v)| {
-                    Ok((
-                        k.clone(),
-                        v.as_str()
-                            .ok_or_else(|| anyhow::anyhow!("Task input '{k}' must be text"))?
-                            .to_owned(),
-                    ))
-                })
-                .collect::<anyhow::Result<BTreeMap<_, _>>>()?;
-            request = request.with_inputs(values);
-        }
-        let browser = BudgetedBrowser {
-            client: &self.client,
-            security: &self.security,
+    async fn task(&self, args: &Value) -> anyhow::Result<Value> {
+        let mut goal = required(args, "goal")?.to_owned();
+        let origins = match args["url"].as_str().filter(|url| !url.trim().is_empty()) {
+            Some(url) => {
+                self.client.check_url(url)?;
+                goal = format!("Start at {url}. {goal}");
+                self.client
+                    .explicit_origin(url)?
+                    .map_or_else(|| self.client.task_origins(), |origin| vec![origin])
+            }
+            None => self.client.task_origins(),
         };
-        let result = crate::modules::browser_task::run(
-            &browser,
-            self.client.config(),
-            id,
-            request.clone(),
-            self.max_steps,
-        )
-        .await
-        .map_err(anyhow::Error::msg)?;
-        // The module can follow a link or redirect outside the configured
-        // origins. The host must refuse to report that state as a successful
-        // task, even though strict prevention requires module-level interception.
-        self.client
-            .read_page(
-                id,
-                ReadRequest {
-                    max_chars: 1,
-                    ..ReadRequest::default()
+        let facts = task_inputs(args)?;
+        let task = crate::modules::browser_task::BrowserTask {
+            goal,
+            facts,
+            origins,
+            max_actions: u32::try_from(self.max_steps).unwrap_or(u32::MAX),
+        };
+        let view = crate::modules::browser_task::start(self.client.config(), &task)
+            .await
+            .map_err(anyhow::Error::msg)?;
+        self.report(view).await
+    }
+
+    /// Answer a paused task (inputs, a free-text answer) or keep following a
+    /// running one.
+    async fn task_continue(&self, args: &Value) -> anyhow::Result<Value> {
+        let id = TaskId::new(required(args, "task_id")?);
+        let inputs = task_inputs(args)?;
+        let answer = args["answer"].as_str().map(str::to_owned);
+        let view = if inputs.is_empty() && answer.is_none() {
+            crate::modules::browser_task::wait(self.client.config(), id).await
+        } else {
+            crate::modules::browser_task::resume(
+                self.client.config(),
+                ContinueTaskRequest {
+                    id,
+                    inputs,
+                    answer,
+                    ..ContinueTaskRequest::default()
                 },
             )
-            .await?;
-        let steps = result
-            .steps
-            .iter()
-            .map(|step| {
-                json!({
-                    "step": step.step,
-                    "operation": format!("{:?}", step.decision.operation),
-                    "page_changed": step.page_changed,
-                    "outcome": format!("{:?}", step.outcome),
-                })
-            })
-            .collect::<Vec<_>>();
-        let mut output = json!({"status": format!("{:?}", result.status), "steps": steps, "final_snapshot": result.final_snapshot});
-        if result.status == TaskStatus::NeedsConfirmation {
-            let decision = result
-                .pending
-                .ok_or_else(|| anyhow::anyhow!("No pending Jev decision"))?;
-            let action = decision
-                .to_action(&request, 250)?
-                .ok_or_else(|| anyhow::anyhow!("No pending action"))?;
+            .await
+        }
+        .map_err(anyhow::Error::msg)?;
+        self.report(view).await
+    }
+
+    async fn task_cancel(&self, args: &Value) -> anyhow::Result<Value> {
+        let id = TaskId::new(required(args, "task_id")?);
+        *self.pending.lock().await = None;
+        let view = crate::modules::browser_task::cancel(self.client.config(), id)
+            .await
+            .map_err(anyhow::Error::msg)?;
+        Ok(serde_json::to_value(view)?)
+    }
+
+    /// Report a task view; a `needs_approval` pause is held with a one-use
+    /// token that only `confirm_pending` (through the host gate) can spend.
+    async fn report(&self, view: TaskView) -> anyhow::Result<Value> {
+        let mut output = serde_json::to_value(&view)?;
+        if let TaskStatus::NeedsApproval { action, target, .. } = &view.status {
             let token = uuid::Uuid::new_v4().to_string();
             *self.pending.lock().await = Some(Pending {
-                session: id.clone(),
+                task: view.id.clone(),
                 action: action.clone(),
-                url: result.final_snapshot.url,
+                target: target.clone(),
                 token: token.clone(),
             });
-            output["pending"] = json!({"action": action, "token": token, "approval": "Call confirm_pending with this token and pending_action to request host approval for this exact action"});
+            output["pending"] = json!({"task_id": view.id, "action": action, "target": target,
+                "token": token, "approval": "Call confirm_pending with this token to request host approval for this exact action"});
         } else {
             *self.pending.lock().await = None;
         }
@@ -428,25 +396,22 @@ impl BrowserTool {
         }
         let pending = slot.take().expect("pending checked above");
         drop(slot);
-        let page = self
-            .client
-            .read_page(
-                &pending.session,
-                ReadRequest {
-                    max_chars: 1,
-                    ..ReadRequest::default()
-                },
-            )
-            .await?;
-        if page.url != pending.url {
-            anyhow::bail!("Browser page changed during confirmation");
+        let approved = approve_task_action(&pending).await?;
+        let view = crate::modules::browser_task::resume(
+            self.client.config(),
+            ContinueTaskRequest {
+                id: pending.task,
+                approve: Some(approved),
+                ..ContinueTaskRequest::default()
+            },
+        )
+        .await
+        .map_err(anyhow::Error::msg)?;
+        let mut output = self.report(view).await?;
+        if !approved {
+            output["approval"] = json!("denied by the host");
         }
-        approve_browser_action(&self.client, &pending.session, &pending.action, true).await?;
-        Ok(serde_json::to_value(
-            self.client
-                .perform(&pending.session, pending.action)
-                .await?,
-        )?)
+        Ok(output)
     }
 
     async fn run(&self, args: &Value) -> anyhow::Result<Value> {
@@ -454,12 +419,15 @@ impl BrowserTool {
         if verb == "close" {
             return self.close().await;
         }
-        if verb == "confirm_pending" {
-            return self.confirm_pending(args).await;
+        match verb {
+            "confirm_pending" => return self.confirm_pending(args).await,
+            "task" => return self.task(args).await,
+            "task_continue" => return self.task_continue(args).await,
+            "task_cancel" => return self.task_cancel(args).await,
+            _ => {}
         }
         let starting_url = match verb {
             "open" => Some(required(args, "url")?),
-            "task" => args["url"].as_str().filter(|url| !url.trim().is_empty()),
             _ => None,
         };
         let id = self.session_for_url(starting_url).await?;
@@ -511,28 +479,6 @@ impl BrowserTool {
                     json!({"url":p.url})
                 })
             }
-            "task" => {
-                if let Some(url) = args["url"].as_str().filter(|url| !url.trim().is_empty()) {
-                    self.client.navigate(&id, NavigateRequest::new(url)).await?;
-                } else {
-                    let page = self
-                        .client
-                        .read_page(
-                            &id,
-                            ReadRequest {
-                                max_chars: 1,
-                                ..ReadRequest::default()
-                            },
-                        )
-                        .await?;
-                    if page.url == "about:blank" {
-                        anyhow::bail!(
-                            "No browser page is open. Use browser action=open with an HTTPS URL or include url on task"
-                        );
-                    }
-                }
-                self.task(&id, args).await
-            }
             "list_downloads" => Ok(serde_json::to_value(
                 self.client.list_downloads(&id).await?,
             )?),
@@ -568,6 +514,61 @@ impl BrowserTool {
             }
         }
     }
+}
+
+fn task_inputs(args: &Value) -> anyhow::Result<BTreeMap<String, String>> {
+    args["inputs"].as_object().map_or_else(
+        || Ok(BTreeMap::new()),
+        |inputs| {
+            inputs
+                .iter()
+                .map(|(k, v)| {
+                    Ok((
+                        k.clone(),
+                        v.as_str()
+                            .ok_or_else(|| anyhow::anyhow!("Task input '{k}' must be text"))?
+                            .to_owned(),
+                    ))
+                })
+                .collect()
+        },
+    )
+}
+
+/// Ask the host approval gate about a paused task's exact action. A missing
+/// gate denies: a task never takes an irreversible step unapproved.
+async fn approve_task_action(pending: &Pending) -> anyhow::Result<bool> {
+    let gate = ApprovalGate::try_global().ok_or_else(|| {
+        anyhow::anyhow!("[policy-denied] Browser action needs an interactive host approval gate")
+    })?;
+    let clean = |raw: &str| {
+        let cleaned = raw.chars().filter(|c| !c.is_control()).collect::<String>();
+        let mut short = cleaned.chars().take(160).collect::<String>();
+        if cleaned.chars().count() > 160 {
+            short.push('…');
+        }
+        short
+    };
+    let digest = Sha256::digest(serde_json::to_vec(&json!({
+        "task": pending.task, "action": pending.action, "target": pending.target
+    }))?);
+    let digest_hex = format!("{digest:x}");
+    let summary = format!(
+        "Browser task: {} — {} [action {}]",
+        clean(&pending.action),
+        clean(&pending.target),
+        &digest_hex[..12]
+    );
+    let args = json!({"action": "task_step", "target": summary, "exact_action_sha256": digest_hex});
+    Ok(
+        match gate.intercept_forced("browser", &summary, args).await {
+            GateOutcome::Allow => true,
+            GateOutcome::Deny { reason } => {
+                tracing::debug!(%reason, "[browser] task action denied by host");
+                false
+            }
+        },
+    )
 }
 
 fn required<'a>(args: &'a Value, key: &str) -> anyhow::Result<&'a str> {
@@ -655,19 +656,19 @@ impl Tool for BrowserTool {
     }
     fn description(&self) -> &str {
         concat!(
-            "TinyBrowser website operations. Call action=open with the starting URL in this tool ",
-            "before snapshot, read_page, or task. browser_open is a separate one-shot session. ",
+            "TinyComputer website operations. Call action=open with the starting URL in this tool ",
+            "before snapshot or read_page. browser_open is a separate one-shot session. ",
             "Then use snapshot for current ",
             "accessibility refs such as @e1 and read_page for visible prose. Refs expire after ",
             "navigation or a new snapshot; take a fresh snapshot instead of guessing a stale ref. ",
             "For multi-step work, use task with an optional starting url, an observable final-state goal, and named exact ",
-            "input values. Jev chooses among current refs and input names; it does not invent text ",
-            "to enter. Check task status, steps, and final_snapshot before claiming completion. ",
-            "DoneUnconfirmed needs direct inspection; Stuck calls for one fresh snapshot and ",
-            "diagnosis; Blocked and Budget are stopping conditions. NeedsConfirmation returns an ",
-            "exact pending action and token. Use confirm_pending only through the host approval ",
-            "mechanism for that exact action. Direct consequential clicks and key presses also ",
-            "require host approval. For downloads, inspect list_downloads and call wait_download; ",
+            "input values; TinyComputer runs it in its own browser session, and a failed step is ",
+            "handed to its rescue model before the task fails. The reply's status says what it needs: ",
+            "running (call task_continue with task_id to keep following it), needs_input (task_continue ",
+            "with inputs), needs_human (ask the user, then task_continue with answer=done), needs_approval ",
+            "(returns a pending token; use confirm_pending only through the host approval mechanism), ",
+            "checkpoint (always before payment), done, or failed with a hint. task_cancel stops it. ",
+            "Direct consequential clicks and key presses also require host approval. For downloads, inspect list_downloads and call wait_download; ",
             "success is reported only after the tracked file path and byte count are verified. ",
             "Keep the same conversation session across turns and close it when finished. Navigation ",
             "obeys the shared allowed websites list; do not try to evade a blocked destination."
@@ -675,14 +676,15 @@ impl Tool for BrowserTool {
     }
     fn parameters_schema(&self) -> Value {
         json!({"type":"object","properties":{
-        "action":{"type":"string","enum":["open","snapshot","read_page","click","fill","type","get_text","get_title","get_url","wait","press","hover","scroll","is_visible","find","task","confirm_pending","list_downloads","wait_download","close"]},
-        "url":{"type":"string","description":"Starting HTTPS URL for open or an optional starting URL for task"},"selector":{"type":"string"},"value":{"type":"string"},"text":{"type":"string"},"key":{"type":"string"},"direction":{"type":"string"},"pixels":{"type":"integer"},"ms":{"type":"integer"},"timeout_ms":{"type":"integer"},"interactive_only":{"type":"boolean"},"compact":{"type":"boolean"},"depth":{"type":"integer"},"by":{"type":"string"},"find_action":{"type":"string"},"fill_value":{"type":"string"},"goal":{"type":"string"},"inputs":{"type":"object","additionalProperties":{"type":"string"}},"token":{"type":"string","description":"Token returned with the exact pending action"},"pending_action":{"type":"object","description":"Exact pending action for host approval; must match the task result"}
+        "action":{"type":"string","enum":["open","snapshot","read_page","click","fill","type","get_text","get_title","get_url","wait","press","hover","scroll","is_visible","find","task","task_continue","task_cancel","confirm_pending","list_downloads","wait_download","close"]},
+        "url":{"type":"string","description":"Starting HTTPS URL for open or an optional starting URL for task"},"selector":{"type":"string"},"value":{"type":"string"},"text":{"type":"string"},"key":{"type":"string"},"direction":{"type":"string"},"pixels":{"type":"integer"},"ms":{"type":"integer"},"timeout_ms":{"type":"integer"},"interactive_only":{"type":"boolean"},"compact":{"type":"boolean"},"depth":{"type":"integer"},"by":{"type":"string"},"find_action":{"type":"string"},"fill_value":{"type":"string"},"goal":{"type":"string"},"inputs":{"type":"object","additionalProperties":{"type":"string"}},"task_id":{"type":"string","description":"Task id returned by task, for task_continue and task_cancel"},"answer":{"type":"string","description":"Free-text answer for a paused task; done after a needs_human pause"},"token":{"type":"string","description":"Token returned with the exact pending action"}
     },"required":["action"]})
     }
     fn external_effect_with_args(&self, args: &Value) -> bool {
-        // All mutating actions, including Jev task steps, use the forced gate
-        // immediately before perform. Declaring an outer effect would park the
-        // same call twice and cannot cover the actions chosen inside `task`.
+        // Direct mutating actions use the forced gate immediately before
+        // perform, and a task's irreversible step pauses as needs_approval for
+        // confirm_pending. Declaring an outer effect would park the same call
+        // twice and cannot cover the steps chosen inside `task`.
         let _ = args;
         false
     }
@@ -692,7 +694,8 @@ impl Tool for BrowserTool {
                 "[policy-blocked] Action blocked: autonomy is read-only",
             ));
         }
-        if args["action"] != "task" && !self.security.record_action() {
+        // A task counts once here; its own steps are bounded by max_actions.
+        if !self.security.record_action() {
             return Ok(ToolResult::error("Action blocked: rate limit exceeded"));
         }
         match self.run(&args).await {
@@ -741,5 +744,5 @@ impl Drop for BrowserTool {
 }
 
 #[cfg(test)]
-#[path = "browser_tinybrowser_tests.rs"]
+#[path = "browser_computer_tests.rs"]
 mod tests;

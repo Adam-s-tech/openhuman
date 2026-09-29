@@ -12,7 +12,7 @@ const log = debug('composio:rpc');
 
 export interface ConfigSnapshot {
   config: Record<string, unknown>;
-  browser_billing_route?: 'direct_openrouter' | 'hosted';
+  browser_billing_route?: 'direct_openrouter' | 'hosted' | 'unavailable';
   workspace_dir: string;
   config_path: string;
 }
@@ -151,7 +151,7 @@ export interface RuntimeSettingsUpdate {
 
 export interface BrowserSettingsUpdate {
   enabled?: boolean | null;
-  backend?: 'tinybrowser' | null;
+  backend?: 'tinycomputer' | null;
   headless?: boolean;
   viewport_width?: number;
   viewport_height?: number;
@@ -408,6 +408,35 @@ export async function openhumanUpdateRuntimeSettings(
 ): Promise<CommandResponse<ConfigSnapshot>> {
   return await callCoreRpc<CommandResponse<ConfigSnapshot>>({
     method: CORE_RPC_METHODS.configUpdateRuntimeSettings,
+    params: update,
+  });
+}
+
+/** TinyComputer's decision model family. */
+export type DecisionModel = 'jev' | 'open_jev' | 'sage';
+
+export interface ComputerSettings {
+  decision_model: DecisionModel;
+  sage_fast: boolean;
+  planner_model?: string | null;
+  rescue_model?: string | null;
+  max_rescues?: number | null;
+}
+
+/** Partial update; an empty model string restores the module default. */
+export interface ComputerSettingsUpdate {
+  decision_model?: DecisionModel;
+  sage_fast?: boolean;
+  planner_model?: string;
+  rescue_model?: string;
+  max_rescues?: number;
+}
+
+export async function openhumanUpdateComputerSettings(
+  update: ComputerSettingsUpdate
+): Promise<CommandResponse<ConfigSnapshot>> {
+  return await callCoreRpc<CommandResponse<ConfigSnapshot>>({
+    method: CORE_RPC_METHODS.configUpdateComputerSettings,
     params: update,
   });
 }

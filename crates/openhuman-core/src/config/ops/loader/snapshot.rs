@@ -16,10 +16,7 @@ pub fn snapshot_config_json(config: &Config) -> Result<serde_json::Value, String
     }
     value["seltz"]["api_key"] = serde_json::Value::Null;
     #[cfg(feature = "modules")]
-    let browser_billing_route = match crate::modules::browser_task::billing_route(config) {
-        crate::modules::browser_task::BillingRoute::DirectOpenRouter => "direct_openrouter",
-        crate::modules::browser_task::BillingRoute::Hosted => "hosted",
-    };
+    let browser_billing_route = crate::modules::desktop::billing_route(config);
     #[cfg(not(feature = "modules"))]
     let browser_billing_route = "unavailable";
     Ok(json!({

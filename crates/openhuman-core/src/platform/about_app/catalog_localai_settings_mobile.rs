@@ -127,7 +127,7 @@ Capability {
         domain: "desktop",
         category: CapabilityCategory::Settings,
         description: "Let agents inspect and control native desktop apps through a local, permission-aware connection. Desktop actions are discovered on demand.",
-        how_to: "Connections → Desktop; enable access and grant operating system permissions when requested",
+        how_to: "Connections → Computer → Desktop; enable access and grant operating system permissions when requested",
         status: CapabilityStatus::Beta,
         privacy: DESKTOP_TO_JEV,
     },

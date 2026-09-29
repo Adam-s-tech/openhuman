@@ -2,15 +2,15 @@ use super::{find, ALL};
 use crate::modules::platform::candidates_for;
 
 #[test]
-fn tinydesktop_registry_matches_bus_contract_and_published_release() {
-    let desktop = find("tinydesktop").expect("compiled desktop module");
+fn tinycomputer_registry_matches_bus_contract_and_published_release() {
+    let desktop = find("tinycomputer").expect("compiled computer module");
     assert_eq!(desktop.bus_name, tinycomputer_bus::names::INTERFACE);
     assert_eq!(desktop.object_path, tinycomputer_bus::names::OBJECT_PATH);
-    assert_eq!(desktop.version, "0.5.2");
+    assert_eq!(desktop.version, "0.7.0");
     assert_eq!(desktop.assets.len(), 7);
     assert_eq!(
         desktop.asset_for("macos-26-arm64").unwrap().sha256,
-        "7f4aa7136c9c09a2ac7752b4adb7b4aa76c3a1b035971517cd6f2f605c54fab2"
+        "5b529cbf4b3403fe49b6a49ba3774e394cda54ee9a2fc44e8b536bc025ec7ba1"
     );
 }
 
@@ -164,7 +164,7 @@ fn every_host_key() -> Vec<String> {
 fn supported_host_keys(record: &super::ModuleRecord) -> Vec<String> {
     every_host_key()
         .into_iter()
-        .filter(|key| record.id != "tinydesktop" || !key.starts_with("ubuntu-"))
+        .filter(|key| record.id != "tinycomputer" || !key.starts_with("ubuntu-"))
         .collect()
 }
 

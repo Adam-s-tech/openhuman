@@ -7,8 +7,8 @@ use crate::core::all::ControllerFuture;
 
 use super::super::helpers::{
     deserialize_params, to_json, AgentSettingsUpdate, AutonomySettingsUpdate,
-    BrowserSettingsUpdate, MemorySyncSettingsUpdate, PrivacyModeUpdate, SandboxSettingsUpdate,
-    SetBrowserAllowAllParams,
+    BrowserSettingsUpdate, ComputerSettingsUpdate, MemorySyncSettingsUpdate, PrivacyModeUpdate,
+    SandboxSettingsUpdate, SetBrowserAllowAllParams,
 };
 
 pub(crate) fn handle_get_autonomy_settings(_params: Map<String, Value>) -> ControllerFuture {
@@ -106,6 +106,20 @@ pub(super) fn handle_update_browser_settings(params: Map<String, Value>) -> Cont
             task_timeout_secs: update.task_timeout_secs,
         };
         to_json(config_rpc::load_and_apply_browser_settings(patch).await?)
+    })
+}
+
+pub(super) fn handle_update_computer_settings(params: Map<String, Value>) -> ControllerFuture {
+    Box::pin(async move {
+        let update = deserialize_params::<ComputerSettingsUpdate>(params)?;
+        let patch = config_rpc::ComputerSettingsPatch {
+            decision_model: update.decision_model,
+            sage_fast: update.sage_fast,
+            planner_model: update.planner_model,
+            rescue_model: update.rescue_model,
+            max_rescues: update.max_rescues,
+        };
+        to_json(config_rpc::load_and_apply_computer_settings(patch).await?)
     })
 }
 
