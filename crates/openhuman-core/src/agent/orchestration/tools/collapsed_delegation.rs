@@ -401,7 +401,6 @@ pub(crate) async fn execute_collapsed_delegation_with_live_parent(
         &target.agent_id,
         &target.tool_name,
         &prompt,
-        None,
         model_override,
         tool_context,
         mode,

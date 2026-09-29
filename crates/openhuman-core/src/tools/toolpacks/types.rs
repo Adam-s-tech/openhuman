@@ -20,11 +20,10 @@ pub struct ToolPack {
     /// Agent ids for which this pack is **not** applied.
     ///
     /// Withholding is a bet that the tools are idle in most turns. That bet is
-    /// wrong for the specialist a family was delegated to: `settings_agent`
-    /// exists precisely to run `config_*` / `health_*` / `service_*`, so
-    /// packing them would put a `use_skill` round trip in front of the first
-    /// call of every one of its turns and buy nothing — its whole belt is the
-    /// pack.
+    /// wrong for the specialist a family was delegated to: `workflow_builder`
+    /// exists precisely to run the flow authoring tools, so packing them would
+    /// put a `use_skill` round trip in front of the first call of every one of
+    /// its turns and buy nothing — its whole belt is the pack.
     ///
     /// The earlier packs did not need this because they held only synthesised
     /// `delegate_*` tools, which exist on the orchestrator alone. Packs over

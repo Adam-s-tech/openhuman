@@ -150,7 +150,6 @@ pub(crate) async fn dispatch_subagent(
     agent_id: &str,
     tool_name: &str,
     prompt: &str,
-    skill_filter: Option<&str>,
     model_override: Option<&str>,
     tool_context: Option<&dyn ToolRunContext>,
     mode: DispatchMode,
@@ -160,7 +159,6 @@ pub(crate) async fn dispatch_subagent(
         agent_id,
         tool_name,
         prompt,
-        skill_filter,
         model_override,
         tool_context,
         mode,
@@ -177,7 +175,6 @@ pub(crate) async fn dispatch_subagent_with_live_parent(
     agent_id: &str,
     tool_name: &str,
     prompt: &str,
-    skill_filter: Option<&str>,
     model_override: Option<&str>,
     tool_context: Option<&dyn ToolRunContext>,
     mode: DispatchMode,
@@ -298,12 +295,6 @@ pub(crate) async fn dispatch_subagent_with_live_parent(
                     serde_json::Value::String(model.to_string()),
                 );
             }
-            if let (Some(obj), Some(toolkit)) = (async_args.as_object_mut(), skill_filter) {
-                obj.insert(
-                    "toolkit".to_string(),
-                    serde_json::Value::String(toolkit.to_string()),
-                );
-            }
             log::info!(
                 "[agent] routing {tool_name} delegation of '{}' to durable async sub-agent \
                  (result will be delivered as a follow-up turn)",
@@ -382,18 +373,12 @@ pub(crate) async fn dispatch_subagent_with_live_parent(
     }
 
     log::info!(
-        "[agent] delegating to {} via {} (skill_filter={}) prompt_chars={}",
+        "[agent] delegating to {} via {} prompt_chars={}",
         agent_id,
         tool_name,
-        skill_filter.unwrap_or("<none>"),
         prompt.chars().count()
     );
 
-    // Propagate a per-call toolkit scope into the subagent runner as
-    // `toolkit_override` (narrows the child's Connected Integrations
-    // section), never as `skill_filter_override` (which matches `{skill}__`
-    // QuickJS-style names and would exclude every Composio action). The
-    // delegation tools synthesised today all pass `None` here.
     let worktree_action_dir = parent_workspace_descriptor
         .as_ref()
         .map(|descriptor| descriptor.root.clone());
@@ -408,7 +393,6 @@ pub(crate) async fn dispatch_subagent_with_live_parent(
     }
     let options = SubagentRunOptions {
         skill_filter_override: None,
-        toolkit_override: skill_filter.map(str::to_string),
         context: None,
         model_override: model_override.map(str::to_string),
         task_id: Some(task_id.clone()),
