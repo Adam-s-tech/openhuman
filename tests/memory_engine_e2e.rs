@@ -583,13 +583,48 @@ fn engine_set_binds_the_hosted_engine_without_a_restart_and_switches_back() {
             fx.hosted.bearers.lock().unwrap().iter().all(|b| b == TEST_API_KEY),
             "every hosted call carries the live credential"
         );
-        let recalled = fx
-            .call("openhuman.memory_recall_memories", json!({ "namespace": NS, "limit": 10 }))
-            .await;
+        // Reads go through the mandatory families: recall by query, and the
+        // namespace listing the RPC layer serves.
+        let recalled = binding
+            .provider()
+            .recall(
+                "hosted engine",
+                5,
+                &openhuman_core::memory::api::recall::OwnedRecallOpts::default(),
+                None,
+            )
+            .await
+            .expect("recall through the hosted engine");
         assert!(
-            recalled.to_string().contains("the hosted engine stores this"),
-            "recall must be served by the hosted engine: {recalled}"
+            recalled.iter().any(|e| e.content.contains("the hosted engine stores this")),
+            "recall must be served by the hosted engine: {recalled:?}"
         );
+        let namespaces = fx.call("openhuman.memory_list_namespaces", json!({})).await;
+        assert!(
+            namespaces.to_string().contains(NS),
+            "the namespace listing must come from the hosted engine: {namespaces}"
+        );
+
+        // Families the hosted engine does not advertise answer with a clean
+        // error envelope, never a panic or a hang. Probe a few and print what
+        // each answers (visible with --nocapture) for the degradation report.
+        for (method, params) in [
+            ("openhuman.memory_recall_memories", json!({ "namespace": NS, "limit": 5 })),
+            ("openhuman.memory_recall_context", json!({ "namespace": NS, "limit": 5 })),
+            ("openhuman.memory_query_namespace", json!({ "namespace": NS, "query": "hosted" })),
+            ("openhuman.memory_doc_list", json!({ "namespace": NS })),
+            ("openhuman.memory_graph_query", json!({ "namespace": NS })),
+        ] {
+            let v = fx.call(method, params).await;
+            let outcome = if v.get("error").is_some() {
+                format!("jsonrpc error: {}", v["error"]["message"])
+            } else if let Some(e) = v.pointer("/result/error/message") {
+                format!("clean error: {e}")
+            } else {
+                "served".to_string()
+            };
+            eprintln!("[degrade-probe] hosted engine {method}: {outcome}");
+        }
 
         // An unsupported family degrades to a clean error, not a panic.
         let doc = fx
