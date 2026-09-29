@@ -520,7 +520,8 @@ fn assert_no_jsonrpc_error<'a>(v: &'a Value, context: &str) -> &'a Value {
         .unwrap_or_else(|| panic!("{context}: missing result: {v}"))
 }
 
-fn write_min_config(openhuman_dir: &Path, api_origin: &str) {
+/// `extra_config` is appended verbatim (whole TOML tables, e.g. `[autonomy]`).
+fn write_min_config(openhuman_dir: &Path, api_origin: &str, extra_config: &str) {
     let cfg = format!(
         r#"api_url = "{api_origin}"
 default_model = "e2e-mock-model"
@@ -530,6 +531,7 @@ chat_onboarding_completed = true
 [secrets]
 encrypt = false
 
+{extra_config}
 "#
     );
     fn write_config_file(config_dir: &Path, cfg: &str) {
@@ -704,6 +706,17 @@ impl Drop for Stack {
 }
 
 async fn boot_stack() -> Stack {
+    boot_stack_with_config("").await
+}
+
+/// The approval gate is inert while the autonomy policy is off (the default:
+/// `SecurityPolicy::gate_decision` answers `Allow` for every class, so
+/// `file_write::external_effect_with_args` is `false` and nothing parks).
+/// Approval tests opt the policy back in, at the supervised level, where a
+/// write to an existing file prompts.
+const SUPERVISED_AUTONOMY_CONFIG: &str = "[autonomy]\nenabled = true\nlevel = \"supervised\"\n";
+
+async fn boot_stack_with_config(extra_config: &str) -> Stack {
     // Ensure the global AgentDefinitionRegistry is populated with built-in
     // archetypes (orchestrator, agent_memory, task_manager_agent, etc.) before
     // the RPC stack starts. Without this the session builder cannot synthesise
@@ -722,9 +735,13 @@ async fn boot_stack() -> Stack {
 
     let (mock_addr, mock_join) = serve_on_ephemeral(scripted_upstream_router()).await;
     let mock_origin = format!("http://{mock_addr}");
-    write_min_config(&openhuman_home, &mock_origin);
+    write_min_config(&openhuman_home, &mock_origin, extra_config);
     // Pre-write user-scoped config so it's found after auth_store_session activates "e2e-user".
-    write_min_config(&openhuman_home.join("users").join("e2e-user"), &mock_origin);
+    write_min_config(
+        &openhuman_home.join("users").join("e2e-user"),
+        &mock_origin,
+        extra_config,
+    );
 
     // The transport-only router does not create a Core runtime context. Install
     // the explicit tinymemory host seams before handlers service memory-backed
@@ -1475,7 +1492,7 @@ async fn approval_gate_approve_flow_inner() {
         // request[1]: Orchestrator text after approval.
         text_completion("Done. File written: APPROVED_WRITE_CANARY"),
     ]);
-    let stack = boot_stack().await;
+    let stack = boot_stack_with_config(SUPERVISED_AUTONOMY_CONFIG).await;
 
     // Pre-create the file so file_write sees it as an existing file and
     // external_effect_with_args returns true → approval gate intercepts.
@@ -1581,7 +1598,7 @@ async fn approval_gate_deny_flow_inner() {
         // request[1]: Orchestrator text after denial (gate returns POLICY_DENIED_MARKER).
         text_completion("Understood — the write was denied. DENIAL_ACK_CANARY"),
     ]);
-    let stack = boot_stack().await;
+    let stack = boot_stack_with_config(SUPERVISED_AUTONOMY_CONFIG).await;
 
     // Pre-create the file so file_write sees it as an existing file.
     let home = stack._tmp.path().to_path_buf();
@@ -1670,7 +1687,7 @@ async fn approval_gate_timeout_inner() {
         // request[1]: Orchestrator text after TTL auto-denial.
         text_completion("The write timed out awaiting approval. TIMEOUT_ACK_CANARY"),
     ]);
-    let stack = boot_stack().await;
+    let stack = boot_stack_with_config(SUPERVISED_AUTONOMY_CONFIG).await;
 
     // Pre-create so file_write's external_effect_with_args returns true.
     let home = stack._tmp.path().to_path_buf();
