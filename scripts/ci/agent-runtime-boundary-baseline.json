@@ -85,13 +85,6 @@
   },
   {
     "rule": "openhuman-task-local",
-    "path": "crates/openhuman-core/src/agent/goals/runtime.rs",
-    "line": 150,
-    "text": "crate::agent::turn_origin::current(),",
-    "occurrence": 1
-  },
-  {
-    "rule": "openhuman-task-local",
     "path": "crates/openhuman-core/src/agent/harness/fork_context.rs",
     "line": 171,
     "text": "tokio::task_local! {",
@@ -1075,13 +1068,6 @@
     "path": "crates/openhuman-core/src/agent/orchestration/types.rs",
     "line": 12,
     "text": "pub use tinyagents_graph::orchestration::OrchestrationTaskStatus;",
-    "occurrence": 1
-  },
-  {
-    "rule": "openhuman-upstream-reexport",
-    "path": "crates/openhuman-core/src/agent/subagent_host/handoff.rs",
-    "line": 37,
-    "text": "pub(crate) use tinyagents_harness::handoff::{",
     "occurrence": 1
   },
   {
