@@ -64,7 +64,10 @@ pub(crate) fn entry_to_hit(entry: MemoryEntry, namespace: &str) -> NamespaceMemo
         score,
         score_breakdown: RetrievalScoreBreakdown {
             keyword_relevance: 0.0,
-            vector_similarity: 0.0,
+            // A remote engine reports one relevance score. It stands in for the
+            // vector component so the relevance floors that gate auto-injected
+            // context (`select_notes`, `recall_by_vector_over`) can still apply.
+            vector_similarity: score,
             graph_relevance: 0.0,
             episodic_relevance: 0.0,
             freshness: 0.0,
@@ -88,8 +91,8 @@ pub(crate) async fn namespace_names(guard: &MemoryGuard) -> Result<Vec<String>, 
 }
 
 /// Ranked hits via `MemoryRecall::recall`, scoped to `namespace`.
-pub(crate) async fn recall_hits(
-    guard: &MemoryGuard,
+pub(crate) async fn recall_hits<P: MemoryRecall + ?Sized>(
+    guard: &P,
     namespace: &str,
     query: &str,
     limit: usize,
