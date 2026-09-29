@@ -604,31 +604,60 @@ fn engine_set_binds_the_hosted_engine_without_a_restart_and_switches_back() {
             recalled.iter().any(|e| e.content.contains("the hosted engine stores this")),
             "recall must be served by the hosted engine: {recalled:?}"
         );
-        // Families the hosted engine does not advertise answer with a clean
-        // error envelope, never a panic or a hang. Probe a few and print what
-        // each answers (visible with --nocapture) for the degradation report.
-        for (method, params) in [
-            ("openhuman.memory_list_namespaces", json!({})),
-            ("openhuman.memory_recall_memories", json!({ "namespace": NS, "limit": 5 })),
-            ("openhuman.memory_recall_context", json!({ "namespace": NS, "limit": 5 })),
-            ("openhuman.memory_query_namespace", json!({ "namespace": NS, "query": "hosted" })),
-            ("openhuman.memory_doc_list", json!({ "namespace": NS })),
-            ("openhuman.memory_graph_query", json!({ "namespace": NS })),
-        ] {
-            let v = fx.call(method, params).await;
-            let outcome = if v.get("error").is_some() {
-                format!("jsonrpc error: {}", v["error"]["message"])
-            } else if let Some(e) = v.pointer("/result/error/message") {
-                format!("clean error: {e}")
-            } else {
-                "served".to_string()
-            };
-            eprintln!("[degrade-probe] hosted engine {method}: {outcome}");
-            assert!(
-                v.get("result").is_some() || v.get("error").is_some(),
-                "{method} must answer with a result or a clean error envelope: {v}"
-            );
-        }
+        // The core memory RPCs work on a remote engine through the mandatory
+        // families (engine-neutral fallbacks), and return the stored data.
+        let v = fx.call("openhuman.memory_list_namespaces", json!({})).await;
+        let namespaces = result_of(&v, "list_namespaces on hosted");
+        assert!(
+            namespaces.to_string().contains(NS),
+            "list_namespaces must report the hosted namespace: {namespaces}"
+        );
+        assert!(namespaces.pointer("/data").is_some(), "envelope data: {namespaces}");
+
+        let v = fx
+            .call("openhuman.memory_recall_memories", json!({ "namespace": NS, "limit": 5 }))
+            .await;
+        let recalled = result_of(&v, "recall_memories on hosted");
+        assert!(
+            recalled.to_string().contains("the hosted engine stores this"),
+            "recall_memories must return the stored memory: {recalled}"
+        );
+
+        let v = fx
+            .call("openhuman.memory_recall_context", json!({ "namespace": NS, "limit": 5 }))
+            .await;
+        let context = result_of(&v, "recall_context on hosted");
+        assert!(
+            context.to_string().contains("the hosted engine stores this"),
+            "recall_context must return the stored memory: {context}"
+        );
+
+        let v = fx
+            .call(
+                "openhuman.memory_query_namespace",
+                json!({ "namespace": NS, "query": "hosted engine" }),
+            )
+            .await;
+        let queried = result_of(&v, "query_namespace on hosted");
+        assert!(
+            queried.to_string().contains("the hosted engine stores this"),
+            "query_namespace must return the ranked hit: {queried}"
+        );
+
+        let v = fx.call("openhuman.memory_doc_list", json!({ "namespace": NS })).await;
+        let docs = result_of(&v, "doc_list on hosted");
+        assert!(
+            docs.to_string().contains("engine-note"),
+            "doc_list must list the stored entry: {docs}"
+        );
+
+        // Graph stays capability-gated, with the stable recognisable error.
+        let v = fx.call("openhuman.memory_graph_query", json!({ "namespace": NS })).await;
+        let message = error_message(&v, "graph_query on hosted");
+        assert!(
+            message.contains("does not support the graph family"),
+            "graph must be gated with the stable error: {message}"
+        );
 
         // An unsupported family degrades to a clean error, not a panic.
         let doc = fx
