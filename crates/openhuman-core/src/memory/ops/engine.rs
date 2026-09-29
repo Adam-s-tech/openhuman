@@ -130,6 +130,7 @@ fn expected_capabilities(id: &str) -> Vec<String> {
 /// factory's in-memory `tinycortex` (not persistent).
 #[must_use]
 pub fn available_engines() -> Vec<EngineEntry> {
+    #[cfg_attr(not(feature = "memory-remote"), allow(unused_mut))]
     let mut engines = vec![EngineEntry {
         id: MODULE_ID.to_string(),
         label: "TinyCortex (local)".to_string(),
