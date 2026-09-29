@@ -303,3 +303,120 @@ async fn sdk_backed_channel_typing_surfaces_unauthorized_on_401() {
     // keeps routing this to re-sign-in rather than to Sentry.
     assert!(flatten_authed_error(err).starts_with("SESSION_EXPIRED:"));
 }
+
+// ── typed channel-message 404s from the transport ───────────────────────────
+//
+// The transport (openhuman-tinyhumans) owns what a channel-message 404 means on
+// the backend; these pin the recovery the core attaches to each variant.
+
+/// A transport that answers every request with the error `make` builds.
+struct FailingTransport(fn() -> crate::backend::BackendTransportError);
+
+#[async_trait::async_trait]
+impl crate::backend::BackendTransport for FailingTransport {
+    async fn send_json(
+        &self,
+        _req: crate::backend::BackendRequest<'_>,
+    ) -> Result<serde_json::Value, crate::backend::BackendTransportError> {
+        Err((self.0)())
+    }
+
+    async fn send_multipart(
+        &self,
+        _req: crate::backend::BackendRequest<'_>,
+        _form: reqwest::multipart::Form,
+    ) -> Result<serde_json::Value, crate::backend::BackendTransportError> {
+        Err((self.0)())
+    }
+
+    fn http_client(&self, _profile: crate::backend::TransportProfile) -> reqwest::Client {
+        reqwest::Client::new()
+    }
+
+    fn base_url(&self, configured: Option<&str>, purpose: crate::backend::BaseUrlPurpose) -> String {
+        crate::backend::transport::plain::PlainHttpTransport::new().base_url(configured, purpose)
+    }
+
+    fn product_identity(&self) -> String {
+        crate::backend::transport::plain::TEST_PRODUCT_IDENTITY.to_string()
+    }
+
+    fn attribution_headers(&self) -> reqwest::header::HeaderMap {
+        reqwest::header::HeaderMap::new()
+    }
+
+    fn name(&self) -> &'static str {
+        "failing-test-transport"
+    }
+}
+
+/// Run `f` with a [`FailingTransport`] installed. The `cfg(test)` global slot
+/// is per thread and `#[tokio::test]` runs on one, so this cannot leak.
+async fn with_failing_transport<F, Fut>(
+    make: fn() -> crate::backend::BackendTransportError,
+    f: F,
+) where
+    F: FnOnce() -> Fut,
+    Fut: std::future::Future<Output = ()>,
+{
+    crate::backend::install_backend_transport(std::sync::Arc::new(FailingTransport(make)));
+    f().await;
+    crate::backend::transport::install::clear_backend_transport();
+}
+
+#[tokio::test]
+async fn route_missing_becomes_channel_edit_unsupported() {
+    with_failing_transport(
+        || crate::backend::BackendTransportError::ChannelMessageRouteMissing {
+            provider: "telegram".into(),
+            message_id: "1103".into(),
+        },
+        || async {
+            let client = BackendClient::new("http://127.0.0.1:9").unwrap();
+            let err = client
+                .send_channel_edit("telegram", "1103", "mock-jwt", serde_json::json!({}))
+                .await
+                .unwrap_err();
+            let typed = err.downcast_ref::<BackendApiError>().unwrap();
+            let BackendApiError::ChannelEditUnsupported {
+                provider,
+                message_id,
+            } = typed
+            else {
+                panic!("expected ChannelEditUnsupported, got {typed:?}");
+            };
+            assert_eq!((provider.as_str(), message_id.as_str()), ("telegram", "1103"));
+        },
+    )
+    .await;
+}
+
+#[tokio::test]
+async fn message_not_found_becomes_message_not_found() {
+    with_failing_transport(
+        || crate::backend::BackendTransportError::ChannelMessageNotFound {
+            provider: "discord".into(),
+            message_id: "abc".into(),
+        },
+        || async {
+            let client = BackendClient::new("http://127.0.0.1:9").unwrap();
+            let err = client
+                .send_channel_delete("discord", "abc", "mock-jwt")
+                .await
+                .unwrap_err();
+            let typed = err.downcast_ref::<BackendApiError>().unwrap();
+            let BackendApiError::MessageNotFound {
+                provider,
+                message_id,
+            } = typed
+            else {
+                panic!("expected MessageNotFound, got {typed:?}");
+            };
+            assert_eq!((provider.as_str(), message_id.as_str()), ("discord", "abc"));
+            // A missing message is an expected state: it keeps its own chain
+            // rather than turning into a session-expiry sentinel.
+            assert!(!flatten_authed_error(err).starts_with("SESSION_EXPIRED:"));
+        },
+    )
+    .await;
+}
