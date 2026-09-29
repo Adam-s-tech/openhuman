@@ -219,6 +219,8 @@ pub(super) const WORKSPACE_INTERNAL_FILES: &[&str] = &[
     ".env",
     "SOUL.md",
     "IDENTITY.md",
+    // No longer seeded or read (#5701), but an upgraded workspace can still
+    // hold one; keep it out of the agent-writable surface.
     "HEARTBEAT.md",
     "PROFILE.md",
 ];
