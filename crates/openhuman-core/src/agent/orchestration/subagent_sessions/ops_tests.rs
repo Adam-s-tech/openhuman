@@ -6,7 +6,6 @@ fn selector(task_key: &str) -> SubagentSessionSelector {
         parent_session: "parent-a".into(),
         parent_thread_id: Some("thread-a".into()),
         agent_id: "researcher".into(),
-        toolkit: Some("github".into()),
         model: Some("oh-1".into()),
         sandbox_mode: "read_only".into(),
         action_root: Some("/tmp/work".into()),

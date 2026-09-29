@@ -17,7 +17,6 @@ fn checkpoint_data(task_id: &str) -> SubagentCheckpointData {
         history: Vec::new(),
         question: "Which region?".to_string(),
         options: None,
-        toolkit_override: None,
         skill_filter_override: None,
         model_override: None,
         created_at: "2026-09-02T00:00:00Z".to_string(),
