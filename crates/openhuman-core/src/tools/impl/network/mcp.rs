@@ -304,7 +304,7 @@ pub(super) struct SecretScrubber {
 }
 
 impl SecretScrubber {
-    fn for_server(registry: &McpServerRegistry, server: &str) -> Self {
+    pub(super) fn for_server(registry: &McpServerRegistry, server: &str) -> Self {
         let Some(definition) = registry.get(server) else {
             return Self {
                 secrets: Vec::new(),
@@ -464,7 +464,7 @@ impl SecretScrubber {
         }
     }
 
-    fn scrub_result(&self, mut result: ToolResult) -> ToolResult {
+    pub(super) fn scrub_result(&self, mut result: ToolResult) -> ToolResult {
         if self.secrets.is_empty() {
             return result;
         }
