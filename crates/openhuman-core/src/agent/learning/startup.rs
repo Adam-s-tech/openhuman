@@ -77,8 +77,7 @@ pub fn register_learning_subscribers(workspace_dir: std::path::PathBuf) {
 /// configured off, which is the one state in which a rebuild loop has nothing
 /// to rebuild against.
 fn memory_is_bindable(workspace_dir: &Path) -> bool {
-    use crate::config::schema::MemorySubsystemConfig;
-    match crate::memory::binding::for_workspace(workspace_dir, &MemorySubsystemConfig::default()) {
+    match bound_memory(workspace_dir) {
         Ok(binding) if binding.disables_memory() => {
             tracing::warn!(
                 driver = %binding.driver_id(),
@@ -98,6 +97,27 @@ fn memory_is_bindable(workspace_dir: &Path) -> bool {
             false
         }
     }
+}
+
+/// The memory binding for `workspace_dir`, honouring the selected engine.
+///
+/// The ambient context carries the workspace's `[subsystems.memory]` config
+/// (including a memory-engine switch), so learning binds to the engine the user
+/// chose rather than always to the default module. Without a context for this
+/// workspace (a bare unit-test boot) it falls back to the default config.
+///
+/// Note the facet cache built from this is created once at boot; a later
+/// engine switch does not re-point it until the next start.
+fn bound_memory(
+    workspace_dir: &Path,
+) -> Result<std::sync::Arc<crate::memory::binding::MemoryBinding>, String> {
+    use crate::config::schema::MemorySubsystemConfig;
+    if let Some(ctx) = crate::core::runtime::context::CoreContext::current() {
+        if ctx.workspace_dir().ok().as_deref() == Some(workspace_dir) {
+            return ctx.memory_binding();
+        }
+    }
+    crate::memory::binding::for_workspace(workspace_dir, &MemorySubsystemConfig::default())
 }
 
 fn register_email_signature_once<F>(handle_cell: &OnceLock<Option<SubscriptionHandle>>, register: F)
@@ -130,8 +150,7 @@ where
 fn facet_cache_for(
     workspace_dir: &std::path::Path,
 ) -> Option<crate::agent::learning::cache::FacetCache> {
-    use crate::config::schema::MemorySubsystemConfig;
-    match crate::memory::binding::for_workspace(workspace_dir, &MemorySubsystemConfig::default()) {
+    match bound_memory(workspace_dir) {
         Ok(binding) => Some(crate::agent::learning::cache::FacetCache::new(
             binding.guard(),
         )),

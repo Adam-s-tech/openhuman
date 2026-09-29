@@ -101,12 +101,12 @@ pub(crate) async fn active_memory_guard() -> Result<Arc<MemoryGuard>, String> {
         }
     }
 
-    let workspace_dir = fallback_workspace_dir().await?;
+    let (workspace_dir, memory_subsystem) = fallback_binding_inputs().await?;
     log::debug!(
         "[memory:guard] no context binding; guarding workspace={}",
         workspace_dir.display()
     );
-    Ok(binding::for_workspace(&workspace_dir, &MemorySubsystemConfig::default())?.guard())
+    Ok(binding::for_workspace(&workspace_dir, &memory_subsystem)?.guard())
 }
 
 #[cfg(test)]
