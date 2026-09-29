@@ -129,53 +129,10 @@ fn email_parser_support_covers_text_html_attachment_and_message_building() {
 }
 
 #[tokio::test]
-async fn discord_loopback_support_covers_lists_auth_errors_and_permission_overwrites() {
-    let guild_app = Router::new().route(
-        "/users/@me/guilds",
-        get(|| async {
-            Json(json!([
-                {"id": "g2", "name": "Guild Two", "icon": null},
-                {"id": "g1", "name": "Guild One", "icon": "hash"}
-            ]))
-        }),
-    );
-    let base = spawn_mock(guild_app).await;
-    let guilds = discord_support::list_bot_guilds_at_base_for_test(&base, "token")
-        .await
-        .expect("guilds");
-    assert_eq!(guilds.len(), 2);
-    assert_eq!(guilds[1].icon.as_deref(), Some("hash"));
-
-    let channel_app = Router::new().route(
-        "/guilds/{guild_id}/channels",
-        get(|Path(guild_id): Path<String>| async move {
-            assert_eq!(guild_id, "g1");
-            Json(json!([
-                {"id": "voice", "name": "Voice", "type": 2, "position": 0, "parent_id": null},
-                {"id": "late", "name": "Late", "type": 0, "position": 4, "parent_id": "cat"},
-                {"id": "early", "name": "Early", "type": 0, "position": 1, "parent_id": null}
-            ]))
-        }),
-    );
-    let base = spawn_mock(channel_app).await;
-    let channels = discord_support::list_guild_channels_at_base_for_test(&base, "token", "g1")
-        .await
-        .expect("channels");
-    assert_eq!(
-        channels.iter().map(|c| c.id.as_str()).collect::<Vec<_>>(),
-        vec!["early", "late"]
-    );
-
-    let auth_error = discord_support::format_discord_http_error_for_test(
-        "list_guilds",
-        ReqwestStatusCode::UNAUTHORIZED,
-        r#"{"message":"401: Unauthorized"}"#,
-    );
-    let lower = auth_error.to_ascii_lowercase();
-    assert!(!lower.contains("401"));
-    assert!(!lower.contains("unauthorized"));
-    assert!(auth_error.contains("Settings"));
-
+async fn discord_permission_check_covers_member_overwrite_and_bot_lookup_failure() {
+    // Guild/channel listing and the 401 rewrap are covered in
+    // `vendor/tinychannels/src/providers/discord/api_tests.rs`; this keeps the
+    // role-overwrite + member-overwrite combination and the `get_bot_user` failure.
     let permission_app = Router::new()
         .route("/users/@me", get(|| async { Json(json!({"id": "bot-1"})) }))
         .route(

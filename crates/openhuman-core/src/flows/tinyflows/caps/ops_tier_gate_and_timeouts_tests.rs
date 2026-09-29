@@ -624,8 +624,3 @@ fn response_fields_from_schema_empty_for_none_or_non_object() {
     assert!(response_fields_from_schema(Some(&json!("not an object"))).is_empty());
     assert!(response_fields_from_schema(Some(&json!({}))).is_empty());
 }
-
-// ── unsupported_arg_names (B13) ──────────────────────────────────────────
-// Direct unit tests for the pure name-validity check — see
-// `openhuman::flows::ops_tests` for the end-to-end
-// `validate_tool_contracts` coverage of the same behavior.
