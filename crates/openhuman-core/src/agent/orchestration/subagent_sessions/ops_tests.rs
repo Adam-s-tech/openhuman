@@ -155,3 +155,43 @@ fn missing_session_updates_return_errors() {
     assert!(mark_failed(&store, "missing", "sub-1", "boom".into()).is_err());
     assert!(!close(&store, "missing").unwrap());
 }
+
+#[test]
+fn legacy_session_with_toolkit_key_still_loads_and_reuses() {
+    // Sessions persisted before the `toolkit` spawn argument was retired
+    // carry a `toolkit` key. It must be ignored on load, and it must no
+    // longer take part in reuse matching.
+    let dir = tempfile::tempdir().unwrap();
+    let store = SubagentSessionStore::new(dir.path().to_path_buf());
+    std::fs::create_dir_all(store.path().parent().unwrap()).unwrap();
+    let legacy = serde_json::json!([{
+        "subagentSessionId": "subsess-legacy",
+        "parentSession": "parent-a",
+        "parentThreadId": "thread-a",
+        "workerThreadId": null,
+        "agentId": "researcher",
+        "displayName": null,
+        "toolkit": "gmail",
+        "model": "oh-1",
+        "sandboxMode": "read_only",
+        "actionRoot": "/tmp/work",
+        "taskKey": "legacy-task",
+        "taskTitle": "Legacy task",
+        "currentTaskId": null,
+        "status": "idle",
+        "reusable": true,
+        "latestHistory": null,
+        "latestError": null,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-01T00:00:00Z",
+        "lastUsedAt": "2026-01-01T00:00:00Z"
+    }]);
+    std::fs::write(store.path(), legacy.to_string()).unwrap();
+
+    let sessions = store.load().expect("legacy toolkit key is ignored");
+    assert_eq!(sessions.len(), 1);
+    let reused = find_reusable(&store, &selector("legacy-task"))
+        .unwrap()
+        .expect("legacy session reuses without a toolkit match");
+    assert_eq!(reused.subagent_session_id, "subsess-legacy");
+}
