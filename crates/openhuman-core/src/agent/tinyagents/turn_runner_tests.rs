@@ -172,7 +172,11 @@ async fn positive_scoped_tool_limit_caps_hosted_runner_inner() {
 
     let _ = crate::agent::stop_hooks::with_tool_call_limit(Some(1), async {
         run_root_turn_via_hosted_agent(
-            root_context("limited-runner-positive", "/tmp/limited-runner-positive", tx),
+            root_context(
+                "limited-runner-positive",
+                "/tmp/limited-runner-positive",
+                tx,
+            ),
             hosted_base(),
             "main".to_string(),
             models,
