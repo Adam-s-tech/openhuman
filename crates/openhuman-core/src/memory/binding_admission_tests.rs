@@ -147,7 +147,11 @@ fn admit_refuses_the_hosted_engine_when_memory_remote_is_off() {
         ..Default::default()
     };
     let refusal = admit(&cfg).expect_err("no hosted engine without memory-remote");
-    assert!(refusal.reason.contains("not built in"), "{}", refusal.reason);
+    assert!(
+        refusal.reason.contains("not built in"),
+        "{}",
+        refusal.reason
+    );
 }
 
 #[cfg(feature = "memory-remote")]
@@ -171,7 +175,11 @@ fn admit_refuses_a_trusted_external_id_the_factory_does_not_know() {
         "{}",
         refusal.reason
     );
-    assert!(!refusal.reason.contains("trust_state"), "{}", refusal.reason);
+    assert!(
+        !refusal.reason.contains("trust_state"),
+        "{}",
+        refusal.reason
+    );
 }
 
 #[cfg(feature = "memory-remote")]

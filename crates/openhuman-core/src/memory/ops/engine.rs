@@ -17,8 +17,7 @@ use serde::{Deserialize, Serialize};
 use crate::config::schema::{Config, MemoryDriverConfig};
 use crate::memory::binding::{self, MODULE_ID};
 use crate::memory::binding_remote::{
-    credential_ref_for, is_remote_engine, keyring_user_id, CREDENTIAL_NAME_PREFIX,
-    HOSTED_ENGINE_ID,
+    credential_ref_for, is_remote_engine, keyring_user_id, CREDENTIAL_NAME_PREFIX, HOSTED_ENGINE_ID,
 };
 use crate::rpc::RpcOutcome;
 
@@ -200,9 +199,13 @@ pub fn classify_engine_error(error: &anyhow::Error) -> String {
             // The hosted backend's 402 carries a `[USER_INSUFFICIENT_CREDITS]`
             // message prefix (`tinymemory_remote::hosted`).
             MemoryError::BudgetExceeded(message)
-                if message.trim_start().starts_with("[USER_INSUFFICIENT_CREDITS]") =>
+                if message
+                    .trim_start()
+                    .starts_with("[USER_INSUFFICIENT_CREDITS]") =>
             {
-                return format!("{INSUFFICIENT_CREDITS_PREFIX} the memory engine is out of credits");
+                return format!(
+                    "{INSUFFICIENT_CREDITS_PREFIX} the memory engine is out of credits"
+                );
             }
             MemoryError::Unauthorized(_) => {
                 return format!("{SESSION_EXPIRED_PREFIX} the memory engine rejected the session");
@@ -310,7 +313,8 @@ pub(super) fn build_target_provider(
         api_key: prepared.api_key.clone(),
         credential_ref: prepared.takes_key.then(|| credential_ref_for(&prepared.id)),
     };
-    build_engine(&config.workspace_dir, &config.api_url, &target).map_err(|e| classify_engine_message(&e))
+    build_engine(&config.workspace_dir, &config.api_url, &target)
+        .map_err(|e| classify_engine_message(&e))
 }
 
 #[cfg(not(feature = "memory-remote"))]
@@ -377,9 +381,7 @@ pub(super) async fn commit_engine(
                 class: Some("external".to_string()),
                 transport: Some("http".to_string()),
                 endpoint: prepared.endpoint.clone(),
-                credential_ref: prepared
-                    .takes_key
-                    .then(|| credential_ref_for(&prepared.id)),
+                credential_ref: prepared.takes_key.then(|| credential_ref_for(&prepared.id)),
                 // The user chose this engine in the UI: that is the trust grant.
                 trust_state: "trusted".to_string(),
                 deployment: prepared.deployment.clone(),
@@ -419,7 +421,9 @@ pub(super) fn state_for(config: &Config) -> Result<EngineState, String> {
     } else {
         entry
             .and_then(|e| e.credential_ref.as_deref())
-            .and_then(|r| crate::security::credentials::credential_ref::CredentialRef::parse(r).ok())
+            .and_then(|r| {
+                crate::security::credentials::credential_ref::CredentialRef::parse(r).ok()
+            })
             .is_some_and(|r| r.resolve(&keyring_user_id(&config.workspace_dir)).is_ok())
     };
     Ok(EngineState {
@@ -457,7 +461,9 @@ pub async fn memory_engine_get() -> Result<RpcOutcome<EngineState>, String> {
 }
 
 /// `memory.engine_set`.
-pub async fn memory_engine_set(params: EngineTargetParams) -> Result<RpcOutcome<EngineState>, String> {
+pub async fn memory_engine_set(
+    params: EngineTargetParams,
+) -> Result<RpcOutcome<EngineState>, String> {
     let config = load_config().await?;
     let prepared = prepare_target(params)?;
     log::debug!(

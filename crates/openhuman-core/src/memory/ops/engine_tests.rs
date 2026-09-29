@@ -37,7 +37,14 @@ fn the_module_advertises_every_capability_family() {
 #[test]
 fn every_remote_engine_is_listed_with_at_least_the_mandatory_families() {
     let engines = available_engines();
-    for id in ["tinyhumans", "supermemory", "mem0", "cognee", "cortex", "agentmemory"] {
+    for id in [
+        "tinyhumans",
+        "supermemory",
+        "mem0",
+        "cognee",
+        "cortex",
+        "agentmemory",
+    ] {
         let engine = engines
             .iter()
             .find(|e| e.id == id)
@@ -59,7 +66,10 @@ fn every_remote_engine_is_listed_with_at_least_the_mandatory_families() {
 #[test]
 fn prepare_rejects_empty_null_and_unknown_engines() {
     for bad in ["", "   ", "null", "not-an-engine"] {
-        assert!(prepare_target(target(bad)).is_err(), "{bad:?} must be rejected");
+        assert!(
+            prepare_target(target(bad)).is_err(),
+            "{bad:?} must be rejected"
+        );
     }
 }
 
@@ -79,11 +89,15 @@ fn prepare_folds_the_legacy_alias_and_ignores_module_options() {
 fn prepare_validates_endpoint_and_deployment() {
     let mut bad_endpoint = target("supermemory");
     bad_endpoint.endpoint = Some("ftp://nope".into());
-    assert!(prepare_target(bad_endpoint).unwrap_err().contains("http(s)"));
+    assert!(prepare_target(bad_endpoint)
+        .unwrap_err()
+        .contains("http(s)"));
 
     let mut bad_deployment = target("mem0");
     bad_deployment.deployment = Some("moon".into());
-    assert!(prepare_target(bad_deployment).unwrap_err().contains("deployment"));
+    assert!(prepare_target(bad_deployment)
+        .unwrap_err()
+        .contains("deployment"));
 
     let mut good = target("mem0");
     good.endpoint = Some(" https://api.mem0.ai ".into());
@@ -104,10 +118,16 @@ fn the_hosted_engine_drops_a_caller_supplied_endpoint_and_key() {
     params.api_key = Some("tiny_live_pasted".into());
     params.deployment = Some("cloud".into());
     let prepared = prepare_target(params).unwrap();
-    assert!(prepared.endpoint.is_none(), "an endpoint could redirect the session bearer");
+    assert!(
+        prepared.endpoint.is_none(),
+        "an endpoint could redirect the session bearer"
+    );
     assert!(prepared.api_key.is_none());
     assert!(prepared.deployment.is_none());
-    assert!(!prepared.takes_key, "the hosted entry carries no credential_ref");
+    assert!(
+        !prepared.takes_key,
+        "the hosted entry carries no credential_ref"
+    );
 }
 
 #[test]
@@ -122,7 +142,10 @@ fn a_402_from_the_hosted_backend_becomes_insufficient_credits() {
 fn a_budget_error_without_the_credits_code_is_left_alone() {
     let error = anyhow::Error::new(MemoryError::BudgetExceeded("token budget".into()));
     let message = classify_engine_error(&error);
-    assert!(!message.starts_with(INSUFFICIENT_CREDITS_PREFIX), "{message}");
+    assert!(
+        !message.starts_with(INSUFFICIENT_CREDITS_PREFIX),
+        "{message}"
+    );
 }
 
 #[test]
@@ -149,12 +172,14 @@ fn backend_unavailable_and_prefixed_messages_pass_through() {
 fn a_bearer_source_failure_surfaces_as_session_expired() {
     // The hosted adapter wraps a failing `BearerSource` in `Unauthorized`; the
     // message the bearer reports keeps the prefix so string paths agree too.
+    assert!(classify_engine_message(
+        "SESSION_EXPIRED: no TinyHumans session (credential lookup failed)"
+    )
+    .starts_with(SESSION_EXPIRED_PREFIX));
     assert!(
-        classify_engine_message("SESSION_EXPIRED: no TinyHumans session (credential lookup failed)")
+        classify_engine_message("unauthorized: SESSION_EXPIRED: no TinyHumans session")
             .starts_with(SESSION_EXPIRED_PREFIX)
     );
-    assert!(classify_engine_message("unauthorized: SESSION_EXPIRED: no TinyHumans session")
-        .starts_with(SESSION_EXPIRED_PREFIX));
 }
 
 #[test]
@@ -169,7 +194,12 @@ fn state_and_list_serialise_to_the_bare_wire_shapes_the_ui_reads() {
         last_error: None,
     })
     .unwrap();
-    let mut keys: Vec<&str> = state.as_object().unwrap().keys().map(String::as_str).collect();
+    let mut keys: Vec<&str> = state
+        .as_object()
+        .unwrap()
+        .keys()
+        .map(String::as_str)
+        .collect();
     keys.sort_unstable();
     assert_eq!(
         keys,
@@ -201,6 +231,9 @@ fn state_and_list_serialise_to_the_bare_wire_shapes_the_ui_reads() {
         "hosted",
         "capabilities",
     ] {
-        assert!(engine.get(key).is_some(), "engine descriptor lacks {key}: {engine}");
+        assert!(
+            engine.get(key).is_some(),
+            "engine descriptor lacks {key}: {engine}"
+        );
     }
 }

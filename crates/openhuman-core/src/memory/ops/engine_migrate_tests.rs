@@ -4,7 +4,9 @@ use super::*;
 static JOBS_LOCK: Mutex<()> = Mutex::new(());
 
 fn lock() -> std::sync::MutexGuard<'static, ()> {
-    JOBS_LOCK.lock().unwrap_or_else(std::sync::PoisonError::into_inner)
+    JOBS_LOCK
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
 }
 
 fn clear() {

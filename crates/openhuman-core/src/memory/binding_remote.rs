@@ -185,9 +185,7 @@ mod imp {
     use std::path::{Path, PathBuf};
     use std::sync::Arc;
 
-    use tinymemory::factory::{
-        build_provider, BearerSource, EngineConfig, EngineCredential,
-    };
+    use tinymemory::factory::{build_provider, BearerSource, EngineConfig, EngineCredential};
 
     use super::{keyring_user_id, scrub, EngineTarget, HOSTED_ENGINE_ID};
     use crate::memory::api::provider::MemoryProvider;
@@ -219,13 +217,17 @@ mod imp {
             let config =
                 crate::config::ops::load_config_for_workspace_with_timeout(&self.workspace_dir)
                     .await
-                    .map_err(|e| anyhow::anyhow!("{NO_SESSION_MESSAGE} (config unavailable: {e})"))?;
+                    .map_err(|e| {
+                        anyhow::anyhow!("{NO_SESSION_MESSAGE} (config unavailable: {e})")
+                    })?;
             match crate::security::credentials::session_support::backend_bearer_secret(&config) {
                 Ok(Some(token)) if !token.trim().is_empty() => Ok(token),
                 Ok(_) => Err(anyhow::anyhow!(NO_SESSION_MESSAGE)),
                 Err(e) => {
                     log::debug!("[memory:remote] bearer lookup failed: {e}");
-                    Err(anyhow::anyhow!("{NO_SESSION_MESSAGE} (credential lookup failed)"))
+                    Err(anyhow::anyhow!(
+                        "{NO_SESSION_MESSAGE} (credential lookup failed)"
+                    ))
                 }
             }
         }
@@ -293,8 +295,12 @@ mod imp {
         if let Some(key) = target.api_key.as_deref() {
             secrets.push(key);
         }
-        build_provider(id, &config, credential)
-            .map_err(|e| format!("engine '{id}' could not be built: {}", scrub(&e.to_string(), &secrets)))
+        build_provider(id, &config, credential).map_err(|e| {
+            format!(
+                "engine '{id}' could not be built: {}",
+                scrub(&e.to_string(), &secrets)
+            )
+        })
     }
 }
 

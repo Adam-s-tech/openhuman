@@ -526,7 +526,8 @@ pub(crate) fn bind_provider_for_test(
 /// dedicated memory is a different store, so it must be a different binding.
 /// The subtree is `"memory"` for every ordinary caller.
 pub(super) type BindingCacheKey = (PathBuf, String, MemorySubsystemConfig);
-pub(super) static BINDINGS: OnceLock<RwLock<HashMap<BindingCacheKey, Arc<MemoryBinding>>>> = OnceLock::new();
+pub(super) static BINDINGS: OnceLock<RwLock<HashMap<BindingCacheKey, Arc<MemoryBinding>>>> =
+    OnceLock::new();
 
 /// Every binding this process has built so far, for the exit path.
 ///

@@ -2,7 +2,10 @@ use super::*;
 
 #[test]
 fn credential_ref_names_the_engine_specific_keychain_entry() {
-    assert_eq!(credential_ref_for("supermemory"), "keychain:memory-supermemory");
+    assert_eq!(
+        credential_ref_for("supermemory"),
+        "keychain:memory-supermemory"
+    );
     let parsed = crate::security::credentials::credential_ref::CredentialRef::parse(
         &credential_ref_for("mem0"),
     )
@@ -28,7 +31,10 @@ fn scrub_removes_every_secret_and_ignores_blank_ones() {
         "failed to reach https://leak.example with key sk-123",
         &["https://leak.example", "sk-123", "", "  "],
     );
-    assert!(!scrubbed.contains("leak.example") && !scrubbed.contains("sk-123"), "{scrubbed}");
+    assert!(
+        !scrubbed.contains("leak.example") && !scrubbed.contains("sk-123"),
+        "{scrubbed}"
+    );
 }
 
 #[test]
@@ -45,7 +51,10 @@ fn engine_target_from_entry_copies_endpoint_deployment_and_ref() {
     assert_eq!(target.id, "mem0");
     assert_eq!(target.endpoint.as_deref(), Some("https://e.example"));
     assert_eq!(target.deployment.as_deref(), Some("cloud"));
-    assert_eq!(target.credential_ref.as_deref(), Some("keychain:memory-mem0"));
+    assert_eq!(
+        target.credential_ref.as_deref(),
+        Some("keychain:memory-mem0")
+    );
     assert!(target.api_key.is_none());
     assert!(EngineTarget::from_entry("mem0", None).endpoint.is_none());
 }
@@ -55,15 +64,26 @@ fn api_url_override_is_read_from_the_workspace_config() {
     let dir = tempfile::tempdir().unwrap();
     let workspace = dir.path().join("workspace");
     std::fs::create_dir_all(&workspace).unwrap();
-    assert_eq!(configured_api_url(&workspace), None, "no config, no override");
-    std::fs::write(dir.path().join("config.toml"), "api_url = \" https://staging.example \"\n")
-        .unwrap();
+    assert_eq!(
+        configured_api_url(&workspace),
+        None,
+        "no config, no override"
+    );
+    std::fs::write(
+        dir.path().join("config.toml"),
+        "api_url = \" https://staging.example \"\n",
+    )
+    .unwrap();
     assert_eq!(
         configured_api_url(&workspace).as_deref(),
         Some("https://staging.example")
     );
     std::fs::write(dir.path().join("config.toml"), "api_url = \"\"\n").unwrap();
-    assert_eq!(configured_api_url(&workspace), None, "blank means no override");
+    assert_eq!(
+        configured_api_url(&workspace),
+        None,
+        "blank means no override"
+    );
 }
 
 #[cfg(feature = "memory-remote")]

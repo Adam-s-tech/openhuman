@@ -54,12 +54,6 @@ pub use documents::{
     DeleteDocParams, IngestDocParams, NamespaceOnlyParams, NamespaceSummariesResponse,
     PutDocParams, PutDocResult, QueryNamespaceParams, RecallNamespaceParams,
 };
-pub use files::{ai_list_memory_files, ai_read_memory_file, ai_write_memory_file};
-pub use kv_graph::{
-    graph_query, graph_upsert, kv_delete, kv_get, kv_list_namespace, kv_set, GraphQueryParams,
-    GraphUpsertParams, KvGetDeleteParams, KvSetParams,
-};
-pub use learn::{memory_learn_all, LearnAllParams, LearnAllResult, NamespaceLearnResult};
 pub use engine::{
     memory_engine_get, memory_engine_set, memory_engines_list, EngineState, EngineTargetParams,
     EnginesList,
@@ -67,6 +61,12 @@ pub use engine::{
 pub use engine_migrate::{
     memory_engine_migrate, memory_engine_migrate_status, MigrateParams, MigrateStatusParams,
 };
+pub use files::{ai_list_memory_files, ai_read_memory_file, ai_write_memory_file};
+pub use kv_graph::{
+    graph_query, graph_upsert, kv_delete, kv_get, kv_list_namespace, kv_set, GraphQueryParams,
+    GraphUpsertParams, KvGetDeleteParams, KvSetParams,
+};
+pub use learn::{memory_learn_all, LearnAllParams, LearnAllResult, NamespaceLearnResult};
 pub use provider::{memory_provider_status, memory_subsystem_status};
 pub use sync::{
     memory_ingestion_status, memory_scheduler_override, memory_sync_all, memory_sync_channel,

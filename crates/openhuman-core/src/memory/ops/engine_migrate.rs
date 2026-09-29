@@ -142,7 +142,9 @@ async fn run_copy(
 }
 
 /// `memory.engine_migrate`.
-pub async fn memory_engine_migrate(params: MigrateParams) -> Result<RpcOutcome<MigrateStarted>, String> {
+pub async fn memory_engine_migrate(
+    params: MigrateParams,
+) -> Result<RpcOutcome<MigrateStarted>, String> {
     let config: Config = crate::config::rpc::load_config_with_timeout().await?;
     let prepared = prepare_target(params.to)?;
 

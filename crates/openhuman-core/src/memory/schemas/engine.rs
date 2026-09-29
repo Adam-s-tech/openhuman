@@ -8,9 +8,7 @@ use serde_json::{Map, Value};
 
 use crate::core::all::{ControllerFuture, RegisteredController};
 use crate::core::{ControllerSchema, FieldSchema, TypeSchema};
-use crate::memory::rpc::{
-    self, EngineTargetParams, MigrateParams, MigrateStatusParams,
-};
+use crate::memory::rpc::{self, EngineTargetParams, MigrateParams, MigrateStatusParams};
 
 use super::{parse_params, to_json};
 
@@ -91,13 +89,48 @@ fn target_inputs() -> Vec<FieldSchema> {
 
 fn state_outputs() -> Vec<FieldSchema> {
     vec![
-        field("driver", TypeSchema::String, "Bound engine id (null after a fallback).", true),
-        field("endpoint", opt_string(), "Endpoint in use, when the engine has one.", false),
-        field("deployment", opt_string(), "Deployment in use, when the engine has several.", false),
-        field("has_credential", TypeSchema::Bool, "Whether a credential is available. The credential itself is never returned.", true),
-        field("class", TypeSchema::String, "How the engine is bound: module | external | null.", true),
-        field("fell_back_from", opt_string(), "The engine that was asked for and refused, when this is a fallback.", false),
-        field("last_error", opt_string(), "Why the fallback happened; null when clean.", false),
+        field(
+            "driver",
+            TypeSchema::String,
+            "Bound engine id (null after a fallback).",
+            true,
+        ),
+        field(
+            "endpoint",
+            opt_string(),
+            "Endpoint in use, when the engine has one.",
+            false,
+        ),
+        field(
+            "deployment",
+            opt_string(),
+            "Deployment in use, when the engine has several.",
+            false,
+        ),
+        field(
+            "has_credential",
+            TypeSchema::Bool,
+            "Whether a credential is available. The credential itself is never returned.",
+            true,
+        ),
+        field(
+            "class",
+            TypeSchema::String,
+            "How the engine is bound: module | external | null.",
+            true,
+        ),
+        field(
+            "fell_back_from",
+            opt_string(),
+            "The engine that was asked for and refused, when this is a fallback.",
+            false,
+        ),
+        field(
+            "last_error",
+            opt_string(),
+            "Why the fallback happened; null when clean.",
+            false,
+        ),
     ]
 }
 
