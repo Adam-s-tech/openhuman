@@ -23,6 +23,7 @@
 // request file under the capture directory.
 
 import fs from 'node:fs';
+import { pathToFileURL } from 'node:url';
 import { encode } from 'gpt-tokenizer/encoding/o200k_base';
 
 const USAGE = `usage: prompt-breakdown.mjs <request.json> [--response <file>] [--prompt-tokens N]
@@ -158,7 +159,7 @@ function findDuplicates(texts) {
     .sort((a, b) => b.wasted - a.wasted);
 }
 
-function analyse(body, opts) {
+export function analyse(body, opts = {}) {
   const messages = (body.messages || []).map((m, i) => {
     const text = contentText(m.content);
     const calls = m.tool_calls ? JSON.stringify(m.tool_calls) : '';
@@ -275,7 +276,7 @@ function report(a, opts) {
   return out.join('\n');
 }
 
-const isMain = import.meta.url === `file://${process.argv[1]}`;
+const isMain = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
 if (isMain) {
   const opts = parseArgs(process.argv.slice(2));
   const body = JSON.parse(fs.readFileSync(opts.request, 'utf8'));
