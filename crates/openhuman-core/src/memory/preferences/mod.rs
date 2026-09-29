@@ -100,7 +100,7 @@ pub(crate) async fn recall_by_vector_over(
         // answers, so Lane B still works instead of injecting nothing.
         None => crate::memory::ops::fallback::recall_hits(provider, namespace, query, limit)
             .await
-            .map_err(MemoryError::other)?,
+            .map_err(|e| MemoryError::Other(anyhow::anyhow!(e)))?,
     };
     // The floor is "tunable against live data", and this line is that data:
     // how close the best candidate came, whether or not it cleared. Keys and

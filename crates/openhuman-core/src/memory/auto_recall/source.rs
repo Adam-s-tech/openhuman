@@ -98,7 +98,7 @@ impl AutoRecallSource for GuardSource {
                 limit,
             )
             .await
-            .map_err(MemoryError::other);
+            .map_err(|e| MemoryError::Other(anyhow::anyhow!(e)));
         };
         // No session to exclude: the notes namespace is never auto-saved per
         // session, and the lane runs before this turn is archived, so there is
