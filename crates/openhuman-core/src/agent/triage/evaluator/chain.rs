@@ -411,9 +411,7 @@ pub(crate) fn begin_outage_attempt(state: Option<&RetryState>, key: &str) -> Opt
     let state = state?;
     let mut states = state.lock().expect("triage retry state lock poisoned");
     let outage = states.entry(key.to_string()).or_default();
-    if outage.consecutive_failures > 0
-        && (outage.in_flight || outage.next_attempt_ms > now_ms())
-    {
+    if outage.consecutive_failures > 0 && (outage.in_flight || outage.next_attempt_ms > now_ms()) {
         return None;
     }
     outage.in_flight = true;
