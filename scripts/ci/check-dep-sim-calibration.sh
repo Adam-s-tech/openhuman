@@ -57,6 +57,9 @@
 # 280 -> 282 on 2026-09-25: TinyChannels 0.1.3 resolves HMAC 0.13 and
 # activates digest 0.11's ctutils/cmov tail, adding two names but no native
 # build dependency. See the matching kernel-floor history entry.
+# 286 -> 283 on 2026-09-29: the updated locked dependency graph resolves
+# three fewer unique names in the Linux flows profile; no native build
+# dependencies changed. See kernel-floor.limits.
 # 285 -> 286 on 2026-09-27: multi-provider search uses the required
 # tinysearch-bus contract in always-on config and policy code; one name,
 # no native dependency. See kernel-floor.limits.
