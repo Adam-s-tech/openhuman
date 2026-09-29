@@ -335,7 +335,7 @@ async fn core_channel_routes_recover_from_the_transports_typed_404s() {
     let server = MockServer::start().await;
     Mock::given(method("PATCH"))
         .and(path("/channels/telegram/messages/1103"))
-        .respond_with(ResponseTemplate::new(404).set_body_string("Cannot PATCH"))
+        .respond_with(ResponseTemplate::new(404).set_body_string("Cannot PATCH /channels/telegram/messages/1103"))
         .mount(&server)
         .await;
     Mock::given(method("DELETE"))
