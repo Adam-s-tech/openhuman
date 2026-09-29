@@ -411,6 +411,9 @@ encrypt = false
 [context]
 compaction_enabled = false
 {extra}
+
+[autonomy]
+enabled = true
 "#
     );
     for dir in [

@@ -530,6 +530,9 @@ chat_onboarding_completed = true
 [secrets]
 encrypt = false
 
+[autonomy]
+enabled = true
+
 "#
     );
     fn write_config_file(config_dir: &Path, cfg: &str) {
@@ -1356,6 +1359,9 @@ chat_onboarding_completed = true
 
 [secrets]
 encrypt = false
+
+[autonomy]
+enabled = true
 "#,
     )
     .expect("gate config must parse");
