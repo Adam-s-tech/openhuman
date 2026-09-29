@@ -109,7 +109,7 @@ pub struct CreateWorkflowParams {
 /// * Slug is derived from `params.name` (lowercased, `[a-z0-9-]` only,
 ///   non-alphanumeric runs collapsed to a single `-`).
 /// * Empty / non-alphanumeric-only names are rejected.
-/// * Slug is length-bounded by [`MAX_NAME_LEN`].
+/// * Slug is length-bounded by `MAX_NAME_LEN`.
 /// * The resolved `<scope-root>/<slug>` path is canonicalized and verified
 ///   to stay inside the canonical scope root (same `starts_with` guard used
 ///   by [`read_workflow_resource`]) to defeat `..` or absolute-path inputs.

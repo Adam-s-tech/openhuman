@@ -47,7 +47,7 @@ pub use super::ops_types::{
 };
 
 #[cfg(test)]
-pub(crate) use super::ops_create::{create_workflow_inner, slugify_workflow_name};
+pub(crate) use super::ops_create::create_workflow_inner;
 #[cfg(test)]
 pub(crate) use super::ops_discover::discover_workflows_inner;
 #[cfg(test)]
