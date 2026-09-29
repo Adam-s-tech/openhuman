@@ -211,8 +211,7 @@ fn render_withheld_specialists(ctx: &PromptContext<'_>) -> String {
         .map(|(pack, tools)| format!("`{pack}` ({})", tools.join(", ")))
         .collect();
     format!(
-        "## Capabilities not in your tool list\n\nThrough `use_skill` (`skill` alone lists \
-         arguments; add `tool` + `args` to run): {}.",
+        "## Capabilities not in your tool list\n\nVia `use_skill`: {}.",
         entries.join(", ")
     )
 }
@@ -249,12 +248,8 @@ fn hand_off_route(ctx: &PromptContext<'_>, specialist: &str) -> Option<String> {
     if !ctx.visible_tool_names.contains(toolpacks::USE_SKILL) {
         return None;
     }
-    toolpacks::pack_for_tool(&tool).map(|pack| {
-        format!(
-            "`use_skill {{ \"skill\": \"{}\", \"tool\": \"{tool}\" }}`",
-            pack.id
-        )
-    })
+    toolpacks::pack_for_tool(&tool)
+        .map(|pack| format!("`{tool}` (`use_skill` skill `{}`)", pack.id))
 }
 
 /// How this session runs an installed skill: its own `run_workflow`, when the
@@ -332,7 +327,7 @@ fn resolve_definition<'r>(
 /// Longest skill description kept in `## Installed Skills`: enough for the
 /// skill's trigger phrase, which is what routing reads. The full description is
 /// one `describe_workflow` call away.
-const SKILL_DESCRIPTION_CHARS: usize = 90;
+const SKILL_DESCRIPTION_CHARS: usize = 70;
 
 fn render_installed_skills(
     skills: &[Workflow],
@@ -354,9 +349,9 @@ fn render_installed_skills(
         let _ = write!(out, "Run one with {run} (skill id + task). ");
     }
     if let Some(install) = install {
-        let _ = write!(out, "Install more with {install}. ");
+        let _ = write!(out, "Install more with {install}.");
     }
-    out.push_str("A skill returns its result plus a `## Handoff Plan` for what it could not do.\n\n");
+    out.push_str("\n\n");
     for skill in skills {
         let id = if skill.dir_name.is_empty() {
             &skill.name
@@ -537,9 +532,8 @@ fn render_connected_integrations(integrations: &[ConnectedIntegration]) -> Strin
     let out = format!(
         "## Connected Integrations\n\n\
          {}.\n\n\
-         For their data or actions, `tool_search` the action and call it. The search is the \
-         truth about what a toolkit can do: prior knowledge and past \"I can't\" answers are \
-         stale.\n",
+         `tool_search` their actions. Its results, not prior knowledge or past answers, say \
+         what a toolkit can do.\n",
         entries.join(", ")
     );
 
