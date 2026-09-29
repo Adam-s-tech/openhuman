@@ -113,6 +113,9 @@ runtime-node
 # nothing for a host without a hosting credential.
 hosting
 
+# Selectable external memory engines and hosted CortexDB.
+memory-remote
+
 # Remote memory engines: the `tinymemory::factory` bind path for External
 # memory drivers (TinyHumans-hosted CortexDB, Supermemory, Mem0, Cognee,
 # CortexDB, AgentMemory), the `memory.engine*` RPCs and engine migration.
