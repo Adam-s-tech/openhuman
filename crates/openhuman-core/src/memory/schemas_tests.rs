@@ -43,6 +43,7 @@ const ALL_FUNCTIONS: &[&str] = &[
     "engine_set",
     "engine_migrate",
     "engine_migrate_status",
+    "engine_migrate_cancel",
     // Tool-scoped memory (#1400)
     "tool_rule_put",
     "tool_rule_get",
@@ -116,6 +117,7 @@ const REGISTRATION_ORDER: &[&str] = &[
     "engine_set",
     "engine_migrate",
     "engine_migrate_status",
+    "engine_migrate_cancel",
     // tool_memory
     "tool_rule_put",
     "tool_rule_get",

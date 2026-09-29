@@ -16,6 +16,7 @@ pub(super) const FUNCTIONS: &[&str] = &[
     "engine_set",
     "engine_migrate",
     "engine_migrate_status",
+    "engine_migrate_cancel",
 ];
 
 pub(super) fn controllers() -> Vec<RegisteredController> {

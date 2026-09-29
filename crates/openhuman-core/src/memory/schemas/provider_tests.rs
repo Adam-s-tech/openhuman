@@ -10,7 +10,8 @@ fn provider_family_exposes_status_and_the_engine_selector() {
             "engine_get",
             "engine_set",
             "engine_migrate",
-            "engine_migrate_status"
+            "engine_migrate_status",
+            "engine_migrate_cancel"
         ]
     );
     assert_eq!(controllers().len(), FUNCTIONS.len());

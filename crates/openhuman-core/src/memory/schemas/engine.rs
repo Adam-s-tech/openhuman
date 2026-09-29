@@ -8,7 +8,9 @@ use serde_json::{Map, Value};
 
 use crate::core::all::{ControllerFuture, RegisteredController};
 use crate::core::{ControllerSchema, FieldSchema, TypeSchema};
-use crate::memory::rpc::{self, EngineTargetParams, MigrateParams, MigrateStatusParams};
+use crate::memory::rpc::{
+    self, EngineTargetParams, MigrateCancelParams, MigrateParams, MigrateStatusParams,
+};
 
 use super::{parse_params, to_json};
 
@@ -18,6 +20,7 @@ pub(super) const FUNCTIONS: &[&str] = &[
     "engine_set",
     "engine_migrate",
     "engine_migrate_status",
+    "engine_migrate_cancel",
 ];
 
 pub(super) fn controllers() -> Vec<RegisteredController> {
@@ -41,6 +44,10 @@ pub(super) fn controllers() -> Vec<RegisteredController> {
         RegisteredController {
             schema: schema("engine_migrate_status").unwrap(),
             handler: handle_engine_migrate_status,
+        },
+        RegisteredController {
+            schema: schema("engine_migrate_cancel").unwrap(),
+            handler: handle_engine_migrate_cancel,
         },
     ]
 }
@@ -184,6 +191,13 @@ pub(super) fn schema(function: &str) -> Option<ControllerSchema> {
                 field("error", opt_string(), "Failure reason; null unless failed.", false),
             ],
         },
+        "engine_migrate_cancel" => ControllerSchema {
+            namespace: "memory",
+            function: "engine_migrate_cancel",
+            description: "Cancel a running engine migration. The copy stops between pages and the active engine is left unchanged.",
+            inputs: vec![field("job_id", TypeSchema::String, "Id returned by engine_migrate.", true)],
+            outputs: vec![field("cancelled", TypeSchema::Bool, "Whether a running job was signalled; false when it had already finished.", true)],
+        },
         _ => return None,
     })
 }
@@ -214,5 +228,12 @@ fn handle_engine_migrate_status(params: Map<String, Value>) -> ControllerFuture 
     Box::pin(async move {
         let payload = parse_params::<MigrateStatusParams>(params)?;
         to_json(rpc::memory_engine_migrate_status(payload).await?)
+    })
+}
+
+fn handle_engine_migrate_cancel(params: Map<String, Value>) -> ControllerFuture {
+    Box::pin(async move {
+        let payload = parse_params::<MigrateCancelParams>(params)?;
+        to_json(rpc::memory_engine_migrate_cancel(payload).await?)
     })
 }
