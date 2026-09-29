@@ -195,25 +195,45 @@ mod imp {
     /// host holds no credential; the RPC layer maps it to `SESSION_EXPIRED:`.
     pub const NO_SESSION_MESSAGE: &str = "SESSION_EXPIRED: no TinyHumans session";
 
+    /// How long a resolved bearer is reused before config and keychain are read
+    /// again. Short enough that a sign-out or a refreshed session is picked up
+    /// promptly; long enough that a burst of memory calls does one lookup.
+    pub const BEARER_TTL: std::time::Duration = std::time::Duration::from_secs(30);
+
     /// A [`BearerSource`] that reads the host's backend credential (API key,
-    /// else session JWT) from live config on every request.
+    /// else session JWT) from live config, caching it for [`BEARER_TTL`].
     pub struct LiveSessionBearer {
         workspace_dir: PathBuf,
+        ttl: std::time::Duration,
+        cache: std::sync::Mutex<Option<(std::time::Instant, String)>>,
     }
 
     impl LiveSessionBearer {
         /// A bearer source anchored to `workspace_dir`'s config.
         #[must_use]
         pub fn new(workspace_dir: &Path) -> Self {
+            Self::with_ttl(workspace_dir, BEARER_TTL)
+        }
+
+        /// [`Self::new`] with an explicit cache lifetime.
+        #[must_use]
+        pub fn with_ttl(workspace_dir: &Path, ttl: std::time::Duration) -> Self {
             Self {
                 workspace_dir: workspace_dir.to_path_buf(),
+                ttl,
+                cache: std::sync::Mutex::new(None),
             }
         }
-    }
 
-    #[async_trait::async_trait]
-    impl BearerSource for LiveSessionBearer {
-        async fn bearer(&self) -> anyhow::Result<String> {
+        fn cached(&self) -> Option<String> {
+            let cache = self.cache.lock().ok()?;
+            cache
+                .as_ref()
+                .filter(|(at, _)| at.elapsed() < self.ttl)
+                .map(|(_, token)| token.clone())
+        }
+
+        async fn resolve(&self) -> anyhow::Result<String> {
             let config =
                 crate::config::ops::load_config_for_workspace_with_timeout(&self.workspace_dir)
                     .await
@@ -230,6 +250,22 @@ mod imp {
                     ))
                 }
             }
+        }
+    }
+
+    #[async_trait::async_trait]
+    impl BearerSource for LiveSessionBearer {
+        async fn bearer(&self) -> anyhow::Result<String> {
+            if let Some(token) = self.cached() {
+                return Ok(token);
+            }
+            // Failures are never cached: a signed-in user must recover on the
+            // next call.
+            let token = self.resolve().await?;
+            if let Ok(mut cache) = self.cache.lock() {
+                *cache = Some((std::time::Instant::now(), token.clone()));
+            }
+            Ok(token)
         }
     }
 
