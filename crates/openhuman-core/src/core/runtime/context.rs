@@ -454,8 +454,7 @@ impl CoreContext {
                         && (parent.memory_subsystem == overlay.config.subsystems.memory
                             || self.embedder_config.as_ref().is_some_and(|config| {
                                 config.workspace_dir == overlay.config.workspace_dir
-                                    && config.subsystems.memory
-                                        == overlay.config.subsystems.memory
+                                    && config.subsystems.memory == overlay.config.subsystems.memory
                             })) =>
                 {
                     Arc::clone(handle)

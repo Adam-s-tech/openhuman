@@ -171,7 +171,10 @@ fn start_job() -> Result<String, String> {
     );
     cancels().insert(
         job_id.clone(),
-        CancelSlot { notify: Arc::new(Notify::new()), requested: false },
+        CancelSlot {
+            notify: Arc::new(Notify::new()),
+            requested: false,
+        },
     );
     Ok(job_id)
 }
@@ -274,10 +277,7 @@ async fn run_job<F, Fut>(
         CopyEnd::Finished(Ok(report)) => {
             // The copy is past its cancellation point. Removing the signal
             // makes concurrent cancel requests report `cancelled: false`.
-            if cancels()
-                .remove(&job_id)
-                .is_some_and(|slot| slot.requested)
-            {
+            if cancels().remove(&job_id).is_some_and(|slot| slot.requested) {
                 update_job(&job_id, |j| j.state = "cancelled".to_string());
                 return;
             }
