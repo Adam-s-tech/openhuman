@@ -391,7 +391,7 @@ async fn propose_workflow_rejects_agent_binding_missing_declared_field() {
         "nodes": [
             { "id": "t", "kind": "trigger", "name": "Manual" },
             { "id": "summarize", "kind": "agent", "name": "Summarize",
-              "config": { "agent_ref": "researcher", "prompt": "summarize",
+              "config": { "agent_ref": "planner", "prompt": "summarize",
                 "output_parser": { "schema": { "type": "object",
                   "properties": { "summary": { "type": "string" } } } } } },
             { "id": "notify", "kind": "tool_call", "name": "Notify",

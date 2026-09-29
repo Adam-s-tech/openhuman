@@ -929,6 +929,50 @@ const messages: TranslationMap = {
   'desktop.action.expand': 'Développez',
   'desktop.action.collapse': 'Réduisez',
   'desktop.action.scroll': 'Faites défiler',
+  'computer.title': "Contrôle de l'ordinateur",
+  'computer.description':
+    'Laissez votre agent travailler dans les applications et les sites web de cet ordinateur.',
+  'computer.tabs.desktop': 'Bureau',
+  'computer.tabs.browser': 'Navigateur',
+  'computer.tabs.models': 'Modèles',
+  'computer.models.decisionTitle': 'Modèle de décision',
+  'computer.models.decisionDescription':
+    'Le modèle qui choisit chaque étape sur le bureau ou dans le navigateur.',
+  'computer.models.decisionModel': 'Modèle de décision',
+  'computer.models.jev': 'Jev',
+  'computer.models.openJev': 'OpenJev',
+  'computer.models.sage': 'Sage',
+  'computer.models.sageFast': 'Mode rapide de Sage',
+  'computer.models.rescueTitle': 'Planification et secours',
+  'computer.models.rescueDescription':
+    "Quand une étape d'une tâche échoue, le modèle de secours propose une façon de reprendre avant que la tâche n'abandonne.",
+  'computer.models.rescueModel': 'Modèle de secours',
+  'computer.models.maxRescues': 'Secours par tâche',
+  'computer.models.plannerModel': 'Modèle de planification',
+  'computer.models.moduleDefault': 'Valeur par défaut du module',
+  'computer.models.rescuesBounds': 'Le nombre de secours par tâche doit être un entier de 0 à 5.',
+  'computer.models.saved': "Modèles de l'ordinateur enregistrés.",
+  'computer.status.title': 'Module TinyComputer',
+  'computer.status.check': 'Vérifier le module',
+  'computer.status.configured': 'configuré',
+  'computer.status.missing': 'manquant',
+  'computer.status.available': 'disponible',
+  'computer.status.unavailable': 'indisponible',
+  'computer.status.incompatible':
+    "La version du module est incompatible ; mettez l'application à jour",
+  'computer.status.ownKey': 'Clé API personnelle',
+  'computer.status.noCredential': "Aucun identifiant pour l'instant",
+  'computer.status.state.available': 'Non chargé',
+  'computer.status.state.loading': 'Chargement',
+  'computer.status.state.ready': 'Prêt',
+  'computer.status.state.failed': 'Échec',
+  'computer.status.state.unsupported': 'Non pris en charge sur cet appareil',
+  'connections.browser.chromeHint':
+    "Le navigateur s'exécute dans le module TinyComputer. Le test lance brièvement Chrome puis le ferme.",
+  'computer.models.openJevKey': 'Clé API OpenJev',
+  'computer.models.sageKey': 'Clé API Sage',
+  'computer.models.keyHint':
+    'Stockée chiffrée sur cet appareil. Laissez vide pour conserver la clé enregistrée.',
   'desktop.title': 'Contrôle du bureau',
   'desktop.description': 'Laissez votre agent travailler dans les applications de cet ordinateur.',
   'desktop.enabledPending':
@@ -1278,9 +1322,9 @@ const messages: TranslationMap = {
   'onboarding.custom.search.subtitle':
     'Comment OpenHuman effectue des recherches sur le web en ton nom.',
   'onboarding.custom.search.defaultDesc':
-    'OpenHuman utilise un backend de recherche géré. Aucune clé nécessaire.',
+    'La recherche web fonctionne immédiatement : Exa et Gemini sont inclus avec TinyHumans, sans clé API.',
   'onboarding.custom.search.configureDesc':
-    'Utilise ta propre clé de fournisseur de recherche (Tavily, Brave, etc.). À configurer dans Paramètres › Outils.',
+    "Exa et Gemini sont inclus. Ajoutez d'autres fournisseurs de recherche avec votre propre clé API dans Paramètres › Outils.",
   'onboarding.custom.embeddings.title': 'Embeddings',
   'onboarding.custom.embeddings.subtitle':
     'Comment OpenHuman génère des embeddings vectoriels pour la recherche sémantique en mémoire.',
@@ -1535,57 +1579,14 @@ const messages: TranslationMap = {
   'settings.costDashboard.noDataHint':
     "Envoyez un message agent: l'utilisation des jetons lors du prochain appel au fournisseur remplira le graphique en environ 10 secondes.",
   'settings.search.title': 'Moteur de recherche',
-  'settings.search.menuDesc':
-    'Par défaut, utilisez la recherche gérée par OpenHuman ou connectez votre propre fournisseur avec une clé API.',
-  'settings.search.description':
-    "Choisissez le moteur de recherche utilisé par l'agent, ou désactivez entièrement les outils de recherche. Géré utilise le backend d'OpenHuman (sans configuration). Parallel, Brave, Querit, Exa et Tavily s'exécutent directement depuis votre machine avec votre clé API.",
-  'settings.search.engineAria': 'Moteur de recherche',
-  'settings.search.engineDisabledLabel': 'Disabled',
-  'settings.search.engineDisabledDesc':
-    "Supprimer les outils de recherche du contexte agent et de la liste d'outils disponibles.",
-  'settings.search.engineManagedLabel': 'OpenHuman Géré',
-  'settings.search.engineManagedDesc':
-    'Par défaut. Acheminé via le backend OpenHuman, actuellement propulsé par Exa: aucune clé API requise.',
-  'settings.search.localManagedUnavailable':
-    'La recherche gérée par OpenHuman n’est pas disponible pour les utilisateurs locaux. Ajoutez votre propre clé API Parallel, Brave, Querit, Exa ou Tavily pour activer la recherche web.',
-  'settings.search.engineParallelLabel': 'Parallèle',
-  'settings.search.engineParallelDesc':
-    'Direct Parallel API: rechercher, extraire, discuter, rechercher, enrichir, outils de jeu de données.',
-  'settings.search.engineBraveLabel': 'Brave Recherche',
-  'settings.search.engineBraveDesc':
-    'Recherche Directe Brave API: outils web, actualités, images et vidéos.',
-  'settings.search.engineQueritLabel': 'Il/Elle cherche',
-  'settings.search.engineQueritDesc':
-    'Direct Querit API: recherche sur le web avec filtres de site, de plage temporelle, de pays et de langue.',
-  'settings.search.engineExaLabel': 'Exa',
-  'settings.search.engineExaDesc':
-    'Recherche neuronale propulsée par Exa. Nécessite votre propre clé API Exa. Ajoute des outils de recherche, de pages similaires et de contenu de pages.',
-  'settings.search.engineTavilyLabel': 'Tavily',
-  'settings.search.engineTavilyDesc':
-    'Recherche web, actualités et finance propulsée par Tavily. Nécessite votre propre clé API Tavily. Ajoute des outils de recherche et d’extraction de pages.',
-  'settings.search.statusConfigured': 'Configuré',
   'settings.search.statusNeedsKey': 'Nécessite la clé API',
-  'settings.search.fallbackToManaged':
-    "Aucune clé configurée: la recherche reviendra à Managed jusqu'à ce qu'une clé soit enregistrée.",
   'settings.search.getApiKey': 'Obtenir la clé API',
-  'settings.search.save': 'Enregistrer',
-  'settings.search.clear': 'Effacer',
   'settings.search.show': 'Afficher',
   'settings.search.hide': 'Masquer',
   'settings.search.statusSaving': 'Enregistrement…',
   'settings.search.statusSaved': 'Enregistré.',
   'settings.search.statusError': 'Échec',
-  'settings.search.parallelKeyLabel': 'Parallel API clé',
-  'settings.search.braveKeyLabel': 'Brave Recherche API clé',
-  'settings.search.queritKeyLabel': 'Cherche la clé API',
-  'settings.search.exaKeyLabel': 'Clé API Exa',
   'settings.search.placeholderStored': '•••••••• (stocké)',
-  'settings.search.placeholderParallel': 'pk_...',
-  'settings.search.placeholderBrave': 'BSA...',
-  'settings.search.placeholderQuerit': 'Cherche la clé API',
-  'settings.search.placeholderExa': 'Collez votre clé API Exa…',
-  'settings.search.tavilyKeyLabel': 'Clé API Tavily',
-  'settings.search.placeholderTavily': 'tvly-...',
   'settings.search.allowedSitesLabel': 'Sites web autorisés',
   'settings.search.allowedSitesHint':
     "Saisissez les hôtes que l'assistant peut ouvrir et lire (via la récupération web et l'outil navigateur), un hôte par ligne, p. ex. reuters.com. Un hôte couvre également ses sous-domaines. La recherche web elle-même n'est pas limitée par cette liste.",
@@ -1599,6 +1600,79 @@ const messages: TranslationMap = {
   'settings.search.accessBlockAll': 'Bloquer tout',
   'settings.search.accessBlockAllHint':
     "Tout accès au web est bloqué: l'assistant ne peut ouvrir ni lire aucun site web.",
+  'settings.search.localManagedUnavailable':
+    'Les fournisseurs passant par TinyHumans nécessitent une connexion. Connectez un fournisseur avec votre propre clé API pour utiliser la recherche web en session locale.',
+  'settings.search.enabledLabel': 'Recherche web',
+  'settings.search.providerToggleAria': 'Utiliser {provider}',
+  'settings.search.routeManaged': 'par TinyHumans',
+  'settings.search.routeDirect': 'Votre propre clé',
+  'settings.search.apiKeyLabel': 'Clé API {provider}',
+  'settings.search.placeholderKey': 'Collez votre clé API {provider}',
+  'settings.search.baseUrlLabel': "URL de l'instance",
+  'settings.search.statusReady': 'Prêt',
+  'settings.search.statusSignInRequired': 'Connexion requise',
+  'settings.search.statusOff': 'Désactivé',
+  'settings.search.deepResearchHint':
+    'Ajoutez votre propre clé {provider} pour débloquer la recherche approfondie.',
+  'settings.search.rolesTitle': 'Rôles',
+  'settings.search.rolesDesc':
+    "Chaque rôle est un outil pour l'agent. Le premier fournisseur disponible s'en charge ; les autres servent de secours, dans l'ordre.",
+  'settings.search.roleSearch': 'Recherche',
+  'settings.search.roleSearchDesc': 'Résultats web classés pour une requête.',
+  'settings.search.roleAnswer': 'Réponse',
+  'settings.search.roleAnswerDesc': 'Une réponse rédigée à partir de sources web, avec citations.',
+  'settings.search.roleContents': 'Contenu',
+  'settings.search.roleContentsDesc': 'Récupère les pages indiquées et en extrait le texte.',
+  'settings.search.roleMoveUp': 'Monter {provider}',
+  'settings.search.roleMoveDown': 'Descendre {provider}',
+  'settings.search.roleRemove': 'Retirer {provider}',
+  'settings.search.roleAdd': 'Ajouter {provider}',
+  'settings.search.roleReset': 'Rétablir par défaut',
+  'settings.search.roleUnavailable': 'Indisponible',
+  'settings.search.advancedTitle': 'Avancé',
+  'settings.search.exposeProviderTools': 'Exposer les outils propres à chaque fournisseur',
+  'settings.search.exposeProviderToolsDesc':
+    "Remplace les outils de recherche routés par les outils propres à chaque fournisseur activé. Les agents qui ne connaissent que les outils routés, y compris l'agent principal, n'ont alors plus de recherche web, et les outils supplémentaires occupent davantage la fenêtre de contexte. Laissez cette option désactivée sauf si vous testez un fournisseur.",
+  'settings.search.tabProviders': 'Fournisseurs',
+  'settings.search.tabRouting': 'Routage',
+  'settings.search.tabWebsites': 'Sites web',
+  'settings.search.offNotice':
+    "La recherche web est désactivée. L'agent ne peut ni chercher ni lire sur le web tant que vous ne la réactivez pas.",
+  'settings.search.connectedTitle': 'Connectés',
+  'settings.search.connectedDesc':
+    "Fournisseurs que l'agent peut utiliser. Plusieurs peuvent être actifs à la fois ; l'onglet Routage décide lequel est essayé en premier.",
+  'settings.search.connectedEmpty':
+    "Aucun fournisseur n'est encore connecté. Choisissez-en un ci-dessous.",
+  'settings.search.catalogTitle': 'Ajouter un fournisseur',
+  'settings.search.catalogDesc':
+    "Choisissez un fournisseur à connecter. Vous pourrez en ajouter d'autres à tout moment.",
+  'settings.search.catalogManagedTitle': 'Par TinyHumans',
+  'settings.search.catalogManagedHelper': "Aucune configuration : un clic et c'est prêt.",
+  'settings.search.catalogOwnTitle': 'Avec votre propre clé',
+  'settings.search.catalogOwnHelper':
+    'Apportez une clé API du fournisseur, ou indiquez votre propre instance.',
+  'settings.search.addProviderAria': 'Connecter {provider}',
+  'settings.search.detailOwnKey': 'Votre propre clé API',
+  'settings.search.detailNoKey': 'Pas encore de clé API',
+  'settings.search.detailNoUrl': "Pas encore d'URL d'instance",
+  'settings.search.deepResearchBadge': 'Recherche approfondie',
+  'settings.search.rowActions': 'Options de {provider}',
+  'settings.search.actionUseOwnKey': 'Utiliser votre propre clé',
+  'settings.search.actionUseManaged': 'Utiliser par TinyHumans',
+  'settings.search.actionAddKey': 'Ajouter une clé API',
+  'settings.search.actionAddDeepResearchKey': 'Ajouter une clé pour la recherche approfondie',
+  'settings.search.actionReplaceKey': 'Remplacer la clé API',
+  'settings.search.actionRemoveKey': 'Supprimer la clé API',
+  'settings.search.actionEditUrl': "Modifier l'URL de l'instance",
+  'settings.search.connectTitle': 'Connecter {provider}',
+  'settings.search.connect': 'Connecter',
+  'settings.search.baseUrlHint': "L'adresse de votre instance SearXNG, port compris.",
+  'settings.search.roleServing': 'Utilisé',
+  'settings.search.roleNoProviderShort': 'Aucun fournisseur disponible',
+  'settings.search.roleFallbacks': 'Secours : {providers}',
+  'settings.search.roleNoFallback': 'Aucun secours',
+  'settings.search.roleDialogDesc':
+    "Le premier fournisseur disponible se charge de cette tâche. S'il échoue ou n'est pas disponible, le suivant est essayé.",
   // ─── Settings global search bar ────────────────────────────
   'settings.embeddings.title': 'Encastrements',
   'settings.embeddings.description':
@@ -3473,6 +3547,12 @@ const messages: TranslationMap = {
   'conversations.tools.search.found.one': '{count} résultat trouvé',
   'conversations.tools.search.found.other': '{count} résultats trouvés',
   'conversations.tools.search.via': 'par {provider}',
+  'conversations.tools.search.viaAfter': 'par {provider}, après {fallback}',
+  'conversations.tools.search.sources.one': 'Sources : {count}',
+  'conversations.tools.search.sources.other': 'Sources : {count}',
+  'conversations.tools.search.researching': 'Recherche toujours en cours',
+  'conversations.tools.search.balanceLow':
+    'Votre solde TinyHumans est insuffisant pour la recherche incluse. Rechargez-le ou ajoutez votre propre clé pour un fournisseur de recherche dans Paramètres.',
   'conversations.tools.readFile.active': 'Lecture du fichier',
   'conversations.tools.readFile.done': 'Fichier lu',
   'conversations.tools.writeFile.active': 'Écriture du fichier',
@@ -3647,8 +3727,6 @@ const messages: TranslationMap = {
   'conversations.tools.planNextSteps.done': 'Prochaines étapes planifiées',
   'conversations.tools.reviewWork.active': 'Relecture du travail',
   'conversations.tools.reviewWork.done': 'Travail relu',
-  'conversations.tools.scoutContext.active': 'Repérage du contexte',
-  'conversations.tools.scoutContext.done': 'Contexte repéré',
   'conversations.tools.useTools.active': 'Utilisation des outils',
   'conversations.tools.useTools.done': 'Outils utilisés',
   'conversations.tools.checkConnectedApp.active': 'Vérification de votre app connectée',
@@ -7183,7 +7261,6 @@ const messages: TranslationMap = {
   'migration.badgePreview': 'Aperçu',
   'migration.badgeImported': 'Importés',
   'desktop.statusModuleFailed': 'Indisponible',
-  'settings.search.apiKeysHeading': 'Clés API',
   'voice.providers.alwaysOn': 'Toujours allumé',
   'voice.routing.testOk': 'En cours',
   'voice.routing.testFailed': 'Échec',
@@ -7240,9 +7317,6 @@ const messages: TranslationMap = {
   'channels.availableDesc':
     'Clavardez les applications que vous pouvez lier. Ouvrez-en un pour le mettre en place.',
   'settings.about.resources': 'Ressources',
-  'settings.search.keyStored': 'Stocké',
-  'settings.search.apiKeysDesc':
-    'Clés pour les fournisseurs directs. Ils restent sur ce dispositif et ne sont utilisés que lorsque ce moteur est sélectionné.',
   'settings.embeddings.modelCardTitle': 'Modèle & dimensions',
   'mcp.rows.searchPlaceholder': 'Les serveurs de recherche...',
   'mcp.tab.section.clients': 'Clients',

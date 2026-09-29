@@ -266,8 +266,7 @@ async fn start_channels_inner(mut config: Config) -> Result<()> {
         ));
     }
     // Composio tool descriptions are intentionally excluded from the main
-    // agent prompt — those tools are only available to the integrations_agent
-    // subagent via category_filter = "skill".
+    // agent prompt — integration actions are reached through tool search.
     tool_descs.push((
         "schedule",
         "Manage scheduled tasks (create/list/get/cancel/pause/resume). Supports recurring cron and one-shot delays.",
@@ -289,8 +288,7 @@ async fn start_channels_inner(mut config: Config) -> Result<()> {
         None
     };
     // Filter out Workflow-category tools (e.g. Composio, Apify) from the
-    // main agent prompt — those are only available to the integrations_agent
-    // subagent via category_filter = "skill".
+    // main agent prompt — integration actions are reached through tool search.
     let non_skill_tools: Vec<&Box<dyn tinytools::Tool>> = tools_registry
         .iter()
         .filter(|t| t.category() != tinytools::ToolCategory::Workflow)

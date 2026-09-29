@@ -61,7 +61,7 @@ pub enum DomainEvent {
     SubagentSpawned {
         /// Parent agent's session id.
         parent_session: String,
-        /// Sub-agent definition id (e.g. `researcher`, `notion_specialist`, `fork`).
+        /// Sub-agent definition id (e.g. `code_executor`, `notion_specialist`, `fork`).
         agent_id: String,
         /// Spawn mode — `"typed"` or `"fork"`.
         mode: String,
@@ -1432,6 +1432,14 @@ pub enum DomainEvent {
     /// never to Sentry or the UI verbatim.
     SessionExpired { source: String, reason: String },
 
+    /// The backend credential this core holds was stored, replaced or
+    /// cleared (`auth.set_credential` / `auth.clear_credential`, including the
+    /// teardown after `SessionExpired`). `kind` is `session`, `api_key`,
+    /// `local` or `cleared` — never the credential itself. Subscribers that
+    /// cache credential-derived state (the search module's managed routes)
+    /// refresh on it.
+    CredentialChanged { kind: String },
+
     // ── Voice ────────────────────────────────────────────────────────────
     /// A voice domain event (PTT, transcription lifecycle, etc.).
     Voice(VoiceEvent),
@@ -1623,7 +1631,9 @@ impl DomainEvent {
 
             Self::KeyringConsentRequired | Self::KeyringDecryptFailed { .. } => "keyring",
 
-            Self::SessionExpired { .. } | Self::ProviderApiKeyRejected { .. } => "auth",
+            Self::SessionExpired { .. }
+            | Self::CredentialChanged { .. }
+            | Self::ProviderApiKeyRejected { .. } => "auth",
 
             Self::TaskSourceFetched { .. }
             | Self::TaskSourceTaskIngested { .. }
@@ -1765,6 +1775,7 @@ impl DomainEvent {
             Self::KeyringConsentRequired => "KeyringConsentRequired",
             Self::KeyringDecryptFailed { .. } => "KeyringDecryptFailed",
             Self::SessionExpired { .. } => "SessionExpired",
+            Self::CredentialChanged { .. } => "CredentialChanged",
             Self::ApprovalRequested { .. } => "ApprovalRequested",
             Self::ApprovalDecided { .. } => "ApprovalDecided",
             Self::FlowApprovalRequested { .. } => "FlowApprovalRequested",

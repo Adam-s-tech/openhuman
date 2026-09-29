@@ -13,7 +13,7 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 
 use crate::config::Config;
-use crate::core::Outcome;
+use crate::rpc::RpcOutcome;
 use crate::security::credentials::jwt::decode_jwt_exp;
 use crate::security::credentials::responses::AuthStateResponse;
 use crate::security::credentials::session_support::{
@@ -180,7 +180,7 @@ fn resolve(request: SetCredentialRequest) -> Result<Resolved, String> {
 pub async fn set_credential(
     config: &Config,
     request: SetCredentialRequest,
-) -> Result<Outcome<AuthStateResponse>, String> {
+) -> Result<RpcOutcome<AuthStateResponse>, String> {
     let resolved = resolve(request)?;
     let _mutation = CREDENTIAL_MUTATION_LOCK.lock().await;
 
@@ -205,7 +205,8 @@ pub async fn set_credential(
             "{LOG_PREFIX} api key stored"
         );
         let state = build_session_state(config)?;
-        return Ok(Outcome::single_log(state, "api key stored"));
+        publish_credential_changed(CredentialKind::ApiKey.as_str());
+        return Ok(RpcOutcome::single_log(state, "api key stored"));
     }
 
     let user_id = resolved
@@ -336,7 +337,8 @@ pub async fn set_credential(
     );
 
     let state = build_session_state(&effective_config)?;
-    Ok(Outcome::new(state, logs))
+    publish_credential_changed(resolved.kind.as_str());
+    Ok(RpcOutcome::new(state, logs))
 }
 
 /// Remove the stored credential of `kind` — or every credential when `None`.
@@ -345,7 +347,7 @@ pub async fn set_credential(
 pub async fn clear_credential(
     config: &Config,
     kind: Option<CredentialKind>,
-) -> Result<Outcome<Value>, String> {
+) -> Result<RpcOutcome<Value>, String> {
     let _mutation = CREDENTIAL_MUTATION_LOCK.lock().await;
     let mut logs = Vec::new();
     let mut removed_session = false;
@@ -452,7 +454,10 @@ pub async fn clear_credential(
         logs.push("credential-gated services restarted for api key".to_string());
     }
 
-    Ok(Outcome::new(
+    if removed_session || removed_api_key {
+        publish_credential_changed("cleared");
+    }
+    Ok(RpcOutcome::new(
         json!({
             "removed": removed_session || removed_api_key,
             "removedSession": removed_session,
@@ -467,7 +472,7 @@ pub async fn clear_credential(
 /// teardown, user-dir deactivation, service stop, rebind to the signed-out
 /// workspace, and Sentry / identity clear. Callers hold
 /// [`CREDENTIAL_MUTATION_LOCK`].
-async fn clear_session_credential(config: &Config) -> Result<Outcome<bool>, String> {
+async fn clear_session_credential(config: &Config) -> Result<RpcOutcome<bool>, String> {
     let mut logs = Vec::new();
     crate::cron::scheduler_gate::set_signed_out(true);
     identity::clear_current_user();
@@ -514,7 +519,7 @@ async fn clear_session_credential(config: &Config) -> Result<Outcome<bool>, Stri
 
     sentry_scope::clear();
     logs.push("session cleared".to_string());
-    Ok(Outcome::new(removed, logs))
+    Ok(RpcOutcome::new(removed, logs))
 }
 
 /// Historical entry point: install a session (or local) credential from a
@@ -524,7 +529,7 @@ pub async fn store_session(
     token: &str,
     user_id: Option<String>,
     user: Option<Value>,
-) -> Result<Outcome<AuthStateResponse>, String> {
+) -> Result<RpcOutcome<AuthStateResponse>, String> {
     set_credential(
         config,
         SetCredentialRequest {
@@ -539,6 +544,15 @@ pub async fn store_session(
 
 /// Historical entry point: sign the session out. Same as
 /// [`clear_credential`] for the session kind.
-pub async fn clear_session(config: &Config) -> Result<Outcome<Value>, String> {
+pub async fn clear_session(config: &Config) -> Result<RpcOutcome<Value>, String> {
     clear_credential(config, Some(CredentialKind::Session)).await
+}
+
+/// Tell credential-derived caches (the search module's managed routes) to
+/// refresh. Carries only the kind, never the credential.
+fn publish_credential_changed(kind: &str) {
+    tracing::debug!(kind, "{LOG_PREFIX} publishing CredentialChanged");
+    crate::core::bus::BUS.publish(crate::core::events::DomainEvent::CredentialChanged {
+        kind: kind.to_string(),
+    });
 }

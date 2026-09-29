@@ -1,7 +1,7 @@
 id = "profile_memory_agent"
 display_name = "Profile Memory Agent"
 delegate_name = "manage_profile_memory"
-when_to_use = "Profile, persona, preference and people-graph specialist. Use when the user asks to remember or forget something, edit their profile or the assistant persona, inspect memory health, or manage people aliases and contacts."
+when_to_use = "Profile, persona and preference specialist. Use when the user asks to remember or forget something, edit their profile or the assistant persona, or inspect memory health."
 temperature = 0.2
 max_iterations = 8
 sandbox_mode = "none"

@@ -35,7 +35,7 @@ fn config_parses_orchestrator_and_team_model_pins() {
             [orchestrator]
             model = "deepseek/deepseek-r2"
 
-            [teams.research]
+            [teams.tools]
             lead_model = "minimax/m3"
             agent_model = "deepseek/v3.2"
 
@@ -50,17 +50,20 @@ fn config_parses_orchestrator_and_team_model_pins() {
         Some("deepseek/deepseek-r2")
     );
     assert_eq!(
-        config.configured_agent_model("researcher", false),
+        config.configured_agent_model("tools", false),
         Some("deepseek/v3.2")
     );
     assert_eq!(
-        config.configured_agent_model("researcher", true),
+        config.configured_agent_model("tools", true),
         Some("minimax/m3")
     );
+    // `<name>_agent` falls back to `[teams.<name>]`.
     assert_eq!(
-        config.configured_agent_model("code_executor", false),
+        config.configured_agent_model("code_agent", false),
         Some("qwen/qwen3")
     );
+    // The retired built-in aliases no longer resolve.
+    assert_eq!(config.configured_agent_model("code_executor", false), None);
 }
 
 #[test]
@@ -111,7 +114,7 @@ fn empty_model_pin_values_fall_back_to_auto_routing() {
     let mut config = Config::default();
     config.orchestrator.model = Some("   ".to_string());
     config.teams.insert(
-        "research".to_string(),
+        "tools".to_string(),
         TeamModelConfig {
             lead_model: Some("".to_string()),
             agent_model: Some("  ".to_string()),
@@ -119,5 +122,5 @@ fn empty_model_pin_values_fall_back_to_auto_routing() {
     );
 
     assert_eq!(config.configured_agent_model("orchestrator", true), None);
-    assert_eq!(config.configured_agent_model("researcher", false), None);
+    assert_eq!(config.configured_agent_model("tools_agent", false), None);
 }

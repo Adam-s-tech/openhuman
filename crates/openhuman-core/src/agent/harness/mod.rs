@@ -5,7 +5,7 @@
 //! including prompt construction, tool filtering, and result synthesis.
 //!
 //! ## Delegation via `spawn_subagent`
-//! The system treats specialized agents (researchers, planners, etc.) as tools.
+//! The system treats specialized agents (planners, code executors, etc.) as tools.
 //! An agent can invoke the `spawn_subagent` tool, which looks up a definition
 //! in the global [`AgentDefinitionRegistry`] and runs a dedicated tool loop.
 //!

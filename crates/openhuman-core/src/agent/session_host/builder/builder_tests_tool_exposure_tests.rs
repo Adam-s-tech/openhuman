@@ -1,15 +1,21 @@
 use super::*;
 
 fn visible_names(agent_id: &str) -> std::collections::HashSet<String> {
-    let tmp = tempfile::TempDir::new().unwrap();
-    let config = test_config(&tmp);
     let definition = crate::agent::harness::AgentDefinitionRegistry::builtins_only()
         .get(agent_id)
         .cloned()
         .unwrap_or_else(|| panic!("built-in agent definition not found: {agent_id}"));
+    visible_names_for(&definition)
+}
+
+fn visible_names_for(
+    definition: &crate::agent::harness::definition::AgentDefinition,
+) -> std::collections::HashSet<String> {
+    let tmp = tempfile::TempDir::new().unwrap();
+    let config = test_config(&tmp);
     let agent =
-        crate::agent::OpenHumanSessionHost::from_config_with_definition(&config, &definition)
-            .unwrap_or_else(|e| panic!("{agent_id} session build: {e}"));
+        crate::agent::OpenHumanSessionHost::from_config_with_definition(&config, definition)
+            .unwrap_or_else(|e| panic!("{} session build: {e}", definition.id));
     agent
         .visible_tool_specs_arc()
         .iter()
@@ -21,13 +27,10 @@ fn visible_names(agent_id: &str) -> std::collections::HashSet<String> {
 fn resetting_wildcard_visibility_keeps_collapsed_exposure() {
     let tmp = tempfile::TempDir::new().unwrap();
     let config = test_config(&tmp);
-    let definition = crate::agent::harness::AgentDefinitionRegistry::builtins_only()
-        .get("tools_agent")
-        .cloned()
-        .expect("tools_agent built-in definition");
+    let definition = super::wildcard_probe_def();
     let mut agent =
         crate::agent::OpenHumanSessionHost::from_config_with_definition(&config, &definition)
-            .expect("build tools agent");
+            .expect("build wildcard agent");
 
     agent.set_visible_tool_names(std::collections::HashSet::new());
 
@@ -42,13 +45,10 @@ fn resetting_wildcard_visibility_keeps_collapsed_exposure() {
 fn hiding_and_reseeding_wildcard_visibility_keeps_collapsed_exposure() {
     let tmp = tempfile::TempDir::new().unwrap();
     let config = test_config(&tmp);
-    let definition = crate::agent::harness::AgentDefinitionRegistry::builtins_only()
-        .get("tools_agent")
-        .cloned()
-        .expect("tools_agent built-in definition");
+    let definition = super::wildcard_probe_def();
     let mut agent =
         crate::agent::OpenHumanSessionHost::from_config_with_definition(&config, &definition)
-            .expect("build tools agent");
+            .expect("build wildcard agent");
 
     agent.set_visible_tool_names(std::collections::HashSet::new());
     agent.hide_tools(&[crate::memory::tools::MEMORY_TOOL_NAME]);
@@ -70,7 +70,7 @@ fn hiding_and_reseeding_wildcard_visibility_keeps_collapsed_exposure() {
 /// eight `todo_*` tools it replaces.
 #[test]
 fn wildcard_belt_advertises_collapsed_tools_not_their_hidden_members() {
-    let visible = visible_names("tools_agent");
+    let visible = visible_names_for(&super::wildcard_probe_def());
 
     for collapsed in [crate::memory::tools::MEMORY_TOOL_NAME, "todo"] {
         assert!(
@@ -214,4 +214,50 @@ fn named_belt_keeps_its_legacy_members() {
         !visible.contains(crate::memory::tools::MEMORY_TOOL_NAME),
         "named belt must not gain the collapsed tool; got {visible:?}"
     );
+}
+
+/// The tools of the specialists the inline skills replaced are `Deferred`:
+/// off the orchestrator's wire, in its deferred set (so `tool_search` finds
+/// them), and callable once found. This is the whole bargain that let
+/// `settings_agent`, `scheduler_agent`, `help`, `code_executor` and `critic`
+/// go — a regression here silently takes those capabilities from chat.
+#[test]
+fn orchestrator_reaches_the_replaced_specialists_tools_through_discovery() {
+    let tmp = tempfile::TempDir::new().unwrap();
+    let config = test_config(&tmp);
+    let definition = crate::agent::harness::AgentDefinitionRegistry::builtins_only()
+        .get("orchestrator")
+        .cloned()
+        .expect("orchestrator built-in definition");
+    let agent =
+        crate::agent::OpenHumanSessionHost::from_config_with_definition(&config, &definition)
+            .expect("orchestrator session build");
+    let deferred = agent.deferred_tool_names_for_test();
+    let visible = agent.visible_tool_names_for_test();
+    let policy = agent.tool_policy_session_for_test();
+    // Unconditionally registered members only: `node_exec` / `npm_exec` need
+    // the managed Node runtime and the wallet family needs the `web3`
+    // feature, so a test profile without them cannot see them either way.
+    for tool in [
+        "cron",
+        "config_snapshot",
+        "service_restart",
+        "gitbooks_search",
+        "edit",
+        "curl",
+        "read_diff",
+        "run_linter",
+        "run_tests",
+        "mcp_registry_installed_list",
+    ] {
+        assert!(
+            deferred.contains(tool),
+            "`{tool}` must be deferred; got {deferred:?}"
+        );
+        assert!(!visible.contains(tool), "`{tool}` must stay off the wire");
+        assert!(
+            policy.is_allowed(tool),
+            "`{tool}` must be callable once found"
+        );
+    }
 }

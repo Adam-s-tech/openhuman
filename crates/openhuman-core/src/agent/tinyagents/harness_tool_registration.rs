@@ -13,10 +13,9 @@ use tinyagents_registry::{
 };
 
 use crate::agent::orchestration::tools::{
-    AgentPrepareContextDispatch, CloseSubagentDispatch, ContinueSubagentDispatch,
-    DelegateGraphDispatch, DelegationDispatch, ListSubagentsDispatch, SpawnAsyncSubagentDispatch,
-    SpawnParallelAgentsDispatch, SpawnSubagentDispatch, SpawnWorkerThreadDispatch,
-    SteerSubagentDispatch, WaitSubagentDispatch,
+    CloseSubagentDispatch, ContinueSubagentDispatch, DelegateGraphDispatch, DelegationDispatch,
+    ListSubagentsDispatch, SpawnAsyncSubagentDispatch, SpawnParallelAgentsDispatch,
+    SpawnSubagentDispatch, SpawnWorkerThreadDispatch, SteerSubagentDispatch, WaitSubagentDispatch,
 };
 use crate::agent::tinyagents::host::OpenHumanRunContext;
 use crate::agent::tinyagents::tools::{CanonicalSharedToolAdapter, EarlyExitHook};
@@ -54,7 +53,6 @@ pub(crate) fn typed_dispatch_for(
         "steer_subagent" => Arc::new(SteerSubagentDispatch::new(adapter)),
         "close_subagent" => Arc::new(CloseSubagentDispatch::new(adapter)),
         "list_subagents" => Arc::new(ListSubagentsDispatch::new(adapter)),
-        "agent_prepare_context" => Arc::new(AgentPrepareContextDispatch::new(adapter)),
         "delegate_graph" => Arc::new(DelegateGraphDispatch::new(adapter)),
         "delegate" => Arc::new(DelegateToolDispatch::new(adapter)),
         "todo" => Arc::new(TodoToolDispatch::new(adapter)),

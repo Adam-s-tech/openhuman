@@ -1,9 +1,7 @@
 #![cfg(any())] // TODO(#6382): migrate this raw-coverage fixture to hosted TinyAgents APIs.
 use anyhow::Result;
 use async_trait::async_trait;
-use openhuman_core::agent::debug::{
-    dump_agent_prompt, write_prompt_dumps, DumpPromptOptions, DumpedPrompt,
-};
+use openhuman_core::agent::debug::{write_prompt_dumps, DumpedPrompt};
 use openhuman_core::agent::harness::archivist::ArchivistHook;
 use openhuman_core::agent::harness::{
     run_subagent, with_parent_context, AgentDefinition, DefinitionSource, ModelSpec,
@@ -334,34 +332,12 @@ async fn subagent_no_parent_and_checkpoint_fallback_are_deterministic() -> Resul
     Ok(())
 }
 
-#[tokio::test]
-async fn debug_prompt_dump_requires_toolkit_before_composio_network() -> Result<()> {
-    crate::tinyhumans_boot::boot();
-    let tmp = TempDir::new()?;
-    let err = dump_agent_prompt(DumpPromptOptions {
-        agent_id: "integrations_agent".to_string(),
-        toolkit: None,
-        workspace_dir_override: Some(tmp.path().to_path_buf()),
-        config_path_override: None,
-        model_override: Some("round21-debug-model".to_string()),
-    })
-    .await
-    .expect_err("integrations_agent without toolkit should fail locally");
-
-    assert!(err.to_string().contains("requires a `toolkit` argument"));
-    let opts = DumpPromptOptions::new("orchestrator");
-    assert_eq!(opts.agent_id, "orchestrator");
-    assert!(opts.toolkit.is_none());
-    Ok(())
-}
-
 #[test]
 fn debug_dump_writer_sanitizes_names_and_writes_summary_sidecars() -> Result<()> {
     crate::tinyhumans_boot::boot();
     let tmp = TempDir::new()?;
     let dumps = vec![DumpedPrompt {
         agent_id: "agent/with spaces".to_string(),
-        toolkit: Some("gmail:primary".to_string()),
         mode: "session",
         model: "round21-model".to_string(),
         workspace_dir: PathBuf::from("/tmp/round21-workspace"),
@@ -377,7 +353,7 @@ fn debug_dump_writer_sanitizes_names_and_writes_summary_sidecars() -> Result<()>
     let summary = write_prompt_dumps(tmp.path(), &dumps)?;
     assert_eq!(
         summary.prompt_paths[0],
-        tmp.path().join("1_agent_with_spaces_gmail_primary.md")
+        tmp.path().join("1_agent_with_spaces.md")
     );
     assert_eq!(
         std::fs::read_to_string(&summary.prompt_paths[0])?,
@@ -385,17 +361,17 @@ fn debug_dump_writer_sanitizes_names_and_writes_summary_sidecars() -> Result<()>
     );
     let meta = std::fs::read_to_string(
         tmp.path()
-            .join("1_agent_with_spaces_gmail_primary.meta.txt"),
+            .join("1_agent_with_spaces.meta.txt"),
     )?;
     assert!(meta.contains("agent:          agent/with spaces"));
-    assert!(meta.contains("toolkit:        gmail:primary"));
+    assert!(!meta.contains("toolkit:"));
     let summary_text = std::fs::read_to_string(summary.summary_path)?;
-    assert!(summary_text.contains("agent/with spaces@gmail:primary"));
+    assert!(summary_text.contains("agent/with spaces"));
     assert!(summary_text.contains("tools=2"));
     // The per-dump tools sidecar carries the rendered tool schemas verbatim,
     // one entry per tool in `tool_names` order.
     let tools_json = std::fs::read_to_string(
-        tmp.path().join("1_agent_with_spaces_gmail_primary.tools.json"),
+        tmp.path().join("1_agent_with_spaces.tools.json"),
     )?;
     let specs: Vec<serde_json::Value> = serde_json::from_str(&tools_json)?;
     assert_eq!(specs.len(), 2);

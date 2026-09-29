@@ -90,7 +90,7 @@ fn sample_turn() -> TurnContext {
 fn stub_parent_context() -> ParentExecutionContext {
     ParentExecutionContext {
         agent_definition_id: "orchestrator".into(),
-        allowed_subagent_ids: ["test".to_string(), "researcher".to_string()]
+        allowed_subagent_ids: ["test".to_string(), "task_manager_agent".to_string()]
             .into_iter()
             .collect(),
         turn_model_source: openhuman_core::agent::tinyagents::TurnModelSource::from_model(

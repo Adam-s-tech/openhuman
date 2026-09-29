@@ -6,7 +6,7 @@ The agent tool layer. Defines the core [`Tool`] trait every agent-callable capab
 
 - Use the [`tinytools::Tool`] async trait and its supporting value types (`ToolResult`, `ToolSpec`, `PermissionLevel`, `ToolScope`, `ToolCategory`, `ToolCallOptions`, `ToolExposure`) directly from `tinytools`.
 - Assemble the registry the agent loop runs against: `default_tools[_with_runtime]` (minimal: shell + file read/write) and `all_tools[_with_runtime]` (full, config-gated set).
-- Gate registration on config flags / env (`browser.enabled`, `node.enabled`, `runtime_python.enabled`, `learning.*`, `integrations.*`, `search.engine`, `gitbooks.enabled`, MCP registry presence, `OPENHUMAN_LSP_ENABLED`).
+- Gate registration on config flags / env (`browser.enabled`, `node.enabled`, `runtime_python.enabled`, `learning.*`, `integrations.*`, `[search]` providers, `gitbooks.enabled`, MCP registry presence, `OPENHUMAN_LSP_ENABLED`).
 - Own the cross-cutting built-in tool impls under `impl/` (filesystem, browser, generic system, generic network, meta, and the `documents`-gated document/presentation tools).
 - Provide the pre-execution [`ToolPolicy`] middleware (allow/deny gate) and the default allow-all policy.
 - Normalize tool JSON schemas for provider compatibility (`SchemaCleanr`).
@@ -38,13 +38,13 @@ The agent tool layer. Defines the core [`Tool`] trait every agent-callable capab
 | [`crates/openhuman-core/src/tools/agent_policy/`](agent_policy/README.md) | Per-session tool boundary: classifies every tool against a channel's permission ceiling into allow/require-approval/deny/hide, and renders the prompt-visible boundary section. |
 | [`crates/openhuman-core/src/tools/impl/mod.rs`](impl/README.md) | Aggregates the built-in tool families; glob re-exports `browser`, `filesystem`, `network`, `system` and the two `documents`-gated tools. `meta` is declared `pub` but not glob re-exported: reach it as `implementations::meta`. |
 | `crates/openhuman-core/src/tools/impl/filesystem/` | Tools `file_read`, `file_write`, `edit`, `apply_patch`, `grep`, `glob`, `list`, `read_diff`, `csv_export`, `git_operations`, `run_linter`, `run_tests`, `update_memory_md`. Helper modules (not tools): `git_operations_config`/`git_operations_render`, and `write_sink` (the injectable filesystem-write seam tests use to provoke OS refusals). |
-| `crates/openhuman-core/src/tools/impl/browser/` | Deferred `browser` (TinyBrowser bus actions and Jev tasks), deferred `browser_open` (simple TinyBrowser entry point), and direct `image_info`. |
+| `crates/openhuman-core/src/tools/impl/browser/` | Deferred `browser` (TinyComputer browser members and tasks), deferred `browser_open` (simple TinyComputer entry point), and direct `image_info`. |
 | `crates/openhuman-core/src/tools/impl/system/` | Tools `shell`, `node_exec`, `npm_exec`, `python_exec`, `install_tool`, `detect_tools`, `current_time`, `resolve_time`, `schedule`, `proxy_config`, `pushover`, `lsp`, `tool_stats`, `update_check`, `update_apply`, `insert_sql_record`, `read_workspace_state`, `retrieve_tool_output`. Helper module (not a tool): `command_output`, the shared exit-code/stdout/stderr formatter for the shell family. |
 | `crates/openhuman-core/src/tools/impl/network/` | Tools `http_request`, `web_fetch`, `curl`, `gitbooks_search`/`gitbooks_get_page`, `mcp_list_servers`/`mcp_list_tools`/`mcp_call_tool` (`mcp`-feature gated), `gmail_unsubscribe`. Helper module: `url_guard` (host allowlist matching, private-address rejection, `validate_url`). |
 | `crates/openhuman-core/src/tools/impl/meta/` | Tools *about* the tool surface itself: `deferred` (the host's half of `ToolExposure::Deferred`; the harness's intrinsic `tool_search` bridge is the lookup half) and `collapse` (multi-action schema/permission merging helpers). |
 | `crates/openhuman-core/src/tools/impl/document/` (`documents` feature) | `DocumentTool` (`generate_document`): structured document generation/editing engine. |
 | `crates/openhuman-core/src/tools/impl/presentation/` (`documents` feature) | `PresentationTool` (`generate_presentation`): structured slide-deck generation engine. |
-| `crates/openhuman-core/src/search/` | Search engine registry and search-owned agent tools such as `web_search`. |
+| `crates/openhuman-core/src/search/` | Search policy over the TinySearch module: provider resolution, the `TinySearchTool` bridge (`web_search_tool`, `web_answer_tool`, `web_contents_tool`), result rendering. |
 | `*_tests.rs` / `#[cfg(test)] mod tests` | Co-located/sibling unit tests across the module. |
 
 ## Public surface
@@ -64,10 +64,10 @@ Namespace `tools` (wired into `crates/openhuman-core/src/core/all.rs` via `all_t
 | Method | Purpose |
 | --- | --- |
 | `openhuman.tools_composio_execute` | Run a Composio action via the mode-aware client factory (backend-proxied or direct). |
-| `openhuman.tools_web_search` | Web search via the backend `/agent-integrations/parallel/search` proxy; structured results plus the resolved provider. |
-| `openhuman.tools_seltz_search` | Seltz web search (gated on `seltz.enabled`). |
-| `openhuman.tools_querit_search` | Querit web search (gated on `search.querit` having a key). |
-| `openhuman.tools_searxng_search` | Self-hosted SearXNG search (gated on `searxng.enabled`). |
+| `openhuman.tools_web_search` | Ranked web search through the `search` role (TinySearch module); structured results plus the provider that answered. |
+| `openhuman.tools_web_answer` | Grounded answer with citations through the `answer` role. |
+| `openhuman.tools_web_contents` | Page contents for given URLs through the `contents` role. |
+| `openhuman.tools_searxng_search` | The `search` role pinned to your self-hosted SearXNG (requires SearXNG enabled in search settings). |
 | `openhuman.tools_apify_linkedin_scrape` | Apify LinkedIn profile scrape → raw JSON + rendered markdown. |
 
 Handlers load config via `config::rpc::load_config_with_timeout`, build the backend integration client where needed, and return `Outcome`.
@@ -82,9 +82,9 @@ This module owns the cross-cutting built-in tools (the only ones that belong her
 - Generic network: `http_request`, `web_fetch`, `curl`, `gitbooks_search`/`gitbooks_get_page`, MCP bridge (`mcp_list_servers`/`mcp_list_tools`/`mcp_call_tool`), `gmail_unsubscribe`.
 - Meta: `deferred` (which tools leave the wire for the harness's `tool_search` bridge) and the `collapse` multi-action helpers used by other tools' schema merging.
 - Documents (`documents` feature): `generate_document` (`DocumentTool`), `generate_presentation` (`PresentationTool`).
-- Search: `web_search` and provider-specific search families are registered by `crate::search`; `search.engine = "disabled"` suppresses this surface entirely.
+- Search: `web_search` and provider-specific search families are registered through the provider-based host integration in `crate::search`; disabling all providers suppresses this surface. Legacy `search.engine` settings are handled during config migration.
 
-Domain-owned tools (memory, cron, wallet, composio, integrations, skills, voice::audio_toolkit, agent sub-dispatch like `spawn_subagent`/`spawn_async_subagent`/`delegate`/`todo`/`plan_exit`/`run_skill`) are registered in `all_tools` but implemented in their respective domains and only re-exported through this module.
+Domain-owned tools (memory, cron, wallet, composio, integrations, skills, voice::audio_toolkit, agent sub-dispatch like `spawn_subagent`/`spawn_async_subagent`/`delegate`/`todo`/`plan_exit`) are registered in `all_tools` but implemented in their respective domains and only re-exported through this module.
 
 ## Events
 
@@ -98,7 +98,7 @@ None. No `store.rs`; the module holds no persisted state. Tools that persist (me
 
 - `crate::agent`: `host_runtime` (`RuntimeAdapter`/`NativeRuntime`), `tool_policy::GeneratedToolRuntimeContext`, harness definitions (`AgentDefinition`, `SubagentEntry`) for orchestrator tool synthesis, and the agent-owned dispatch tools re-exported here.
 - `crate::config`: `Config`, `BrowserConfig`, `HttpRequestConfig`, `DelegateAgentConfig`; drives all registration gating and `config::rpc::load_config_with_timeout` in RPC handlers.
-- `crate::search`: active search engine registry and search-owned tool implementations.
+- `crate::search`: provider resolution, TinySearch module configuration, and search-owned tool implementations.
 - `crate::security`: `SecurityPolicy` (host/path/command gating threaded into nearly every tool) + `AuditLogger`.
 - `crate::memory`: `memory::ops::guard::active_memory_guard` (read by `tool_stats`) and the memory-owned tool sets re-exported here; the registry takes no `Memory` handle itself.
 - `crate::integrations`: `build_client` backend HTTP client + the integration tool structs (apify, brave, parallel, stock, twilio, tinyfish, google_places, querit, seltz, searxng).
@@ -132,4 +132,4 @@ None. No `store.rs`; the module holds no persisted state. Tools that persist (me
 - `PermissionLevel` ordering is load-bearing: the runtime compares `<` to reject tools above a channel's max; `permission_level()` should return the *minimum* level across a multi-action tool, with `permission_level_with_args` doing the per-call check.
 - `is_concurrency_safe` is still advisory in practice: it is mapped to `ToolRuntime.idempotent` in `agent/tinyagents/tools.rs`, and tinyagents only runs a multi-call batch concurrently when no tool-wrap middleware is registered. OpenHuman's approval and scope gates are `wrap_tool` middlewares, so its turns take the serial path.
 - RPC surface is intentionally tiny (6 methods): anything not in `schemas.rs`/`schemas/` is agent-only.
-- Search engine is a single selector: `search.engine` (`disabled`/`managed`/`parallel`/`brave`/`querit`/`exa`/`tavily`; a BYO engine without a key falls back to `managed`) chooses which `web_search`-family tools register; legacy `seltz`/`searxng` blocks are parsed but no longer auto-register agent tools (they remain reachable via their RPC handlers).
+- Search is configured with providers and per-role provider order in `[search]`: `search.providers` controls each provider's enabled state and route (`managed` or `direct`), while `search.roles` orders providers for search, grounded answers, and page contents. The first usable provider handles a call, with module fallback on balance, rate-limit, and availability errors. Single-engine settings are migrated when configuration is loaded; see [`search/README.md`](../search/README.md) for the host model and [`web-search.md`](../../../../gitbooks/features/native-tools/web-search.md) for user-facing setup.

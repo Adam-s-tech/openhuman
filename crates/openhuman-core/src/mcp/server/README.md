@@ -1,6 +1,6 @@
 # mcp/server
 
-Opt-in **Model Context Protocol (MCP) server** that exposes a curated, security-gated slice of OpenHuman's tool surface (memory-tree reads/writes, core/agent introspection, subagent execution, SearXNG search) and bundled prompt assets to external MCP clients (Claude Desktop, Cursor, Windsurf, …). Started via `openhuman-core mcp`: stdio transport by default, or `--transport http` for Streamable HTTP + SSE on a local bind address. It is a JSON-RPC dispatcher, not a registered RPC domain: it has no `schemas.rs`/controllers and is wired only through `crates/openhuman-core/src/core/cli.rs`, translating each MCP `tools/call` into an existing registered core RPC method.
+Opt-in **Model Context Protocol (MCP) server** that exposes a curated, security-gated slice of OpenHuman's tool surface (memory-tree reads/writes, core/agent introspection, subagent execution, web search) and bundled prompt assets to external MCP clients (Claude Desktop, Cursor, Windsurf, …). Started via `openhuman-core mcp`: stdio transport by default, or `--transport http` for Streamable HTTP + SSE on a local bind address. It is a JSON-RPC dispatcher, not a registered RPC domain: it has no `schemas.rs`/controllers and is wired only through `crates/openhuman-core/src/core/cli.rs`, translating each MCP `tools/call` into an existing registered core RPC method.
 
 ## Responsibilities
 
@@ -53,6 +53,8 @@ This module exposes **no** registered core RPC methods (no `schemas.rs`, no cont
 | `tree.top_entities` | `openhuman.memory_tree_top_entities` |
 | `tree.list_sources` | `openhuman.memory_tree_list_sources` |
 | `memory.store` / `memory.note` / `tree.tag` | `openhuman.memory_doc_put` |
+| `web_search` | `openhuman.tools_web_search` |
+| `web_answer` | `openhuman.tools_web_answer` |
 | `searxng_search` | `openhuman.tools_searxng_search` |
 | `core.list_tools` / `core.tool_instructions` / `agent.list_subagents` / `agent.run_subagent` | (no RPC mapping, handled in-process via `Agent` / `AgentDefinitionRegistry`) |
 
@@ -60,10 +62,10 @@ This module exposes **no** registered core RPC methods (no `schemas.rs`, no cont
 
 It does **not** own any agent tools in the `tools.rs`/`crates/openhuman-core/src/tools` sense. The "tools" here are **MCP-protocol tools** advertised to external clients:
 
-- Read-only (`ToolOperation::Read`): `core.list_tools`, `core.tool_instructions`, `agent.list_subagents`, `memory.search`, `memory.recall`, `tree.read_chunk`, `tree.browse`, `tree.top_entities`, `tree.list_sources`, `searxng_search` (config-gated on `searxng.enabled`).
-- Act-policy (`ToolOperation::Act`): `agent.run_subagent` (annotated destructive/open-world; rejects `integrations_agent`), and the write tools `memory.store`, `memory.note`, `tree.tag` (annotated destructive/idempotent, local-only).
+- Read-only (`ToolOperation::Read`): `core.list_tools`, `core.tool_instructions`, `agent.list_subagents`, `memory.search`, `memory.recall`, `tree.read_chunk`, `tree.browse`, `tree.top_entities`, `tree.list_sources`, `web_search`, `web_answer`, `searxng_search` (listed only when a search provider can serve them; `crate::search::providers`).
+- Act-policy (`ToolOperation::Act`): `agent.run_subagent` (annotated destructive/open-world), and the write tools `memory.store`, `memory.note`, `tree.tag` (annotated destructive/idempotent, local-only).
 
-Argument bounds enforced in-layer: `k`/limits capped at `MAX_LIMIT` (50), default 10; `tree.tag` capped at 50 tags / 128 bytes per tag; SearXNG `max_results` capped at `SEARXNG_MAX_RESULTS`. Write tools derive deterministic upsert keys (`mcp-store-<slug>`, `mcp-note-<chunk_id>`, `mcp-tag-<chunk_id>`).
+Argument bounds enforced in-layer: `k`/limits capped at `MAX_LIMIT` (50), default 10; `tree.tag` capped at 50 tags / 128 bytes per tag; `web_search` and `web_answer` `max_results` capped at `SEARCH_MAX_RESULTS` (20). Write tools derive deterministic upsert keys (`mcp-store-<slug>`, `mcp-note-<chunk_id>`, `mcp-tag-<chunk_id>`).
 
 ## Events
 
@@ -82,7 +84,7 @@ No `store.rs`. The only durable side effect is the **MCP write-audit log**, writ
 - `crate::agent` (`Agent`, `registry::agents::BUILTINS`, `harness::AgentDefinitionRegistry`): builds the orchestrator agent for `core.list_tools`/`core.tool_instructions`, lists/runs subagents, and cross-checks the resource catalog.
 - `tinyinference_llm::tool::ToolSchema`: directly materialize model-visible tool declarations for `core.tool_instructions`.
 - `tinyagents_harness::tool::prompt_tool_instructions`: render the markdown tool-use instructions block for `core.tool_instructions`.
-- `crate::tools` (`SEARXNG_MAX_RESULTS`, `normalize_categories`): SearXNG bounds and category normalization for `searxng_search`.
+- `crate::search::providers`: which search tools the config can serve (`tool_specs_for_config`).
 - `crate::mcp::audit` (`record_write`, `NewMcpWriteRecord`, list/query helpers in tests): durable write-audit log.
 - `crate::mcp::http_client::McpHttpClient`: round-trip test harness for the HTTP transport (test-only).
 - External crates: `axum`/`tokio`/`tokio-stream` (HTTP+SSE), `serde_json`, `uuid`, `sha2`/`hex` (session-id redaction, slug fallback hash), `chrono` (audit timestamps).
@@ -103,5 +105,5 @@ No `store.rs`. The only durable side effect is the **MCP write-audit log**, writ
 - **Protocol negotiation:** supports `2024-11-05`, `2025-03-26`, `2025-06-18`, and `2025-11-25` (`LATEST_PROTOCOL_VERSION`); unknown requested versions fall back to latest. HTTP enforces an exact session protocol-version match on subsequent requests.
 - **HTTP security:** bearer auth is optional (`--auth-token`); session ids are SHA-256-redacted in logs; default bind is `127.0.0.1:9300`.
 - **Resource catalog parity is CI-enforced:** `resources.rs` content is `include_str!`-embedded at compile time and the `catalog_mirrors_builtins` test fails if a built-in subagent lacks a matching `openhuman://prompts/agents/<id>` entry.
-- **`agent.run_subagent` limits:** rejects `integrations_agent` (toolkit binding not yet supported over first-level MCP) and runs a fresh single-turn agent session tagged with an `mcp:<agent_id>:<uuid>` event context.
+- **`agent.run_subagent` limits:** runs a fresh single-turn agent session tagged with an `mcp:<agent_id>:<uuid>` event context.
 - **stdio logging defaults to `warn`** on stderr (so failures surface in client UIs); `--verbose` → `debug`; a user-set `RUST_LOG` always wins. Stdout is reserved for protocol messages only.

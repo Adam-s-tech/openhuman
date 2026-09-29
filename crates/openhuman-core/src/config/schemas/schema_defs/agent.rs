@@ -113,7 +113,7 @@ pub(super) fn lookup(function: &str) -> Option<ControllerSchema> {
                 optional_bool("enabled", "Enable browser integration."),
                 optional_string(
                     "backend",
-                    "Browser backend: tinybrowser (legacy values accepted for migration).",
+                    "Browser backend: tinycomputer (legacy values, including tinybrowser, accepted for migration).",
                 ),
                 optional_bool("headless", "Run Chrome without a visible window."),
                 optional_number("viewport_width", "Chrome viewport width in pixels (320-3840)."),
@@ -124,6 +124,19 @@ pub(super) fn lookup(function: &str) -> Option<ControllerSchema> {
                 optional_string("download_dir", "Absolute permitted download folder; empty clears."),
                 optional_number("max_task_steps", "Maximum Jev task steps (1-100)."),
                 optional_number("task_timeout_secs", "Browser task timeout in seconds (5-600)."),
+            ],
+            outputs: vec![json_output("snapshot", "Updated config snapshot.")],
+        }),
+"update_computer_settings" => Some( ControllerSchema {
+            namespace: "config",
+            function: "update_computer_settings",
+            description: "Update TinyComputer's decision, planner and rescue models.",
+            inputs: vec![
+                optional_string("decision_model", "Decision model: jev, open_jev, or sage."),
+                optional_bool("sage_fast", "Use Sage's fast mode."),
+                optional_string("planner_model", "Planner model id; empty restores the module default."),
+                optional_string("rescue_model", "Rescue model id for failed steps; empty restores the module default."),
+                optional_number("max_rescues", "Rescues allowed per task (0-5); 0 turns rescue off."),
             ],
             outputs: vec![json_output("snapshot", "Updated config snapshot.")],
         }),

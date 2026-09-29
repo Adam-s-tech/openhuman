@@ -377,7 +377,7 @@ async fn save_workflow_accepts_correctly_schemad_graph() {
         "nodes": [
             { "id": "t", "kind": "trigger", "name": "Manual" },
             { "id": "summarize", "kind": "agent", "name": "Summarize",
-              "config": { "agent_ref": "researcher", "prompt": "summarize",
+              "config": { "agent_ref": "planner", "prompt": "summarize",
                 "output_parser": { "schema": { "type": "object",
                     "required": ["channel"],
                     "properties": { "channel": { "type": "string" } } } } } },

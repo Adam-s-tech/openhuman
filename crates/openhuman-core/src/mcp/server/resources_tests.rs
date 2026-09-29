@@ -59,7 +59,7 @@ fn list_resources_includes_core_and_agent_uris() {
         "openhuman://prompts/soul",
         "openhuman://prompts/user",
         "openhuman://prompts/agents/orchestrator",
-        "openhuman://prompts/agents/mcp_agent",
+        "openhuman://prompts/agents/planner",
     ] {
         assert!(uris.contains(&expected), "missing URI {expected}");
     }

@@ -3406,9 +3406,8 @@ async fn agent_debug_prompt_dump_and_identity_rendering_cover_file_layouts() {
         .unwrap_or_else(|poisoned| poisoned.into_inner());
     let _env = isolated_env();
 
-    let options = DumpPromptOptions::new("integrations_agent");
-    assert_eq!(options.agent_id, "integrations_agent");
-    assert!(options.toolkit.is_none());
+    let options = DumpPromptOptions::new("researcher");
+    assert_eq!(options.agent_id, "researcher");
     assert!(options.workspace_dir_override.is_none());
     assert!(options.model_override.is_none());
 
@@ -3416,7 +3415,6 @@ async fn agent_debug_prompt_dump_and_identity_rendering_cover_file_layouts() {
     let dumps = vec![
         DumpedPrompt {
             agent_id: "planner/coverage".to_string(),
-            toolkit: None,
             mode: "session",
             model: "coverage-model".to_string(),
             workspace_dir: workspace.path().join("ws"),
@@ -3429,12 +3427,11 @@ async fn agent_debug_prompt_dump_and_identity_rendering_cover_file_layouts() {
             skill_tool_count: 0,
         },
         DumpedPrompt {
-            agent_id: "integrations_agent".to_string(),
-            toolkit: Some("gmail+calendar".to_string()),
+            agent_id: "researcher".to_string(),
             mode: "session",
             model: "coverage-model".to_string(),
             workspace_dir: workspace.path().join("ws"),
-            text: "# integrations\nbody\n".to_string(),
+            text: "# researcher\nbody\n".to_string(),
             tool_names: vec!["GMAIL_SEND_EMAIL".to_string()],
             tool_specs: vec![json!({
                 "name": "GMAIL_SEND_EMAIL",
@@ -3453,28 +3450,21 @@ async fn agent_debug_prompt_dump_and_identity_rendering_cover_file_layouts() {
     );
     assert_eq!(
         summary.prompt_paths[1],
-        workspace
-            .path()
-            .join("2_integrations_agent_gmail_calendar.md")
+        workspace.path().join("2_researcher.md")
     );
     assert_eq!(
         std::fs::read_to_string(&summary.prompt_paths[0]).expect("prompt body"),
         "# planner\nbody\n"
     );
 
-    let meta = std::fs::read_to_string(
-        workspace
-            .path()
-            .join("2_integrations_agent_gmail_calendar.meta.txt"),
-    )
-    .expect("meta sidecar");
-    assert!(meta.contains("agent:          integrations_agent"));
-    assert!(meta.contains("toolkit:        gmail+calendar"));
+    let meta = std::fs::read_to_string(workspace.path().join("2_researcher.meta.txt"))
+        .expect("meta sidecar");
+    assert!(meta.contains("agent:          researcher"));
     assert!(meta.contains("skill_tools:    1"));
 
     let summary_text = std::fs::read_to_string(summary.summary_path).expect("summary");
     assert!(summary_text.contains("planner/coverage"));
-    assert!(summary_text.contains("integrations_agent@gmail+calendar"));
+    assert!(summary_text.contains("researcher"));
 
     // Each per-dump tools sidecar carries the rendered tool schemas verbatim,
     // one entry per tool in `tool_names` order — compare the full payload
@@ -3486,19 +3476,12 @@ async fn agent_debug_prompt_dump_and_identity_rendering_cover_file_layouts() {
     .expect("planner tools json");
     assert_eq!(planner_tools.as_slice(), dumps[0].tool_specs.as_slice());
 
-    let integrations_tools: Vec<Value> = serde_json::from_str(
-        &std::fs::read_to_string(
-            workspace
-                .path()
-                .join("2_integrations_agent_gmail_calendar.tools.json"),
-        )
-        .expect("integrations tools sidecar"),
+    let researcher_tools: Vec<Value> = serde_json::from_str(
+        &std::fs::read_to_string(workspace.path().join("2_researcher.tools.json"))
+            .expect("researcher tools sidecar"),
     )
-    .expect("integrations tools json");
-    assert_eq!(
-        integrations_tools.as_slice(),
-        dumps[1].tool_specs.as_slice()
-    );
+    .expect("researcher tools json");
+    assert_eq!(researcher_tools.as_slice(), dumps[1].tool_specs.as_slice());
 
     let identities = openhuman_core::agent::prompts::render_connected_identities();
     assert_eq!(identities, "");
@@ -3513,7 +3496,6 @@ async fn agent_subagent_public_types_cover_task_local_and_error_display_paths() 
 
     let options = SubagentRunOptions {
         skill_filter_override: Some("docs".to_string()),
-        toolkit_override: Some("github".to_string()),
         context: Some("parent context".to_string()),
         model_override: Some("specialist-model".to_string()),
         task_id: Some("task-1".to_string()),
@@ -3525,7 +3507,6 @@ async fn agent_subagent_public_types_cover_task_local_and_error_display_paths() 
         run_queue: None,
     };
     assert_eq!(options.skill_filter_override.as_deref(), Some("docs"));
-    assert_eq!(options.toolkit_override.as_deref(), Some("github"));
     assert_eq!(options.model_override.as_deref(), Some("specialist-model"));
 
     let outcome = SubagentRunOutcome {

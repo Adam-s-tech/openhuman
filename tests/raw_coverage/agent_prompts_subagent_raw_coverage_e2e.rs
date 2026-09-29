@@ -281,8 +281,8 @@ fn parent(workspace: PathBuf, model: Arc<ScriptedModel>) -> ParentExecutionConte
         agent_definition_id: "orchestrator".into(),
         allowed_subagent_ids: [
             "test".to_string(),
-            "researcher".to_string(),
-            "code_executor".to_string(),
+            "task_manager_agent".to_string(),
+            "vision_agent".to_string(),
         ]
         .into_iter()
         .collect(),
@@ -566,53 +566,6 @@ async fn run_subagent_loads_workspace_prompt_runs_tool_and_returns_final() -> Re
     assert!(requests[0].contains("parent memory survives when allowed"));
     assert!(requests[0].contains("caller context"));
     assert!(requests[1].contains("tool-output"));
-    Ok(())
-}
-
-#[tokio::test]
-async fn native_parent_integrations_subagent_receives_text_tool_catalogue() -> Result<()> {
-    let workspace = tempfile::tempdir()?;
-    let provider = ScriptedModel::new(vec![text_response("integration result")]);
-
-    let mut parent_context = parent(workspace.path().to_path_buf(), provider.clone());
-    parent_context.allowed_subagent_ids.insert("integrations_agent".into());
-    parent_context.tool_call_format = ToolCallFormat::Native;
-    parent_context.connected_integrations = vec![ConnectedIntegration {
-        toolkit: "gmail".into(),
-        description: "Gmail actions".into(),
-        tools: vec![openhuman_core::agent::prompts::ConnectedIntegrationTool {
-            name: "GMAIL_LIST_MESSAGES".into(),
-            description: "List messages in a mailbox".into(),
-            parameters: Some(json!({"type": "object"})),
-        }],
-        gated_tools: vec![],
-        connected: true,
-        connections: vec![],
-        non_active_status: None,
-    }];
-
-    let mut def = definition(PromptSource::Inline("Use the connected toolkit.".into()));
-    def.id = "integrations_agent".into();
-
-    let outcome = with_parent_context(parent_context, async {
-        run_subagent(
-            &def,
-            "list messages",
-            SubagentRunOptions {
-                toolkit_override: Some("gmail".into()),
-                task_id: Some("native-parent-integrations".into()),
-                ..SubagentRunOptions::default()
-            },
-        )
-        .await
-    })
-    .await?;
-
-    assert_eq!(outcome.output, "integration result");
-    let system_prompt = provider.requests()[0].clone();
-    assert!(system_prompt.contains("## Tools"));
-    assert!(system_prompt.contains("GMAIL_LIST_MESSAGES"));
-    assert!(!system_prompt.contains("native tool-calling output"));
     Ok(())
 }
 

@@ -300,14 +300,14 @@ fn digest_is_pinned(record: &super::ModuleRecord, sha256: &str) -> bool {
     // official module without changing the confidential-call policy.
     //
     // This is the linux x86_64 library shipped inside
-    // tinywallet-module-0.5.1-ubuntu-22.04-x86_64.tar.gz. Its archive checksum
+    // tinywallet-module-0.5.3-ubuntu-22.04-x86_64.tar.gz. Its archive checksum
     // remains in the registry above; the two digests intentionally cover
     // different bytes.
-    const TINYWALLET_0_5_1_UBUNTU_22_04_X86_64_LIBRARY_SHA256: &str =
-        "2bd70433707c44dbfe6b3cc3b4cc835299fe951fcb375b49c940d8d3fc1d4061";
+    const TINYWALLET_0_5_3_UBUNTU_22_04_X86_64_LIBRARY_SHA256: &str =
+        "d2e663e465c6c245cbf9b37c037ae655db7df0f93a0df9b7fa17a28027ebaa9d";
 
     release_archive_is_pinned
-        || sha256.eq_ignore_ascii_case(TINYWALLET_0_5_1_UBUNTU_22_04_X86_64_LIBRARY_SHA256)
+        || sha256.eq_ignore_ascii_case(TINYWALLET_0_5_3_UBUNTU_22_04_X86_64_LIBRARY_SHA256)
 }
 
 /// Load the wallet module if it is not already serving.

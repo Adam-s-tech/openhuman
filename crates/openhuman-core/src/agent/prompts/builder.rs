@@ -195,8 +195,7 @@ impl SystemPromptBuilder {
         }
         // Skills catalogue and connected integrations are rendered by
         // the individual agent's `prompt.rs` when that agent needs
-        // them (integrations_agent for the skill-executor voice,
-        // orchestrator/welcome for the delegator voice). The shared
+        // them (orchestrator/welcome for the delegator voice). The shared
         // builder intentionally does not emit them — keeping
         // agent-specific prose scoped to the agent that owns it.
         sections.push(Box::new(WorkspaceSection));
@@ -235,7 +234,7 @@ impl SystemPromptBuilder {
                 Box::new(DynamicPromptSection::new(builder)),
                 // Project instructions (AGENTS.md). The ~26 dynamic
                 // `agents/<id>/prompt.rs` builders (orchestrator / main chat,
-                // welcome, integrations_agent, …) hand-assemble their own body
+                // welcome, …) hand-assemble their own body
                 // via the `render_*` helpers and none of them individually call
                 // `render_agents_md`, so the pre-loaded AGENTS.md layers on
                 // `PromptContext` would otherwise be silently dropped for the

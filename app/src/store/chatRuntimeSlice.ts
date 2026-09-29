@@ -107,7 +107,7 @@ export interface InferenceStatus {
 export interface SubagentActivity {
   /** Spawn task id (`sub-…`). Stable for the lifetime of one delegation. */
   taskId: string;
-  /** Sub-agent definition id (e.g. `researcher`). */
+  /** Sub-agent definition id (e.g. `code_executor`). */
   agentId: string;
   /** High-level status: `"running"`, `"awaiting_user"`, `"completed"`, `"failed"`. */
   status?: string;
@@ -487,7 +487,7 @@ export type InferenceTurnLifecycle = 'started' | 'streaming' | 'interrupted';
 
 /**
  * Per-sub-agent token/cost contribution, accumulated across the session and
- * keyed by the sub-agent archetype id (e.g. `researcher`). Drives the hover
+ * keyed by the sub-agent archetype id (e.g. `code_executor`). Drives the hover
  * breakdown under the composer footer's cost/context cluster.
  */
 export interface SubAgentUsage {
@@ -894,6 +894,16 @@ interface ChatRuntimeState {
    */
   liveRequestIdByThread: Record<string, string>;
   /**
+   * The `request_id` whose rows {@link toolTimelineByThread} currently holds,
+   * when known: set by the turn's `inference_start` and by a snapshot hydrate,
+   * cleared whenever the timeline is reset. Unlike {@link liveRequestIdByThread}
+   * it survives the turn settling, because the rows do. A reply that settles
+   * with no `inference_start` of its own (a background delivery, a proactive
+   * message) must not adopt another turn's rows as its trail; unknown means
+   * no claim either way.
+   */
+  toolTimelineRequestByThread: Record<string, string>;
+  /**
    * The partial assistant answer left behind by an INTERRUPTED turn (the core
    * process that was streaming it is gone), keyed by thread. Surfaced on restore
    * so a turn that crashed mid-answer keeps its visible partial reply + hidden
@@ -970,6 +980,7 @@ const initialState: ChatRuntimeState = {
   turnTranscriptsByThread: {},
   settledTurnsByThread: {},
   liveRequestIdByThread: {},
+  toolTimelineRequestByThread: {},
   interruptedAssistantByThread: {},
   processingByThread: {},
   inferenceTurnLifecycleByThread: {},
@@ -987,6 +998,75 @@ const initialState: ChatRuntimeState = {
  * the frozen turn as well as the live timeline so the settled message remains
  * current without changing its row identity.
  */
+/**
+ * A row just minted by the stream belongs to the request its event names
+ * (`request_id`), else to the live turn. With neither known the owner becomes
+ * unknown rather than staying the turn that settled before: a turn whose
+ * `inference_start` was missed (a reconnect mid-turn) must still freeze its
+ * own rows. A late row of an already-settled turn names that turn, so it
+ * keeps the claim instead of erasing it. A parallel (forked) request never
+ * owns the primary timeline, as in `liveTurnStarted`.
+ */
+function claimTimelineForLiveTurn(
+  state: ChatRuntimeState,
+  threadId: string,
+  requestId: string | undefined
+): void {
+  if (requestId && state.parallelRequestThreads[requestId] !== undefined) return;
+  // A row `rowTarget` kept off the live timeline never claims it.
+  if (foreignTrail(state, threadId, requestId) !== undefined) return;
+  const claim = requestId ?? state.liveRequestIdByThread[threadId];
+  if (claim) state.toolTimelineRequestByThread[threadId] = claim;
+  else delete state.toolTimelineRequestByThread[threadId];
+}
+
+/**
+ * Where a newly streamed row belongs. A row naming a request other than the
+ * live one (a settled turn's detached child spawning again, a late
+ * `tool_call` from an undrained bridge) is that turn's, not the live turn's:
+ * it goes into that turn's frozen trail when this session has one, and is
+ * otherwise left to the core projection (`null`). Joining the live timeline
+ * would either hand it to the live turn's trail or, by claiming, make the
+ * live turn's own rows look foreign. With no live turn known, or for the live
+ * turn's own rows and parallel requests, the live timeline as before.
+ */
+function rowTarget(
+  state: ChatRuntimeState,
+  threadId: string,
+  requestId: string | undefined
+): { entries: ToolTimelineEntry[]; transcript?: ProcessingTranscriptItem[] } | null {
+  const frozen = foreignTrail(state, threadId, requestId);
+  if (frozen !== undefined) {
+    return frozen ? { entries: frozen.timeline, transcript: frozen.transcript } : null;
+  }
+  return { entries: (state.toolTimelineByThread[threadId] ??= []) };
+}
+
+/**
+ * `undefined` when a row naming `requestId` belongs on the live timeline;
+ * otherwise that request's frozen trail, or `null` when this session has none.
+ */
+function foreignTrail(
+  state: ChatRuntimeState,
+  threadId: string,
+  requestId: string | undefined
+): { timeline: ToolTimelineEntry[]; transcript: ProcessingTranscriptItem[] } | null | undefined {
+  if (requestId === undefined || state.parallelRequestThreads[requestId] !== undefined) {
+    return undefined;
+  }
+  const live = state.liveRequestIdByThread[threadId];
+  const frozen = state.settledTurnsByThread[threadId]?.[requestId];
+  if (live !== undefined) return requestId === live ? undefined : (frozen ?? null);
+  // No turn is live. The live timeline still holds the last settled turn's
+  // rows: a late row of THAT turn keeps joining them (they are its rows, and
+  // the background-process panel reads them), but a late row of an earlier
+  // turn that has its own frozen trail goes there — appending it would hand
+  // it, and by claiming, the whole timeline, to the wrong turn. Without a
+  // trail (a missed `inference_start`) it joins the live timeline as before.
+  const owner = state.toolTimelineRequestByThread[threadId];
+  return frozen && owner !== requestId ? frozen : undefined;
+}
+
 function subagentRows(
   state: ChatRuntimeState,
   threadId: string,
@@ -1376,9 +1456,15 @@ const chatRuntimeSlice = createSlice({
       action: PayloadAction<{ threadId: string; entries: ToolTimelineEntry[] }>
     ) => {
       state.toolTimelineByThread[action.payload.threadId] = action.payload.entries;
+      // A reset starts a timeline nobody owns yet; the next `inference_start`
+      // claims it.
+      if (action.payload.entries.length === 0) {
+        delete state.toolTimelineRequestByThread[action.payload.threadId];
+      }
     },
     clearToolTimelineForThread: (state, action: PayloadAction<{ threadId: string }>) => {
       delete state.toolTimelineByThread[action.payload.threadId];
+      delete state.toolTimelineRequestByThread[action.payload.threadId];
       delete state.toolTimelineSeqByThread[action.payload.threadId];
       delete state.processingByThread[action.payload.threadId];
     },
@@ -1445,6 +1531,8 @@ const chatRuntimeSlice = createSlice({
     toolCallReceived: (
       state,
       action: PayloadAction<{
+        /** The emitting event's `request_id`; see `claimTimelineForLiveTurn`. */
+        requestId?: string;
         threadId: string;
         round: number;
         toolName: string;
@@ -1474,8 +1562,10 @@ const chatRuntimeSlice = createSlice({
       // treated `""` as absent (both are truthiness checks); only the id
       // fallback disagreed.
       const toolCallId = action.payload.toolCallId || undefined;
-      const entries = (state.toolTimelineByThread[threadId] ??= []);
-      const list = (state.processingByThread[threadId] ??= []);
+      const target = rowTarget(state, threadId, action.payload.requestId);
+      if (!target) return;
+      const entries = target.entries;
+      const list = target.transcript ?? (state.processingByThread[threadId] ??= []);
       let existingIdx = toolCallId ? entries.findIndex(e => e.id === toolCallId) : -1;
       // A `tool_args_delta` can land before its `tool_call` and mint the row
       // under a fallback id. Adopt that row rather than pushing a second one
@@ -1517,6 +1607,7 @@ const chatRuntimeSlice = createSlice({
       } else {
         const seq = state.toolTimelineSeqByThread[threadId] ?? 0;
         state.toolTimelineSeqByThread[threadId] = seq + 1;
+        claimTimelineForLiveTurn(state, threadId, action.payload.requestId);
         entries.push(
           decorateEntry({
             id: rowId,
@@ -1544,6 +1635,8 @@ const chatRuntimeSlice = createSlice({
     toolResultReceived: (
       state,
       action: PayloadAction<{
+        /** The emitting event's `request_id`; a late result settles its own turn's row. */
+        requestId?: string;
         threadId: string;
         round: number;
         toolName: string;
@@ -1558,12 +1651,14 @@ const chatRuntimeSlice = createSlice({
         displayDetail?: string;
       }>
     ) => {
-      const { threadId, round, toolName, success, output, failure } = action.payload;
+      const { threadId, round, toolName, success, output, failure, requestId } = action.payload;
       // Same normalisation as `toolCallReceived` — an empty id must not match a
       // row whose id is the generated fallback, and must fall through to the
       // name+round scan below.
       const toolCallId = action.payload.toolCallId || undefined;
-      const entries = state.toolTimelineByThread[threadId];
+      // A late result settles its own turn's row, wherever `rowTarget` put it.
+      const trail = foreignTrail(state, threadId, requestId);
+      const entries = trail === undefined ? state.toolTimelineByThread[threadId] : trail?.timeline;
       if (!entries || entries.length === 0) return;
       const status: ToolTimelineEntryStatus = success ? 'success' : 'error';
       // On failure, parse the optional structured explanation (#4254); a
@@ -1683,6 +1778,8 @@ const chatRuntimeSlice = createSlice({
     toolArgsDeltaReceived: (
       state,
       action: PayloadAction<{
+        /** The emitting event's `request_id`; see `claimTimelineForLiveTurn`. */
+        requestId?: string;
         threadId: string;
         round: number;
         delta: string;
@@ -1694,7 +1791,9 @@ const chatRuntimeSlice = createSlice({
       // `""` means "no id" — see `toolCallReceived` for why the empty string
       // must never reach a row id.
       const toolCallId = action.payload.toolCallId || undefined;
-      const entries = (state.toolTimelineByThread[threadId] ??= []);
+      const target = rowTarget(state, threadId, action.payload.requestId);
+      if (!target) return;
+      const entries = target.entries;
       let matchIdx = -1;
       if (toolCallId) matchIdx = entries.findIndex(e => e.id === toolCallId);
       if (matchIdx < 0 && toolName) {
@@ -1712,6 +1811,7 @@ const chatRuntimeSlice = createSlice({
       } else {
         const seq = state.toolTimelineSeqByThread[threadId] ?? 0;
         state.toolTimelineSeqByThread[threadId] = seq + 1;
+        claimTimelineForLiveTurn(state, threadId, action.payload.requestId);
         entries.push(
           decorateEntry({
             // Same stable fallback `toolCallReceived` generates. This branch
@@ -1737,6 +1837,8 @@ const chatRuntimeSlice = createSlice({
     subagentSpawned: (
       state,
       action: PayloadAction<{
+        /** The emitting event's `request_id`; see `claimTimelineForLiveTurn`. */
+        requestId?: string;
         threadId: string;
         round: number;
         rowId: string;
@@ -1765,7 +1867,9 @@ const chatRuntimeSlice = createSlice({
         spawnEventId,
         parentCallId,
       } = action.payload;
-      const entries = (state.toolTimelineByThread[threadId] ??= []);
+      const target = rowTarget(state, threadId, action.payload.requestId);
+      if (!target) return;
+      const entries = target.entries;
       // Idempotent: a socket redelivery must not append a second row with the
       // same id (later updates find only the first). Not gated by the provider's
       // event-seen map, so guard here.
@@ -1831,6 +1935,7 @@ const chatRuntimeSlice = createSlice({
         sourceToolName = spawnEntry?.name;
         seq = state.toolTimelineSeqByThread[threadId] ?? 0;
         state.toolTimelineSeqByThread[threadId] = seq + 1;
+        claimTimelineForLiveTurn(state, threadId, action.payload.requestId);
         entries.push(
           decorateEntry({
             id: rowId,
@@ -1865,6 +1970,7 @@ const chatRuntimeSlice = createSlice({
         const spawnSeq = spawnIdx >= 0 ? entries[spawnIdx].seq : undefined;
         seq = spawnSeq ?? state.toolTimelineSeqByThread[threadId] ?? 0;
         if (spawnSeq === undefined) state.toolTimelineSeqByThread[threadId] = seq + 1;
+        claimTimelineForLiveTurn(state, threadId, action.payload.requestId);
         const row = decorateEntry({
           id: rowId,
           name: `subagent:${agentId}`,
@@ -1888,7 +1994,7 @@ const chatRuntimeSlice = createSlice({
         });
         if (spawnIdx >= 0) {
           entries[spawnIdx] = row;
-          const pointer = state.processingByThread[threadId]?.find(
+          const pointer = (target.transcript ?? state.processingByThread[threadId])?.find(
             item => item.kind === 'toolCall' && item.callId === pending.spawnEntryId
           );
           if (pointer && pointer.kind === 'toolCall') pointer.callId = rowId;
@@ -1921,6 +2027,8 @@ const chatRuntimeSlice = createSlice({
       action: PayloadAction<{
         threadId: string;
         rowId: string;
+        /** The delegation's task id (`skill_id`); see the match below. */
+        taskId?: string;
         success: boolean;
         iterations?: number;
         elapsedMs?: number;
@@ -1935,6 +2043,7 @@ const chatRuntimeSlice = createSlice({
       const {
         threadId,
         rowId,
+        taskId,
         success,
         iterations,
         elapsedMs,
@@ -1947,15 +2056,38 @@ const chatRuntimeSlice = createSlice({
       // Settle a still-in-flight row: `running`, or `awaiting_user` (a subagent
       // paused for input that then completes must not stay stuck at
       // awaiting_user). Already-terminal rows are left as-is.
-      const entries = subagentRows(
-        state,
-        threadId,
-        e => e.id === rowId && (e.status === 'running' || e.status === 'awaiting_user')
-      );
+      //
+      // Also the same delegation under the core's row id: a detached (`async`)
+      // child outlives its turn, and that turn's `chat_done` replaces the live
+      // timeline with the completed snapshot, whose row is `subagent:<task>`,
+      // not this socket `rowId`. Matching the socket id alone left that row
+      // running, and a background delivery (a `chat_done` with no
+      // `inference_start`) then froze it as its own trail: a card that spun
+      // forever under the reply announcing the child's result. Both ids are
+      // turn-independent, so a run resumed by `continue_subagent` (same task
+      // id) also settles the earlier turn's card for it. That is how a paused
+      // `awaiting_user` card clears: the resumed run's completion carries the
+      // new `continue_subagent` call as its parent, never the original spawn.
+      // Restored past-turn timelines too, like `subagentCancelResolved`: they
+      // hold persisted (core-id) rows the process-source panel shows.
+      const coreRowId = taskId !== undefined ? `subagent:${taskId}` : undefined;
+      const matches = (e: ToolTimelineEntry) =>
+        (e.id === rowId || e.id === coreRowId) &&
+        (e.status === 'running' || e.status === 'awaiting_user');
+      const entries = [
+        ...subagentRows(state, threadId, matches),
+        ...Object.values(state.turnTimelinesByThread[threadId] ?? {})
+          .flat()
+          .filter(matches),
+      ];
       for (const entry of entries) {
         entry.status = success ? 'success' : 'error';
         if (!entry.subagent) continue;
         const s = entry.subagent;
+        // The nested activity settles with the row: it drives the card's own
+        // transcript status and the live tail's `requires-action` state, and a
+        // hydrated row carries the snapshot's `running` / `awaiting_user`.
+        s.status = success ? 'completed' : 'failed';
         if (iterations !== undefined) s.iterations = iterations;
         if (elapsedMs !== undefined) s.elapsedMs = elapsedMs;
         if (outputChars !== undefined) s.outputChars = outputChars;
@@ -2023,10 +2155,15 @@ const chatRuntimeSlice = createSlice({
       }>
     ) => {
       const { threadId, rowId, childIteration, childMaxIterations } = action.payload;
-      const entry = state.toolTimelineByThread[threadId]?.find(e => e.id === rowId);
-      if (!entry?.subagent) return;
-      if (childIteration !== undefined) entry.subagent.childIteration = childIteration;
-      if (childMaxIterations !== undefined) entry.subagent.childMaxIterations = childMaxIterations;
+      // Live and frozen rows alike, as `subagentToolCallReceived`: a detached
+      // child keeps reporting after its turn settled (or its row was routed
+      // to that turn's frozen trail by `rowTarget`).
+      for (const entry of subagentRows(state, threadId, e => e.id === rowId)) {
+        if (!entry.subagent) continue;
+        if (childIteration !== undefined) entry.subagent.childIteration = childIteration;
+        if (childMaxIterations !== undefined)
+          entry.subagent.childMaxIterations = childMaxIterations;
+      }
     },
     subagentToolCallReceived: (
       state,
@@ -2180,20 +2317,22 @@ const chatRuntimeSlice = createSlice({
     ) => {
       const { threadId, rowId, callId, toolName, iteration, args, displayName, detail } =
         action.payload;
-      const entry = state.toolTimelineByThread[threadId]?.find(e => e.id === rowId);
-      if (!entry?.subagent) return;
-      const transcript = (entry.subagent.transcript ??= []);
-      if (transcript.some(i => i.kind === 'tool' && i.callId === callId)) return;
-      transcript.push({
-        kind: 'tool',
-        iteration,
-        callId,
-        toolName,
-        status: 'running',
-        args,
-        displayName,
-        detail,
-      });
+      // Live and frozen rows alike; see `subagentIterationStarted`.
+      for (const entry of subagentRows(state, threadId, e => e.id === rowId)) {
+        if (!entry.subagent) continue;
+        const transcript = (entry.subagent.transcript ??= []);
+        if (transcript.some(i => i.kind === 'tool' && i.callId === callId)) continue;
+        transcript.push({
+          kind: 'tool',
+          iteration,
+          callId,
+          toolName,
+          status: 'running',
+          args,
+          displayName,
+          detail,
+        });
+      }
     },
     /**
      * Flip a transcript `tool` item to its terminal status when the child
@@ -2215,16 +2354,20 @@ const chatRuntimeSlice = createSlice({
     ) => {
       const { threadId, rowId, callId, success, elapsedMs, outputChars, result, failure } =
         action.payload;
-      const entry = state.toolTimelineByThread[threadId]?.find(e => e.id === rowId);
-      const item = entry?.subagent?.transcript?.find(i => i.kind === 'tool' && i.callId === callId);
-      if (!item || item.kind !== 'tool') return;
-      item.status = success ? 'success' : 'error';
-      if (elapsedMs != null) item.elapsedMs = elapsedMs;
-      if (outputChars != null) item.outputChars = outputChars;
-      if (result != null) item.result = result;
-      // Carry the structured why/next onto the rendered transcript item; a
-      // successful result clears any stale failure (#4459).
-      item.failure = success ? undefined : failure;
+      // Live and frozen rows alike; see `subagentIterationStarted`.
+      for (const entry of subagentRows(state, threadId, e => e.id === rowId)) {
+        const item = entry.subagent?.transcript?.find(
+          i => i.kind === 'tool' && i.callId === callId
+        );
+        if (!item || item.kind !== 'tool') continue;
+        item.status = success ? 'success' : 'error';
+        if (elapsedMs != null) item.elapsedMs = elapsedMs;
+        if (outputChars != null) item.outputChars = outputChars;
+        if (result != null) item.result = result;
+        // Carry the structured why/next onto the rendered transcript item; a
+        // successful result clears any stale failure (#4459).
+        item.failure = success ? undefined : failure;
+      }
     },
     setPendingApprovalForThread: (
       state,
@@ -2460,6 +2603,7 @@ const chatRuntimeSlice = createSlice({
       const { threadId, requestId } = action.payload;
       if (!requestId || state.parallelRequestThreads[requestId] !== undefined) return;
       state.liveRequestIdByThread[threadId] = requestId;
+      state.toolTimelineRequestByThread[threadId] = requestId;
     },
     /**
      * Settle the live turn in ONE store transition.
@@ -2503,7 +2647,13 @@ const chatRuntimeSlice = createSlice({
         return;
       }
       const requestId = action.payload.requestId ?? live;
-      if (requestId) {
+      // The live rows are provably another turn's (it settled already and its
+      // rows stayed on screen): this reply arrived without an
+      // `inference_start` of its own. Freezing them here gave the reply a
+      // copy of that turn's trail — a second, stale delegation card.
+      const owner = state.toolTimelineRequestByThread[threadId];
+      const foreignRows = requestId !== undefined && owner !== undefined && owner !== requestId;
+      if (requestId && !foreignRows) {
         // Rows are frozen as they are: one still running at `chat_done` has no
         // result, and inventing `success` for it is the wrong answer. The core
         // projection's terminal status for the same row id is overlaid at
@@ -2553,6 +2703,7 @@ const chatRuntimeSlice = createSlice({
         delete state.parallelStreamsByThread[action.payload.threadId];
       }
       delete state.toolTimelineByThread[action.payload.threadId];
+      delete state.toolTimelineRequestByThread[action.payload.threadId];
       delete state.toolTimelineSeqByThread[action.payload.threadId];
       delete state.processingByThread[action.payload.threadId];
       // `settledTurnsByThread` is kept: those turns are finished, and their
@@ -2583,6 +2734,7 @@ const chatRuntimeSlice = createSlice({
       state.turnTranscriptsByThread = {};
       state.settledTurnsByThread = {};
       state.liveRequestIdByThread = {};
+      state.toolTimelineRequestByThread = {};
       state.interruptedAssistantByThread = {};
       state.processingByThread = {};
       state.inferenceTurnLifecycleByThread = {};
@@ -2755,6 +2907,7 @@ const chatRuntimeSlice = createSlice({
           // row count so events arriving after this hydration keep counting
           // up rather than restarting at 0 and colliding with existing seqs.
           state.toolTimelineSeqByThread[threadId] = snapshot.toolTimeline.length;
+          state.toolTimelineRequestByThread[threadId] = snapshot.requestId;
         }
         // An interrupted turn was killed mid-answer (its core process is gone,
         // so no `chat_done` will ever complete it). The partial reply +
@@ -2817,6 +2970,7 @@ const chatRuntimeSlice = createSlice({
       // Persisted order is issue order — seed the live counter with the row
       // count so events arriving after this hydration keep counting up.
       state.toolTimelineSeqByThread[threadId] = snapshot.toolTimeline.length;
+      state.toolTimelineRequestByThread[threadId] = snapshot.requestId;
       state.processingByThread[threadId] = orderTranscriptBySeq(snapshot.transcript ?? []);
     },
     /**

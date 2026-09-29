@@ -6,7 +6,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 
 use crate::agent::tinyagents::model::{
-    BuiltTurnModels, ProfileOverrideModel, TierRoutes, TurnChatModel,
+    BuiltTurnModels, ErrorSlotModel, ProfileOverrideModel, TierRoutes, TurnChatModel,
 };
 use crate::agent::tinyagents::routes;
 use tinyagents_harness::host::{ModelResolveRequest, ModelResolver};
@@ -64,6 +64,13 @@ pub(crate) struct TurnModels {
 }
 
 impl TurnModels {
+    /// Adds a tier route to a test bundle (the injected-model builder has none).
+    #[cfg(test)]
+    pub(crate) fn with_test_route(mut self, name: &str, model: TurnChatModel) -> Self {
+        self.routes.push((name.to_string(), model));
+        self
+    }
+
     /// Provider telemetry id for this turn (`{provider_id}.{model}`).
     pub(crate) fn provider_id(&self) -> &str {
         &self.provider_id
@@ -103,26 +110,41 @@ impl TurnModels {
 /// stronger, more explicit signal.
 ///
 /// Sub-agents (depth > 0) keep resolving their pin against the tier routes —
-/// that is how `integrations_agent`'s `hint = "burst"` reaches `hint:burst` —
+/// that is how a sub-agent's `hint = "burst"` reaches `hint:burst` —
 /// and fall back to the primary when the pin names no built route.
+///
+/// Only the lead's model records into the turn's error slot (#6724). Sub-agents
+/// resolve through this same resolver, possibly in parallel, so they get the
+/// unwrapped models: a child's attempt must neither clear the lead's recorded
+/// failure nor leave its own failure to be re-surfaced as the lead's.
 pub(crate) struct TurnModelResolver {
+    lead: TurnChatModel,
     primary: TurnChatModel,
     routes: std::collections::HashMap<String, TurnChatModel>,
 }
 
 impl TurnModelResolver {
     pub(crate) fn from_turn_models(models: &TurnModels) -> Self {
-        Self::new(
+        let mut resolver = Self::new(
             models.primary.clone(),
             models.routes.iter().cloned().collect(),
-        )
+        );
+        resolver.lead = Arc::new(ErrorSlotModel::new(
+            models.primary.clone(),
+            models.error_slot.clone(),
+        ));
+        resolver
     }
 
     pub(crate) fn new(
         primary: TurnChatModel,
         routes: std::collections::HashMap<String, TurnChatModel>,
     ) -> Self {
-        Self { primary, routes }
+        Self {
+            lead: primary.clone(),
+            primary,
+            routes,
+        }
     }
 }
 
@@ -142,7 +164,7 @@ impl ModelResolver<()> for TurnModelResolver {
                     "[models][resolver] lead keeps the turn's selected primary; definition model pin ignored"
                 );
             }
-            return Ok(self.primary.clone());
+            return Ok(self.lead.clone());
         }
         Ok(pin
             .and_then(|name| self.routes.get(name))
@@ -177,7 +199,6 @@ fn build_turn_models_crate(
     provider_id: String,
     native_tools: bool,
     supports_vision: bool,
-    force_text_mode: bool,
     thread_id: Option<&str>,
 ) -> anyhow::Result<TurnModels> {
     use crate::inference::provider::factory;
@@ -192,13 +213,8 @@ fn build_turn_models_crate(
             })
             .unwrap_or_else(|| factory::resolves_to_managed_backend(role, config));
         if managed {
-            let (backend, _) = factory::make_openhuman_backend_model_for_thread(
-                role,
-                config,
-                m,
-                !force_text_mode,
-                thread_id,
-            )?;
+            let (backend, _) =
+                factory::make_openhuman_backend_model_for_thread(role, config, m, true, thread_id)?;
             return Ok(Arc::new(RouteRecordingModel::new(
                 backend,
                 ResolvedModelRoute::new("openhuman", m, m),
@@ -211,14 +227,14 @@ fn build_turn_models_crate(
                 config,
                 m,
                 temperature,
-                !force_text_mode,
+                true,
             ),
             None => factory::create_turn_chat_model_with_native_tools_and_route(
                 role,
                 config,
                 m,
                 temperature,
-                !force_text_mode,
+                true,
             ),
         }?;
         Ok(Arc::new(RouteRecordingModel::new(
@@ -248,11 +264,7 @@ fn build_turn_models_crate(
                 let tier_role = factory::role_for_model_tier(tier);
                 let route = if factory::resolves_to_managed_backend(tier_role, config) {
                     factory::make_openhuman_backend_model_for_thread(
-                        tier_role,
-                        config,
-                        tier,
-                        !force_text_mode,
-                        thread_id,
+                        tier_role, config, tier, true, thread_id,
                     )
                     .map(|(backend, _)| (backend, "openhuman".to_string(), tier.to_string()))
                 } else {
@@ -261,7 +273,7 @@ fn build_turn_models_crate(
                         config,
                         tier,
                         temperature,
-                        !force_text_mode,
+                        true,
                     )
                 };
                 match route {
@@ -324,7 +336,6 @@ pub struct TurnModelSource {
     /// `None`; build failures propagate instead of falling back to the host wire
     /// client.
     pub(crate) crate_native: Option<CrateNativeSource>,
-    force_text_mode: bool,
 }
 
 /// The `(role, config)` a crate-native [`TurnModelSource`] builds its tiered
@@ -339,7 +350,6 @@ pub(crate) struct CrateNativeSource {
     /// (`build_remote_provider`). `None` builds the primary from `role`. Routes
     /// always use the standard workload tiers.
     primary_override: Option<String>,
-    pub(crate) force_text_mode: bool,
 }
 
 impl TurnModelSource {
@@ -350,7 +360,6 @@ impl TurnModelSource {
         Self {
             direct_model: Some(model),
             crate_native: None,
-            force_text_mode: false,
         }
     }
 
@@ -378,9 +387,7 @@ impl TurnModelSource {
                 role: role.into(),
                 config,
                 primary_override: None,
-                force_text_mode: false,
             }),
-            force_text_mode: false,
         }
     }
 
@@ -400,19 +407,8 @@ impl TurnModelSource {
                 role: role.into(),
                 config,
                 primary_override: Some(provider_string.into()),
-                force_text_mode: false,
             }),
-            force_text_mode: false,
         }
-    }
-
-    /// Force prompt-guided tool calling without resolving a host provider.
-    pub(crate) fn with_text_mode(mut self) -> Self {
-        self.force_text_mode = true;
-        if let Some(source) = self.crate_native.as_mut() {
-            source.force_text_mode = true;
-        }
-        self
     }
 
     /// Resolve the model's effective context window (async provider probe) — the
@@ -471,10 +467,6 @@ impl TurnModelSource {
             if let Some(window) = context_window.filter(|window| *window > 0) {
                 profile.max_input_tokens = Some(window);
             }
-            if self.force_text_mode {
-                profile.tool_calling = false;
-                profile.parallel_tool_calls = false;
-            }
             let provider_id = profile
                 .provider
                 .clone()
@@ -525,7 +517,6 @@ impl TurnModelSource {
                 provider_id,
                 !is_local,
                 !is_local,
-                cn.force_text_mode,
                 thread_id,
             );
         }
@@ -569,7 +560,7 @@ impl TurnModelSource {
                     &cn.role,
                     &cn.config,
                     model,
-                    !cn.force_text_mode,
+                    true,
                     thread_id,
                 )
                 .map(|(model, _)| model);

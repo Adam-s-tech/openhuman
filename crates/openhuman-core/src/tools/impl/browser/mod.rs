@@ -1,4 +1,4 @@
-//! Browser tools backed by the loadable TinyBrowser module.
+//! Browser tools backed by the loadable TinyComputer module.
 
 #[allow(clippy::module_inception)]
 #[cfg(feature = "modules")]

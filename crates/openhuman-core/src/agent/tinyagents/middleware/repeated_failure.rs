@@ -3,6 +3,7 @@
 //! OpenHuman's recoverable-failure headroom and terminal-inference fast-halt.
 
 use std::sync::atomic::{AtomicU32, AtomicUsize, Ordering};
+use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
 
@@ -14,6 +15,7 @@ use tinyagents_harness::no_progress::{
 };
 use tinyagents_harness::steering::{SteeringCommand, SteeringHandle};
 use tinyinference_llm::message::Message as TaMessage;
+use tinyinference_llm::model::ModelRequest;
 use tinyinference_llm::tool::ToolCall as TaToolCall;
 use tinytools::ToolResult as TaToolResult;
 
@@ -40,12 +42,10 @@ use super::loop_guards::{
 /// into OpenHuman steering. It owns only the OpenHuman-side policy:
 ///
 /// - [`NoProgress::Continue`] — do nothing.
-/// - [`NoProgress::Nudge`] — inject the crate's structured "no progress since
-///   step X" corrective into the working transcript via
-///   [`SteeringCommand::InjectMessage`] so the next model call sees it and
-///   changes strategy *before* the same-strategy retry cap trips. (Not
-///   `Redirect`: that verb is outside the Interactive steering allowlist and
-///   would abort the turn — see the nudge call site.)
+/// - [`NoProgress::Nudge`] — queue the crate's structured "no progress since
+///   step X" corrective for the **next model request only** (see
+///   [`PendingNudgeInjector`]) so the model changes strategy *before* the
+///   same-strategy retry cap trips.
 /// - [`NoProgress::Halt`] — record the crate's root-cause summary into the shared
 ///   [`HaltSummarySlot`](crate::agent::tinyagents::HaltSummarySlot) (the turn overrides its final
 ///   text with it) and pause the run via the shared steering handle (same
@@ -82,6 +82,12 @@ pub(crate) struct RepeatedToolFailureMiddleware {
     /// Consecutive recoverable-looking failures with no success in between. Reset
     /// on any success or non-recoverable failure (mirrors the legacy guard).
     recoverable_consecutive: AtomicU32,
+    /// Corrective nudges for the next model request, drained by
+    /// [`PendingNudgeInjector`]. Never sent through steering: an injected
+    /// message joins the working transcript and is committed into durable
+    /// history, where it replays as a stale instruction on every later turn
+    /// (#6725).
+    pending_nudges: Arc<Mutex<Vec<String>>>,
 }
 
 impl RepeatedToolFailureMiddleware {
@@ -103,7 +109,32 @@ impl RepeatedToolFailureMiddleware {
             target_scopes: std::sync::Mutex::new(std::collections::HashMap::new()),
             recoverable_sig_counts: std::sync::Mutex::new(std::collections::HashMap::new()),
             recoverable_consecutive: AtomicU32::new(0),
+            pending_nudges: Arc::new(Mutex::new(Vec::new())),
         }
+    }
+
+    /// The request-scoped half of this breaker. Register it **last**: its
+    /// `before_model` must run after the transcript snapshot (which a failed
+    /// turn persists) and after every reduction step.
+    pub(crate) fn nudge_injector(&self) -> PendingNudgeInjector {
+        PendingNudgeInjector {
+            pending: self.pending_nudges.clone(),
+        }
+    }
+
+    fn queue_nudge(&self, instruction: impl Into<String>) {
+        if let Ok(mut pending) = self.pending_nudges.lock() {
+            pending.push(instruction.into());
+        }
+    }
+
+    /// Drain the queued nudges (what the injector does before a request).
+    #[cfg(test)]
+    pub(crate) fn take_pending_nudges(&self) -> Vec<String> {
+        self.pending_nudges
+            .lock()
+            .map(|mut pending| std::mem::take(&mut *pending))
+            .unwrap_or_default()
     }
 
     /// Clear the consecutive recoverable-failure streak. Called on any success or
@@ -451,10 +482,7 @@ impl Middleware<(), crate::agent::tinyagents::host::OpenHumanRunContext>
                     } else {
                         "The desktop target was not found. Rediscover the current app and window once before trying again."
                     };
-                    self.handle
-                        .send(SteeringCommand::InjectMessage(TaMessage::system(
-                            instruction,
-                        )));
+                    self.queue_nudge(instruction);
                 }
                 // The classified budget owns this known blocker. In particular,
                 // a different query must not reset its count or trigger a
@@ -581,19 +609,10 @@ impl Middleware<(), crate::agent::tinyagents::host::OpenHumanRunContext>
                     hard_reject,
                     "[tinyagents::mw] no-progress nudge — steering the model to change strategy before the retry cap"
                 );
-                // Inject the crate's structured corrective as a system message via
-                // the `InjectMessage` steering lane. This runs on *every* turn,
-                // including the user's live interactive turn, whose steering policy
-                // permits only `InjectMessage`/`Pause` — `Redirect` is Background
-                // (sub-agent) only, so sending it here aborted every interactive
-                // turn that hit the nudge with `steering command redirect is not
-                // permitted by the run policy` (a #4473 migration regression). The
-                // corrective is trusted, system-generated advisory text, so the
-                // `InjectMessage` lane is both permitted and semantically correct.
-                self.handle
-                    .send(SteeringCommand::InjectMessage(TaMessage::system(
-                        instruction,
-                    )));
+                // Request-scoped, not steering: no run policy can reject it (a
+                // `Redirect` nudge aborted interactive turns, #4473), and it is
+                // never committed into durable history (#6725).
+                self.queue_nudge(instruction);
             }
             NoProgress::Halt(summary) => {
                 // #4092: if the blocker is user-actionable (a missing connection),
@@ -620,6 +639,43 @@ impl Middleware<(), crate::agent::tinyagents::host::OpenHumanRunContext>
                 self.handle.send(SteeringCommand::Pause);
                 self.tracker.reset();
             }
+        }
+        Ok(())
+    }
+}
+
+/// Appends queued [`RepeatedToolFailureMiddleware`] nudges to the next model
+/// request as system messages, then forgets them. The request is built from a
+/// copy of the working transcript, so nothing it adds is ever committed.
+pub(crate) struct PendingNudgeInjector {
+    pending: Arc<Mutex<Vec<String>>>,
+}
+
+#[async_trait]
+impl Middleware<(), crate::agent::tinyagents::host::OpenHumanRunContext> for PendingNudgeInjector {
+    fn name(&self) -> &str {
+        "pending_nudge_injector"
+    }
+
+    async fn before_model(
+        &self,
+        _ctx: &mut RunContext<crate::agent::tinyagents::host::OpenHumanRunContext>,
+        _state: &(),
+        request: &mut ModelRequest,
+    ) -> TaResult<()> {
+        let nudges = self
+            .pending
+            .lock()
+            .map(|mut pending| std::mem::take(&mut *pending))
+            .unwrap_or_default();
+        if !nudges.is_empty() {
+            tracing::debug!(
+                count = nudges.len(),
+                "[tinyagents::mw] request-scoped nudge(s) appended to the next model request"
+            );
+            request
+                .messages
+                .extend(nudges.into_iter().map(TaMessage::system));
         }
         Ok(())
     }

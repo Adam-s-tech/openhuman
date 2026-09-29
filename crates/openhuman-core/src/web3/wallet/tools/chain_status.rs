@@ -19,6 +19,10 @@ impl WalletChainStatusTool {
 
 #[async_trait]
 impl Tool for WalletChainStatusTool {
+    fn exposure(&self) -> tinytools::ToolExposure {
+        tinytools::ToolExposure::Deferred
+    }
+
     fn name(&self) -> &str {
         "wallet_chain_status"
     }

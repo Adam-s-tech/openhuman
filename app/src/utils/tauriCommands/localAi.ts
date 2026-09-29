@@ -6,7 +6,7 @@
  * backend (for example an external Ollama endpoint).
  */
 import { callCoreRpc } from '../../services/coreRpcClient';
-import { CommandResponse, isTauri, tauriErrorMessage } from './common';
+import { CommandResponse, tauriErrorMessage } from './common';
 
 export interface LocalAiStatus {
   state: string;
@@ -228,9 +228,6 @@ export async function openhumanAgentChat(
   modelOverride?: string,
   temperature?: number
 ): Promise<CommandResponse<string>> {
-  if (!isTauri()) {
-    throw new Error('Not running in Tauri');
-  }
   return await callCoreRpc<CommandResponse<string>>({
     method: 'openhuman.agent_chat',
     params: { message, model_override: modelOverride, temperature },

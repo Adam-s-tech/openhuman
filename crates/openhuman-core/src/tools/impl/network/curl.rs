@@ -113,6 +113,10 @@ impl CurlTool {
 
 #[async_trait]
 impl Tool for CurlTool {
+    fn exposure(&self) -> tinytools::ToolExposure {
+        tinytools::ToolExposure::Deferred
+    }
+
     fn name(&self) -> &str {
         "curl"
     }

@@ -306,18 +306,12 @@ export async function setOnboardingCompleted(value: boolean): Promise<boolean> {
 }
 
 export async function openhumanDoctorReport(): Promise<CommandResponse<DoctorReport>> {
-  if (!isTauri()) {
-    throw new Error('Not running in Tauri');
-  }
   return await callCoreRpc<CommandResponse<DoctorReport>>({ method: 'openhuman.doctor_report' });
 }
 
 export async function openhumanDoctorModels(
   useCache = true
 ): Promise<CommandResponse<ModelProbeReport>> {
-  if (!isTauri()) {
-    throw new Error('Not running in Tauri');
-  }
   return await callCoreRpc<CommandResponse<ModelProbeReport>>({
     method: 'openhuman.doctor_models',
     params: { use_cache: useCache },
@@ -328,9 +322,6 @@ export async function openhumanMigrateOpenclaw(
   sourceWorkspace?: string,
   dryRun = true
 ): Promise<CommandResponse<MigrationReport>> {
-  if (!isTauri()) {
-    throw new Error('Not running in Tauri');
-  }
   return await callCoreRpc<CommandResponse<MigrationReport>>({
     method: 'openhuman.migrate_openclaw',
     params: { source_workspace: sourceWorkspace, dry_run: dryRun },
@@ -341,9 +332,6 @@ export async function openhumanMigrateHermes(
   sourceWorkspace?: string,
   dryRun = true
 ): Promise<CommandResponse<MigrationReport>> {
-  if (!isTauri()) {
-    throw new Error('Not running in Tauri');
-  }
   return await callCoreRpc<CommandResponse<MigrationReport>>({
     method: 'openhuman.migrate_hermes',
     params: { source_workspace: sourceWorkspace, dry_run: dryRun },

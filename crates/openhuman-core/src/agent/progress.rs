@@ -137,7 +137,7 @@ pub enum AgentProgress {
         elapsed_ms: u64,
         /// Number of LLM iterations the sub-agent actually used. The
         /// UI surfaces this in the parent thread's subagent row so a
-        /// completed delegation reads as "researcher · 3 turns · 4.2s"
+        /// completed delegation reads as "code_executor · 3 turns · 4.2s"
         /// instead of just "done".
         iterations: u32,
         /// Character length of the sub-agent's final assistant text.

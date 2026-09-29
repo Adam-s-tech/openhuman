@@ -34,8 +34,7 @@
 #[path = "registry_tests.rs"]
 mod tests;
 
-mod records_browser;
-mod records_desktop;
+mod records_computer;
 mod records_docs_wallet;
 mod records_extra;
 mod records_mcp_connectors;
@@ -45,19 +44,19 @@ mod records_search;
 mod records_voice;
 
 use crate::modules::types::ModuleRecord;
-use records_browser::TINYBROWSER;
-use records_desktop::TINYDESKTOP;
+use records_computer::TINYCOMPUTER;
 use records_docs_wallet::{TINYDOCS, TINYWALLET};
 use records_extra::{TINYBOX, TINYCHANNELS, TINYHOSTS};
 use records_mcp_connectors::{TINYCONNECTORS, TINYMCP};
 use records_memory_juice::{TINYJUICE, TINYMEMORY};
 use records_runtime::{TINYRUNTIME, TINYRUNTIME_NODEJS, TINYRUNTIME_PYTHON};
+use records_search::TINYSEARCH;
 use records_voice::TINYVOICE;
 
 /// Every module this build can load.
 pub const ALL: &[ModuleRecord] = &[
-    TINYDESKTOP,
-    TINYBROWSER,
+    TINYCOMPUTER,
+    TINYSEARCH,
     TINYDOCS,
     TINYWALLET,
     TINYMEMORY,

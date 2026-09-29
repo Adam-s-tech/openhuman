@@ -38,6 +38,9 @@ macro_rules! read_tool {
             fn name(&self) -> &str {
                 $name
             }
+            fn exposure(&self) -> tinytools::ToolExposure {
+                tinytools::ToolExposure::Deferred
+            }
             fn description(&self) -> &str {
                 $desc
             }
@@ -68,6 +71,10 @@ impl ConfigSnapshotTool {
 
 #[async_trait]
 impl Tool for ConfigSnapshotTool {
+    fn exposure(&self) -> tinytools::ToolExposure {
+        tinytools::ToolExposure::Deferred
+    }
+
     fn name(&self) -> &str {
         "config_snapshot"
     }
@@ -99,6 +106,10 @@ pub struct ConfigRuntimeFlagsTool;
 
 #[async_trait]
 impl Tool for ConfigRuntimeFlagsTool {
+    fn exposure(&self) -> tinytools::ToolExposure {
+        tinytools::ToolExposure::Deferred
+    }
+
     fn name(&self) -> &str {
         "config_get_runtime_flags"
     }

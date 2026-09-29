@@ -1,10 +1,10 @@
-//! UI-facing config operations: browser, analytics,
-//! search, dictation, voice server, onboarding flags.
+//! UI-facing config operations: browser, analytics, dictation, voice server,
+//! onboarding flags. Search settings live in `search.rs`.
 
 use serde_json::json;
 
 use crate::config::Config;
-use crate::core::Outcome;
+use crate::rpc::RpcOutcome;
 
 use super::loader::{fallback_workspace_dir, load_config_with_timeout, snapshot_config_json};
 
@@ -26,46 +26,6 @@ pub struct BrowserSettingsPatch {
 #[derive(Debug, Clone, Default)]
 pub struct AnalyticsSettingsPatch {
     pub enabled: Option<bool>,
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct SearchSettingsPatch {
-    pub enabled: Option<bool>,
-    pub enabled_providers: Option<Vec<String>>,
-    pub presentation: Option<String>,
-    pub presentation_provider: Option<String>,
-    pub parallel_route: Option<String>,
-    pub gemini_route: Option<String>,
-    pub gemini_api_key: Option<String>,
-    /// One of `disabled` | `managed` | `parallel` | `brave` | `querit` |
-    /// `exa` | `tavily`.
-    /// Empty/unknown values are rejected by `apply_search_settings`.
-    /// Runtime fallback to `managed` applies only to persisted/legacy config
-    /// values resolved by `SearchConfig::effective_engine()`.
-    pub engine: Option<String>,
-    /// 1..=20. Clamped silently at apply time.
-    pub max_results: Option<usize>,
-    /// Per-request timeout in seconds (default 15).
-    pub timeout_secs: Option<u64>,
-    /// Parallel API key. An empty string clears the stored key.
-    pub parallel_api_key: Option<String>,
-    /// Brave Search API key. An empty string clears the stored key.
-    pub brave_api_key: Option<String>,
-    /// Querit API key. An empty string clears the stored key.
-    pub querit_api_key: Option<String>,
-    /// Exa API key (BYOK). An empty string clears the stored key.
-    pub exa_api_key: Option<String>,
-    /// Tavily API key (BYOK). An empty string clears the stored key.
-    pub tavily_api_key: Option<String>,
-    /// Websites the assistant may open/read (`web_fetch` / `curl`), as a
-    /// host allowlist. Entries are exact hosts (`reuters.com`), which also
-    /// match their subdomains, or `"*"` for all public sites. Empty list
-    /// blocks all web access. Mirrors `[http_request].allowed_domains`.
-    pub allowed_domains: Option<Vec<String>>,
-    /// Convenience toggle for the "Allow all sites" switch. `Some(true)`
-    /// sets the allowlist to `["*"]`; `Some(false)` drops the wildcard while
-    /// keeping any explicit hosts. Applied after `allowed_domains`.
-    pub allow_all: Option<bool>,
 }
 
 /// Represents a partial update to dictation-related settings.
@@ -98,7 +58,7 @@ pub struct VoiceServerSettingsPatch {
 pub async fn apply_browser_settings(
     config: &mut Config,
     update: BrowserSettingsPatch,
-) -> Result<Outcome<serde_json::Value>, String> {
+) -> Result<RpcOutcome<serde_json::Value>, String> {
     let normalized_backend = update
         .backend
         .as_deref()
@@ -160,7 +120,7 @@ pub async fn apply_browser_settings(
     config.browser = browser;
     config.save().await.map_err(|e| e.to_string())?;
     let snapshot = snapshot_config_json(config)?;
-    Ok(Outcome::new(
+    Ok(RpcOutcome::new(
         snapshot,
         vec![format!(
             "browser settings saved to {}",
@@ -177,7 +137,10 @@ fn nonempty(value: String) -> Option<String> {
 fn normalize_browser_backend(raw: &str) -> Result<String, String> {
     let key = raw.trim().to_ascii_lowercase().replace('-', "_");
     match key.as_str() {
-        "tinybrowser" | "tiny_browser" => Ok("tinybrowser".to_string()),
+        // TinyBrowser was folded into TinyComputer; old values migrate.
+        "tinycomputer" | "tiny_computer" | "tinybrowser" | "tiny_browser" => {
+            Ok("tinycomputer".to_string())
+        }
         "agent_browser" | "agentbrowser" => Ok("agent_browser".to_string()),
         "playwright" => Ok("playwright".to_string()),
         "rust_native" | "native" => Ok("rust_native".to_string()),
@@ -192,7 +155,7 @@ fn normalize_browser_backend(raw: &str) -> Result<String, String> {
 /// Loads the configuration, applies browser settings updates, and saves it.
 pub async fn load_and_apply_browser_settings(
     update: BrowserSettingsPatch,
-) -> Result<Outcome<serde_json::Value>, String> {
+) -> Result<RpcOutcome<serde_json::Value>, String> {
     let mut config = load_config_with_timeout().await?;
     apply_browser_settings(&mut config, update).await
 }
@@ -201,13 +164,13 @@ pub async fn load_and_apply_browser_settings(
 pub async fn apply_analytics_settings(
     config: &mut Config,
     update: AnalyticsSettingsPatch,
-) -> Result<Outcome<serde_json::Value>, String> {
+) -> Result<RpcOutcome<serde_json::Value>, String> {
     if let Some(enabled) = update.enabled {
         config.observability.analytics_enabled = enabled;
     }
     config.save().await.map_err(|e| e.to_string())?;
     let snapshot = snapshot_config_json(config)?;
-    Ok(Outcome::new(
+    Ok(RpcOutcome::new(
         snapshot,
         vec![format!(
             "analytics settings saved to {}",
@@ -219,237 +182,16 @@ pub async fn apply_analytics_settings(
 /// Loads the configuration, applies analytics settings updates, and saves it.
 pub async fn load_and_apply_analytics_settings(
     update: AnalyticsSettingsPatch,
-) -> Result<Outcome<serde_json::Value>, String> {
+) -> Result<RpcOutcome<serde_json::Value>, String> {
     let mut config = load_config_with_timeout().await?;
     apply_analytics_settings(&mut config, update).await
-}
-
-/// Updates the search engine configuration. Empty API-key strings clear the
-/// stored value rather than treat empty-string as "credential present".
-pub async fn apply_search_settings(
-    config: &mut Config,
-    update: SearchSettingsPatch,
-) -> Result<Outcome<serde_json::Value>, String> {
-    if let Some(engine) = update.engine {
-        let trimmed = engine.trim();
-        match trimmed {
-            "disabled" | "managed" | "parallel" | "brave" | "querit" | "exa" | "tavily" => {
-                config.search.engine = trimmed.to_string();
-                if update.enabled.is_none() {
-                    config.search.enabled = Some(trimmed != "disabled");
-                }
-            }
-            other => {
-                return Err(format!(
-                    "engine must be one of disabled/managed/parallel/brave/querit/exa/tavily (got {other:?})"
-                ));
-            }
-        }
-    }
-    if let Some(enabled) = update.enabled {
-        config.search.enabled = Some(enabled);
-    }
-    if let Some(providers) = update.enabled_providers {
-        let mut selected = std::collections::BTreeSet::new();
-        for raw in providers {
-            let name = raw.trim().to_ascii_lowercase();
-            if !crate::config::schema::SEARCH_PROVIDERS.contains(&name.as_str()) {
-                return Err(format!("unknown search provider: {name}"));
-            }
-            selected.insert(name);
-        }
-        config.search.enabled_providers = Some(selected);
-    }
-    if let Some(mode) = update.presentation {
-        if !["all_tools", "router", "one_provider"].contains(&mode.as_str()) {
-            return Err("presentation must be all_tools/router/one_provider".into());
-        }
-        config.search.presentation = mode;
-    }
-    if let Some(provider) = update.presentation_provider {
-        let provider = provider.trim().to_ascii_lowercase();
-        if !provider.is_empty()
-            && !crate::config::schema::SEARCH_PROVIDERS.contains(&provider.as_str())
-        {
-            return Err(format!("unknown search presentation provider: {provider}"));
-        }
-        config.search.presentation_provider = (!provider.is_empty()).then_some(provider);
-    }
-    for (route, target) in [
-        (update.parallel_route, &mut config.search.parallel_route),
-        (update.gemini_route, &mut config.search.gemini_route),
-    ] {
-        if let Some(route) = route {
-            if route != "direct" && route != "backend" {
-                return Err("search route must be direct or backend".into());
-            }
-            *target = route;
-        }
-    }
-    if let Some(key) = update.gemini_api_key {
-        config.search.gemini.api_key = nonempty(key);
-    }
-    if let Some(n) = update.max_results {
-        if !(1..=20).contains(&n) {
-            return Err(format!("max_results must be between 1 and 20 (got {n})"));
-        }
-        config.search.max_results = n;
-    }
-    if let Some(secs) = update.timeout_secs {
-        if !(1..=120).contains(&secs) {
-            return Err(format!(
-                "timeout_secs must be between 1 and 120 (got {secs})"
-            ));
-        }
-        config.search.timeout_secs = secs;
-    }
-    if let Some(raw) = update.parallel_api_key {
-        let trimmed = raw.trim();
-        config.search.parallel.api_key = if trimmed.is_empty() {
-            None
-        } else {
-            Some(trimmed.to_string())
-        };
-    }
-    if let Some(raw) = update.brave_api_key {
-        let trimmed = raw.trim();
-        config.search.brave.api_key = if trimmed.is_empty() {
-            None
-        } else {
-            Some(trimmed.to_string())
-        };
-    }
-    if let Some(raw) = update.querit_api_key {
-        let trimmed = raw.trim();
-        config.search.querit.api_key = if trimmed.is_empty() {
-            None
-        } else {
-            Some(trimmed.to_string())
-        };
-    }
-    if let Some(raw) = update.exa_api_key {
-        let trimmed = raw.trim();
-        config.search.exa.api_key = if trimmed.is_empty() {
-            None
-        } else {
-            Some(trimmed.to_string())
-        };
-    }
-    if let Some(raw) = update.tavily_api_key {
-        let trimmed = raw.trim();
-        config.search.tavily.api_key = if trimmed.is_empty() {
-            None
-        } else {
-            Some(trimmed.to_string())
-        };
-    }
-    let allowlist_touched = update.allowed_domains.is_some() || update.allow_all.is_some();
-    let before_count = config.http_request.allowed_domains.len();
-    let before_allow_all = config.http_request.allowed_domains.iter().any(|d| d == "*");
-    if let Some(domains) = update.allowed_domains {
-        let mut cleaned: Vec<String> = domains
-            .into_iter()
-            .map(|d| d.trim().to_string())
-            .filter(|d| !d.is_empty())
-            .collect();
-        cleaned.sort();
-        cleaned.dedup();
-        config.http_request.allowed_domains = cleaned;
-    }
-    if let Some(allow_all) = update.allow_all {
-        if allow_all {
-            config.http_request.allowed_domains = vec!["*".to_string()];
-        } else {
-            config.http_request.allowed_domains.retain(|d| d != "*");
-        }
-    }
-    if allowlist_touched {
-        let after_count = config.http_request.allowed_domains.len();
-        let after_allow_all = config.http_request.allowed_domains.iter().any(|d| d == "*");
-        tracing::info!(
-            before_count,
-            after_count,
-            before_allow_all,
-            after_allow_all,
-            "[config] http_request.allowed_domains updated"
-        );
-    }
-    config.save().await.map_err(|e| e.to_string())?;
-    #[cfg(feature = "modules")]
-    crate::modules::search::refresh_loaded(config).await?;
-    let snapshot = search_settings_json(config);
-    Ok(Outcome::new(
-        snapshot,
-        vec![format!(
-            "search settings saved to {}",
-            config.config_path.display()
-        )],
-    ))
-}
-
-pub async fn load_and_apply_search_settings(
-    update: SearchSettingsPatch,
-) -> Result<Outcome<serde_json::Value>, String> {
-    let mut config = load_config_with_timeout().await?;
-    apply_search_settings(&mut config, update).await
-}
-
-fn search_settings_json(config: &Config) -> serde_json::Value {
-    let credential_available =
-        crate::security::credentials::session_support::resolve_backend_credential(config).is_ok();
-    serde_json::json!({
-        "enabled": config.search.is_enabled(),
-        "enabled_providers": config.search.providers(credential_available, config.integrations.tinyfish.is_active(), config.seltz.enabled && config.seltz.api_key.as_deref().is_some_and(|key| !key.trim().is_empty()), config.searxng.enabled),
-        "engine": config.search.requested_engine_str(),
-        "effective_engine": if config.search.is_enabled() {
-            match config.search.effective_engine() {
-                crate::config::SearchEngine::Disabled => "disabled",
-                crate::config::SearchEngine::Managed => "managed",
-                crate::config::SearchEngine::Parallel => "parallel",
-                crate::config::SearchEngine::Brave => "brave",
-                crate::config::SearchEngine::Querit => "querit",
-                crate::config::SearchEngine::Exa => "exa",
-                crate::config::SearchEngine::Tavily => "tavily",
-            }
-        } else { "disabled" },
-        "presentation": config.search.presentation,
-        "presentation_provider": config.search.presentation_provider,
-        "parallel_route": config.search.parallel_route,
-        "gemini_route": config.search.gemini_route,
-        "max_results": config.search.max_results,
-        "timeout_secs": config.search.timeout_secs,
-        "parallel_configured": config.search.parallel.has_key(),
-        "brave_configured": config.search.brave.has_key(),
-        "querit_configured": config.search.querit.has_key(),
-        "exa_configured": config.search.exa.has_key(),
-        "tavily_configured": config.search.tavily.has_key(),
-        "gemini_configured": config.search.gemini.has_key(),
-        "managed_configured": credential_available,
-        "tinyfish_enabled": config.integrations.tinyfish.is_active(),
-        "seltz_configured": config.seltz.api_key.as_deref().is_some_and(|key| !key.trim().is_empty()),
-        "searxng_configured": !config.searxng.base_url.trim().is_empty(),
-        "allowed_domains": config.http_request.allowed_domains,
-        "allow_all": config.http_request.allowed_domains.iter().any(|d| d == "*"),
-    })
-}
-
-/// Read the current search engine settings (with API keys redacted to a
-/// presence boolean so the UI can show "configured" without ever rendering
-/// the raw secret).
-pub async fn get_search_settings() -> Result<Outcome<serde_json::Value>, String> {
-    let config = load_config_with_timeout().await?;
-    let result = search_settings_json(&config);
-    Ok(Outcome::new(
-        result,
-        vec!["search settings read".to_string()],
-    ))
 }
 
 /// Resolves a workspace onboarding flag, creating or checking its existence.
 pub async fn workspace_onboarding_flag_resolve(
     flag_name: Option<String>,
     default_name: &str,
-) -> Result<Outcome<bool>, String> {
+) -> Result<RpcOutcome<bool>, String> {
     let name = flag_name.unwrap_or_else(|| default_name.to_string());
     let trimmed = name.trim();
     if trimmed.is_empty()
@@ -470,7 +212,7 @@ pub async fn workspace_onboarding_flag_resolve(
 pub fn workspace_onboarding_flag_exists(
     workspace_dir: std::path::PathBuf,
     flag_name: &str,
-) -> Result<Outcome<bool>, String> {
+) -> Result<RpcOutcome<bool>, String> {
     let trimmed = flag_name.trim();
     if trimmed.is_empty()
         || trimmed.contains('/')
@@ -479,7 +221,7 @@ pub fn workspace_onboarding_flag_exists(
     {
         return Err("Invalid onboarding flag name".to_string());
     }
-    Ok(Outcome::single_log(
+    Ok(RpcOutcome::single_log(
         workspace_dir.join(trimmed).is_file(),
         "onboarding flag checked",
     ))
@@ -490,7 +232,7 @@ pub async fn workspace_onboarding_flag_set(
     flag_name: Option<String>,
     default_name: &str,
     value: bool,
-) -> Result<Outcome<bool>, String> {
+) -> Result<RpcOutcome<bool>, String> {
     let name = flag_name.unwrap_or_else(|| default_name.to_string());
     let trimmed = name.trim();
     if trimmed.is_empty()
@@ -516,16 +258,16 @@ pub async fn workspace_onboarding_flag_set(
         std::fs::remove_file(&flag_path)
             .map_err(|e| format!("Failed to remove onboarding flag: {e}"))?;
     }
-    Ok(Outcome::single_log(
+    Ok(RpcOutcome::single_log(
         flag_path.is_file(),
         "onboarding flag updated",
     ))
 }
 
 /// Returns whether the onboarding process has been marked as completed.
-pub async fn get_onboarding_completed() -> Result<Outcome<bool>, String> {
+pub async fn get_onboarding_completed() -> Result<RpcOutcome<bool>, String> {
     let config = load_config_with_timeout().await?;
-    Ok(Outcome::single_log(
+    Ok(RpcOutcome::single_log(
         config.onboarding_completed,
         "onboarding_completed read from config",
     ))
@@ -535,7 +277,7 @@ pub async fn get_onboarding_completed() -> Result<Outcome<bool>, String> {
 ///
 /// On a false→true transition, seeds the recurring morning-briefing
 /// cron job via [`crate::cron::seed::seed_proactive_agents`].
-pub async fn set_onboarding_completed(value: bool) -> Result<Outcome<bool>, String> {
+pub async fn set_onboarding_completed(value: bool) -> Result<RpcOutcome<bool>, String> {
     tracing::debug!(value, "[onboarding] set_onboarding_completed called");
     let mut config = load_config_with_timeout().await?;
     let was_completed = config.onboarding_completed;
@@ -561,14 +303,14 @@ pub async fn set_onboarding_completed(value: bool) -> Result<Outcome<bool>, Stri
         );
     }
 
-    Ok(Outcome::single_log(
+    Ok(RpcOutcome::single_log(
         config.onboarding_completed,
         "onboarding_completed saved to config",
     ))
 }
 
 /// Returns the current dictation settings as a JSON object.
-pub async fn get_dictation_settings() -> Result<Outcome<serde_json::Value>, String> {
+pub async fn get_dictation_settings() -> Result<RpcOutcome<serde_json::Value>, String> {
     let config = load_config_with_timeout().await?;
     let result = json!({
         "enabled": config.dictation.enabled,
@@ -578,7 +320,7 @@ pub async fn get_dictation_settings() -> Result<Outcome<serde_json::Value>, Stri
         "streaming": config.dictation.streaming,
         "streaming_interval_ms": config.dictation.streaming_interval_ms,
     });
-    Ok(Outcome::new(
+    Ok(RpcOutcome::new(
         result,
         vec!["dictation settings read".to_string()],
     ))
@@ -587,7 +329,7 @@ pub async fn get_dictation_settings() -> Result<Outcome<serde_json::Value>, Stri
 /// Loads configuration, applies dictation settings updates, and saves it.
 pub async fn load_and_apply_dictation_settings(
     update: DictationSettingsPatch,
-) -> Result<Outcome<serde_json::Value>, String> {
+) -> Result<RpcOutcome<serde_json::Value>, String> {
     let mut config = load_config_with_timeout().await?;
     if let Some(enabled) = update.enabled {
         config.dictation.enabled = enabled;
@@ -621,7 +363,7 @@ pub async fn load_and_apply_dictation_settings(
     }
     config.save().await.map_err(|e| e.to_string())?;
     let snapshot = snapshot_config_json(&config)?;
-    Ok(Outcome::new(
+    Ok(RpcOutcome::new(
         snapshot,
         vec![format!(
             "dictation settings saved to {}",
@@ -631,7 +373,7 @@ pub async fn load_and_apply_dictation_settings(
 }
 
 /// Returns the current voice server settings as a JSON object.
-pub async fn get_voice_server_settings() -> Result<Outcome<serde_json::Value>, String> {
+pub async fn get_voice_server_settings() -> Result<RpcOutcome<serde_json::Value>, String> {
     let config = load_config_with_timeout().await?;
     let result = json!({
         "auto_start": config.voice_server.auto_start,
@@ -645,7 +387,7 @@ pub async fn get_voice_server_settings() -> Result<Outcome<serde_json::Value>, S
         "wake_word": config.voice_server.wake_word,
         "stt_engine": config.voice_server.stt_engine,
     });
-    Ok(Outcome::new(
+    Ok(RpcOutcome::new(
         result,
         vec!["voice server settings read".to_string()],
     ))
@@ -654,7 +396,7 @@ pub async fn get_voice_server_settings() -> Result<Outcome<serde_json::Value>, S
 /// Loads configuration, applies voice server settings updates, and saves it.
 pub async fn load_and_apply_voice_server_settings(
     update: VoiceServerSettingsPatch,
-) -> Result<Outcome<serde_json::Value>, String> {
+) -> Result<RpcOutcome<serde_json::Value>, String> {
     let mut config = load_config_with_timeout().await?;
     if let Some(auto_start) = update.auto_start {
         config.voice_server.auto_start = auto_start;
@@ -706,7 +448,7 @@ pub async fn load_and_apply_voice_server_settings(
     }
     config.save().await.map_err(|e| e.to_string())?;
     let snapshot = snapshot_config_json(&config)?;
-    Ok(Outcome::new(
+    Ok(RpcOutcome::new(
         snapshot,
         vec![format!(
             "voice server settings saved to {}",

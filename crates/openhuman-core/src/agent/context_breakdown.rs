@@ -111,7 +111,6 @@ async fn cached_report(agent_id: &str, config: &Config) -> Result<PromptSizeRepo
     );
     let options = DumpPromptOptions {
         agent_id: agent_id.to_string(),
-        toolkit: None,
         workspace_dir_override: Some(config.workspace_dir.clone()),
         config_path_override: Some(config.config_path.clone()),
         model_override: None,

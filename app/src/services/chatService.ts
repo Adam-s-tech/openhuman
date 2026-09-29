@@ -567,7 +567,7 @@ export interface ChatIterationStartEvent {
 export interface ChatSubagentSpawnedEvent {
   thread_id: string;
   request_id: string;
-  /** Agent definition id (e.g. "researcher"). */
+  /** Agent definition id (e.g. "code_executor"). */
   tool_name: string;
   /** Per-spawn task id. */
   skill_id: string;
