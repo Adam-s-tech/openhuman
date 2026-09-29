@@ -558,7 +558,7 @@ async fn create_memory_binding(
     #[cfg(feature = "modules")]
     crate::modules::memory::set_modules_policy(std::sync::Arc::new(config.clone()));
 
-    crate::memory::binding::for_workspace(&config.workspace_dir, &config.subsystems.memory)
+    crate::memory::binding::for_config(&config)
         .map_err(|error| anyhow::anyhow!(error))
 }
 

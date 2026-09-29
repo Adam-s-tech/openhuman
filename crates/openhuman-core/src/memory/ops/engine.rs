@@ -382,6 +382,7 @@ pub(super) async fn commit_engine(
         prepared.id,
         config.workspace_dir.display()
     );
+    crate::memory::binding_remote::note_api_url(&config.workspace_dir, &config.api_url);
     binding::rebind(&config.workspace_dir, &from, &config.subsystems.memory)?;
     state_for(&config)
 }
