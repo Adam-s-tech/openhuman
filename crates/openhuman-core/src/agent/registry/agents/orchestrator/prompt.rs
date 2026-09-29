@@ -204,7 +204,7 @@ fn render_withheld_specialists(ctx: &PromptContext<'_>) -> String {
     let mut by_pack: std::collections::BTreeMap<&'static str, Vec<String>> =
         std::collections::BTreeMap::new();
     for (tool, pack) in rows {
-        by_pack.entry(pack).or_default().push(format!("`{tool}`"));
+        by_pack.entry(pack).or_default().push(tool);
     }
     let entries: Vec<String> = by_pack
         .into_iter()
@@ -329,6 +329,11 @@ fn resolve_definition<'r>(
     registry.get(&best)
 }
 
+/// Longest skill description kept in `## Installed Skills`: enough for the
+/// skill's trigger phrase, which is what routing reads. The full description is
+/// one `describe_workflow` call away.
+const SKILL_DESCRIPTION_CHARS: usize = 90;
+
 fn render_installed_skills(
     skills: &[Workflow],
     run: Option<&str>,
@@ -349,12 +354,9 @@ fn render_installed_skills(
         let _ = write!(out, "Run one with {run} (skill id + task). ");
     }
     if let Some(install) = install {
-        let _ = write!(out, "Find or install others with {install}. ");
+        let _ = write!(out, "Install more with {install}. ");
     }
-    out.push_str(
-        "A skill runs in an isolated worker and returns its result plus a `## Handoff Plan` \
-         for anything it could not do itself.\n\n",
-    );
+    out.push_str("A skill returns its result plus a `## Handoff Plan` for what it could not do.\n\n");
     for skill in skills {
         let id = if skill.dir_name.is_empty() {
             &skill.name
@@ -369,7 +371,7 @@ fn render_installed_skills(
             // chars / instruction fences) and cap so a single installed
             // skill can't bloat the prompt or smuggle routing instructions;
             // full details stay one `describe_workflow` call away.
-            crate::util::sanitize::sanitize_for_llm(&skill.description, 120)
+            crate::util::sanitize::sanitize_for_llm(&skill.description, SKILL_DESCRIPTION_CHARS)
                 .replace(['\n', '\t'], " ")
                 .trim()
                 .to_string()
@@ -504,65 +506,41 @@ fn render_connected_integrations(integrations: &[ConnectedIntegration]) -> Strin
         tracing::debug!("[connected-integrations] section omitted — no connected integrations");
         return String::new();
     }
-    let mut out = String::from(
-        "## Connected Integrations\n\n\
-         Their actions are not in your listed tools: `tool_search` for the action in plain \
-         words (\"send an email\", \"list calendar events\"), then call the tool it returns — \
-         no sub-agent. Act on a service only when the request operates on that service's data \
-         or actions (a connected service is not a reason to touch it for general-knowledge, \
-         web/news, date/time or math questions). Never claim you cannot access one without \
-         searching first.\n\n",
-    );
-    for ci in &connected {
-        let slug = sanitise_slug(&ci.toolkit);
-        if ci.connections.len() > 1 {
-            let _ = writeln!(
-                out,
-                "- **{}** (`toolkit: \"{}\"`, {} accounts connected): {}",
-                ci.toolkit,
-                slug,
-                ci.connections.len(),
-                ci.description
-            );
-            for conn in &ci.connections {
-                let label = conn.label.as_deref().unwrap_or("(unlabeled)");
-                let default_marker = if conn.is_default { " [default]" } else { "" };
-                let _ = writeln!(
-                    out,
-                    "  - `connection_id: \"{}\"` — {}{}",
-                    conn.connection_id, label, default_marker
-                );
+    // One line for the whole list. Vendor descriptions ("Gmail is Google's
+    // email service…") told a model nothing it did not know and cost ~190
+    // tokens on a seven-toolkit workspace; `tool_search` is what says what a
+    // toolkit can do. Connection ids are listed only when labelled: an
+    // unlabelled id gives neither the model nor the user a way to pick it, and
+    // the default connection is used when none is named.
+    let entries: Vec<String> = connected
+        .iter()
+        .map(|ci| {
+            let slug = sanitise_slug(&ci.toolkit);
+            let labelled: Vec<String> = ci
+                .connections
+                .iter()
+                .filter_map(|conn| {
+                    let label = conn.label.as_deref()?.trim();
+                    (!label.is_empty()).then(|| {
+                        let default_marker = if conn.is_default { ", default" } else { "" };
+                        format!("{label}: `{}`{default_marker}", conn.connection_id)
+                    })
+                })
+                .collect();
+            match (ci.connections.len(), labelled.is_empty()) {
+                (0 | 1, _) => format!("`{slug}`"),
+                (n, true) => format!("`{slug}` ({n} accounts)"),
+                (n, false) => format!("`{slug}` ({n} accounts; {})", labelled.join("; ")),
             }
-        } else {
-            let _ = writeln!(
-                out,
-                "- **{}** (`toolkit: \"{}\"`): {}",
-                ci.toolkit, slug, ci.description
-            );
-        }
-    }
-    // CRITICAL behavioural rule. Without this, the orchestrator answers
-    // "can you do X with {toolkit}?" from its training-data priors about
-    // "what gmail/notion/slack usually does", which is consistently a
-    // SUBSET of the real per-toolkit catalogue (no bulk-delete, no
-    // batch-modify, no admin/destructive actions, etc.). The result is a
-    // confident wrong refusal ("nope, I can't delete emails") even when
-    // the action is in the catalogue. `tool_search` is the ground truth for
-    // callable actions.
-    // The cross-chat bullet names the canonical header literal verbatim
-    // so the model knows exactly which block to mistrust. Sourced from
-    // CROSS_CHAT_HEADER (single source of truth) — drift would silently
-    // detune the rule.
-    let cross_chat_header_for_prompt =
-        crate::memory::agent::memory_loader::CROSS_CHAT_HEADER.trim_end();
-    let _ = write!(
-        out,
-        "\n### Capability questions about connected toolkits\n\n\
-         Your prior knowledge of what a toolkit can do is unreliable: the live catalogue and \
-         the user's scopes decide. For \"can you do X with {{toolkit}}?\" or any action on a \
-         connected toolkit, `tool_search` first; an empty search means the action \
-         is not currently available. A past \"I can / can't\" in the \
-         `{cross_chat_header_for_prompt}` block is a stale snapshot, never an answer.\n\n",
+        })
+        .collect();
+    let out = format!(
+        "## Connected Integrations\n\n\
+         {}.\n\n\
+         For their data or actions, `tool_search` the action and call it. The search is the \
+         truth about what a toolkit can do: prior knowledge and past \"I can't\" answers are \
+         stale.\n",
+        entries.join(", ")
     );
 
     tracing::debug!(
