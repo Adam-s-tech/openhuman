@@ -17,9 +17,7 @@ use tempfile::tempdir;
 use openhuman_core::agent::prompts::ConnectedIntegration;
 use openhuman_core::config::Config;
 use openhuman_core::core::all::RegisteredController;
-use openhuman_core::integrations::composio::client::{
-    create_composio_client, ComposioClientKind,
-};
+use openhuman_core::integrations::composio::client::{create_composio_client, ComposioClientKind};
 use openhuman_core::integrations::composio::error_mapping::{
     classify_composio_error, format_provider_error, remap_transport_error, ComposioErrorClass,
 };

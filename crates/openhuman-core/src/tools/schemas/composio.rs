@@ -19,7 +19,10 @@ pub(super) fn handle_composio_execute(params: Map<String, Value>) -> ControllerF
         // The connector module owns the mode split (backend proxy vs. the
         // user's personal direct tenant, #1710); this only supplies the config.
         let resp = crate::integrations::composio::execute_dispatch::execute_composio_action(
-            &config, &action, action_args, None,
+            &config,
+            &action,
+            action_args,
+            None,
         )
         .await
         .map_err(|e| format!("composio execute failed: {e}"))?;

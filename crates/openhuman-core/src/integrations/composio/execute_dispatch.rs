@@ -7,7 +7,7 @@
 //! external-transfer disclosure, applied once before the call.
 
 use crate::config::Config;
-use crate::security::egress::{enforce_egress, emit_external_transfer, EgressDescriptor};
+use crate::security::egress::{emit_external_transfer, enforce_egress, EgressDescriptor};
 
 use super::module_client::{self, methods};
 use super::types::{ComposioExecuteRequest, ComposioExecuteResponse};

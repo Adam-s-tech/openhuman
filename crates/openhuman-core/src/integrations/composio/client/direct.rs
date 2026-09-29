@@ -7,9 +7,7 @@
 use std::sync::Arc;
 
 use super::super::direct_auth;
-use super::super::types::{
-    ComposioConnection, ComposioConnectionsResponse, ComposioToolsResponse,
-};
+use super::super::types::{ComposioConnection, ComposioConnectionsResponse, ComposioToolsResponse};
 
 /// Direct-mode counterpart to [`ComposioClient::list_connections`].
 ///
