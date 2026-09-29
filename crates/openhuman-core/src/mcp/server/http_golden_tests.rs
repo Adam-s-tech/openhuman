@@ -55,13 +55,17 @@ async fn post(
 }
 
 async fn assert_text(response: Response, status: StatusCode, body: &str) {
+    assert_content(response, status, PLAIN_TEXT, body).await;
+}
+
+async fn assert_content(response: Response, status: StatusCode, content_type: &str, body: &str) {
     assert_eq!(response.status(), status);
     assert_eq!(
         response
             .headers()
             .get(CONTENT_TYPE)
             .and_then(|v| v.to_str().ok()),
-        Some(PLAIN_TEXT)
+        Some(content_type)
     );
     assert_eq!(response.text().await.expect("body"), body);
 }
@@ -332,8 +336,15 @@ async fn bearer_auth_rejects_with_plain_text_before_anything_else() {
     let endpoint = spawn_http(Some("golden-secret")).await;
     let http = Client::new();
 
+    // The auth rejection sets a bare `text/plain`, unlike the other rejections.
     let missing = post(&http, &endpoint, None, None, &init_body()).await;
-    assert_text(missing, StatusCode::UNAUTHORIZED, "unauthorized").await;
+    assert_content(
+        missing,
+        StatusCode::UNAUTHORIZED,
+        "text/plain",
+        "unauthorized",
+    )
+    .await;
     let wrong = http
         .post(&endpoint)
         .bearer_auth("wrong")
