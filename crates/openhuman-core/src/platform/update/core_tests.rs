@@ -441,7 +441,7 @@ fn staging_extracts_zip_when_archive_format_is_explicit() {
     // on the temporary archive path's extension.
     let downloaded = dir.path().join(".release.zip.tmp");
     std::fs::copy(&archive, &downloaded).expect("copy to download temp path");
-    let dest = dir.path().join(format!("{}.staged", staged_binary_name()));
+    let dest = dir.path().join(staged_binary_staging_name());
 
     extract_core_binary(&downloaded, &dest, true).expect("zip binary must extract");
 

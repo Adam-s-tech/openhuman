@@ -116,6 +116,14 @@ fn staged_binary_name() -> &'static str {
     }
 }
 
+fn staged_binary_staging_name() -> &'static str {
+    if cfg!(windows) {
+        "openhuman-core-staged.exe"
+    } else {
+        "openhuman-core.staged"
+    }
+}
+
 /// Make `tmp` executable and move it onto `dest` atomically, cleaning up `tmp`
 /// if the rename fails.
 fn finalize_executable(tmp: &std::path::Path, dest: &std::path::Path) -> Result<(), String> {
@@ -457,7 +465,7 @@ pub async fn download_and_stage_with_version(
     let staged_path = if is_archive {
         // Keep the downloaded binary separate from the running executable;
         // the restart flow owns installing/replacing it.
-        dir.join(format!("{}.staged", staged_binary_name()))
+        dir.join(staged_binary_staging_name())
     } else {
         dir.join(asset_name)
     };
