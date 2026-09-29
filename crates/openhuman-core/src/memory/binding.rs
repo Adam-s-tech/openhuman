@@ -223,6 +223,15 @@ pub fn admit(cfg: &MemorySubsystemConfig) -> Result<(String, DriverClass), Fallb
         configured_id
     };
 
+    // The hosted `tinyhumans` engine is first-party: it needs no
+    // `[subsystems.memory.drivers.<id>]` entry and is trusted implicitly. Its
+    // endpoint is forced to the backend origin and its credential is the live
+    // session, so there is nothing an entry could redirect.
+    #[cfg(feature = "memory-remote")]
+    if id == super::binding_remote::HOSTED_ENGINE_ID {
+        return Ok((id.to_string(), DriverClass::External));
+    }
+
     // The two built-ins need no `[subsystems.memory.drivers.<id>]` entry.
     let Some(entry) = cfg
         .drivers
@@ -283,8 +292,17 @@ pub fn admit(cfg: &MemorySubsystemConfig) -> Result<(String, DriverClass), Fallb
                  under [subsystems.memory.drivers] to allow this binding",
             ));
         }
+        #[cfg(feature = "memory-remote")]
+        {
+            if !super::binding_remote::is_remote_engine(id) {
+                return Err(refuse(&format!(
+                    "external driver '{id}' is not an engine this build can bind"
+                )));
+            }
+        }
         // Distinct reason string from the trust refusal above, so the trust
         // test cannot pass for the wrong reason.
+        #[cfg(not(feature = "memory-remote"))]
         return Err(refuse(
             "external driver transport is not implemented yet (the http adapter lands in M4)",
         ));
@@ -293,18 +311,49 @@ pub fn admit(cfg: &MemorySubsystemConfig) -> Result<(String, DriverClass), Fallb
     Ok((id.to_string(), class))
 }
 
+/// Construct the provider an admitted driver binds.
+///
+/// `Null` and `Module` are the two built-ins; `External` goes through the
+/// engine factory (`memory-remote`). A construction failure is a
+/// [`FallbackReason`] like an admission failure — the slot is never left empty.
+fn construct(
+    workspace_dir: &Path,
+    memory_subdir: &str,
+    cfg: &MemorySubsystemConfig,
+    driver_id: &str,
+    class: DriverClass,
+) -> Result<(Arc<dyn MemoryProvider>, DriverClass), FallbackReason> {
+    match class {
+        DriverClass::Null => Ok((Arc::new(NullMemoryProvider::new()), DriverClass::Null)),
+        #[cfg(feature = "memory-remote")]
+        DriverClass::External => {
+            use super::binding_remote::{build_engine, configured_api_url, EngineTarget};
+            let target = EngineTarget::from_entry(driver_id, cfg.drivers.get(driver_id));
+            let api_url = configured_api_url(workspace_dir);
+            build_engine(workspace_dir, &api_url, &target)
+                .map(|provider| (provider, DriverClass::External))
+                .map_err(|reason| FallbackReason {
+                    configured_driver: driver_id.to_string(),
+                    reason,
+                })
+        }
+        _ => {
+            let _ = (cfg, driver_id);
+            Ok(module_provider(workspace_dir, memory_subdir))
+        }
+    }
+}
+
 /// Build the binding for a workspace. Infallible by design: an inadmissible
 /// driver falls back to the placeholder rather than leaving the slot empty
 /// (kernel.md §3.7 — "logged loudly, surfaced in status, never silent").
 fn build(workspace_dir: &Path, memory_subdir: &str, cfg: &MemorySubsystemConfig) -> MemoryBinding {
-    match admit(cfg) {
-        Ok((driver_id, class)) => {
-            let (provider, reported_class): (Arc<dyn MemoryProvider>, DriverClass) =
-                if class == DriverClass::Null {
-                    (Arc::new(NullMemoryProvider::new()), DriverClass::Null)
-                } else {
-                    module_provider(workspace_dir, memory_subdir)
-                };
+    let resolved = admit(cfg).and_then(|(driver_id, class)| {
+        construct(workspace_dir, memory_subdir, cfg, &driver_id, class)
+            .map(|(provider, reported)| (driver_id, provider, reported))
+    });
+    match resolved {
+        Ok((driver_id, provider, reported_class)) => {
             let binding = bind_provider(
                 provider,
                 driver_id,
