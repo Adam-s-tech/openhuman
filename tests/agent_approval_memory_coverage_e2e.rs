@@ -30,7 +30,7 @@ use serde_json::{json, Value};
 use tempfile::{tempdir, TempDir};
 
 use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
-use openhuman_core::core::jsonrpc::build_core_http_router;
+use openhuman_rpc::server::build_core_http_router;
 
 const TEST_RPC_TOKEN: &str = "agent-approval-memory-coverage-e2e-token";
 
@@ -211,7 +211,7 @@ fn ok<'a>(value: &'a Value, context: &str) -> &'a Value {
         .unwrap_or_else(|| panic!("{context}: missing result: {value}"))
 }
 
-/// Peel the conditional `RpcOutcome` envelope. A handler that emits no log
+/// Peel the conditional `Outcome` envelope. A handler that emits no log
 /// lines returns the bare value; one that emits any returns
 /// `{ result, logs }`. Both shapes are valid for the same method, so every
 /// consumer has to tolerate both — see `crates/openhuman-rpc/src/mod.rs`.

@@ -73,14 +73,14 @@ async fn second_waiter_blocks_until_first_drops() {
 }
 
 // `SignedOutTestGuard` lives at module scope (above) so cross-module
-// tests (e.g. `core::jsonrpc::tests::shutdown_token_*`) can use it
+// tests (e.g. `openhuman_rpc::server::shims::tests::shutdown_token_*`) can use it
 // too. The local re-import keeps the existing tests below readable
 // without fully-qualified paths.
 use super::SignedOutTestGuard;
 
 /// Bail out if a cross-module test in the same lib-test binary has
 /// already promoted [`STATE`] to `Some` via `init_global` (notably
-/// `core::jsonrpc::tests::shutdown_token_*`, which boots the embedded
+/// `openhuman_rpc::server::shims::tests::shutdown_token_*`, which boots the embedded
 /// server). `STATE` is an `OnceLock` with no reset, so these
 /// `*_when_gate_uninit` regression tests are inherently order-sensitive
 /// — they only have meaning when `STATE.is_none()`. Skipping when

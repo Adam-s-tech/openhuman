@@ -4,7 +4,7 @@ use serde_json::{json, Map, Value};
 
 use crate::config::rpc as config_rpc;
 use crate::core::all::ControllerFuture;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 pub(super) fn handle_composio_execute(params: Map<String, Value>) -> ControllerFuture {
     Box::pin(async move {
@@ -71,6 +71,6 @@ pub(super) fn handle_composio_execute(params: Map<String, Value>) -> ControllerF
             "tools.composio_execute: action={action} successful={}",
             resp.successful
         )];
-        RpcOutcome::new(payload, log).into_cli_compatible_json()
+        Outcome::new(payload, log).into_cli_compatible_json()
     })
 }

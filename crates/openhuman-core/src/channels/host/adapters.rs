@@ -342,7 +342,7 @@ impl EventSink for OpenHumanEventSink {
     ) -> anyhow::Result<()> {
         match domain {
             "web" => {
-                let event: crate::core::socketio::WebChannelEvent = serde_json::from_value(payload)
+                let event: crate::web_chat::WebChannelEvent = serde_json::from_value(payload)
                     .map_err(|e| {
                         anyhow::anyhow!(
                             "{LOG_PREFIX} web event payload not a WebChannelEvent ({kind}): {e}"

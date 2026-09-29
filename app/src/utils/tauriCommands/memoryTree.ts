@@ -6,7 +6,7 @@
  * shapes mirror the Rust handlers in `crates/openhuman-core/src/memory/tree/read_rpc.rs`
  * and `schemas.rs`.
  *
- * Responses come back wrapped by `RpcOutcome::single_log` as
+ * Responses come back wrapped by `Outcome::single_log` as
  * `{ result: <T>, logs: string[] }` (single-log envelope). Each helper
  * unwraps `result` so callers see the bare value the Rust handler
  * returned, falling back gracefully if a future handler stops emitting
@@ -174,7 +174,7 @@ export interface SetLlmRequest {
 // ── Envelope unwrap helper ────────────────────────────────────────────────
 
 /**
- * Internal envelope shape produced by `RpcOutcome::single_log` on the
+ * Internal envelope shape produced by `Outcome::single_log` on the
  * Rust side. Every read_rpc handler emits at least one log line, so the
  * shape will be `{ result, logs }` in practice — but we keep the
  * fallback path for defensive parsing.

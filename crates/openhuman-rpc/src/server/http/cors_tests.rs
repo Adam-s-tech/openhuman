@@ -1,9 +1,10 @@
-//! Unit tests for the CORS allowlist and header-emission logic in `jsonrpc.rs`.
+//! Unit tests for CORS header emission. The pure origin rule itself is
+//! covered in `crates/openhuman-rpc/src/origin_tests.rs`.
 
 use axum::http::{header, HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Response};
 
-use super::{is_origin_allowed, is_origin_allowed_with_extra, with_cors_headers};
+use super::{is_origin_allowed, with_cors_headers};
 
 fn ok_response() -> Response {
     (StatusCode::OK, "").into_response()
@@ -77,24 +78,6 @@ fn missing_origin_emits_no_acao_but_sets_vary() {
 }
 
 #[test]
-fn env_override_allows_extra_origins() {
-    let extra_origins = Some("https://debug.internal, http://harness:9000");
-
-    assert!(is_origin_allowed_with_extra(
-        "https://debug.internal",
-        extra_origins
-    ));
-    assert!(is_origin_allowed_with_extra(
-        "http://harness:9000",
-        extra_origins
-    ));
-    assert!(!is_origin_allowed_with_extra(
-        "https://debug.internal.attacker.example",
-        extra_origins
-    ));
-}
-
-#[test]
 fn preserves_existing_vary_values() {
     let mut response = ok_response();
     response
@@ -110,14 +93,6 @@ fn preserves_existing_vary_values() {
         .collect::<Vec<_>>();
 
     assert_eq!(values, vec!["Accept-Encoding", "Origin"]);
-}
-
-#[test]
-fn env_override_does_not_allow_lookalike_suffixes() {
-    assert!(!is_origin_allowed_with_extra(
-        "https://debug.internal.attacker.example",
-        Some("https://debug.internal")
-    ));
 }
 
 #[test]

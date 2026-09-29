@@ -167,7 +167,7 @@ async fn start_chat_chat_error_event_serializes_structured_fields_to_json_wire()
     let _serial = FORCED_ERROR_TEST_LOCK.lock().await;
     // The JSON-RPC SSE endpoint emits chat_error by running
     // `serde_json::to_value(&event)` over the WebChannelEvent struct
-    // (see `core/socketio.rs::emit_web_channel_event`). This pins the
+    // (see `openhuman-rpc/src/server/socketio.rs::emit_web_channel_event`). This pins the
     // resulting JSON keys so the frontend contract stays stable: the
     // FE reads exactly `error_source`, `error_retryable`,
     // `error_retry_after_ms`, `error_provider`, `error_fallback_available`
@@ -241,7 +241,7 @@ async fn start_chat_chat_error_event_serializes_structured_fields_to_json_wire()
 
     // Pin the additive contract: serializing a default (no error)
     // event must NOT introduce any of the new keys.
-    let empty = crate::core::socketio::WebChannelEvent {
+    let empty = crate::web_chat::WebChannelEvent {
         event: "chat_done".to_string(),
         ..Default::default()
     };

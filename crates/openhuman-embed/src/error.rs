@@ -21,7 +21,7 @@
 //! scary red error where it should simply hide a tab.
 
 use openhuman_core::core::dispatch::UNKNOWN_METHOD_PREFIX;
-use openhuman_core::rpc::StructuredRpcError;
+use openhuman_core::core::StructuredRpcError;
 
 /// Error returned by every typed facade call.
 #[derive(Debug, thiserror::Error)]

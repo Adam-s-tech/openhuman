@@ -5,7 +5,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::config::Config;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 use super::backfill::{queue_stats, store_stats};
 use super::retry_failed::latest_failed_job_failure;
@@ -217,7 +217,7 @@ pub(super) fn gate_pause_state(
 /// runtime isn't held during SQLite or filesystem I/O.
 pub async fn pipeline_status_rpc(
     config: &Config,
-) -> Result<RpcOutcome<PipelineStatusResponse>, String> {
+) -> Result<Outcome<PipelineStatusResponse>, String> {
     use tinymemory_api::host::SchedulerGateMode;
 
     log::debug!("[memory-tree][rpc] pipeline_status: entry");
@@ -391,7 +391,7 @@ pub async fn pipeline_status_rpc(
         f = payload.pipeline_jobs.failed,
     );
 
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         payload,
         format!(
             "memory_tree: pipeline_status status={status} total_chunks={total_chunks} is_paused={is_paused} is_syncing={is_syncing}",
@@ -412,7 +412,7 @@ pub async fn pipeline_status_rpc(
 /// is unchanged.
 pub async fn doctor_rpc(
     config: &Config,
-) -> Result<RpcOutcome<crate::memory::tree::health::report::DoctorReport>, String> {
+) -> Result<Outcome<crate::memory::tree::health::report::DoctorReport>, String> {
     let report = crate::memory::tree::health::report::run_doctor(config).await;
     let summary = if report.healthy {
         "memory_tree: doctor — healthy".to_string()
@@ -426,5 +426,5 @@ pub async fn doctor_rpc(
                 .unwrap_or("unknown")
         )
     };
-    Ok(RpcOutcome::single_log(report, summary))
+    Ok(Outcome::single_log(report, summary))
 }

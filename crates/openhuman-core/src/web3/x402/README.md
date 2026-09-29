@@ -19,7 +19,7 @@ facade. The real payment machinery (`ops`, `schemas`, `store`, `tools`,
 `types`) is gated behind the default-ON `web3` Cargo feature (shared with
 `web3` and `web3::wallet`). When the feature is off, `stub.rs` takes its
 place and exposes only the three entry points with always-on callers:
-`init_ledger` (a no-op; the boot call site in `core/jsonrpc.rs` is itself
+`init_ledger` (a no-op; the boot call site in `core/runtime/bootstrap.rs` is itself
 runtime-gated on `DomainGroup::Web3`), `all_x402_registered_controllers`, and
 `all_x402_controller_schemas` (both empty). `X402RequestTool`'s registration
 and the `http_request` 402-retry path are `#[cfg(feature = "web3")]` at their
@@ -104,17 +104,16 @@ which handles a 402 only as a silent fallback for any endpoint.
 
 ## Used by
 
-- `crates/openhuman-core/src/tools/impl/network/http_request.rs` (around lines
-  165-265): `handle_x402_payment`, gated `#[cfg(feature = "web3")]`, is the
+- `crates/openhuman-core/src/tools/impl/network/http_request.rs`: `handle_x402_payment`, gated `#[cfg(feature = "web3")]`, is the
   402 fallback path any HTTP tool call can hit. It calls
   `x402::handle_402_and_pay` and records to the same ledger via
   `x402::store::with_ledger_mut`.
 - `crates/openhuman-core/src/tools/ops.rs`: registers `X402RequestTool` as an
   agent tool.
-- `crates/openhuman-core/src/core/all.rs` (around line 569): wires
+- `crates/openhuman-core/src/core/all.rs` (around line 710): wires
   `all_x402_registered_controllers` into the controller registry under
   `DomainGroup::Web3`.
-- `crates/openhuman-core/src/core/jsonrpc.rs` (around line 2477): calls
+- `crates/openhuman-core/src/core/runtime/bootstrap.rs`: calls
   `init_ledger(&workspace_dir, &x402_session)` at boot, itself runtime-gated on
   `DomainGroup::Web3`.
 

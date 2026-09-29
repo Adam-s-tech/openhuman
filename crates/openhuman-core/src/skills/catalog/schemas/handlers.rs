@@ -3,7 +3,7 @@
 use serde_json::{Map, Value};
 
 use crate::core::all::ControllerFuture;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 use crate::skills::catalog::ops;
 
 use super::controller_schemas::all_skill_registry_controller_schemas;
@@ -18,7 +18,7 @@ fn deserialize_params<T: serde::de::DeserializeOwned>(
     serde_json::from_value(Value::Object(params)).map_err(|e| format!("invalid params: {e}"))
 }
 
-fn to_json<T: serde::Serialize>(outcome: RpcOutcome<T>) -> Result<Value, String> {
+fn to_json<T: serde::Serialize>(outcome: Outcome<T>) -> Result<Value, String> {
     outcome.into_cli_compatible_json()
 }
 
@@ -31,7 +31,7 @@ pub(super) fn handle_browse(params: Map<String, Value>) -> ControllerFuture {
         );
         let entries = ops::browse_catalog(p.force_refresh).await?;
         tracing::debug!(count = entries.len(), "[skill_registry][rpc] browse result");
-        to_json(RpcOutcome::new(BrowseResult { entries }, Vec::new()))
+        to_json(Outcome::new(BrowseResult { entries }, Vec::new()))
     })
 }
 
@@ -47,7 +47,7 @@ pub(super) fn handle_search(params: Map<String, Value>) -> ControllerFuture {
         let entries =
             ops::search_catalog(&p.query, p.source.as_deref(), p.category.as_deref()).await?;
         tracing::debug!(count = entries.len(), "[skill_registry][rpc] search result");
-        to_json(RpcOutcome::new(SearchResult { entries }, Vec::new()))
+        to_json(Outcome::new(SearchResult { entries }, Vec::new()))
     })
 }
 
@@ -55,7 +55,7 @@ pub(super) fn handle_sources(params: Map<String, Value>) -> ControllerFuture {
     Box::pin(async move {
         let _ = params;
         let sources = ops::list_sources().await?;
-        to_json(RpcOutcome::new(SourcesResult { sources }, Vec::new()))
+        to_json(Outcome::new(SourcesResult { sources }, Vec::new()))
     })
 }
 
@@ -63,7 +63,7 @@ pub(super) fn handle_categories(params: Map<String, Value>) -> ControllerFuture 
     Box::pin(async move {
         let _ = params;
         let categories = ops::list_categories().await?;
-        to_json(RpcOutcome::new(CategoriesResult { categories }, Vec::new()))
+        to_json(Outcome::new(CategoriesResult { categories }, Vec::new()))
     })
 }
 
@@ -81,7 +81,7 @@ pub(super) fn handle_install(params: Map<String, Value>) -> ControllerFuture {
         let workspace = crate::skills::schemas::resolve_workspace_dir().await;
         let outcome = ops::install_from_catalog(&workspace, entry).await?;
 
-        to_json(RpcOutcome::new(
+        to_json(Outcome::new(
             InstallResult {
                 url: outcome.url,
                 stdout: outcome.stdout,
@@ -96,7 +96,7 @@ pub(super) fn handle_install(params: Map<String, Value>) -> ControllerFuture {
 pub(super) fn handle_schemas(params: Map<String, Value>) -> ControllerFuture {
     Box::pin(async move {
         let _ = params;
-        to_json(RpcOutcome::new(
+        to_json(Outcome::new(
             SchemasResult {
                 schemas: all_skill_registry_controller_schemas(),
             },
@@ -115,7 +115,7 @@ pub(super) fn handle_uninstall(params: Map<String, Value>) -> ControllerFuture {
         let workflow_params =
             crate::skills::ops_install::UninstallWorkflowParams { name: payload.name };
         let outcome = crate::skills::ops_install::uninstall_workflow(workflow_params, None)?;
-        to_json(RpcOutcome::new(
+        to_json(Outcome::new(
             UninstallResult {
                 name: outcome.name,
                 removed_path: outcome.removed_path,

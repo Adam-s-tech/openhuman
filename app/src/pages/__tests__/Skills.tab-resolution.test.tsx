@@ -155,7 +155,7 @@ describe('Connections ?tab= resolution — legacy aliases', () => {
 });
 
 describe('Connections ?tab= resolution — canonical values', () => {
-  it.each([['composio'], ['channels'], ['mcp'], ['skills'], ['wallet'], ['desktop']])(
+  it.each([['composio'], ['channels'], ['mcp'], ['skills'], ['wallet'], ['computer']])(
     '?tab=%s passes through unchanged',
     async tab => {
       renderAt(`?tab=${tab}`);

@@ -4,7 +4,7 @@
 //! The contract — what a read shows, what a write may say — and the
 //! reconciliation against the store are `tinymcp`'s
 //! (`tinymcp::registry::config_doc`, `McpRegistry::apply_config_doc`). What is
-//! left here is this application's: the `RpcOutcome` envelope, the domain
+//! left here is this application's: the `Outcome` envelope, the domain
 //! events a change publishes, and connecting the changed servers in the
 //! background so the editor that saved the document does not wait on them.
 
@@ -13,7 +13,7 @@ use serde_json::{json, Value};
 use crate::config::Config;
 use crate::core::bus::BUS;
 use crate::core::events::DomainEvent;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 use super::helpers::resolve;
 
@@ -22,7 +22,7 @@ use super::helpers::resolve;
 /// Renders the install store as the `mcp.json` document.
 ///
 /// Credential *names* ride along as `envKeys`; values never do.
-pub async fn mcp_clients_config_get(config: &Config) -> Result<RpcOutcome<Value>, String> {
+pub async fn mcp_clients_config_get(config: &Config) -> Result<Outcome<Value>, String> {
     let service = resolve(config)?;
     let doc = service
         .dynamic()
@@ -32,7 +32,7 @@ pub async fn mcp_clients_config_get(config: &Config) -> Result<RpcOutcome<Value>
         .as_object()
         .map_or(0, serde_json::Map::len);
 
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         doc,
         vec![format!("config_get rendered {count} servers")],
     ))
@@ -44,10 +44,7 @@ pub async fn mcp_clients_config_get(config: &Config) -> Result<RpcOutcome<Value>
 /// or updated server that is enabled is connected in the background; the
 /// status poll reports how that went. The reply carries the re-rendered
 /// document and what changed, so the editor can show both.
-pub async fn mcp_clients_config_set(
-    config: &Config,
-    doc: Value,
-) -> Result<RpcOutcome<Value>, String> {
+pub async fn mcp_clients_config_set(config: &Config, doc: Value) -> Result<Outcome<Value>, String> {
     let service = resolve(config)?;
     let registry = service.dynamic();
     let report = registry
@@ -123,5 +120,5 @@ pub async fn mcp_clients_config_set(
         object.insert("removed".into(), json!(names(&report.removed)));
     }
 
-    Ok(RpcOutcome::new(rendered, vec![note]))
+    Ok(Outcome::new(rendered, vec![note]))
 }

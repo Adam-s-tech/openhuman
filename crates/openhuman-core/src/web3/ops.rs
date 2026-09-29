@@ -7,7 +7,7 @@
 use serde_json::{json, Value};
 
 use crate::config::rpc as config_rpc;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 use crate::web3::wallet::{self, EvmNetwork, WalletChain};
 
 use super::client::CryptoClient;
@@ -79,11 +79,11 @@ fn unsigned_from_response(resp: &Value, family: ChainFamily) -> Result<UnsignedT
 }
 
 /// List the chains deBridge can swap/bridge between.
-pub async fn routes() -> Result<RpcOutcome<Value>, String> {
+pub async fn routes() -> Result<Outcome<Value>, String> {
     let config = config_rpc::load_config_with_timeout().await?;
     let client = CryptoClient::from_config(&config)?;
     let data = client.routes().await?;
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         data,
         vec!["web3 supported routes listed".to_string()],
     ))
@@ -91,7 +91,7 @@ pub async fn routes() -> Result<RpcOutcome<Value>, String> {
 
 /// Prepare a single-chain swap. Cross-chain requests are rejected here with a
 /// pointer to `web3_bridge` (deBridge `/swap` is single-chain only).
-pub async fn quote_swap(params: SwapQuoteParams) -> Result<RpcOutcome<Web3Quote>, String> {
+pub async fn quote_swap(params: SwapQuoteParams) -> Result<Outcome<Web3Quote>, String> {
     let family = chain_family(params.chain_id).ok_or_else(|| {
         format!(
             "chain id {} is not signable by the local wallet (no EVM/Solana signer)",
@@ -121,7 +121,7 @@ pub async fn quote_swap(params: SwapQuoteParams) -> Result<RpcOutcome<Web3Quote>
         params.token_in,
         params.token_out
     );
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         store::store_quote(Web3QuoteKind::Swap, unsigned, resp),
         vec!["web3 swap prepared".to_string()],
     ))
@@ -129,7 +129,7 @@ pub async fn quote_swap(params: SwapQuoteParams) -> Result<RpcOutcome<Web3Quote>
 
 /// Prepare a cross-chain bridge. Same-chain requests are rejected (mirrors the
 /// backend) — use `web3_swap` for single-chain swaps.
-pub async fn quote_bridge(params: BridgeQuoteParams) -> Result<RpcOutcome<Web3Quote>, String> {
+pub async fn quote_bridge(params: BridgeQuoteParams) -> Result<Outcome<Web3Quote>, String> {
     if params.src_chain_id == params.dst_chain_id {
         return Err(
             "bridge requires different source and destination chains; use web3_swap for same-chain swaps"
@@ -184,14 +184,14 @@ pub async fn quote_bridge(params: BridgeQuoteParams) -> Result<RpcOutcome<Web3Qu
         params.src_chain_id,
         params.dst_chain_id
     );
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         store::store_quote(Web3QuoteKind::Bridge, unsigned, resp),
         vec!["web3 bridge prepared".to_string()],
     ))
 }
 
 /// Prepare a generic EVM dapp contract call from caller-supplied calldata.
-pub async fn prepare_dapp_call(params: DappCallParams) -> Result<RpcOutcome<Web3Quote>, String> {
+pub async fn prepare_dapp_call(params: DappCallParams) -> Result<Outcome<Web3Quote>, String> {
     let network = params.evm_network.unwrap_or(EvmNetwork::EthereumMainnet);
     let contract = params.contract_address.trim();
     if contract.is_empty() {
@@ -226,7 +226,7 @@ pub async fn prepare_dapp_call(params: DappCallParams) -> Result<RpcOutcome<Web3
         network.as_str(),
         contract
     );
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         store::store_quote(Web3QuoteKind::DappCall, unsigned, summary),
         vec!["web3 dapp call prepared".to_string()],
     ))

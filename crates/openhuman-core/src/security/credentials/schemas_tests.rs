@@ -206,9 +206,9 @@ fn deserialize_params_parses_optional_provider_filter() {
 
 #[test]
 fn to_json_emits_logs_and_result_envelope() {
-    let outcome = RpcOutcome::single_log(serde_json::json!({"ok": true}), "my-log");
+    let outcome = Outcome::single_log(serde_json::json!({"ok": true}), "my-log");
     let v = to_json(outcome).unwrap();
-    // `into_cli_compatible_json` wraps RpcOutcome as `{logs, result}`.
+    // `into_cli_compatible_json` wraps Outcome as `{logs, result}`.
     assert!(v.get("logs").is_some(), "expected a `logs` field: {v}");
     assert!(
         v.get("result").is_some(),
