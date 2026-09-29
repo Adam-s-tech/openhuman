@@ -190,6 +190,18 @@ jobs:
         env:
           NODE_ENV: test
 
+      # `compile` above covers `app/src`; its tsconfig does not include the
+      # test trees, so the 205 WDIO + Playwright specs were never type-checked
+      # by any lane. `test/tsconfig.e2e.json` was already correct and simply had
+      # no runner (#6566). Running it found 34 errors, 7 of which were
+      # `@ts-expect-error` directives that had stopped suppressing anything and
+      # would have silently swallowed the next real error on the line below them.
+      - name: Type check E2E and Playwright specs
+        if: needs.changes.outputs.frontend == 'true'
+        run: pnpm --filter openhuman-app typecheck:e2e
+        env:
+          NODE_ENV: test
+
       - name: Check Prettier formatting
         if: needs.changes.outputs.frontend == 'true'
         run: pnpm --filter openhuman-app format:check
@@ -441,7 +453,10 @@ jobs:
   rust-feature-gate-smoke:
     name: Rust Feature-Gate Smoke (gates off)
     needs: [changes]
-    if: needs.changes.outputs['rust-core'] == 'true' || needs.changes.outputs['rust-tauri'] == 'true'
+    if: >-
+      needs.changes.outputs['rust-core'] == 'true' ||
+      needs.changes.outputs['rust-tauri'] == 'true' ||
+      needs.changes.outputs.inventory == 'true'
     runs-on: ubuntu-22.04
     # Was 25; raised because the lane now links (--all-targets) and runs a test
     # binary, not just `cargo check`.
@@ -526,7 +541,7 @@ jobs:
         run: |
           bash scripts/ci-cancel-aware.sh cargo test --manifest-path Cargo.toml \
             -p openhuman --no-default-features --lib -- \
-            core::all:: core::cli:: core::jsonrpc:: core::legacy_aliases:: core::runtime:: agent::registry::agents::loader:: memory::people::contacts_gate_tests:: openhuman::config:: openhuman::platform::socket::event_handlers:: tools::schemas:: tools::ops::tests::
+            core::all:: core::cli:: core::jsonrpc:: core::legacy_aliases:: core::runtime:: agent::registry::agents::loader:: commands::ops::tests:: memory::people::contacts_gate_tests:: openhuman::config:: openhuman::platform::socket::event_handlers:: tools::schemas:: tools::ops::tests::
           bash scripts/ci-cancel-aware.sh cargo test --manifest-path Cargo.toml \
             -p openhuman --no-default-features --features mcp --lib -- \
             mcp::server::resources::
@@ -663,25 +678,26 @@ jobs:
           # and leave a stale digest that only fails after the download. Both values
           # are the ubuntu-22.04-x86_64 row of `crates/openhuman-core/src/modules/registry.rs`,
           # which is the authoritative pin — copy them from there, never recompute.
-          memory_version="1.16.0"
-          memory_sha256="f3ba06867ec89b8374a405f8a8569f5cecf88490609354ae4a6c1faa6e55b425"
+          memory_version="1.16.2"
+          memory_sha256="dd6aed6050e6acdd762583bcc44030f967f56e9022c9cad4b29d935eec4af78c"
           module_root="/opt/openhuman-test-modules/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           memory_dir="$module_root/tinymemory"
           juice_dir="$module_root/tinyjuice"
           connectors_dir="$module_root/tinyconnectors"
+          search_dir="$module_root/tinysearch"
           memory_archive="$memory_dir/tinymemory-module-${memory_version}-ubuntu-22.04-x86_64.tar.gz"
-          juice_archive="$juice_dir/tinyjuice-module-0.2.2-ubuntu-22.04-x86_64.tar.gz"
+          juice_archive="$juice_dir/tinyjuice-module-0.3.4-ubuntu-22.04-x86_64.tar.gz"
           rm -rf "$memory_dir" "$juice_dir" "$connectors_dir"
-          mkdir -p "$memory_dir" "$juice_dir" "$connectors_dir"
+          mkdir -p "$memory_dir" "$juice_dir" "$connectors_dir" "$search_dir"
           curl --fail --location --silent --show-error --retry 4 --retry-delay 2 \
             "https://github.com/tinyhumansai/tinymemory/releases/download/v${memory_version}/$(basename "$memory_archive")" \
             --output "$memory_archive"
           curl --fail --location --silent --show-error --retry 4 --retry-delay 2 \
-            "https://github.com/tinyhumansai/tinyjuice/releases/download/v0.2.2/$(basename "$juice_archive")" \
+            "https://github.com/tinyhumansai/tinyjuice/releases/download/v0.3.4/$(basename "$juice_archive")" \
             --output "$juice_archive"
           echo "${memory_sha256}  $memory_archive" \
             | sha256sum --check
-          echo "fd8caf7fccb53328870fd26922aa9768d253cd4b3bf758967847d6512df03863  $juice_archive" \
+          echo "12c757667a635f97338501f5d0844986fdf1d2cb486e4a54cab970b4f4d4f85e  $juice_archive" \
             | sha256sum --check
           # Do not restore the release builder's uid into the trusted tree.
           tar --no-same-owner -xzf "$memory_archive" -C "$memory_dir"
@@ -690,11 +706,17 @@ jobs:
             --manifest-path vendor/tinyconnectors/crates/tinyconnectors/Cargo.toml
           cp vendor/tinyconnectors/target/release/libtinyconnectors.so \
             "$connectors_dir/libtinyconnectors.so"
+          bash scripts/ci-cancel-aware.sh cargo build --release \
+            --manifest-path vendor/tinysearch/crates/tinysearch/Cargo.toml
+          cp vendor/tinysearch/target/release/libtinysearch.so \
+            "$search_dir/libtinysearch.so"
           echo "TINYMEMORY_TEST_MODULE=$memory_dir/libtinymemory_module.so" \
             >> "$GITHUB_ENV"
           echo "TINYJUICE_TEST_MODULE=$juice_dir/libtinyjuice_module.so" \
             >> "$GITHUB_ENV"
           echo "TINYCONNECTORS_TEST_MODULE=$connectors_dir/libtinyconnectors.so" \
+            >> "$GITHUB_ENV"
+          echo "TINYSEARCH_TEST_MODULE=$search_dir/libtinysearch.so" \
             >> "$GITHUB_ENV"
 
       - name: Run module-gated Rust tests
@@ -946,11 +968,19 @@ jobs:
       # no build error and no failing test: that is how #4901 (voice — 56 users,
       # ~93k Sentry events) and #4918 (tokenjuice-treesitter — silent) shipped.
       #
+      # The same drift happens one layer down, in the library chain the core is
+      # re-declared by: openhuman-embed -> openhuman-tinyhumans -> openhuman-cli
+      # (#6364). A gate added to the core and forgotten there is off for every
+      # embedder while the product lanes, which resolve names against
+      # openhuman-cli, stay green.
+      #
       # Deliberately NOT filtered on `changes`: drift can be introduced by
-      # editing either manifest, so a path filter watching one would miss it, and
-      # a skipped job counts as a pass in the gate below. The check is a few
-      # seconds of pure Node with no dependencies.
-      - name: Verify the desktop shell forwards every default-ON core gate
+      # editing any of those manifests, so a path filter watching one would miss
+      # it, and a skipped job counts as a pass in the gate below. The check is a
+      # few seconds of pure Node with no dependencies.
+      #
+      # The job name stays as it is: it is a required status check.
+      - name: Verify the shell and the library chain forward every core gate
         run: node scripts/ci/check-feature-forwarding.mjs
 
   module-pin-gate:

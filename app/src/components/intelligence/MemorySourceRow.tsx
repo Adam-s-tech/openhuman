@@ -19,6 +19,7 @@ import type {
   BackfillStatus,
   MemoryTreePipelineStatus,
 } from '../../utils/tauriCommands/memoryTree';
+import Badge, { type BadgeVariant } from '../ui/Badge';
 import Button from '../ui/Button';
 import { CollapsibleContent, CollapsibleRoot, CollapsibleTrigger } from '../ui/Collapsible';
 import Switch from '../ui/Switch';
@@ -160,9 +161,7 @@ export function MemorySourceRow({
                 }`}>
                 {source.label}
               </span>
-              <span className="rounded-md bg-surface-subtle px-1.5 py-0.5 text-[10px] font-medium text-content-muted">
-                {kindLabel}
-              </span>
+              <Badge variant="neutral">{kindLabel}</Badge>
               {status &&
                 status.chunks_synced > 0 &&
                 (ingestedOnly ? (
@@ -201,7 +200,7 @@ export function MemorySourceRow({
               <div className="mt-2 pl-7" data-testid={`memory-source-result-${source.id}`}>
                 {result.kind === 'success' ? (
                   <>
-                    <span className="inline-flex items-center gap-1 rounded-md bg-sage-100 px-2 py-0.5 text-xs font-medium text-sage-700 dark:bg-sage-500/20 dark:text-sage-300">
+                    <Badge variant="success" dot={false}>
                       <CheckIcon />
                       {result.items && result.items > 0
                         ? `${result.items.toLocaleString()} ${t('memorySources.sync.itemsSynced')}`
@@ -210,7 +209,7 @@ export function MemorySourceRow({
                           : result.note === 'more_pending'
                             ? t('memorySources.sync.morePending')
                             : t('memorySources.sync.upToDate')}
-                    </span>
+                    </Badge>
                     {noteKey && (
                       <span
                         className="ml-2 text-xs text-content-muted"
@@ -220,15 +219,13 @@ export function MemorySourceRow({
                     )}
                   </>
                 ) : (
-                  <span
-                    className="inline-flex items-start gap-1 rounded-md bg-coral-50 px-2 py-0.5 text-xs font-medium text-coral-700 dark:bg-coral-500/10 dark:text-coral-300"
-                    title={result.reason ?? undefined}>
+                  <Badge variant="danger" dot={false} title={result.reason ?? undefined}>
                     <WarnIcon />
                     <span className="wrap-break-word">
                       {t('memorySources.sync.failedLabel')}
                       {result.reason ? `: ${result.reason}` : ''}
                     </span>
-                  </span>
+                  </Badge>
                 )}
               </div>
             )}
@@ -361,6 +358,12 @@ export function MemorySourceRow({
   );
 }
 
+const FRESHNESS_VARIANT: Record<FreshnessLabel, BadgeVariant> = {
+  active: 'primary',
+  recent: 'success',
+  idle: 'neutral',
+};
+
 function FreshnessPill({ freshness }: { freshness: FreshnessLabel }) {
   const { t } = useT();
   const label =
@@ -369,13 +372,7 @@ function FreshnessPill({ freshness }: { freshness: FreshnessLabel }) {
       : freshness === 'recent'
         ? t('sync.recent')
         : t('sync.idle');
-  const cls =
-    freshness === 'active'
-      ? 'bg-primary-100 dark:bg-primary-500/20 text-primary-700 dark:text-primary-300'
-      : freshness === 'recent'
-        ? 'bg-sage-100 dark:bg-sage-500/20 text-sage-700 dark:text-sage-300'
-        : 'bg-surface-subtle text-content-secondary';
-  return <span className={`rounded-md px-2 py-0.5 text-[10px] font-medium ${cls}`}>{label}</span>;
+  return <Badge variant={FRESHNESS_VARIANT[freshness]}>{label}</Badge>;
 }
 
 /**
@@ -388,10 +385,8 @@ function FreshnessPill({ freshness }: { freshness: FreshnessLabel }) {
 function IngestedOnlyPill({ sourceId }: { sourceId: string }) {
   const { t } = useT();
   return (
-    <span
-      className="rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-800 dark:bg-amber-500/20 dark:text-amber-200"
-      data-testid={`memory-source-ingested-only-${sourceId}`}>
+    <Badge variant="warning" data-testid={`memory-source-ingested-only-${sourceId}`}>
       {t('sync.pipeline.ingestedOnly')}
-    </span>
+    </Badge>
   );
 }

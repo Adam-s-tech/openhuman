@@ -3,7 +3,7 @@
 //! These tests avoid live Composio/backend calls and exercise public helper
 //! surfaces that feed the JSON-RPC and agent-tool paths.
 
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, OnceLock};
 
 use axum::body::to_bytes;
 use axum::extract::{Request, State};
@@ -14,6 +14,8 @@ use axum::{Json, Router};
 use serde_json::{json, Value};
 use tempfile::tempdir;
 
+use openhuman_core::agent::prompts::ConnectedIntegration;
+use openhuman_core::config::Config;
 use openhuman_core::core::all::RegisteredController;
 use openhuman_core::integrations::composio::client::{
     create_composio_client, direct_execute, ComposioClientKind,
@@ -52,19 +54,19 @@ use openhuman_core::integrations::composio::{
     all_composio_agent_tools, all_composio_controller_schemas, all_composio_registered_controllers,
     cached_active_integrations, connected_set_hash, connection_identity,
     fetch_connected_integrations, fetch_connected_integrations_status,
-    invalidate_connected_integrations_cache, ComposioActionTool,
-    ComposioClient, FetchConnectedIntegrationsStatus,
+    invalidate_connected_integrations_cache, ComposioActionTool, ComposioClient,
+    FetchConnectedIntegrationsStatus,
 };
-use openhuman_core::config::Config;
-use openhuman_core::agent::prompts::ConnectedIntegration;
 use openhuman_core::security::credentials::{
     AuthService, APP_SESSION_PROVIDER, DEFAULT_AUTH_PROFILE_NAME,
 };
+
 use openhuman_core::integrations::IntegrationClient;
 use openhuman_core::security::{AutonomyLevel, SecurityPolicy};
-use tinytools::{PermissionLevel, Tool, ToolCategory, ToolCallOptions};
-use openhuman_core::tools::{
-    ComposioTool};
+use openhuman_core::tools::ComposioTool;
+use tinytools::{PermissionLevel, Tool, ToolCallOptions, ToolCategory};
+
+static ENV_LOCK: &OnceLock<Mutex<()>> = &crate::SHARED_ENV_LOCK;
 
 #[test]
 fn composio_prepare_execute_arguments_normalizes_calendar_and_notion_payloads() {
@@ -844,7 +846,21 @@ async fn composio_backend_factory_uses_stored_session_and_configured_backend() {
 
 #[tokio::test]
 async fn composio_controller_registry_and_scope_handlers_cover_validation_edges() {
+    let _env_lock = ENV_LOCK
+        .get_or_init(|| Mutex::new(()))
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
     crate::tinyhumans_boot::boot();
+    // The controller loads config through the process workspace resolver. Pin
+    // this test to a null memory driver so its fail-closed assertion does not
+    // depend on a developer's local config or attempt to load TinyMemory.
+    let workspace = tempdir().expect("isolated workspace");
+    std::fs::write(
+        workspace.path().join("config.toml"),
+        "[subsystems.memory]\ndriver = \"null\"\n",
+    )
+    .expect("write isolated memory config");
+    let _workspace = WorkspaceEnvGuard::set(workspace.path());
     let schemas = all_composio_controller_schemas();
     let registered = all_composio_registered_controllers();
     assert_eq!(schemas.len(), registered.len());
@@ -885,41 +901,44 @@ async fn composio_controller_registry_and_scope_handlers_cover_validation_edges(
     assert!(invalid_write.contains("invalid 'write'"));
     // The storage half must refuse rather than report a write it did not do.
     //
-    // This used to assert "memory client not initialised", the refusal the
-    // in-process engine handle produced. `1bf2037a0` ("Stop booting the second
-    // in-process memory engine", openhuman#5725) removed that handle and moved
-    // the storage half onto the bound driver, so the string stopped existing
-    // anywhere in `src/` — and this assertion went on asserting it, failing every
-    // lane that runs raw_coverage. It survived review because the coverage lane
-    // is changed-modules-scoped and did not run this target.
-    //
-    // Re-anchored on the arm this path actually reaches. `save` refuses on three
-    // grounds and they are deliberately distinguishable: "memory driver
-    // unavailable" (nothing bound), "does not serve Graph" (bound, wrong family),
-    // and "kv_put failed" (bound, right family, the write itself failed). Here
-    // the module provider binds and does serve Graph, so it is the third — the
-    // module cdylib is never loaded in a test binary that runs no boot sequence.
-    //
-    // The tag and the arm are pinned; the reason after the colon is NOT. That
-    // text belongs to the module loader, not to this handler, and pinning
-    // another component's wording here is how the previous assertion became
-    // orphaned in the first place.
+    // This transport-only test does not configure a memory module, so the
+    // workspace binds the null driver. Pin the refusal at the driver's family
+    // boundary instead of claiming to reach the module's `kv_put` path.
     let memory_missing = composio_call(
         set_scopes,
         json!({ "toolkit": "gmail", "read": true, "write": true, "admin": false }),
     )
     .await
-    .expect_err("the backing write must fail with no module host policy published");
+    .expect_err("the backing write must fail when the bound driver has no Graph family");
     assert!(
         memory_missing.starts_with("[composio][scopes] "),
         "the refusal must be tagged as the scopes storage half's, so a failure here \
          points at this handler rather than at whatever it called; got: {memory_missing}"
     );
     assert!(
-        memory_missing.contains("kv_put failed"),
-        "set_user_scopes must fail CLOSED on the backing write rather than reporting \
-         a save it did not perform; got: {memory_missing}"
+        memory_missing.contains("does not serve Graph"),
+        "set_user_scopes must fail CLOSED when the bound driver cannot store scopes; \
+         got: {memory_missing}"
     );
+}
+
+struct WorkspaceEnvGuard(Option<std::ffi::OsString>);
+
+impl WorkspaceEnvGuard {
+    fn set(path: &std::path::Path) -> Self {
+        let previous = std::env::var_os("OPENHUMAN_WORKSPACE");
+        unsafe { std::env::set_var("OPENHUMAN_WORKSPACE", path) };
+        Self(previous)
+    }
+}
+
+impl Drop for WorkspaceEnvGuard {
+    fn drop(&mut self) {
+        match self.0.take() {
+            Some(previous) => unsafe { std::env::set_var("OPENHUMAN_WORKSPACE", previous) },
+            None => unsafe { std::env::remove_var("OPENHUMAN_WORKSPACE") },
+        }
+    }
 }
 
 #[test]

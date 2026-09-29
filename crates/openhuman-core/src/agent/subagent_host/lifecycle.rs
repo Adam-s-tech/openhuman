@@ -1027,7 +1027,6 @@ impl tinyagents_orchestration::subagent::SubagentPersistence for OpenHumanPersis
                 .collect(),
             question: paused.reason.clone(),
             options: None,
-            toolkit_override: optional_metadata("toolkit_override"),
             skill_filter_override: optional_metadata("skill_filter_override"),
             model_override: optional_metadata("model_override"),
             created_at: chrono::Utc::now().to_rfc3339(),
@@ -1165,10 +1164,6 @@ fn host_outcome_to_neutral(
                         (
                             "worker_thread_id".into(),
                             options.worker_thread_id.clone().unwrap_or_default(),
-                        ),
-                        (
-                            "toolkit_override".into(),
-                            options.toolkit_override.clone().unwrap_or_default(),
                         ),
                         (
                             "skill_filter_override".into(),

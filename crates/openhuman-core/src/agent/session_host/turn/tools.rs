@@ -335,7 +335,7 @@ impl OpenHumanSessionHost {
     /// mid-session mechanism — genuinely-new skill ids (present on disk but not
     /// in the prior snapshot) are parked in [`Self::pending_skill_announcement`]
     /// (announced once via [`Self::announced_skills`]) and surfaced on the next
-    /// user turn; `run_skill` then loads/runs them fresh from disk. Updating the
+    /// user turn; `run_workflow` then loads/runs them fresh from disk. Updating the
     /// tracked slice keeps the next diff correct and feeds a *fresh* session's
     /// rendered catalogue.
     ///
@@ -373,7 +373,7 @@ impl OpenHumanSessionHost {
             .cloned()
             .collect();
         // Skills removed from disk since the last snapshot: retract them so the
-        // model stops routing `run_skill` calls to skills that no longer exist.
+        // model stops routing `run_workflow` calls to skills that no longer exist.
         // The frozen `## Installed Skills` system-prompt block cannot be updated
         // mid-session (KV-cache stability), so the retraction note on the user
         // turn is the only signal the model gets — mirrors the install path.
@@ -638,7 +638,7 @@ impl OpenHumanSessionHost {
         // Rebuild the visible-spec cache from the new tool_specs so the
         // next provider call carries the reconciled schema. Dedup
         // afterward so a delegate synthesised here (e.g.
-        // `delegate_name = "research"`) doesn't collide with a
+        // `delegate_name = "plan"`) doesn't collide with a
         // same-named skill tool on the wire — Anthropic 400s on dup
         // tool names where OpenHuman's backend silently accepts.
         self.rebuild_tool_policy_session();

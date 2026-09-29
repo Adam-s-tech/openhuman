@@ -156,7 +156,7 @@ export function useConsciousItems(): UseConsciousItemsResult {
   const runningRef = useRef(false);
 
   const refresh = useCallback(async () => {
-    if (!isTauri() || fetchingRef.current) return;
+    if (fetchingRef.current) return;
     fetchingRef.current = true;
     setLoading(true);
     setError(null);

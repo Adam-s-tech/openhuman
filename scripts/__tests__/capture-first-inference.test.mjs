@@ -153,6 +153,7 @@ before(async () => {
     CAPTURE_PORT: '0',
     CAPTURE_UPSTREAM: `http://127.0.0.1:${upstream.port}`,
     CAPTURE_ALL: '1',
+    CAPTURE_RESPONSES: '1',
     CAPTURE_ALL_DIR: path.join(workDir, 'seq'),
     CAPTURE_OUTPUT: path.join(workDir, 'first.json'),
     CAPTURE_LOG: path.join(workDir, 'capture.jsonl'),
@@ -182,6 +183,14 @@ test('capture proxy forwards an inference call, dumps the body, and summarises t
   assert.equal(reply.status, 200);
   assert.match(reply.text, /"content":"Hel"/, 'the stream reaches the client untouched');
   assert.match(reply.text, /\[DONE\]/);
+  assert.equal(
+    fs.readFileSync(path.join(workDir, 'seq', 'res-000.txt'), 'utf8'),
+    reply.text,
+    'the saved successful response must match the stream forwarded to the core'
+  );
+  for (const file of ['first.json', 'seq/req-000.json', 'seq/res-000.txt', 'capture.jsonl']) {
+    assert.equal(fs.statSync(path.join(workDir, file)).mode & 0o777, 0o600, file);
+  }
 
   // Forwarded verbatim, bearer included, to the upstream path.
   const seen = upstream.requests.find(r => r.url === '/openai/v1/chat/completions');
@@ -215,6 +224,73 @@ test('capture proxy forwards an inference call, dumps the body, and summarises t
   const summaryLine =
     /\[capture\] #000 200 model=z-ai\/glm-5\.3-flash msgs=2 tools=1 served_by=StreamLake ttfb=\d+\.\d\ds total=\d+\.\d\ds prompt=12344 cached=12288 cache_key=tap-25675927a3f2160d/;
   assert.match(await waitForOutput(proxy.output, summaryLine), summaryLine);
+});
+
+test('capture proxy forwards Socket.IO WebSocket upgrades and both socket directions', async () => {
+  const port = await proxy.ready;
+  let seen;
+  let upstreamSocket;
+  const onUpgrade = (req, socket, head) => {
+    upstreamSocket = socket;
+    seen = { url: req.url, authorization: req.headers.authorization, host: req.headers.host };
+    socket.write('HTTP/1.1 101 Switching Protocols\r\nConnection: Upgrade\r\nUpgrade: websocket\r\n\r\n');
+    if (head.length) socket.write(head);
+    socket.on('data', chunk => socket.write(chunk));
+  };
+  upstream.server.on('upgrade', onUpgrade);
+
+  let clientSocket;
+  try {
+    await new Promise((resolve, reject) => {
+      const request = http.request({
+        hostname: '127.0.0.1',
+        port,
+        path: '/socket.io/?EIO=4&transport=websocket',
+        headers: {
+          connection: 'Upgrade',
+          upgrade: 'websocket',
+          authorization: 'Bearer websocket-test',
+        },
+      });
+      const timer = setTimeout(
+        () => request.destroy(new Error('WebSocket upgrade did not complete')),
+        1500
+      );
+      request.on('upgrade', (response, socket) => {
+        clientSocket = socket;
+        if (response.statusCode !== 101) {
+          clearTimeout(timer);
+          reject(new Error(`unexpected upgrade status ${response.statusCode}`));
+          return;
+        }
+        socket.on('data', chunk => {
+          if (chunk.toString() === 'socket-ping') {
+            clearTimeout(timer);
+            resolve();
+          }
+        });
+        socket.write('socket-ping');
+      });
+      request.on('response', response => {
+        clearTimeout(timer);
+        reject(new Error(`upgrade returned HTTP ${response.statusCode}`));
+      });
+      request.on('error', error => {
+        clearTimeout(timer);
+        reject(error);
+      });
+      request.end();
+    });
+    assert.deepEqual(seen, {
+      url: '/socket.io/?EIO=4&transport=websocket',
+      authorization: 'Bearer websocket-test',
+      host: `127.0.0.1:${upstream.port}`,
+    });
+  } finally {
+    clientSocket?.destroy();
+    upstreamSocket?.destroy();
+    upstream.server.off('upgrade', onUpgrade);
+  }
 });
 
 test('capture proxy records a non-2xx inference response body and names the error', async () => {

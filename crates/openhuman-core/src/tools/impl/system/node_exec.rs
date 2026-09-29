@@ -97,6 +97,10 @@ impl NodeExecTool {
 
 #[async_trait]
 impl Tool for NodeExecTool {
+    fn exposure(&self) -> tinytools::ToolExposure {
+        tinytools::ToolExposure::Deferred
+    }
+
     fn name(&self) -> &str {
         "node_exec"
     }

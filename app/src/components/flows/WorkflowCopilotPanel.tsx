@@ -31,9 +31,8 @@ import { Thread, type ThreadComponents } from '@/components/assistant-ui/thread'
 import createDebug from 'debug';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { AssistantUiInferenceStatus } from '../../features/conversations/components/AssistantUiInferenceStatus';
+import { AgentRunningStatus } from '../../features/conversations/aui/AgentRunningStatus';
 import { ChatSources } from '../../features/conversations/components/aui/ChatSources';
-import { SubagentDrawerHost } from '../../features/conversations/components/aui/subagentDrawerHost';
 import { TranscriptOverlays } from '../../features/conversations/components/aui/TranscriptOverlays';
 import { ChatToolFallback } from '../../features/conversations/components/ChatToolParts';
 import { useChatSurfaceRegistration } from '../../features/conversations/hooks/useChatSurfaceRegistration';
@@ -49,7 +48,7 @@ import type {
 } from '../../store/chatRuntimeSlice';
 import { useAppSelector } from '../../store/hooks';
 import ChatComposer from '../chat/ChatComposer';
-import { Button } from '../ui';
+import { Badge, Button } from '../ui';
 
 const log = createDebug('app:flows:copilot-panel');
 
@@ -158,6 +157,11 @@ interface Props {
    * the graph appears.
    */
   fullWidth?: boolean;
+  /**
+   * Drop the panel's own left border and width cap: the host has framed it in
+   * a card of its own (the builder's side panel), which owns both.
+   */
+  framed?: boolean;
 }
 
 export default function WorkflowCopilotPanel({
@@ -174,6 +178,7 @@ export default function WorkflowCopilotPanel({
   seedThreadId = null,
   onThreadIdChange,
   fullWidth = false,
+  framed = false,
 }: Props) {
   const { t } = useT();
   const { threadId, sending, proposal, capped, error, send, stop, clearProposal } =
@@ -510,12 +515,6 @@ export default function WorkflowCopilotPanel({
       ? (state.chatRuntime.processingByThread?.[threadId] ?? EMPTY_TRANSCRIPT)
       : EMPTY_TRANSCRIPT
   );
-  const [openSubagentTaskId, setOpenSubagentTaskId] = useState<string | null>(null);
-  const canOpenSubagent = useCallback(
-    (taskId: string) => toolTimeline.some(entry => entry.subagent?.taskId === taskId),
-    [toolTimeline]
-  );
-
   // The copilot's authoring footer: error line, proposal preview, capped card
   // and the builder composer. Parked approvals are NOT repeated here — the
   // assistant-ui transcript renders them inline on the gated tool call (see
@@ -541,18 +540,14 @@ export default function WorkflowCopilotPanel({
 
           <div className="mt-2 flex flex-wrap gap-1.5 text-[11px]">
             {diff.addedNodeIds.size > 0 && (
-              <span
-                data-testid="workflow-copilot-added"
-                className="rounded-full bg-sage-100 px-2 py-0.5 font-medium text-sage-700 dark:bg-sage-500/15 dark:text-sage-300">
+              <Badge variant="success" data-testid="workflow-copilot-added">
                 {t('flows.copilot.added').replace('{count}', String(diff.addedNodeIds.size))}
-              </span>
+              </Badge>
             )}
             {diff.removedNodeIds.size > 0 && (
-              <span
-                data-testid="workflow-copilot-removed"
-                className="rounded-full bg-coral-100 px-2 py-0.5 font-medium text-coral-700 dark:bg-coral-500/15 dark:text-coral-300">
+              <Badge variant="danger" data-testid="workflow-copilot-removed">
                 {t('flows.copilot.removed').replace('{count}', String(diff.removedNodeIds.size))}
-              </span>
+              </Badge>
             )}
             {!diff.hasChanges && (
               <span className="text-content-faint">{t('flows.copilot.noChanges')}</span>
@@ -679,7 +674,7 @@ export default function WorkflowCopilotPanel({
   const components = useMemo<ThreadComponents>(
     () => ({
       ToolFallback: ChatToolFallback,
-      RunningStatus: AssistantUiInferenceStatus,
+      RunningStatus: AgentRunningStatus,
       SourceGroup: ChatSources,
       Welcome: CopilotWelcome,
       Composer: CopilotComposer,
@@ -690,9 +685,11 @@ export default function WorkflowCopilotPanel({
   return (
     <aside
       data-testid="workflow-copilot-panel"
-      className={`flex h-full w-full flex-col border-l border-line bg-surface ${
-        fullWidth ? '' : 'max-w-sm'
-      }`}>
+      className={
+        framed
+          ? 'flex h-full min-h-0 w-full flex-col bg-surface'
+          : `flex h-full w-full flex-col border-l border-line bg-surface ${fullWidth ? '' : 'max-w-sm'}`
+      }>
       {/* No header. It carried a "Workflow copilot" title, a subtitle
           describing the proposal flow, and a close ✕ — none of which earned
           permanent height above a transcript. The panel is opened from a
@@ -710,13 +707,9 @@ export default function WorkflowCopilotPanel({
           The home chat's starter prompts are off: a click sends the prompt,
           and they are not builder requests. */}
       <AssistantUiRuntimeProvider threadId={threadId} welcomeSuggestions={false}>
-        <SubagentDrawerHost
-          onOpenSubagent={setOpenSubagentTaskId}
-          canOpenSubagent={canOpenSubagent}>
-          <div className="min-h-0 flex-1" data-testid="workflow-copilot-transcript">
-            <Thread components={components} />
-          </div>
-        </SubagentDrawerHost>
+        <div className="min-h-0 flex-1" data-testid="workflow-copilot-transcript">
+          <Thread components={components} />
+        </div>
       </AssistantUiRuntimeProvider>
       <TranscriptOverlays
         threadId={threadId}
@@ -725,8 +718,6 @@ export default function WorkflowCopilotPanel({
         backgroundProcesses={NO_BACKGROUND_PROCESSES}
         showBackgroundProcesses={false}
         onCloseBackgroundProcesses={noop}
-        openSubagentTaskId={openSubagentTaskId}
-        onOpenSubagent={setOpenSubagentTaskId}
         showProcessSource={false}
         onCloseProcessSource={noop}
       />

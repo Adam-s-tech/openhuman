@@ -19,6 +19,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import chatRuntimeReducer from '../../../store/chatRuntimeSlice';
 import mascotReducer from '../../../store/mascotSlice';
+import runModeReducer from '../../../store/runModeSlice';
 import threadReducer from '../../../store/threadSlice';
 import { AssistantUiChat } from './AssistantUiChat';
 
@@ -30,6 +31,8 @@ function buildStore() {
       thread: threadReducer,
       chatRuntime: chatRuntimeReducer,
       mascot: mascotReducer,
+      // The composer's `/plan` / `/build` commands read it (`useRunMode`).
+      runMode: runModeReducer,
     }),
     preloadedState: {
       thread: {
@@ -106,6 +109,11 @@ describe('assistant-ui composer slots', () => {
     );
 
     const button = screen.getByTestId('composer-human-mode');
+    const icon = screen.getByTestId('composer-human-mascot-icon');
+    expect(icon).toHaveAttribute('width', '24');
+    expect(icon).toHaveAttribute('height', '24');
+    expect(icon.tagName).toBe('IMG');
+    expect(icon.getAttribute('src')).toMatch(/^data:image\/png;base64,/);
 
     rerender(<Provider store={store}>{chat(() => navigate('/human'))}</Provider>);
 

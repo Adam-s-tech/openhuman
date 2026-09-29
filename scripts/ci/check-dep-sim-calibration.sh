@@ -36,10 +36,9 @@
 # 270 -> 271 on 2026-09-18: `tinytools-agent` becomes the shared
 # provider-neutral tool-call protocol crate; it adds one Rust crate
 # and no native build dependency.
-# See the kernel-floor history for why
-# these raises are temporary/justified. macOS resolves one higher per
-# the host skew recorded in the limits history — this expects the CI
-# host.
+# See the kernel-floor history for why these raises are justified. The current
+# macOS graph resolves three more names than CI Linux; this calibrates against
+# the Linux target used by CI.
 #
 # This number MUST move in lockstep with scripts/kernel-floor.limits —
 # it is a second source of truth for the same Linux name count and is
@@ -55,6 +54,14 @@
 # 277 -> 280 on 2026-09-22: TinyAgents 2.1.2 moves its required
 # runtime/session/graph split into the harness path; it adds three
 # crate names and no native build dependency.
+# 280 -> 282 on 2026-09-25: TinyChannels 0.1.3 resolves HMAC 0.13 and
+# activates digest 0.11's ctutils/cmov tail, adding two names but no native
+# build dependency. See the matching kernel-floor history entry.
+# 285 -> 286 on 2026-09-27: multi-provider search uses the required
+# tinysearch-bus contract in always-on config and policy code; one name,
+# no native dependency. See kernel-floor.limits.
+# 282 -> 285 on 2026-09-26: the required TinyBrowser integration adds
+# tinybrowser-bus, tinybrowser-control, and tinyjevclient. Native count stays 2.
 #
 # Called by ci-lite.yml's feature-gate smoke lane and by the lane runner, so the
 # expected count lives here once (plus scripts/kernel-floor.limits).
@@ -62,6 +69,6 @@ set -euo pipefail
 
 cd "$(dirname "$0")/../.."
 
-EXPECTED_NAMES=280
+EXPECTED_NAMES=286
 
 exec python3 scripts/dep-sim.py --cut-nothing --expect-names "${EXPECTED_NAMES}"

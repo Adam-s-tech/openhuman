@@ -6,8 +6,8 @@ use std::sync::Arc;
 
 use tinyagents_harness::cache::InMemoryResponseCache;
 use tinyagents_harness::middleware::{
-    BudgetLimits, BudgetMiddleware, ContextCompressionMiddleware, PromptCacheGuardMiddleware,
-    ToolPolicyMiddleware as TaToolPolicyMiddleware,
+    plan_mode_middleware, BudgetLimits, BudgetMiddleware, ContextCompressionMiddleware,
+    PromptCacheGuardMiddleware, RunModeHandle, ToolPolicyMiddleware as TaToolPolicyMiddleware,
 };
 use tinyagents_harness::runtime::AgentHarness;
 use tinyagents_harness::steering::SteeringHandle;
@@ -22,6 +22,7 @@ use crate::agent::tinyagents::harness_tool_registration::register_turn_tools_and
 use crate::agent::tinyagents::host::steering;
 use crate::agent::tinyagents::host::OpenHumanRunContext;
 use crate::agent::tinyagents::middleware::{self, TurnContextMiddleware};
+use crate::agent::tinyagents::model::{ErrorSlotModel, TurnChatModel};
 use crate::agent::tinyagents::observability::{
     IterationCursor, ProviderUsageCarry, SubagentScope, ToolFailureMap, ToolNameMap,
 };
@@ -135,6 +136,13 @@ pub(super) fn assemble_turn_harness(
     // The dialect the session composed its prompt for; see
     // `OpenHumanRunContext::tool_dialect`.
     tool_dialect: tinyagents_harness::config::ToolDispatcher,
+    // Live per-thread Plan/Build mode handle (`agent::tinyagents::run_mode`).
+    // `Some` installs `PlanModeMiddleware`, which hides/denies side-effecting
+    // tools while the thread is in `RunMode::Plan` — flipped without
+    // restarting the run by `plan_exit` or the `agent.set_run_mode` RPC.
+    // `None` for a caller with no thread identity (a sub-agent child, most
+    // notably), which never runs in plan mode.
+    run_mode: Option<RunModeHandle>,
 ) -> AssembledTurnHarness {
     let mut harness: AgentHarness<(), OpenHumanRunContext> = AgentHarness::new();
     // Cross-route fallback ownership (issue #4249, Workstream 02.2): populate the
@@ -208,6 +216,17 @@ pub(super) fn assemble_turn_harness(
         // caller before dispatch, not by harness assembly.
         ..
     } = turn_models;
+    // A non-hosted run owns its registry, so its models record into the run's
+    // error slot (#6724). A hosted root shares its runtime registry with its
+    // sub-agents; there only the resolver's lead model records.
+    let slotted = |model: TurnChatModel| -> TurnChatModel {
+        if hosted_security_gate {
+            model
+        } else {
+            Arc::new(ErrorSlotModel::new(model, error_slot.clone()))
+        }
+    };
+    let primary = slotted(primary);
     capability_registry.replace_model(model, primary.clone());
     harness
         .register_model(model, primary)
@@ -220,6 +239,7 @@ pub(super) fn assemble_turn_harness(
     // fallback/selection (02.2) chooses among the routes. `build_turn_models`
     // already skipped the turn's own model, so we don't shadow the default.
     for (name, route_model) in routes {
+        let route_model = slotted(route_model);
         capability_registry.replace_model(name.as_str(), route_model.clone());
         harness.register_model(name, route_model);
     }
@@ -327,18 +347,28 @@ pub(super) fn assemble_turn_harness(
     // dedupe read or leaves the index stale. Pushed ahead of every other
     // result-rewriting middleware so its `after_tool` runs *after* the byte-cap
     // truncation, keeping the note.
-    harness.push_middleware(Arc::new(middleware::MemoryProtocolMiddleware::new()));
+    // Dedupe guidance stays active; only the closing-step reminder depends on
+    // whether this turn can call the index-update tool.
+    let can_update_index = allowed
+        .as_ref()
+        .is_none_or(|names| names.contains("update_memory_md"));
+    harness.push_middleware(Arc::new(
+        middleware::MemoryProtocolMiddleware::with_index_update_tool(can_update_index),
+    ));
 
     // Repeated-failure circuit breaker: pause the run when a tool returns the same
     // error `REPEATED_TOOL_FAILURE_THRESHOLD` times in a row, so a deterministic
     // security/approval denial or terminal tool error surfaces its root cause
     // instead of burning the whole iteration budget (legacy ProgressGuard parity).
-    if let Some(handle) = &handle {
-        harness.push_middleware(Arc::new(middleware::RepeatedToolFailureMiddleware::new(
+    let repeated_failure = handle.as_ref().map(|handle| {
+        Arc::new(middleware::RepeatedToolFailureMiddleware::new(
             handle.clone(),
             REPEATED_TOOL_FAILURE_THRESHOLD,
             halt_summary.clone(),
-        )));
+        ))
+    });
+    if let Some(mw) = &repeated_failure {
+        harness.push_middleware(mw.clone());
     }
 
     // Policy-driven stop hooks (budget cap, thread-goal budget, ad-hoc iteration
@@ -463,6 +493,30 @@ pub(super) fn assemble_turn_harness(
         .collect();
     context_mw.install(&mut harness, tool_policies, summary_focus_tools);
 
+    // Plan mode (issue: plan-mode approvals). `run_mode` is `Some` only for a
+    // turn with a thread identity (chat, not a sub-agent child); the
+    // middleware itself is a no-op whenever the live handle reads
+    // `RunMode::Build`, so pushing it unconditionally for those turns is
+    // cheap and lets a mid-run `plan_exit`/`agent.set_run_mode` flip take
+    // effect on the very next tool exposure or execution check. `.allow(..)`
+    // keeps plan-mode-specific and session-bookkeeping tools reachable while
+    // planning even though they are not (or should not be gated as)
+    // side-effect-free: `plan_exit` (the hand-off signal itself),
+    // `request_plan_review` (the review gate IS the consent surface), the
+    // session `todo` list, and the per-thread `goal_*` tools.
+    if let Some(mode) = run_mode {
+        harness.push_middleware(Arc::new(
+            plan_mode_middleware(mode, harness.tools().policies()).allow([
+                "plan_exit",
+                "request_plan_review",
+                "todo",
+                "goal_set",
+                "goal_get",
+                "goal_complete",
+            ]),
+        ));
+    }
+
     // Observe-only crate `BudgetMiddleware` (W2-budget-dedupe / workstream 06).
     // Installed with empty `BudgetLimits` so it NEVER enforces or halts: its
     // `before_model` preflight has no configured limit to trip, and its
@@ -522,6 +576,13 @@ pub(super) fn assemble_turn_harness(
         &tool_outcome_sink,
     );
 
+    // Direct web lookup is for a bounded answer. Once enough search/fetch
+    // results have returned, spend the next model call on synthesis rather
+    // than another variation of the same query. Sub-agent runs keep their own
+    // budgets and are not narrowed here.
+    if subagent_scope.is_none() {
+        harness.push_middleware(Arc::new(middleware::ResearchBudgetMiddleware::new()));
+    }
     // SDK-owned tool-policy projection (issue #4249 / tinyagents-full-migration
     // 01.1). Keep this narrow for now: enforce sandbox requirements declared by
     // adapter policies without enabling classification/approval/result-byte
@@ -628,6 +689,12 @@ pub(super) fn assemble_turn_harness(
     // repeat-progress recurrence ledger restarts (#6275).
     if let Some(mw) = &repeat_progress {
         harness.push_middleware(Arc::new(mw.eviction_observer()));
+    }
+    // Registered after it: the breaker's corrective nudges ride the next
+    // request only. Anything earlier (notably the transcript snapshot a failed
+    // turn persists) must not see them, or they become durable history (#6725).
+    if let Some(mw) = &repeated_failure {
+        harness.push_middleware(Arc::new(mw.nudge_injector()));
     }
 
     AssembledTurnHarness {

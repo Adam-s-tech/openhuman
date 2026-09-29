@@ -318,6 +318,15 @@ async fn scripted_chat_completions(
     use axum::response::IntoResponse;
 
     let streaming = body.get("stream").and_then(Value::as_bool).unwrap_or(false);
+    // Web chat also asks for follow-up suggestions in a separate model call.
+    // Answer it without consuming the turn's scripted agent completions.
+    if body
+        .pointer("/messages/0/content")
+        .and_then(Value::as_str)
+        .is_some_and(|prompt| prompt.starts_with("You suggest short follow-up questions"))
+    {
+        return completion_response(streaming, json!({ "role": "assistant", "content": "[]" }));
+    }
     with_captured(|reqs| {
         reqs.push(json!({
             "path": uri.path(),
@@ -511,7 +520,8 @@ fn assert_no_jsonrpc_error<'a>(v: &'a Value, context: &str) -> &'a Value {
         .unwrap_or_else(|| panic!("{context}: missing result: {v}"))
 }
 
-fn write_min_config(openhuman_dir: &Path, api_origin: &str) {
+/// `extra_config` is appended verbatim (whole TOML tables, e.g. `[autonomy]`).
+fn write_min_config(openhuman_dir: &Path, api_origin: &str, extra_config: &str) {
     let cfg = format!(
         r#"api_url = "{api_origin}"
 default_model = "e2e-mock-model"
@@ -521,6 +531,7 @@ chat_onboarding_completed = true
 [secrets]
 encrypt = false
 
+{extra_config}
 "#
     );
     fn write_config_file(config_dir: &Path, cfg: &str) {
@@ -635,14 +646,31 @@ async fn wait_for_terminal(
     rx: &mut tokio::sync::mpsc::UnboundedReceiver<Value>,
     timeout: Duration,
 ) -> Value {
+    wait_for_terminal_request(rx, timeout, None).await
+}
+
+async fn wait_for_terminal_request(
+    rx: &mut tokio::sync::mpsc::UnboundedReceiver<Value>,
+    timeout: Duration,
+    request_id: Option<&str>,
+) -> Value {
+    // A client SSE stream can still receive a cancellation for the previous
+    // request after its chat_done. Only this turn's terminal event counts.
     let deadline = tokio::time::Instant::now() + timeout;
     loop {
         let remaining = deadline.saturating_duration_since(tokio::time::Instant::now());
         match tokio::time::timeout(remaining, rx.recv()).await {
-            Ok(Some(v)) => match v.get("event").and_then(Value::as_str) {
-                Some("chat_done") | Some("chat_error") => return v,
-                _ => {}
-            },
+            Ok(Some(v)) => {
+                if request_id
+                    .is_some_and(|id| v.get("request_id").and_then(Value::as_str) != Some(id))
+                {
+                    continue;
+                }
+                match v.get("event").and_then(Value::as_str) {
+                    Some("chat_done") | Some("chat_error") => return v,
+                    _ => {}
+                }
+            }
             Ok(None) => panic!("SSE channel closed waiting for terminal event"),
             Err(_) => panic!("timed out waiting for terminal web-chat event"),
         }
@@ -678,10 +706,21 @@ impl Drop for Stack {
 }
 
 async fn boot_stack() -> Stack {
+    boot_stack_with_config("").await
+}
+
+/// The approval gate is inert while the autonomy policy is off (the default:
+/// `SecurityPolicy::gate_decision` answers `Allow` for every class, so
+/// `file_write::external_effect_with_args` is `false` and nothing parks).
+/// Approval tests opt the policy back in, at the supervised level, where a
+/// write to an existing file prompts.
+const SUPERVISED_AUTONOMY_CONFIG: &str = "[autonomy]\nenabled = true\nlevel = \"supervised\"\n";
+
+async fn boot_stack_with_config(extra_config: &str) -> Stack {
     // Ensure the global AgentDefinitionRegistry is populated with built-in
-    // archetypes (orchestrator, researcher, task_manager_agent, etc.) before
+    // archetypes (orchestrator, agent_memory, task_manager_agent, etc.) before
     // the RPC stack starts. Without this the session builder cannot synthesise
-    // delegation tools and every `research`/`spawn_subagent` call becomes
+    // delegation tools and every `retrieve_memory`/`spawn_subagent` call becomes
     // "Unknown tool: …", making delegation tests vacuous.
     init_agent_def_registry();
 
@@ -696,9 +735,13 @@ async fn boot_stack() -> Stack {
 
     let (mock_addr, mock_join) = serve_on_ephemeral(scripted_upstream_router()).await;
     let mock_origin = format!("http://{mock_addr}");
-    write_min_config(&openhuman_home, &mock_origin);
+    write_min_config(&openhuman_home, &mock_origin, extra_config);
     // Pre-write user-scoped config so it's found after auth_store_session activates "e2e-user".
-    write_min_config(&openhuman_home.join("users").join("e2e-user"), &mock_origin);
+    write_min_config(
+        &openhuman_home.join("users").join("e2e-user"),
+        &mock_origin,
+        extra_config,
+    );
 
     // The transport-only router does not create a Core runtime context. Install
     // the explicit tinymemory host seams before handlers service memory-backed
@@ -731,7 +774,13 @@ async fn boot_stack() -> Stack {
     }
 }
 
-async fn send_web_chat(rpc_base: &str, id: i64, client_id: &str, thread_id: &str, message: &str) {
+async fn send_web_chat(
+    rpc_base: &str,
+    id: i64,
+    client_id: &str,
+    thread_id: &str,
+    message: &str,
+) -> String {
     let resp = post_json_rpc(
         rpc_base,
         id,
@@ -750,6 +799,12 @@ async fn send_web_chat(rpc_base: &str, id: i64, client_id: &str, thread_id: &str
         Some(&json!(true)),
         "web chat not accepted: {result}"
     );
+    result
+        .get("result")
+        .and_then(|value| value.get("request_id"))
+        .and_then(Value::as_str)
+        .unwrap_or_else(|| panic!("accepted web chat has no request_id: {result}"))
+        .to_owned()
 }
 
 // ─── Tests ───────────────────────────────────────────────────────────────────
@@ -846,7 +901,7 @@ async fn multi_turn_state_persistence_inner() {
     ))
     .await;
 
-    send_web_chat(
+    let first_request_id = send_web_chat(
         &stack.rpc_base,
         200,
         "harness-multiturn",
@@ -854,7 +909,12 @@ async fn multi_turn_state_persistence_inner() {
         "what is the project name?",
     )
     .await;
-    let first = wait_for_terminal(&mut events, Duration::from_secs(60)).await;
+    let first = wait_for_terminal_request(
+        &mut events,
+        Duration::from_secs(60),
+        Some(&first_request_id),
+    )
+    .await;
     assert_eq!(
         first.get("event").and_then(Value::as_str),
         Some("chat_done"),
@@ -870,7 +930,7 @@ async fn multi_turn_state_persistence_inner() {
         "turn-1 full_response must contain FOO_CANARY: {first}"
     );
 
-    send_web_chat(
+    let second_request_id = send_web_chat(
         &stack.rpc_base,
         201,
         "harness-multiturn",
@@ -878,12 +938,40 @@ async fn multi_turn_state_persistence_inner() {
         "are you sure?",
     )
     .await;
-    let second = wait_for_terminal(&mut events, Duration::from_secs(60)).await;
+    let second = wait_for_terminal_request(
+        &mut events,
+        Duration::from_secs(60),
+        Some(&second_request_id),
+    )
+    .await;
     assert_eq!(
         second.get("event").and_then(Value::as_str),
         Some("chat_done"),
         "turn-2 expected chat_done, got: {second}"
     );
+    // The warm session must commit each turn through its own progress sender.
+    // Before the fix, turn 2 delivered chat_done but its persisted streaming
+    // text stayed empty until a third turn displaced the retained sender.
+    let turns = turn_state_history(&stack.rpc_base, 202, "thread-mt").await;
+    for (request_id, expected) in [
+        (&first_request_id, "The project is called FOO_CANARY."),
+        (&second_request_id, "Yes, FOO_CANARY is the one."),
+    ] {
+        let turn = turns
+            .iter()
+            .find(|turn| turn.get("requestId").and_then(Value::as_str) == Some(request_id.as_str()))
+            .unwrap_or_else(|| panic!("missing turn state for {request_id}: {turns:?}"));
+        assert_eq!(
+            turn.get("lifecycle").and_then(Value::as_str),
+            Some("completed")
+        );
+        assert!(
+            turn.get("streamingText")
+                .and_then(Value::as_str)
+                .is_some_and(|text| text.contains(expected)),
+            "turn {request_id} did not persist its own reply before another turn: {turn}"
+        );
+    }
 
     // Last captured upstream request must carry turn-1 context in body.messages.
     let requests = with_captured(|c| c.clone());
@@ -921,23 +1009,23 @@ async fn multi_turn_state_persistence_inner() {
 // ─── Task 3: Subagent delegation happy path ───────────────────────────────────
 //
 // Tool surface (crates/openhuman-core/src/tools/orchestrator_tools.rs,
-//   crates/openhuman-core/src/agent/registry/agents/researcher/agent.toml):
-//   - researcher has `delegate_name = "research"`, so the orchestrator LLM sees a
-//     tool named "research" synthesised by collect_orchestrator_tools.
+//   crates/openhuman-core/src/memory/agent/agent/agent.toml):
+//   - agent_memory has `delegate_name = "retrieve_memory"`, so the
+//     orchestrator LLM sees a tool named "retrieve_memory" synthesised by collect_orchestrator_tools.
 //   - The tool takes { "prompt": string, ... } per ArchetypeDelegationTool schema.
-//   - The orchestrator TOML lists "researcher" in its subagents.allowlist.
+//   - The orchestrator TOML lists "agent_memory" in its subagents.allowlist.
 //   - AgentDefinitionRegistry must be initialised (done in boot_stack) for the
-//     delegation tool to be synthesised; without it the call becomes "Unknown tool: research".
+//     delegation tool to be synthesised; without it the call becomes "Unknown tool: retrieve_memory".
 //
 // Actual LLM request ordering (with registry init):
-//   request[0] = orchestrator → model returns { tool_calls: [research(...)] }
-//   request[1] = researcher subagent inner loop → model returns canary text
+//   request[0] = orchestrator → model returns { tool_calls: [retrieve_memory(...)] }
+//   request[1] = agent_memory subagent inner loop → model returns canary text
 //   request[2] = orchestrator synthesis → model returns final text with canary
 
-/// Orchestrator delegates to researcher via the `research` tool (delegate_name
-/// on the researcher agent definition); the researcher subagent runs its own
-/// inner LLM call; the final orchestrator synthesis reply contains the researcher
-/// canary. Three upstream requests prove the full delegation path ran.
+/// Orchestrator delegates to agent_memory via the `retrieve_memory`
+/// tool (delegate_name on the agent_memory definition); the subagent runs
+/// its own inner LLM call; the final orchestrator synthesis reply contains the
+/// subagent canary. Three upstream requests prove the full delegation path ran.
 #[test]
 fn subagent_delegation_happy_path() {
     run_on_agent_stack(
@@ -949,15 +1037,16 @@ fn subagent_delegation_happy_path() {
 async fn subagent_delegation_happy_path_inner() {
     let _lock = env_lock();
     reset_script(vec![
-        // request[0]: Orchestrator calls the `research` tool (researcher's delegate_name).
+        // request[0]: Orchestrator calls the `retrieve_memory` tool
+        // (agent_memory's delegate_name).
         tool_call_completion(
-            "research",
+            "retrieve_memory",
             json!({ "prompt": "Find the marker phrase", "blocking": true }),
         ),
-        // request[1]: Researcher subagent inner LLM call returns its canary.
-        text_completion("RESEARCHER_CANARY_42 is the marker."),
-        // request[2]: Orchestrator receives the researcher result and synthesizes.
-        text_completion("Done. The result is: RESEARCHER_CANARY_42"),
+        // request[1]: agent_memory subagent inner LLM call returns its canary.
+        text_completion("MEMORY_CANARY_42 is the marker."),
+        // request[2]: Orchestrator receives the subagent result and synthesizes.
+        text_completion("Done. The result is: MEMORY_CANARY_42"),
     ]);
     let stack = boot_stack().await;
 
@@ -971,7 +1060,7 @@ async fn subagent_delegation_happy_path_inner() {
         300,
         "harness-subagent",
         "thread-sub",
-        "research the marker",
+        "recall the marker",
     )
     .await;
 
@@ -987,13 +1076,13 @@ async fn subagent_delegation_happy_path_inner() {
         .and_then(Value::as_str)
         .unwrap_or_else(|| panic!("chat_done missing 'full_response': {done}"));
     assert!(
-        full_response.contains("RESEARCHER_CANARY_42"),
-        "final response missing researcher canary; full_response: {full_response}\nevent: {done}"
+        full_response.contains("MEMORY_CANARY_42"),
+        "final response missing subagent canary; full_response: {full_response}\nevent: {done}"
     );
 
     // Delegation evidenced by ≥3 captured upstream requests:
-    //   request[0] = orchestrator turn: research tool call returned
-    //   request[1] = researcher subagent inner LLM call: canary text returned
+    //   request[0] = orchestrator turn: retrieve_memory tool call returned
+    //   request[1] = agent_memory subagent inner LLM call: canary text returned
     //   request[2] = orchestrator synthesis: canary forwarded in final reply
     //
     // NOTE: a completed turn's snapshot is now RETAINED (lifecycle `Completed`)
@@ -1004,7 +1093,7 @@ async fn subagent_delegation_happy_path_inner() {
     let requests = with_captured(|c| c.clone());
     assert!(
         requests.len() >= 3,
-        "expected ≥3 upstream requests (orchestrator + researcher + orchestrator synthesis), \
+        "expected ≥3 upstream requests (orchestrator + agent_memory + orchestrator synthesis), \
          got {};\nall requests: {}",
         requests.len(),
         serde_json::to_string_pretty(&requests).unwrap_or_default()
@@ -1019,7 +1108,7 @@ async fn subagent_delegation_happy_path_inner() {
         serde_json::to_string_pretty(&requests).unwrap_or_default()
     );
 
-    // request[1] (researcher subagent) must have different system/message content
+    // request[1] (agent_memory subagent) must have different system/message content
     // from request[0] (orchestrator) — proves a genuinely different agent context
     // ran, not the same orchestrator re-called.
     let req0_sys = requests
@@ -1035,62 +1124,62 @@ async fn subagent_delegation_happy_path_inner() {
     assert_ne!(
         req0_sys, req1_sys,
         "request[0] and request[1] share identical first-message content — \
-         researcher subagent did not build its own context; \
+         agent_memory subagent did not build its own context; \
          content: {req0_sys:?}"
     );
 
     stack.shutdown();
 }
 
-// ─── Task 4: Scheduling clarification flow ────────────────────────────────────
+// ─── Task 4: Delegated clarification flow ─────────────────────────────────────
 //
-// `schedule_task` is scheduler_agent's synthesised delegate (its `agent.toml`
+// `manage_tasks` is task_manager_agent's synthesised delegate (its `agent.toml`
 // `delegate_name`), and `ask_user_clarification` IS in that agent's named tools.
 // So a blocking delegation that needs a detail pauses the *child*, and
 // `dispatch_subagent` hands the parent a `[SUBAGENT_AWAITING_USER]` envelope as
-// the `schedule_task` tool result (#4291). That envelope is an ordinary tool
-// result to the orchestrator — `schedule_task` is not in its `early_exit_tools`
+// the `manage_tasks` tool result (#4291). That envelope is an ordinary tool
+// result to the orchestrator — `manage_tasks` is not in its `early_exit_tools`
 // — so the orchestrator relays the question in its OWN next reply, and turn 1
 // ends on that text.
 //
 // Actual LLM request ordering (4 upstream calls total):
-//   request[0] = orchestrator turn 1 → schedule_task (blocking) tool call
-//   request[1] = scheduler_agent → ask_user_clarification pauses the child
+//   request[0] = orchestrator turn 1 → manage_tasks (blocking) tool call
+//   request[1] = task_manager_agent → ask_user_clarification pauses the child
 //   request[2] = orchestrator, with the awaiting-user envelope in context →
 //                relays the question as text; turn 1 ends (chat_done)
 //   request[3] = orchestrator turn 2 with "version 2" user reply in full context →
 //                synthesis; turn 2 ends (chat_done with ANSWER_CANARY_V2)
 
-/// A scheduling request that needs clarification surfaces its question in turn 1,
+/// A delegated request whose specialist needs clarification surfaces its question in turn 1,
 /// then preserves that question in the context used to answer turn 2.
 #[test]
 #[ignore = "TODO(#6375): hosted TinyAgents continuation is replaying the prior clarification"]
-fn scheduling_clarification_flow() {
+fn delegated_clarification_flow() {
     run_on_agent_stack(
-        "scheduling_clarification_flow",
-        scheduling_clarification_flow_inner,
+        "delegated_clarification_flow",
+        delegated_clarification_flow_inner,
     );
 }
 
-async fn scheduling_clarification_flow_inner() {
+async fn delegated_clarification_flow_inner() {
     let _lock = env_lock();
     reset_script(vec![
         // ── turn 1 ──
-        // request[0]: Orchestrator delegates to scheduler_agent via schedule_task.
+        // request[0]: Orchestrator delegates to task_manager_agent via manage_tasks.
         tool_call_completion(
-            "schedule_task",
-            json!({ "prompt": "Schedule a weekly reminder", "blocking": true }),
+            "manage_tasks",
+            json!({ "prompt": "Add my GitHub issues as a task source", "blocking": true }),
         ),
-        // request[1]: scheduler_agent asks for the missing detail. This pauses
+        // request[1]: task_manager_agent asks for the missing detail. This pauses
         //   the child; the question comes back to the orchestrator inside the
-        //   `[SUBAGENT_AWAITING_USER]` envelope as the schedule_task result.
+        //   `[SUBAGENT_AWAITING_USER]` envelope as the manage_tasks result.
         tool_call_completion(
             "ask_user_clarification",
             json!({ "question": "WHICH_VERSION_CANARY?" }),
         ),
         // request[2]: Orchestrator relays the sub-agent's question to the user,
         //   as the envelope instructs; turn 1 ends on this text.
-        text_completion("The scheduler needs one detail: WHICH_VERSION_CANARY?"),
+        text_completion("The task manager needs one detail: WHICH_VERSION_CANARY?"),
         // ── turn 2 (user replied "version 2") ──
         // request[3]: Orchestrator processes user reply with full turn-1 context →
         //   synthesizes final answer; turn 2 ends here.
@@ -1105,15 +1194,16 @@ async fn scheduling_clarification_flow_inner() {
     .await;
 
     // ── turn 1: clarification question must reach the user ──
-    send_web_chat(
+    let request_id = send_web_chat(
         &stack.rpc_base,
         400,
         "harness-clarify",
         "thread-clarify",
-        "schedule a weekly reminder",
+        "add my GitHub issues as a task source",
     )
     .await;
-    let first = wait_for_terminal(&mut events, Duration::from_secs(120)).await;
+    let first =
+        wait_for_terminal_request(&mut events, Duration::from_secs(120), Some(&request_id)).await;
     assert_eq!(
         first.get("event").and_then(Value::as_str),
         Some("chat_done"),
@@ -1129,7 +1219,7 @@ async fn scheduling_clarification_flow_inner() {
     );
 
     // ── turn 2: resume with answer → final response must reach the user ──
-    send_web_chat(
+    let request_id = send_web_chat(
         &stack.rpc_base,
         401,
         "harness-clarify",
@@ -1137,7 +1227,8 @@ async fn scheduling_clarification_flow_inner() {
         "version 2",
     )
     .await;
-    let second = wait_for_terminal(&mut events, Duration::from_secs(120)).await;
+    let second =
+        wait_for_terminal_request(&mut events, Duration::from_secs(120), Some(&request_id)).await;
     assert_eq!(
         second.get("event").and_then(Value::as_str),
         Some("chat_done"),
@@ -1155,9 +1246,9 @@ async fn scheduling_clarification_flow_inner() {
     let requests = with_captured(|c| c.clone());
 
     // ── No unknown-tool result in any captured request ──
-    // Proves schedule_task was recognised by the orchestrator. This is the guard
+    // Proves manage_tasks was recognised by the orchestrator. This is the guard
     // that let the 3-completion version of this test pass vacuously: with the
-    // delegate unresolved, the engine's lowercase "unknown tool `schedule_task`"
+    // delegate unresolved, the engine's lowercase "unknown tool `manage_tasks`"
     // result never matched the old `"Unknown tool:"` literal, and the
     // orchestrator consumed the child's clarification completion itself.
     assert!(
@@ -1168,33 +1259,33 @@ async fn scheduling_clarification_flow_inner() {
     );
 
     // ── Both turns traversed the expected four upstream requests ──
-    // request[0] = orchestrator (schedule_task call),
-    // request[1] = scheduler_agent (ask_user_clarification pause),
+    // request[0] = orchestrator (manage_tasks call),
+    // request[1] = task_manager_agent (ask_user_clarification pause),
     // request[2] = orchestrator (relays the question; turn-1 end),
     // request[3] = orchestrator turn-2 synthesis (turn-2 end).
     assert!(
         requests.len() >= 4,
-        "expected ≥4 upstream requests (schedule + child clarification + relay + \
+        "expected ≥4 upstream requests (delegation + child clarification + relay + \
          turn-2 synthesis), got {};\nall requests: {}",
         requests.len(),
         serde_json::to_string_pretty(&requests).unwrap_or_default()
     );
 
-    // ── request[1] went to scheduler_agent, not the orchestrator ──
+    // ── request[1] went to task_manager_agent, not the orchestrator ──
     // Proves the blocking delegate really ran (the child's system prompt is
-    // scheduler-specific; both agents share the project-context prefix, so
+    // task-manager-specific; both agents share the project-context prefix, so
     // message 0 alone cannot tell them apart). Without this the flow degrades
     // to "orchestrator asks the user itself", which never exercises the pause.
-    let scheduler_request = requests.get(1).map(Value::to_string).unwrap_or_default();
+    let child_request = requests.get(1).map(Value::to_string).unwrap_or_default();
     assert!(
-        scheduler_request.contains("Scheduler OpenHumanSessionHost"),
-        "request[1] did not carry the scheduler_agent prompt — schedule_task did not \
-         delegate; request: {scheduler_request}"
+        child_request.contains("You own the user's task-source feeds and artifacts"),
+        "request[1] did not carry the task_manager_agent prompt — manage_tasks did not \
+         delegate; request: {child_request}"
     );
 
     // ── request[2] saw the child's pause as a `[SUBAGENT_AWAITING_USER]` envelope ──
     // Proves `dispatch_subagent` surfaced the pause the #4291 way (structured
-    // envelope carrying the question, as the schedule_task tool result) rather
+    // envelope carrying the question, as the manage_tasks tool result) rather
     // than as a plain success the model could read as "answered".
     let relay_request = requests.get(2).map(Value::to_string).unwrap_or_default();
     assert!(
@@ -1363,26 +1454,20 @@ async fn approval_gate_installed_after_ensure_inner() {
 
 // ─── 5.2 approval_gate_approve_flow ──────────────────────────────────────────
 //
-// Architecture: the orchestrator delegates to code_executor via the `run_code`
-// tool (code_executor's delegate_name in agent.toml:3). code_executor has
-// file_write in its tool surface (agent.toml:named). The subagent runs inside
-// the orchestrator's WebChat task-local context (dispatch_subagent does NOT
-// re-scope turn_origin or APPROVAL_CHAT_CONTEXT), so file_write inside the
-// subagent parks at the approval gate and publishes approval_request SSE.
+// Architecture: `file_write` is a direct tool on the orchestrator's belt (the
+// coding surface it owns since the `code_executor` specialist was retired). The
+// orchestrator's WebChat turn scopes `turn_origin` + APPROVAL_CHAT_CONTEXT, so a
+// file_write on an existing file parks at the approval gate and publishes
+// approval_request over SSE.
 //
-// LLM request ordering (4 calls total):
-//   request[0] = orchestrator → run_code delegation tool call
-//   request[1] = code_executor → file_write tool call (approval parks)
-//   request[2] = code_executor → text completion after approve
-//   request[3] = orchestrator synthesis
+// LLM request ordering (2 calls total):
+//   request[0] = orchestrator → file_write tool call (approval parks)
+//   request[1] = orchestrator → text completion after the decision
 
-/// Orchestrator delegates to code_executor via `run_code`; code_executor calls
-/// file_write (on an existing file) → approval gate parks in the subagent's
-/// inherited WebChat context → approval_request surfaces over SSE → approve_once
-/// resumes → subagent completes → orchestrator synthesizes with APPROVED_WRITE_CANARY.
-/// The file IS written under the tempdir.
+/// Orchestrator calls file_write (on an existing file) → approval gate parks →
+/// approval_request surfaces over SSE → approve_once resumes → orchestrator
+/// finishes with APPROVED_WRITE_CANARY. The file IS written under the tempdir.
 #[test]
-#[ignore = "TODO(#6554): code_executor no longer reaches the approval gate with file_write"]
 fn approval_gate_approve_flow() {
     run_on_agent_stack(
         "approval_gate_approve_flow",
@@ -1399,26 +1484,15 @@ async fn approval_gate_approve_flow_inner() {
     // test's runtime drops (see register_approval_bridge docstring for details).
     let _approval_bridge = register_approval_bridge();
     reset_script(vec![
-        // request[0]: Orchestrator delegates to code_executor via run_code.
-        // run_code (ArchetypeDelegationTool) requires "prompt" key; empty/missing → error.
-        tool_call_completion(
-            "run_code",
-            json!({
-                "prompt": "write approval-canary.txt with APPROVED_WRITE_CANARY",
-                "blocking": true
-            }),
-        ),
-        // request[1]: code_executor calls file_write → gate parks.
+        // request[0]: Orchestrator calls file_write → gate parks.
         tool_call_completion(
             "file_write",
             json!({ "path": "approval-canary.txt", "content": "APPROVED_WRITE_CANARY" }),
         ),
-        // request[2]: code_executor text after approval.
-        text_completion("File written: APPROVED_WRITE_CANARY"),
-        // request[3]: Orchestrator synthesis.
+        // request[1]: Orchestrator text after approval.
         text_completion("Done. File written: APPROVED_WRITE_CANARY"),
     ]);
-    let stack = boot_stack().await;
+    let stack = boot_stack_with_config(SUPERVISED_AUTONOMY_CONFIG).await;
 
     // Pre-create the file so file_write sees it as an existing file and
     // external_effect_with_args returns true → approval gate intercepts.
@@ -1503,7 +1577,6 @@ async fn approval_gate_approve_flow_inner() {
 /// agent to acknowledge the denial; turn completes with DENIAL_ACK_CANARY.
 /// denied-canary.txt content must remain as the placeholder (not the canary).
 #[test]
-#[ignore = "TODO(#6554): code_executor no longer reaches the approval gate with file_write"]
 fn approval_gate_deny_flow() {
     run_on_agent_stack("approval_gate_deny_flow", approval_gate_deny_flow_inner);
 }
@@ -1513,26 +1586,19 @@ async fn approval_gate_deny_flow_inner() {
     let _ttl = EnvVarGuard::set("OPENHUMAN_APPROVAL_TTL_SECS", "120");
     ensure_approval_gate().await;
     let _approval_bridge = register_approval_bridge();
-    // Same delegation chain as approve_flow: orchestrator → run_code → code_executor
-    // → file_write. After denial, code_executor receives the denial marker from the
-    // gate and returns a text response; orchestrator synthesizes with DENIAL_ACK_CANARY.
+    // Same shape as approve_flow: orchestrator → file_write. After denial the
+    // orchestrator receives the denial marker from the gate and acknowledges it
+    // with DENIAL_ACK_CANARY.
     reset_script(vec![
-        // request[0]: Orchestrator delegates to code_executor.
-        tool_call_completion(
-            "run_code",
-            json!({ "prompt": "write denied-canary.txt", "blocking": true }),
-        ),
-        // request[1]: code_executor calls file_write → gate parks, user denies.
+        // request[0]: Orchestrator calls file_write → gate parks, user denies.
         tool_call_completion(
             "file_write",
             json!({ "path": "denied-canary.txt", "content": "DENIED_WRITE_CANARY" }),
         ),
-        // request[2]: code_executor text after denial (gate returns POLICY_DENIED_MARKER).
+        // request[1]: Orchestrator text after denial (gate returns POLICY_DENIED_MARKER).
         text_completion("Understood — the write was denied. DENIAL_ACK_CANARY"),
-        // request[3]: Orchestrator synthesis.
-        text_completion("Acknowledged: DENIAL_ACK_CANARY"),
     ]);
-    let stack = boot_stack().await;
+    let stack = boot_stack_with_config(SUPERVISED_AUTONOMY_CONFIG).await;
 
     // Pre-create the file so file_write sees it as an existing file.
     let home = stack._tmp.path().to_path_buf();
@@ -1595,166 +1661,11 @@ async fn approval_gate_deny_flow_inner() {
     stack.shutdown();
 }
 
-// ─── 5.4 subagent_with_approval_gate ─────────────────────────────────────────
-//
-// Architecture: The approval gate fires for file_write inside a subagent context
-// only when the subagent run carries a WebChat turn origin. `dispatch_subagent`
-// (crates/openhuman-core/src/agent/orchestration/tools/dispatch.rs) invokes `run_subagent`
-// which runs the subagent's tool loop inside the SAME task that the orchestrator's
-// WebChat turn started in. Because `APPROVAL_CHAT_CONTEXT` and `turn_origin` are
-// tokio task-locals (not thread-locals), and `run_subagent` does NOT re-scope them,
-// the subagent inherits the WebChat origin from the orchestrator's task scope.
-// Therefore file_write inside a ArchetypeDelegationTool subagent CAN trigger the
-// approval gate and publish approval_request events.
-//
-// code_executor has delegate_name = "run_code" (crates/openhuman-core/src/agent/registry/
-// agents/code_executor/agent.toml:3). The orchestrator synthesizes a `run_code`
-// delegation tool from this. code_executor has file_write in its tool surface.
-// The researcher agent does NOT have file_write.
-//
-// Actual LLM request ordering:
-//   request[0] = orchestrator → run_code delegation tool call
-//   request[1] = code_executor subagent → file_write tool call (approval parks)
-//   request[2] = code_executor subagent → text completion after approve
-//   request[3] = orchestrator → synthesis with SUBAGENT_WRITE_CANARY
-
-/// Orchestrator delegates to code_executor via the `run_code` tool (code_executor's
-/// delegate_name); the code_executor subagent calls file_write (on an existing file) →
-/// the approval gate parks inside the subagent's inherited WebChat context →
-/// approval_request fires → approve_once resumes it → subagent completes →
-/// orchestrator synthesizes. Three-plus upstream requests confirm the full path.
-#[test]
-#[ignore = "TODO(#6554): code_executor no longer reaches the approval gate with file_write"]
-fn subagent_with_approval_gate() {
-    run_on_agent_stack(
-        "subagent_with_approval_gate",
-        subagent_with_approval_gate_inner,
-    );
-}
-
-async fn subagent_with_approval_gate_inner() {
-    let _lock = env_lock();
-    let _ttl = EnvVarGuard::set("OPENHUMAN_APPROVAL_TTL_SECS", "120");
-    ensure_approval_gate().await;
-    let _approval_bridge = register_approval_bridge();
-    reset_script(vec![
-        // request[0]: Orchestrator delegates to code_executor via run_code.
-        // code_executor's delegate_name = "run_code" (agent.toml:3).
-        // ArchetypeDelegationTool requires "prompt" key (archetype_delegation.rs:82-89).
-        tool_call_completion(
-            "run_code",
-            json!({ "prompt": "write the artifact", "blocking": true }),
-        ),
-        // request[1]: code_executor subagent calls file_write → gate parks.
-        tool_call_completion(
-            "file_write",
-            json!({ "path": "subagent-artifact.txt", "content": "SUBAGENT_WRITE_CANARY" }),
-        ),
-        // request[2]: code_executor subagent after approval → text completion.
-        text_completion("Artifact written: SUBAGENT_WRITE_CANARY"),
-        // request[3]: Orchestrator synthesis.
-        text_completion("All done: SUBAGENT_WRITE_CANARY"),
-    ]);
-    let stack = boot_stack().await;
-
-    // Pre-create the target file so file_write sees it as existing.
-    let home = stack._tmp.path().to_path_buf();
-    pre_create_for_approval(&home, "subagent-artifact.txt");
-
-    let mut events = spawn_sse_collector(format!(
-        "{}/events?client_id=harness-subapproval",
-        stack.rpc_base
-    ))
-    .await;
-    send_web_chat(
-        &stack.rpc_base,
-        530,
-        "harness-subapproval",
-        "thread-subapproval",
-        "delegate the write",
-    )
-    .await;
-
-    // The approval gate fires because the subagent inherits the orchestrator's
-    // WebChat task-local origin (turn_origin + APPROVAL_CHAT_CONTEXT are not
-    // re-scoped by dispatch_subagent/run_subagent — crates/openhuman-core/src/agent/harness/
-    // subagent_runner/ and crates/openhuman-core/src/agent/orchestration/tools/dispatch.rs).
-    // If approval_request never fires within 120s, the event JSON is dumped.
-    let approval = wait_for_event(&mut events, "approval_request", Duration::from_secs(120)).await;
-    let request_id = approval
-        .pointer("/data/request_id")
-        .or_else(|| approval.get("request_id"))
-        .and_then(Value::as_str)
-        .unwrap_or_else(|| {
-            panic!("subagent approval_request missing request_id; event: {approval}")
-        })
-        .to_string();
-    assert!(
-        approval.to_string().contains("file_write"),
-        "subagent approval_request must mention file_write; event: {approval}"
-    );
-
-    let decide = post_json_rpc(
-        &stack.rpc_base,
-        531,
-        "openhuman.approval_decide",
-        json!({ "request_id": request_id, "decision": "approve_once" }),
-    )
-    .await;
-    assert_no_jsonrpc_error(&decide, "approval_decide subagent approve");
-
-    let done = wait_for_terminal(&mut events, Duration::from_secs(120)).await;
-    assert_eq!(
-        done.get("event").and_then(Value::as_str),
-        Some("chat_done"),
-        "expected chat_done after subagent+approval; got: {done}"
-    );
-    let full_response = done
-        .get("full_response")
-        .and_then(Value::as_str)
-        .unwrap_or_else(|| panic!("chat_done missing full_response: {done}"));
-    assert!(
-        full_response.contains("SUBAGENT_WRITE_CANARY"),
-        "full_response must contain SUBAGENT_WRITE_CANARY; got: {full_response}"
-    );
-
-    // Three-plus upstream requests: orchestrator + code_executor(file_write) +
-    // code_executor(text after approve) + orchestrator synthesis.
-    let requests = with_captured(|c| c.clone());
-    assert!(
-        requests.len() >= 3,
-        "expected ≥3 upstream requests (orchestrator + code_executor x2 + orchestrator synthesis), \
-         got {};\nrequests: {}",
-        requests.len(),
-        serde_json::to_string_pretty(&requests).unwrap_or_default()
-    );
-
-    assert!(
-        !captured_requests_mention_unknown_tool(&requests),
-        "found an unknown-tool result — run_code delegation was not synthesised; requests: {}",
-        serde_json::to_string_pretty(&requests).unwrap_or_default()
-    );
-
-    // The file must have been written with the canary content, proving that the
-    // approved tool execution actually ran (not just that the decision propagated).
-    let action_dir = stack._tmp.path().join("OpenHuman").join("projects");
-    let artifact_path = action_dir.join("subagent-artifact.txt");
-    let artifact_content = std::fs::read_to_string(&artifact_path)
-        .unwrap_or_else(|e| panic!("subagent-artifact.txt missing after approve: {e}"));
-    assert!(
-        artifact_content.contains("SUBAGENT_WRITE_CANARY"),
-        "subagent-artifact.txt must contain SUBAGENT_WRITE_CANARY after approve; got: {artifact_content:?}"
-    );
-
-    stack.shutdown();
-}
-
 // ─── 5.5 approval_gate_timeout ───────────────────────────────────────────────
 
 /// No decision within the TTL → gate auto-denies; turn completes with
 /// TIMEOUT_ACK_CANARY (not a hang). The file's content must not be overwritten.
 #[test]
-#[ignore = "TODO(#6554): code_executor no longer reaches the approval gate with file_write"]
 fn approval_gate_timeout() {
     run_on_agent_stack("approval_gate_timeout", approval_gate_timeout_inner);
 }
@@ -1765,26 +1676,18 @@ async fn approval_gate_timeout_inner() {
     let _ttl = EnvVarGuard::set("OPENHUMAN_APPROVAL_TTL_SECS", "2");
     ensure_approval_gate().await;
     let _approval_bridge = register_approval_bridge();
-    // Same delegation chain as approve/deny: orchestrator → run_code → code_executor
-    // → file_write. The gate parks and TTL-denies after 2 seconds. code_executor
-    // receives the denial, returns text; orchestrator synthesizes with TIMEOUT_ACK_CANARY.
+    // Same shape as approve/deny: orchestrator → file_write. The gate parks and
+    // TTL-denies after 2 seconds; the orchestrator acknowledges with TIMEOUT_ACK_CANARY.
     reset_script(vec![
-        // request[0]: Orchestrator delegates to code_executor.
-        tool_call_completion(
-            "run_code",
-            json!({ "prompt": "write timeout-canary.txt", "blocking": true }),
-        ),
-        // request[1]: code_executor calls file_write → gate parks, TTL expires.
+        // request[0]: Orchestrator calls file_write → gate parks, TTL expires.
         tool_call_completion(
             "file_write",
             json!({ "path": "timeout-canary.txt", "content": "TIMEOUT_WRITE_CANARY" }),
         ),
-        // request[2]: code_executor text after TTL auto-denial.
+        // request[1]: Orchestrator text after TTL auto-denial.
         text_completion("The write timed out awaiting approval. TIMEOUT_ACK_CANARY"),
-        // request[3]: Orchestrator synthesis.
-        text_completion("Acknowledged: TIMEOUT_ACK_CANARY"),
     ]);
-    let stack = boot_stack().await;
+    let stack = boot_stack_with_config(SUPERVISED_AUTONOMY_CONFIG).await;
 
     // Pre-create so file_write's external_effect_with_args returns true.
     let home = stack._tmp.path().to_path_buf();
@@ -2053,8 +1956,8 @@ async fn provider_error_retry_inner() {
 // parallel_subagent_fanout:
 //   spawn_parallel_agents is in the orchestrator's named tools (agent.toml:165)
 //   and is registered via ops.rs:163. Requires ≥2 tasks, each { agent_id, prompt }.
-//   The orchestrator's subagents.allowlist includes "researcher", so
-//   agent_id:"researcher" is valid. children run via join_all (spawn_parallel_agents.rs
+//   The orchestrator's subagents.allowlist includes "agent_memory",
+//   so agent_id:"agent_memory" is valid. children run via join_all (spawn_parallel_agents.rs
 //   ~line 322 — "let futures = prepared.into_iter().map(…)"). Both children
 //   consume from the same global FIFO scripted-response queue. Because
 //   join_all spawns futures concurrently but the queue pop is under a Mutex,
@@ -2062,14 +1965,15 @@ async fn provider_error_retry_inner() {
 //   carry distinct canaries; the synthesis quotes both.
 //   LLM request ordering (4 upstream calls):
 //     request[0]  = orchestrator → spawn_parallel_agents tool call
-//     request[1,2] = researcher child 1 & child 2 (order nondeterministic,
+//     request[1,2] = agent_memory child 1 & child 2 (order nondeterministic,
 //                    both return distinct canaries)
 //     request[3]  = orchestrator synthesis with both canaries
 //
 // multi_hop_delegation_chain:
-//   Depth-1 subagents (researcher, code_executor, etc.) do NOT have spawn
-//   tools in their named lists. Verified: researcher/agent.toml has only web/
-//   file tools; code_executor/agent.toml has code/file tools. Neither contains
+//   Depth-1 subagents (agent_memory, vision_agent, etc.) do NOT have spawn
+//   tools in their named lists. Verified: agent_memory's agent.toml
+//   (memory/agent/agent/agent.toml) has only read-only memory tools plus
+//   ask_user_clarification. It contains no
 //   spawn_subagent, spawn_worker_thread, or spawn_parallel_agents. The only
 //   agents with spawn tools are orchestrator and trigger_reactor (loader.rs:383,
 //   527). trigger_reactor is not in the orchestrator's subagents.allowlist.
@@ -2077,18 +1981,19 @@ async fn provider_error_retry_inner() {
 //   with the current built-in agent graph; the cap is a safety net for
 //   runtime-registered agents.
 //
-//   Fallback (plan Task 9, step 9.2 fallback): orchestrator → researcher (via
-//   `research`) → researcher scripted to call ask_user_clarification (not in
-//   researcher's named tools → SubagentToolSource::execute returns a blocked
-//   response, tool loop continues) → researcher second LLM call returns
-//   DEPTH2_CANARY text → dispatch_subagent forwards as `research` tool result
-//   → orchestrator synthesis. The three-level synthesis path (user turn →
-//   researcher subagent → tool-loop continuation → orchestrator synthesis) is
-//   the deepest path reachable with built-in agents without src/ changes.
+//   Fallback (plan Task 9, step 9.2 fallback): orchestrator → agent_memory
+//   (via `retrieve_memory`) → agent_memory scripted to call file_write (not in
+//   agent_memory's read-only named tools → SubagentToolSource::execute returns
+//   a blocked response, tool loop continues) → agent_memory second LLM call
+//   returns DEPTH2_CANARY text → dispatch_subagent forwards as `retrieve_memory`
+//   tool result → orchestrator synthesis. The three-level synthesis path (user
+//   turn → agent_memory subagent → tool-loop continuation → orchestrator
+//   synthesis) is the deepest path reachable with built-in agents without src/
+//   changes.
 //   LLM request ordering (4 upstream calls):
-//     request[0] = orchestrator → `research` delegation
-//     request[1] = researcher (inner loop) → ask_user_clarification (blocked)
-//     request[2] = researcher (inner loop continuation) → DEPTH2_CANARY text
+//     request[0] = orchestrator → `retrieve_memory` delegation
+//     request[1] = agent_memory (inner loop) → file_write (blocked)
+//     request[2] = agent_memory (inner loop continuation) → DEPTH2_CANARY text
 //     request[3] = orchestrator synthesis
 
 /// Two `spawn_async_subagent` calls issued together really do put two workers
@@ -2140,11 +2045,11 @@ async fn parallel_subagent_fanout_inner() {
         tool_calls_completion(&[
             (
                 "spawn_async_subagent",
-                json!({ "agent_id": "researcher", "prompt": "Find PARALLEL_ALPHA_CANARY" }),
+                json!({ "agent_id": "agent_memory", "prompt": "Find PARALLEL_ALPHA_CANARY" }),
             ),
             (
                 "spawn_async_subagent",
-                json!({ "agent_id": "researcher", "prompt": "Find PARALLEL_BETA_CANARY" }),
+                json!({ "agent_id": "agent_memory", "prompt": "Find PARALLEL_BETA_CANARY" }),
             ),
         ]),
         text_completion("Spawned two workers; results will arrive as they land."),
@@ -2236,19 +2141,23 @@ async fn parallel_subagent_fanout_inner() {
     );
 }
 
-/// SubagentToolSource returns error); researcher loops and returns DEPTH2_CANARY;
+/// Orchestrator delegates to agent_memory via `retrieve_memory`; it calls
+/// file_write (not in its read-only named tools, so SubagentToolSource
+/// returns error); agent_memory loops and returns DEPTH2_CANARY;
 /// dispatch_subagent forwards the result; orchestrator synthesizes.
 ///
-/// Depth behavior discovered: researcher/agent.toml has only web/file tools
-/// (no spawn_subagent, spawn_worker_thread, spawn_parallel_agents). MAX_SPAWN_DEPTH=3
+/// Depth behavior discovered: agent_memory's agent.toml has only read-only
+/// memory tools plus ask_user_clarification (no spawn_subagent,
+/// spawn_worker_thread, spawn_parallel_agents). MAX_SPAWN_DEPTH=3
 /// (spawn_depth_context.rs:16) is unreachable with built-in agents; it guards
 /// runtime/workspace agents. The three-level synthesis (user-turn root →
-/// researcher subagent → orchestrator synthesis) is the deepest path available
-/// without src/ changes. Documented per plan Task 9 step 9.2 fallback.
+/// agent_memory subagent → orchestrator synthesis) is the deepest path
+/// available without src/ changes. Documented per plan Task 9 step 9.2 fallback.
 ///
-/// Intentionally shares the blocked-clarification mechanic with
-/// `scheduling_clarification_flow`; differs in delegate surface (research vs
-/// schedule_task) and single-turn shape.
+/// The out-of-scope call is `file_write`, not `ask_user_clarification`:
+/// agent_memory owns `ask_user_clarification`, so that call would park the
+/// child (the `delegated_clarification_flow` mechanic) instead of being
+/// refused and letting the inner loop continue.
 #[test]
 fn multi_hop_delegation_chain() {
     run_on_agent_stack(
@@ -2260,24 +2169,25 @@ fn multi_hop_delegation_chain() {
 async fn multi_hop_delegation_chain_inner() {
     let _lock = env_lock();
     reset_script(vec![
-        // request[0]: Orchestrator delegates to researcher via `research`
-        // (researcher's delegate_name, agent.toml:3).
+        // request[0]: Orchestrator delegates to agent_memory via
+        // `retrieve_memory` (its delegate_name, memory/agent/agent/agent.toml:3).
         tool_call_completion(
-            "research",
+            "retrieve_memory",
             json!({ "prompt": "deep question", "blocking": true }),
         ),
-        // request[1]: Researcher first inner LLM call → scripts ask_user_clarification.
-        // ask_user_clarification is NOT in researcher's named tools (researcher/agent.toml:21-50),
-        // so SubagentToolSource returns a blocked/error result (tool_source.rs:36).
-        // The researcher subagent loop continues to a second LLM call.
+        // request[1]: agent_memory first inner LLM call → scripts file_write.
+        // file_write is NOT in agent_memory's read-only named tools
+        // (`[tools] named`), so SubagentToolSource returns a blocked/error
+        // result (tool_source.rs:36). The subagent loop continues to a second
+        // LLM call.
         tool_call_completion(
-            "ask_user_clarification",
-            json!({ "question": "depth-2 clarification?" }),
+            "file_write",
+            json!({ "path": "depth-2.txt", "content": "depth-2 write?" }),
         ),
-        // request[2]: Researcher second inner LLM call → text result.
-        // This becomes the `research` tool result forwarded by dispatch_subagent.
+        // request[2]: agent_memory second inner LLM call → text result.
+        // This becomes the `retrieve_memory` tool result forwarded by dispatch_subagent.
         text_completion("DEPTH2_CANARY"),
-        // request[3]: Orchestrator receives the research result and synthesizes.
+        // request[3]: Orchestrator receives the retrieve_memory result and synthesizes.
         text_completion("Final answer: DEPTH2_CANARY"),
     ]);
     let stack = boot_stack().await;
@@ -2312,27 +2222,27 @@ async fn multi_hop_delegation_chain_inner() {
     );
 
     // ≥4 upstream requests prove the full delegation path ran (≥3 would
-    // false-pass if the researcher inner loop early-exited):
-    //   request[0] = orchestrator (research call),
-    //   request[1] = researcher first iter (ask_user_clarification → blocked),
-    //   request[2] = researcher second iter (DEPTH2_CANARY text),
+    // false-pass if the subagent inner loop early-exited):
+    //   request[0] = orchestrator (retrieve_memory call),
+    //   request[1] = agent_memory first iter (file_write → blocked),
+    //   request[2] = agent_memory second iter (DEPTH2_CANARY text),
     //   request[3] = orchestrator synthesis.
     let requests = with_captured(|c| c.clone());
     assert!(
         requests.len() >= 4,
-        "expected ≥4 upstream requests (orchestrator + researcher x2 + synthesis), got {};\
+        "expected ≥4 upstream requests (orchestrator + agent_memory x2 + synthesis), got {};\
         \nrequests: {}",
         requests.len(),
         serde_json::to_string_pretty(&requests).unwrap_or_default()
     );
 
-    // No unknown-tool result for `research` — delegation was synthesised correctly.
-    // Scoped to `research`: the researcher's `ask_user_clarification` call IS
+    // No unknown-tool result for `retrieve_memory` — delegation was synthesised correctly.
+    // Scoped to `retrieve_memory`: the subagent's `file_write` call IS
     // rejected as unknown by design (see the ordering note above), so a blanket
     // check would fail on the very mechanic this test exercises.
     assert!(
-        !captured_requests_reject_tool_as_unknown(&requests, "research"),
-        "found an unknown-tool result — `research` delegation was not synthesised; requests: {}",
+        !captured_requests_reject_tool_as_unknown(&requests, "retrieve_memory"),
+        "found an unknown-tool result — `retrieve_memory` delegation was not synthesised; requests: {}",
         serde_json::to_string_pretty(&requests).unwrap_or_default()
     );
 
@@ -3294,17 +3204,17 @@ async fn model_call_ceiling_bounds_a_wedged_call_below_the_turn_deadline_inner()
 // "installed" or "connected". These go one step further: the skill comes from a
 // loopback registry through the real install path, the MCP server is found in a
 // loopback registry and then declared in `mcp.json` the way a user would, and a
-// scripted turn reaches each through the same delegation tools the
-// orchestrator uses in production (`setup_skills`, `run_skill`,
-// `use_mcp_server`).
+// scripted turn installs the skill through `setup_skills`, reads it back with the
+// orchestrator's own `describe_workflow`, and
+// calls the MCP server directly through the registry tools.
 //
 // The proof is the tool result the model receives, never the scripted reply:
 // every scripted completion below is canary-free, so a canary inside a tool
 // message can only have come from the installed skill or the running server.
 
 /// A call to a tool inside a tool pack, made through `use_skill`. Used to prove
-/// what the orchestrator can NOT reach that way (#6302): the MCP and skill
-/// hand-offs are direct tools now, and their packs are closed to it. Ids the call
+/// what the orchestrator can NOT reach that way (#6302): skill
+/// hand-offs are direct tools, and their pack is closed to it. Ids the call
 /// `call_<tool>` so [`tool_result_text`] finds the result by the inner tool.
 fn packed_tool_call_completion(pack: &str, tool: &str, args: Value) -> Value {
     json!({ "content": "", "toolCalls": [{
@@ -3399,9 +3309,9 @@ async fn serve_skill_registry_fixture() -> (
 }
 
 /// A skill found in the registry is installed by the agent (behind the approval
-/// gate), lands on disk, and is then loaded by the skill executor, with its body
-/// reaching the model.
-// `skills` off drops `skill_setup`/`skill_executor` from the builtins, and this
+/// gate), lands on disk, and is then loaded by the orchestrator itself
+/// (`describe_workflow`), with its body reaching the model.
+// `skills` off drops `skill_setup` from the builtins, and this
 // target declares no `required-features`, so an ungated skill test would run
 // and fail instead of being skipped.
 #[cfg(feature = "skills")]
@@ -3451,16 +3361,12 @@ async fn agent_installs_a_registry_skill_then_runs_it_inner() {
             json!({ "entry_id": REGISTRY_SKILL_ID }),
         ),
         text_completion("Installed the skill."),
-        // Orchestrator hands the run to `skill_executor`, which loads the skill.
-        tool_call_completion(
-            "run_skill",
-            json!({ "prompt": format!("Run the {REGISTRY_SKILL_ID} skill"), "blocking": true }),
-        ),
+        // The orchestrator loads the installed skill itself — there is no
+        // skill-executor hand-off; running one is its own `run_workflow`.
         tool_call_completion(
             "describe_workflow",
             json!({ "workflow_id": REGISTRY_SKILL_ID }),
         ),
-        text_completion("Ran the skill."),
         text_completion("The skill is installed and ran."),
     ]);
     let stack = boot_stack().await;
@@ -3559,7 +3465,7 @@ async fn agent_installs_a_registry_skill_then_runs_it_inner() {
         "the installed SKILL.md is not the one the registry served: {body}"
     );
 
-    // Usable: the executor loaded the installed skill and its body reached the model.
+    // Usable: the orchestrator loaded the installed skill and its body reached the model.
     let described = tool_result_text(&requests, "describe_workflow")
         .unwrap_or_else(|| panic!("no tool result for describe_workflow; requests: {}", dump()));
     assert!(
@@ -3571,17 +3477,16 @@ async fn agent_installs_a_registry_skill_then_runs_it_inner() {
     stack.shutdown();
 }
 
-// ─── #6302: the orchestrator hands MCP and skill work to its specialists ─────
+// ─── #6302: the orchestrator calls MCP tools and hands off skill work ───────
 //
-// The three hand-offs (`setup_skills`, `run_skill`, `use_mcp_server`) are
-// direct tools on the orchestrator's belt, and the packs
-// holding the raw `skill_registry_*` / `mcp_registry_*` tools are closed to it.
-// These tests pin both halves against a real session.
+// The skill hand-off (`setup_skills`), the orchestrator's own `run_workflow`,
+// and the MCP registry tools are direct tools on the orchestrator's belt. The raw `skill_registry_*`
+// tools remain closed to it. These tests pin both paths against a real session.
 
 /// Tool names a captured model request advertised to the provider.
 ///
-/// TinyAgents renders the function catalogue into system-prompt `def` lines
-/// for text-dialect providers, rather than sending an OpenAI `tools` array.
+/// Text-dialect providers receive the catalogue in the system prompt, while
+/// native providers receive an OpenAI `tools` array.
 fn advertised_tool_names(request: &Value) -> Vec<String> {
     let schema_names = request
         .pointer("/body/tools")
@@ -3603,11 +3508,67 @@ fn advertised_tool_names(request: &Value) -> Vec<String> {
         .filter_map(|message| message.get("content").and_then(Value::as_str))
         .flat_map(|content| content.lines())
         .filter_map(|line| {
-            line.strip_prefix("def ")
-                .and_then(|signature| signature.split_once('('))
+            line.trim_start()
+                .strip_prefix("- **")
+                .and_then(|entry| entry.split_once("**:"))
                 .map(|(name, _)| name.to_string())
+                .or_else(|| {
+                    line.strip_prefix("def ")
+                        .and_then(|signature| signature.split_once('('))
+                        .map(|(name, _)| name.to_string())
+                })
         });
     schema_names.chain(prompt_names).collect()
+}
+
+/// Heading of the orchestrator's own `prompt.md`; picks its requests out of a
+/// turn that also carries a specialist's.
+#[cfg(feature = "skills")]
+const ORCHESTRATOR_PROMPT_MARKER: &str = "## How you work";
+
+/// Concatenated system-message text of one captured model request.
+#[cfg(feature = "skills")]
+fn system_prompt_text(request: &Value) -> String {
+    request
+        .pointer("/body/messages")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter(|message| message.get("role").and_then(Value::as_str) == Some("system"))
+        .filter_map(|message| message.get("content"))
+        .map(|content| {
+            content
+                .as_str()
+                .map(str::to_string)
+                .unwrap_or_else(|| content.to_string())
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+/// Whether the request's `use_skill` declaration lists `pack` among its skills.
+/// Native providers carry it in the `tools` schema (the `skill` enum); text
+/// dialects render the catalogue into the system prompt.
+#[cfg(feature = "skills")]
+fn use_skill_offers_pack(request: &Value, pack: &str) -> bool {
+    let quoted = format!("\"{pack}\"");
+    let Some(tools) = request
+        .pointer("/body/tools")
+        .and_then(Value::as_array)
+        .filter(|tools| !tools.is_empty())
+    else {
+        return system_prompt_text(request).contains(&format!("`{pack}`"))
+            || system_prompt_text(request).contains(&quoted);
+    };
+    tools
+        .iter()
+        .filter(|tool| {
+            tool.pointer("/function/name")
+                .or_else(|| tool.get("name"))
+                .and_then(Value::as_str)
+                == Some("use_skill")
+        })
+        .any(|tool| tool.to_string().contains(&quoted))
 }
 
 /// One scripted turn in which the orchestrator hands a request to a specialist
@@ -3615,7 +3576,7 @@ fn advertised_tool_names(request: &Value) -> Vec<String> {
 ///
 /// Three things must hold, all read from the captured model requests:
 /// * the orchestrator's own request advertises `hand_off` (it is not packed) and
-///   no raw `mcp_registry_*` / `skill_registry_*` tool;
+///   no raw `skill_registry_*` tool;
 /// * the hand-off call returned a result (`tool_result_text` panics on
 ///   `unknown tool`);
 /// * a later request came from the specialist, recognised by a tool only its
@@ -3665,7 +3626,7 @@ async fn assert_hand_off_reaches_specialist(
     );
     let raw: Vec<&String> = belt
         .iter()
-        .filter(|name| name.starts_with("mcp_registry_") || name.starts_with("skill_registry_"))
+        .filter(|name| name.starts_with("skill_registry_"))
         .collect();
     assert!(
         raw.is_empty(),
@@ -3687,46 +3648,20 @@ async fn assert_hand_off_reaches_specialist(
     );
 }
 
-/// Wait for the turn to end, failing if it asks for approval first: an approval
-/// request means the refused tool was about to run.
-async fn wait_for_terminal_without_approval(
-    events: &mut tokio::sync::mpsc::UnboundedReceiver<Value>,
-    tool: &str,
-) -> Value {
-    let deadline = tokio::time::Instant::now() + Duration::from_secs(120);
-    loop {
-        let remaining = deadline.saturating_duration_since(tokio::time::Instant::now());
-        let event = match tokio::time::timeout(remaining, events.recv()).await {
-            Ok(Some(event)) => event,
-            Ok(None) | Err(_) => panic!(
-                "the turn never finished; requests: {}",
-                serde_json::to_string_pretty(&with_captured(|c| c.clone())).unwrap_or_default()
-            ),
-        };
-        match event.get("event").and_then(Value::as_str) {
-            Some("approval_request") => panic!(
-                "the orchestrator reached `{tool}` through use_skill: it asked for approval to \
-                 run it: {event}"
-            ),
-            Some("chat_done") | Some("chat_error") => return event,
-            _ => {}
-        }
-    }
-}
-
-/// Skill requests reach `skill_setup` and `skill_executor` through their
-/// hand-offs, called directly.
+/// Skill installs reach `skill_setup` through its hand-off, called directly;
+/// running an installed skill is the orchestrator's own `run_workflow`, not a
+/// hand-off to a retired `skill_executor` (`run_skill`).
 #[cfg(feature = "skills")]
 #[test]
-fn orchestrator_hands_skill_requests_to_the_skill_specialists_directly() {
+fn orchestrator_hands_skill_installs_to_skill_setup_directly() {
     run_on_agent_stack(
-        "orchestrator_hands_skill_requests_to_the_skill_specialists_directly",
-        orchestrator_hands_skill_requests_to_the_skill_specialists_directly_inner,
+        "orchestrator_hands_skill_installs_to_skill_setup_directly",
+        orchestrator_hands_skill_installs_to_skill_setup_directly_inner,
     );
 }
 
 #[cfg(feature = "skills")]
-async fn orchestrator_hands_skill_requests_to_the_skill_specialists_directly_inner() {
+async fn orchestrator_hands_skill_installs_to_skill_setup_directly_inner() {
     let _lock = env_lock();
     reset_script(Vec::new());
     let stack = boot_stack().await;
@@ -3748,15 +3683,35 @@ async fn orchestrator_hands_skill_requests_to_the_skill_specialists_directly_inn
         ],
     )
     .await;
-    assert_hand_off_reaches_specialist(
-        &stack,
-        &mut events,
-        911,
-        "harness-skill-handoff",
-        "run_skill",
-        &["skill_runtime_resolve_runtimes", "read_workflow_resource"],
-    )
-    .await;
+    // Same turn's requests: the orchestrator runs skills itself. Read ITS
+    // request (identified by its own prompt heading), not whichever request
+    // happened to be captured first.
+    let requests = with_captured(|c| c.clone());
+    let orchestrator = requests
+        .iter()
+        .find(|request| system_prompt_text(request).contains(ORCHESTRATOR_PROMPT_MARKER))
+        .unwrap_or_else(|| {
+            panic!(
+                "no captured request carried the orchestrator prompt ({ORCHESTRATOR_PROMPT_MARKER:?}); \
+                 requests: {}",
+                serde_json::to_string_pretty(&requests).unwrap_or_default()
+            )
+        });
+    let belt = advertised_tool_names(orchestrator);
+    // `run_workflow` is a member of the `workflows` tool pack, so it is
+    // reachable either directly or through `use_skill` with that pack.
+    let direct = belt.iter().any(|name| name == "run_workflow");
+    let via_pack = belt.iter().any(|name| name == "use_skill")
+        && use_skill_offers_pack(orchestrator, "workflows");
+    assert!(
+        direct || via_pack,
+        "the orchestrator must reach `run_workflow` (directly or via use_skill `workflows`); \
+         it advertised {belt:?}"
+    );
+    assert!(
+        !belt.iter().any(|name| name == "run_skill"),
+        "the retired `run_skill` hand-off must not be advertised: {belt:?}"
+    );
     stack.shutdown();
 }
 
@@ -3927,10 +3882,9 @@ fn peel_logs_envelope(v: &Value) -> &Value {
 
 /// A server found in the MCP registry is declared in `mcp.json` and connected
 /// through the same RPCs the settings UI uses, then the agent calls its tool
-/// through `use_mcp_server` and the server's answer reaches the model.
+/// through the orchestrator's direct registry tools; its answer reaches the model.
 #[cfg(feature = "mcp")]
 #[test]
-#[ignore = "TODO(#6370): delegated registry specialists are unavailable in the TinyAgents hosted runtime"]
 fn agent_calls_a_tool_on_an_mcp_server_installed_from_the_registry() {
     run_on_agent_stack(
         "agent_calls_a_tool_on_an_mcp_server_installed_from_the_registry",
@@ -3969,12 +3923,11 @@ async fn agent_calls_a_tool_on_an_mcp_server_installed_from_the_registry_inner()
     // Declared in mcp.json (the registry is browse-only) and connected.
     let server_id = declare_and_connect_registry_echo_server(&stack.rpc_base, 801).await;
 
-    // Used: orchestrator → use_mcp_server (a direct hand-off, #6302) → mcp_agent,
-    // which owns the pack and calls mcp_registry_tool_call directly.
+    // Used: the orchestrator discovers the schema, then calls the tool itself.
     reset_script(vec![
         tool_call_completion(
-            "use_mcp_server",
-            json!({ "prompt": "Call the echo tool on the harness echo server", "blocking": true }),
+            "mcp_registry_list_tools",
+            json!({ "server_id": server_id.clone() }),
         ),
         tool_call_completion(
             "mcp_registry_tool_call",
@@ -3984,7 +3937,6 @@ async fn agent_calls_a_tool_on_an_mcp_server_installed_from_the_registry_inner()
                 "arguments": { "message": MCP_ECHO_CANARY }
             }),
         ),
-        text_completion("Called the tool."),
         text_completion("The MCP tool answered."),
     ]);
     let mut events = spawn_sse_collector(format!(
@@ -4101,18 +4053,18 @@ async fn declare_and_connect_registry_echo_server(rpc_base: &str, first_rpc_id: 
     server_id
 }
 
-/// MCP requests reach `mcp_agent` through its hand-off, called directly.
+/// The orchestrator advertises MCP discovery and invocation without a hand-off.
 #[cfg(feature = "mcp")]
 #[test]
-fn orchestrator_hands_mcp_requests_to_the_mcp_specialists_directly() {
+fn orchestrator_advertises_direct_mcp_tools() {
     run_on_agent_stack(
-        "orchestrator_hands_mcp_requests_to_the_mcp_specialists_directly",
-        orchestrator_hands_mcp_requests_to_the_mcp_specialists_directly_inner,
+        "orchestrator_advertises_direct_mcp_tools",
+        orchestrator_advertises_direct_mcp_tools_inner,
     );
 }
 
 #[cfg(feature = "mcp")]
-async fn orchestrator_hands_mcp_requests_to_the_mcp_specialists_directly_inner() {
+async fn orchestrator_advertises_direct_mcp_tools_inner() {
     let _lock = env_lock();
     reset_script(Vec::new());
     let stack = boot_stack().await;
@@ -4121,32 +4073,48 @@ async fn orchestrator_hands_mcp_requests_to_the_mcp_specialists_directly_inner()
         stack.rpc_base
     ))
     .await;
-    assert_hand_off_reaches_specialist(
-        &stack,
-        &mut events,
+    reset_script(vec![text_completion(
+        "Ready to use the connected MCP server.",
+    )]);
+    send_web_chat(
+        &stack.rpc_base,
         931,
         "harness-mcp-handoff",
-        "use_mcp_server",
-        &["mcp_registry_tool_call", "mcp_registry_list_tools"],
+        "thread-mcp-direct",
+        "Can you use my connected MCP server?",
     )
     .await;
+    let done = wait_for_terminal(&mut events, Duration::from_secs(120)).await;
+    assert_eq!(done.get("event").and_then(Value::as_str), Some("chat_done"));
+    let requests = with_captured(|c| c.clone());
+    let belt = advertised_tool_names(requests.first().expect("model request"));
+    for required in [
+        "mcp_registry_status",
+        "mcp_registry_list_tools",
+        "mcp_registry_tool_call",
+    ] {
+        assert!(
+            belt.iter().any(|name| name == required),
+            "missing {required}: {belt:?}"
+        );
+    }
+    assert!(!belt.iter().any(|name| name == "use_mcp_server"));
     stack.shutdown();
 }
 
-/// With `use_mcp_server` on its belt, the orchestrator cannot call a connected
-/// server's tool itself through `use_skill`: the gate refuses the raw tool and
-/// names the hand-off, and the call never runs.
+/// Search discovers a connected MCP action with its schema, then `tool_call`
+/// invokes that action on the same orchestrator turn.
 #[cfg(feature = "mcp")]
 #[test]
-fn orchestrator_cannot_call_a_connected_mcp_tool_through_the_raw_registry_tool() {
+fn orchestrator_calls_a_connected_mcp_tool_directly() {
     run_on_agent_stack(
-        "orchestrator_cannot_call_a_connected_mcp_tool_through_the_raw_registry_tool",
-        orchestrator_cannot_call_a_connected_mcp_tool_through_the_raw_registry_tool_inner,
+        "orchestrator_calls_a_connected_mcp_tool_directly",
+        orchestrator_calls_a_connected_mcp_tool_directly_inner,
     );
 }
 
 #[cfg(feature = "mcp")]
-async fn orchestrator_cannot_call_a_connected_mcp_tool_through_the_raw_registry_tool_inner() {
+async fn orchestrator_calls_a_connected_mcp_tool_directly_inner() {
     let _lock = env_lock();
     let _ttl = EnvVarGuard::set("OPENHUMAN_APPROVAL_TTL_SECS", "120");
     ensure_approval_gate().await;
@@ -4159,18 +4127,21 @@ async fn orchestrator_cannot_call_a_connected_mcp_tool_through_the_raw_registry_
     reset_script(Vec::new());
     let stack = boot_stack().await;
     let server_id = declare_and_connect_registry_echo_server(&stack.rpc_base, 940).await;
+    let action = openhuman_core::mcp::registry::action_tool::searchable_name(&server_id, "echo");
 
     reset_script(vec![
-        packed_tool_call_completion(
-            "integrations",
-            "mcp_registry_tool_call",
+        tool_call_completion(
+            "tool_search",
+            json!({ "query": "echo message on my connected MCP server" }),
+        ),
+        tool_call_completion(
+            "tool_call",
             json!({
-                "server_id": server_id,
-                "tool_name": "echo",
-                "arguments": { "message": MCP_ECHO_CANARY }
+                "name": action.clone(),
+                "arguments": json!({ "message": MCP_ECHO_CANARY }).to_string()
             }),
         ),
-        text_completion("I could not call it myself."),
+        text_completion("The MCP tool answered."),
     ]);
     let mut events = spawn_sse_collector(format!(
         "{}/events?client_id=harness-raw-mcp-call",
@@ -4186,28 +4157,64 @@ async fn orchestrator_cannot_call_a_connected_mcp_tool_through_the_raw_registry_
     )
     .await;
 
-    let done = wait_for_terminal_without_approval(&mut events, "mcp_registry_tool_call").await;
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(120);
+    let done = loop {
+        let remaining = deadline.saturating_duration_since(tokio::time::Instant::now());
+        let event = tokio::time::timeout(remaining, events.recv())
+            .await
+            .expect("MCP turn timed out")
+            .expect("MCP event stream closed");
+        match event.get("event").and_then(Value::as_str) {
+            Some("approval_request") => {
+                let request_id = event
+                    .pointer("/data/request_id")
+                    .or_else(|| event.get("request_id"))
+                    .and_then(Value::as_str)
+                    .expect("MCP approval request id");
+                let decision = post_json_rpc(
+                    &stack.rpc_base,
+                    944,
+                    "openhuman.approval_decide",
+                    json!({ "request_id": request_id, "decision": "approve_once" }),
+                )
+                .await;
+                assert_no_jsonrpc_error(&decision, "MCP approval decision");
+            }
+            Some("chat_done") | Some("chat_error") => break event,
+            _ => {}
+        }
+    };
     let requests = with_captured(|c| c.clone());
     assert_eq!(
         done.get("event").and_then(Value::as_str),
         Some("chat_done"),
-        "the refused MCP turn must finish: {done}"
+        "the direct MCP turn must finish: {done}"
     );
-    let result = tool_result_text(&requests, "mcp_registry_tool_call").unwrap_or_else(|| {
+    let search = tool_result_text(&requests, "tool_search").expect("search result");
+    assert!(
+        search.contains(&action),
+        "MCP action absent from search: {search}"
+    );
+    assert!(
+        search.contains("message"),
+        "MCP schema absent from search: {search}"
+    );
+    let belt = advertised_tool_names(requests.first().expect("first model request"));
+    assert!(belt.iter().any(|name| name == "tool_search"));
+    assert!(!belt.iter().any(|name| name == &action));
+    let result = tool_result_text(&requests, "tool_call").unwrap_or_else(|| {
         panic!(
-            "no tool result for mcp_registry_tool_call; requests: {}",
+            "no tool result for MCP tool_call; requests: {}",
             serde_json::to_string_pretty(&requests).unwrap_or_default()
         )
     });
     assert!(
-        result.contains("not allowed in the current session")
-            && result.contains("`use_mcp_server`"),
-        "the orchestrator reached `mcp_registry_tool_call` through use_skill instead of being \
-         sent to `use_mcp_server`: {result}"
+        result.contains(MCP_ECHO_CANARY),
+        "the direct MCP tool result did not reach the model: {result}"
     );
     assert!(
-        !result.contains("\"is_error\":false"),
-        "the refused MCP call ran: {result}"
+        !result.contains("\"is_error\":true"),
+        "the direct MCP call failed: {result}"
     );
 
     registry_join.abort();
@@ -4454,16 +4461,33 @@ async fn collect_turn_tool_results(
     rx: &mut tokio::sync::mpsc::UnboundedReceiver<Value>,
     timeout: Duration,
 ) -> (Value, Vec<Value>) {
+    collect_turn_tool_results_request(rx, timeout, None).await
+}
+
+async fn collect_turn_tool_results_request(
+    rx: &mut tokio::sync::mpsc::UnboundedReceiver<Value>,
+    timeout: Duration,
+    request_id: Option<&str>,
+) -> (Value, Vec<Value>) {
+    // Multi-turn tests share one SSE subscription, so old request events must
+    // not be attributed to the turn whose tool timeline is under test.
     let deadline = tokio::time::Instant::now() + timeout;
     let mut results = Vec::new();
     loop {
         let remaining = deadline.saturating_duration_since(tokio::time::Instant::now());
         match tokio::time::timeout(remaining, rx.recv()).await {
-            Ok(Some(v)) => match v.get("event").and_then(Value::as_str) {
-                Some("tool_result") => results.push(v),
-                Some("chat_done") | Some("chat_error") => return (v, results),
-                _ => {}
-            },
+            Ok(Some(v)) => {
+                if request_id
+                    .is_some_and(|id| v.get("request_id").and_then(Value::as_str) != Some(id))
+                {
+                    continue;
+                }
+                match v.get("event").and_then(Value::as_str) {
+                    Some("tool_result") => results.push(v),
+                    Some("chat_done") | Some("chat_error") => return (v, results),
+                    _ => {}
+                }
+            }
             Ok(None) => panic!("SSE channel closed waiting for terminal event"),
             Err(_) => panic!(
                 "timed out waiting for terminal web-chat event; tool results so far: {results:?}"
@@ -4608,7 +4632,7 @@ async fn todo_list_ticks_off_five_items_across_turns_inner() {
     .await;
 
     // Turn 1: the whole plan lands, first item in progress.
-    send_web_chat(
+    let first_request_id = send_web_chat(
         &stack.rpc_base,
         600,
         "harness-todo-five",
@@ -4616,7 +4640,12 @@ async fn todo_list_ticks_off_five_items_across_turns_inner() {
         "Summarise the report in five steps and work through them.",
     )
     .await;
-    let (terminal, results) = collect_turn_tool_results(&mut events, Duration::from_secs(60)).await;
+    let (terminal, results) = collect_turn_tool_results_request(
+        &mut events,
+        Duration::from_secs(60),
+        Some(&first_request_id),
+    )
+    .await;
     assert_eq!(
         terminal.get("event").and_then(Value::as_str),
         Some("chat_done"),
@@ -4651,7 +4680,7 @@ async fn todo_list_ticks_off_five_items_across_turns_inner() {
 
     // Turns 2-6: one more item completed each turn.
     for completed in 1..=FIVE_STEPS.len() {
-        send_web_chat(
+        let request_id = send_web_chat(
             &stack.rpc_base,
             600 + completed as i64,
             "harness-todo-five",
@@ -4659,8 +4688,12 @@ async fn todo_list_ticks_off_five_items_across_turns_inner() {
             "continue",
         )
         .await;
-        let (terminal, results) =
-            collect_turn_tool_results(&mut events, Duration::from_secs(60)).await;
+        let (terminal, results) = collect_turn_tool_results_request(
+            &mut events,
+            Duration::from_secs(60),
+            Some(&request_id),
+        )
+        .await;
         assert_eq!(
             terminal.get("event").and_then(Value::as_str),
             Some("chat_done"),
@@ -4852,7 +4885,7 @@ async fn thread_goal_is_set_read_back_and_completed_across_turns_inner() {
         spawn_sse_collector(format!("{}/events?client_id=harness-goal", stack.rpc_base)).await;
 
     // Turn 1: goal_set.
-    send_web_chat(
+    let request_id = send_web_chat(
         &stack.rpc_base,
         800,
         "harness-goal",
@@ -4860,7 +4893,9 @@ async fn thread_goal_is_set_read_back_and_completed_across_turns_inner() {
         "Ship the v2 release notes.",
     )
     .await;
-    let (terminal, results) = collect_turn_tool_results(&mut events, Duration::from_secs(60)).await;
+    let (terminal, results) =
+        collect_turn_tool_results_request(&mut events, Duration::from_secs(60), Some(&request_id))
+            .await;
     assert_eq!(terminal["event"].as_str(), Some("chat_done"), "{terminal}");
     let set = tool_result_payload(&results, "goal_set");
     assert_eq!(
@@ -4888,7 +4923,7 @@ async fn thread_goal_is_set_read_back_and_completed_across_turns_inner() {
     // scripted upstream returns no `usage`, so a turn charges nothing against
     // the budget. `agent::goals::runtime`'s unit tests cover the accounting
     // and the budget-limit transition directly.)
-    send_web_chat(
+    let request_id = send_web_chat(
         &stack.rpc_base,
         801,
         "harness-goal",
@@ -4896,7 +4931,9 @@ async fn thread_goal_is_set_read_back_and_completed_across_turns_inner() {
         "status?",
     )
     .await;
-    let (terminal, results) = collect_turn_tool_results(&mut events, Duration::from_secs(60)).await;
+    let (terminal, results) =
+        collect_turn_tool_results_request(&mut events, Duration::from_secs(60), Some(&request_id))
+            .await;
     assert_eq!(terminal["event"].as_str(), Some("chat_done"), "{terminal}");
     let got = tool_result_payload(&results, "goal_get");
     assert_eq!(
@@ -4914,8 +4951,11 @@ async fn thread_goal_is_set_read_back_and_completed_across_turns_inner() {
     );
 
     // Turn 3: goal_complete.
-    send_web_chat(&stack.rpc_base, 802, "harness-goal", "thread-goal", "done?").await;
-    let (terminal, results) = collect_turn_tool_results(&mut events, Duration::from_secs(60)).await;
+    let request_id =
+        send_web_chat(&stack.rpc_base, 802, "harness-goal", "thread-goal", "done?").await;
+    let (terminal, results) =
+        collect_turn_tool_results_request(&mut events, Duration::from_secs(60), Some(&request_id))
+            .await;
     assert_eq!(terminal["event"].as_str(), Some("chat_done"), "{terminal}");
     let done = tool_result_payload(&results, "goal_complete");
     assert_eq!(done["goal"]["goalId"], goal_id, "{done}");
@@ -4954,7 +4994,7 @@ async fn thread_goal_is_set_read_back_and_completed_across_turns_inner() {
         tool_call_completion("goal_get", json!({})),
         text_completion("No goal here."),
     ]);
-    send_web_chat(
+    let request_id = send_web_chat(
         &stack.rpc_base,
         803,
         "harness-goal",
@@ -4962,11 +5002,199 @@ async fn thread_goal_is_set_read_back_and_completed_across_turns_inner() {
         "any goal?",
     )
     .await;
-    let (terminal, results) = collect_turn_tool_results(&mut events, Duration::from_secs(60)).await;
+    let (terminal, results) =
+        collect_turn_tool_results_request(&mut events, Duration::from_secs(60), Some(&request_id))
+            .await;
     assert_eq!(terminal["event"].as_str(), Some("chat_done"), "{terminal}");
     let none = tool_result_payload(&results, "goal_get");
     assert!(none["goal"].is_null(), "{none}");
     assert_eq!(none["text"], "no goal set for this thread", "{none}");
+
+    stack.shutdown();
+}
+
+/// Cancelling a running background sub-agent settles its card, end to end.
+///
+/// Cancel aborts the detached task, and an aborted future never reaches its own
+/// `Cancelled` branch — so before `AbortReport` the client got no terminal event
+/// and the delegation card spun forever. This drives the production path: a
+/// real `spawn_async_subagent` child held mid-model-call by the canary barrier,
+/// cancelled over the `openhuman.subagent_cancel` JSON-RPC, and observed on the
+/// same SSE stream the app renders from (`subagent_failed` is what settles the
+/// card's row). A second cancel then gets the RPC's "nothing running" answer
+/// with `outcome: "unknown"`, which the card settles on without claiming
+/// success.
+#[test]
+fn cancelling_a_running_background_subagent_settles_it() {
+    run_on_agent_stack(
+        "cancelling_a_running_background_subagent_settles_it",
+        cancelling_a_running_background_subagent_settles_it_inner,
+    );
+}
+
+async fn cancelling_a_running_background_subagent_settles_it_inner() {
+    let _lock = env_lock();
+    // The second canary never arrives, so the worker's model call is held for
+    // `CANARY_BARRIER_WAIT`: long enough to cancel it while it is running.
+    arm_canary_barrier(&["CANCEL_E2E_CANARY", "CANCEL_E2E_NEVER"]);
+    reset_script(vec![
+        tool_calls_completion(&[(
+            "spawn_async_subagent",
+            json!({ "agent_id": "agent_memory", "prompt": "Find CANCEL_E2E_CANARY" }),
+        )]),
+        text_completion("Spawned a worker; its result will arrive later."),
+        text_completion("worker would have finished here"),
+    ]);
+    let stack = boot_stack().await;
+    let mut events = spawn_sse_collector(format!(
+        "{}/events?client_id=harness-cancel",
+        stack.rpc_base
+    ))
+    .await;
+    send_web_chat(
+        &stack.rpc_base,
+        900,
+        "harness-cancel",
+        "thread-cancel",
+        "delegate, then cancel it",
+    )
+    .await;
+
+    let spawned = wait_for_event(&mut events, "subagent_spawned", Duration::from_secs(120)).await;
+    let task_id = spawned
+        .get("skill_id")
+        .and_then(Value::as_str)
+        .unwrap_or_else(|| panic!("subagent_spawned carries the task id: {spawned}"))
+        .to_string();
+
+    // Cancel only once the worker is really in flight (its own model request
+    // is parked on the barrier), so this is a live run, not a queued one.
+    let deadline = std::time::Instant::now() + Duration::from_secs(60);
+    while with_captured(|c| {
+        !c.iter()
+            .filter_map(|r| canary_worker_request(r.get("body")?))
+            .any(|canary| canary == "CANCEL_E2E_CANARY")
+    }) {
+        assert!(
+            std::time::Instant::now() < deadline,
+            "the worker never issued its request"
+        );
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+
+    let reply = post_json_rpc(
+        &stack.rpc_base,
+        901,
+        "openhuman.subagent_cancel",
+        json!({ "taskId": task_id }),
+    )
+    .await;
+    let result = assert_no_jsonrpc_error(&reply, "subagent_cancel");
+    let payload = result.get("data").unwrap_or(result);
+    assert_eq!(
+        payload.get("cancelled").and_then(Value::as_bool),
+        Some(true),
+        "a running child is really cancelled: {reply}"
+    );
+    assert!(
+        payload.get("outcome").is_none(),
+        "a real cancel carries no outcome: {reply}"
+    );
+
+    // The aborted child still reports: this is the event that settles the card.
+    let failed = wait_for_event(&mut events, "subagent_failed", Duration::from_secs(30)).await;
+    assert_eq!(
+        failed.get("skill_id").and_then(Value::as_str),
+        Some(task_id.as_str()),
+        "subagent_failed must name the cancelled task: {failed}"
+    );
+
+    // Nothing runs under that id any more: the card settles on this answer.
+    let again = post_json_rpc(
+        &stack.rpc_base,
+        902,
+        "openhuman.subagent_cancel",
+        json!({ "taskId": task_id }),
+    )
+    .await;
+    let result = assert_no_jsonrpc_error(&again, "second subagent_cancel");
+    let payload = result.get("data").unwrap_or(result);
+    assert_eq!(
+        payload.get("cancelled").and_then(Value::as_bool),
+        Some(false)
+    );
+    assert_eq!(
+        payload.get("outcome").and_then(Value::as_str),
+        Some("unknown"),
+        "a cancel that finds nothing reports the outcome, never success: {again}"
+    );
+
+    disarm_canary_barrier();
+    stack.shutdown();
+}
+
+/// A wrong tool guess is corrected, never mistaken for a credential blocker.
+///
+/// The unknown-tool answer echoes the guessed name, and the failure classifier
+/// used to keyword-sniff it: a guess named `forbidden_tool` read as an HTTP 403,
+/// was classed `authentication` (zero retries), and ended the turn with
+/// "failure class `authentication` still blocks operation …" before the model
+/// could pick a real tool. Through the real orchestrator turn, the guess must
+/// get its retry and the turn must finish with the model's own answer.
+#[test]
+fn a_wrong_tool_guess_is_retried_not_treated_as_an_auth_blocker() {
+    run_on_agent_stack(
+        "a_wrong_tool_guess_is_retried_not_treated_as_an_auth_blocker",
+        a_wrong_tool_guess_is_retried_not_treated_as_an_auth_blocker_inner,
+    );
+}
+
+async fn a_wrong_tool_guess_is_retried_not_treated_as_an_auth_blocker_inner() {
+    let _lock = env_lock();
+    reset_script(vec![
+        tool_calls_completion(&[("forbidden_tool", json!({}))]),
+        text_completion("CANARY_RECOVERED_AFTER_WRONG_TOOL"),
+    ]);
+    let stack = boot_stack().await;
+    let mut events = spawn_sse_collector(format!(
+        "{}/events?client_id=harness-wrong-tool",
+        stack.rpc_base
+    ))
+    .await;
+    send_web_chat(
+        &stack.rpc_base,
+        910,
+        "harness-wrong-tool",
+        "thread-wrong-tool",
+        "do the thing",
+    )
+    .await;
+
+    let done = wait_for_terminal(&mut events, Duration::from_secs(120)).await;
+    assert_eq!(
+        done.get("event").and_then(Value::as_str),
+        Some("chat_done"),
+        "a wrong tool guess must not end the turn: {done}"
+    );
+    let full_response = done
+        .get("full_response")
+        .and_then(Value::as_str)
+        .unwrap_or_default();
+    assert!(
+        full_response.contains("CANARY_RECOVERED_AFTER_WRONG_TOOL"),
+        "the model's recovery must be the reply, not a blocker halt: {done}"
+    );
+    assert!(
+        !full_response.contains("still blocks operation"),
+        "the wrong guess was classified as a blocker: {done}"
+    );
+    // The recovery ran as a second model call that saw the unknown-tool answer.
+    let requests = with_captured(|c| c.clone());
+    assert!(
+        captured_requests_reject_tool_as_unknown(&requests, "forbidden_tool"),
+        "the model should have been told `forbidden_tool` is unknown; requests: {}",
+        serde_json::to_string_pretty(&requests).unwrap_or_default()
+    );
 
     stack.shutdown();
 }

@@ -21,15 +21,6 @@ pub struct SubagentRunOptions {
     /// starts with `{skill}__`. Overrides `definition.skill_filter`.
     pub skill_filter_override: Option<String>,
 
-    /// Optional Composio toolkit scope (e.g. `"gmail"`, `"notion"`).
-    /// When set, skill-category tools are further restricted to those
-    /// whose name starts with the uppercased `{toolkit}_` prefix, and
-    /// the sub-agent's rendered `Connected Integrations` section is
-    /// narrowed to only that toolkit's entry. Used by main/orchestrator
-    /// when spawning `integrations_agent` for a specific platform so the
-    /// sub-agent only sees one integration's tool catalogue.
-    pub toolkit_override: Option<String>,
-
     /// Optional context blob the parent wants to inject before the
     /// task prompt. Rendered as a `[Context]\n…\n` prefix.
     pub context: Option<String>,
@@ -149,7 +140,7 @@ pub enum SubagentRunStatus {
 pub struct SubagentRunOutcome {
     /// Unique identifier for this sub-task run.
     pub task_id: String,
-    /// The ID of the agent archetype used (e.g., `researcher`).
+    /// The ID of the agent archetype used (e.g., `code_executor`).
     pub agent_id: String,
     /// The final text response produced by the sub-agent.
     pub output: String,
@@ -241,8 +232,9 @@ pub struct SubagentCheckpointData {
     pub history: Vec<ChatMessage>,
     pub question: String,
     pub options: Option<Vec<String>>,
-    /// Composio toolkit override, if the paused run was scoped to one.
-    pub toolkit_override: Option<String>,
+    // A legacy `toolkit_override` key (written before the toolkit spawn
+    // argument was retired) is ignored on load: this type does not deny
+    // unknown fields, so old checkpoints stay readable.
     /// Workflow filter override, if the paused run was scoped to one.
     pub skill_filter_override: Option<String>,
     /// Model override, if one was set for this run.

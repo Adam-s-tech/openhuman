@@ -66,6 +66,21 @@ Capability {
         privacy: DERIVED_TO_BACKEND,
     },
 Capability {
+        id: "workflows.web_search",
+        name: "Web Search, Answers and Page Contents",
+        domain: "workflows",
+        category: CapabilityCategory::Workflows,
+        description:
+            "Search the web, get grounded answers with citations, and read page contents through several providers at once. Signed-in users get Exa and Gemini with Google Search grounding included; Brave, Tavily, Querit, Parallel, Seltz, SearXNG, and your own Exa or Gemini keys can be added. Each capability falls back to the next provider when one is unavailable.",
+        how_to: "Connections > Search to choose providers and their order, then ask the assistant to look something up",
+        status: CapabilityStatus::Beta,
+        privacy: Some(CapabilityPrivacy {
+            leaves_device: true,
+            data_kind: PrivacyDataKind::Derived,
+            destinations: &["OpenHuman backend (managed search)", "Your configured search providers"],
+        }),
+    },
+Capability {
         id: "workflows.tinyfish_web_automation",
         name: "TinyFish Web Automation",
         domain: "workflows",
@@ -75,6 +90,20 @@ Capability {
         how_to: "Conversations > Ask the assistant to search, fetch, or automate a website with TinyFish",
         status: CapabilityStatus::Beta,
         privacy: DERIVED_TO_BACKEND,
+    },
+Capability {
+        id: "workflows.computer_browser_automation",
+        name: "Browser Automation",
+        domain: "workflows",
+        category: CapabilityCategory::Workflows,
+        description: "Inspect pages and run bounded browser tasks in Chrome through TinyComputer, with a rescue model for failed steps.",
+        how_to: "Connections > Computer > Browser, then ask the assistant to use the browser",
+        status: CapabilityStatus::Beta,
+        privacy: Some(CapabilityPrivacy {
+            leaves_device: true,
+            data_kind: PrivacyDataKind::Raw,
+            destinations: &["Visited websites", "OpenRouter, OpenHuman backend, OpenJev or Sage for task decisions"],
+        }),
     },
 Capability {
         id: "workflows.toggle_enabled",
@@ -303,16 +332,15 @@ Capability {
     },
 Capability {
         id: "automation.crypto_agent",
-        name: "Crypto Agent",
+        name: "Crypto Wallet",
         domain: "automation",
         category: CapabilityCategory::Automation,
-        description: "Dedicated wallet & market specialist sub-agent. The orchestrator \
-                      routes transfers, swaps, contract calls, balance lookups, and \
-                      exchange trading requests here. The agent enforces a read → \
-                      simulate → confirm → execute flow, refuses to fabricate chain ids \
-                      or token addresses, and gates every write call behind explicit \
-                      user confirmation.",
-        how_to: "Automatic — invoked by the orchestrator when a crypto wallet or market action is requested. Connect a wallet via Settings > Recovery Phrase first.",
+        description: "Wallet and market actions as a built-in skill (`web3`): quotes, \
+                      swaps, bridges, contract calls and x402 payments. The assistant \
+                      follows a read → quote → confirm → execute flow, refuses to \
+                      fabricate chain ids or token addresses, and runs no swap, bridge \
+                      or contract call without explicit user confirmation.",
+        how_to: "Automatic — the assistant loads the web3 skill when a crypto wallet or market action is requested. Connect a wallet via Settings > Recovery Phrase first.",
         status: CapabilityStatus::Beta,
         privacy: LOCAL_CREDENTIALS,
     },

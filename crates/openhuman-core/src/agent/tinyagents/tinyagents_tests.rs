@@ -14,59 +14,6 @@ fn crate_native_turn_source_retains_only_role_and_config() {
 }
 
 #[test]
-fn crate_native_text_mode_is_recorded_without_resolving_a_model() {
-    let source =
-        TurnModelSource::new_crate_native("chat", Arc::new(crate::config::Config::default()))
-            .with_text_mode();
-
-    assert!(source
-        .crate_native
-        .as_ref()
-        .is_some_and(|native| native.force_text_mode));
-}
-
-#[test]
-fn crate_native_text_mode_disables_native_tools_on_workload_fallbacks() {
-    use crate::config::schema::cloud_providers::{AuthStyle, CloudProviderCreds};
-
-    let _guard = crate::inference::inference_test_guard();
-    let provider = "deepseek:deepseek-chat".to_string();
-    let mut config = crate::config::Config::default();
-    config.cloud_providers.push(CloudProviderCreds {
-        id: "p_deepseek".to_string(),
-        slug: "deepseek".to_string(),
-        label: "DeepSeek".to_string(),
-        endpoint: "https://api.deepseek.com/v1".to_string(),
-        auth_style: AuthStyle::Bearer,
-        default_model: Some("deepseek-chat".to_string()),
-        ..Default::default()
-    });
-    config.chat_provider = Some(provider.clone());
-    config.reasoning_provider = Some(provider.clone());
-    config.agentic_provider = Some(provider.clone());
-    config.coding_provider = Some(provider.clone());
-    config.vision_provider = Some(provider.clone());
-    config.memory_provider = Some(provider);
-
-    let models = TurnModelSource::new_crate_native("chat", Arc::new(config))
-        .with_text_mode()
-        .build("chat-v1", 0.0, Some(32_000), None)
-        .expect("text-mode turn models build");
-
-    assert!(
-        !models.routes.is_empty(),
-        "expected workload fallback models"
-    );
-    assert!(
-        models
-            .routes
-            .iter()
-            .all(|(_, model)| { model.profile().is_some_and(|profile| !profile.tool_calling) }),
-        "every workload fallback must preserve prompt-guided text mode"
-    );
-}
-
-#[test]
 fn direct_model_turn_source_builds_without_provider_adapter() {
     let model: Arc<dyn tinyinference_llm::model::ChatModel<()>> =
         Arc::new(tinyagents_harness::testkit::ScriptedModel::replies(vec![
@@ -93,6 +40,12 @@ fn run_policy_for_makes_invalid_tool_arguments_recoverable() {
         InvalidArgsPolicy::ReturnToolError,
         "schema-invalid calls must return a corrective tool result instead of aborting the turn"
     );
+}
+
+#[test]
+fn run_policy_retries_one_nontruncated_empty_completion() {
+    let policy = run_policy_for(10, false);
+    assert_eq!(policy.empty_response_retries, 1);
 }
 
 #[test]

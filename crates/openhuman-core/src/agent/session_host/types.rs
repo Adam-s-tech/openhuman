@@ -240,7 +240,7 @@ pub struct OpenHumanSessionHost {
     /// necessarily user conversation threads.
     pub(super) thread_id: Option<String>,
     /// Human-readable agent definition name (e.g. `"main"`,
-    /// `"code_executor"`). Used as the `{agent}` component in session
+    /// `"task_manager_agent"`). Used as the `{agent}` component in session
     /// transcript paths: `sessions/DDMMYYYY/{agent}_{index}.md`.
     ///
     /// May be rewritten mid-session by
@@ -252,7 +252,7 @@ pub struct OpenHumanSessionHost {
     pub(super) agent_definition_name: String,
     /// Canonical agent id as registered in
     /// [`AgentDefinitionRegistry`] (e.g. `"orchestrator"`,
-    /// `"integrations_agent"`). Set once at build time and never
+    /// `"planner"`). Set once at build time and never
     /// rewritten — `set_agent_definition_name` only touches the
     /// transcript-facing `agent_definition_name`, so registry lookups
     /// (e.g. `refresh_delegation_tools` re-resolving the agent's
@@ -275,6 +275,24 @@ pub struct OpenHumanSessionHost {
     /// reading the old directory.
     pub(super) session_history_locator:
         Option<std::sync::Arc<dyn tinyagents_session::transcript::TranscriptLocator>>,
+    /// First-call memo for [`OpenHumanSessionHost::session_locator`][Self::session_locator]'s
+    /// lazily-constructed `FileTranscriptLocator` (the `session_history_locator` `None` branch).
+    ///
+    /// tinyagents' `SessionBuilder` only accepts a later transcript-target
+    /// change when it is the *same* locator object (`Arc::ptr_eq`), not merely
+    /// an equivalent one — see `tinyagents_session::transcript`'s
+    /// `TranscriptTarget::same_binding`. `session_locator` is called from more
+    /// than one place while building a session's runtime turn machinery (the
+    /// `before_resume` resume target and the eager construction-time bind), and
+    /// without this memo each call minted a fresh `Arc` over the same
+    /// destination, so the second bind was rejected with "cannot change a
+    /// transcript target after it is bound or committed" even though both
+    /// calls agreed on the file. `OnceLock` keeps the resolution lazy — still
+    /// read from `workspace_dir` at first use, not frozen at struct-build time
+    /// — while guaranteeing every later caller in this host's lifetime gets
+    /// back the identical `Arc`.
+    pub(super) session_history_locator_memo:
+        std::sync::OnceLock<std::sync::Arc<dyn tinyagents_session::transcript::TranscriptLocator>>,
     /// Unique transcript key for this session, formatted as
     /// `"{unix_ts}_{agent_id}"`. Generated once at agent-build time so
     /// every transcript write in this session uses the same filename
@@ -425,9 +443,10 @@ pub struct OpenHumanSessionHost {
     pub(super) announced_mcp_servers: std::collections::HashSet<String>,
     /// MCP servers that connected mid-session and still need announcing on the
     /// next user message. The MCP analogue of
-    /// [`Self::pending_integration_announcement`]. `use_mcp_server` is a single
-    /// static delegate (no per-server schema to refresh), so this prose note on
-    /// the user turn is the entire mid-session-connect mechanism for MCP. The
+    /// [`Self::pending_integration_announcement`]. Connected servers' tools are
+    /// `Deferred` registrations found through `tool_search` (no per-server
+    /// schema on the wire to refresh), so this prose note on the user turn is
+    /// the entire mid-session-connect mechanism for MCP. The
     /// note rides the user turn (NOT the system prompt) so the KV-cache prefix
     /// stays byte-identical. Order-preserving + de-duped on insert.
     pub(super) pending_mcp_announcement: Vec<String>,

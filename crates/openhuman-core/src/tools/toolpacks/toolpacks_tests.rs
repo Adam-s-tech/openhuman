@@ -127,28 +127,28 @@ fn split_registries(
 /// A packed **delegate** must be reachable, not merely withheld.
 ///
 /// It was not. `use_skill` was bound only to the durable registry, and no
-/// `delegate_*` tool is in it — so `do_crypto`, `run_skill`, `setup_skills`,
-/// `build_workflow`, `discover_workflows` and `use_mcp_server` were all
+/// `delegate_*` tool is in it — so `manage_tasks`, `setup_skills`,
+/// `build_workflow`, `discover_workflows` and `make_presentation` were all
 /// dropped from the wire and then unreachable
 /// through the route that was supposed to replace them. Withholding a tool the
 /// model then cannot call is strictly worse than never packing it.
 #[tokio::test]
 async fn a_packed_delegate_in_the_synthesised_set_is_reachable() {
-    let (durable, _synthesized) = split_registries("do_crypto", PermissionLevel::ReadOnly);
+    let (durable, _synthesized) = split_registries("manage_tasks", PermissionLevel::ReadOnly);
     let use_skill = find(&durable, USE_SKILL);
 
     // Disclosure half: the schema must render even though the tool is in the
     // other registry.
-    let rendered = use_skill.execute(json!({"skill": "crypto"})).await.unwrap();
+    let rendered = use_skill.execute(json!({"skill": "tasks"})).await.unwrap();
     assert!(!rendered.is_error, "{}", rendered.text());
     assert!(
-        format!("{:?}", rendered.content).contains("do_crypto"),
+        format!("{:?}", rendered.content).contains("manage_tasks"),
         "the pack listing omitted the synthesised delegate"
     );
 
     // Dispatch half.
     let ran = use_skill
-        .execute(json!({"skill": "crypto", "tool": "do_crypto", "args": {"marker": "x"}}))
+        .execute(json!({"skill": "tasks", "tool": "manage_tasks", "args": {"marker": "x"}}))
         .await
         .unwrap();
     assert!(
@@ -168,12 +168,12 @@ async fn a_packed_delegate_in_the_synthesised_set_is_reachable() {
 /// `OnceLock` rebinding fix already addressed on the other registry.
 #[tokio::test]
 async fn rebinding_the_synthesised_set_repoints_the_handle() {
-    let (durable, first) = split_registries("do_crypto", PermissionLevel::ReadOnly);
+    let (durable, first) = split_registries("manage_profile_memory", PermissionLevel::ReadOnly);
     let use_skill = find(&durable, USE_SKILL);
 
     // A reconcile: a fresh set, and the old allocation dropped.
     let second: Arc<Vec<Box<dyn Tool>>> = Arc::new(vec![Box::new(FakeTool {
-        name: "wallet_status",
+        name: "save_preference",
         level: PermissionLevel::ReadOnly,
         external: false,
         timeout: ToolTimeout::Inherit,
@@ -182,7 +182,7 @@ async fn rebinding_the_synthesised_set_repoints_the_handle() {
     drop(first);
 
     let ran = use_skill
-        .execute(json!({"skill": "crypto", "tool": "wallet_status", "args": {}}))
+        .execute(json!({"skill": "profile", "tool": "save_preference", "args": {}}))
         .await
         .unwrap();
     assert!(
@@ -192,7 +192,7 @@ async fn rebinding_the_synthesised_set_repoints_the_handle() {
     );
     // And the retired instance is gone with its allocation.
     let stale = use_skill
-        .execute(json!({"skill": "crypto", "tool": "do_crypto", "args": {}}))
+        .execute(json!({"skill": "profile", "tool": "manage_profile_memory", "args": {}}))
         .await
         .unwrap();
     assert!(stale.is_error, "a dropped delegate stayed reachable");
@@ -264,10 +264,10 @@ fn an_empty_visible_set_is_left_alone() {
 
 #[tokio::test]
 async fn use_skill_without_a_tool_renders_the_schema_of_a_present_tool() {
-    let name = pack("crypto").unwrap().tools[0];
+    let name = pack("web3").unwrap().tools[0];
     let tools = registry_with(name, PermissionLevel::ReadOnly);
     let result = find(&tools, USE_SKILL)
-        .execute(json!({"skill": "crypto"}))
+        .execute(json!({"skill": "web3"}))
         .await
         .unwrap();
     assert!(!result.is_error);
@@ -281,7 +281,7 @@ async fn use_skill_without_a_tool_renders_the_schema_of_a_present_tool() {
 
 #[tokio::test]
 async fn use_skill_rejects_an_unknown_skill() {
-    let tools = registry_with("do_crypto", PermissionLevel::ReadOnly);
+    let tools = registry_with("manage_tasks", PermissionLevel::ReadOnly);
     let result = find(&tools, USE_SKILL)
         .execute(json!({"skill": "nope"}))
         .await
@@ -291,10 +291,10 @@ async fn use_skill_rejects_an_unknown_skill() {
 
 #[tokio::test]
 async fn use_skill_dispatches_to_the_packed_tool() {
-    let name = pack("crypto").unwrap().tools[0];
+    let name = pack("web3").unwrap().tools[0];
     let tools = registry_with(name, PermissionLevel::ReadOnly);
     let result = find(&tools, USE_SKILL)
-        .execute(json!({"skill": "crypto", "tool": name, "args": {"marker": "x"}}))
+        .execute(json!({"skill": "web3", "tool": name, "args": {"marker": "x"}}))
         .await
         .unwrap();
     assert!(!result.is_error);
@@ -309,7 +309,7 @@ async fn use_skill_dispatches_to_the_packed_tool() {
 async fn use_skill_refuses_a_tool_from_another_skill() {
     // Cross-skill dispatch would make the `skill` argument decoration and let a
     // workflow skill reach a crypto write.
-    let crypto = pack("crypto").unwrap().tools[0];
+    let crypto = pack("web3").unwrap().tools[0];
     let tools = registry_with(crypto, PermissionLevel::Dangerous);
     let result = find(&tools, USE_SKILL)
         .execute(json!({"skill": "workflows", "tool": crypto, "args": {}}))
@@ -322,11 +322,11 @@ async fn use_skill_refuses_a_tool_from_another_skill() {
 fn use_skill_reports_the_inner_tools_permission_level() {
     // The harness gates on this. Reporting the proxy's own level would launder
     // a dangerous packed tool onto a channel that refuses it.
-    let name = pack("crypto").unwrap().tools[0];
+    let name = pack("web3").unwrap().tools[0];
     let tools = registry_with(name, PermissionLevel::Dangerous);
     let use_skill = find(&tools, USE_SKILL);
     assert_eq!(
-        use_skill.permission_level_with_args(&json!({"skill": "crypto", "tool": name})),
+        use_skill.permission_level_with_args(&json!({"skill": "web3", "tool": name})),
         PermissionLevel::Dangerous
     );
 }
@@ -336,21 +336,21 @@ fn naming_no_tool_is_read_only_even_when_the_pack_is_dangerous() {
     // The disclosure branch renders a schema and does nothing else. Reporting
     // the packed ceiling here would put an approval prompt in front of reading
     // a tool list, which is the round trip merging the two tools removed.
-    let name = pack("crypto").unwrap().tools[0];
+    let name = pack("web3").unwrap().tools[0];
     let tools = registry_with(name, PermissionLevel::Dangerous);
     let use_skill = find(&tools, USE_SKILL);
     assert_eq!(
-        use_skill.permission_level_with_args(&json!({"skill": "crypto"})),
+        use_skill.permission_level_with_args(&json!({"skill": "web3"})),
         PermissionLevel::ReadOnly
     );
     // An empty string is a named-nothing call, not a tool called "".
     assert_eq!(
-        use_skill.permission_level_with_args(&json!({"skill": "crypto", "tool": ""})),
+        use_skill.permission_level_with_args(&json!({"skill": "web3", "tool": ""})),
         PermissionLevel::ReadOnly
     );
     // Naming a real one still reports that tool's level, not this branch's.
     assert_eq!(
-        use_skill.permission_level_with_args(&json!({"skill": "crypto", "tool": name})),
+        use_skill.permission_level_with_args(&json!({"skill": "web3", "tool": name})),
         PermissionLevel::Dangerous
     );
 }
@@ -359,11 +359,11 @@ fn naming_no_tool_is_read_only_even_when_the_pack_is_dangerous() {
 fn use_skill_forwards_the_inner_tools_external_effect() {
     // The approval gate calls external_effect_with_args on the proxy; a proxy
     // that reported false would let an effectful packed tool skip the prompt.
-    let name = pack("crypto").unwrap().tools[0];
+    let name = pack("web3").unwrap().tools[0];
     let tools = external_unbounded_registry(name);
     let use_skill = find(&tools, USE_SKILL);
     assert!(
-        use_skill.external_effect_with_args(&json!({"skill": "crypto", "tool": name})),
+        use_skill.external_effect_with_args(&json!({"skill": "web3", "tool": name})),
         "proxy must forward the inner tool's external-effect classification"
     );
 }
@@ -371,33 +371,33 @@ fn use_skill_forwards_the_inner_tools_external_effect() {
 #[test]
 fn use_skill_forwards_the_inner_tools_timeout_policy() {
     // A packed scripting tool must run under its own deadline, not the proxy's.
-    let name = pack("crypto").unwrap().tools[0];
+    let name = pack("web3").unwrap().tools[0];
     let tools = external_unbounded_registry(name);
     let use_skill = find(&tools, USE_SKILL);
     assert_eq!(
-        use_skill.timeout_policy(&json!({"skill": "crypto", "tool": name})),
+        use_skill.timeout_policy(&json!({"skill": "web3", "tool": name})),
         ToolTimeout::Unbounded
     );
 }
 
 #[test]
 fn an_unresolvable_call_reports_inherit_timeout() {
-    let name = pack("crypto").unwrap().tools[0];
+    let name = pack("web3").unwrap().tools[0];
     let tools = external_unbounded_registry(name);
     let use_skill = find(&tools, USE_SKILL);
     assert_eq!(
-        use_skill.timeout_policy(&json!({"skill": "crypto", "tool": "nonexistent"})),
+        use_skill.timeout_policy(&json!({"skill": "web3", "tool": "nonexistent"})),
         ToolTimeout::Inherit
     );
 }
 
 #[test]
 fn an_unresolvable_call_reports_the_ceiling_not_a_permissive_default() {
-    let name = pack("crypto").unwrap().tools[0];
+    let name = pack("web3").unwrap().tools[0];
     let tools = registry_with(name, PermissionLevel::Dangerous);
     let use_skill = find(&tools, USE_SKILL);
     assert_eq!(
-        use_skill.permission_level_with_args(&json!({"skill": "crypto", "tool": "nonexistent"})),
+        use_skill.permission_level_with_args(&json!({"skill": "web3", "tool": "nonexistent"})),
         PermissionLevel::Dangerous
     );
 }
@@ -455,9 +455,8 @@ fn every_pack_declares_the_tools_it_is_named_for() {
             ],
         ),
         (
-            "crypto",
+            "web3",
             &[
-                "do_crypto",
                 "wallet_status",
                 "wallet_chain_status",
                 "wallet_prepare_transfer",
@@ -475,7 +474,7 @@ fn every_pack_declares_the_tools_it_is_named_for() {
             ],
         ),
         (
-            "integrations",
+            "mcp",
             &[
                 "mcp_registry_status",
                 "mcp_registry_search",
@@ -509,7 +508,7 @@ fn every_pack_declares_the_tools_it_is_named_for() {
             &[
                 // Ranked lookup over installed skills. Deliberately IN this
                 // pack rather than advertised: on its own it produced ids for
-                // skills whose `describe_workflow` / `run_skill` were still
+                // skills whose `describe_workflow` / run route were still
                 // withheld — 748 B on every wildcard agent for a doorway to a
                 // locked room.
                 "skill_search",
@@ -522,7 +521,6 @@ fn every_pack_declares_the_tools_it_is_named_for() {
                 "install_workflow_from_url",
                 "uninstall_workflow",
                 "read_workflow_resource",
-                "create_skill",
             ],
         ),
         (
@@ -570,20 +568,34 @@ fn every_pack_declares_the_tools_it_is_named_for() {
                 "daemon_host_prefs_get",
                 "daemon_host_prefs_set",
                 "proxy_config",
-                "manage_settings",
+                "session_state",
+                "credential_list",
+                "oauth_connect_url",
+                "oauth_list",
+                "update_check",
+                "update_apply",
             ],
         ),
         (
-            "files",
+            "coding",
             &[
                 // No `file_write`: it is the only create-capable tool on any
                 // belt, and packing it denied the orchestrator every route to a
-                // new file. See the comment in `registry.rs`.
-                "file_read",
+                // new file. No `file_read`: it is the tool every
+                // `[tool_result_preview]` names. See the comments in
+                // `registry.rs`.
                 "grep",
                 "glob",
                 "list",
                 "git_operations",
+                "edit",
+                "node_exec",
+                "npm_exec",
+                "python_exec",
+                "curl",
+                "read_diff",
+                "run_linter",
+                "run_tests",
             ],
         ),
         (
@@ -595,7 +607,7 @@ fn every_pack_declares_the_tools_it_is_named_for() {
                 "storage_get_link",
             ],
         ),
-        ("scheduling", &["schedule_task", "cron"]),
+        ("scheduling", &["cron"]),
         (
             "profile",
             &[
@@ -617,7 +629,7 @@ fn every_pack_declares_the_tools_it_is_named_for() {
         ),
         ("tasks", &["manage_tasks"]),
         ("goals", &["goals", "goal_get", "goal_set"]),
-        ("app_update", &["update_check", "update_apply"]),
+        ("docs", &["gitbooks_search", "gitbooks_get_page"]),
     ];
 
     for (id, tools) in expect {
@@ -634,28 +646,56 @@ fn every_pack_declares_the_tools_it_is_named_for() {
 
 #[test]
 fn a_packs_owner_keeps_its_belt_advertised() {
-    // `settings_agent` IS the system family. Withholding its own belt would
-    // buy a `use_skill` round trip per turn and hide nothing that is idle.
-    let mut visible: HashSet<String> = ["doctor_health".to_string(), "shell".to_string()]
+    // `workflow_builder` owns the workflows family: inspecting and authoring
+    // flows IS its loop. Withholding its own belt would buy a `use_skill`
+    // round trip per turn and hide nothing that is idle.
+    let mut visible: HashSet<String> = ["propose_workflow".to_string(), "shell".to_string()]
         .into_iter()
         .collect();
-    strip_packed_from_visible(&mut visible, "settings_agent");
+    strip_packed_from_visible(&mut visible, "workflow_builder");
     assert!(
-        visible.contains("doctor_health"),
-        "the system pack's owner lost its own tool"
+        visible.contains("propose_workflow"),
+        "the workflows pack's owner lost its own tool"
     );
     assert!(!visible.contains(USE_SKILL), "owner gained pack tools");
 }
 
 #[test]
+fn orchestrator_keeps_its_named_mcp_tools_advertised() {
+    let mut visible: HashSet<String> = [
+        "mcp_registry_status".to_string(),
+        "mcp_registry_list_tools".to_string(),
+        "mcp_registry_tool_call".to_string(),
+    ]
+    .into_iter()
+    .collect();
+    strip_packed_from_visible(&mut visible, "orchestrator");
+    assert!(visible.contains("mcp_registry_status"));
+    assert!(visible.contains("mcp_registry_list_tools"));
+    assert!(visible.contains("mcp_registry_tool_call"));
+}
+
+#[test]
+fn thread_renamed_orchestrator_keeps_its_mcp_tools_advertised() {
+    let pack = registry::pack("mcp").expect("MCP pack");
+    assert!(pack.is_owner("orchestrator_thread-mcp"));
+    assert!(!pack.is_owner("orchestratorish_thread-mcp"));
+
+    let mut visible: HashSet<String> = ["mcp_registry_tool_call".to_string()].into_iter().collect();
+    strip_packed_from_visible(&mut visible, "orchestrator_thread-mcp");
+    assert!(visible.contains("mcp_registry_tool_call"));
+}
+
+#[test]
 fn a_packs_owner_still_loses_every_other_pack() {
-    // Ownership is per pack, not a blanket exemption: `settings_agent` owns
-    // `system` and `app_update`, and must still lose `crypto`.
-    let mut visible: HashSet<String> = ["doctor_health".to_string(), "wallet_status".to_string()]
-        .into_iter()
-        .collect();
-    strip_packed_from_visible(&mut visible, "settings_agent");
-    assert!(visible.contains("doctor_health"));
+    // Ownership is per pack, not a blanket exemption: `workflow_builder` owns
+    // `workflows` and `composio`, and must still lose `web3`.
+    let mut visible: HashSet<String> =
+        ["propose_workflow".to_string(), "wallet_status".to_string()]
+            .into_iter()
+            .collect();
+    strip_packed_from_visible(&mut visible, "workflow_builder");
+    assert!(visible.contains("propose_workflow"));
     assert!(
         !visible.contains("wallet_status"),
         "non-owned pack survived"
@@ -701,3 +741,6 @@ fn the_reactive_fleet_tools_are_never_packed() {
 
 #[path = "toolpacks_tests_scoping_and_visibility_tests.rs"]
 mod scoping_and_visibility_tests;
+
+#[path = "toolpacks_tests_guides_tests.rs"]
+mod guides_tests;

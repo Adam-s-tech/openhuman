@@ -95,25 +95,30 @@ pub(super) struct RuntimeSettingsUpdate {
 pub(super) struct BrowserSettingsUpdate {
     pub(super) enabled: Option<bool>,
     pub(super) backend: Option<String>,
+    pub(super) headless: Option<bool>,
+    pub(super) viewport_width: Option<u32>,
+    pub(super) viewport_height: Option<u32>,
+    pub(super) chrome_path: Option<String>,
+    pub(super) profile_mode: Option<String>,
+    pub(super) profile_path: Option<String>,
+    pub(super) download_dir: Option<String>,
+    pub(super) max_task_steps: Option<usize>,
+    pub(super) task_timeout_secs: Option<u64>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(super) struct ComputerSettingsUpdate {
+    pub(super) decision_model: Option<String>,
+    pub(super) sage_fast: Option<bool>,
+    pub(super) planner_model: Option<String>,
+    pub(super) rescue_model: Option<String>,
+    pub(super) max_rescues: Option<u32>,
 }
 
 #[derive(Debug, Deserialize)]
 pub(super) struct AnalyticsSettingsUpdate {
     pub(super) enabled: Option<bool>,
-}
-
-#[derive(Debug, Deserialize)]
-pub(super) struct SearchSettingsUpdate {
-    pub(super) engine: Option<String>,
-    pub(super) max_results: Option<usize>,
-    pub(super) timeout_secs: Option<u64>,
-    pub(super) parallel_api_key: Option<String>,
-    pub(super) brave_api_key: Option<String>,
-    pub(super) querit_api_key: Option<String>,
-    pub(super) exa_api_key: Option<String>,
-    pub(super) tavily_api_key: Option<String>,
-    pub(super) allowed_domains: Option<Vec<String>>,
-    pub(super) allow_all: Option<bool>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -240,12 +245,6 @@ pub(super) struct AgentPathsUpdate {
 }
 
 #[derive(Debug, Deserialize)]
-pub(super) struct ActivityLevelSettingsUpdate {
-    /// "off" | "minimal" | "moderate" | "active" | "always_on" (or "0"-"4").
-    pub(super) level: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
 pub(super) struct MemorySyncSettingsUpdate {
     pub(super) sync_interval_secs: Option<u64>,
 }
@@ -305,6 +304,15 @@ pub fn optional_bool(name: &'static str, comment: &'static str) -> FieldSchema {
     FieldSchema {
         name,
         ty: TypeSchema::Option(Box::new(TypeSchema::Bool)),
+        comment,
+        required: false,
+    }
+}
+
+pub fn optional_number(name: &'static str, comment: &'static str) -> FieldSchema {
+    FieldSchema {
+        name,
+        ty: TypeSchema::Option(Box::new(TypeSchema::U64)),
         comment,
         required: false,
     }

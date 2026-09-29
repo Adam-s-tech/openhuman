@@ -70,13 +70,23 @@ pub fn module_config(config: &Config) -> Result<serde_json::Value, String> {
         // Empty is the default, for hand-edited configs that omit the field.
         "" | COMPOSIO_MODE_BACKEND => {
             let client = crate::integrations::build_client(config).ok_or_else(|| {
-                "composio backend mode is unavailable: no backend session token. Sign in first."
+                "composio backend mode is unavailable: no backend session token. Sign in or set a TinyHumans API key."
                     .to_string()
             })?;
+            // The backend renders Composio results (Gmail timestamps) for the
+            // model; with the user's zone it prints local time beside UTC. A
+            // module before contract 1.9 ignores the field. It is part of the
+            // route fingerprint, so a zone change reconfigures on the next call.
+            let timezone =
+                crate::integrations::composio::googlecalendar_args::current_iana_timezone();
             Ok(serde_json::json!({
                 "route": "proxy",
                 "base_url": client.backend_url,
+                // The session JWT or the TinyHumans API key. The proxy route
+                // sends it as `Authorization: Bearer`; the backend recognises
+                // a key there by its `tiny_` prefix, so no scheme flag is needed.
                 "auth_token": client.auth_token,
+                "timezone": timezone,
                 "state_dir": state_dir,
             }))
         }

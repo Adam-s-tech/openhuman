@@ -113,7 +113,11 @@ describe('McpServersPage', () => {
     // Each row says how it runs and how it is doing, not where it was found.
     expect(screen.getByText('npx -y echo')).toBeInTheDocument();
     expect(screen.getByText('https://h.test/mcp')).toBeInTheDocument();
-    expect(screen.getByText(/Connected · 3 tools/)).toBeInTheDocument();
+    // Status and tool count are now separate table columns rather than one
+    // combined string.
+    const statusBadges = screen.getAllByTestId('mcp-row-status');
+    expect(statusBadges[0]).toHaveTextContent('Connected');
+    expect(rows[0]).toHaveTextContent('3');
     expect(screen.getByTestId('mcp-disabled-badge')).toBeInTheDocument();
     // Nothing from the directory sits among the user's own rows.
     expect(mockRegistrySearch).not.toHaveBeenCalled();

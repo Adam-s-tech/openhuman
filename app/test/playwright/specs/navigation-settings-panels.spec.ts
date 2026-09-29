@@ -8,14 +8,11 @@ interface PanelCheck {
 }
 
 const panels: PanelCheck[] = [
-  { hash: '/settings', markers: ['Settings', 'Appearance', 'Notifications'] },
+  { hash: '/settings', markers: ['Settings', 'Appearance', 'Privacy'] },
   { hash: '/settings/memory-data', markers: ['Memory', 'Data', 'Storage'] },
-  { hash: '/settings/notifications-hub', markers: ['Notifications'] },
+  { hash: '/settings/notifications-hub', markers: ['Plan & billing'] },
   { hash: '/settings/developer-options', markers: ['Developer', 'Debug', 'Advanced'] },
-  {
-    hash: '/settings/billing',
-    markers: ['Billing moved to the web', 'Open billing dashboard', 'credits'],
-  },
+  { hash: '/settings/account', markers: ['Account', 'Plan & billing'] },
   { hash: '/settings/appearance', markers: ['Appearance', 'Theme', 'Color'] },
   { hash: '/settings/tools', markers: ['Tools', 'Enable', 'Disable'] },
 ];

@@ -21,6 +21,7 @@
 pub mod artifacts;
 pub mod bus;
 pub mod context;
+pub mod context_breakdown;
 pub(crate) mod cost;
 pub mod debug;
 pub mod error;
@@ -99,4 +100,6 @@ pub use schemas::{
 mod tests;
 
 #[allow(unused_imports)]
-pub use session_host::{OpenHumanSessionHost, SessionHostBuilder, TurnOverrides};
+pub use session_host::{
+    HostTools, HostTurnTools, OpenHumanSessionHost, SessionHostBuilder, TurnContext, TurnOverrides,
+};

@@ -236,6 +236,11 @@ async fn run_turn_via_tinyagents_inner(
     // the exact same `Arc`-shared instances, so retain only the cheap Arc clone
     // for a hosted invocation (never clone the tools themselves).
     let hosted_tool_sets = hosted_root.as_ref().map(|_| tool_sets.clone());
+    // Retained for the event bridge (cheap `Arc` clones — never the tools
+    // themselves) so it can resolve a live `&dyn Tool` by name and call the
+    // tool's OWN `display_label`/`display_detail` instead of only ever
+    // guessing from the bare name (issue: tool-call presentation).
+    let bridge_tool_sets = tool_sets.clone();
     // The turn's crate `ChatModel` set (`turn_models`) and the provider telemetry
     // id are built by the caller via `build_turn_models` — the seam entry is
     // crate-native and no longer names `Provider` (issue #4249, Phase 5). The
@@ -276,6 +281,10 @@ async fn run_turn_via_tinyagents_inner(
         hosted_root.is_some(),
         pause_at_cap,
         run_context.tool_dialect,
+        run_context
+            .thread_id
+            .as_deref()
+            .map(crate::agent::tinyagents::run_mode::handle_for_thread),
     );
 
     // Fail-closed registry validation gate (issue #4249, Workstream 10 — registry).
@@ -432,6 +441,14 @@ async fn run_turn_via_tinyagents_inner(
     // the restart-stable `{run_id}-evt-{offset}` a late-attach replay
     // reconstructs the timeline from (05.1). The same id keys the journal + status.
     let journal_run_id = journal::mint_run_id();
+    if let Some(scope) = &subagent_scope {
+        if let Some(slot) = &scope.journal_run_id {
+            *slot
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner) =
+                Some(journal_run_id.as_str().to_string());
+        }
+    }
     let events = Some(EventSink::with_stream_id(journal_run_id.as_str()));
 
     // Attach the event bridge for EVERY turn — including an unobserved
@@ -455,6 +472,7 @@ async fn run_turn_via_tinyagents_inner(
             tool_names.clone(),
             failure_map.clone(),
             provider_usage_carry.clone(),
+            bridge_tool_sets,
         );
         events.subscribe(bridge.clone());
         bridge
@@ -624,6 +642,7 @@ async fn run_turn_via_tinyagents_inner(
             AgentTurnRequest::new(agent_id, input),
             ctx,
         )
+        .with_replayed_prefix(request_base_len.saturating_sub(1)) // #6710: only the new input is screened
         .with_runtime(InvocationRuntime::new(harness));
         let state = ();
         if streaming {

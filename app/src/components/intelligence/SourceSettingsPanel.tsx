@@ -161,7 +161,7 @@ export function SourceSettingsPanel({ source, onSaved, onToast }: SourceSettings
                 step={1}
                 value={values[field] ?? ''}
                 onChange={e => handleChange(field, e.target.value)}
-                placeholder={t('memorySources.settings.unlimited')}
+                placeholder={`∞  ${t('memorySources.settings.unlimited')}`}
                 className="text-xs"
               />
             </div>

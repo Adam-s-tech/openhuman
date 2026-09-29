@@ -12,7 +12,10 @@ mod builder_build;
 mod dispatcher;
 mod factory;
 mod helpers;
+mod host_tools;
 mod setters;
+
+pub use host_tools::{HostTools, HostTurnTools, TurnContext};
 
 #[cfg(test)]
 mod builder_tests;
@@ -27,8 +30,8 @@ use tinytools::{Tool, ToolSpec};
 /// Anthropic (and other strict providers) rejects a chat/completions
 /// request that lists two tools with the same name — OpenHuman's own
 /// backend and OpenAI silently accept duplicates, which hid the
-/// underlying collision (researcher sub-agent's `delegate_name =
-/// "research"` shadowing a same-named skill tool) until #1710's
+/// underlying collision (a sub-agent's `delegate_name` shadowing a
+/// same-named skill tool) until #1710's
 /// per-role routing started sending the same tool list to Anthropic.
 ///
 /// Called from every place that materialises the visible tool spec

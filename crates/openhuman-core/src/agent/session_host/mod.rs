@@ -31,6 +31,7 @@
 //! The child files are an implementation detail.
 
 pub(crate) use builder::provider_role_for_definition;
+pub use builder::{HostTools, HostTurnTools, TurnContext};
 
 mod builder;
 mod codec;
@@ -67,5 +68,7 @@ pub(crate) use builder::dedup_visible_tool_specs;
 mod announcement_notes;
 mod artifact_wiring;
 
+#[cfg(test)]
+mod orphaned_head_resume_tests;
 #[cfg(test)]
 mod runtime_adapter_tests;

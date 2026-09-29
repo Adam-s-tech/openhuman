@@ -142,7 +142,7 @@ describe('MemoryDebugPanel', () => {
     await renderPanel();
     await waitFor(() => expect(screen.getByText('doc-delta')).toBeInTheDocument());
 
-    fireEvent.click(screen.getByText('memory.delete'));
+    fireEvent.click(screen.getByRole('button', { name: 'memory.delete' }));
 
     await waitFor(() => expect(mockDeleteDocument).toHaveBeenCalledWith('doc-delta', 'ns-gamma'));
   });
@@ -153,8 +153,8 @@ describe('MemoryDebugPanel', () => {
     vi.spyOn(window, 'confirm').mockReturnValue(false);
 
     await renderPanel();
-    await waitFor(() => screen.getByText('memory.delete'));
-    fireEvent.click(screen.getByText('memory.delete'));
+    await waitFor(() => screen.getByRole('button', { name: 'memory.delete' }));
+    fireEvent.click(screen.getByRole('button', { name: 'memory.delete' }));
 
     expect(mockDeleteDocument).not.toHaveBeenCalled();
   });

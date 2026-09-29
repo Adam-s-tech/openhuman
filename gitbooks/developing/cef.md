@@ -94,11 +94,11 @@ This matters because anything host-controlled that runs inside a third-party ori
 
 | Provider    | Migrated?     | What loads at startup            |
 | ----------- | ------------- | -------------------------------- |
-| WhatsApp    | ✅            | Zero JS                          |
-| Telegram    | ✅            | Zero JS                          |
-| Slack       | ✅            | Zero JS                          |
-| Discord     | ✅            | Zero JS                          |
-| browserscan | ✅            | Zero JS                          |
+| WhatsApp    | Yes           | Zero JS                          |
+| Telegram    | Yes           | Zero JS                          |
+| Slack       | Yes           | Zero JS                          |
+| Discord     | Yes           | Zero JS                          |
+| browserscan | Yes           | Zero JS                          |
 | Gmail       | grandfathered | Legacy `runtime.js` bridge       |
 | LinkedIn    | grandfathered | Legacy `LINKEDIN_RECIPE_JS`      |
 | Google Meet | grandfathered | Camera + audio + caption bridges |

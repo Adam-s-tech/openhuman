@@ -39,6 +39,10 @@ impl EditFileTool {
 
 #[async_trait]
 impl Tool for EditFileTool {
+    fn exposure(&self) -> tinytools::ToolExposure {
+        tinytools::ToolExposure::Deferred
+    }
+
     fn name(&self) -> &str {
         "edit"
     }

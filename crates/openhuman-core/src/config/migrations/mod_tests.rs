@@ -63,6 +63,7 @@ fn meta() -> TranscriptMeta {
         created: "2026-05-01T00:00:00Z".into(),
         updated: "2026-05-01T00:00:00Z".into(),
         turn_count: 1,
+        prefix_message_count: None,
         input_tokens: 0,
         output_tokens: 0,
         cached_input_tokens: 0,
@@ -147,13 +148,12 @@ async fn run_pending_bumps_version_on_fresh_install() {
 }
 
 #[tokio::test]
-async fn run_pending_retires_medulla_engine_from_v11_config() {
+async fn run_pending_rewrites_v11_config() {
     let tmp = TempDir::new().unwrap();
     fs::create_dir_all(tmp.path().join("workspace")).unwrap();
 
     let mut config = config_in(&tmp);
     config.schema_version = 11;
-    config.subconscious.engine = crate::config::schema::SubconsciousEngine::Medulla;
 
     run_pending(&mut config).await;
 

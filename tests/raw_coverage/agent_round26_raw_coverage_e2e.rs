@@ -9,7 +9,6 @@ use openhuman_core::agent::prompts::{
     PromptContext, PromptTool, SubagentRenderOptions, SystemPromptBuilder, ToolCallFormat,
     UserIdentity,
 };
-use openhuman_core::agent::debug::{dump_agent_prompt, DumpPromptOptions};
 use openhuman_core::tinytools_agent::dialect::NativeDialect;
 use openhuman_core::agent::OpenHumanSessionHost;
 use openhuman_core::config::AgentConfig;
@@ -22,40 +21,10 @@ use tinytools::{PermissionLevel, Tool, ToolResult};
 use parking_lot::Mutex;
 use serde_json::json;
 use std::collections::{HashSet, VecDeque};
-use std::path::PathBuf;
 use std::sync::{Arc, OnceLock};
 use tinyinference_llm::message::Message;
 use tinyinference_llm::model::{ChatModel, ModelProfile, ModelRequest, ModelResponse};
 use tinyinference_llm::usage::Usage;
-
-struct EnvGuard {
-    key: &'static str,
-    previous: Option<std::ffi::OsString>,
-}
-
-impl EnvGuard {
-    fn set_path(key: &'static str, value: &std::path::Path) -> Self {
-        let previous = std::env::var_os(key);
-        unsafe { std::env::set_var(key, value) };
-        Self { key, previous }
-    }
-}
-
-impl Drop for EnvGuard {
-    fn drop(&mut self) {
-        match self.previous.take() {
-            Some(value) => unsafe { std::env::set_var(self.key, value) },
-            None => unsafe { std::env::remove_var(self.key) },
-        }
-    }
-}
-
-fn env_lock() -> std::sync::MutexGuard<'static, ()> {
-    static LOCK: &std::sync::OnceLock<std::sync::Mutex<()>> = &crate::SHARED_ENV_LOCK;
-    LOCK.get_or_init(|| std::sync::Mutex::new(()))
-        .lock()
-        .unwrap_or_else(|e| e.into_inner())
-}
 
 #[derive(Clone, Debug)]
 struct CapturedRequest {
@@ -443,32 +412,6 @@ async fn builder_dedupes_visible_native_tools_and_seed_resume_bounds_history() -
             .count(),
         1
     );
-
-    Ok(())
-}
-
-#[tokio::test]
-async fn debug_dump_integrations_agent_reports_missing_toolkit_without_network() -> Result<()> {
-    let _env = env_lock();
-    let workspace = tempfile::tempdir()?;
-    let _workspace_guard = EnvGuard::set_path("OPENHUMAN_WORKSPACE", workspace.path());
-
-    let err = dump_agent_prompt(DumpPromptOptions::new("integrations_agent"))
-        .await
-        .expect_err("integrations_agent needs an explicit toolkit");
-    let message = err.to_string();
-    assert!(message.contains("integrations_agent requires a `toolkit` argument"));
-    assert!(message.contains("composio list_connection"));
-
-    let mut options = DumpPromptOptions::new("integrations_agent");
-    options.workspace_dir_override = Some(PathBuf::from(workspace.path()));
-    options.model_override = Some("round26-debug-model".to_string());
-    let err = dump_agent_prompt(options)
-        .await
-        .expect_err("missing toolkit should fail before any remote client call");
-    assert!(err
-        .to_string()
-        .contains("integrations_agent requires a `toolkit` argument"));
 
     Ok(())
 }

@@ -16,7 +16,7 @@ The command does not start the HTTP JSON-RPC server. It reads newline-delimited
 JSON-RPC 2.0 messages from stdin and writes MCP responses to stdout. Logs go to
 stderr; add `--verbose` for debug output.
 
-## Client Provenance
+## Client provenance
 
 During `initialize`, the MCP server captures `params.clientInfo.name` for the
 stdio session. The name is normalized by trimming leading and trailing
@@ -38,6 +38,8 @@ controller registry plus the core security policy read gate:
 
 | MCP tool            | Backing RPC                          | Purpose                                                                 |
 | ------------------- | ------------------------------------ | ----------------------------------------------------------------------- |
+| `web_search`\*      | `openhuman.tools_web_search`         | Ranked web search through the configured providers, with fallback.      |
+| `web_answer`\*      | `openhuman.tools_web_answer`         | Grounded answer with citations (Gemini with Google Search by default).  |
 | `searxng_search`\*  | `openhuman.tools_searxng_search`     | Search a configured self-hosted SearXNG instance.                       |
 | `memory.search`     | `openhuman.memory_tree_search`       | Keyword search over memory-tree chunks.                                 |
 | `memory.recall`     | `openhuman.memory_tree_recall`       | Semantic recall over memory-tree summaries/chunks.                      |
@@ -46,20 +48,28 @@ controller registry plus the core security policy read gate:
 | `tree.top_entities` | `openhuman.memory_tree_top_entities` | Most-referenced canonical entities, optionally filtered by kind.        |
 | `tree.list_sources` | `openhuman.memory_tree_list_sources` | Distinct ingest sources with chunk counts and last-activity timestamps. |
 
-- `searxng_search` is present only when SearXNG is enabled.
+- Tools marked \* are listed only when a provider can serve them: `web_search`
+  and `web_answer` when their search role has a usable provider (a signed-in
+  session, or a provider with your own key), `searxng_search` when SearXNG is
+  enabled in search settings.
 
-`searxng_search` is added to the MCP catalog when SearXNG is enabled. It accepts
-`query`, optional `categories` (`web`, `news`, `images`), optional `language`,
-and optional `max_results` (1-50).
+`web_search` accepts `query`, optional `max_results` (1-20) and optional
+`provider` (pins one provider and disables fallback). `web_answer` accepts
+`query` and optional `depth` (`quick` or `deep`). `searxng_search` accepts
+`query` and optional `max_results` (1-20).
 `memory.search` and `memory.recall` accept `query` plus optional `k` (default
 10, capped at 50). `tree.read_chunk` accepts `chunk_id`. `tree.browse` accepts
 optional `source_kinds`, `source_ids`, `entity_ids`, `since_ms`, `until_ms`,
 `query`, `k`, and `offset`. `tree.top_entities` accepts optional `kind` and
 `k`. `tree.list_sources` accepts an optional `user_email_hint`.
 
-Enable SearXNG in `config.toml` or via environment:
+Enable SearXNG under Connections → Search, in `config.toml`, or via environment:
 
 ```toml
+[search.providers.searxng]
+enabled = true
+route = "direct"
+
 [searxng]
 enabled = true
 base_url = "http://localhost:8080"
@@ -102,7 +112,7 @@ The `initialize` response includes:
 | `openhuman://prompts/identity`    | `IDENTITY.md` (core agent identity)                    |
 | `openhuman://prompts/soul`        | `SOUL.md` (core agent personality and values)          |
 | `openhuman://prompts/user`        | `USER.md` (user-profile context)                       |
-| `openhuman://prompts/agents/<id>` | `<id>/prompt.md` for each of the 18 built-in subagents |
+| `openhuman://prompts/agents/<id>` | `<id>/prompt.md` for each of the 33 built-in subagents |
 
 All resources have `mimeType: "text/markdown"`.
 
@@ -132,7 +142,7 @@ printf '%s\n' \
   | openhuman-core mcp
 ```
 
-## Tool Registry
+## Tool registry
 
 The HTTP JSON-RPC server also exposes a read-only global tool registry for
 agents and dashboards that need discovery metadata without opening an MCP stdio
@@ -148,7 +158,7 @@ The registry is discovery-only. It does not change tool dispatch or permission
 checks; MCP calls still go through `tools/call`, and controller-backed tools
 still route through their existing JSON-RPC methods.
 
-### External Capability Providers
+### External capability providers
 
 OpenHuman can record trusted external capability providers in `config.toml`.
 This is governance metadata only: it does not install packages, execute remote
@@ -170,7 +180,7 @@ eligible for future admission checks only when it is both `enabled = true` and
 `trust_state = "trusted"`. Missing provider config preserves the previous
 behavior: the provider registry is empty and no existing tools are hidden.
 
-## Smoke Test
+## Smoke test
 
 ```bash
 printf '%s\n' \

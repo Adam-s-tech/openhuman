@@ -1,7 +1,7 @@
 //! Background skill run spawning and outcome polling.
 //!
 //! `spawn_workflow_run_background` is re-used by both the `skills_run`
-//! JSON-RPC controller and the `run_skill` agent tool (skill chaining).
+//! JSON-RPC controller and the `run_workflow` agent tool (skill chaining).
 //! `await_run_outcome` lets the model poll a spawned run's log file for a
 //! terminal result without busy-waiting.
 
@@ -29,7 +29,7 @@ pub struct WorkflowRunStarted {
 }
 
 /// Spawn a single autonomous workflow_run as a detached `tokio::spawn`. Used by
-/// both the `openhuman.skills_run` JSON-RPC controller and the `run_skill`
+/// both the `openhuman.skills_run` JSON-RPC controller and the `run_workflow`
 /// agent tool (which lets the orchestrator chain one skill into another —
 /// e.g. `github-issue-crusher` → `pr-review-shepherd` once the draft PR is
 /// open).
@@ -56,7 +56,7 @@ pub async fn spawn_workflow_run_background(
 
     // ── Preflight gates ─────────────────────────────────────────────
     // Run BEFORE the orchestrator is built so failures surface
-    // synchronously to the caller (skills_run RPC or the run_skill
+    // synchronously to the caller (skills_run RPC or the run_workflow
     // agent tool) instead of leaking through as cryptic orchestrator
     // output. Today only the [github] gate exists; future gates can
     // chain here.
@@ -148,7 +148,7 @@ pub async fn spawn_workflow_run_background(
     // Detached: build the orchestrator Agent inside the spawn so config /
     // toolchain are loaded fresh per run; the parent returns the handle
     // immediately. Same flow handle_skills_run used to inline — extracted
-    // so the `run_skill` agent tool can re-use it for skill chaining.
+    // so the `run_workflow` agent tool can re-use it for skill chaining.
     let inherited_origin = crate::agent::turn_origin::current()
         .unwrap_or(crate::agent::turn_origin::AgentTurnOrigin::Cli);
     {

@@ -35,6 +35,10 @@ impl X402RequestTool {
 
 #[async_trait]
 impl Tool for X402RequestTool {
+    fn exposure(&self) -> tinytools::ToolExposure {
+        tinytools::ToolExposure::Deferred
+    }
+
     fn name(&self) -> &str {
         "x402_request"
     }

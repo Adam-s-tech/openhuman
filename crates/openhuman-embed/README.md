@@ -1,8 +1,10 @@
 # `openhuman-embed`
 
 `openhuman-embed` is the host-facing library package for products that run the
-OpenHuman core in-process, including Medulla and OpenCompany. It re-exports the
-runtime builder from `openhuman-core` and owns the typed embedding facade.
+OpenHuman core in-process, including OpenCompany. It re-exports the
+runtime builder from `openhuman-core` and owns the typed embedding facade. See
+[`gitbooks/developing/embedding.md`](../../gitbooks/developing/embedding.md)
+for the narrative walkthrough this README's reference material supports.
 
 Use the default contributor feature set:
 
@@ -53,8 +55,8 @@ embedding method in `openhuman-embed`.
 
 ## Two steps: a `Runtime`, then any number of `Agent`s
 
-The library API. Initialise one runtime — features, services, backend URL,
-the TinyHumans API key — then instantiate agents on it, each fully described
+The library API. Initialize one runtime (features, services, backend URL,
+the TinyHumans API key), then instantiate agents on it, each fully described
 and independent of the others:
 
 ```rust,no_run
@@ -109,7 +111,7 @@ resumes only its own thread.
 
 What the runtime owns: the workspace and credential store, the event bus,
 the keyring, the background `ServiceSet`, the registered `DomainSet` (agents
-can only narrow it — enable `mcp` / `skills` at runtime build time if any
+can only narrow it, so enable `mcp` / `skills` at runtime build time if any
 agent will use them; the default does), and the API key.
 
 Layout under a runtime-owned root:
@@ -125,11 +127,14 @@ Layout under a runtime-owned root:
 The core knows the hosted TinyHumans backend only through
 `BackendTransport` (re-exported here). `openhuman-embed` alone installs
 none: agents, memory, skills, tools and RPC run without any TinyHumans
-connection, and every hosted-backend surface (billing, `/agent-integrations/*`
-tools, channel relay, cloud voice) answers with a typed
-`BACKEND_UNAVAILABLE:` error. Use `openhuman-tinyhumans` — its
+connection, and calls to hosted-backend surfaces answer with a typed
+`BACKEND_UNAVAILABLE:` error. This includes managed inference, billing,
+`/agent-integrations/*` tools, cloud voice, and session-bound surfaces such as
+channel relay. Use `openhuman-tinyhumans`, whose
 `RuntimeBuilder` mirrors this one and installs the SDK-backed transport on
-`build()` — or pass your own to `RuntimeBuilder::backend_transport`.
+`build()`, or pass your own to `RuntimeBuilder::backend_transport`. See
+[`gitbooks/developing/tinyhumans-api-key.md`](../../gitbooks/developing/tinyhumans-api-key.md)
+for what that one key then unlocks.
 
 ### Authentication
 
@@ -139,10 +144,27 @@ managed inference then sends it as `Authorization: Bearer <key>` to the
 TinyHumans OpenAI-compatible endpoint, backend REST calls send it as
 `x-api-key`, and the scheduler gate treats the runtime as signed in. No
 `/auth/me` round trip, no session JWT, nothing to expire. An agent that names
-its own `Provider` (BYOK) never touches the key. `HarnessBuilder::session`
+its own `Provider` (BYOK) never touches the key.
+
+The key covers every hosted feature the core reaches: managed inference, cloud
+embeddings, voice (STT and TTS), web search, media generation, the Jev ranker,
+Composio and the other `/agent-integrations/*` tools, referral, and webhooks.
+The realtime voice agent and Socket.IO relay require a signed-in user session. Callers that
+can only send a bearer (the vendored STT and embedding clients, the connector
+module's proxy route, TinyCortex's Composio sync) send the key as
+`Authorization: Bearer`, which the backend accepts because it recognises the
+`tiny_live_` / `tiny_test_` prefix. What a key may reach is decided by its
+scopes on the backend: `inference`, `voice`, `search`, `media`, `storage`,
+`account` and `connections` (Composio). A key minted through the grant flow
+omits `connections` unless it is asked for; a missing scope answers `403`.
+The session-bound `/auth/*` flows (OAuth connect, channel link tokens, login
+tokens), the realtime voice agent, and the Socket.IO relay still need a
+signed-in user.
+
+`HarnessBuilder::session`
 remains for hosts that drive backend features on behalf of a signed-in user;
 the core stores that session as handed over (`auth.set_credential`) and never
-validates it — obtaining and validating a JWT is the host's job (see
+validates it: obtaining and validating a JWT is the host's job (see
 `openhuman_tinyhumans::session`).
 
 ### `Harness`: the one-agent shorthand
@@ -175,9 +197,9 @@ println!("{}", second.reply);
 ```
 
 `Core` is the typed facade shown at the top: a host that already built a
-`CoreRuntime` wraps it with `Core::from_runtime` and reaches sub-facades —
-`config()`, `auth()`, `agent()` (a `CoreAgent` running the orchestrator),
-and, behind the `medulla` feature, `medulla()`.
+`CoreRuntime` wraps it with `Core::from_runtime` and reaches sub-facades
+through it: `config()`, `auth()`, and `agent()` (a `CoreAgent` running the
+orchestrator).
 
 ### One runtime per process
 
@@ -187,13 +209,13 @@ The keyring master key, the RPC bearer, the global event bus and the
 sequence), so a second runtime would silently share them while believing it
 had a separate workspace. `RuntimeBuilder::build` returns
 `RuntimeError::AlreadyRunning` instead; agents are the unit of multiplicity.
-`Core::from_runtime` is not guarded — it only wraps a runtime the host
-already built — but the same constraint applies to the `CoreRuntime` beneath
+`Core::from_runtime` is not guarded (it only wraps a runtime the host
+already built), but the same constraint applies to the `CoreRuntime` beneath
 it.
 
-Build the tokio runtime yourself — a turn is a large async state machine that
-overflows tokio's default 2 MiB worker stack once a sub-agent nests inside it —
-using `AGENT_WORKER_STACK_BYTES` and `MAX_BLOCKING_THREADS` from
+Build the tokio runtime yourself. A turn is a large async state machine that
+overflows tokio's default 2 MiB worker stack once a sub-agent nests inside it,
+so use `AGENT_WORKER_STACK_BYTES` and `MAX_BLOCKING_THREADS` from
 [`openhuman_core::core::runtime`](../openhuman-core/src/core/runtime/README.md):
 
 ```rust,no_run
@@ -224,7 +246,7 @@ are documented rather than hidden; each is a candidate follow-up in the core.
   `summarizer`, …) for your agents.
 - Sub-agents an agent spawns, the tinyagents journal and the experience store
   re-read the runtime's on-disk config rather than the agent's overlay.
-- Agents sharing a workspace share the dynamic (`use_mcp_server`) MCP
+- Agents sharing a workspace share the dynamic (`mcp_registry_*`) MCP
   registry; `[[mcp_client.servers]]` declared through `AgentSpec::mcp` are
   per agent. The host-seeded documentation server is visible to every agent.
 - `install_skill` / `create_skill` still write to `~/.openhuman`. With
@@ -232,7 +254,8 @@ are documented rather than hidden; each is a candidate follow-up in the core.
   operator's skills, but an install by the agent lands there.
 - One API key (or session) is shared by all agents.
 - `IntegrationClient` (backend-proxied Composio/search/media tools) only
-  ever reads the app-session JWT (`api::jwt::get_session_token`), never the
+  ever reads the app-session JWT
+  (`security::credentials::session_support::get_session_token`), never the
   runtime's API key. A library runtime that authenticates with only
   `.api_key(...)` gets no integration tools at all rather than the key
   being sent as the wrong header.
@@ -258,22 +281,20 @@ Every feature on this crate is a pass-through to the same-named feature on
 `openhuman-core` (package `openhuman`): `default`, `http-server`,
 `inference`, `documents`, `hosting`, `modules`, `voice`, `web3`,
 `runtime-node`, `contacts`, `media`, `flows`, `skills`, `mcp`,
-`crash-reporting`, `medulla`, `channels`, `sandbox-landlock`,
+`crash-reporting`, `channels`, `sandbox-landlock`,
 `sandbox-bubblewrap`, `browser-native`, `whatsapp-web`,
 `file-logging`, `scheduler-gate`.
 
-Three of them also gate items on this crate's own public surface:
+Two of them also gate items on this crate's own public surface:
 
-- `medulla` — `Core::medulla()`, `HarnessCore::medulla()`, and the Medulla
-  session types (`Medulla`, `MedullaStatus`, `SessionSummary`,
-  `SessionDetail`, `SessionCreated`, `Message`, `SendResult`, `AbortResult`,
-  `RosterWorker`, `WireEventEnvelope`).
-- `mcp` — `HttpHeader`, `McpAuthConfig`, `McpServer`, `AgentSpec::mcp` and
+- `mcp`: `HttpHeader`, `McpAuthConfig`, `McpServer`, `AgentSpec::mcp` and
   `HarnessBuilder::mcp`.
-- `skills` — `AgentSpec::skills_dir` and `HarnessBuilder::skills_dir`.
+- `skills`: `AgentSpec::skills_dir` and `HarnessBuilder::skills_dir`.
 
 See [`docs/library-minimal-recipe.md`](../../docs/library-minimal-recipe.md)
-for a measured minimal-footprint feature set.
+for a measured minimal-footprint feature set, and
+[`gitbooks/developing/performance.md`](../../gitbooks/developing/performance.md)
+for the resulting binary sizes and per-agent memory numbers.
 
 ## Examples and tests
 
@@ -291,8 +312,8 @@ OPENHUMAN_EXAMPLE_INHERIT=1 cargo run -p openhuman-embed --example run_turn -- "
 Optional: `OPENHUMAN_EXAMPLE_BACKEND_URL` points non-inference backend calls
 somewhere specific, and `OPENHUMAN_EXAMPLE_SKILLS_DIR` supplies skill bundles.
 
-Two agents on one runtime — BYOK with the same variables as above, or managed
-inference with `OPENHUMAN_EXAMPLE_TINYHUMANS_API_KEY`:
+Two agents on one runtime, either BYOK with the same variables as above, or
+managed inference with `OPENHUMAN_EXAMPLE_TINYHUMANS_API_KEY`:
 
 ```bash
 OPENHUMAN_EXAMPLE_BASE_URL=https://api.openai.com/v1 \
@@ -323,7 +344,7 @@ time. Run them with `cargo test -p openhuman-embed --features inference,mcp,skil
 ## Relationship to other crates
 
 Its only in-repo dependency is `openhuman-core` (package `openhuman`) with
-`default-features = false` — every capability comes from a feature forwarded
+`default-features = false`: every capability comes from a feature forwarded
 above. It does not depend on `openhuman-rpc` directly; the shared
 `RpcOutcome` and `StructuredRpcError` types reach it through
 `openhuman_core::rpc`. `openhuman-app` and `openhuman-tui` depend on

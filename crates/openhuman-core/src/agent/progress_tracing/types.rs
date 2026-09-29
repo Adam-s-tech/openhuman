@@ -9,10 +9,9 @@ use serde::Serialize;
 /// Langfuse trace tags (`run:<type>`) and metadata (`run_type`) so runs can be
 /// filtered in the UI.
 ///
-/// Only kinds actually observable at the collector installation point (the
-/// web progress bridge) exist here: orchestration passes, subconscious runs,
-/// cron turns, and meeting agents run their turns WITHOUT a progress bridge
-/// today, so they never reach the span collector and get no variant.
+/// Covers web progress bridge turns and child turns exported from their own
+/// durable journals. Other background paths without either export hook do not
+/// produce an agent trace yet.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum RunType {
     /// Interactive user chat turn (desktop UI / socket / PTT / dictation).
@@ -23,6 +22,8 @@ pub enum RunType {
     /// Inbound message relayed from an external channel (Telegram, Discord,
     /// Slack, …) through the channel bus.
     ChannelInbound,
+    /// A delegated child turn, exported as a trace in the parent conversation.
+    Subagent,
 }
 
 impl RunType {
@@ -32,6 +33,7 @@ impl RunType {
             RunType::InteractiveChat => "interactive_chat",
             RunType::AutonomousTask => "autonomous_task",
             RunType::ChannelInbound => "channel_inbound",
+            RunType::Subagent => "subagent",
         }
     }
 
@@ -63,7 +65,7 @@ pub struct TraceContext {
     /// stays inspectable without polluting user attribution.
     pub client_id: Option<String>,
     /// Agent definition id driving the turn (e.g. `"orchestrator"`,
-    /// `"researcher"`). Stamped as the `agent.id` attribute and folded into
+    /// `"task_manager_agent"`). Stamped as the `agent.id` attribute and folded into
     /// the root span/trace name (`agent.turn:<agent_id>`).
     pub agent_id: Option<String>,
     /// Where the run originated (`"chat"`, `"ptt"`, `"autonomous"`, …).

@@ -7,13 +7,16 @@
  * It used to fetch once on mount, so a run that finished while the tab was
  * open never appeared until the tab was left and re-entered.
  */
+import { RefreshCw } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
 import { useT } from '../../lib/i18n/I18nContext';
 import { memorySourcesStatusList } from '../../services/memorySourcesService';
 import { memorySyncAuditLog, type SyncAuditEntry } from '../../utils/tauriCommands';
+import Badge from '../ui/Badge';
 import Button from '../ui/Button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/Table';
+import DataTable, { type DataTableColumn } from '../ui/DataTable';
+import EmptyState from '../ui/EmptyState';
 import { registrySyncingIds, sourceLabelsById } from './memorySourcesSyncTypes';
 import { subscribeTerminalSyncEvents, useMemorySyncActivity } from './memorySyncActivityStore';
 
@@ -70,7 +73,39 @@ export function timeAgo(iso: string, t: (key: string, fallback?: string) => stri
   return t('sync.timeAgo.days', '{n}d ago').replace('{n}', String(days));
 }
 
-export function SyncAuditPanel() {
+type SyncStatus = 'success' | 'partial' | 'failed';
+
+const STATUS_VARIANT: Record<SyncStatus, 'success' | 'warning' | 'danger'> = {
+  success: 'success',
+  partial: 'warning',
+  failed: 'danger',
+};
+
+const STATUS_LABEL_KEY: Record<SyncStatus, string> = {
+  success: 'sync.status.success',
+  partial: 'sync.status.partialShort',
+  failed: 'sync.status.failed',
+};
+
+/** Date over time, with the relative age as the tooltip. */
+function WhenCell({ iso, ago }: { iso: string; ago: string }) {
+  const ts = Date.parse(iso);
+  if (Number.isNaN(ts)) return <span title={iso}>{ago}</span>;
+  const date = new Date(ts);
+  return (
+    <span className="flex flex-col leading-tight" title={`${date.toLocaleString()} · ${ago}`}>
+      <span className="text-content">{date.toLocaleDateString()}</span>
+      <span className="text-xs text-content-muted">{date.toLocaleTimeString()}</span>
+    </span>
+  );
+}
+
+interface SyncAuditPanelProps {
+  /** Fill a height-bounded parent (only rows scroll) instead of a capped card. */
+  fill?: boolean;
+}
+
+export function SyncAuditPanel({ fill = false }: SyncAuditPanelProps = {}) {
   const { t } = useT();
   const { syncingIds } = useMemorySyncActivity();
   const [entries, setEntries] = useState<SyncAuditEntry[]>([]);
@@ -89,6 +124,8 @@ export function SyncAuditPanel() {
   // the read still in flight, so an older read that answers last cannot put an
   // older history back on screen.
   const [reloadToken, setReloadToken] = useState(0);
+  const [query, setQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<ReadonlySet<string>>(() => new Set());
 
   const reload = useCallback((reason: string) => {
     console.debug('[sync-audit] reload requested reason=%s', reason);
@@ -165,141 +202,183 @@ export function SyncAuditPanel() {
     return () => clearInterval(id);
   }, [anySyncing, reload]);
 
-  const refreshButton = (
-    <Button
-      variant="secondary"
-      size="xs"
-      analyticsId="sync-history-refresh"
-      data-testid="sync-history-refresh"
-      disabled={refreshing}
-      onClick={() => {
-        setRefreshing(true);
-        reload('manual');
-      }}>
-      {t('common.refresh', 'Refresh')}
-    </Button>
-  );
+  const statusOf = (e: SyncAuditEntry): SyncStatus =>
+    e.success
+      ? 'success'
+      : (e.tree_ingest_failures ?? 0) > 0 || e.tree_error
+        ? 'partial'
+        : 'failed';
+  const sourceName = (e: SyncAuditEntry) => labels[e.source_id] ?? scopeLabel(e.scope);
 
-  if (loading) {
-    return (
-      <div className="text-xs text-content-faint py-2">{t('common.loading', 'Loading...')}</div>
-    );
-  }
-
-  if (entries.length === 0) {
-    return (
-      <div className="flex items-center justify-between gap-3 py-2">
-        <span className="text-xs text-content-faint">
-          {t('sync.noAuditEntries', 'No sync runs recorded yet.')}
-        </span>
-        {refreshButton}
-      </div>
-    );
-  }
+  const needle = query.trim().toLowerCase();
+  const visible = entries.filter(e => {
+    if (statusFilter.size > 0 && !statusFilter.has(statusOf(e))) return false;
+    if (!needle) return true;
+    return sourceName(e).toLowerCase().includes(needle) || e.scope.toLowerCase().includes(needle);
+  });
 
   const totalCost = entries.reduce((s, e) => s + e.estimated_cost_usd, 0);
   const totalInput = entries.reduce((s, e) => s + e.input_tokens, 0);
   const totalOutput = entries.reduce((s, e) => s + e.output_tokens, 0);
-
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-4 text-xs text-content-muted">
+  const summary =
+    entries.length > 0 ? (
+      <span className="inline-flex flex-wrap items-center gap-x-2">
         <span>
           {entries.length} {t('sync.runs', 'sync runs')}
         </span>
-        <span className="text-content-faint">·</span>
+        <span aria-hidden>·</span>
         <span>
-          {formatTokens(totalInput)} in / {formatTokens(totalOutput)} out
+          {t('sync.tokensInOut', '{in} in / {out} out')
+            .replace('{in}', formatTokens(totalInput))
+            .replace('{out}', formatTokens(totalOutput))}
         </span>
-        <span className="text-content-faint">·</span>
-        <span className="font-medium">
+        <span aria-hidden>·</span>
+        <span className="font-medium text-content-secondary">
           ${totalCost.toFixed(4)} {t('sync.totalCost', 'total')}
         </span>
-        <span className="ml-auto">{refreshButton}</span>
-      </div>
-      <div className="max-h-48 overflow-y-auto rounded-md border border-line-subtle">
-        <Table className="text-xs">
-          <TableHeader className="sticky top-0 bg-surface-muted text-content-muted">
-            <TableRow className="hover:bg-transparent">
-              <TableHead className="h-auto px-3 py-1.5 text-left text-xs font-medium">
-                {t('sync.when', 'When')}
-              </TableHead>
-              <TableHead className="h-auto px-3 py-1.5 text-left text-xs font-medium">
-                {t('sync.source', 'Source')}
-              </TableHead>
-              <TableHead className="h-auto px-3 py-1.5 text-right text-xs font-medium">
-                {t('sync.items', 'Items')}
-              </TableHead>
-              <TableHead className="h-auto px-3 py-1.5 text-right text-xs font-medium">
-                {t('sync.tokens', 'Tokens')}
-              </TableHead>
-              <TableHead className="h-auto px-3 py-1.5 text-right text-xs font-medium">
-                {t('sync.cost', 'Cost')}
-              </TableHead>
-              <TableHead className="h-auto px-3 py-1.5 text-right text-xs font-medium">
-                {t('sync.duration', 'Duration')}
-              </TableHead>
-              <TableHead className="h-auto px-3 py-1.5 text-center text-xs font-medium" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {entries.map((e, i) => (
-              <TableRow key={`${e.timestamp}-${i}`} className="border-line-subtle">
-                <TableCell
-                  className="px-3 py-1.5 text-content-secondary whitespace-nowrap"
-                  title={e.timestamp}>
-                  {timeAgo(e.timestamp, t)}
-                </TableCell>
-                <TableCell
-                  className="px-3 py-1.5 text-content-secondary truncate max-w-[180px]"
-                  title={e.scope}>
-                  {labels[e.source_id] ?? scopeLabel(e.scope)}
-                </TableCell>
-                <TableCell className="px-3 py-1.5 text-right tabular-nums text-content-secondary">
-                  {e.items_fetched}
-                </TableCell>
-                <TableCell
-                  className="px-3 py-1.5 text-right tabular-nums text-content-secondary"
-                  title={`${e.input_tokens} in / ${e.output_tokens} out`}>
-                  {formatTokens(e.input_tokens + e.output_tokens)}
-                </TableCell>
-                <TableCell className="px-3 py-1.5 text-right tabular-nums font-medium text-content-secondary">
-                  ${e.estimated_cost_usd.toFixed(4)}
-                </TableCell>
-                <TableCell className="px-3 py-1.5 text-right tabular-nums text-content-muted">
-                  {formatDuration(e.duration_ms)}
-                </TableCell>
-                <TableCell className="px-3 py-1.5 text-center">
-                  {e.success ? (
-                    <span className="text-sage-500" title={t('sync.status.success', 'Success')}>
-                      ✓
-                    </span>
-                  ) : (e.tree_ingest_failures ?? 0) > 0 || e.tree_error ? (
-                    // openhuman#5820: the fetch committed but the memory-tree
-                    // half dropped items — a distinct partial verdict, not the
-                    // plain ✗ (which reads as "nothing was fetched"). The
-                    // tooltip carries the core's tree_error so the row
-                    // explains itself.
-                    <span
-                      className="text-amber-500"
-                      title={
-                        e.tree_error ?? t('sync.status.partial', 'Fetched, memory ingest failed')
-                      }>
-                      ⚠
-                    </span>
-                  ) : (
-                    <span
-                      className="text-coral-500"
-                      title={e.error ?? t('sync.status.failed', 'Failed')}>
-                      ✗
-                    </span>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-    </div>
+      </span>
+    ) : undefined;
+
+  const columns: DataTableColumn<SyncAuditEntry>[] = [
+    {
+      id: 'when',
+      header: t('sync.when', 'When'),
+      className: 'w-px whitespace-nowrap tabular-nums',
+      cell: e => <WhenCell iso={e.timestamp} ago={timeAgo(e.timestamp, t)} />,
+    },
+    {
+      id: 'source',
+      header: t('sync.source', 'Source'),
+      className: 'w-full max-w-0',
+      cell: e => (
+        <span className="block truncate" title={e.scope}>
+          {sourceName(e)}
+        </span>
+      ),
+    },
+    {
+      id: 'items',
+      header: t('sync.items', 'Items'),
+      align: 'right',
+      className: 'w-px whitespace-nowrap tabular-nums',
+      cell: e => e.items_fetched,
+    },
+    {
+      id: 'tokens',
+      header: t('sync.tokens', 'Tokens'),
+      align: 'right',
+      className: 'w-px whitespace-nowrap tabular-nums',
+      cell: e => (
+        <span title={`${e.input_tokens} in / ${e.output_tokens} out`}>
+          {formatTokens(e.input_tokens + e.output_tokens)}
+        </span>
+      ),
+    },
+    {
+      id: 'cost',
+      header: t('sync.cost', 'Cost'),
+      align: 'right',
+      className: 'w-px whitespace-nowrap tabular-nums font-medium',
+      cell: e => `$${e.estimated_cost_usd.toFixed(4)}`,
+    },
+    {
+      id: 'duration',
+      header: t('sync.duration', 'Duration'),
+      align: 'right',
+      className: 'w-px whitespace-nowrap tabular-nums text-content-muted',
+      cell: e => formatDuration(e.duration_ms),
+    },
+    {
+      id: 'status',
+      header: t('sync.statusColumn', 'Status'),
+      align: 'right',
+      className: 'w-px whitespace-nowrap',
+      cell: e => {
+        const status = statusOf(e);
+        // openhuman#5820: a fetch that committed while the memory-tree half
+        // dropped items is its own "partial" verdict, not a plain failure. The
+        // tooltip carries the core's error so the row explains itself.
+        const title =
+          status === 'success'
+            ? t('sync.status.success', 'Success')
+            : status === 'partial'
+              ? (e.tree_error ?? t('sync.status.partial', 'Fetched, memory ingest failed'))
+              : (e.error ?? t('sync.status.failed', 'Failed'));
+        return (
+          <Badge variant={STATUS_VARIANT[status]} title={title} data-status={status}>
+            {t(STATUS_LABEL_KEY[status])}
+          </Badge>
+        );
+      },
+    },
+  ];
+
+  return (
+    <DataTable<SyncAuditEntry>
+      // Sits among other cards on the scrolling Sync tab: capped, scrolls inside.
+      fill={fill}
+      maxHeight="24rem"
+      testId="sync-history-table"
+      title={t('sync.auditTitle', 'Sync History')}
+      description={summary}
+      actions={
+        <Button
+          variant="secondary"
+          size="sm"
+          analyticsId="sync-history-refresh"
+          data-testid="sync-history-refresh"
+          leadingIcon={<RefreshCw className="h-3.5 w-3.5" aria-hidden />}
+          disabled={refreshing}
+          onClick={() => {
+            setRefreshing(true);
+            reload('manual');
+          }}>
+          {t('common.refresh', 'Refresh')}
+        </Button>
+      }
+      search={
+        entries.length > 0
+          ? {
+              value: query,
+              onChange: setQuery,
+              placeholder: t('sync.searchPlaceholder', 'Search sources…'),
+              testId: 'sync-history-search',
+            }
+          : undefined
+      }
+      filters={
+        entries.length > 0
+          ? [
+              {
+                id: 'status',
+                label: t('sync.statusColumn', 'Status'),
+                options: (['success', 'partial', 'failed'] as const).map(value => ({
+                  value,
+                  label: t(STATUS_LABEL_KEY[value]),
+                })),
+                selected: statusFilter,
+                onChange: setStatusFilter,
+                testId: 'sync-history-status-filter',
+              },
+            ]
+          : undefined
+      }
+      columns={columns}
+      rows={visible}
+      rowKey={(e, i) => `${e.timestamp}-${i}`}
+      pagination={{ pageSize: fill ? 25 : 10 }}
+      loading={loading}
+      loadingRows={4}
+      empty={
+        <EmptyState
+          label={
+            entries.length === 0
+              ? t('sync.noAuditEntries', 'No sync runs recorded yet.')
+              : t('common.noResults', 'No results')
+          }
+        />
+      }
+      ariaLabel={t('sync.auditTitle', 'Sync History')}
+    />
   );
 }

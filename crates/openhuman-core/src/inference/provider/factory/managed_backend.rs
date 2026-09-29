@@ -3,14 +3,6 @@
 
 use super::*;
 
-/// The managed summarization model. Historically a dedicated
-/// `hint:summarization` tier; now the managed default like every other role.
-/// Kept as a named seam because the memory tree, the chat-turn payload
-/// summarizer and the `extract` sub-agent all read it.
-pub(crate) fn summarization_tier_model() -> &'static str {
-    crate::config::MODEL_MANAGED_DEFAULT
-}
-
 /// Resolve the managed OpenHuman backend for `role` — the model id (tier /
 /// summarization / default, with `hint:<tier>` translation) plus a configured
 /// [`OpenHumanBackendModel`]. Shared by both the `Provider` path

@@ -13,7 +13,7 @@
 //!   `run_turn_via_tinyagents_shared`.
 //!
 //! Today every built-in agent selects `Default`. The optional hook is the
-//! extension point that lets a specialized agent (orchestrator, researcher, …)
+//! extension point that lets a specialized agent (orchestrator, planner, …)
 //! define a bespoke graph without branching the shared runner.
 
 use std::collections::HashSet;
@@ -67,7 +67,6 @@ pub struct AgentTurnRequest {
     pub model_vision: bool,
     pub transcript_stem: String,
     pub provider_label: String,
-    pub(crate) handoff_cache: Option<Arc<crate::agent::subagent_host::ResultHandoffCache>>,
     /// Agent-level TokenJuice compaction profile
     /// (`definition.effective_tokenjuice_compression()`), threaded into the
     /// sub-agent `TurnContextMiddleware` so tool outputs compact like the chat

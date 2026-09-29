@@ -29,7 +29,7 @@ fn presets_are_uniform() {
 fn with_sets_one_group_and_leaves_the_rest() {
     let g = ToolGroups::none().with("documents", GroupMode::Advertised);
     assert_eq!(g.mode("documents"), GroupMode::Advertised);
-    assert_eq!(g.mode("crypto"), GroupMode::Off);
+    assert_eq!(g.mode("web3"), GroupMode::Off);
 }
 
 #[test]
