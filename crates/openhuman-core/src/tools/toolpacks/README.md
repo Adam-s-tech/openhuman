@@ -120,7 +120,7 @@ its schemas.
 Running an installed skill is not a pack concern: the orchestrator uses its
 own `run_workflow`. The install hand-off `setup_skills` (into `skill_setup`)
 stays unpacked on the orchestrator's belt
-(`DELIBERATELY_UNPACKED_HANDOFFS`).
+(`DELIBERATELY_UNPACKED_DIRECT_TOOLS`).
 
 ## Called by
 

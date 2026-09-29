@@ -757,6 +757,20 @@ async fn boot_stack() -> Stack {
     }
 }
 
+/// Approval is part of the opt-in autonomy policy. These tests exercise that
+/// path, so enable it through the same live RPC used by Settings before sending
+/// a turn; the product default intentionally leaves the gate inert.
+async fn enable_autonomy_for_approval_test(stack: &Stack) {
+    let response = post_json_rpc(
+        &stack.rpc_base,
+        4999,
+        "openhuman.config_update_autonomy_settings",
+        json!({ "enabled": true }),
+    )
+    .await;
+    assert_no_jsonrpc_error(&response, "enable autonomy for approval test");
+}
+
 async fn send_web_chat(
     rpc_base: &str,
     id: i64,
@@ -1476,6 +1490,7 @@ async fn approval_gate_approve_flow_inner() {
         text_completion("Done. File written: APPROVED_WRITE_CANARY"),
     ]);
     let stack = boot_stack().await;
+    enable_autonomy_for_approval_test(&stack).await;
 
     // Pre-create the file so file_write sees it as an existing file and
     // external_effect_with_args returns true → approval gate intercepts.
@@ -1582,6 +1597,7 @@ async fn approval_gate_deny_flow_inner() {
         text_completion("Understood — the write was denied. DENIAL_ACK_CANARY"),
     ]);
     let stack = boot_stack().await;
+    enable_autonomy_for_approval_test(&stack).await;
 
     // Pre-create the file so file_write sees it as an existing file.
     let home = stack._tmp.path().to_path_buf();
@@ -1671,6 +1687,7 @@ async fn approval_gate_timeout_inner() {
         text_completion("The write timed out awaiting approval. TIMEOUT_ACK_CANARY"),
     ]);
     let stack = boot_stack().await;
+    enable_autonomy_for_approval_test(&stack).await;
 
     // Pre-create so file_write's external_effect_with_args returns true.
     let home = stack._tmp.path().to_path_buf();

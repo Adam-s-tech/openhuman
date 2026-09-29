@@ -311,12 +311,12 @@ fn the_workflows_pack_is_still_owned_by_the_flow_agents() {
     );
 }
 
-// ── #6302: the MCP and skill hand-offs, and the packs they close ───────────
+// ── #6302: direct routes and the packs they close ──────────────────────────
 
-/// The four hand-offs stay direct tools. See `DELIBERATELY_UNPACKED_HANDOFFS`.
+/// These named routes stay direct tools. See `DELIBERATELY_UNPACKED_DIRECT_TOOLS`.
 #[test]
-fn the_mcp_and_skill_hand_offs_are_never_packed() {
-    for name in registry::DELIBERATELY_UNPACKED_HANDOFFS {
+fn deliberate_direct_routes_are_never_packed() {
+    for name in registry::DELIBERATELY_UNPACKED_DIRECT_TOOLS {
         assert!(
             registry::pack_for_tool(name).is_none(),
             "`{name}` is the orchestrator's route into its family and must stay a direct tool"
