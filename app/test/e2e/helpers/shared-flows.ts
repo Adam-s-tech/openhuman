@@ -152,10 +152,9 @@ const HASH_TO_SIDEBAR_LABEL = {
 };
 
 /**
- * Routes that AppRoutes.tsx serves via <Navigate replace>. Navigating to the
- * key lands the router on the value, so the hash-settle wait must expect the
- * resolved target rather than the requested route. Keep in sync with
- * app/src/AppRoutes.tsx.
+ * Routes that AppRoutes.tsx serves via <Navigate replace>. A route can redirect
+ * through another retired route, so resolve the full chain before waiting for
+ * the final hash. Keep in sync with app/src/AppRoutes.tsx.
  */
 const HASH_REDIRECTS = {
   '/home': '/chat',
@@ -187,7 +186,13 @@ const HASH_REDIRECTS = {
 
 /** Resolve a requested hash to where the router actually settles. */
 function resolveRedirect(normalized) {
-  return HASH_REDIRECTS[normalized] || normalized;
+  let resolved = normalized;
+  const seen = new Set();
+  while (HASH_REDIRECTS[resolved] && !seen.has(resolved)) {
+    seen.add(resolved);
+    resolved = HASH_REDIRECTS[resolved];
+  }
+  return resolved;
 }
 
 function normalizeHash(value) {
