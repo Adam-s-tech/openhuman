@@ -5,6 +5,9 @@ mod session_pool;
 use crate::modules::browser::BrowserClient;
 use crate::security::approval::{ApprovalGate, GateOutcome};
 use crate::security::SecurityPolicy;
+#[path = "browser/task_inputs.rs"]
+mod task_inputs;
+use task_inputs::task_inputs;
 use async_trait::async_trait;
 use serde_json::{json, Value};
 use session_pool::{
@@ -522,25 +525,6 @@ impl BrowserTool {
             }
         }
     }
-}
-
-fn task_inputs(args: &Value) -> anyhow::Result<BTreeMap<String, String>> {
-    args["inputs"].as_object().map_or_else(
-        || Ok(BTreeMap::new()),
-        |inputs| {
-            inputs
-                .iter()
-                .map(|(k, v)| {
-                    Ok((
-                        k.clone(),
-                        v.as_str()
-                            .ok_or_else(|| anyhow::anyhow!("Task input '{k}' must be text"))?
-                            .to_owned(),
-                    ))
-                })
-                .collect()
-        },
-    )
 }
 
 /// Ask the host approval gate about a paused task's exact action. A missing
