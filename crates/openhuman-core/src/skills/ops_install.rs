@@ -19,4 +19,4 @@ pub use url_validation::{validate_install_url, validate_resolved_host, MAX_INSTA
 #[cfg(test)]
 pub(crate) use fetch::{install_workflow_from_url_with_home, should_report_install_fetch_status};
 #[cfg(test)]
-pub(crate) use url_validation::{derive_install_slug, normalize_install_url};
+pub(crate) use url_validation::normalize_install_url;
