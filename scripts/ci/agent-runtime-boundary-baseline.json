@@ -1079,13 +1079,6 @@
   },
   {
     "rule": "openhuman-upstream-reexport",
-    "path": "crates/openhuman-core/src/agent/subagent_host/handoff.rs",
-    "line": 37,
-    "text": "pub(crate) use tinyagents_harness::handoff::{",
-    "occurrence": 1
-  },
-  {
-    "rule": "openhuman-upstream-reexport",
     "path": "crates/openhuman-core/src/agent/todos/ops.rs",
     "line": 16,
     "text": "pub use tinyagents_graph::todos::TodosSnapshot;",
