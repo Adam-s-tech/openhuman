@@ -49,7 +49,7 @@
 pub mod blocking;
 
 mod bus;
-mod store;
+use tinymemory_conversations as store;
 
 pub use bus::register_conversation_persistence_subscriber;
 pub use store::{

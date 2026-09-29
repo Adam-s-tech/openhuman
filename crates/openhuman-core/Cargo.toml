@@ -238,6 +238,10 @@ tinyconnectors-bus = { path = "../../vendor/tinyconnectors/crates/tinyconnectors
 # directly (EXTRACT_ENTITIES, EMBED_TEXT, EMBEDDER_SLUG) — prefer compile
 # errors on renaming over MemberNotFound at runtime.
 tinymemory-bus = { path = "../../vendor/tinymemory/crates/tinymemory-bus" }
+# `tinymemory-conversations` is the workspace conversation store (JSONL
+# threads/messages, cross-thread inverted index). A pure library: serde,
+# parking_lot, uuid, chrono, async-trait, sha2. No SQLite/HTTP/engine crate.
+tinymemory-conversations = { path = "../../vendor/tinymemory/crates/tinymemory-conversations" }
 # `tinymemory-sources` is the source registry, its types and its readers, in a
 # crate of its own. Taken directly rather than through `tinymemory-core`
 # (OpenHuman#5560): `tinymemory_core::sources` is a thin layer over it —
