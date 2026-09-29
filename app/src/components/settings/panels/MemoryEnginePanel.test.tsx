@@ -223,6 +223,9 @@ describe('MemoryEnginePanel', () => {
     });
     fireEvent.click(screen.getByTestId('memory-engine-copy-switch'));
     await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    await act(async () => {
       await vi.advanceTimersByTimeAsync(MIGRATE_POLL_INTERVAL_MS);
     });
     expect(screen.getByTestId('memory-engine-error-other')).toBeInTheDocument();
