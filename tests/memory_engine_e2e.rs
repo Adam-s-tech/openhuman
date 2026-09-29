@@ -37,6 +37,7 @@ use tempfile::tempdir;
 
 use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
 use openhuman_core::core::jsonrpc::build_core_http_router;
+use openhuman_core::memory::api::provider::MemoryCore;
 
 const TEST_RPC_TOKEN: &str = "memory-engine-e2e-token";
 const TEST_API_KEY: &str = "tiny_live_memory_engine_e2e";
