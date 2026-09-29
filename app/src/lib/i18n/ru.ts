@@ -303,13 +303,6 @@ const messages: TranslationMap = {
   'conversations.backgroundTasks.cronSchedCron': 'Cron {expr}',
   'conversations.backgroundTasks.cronSchedEvery': 'Каждые {duration}',
   'conversations.backgroundTasks.cronSchedAt': 'Один раз',
-  'conversations.backgroundTasks.subOff': 'Выключено',
-  'conversations.backgroundTasks.subWorking': 'Работает…',
-  'conversations.backgroundTasks.subIdle': 'Простаивает',
-  'conversations.backgroundTasks.subLastRan': 'Последний запуск {time}',
-  'conversations.backgroundTasks.subNeverRan': 'Ещё не запускалась',
-  'conversations.backgroundTasks.subTicks': '{count} запусков',
-  'conversations.backgroundTasks.subQueued': '{count} в очереди',
   'conversations.backgroundTasks.memUpToDate': 'Все воспоминания актуальны',
   'conversations.backgroundTasks.memIngesting': 'Индексация {title}',
   'conversations.backgroundTasks.memIngestingUntitled': 'Индексация воспоминаний',
@@ -454,9 +447,6 @@ const messages: TranslationMap = {
   'settings.assistant.personality': 'Личность',
   'settings.assistant.voice': 'Голос',
   'settings.assistant.voiceDesc': 'Настройки распознавания и синтеза речи',
-  'settings.assistant.backgroundActivity': 'Подсознание',
-  'settings.assistant.backgroundActivityDesc':
-    'Управление тем, насколько активно ассистент работает в фоне',
   'settings.assistant.permissions': 'Разрешения',
   'settings.assistant.permissionsDesc':
     'Выберите, что может делать помощник и где он может работать',
@@ -980,7 +970,6 @@ const messages: TranslationMap = {
   'memory.empty': 'Воспоминаний пока нет. Они создаются автоматически в процессе общения.',
   'memory.tab.memory': 'Память',
   'memory.tab.memoryTree': 'Дерево памяти',
-  'memory.tab.subconscious': 'Подсознание',
   'memory.tab.agentWork': 'Работа агента',
   'memory.tab.agentWorkDescription':
     'Центр управления для каждого фонового запуска агента: сгруппировано по тому, что требует вашего участия, что выполняется и что завершено.',
@@ -1466,7 +1455,6 @@ const messages: TranslationMap = {
     'Создается внутри процесса оболочкой Tauri при запуске приложения. Порт выбирается при запуске, поэтому этот URL меняется между запусками.',
   'settings.about.connectionHelperCloud':
     'Подключен к удаленному ядру. Измените это в BootCheck или в средстве выбора облачного режима.',
-  'settings.heartbeat.title': 'Heartbeat и циклы',
   'settings.usage.title': 'Использование',
   'settings.usage.menuDesc': 'Расходы, экономия токенов, журнал использования и фоновая активность',
   'settings.costDashboard.monthToDate': 'С начала месяца',
@@ -2427,7 +2415,6 @@ const messages: TranslationMap = {
   'chat.safetyTimeout':
     'Агент не ответил в течение 2 минут. Попробуй снова или проверь соединение.',
   'chat.filter.general': 'Общее',
-  'chat.filter.subconscious': 'Подсознание',
   'chat.filter.meetings': 'Встречи',
   'chat.filter.tasks': 'Задачи',
   'chat.selectThread': 'Выбери чат',
@@ -4871,7 +4858,7 @@ const messages: TranslationMap = {
   'settings.ai.codexAuthHelper': 'Использует существующий вход Codex CLI из ~/.codex/auth.json.',
   'settings.ai.backgroundLoops': 'Фоновые циклы',
   'settings.ai.backgroundLoopsDesc':
-    'Посмотрите, что выполняется без сообщения чата, приостановите работу Heartbeat и проверьте последние строки кредитной книги.',
+    'Посмотрите, что выполняется без сообщения чата, и проверьте последние строки кредитной книги.',
   'settings.ai.loopMap': 'Карта цикла',
   'settings.ai.routeLabel': 'маршрут: {route}',
   'settings.ai.on': 'на',
@@ -4995,7 +4982,7 @@ const messages: TranslationMap = {
     'Модели, используемые во время прямого взаимодействия с пользователем, ответов, рассуждений, циклов агента и помощи в кодировании.',
   'settings.ai.routing.backgroundTasks': 'Фоновые задачи',
   'settings.ai.routing.bgTasksDesc':
-    'Модели, используемые вне основного потока разговора для подведения итогов, сердцебиения, обучения и подсознательной оценки.',
+    'Модели, используемые вне основного потока разговора для обобщения памяти и обучения.',
   'settings.ai.routing.workload.chat.label': 'Chat',
   'settings.ai.routing.workload.chat.description':
     'Прямой разговор вперед и назад: «Быстрый» режим в «Беседах».',
@@ -5024,20 +5011,11 @@ const messages: TranslationMap = {
   'settings.ai.routing.workload.memory.description': 'Древесные экстракты и консолидации',
   'settings.ai.routing.workload.memory.hint':
     'Рекомендуется: более дешевая модель обобщения. Он должен быть последовательным и компактным, но не требует первоочередных рассуждений.',
-  'settings.ai.routing.workload.heartbeat.label': 'Heartbeat',
-  'settings.ai.routing.workload.heartbeat.description':
-    'Фоновые рассуждения между ходами пользователя',
-  'settings.ai.routing.workload.heartbeat.hint':
-    'Рекомендуется: дешевая и эффективная фоновая модель. Это часто происходит между ходами, поэтому низкая стоимость важнее максимального интеллекта.',
   'settings.ai.routing.workload.learning.label': 'Обучение · Размышления',
   'settings.ai.routing.workload.learning.description':
     'Периодические размышления над недавней историей',
   'settings.ai.routing.workload.learning.hint':
     'Рекомендуется: более сильная светоотражающая модель. Это может быть средний или премиум-класс, поскольку он выигрывает от лучшего синтеза в недавней истории.',
-  'settings.ai.routing.workload.subconscious.label': 'Subconscious',
-  'settings.ai.routing.workload.subconscious.description': 'Оценка событийности + проверка дрейфа',
-  'settings.ai.routing.workload.subconscious.hint':
-    'Рекомендуется: очень дешевая модель мониторинга, в идеале легкая и предсказуемая. Это предназначено для оценки событийности, проверки отклонений и тихой оценки фона.',
   'settings.ai.routing.addCustomProvider': 'Добавить специального поставщика.',
   'settings.ai.globalModel.title': 'Выберите одну модель для всего.',
   'settings.ai.globalModel.desc':
@@ -5048,8 +5026,6 @@ const messages: TranslationMap = {
   'settings.ai.globalModel.model': 'Модель',
   'settings.ai.globalModel.loadingModels': 'Загрузка моделей…',
   'settings.ai.globalModel.enterModelId': 'Введите идентификатор модели',
-  'settings.ai.globalModel.appliesToAll':
-    'Применяет один и тот же поставщик + модель к чату, рассуждениям, кодированию, памяти, сердцебиению, обучению и подсознанию. Вложения настраиваются отдельно. Изменения сохраняются при нажатии кнопки «Сохранить».',
   'settings.ai.globalModel.saving': 'Сохранение…',
   'settings.ai.globalModel.saved': 'Сохранено',
   'settings.ai.workload.noModel': 'Модель не выбрана',
@@ -5232,6 +5208,7 @@ const messages: TranslationMap = {
   'settings.cron.jobs.removing': 'Удаление',
   'settings.cron.jobs.resume': 'Возобновить',
   'settings.cron.jobs.runningNow': 'Выполняется сейчас',
+  'settings.cron.jobs.runNow': 'Запустить сейчас',
   'settings.cron.jobs.saving': 'Сохранение…',
   'settings.cron.jobs.schedule': 'Расписание',
   'settings.cron.jobs.title': 'Задания ядра по расписанию',
@@ -5433,8 +5410,6 @@ const messages: TranslationMap = {
   'settings.developerMenu.eventLog.badge.comp': 'COMP',
   'settings.developerMenu.eventLog.badge.mcp': 'MCP',
   'settings.developerMenu.intelligence.title': 'Интеллект',
-  'settings.developerMenu.intelligence.desc':
-    'Рабочая область памяти, подсознательный движок, сны и настройки',
   'settings.developerMenu.notificationRouting.title': 'Маршрутизация уведомлений',
   'settings.developerMenu.notificationRouting.desc':
     'Оценка важности ИИ и эскалация оркестратору для интеграционных оповещений',
@@ -6292,8 +6267,6 @@ const messages: TranslationMap = {
   'devOptions.menuWebhooksDebugDesc':
     'Проверка регистрации веб-перехватчиков во время выполнения и записанные журналы запросов',
   'devOptions.menuIntelligence': 'Аналитика',
-  'devOptions.menuIntelligenceDesc':
-    'Рабочая область памяти, механизм подсознания, сны и настройки',
   'devOptions.menuNotificationRouting': 'Маршрутизация уведомлений',
   'devOptions.menuNotificationRoutingDesc':
     'Оценка важности ИИ и эскалация оркестратора для предупреждений интеграции',
@@ -7061,8 +7034,8 @@ const messages: TranslationMap = {
   'settings.ai.perWeek': '{count}/нед.',
   'settings.ai.perWeekMax': '{count}/нед. макс.',
   'settings.ai.perHour': '{amount}/ч',
-  'settings.ai.plannerSyncBreakdown': '{planner} планировщик + {sync} синхронизация',
   'settings.ai.memoryPollsDetail': '{count} опросов памяти',
+  'settings.ai.connectionSyncBreakdown': '{sync} синхронизация подключений',
   'settings.ai.rowsLeftFormula': 'остаток / средняя строка = {remaining} / {avgRow}',
   'settings.ai.needSpendRowsToEstimate': 'Для оценки нужны недавние строки расходов.',
   'settings.ai.rowsPerBudgetFormula': 'бюджет цикла / средняя строка = {budget} / {avgRow}',
