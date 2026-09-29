@@ -4318,6 +4318,7 @@ dependencies = [
  "tinyjuice-bus",
  "tinymcp",
  "tinymcp-bus",
+ "tinymemory",
  "tinymemory-api",
  "tinymemory-bus",
  "tinymemory-sources",
@@ -7581,7 +7582,7 @@ dependencies = [
 
 [[package]]
 name = "tinymcp"
-version = "0.3.5"
+version = "0.3.4"
 dependencies = [
  "base64 0.23.1",
  "dirs 7.0.0",
@@ -7601,11 +7602,23 @@ dependencies = [
 
 [[package]]
 name = "tinymcp-bus"
-version = "0.3.5"
+version = "0.3.4"
 dependencies = [
  "schemars 1.2.2",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "tinymemory"
+version = "1.16.2"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "serde",
+ "serde_json",
+ "tinymemory-api",
+ "tinymemory-remote",
 ]
 
 [[package]]
@@ -7632,6 +7645,22 @@ dependencies = [
  "sha2 0.11.0",
  "thiserror 2.0.20",
  "uuid",
+]
+
+[[package]]
+name = "tinymemory-remote"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "futures",
+ "reqwest 0.12.28",
+ "serde",
+ "serde_json",
+ "sha2 0.11.0",
+ "tinymemory-api",
+ "tokio",
 ]
 
 [[package]]
