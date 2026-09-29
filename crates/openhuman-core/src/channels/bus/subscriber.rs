@@ -156,7 +156,7 @@ impl EventHandler<DomainEvent> for ChannelInboundSubscriber {
         // can wait 30–90 s seeing no fresh activity. Post a short filler
         // every FILLER_INTERVAL so the chat keeps moving. All filler ids
         // are tracked in `StreamingState.filler_message_ids` and deleted
-        // in `finalize_channel_reply` once the real response is on screen.
+        // by `ProgressiveReply::finalize` once the real response is on screen.
         let mut filler_timer = tokio::time::interval(FILLER_INTERVAL);
         filler_timer.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
         filler_timer.tick().await; // consume the immediate tick — first filler fires after FILLER_INTERVAL
@@ -188,19 +188,19 @@ impl EventHandler<DomainEvent> for ChannelInboundSubscriber {
                                     }
                                 }
                                 "chat_done" | "chat:done" => {
-                                    let reply = ev.full_response.unwrap_or_default();
+                                    let full_response = ev.full_response.unwrap_or_default();
                                     // Even when the agent produced no visible
                                     // text, we must close out any draft we
                                     // already posted — otherwise the user is
                                     // left staring at a stale "_working…_"
                                     // message indefinitely.
-                                    let reply_text = if reply.trim().is_empty() {
+                                    let reply_text = if full_response.trim().is_empty() {
                                         tracing::warn!(
                                             "[channel-inbound] agent returned empty response — finalizing draft with fallback",
                                         );
                                         "(No response from agent.)"
                                     } else {
-                                        reply.as_str()
+                                        full_response.as_str()
                                     };
                                     tracing::info!(
                                         "[channel-inbound] agent done, replying to channel='{}' len={} streamed_msg_id={:?}",
