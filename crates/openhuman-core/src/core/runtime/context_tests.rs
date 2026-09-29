@@ -630,6 +630,8 @@ fn a_derived_context_without_a_memory_override_follows_the_parents_engine_switch
         .workspace_binding
         .read()
         .unwrap()
+        .read()
+        .unwrap()
         .memory_subsystem
         .driver
         .clone();
@@ -654,6 +656,8 @@ fn a_derived_context_with_its_own_memory_config_keeps_the_override() {
             .workspace_binding
             .read()
             .unwrap()
+            .read()
+            .unwrap()
             .memory_subsystem
             .driver,
         "null",
@@ -675,8 +679,42 @@ fn a_derived_context_on_another_workspace_is_not_shared() {
             .workspace_binding
             .read()
             .unwrap()
+            .read()
+            .unwrap()
             .memory_subsystem
             .driver,
         "null"
+    );
+}
+
+#[test]
+fn a_parent_workspace_rebind_does_not_move_a_derived_context() {
+    let parent = ctx("/tmp/shared-before-rebind");
+    let child = parent.derive_with(overlay_for("/tmp/shared-before-rebind", None));
+    let mut next_memory = crate::config::schema::MemorySubsystemConfig::default();
+    next_memory.driver = "null".to_string();
+
+    parent
+        .rebind_workspace(std::path::Path::new("/tmp/next-user"), next_memory)
+        .unwrap();
+
+    assert_eq!(
+        parent.workspace_dir().unwrap(),
+        PathBuf::from("/tmp/next-user")
+    );
+    assert_eq!(
+        child.workspace_dir().unwrap(),
+        PathBuf::from("/tmp/shared-before-rebind")
+    );
+    assert_eq!(
+        child
+            .workspace_binding
+            .read()
+            .unwrap()
+            .read()
+            .unwrap()
+            .memory_subsystem
+            .driver,
+        "tinycortex"
     );
 }
