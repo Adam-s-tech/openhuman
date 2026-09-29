@@ -5,7 +5,7 @@
 //! executing it. On an interactive (`WebChat`) turn the call blocks on
 //! [`PlanReviewGate`] until the user decides; the tool result then tells the
 //! agent to proceed / stop / revise. On any non-interactive origin (cron,
-//! subconscious, CLI, channels) there is no human to ask, so the tool
+//! background jobs, CLI, channels) there is no human to ask, so the tool
 //! auto-approves immediately — background automation is never blocked.
 
 use async_trait::async_trait;
@@ -39,7 +39,7 @@ impl Tool for RequestPlanReviewTool {
     }
 
     fn description(&self) -> &str {
-        "Pause the turn so the user can approve a thread-scoped plan before you execute it. Blocks until they decide, then returns `approved`, `rejected`, or `revise` with their feedback. Non-interactive turns (cron / subconscious / CLI) auto-approve."
+        "Pause the turn so the user can approve a thread-scoped plan before you execute it. Blocks until they decide, then returns `approved`, `rejected`, or `revise` with their feedback. Non-interactive turns (cron / CLI) auto-approve."
     }
 
     fn parameters_schema(&self) -> serde_json::Value {

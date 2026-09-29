@@ -34,7 +34,7 @@ Two policy points here: `channel_has_approval_surface` is `true` only for `TELEG
 
 ## Called by
 
-`channels::start_channels` is re-exported from `channels/mod.rs` and spawned by `spawn_channels_service` in `crates/openhuman-core/src/core/runtime/services.rs`, unless `OPENHUMAN_DISABLE_CHANNEL_LISTENERS` is set or `channels_config.has_listening_integrations()` is false. Web-chat-only desktop cores therefore never run it; `bus::ChannelInboundSubscriber` and the web-only proactive subscriber are registered on the always-on boot path in `core/jsonrpc.rs` instead.
+`channels::start_channels` is re-exported from `channels/mod.rs` and spawned by `spawn_channels_service` in `crates/openhuman-core/src/core/runtime/services.rs`, unless `OPENHUMAN_DISABLE_CHANNEL_LISTENERS` is set or `channels_config.has_listening_integrations()` is false. Web-chat-only desktop cores therefore never run it; `bus::ChannelInboundSubscriber` and the web-only proactive subscriber are registered on the always-on boot path in `core/runtime/subscribers.rs` instead.
 
 ## Tests
 

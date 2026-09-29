@@ -23,7 +23,7 @@ pub async fn flows_resume(
     thread_id: &str,
     approvals: Vec<String>,
     rejections: Vec<String>,
-) -> Result<RpcOutcome<Value>, String> {
+) -> Result<Outcome<Value>, String> {
     let flow = store::get_flow(config, flow_id)
         .map_err(|e| e.to_string())?
         .ok_or_else(|| format!("flow '{flow_id}' not found"))?;
@@ -364,7 +364,7 @@ pub async fn flows_resume(
                 tracing::warn!(target: "flows", flow_id = %flow_id, error = %e, "[flows] flows_resume: failed to record cancelled run");
             }
             drop_checkpoint(config, thread_id).await;
-            return Ok(RpcOutcome::single_log(
+            return Ok(Outcome::single_log(
                 json!({
                     "output": Value::Null,
                     "pending_approvals": Vec::<String>::new(),
@@ -452,7 +452,7 @@ pub async fn flows_resume(
         "[flows] flows_resume: finished"
     );
 
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         json!({
             "output": outcome.output,
             "pending_approvals": outcome.pending_approvals,

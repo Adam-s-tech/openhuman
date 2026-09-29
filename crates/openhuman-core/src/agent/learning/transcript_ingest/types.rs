@@ -12,7 +12,7 @@ pub const CONVERSATION_MEMORY_NAMESPACE: &str = "conversation_memory";
 
 /// Memory namespace for transcript-derived higher-level reflections —
 /// patterns, repeated mistakes, opportunities. Surfaced through the
-/// subconscious / Intelligence UI rather than the prompt context block.
+/// Intelligence UI rather than the prompt context block.
 pub const CONVERSATION_REFLECTIONS_NAMESPACE: &str = "conversation_reflections";
 
 /// Memory namespace holding raw, verbatim user messages captured by the

@@ -39,9 +39,9 @@ use reqwest::StatusCode;
 use serde_json::{json, Value};
 use tempfile::TempDir;
 
-use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
-use openhuman_core::core::jsonrpc::build_core_http_router;
 use openhuman_core::config::Config;
+use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
+use openhuman_rpc::server::build_core_http_router;
 
 /// Preferred bearer. Only the real one if this module wins the process-global
 /// `OnceLock` race — send [`rpc_bearer`], never this.
@@ -263,7 +263,7 @@ async fn rpc(rpc_base: &str, id: i64, method: &str, params: Value) -> Value {
         .unwrap_or_else(|err| panic!("json for {method}: {err}"))
 }
 
-/// The payload of a successful dispatch, unwrapping the `RpcOutcome`
+/// The payload of a successful dispatch, unwrapping the `Outcome`
 /// `{ result, logs }` envelope when the handler produced one.
 fn payload(value: &Value, context: &str) -> Value {
     if let Some(error) = value.get("error") {
@@ -961,7 +961,13 @@ async fn tree_summarizer_run_and_rebuild_refuse_without_summarization_consent() 
         (43_101_i64, "openhuman.tree_summarizer_run", "run"),
         (43_102, "openhuman.tree_summarizer_rebuild", "rebuild"),
     ] {
-        let response = rpc(&harness.rpc_base, id, method, json!({ "namespace": namespace })).await;
+        let response = rpc(
+            &harness.rpc_base,
+            id,
+            method,
+            json!({ "namespace": namespace }),
+        )
+        .await;
         let message = error_message(&response, context);
         assert!(
             message.contains("no summarization provider"),

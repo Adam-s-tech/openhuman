@@ -190,7 +190,6 @@ pub(super) fn agent_node_role(config: &Config, node: &tinyflows::model::Node) ->
                     |model| crate::flows::tinyflows::caps::harness_model_default_override(&model),
                 );
             return crate::agent::session_host::provider_role_for_definition(
-                agent_ref,
                 override_model
                     .as_deref()
                     .or(config.default_model.as_deref()),

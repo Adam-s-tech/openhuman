@@ -16,7 +16,7 @@ use super::helpers::{base64_decode, extension_for_mime};
 use super::traits::{SttProvider, SttResult};
 use crate::config::schema::voice_providers::SttApiStyle;
 use crate::config::Config;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 const LOG_PREFIX: &str = "[voice-factory]";
 
@@ -50,7 +50,7 @@ impl SttProvider for CloudSttProvider {
         mime_type: Option<&str>,
         file_name: Option<&str>,
         language: Option<&str>,
-    ) -> Result<RpcOutcome<SttResult>, String> {
+    ) -> Result<Outcome<SttResult>, String> {
         debug!(
             "{LOG_PREFIX} cloud STT dispatch model={} bytes_b64={}",
             self.model,
@@ -64,7 +64,7 @@ impl SttProvider for CloudSttProvider {
         };
         let outcome = transcribe_cloud(config, audio_base64, &opts).await?;
         let CloudTranscribeResult { text } = outcome.value;
-        Ok(RpcOutcome::single_log(
+        Ok(Outcome::single_log(
             SttResult {
                 text,
                 provider: "cloud".to_string(),
@@ -119,7 +119,7 @@ impl SttProvider for ExternalSttProvider {
         mime_type: Option<&str>,
         file_name: Option<&str>,
         language: Option<&str>,
-    ) -> Result<RpcOutcome<SttResult>, String> {
+    ) -> Result<Outcome<SttResult>, String> {
         debug!(
             "{LOG_PREFIX} external STT dispatch slug={} model={} style={:?} bytes_b64={}",
             self.slug,
@@ -146,7 +146,7 @@ impl SttProvider for ExternalSttProvider {
             }
         };
 
-        Ok(RpcOutcome::single_log(
+        Ok(Outcome::single_log(
             SttResult {
                 text: result,
                 provider: self.slug.clone(),

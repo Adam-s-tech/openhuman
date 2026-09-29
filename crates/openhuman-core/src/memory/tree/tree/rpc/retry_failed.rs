@@ -4,7 +4,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::config::Config;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 /// Response from `memory_tree_retry_failed` (#002 FR-011).
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -17,12 +17,12 @@ pub struct RetryFailedResponse {
 /// terminally-`failed` `mem_tree_jobs` row back to `ready` (fresh attempt
 /// budget, typed reason cleared) so jobs that failed under a now-fixed config
 /// re-run without re-ingesting source data. Backs the "Retry failed" button.
-pub async fn retry_failed_rpc(config: &Config) -> Result<RpcOutcome<RetryFailedResponse>, String> {
+pub async fn retry_failed_rpc(config: &Config) -> Result<Outcome<RetryFailedResponse>, String> {
     // Requeue and wake are one operation at the driver. They were two calls
     // here, which is one call away from a retry that moves rows and then lets
     // them sit until the next scheduled window.
     let requeued = crate::memory::ops::maintenance::retry_failed(config).await?;
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         RetryFailedResponse { requeued },
         format!("memory_tree: retry_failed requeued={requeued}"),
     ))

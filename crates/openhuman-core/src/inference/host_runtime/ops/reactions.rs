@@ -2,8 +2,8 @@
 //! extracting the emoji it picked.
 
 use crate::config::Config;
+use crate::core::Outcome;
 use crate::inference::host_runtime as local_ai;
-use crate::rpc::RpcOutcome;
 
 /// Result of the reaction-decision prompt.
 #[derive(Debug, serde::Serialize)]
@@ -22,7 +22,7 @@ pub async fn local_ai_should_react(
     config: &Config,
     message: &str,
     channel_type: &str,
-) -> Result<RpcOutcome<ReactionDecision>, String> {
+) -> Result<Outcome<ReactionDecision>, String> {
     tracing::debug!(
         channel_type,
         msg_len = message.len(),
@@ -30,7 +30,7 @@ pub async fn local_ai_should_react(
     );
 
     if message.trim().is_empty() {
-        return Ok(RpcOutcome::single_log(
+        return Ok(Outcome::single_log(
             ReactionDecision {
                 should_react: false,
                 emoji: None,
@@ -43,7 +43,7 @@ pub async fn local_ai_should_react(
     let status = service.status();
     if !matches!(status.state.as_str(), "ready") {
         tracing::debug!("[local_ai:should_react] local model not ready, skipping");
-        return Ok(RpcOutcome::single_log(
+        return Ok(Outcome::single_log(
             ReactionDecision {
                 should_react: false,
                 emoji: None,
@@ -63,7 +63,7 @@ pub async fn local_ai_should_react(
 
     let runtime = crate::inference::local_runtime_config(config);
     let Some(_permit) = crate::cron::scheduler_gate::wait_for_capacity().await else {
-        return Ok(RpcOutcome::single_log(
+        return Ok(Outcome::single_log(
             ReactionDecision {
                 should_react: false,
                 emoji: None,
@@ -114,10 +114,7 @@ pub async fn local_ai_should_react(
         emoji = ?decision.emoji,
         "[local_ai:should_react] decision"
     );
-    Ok(RpcOutcome::single_log(
-        decision,
-        "reaction decision completed",
-    ))
+    Ok(Outcome::single_log(decision, "reaction decision completed"))
 }
 
 /// Extract the first emoji from a string. Handles common emoji codepoints

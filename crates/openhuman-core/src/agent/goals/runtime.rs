@@ -151,32 +151,15 @@ fn turn_tokens(input: u64, output: u64) -> u64 {
     crate_budget::turn_tokens(input, output)
 }
 
-/// Whether the current turn is an autonomous goal-continuation (vs. a
-/// user-initiated turn). Used so a continuation doesn't clear its own one-shot
-/// suppression flag.
-fn is_goal_continuation_turn() -> bool {
-    matches!(
-        crate::agent::turn_origin::current(),
-        Some(
-            crate::agent::turn_origin::AgentTurnOrigin::TrustedAutomation {
-                source: crate::agent::turn_origin::TrustedAutomationSource::GoalContinuation,
-                ..
-            }
-        )
-    )
-}
-
 /// Account a finished turn's usage against an explicit thread's goal.
 ///
 /// The accounting rules are the crate's
 /// ([`crate_budget::account_turn`](tinyagents_graph::goals::account_turn)):
 /// only **active** goals are charged, so a paused/complete/budget-limited goal
-/// doesn't accrue usage from incidental chat, and a user-initiated turn clears
-/// the one-shot continuation suppression (a continuation turn must not clear
-/// its own, see [`super::continuation`]).
+/// doesn't accrue usage from incidental chat. OpenHuman runs no autonomous
+/// goal continuation, so every accounted turn is user-initiated.
 ///
-/// What is OpenHuman's here: receiving the owned thread from the turn,
-/// classifying the turn as user-initiated vs. continuation from its origin, and
+/// What is OpenHuman's here: receiving the owned thread from the turn and
 /// emitting `ThreadGoalUpdated` when the status changes (e.g. →
 /// `budget_limited`) so the UI chip refreshes. Best-effort throughout: a
 /// failure is logged and swallowed so accounting never fails a user turn.
@@ -202,9 +185,7 @@ pub async fn account_turn_against_goal(
     let prev_tokens_used = prev.tokens_used;
 
     let store = goals_store(workspace_dir);
-    let user_initiated = !is_goal_continuation_turn();
-    match crate_budget::account_turn(&store, &thread_id, input, output, secs, user_initiated).await
-    {
+    match crate_budget::account_turn(&store, &thread_id, input, output, secs, true).await {
         Ok(Some(updated)) => {
             tracing::debug!(
                 thread_id = %thread_id,

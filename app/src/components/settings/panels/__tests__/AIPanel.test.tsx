@@ -36,17 +36,7 @@ import AIPanel, {
 vi.mock('../../../../services/api/aiSettingsApi', async importOriginal => {
   const actual = await importOriginal<typeof import('../../../../services/api/aiSettingsApi')>();
   return {
-    ALL_WORKLOADS: [
-      'chat',
-      'reasoning',
-      'agentic',
-      'coding',
-      'memory',
-      'embeddings',
-      'heartbeat',
-      'learning',
-      'subconscious',
-    ],
+    ALL_WORKLOADS: ['chat', 'reasoning', 'agentic', 'coding', 'memory', 'embeddings', 'learning'],
     loadAISettings: vi.fn(),
     saveAISettings: vi.fn(),
     loadLocalProviderSnapshot: vi.fn(),
@@ -139,9 +129,7 @@ const baseSettings = {
     vision: { kind: 'openhuman' as const },
     memory: { kind: 'openhuman' as const },
     embeddings: { kind: 'openhuman' as const },
-    heartbeat: { kind: 'openhuman' as const },
     learning: { kind: 'openhuman' as const },
-    subconscious: { kind: 'openhuman' as const },
   },
   modelRegistry: [],
 };
@@ -239,7 +227,7 @@ const baseTransactions = [
   {
     id: 'latest',
     type: 'SPEND' as const,
-    action: 'HEARTBEAT',
+    action: 'MEMORY_SUMMARY',
     amountUsd: -0.5,
     balanceAfterUsd: 9.25,
     createdAt: '2026-05-17T03:00:00.000Z',
@@ -383,9 +371,7 @@ describe('AIPanel', () => {
       'Coding',
       'Vision',
       'Memory summarization',
-      'Heartbeat',
       /Learning/,
-      'Subconscious',
     ]) {
       expect(screen.getByText(label)).toBeInTheDocument();
     }
@@ -901,9 +887,7 @@ describe('AIPanel', () => {
         vision: { kind: 'openhuman' as const },
         memory: { kind: 'openhuman' as const },
         embeddings: { kind: 'openhuman' as const },
-        heartbeat: { kind: 'openhuman' as const },
         learning: { kind: 'openhuman' as const },
-        subconscious: { kind: 'openhuman' as const },
       },
       modelRegistry: [],
     };
@@ -1529,9 +1513,7 @@ describe('AIPanel', () => {
         vision: { kind: 'openhuman' as const },
         memory: { kind: 'openhuman' as const },
         embeddings: { kind: 'openhuman' as const },
-        heartbeat: { kind: 'openhuman' as const },
         learning: { kind: 'openhuman' as const },
-        subconscious: { kind: 'openhuman' as const },
       },
       modelRegistry: [],
     };
@@ -1586,9 +1568,7 @@ describe('AIPanel', () => {
         vision: { kind: 'openhuman' as const },
         memory: { kind: 'openhuman' as const },
         embeddings: { kind: 'openhuman' as const },
-        heartbeat: { kind: 'openhuman' as const },
         learning: { kind: 'openhuman' as const },
-        subconscious: { kind: 'openhuman' as const },
       },
       modelRegistry: [],
     };
@@ -2220,7 +2200,7 @@ describe('AIPanel', () => {
     expect(screen.getByText('Composio sync scans')).toBeInTheDocument();
     expect(screen.getByText('Memory worker polls')).toBeInTheDocument();
 
-    expect(screen.getByText('HEARTBEAT')).toBeInTheDocument();
+    expect(screen.getByText('MEMORY_SUMMARY')).toBeInTheDocument();
     expect(screen.getByText('SPEND:USAGE_DEDUCTION:USER')).toBeInTheDocument();
     expect(screen.getByText(/Latest spend: \$0\.5000/)).toBeInTheDocument();
   });
@@ -2234,9 +2214,7 @@ describe('buildRoutingDiffSummary', () => {
     coding: { kind: 'default' },
     vision: { kind: 'default' },
     memory: { kind: 'default' },
-    heartbeat: { kind: 'default' },
     learning: { kind: 'default' },
-    subconscious: { kind: 'default' },
   });
 
   it('emits one "<label> → <target>" entry per changed workload and skips unchanged ones', () => {

@@ -26,7 +26,7 @@ Multi-agent orchestration domain. Owns the LLM tool-calling loop, sub-agent disp
 | `debug/` | Renders the exact system prompt a live session would see for a given agent, via `Agent::from_config_for_agent` |
 | `experience/` | Local procedural operating experience capture for self-learning ([README](experience/README.md)) |
 | `file_state/` | Process-wide read/write stamps so parallel sub-agents and worker threads detect stale file contents before writing |
-| `goals/` | Host adapters around `tinyagents_graph::goals`: workspace-store resolution, domain events, heartbeat dispatch, and the `goal_*` tools ([README](goals/README.md)) |
+| `goals/` | Host adapters around `tinyagents_graph::goals`: workspace-store resolution, domain events, turn accounting, and the `goal_*` tools ([README](goals/README.md)) |
 | `harness/` | Legacy/product prompt and definition helpers used by the session host; generic loop mechanics are imported from TinyAgents ([README](harness/README.md)) |
 | `harness_init/` | One-time first-run provisioning (Python/spaCy/Kompress/Node) before the harness can run ([README](harness_init/README.md)) |
 | `learning/` | Reflection, tool-outcome tracking, user-profile inference from transcripts ([README](learning/README.md)) |
@@ -50,7 +50,7 @@ Flat files: `bus.rs` (`agent.run_turn` native request handler), `context_breakdo
 
 `agent`, `agent_registry`, `harness_init`, `session_import`, `plan_review`, `run_ledger` (session_db), `agent_experience` (experience), `ai` (artifacts), `learning`, `agent_team`, `agent_work` (orchestration/command_center), `workflow_run`, `worktree`, `subagent` (orchestration/subagent_control): all registered under `DomainGroup::Agent` in `core/all.rs`.
 
-`crate::rpc` is `pub use openhuman_rpc as rpc` in `lib.rs`; shared RPC contracts, response decoding, and the HTTP client live in the separate `crates/openhuman-rpc` crate, not under `agent/`.
+`crate::core::Outcome` is the controller result type; the JSON-RPC protocol, client and server that expose controllers live in the separate `crates/openhuman-rpc` crate, which depends on this one.
 
 ## Calls into
 

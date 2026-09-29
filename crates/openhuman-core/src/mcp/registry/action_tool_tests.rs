@@ -1,4 +1,7 @@
 use super::*;
+use crate::mcp::registry::types::McpTool;
+use serde_json::json;
+use tinytools::{PermissionLevel, ToolExposure};
 
 fn server(server_id: &str, tool_name: &str) -> ConnectedServerOverview {
     ConnectedServerOverview {
@@ -20,24 +23,71 @@ fn server(server_id: &str, tool_name: &str) -> ConnectedServerOverview {
 }
 
 #[test]
-fn names_are_stable_distinct_and_provider_safe() {
-    let first = searchable_name("server-1", "weather.forecast/current");
+fn names_read_as_server_then_tool_and_are_provider_safe() {
+    let name = searchable_name("server-1", "example/weather", "weather.forecast/current");
+    assert!(
+        name.starts_with("mcp_weather_weather_forecast_current_"),
+        "{name}"
+    );
     assert_eq!(
-        first,
-        searchable_name("server-1", "weather.forecast/current")
+        name,
+        searchable_name("server-1", "example/weather", "weather.forecast/current")
     );
     assert_ne!(
-        first,
-        searchable_name("server-2", "weather.forecast/current")
+        name,
+        searchable_name("server-2", "example/weather", "weather.forecast/current")
     );
-    assert_ne!(
-        first,
-        searchable_name("server-1", "weather_forecast_current")
-    );
-    assert!(first.len() <= 64);
-    assert!(first
+    assert!(name.len() <= 64);
+    assert!(name
         .chars()
         .all(|ch| ch.is_ascii_lowercase() || ch.is_ascii_digit() || ch == '_'));
+}
+
+#[test]
+fn tools_are_named_mcp_server_tool() {
+    let tools = deferred_connected_tools(
+        Arc::new(Config::default()),
+        &[server("server-1", "readGoals")],
+    );
+    assert_eq!(
+        tools[0].name(),
+        searchable_name("server-1", "example/weather", "readGoals")
+    );
+    assert!(tools[0].name().starts_with("mcp_weather_read_goals_"));
+}
+
+#[test]
+fn equal_tool_names_on_two_servers_stay_distinct() {
+    let tools = deferred_connected_tools(
+        Arc::new(Config::default()),
+        &[
+            server("server-1", "forecast"),
+            server("server-2", "forecast"),
+        ],
+    );
+    assert_eq!(tools.len(), 2);
+    assert_ne!(tools[0].name(), tools[1].name());
+}
+
+#[test]
+fn a_recorded_legacy_name_is_restored_as_an_alias() {
+    let legacy = tinymcp::tools::naming::legacy_tool_name("server-1", "forecast");
+    let recorded: HashSet<String> = [legacy.clone()].into_iter().collect();
+    let tools = deferred_connected_tools_with_legacy(
+        Arc::new(Config::default()),
+        &[server("server-1", "forecast")],
+        &recorded,
+    );
+    let names: Vec<&str> = tools.iter().map(|tool| tool.name()).collect();
+    let current = searchable_name("server-1", "example/weather", "forecast");
+    assert_eq!(names, [current.as_str(), legacy.as_str()]);
+
+    let none = deferred_connected_tools_with_legacy(
+        Arc::new(Config::default()),
+        &[server("server-1", "forecast")],
+        &HashSet::new(),
+    );
+    assert_eq!(none.len(), 1);
 }
 
 #[test]
@@ -95,7 +145,7 @@ fn nested_schema_lists_are_sanitized() {
 }
 
 #[tokio::test]
-async fn action_refuses_a_server_that_is_no_longer_connected() {
+async fn action_refuses_a_server_that_is_not_connected() {
     let source = server("not-connected", "forecast");
     let workspace = tempfile::tempdir().expect("temp workspace");
     let config = Config {
@@ -104,8 +154,8 @@ async fn action_refuses_a_server_that_is_no_longer_connected() {
         config_path: workspace.path().join("config.toml"),
         ..Default::default()
     };
-    let tool = McpActionTool::new(Arc::new(config), &source, source.tools[0].clone());
-    let result = tool.execute(json!({ "city": "London" })).await.unwrap();
+    let tools = deferred_connected_tools(Arc::new(config), &[source]);
+    let result = tools[0].execute(json!({ "city": "London" })).await.unwrap();
     assert!(result.is_error);
-    assert!(result.text().contains("no longer connected"));
+    assert!(result.text().contains("not connected"), "{}", result.text());
 }

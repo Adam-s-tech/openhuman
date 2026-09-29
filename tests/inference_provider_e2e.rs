@@ -21,7 +21,7 @@ use wiremock::matchers::{header as wm_header, method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
-use openhuman_core::core::jsonrpc::build_core_http_router;
+use openhuman_rpc::server::build_core_http_router;
 use tinyinference_llm::message::Message;
 use tinyinference_llm::model::{ChatModel, ModelRequest, ModelStreamItem};
 use tinyinference_llm::providers::openai::{AuthStyle, OpenAiModel};

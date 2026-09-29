@@ -1,186 +1,168 @@
-//! Searchable agent tools for actions on already-connected MCP servers.
+//! Agent tools for every action on the user's installed (`mcp.json`) servers.
+//!
+//! The tools themselves are `tinymcp::tools::McpServerTool`s: named
+//! `mcp_<server>_<tool>`, deferred so `tool_search` finds them, described and
+//! schema'd from sanitized remote text. What stays here is this application's
+//! policy, applied through [`InstalledServerInvoker`]:
+//!
+//! - remote definitions pass the prompt-injection scan
+//!   ([`super::tools_safe_for_agent`]) before they become tools, and again
+//!   against the live list at call time;
+//! - a call reaches only a server that is connected now — the tool list may
+//!   come from the persistent cache, which is not an authorization;
+//! - every call publishes `McpClientToolExecuted`.
 
 use std::collections::HashSet;
 use std::sync::Arc;
+use std::time::Instant;
 
 use async_trait::async_trait;
-use serde_json::{json, Value};
-use sha2::{Digest, Sha256};
-use tinytools::{PermissionLevel, Tool, ToolCategory, ToolExposure, ToolResult};
+use serde_json::Value;
+use tinymcp::tools::{McpServerTool, McpToolInvoker, McpToolSource};
+use tinymcp_bus::McpToolResult;
+use tinytools::Tool;
 
 use crate::config::Config;
-use crate::util::sanitize::sanitize_for_llm;
+use crate::core::bus::BUS;
+use crate::core::events::DomainEvent;
+use crate::mcp::host;
 
 use super::connections;
-use super::types::{ConnectedServerOverview, McpTool};
+use super::types::ConnectedServerOverview;
 
-/// Stable, provider-safe name for one server's tool. The digest distinguishes
-/// equal tool names on different servers and names truncated to the same slug.
-pub fn searchable_name(server_id: &str, tool_name: &str) -> String {
-    let slug: String = tool_name
-        .chars()
-        .map(|ch| {
-            if ch.is_ascii_alphanumeric() {
-                ch.to_ascii_lowercase()
-            } else {
-                '_'
-            }
-        })
-        .take(42)
-        .collect();
-    let slug = slug.trim_matches('_');
-    let slug = if slug.is_empty() { "tool" } else { slug };
-    let digest = Sha256::digest(format!("{server_id}\0{tool_name}").as_bytes());
-    format!("mcp_{slug}_{}", &hex::encode(digest)[..12])
+/// The name an installed server's tool is exposed under.
+///
+/// `mcp_<server>_<tool>_<digest>`: the server part from its qualified name,
+/// plus a short digest of the install and tool so the name never changes
+/// when another server with the same slug comes or goes; see
+/// `tinymcp::tools::naming`.
+#[must_use]
+pub fn searchable_name(server_id: &str, qualified_name: &str, tool_name: &str) -> String {
+    tinymcp::tools::naming::disambiguated_tool_name(server_id, qualified_name, tool_name)
 }
 
-/// One deferred registration per callable action from each connected server.
-/// Remote definitions are filtered by the host's injection policy first.
+/// One deferred tool per action of each installed server in `servers`.
+///
+/// `servers` may come from the persistent tool cache
+/// (`McpRegistry::cached_overview`), so tools appear before their server has
+/// finished connecting; the invoker refuses a call until it has.
 pub fn deferred_connected_tools(
     config: Arc<Config>,
     servers: &[ConnectedServerOverview],
 ) -> Vec<Box<dyn Tool>> {
-    let mut ordered: Vec<&ConnectedServerOverview> = servers.iter().collect();
-    ordered.sort_by(|a, b| a.server_id.cmp(&b.server_id));
-    let mut names = HashSet::new();
-    let mut result: Vec<Box<dyn Tool>> = Vec::new();
-    for server in ordered {
-        let mut tools = super::tools_safe_for_agent(&server.server_id, server.tools.clone());
-        tools.sort_by(|a, b| a.name.cmp(&b.name));
-        for tool in tools {
-            if tool.name.trim().is_empty() {
-                continue;
-            }
-            let action = McpActionTool::new(Arc::clone(&config), server, tool);
-            if names.insert(action.name.clone()) {
-                result.push(Box::new(action));
-            }
-        }
-    }
-    result
+    server_tools(config, servers)
+        .into_iter()
+        .map(|tool| Box::new(tool) as Box<dyn Tool>)
+        .collect()
 }
 
-struct McpActionTool {
+/// [`deferred_connected_tools`], plus a copy of any tool under the pre-readable
+/// hashed name when `recorded` says the conversation was sent that name.
+///
+/// A resumed thread replays the tool names it recorded, so a thread started
+/// before readable names keeps working without any file on disk changing.
+pub fn deferred_connected_tools_with_legacy(
     config: Arc<Config>,
-    name: String,
-    server_id: String,
-    tool_name: String,
-    family: String,
-    description: String,
-    parameters: Value,
-}
-
-impl McpActionTool {
-    fn new(config: Arc<Config>, server: &ConnectedServerOverview, tool: McpTool) -> Self {
-        let name = searchable_name(&server.server_id, &tool.name);
-        let server_name = if server.display_name.trim().is_empty() {
-            &server.qualified_name
-        } else {
-            &server.display_name
-        };
-        let family = sanitize_for_llm(&server.qualified_name, 120);
-        let description = format!(
-            "MCP server {}: {}",
-            sanitize_for_llm(server_name, 120),
-            sanitize_for_llm(tool.description.as_deref().unwrap_or(&tool.name), 500)
+    servers: &[ConnectedServerOverview],
+    recorded: &HashSet<String>,
+) -> Vec<Box<dyn Tool>> {
+    let tools = server_tools(config, servers);
+    let aliases: Vec<McpServerTool> = tools
+        .iter()
+        .filter_map(|tool| {
+            let legacy = tool.legacy_name();
+            (recorded.contains(&legacy) && legacy != tool.name())
+                .then(|| tool.clone().renamed(legacy))
+        })
+        .collect();
+    if !aliases.is_empty() {
+        tracing::debug!(
+            aliases = aliases.len(),
+            "[mcp] restoring recorded tools under their earlier names"
         );
-        let mut parameters = if tool.input_schema.is_object() {
-            tool.input_schema
-        } else {
-            json!({ "type": "object", "properties": {} })
-        };
-        sanitize_schema_descriptions(&mut parameters);
-        Self {
-            config,
-            name,
-            server_id: server.server_id.clone(),
-            tool_name: tool.name,
-            family,
-            description,
-            parameters,
-        }
     }
+    tools
+        .into_iter()
+        .chain(aliases)
+        .map(|tool| Box::new(tool) as Box<dyn Tool>)
+        .collect()
 }
 
-fn sanitize_schema_descriptions(value: &mut Value) {
-    match value {
-        Value::Object(map) => {
-            for (key, child) in map {
-                if (key == "description" || key == "title") && child.is_string() {
-                    *child =
-                        Value::String(sanitize_for_llm(child.as_str().unwrap_or_default(), 500));
-                } else {
-                    sanitize_schema_descriptions(child);
-                }
-            }
-        }
-        Value::Array(items) => {
-            for item in items {
-                sanitize_schema_descriptions(item);
-            }
-        }
-        _ => {}
+fn server_tools(config: Arc<Config>, servers: &[ConnectedServerOverview]) -> Vec<McpServerTool> {
+    let sources: Vec<McpToolSource> = servers
+        .iter()
+        .map(|server| {
+            let mut source = McpToolSource::from_overview(server);
+            source.tools = super::tools_safe_for_agent(&server.server_id, server.tools.clone());
+            source
+        })
+        .collect();
+    let invoker: Arc<dyn McpToolInvoker> = Arc::new(InstalledServerInvoker { config });
+    tinymcp::tools::tools_for(&sources, &invoker)
+}
+
+/// Calls an installed server's tool under this application's policy.
+#[derive(Debug)]
+pub struct InstalledServerInvoker {
+    config: Arc<Config>,
+}
+
+impl InstalledServerInvoker {
+    /// An invoker over `config`'s workspace.
+    #[must_use]
+    pub fn new(config: Arc<Config>) -> Self {
+        Self { config }
     }
 }
 
 #[async_trait]
-impl Tool for McpActionTool {
-    fn name(&self) -> &str {
-        &self.name
-    }
-
-    fn description(&self) -> &str {
-        &self.description
-    }
-
-    fn parameters_schema(&self) -> Value {
-        self.parameters.clone()
-    }
-
-    fn permission_level(&self) -> PermissionLevel {
-        PermissionLevel::Execute
-    }
-
-    fn external_effect(&self) -> bool {
-        true
-    }
-
-    fn category(&self) -> ToolCategory {
-        ToolCategory::Workflow
-    }
-
-    fn exposure(&self) -> ToolExposure {
-        ToolExposure::Deferred
-    }
-
-    fn family(&self) -> Option<&str> {
-        Some(&self.family)
-    }
-
-    async fn execute(&self, arguments: Value) -> anyhow::Result<ToolResult> {
-        let Some(live_tools) =
-            connections::server_tools_for_config(&self.config, &self.server_id).await
-        else {
-            return Ok(ToolResult::error("MCP server is no longer connected"));
+impl McpToolInvoker for InstalledServerInvoker {
+    async fn invoke(
+        &self,
+        server_id: &str,
+        tool: &str,
+        arguments: Value,
+    ) -> tinymcp::Result<McpToolResult> {
+        let not_connected = || tinymcp::Error::NotConnected {
+            server: server_id.to_string(),
         };
-        let safe_tools = super::tools_safe_for_agent(&self.server_id, live_tools);
-        if !safe_tools.iter().any(|tool| tool.name == self.tool_name) {
-            return Ok(ToolResult::error("MCP tool is no longer available"));
+        let live = connections::server_tools_for_config(&self.config, server_id)
+            .await
+            .ok_or_else(not_connected)?;
+        let safe = super::tools_safe_for_agent(server_id, live);
+        if !safe.iter().any(|candidate| candidate.name == tool) {
+            tracing::debug!(
+                server_id,
+                tool,
+                "[mcp] tool is no longer offered by the live server"
+            );
+            return Err(tinymcp::Error::ToolNotAllowed {
+                server: server_id.to_string(),
+                tool: tool.to_string(),
+            });
         }
-        let outcome = super::ops::mcp_clients_tool_call(
-            &self.config,
-            self.server_id.clone(),
-            self.tool_name.clone(),
-            arguments,
-        )
-        .await
-        .map_err(anyhow::Error::msg)?;
-        let payload = serde_json::to_string(&outcome.value)?;
-        if outcome.value.get("is_error").and_then(Value::as_bool) == Some(true) {
-            Ok(ToolResult::error(payload))
-        } else {
-            Ok(ToolResult::success(payload))
-        }
+        let service = host::for_config(&self.config).map_err(|error| {
+            tracing::debug!(?error, server_id, "[mcp] no host for workspace");
+            not_connected()
+        })?;
+
+        let start = Instant::now();
+        let result = service.dynamic().invoke(server_id, tool, arguments).await;
+        let elapsed_ms = u64::try_from(start.elapsed().as_millis()).unwrap_or(u64::MAX);
+        BUS.publish(DomainEvent::McpClientToolExecuted {
+            server_id: server_id.to_string(),
+            tool_name: tool.to_string(),
+            success: result.is_ok(),
+            elapsed_ms,
+        });
+        tracing::debug!(
+            server_id,
+            tool,
+            elapsed_ms,
+            ok = result.is_ok(),
+            "[mcp] installed server tool call"
+        );
+        result
     }
 }
 

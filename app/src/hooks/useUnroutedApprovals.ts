@@ -30,7 +30,7 @@
  * as an event on a bus nobody is listening to at that moment".
  *
  * It is also origin-agnostic. Anything the gate parks and no one claims shows
- * up here — `ExternalChannel` and `TrustedAutomation{GoalContinuation}` parks
+ * up here — `ExternalChannel` and `TrustedAutomation{Workflow}` parks
  * included, not just triage.
  *
  * ## The discriminator, and which way it fails

@@ -512,12 +512,13 @@ fn store_handles_labels_and_inference() {
     store
         .ensure_thread(CreateConversationThread {
             parent_thread_id: None,
-            id: "legacy-subconscious-thread".to_string(),
-            title: "Legacy Subconscious Chat".to_string(),
+            id: "legacy-reflection-thread".to_string(),
+            title: "Legacy Reflection Chat".to_string(),
             created_at: "2026-04-10T12:00:00Z".to_string(),
             labels: Some(vec![
                 "from_reflection".to_string(),
                 "subconscious_tick".to_string(),
+                "subconscious".to_string(),
             ]),
             personality_id: None,
         })
@@ -563,9 +564,9 @@ fn store_handles_labels_and_inference() {
     {
         let legacy = threads
             .iter()
-            .find(|t| t.id == "legacy-subconscious-thread")
+            .find(|t| t.id == "legacy-reflection-thread")
             .unwrap();
-        assert_eq!(legacy.labels, vec!["subconscious"]);
+        assert_eq!(legacy.labels, vec!["general"]);
     }
     {
         let legacy = threads

@@ -297,41 +297,6 @@ async fn auto_approve_all_off_still_parks() {
     assert!(matches!(outcome, GateOutcome::Allow));
 }
 
-/// `auto_approve_all: true` must NOT override a `SubconsciousTainted`
-/// origin — the gate still hard-denies it (indirect prompt injection
-/// defense).
-#[tokio::test]
-async fn auto_approve_all_does_not_override_subconscioustainted() {
-    let _env = crate::config::TEST_ENV_LOCK
-        .lock()
-        .unwrap_or_else(|e| e.into_inner());
-    let (gate, dir) = test_gate();
-    let policy = crate::security::SecurityPolicy {
-        auto_approve_all: true,
-        ..crate::security::SecurityPolicy::default()
-    };
-    let _policy_guard = crate::security::live_policy::install_scoped(
-        Arc::new(policy),
-        dir.path().to_path_buf(),
-        dir.path().to_path_buf(),
-    );
-
-    let origin = AgentTurnOrigin::TrustedAutomation {
-        job_id: "job-tainted".into(),
-        source: TrustedAutomationSource::SubconsciousTainted,
-    };
-    let outcome = turn_origin::with_origin(
-        origin,
-        gate.intercept("openhuman_test_aaa_tainted", "noop", serde_json::json!({})),
-    )
-    .await;
-
-    match outcome {
-        GateOutcome::Deny { reason } => assert!(reason.contains("external-sync")),
-        other => panic!("expected deny, got {other:?}"),
-    }
-}
-
 /// `auto_approve_all: true` must NOT override an `Unknown` origin — the
 /// gate still fails closed for unlabelled call sites.
 #[tokio::test]
@@ -368,42 +333,6 @@ async fn auto_approve_all_does_not_override_unknown() {
         }
         other => panic!("expected deny, got {other:?}"),
     }
-}
-
-/// `auto_approve_all: true` overrides the `GoalContinuation` bypass —
-/// normally that origin skips the per-tool allowlist and always parks,
-/// but the blanket bypass sits above that check and allows immediately.
-#[tokio::test]
-async fn auto_approve_all_overrides_bypass_shortcut() {
-    let _env = crate::config::TEST_ENV_LOCK
-        .lock()
-        .unwrap_or_else(|e| e.into_inner());
-    let (gate, dir) = test_gate();
-    let policy = crate::security::SecurityPolicy {
-        auto_approve_all: true,
-        ..crate::security::SecurityPolicy::default()
-    };
-    let _policy_guard = crate::security::live_policy::install_scoped(
-        Arc::new(policy),
-        dir.path().to_path_buf(),
-        dir.path().to_path_buf(),
-    );
-
-    let origin = AgentTurnOrigin::TrustedAutomation {
-        job_id: "goal-1".into(),
-        source: TrustedAutomationSource::GoalContinuation,
-    };
-    let outcome = turn_origin::with_origin(
-        origin,
-        gate.intercept("openhuman_test_aaa_goal", "noop", serde_json::json!({})),
-    )
-    .await;
-
-    assert!(matches!(outcome, GateOutcome::Allow));
-    assert!(
-        gate.list_pending().unwrap().is_empty(),
-        "auto_approve_all must short-circuit before any pending row is persisted"
-    );
 }
 
 /// `auto_approve_all: true` overrides a `Workflow { require_approval: true }`

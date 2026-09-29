@@ -44,8 +44,7 @@ const AgentAccessPanel = () => {
   const [workspaceOnly, setWorkspaceOnly] = useState(false);
   // Blanket "auto-approve everything" bypass — off by default. Hard security
   // blocks (credential dirs, workspace-internal paths) and the
-  // subconscious-tainted / unlabelled-origin denials in the approval gate
-  // are unaffected by this setting; see `settings.agentAccess.autoApproveAll.desc`.
+  // unlabelled-origin denial in the approval gate are unaffected by this setting; see `settings.agentAccess.autoApproveAll.desc`.
   const [autoApproveAll, setAutoApproveAll] = useState(false);
   const [trustedRoots, setTrustedRoots] = useState<TrustedRoot[]>([]);
   // "Always allow" allowlist — populated by the in-chat "Always allow" button;
