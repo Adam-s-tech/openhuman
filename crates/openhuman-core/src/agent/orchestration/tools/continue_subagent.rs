@@ -148,12 +148,6 @@ impl ContinueSubagentTool {
             "task_key": session.task_key.clone(),
             "task_title": session.task_title.clone(),
         });
-        if let (Some(obj), Some(toolkit)) = (async_args.as_object_mut(), &session.toolkit) {
-            obj.insert(
-                "toolkit".to_string(),
-                serde_json::Value::String(toolkit.clone()),
-            );
-        }
         if let (Some(obj), Some(model)) = (async_args.as_object_mut(), &session.model) {
             obj.insert(
                 "model".to_string(),
@@ -451,7 +445,6 @@ impl ContinueSubagentTool {
         }
         let options = SubagentRunOptions {
             skill_filter_override: checkpoint.skill_filter_override,
-            toolkit_override: checkpoint.toolkit_override,
             context: None,
             model_override: checkpoint.model_override,
             task_id: Some(task_id.clone()),

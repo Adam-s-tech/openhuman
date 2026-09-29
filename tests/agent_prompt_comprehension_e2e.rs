@@ -138,8 +138,39 @@ fn captured_requests_mention_unknown_tool(requests: &[Value]) -> bool {
 /// The tool message answering the first scripted call to `tool_name`.
 /// Panics on an `unknown tool` result: that error echoes the arguments, so a
 /// canary passed as an argument would otherwise read as a pass.
+///
+/// Native requests answer with an OpenAI `tool` message; the prompt-rendered
+/// (text) dialect replays the result inside a user message as
+/// `<tool_result id="call_<name>_N">…</tool_result>`. Both are accepted.
 fn tool_result_text(requests: &[Value], tool_name: &str) -> Option<String> {
     let prefix = format!("call_{tool_name}_");
+    native_tool_result_text(requests, &prefix)
+        .or_else(|| text_dialect_tool_result(requests, &prefix))
+        .map(|text| {
+            assert!(
+                !text.trim_start().starts_with("unknown tool"),
+                "`{tool_name}` was not a tool the calling agent could reach: {text}"
+            );
+            text
+        })
+}
+
+fn text_dialect_tool_result(requests: &[Value], prefix: &str) -> Option<String> {
+    let marker = format!("<tool_result id=\"{prefix}");
+    requests
+        .iter()
+        .filter_map(|request| request.pointer("/body/messages").and_then(Value::as_array))
+        .flatten()
+        .filter_map(|message| message.get("content").and_then(Value::as_str))
+        .find_map(|content| {
+            let (_, rest) = content.split_once(&marker)?;
+            let (_, body) = rest.split_once("\">")?;
+            let (result, _) = body.split_once("</tool_result>")?;
+            Some(result.trim().to_string())
+        })
+}
+
+fn native_tool_result_text(requests: &[Value], prefix: &str) -> Option<String> {
     requests
         .iter()
         .filter_map(|request| request.pointer("/body/messages").and_then(Value::as_array))
@@ -149,19 +180,14 @@ fn tool_result_text(requests: &[Value], tool_name: &str) -> Option<String> {
                 && message
                     .get("tool_call_id")
                     .and_then(Value::as_str)
-                    .is_some_and(|id| id.starts_with(&prefix))
+                    .is_some_and(|id| id.starts_with(prefix))
         })
         .and_then(|message| message.get("content"))
         .map(|content| {
-            let text = content
+            content
                 .as_str()
                 .map(str::to_string)
-                .unwrap_or_else(|| content.to_string());
-            assert!(
-                !text.trim_start().starts_with("unknown tool"),
-                "`{tool_name}` was not a tool the calling agent could reach: {text}"
-            );
-            text
+                .unwrap_or_else(|| content.to_string())
         })
 }
 
@@ -635,7 +661,9 @@ fn system_text(request: &Value) -> String {
 }
 
 /// Tool names the agent called, in order, read from its last request (which
-/// carries its whole history).
+/// carries its whole history). Native requests carry `tool_calls`; the
+/// prompt-rendered (text) dialect replays each call as
+/// `<tool_call>{"name": …}</tool_call>` in the assistant message's content.
 fn called_tools(request: &Value) -> Vec<String> {
     request
         .pointer("/body/messages")
@@ -643,10 +671,33 @@ fn called_tools(request: &Value) -> Vec<String> {
         .into_iter()
         .flatten()
         .filter(|m| m.get("role").and_then(Value::as_str) == Some("assistant"))
-        .filter_map(|m| m.get("tool_calls").and_then(Value::as_array))
-        .flatten()
-        .filter_map(|tc| tc.pointer("/function/name").and_then(Value::as_str))
-        .map(str::to_string)
+        .flat_map(|m| {
+            let native: Vec<String> = m
+                .get("tool_calls")
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+                .filter_map(|tc| tc.pointer("/function/name").and_then(Value::as_str))
+                .map(str::to_string)
+                .collect();
+            if !native.is_empty() {
+                return native;
+            }
+            m.get("content")
+                .and_then(Value::as_str)
+                .map(text_dialect_calls)
+                .unwrap_or_default()
+        })
+        .collect()
+}
+
+fn text_dialect_calls(content: &str) -> Vec<String> {
+    content
+        .split("<tool_call>")
+        .skip(1)
+        .filter_map(|chunk| chunk.split_once("</tool_call>").map(|(call, _)| call))
+        .filter_map(|call| serde_json::from_str::<Value>(call.trim()).ok())
+        .filter_map(|call| call.get("name").and_then(Value::as_str).map(str::to_string))
         .collect()
 }
 
