@@ -143,7 +143,11 @@ async fn act_policy_denial_prevents_configured_server_call() {
 
     let result = read.execute(json!({ "list": "work" })).await.unwrap();
     assert!(result.is_error);
-    assert!(result.text().contains("read-only mode"), "{}", result.text());
+    assert!(
+        result.text().contains("read-only mode"),
+        "{}",
+        result.text()
+    );
     assert_eq!(tools_list_requests(&mock).await, 1);
     let calls = mock.received_requests().await.unwrap_or_default();
     assert!(!calls.iter().any(|request| {
