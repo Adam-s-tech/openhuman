@@ -101,9 +101,7 @@ async fn execute_rejects_invalid_kind_after_validation() {
         }))
         .await
         .expect_err("invalid kind should fail");
-    assert!(err
-        .to_string()
-        .contains("memory_tree_search_entities:"));
+    assert!(err.to_string().contains("memory_tree_search_entities:"));
 }
 
 /// The parity half of this test is gone with the split brain.
