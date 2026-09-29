@@ -776,6 +776,7 @@ async fn run_case_inner(case: Case) {
         }
     }
 
+    for (i, r) in own.iter().enumerate() { eprintln!("DBG own[{i}] msgs={}", serde_json::to_string(r.pointer("/body/messages").unwrap_or(&Value::Null)).unwrap_or_default().chars().rev().take(1500).collect::<String>().chars().rev().collect::<String>()); }
     let calls = called_tools(own.last().expect("non-empty"));
     for tool in case.must_call {
         assert!(
