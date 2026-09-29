@@ -139,17 +139,14 @@ fn finalize_executable(tmp: &std::path::Path, dest: &std::path::Path) -> Result<
 fn extract_core_binary(
     archive_path: &std::path::Path,
     dest: &std::path::Path,
+    is_zip: bool,
 ) -> Result<(), String> {
     let inner_name = staged_binary_name();
-    let archive_name = archive_path
-        .file_name()
-        .and_then(|s| s.to_str())
-        .unwrap_or_default();
     let tmp_path = dest.with_extension("staging-tmp");
 
     let file = std::fs::File::open(archive_path).map_err(|e| format!("open archive: {e}"))?;
 
-    if archive_name.ends_with(".zip") {
+    if is_zip {
         let mut zip = zip::ZipArchive::new(file).map_err(|e| format!("read zip: {e}"))?;
         let mut entry = zip
             .by_name(inner_name)
@@ -458,7 +455,9 @@ pub async fn download_and_stage_with_version(
     // `.tar.gz` 0755 and restarting into it cannot work (#6766).
     let is_archive = is_archive_asset(asset_name);
     let staged_path = if is_archive {
-        dir.join(staged_binary_name())
+        // Keep the downloaded binary separate from the running executable;
+        // the restart flow owns installing/replacing it.
+        dir.join(format!("{}.staged", staged_binary_name()))
     } else {
         dir.join(asset_name)
     };
@@ -475,7 +474,7 @@ pub async fn download_and_stage_with_version(
     }
 
     if is_archive {
-        let extracted = extract_core_binary(&tmp_path, &staged_path);
+        let extracted = extract_core_binary(&tmp_path, &staged_path, asset_name.ends_with(".zip"));
         // The archive is scratch either way.
         let _ = std::fs::remove_file(&tmp_path);
         extracted?;
