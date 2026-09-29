@@ -42,6 +42,24 @@ pub(crate) struct OutageState {
 
 pub(crate) type RetryState = Mutex<HashMap<String, OutageState>>;
 
+struct OutageAttempt<'a> {
+    state: &'a RetryState,
+    key: &'a str,
+    generation: u64,
+}
+
+impl Drop for OutageAttempt<'_> {
+    fn drop(&mut self) {
+        if let Ok(mut states) = self.state.lock() {
+            if let Some(outage) = states.get_mut(self.key) {
+                if outage.generation == self.generation {
+                    outage.in_flight = false;
+                }
+            }
+        }
+    }
+}
+
 static TRIAGE_RETRY_STATE: OnceLock<RetryState> = OnceLock::new();
 
 fn retry_state() -> &'static RetryState {
@@ -158,6 +176,13 @@ where
     } else {
         None
     };
+    let _outage_attempt = retry_state.and_then(|state| {
+        retry_generation.map(|generation| OutageAttempt {
+            state,
+            key: &retry_key,
+            generation,
+        })
+    });
 
     // Track whether the cloud arm bailed because of user budget so the
     // eventual Deferred reason explains *why* we're sitting idle rather
@@ -386,7 +411,9 @@ pub(crate) fn begin_outage_attempt(state: Option<&RetryState>, key: &str) -> Opt
     let state = state?;
     let mut states = state.lock().expect("triage retry state lock poisoned");
     let outage = states.entry(key.to_string()).or_default();
-    if outage.in_flight || outage.next_attempt_ms > now_ms() {
+    if outage.consecutive_failures > 0
+        && (outage.in_flight || outage.next_attempt_ms > now_ms())
+    {
         return None;
     }
     outage.in_flight = true;
@@ -403,13 +430,16 @@ pub(crate) fn record_outage(
     let mut states = state.lock().expect("triage retry state lock poisoned");
     let outage = states.get_mut(key)?;
     if !outage.in_flight || Some(outage.generation) != generation {
-        return None;
+        return Some(TriageOutcome::Deferred {
+            defer_until_ms: now_ms().saturating_add(OUTAGE_BACKOFF_BASE_MS),
+            reason: "managed backend outage; another attempt is being recorded".to_string(),
+        });
     }
     outage.in_flight = false;
     outage.consecutive_failures = outage.consecutive_failures.saturating_add(1);
     if outage.consecutive_failures >= OUTAGE_FAILURE_LIMIT {
         let failures = outage.consecutive_failures;
-        states.remove(key);
+        outage.next_attempt_ms = now_ms().saturating_add(OUTAGE_BACKOFF_CAP_MS);
         return Some(TriageOutcome::Terminal {
             reason: format!("managed backend outage reached retry limit ({failures})"),
         });
