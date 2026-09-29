@@ -13,17 +13,20 @@ use session_pool::{
     browser_session_fingerprint, evict_thread_sessions, requires_rebind, thread_sessions,
     ThreadSession,
 };
-use task_actions::{approve_task_action, parse_action, required, task_inputs};
 #[cfg(test)]
 use session_pool::{MAX_THREAD_SESSIONS, SESSION_IDLE_TTL};
 use sha2::{Digest, Sha256};
-use std::sync::{Arc, Mutex as StdMutex};
+use std::{
+    sync::{Arc, Mutex as StdMutex},
+    time::Instant,
+};
 #[cfg(test)]
 use std::{collections::HashMap, time::Duration};
+use task_actions::{approve_task_action, parse_action, required, task_inputs};
 use tinycomputer_bus::agent::{ContinueTaskRequest, TaskId, TaskStatus, TaskView};
 use tinycomputer_bus::browser::{
-    Action, DownloadState, DownloadWaitRequest, NavigateRequest, ReadRequest, SessionId,
-    SessionOptions, SnapshotRequest, Target,
+    Action, DownloadState, DownloadWaitRequest, LocateBy, Locator, NavigateRequest, ReadRequest,
+    SessionId, SessionOptions, SnapshotRequest, Target,
 };
 use tinytools::{Tool, ToolCallOptions, ToolResult, ToolRunContext};
 use tokio::sync::Mutex;
