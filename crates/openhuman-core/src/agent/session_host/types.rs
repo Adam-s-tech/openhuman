@@ -240,7 +240,7 @@ pub struct OpenHumanSessionHost {
     /// necessarily user conversation threads.
     pub(super) thread_id: Option<String>,
     /// Human-readable agent definition name (e.g. `"main"`,
-    /// `"code_executor"`). Used as the `{agent}` component in session
+    /// `"task_manager_agent"`). Used as the `{agent}` component in session
     /// transcript paths: `sessions/DDMMYYYY/{agent}_{index}.md`.
     ///
     /// May be rewritten mid-session by

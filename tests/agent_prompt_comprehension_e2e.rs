@@ -662,13 +662,13 @@ fn system_text(request: &Value) -> String {
 /// Tool names the agent called, in order, read from its last request (which
 /// carries its whole history).
 fn called_tools(request: &Value) -> Vec<String> {
-    let messages = request
-        .pointer("/body/messages")
-        .and_then(Value::as_array);
+    let messages = request.pointer("/body/messages").and_then(Value::as_array);
     let mut calls = Vec::new();
-    for message in messages.into_iter().flatten().filter(|message| {
-        message.get("role").and_then(Value::as_str) == Some("assistant")
-    }) {
+    for message in messages
+        .into_iter()
+        .flatten()
+        .filter(|message| message.get("role").and_then(Value::as_str) == Some("assistant"))
+    {
         if let Some(structured) = message.get("tool_calls").and_then(Value::as_array) {
             calls.extend(
                 structured
