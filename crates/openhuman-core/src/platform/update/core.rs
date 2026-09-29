@@ -3,6 +3,21 @@
 
 use std::io::Write;
 use std::path::PathBuf;
+use std::sync::{Arc, Mutex, OnceLock};
+
+/// Locks staging mutations by destination so concurrent update requests cannot
+/// truncate shared temporary files or replace one another's completed binary.
+fn staging_lock(dest: &std::path::Path) -> Arc<tokio::sync::Mutex<()>> {
+    static LOCKS: OnceLock<Mutex<std::collections::HashMap<PathBuf, Arc<tokio::sync::Mutex<()>>>>> =
+        OnceLock::new();
+    let locks = LOCKS.get_or_init(Default::default);
+    let mut locks = locks.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+    Arc::clone(
+        locks
+            .entry(dest.to_path_buf())
+            .or_insert_with(|| Arc::new(tokio::sync::Mutex::new(()))),
+    )
+}
 
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt as _;
@@ -476,6 +491,10 @@ pub async fn download_and_stage_with_version(
     let is_archive = is_archive_asset(asset_name);
     // Legacy raw-binary assets can have the same name as the running executable.
     let staged_path = staged_asset_path(&dir, asset_name, is_archive);
+    // Keep the lock through download-temp creation, extraction, and final rename:
+    // those paths are shared by requests targeting the same staged executable.
+    let destination_lock = staging_lock(&staged_path);
+    let _destination_guard = destination_lock.lock().await;
 
     // Write to a temp file first, then rename for atomicity.
     let tmp_path = dir.join(format!(".{asset_name}.tmp"));
