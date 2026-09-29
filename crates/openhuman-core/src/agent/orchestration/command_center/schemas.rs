@@ -6,8 +6,8 @@ use serde_json::{Map, Value};
 
 use crate::config::rpc as config_rpc;
 use crate::core::all::{ControllerFuture, RegisteredController};
+use crate::core::Outcome;
 use crate::core::{ControllerSchema, FieldSchema, TypeSchema};
-use crate::rpc::RpcOutcome;
 
 /// Controller schemas exposed by the command center.
 pub fn all_controller_schemas() -> Vec<ControllerSchema> {
@@ -141,7 +141,7 @@ fn handle_agent_work_control(params: Map<String, Value>) -> ControllerFuture {
 }
 
 fn to_json<T: serde::Serialize>(value: T) -> Result<Value, String> {
-    RpcOutcome::new(value, vec![]).into_cli_compatible_json()
+    Outcome::new(value, vec![]).into_cli_compatible_json()
 }
 
 fn new_correlation_id() -> String {

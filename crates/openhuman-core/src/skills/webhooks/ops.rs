@@ -1,4 +1,4 @@
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 use crate::skills::webhooks::{
     WebhookDebugLogListResult, WebhookDebugLogsClearedResult, WebhookDebugRegistrationsResult,
     WebhookRequest, WebhookResponseData,
@@ -15,19 +15,19 @@ fn get_router() -> Result<std::sync::Arc<crate::skills::webhooks::WebhookRouter>
         .ok_or_else(|| "webhook router not initialized".to_string())
 }
 
-pub async fn list_registrations() -> Result<RpcOutcome<WebhookDebugRegistrationsResult>, String> {
+pub async fn list_registrations() -> Result<Outcome<WebhookDebugRegistrationsResult>, String> {
     match get_router() {
         Ok(router) => {
             let registrations = router.list_all();
             let count = registrations.len();
-            Ok(RpcOutcome::single_log(
+            Ok(Outcome::single_log(
                 WebhookDebugRegistrationsResult { registrations },
                 format!("webhooks.list_registrations returned {count} registration(s)"),
             ))
         }
         Err(_) => {
             // Router not yet initialized — return empty list (not an error in RPC).
-            Ok(RpcOutcome::single_log(
+            Ok(Outcome::single_log(
                 WebhookDebugRegistrationsResult {
                     registrations: Vec::new(),
                 },
@@ -38,35 +38,33 @@ pub async fn list_registrations() -> Result<RpcOutcome<WebhookDebugRegistrations
     }
 }
 
-pub async fn list_logs(
-    limit: Option<usize>,
-) -> Result<RpcOutcome<WebhookDebugLogListResult>, String> {
+pub async fn list_logs(limit: Option<usize>) -> Result<Outcome<WebhookDebugLogListResult>, String> {
     match get_router() {
         Ok(router) => {
             let logs = router.list_logs(limit);
             let count = logs.len();
-            Ok(RpcOutcome::single_log(
+            Ok(Outcome::single_log(
                 WebhookDebugLogListResult { logs },
                 format!("webhooks.list_logs returned {count} log entrie(s)"),
             ))
         }
-        Err(_) => Ok(RpcOutcome::single_log(
+        Err(_) => Ok(Outcome::single_log(
             WebhookDebugLogListResult { logs: Vec::new() },
             "webhooks.list_logs returned 0 log entrie(s) (router not initialized)".to_string(),
         )),
     }
 }
 
-pub async fn clear_logs() -> Result<RpcOutcome<WebhookDebugLogsClearedResult>, String> {
+pub async fn clear_logs() -> Result<Outcome<WebhookDebugLogsClearedResult>, String> {
     match get_router() {
         Ok(router) => {
             let cleared = router.clear_logs();
-            Ok(RpcOutcome::single_log(
+            Ok(Outcome::single_log(
                 WebhookDebugLogsClearedResult { cleared },
                 format!("webhooks.clear_logs removed {cleared} log entrie(s)"),
             ))
         }
-        Err(_) => Ok(RpcOutcome::single_log(
+        Err(_) => Ok(Outcome::single_log(
             WebhookDebugLogsClearedResult { cleared: 0 },
             "webhooks.clear_logs removed 0 log entrie(s) (router not initialized)".to_string(),
         )),
@@ -77,11 +75,11 @@ pub async fn register_echo(
     tunnel_uuid: &str,
     tunnel_name: Option<String>,
     backend_tunnel_id: Option<String>,
-) -> Result<RpcOutcome<WebhookDebugRegistrationsResult>, String> {
+) -> Result<Outcome<WebhookDebugRegistrationsResult>, String> {
     let router = get_router().map_err(|e| format!("webhooks.register_echo failed: {e}"))?;
     router.register_echo(tunnel_uuid, tunnel_name, backend_tunnel_id)?;
     let registrations = router.list_all();
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         WebhookDebugRegistrationsResult { registrations },
         format!("webhooks.register_echo registered tunnel {tunnel_uuid}"),
     ))
@@ -89,7 +87,7 @@ pub async fn register_echo(
 
 pub async fn unregister_echo(
     tunnel_uuid: &str,
-) -> Result<RpcOutcome<WebhookDebugRegistrationsResult>, String> {
+) -> Result<Outcome<WebhookDebugRegistrationsResult>, String> {
     let router = get_router().map_err(|e| format!("webhooks.unregister_echo failed: {e}"))?;
     let removed = router.unregister(tunnel_uuid, "echo")?;
     let registrations = router.list_all();
@@ -103,7 +101,7 @@ pub async fn unregister_echo(
             "webhooks.unregister_echo: no registration for tunnel {tunnel_uuid}, nothing removed"
         )
     };
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         WebhookDebugRegistrationsResult { registrations },
         log,
     ))
@@ -118,11 +116,11 @@ pub async fn register_agent(
     agent_id: Option<String>,
     tunnel_name: Option<String>,
     backend_tunnel_id: Option<String>,
-) -> Result<RpcOutcome<WebhookDebugRegistrationsResult>, String> {
+) -> Result<Outcome<WebhookDebugRegistrationsResult>, String> {
     let router = get_router().map_err(|e| format!("webhooks.register_agent failed: {e}"))?;
     router.register_agent(tunnel_uuid, agent_id, tunnel_name, backend_tunnel_id)?;
     let registrations = router.list_all();
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         WebhookDebugRegistrationsResult { registrations },
         format!("webhooks.register_agent registered agent tunnel {tunnel_uuid}"),
     ))
@@ -135,7 +133,7 @@ pub async fn trigger_agent(
     caller_id: &str,
     reason: &str,
     payload: serde_json::Value,
-) -> Result<RpcOutcome<serde_json::Value>, String> {
+) -> Result<Outcome<serde_json::Value>, String> {
     use crate::agent::triage::TriggerEnvelope;
 
     let envelope = match source {
@@ -179,7 +177,7 @@ pub async fn trigger_agent(
             .map_err(|_| "apply_decision timed out after 60s".to_string())?
             .map_err(|e| format!("apply_decision failed: {e}"))?;
 
-            Ok(RpcOutcome::single_log(
+            Ok(Outcome::single_log(
                 serde_json::json!({
                     "decision": run.decision.action.as_str(),
                     "target_agent": run.decision.target_agent,
@@ -193,7 +191,7 @@ pub async fn trigger_agent(
         crate::agent::triage::TriageOutcome::Deferred {
             defer_until_ms,
             reason,
-        } => Ok(RpcOutcome::single_log(
+        } => Ok(Outcome::single_log(
             serde_json::json!({
                 "decision": "deferred",
                 "resolution_path": "deferred",

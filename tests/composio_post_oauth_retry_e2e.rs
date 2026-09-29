@@ -80,7 +80,7 @@ use serde_json::{json, Value};
 use tempfile::tempdir;
 
 use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
-use openhuman_core::core::jsonrpc::build_core_http_router;
+use openhuman_rpc::server::build_core_http_router;
 
 #[path = "support/tinyhumans_boot.rs"]
 mod tinyhumans_boot;
@@ -391,7 +391,7 @@ async fn post_oauth_gap_retries_and_returns_real_data() {
     .await;
 
     let envelope = assert_no_jsonrpc_error(&exec, "composio_execute");
-    // RpcOutcome serialises as {"result": <ComposioExecuteResponse>, "logs": [...]}
+    // Outcome serialises as {"result": <ComposioExecuteResponse>, "logs": [...]}
     // when logs are present.  Unwrap one level to reach the composio payload.
     let result = envelope.get("result").unwrap_or(envelope);
 
@@ -532,7 +532,7 @@ async fn revoked_token_surfaces_without_retry() {
         );
     } else {
         let envelope = result_opt.expect("expected result or error");
-        // RpcOutcome wraps the composio payload under a "result" key when logs
+        // Outcome wraps the composio payload under a "result" key when logs
         // are present; fall back to the envelope itself for the no-logs case.
         let result = envelope.get("result").unwrap_or(envelope);
         let successful = result

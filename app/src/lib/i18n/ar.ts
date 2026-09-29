@@ -284,13 +284,6 @@ const messages: TranslationMap = {
   'conversations.backgroundTasks.cronSchedCron': 'Cron {expr}',
   'conversations.backgroundTasks.cronSchedEvery': 'كل {duration}',
   'conversations.backgroundTasks.cronSchedAt': 'مرة واحدة',
-  'conversations.backgroundTasks.subOff': 'متوقف',
-  'conversations.backgroundTasks.subWorking': 'يعمل…',
-  'conversations.backgroundTasks.subIdle': 'خامل',
-  'conversations.backgroundTasks.subLastRan': 'آخر تشغيل {time}',
-  'conversations.backgroundTasks.subNeverRan': 'لم يُشغَّل بعد',
-  'conversations.backgroundTasks.subTicks': '{count} عمليات تشغيل',
-  'conversations.backgroundTasks.subQueued': '{count} في قائمة الانتظار',
   'conversations.backgroundTasks.memUpToDate': 'كل الذكريات محدَّثة',
   'conversations.backgroundTasks.memIngesting': 'فهرسة {title}',
   'conversations.backgroundTasks.memIngestingUntitled': 'فهرسة الذكريات',
@@ -433,8 +426,6 @@ const messages: TranslationMap = {
   'settings.assistant.personality': 'الشخصية',
   'settings.assistant.voice': 'الصوت',
   'settings.assistant.voiceDesc': 'إعدادات التحويل من كلام إلى نص ومن نص إلى كلام',
-  'settings.assistant.backgroundActivity': 'اللاوعي',
-  'settings.assistant.backgroundActivityDesc': 'تحكم في مدى نشاط مساعدك في الخلفية',
   'settings.assistant.permissions': 'الأذونات',
   'settings.assistant.permissionsDesc': 'اختر ما يمكن للمساعد فعله والمكان الذي يمكنه العمل فيه',
   'settings.privacySecurity.privacy': 'الخصوصية',
@@ -451,7 +442,7 @@ const messages: TranslationMap = {
   'settings.analysisViews.title': 'طرق العرض التحليلية',
   'settings.analysisViews.menuDesc':
     'تحليل رسم الذاكرة البياني: المخطط، والمركزية، والتماسك، والارتباطات، والحداثة، والجدول الزمني، والمسارات، والمساحات',
-  'settings.tokenUsage.title': 'الرموز والتكلفة',
+  'settings.tokenUsage.title': 'توفير الرموز',
   'settings.tokenUsage.menuDesc': 'إعدادات الضغط ومقدار ما وفّرته من رموز ودولارات',
   'settings.tokenUsage.saving': 'جارٍ الحفظ…',
   'settings.tokenUsage.saved': 'تم الحفظ',
@@ -945,7 +936,6 @@ const messages: TranslationMap = {
   'memory.empty': 'لا توجد ذكريات بعد. تُنشأ الذكريات تلقائيًا أثناء تفاعلك.',
   'memory.tab.memory': 'الذاكرة',
   'memory.tab.memoryTree': 'شجرة الذاكرة',
-  'memory.tab.subconscious': 'اللاوعي',
   'memory.tab.agentWork': 'عمل الوكيل',
   'memory.tab.agentWorkDescription':
     'مركز قيادة لكل تشغيل وكيل في الخلفية: مُجمّع حسب ما يحتاج إلى مُدخلاتك، وما يعمل الآن، وما اكتمل.',
@@ -1418,7 +1408,6 @@ const messages: TranslationMap = {
     'مأخوذة في العملية من قذيفة Xqx1x على عملية الإطلاق يتم اختيار المرفأ في البداية لذا تغيرت هذه الـ (إكسكساكس) بين الإطلاقات',
   'settings.about.connectionHelperCloud':
     'متصلة بقاعدة نائية غيّر هذا في (بوتشيك) أو مُخلّق السحابة.',
-  'settings.heartbeat.title': 'نبضات القلب والحلقات',
   'settings.usage.title': 'الاستخدام',
   'settings.usage.menuDesc': 'التكاليف وتوفير الرموز وسجل الاستخدام والنشاط في الخلفية',
   'settings.costDashboard.monthToDate': 'من بداية الشهر',
@@ -2352,7 +2341,6 @@ const messages: TranslationMap = {
   'common.enable': 'تفعيل',
   'chat.safetyTimeout': 'لا استجابة من الوكيل بعد دقيقتين. حاول مرة أخرى أو تحقق من اتصالك.',
   'chat.filter.general': 'عام',
-  'chat.filter.subconscious': 'اللاوعي',
   'chat.filter.meetings': 'الاجتماعات',
   'chat.filter.tasks': 'المهام',
   'chat.selectThread': 'اختر محادثة',
@@ -4720,8 +4708,7 @@ const messages: TranslationMap = {
   'settings.ai.codexAuthButton': 'ربط Codex',
   'settings.ai.codexAuthHelper': 'يستخدم تسجيل دخول Codex CLI الحالي من ~/.codex/auth.json.',
   'settings.ai.backgroundLoops': 'حلقات الخلفية',
-  'settings.ai.backgroundLoopsDesc':
-    'شاهدْ ما يَعْملُ بدون رسالةِ دردشةِ، يَتوقّفُ عملَ نبضات القلب، ويَتفحصُ مؤخراً دفترِ دفاترِ الإئتمانِ.',
+  'settings.ai.backgroundLoopsDesc': 'شاهد ما يعمل دون رسالة دردشة، وافحص أحدث صفوف دفتر الأرصدة.',
   'settings.ai.loopMap': 'خريطة حلقة',
   'settings.ai.routeLabel': 'المسار: {route}',
   'settings.ai.on': 'على',
@@ -4845,7 +4832,7 @@ const messages: TranslationMap = {
     'النماذج المستخدمة أثناء التفاعل المباشر للمستعملين، والردود، والتفسير، وحلقات العملاء، والمساعدة في التدوين.',
   'settings.ai.routing.backgroundTasks': 'مهام الخلفية',
   'settings.ai.routing.bgTasksDesc':
-    'النماذج المستخدمة خارج التدفق الرئيسي للمحادثات للتلخيص والقلب والتعلم والتقييم اللاوعي.',
+    'النماذج المستخدمة خارج التدفق الرئيسي للمحادثات لتلخيص الذاكرة والتعلم.',
   'settings.ai.routing.workload.chat.label': 'Chat',
   'settings.ai.routing.workload.chat.description':
     'المحادثة المباشرة ذهابًا وإيابًا: الوضع "السريع" في المحادثات',
@@ -4874,18 +4861,10 @@ const messages: TranslationMap = {
   'settings.ai.routing.workload.memory.description': 'مقتطفات شجرة والتوحيد',
   'settings.ai.routing.workload.memory.hint':
     'موصى به: نموذج تلخيص أرخص. وينبغي أن تكون متسقة ومتماسكة، ولكنها لا تحتاج إلى تفكير عالي المستوى.',
-  'settings.ai.routing.workload.heartbeat.label': 'Heartbeat',
-  'settings.ai.routing.workload.heartbeat.description': 'التفكير في الخلفية بين أدوار المستخدم',
-  'settings.ai.routing.workload.heartbeat.hint':
-    'موصى به: نموذج خلفية رخيص وفعال. يحدث هذا غالبًا بين المنعطفات، لذا فإن التكلفة المنخفضة أكثر أهمية من الحد الأقصى من الذكاء.',
   'settings.ai.routing.workload.learning.label': 'التعلم · تأملات',
   'settings.ai.routing.workload.learning.description': 'التفكير الدوري في التاريخ الحديث',
   'settings.ai.routing.workload.learning.hint':
     'الموصى بها: نموذج عاكس أقوى. يمكن أن يكون هذا متوسط ​​التكلفة أو ممتازًا لأنه يستفيد من التوليف الأفضل على مدار التاريخ الحديث.',
-  'settings.ai.routing.workload.subconscious.label': 'Subconscious',
-  'settings.ai.routing.workload.subconscious.description': 'سجل الأحداث + الشيكات الانجراف',
-  'settings.ai.routing.workload.subconscious.hint':
-    'موصى به: نموذج مراقبة رخيص للغاية، ومن الأفضل أن يكون خفيف الوزن ويمكن التنبؤ به. هذا مخصص لتسجيل الأحداث وفحوصات الانجراف وتقييم الخلفية الهادئة.',
   'settings.ai.routing.addCustomProvider': 'إضافة موفر مخصص',
   'settings.ai.globalModel.title': 'اختر نموذجًا واحدًا لكل شيء',
   'settings.ai.globalModel.desc':
@@ -4896,8 +4875,6 @@ const messages: TranslationMap = {
   'settings.ai.globalModel.model': 'الموديل',
   'settings.ai.globalModel.loadingModels': 'جارٍ تحميل النماذج...',
   'settings.ai.globalModel.enterModelId': 'أدخل معرف النموذج',
-  'settings.ai.globalModel.appliesToAll':
-    'ينطبق على نفس المزود + النموذج للدردشة والتفكير والترميز والذاكرة و نبضات القلب والتعلم و اللاوعي تم تشكيل الخلايا بشكل منفصل التغييرات تنقذ عندما تنقر',
   'settings.ai.globalModel.saving': 'جاري الحفظ...',
   'settings.ai.globalModel.saved': 'تم الحفظ',
   'settings.ai.workload.noModel': 'لم يتم تحديد نموذج',
@@ -5077,6 +5054,7 @@ const messages: TranslationMap = {
   'settings.cron.jobs.removing': 'جارٍ الإزالة',
   'settings.cron.jobs.resume': 'استئناف',
   'settings.cron.jobs.runningNow': 'يعمل الآن',
+  'settings.cron.jobs.runNow': 'تشغيل الآن',
   'settings.cron.jobs.saving': 'جارٍ الحفظ…',
   'settings.cron.jobs.schedule': 'الجدول',
   'settings.cron.jobs.title': 'مهام Cron الأساسية',
@@ -5271,8 +5249,6 @@ const messages: TranslationMap = {
   'settings.developerMenu.eventLog.badge.comp': 'COMP',
   'settings.developerMenu.eventLog.badge.mcp': 'MCP',
   'settings.developerMenu.intelligence.title': 'الذكاء',
-  'settings.developerMenu.intelligence.desc':
-    'مساحة عمل الذاكرة، ومحرك اللاوعي، والأحلام، والإعدادات',
   'settings.developerMenu.notificationRouting.title': 'توجيه الإشعارات',
   'settings.developerMenu.notificationRouting.desc':
     'تقييم الأهمية بالذكاء الاصطناعي وتصعيد المنسق لتنبيهات التكامل',
@@ -6099,7 +6075,6 @@ const messages: TranslationMap = {
   'devOptions.menuWebhooksDebug': 'خطافات الويب',
   'devOptions.menuWebhooksDebugDesc': 'فحص تسجيلات خطاف الويب لوقت التشغيل وسجلات الطلبات الملتقطة',
   'devOptions.menuIntelligence': 'الذكاء',
-  'devOptions.menuIntelligenceDesc': 'مساحة عمل الذاكرة ومحرك العقل الباطن والأحلام والإعدادات',
   'devOptions.menuNotificationRouting': 'توجيه الإشعارات',
   'devOptions.menuNotificationRoutingDesc':
     'تسجيل أهمية الذكاء الاصطناعي وتصعيد المنسق لتنبيهات التكامل',
@@ -6845,8 +6820,8 @@ const messages: TranslationMap = {
   'settings.ai.perWeek': '{count}/أسبوعيًا',
   'settings.ai.perWeekMax': '{count}/أسبوعيًا كحد أقصى',
   'settings.ai.perHour': '{amount}/ساعة',
-  'settings.ai.plannerSyncBreakdown': 'المخطِّط {planner} + المزامنة {sync}',
   'settings.ai.memoryPollsDetail': '{count} من استطلاعات الذاكرة',
+  'settings.ai.connectionSyncBreakdown': 'مزامنة الاتصالات {sync}',
   'settings.ai.rowsLeftFormula': 'المتبقّي / متوسط الصف = {remaining} / {avgRow}',
   'settings.ai.needSpendRowsToEstimate': 'يلزم وجود صفوف إنفاق حديثة للتقدير.',
   'settings.ai.rowsPerBudgetFormula': 'ميزانية الدورة / متوسط الصف = {budget} / {avgRow}',

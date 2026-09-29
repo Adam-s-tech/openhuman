@@ -120,7 +120,7 @@ impl RuntimeBuilder {
     /// Override which background services run.
     ///
     /// The default is deliberately minimal (only the harness init step):
-    /// cron, heartbeat and the memory queue each write to the workspace on
+    /// cron, the login-gated services and the memory queue each write to the workspace on
     /// their own schedule, turning a library call into a background process
     /// the caller did not ask for.
     pub fn services(mut self, services: ServiceSet) -> Self {

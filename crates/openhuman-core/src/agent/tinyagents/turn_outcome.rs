@@ -108,8 +108,8 @@ pub(crate) type HaltSummarySlot = std::sync::Arc<std::sync::Mutex<Option<String>
 /// which only exists on observed runs (`on_progress` set). Without this
 /// aggregate record a fire-and-forget turn's spend never reaches the cost
 /// dashboard / wallet surfaces (issue #4249, Phase 5 rollup gap). The bridge
-/// and this fallback are mutually exclusive, so spend is recorded exactly once
-/// either way.
+/// and this fallback are mutually exclusive, and the host budget gate does not
+/// write the ledger, so spend is recorded exactly once either way.
 ///
 /// Returns `true` when a record was attempted (any tokens observed); all-zero
 /// usage is skipped so providers that echo no usage don't inflate the request

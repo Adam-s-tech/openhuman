@@ -237,7 +237,9 @@ pub(super) fn normalize_labels(labels: Vec<String>) -> Vec<String> {
     for label in labels {
         let next = match label.as_str() {
             "work" => "general".to_string(),
-            "from_reflection" | "subconscious_tick" => "subconscious".to_string(),
+            // Labels written by the retired background-reasoning engine. Its
+            // threads are ordinary conversations now.
+            "from_reflection" | "subconscious_tick" | "subconscious" => "general".to_string(),
             "agent-task" | "worker" => "tasks".to_string(),
             _ => label,
         };

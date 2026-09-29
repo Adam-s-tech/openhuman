@@ -156,8 +156,8 @@ fn identity_section_creates_missing_workspace_files() {
             "expected workspace file to be created: {file}"
         );
     }
-    // HEARTBEAT.md and MEMORY_GOALS.md are no longer seeded (#5701). The
-    // subconscious engine that read HEARTBEAT.md is gone, and the goals store
+    // HEARTBEAT.md and MEMORY_GOALS.md are no longer seeded (#5701). Nothing
+    // reads HEARTBEAT.md any more, and the goals store
     // returns an empty `GoalsDoc` for a missing file and creates it on first
     // write, so seeding either bought a file nothing needed.
     for file in ["HEARTBEAT.md", "MEMORY_GOALS.md"] {

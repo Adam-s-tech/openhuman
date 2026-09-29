@@ -240,7 +240,7 @@ async fn resolve_thread(
 }
 
 /// Pull a thread id out of a `threads.create_new` / `threads.list` response,
-/// tolerant of the `RpcOutcome` log-envelope wrapping (`{result, logs}`) and the
+/// tolerant of the `Outcome` log-envelope wrapping (`{result, logs}`) and the
 /// `ApiEnvelope` data wrapping (`{data, meta}`).
 pub(super) fn extract_thread_id(value: &Value) -> Option<String> {
     // Unwrap the optional `{result, logs}` log envelope first.

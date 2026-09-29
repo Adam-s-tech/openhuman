@@ -406,7 +406,7 @@ describe.skip('Voice mode — Human tab capture & error mapping (#1610)', () => 
     // The result must be defined and must be an object — not a raw string
     // or an unhandled panic. The actual transcription text may differ
     // (depends on which STT provider the core resolved), but the shape must
-    // have a `text` field (or a `result.text` field via RpcOutcome).
+    // have a `text` field (or a `result.text` field via Outcome).
     expect(result).toBeDefined();
     const payload = (result as any).result ?? result;
     expect(typeof payload).toBe('object');

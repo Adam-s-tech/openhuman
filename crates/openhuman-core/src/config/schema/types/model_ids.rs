@@ -53,7 +53,7 @@ pub fn legacy_tier_role(model: &str) -> Option<&'static str> {
 
 /// Every workload role the managed backend routes, each with its `hint:*`
 /// alias accepted wherever a model id is taken.
-pub const WORKLOAD_ROLES: [&str; 8] = [
+pub const WORKLOAD_ROLES: [&str; 7] = [
     "chat",
     "reasoning",
     "agentic",
@@ -61,7 +61,6 @@ pub const WORKLOAD_ROLES: [&str; 8] = [
     "burst",
     "summarization",
     "vision",
-    "subconscious",
 ];
 
 /// `hint:vision` is deprecated: `vision-v1` silently falls back to the chat

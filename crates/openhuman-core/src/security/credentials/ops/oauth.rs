@@ -12,13 +12,13 @@ use serde_json::json;
 
 use crate::backend::BackendClient;
 use crate::config::Config;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 use crate::security::credentials::jwt::get_session_token;
 
 pub async fn oauth_fetch_client_key(
     config: &Config,
     integration_id: &str,
-) -> Result<RpcOutcome<serde_json::Value>, String> {
+) -> Result<Outcome<serde_json::Value>, String> {
     let token = get_session_token(config)?.ok_or_else(|| "session JWT required".to_string())?;
     let api_url = crate::backend::require_base_url(&config.api_url)?;
     let client = BackendClient::new(&api_url).map_err(|e| e.to_string())?;
@@ -32,7 +32,7 @@ pub async fn oauth_fetch_client_key(
         "[credentials] client key retrieved for integration {}",
         integration_id
     );
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         json!({ "clientKey": client_key, "integrationId": integration_id }),
         "client key retrieved (one-time handoff)",
     ))

@@ -13,7 +13,7 @@ use serde_json::{json, Value};
 use crate::config::{
     Config, SearchPresentation, SearchRoute, MANAGED_SEARCH_PROVIDERS, SEARCH_PROVIDERS,
 };
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 use crate::search::providers::{self, parse_role, role_key, ROLES};
 
 use super::loader::load_config_with_timeout;
@@ -289,7 +289,7 @@ pub fn apply_search_patch(config: &mut Config, update: SearchSettingsPatch) -> R
 pub async fn apply_search_settings(
     config: &mut Config,
     update: SearchSettingsPatch,
-) -> Result<RpcOutcome<Value>, String> {
+) -> Result<Outcome<Value>, String> {
     apply_search_patch(config, update)?;
     config.save().await.map_err(|e| e.to_string())?;
     #[cfg(feature = "modules")]
@@ -299,7 +299,7 @@ pub async fn apply_search_settings(
         providers = ?config.search.enabled_provider_names(),
         "[config][search] settings saved"
     );
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         search_settings_json(config),
         vec![format!(
             "search settings saved to {}",
@@ -310,7 +310,7 @@ pub async fn apply_search_settings(
 
 pub async fn load_and_apply_search_settings(
     update: SearchSettingsPatch,
-) -> Result<RpcOutcome<Value>, String> {
+) -> Result<Outcome<Value>, String> {
     let mut config = load_config_with_timeout().await?;
     apply_search_settings(&mut config, update).await
 }
@@ -386,9 +386,9 @@ pub(crate) fn search_settings_json_with(config: &Config, managed_available: bool
 }
 
 /// Read the current search settings. Keys are reported only as booleans.
-pub async fn get_search_settings() -> Result<RpcOutcome<Value>, String> {
+pub async fn get_search_settings() -> Result<Outcome<Value>, String> {
     let config = load_config_with_timeout().await?;
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         search_settings_json(&config),
         vec!["search settings read".to_string()],
     ))

@@ -3,7 +3,7 @@
 
 use log::{debug, warn};
 
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 use super::super::chains::{
     btc as chain_btc, evm as chain_evm, solana as chain_sol, tron as chain_tron,
@@ -29,16 +29,16 @@ pub(super) fn asset_to_supported(asset: WalletAssetDefinition) -> SupportedAsset
     }
 }
 
-pub async fn network_defaults() -> Result<RpcOutcome<Vec<WalletNetworkDefaults>>, String> {
+pub async fn network_defaults() -> Result<Outcome<Vec<WalletNetworkDefaults>>, String> {
     let rows = default_networks();
     debug!("{LOG_PREFIX} network_defaults count={}", rows.len());
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         rows,
         vec!["wallet network defaults listed".to_string()],
     ))
 }
 
-pub async fn supported_assets() -> Result<RpcOutcome<Vec<SupportedAsset>>, String> {
+pub async fn supported_assets() -> Result<Outcome<Vec<SupportedAsset>>, String> {
     let mut assets: Vec<SupportedAsset> = Vec::new();
     for network in EvmNetwork::ALL {
         for asset in evm_asset_catalog(network) {
@@ -51,13 +51,13 @@ pub async fn supported_assets() -> Result<RpcOutcome<Vec<SupportedAsset>>, Strin
         }
     }
     debug!("{LOG_PREFIX} supported_assets count={}", assets.len());
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         assets,
         vec!["wallet supported_assets listed".to_string()],
     ))
 }
 
-pub async fn chain_status() -> Result<RpcOutcome<Vec<ChainStatus>>, String> {
+pub async fn chain_status() -> Result<Outcome<Vec<ChainStatus>>, String> {
     let status = wallet_status().await?.value;
     let mut rows = Vec::new();
     for network in EvmNetwork::ALL {
@@ -92,7 +92,7 @@ pub async fn chain_status() -> Result<RpcOutcome<Vec<ChainStatus>>, String> {
         });
     }
     debug!("{LOG_PREFIX} chain_status reported chains={}", rows.len());
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         rows,
         vec!["wallet chain_status listed".to_string()],
     ))
@@ -149,7 +149,7 @@ fn evm_native_asset(network: EvmNetwork) -> Result<WalletAssetDefinition, String
         })
 }
 
-pub async fn balances() -> Result<RpcOutcome<Vec<BalanceInfo>>, String> {
+pub async fn balances() -> Result<Outcome<Vec<BalanceInfo>>, String> {
     let status = wallet_status().await?.value;
     if !status.configured {
         return Err(WALLET_NOT_CONFIGURED_MESSAGE.to_string());
@@ -255,7 +255,7 @@ pub async fn balances() -> Result<RpcOutcome<Vec<BalanceInfo>>, String> {
         }
     }
     debug!("{LOG_PREFIX} balances returned rows={}", out.len());
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         out,
         vec!["wallet balances listed".to_string()],
     ))
