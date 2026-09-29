@@ -9,8 +9,12 @@ FEATURES="${MODULE_TEST_FEATURES:-modules}"
 LIST_OUTPUT="$(mktemp)"
 trap 'rm -f "$LIST_OUTPUT"' EXIT
 
-mapfile -t TEST_NAMES < <(node scripts/ci/list-module-gated-tests.mjs)
-mapfile -t SKIPPED_NAMES < <(node scripts/ci/list-module-gated-tests.mjs --skipped)
+TEST_NAMES_OUTPUT="$(node scripts/ci/list-module-gated-tests.mjs)"
+SKIPPED_NAMES_OUTPUT="$(node scripts/ci/list-module-gated-tests.mjs --skipped)"
+TEST_NAMES=()
+SKIPPED_NAMES=()
+if [ -n "$TEST_NAMES_OUTPUT" ]; then mapfile -t TEST_NAMES <<< "$TEST_NAMES_OUTPUT"; fi
+if [ -n "$SKIPPED_NAMES_OUTPUT" ]; then mapfile -t SKIPPED_NAMES <<< "$SKIPPED_NAMES_OUTPUT"; fi
 if [ "${#TEST_NAMES[@]}" -eq 0 ]; then
   echo "::error::module-gated test inventory is empty; refusing a vacuous pass" >&2
   exit 1

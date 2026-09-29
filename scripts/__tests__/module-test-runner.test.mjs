@@ -59,3 +59,23 @@ test("rejects a vacuous ignored-test inventory", () => {
   assert.equal(result.status, 1);
   assert.match(result.stderr, /inventory is empty/);
 });
+
+test("fails when the skipped-test inventory command fails", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "openhuman-module-tests-skipped-failure-"));
+  const bin = path.join(root, "bin");
+  fs.mkdirSync(bin);
+  fs.writeFileSync(
+    path.join(bin, "node"),
+    `#!/usr/bin/env bash
+if [[ "$*" == *"--skipped"* ]]; then exit 23; fi
+printf '%s\\n' one
+`,
+    { mode: 0o755 },
+  );
+  fs.writeFileSync(path.join(bin, "cargo"), "#!/usr/bin/env bash\nexit 0\n", { mode: 0o755 });
+
+  const result = spawnSync(runner, { cwd: repoRoot, env: { ...process.env, PATH: `${bin}:${process.env.PATH}` }, encoding: "utf8" });
+  fs.rmSync(root, { recursive: true, force: true });
+
+  assert.equal(result.status, 23, `${result.stdout}\n${result.stderr}`);
+});
