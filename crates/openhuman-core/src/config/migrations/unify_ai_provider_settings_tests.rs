@@ -83,25 +83,21 @@ fn openhuman_inference_url_does_not_seed_custom() {
 fn embeddings_provider_derived_from_legacy_usage() {
     let mut c = make_legacy_config_local_on();
     let stats = run(&mut c).expect("migration must succeed");
-    assert!(stats.workload_fields_filled >= 5);
+    // memory + embeddings + learning.
+    assert_eq!(stats.workload_fields_filled, 3);
     assert_eq!(c.embeddings_provider.as_deref(), Some("ollama:bge-m3"));
 }
 
 #[test]
-fn heartbeat_provider_derived_from_legacy_usage() {
+fn retired_background_usage_flags_derive_no_route() {
+    // `usage.heartbeat` / `usage.subconscious` are on in the fixture, but the
+    // loops they routed are gone: the migration must not turn them into a
+    // workload route, and the serialized config must carry no such field.
     let mut c = make_legacy_config_local_on();
     let _ = run(&mut c).unwrap();
-    assert_eq!(c.heartbeat_provider.as_deref(), Some("ollama:llama3.1:8b"));
-}
-
-#[test]
-fn subconscious_provider_derived_from_legacy_usage() {
-    let mut c = make_legacy_config_local_on();
-    let _ = run(&mut c).unwrap();
-    assert_eq!(
-        c.subconscious_provider.as_deref(),
-        Some("ollama:llama3.1:8b")
-    );
+    let serialized = toml::to_string(&c).unwrap();
+    assert!(!serialized.contains("heartbeat_provider"), "{serialized}");
+    assert!(!serialized.contains("subconscious_provider"), "{serialized}");
 }
 
 #[test]
@@ -144,7 +140,7 @@ fn idempotent_second_run_is_noop() {
     let first = run(&mut c).expect("first run must succeed");
     let providers_after_first = c.cloud_providers.len();
     let primary_after_first = c.primary_cloud.clone();
-    let heartbeat_after_first = c.heartbeat_provider.clone();
+    let learning_after_first = c.learning_provider.clone();
 
     let second = run(&mut c).expect("second run must succeed");
 
@@ -154,7 +150,7 @@ fn idempotent_second_run_is_noop() {
     assert_eq!(second.workload_fields_filled, 0);
     assert_eq!(c.cloud_providers.len(), providers_after_first);
     assert_eq!(c.primary_cloud, primary_after_first);
-    assert_eq!(c.heartbeat_provider, heartbeat_after_first);
+    assert_eq!(c.learning_provider, learning_after_first);
 
     // Sanity: stats from the first run say we did do work.
     assert!(first.cloud_providers_seeded >= 1);
@@ -167,8 +163,7 @@ fn runtime_disabled_falls_back_to_cloud_even_with_usage_flags() {
     c.local_ai.runtime_enabled = false;
     let _ = run(&mut c).unwrap();
     // With runtime off, every workload routes to cloud regardless of usage.*
-    assert_eq!(c.heartbeat_provider.as_deref(), Some("cloud"));
-    assert_eq!(c.subconscious_provider.as_deref(), Some("cloud"));
+    assert_eq!(c.learning_provider.as_deref(), Some("cloud"));
     assert_eq!(c.embeddings_provider.as_deref(), Some("cloud"));
     assert_eq!(c.memory_provider.as_deref(), Some("cloud"));
 }

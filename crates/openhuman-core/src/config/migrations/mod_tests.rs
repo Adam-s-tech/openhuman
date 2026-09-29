@@ -158,18 +158,12 @@ async fn run_pending_rewrites_v11_config() {
     run_pending(&mut config).await;
 
     assert_eq!(config.schema_version, CURRENT_SCHEMA_VERSION);
-    assert_eq!(
-        config.subconscious.engine,
-        crate::config::schema::SubconsciousEngine::Local
-    );
 
     let on_disk = fs::read_to_string(&config.config_path).unwrap();
     let persisted: Config = toml::from_str(&on_disk).unwrap();
     assert_eq!(persisted.schema_version, CURRENT_SCHEMA_VERSION);
-    assert_eq!(
-        persisted.subconscious.engine,
-        crate::config::schema::SubconsciousEngine::Local
-    );
+    assert!(!on_disk.contains("[subconscious]"), "{on_disk}");
+    assert!(!on_disk.contains("[heartbeat]"), "{on_disk}");
 }
 
 #[tokio::test]
