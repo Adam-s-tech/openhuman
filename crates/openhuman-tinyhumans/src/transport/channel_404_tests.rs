@@ -49,9 +49,13 @@ fn json_404() -> ResponseTemplate {
 #[tokio::test]
 async fn patch_404_without_a_matching_route_is_route_missing() {
     let server = server_404("PATCH", "/channels/telegram/messages/1103", html_404()).await;
-    let err = send(&server.uri(), Method::PATCH, "/channels/telegram/messages/1103")
-        .await
-        .unwrap_err();
+    let err = send(
+        &server.uri(),
+        Method::PATCH,
+        "/channels/telegram/messages/1103",
+    )
+    .await
+    .unwrap_err();
     let BackendTransportError::ChannelMessageRouteMissing {
         provider,
         message_id,
@@ -59,7 +63,10 @@ async fn patch_404_without_a_matching_route_is_route_missing() {
     else {
         panic!("expected ChannelMessageRouteMissing, got {err:?}");
     };
-    assert_eq!((provider.as_str(), message_id.as_str()), ("telegram", "1103"));
+    assert_eq!(
+        (provider.as_str(), message_id.as_str()),
+        ("telegram", "1103")
+    );
 }
 
 #[tokio::test]
@@ -67,9 +74,13 @@ async fn patch_404_from_a_real_handler_is_a_missing_message() {
     // The world where the edit route exists: a handler's JSON 404 means the
     // message is gone, never that edits are unsupported for the provider.
     let server = server_404("PATCH", "/channels/discord/messages/abc", json_404()).await;
-    let err = send(&server.uri(), Method::PATCH, "/channels/discord/messages/abc")
-        .await
-        .unwrap_err();
+    let err = send(
+        &server.uri(),
+        Method::PATCH,
+        "/channels/discord/messages/abc",
+    )
+    .await
+    .unwrap_err();
     assert!(
         matches!(
             &err,
@@ -121,7 +132,10 @@ async fn non_channel_404_stays_a_plain_status() {
         .await
         .unwrap_err();
     assert_eq!(err.status(), Some(404));
-    assert!(matches!(err, BackendTransportError::Status { .. }), "got {err:?}");
+    assert!(
+        matches!(err, BackendTransportError::Status { .. }),
+        "got {err:?}"
+    );
 }
 
 #[test]
@@ -134,5 +148,8 @@ fn map_sdk_error_leaves_non_404_channel_errors_alone() {
         &Method::POST,
         "/channels/telegram/messages/1",
     );
-    assert!(matches!(err, BackendTransportError::Status { status: 401, .. }));
+    assert!(matches!(
+        err,
+        BackendTransportError::Status { status: 401, .. }
+    ));
 }

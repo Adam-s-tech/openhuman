@@ -436,10 +436,12 @@ impl BackendClient {
                     method.as_str(),
                     url.path(),
                 );
-                return Err(anyhow::Error::new(BackendApiError::ChannelEditUnsupported {
-                    provider,
-                    message_id,
-                }));
+                return Err(anyhow::Error::new(
+                    BackendApiError::ChannelEditUnsupported {
+                        provider,
+                        message_id,
+                    },
+                ));
             }
             Err(BackendTransportError::ChannelMessageNotFound {
                 provider,

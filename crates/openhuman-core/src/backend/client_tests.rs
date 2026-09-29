@@ -1,6 +1,6 @@
 use super::{
-    backend_api_body_shape, flatten_authed_error,
-    BackendApiError, BackendClient, BACKEND_API_BODY_SHAPE_MAX_BYTES,
+    backend_api_body_shape, flatten_authed_error, BackendApiError, BackendClient,
+    BACKEND_API_BODY_SHAPE_MAX_BYTES,
 };
 use crate::backend::transport::plain::TEST_PRODUCT_HEADER as PRODUCT_IDENTITY_HEADER;
 use axum::extract::State;

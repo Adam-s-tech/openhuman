@@ -333,7 +333,11 @@ impl crate::backend::BackendTransport for FailingTransport {
         reqwest::Client::new()
     }
 
-    fn base_url(&self, configured: Option<&str>, purpose: crate::backend::BaseUrlPurpose) -> String {
+    fn base_url(
+        &self,
+        configured: Option<&str>,
+        purpose: crate::backend::BaseUrlPurpose,
+    ) -> String {
         crate::backend::transport::plain::PlainHttpTransport::new().base_url(configured, purpose)
     }
 
@@ -352,10 +356,8 @@ impl crate::backend::BackendTransport for FailingTransport {
 
 /// Run `f` with a [`FailingTransport`] installed. The `cfg(test)` global slot
 /// is per thread and `#[tokio::test]` runs on one, so this cannot leak.
-async fn with_failing_transport<F, Fut>(
-    make: fn() -> crate::backend::BackendTransportError,
-    f: F,
-) where
+async fn with_failing_transport<F, Fut>(make: fn() -> crate::backend::BackendTransportError, f: F)
+where
     F: FnOnce() -> Fut,
     Fut: std::future::Future<Output = ()>,
 {
@@ -385,7 +387,10 @@ async fn route_missing_becomes_channel_edit_unsupported() {
             else {
                 panic!("expected ChannelEditUnsupported, got {typed:?}");
             };
-            assert_eq!((provider.as_str(), message_id.as_str()), ("telegram", "1103"));
+            assert_eq!(
+                (provider.as_str(), message_id.as_str()),
+                ("telegram", "1103")
+            );
         },
     )
     .await;
