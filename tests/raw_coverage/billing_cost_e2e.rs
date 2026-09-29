@@ -406,7 +406,7 @@ alert_threshold = 0.9
     ));
     std::fs::write(state_dir.join("costs.jsonl"), &jsonl).expect("seed costs.jsonl");
     bind_cost_tracker(
-        harness.workspace(),
+        &harness.workspace(),
         json!({
             "enabled": true,
             "monthly_limit_usd": 10.0,
@@ -634,7 +634,7 @@ async fn cost_controllers_answer_on_a_workspace_with_no_history() {
     crate::tinyhumans_boot::boot();
     let _lock = support::env_lock();
     let harness = Harness::start("", true).await;
-    bind_cost_tracker(harness.workspace(), json!({}));
+    bind_cost_tracker(&harness.workspace(), json!({}));
 
     let summary = harness
         .call(60, "openhuman.cost_get_summary", json!({}))
