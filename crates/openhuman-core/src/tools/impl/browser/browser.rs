@@ -518,6 +518,7 @@ impl BrowserTool {
     }
 }
 
+
 #[async_trait]
 impl Tool for BrowserTool {
     fn exposure(&self) -> tinytools::ToolExposure {
