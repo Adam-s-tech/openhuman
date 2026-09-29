@@ -3,7 +3,6 @@
 //! The git-worktree plumbing itself is tested in
 //! `vendor/tinyagents/crates/tinyagents-harness/src/workspace/git/test.rs`.
 
-use super::*;
 use tinyagents_harness::workspace::GitWorktreeStatus;
 
 /// Pins the JSON-RPC wire shape of [`GitWorktreeStatus`].
