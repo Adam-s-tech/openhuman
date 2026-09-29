@@ -401,6 +401,24 @@ test("a session on a different base than the build is refused", async () => {
   }
 });
 
+test("a session with a different core port than the build is refused", async () => {
+  const tree = makeTree();
+  try {
+    const base = await freeBase();
+    markBundle(tree, { mockPort: base, corePort: base + 1 });
+
+    const res = run(tree, "e2e-web-session.sh", {
+      E2E_PORT_BASE: String(base),
+      OPENHUMAN_CORE_PORT: String(base + 9),
+    });
+
+    assert.equal(res.status, 1, res.output);
+    assert.match(res.output, /built for OPENHUMAN_CORE_PORT=/);
+  } finally {
+    tree.cleanup();
+  }
+});
+
 test("a wildcard listener on one of the ports is still detected", async () => {
   // A bind probe would call this port free: with SO_REUSEADDR a 127.0.0.1 bind
   // coexists with an existing 0.0.0.0 listener on macOS and BSD, while that
