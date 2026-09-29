@@ -138,6 +138,13 @@ scripts:
   # Bash helpers with node --test coverage in scripts/__tests__/.
   - 'scripts/ci/assert-coverage-presence.sh'
   - 'scripts/test-rust-e2e.sh'
+  # The web E2E build and session scripts, whose bundle guard and port
+  # guard are covered by scripts/__tests__/e2e-web-*.test.mjs. They match
+  # the frontend filter above, which runs no node --test suite, so without
+  # these a change to either script would skip the tests that pin it.
+  - 'app/scripts/e2e-ports.sh'
+  - 'app/scripts/e2e-web-build.sh'
+  - 'app/scripts/e2e-web-session.sh'
   # Shared logic behind the gate CLIs, and the module-pin gate's own
   # files. Without these a change to the checking logic would skip
   # the lane that tests it — the gate would stop watching itself.

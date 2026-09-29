@@ -143,7 +143,7 @@ pub(crate) fn run_policy_for(max_iterations: usize, response_cache_enabled: bool
     // repeats, the existing EmptyProviderResponse path remains actionable.
     policy.empty_response_retries = 1;
     policy.limits.max_model_calls = max_iterations;
-    policy.limits.max_tool_calls = max_iterations.saturating_mul(8).max(8);
+    policy.limits.max_tool_calls = crate::agent::stop_hooks::tool_call_limit(max_iterations);
     policy.limits.max_depth = MAX_SPAWN_DEPTH;
     // Wall-clock ceiling for the whole turn (issue #4746). The harness bounds
     // every individual model AND tool call by the run's *remaining* wall-clock
@@ -310,3 +310,7 @@ pub(crate) fn effective_max_iterations(max_iterations: usize) -> usize {
 pub(crate) fn is_subagent_spawn_or_delegate_tool(name: &str) -> bool {
     name == "spawn_subagent" || name.starts_with("delegate_") || name == "spawn_worker_thread"
 }
+
+#[cfg(test)]
+#[path = "turn_policy_budget_tests.rs"]
+mod budget_tests;
