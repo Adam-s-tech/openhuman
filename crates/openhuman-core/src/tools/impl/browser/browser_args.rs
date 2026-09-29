@@ -19,7 +19,7 @@ pub(super) fn task_inputs(args: &Value) -> anyhow::Result<BTreeMap<String, Strin
     )
 }
 
-fn required<'a>(args: &'a Value, key: &str) -> anyhow::Result<&'a str> {
+pub(super) fn required<'a>(args: &'a Value, key: &str) -> anyhow::Result<&'a str> {
     args.get(key)
         .and_then(Value::as_str)
         .filter(|s| !s.trim().is_empty())
