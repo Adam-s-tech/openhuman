@@ -104,7 +104,6 @@ impl DirectComposioClient {
             .collect())
     }
 }
-}
 
 
 #[derive(Debug, Deserialize)]
