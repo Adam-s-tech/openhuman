@@ -1,36 +1,18 @@
-//! Live dual-write of new session turns into the TinyAgents store.
+//! Host policy for the live session-store dual-write and the shadow read.
 //!
-//! Additive, best-effort, and gated by the `AgentConfig::session_dual_write`
-//! **config flag** which **defaults ON** ([`dual_write_enabled`]); the
-//! `OPENHUMAN_SESSION_DUAL_WRITE` env var is a **kill switch** — set it to a
-//! falsey value (`0`/`false`/`no`/`off`/`disable`) to force the mirror off
-//! regardless of config. This mirrors the `OPENHUMAN_APPROVAL_GATE`
-//! default-on-with-kill-switch idiom. The legacy `session_raw/*.jsonl`
-//! transcript (`session/turn/session_io.rs` → `transcript::write_transcript`)
-//! stays the primary and authoritative writer; this module mirrors each
-//! *already-persisted* turn into the same store layout the Phase-1 importer
-//! produces (`{workspace}/tinyagents_store/{kv,journal}`), reusing
-//! [`super::convert`] normalization so live and imported records are
-//! shape-identical.
-//!
-//! Reads stay 100% legacy in this slice — 04.2 flips readers independently,
-//! gated on the same flag. A store-write failure here must never fail or alter
-//! a chat turn: the caller treats every error as non-fatal (log + swallow), and
-//! nothing in this module touches the legacy transcript path.
+//! The work itself (`write_live_turn`, `shadow_read_compare`) lives in
+//! `tinyagents_session::transcript::import::live`; what stays here is the
+//! OpenHuman decision of *whether* it runs: the `AgentConfig` flags
+//! (`session_dual_write`, `session_shadow_reads`, both default ON), the
+//! `OPENHUMAN_SESSION_DUAL_WRITE` / `OPENHUMAN_SESSION_SHADOW_READS` kill
+//! switches (a falsey value forces the feature off, an env var can never force
+//! it on; this mirrors the `OPENHUMAN_APPROVAL_GATE` idiom), and the
+//! `RunContext.stores` registration of the session KV store.
 
-use std::path::Path;
 use std::sync::Arc;
 
 use tinyagents_harness::store::Store;
 use tinyagents_session::transcript::import::ops::{open_session_stores, SessionStores};
-
-use tinyagents_session::transcript::SessionTranscript;
-
-use super::convert::{
-    build_descriptor, effective_thread_id, journal_messages, sanitize_store_name, stream_name,
-};
-use super::ops::{open_session_stores, SessionStores};
-use super::types::{DescriptorSource, JournalMessage, NS_SESSIONS};
 
 /// Kill-switch env var for the live session-store dual-write. The config flag
 /// (`AgentConfig::session_dual_write`) defaults ON; setting this env var to a
@@ -125,17 +107,6 @@ pub async fn session_kv_store() -> Option<Arc<dyn Store>> {
     );
     Some(Arc::new(kv))
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Store-backed SHADOW READ (issue #4249, sessions 04.2 phase 2)
-//
-// Beside the legacy authoritative transcript reader
-// (`session/turn/session_io.rs` → `try_load_session_transcript`), read the
-// same session's messages back from the crate journal store, normalize both
-// sides through the same `convert` machinery the dual-write uses, compare, and
-// log divergence. Legacy stays authoritative: this observes + logs only and
-// never affects, fails, or slows the authoritative read.
-// ─────────────────────────────────────────────────────────────────────────────
 
 /// Whether the store-backed session **shadow read** is enabled for this read.
 ///
