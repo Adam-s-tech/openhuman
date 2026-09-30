@@ -20,7 +20,7 @@ fn registry_with(endpoint: &str, auth: crate::config::McpAuthConfig) -> Arc<McpS
             endpoint: endpoint.into(),
             command: String::new(),
             args: Vec::new(),
-            env: std::collections::HashMap::new(),
+            env: Default::default(),
             cwd: None,
             description: Some("Docs MCP".into()),
             enabled: true,

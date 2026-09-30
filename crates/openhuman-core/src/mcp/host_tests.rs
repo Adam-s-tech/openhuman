@@ -440,3 +440,127 @@ fn a_credentialed_https_endpoint_is_allowed() {
         "credentialed HTTPS endpoint must be preserved"
     );
 }
+
+/// A `config.toml` written before `McpServerConfig` became the contract's type
+/// plus two host-only keys. It must parse to the same servers, and writing it
+/// back must still read as the same document.
+const EXISTING_CONFIG_TOML: &str = r#"
+[mcp_client]
+enabled = true
+
+[mcp_client.client_identity]
+name = "custom-name"
+
+[mcp_client.registry_auth]
+smithery_api_key = "smithery-key"
+
+[[mcp_client.servers]]
+name = "weather"
+endpoint = "https://example.test/mcp"
+description = "Weather lookups"
+allowed_tools = ["forecast"]
+disallowed_tools = ["debug"]
+timeout_secs = 9
+expose = "direct"
+direct_tools = ["forecast"]
+
+[mcp_client.servers.auth]
+kind = "headers"
+headers = [{ name = "X-Client-Key", value = "k" }, { name = "X-Org", value = "o" }]
+
+[[mcp_client.servers]]
+name = "local"
+command = "npx"
+args = ["-y", "weather-mcp"]
+enabled = false
+
+[mcp_client.servers.env]
+API_KEY = "secret"
+"#;
+
+#[test]
+fn an_existing_config_toml_parses_with_the_same_shape_and_defaults() {
+    let config: Config = toml::from_str(EXISTING_CONFIG_TOML).expect("the existing shape parses");
+    let servers = &config.mcp_client.servers;
+    assert_eq!(servers.len(), 2);
+
+    let weather = &servers[0];
+    assert_eq!(weather.name, "weather");
+    assert_eq!(weather.endpoint, "https://example.test/mcp");
+    assert_eq!(weather.description.as_deref(), Some("Weather lookups"));
+    assert_eq!(weather.allowed_tools, ["forecast"]);
+    assert_eq!(weather.disallowed_tools, ["debug"]);
+    assert_eq!(weather.timeout_secs, 9);
+    assert!(weather.enabled, "enabled defaults to true");
+    assert_eq!(weather.expose, crate::config::McpToolExposure::Direct);
+    assert_eq!(weather.direct_tools, ["forecast"]);
+    assert_eq!(
+        weather.auth,
+        McpAuthConfig::Headers {
+            headers: vec![
+                HttpHeader::new("X-Client-Key", "k"),
+                HttpHeader::new("X-Org", "o"),
+            ]
+        }
+    );
+
+    let local = &servers[1];
+    assert_eq!(local.command, "npx");
+    assert_eq!(local.args, ["-y", "weather-mcp"]);
+    assert!(!local.enabled);
+    assert_eq!(local.timeout_secs, 30, "the timeout default is unchanged");
+    assert_eq!(local.auth, McpAuthConfig::None);
+    assert_eq!(local.expose, crate::config::McpToolExposure::Deferred);
+    assert!(local.direct_tools.is_empty());
+    assert_eq!(local.env.get("API_KEY").map(String::as_str), Some("secret"));
+
+    // The identity block keeps this application's defaults for whatever the
+    // file leaves out.
+    assert_eq!(config.mcp_client.client_identity.name, "custom-name");
+    assert_eq!(
+        config.mcp_client.client_identity.title,
+        "OpenHuman Core MCP Client"
+    );
+    assert_eq!(
+        config.mcp_client.registry_auth.smithery_api_key.as_deref(),
+        Some("smithery-key")
+    );
+
+    // And it converts to the module's configuration with the proxy defaulted.
+    let mut config = config;
+    config.gitbooks.enabled = false;
+    let converted = client_config(&config);
+    assert_eq!(converted.servers.len(), 2);
+    assert_eq!(
+        converted.registry_auth.smithery_api_key.as_deref(),
+        Some("smithery-key")
+    );
+}
+
+#[test]
+fn a_config_with_servers_writes_back_the_same_keys() {
+    let config: Config = toml::from_str(EXISTING_CONFIG_TOML).expect("parses");
+    let written = toml::to_string(&config).expect("a flattened server serializes");
+    let reread: Config = toml::from_str(&written).expect("the written file parses");
+    let doc: toml::Table = toml::from_str(&written).expect("a table");
+
+    let servers = doc["mcp_client"]["servers"].as_array().expect("servers");
+    let first = servers[0].as_table().expect("a table");
+    // Contract keys and host keys sit side by side in one table, as before.
+    for key in [
+        "name",
+        "endpoint",
+        "timeout_secs",
+        "allowed_tools",
+        "auth",
+        "expose",
+        "direct_tools",
+    ] {
+        assert!(first.contains_key(key), "missing `{key}` in {written}");
+    }
+    assert!(!first.contains_key("server"), "no wrapper key: {written}");
+    assert_eq!(first["expose"].as_str(), Some("direct"));
+    assert_eq!(first["auth"]["kind"].as_str(), Some("headers"));
+    assert_eq!(reread.mcp_client.servers[0].name, "weather");
+    assert_eq!(reread.mcp_client.servers[1].env["API_KEY"], "secret");
+}
