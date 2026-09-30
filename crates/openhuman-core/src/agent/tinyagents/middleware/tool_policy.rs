@@ -131,6 +131,7 @@ impl ToolPolicyMiddleware {
             })
             .collect();
         tinyagents_harness::tool::packs::NoSuchPackTool {
+            not_found_marker: crate::tools::status::NOT_FOUND_MARKER,
             skill: pack.id,
             tool,
             callable,
@@ -170,7 +171,8 @@ impl ToolPolicyMiddleware {
         let route = crate::tools::toolpacks::pack(skill)
             .map(|pack| self.route_for_pack(pack))
             .unwrap_or_default();
-        let rendered = crate::tools::toolpacks::render_pack_filtered(
+        let rendered = tinyagents_harness::tool::packs::render_pack_filtered(
+            &crate::tools::toolpacks::CATALOG,
             skill,
             handle,
             // The same predicate the gate applies to `use_skill`'s inner tool.

@@ -164,7 +164,8 @@ pub(super) fn visible_tool_specs_for_policy(
                 // `durable_tool_specs` is meant to stay the unscoped truth.
                 // This copies exactly the one spec being rewritten and leaves
                 // the other ~48 visible schemas shared.
-                return crate::tools::toolpacks::scope_use_skill_spec(
+                return tinyagents_harness::tool::packs::scope_use_skill_spec(
+                    &crate::tools::toolpacks::CATALOG,
                     Arc::make_mut(&mut spec),
                     &is_callable,
                 )
