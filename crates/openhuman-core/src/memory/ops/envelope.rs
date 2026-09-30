@@ -63,7 +63,9 @@ pub(crate) fn error_envelope<T: Serialize>(code: &str, message: String) -> Outco
             data: None,
             error: Some(ApiError {
                 code: code.to_string(),
-                message,
+                // A hosted engine's 402 / rejected session read as
+                // `INSUFFICIENT_CREDITS:` / `SESSION_EXPIRED:` here too.
+                message: super::fallback::classify_rpc_error(message),
                 details: None,
             }),
             meta: ApiMeta {

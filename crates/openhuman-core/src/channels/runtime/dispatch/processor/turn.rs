@@ -30,7 +30,7 @@ use super::super::helpers::{
 };
 use super::super::routing::resolve_target_agent;
 use super::approval::{channel_has_approval_surface, try_route_approval_reply};
-use super::message::RuntimeChannelMessage;
+use super::RuntimeChannelMessage;
 
 pub(crate) async fn process_channel_message(
     ctx: Arc<ChannelRuntimeContext>,
@@ -435,13 +435,11 @@ pub(crate) async fn process_channel_runtime_message(
             })
     };
     // Sub-issue 2 of #3098: scope the agent turn in an `ApprovalChatContext`
-    // for channels that have a registered approval surface — currently
-    // Telegram only via `TelegramApprovalSurfaceSubscriber`. Without this
-    // scope the gate's "no chat context → allow straight through" branch
+    // for every channel with the `chat_approvals` capability (served by
+    // `ChannelApprovalSurfaceSubscriber`). Without this scope the gate's
+    // "no chat context → allow straight through" branch
     // (`approval/gate.rs:219-231`) silently bypasses every `Prompt`-class
     // tool call, voiding the `supervised` autonomy tier on the channel.
-    // Discord / Slack / iMessage / Mattermost stay in the legacy bypass
-    // until each gets its own approval surface in a follow-up PR.
     let llm_result = tokio::time::timeout(Duration::from_secs(ctx.message_timeout_secs), async {
         if channel_has_approval_surface(&msg.channel) {
             let approval_ctx = crate::security::approval::ApprovalChatContext {

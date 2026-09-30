@@ -79,6 +79,9 @@ pub(crate) struct CanonicalSharedToolAdapter {
     description: String,
     parameters_schema: serde_json::Value,
     early_exit: Option<EarlyExitHook>,
+    /// Report `Deferred` whatever the resolved tool says: the session serves
+    /// this tool through `tool_search` for its own agent only.
+    force_deferred: bool,
 }
 
 impl CanonicalSharedToolAdapter {
@@ -94,7 +97,16 @@ impl CanonicalSharedToolAdapter {
             description: spec.description,
             parameters_schema: spec.parameters,
             early_exit: None,
+            force_deferred: false,
         })
+    }
+
+    /// Register this tool as `Deferred` for the turn (see
+    /// `OpenHumanRunContext::deferred_tool_names`). A `Hidden` tool stays
+    /// hidden: deferral only ever subtracts.
+    pub(crate) fn deferred(mut self) -> Self {
+        self.force_deferred = true;
+        self
     }
 
     pub(crate) fn with_early_exit(mut self, hook: EarlyExitHook) -> Self {
@@ -145,6 +157,14 @@ impl Tool for CanonicalSharedToolAdapter {
     fn exposure(&self) -> tinytools::ToolExposure {
         match self.resolved_tool().map(Tool::exposure) {
             Some(tinytools::ToolExposure::Deferred) => tinytools::ToolExposure::Deferred,
+            // Deferral only subtracts: a session-deferred `Hidden` tool stays
+            // hidden rather than becoming searchable.
+            Some(tinytools::ToolExposure::Hidden) if self.force_deferred => {
+                tinytools::ToolExposure::Hidden
+            }
+            Some(tinytools::ToolExposure::Direct) if self.force_deferred => {
+                tinytools::ToolExposure::Deferred
+            }
             _ => tinytools::ToolExposure::Direct,
         }
     }

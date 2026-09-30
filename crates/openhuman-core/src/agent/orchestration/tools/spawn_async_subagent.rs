@@ -27,7 +27,11 @@ use tinyagents_harness::tool::{ToolDispatch, ToolExecutionContext};
 use tinytools::ToolRunContext;
 use tinytools::{PermissionLevel, Tool, ToolCallOptions, ToolResult};
 
-pub struct SpawnAsyncSubagentTool;
+pub struct SpawnAsyncSubagentTool {
+    /// The ids this instance advertises in its `agent_id` enum. Empty means
+    /// the whole registry. See [`SpawnAsyncSubagentTool::scoped`].
+    advertised_ids: Vec<String>,
+}
 
 /// Harness dispatch for the detached child path. It owns the typed parent run
 /// so the spawned child receives the caller's carrier before `tokio::spawn`.
@@ -80,7 +84,27 @@ impl ToolDispatch<(), crate::agent::tinyagents::host::OpenHumanRunContext>
 
 impl SpawnAsyncSubagentTool {
     pub fn new() -> Self {
-        Self
+        Self {
+            advertised_ids: Vec::new(),
+        }
+    }
+
+    /// An instance whose schema advertises only `ids`, the parent's
+    /// `[subagents]` allowlist.
+    ///
+    /// [`scope_spawn_async_subagent_spec`] narrows the session's spec view,
+    /// but on native tool calling the wire schema is read from the registered
+    /// tool itself (`CanonicalSharedToolAdapter::for_name` → `Tool::spec`),
+    /// so the narrowed view never reached the provider: a captured
+    /// orchestrator request carried all 19 registry ids. The session builder
+    /// swaps this instance in so both views agree. Execution is unchanged;
+    /// `execute` enforces the allowlist either way.
+    pub fn scoped(mut ids: Vec<String>) -> Self {
+        ids.sort();
+        ids.dedup();
+        Self {
+            advertised_ids: ids,
+        }
     }
 }
 
@@ -139,9 +163,14 @@ impl Tool for SpawnAsyncSubagentTool {
     }
 
     fn parameters_schema(&self) -> serde_json::Value {
-        let agent_ids: Vec<String> = AgentDefinitionRegistry::global()
-            .map(|reg| reg.list().iter().map(|d| d.id.clone()).collect())
-            .unwrap_or_default();
+        let scoped = !self.advertised_ids.is_empty();
+        let agent_ids: Vec<String> = if scoped {
+            self.advertised_ids.clone()
+        } else {
+            AgentDefinitionRegistry::global()
+                .map(|reg| reg.list().iter().map(|d| d.id.clone()).collect())
+                .unwrap_or_default()
+        };
 
         let agent_id_schema = if agent_ids.is_empty() {
             json!({
@@ -152,7 +181,11 @@ impl Tool for SpawnAsyncSubagentTool {
             json!({
                 "type": "string",
                 "enum": agent_ids,
-                "description": "Sub-agent id from the registry."
+                "description": if scoped {
+                    "Sub-agent id (only these are dispatchable from here)."
+                } else {
+                    "Sub-agent id from the registry."
+                }
             })
         };
 

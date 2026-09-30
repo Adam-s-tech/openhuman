@@ -187,3 +187,16 @@ async fn skips_when_the_user_message_is_too_short() {
         "the model must not be called for a trivial user message"
     );
 }
+
+#[test]
+fn suggestions_request_asks_for_no_reasoning() {
+    let request = build_suggestions_request("what is the weather in Paris", "Sunny, 21°C.");
+    assert_eq!(
+        request.metadata.get("openhuman_reasoning_off"),
+        Some(&serde_json::Value::Bool(true)),
+        "follow-up suggestions must opt out of reasoning"
+    );
+    // The hint is metadata only; nothing provider-specific is set here, so a
+    // BYOK or local provider receives an unchanged body.
+    assert!(request.provider_options.is_null());
+}
