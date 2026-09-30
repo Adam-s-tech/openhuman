@@ -4071,6 +4071,7 @@ dependencies = [
  "tinymemory-conformance",
  "tinymemory-conversations",
  "tinymemory-guard",
+ "tinymemory-safety",
  "tinymemory-sources",
  "tinyruntime-bus",
  "tinyruntime-pyserver",
@@ -7053,6 +7054,15 @@ dependencies = [
  "sha2 0.11.0",
  "tinymemory-api",
  "tokio",
+]
+
+[[package]]
+name = "tinymemory-safety"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "regex",
+ "serde_json",
 ]
 
 [[package]]
