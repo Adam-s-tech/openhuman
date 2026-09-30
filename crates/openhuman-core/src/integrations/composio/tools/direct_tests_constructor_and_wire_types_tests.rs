@@ -194,7 +194,7 @@ async fn list_tool_schemas_v3_sends_repeated_tags_to_v3_tools_endpoint() {
     );
     let base = start_mock_backend(app).await;
 
-    let tool = DirectComposioClient::new_with_v3_base("ck_test_direct", None, test_security(), base);
+    let tool = DirectComposioClient::new_with_v3_base("ck_test_direct", base);
     let items = tool
         .list_tool_schemas_v3(&["github"], Some(&["stars", "repos"]))
         .await

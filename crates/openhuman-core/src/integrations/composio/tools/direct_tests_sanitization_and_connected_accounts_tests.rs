@@ -132,30 +132,30 @@ fn connected_account_accepts_camelcase_created_at() {
 // whitespace so legitimate keys containing spaces are not corrupted.
 
 #[test]
-fn composio_tool_trims_surrounding_whitespace_in_api_key() {
-    let tool = ComposioTool::new(" key123 ", None, test_security());
+fn direct_client_trims_surrounding_whitespace_in_api_key() {
+    let tool = DirectComposioClient::new(" key123 ");
     assert_eq!(tool.api_key, "key123");
 }
 
 #[test]
-fn composio_tool_trims_trailing_newline_in_api_key() {
+fn direct_client_trims_trailing_newline_in_api_key() {
     // The real-world Sentry case: secret store payloads frequently carry a
     // trailing newline (clipboard paste, file read). It must be stripped.
-    let tool = ComposioTool::new("key123\n", None, test_security());
+    let tool = DirectComposioClient::new("key123\n");
     assert_eq!(tool.api_key, "key123");
 }
 
 #[test]
-fn composio_tool_preserves_internal_whitespace_in_api_key() {
+fn direct_client_preserves_internal_whitespace_in_api_key() {
     // Pins the trim-scope: a future refactor must NOT widen this to
     // `replace(' ', "")` or similar — only surrounding whitespace is stripped.
-    let tool = ComposioTool::new("k1 k2", None, test_security());
+    let tool = DirectComposioClient::new("k1 k2");
     assert_eq!(tool.api_key, "k1 k2");
 }
 
 #[test]
-fn composio_tool_accepts_empty_api_key_without_panic() {
-    let tool = ComposioTool::new("", None, test_security());
+fn direct_client_accepts_empty_api_key_without_panic() {
+    let tool = DirectComposioClient::new("");
     assert_eq!(tool.api_key, "");
 }
 
