@@ -80,6 +80,10 @@ crate-type = ["rlib"]
 # Optional: exclusive to the default-ON `flows` feature (#4797). A slim build
 # without `flows` drops this crate and its `jaq-*` JSON-query stack entirely.
 tinyflows = { version = "0.8", features = ["mock"], optional = true }
+# Schedule model + pure next-run logic for the `cron::` domain (cron expressions,
+# time zones, active hours, cadence floor). Unconditional: the cron scheduler is
+# not behind the `flows` gate. Runtime, store and config stay in `cron::`.
+tinyflows-schedule = { path = "../../vendor/tinyflows/crates/tinyflows-schedule" }
 # The saved-flow catalog and its SQLite backend, split out of this crate's
 # `flows::` domain so a second host storing workflows does not have to reinvent
 # them. `tinyflows-catalog` is the model (flows, revisions, runs, drafts,
@@ -425,7 +429,6 @@ futures = "0.3"
 rusqlite = { version = "=0.40.2", features = ["bundled"] }
 chrono = { version = "0.4", features = ["serde"] }
 iana-time-zone = "0.1"
-cron = "0.12"
 futures-util = "0.3"
 directories = "6"
 toml = "1.0"
@@ -436,7 +439,6 @@ tracing-subscriber = { version = "0.3", default-features = false, features = ["f
 tracing-appender = { version = "0.2", optional = true }
 urlencoding = "2.1"
 thiserror = "2.0"
-chrono-tz = "0.10"
 dotenvy = "0.15"
 regex = "1.10"
 # Multi-pattern fixed-string DFA matcher used by `routing::quality` for

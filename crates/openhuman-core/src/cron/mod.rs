@@ -11,19 +11,22 @@ pub mod scheduler_gate;
 
 pub mod bus;
 pub mod ops;
-mod schedule;
 mod schemas;
 pub mod seed;
 mod store;
 pub mod tools;
-mod types;
 
 pub mod scheduler;
 
 pub use ops as rpc;
 pub use ops::{add_once, add_once_at, parse_human_delay, pause_job, resume_job, update_cron_job};
+// Pure scheduling logic lives in `tinyflows-schedule`; the host keeps the
+// scheduler runtime, store, config and RPC. `schedule`/`types` stay addressable
+// as `crate::cron::{schedule,types}` for the modules beneath `cron`.
+use tinyflows_schedule::{schedule, types};
+
 #[allow(unused_imports)]
-pub use schedule::{
+pub use tinyflows_schedule::schedule::{
     next_run_for_schedule, normalize_expression, runs_closer_than, schedule_cron_expression,
     validate_agent_schedule, validate_schedule, TooFrequent, MIN_AGENT_JOB_INTERVAL,
 };
@@ -38,6 +41,6 @@ pub use store::{
     get_job, list_jobs, list_runs, record_last_run, record_run, remove_job, reschedule_after_run,
     update_job,
 };
-pub use types::{
+pub use tinyflows_schedule::types::{
     ActiveHours, CronJob, CronJobPatch, CronRun, DeliveryConfig, JobType, Schedule, SessionTarget,
 };
