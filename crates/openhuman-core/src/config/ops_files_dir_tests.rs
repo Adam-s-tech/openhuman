@@ -163,3 +163,17 @@ async fn boot_migrates_legacy_files_into_the_chosen_folder() {
     }
     assert_eq!(std::fs::read(chosen.join("plan.docx")).unwrap(), b"plan");
 }
+
+/// A symlinked spelling of the data folder is still the data folder: the
+/// check compares canonical paths, not text.
+#[cfg(unix)]
+#[tokio::test]
+async fn a_symlinked_route_into_the_data_folder_is_rejected() {
+    let tmp = tempdir().unwrap();
+    let mut cfg = tmp_config(&tmp);
+    let alias = tmp.path().join("alias");
+    std::os::unix::fs::symlink(&cfg.workspace_dir, &alias).unwrap();
+
+    let err = rejected(&mut cfg, &alias.join("Files").to_string_lossy()).await;
+    assert!(err.contains("OpenHuman data folder"), "{err}");
+}

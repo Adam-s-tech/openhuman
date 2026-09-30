@@ -97,11 +97,7 @@ impl DocumentTool {
     /// The agent-registry constructor: the artifact metadata goes to
     /// `config.workspace_dir`, the document to the files folder (#5505).
     pub fn for_config(config: &crate::config::Config, security: Arc<SecurityPolicy>) -> Self {
-        Self::new(
-            config.workspace_dir.clone(),
-            config.files_dir(),
-            security,
-        )
+        Self::new(config.workspace_dir.clone(), config.files_dir(), security)
     }
 }
 
