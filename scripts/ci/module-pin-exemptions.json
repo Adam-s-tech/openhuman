@@ -15,8 +15,8 @@
     {
       "id": "tinymcp",
       "submodule": "vendor/tinymcp",
-      "expect": "v0.3.5-97-gd2feb798",
-      "reason": "The main-branch TinyMCP submodule pin includes upstream changes after PR #30, while no matching tinymcp module release and digest have been published. Keep the registry artifact pinned to the verified v0.3.5 release and remove this exact source/artifact drift exemption when a matching release and digest are available."
+      "expect": "v0.3.5-113-g74e8b109",
+      "reason": "The main-branch TinyMCP submodule pin includes upstream changes after PR #30, while no matching tinymcp module release and digest have been published, plus tinymcp#33 (branch w4-mcp-hosts): the optional library-only `tools` additions `tinymcp::tools::{SecretScrubber, McpListServersTool, McpListToolsTool, McpCallTool}`, which the core links as a Rust path dependency and which the loadable module artifact does not build (the feature is off for the cdylib). Keep the registry artifact pinned to the verified v0.3.5 release and remove this exact source/artifact drift exemption when a matching release and digest are available."
     },
     {
       "id": "tinyruntime",
