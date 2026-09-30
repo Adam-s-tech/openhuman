@@ -7,7 +7,7 @@
 //! `RunContext.stores` registration ([`live`]), and the [`projector`] that
 //! folds host message metadata into journal records.
 
-mod live;
+pub mod live;
 pub mod projector;
 mod schemas;
 
