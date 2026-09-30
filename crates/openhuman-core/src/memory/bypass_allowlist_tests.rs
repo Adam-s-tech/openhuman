@@ -195,11 +195,6 @@ const ALLOWED: &[(&str, &str, &str)] = &[
         "MemoryClient::from_workspace_dir(",
         "the process-global slot itself; it is what global::client hands out",
     ),
-    (
-        "vendor/tinymemory/crates/tinymemory-guard/src/families/ingest_and_tree.rs",
-        ".get_document(",
-        "the guard's own documents decorator forwarding to the inner family",
-    ),
     // ── Handlers with no typed contract twin (see the allowlist doc, §D) ──
     (
         "crates/openhuman-core/src/memory/ops/guard.rs",
