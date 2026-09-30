@@ -4,7 +4,6 @@ mod connect;
 mod discord;
 mod messaging;
 mod types;
-mod yuanbao;
 
 // Re-export types needed by tests.
 #[cfg(test)]

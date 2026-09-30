@@ -255,13 +255,8 @@ impl ChannelBackend for OpenHumanChannelBackend {
         channels_config: &ChannelsConfig,
         intent: ChannelOutboundIntent,
     ) -> anyhow::Result<ChannelSendMessageResult> {
-        if crate::channels::relay_runtime::relay_runtime_fronts_channel(
-            channels_config,
-            &intent.channel_id,
-        ) {
-            if let Some(result) =
-                crate::channels::relay_runtime::send_outbound_intent(&intent).await?
-            {
+        if tinychannels::relay::relay_runtime_fronts_channel(channels_config, &intent.channel_id) {
+            if let Some(result) = tinychannels::relay::send_outbound_intent(&intent).await? {
                 return Ok(result);
             }
         }

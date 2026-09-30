@@ -186,6 +186,11 @@ const ALLOWED: &[(&str, &str, &str)] = &[
         "this is the construction path the lint protects (fail-closed fallback)",
     ),
     (
+        "crates/openhuman-core/src/memory/binding_build.rs",
+        "NullMemoryProvider::new(",
+        "the fail-closed fallback construction, moved out of binding.rs unchanged",
+    ),
+    (
         "vendor/tinymemory/crates/tinymemory-core/src/global.rs",
         "MemoryClient::from_workspace_dir(",
         "the process-global slot itself; it is what global::client hands out",

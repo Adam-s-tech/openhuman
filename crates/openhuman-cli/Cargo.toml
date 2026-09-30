@@ -131,7 +131,7 @@ required-features = ["modules"]
 [[test]]
 name = "x402_twit_sh_live"
 path = "../../tests/x402_twit_sh_live.rs"
-# `x402::tools::X402RequestTool` — the x402 domain is part of the web3 family.
+# `x402::request_tool()` — the x402 domain is part of the web3 family.
 required-features = ["web3"]
 
 [[test]]
@@ -267,6 +267,19 @@ name = "memory_graph_roundtrip_e2e"
 path = "../../tests/memory_graph_roundtrip_e2e.rs"
 
 [[test]]
+# Memory-engine selection over JSON-RPC against a hosted-CortexDB double.
+name = "memory_engine_e2e"
+path = "../../tests/memory_engine_e2e.rs"
+# Needs the memory module (the migration source) and the remote-engine gate.
+required-features = ["modules", "memory-remote"]
+
+[[test]]
+# Engine migration, cancel, credits and config safety.
+name = "memory_engine_migrate_e2e"
+path = "../../tests/memory_engine_migrate_e2e.rs"
+required-features = ["modules", "memory-remote"]
+
+[[test]]
 name = "memory_roundtrip_e2e"
 path = "../../tests/memory_roundtrip_e2e.rs"
 
@@ -285,10 +298,6 @@ path = "../../tests/tree_summarizer_e2e.rs"
 [[test]]
 name = "observability_wallet_expected_e2e"
 path = "../../tests/observability_wallet_expected_e2e.rs"
-
-[[test]]
-name = "ollama_lifecycle_e2e"
-path = "../../tests/ollama_lifecycle_e2e.rs"
 
 [[test]]
 name = "orchestrator_parallel_fanout_routing"
@@ -427,6 +436,7 @@ hosting = ["openhuman-core/hosting", "openhuman-tinyhumans/hosting"]
 modules = ["openhuman-core/modules", "openhuman-tinyhumans/modules"]
 voice = ["openhuman-core/voice", "openhuman-tinyhumans/voice"]
 web3 = ["openhuman-core/web3", "openhuman-tinyhumans/web3"]
+memory-remote = ["openhuman-core/memory-remote", "openhuman-tinyhumans/memory-remote"]
 runtime-node = ["openhuman-core/runtime-node", "openhuman-tinyhumans/runtime-node"]
 contacts = ["openhuman-core/contacts", "openhuman-tinyhumans/contacts"]
 media = ["openhuman-core/media", "openhuman-tinyhumans/media"]

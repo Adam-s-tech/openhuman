@@ -6,13 +6,11 @@
 
 use crate::agent::{
     message_convert,
-    messages::{
-        chat_message_from_transcript, transcript_message_from_chat,
-        TOOL_RESULT_FAILURES_METADATA_KEY,
-    },
+    messages::{chat_message_from_transcript, transcript_message_from_chat},
     tinyagents::host::OpenHumanRunContext,
 };
 use tinyagents_runtime::{RuntimeError, TranscriptCodec, TranscriptTurnOptions};
+use tinyagents_session::transcript::view::TOOL_RESULT_FAILURES_METADATA_KEY;
 use tinyagents_session::transcript::{
     MessageUsage, SessionTranscript, ToolFailure, TranscriptMessage, TranscriptToolCall, TurnUsage,
 };

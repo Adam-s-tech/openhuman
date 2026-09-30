@@ -56,8 +56,8 @@ pub(crate) fn max_sub_workflow_depth(graph: &WorkflowGraph) -> u64 {
     tinyflows::compat::max_sub_workflow_depth(graph)
 }
 
-// The two refusal codes are `tinyflows::compat`'s, re-exported at `ops::` scope
-// because this module's tests assert on them by name — which is the point of a
+// The refusal code is `tinyflows::compat`'s, re-exported at `ops::` scope
+// because this module's tests assert on it by name — which is the point of a
 // stable code, and what keeps a rename upstream a compile error here rather
 // than a silently-passing `contains`.
 #[cfg(test)]

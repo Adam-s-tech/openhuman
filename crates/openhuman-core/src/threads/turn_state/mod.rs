@@ -19,14 +19,10 @@
 //! picture.
 
 pub mod mirror;
-pub mod store;
-pub mod types;
+pub mod rpc_types;
 
 pub use mirror::TurnStateMirror;
-
-pub use store::TurnStateStore;
-pub use types::{
+pub use rpc_types::{
     ClearTurnStateRequest, ClearTurnStateResponse, GetTurnStateForRequestRequest,
-    GetTurnStateRequest, GetTurnStateResponse, ListTurnStatesResponse, SubagentActivity,
-    SubagentToolCall, ToolTimelineEntry, ToolTimelineStatus, TurnLifecycle, TurnPhase, TurnState,
+    GetTurnStateRequest, GetTurnStateResponse, ListTurnStatesResponse,
 };

@@ -9,7 +9,7 @@ use tinyagents_harness::run_queue::RunQueue;
 
 use crate::agent::progress::AgentProgress;
 use crate::config::rpc as config_rpc;
-use crate::threads::turn_state::TurnStateStore;
+use tinyagents_session::turn_state::TurnStateStore;
 
 use super::ops::BudgetCorrelation;
 use super::progress_bridge::spawn_progress_bridge;
@@ -302,9 +302,9 @@ pub(crate) async fn run_chat_task(
     // `TurnCompleted` overwrites this with `Completed`, terminal either way.
     {
         let lifecycle = if result.is_ok() {
-            crate::threads::turn_state::TurnLifecycle::Completed
+            tinyagents_session::turn_state::TurnLifecycle::Completed
         } else {
-            crate::threads::turn_state::TurnLifecycle::Interrupted
+            tinyagents_session::turn_state::TurnLifecycle::Interrupted
         };
         let now = chrono::Utc::now().to_rfc3339();
         if let Err(err) = TurnStateStore::new(config.workspace_dir.clone())

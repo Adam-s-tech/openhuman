@@ -7,11 +7,8 @@ and whether a tool needs host access (elevated ops, also owned here). The
 gateway/core process itself always runs on the host; only selected tool
 families (shell, filesystem, process) execute through a sandbox backend.
 
-This is a distinct layer from `crate::security::traits::Sandbox` (the older
-`Command`-wrapping backends in `security/{docker,bubblewrap,firejail,landlock}.rs`,
-used by `security::create_sandbox`). That trait wraps a `Command` in place;
-this domain resolves a per-session `SandboxPolicy`, owns its own Docker
-backend, and delegates local OS-level confinement to `cwd_jail`.
+This domain resolves a per-session `SandboxPolicy`, owns its own Docker
+backend, and delegates local OS-level confinement to `tinybox-jail`.
 
 ## Public surface
 

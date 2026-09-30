@@ -13,7 +13,9 @@
 //! - [`kv_graph`] — key-value and knowledge-graph schemas + handlers.
 //! - [`sync`] — `sync_channel`, `sync_all`, `ingestion_status`.
 //! - [`learn`] — `learn_all`.
-//! - [`provider`] — `provider_status` (the bound memory driver).
+//! - [`provider`] — `provider_status` (the bound memory driver) and the
+//!   [`engine`] selector RPCs (`engines_list`, `engine_get`, `engine_set`,
+//!   `engine_migrate`, `engine_migrate_status`).
 //! - [`files`] — file-based memory schemas + handlers.
 //! - [`tool_memory`] — tool-scoped memory rules (#1400).
 //!
@@ -32,6 +34,7 @@ use crate::core::Outcome;
 use crate::core::{ControllerSchema, FieldSchema, TypeSchema};
 
 mod documents;
+mod engine;
 mod files;
 mod kv_graph;
 mod learn;
@@ -247,6 +250,8 @@ fn unknown_schema() -> ControllerSchema {
 // ---------------------------------------------------------------------------
 // Helpers shared by every handler submodule
 // ---------------------------------------------------------------------------
+
+pub(super) use super::ops::fallback::classify_rpc_error;
 
 pub(super) fn parse_params<T: DeserializeOwned>(params: Map<String, Value>) -> Result<T, String> {
     serde_json::from_value(Value::Object(params)).map_err(|e| format!("invalid params: {e}"))

@@ -1,28 +1,8 @@
-//! Tests for the compiled-in skill table and its materialisation.
+//! Tests for the compiled-in skill table and its host integration.
+//!
+//! Bundle validation, digests and materialisation are tested in `tinyskills`.
 
 use super::*;
-
-const A: BundledFile = BundledFile {
-    path: "WORKFLOW.md",
-    contents: "---\nname: sample\ndescription: a sample\n---\n\nbody\n",
-};
-const B: BundledFile = BundledFile {
-    path: "references/detail.md",
-    contents: "detail\n",
-};
-
-const SAMPLE: BundledSkill = BundledSkill {
-    dir_name: "sample",
-    files: &[A, B],
-};
-
-fn install_one(root: &std::path::Path, skill: &BundledSkill) -> Result<bool, String> {
-    let report = tinyskills::install(root, &[*skill]);
-    if let Some((_, error)) = report.failed.into_iter().next() {
-        return Err(error);
-    }
-    Ok(!report.written.is_empty())
-}
 
 #[test]
 fn every_shipped_bundle_is_valid() {
@@ -48,73 +28,6 @@ fn shipped_bundle_names_are_unique() {
             skill.dir_name
         );
     }
-}
-
-#[test]
-fn the_digest_covers_paths_as_well_as_contents() {
-    // The length-prefix rule from `digest`'s docs: moving a byte between two
-    // files, or renaming a file, must change the digest. Without prefixing,
-    // both of these collide with SAMPLE.
-    let moved = BundledSkill {
-        dir_name: "sample",
-        files: &[
-            BundledFile {
-                path: "WORKFLOW.md",
-                contents: A.contents,
-            },
-            BundledFile {
-                path: "references/detail.md",
-                contents: "detai",
-            },
-        ],
-    };
-    let renamed = BundledSkill {
-        dir_name: "sample",
-        files: &[
-            A,
-            BundledFile {
-                path: "references/other.md",
-                contents: B.contents,
-            },
-        ],
-    };
-    assert_ne!(SAMPLE.digest(), moved.digest());
-    assert_ne!(SAMPLE.digest(), renamed.digest());
-}
-
-#[test]
-fn a_version_bump_removes_a_file_the_new_version_dropped() {
-    // The reason `install_one` deletes instead of overwriting. A stale
-    // reference doc left behind would keep answering `read_workflow_resource`
-    // after the skill stopped shipping it.
-    let tmp = tempfile::tempdir().expect("tempdir");
-    let root = builtin_root(tmp.path());
-    assert!(install_one(&root, &SAMPLE).expect("install v1"));
-
-    let v2 = BundledSkill {
-        dir_name: "sample",
-        files: &[A],
-    };
-    assert!(install_one(&root, &v2).expect("install v2"));
-    assert!(
-        !root.join("sample").join("references/detail.md").exists(),
-        "the dropped reference file must not survive the upgrade"
-    );
-}
-
-#[test]
-fn an_interrupted_install_is_redone() {
-    // The digest is written last on purpose. Simulate the interruption by
-    // removing it: the next install must rewrite rather than trust the
-    // directory.
-    let tmp = tempfile::tempdir().expect("tempdir");
-    let root = builtin_root(tmp.path());
-    assert!(install_one(&root, &SAMPLE).expect("install"));
-    std::fs::remove_file(root.join("sample").join(".digest")).expect("remove digest");
-    assert!(
-        install_one(&root, &SAMPLE).expect("reinstall"),
-        "a bundle with no digest must be rewritten"
-    );
 }
 
 #[test]

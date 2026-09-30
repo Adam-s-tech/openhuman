@@ -7549,6 +7549,68 @@ const en: TranslationMap = {
   'webCallback.title': 'Completing sign-in',
   'webCallback.description':
     'OpenHuman is processing your callback and will continue automatically.',
+
+  // Memory engine settings panel
+  'memoryEngine.title': 'Memory engine',
+  'memoryEngine.description':
+    'Choose where OpenHuman stores and recalls your memories. Exactly one engine is active at a time.',
+  'memoryEngine.active': 'Active',
+  'memoryEngine.hostedNote': 'Billed through your OpenHuman plan or credits.',
+  'memoryEngine.signInRequired': 'Sign in to use this engine.',
+  'memoryEngine.endpoint': 'Endpoint',
+  'memoryEngine.deployment': 'Deployment',
+  'memoryEngine.deployment.cloud': 'Cloud',
+  'memoryEngine.deployment.self_hosted': 'Self-hosted',
+  'memoryEngine.apiKey': 'API key',
+  'memoryEngine.apiKeyOptional': 'API key (optional)',
+  'memoryEngine.keySaved': 'A key is saved. Leave blank to keep it.',
+  'memoryEngine.keySavedPlaceholder': 'Saved (hidden)',
+  'memoryEngine.fallback':
+    'Memory is paused: {engine} is unavailable, so nothing is being saved or recalled until it is back. {reason}',
+  'memoryEngine.paused': 'Memory is paused',
+  'memoryEngine.dialog.cancelMigration': 'Cancel copy',
+  'memoryEngine.lastError': 'The last memory engine request failed. Check the engine settings.',
+  'memoryEngine.switch': 'Switch',
+  'memoryEngine.save': 'Save changes',
+  'memoryEngine.dialog.title': 'Switch to {engine}?',
+  'memoryEngine.dialog.body': 'Copy my existing memories to the new engine?',
+  'memoryEngine.dialog.copySwitch': 'Copy & switch',
+  'memoryEngine.dialog.switchOnly': 'Switch without copying',
+  'memoryEngine.dialog.copying': 'Copying your memories…',
+  'memoryEngine.dialog.progress': 'Copied {copied} of {total}',
+  'memoryEngine.dialog.progressUnknown': 'Copied {copied} memories so far',
+  'memoryEngine.dialog.lacking':
+    'The new engine does not support these features of your current engine:',
+  'memoryEngine.error.insufficientCredits':
+    'You are out of OpenHuman credits. Add credits to use this engine.',
+  'memoryEngine.error.sessionExpired': 'Your session expired. Sign in again to continue.',
+  'memoryEngine.error.backendUnavailable':
+    'The memory service is unavailable right now. Try again shortly.',
+  'memoryEngine.error.generic':
+    'Could not change the memory engine. Check the settings and try again.',
+  'memoryEngine.error.openBilling': 'Open billing',
+  'memoryEngine.error.signIn': 'Sign in',
+  'memoryEngine.row.label': 'Memory engine:',
+  'memoryEngine.row.change': 'Change',
+  'memoryEngine.unavailable': 'Not available with {engine}',
+  'memoryEngine.unavailableHint': 'Switch memory engine to use this feature.',
+  'memoryEngine.engine.tinymemory.label': 'Local (TinyCortex)',
+  'memoryEngine.engine.tinymemory.description':
+    'Stored on this device with TinyCortex. Private, free and the default.',
+  'memoryEngine.engine.tinyhumans.label': 'CortexDB (via TinyHumans)',
+  'memoryEngine.engine.tinyhumans.description':
+    'CortexDB hosted by TinyHumans. Uses your signed-in account, no key needed.',
+  'memoryEngine.engine.cortex.label': 'CortexDB (own key)',
+  'memoryEngine.engine.cortex.description':
+    'Your own CortexDB account or instance, using your API key.',
+  'memoryEngine.engine.supermemory.label': 'Supermemory',
+  'memoryEngine.engine.supermemory.description': 'Supermemory cloud memory, using your API key.',
+  'memoryEngine.engine.mem0.label': 'Mem0',
+  'memoryEngine.engine.mem0.description': 'Mem0 memory layer, cloud or self-hosted.',
+  'memoryEngine.engine.cognee.label': 'Cognee',
+  'memoryEngine.engine.cognee.description': 'Cognee knowledge-graph memory, cloud or self-hosted.',
+  'memoryEngine.engine.agentmemory.label': 'AgentMemory',
+  'memoryEngine.engine.agentmemory.description': 'An AgentMemory server that you run yourself.',
 };
 
 export default en;

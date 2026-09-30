@@ -2502,13 +2502,10 @@ async fn credentials_public_ops_cover_service_and_missing_session_error_paths() 
     .expect_err("oauth token fetch without session should fail")
     .contains("no backend session token"));
     assert!(
-        openhuman_core::security::credentials::oauth_fetch_client_key(
-            &config,
-            "0123456789abcdef01234567",
-        )
-        .await
-        .expect_err("client key fetch without session should fail")
-        .contains("session JWT required")
+        oauth::oauth_fetch_client_key(&config, "0123456789abcdef01234567")
+            .await
+            .expect_err("client key fetch without session should fail")
+            .contains("no backend session token")
     );
     assert!(
         oauth::oauth_revoke_integration(&config, "0123456789abcdef01234567")
@@ -3468,7 +3465,7 @@ async fn auth_credentials_controller_paths_round_trip_and_validate_errors() {
         "unsupported channel",
     );
 
-    // `auth_oauth_*` (all but `fetch_client_key`) are served by
+    // `auth_oauth_*` are served by
     // `openhuman-tinyhumans` now: validation first, then the core's
     // credential resolution, whose missing-session wording they report.
     for (id, method, params, needle) in [
@@ -3494,7 +3491,7 @@ async fn auth_credentials_controller_paths_round_trip_and_validate_errors() {
             20_009,
             "openhuman.auth_oauth_fetch_client_key",
             json!({ "integrationId": "abc" }),
-            "session JWT required",
+            "integrationId must be a 24-char hex id",
         ),
         (
             20_010,
