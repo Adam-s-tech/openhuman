@@ -220,7 +220,7 @@ impl ToolRanker for OverlapRanker {
 
 mod embedding_ranker;
 
-pub use embedding_ranker::EmbeddingToolRanker;
+pub use embedding_ranker::{embedding_provider_is_usable, embedding_tool_ranker};
 
 #[cfg(test)]
 #[path = "discovery_tests.rs"]
