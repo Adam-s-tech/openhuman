@@ -601,7 +601,7 @@ tinyjuice-bus = { path = "../../vendor/tinyjuice/crates/tinyjuice-bus" }
 # there is still exactly one `tinytools` package and one `Tool` trait. The CCR
 # store those ops read lives in the module, so the host wraps the tools and
 # feeds them each original over the bus: see `inference/tokenjuice/repl_tools.rs`.
-tinyjuice = { path = "../../vendor/tinyjuice", default-features = false, features = ["tinytools"] }
+tinyjuice = { path = "../../vendor/tinyjuice", default-features = false, features = ["tinytools", "host"] }
 
 # TinyHosts — the unified hosting API: one `Host` trait over a hosting provider,
 # and the `launch` flow that puts a Next.js application, its database, its
