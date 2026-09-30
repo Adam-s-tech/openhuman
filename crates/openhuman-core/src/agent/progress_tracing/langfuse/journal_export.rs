@@ -102,11 +102,8 @@ pub(crate) async fn push_observations(
     let mut payload = client
         .build_ingestion_batch(trace, observations.as_ref())
         .map_err(|err| format!("Langfuse journal batch build failed: {err}"))?;
-    if insert_run_telemetry_generation(
-        &mut payload,
-        run_telemetry.map(run_totals).as_ref(),
-        &brand,
-    ) {
+    if insert_run_telemetry_generation(&mut payload, run_telemetry.map(run_totals).as_ref(), &brand)
+    {
         tracing::debug!(
             target: LOG_TARGET,
             "[agent-tracing] added run telemetry aggregate to Langfuse journal batch"

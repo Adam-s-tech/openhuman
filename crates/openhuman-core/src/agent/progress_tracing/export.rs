@@ -6,9 +6,9 @@ use crate::config::Config;
 
 use super::langfuse;
 use super::otlp;
+use crate::config::schema::AgentTracingBackend;
 use tinyagents_harness::observability::trace_export::serialize::{spans_to_ndjson, SpanEnvelope};
 use tinyagents_harness::observability::trace_export::{RunType, TraceContext, TraceSpan};
-use crate::config::schema::AgentTracingBackend;
 
 /// Map the configured backend onto the upstream NDJSON envelope.
 pub(crate) fn envelope_for(backend: AgentTracingBackend) -> SpanEnvelope {
@@ -178,7 +178,10 @@ pub(crate) async fn export_subagent_journal_trace(
                 .map(|id| id.as_str().to_string()),
             Some(first.root_run_id.as_str().to_string()),
         );
-    let rooted = langfuse::root_subagent_observations(&observations);
+    let rooted =
+        tinyagents_harness::observability::trace_export::journal_export::root_subagent_observations(
+            &observations,
+        );
     let mut spans =
         super::journal_projection::spans_from_observations(trace_ctx.clone(), 0, &rooted);
     if let Some(root) = spans.iter_mut().find(|span| span.parent_span_id.is_none()) {

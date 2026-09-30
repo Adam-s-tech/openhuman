@@ -15,7 +15,9 @@
 //! crate journals no sub-agent events at all, so every delegating turn loses
 //! that subtree on replay.
 
-fn span_projection_signature(spans: &[tinyagents_harness::observability::trace_export::TraceSpan]) -> Vec<String> {
+fn span_projection_signature(
+    spans: &[tinyagents_harness::observability::trace_export::TraceSpan],
+) -> Vec<String> {
     spans
         .iter()
         .map(|span| {
