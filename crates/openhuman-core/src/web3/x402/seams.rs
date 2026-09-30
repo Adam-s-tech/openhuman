@@ -12,7 +12,7 @@
 //!   blockhash.
 //! - a [`ProxyPolicy`]: [`RuntimeProxyPolicy`] applies the runtime proxy
 //!   configuration to the tool's HTTP client.
-//! - a [`SessionScope`]: [`TaskLocalSession`] names the chat thread running the
+//! - a [`ThreadScope`]: [`TaskLocalThread`] names the chat thread running the
 //!   tool call, so the ledger can attribute the payment to it.
 //!
 //! Every `Err(String)` these return is the text a user sees, prefixed exactly as
@@ -25,7 +25,7 @@ use async_trait::async_trait;
 use log::debug;
 use tinywallet_x402::crypto::{CryptoPayments, PaymentAccount, PaymentSigner, SignScheme};
 use tinywallet_x402::protocol::ProxyPolicy;
-use tinywallet_x402::session::SessionScope;
+use tinywallet_x402::thread::ThreadScope;
 use tinywallet_x402::tools::X402RequestTool;
 use tinywallet_x402::wire::PaymentChain;
 
@@ -48,17 +48,17 @@ pub(crate) struct RuntimeProxyPolicy;
 ///
 /// `Some(thread_id)` inside an interactive chat turn (the web channel installs the
 /// task-local around the run), `None` for CLI, direct JSON-RPC, cron and other
-/// non-chat callers, whose payments the crate attributes to the ledger's own
-/// session instead.
+/// non-chat callers, whose payments then carry no `thread_id`. The ledger's
+/// `session_id` never comes from here: it is always the ledger's own.
 ///
 /// `tokio::task_local!` propagates across `.await` but **not** across
 /// `tokio::spawn`; the crate calls this synchronously on the tool's own task, and
 /// the regression test in `seams_tests.rs` pins that it reads the task-local.
 #[derive(Debug, Clone, Copy, Default)]
-pub(crate) struct TaskLocalSession;
+pub(crate) struct TaskLocalThread;
 
-impl SessionScope for TaskLocalSession {
-    fn current_session(&self) -> Option<String> {
+impl ThreadScope for TaskLocalThread {
+    fn current_thread(&self) -> Option<String> {
         APPROVAL_CHAT_CONTEXT
             .try_with(|ctx| ctx.thread_id.clone())
             .ok()
@@ -204,7 +204,7 @@ pub(crate) fn request_tool() -> X402RequestTool {
         Arc::new(OpenHumanTransport::new()),
         Arc::new(RuntimeProxyPolicy),
     )
-    .with_session_scope(Arc::new(TaskLocalSession))
+    .with_thread_scope(Arc::new(TaskLocalThread))
 }
 
 #[cfg(test)]

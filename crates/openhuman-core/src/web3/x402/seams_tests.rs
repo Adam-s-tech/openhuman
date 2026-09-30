@@ -178,7 +178,7 @@ async fn the_payment_builder_is_object_safe_for_the_facade() {
 }
 
 // ---------------------------------------------------------------------------
-// The session seam: which chat thread a payment belongs to
+// The thread seam: which chat thread a payment belongs to
 // ---------------------------------------------------------------------------
 
 fn chat_ctx(thread: &str) -> crate::security::approval::ApprovalChatContext {
@@ -189,21 +189,20 @@ fn chat_ctx(thread: &str) -> crate::security::approval::ApprovalChatContext {
     }
 }
 
-/// The ledger stamps a payment with this read. If it stopped reading
-/// `APPROVAL_CHAT_CONTEXT`, every tool payment would silently fall back to the
-/// ledger's boot session and lose its thread.
+/// The ledger records a payment's thread from this read. If it stopped reading
+/// `APPROVAL_CHAT_CONTEXT`, every tool payment would silently lose its thread.
 #[tokio::test]
-async fn the_session_scope_reads_the_approval_chat_context_task_local() {
-    use tinywallet_x402::session::SessionScope;
+async fn the_thread_scope_reads_the_approval_chat_context_task_local() {
+    use tinywallet_x402::thread::ThreadScope;
 
     assert_eq!(
-        TaskLocalSession.current_session(),
+        TaskLocalThread.current_thread(),
         None,
-        "outside a chat turn there is no session"
+        "outside a chat turn there is no thread"
     );
 
     let inside = crate::security::approval::APPROVAL_CHAT_CONTEXT
-        .scope(chat_ctx("a"), async { TaskLocalSession.current_session() })
+        .scope(chat_ctx("a"), async { TaskLocalThread.current_thread() })
         .await;
     assert_eq!(inside.as_deref(), Some("thread-a"));
 
@@ -213,10 +212,10 @@ async fn the_session_scope_reads_the_approval_chat_context_task_local() {
         .scope(chat_ctx("outer"), async {
             let inner = crate::security::approval::APPROVAL_CHAT_CONTEXT
                 .scope(chat_ctx("inner"), async {
-                    TaskLocalSession.current_session()
+                    TaskLocalThread.current_thread()
                 })
                 .await;
-            (inner, TaskLocalSession.current_session())
+            (inner, TaskLocalThread.current_thread())
         })
         .await;
     assert_eq!(inner.as_deref(), Some("thread-inner"));

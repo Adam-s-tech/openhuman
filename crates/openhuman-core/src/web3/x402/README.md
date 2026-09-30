@@ -43,6 +43,7 @@ and does not need a stub. Signatures must match the real ones exactly;
 | `mod.rs` | Facade root: feature gate; re-exports from `tinywallet_x402` (`X402Client`, `X402Error`, `X402PaymentResult`, `handle_402`, the ledger and wire types); `init_ledger`, `handle_402_and_pay`, `try_paid_request` and `request_tool`, which supply the seams; the `store` accessors used by `http_request`. |
 | `seams.rs` | `WalletPaymentSigner` (the crate's `PaymentSigner`: keyring secret, decrypt, `modules::wallet::{derive_account, sign_message}`), `RuntimeProxyPolicy` (`ProxyPolicy` over `config::apply_runtime_proxy_to_builder`), and the `payments()` / `request_tool()` constructors that pair them with the wallet's `OpenHumanTransport`. |
 | `budget.rs` | The spending limits: the crate's defaults plus the `OPENHUMAN_X402_*` overrides. |
+| `records.rs` | `pending_record`: the `Pending` ledger record for the `http_request` fallback (ledger session + chat thread). |
 | `schemas.rs` | RPC controller schemas and handlers for the `x402` namespace: `get_summary`, `list_payments`, `update_budget`. |
 | `stub.rs` | Disabled facade compiled when `web3` is off. See Compile-time gate above. |
 | `seams_tests.rs`, `budget_tests.rs`, `stub_tests.rs` | Behavior tests. `stub_tests.rs` runs only in the disabled build. The protocol, builder, ledger and tool tests live in the crate. |
@@ -77,11 +78,12 @@ from the retry's outcome and the `PAYMENT-RESPONSE` header. It differs from the
 generic `http_request` tool (`tools/impl/network/http_request.rs`), which
 handles a 402 only as a silent fallback.
 
-The tool is built with `TaskLocalSession` (`seams.rs`), the host's
-`tinywallet_x402::session::SessionScope`: it reads the chat thread id from the
-`APPROVAL_CHAT_CONTEXT` task-local and the crate stamps it on every ledger
-record of the payment. Outside a chat turn (CLI, JSON-RPC, cron) it reports no
-session and the crate uses the ledger's `x402-<uuid>` boot id instead.
+The tool is built with `TaskLocalThread` (`seams.rs`), the host's
+`tinywallet_x402::thread::ThreadScope`: it reads the chat thread id from the
+`APPROVAL_CHAT_CONTEXT` task-local and the crate records it as
+`PaymentRecord.thread_id` (absent outside a chat turn). `session_id` is always
+the ledger's own `x402-<uuid>` boot id. The `http_request` 402 fallback builds
+its record with `pending_record` (`records.rs`), which applies the same rule.
 
 ## Persistence
 
@@ -95,10 +97,9 @@ session and the crate uses the ledger's `x402-<uuid>` boot id instead.
   exceed a cap. Daily and monthly totals sum the `Settled` records for the
   current UTC day / calendar month plus the amounts held by in-flight payments.
   The session total reported by `get_summary` counts records whose `session_id`
-  equals the ledger's `x402-<uuid>` boot id; it is not a cap. The `x402_request`
-  tool stamps chat payments with the thread id (see above) and other payments
-  with the boot id; the `http_request` fallback still stores an empty
-  `session_id`. `init_ledger` seeds the limits from
+  equals the ledger's `x402-<uuid>` boot id, which every payment of this process
+  carries (both writers), so it is the process's total; it is not a cap. The chat
+  thread is recorded separately in `thread_id`. `init_ledger` seeds the limits from
   `OPENHUMAN_X402_PER_REQUEST_MAX` / `OPENHUMAN_X402_DAILY_MAX` /
   `OPENHUMAN_X402_MONTHLY_MAX` when set (`budget.rs`); `update_budget` changes
   them for the running process only and does not rewrite historical records.
