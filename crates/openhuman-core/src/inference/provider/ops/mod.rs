@@ -20,7 +20,7 @@ pub use http_error::{
     is_ollama_cloud_internal_500, is_ollama_cloud_internal_500_message,
     is_openai_oauth_session_expired_http, is_provider_access_policy_denied_http_403,
     is_provider_config_rejection_http, is_provider_insufficient_credits_402,
-    is_provider_moderation_rejection_http_400, is_provider_quota_exhausted,
+    is_provider_moderation_rejection_http_400,
     is_provider_rate_cap_exceeded_message, local_provider_no_model_loaded_user_message,
     log_backend_error_code_owned, log_budget_exhausted_http_400, log_byo_provider_auth_failure,
     log_context_window_exceeded, log_custom_openai_upstream_bad_request_http_400,

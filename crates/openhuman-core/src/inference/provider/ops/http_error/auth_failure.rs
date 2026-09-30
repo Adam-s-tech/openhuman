@@ -64,23 +64,9 @@ pub fn is_byo_provider_auth_failure_http(
         return false;
     }
     let lower = body.to_ascii_lowercase();
-    // OpenAI-style auth envelopes across the BYO providers seen in Sentry:
-    // `"type":"authentication_error"` (kiro / Anthropic-style), OpenAI's
-    // `"code":"invalid_api_key"` + "Incorrect API key provided", and the
-    // bare-message variants Cohere / litellm gateways emit (#3354).
-    const AUTH_ERROR_MARKERS: &[&str] = &[
-        "authentication_error",
-        "invalid_api_key",
-        "invalid api key",
-        "invalid or missing api key",
-        "missing api key",
-        "no api key supplied",
-        "incorrect api key",
-        "invalid authentication",
-    ];
-    let matched = AUTH_ERROR_MARKERS
-        .iter()
-        .any(|marker| lower.contains(marker))
+    // The OpenAI-style auth-envelope marker set lives in `tinyinference-llm`
+    // (`body_indicates_auth_key_error`).
+    let matched = tinyinference_llm::failure::body_indicates_auth_key_error(body)
         // OpenRouter's wording for a key that resolves to no account
         // (revoked / deleted user): `401 {"error":{"message":"User not
         // found.","code":401}}`. Same invalid-BYO-key user-state as the
