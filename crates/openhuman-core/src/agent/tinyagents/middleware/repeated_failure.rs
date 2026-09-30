@@ -335,6 +335,15 @@ pub(super) fn recovery_policy(
         {
             ("transient", 2)
         }
+        // A local command killed by the shell's own timeout is still uncertain
+        // (it may have partly run), but it is inspectable: the model can check
+        // the filesystem or re-run a smaller, bounded step. Halting the whole
+        // turn on the first one threw away every earlier result for what is
+        // usually a slow read (a `whois`/`dig` loop). It gets one recovery
+        // attempt, steered by a reconcile-first nudge, and halts on a second.
+        // Remote actions (`gmail_send`, payments, …) stay at zero: a retry
+        // there can repeat an effect the agent cannot observe.
+        Class::Timeout if tool == "shell" => ("uncertain_side_effect", 1),
         Class::Timeout => ("uncertain_side_effect", 0),
         Class::Unknown if is_recoverable_tool_failure(error) => ("transient", 2),
         Class::Unknown
@@ -476,12 +485,20 @@ impl Middleware<(), crate::agent::tinyagents::host::OpenHumanRunContext>
                     self.tracker.reset();
                     return Ok(());
                 }
-                if matches!(class, "missing_window" | "missing_app" | "validation") {
-                    let instruction = if class == "validation" {
-                        "The last call failed validation. Correct its schema or arguments once before trying again."
-                    } else {
-                        "The desktop target was not found. Rediscover the current app and window once before trying again."
+                if matches!(
+                    class,
+                    "missing_window" | "missing_app" | "validation" | "uncertain_side_effect"
+                ) {
+                    let instruction = match class {
+                        "validation" => "The last call failed validation. Correct its schema or arguments once before trying again.",
+                        "uncertain_side_effect" => "The last command timed out and was killed; it may have partly run. Check its effect before repeating anything, then retry at most once as a smaller, bounded step (fewer items per call, a per-item timeout such as `timeout 5`, or background it and poll).",
+                        _ => "The desktop target was not found. Rediscover the current app and window once before trying again.",
                     };
+                    tracing::debug!(
+                        tool = tool_name,
+                        class,
+                        "[tinyagents::mw] classified failure within budget — nudging recovery"
+                    );
                     self.queue_nudge(instruction);
                 }
                 // The classified budget owns this known blocker. In particular,
