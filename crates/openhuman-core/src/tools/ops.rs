@@ -653,6 +653,16 @@ pub fn all_tools_with_runtime(
          memory_hybrid_search, memory_store_raw_search, memory_store_raw_chunks, memory_store_kinds"
     );
 
+    // REPL tools over a stored tool result. Registered only while large results
+    // are actually stored behind a handle (compaction on, router + CCR on,
+    // `tokenjuice.repl_handle_enabled`): without a handle to name there is
+    // nothing for them to query, and their schemas would be dead weight on
+    // every turn.
+    if crate::inference::tokenjuice::repl_handle_active(root_config) {
+        tools.extend(crate::inference::tokenjuice::repl_tools());
+        log::debug!("[tools::ops][tokenjuice] registered juice_find, juice_extract, juice_summarize");
+    }
+
     // Presentation generation (#2778). Native-Rust engine (ppt-rs
     // backed) as of the #2780-follow-up rust-engine refactor — no
     // managed Python venv, no first-call install latency. Always
