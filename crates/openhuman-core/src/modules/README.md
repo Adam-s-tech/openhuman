@@ -29,7 +29,7 @@ directory on `modules`.
 | `platform.rs` | Which published artifact (`ubuntu-24.04-x86_64`, `macos-15-arm64`, ...) belongs to this host, newest-compatible first |
 | `types.rs` | `LoadPolicy`, `ModuleRecord`, `ModuleSource`, `ModuleState`, `ModuleStatus`, `PlatformAsset` |
 | `host.rs` | The module broker: a dedicated process-lifetime tokio runtime, its `ModuleHost`, and the host's own `Connection` for calling into loaded modules |
-| `resolution.rs` | One resolution slot per module id, replacing a single global lock so unrelated modules never queue behind each other |
+| (tinybus `module::resolution`) | One resolution slot per module id, replacing a single global lock so unrelated modules never queue behind each other. Lives in `vendor/tinybus`; `ops.rs` claims, completes and waits on `tinybus::module::resolution::global()`. The cache-path helpers (`artifact_dir`, `is_safe_path_component`, `prune_stale_versions`) live in `tinybus::module` too |
 | `ops.rs` | `ensure_loaded` / `ensure_loaded_within` / `state_of` / `LoadError`; the release cache under `install_dir`; failure caching |
 | `boot.rs` | What loads at startup: search-path artifacts, then every `LoadPolicy::Eager` record: deliberately not every registry entry |
 | `schemas.rs` | The `modules` RPC namespace (`list`, `status`, `load`) |
