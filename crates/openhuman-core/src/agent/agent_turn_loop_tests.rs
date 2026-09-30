@@ -24,7 +24,7 @@ async fn turn_returns_text_when_no_tools_called() {
 #[tokio::test]
 async fn turn_executes_single_tool_then_returns() {
     let provider = Arc::new(ScriptedProvider::new(vec![
-        tool_response(vec![ToolCall {
+        tool_response(vec![NativeToolCall {
             id: "tc1".into(),
             name: "echo".into(),
             arguments: r#"{"message": "hello from tool"}"#.into(),
@@ -52,19 +52,19 @@ async fn turn_handles_multi_step_tool_chain() {
     let (counting_tool, count) = CountingTool::new();
 
     let provider = Arc::new(ScriptedProvider::new(vec![
-        tool_response(vec![ToolCall {
+        tool_response(vec![NativeToolCall {
             id: "tc1".into(),
             name: "counter".into(),
             arguments: "{}".into(),
             extra_content: None,
         }]),
-        tool_response(vec![ToolCall {
+        tool_response(vec![NativeToolCall {
             id: "tc2".into(),
             name: "counter".into(),
             arguments: "{}".into(),
             extra_content: None,
         }]),
-        tool_response(vec![ToolCall {
+        tool_response(vec![NativeToolCall {
             id: "tc3".into(),
             name: "counter".into(),
             arguments: "{}".into(),
@@ -103,7 +103,7 @@ async fn turn_emits_checkpoint_at_max_iterations() {
     let max_iters = 3;
     let mut responses = Vec::new();
     for i in 0..max_iters + 5 {
-        responses.push(tool_response(vec![ToolCall {
+        responses.push(tool_response(vec![NativeToolCall {
             id: format!("tc{i}"),
             name: "echo".into(),
             // Vary the args each turn so the repeat-CALL breaker (which halts
@@ -151,7 +151,7 @@ async fn turn_emits_checkpoint_at_max_iterations() {
 #[tokio::test]
 async fn turn_handles_unknown_tool_gracefully() {
     let provider = Arc::new(ScriptedProvider::new(vec![
-        tool_response(vec![ToolCall {
+        tool_response(vec![NativeToolCall {
             id: "tc1".into(),
             name: "nonexistent_tool".into(),
             arguments: "{}".into(),
@@ -197,7 +197,7 @@ async fn turn_handles_unknown_tool_gracefully() {
 #[tokio::test]
 async fn turn_recovers_from_tool_failure() {
     let provider = Arc::new(ScriptedProvider::new(vec![
-        tool_response(vec![ToolCall {
+        tool_response(vec![NativeToolCall {
             id: "tc1".into(),
             name: "fail".into(),
             arguments: "{}".into(),
@@ -222,7 +222,7 @@ async fn turn_recovers_from_tool_failure() {
 #[tokio::test]
 async fn turn_recovers_from_tool_error() {
     let provider = Arc::new(ScriptedProvider::new(vec![
-        tool_response(vec![ToolCall {
+        tool_response(vec![NativeToolCall {
             id: "tc1".into(),
             name: "panicker".into(),
             arguments: "{}".into(),
@@ -495,7 +495,7 @@ async fn turn_preserves_text_alongside_tool_calls() {
     let provider = Arc::new(ScriptedProvider::new(vec![
         ChatResponse {
             text: Some("Let me check...".into()),
-            tool_calls: vec![ToolCall {
+            tool_calls: vec![NativeToolCall {
                 id: "tc1".into(),
                 name: "echo".into(),
                 arguments: r#"{"message": "hi"}"#.into(),
@@ -540,19 +540,19 @@ async fn turn_handles_multiple_tools_in_one_response() {
 
     let provider = Arc::new(ScriptedProvider::new(vec![
         tool_response(vec![
-            ToolCall {
+            NativeToolCall {
                 id: "tc1".into(),
                 name: "counter".into(),
                 arguments: "{}".into(),
                 extra_content: None,
             },
-            ToolCall {
+            NativeToolCall {
                 id: "tc2".into(),
                 name: "counter".into(),
                 arguments: "{}".into(),
                 extra_content: None,
             },
-            ToolCall {
+            NativeToolCall {
                 id: "tc3".into(),
                 name: "counter".into(),
                 arguments: "{}".into(),

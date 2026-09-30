@@ -201,9 +201,12 @@ fn handle_computer_status(params: Map<String, Value>) -> ControllerFuture {
     Box::pin(async move {
         let load = params.get("load").and_then(Value::as_bool).unwrap_or(false);
         let config = config_rpc::load_config_with_timeout().await?;
-        serde_json::to_value(super::computer::status(&config, load).await)
-            .map_err(|error| error.to_string())
+        controller_value(super::computer::status(&config, load).await)
     })
+}
+
+fn controller_value(value: impl serde::Serialize) -> Result<Value, String> {
+    serde_json::to_value(value).map_err(|error| error.to_string())
 }
 
 fn handle_list(_params: Map<String, Value>) -> ControllerFuture {

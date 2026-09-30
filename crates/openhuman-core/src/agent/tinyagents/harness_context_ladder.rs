@@ -58,7 +58,7 @@ pub(super) fn install_context_ladder(
     tool_outcome_sink: &ToolOutcomeSink,
 ) -> (
     Option<Arc<ContextCompressionMiddleware>>,
-    Option<Arc<std::sync::atomic::AtomicBool>>,
+    Option<Arc<FinalCallWrapUpMiddleware>>,
 ) {
     // Autocompaction parity: when the provider's context window is known, install
     // the two-stage context-management step (issue #4249).
@@ -200,7 +200,7 @@ pub(super) fn install_context_ladder(
             .with_cleared_placeholder(crate::agent::context::CLEARED_PLACEHOLDER),
         )
     });
-    let wrap_up_fired = wrap_up_mw.as_ref().map(|mw| mw.fired());
+    let wrap_up_fired = wrap_up_mw.clone();
     if let Some(mw) = wrap_up_mw {
         harness.push_middleware(mw);
     }

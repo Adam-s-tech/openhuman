@@ -18,7 +18,7 @@ pub mod types;
 
 #[allow(unused_imports)]
 pub use types::{
-    ChatRequest, ChatResponse, ProviderDelta, ToolCall, UsageInfo, AGENT_TURN_MAX_OUTPUT_TOKENS,
+    ChatRequest, ChatResponse, ProviderDelta, UsageInfo, AGENT_TURN_MAX_OUTPUT_TOKENS,
 };
 
 pub use error_code::{

@@ -211,6 +211,42 @@ pub(super) fn ensure_recovery_tool_visible(
     }
 }
 
+/// The recovery tool, plus the REPL tools the handle preview names, for a belt.
+pub(super) fn ensure_tinyjuice_tools_visible(
+    visible: &mut std::collections::HashSet<String>,
+    agent_id: &str,
+    config: &crate::config::Config,
+) {
+    ensure_recovery_tool_visible(
+        visible,
+        config.context.compaction_enabled || summarizes_tool_output(agent_id, config),
+    );
+    ensure_repl_tools_visible(
+        visible,
+        crate::inference::tokenjuice::repl_handle_active(config),
+    );
+}
+
+/// Ensure the REPL tools (`juice_find`, `juice_extract`, `juice_summarize`) are
+/// members of a non-empty visibility allowlist while large results are stored
+/// behind a handle. The handle preview names them, so a curated
+/// `ToolScope::Named` belt that lacked them would be told to call a tool it
+/// cannot see. Same rules as [`ensure_recovery_tool_visible`]: an empty set
+/// means "no filter", and a zero-tool belt stays zero-tool.
+pub(super) fn ensure_repl_tools_visible(
+    visible: &mut std::collections::HashSet<String>,
+    handle_mode_active: bool,
+) {
+    if !handle_mode_active {
+        return;
+    }
+    if !crate::agent::harness::definition::is_empty_tool_scope(visible) {
+        for name in crate::inference::tokenjuice::REPL_TOOL_NAMES {
+            visible.insert((*name).to_string());
+        }
+    }
+}
+
 /// Whether TinyJuice may summarize this agent's tool output. Only the
 /// orchestrator gets a summary model, and a zero threshold turns it off.
 pub(super) fn summarizes_tool_output(agent_id: &str, config: &crate::config::Config) -> bool {

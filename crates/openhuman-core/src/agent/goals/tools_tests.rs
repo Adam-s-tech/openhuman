@@ -34,8 +34,8 @@ async fn set_persists_to_the_workspace_store_and_answers_goal_and_text() {
         )
         .await
         .unwrap();
-    assert!(!res.is_error, "{}", res.text());
-    let payload: serde_json::Value = serde_json::from_str(&res.text()).unwrap();
+    assert!(!res.is_error, "{}", res.output());
+    let payload: serde_json::Value = serde_json::from_str(&res.output()).unwrap();
     assert_eq!(payload["goal"]["objective"], "land the PR");
     assert_eq!(payload["goal"]["tokenBudget"], 5000);
     assert!(payload["text"].as_str().unwrap().starts_with("Goal set."));

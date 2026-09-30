@@ -78,7 +78,8 @@ pub(super) struct AssembledTurnHarness {
     /// A flag rather than an inference off the run, because this turn now ends
     /// the way a finished one does — the model returns text and requests no
     /// tools — so `final_response.is_none()` no longer tells the two apart.
-    pub(super) wrap_up_fired: Option<Arc<std::sync::atomic::AtomicBool>>,
+    pub(super) wrap_up_fired:
+        Option<Arc<tinyagents_harness::middleware::FinalCallWrapUpMiddleware>>,
     /// Number of callable tools registered.
     pub(super) tool_count: usize,
     /// TinyAgents named-capability projection for this turn. The live run still

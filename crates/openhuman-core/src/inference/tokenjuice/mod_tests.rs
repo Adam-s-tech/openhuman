@@ -298,3 +298,48 @@ fn a_legacy_compact_reply_is_silent_when_no_summary_was_wanted() {
 fn a_failed_legacy_compact_reply_gives_up() {
     assert!(finish_legacy_compact_reply(Err(method_failed_error()), true).is_none());
 }
+
+#[test]
+fn install_request_turns_on_the_handle_preview_by_default() {
+    let config = crate::config::Config::default();
+    assert!(repl_handle_active(&config));
+    let request = install_request(&config);
+    assert!(request.options.router_enabled);
+    assert!(request.options.ccr_enabled);
+    assert!(request.options.repl_handle);
+    // The plain-text copy on disk is opt-in.
+    assert_eq!(request.options.repl_save_dir, None);
+}
+
+#[test]
+fn install_request_handle_mode_follows_every_switch_it_needs() {
+    for flip in [
+        (|c: &mut crate::config::Config| c.context.compaction_enabled = false)
+            as fn(&mut crate::config::Config),
+        |c| c.tokenjuice.router_enabled = false,
+        |c| c.tokenjuice.ccr_enabled = false,
+        |c| c.tokenjuice.repl_handle_enabled = false,
+    ] {
+        let mut config = crate::config::Config::default();
+        flip(&mut config);
+        config.tokenjuice.repl_save_enabled = true;
+        let request = install_request(&config);
+        assert!(!request.options.repl_handle);
+        assert_eq!(
+            request.options.repl_save_dir, None,
+            "no handle, so nothing to save a copy of"
+        );
+    }
+}
+
+#[test]
+fn install_request_saves_a_copy_under_the_workspace_when_asked() {
+    let mut config = crate::config::Config::default();
+    config.workspace_dir = std::path::PathBuf::from("/ws");
+    config.tokenjuice.repl_save_enabled = true;
+    let request = install_request(&config);
+    assert_eq!(
+        request.options.repl_save_dir,
+        Some(std::path::PathBuf::from("/ws/.tokenjuice/repl"))
+    );
+}

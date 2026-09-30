@@ -8,28 +8,20 @@ use std::time::Duration;
 
 use sysinfo::System;
 
-#[derive(Debug, Clone, Copy)]
-pub struct Signals {
-    pub on_ac_power: bool,
-    /// 0.0..=1.0, or `None` when no battery sensor is present (most servers).
-    pub battery_charge: Option<f32>,
-    /// Recent global CPU usage, 0..100.
-    pub cpu_usage_pct: f32,
-    pub server_mode: bool,
-}
+/// The snapshot type and the pure decision over it live in the memory
+/// contract crate; this file only samples the host hardware.
+pub use tinymemory_api::host::Signals;
 
-impl Signals {
-    /// Sample once. Cheap (~ms-scale) — safe to call from a 30s background task.
-    pub fn sample() -> Self {
-        let (on_ac, charge) = sample_power();
-        let cpu_usage_pct = sample_cpu();
-        let server_mode = detect_server_mode(charge.is_none());
-        Self {
-            on_ac_power: on_ac,
-            battery_charge: charge,
-            cpu_usage_pct,
-            server_mode,
-        }
+/// Sample once. Cheap (~ms-scale) — safe to call from a 30s background task.
+pub fn sample() -> Signals {
+    let (on_ac, charge) = sample_power();
+    let cpu_usage_pct = sample_cpu();
+    let server_mode = detect_server_mode(charge.is_none());
+    Signals {
+        on_ac_power: on_ac,
+        battery_charge: charge,
+        cpu_usage_pct,
+        server_mode,
     }
 }
 

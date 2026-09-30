@@ -31,6 +31,10 @@
 #                      the measured flows profile by three resolved package
 #                      versions and three unique crate names; native builds
 #                      remain unchanged. Ratchet to the new floor.
+#   304/283/2  2026-09-29  Tighten the flows package ceiling to the current
+#                      release branch's resolved graph. CI measured 304 packages,
+#                      283 unique names, and the existing two native builds;
+#                      no dependency policy was relaxed.
 #   307/286/2  2026-09-27  The multi-provider search config directly uses the
 #                      required TinySearch bus contract in always-on settings
 #                      and policy code. This adds one resolved crate/name and

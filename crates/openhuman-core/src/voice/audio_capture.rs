@@ -84,7 +84,7 @@ impl RecordingHandle {
         let Some(inner) = self.inner.take() else {
             return Err("recording already stopped".to_string());
         };
-        let raw = inner.stop().await?;
+        let raw = inner.stop().await.map_err(|e| e.to_string())?;
         finalize(config, &raw).await
     }
 
@@ -167,7 +167,10 @@ async fn finalize(config: &Config, raw: &RawRecording) -> Result<RecordingResult
 /// and dropped on the same thread).
 pub fn start_recording() -> Result<RecordingHandle, String> {
     Ok(RecordingHandle {
-        inner: Some(tinyvoice::capture::start_recording(microphone_permission)?),
+        inner: Some(
+            tinyvoice::capture::start_recording(microphone_permission)
+                .map_err(|e| e.to_string())?,
+        ),
         #[cfg(test)]
         finalized: None,
     })
@@ -175,7 +178,7 @@ pub fn start_recording() -> Result<RecordingHandle, String> {
 
 /// List available input devices.
 pub fn list_input_devices() -> Result<Vec<String>, String> {
-    tinyvoice::capture::list_input_devices()
+    tinyvoice::capture::list_input_devices().map_err(|e| e.to_string())
 }
 
 /// The host's microphone-permission policy for a one-shot recording.

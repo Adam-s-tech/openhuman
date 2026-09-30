@@ -35,7 +35,7 @@ const ARTIFACT_RETENTION: std::time::Duration = std::time::Duration::from_secs(2
 ///
 /// The store writes under `<root>/artifacts/tool-results/…` but hands the model
 /// a RELATIVE pointer, which `file_read` later resolves through
-/// `security_for_tool_context` (`tools/impl/filesystem/mod.rs`). That function
+/// `FsGate::scoped_to_workspace` (`tools/impl/filesystem/gate.rs`). That scoping
 /// overwrites `action_dir` with `ctx.workspace().root` whenever the turn carries
 /// a workspace descriptor — and `turn()` sets `context.workspace` from the
 /// host's own descriptor. So on a turn bound to a per-turn workspace, rooting

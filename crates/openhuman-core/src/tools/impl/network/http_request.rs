@@ -88,7 +88,9 @@ impl HttpRequestTool {
     }
 
     async fn validate_url(&self, raw_url: &str) -> anyhow::Result<String> {
-        validate_url_with_dns_check(raw_url, &self.allowed_domains).await
+        validate_url_with_dns_check(raw_url, &self.allowed_domains)
+            .await
+            .map(|v| v.url)
     }
 
     fn validate_method(&self, method: &str) -> anyhow::Result<reqwest::Method> {

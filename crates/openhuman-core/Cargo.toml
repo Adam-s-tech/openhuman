@@ -473,7 +473,6 @@ regex = "1.10"
 # version pin and the import isn't an unstable transitive surface.
 aho-corasick = "1.1"
 walkdir = "2"
-glob = "0.3"
 hostname = "0.4.2"
 rustls = { version = "0.23", default-features = false, features = ["ring"] }
 sysinfo = { version = "0.33", default-features = false, features = ["system"] }
@@ -595,7 +594,14 @@ tinyjuice-bus = { path = "../../vendor/tinyjuice/crates/tinyjuice-bus" }
 # `default-features = false` drops `tinyjuice-treesitter` and with it the three
 # tree-sitter grammars — those serve the code compressor, which lives behind the
 # module boundary and is not called from here.
-tinyjuice = { path = "../../vendor/tinyjuice", default-features = false }
+#
+# The `tinytools` feature adds `tinyjuice::repl::tools`, the `juice_find`,
+# `juice_extract` and `juice_summarize` tool declarations. It names tinytools by
+# URL; the root `[patch]` redirects that to the copy tinyagents vendors, so
+# there is still exactly one `tinytools` package and one `Tool` trait. The CCR
+# store those ops read lives in the module, so the host wraps the tools and
+# feeds them each original over the bus: see `inference/tokenjuice/repl_tools.rs`.
+tinyjuice = { path = "../../vendor/tinyjuice", default-features = false, features = ["tinytools"] }
 
 # TinyHosts — the unified hosting API: one `Host` trait over a hosting provider,
 # and the `launch` flow that puts a Next.js application, its database, its

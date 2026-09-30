@@ -176,6 +176,21 @@ fn captured_requests_mention_unknown_tool(requests: &[Value]) -> bool {
         .contains("unknown tool")
 }
 
+/// Asserts the model's follow-up request carries the refusal the security
+/// gate renders for a refused approval (`decision_for_outcome`), not the
+/// harness's bare "tool call was not approved" fallback.
+fn assert_model_saw_the_refusal(requests: &[Value]) {
+    let body = serde_json::to_string(requests).unwrap_or_default();
+    assert!(
+        body.contains("must not be performed") && body.contains("another way"),
+        "the model must be told the refused call may not be done another way; captured: {body}"
+    );
+    assert!(
+        !body.contains("tool call was not approved"),
+        "the model got the reason-less fallback; captured: {body}"
+    );
+}
+
 /// Same check, narrowed to one tool name — for tests whose script *relies* on
 /// some other call being rejected (e.g. a child calling a tool outside its
 /// named list) and only need to prove that a specific delegate resolved.
@@ -1336,7 +1351,7 @@ async fn delegated_clarification_flow_inner() {
 //
 // Architecture notes for file_write approval:
 //
-// `FileWriteTool::external_effect_with_args` (crates/openhuman-core/src/tools/impl/filesystem/file_write.rs:65)
+// `FileWriteTool::external_effect_with_args` (`tinytools_std::filesystem::FileWriteTool`)
 // only returns `true` when the target file ALREADY EXISTS at `action_dir/path`.
 // Logic: "exists = edit → prompt; new = create → free". The default action_dir
 // is `~/OpenHuman/projects` (derived from the HOME env var that boot_stack
@@ -1649,6 +1664,7 @@ async fn approval_gate_deny_flow_inner() {
         full_response.contains("DENIAL_ACK_CANARY"),
         "full_response must contain DENIAL_ACK_CANARY; got: {full_response}"
     );
+    assert_model_saw_the_refusal(&with_captured(|c| c.clone()));
 
     // The denied file_write must not have overwritten the placeholder.
     // The pre-created file must still contain exactly the original placeholder string.
@@ -1729,6 +1745,7 @@ async fn approval_gate_timeout_inner() {
         full_response.contains("TIMEOUT_ACK_CANARY"),
         "full_response must contain TIMEOUT_ACK_CANARY after TTL auto-deny; got: {full_response}"
     );
+    assert_model_saw_the_refusal(&with_captured(|c| c.clone()));
 
     // The file's content must remain the placeholder (not the canary).
     // Use .expect() so a missing file fails loudly rather than vacuously passing.

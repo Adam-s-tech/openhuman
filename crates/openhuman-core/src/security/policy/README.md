@@ -59,9 +59,10 @@ Re-exported through `policy/mod.rs` and then through `security/mod.rs`:
 `security/live_policy.rs` (a sibling of this directory) holds the current
 `SecurityPolicy` in a process-global cell: new sessions `install` the latest
 policy, and `reload_from` / `reload_privacy` swap it the moment the config is
-saved. `security_for_tool_context` (`tools/impl/filesystem/mod.rs`,
-`tools/impl/system/mod.rs`) clones a tool's policy per call and, when the run
-carries a workspace descriptor, sets `action_dir` to that root and pushes it
+saved. `security_scoped_to_root` (`tools/impl/filesystem/gate.rs`, reached through
+`FsGate::scoped_to_workspace`) and `security_for_tool_context`
+(`tools/impl/system/mod.rs`) clone a tool's policy per call and, when the run
+carries a workspace descriptor, set `action_dir` to that root and pushes it
 as a `ReadWrite` `TrustedRoot`. `is_always_forbidden` and
 `is_workspace_internal_path` are evaluated before any trusted-root shortcut,
 so the grant cannot widen them.

@@ -393,7 +393,7 @@ impl ShellTool {
 
         // Keep command-valued repository Git settings from executing host
         // programs when a shell command happens to invoke git.
-        for (key, value) in crate::tools::implementations::filesystem::shell_git_env() {
+        for (key, value) in tinytools_std::filesystem::shell_git_env() {
             cmd.env(key, value);
         }
 
@@ -522,7 +522,7 @@ impl ShellTool {
         }
 
         // Apply the same Git config hardening to local and sandboxed shells.
-        extra_env.extend(crate::tools::implementations::filesystem::shell_git_env());
+        extra_env.extend(tinytools_std::filesystem::shell_git_env());
 
         // Sandbox backends require a finite deadline. Without an explicit
         // `timeout_secs`, substitute the generous effective-unbounded cap so a

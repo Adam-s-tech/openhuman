@@ -173,7 +173,7 @@ impl Tool for WebFetchTool {
         }
 
         let url = match validate_url_with_dns_check(raw_url, &self.allowed_domains).await {
-            Ok(u) => u,
+            Ok(u) => u.url,
             Err(e) => return Ok(ToolResult::error(format!("URL rejected: {e}"))),
         };
 
