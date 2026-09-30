@@ -14,7 +14,7 @@ async fn same_tool_calls_persist_artifacts_under_distinct_call_ids() {
     let middleware = ToolOutputMiddleware {
         budget_bytes: 8,
         payload_summarizer: None,
-        artifact_store: Some(ToolResultArtifactStore::new(
+        artifact_store: Some(crate::agent::harness::tool_result_artifacts::new_tool_result_store(
             temp.path().to_path_buf(),
             "identity-session",
         )),

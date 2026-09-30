@@ -84,7 +84,7 @@ pub(crate) fn split_input_allowance(trim_allowance: u64) -> (u64, u64) {
 /// lost the ability to reach its own findings. No log fires, because nothing
 /// failed.
 ///
-/// The index has been maintained all along (`ToolResultArtifactIndexStore`,
+/// The index has been maintained all along (`InMemoryStore` (the index),
 /// registered on `RunContext.stores`, written on every persist). Nothing read
 /// it. This reads it.
 ///

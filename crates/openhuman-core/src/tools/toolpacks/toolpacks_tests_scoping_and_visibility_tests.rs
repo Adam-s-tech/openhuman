@@ -2,6 +2,7 @@
 //! execution distinction the whole pack mechanism rests on.
 
 use super::*;
+use tinyagents_harness::tool::packs::{route_sentence, USE_SKILL};
 
 // ── the index must agree with the gate too ──────────────────────────────────
 
@@ -30,7 +31,7 @@ fn the_index_drops_a_pack_this_session_can_call_nothing_in() {
 
     // Only the workflows pack is reachable.
     let workflows = pack("workflows").expect("workflows pack");
-    let kept = scope_use_skill_spec(&mut spec, &|name| workflows.tools.contains(&name));
+    let kept = tinyagents_harness::tool::packs::scope_use_skill_spec(&CATALOG, &mut spec, &|name| workflows.tools.contains(&name));
     assert!(
         kept,
         "workflows is callable, so use_skill stays on the wire"
@@ -56,7 +57,7 @@ fn the_index_drops_a_pack_this_session_can_call_nothing_in() {
 fn the_skill_enum_offers_only_reachable_packs() {
     let mut spec = use_skill_spec();
     let workflows = pack("workflows").expect("workflows pack");
-    scope_use_skill_spec(&mut spec, &|name| workflows.tools.contains(&name));
+    tinyagents_harness::tool::packs::scope_use_skill_spec(&CATALOG, &mut spec, &|name| workflows.tools.contains(&name));
 
     let values = spec
         .parameters
@@ -79,7 +80,7 @@ fn the_skill_enum_offers_only_reachable_packs() {
 fn a_session_that_can_reach_no_pack_loses_use_skill() {
     let mut spec = use_skill_spec();
     assert!(
-        !scope_use_skill_spec(&mut spec, &|_| false),
+        !tinyagents_harness::tool::packs::scope_use_skill_spec(&CATALOG, &mut spec, &|_| false),
         "with nothing reachable, use_skill must be dropped, not emptied"
     );
 }
@@ -91,7 +92,7 @@ fn scoping_the_index_only_ever_shrinks_it() {
     let mut spec = use_skill_spec();
     let before = spec.description.len();
     let workflows = pack("workflows").expect("workflows pack");
-    scope_use_skill_spec(&mut spec, &|name| workflows.tools.contains(&name));
+    tinyagents_harness::tool::packs::scope_use_skill_spec(&CATALOG, &mut spec, &|name| workflows.tools.contains(&name));
     assert!(
         spec.description.len() < before,
         "scoped index ({}) must be smaller than the full one ({before})",
@@ -236,7 +237,7 @@ fn a_non_owner_listing_omits_the_tools_the_gate_will_refuse() {
     let handle = crate::tools::host_extensions::pack_registry_handle(find(&tools, USE_SKILL))
         .expect("use_skill carries the pack handle");
 
-    let rendered = render_pack_filtered(
+    let rendered = tinyagents_harness::tool::packs::render_pack_filtered(&CATALOG, 
         "workflows",
         handle,
         &|name: &str| name != "propose_workflow",
@@ -263,33 +264,12 @@ fn a_listing_with_nothing_callable_names_the_route_out() {
         .expect("use_skill carries the pack handle");
 
     let route = route_sentence(&["build_workflow".to_string()], &["workflow_builder"]);
-    let err = render_pack_filtered("workflows", handle, &|_| false, &route)
+    let err = tinyagents_harness::tool::packs::render_pack_filtered(&CATALOG, "workflows", handle, &|_| false, &route)
         .expect_err("nothing callable must not render a menu");
 
     assert!(
         err.contains("build_workflow"),
         "the denial must name the delegate to call instead: {err}"
-    );
-}
-
-/// Naming the tool, not just the agent, is the difference between an
-/// instruction and a guess — and a model that guesses wrong retries.
-#[test]
-fn route_sentence_prefers_a_callable_tool_and_falls_back_to_owners() {
-    let named = route_sentence(&["build_workflow".to_string()], &["workflow_builder"]);
-    assert!(named.contains("`build_workflow`"), "{named}");
-    assert!(
-        !named.contains("`workflow_builder`"),
-        "naming the agent as well is noise once the call is named: {named}"
-    );
-
-    let fallback = route_sentence(&[], &["workflow_builder", "flow_discovery"]);
-    assert!(fallback.contains("`workflow_builder`"), "{fallback}");
-    assert!(fallback.contains("`flow_discovery`"), "{fallback}");
-
-    assert!(
-        route_sentence(&[], &[]).is_empty(),
-        "an ownerless pack has no route to offer and must stay silent"
     );
 }
 

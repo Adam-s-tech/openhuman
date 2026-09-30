@@ -178,7 +178,7 @@ fn parent_execution_context(workspace_dir: &Path) -> ParentExecutionContext {
 /// wrapping `use_skill` that the harness would have registered.
 fn build_use_skill_dispatch() -> UseSkillDispatch {
     let handle = PackRegistryHandle::default();
-    let use_skill_tool: Box<dyn Tool> = Box::new(UseSkillTool::new(handle.clone()));
+    let use_skill_tool: Box<dyn Tool> = Box::new(UseSkillTool::new(handle.clone(), crate::tools::toolpacks::CATALOG));
     let create_image_tool: Box<dyn Tool> = Box::new(StubCreateImage);
     let durable: Arc<Vec<Box<dyn Tool>>> = Arc::new(vec![use_skill_tool, create_image_tool]);
     handle.bind(Arc::downgrade(&durable));

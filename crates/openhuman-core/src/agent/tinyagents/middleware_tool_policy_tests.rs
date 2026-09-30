@@ -13,7 +13,8 @@ use crate::tools::agent_policy::{
     TaskProfile, TaskRiskLevel, ToolCapability, ToolPolicyAction, ToolPolicyDecision,
     ToolPolicySession,
 };
-use crate::tools::toolpacks::{append_pack_tools, bind_pack_registry, USE_SKILL};
+use crate::tools::toolpacks::{append_pack_tools, bind_pack_registry};
+use tinyagents_harness::tool::packs::USE_SKILL;
 use tinytools::{PermissionLevel, ToolResult};
 
 struct RoutingFakeTool(&'static str);
