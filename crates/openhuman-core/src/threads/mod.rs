@@ -7,7 +7,8 @@
 pub mod error;
 pub mod ops;
 pub mod schemas;
-pub mod transcript_view;
+#[cfg(test)]
+mod transcript_host_tests;
 pub mod turn_state;
 pub mod welcome_migration;
 

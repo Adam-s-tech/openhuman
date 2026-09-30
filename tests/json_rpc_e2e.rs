@@ -3050,16 +3050,16 @@ async fn json_rpc_thread_turn_state_lifecycle() {
             .expect("load config");
         cfg.workspace_dir
     };
-    let mut state = openhuman_core::threads::turn_state::TurnState::started(
+    let mut state = tinyagents_session::turn_state::TurnState::started(
         "thread-turn-1",
         "req-turn-1",
         25,
         chrono::Utc::now().to_rfc3339(),
     );
-    state.lifecycle = openhuman_core::threads::turn_state::TurnLifecycle::Streaming;
+    state.lifecycle = tinyagents_session::turn_state::TurnLifecycle::Streaming;
     state.iteration = 2;
     state.streaming_text = "partial".into();
-    openhuman_core::threads::turn_state::store::put(workspace_dir.clone(), &state)
+    tinyagents_session::turn_state::store::put(workspace_dir.clone(), &state)
         .expect("seed snapshot");
 
     // get → present
@@ -3109,15 +3109,15 @@ async fn json_rpc_thread_turn_state_lifecycle() {
     // both instead of overwriting.
     // Far-future started_at guarantees turn-2 is the newest (turn-1 was seeded
     // with the real `now()`), so history ordering is deterministic.
-    let mut state2 = openhuman_core::threads::turn_state::TurnState::started(
+    let mut state2 = tinyagents_session::turn_state::TurnState::started(
         "thread-turn-1",
         "req-turn-2",
         25,
         "2999-01-01T00:00:00Z",
     );
-    state2.lifecycle = openhuman_core::threads::turn_state::TurnLifecycle::Completed;
+    state2.lifecycle = tinyagents_session::turn_state::TurnLifecycle::Completed;
     state2.updated_at = "2999-01-01T00:00:00Z".into();
-    openhuman_core::threads::turn_state::store::put(workspace_dir.clone(), &state2)
+    tinyagents_session::turn_state::store::put(workspace_dir.clone(), &state2)
         .expect("seed snapshot 2");
 
     // history → both turns, newest first.

@@ -1,10 +1,15 @@
+//! Host-side transcript-view tests (the projection itself lives in
+//! `tinyagents_session::transcript::view`): they drive it through OpenHuman's
+//! own writer types (`ChatMessage`, the session codec).
+//!
 //! Tool-round projection tests: text-dialect rounds persisted through the real
 //! session codec and writer, and transcripts written before calls rode their
 //! issuing row.
 
-use super::project::{project_records, project_thread};
-use super::types::{DisplayItem, ToolCallStatus};
-use crate::agent::messages::ChatMessage;
+use crate::agent::messages::{
+    attach_chat_tool_failure_metadata, transcript_message_from_chat, ChatMessage,
+};
+use tinyagents_session::transcript::view::{project_records, project_thread, DisplayItem, ToolCallStatus};
 use tempfile::TempDir;
 use tinyagents_session::transcript::{self, read_transcript_display};
 
@@ -310,4 +315,71 @@ fn calls_recorded_after_their_results_project_as_settled() {
         ],
         "{items:?}"
     );
+}
+
+#[test]
+fn tool_failure_metadata_round_trips_write_to_display_line() {
+    // Full write path: a failed tool ChatMessage stamped with failure metadata
+    // must serialise the additive `failure` line field and read back as a failed
+    // display message — proving the harness → transcript → projection seam.
+    let dir = TempDir::new().unwrap();
+    let now = "2026-07-21T09:00:00Z".to_string();
+    let meta = transcript::TranscriptMeta {
+        session_id: None,
+        parent_session_id: None,
+        agent_name: "orchestrator".into(),
+        agent_id: Some("orchestrator".into()),
+        agent_type: Some("root".into()),
+        dispatcher: "native".into(),
+        provider: Some("anthropic".into()),
+        model: Some("m".into()),
+        created: now.clone(),
+        updated: now,
+        turn_count: 1,
+        prefix_message_count: None,
+        input_tokens: 0,
+        output_tokens: 0,
+        cached_input_tokens: 0,
+        charged_amount_usd: 0.0,
+        thread_id: Some("thr_rt".into()),
+        task_id: None,
+    };
+
+    let mut tool_msg = ChatMessage {
+        id: Some("call-1".into()),
+        role: "tool".into(),
+        content: r#"{"tool_call_id":"call-1","content":"boom"}"#.into(),
+        extra_metadata: None,
+        cache_breakpoints: Vec::new(),
+    };
+    attach_chat_tool_failure_metadata(&mut tool_msg, Some("boom: exit 1"));
+
+    let messages = vec![
+        ChatMessage {
+            id: None,
+            role: "user".into(),
+            content: "do it".into(),
+            extra_metadata: None,
+            cache_breakpoints: Vec::new(),
+        },
+        tool_msg,
+    ];
+    let path = transcript::resolve_keyed_transcript_path(dir.path(), "700_orchestrator").unwrap();
+    let messages: Vec<_> = messages.iter().map(transcript_message_from_chat).collect();
+    transcript::write_transcript(&path, &messages, &meta, None).unwrap();
+
+    let display = read_transcript_display(&path).unwrap();
+    let failed = display
+        .records
+        .iter()
+        .find_map(|r| match r {
+            transcript::DisplayRecord::Message(m) if m.message.role == "tool" => Some(m),
+            _ => None,
+        })
+        .expect("tool display message present");
+    assert!(
+        failed.failure,
+        "failure flag survived the write/read round trip"
+    );
+    assert_eq!(failed.failure_detail.as_deref(), Some("boom: exit 1"));
 }

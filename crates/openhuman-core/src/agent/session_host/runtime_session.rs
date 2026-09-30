@@ -1024,8 +1024,13 @@ impl OpenHumanTurnPrelude {
                 return;
             };
             if let Err(error) =
-                crate::agent::session_import::live::write_live_turn(&workspace, &stem, &transcript)
-                    .await
+                tinyagents_session::transcript::import::live::write_live_turn(
+                    &workspace,
+                    &stem,
+                    &transcript,
+                    crate::agent::session_import::projector::journal_message_from_transcript,
+                )
+                .await
             {
                 log::warn!("[session-store] dual-write failed stem={stem}: {error:#}");
             }

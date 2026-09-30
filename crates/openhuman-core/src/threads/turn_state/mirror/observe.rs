@@ -5,7 +5,7 @@ use crate::agent::progress::AgentProgress;
 
 use super::caps::{append_capped_transcript_text, cap_persisted_args, cap_persisted_output};
 use super::state::TurnStateMirror;
-use crate::threads::turn_state::types::{
+use tinyagents_session::turn_state::types::{
     PersistedToolFailure, SubagentActivity, SubagentToolCall, SubagentTranscriptItem,
     ToolTimelineEntry, ToolTimelineStatus, TranscriptItem, TurnLifecycle, TurnPhase,
 };

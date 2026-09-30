@@ -81,7 +81,7 @@ pub(crate) async fn bootstrap_core_runtime(
     // confusing a stale `Streaming` lifecycle for an in-flight turn.
     {
         let now = chrono::Utc::now().to_rfc3339();
-        match crate::threads::turn_state::store::mark_all_interrupted(workspace_dir.clone(), &now) {
+        match tinyagents_session::turn_state::store::mark_all_interrupted(workspace_dir.clone(), &now) {
             Ok(0) => {}
             Ok(count) => {
                 log::info!("[runtime] marked {count} stale turn snapshot(s) as interrupted")
