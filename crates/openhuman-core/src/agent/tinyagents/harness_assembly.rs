@@ -333,10 +333,14 @@ pub(super) fn assemble_turn_harness(
     // i.e. exactly what the model sees. Registered any later, a result whose
     // visible note changed between calls would count as identical.
     let repeat_progress = handle.as_ref().map(|handle| {
-        Arc::new(middleware::RepeatProgressMiddleware::new(
-            handle.clone(),
-            halt_summary.clone(),
-        ))
+        Arc::new(
+            RepeatProgressMiddleware::new(
+                handle.clone(),
+                halt_summary.clone(),
+                Arc::new(middleware::is_repeat_call_exempt),
+            )
+            .with_cleared_placeholder(crate::agent::context::CLEARED_PLACEHOLDER),
+        )
     });
     if let Some(mw) = &repeat_progress {
         harness.push_middleware(mw.clone());
@@ -642,7 +646,7 @@ pub(super) fn assemble_turn_harness(
     // capture sink can observe the unredacted content — covering the parent,
     // sub-agent, persisted-transcript, and `ToolCallOutcome` surfaces by
     // construction since every path shares this seam.
-    harness.push_tool_middleware(Arc::new(middleware::CredentialScrubMiddleware::new()));
+    harness.push_tool_middleware(Arc::new(middleware::credential_scrub_middleware()));
 
     // Malformed-argument recovery (`before_tool`): repair a call's non-object
     // arguments before the crate's schema gate — decode JSON-encoded-string args
@@ -651,7 +655,7 @@ pub(super) fn assemble_turn_harness(
     // required-field schema is left untouched so the crate's
     // `InvalidArgsPolicy::ReturnToolError` admission path reports the original
     // validation error. It never reaches approval/policy wrappers or the tool.
-    harness.push_middleware(Arc::new(middleware::ArgRecoveryMiddleware::new(
+    harness.push_middleware(Arc::new(ArgRecoveryMiddleware::new(
         tool_sets.clone(),
     )));
 

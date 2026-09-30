@@ -10,13 +10,33 @@
 
 use std::sync::Arc;
 
-use tinyagents_harness::middleware::ContextCompressionMiddleware;
+use tinyagents_harness::middleware::{
+    legacy_max_input_tokens, split_input_allowance, ArtifactIndexTocMiddleware, CapturedOutcomes,
+    ContextCompressionMiddleware, FinalCallWrapUpMiddleware, ImageAwareMessageTrimMiddleware,
+    OutcomesUnavailable,
+};
 use tinyagents_harness::runtime::AgentHarness;
 
 use crate::agent::tinyagents::host::OpenHumanRunContext;
-use crate::agent::tinyagents::middleware;
 use crate::agent::tinyagents::model::TurnChatModel;
 use crate::agent::tinyagents::turn_outcome::ToolOutcomeSink;
+
+/// Store `ToolResultArtifactIndexStore` is registered under on the run context.
+const ARTIFACT_INDEX_STORE: &str =
+    crate::agent::harness::tool_result_artifacts::TINYAGENTS_TOOL_RESULT_ARTIFACT_STORE;
+
+/// Read side of the tool-outcome capture sink, for the wrap-up's restoration.
+struct OutcomeSinkSource(ToolOutcomeSink);
+
+impl CapturedOutcomes for OutcomeSinkSource {
+    fn content_for(&self, call_id: &str) -> Result<Option<String>, OutcomesUnavailable> {
+        let outcomes = self.0.lock().map_err(|_| OutcomesUnavailable)?;
+        Ok(outcomes
+            .iter()
+            .find(|outcome| outcome.call_id == call_id)
+            .map(|outcome| outcome.content.clone()))
+    }
+}
 
 /// Push the context ladder onto `harness` and return the two handles the run
 /// loop reads after the drive future returns: the installed compression
@@ -128,7 +148,7 @@ pub(super) fn install_context_ladder(
         );
         let microcompact = match context_window.filter(|w| *w > 0) {
             Some(window) => {
-                microcompact.with_token_budget(middleware::legacy_max_input_tokens(window).max(1))
+                microcompact.with_token_budget(legacy_max_input_tokens(window).max(1))
             }
             None => microcompact,
         };
@@ -160,19 +180,27 @@ pub(super) fn install_context_ladder(
     // contents list add its tenth on top. `0` when no window is advertised.
     let trim_allowance = context_window
         .filter(|w| *w > 0)
-        .map(|w| middleware::legacy_max_input_tokens(w).max(1))
+        .map(|w| legacy_max_input_tokens(w).max(1))
         .unwrap_or(0);
-    let (toc_allowance, restore_allowance) = middleware::split_input_allowance(trim_allowance);
+    let (toc_allowance, restore_allowance) = split_input_allowance(trim_allowance);
 
     let wrap_up_mw = wrap_up_at_cap.then(|| {
-        Arc::new(middleware::FinalCallWrapUpMiddleware::new(
-            crate::agent::session_host::turn_checkpoint::MAX_ITER_CHECKPOINT_INSTRUCTION,
-            crate::agent::session_host::turn_checkpoint::FINAL_WRITE_INSTRUCTION,
-            tool_outcome_sink.clone(),
-            // What is left after the contents list's share, so restoration
-            // stops short of provoking an eviction (see the middleware).
-            restore_allowance,
-        ))
+        Arc::new(
+            FinalCallWrapUpMiddleware::new(
+                crate::agent::session_host::turn_checkpoint::MAX_ITER_CHECKPOINT_INSTRUCTION,
+                crate::agent::session_host::turn_checkpoint::FINAL_WRITE_INSTRUCTION,
+                Arc::new(OutcomeSinkSource(tool_outcome_sink.clone())),
+                // What is left after the contents list's share, so restoration
+                // stops short of provoking an eviction (see the middleware).
+                restore_allowance,
+            )
+            // The call before the conclusion keeps only the tools that can
+            // persist a deliverable (`file_write` is the only create-capable
+            // file tool; `apply_patch` has a create mode). `shell` is left out
+            // on purpose: it can equally run a crawler.
+            .with_deliverable_tools(["file_write", "apply_patch"])
+            .with_cleared_placeholder(crate::agent::context::CLEARED_PLACEHOLDER),
+        )
     });
     let wrap_up_fired = wrap_up_mw.as_ref().map(|mw| mw.fired());
     if let Some(mw) = wrap_up_mw {
@@ -184,8 +212,9 @@ pub(super) fn install_context_ladder(
     // survived them, before the trim so its message is counted in that budget.
     // Its share of the allowance split above: the list is a system message, so
     // nothing downstream can shrink it (see the middleware).
-    harness.push_middleware(Arc::new(middleware::ArtifactIndexTocMiddleware::new(
+    harness.push_middleware(Arc::new(ArtifactIndexTocMiddleware::new(
         toc_allowance,
+        ARTIFACT_INDEX_STORE,
     )));
 
     if let Some(window) = context_window.filter(|w| *w > 0) {
@@ -194,7 +223,7 @@ pub(super) fn install_context_ladder(
         // failed to fit the window. See `ImageAwareMessageTrimMiddleware` for the
         // three legacy guards it restores over the crate trim.
         harness.push_middleware(Arc::new(
-            middleware::ImageAwareMessageTrimMiddleware::for_context_window(window),
+            ImageAwareMessageTrimMiddleware::for_context_window(window),
         ));
     }
 
