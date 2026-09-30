@@ -857,11 +857,10 @@ const Conversations = ({
 
   // Drop every silence timer this component owns when it unmounts.
   //
-  // The timer's callback is not inert after teardown: it dispatches
-  // `clearRuntimeForThread` and `clearThreadInferenceActive`, which mutate
-  // shared store state that outlives this component. Left armed, a timer from
-  // a thread the user has navigated away from can wipe the runtime of a turn
-  // that is still legitimately in flight, up to 120s later.
+  // The timer's callback is not inert after teardown: it queries the core and
+  // may dispatch `clearRuntimeForThread` / `clearThreadInferenceActive` into
+  // shared store state that outlives this component. A page that is gone
+  // cannot supervise a turn, so nothing it armed may keep running.
   //
   // Deliberately `[]` — unmount only. Keying this on `selectedThreadId` would
   // clear the timer every time the user switched threads, which is exactly the
@@ -891,7 +890,7 @@ const Conversations = ({
   // Arm only for a turn that is genuinely in flight. A terminal snapshot
   // deletes `inferenceStatusByThread` in the reducer's interrupted/completed
   // branch, so the status check alone already excludes one; the `interrupted`
-  // guard is belt-and-braces, so this cannot start firing `safety_timeout` on a
+  // guard is belt-and-braces, so this cannot start warning about silence on a
   // settled thread if that branch ever changes. (`completed` is not a member of
   // `InferenceTurnLifecycle` — the reducer deletes the key instead of storing a
   // terminal value — so there is no such case to guard.)
@@ -940,7 +939,7 @@ const Conversations = ({
   // turn whose tools run in a child task) bumps `toolTimelineByThread` without
   // necessarily re-emitting a top-level status change, so it must be watched —
   // otherwise a long sub-agent loop
-  // would trip the safety timer mid-run even though the user can see the
+  // would trip the silence warning mid-run even though the user can see the
   // delegated tools firing in the timeline. When the status is cleared
   // (chat_done / chat_error), drop the timer — the completion handlers
   // own UI cleanup.
