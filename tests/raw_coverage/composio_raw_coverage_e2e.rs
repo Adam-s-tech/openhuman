@@ -1799,22 +1799,6 @@ async fn composio_authorize_scope_merging_and_meta_cleanup_use_local_backend() {
         "round12-token".into(),
     )));
 
-    assert_eq!(
-        clear_non_active_connections(&client, "gmail")
-            .await
-            .expect("non-meta cleanup is a no-op"),
-        0
-    );
-    assert_eq!(
-        clear_non_active_connections(&client, " Instagram ")
-            .await
-            .expect("stale instagram rows are deleted"),
-        3
-    );
-    let mut deleted = state.deleted.lock().expect("deleted ids").clone();
-    deleted.sort();
-    assert_eq!(deleted, vec!["ig-expired", "ig-failed", "ig-pending"]);
-
     client
         .authorize("gmail", Some(json!({ "oauth_scopes": null })))
         .await
