@@ -72,10 +72,7 @@ pub mod test_seam {
 
 // The response types and the tolerant-shape parsers live in
 // `tinyinference_voice::reply`; the UI contract is unchanged.
-pub use tinyinference_voice::reply::{
-    normalize_response, AlignmentFrame, ReplySpeech as ReplySpeechResult,
-};
-pub use tinyinference_voice::VisemeFrame;
+use tinyinference_voice::reply::{normalize_response, ReplySpeech as ReplySpeechResult};
 
 /// Caller-tunable knobs.
 #[derive(Debug, Default, Clone)]
