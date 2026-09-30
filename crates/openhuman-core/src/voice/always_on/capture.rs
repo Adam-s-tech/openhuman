@@ -14,7 +14,7 @@ pub(super) use tinyvoice::capture::{CaptureFormat, RawChunk};
 pub(super) fn spawn_capture_thread(
     tx: tokio::sync::mpsc::Sender<RawChunk>,
 ) -> Result<CaptureFormat, String> {
-    tinyvoice::capture::spawn_capture_thread(tx, microphone_permission)
+    tinyvoice::capture::spawn_capture_thread(tx, microphone_permission).map_err(|e| e.to_string())
 }
 
 /// Surface the mic permission state explicitly — a denied/Unknown state is the

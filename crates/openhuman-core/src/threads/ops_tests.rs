@@ -7,12 +7,12 @@ use super::*;
 // these, so importing them there would be an unused import in a non-test build.
 use crate::memory::conversations as conversations_store;
 use crate::threads::turn_state::{ClearTurnStateRequest, GetTurnStateRequest};
-use tinyagents_session::turn_state::TurnState;
 use crate::threads::ThreadsError;
 use serde_json::{json, Value};
 use std::ffi::OsString;
 use std::path::Path;
 use tinyagents_harness::title::{build_title_prompt, THREAD_TITLE_SYSTEM_PROMPT};
+use tinyagents_session::turn_state::TurnState;
 
 struct EnvVarGuard {
     key: &'static str,

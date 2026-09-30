@@ -139,7 +139,8 @@ pub(super) fn visible_tool_specs_for_policy(
             // below already does the real per-tool narrowing via `is_callable`
             // (and drops the spec entirely when nothing survives), so this
             // filter only needs to gate *other* tools on the static ceiling.
-            spec.name == tinyagents_harness::tool::packs::USE_SKILL || tool_policy.is_allowed(&spec.name)
+            spec.name == tinyagents_harness::tool::packs::USE_SKILL
+                || tool_policy.is_allowed(&spec.name)
         })
         .cloned()
         .filter_map(|mut spec| {

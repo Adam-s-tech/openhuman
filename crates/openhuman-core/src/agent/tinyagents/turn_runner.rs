@@ -388,6 +388,7 @@ async fn run_turn_via_tinyagents_inner(
     run_context.tool_result_artifact_index = tool_result_artifact_index.clone();
     run_context.tool_outcomes = Some(tool_outcome_sink.clone());
     let mut ctx = run_context.clone().into_tinyagents(config);
+    let run_instance_id = ctx.instance_id();
     // Assemble the run's store registry: the tool-result artifact index (when
     // present) and — behind the default-ON session dual-write flag — the
     // session KV store, so the harness carries a handle to the same
@@ -742,6 +743,7 @@ async fn run_turn_via_tinyagents_inner(
         early_exit_hook,
         &halt_summary,
         &wrap_up_fired,
+        run_instance_id,
         &tool_outcome_sink,
         resolved_route,
         request_base_len,
