@@ -521,6 +521,17 @@ export async function clickTestId(
   return el;
 }
 
+/** Set an input value through a stable test id in DOM-backed E2E runs. */
+export async function setValueByTestId(
+  testId: string,
+  value: string,
+  timeout: number = 15_000
+): Promise<ChainablePromiseElement> {
+  const el = await waitForTestId(testId, timeout);
+  await el.setValue(value);
+  return el;
+}
+
 /** Click a test id in DOM-backed runs or its visible text on Mac2. */
 export async function clickTestIdOrText(
   testId: string,
