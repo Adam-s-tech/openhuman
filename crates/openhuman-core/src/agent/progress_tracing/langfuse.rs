@@ -33,7 +33,13 @@ use crate::config::Config;
 #[cfg(test)]
 use environment::push_allowed;
 #[cfg(test)]
-use serde_json::{json, Value};
+use serde_json::json;
+#[cfg(test)]
+use tinyagents_harness::events::AgentEvent;
+#[cfg(test)]
+use tinyagents_harness::observability::trace_export::{SpanStatus, TraceSpan};
+#[cfg(test)]
+use tinyagents_harness::observability::AgentObservation;
 
 const LOG_TARGET: &str = "agent-tracing::langfuse";
 /// Cap the push so a slow/hung Langfuse never stalls run teardown.

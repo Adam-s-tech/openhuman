@@ -196,7 +196,7 @@ pub(crate) async fn export_subagent_journal_trace(
             }
         }
     }
-    otlp::prepare_subagent_root(&mut spans);
+    tinyagents_harness::observability::trace_export::otlp::prepare_subagent_root(&mut spans);
     if let Err(err) = otlp::push_spans(config, &spans).await {
         log::warn!(
             "[agent-tracing] child Langfuse OTLP push failed run_id={journal_run_id}: {err}"

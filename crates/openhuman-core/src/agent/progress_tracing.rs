@@ -67,7 +67,7 @@ mod export;
 // Langfuse batch chunking live upstream in
 // `tinyagents_harness::observability::trace_export`.
 #[cfg(test)]
-use tinyagents_harness::observability::trace_export::{SpanKind, SpanStatus};
+use tinyagents_harness::observability::trace_export::{trace_session_id, SpanKind, SpanStatus};
 use tinyagents_harness::observability::trace_export::{
     ExportBrand, RunType, TraceContext, TraceSpan,
 };
