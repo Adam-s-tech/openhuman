@@ -359,6 +359,18 @@ fn span_to_otlp(span: &TraceSpan, root: &TraceSpan, environment: &str) -> Value 
         if let Some(usage) = usage_details(span) {
             attrs.push(json_attribute("langfuse.observation.usage_details", &usage));
         }
+        // Langfuse derives time to first token from the completion start.
+        if let Some(completion_start) = span
+            .attributes
+            .get("gen_ai.response.first_token_unix_ms")
+            .and_then(Value::as_u64)
+            .and_then(|ms| chrono::DateTime::from_timestamp_millis(ms as i64))
+        {
+            attrs.push(attribute(
+                "langfuse.observation.completion_start_time",
+                completion_start.to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
+            ));
+        }
         if let Some(cost) = span
             .attributes
             .get("gen_ai.usage.cost_usd")

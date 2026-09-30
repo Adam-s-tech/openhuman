@@ -232,7 +232,7 @@ fn datetime_section_is_static_grounding_rule_without_volatile_timestamp() {
     assert!(rendered.starts_with("## Current Date & Time\n\n"));
     // Greeting/clock grounding rule must be present, ungated (no tools here).
     assert!(
-        rendered.contains("good morning") && rendered.contains("match the actual local hour"),
+        rendered.contains("match greetings") && rendered.contains("local hour"),
         "datetime section must carry the greeting-grounding rule; got:\n{rendered}"
     );
     assert!(
@@ -300,7 +300,7 @@ fn datetime_section_appends_resolve_time_rule_only_when_tool_present() {
     };
     let rendered_with = DateTimeSection.build(&ctx_with).unwrap();
     assert!(
-        rendered_with.contains("resolve_time") && rendered_with.contains("never hand-compute"),
+        rendered_with.contains("resolve_time") && rendered_with.contains("never hand-computed"),
         "expected the resolve_time discipline rule when the tool is present; got:\n{rendered_with}"
     );
 

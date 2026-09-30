@@ -542,3 +542,24 @@ impl Memory for NoopMemory {
         true
     }
 }
+
+/// The session builder swaps in a scoped instance so the WIRE schema (read
+/// from the registered tool on native tool calling) carries only the ids the
+/// parent may dispatch, sorted and deduplicated, and says so.
+#[test]
+fn scoped_instance_advertises_exactly_the_allowlist() {
+    let tool = SpawnAsyncSubagentTool::scoped(vec![
+        "workflow_builder".to_string(),
+        "agent_memory".to_string(),
+        "workflow_builder".to_string(),
+    ]);
+    let schema = tool.parameters_schema();
+    assert_eq!(
+        schema["properties"]["agent_id"]["enum"],
+        serde_json::json!(["agent_memory", "workflow_builder"])
+    );
+    assert!(schema["properties"]["agent_id"]["description"]
+        .as_str()
+        .unwrap_or_default()
+        .contains("only these are dispatchable"));
+}

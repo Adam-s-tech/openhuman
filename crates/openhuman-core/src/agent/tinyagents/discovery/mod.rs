@@ -101,6 +101,13 @@ pub fn tool_search_config() -> ToolSearchConfig {
 pub(crate) fn discovery_policy() -> ToolDiscoveryPolicy {
     let settings = tool_search_config();
     let mut policy = ToolDiscoveryPolicy::default();
+    // No per-tool manifest in `tool_search`'s description, on any dialect.
+    // The harness default (4,000 tokens) listed every deferred tool — 175
+    // lines, ~3.9k tokens on a workspace with a few integrations connected —
+    // on every request, which is the cost deferral exists to avoid. The
+    // prompt's Connected Integrations / MCP sections already name what can be
+    // searched for; the description keeps only the count.
+    policy.manifest_token_budget = 0;
     policy.default_limit = settings.top_k.clamp(1, policy.max_limit);
     let mode = match settings.ranker.trim().to_ascii_lowercase().as_str() {
         "auto" | "jev" | "ranker" => DiscoveryRankMode::Ranker,
@@ -149,11 +156,10 @@ pub(crate) fn bridge_prompt_tools(
         return Vec::new();
     }
     use tinyagents_harness::tool::discover::{bridge_schemas, DeferredCatalog};
-    let mut policy = discovery_policy();
-    // A zero budget renders the manifest as a bare count instead of naming
-    // every deferred tool — the prompt advertises that a search exists, not
-    // what it would find.
-    policy.manifest_token_budget = 0;
+    // `discovery_policy` zeroes the manifest budget, so the manifest renders
+    // as a bare count: the prompt advertises that a search exists, not what
+    // it would find.
+    let policy = discovery_policy();
     bridge_schemas(&DeferredCatalog::build(Vec::new()), &policy)
         .into_iter()
         .map(|schema| {

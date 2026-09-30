@@ -146,6 +146,15 @@ pub struct AgentDefinition {
     #[serde(default)]
     pub extra_tools: Vec<String>,
 
+    /// Tools in this agent's scope that should leave its wire and be served
+    /// through `tool_search` instead: still registered, found by a search,
+    /// and callable by their own name. Unlike `ToolExposure::Deferred`, which
+    /// defers a tool for every agent, this defers it for this agent only.
+    /// Takes effect only on a belt that opted into discovery (a wildcard
+    /// belt, or `named` listing `tool_search`).
+    #[serde(default)]
+    pub deferred_tools: Vec<String>,
+
     // ── runtime limits ──────────────────────────────────────────────────
     /// Maximum number of tool iterations for this sub-agent's task.
     #[serde(default = "defaults::max_iterations")]
