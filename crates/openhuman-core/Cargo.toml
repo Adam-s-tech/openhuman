@@ -228,6 +228,14 @@ tinytools-std = { path = "../../vendor/tinyagents/vendor/tinytools/crates/tinyto
 #
 # After cloning: `git submodule update --init --recursive vendor/tinyruntime`.
 tinyruntime-bus = { path = "../../vendor/tinyruntime/crates/tinyruntime-bus" }
+#
+# `tinyruntime-pyserver` is the one library crate of that repository the core
+# links: the persistent Python worker (spaCy, Kompress) that
+# `runtime::python_server` hosts. It is a pure library (no bus, no module), so
+# it needs no registry record; it carries only `serde`, `tokio` and `tracing`,
+# which this manifest already has. The pin is the tinyruntime module pin plus
+# the crate itself; see `scripts/ci/module-pin-exemptions.json`.
+tinyruntime-pyserver = { path = "../../vendor/tinyruntime/crates/tinyruntime-pyserver" }
 
 # The `tinymemory` facade is gone: no file in `src/` ever named it. It was
 # kept for driver admission, but `memory::binding::admit` is pure string
@@ -481,7 +489,6 @@ sentry = { version = "0.47.0", default-features = false, optional = true, featur
 tokio-stream = { version = "0.1.18", default-features = false, features = ["sync"] }
 url = "2"
 tempfile = "3"
-cpal = { version = "0.15", optional = true }
 enigo = { version = "0.3", optional = true }
 arboard = { version = "3", optional = true }
 fs2 = "0.4"
@@ -544,10 +551,11 @@ tinydocs-bus = { path = "../../vendor/tinydocs/crates/tinydocs-bus", optional = 
 # Optional: exclusive to the `voice` feature — default-OFF, product-ON, the
 # same split as `documents` above.
 tinyvoice-bus = { path = "../../vendor/tinyvoice/crates/tinyvoice-bus", optional = true }
-# The global push-to-talk hotkey listener (`voice::hotkey`) lives in the
-# `tinyvoice` library behind its off-by-default `hotkey` feature (it owns the
+# The global push-to-talk hotkey listener (`voice::hotkey`) and the `cpal`
+# microphone capture (`voice::audio_capture`, `voice::always_on`) live in the
+# `tinyvoice` library behind its off-by-default `hotkey` and `capture` features (it owns the
 # `rdev` dependency). Linked as a library, not loaded as the module.
-tinyvoice = { path = "../../vendor/tinyvoice/crates/tinyvoice", default-features = false, features = ["hotkey"], optional = true }
+tinyvoice = { path = "../../vendor/tinyvoice/crates/tinyvoice", default-features = false, features = ["hotkey", "capture"], optional = true }
 
 # TinyJuice — the compression wire contract, and nothing else.
 #
@@ -830,8 +838,9 @@ default = ["media", "skills", "flows", "mcp", "channels", "http-server", "schedu
 # TinyMCP HTTP serving is kept optional with the rest of this server surface.
 # Keep vendor/tinymcp pinned to a revision that defines `server-http`.
 http-server = ["dep:axum", "tinymcp/server-http"]
-# Local audio-device access: the `cpal` capture stack behind voice recording
-# and the accessibility microphone-permission probe. Default-ON. Slim /
+# Local audio-device access: the accessibility microphone-permission probe
+# (which links `cpal`). The capture stack for voice recording itself is the
+# `tinyvoice` library's `capture` feature, enabled by `voice` below. Default-ON. Slim /
 # headless builds opt out via `--no-default-features --features "<explicit list
 # without inference>"`, which drops the exclusive `cpal` dependency; the
 # microphone probe then reports `Unknown`. `voice` requires this gate, so
@@ -846,7 +855,7 @@ http-server = ["dep:axum", "tinymcp/server-http"]
 # and referenced from `tinycomputer-accessibility`'s `microphone-probe` feature (forwarded below); renaming it buys
 # nothing and would silently drop the microphone probe from the shipped app if
 # the forwarding list were not updated in lockstep.
-inference = ["dep:cpal", "tinycomputer-accessibility/microphone-probe"]
+inference = ["tinycomputer-accessibility/microphone-probe"]
 # Office-document tools: the `generate_document` and `generate_presentation`
 # agent tools, plus PDF text extraction during multimodal file ingest.
 # Default-ON.
@@ -901,7 +910,7 @@ modules = ["tinybus/modules", "dep:tinycomputer-bus"]
 # used to be on that list; WAV framing moved to the `tinyvoice` module, so the
 # crate left this graph entirely rather than merely being gated. Composes with the runtime `DomainSet::voice` flag (#4796): the
 # feature narrows the compile-time surface, `DomainSet` gates it at runtime.
-# Requires `inference` (the cpal capture stack), so enabling `voice` turns
+# Requires `inference` (the microphone-permission probe), so enabling `voice` turns
 # `inference` on transitively.
 # `arboard`/`enigo`/`tinyvoice` (the `rdev` hotkey listener) join here rather than getting their own gate: their
 # only call sites are `voice::text_input` (clipboard + synthetic keystrokes to
