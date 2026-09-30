@@ -41,7 +41,13 @@ async fn invalid_installer_bundle_is_reported_without_falling_back_to_the_cache(
     let record = test_bundled_record();
     let bundled = tempfile::tempdir().unwrap();
     let user_cache = tempfile::tempdir().unwrap();
-    let bundle_dir = ops::artifact_dir(bundled.path(), record, record.assets[0].host_key).unwrap();
+    let bundle_dir = tinybus::module::artifact_dir(
+        bundled.path(),
+        record.id,
+        record.version,
+        record.assets[0].host_key,
+    )
+    .unwrap();
     std::fs::create_dir_all(&bundle_dir).unwrap();
     std::fs::write(bundle_dir.join(record.assets[0].archive), b"").unwrap();
 
