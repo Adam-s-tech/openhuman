@@ -12,8 +12,9 @@ use serde::{Deserialize, Serialize};
 #[serde(default)]
 pub struct TokenjuiceConfig {
     /// Master switch for the content router. When `false`, tool output passes
-    /// through uncompacted. Off by default: see `ContextConfig::compaction_enabled`.
-    #[serde(default)]
+    /// through uncompacted. On by default; it only acts while
+    /// `ContextConfig::compaction_enabled` is also on.
+    #[serde(default = "default_true")]
     pub router_enabled: bool,
     /// Whether lossy compressions offload the original to the CCR store and emit
     /// a `⟦tj:<hash>⟧` retrieval footer. Disabling makes compaction one-way.
@@ -23,6 +24,23 @@ pub struct TokenjuiceConfig {
     /// retrieval survives memory eviction (written by the core only).
     #[serde(default)]
     pub ccr_disk_enabled: bool,
+    /// Store a large result behind a handle and show the model a stats line, a
+    /// short head and the handle, instead of one compressed blob. The model then
+    /// queries the stored original with `juice_find`, `juice_extract` and
+    /// `juice_summarize`, which are registered only while this is in effect
+    /// (see `crate::inference::tokenjuice::repl_handle_active`). Needs
+    /// `router_enabled`, `ccr_enabled` and `context.compaction_enabled`. In this
+    /// mode the LLM summary stage is skipped for results big enough to get a
+    /// handle. Turn off to keep the one-blob compression and the
+    /// `tinyjuice_retrieve` round trip.
+    #[serde(default = "default_true")]
+    pub repl_handle_enabled: bool,
+    /// Also write each stored original to
+    /// `<workspace>/.tokenjuice/repl/<handle>.txt` (mode 0600) so the agent can
+    /// script over it. Off by default: it puts raw tool output on disk, and
+    /// nothing prunes the directory.
+    #[serde(default)]
+    pub repl_save_enabled: bool,
     /// Max number of originals retained in the in-memory CCR store.
     #[serde(default = "default_max_cache_entries")]
     pub max_cache_entries: usize,
@@ -107,8 +125,10 @@ fn default_ml_device() -> String {
 impl Default for TokenjuiceConfig {
     fn default() -> Self {
         Self {
-            router_enabled: false,
+            router_enabled: true,
             ccr_enabled: true,
+            repl_handle_enabled: true,
+            repl_save_enabled: false,
             ccr_disk_enabled: false,
             max_cache_entries: default_max_cache_entries(),
             max_cache_bytes: default_max_cache_bytes(),

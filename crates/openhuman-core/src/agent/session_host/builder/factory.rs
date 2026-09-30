@@ -757,10 +757,7 @@ impl OpenHumanSessionHost {
         // below so an agent that explicitly disallows it still has it removed.
         // A summary names the tool in its footer too, and summaries run with
         // the router off, so either one makes the tool necessary.
-        super::ensure_recovery_tool_visible(
-            &mut visible,
-            config.context.compaction_enabled || super::summarizes_tool_output(agent_id, config),
-        );
+        super::ensure_tinyjuice_tools_visible(&mut visible, agent_id, config);
 
         if let Some(def) = target_def {
             if !def.disallowed_tools.is_empty() {

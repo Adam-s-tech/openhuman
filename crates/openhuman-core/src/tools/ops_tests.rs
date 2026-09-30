@@ -434,3 +434,5 @@ mod default_registry_tests;
 mod domain_family_tests;
 #[path = "ops_tests_execution_and_serde_tests.rs"]
 mod execution_and_serde_tests;
+#[path = "ops_tests_repl_tools_tests.rs"]
+mod repl_tools_tests;

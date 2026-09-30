@@ -462,15 +462,9 @@ pub fn all_tools_with_runtime(
         // diff, lint and test the working tree in the action sandbox. They
         // were defined but never registered, so the belts naming them held
         // nothing. `Deferred`, so they cost no schema until found.
-        Box::new(ReadDiffTool::new(
-            action_dir.to_path_buf(),
-        )),
-        Box::new(RunLinterTool::new(
-            action_dir.to_path_buf(),
-        )),
-        Box::new(RunTestsTool::new(
-            action_dir.to_path_buf(),
-        )),
+        Box::new(ReadDiffTool::new(action_dir.to_path_buf())),
+        Box::new(RunLinterTool::new(action_dir.to_path_buf())),
+        Box::new(RunTestsTool::new(action_dir.to_path_buf())),
         Box::new(PushoverTool::new(
             security.clone(),
             action_dir.to_path_buf(),
@@ -657,6 +651,9 @@ pub fn all_tools_with_runtime(
         "[tools::ops][memory_search] registered memory_vector_search, memory_chunk_context, \
          memory_hybrid_search, memory_store_raw_search, memory_store_raw_chunks, memory_store_kinds"
     );
+
+    // `juice_find` / `juice_extract` / `juice_summarize`: only while a handle can name them.
+    tools.extend(crate::inference::tokenjuice::repl_tools_for(root_config));
 
     // Presentation generation (#2778). Native-Rust engine (ppt-rs
     // backed) as of the #2780-follow-up rust-engine refactor — no
@@ -1329,7 +1326,9 @@ fn tool_group(name: &str) -> crate::core::all::DomainGroup {
     // constant list rather than a name prefix — the live tool is
     // `tinyjuice_retrieve`, and `tokenjuice_retrieve` / `retrieve_tool_output`
     // are migration aliases, so a prefix rule silently missed the real one.
-    if crate::inference::tokenjuice::RECOVERY_TOOL_NAMES.contains(&name) {
+    if crate::inference::tokenjuice::RECOVERY_TOOL_NAMES.contains(&name)
+        || crate::inference::tokenjuice::is_repl_tool(name)
+    {
         return DomainGroup::Inference;
     }
     // Everything else — shell/file and other kernel utilities — is Platform:
