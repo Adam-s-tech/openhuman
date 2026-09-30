@@ -2,9 +2,11 @@
 //! bucket lists, verb-sensitive VCS / package-manager handling, and the
 //! structural "hidden execution" guard for the harness-gated command flow.
 
-use tinybox_core::shell::scan::{contains_unquoted_background_ampersand, strip_quoted_heredoc_bodies};
 use crate::security::policy::policy_command::command_name::is_command_executor;
 use crate::security::policy::types::CommandClass;
+use tinybox_core::shell::scan::{
+    contains_unquoted_background_ampersand, strip_quoted_heredoc_bodies,
+};
 
 /// Provably read-only command bases (cross-platform union). A base **not** in
 /// this set — and not a recognized network/destructive/executor command, nor a

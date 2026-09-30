@@ -3,14 +3,14 @@ use crate::util::floor_char_boundary;
 use super::policy_command::{
     classify_segment, has_dangerous_env_prefix, has_hidden_execution, is_command_executor,
 };
+use super::types::{
+    AutonomyLevel, CommandClass, CommandRiskLevel, GateDecision, SecurityPolicy,
+    POLICY_BLOCKED_MARKER,
+};
 use tinybox_core::shell::scan::{
     command_basename, contains_unquoted_char, contains_unquoted_single_ampersand,
     has_leading_env_assignment, normalized_command_name, skip_env_assignments,
     split_unquoted_segments, strip_quoted_heredoc_bodies,
-};
-use super::types::{
-    AutonomyLevel, CommandClass, CommandRiskLevel, GateDecision, SecurityPolicy,
-    POLICY_BLOCKED_MARKER,
 };
 
 impl SecurityPolicy {
