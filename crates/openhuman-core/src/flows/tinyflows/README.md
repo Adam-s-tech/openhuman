@@ -45,9 +45,9 @@ security model); this README covers only the host seam.
     graph, output, or logs.
   - `code.rs`: `OpenHumanCode` (`CodeRunner`); runs JS/Python through
     `sandbox::execute_in_sandbox` under `CODE_RUN_TIMEOUT_SECS`.
-  - `state.rs`: `FlowStateStore` (`StateStore`) over
-    `flows::{kv_get,kv_set}`, namespaced per flow (`"flow:<id>"`) so saved
-    flows never collide on a state key.
+  - `StateStore` is `tinyflows_sqlite::flows::SqliteStateStore` (built in
+    `ops.rs`), namespaced per flow (`"flow:<id>"`) so saved flows never
+    collide on a state key.
   - `resolver.rs`: `OpenHumanWorkflowResolver` (`WorkflowResolver`);
     resolves a `sub_workflow` node's id to a stored workflow.
   - `tier.rs`: `enforce_node_tier_gate` / `gate_call_for_tier`: the
