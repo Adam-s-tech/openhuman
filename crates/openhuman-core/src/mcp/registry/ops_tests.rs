@@ -50,7 +50,7 @@ async fn install_one(config: &Config) -> String {
 }
 
 #[tokio::test]
-async fn agent_refusal_names_the_connect_tool_on_its_belt() {
+async fn agent_refusal_names_no_rpc_method() {
     let workspace = tempfile::tempdir().unwrap();
     let config = temp_config(&workspace);
     let server_id = install_one(&config).await;
@@ -58,9 +58,74 @@ async fn agent_refusal_names_the_connect_tool_on_its_belt() {
     let error = mcp_clients_list_tools(&config, server_id.clone(), Caller::Agent)
         .await
         .expect_err("a disconnected server has no tools to list");
-    assert!(error.contains("mcp_registry_connect"), "{error}");
-    assert!(!error.contains("mcp_clients_connect"), "{error}");
-    assert!(error.contains(&server_id), "{error}");
+    assert!(!error.contains("mcp_clients_"), "{error}");
+    assert!(
+        error.starts_with(&format!(
+            "server_id={server_id} is disconnected; it has to be connected"
+        )),
+        "{error}"
+    );
+}
+
+/// Every tool an agent refusal names must be callable by every agent that can
+/// receive it, i.e. every built-in agent with `mcp_registry_list_tools` on its
+/// belt. The read-only planner has no `mcp_registry_connect`.
+#[test]
+fn refusals_name_only_tools_on_every_listing_belt() {
+    let install = tinymcp::ConnStatus {
+        server_id: "srv-1".into(),
+        qualified_name: QUALIFIED.into(),
+        display_name: "uuid".into(),
+        status: tinymcp::ServerStatus::Disconnected,
+        tool_count: 0,
+        last_error: None,
+        auth_hint: None,
+    };
+    let refusals: Vec<String> = ["srv-1", "io.github.other/absent"]
+        .into_iter()
+        .map(|requested| {
+            match explain_not_connected(requested, std::slice::from_ref(&install), Caller::Agent) {
+                NotConnected::Refused(message) => message,
+                NotConnected::Resolved(id) => panic!("{requested} resolved to {id}"),
+            }
+        })
+        .collect();
+    let named: Vec<&str> = refusals
+        .iter()
+        .flat_map(|message| message.split(|c: char| !(c.is_ascii_alphanumeric() || c == '_')))
+        .filter(|word| word.starts_with("mcp_"))
+        .collect();
+    assert!(
+        !named.is_empty(),
+        "the unknown-id refusal names the status tool"
+    );
+
+    let belts: Vec<_> = crate::agent::registry::agents::load_builtins()
+        .expect("built-ins load")
+        .into_iter()
+        .filter_map(|def| {
+            let crate::agent::harness::definition::ToolScope::Named(tools) = &def.tools else {
+                return None;
+            };
+            let belt: Vec<String> = tools.iter().chain(&def.deferred_tools).cloned().collect();
+            belt.iter()
+                .any(|tool| tool == "mcp_registry_list_tools")
+                .then(|| (def.id.clone(), belt))
+        })
+        .collect();
+    assert!(
+        belts.iter().any(|(id, _)| id == "planner"),
+        "fixture: the planner lists MCP tools, got {:?}",
+        belts.iter().map(|(id, _)| id).collect::<Vec<_>>()
+    );
+    for (id, belt) in &belts {
+        for tool in &named {
+            assert!(
+                belt.iter().any(|t| t == tool),
+                "{id} can receive a refusal naming `{tool}`, which is not on its belt"
+            );
+        }
+    }
 }
 
 #[tokio::test]

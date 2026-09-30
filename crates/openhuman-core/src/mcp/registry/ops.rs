@@ -416,6 +416,12 @@ pub async fn mcp_clients_status(config: &Config) -> Result<Outcome<Value>, Strin
 /// settings-UI caller can call `mcp_clients_connect`, a model can only call the
 /// tools on its belt. Naming a method the caller cannot reach is an instruction
 /// it cannot follow (#6313).
+///
+/// Not every belt that lists tools can connect: the read-only planner carries
+/// `mcp_registry_list_tools` and `mcp_registry_status` but not
+/// `mcp_registry_connect`. So an agent refusal names no connect tool, only the
+/// status tool every such belt has; `refusals_name_only_tools_on_every_listing_belt`
+/// pins that against the built-in agent definitions.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Caller {
     /// The `openhuman.mcp_clients_*` RPC surface (settings UI, CLI).
@@ -425,10 +431,10 @@ pub enum Caller {
 }
 
 impl Caller {
-    fn connect(self) -> &'static str {
+    fn connect(self) -> Option<&'static str> {
         match self {
-            Self::Rpc => "mcp_clients_connect",
-            Self::Agent => "mcp_registry_connect",
+            Self::Rpc => Some("mcp_clients_connect"),
+            Self::Agent => None,
         }
     }
 
@@ -483,11 +489,14 @@ pub(crate) fn explain_not_connected(
 
 /// An installed server with no live connection: say where it stands and how to connect it.
 fn not_connected_message(install: &tinymcp::ConnStatus, caller: Caller) -> String {
+    let remedy = caller.connect().map_or_else(
+        || "it has to be connected before its tools can be listed".to_string(),
+        |connect| format!("connect it first via {connect}"),
+    );
     let mut message = format!(
-        "server_id={} is {}; connect it first via {}",
+        "server_id={} is {}; {remedy}",
         install.server_id,
         install.status.as_str(),
-        caller.connect()
     );
     if let Some(error) = &install.last_error {
         message.push_str(&format!(" (last error: {error})"));
