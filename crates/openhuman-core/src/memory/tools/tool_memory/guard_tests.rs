@@ -69,21 +69,6 @@ async fn isolated_config(tmp: &TempDir) -> (WorkspaceEnvGuard, Config) {
     (guard, config)
 }
 
-/// Install `autonomy` as the live policy for this test thread only. Same
-/// shape `memory/guard/policy_tests.rs` uses; `#[tokio::test]`'s
-/// current-thread runtime keeps the future on the installing thread.
-fn scoped_tier(autonomy: AutonomyLevel) -> live_policy::TestPolicyGuard {
-    let dir = std::env::temp_dir();
-    live_policy::install_scoped(
-        Arc::new(SecurityPolicy {
-            autonomy,
-            ..SecurityPolicy::default()
-        }),
-        dir.clone(),
-        dir,
-    )
-}
-
 #[tokio::test]
 async fn execute_success_path_persists_rule_in_isolated_workspace() {
     let _serial = crate::memory::ops::GLOBAL_MEMORY_TEST_LOCK.lock().await;
