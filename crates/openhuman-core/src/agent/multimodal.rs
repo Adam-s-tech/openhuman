@@ -46,6 +46,7 @@ use tinyagents_harness::multimodal::{
     markers, mime as mm_mime,
     payload::sha256_prefix,
     resolve::{resolve_file, resolve_image, TextExtractor},
+    AttachmentStash,
 };
 
 pub use tinyagents_harness::multimodal::{FilePayload, MultimodalError};
