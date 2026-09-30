@@ -7393,6 +7393,71 @@ const messages: TranslationMap = {
   'walletSend.recipientInputPlaceholder': 'Entrar o pegar una dirección',
   'webCallback.title': 'Señal completo',
   'webCallback.description': 'OpenHuman está procesando su callback y continuará automáticamente.',
+
+  // Memory engine settings panel
+  'memoryEngine.title': 'Motor de memoria',
+  'memoryEngine.description':
+    'Elige dónde guarda y recupera OpenHuman tus recuerdos. Solo hay un motor activo a la vez.',
+  'memoryEngine.active': 'Activo',
+  'memoryEngine.hostedNote': 'Se factura a tu suscripción o a tus créditos de OpenHuman.',
+  'memoryEngine.signInRequired': 'Inicia sesión para usar este motor.',
+  'memoryEngine.endpoint': 'Endpoint',
+  'memoryEngine.deployment': 'Despliegue',
+  'memoryEngine.deployment.cloud': 'Nube',
+  'memoryEngine.deployment.self_hosted': 'Autoalojado',
+  'memoryEngine.apiKey': 'Clave de API',
+  'memoryEngine.apiKeyOptional': 'Clave de API (opcional)',
+  'memoryEngine.keySaved': 'Hay una clave guardada. Déjalo en blanco para conservarla.',
+  'memoryEngine.keySavedPlaceholder': 'Guardada (oculta)',
+  'memoryEngine.fallback':
+    'La memoria está en pausa: {engine} no está disponible, así que no se guarda ni se recupera nada hasta que vuelva. {reason}',
+  'memoryEngine.paused': 'La memoria está en pausa',
+  'memoryEngine.dialog.cancelMigration': 'Cancelar copia',
+  'memoryEngine.lastError':
+    'La última solicitud al motor de memoria falló. Revisa los ajustes del motor.',
+  'memoryEngine.switch': 'Cambiar',
+  'memoryEngine.save': 'Guardar cambios',
+  'memoryEngine.dialog.title': '¿Cambiar a {engine}?',
+  'memoryEngine.dialog.body': '¿Copiar mis recuerdos actuales al nuevo motor?',
+  'memoryEngine.dialog.copySwitch': 'Copiar y cambiar',
+  'memoryEngine.dialog.switchOnly': 'Cambiar sin copiar',
+  'memoryEngine.dialog.copying': 'Copiando tus recuerdos…',
+  'memoryEngine.dialog.progress': '{copied} de {total} copiados',
+  'memoryEngine.dialog.progressUnknown': '{copied} recuerdos copiados hasta ahora',
+  'memoryEngine.dialog.lacking': 'El nuevo motor no admite estas funciones de tu motor actual:',
+  'memoryEngine.error.insufficientCredits':
+    'Te has quedado sin créditos de OpenHuman. Añade créditos para usar este motor.',
+  'memoryEngine.error.sessionExpired':
+    'Tu sesión ha caducado. Inicia sesión de nuevo para continuar.',
+  'memoryEngine.error.backendUnavailable':
+    'El servicio de memoria no está disponible en este momento. Inténtalo de nuevo en breve.',
+  'memoryEngine.error.generic':
+    'No se pudo cambiar el motor de memoria. Revisa los ajustes e inténtalo de nuevo.',
+  'memoryEngine.error.openBilling': 'Abrir facturación',
+  'memoryEngine.error.signIn': 'Iniciar sesión',
+  'memoryEngine.row.label': 'Motor de memoria:',
+  'memoryEngine.row.change': 'Cambiar',
+  'memoryEngine.unavailable': 'No disponible con {engine}',
+  'memoryEngine.unavailableHint': 'Cambia el motor de memoria para usar esta función.',
+  'memoryEngine.engine.tinymemory.label': 'En este equipo (TinyCortex)',
+  'memoryEngine.engine.tinymemory.description':
+    'Guardada en este dispositivo con TinyCortex. Privada, gratuita y predeterminada.',
+  'memoryEngine.engine.tinyhumans.label': 'CortexDB (vía TinyHumans)',
+  'memoryEngine.engine.tinyhumans.description':
+    'CortexDB alojado por TinyHumans. Usa tu cuenta con sesión iniciada, sin necesidad de clave.',
+  'memoryEngine.engine.cortex.label': 'CortexDB (clave propia)',
+  'memoryEngine.engine.cortex.description':
+    'Tu propia cuenta o instancia de CortexDB, con tu clave de API.',
+  'memoryEngine.engine.supermemory.label': 'Supermemory',
+  'memoryEngine.engine.supermemory.description':
+    'Memoria en la nube de Supermemory, con tu clave de API.',
+  'memoryEngine.engine.mem0.label': 'Mem0',
+  'memoryEngine.engine.mem0.description': 'Capa de memoria Mem0, en la nube o autoalojada.',
+  'memoryEngine.engine.cognee.label': 'Cognee',
+  'memoryEngine.engine.cognee.description':
+    'Memoria de grafo de conocimiento Cognee, en la nube o autoalojada.',
+  'memoryEngine.engine.agentmemory.label': 'AgentMemory',
+  'memoryEngine.engine.agentmemory.description': 'Un servidor AgentMemory que ejecutas tú mismo.',
 };
 
 export default messages;

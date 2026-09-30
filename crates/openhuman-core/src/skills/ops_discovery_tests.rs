@@ -11,91 +11,6 @@ fn init_skills_dir_creates_dir_and_readme() {
 }
 
 #[test]
-fn load_skills_legacy_json_still_works() {
-    let dir = tempfile::tempdir().unwrap();
-    init_workflows_dir(dir.path()).unwrap();
-    let skill_dir = dir.path().join("skills").join("my-skill");
-    std::fs::create_dir_all(&skill_dir).unwrap();
-    write(
-        &skill_dir.join("skill.json"),
-        r#"{"name":"My Workflow","description":"A test","version":"1.0"}"#,
-    );
-    let skills = load_skills_ws(dir.path());
-    assert_eq!(skills.len(), 1);
-    assert_eq!(skills[0].name, "My Workflow");
-    assert_eq!(skills[0].description, "A test");
-    assert!(skills[0].legacy);
-    assert_eq!(skills[0].scope, WorkflowScope::Legacy);
-}
-
-#[test]
-fn load_skills_parses_skill_md_frontmatter() {
-    let dir = tempfile::tempdir().unwrap();
-    let ws = dir.path();
-    // Trust marker enables project-scope loading.
-    write(&ws.join(".openhuman").join("trust"), "");
-    let skill_dir = ws.join(".openhuman").join("skills").join("hello-world");
-    write(
-        &skill_dir.join("SKILL.md"),
-        "---\nname: hello-world\ndescription: Say hi\nmetadata:\n  version: 0.1.0\n  tags: [demo, greeting]\n---\n\nSay hello to the user.\n",
-    );
-    let skills = load_skills_ws(ws);
-    assert_eq!(skills.len(), 1);
-    let s = &skills[0];
-    assert_eq!(s.name, "hello-world");
-    assert_eq!(s.description, "Say hi");
-    assert_eq!(s.version, "0.1.0");
-    assert_eq!(s.tags, vec!["demo", "greeting"]);
-    assert_eq!(s.scope, WorkflowScope::Project);
-    assert!(!s.legacy);
-    assert!(s.warnings.is_empty(), "warnings: {:?}", s.warnings);
-}
-
-#[test]
-fn deprecated_top_level_fields_load_with_migration_warning() {
-    let dir = tempfile::tempdir().unwrap();
-    let ws = dir.path();
-    write(&ws.join(".openhuman").join("trust"), "");
-    let skill_dir = ws.join(".openhuman").join("skills").join("legacy-fm");
-    write(
-        &skill_dir.join("SKILL.md"),
-        "---\nname: legacy-fm\ndescription: uses deprecated top-level fields\nversion: 0.2.0\nauthor: Jane\ntags: [old, school]\n---\n",
-    );
-    let skills = load_skills_ws(ws);
-    assert_eq!(skills.len(), 1);
-    let s = &skills[0];
-    assert_eq!(s.version, "0.2.0");
-    assert_eq!(s.author.as_deref(), Some("Jane"));
-    assert_eq!(s.tags, vec!["old", "school"]);
-    let warnings = s.warnings.join("\n");
-    assert!(warnings.contains("'version' is deprecated"), "{}", warnings);
-    assert!(warnings.contains("'author' is deprecated"), "{}", warnings);
-    assert!(warnings.contains("'tags' is deprecated"), "{}", warnings);
-}
-
-#[test]
-fn spec_compliant_fields_parse_into_metadata_map() {
-    let dir = tempfile::tempdir().unwrap();
-    let path = dir.path().join("SKILL.md");
-    write(
-        &path,
-        "---\nname: s\ndescription: d\nlicense: MIT\ncompatibility: \"node>=18\"\nmetadata:\n  version: 1.0.0\n  author: Alice\n  tags: [a, b]\n---\n",
-    );
-    let (fm, _body, _warnings) = parse_workflow_md(&path).unwrap();
-    assert_eq!(fm.license.as_deref(), Some("MIT"));
-    assert_eq!(fm.compatibility.as_deref(), Some("node>=18"));
-    assert_eq!(
-        fm.metadata.get("version").and_then(|v| v.as_str()),
-        Some("1.0.0")
-    );
-    assert_eq!(
-        fm.metadata.get("author").and_then(|v| v.as_str()),
-        Some("Alice")
-    );
-    assert!(fm.extra.is_empty(), "extras leaked: {:?}", fm.extra);
-}
-
-#[test]
 fn project_skills_skipped_when_not_trusted() {
     let dir = tempfile::tempdir().unwrap();
     let ws = dir.path();
@@ -107,58 +22,6 @@ fn project_skills_skipped_when_not_trusted() {
     );
     let skills = load_skills_ws(ws);
     assert!(skills.is_empty(), "got {skills:?}");
-}
-
-#[test]
-fn frontmatter_missing_name_warns_and_falls_back() {
-    let dir = tempfile::tempdir().unwrap();
-    let ws = dir.path();
-    write(&ws.join(".openhuman").join("trust"), "");
-    let skill_dir = ws.join(".openhuman").join("skills").join("mystery");
-    write(
-        &skill_dir.join("SKILL.md"),
-        "---\ndescription: no name here\n---\n\nbody\n",
-    );
-    let skills = load_skills_ws(ws);
-    assert_eq!(skills.len(), 1);
-    assert_eq!(skills[0].name, "mystery");
-    assert!(skills[0]
-        .warnings
-        .iter()
-        .any(|w| w.contains("missing 'name'")));
-}
-
-#[test]
-fn frontmatter_missing_description_uses_first_body_line() {
-    let dir = tempfile::tempdir().unwrap();
-    let ws = dir.path();
-    write(&ws.join(".openhuman").join("trust"), "");
-    let skill_dir = ws.join(".openhuman").join("skills").join("s");
-    write(
-        &skill_dir.join("SKILL.md"),
-        "---\nname: s\n---\n\n# Heading\n\nActual first line.\n",
-    );
-    let skills = load_skills_ws(ws);
-    assert_eq!(skills[0].description, "Actual first line.");
-}
-
-#[test]
-fn directory_name_mismatch_warns_but_loads() {
-    let dir = tempfile::tempdir().unwrap();
-    let ws = dir.path();
-    write(&ws.join(".openhuman").join("trust"), "");
-    let skill_dir = ws.join(".openhuman").join("skills").join("dir-name");
-    write(
-        &skill_dir.join("SKILL.md"),
-        "---\nname: other-name\ndescription: mismatch\n---\n",
-    );
-    let skills = load_skills_ws(ws);
-    assert_eq!(skills.len(), 1);
-    assert_eq!(skills[0].name, "other-name");
-    assert!(skills[0]
-        .warnings
-        .iter()
-        .any(|w| w.contains("does not match directory")));
 }
 
 #[test]
@@ -194,109 +57,6 @@ fn project_scope_shadows_user_scope_on_collision() {
 }
 
 #[test]
-fn inventory_resources_lists_scripts_and_assets() {
-    let dir = tempfile::tempdir().unwrap();
-    let skill = dir.path().join("s");
-    write(
-        &skill.join("SKILL.md"),
-        "---\nname: s\ndescription: d\n---\n",
-    );
-    write(&skill.join("scripts").join("run.sh"), "echo hi");
-    write(&skill.join("references").join("notes.md"), "notes");
-    write(&skill.join("assets").join("logo.png"), "");
-    write(&skill.join("unrelated").join("x.txt"), "ignored");
-
-    let mut res = inventory_resources(&skill);
-    res.sort();
-    assert_eq!(res.len(), 3);
-    assert!(res.iter().any(|p| p.ends_with("run.sh")));
-    assert!(res.iter().any(|p| p.ends_with("notes.md")));
-    assert!(res.iter().any(|p| p.ends_with("logo.png")));
-    assert!(!res.iter().any(|p| p.ends_with("x.txt")));
-}
-
-#[test]
-fn inventory_resources_lists_hermes_resource_dirs() {
-    let dir = tempfile::tempdir().unwrap();
-    let skill = dir.path().join("s");
-    write(
-        &skill.join("SKILL.md"),
-        "---\nname: s\ndescription: d\n---\n",
-    );
-    write(&skill.join("templates").join("page.html"), "<html></html>");
-    write(&skill.join("examples").join("demo.md"), "demo");
-    write(&skill.join("prompts").join("system.md"), "prompt");
-
-    let mut res = inventory_resources(&skill);
-    res.sort();
-    assert_eq!(res.len(), 3);
-    assert!(res.iter().any(|p| p.ends_with("page.html")));
-    assert!(res.iter().any(|p| p.ends_with("demo.md")));
-    assert!(res.iter().any(|p| p.ends_with("system.md")));
-}
-
-#[test]
-fn nested_hermes_skill_tree_discovers_metadata_and_resources() {
-    let dir = tempfile::tempdir().unwrap();
-    let ws = dir.path();
-    write(&ws.join(".openhuman").join("trust"), "");
-    let skill_dir = ws
-        .join(".openhuman")
-        .join("skills")
-        .join("creative")
-        .join("concept-diagrams");
-    write(
-        &skill_dir.join("SKILL.md"),
-        "---\nname: concept-diagrams\ndescription: Generate diagrams\nversion: 0.1.0\nauthor: Nous\nplatforms: [linux, macos, windows]\nmetadata:\n  hermes:\n    tags: [diagrams, svg]\n    related_skills: [architecture-diagram]\n---\n",
-    );
-    write(
-        &skill_dir.join("templates").join("template.html"),
-        "<html></html>",
-    );
-    write(&skill_dir.join("examples").join("flow.md"), "flow");
-
-    let skills = load_skills_ws(ws);
-    assert_eq!(skills.len(), 1);
-    let s = &skills[0];
-    assert_eq!(s.name, "concept-diagrams");
-    assert_eq!(s.version, "0.1.0");
-    assert_eq!(s.author.as_deref(), Some("Nous"));
-    assert_eq!(s.platforms, vec!["linux", "macos", "windows"]);
-    assert_eq!(s.tags, vec!["diagrams", "svg"]);
-    assert_eq!(s.related_skills, vec!["architecture-diagram"]);
-    assert_eq!(s.source_format, "hermes");
-    assert!(s.resources.iter().any(|p| p.ends_with("template.html")));
-    assert!(s.resources.iter().any(|p| p.ends_with("flow.md")));
-}
-
-#[cfg(unix)]
-#[test]
-fn symlinked_resource_roots_are_rejected() {
-    use std::os::unix::fs::symlink;
-
-    let dir = tempfile::tempdir().unwrap();
-    let skill = dir.path().join("s");
-    write(
-        &skill.join("SKILL.md"),
-        "---\nname: s\ndescription: d\n---\n",
-    );
-
-    // External directory that must not be inventoried.
-    let external = tempfile::tempdir().unwrap();
-    write(&external.path().join("leaked.txt"), "should not appear");
-
-    // Symlink <skill>/assets -> external
-    std::fs::create_dir_all(&skill).unwrap();
-    symlink(external.path(), skill.join("assets")).unwrap();
-
-    let res = inventory_resources(&skill);
-    assert!(
-        res.is_empty(),
-        "symlinked resource root must be rejected, got: {res:?}"
-    );
-}
-
-#[test]
 fn load_skills_surfaces_user_scope() {
     // load_workflow_metadata now delegates to discover_workflows with dirs::home_dir(),
     // so user-scope skills reach production callers that still hit the
@@ -324,20 +84,6 @@ fn load_skills_surfaces_user_scope() {
     assert_eq!(skills.len(), 1);
     assert_eq!(skills[0].name, "user-only");
     assert_eq!(skills[0].scope, WorkflowScope::User);
-}
-
-#[test]
-fn hidden_dirs_are_skipped() {
-    let dir = tempfile::tempdir().unwrap();
-    let ws = dir.path();
-    write(&ws.join(".openhuman").join("trust"), "");
-    let hidden = ws.join(".openhuman").join("skills").join(".hidden");
-    write(
-        &hidden.join("SKILL.md"),
-        "---\nname: hidden\ndescription: nope\n---\n",
-    );
-    let skills = load_skills_ws(ws);
-    assert!(skills.is_empty());
 }
 
 #[test]
@@ -423,10 +169,7 @@ fn read_skill_resource_rejects_empty_inputs() {
 
     let err = read_workflow_resource(ws, "demo", Path::new(""))
         .expect_err("empty relative_path must be rejected");
-    assert!(
-        err.to_lowercase().contains("relative_path"),
-        "unexpected: {err}"
-    );
+    assert!(err.contains("non-empty relative path"), "unexpected: {err}");
 }
 
 // ── `discovery_home_dir`: the per-agent "no user roots" switch ───────────

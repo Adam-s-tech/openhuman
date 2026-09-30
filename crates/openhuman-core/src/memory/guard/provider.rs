@@ -70,6 +70,11 @@ pub struct MemoryGuard {
 }
 
 impl MemoryGuard {
+    /// How the guarded driver was bound (a host fact, from the policy).
+    pub(crate) fn class(&self) -> crate::core::subsystem::DriverClass {
+        self.policy.class()
+    }
+
     /// Wrap `inner` in `policy`.
     ///
     /// Builds all fourteen decorators up front. That is not an optimisation: the

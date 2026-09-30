@@ -200,11 +200,15 @@ async fn generate_and_emit(
 fn build_suggestions_request(user_message: &str, assistant_message: &str) -> ModelRequest {
     let user_prompt =
         format!("User's last message:\n{user_message}\n\nAssistant's reply:\n{assistant_message}");
-    ModelRequest::new(vec![
-        Message::system(SUGGESTIONS_SYSTEM_PROMPT),
-        Message::user(user_prompt),
-    ])
-    .with_temperature(0.2)
+    // A 2-3 item JSON list needs no thinking: with reasoning on, the managed
+    // default spent 700-1,200 reasoning tokens and 7-14 s on this call.
+    crate::inference::provider::openhuman_backend_model::without_reasoning(
+        ModelRequest::new(vec![
+            Message::system(SUGGESTIONS_SYSTEM_PROMPT),
+            Message::user(user_prompt),
+        ])
+        .with_temperature(0.2),
+    )
 }
 
 /// Strictly parses the model's raw text into a validated suggestion list, or

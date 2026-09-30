@@ -129,9 +129,8 @@ pub struct MemoryAccessSection;
 pub const MEMORY_ACCESS_INSTRUCTION: &str = "\
 ## Memory access\n\
 \n\
-Before answering about named people, projects, past decisions or the user themselves, \
-call `memory_recall` (or `memory_search` for keywords). Never say something is not \
-stored unless a retrieval you just ran came back empty.";
+Asked about people, projects, past decisions or the user: `memory_recall` (or \
+`memory_search`) first. Say something isn't stored only after a retrieval came back empty.";
 
 impl PromptSection for MemoryAccessSection {
     fn name(&self) -> &str {
@@ -207,8 +206,8 @@ pub fn memory_write_instruction(preferences: bool, facts: bool, delegate: bool) 
     };
     format!(
         "## Remembering\n\n\
-         Asked to remember, note or keep something? Write it before you confirm {route}. \
-         Never say saved unless that write succeeded this turn."
+         Asked to remember something? Write it before you confirm {route}; never say saved \
+         without a successful write this turn."
     )
 }
 
