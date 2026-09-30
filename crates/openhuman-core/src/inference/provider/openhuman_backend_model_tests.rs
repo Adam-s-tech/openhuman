@@ -408,6 +408,103 @@ async fn probe_readiness_fails_open_on_timeout_or_5xx() {
     );
 }
 
+// ── reasoning-off hint ───────────────────────────────────────────────────
+
+#[test]
+fn reasoning_hint_becomes_disabled_reasoning_on_the_managed_wire() {
+    let request = apply_reasoning_hint(without_reasoning(ModelRequest::new(vec![
+        Message::user("hi"),
+    ])));
+    assert_eq!(
+        request.provider_options["reasoning"],
+        serde_json::json!({ "enabled": false })
+    );
+}
+
+#[test]
+fn no_hint_leaves_provider_options_untouched() {
+    let request = apply_reasoning_hint(ModelRequest::new(vec![Message::user("hi")]));
+    assert!(request.provider_options.get("reasoning").is_none());
+}
+
+#[test]
+fn explicit_reasoning_option_wins_over_the_hint() {
+    let request = without_reasoning(ModelRequest::new(vec![Message::user("hi")]))
+        .with_provider_options(serde_json::json!({ "reasoning": { "effort": "high" } }));
+    let request = apply_reasoning_hint(request);
+    assert_eq!(
+        request.provider_options["reasoning"],
+        serde_json::json!({ "effort": "high" })
+    );
+}
+
+/// Captures the JSON body of every chat-completions request it receives.
+async fn spawn_capturing_chat_server() -> (String, std::sync::Arc<std::sync::Mutex<Vec<Value>>>)
+{
+    let bodies = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+    let seen = bodies.clone();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("bind");
+    let addr = listener.local_addr().expect("local_addr").to_string();
+    let app = axum::Router::new().route(
+        "/openai/v1/chat/completions",
+        axum::routing::post(move |axum::Json(body): axum::Json<Value>| {
+            let seen = seen.clone();
+            async move {
+                seen.lock().unwrap().push(body);
+                axum::Json(serde_json::json!({
+                    "id": "chatcmpl-capture",
+                    "object": "chat.completion",
+                    "created": 1,
+                    "model": "reasoning-v1",
+                    "choices": [{
+                        "index": 0,
+                        "message": { "role": "assistant", "content": "[]" },
+                        "finish_reason": "stop"
+                    }],
+                    "usage": { "prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2 }
+                }))
+            }
+        }),
+    );
+    tokio::spawn(async move {
+        axum::serve(listener, app).await.expect("serve");
+    });
+    (addr, bodies)
+}
+
+#[tokio::test]
+async fn managed_call_sends_reasoning_disabled_only_when_hinted() {
+    let tmp = tempfile::TempDir::new().unwrap();
+    seed_app_session(tmp.path());
+    let (addr, bodies) = spawn_capturing_chat_server().await;
+    let backend = backend_pointed_at(&addr, tmp.path());
+
+    backend
+        .invoke(
+            &(),
+            without_reasoning(ModelRequest::new(vec![Message::user("suggest")])),
+        )
+        .await
+        .expect("hinted call");
+    backend
+        .invoke(&(), ModelRequest::new(vec![Message::user("chat")]))
+        .await
+        .expect("plain call");
+
+    let bodies = bodies.lock().unwrap();
+    assert_eq!(bodies.len(), 2);
+    assert_eq!(bodies[0]["reasoning"], serde_json::json!({ "enabled": false }));
+    assert!(
+        bodies[1].get("reasoning").is_none(),
+        "an unhinted call must not change reasoning: {}",
+        bodies[1]
+    );
+    // The hint itself never reaches the wire.
+    assert!(!bodies[0].to_string().contains("openhuman_reasoning_off"));
+}
+
 // ── shared pooled client (time to first token) ──────────────────────────
 
 /// A TCP relay in front of `upstream` that counts the connections it accepts.
