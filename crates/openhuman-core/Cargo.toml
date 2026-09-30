@@ -141,6 +141,9 @@ tinyagents-harness = { path = "../../vendor/tinyagents/crates/tinyagents-harness
     "multimodal",
     "builtin-tools",
 ] }
+# Per-process directory jail (Landlock / Seatbelt / AppContainer / noop). Owned by
+# tinybox; OpenHuman keeps only the policy of when to jail (`sandbox::ops`).
+tinybox-jail = { path = "../../vendor/tinybox/crates/tinybox-jail" }
 tinyagents-definition = { path = "../../vendor/tinyagents/crates/tinyagents-definition" }
 tinyagents-graph = { path = "../../vendor/tinyagents/crates/tinyagents-graph", features = [
     "sqlite",
@@ -637,10 +640,8 @@ tokio-tungstenite = { version = "0.29", default-features = false, features = ["c
 # above. Cargo unions these features with the base rustls decl, so on Windows
 # reqwest carries both backends; Linux/macOS keep rustls only.
 reqwest = { version = "0.12", default-features = false, features = ["native-tls"] }
-# AppContainer / process-jail backend in `openhuman::cwd_jail`.
-# Feature list mirrors the Win32 surface used by cwd_jail/windows.rs:
-# AppContainer profile APIs, ACL editing, STARTUPINFOEXW process spawn,
-# and the GENERIC_* file access masks.
+# Win32 surface for host code (e.g. atomic file replace in turn_state). The
+# AppContainer jail backend lives in `tinybox-jail` with its own windows-sys.
 windows-sys = { version = "0.61", features = [
     "Win32_Foundation",
     "Win32_Security",
@@ -1144,7 +1145,7 @@ crash-reporting = ["dep:sentry"]
 # is a compile-surface and architecture win, NOT a dependency win — see the
 # measured note above before claiming otherwise.
 channels = ["dep:tinychannels", "tinychannels/email", "tinychannels/lark"]
-sandbox-landlock = ["dep:landlock"]
+sandbox-landlock = ["dep:landlock", "tinybox-jail/landlock"]
 sandbox-bubblewrap = []
 landlock = ["sandbox-landlock"]
 # The WhatsApp Web provider now lives in tinychannels; forward to its feature.
