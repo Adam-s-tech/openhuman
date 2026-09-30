@@ -4331,7 +4331,9 @@ dependencies = [
  "tinymemory",
  "tinymemory-api",
  "tinymemory-bus",
+ "tinymemory-conformance",
  "tinymemory-conversations",
+ "tinymemory-guard",
  "tinymemory-sources",
  "tinyruntime-bus",
  "tinyruntime-pyserver",
@@ -7749,6 +7751,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "tinymemory-conformance"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "serde_json",
+ "tinymemory-api",
+]
+
+[[package]]
 name = "tinymemory-conversations"
 version = "0.1.0"
 dependencies = [
@@ -7759,6 +7771,18 @@ dependencies = [
  "serde_json",
  "sha2 0.10.9",
  "uuid",
+]
+
+[[package]]
+name = "tinymemory-guard"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "chrono",
+ "log",
+ "serde_json",
+ "tinymemory-api",
+ "tracing",
 ]
 
 [[package]]
