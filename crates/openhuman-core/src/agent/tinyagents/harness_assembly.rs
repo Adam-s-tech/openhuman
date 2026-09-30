@@ -362,7 +362,7 @@ pub(super) fn assemble_turn_harness(
         .as_ref()
         .is_none_or(|names| names.contains("update_memory_md"));
     harness.push_middleware(Arc::new(
-        middleware::MemoryProtocolMiddleware::with_index_update_tool(can_update_index),
+        middleware::memory_protocol_middleware(can_update_index),
     ));
 
     // Repeated-failure circuit breaker: pause the run when a tool returns the same

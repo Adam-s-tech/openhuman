@@ -1,152 +1,71 @@
-//! [`MemoryProtocolMiddleware`]: nudge the model back onto the
-//! read-index → dedupe → write → update-index memory protocol.
+//! OpenHuman's memory-protocol wiring: the tool vocabulary handed to the
+//! upstream `MemoryProtocolMiddleware`
+//! (`tinyagents_harness::middleware::MemoryProtocolMiddleware`).
+//!
+//! Agents are told to follow a **read-index → dedupe → write → update-index**
+//! cycle around durable memory. The state machine, the corrective notes and the
+//! middleware live upstream; which OpenHuman tools play which role is host
+//! vocabulary and is defined here.
 
-use async_trait::async_trait;
+use std::sync::Arc;
 
-use tinyagents_harness::context::RunContext;
-use tinyagents_harness::error::Result as TaResult;
-use tinyagents_harness::middleware::{AgentRun, Middleware, ToolInvocationIdentity};
-use tinyinference_llm::tool::ToolCall as TaToolCall;
-use tinytools::ToolResult as TaToolResult;
+use tinyagents_harness::middleware::{MemoryProtocolMiddleware, MemoryProtocolSpec, ModeTool};
 
-/// Agents are told to follow a **read-index → dedupe → write → update-index**
-/// cycle around durable memory, but the contract was never enforced, so it was
-/// followed inconsistently: writes landed without a dedupe read (duplicating
-/// entries) and `update_memory_md` was skipped (so `MEMORY.md` drifted from the
-/// store). This middleware observes the ordered sequence of *successful* memory
-/// tool calls via [`MemoryProtocolTracker`] and, on each memory write, appends a
-/// corrective note to the tool result so the model is nudged back onto the
-/// protocol — the same "structured correction surfaced to the model" pattern the
-/// unknown-tool recovery (#4118) uses. At run end it warns when a write was never
-/// followed by an index update (the index is left stale).
+/// Build the OpenHuman tool vocabulary for the memory protocol.
 ///
-/// Only *successful* ops advance the state machine — a failed `memory_store`
-/// neither creates an entry nor obliges an index update. Non-memory tools are
-/// ignored, so this is a no-op on turns that never touch memory.
-pub struct MemoryProtocolMiddleware {
-    can_update_index: bool,
-    tracker: std::sync::Mutex<crate::agent::harness::memory_protocol::MemoryProtocolTracker>,
-    /// call_id → classified op, captured in `before_tool` (the tool result carries
-    /// no arguments, yet `update_memory_md` and `memory_tree` can only be
-    /// classified from their `file` / `mode` argument). Correlated back by
-    /// the invocation identity in `after_tool`.
-    pending_ops: std::sync::Mutex<
-        std::collections::HashMap<String, crate::agent::harness::memory_protocol::MemoryOp>,
-    >,
+/// - `update_memory_md` edits either `MEMORY.md` **or** `SKILL.md`
+///   (`tinytools_std::filesystem::UpdateMemoryMdTool`); only a `MEMORY.md` edit
+///   reconciles the memory index, so a `SKILL.md` edit must not close the cycle.
+/// - The consolidated `memory_tree` tool
+///   (`crates/openhuman-core/src/memory/query/mod.rs`) is a read in every `mode`
+///   except `ingest_document`, which writes a document into the tree.
+/// - `remember_preference` / `save_preference` (#4458) DO persist via
+///   `Memory::store`, but into dedicated preference namespaces
+///   (`pinned_preferences` / `user_pref_{general,situational}`) surfaced by
+///   direct system-prompt injection or per-query recall. They are NOT part of the
+///   `MEMORY.md` curated wiki the archivist reconciles, so they are deliberately
+///   unlisted (classified `Other`): treating them as writes would resurrect the
+///   unsatisfiable "call update_memory_md" nag loop that issue removed.
+pub fn memory_protocol_spec() -> Arc<MemoryProtocolSpec> {
+    Arc::new(MemoryProtocolSpec {
+        index_update_tool: "update_memory_md".into(),
+        index_file_arg: "file".into(),
+        index_file: "MEMORY.md".into(),
+        // Durable mutations: create an entry, delete an entry, or ingest a
+        // document into the memory tree (the split-out ingest tool).
+        write_tools: [
+            "memory_store",
+            "memory_forget",
+            "memory_tree_ingest_document",
+        ]
+        .map(String::from)
+        .to_vec(),
+        // Dedupe reads: recall/search over stored memory, or a read-only walk of
+        // the memory tree.
+        read_tools: [
+            "memory_recall",
+            "memory_vector_search",
+            "memory_chunk_context",
+            "memory_hybrid_search",
+            "memory_tree_query_source",
+            "memory_tree_search_entities",
+            "memory_tree_fetch_leaves",
+            "memory_tree_drill_down",
+            "memory_tree_cover_window",
+        ]
+        .map(String::from)
+        .to_vec(),
+        mode_tool: Some(ModeTool {
+            name: "memory_tree".into(),
+            mode_arg: "mode".into(),
+            write_mode: "ingest_document".into(),
+        }),
+        recall_tool: "memory_recall".into(),
+    })
 }
 
-impl MemoryProtocolMiddleware {
-    pub fn new() -> Self {
-        Self::with_index_update_tool(true)
-    }
-
-    pub fn with_index_update_tool(can_update_index: bool) -> Self {
-        Self {
-            can_update_index,
-            tracker: std::sync::Mutex::new(
-                crate::agent::harness::memory_protocol::MemoryProtocolTracker::new(),
-            ),
-            pending_ops: std::sync::Mutex::new(std::collections::HashMap::new()),
-        }
-    }
-}
-
-impl Default for MemoryProtocolMiddleware {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-#[async_trait]
-impl Middleware<(), crate::agent::tinyagents::host::OpenHumanRunContext>
-    for MemoryProtocolMiddleware
-{
-    fn name(&self) -> &str {
-        "memory_protocol"
-    }
-
-    async fn before_tool(
-        &self,
-        _ctx: &mut RunContext<crate::agent::tinyagents::host::OpenHumanRunContext>,
-        _state: &(),
-        call: &mut TaToolCall,
-    ) -> TaResult<()> {
-        // Classify with the arguments in hand (the result won't carry them) and
-        // stash the op keyed by call id. Only memory-relevant ops are stored, so
-        // the map stays empty on turns that never touch memory.
-        let op =
-            crate::agent::harness::memory_protocol::classify_memory_op(&call.name, &call.arguments);
-        if op != crate::agent::harness::memory_protocol::MemoryOp::Other {
-            if let Ok(mut ops) = self.pending_ops.lock() {
-                ops.insert(call.id.clone(), op);
-            }
-        }
-        Ok(())
-    }
-
-    async fn after_tool(
-        &self,
-        _ctx: &mut RunContext<crate::agent::tinyagents::host::OpenHumanRunContext>,
-        _state: &(),
-        invocation: &ToolInvocationIdentity,
-        result: &mut TaToolResult,
-    ) -> TaResult<()> {
-        let tool_name = invocation.tool_name();
-        // Consume the op captured for this call (removing it so the map can't
-        // grow unbounded). Absent → a non-memory tool: nothing to enforce.
-        let op = self
-            .pending_ops
-            .lock()
-            .ok()
-            .and_then(|mut ops| ops.remove(&invocation.call_id().to_string()));
-        let Some(op) = op else {
-            return Ok(());
-        };
-        // Only successful memory ops advance the protocol — a failed write did
-        // not mutate memory and must not demand an index update.
-        if result.is_error {
-            return Ok(());
-        }
-        let observation = {
-            let mut tracker = match self.tracker.lock() {
-                Ok(guard) => guard,
-                Err(poisoned) => poisoned.into_inner(),
-            };
-            tracker.observe(op)
-        };
-        if let Some(note) = observation.guidance_with_index_update(tool_name, self.can_update_index)
-        {
-            tracing::debug!(
-                tool = tool_name,
-                missing_index_read = observation.missing_index_read,
-                index_drift = observation.index_drift,
-                "[tinyagents::mw] memory-protocol guidance appended to tool result"
-            );
-            crate::agent::tinyagents::middleware::append_tool_result_text(
-                result,
-                format!("\n\n{note}"),
-            );
-        }
-        Ok(())
-    }
-
-    async fn after_agent(
-        &self,
-        _ctx: &mut RunContext<crate::agent::tinyagents::host::OpenHumanRunContext>,
-        _state: &(),
-        _run: &mut AgentRun,
-    ) -> TaResult<()> {
-        let pending = self
-            .tracker
-            .lock()
-            .map(|tracker| tracker.pending_index_update())
-            .unwrap_or(false);
-        if self.can_update_index && pending {
-            tracing::warn!(
-                "[tinyagents::mw] memory-protocol: run ended with a memory write that was never \
-                 followed by update_memory_md — the MEMORY.md index is left stale"
-            );
-        }
-        Ok(())
-    }
+/// The memory-protocol middleware for an OpenHuman turn. `can_update_index`
+/// states whether `update_memory_md` is actually available this turn.
+pub fn memory_protocol_middleware(can_update_index: bool) -> MemoryProtocolMiddleware {
+    MemoryProtocolMiddleware::with_index_update_tool(memory_protocol_spec(), can_update_index)
 }
