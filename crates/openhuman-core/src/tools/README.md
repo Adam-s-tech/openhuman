@@ -24,10 +24,8 @@ The agent tool layer. Defines the core [`Tool`] trait every agent-callable capab
 | `crates/openhuman-core/src/tools/host_extensions.rs` | OpenHuman-only readers over erased `host_extension` slots: `pack_registry_handle`, `delegation_target`, and `generated_runtime_context`. Import the shared `Tool` vocabulary from `tinytools` directly. |
 | `crates/openhuman-core/src/tools/ops.rs` | Registry assembly: `default_tools`, `default_tools_with_runtime`, `all_tools`, `all_tools_with_runtime`, `browser_allowed_domains`. All config-gating logic lives here. |
 | `crates/openhuman-core/src/tools/schemas.rs` (thin shell over the `schemas/` submodule: `apify.rs`, `composio.rs`, `registry.rs`, `web_search.rs`) | JSON-RPC `tools` namespace controllers + `handle_*` fns. `all_controller_schemas` / `all_registered_controllers` (re-exported as `all_tools_*`). |
-| `crates/openhuman-core/src/tools/schema.rs` | Re-exports `SchemaCleanr`, `CleaningStrategy` and `GEMINI_UNSUPPORTED_KEYWORDS` from `tinyagents_harness::tool` (local `$ref` resolution, provider-rejected keyword stripping, literal-union flattening). The only in-crate caller is `generated.rs`, which runs `SchemaCleanr::validate` on generated tool schemas at admission. |
 | `crates/openhuman-core/src/tools/orchestrator_tools.rs` | Synthesizes named per-subagent tools from the orchestrator's `subagents = [...]` definition; expands the skills wildcard into one `Deferred` `ComposioActionTool` per connected action (reached through `tool_search`, no delegate). |
 | [`crates/openhuman-core/src/mcp/registry/action_tool.rs`](../mcp/registry/action_tool.rs) | Registers connected MCP server actions as deferred tools for the orchestrator. Their searchable schemas use the same `tool_search` catalogue and JEV ranker as other deferred tools. |
-| `crates/openhuman-core/src/tools/generated.rs` | `GeneratedToolDefinition` + wrapper for runtime/profile-supplied generated capability tools (provider/capability/risk metadata for policy). |
 | `crates/openhuman-core/src/tools/user_filter.rs` | `filter_tools_by_user_preference` + UI-toggle-ID → Rust-tool-name map. Unmapped tools are always retained. |
 | [`crates/openhuman-core/src/tools/status/`](status/mod.rs) | Tool-call lifecycle state (`ToolLifecycleState`) and human-readable failure classification (`ToolFailureClass`, `classify`). Pure data/logic; no persistence, no RPC. |
 | [`crates/openhuman-core/src/tools/toolpacks/`](toolpacks/README.md) | On-demand tool disclosure: keeps a pack's tools constructed but unadvertised until `UseSkillTool` (`use_skill`) renders or invokes one, trimming per-turn schema token cost. Also home of `ToolGroups`/`GroupMode`, which `openhuman-embed` re-exports. |
@@ -93,7 +91,7 @@ None. No `store.rs`; the module holds no persisted state. Tools that persist (me
 
 ## Dependencies
 
-- `crate::agent`: `host_runtime` (`RuntimeAdapter`/`NativeRuntime`), `tool_policy::GeneratedToolRuntimeContext`, harness definitions (`AgentDefinition`, `SubagentEntry`) for orchestrator tool synthesis, and the agent-owned dispatch tools re-exported here.
+- `crate::agent`: `host_runtime` (`RuntimeAdapter`/`NativeRuntime`), harness definitions (`AgentDefinition`, `SubagentEntry`) for orchestrator tool synthesis, and the agent-owned dispatch tools re-exported here.
 - `crate::config`: `Config`, `BrowserConfig`, `HttpRequestConfig`, `DelegateAgentConfig`; drives all registration gating and `config::rpc::load_config_with_timeout` in RPC handlers.
 - `crate::search`: provider resolution, TinySearch module configuration, and search-owned tool implementations.
 - `crate::security`: `SecurityPolicy` (host/path/command gating threaded into nearly every tool) + `AuditLogger`.
