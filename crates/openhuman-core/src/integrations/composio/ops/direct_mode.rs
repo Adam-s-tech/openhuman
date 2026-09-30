@@ -4,7 +4,7 @@ use crate::config::Config;
 use crate::core::Outcome;
 
 use super::super::{
-    client::{create_direct_composio_tool_for_api_key, direct_list_connections},
+    client::{create_direct_client_for_api_key, direct_list_connections},
     direct_auth,
 };
 use super::error_utils::OpResult;
@@ -13,7 +13,7 @@ async fn validate_direct_api_key_before_store(config: &Config, api_key: &str) ->
     let key_id = direct_auth::fingerprint_api_key(api_key);
     direct_auth::reset_direct_auth_failure(key_id);
 
-    let direct = create_direct_composio_tool_for_api_key(config, api_key)
+    let direct = create_direct_client_for_api_key(api_key)
         .map_err(|e| format!("[composio-direct] validate_api_key: {e}"))?;
 
     match direct_list_connections(&direct).await {

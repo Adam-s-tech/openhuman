@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 
-use super::super::client::{create_composio_client, direct_list_connections, ComposioClientKind};
+use super::super::client::{direct_list_connections, resolve_composio_route, ComposioRoute};
 use super::super::module_client::{self as connectors, methods};
 use crate::config::Config;
 use crate::core::Outcome;
@@ -71,7 +71,7 @@ pub async fn composio_list_connections(
     // host-side because its client accepts the local loopback overrides used
     // by desktop development and its v3 response mapper lives here.
     let resp = if config.composio.mode.trim() == crate::config::schema::COMPOSIO_MODE_DIRECT {
-        let ComposioClientKind::Direct(direct) = create_composio_client(config)
+        let ComposioRoute::Direct(direct) = resolve_composio_route(config)
             .map_err(|error| format!("[composio-direct] list_connections: {error:#}"))?
         else {
             unreachable!("direct Composio mode must construct a direct client")

@@ -2,8 +2,6 @@
 
 use crate::config::Config;
 
-use super::super::client::{build_composio_client, ComposioClient};
-
 /// Toolkits that honour the `tags` query param on the backend tool-list endpoint.
 /// Expand this list when a new toolkit gains tag support.
 const TAG_QUERYABLE_TOOLKITS: &[&str] = &["github"];
@@ -38,12 +36,6 @@ pub(super) type OpResult<T> = std::result::Result<T, String>;
 pub(crate) const COMPOSIO_NO_SESSION: &str =
     "composio unavailable: no backend session token. Sign in or set a TinyHumans API key.";
 
-/// Resolve a backend-mode [`ComposioClient`] from the root config, or
-/// return an error string that the caller can surface over RPC.
-pub(crate) fn resolve_client(config: &Config) -> OpResult<ComposioClient> {
-    build_composio_client(config).ok_or_else(|| COMPOSIO_NO_SESSION.to_string())
-}
-
 /// True when the user has selected Composio **direct** mode but has not yet
 /// configured an API key (neither in the keychain nor `config.toml`).
 ///
@@ -55,7 +47,7 @@ pub(crate) fn resolve_client(config: &Config) -> OpResult<ComposioClient> {
 /// Sentry on every tick (TAURI-RUST-R4).
 ///
 /// Key presence MUST mirror the factory's own resolution in
-/// [`create_composio_client`] (`client.rs`): a key counts if it is in the
+/// [`resolve_composio_route`](super::super::client::resolve_composio_route) (`client/factory.rs`): a key counts if it is in the
 /// keychain (`credentials::get_composio_api_key`) **or** in `config.toml`
 /// (`config.composio.api_key`). Checking only the keychain would wrongly
 /// short-circuit to an empty list for a user who configured their key via

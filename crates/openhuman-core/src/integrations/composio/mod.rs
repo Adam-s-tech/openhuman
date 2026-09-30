@@ -66,7 +66,6 @@ pub use crate::memory::sync::composio::bus::{
     ComposioTriggerSubscriber,
 };
 pub use action_tool::ComposioActionTool;
-pub use client::ComposioClient;
 pub use identity::connection_identity;
 pub use ops::{
     cached_active_integrations, cached_active_integrations_including_expired, connected_set_hash,
