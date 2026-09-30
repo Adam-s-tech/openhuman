@@ -66,9 +66,9 @@ fn capture_on_thread(
     tx: tokio::sync::mpsc::Sender<RawChunk>,
     setup_tx: &std::sync::mpsc::SyncSender<Result<CaptureFormat, String>>,
 ) -> Result<(), String> {
-    use crate::desktop::accessibility::{detect_microphone_permission, PermissionState};
     use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
     use cpal::{SampleFormat, StreamConfig};
+    use tinycomputer_accessibility::{detect_microphone_permission, PermissionState};
 
     // Surface the mic permission state explicitly — a denied/Unknown state is the
     // most common reason always-on "does nothing" and it differs per OS (macOS TCC

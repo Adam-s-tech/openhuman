@@ -252,7 +252,7 @@ fn inference_engine_compiled_in_when_feature_on() {
 #[test]
 #[cfg(not(feature = "inference"))]
 fn inference_engine_compiled_out_when_feature_off() {
-    use crate::desktop::accessibility::{detect_microphone_permission, PermissionState};
+    use tinycomputer_accessibility::{detect_microphone_permission, PermissionState};
     assert!(!crate::inference::INFERENCE_COMPILED_IN);
     assert_eq!(
         detect_microphone_permission(),

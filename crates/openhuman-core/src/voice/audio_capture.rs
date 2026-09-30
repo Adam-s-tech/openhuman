@@ -251,7 +251,7 @@ fn record_on_thread(
     setup_tx: std::sync::mpsc::SyncSender<Result<(), String>>,
 ) -> Result<RawRecording, String> {
     // --- Cross-platform microphone permission pre-check ---
-    use crate::desktop::accessibility::{
+    use tinycomputer_accessibility::{
         detect_microphone_permission, microphone_denied_message, request_microphone_access,
         PermissionState,
     };

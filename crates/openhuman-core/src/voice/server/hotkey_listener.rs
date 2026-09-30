@@ -33,7 +33,7 @@ impl HotkeyListenerKind {
 /// Start the appropriate hotkey listener for the current platform and key.
 ///
 /// On macOS, the Fn/Globe key is handled by the Swift-based globe listener
-/// (`accessibility::globe`) which monitors `NSEvent.flagsChanged`. All other
+/// (`tinycomputer_accessibility::globe`) which monitors `NSEvent.flagsChanged`. All other
 /// keys return an error on macOS: rdev's CGEventTap callback calls
 /// `TSMGetInputSourceProperty` off the main thread; macOS 26 enforces
 /// `dispatch_assert_queue(main_queue)` inside that API and kills the process
@@ -94,7 +94,7 @@ fn start_globe_hotkey_listener(
     ),
     String,
 > {
-    use crate::desktop::accessibility::{globe_listener_poll, globe_listener_start};
+    use tinycomputer_accessibility::{globe_listener_poll, globe_listener_start};
 
     info!("{LOG_PREFIX} hotkey is Fn on macOS — using Swift globe listener instead of rdev");
 
