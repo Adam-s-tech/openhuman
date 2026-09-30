@@ -19,7 +19,7 @@ use tinyinference_llm::message::{
 };
 use tinyinference_llm::tool::ToolCall as TaToolCall;
 use tinytools_agent::dialect::{
-    DialectMessage, DialectResponse, DialectRole, NativeToolCall, ToolDialect, ToolResultEntry,
+    DialectMessage, DialectResponse, DialectRole, ToolDialect, ToolResultEntry,
     TranscriptEntry,
 };
 

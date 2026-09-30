@@ -80,7 +80,7 @@ impl Tool for ValidationFailingTool {
 }
 
 fn call(id: &str, name: &str) -> ChatResponse {
-    tool_response(vec![ToolCall {
+    tool_response(vec![NativeToolCall {
         id: id.into(),
         name: name.into(),
         arguments: "{}".into(),
