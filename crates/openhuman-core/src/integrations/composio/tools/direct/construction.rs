@@ -51,7 +51,6 @@ impl DirectComposioClient {
         Ok(Self::new_internal(
             api_key,
             default_entity_id,
-            base_v2,
             base_v3,
             true,
         ))
@@ -76,7 +75,6 @@ impl DirectComposioClient {
         Ok(Self::new_internal(
             api_key,
             default_entity_id,
-            base_v2,
             base_v3,
             allow_loopback,
         ))
@@ -100,7 +98,6 @@ impl DirectComposioClient {
         Self::new_internal(
             api_key,
             default_entity_id,
-            COMPOSIO_API_BASE_V2.to_string(),
             base_v3,
             true,
         )
@@ -112,7 +109,6 @@ impl DirectComposioClient {
     fn new_internal(
         api_key: &str,
         default_entity_id: Option<&str>,
-        base_v2: String,
         base_v3: String,
         allow_insecure_loopback: bool,
     ) -> Self {
@@ -133,7 +129,6 @@ impl DirectComposioClient {
         Self {
             api_key: trimmed.to_string(),
             default_entity_id: normalize_entity_id(default_entity_id.unwrap_or("default")),
-            base_v2,
             base_v3,
             allow_insecure_loopback,
         }
