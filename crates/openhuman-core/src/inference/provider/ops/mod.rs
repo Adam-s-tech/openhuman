@@ -13,10 +13,9 @@ mod provider_factory;
 // ── public surface (preserves the original `pub use ops::*` contract) ──
 
 pub use http_error::{
-    api_error, 
-    is_backend_auth_failure, is_backend_error_code_owned, is_budget_exhausted_http_400,
-    is_byo_provider_auth_failure_http, 
-    is_custom_openai_upstream_bad_request_http_400, is_local_provider_no_model_loaded,
+    api_error, is_backend_auth_failure, is_backend_error_code_owned, is_budget_exhausted_http_400,
+    is_byo_provider_auth_failure_http, is_custom_openai_upstream_bad_request_http_400,
+    is_local_provider_no_model_loaded,
     is_ollama_cloud_internal_500, is_ollama_cloud_internal_500_message,
     is_openai_oauth_session_expired_http, is_provider_access_policy_denied_http_403,
     is_provider_config_rejection_http, is_provider_insufficient_credits_402,
