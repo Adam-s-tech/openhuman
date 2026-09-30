@@ -800,7 +800,7 @@ pub fn all_tools_with_runtime(
         if !mcp_registry.is_empty() {
             tools.push(Box::new(McpListServersTool::new(Arc::clone(&mcp_registry))));
             tools.push(Box::new(McpListToolsTool::new(Arc::clone(&mcp_registry))));
-            tools.push(Box::new(McpCallTool::new(
+            tools.push(Box::new(mcp_call_tool(
                 Arc::clone(&mcp_registry),
                 security.clone(),
             )));
