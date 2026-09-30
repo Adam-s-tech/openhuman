@@ -132,11 +132,25 @@ fn check_within(root: &Path, file: &Path) -> Result<(), &'static str> {
     if SecurityPolicy::is_always_forbidden(file) {
         return Err("file is in a protected location");
     }
-    // A symlink inside the folder must not lead out of it.
-    if let (Ok(canon_file), Ok(canon_root)) = (file.canonicalize(), root.canonicalize()) {
-        if !canon_file.starts_with(&canon_root) || SecurityPolicy::is_always_forbidden(&canon_file)
-        {
-            return Err("file resolves outside its files folder");
+    // A symlink inside the folder must not lead out of it. Fail closed: when
+    // anything is at the path, both sides must resolve, so a dangling or
+    // looping symlink (or an unresolvable folder) is refused rather than
+    // skipped — a skipped check would let a later read follow whatever the
+    // link comes to point at. Only a path with nothing at it passes here; the
+    // caller reports that as "file missing".
+    match file.symlink_metadata() {
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+        Err(_) => return Err("file could not be resolved"),
+        Ok(_) => {
+            let (Ok(canon_file), Ok(canon_root)) = (file.canonicalize(), root.canonicalize())
+            else {
+                return Err("file could not be resolved");
+            };
+            if !canon_file.starts_with(&canon_root)
+                || SecurityPolicy::is_always_forbidden(&canon_file)
+            {
+                return Err("file resolves outside its files folder");
+            }
         }
     }
     Ok(())

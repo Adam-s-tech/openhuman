@@ -304,3 +304,59 @@ async fn a_legacy_path_with_parent_components_is_rejected() {
         .unwrap_err();
     assert!(err.contains("escapes artifacts root"), "{err}");
 }
+
+/// A dangling symlink must be refused by the guard, not skipped: if its target
+/// appears later, an unchecked read would follow it out of the folder.
+#[cfg(unix)]
+#[tokio::test]
+async fn the_escape_guard_rejects_a_dangling_symlink() {
+    let tmp = TempDir::new().unwrap();
+    let files_dir = tmp.path().join("Files");
+    std::fs::create_dir_all(&files_dir).unwrap();
+    let link = files_dir.join("dangling.txt");
+    std::os::unix::fs::symlink(tmp.path().join("not-yet-there.txt"), &link).unwrap();
+
+    let err = tampered(tmp.path(), &link, &files_dir).await;
+    assert!(err.contains("could not be resolved"), "{err}");
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn the_escape_guard_rejects_a_symlink_loop() {
+    let tmp = TempDir::new().unwrap();
+    let files_dir = tmp.path().join("Files");
+    std::fs::create_dir_all(&files_dir).unwrap();
+    let a = files_dir.join("a.txt");
+    let b = files_dir.join("b.txt");
+    std::os::unix::fs::symlink(&b, &a).unwrap();
+    std::os::unix::fs::symlink(&a, &b).unwrap();
+
+    let err = tampered(tmp.path(), &a, &files_dir).await;
+    assert!(err.contains("could not be resolved"), "{err}");
+}
+
+/// A files folder that cannot be resolved (here, itself a symlink loop) must
+/// not let the check through either.
+#[cfg(unix)]
+#[tokio::test]
+async fn the_escape_guard_rejects_an_unresolvable_folder() {
+    let tmp = TempDir::new().unwrap();
+    let files_dir = tmp.path().join("Files");
+    let other = tmp.path().join("Other");
+    std::os::unix::fs::symlink(&other, &files_dir).unwrap();
+    std::os::unix::fs::symlink(&files_dir, &other).unwrap();
+
+    let err = tampered(tmp.path(), &files_dir.join("doc.txt"), &files_dir).await;
+    assert!(err.contains("could not be resolved"), "{err}");
+}
+
+/// A path with nothing at it passes the guard and is reported as missing.
+#[tokio::test]
+async fn a_recorded_file_that_does_not_exist_reads_as_missing() {
+    let tmp = TempDir::new().unwrap();
+    let files_dir = tmp.path().join("Files");
+    std::fs::create_dir_all(&files_dir).unwrap();
+
+    let err = tampered(tmp.path(), &files_dir.join("gone.txt"), &files_dir).await;
+    assert!(err.contains("file missing"), "{err}");
+}
