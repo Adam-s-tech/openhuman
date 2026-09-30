@@ -1,8 +1,8 @@
 use super::*;
+use crate::config::{Config, McpServerConfig};
 use base64::Engine as _;
 use serde_json::{json, Value};
 use tinytools::{Tool, ToolCallOptions, ToolResult};
-use crate::config::{Config, McpServerConfig};
 
 fn test_registry() -> Arc<McpServerRegistry> {
     registry_with(
@@ -14,7 +14,24 @@ fn test_registry() -> Arc<McpServerRegistry> {
 fn registry_with(endpoint: &str, auth: crate::config::McpAuthConfig) -> Arc<McpServerRegistry> {
     let mut config = Config::default();
     config.gitbooks.enabled = false;
-    config.mcp_client.servers.push(McpServerConfig { server: tinymcp_bus::McpServerConfig { name: "docs".into(), endpoint: endpoint.into(), command: String::new(), args: Vec::new(), env: std::collections::HashMap::new(), cwd: None, description: Some("Docs MCP".into()), enabled: true, allowed_tools: Vec::new(), disallowed_tools: Vec::new(), timeout_secs: 30, auth, ..Default::default() }, ..Default::default() });
+    config.mcp_client.servers.push(McpServerConfig {
+        server: tinymcp_bus::McpServerConfig {
+            name: "docs".into(),
+            endpoint: endpoint.into(),
+            command: String::new(),
+            args: Vec::new(),
+            env: std::collections::HashMap::new(),
+            cwd: None,
+            description: Some("Docs MCP".into()),
+            enabled: true,
+            allowed_tools: Vec::new(),
+            disallowed_tools: Vec::new(),
+            timeout_secs: 30,
+            auth,
+            ..Default::default()
+        },
+        ..Default::default()
+    });
     // Through the host conversion, so the test builds the registry the
     // same way the application does.
     Arc::new(crate::mcp::host::static_registry(&config))
