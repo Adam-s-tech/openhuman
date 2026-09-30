@@ -334,18 +334,8 @@ fn tool_registry_public_apis_cover_entries_diagnostics_and_provider_policy() {
     let mut config = owned_domain_config(dir.path());
     config.mcp_client.enabled = true;
     config.mcp_client.servers = vec![
-        McpServerConfig {
-            name: "filesystem".to_string(),
-            enabled: true,
-            allowed_tools: vec!["read_file".to_string(), "write_file".to_string()],
-            disallowed_tools: vec!["delete_file".to_string()],
-            ..McpServerConfig::default()
-        },
-        McpServerConfig {
-            name: "disabled".to_string(),
-            enabled: false,
-            ..McpServerConfig::default()
-        },
+        McpServerConfig { server: tinymcp_bus::McpServerConfig { name: "filesystem".to_string(), enabled: true, allowed_tools: vec!["read_file".to_string(), "write_file".to_string()], disallowed_tools: vec!["delete_file".to_string()], ..Default::default() }, ..Default::default() },
+        McpServerConfig { server: tinymcp_bus::McpServerConfig { name: "disabled".to_string(), enabled: false, ..Default::default() }, ..Default::default() },
     ];
     config.capability_providers = vec![
         CapabilityProviderConfig {

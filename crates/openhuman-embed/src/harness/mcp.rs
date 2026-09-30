@@ -99,21 +99,12 @@ impl McpServer {
         I: IntoIterator<Item = S>,
         S: Into<String>,
     {
-        Self(McpServerConfig {
-            name: name.into(),
-            command: command.into(),
-            args: args.into_iter().map(Into::into).collect(),
-            ..Default::default()
-        })
+        Self(McpServerConfig { server: tinymcp_bus::McpServerConfig { name: name.into(), command: command.into(), args: args.into_iter().map(Into::into).collect(), ..Default::default() }, ..Default::default() })
     }
 
     /// A remote server over Streamable HTTP.
     pub fn http(name: impl Into<String>, endpoint: impl Into<String>) -> Self {
-        Self(McpServerConfig {
-            name: name.into(),
-            endpoint: endpoint.into(),
-            ..Default::default()
-        })
+        Self(McpServerConfig { server: tinymcp_bus::McpServerConfig { name: name.into(), endpoint: endpoint.into(), ..Default::default() }, ..Default::default() })
     }
 
     /// Environment variables for a stdio server. MCP stdio auth is normally
@@ -187,9 +178,7 @@ impl McpServer {
     }
 
     /// The underlying config entry.
-    pub(crate) fn into_config(self) -> McpServerConfig {
-        self.0
-    }
+    pub(crate) fn into_config(self) -> McpServerConfig { server: tinymcp_bus::McpServerConfig { self.0, ..Default::default() }, ..Default::default() }
 }
 
 #[cfg(test)]
