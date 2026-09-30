@@ -1,7 +1,6 @@
 use super::*;
 use base64::Engine as _;
 use serde_json::{json, Value};
-use tinymcp::tools::McpListToolsTool as _ListToolsAlias;
 use tinytools::{Tool, ToolCallOptions, ToolResult};
 use crate::config::{Config, McpServerConfig};
 
