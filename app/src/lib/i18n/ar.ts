@@ -5326,6 +5326,8 @@ const messages: TranslationMap = {
   'settings.agentAccess.filesFolder.reset': 'استخدام الافتراضي',
   'settings.agentAccess.filesFolder.saved': 'تم تحديث مجلد الملفات',
   'settings.agentAccess.filesFolder.loadError': 'تعذّر تحميل مجلد الملفات.',
+  'settings.agentAccess.filesFolder.open': 'إظهار في المجلد',
+  'settings.agentAccess.filesFolder.openError': 'تعذّر فتح مجلد الملفات.',
   'settings.agentAccess.alwaysAllow': 'الأدوات المتدنية دائما',
   'settings.agentAccess.alwaysAllowDesc':
     'الأدوات التي وضعت علامة "الطرق تسمح" في الدردشة دون أن تسأل. أزيلي واحدة ليتم دفعها مجدداً',
@@ -6294,6 +6296,7 @@ const messages: TranslationMap = {
   'chat.files.error.resolve_failed': 'تعذّر تحديد الملف. حاول مرة أخرى.',
   'chat.files.error.download_failed': 'فشل التنزيل. حاول مرة أخرى.',
   'chat.files.error.delete_failed': 'تعذّر حذف الملف. حاول مرة أخرى.',
+  'chat.files.error.reveal_failed': 'تعذّر عرض الملف. ربما نُقل أو حُذف خارج OpenHuman.',
   'memory.tab.council': 'Council',
   'activity.tabs.automations': 'أتمتة',
   'activity.tabs.automationsDescription':

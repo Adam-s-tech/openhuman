@@ -19,8 +19,7 @@
  * No-ops outside Tauri (browser dev preview) — export only makes sense in
  * the desktop shell.
  */
-import { revealItemInDir } from '@tauri-apps/plugin-opener';
-
+import { revealPath } from '../utils/openUrl';
 import { safeInvoke as invoke, isTauri } from '../utils/tauriCommands/common';
 import { callCoreRpc } from './coreRpcClient';
 
@@ -39,7 +38,8 @@ export type ArtifactErrorCode =
   | 'RESOLVE_FAILED'
   | 'DOWNLOAD_FAILED'
   | 'CANCELLED'
-  | 'DELETE_FAILED';
+  | 'DELETE_FAILED'
+  | 'REVEAL_FAILED';
 
 /** Outcome surfaced to the UI for a single download attempt. */
 interface DownloadArtifactOutcome {
@@ -311,19 +311,31 @@ export async function deleteArtifact(artifactId: string): Promise<DeleteArtifact
   }
 }
 
-export async function revealArtifactInFileManager(absolutePath: string): Promise<boolean> {
-  if (!isTauri()) return false;
-  if (!absolutePath.trim()) return false;
+/** Outcome of a "Show in folder" request. */
+export type RevealArtifactOutcome =
+  | { ok: true }
+  | { ok: false; code: ArtifactErrorCode; error: string };
+
+/**
+ * Open the OS file manager at an artifact's file (#5505). The file lives in
+ * the visible files folder (`~/OpenHuman/projects/Files` by default), so this
+ * shows the real file, not a Downloads copy. The path comes from the core
+ * (`ai_get_artifact`), which also reports a file moved or deleted outside
+ * OpenHuman; `revealPath` refuses a path from a core running on another OS.
+ */
+export async function revealArtifact(artifactId: string): Promise<RevealArtifactOutcome> {
+  if (!isTauri()) {
+    return { ok: false, code: 'NOT_DESKTOP', error: 'Show in folder needs the desktop app' };
+  }
+  const resolved = await resolveArtifactForExport(artifactId, '', '');
+  if (!resolved.ok) {
+    return { ok: false, code: resolved.code, error: resolved.error };
+  }
   try {
-    // Use the plugin's typed binding — the raw `invoke('plugin:opener|
-    // reveal_item_in_dir', { path })` shape silently no-ops because the
-    // plugin expects `{ paths: [absolutePath] }` (array). The binding
-    // handles the wrap.
-    await revealItemInDir(absolutePath);
-    return true;
+    await revealPath(resolved.sourcePath);
+    return { ok: true };
   } catch (err) {
-    // Swallow — reveal is best-effort, the file is already saved.
-    console.warn('[artifact] revealItemInDir failed:', err);
-    return false;
+    const reason = err instanceof Error ? err.message : String(err);
+    return { ok: false, code: 'REVEAL_FAILED', error: reason };
   }
 }

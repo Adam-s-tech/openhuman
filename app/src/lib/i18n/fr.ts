@@ -5562,6 +5562,8 @@ const messages: TranslationMap = {
   'settings.agentAccess.filesFolder.reset': 'Utiliser le dossier par défaut',
   'settings.agentAccess.filesFolder.saved': 'Dossier des fichiers mis à jour',
   'settings.agentAccess.filesFolder.loadError': 'Impossible de charger le dossier des fichiers.',
+  'settings.agentAccess.filesFolder.open': 'Afficher dans le dossier',
+  'settings.agentAccess.filesFolder.openError': 'Impossible d’ouvrir le dossier des fichiers.',
   'settings.agentAccess.alwaysAllow': 'Outils toujours autorisés',
   'settings.agentAccess.alwaysAllowDesc':
     "Les outils que vous avez marqués « Toujours autoriser » dans le chat s'exécutent sans demander. Supprimez-en un pour être invité à nouveau.",
@@ -6582,6 +6584,8 @@ const messages: TranslationMap = {
   'chat.files.error.resolve_failed': 'Impossible de résoudre l’artefact. Réessayez.',
   'chat.files.error.download_failed': 'Échec du téléchargement. Réessayez.',
   'chat.files.error.delete_failed': 'Impossible de supprimer le fichier. Réessayez.',
+  'chat.files.error.reveal_failed':
+    'Impossible d’afficher le fichier. Il a peut-être été déplacé ou supprimé en dehors d’OpenHuman.',
   'memory.tab.council': 'Council',
   'activity.tabs.automations': 'Automatisations',
   'activity.tabs.automationsDescription':

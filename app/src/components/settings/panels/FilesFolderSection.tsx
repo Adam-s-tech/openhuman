@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { useT } from '../../../lib/i18n/I18nContext';
+import { revealPath } from '../../../utils/openUrl';
 import {
   type AgentPaths,
   openhumanGetAgentPaths,
@@ -61,6 +62,16 @@ const FilesFolderSection = () => {
     }
   };
 
+  const openFolder = async () => {
+    if (!paths) return;
+    setError(null);
+    try {
+      await revealPath(paths.files_dir);
+    } catch {
+      setError(t('settings.agentAccess.filesFolder.openError'));
+    }
+  };
+
   const trimmed = input.trim();
   const unchanged = paths !== null && trimmed === paths.files_dir;
 
@@ -101,6 +112,16 @@ const FilesFolderSection = () => {
           analyticsId="settings-files-folder-save"
           data-testid="files-folder-save">
           {t('settings.agentAccess.filesFolder.save')}
+        </Button>
+        <Button
+          type="button"
+          variant="tertiary"
+          size="sm"
+          onClick={() => void openFolder()}
+          disabled={paths === null}
+          analyticsId="settings-files-folder-open"
+          data-testid="files-folder-open">
+          {t('settings.agentAccess.filesFolder.open')}
         </Button>
         {paths?.files_dir_source === 'override' && (
           <Button
