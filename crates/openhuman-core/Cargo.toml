@@ -148,6 +148,9 @@ tinyagents-harness = { path = "../../vendor/tinyagents/crates/tinyagents-harness
 # Per-process directory jail (Landlock / Seatbelt / AppContainer / noop). Owned by
 # tinybox; OpenHuman keeps only the policy of when to jail (`sandbox::ops`).
 tinybox-jail = { path = "../../vendor/tinybox/crates/tinybox-jail" }
+# Quote-aware shell command-string scanners (`tinybox_core::shell::scan`); the
+# classification policy built on them stays in `security::policy`.
+tinybox-core = { path = "../../vendor/tinybox/crates/tinybox-core" }
 tinyagents-definition = { path = "../../vendor/tinyagents/crates/tinyagents-definition" }
 tinyagents-graph = { path = "../../vendor/tinyagents/crates/tinyagents-graph", features = [
     "sqlite",
@@ -670,9 +673,6 @@ windows-sys = { version = "0.61", features = [
 # default. Avoids pulling OpenSSL as a runtime dep on Linux.
 tokio-tungstenite = { version = "0.29", default-features = false, features = ["connect", "handshake", "rustls-tls-webpki-roots"] }
 
-[target.'cfg(target_os = "linux")'.dependencies]
-landlock = { version = "0.4", optional = true }
-
 [dev-dependencies]
 # Turns on `tinyflows-sqlite`'s `test-fixtures` gate for test builds only: the
 # flows test suite stages a terminal run flipped back to `running` and a
@@ -1158,7 +1158,9 @@ crash-reporting = ["dep:sentry"]
 # is a compile-surface and architecture win, NOT a dependency win — see the
 # measured note above before claiming otherwise.
 channels = ["dep:tinychannels", "tinychannels/email", "tinychannels/lark"]
-sandbox-landlock = ["dep:landlock", "tinybox-jail/landlock"]
+sandbox-landlock = ["tinybox-jail/landlock"]
+# Retained so the feature name still forwards through embed/cli/tinyhumans/app;
+# the legacy bwrap `Command` wrapper it gated was removed (unused).
 sandbox-bubblewrap = []
 landlock = ["sandbox-landlock"]
 # The WhatsApp Web provider now lives in tinychannels; forward to its feature.
