@@ -9,7 +9,7 @@
 //!
 //! This is the log-side counterpart of `core::log_redaction::scrub_secrets`,
 //! which pattern-matches secrets embedded in free-text error strings; this
-//! module instead redacts by JSON *key name* in structured params/results.
+//! module instead redacts by JSON *key name* in structured params.
 
 use serde_json::Value;
 
