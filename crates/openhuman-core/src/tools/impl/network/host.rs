@@ -83,12 +83,6 @@ pub fn web_fetch_tool(
     .with_schema_property(SUMMARY_FOCUS_ARG, summary_focus_property())
 }
 
-/// The `summary_focus` schema as this file wires it, for tests.
-#[cfg(test)]
-pub(super) fn summary_focus_schema() -> Value {
-    summary_focus_property()
-}
-
 #[cfg(feature = "web3")]
 mod x402 {
     //! x402 machine payment for `http_request`'s `402 Payment Required` retry.

@@ -17,6 +17,8 @@ use tinytools_std::filesystem::{
     GlobTool, GrepTool, ListFilesTool, ReadDiffTool, RunLinterTool, RunTestsTool,
     UpdateMemoryMdTool,
 };
+use tinytools_std::filesystem::{ImageInfoTool, WorkspaceStateTool};
+use tinytools_std::network::{CurlTool, PushoverTool};
 
 pub(crate) use super::capability::tool_capability;
 
@@ -710,7 +712,7 @@ pub fn all_tools_with_runtime(
     // + `security` still gate which hosts are reachable; there is no
     // enable flag because every session needs basic HTTP as a baseline
     // capability.
-    tools.push(Box::new(HttpRequestTool::new(
+    tools.push(Box::new(http_request_tool(
         security.clone(),
         http_config.allowed_domains.clone(),
         http_config.max_response_size,
@@ -728,7 +730,7 @@ pub fn all_tools_with_runtime(
     // GET-and-read primitive that reuses the same allowed-domains gate
     // as `http_request`. Use this for docs/READMEs; reach for
     // `http_request` only when you need richer HTTP semantics.
-    tools.push(Box::new(WebFetchTool::new(
+    tools.push(Box::new(web_fetch_tool(
         security.clone(),
         http_config.allowed_domains.clone(),
         Some(http_config.max_response_size),
