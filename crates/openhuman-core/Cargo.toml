@@ -225,6 +225,14 @@ tinytools-std = { path = "../../vendor/tinyagents/vendor/tinytools/crates/tinyto
 #
 # After cloning: `git submodule update --init --recursive vendor/tinyruntime`.
 tinyruntime-bus = { path = "../../vendor/tinyruntime/crates/tinyruntime-bus" }
+#
+# `tinyruntime-pyserver` is the one library crate of that repository the core
+# links: the persistent Python worker (spaCy, Kompress) that
+# `runtime::python_server` hosts. It is a pure library (no bus, no module), so
+# it needs no registry record; it carries only `serde`, `tokio` and `tracing`,
+# which this manifest already has. The pin is the tinyruntime module pin plus
+# the crate itself; see `scripts/ci/module-pin-exemptions.json`.
+tinyruntime-pyserver = { path = "../../vendor/tinyruntime/crates/tinyruntime-pyserver" }
 
 # The `tinymemory` facade is gone: no file in `src/` ever named it. It was
 # kept for driver admission, but `memory::binding::admit` is pure string
