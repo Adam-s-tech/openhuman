@@ -55,6 +55,17 @@ are capability-gated out of the registry when a context is ambient, and answer
 "memory driver does not support the ... family" otherwise. `provider_status`,
 the engine RPCs and the mandatory core/recall RPCs are never gated.
 
+Two host lanes read the mandatory recall on such an engine, and an engine that
+ranks without scoring (hosted CortexDB) changes what they can do. Auto-recall's
+notes leg keeps the engine's first `AUTO_RECALL_UNSCORED_NOTES` hits instead of
+flooring similarities that all read 0.0 (`memory/auto_recall`), and a refused
+lookup puts its reason in the block (`auto_recall/refusal.rs`). Situational
+preferences and the contradiction check (`memory/preferences`) cannot judge
+relevance without a score and answer nothing. A connector sync resolves the
+Sources sink before it asks the connector for pages, because the connector
+saves its cursor as it pages and records fetched for a driver without the
+family would never be fetched again.
+
 ## Where next
 
 - [`memory/README.md`](../README.md) for the full split between this host and
