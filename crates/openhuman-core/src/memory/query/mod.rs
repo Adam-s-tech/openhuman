@@ -17,7 +17,8 @@ pub use ingest_document::MemoryTreeIngestDocumentTool;
 pub type MemoryTreeCoverWindowTool =
     tinymemory_tools::query::MemoryTreeCoverWindowTool<HostMemoryTools>;
 /// `memory_tree_drill_down` over this host.
-pub type MemoryTreeDrillDownTool = tinymemory_tools::query::MemoryTreeDrillDownTool<HostMemoryTools>;
+pub type MemoryTreeDrillDownTool =
+    tinymemory_tools::query::MemoryTreeDrillDownTool<HostMemoryTools>;
 /// `memory_tree_fetch_leaves` over this host.
 pub type MemoryTreeFetchLeavesTool =
     tinymemory_tools::query::MemoryTreeFetchLeavesTool<HostMemoryTools>;

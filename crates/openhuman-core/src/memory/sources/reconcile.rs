@@ -168,7 +168,8 @@ pub async fn apply_composio_source_caps_migration() -> Result<(), String> {
         "[memory_sources:reconcile] applying composio source caps migration"
     );
 
-    let migrated_count = tinymemory_sources::reconcile::apply_caps_defaults_to_entries(&mut config.memory_sources);
+    let migrated_count =
+        tinymemory_sources::reconcile::apply_caps_defaults_to_entries(&mut config.memory_sources);
 
     config.composio_source_caps_migration_version = CURRENT_CAPS_MIGRATION_VERSION;
     config

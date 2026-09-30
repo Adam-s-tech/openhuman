@@ -57,8 +57,8 @@ impl MemoryToolHost for HostMemoryTools {
         let config = config_rpc::load_config_with_timeout()
             .await
             .map_err(|e| format!("load config failed: {e}"))?;
-        let provider = provider_from_config(&config)
-            .map_err(|e| format!("embedding provider failed: {e}"))?;
+        let provider =
+            provider_from_config(&config).map_err(|e| format!("embedding provider failed: {e}"))?;
         Ok(Box::new(HostEmbedder(provider)))
     }
 
