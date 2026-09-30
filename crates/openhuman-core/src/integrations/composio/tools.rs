@@ -43,7 +43,7 @@ mod visibility;
 #[path = "tools_tests.rs"]
 mod tests;
 
-pub use direct::{ComposioAction, ComposioConnectedAccount, ComposioTool};
+pub use direct::{ComposioConnectedAccount, DirectComposioClient};
 pub use execute::ComposioExecuteTool;
 pub(crate) use live_config::live_composio_config;
 pub(crate) use redact::redact_composio_outcome;

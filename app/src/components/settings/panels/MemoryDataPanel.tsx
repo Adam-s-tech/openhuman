@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 
 import { useT } from '../../../lib/i18n/I18nContext';
 import type { ToastNotification } from '../../../types/intelligence';
+import MemoryFamilyGate from '../../intelligence/MemoryFamilyGate';
 import { MemoryWorkspace } from '../../intelligence/MemoryWorkspace';
 import { ToastContainer } from '../../intelligence/Toast';
 import { VaultHealthChecklist } from '../../intelligence/VaultHealthChecklist';
@@ -9,6 +10,8 @@ import PanelPage from '../../layout/PanelPage';
 import MemoryWindowControl from '../components/MemoryWindowControl';
 import { SettingsSection } from '../controls';
 import SettingsPanel from '../layout/SettingsPanel';
+import { useMemoryEngineErrorText } from './MemoryEngineErrorAlert';
+import { classifyMemoryEngineError } from './memoryEngineUtils';
 
 interface MemoryDataPanelProps {
   /** When true, render without the SettingsHeader chrome (used when embedded
@@ -29,11 +32,18 @@ const MemoryDataPanel = ({ embedded = false }: MemoryDataPanelProps = {}) => {
     setToasts(prev => prev.filter(t => t.id !== id));
   };
 
+  const engineErrorText = useMemoryEngineErrorText();
   const handleWindowError = useCallback(
     (message: string) => {
-      addToast({ type: 'error', title: t('memoryData.windowError'), message });
+      // A hosted engine's 402 / expired session reads as a top-up / sign-in hint.
+      const kind = classifyMemoryEngineError(message);
+      addToast({
+        type: 'error',
+        title: t('memoryData.windowError'),
+        message: kind === 'other' ? message : engineErrorText(kind),
+      });
     },
-    [addToast, t]
+    [addToast, t, engineErrorText]
   );
 
   const handleWindowSaved = useCallback(
@@ -80,7 +90,9 @@ const MemoryDataPanel = ({ embedded = false }: MemoryDataPanelProps = {}) => {
         </SettingsSection>
         <VaultHealthChecklist onToast={addToast} title={t('vaultHealth.setupTitle')} />
         <MemoryWindowControl onError={handleWindowError} onSaved={handleWindowSaved} />
-        <MemoryWorkspace onToast={addToast} />
+        <MemoryFamilyGate family="tree">
+          <MemoryWorkspace onToast={addToast} />
+        </MemoryFamilyGate>
       </div>
       <ToastContainer notifications={toasts} onRemove={removeToast} />
     </>

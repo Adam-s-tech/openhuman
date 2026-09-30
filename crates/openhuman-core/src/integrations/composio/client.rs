@@ -1,34 +1,29 @@
-//! Thin HTTP wrapper over the openhuman backend's
-//! `/agent-integrations/composio/*` routes.
+//! Host-side Composio route resolution and the direct-mode v3 reads.
 //!
-//! All calls go through the shared
-//! [`crate::integrations::IntegrationClient`] so they inherit
-//! the same Bearer JWT auth, timeout, envelope parsing, and proxy behavior
-//! as the other backend-proxied integrations.
+//! The Composio HTTP client itself lives in the `tinyconnectors` module and is
+//! reached through [`super::module_client`]. What remains here is the part the
+//! module does not decide for the host: which route the config selects
+//! ([`resolve_composio_route`]) and the two direct-mode v3 reads
+//! ([`direct_list_connections`], [`direct_list_tools`]) that keep the
+//! pagination and toolkit-version parameters the pinned module route omits.
 //!
 //! Logging uses the `[composio]` grep-prefix so all sidecar output for
 //! this domain can be filtered in one shot.
 
-mod connections;
 mod direct;
-mod execute;
 mod factory;
-mod triggers;
 
 #[cfg(test)]
 #[path = "client_tests.rs"]
 mod tests;
 
-pub use connections::ComposioClient;
-pub(crate) use direct::direct_list_tools;
 pub use direct::direct_list_connections;
-pub(crate) use factory::{build_composio_client, create_direct_composio_tool_for_api_key};
-pub use factory::{create_composio_client, ComposioClientKind};
+pub(crate) use direct::direct_list_tools;
+pub(crate) use factory::create_direct_client_for_api_key;
+pub use factory::{resolve_composio_route, ComposioRoute};
 
 // Brought into this module's own namespace (private `use`, not `pub use`)
 // so `client_tests.rs` — declared as a direct child module of `client`
-// above — can still reach these via a plain `use super::*;`, exactly as
-// when this was one un-split file. See each item's `pub(super)` in its
-// owning submodule.
+// above — can still reach these via a plain `use super::*;`.
 #[cfg(test)]
 use std::sync::Arc;

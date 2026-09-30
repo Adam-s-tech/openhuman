@@ -47,7 +47,7 @@ fn handles_no_match() {
 // session JWT was rejected at the very first line ("composio client
 // unavailable") — silently disabling LinkedIn enrichment for that user
 // even when their personal Composio tenant had a healthy Gmail
-// connection. The function now resolves via `create_composio_client`
+// connection. The function now resolves via `resolve_composio_route`
 // and branches on the kind.
 //
 // These tests exercise the factory branch shape against synthetic
@@ -59,7 +59,7 @@ fn handles_no_match() {
 
 #[tokio::test]
 async fn search_gmail_for_linkedin_routes_through_factory_in_direct_mode() {
-    use crate::integrations::composio::client::{create_composio_client, ComposioClientKind};
+    use crate::integrations::composio::client::{resolve_composio_route, ComposioRoute};
     let tmp = tempfile::tempdir().expect("tempdir");
     let mut config = crate::config::Config::default();
     config.config_path = tmp.path().join("config.toml");
@@ -68,13 +68,13 @@ async fn search_gmail_for_linkedin_routes_through_factory_in_direct_mode() {
 
     // Factory probe: a direct-mode config with an inline key resolves
     // to the `Direct` variant. The smoke is that `search_gmail_for_linkedin`'s
-    // first action is now to call `create_composio_client` (which
+    // first action is now to call `resolve_composio_route` (which
     // succeeds here) — instead of `build_composio_client` which would
     // unconditionally return `None` for a config with no backend
     // session and fail the function before any branching could happen.
-    let kind = create_composio_client(&config).expect("direct-mode probe should succeed");
+    let kind = resolve_composio_route(&config).expect("direct-mode probe should succeed");
     assert!(
-        matches!(kind, ComposioClientKind::Direct(_)),
+        matches!(kind, ComposioRoute::Direct(_)),
         "direct-mode config must resolve to Direct variant"
     );
 }

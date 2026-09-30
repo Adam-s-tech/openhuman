@@ -64,7 +64,7 @@ pub(crate) async fn proxy(config: &Config) -> Result<Proxy, String> {
                     // The module refused its configuration and faulted; it
                     // stays unusable in this process, so report it that way.
                     tracing::warn!(%message, "[computer] module faulted on reinitialization");
-                    super::resolution::table().mark_faulted(MODULE_ID, message.clone());
+                    tinybus::module::resolution::global().mark_faulted(MODULE_ID, message.clone());
                 }
                 message
             })?;

@@ -19,16 +19,22 @@
       "reason": "The main-branch TinyMCP submodule pin includes upstream changes after PR #30, while no matching tinymcp module release and digest have been published. Keep the registry artifact pinned to the verified v0.3.5 release and remove this exact source/artifact drift exemption when a matching release and digest are available."
     },
     {
+      "id": "tinyruntime",
+      "submodule": "vendor/tinyruntime",
+      "expect": "v0.2.7-6-g1be38d24",
+      "reason": "The pin is v0.2.7 plus only the new pure-library crate tinyruntime-pyserver (tinyhumansai/tinyruntime#19, branch oh-pyserver-on-v0.2.7), which the core links as a Rust path dependency for runtime::python_server. No module, contract or bus source changes relative to v0.2.7, so the registry's artifact still matches the contract compiled here. Remove when tinyruntime#19 ships in a release and both pins move to it."
+    },
+    {
       "id": "tinyruntime-nodejs",
       "submodule": "vendor/tinyruntime",
-      "expect": "v0.2.7",
-      "reason": "The provider is published independently at v0.2.3 while the shared source pin is tinyruntime v0.2.7. v0.2.3 was built against tinyruntime 09f9646 (v0.2.4-5); git diff 09f9646..v0.2.7 changes no crate source (only CI, toolchain, versions, Cargo.lock and the tinybus pin), and the tinybus module ABI is revision 1 on both. Registry retains its matching published v0.2.3 provider artifact."
+      "expect": "v0.2.7-6-g1be38d24",
+      "reason": "The provider is published independently at v0.2.3 while the shared source pin is tinyruntime v0.2.7. v0.2.3 was built against tinyruntime 09f9646 (v0.2.4-5); git diff 09f9646..v0.2.7 changes no crate source (only CI, toolchain, versions, Cargo.lock and the tinybus pin), and the tinybus module ABI is revision 1 on both. Registry retains its matching published v0.2.3 provider artifact. The shared source pin additionally carries tinyruntime-pyserver: The pin is v0.2.7 plus only the new pure-library crate tinyruntime-pyserver (tinyhumansai/tinyruntime#19, branch oh-pyserver-on-v0.2.7), which the core links as a Rust path dependency for runtime::python_server. No module, contract or bus source changes relative to v0.2.7, so the registry's artifact still matches the contract compiled here. Remove when tinyruntime#19 ships in a release and both pins move to it."
     },
     {
       "id": "tinyruntime-python",
       "submodule": "vendor/tinyruntime",
-      "expect": "v0.2.7",
-      "reason": "The provider is published independently at v0.2.3 while the shared source pin is tinyruntime v0.2.7. v0.2.3 was built against tinyruntime 09f9646 (v0.2.4-5); git diff 09f9646..v0.2.7 changes no crate source (only CI, toolchain, versions, Cargo.lock and the tinybus pin), and the tinybus module ABI is revision 1 on both. Registry retains its matching published v0.2.3 provider artifact."
+      "expect": "v0.2.7-6-g1be38d24",
+      "reason": "The provider is published independently at v0.2.3 while the shared source pin is tinyruntime v0.2.7. v0.2.3 was built against tinyruntime 09f9646 (v0.2.4-5); git diff 09f9646..v0.2.7 changes no crate source (only CI, toolchain, versions, Cargo.lock and the tinybus pin), and the tinybus module ABI is revision 1 on both. Registry retains its matching published v0.2.3 provider artifact. The shared source pin additionally carries tinyruntime-pyserver: The pin is v0.2.7 plus only the new pure-library crate tinyruntime-pyserver (tinyhumansai/tinyruntime#19, branch oh-pyserver-on-v0.2.7), which the core links as a Rust path dependency for runtime::python_server. No module, contract or bus source changes relative to v0.2.7, so the registry's artifact still matches the contract compiled here. Remove when tinyruntime#19 ships in a release and both pins move to it."
     },
     {
       "id": "tinymemory",
@@ -39,14 +45,14 @@
     {
       "id": "tinybox",
       "submodule": "vendor/tinybox",
-      "expect": "v0.1.8-5-g274653e9",
-      "reason": "The pin is v0.1.8 plus only the new pure-library crate tinybox-jail (tinyhumansai/tinybox#12, branch oh-cwd-jail-on-v0.1.8), which the core links as a Rust path dependency. No module, contract or bus source changes relative to v0.1.8, so the registry's v0.1.8 artifact still matches the contract compiled here. Remove when tinybox#12 ships in a release and both pins move to it."
+      "expect": "v0.1.8-7-ga1b5bf0a",
+      "reason": "The pin is v0.1.8 plus only pure-library additions: the new crate tinybox-jail (tinyhumansai/tinybox#12) and the new tinybox-core `shell::scan` module (tinyhumansai/tinybox#13), stacked on it (branch oh-w2-tinybox-on-v0.1.8), which the core links as Rust path dependencies. No module, contract or bus source changes relative to v0.1.8, so the registry's v0.1.8 artifact still matches the contract compiled here. Remove when tinybox#12 and #13 ship in a release and both pins move to it."
     },
     {
       "id": "tinyvoice",
       "submodule": "vendor/tinyvoice",
-      "expect": "v0.1.8-4-gb1afb89f",
-      "reason": "The pin is v0.1.8 plus only the new off-by-default `hotkey` cargo feature of the tinyvoice library crate (tinyhumansai/tinyvoice#16, branch oh-hotkey-on-v0.1.8), which the core links as a Rust path dependency for voice::hotkey. The feature is not enabled in tinyvoice-module and no module, contract or bus source changes relative to v0.1.8, so the registry's v0.1.8 artifact still matches the contract compiled here. Remove when tinyvoice#16 ships in a release and both pins move to it."
+      "expect": "v0.1.8-14-geb8b8730",
+      "reason": "The pin is v0.1.8 plus only the new off-by-default `hotkey` (tinyhumansai/tinyvoice#16, branch oh-hotkey-on-v0.1.8) and `capture` (tinyhumansai/tinyvoice#17, branch oh-capture-on-v0.1.8, stacked on the hotkey pin) cargo features of the tinyvoice library crate, which the core links as a Rust path dependency for voice::hotkey, voice::audio_capture and voice::always_on. Neither feature is enabled in tinyvoice-module and no module, contract or bus source changes relative to v0.1.8, so the registry's v0.1.8 artifact still matches the contract compiled here. Remove when tinyvoice#16 and #17 ship in a release and both pins move to it."
     },
     {
       "id": "tinycomputer",

@@ -14,7 +14,7 @@ use crate::agent::harness::definition::SubagentEntry;
 use crate::agent::harness::AgentDefinitionRegistry;
 use crate::agent::prompts::{
     render_datetime, render_identity, render_tools, render_user_files, render_workspace,
-    ConnectedIntegration, PromptContext,
+    ConnectedIntegration, PromptContext, ToolCallFormat,
 };
 use crate::skills::ops_types::Workflow;
 use crate::tools::orchestrator_tools::sanitise_slug;
@@ -38,12 +38,22 @@ pub fn build(ctx: &PromptContext<'_>) -> Result<String> {
     // Resolved once: the skill routes decide both the static rows below
     // and the generated sections further down, and they must agree (#6302).
     let skill_run = run_workflow_route(ctx);
-    let skill_install = hand_off_route(ctx, "skill_setup");
+    // A packed install route is already named under "Capabilities not in your
+    // tool list"; the skills section names it only when it is on the belt.
+    let skill_install =
+        hand_off_route(ctx, "skill_setup").filter(|route| !route.contains(tinyagents_harness::tool::packs::USE_SKILL));
     // An empty visibility set is the builder's unfiltered sentinel. Preserve
     // the MCP route for those sessions while suppressing it in gated-off builds.
+    // Registered is enough: the orchestrator defers the registry tools
+    // (`deferred_tools` in its agent.toml), so they are reachable through
+    // `tool_search` and by name without being in the visible set.
     let mcp_available = cfg!(feature = "mcp")
         && (ctx.visible_tool_names.is_empty()
-            || ctx.visible_tool_names.contains("mcp_registry_tool_call"));
+            || ctx.visible_tool_names.contains("mcp_registry_tool_call")
+            || ctx
+                .tools
+                .iter()
+                .any(|tool| tool.name.as_ref() == "mcp_registry_tool_call"));
 
     // ── Stable tier: identical across sessions for a given build ─────────
     //
@@ -61,23 +71,24 @@ pub fn build(ctx: &PromptContext<'_>) -> Result<String> {
             mcp_available,
         ),
     );
-    push(&mut out, &render_tools(ctx)?);
+    // A native-tool-calling provider carries the schemas in the request, and
+    // the only prose `render_tools` adds there is the generic Tool Use
+    // Protocol, whose one rule ("call it in the same message") is the first
+    // line of this agent's `## Grounding and tool use`. Text dialects still
+    // need the catalogue and their protocol block.
+    if ctx.tool_call_format != ToolCallFormat::Native {
+        push(&mut out, &render_tools(ctx)?);
+    }
     push(&mut out, &render_datetime(ctx)?);
 
     // ── Context tier: stable for the session, not across installs ────────
     out.push_str(PROMPT_TIER_CONTEXT_MARKER);
     out.push('\n');
     push(&mut out, &render_workspace(ctx)?);
-    // Model families that stop after announcing a plan get one short block of
-    // execution discipline; the rest (Claude, Gemini) pay nothing. The text
-    // and the gate are tinyagents', so every host renders the same words.
-    if let Some(guidance) = tinyagents_harness::prompt::execution_discipline_for(ctx.model_name) {
-        tracing::debug!(
-            model = ctx.model_name,
-            "[orchestrator-prompt] rendering model-gated execution discipline"
-        );
-        push(&mut out, guidance);
-    }
+    // No model-gated execution-discipline block here: its rules (act in the
+    // same response, keep going until done, batch calls, ask only when the
+    // ambiguity changes the tool) are this agent's own `## Grounding and tool
+    // use`, stated once for every model.
 
     // ── Volatile tier: the user's state, changes between sessions ────────
     out.push_str(PROMPT_TIER_VOLATILE_MARKER);
@@ -196,16 +207,16 @@ fn render_withheld_specialists(ctx: &PromptContext<'_>) -> String {
     let mut by_pack: std::collections::BTreeMap<&'static str, Vec<String>> =
         std::collections::BTreeMap::new();
     for (tool, pack) in rows {
-        by_pack.entry(pack).or_default().push(format!("`{tool}`"));
+        by_pack.entry(pack).or_default().push(tool);
     }
-    let mut out = String::from(
-        "## Capabilities not in your tool list\n\nAvailable through `use_skill` (`skill` \
-         alone lists arguments; add `tool` + `args` to run):\n\n",
-    );
-    for (pack, tools) in by_pack {
-        let _ = writeln!(out, "- skill `{pack}`: {}", tools.join(", "));
-    }
-    out
+    let entries: Vec<String> = by_pack
+        .into_iter()
+        .map(|(pack, tools)| format!("`{pack}` ({})", tools.join(", ")))
+        .collect();
+    format!(
+        "## Capabilities not in your tool list\n\nVia `use_skill`: {}.",
+        entries.join(", ")
+    )
 }
 
 /// How this session can reach `specialist` right now, as the call to name.
@@ -243,12 +254,8 @@ fn hand_off_route(ctx: &PromptContext<'_>, specialist: &str) -> Option<String> {
     {
         return None;
     }
-    toolpacks::pack_for_tool(&tool).map(|pack| {
-        format!(
-            "`use_skill {{ \"skill\": \"{}\", \"tool\": \"{tool}\" }}`",
-            pack.id
-        )
-    })
+    toolpacks::pack_for_tool(&tool)
+        .map(|pack| format!("`{tool}` (`use_skill` skill `{}`)", pack.id))
 }
 
 /// How this session runs an installed skill: its own `run_workflow`, when the
@@ -323,6 +330,11 @@ fn resolve_definition<'r>(
     registry.get(&best)
 }
 
+/// Longest skill description kept in `## Installed Skills`: enough for the
+/// skill's trigger phrase, which is what routing reads. The full description is
+/// one `describe_workflow` call away.
+const SKILL_DESCRIPTION_CHARS: usize = 70;
+
 fn render_installed_skills(
     skills: &[Workflow],
     run: Option<&str>,
@@ -343,12 +355,9 @@ fn render_installed_skills(
         let _ = write!(out, "Run one with {run} (skill id + task). ");
     }
     if let Some(install) = install {
-        let _ = write!(out, "Find or install others with {install}. ");
+        let _ = write!(out, "Install more with {install}.");
     }
-    out.push_str(
-        "A skill runs in an isolated worker and returns its result plus a `## Handoff Plan` \
-         for anything it could not do itself.\n\n",
-    );
+    out.push_str("\n\n");
     for skill in skills {
         let id = if skill.dir_name.is_empty() {
             &skill.name
@@ -363,7 +372,7 @@ fn render_installed_skills(
             // chars / instruction fences) and cap so a single installed
             // skill can't bloat the prompt or smuggle routing instructions;
             // full details stay one `describe_workflow` call away.
-            crate::util::sanitize::sanitize_for_llm(&skill.description, 120)
+            crate::util::sanitize::sanitize_for_llm(&skill.description, SKILL_DESCRIPTION_CHARS)
                 .replace(['\n', '\t'], " ")
                 .trim()
                 .to_string()
@@ -498,65 +507,40 @@ fn render_connected_integrations(integrations: &[ConnectedIntegration]) -> Strin
         tracing::debug!("[connected-integrations] section omitted — no connected integrations");
         return String::new();
     }
-    let mut out = String::from(
-        "## Connected Integrations\n\n\
-         Their actions are not in your listed tools: `tool_search` for the action in plain \
-         words (\"send an email\", \"list calendar events\"), then call the tool it returns — \
-         no sub-agent. Act on a service only when the request operates on that service's data \
-         or actions (a connected service is not a reason to touch it for general-knowledge, \
-         web/news, date/time or math questions). Never claim you cannot access one without \
-         searching first.\n\n",
-    );
-    for ci in &connected {
-        let slug = sanitise_slug(&ci.toolkit);
-        if ci.connections.len() > 1 {
-            let _ = writeln!(
-                out,
-                "- **{}** (`toolkit: \"{}\"`, {} accounts connected): {}",
-                ci.toolkit,
-                slug,
-                ci.connections.len(),
-                ci.description
-            );
-            for conn in &ci.connections {
-                let label = conn.label.as_deref().unwrap_or("(unlabeled)");
-                let default_marker = if conn.is_default { " [default]" } else { "" };
-                let _ = writeln!(
-                    out,
-                    "  - `connection_id: \"{}\"` — {}{}",
-                    conn.connection_id, label, default_marker
-                );
+    // One line for the whole list. Vendor descriptions ("Gmail is Google's
+    // email service…") told a model nothing it did not know and cost ~190
+    // tokens on a seven-toolkit workspace; `tool_search` is what says what a
+    // toolkit can do. Connection ids are listed only when labelled: an
+    // unlabelled id gives neither the model nor the user a way to pick it, and
+    // the default connection is used when none is named.
+    let entries: Vec<String> = connected
+        .iter()
+        .map(|ci| {
+            let slug = sanitise_slug(&ci.toolkit);
+            let labelled: Vec<String> = ci
+                .connections
+                .iter()
+                .filter_map(|conn| {
+                    let label = conn.label.as_deref()?.trim();
+                    (!label.is_empty()).then(|| {
+                        let default_marker = if conn.is_default { ", default" } else { "" };
+                        format!("{label}: `{}`{default_marker}", conn.connection_id)
+                    })
+                })
+                .collect();
+            match (ci.connections.len(), labelled.is_empty()) {
+                (0 | 1, _) => format!("`{slug}`"),
+                (n, true) => format!("`{slug}` ({n} accounts)"),
+                (n, false) => format!("`{slug}` ({n} accounts; {})", labelled.join("; ")),
             }
-        } else {
-            let _ = writeln!(
-                out,
-                "- **{}** (`toolkit: \"{}\"`): {}",
-                ci.toolkit, slug, ci.description
-            );
-        }
-    }
-    // CRITICAL behavioural rule. Without this, the orchestrator answers
-    // "can you do X with {toolkit}?" from its training-data priors about
-    // "what gmail/notion/slack usually does", which is consistently a
-    // SUBSET of the real per-toolkit catalogue (no bulk-delete, no
-    // batch-modify, no admin/destructive actions, etc.). The result is a
-    // confident wrong refusal ("nope, I can't delete emails") even when
-    // the action is in the catalogue. `tool_search` is the ground truth for
-    // callable actions.
-    // The cross-chat bullet names the canonical header literal verbatim
-    // so the model knows exactly which block to mistrust. Sourced from
-    // CROSS_CHAT_HEADER (single source of truth) — drift would silently
-    // detune the rule.
-    let cross_chat_header_for_prompt =
-        crate::memory::agent::memory_loader::CROSS_CHAT_HEADER.trim_end();
-    let _ = write!(
-        out,
-        "\n### Capability questions about connected toolkits\n\n\
-         Your prior knowledge of what a toolkit can do is unreliable: the live catalogue and \
-         the user's scopes decide. For \"can you do X with {{toolkit}}?\" or any action on a \
-         connected toolkit, `tool_search` first; an empty search means the action \
-         is not currently available. A past \"I can / can't\" in the \
-         `{cross_chat_header_for_prompt}` block is a stale snapshot, never an answer.\n\n",
+        })
+        .collect();
+    let out = format!(
+        "## Connected Integrations\n\n\
+         {}.\n\n\
+         `tool_search` their actions. Its results, not prior knowledge or past answers, say \
+         what a toolkit can do.\n",
+        entries.join(", ")
     );
 
     tracing::debug!(

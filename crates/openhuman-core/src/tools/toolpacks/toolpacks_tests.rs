@@ -392,6 +392,7 @@ fn every_pack_declares_the_tools_it_is_named_for() {
                 // skills whose `describe_workflow` / run route were still
                 // withheld — 748 B on every wildcard agent for a doorway to a
                 // locked room.
+                "setup_skills",
                 "skill_search",
                 "skill_registry_browse",
                 "skill_registry_search",

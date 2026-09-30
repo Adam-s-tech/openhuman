@@ -80,8 +80,7 @@ pub const CONTRADICTION_SIMILARITY: f64 = 0.6;
 /// This is the one body behind both doors into Lane B: the guard path
 /// ([`recall_by_vector`], used by the contradiction check) and the session's
 /// `Memory` handle (`DriverMemory::recall_relevant_by_vector`, #6041). A driver
-/// without the retrieval family answers empty — the documented degradation —
-/// while a driver that has it and fails answers `Err`, so each caller decides
+/// without the retrieval family answers through the mandatory `recall`, while a driver that has it and fails answers `Err`, so each caller decides
 /// what an error means for its turn.
 pub(crate) async fn recall_by_vector_over(
     provider: &dyn MemoryProvider,
@@ -90,13 +89,19 @@ pub(crate) async fn recall_by_vector_over(
     limit: usize,
     min_vector_similarity: f64,
 ) -> Result<Vec<(String, String)>, MemoryError> {
-    let Some(retrieval) = provider.as_retrieval() else {
-        return Ok(Vec::new());
-    };
     let started = std::time::Instant::now();
-    let hits = retrieval
-        .recall_namespace_scored(namespace, query, limit, None)
-        .await?;
+    let hits = match provider.as_retrieval() {
+        Some(retrieval) => {
+            retrieval
+                .recall_namespace_scored(namespace, query, limit, None)
+                .await?
+        }
+        // No retrieval family (a remote engine): the mandatory ranked recall
+        // answers, so Lane B still works instead of injecting nothing.
+        None => crate::memory::ops::fallback::recall_hits(provider, namespace, query, limit)
+            .await
+            .map_err(|e| MemoryError::Other(anyhow::anyhow!(e)))?,
+    };
     // The floor is "tunable against live data", and this line is that data:
     // how close the best candidate came, whether or not it cleared. Keys and
     // scores only — never the preference text or the message.

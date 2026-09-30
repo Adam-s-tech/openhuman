@@ -8,6 +8,17 @@ const LOCAL_RAW: Option<CapabilityPrivacy> = Some(CapabilityPrivacy {
     destinations: &[],
 });
 
+// A remote memory engine receives the memories the assistant stores and the
+// recall queries it runs. Local TinyCortex (the default) sends nothing.
+const MEMORY_TO_REMOTE_ENGINE: Option<CapabilityPrivacy> = Some(CapabilityPrivacy {
+    leaves_device: true,
+    data_kind: PrivacyDataKind::Raw,
+    destinations: &[
+        "TinyHumans-hosted CortexDB (when selected)",
+        "User-configured Supermemory, Mem0, Cognee, CortexDB or AgentMemory service (when selected)",
+    ],
+});
+
 const DESKTOP_TO_JEV: Option<CapabilityPrivacy> = Some(CapabilityPrivacy {
     leaves_device: true,
     data_kind: PrivacyDataKind::Raw,

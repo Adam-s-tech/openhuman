@@ -123,8 +123,11 @@ its schemas.
 
 Running an installed skill is not a pack concern: the orchestrator uses its
 own `run_workflow`. The install hand-off `setup_skills` (into `skill_setup`)
-stays unpacked on the orchestrator's belt
-(`DELIBERATELY_UNPACKED_HANDOFFS`).
+is a member of the `skills` pack, like the other packed hand-offs
+(`build_workflow`, `manage_tasks`): it was ~270 tokens on every orchestrator
+request for a family used a few times a week. Being packed, it no longer
+closes the `skills` pack through `ops::closed_by_direct_handoff`, so the
+listing offers the hand-off beside the raw registry tools.
 
 ## Called by
 

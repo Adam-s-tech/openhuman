@@ -3,11 +3,9 @@
 //!
 //! Split into submodules by responsibility: [`api`] holds the public
 //! discovery entry points, [`scan`] holds the root-directory scan engine,
-//! [`collision`] holds cross-scope name-collision resolution, and
-//! [`resource`] holds bundled-resource reading.
+//! and [`resource`] holds bundled-resource reading.
 
 mod api;
-mod collision;
 mod resource;
 mod scan;
 

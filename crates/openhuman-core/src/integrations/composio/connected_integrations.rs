@@ -2,6 +2,7 @@
 //! mode-aware backend/direct [`fetch`] (whose uncached backend walk lives in
 //! [`fetch_uncached`] since it is one large, sequential routine).
 
+mod backend_tools;
 mod cache;
 mod fetch;
 mod fetch_uncached;

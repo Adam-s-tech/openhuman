@@ -11,18 +11,20 @@ use tinybus::EventHandler;
 
 use crate::config::rpc as config_rpc;
 use crate::core::events::DomainEvent;
-use crate::integrations::composio::client::{
-    create_composio_client, ComposioClient, ComposioClientKind,
-};
+use crate::integrations::composio::client::{resolve_composio_route, ComposioRoute};
+use crate::integrations::composio::module_client::{self as connectors, methods};
 use crate::integrations::composio::ops;
+use crate::integrations::composio::types::ComposioConnectionsResponse;
 use crate::integrations::composio::FetchConnectedIntegrationsStatus;
 
-/// A backend-tenant Composio client for one toolkit.
+/// The live config for one toolkit's connection-readiness probe, once it is
+/// known to resolve to the backend tenant.
 ///
 /// This was `ProviderContextExt::backend_client`, an extension trait on the
 /// engine's `ProviderContext` that existed for a single caller — the
 /// connection-readiness probe below. With the context gone the trait had
-/// nothing to extend, so the resolution lives here instead.
+/// nothing to extend, so the resolution lives here instead. The probe itself
+/// is a connector-module `ListConnections` call made with this config.
 ///
 /// The config is reloaded rather than taken from the snapshot on purpose: the
 /// OAuth completion this subscriber reacts to may have written credentials
@@ -30,19 +32,19 @@ use crate::integrations::composio::FetchConnectedIntegrationsStatus;
 /// next call. Direct mode is a hard error rather than a silent fallback — the
 /// helpers behind this were written against the backend tenant, and routing
 /// them through the wrong one is worse than refusing (#1710).
-async fn backend_composio_client(
+async fn backend_composio_config(
     config: &crate::config::Config,
     toolkit: &str,
-) -> anyhow::Result<ComposioClient> {
+) -> anyhow::Result<crate::config::Config> {
     let live_config =
         crate::config::rpc::reload_config_from_paths(&config.config_path, &config.workspace_dir)
             .await
             .map_err(|e| {
                 anyhow::anyhow!("composio backend client: failed to reload live config: {e}")
             })?;
-    match create_composio_client(&live_config)? {
-        ComposioClientKind::Backend(client) => Ok(client),
-        ComposioClientKind::Direct(_) => Err(anyhow::anyhow!(
+    match resolve_composio_route(&live_config)? {
+        ComposioRoute::Backend => Ok(live_config),
+        ComposioRoute::Direct(_) => Err(anyhow::anyhow!(
             "composio direct mode is not supported on this helper path; toolkit={toolkit}"
         )),
     }
@@ -222,7 +224,7 @@ impl EventHandler<DomainEvent> for ComposioConnectionCreatedSubscriber {
             // host's own factory, so ask it directly rather than through a
             // context object built only to be handed back over the bus.
             let config = Arc::new(config);
-            if create_composio_client(&config).is_err() {
+            if resolve_composio_route(&config).is_err() {
                 tracing::debug!(
                     toolkit = %toolkit,
                     "[composio:bus] no composio client (not signed in?), skipping hook"
@@ -247,7 +249,7 @@ impl EventHandler<DomainEvent> for ComposioConnectionCreatedSubscriber {
 
             // `wait_for_connection_active` is a backend-only metadata
             // probe (`list_connections`). Resolve a backend
-            // `ComposioClient` from the live config for it; direct-mode
+            // live config for it; direct-mode
             // users surface a clear error here rather than silently
             // routing through the wrong tenant (#1710).
             // Was `ctx.backend_client()`, a host extension trait bolted onto
@@ -255,7 +257,7 @@ impl EventHandler<DomainEvent> for ComposioConnectionCreatedSubscriber {
             // the resolution lives at its only call site: reload the live config
             // (the OAuth completion being reacted to may have written
             // credentials since the snapshot) and require the backend tenant.
-            let backend_client = match backend_composio_client(&config, &toolkit).await {
+            let backend_config = match backend_composio_config(&config, &toolkit).await {
                 Ok(c) => c,
                 Err(e) => {
                     tracing::debug!(
@@ -266,7 +268,7 @@ impl EventHandler<DomainEvent> for ComposioConnectionCreatedSubscriber {
                     return;
                 }
             };
-            match wait_for_connection_active(&backend_client, &connection_id).await {
+            match wait_for_connection_active(&backend_config, &connection_id).await {
                 Ok(status) => {
                     tracing::info!(
                         toolkit = %toolkit,
@@ -548,7 +550,7 @@ pub(super) enum WaitError {
 /// On success returns the observed status string. On timeout returns
 /// the last status we saw (helpful for "stuck in INITIATED" debugging).
 async fn wait_for_connection_active(
-    client: &ComposioClient,
+    config: &crate::config::Config,
     connection_id: &str,
 ) -> Result<String, WaitError> {
     let started = std::time::Instant::now();
@@ -556,7 +558,12 @@ async fn wait_for_connection_active(
     let mut last_status: Option<String> = None;
 
     loop {
-        match client.list_connections().await {
+        match connectors::call_bare::<ComposioConnectionsResponse>(
+            config,
+            methods::LIST_CONNECTIONS,
+        )
+        .await
+        {
             Ok(resp) => {
                 if let Some(conn) = resp.connections.into_iter().find(|c| c.id == connection_id) {
                     if conn.is_active() {
