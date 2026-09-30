@@ -56,17 +56,10 @@ pub fn repl_save_dir(workspace_dir: &std::path::Path) -> std::path::PathBuf {
     workspace_dir.join(".tokenjuice").join("repl")
 }
 
-pub async fn install_from_config(config: &crate::config::Config) -> Result<(), String> {
+/// What the module is told to do, from the resolved configuration.
+pub(crate) fn install_request(config: &crate::config::Config) -> InstallRequest {
     let tj = &config.tokenjuice;
-    ml::configure(config.clone());
-    savings::configure(
-        config
-            .default_model
-            .clone()
-            .unwrap_or_else(|| crate::config::DEFAULT_MODEL.to_string()),
-        &config.workspace_dir,
-    );
-    let request = InstallRequest {
+    InstallRequest {
         options: types::CompressOptions {
             router_enabled: tj.router_enabled,
             ccr_enabled: tj.ccr_enabled,
@@ -94,7 +87,19 @@ pub async fn install_from_config(config: &crate::config::Config) -> Result<(), S
             .ccr_disk_enabled
             .then(|| config.workspace_dir.join(".tokenjuice").join("ccr"))
             .map(|path| path.to_string_lossy().into_owned()),
-    };
+    }
+}
+
+pub async fn install_from_config(config: &crate::config::Config) -> Result<(), String> {
+    ml::configure(config.clone());
+    savings::configure(
+        config
+            .default_model
+            .clone()
+            .unwrap_or_else(|| crate::config::DEFAULT_MODEL.to_string()),
+        &config.workspace_dir,
+    );
+    let request = install_request(config);
     let fingerprint = serde_json::to_vec(&request).map_err(|error| error.to_string())?;
     static INSTALLED: std::sync::OnceLock<tokio::sync::Mutex<Option<Vec<u8>>>> =
         std::sync::OnceLock::new();
