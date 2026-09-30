@@ -33,14 +33,6 @@ pub(crate) fn dialect_response_from_provider(response: &ChatResponse) -> Dialect
         text: response.text.clone(),
         tool_calls: response
             .tool_calls
-            .iter()
-            .map(|call| NativeToolCall {
-                id: call.id.clone(),
-                name: call.name.clone(),
-                arguments: call.arguments.clone(),
-                extra_content: call.extra_content.clone(),
-            })
-            .collect(),
     }
 }
 
@@ -82,14 +74,6 @@ fn conversation_to_transcript_entry(message: &ConversationMessage) -> Transcript
         } => TranscriptEntry::AssistantToolCalls {
             text: text.clone(),
             tool_calls: tool_calls
-                .iter()
-                .map(|call| NativeToolCall {
-                    id: call.id.clone(),
-                    name: call.name.clone(),
-                    arguments: call.arguments.clone(),
-                    extra_content: call.extra_content.clone(),
-                })
-                .collect(),
             reasoning_content: reasoning_content.clone(),
             extra_metadata: extra_metadata.clone(),
         },
