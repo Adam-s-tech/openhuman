@@ -4074,6 +4074,7 @@ dependencies = [
  "tinymemory-import",
  "tinymemory-safety",
  "tinymemory-sources",
+ "tinymemory-tools",
  "tinyruntime-bus",
  "tinyruntime-pyserver",
  "tinysearch-bus",
@@ -7110,6 +7111,21 @@ dependencies = [
  "tracing",
  "uuid",
  "walkdir",
+]
+
+[[package]]
+name = "tinymemory-tools"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "log",
+ "serde",
+ "serde_json",
+ "tinyinference-embeddings",
+ "tinymemory-api",
+ "tinytools 0.5.0",
 ]
 
 [[package]]
