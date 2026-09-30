@@ -84,15 +84,16 @@ async fn search_gmail_for_linkedin_errors_when_factory_cannot_build_client() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let mut config = crate::config::Config::default();
     config.config_path = tmp.path().join("config.toml");
-    // Default mode = backend, no session token. The factory must error
-    // with a backend-session message — and `search_gmail_for_linkedin`
-    // must surface that as an anyhow error rather than panicking. We
-    // call the function directly to verify the early-return shape.
+    // Default mode = backend, no session token. The dispatch gate's
+    // route check must error with the backend-session message — and
+    // `search_gmail_for_linkedin` must surface that as an anyhow error
+    // rather than panicking. We call the function directly to verify the
+    // early-return shape.
     let res = super::search_gmail_for_linkedin(&config).await;
     let err = res.expect_err("unsigned-in user must surface an error");
     let msg = err.to_string();
     assert!(
-        msg.contains("composio client unavailable"),
-        "expected mode-agnostic factory error surface, got: {msg}"
+        msg.contains("GMAIL_FETCH_EMAILS failed") && msg.contains("no backend session"),
+        "expected the route-check error surface, got: {msg}"
     );
 }
