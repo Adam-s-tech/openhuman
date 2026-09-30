@@ -29,6 +29,7 @@ mod quota_and_credits;
 // (mirrors the pre-split `include!`-shared scope).
 use crate::inference::provider::openhuman_backend_model;
 use tinyinference_core::sanitize::sanitize_api_error;
+use tinyinference_llm::failure::{body_indicates_quota_exhausted, is_context_window_exceeded_message};
 
 pub use auth_failure::{
     is_backend_auth_failure, is_byo_provider_auth_failure_http,
@@ -36,10 +37,6 @@ pub use auth_failure::{
     log_openai_oauth_session_expired, publish_backend_session_expired,
 };
 pub use context_window::log_context_window_exceeded;
-pub use tinyinference_llm::failure::{
-    body_indicates_insufficient_credits, body_indicates_quota_exhausted,
-    is_context_window_exceeded_message, is_provider_rate_cap_exceeded_message,
-};
 pub use dispatch::{api_error, should_report_provider_http_failure};
 pub use local_provider::{
     is_local_provider_no_model_loaded, is_ollama_cloud_internal_500,

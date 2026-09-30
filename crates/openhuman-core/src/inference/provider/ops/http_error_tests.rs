@@ -107,7 +107,7 @@ fn quota_and_credits_matchers_do_not_overlap_on_c9a() {
         StatusCode::INTERNAL_SERVER_ERROR,
         C9A_BODY
     ));
-    assert!(body_indicates_quota_exhausted(C9A_BODY));
+    assert!(tinyinference_llm::failure::body_indicates_quota_exhausted(C9A_BODY));
 }
 
 /// Verbatim TAURI-RUST-8FQ Responses-API body. The matcher keys on this

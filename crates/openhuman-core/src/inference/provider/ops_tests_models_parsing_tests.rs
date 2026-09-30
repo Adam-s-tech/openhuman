@@ -287,7 +287,7 @@ async fn api_error_monthly_quota_returns_message_via_demoted_branch() {
     );
     // The body must classify as quota-exhausted so the demote branch — not the
     // 500 status gate — handles it.
-    assert!(body_indicates_quota_exhausted(body));
+    assert!(tinyinference_llm::failure::body_indicates_quota_exhausted(body));
     assert!(should_report_provider_http_failure(
         StatusCode::INTERNAL_SERVER_ERROR
     ));
