@@ -428,7 +428,8 @@ impl Middleware<(), crate::agent::tinyagents::host::OpenHumanRunContext> for Too
             && budget_bytes > 0
             && self.artifact_store.is_some()
             && content.len() > budget_bytes
-            && content.len() as u64 <= tinytools_std::filesystem::FileReadTool::MAX_FILE_SIZE_BYTES)
+            && content.len() as u64
+                <= tinytools_std::filesystem::FileReadTool::MAX_FILE_SIZE_BYTES)
             .then(|| content.clone());
 
         // 1+2. TinyJuice: the LLM summary stage (when this agent has a

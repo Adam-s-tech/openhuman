@@ -33,7 +33,9 @@ fn log_body() -> String {
     let rows: String = (0..900)
         .map(|i| format!("row {i}: value {}\n", i * 7))
         .collect();
-    let tail: String = (900..1000).map(|i| format!("row {i}: value {}\n", i * 7)).collect();
+    let tail: String = (900..1000)
+        .map(|i| format!("row {i}: value {}\n", i * 7))
+        .collect();
     format!("# Report\n{rows}ERROR: needle in the middle\n{tail}")
 }
 
@@ -45,7 +47,11 @@ async fn store_behind_handle(store: &MemoryCcrStore, content: &str) -> (String, 
         ..CompressOptions::default()
     };
     let out = tinyjuice::compress_content_with_store(content, None, &options, store).await;
-    assert_eq!(out.compressor, CompressorKind::Repl, "handle mode must apply");
+    assert_eq!(
+        out.compressor,
+        CompressorKind::Repl,
+        "handle mode must apply"
+    );
     let handle = out.ccr_token.clone().expect("a handle");
     (out.text, handle)
 }
@@ -58,7 +64,10 @@ fn result_text(result: &ToolResult) -> String {
 fn declares_the_three_repl_tools_read_only_capped_and_small() {
     let tools = repl_tools();
     let names: Vec<&str> = tools.iter().map(|t| t.name()).collect();
-    assert_eq!(names, REPL_TOOL_NAMES, "same tools, same order as TinyJuice");
+    assert_eq!(
+        names, REPL_TOOL_NAMES,
+        "same tools, same order as TinyJuice"
+    );
 
     let mut schema_bytes = 0;
     for t in &tools {

@@ -41,7 +41,9 @@ fn repl_tools_are_absent_whenever_a_handle_cannot_be_produced() {
         ("compaction off", |c| c.context.compaction_enabled = false),
         ("router off", |c| c.tokenjuice.router_enabled = false),
         ("ccr off", |c| c.tokenjuice.ccr_enabled = false),
-        ("handle mode off", |c| c.tokenjuice.repl_handle_enabled = false),
+        ("handle mode off", |c| {
+            c.tokenjuice.repl_handle_enabled = false
+        }),
     ];
     for (label, flip) in off {
         let mut cfg = test_config(&tmp);

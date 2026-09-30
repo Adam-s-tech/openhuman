@@ -465,15 +465,9 @@ pub fn all_tools_with_runtime(
         // diff, lint and test the working tree in the action sandbox. They
         // were defined but never registered, so the belts naming them held
         // nothing. `Deferred`, so they cost no schema until found.
-        Box::new(ReadDiffTool::new(
-            action_dir.to_path_buf(),
-        )),
-        Box::new(RunLinterTool::new(
-            action_dir.to_path_buf(),
-        )),
-        Box::new(RunTestsTool::new(
-            action_dir.to_path_buf(),
-        )),
+        Box::new(ReadDiffTool::new(action_dir.to_path_buf())),
+        Box::new(RunLinterTool::new(action_dir.to_path_buf())),
+        Box::new(RunTestsTool::new(action_dir.to_path_buf())),
         Box::new(PushoverTool::new(
             security.clone(),
             action_dir.to_path_buf(),
@@ -668,7 +662,9 @@ pub fn all_tools_with_runtime(
     // every turn.
     if crate::inference::tokenjuice::repl_handle_active(root_config) {
         tools.extend(crate::inference::tokenjuice::repl_tools());
-        log::debug!("[tools::ops][tokenjuice] registered juice_find, juice_extract, juice_summarize");
+        log::debug!(
+            "[tools::ops][tokenjuice] registered juice_find, juice_extract, juice_summarize"
+        );
     }
 
     // Presentation generation (#2778). Native-Rust engine (ppt-rs
