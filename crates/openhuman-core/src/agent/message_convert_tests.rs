@@ -393,3 +393,17 @@ fn reasoning_from_content_keeps_every_thinking_block_in_order() {
     );
     assert_eq!(reasoning_from_content(&content[1..2]), None);
 }
+
+/// The persisted `ConversationMessage::AssistantToolCalls` bytes must not
+/// change now that its tool calls are the dialect crate's `NativeToolCall`.
+#[test]
+fn conversation_tool_calls_serde_matches_persisted_literal_json() {
+    let literal = r#"{"type":"AssistantToolCalls","data":{"text":"hi","tool_calls":[{"id":"c1","name":"echo","arguments":"{\"a\":1}"},{"id":"c2","name":"g","arguments":"{}","extra_content":{"google":{"thought_signature":"sig"}}}],"reasoning_content":"r"}}"#;
+    let parsed: ConversationMessage = serde_json::from_str(literal).expect("legacy record loads");
+    let ConversationMessage::AssistantToolCalls { tool_calls, .. } = &parsed else {
+        panic!("expected AssistantToolCalls");
+    };
+    assert_eq!(tool_calls.len(), 2);
+    assert_eq!(tool_calls[0].extra_content, None);
+    assert_eq!(serde_json::to_string(&parsed).unwrap(), literal);
+}
