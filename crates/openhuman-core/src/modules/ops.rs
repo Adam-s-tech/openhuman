@@ -35,11 +35,13 @@ use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 use std::time::Duration;
 
-use tinybus::module::resolution::{self, Claim, Resolution, ResolutionState, ResolutionTable, Waited};
-use tinybus::module::{artifact_dir, prune_stale_versions};
 use super::types::{ModuleRecord, ModuleState, ModuleStatus};
 use super::{host, platform, registry};
 use crate::config::Config;
+use tinybus::module::resolution::{
+    self, Claim, Resolution, ResolutionState, ResolutionTable, Waited,
+};
+use tinybus::module::{artifact_dir, prune_stale_versions};
 
 /// Installer-owned, read-only release cache. The desktop host sets this before
 /// starting the embedded core; other hosts continue using the user cache.
@@ -310,7 +312,9 @@ fn load_cached(
     let mut found_bundled = false;
     if let Some(bundled_root) = bundled_root {
         for asset in &assets {
-            let Some(cache_dir) = artifact_dir(bundled_root, record.id, record.version, asset.host_key) else {
+            let Some(cache_dir) =
+                artifact_dir(bundled_root, record.id, record.version, asset.host_key)
+            else {
                 continue;
             };
             if !cache_dir.join(asset.archive).is_file() {
@@ -351,7 +355,8 @@ fn load_cached(
         ));
     }
     for asset in assets {
-        let Some(cache_dir) = artifact_dir(install_root, record.id, record.version, asset.host_key) else {
+        let Some(cache_dir) = artifact_dir(install_root, record.id, record.version, asset.host_key)
+        else {
             last_error =
                 "the module's cache path could not be built from its registry entry".to_string();
             continue;

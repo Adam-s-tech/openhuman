@@ -305,88 +305,24 @@ async fn a_bounded_wait_with_nothing_cached_and_downloads_off_fails_rather_than_
 }
 
 #[test]
-fn each_artifact_of_a_version_has_its_own_cache_directory() {
-    let record = registry::find("tinydocs").expect("tinydocs is a registry entry");
-    let root = std::path::Path::new("/cache/modules");
-    let dir = ops::artifact_dir(root, record, "macos-26-arm64").expect("a usable cache path");
-    assert_eq!(
-        dir,
-        root.join("tinydocs")
-            .join(record.version)
-            .join("macos-26-arm64")
-    );
-    assert_ne!(Some(dir), ops::artifact_dir(root, record, "macos-15-arm64"));
-}
-
-#[test]
-fn a_component_that_cannot_name_a_directory_yields_no_cache_path() {
-    // The delete in `prune_stale_versions` is built from these components, so
-    // a value that escapes its directory must produce no path at all rather
-    // than one that resolves somewhere else.
-    for bad in ["..", ".", "", "a/b", "a\\b", ".hidden", "a\0b"] {
-        assert!(
-            !ops::is_safe_path_component(bad),
-            "{bad:?} must be refused as a directory name"
-        );
-    }
-    for good in [
-        "tinydocs",
-        "0.1.15",
-        "macos-26-arm64",
-        "ubuntu-22.04-x86_64",
-    ] {
-        assert!(ops::is_safe_path_component(good), "{good:?} is a real name");
-    }
-
-    let record = registry::find("tinydocs").expect("tinydocs is a registry entry");
-    let root = std::path::Path::new("/cache/modules");
-    assert_eq!(ops::artifact_dir(root, record, ".."), None);
-    assert_eq!(ops::artifact_dir(root, record, "a/b"), None);
+fn every_shipped_registry_entry_names_a_cache_directory() {
     // Every shipped registry entry names a directory on every host it claims.
     for entry in registry::ALL {
         assert!(
-            ops::is_safe_path_component(entry.id) && ops::is_safe_path_component(entry.version),
+            tinybus::module::is_safe_path_component(entry.id)
+                && tinybus::module::is_safe_path_component(entry.version),
             "registry entry '{}' cannot name a cache directory",
             entry.id
         );
         for asset in entry.assets {
             assert!(
-                ops::is_safe_path_component(asset.host_key),
+                tinybus::module::is_safe_path_component(asset.host_key),
                 "'{}' host key '{}' cannot name a cache directory",
                 entry.id,
                 asset.host_key
             );
         }
     }
-}
-
-#[test]
-fn pruning_keeps_the_pinned_version_and_anything_still_being_staged() {
-    let record = registry::find("tinydocs").expect("tinydocs is a registry entry");
-    let install = tempfile::tempdir().expect("temp install dir");
-    let module_root = install.path().join(record.id);
-    let pinned = module_root.join(record.version);
-    let stale = module_root.join("0.0.1");
-    let staging = module_root.join(".staging-abc123");
-    for dir in [&pinned, &stale, &staging] {
-        std::fs::create_dir_all(dir).unwrap();
-        std::fs::write(dir.join("marker"), b"x").unwrap();
-    }
-    // A stray file beside the version directories is not a version.
-    std::fs::write(module_root.join("notes.txt"), b"x").unwrap();
-
-    ops::prune_stale_versions(install.path(), record);
-
-    assert!(pinned.join("marker").is_file(), "the pinned version stays");
-    assert!(
-        staging.join("marker").is_file(),
-        "an in-progress staging dir stays"
-    );
-    assert!(!stale.exists(), "an unpinned version is removed");
-    assert!(module_root.join("notes.txt").is_file());
-
-    // A module that was never cached has nothing to prune, and says nothing.
-    ops::prune_stale_versions(&install.path().join("never"), record);
 }
 
 #[test]
