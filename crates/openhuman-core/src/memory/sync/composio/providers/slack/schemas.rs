@@ -21,11 +21,6 @@ use crate::core::{ControllerSchema, FieldSchema, TypeSchema};
 
 const NAMESPACE: &str = "slack_memory";
 
-/// Returns every schema published by the Slack-ingestion namespace.
-pub fn all_slack_memory_controller_schemas() -> Vec<ControllerSchema> {
-    vec![schemas("sync_trigger"), schemas("sync_status")]
-}
-
 /// Returns every controller (schema + handler pair) for the Slack-ingestion namespace.
 pub fn all_slack_memory_registered_controllers() -> Vec<RegisteredController> {
     vec![
