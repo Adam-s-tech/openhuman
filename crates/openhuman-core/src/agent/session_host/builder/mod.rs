@@ -139,7 +139,7 @@ pub(super) fn visible_tool_specs_for_policy(
             // below already does the real per-tool narrowing via `is_callable`
             // (and drops the spec entirely when nothing survives), so this
             // filter only needs to gate *other* tools on the static ceiling.
-            spec.name == crate::tools::toolpacks::USE_SKILL || tool_policy.is_allowed(&spec.name)
+            spec.name == tinyagents_harness::tool::packs::USE_SKILL || tool_policy.is_allowed(&spec.name)
         })
         .cloned()
         .filter_map(|mut spec| {
@@ -155,7 +155,7 @@ pub(super) fn visible_tool_specs_for_policy(
                 }
                 return Some(spec);
             }
-            if spec.name == crate::tools::toolpacks::USE_SKILL {
+            if spec.name == tinyagents_harness::tool::packs::USE_SKILL {
                 // `false` means no pack has a callable tool: an empty index and
                 // an empty enum are not a tool, so drop it rather than ship one.
                 // `Arc::make_mut`, not `&mut spec`: the three spec views share

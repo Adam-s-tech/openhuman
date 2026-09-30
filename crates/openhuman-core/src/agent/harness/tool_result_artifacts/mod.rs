@@ -38,7 +38,7 @@ const FILE_READ_TOOL: &str = "file_read";
 /// wrapped tool's result — is followed into the tool it runs (#6284). Any
 /// other tool that happens to carry `tool`/`args` fields is not a wrapper.
 pub(crate) fn artifact_read_target(tool_name: &str, args: &Value) -> Option<ArtifactRead> {
-    if tool_name == crate::tools::toolpacks::USE_SKILL {
+    if tool_name == tinyagents_harness::tool::packs::USE_SKILL {
         let inner_tool = args.get("tool").and_then(Value::as_str)?;
         return artifact_read_target(inner_tool, args.get("args")?);
     }

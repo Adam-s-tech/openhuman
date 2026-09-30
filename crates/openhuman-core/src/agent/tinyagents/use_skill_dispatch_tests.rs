@@ -19,7 +19,7 @@ use crate::agent::harness::ParentExecutionContext;
 use crate::agent::prompts::ToolCallFormat;
 use crate::agent::tinyagents::tools::CanonicalSharedToolAdapter;
 use crate::memory::{Memory, MemoryCategory, MemoryEntry, NamespaceSummary, RecallOpts};
-use crate::tools::toolpacks::tools::{PackRegistryHandle, UseSkillTool};
+use tinyagents_harness::tool::packs::{PackRegistryHandle, UseSkillTool};
 use async_trait::async_trait;
 use serde_json::json;
 use std::path::Path;
@@ -184,7 +184,7 @@ fn build_use_skill_dispatch() -> UseSkillDispatch {
     handle.bind(Arc::downgrade(&durable));
 
     let adapter =
-        CanonicalSharedToolAdapter::for_name(vec![durable], crate::tools::toolpacks::USE_SKILL)
+        CanonicalSharedToolAdapter::for_name(vec![durable], tinyagents_harness::tool::packs::USE_SKILL)
             .expect("use_skill resolves in the durable registry it was just placed in");
     UseSkillDispatch::new(Arc::new(adapter), handle)
 }

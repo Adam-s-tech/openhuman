@@ -32,7 +32,7 @@ use openhuman_core::agent::tool_policy::{
 };
 use openhuman_core::skills::types::tool_result_from_mcp;
 use openhuman_core::tools::toolpacks::registry::PACKS;
-use openhuman_core::tools::toolpacks::tools::{PackRegistryHandle, UseSkillTool};
+use tinyagents_harness::tool::packs::{PackRegistryHandle, UseSkillTool};
 use openhuman_core::tools::host_extensions::{generated_runtime_context, pack_registry_handle};
 use tinytools::{PermissionLevel, Tool, ToolResult};
 
