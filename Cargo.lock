@@ -3881,7 +3881,6 @@ dependencies = [
  "parking_lot",
  "proptest",
  "rand 0.10.2",
- "rdev",
  "regex",
  "reqwest",
  "rusqlite",
@@ -3937,6 +3936,7 @@ dependencies = [
  "tinyskills",
  "tinytools 0.4.1",
  "tinytools-agent 0.4.1",
+ "tinyvoice",
  "tinyvoice-bus",
  "tinywallet",
  "tinywallet-bus",
@@ -6891,6 +6891,19 @@ name = "tinyvec"
 version = "1.13.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fd3ca314f692efd6c868f8408f53fe444634a845f96c028b97d35f6a1f79f0ee"
+
+[[package]]
+name = "tinyvoice"
+version = "0.1.8"
+dependencies = [
+ "log",
+ "parking_lot",
+ "rdev",
+ "serde",
+ "thiserror 2.0.20",
+ "tinyvoice-bus",
+ "tokio",
+]
 
 [[package]]
 name = "tinyvoice-bus"
