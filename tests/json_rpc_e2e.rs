@@ -26,9 +26,9 @@ use tinyinference_llm::message::Message;
 use tinyinference_llm::model::ModelRequest;
 
 use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
-use openhuman_core::core::jsonrpc::build_core_http_router;
 use openhuman_core::memory::tree::all_memory_tree_registered_controllers;
 use openhuman_core::platform::connectivity::rpc::pick_listen_port;
+use openhuman_rpc::server::build_core_http_router;
 
 const TEST_RPC_TOKEN: &str = "json-rpc-e2e-local-token";
 static JSON_RPC_AUTH_INIT: OnceLock<()> = OnceLock::new();
@@ -784,6 +784,8 @@ async fn mock_wallet_evm_rpc(
         }
         "eth_getBalance" => Value::String("0x0".to_string()),
         "eth_blockNumber" => Value::String("0x14".to_string()),
+        // Solana's liveness probe, so one mock can stand in for every chain.
+        "getHealth" => Value::String("ok".to_string()),
         "eth_getTransactionByHash" => {
             json!({"hash": params.first().cloned().unwrap_or(Value::Null)})
         }
@@ -798,6 +800,16 @@ async fn mock_wallet_evm_rpc(
     Json(json!({"jsonrpc":"2.0","id":1,"result":result}))
 }
 
+/// Esplora's chain-tip read, which the wallet's Bitcoin status probe uses.
+async fn mock_wallet_btc_tip() -> &'static str {
+    "850000"
+}
+
+/// TronGrid's latest-block read, which the wallet's Tron status probe uses.
+async fn mock_wallet_tron_now_block() -> Json<Value> {
+    Json(json!({"blockID": "0000000000000001", "block_header": {}}))
+}
+
 async fn start_mock_wallet_evm_rpc() -> (SocketAddr, Arc<Mutex<Vec<String>>>) {
     let raw_txs = Arc::new(Mutex::new(Vec::new()));
     let state = MockWalletRpcState {
@@ -805,6 +817,8 @@ async fn start_mock_wallet_evm_rpc() -> (SocketAddr, Arc<Mutex<Vec<String>>>) {
     };
     let app = Router::new()
         .route("/", post(mock_wallet_evm_rpc))
+        .route("/blocks/tip/height", get(mock_wallet_btc_tip))
+        .route("/wallet/getnowblock", post(mock_wallet_tron_now_block))
         .with_state(state);
     let (addr, _join) = serve_on_ephemeral(app).await;
     (addr, raw_txs)
@@ -1147,7 +1161,7 @@ fn extract_string_outcome(result: &Value) -> String {
 }
 
 /// Peel the `{"result": inner, "logs": [...]}` envelope that
-/// `RpcOutcome::into_cli_compatible_json` adds when logs are present.
+/// `Outcome::into_cli_compatible_json` adds when logs are present.
 fn peel_logs_envelope(v: &Value) -> &Value {
     if v.get("logs").is_some() {
         v.get("result").unwrap_or(v)
@@ -2859,7 +2873,7 @@ async fn json_rpc_thread_not_found_errors_are_structured() {
     assert_eq!(append_err["data"]["thread_id"], thread_id);
     // The transport layer no longer stamps the RPC method into the structured
     // error data — the domain controller emits a method-agnostic envelope and
-    // jsonrpc.rs surfaces it verbatim. The frontend keys on `kind` +
+    // openhuman-rpc/src/server/http/rpc_handler.rs surfaces it verbatim. The frontend keys on `kind` +
     // `thread_id` (see `coreRpcClient.isThreadNotFoundRpcData`), not method.
     assert!(
         append_err["data"]["method"].is_null(),
@@ -3036,16 +3050,16 @@ async fn json_rpc_thread_turn_state_lifecycle() {
             .expect("load config");
         cfg.workspace_dir
     };
-    let mut state = openhuman_core::threads::turn_state::TurnState::started(
+    let mut state = tinyagents_session::turn_state::TurnState::started(
         "thread-turn-1",
         "req-turn-1",
         25,
         chrono::Utc::now().to_rfc3339(),
     );
-    state.lifecycle = openhuman_core::threads::turn_state::TurnLifecycle::Streaming;
+    state.lifecycle = tinyagents_session::turn_state::TurnLifecycle::Streaming;
     state.iteration = 2;
     state.streaming_text = "partial".into();
-    openhuman_core::threads::turn_state::store::put(workspace_dir.clone(), &state)
+    tinyagents_session::turn_state::store::put(workspace_dir.clone(), &state)
         .expect("seed snapshot");
 
     // get → present
@@ -3095,15 +3109,15 @@ async fn json_rpc_thread_turn_state_lifecycle() {
     // both instead of overwriting.
     // Far-future started_at guarantees turn-2 is the newest (turn-1 was seeded
     // with the real `now()`), so history ordering is deterministic.
-    let mut state2 = openhuman_core::threads::turn_state::TurnState::started(
+    let mut state2 = tinyagents_session::turn_state::TurnState::started(
         "thread-turn-1",
         "req-turn-2",
         25,
         "2999-01-01T00:00:00Z",
     );
-    state2.lifecycle = openhuman_core::threads::turn_state::TurnLifecycle::Completed;
+    state2.lifecycle = tinyagents_session::turn_state::TurnLifecycle::Completed;
     state2.updated_at = "2999-01-01T00:00:00Z".into();
-    openhuman_core::threads::turn_state::store::put(workspace_dir.clone(), &state2)
+    tinyagents_session::turn_state::store::put(workspace_dir.clone(), &state2)
         .expect("seed snapshot 2");
 
     // history → both turns, newest first.
@@ -5266,9 +5280,22 @@ async fn json_rpc_wallet_execution_surface_round_trips() {
         "OPENHUMAN_WALLET_RPC_EVM",
         &format!("http://{wallet_rpc_addr}"),
     );
-    let _btc_provider_guard = EnvVarGuard::unset("OPENHUMAN_WALLET_RPC_BTC");
-    let _sol_provider_guard = EnvVarGuard::unset("OPENHUMAN_WALLET_RPC_SOLANA");
-    let _tron_provider_guard = EnvVarGuard::unset("OPENHUMAN_WALLET_RPC_TRON");
+    // The same mock stands in for every other chain, so the run never reaches a
+    // public endpoint: chain_status probes each one.
+    let mock_endpoint = format!("http://{wallet_rpc_addr}");
+    let _other_provider_guards: Vec<EnvVarGuard> = [
+        "OPENHUMAN_WALLET_RPC_BASE",
+        "OPENHUMAN_WALLET_RPC_ARBITRUM",
+        "OPENHUMAN_WALLET_RPC_OPTIMISM",
+        "OPENHUMAN_WALLET_RPC_POLYGON",
+        "OPENHUMAN_WALLET_RPC_BSC",
+        "OPENHUMAN_WALLET_RPC_SOLANA",
+        "OPENHUMAN_WALLET_RPC_TRON",
+    ]
+    .into_iter()
+    .map(|name| EnvVarGuard::set(name, &mock_endpoint))
+    .collect();
+    let _btc_provider_guard = EnvVarGuard::set("OPENHUMAN_WALLET_RPC_BTC", &mock_endpoint);
 
     let (mock_addr, mock_join) = serve_on_ephemeral(mock_upstream_router()).await;
     let mock_origin = format!("http://{}", mock_addr);
@@ -5351,7 +5378,8 @@ async fn json_rpc_wallet_execution_surface_round_trips() {
         "expected default USDC token in catalog: {result}"
     );
 
-    // chain_status: every chain is configured, so the provider row is ready.
+    // chain_status: every chain is configured and its endpoint answers the
+    // tip probe, so the provider row is ready and carries no error.
     let cs = post_json_rpc(&rpc_base, 2003, "openhuman.wallet_chain_status", json!({})).await;
     let body = assert_no_jsonrpc_error(&cs, "wallet_chain_status");
     let result = body.get("result").unwrap_or(body);
@@ -5362,6 +5390,49 @@ async fn json_rpc_wallet_execution_surface_round_trips() {
         rows.iter()
             .all(|r| r.get("providerStatus").and_then(Value::as_str) == Some("ready")),
         "expected providerStatus=ready for configured chain rows: {result}"
+    );
+    assert!(
+        rows.iter().all(|r| r.get("error").is_none()),
+        "a healthy row has no error member: {result}"
+    );
+
+    // An endpoint that cannot be reached is reported, not assumed ready: point
+    // Bitcoin at a port nothing listens on and read the row again.
+    let closed_port = std::net::TcpListener::bind("127.0.0.1:0")
+        .expect("bind")
+        .local_addr()
+        .expect("addr")
+        .port();
+    let _dead_btc_guard = EnvVarGuard::set(
+        "OPENHUMAN_WALLET_RPC_BTC",
+        &format!("http://127.0.0.1:{closed_port}"),
+    );
+    let cs = post_json_rpc(&rpc_base, 20031, "openhuman.wallet_chain_status", json!({})).await;
+    let body = assert_no_jsonrpc_error(&cs, "wallet_chain_status_unreachable");
+    let result = body.get("result").unwrap_or(body);
+    let rows = result.as_array().expect("chain_status array");
+    let btc = rows
+        .iter()
+        .find(|r| r.get("chain").and_then(Value::as_str) == Some("btc"))
+        .expect("btc row");
+    assert_eq!(
+        btc.get("providerStatus").and_then(Value::as_str),
+        Some("missing"),
+        "an unreachable endpoint is not ready: {btc}"
+    );
+    assert_eq!(btc.get("configured").and_then(Value::as_bool), Some(true));
+    assert!(
+        btc.get("error")
+            .and_then(Value::as_str)
+            .is_some_and(|e| !e.is_empty()),
+        "the row carries the probe failure: {btc}"
+    );
+    assert_eq!(
+        rows.iter()
+            .filter(|r| r.get("providerStatus").and_then(Value::as_str) == Some("ready"))
+            .count(),
+        8,
+        "only the dead endpoint changed: {result}"
     );
 
     // balances: one row per native asset. The EVM account fans out into one
@@ -7825,7 +7896,7 @@ async fn credentials_crud_roundtrip() {
     )
     .await;
     // assert_no_jsonrpc_error returns the JSON-RPC `result` field which is the
-    // RpcOutcome envelope: {"logs": [...], "result": { <AuthProfileSummary> }}.
+    // Outcome envelope: {"logs": [...], "result": { <AuthProfileSummary> }}.
     let store_outer = assert_no_jsonrpc_error(&store, "auth_store_provider_credentials");
     let store_result = store_outer.get("result").unwrap_or(store_outer);
     assert_eq!(

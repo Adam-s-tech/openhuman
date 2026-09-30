@@ -139,7 +139,8 @@ pub(super) fn visible_tool_specs_for_policy(
             // below already does the real per-tool narrowing via `is_callable`
             // (and drops the spec entirely when nothing survives), so this
             // filter only needs to gate *other* tools on the static ceiling.
-            spec.name == crate::tools::toolpacks::USE_SKILL || tool_policy.is_allowed(&spec.name)
+            spec.name == tinyagents_harness::tool::packs::USE_SKILL
+                || tool_policy.is_allowed(&spec.name)
         })
         .cloned()
         .filter_map(|mut spec| {
@@ -155,7 +156,7 @@ pub(super) fn visible_tool_specs_for_policy(
                 }
                 return Some(spec);
             }
-            if spec.name == crate::tools::toolpacks::USE_SKILL {
+            if spec.name == tinyagents_harness::tool::packs::USE_SKILL {
                 // `false` means no pack has a callable tool: an empty index and
                 // an empty enum are not a tool, so drop it rather than ship one.
                 // `Arc::make_mut`, not `&mut spec`: the three spec views share
@@ -164,7 +165,8 @@ pub(super) fn visible_tool_specs_for_policy(
                 // `durable_tool_specs` is meant to stay the unscoped truth.
                 // This copies exactly the one spec being rewritten and leaves
                 // the other ~48 visible schemas shared.
-                return crate::tools::toolpacks::scope_use_skill_spec(
+                return tinyagents_harness::tool::packs::scope_use_skill_spec(
+                    &crate::tools::toolpacks::CATALOG,
                     Arc::make_mut(&mut spec),
                     &is_callable,
                 )
@@ -204,6 +206,42 @@ pub(super) fn ensure_recovery_tool_visible(
     // schema back on a turn whose whole point is that it stays flat.
     if !crate::agent::harness::definition::is_empty_tool_scope(visible) {
         for name in crate::inference::tokenjuice::RECOVERY_TOOL_VISIBLE {
+            visible.insert((*name).to_string());
+        }
+    }
+}
+
+/// The recovery tool, plus the REPL tools the handle preview names, for a belt.
+pub(super) fn ensure_tinyjuice_tools_visible(
+    visible: &mut std::collections::HashSet<String>,
+    agent_id: &str,
+    config: &crate::config::Config,
+) {
+    ensure_recovery_tool_visible(
+        visible,
+        config.context.compaction_enabled || summarizes_tool_output(agent_id, config),
+    );
+    ensure_repl_tools_visible(
+        visible,
+        crate::inference::tokenjuice::repl_handle_active(config),
+    );
+}
+
+/// Ensure the REPL tools (`juice_find`, `juice_extract`, `juice_summarize`) are
+/// members of a non-empty visibility allowlist while large results are stored
+/// behind a handle. The handle preview names them, so a curated
+/// `ToolScope::Named` belt that lacked them would be told to call a tool it
+/// cannot see. Same rules as [`ensure_recovery_tool_visible`]: an empty set
+/// means "no filter", and a zero-tool belt stays zero-tool.
+pub(super) fn ensure_repl_tools_visible(
+    visible: &mut std::collections::HashSet<String>,
+    handle_mode_active: bool,
+) {
+    if !handle_mode_active {
+        return;
+    }
+    if !crate::agent::harness::definition::is_empty_tool_scope(visible) {
+        for name in crate::inference::tokenjuice::REPL_TOOL_NAMES {
             visible.insert((*name).to_string());
         }
     }

@@ -8,7 +8,7 @@
 //! inverted in both directions at once.
 //!
 //! The part that regressed is specifically the **context-wrapped** form.
-//! `jsonrpc.rs` already demoted the bare sentinel via an exact-equality
+//! `openhuman-rpc/src/server/http/rpc_handler.rs` already demoted the bare sentinel via an exact-equality
 //! predicate, but `hosted/orchestration/schemas.rs` lifts the wallet error
 //! into an RPC failure with
 //!

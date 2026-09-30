@@ -1,4 +1,3 @@
-#![cfg(any())] // TODO(#6382): migrate this raw-coverage fixture to current runtime contracts.
 //! JSON-RPC E2E coverage for the automation/scheduling controllers that no
 //! e2e target reached: `cron_remove` / `cron_run` / `cron_runs`,
 //! `task_sources_sync` / `task_sources_list_databases`, the whole `hooks`
@@ -24,7 +23,7 @@ use serde_json::{json, Value};
 use tempfile::{tempdir, TempDir};
 
 use openhuman_core::core::auth::{get_rpc_token, init_rpc_token, CORE_TOKEN_ENV_VAR};
-use openhuman_core::core::jsonrpc::build_core_http_router;
+use openhuman_rpc::server::build_core_http_router;
 
 /// Seeded only if this suite is the first in the aggregated binary to
 /// initialise the token; the bearer actually sent is always read back from
@@ -460,9 +459,7 @@ async fn cron_controllers_reject_absent_and_blank_job_ids() {
         (2121, "openhuman.cron_remove"),
         (2122, "openhuman.cron_run"),
     ] {
-        let unknown = h
-            .err(id, method, json!({ "job_id": "no-such-job" }))
-            .await;
+        let unknown = h.err(id, method, json!({ "job_id": "no-such-job" })).await;
         assert!(
             unknown.contains("no-such-job"),
             "{method} names the unknown job: {unknown}"
@@ -531,7 +528,11 @@ async fn task_sources_sync_reports_one_outcome_per_enabled_source() {
 
     let synced = h.ok(2203, "openhuman.task_sources_sync", json!({})).await;
     let outcomes = synced.as_array().expect("sync returns an outcomes array");
-    assert_eq!(outcomes.len(), 1, "one outcome per enabled source: {synced}");
+    assert_eq!(
+        outcomes.len(),
+        1,
+        "one outcome per enabled source: {synced}"
+    );
     let outcome = &outcomes[0];
     assert_eq!(
         outcome.get("sourceId").and_then(Value::as_str),
@@ -676,7 +677,9 @@ async fn hooks_reload_list_and_test_round_trip_a_deny_rule() {
         "no hooks.json anywhere means an empty config: {bare}"
     );
     assert_eq!(
-        bare.pointer("/hooks/warnings").and_then(Value::as_array).map(Vec::len),
+        bare.pointer("/hooks/warnings")
+            .and_then(Value::as_array)
+            .map(Vec::len),
         Some(0),
         "a missing file is not a warning: {bare}"
     );
@@ -757,7 +760,9 @@ async fn hooks_reload_list_and_test_round_trip_a_deny_rule() {
         Some("beforeShellExecution")
     );
     assert_eq!(
-        denied.pointer("/result/decision/permission").and_then(Value::as_str),
+        denied
+            .pointer("/result/decision/permission")
+            .and_then(Value::as_str),
         Some("deny"),
         "the matching hook's verdict is the merged decision: {denied}"
     );
@@ -790,7 +795,10 @@ async fn hooks_reload_list_and_test_round_trip_a_deny_rule() {
         )
         .await;
     assert_eq!(
-        allowed.pointer("/result/runs").and_then(Value::as_array).map(Vec::len),
+        allowed
+            .pointer("/result/runs")
+            .and_then(Value::as_array)
+            .map(Vec::len),
         Some(0),
         "the matcher gates which occurrences reach the hook: {allowed}"
     );
@@ -810,7 +818,10 @@ async fn hooks_reload_list_and_test_round_trip_a_deny_rule() {
         )
         .await;
     assert_eq!(
-        other_event.pointer("/result/runs").and_then(Value::as_array).map(Vec::len),
+        other_event
+            .pointer("/result/runs")
+            .and_then(Value::as_array)
+            .map(Vec::len),
         Some(0),
         "an event with no hooks configured runs nothing: {other_event}"
     );
@@ -927,15 +938,15 @@ async fn harness_init_run_completes_offline_and_force_bypasses_the_probes() {
     let _lock = env_lock();
     let h = setup().await;
 
-    let snapshot = h
-        .ok(2701, "openhuman.harness_init_run", json!({}))
-        .await;
+    let snapshot = h.ok(2701, "openhuman.harness_init_run", json!({})).await;
     let steps = snapshot
         .pointer("/snapshot/steps")
         .and_then(Value::as_array)
         .unwrap_or_else(|| panic!("the snapshot carries a steps array: {snapshot}"));
     assert_eq!(
-        snapshot.pointer("/snapshot/overall").and_then(Value::as_str),
+        snapshot
+            .pointer("/snapshot/overall")
+            .and_then(Value::as_str),
         Some("done"),
         "no required step can fail when every backend is off: {snapshot}"
     );
@@ -1000,7 +1011,10 @@ async fn harness_init_run_completes_offline_and_force_bypasses_the_probes() {
         );
     }
     assert!(
-        forced.pointer("/snapshot/finished_at").and_then(Value::as_str).is_some(),
+        forced
+            .pointer("/snapshot/finished_at")
+            .and_then(Value::as_str)
+            .is_some(),
         "a finished run is stamped: {forced}"
     );
 
@@ -1013,7 +1027,10 @@ async fn harness_init_run_completes_offline_and_force_bypasses_the_probes() {
         "status reads the store the run wrote: {status}"
     );
     assert_eq!(
-        status.pointer("/snapshot/steps").and_then(Value::as_array).map(Vec::len),
+        status
+            .pointer("/snapshot/steps")
+            .and_then(Value::as_array)
+            .map(Vec::len),
         forced_steps.len().into(),
         "status and run agree on the step list: {status}"
     );

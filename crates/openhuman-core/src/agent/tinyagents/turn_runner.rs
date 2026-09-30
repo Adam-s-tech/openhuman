@@ -241,10 +241,9 @@ async fn run_turn_via_tinyagents_inner(
     // tool's OWN `display_label`/`display_detail` instead of only ever
     // guessing from the bare name (issue: tool-call presentation).
     let bridge_tool_sets = tool_sets.clone();
-    // The turn's crate `ChatModel` set (`turn_models`) and the provider telemetry
-    // id are built by the caller via `build_turn_models` — the seam entry is
-    // crate-native and no longer names `Provider` (issue #4249, Phase 5). The
-    // telemetry id (`{provider_id}.{model}` in Langfuse) rides in as a param.
+    // The turn's crate `ChatModel` set (`turn_models`) and the provider telemetry id are built by
+    // the caller via `build_turn_models`: the seam is crate-native and names no `Provider` (#4249,
+    // Phase 5). The telemetry id (`{provider_id}.{model}` in Langfuse) rides in as a param.
     let AssembledTurnHarness {
         harness,
         cursor,
@@ -281,6 +280,7 @@ async fn run_turn_via_tinyagents_inner(
         hosted_root.is_some(),
         pause_at_cap,
         run_context.tool_dialect,
+        Arc::clone(&run_context.deferred_tool_names),
         run_context
             .thread_id
             .as_deref()
@@ -343,7 +343,7 @@ async fn run_turn_via_tinyagents_inner(
             "openhuman-agent-turn"
         })
         .with_max_model_calls(max_iterations)
-        .with_max_tool_calls(max_iterations.saturating_mul(8).max(8))
+        .with_max_tool_calls(crate::agent::stop_hooks::tool_call_limit(max_iterations))
         .with_max_depth(MAX_SPAWN_DEPTH)
         .with_tag("openhuman")
         .with_tag(if subagent_scope.is_some() {
@@ -388,6 +388,7 @@ async fn run_turn_via_tinyagents_inner(
     run_context.tool_result_artifact_index = tool_result_artifact_index.clone();
     run_context.tool_outcomes = Some(tool_outcome_sink.clone());
     let mut ctx = run_context.clone().into_tinyagents(config);
+    let run_instance_id = ctx.instance_id();
     // Assemble the run's store registry: the tool-result artifact index (when
     // present) and — behind the default-ON session dual-write flag — the
     // session KV store, so the harness carries a handle to the same
@@ -742,6 +743,7 @@ async fn run_turn_via_tinyagents_inner(
         early_exit_hook,
         &halt_summary,
         &wrap_up_fired,
+        run_instance_id,
         &tool_outcome_sink,
         resolved_route,
         request_base_len,

@@ -30,7 +30,7 @@ use tempfile::tempdir;
 
 use openhuman_core::agent::harness::AgentDefinitionRegistry;
 use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
-use openhuman_core::core::jsonrpc::build_core_http_router;
+use openhuman_rpc::server::build_core_http_router;
 
 const TEST_RPC_TOKEN: &str = "json-rpc-e2e-local-token";
 
@@ -135,51 +135,56 @@ fn captured_requests_mention_unknown_tool(requests: &[Value]) -> bool {
         .contains("unknown tool")
 }
 
-/// The transcript result answering the first scripted call to `tool_name`.
+/// The tool message answering the first scripted call to `tool_name`.
 /// Panics on an `unknown tool` result: that error echoes the arguments, so a
 /// canary passed as an argument would otherwise read as a pass.
 fn tool_result_text(requests: &[Value], tool_name: &str) -> Option<String> {
     let prefix = format!("call_{tool_name}_");
-    for message in requests
+    let native = requests
         .iter()
         .filter_map(|request| request.pointer("/body/messages").and_then(Value::as_array))
         .flatten()
-    {
-        if message.get("role").and_then(Value::as_str) == Some("tool")
-            && message
-                .get("tool_call_id")
-                .and_then(Value::as_str)
-                .is_some_and(|id| id.starts_with(&prefix))
-        {
-            return message.get("content").map(|content| {
-                content
-                    .as_str()
-                    .map(str::to_string)
-                    .unwrap_or_else(|| content.to_string())
-            });
-        }
-
-        // Text-mode transcript replay carries results in a user message
-        // inside `<tool_result id="call_<tool>_…">`, rather than a separate
-        // provider `role: tool` message.
-        let Some(content) = message.get("content").and_then(Value::as_str) else {
-            continue;
-        };
-        let mut remaining = content;
-        while let Some((_, after_open)) = remaining.split_once("<tool_result id=\"") {
-            let Some((id, after_id)) = after_open.split_once("\">") else {
-                break;
-            };
-            let Some((result, after_close)) = after_id.split_once("</tool_result>") else {
-                break;
-            };
-            if id.starts_with(&prefix) {
-                return Some(result.to_string());
-            }
-            remaining = after_close;
-        }
-    }
-    None
+        .find(|message| {
+            message.get("role").and_then(Value::as_str) == Some("tool")
+                && message
+                    .get("tool_call_id")
+                    .and_then(Value::as_str)
+                    .is_some_and(|id| id.starts_with(&prefix))
+        })
+        .and_then(|message| message.get("content"))
+        .map(|content| {
+            let text = content
+                .as_str()
+                .map(str::to_string)
+                .unwrap_or_else(|| content.to_string());
+            assert!(
+                !text.trim_start().starts_with("unknown tool"),
+                "`{tool_name}` was not a tool the calling agent could reach: {text}"
+            );
+            text
+        });
+    native.or_else(|| {
+        requests
+            .iter()
+            .filter_map(|request| request.pointer("/body/messages").and_then(Value::as_array))
+            .flatten()
+            .filter_map(|message| message.get("content").and_then(Value::as_str))
+            .find_map(|content| {
+                let marker = content.find("<tool_result id=\"")?;
+                let after_tag = content[marker..].find('>')? + marker + 1;
+                let id = &content[marker..after_tag];
+                if !id.contains(&prefix) {
+                    return None;
+                }
+                let end = content[after_tag..].find("</tool_result>")? + after_tag;
+                let text = content[after_tag..end].trim().to_string();
+                assert!(
+                    !text.starts_with("unknown tool"),
+                    "`{tool_name}` was not a tool the calling agent could reach: {text}"
+                );
+                Some(text)
+            })
+    })
 }
 
 /// Tool names a captured model request advertised to the provider.
@@ -428,6 +433,9 @@ encrypt = false
 [context]
 compaction_enabled = false
 {extra}
+
+[autonomy]
+enabled = true
 "#
     );
     for dir in [
@@ -654,44 +662,37 @@ fn system_text(request: &Value) -> String {
 /// Tool names the agent called, in order, read from its last request (which
 /// carries its whole history).
 fn called_tools(request: &Value) -> Vec<String> {
-    let mut called = Vec::new();
-    for message in request
-        .pointer("/body/messages")
-        .and_then(Value::as_array)
+    let messages = request.pointer("/body/messages").and_then(Value::as_array);
+    let mut calls = Vec::new();
+    for message in messages
         .into_iter()
         .flatten()
-        .filter(|m| m.get("role").and_then(Value::as_str) == Some("assistant"))
+        .filter(|message| message.get("role").and_then(Value::as_str) == Some("assistant"))
     {
-        if let Some(tool_calls) = message.get("tool_calls").and_then(Value::as_array) {
-            called.extend(
-                tool_calls
+        if let Some(structured) = message.get("tool_calls").and_then(Value::as_array) {
+            calls.extend(
+                structured
                     .iter()
-                    .filter_map(|tc| tc.pointer("/function/name").and_then(Value::as_str))
+                    .filter_map(|call| call.pointer("/function/name").and_then(Value::as_str))
                     .map(str::to_string),
             );
         }
-
-        // TinyAgents' text-call dialect records the assistant call as JSON
-        // inside a `<tool_call>` block. Several harness tests inspect that
-        // persisted transcript, so count the same call names as OpenAI's
-        // structured `tool_calls` field above.
-        let Some(content) = message.get("content").and_then(Value::as_str) else {
+        let Some(mut content) = message.get("content").and_then(Value::as_str) else {
             continue;
         };
-        let mut remaining = content;
-        while let Some((_, after_open)) = remaining.split_once("<tool_call>") {
-            let Some((body, after_close)) = after_open.split_once("</tool_call>") else {
+        while let Some((_, after_open)) = content.split_once("<tool_call>") {
+            let Some((payload, after_close)) = after_open.split_once("</tool_call>") else {
                 break;
             };
-            if let Ok(call) = serde_json::from_str::<Value>(body) {
+            if let Ok(call) = serde_json::from_str::<Value>(payload.trim()) {
                 if let Some(name) = call.get("name").and_then(Value::as_str) {
-                    called.push(name.to_string());
+                    calls.push(name.to_string());
                 }
             }
-            remaining = after_close;
+            content = after_close;
         }
     }
-    called
+    calls
 }
 
 fn max_consecutive(calls: &[String], tool: &str) -> usize {
@@ -824,7 +825,8 @@ async fn run_case_inner(case: Case) {
     for tool in case.must_call {
         assert!(
             calls.iter().any(|c| c == tool),
-            "[{agent}] must call `{tool}`; called {calls:?}"
+            "[{agent}] must call `{tool}`; called {calls:?}; requests: {}",
+            dump()
         );
         tool_result_text(&requests, tool)
             .unwrap_or_else(|| panic!("[{agent}] no tool result for `{tool}`: {}", dump()));
@@ -908,7 +910,7 @@ fn workflow_builder_reaches_propose_workflow() {
 fn orchestrator_searches_for_and_calls_the_integration_action() {
     run_case(Case {
         agent: "orchestrator",
-        agent_marker: "## How you work",
+        agent_marker: "## Routing\n\nFirst match wins:",
         entry: Entry::WebChat,
         user_message: "Check my Gmail for anything from my landlord.",
         scripted_completions: vec![
@@ -939,7 +941,7 @@ fn orchestrator_searches_for_and_calls_the_integration_action() {
 fn orchestrator_reaches_cron_through_the_scheduling_pack() {
     run_case(Case {
         agent: "orchestrator",
-        agent_marker: "## How you work",
+        agent_marker: "## Routing\n\nFirst match wins:",
         entry: Entry::WebChat,
         user_message: "What reminders do I have scheduled?",
         scripted_completions: vec![
@@ -951,8 +953,11 @@ fn orchestrator_reaches_cron_through_the_scheduling_pack() {
         ],
         must_call: &["use_skill"],
         must_not_call: &["schedule_task"],
-        must_advertise: &["use_skill", "current_time", "resolve_time"],
-        must_not_advertise: &["cron", "schedule_task", "composio_execute"],
+        // `current_time` is deferred for the orchestrator (`deferred_tools`):
+        // every turn carries the date line and `resolve_time` converts, so it
+        // is searchable and callable by name but not advertised.
+        must_advertise: &["use_skill", "resolve_time"],
+        must_not_advertise: &["cron", "schedule_task", "composio_execute", "current_time"],
         advertises_nothing: false,
         max_consecutive_calls_of: None,
         extra_config: "",
@@ -1056,7 +1061,7 @@ fn orchestrator_prompt_names_only_discoverable_delegates() {
         let requests = captured().clone();
         let orchestrator = requests
             .iter()
-            .find(|r| system_text(r).contains("## How you work"))
+            .find(|r| system_text(r).contains("## Routing\n\nFirst match wins:"))
             .expect("no orchestrator request captured");
         let prompt = system_text(orchestrator);
         let belt = advertised_tool_names(orchestrator);

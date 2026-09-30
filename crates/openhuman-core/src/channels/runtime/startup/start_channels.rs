@@ -111,7 +111,7 @@ async fn start_channels_inner(mut config: Config) -> Result<()> {
     crate::agent::bus::register_agent_handlers();
     // The Phase 2/3/4 self-improvement subscribers (email-signature producer,
     // rebuild trigger, ProfileMdRenderer) are registered in
-    // core::jsonrpc::register_domain_subscribers instead. start_channels is
+    // core::runtime::subscribers::register_domain_subscribers instead. start_channels is
     // skipped when no channel is configured, so wiring them here silently
     // dropped user-profile inference for channel-less users (#5003).
 
@@ -128,7 +128,7 @@ async fn start_channels_inner(mut config: Config) -> Result<()> {
         );
     }
     // Note: WebhookRequestSubscriber and ChannelInboundSubscriber are registered
-    // in bootstrap_core_runtime() (crates/openhuman-core/src/core/jsonrpc.rs) to avoid double-registration
+    // in bootstrap_core_runtime() (crates/openhuman-core/src/core/runtime/bootstrap.rs) to avoid double-registration
     // when both startup paths run in the same process.
 
     let provider_runtime_options = provider::ProviderRuntimeOptions {
@@ -189,7 +189,7 @@ async fn start_channels_inner(mut config: Config) -> Result<()> {
         config.action_dir.clone(),
     );
     // NOTE: the live tool-execution timeout seed is done in
-    // `core::jsonrpc::register_domain_subscribers` (unconditional core boot), NOT
+    // `core::runtime::subscribers::register_domain_subscribers` (unconditional core boot), NOT
     // here — `start_channels` is skipped when no channel is configured or
     // `OPENHUMAN_DISABLE_CHANNEL_LISTENERS` is set, which would otherwise leave
     // channel-less / web-chat-only cores running the default timeout instead of the
@@ -447,7 +447,7 @@ async fn start_channels_inner(mut config: Config) -> Result<()> {
         crate::cron::bus::CronDeliverySubscriber::new(Arc::clone(&channels_by_name)),
     ));
     // NOTE: the flows `FlowTriggerSubscriber` is registered in
-    // `jsonrpc.rs::register_domain_subscribers` (unconditional core boot), NOT
+    // `runtime/subscribers.rs::register_domain_subscribers` (unconditional core boot), NOT
     // here — `start_channels` is skipped when no channel is configured or
     // `OPENHUMAN_DISABLE_CHANNEL_LISTENERS` is set, which would otherwise leave
     // schedule/app-event workflows undispatched (issue B2 review).
@@ -464,34 +464,20 @@ async fn start_channels_inner(mut config: Config) -> Result<()> {
         proactive_sub.active_channel_handle(),
     );
     let _proactive_handle = bus.subscribe(Arc::new(proactive_sub));
-    let _telegram_remote_handle = if channels_by_name.contains_key("telegram") {
-        let handle = bus.subscribe(Arc::new(
-            crate::channels::providers::telegram::TelegramRemoteSubscriber::new(
-                config.workspace_dir.clone(),
-            ),
-        ));
-        tracing::debug!("[telegram-remote] registered TelegramRemoteSubscriber");
-        Some(handle)
-    } else {
-        None
-    };
-    // Sub-issue 2 of #3098: when Telegram is enabled, register the
-    // approval-surface subscriber so `Prompt`-class tool calls actually
-    // get gated for the user instead of silently allowed (the legacy
-    // behavior when `ApprovalChatContext` is unset). The dispatch loop
-    // pairs this by scoping each Telegram turn in an `ApprovalChatContext`
-    // and intercepting `yes`/`no` replies for parked approvals.
-    let _telegram_approval_surface_handle = if channels_by_name.contains_key("telegram") {
-        let handle = bus.subscribe(Arc::new(
-            crate::channels::providers::telegram::TelegramApprovalSurfaceSubscriber::new(
-                Arc::clone(&channels_by_name),
-            ),
-        ));
-        tracing::debug!("[telegram-approval] registered TelegramApprovalSurfaceSubscriber");
-        Some(handle)
-    } else {
-        None
-    };
+    // Remote-control turn state (`/status` shows "in progress") for every
+    // channel with the `remote_control` capability.
+    let _turn_state_handle = bus.subscribe(Arc::new(
+        crate::channels::host::ChannelTurnStateSubscriber::new(config.workspace_dir.clone()),
+    ));
+    // In-chat approvals (sub-issue 2 of #3098) for every channel with the
+    // `chat_approvals` capability: `Prompt`-class tool calls are gated for the
+    // user instead of silently allowed. The dispatch loop pairs this by scoping
+    // each such turn in an `ApprovalChatContext` and intercepting `yes`/`no`
+    // replies for parked approvals.
+    let _approval_surface_handle = bus.subscribe(Arc::new(
+        crate::channels::host::ChannelApprovalSurfaceSubscriber::new(Arc::clone(&channels_by_name)),
+    ));
+    tracing::debug!("[channels] registered turn-state and approval-surface subscribers");
     // Register the tree summarizer event subscriber for observability logging.
     let _tree_summarizer_handle = bus.subscribe(Arc::new(
         crate::memory::tree::tree_runtime::bus::TreeSummarizerEventSubscriber::new(),

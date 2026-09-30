@@ -18,7 +18,7 @@ use serde_json::{json, Value};
 use tempfile::tempdir;
 
 use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
-use openhuman_core::core::jsonrpc::build_core_http_router;
+use openhuman_rpc::server::build_core_http_router;
 
 // ── Constants ──────────────────────────────────────────────────────────────
 

@@ -19,12 +19,12 @@ use crate::agent::harness::ParentExecutionContext;
 use crate::agent::prompts::ToolCallFormat;
 use crate::agent::tinyagents::tools::CanonicalSharedToolAdapter;
 use crate::memory::{Memory, MemoryCategory, MemoryEntry, NamespaceSummary, RecallOpts};
-use crate::tools::toolpacks::tools::{PackRegistryHandle, UseSkillTool};
 use async_trait::async_trait;
 use serde_json::json;
 use std::path::Path;
 use std::sync::Arc;
 use tinyagents_harness::context::RunConfig;
+use tinyagents_harness::tool::packs::{PackRegistryHandle, UseSkillTool};
 use tinyagents_harness::CallId;
 use tinyinference_llm::message::Message;
 use tinyinference_llm::model::{ChatModel, ModelProfile, ModelRequest, ModelResponse};
@@ -178,14 +178,19 @@ fn parent_execution_context(workspace_dir: &Path) -> ParentExecutionContext {
 /// wrapping `use_skill` that the harness would have registered.
 fn build_use_skill_dispatch() -> UseSkillDispatch {
     let handle = PackRegistryHandle::default();
-    let use_skill_tool: Box<dyn Tool> = Box::new(UseSkillTool::new(handle.clone()));
+    let use_skill_tool: Box<dyn Tool> = Box::new(UseSkillTool::new(
+        handle.clone(),
+        crate::tools::toolpacks::CATALOG,
+    ));
     let create_image_tool: Box<dyn Tool> = Box::new(StubCreateImage);
     let durable: Arc<Vec<Box<dyn Tool>>> = Arc::new(vec![use_skill_tool, create_image_tool]);
     handle.bind(Arc::downgrade(&durable));
 
-    let adapter =
-        CanonicalSharedToolAdapter::for_name(vec![durable], crate::tools::toolpacks::USE_SKILL)
-            .expect("use_skill resolves in the durable registry it was just placed in");
+    let adapter = CanonicalSharedToolAdapter::for_name(
+        vec![durable],
+        tinyagents_harness::tool::packs::USE_SKILL,
+    )
+    .expect("use_skill resolves in the durable registry it was just placed in");
     UseSkillDispatch::new(Arc::new(adapter), handle)
 }
 

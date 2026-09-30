@@ -62,7 +62,7 @@ function WindowControls() {
       </button>
       <button
         type="button"
-        className={`${buttonClass} hover:bg-destructive hover:text-content-inverted`}
+        className={`${buttonClass} hover:bg-red-600 hover:text-content-inverted`}
         aria-label={t('common.close')}
         title={t('common.close')}
         onClick={() => void quitApp()}>

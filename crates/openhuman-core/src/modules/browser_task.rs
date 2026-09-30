@@ -14,7 +14,8 @@ use std::time::{Duration, Instant};
 use serde::{de::DeserializeOwned, Serialize};
 use tinycomputer_bus::agent::{
     names::methods, AgentResponse, AwaitTaskRequest, ContinueTaskRequest, PaymentMode,
-    StartTaskRequest, SurfaceKind, TaskBudget, TaskConstraints, TaskId, TaskRef, TaskView,
+    StartTaskRequest, SurfaceKind, TaskBudget, TaskConstraints, TaskId, TaskRef, TaskReport,
+    TaskReportRequest, TaskView,
 };
 
 use crate::config::Config;
@@ -40,6 +41,9 @@ pub struct BrowserTask {
     pub origins: Vec<String>,
     /// Upper bound on the actions the task may take.
     pub max_actions: u32,
+    /// A flow to run instead of having the module plan one from `goal`, such
+    /// as a plan saved from an earlier run. `goal` then explains it.
+    pub flow: Option<tinycomputer_bus::Flow>,
 }
 
 /// Build the `StartTask` request for a browser-only task under host policy.
@@ -47,6 +51,7 @@ pub struct BrowserTask {
 pub fn start_request(config: &Config, task: &BrowserTask) -> StartTaskRequest {
     StartTaskRequest {
         task: Some(task.goal.clone()),
+        flow: task.flow.clone(),
         facts: task.facts.clone(),
         constraints: TaskConstraints {
             payment: PaymentMode::StopAtPayment,
@@ -80,6 +85,7 @@ pub async fn start(config: &Config, task: &BrowserTask) -> Result<TaskView, Stri
     tracing::debug!(
         origins = task.origins.len(),
         max_actions = task.max_actions,
+        saved_flow = task.flow.is_some(),
         "[browser-task] starting"
     );
     let view: TaskView = call(config, methods::START_TASK, request, true).await?;
@@ -124,6 +130,23 @@ pub async fn wait(config: &Config, id: TaskId) -> Result<TaskView, String> {
 pub async fn cancel(config: &Config, id: TaskId) -> Result<TaskView, String> {
     tracing::debug!(task = %id, "[browser-task] cancelling");
     call(config, methods::CANCEL_TASK, TaskRef { id }, false).await
+}
+
+/// The task's record: its steps, what it collected, and every rescue. Page
+/// data can appear in it, so it is fetched confidentially and without the Jev
+/// trace.
+///
+/// # Errors
+///
+/// Returns a module or transport error.
+pub async fn report(config: &Config, id: TaskId) -> Result<TaskReport, String> {
+    call(
+        config,
+        methods::TASK_REPORT,
+        TaskReportRequest { id, trace: false },
+        true,
+    )
+    .await
 }
 
 async fn follow(config: &Config, mut view: TaskView) -> Result<TaskView, String> {

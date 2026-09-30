@@ -2,6 +2,8 @@
 //!
 //! Loopback Bot API endpoints and parser/codec fixtures only: no real channel
 //! network services are contacted.
+//!
+//! Yuanbao biz-codec cases live in `vendor/tinychannels` (`yuanbao/proto_biz.rs`).
 
 use axum::{
     body::Bytes,
@@ -15,18 +17,6 @@ use openhuman_core::channels::providers::email_channel::{
 };
 use openhuman_core::channels::providers::irc::test_support as irc_support;
 use openhuman_core::channels::providers::telegram::TelegramChannel;
-use openhuman_core::channels::providers::yuanbao::{
-    proto::decode_conn_msg,
-    proto_biz::{
-        decode_biz_rsp_code, decode_get_group_member_list_rsp, decode_query_group_info_rsp,
-        decode_response_envelope, encode_get_group_member_list, encode_query_group_info,
-        encode_send_c2c_message, encode_send_group_heartbeat, encode_send_group_message,
-        encode_send_private_heartbeat,
-    },
-    proto_constants::{biz_cmd, cmd_type, module, ws_heartbeat},
-    types::{MsgBodyElement, MsgContent},
-    wire::{encode_field_bytes, encode_field_string, encode_field_varint},
-};
 use openhuman_core::channels::traits::{Channel, SendMessage};
 use serde_json::{json, Value};
 use std::sync::{Arc, Mutex};
@@ -185,16 +175,6 @@ fn env_lock() -> std::sync::MutexGuard<'static, ()> {
     LOCK.get_or_init(|| std::sync::Mutex::new(()))
         .lock()
         .unwrap_or_else(|e| e.into_inner())
-}
-
-fn text_body(text: &str) -> Vec<MsgBodyElement> {
-    vec![MsgBodyElement {
-        msg_type: "TIMTextElem".to_string(),
-        msg_content: MsgContent {
-            text: Some(text.to_string()),
-            ..Default::default()
-        },
-    }]
 }
 
 #[tokio::test]
@@ -373,112 +353,4 @@ fn irc_and_email_parser_edges_cover_helpers_without_sockets() {
     let formatted = String::from_utf8_lossy(&plain.formatted()).to_string();
     assert!(formatted.contains("Subject: Round26"));
     assert!(formatted.contains("plain body"));
-}
-
-#[test]
-fn yuanbao_biz_codecs_cover_success_error_and_optional_field_paths() {
-    let c2c = encode_send_c2c_message(
-        "uid_alice",
-        "uid_bot",
-        &text_body("hello dm"),
-        "msg-c2c",
-        99,
-        "group-from-dm",
-        "trace-c2c",
-    );
-    let c2c_frame = decode_conn_msg(&c2c).expect("decode c2c frame");
-    assert_eq!(c2c_frame.cmd_type, cmd_type::REQUEST);
-    assert_eq!(c2c_frame.cmd, biz_cmd::SEND_C2C_MESSAGE);
-    assert_eq!(c2c_frame.module, module::BIZ_PKG);
-    assert_eq!(c2c_frame.msg_id, "msg-c2c");
-
-    let group = encode_send_group_message(
-        "group-1",
-        "uid_bot",
-        &text_body("hello group"),
-        "msg-group",
-        "uid-target",
-        "random-1",
-        "ref-1",
-        "trace-group",
-    );
-    let group_frame = decode_conn_msg(&group).expect("decode group frame");
-    assert_eq!(group_frame.cmd, biz_cmd::SEND_GROUP_MESSAGE);
-    assert_eq!(group_frame.msg_id, "msg-group");
-
-    let private_hb =
-        encode_send_private_heartbeat("hb-private", "uid_bot", "uid_alice", ws_heartbeat::RUNNING);
-    assert_eq!(
-        decode_conn_msg(&private_hb).expect("private hb").cmd,
-        biz_cmd::SEND_PRIVATE_HEARTBEAT
-    );
-    let group_hb = encode_send_group_heartbeat(
-        "hb-group",
-        "uid_bot",
-        "group-1",
-        ws_heartbeat::RUNNING,
-        1_700_000_001,
-    );
-    assert_eq!(
-        decode_conn_msg(&group_hb).expect("group hb").cmd,
-        biz_cmd::SEND_GROUP_HEARTBEAT
-    );
-
-    let group_info_req = encode_query_group_info("q-info", "group-1");
-    assert_eq!(
-        decode_response_envelope(&group_info_req)
-            .expect("query group envelope")
-            .cmd,
-        biz_cmd::QUERY_GROUP_INFO
-    );
-    let member_req = encode_get_group_member_list("q-members", "group-1", 20, 10);
-    assert_eq!(
-        decode_conn_msg(&member_req).expect("member req").cmd,
-        biz_cmd::GET_GROUP_MEMBER_LIST
-    );
-
-    let mut group_inner = Vec::new();
-    encode_field_string(1, "Round26 Group", &mut group_inner);
-    encode_field_string(2, "owner-id", &mut group_inner);
-    encode_field_string(3, "Owner", &mut group_inner);
-    encode_field_varint(4, 3, &mut group_inner);
-    let mut group_rsp = Vec::new();
-    encode_field_varint(1, 0, &mut group_rsp);
-    encode_field_string(2, "ok", &mut group_rsp);
-    encode_field_bytes(3, &group_inner, &mut group_rsp);
-    let group_info = decode_query_group_info_rsp(&group_rsp).expect("group info rsp");
-    assert_eq!(group_info.group_name, "Round26 Group");
-    assert_eq!(group_info.member_count, 3);
-
-    let mut member = Vec::new();
-    encode_field_string(1, "uid-member", &mut member);
-    encode_field_string(2, "Member", &mut member);
-    encode_field_varint(3, 2, &mut member);
-    encode_field_varint(4, 1_700_000_000, &mut member);
-    encode_field_string(5, "Card", &mut member);
-    let mut members_rsp = Vec::new();
-    encode_field_varint(1, 0, &mut members_rsp);
-    encode_field_string(2, "ok", &mut members_rsp);
-    encode_field_bytes(3, &member, &mut members_rsp);
-    encode_field_varint(4, 30, &mut members_rsp);
-    encode_field_varint(5, 1, &mut members_rsp);
-    let page = decode_get_group_member_list_rsp(&members_rsp).expect("members rsp");
-    assert_eq!(page.members[0].user_id, "uid-member");
-    assert_eq!(page.members[0].name_card, "Card");
-    assert_eq!(page.next_offset, 30);
-    assert!(page.is_complete);
-
-    let mut error_rsp = Vec::new();
-    encode_field_varint(1, 4002, &mut error_rsp);
-    encode_field_string(2, "rate limited", &mut error_rsp);
-    assert_eq!(
-        decode_biz_rsp_code(&error_rsp).expect("biz code"),
-        (4002, "rate limited".to_string())
-    );
-    let mut overflow = Vec::new();
-    encode_field_varint(1, u64::MAX, &mut overflow);
-    assert!(decode_biz_rsp_code(&overflow)
-        .expect_err("overflow rejected")
-        .to_string()
-        .contains("out of i32 range"));
 }

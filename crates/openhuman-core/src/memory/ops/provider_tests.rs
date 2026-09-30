@@ -117,6 +117,7 @@ async fn a_refused_driver_reports_the_fallback_and_its_reason() {
             endpoint: Some("https://api.supermemory.ai".into()),
             credential_ref: Some("keychain:supermemory".into()),
             trust_state: "untrusted".into(),
+            deployment: None,
         },
     );
     let binding = crate::memory::binding::for_workspace(workspace.path(), &cfg)

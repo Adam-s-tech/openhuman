@@ -454,3 +454,49 @@ async fn screen_input_never_redacts_while_replayed_history_is_trusted() {
         }
     }
 }
+
+/// A refused approval must reach the model as a Deny with a reason. Returned
+/// as `Prompted { approved: false }` it carried none, and the harness fell back
+/// to a bare "tool call was not approved" — after which the model redid the
+/// call through `shell`.
+#[test]
+fn a_refused_approval_is_a_deny_the_model_can_read() {
+    for gate_reason in [
+        "[policy-denied] User denied 'write_file' execution.",
+        "[policy-denied] Approval for 'write_file' timed out after 600s.",
+    ] {
+        let outcome = GateOutcome::Deny {
+            reason: gate_reason.to_string(),
+        };
+        let decision = decision_for_outcome("write_file", outcome);
+        assert!(!decision.is_allowed());
+        let reason = decision
+            .denial_reason()
+            .expect("a refused approval carries a reason for the model");
+        // A policy-class failure pauses the turn before the model can reply.
+        assert_eq!(
+            crate::tools::status::classify(reason, false).class,
+            crate::tools::status::ToolFailureClass::Unknown,
+            "{reason}"
+        );
+        assert!(reason.contains("must not be performed"), "{reason}");
+        assert!(reason.contains("another way"), "{reason}");
+        let lower = reason.to_lowercase();
+        assert!(
+            !lower.contains("user denied")
+                && !lower.contains("timed out")
+                && !lower.contains("human"),
+            "the text must not say who refused or how: {reason}"
+        );
+    }
+}
+
+#[test]
+fn an_approved_park_is_still_prompted_and_allowed() {
+    let decision = decision_for_outcome("write_file", GateOutcome::Allow);
+    assert!(matches!(
+        decision,
+        GateDecision::Prompted { approved: true }
+    ));
+    assert!(decision.is_allowed());
+}

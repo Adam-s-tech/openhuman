@@ -393,7 +393,7 @@ impl ShellTool {
 
         // Keep command-valued repository Git settings from executing host
         // programs when a shell command happens to invoke git.
-        for (key, value) in crate::tools::implementations::filesystem::shell_git_env() {
+        for (key, value) in tinytools_std::filesystem::shell_git_env() {
             cmd.env(key, value);
         }
 
@@ -471,7 +471,7 @@ impl ShellTool {
                     // Surface the exit code AND both streams so the agent can
                     // diagnose the failure (e.g. 127 missing dependency, 126
                     // sandbox/permission wall) instead of looping on it (#4095).
-                    super::command_output::command_failure(output.status.code(), &stdout, &stderr)
+                    tinytools::command_failure(output.status.code(), &stdout, &stderr)
                 }
             }
             Ok(Err(e)) => ToolResult::error(format!("Failed to execute command: {e}")),
@@ -522,7 +522,7 @@ impl ShellTool {
         }
 
         // Apply the same Git config hardening to local and sandboxed shells.
-        extra_env.extend(crate::tools::implementations::filesystem::shell_git_env());
+        extra_env.extend(tinytools_std::filesystem::shell_git_env());
 
         // Sandbox backends require a finite deadline. Without an explicit
         // `timeout_secs`, substitute the generous effective-unbounded cap so a
@@ -558,8 +558,8 @@ impl ShellTool {
                 } else {
                     // Same exit-code + both-streams surfacing as the native path
                     // (#4095); the sandbox `-1` sentinel renders as a signal.
-                    super::command_output::command_failure(
-                        super::command_output::sandbox_exit_code(result.exit_code),
+                    tinytools::command_failure(
+                        tinytools::sandbox_exit_code(result.exit_code),
                         &result.stdout,
                         &result.stderr,
                     )

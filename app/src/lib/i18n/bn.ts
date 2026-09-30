@@ -297,13 +297,6 @@ const messages: TranslationMap = {
   'conversations.backgroundTasks.cronSchedCron': 'Cron {expr}',
   'conversations.backgroundTasks.cronSchedEvery': 'প্রতি {duration}',
   'conversations.backgroundTasks.cronSchedAt': 'একবার',
-  'conversations.backgroundTasks.subOff': 'বন্ধ',
-  'conversations.backgroundTasks.subWorking': 'কাজ করছে…',
-  'conversations.backgroundTasks.subIdle': 'নিষ্ক্রিয়',
-  'conversations.backgroundTasks.subLastRan': 'শেষ চালানো {time}',
-  'conversations.backgroundTasks.subNeverRan': 'এখনও চালানো হয়নি',
-  'conversations.backgroundTasks.subTicks': '{count} বার চালানো',
-  'conversations.backgroundTasks.subQueued': '{count} সারিবদ্ধ',
   'conversations.backgroundTasks.memUpToDate': 'সব মেমরি হালনাগাদ',
   'conversations.backgroundTasks.memIngesting': '{title} সূচিবদ্ধ হচ্ছে',
   'conversations.backgroundTasks.memIngestingUntitled': 'মেমরি সূচিবদ্ধ হচ্ছে',
@@ -448,9 +441,6 @@ const messages: TranslationMap = {
   'settings.assistant.personality': 'ব্যক্তিত্ব',
   'settings.assistant.voice': 'ভয়েস',
   'settings.assistant.voiceDesc': 'স্পিচ-টু-টেক্সট ও টেক্সট-টু-স্পিচ সেটিংস',
-  'settings.assistant.backgroundActivity': 'সাবকনশাস',
-  'settings.assistant.backgroundActivityDesc':
-    'আপনার সহকারী পটভূমিতে কতটা সক্রিয় তা নিয়ন্ত্রণ করুন',
   'settings.assistant.permissions': 'অনুমতি',
   'settings.assistant.permissionsDesc': 'সহকারী কী করতে পারে এবং কোথায় কাজ করতে পারে তা বেছে নিন',
   'settings.privacySecurity.privacy': 'গোপনীয়তা',
@@ -468,7 +458,7 @@ const messages: TranslationMap = {
   'settings.analysisViews.title': 'বিশ্লেষণ ভিউ',
   'settings.analysisViews.menuDesc':
     'মেমরি গ্রাফ বিশ্লেষণ: ডায়াগ্রাম, কেন্দ্রীয়তা, সংহতি, সংযোগ, সতেজতা, টাইমলাইন, পাথ এবং নেমস্পেস',
-  'settings.tokenUsage.title': 'টোকেন ও খরচ',
+  'settings.tokenUsage.title': 'টোকেন সাশ্রয়',
   'settings.tokenUsage.menuDesc': 'সংকোচন সেটিংস এবং সেগুলি কত টোকেন ও ডলার সাশ্রয় করেছে',
   'settings.tokenUsage.saving': 'সংরক্ষণ করা হচ্ছে…',
   'settings.tokenUsage.saved': 'সংরক্ষিত হয়েছে',
@@ -967,7 +957,6 @@ const messages: TranslationMap = {
     'এখনো কোনো মেমোরি নেই। আপনি যত ইন্টারঅ্যাক্ট করবেন, মেমোরি স্বয়ংক্রিয়ভাবে তৈরি হবে।',
   'memory.tab.memory': 'মেমোরি',
   'memory.tab.memoryTree': 'মেমোরি ট্রি',
-  'memory.tab.subconscious': 'সাবকনশাস',
   'memory.tab.agentWork': 'এজেন্ট কাজ',
   'memory.tab.agentWorkDescription':
     'প্রতিটি ব্যাকগ্রাউন্ড এজেন্ট রানের জন্য একটি কমান্ড সেন্টার: আপনার ইনপুট প্রয়োজন এমন, চলমান এবং সম্পন্ন অনুযায়ী গোষ্ঠীবদ্ধ।',
@@ -1451,7 +1440,6 @@ const messages: TranslationMap = {
     'অ্যাপ্লিকেশন চালুর সময় xqx1qx শেল-এ null র‍্যাপেড হয়। প্রারম্ভ হওয়া অবধি এই পোর্টটি নির্বাচন করা হয়েছে, তাই এই xqxqxqx সহযোগে আরম্ভ করা হয় ।',
   'settings.about.connectionHelperCloud':
     'রিমোটের সাথে সংযুক্ত। এটি বুট করা অথবা মেঘের মোড দ্বারা পরিবর্তন করা হবে।',
-  'settings.heartbeat.title': 'হার্টবিট এবং লুপস',
   'settings.usage.title': 'ব্যবহার',
   'settings.usage.menuDesc': 'খরচ, টোকেন সাশ্রয়, ব্যবহারের রেকর্ড ও পটভূমির কার্যকলাপ',
   'settings.costDashboard.monthToDate': 'এই মাসে এখন পর্যন্ত',
@@ -2409,7 +2397,6 @@ const messages: TranslationMap = {
   'chat.safetyTimeout':
     '২ মিনিট পরেও এজেন্টের কোনো সাড়া নেই। আবার চেষ্টা করুন বা সংযোগ পরীক্ষা করুন।',
   'chat.filter.general': 'সাধারণ',
-  'chat.filter.subconscious': 'সাবকনশাস',
   'chat.filter.meetings': 'মিটিং',
   'chat.filter.tasks': 'টাস্ক',
   'chat.selectThread': 'একটি থ্রেড বেছে নিন',
@@ -4830,7 +4817,7 @@ const messages: TranslationMap = {
   'settings.ai.codexAuthHelper': '~/.codex/auth.json থেকে বিদ্যমান Codex CLI লগইন ব্যবহার করে।',
   'settings.ai.backgroundLoops': 'ব্যাকগ্রাউন্ড লুপস',
   'settings.ai.backgroundLoopsDesc':
-    'লক্ষ্য করুন যে, কোন আড্ডা ছাড়াই কি করা হয়, হার্টবিটের কাজ বিরতি দিন এবং সম্প্রতি ক্রেডিট কার্ড পরীক্ষা করুন ।',
+    'চ্যাট বার্তা ছাড়াই কী চলে তা দেখুন এবং সাম্প্রতিক ক্রেডিট লেজারের সারিগুলো পরীক্ষা করুন।',
   'settings.ai.loopMap': 'লুপ ম্যাপ',
   'settings.ai.routeLabel': 'রুট: {route}',
   'settings.ai.on': 'উপর',
@@ -4954,7 +4941,7 @@ const messages: TranslationMap = {
     'সরাসরি ব্যবহারকারী যোগাযোগ, উত্তর, যুক্তি, এজেন্ট লুপ এবং কোড সাহায্য করার সময় ব্যবহার করা হয়েছে।',
   'settings.ai.routing.backgroundTasks': 'ব্যাকগ্রাউন্ড টাস্ক',
   'settings.ai.routing.bgTasksDesc':
-    'তুলনা, হার্টবিট, শিক্ষা এবং অবচেতনের মূল্যায়নের মূল কথোপকথনের বাইরে যে মডেলগুলো ব্যবহার করা হয়েছে সেগুলো ব্যবহার করা হয়েছে।',
+    'মূল কথোপকথনের বাইরে মেমরি সারসংক্ষেপ এবং শেখার জন্য ব্যবহৃত মডেল।',
   'settings.ai.routing.workload.chat.label': 'Chat',
   'settings.ai.routing.workload.chat.description':
     'প্রত্যক্ষ কথোপকথন সামনে এবং পিছনে: কথোপকথনে "দ্রুত" মোড',
@@ -4982,19 +4969,11 @@ const messages: TranslationMap = {
   'settings.ai.routing.workload.memory.description': 'গাছের নির্যাস এবং একত্রীকরণ',
   'settings.ai.routing.workload.memory.hint':
     'প্রস্তাবিত: একটি সস্তা সংক্ষিপ্তকরণ মডেল। এটি সামঞ্জস্যপূর্ণ এবং কম্প্যাক্ট হওয়া উচিত, তবে এর জন্য প্রিমিয়াম ফ্রন্টিয়ার-লেভেল যুক্তির প্রয়োজন নেই।',
-  'settings.ai.routing.workload.heartbeat.label': 'Heartbeat',
-  'settings.ai.routing.workload.heartbeat.description': 'ব্যবহারকারী বাঁক মধ্যে পটভূমি যুক্তি',
-  'settings.ai.routing.workload.heartbeat.hint':
-    'প্রস্তাবিত: একটি সস্তা, দক্ষ ব্যাকগ্রাউন্ড মডেল। এটি প্রায়শই মোড়ের মধ্যে চলে, তাই কম খরচ সর্বাধিক বুদ্ধিমত্তার চেয়ে বেশি গুরুত্বপূর্ণ।',
   'settings.ai.routing.workload.learning.label': 'শিক্ষা · প্রতিফলন',
   'settings.ai.routing.workload.learning.description':
     'সাম্প্রতিক ইতিহাসের উপর পর্যায়ক্রমিক প্রতিফলন',
   'settings.ai.routing.workload.learning.hint':
     'প্রস্তাবিত: একটি শক্তিশালী প্রতিফলিত মডেল। এটি মধ্য-খরচ বা প্রিমিয়াম হতে পারে কারণ সাম্প্রতিক ইতিহাসের তুলনায় এটি আরও ভাল সংশ্লেষণ থেকে উপকৃত হয়।',
-  'settings.ai.routing.workload.subconscious.label': 'Subconscious',
-  'settings.ai.routing.workload.subconscious.description': 'ইভেন্টফুলনেস স্কোরিং + ড্রিফ্ট চেক',
-  'settings.ai.routing.workload.subconscious.hint':
-    'প্রস্তাবিত: একটি খুব সস্তা মনিটরিং মডেল, আদর্শভাবে একটি যা হালকা ওজনের এবং অনুমানযোগ্য। এটি ইভেন্টফুলনেস স্কোরিং, ড্রিফ্ট চেক এবং শান্ত পটভূমি মূল্যায়নের জন্য।',
   'settings.ai.routing.addCustomProvider': 'কাস্টম প্রদানকারী যোগ করুন',
   'settings.ai.globalModel.title': 'সবকিছুর জন্য একটি মডেল চয়ন করুন',
   'settings.ai.globalModel.desc':
@@ -5005,8 +4984,6 @@ const messages: TranslationMap = {
   'settings.ai.globalModel.model': 'মডেল',
   'settings.ai.globalModel.loadingModels': 'মডেলগুলি লোড করা হচ্ছে...',
   'settings.ai.globalModel.enterModelId': 'মডেল আইডি লিখুন',
-  'settings.ai.globalModel.appliesToAll':
-    'একই সেবা প্রদানকারী + মডেল, যুক্তি, মেমরি, হার্টবিট, শিক্ষা, এবং অবচেতনের মাধ্যমে কথোপকথন, যুক্তি, যুক্তি, মেমরি, মেমরি, মেমরি, হৃদয়বিট। equice কনফিগার করা হয়েছে। সংরক্ষণ করার সময় পরিবর্তনগুলি সংরক্ষণ করা হবে।',
   'settings.ai.globalModel.saving': 'ইনস্টল করা হয়েছে...',
   'settings.ai.globalModel.saved': 'সংরক্ষণ করা হচ্ছে...',
   'settings.ai.workload.noModel': 'সংরক্ষণ করা হয়েছে',
@@ -5187,6 +5164,7 @@ const messages: TranslationMap = {
   'settings.cron.jobs.removing': 'অপসারণ হচ্ছে',
   'settings.cron.jobs.resume': 'পুনরায় শুরু',
   'settings.cron.jobs.runningNow': 'এখন চলছে',
+  'settings.cron.jobs.runNow': 'এখনই চালান',
   'settings.cron.jobs.saving': 'সংরক্ষণ হচ্ছে…',
   'settings.cron.jobs.schedule': 'সময়সূচি',
   'settings.cron.jobs.title': 'কোর ক্রন জবস',
@@ -5385,8 +5363,6 @@ const messages: TranslationMap = {
   'settings.developerMenu.eventLog.badge.comp': 'COMP',
   'settings.developerMenu.eventLog.badge.mcp': 'MCP',
   'settings.developerMenu.intelligence.title': 'ইন্টেলিজেন্স',
-  'settings.developerMenu.intelligence.desc':
-    'মেমরি ওয়ার্কস্পেস, সাবকনশাস ইঞ্জিন, ড্রিমস এবং সেটিংস',
   'settings.developerMenu.notificationRouting.title': 'নোটিফিকেশন রাউটিং',
   'settings.developerMenu.notificationRouting.desc':
     'ইন্টিগ্রেশন অ্যালার্টের জন্য AI গুরুত্ব স্কোরিং এবং অর্কেস্ট্রেটর এসকেলেশন',
@@ -6236,7 +6212,6 @@ const messages: TranslationMap = {
   'devOptions.menuWebhooksDebugDesc':
     'রানটাইম ওয়েবহুক নিবন্ধন এবং ক্যাপচার করা অনুরোধ লগগুলি পরিদর্শন করুন',
   'devOptions.menuIntelligence': 'বুদ্ধিমত্তা',
-  'devOptions.menuIntelligenceDesc': 'মেমরি ওয়ার্কস্পেস, অবচেতন ইঞ্জিন, স্বপ্ন এবং সেটিংস',
   'devOptions.menuNotificationRouting': 'বিজ্ঞপ্তি রাউটিং',
   'devOptions.menuNotificationRoutingDesc': 'এআই গুরুত্ব স্কোরিং এবং অর্কেস্ট্রেটর বৃদ্ধির জন্য',
   'devOptions.menuComposeIOTriggers': 'ComposeIO ট্রিগারগুলি',
@@ -6992,8 +6967,8 @@ const messages: TranslationMap = {
   'settings.ai.perWeek': '{count}/সপ্তাহ',
   'settings.ai.perWeekMax': '{count}/সপ্তাহ সর্বোচ্চ',
   'settings.ai.perHour': '{amount}/ঘণ্টা',
-  'settings.ai.plannerSyncBreakdown': '{planner} প্ল্যানার + {sync} সিঙ্ক',
   'settings.ai.memoryPollsDetail': '{count}টি মেমরি পোল',
+  'settings.ai.connectionSyncBreakdown': '{sync} সংযোগ সিঙ্ক',
   'settings.ai.rowsLeftFormula': 'অবশিষ্ট / গড় সারি = {remaining} / {avgRow}',
   'settings.ai.needSpendRowsToEstimate': 'অনুমান করতে সাম্প্রতিক খরচের সারি প্রয়োজন।',
   'settings.ai.rowsPerBudgetFormula': 'চক্র বাজেট / গড় সারি = {budget} / {avgRow}',
@@ -7266,6 +7241,70 @@ const messages: TranslationMap = {
   'webCallback.title': 'সাইন ইন-লাইন',
   'webCallback.description':
     'OpenHuman আপনার অনুরোধ প্রক্রিয়াকরণ শুরু এবং স্বয়ংক্রিয়ভাবে চালু করা হবে ।',
+
+  // Memory engine settings panel
+  'memoryEngine.title': 'মেমোরি ইঞ্জিন',
+  'memoryEngine.description':
+    'OpenHuman আপনার স্মৃতি কোথায় সংরক্ষণ ও মনে করবে তা বেছে নিন। একবারে কেবল একটি ইঞ্জিন সক্রিয় থাকে।',
+  'memoryEngine.active': 'সক্রিয়',
+  'memoryEngine.hostedNote': 'আপনার OpenHuman সাবস্ক্রিপশন বা ক্রেডিট থেকে বিল করা হবে।',
+  'memoryEngine.signInRequired': 'এই ইঞ্জিন ব্যবহার করতে সাইন ইন করুন।',
+  'memoryEngine.endpoint': 'এন্ডপয়েন্ট',
+  'memoryEngine.deployment': 'ডিপ্লয়মেন্ট',
+  'memoryEngine.deployment.cloud': 'ক্লাউড',
+  'memoryEngine.deployment.self_hosted': 'নিজে হোস্ট করা',
+  'memoryEngine.apiKey': 'API কী',
+  'memoryEngine.apiKeyOptional': 'API কী (ঐচ্ছিক)',
+  'memoryEngine.keySaved': 'একটি কী সংরক্ষিত আছে। রাখতে ফাঁকা রাখুন।',
+  'memoryEngine.keySavedPlaceholder': 'সংরক্ষিত (লুকানো)',
+  'memoryEngine.fallback':
+    'মেমোরি বিরতিতে আছে: ইঞ্জিন {engine} পাওয়া যাচ্ছে না, তাই এটি ফিরে না আসা পর্যন্ত কিছু সংরক্ষণ বা স্মরণ করা হচ্ছে না। {reason}',
+  'memoryEngine.paused': 'মেমোরি বিরতিতে আছে',
+  'memoryEngine.dialog.cancelMigration': 'কপি বাতিল করুন',
+  'memoryEngine.lastError':
+    'মেমোরি ইঞ্জিনের সর্বশেষ অনুরোধ ব্যর্থ হয়েছে। ইঞ্জিনের সেটিংস পরীক্ষা করুন।',
+  'memoryEngine.switch': 'পরিবর্তন করুন',
+  'memoryEngine.save': 'পরিবর্তন সংরক্ষণ করুন',
+  'memoryEngine.dialog.title': '{engine}-এ পরিবর্তন করবেন?',
+  'memoryEngine.dialog.body': 'আমার বিদ্যমান স্মৃতিগুলো নতুন ইঞ্জিনে কপি করবেন?',
+  'memoryEngine.dialog.copySwitch': 'কপি করে পরিবর্তন করুন',
+  'memoryEngine.dialog.switchOnly': 'কপি না করে পরিবর্তন করুন',
+  'memoryEngine.dialog.copying': 'আপনার স্মৃতি কপি হচ্ছে…',
+  'memoryEngine.dialog.progress': '{total}টির মধ্যে {copied}টি কপি হয়েছে',
+  'memoryEngine.dialog.progressUnknown': 'এখন পর্যন্ত {copied}টি স্মৃতি কপি হয়েছে',
+  'memoryEngine.dialog.lacking':
+    'নতুন ইঞ্জিন আপনার বর্তমান ইঞ্জিনের এই বৈশিষ্ট্যগুলো সমর্থন করে না:',
+  'memoryEngine.error.insufficientCredits':
+    'আপনার OpenHuman ক্রেডিট শেষ হয়ে গেছে। এই ইঞ্জিন ব্যবহার করতে ক্রেডিট যোগ করুন।',
+  'memoryEngine.error.sessionExpired':
+    'আপনার সেশনের মেয়াদ শেষ হয়েছে। চালিয়ে যেতে আবার সাইন ইন করুন।',
+  'memoryEngine.error.backendUnavailable':
+    'মেমোরি পরিষেবা এখন অনুপলব্ধ। একটু পরে আবার চেষ্টা করুন।',
+  'memoryEngine.error.generic':
+    'মেমোরি ইঞ্জিন পরিবর্তন করা যায়নি। সেটিংস পরীক্ষা করে আবার চেষ্টা করুন।',
+  'memoryEngine.error.openBilling': 'বিলিং খুলুন',
+  'memoryEngine.error.signIn': 'সাইন ইন',
+  'memoryEngine.row.label': 'মেমোরি ইঞ্জিন:',
+  'memoryEngine.row.change': 'পরিবর্তন',
+  'memoryEngine.unavailable': '{engine}-এ উপলব্ধ নয়',
+  'memoryEngine.unavailableHint': 'এই ফিচারটি ব্যবহার করতে মেমোরি ইঞ্জিন পরিবর্তন করুন।',
+  'memoryEngine.engine.tinymemory.label': 'লোকাল (TinyCortex)',
+  'memoryEngine.engine.tinymemory.description':
+    'TinyCortex দিয়ে এই ডিভাইসে সংরক্ষিত। ব্যক্তিগত, বিনামূল্যে এবং ডিফল্ট।',
+  'memoryEngine.engine.tinyhumans.label': 'CortexDB (TinyHumans-এর মাধ্যমে)',
+  'memoryEngine.engine.tinyhumans.description':
+    'TinyHumans-এর হোস্ট করা CortexDB। আপনার সাইন-ইন করা অ্যাকাউন্ট ব্যবহার করে, কী লাগে না।',
+  'memoryEngine.engine.cortex.label': 'CortexDB (নিজের কী)',
+  'memoryEngine.engine.cortex.description':
+    'আপনার নিজের CortexDB অ্যাকাউন্ট বা ইনস্ট্যান্স, আপনার API কী দিয়ে।',
+  'memoryEngine.engine.supermemory.label': 'Supermemory',
+  'memoryEngine.engine.supermemory.description': 'আপনার API কী দিয়ে Supermemory ক্লাউড মেমোরি।',
+  'memoryEngine.engine.mem0.label': 'Mem0',
+  'memoryEngine.engine.mem0.description': 'Mem0 মেমোরি লেয়ার, ক্লাউড বা নিজে হোস্ট করা।',
+  'memoryEngine.engine.cognee.label': 'Cognee',
+  'memoryEngine.engine.cognee.description': 'Cognee নলেজ-গ্রাফ মেমোরি, ক্লাউড বা নিজে হোস্ট করা।',
+  'memoryEngine.engine.agentmemory.label': 'AgentMemory',
+  'memoryEngine.engine.agentmemory.description': 'আপনার নিজে চালানো একটি AgentMemory সার্ভার।',
 };
 
 export default messages;

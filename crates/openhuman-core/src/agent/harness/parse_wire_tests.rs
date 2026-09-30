@@ -7,33 +7,20 @@
 //! call from model text is OpenHuman-specific, so none of it stayed.
 //!
 //! What is left below speaks OpenHuman's own wire vocabulary — its
-//! `inference::provider::ToolCall`, its native-history JSON, its OpenAI
+//! `NativeToolCall`, its native-history JSON, its OpenAI
 //! function-calling payload. All of it is `#[cfg(test)]`: these are the
 //! fixtures its own tests assert against, and they never compiled into a
 //! production build even before the move.
 
 #[cfg(test)]
-use tinytools_agent::{extract_json_values, parse_tool_calls, parse_tool_calls_with_pformat};
-
-// The rest of the crate's re-exports are only reached from this module's own
-// tests (`tests.rs`) and `harness_gap_tests.rs`, not from any production call
-// site — gated so a non-test build doesn't warn (and fail `-D warnings`) on
-// them.
-#[cfg(test)]
-use tinytools_agent::{
-    parse_arguments_value, parse_glm_style_tool_calls, parse_tool_call_value,
-    parse_tool_calls_from_json_value,
-};
-
-#[cfg(test)]
-use crate::inference::provider::ToolCall;
-#[cfg(test)]
 use tinytools::Tool;
+#[cfg(test)]
+use tinytools_agent::dialect::NativeToolCall;
 #[cfg(test)]
 use tinytools_agent::{CallSource, ParsedToolCall};
 
 #[cfg(test)]
-pub(crate) fn parse_structured_tool_calls(tool_calls: &[ToolCall]) -> Vec<ParsedToolCall> {
+pub(crate) fn parse_structured_tool_calls(tool_calls: &[NativeToolCall]) -> Vec<ParsedToolCall> {
     tool_calls
         .iter()
         .map(|call| ParsedToolCall {
@@ -59,7 +46,7 @@ pub(crate) fn parse_structured_tool_calls(tool_calls: &[ToolCall]) -> Vec<Parsed
 pub(crate) fn build_native_assistant_history(
     text: &str,
     reasoning_content: Option<&str>,
-    tool_calls: &[ToolCall],
+    tool_calls: &[NativeToolCall],
 ) -> String {
     let calls_json: Vec<serde_json::Value> = tool_calls
         .iter()
@@ -113,7 +100,7 @@ pub(crate) fn build_native_assistant_history(
 #[cfg(test)]
 pub(crate) fn build_assistant_history_with_tool_calls(
     text: &str,
-    tool_calls: &[ToolCall],
+    tool_calls: &[NativeToolCall],
 ) -> String {
     let mut parts = Vec::new();
 

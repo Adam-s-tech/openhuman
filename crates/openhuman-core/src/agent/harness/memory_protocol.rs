@@ -55,7 +55,7 @@ pub enum MemoryOp {
 ///
 /// Two tools are polymorphic and cannot be classified by name alone:
 /// - `update_memory_md` edits either `MEMORY.md` **or** `SKILL.md`
-///   (`crates/openhuman-core/src/tools/impl/filesystem/update_memory_md.rs`); only a
+///   (`tinytools_std::filesystem::UpdateMemoryMdTool`); only a
 ///   `MEMORY.md` edit reconciles the memory index, so a `SKILL.md` edit is not
 ///   an [`MemoryOp::IndexUpdate`] and must not close the cycle.
 /// - the consolidated `memory_tree` tool (`crates/openhuman-core/src/memory/query/mod.rs`)

@@ -24,7 +24,6 @@ mod pause_checkpoint;
 // The checkpoint filename validator, shared with `continue_subagent`: the
 // model-authored `task_id` must be rejected at the tool boundary as well as at
 // the write, so the read path cannot traverse either.
-pub(crate) use graph::run_agent_turn_request_via_default_graph;
 pub(crate) use pause_checkpoint::is_safe_task_id;
 mod prompt;
 mod provider;
@@ -36,7 +35,7 @@ pub(crate) use runner::run_subagent_direct;
 
 // `user_is_signed_in_to_composio` is the mode-aware "can the user call
 // composio at all?" probe added in Wave 2 (#1710). Re-exported here so
-// non-composio probe sites (registration gates, heartbeat telemetry)
+// non-composio probe sites (registration gates, telemetry)
 // can call it as
 // `crate::agent::subagent_host::user_is_signed_in_to_composio`
 // without reaching into a private sibling module.

@@ -55,68 +55,26 @@ impl Tool for ArchetypeDelegationTool {
         Some(&self.agent_id)
     }
 
-    /// The delegation envelope — deliberately description-light.
+    /// The delegation envelope: `prompt` and `blocking` only.
     ///
-    /// This one literal is emitted for **every** synthesised `delegate_*` tool
-    /// (19 of them on the Master Agent after tool-pack withholding), so each
-    /// word of `description` here is billed 19× on every single turn. Fully
-    /// described the envelope was 356 tokens × 19 = 6,764 tokens — 39% of the
-    /// orchestrator's whole tool-schema budget, for the same JSON 19 times.
+    /// This schema is emitted for every synthesised `delegate_*` tool on the
+    /// wire, so each word is billed per delegate on every request. Fully
+    /// described it was 356 tokens per delegate; the structured hand-off fields
+    /// (`objective`, `evidence`, `constraints`, `must_not_assume`,
+    /// `expected_output`, `citation_requirement`, `model`) are no longer
+    /// advertised because a self-contained `prompt` carries the same content.
+    /// They are still read by [`render_structured_handoff`], so a caller that
+    /// sends them keeps working. `blocking` keeps its description because its
+    /// default is behaviour-critical and not inferable from the name.
     ///
-    /// The field *semantics* now live once in the parent's system prompt
-    /// (`registry/agents/orchestrator/prompt.md`, "Structured handoffs"),
-    /// which is where policy like "only observed facts" belonged anyway. The
-    /// property names stay self-describing, and they are the only thing
-    /// `render_structured_handoff` below reads.
-    ///
-    /// Four descriptions survive, each well under the 50-token cap, because
-    /// their property name does not carry the meaning:
-    ///
-    /// * `blocking` — the default is behaviour-critical and not inferable from
-    ///   the name. Getting it wrong is silent and asymmetric: async when it
-    ///   should have blocked finalizes the turn before the result lands, the
-    ///   exact failure the prompt's result-gating rule exists to prevent.
-    /// * `evidence` — "actually observed" is the anti-fabrication contract,
-    ///   not a label.
-    /// * `citation_requirement` / `model` — a bare name reads as neither.
-    ///
-    /// Enforced by `envelope_descriptions_stay_within_budget` below. If you
-    /// are about to add a description here, put it in prompt.md instead.
+    /// Shared with the collapsed `delegate_to` through
+    /// [`delegation_envelope_properties`]; enforced by
+    /// `envelope_descriptions_stay_within_budget`.
     fn parameters_schema(&self) -> serde_json::Value {
         json!({
             "type": "object",
             "required": ["prompt"],
-            "properties": {
-                "prompt": { "type": "string" },
-                "objective": { "type": "string" },
-                "evidence": {
-                    "type": "array",
-                    "items": { "type": "string" },
-                    "description": "Only facts, paths, URLs, ids or tool outputs you actually observed."
-                },
-                "constraints": {
-                    "type": "array",
-                    "items": { "type": "string" }
-                },
-                "must_not_assume": {
-                    "type": "array",
-                    "items": { "type": "string" }
-                },
-                "expected_output": { "type": "string" },
-                "citation_requirement": {
-                    "type": "string",
-                    "enum": ["none", "file_paths", "urls", "retrieval_hits", "tool_outputs"],
-                    "description": "Evidence style the child must preserve in its result."
-                },
-                "model": {
-                    "type": "string",
-                    "description": "Pin the child to this exact model id. Omit unless you have a reason."
-                },
-                "blocking": {
-                    "type": "boolean",
-                    "description": "Default false: async worker, result arrives as a later turn. true: waits, and the result gates this reply."
-                }
-            }
+            "properties": delegation_envelope_properties()
         })
     }
 
@@ -255,7 +213,6 @@ pub(crate) async fn execute_archetype_delegation_with_live_parent(
         agent_id,
         tool_name,
         &prompt,
-        None,
         model_override,
         tool_context,
         mode,
@@ -284,20 +241,22 @@ pub(super) fn render_structured_handoff(prompt: &str, args: &Value) -> String {
     out
 }
 
+/// The advertised hand-off envelope, shared by every member delegate and the
+/// collapsed `delegate_to` so the two cannot drift. Only `prompt` and
+/// `blocking` are offered; the structured fields (`objective`, `evidence`,
+/// `constraints`, `must_not_assume`, `expected_output`,
+/// `citation_requirement`, `model`) are still read by
+/// [`render_structured_handoff`] when a caller sends them.
 pub(super) fn delegation_envelope_properties() -> Value {
     serde_json::json!({
-        "prompt": {"type": "string"},
-        "objective": {"type": "string"},
-        "evidence": {"type": "array", "items": {"type": "string"}},
-        "constraints": {"type": "array", "items": {"type": "string"}},
-        "must_not_assume": {"type": "array", "items": {"type": "string"}},
-        "expected_output": {"type": "string"},
-        "citation_requirement": {
+        "prompt": {
             "type": "string",
-            "enum": ["none", "file_paths", "urls", "retrieval_hits", "tool_outputs"]
+            "description": "The whole task, self-contained: the worker has no memory of this chat."
         },
-        "model": {"type": "string"},
-        "blocking": {"type": "boolean"}
+        "blocking": {
+            "type": "boolean",
+            "description": "Default false: async worker, result arrives as a later turn. true: waits, and the result gates this reply."
+        }
     })
 }
 

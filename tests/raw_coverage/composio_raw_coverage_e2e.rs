@@ -17,26 +17,16 @@ use tempfile::tempdir;
 use openhuman_core::agent::prompts::ConnectedIntegration;
 use openhuman_core::config::Config;
 use openhuman_core::core::all::RegisteredController;
-use openhuman_core::integrations::composio::client::{
-    create_composio_client, direct_execute, ComposioClientKind,
-};
+use openhuman_core::integrations::composio::client::{resolve_composio_route, ComposioRoute};
 use openhuman_core::integrations::composio::error_mapping::{
     classify_composio_error, format_provider_error, remap_transport_error, ComposioErrorClass,
 };
-use openhuman_core::integrations::composio::execute_dispatch::{
-    execute_composio_action, execute_composio_action_kind,
-};
 use openhuman_core::integrations::composio::execute_prepare::prepare_execute_arguments;
-use openhuman_core::integrations::composio::oauth_handoff::{
-    clear_non_active_connections, is_authorize_rate_limited, is_clearable_oauth_status,
-    is_inflight_oauth_status, is_meta_oauth_toolkit, meta_oauth_rate_limit_message,
-    wrap_authorize_rate_limit_error,
-};
 use openhuman_core::integrations::composio::providers::{
     classify_unknown, find_curated, toolkit_from_slug, CuratedTool, ToolScope, UserScopePref,
 };
 use openhuman_core::integrations::composio::tools::{
-    ComposioAction, ComposioAuthorizeTool, ComposioConnectedAccount, ComposioExecuteTool,
+    ComposioAuthorizeTool, ComposioConnectedAccount, ComposioExecuteTool,
     ComposioListConnectionsTool, ComposioListToolkitsTool, ComposioListToolsTool,
 };
 use openhuman_core::integrations::composio::trigger_history::ComposioTriggerHistoryStore;
@@ -54,8 +44,7 @@ use openhuman_core::integrations::composio::{
     all_composio_agent_tools, all_composio_controller_schemas, all_composio_registered_controllers,
     cached_active_integrations, connected_set_hash, connection_identity,
     fetch_connected_integrations, fetch_connected_integrations_status,
-    invalidate_connected_integrations_cache, ComposioActionTool, ComposioClient,
-    FetchConnectedIntegrationsStatus,
+    invalidate_connected_integrations_cache, ComposioActionTool, FetchConnectedIntegrationsStatus,
 };
 use openhuman_core::security::credentials::{
     AuthService, APP_SESSION_PROVIDER, DEFAULT_AUTH_PROFILE_NAME,
@@ -63,7 +52,6 @@ use openhuman_core::security::credentials::{
 
 use openhuman_core::integrations::IntegrationClient;
 use openhuman_core::security::{AutonomyLevel, SecurityPolicy};
-use openhuman_core::tools::ComposioTool;
 use tinytools::{PermissionLevel, Tool, ToolCallOptions, ToolCategory};
 
 static ENV_LOCK: &OnceLock<Mutex<()>> = &crate::SHARED_ENV_LOCK;
@@ -258,48 +246,6 @@ fn composio_error_mapping_classifies_and_formats_provider_failures() {
     assert!(validation_transport.starts_with("[composio:error:validation]"));
 }
 
-#[test]
-fn composio_oauth_handoff_helpers_classify_meta_status_and_rate_limits() {
-    crate::tinyhumans_boot::boot();
-    assert!(is_meta_oauth_toolkit(" Instagram "));
-    assert!(is_meta_oauth_toolkit("FACEBOOK"));
-    assert!(!is_meta_oauth_toolkit("gmail"));
-
-    for status in ["pending", "INITIATED", " initializing "] {
-        assert!(
-            is_inflight_oauth_status(status),
-            "{status} should be inflight"
-        );
-        assert!(
-            is_clearable_oauth_status(status),
-            "{status} should be clearable"
-        );
-    }
-    for status in ["failed", "ERROR", " expired "] {
-        assert!(!is_inflight_oauth_status(status));
-        assert!(is_clearable_oauth_status(status));
-    }
-    assert!(!is_clearable_oauth_status("ACTIVE"));
-
-    for message in ["HTTP 429", "too many requests", "rate_limit", "ratelimited"] {
-        assert!(is_authorize_rate_limited(message));
-    }
-    assert!(!is_authorize_rate_limited("plain auth failure"));
-
-    let instagram = meta_oauth_rate_limit_message("instagram");
-    assert!(instagram.contains("Instagram Business or Creator"));
-    let facebook = meta_oauth_rate_limit_message("facebook");
-    assert!(facebook.contains("Business Manager"));
-    let unknown = meta_oauth_rate_limit_message("threads");
-    assert!(!unknown.contains("Business Manager"));
-
-    let wrapped =
-        wrap_authorize_rate_limit_error("instagram", anyhow::anyhow!("429 too many requests"));
-    assert!(wrapped.to_string().contains("temporarily rate-limiting"));
-    let passthrough = wrap_authorize_rate_limit_error("gmail", anyhow::anyhow!("429"));
-    assert_eq!(passthrough.to_string(), "429");
-}
-
 #[tokio::test]
 async fn composio_connected_integrations_public_helpers_handle_empty_auth_and_identity_edges() {
     crate::tinyhumans_boot::boot();
@@ -371,6 +317,7 @@ async fn composio_connected_integrations_public_helpers_handle_empty_auth_and_id
 
 #[tokio::test]
 async fn composio_ops_mode_is_local_and_trigger_history_reflects_module_archive_availability() {
+    let _module = crate::CONNECTOR_MODULE_LOCK.lock().await;
     crate::tinyhumans_boot::boot();
     let dir = tempdir().expect("tempdir");
     let mut config = Config {
@@ -458,6 +405,7 @@ fn composio_action_tool_metadata_is_stable_without_network_execution() {
 
 #[tokio::test]
 async fn composio_action_tool_execute_reports_missing_route_without_network() {
+    let _module = crate::CONNECTOR_MODULE_LOCK.lock().await;
     crate::tinyhumans_boot::boot();
     let tmp = tempfile::tempdir().expect("temp config directory");
     let mut config = Config::default();
@@ -479,121 +427,6 @@ async fn composio_action_tool_execute_reports_missing_route_without_network() {
     assert!(rendered.contains("proxy"), "{rendered}");
 }
 
-#[tokio::test]
-async fn composio_client_and_dispatch_reject_invalid_inputs_before_network() {
-    crate::tinyhumans_boot::boot();
-    let inner = Arc::new(IntegrationClient::new(
-        "http://127.0.0.1:0".into(),
-        "test-token".into(),
-    ));
-    let client = ComposioClient::new(inner);
-    let clone = client.clone();
-    assert!(Arc::ptr_eq(client.inner(), clone.inner()));
-
-    let auth_empty = client.authorize("   ", None).await.unwrap_err();
-    assert!(auth_empty.to_string().contains("toolkit must not be empty"));
-    let auth_non_object = client
-        .authorize("whatsapp", Some(json!("waba-123")))
-        .await
-        .unwrap_err();
-    assert!(auth_non_object
-        .to_string()
-        .contains("extra_params must be a JSON object"));
-    let auth_reserved = client
-        .authorize("whatsapp", Some(json!({ "client_id": "bad" })))
-        .await
-        .unwrap_err();
-    assert!(auth_reserved
-        .to_string()
-        .contains("cannot override reserved key"));
-
-    let delete_empty = client.delete_connection(" ").await.unwrap_err();
-    assert!(delete_empty
-        .to_string()
-        .contains("connectionId must not be empty"));
-    let execute_empty = client.execute_tool("\t", None).await.unwrap_err();
-    assert!(execute_empty
-        .to_string()
-        .contains("tool slug must not be empty"));
-    let create_empty = client.create_trigger(" ", None, None).await.unwrap_err();
-    assert!(create_empty.to_string().contains("slug must not be empty"));
-    let available_empty = client
-        .list_available_triggers(" ", Some("conn-1"))
-        .await
-        .unwrap_err();
-    assert!(available_empty
-        .to_string()
-        .contains("toolkit must not be empty"));
-    let enable_missing_connection = client
-        .enable_trigger(" ", "GMAIL_NEW_GMAIL_MESSAGE", None)
-        .await
-        .unwrap_err();
-    assert!(enable_missing_connection
-        .to_string()
-        .contains("connectionId must not be empty"));
-    let enable_missing_slug = client
-        .enable_trigger("conn-1", " ", None)
-        .await
-        .unwrap_err();
-    assert!(enable_missing_slug
-        .to_string()
-        .contains("slug must not be empty"));
-    let disable_empty = client.disable_trigger("").await.unwrap_err();
-    assert!(disable_empty
-        .to_string()
-        .contains("triggerId must not be empty"));
-
-    let dispatch_empty = execute_composio_action(&client, " ", None)
-        .await
-        .unwrap_err();
-    assert!(dispatch_empty.contains("tool slug must not be empty"));
-    let dispatch_validation = execute_composio_action(
-        &client,
-        "GMAIL_SEND_EMAIL",
-        Some(json!({ "subject": "missing recipient" })),
-    )
-    .await
-    .unwrap_err();
-    assert!(dispatch_validation.starts_with("[composio:error:"));
-    assert!(dispatch_validation.contains("recipient"));
-
-    let backend_kind = ComposioClientKind::Backend(client.clone());
-    assert_eq!(backend_kind.mode(), "backend");
-    let kind_empty = execute_composio_action_kind(backend_kind, " ", None, "entity")
-        .await
-        .unwrap_err();
-    assert!(kind_empty.contains("tool slug must not be empty"));
-
-    let kind_validation = execute_composio_action_kind(
-        ComposioClientKind::Backend(client),
-        "GMAIL_SEND_EMAIL",
-        Some(json!({ "subject": "missing recipient" })),
-        "entity",
-    )
-    .await
-    .unwrap_err();
-    assert!(kind_validation.starts_with("[composio:error:"));
-    assert!(kind_validation.contains("recipient"));
-
-    let direct_tool = Arc::new(ComposioTool::new(
-        "direct-key",
-        Some("entity-1"),
-        Arc::new(SecurityPolicy::default()),
-    ));
-    let direct_kind = ComposioClientKind::Direct(direct_tool);
-    assert_eq!(direct_kind.mode(), "direct");
-    let direct_validation = execute_composio_action_kind(
-        direct_kind,
-        "GMAIL_SEND_EMAIL",
-        Some(json!({ "subject": "still missing recipient" })),
-        "entity-1",
-    )
-    .await
-    .expect_err("direct dispatch validates before network");
-    assert!(direct_validation.starts_with("[composio:error:"));
-    assert!(direct_validation.contains("recipient"));
-}
-
 #[test]
 fn composio_client_factory_modes_are_deterministic_without_network() {
     crate::tinyhumans_boot::boot();
@@ -605,243 +438,48 @@ fn composio_client_factory_modes_are_deterministic_without_network() {
     };
 
     config.composio.mode = String::new();
-    let backend_err = match create_composio_client(&config) {
+    let backend_err = match resolve_composio_route(&config) {
         Ok(_) => panic!("backend without a session should fail"),
         Err(error) => error,
     };
     assert!(backend_err.to_string().contains("no backend session token"));
 
     config.composio.mode = "direct".into();
-    let direct_err = match create_composio_client(&config) {
+    let direct_err = match resolve_composio_route(&config) {
         Ok(_) => panic!("direct mode without an api key should fail"),
         Err(error) => error,
     };
     assert!(direct_err.to_string().contains("no api key is configured"));
 
     config.composio.api_key = Some("  cmp_test_key  ".into());
-    let direct = create_composio_client(&config).expect("inline direct key builds a client");
+    let direct = resolve_composio_route(&config).expect("inline direct key builds a client");
     assert_eq!(direct.mode(), "direct");
-    assert!(matches!(direct, ComposioClientKind::Direct(_)));
+    assert!(matches!(direct, ComposioRoute::Direct(_)));
 
     config.composio.mode = "typo".into();
-    let unknown = match create_composio_client(&config) {
+    let unknown = match resolve_composio_route(&config) {
         Ok(_) => panic!("unknown composio mode should fail"),
         Err(error) => error,
     };
     assert!(unknown.to_string().contains("unknown composio mode"));
 }
 
-#[tokio::test]
-async fn composio_backend_client_local_validation_rejects_bad_inputs_before_http() {
+#[test]
+fn composio_backend_route_resolves_from_stored_session() {
     crate::tinyhumans_boot::boot();
-    let client = ComposioClient::new(Arc::new(IntegrationClient::new(
-        "http://127.0.0.1:9".to_string(),
-        "unused-token".to_string(),
-    )));
-
-    let blank_authorize = client
-        .authorize(" ", None)
-        .await
-        .expect_err("blank toolkit should fail before HTTP");
-    assert!(blank_authorize
-        .to_string()
-        .contains("toolkit must not be empty"));
-
-    let non_object_extra = client
-        .authorize("gmail", Some(json!("bad")))
-        .await
-        .expect_err("extra params must be an object");
-    assert!(non_object_extra
-        .to_string()
-        .contains("extra_params must be a JSON object"));
-
-    let reserved_extra = client
-        .authorize("gmail", Some(json!({ "toolkit": "slack" })))
-        .await
-        .expect_err("reserved keys cannot be overridden");
-    assert!(reserved_extra
-        .to_string()
-        .contains("cannot override reserved key"));
-
-    let blank_delete = client
-        .delete_connection("\t")
-        .await
-        .expect_err("blank connection id should fail before HTTP");
-    assert!(blank_delete.to_string().contains("connectionId"));
-
-    let blank_execute = client
-        .execute_tool(" ", Some(json!({})))
-        .await
-        .expect_err("blank tool should fail before HTTP");
-    assert!(blank_execute.to_string().contains("tool slug"));
-
-    let blank_create = client
-        .create_trigger(" ", None, None)
-        .await
-        .expect_err("blank trigger slug should fail before HTTP");
-    assert!(blank_create.to_string().contains("slug must not be empty"));
-
-    let blank_available = client
-        .list_available_triggers(" ", None)
-        .await
-        .expect_err("blank toolkit should fail before HTTP");
-    assert!(blank_available.to_string().contains("toolkit"));
-
-    let blank_enable_connection = client
-        .enable_trigger(" ", "GMAIL_NEW_GMAIL_MESSAGE", None)
-        .await
-        .expect_err("blank connection id should fail before HTTP");
-    assert!(blank_enable_connection.to_string().contains("connectionId"));
-
-    let blank_enable_slug = client
-        .enable_trigger("conn-1", " ", None)
-        .await
-        .expect_err("blank trigger slug should fail before HTTP");
-    assert!(blank_enable_slug.to_string().contains("slug"));
-
-    let blank_disable = client
-        .disable_trigger(" ")
-        .await
-        .expect_err("blank trigger id should fail before HTTP");
-    assert!(blank_disable.to_string().contains("triggerId"));
-
-    let direct_tool = Arc::new(ComposioTool::new(
-        "direct-api-key",
-        Some("entity-1"),
-        Arc::new(SecurityPolicy::default()),
-    ));
-    let blank_direct_execute = direct_execute(&direct_tool, " ", None, "entity-1", None)
-        .await
-        .expect_err("blank direct tool should fail before HTTP");
-    assert!(blank_direct_execute.to_string().contains("tool slug"));
-}
-
-#[tokio::test]
-async fn composio_backend_client_surfaces_get_post_envelope_and_status_errors() {
-    crate::tinyhumans_boot::boot();
-    async fn handler(request: Request) -> Response {
-        let method = request.method().clone();
-        let path = request.uri().path().to_string();
-        match (method, path.as_str()) {
-            (Method::GET, "/agent-integrations/composio/toolkits") => Json(json!({
-                "success": false,
-                "error": "Toolkit allowlist unavailable"
-            }))
-            .into_response(),
-            (Method::GET, "/agent-integrations/composio/tools") => {
-                Json(json!({ "success": true })).into_response()
-            }
-            (Method::POST, "/agent-integrations/composio/authorize") => {
-                Json(json!({ "success": true })).into_response()
-            }
-            (Method::POST, "/agent-integrations/composio/execute") => (
-                StatusCode::SERVICE_UNAVAILABLE,
-                Json(json!({ "success": false, "error": "upstream maintenance" })),
-            )
-                .into_response(),
-            _ => (
-                StatusCode::NOT_FOUND,
-                Json(json!({ "success": false, "error": format!("unhandled {path}") })),
-            )
-                .into_response(),
-        }
-    }
-
-    let base = start_composio_round8_backend(Router::new().fallback(any(handler))).await;
-    let client = ComposioClient::new(Arc::new(IntegrationClient::new(
-        base,
-        "round13-token".into(),
-    )));
-
-    let toolkits = client
-        .list_toolkits()
-        .await
-        .expect_err("success=false GET envelopes should error");
-    assert!(toolkits.to_string().contains("Backend error for GET"));
-    assert!(toolkits
-        .to_string()
-        .contains("Toolkit allowlist unavailable"));
-
-    let tools = client
-        .list_tools(None, None)
-        .await
-        .expect_err("success=true without data should error");
-    assert!(tools
-        .to_string()
-        .contains("Backend returned success but no data for GET"));
-
-    let authorize = client
-        .authorize("slack", None)
-        .await
-        .expect_err("POST success=true without data should error");
-    assert!(authorize
-        .to_string()
-        .contains("Backend returned success but no data for POST"));
-
-    let execute = client
-        .execute_tool("SLACK_POST_MESSAGE", Some(json!({ "text": "hello" })))
-        .await
-        .expect_err("non-2xx POST should error");
-    assert!(execute.to_string().contains("Backend returned 503"));
-    assert!(execute.to_string().contains("upstream maintenance"));
-}
-
-#[tokio::test]
-async fn composio_backend_factory_uses_stored_session_and_configured_backend() {
-    crate::tinyhumans_boot::boot();
-    async fn handler(request: Request) -> Response {
-        let auth = request
-            .headers()
-            .get("authorization")
-            .and_then(|value| value.to_str().ok())
-            .unwrap_or_default()
-            .to_string();
-        let method = request.method().clone();
-        let path = request.uri().path().to_string();
-
-        if auth != "Bearer stored-session-token" {
-            return (
-                StatusCode::UNAUTHORIZED,
-                Json(json!({ "success": false, "error": format!("bad auth: {auth}") })),
-            )
-                .into_response();
-        }
-
-        match (method, path.as_str()) {
-            (Method::GET, "/agent-integrations/composio/toolkits") => ok(json!({
-                "toolkits": ["gmail"]
-            })),
-            _ => (
-                StatusCode::NOT_FOUND,
-                Json(json!({ "success": false, "error": format!("unhandled {path}") })),
-            )
-                .into_response(),
-        }
-    }
-
-    let base = start_composio_round8_backend(Router::new().fallback(any(handler))).await;
     let dir = tempdir().expect("tempdir");
     let mut config = Config {
         workspace_dir: dir.path().join("workspace"),
         config_path: dir.path().join("config.toml"),
-        api_url: Some(base.clone()),
+        api_url: Some("http://127.0.0.1:0".into()),
         ..Config::default()
     };
     config.composio.mode = "backend".into();
     store_app_session_token(&config, "  stored-session-token  ");
 
-    let client = match create_composio_client(&config).expect("backend client from stored session")
-    {
-        ComposioClientKind::Backend(client) => client,
-        ComposioClientKind::Direct(_) => panic!("backend mode should not create direct client"),
-    };
-    assert_eq!(client.inner().backend_url, base);
-
-    let toolkits = client
-        .list_toolkits()
-        .await
-        .expect("factory client should call local backend with stored bearer");
-    assert_eq!(toolkits.toolkits, vec!["gmail"]);
+    let route = resolve_composio_route(&config).expect("backend route from stored session");
+    assert!(matches!(route, ComposioRoute::Backend));
+    assert_eq!(route.mode(), "backend");
 }
 
 #[tokio::test]
@@ -1123,6 +761,7 @@ async fn composio_call(controller: &RegisteredController, params: Value) -> Resu
 
 #[tokio::test]
 async fn composio_agent_tools_cover_metadata_missing_params_and_scope_helpers() {
+    let _module = crate::CONNECTOR_MODULE_LOCK.lock().await;
     crate::tinyhumans_boot::boot();
     let dir = tempdir().expect("tempdir");
     let config = Config {
@@ -1259,6 +898,7 @@ async fn composio_agent_tools_cover_metadata_missing_params_and_scope_helpers() 
 
 #[tokio::test]
 async fn composio_agent_tools_direct_mode_take_local_branches_without_backend() {
+    let _module = crate::CONNECTOR_MODULE_LOCK.lock().await;
     crate::tinyhumans_boot::boot();
     let dir = tempdir().expect("tempdir");
     let mut config = Config {
@@ -1618,20 +1258,6 @@ fn composio_types_roundtrip_connection_tool_trigger_and_history_shapes() {
 #[test]
 fn composio_direct_public_types_deserialize_polymorphic_toolkits() {
     crate::tinyhumans_boot::boot();
-    let action: ComposioAction = serde_json::from_value(json!({
-        "name": "GMAIL_SEND_EMAIL",
-        "appName": "gmail",
-        "description": "Send email"
-    }))
-    .unwrap();
-    assert_eq!(action.name, "GMAIL_SEND_EMAIL");
-    assert_eq!(action.app_name.as_deref(), Some("gmail"));
-    assert!(!action.enabled);
-    assert_eq!(
-        serde_json::to_value(&action).unwrap()["appName"],
-        json!("gmail")
-    );
-
     let plain: ComposioConnectedAccount = serde_json::from_value(json!({
         "id": "acct-1",
         "status": "ACTIVE",
@@ -1677,426 +1303,6 @@ fn composio_direct_public_types_deserialize_polymorphic_toolkits() {
     }))
     .unwrap();
     assert_eq!(missing.toolkit_slug(), None);
-}
-
-#[tokio::test]
-async fn composio_backend_client_methods_build_requests_and_parse_local_envelopes() {
-    crate::tinyhumans_boot::boot();
-    let app = Router::new().fallback(any(composio_round8_backend_handler));
-    let base = start_composio_round8_backend(app).await;
-    let client = ComposioClient::new(Arc::new(IntegrationClient::new(
-        base,
-        "round8-token".into(),
-    )));
-
-    let toolkits = client.list_toolkits().await.expect("toolkits");
-    assert_eq!(toolkits.toolkits, vec!["gmail", "github", "slack"]);
-
-    let connections = client.list_connections().await.expect("connections");
-    assert_eq!(connections.connections.len(), 2);
-    assert_eq!(connections.connections[0].normalized_toolkit(), "gmail");
-
-    let authorize = client
-        .authorize(
-            " Gmail ",
-            Some(json!({
-                "waba_id": "waba-1",
-                "oauth_scopes": "profile https://www.googleapis.com/auth/gmail.readonly"
-            })),
-        )
-        .await
-        .expect("authorize with string scopes");
-    assert_eq!(authorize.connect_url, "https://connect.example/gmail");
-    assert_eq!(authorize.connection_id, "conn-gmail");
-
-    let authorize_array = client
-        .authorize("gmail", Some(json!({ "oauth_scopes": ["profile", ""] })))
-        .await
-        .expect("authorize appends missing array scopes");
-    assert_eq!(authorize_array.connection_id, "conn-gmail");
-
-    let bad_scope_entry = client
-        .authorize("gmail", Some(json!({ "oauth_scopes": [42] })))
-        .await
-        .expect_err("scope entries must be strings");
-    assert!(bad_scope_entry
-        .to_string()
-        .contains("entries must be strings"));
-    let bad_scope_shape = client
-        .authorize("gmail", Some(json!({ "oauth_scopes": { "bad": true } })))
-        .await
-        .expect_err("scope shape must be string or array");
-    assert!(bad_scope_shape
-        .to_string()
-        .contains("must be a string or array"));
-
-    let tools = client
-        .list_tools(
-            Some(&[
-                " gmail ".to_string(),
-                "".to_string(),
-                "github/repo".to_string(),
-            ]),
-            Some(&[" important tag ".to_string(), " ".to_string()]),
-        )
-        .await
-        .expect("tools");
-    assert_eq!(tools.tools[0].function.name, "GMAIL_SEND_EMAIL");
-
-    let all_tools = client.list_tools(None, None).await.expect("all tools");
-    assert_eq!(all_tools.tools.len(), 1);
-
-    let execute = client
-        .execute_tool(
-            " GMAIL_SEND_EMAIL ",
-            Some(json!({ "to": "p@example.test" })),
-        )
-        .await
-        .expect("execute");
-    assert!(execute.successful);
-    assert_eq!(execute.data["id"], "msg-1");
-
-    let dispatched = execute_composio_action(
-        &client,
-        "GMAIL_SEND_EMAIL",
-        Some(json!({ "to": "p@example.test", "subject": "hello" })),
-    )
-    .await
-    .expect("dispatch uses auth-retry wrapper and local backend");
-    assert!(dispatched.successful);
-    assert_eq!(dispatched.data["id"], "msg-1");
-
-    let execute_error = client
-        .execute_tool(
-            "GMAIL_FETCH_EMAILS",
-            Some(json!({ "query": "newer_than:1d" })),
-        )
-        .await
-        .expect("execute provider failure envelope");
-    assert!(!execute_error.successful);
-    assert!(execute_error
-        .error
-        .as_deref()
-        .unwrap_or_default()
-        .starts_with("[composio:error:insufficient_scope]"));
-
-    let dispatched_error = execute_composio_action(
-        &client,
-        "GMAIL_FETCH_EMAILS",
-        Some(json!({ "query": "newer_than:1d" })),
-    )
-    .await
-    .expect("provider failures stay in response envelope");
-    assert!(!dispatched_error.successful);
-    assert!(dispatched_error
-        .error
-        .as_deref()
-        .unwrap_or_default()
-        .starts_with("[composio:error:insufficient_scope]"));
-
-    let repos = client
-        .list_github_repos(Some(" github conn "))
-        .await
-        .expect("repos");
-    assert_eq!(repos.repositories[0].full_name, "tinyhumansai/openhuman");
-    let repos_without_connection = client
-        .list_github_repos(None)
-        .await
-        .expect("repos without connection");
-    assert_eq!(repos_without_connection.connection_id, "conn-github");
-
-    let created = client
-        .create_trigger(
-            " GITHUB_PULL_REQUEST_EVENT ",
-            Some(" conn-github "),
-            Some(json!({ "owner": "tinyhumansai", "repo": "openhuman" })),
-        )
-        .await
-        .expect("create trigger");
-    assert_eq!(created.trigger_id, "created-trigger");
-
-    let created_without_config = client
-        .create_trigger("SLACK_NEW_MESSAGE", None, None)
-        .await
-        .expect("create trigger without optional fields");
-    assert_eq!(created_without_config.status.as_deref(), Some("enabled"));
-
-    let available = client
-        .list_available_triggers(" github ", Some(" conn-github "))
-        .await
-        .expect("available triggers");
-    assert_eq!(available.triggers[0].slug, "GITHUB_PULL_REQUEST_EVENT");
-    let available_without_connection = client
-        .list_available_triggers("gmail", None)
-        .await
-        .expect("available triggers without connection");
-    assert_eq!(available_without_connection.triggers[0].scope, "mailbox");
-
-    let active = client
-        .list_active_triggers(Some(" gmail "))
-        .await
-        .expect("active triggers");
-    assert_eq!(active.triggers[0].toolkit, "gmail");
-    let active_all = client
-        .list_active_triggers(None)
-        .await
-        .expect("all active triggers");
-    assert_eq!(active_all.triggers[0].id, "active-trigger");
-
-    let enabled = client
-        .enable_trigger(
-            " conn-gmail ",
-            " GMAIL_NEW_GMAIL_MESSAGE ",
-            Some(json!({ "label": "INBOX" })),
-        )
-        .await
-        .expect("enable trigger");
-    assert_eq!(enabled.connection_id, "conn-gmail");
-    let enabled_without_config = client
-        .enable_trigger("conn-gmail", "GMAIL_NEW_GMAIL_MESSAGE", None)
-        .await
-        .expect("enable trigger without config");
-    assert_eq!(enabled_without_config.slug, "GMAIL_NEW_GMAIL_MESSAGE");
-
-    let deleted = client
-        .delete_connection(" conn-gmail ")
-        .await
-        .expect("delete connection");
-    assert!(deleted.deleted);
-    let disabled = client
-        .disable_trigger(" trigger/with space ")
-        .await
-        .expect("disable trigger");
-    assert!(disabled.deleted);
-
-    let delete_status = client
-        .delete_connection("bad-status")
-        .await
-        .expect_err("delete non-2xx");
-    assert!(delete_status.to_string().contains("Backend returned"));
-    assert!(delete_status.to_string().contains("delete rejected"));
-
-    let delete_envelope = client
-        .delete_connection("bad-envelope")
-        .await
-        .expect_err("delete envelope error");
-    assert!(delete_envelope
-        .to_string()
-        .contains("Backend error for DELETE"));
-
-    let delete_no_data = client
-        .disable_trigger("no-data")
-        .await
-        .expect_err("delete success needs data");
-    assert!(delete_no_data.to_string().contains("success but no data"));
-}
-
-#[tokio::test]
-async fn composio_authorize_scope_merging_and_meta_cleanup_use_local_backend() {
-    crate::tinyhumans_boot::boot();
-    #[derive(Clone, Default)]
-    struct CleanupState {
-        deleted: Arc<Mutex<Vec<String>>>,
-        authorize_bodies: Arc<Mutex<Vec<Value>>>,
-    }
-
-    async fn handler(State(state): State<CleanupState>, request: Request) -> Response {
-        let method = request.method().clone();
-        let path = request.uri().path().to_string();
-        let body = to_bytes(request.into_body(), usize::MAX)
-            .await
-            .expect("mock request body");
-        let body: Value = if body.is_empty() {
-            json!({})
-        } else {
-            serde_json::from_slice(&body).expect("json request body")
-        };
-
-        match (method, path.as_str()) {
-            (Method::GET, "/agent-integrations/composio/connections") => ok(json!({
-                "connections": [
-                    { "id": "ig-active", "toolkit": "instagram", "status": "ACTIVE" },
-                    { "id": "ig-failed", "toolkit": "instagram", "status": "FAILED" },
-                    { "id": "ig-pending", "toolkit": " Instagram ", "status": "pending" },
-                    { "id": "ig-expired", "toolkit": "instagram", "status": "EXPIRED" },
-                    { "id": "fb-pending", "toolkit": "facebook", "status": "PENDING" },
-                    { "id": "gmail-pending", "toolkit": "gmail", "status": "PENDING" }
-                ]
-            })),
-            (Method::DELETE, path)
-                if path.starts_with("/agent-integrations/composio/connections/") =>
-            {
-                state
-                    .deleted
-                    .lock()
-                    .expect("deleted ids")
-                    .push(path.rsplit('/').next().unwrap_or_default().to_string());
-                ok(json!({ "deleted": true, "memory_chunks_deleted": 0 }))
-            }
-            (Method::POST, "/agent-integrations/composio/authorize") => {
-                state
-                    .authorize_bodies
-                    .lock()
-                    .expect("authorize bodies")
-                    .push(body.clone());
-                ok(json!({
-                    "connectUrl": format!(
-                        "https://connect.example/{}",
-                        body.get("toolkit").and_then(Value::as_str).unwrap_or("unknown")
-                    ),
-                    "connectionId": "conn-authorize"
-                }))
-            }
-            _ => (
-                StatusCode::NOT_FOUND,
-                Json(json!({ "success": false, "error": format!("unhandled {path}") })),
-            )
-                .into_response(),
-        }
-    }
-
-    let state = CleanupState::default();
-    let app = Router::new()
-        .fallback(any(handler))
-        .with_state(state.clone());
-    let base = start_composio_round8_backend(app).await;
-    let client = ComposioClient::new(Arc::new(IntegrationClient::new(
-        base,
-        "round12-token".into(),
-    )));
-
-    assert_eq!(
-        clear_non_active_connections(&client, "gmail")
-            .await
-            .expect("non-meta cleanup is a no-op"),
-        0
-    );
-    assert_eq!(
-        clear_non_active_connections(&client, " Instagram ")
-            .await
-            .expect("stale instagram rows are deleted"),
-        3
-    );
-    let mut deleted = state.deleted.lock().expect("deleted ids").clone();
-    deleted.sort();
-    assert_eq!(deleted, vec!["ig-expired", "ig-failed", "ig-pending"]);
-
-    client
-        .authorize("gmail", Some(json!({ "oauth_scopes": null })))
-        .await
-        .expect("null scopes are replaced with required gmail scopes");
-    client
-        .authorize("gmail", None)
-        .await
-        .expect("missing scopes get required gmail scope");
-    client
-        .authorize("slack", Some(json!({ "bot_scope": "chat:write" })))
-        .await
-        .expect("non-gmail authorize passes through extra params");
-
-    let bodies = state.authorize_bodies.lock().expect("authorize bodies");
-    assert_eq!(
-        bodies[0]["oauth_scopes"],
-        json!(["https://www.googleapis.com/auth/gmail.readonly"])
-    );
-    assert_eq!(
-        bodies[1]["oauth_scopes"],
-        json!(["https://www.googleapis.com/auth/gmail.readonly"])
-    );
-    assert!(bodies[2].get("oauth_scopes").is_none());
-    assert_eq!(bodies[2]["bot_scope"], "chat:write");
-}
-
-#[tokio::test]
-async fn composio_direct_tool_public_surface_handles_local_metadata_and_errors() {
-    crate::tinyhumans_boot::boot();
-    let tool = ComposioTool::new(
-        "  direct-api-key  ",
-        Some("  entity-123  "),
-        Arc::new(SecurityPolicy::default()),
-    );
-
-    assert_eq!(tool.name(), "composio");
-    assert!(tool.description().contains("1000+ apps"));
-    assert_eq!(tool.category(), ToolCategory::Workflow);
-    assert!(tool.external_effect());
-    assert!(!tool.external_effect_with_args(&json!({ "action": "list" })));
-    assert!(!tool.external_effect_with_args(&json!({ "action": "connect" })));
-    assert!(tool.external_effect_with_args(&json!({ "action": "execute" })));
-    assert!(tool.external_effect_with_args(&json!({})));
-    assert_eq!(
-        tool.parameters_schema().pointer("/required/0"),
-        Some(&json!("action"))
-    );
-    assert_eq!(
-        tool.parameters_schema()
-            .pointer("/properties/action/enum/2"),
-        Some(&json!("connect"))
-    );
-
-    let missing_action = tool
-        .execute(json!({}))
-        .await
-        .expect_err("missing action is a local validation error");
-    assert!(missing_action.to_string().contains("Missing 'action'"));
-
-    let unknown = tool
-        .execute(json!({ "action": "inspect" }))
-        .await
-        .expect("unknown action is rendered as a tool error");
-    assert!(unknown.is_error);
-    assert!(serde_json::to_string(&unknown)
-        .unwrap()
-        .contains("Unknown action 'inspect'"));
-
-    let missing_execute_name = tool
-        .execute(json!({ "action": "execute", "params": { "q": "test" } }))
-        .await
-        .expect_err("execute needs action_name or tool_slug before network");
-    assert!(missing_execute_name
-        .to_string()
-        .contains("Missing 'action_name'"));
-
-    let missing_connect_target = tool
-        .execute(json!({ "action": "connect" }))
-        .await
-        .expect_err("connect needs app or auth config before network");
-    assert!(missing_connect_target
-        .to_string()
-        .contains("Missing 'app' or 'auth_config_id'"));
-
-    let read_only_tool = ComposioTool::new(
-        "direct-api-key",
-        Some("default"),
-        Arc::new(SecurityPolicy {
-            autonomy: AutonomyLevel::ReadOnly,
-            ..SecurityPolicy::default()
-        }),
-    );
-    let blocked_execute = read_only_tool
-        .execute(json!({
-            "action": "execute",
-            "tool_slug": "GMAIL_FETCH_EMAILS",
-            "params": { "query": "newer_than:1d" }
-        }))
-        .await
-        .expect("policy block is rendered as a tool result");
-    assert!(blocked_execute.is_error);
-    assert!(serde_json::to_string(&blocked_execute)
-        .unwrap()
-        .contains("read-only mode"));
-
-    let blocked_connect = read_only_tool
-        .execute(json!({
-            "action": "connect",
-            "auth_config_id": "auth-config-1"
-        }))
-        .await
-        .expect("policy block is rendered as a tool result");
-    assert!(blocked_connect.is_error);
-    assert!(serde_json::to_string(&blocked_connect)
-        .unwrap()
-        .contains("read-only mode"));
 }
 
 #[test]

@@ -33,6 +33,15 @@ use std::sync::{Mutex, OnceLock};
 /// panicking test cannot wedge the whole suite.
 pub static SHARED_ENV_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
 
+/// Serializes aggregated suites that reach the Composio connector module.
+///
+/// The module is loaded once per process and holds exactly one route, so two
+/// tests that point it at different routes (backend vs direct mode) race when
+/// run concurrently: one reconfigures the module mid-call and the other sees
+/// the wrong route. The core's own unit tests serialize on `module_guard`,
+/// which is `cfg(test)`-only; this is the integration-binary equivalent.
+pub static CONNECTOR_MODULE_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+
 /// The TinyHumans backend transport for every aggregated suite that boots the
 /// core in-process and reaches the mock backend: call
 /// `crate::tinyhumans_boot::boot()` from the suite's fixture (or each test).

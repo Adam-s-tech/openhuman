@@ -371,7 +371,7 @@ describe('Conversations — smoke render (#1123 welcome-lock removal)', () => {
   });
 
   // Covers the page-mode sidebar (TwoPanelLayout, id `chat`) once opened. The
-  // General/Subconscious/Tasks filter chips were removed, and so was the thread
+  // General/Tasks filter chips were removed, and so was the thread
   // search; the section header's "new conversation" affordance is now the stable
   // top-of-sidebar control.
   it('renders the sidebar thread list chrome in page mode', async () => {
@@ -1991,9 +1991,9 @@ describe('Conversations — smoke render (#1123 welcome-lock removal)', () => {
     });
   });
 
-  // The General/Subconscious/Tasks filter chips were removed — the thread list
-  // is now fixed to the General bucket with no in-sidebar bucket switcher.
-  // Subconscious reflections and task/worker threads have dedicated surfaces.
+  // The General/Tasks filter chips were removed — the thread list is now fixed
+  // to the General bucket with no in-sidebar bucket switcher. Task/worker
+  // threads have a dedicated surface.
   it('does not render the removed bucket filter tabs', async () => {
     await act(async () => {
       await renderConversations({ thread: emptyThreadState });
@@ -2003,7 +2003,6 @@ describe('Conversations — smoke render (#1123 welcome-lock removal)', () => {
     await openSidebar();
 
     expect(screen.queryByRole('tab', { name: 'General' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('tab', { name: 'Subconscious' })).not.toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: 'Tasks' })).not.toBeInTheDocument();
   });
 });
@@ -2069,7 +2068,7 @@ describe('Conversations — active-thread restore across in-app navigation', () 
     await waitFor(() => {
       expect(threadApi.createNewThread).not.toHaveBeenCalled();
     });
-    // Main removed the visible General/Subconscious/Tasks chips; restoring a
+    // Main removed the visible General/Tasks chips; restoring a
     // task session should not reintroduce that tab UI.
     await openSidebar();
     expect(screen.queryByRole('tab', { name: 'Tasks' })).not.toBeInTheDocument();

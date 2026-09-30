@@ -96,9 +96,7 @@ function makeClientConfigResult(overrides: Record<string, unknown> = {}) {
       coding_provider: null,
       memory_provider: null,
       embeddings_provider: null,
-      heartbeat_provider: null,
       learning_provider: null,
-      subconscious_provider: null,
       ...overrides,
     },
   };
@@ -393,9 +391,7 @@ describe('loadAISettings', () => {
         coding_provider: 'ollama:codellama:13b',
         memory_provider: null,
         embeddings_provider: null,
-        heartbeat_provider: null,
         learning_provider: null,
-        subconscious_provider: null,
       })
     );
     mockAuthListProviderCredentials.mockResolvedValue(makeAuthProfileResult([]));
@@ -611,9 +607,7 @@ describe('saveAISettings', () => {
         vision: { kind: 'openhuman' },
         memory: { kind: 'openhuman' },
 
-        heartbeat: { kind: 'openhuman' },
         learning: { kind: 'openhuman' },
-        subconscious: { kind: 'openhuman' },
       },
       modelRegistry: [],
       creditsBypass: { chat: false, reasoning: false },
@@ -712,9 +706,7 @@ describe('saveAISettings', () => {
         vision: { kind: 'openhuman' },
         memory: { kind: 'openhuman' },
 
-        heartbeat: { kind: 'openhuman' },
         learning: { kind: 'openhuman' },
-        subconscious: { kind: 'openhuman' },
       },
       modelRegistry: [],
     };

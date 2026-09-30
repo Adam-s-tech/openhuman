@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 
 use crate::config::Config;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 use crate::security::credentials::AuthService;
 
 use super::LOG_PREFIX;
@@ -13,7 +13,7 @@ pub async fn set_api_key(
     config: &Config,
     provider_slug: &str,
     api_key: &str,
-) -> Result<RpcOutcome<serde_json::Value>, String> {
+) -> Result<Outcome<serde_json::Value>, String> {
     if provider_slug.is_empty() {
         return Err("provider slug is required".into());
     }
@@ -48,7 +48,7 @@ pub async fn set_api_key(
         "{LOG_PREFIX} set_api_key stored"
     );
 
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         serde_json::json!({ "stored": true, "provider": provider_slug, "requeued_failed_jobs": requeued_count, "requeue_error": requeue_error }),
         vec![format!(
             "embedding API key stored for {provider_slug} (requeued_failed={requeued_note})"
@@ -60,7 +60,7 @@ pub async fn set_api_key(
 pub async fn clear_api_key(
     config: &Config,
     provider_slug: &str,
-) -> Result<RpcOutcome<serde_json::Value>, String> {
+) -> Result<Outcome<serde_json::Value>, String> {
     if provider_slug.is_empty() {
         return Err("provider slug is required".into());
     }
@@ -77,7 +77,7 @@ pub async fn clear_api_key(
         "{LOG_PREFIX} clear_api_key"
     );
 
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         serde_json::json!({ "cleared": removed, "provider": provider_slug }),
         vec![format!("embedding API key cleared for {provider_slug}")],
     ))

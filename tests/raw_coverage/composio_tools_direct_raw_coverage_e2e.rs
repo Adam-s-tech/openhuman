@@ -14,11 +14,9 @@ use axum::{Json, Router};
 use serde_json::{json, Value};
 use tempfile::tempdir;
 
-use openhuman_core::integrations::composio::client::{direct_execute, direct_list_connections};
+use openhuman_core::integrations::composio::client::direct_list_connections;
 use openhuman_core::integrations::composio::trigger_history::ComposioTriggerHistoryStore;
-use openhuman_core::security::{AutonomyLevel, SecurityPolicy};
-use tinytools::{Tool};
-use openhuman_core::tools::{ComposioTool};
+use openhuman_core::tools::DirectComposioClient;
 
 #[derive(Clone, Default)]
 struct MockState {
@@ -35,114 +33,20 @@ struct RecordedRequest {
 }
 
 #[tokio::test]
-async fn direct_composio_tool_uses_loopback_for_list_execute_connect_and_accounts() {
+async fn direct_composio_client_uses_loopback_for_connected_accounts() {
     let state = MockState::default();
     let app = Router::new()
         .fallback(any(composio_direct_handler))
         .with_state(state.clone());
     let base = start_loopback(app).await;
     let tool = Arc::new(
-        ComposioTool::new_with_base_urls_for_loopback(
+        DirectComposioClient::new_with_base_urls_for_loopback(
             " ck_round16 ",
-            Some(" entity-round16 "),
-            writable_security(),
             format!("{base}/api/v2"),
             format!("{base}/api/v3"),
         )
-        .expect("loopback direct tool"),
+        .expect("loopback direct client"),
     );
-
-    let actions = tool
-        .list_actions(Some(" gmail "))
-        .await
-        .expect("v3 actions");
-    assert_eq!(actions.len(), 2);
-    assert!(actions
-        .iter()
-        .any(|action| action.name == "gmail-fetch-emails"
-            && action.app_name.as_deref() == Some("gmail")));
-    assert!(actions
-        .iter()
-        .any(|action| action.name == "gmail-send-email"
-            && action.description.as_deref() == Some("Send Gmail")));
-
-    let listed = tool
-        .execute(json!({ "action": "list", "app": "gmail" }))
-        .await
-        .expect("tool list action");
-    assert!(!listed.is_error);
-    assert!(listed.output().contains("Found 2 available actions"));
-
-    let raw_execute = tool
-        .execute_action(
-            " GMAIL_FETCH_EMAILS ",
-            json!({ "query": "label:INBOX" }),
-            Some(" entity-override "),
-            Some(" acct-gmail "),
-        )
-        .await
-        .expect("v3 execute action");
-    assert_eq!(
-        raw_execute.pointer("/data/messages/0/id"),
-        Some(&json!("msg-direct"))
-    );
-
-    let direct_response = direct_execute(
-        &tool,
-        "GMAIL_FETCH_EMAILS",
-        Some(json!({ "query": "from:me" })),
-        " entity-direct ",
-        None,
-    )
-    .await
-    .expect("direct execute envelope");
-    assert!(direct_response.successful);
-    assert_eq!(
-        direct_response.data.pointer("/messages/0/id"),
-        Some(&json!("msg-direct"))
-    );
-    assert_eq!(direct_response.cost_usd, 0.0);
-
-    let fallback_execute = tool
-        .execute_action("FALLBACK_ACTION", json!({ "ok": true }), None, None)
-        .await
-        .expect("v2 execute fallback");
-    assert_eq!(fallback_execute.pointer("/legacy"), Some(&json!(true)));
-
-    let failed = tool
-        .execute_action(
-            "BROKEN_ACTION",
-            json!({ "connected_account_id": "acct-secret" }),
-            Some("entity-secret"),
-            Some("acct-secret"),
-        )
-        .await
-        .expect_err("both v3 and v2 fail");
-    let failed = failed.to_string();
-    assert!(failed.contains("Composio execute failed on v3"));
-    assert!(failed.contains("[redacted]"));
-
-    let linked_by_toolkit = tool
-        .get_connection_url(Some("gmail"), None, "entity-round16")
-        .await
-        .expect("connect via resolved auth config");
-    assert_eq!(linked_by_toolkit, "https://connect.example/from-data");
-
-    let linked_by_auth_config = tool
-        .get_connection_url(None, Some("auth-explicit"), "entity-round16")
-        .await
-        .expect("connect via explicit auth config");
-    assert_eq!(
-        linked_by_auth_config,
-        "https://connect.example/from-redirect-url"
-    );
-
-    let missing_connect = tool
-        .get_connection_url(None, None, "entity-round16")
-        .await
-        .expect_err("connect needs app or auth config")
-        .to_string();
-    assert!(missing_connect.contains("Missing 'app' or 'auth_config_id'"));
 
     let accounts = tool
         .list_connected_accounts()
@@ -163,57 +67,14 @@ async fn direct_composio_tool_uses_loopback_for_list_execute_connect_and_account
         .iter()
         .any(|conn| conn.id == "acct-github" && conn.toolkit == "github"));
 
-    let execute_result = tool
-        .execute(json!({
-            "action": "execute",
-            "tool_slug": "GMAIL_FETCH_EMAILS",
-            "params": { "query": "newer_than:1d" },
-            "connected_account_id": "acct-gmail"
-        }))
-        .await
-        .expect("tool execute action");
-    assert!(!execute_result.is_error);
-    assert!(execute_result.output().contains("msg-direct"));
-
-    let connect_result = tool
-        .execute(json!({ "action": "connect", "auth_config_id": "auth-explicit" }))
-        .await
-        .expect("tool connect action");
-    assert!(!connect_result.is_error);
-    assert!(connect_result
-        .output()
-        .contains("https://connect.example/from-redirect-url"));
-
-    let unknown = tool
-        .execute(json!({ "action": "unknown" }))
-        .await
-        .expect("unknown action returns tool error");
-    assert!(unknown.is_error);
-    assert!(unknown.output().contains("Unknown action"));
-
-    let missing_action = tool.execute(json!({})).await.expect_err("missing action");
-    assert!(missing_action.to_string().contains("Missing 'action'"));
-
     let requests = state.requests.lock().expect("requests").clone();
     assert!(requests.iter().all(|request| {
         request.api_key.as_deref() == Some("ck_round16") || request.path == "/health"
     }));
     assert!(requests.iter().any(|request| {
         request.method == "GET"
-            && request.path == "/api/v3/tools"
-            && request.query.contains("toolkits=gmail")
+            && request.path == "/api/v3/connected_accounts"
             && request.query.contains("limit=200")
-    }));
-    assert!(requests.iter().any(|request| {
-        request.method == "POST"
-            && request.path == "/api/v3/tools/execute/GMAIL_FETCH_EMAILS"
-            && request.body.pointer("/user_id") == Some(&json!(" entity-override "))
-            && request.body.pointer("/connected_account_id") == Some(&json!("acct-gmail"))
-    }));
-    assert!(requests.iter().any(|request| {
-        request.method == "POST"
-            && request.path == "/api/v2/actions/FALLBACK_ACTION/execute"
-            && request.body.pointer("/input/ok") == Some(&json!(true))
     }));
 }
 
@@ -429,11 +290,4 @@ async fn start_loopback(app: Router) -> String {
         let _ = axum::serve(listener, app).await;
     });
     format!("http://127.0.0.1:{}", addr.port())
-}
-
-fn writable_security() -> Arc<SecurityPolicy> {
-    Arc::new(SecurityPolicy {
-        autonomy: AutonomyLevel::Full,
-        ..SecurityPolicy::default()
-    })
 }

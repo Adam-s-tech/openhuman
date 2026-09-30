@@ -4,6 +4,7 @@ pub mod config_patch;
 pub mod focus;
 pub mod generate;
 pub mod ml;
+pub mod repl_tools;
 pub mod savings;
 pub mod schemas;
 pub mod tools;
@@ -11,6 +12,7 @@ pub mod types;
 
 use tinyjuice_bus::names::methods;
 
+pub use repl_tools::{is_repl_tool, repl_tools, repl_tools_for, REPL_TOOL_NAMES};
 pub use tools::TokenjuiceRetrieveTool;
 pub use types::{AgentTokenjuiceCompression, CompressorKind, ContentKind};
 
@@ -36,17 +38,28 @@ pub fn is_recovery_tool(name: &str) -> bool {
     RECOVERY_TOOL_NAMES.contains(&name)
 }
 
-pub async fn install_from_config(config: &crate::config::Config) -> Result<(), String> {
+/// Whether large results are stored behind a handle (stats, head, handle)
+/// instead of being compressed into one blob, and the REPL tools that query
+/// them are offered to the model. Needs the router, the CCR store the handle
+/// points into, and the compaction switch that lets the module rewrite results
+/// at all.
+pub fn repl_handle_active(config: &crate::config::Config) -> bool {
+    config.context.compaction_enabled
+        && config.tokenjuice.router_enabled
+        && config.tokenjuice.ccr_enabled
+        && config.tokenjuice.repl_handle_enabled
+}
+
+/// Where the module writes a plain-text copy of each stored original when
+/// `[tokenjuice] repl_save_enabled` is on.
+pub fn repl_save_dir(workspace_dir: &std::path::Path) -> std::path::PathBuf {
+    workspace_dir.join(".tokenjuice").join("repl")
+}
+
+/// What the module is told to do, from the resolved configuration.
+pub(crate) fn install_request(config: &crate::config::Config) -> InstallRequest {
     let tj = &config.tokenjuice;
-    ml::configure(config.clone());
-    savings::configure(
-        config
-            .default_model
-            .clone()
-            .unwrap_or_else(|| crate::config::DEFAULT_MODEL.to_string()),
-        &config.workspace_dir,
-    );
-    let request = InstallRequest {
+    InstallRequest {
         options: types::CompressOptions {
             router_enabled: tj.router_enabled,
             ccr_enabled: tj.ccr_enabled,
@@ -62,6 +75,9 @@ pub async fn install_from_config(config: &crate::config::Config) -> Result<(), S
             llm_summary_enabled: config.context.summarizer_payload_threshold_tokens > 0,
             llm_summary_threshold_tokens: config.context.summarizer_payload_threshold_tokens,
             llm_summary_max_input_tokens: config.context.summarizer_max_payload_tokens,
+            repl_handle: repl_handle_active(config),
+            repl_save_dir: (repl_handle_active(config) && tj.repl_save_enabled)
+                .then(|| repl_save_dir(&config.workspace_dir)),
             ..types::CompressOptions::default()
         },
         max_cache_entries: tj.max_cache_entries,
@@ -71,7 +87,19 @@ pub async fn install_from_config(config: &crate::config::Config) -> Result<(), S
             .ccr_disk_enabled
             .then(|| config.workspace_dir.join(".tokenjuice").join("ccr"))
             .map(|path| path.to_string_lossy().into_owned()),
-    };
+    }
+}
+
+pub async fn install_from_config(config: &crate::config::Config) -> Result<(), String> {
+    ml::configure(config.clone());
+    savings::configure(
+        config
+            .default_model
+            .clone()
+            .unwrap_or_else(|| crate::config::DEFAULT_MODEL.to_string()),
+        &config.workspace_dir,
+    );
+    let request = install_request(config);
     let fingerprint = serde_json::to_vec(&request).map_err(|error| error.to_string())?;
     static INSTALLED: std::sync::OnceLock<tokio::sync::Mutex<Option<Vec<u8>>>> =
         std::sync::OnceLock::new();
@@ -483,3 +511,7 @@ mod tests;
 #[cfg(test)]
 #[path = "module_stub_tests.rs"]
 pub(crate) mod module_stub;
+
+#[cfg(test)]
+#[path = "mod_repl_module_tests.rs"]
+mod repl_module_tests;

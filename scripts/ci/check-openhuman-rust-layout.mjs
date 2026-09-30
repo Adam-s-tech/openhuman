@@ -10,67 +10,65 @@ const CORE_MANIFEST = "crates/openhuman-core/Cargo.toml";
 // which hosts the binary and every integration suite; the core is a library.
 const CLI_MANIFEST = "crates/openhuman-cli/Cargo.toml";
 const LINE_LIMIT = 750;
+// Files past this size are reported (without failing) so an author sees the
+// margin in their own PR's log instead of a later PR turning `main` red.
+const WARN_AT = 725;
 
-// These stateful assembly functions still need semantic decomposition. Pinning
-// their current size makes the gate monotonic: they cannot grow, no new
-// exception can appear, and deleting an entry is the only way to relax it.
-const LEGACY_LIMITS = new Map([
+// Files over `LINE_LIMIT` that still need semantic decomposition. Each pin is
+// the file's exact size and is a ratchet, enforced below: a file may not grow
+// past its pin, and a file that shrinks must lower its pin in the same change
+// (or drop the entry once it fits `LINE_LIMIT`), so recovered lines cannot be
+// spent again. No new exception can appear, and one file may be listed only
+// once (a Map keeps the last duplicate, which silently discards the other pin).
+const LEGACY_LIMIT_ENTRIES = [
   // These orchestration files crossed the general limit in the already-merged
-  // runtime compatibility work. Pin their exact post-merge sizes so follow-up
-  // changes cannot grow them while they are split along semantic seams.
-  // 847 -> 821: the argument prologue moved to
-  // `spawn_async_subagent_args.rs`. Pinned at its exact new size, so the
-  // 26 lines recovered cannot be spent again. Still exempt because the rest of
-  // that function's phases close over locals whose types are not nameable from
-  // this module (see that fragment's header); taking it under 750 needs a
-  // visibility change in `subagent_sessions`, which is follow-up, not this PR.
+  // runtime compatibility work. They are being split along semantic seams.
+  // `spawn_async_subagent_execute.rs`: 847 -> 821 when the argument prologue
+  // moved to `spawn_async_subagent_args.rs`, 821 -> 809 via
+  // `AbortReport::deliver`. Still exempt because the rest of that function's
+  // phases close over locals whose types are not nameable from this module
+  // (see that fragment's header); taking it under 750 needs a visibility
+  // change in `subagent_sessions`.
   [
     "crates/openhuman-core/src/agent/orchestration/tools/spawn_async_subagent_execute.rs",
-    // 821 -> 809: the terminal progress sends go through `AbortReport::deliver`
-    // (one call instead of an `if let` around `tx.send`). Pinned at the new size.
-    809,
+    800,
   ],
   // `spawn_subagent_tool_impl.rs` had its entry DELETED, not lowered: the
   // parameter schema moved to `spawn_subagent_parameters.rs` and the file is
-  // 740 lines, under the general 750 limit, so it needs no exception at all.
+  // under the general 750 limit, so it needs no exception at all.
   ["crates/openhuman-core/src/agent/multimodal.rs", 772],
   // The session-todo integration added transcript metadata construction to
   // this already-exempt composition seam. Keep its allowance exact.
   ["crates/openhuman-core/src/agent/session_host/runtime_session.rs", 1990],
-  ["crates/openhuman-core/src/agent/subagent_host/lifecycle.rs", 1304],
-  ["crates/openhuman-core/src/agent/subagent_host/ops/runner.rs", 1793],
   // Session-host factory still assembles the product's deliberately coupled
   // provider, security, memory, tool and prompt policy.  Generic session
   // state moved to tinyagents-runtime; this remaining composition is split in
   // a follow-up without reintroducing an old harness/session exception.
-  ["crates/openhuman-core/src/agent/session_host/builder/factory.rs", 1245],
-  ["crates/openhuman-core/src/agent/subagent_host/lifecycle.rs", 1318],
-  ["crates/openhuman-core/src/agent/subagent_host/ops/runner.rs", 1793],
-  ["crates/openhuman-core/src/tools/ops.rs", 1502],
-  ["crates/openhuman-core/src/web_chat/progress_bridge.rs", 1547],
+  ["crates/openhuman-core/src/agent/session_host/builder/factory.rs", 1212],
+  ["crates/openhuman-core/src/agent/subagent_host/lifecycle.rs", 1313],
+  ["crates/openhuman-core/src/agent/subagent_host/ops/runner.rs", 1427],
+  ["crates/openhuman-core/src/tools/ops.rs", 1341],
+  ["crates/openhuman-core/src/web_chat/progress_bridge.rs", 1305],
   // These established external test modules grew with upstream coverage. Pin
   // their current sizes while follow-up work separates their test concerns.
   ["crates/openhuman-core/src/agent/prompts/mod_tests_builder_sections_tests.rs", 779],
-  ["crates/openhuman-core/src/inference/provider/factory_crate_native_tests.rs", 799],
-  ["crates/openhuman-core/src/tools/ops_tests_default_registry_tests.rs", 752],
-]);
+  // `core/` was pruned from the line limit by name until these pins; its
+  // oversized files are pinned at the size they had when enforcement began.
+  ["crates/openhuman-core/src/core/all.rs", 1840],
+  ["crates/openhuman-core/src/core/all_tests.rs", 2709],
+  ["crates/openhuman-core/src/core/cli.rs", 803],
+  ["crates/openhuman-core/src/core/events.rs", 2005],
+  ["crates/openhuman-core/src/core/events_tests.rs", 1062],
+  ["crates/openhuman-core/src/core/observability.rs", 3631],
+  ["crates/openhuman-core/src/core/runtime/builder.rs", 841],
+  ["crates/openhuman-core/src/core/runtime/context.rs", 1024],
+];
+const LEGACY_LIMITS = new Map(LEGACY_LIMIT_ENTRIES);
 
-function rustFiles(directory) {
-  return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
-    const file = path.join(directory, entry.name);
-    if (
-      directory === ROOT &&
-      ["api", "bin", "core", "lib.rs", "main.rs", "rpc"].includes(entry.name)
-    )
-      return [];
-    if (entry.isDirectory()) return rustFiles(file);
-    return entry.isFile() && entry.name.endsWith(".rs") ? [file] : [];
-  });
-}
-
-// Every Rust file under every crate, no exclusions — used for the naming and
-// inline-test-module checks, which apply repository-wide. The line-limit
-// check above stays scoped to `ROOT` exactly as before.
+// Every Rust file under a directory, no exclusions. The line limit applies to
+// every file under `ROOT` (an oversized file is pinned in
+// `LEGACY_LIMIT_ENTRIES`, never skipped); the naming and inline-test-module
+// checks apply to every crate.
 function allRustFiles(directory) {
   return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
     const file = path.join(directory, entry.name);
@@ -86,7 +84,8 @@ const INLINE_TEST_MODULE_RE =
   /^\s*#\[cfg\([^\n]*\btest\b[^\n]*\)\]\s*\n(?:\s*#\[[^\n]+\]\s*\n)*\s*(?:pub(?:\([^)]*\))?\s+)?mod\s+\w+\s*\{/m;
 
 const failures = [];
-for (const file of rustFiles(ROOT)) {
+const warnings = [];
+for (const file of allRustFiles(ROOT)) {
   const source = fs.readFileSync(file, "utf8");
   const lineCount = source.split("\n").length - (source.endsWith("\n") ? 1 : 0);
   const portableFile = file.split(path.sep).join("/");
@@ -94,6 +93,16 @@ for (const file of rustFiles(ROOT)) {
   if (lineCount > (legacyLimit ?? LINE_LIMIT)) {
     failures.push(
       `${file}: ${lineCount} lines (limit ${legacyLimit ?? LINE_LIMIT})`,
+    );
+  } else if (legacyLimit !== undefined && lineCount < legacyLimit) {
+    failures.push(
+      lineCount <= LINE_LIMIT
+        ? `${file}: ${lineCount} lines now fits the ${LINE_LIMIT}-line limit; remove its legacy exception`
+        : `${file}: ${lineCount} lines, below its legacy pin ${legacyLimit}; lower the pin to ${lineCount}`,
+    );
+  } else if (legacyLimit === undefined && lineCount > WARN_AT) {
+    warnings.push(
+      `${file}: ${lineCount} lines, ${LINE_LIMIT - lineCount} below the ${LINE_LIMIT}-line limit`,
     );
   }
 }
@@ -110,6 +119,15 @@ for (const file of allRustFiles(CRATES_ROOT)) {
       `${file}: inline test module; move it to a sibling *_tests.rs file`,
     );
   }
+}
+
+// A Map silently keeps the last of two entries for one file, so a duplicate
+// hides whichever pin was written first.
+const seenLegacy = new Set();
+for (const [file] of LEGACY_LIMIT_ENTRIES) {
+  if (seenLegacy.has(file))
+    failures.push(`${file}: duplicate legacy exception; keep one entry`);
+  seenLegacy.add(file);
 }
 
 for (const file of LEGACY_LIMITS.keys()) {
@@ -157,6 +175,11 @@ for (const [directory, table] of [
     if (!files.has(name))
       failures.push(`${CLI_MANIFEST}: stale [[${table}]] target ${name}`);
   }
+}
+
+if (warnings.length) {
+  console.warn("OpenHuman Rust layout check: files near the line limit:");
+  warnings.forEach((warning) => console.warn(`  - ${warning}`));
 }
 
 if (failures.length) {

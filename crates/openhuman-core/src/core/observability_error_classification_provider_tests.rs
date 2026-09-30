@@ -189,7 +189,7 @@ fn does_not_classify_unrelated_messages_as_context_window_exceeded() {
 #[test]
 fn classifies_provider_rate_cap_413_tpm_rereport_as_provider_user_state() {
     // TAURI-RUST-HXF: verbatim groq `on_demand` free-tier body — a single
-    // subconscious request (42084 tokens) exceeds the 8000 tokens-per-minute
+    // background request (42084 tokens) exceeds the 8000 tokens-per-minute
     // cap, so groq returns 413 and no retry can ever fit it. When re-raised
     // by `agent.run_single` under `domain=agent`, `report_error_or_expected`
     // must demote it to expected user-config state (the user's account tier
@@ -258,7 +258,7 @@ fn classifies_vault_create_root_path_not_a_directory_as_filesystem_user_path_inv
     );
 
     // The same body wrapped by the JSON-RPC dispatcher's `display_message`
-    // prefix (`rpc.invoke_method` re-emit shape from `crates/openhuman-core/src/core/jsonrpc.rs`).
+    // prefix (`rpc.invoke_method` re-emit shape from `crates/openhuman-rpc/src/server/http/rpc_handler.rs`).
     // Must still classify so the dispatch-site re-report doesn't escape
     // the matcher even if a future caller layers more context.
     assert_eq!(
@@ -272,7 +272,7 @@ fn classifies_vault_create_root_path_not_a_directory_as_filesystem_user_path_inv
 #[test]
 fn classifies_http_host_hosted_path_not_a_directory_as_filesystem_user_path_invalid() {
     // Preempt the symmetric shape from
-    // `openhuman::http_host::path_utils:23` —
+    // `openhuman_rpc::http_host::path_utils:23` —
     // `"hosted path is not a directory: <path>"`. Not yet observed
     // in Sentry but shares the same RPC validation polarity as
     // vault_create's `root_path` check. Anchoring on

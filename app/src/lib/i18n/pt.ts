@@ -303,13 +303,6 @@ const messages: TranslationMap = {
   'conversations.backgroundTasks.cronSchedCron': 'Cron {expr}',
   'conversations.backgroundTasks.cronSchedEvery': 'A cada {duration}',
   'conversations.backgroundTasks.cronSchedAt': 'Uma vez',
-  'conversations.backgroundTasks.subOff': 'Desligado',
-  'conversations.backgroundTasks.subWorking': 'Trabalhando…',
-  'conversations.backgroundTasks.subIdle': 'Ocioso',
-  'conversations.backgroundTasks.subLastRan': 'Última execução {time}',
-  'conversations.backgroundTasks.subNeverRan': 'Ainda não executada',
-  'conversations.backgroundTasks.subTicks': '{count} execuções',
-  'conversations.backgroundTasks.subQueued': '{count} na fila',
   'conversations.backgroundTasks.memUpToDate': 'Todas as memórias atualizadas',
   'conversations.backgroundTasks.memIngesting': 'Indexando {title}',
   'conversations.backgroundTasks.memIngestingUntitled': 'Indexando memórias',
@@ -456,9 +449,6 @@ const messages: TranslationMap = {
   'settings.assistant.personality': 'Personalidade',
   'settings.assistant.voice': 'Voz',
   'settings.assistant.voiceDesc': 'Configurações de fala para texto e texto para fala',
-  'settings.assistant.backgroundActivity': 'Subconsciente',
-  'settings.assistant.backgroundActivityDesc':
-    'Controle o quão ativamente seu assistente trabalha em segundo plano',
   'settings.assistant.permissions': 'Permissões',
   'settings.assistant.permissionsDesc':
     'Escolha o que o assistente pode fazer e onde pode trabalhar',
@@ -477,7 +467,7 @@ const messages: TranslationMap = {
   'settings.analysisViews.title': 'Visões de análise',
   'settings.analysisViews.menuDesc':
     'Análise do grafo de memória: diagrama, centralidade, coesão, associações, atualidade, linha do tempo, caminhos e namespaces',
-  'settings.tokenUsage.title': 'Tokens e custo',
+  'settings.tokenUsage.title': 'Economia de tokens',
   'settings.tokenUsage.menuDesc':
     'Configurações de compressão e quantos tokens e dólares elas economizaram',
   'settings.tokenUsage.saving': 'Salvando…',
@@ -992,7 +982,6 @@ const messages: TranslationMap = {
     'Nenhuma memória ainda. As memórias são criadas automaticamente conforme você interage.',
   'memory.tab.memory': 'Memória',
   'memory.tab.memoryTree': 'Árvore de memória',
-  'memory.tab.subconscious': 'Subconsciente',
   'memory.tab.agentWork': 'Trabalho do agente',
   'memory.tab.agentWorkDescription':
     'Um centro de comando para cada execução de agente em segundo plano, agrupada conforme o que precisa da sua intervenção, o que está em andamento e o que foi concluído.',
@@ -1486,7 +1475,6 @@ const messages: TranslationMap = {
     'Gerado no processo pelo shell Tauri ao iniciar o aplicativo. A porta é escolhida na inicialização, então este URL muda entre os lançamentos.',
   'settings.about.connectionHelperCloud':
     'Conectado a um núcleo remoto. Altere isso no BootCheck ou no seletor de modo de nuvem.',
-  'settings.heartbeat.title': 'Heartbeat e loops',
   'settings.usage.title': 'Uso',
   'settings.usage.menuDesc':
     'Custos, economia de tokens, registros de uso e atividade em segundo plano',
@@ -2457,7 +2445,6 @@ const messages: TranslationMap = {
   'chat.safetyTimeout':
     'Nenhuma resposta do agente após 2 minutos. Tente novamente ou verifique sua conexão.',
   'chat.filter.general': 'Geral',
-  'chat.filter.subconscious': 'Subconsciente',
   'chat.filter.meetings': 'Reuniões',
   'chat.filter.tasks': 'Tarefas',
   'chat.selectThread': 'Selecione uma conversa',
@@ -4900,7 +4887,7 @@ const messages: TranslationMap = {
   'settings.ai.codexAuthHelper': 'Usa o login existente da CLI do Codex de ~/.codex/auth.json.',
   'settings.ai.backgroundLoops': 'Loops de segundo plano.',
   'settings.ai.backgroundLoopsDesc':
-    'Veja o que funciona sem uma mensagem de chat, pause o trabalho do pulso e inspecione as linhas recentes do livro razão de créditos.',
+    'Veja o que funciona sem uma mensagem de chat e inspecione as linhas recentes do livro razão de créditos.',
   'settings.ai.loopMap': 'Mapa de loop',
   'settings.ai.routeLabel': 'rota: {route}',
   'settings.ai.on': 'ativado',
@@ -5024,7 +5011,7 @@ const messages: TranslationMap = {
     'Modelos usados durante a interação direta com o usuário, respostas, raciocínio, ciclos de agentes e ajuda com programação.',
   'settings.ai.routing.backgroundTasks': 'Tarefas de segundo plano',
   'settings.ai.routing.bgTasksDesc':
-    'Modelos usados fora do fluxo principal de conversa para resumir, monitoramento, aprendizado e avaliação subconsciente.',
+    'Modelos usados fora do fluxo principal de conversa para resumo de memória e aprendizado.',
   'settings.ai.routing.workload.chat.label': 'Chat',
   'settings.ai.routing.workload.chat.description':
     'Conversa direta entre conversas: modo “Rápido” em Conversas',
@@ -5053,21 +5040,11 @@ const messages: TranslationMap = {
   'settings.ai.routing.workload.memory.description': 'Extratos de árvores e consolidações',
   'settings.ai.routing.workload.memory.hint':
     'Recomendado: um modelo de resumo mais barato. Deve ser consistente e compacto, mas não necessita de raciocínio de nível superior de fronteira.',
-  'settings.ai.routing.workload.heartbeat.label': 'Heartbeat',
-  'settings.ai.routing.workload.heartbeat.description':
-    'Raciocínio de fundo entre turnos de usuário',
-  'settings.ai.routing.workload.heartbeat.hint':
-    'Recomendado: um modelo de fundo barato e eficiente. Isso ocorre frequentemente entre os turnos, então o baixo custo é mais importante do que a inteligência máxima.',
   'settings.ai.routing.workload.learning.label': 'Aprendizagem · Reflexões',
   'settings.ai.routing.workload.learning.description':
     'Reflexão periódica sobre a história recente',
   'settings.ai.routing.workload.learning.hint':
     'Recomendado: um modelo reflexivo mais forte. Pode ser de custo médio ou premium porque se beneficia de uma melhor síntese ao longo da história recente.',
-  'settings.ai.routing.workload.subconscious.label': 'Subconscious',
-  'settings.ai.routing.workload.subconscious.description':
-    'Pontuação de eventos + verificações de desvios',
-  'settings.ai.routing.workload.subconscious.hint':
-    'Recomendado: um modelo de monitoramento muito barato, de preferência leve e previsível. Isso é para pontuação de eventos, verificações de desvios e avaliação silenciosa de antecedentes.',
   'settings.ai.routing.addCustomProvider': 'Adicionar provedor personalizado',
   'settings.ai.globalModel.title': 'Escolha um modelo para tudo',
   'settings.ai.globalModel.desc':
@@ -5078,8 +5055,6 @@ const messages: TranslationMap = {
   'settings.ai.globalModel.model': 'Modelo',
   'settings.ai.globalModel.loadingModels': 'Carregando modelos…',
   'settings.ai.globalModel.enterModelId': 'Insira o ID do modelo',
-  'settings.ai.globalModel.appliesToAll':
-    'Aplica o mesmo provedor + modelo ao chat, raciocínio, codificação, memória, batimento cardíaco, aprendizado e subconsciente. Embeddings são configurados separadamente. As alterações são salvas quando você clica em salvar.',
   'settings.ai.globalModel.saving': 'Salvando…',
   'settings.ai.globalModel.saved': 'Salvo',
   'settings.ai.workload.noModel': 'Nenhum modelo selecionado',
@@ -5262,6 +5237,7 @@ const messages: TranslationMap = {
   'settings.cron.jobs.removing': 'Removendo',
   'settings.cron.jobs.resume': 'Retomar',
   'settings.cron.jobs.runningNow': 'Executando agora',
+  'settings.cron.jobs.runNow': 'Executar agora',
   'settings.cron.jobs.saving': 'Salvando…',
   'settings.cron.jobs.schedule': 'Agendamento',
   'settings.cron.jobs.title': 'Tarefas Cron do Core',
@@ -5461,8 +5437,6 @@ const messages: TranslationMap = {
   'settings.developerMenu.eventLog.badge.comp': 'COMP',
   'settings.developerMenu.eventLog.badge.mcp': 'MCP',
   'settings.developerMenu.intelligence.title': 'Inteligência',
-  'settings.developerMenu.intelligence.desc':
-    'Espaço de trabalho de memória, motor subconsciente, sonhos e configurações',
   'settings.developerMenu.notificationRouting.title': 'Roteamento de notificações',
   'settings.developerMenu.notificationRouting.desc':
     'Pontuação de importância por IA e escalonamento do orquestrador para alertas de integração',
@@ -6331,8 +6305,6 @@ const messages: TranslationMap = {
   'devOptions.menuWebhooksDebugDesc':
     'Inspecione registros de webhook em tempo de execução e logs de solicitação capturados',
   'devOptions.menuIntelligence': 'Inteligência',
-  'devOptions.menuIntelligenceDesc':
-    'Espaço de trabalho de memória, mecanismo subconsciente, sonhos e configurações',
   'devOptions.menuNotificationRouting': 'Roteamento de notificação',
   'devOptions.menuNotificationRoutingDesc':
     'AI pontuação de importância e escalonamento do orquestrador para alertas de integração',
@@ -7109,8 +7081,8 @@ const messages: TranslationMap = {
   'settings.ai.perWeek': '{count}/semana',
   'settings.ai.perWeekMax': '{count}/semana no máximo',
   'settings.ai.perHour': '{amount}/h',
-  'settings.ai.plannerSyncBreakdown': '{planner} planejador + {sync} sincronização',
   'settings.ai.memoryPollsDetail': '{count} consultas de memória',
+  'settings.ai.connectionSyncBreakdown': '{sync} sincronização de conexões',
   'settings.ai.rowsLeftFormula': 'restante / linha média = {remaining} / {avgRow}',
   'settings.ai.needSpendRowsToEstimate': 'São necessárias linhas de gasto recentes para estimar.',
   'settings.ai.rowsPerBudgetFormula': 'orçamento do ciclo / linha média = {budget} / {avgRow}',
@@ -7388,6 +7360,72 @@ const messages: TranslationMap = {
   'flows.allRuns.columnStatus': 'Estado',
   'messageTiming.total': 'Total',
   'sync.statusColumn': 'Estado',
+
+  // Memory engine settings panel
+  'memoryEngine.title': 'Mecanismo de memória',
+  'memoryEngine.description':
+    'Escolha onde o OpenHuman guarda e recupera as suas memórias. Apenas um mecanismo fica ativo de cada vez.',
+  'memoryEngine.active': 'Ativo',
+  'memoryEngine.hostedNote': 'Cobrado nos seus créditos do OpenHuman.',
+  'memoryEngine.signInRequired': 'Inicie sessão para usar este mecanismo.',
+  'memoryEngine.endpoint': 'Endpoint',
+  'memoryEngine.deployment': 'Implantação',
+  'memoryEngine.deployment.cloud': 'Nuvem',
+  'memoryEngine.deployment.self_hosted': 'Auto-hospedado',
+  'memoryEngine.apiKey': 'Chave de API',
+  'memoryEngine.apiKeyOptional': 'Chave de API (opcional)',
+  'memoryEngine.keySaved': 'Há uma chave salva. Deixe em branco para mantê-la.',
+  'memoryEngine.keySavedPlaceholder': 'Salva (oculta)',
+  'memoryEngine.fallback':
+    'A memória está em pausa: {engine} está indisponível, então nada é salvo ou recuperado até que volte. {reason}',
+  'memoryEngine.paused': 'A memória está em pausa',
+  'memoryEngine.dialog.cancelMigration': 'Cancelar cópia',
+  'memoryEngine.lastError':
+    'A última solicitação ao mecanismo de memória falhou. Verifique as configurações do mecanismo.',
+  'memoryEngine.switch': 'Trocar',
+  'memoryEngine.save': 'Salvar alterações',
+  'memoryEngine.dialog.title': 'Trocar para {engine}?',
+  'memoryEngine.dialog.body': 'Copiar minhas memórias existentes para o novo mecanismo?',
+  'memoryEngine.dialog.copySwitch': 'Copiar e trocar',
+  'memoryEngine.dialog.switchOnly': 'Trocar sem copiar',
+  'memoryEngine.dialog.copying': 'Copiando suas memórias…',
+  'memoryEngine.dialog.progress': '{copied} de {total} copiadas',
+  'memoryEngine.dialog.progressUnknown': '{copied} memórias copiadas até agora',
+  'memoryEngine.dialog.lacking':
+    'O novo mecanismo não oferece suporte a estes recursos do seu mecanismo atual:',
+  'memoryEngine.error.insufficientCredits':
+    'Seus créditos do OpenHuman acabaram. Adicione créditos para usar este mecanismo.',
+  'memoryEngine.error.sessionExpired':
+    'Sua sessão expirou. Inicie sessão novamente para continuar.',
+  'memoryEngine.error.backendUnavailable':
+    'O serviço de memória está indisponível no momento. Tente novamente em instantes.',
+  'memoryEngine.error.generic':
+    'Não foi possível trocar o mecanismo de memória. Verifique as configurações e tente novamente.',
+  'memoryEngine.error.openBilling': 'Abrir faturamento',
+  'memoryEngine.error.signIn': 'Iniciar sessão',
+  'memoryEngine.row.label': 'Mecanismo de memória:',
+  'memoryEngine.row.change': 'Alterar',
+  'memoryEngine.unavailable': 'Indisponível com {engine}',
+  'memoryEngine.unavailableHint': 'Troque o mecanismo de memória para usar este recurso.',
+  'memoryEngine.engine.tinymemory.label': 'Neste dispositivo (TinyCortex)',
+  'memoryEngine.engine.tinymemory.description':
+    'Armazenada neste dispositivo com o TinyCortex. Privada, gratuita e padrão.',
+  'memoryEngine.engine.tinyhumans.label': 'CortexDB (pela TinyHumans)',
+  'memoryEngine.engine.tinyhumans.description':
+    'CortexDB hospedado pela TinyHumans. Usa a sua conta conectada, sem precisar de chave.',
+  'memoryEngine.engine.cortex.label': 'CortexDB (chave própria)',
+  'memoryEngine.engine.cortex.description':
+    'Sua própria conta ou instância do CortexDB, com a sua chave de API.',
+  'memoryEngine.engine.supermemory.label': 'Supermemory',
+  'memoryEngine.engine.supermemory.description':
+    'Memória em nuvem do Supermemory, com a sua chave de API.',
+  'memoryEngine.engine.mem0.label': 'Mem0',
+  'memoryEngine.engine.mem0.description': 'Camada de memória Mem0, na nuvem ou auto-hospedada.',
+  'memoryEngine.engine.cognee.label': 'Cognee',
+  'memoryEngine.engine.cognee.description':
+    'Memória de grafo de conhecimento Cognee, na nuvem ou auto-hospedada.',
+  'memoryEngine.engine.agentmemory.label': 'AgentMemory',
+  'memoryEngine.engine.agentmemory.description': 'Um servidor AgentMemory que você mesmo executa.',
 };
 
 export default messages;

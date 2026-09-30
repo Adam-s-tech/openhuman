@@ -293,13 +293,6 @@ const messages: TranslationMap = {
   'conversations.backgroundTasks.cronSchedCron': 'Cron {expr}',
   'conversations.backgroundTasks.cronSchedEvery': '{duration}마다',
   'conversations.backgroundTasks.cronSchedAt': '한 번',
-  'conversations.backgroundTasks.subOff': '꺼짐',
-  'conversations.backgroundTasks.subWorking': '작업 중…',
-  'conversations.backgroundTasks.subIdle': '대기 중',
-  'conversations.backgroundTasks.subLastRan': '마지막 실행 {time}',
-  'conversations.backgroundTasks.subNeverRan': '아직 실행되지 않음',
-  'conversations.backgroundTasks.subTicks': '{count}회 실행',
-  'conversations.backgroundTasks.subQueued': '{count}개 대기 중',
   'conversations.backgroundTasks.memUpToDate': '모든 메모리가 최신 상태',
   'conversations.backgroundTasks.memIngesting': '{title} 색인 중',
   'conversations.backgroundTasks.memIngestingUntitled': '메모리 색인 중',
@@ -444,9 +437,6 @@ const messages: TranslationMap = {
   'settings.assistant.personality': '개성',
   'settings.assistant.voice': '음성',
   'settings.assistant.voiceDesc': '음성-텍스트 및 텍스트-음성 설정',
-  'settings.assistant.backgroundActivity': '잠재의식',
-  'settings.assistant.backgroundActivityDesc':
-    '어시스턴트가 백그라운드에서 얼마나 활발히 작동하는지 제어',
   'settings.assistant.permissions': '권한',
   'settings.assistant.permissionsDesc':
     '어시스턴트가 무엇을 할 수 있고 어디서 작업할 수 있는지 선택하세요',
@@ -464,7 +454,7 @@ const messages: TranslationMap = {
   'settings.analysisViews.title': '분석 보기',
   'settings.analysisViews.menuDesc':
     '메모리 그래프 분석: 다이어그램, 중심성, 응집도, 연관, 최신성, 타임라인, 경로 및 네임스페이스',
-  'settings.tokenUsage.title': '토큰 및 비용',
+  'settings.tokenUsage.title': '토큰 절감',
   'settings.tokenUsage.menuDesc': '압축 설정과 그것이 절약한 토큰 및 달러의 양',
   'settings.tokenUsage.saving': '저장 중…',
   'settings.tokenUsage.saved': '저장됨',
@@ -959,7 +949,6 @@ const messages: TranslationMap = {
   'memory.empty': '아직 메모리가 없습니다. 메모리는 상호작용하면서 자동으로 생성됩니다.',
   'memory.tab.memory': '메모리',
   'memory.tab.memoryTree': '메모리 트리',
-  'memory.tab.subconscious': '잠재의식',
   'memory.tab.agentWork': '에이전트 작업',
   'memory.tab.agentWorkDescription':
     '모든 백그라운드 에이전트 실행을 위한 명령 센터: 입력이 필요한 것, 진행 중인 것, 완료된 것별로 그룹화됩니다.',
@@ -1437,7 +1426,6 @@ const messages: TranslationMap = {
     '앱 실행 시 Tauri 셸이 프로세스 내부에서 시작합니다. 포트는 시작할 때 선택되므로 이 URL은 실행할 때마다 달라집니다.',
   'settings.about.connectionHelperCloud':
     '원격 코어에 연결되었습니다. BootCheck 또는 클라우드 모드 선택기에서 변경하세요.',
-  'settings.heartbeat.title': '하트비트 및 루프',
   'settings.usage.title': '사용량',
   'settings.usage.menuDesc': '비용, 토큰 절약, 사용 기록 및 백그라운드 활동',
   'settings.costDashboard.monthToDate': '이번 달 누계',
@@ -2378,7 +2366,6 @@ const messages: TranslationMap = {
   'common.enable': '활성화',
   'chat.safetyTimeout': '2분 후에도 에이전트의 응답이 없습니다. 다시 시도하거나 연결을 확인하세요.',
   'chat.filter.general': '일반',
-  'chat.filter.subconscious': '잠재의식',
   'chat.filter.meetings': '회의',
   'chat.filter.tasks': '작업',
   'chat.selectThread': '스레드 선택',
@@ -4781,7 +4768,7 @@ const messages: TranslationMap = {
   'settings.ai.codexAuthHelper': '~/.codex/auth.json의 기존 Codex CLI 로그인을 사용합니다.',
   'settings.ai.backgroundLoops': '백그라운드 루프',
   'settings.ai.backgroundLoopsDesc':
-    '채팅 메시지 없이 실행되는 항목을 확인하고, 하트비트 작업을 일시 중지하며, 최근 크레딧 원장 행을 검사합니다.',
+    '채팅 메시지 없이 실행되는 항목을 확인하고 최근 크레딧 원장 행을 검사합니다.',
   'settings.ai.loopMap': '루프 맵',
   'settings.ai.routeLabel': '경로: {route}',
   'settings.ai.on': '켜짐',
@@ -4905,7 +4892,7 @@ const messages: TranslationMap = {
     '직접 사용자 상호작용, 답변, 추론, 에이전트 루프 및 코딩 도움에 사용되는 모델입니다.',
   'settings.ai.routing.backgroundTasks': '백그라운드 작업',
   'settings.ai.routing.bgTasksDesc':
-    '요약, 하트비트, 학습 및 잠재의식 평가처럼 기본 대화 흐름 밖에서 사용되는 모델입니다.',
+    '메모리 요약과 학습처럼 기본 대화 흐름 밖에서 사용되는 모델입니다.',
   'settings.ai.routing.workload.chat.label': 'Chat',
   'settings.ai.routing.workload.chat.description': '직접 대화 앞뒤로: 대화의 "빠른" 모드',
   'settings.ai.routing.workload.chat.hint':
@@ -4932,18 +4919,10 @@ const messages: TranslationMap = {
   'settings.ai.routing.workload.memory.description': '나무 추출물 및 통합',
   'settings.ai.routing.workload.memory.hint':
     '권장사항: 더 저렴한 요약 모델. 일관되고 간결해야 하지만 프리미엄 프론티어 수준의 추론은 필요하지 않습니다.',
-  'settings.ai.routing.workload.heartbeat.label': 'Heartbeat',
-  'settings.ai.routing.workload.heartbeat.description': '사용자 차례 사이의 배경 추론',
-  'settings.ai.routing.workload.heartbeat.hint':
-    '권장 사항: 저렴하고 효율적인 배경 모델. 이는 턴 사이에 자주 실행되므로 최대 지능보다 저렴한 비용이 더 중요합니다.',
   'settings.ai.routing.workload.learning.label': '학습 · 반성',
   'settings.ai.routing.workload.learning.description': '최근 역사에 대한 주기적인 성찰',
   'settings.ai.routing.workload.learning.hint':
     '권장 사항: 더 강한 반사 모델. 최근 역사에 비해 더 나은 합성을 통해 이점을 얻을 수 있으므로 중간 비용 또는 프리미엄이 될 수 있습니다.',
-  'settings.ai.routing.workload.subconscious.label': 'Subconscious',
-  'settings.ai.routing.workload.subconscious.description': '사건성 점수 + 드리프트 검사',
-  'settings.ai.routing.workload.subconscious.hint':
-    '권장 사항: 매우 저렴한 모니터링 모델, 이상적으로는 가볍고 예측 가능한 모델입니다. 이는 다사다난성 채점, 드리프트 검사 및 조용한 배경 평가를 위한 것입니다.',
   'settings.ai.routing.addCustomProvider': '사용자 정의 공급자 추가',
   'settings.ai.globalModel.title': '모든 것에 대해 하나의 모델을 선택합니다.',
   'settings.ai.globalModel.desc':
@@ -4954,8 +4933,6 @@ const messages: TranslationMap = {
   'settings.ai.globalModel.model': '모델',
   'settings.ai.globalModel.loadingModels': '모델 로드 중…',
   'settings.ai.globalModel.enterModelId': '모델 ID 입력',
-  'settings.ai.globalModel.appliesToAll':
-    '채팅, 추론, 코딩, 메모리, 하트비트, 학습 및 잠재의식에 동일한 제공업체와 모델을 적용합니다. 임베딩은 별도로 구성됩니다. 저장을 클릭하면 변경 사항이 저장됩니다.',
   'settings.ai.globalModel.saving': '저장 중…',
   'settings.ai.globalModel.saved': '저장됨',
   'settings.ai.workload.noModel': '선택된 모델 없음',
@@ -5135,6 +5112,7 @@ const messages: TranslationMap = {
   'settings.cron.jobs.removing': '제거 중',
   'settings.cron.jobs.resume': '재개',
   'settings.cron.jobs.runningNow': '지금 실행 중',
+  'settings.cron.jobs.runNow': '지금 실행',
   'settings.cron.jobs.saving': '저장 중…',
   'settings.cron.jobs.schedule': '일정',
   'settings.cron.jobs.title': '코어 Cron 작업',
@@ -5329,7 +5307,6 @@ const messages: TranslationMap = {
   'settings.developerMenu.eventLog.badge.comp': 'COMP',
   'settings.developerMenu.eventLog.badge.mcp': 'MCP',
   'settings.developerMenu.intelligence.title': '인텔리전스',
-  'settings.developerMenu.intelligence.desc': '메모리 작업 공간, 잠재의식 엔진, 드림 및 설정',
   'settings.developerMenu.notificationRouting.title': '알림 라우팅',
   'settings.developerMenu.notificationRouting.desc':
     '통합 경고에 대한 AI 중요도 점수 및 오케스트레이터 에스컬레이션',
@@ -6166,7 +6143,6 @@ const messages: TranslationMap = {
   'devOptions.menuWebhooksDebug': '웹후크',
   'devOptions.menuWebhooksDebugDesc': '런타임 웹후크 등록 및 캡처된 요청 로그 검사',
   'devOptions.menuIntelligence': '인텔리전스',
-  'devOptions.menuIntelligenceDesc': '메모리 작업 공간, 잠재의식 엔진, 드림 및 설정',
   'devOptions.menuNotificationRouting': '알림 라우팅',
   'devOptions.menuNotificationRoutingDesc':
     '통합 경고에 대한 AI 중요도 점수 및 오케스트레이터 에스컬레이션',
@@ -6916,8 +6892,8 @@ const messages: TranslationMap = {
   'settings.ai.perWeek': '{count}/주',
   'settings.ai.perWeekMax': '최대 {count}/주',
   'settings.ai.perHour': '{amount}/시간',
-  'settings.ai.plannerSyncBreakdown': '플래너 {planner} + 동기화 {sync}',
   'settings.ai.memoryPollsDetail': '메모리 폴링 {count}회',
+  'settings.ai.connectionSyncBreakdown': '연결 동기화 {sync}',
   'settings.ai.rowsLeftFormula': '남은 금액 / 평균 행 = {remaining} / {avgRow}',
   'settings.ai.needSpendRowsToEstimate': '추정하려면 최근 지출 행이 필요합니다.',
   'settings.ai.rowsPerBudgetFormula': '주기 예산 / 평균 행 = {budget} / {avgRow}',
@@ -7186,6 +7162,68 @@ const messages: TranslationMap = {
   'walletSend.recipientInputPlaceholder': '자주 묻는 질문',
   'webCallback.title': '로그인',
   'webCallback.description': 'OpenHuman 콜백을 처리하고 자동으로 계속됩니다.',
+
+  // Memory engine settings panel
+  'memoryEngine.title': '메모리 엔진',
+  'memoryEngine.description':
+    'OpenHuman이 기억을 저장하고 불러올 위치를 선택하세요. 한 번에 하나의 엔진만 활성화됩니다.',
+  'memoryEngine.active': '사용 중',
+  'memoryEngine.hostedNote': 'OpenHuman 구독 또는 크레딧으로 청구됩니다.',
+  'memoryEngine.signInRequired': '이 엔진을 사용하려면 로그인하세요.',
+  'memoryEngine.endpoint': '엔드포인트',
+  'memoryEngine.deployment': '배포 방식',
+  'memoryEngine.deployment.cloud': '클라우드',
+  'memoryEngine.deployment.self_hosted': '자체 호스팅',
+  'memoryEngine.apiKey': 'API 키',
+  'memoryEngine.apiKeyOptional': 'API 키(선택)',
+  'memoryEngine.keySaved': '키가 저장되어 있습니다. 유지하려면 비워 두세요.',
+  'memoryEngine.keySavedPlaceholder': '저장됨(숨김)',
+  'memoryEngine.fallback':
+    '메모리가 일시 중지되었습니다. {engine}을(를) 사용할 수 없어 다시 사용할 수 있을 때까지 저장이나 회상이 이루어지지 않습니다. {reason}',
+  'memoryEngine.paused': '메모리가 일시 중지되었습니다',
+  'memoryEngine.dialog.cancelMigration': '복사 취소',
+  'memoryEngine.lastError': '마지막 메모리 엔진 요청이 실패했습니다. 엔진 설정을 확인하세요.',
+  'memoryEngine.switch': '전환',
+  'memoryEngine.save': '변경 사항 저장',
+  'memoryEngine.dialog.title': '{engine}(으)로 전환할까요?',
+  'memoryEngine.dialog.body': '기존 기억을 새 엔진으로 복사할까요?',
+  'memoryEngine.dialog.copySwitch': '복사 후 전환',
+  'memoryEngine.dialog.switchOnly': '복사 없이 전환',
+  'memoryEngine.dialog.copying': '기억을 복사하는 중…',
+  'memoryEngine.dialog.progress': '{total}개 중 {copied}개 복사됨',
+  'memoryEngine.dialog.progressUnknown': '지금까지 기억 {copied}개 복사됨',
+  'memoryEngine.dialog.lacking': '새 엔진은 현재 엔진의 다음 기능을 지원하지 않습니다:',
+  'memoryEngine.error.insufficientCredits':
+    'OpenHuman 크레딧이 모두 소진되었습니다. 이 엔진을 사용하려면 크레딧을 추가하세요.',
+  'memoryEngine.error.sessionExpired': '세션이 만료되었습니다. 계속하려면 다시 로그인하세요.',
+  'memoryEngine.error.backendUnavailable':
+    '메모리 서비스를 지금 사용할 수 없습니다. 잠시 후 다시 시도하세요.',
+  'memoryEngine.error.generic':
+    '메모리 엔진을 변경할 수 없습니다. 설정을 확인하고 다시 시도하세요.',
+  'memoryEngine.error.openBilling': '결제 열기',
+  'memoryEngine.error.signIn': '로그인',
+  'memoryEngine.row.label': '메모리 엔진:',
+  'memoryEngine.row.change': '변경',
+  'memoryEngine.unavailable': '{engine}에서는 사용할 수 없음',
+  'memoryEngine.unavailableHint': '이 기능을 사용하려면 메모리 엔진을 바꾸세요.',
+  'memoryEngine.engine.tinymemory.label': '로컬 (TinyCortex)',
+  'memoryEngine.engine.tinymemory.description':
+    'TinyCortex로 이 기기에 저장됩니다. 비공개, 무료이며 기본값입니다.',
+  'memoryEngine.engine.tinyhumans.label': 'CortexDB (TinyHumans 경유)',
+  'memoryEngine.engine.tinyhumans.description':
+    'TinyHumans가 호스팅하는 CortexDB. 로그인한 계정을 사용하며 키가 필요 없습니다.',
+  'memoryEngine.engine.cortex.label': 'CortexDB (내 키)',
+  'memoryEngine.engine.cortex.description':
+    '내 CortexDB 계정 또는 인스턴스를 내 API 키로 사용합니다.',
+  'memoryEngine.engine.supermemory.label': 'Supermemory',
+  'memoryEngine.engine.supermemory.description':
+    '내 API 키를 사용하는 Supermemory 클라우드 메모리.',
+  'memoryEngine.engine.mem0.label': 'Mem0',
+  'memoryEngine.engine.mem0.description': 'Mem0 메모리 계층, 클라우드 또는 자체 호스팅.',
+  'memoryEngine.engine.cognee.label': 'Cognee',
+  'memoryEngine.engine.cognee.description': 'Cognee 지식 그래프 메모리, 클라우드 또는 자체 호스팅.',
+  'memoryEngine.engine.agentmemory.label': 'AgentMemory',
+  'memoryEngine.engine.agentmemory.description': '직접 실행하는 AgentMemory 서버.',
 };
 
 export default messages;

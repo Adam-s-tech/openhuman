@@ -1,9 +1,8 @@
 //! Inference provider end-to-end tests using wiremock.
 //!
-//! These tests spin up a wiremock HTTP server on a random port and verify
-//! that TinyAgents' crate-native `OpenAiModel` sends correct request bodies
-//! and correctly interprets responses for the major provider shapes (OpenAI-compat,
-//! Anthropic auth, streaming, temperature suppression, Ollama endpoint).
+//! Non-streaming request/response, auth-header and temperature wire behavior of
+//! `OpenAiModel` is covered in tinyinference-llm (`providers/openai/wire_test.rs`);
+//! the streaming test below drives the SSE path over a real wiremock socket.
 //!
 //! The `/v1/chat/completions` and `/v1/models` HTTP endpoint tests verify the
 //! full axum router layer (auth middleware + provider routing) end-to-end.
@@ -17,11 +16,11 @@ use axum::http::{header, Method, Request, StatusCode};
 use serde_json::{json, Value};
 use tempfile::tempdir;
 use tower::ServiceExt;
-use wiremock::matchers::{header as wm_header, method, path};
+use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
-use openhuman_core::core::jsonrpc::build_core_http_router;
+use openhuman_rpc::server::build_core_http_router;
 use tinyinference_llm::message::Message;
 use tinyinference_llm::model::{ChatModel, ModelRequest, ModelStreamItem};
 use tinyinference_llm::providers::openai::{AuthStyle, OpenAiModel};
@@ -57,47 +56,11 @@ fn ensure_rpc_auth() {
     });
 }
 
-// ── Canned OpenAI-compatible response body ────────────────────────────────────
-
-fn openai_chat_response(content: &str) -> Value {
-    json!({
-        "id": "chatcmpl-test",
-        "object": "chat.completion",
-        "created": 1_700_000_000_u64,
-        "model": "gpt-4o-mini",
-        "choices": [{
-            "index": 0,
-            "message": { "role": "assistant", "content": content },
-            "finish_reason": "stop"
-        }],
-        "usage": { "prompt_tokens": 5, "completion_tokens": 10, "total_tokens": 15 }
-    })
-}
-
 fn openai_model(provider: &str, endpoint: &str, api_key: &str, auth: AuthStyle) -> OpenAiModel {
     OpenAiModel::new(api_key)
         .with_provider(provider)
         .with_base_url(endpoint)
         .with_auth_style(auth)
-}
-
-fn model_request(prompt: &str, model: &str, temperature: f64) -> ModelRequest {
-    ModelRequest::new(vec![Message::user(prompt)])
-        .with_model(model)
-        .with_temperature(temperature)
-}
-
-async fn invoke_text(
-    model_client: &OpenAiModel,
-    prompt: &str,
-    model: &str,
-    temperature: f64,
-) -> String {
-    model_client
-        .invoke(&(), model_request(prompt, model, temperature))
-        .await
-        .expect("model invocation should succeed")
-        .text()
 }
 
 // ── Helper: build an env-isolated Config pointing at tempdir ─────────────────
@@ -126,174 +89,6 @@ impl Drop for EnvGuard {
             None => unsafe { std::env::remove_var(self.key) },
         }
     }
-}
-
-// ── Test 1: OpenAI-compat chat returns canned text ───────────────────────────
-
-#[tokio::test]
-async fn openai_compat_chat_returns_canned_text() {
-    let server = MockServer::start().await;
-
-    Mock::given(method("POST"))
-        .and(path("/v1/chat/completions"))
-        .respond_with(ResponseTemplate::new(200).set_body_json(openai_chat_response("Hello!")))
-        .mount(&server)
-        .await;
-
-    let model = openai_model(
-        "test",
-        &format!("{}/v1", server.uri()),
-        "test-key",
-        AuthStyle::Bearer,
-    );
-
-    let result = invoke_text(&model, "hi", "gpt-4o-mini", 0.7).await;
-
-    assert_eq!(result, "Hello!");
-}
-
-// ── Test 2: Temperature present for normal model ──────────────────────────────
-
-#[tokio::test]
-async fn openai_compat_temperature_present_for_normal_model() {
-    let server = MockServer::start().await;
-
-    Mock::given(method("POST"))
-        .and(path("/v1/chat/completions"))
-        .respond_with(ResponseTemplate::new(200).set_body_json(openai_chat_response("ok")))
-        .mount(&server)
-        .await;
-
-    let model = openai_model(
-        "test",
-        &format!("{}/v1", server.uri()),
-        "key",
-        AuthStyle::Bearer,
-    );
-
-    invoke_text(&model, "hi", "gpt-4o-mini", 0.7).await;
-
-    let requests = server.received_requests().await.unwrap();
-    assert_eq!(requests.len(), 1);
-    let body: Value = serde_json::from_slice(&requests[0].body).unwrap();
-    assert!(
-        body.get("temperature").is_some(),
-        "temperature should be present for gpt-4o-mini; body={body}"
-    );
-    assert_eq!(body["temperature"].as_f64().unwrap(), 0.7);
-}
-
-// ── Test 3: Temperature omitted for o1 models ────────────────────────────────
-
-#[tokio::test]
-async fn openai_compat_omits_temperature_for_o1_models() {
-    let server = MockServer::start().await;
-
-    Mock::given(method("POST"))
-        .and(path("/v1/chat/completions"))
-        .respond_with(ResponseTemplate::new(200).set_body_json(openai_chat_response("done")))
-        .mount(&server)
-        .await;
-
-    let model = openai_model(
-        "test",
-        &format!("{}/v1", server.uri()),
-        "key",
-        AuthStyle::Bearer,
-    )
-    .with_temperature_unsupported_models(vec!["o1*".to_string()]);
-
-    invoke_text(&model, "reason", "o1-preview", 0.7).await;
-
-    let requests = server.received_requests().await.unwrap();
-    assert_eq!(requests.len(), 1);
-    let body: Value = serde_json::from_slice(&requests[0].body).unwrap();
-    assert!(
-        body.get("temperature").is_none(),
-        "temperature must be absent for o1-preview; body={body}"
-    );
-    // Response should still be returned correctly.
-}
-
-// ── Test 4: Temperature omitted for gpt-5 models ─────────────────────────────
-
-#[tokio::test]
-async fn openai_compat_omits_temperature_for_gpt5_models() {
-    let server = MockServer::start().await;
-
-    Mock::given(method("POST"))
-        .and(path("/v1/chat/completions"))
-        .respond_with(ResponseTemplate::new(200).set_body_json(openai_chat_response("done")))
-        .mount(&server)
-        .await;
-
-    let model_client = openai_model(
-        "test",
-        &format!("{}/v1", server.uri()),
-        "key",
-        AuthStyle::Bearer,
-    )
-    .with_temperature_unsupported_models(vec![
-        "o1*".to_string(),
-        "o3*".to_string(),
-        "o4*".to_string(),
-        "gpt-5*".to_string(),
-    ]);
-
-    for model in &["gpt-5", "gpt-5-turbo", "o3-mini", "o4-preview"] {
-        server.reset().await;
-        Mock::given(method("POST"))
-            .and(path("/v1/chat/completions"))
-            .respond_with(ResponseTemplate::new(200).set_body_json(openai_chat_response("done")))
-            .mount(&server)
-            .await;
-
-        invoke_text(&model_client, "test", model, 0.7).await;
-
-        let requests = server.received_requests().await.unwrap();
-        assert_eq!(requests.len(), 1, "model={model}");
-        let body: Value = serde_json::from_slice(&requests[0].body).unwrap();
-        assert!(
-            body.get("temperature").is_none(),
-            "temperature must be absent for model={model}; body={body}"
-        );
-    }
-}
-
-// ── Test 5: Anthropic auth style ─────────────────────────────────────────────
-
-#[tokio::test]
-async fn openai_compat_anthropic_auth_uses_x_api_key_header() {
-    let server = MockServer::start().await;
-
-    Mock::given(method("POST"))
-        .and(path("/v1/chat/completions"))
-        .and(wm_header("x-api-key", "sk-ant-test"))
-        .and(wm_header("anthropic-version", "2023-06-01"))
-        .respond_with(ResponseTemplate::new(200).set_body_json(openai_chat_response("hi")))
-        .mount(&server)
-        .await;
-
-    let model = openai_model(
-        "anthropic",
-        &format!("{}/v1", server.uri()),
-        "sk-ant-test",
-        AuthStyle::Anthropic,
-    );
-
-    let result = invoke_text(&model, "hello", "claude-3-haiku", 0.5).await;
-
-    assert_eq!(result, "hi");
-
-    // Verify Bearer header was NOT sent.
-    let requests = server.received_requests().await.unwrap();
-    assert_eq!(requests.len(), 1);
-    let auth = requests[0].headers.get("authorization");
-    assert!(
-        auth.is_none(),
-        "Authorization header must NOT be set for Anthropic auth; found {:?}",
-        auth
-    );
 }
 
 // ── Test 6: Streaming response returns ordered deltas ────────────────────────
@@ -351,29 +146,6 @@ async fn openai_compat_streaming_returns_ordered_deltas() {
         combined, "Hello!",
         "combined stream deltas should equal 'Hello!'; got '{combined}'"
     );
-}
-
-// ── Test 7: Ollama endpoint shape ────────────────────────────────────────────
-
-#[tokio::test]
-async fn ollama_compat_chat_via_openai_v1_endpoint() {
-    let server = MockServer::start().await;
-
-    // Ollama via OpenAI-compat /v1 endpoint — wiremock pretends to be Ollama.
-    Mock::given(method("POST"))
-        .and(path("/v1/chat/completions"))
-        .respond_with(ResponseTemplate::new(200).set_body_json(openai_chat_response("Bonjour!")))
-        .mount(&server)
-        .await;
-
-    // Factory builds Ollama via the crate-native OpenAI-compatible client at /v1.
-    let base = server.uri();
-    let endpoint = format!("{}/v1", base.trim_end_matches('/'));
-    let model = openai_model("ollama", &endpoint, "", AuthStyle::None);
-
-    let result = invoke_text(&model, "Bonjour?", "llama3", 0.7).await;
-
-    assert_eq!(result, "Bonjour!");
 }
 
 // ── Test 8: /v1/chat/completions HTTP endpoint — unauthorized ─────────────────
@@ -490,57 +262,6 @@ async fn http_endpoint_chat_completions_with_bearer_passes_auth() {
         StatusCode::FORBIDDEN,
         "403 must not fire when bearer is present"
     );
-}
-
-// ── Test 12: Request model field is preserved ─────────────────────────────────
-
-#[tokio::test]
-async fn openai_compat_request_body_contains_correct_model() {
-    let server = MockServer::start().await;
-
-    Mock::given(method("POST"))
-        .and(path("/v1/chat/completions"))
-        .respond_with(ResponseTemplate::new(200).set_body_json(openai_chat_response("ok")))
-        .mount(&server)
-        .await;
-
-    let model = openai_model(
-        "test",
-        &format!("{}/v1", server.uri()),
-        "key",
-        AuthStyle::Bearer,
-    );
-
-    invoke_text(&model, "hi", "claude-3-sonnet", 0.5).await;
-
-    let requests = server.received_requests().await.unwrap();
-    let body: Value = serde_json::from_slice(&requests[0].body).unwrap();
-    assert_eq!(body["model"].as_str().unwrap(), "claude-3-sonnet");
-}
-
-// ── Test 13: Bearer token is sent in Authorization header ────────────────────
-
-#[tokio::test]
-async fn openai_compat_bearer_auth_sends_authorization_header() {
-    let server = MockServer::start().await;
-
-    Mock::given(method("POST"))
-        .and(path("/v1/chat/completions"))
-        .and(wm_header("authorization", "Bearer secret-key"))
-        .respond_with(ResponseTemplate::new(200).set_body_json(openai_chat_response("ok")))
-        .mount(&server)
-        .await;
-
-    let model = openai_model(
-        "test",
-        &format!("{}/v1", server.uri()),
-        "secret-key",
-        AuthStyle::Bearer,
-    );
-
-    let result = invoke_text(&model, "hi", "gpt-4o", 0.7).await;
-
-    assert_eq!(result, "ok");
 }
 
 // ── Test 14: temperature_for_model helper ────────────────────────────────────

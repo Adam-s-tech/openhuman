@@ -13,7 +13,7 @@
 //! memory driver never sees a Composio credential.
 
 use crate::config::Config;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 use super::super::module_client::{self as connectors, methods};
 use super::super::providers::{ProviderUserProfile, SyncOutcome, SyncReason};
@@ -99,7 +99,7 @@ async fn persist_identity(config: &Config, profile: &ComposioUserProfile) -> OpR
 pub async fn composio_get_user_profile(
     config: &Config,
     connection_id: &str,
-) -> OpResult<RpcOutcome<ProviderUserProfile>> {
+) -> OpResult<Outcome<ProviderUserProfile>> {
     tracing::debug!(connection_id = %connection_id, "[composio] rpc get_user_profile");
     let toolkit = resolve_toolkit_for_connection(config, connection_id).await?;
 
@@ -124,7 +124,7 @@ pub async fn composio_get_user_profile(
         "[composio] identity_set persisted profile facets from get_user_profile"
     );
 
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         reencode(&profile)?,
         vec![format!(
             "composio: fetched {toolkit} profile for connection {connection_id}"
@@ -140,7 +140,7 @@ pub async fn composio_get_user_profile(
 /// to find the broken ones.
 pub async fn composio_refresh_all_identities(
     config: &Config,
-) -> OpResult<RpcOutcome<RefreshIdentitiesReport>> {
+) -> OpResult<Outcome<RefreshIdentitiesReport>> {
     tracing::info!("[composio] rpc refresh_all_identities");
     let response = connectors::call_bare::<ComposioRefreshIdentitiesResponse>(
         config,
@@ -210,7 +210,7 @@ pub async fn composio_refresh_all_identities(
     );
     let mut envelope = vec![summary];
     envelope.extend(messages);
-    Ok(RpcOutcome::new(report, envelope))
+    Ok(Outcome::new(report, envelope))
 }
 
 /// `openhuman.composio_sync` — read a connected account and write what it
@@ -223,7 +223,7 @@ pub async fn composio_sync(
     config: &Config,
     connection_id: &str,
     reason: Option<String>,
-) -> OpResult<RpcOutcome<SyncOutcome>> {
+) -> OpResult<Outcome<SyncOutcome>> {
     composio_sync_for_source(config, connection_id, reason, None).await
 }
 
@@ -238,7 +238,7 @@ pub async fn composio_sync_for_source(
     connection_id: &str,
     reason: Option<String>,
     source_id: Option<String>,
-) -> OpResult<RpcOutcome<SyncOutcome>> {
+) -> OpResult<Outcome<SyncOutcome>> {
     composio_sync_budgeted(config, connection_id, reason, source_id, None).await
 }
 
@@ -251,7 +251,7 @@ pub async fn composio_sync_budgeted(
     reason: Option<String>,
     source_id: Option<String>,
     source_max_items: Option<u32>,
-) -> OpResult<RpcOutcome<SyncOutcome>> {
+) -> OpResult<Outcome<SyncOutcome>> {
     let reason = parse_sync_reason(reason.as_deref())?;
     tracing::debug!(
         connection_id = %connection_id,
@@ -490,7 +490,7 @@ pub async fn composio_sync_budgeted(
         summary: summary.clone(),
         details: serde_json::json!({ "status": "started" }),
     };
-    Ok(RpcOutcome::new(outcome, vec![summary]))
+    Ok(Outcome::new(outcome, vec![summary]))
 }
 
 /// What one [`run_sync_pass`] call did.

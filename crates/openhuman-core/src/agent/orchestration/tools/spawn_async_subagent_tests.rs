@@ -32,9 +32,13 @@ fn parameters_schema_advertises_fire_and_forget_fields() {
         .get("properties")
         .and_then(|v| v.as_object())
         .expect("properties");
-    for key in ["context", "model", "toolkit", "task_title"] {
+    for key in ["context", "model", "task_title"] {
         assert!(props.contains_key(key), "missing {key}");
     }
+    assert!(
+        !props.contains_key("toolkit"),
+        "the retired toolkit spawn argument must not be advertised"
+    );
 }
 
 #[test]
@@ -369,7 +373,7 @@ async fn missing_prompt_returns_error() {
     assert!(result.output().contains("prompt"));
 }
 
-/// B40 / Gap 4: a delegating agent (orchestrator/subconscious) calling
+/// B40 / Gap 4: a delegating agent (e.g. the orchestrator) calling
 /// `spawn_async_subagent` directly from a thread-less context (flow
 /// `agent` node, CLI, cron) must get a clear, actionable error instead of
 /// silently accepting the spawn and later dropping its result in
@@ -537,4 +541,25 @@ impl Memory for NoopMemory {
     async fn health_check(&self) -> bool {
         true
     }
+}
+
+/// The session builder swaps in a scoped instance so the WIRE schema (read
+/// from the registered tool on native tool calling) carries only the ids the
+/// parent may dispatch, sorted and deduplicated, and says so.
+#[test]
+fn scoped_instance_advertises_exactly_the_allowlist() {
+    let tool = SpawnAsyncSubagentTool::scoped(vec![
+        "workflow_builder".to_string(),
+        "agent_memory".to_string(),
+        "workflow_builder".to_string(),
+    ]);
+    let schema = tool.parameters_schema();
+    assert_eq!(
+        schema["properties"]["agent_id"]["enum"],
+        serde_json::json!(["agent_memory", "workflow_builder"])
+    );
+    assert!(schema["properties"]["agent_id"]["description"]
+        .as_str()
+        .unwrap_or_default()
+        .contains("only these are dispatchable"));
 }

@@ -5,6 +5,7 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::core::Outcome;
 use crate::memory::api::provider::MemoryProvider;
 use crate::memory::api::types::NamespaceDocumentInput;
 use crate::memory::api::types::NamespaceRetrievalContext;
@@ -15,9 +16,9 @@ use crate::memory::{
     QueryNamespaceResponse, RecallContextRequest, RecallContextResponse, RecallMemoriesRequest,
     RecallMemoriesResponse,
 };
-use crate::rpc::RpcOutcome;
 
 use super::envelope::{envelope, error_envelope, memory_counts};
+use super::fallback;
 use super::guard::active_memory_guard;
 use super::helpers::{
     build_retrieval_context, current_workspace_dir, filter_hits_by_document_ids,
@@ -163,19 +164,16 @@ pub struct PutDocResult {
 // ---------------------------------------------------------------------------
 
 /// Lists all namespaces in the memory system.
-pub async fn namespace_list() -> Result<RpcOutcome<Vec<String>>, String> {
+pub async fn namespace_list() -> Result<Outcome<Vec<String>>, String> {
     let guard = active_memory_guard().await?;
-    let documents = guard
-        .as_documents()
-        .ok_or_else(|| "memory driver does not support the documents family".to_string())?;
-    let namespaces = documents
-        .list_namespaces()
-        .await
-        .map_err(|error| error.to_string())?;
-    Ok(RpcOutcome::single_log(
-        namespaces,
-        "memory namespaces listed",
-    ))
+    let namespaces = match guard.as_documents() {
+        Some(documents) => documents
+            .list_namespaces()
+            .await
+            .map_err(|error| error.to_string())?,
+        None => fallback::namespace_names(&guard).await?,
+    };
+    Ok(Outcome::single_log(namespaces, "memory namespaces listed"))
 }
 
 /// Upserts a document into a namespace.
@@ -193,7 +191,7 @@ pub async fn namespace_list() -> Result<RpcOutcome<Vec<String>>, String> {
 /// is a monotone raise over that value — it can promote this write to
 /// `ExternalSync` when the turn runs under a source scope, but it can never
 /// launder an `ExternalSync` caller down to `Internal`.
-pub async fn doc_put(params: PutDocParams) -> Result<RpcOutcome<PutDocResult>, String> {
+pub async fn doc_put(params: PutDocParams) -> Result<Outcome<PutDocResult>, String> {
     let guard = active_memory_guard().await?;
     let documents = guard
         .as_documents()
@@ -218,16 +216,14 @@ pub async fn doc_put(params: PutDocParams) -> Result<RpcOutcome<PutDocResult>, S
         })
         .await
         .map_err(|e| e.to_string())?;
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         PutDocResult { document_id },
         "memory document upserted",
     ))
 }
 
 /// Ingests a document, performing chunking and embedding.
-pub async fn doc_ingest(
-    params: IngestDocParams,
-) -> Result<RpcOutcome<MemoryIngestionResult>, String> {
+pub async fn doc_ingest(params: IngestDocParams) -> Result<Outcome<MemoryIngestionResult>, String> {
     let guard = active_memory_guard().await?;
     let documents = guard
         .as_documents()
@@ -274,26 +270,27 @@ pub async fn doc_ingest(
         "ingested document — {} entities, {} relations, {} chunks",
         result.entity_count, result.relation_count, result.chunk_count,
     );
-    Ok(RpcOutcome::single_log(result, &msg))
+    Ok(Outcome::single_log(result, &msg))
 }
 
 /// Lists documents, optionally filtered by namespace.
 pub async fn doc_list(
     params: Option<NamespaceOnlyParams>,
-) -> Result<RpcOutcome<serde_json::Value>, String> {
+) -> Result<Outcome<serde_json::Value>, String> {
     let guard = active_memory_guard().await?;
-    let documents = guard
-        .as_documents()
-        .ok_or_else(|| "memory driver does not support the documents family".to_string())?;
-    let docs = documents
-        .list_documents(params.as_ref().map(|value| value.namespace.as_str()))
-        .await
-        .map_err(|error| error.to_string())?;
-    Ok(RpcOutcome::single_log(docs, "memory documents listed"))
+    let namespace = params.as_ref().map(|value| value.namespace.as_str());
+    let docs = match guard.as_documents() {
+        Some(documents) => documents
+            .list_documents(namespace)
+            .await
+            .map_err(|error| error.to_string())?,
+        None => fallback::document_list(&guard, namespace).await?,
+    };
+    Ok(Outcome::single_log(docs, "memory documents listed"))
 }
 
 /// Deletes a document from a namespace.
-pub async fn doc_delete(params: DeleteDocParams) -> Result<RpcOutcome<serde_json::Value>, String> {
+pub async fn doc_delete(params: DeleteDocParams) -> Result<Outcome<serde_json::Value>, String> {
     let guard = active_memory_guard().await?;
     let documents = guard
         .as_documents()
@@ -302,13 +299,13 @@ pub async fn doc_delete(params: DeleteDocParams) -> Result<RpcOutcome<serde_json
         .delete_document(&params.namespace, &params.document_id)
         .await
         .map_err(|error| error.to_string())?;
-    Ok(RpcOutcome::single_log(result, "memory document deleted"))
+    Ok(Outcome::single_log(result, "memory document deleted"))
 }
 
 /// Clears all data within a namespace.
 pub async fn clear_namespace(
     params: ClearNamespaceParams,
-) -> Result<RpcOutcome<ClearNamespaceResult>, String> {
+) -> Result<Outcome<ClearNamespaceResult>, String> {
     let guard = active_memory_guard().await?;
     let documents = guard
         .as_documents()
@@ -319,7 +316,7 @@ pub async fn clear_namespace(
         .await
         .map_err(|error| error.to_string())?;
     let msg = "memory namespace cleared".to_string();
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         ClearNamespaceResult {
             cleared: true,
             namespace: params.namespace,
@@ -329,7 +326,7 @@ pub async fn clear_namespace(
 }
 
 /// Queries a namespace for contextual information based on a natural language string.
-pub async fn context_query(params: QueryNamespaceParams) -> Result<RpcOutcome<String>, String> {
+pub async fn context_query(params: QueryNamespaceParams) -> Result<Outcome<String>, String> {
     let guard = active_memory_guard().await?;
     let documents = guard
         .as_documents()
@@ -342,7 +339,7 @@ pub async fn context_query(params: QueryNamespaceParams) -> Result<RpcOutcome<St
         )
         .await
         .map_err(|error| error.to_string())?;
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         result.context_text,
         "memory context queried",
     ))
@@ -351,7 +348,7 @@ pub async fn context_query(params: QueryNamespaceParams) -> Result<RpcOutcome<St
 /// Recalls contextual information from a namespace without a specific query.
 pub async fn context_recall(
     params: RecallNamespaceParams,
-) -> Result<RpcOutcome<Option<String>>, String> {
+) -> Result<Outcome<Option<String>>, String> {
     let guard = active_memory_guard().await?;
     let documents = guard
         .as_documents()
@@ -361,7 +358,7 @@ pub async fn context_recall(
         .await
         .map_err(|error| error.to_string())?;
     let context = (!result.context_text.is_empty()).then_some(result.context_text);
-    Ok(RpcOutcome::single_log(context, "memory context recalled"))
+    Ok(Outcome::single_log(context, "memory context recalled"))
 }
 
 // ---------------------------------------------------------------------------
@@ -389,7 +386,7 @@ pub async fn context_recall(
 /// either.
 pub async fn memory_init(
     request: MemoryInitRequest,
-) -> Result<RpcOutcome<ApiEnvelope<MemoryInitResponse>>, String> {
+) -> Result<Outcome<ApiEnvelope<MemoryInitResponse>>, String> {
     let _ = request.jwt_token; // accepted but unused — memory is local-only
     let workspace_dir = current_workspace_dir().await?;
     // Resolve (and thereby warm) the guarded driver for this workspace — the
@@ -416,15 +413,15 @@ pub async fn memory_init(
 /// Lists documents stored in memory, optionally filtered by namespace.
 pub async fn memory_list_documents(
     request: ListDocumentsRequest,
-) -> Result<RpcOutcome<ApiEnvelope<ListDocumentsResponse>>, String> {
+) -> Result<Outcome<ApiEnvelope<ListDocumentsResponse>>, String> {
     let guard = active_memory_guard().await?;
-    let documents = guard
-        .as_documents()
-        .ok_or_else(|| "memory driver does not support the documents family".to_string())?;
-    let raw = documents
-        .list_documents(request.namespace.as_deref())
-        .await
-        .map_err(|error| error.to_string())?;
+    let raw = match guard.as_documents() {
+        Some(documents) => documents
+            .list_documents(request.namespace.as_deref())
+            .await
+            .map_err(|error| error.to_string())?,
+        None => fallback::document_list(&guard, request.namespace.as_deref()).await?,
+    };
     let documents = parse_memory_document_summaries(raw)?;
     let count = documents.len();
     Ok(envelope(
@@ -456,7 +453,7 @@ pub struct NamespaceSummariesResponse {
 /// sync needs the count — a Gmail source that stored 1,120 documents should
 /// be checkable as exactly that number (#5932 field finding).
 pub async fn memory_namespace_summaries(
-) -> Result<crate::rpc::RpcOutcome<NamespaceSummariesResponse>, String> {
+) -> Result<crate::core::Outcome<NamespaceSummariesResponse>, String> {
     use crate::memory::api::provider::MemoryCore;
     let guard = active_memory_guard().await?;
     let namespaces = guard
@@ -464,7 +461,7 @@ pub async fn memory_namespace_summaries(
         .await
         .map_err(|error| error.to_string())?;
     let total_documents = namespaces.iter().map(|n| n.count as u64).sum();
-    Ok(crate::rpc::RpcOutcome::new(
+    Ok(crate::core::Outcome::new(
         NamespaceSummariesResponse {
             namespaces,
             total_documents,
@@ -476,15 +473,15 @@ pub async fn memory_namespace_summaries(
 /// Lists all namespaces that contain memory documents.
 pub async fn memory_list_namespaces(
     _request: EmptyRequest,
-) -> Result<RpcOutcome<ApiEnvelope<ListNamespacesResponse>>, String> {
+) -> Result<Outcome<ApiEnvelope<ListNamespacesResponse>>, String> {
     let guard = active_memory_guard().await?;
-    let documents = guard
-        .as_documents()
-        .ok_or_else(|| "memory driver does not support the documents family".to_string())?;
-    let namespaces = documents
-        .list_namespaces()
-        .await
-        .map_err(|error| error.to_string())?;
+    let namespaces = match guard.as_documents() {
+        Some(documents) => documents
+            .list_namespaces()
+            .await
+            .map_err(|error| error.to_string())?,
+        None => fallback::namespace_names(&guard).await?,
+    };
     let count = namespaces.len();
     Ok(envelope(
         ListNamespacesResponse { namespaces, count },
@@ -496,7 +493,7 @@ pub async fn memory_list_namespaces(
 /// Deletes a specific document from a namespace.
 pub async fn memory_delete_document(
     request: DeleteDocumentRequest,
-) -> Result<RpcOutcome<ApiEnvelope<DeleteDocumentResponse>>, String> {
+) -> Result<Outcome<ApiEnvelope<DeleteDocumentResponse>>, String> {
     let guard = active_memory_guard().await?;
     let documents = guard
         .as_documents()
@@ -526,7 +523,7 @@ pub async fn memory_delete_document(
 /// Performs a semantic query against a namespace, returning a retrieval context.
 pub async fn memory_query_namespace(
     request: QueryNamespaceRequest,
-) -> Result<RpcOutcome<ApiEnvelope<QueryNamespaceResponse>>, String> {
+) -> Result<Outcome<ApiEnvelope<QueryNamespaceResponse>>, String> {
     let include_references = request.include_references.unwrap_or(true);
     let requested_limit = request.resolved_limit() as usize;
     let result = async {
@@ -551,17 +548,26 @@ pub async fn memory_query_namespace(
         // (`recall_namespace_memories`), which is a different code path with no
         // bus twin — an empty query does not degrade to recency. See the gap
         // note in `memory::direct_engine_refs_tests`.
-        let hits = guard
-            .as_retrieval()
-            .ok_or_else(|| "memory driver does not support the retrieval family".to_string())?
-            .recall_namespace_scored(
-                &request.namespace,
-                &request.query,
-                retrieval_limit as usize,
-                None,
-            )
-            .await
-            .map_err(|error| error.to_string())?;
+        let hits = match guard.as_retrieval() {
+            Some(retrieval) => retrieval
+                .recall_namespace_scored(
+                    &request.namespace,
+                    &request.query,
+                    retrieval_limit as usize,
+                    None,
+                )
+                .await
+                .map_err(|error| error.to_string())?,
+            None => {
+                fallback::recall_hits(
+                    guard.as_ref(),
+                    &request.namespace,
+                    &request.query,
+                    retrieval_limit as usize,
+                )
+                .await?
+            }
+        };
         let mut context = NamespaceRetrievalContext {
             namespace: request.namespace.clone(),
             query: Some(request.query.clone()),
@@ -605,7 +611,7 @@ pub async fn memory_query_namespace(
 /// Recalls contextual data from a namespace without a specific query.
 pub async fn memory_recall_context(
     request: RecallContextRequest,
-) -> Result<RpcOutcome<ApiEnvelope<RecallContextResponse>>, String> {
+) -> Result<Outcome<ApiEnvelope<RecallContextResponse>>, String> {
     let include_references = request.include_references.unwrap_or(true);
     // The recency path, through the contract. `recall_namespace_recent` exists
     // for exactly this pair of handlers — `recall_namespace_scored("")` is NOT
@@ -615,12 +621,16 @@ pub async fn memory_recall_context(
     // own from the hits.
     let result = async {
         let guard = active_memory_guard().await?;
-        guard
-            .as_retrieval()
-            .ok_or_else(|| "memory driver does not support the retrieval family".to_string())?
-            .recall_namespace_recent(&request.namespace, request.resolved_limit() as usize)
-            .await
-            .map_err(|e| format!("memory.recall_context: {e}"))
+        let limit = request.resolved_limit() as usize;
+        match guard.as_retrieval() {
+            Some(retrieval) => retrieval
+                .recall_namespace_recent(&request.namespace, limit)
+                .await
+                .map_err(|e| format!("memory.recall_context: {e}")),
+            None => fallback::recent_hits(&guard, &request.namespace, limit)
+                .await
+                .map_err(|e| format!("memory.recall_context: {e}")),
+        }
     }
     .await;
 
@@ -649,15 +659,19 @@ pub async fn memory_recall_context(
 /// Recalls memory items from a namespace with optional retention filtering.
 pub async fn memory_recall_memories(
     request: RecallMemoriesRequest,
-) -> Result<RpcOutcome<ApiEnvelope<RecallMemoriesResponse>>, String> {
+) -> Result<Outcome<ApiEnvelope<RecallMemoriesResponse>>, String> {
     let result = async {
         let guard = active_memory_guard().await?;
-        guard
-            .as_retrieval()
-            .ok_or_else(|| "memory driver does not support the retrieval family".to_string())?
-            .recall_namespace_recent(&request.namespace, request.resolved_limit() as usize)
-            .await
-            .map_err(|e| format!("memory.recall_memories: {e}"))
+        let limit = request.resolved_limit() as usize;
+        match guard.as_retrieval() {
+            Some(retrieval) => retrieval
+                .recall_namespace_recent(&request.namespace, limit)
+                .await
+                .map_err(|e| format!("memory.recall_memories: {e}")),
+            None => fallback::recent_hits(&guard, &request.namespace, limit)
+                .await
+                .map_err(|e| format!("memory.recall_memories: {e}")),
+        }
     }
     .await;
 

@@ -4,7 +4,8 @@
 //! the SQLite store, the live connection map, the subprocess supervisor and the
 //! browser sign-in flow all live there now. What is left here is what belongs
 //! to *this* application. The catalogs are browse-only: a server is declared
-//! in the user's `mcp.json` ([`config_doc`]), never installed from a listing.
+//! in the user's `mcp.json` (`tinymcp::registry::config_doc`), never installed
+//! from a listing.
 //!
 //! # Modules
 //!
@@ -13,10 +14,9 @@
 //!   the extraction: an end-to-end test seeding the upstream response cache.
 //! - [`ops`] — the `mcp_clients` RPC handlers, delegating to the service
 //!   [`super::host`] holds and publishing this application's own events.
-//! - [`config_doc`] — the `mcp.json` document: how the store renders as one
-//!   and what a written one may say.
-//! - [`config_ops`] — the `config_get` / `config_set` handlers that reconcile
-//!   the store against that document.
+//! - [`config_ops`] — the `config_get` / `config_set` handlers over the
+//!   `mcp.json` document; the document contract and the reconciliation are
+//!   `tinymcp::registry::config_doc`.
 //! - `schemas` — the controller schemas and dispatch.
 //! - [`supervisor_events`] — what the reconnect supervisor observed each
 //!   tick, as this domain's events; the Event Log and the notification bridge
@@ -40,8 +40,6 @@
 pub mod action_tool;
 #[cfg(feature = "mcp")]
 pub mod bus;
-#[cfg(feature = "mcp")]
-pub mod config_doc;
 #[cfg(feature = "mcp")]
 pub mod config_ops;
 #[cfg(feature = "mcp")]
@@ -118,6 +116,31 @@ pub mod connections {
                     "[mcp] no host for workspace; reporting no connections"
                 );
                 Vec::new()
+            }
+        }
+    }
+
+    /// Every enabled installed server's identity and tools in `config`'s
+    /// workspace, without dialling: live tools for a connected server, the
+    /// persistent tool cache for one that is not (yet).
+    ///
+    /// What the agent's MCP tool surface is built from, so a server's tools
+    /// are offered from the first turn after a restart rather than only once
+    /// its connect finishes. Listing is not authorization — a call still
+    /// needs a live connection.
+    pub async fn cached_overview_for_config(config: &Config) -> Vec<ConnectedServerOverview> {
+        let service = match host::for_config(config) {
+            Ok(service) => service,
+            Err(error) => {
+                tracing::debug!(?error, "[mcp] no host for workspace; no cached tools");
+                return Vec::new();
+            }
+        };
+        match service.dynamic().cached_overview().await {
+            Ok(overview) => overview,
+            Err(error) => {
+                tracing::debug!(%error, "[mcp] falling back to live servers only");
+                service.dynamic().connected_overview().await
             }
         }
     }
@@ -411,80 +434,45 @@ pub mod boot {
 /// Keeping installed servers connected.
 #[cfg(feature = "mcp")]
 pub mod supervisor {
-    use std::collections::HashMap;
-    use std::path::PathBuf;
-
     use crate::mcp::host;
 
     /// Runs the reconnect supervisor until the process ends.
     ///
-    /// One task for every host the process has opened. The connection map is
-    /// per-workspace, and a host opened after boot — a workspace switch — is
-    /// supervised from the tick after it appears, so no workspace's installed
-    /// servers go unsupervised. Each host's backoff state is held here, keyed
-    /// by workspace, and the first tick is delayed a whole interval so it does
-    /// not race the startup connect pass.
+    /// One task for every host the process has opened, driven by
+    /// `tinymcp::Supervisor::run_many`: the connection map is per-workspace,
+    /// and a host opened after boot — a workspace switch — is supervised from
+    /// the tick after it appears, with its backoff state kept per workspace.
+    /// The first tick is delayed a whole interval so it does not race the
+    /// startup connect pass.
     pub async fn run() {
-        let config = tinymcp::SupervisorConfig::default();
-        let mut supervisors: HashMap<PathBuf, tinymcp::Supervisor> = HashMap::new();
-
-        let start = tokio::time::Instant::now() + config.tick_interval;
-        let mut interval = tokio::time::interval_at(start, config.tick_interval);
-        // A tick walks every open workspace's installs in sequence and each
-        // probe can take the whole probe window, so a tick can outlast its
-        // own interval. The default behaviour would then fire the missed
-        // ticks back to back, re-probing servers that were just probed.
-        //
-        // `Delay` stops that burst but does not on its own leave a gap: it
-        // schedules the next deadline one interval after the overdue tick
-        // *returns*, which is when the cycle starts, not when it ends. A
-        // cycle that consistently outlasts its interval would therefore find
-        // the next tick already due and run back to back anyway. The
-        // `interval.reset()` at the end of the loop body is what actually
-        // paces from when the cycle finished — which is what
-        // `tinymcp::Supervisor::run` does, and this loop stands in for it.
-        interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
-
-        tracing::info!(
-            tick_seconds = config.tick_interval.as_secs(),
-            probe_seconds = config.probe_timeout.as_secs(),
-            "[mcp] the reconnect supervisor started"
-        );
-
-        loop {
-            interval.tick().await;
-            let now = std::time::Instant::now();
-
-            // Adopt every host currently open. A host opened since the last
-            // tick gets a supervisor on this one, built from the identity and
-            // proxy it was opened with.
-            for (workspace, service, identity, proxy) in host::all_hosts() {
-                let supervisor = supervisors
-                    .entry(workspace.clone())
-                    .or_insert_with(|| tinymcp::Supervisor::new(config.clone(), identity, proxy));
-
-                let report = supervisor
-                    .tick(
-                        service.dynamic().store(),
-                        service.dynamic().connections(),
-                        service.dynamic().oauth(),
-                        now,
+        tinymcp::Supervisor::run_many(
+            tinymcp::SupervisorConfig::default(),
+            // Every host currently open. The identity and proxy each was
+            // opened with ride along, so a reconnect dials the way the host's
+            // own connections do.
+            || {
+                host::all_hosts()
+                    .into_iter()
+                    .map(
+                        |(workspace, registry, identity, proxy)| tinymcp::SupervisedHost {
+                            key: workspace,
+                            registry,
+                            identity,
+                            proxy,
+                        },
                     )
-                    .await;
-                // What the tick observed becomes this domain's events, so a
-                // probe outcome reaches the Event Log and a server that stays
-                // down reaches the user (#5931). The workspace goes with them:
-                // this loop covers every host the process has opened, and a
-                // subscriber that persists or announces one must not take a
-                // switched-away workspace's outage for its own.
-                super::supervisor_events::publish(&workspace, &report);
-            }
-
-            // Pace from the end of the cycle, not its start: a cycle slower
-            // than the interval leaves the next tick already due, and without
-            // this the supervisor would probe continuously.
-            interval.reset();
-        }
+                    .collect()
+            },
+            // What the tick observed becomes this domain's events, so a probe
+            // outcome reaches the Event Log and a server that stays down
+            // reaches the user (#5931). The workspace goes with them: a
+            // subscriber that persists or announces one must not take a
+            // switched-away workspace's outage for its own.
+            |workspace, report| {
+                super::supervisor_events::publish(workspace, report);
+            },
+        )
+        .await;
     }
 }
 

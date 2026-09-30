@@ -33,7 +33,7 @@ async fn cancel_unknown_task_is_a_noop_false() {
     let mut params = Map::new();
     params.insert("taskId".into(), json!("sub-does-not-exist"));
     let out = handle_subagent_cancel(params).await.expect("handler ok");
-    // RpcOutcome wraps the payload under `data`.
+    // Outcome wraps the payload under `data`.
     let cancelled = out
         .get("data")
         .and_then(|d| d.get("cancelled"))

@@ -131,7 +131,7 @@ impl OpenHumanSessionHost {
     /// **No session-scoped Composio client is cached on the agent any
     /// more (#1710 Wave 2)**. Every downstream caller that needs to
     /// dispatch a Composio action now resolves a fresh client via
-    /// [`crate::integrations::composio::client::create_composio_client`]
+    /// [`crate::integrations::composio::client::resolve_composio_route`]
     /// at call time so the live `composio.mode` toggle is honoured
     /// without rebuilding the session — see `ComposioActionTool`,
     /// `ProviderContext::execute`, the 5 migrated agent tools in

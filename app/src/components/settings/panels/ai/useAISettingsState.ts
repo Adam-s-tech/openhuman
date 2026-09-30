@@ -52,9 +52,7 @@ function toPanelRoutingFromApi(api: ApiAISettings): { panel: AISettings } {
     coding: liftRef(api.routing.coding),
     vision: liftRef(api.routing.vision),
     memory: liftRef(api.routing.memory),
-    heartbeat: liftRef(api.routing.heartbeat),
     learning: liftRef(api.routing.learning),
-    subconscious: liftRef(api.routing.subconscious),
   };
   return {
     panel: {
@@ -83,9 +81,7 @@ function toApiSettings(panel: AISettings): ApiAISettings {
       coding: panel.routing.coding,
       vision: panel.routing.vision,
       memory: panel.routing.memory,
-      heartbeat: panel.routing.heartbeat,
       learning: panel.routing.learning,
-      subconscious: panel.routing.subconscious,
     },
     modelRegistry: panel.modelRegistry,
     defaultModel: panel.defaultModel ?? '',

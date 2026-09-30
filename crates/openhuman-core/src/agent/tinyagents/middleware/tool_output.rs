@@ -16,12 +16,14 @@ use tinyinference_llm::tool::ToolCall as TaToolCall;
 use tinytools::{ToolPolicy as TaToolPolicy, ToolResult as TaToolResult};
 
 use crate::agent::harness::tool_result_artifacts::{
-    apply_per_result_persistence, artifact_read_target, page_artifact_read, ArtifactRead,
-    ToolResultArtifactStore, TINYAGENTS_TOOL_RESULT_ARTIFACT_STORE,
+    artifact_read_target, page_artifact_read, TINYAGENTS_TOOL_RESULT_ARTIFACT_STORE,
 };
 use crate::agent::tinyagents::payload_summarizer::PayloadSummarizer;
 use crate::inference::tokenjuice::generate::GenerateTicket;
 use crate::inference::tokenjuice::AgentTokenjuiceCompression;
+use tinyagents_harness::artifacts::tool_results::{
+    apply_per_result_persistence, ArtifactRead, ToolResultArtifactStore,
+};
 
 /// TinyJuice's own estimate: `ceil(characters / 4)`, not bytes. Multibyte
 /// content has more bytes than characters, so a byte-based estimate here
@@ -109,13 +111,21 @@ pub(crate) const DISCOVERY_TOOLS: &[&str] = &["mcp_list_tools", "mcp_list_server
 /// Steps 1 (TinyJuice summary) + 2 (tokenjuice compaction) exemption:
 /// proposal tools (final-output contract, see [`COMPACTION_EXEMPT_TOOLS`]),
 /// sampling tools (tabulation would corrupt the schema they exist to reveal,
-/// see [`SAMPLING_TOOLS`]) and discovery listings (tabulating away a
+/// see [`SAMPLING_TOOLS`]), discovery listings (tabulating away a
 /// catalogue's schemas is indistinguishable from not having listed them, see
-/// [`DISCOVERY_TOOLS`]).
+/// [`DISCOVERY_TOOLS`]) and the REPL tools.
+///
+/// The REPL tools (`juice_find`, `juice_extract`, `juice_summarize`) are how the
+/// model reads a result TinyJuice already stored behind a handle. Compacting one
+/// of their answers would store it behind a second handle and hand the model a
+/// preview of a preview, an endless descent. They stay subject to steps 3+4:
+/// each declares a `max_result_size_chars`, so the answer is bounded by the tool
+/// itself and never needs a summary to fit.
 pub(crate) fn is_compaction_exempt(name: &str) -> bool {
     COMPACTION_EXEMPT_TOOLS.contains(&name)
         || SAMPLING_TOOLS.contains(&name)
         || DISCOVERY_TOOLS.contains(&name)
+        || crate::inference::tokenjuice::is_repl_tool(name)
 }
 
 /// Steps 3 (per-tool char cap) + 4 (shared byte-budget backstop) exemption:
@@ -418,7 +428,8 @@ impl Middleware<(), crate::agent::tinyagents::host::OpenHumanRunContext> for Too
             && budget_bytes > 0
             && self.artifact_store.is_some()
             && content.len() > budget_bytes
-            && content.len() as u64 <= crate::tools::FileReadTool::MAX_FILE_SIZE_BYTES)
+            && content.len() as u64
+                <= tinytools_std::filesystem::FileReadTool::MAX_FILE_SIZE_BYTES)
             .then(|| content.clone());
 
         // 1+2. TinyJuice: the LLM summary stage (when this agent has a

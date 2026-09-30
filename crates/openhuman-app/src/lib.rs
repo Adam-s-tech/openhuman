@@ -3639,7 +3639,9 @@ pub fn run_core_from_args(args: &[String]) -> Result<(), String> {
     // Core lives in-process: dispatch directly through the linked `openhuman_core`
     // library instead of shelling out to a separate binary. The Tauri main()
     // routes `OpenHuman core <args>` here so users can still drive the core CLI
-    // from the bundled app.
+    // from the bundled app. `run` / `serve` start the JSON-RPC server from
+    // `openhuman-rpc`, which the core cannot depend on, so install it first.
+    openhuman_rpc::server::install_cli_server();
     openhuman_core::run_core_from_args(args).map_err(|e| format!("{e:#}"))
 }
 

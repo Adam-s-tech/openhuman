@@ -2,7 +2,7 @@
 //! carry-over into the session transcript.
 
 use super::state::TurnStateMirror;
-use crate::threads::turn_state::types::TurnLifecycle;
+use tinyagents_session::turn_state::types::TurnLifecycle;
 
 pub(super) const MIRROR_LOG_PREFIX: &str = "[threads:turn_state:mirror]";
 

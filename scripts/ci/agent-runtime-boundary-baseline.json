@@ -16,14 +16,14 @@
   {
     "rule": "openhuman-runtime-bridge",
     "path": "crates/openhuman-core/src/agent/subagent_host/ops/graph/dispatch.rs",
-    "line": 13,
+    "line": 12,
     "text": "use crate::agent::tinyagents::{run_turn_via_tinyagents_shared, SubagentScope};",
     "occurrence": 1
   },
   {
     "rule": "openhuman-runtime-bridge",
     "path": "crates/openhuman-core/src/agent/subagent_host/ops/graph/dispatch.rs",
-    "line": 281,
+    "line": 198,
     "text": "let run_result = Box::pin(run_turn_via_tinyagents_shared(",
     "occurrence": 1
   },
@@ -81,13 +81,6 @@
     "path": "crates/openhuman-core/src/agent/bus.rs",
     "line": 295,
     "text": "with_current_sandbox_mode(sandbox_mode, async {",
-    "occurrence": 1
-  },
-  {
-    "rule": "openhuman-task-local",
-    "path": "crates/openhuman-core/src/agent/goals/runtime.rs",
-    "line": 159,
-    "text": "crate::agent::turn_origin::current(),",
     "occurrence": 1
   },
   {
@@ -310,21 +303,21 @@
   {
     "rule": "openhuman-task-local",
     "path": "crates/openhuman-core/src/agent/orchestration/ops.rs",
-    "line": 417,
+    "line": 416,
     "text": "let handle = tokio::spawn(crate::agent::turn_origin::propagate(",
     "occurrence": 1
   },
   {
     "rule": "openhuman-task-local",
     "path": "crates/openhuman-core/src/agent/orchestration/ops.rs",
-    "line": 418,
+    "line": 417,
     "text": "crate::agent::turn_workspace::propagate(async move {",
     "occurrence": 1
   },
   {
     "rule": "openhuman-task-local",
     "path": "crates/openhuman-core/src/agent/orchestration/ops.rs",
-    "line": 420,
+    "line": 419,
     "text": "let result = with_parent_context(parent, async move {",
     "occurrence": 1
   },
@@ -359,14 +352,14 @@
   {
     "rule": "openhuman-task-local",
     "path": "crates/openhuman-core/src/agent/orchestration/tools/spawn_async_subagent_execute.rs",
-    "line": 420,
+    "line": 418,
     "text": "let join = tokio::spawn(crate::agent::turn_origin::propagate(",
     "occurrence": 1
   },
   {
     "rule": "openhuman-task-local",
     "path": "crates/openhuman-core/src/agent/orchestration/tools/spawn_async_subagent_execute.rs",
-    "line": 421,
+    "line": 419,
     "text": "crate::agent::turn_workspace::propagate(async move {",
     "occurrence": 1
   },
@@ -506,7 +499,7 @@
   {
     "rule": "openhuman-task-local",
     "path": "crates/openhuman-core/src/agent/subagent_host/ops/mod.rs",
-    "line": 68,
+    "line": 67,
     "text": "pub(super) use crate::agent::harness::{with_spawn_depth, MAX_SPAWN_DEPTH};",
     "occurrence": 1
   },

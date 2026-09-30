@@ -196,6 +196,10 @@ export const EXACT_TOOL_SPECS: Record<string, ToolSpec> = {
   resolve_time: spec('resolveDate', ClockIcon, 'system', { chip: chip.text('expr') }),
   retrieve_tool_output: spec('retrieveOutput', ArchiveRestoreIcon, 'system'),
   tinyjuice_retrieve: spec('retrieveOutput', ArchiveRestoreIcon, 'system'),
+  // REPL tools over a stored (handle) tool result; they reuse existing phrases.
+  juice_find: spec('searchCode', TextSearchIcon, 'system', { chip: chip.text('query') }),
+  juice_extract: spec('extractDetails', LayersIcon, 'system'),
+  juice_summarize: spec('extractDetails', LayersIcon, 'system'),
   read_workspace_state: spec('reviewWorkspace', FolderOpenIcon, 'system'),
   proxy_config: spec('configureProxy', SettingsIcon, 'system', { chip: chip.text('action') }),
   update_check: spec('checkUpdates', DownloadIcon, 'system'),

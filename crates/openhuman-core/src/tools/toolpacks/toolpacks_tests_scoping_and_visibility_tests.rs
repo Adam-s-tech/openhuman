@@ -2,6 +2,7 @@
 //! execution distinction the whole pack mechanism rests on.
 
 use super::*;
+use tinyagents_harness::tool::packs::{route_sentence, USE_SKILL};
 
 // ── the index must agree with the gate too ──────────────────────────────────
 
@@ -30,7 +31,10 @@ fn the_index_drops_a_pack_this_session_can_call_nothing_in() {
 
     // Only the workflows pack is reachable.
     let workflows = pack("workflows").expect("workflows pack");
-    let kept = scope_use_skill_spec(&mut spec, &|name| workflows.tools.contains(&name));
+    let kept =
+        tinyagents_harness::tool::packs::scope_use_skill_spec(&CATALOG, &mut spec, &|name| {
+            workflows.tools.contains(&name)
+        });
     assert!(
         kept,
         "workflows is callable, so use_skill stays on the wire"
@@ -56,7 +60,9 @@ fn the_index_drops_a_pack_this_session_can_call_nothing_in() {
 fn the_skill_enum_offers_only_reachable_packs() {
     let mut spec = use_skill_spec();
     let workflows = pack("workflows").expect("workflows pack");
-    scope_use_skill_spec(&mut spec, &|name| workflows.tools.contains(&name));
+    tinyagents_harness::tool::packs::scope_use_skill_spec(&CATALOG, &mut spec, &|name| {
+        workflows.tools.contains(&name)
+    });
 
     let values = spec
         .parameters
@@ -79,7 +85,7 @@ fn the_skill_enum_offers_only_reachable_packs() {
 fn a_session_that_can_reach_no_pack_loses_use_skill() {
     let mut spec = use_skill_spec();
     assert!(
-        !scope_use_skill_spec(&mut spec, &|_| false),
+        !tinyagents_harness::tool::packs::scope_use_skill_spec(&CATALOG, &mut spec, &|_| false),
         "with nothing reachable, use_skill must be dropped, not emptied"
     );
 }
@@ -91,7 +97,9 @@ fn scoping_the_index_only_ever_shrinks_it() {
     let mut spec = use_skill_spec();
     let before = spec.description.len();
     let workflows = pack("workflows").expect("workflows pack");
-    scope_use_skill_spec(&mut spec, &|name| workflows.tools.contains(&name));
+    tinyagents_harness::tool::packs::scope_use_skill_spec(&CATALOG, &mut spec, &|name| {
+        workflows.tools.contains(&name)
+    });
     assert!(
         spec.description.len() < before,
         "scoped index ({}) must be smaller than the full one ({before})",
@@ -236,7 +244,8 @@ fn a_non_owner_listing_omits_the_tools_the_gate_will_refuse() {
     let handle = crate::tools::host_extensions::pack_registry_handle(find(&tools, USE_SKILL))
         .expect("use_skill carries the pack handle");
 
-    let rendered = render_pack_filtered(
+    let rendered = tinyagents_harness::tool::packs::render_pack_filtered(
+        &CATALOG,
         "workflows",
         handle,
         &|name: &str| name != "propose_workflow",
@@ -263,33 +272,18 @@ fn a_listing_with_nothing_callable_names_the_route_out() {
         .expect("use_skill carries the pack handle");
 
     let route = route_sentence(&["build_workflow".to_string()], &["workflow_builder"]);
-    let err = render_pack_filtered("workflows", handle, &|_| false, &route)
-        .expect_err("nothing callable must not render a menu");
+    let err = tinyagents_harness::tool::packs::render_pack_filtered(
+        &CATALOG,
+        "workflows",
+        handle,
+        &|_| false,
+        &route,
+    )
+    .expect_err("nothing callable must not render a menu");
 
     assert!(
         err.contains("build_workflow"),
         "the denial must name the delegate to call instead: {err}"
-    );
-}
-
-/// Naming the tool, not just the agent, is the difference between an
-/// instruction and a guess — and a model that guesses wrong retries.
-#[test]
-fn route_sentence_prefers_a_callable_tool_and_falls_back_to_owners() {
-    let named = route_sentence(&["build_workflow".to_string()], &["workflow_builder"]);
-    assert!(named.contains("`build_workflow`"), "{named}");
-    assert!(
-        !named.contains("`workflow_builder`"),
-        "naming the agent as well is noise once the call is named: {named}"
-    );
-
-    let fallback = route_sentence(&[], &["workflow_builder", "flow_discovery"]);
-    assert!(fallback.contains("`workflow_builder`"), "{fallback}");
-    assert!(fallback.contains("`flow_discovery`"), "{fallback}");
-
-    assert!(
-        route_sentence(&[], &[]).is_empty(),
-        "an ownerless pack has no route to offer and must stay silent"
     );
 }
 
@@ -311,17 +305,18 @@ fn the_workflows_pack_is_still_owned_by_the_flow_agents() {
     );
 }
 
-// ── #6302: direct routes and the packs they close ──────────────────────────
+// ── #6302: the MCP and skill hand-offs, and the packs they close ───────────
 
-/// These named routes stay direct tools. See `DELIBERATELY_UNPACKED_DIRECT_TOOLS`.
+/// `setup_skills` is a packed hand-off like `build_workflow` and
+/// `manage_tasks`: it rides in the `skills` pack it hands off into, so the
+/// orchestrator reaches it through `use_skill` instead of paying its schema on
+/// every request.
 #[test]
-fn deliberate_direct_routes_are_never_packed() {
-    for name in registry::DELIBERATELY_UNPACKED_DIRECT_TOOLS {
-        assert!(
-            registry::pack_for_tool(name).is_none(),
-            "`{name}` is the orchestrator's route into its family and must stay a direct tool"
-        );
-    }
+fn the_skill_install_hand_off_is_packed_in_the_skills_pack() {
+    assert_eq!(
+        registry::pack_for_tool("setup_skills").map(|pack| pack.id),
+        Some("skills")
+    );
 }
 
 /// A pack whose owner this agent can hand off to directly is closed to it
@@ -338,8 +333,11 @@ fn a_direct_hand_off_closes_its_owners_pack_and_nothing_else() {
             tool_description: String::new(),
         })
     };
+    // `hand_off_to_skill_setup` is a hypothetical UNPACKED hand-off to the
+    // skills pack's owner (the real one, `setup_skills`, is packed now; see
+    // `a_packed_hand_off_leaves_its_owners_pack_open`).
     let delegates = vec![
-        delegate("setup_skills", "skill_setup"),
+        delegate("hand_off_to_skill_setup", "skill_setup"),
         delegate("create_image", "image_agent"),
     ];
     let raw = registry_with_all(&[
@@ -353,12 +351,12 @@ fn a_direct_hand_off_closes_its_owners_pack_and_nothing_else() {
         .map(|t| t.as_ref())
         .chain(delegates.iter().map(|t| t.as_ref()))
         .collect();
-    // `setup_skills` is unpacked, so the orchestrator advertises it by
-    // construction; `create_image` is packed.
+    // `hand_off_to_skill_setup` is unpacked, so the orchestrator advertises it
+    // by construction; `create_image` is packed.
     let closed = closed_by_direct_handoff("orchestrator", &tools);
     assert!(
         closed.contains(&"skill_registry_install"),
-        "a raw tool of the pack `setup_skills` hands off to must close: {closed:?}"
+        "a raw tool of the pack an unpacked hand-off leads to must close: {closed:?}"
     );
     assert!(
         !closed.contains(&"media_generate_image"),
@@ -391,6 +389,32 @@ fn a_direct_hand_off_closes_its_owners_pack_and_nothing_else() {
     );
 }
 
+/// The real skill-install hand-off is packed, so it no longer closes the pack:
+/// the `skills` listing offers `setup_skills` beside the raw registry tools,
+/// the shape every other packed hand-off (`build_workflow`, `manage_tasks`)
+/// already has.
+#[test]
+fn a_packed_hand_off_leaves_its_owners_pack_open() {
+    use crate::agent::orchestration::tools::{ArchetypeDelegationTool, DelegationTarget};
+
+    let delegate: Box<dyn tinytools::Tool> = Box::new(ArchetypeDelegationTool {
+        tool_name: "setup_skills".to_string(),
+        agent_id: DelegationTarget("skill_setup".to_string()),
+        tool_description: String::new(),
+    });
+    let raw = registry_with_all(&["skill_registry_install"]);
+    let tools: Vec<&dyn tinytools::Tool> = raw
+        .iter()
+        .map(|t| t.as_ref())
+        .chain(std::iter::once(delegate.as_ref()))
+        .collect();
+    let closed = closed_by_direct_handoff("orchestrator", &tools);
+    assert!(
+        !closed.contains(&"skill_registry_install"),
+        "a packed hand-off must not close its own pack: {closed:?}"
+    );
+}
+
 /// The live session shape, which the rule test above cannot catch.
 ///
 /// This is the regression the first cut shipped (#6302): a `ToolScope::Named`
@@ -412,7 +436,7 @@ fn a_named_scope_session_closes_the_pack_its_visible_list_never_mentions() {
     use crate::tools::agent_policy::ToolPolicyEngine;
 
     let delegate: Box<dyn tinytools::Tool> = Box::new(ArchetypeDelegationTool {
-        tool_name: "setup_skills".to_string(),
+        tool_name: "hand_off_to_skill_setup".to_string(),
         agent_id: DelegationTarget("skill_setup".to_string()),
         tool_description: String::new(),
     });
@@ -450,8 +474,8 @@ fn a_named_scope_session_closes_the_pack_its_visible_list_never_mentions() {
         session
             .decision_for("skill_registry_install")
             .blocks_execution(),
-        "`setup_skills` is unpacked, so the orchestrator advertises it and the \
-         raw registry tool must close — even though `visible` never named it"
+        "an unpacked hand-off is advertised by construction, so the raw \
+         registry tool must close — even though `visible` never named it"
     );
 }
 

@@ -11,10 +11,10 @@
 use log::{debug, info, warn};
 use std::time::Duration;
 
-#[cfg(target_os = "macos")]
-use crate::desktop::accessibility;
 use arboard::Clipboard;
 use enigo::{Direction, Enigo, Key, Keyboard, Settings};
+#[cfg(target_os = "macos")]
+use tinycomputer_accessibility as accessibility;
 
 const LOG_PREFIX: &str = "[voice_input]";
 
@@ -73,7 +73,9 @@ pub fn insert_text(text: &str, expected_app: Option<&str>) -> Result<(), String>
     #[cfg(target_os = "macos")]
     if let Some(app_name) = expected_app {
         debug!("{LOG_PREFIX} validating focus before paste; expected_app='{app_name}'");
-        if let Err(validation_err) = accessibility::validate_focused_target(Some(app_name), None) {
+        if let Err(validation_err) =
+            accessibility::validate_focused_target(Some(app_name), None, None)
+        {
             warn!("{LOG_PREFIX} focus changed before paste: {validation_err}");
             // Always try to restore focus — even if the user hasn't clicked a
             // text field yet, activating the app brings it to front and most

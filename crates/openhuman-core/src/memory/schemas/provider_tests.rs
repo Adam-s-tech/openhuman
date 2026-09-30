@@ -1,9 +1,23 @@
 use super::*;
 
 #[test]
-fn provider_schema_only_exposes_provider_status() {
-    assert_eq!(FUNCTIONS, &["provider_status"]);
-    assert_eq!(controllers().len(), 1);
+fn provider_family_exposes_status_and_the_engine_selector() {
+    assert_eq!(
+        FUNCTIONS,
+        &[
+            "provider_status",
+            "engines_list",
+            "engine_get",
+            "engine_set",
+            "engine_migrate",
+            "engine_migrate_status",
+            "engine_migrate_cancel"
+        ]
+    );
+    assert_eq!(controllers().len(), FUNCTIONS.len());
+    for function in FUNCTIONS {
+        assert!(schema(function).is_some(), "{function} has no schema");
+    }
 }
 
 #[test]

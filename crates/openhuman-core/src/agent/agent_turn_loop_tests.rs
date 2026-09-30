@@ -24,7 +24,7 @@ async fn turn_returns_text_when_no_tools_called() {
 #[tokio::test]
 async fn turn_executes_single_tool_then_returns() {
     let provider = Arc::new(ScriptedProvider::new(vec![
-        tool_response(vec![ToolCall {
+        tool_response(vec![NativeToolCall {
             id: "tc1".into(),
             name: "echo".into(),
             arguments: r#"{"message": "hello from tool"}"#.into(),
@@ -52,19 +52,19 @@ async fn turn_handles_multi_step_tool_chain() {
     let (counting_tool, count) = CountingTool::new();
 
     let provider = Arc::new(ScriptedProvider::new(vec![
-        tool_response(vec![ToolCall {
+        tool_response(vec![NativeToolCall {
             id: "tc1".into(),
             name: "counter".into(),
             arguments: "{}".into(),
             extra_content: None,
         }]),
-        tool_response(vec![ToolCall {
+        tool_response(vec![NativeToolCall {
             id: "tc2".into(),
             name: "counter".into(),
             arguments: "{}".into(),
             extra_content: None,
         }]),
-        tool_response(vec![ToolCall {
+        tool_response(vec![NativeToolCall {
             id: "tc3".into(),
             name: "counter".into(),
             arguments: "{}".into(),
@@ -103,7 +103,7 @@ async fn turn_emits_checkpoint_at_max_iterations() {
     let max_iters = 3;
     let mut responses = Vec::new();
     for i in 0..max_iters + 5 {
-        responses.push(tool_response(vec![ToolCall {
+        responses.push(tool_response(vec![NativeToolCall {
             id: format!("tc{i}"),
             name: "echo".into(),
             // Vary the args each turn so the repeat-CALL breaker (which halts
@@ -151,7 +151,7 @@ async fn turn_emits_checkpoint_at_max_iterations() {
 #[tokio::test]
 async fn turn_handles_unknown_tool_gracefully() {
     let provider = Arc::new(ScriptedProvider::new(vec![
-        tool_response(vec![ToolCall {
+        tool_response(vec![NativeToolCall {
             id: "tc1".into(),
             name: "nonexistent_tool".into(),
             arguments: "{}".into(),
@@ -197,7 +197,7 @@ async fn turn_handles_unknown_tool_gracefully() {
 #[tokio::test]
 async fn turn_recovers_from_tool_failure() {
     let provider = Arc::new(ScriptedProvider::new(vec![
-        tool_response(vec![ToolCall {
+        tool_response(vec![NativeToolCall {
             id: "tc1".into(),
             name: "fail".into(),
             arguments: "{}".into(),
@@ -222,7 +222,7 @@ async fn turn_recovers_from_tool_failure() {
 #[tokio::test]
 async fn turn_recovers_from_tool_error() {
     let provider = Arc::new(ScriptedProvider::new(vec![
-        tool_response(vec![ToolCall {
+        tool_response(vec![NativeToolCall {
             id: "tc1".into(),
             name: "panicker".into(),
             arguments: "{}".into(),
@@ -258,41 +258,53 @@ async fn turn_propagates_provider_error() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 8. History trimming during long conversations
+// 8. Long conversations keep their history (no message-count trim)
 // ═══════════════════════════════════════════════════════════════════════════
 
+/// Prompt-cache regression: the legacy `max_history_messages` bound used to
+/// drop the oldest messages on every turn past it, which moved the head of the
+/// provider's cached prompt prefix every turn (a full cache miss each time).
+/// History is now bounded only by the token-aware context ladder, so a small
+/// legacy bound is ignored and the message after the system prompt never moves.
 #[tokio::test]
-async fn history_trims_after_max_messages() {
-    let max_history = 6;
-    let mut responses = vec![];
-    for _ in 0..max_history + 5 {
-        responses.push(text_response("ok"));
-    }
+async fn history_is_not_trimmed_by_message_count() {
+    let legacy_bound = 6;
+    let turns = legacy_bound + 5;
+    let responses = (0..turns).map(|_| text_response("ok")).collect();
 
     let provider = Arc::new(ScriptedProvider::new(responses));
     let config = AgentConfig {
-        max_history_messages: max_history,
+        max_history_messages: legacy_bound,
         ..AgentConfig::default()
     };
 
     let (mut agent, _tmp) = build_agent_with_config(provider, vec![], config);
 
-    for i in 0..max_history + 5 {
+    for i in 0..turns {
         let _ = agent.turn(&format!("msg {i}")).await.unwrap();
     }
 
-    // System prompt (1) + trimmed messages
-    // Should not exceed max_history + 1 (system prompt)
+    let history = agent.history();
+    // System prompt should always be preserved.
+    assert!(matches!(&history[0], ConversationMessage::Chat(c) if c.role == "system"));
+    // Every turn's user message is still there, and the first one still opens
+    // the conversation right after the system prompt.
     assert!(
-        agent.history().len() <= max_history + 1,
-        "History length {} exceeds max {} + 1 (system)",
-        agent.history().len(),
-        max_history,
+        history.len() > legacy_bound + 1,
+        "history length {} was trimmed to the legacy bound {legacy_bound}",
+        history.len()
     );
-
-    // System prompt should always be preserved
-    let first = &agent.history()[0];
-    assert!(matches!(first, ConversationMessage::Chat(c) if c.role == "system"));
+    let first_user = history
+        .iter()
+        .find_map(|m| match m {
+            ConversationMessage::Chat(c) if c.role == "user" => Some(c.content.clone()),
+            _ => None,
+        })
+        .expect("a user message");
+    assert!(
+        first_user.contains("msg 0"),
+        "the oldest turn was dropped; first user message is {first_user:?}"
+    );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -483,7 +495,7 @@ async fn turn_preserves_text_alongside_tool_calls() {
     let provider = Arc::new(ScriptedProvider::new(vec![
         ChatResponse {
             text: Some("Let me check...".into()),
-            tool_calls: vec![ToolCall {
+            tool_calls: vec![NativeToolCall {
                 id: "tc1".into(),
                 name: "echo".into(),
                 arguments: r#"{"message": "hi"}"#.into(),
@@ -528,19 +540,19 @@ async fn turn_handles_multiple_tools_in_one_response() {
 
     let provider = Arc::new(ScriptedProvider::new(vec![
         tool_response(vec![
-            ToolCall {
+            NativeToolCall {
                 id: "tc1".into(),
                 name: "counter".into(),
                 arguments: "{}".into(),
                 extra_content: None,
             },
-            ToolCall {
+            NativeToolCall {
                 id: "tc2".into(),
                 name: "counter".into(),
                 arguments: "{}".into(),
                 extra_content: None,
             },
-            ToolCall {
+            NativeToolCall {
                 id: "tc3".into(),
                 name: "counter".into(),
                 arguments: "{}".into(),

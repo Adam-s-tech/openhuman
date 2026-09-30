@@ -17,8 +17,8 @@
 
 use crate::core::runtime::context::CoreContext;
 use crate::core::subsystem::{DriverHealth, SubsystemStatus};
+use crate::core::Outcome;
 use crate::memory::binding::{to_driver_health, MemoryBinding};
-use crate::rpc::RpcOutcome;
 
 /// The status of the memory slot for the current dispatch context.
 ///
@@ -62,6 +62,7 @@ async fn standalone_status() -> SubsystemStatus {
         }
     };
 
+    crate::memory::binding_remote::note_api_url(&config.workspace_dir, &config.api_url);
     match crate::memory::binding::for_workspace(&config.workspace_dir, &config.subsystems.memory) {
         Ok(binding) => status_from_binding(&binding).await,
         Err(err) => {
@@ -119,8 +120,8 @@ fn unresolved_status(reason: String) -> SubsystemStatus {
 }
 
 /// RPC handler body for `memory.provider_status`.
-pub async fn memory_provider_status() -> RpcOutcome<SubsystemStatus> {
-    RpcOutcome::new(memory_subsystem_status().await, vec![])
+pub async fn memory_provider_status() -> Outcome<SubsystemStatus> {
+    Outcome::new(memory_subsystem_status().await, vec![])
 }
 
 #[cfg(test)]

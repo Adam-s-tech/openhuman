@@ -92,7 +92,7 @@ pub async fn flows_set_enabled(
     config: &Config,
     id: &str,
     enabled: bool,
-) -> Result<RpcOutcome<Flow>, String> {
+) -> Result<Outcome<Flow>, String> {
     let flow = store::set_enabled(config, id, enabled).map_err(|e| e.to_string())?;
 
     if enabled {
@@ -119,7 +119,7 @@ pub async fn flows_set_enabled(
     }
 
     publish_flow_changed(id, "enabled_changed", "system");
-    Ok(RpcOutcome::new(flow, logs))
+    Ok(Outcome::new(flow, logs))
 }
 
 /// Registers the automatic-dispatch side effect for `flow`'s trigger kind, if

@@ -27,13 +27,11 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use serde_json::{json, Value};
 
-use openhuman_core::agent::tool_policy::{
-    GeneratedToolRuntimeContext, GeneratedToolRuntimeRisk,
-};
+use openhuman_core::agent::tool_policy::{GeneratedToolRuntimeContext, GeneratedToolRuntimeRisk};
 use openhuman_core::skills::types::tool_result_from_mcp;
-use openhuman_core::tools::toolpacks::registry::PACKS;
-use openhuman_core::tools::toolpacks::tools::{PackRegistryHandle, UseSkillTool};
 use openhuman_core::tools::host_extensions::{generated_runtime_context, pack_registry_handle};
+use openhuman_core::tools::toolpacks::registry::{CATALOG, PACKS};
+use tinyagents_harness::tool::packs::{PackRegistryHandle, UseSkillTool};
 use tinytools::{PermissionLevel, Tool, ToolResult};
 
 /// A production pack tool's registry handle survives the round trip through
@@ -65,7 +63,7 @@ use tinytools::{PermissionLevel, Tool, ToolResult};
 /// observed without needing to construct a real packed tool.
 #[tokio::test]
 async fn a_pack_tools_registry_handle_reads_back_as_the_same_handle() {
-    let tool = UseSkillTool::new(PackRegistryHandle::default());
+    let tool = UseSkillTool::new(PackRegistryHandle::default(), CATALOG);
 
     let recovered = pack_registry_handle(&tool).expect(
         "a pack tool must yield its PackRegistryHandle through the erased \

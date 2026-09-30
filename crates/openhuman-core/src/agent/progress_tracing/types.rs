@@ -65,7 +65,7 @@ pub struct TraceContext {
     /// stays inspectable without polluting user attribution.
     pub client_id: Option<String>,
     /// Agent definition id driving the turn (e.g. `"orchestrator"`,
-    /// `"code_executor"`). Stamped as the `agent.id` attribute and folded into
+    /// `"task_manager_agent"`). Stamped as the `agent.id` attribute and folded into
     /// the root span/trace name (`agent.turn:<agent_id>`).
     pub agent_id: Option<String>,
     /// Where the run originated (`"chat"`, `"ptt"`, `"autonomous"`, …).
@@ -214,9 +214,8 @@ pub enum SpanStatus {
 /// #4469 item 13: this raw record is **not** directly Langfuse-ingestible — the
 /// Langfuse `/api/public/ingestion` API needs each span wrapped in a
 /// `{ type, id, timestamp, body }` event envelope. That envelope is produced
-/// only by [`super::langfuse::spans_to_langfuse_batch`] on the remote-push path; the
-/// local NDJSON exporter intentionally emits the raw spans, not the batch
-/// format.
+/// only on the remote-push path (`otlp::push_spans`); the local NDJSON exporter
+/// intentionally emits the raw spans, not the batch format.
 #[derive(Debug, Clone, Serialize)]
 pub struct TraceSpan {
     /// Trace id (the session id) — shared by every span in the run.

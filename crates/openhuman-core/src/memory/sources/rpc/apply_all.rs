@@ -3,9 +3,9 @@
 
 use super::source_sync::{sync_dispatch, SyncDispatch};
 use crate::config::rpc as config_rpc;
+use crate::core::Outcome;
 use crate::memory::sources::registry;
 use crate::memory::sources::types::MemorySourceEntry;
-use crate::rpc::RpcOutcome;
 
 /// Response returned by `memory_sources_apply_all_in`.
 #[derive(Debug, serde::Serialize)]
@@ -89,7 +89,7 @@ where
 /// Returns immediately with the updated source list and the number of
 /// syncs queued. Individual syncs run in the background and publish
 /// `MemorySyncStageChanged` events as they progress.
-pub async fn apply_all_in_rpc() -> Result<RpcOutcome<AllInResponse>, String> {
+pub async fn apply_all_in_rpc() -> Result<Outcome<AllInResponse>, String> {
     tracing::info!("[memory_sources] apply_all_in_rpc: entry");
 
     // Enable all sources and clear caps.
@@ -173,7 +173,7 @@ pub async fn apply_all_in_rpc() -> Result<RpcOutcome<AllInResponse>, String> {
         "[memory_sources] apply_all_in_rpc: complete"
     );
 
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         AllInResponse {
             sources,
             sync_triggered,

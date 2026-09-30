@@ -9,8 +9,6 @@ pub use cloud_providers::{
 };
 pub mod ephemeral_route;
 pub use ephemeral_route::{EphemeralRoute, EPHEMERAL_ROUTE_SLUG};
-pub mod subconscious;
-pub use subconscious::{SubconsciousConfig, SubconsciousEngine};
 mod agent;
 mod autonomy;
 mod capability_providers;
@@ -21,6 +19,7 @@ pub use cli_overrides::AppliedInferenceOverride;
 mod computer;
 pub use computer::{ComputerConfig, DecisionModel};
 mod context;
+mod cron;
 mod dashboard;
 mod desktop;
 pub use desktop::DesktopConfig;
@@ -28,7 +27,6 @@ mod defaults;
 mod dictation;
 mod hooks;
 pub use hooks::HooksConfig;
-mod heartbeat_cron;
 pub mod hosting;
 pub use hosting::HostingConfig;
 mod identity_cost;
@@ -88,9 +86,9 @@ pub use channels::{
 };
 pub(crate) use cli_overrides::set_cli_inference_overrides;
 pub use context::ContextConfig;
+pub use cron::CronConfig;
 pub use dashboard::{DashboardConfig, DiagramViewerConfig, EventStreamConfig, ModelHealthConfig};
 pub use dictation::{DictationActivationMode, DictationConfig};
-pub use heartbeat_cron::{CronConfig, HeartbeatConfig, SubconsciousMode};
 pub use identity_cost::{CostConfig, ModelPricing};
 pub use learning::{LearningConfig, ReflectionSource};
 pub use local_ai::{LocalAiConfig, LocalAiUsage};
@@ -120,9 +118,10 @@ pub use subsystems::{
 pub use task_sources::TaskSourcesConfig;
 pub use tokenjuice::TokenjuiceConfig;
 pub use tools::{
-    BrowserComputerUseConfig, BrowserConfig, ComposioConfig, CurlConfig, GitbooksConfig,
-    HttpHeader, HttpRequestConfig, IntegrationToggle, IntegrationsConfig, LegacySearchInputs,
-    McpAuthConfig, McpClientConfig, McpClientIdentityConfig, McpServerConfig, MultimodalConfig,
+    BrowserComputerUseConfig, BrowserConfig, ComposioConfig, ComposioDirectBaseUrls,
+    ComposioHostCredential, CurlConfig, GitbooksConfig, HttpHeader, HttpRequestConfig,
+    IntegrationToggle, IntegrationsConfig, LegacySearchInputs, McpAuthConfig, McpClientConfig,
+    McpClientIdentityConfig, McpServerConfig, McpToolExposure, MultimodalConfig,
     MultimodalFileConfig, SearchConfig, SearchEngineCredentials, SearchPresentation,
     SearchProviderSettings, SearchRoute, SearxngConfig, SecretsConfig, SeltzConfig,
     WebSearchConfig, COMPOSIO_MODE_BACKEND, COMPOSIO_MODE_DIRECT, MANAGED_SEARCH_PROVIDERS,

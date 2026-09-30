@@ -187,17 +187,19 @@ struct ComposioCallbacks(Arc<Config>);
 impl ComposioCallbacks {
     async fn list_connections(&self) -> tinybus::Result<Vec<ComposioConnection>> {
         use crate::integrations::composio::client::{
-            create_composio_client, direct_list_connections, ComposioClientKind,
+            direct_list_connections, resolve_composio_route, ComposioRoute,
         };
+        use crate::integrations::composio::module_client::{self as connectors, methods};
         let config = self.live_config().await.map_err(method_error)?;
-        let response = match create_composio_client(&config)
-            .map_err(|e| method_error(format!("create_composio_client: {e:#}")))?
+        let response = match resolve_composio_route(&config)
+            .map_err(|e| method_error(format!("resolve_composio_route: {e:#}")))?
         {
-            ComposioClientKind::Backend(client) => client
-                .list_connections()
-                .await
-                .map_err(|e| method_error(format!("list_connections (backend): {e:#}")))?,
-            ComposioClientKind::Direct(direct) => {
+            ComposioRoute::Backend => connectors::call_bare::<
+                crate::integrations::composio::types::ComposioConnectionsResponse,
+            >(&config, methods::LIST_CONNECTIONS)
+            .await
+            .map_err(|e| method_error(format!("list_connections (backend): {e}")))?,
+            ComposioRoute::Direct(direct) => {
                 direct_list_connections(&direct).await.map_err(|e| {
                     // [#1166 / Sentry TAURI-RUST-X9] The v3 `/connected_accounts`
                     // 401 shape has to reach the observability classifier, and it
@@ -231,25 +233,18 @@ impl ComposioCallbacks {
         entity_id: String,
         connection_id: Option<String>,
     ) -> tinybus::Result<ComposioExecuteResponse> {
-        use crate::integrations::composio::client::{
-            create_composio_client, direct_execute, ComposioClientKind,
-        };
         let config = self.live_config().await.map_err(method_error)?;
-        match create_composio_client(&config).map_err(|e| method_error(format!("{e:#}")))? {
-            ComposioClientKind::Backend(client) => client
-                .execute_tool(&tool, arguments)
-                .await
-                .map_err(|e| method_error(format!("{e:#}"))),
-            ComposioClientKind::Direct(direct) => direct_execute(
-                &direct,
-                &tool,
-                arguments,
-                &entity_id,
-                connection_id.as_deref(),
-            )
-            .await
-            .map_err(|e| method_error(format!("{e:#}"))),
-        }
+        // `entity_id` is the direct route's; the connector module reads it from
+        // its own configuration, which `module_config` derives from `config`.
+        let _ = entity_id;
+        crate::integrations::composio::execute_dispatch::execute_composio_action(
+            &config,
+            &tool,
+            arguments,
+            connection_id.as_deref(),
+        )
+        .await
+        .map_err(method_error)
     }
 
     /// The direct-mode Composio API key, or `None` when direct mode is unset.
@@ -314,9 +309,9 @@ impl ComposioCallbacks {
     /// direct-mode user has no backend session, and testing for one would read
     /// as signed-out and skip them (#1710).
     async fn is_available(&self) -> tinybus::Result<bool> {
-        use crate::integrations::composio::client::create_composio_client;
+        use crate::integrations::composio::client::resolve_composio_route;
         let config = self.live_config_or_installed().await;
-        Ok(create_composio_client(config.as_ref()).is_ok())
+        Ok(resolve_composio_route(config.as_ref()).is_ok())
     }
 }
 
