@@ -595,7 +595,7 @@ async fn run_turn_via_tinyagents_inner(
             steering_forwarder::forward_collects(&queue, &handle, &steer_thread_label).await;
         }
         ctx = ctx.with_steering(handle.clone());
-        Some(steering_forwarder::SteeringForwarderGuard::new(
+        Some(steering_forwarder::arm_guard(
             handle,
             run_queue,
             registry_task_id,
