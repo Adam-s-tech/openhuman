@@ -4254,7 +4254,6 @@ dependencies = [
  "fs2",
  "futures",
  "futures-util",
- "glob",
  "hex",
  "hkdf",
  "hostname",
@@ -7877,12 +7876,17 @@ version = "0.4.1"
 dependencies = [
  "anyhow",
  "async-trait",
+ "fs2",
+ "glob",
+ "libc",
  "log",
  "parking_lot",
+ "regex",
  "serde_json",
  "tinytools 0.4.1",
  "tokio",
  "tracing",
+ "walkdir",
 ]
 
 [[package]]

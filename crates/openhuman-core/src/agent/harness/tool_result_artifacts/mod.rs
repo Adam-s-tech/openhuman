@@ -17,7 +17,7 @@ use serde_json::Value;
 use tinyagents_harness::artifacts::tool_results::{self, ArtifactRead, ToolResultArtifactStore};
 
 use crate::agent::harness::artifact_offload::{SanitizingRedactor, READ_TOOL};
-use crate::tools::FileReadTool;
+use tinytools_std::filesystem::FileReadTool;
 
 /// Namespace of the artifact index in the run's store registry.
 pub(crate) const TINYAGENTS_TOOL_RESULT_ARTIFACT_STORE: &str = "openhuman_tool_result_artifacts";

@@ -1336,7 +1336,7 @@ async fn delegated_clarification_flow_inner() {
 //
 // Architecture notes for file_write approval:
 //
-// `FileWriteTool::external_effect_with_args` (crates/openhuman-core/src/tools/impl/filesystem/file_write.rs:65)
+// `FileWriteTool::external_effect_with_args` (`tinytools_std::filesystem::FileWriteTool`)
 // only returns `true` when the target file ALREADY EXISTS at `action_dir/path`.
 // Logic: "exists = edit → prompt; new = create → free". The default action_dir
 // is `~/OpenHuman/projects` (derived from the HOME env var that boot_stack
