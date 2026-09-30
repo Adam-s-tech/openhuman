@@ -12,6 +12,11 @@ use tinytools::Tool;
 #[cfg(test)]
 use tinytools::{ToolResult, ToolSpec};
 use tinytools_std::detect_tools::DetectToolsTool;
+use tinytools_std::filesystem::{
+    ApplyPatchTool, CsvExportTool, EditFileTool, FileReadTool, FileWriteTool, GitOperationsTool,
+    GlobTool, GrepTool, ListFilesTool, ReadDiffTool, RunLinterTool, RunTestsTool,
+    UpdateMemoryMdTool,
+};
 
 pub(crate) use super::capability::tool_capability;
 
@@ -457,13 +462,13 @@ pub fn all_tools_with_runtime(
         // diff, lint and test the working tree in the action sandbox. They
         // were defined but never registered, so the belts naming them held
         // nothing. `Deferred`, so they cost no schema until found.
-        Box::new(crate::tools::implementations::ReadDiffTool::new(
+        Box::new(ReadDiffTool::new(
             action_dir.to_path_buf(),
         )),
-        Box::new(crate::tools::implementations::RunLinterTool::new(
+        Box::new(RunLinterTool::new(
             action_dir.to_path_buf(),
         )),
-        Box::new(crate::tools::implementations::RunTestsTool::new(
+        Box::new(RunTestsTool::new(
             action_dir.to_path_buf(),
         )),
         Box::new(PushoverTool::new(
