@@ -145,7 +145,7 @@ version = "1.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "40c48f72fd53cd289104fc64099abca73db4166ad86ea0b4341abe65af83dadc"
 dependencies = [
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -156,7 +156,7 @@ checksum = "291e6a250ff86cd4a820112fb8898808a366d8f9f58ce16d1f538353ad55747d"
 dependencies = [
  "anstyle",
  "once_cell_polyfill",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -1672,7 +1672,7 @@ dependencies = [
  "libc",
  "option-ext",
  "redox_users",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -1899,7 +1899,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -2650,7 +2650,7 @@ dependencies = [
  "js-sys",
  "log",
  "wasm-bindgen",
- "windows-core 0.62.2",
+ "windows-core 0.58.0",
 ]
 
 [[package]]
@@ -3529,7 +3529,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -4750,7 +4750,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b570b25f7617e43d59005d0990ccb79e950a423952cea19671b7a876da390adf"
 dependencies = [
  "anyhow",
- "itertools 0.14.0",
+ "itertools 0.13.0",
  "proc-macro2",
  "quote",
  "syn 2.0.119",
@@ -4836,7 +4836,7 @@ dependencies = [
  "once_cell",
  "socket2",
  "tracing",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -5303,7 +5303,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -5876,7 +5876,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c3d1e2c7f27f8d4cb10542a02c49005dbd6e93095799d6f3be745fae9f8fedd4"
 dependencies = [
  "libc",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -6145,7 +6145,7 @@ dependencies = [
  "getrandom 0.4.3",
  "once_cell",
  "rustix",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -6158,7 +6158,7 @@ dependencies = [
  "parking_lot",
  "rustix",
  "signal-hook",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -6463,7 +6463,7 @@ dependencies = [
 
 [[package]]
 name = "tinybox-core"
-version = "0.1.8"
+version = "0.1.9"
 dependencies = [
  "async-trait",
  "serde",
@@ -6472,7 +6472,7 @@ dependencies = [
 
 [[package]]
 name = "tinybox-jail"
-version = "0.1.8"
+version = "0.1.9"
 dependencies = [
  "landlock",
  "log",
@@ -6512,7 +6512,7 @@ dependencies = [
 
 [[package]]
 name = "tinychannels"
-version = "0.1.5"
+version = "0.1.6"
 dependencies = [
  "anyhow",
  "async-imap",
@@ -6558,7 +6558,7 @@ dependencies = [
 
 [[package]]
 name = "tinychannels-bus"
-version = "0.1.5"
+version = "0.1.6"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -6579,7 +6579,7 @@ dependencies = [
 
 [[package]]
 name = "tinychannels-runtime"
-version = "0.1.5"
+version = "0.1.6"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -6599,6 +6599,7 @@ dependencies = [
  "log",
  "serde",
  "serde_json",
+ "thiserror 2.0.20",
 ]
 
 [[package]]
@@ -6611,7 +6612,7 @@ dependencies = [
 
 [[package]]
 name = "tinyconnectors-bus"
-version = "0.10.3"
+version = "0.10.4"
 dependencies = [
  "serde",
  "serde_json",
@@ -6619,7 +6620,7 @@ dependencies = [
 
 [[package]]
 name = "tinydocs-bus"
-version = "0.1.17"
+version = "0.1.18"
 dependencies = [
  "serde",
  "thiserror 2.0.20",
@@ -6696,7 +6697,7 @@ dependencies = [
 
 [[package]]
 name = "tinyhosts"
-version = "0.1.9"
+version = "0.1.10"
 dependencies = [
  "async-trait",
  "base64 0.23.1",
@@ -6870,7 +6871,7 @@ dependencies = [
 
 [[package]]
 name = "tinyjuice"
-version = "0.3.4"
+version = "0.3.5"
 dependencies = [
  "async-trait",
  "dirs 7.0.0",
@@ -6890,7 +6891,7 @@ dependencies = [
 
 [[package]]
 name = "tinyjuice-bus"
-version = "0.3.4"
+version = "0.3.5"
 dependencies = [
  "serde",
  "serde_json",
@@ -6932,7 +6933,7 @@ dependencies = [
 
 [[package]]
 name = "tinymemory"
-version = "1.17.0"
+version = "1.18.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -7030,7 +7031,7 @@ dependencies = [
 
 [[package]]
 name = "tinyruntime-bus"
-version = "0.2.7"
+version = "0.2.8"
 dependencies = [
  "serde",
  "serde_json",
@@ -7038,7 +7039,7 @@ dependencies = [
 
 [[package]]
 name = "tinyruntime-pyserver"
-version = "0.2.7"
+version = "0.2.8"
 dependencies = [
  "serde",
  "serde_json",
@@ -7049,7 +7050,7 @@ dependencies = [
 
 [[package]]
 name = "tinysearch-bus"
-version = "0.3.2"
+version = "0.3.3"
 dependencies = [
  "serde",
  "serde_json",
@@ -7057,7 +7058,7 @@ dependencies = [
 
 [[package]]
 name = "tinyskills"
-version = "0.2.3"
+version = "0.2.4"
 dependencies = [
  "rustix",
  "serde",
@@ -7152,7 +7153,7 @@ checksum = "fd3ca314f692efd6c868f8408f53fe444634a845f96c028b97d35f6a1f79f0ee"
 
 [[package]]
 name = "tinyvoice"
-version = "0.1.8"
+version = "0.1.9"
 dependencies = [
  "cpal",
  "log",
@@ -7173,7 +7174,7 @@ dependencies = [
 
 [[package]]
 name = "tinywallet"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "coins-bip32",
  "coins-bip39",
@@ -7191,7 +7192,7 @@ dependencies = [
 
 [[package]]
 name = "tinywallet-bus"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "serde",
  "tinywallet-crypto",
@@ -7200,7 +7201,7 @@ dependencies = [
 
 [[package]]
 name = "tinywallet-crypto"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "async-trait",
  "bech32 0.12.0",
@@ -7215,7 +7216,7 @@ dependencies = [
 
 [[package]]
 name = "tinywallet-web3"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -7236,7 +7237,7 @@ dependencies = [
 
 [[package]]
 name = "tinywallet-x402"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -8307,7 +8308,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
