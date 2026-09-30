@@ -1,10 +1,6 @@
-//! Core `ComposioTool` struct and the loopback/HTTPS URL-safety helpers
-//! shared by every direct-mode Composio request path.
+//! Core `DirectComposioClient` struct and the loopback/HTTPS URL-safety
+//! helpers shared by every direct-mode Composio request path.
 
-use crate::security::SecurityPolicy;
-use std::sync::Arc;
-
-pub(super) const COMPOSIO_API_BASE_V2: &str = "https://backend.composio.dev/api/v2";
 pub(super) const COMPOSIO_API_BASE_V3: &str = "https://backend.composio.dev/api/v3";
 
 pub(super) fn ensure_https(url: &str) -> anyhow::Result<()> {
@@ -44,18 +40,20 @@ pub(super) fn is_loopback_http_base(url: &str) -> bool {
     is_loopback_http_url(&format!("{}/", url.trim_end_matches('/')))
 }
 
-/// A tool that proxies actions to the Composio managed tool platform.
-pub struct ComposioTool {
+/// Slim host-side HTTP reader for Composio's own v3 API with the user's key.
+///
+/// Composio execution, the OAuth handoff and connection management all run in
+/// the `tinyconnectors` module. This client only serves the two reads whose
+/// request parameters the pinned module route does not carry
+/// (`/connected_accounts?limit=200`, `/tools?toolkit_versions=latest`) and the
+/// pre-store API-key probe.
+pub struct DirectComposioClient {
     pub(super) api_key: String,
     pub(super) default_entity_id: String,
-    pub(super) security: Arc<SecurityPolicy>,
-    pub(super) base_v2: String,
     /// Base URL for Composio v3 endpoints (`{base}/tools`). Production
-    /// always uses [`COMPOSIO_API_BASE_V3`] via [`ComposioTool::new`]; the
-    /// `#[cfg(test)]` `new_with_v3_base` constructor lets unit tests point
-    /// the direct-mode `/tools` listing at a local axum mock — the same
-    /// base-URL injection the backend `ComposioClient` gets through
-    /// `IntegrationClient::new` in `client_tests.rs`.
+    /// always uses [`COMPOSIO_API_BASE_V3`] via [`DirectComposioClient::new`];
+    /// the `#[cfg(test)]` `new_with_v3_base` constructor lets unit tests point
+    /// the direct-mode `/tools` listing at a local axum mock.
     pub(super) base_v3: String,
     pub(super) allow_insecure_loopback: bool,
 }

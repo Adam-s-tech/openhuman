@@ -1,12 +1,8 @@
 //! Constructors and the small per-request setup helpers (`client`,
-//! `ensure_request_url`) that every other `ComposioTool` impl block relies on.
+//! `ensure_request_url`) that every other `DirectComposioClient` impl block relies on.
 
-use super::types::{
-    ensure_https, is_loopback_http_url, ComposioTool, COMPOSIO_API_BASE_V2, COMPOSIO_API_BASE_V3,
-};
-use crate::security::SecurityPolicy;
+use super::types::{ensure_https, is_loopback_http_url, DirectComposioClient, COMPOSIO_API_BASE_V3};
 use reqwest::Client;
-use std::sync::Arc;
 
 use super::types::is_loopback_http_base;
 
@@ -19,18 +15,15 @@ pub(super) fn normalize_entity_id(entity_id: &str) -> String {
     }
 }
 
-impl ComposioTool {
+impl DirectComposioClient {
     pub fn new(
         api_key: &str,
         default_entity_id: Option<&str>,
-        security: Arc<SecurityPolicy>,
     ) -> Self {
         // Production always pins the real HTTPS endpoints.
         Self::new_internal(
             api_key,
             default_entity_id,
-            security,
-            COMPOSIO_API_BASE_V2.to_string(),
             COMPOSIO_API_BASE_V3.to_string(),
             false,
         )
@@ -47,7 +40,6 @@ impl ComposioTool {
     pub fn new_with_base_urls_for_loopback(
         api_key: &str,
         default_entity_id: Option<&str>,
-        security: Arc<SecurityPolicy>,
         base_v2: String,
         base_v3: String,
     ) -> anyhow::Result<Self> {
@@ -59,7 +51,6 @@ impl ComposioTool {
         Ok(Self::new_internal(
             api_key,
             default_entity_id,
-            security,
             base_v2,
             base_v3,
             true,
@@ -71,7 +62,6 @@ impl ComposioTool {
     pub fn new_with_base_urls(
         api_key: &str,
         default_entity_id: Option<&str>,
-        security: Arc<SecurityPolicy>,
         base_v2: String,
         base_v3: String,
     ) -> anyhow::Result<Self> {
@@ -86,7 +76,6 @@ impl ComposioTool {
         Ok(Self::new_internal(
             api_key,
             default_entity_id,
-            security,
             base_v2,
             base_v3,
             allow_loopback,
@@ -106,13 +95,11 @@ impl ComposioTool {
     pub(crate) fn new_with_v3_base(
         api_key: &str,
         default_entity_id: Option<&str>,
-        security: Arc<SecurityPolicy>,
         base_v3: String,
     ) -> Self {
         Self::new_internal(
             api_key,
             default_entity_id,
-            security,
             COMPOSIO_API_BASE_V2.to_string(),
             base_v3,
             true,
@@ -125,7 +112,6 @@ impl ComposioTool {
     fn new_internal(
         api_key: &str,
         default_entity_id: Option<&str>,
-        security: Arc<SecurityPolicy>,
         base_v2: String,
         base_v3: String,
         allow_insecure_loopback: bool,
@@ -147,7 +133,6 @@ impl ComposioTool {
         Self {
             api_key: trimmed.to_string(),
             default_entity_id: normalize_entity_id(default_entity_id.unwrap_or("default")),
-            security,
             base_v2,
             base_v3,
             allow_insecure_loopback,
