@@ -8,7 +8,7 @@
 //! `retries_once_only_even_when_second_call_still_errors` regression),
 //! this wrapper calls the non-retrying [`ComposioClient::execute_tool_once`]
 //! primitive instead. Direct callers of `execute_tool` (LinkedIn enrichment,
-//! heartbeat collectors, tool schemas) still get #1707's inner retry.
+//! tool schemas) still get #1707's inner retry.
 //!
 //! Composio reports `connection.status == ACTIVE` ~1-2s after the user
 //! finishes OAuth, but its action-execution gateway can take another

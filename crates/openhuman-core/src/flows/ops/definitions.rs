@@ -56,7 +56,7 @@ pub async fn flows_create(
     name: String,
     graph_json: Value,
     require_approval: bool,
-) -> Result<RpcOutcome<Flow>, String> {
+) -> Result<Outcome<Flow>, String> {
     let graph = validate_and_migrate_graph(graph_json)?;
     ensure_config_aware_engine_compatible(config, &graph)?;
 
@@ -115,7 +115,7 @@ pub async fn flows_create(
     }
 
     publish_flow_changed(&flow.id, "created", "system");
-    Ok(RpcOutcome::new(flow, logs))
+    Ok(Outcome::new(flow, logs))
 }
 
 /// Duplicates a saved flow: creates an independent copy of its graph under a
@@ -126,7 +126,7 @@ pub async fn flows_create(
 /// can never immediately fire. Run history does not carry over. The user
 /// enables it explicitly (via `flows_set_enabled`) once they've reviewed the
 /// copy, at which point its trigger binds like any other flow.
-pub async fn flows_duplicate(config: &Config, id: &str) -> Result<RpcOutcome<Flow>, String> {
+pub async fn flows_duplicate(config: &Config, id: &str) -> Result<Outcome<Flow>, String> {
     let source = store::get_flow(config, id)
         .map_err(|e| e.to_string())?
         .ok_or_else(|| format!("flow '{id}' not found"))?;
@@ -137,18 +137,18 @@ pub async fn flows_duplicate(config: &Config, id: &str) -> Result<RpcOutcome<Flo
     // Intentionally NO bind_trigger: a duplicate is disabled and must stay
     // inert (no schedule/trigger dispatch) until the user enables it.
     publish_flow_changed(&flow.id, "created", "system");
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         flow,
         format!("flow duplicated from {id}"),
     ))
 }
 
 /// Loads one flow by id.
-pub async fn flows_get(config: &Config, id: &str) -> Result<RpcOutcome<Flow>, String> {
+pub async fn flows_get(config: &Config, id: &str) -> Result<Outcome<Flow>, String> {
     let flow = store::get_flow(config, id)
         .map_err(|e| e.to_string())?
         .ok_or_else(|| format!("flow '{id}' not found"))?;
-    Ok(RpcOutcome::single_log(flow, format!("flow loaded: {id}")))
+    Ok(Outcome::single_log(flow, format!("flow loaded: {id}")))
 }
 
 /// Loads a saved flow's portable [`WorkflowGraph`] by id, for the
@@ -197,7 +197,7 @@ pub(crate) fn load_engine_compatible_flow_graph(
 /// (`[flows]`-prefixed, id + error only — never row content) and surfaced in
 /// the RPC's `logs` so the UI can tell the user "N workflows could not be
 /// loaded" instead of silently rendering a shorter list than actually exists.
-pub async fn flows_list(config: &Config) -> Result<RpcOutcome<Vec<Flow>>, String> {
+pub async fn flows_list(config: &Config) -> Result<Outcome<Vec<Flow>>, String> {
     let (flows, skipped) = store::list_flows(config).map_err(|e| e.to_string())?;
     if skipped > 0 {
         tracing::warn!(
@@ -206,7 +206,7 @@ pub async fn flows_list(config: &Config) -> Result<RpcOutcome<Vec<Flow>>, String
             loaded = flows.len(),
             "[flows] flows_list: skipped corrupt/unmigratable flow_definitions rows"
         );
-        Ok(RpcOutcome::new(
+        Ok(Outcome::new(
             flows,
             vec![format!(
                 "flows listed ({skipped} workflow{} could not be loaded and were skipped)",
@@ -214,7 +214,7 @@ pub async fn flows_list(config: &Config) -> Result<RpcOutcome<Vec<Flow>>, String
             )],
         ))
     } else {
-        Ok(RpcOutcome::single_log(flows, "flows listed"))
+        Ok(Outcome::single_log(flows, "flows listed"))
     }
 }
 
@@ -229,7 +229,7 @@ pub async fn flows_list(config: &Config) -> Result<RpcOutcome<Vec<Flow>>, String
 /// (flow already gone, store error) is logged and does not block the delete
 /// itself — `store::remove_flow` below still errors clearly if `id` doesn't
 /// exist.
-pub async fn flows_delete(config: &Config, id: &str) -> Result<RpcOutcome<Value>, String> {
+pub async fn flows_delete(config: &Config, id: &str) -> Result<Outcome<Value>, String> {
     flows_delete_impl(config, id, None).await
 }
 
@@ -259,7 +259,7 @@ pub(super) async fn flows_delete_impl(
     config: &Config,
     id: &str,
     memory_override: Option<Arc<crate::memory::guard::MemoryGuard>>,
-) -> Result<RpcOutcome<Value>, String> {
+) -> Result<Outcome<Value>, String> {
     match store::get_flow(config, id) {
         Ok(Some(flow)) => unbind_trigger(config, &flow),
         Ok(None) => {}
@@ -319,7 +319,7 @@ pub(super) async fn flows_delete_impl(
     }
 
     publish_flow_changed(id, "deleted", "system");
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         json!({ "id": id, "removed": true }),
         vec![format!("flow removed: {id}")],
     ))

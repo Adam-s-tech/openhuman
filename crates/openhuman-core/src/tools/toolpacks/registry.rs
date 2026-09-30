@@ -57,7 +57,7 @@ pub const PACKS: &[ToolPack] = &[
             "list_agent_definitions",
             "list_connectable_toolkits",
         ],
-        owners: &["workflow_builder", "flow_discovery"],
+        owners: &["orchestrator", "workflow_builder", "flow_discovery"],
         guide: "",
     },
     ToolPack {
@@ -429,8 +429,9 @@ pub(crate) const DELIBERATELY_UNPACKED_FLEET_TOOLS: &[&str] = &[
 
 /// The skill hand-offs are deliberately not packed (#6302).
 ///
-/// `setup_skills` and `run_skill` are the orchestrator's route into the
-/// skills family. Packed, they sat in the same listing as the raw
+/// `setup_skills` is the orchestrator's route into the skills family (it once
+/// shared this list with `run_skill`, whose job is now the orchestrator's own
+/// `run_workflow`). Packed, they sat in the same listing as the raw
 /// `skill_registry_*` tools, one `use_skill` round trip
 /// away, and a live account showed the cost: across 11 turns the orchestrator
 /// called the raw tools itself, guessed at tool names, and never handed off.
@@ -440,7 +441,7 @@ pub(crate) const DELIBERATELY_UNPACKED_FLEET_TOOLS: &[&str] = &[
 ///
 /// With a hand-off on the belt, `ops::closed_by_direct_handoff` closes the
 /// owning pack's raw tools to the caller, so the hand-off is its only route.
-/// The other packed hand-offs (`do_crypto`, `build_workflow`,
+/// The other packed hand-offs (`manage_tasks`, `build_workflow`,
 /// `discover_workflows`, `make_presentation`, ...) stay packed: each is its own
 /// token-cost decision, and the same closing rule takes effect for any of them
 /// as soon as it is unpacked and listed here.

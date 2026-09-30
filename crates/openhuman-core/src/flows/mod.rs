@@ -13,7 +13,7 @@
 //! `pub mod flows;` in `crates/openhuman-core/src/lib.rs` on `#[cfg(feature = "flows")]`,
 //! and the submodules below inherit that gate. There is **no `stub.rs`**:
 //! every symbol reached from outside is a *registration site* (`core::all`,
-//! `core::jsonrpc`'s `FlowTriggerSubscriber`, `core::runtime::services`' boot
+//! `core::runtime::subscribers`' `FlowTriggerSubscriber`, `core::runtime::services`' boot
 //! reconcile, the agent-tool `vec!` in `tools::ops`, the `workflow_builder` /
 //! `flow_discovery` entries in `agent::registry`'s `BUILTINS`), and a registration site wants
 //! *absence*, not a disabled-error stub — otherwise `flows.*` becomes a known

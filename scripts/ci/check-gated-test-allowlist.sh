@@ -22,10 +22,7 @@ agent/session_host/builder/factory.rs
 agent/session_host/runtime_session.rs
 agent/session_host/runtime_session_tests.rs
 agent/session_host/turn/tools.rs
-agent/subagent_host/tool_prep_tests.rs
 agent/registry/agents/loader.rs
-agent/registry/agents/loader_tests_builtin_registration_tests.rs
-agent/registry/agents/loader_tests_orchestrator_tier_tests.rs
 agent/registry/agents/loader_tests_specialist_agents_tests.rs
 agent/registry/agents/mod.rs
 agent/tinyagents/mod.rs
@@ -35,12 +32,13 @@ core/all.rs
 core/all_tests.rs
 core/cli_tests.rs
 core/dispatch_tests.rs
-core/jsonrpc.rs
-core/jsonrpc_tests.rs
+core/invoke_tests.rs
 core/legacy_aliases_tests.rs
 core/runtime/services.rs
+core/runtime/subscribers.rs
 flows/mod.rs
 mcp/server/resources.rs
+mcp/server/mod.rs
 mcp/server/tools/mod.rs
 platform/socket/event_handlers.rs
 skills/bundled/mod.rs
@@ -55,7 +53,6 @@ tools/ops_tests_domain_family_tests.rs
 tools/registry/ops_tests.rs
 tools/registry/schemas_tests.rs
 voice/compile_status_tests.rs
-web3/mod.rs
 web3/stub.rs
 web3/wallet/stub.rs
 web3/x402/stub.rs

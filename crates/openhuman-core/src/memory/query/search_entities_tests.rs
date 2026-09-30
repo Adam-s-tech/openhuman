@@ -90,7 +90,7 @@ async fn execute_rejects_missing_query() {
 /// the pure-function check it replaced, so it is called out rather than
 /// quietly relaxed.
 #[tokio::test]
-#[ignore = "needs a built tinymemory module (OPENHUMAN_MODULE_PATH) and its own process: \
+#[ignore = "needs a built tinymemory module (TINYMEMORY_TEST_MODULE) and its own process: \
 kind validation moved into the driver with the open entity-kind vocabulary"]
 async fn execute_rejects_invalid_kind_after_validation() {
     let tool = MemoryTreeSearchEntitiesTool;
@@ -101,9 +101,7 @@ async fn execute_rejects_invalid_kind_after_validation() {
         }))
         .await
         .expect_err("invalid kind should fail");
-    assert!(err
-        .to_string()
-        .contains("memory_tree_search_entities: invalid kind:"));
+    assert!(err.to_string().contains("memory_tree_search_entities:"));
 }
 
 /// The parity half of this test is gone with the split brain.

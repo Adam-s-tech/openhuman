@@ -115,8 +115,7 @@ export function settingsRouteElements(): ReactNode {
       {/* The Agents list and editor were removed; old links land on Connections → Tools. */}
       <Route path="agents/*" element={<Navigate to="/connections?tab=agent-tools" replace />} />
       <Route path="agent-access" element={wrapSettingsPage(<AgentAccessPanel />)} />
-      {/* Agent activity level (medulla/subconscious background-AI knob) was
-          retired along with medulla/subconscious themselves. The slug
+      {/* The agent activity level (background-AI knob) was retired. The slug
           redirects so any old deep link lands on Connections → Tools rather than falling
           through to the settings index. */}
       <Route
@@ -212,10 +211,6 @@ export function settingsRouteElements(): ReactNode {
       {/* Composio (API key + routing) moved to Connections → API keys. */}
       <Route path="composio" element={<Navigate to="/connections?tab=composio-key" replace />} />
       {/* Merged Usage & Limits surface (now on Connections) */}
-      <Route
-        path="heartbeat"
-        element={<Navigate to="/connections?tab=usage#background" replace />}
-      />
       <Route
         path="ledger-usage"
         element={<Navigate to="/connections?tab=usage#background" replace />}

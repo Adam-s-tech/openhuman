@@ -65,7 +65,7 @@ pub struct TraceContext {
     /// stays inspectable without polluting user attribution.
     pub client_id: Option<String>,
     /// Agent definition id driving the turn (e.g. `"orchestrator"`,
-    /// `"code_executor"`). Stamped as the `agent.id` attribute and folded into
+    /// `"task_manager_agent"`). Stamped as the `agent.id` attribute and folded into
     /// the root span/trace name (`agent.turn:<agent_id>`).
     pub agent_id: Option<String>,
     /// Where the run originated (`"chat"`, `"ptt"`, `"autonomous"`, …).

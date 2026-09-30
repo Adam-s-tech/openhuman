@@ -30,7 +30,7 @@ use tempfile::tempdir;
 
 use openhuman_core::agent::harness::AgentDefinitionRegistry;
 use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
-use openhuman_core::core::jsonrpc::build_core_http_router;
+use openhuman_rpc::server::build_core_http_router;
 
 const TEST_RPC_TOKEN: &str = "json-rpc-e2e-local-token";
 
@@ -140,7 +140,7 @@ fn captured_requests_mention_unknown_tool(requests: &[Value]) -> bool {
 /// canary passed as an argument would otherwise read as a pass.
 fn tool_result_text(requests: &[Value], tool_name: &str) -> Option<String> {
     let prefix = format!("call_{tool_name}_");
-    requests
+    let native = requests
         .iter()
         .filter_map(|request| request.pointer("/body/messages").and_then(Value::as_array))
         .flatten()
@@ -162,7 +162,29 @@ fn tool_result_text(requests: &[Value], tool_name: &str) -> Option<String> {
                 "`{tool_name}` was not a tool the calling agent could reach: {text}"
             );
             text
-        })
+        });
+    native.or_else(|| {
+        requests
+            .iter()
+            .filter_map(|request| request.pointer("/body/messages").and_then(Value::as_array))
+            .flatten()
+            .filter_map(|message| message.get("content").and_then(Value::as_str))
+            .find_map(|content| {
+                let marker = content.find("<tool_result id=\"")?;
+                let after_tag = content[marker..].find('>')? + marker + 1;
+                let id = &content[marker..after_tag];
+                if !id.contains(&prefix) {
+                    return None;
+                }
+                let end = content[after_tag..].find("</tool_result>")? + after_tag;
+                let text = content[after_tag..end].trim().to_string();
+                assert!(
+                    !text.starts_with("unknown tool"),
+                    "`{tool_name}` was not a tool the calling agent could reach: {text}"
+                );
+                Some(text)
+            })
+    })
 }
 
 /// Tool names a captured model request advertised to the provider.
@@ -411,6 +433,9 @@ encrypt = false
 [context]
 compaction_enabled = false
 {extra}
+
+[autonomy]
+enabled = true
 "#
     );
     for dir in [
@@ -637,17 +662,37 @@ fn system_text(request: &Value) -> String {
 /// Tool names the agent called, in order, read from its last request (which
 /// carries its whole history).
 fn called_tools(request: &Value) -> Vec<String> {
-    request
-        .pointer("/body/messages")
-        .and_then(Value::as_array)
+    let messages = request.pointer("/body/messages").and_then(Value::as_array);
+    let mut calls = Vec::new();
+    for message in messages
         .into_iter()
         .flatten()
-        .filter(|m| m.get("role").and_then(Value::as_str) == Some("assistant"))
-        .filter_map(|m| m.get("tool_calls").and_then(Value::as_array))
-        .flatten()
-        .filter_map(|tc| tc.pointer("/function/name").and_then(Value::as_str))
-        .map(str::to_string)
-        .collect()
+        .filter(|message| message.get("role").and_then(Value::as_str) == Some("assistant"))
+    {
+        if let Some(structured) = message.get("tool_calls").and_then(Value::as_array) {
+            calls.extend(
+                structured
+                    .iter()
+                    .filter_map(|call| call.pointer("/function/name").and_then(Value::as_str))
+                    .map(str::to_string),
+            );
+        }
+        let Some(mut content) = message.get("content").and_then(Value::as_str) else {
+            continue;
+        };
+        while let Some((_, after_open)) = content.split_once("<tool_call>") {
+            let Some((payload, after_close)) = after_open.split_once("</tool_call>") else {
+                break;
+            };
+            if let Ok(call) = serde_json::from_str::<Value>(payload.trim()) {
+                if let Some(name) = call.get("name").and_then(Value::as_str) {
+                    calls.push(name.to_string());
+                }
+            }
+            content = after_close;
+        }
+    }
+    calls
 }
 
 fn max_consecutive(calls: &[String], tool: &str) -> usize {
@@ -780,7 +825,8 @@ async fn run_case_inner(case: Case) {
     for tool in case.must_call {
         assert!(
             calls.iter().any(|c| c == tool),
-            "[{agent}] must call `{tool}`; called {calls:?}"
+            "[{agent}] must call `{tool}`; called {calls:?}; requests: {}",
+            dump()
         );
         tool_result_text(&requests, tool)
             .unwrap_or_else(|| panic!("[{agent}] no tool result for `{tool}`: {}", dump()));

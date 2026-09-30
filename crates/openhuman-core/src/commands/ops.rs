@@ -7,7 +7,7 @@
 use serde_json::{Map, Value};
 
 use crate::core::all::RegisteredController;
-use crate::rpc::{unwrap_rpc, RpcOutcome};
+use crate::core::{unwrap_rpc, Outcome};
 
 use super::types::{CommandEntry, CommandKind, CommandsListResponse};
 
@@ -98,7 +98,7 @@ fn entries_from_array(value: &Value, array_field: &str, kind: CommandKind) -> Ve
 
 /// Builds the merged command list: built-ins first (stable order, cheapest),
 /// then skills, then workflows.
-pub async fn commands_list() -> Result<RpcOutcome<CommandsListResponse>, String> {
+pub async fn commands_list() -> Result<Outcome<CommandsListResponse>, String> {
     let mut entries = builtin_entries();
 
     let skills_controllers = crate::skills::all_skills_registered_controllers();
@@ -129,7 +129,7 @@ pub async fn commands_list() -> Result<RpcOutcome<CommandsListResponse>, String>
         BUILTINS.len(),
         entries.len()
     );
-    Ok(RpcOutcome::new(
+    Ok(Outcome::new(
         CommandsListResponse { commands: entries },
         Vec::new(),
     ))

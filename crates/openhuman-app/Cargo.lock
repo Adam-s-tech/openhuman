@@ -1496,7 +1496,7 @@ dependencies = [
  "libc",
  "option-ext",
  "redox_users 0.5.3",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -1805,7 +1805,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -2731,7 +2731,7 @@ dependencies = [
  "js-sys",
  "log",
  "wasm-bindgen",
- "windows-core 0.57.0",
+ "windows-core 0.58.0",
 ]
 
 [[package]]
@@ -3573,7 +3573,7 @@ dependencies = [
  "png 0.18.1",
  "serde",
  "thiserror 2.0.20",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -3736,7 +3736,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -4248,7 +4248,6 @@ dependencies = [
  "chrono-tz",
  "cpal",
  "cron",
- "curve25519-dalek",
  "directories 6.0.0",
  "dirs 6.0.0",
  "dotenvy",
@@ -4269,7 +4268,6 @@ dependencies = [
  "log",
  "nu-ansi-term",
  "once_cell",
- "openhuman-rpc",
  "parking_lot",
  "rand 0.10.2",
  "rdev",
@@ -4284,7 +4282,6 @@ dependencies = [
  "serde_repr",
  "serde_yaml",
  "sha2 0.10.9",
- "socketioxide",
  "starship-battery",
  "sysinfo 0.33.1",
  "tar",
@@ -4300,6 +4297,7 @@ dependencies = [
  "tinybus",
  "tinychannels",
  "tinychannels-bus",
+ "tinychannels-runtime",
  "tinycomputer-bus",
  "tinyconnectors-bus",
  "tinydocs-bus",
@@ -4328,6 +4326,8 @@ dependencies = [
  "tinytools-agent 0.4.1",
  "tinyvoice-bus",
  "tinywallet-bus",
+ "tinywallet-web3",
+ "tinywallet-x402",
  "tokio",
  "tokio-stream",
  "tokio-tungstenite 0.29.0",
@@ -4416,11 +4416,27 @@ dependencies = [
 name = "openhuman-rpc"
 version = "0.64.7"
 dependencies = [
+ "anyhow",
+ "axum",
+ "base64 0.22.1",
+ "chrono",
+ "futures",
  "log",
+ "once_cell",
+ "openhuman",
+ "rand 0.10.2",
  "reqwest 0.12.28",
  "serde",
  "serde_json",
+ "socketioxide",
+ "tinyinference-core",
+ "tokio",
+ "tokio-stream",
+ "tokio-util",
+ "tracing",
  "url",
+ "urlencoding",
+ "uuid",
 ]
 
 [[package]]
@@ -5039,7 +5055,7 @@ dependencies = [
  "once_cell",
  "socket2",
  "tracing",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -5446,7 +5462,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -5504,7 +5520,7 @@ dependencies = [
  "security-framework 3.7.0",
  "security-framework-sys",
  "webpki-root-certs",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -6153,7 +6169,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c3d1e2c7f27f8d4cb10542a02c49005dbd6e93095799d6f3be745fae9f8fedd4"
 dependencies = [
  "libc",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -6925,7 +6941,7 @@ dependencies = [
  "getrandom 0.4.3",
  "once_cell",
  "rustix",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -7227,7 +7243,7 @@ dependencies = [
 
 [[package]]
 name = "tinychannels"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "anyhow",
  "async-imap",
@@ -7269,7 +7285,7 @@ dependencies = [
 
 [[package]]
 name = "tinychannels-bus"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -7290,13 +7306,16 @@ dependencies = [
 
 [[package]]
 name = "tinychannels-runtime"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
+ "anyhow",
+ "async-trait",
  "rand 0.10.2",
  "tinychannels-bus",
  "tokio",
  "tokio-util",
  "tracing",
+ "uuid",
 ]
 
 [[package]]
@@ -7581,8 +7600,11 @@ dependencies = [
 
 [[package]]
 name = "tinymcp"
-version = "0.3.4"
+version = "0.3.5"
 dependencies = [
+ "anyhow",
+ "async-trait",
+ "axum",
  "base64 0.23.1",
  "dirs 7.0.0",
  "futures-util",
@@ -7594,14 +7616,16 @@ dependencies = [
  "sha2 0.11.0",
  "thiserror 2.0.20",
  "tinymcp-bus",
+ "tinytools 0.4.1",
  "tokio",
+ "tokio-stream",
  "tracing",
  "uuid",
 ]
 
 [[package]]
 name = "tinymcp-bus"
-version = "0.3.4"
+version = "0.3.5"
 dependencies = [
  "schemars 1.2.2",
  "serde",
@@ -7760,7 +7784,16 @@ dependencies = [
 
 [[package]]
 name = "tinywallet-bus"
-version = "0.5.3"
+version = "0.6.0"
+dependencies = [
+ "serde",
+ "tinywallet-crypto",
+ "tinywallet-x402",
+]
+
+[[package]]
+name = "tinywallet-crypto"
+version = "0.6.0"
 dependencies = [
  "async-trait",
  "bech32",
@@ -7771,6 +7804,50 @@ dependencies = [
  "sha2 0.11.0",
  "sha3",
  "thiserror 2.0.20",
+]
+
+[[package]]
+name = "tinywallet-web3"
+version = "0.6.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "base64 0.22.1",
+ "bs58",
+ "curve25519-dalek",
+ "hex",
+ "log",
+ "parking_lot",
+ "serde",
+ "serde_json",
+ "sha2 0.11.0",
+ "tinytools 0.4.1",
+ "tinywallet-bus",
+ "tinywallet-crypto",
+ "tinywallet-x402",
+]
+
+[[package]]
+name = "tinywallet-x402"
+version = "0.6.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "base64 0.22.1",
+ "bs58",
+ "chrono",
+ "curve25519-dalek",
+ "hex",
+ "log",
+ "reqwest 0.12.28",
+ "serde",
+ "serde_json",
+ "sha2 0.11.0",
+ "sha3",
+ "thiserror 2.0.20",
+ "tinytools 0.4.1",
+ "tinywallet-crypto",
+ "uuid",
 ]
 
 [[package]]
@@ -8135,7 +8212,7 @@ dependencies = [
  "png 0.18.1",
  "serde",
  "thiserror 2.0.20",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -8213,7 +8290,7 @@ checksum = "f2f6fb2847f6742cd76af783a2a2c49e9375d0a111c7bef6f71cd9e738c72d6e"
 dependencies = [
  "memoffset",
  "tempfile",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

@@ -1,7 +1,9 @@
 # The core package and its implementation live together under `crates/`:
 # domain modules live directly under `src/`, alongside backend API and runtime
-# composition. Shared RPC contracts and clients belong to `openhuman-rpc`; the
-# typed embedding facade belongs to `openhuman-embed`.
+# composition, and the controller contract (`core::Outcome`, schemas, dispatch).
+# The JSON-RPC protocol and server that expose it belong to `openhuman-rpc`,
+# which depends on this crate; the typed embedding facade belongs to
+# `openhuman-embed`.
 # This package is the LIBRARY only. The `openhuman-core` binary, the other
 # developer bins, and every root `tests/*.rs` / `examples/*.rs` target belong
 # to `crates/openhuman-cli`, which depends on `openhuman-tinyhumans` for the
@@ -59,7 +61,6 @@ path = "src/lib.rs"
 crate-type = ["rlib"]
 
 [dependencies]
-openhuman-rpc.workspace = true
 # The TinyHumans SDK is deliberately NOT a dependency of the core. The core
 # reaches the hosted backend only through `backend::transport::BackendTransport`;
 # the SDK-backed implementation is `crates/openhuman-tinyhumans`, which hosts
@@ -294,6 +295,9 @@ tinymemory-sources = { path = "../../vendor/tinymemory/crates/tinymemory-sources
 # library directly and has no use for a bus inside it.
 tinymcp = { path = "../../vendor/tinymcp/crates/tinymcp", default-features = false, features = [
     "rustls-tls",
+    # Server tools as `tinytools::Tool`s over the persistent tool cache. Needs
+    # the root `[patch]` that redirects tinymcp's git tinytools to ours.
+    "tools",
 ] }
 tinymcp-bus = { path = "../../vendor/tinymcp/crates/tinymcp-bus", features = ["schemars"] }
 # The transport-free channel vocabulary: inbound envelopes, outbound intents,
@@ -304,6 +308,8 @@ tinymcp-bus = { path = "../../vendor/tinymcp/crates/tinymcp-bus", features = ["s
 # vocabulary is always-on kernel surface. It costs serde/schemars and nothing
 # this build did not already have.
 tinychannels-bus = { version = "0.1", path = "../../vendor/tinychannels/crates/tinychannels-bus" }
+# `CliChannel` (always compiled) and the channel runtime helpers.
+tinychannels-runtime = { version = "0.1", path = "../../vendor/tinychannels/crates/tinychannels-runtime" }
 # The provider stack that IMPLEMENTS that vocabulary — Telegram, Discord,
 # Slack, IMAP, WhatsApp, the relay transport loop. Optional: it owns the
 # `reqwest` / `rusqlite` / `rustls` / `tokio-tungstenite` cohort, which a
@@ -439,18 +445,15 @@ rustls = { version = "0.23", default-features = false, features = ["ring"] }
 sysinfo = { version = "0.33", default-features = false, features = ["system"] }
 keyring = { version = "3", features = ["apple-native", "windows-native", "linux-native"] }
 lettre = { version = "0.11.22", default-features = false, features = ["builder", "smtp-transport", "rustls-tls"], optional = true }
-# HTTP + Socket.IO server transport — the `/rpc` JSON-RPC endpoint, `/v1`
-# OpenAI-compat router, agentbox/http_host sub-servers, and the Socket.IO
-# live-event bridge. Exclusive to the default-ON `http-server` feature (#5048):
-# a slim/embedded build without it (`--no-default-features`) sheds `axum` +
-# `socketioxide` and never binds a listener — the core still runs background
-# services and answers over the CLI/native dispatch surface. See the
-# `http-server` feature note below and `crates/openhuman-core/src/core/http_server_status.rs`.
+# HTTP server framework for the domain-owned routes (`/v1`, dictation, the MCP
+# HTTP transport). Exclusive to the default-ON `http-server`
+# feature (#5048); the JSON-RPC server that mounts them lives in
+# `openhuman-rpc`. See the `http-server` feature note below and
+# `crates/openhuman-core/src/core/http_server_status.rs`.
 axum = { version = "0.8", default-features = false, features = ["http1", "json", "tokio", "query", "ws", "macros"], optional = true }
 sentry = { version = "0.47.0", default-features = false, optional = true, features = ["backtrace", "contexts", "panic", "tracing", "debug-images", "httpdate"] }
 tokio-stream = { version = "0.1.18", default-features = false, features = ["sync"] }
 url = "2"
-socketioxide = { version = "0.15", features = ["extensions"], optional = true }
 tempfile = "3"
 cpal = { version = "0.15", optional = true }
 enigo = { version = "0.3", optional = true }
@@ -468,8 +471,6 @@ starship-battery = { version = "0.10", optional = true }
 # - bs58: Solana base58 addresses + Tron base58check addresses.
 ed25519-dalek = { version = "2", default-features = false, features = ["std", "rand_core"] }
 bs58 = { version = "0.5", default-features = false, features = ["std", "check"] }
-# Solana off-curve check for ATA derivation (find_program_address).
-curve25519-dalek = { version = "4", default-features = false, features = ["alloc"], optional = true }
 
 # The WhatsApp Web provider (and its `whatsapp-rust` / `wacore` / `serde-big-array`
 # stack) now lives in the tinychannels crate; the `whatsapp-web` feature forwards
@@ -608,6 +609,14 @@ tinyhosts = { path = "../../vendor/tinyhosts", default-features = false, feature
 # derive a known account. Dev-dependency features are not linked into the
 # shipped binary, so that does not undo the shed.
 tinywallet-bus = { path = "../../vendor/tinywallet/crates/tinywallet-bus", default-features = false, features = ["btc", "evm", "solana", "tron", "keccak", "net", "wire", "eip712", "abi", "tx-codec"], optional = true }
+# The x402 payment flow (402 challenge, EVM/Solana payment builders, the
+# spending ledger, the `x402_request` tool), moved out of `web3/x402`. The host
+# keeps signing, proxy policy and RPC controllers and hands them in as seams.
+tinywallet-x402 = { path = "../../vendor/tinywallet/crates/tinywallet-x402", default-features = false, features = ["wire", "pay", "ledger", "tools"], optional = true }
+# The wallet engine and the swap/bridge/dapp service, moved out of `web3/`.
+# The host implements its seams (signer, accounts, RPC endpoints, quote scope,
+# backend) and keeps the controllers, keyring and consent.
+tinywallet-web3 = { path = "../../vendor/tinywallet/crates/tinywallet-web3", default-features = false, features = ["tools"], optional = true }
 
 # secp256k1 signing over the digests the wallet module hands back. Pure Rust,
 # and already in the graph beneath `coins-bip32` (which derives the key being
@@ -753,27 +762,22 @@ proptest = "1"
 # which already lists it. This does NOT move the kernel floor: that profile is
 # `--no-default-features --features flows` and never reads this list.
 default = ["media", "skills", "flows", "mcp", "channels", "http-server", "scheduler-gate", "file-logging", "modules"]
-# HTTP + Socket.IO server transport (#5048): the `/rpc` JSON-RPC endpoint and
-# its auth middleware/CORS layer (`core::jsonrpc`, `core::auth`), the `/v1`
-# OpenAI-compatible router (`inference::http`), the ad-hoc static-dir file
-# server (`openhuman::http_host`), the AgentBox `/run` HTTP surface
-# (`agentbox::http`), the WebSocket dictation stream
-# (`inference::voice::streaming`), the `openhuman text-input run` dev server,
-# the MCP Streamable-HTTP transport (`mcp::server::http`, additionally gated by
-# `mcp`), and the Socket.IO live-event bridge (`core::socketio`). Default-ON —
-# the desktop shell REQUIRES it (see the `HTTP_SERVER_COMPILED_IN` compile
-# assert in `crates/openhuman-app/src/lib.rs`). Slim / headless-embedding builds opt
-# out via `--no-default-features --features "<explicit list without
-# http-server>"`, which drops the exclusive `axum` + `socketioxide` deps; the
-# core then runs background services without binding a listener (`serve()`
-# returns early) and is driven over the CLI / native dispatch surface instead.
+# The core's domain-owned HTTP surfaces (#5048): the `/v1` OpenAI-compatible
+# router (`inference::http`), the WebSocket dictation handler
+# (`voice::streaming`), the `openhuman text-input run` dev server, and the MCP
+# Streamable-HTTP transport (`mcp::server::http`, additionally gated by `mcp`).
+# The JSON-RPC server that mounts them — `/rpc`, auth, CORS, SSE, Socket.IO,
+# the listener — lives in `openhuman-rpc`, whose `server` feature turns this
+# gate on. Default-ON; the desktop shell REQUIRES it (see the
+# `HTTP_SERVER_COMPILED_IN` compile assert in `crates/openhuman-app/src/lib.rs`).
+# Slim / headless-embedding builds opt out via `--no-default-features
+# --features "<explicit list without http-server>"`, which drops `axum`; the
+# core is then driven over the CLI / native dispatch surface instead.
 #
-# TYPE CARVE-OUT (see AGENTS.md): `core::socketio`'s inert event payload types
-# (`WebChannelEvent`, `TurnUsagePayload`, `SubagentUsagePayload`,
-# `SubagentProgressDetail`) stay compiled in BOTH builds — ~10 always-on
-# domains construct them — so `pub mod socketio;` is UNGATED and only the
-# socketioxide/axum-touching bodies are gated. Likewise `inference::http::types`
-# and `EXTERNAL_OPENAI_COMPAT_PROVIDER` stay compiled for `core::auth`.
+# `web_chat`'s event payload types (`WebChannelEvent`, `TurnUsagePayload`, …)
+# stay compiled in BOTH builds, since ~10 always-on domains construct them.
+# Likewise `inference::http::types` and `EXTERNAL_OPENAI_COMPAT_PROVIDER` stay
+# compiled for the server's auth policy.
 # Git-backed memory diff: snapshots as commits, checkpoints as tags, read
 # markers as refs, diffs as git tree diffs (`openhuman::memory::diff`), plus the
 # git-backed wiki content format in `memory::store::content::wiki_git`.
@@ -788,7 +792,7 @@ default = ["media", "skills", "flows", "mcp", "channels", "http-server", "schedu
 #
 # TYPE CARVE-OUT (see AGENTS.md): `memory::diff::types` stays compiled in BOTH
 # builds. It re-exports tinycortex's `serde`-only diff wire types, which the
-# always-on subconscious memory profile renders into prompts; a stub copy would
+# always-on memory profile renders into prompts; a stub copy would
 # be a second definition of one serde shape, free to drift. tinycortex makes the
 # same split — its `memory::diff::{types,source}` are ungated, and only the
 # git-touching `ledger`/`DiffEngine` half sits behind `git-diff`.
@@ -797,9 +801,11 @@ default = ["media", "skills", "flows", "mcp", "channels", "http-server", "schedu
 # `/schema`; the `memory_diff` agent tool is absent from the tool list; the
 # embedded driver stops advertising `Capability::Diff` and `as_diff()` returns
 # `None`; and the three `ops` entry points always-on code calls return a
-# build-fact error, so a post-sync snapshot or a subconscious diff is logged and
+# build-fact error, so a post-sync snapshot or diff is logged and
 # skipped rather than silently reported as "nothing changed".
-http-server = ["dep:axum", "dep:socketioxide"]
+# TinyMCP HTTP serving is kept optional with the rest of this server surface.
+# Keep vendor/tinymcp pinned to a revision that defines `server-http`.
+http-server = ["dep:axum", "tinymcp/server-http"]
 # Local audio-device access: the `cpal` capture stack behind voice recording
 # and the accessibility microphone-permission probe. Default-ON. Slim /
 # headless builds opt out via `--no-default-features --features "<explicit list
@@ -907,9 +913,9 @@ voice = [
 # surface, and the x402 machine-payment protocol. Default-ON — the desktop app
 # always ships with the wallet. Slim / headless builds opt out via
 # `--no-default-features --features "<explicit list without web3>"`, which
-# drops the exclusive `bitcoin` (P2WPKH PSBT) + `curve25519-dalek` (Solana
-# off-curve ATA) + `ethers-core` / `ethers-signers` / `coins-bip39` (EVM/mnemonic
-# signing, used by the multi-chain wallet's EVM path) dependencies. Composes
+# drops the exclusive `bitcoin` (P2WPKH PSBT) + `ethers-core` / `ethers-signers`
+# / `coins-bip39` (EVM/mnemonic signing, used by the multi-chain wallet's EVM
+# path) dependencies. Composes
 # with the runtime `DomainSet::Web3` flag (#4796): the feature narrows the
 # compile-time surface, `DomainSet` gates it at runtime.
 # `k256` and `coins-bip39` are gone from this list: nothing in the shipped
@@ -918,11 +924,13 @@ voice = [
 # checks a signature against a fixed vector; `coins-bip39` is gone entirely
 # (the fixtures derive through `tinywallet`'s own copy).
 #
-# `curve25519-dalek` stays: `associated_token_account` needs the off-curve check
-# to derive a Solana ATA, which is address arithmetic rather than signing.
+# `curve25519-dalek` is gone from this list: the Solana off-curve check that
+# derives an Associated Token Account is address arithmetic that now lives in
+# `tinywallet-web3` (and `tinywallet-x402`), which own their own copy.
 web3 = [
     "dep:tinywallet-bus",
-    "dep:curve25519-dalek",
+    "dep:tinywallet-x402",
+    "dep:tinywallet-web3",
     "modules",
 ]
 

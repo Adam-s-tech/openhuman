@@ -3,7 +3,7 @@
 //! Methods are exposed as `openhuman.memory_goals_<function>`:
 //! `list`, `add`, `edit`, `delete`, `reflect`. Handlers resolve the guarded
 //! goals family for the dispatch, delegate to [`super::ops`], and serialise the
-//! [`RpcOutcome`] into the CLI-compatible JSON shape.
+//! [`Outcome`] into the CLI-compatible JSON shape.
 //!
 //! The wire shape is a published compatibility surface and does not change
 //! here: `memory_goals.*` still answers with the same `GoalsDoc` /
@@ -18,10 +18,10 @@ use serde_json::{Map, Value};
 use super::ops;
 use crate::config::rpc as config_rpc;
 use crate::core::all::{ControllerFuture, RegisteredController};
+use crate::core::Outcome;
 use crate::core::{ControllerSchema, FieldSchema, TypeSchema};
 use crate::memory::api::provider::MemoryProvider;
 use crate::memory::ops::guard::active_memory_guard;
-use crate::rpc::RpcOutcome;
 
 /// All `memory_goals` controller schemas (advertised to CLI + RPC consumers).
 pub fn all_memory_goals_controller_schemas() -> Vec<ControllerSchema> {
@@ -254,7 +254,7 @@ fn parse_value<T: DeserializeOwned>(v: Value) -> Result<T, String> {
     serde_json::from_value(v).map_err(|e| format!("invalid params: {e}"))
 }
 
-fn to_json<T: serde::Serialize>(outcome: RpcOutcome<T>) -> Result<Value, String> {
+fn to_json<T: serde::Serialize>(outcome: Outcome<T>) -> Result<Value, String> {
     outcome.into_cli_compatible_json()
 }
 

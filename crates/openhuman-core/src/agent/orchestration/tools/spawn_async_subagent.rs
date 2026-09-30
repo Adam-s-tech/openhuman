@@ -173,10 +173,6 @@ impl Tool for SpawnAsyncSubagentTool {
                     "type": "string",
                     "description": "Optional exact model id for this spawn only."
                 },
-                "toolkit": {
-                    "type": "string",
-                    "description": "Optional Composio toolkit slug (e.g. `gmail`). Narrows the Connected Integrations section of the sub-agent's prompt to that toolkit."
-                },
                 "task_title": {
                     "type": "string",
                     "description": "Optional short title for the worker thread."

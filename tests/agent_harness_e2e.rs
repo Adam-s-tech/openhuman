@@ -29,7 +29,7 @@ use tempfile::tempdir;
 
 use openhuman_core::agent::harness::AgentDefinitionRegistry;
 use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
-use openhuman_core::core::jsonrpc::build_core_http_router;
+use openhuman_rpc::server::build_core_http_router;
 
 const TEST_RPC_TOKEN: &str = "json-rpc-e2e-local-token";
 
@@ -520,7 +520,8 @@ fn assert_no_jsonrpc_error<'a>(v: &'a Value, context: &str) -> &'a Value {
         .unwrap_or_else(|| panic!("{context}: missing result: {v}"))
 }
 
-fn write_min_config(openhuman_dir: &Path, api_origin: &str) {
+/// `extra_config` is appended verbatim (whole TOML tables, e.g. `[autonomy]`).
+fn write_min_config(openhuman_dir: &Path, api_origin: &str, extra_config: &str) {
     let cfg = format!(
         r#"api_url = "{api_origin}"
 default_model = "e2e-mock-model"
@@ -530,6 +531,7 @@ chat_onboarding_completed = true
 [secrets]
 encrypt = false
 
+{extra_config}
 "#
     );
     fn write_config_file(config_dir: &Path, cfg: &str) {
@@ -704,6 +706,17 @@ impl Drop for Stack {
 }
 
 async fn boot_stack() -> Stack {
+    boot_stack_with_config("").await
+}
+
+/// The approval gate is inert while the autonomy policy is off (the default:
+/// `SecurityPolicy::gate_decision` answers `Allow` for every class, so
+/// `file_write::external_effect_with_args` is `false` and nothing parks).
+/// Approval tests opt the policy back in, at the supervised level, where a
+/// write to an existing file prompts.
+const SUPERVISED_AUTONOMY_CONFIG: &str = "[autonomy]\nenabled = true\nlevel = \"supervised\"\n";
+
+async fn boot_stack_with_config(extra_config: &str) -> Stack {
     // Ensure the global AgentDefinitionRegistry is populated with built-in
     // archetypes (orchestrator, agent_memory, task_manager_agent, etc.) before
     // the RPC stack starts. Without this the session builder cannot synthesise
@@ -722,9 +735,13 @@ async fn boot_stack() -> Stack {
 
     let (mock_addr, mock_join) = serve_on_ephemeral(scripted_upstream_router()).await;
     let mock_origin = format!("http://{mock_addr}");
-    write_min_config(&openhuman_home, &mock_origin);
+    write_min_config(&openhuman_home, &mock_origin, extra_config);
     // Pre-write user-scoped config so it's found after auth_store_session activates "e2e-user".
-    write_min_config(&openhuman_home.join("users").join("e2e-user"), &mock_origin);
+    write_min_config(
+        &openhuman_home.join("users").join("e2e-user"),
+        &mock_origin,
+        extra_config,
+    );
 
     // The transport-only router does not create a Core runtime context. Install
     // the explicit tinymemory host seams before handlers service memory-backed
@@ -1356,6 +1373,9 @@ chat_onboarding_completed = true
 
 [secrets]
 encrypt = false
+
+[autonomy]
+enabled = true
 "#,
     )
     .expect("gate config must parse");
@@ -1475,7 +1495,7 @@ async fn approval_gate_approve_flow_inner() {
         // request[1]: Orchestrator text after approval.
         text_completion("Done. File written: APPROVED_WRITE_CANARY"),
     ]);
-    let stack = boot_stack().await;
+    let stack = boot_stack_with_config(SUPERVISED_AUTONOMY_CONFIG).await;
 
     // Pre-create the file so file_write sees it as an existing file and
     // external_effect_with_args returns true → approval gate intercepts.
@@ -1581,7 +1601,7 @@ async fn approval_gate_deny_flow_inner() {
         // request[1]: Orchestrator text after denial (gate returns POLICY_DENIED_MARKER).
         text_completion("Understood — the write was denied. DENIAL_ACK_CANARY"),
     ]);
-    let stack = boot_stack().await;
+    let stack = boot_stack_with_config(SUPERVISED_AUTONOMY_CONFIG).await;
 
     // Pre-create the file so file_write sees it as an existing file.
     let home = stack._tmp.path().to_path_buf();
@@ -1670,7 +1690,7 @@ async fn approval_gate_timeout_inner() {
         // request[1]: Orchestrator text after TTL auto-denial.
         text_completion("The write timed out awaiting approval. TIMEOUT_ACK_CANARY"),
     ]);
-    let stack = boot_stack().await;
+    let stack = boot_stack_with_config(SUPERVISED_AUTONOMY_CONFIG).await;
 
     // Pre-create so file_write's external_effect_with_args returns true.
     let home = stack._tmp.path().to_path_buf();
@@ -3504,6 +3524,56 @@ fn advertised_tool_names(request: &Value) -> Vec<String> {
     schema_names.chain(prompt_names).collect()
 }
 
+/// Heading of the orchestrator's own `prompt.md`; picks its requests out of a
+/// turn that also carries a specialist's.
+#[cfg(feature = "skills")]
+const ORCHESTRATOR_PROMPT_MARKER: &str = "## How you work";
+
+/// Concatenated system-message text of one captured model request.
+#[cfg(feature = "skills")]
+fn system_prompt_text(request: &Value) -> String {
+    request
+        .pointer("/body/messages")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter(|message| message.get("role").and_then(Value::as_str) == Some("system"))
+        .filter_map(|message| message.get("content"))
+        .map(|content| {
+            content
+                .as_str()
+                .map(str::to_string)
+                .unwrap_or_else(|| content.to_string())
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+/// Whether the request's `use_skill` declaration lists `pack` among its skills.
+/// Native providers carry it in the `tools` schema (the `skill` enum); text
+/// dialects render the catalogue into the system prompt.
+#[cfg(feature = "skills")]
+fn use_skill_offers_pack(request: &Value, pack: &str) -> bool {
+    let quoted = format!("\"{pack}\"");
+    let Some(tools) = request
+        .pointer("/body/tools")
+        .and_then(Value::as_array)
+        .filter(|tools| !tools.is_empty())
+    else {
+        return system_prompt_text(request).contains(&format!("`{pack}`"))
+            || system_prompt_text(request).contains(&quoted);
+    };
+    tools
+        .iter()
+        .filter(|tool| {
+            tool.pointer("/function/name")
+                .or_else(|| tool.get("name"))
+                .and_then(Value::as_str)
+                == Some("use_skill")
+        })
+        .any(|tool| tool.to_string().contains(&quoted))
+}
+
 /// One scripted turn in which the orchestrator hands a request to a specialist
 /// by calling `hand_off` directly.
 ///
@@ -3616,12 +3686,30 @@ async fn orchestrator_hands_skill_installs_to_skill_setup_directly_inner() {
         ],
     )
     .await;
-    // Same turn's requests: the orchestrator runs skills itself.
+    // Same turn's requests: the orchestrator runs skills itself. Read ITS
+    // request (identified by its own prompt heading), not whichever request
+    // happened to be captured first.
     let requests = with_captured(|c| c.clone());
-    let belt = advertised_tool_names(requests.first().expect("orchestrator model request"));
+    let orchestrator = requests
+        .iter()
+        .find(|request| system_prompt_text(request).contains(ORCHESTRATOR_PROMPT_MARKER))
+        .unwrap_or_else(|| {
+            panic!(
+                "no captured request carried the orchestrator prompt ({ORCHESTRATOR_PROMPT_MARKER:?}); \
+                 requests: {}",
+                serde_json::to_string_pretty(&requests).unwrap_or_default()
+            )
+        });
+    let belt = advertised_tool_names(orchestrator);
+    // `run_workflow` is a member of the `workflows` tool pack, so it is
+    // reachable either directly or through `use_skill` with that pack.
+    let direct = belt.iter().any(|name| name == "run_workflow");
+    let via_pack = belt.iter().any(|name| name == "use_skill")
+        && use_skill_offers_pack(orchestrator, "workflows");
     assert!(
-        belt.iter().any(|name| name == "run_workflow"),
-        "the orchestrator must advertise `run_workflow` directly; it advertised {belt:?}"
+        direct || via_pack,
+        "the orchestrator must reach `run_workflow` (directly or via use_skill `workflows`); \
+         it advertised {belt:?}"
     );
     assert!(
         !belt.iter().any(|name| name == "run_skill"),
@@ -4041,8 +4129,13 @@ async fn orchestrator_calls_a_connected_mcp_tool_directly_inner() {
     );
     reset_script(Vec::new());
     let stack = boot_stack().await;
+    // Connecting also writes the tool cache the orchestrator's surface reads.
     let server_id = declare_and_connect_registry_echo_server(&stack.rpc_base, 940).await;
-    let action = openhuman_core::mcp::registry::action_tool::searchable_name(&server_id, "echo");
+    let action = openhuman_core::mcp::registry::action_tool::searchable_name(
+        &server_id,
+        REGISTRY_MCP_SERVER,
+        "echo",
+    );
 
     reset_script(vec![
         tool_call_completion(

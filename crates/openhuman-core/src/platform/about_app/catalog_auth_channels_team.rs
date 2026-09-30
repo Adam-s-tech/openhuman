@@ -144,13 +144,25 @@ Capability {
         privacy: None,
     },
 Capability {
+        // Id kept from when this was Telegram-only; it is a stable lookup key.
         id: "channels.telegram_remote_control",
-        name: "Telegram Remote Control",
+        name: "Chat Remote Control",
         domain: "channels",
         category: CapabilityCategory::Channels,
         description:
-            "Operate OpenHuman from Telegram with slash commands: /status, /sessions, /new, and /help.",
-        how_to: "Connections > Channels > Telegram (connect), then message the bot",
+            "Operate OpenHuman from a connected chat (Telegram, Discord, Slack, and other messaging channels) with slash commands: /status, /sessions, /new, and /help.",
+        how_to: "Connections > Channels (connect a messaging channel), then send /help to the bot",
+        status: CapabilityStatus::Beta,
+        privacy: None,
+    },
+Capability {
+        id: "channels.chat_approvals",
+        name: "In-Chat Approvals",
+        domain: "channels",
+        category: CapabilityCategory::Channels,
+        description:
+            "When a supervised agent turn started from a messaging channel needs approval for a tool call, the prompt is sent to that same chat; reply yes or no to decide. Email and other channels without a chat reply path are not prompted.",
+        how_to: "Connections > Channels (connect a messaging channel); replies are read from the chat that started the turn",
         status: CapabilityStatus::Beta,
         privacy: None,
     },
@@ -225,6 +237,20 @@ Capability {
         category: CapabilityCategory::Channels,
         description: "Spawn and manage MCP server connections (stdio subprocess or HTTP-remote). Reconfigure stored env vars and reconnect without uninstalling.",
         how_to: "Connections > MCP Servers > Servers > select a server > Connect / Reconfigure",
+        status: CapabilityStatus::Beta,
+        privacy: Some(CapabilityPrivacy {
+            leaves_device: true,
+            data_kind: PrivacyDataKind::Derived,
+            destinations: &["Configured MCP endpoint(s)"],
+        }),
+    },
+Capability {
+        id: "channels.mcp_server_tools",
+        name: "Call MCP Server Tools by Name",
+        domain: "channels",
+        category: CapabilityCategory::Channels,
+        description: "Every tool on a connected or configured MCP server is its own agent tool, named `mcp_<server>_<tool>`. Tools are found through tool search by default, or sent every turn for a server set to `expose = \"direct\"`. Each server's tool list is cached locally, so its tools are offered right after a restart, before the server reconnects.",
+        how_to: "Connect an MCP server, then ask the agent for something it can do. Set `expose` or `direct_tools` on a configured server to keep its tools in view.",
         status: CapabilityStatus::Beta,
         privacy: Some(CapabilityPrivacy {
             leaves_device: true,

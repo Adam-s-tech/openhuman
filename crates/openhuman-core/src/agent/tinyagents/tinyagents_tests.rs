@@ -37,8 +37,128 @@ fn run_policy_for_makes_invalid_tool_arguments_recoverable() {
     let policy = run_policy_for(10, false);
     assert_eq!(
         policy.invalid_args,
-        InvalidArgsPolicy::ReturnToolError,
-        "schema-invalid calls must return a corrective tool result instead of aborting the turn"
+        InvalidArgsPolicy::NormalizeThenReturnToolError,
+        "schema-invalid calls must be normalized, then return a corrective tool result instead of aborting the turn"
+    );
+}
+
+/// Stand-in with `mcp_registry_tool_call`'s exact parameter schema; records
+/// the arguments it actually executes with.
+struct NestedArgsTool(std::sync::Mutex<Vec<serde_json::Value>>);
+
+#[async_trait::async_trait]
+impl tinytools::Tool for NestedArgsTool {
+    fn name(&self) -> &str {
+        "mcp_registry_tool_call"
+    }
+
+    fn description(&self) -> &str {
+        "call an MCP server tool"
+    }
+
+    fn parameters_schema(&self) -> serde_json::Value {
+        serde_json::json!({
+            "type": "object",
+            "properties": {
+                "server_id": { "type": "string" },
+                "tool_name": { "type": "string" },
+                "arguments": { "type": "object" }
+            },
+            "required": ["server_id", "tool_name"]
+        })
+    }
+
+    async fn execute(&self, arguments: serde_json::Value) -> anyhow::Result<tinytools::ToolResult> {
+        self.0.lock().unwrap().push(arguments);
+        Ok(tinytools::ToolResult::success("ok"))
+    }
+}
+
+fn scripted_response(
+    tool_calls: Vec<tinyinference_llm::tool::ToolCall>,
+    text: &str,
+) -> tinyinference_llm::model::ModelResponse {
+    use tinyinference_llm::message::{AssistantMessage, ContentBlock};
+    let content = if text.is_empty() {
+        Vec::new()
+    } else {
+        vec![ContentBlock::Text(text.to_string())]
+    };
+    let finish = if tool_calls.is_empty() {
+        "stop"
+    } else {
+        "tool_calls"
+    };
+    tinyinference_llm::model::ModelResponse {
+        message: AssistantMessage {
+            id: None,
+            content,
+            tool_calls,
+            usage: None,
+            origin: None,
+        },
+        usage: None,
+        finish_reason: Some(finish.to_string()),
+        raw: None,
+        resolved_model: None,
+        continue_turn: None,
+        served_from_cache: false,
+        correlation: None,
+        resolved_route: None,
+    }
+}
+
+/// Regression: DeepSeek sent `mcp_registry_tool_call` with a JSON-encoded
+/// nested `"arguments": "{}"`. Under the turn policy that string must be
+/// decoded to an object and the tool must run, instead of every call in the
+/// batch failing validation with "arguments.arguments must be object, got string".
+#[tokio::test]
+async fn run_policy_decodes_stringified_nested_object_arguments() {
+    use tinyinference_llm::message::Message;
+    use tinyinference_llm::tool::ToolCall;
+
+    let call = |id: &str, tool: &str| {
+        ToolCall::new(
+            id,
+            "mcp_registry_tool_call",
+            serde_json::json!({
+                "arguments": "{}",
+                "server_id": "21385eb2",
+                "tool_name": tool,
+            }),
+        )
+    };
+    let model = Arc::new(tinyagents_harness::testkit::ScriptedModel::new(vec![
+        scripted_response(
+            vec![call("call-1", "list_projects"), call("call-2", "list_tags")],
+            "",
+        ),
+        scripted_response(Vec::new(), "done"),
+    ]));
+    let tool = Arc::new(NestedArgsTool(std::sync::Mutex::new(Vec::new())));
+
+    let mut harness: tinyagents_harness::runtime::AgentHarness<()> =
+        tinyagents_harness::runtime::AgentHarness::new();
+    harness.register_model("mock", model);
+    harness.register_tool(tool.clone());
+    harness.with_policy(run_policy_for(10, false));
+
+    let run = harness
+        .invoke_default(&(), vec![Message::user("organize my ticktick")])
+        .await
+        .expect("turn completes");
+
+    assert_eq!(run.final_response.unwrap().text(), "done");
+    let executed = tool.0.lock().unwrap().clone();
+    assert_eq!(executed.len(), 2, "both batched calls must execute");
+    for args in &executed {
+        assert_eq!(args["arguments"], serde_json::json!({}));
+    }
+    assert!(
+        !run.messages
+            .iter()
+            .any(|m| format!("{m:?}").contains("must be object, got string")),
+        "no validation error may reach the transcript"
     );
 }
 

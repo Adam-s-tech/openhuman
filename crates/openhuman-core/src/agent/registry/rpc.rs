@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 use super::ops;
 use super::types::{
@@ -21,8 +21,8 @@ pub struct ListResponse {
     pub agents: Vec<AgentRegistryEntry>,
 }
 
-pub async fn list_rpc(req: ListRequest) -> Result<RpcOutcome<ListResponse>, String> {
-    Ok(RpcOutcome::new(
+pub async fn list_rpc(req: ListRequest) -> Result<Outcome<ListResponse>, String> {
+    Ok(Outcome::new(
         ListResponse {
             agents: ops::list_agents(req.include_disabled).await?,
         },
@@ -40,8 +40,8 @@ pub struct AvailableToolsResponse {
 
 pub async fn available_tools_rpc(
     _req: AvailableToolsRequest,
-) -> Result<RpcOutcome<AvailableToolsResponse>, String> {
-    Ok(RpcOutcome::new(
+) -> Result<Outcome<AvailableToolsResponse>, String> {
+    Ok(Outcome::new(
         AvailableToolsResponse {
             tools: ops::available_tools().await?,
         },
@@ -59,8 +59,8 @@ pub struct GetResponse {
     pub agent: Option<AgentRegistryEntry>,
 }
 
-pub async fn get_rpc(req: GetRequest) -> Result<RpcOutcome<GetResponse>, String> {
-    Ok(RpcOutcome::new(
+pub async fn get_rpc(req: GetRequest) -> Result<Outcome<GetResponse>, String> {
+    Ok(Outcome::new(
         GetResponse {
             agent: ops::get_agent(&req.id).await?,
         },
@@ -110,10 +110,8 @@ impl CreateCustomRequest {
     }
 }
 
-pub async fn create_custom_rpc(
-    req: CreateCustomRequest,
-) -> Result<RpcOutcome<AgentResponse>, String> {
-    Ok(RpcOutcome::new(
+pub async fn create_custom_rpc(req: CreateCustomRequest) -> Result<Outcome<AgentResponse>, String> {
+    Ok(Outcome::new(
         AgentResponse {
             agent: ops::upsert_custom_agent(req.into_entry()).await?,
         },
@@ -131,10 +129,8 @@ pub struct AgentResponse {
     pub agent: AgentRegistryEntry,
 }
 
-pub async fn upsert_custom_rpc(
-    req: UpsertCustomRequest,
-) -> Result<RpcOutcome<AgentResponse>, String> {
-    Ok(RpcOutcome::new(
+pub async fn upsert_custom_rpc(req: UpsertCustomRequest) -> Result<Outcome<AgentResponse>, String> {
+    Ok(Outcome::new(
         AgentResponse {
             agent: ops::upsert_custom_agent(req.agent).await?,
         },
@@ -149,8 +145,8 @@ pub struct UpdateRequest {
     pub patch: AgentRegistryPatch,
 }
 
-pub async fn update_rpc(req: UpdateRequest) -> Result<RpcOutcome<AgentResponse>, String> {
-    Ok(RpcOutcome::new(
+pub async fn update_rpc(req: UpdateRequest) -> Result<Outcome<AgentResponse>, String> {
+    Ok(Outcome::new(
         AgentResponse {
             agent: ops::update_agent(&req.id, req.patch).await?,
         },
@@ -164,8 +160,8 @@ pub struct SetEnabledRequest {
     pub enabled: bool,
 }
 
-pub async fn set_enabled_rpc(req: SetEnabledRequest) -> Result<RpcOutcome<AgentResponse>, String> {
-    Ok(RpcOutcome::new(
+pub async fn set_enabled_rpc(req: SetEnabledRequest) -> Result<Outcome<AgentResponse>, String> {
+    Ok(Outcome::new(
         AgentResponse {
             agent: ops::set_agent_enabled(&req.id, req.enabled).await?,
         },
@@ -183,8 +179,8 @@ pub struct RemoveResponse {
     pub removed: bool,
 }
 
-pub async fn remove_rpc(req: RemoveRequest) -> Result<RpcOutcome<RemoveResponse>, String> {
-    Ok(RpcOutcome::new(
+pub async fn remove_rpc(req: RemoveRequest) -> Result<Outcome<RemoveResponse>, String> {
+    Ok(Outcome::new(
         RemoveResponse {
             removed: ops::remove_agent(&req.id).await?,
         },

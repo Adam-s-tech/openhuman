@@ -33,7 +33,6 @@ contents inside `mod.rs` behind the feature of the same name. See the
 | `flows`* | Saved automation workflows (tinyflows graphs) | [README](src/flows/README.md) |
 | `hooks` | User-authored scripts that observe and gate the agent | [README](src/hooks/README.md) |
 | `hosting`* | Putting a workspace on the internet | [README](src/hosting/README.md) |
-| `http_host`* (feature `http-server`) | Static directory hosting over ad-hoc HTTP listeners | [README](src/http_host/README.md) |
 | `inference` | Unified inference domain | [README](src/inference/README.md) |
 | `integrations` | Agent integration tools | [README](src/integrations/README.md) |
 | `json_schema` | Vendor-neutral JSON Schema and JSON value walking | |
@@ -55,9 +54,11 @@ contents inside `mod.rs` behind the feature of the same name. See the
 | `web3` | High-level web3 surface built on the wallet layer | [README](src/web3/README.md) |
 | `web_chat` | Web/desktop channel turn runner (`channel.web_*` RPC, `WebChannelEvent` bus) | [README](src/web_chat/README.md) |
 
-RPC contract types (`RpcOutcome`, `StructuredRpcError`, the HTTP client) live
-in `crates/openhuman-rpc` and are re-exported here as `openhuman_core::rpc`.
-They are not redefined in this crate.
+The controller contract (`core::Outcome`, `core::StructuredRpcError`, the
+params rules in `core::params`, the schema types) and in-process dispatch
+(`core::invoke::invoke_method`) live in this crate. The JSON-RPC protocol,
+client and server that expose them live in `crates/openhuman-rpc`, which
+depends on this crate.
 
 The `inference` domain is where the pluggable LLM and embedding providers
 live; see

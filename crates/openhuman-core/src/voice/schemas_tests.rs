@@ -139,7 +139,7 @@ fn deserialize_params_rejects_wrong_type() {
 #[test]
 fn to_json_returns_inner_value() {
     let json =
-        to_json(RpcOutcome::single_log(json!({"ok": true}), "done")).expect("serialize outcome");
+        to_json(Outcome::single_log(json!({"ok": true}), "done")).expect("serialize outcome");
     assert_eq!(json["ok"], true);
 }
 

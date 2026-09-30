@@ -11,8 +11,8 @@
 //!    re-enters the gate during teardown also stalls.
 //! 2. Call [`clear_session`] to remove the stored JWT, clear the
 //!    active-user marker, and stop login-gated services
-//!    (voice / autocomplete / local AI / dictation /
-//!    subconscious). Idempotent — repeat events are safe.
+//!    (voice / autocomplete / local AI / dictation).
+//!    Idempotent — repeat events are safe.
 //!
 //! Without this subscriber, a 401 from a background LLM call would only
 //! be detected but never acted on, and the same loop would 401 again on

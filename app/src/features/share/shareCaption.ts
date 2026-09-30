@@ -35,7 +35,7 @@ function buildPrompt(agentOutput: string): string {
 /**
  * Extracts the response text from whatever envelope shape the core returns for
  * `inference_agent_chat_simple`. The op wraps its `String` result via
- * `RpcOutcome::single_log`, which serialises to `{ result, logs }`; older/other
+ * `Outcome::single_log`, which serialises to `{ result, logs }`; older/other
  * transports may hand back a bare string or a `{ response }` object. We accept
  * all three defensively.
  */

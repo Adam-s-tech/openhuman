@@ -217,7 +217,6 @@ async fn dispatch_subagent_returns_tool_error_when_agent_unknown() {
         "irrelevant prompt",
         None,
         None,
-        None,
         DispatchMode::Blocking,
         crate::agent::tinyagents::host::OpenHumanRunContext::new(),
     )

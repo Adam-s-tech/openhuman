@@ -12,7 +12,7 @@ import {
   TableCell,
   TableRow,
 } from '../ui';
-import { formatCurrency, formatTokens } from './formatCurrency';
+import { formatCurrency, formatPercent, formatTokens } from './formatCurrency';
 
 interface ModelCostTableProps {
   models: CostDashboardModelStats[];
@@ -81,7 +81,7 @@ const ModelCostTable = ({ models, currency, title, description }: ModelCostTable
           <div className="flex items-center justify-end gap-2">
             <Progress value={sharePct} className="h-1 w-14" />
             <span className="w-11 text-right tabular-nums text-content-secondary">
-              {`${sharePct.toFixed(1)}%`}
+              {formatPercent(sharePct)}
             </span>
           </div>
         );

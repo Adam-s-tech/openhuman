@@ -862,9 +862,7 @@ async fn inference_registry_drives_config_oauth_models_and_provider_chat() {
             "base_url": format!("{provider_base}/v1"),
             "chat_model_id": "demo-chat",
             "usage_embeddings": false,
-            "usage_heartbeat": true,
-            "usage_learning_reflection": true,
-            "usage_subconscious": false
+            "usage_learning_reflection": true
         }),
     )
     .await
@@ -2059,16 +2057,14 @@ async fn agent_triage_evaluator_covers_native_dispatch_decision_and_deferred_pat
         &TriggerEnvelope::from_cron("job-coverage", "daily", "done"),
     )
     .await
-    .expect("budget becomes deferred without local arm");
+    .expect("budget becomes terminal without local arm");
     match deferred {
-        TriageOutcome::Deferred {
-            defer_until_ms,
-            reason,
-        } => {
-            assert!(defer_until_ms > chrono::Utc::now().timestamp_millis());
+        TriageOutcome::Terminal { reason } => {
             assert_eq!(reason, "cloud budget exhausted; local arm unavailable");
         }
-        TriageOutcome::Decision(_) => panic!("budget exhaustion should defer"),
+        TriageOutcome::Decision(_) | TriageOutcome::Deferred { .. } => {
+            panic!("budget exhaustion should be terminal")
+        }
     }
 
     let attempts = Arc::new(AtomicUsize::new(0));
@@ -3496,7 +3492,6 @@ async fn agent_subagent_public_types_cover_task_local_and_error_display_paths() 
 
     let options = SubagentRunOptions {
         skill_filter_override: Some("docs".to_string()),
-        toolkit_override: Some("github".to_string()),
         context: Some("parent context".to_string()),
         model_override: Some("specialist-model".to_string()),
         task_id: Some("task-1".to_string()),
@@ -3508,7 +3503,6 @@ async fn agent_subagent_public_types_cover_task_local_and_error_display_paths() 
         run_queue: None,
     };
     assert_eq!(options.skill_filter_override.as_deref(), Some("docs"));
-    assert_eq!(options.toolkit_override.as_deref(), Some("github"));
     assert_eq!(options.model_override.as_deref(), Some("specialist-model"));
 
     let outcome = SubagentRunOutcome {

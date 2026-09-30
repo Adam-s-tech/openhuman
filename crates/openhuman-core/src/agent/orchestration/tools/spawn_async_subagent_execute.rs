@@ -16,7 +16,6 @@ impl SpawnAsyncSubagentTool {
             prompt,
             context,
             model_override,
-            toolkit_override,
             task_title,
             task_key,
             force_fresh,
@@ -148,7 +147,6 @@ impl SpawnAsyncSubagentTool {
             parent_session: parent_session.clone(),
             parent_thread_id: parent_thread_id.clone(),
             agent_id: definition.id.clone(),
-            toolkit: toolkit_override.clone(),
             model: model_override.clone(),
             sandbox_mode: format!("{:?}", definition.sandbox_mode),
             action_root: subagent_sessions::action_root_key(effective_action_root.as_deref()),
@@ -421,8 +419,7 @@ impl SpawnAsyncSubagentTool {
             crate::agent::turn_workspace::propagate(async move {
                 let options = SubagentRunOptions {
                     skill_filter_override: None,
-                    toolkit_override,
-                    context,
+                            context,
                     model_override,
                     task_id: Some(background_task_id.clone()),
                     thread_id: Some(background_thread_id),

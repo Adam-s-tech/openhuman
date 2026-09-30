@@ -131,7 +131,7 @@ required-features = ["modules"]
 [[test]]
 name = "x402_twit_sh_live"
 path = "../../tests/x402_twit_sh_live.rs"
-# `x402::tools::X402RequestTool` — the x402 domain is part of the web3 family.
+# `x402::request_tool()` — the x402 domain is part of the web3 family.
 required-features = ["web3"]
 
 [[test]]
@@ -349,7 +349,7 @@ path = "../../examples/run_memory_reconcile.rs"
 openhuman-core = { path = "../openhuman-core", package = "openhuman", default-features = false }
 openhuman-embed = { path = "../openhuman-embed", default-features = false }
 openhuman-tinyhumans = { path = "../openhuman-tinyhumans", default-features = false }
-openhuman-rpc.workspace = true
+openhuman-rpc = { workspace = true, features = ["server"] }
 anyhow = "1.0"
 async-trait = "0.1"
 axum = { version = "0.8", default-features = false, features = ["http1", "json", "tokio", "query", "ws", "macros"] }
