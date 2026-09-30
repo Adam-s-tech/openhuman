@@ -328,7 +328,10 @@ Additional rules:
   `openhuman_rpc::server::install_cli_server()` before `run_core_from_args`.
   Domain-owned HTTP handlers the router mounts (`inference::http`, the
   dictation WebSocket) stay in their domains behind core's `http-server`
-  feature.
+  feature. The `http_host` static-directory file server lives here too
+  (`openhuman_rpc::http_host`); `install_cli_server()` and
+  `build_core_http_router()` register its `http_host.*` controllers as a core
+  extension, so a host without this crate has no `http_host` surface.
 
 ## Tool, harness, and runtime boundaries
 
@@ -478,7 +481,7 @@ Direct rendered submodules under `vendor/`:
 | `tinysearch` | Web-search module, provider dispatch, tool declarations, and execution behind its TinyBus contract. |
 | `tinyskills` | Host-independent skill/workflow bundle parsing, discovery, scope resolution, resource inventory, and safe reads. OpenHuman owns trust and execution policy. |
 | `tinyvoice` | Host-agnostic voice primitives such as audio framing, VAD, wake-word gating, routing, and STT hallucination detection. |
-| `tinywallet` | Pure multi-chain wallet primitives such as address formats, validation, and encoding conversions; no key custody or transaction broadcast. |
+| `tinywallet` | Multi-chain wallet: `tinywallet-crypto` (address, asset, chain, `rpc::Transport`, tx codec), `tinywallet-x402` (x402 wire, payment, spending ledger, `x402_request` tool), `tinywallet-web3` (wallet engine, per-chain build/sign/broadcast flows, swap/bridge/dapp quotes, agent tools) behind host seams (`WalletSigner`, `PaymentSigner`, `WalletAccounts`, `RpcEndpoints`, `QuoteScope`, `Web3Backend`, `ProxyPolicy`), and the loadable `tinywallet-module` that derives keys and signs. OpenHuman keeps keyring, consent, credentials, config, controllers and the seam impls under `web3/`. |
 | `motosan-ai-oauth` | Provider-agnostic PKCE OAuth login and token-refresh primitives. |
 
 Some rendered submodules are shared dependencies nested inside those projects,
@@ -510,7 +513,7 @@ method constants, request and response types, and its contract version.
 | `tinyvoice-bus` | `voice` |
 | `tinyjuice-bus` | inference kernel |
 | `tinyruntime-bus` | runtime clients |
-| `tinywallet-bus` | `web3` |
+| `tinywallet-bus` | `web3` (contract; the chain primitives are in `tinywallet-crypto`) |
 | `tinymcp-bus` | `mcp` |
 | `tinychannels-bus` | channel vocabulary |
 | `tinyconnectors-bus` | OAuth connector (Composio) wire contract; called through `integrations/composio/module_client.rs` |
