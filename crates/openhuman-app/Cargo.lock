@@ -4325,7 +4325,6 @@ dependencies = [
  "tinytools 0.4.1",
  "tinytools-agent 0.4.1",
  "tinyvoice-bus",
- "tinywallet",
  "tinywallet-bus",
  "tinywallet-web3",
  "tinywallet-x402",
@@ -7781,16 +7780,6 @@ name = "tinyvoice-bus"
 version = "0.1.2"
 dependencies = [
  "serde",
-]
-
-[[package]]
-name = "tinywallet"
-version = "0.5.3"
-dependencies = [
- "serde",
- "serde_json",
- "thiserror 2.0.20",
- "tinywallet-bus",
 ]
 
 [[package]]
