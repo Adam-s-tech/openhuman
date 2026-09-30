@@ -288,7 +288,7 @@ describe('Harness - Search tool-flow', () => {
     const CANARY = 'canary-file-read-e5f6';
     const FILE_SNIPPET = 'OpenHuman is an AI assistant for communities';
 
-    // Tool name: "file_read" (crates/openhuman-core/src/tools/impl/filesystem/file_read.rs)
+    // Tool name: "file_read" (tinytools-std filesystem/file_read/mod.rs)
     // Path: use a clearly fictional path so no real data is read in test env.
     const FORCED = [
       {
