@@ -1722,6 +1722,34 @@ const Conversations = ({
   // voice composer. One definition is the point — a second copy is how they
   // drifted apart before (a rejected send once showed no feedback at all).
 
+  // Shown while the selected thread's live turn has gone quiet past the silence
+  // window. Informational: the turn keeps running and clears this itself on its
+  // next signal. The wording follows the phase so a long think does not read as
+  // a failure.
+  const selectedStalledPhase =
+    selectedThreadId &&
+    stalledThreadIds.has(selectedThreadId) &&
+    (selectedThreadActive ||
+      inferenceStatusByThread[selectedThreadId] !== undefined ||
+      inferenceTurnLifecycleByThread[selectedThreadId] === 'started' ||
+      inferenceTurnLifecycleByThread[selectedThreadId] === 'streaming')
+      ? (inferenceStatusByThread[selectedThreadId]?.phase ?? 'thinking')
+      : null;
+  const stallWarningBanner = selectedStalledPhase ? (
+    <div className="mb-2" role="status">
+      <p
+        className="text-xs text-amber-700"
+        data-testid="chat-stall-warning"
+        data-chat-stall-phase={selectedStalledPhase}>
+        {t(
+          selectedStalledPhase === 'thinking'
+            ? 'chat.stallWarning.thinking'
+            : 'chat.stallWarning.working'
+        )}
+      </p>
+    </div>
+  ) : null;
+
   const sendAdvisoryBanner = sendAdvisory ? (
     <div className="flex items-center justify-between mb-2">
       <p className="text-xs text-amber-700" data-chat-send-advisory>
@@ -1909,6 +1937,7 @@ const Conversations = ({
           transcript: nothing is added to it. Without this the composer simply
           swallowed the message. */}
       {sendErrorBanner}
+      {stallWarningBanner}
       {sendAdvisoryBanner}
       {liveArtifactDeck}
       {/* The core's run queue for this thread; renders nothing while empty. */}
