@@ -38,7 +38,6 @@ use std::sync::{Arc, LazyLock};
 
 use chrono::Utc;
 use serde_json::{json, Value};
-use sha2::{Digest, Sha256};
 use tinyflows::model::{NodeKind, TriggerKind, WorkflowGraph};
 // The save/run safety predicates are `tinyflows-catalog`'s: whether a graph
 // fires unattended, whether it can act on the world, whether it has anything to
