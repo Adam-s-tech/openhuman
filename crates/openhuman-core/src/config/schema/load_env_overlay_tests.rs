@@ -574,15 +574,18 @@ fn env_overlay_context_tool_result_budget_env_suppresses_legacy_migration() {
 }
 
 #[test]
-fn env_overlay_compaction_default_off_and_switch() {
-    // Default is off (tokenjuice compaction cost more retrieval round trips
-    // than it saved context).
-    assert!(!Config::default().context.compaction_enabled);
+fn env_overlay_compaction_default_on_and_switch() {
+    // Default is on: large results become a stats line, a head and a handle
+    // the REPL tools query.
+    assert!(Config::default().context.compaction_enabled);
+    assert!(Config::default().tokenjuice.router_enabled);
+    assert!(Config::default().tokenjuice.repl_handle_enabled);
 
-    // `OPENHUMAN_COMPACTION=0` keeps it off; `=1` turns it on.
+    // `OPENHUMAN_COMPACTION=0` opts out; `=1` keeps it on.
     let mut cfg = Config::default();
     cfg.apply_env_overlay_with(&HashMapEnv::new().with("OPENHUMAN_COMPACTION", "0"));
     assert!(!cfg.context.compaction_enabled);
+    assert!(!crate::inference::tokenjuice::repl_handle_active(&cfg));
     let mut cfg = Config::default();
     cfg.apply_env_overlay_with(&HashMapEnv::new().with("OPENHUMAN_COMPACTION", "1"));
     assert!(cfg.context.compaction_enabled);
