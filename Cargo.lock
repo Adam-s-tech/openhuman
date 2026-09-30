@@ -3982,7 +3982,6 @@ dependencies = [
  "aes-gcm",
  "aho-corasick",
  "anyhow",
- "arboard",
  "argon2",
  "async-trait",
  "axum",
@@ -3995,7 +3994,6 @@ dependencies = [
  "dirs 6.0.0",
  "dotenvy",
  "ed25519-dalek",
- "enigo",
  "env_logger",
  "filetime",
  "flate2",
@@ -6624,7 +6622,9 @@ dependencies = [
 name = "tinycomputer-accessibility"
 version = "0.7.0"
 dependencies = [
+ "arboard",
  "cpal",
+ "enigo",
  "log",
  "serde",
  "serde_json",
