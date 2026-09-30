@@ -291,10 +291,3 @@ async fn start_loopback(app: Router) -> String {
     });
     format!("http://127.0.0.1:{}", addr.port())
 }
-
-fn writable_security() -> Arc<SecurityPolicy> {
-    Arc::new(SecurityPolicy {
-        autonomy: AutonomyLevel::Full,
-        ..SecurityPolicy::default()
-    })
-}
