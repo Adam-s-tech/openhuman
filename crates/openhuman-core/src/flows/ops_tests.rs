@@ -55,28 +55,6 @@ fn nested_conditional_fan_in_graph() -> Value {
     })
 }
 
-fn main_port_conditional_fan_in_graph() -> Value {
-    json!({
-        "name": "main-port-conditional-fan-in",
-        "nodes": [
-            { "id": "start", "kind": "trigger", "name": "Trigger" },
-            { "id": "route", "kind": "switch", "name": "Route", "config": { "field": "kind" } },
-            { "id": "a", "kind": "output_parser", "name": "A" },
-            { "id": "other", "kind": "output_parser", "name": "Other" },
-            { "id": "c", "kind": "output_parser", "name": "C" },
-            { "id": "m", "kind": "merge", "name": "Merge" }
-        ],
-        "edges": [
-            { "from_node": "start", "from_port": "main", "to_node": "route" },
-            { "from_node": "start", "from_port": "main", "to_node": "c" },
-            { "from_node": "route", "from_port": "main", "to_node": "a" },
-            { "from_node": "route", "from_port": "other", "to_node": "other" },
-            { "from_node": "a", "from_port": "main", "to_node": "m" },
-            { "from_node": "c", "from_port": "main", "to_node": "m" }
-        ]
-    })
-}
-
 fn referenced_child_graph(workflow_id: &str) -> Value {
     json!({
         "name": "parent-with-saved-child",
