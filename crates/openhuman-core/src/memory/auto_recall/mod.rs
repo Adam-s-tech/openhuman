@@ -90,6 +90,7 @@ use crate::agent::tinyagents::host::agent_memory::DEFAULT_AGENT_MEMORY_NAMESPACE
 use crate::memory::api::provider::retrieval::{FastRetrieveQuery, RetrievalHit};
 use crate::memory::api::types::{MemoryTaint, NamespaceMemoryHit};
 use crate::memory::guard::MemoryGuard;
+use tinymemory_guard::GuardPolicy;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
