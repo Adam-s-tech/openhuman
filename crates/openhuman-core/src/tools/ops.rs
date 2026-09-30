@@ -232,6 +232,9 @@ pub fn all_tools_with_runtime(
         // by byte/line range) for a `⟦tj:<hash>⟧` marker from the CCR cache.
         // Supersedes `retrieve_tool_output`; both are kept live during migration.
         Box::new(crate::inference::tokenjuice::TokenjuiceRetrieveTool::new()),
+        // The REPL half of that recovery surface (`juice_find` / `juice_extract`
+        // / `juice_summarize`) is added right after this list, and only while
+        // the handle preview that names them is in effect.
         // Deterministic time-expression → timestamp resolver. `current_time`
         // only returns *now*, leaving the model to do epoch arithmetic by hand
         // (a real incident had an agent compute "24h ago" ~10 months off, then
@@ -1332,7 +1335,9 @@ fn tool_group(name: &str) -> crate::core::all::DomainGroup {
     // constant list rather than a name prefix — the live tool is
     // `tinyjuice_retrieve`, and `tokenjuice_retrieve` / `retrieve_tool_output`
     // are migration aliases, so a prefix rule silently missed the real one.
-    if crate::inference::tokenjuice::RECOVERY_TOOL_NAMES.contains(&name) {
+    if crate::inference::tokenjuice::RECOVERY_TOOL_NAMES.contains(&name)
+        || crate::inference::tokenjuice::is_repl_tool(name)
+    {
         return DomainGroup::Inference;
     }
     // Everything else — shell/file and other kernel utilities — is Platform:
