@@ -41,7 +41,7 @@
 //! | 4 | redaction | `GuardPolicy::redact_outbound` — a no-op for embedded drivers |
 //! | 5 | egress + trust | `GuardPolicy::check_egress` |
 //! | 6 | char budgets | `tinymemory_guard::budget`, driven by `MemoryHooksConfig` |
-//! | 7 | audit + tracing | [`audit`], `tinymemory_guard::audit` |
+//! | 7 | audit + tracing | `audit`, `tinymemory_guard::audit` |
 //!
 //! Three of those departed from the milestone brief because the brief's version
 //! would have been wrong against this tree; each departure is argued at its own
@@ -88,7 +88,7 @@
 //! This note used to say the fix "needs a fourteenth family in
 //! `tinycortex_api`". **That family now exists.** The contract has
 //! `MemoryProfile` (`tinymemory_api::provider::profile`, eleven methods) and
-//! [`families::GuardedProfile`] implements it, so the guarded door is built.
+//! `tinymemory_guard::families::GuardedProfile` implements it, so the guarded door is built.
 //! What remains is migrating any remaining direct `ProfileStore` caller onto
 //! it, plus the release lag on
 //! the module that serves it — `MemoryProfile` is one of the five families that
@@ -122,3 +122,10 @@ pub use policy::HostGuardPolicy;
 /// The policy decorator every product caller receives instead of the raw driver:
 /// `tinymemory_guard::GuardedProvider` over the host's policy.
 pub type MemoryGuard = tinymemory_guard::GuardedProvider<HostGuardPolicy>;
+
+#[cfg(test)]
+#[path = "families_tests.rs"]
+mod families_tests;
+#[cfg(test)]
+#[path = "provider_tests.rs"]
+mod provider_tests;

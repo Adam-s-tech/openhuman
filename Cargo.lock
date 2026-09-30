@@ -4070,6 +4070,7 @@ dependencies = [
  "tinymemory-bus",
  "tinymemory-conformance",
  "tinymemory-conversations",
+ "tinymemory-guard",
  "tinymemory-sources",
  "tinyruntime-bus",
  "tinyruntime-pyserver",
@@ -7024,6 +7025,18 @@ dependencies = [
  "serde_json",
  "sha2 0.10.9",
  "uuid",
+]
+
+[[package]]
+name = "tinymemory-guard"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "chrono",
+ "log",
+ "serde_json",
+ "tinymemory-api",
+ "tracing",
 ]
 
 [[package]]

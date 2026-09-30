@@ -241,7 +241,7 @@ fn guard_does_not_redact_for_an_embedded_driver() {
 
 #[test]
 fn guard_does_not_redact_for_a_null_driver() {
-    let policy = GuardPolicy::new(
+    let policy = HostGuardPolicy::new(
         "null",
         DriverClass::Null,
         MemoryHooksConfig::default(),
@@ -258,7 +258,7 @@ fn guard_does_not_redact_for_a_null_driver() {
 /// to catch it. This test is what would catch that move.
 #[test]
 fn guard_does_not_redact_for_a_module_driver() {
-    let policy = GuardPolicy::new(
+    let policy = HostGuardPolicy::new(
         "tinymemory",
         DriverClass::Module,
         MemoryHooksConfig::default(),
@@ -274,7 +274,7 @@ fn guard_does_not_redact_for_a_module_driver() {
 
 #[test]
 fn guard_does_not_redact_json_for_a_module_driver() {
-    let policy = GuardPolicy::new(
+    let policy = HostGuardPolicy::new(
         "tinymemory",
         DriverClass::Module,
         MemoryHooksConfig::default(),
@@ -336,7 +336,7 @@ fn guard_admits_an_external_driver_whose_trust_was_raised() {
 
 #[test]
 fn budgets_come_from_the_hooks_config() {
-    let policy = GuardPolicy::new(
+    let policy = HostGuardPolicy::new(
         "tinycortex",
         DriverClass::Embedded,
         MemoryHooksConfig {
@@ -352,7 +352,7 @@ fn budgets_come_from_the_hooks_config() {
 
 #[test]
 fn a_zero_budget_reads_as_disabled_not_as_deny_everything() {
-    let policy = GuardPolicy::new(
+    let policy = HostGuardPolicy::new(
         "tinycortex",
         DriverClass::Embedded,
         MemoryHooksConfig {
