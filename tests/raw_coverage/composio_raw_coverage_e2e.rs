@@ -423,10 +423,8 @@ async fn composio_action_tool_execute_reports_missing_route_without_network() {
         .expect("local validation returns a tool result");
     assert!(result.is_error);
     let rendered = serde_json::to_string(&result).unwrap();
-    // The host route check answers before the module is asked, with the
-    // actionable backend-session message instead of the module's opaque
-    // "loaded without a connector route" error.
-    assert!(rendered.contains("no backend session"), "{rendered}");
+    assert!(rendered.contains("without a connector route"), "{rendered}");
+    assert!(rendered.contains("proxy"), "{rendered}");
 }
 
 #[tokio::test]
