@@ -22,8 +22,6 @@ pub use types::DirectComposioClient;
 // Test-only bridges: the flat `direct_tests.rs` module still expects these
 // internal helpers to be reachable unqualified via `use super::*`.
 #[cfg(test)]
-use discovery::{ComposioToolkitRef, ComposioToolsResponse, ComposioV3Tool};
-#[cfg(test)]
 use http_errors::{extract_api_error_message, sanitize_error_message};
 #[cfg(test)]
 use types::{ensure_https, is_loopback_http_url, COMPOSIO_API_BASE_V3};
