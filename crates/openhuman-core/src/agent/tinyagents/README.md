@@ -43,7 +43,6 @@ The adapter seam between OpenHuman and the vendored [`tinyagents`](../../../../.
 | `host/delegation.rs` | Explicit tracing-bound execution helpers over `tinyagents_graph::delegation`'s plan, execute, review, finalize graph. |
 | `payload_summarizer.rs` | `PayloadSummarizer` trait, `SummarizeOutcome`/`UnavailableReason`, and the default `SubagentPayloadSummarizer` that compresses oversized tool results through the `summarizer` sub-agent instead of hard-truncating them. |
 | `policy_denial.rs` | `maybe_enrich_policy_block`: rewrites `[policy-blocked]` tool results into structured what/why/workaround messages that tell the model to relay the denial rather than fabricate output. Called from `ToolOutcomeCaptureMiddleware`. |
-| `abort_guard.rs` | `AbortOnDrop`: ties a detached streaming-producer task's lifetime to its consumer stream so a dropped turn aborts the in-flight provider call (issue #4460). |
 | `host/run_context.rs` + typed tool dispatch | `OpenHumanRunContext` owns one root `CancellationToken`; child contexts share it and recursive tools receive it from their typed parent `RunContext`. |
 | `steering_forwarder.rs` | `SteeringForwarderGuard`: forwards `RunQueue` steer/collect messages into the harness `SteeringHandle`; abort-on-drop so drop-based cancellation always deregisters it (issue #4456). |
 | `stop_hooks.rs` | `StopHookMiddleware`: evaluates OpenHuman `StopHook`s after each model call and pauses the run via steering on the first `Stop` decision. |
