@@ -4290,7 +4290,6 @@ dependencies = [
  "serde_repr",
  "serde_yaml",
  "sha2 0.10.9",
- "starship-battery",
  "sysinfo 0.33.1",
  "tar",
  "tempfile",
@@ -4333,8 +4332,12 @@ dependencies = [
  "tinymemory-bus",
  "tinymemory-conformance",
  "tinymemory-conversations",
+ "tinymemory-gate",
  "tinymemory-guard",
+ "tinymemory-import",
+ "tinymemory-safety",
  "tinymemory-sources",
+ "tinymemory-tools",
  "tinyruntime-bus",
  "tinyruntime-pyserver",
  "tinysearch-bus",
@@ -7774,6 +7777,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "tinymemory-gate"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "parking_lot",
+ "starship-battery",
+ "sysinfo 0.33.1",
+ "tinymemory-api",
+ "tokio",
+]
+
+[[package]]
 name = "tinymemory-guard"
 version = "0.1.0"
 dependencies = [
@@ -7783,6 +7798,18 @@ dependencies = [
  "serde_json",
  "tinymemory-api",
  "tracing",
+]
+
+[[package]]
+name = "tinymemory-import"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "directories 6.0.0",
+ "log",
+ "rusqlite",
+ "serde",
+ "tinymemory-api",
 ]
 
 [[package]]
@@ -7802,6 +7829,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "tinymemory-safety"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "regex",
+ "serde_json",
+]
+
+[[package]]
 name = "tinymemory-sources"
 version = "0.1.0"
 dependencies = [
@@ -7809,6 +7845,7 @@ dependencies = [
  "async-trait",
  "chrono",
  "futures",
+ "log",
  "regex",
  "reqwest 0.12.28",
  "schemars 1.2.2",
@@ -7820,6 +7857,21 @@ dependencies = [
  "tracing",
  "uuid",
  "walkdir",
+]
+
+[[package]]
+name = "tinymemory-tools"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "log",
+ "serde",
+ "serde_json",
+ "tinyinference-embeddings",
+ "tinymemory-api",
+ "tinytools 0.5.0",
 ]
 
 [[package]]
