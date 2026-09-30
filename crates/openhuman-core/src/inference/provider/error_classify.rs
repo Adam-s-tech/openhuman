@@ -11,9 +11,9 @@ fn classify(err: &anyhow::Error) -> ProviderFailureClass {
     // Product/account-state failures are terminal even when an upstream proxy
     // wrapped them in a nominally retryable status (for example a 500 carrying
     // MONTHLY_REQUEST_COUNT). These rules intentionally stay host-side.
-    if super::is_context_window_exceeded_message(&message)
+    if tinyinference_llm::failure::is_context_window_exceeded_message(&message)
         || crate::core::observability::is_session_expired_message(&message)
-        || crate::inference::provider::body_indicates_quota_exhausted(&message)
+        || tinyinference_llm::failure::body_indicates_quota_exhausted(&message)
     {
         return ProviderFailureClass::NonRetryable;
     }
