@@ -84,6 +84,9 @@ impl std::fmt::Debug for McpAuthDebug<'_> {
                 .field(name)
                 .field(&"<redacted>")
                 .finish(),
+            // The contract's auth enum is non-exhaustive: a kind added later
+            // must not print its credential before this learns its shape.
+            _ => f.write_str("<redacted>"),
         }
     }
 }
