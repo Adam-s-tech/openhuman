@@ -13,13 +13,17 @@ use std::path::Path;
 use tempfile::TempDir;
 use tinyagents_harness::store::{AppendStore, FileStore, JsonlAppendStore, Store};
 
-use super::convert::{journal_messages, sanitize_store_name, stream_name};
-use super::live::{
-    dual_write_enabled, shadow_read_compare, shadow_reads_enabled, write_live_turn,
+use super::live::{dual_write_enabled, shadow_reads_enabled};
+use super::projector::journal_message_from_transcript as project;
+use tinyagents_session::transcript::import::convert::{
+    journal_messages as journal_messages_with, sanitize_store_name, stream_name,
+};
+use tinyagents_session::transcript::import::live::{
+    shadow_read_compare as shadow_read_compare_with, write_live_turn as write_live_turn_with,
     ShadowReadOutcome,
 };
-use super::ops::store_root;
-use super::types::{JournalMessage, SessionDescriptor, NS_SESSIONS};
+use tinyagents_session::transcript::import::ops::store_root;
+use tinyagents_session::transcript::import::types::{JournalMessage, SessionDescriptor, NS_SESSIONS};
 use crate::agent::messages::{
     attach_chat_tool_failure_metadata, attach_chat_turn_usage_metadata,
     transcript_message_from_chat, ChatMessage,
@@ -28,6 +32,26 @@ use tinyagents_session::transcript::{
     read_transcript, write_transcript, MessageUsage, SessionTranscript, TranscriptMeta,
     TranscriptToolCall, TurnUsage,
 };
+
+fn journal_messages(t: &SessionTranscript) -> Vec<JournalMessage> {
+    journal_messages_with(t, project)
+}
+
+async fn write_live_turn(
+    workspace: &Path,
+    key: &str,
+    t: &SessionTranscript,
+) -> anyhow::Result<()> {
+    write_live_turn_with(workspace, key, t, project).await
+}
+
+async fn shadow_read_compare(
+    workspace: &Path,
+    key: &str,
+    t: &SessionTranscript,
+) -> ShadowReadOutcome {
+    shadow_read_compare_with(workspace, key, t, project).await
+}
 
 fn durable_messages(
     messages: &[ChatMessage],

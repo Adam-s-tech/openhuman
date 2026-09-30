@@ -21,7 +21,7 @@ use tinyagents_harness::events::HarnessRunStatus;
 use tinyagents_harness::ids::{ExecutionStatus, HarnessPhase};
 use tinyagents_harness::observability::HarnessStatusStore;
 
-use crate::agent::session_import::ops::open_session_stores;
+use tinyagents_session::transcript::import::ops::open_session_stores;
 use crate::agent::tinyagents::journal::FileStatusStore;
 
 /// Error recorded on a run reaped by the startup sweep. Stable + grep-friendly
