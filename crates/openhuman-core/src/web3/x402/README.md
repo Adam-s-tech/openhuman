@@ -77,6 +77,12 @@ from the retry's outcome and the `PAYMENT-RESPONSE` header. It differs from the
 generic `http_request` tool (`tools/impl/network/http_request.rs`), which
 handles a 402 only as a silent fallback.
 
+The tool is built with `TaskLocalSession` (`seams.rs`), the host's
+`tinywallet_x402::session::SessionScope`: it reads the chat thread id from the
+`APPROVAL_CHAT_CONTEXT` task-local and the crate stamps it on every ledger
+record of the payment. Outside a chat turn (CLI, JSON-RPC, cron) it reports no
+session and the crate uses the ledger's `x402-<uuid>` boot id instead.
+
 ## Persistence
 
 - `{workspace_dir}/x402/payments.jsonl`: one JSON `PaymentRecord` per line,
@@ -84,12 +90,15 @@ handles a 402 only as a silent fallback.
   Loaded into memory by `init_ledger` and held in the crate's process-wide
   ledger.
 - Budget enforcement (defaults: 1 USDC per request, 10 USDC per day, 100 USDC
-  per month, in atomic units) is checked against the in-memory ledger before a
-  payment is built. Daily and monthly totals sum the `Settled` records for the
-  current UTC day / calendar month. The session total reported by `get_summary`
-  counts records whose `session_id` equals the ledger's `x402-<uuid>` boot id; it
-  is not a cap, and both writers currently store an empty `session_id`, so it
-  reads as zero. `init_ledger` seeds the limits from
+  per month, in atomic units) checks and reserves the amount atomically against
+  the in-memory ledger before a payment is signed, so concurrent payments cannot
+  exceed a cap. Daily and monthly totals sum the `Settled` records for the
+  current UTC day / calendar month plus the amounts held by in-flight payments.
+  The session total reported by `get_summary` counts records whose `session_id`
+  equals the ledger's `x402-<uuid>` boot id; it is not a cap. The `x402_request`
+  tool stamps chat payments with the thread id (see above) and other payments
+  with the boot id; the `http_request` fallback still stores an empty
+  `session_id`. `init_ledger` seeds the limits from
   `OPENHUMAN_X402_PER_REQUEST_MAX` / `OPENHUMAN_X402_DAILY_MAX` /
   `OPENHUMAN_X402_MONTHLY_MAX` when set (`budget.rs`); `update_budget` changes
   them for the running process only and does not rewrite historical records.

@@ -12,6 +12,8 @@
 //!   blockhash.
 //! - a [`ProxyPolicy`]: [`RuntimeProxyPolicy`] applies the runtime proxy
 //!   configuration to the tool's HTTP client.
+//! - a [`SessionScope`]: [`TaskLocalSession`] names the chat thread running the
+//!   tool call, so the ledger can attribute the payment to it.
 //!
 //! Every `Err(String)` these return is the text a user sees, prefixed exactly as
 //! the payment flow did before it moved into the crate (`wallet secret: …`,
@@ -23,9 +25,11 @@ use async_trait::async_trait;
 use log::debug;
 use tinywallet_x402::crypto::{CryptoPayments, PaymentAccount, PaymentSigner, SignScheme};
 use tinywallet_x402::protocol::ProxyPolicy;
+use tinywallet_x402::session::SessionScope;
 use tinywallet_x402::tools::X402RequestTool;
 use tinywallet_x402::wire::PaymentChain;
 
+use crate::security::approval::APPROVAL_CHAT_CONTEXT;
 use crate::web3::wallet::transport::OpenHumanTransport;
 use crate::web3::wallet::WalletChain;
 
@@ -38,6 +42,28 @@ pub(crate) struct WalletPaymentSigner;
 /// The runtime proxy configuration, applied to x402's outbound HTTP.
 #[derive(Debug, Clone, Copy, Default)]
 pub(crate) struct RuntimeProxyPolicy;
+
+/// The chat thread running the current tool call, read from
+/// `APPROVAL_CHAT_CONTEXT`.
+///
+/// `Some(thread_id)` inside an interactive chat turn (the web channel installs the
+/// task-local around the run), `None` for CLI, direct JSON-RPC, cron and other
+/// non-chat callers, whose payments the crate attributes to the ledger's own
+/// session instead.
+///
+/// `tokio::task_local!` propagates across `.await` but **not** across
+/// `tokio::spawn`; the crate calls this synchronously on the tool's own task, and
+/// the regression test in `seams_tests.rs` pins that it reads the task-local.
+#[derive(Debug, Clone, Copy, Default)]
+pub(crate) struct TaskLocalSession;
+
+impl SessionScope for TaskLocalSession {
+    fn current_session(&self) -> Option<String> {
+        APPROVAL_CHAT_CONTEXT
+            .try_with(|ctx| ctx.thread_id.clone())
+            .ok()
+    }
+}
 
 /// The wallet chain a payment chain is signed as.
 fn wallet_chain(chain: PaymentChain) -> WalletChain {
@@ -178,6 +204,7 @@ pub(crate) fn request_tool() -> X402RequestTool {
         Arc::new(OpenHumanTransport::new()),
         Arc::new(RuntimeProxyPolicy),
     )
+    .with_session_scope(Arc::new(TaskLocalSession))
 }
 
 #[cfg(test)]

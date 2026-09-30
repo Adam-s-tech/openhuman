@@ -176,3 +176,49 @@ async fn the_signer_reports_a_missing_wallet_for_either_chain() {
 async fn the_payment_builder_is_object_safe_for_the_facade() {
     let _builder: Box<dyn PaymentBuilder> = Box::new(payments());
 }
+
+// ---------------------------------------------------------------------------
+// The session seam: which chat thread a payment belongs to
+// ---------------------------------------------------------------------------
+
+fn chat_ctx(thread: &str) -> crate::security::approval::ApprovalChatContext {
+    crate::security::approval::ApprovalChatContext {
+        thread_id: format!("thread-{thread}"),
+        client_id: format!("client-{thread}"),
+        request_id: None,
+    }
+}
+
+/// The ledger stamps a payment with this read. If it stopped reading
+/// `APPROVAL_CHAT_CONTEXT`, every tool payment would silently fall back to the
+/// ledger's boot session and lose its thread.
+#[tokio::test]
+async fn the_session_scope_reads_the_approval_chat_context_task_local() {
+    use tinywallet_x402::session::SessionScope;
+
+    assert_eq!(
+        TaskLocalSession.current_session(),
+        None,
+        "outside a chat turn there is no session"
+    );
+
+    let inside = crate::security::approval::APPROVAL_CHAT_CONTEXT
+        .scope(chat_ctx("a"), async { TaskLocalSession.current_session() })
+        .await;
+    assert_eq!(inside.as_deref(), Some("thread-a"));
+
+    // Nested scopes answer with the innermost thread, and the outer one is
+    // restored afterwards.
+    let (inner, outer) = crate::security::approval::APPROVAL_CHAT_CONTEXT
+        .scope(chat_ctx("outer"), async {
+            let inner = crate::security::approval::APPROVAL_CHAT_CONTEXT
+                .scope(chat_ctx("inner"), async {
+                    TaskLocalSession.current_session()
+                })
+                .await;
+            (inner, TaskLocalSession.current_session())
+        })
+        .await;
+    assert_eq!(inner.as_deref(), Some("thread-inner"));
+    assert_eq!(outer.as_deref(), Some("thread-outer"));
+}
