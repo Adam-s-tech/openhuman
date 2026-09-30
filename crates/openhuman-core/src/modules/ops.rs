@@ -36,12 +36,15 @@ use std::sync::OnceLock;
 use std::time::Duration;
 
 use super::types::{ModuleRecord, ModuleState, ModuleStatus};
-use super::{host, platform, registry};
+use super::{host, registry};
 use crate::config::Config;
 use tinybus::module::resolution::{
     self, Claim, Resolution, ResolutionState, ResolutionTable, Waited,
 };
-use tinybus::module::{artifact_dir, prune_stale_versions};
+use tinybus::module::platform::host_candidates;
+use tinybus::module::{
+    load_first_admitted, prune_stale_versions, ReleaseAsset, ReleasePlan,
+};
 
 /// Installer-owned, read-only release cache. The desktop host sets this before
 /// starting the embedded core; other hosts continue using the user cache.
@@ -295,120 +298,25 @@ fn load_cached(
     allow_download: bool,
     bundled_root: Option<&Path>,
 ) -> Result<(), String> {
-    let candidates = platform::host_candidates();
-    let assets: Vec<_> = candidates
+    let assets: Vec<ReleaseAsset<'static>> = host_candidates()
         .iter()
         .filter_map(|key| record.asset_for(key))
+        .map(|asset| ReleaseAsset {
+            host_key: asset.host_key,
+            archive: asset.archive,
+            sha256: asset.sha256,
+        })
         .collect();
-    if assets.is_empty() {
-        return Err(format!(
-            "module '{}' is not available for this platform, so the feature it provides is \
-             unavailable in this build",
-            record.id
-        ));
-    }
-
-    let mut last_error = String::new();
-    let mut found_bundled = false;
-    if let Some(bundled_root) = bundled_root {
-        for asset in &assets {
-            let Some(cache_dir) =
-                artifact_dir(bundled_root, record.id, record.version, asset.host_key)
-            else {
-                continue;
-            };
-            if !cache_dir.join(asset.archive).is_file() {
-                continue;
-            }
-            found_bundled = true;
-            let release = tinybus::module::CachedRelease {
-                release_url: record.release_url,
-                asset_name: asset.archive,
-                expected_sha256: Some(asset.sha256),
-                cache_dir: &cache_dir,
-                allow_download: false,
-            };
-            match runtime
-                .host()
-                .load_github_release_cached(&release, module_config.clone())
-            {
-                Ok(_) => {
-                    log::info!("[modules] loaded '{}' from the installer bundle", record.id);
-                    return Ok(());
-                }
-                Err(err) => {
-                    last_error = err.to_string();
-                    log::warn!(
-                        "[modules] bundled '{}' artifact for {} was not admitted: {last_error}",
-                        record.id,
-                        asset.host_key
-                    );
-                }
-            }
-        }
-    }
-    if found_bundled {
-        return Err(format!(
-            "module '{}' could not be loaded from the installer bundle: {last_error}. \
-             Restart the app after repairing the installation",
-            record.id
-        ));
-    }
-    for asset in assets {
-        let Some(cache_dir) = artifact_dir(install_root, record.id, record.version, asset.host_key)
-        else {
-            last_error =
-                "the module's cache path could not be built from its registry entry".to_string();
-            continue;
-        };
-        let release = tinybus::module::CachedRelease {
-            release_url: record.release_url,
-            asset_name: asset.archive,
-            expected_sha256: Some(asset.sha256),
-            cache_dir: &cache_dir,
-            allow_download,
-        };
-        match runtime
-            .host()
-            .load_github_release_cached(&release, module_config.clone())
-        {
-            Ok(_) => {
-                log::info!(
-                    "[modules] loaded '{}' {} ({}) through the release cache",
-                    record.id,
-                    record.version,
-                    asset.host_key
-                );
-                return Ok(());
-            }
-            Err(err) => {
-                // Sanitised: tinybus's own errors carry only a basename and a
-                // fixed reason, and nothing here adds a path or a URL.
-                last_error = err.to_string();
-                log::warn!(
-                    "[modules] '{}' artifact for {} was not admitted: {last_error}",
-                    record.id,
-                    asset.host_key
-                );
-            }
-        }
-    }
-    if !allow_download {
-        log::debug!(
-            "[modules] '{}' release cache miss with downloads disabled: {last_error}",
-            record.id
-        );
-        return Err(format!(
-            "module '{}' is unavailable: no local artifact is installed and downloads are \
-             disabled in configuration",
-            record.id
-        ));
-    }
-    Err(format!(
-        "module '{}' could not be loaded: {last_error}. This is terminal for the running \
-         process; restart the app to try again",
-        record.id
-    ))
+    let plan = ReleasePlan {
+        id: record.id,
+        version: record.version,
+        release_url: record.release_url,
+        assets: &assets,
+        install_root,
+        bundled_root,
+        allow_download,
+    };
+    load_first_admitted(runtime.host(), &plan, &module_config).map(|_| ())
 }
 
 /// Load a platform library from `path`.
