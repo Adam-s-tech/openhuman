@@ -17,8 +17,8 @@ use tinyagents_harness::observability::{
     AgentObservation, HarnessEventJournal, HarnessStatusStore, StoreEventJournal,
 };
 
-use tinyagents_session::transcript::import::ops::open_session_stores;
 use crate::agent::tinyagents::journal::FileStatusStore;
+use tinyagents_session::transcript::import::ops::open_session_stores;
 
 /// Default page size for [`read_run_events_page`] when the caller omits `limit`.
 pub(crate) const DEFAULT_EVENTS_LIMIT: u64 = 200;

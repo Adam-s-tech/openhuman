@@ -361,7 +361,8 @@ async fn clear_dropped_turn_states(
     let thread_id_owned = thread_id.to_string();
     let cut_request_id_owned = cut_request_id.to_string();
     let result = tokio::task::spawn_blocking(move || {
-        let turns = tinyagents_session::turn_state::store::list_thread(dir.clone(), &thread_id_owned)?;
+        let turns =
+            tinyagents_session::turn_state::store::list_thread(dir.clone(), &thread_id_owned)?;
         let Some(cut_started_at) = turns
             .iter()
             .find(|t| t.request_id == cut_request_id_owned)

@@ -1023,14 +1023,13 @@ impl OpenHumanTurnPrelude {
                 log::warn!("[session-store] dual-write transcript read-back failed");
                 return;
             };
-            if let Err(error) =
-                tinyagents_session::transcript::import::live::write_live_turn(
-                    &workspace,
-                    &stem,
-                    &transcript,
-                    crate::agent::session_import::projector::journal_message_from_transcript,
-                )
-                .await
+            if let Err(error) = tinyagents_session::transcript::import::live::write_live_turn(
+                &workspace,
+                &stem,
+                &transcript,
+                crate::agent::session_import::projector::journal_message_from_transcript,
+            )
+            .await
             {
                 log::warn!("[session-store] dual-write failed stem={stem}: {error:#}");
             }
