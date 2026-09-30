@@ -30,7 +30,7 @@ use crate::config::Config;
 use crate::security::SecurityPolicy;
 
 use super::build_capabilities;
-use super::caps::{FlowStateStore, OpenHumanCode, OpenHumanHttp, OpenHumanTools};
+use super::caps::{OpenHumanCode, OpenHumanHttp, OpenHumanTools};
 
 fn test_config(tmp: &TempDir) -> Arc<Config> {
     let config = Config {

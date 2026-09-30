@@ -48,35 +48,6 @@ async fn http_adapter_rejects_host_outside_strict_allowlist() {
     );
 }
 
-// ── StateStore adapter ───────────────────────────────────────────────────
-
-#[tokio::test]
-async fn flow_state_store_round_trips_and_is_namespace_scoped() {
-    let tmp = TempDir::new().unwrap();
-    let config = test_config(&tmp);
-
-    let ns1 = FlowStateStore {
-        config: config.clone(),
-        namespace: "ns1".to_string(),
-    };
-    let ns2 = FlowStateStore {
-        config: config.clone(),
-        namespace: "ns2".to_string(),
-    };
-
-    assert!(ns1.load("k").await.unwrap().is_none());
-
-    ns1.store("k", json!({ "v": 1 })).await.unwrap();
-    assert_eq!(ns1.load("k").await.unwrap(), Some(json!({ "v": 1 })));
-
-    // A different namespace never sees ns1's value.
-    assert!(ns2.load("k").await.unwrap().is_none());
-
-    // Overwrite.
-    ns1.store("k", json!(2)).await.unwrap();
-    assert_eq!(ns1.load("k").await.unwrap(), Some(json!(2)));
-}
-
 // ── Engine smoke: real seam end to end ───────────────────────────────────
 
 #[tokio::test]

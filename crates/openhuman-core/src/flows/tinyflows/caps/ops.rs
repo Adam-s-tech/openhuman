@@ -602,7 +602,7 @@ impl ToolInvoker for OpenHumanTools {
 /// and [`super::memory_adapter::OpenHumanMemory`] for `memory`, for its
 /// contract).
 ///
-/// `state_namespace` scopes the [`FlowStateStore`] KV so two saved flows that
+/// `state_namespace` scopes the [`tinyflows_sqlite::flows::SqliteStateStore`] KV so two saved flows that
 /// use the same state key never read or overwrite each other — callers pass a
 /// per-flow namespace (e.g. `"flow:<id>"`). Note this is **not** the same
 /// namespace `OpenHumanMemory` writes flow-scoped memory under — that one is
@@ -635,10 +635,10 @@ pub fn build_capabilities(config: Arc<Config>, state_namespace: impl Into<String
             config: config.clone(),
             security: security.clone(),
         }),
-        state: Arc::new(FlowStateStore {
-            config: config.clone(),
-            namespace: state_namespace.into(),
-        }),
+        state: Arc::new(tinyflows_sqlite::flows::SqliteStateStore::new(
+            crate::flows::store::dir(&config),
+            state_namespace,
+        )),
         agent: Some(Arc::new(OpenHumanAgentRunner {
             config: config.clone(),
         })),
