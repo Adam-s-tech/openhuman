@@ -2441,7 +2441,7 @@ const messages: TranslationMap = {
   'common.disable': 'Disabilita',
   'common.enable': 'Abilita',
   'chat.stallWarning.thinking':
-    'Sta ancora pensando. Nessun nuovo output da 2 minuti, ma l\'agente sta ancora lavorando. Premi Interrompi se vuoi annullare.',
+    "Sta ancora pensando. Nessun nuovo output da 2 minuti, ma l'agente sta ancora lavorando. Premi Interrompi se vuoi annullare.",
   'chat.stallWarning.working':
     'Sta ancora lavorando. Un passaggio è in corso da oltre 2 minuti senza nuovo output. Premi Interrompi se vuoi annullare.',
   'chat.filter.general': 'Generale',

@@ -525,9 +525,7 @@ const Conversations = ({
   // Threads whose turn has gone quiet past the silence window while the core
   // still reports it running (or cannot say). Drives a warning only — the turn
   // is never torn down client-side; the Stop button is how the user ends it.
-  const [stalledThreadIds, setStalledThreadIds] = useState<ReadonlySet<string>>(
-    () => new Set()
-  );
+  const [stalledThreadIds, setStalledThreadIds] = useState<ReadonlySet<string>>(() => new Set());
   const markThreadStalled = useCallback((threadId: string) => {
     setStalledThreadIds(prev => {
       if (prev.has(threadId)) return prev;

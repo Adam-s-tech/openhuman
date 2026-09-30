@@ -2464,7 +2464,7 @@ const messages: TranslationMap = {
   'common.disable': 'Désactiver',
   'common.enable': 'Activer',
   'chat.stallWarning.thinking':
-    'Réflexion en cours. Aucune nouvelle sortie depuis 2 minutes, mais l\'agent travaille toujours. Appuie sur Arrêter si tu veux annuler.',
+    "Réflexion en cours. Aucune nouvelle sortie depuis 2 minutes, mais l'agent travaille toujours. Appuie sur Arrêter si tu veux annuler.",
   'chat.stallWarning.working':
     'Travail en cours. Une étape tourne depuis plus de 2 minutes sans nouvelle sortie. Appuie sur Arrêter si tu veux annuler.',
   'chat.filter.general': 'Général',
