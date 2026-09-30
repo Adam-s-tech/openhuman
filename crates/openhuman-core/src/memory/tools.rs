@@ -7,6 +7,7 @@ mod doctor;
 // path — see `lookup_flavour`'s doc comment.
 pub(crate) mod flavour;
 mod forget;
+pub mod host;
 mod recall;
 mod store;
 

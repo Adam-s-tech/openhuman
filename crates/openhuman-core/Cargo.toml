@@ -294,6 +294,12 @@ tinymemory-guard = { path = "../../vendor/tinymemory/crates/tinymemory-guard" }
 # opens (`target_memory_backend`, which refuses a null driver) and adds no
 # dependency beyond rusqlite, already linked here.
 tinymemory-import = { path = "../../vendor/tinymemory/crates/tinymemory-import" }
+# `tinymemory-tools` holds the memory agent tools (tree retrieval, raw chunk and
+# entity search, hybrid and vector search, tool-scoped rules) as
+# `tinytools::Tool`s generic over a host; `memory::tools::host` is this host.
+# Its one extra dependency is `tinytools`, which the root `[patch]` points at
+# the copy vendored through tinyagents, so there is still exactly one `Tool`.
+tinymemory-tools = { path = "../../vendor/tinymemory/crates/tinymemory-tools" }
 # `tinymemory-safety` is the secret and PII scrubber (credential patterns,
 # sensitive-key classifier, checksum-gated multilingual national-ID redaction)
 # that `memory::safety` used to carry a private copy of. `regex`, `serde_json`

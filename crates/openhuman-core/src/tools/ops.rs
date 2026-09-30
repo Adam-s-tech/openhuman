@@ -431,15 +431,15 @@ pub fn all_tools_with_runtime(
         // anti_preferences) that persona ingestion builds but nothing
         // previously surfaced to the agent loop.
         Box::new(MemoryFlavourTool::new(config.clone())),
-        Box::new(MemoryQueryTool),
+        Box::new(MemoryQueryTool::default()),
         // memory_search tools — vector search, chunk context, hybrid search,
         // and previously unregistered raw store tools.
-        Box::new(MemoryVectorSearchTool),
-        Box::new(MemoryChunkContextTool),
-        Box::new(MemoryHybridSearchTool),
-        Box::new(MemoryStoreRawSearchTool),
-        Box::new(MemoryStoreRawChunksTool),
-        Box::new(MemoryStoreKindsTool),
+        Box::new(MemoryVectorSearchTool::default()),
+        Box::new(MemoryChunkContextTool::default()),
+        Box::new(MemoryHybridSearchTool::default()),
+        Box::new(MemoryStoreRawSearchTool::default()),
+        Box::new(MemoryStoreRawChunksTool::default()),
+        Box::new(MemoryStoreKindsTool::default()),
         // Explicit user-preference pinning — always registered so the model
         // can save user-stated preferences regardless of whether the full
         // inference-based learning subsystem is enabled.  The preference
