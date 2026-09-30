@@ -58,7 +58,7 @@ pub(super) fn install_context_ladder(
     tool_outcome_sink: &ToolOutcomeSink,
 ) -> (
     Option<Arc<ContextCompressionMiddleware>>,
-    Option<Arc<std::sync::atomic::AtomicBool>>,
+    Option<Arc<FinalCallWrapUpMiddleware>>,
 ) {
     // Autocompaction parity: when the provider's context window is known, install
     // the two-stage context-management step (issue #4249).

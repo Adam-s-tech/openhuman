@@ -39,7 +39,8 @@ pub(super) async fn finalize_turn_outcome(
     bridge: Option<Arc<OpenhumanEventBridge>>,
     early_exit_hook: Option<EarlyExitHook>,
     halt_summary: &HaltSummarySlot,
-    wrap_up_fired: &Option<Arc<std::sync::atomic::AtomicBool>>,
+    wrap_up_fired: &Option<Arc<FinalCallWrapUpMiddleware>>,
+    run_instance_id: u64,
     tool_outcome_sink: &ToolOutcomeSink,
     resolved_route: Option<tinyinference_llm::model::ResolvedModelRoute>,
     request_base_len: usize,
@@ -206,7 +207,7 @@ pub(super) async fn finalize_turn_outcome(
     // list) and the loop ran out with nothing final.
     let wrap_up_injected = wrap_up_fired
         .as_ref()
-        .is_some_and(|fired| fired.load(std::sync::atomic::Ordering::SeqCst));
+        .is_some_and(|mw| mw.fired_for(run_instance_id));
     let hit_cap = pause_at_cap
         && early_exit.is_none()
         && breaker_halt.is_none()
