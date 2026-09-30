@@ -547,7 +547,7 @@ tinyvoice-bus = { path = "../../vendor/tinyvoice/crates/tinyvoice-bus", optional
 # The global push-to-talk hotkey listener (`voice::hotkey`) lives in the
 # `tinyvoice` library behind its off-by-default `hotkey` feature (it owns the
 # `rdev` dependency). Linked as a library, not loaded as the module.
-tinyvoice = { path = "../../vendor/tinyvoice/crates/tinyvoice", default-features = false, features = ["hotkey"], optional = true }
+tinyvoice = { path = "../../vendor/tinyvoice/crates/tinyvoice", default-features = false, features = ["hotkey", "capture"], optional = true }
 
 # TinyJuice — the compression wire contract, and nothing else.
 #
