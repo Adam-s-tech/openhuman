@@ -46,6 +46,7 @@ pub(crate) use cli_rpc_only::CliRpcOnlyMiddleware;
 pub(crate) use cost_budget::CostBudgetMiddleware;
 pub(crate) use credential_scrub::credential_scrub_middleware;
 pub(crate) use embedder_hooks::EmbedderToolHooksMiddleware;
+pub(crate) use loop_guards::is_repeat_call_exempt;
 pub use memory_protocol::MemoryProtocolMiddleware;
 pub(crate) use packed_tool_route::PackedToolRouteMiddleware;
 pub(crate) use prompt_cache::PromptCacheSegmentMiddleware;
