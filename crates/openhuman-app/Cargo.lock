@@ -4245,9 +4245,6 @@ dependencies = [
  "bytes",
  "chacha20poly1305",
  "chrono",
- "chrono-tz",
- "cpal",
- "cron",
  "directories 6.0.0",
  "dirs 6.0.0",
  "dotenvy",
@@ -4299,12 +4296,14 @@ dependencies = [
  "tinychannels",
  "tinychannels-bus",
  "tinychannels-runtime",
+ "tinycomputer-accessibility",
  "tinycomputer-bus",
  "tinyconnectors-bus",
  "tinydocs-bus",
  "tinyflows",
  "tinyflows-catalog",
  "tinyflows-copilot",
+ "tinyflows-schedule",
  "tinyflows-sqlite",
  "tinyhosts",
  "tinyinference-core",
@@ -4323,6 +4322,7 @@ dependencies = [
  "tinymemory-conversations",
  "tinymemory-sources",
  "tinyruntime-bus",
+ "tinyruntime-pyserver",
  "tinysearch-bus",
  "tinyskills",
  "tinytools 0.4.1",
@@ -7344,6 +7344,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "tinycomputer-accessibility"
+version = "0.7.0"
+dependencies = [
+ "cpal",
+ "log",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "tinycomputer-bus"
 version = "0.7.0"
 dependencies = [
@@ -7405,6 +7415,18 @@ version = "0.1.0"
 dependencies = [
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "tinyflows-schedule"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "chrono-tz",
+ "cron",
+ "serde",
+ "tracing",
 ]
 
 [[package]]
@@ -7757,6 +7779,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "tinyruntime-pyserver"
+version = "0.2.7"
+dependencies = [
+ "serde",
+ "serde_json",
+ "thiserror 2.0.20",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "tinysearch-bus"
 version = "0.3.2"
 dependencies = [
@@ -7862,6 +7895,7 @@ checksum = "fd3ca314f692efd6c868f8408f53fe444634a845f96c028b97d35f6a1f79f0ee"
 name = "tinyvoice"
 version = "0.1.8"
 dependencies = [
+ "cpal",
  "log",
  "parking_lot",
  "rdev",
