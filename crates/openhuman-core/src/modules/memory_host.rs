@@ -231,25 +231,18 @@ impl ComposioCallbacks {
         entity_id: String,
         connection_id: Option<String>,
     ) -> tinybus::Result<ComposioExecuteResponse> {
-        use crate::integrations::composio::client::{
-            create_composio_client, direct_execute, ComposioClientKind,
-        };
         let config = self.live_config().await.map_err(method_error)?;
-        match create_composio_client(&config).map_err(|e| method_error(format!("{e:#}")))? {
-            ComposioClientKind::Backend(client) => client
-                .execute_tool(&tool, arguments)
-                .await
-                .map_err(|e| method_error(format!("{e:#}"))),
-            ComposioClientKind::Direct(direct) => direct_execute(
-                &direct,
-                &tool,
-                arguments,
-                &entity_id,
-                connection_id.as_deref(),
-            )
-            .await
-            .map_err(|e| method_error(format!("{e:#}"))),
-        }
+        // `entity_id` is the direct route's; the connector module reads it from
+        // its own configuration, which `module_config` derives from `config`.
+        let _ = entity_id;
+        crate::integrations::composio::execute_dispatch::execute_composio_action(
+            &config,
+            &tool,
+            arguments,
+            connection_id.as_deref(),
+        )
+        .await
+        .map_err(method_error)
     }
 
     /// The direct-mode Composio API key, or `None` when direct mode is unset.

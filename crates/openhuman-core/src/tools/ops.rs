@@ -7,6 +7,7 @@ use crate::runtime::python::PythonBootstrap;
 use crate::security::{AuditLogger, SecurityPolicy};
 use std::collections::HashMap;
 use std::sync::Arc;
+use tinyagents_harness::tools::{CurrentTimeTool, ResolveTimeTool};
 use tinytools::Tool;
 #[cfg(test)]
 use tinytools::{ToolResult, ToolSpec};
@@ -684,18 +685,7 @@ pub fn all_tools_with_runtime(
     // thread is resolved from the ambient `thread_id`, so no thread arg is
     // taken. `goal_get`/`goal_set`/`goal_complete` — pause/resume/budget are
     // system-driven and have no model tool.
-    {
-        let goal_dir = root_config.workspace_dir.clone();
-        tools.push(Box::new(crate::agent::goals::GoalGetTool::new(
-            goal_dir.clone(),
-        )));
-        tools.push(Box::new(crate::agent::goals::GoalSetTool::new(
-            goal_dir.clone(),
-        )));
-        tools.push(Box::new(crate::agent::goals::GoalCompleteTool::new(
-            goal_dir,
-        )));
-    }
+    tools.extend(crate::agent::goals::goal_tools(&root_config.workspace_dir));
 
     #[cfg(feature = "modules")]
     if browser_config.enabled {

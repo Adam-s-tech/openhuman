@@ -4319,6 +4319,7 @@ dependencies = [
  "tinymemory",
  "tinymemory-api",
  "tinymemory-bus",
+ "tinymemory-conversations",
  "tinymemory-sources",
  "tinyruntime-bus",
  "tinysearch-bus",
@@ -7089,6 +7090,7 @@ dependencies = [
  "async-trait",
  "base64 0.22.1",
  "chrono",
+ "chrono-tz",
  "dirs 6.0.0",
  "flate2",
  "futures",
@@ -7155,6 +7157,8 @@ version = "2.1.2"
 dependencies = [
  "async-trait",
  "chrono",
+ "regex",
+ "serde",
  "serde_json",
  "thiserror 2.0.20",
  "tinyagents-harness",
@@ -7434,6 +7438,7 @@ version = "0.3.0"
 dependencies = [
  "anyhow",
  "httpdate",
+ "regex",
  "url",
 ]
 
@@ -7668,6 +7673,19 @@ dependencies = [
  "serde_json",
  "sha2 0.11.0",
  "thiserror 2.0.20",
+ "uuid",
+]
+
+[[package]]
+name = "tinymemory-conversations"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "chrono",
+ "parking_lot",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
  "uuid",
 ]
 

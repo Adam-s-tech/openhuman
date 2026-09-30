@@ -36,7 +36,6 @@
 //! crate::core::events::DomainEvent::ComposioTriggerReceived
 
 pub mod action_tool;
-pub mod auth_retry;
 pub mod bus;
 pub mod catalog;
 pub mod client;
@@ -50,7 +49,6 @@ pub mod googlecalendar_args;
 pub mod identity;
 pub mod identity_store;
 pub mod module_client;
-pub mod oauth_handoff;
 pub mod ops;
 pub mod periodic;
 pub mod profile_md;
