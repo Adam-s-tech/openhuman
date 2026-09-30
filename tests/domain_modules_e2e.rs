@@ -980,8 +980,9 @@ async fn mcp_clients_read_paths_validate_before_reaching_outward() {
         );
     }
 
-    // `list_tools` against a server that was never connected must say so, and
-    // say what to do. This is the message a user sees most often.
+    // `list_tools` against a server that was never installed must say so, and
+    // say what to do. It is not "not connected": connecting something that is
+    // not installed is advice nobody can follow (#6313).
     let disconnected = rpc(
         &harness.rpc_base,
         45_110,
@@ -995,12 +996,12 @@ async fn mcp_clients_read_paths_validate_before_reaching_outward() {
         .unwrap_or_default()
         .to_string();
     assert!(
-        message.contains("not connected"),
-        "list_tools on a disconnected server must say it is not connected, got: {message}"
+        message.contains("no installed MCP server"),
+        "list_tools on an uninstalled server must say it is not installed, got: {message}"
     );
     assert!(
-        message.contains("mcp_clients_connect"),
-        "the refusal must name the remedy so a caller can act on it, got: {message}"
+        message.contains("mcp_clients_status"),
+        "the refusal must name the RPC remedy so a caller can act on it, got: {message}"
     );
 
     harness.join.abort();

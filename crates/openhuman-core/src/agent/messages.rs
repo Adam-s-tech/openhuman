@@ -6,7 +6,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::inference::provider::ToolCall;
+use tinytools_agent::dialect::NativeToolCall;
 
 const TURN_USAGE_METADATA_KEY: &str = "openhuman_turn_usage";
 const TOOL_FAILURE_METADATA_KEY: &str = "openhuman_tool_failure";
@@ -318,7 +318,7 @@ pub enum ConversationMessage {
     Chat(ChatMessage),
     AssistantToolCalls {
         text: Option<String>,
-        tool_calls: Vec<ToolCall>,
+        tool_calls: Vec<NativeToolCall>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         reasoning_content: Option<String>,
         #[serde(default, skip_serializing_if = "Option::is_none")]

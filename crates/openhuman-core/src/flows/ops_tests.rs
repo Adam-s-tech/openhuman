@@ -579,10 +579,10 @@ fn readonly_graph() -> Value {
 
 fn builder_tool_call(id: &str, name: &str) -> crate::agent::messages::ConversationMessage {
     use crate::agent::messages::ConversationMessage;
-    use crate::inference::provider::ToolCall;
+    use tinytools_agent::dialect::NativeToolCall;
     ConversationMessage::AssistantToolCalls {
         text: None,
-        tool_calls: vec![ToolCall {
+        tool_calls: vec![NativeToolCall {
             id: id.to_string(),
             name: name.to_string(),
             arguments: "{}".to_string(),

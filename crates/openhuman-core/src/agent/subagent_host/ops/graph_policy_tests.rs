@@ -236,7 +236,7 @@ fn mirrored_tool_results_are_hidden_from_the_worker_thread_chat() {
         &[
             ConversationMessage::AssistantToolCalls {
                 text: Some("checking the calendar".to_string()),
-                tool_calls: vec![crate::inference::provider::ToolCall {
+                tool_calls: vec![tinytools_agent::dialect::NativeToolCall {
                     id: "call-1".to_string(),
                     name: "list_events".to_string(),
                     arguments: "{}".to_string(),

@@ -6,13 +6,17 @@
 //!    (driven by the UI / `config.update_agent_settings` RPC).
 //! 3. The built-in [`DEFAULT_TIMEOUT_SECS`] (120) default.
 //!
-//! The effective value lives in a process-global [`AtomicU64`] and is read
+//! The effective value lives in a process-global vendored
+//! [`ToolTimeoutSettings`] (atomic inside) and is read
 //! fresh on every tool call, so a UI change takes effect on the **next** tool
 //! call without a restart. The operator env var, when set to a valid value,
 //! always wins — config pushes are ignored while it is present (logged).
 
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::OnceLock;
 use std::time::Duration;
+
+use tinyagents_harness::tool::ToolTimeoutSettings;
+use tinytools::ToolTimeout;
 
 /// Default tool-execution timeout in seconds when nothing else is configured.
 pub const DEFAULT_TIMEOUT_SECS: u64 = 120;
@@ -31,10 +35,32 @@ pub const ENV_VAR: &str = "OPENHUMAN_TOOL_TIMEOUT_SECS";
 /// enough to eventually reclaim a wedged sandbox process.
 pub const SANDBOX_UNBOUNDED_CAP_SECS: u64 = 86_400;
 
-/// Effective timeout in seconds. `0` is the "not yet seeded" sentinel: the
-/// first read resolves env/default and stores it. Config pushes overwrite it
-/// (unless the env override is active).
-static RUNTIME_SECS: AtomicU64 = AtomicU64::new(0);
+/// Grace slack (ms) the vendored settings add to an explicit per-call budget.
+const TOOL_TIMEOUT_GRACE_MS: u64 = TOOL_TIMEOUT_GRACE_SECS * 1000;
+
+/// Build vendored settings with OpenHuman's bounds and grace, inheriting
+/// `inherited_secs`.
+fn build_settings(inherited_secs: u64) -> ToolTimeoutSettings {
+    ToolTimeoutSettings::new(
+        inherited_secs.saturating_mul(1000),
+        MIN_TIMEOUT_SECS * 1000,
+        MAX_TIMEOUT_SECS * 1000,
+        TOOL_TIMEOUT_GRACE_MS,
+    )
+}
+
+/// Process-global settings. Seeded from env/default on first touch; config
+/// pushes overwrite the inherited value through the vendored atomic.
+static SETTINGS: OnceLock<ToolTimeoutSettings> = OnceLock::new();
+
+fn settings() -> &'static ToolTimeoutSettings {
+    SETTINGS.get_or_init(|| {
+        build_settings(resolve_effective(
+            DEFAULT_TIMEOUT_SECS,
+            read_env().as_deref(),
+        ))
+    })
+}
 
 /// Parse a raw env-var value into a bounded timeout.
 ///
@@ -80,17 +106,10 @@ pub fn env_override_active() -> bool {
     env_override_from(read_env().as_deref()).is_some()
 }
 
-/// Resolve the effective timeout, seeding the atomic from env/default on first
-/// read. Concurrent first reads converge on the same seed value.
+/// Effective inherited timeout in whole seconds, seeding the global settings
+/// from env/default on first read.
 fn current_secs() -> u64 {
-    let v = RUNTIME_SECS.load(Ordering::Relaxed);
-    if v == 0 {
-        let seeded = resolve_effective(DEFAULT_TIMEOUT_SECS, read_env().as_deref());
-        RUNTIME_SECS.store(seeded, Ordering::Relaxed);
-        seeded
-    } else {
-        v
-    }
+    settings().inherited_timeout().map_or(0, |d| d.as_secs())
 }
 
 /// Push a config-sourced timeout into the runtime. The operator env override,
@@ -100,7 +119,7 @@ fn current_secs() -> u64 {
 pub fn set_tool_timeout_secs(config_secs: u64) -> u64 {
     let env_raw = read_env();
     let effective = resolve_effective(config_secs, env_raw.as_deref());
-    RUNTIME_SECS.store(effective, Ordering::Relaxed);
+    settings().set_inherited_timeout_ms(effective.saturating_mul(1000));
     if env_override_from(env_raw.as_deref()).is_some() {
         log::debug!(
             "[tool_timeout] config update ignored: env {ENV_VAR}={effective}s overrides requested {config_secs}s"
@@ -167,27 +186,31 @@ const TOOL_TIMEOUT_GRACE_SECS: u64 = 5;
 ///
 /// Moved out of the retired legacy `engine::tools` module during the tinyagents
 /// migration (issue #4249); it lives here next to the timeout constants it uses.
-pub fn resolve_tool_deadline(policy: tinytools::ToolTimeout) -> (Option<Duration>, u64) {
-    use tinytools::ToolTimeout;
-    match policy {
-        ToolTimeout::Inherit => {
-            let s = tool_execution_timeout_secs();
-            (Some(Duration::from_secs(s)), s)
-        }
-        ToolTimeout::Millis(req) => {
-            let s = req
-                .saturating_add(999)
+pub fn resolve_tool_deadline(policy: ToolTimeout) -> (Option<Duration>, u64) {
+    resolve_with(settings(), policy)
+}
+
+/// Pure core of [`resolve_tool_deadline`]: the inherited timeout is a parameter
+/// so tests can table-drive it without touching the process-global.
+#[cfg(test)]
+fn resolve_tool_deadline_with(policy: ToolTimeout, inherited_secs: u64) -> (Option<Duration>, u64) {
+    resolve_with(&build_settings(inherited_secs), policy)
+}
+
+/// Delegate to the vendored resolver. An explicit millisecond request is
+/// rounded up to whole seconds first (OpenHuman reports whole-second budgets);
+/// clamping and the grace pad come from [`ToolTimeoutSettings`].
+fn resolve_with(settings: &ToolTimeoutSettings, policy: ToolTimeout) -> (Option<Duration>, u64) {
+    let policy = match policy {
+        ToolTimeout::Millis(req) => ToolTimeout::Millis(
+            req.saturating_add(999)
                 .saturating_div(1000)
-                .clamp(MIN_TIMEOUT_SECS, MAX_TIMEOUT_SECS);
-            (
-                Some(Duration::from_secs(
-                    s.saturating_add(TOOL_TIMEOUT_GRACE_SECS),
-                )),
-                s,
-            )
-        }
-        ToolTimeout::Unbounded => (None, 0),
-    }
+                .saturating_mul(1000),
+        ),
+        other => other,
+    };
+    let resolved = settings.resolve(policy);
+    (resolved.deadline, resolved.budget_ms / 1000)
 }
 
 #[cfg(test)]

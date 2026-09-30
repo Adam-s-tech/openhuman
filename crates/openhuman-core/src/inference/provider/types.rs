@@ -1,26 +1,10 @@
 use crate::agent::messages::ChatMessage;
-use serde::{Deserialize, Serialize};
 /// Token usage returned by a provider. Defined in the contract crate because
 /// the extracted memory subsystem threads it out of summarisation runs; every
 /// existing `inference::provider::UsageInfo` path keeps naming this one type.
 pub use tinymemory_api::host::UsageInfo;
 use tinytools::ToolSpec;
-
-/// A tool call requested by the LLM.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ToolCall {
-    pub id: String,
-    pub name: String,
-    pub arguments: String,
-    /// Provider-specific passthrough metadata for this call, captured from the
-    /// response and echoed back verbatim on the next assistant turn. Carries
-    /// Google Gemini's required `extra_content.google.thought_signature` so
-    /// multi-turn tool calling round-trips without a 400 (TAURI-RUST-4PK).
-    /// `None`/omitted for every provider that doesn't emit it, so non-Gemini
-    /// history stays byte-identical.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub extra_content: Option<serde_json::Value>,
-}
+use tinytools_agent::dialect::NativeToolCall;
 
 /// An LLM response that may contain text, tool calls, or both.
 #[derive(Debug, Clone, Default)]
@@ -28,7 +12,7 @@ pub struct ChatResponse {
     /// Text content of the response (may be empty if only tool calls).
     pub text: Option<String>,
     /// Tool calls requested by the LLM.
-    pub tool_calls: Vec<ToolCall>,
+    pub tool_calls: Vec<NativeToolCall>,
     /// Token usage info from the provider (if available).
     pub usage: Option<UsageInfo>,
     /// Raw reasoning/thinking content returned by thinking models (e.g.

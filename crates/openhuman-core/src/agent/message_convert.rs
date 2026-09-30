@@ -19,7 +19,7 @@ use tinyinference_llm::message::{
 };
 use tinyinference_llm::tool::ToolCall as TaToolCall;
 use tinytools_agent::dialect::{
-    DialectMessage, DialectResponse, DialectRole, NativeToolCall, ToolDialect, ToolResultEntry,
+    DialectMessage, DialectResponse, DialectRole, ToolDialect, ToolResultEntry,
     TranscriptEntry,
 };
 
@@ -31,16 +31,7 @@ use crate::inference::provider::ChatResponse;
 pub(crate) fn dialect_response_from_provider(response: &ChatResponse) -> DialectResponse {
     DialectResponse {
         text: response.text.clone(),
-        tool_calls: response
-            .tool_calls
-            .iter()
-            .map(|call| NativeToolCall {
-                id: call.id.clone(),
-                name: call.name.clone(),
-                arguments: call.arguments.clone(),
-                extra_content: call.extra_content.clone(),
-            })
-            .collect(),
+        tool_calls: response.tool_calls.clone(),
     }
 }
 
@@ -81,15 +72,7 @@ fn conversation_to_transcript_entry(message: &ConversationMessage) -> Transcript
             extra_metadata,
         } => TranscriptEntry::AssistantToolCalls {
             text: text.clone(),
-            tool_calls: tool_calls
-                .iter()
-                .map(|call| NativeToolCall {
-                    id: call.id.clone(),
-                    name: call.name.clone(),
-                    arguments: call.arguments.clone(),
-                    extra_content: call.extra_content.clone(),
-                })
-                .collect(),
+            tool_calls: tool_calls.clone(),
             reasoning_content: reasoning_content.clone(),
             extra_metadata: extra_metadata.clone(),
         },
@@ -359,7 +342,7 @@ fn parse_native_assistant_envelope(text: &str) -> Option<(String, Vec<TaToolCall
     if calls_val.as_array().is_none_or(|a| a.is_empty()) {
         return None;
     }
-    let oh_calls: Vec<crate::inference::provider::ToolCall> =
+    let oh_calls: Vec<tinytools_agent::dialect::NativeToolCall> =
         serde_json::from_value(calls_val.clone()).ok()?;
     if oh_calls.is_empty() {
         return None;
@@ -387,8 +370,8 @@ fn parse_native_tool_envelope(text: &str) -> Option<(String, String)> {
 }
 
 /// Inverse of [`ta_call_to_oh_call`]: rebuild a harness [`TaToolCall`] from an
-/// openhuman [`ToolCall`] (whose `arguments` is a serialized JSON string).
-fn oh_call_to_ta_call(oh: &crate::inference::provider::ToolCall) -> TaToolCall {
+/// openhuman [`NativeToolCall`] (whose `arguments` is a serialized JSON string).
+fn oh_call_to_ta_call(oh: &tinytools_agent::dialect::NativeToolCall) -> TaToolCall {
     TaToolCall {
         id: oh.id.clone(),
         name: oh.name.clone(),
@@ -681,12 +664,12 @@ pub(crate) fn messages_to_text_mode_chat(messages: &[Message]) -> Vec<ChatMessag
     out
 }
 
-/// Convert a harness [`TaToolCall`] into an openhuman [`ToolCall`].
+/// Convert a harness [`TaToolCall`] into an openhuman [`NativeToolCall`].
 ///
 /// The harness models arguments as parsed JSON; openhuman carries them as the
 /// raw JSON string the provider emitted, so we re-serialize.
-pub(crate) fn ta_call_to_oh_call(call: &TaToolCall) -> crate::inference::provider::ToolCall {
-    crate::inference::provider::ToolCall {
+pub(crate) fn ta_call_to_oh_call(call: &TaToolCall) -> tinytools_agent::dialect::NativeToolCall {
+    tinytools_agent::dialect::NativeToolCall {
         id: call.id.clone(),
         name: call.name.clone(),
         arguments: call.arguments.to_string(),

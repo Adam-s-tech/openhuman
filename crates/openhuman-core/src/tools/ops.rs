@@ -652,6 +652,9 @@ pub fn all_tools_with_runtime(
          memory_hybrid_search, memory_store_raw_search, memory_store_raw_chunks, memory_store_kinds"
     );
 
+    // `juice_find` / `juice_extract` / `juice_summarize`: only while a handle can name them.
+    tools.extend(crate::inference::tokenjuice::repl_tools_for(root_config));
+
     // Presentation generation (#2778). Native-Rust engine (ppt-rs
     // backed) as of the #2780-follow-up rust-engine refactor — no
     // managed Python venv, no first-call install latency. Always
@@ -1325,7 +1328,9 @@ fn tool_group(name: &str) -> crate::core::all::DomainGroup {
     // constant list rather than a name prefix — the live tool is
     // `tinyjuice_retrieve`, and `tokenjuice_retrieve` / `retrieve_tool_output`
     // are migration aliases, so a prefix rule silently missed the real one.
-    if crate::inference::tokenjuice::RECOVERY_TOOL_NAMES.contains(&name) {
+    if crate::inference::tokenjuice::RECOVERY_TOOL_NAMES.contains(&name)
+        || crate::inference::tokenjuice::is_repl_tool(name)
+    {
         return DomainGroup::Inference;
     }
     // Everything else — shell/file and other kernel utilities — is Platform:
