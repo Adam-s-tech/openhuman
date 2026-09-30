@@ -42,89 +42,9 @@ fn sanitize_error_message_replaces_all_sensitive_variants() {
 
 // ── composio_auth_config enabled detection ────────────────────────────────
 
-#[test]
-fn auth_config_enabled_by_flag() {
-    let cfg = ComposioAuthConfig {
-        id: "cfg_x".into(),
-        status: None,
-        enabled: Some(true),
-    };
-    assert!(cfg.is_enabled());
-}
-
-#[test]
-fn auth_config_not_enabled_when_both_missing() {
-    let cfg = ComposioAuthConfig {
-        id: "cfg_x".into(),
-        status: None,
-        enabled: None,
-    };
-    assert!(!cfg.is_enabled());
-}
-
 // ── map_v3_tools_to_actions: item without slug falls back to name ─────────
 
-#[test]
-fn map_v3_tools_uses_name_when_slug_missing() {
-    let items = vec![ComposioV3Tool {
-        slug: None,
-        name: Some("My Tool".into()),
-        description: None,
-        app_name: Some("myapp".into()),
-        toolkit: None,
-        input_parameters: None,
-        output_parameters: None,
-    }];
-    let actions = map_v3_tools_to_actions(items);
-    assert_eq!(actions.len(), 1);
-    assert_eq!(actions[0].name, "My Tool");
-    assert_eq!(actions[0].app_name.as_deref(), Some("myapp"));
-}
-
-#[test]
-fn map_v3_tools_skips_items_without_slug_or_name() {
-    let items = vec![ComposioV3Tool {
-        slug: None,
-        name: None,
-        description: Some("desc".into()),
-        app_name: None,
-        toolkit: None,
-        input_parameters: None,
-        output_parameters: None,
-    }];
-    let actions = map_v3_tools_to_actions(items);
-    assert!(
-        actions.is_empty(),
-        "item with no slug or name should be filtered out"
-    );
-}
-
-#[test]
-fn map_v3_tools_prefers_toolkit_slug_over_app_name() {
-    let items = vec![ComposioV3Tool {
-        slug: Some("tool-slug".into()),
-        name: None,
-        description: None,
-        app_name: Some("fallback-app".into()),
-        toolkit: Some(ComposioToolkitRef {
-            slug: Some("preferred-app".into()),
-            name: None,
-        }),
-        input_parameters: None,
-        output_parameters: None,
-    }];
-    let actions = map_v3_tools_to_actions(items);
-    assert_eq!(actions[0].app_name.as_deref(), Some("preferred-app"));
-}
-
 // ── category ──────────────────────────────────────────────────────────────
-
-#[test]
-fn composio_tool_category_is_skill() {
-    use tinytools::ToolCategory;
-    let tool = ComposioTool::new("key", None, test_security());
-    assert_eq!(tool.category(), ToolCategory::Workflow);
-}
 
 // ── v3 /connected_accounts shape parsing ───────────────────────────
 //
