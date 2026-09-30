@@ -7,8 +7,8 @@ use std::path::PathBuf;
 use serde_json::json;
 use tokio::sync::mpsc::Sender;
 
-use tinytools_std::file_state;
 use crate::agent::progress::AgentProgress;
+use tinytools_std::file_state;
 
 use super::types::{ParallelAgentResult, ParallelAgentStatus};
 

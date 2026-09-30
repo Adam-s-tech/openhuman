@@ -17,9 +17,9 @@ use std::path::Path;
 use std::sync::Arc;
 
 use super::ThreadGoal;
-use tinyagents_session::transcript::import::ops::open_session_stores;
 use tinyagents_graph::goals::store as crate_store;
 use tinyagents_harness::store::Store;
+use tinyagents_session::transcript::import::ops::open_session_stores;
 
 pub(crate) fn goals_store(workspace_dir: &Path) -> Arc<dyn Store> {
     Arc::new(open_session_stores(workspace_dir).kv)

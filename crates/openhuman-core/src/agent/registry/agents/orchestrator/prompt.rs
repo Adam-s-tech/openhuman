@@ -40,8 +40,8 @@ pub fn build(ctx: &PromptContext<'_>) -> Result<String> {
     let skill_run = run_workflow_route(ctx);
     // A packed install route is already named under "Capabilities not in your
     // tool list"; the skills section names it only when it is on the belt.
-    let skill_install =
-        hand_off_route(ctx, "skill_setup").filter(|route| !route.contains(tinyagents_harness::tool::packs::USE_SKILL));
+    let skill_install = hand_off_route(ctx, "skill_setup")
+        .filter(|route| !route.contains(tinyagents_harness::tool::packs::USE_SKILL));
     // An empty visibility set is the builder's unfiltered sentinel. Preserve
     // the MCP route for those sessions while suppressing it in gated-off builds.
     // Registered is enough: the orchestrator defers the registry tools
