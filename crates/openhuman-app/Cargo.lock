@@ -7464,6 +7464,7 @@ dependencies = [
  "serde_json",
  "tinyflows",
  "tinyflows-catalog",
+ "tinyflows-schedule",
  "tokio",
  "tracing",
  "uuid",
