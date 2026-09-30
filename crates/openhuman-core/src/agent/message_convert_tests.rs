@@ -136,7 +136,7 @@ fn plain_user_text_stays_a_single_text_block() {
 
 #[test]
 fn seeded_native_tool_round_recovers_structure_and_round_trips() {
-    use crate::inference::provider::ToolCall as OhToolCall;
+    use tinytools_agent::dialect::NativeToolCall as OhToolCall;
     // The native dispatcher seeds an assistant tool round as a
     // {content, tool_calls} envelope followed by {tool_call_id, content} rows.
     let oh_call = OhToolCall {

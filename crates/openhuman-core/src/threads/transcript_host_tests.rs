@@ -42,7 +42,7 @@ fn text_dialect_tool_turn_projects_calls_on_their_issuing_row_as_settled() {
     use crate::agent::messages::{ConversationMessage, ToolResultMessage};
     use crate::agent::session_host::OpenHumanTranscriptCodec;
     use crate::agent::tinyagents::host::OpenHumanRunContext;
-    use crate::inference::provider::ToolCall;
+    use tinytools_agent::dialect::NativeToolCall;
     use tinyagents_runtime::{ResumeMode, TranscriptCodec, TranscriptTurnOptions};
     use tinyinference_llm::message::Message;
 
@@ -54,13 +54,13 @@ fn text_dialect_tool_turn_projects_calls_on_their_issuing_row_as_settled() {
         ConversationMessage::AssistantToolCalls {
             text: None,
             tool_calls: vec![
-                ToolCall {
+                NativeToolCall {
                     id: "call_web_search_1".into(),
                     name: "web_search_tool".into(),
                     arguments: r#"{"query":"rust async traits"}"#.into(),
                     extra_content: None,
                 },
-                ToolCall {
+                NativeToolCall {
                     id: "call_file_read_1".into(),
                     name: "file_read".into(),
                     arguments: r#"{"path":"README.md"}"#.into(),
