@@ -27,13 +27,14 @@
 use crate::agent::messages::{ChatMessage, ConversationMessage};
 use crate::agent::session_host::OpenHumanSessionHost;
 use crate::config::AgentConfig;
-use crate::inference::provider::{ChatResponse, ToolCall};
+use crate::inference::provider::ChatResponse;
 use crate::memory::Memory;
 use anyhow::Result;
 use async_trait::async_trait;
 use std::sync::{Arc, Mutex};
 use tinyinference_llm::model::{ChatModel, ModelProfile, ModelRequest, ModelResponse};
 use tinytools::{Tool, ToolResult};
+use tinytools_agent::dialect::NativeToolCall;
 use tinytools_agent::dialect::{NativeDialect, ToolDialect, XmlDialect};
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -304,7 +305,7 @@ fn build_agent_with_config(
 }
 
 /// Helper: create a ChatResponse with tool calls (native format).
-fn tool_response(calls: Vec<ToolCall>) -> ChatResponse {
+fn tool_response(calls: Vec<NativeToolCall>) -> ChatResponse {
     ChatResponse {
         text: Some(String::new()),
         tool_calls: calls,
