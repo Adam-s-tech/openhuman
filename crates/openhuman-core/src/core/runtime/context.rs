@@ -54,7 +54,9 @@ pub struct CoreContext {
     /// input. They must be read and updated together: a caller that observes a
     /// new workspace with the previous user's memory config could cache a
     /// permanently incorrect memory binding for that workspace.
-    workspace_binding: RwLock<WorkspaceBinding>,
+    /// Shared (`Arc`) so a context derived without a memory override follows
+    /// the parent when the memory engine is switched.
+    workspace_binding: RwLock<Arc<RwLock<WorkspaceBinding>>>,
     /// Which domain families are live for this context (#4796). The registry
     /// filters its controller/schema/dispatch surface by this set via
     /// [`CoreContext::current`] → [`CoreContext::domains`]. `full()` for the
@@ -346,10 +348,10 @@ impl CoreContext {
 
         let ctx = Arc::new(CoreContext {
             host_kind,
-            workspace_binding: RwLock::new(WorkspaceBinding {
+            workspace_binding: RwLock::new(Arc::new(RwLock::new(WorkspaceBinding {
                 workspace_dir,
                 memory_subsystem,
-            }),
+            }))),
             domains,
             tool_groups,
             embedder_config,
@@ -434,12 +436,37 @@ impl CoreContext {
             overlay.tool_groups,
             overlay.user_skill_roots
         );
+        // A derived context that keeps the parent's workspace and memory config
+        // shares the parent's binding handle, so an engine switch reaches it. One
+        // that deliberately carries its own (another workspace, or its own
+        // `[subsystems.memory]`) keeps that override.
+        let shared_binding = {
+            let parent_handle = self.workspace_binding.read();
+            let parent_handle = parent_handle
+                .as_ref()
+                .ok()
+                .map(|handle| Arc::clone(&**handle));
+            let can_share = parent_handle.as_ref().is_some_and(|handle| {
+                handle.read().ok().is_some_and(|parent| {
+                    parent.workspace_dir.as_deref() == Some(overlay.config.workspace_dir.as_path())
+                        && (parent.memory_subsystem == overlay.config.subsystems.memory
+                            || self.embedder_config.as_ref().is_some_and(|config| {
+                                config.workspace_dir == overlay.config.workspace_dir
+                                    && config.subsystems.memory == overlay.config.subsystems.memory
+                            }))
+                })
+            });
+            match (can_share, parent_handle.as_ref()) {
+                (true, Some(handle)) => Arc::clone(handle),
+                _ => Arc::new(RwLock::new(WorkspaceBinding {
+                    workspace_dir: Some(overlay.config.workspace_dir.clone()),
+                    memory_subsystem: overlay.config.subsystems.memory.clone(),
+                })),
+            }
+        };
         Arc::new(CoreContext {
             host_kind: self.host_kind,
-            workspace_binding: RwLock::new(WorkspaceBinding {
-                workspace_dir: Some(overlay.config.workspace_dir.clone()),
-                memory_subsystem: overlay.config.subsystems.memory.clone(),
-            }),
+            workspace_binding: RwLock::new(shared_binding),
             domains,
             tool_groups: overlay.tool_groups,
             embedder_config: Some(overlay.config),
@@ -460,6 +487,8 @@ impl CoreContext {
         self.workspace_binding
             .read()
             .map_err(|e| format!("workspace unavailable: context lock poisoned: {e}"))?
+            .read()
+            .map_err(|e| format!("workspace unavailable: binding lock poisoned: {e}"))?
             .workspace_dir
             .clone()
             .ok_or_else(|| {
@@ -489,8 +518,11 @@ impl CoreContext {
     /// cannot hand back workspace A's driver. Pinned by
     /// `failed_bind_never_returns_previous_workspace_binding`.
     pub fn memory_binding(&self) -> Result<Arc<crate::memory::binding::MemoryBinding>, String> {
-        let binding = self
+        let binding_handle = self
             .workspace_binding
+            .read()
+            .map_err(|e| format!("[core-context] binding handle lock poisoned: {e}"))?;
+        let binding = binding_handle
             .read()
             .map_err(|e| format!("[core-context] workspace binding lock poisoned: {e}"))?;
         let workspace_dir = binding.workspace_dir.clone();
@@ -625,22 +657,65 @@ impl CoreContext {
         ctx.rebind_workspace(workspace_dir, memory_subsystem)
     }
 
+    /// Replace only the `[subsystems.memory]` half of this context's workspace
+    /// binding, keeping the workspace dir. The memory-engine switch
+    /// (`memory::binding::rebind`) uses it so [`Self::memory_binding`] resolves
+    /// the new driver without a restart. A no-op when the config is unchanged.
+    pub(crate) fn set_memory_subsystem(
+        &self,
+        workspace_dir: &std::path::Path,
+        memory_subsystem: crate::config::schema::MemorySubsystemConfig,
+    ) -> Result<(), String> {
+        let binding_handle = self.workspace_binding.write().map_err(|e| {
+            format!("memory subsystem update failed: binding handle lock poisoned: {e}")
+        })?;
+        let mut binding = binding_handle
+            .write()
+            .map_err(|e| format!("memory subsystem update failed: binding lock poisoned: {e}"))?;
+        if binding.workspace_dir.as_deref() != Some(workspace_dir)
+            || binding.memory_subsystem == memory_subsystem
+        {
+            return Ok(());
+        }
+        log::info!(
+            "[core-context] memory subsystem driver set to '{}' for {}",
+            memory_subsystem.driver,
+            workspace_dir.display()
+        );
+        binding.memory_subsystem = memory_subsystem;
+        Ok(())
+    }
+
     fn rebind_workspace(
         &self,
         workspace_dir: &std::path::Path,
         memory_subsystem: crate::config::schema::MemorySubsystemConfig,
     ) -> Result<(), String> {
-        let mut binding = self
+        let mut binding_handle = self
             .workspace_binding
             .write()
+            .map_err(|e| format!("workspace rebind failed: binding handle lock poisoned: {e}"))?;
+        let binding = binding_handle
+            .read()
             .map_err(|e| format!("workspace rebind failed: binding lock poisoned: {e}"))?;
-        if binding.workspace_dir.as_deref() == Some(workspace_dir)
-            && binding.memory_subsystem == memory_subsystem
-        {
-            log::debug!(
-                "[core-context] workspace {} already bound with the current subsystem config",
-                workspace_dir.display()
-            );
+        if binding.workspace_dir.as_deref() == Some(workspace_dir) {
+            if binding.memory_subsystem != memory_subsystem {
+                log::info!(
+                    "[core-context] rebound memory subsystem for {} to driver='{}'",
+                    workspace_dir.display(),
+                    memory_subsystem.driver
+                );
+                drop(binding);
+                binding_handle
+                    .write()
+                    .map_err(|e| format!("workspace rebind failed: binding lock poisoned: {e}"))?
+                    .memory_subsystem = memory_subsystem;
+            } else {
+                log::debug!(
+                    "[core-context] workspace {} already bound with the current subsystem config",
+                    workspace_dir.display()
+                );
+            }
             return Ok(());
         }
         log::info!(
@@ -648,10 +723,11 @@ impl CoreContext {
             workspace_dir.display(),
             memory_subsystem.driver
         );
-        *binding = WorkspaceBinding {
+        drop(binding);
+        *binding_handle = Arc::new(RwLock::new(WorkspaceBinding {
             workspace_dir: Some(workspace_dir.to_path_buf()),
             memory_subsystem,
-        };
+        }));
         warn_if_memory_module_outlived_its_profile(workspace_dir);
         Ok(())
     }
@@ -698,10 +774,10 @@ impl CoreContext {
     ) -> Arc<CoreContext> {
         Arc::new(CoreContext {
             host_kind: HostKind::Cli,
-            workspace_binding: RwLock::new(WorkspaceBinding {
+            workspace_binding: RwLock::new(Arc::new(RwLock::new(WorkspaceBinding {
                 workspace_dir,
                 memory_subsystem: memory_subsystem.unwrap_or_default(),
-            }),
+            }))),
             domains,
             tool_groups: Default::default(),
             embedder_config: None,
@@ -727,10 +803,10 @@ impl CoreContext {
     ) -> Arc<CoreContext> {
         Arc::new(CoreContext {
             host_kind: HostKind::Cli,
-            workspace_binding: RwLock::new(WorkspaceBinding {
+            workspace_binding: RwLock::new(Arc::new(RwLock::new(WorkspaceBinding {
                 workspace_dir: Some(config.workspace_dir.clone()),
                 memory_subsystem: Default::default(),
-            }),
+            }))),
             domains,
             tool_groups: Default::default(),
             embedder_config: Some(config),
@@ -872,7 +948,7 @@ pub async fn init_stores(cfg: &crate::config::Config, domains: crate::core::runt
         // than lazily so a bad `[subsystems.memory]` is loud at boot instead of
         // at the first recall. Infallible by design: an inadmissible driver
         // falls back, publishes `MemoryDriverBindFailed`, and records why.
-        match crate::memory::binding::for_workspace(&cfg.workspace_dir, &cfg.subsystems.memory) {
+        match crate::memory::binding::for_config(cfg) {
             Ok(binding) => log::info!(
                 "[boot] memory driver bound: id={} class={} capabilities=[{}] fallback={:?}",
                 binding.driver_id(),

@@ -144,13 +144,25 @@ Capability {
         privacy: None,
     },
 Capability {
+        // Id kept from when this was Telegram-only; it is a stable lookup key.
         id: "channels.telegram_remote_control",
-        name: "Telegram Remote Control",
+        name: "Chat Remote Control",
         domain: "channels",
         category: CapabilityCategory::Channels,
         description:
-            "Operate OpenHuman from Telegram with slash commands: /status, /sessions, /new, and /help.",
-        how_to: "Connections > Channels > Telegram (connect), then message the bot",
+            "Operate OpenHuman from a connected chat (Telegram, Discord, Slack, and other messaging channels) with slash commands: /status, /sessions, /new, and /help.",
+        how_to: "Connections > Channels (connect a messaging channel), then send /help to the bot",
+        status: CapabilityStatus::Beta,
+        privacy: None,
+    },
+Capability {
+        id: "channels.chat_approvals",
+        name: "In-Chat Approvals",
+        domain: "channels",
+        category: CapabilityCategory::Channels,
+        description:
+            "When a supervised agent turn started from a messaging channel needs approval for a tool call, the prompt is sent to that same chat; reply yes or no to decide. Email and other channels without a chat reply path are not prompted.",
+        how_to: "Connections > Channels (connect a messaging channel); replies are read from the chat that started the turn",
         status: CapabilityStatus::Beta,
         privacy: None,
     },

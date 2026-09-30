@@ -7,8 +7,8 @@
 
 use super::*;
 use crate::memory::conversations::{self, run_reply_message_id, ConversationMessage};
-use crate::threads::turn_state::store as turn_state_store;
-use crate::threads::turn_state::types::TurnState;
+use tinyagents_session::turn_state::store as turn_state_store;
+use tinyagents_session::turn_state::types::TurnState;
 use serde_json::json;
 use tempfile::TempDir;
 

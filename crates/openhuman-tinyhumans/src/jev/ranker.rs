@@ -10,7 +10,9 @@ use std::{
 use std::{future::Future, pin::Pin, sync::Arc, time::Duration};
 
 use crate::backend::url::effective_backend_api_url;
-use openhuman_core::agent::tinyagents::discovery::EmbeddingToolRanker;
+use openhuman_core::agent::tinyagents::discovery::{
+    embedding_provider_is_usable, embedding_tool_ranker,
+};
 use openhuman_core::config::Config;
 use openhuman_core::security::credentials::session_support::resolve_backend_credential;
 use tinyjevclient::{Client, ClientConfig};
@@ -176,7 +178,7 @@ impl TinyHumansJevRanker {
 fn retriever_for(config: &Config) -> Result<Arc<dyn ToolRanker>, RankError> {
     let provider =
         openhuman_core::inference::embedding_host::default_embedding_provider_with_config(config);
-    if !EmbeddingToolRanker::provider_is_usable(provider.as_ref()) {
+    if !embedding_provider_is_usable(provider.as_ref()) {
         log::info!(
             "[tool-search] embedding provider `{}` cannot embed; jev search disabled, bm25 answers",
             provider.name()
@@ -192,7 +194,7 @@ fn retriever_for(config: &Config) -> Result<Arc<dyn ToolRanker>, RankError> {
         provider.model_id()
     );
     Ok(Arc::new(
-        EmbeddingToolRanker::new(provider).with_disk_cache(
+        embedding_tool_ranker(provider).with_disk_cache(
             config
                 .workspace_dir
                 .join("cache")

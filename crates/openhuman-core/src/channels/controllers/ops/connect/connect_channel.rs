@@ -11,11 +11,13 @@ use crate::security::credentials;
 
 use super::super::super::definitions::{find_channel_definition, ChannelAuthMode};
 use super::super::types::ChannelConnectionResult;
-use super::super::yuanbao::{
+use super::email::persist_email_config;
+use super::shared::{credential_provider, parse_allowed_users, parse_optional_bool};
+use tinychannels::controllers::build_email_config;
+use tinychannels::providers::verify_email_credentials;
+use tinychannels::providers::yuanbao::connect::{
     build_effective_yuanbao_config, require_yuanbao_field, verify_yuanbao_credentials,
 };
-use super::email::{build_email_config, persist_email_config, verify_email_credentials};
-use super::shared::{credential_provider, parse_allowed_users, parse_optional_bool};
 
 /// Initiate a channel connection.
 ///
@@ -68,7 +70,12 @@ pub async fn connect_channel(
         let app_secret = require_yuanbao_field(creds_map, "app_secret")?;
         let base = config.channels_config.yuanbao.clone().unwrap_or_default();
         let effective = build_effective_yuanbao_config(base, creds_map, app_key);
-        verify_yuanbao_credentials(&effective, &app_secret).await?;
+        verify_yuanbao_credentials(
+            crate::config::build_runtime_proxy_client("channel.yuanbao"),
+            &effective,
+            &app_secret,
+        )
+        .await?;
         prebuilt_yuanbao_config = Some(effective);
     }
 

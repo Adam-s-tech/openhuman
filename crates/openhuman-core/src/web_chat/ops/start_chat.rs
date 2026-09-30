@@ -312,7 +312,7 @@ pub async fn start_chat(
     // The message here is post-attachment-processing, so a hook sees extracted
     // text and placeholders rather than a multi-megabyte data URI on stdin.
     match crate::hooks::ops::prompt_submitted(
-        crate::hooks::context::TurnIdentity {
+        tinyagents_runtime::command_hooks::context::TurnIdentity {
             conversation_id: Some(thread_id.clone()),
             ..Default::default()
         },

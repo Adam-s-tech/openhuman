@@ -82,7 +82,7 @@ impl RegisteredController {
 ///   use for. Those are now `Desktop` and `Hosted` and stay off.
 ///
 /// `Platform` is now what its name says: the kernel surfaces with no family of
-/// their own (`platform/`, `tools/`, `http_host/`, `test_support/`).
+/// their own (`platform/`, `tools/`, `test_support/`).
 ///
 /// When adding a family directory, add the matching variant here, a field on
 /// [`crate::core::runtime::DomainSet`], an arm in `allows()`, and an entry in
@@ -687,15 +687,6 @@ fn build_registered_controllers() -> Vec<GroupedController> {
         &mut controllers,
         DomainGroup::Agent,
         crate::commands::all_commands_registered_controllers(),
-    );
-    // Ad-hoc static directory HTTP hosting for local file sharing / previews.
-    // Gated with the `http-server` feature (#5048): the domain is an axum server,
-    // so a slim build has no `http_host.*` controllers to register.
-    #[cfg(feature = "http-server")]
-    push(
-        &mut controllers,
-        DomainGroup::Platform,
-        crate::http_host::all_http_host_registered_controllers(),
     );
     // Token usage and billing cost tracking
     push(

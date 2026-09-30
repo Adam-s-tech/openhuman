@@ -27,9 +27,9 @@ mod state;
 pub use state::TurnStateMirror;
 
 #[cfg(test)]
-use super::store::TurnStateStore;
+use tinyagents_session::turn_state::store::TurnStateStore;
 #[cfg(test)]
-use super::types::{
+use tinyagents_session::turn_state::types::{
     SubagentToolCall, SubagentTranscriptItem, ToolTimelineStatus, TranscriptItem, TurnLifecycle,
     TurnPhase,
 };

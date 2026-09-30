@@ -296,93 +296,7 @@ fn create_skill_rejects_empty_description() {
     );
 }
 
-#[test]
-fn slugify_collapses_separators_and_trims() {
-    assert_eq!(
-        slugify_workflow_name("Hello  World").unwrap(),
-        "hello-world"
-    );
-    assert_eq!(slugify_workflow_name("--foo__bar--").unwrap(), "foo-bar");
-    assert_eq!(
-        slugify_workflow_name("ALL CAPS skill!").unwrap(),
-        "all-caps-skill"
-    );
-    assert!(slugify_workflow_name("   ").is_err());
-    assert!(slugify_workflow_name("!!!").is_err());
-}
-
-#[test]
-fn validate_install_url_rejects_non_https_scheme() {
-    for url in &[
-        "http://example.com/x",
-        "ftp://example.com/x",
-        "file:///etc/passwd",
-        "git+ssh://git@example.com/repo",
-        "javascript:alert(1)",
-    ] {
-        assert!(
-            validate_install_url(url).is_err(),
-            "{url} should be rejected"
-        );
-    }
-}
-
-#[test]
-fn validate_install_url_rejects_private_and_loopback() {
-    for url in &[
-        "https://localhost/x",
-        "https://foo.localhost/x",
-        "https://foo.local/x",
-        "https://127.0.0.1/x",
-        "https://127.42.1.1/x",
-        "https://10.0.0.5/x",
-        "https://172.16.0.1/x",
-        "https://172.31.255.255/x",
-        "https://192.168.1.1/x",
-        "https://169.254.169.254/x", // cloud metadata IP
-        "https://100.64.0.1/x",      // CGN
-        "https://0.0.0.0/x",
-        "https://255.255.255.255/x",
-        "https://224.0.0.1/x", // multicast
-        "https://[::1]/x",
-        "https://[::]/x",
-        "https://[fe80::1]/x",
-        "https://[fc00::1]/x",
-        "https://[fd12:3456:789a::1]/x",
-        "https://[ff02::1]/x",
-    ] {
-        assert!(
-            validate_install_url(url).is_err(),
-            "{url} should be rejected"
-        );
-    }
-}
-
-#[test]
-fn validate_install_url_rejects_malformed() {
-    // missing scheme -> parse error
-    assert!(validate_install_url("not-a-url").is_err());
-    // special scheme with empty host -> parse error
-    assert!(validate_install_url("https://").is_err());
-    // non-https scheme rejected even when otherwise well-formed
-    assert!(validate_install_url("ftp://example.com/x").is_err());
-    // unparseable bracketed host
-    assert!(validate_install_url("https://[not-an-ip]/x").is_err());
-}
-
-#[test]
-fn normalize_install_url_rejects_tree_urls() {
-    let err = normalize_install_url("https://github.com/owner/repo/tree/main/path").unwrap_err();
-    assert!(err.contains("unsupported url form"), "{err}");
-    assert!(err.contains("tree/dir"), "{err}");
-}
-
-#[test]
-fn normalize_install_url_rejects_whole_repo() {
-    let err = normalize_install_url("https://github.com/owner/repo").unwrap_err();
-    assert!(err.contains("unsupported url form"), "{err}");
-    assert!(err.contains("whole-repo"), "{err}");
-}
+// -- install URL host policy (portable guards are tested in tinyskills) ------
 
 #[test]
 fn normalize_install_url_accepts_a_file_api_that_names_the_md_in_its_query() {
@@ -399,51 +313,6 @@ fn normalize_install_url_accepts_a_file_api_that_names_the_md_in_its_query() {
         let err = normalize_install_url(other).unwrap_err();
         assert!(err.contains(".md"), "{other}: {err}");
     }
-}
-
-#[test]
-fn normalize_install_url_rejects_non_md_suffix() {
-    let err = normalize_install_url("https://example.com/skill.txt").unwrap_err();
-    assert!(err.contains("unsupported url form"), "{err}");
-    assert!(err.contains(".md"), "{err}");
-}
-
-#[test]
-fn derive_install_slug_rejects_empty_after_sanitize() {
-    let fm = WorkflowFrontmatter {
-        name: "!!!".to_string(),
-        description: "x".to_string(),
-        ..Default::default()
-    };
-    let err = derive_install_slug(&fm).unwrap_err();
-    assert!(err.contains("invalid SKILL.md"), "{err}");
-}
-
-#[test]
-fn derive_install_slug_rejects_oversized() {
-    let fm = WorkflowFrontmatter {
-        name: "a".repeat(MAX_NAME_LEN + 1),
-        description: "x".to_string(),
-        ..Default::default()
-    };
-    let err = derive_install_slug(&fm).unwrap_err();
-    assert!(err.contains("invalid SKILL.md"), "{err}");
-    assert!(err.contains("exceeds"), "{err}");
-}
-
-#[test]
-fn derive_install_slug_sanitizes_path_escape_attempts() {
-    // `..` and `/` are non-alphanumeric so they collapse to `-` during
-    // sanitization — verify no path-escape characters survive.
-    let fm = WorkflowFrontmatter {
-        name: "../etc/passwd".to_string(),
-        description: "x".to_string(),
-        ..Default::default()
-    };
-    let slug = derive_install_slug(&fm).unwrap();
-    assert!(!slug.contains(".."), "slug leaked ..: {slug}");
-    assert!(!slug.contains('/'), "slug leaked /: {slug}");
-    assert!(!slug.contains('\\'), "slug leaked \\: {slug}");
 }
 
 #[tokio::test]

@@ -11,8 +11,8 @@
 //! alphabetical, with the `rpc` re-export sitting between `platform` and
 //! `runtime` — keep new modules sorted the same way): `agent`, `api`,
 //! `channels`, `config`, `core`, `cron`, `desktop`, `flows` (feature
-//! `flows`), `hooks`, `hosting` (feature `hosting`), `http_host`
-//! (feature `http-server`), `inference`, `integrations`, `json_schema`,
+//! `flows`), `hooks`, `hosting` (feature `hosting`),
+//! `inference`, `integrations`, `json_schema`,
 //! `mcp`, `media` (feature `media`), `memory`, `modules` (feature
 //! `modules`), `platform`, `runtime`, `sandbox`, `search`, `security`,
 //! `skills`, `test_support` (feature `e2e-test-support`), `threads`, `tools`,
@@ -65,8 +65,6 @@ pub mod flows;
 pub mod hooks;
 #[cfg(feature = "hosting")]
 pub mod hosting;
-#[cfg(feature = "http-server")]
-pub mod http_host;
 pub mod inference;
 pub mod integrations;
 pub mod json_schema;

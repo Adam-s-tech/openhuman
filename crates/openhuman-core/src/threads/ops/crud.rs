@@ -16,7 +16,7 @@ use crate::memory::{
     UpdateConversationMessageRequest, UpdateConversationThreadLabelsRequest,
     UpdateConversationThreadTitleRequest, UpsertConversationThreadRequest,
 };
-use crate::threads::turn_state;
+use tinyagents_session::turn_state;
 use crate::threads::ThreadsError;
 use crate::web_chat as web_channel;
 use std::path::PathBuf;

@@ -19,8 +19,7 @@
 //! * `discord_integration.rs` — end-to-end dispatch through the Discord
 //!   channel with every cross-module boundary (agent runtime, memory,
 //!   provider) substituted, proving the domain stays encapsulated.
-//! * `health.rs` — `commands::classify_health_result` and
-//!   `spawn_supervised_listener` marking a component errored and restarting
+//! * `health.rs` — `spawn_supervised_listener` marking a component errored and restarting
 //!   when a listener keeps failing.
 //! * `identity.rs` — `build_system_prompt` inlining workspace identity
 //!   markdown into the Project Context section.

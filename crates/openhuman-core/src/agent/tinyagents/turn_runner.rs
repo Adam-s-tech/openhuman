@@ -241,10 +241,9 @@ async fn run_turn_via_tinyagents_inner(
     // tool's OWN `display_label`/`display_detail` instead of only ever
     // guessing from the bare name (issue: tool-call presentation).
     let bridge_tool_sets = tool_sets.clone();
-    // The turn's crate `ChatModel` set (`turn_models`) and the provider telemetry
-    // id are built by the caller via `build_turn_models` — the seam entry is
-    // crate-native and no longer names `Provider` (issue #4249, Phase 5). The
-    // telemetry id (`{provider_id}.{model}` in Langfuse) rides in as a param.
+    // The turn's crate `ChatModel` set (`turn_models`) and the provider telemetry id are built by
+    // the caller via `build_turn_models`: the seam is crate-native and names no `Provider` (#4249,
+    // Phase 5). The telemetry id (`{provider_id}.{model}` in Langfuse) rides in as a param.
     let AssembledTurnHarness {
         harness,
         cursor,
@@ -281,6 +280,7 @@ async fn run_turn_via_tinyagents_inner(
         hosted_root.is_some(),
         pause_at_cap,
         run_context.tool_dialect,
+        Arc::clone(&run_context.deferred_tool_names),
         run_context
             .thread_id
             .as_deref()
