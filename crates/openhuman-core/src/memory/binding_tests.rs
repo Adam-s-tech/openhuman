@@ -46,6 +46,7 @@ fn external_driver_cfg(trust_state: &str) -> MemorySubsystemConfig {
             endpoint: Some("https://api.supermemory.ai".into()),
             credential_ref: Some("keychain:supermemory".into()),
             trust_state: trust_state.into(),
+            deployment: None,
         },
     );
     cfg
@@ -183,3 +184,6 @@ fn cfg_with_class(driver: &str, class: &str) -> MemorySubsystemConfig {
 
 #[path = "binding_admission_tests.rs"]
 mod binding_admission_tests;
+
+#[path = "binding_remote_bind_tests.rs"]
+mod binding_remote_bind_tests;

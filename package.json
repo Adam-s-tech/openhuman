@@ -76,6 +76,7 @@
     "i18n:dump": "tsx scripts/i18n-coverage.ts --no-unused --out tmp/i18n-coverage"
   },
   "devDependencies": {
+    "gpt-tokenizer": "^3.4.0",
     "husky": "^9.1.7",
     "tsx": "^4.20.3",
     "ws": "^8.20.0"

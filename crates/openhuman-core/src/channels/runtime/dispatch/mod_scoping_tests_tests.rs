@@ -62,6 +62,7 @@ fn def_with_scope(scope: ToolScope) -> AgentDefinition {
         disallowed_tools: vec![],
         skill_filter: None,
         extra_tools: vec![],
+        deferred_tools: Vec::new(),
         max_iterations: 8,
         iteration_policy: Default::default(),
         max_result_chars: None,

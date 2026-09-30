@@ -408,6 +408,171 @@ async fn probe_readiness_fails_open_on_timeout_or_5xx() {
     );
 }
 
+// ── reasoning-off hint ───────────────────────────────────────────────────
+
+#[test]
+fn reasoning_hint_becomes_disabled_reasoning_on_the_managed_wire() {
+    let request = apply_reasoning_hint(without_reasoning(ModelRequest::new(vec![Message::user(
+        "hi",
+    )])));
+    assert_eq!(
+        request.provider_options["reasoning"],
+        serde_json::json!({ "enabled": false })
+    );
+}
+
+#[test]
+fn no_hint_leaves_provider_options_untouched() {
+    let request = apply_reasoning_hint(ModelRequest::new(vec![Message::user("hi")]));
+    assert!(request.provider_options.get("reasoning").is_none());
+}
+
+#[test]
+fn explicit_reasoning_option_wins_over_the_hint() {
+    let request = without_reasoning(ModelRequest::new(vec![Message::user("hi")]))
+        .with_provider_options(serde_json::json!({ "reasoning": { "effort": "high" } }));
+    let request = apply_reasoning_hint(request);
+    assert_eq!(
+        request.provider_options["reasoning"],
+        serde_json::json!({ "effort": "high" })
+    );
+}
+
+/// Captures the JSON body of every chat-completions request it receives.
+async fn spawn_capturing_chat_server() -> (String, std::sync::Arc<std::sync::Mutex<Vec<Value>>>) {
+    let bodies = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+    let seen = bodies.clone();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("bind");
+    let addr = listener.local_addr().expect("local_addr").to_string();
+    let app = axum::Router::new().route(
+        "/openai/v1/chat/completions",
+        axum::routing::post(move |axum::Json(body): axum::Json<Value>| {
+            let seen = seen.clone();
+            async move {
+                seen.lock().unwrap().push(body);
+                axum::Json(serde_json::json!({
+                    "id": "chatcmpl-capture",
+                    "object": "chat.completion",
+                    "created": 1,
+                    "model": "reasoning-v1",
+                    "choices": [{
+                        "index": 0,
+                        "message": { "role": "assistant", "content": "[]" },
+                        "finish_reason": "stop"
+                    }],
+                    "usage": { "prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2 }
+                }))
+            }
+        }),
+    );
+    tokio::spawn(async move {
+        axum::serve(listener, app).await.expect("serve");
+    });
+    (addr, bodies)
+}
+
+#[tokio::test]
+async fn managed_call_sends_reasoning_disabled_only_when_hinted() {
+    let tmp = tempfile::TempDir::new().unwrap();
+    seed_app_session(tmp.path());
+    let (addr, bodies) = spawn_capturing_chat_server().await;
+    let backend = backend_pointed_at(&addr, tmp.path());
+
+    backend
+        .invoke(
+            &(),
+            without_reasoning(ModelRequest::new(vec![Message::user("suggest")])),
+        )
+        .await
+        .expect("hinted call");
+    backend
+        .invoke(&(), ModelRequest::new(vec![Message::user("chat")]))
+        .await
+        .expect("plain call");
+
+    let bodies = bodies.lock().unwrap();
+    assert_eq!(bodies.len(), 2);
+    assert_eq!(
+        bodies[0]["reasoning"],
+        serde_json::json!({ "enabled": false })
+    );
+    assert!(
+        bodies[1].get("reasoning").is_none(),
+        "an unhinted call must not change reasoning: {}",
+        bodies[1]
+    );
+    // The hint itself never reaches the wire.
+    assert!(!bodies[0].to_string().contains("openhuman_reasoning_off"));
+}
+
+// ── shared pooled client (time to first token) ──────────────────────────
+
+/// A TCP relay in front of `upstream` that counts the connections it accepts.
+async fn spawn_counting_relay(
+    upstream: String,
+) -> (String, std::sync::Arc<std::sync::atomic::AtomicUsize>) {
+    let accepted = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("bind relay");
+    let addr = listener.local_addr().expect("relay addr").to_string();
+    let counter = accepted.clone();
+    tokio::spawn(async move {
+        while let Ok((mut inbound, _)) = listener.accept().await {
+            counter.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            let upstream = upstream.clone();
+            tokio::spawn(async move {
+                if let Ok(mut outbound) = tokio::net::TcpStream::connect(&upstream).await {
+                    let _ = tokio::io::copy_bidirectional(&mut inbound, &mut outbound).await;
+                }
+            });
+        }
+    });
+    (addr, accepted)
+}
+
+/// Every managed call used to build its own `reqwest::Client`, so each call
+/// opened a new connection (a fresh TCP + TLS handshake against the real
+/// backend) before its first token. Consecutive calls must now reuse one.
+#[tokio::test]
+async fn consecutive_managed_calls_reuse_one_connection() {
+    let tmp = tempfile::TempDir::new().unwrap();
+    seed_app_session(tmp.path());
+    let upstream = spawn_static_chat_server(
+        axum::http::StatusCode::OK,
+        serde_json::json!({
+            "id": "chatcmpl-pool",
+            "object": "chat.completion",
+            "created": 1,
+            "model": "reasoning-v1",
+            "choices": [{
+                "index": 0,
+                "message": { "role": "assistant", "content": "ok" },
+                "finish_reason": "stop"
+            }],
+            "usage": { "prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2 }
+        }),
+    )
+    .await;
+    let (relay, accepted) = spawn_counting_relay(upstream).await;
+    let backend = backend_pointed_at(&relay, tmp.path());
+
+    for call in 0..3 {
+        backend
+            .probe_readiness()
+            .await
+            .unwrap_or_else(|error| panic!("managed call {call} failed: {error}"));
+    }
+
+    assert_eq!(
+        accepted.load(std::sync::atomic::Ordering::SeqCst),
+        1,
+        "three consecutive managed calls must share one pooled connection"
+    );
+}
+
 // ── resolve_bearer local-expiry precheck (#5503, part e) ───────────────
 
 #[test]

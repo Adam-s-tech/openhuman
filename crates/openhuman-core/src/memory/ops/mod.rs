@@ -24,7 +24,12 @@
 //! - [`files`] — `ai_*_memory_file` handlers (use `tokio::fs`).
 
 pub mod documents;
+pub mod engine;
+#[cfg(test)]
+pub(crate) mod engine_fakes_tests;
+pub mod engine_migrate;
 pub mod envelope;
+pub(crate) mod fallback;
 pub mod files;
 pub mod guard;
 #[cfg(test)]
@@ -50,6 +55,14 @@ pub use documents::{
     memory_recall_memories, namespace_list, ClearNamespaceParams, ClearNamespaceResult,
     DeleteDocParams, IngestDocParams, NamespaceOnlyParams, NamespaceSummariesResponse,
     PutDocParams, PutDocResult, QueryNamespaceParams, RecallNamespaceParams,
+};
+pub use engine::{
+    memory_engine_get, memory_engine_set, memory_engines_list, EngineState, EngineTargetParams,
+    EnginesList,
+};
+pub use engine_migrate::{
+    memory_engine_migrate, memory_engine_migrate_cancel, memory_engine_migrate_status,
+    MigrateCancelParams, MigrateParams, MigrateStatusParams,
 };
 pub use files::{ai_list_memory_files, ai_read_memory_file, ai_write_memory_file};
 pub use kv_graph::{

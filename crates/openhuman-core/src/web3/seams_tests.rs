@@ -1,6 +1,6 @@
 use super::*;
 use crate::security::approval::ApprovalChatContext;
-use crate::web3::wallet::test_support::{setup_wallet_in, TEST_LOCK};
+use crate::web3::wallet::test_support::{setup_wallet_in, UnreachableRpcGuard, TEST_LOCK};
 use crate::web3::wallet::{
     execute_prepared, prepare_transfer, prepared_quotes_for_test, ExecutePreparedParams,
     PrepareTransferParams,
@@ -134,10 +134,25 @@ async fn the_accounts_seam_reports_the_stored_wallet() {
     assert!(status.configured);
     assert_eq!(status.accounts.len(), 4);
 
-    // The engine reads the same state through the seam.
+    // The engine reads the same state through the seam. Every endpoint is
+    // pointed at a closed loopback port, so nothing leaves the machine.
+    let _endpoints = UnreachableRpcGuard::set();
     let rows = engine().chain_status().await.unwrap();
     assert_eq!(rows.len(), 9);
     assert!(rows.iter().all(|row| row.configured));
+    // The wallet has an account for every chain, but no endpoint answers, so
+    // the rows say so instead of claiming the provider is ready.
+    for row in &rows {
+        assert_eq!(
+            row.provider_status,
+            crate::web3::wallet::ProviderStatus::Missing,
+            "{row:?}"
+        );
+        assert!(
+            row.error.is_some(),
+            "a failed probe carries its error: {row:?}"
+        );
+    }
     // And the endpoints it reports are the host's, not a default of the crate's.
     for row in &rows {
         let expected = match row.evm_network {

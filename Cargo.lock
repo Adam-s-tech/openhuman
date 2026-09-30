@@ -3926,6 +3926,7 @@ dependencies = [
  "tinyjuice-bus",
  "tinymcp",
  "tinymcp-bus",
+ "tinymemory",
  "tinymemory-api",
  "tinymemory-bus",
  "tinymemory-conformance",
@@ -6271,6 +6272,8 @@ version = "2.1.2"
 dependencies = [
  "async-trait",
  "chrono",
+ "regex",
+ "serde",
  "serde_json",
  "thiserror 2.0.20",
  "tinyagents-harness",
@@ -6519,6 +6522,7 @@ version = "0.3.0"
 dependencies = [
  "anyhow",
  "httpdate",
+ "regex",
  "url",
 ]
 
@@ -6719,6 +6723,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "tinymemory"
+version = "1.17.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "serde",
+ "serde_json",
+ "tinymemory-api",
+ "tinymemory-remote",
+]
+
+[[package]]
 name = "tinymemory-api"
 version = "0.1.1"
 dependencies = [
@@ -6752,6 +6768,22 @@ dependencies = [
  "async-trait",
  "serde_json",
  "tinymemory-api",
+]
+
+[[package]]
+name = "tinymemory-remote"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "futures",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sha2 0.11.0",
+ "tinymemory-api",
+ "tokio",
 ]
 
 [[package]]
@@ -6880,7 +6912,7 @@ dependencies = [
 
 [[package]]
 name = "tinywallet"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "coins-bip32",
  "coins-bip39",
@@ -6898,7 +6930,7 @@ dependencies = [
 
 [[package]]
 name = "tinywallet-bus"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "serde",
  "tinywallet-crypto",
@@ -6907,7 +6939,7 @@ dependencies = [
 
 [[package]]
 name = "tinywallet-crypto"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "async-trait",
  "bech32 0.12.0",
@@ -6922,7 +6954,7 @@ dependencies = [
 
 [[package]]
 name = "tinywallet-web3"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -6943,7 +6975,7 @@ dependencies = [
 
 [[package]]
 name = "tinywallet-x402"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "anyhow",
  "async-trait",

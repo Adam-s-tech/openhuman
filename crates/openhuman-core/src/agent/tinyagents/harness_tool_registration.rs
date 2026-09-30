@@ -18,12 +18,12 @@ use crate::agent::orchestration::tools::{
     SpawnSubagentDispatch, SpawnWorkerThreadDispatch, SteerSubagentDispatch, WaitSubagentDispatch,
 };
 use crate::agent::tinyagents::host::OpenHumanRunContext;
+use crate::agent::tinyagents::tools::{CanonicalSharedToolAdapter, EarlyExitHook};
 use crate::agent::tinyagents::turn_policy::is_subagent_spawn_or_delegate_tool;
 use crate::agent::tinyagents::use_skill_dispatch::UseSkillDispatch;
 use crate::agent::tools::{DelegateToolDispatch, TodoToolDispatch};
 use crate::memory::agent::CallMemoryAgentDispatch;
 use crate::tools::toolpacks::USE_SKILL;
-use tinyagents_harness::tool::{CanonicalSharedToolAdapter, EarlyExitHook};
 
 /// Typed-dispatch selection shared by the direct per-turn registration below
 /// and by [`UseSkillDispatch`], which must resolve the SAME live-parent
@@ -88,6 +88,7 @@ pub(super) fn register_turn_tools_and_agents(
     early_exit_set: &HashSet<&str>,
     early_exit_hook: Option<&EarlyExitHook>,
     is_subagent_run: bool,
+    session_deferred: &HashSet<String>,
 ) -> (
     usize,
     Vec<String>,
@@ -138,6 +139,9 @@ pub(super) fn register_turn_tools_and_agents(
                     if let Some(hook) = early_exit_hook {
                         adapter = adapter.with_early_exit(hook.clone());
                     }
+                }
+                if session_deferred.contains(name) {
+                    adapter = adapter.deferred();
                 }
                 registered.insert(name.to_string());
                 let adapter = Arc::new(adapter);

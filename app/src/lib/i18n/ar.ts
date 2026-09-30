@@ -7091,6 +7091,67 @@ const messages: TranslationMap = {
   'walletSend.recipientInputPlaceholder': 'أدخل أو عجين العنوان',
   'webCallback.title': 'إتمام عملية التوقيع',
   'webCallback.description': 'OpenHuman يقوم بتجهيز عودتك وسيستمر تلقائياً',
+
+  // Memory engine settings panel
+  'memoryEngine.title': 'محرك الذاكرة',
+  'memoryEngine.description':
+    'اختر أين يحفظ OpenHuman ذكرياتك ويسترجعها. يكون محرك واحد فقط نشطًا في كل مرة.',
+  'memoryEngine.active': 'نشط',
+  'memoryEngine.hostedNote': 'تُحتسب الرسوم على رصيد OpenHuman الخاص بك.',
+  'memoryEngine.signInRequired': 'سجّل الدخول لاستخدام هذا المحرك.',
+  'memoryEngine.endpoint': 'نقطة النهاية',
+  'memoryEngine.deployment': 'النشر',
+  'memoryEngine.deployment.cloud': 'سحابي',
+  'memoryEngine.deployment.self_hosted': 'استضافة ذاتية',
+  'memoryEngine.apiKey': 'مفتاح API',
+  'memoryEngine.apiKeyOptional': 'مفتاح API (اختياري)',
+  'memoryEngine.keySaved': 'يوجد مفتاح محفوظ. اتركه فارغًا للإبقاء عليه.',
+  'memoryEngine.keySavedPlaceholder': 'محفوظ (مخفي)',
+  'memoryEngine.fallback':
+    'الذاكرة متوقفة مؤقتًا: المحرك {engine} غير متاح، لذا لا يتم حفظ أو استدعاء أي شيء حتى يعود. {reason}',
+  'memoryEngine.paused': 'الذاكرة متوقفة مؤقتًا',
+  'memoryEngine.dialog.cancelMigration': 'إلغاء النسخ',
+  'memoryEngine.lastError': 'فشل آخر طلب إلى محرك الذاكرة. تحقق من إعدادات المحرك.',
+  'memoryEngine.switch': 'تبديل',
+  'memoryEngine.save': 'حفظ التغييرات',
+  'memoryEngine.dialog.title': 'التبديل إلى {engine}؟',
+  'memoryEngine.dialog.body': 'هل تريد نسخ ذكرياتي الحالية إلى المحرك الجديد؟',
+  'memoryEngine.dialog.copySwitch': 'نسخ وتبديل',
+  'memoryEngine.dialog.switchOnly': 'التبديل دون نسخ',
+  'memoryEngine.dialog.copying': 'جارٍ نسخ ذكرياتك…',
+  'memoryEngine.dialog.progress': 'تم نسخ {copied} من {total}',
+  'memoryEngine.dialog.progressUnknown': 'تم نسخ {copied} ذكرى حتى الآن',
+  'memoryEngine.dialog.lacking': 'لا يدعم المحرك الجديد هذه الميزات الموجودة في محركك الحالي:',
+  'memoryEngine.error.insufficientCredits':
+    'نفد رصيد OpenHuman لديك. أضف رصيدًا لاستخدام هذا المحرك.',
+  'memoryEngine.error.sessionExpired': 'انتهت جلستك. سجّل الدخول مرة أخرى للمتابعة.',
+  'memoryEngine.error.backendUnavailable': 'خدمة الذاكرة غير متاحة حاليًا. حاول مرة أخرى بعد قليل.',
+  'memoryEngine.error.generic': 'تعذّر تغيير محرك الذاكرة. تحقق من الإعدادات وحاول مرة أخرى.',
+  'memoryEngine.error.openBilling': 'فتح الفوترة',
+  'memoryEngine.error.signIn': 'تسجيل الدخول',
+  'memoryEngine.row.label': 'محرك الذاكرة:',
+  'memoryEngine.row.change': 'تغيير',
+  'memoryEngine.unavailable': 'غير متاح مع {engine}',
+  'memoryEngine.unavailableHint': 'بدّل محرك الذاكرة لاستخدام هذه الميزة.',
+  'memoryEngine.engine.tinymemory.label': 'محلي (TinyCortex)',
+  'memoryEngine.engine.tinymemory.description':
+    'يُحفظ على هذا الجهاز باستخدام TinyCortex. خاص ومجاني وهو الخيار الافتراضي.',
+  'memoryEngine.engine.tinyhumans.label': 'CortexDB (عبر TinyHumans)',
+  'memoryEngine.engine.tinyhumans.description':
+    'CortexDB مستضاف لدى TinyHumans. يستخدم حسابك المسجَّل دخوله دون الحاجة إلى مفتاح.',
+  'memoryEngine.engine.cortex.label': 'CortexDB (مفتاحك الخاص)',
+  'memoryEngine.engine.cortex.description':
+    'حسابك أو نسختك الخاصة من CortexDB باستخدام مفتاح API الخاص بك.',
+  'memoryEngine.engine.supermemory.label': 'Supermemory',
+  'memoryEngine.engine.supermemory.description':
+    'ذاكرة Supermemory السحابية باستخدام مفتاح API الخاص بك.',
+  'memoryEngine.engine.mem0.label': 'Mem0',
+  'memoryEngine.engine.mem0.description': 'طبقة ذاكرة Mem0، سحابية أو بالاستضافة الذاتية.',
+  'memoryEngine.engine.cognee.label': 'Cognee',
+  'memoryEngine.engine.cognee.description':
+    'ذاكرة Cognee القائمة على مخطط المعرفة، سحابية أو بالاستضافة الذاتية.',
+  'memoryEngine.engine.agentmemory.label': 'AgentMemory',
+  'memoryEngine.engine.agentmemory.description': 'خادم AgentMemory تشغّله بنفسك.',
 };
 
 export default messages;
