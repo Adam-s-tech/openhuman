@@ -289,6 +289,11 @@ tinymemory-conformance = { path = "../../vendor/tinymemory/crates/tinymemory-con
 # — stay here, behind `memory::guard::HostGuardPolicy`. Only `tinymemory-api`,
 # `async-trait`, `serde_json`, `chrono`, `log` and `tracing`, all already here.
 tinymemory-guard = { path = "../../vendor/tinymemory/crates/tinymemory-guard" }
+# `tinymemory-import` holds the OpenClaw / Hermes workspace importers behind
+# `config::migration_helpers`. It writes into whichever `Memory` the host
+# opens (`target_memory_backend`, which refuses a null driver) and adds no
+# dependency beyond rusqlite, already linked here.
+tinymemory-import = { path = "../../vendor/tinymemory/crates/tinymemory-import" }
 # `tinymemory-safety` is the secret and PII scrubber (credential patterns,
 # sensitive-key classifier, checksum-gated multilingual national-ID redaction)
 # that `memory::safety` used to carry a private copy of. `regex`, `serde_json`

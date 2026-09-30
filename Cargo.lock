@@ -4071,6 +4071,7 @@ dependencies = [
  "tinymemory-conversations",
  "tinymemory-gate",
  "tinymemory-guard",
+ "tinymemory-import",
  "tinymemory-safety",
  "tinymemory-sources",
  "tinyruntime-bus",
@@ -7050,6 +7051,18 @@ dependencies = [
  "serde_json",
  "tinymemory-api",
  "tracing",
+]
+
+[[package]]
+name = "tinymemory-import"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "directories",
+ "log",
+ "rusqlite",
+ "serde",
+ "tinymemory-api",
 ]
 
 [[package]]
