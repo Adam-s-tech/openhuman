@@ -1,9 +1,11 @@
 //! Turning a node's request into a completion, and a completion back into a
 //! node result.
 //!
-//! Message assembly, the `input_context` carrier and its size cap, the
-//! structured-output contract, and the tolerant JSON extraction a model reply
-//! needs when it wraps its object in prose or a fenced block.
+//! The pure request/reply handling (the `input_context` carrier, structured
+//! output steering, tolerant JSON extraction) lives in
+//! `tinyflows::nodes::integration::agent_prompt`; this file keeps the host
+//! mapping of its neutral messages onto [`ChatMessage`], usage projection and
+//! model pinning.
 
 #![allow(unused_imports)]
 
@@ -16,8 +18,23 @@ use tinyflows::error::{EngineError, Result};
 
 use super::*;
 use crate::agent::messages::ChatMessage;
+use tinyflows::nodes::integration::agent_prompt;
 use crate::config::Config;
 use crate::inference::provider::{is_raw_passthrough_model, UsageInfo};
+
+/// [`agent_prompt::build_completion_messages`] mapped onto the host's
+/// [`ChatMessage`] type.
+pub(crate) fn build_completion_messages(request: &Value) -> Vec<ChatMessage> {
+    agent_prompt::build_completion_messages(request)
+        .into_iter()
+        .map(|m| match m.role {
+            "system" => ChatMessage::system(m.content),
+            "assistant" => ChatMessage::assistant(m.content),
+            "tool" => ChatMessage::tool(m.content),
+            _ => ChatMessage::user(m.content),
+        })
+        .collect()
+}
 
 /// Maps a `UsageInfo` (not `Serialize`) into a JSON value field-by-field, so
 /// [`OpenHumanLlm::complete`] can surface it in its response `Value` without
@@ -55,10 +72,6 @@ pub(crate) fn model_response_to_completion_value(
         ),
     })
 }
-
-#[cfg(test)]
-#[path = "prompt_tests.rs"]
-mod tests;
 
 /// Select the model an `agent` node completion actually runs on.
 ///

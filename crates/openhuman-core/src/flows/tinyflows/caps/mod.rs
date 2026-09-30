@@ -25,6 +25,13 @@ pub(crate) use llm::*;
 // `caps::` path so existing call sites resolve unchanged.
 pub use ops::*;
 pub(crate) use prompt::*;
+// The pure prompt/reply helpers live upstream, beside the agent request builder.
+pub(crate) use tinyflows::nodes::integration::agent_prompt::{
+    build_agent_result, build_harness_run_prompt, clamp_run_timeout_secs, extract_structured_json,
+    input_context_block, node_request_to_prompt, parse_llm_json, prepend_system_message,
+    resolve_node_model, resolve_run_timeout_secs, scale_timeout_for_iteration_cap,
+    structured_output_instruction, structured_output_requested, INPUT_CONTEXT_MAX_LEN,
+};
 pub(crate) use resolver::*;
 pub(crate) use tier::*;
 pub(crate) use tinyflows::caps::mock_schema_aware::*;
