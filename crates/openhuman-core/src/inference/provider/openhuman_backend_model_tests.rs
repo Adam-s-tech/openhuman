@@ -412,9 +412,9 @@ async fn probe_readiness_fails_open_on_timeout_or_5xx() {
 
 #[test]
 fn reasoning_hint_becomes_disabled_reasoning_on_the_managed_wire() {
-    let request = apply_reasoning_hint(without_reasoning(ModelRequest::new(vec![
-        Message::user("hi"),
-    ])));
+    let request = apply_reasoning_hint(without_reasoning(ModelRequest::new(vec![Message::user(
+        "hi",
+    )])));
     assert_eq!(
         request.provider_options["reasoning"],
         serde_json::json!({ "enabled": false })
@@ -439,8 +439,7 @@ fn explicit_reasoning_option_wins_over_the_hint() {
 }
 
 /// Captures the JSON body of every chat-completions request it receives.
-async fn spawn_capturing_chat_server() -> (String, std::sync::Arc<std::sync::Mutex<Vec<Value>>>)
-{
+async fn spawn_capturing_chat_server() -> (String, std::sync::Arc<std::sync::Mutex<Vec<Value>>>) {
     let bodies = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
     let seen = bodies.clone();
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
@@ -495,7 +494,10 @@ async fn managed_call_sends_reasoning_disabled_only_when_hinted() {
 
     let bodies = bodies.lock().unwrap();
     assert_eq!(bodies.len(), 2);
-    assert_eq!(bodies[0]["reasoning"], serde_json::json!({ "enabled": false }));
+    assert_eq!(
+        bodies[0]["reasoning"],
+        serde_json::json!({ "enabled": false })
+    );
     assert!(
         bodies[1].get("reasoning").is_none(),
         "an unhinted call must not change reasoning: {}",
