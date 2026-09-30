@@ -4149,6 +4149,7 @@ dependencies = [
  "tinyinference-core",
  "tinyinference-llm",
  "tinyinference-local",
+ "tinyinference-voice",
  "tinyjevclient",
  "tinymcp",
  "tinymcp-bus",
