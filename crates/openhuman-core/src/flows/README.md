@@ -68,7 +68,7 @@ from always-compiled code.
 ## Tests
 
 - `tinyflows/` has its own suite: `checkpoint_compat_tests.rs`, `memory_adapter_tests.rs`, `memory_node_e2e_tests.rs`, `observability_tests.rs`, `langfuse_export_tests.rs`, `tinyflows_tests.rs`, and `caps/*_tests.rs`.
-- Not compiled: `types.rs` / `types_tests.rs` are declared by no module (`flows::types` resolves to `tinyflows_catalog::types`, and `store.rs` has no test attachment). They are leftovers from moving the model and store into `tinyflows-catalog` / `tinyflows-sqlite`.
+- Not compiled: `store.rs` has no test attachment; it is a leftover from moving the model and store into `tinyflows-catalog` / `tinyflows-sqlite`. (`types_tests.rs` was removed: `flows::types` is `tinyflows_catalog::types`, whose own suite covers it.)
 
 ## Related docs
 
