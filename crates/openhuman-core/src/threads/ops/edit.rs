@@ -234,7 +234,7 @@ async fn next_reply_request_id_after(
 /// needs); the actual head — walking any compaction/edit generations already
 /// on disk — is then resolved through the locator itself
 /// (`TranscriptLocator::head_generation`), never by trusting file-name sort
-/// order (`threads::transcript_view::resolve`'s module doc explains why that
+/// order (`tinyagents_session::transcript::view`'s resolver module doc explains why that
 /// is unsafe: `.g1` sorts before the un-suffixed root).
 fn resolve_head_transcript(
     workspace_dir: &std::path::Path,
