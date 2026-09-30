@@ -119,21 +119,20 @@ fn a_multi_header_credential_keeps_every_header() {
     // A server wanting a client key and a client secret needs both; keeping
     // only the first is a 401 nobody can explain.
     let mut config = config_without_docs();
-    config.mcp_client.servers.push(HostServer {
-        auth: McpAuthConfig::Headers {
-            headers: vec![
-                HttpHeader {
-                    name: "X-Client-Key".into(),
-                    value: "k".into(),
-                },
-                HttpHeader {
-                    name: "Authorization".into(),
-                    value: "Bearer s".into(),
-                },
-            ],
-        },
-        ..populated_server()
-    });
+    let mut server = populated_server();
+    server.auth = McpAuthConfig::Headers {
+        headers: vec![
+            HttpHeader {
+                name: "X-Client-Key".into(),
+                value: "k".into(),
+            },
+            HttpHeader {
+                name: "Authorization".into(),
+                value: "Bearer s".into(),
+            },
+        ],
+    };
+    config.mcp_client.servers.push(server);
 
     match &client_config(&config).servers[0].auth {
         tinymcp::McpAuthConfig::Headers { headers } => {
