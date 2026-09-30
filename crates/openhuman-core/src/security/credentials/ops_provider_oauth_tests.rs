@@ -267,16 +267,6 @@ async fn list_provider_credentials_sorts_by_provider_then_profile_name() {
     assert_eq!(all.value[2].provider, "zeta");
 }
 
-// ── oauth_* (validation paths that don't require network) ─────
-
-#[tokio::test]
-async fn oauth_fetch_client_key_errors_without_session() {
-    let tmp = TempDir::new().unwrap();
-    let config = test_config(&tmp);
-    let err = oauth_fetch_client_key(&config, "int-1").await.unwrap_err();
-    assert!(err.contains("session JWT required"));
-}
-
 // ── list_provider_credentials_by_prefix ───────────────────────
 
 /// Issue #1149 root-cause regression: the exact-match filter on

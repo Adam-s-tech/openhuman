@@ -168,7 +168,7 @@ fn default_max_depth() -> u32 {
 /// frequently omit it, leaving those consumers with nothing. When this contract
 /// is set on [`AgentConfig::required_output`], the turn engine validates the
 /// reply and repairs an omitted block before the turn is accepted (see
-/// `crate::agent::harness::required_output`), so consumers always get
+/// `tinyagents_harness::config::required_output`), so consumers always get
 /// a well-formed block.
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(default)]
@@ -247,6 +247,13 @@ pub struct AgentConfig {
     /// seam.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub chat_agent_id: Option<String>,
+    /// Deprecated and ignored: the session driver no longer trims history by
+    /// message count. Context size is bounded by the token-aware context
+    /// ladder (microcompaction, message trimming and summarisation, sized to
+    /// the model's window), which cuts rarely. A count cut dropped the oldest
+    /// messages on every turn past the bound, which moved the head of the
+    /// provider's cached prompt prefix and made each such turn a full cache
+    /// miss. Still parsed so existing `config.toml` files keep loading.
     #[serde(default = "default_agent_max_history_messages")]
     pub max_history_messages: usize,
     #[serde(default)]

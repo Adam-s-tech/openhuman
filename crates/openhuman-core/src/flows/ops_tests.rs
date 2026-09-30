@@ -55,28 +55,6 @@ fn nested_conditional_fan_in_graph() -> Value {
     })
 }
 
-fn main_port_conditional_fan_in_graph() -> Value {
-    json!({
-        "name": "main-port-conditional-fan-in",
-        "nodes": [
-            { "id": "start", "kind": "trigger", "name": "Trigger" },
-            { "id": "route", "kind": "switch", "name": "Route", "config": { "field": "kind" } },
-            { "id": "a", "kind": "output_parser", "name": "A" },
-            { "id": "other", "kind": "output_parser", "name": "Other" },
-            { "id": "c", "kind": "output_parser", "name": "C" },
-            { "id": "m", "kind": "merge", "name": "Merge" }
-        ],
-        "edges": [
-            { "from_node": "start", "from_port": "main", "to_node": "route" },
-            { "from_node": "start", "from_port": "main", "to_node": "c" },
-            { "from_node": "route", "from_port": "main", "to_node": "a" },
-            { "from_node": "route", "from_port": "other", "to_node": "other" },
-            { "from_node": "a", "from_port": "main", "to_node": "m" },
-            { "from_node": "c", "from_port": "main", "to_node": "m" }
-        ]
-    })
-}
-
 fn referenced_child_graph(workflow_id: &str) -> Value {
     json!({
         "name": "parent-with-saved-child",
@@ -99,38 +77,6 @@ fn structurally_valid_graph(value: Value) -> WorkflowGraph {
     let graph = migrate_and_deserialize_graph(value).expect("graph should deserialize");
     tinyflows::validate::validate(&graph).expect("fixture should be structurally valid");
     graph
-}
-
-fn nested_router_reconvergence_graph(inner_kind: &str, inner_ports: &[&str]) -> WorkflowGraph {
-    let mut edges = vec![
-        json!({ "from_node": "start", "from_port": "main", "to_node": "outer" }),
-        json!({ "from_node": "start", "from_port": "main", "to_node": "c" }),
-        json!({ "from_node": "outer", "from_port": "true", "to_node": "inner" }),
-        json!({ "from_node": "outer", "from_port": "false", "to_node": "outer_else" }),
-    ];
-    edges.extend(
-        inner_ports
-            .iter()
-            .map(|port| json!({ "from_node": "inner", "from_port": port, "to_node": "a" })),
-    );
-    edges.extend([
-        json!({ "from_node": "a", "from_port": "main", "to_node": "m" }),
-        json!({ "from_node": "c", "from_port": "main", "to_node": "m" }),
-    ]);
-
-    structurally_valid_graph(json!({
-        "name": "nested-router-reconvergence",
-        "nodes": [
-            { "id": "start", "kind": "trigger", "name": "Trigger" },
-            { "id": "outer", "kind": "condition", "name": "Outer", "config": { "field": "outer" } },
-            { "id": "inner", "kind": inner_kind, "name": "Inner", "config": { "field": "inner" } },
-            { "id": "outer_else", "kind": "output_parser", "name": "Outer else" },
-            { "id": "a", "kind": "output_parser", "name": "A" },
-            { "id": "c", "kind": "output_parser", "name": "C" },
-            { "id": "m", "kind": "merge", "name": "Merge" }
-        ],
-        "edges": edges
-    }))
 }
 
 /// A graph declaring `repo` (required) and `depth` (defaulted), whose single

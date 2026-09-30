@@ -272,7 +272,7 @@ fn classifies_vault_create_root_path_not_a_directory_as_filesystem_user_path_inv
 #[test]
 fn classifies_http_host_hosted_path_not_a_directory_as_filesystem_user_path_invalid() {
     // Preempt the symmetric shape from
-    // `openhuman::http_host::path_utils:23` —
+    // `openhuman_rpc::http_host::path_utils:23` —
     // `"hosted path is not a directory: <path>"`. Not yet observed
     // in Sentry but shares the same RPC validation polarity as
     // vault_create's `root_path` check. Anchoring on

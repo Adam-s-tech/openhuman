@@ -379,19 +379,20 @@ pub fn all_tools_with_runtime(
         // Wallet tools — expose wallet operations to the agent tool-call pipeline
         // so the crypto sub-agent can prepare transfers, check status, etc.
         // Gated with the `web3` feature (the wallet domain is compiled out when
-        // web3 is disabled; the concrete tool types live under `wallet::tools`).
+        // web3 is disabled; the concrete tool types live in `tinywallet-web3`,
+        // re-exported under `wallet::tools`, and run over the process-wide engine).
         #[cfg(feature = "web3")]
-        Box::new(WalletStatusTool::new()),
+        Box::new(WalletStatusTool::new(crate::web3::seams::engine())),
         #[cfg(feature = "web3")]
-        Box::new(WalletChainStatusTool::new()),
+        Box::new(WalletChainStatusTool::new(crate::web3::seams::engine())),
         #[cfg(feature = "web3")]
-        Box::new(WalletPrepareTransferTool::new()),
+        Box::new(WalletPrepareTransferTool::new(crate::web3::seams::engine())),
         #[cfg(feature = "web3")]
-        Box::new(WalletTxStatusTool::new()),
+        Box::new(WalletTxStatusTool::new(crate::web3::seams::engine())),
         #[cfg(feature = "web3")]
-        Box::new(WalletTxReceiptTool::new()),
+        Box::new(WalletTxReceiptTool::new(crate::web3::seams::engine())),
         #[cfg(feature = "web3")]
-        Box::new(WalletLookupTxTool::new()),
+        Box::new(WalletLookupTxTool::new(crate::web3::seams::engine())),
         // The memory surface the model sees. The eleven per-operation tools it
         // dispatches to stay registered as `ToolExposure::Hidden` so a
         // replayed transcript or a saved skill naming `memory_*` still works —
@@ -718,7 +719,7 @@ pub fn all_tools_with_runtime(
     // or SPL payment signing, and ledger recording. Gated with the `web3`
     // feature (the x402 domain is compiled out when web3 is disabled).
     #[cfg(feature = "web3")]
-    tools.push(Box::new(crate::web3::x402::tools::X402RequestTool::new()));
+    tools.push(Box::new(crate::web3::x402::request_tool()));
 
     // Coding-harness baseline `web_fetch` (issue #1205) — single-purpose
     // GET-and-read primitive that reuses the same allowed-domains gate

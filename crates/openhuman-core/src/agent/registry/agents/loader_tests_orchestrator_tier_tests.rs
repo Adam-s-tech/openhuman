@@ -33,7 +33,7 @@ fn the_web3_skill_keeps_the_crypto_safety_contract() {
     }
     let prompt = include_str!("orchestrator/prompt.md");
     assert!(
-        prompt.contains("except moving funds and stopping"),
+        prompt.contains("Explicit yes only before moving funds"),
         "the orchestrator prompt must bind money actions to explicit consent"
     );
 }
@@ -275,4 +275,46 @@ fn allows_skill_wildcards_on_any_non_worker_tier() {
         crate::agent::harness::definition::SkillsWildcard { skills: "*".into() },
     ));
     validate_tier_hierarchy(&defs).expect("skill wildcards on reasoning tier must validate");
+}
+
+/// The orchestrator defers its rarely-used or duplicate-route tools for itself
+/// only (`deferred_tools`): they stay registered, searchable through
+/// `tool_search` and callable by name, while other agents that name them keep
+/// them advertised. The belt must opt into discovery for the list to apply.
+#[test]
+fn orchestrator_defers_its_duplicate_route_tools() {
+    let def = find("orchestrator");
+    let mut deferred = def.deferred_tools.clone();
+    deferred.sort();
+    assert_eq!(
+        deferred,
+        vec![
+            "composio_list_toolkits",
+            "current_time",
+            "file_read",
+            "file_write",
+            "http_request",
+            "mcp_registry_connect",
+            "mcp_registry_list_tools",
+            "mcp_registry_status",
+            "mcp_registry_tool_call",
+        ]
+    );
+    match &def.tools {
+        crate::agent::harness::definition::ToolScope::Named(named) => {
+            assert!(
+                named.iter().any(|name| name == "tool_search"),
+                "`deferred_tools` only applies to a belt that opted into discovery"
+            );
+            for name in &def.deferred_tools {
+                assert!(
+                    named.contains(name),
+                    "`{name}` is deferred but not on the belt, so deferring it does nothing"
+                );
+            }
+        }
+        crate::agent::harness::definition::ToolScope::Wildcard => {
+            panic!("the orchestrator keeps a named belt")
+        }
+    }
 }

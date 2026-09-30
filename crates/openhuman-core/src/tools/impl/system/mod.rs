@@ -4,7 +4,6 @@
 //! `tools/impl/README.md`; `security_for_tool_context` below is the shared
 //! `SecurityPolicy` resolver that must stay in step with the `filesystem` copy.
 
-mod command_output;
 mod detect_tools;
 mod insert_sql_record;
 mod install_tool;
