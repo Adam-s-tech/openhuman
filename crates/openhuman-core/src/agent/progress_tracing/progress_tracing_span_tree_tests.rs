@@ -1,7 +1,7 @@
 use super::*;
 
 use crate::agent::progress_tracing::export::export_spans;
-use tinyagents_harness::observability::trace_export::serialize::{spans_to_ndjson, SpanEnvelope};
+use tinyagents_harness::observability::trace_export::serialize::SpanEnvelope;
 use tinyagents_harness::observability::trace_export::SpanKind;
 // ── config ────────────────────────────────────────────────────────────────
 

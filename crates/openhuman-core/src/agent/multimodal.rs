@@ -28,7 +28,7 @@
 //! ingress still resolves the image by id.
 
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::OnceLock;
 use std::time::Duration;
 
@@ -43,7 +43,7 @@ use crate::config::{
 use tinyagents_harness::multimodal::{
     self as mm,
     config::{FileLimits, ImageLimits},
-    markers, mime as mm_mime,
+    markers,
     payload::sha256_prefix,
     resolve::{resolve_file, resolve_image, TextExtractor},
     AttachmentStash,
