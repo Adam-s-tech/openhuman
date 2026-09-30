@@ -130,6 +130,7 @@ impl FileReadTool {
             }
         }
 
+        let read_started = std::time::Instant::now();
         match tokio::fs::read_to_string(&resolved_path).await {
             Ok(contents) => {
                 if let Some(agent_id) = file_state::current_file_state_agent_id() {
@@ -138,7 +139,7 @@ impl FileReadTool {
                         .ok()
                         .and_then(|m| m.modified().ok())
                         .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
-                    file_state::record_read(&agent_id, resolved_path, mtime, false);
+                    file_state::record_read(&agent_id, resolved_path, mtime, false, read_started);
                 }
                 // An absent or null offset reads from the start; anything else
                 // that is not a non-negative integer is rejected, so a
