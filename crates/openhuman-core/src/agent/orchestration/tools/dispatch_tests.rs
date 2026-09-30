@@ -7,7 +7,8 @@ use super::super::collapsed_delegation::{
     dispatch_targets_from_schema, CollapsedDelegationTool, DelegateTarget,
 };
 use super::super::delegate_graph::DelegateGraphDispatch;
-use crate::agent::tools::{AskClarificationTool, DelegateToolDispatch};
+use crate::agent::tools::DelegateToolDispatch;
+use tinyagents_harness::tools::AskClarificationTool;
 use tinyagents_harness::context::RunConfig;
 use tinyagents_harness::tool::ToolDispatch;
 
@@ -198,7 +199,7 @@ fn collapsed_dispatch_mapping_has_exact_advertised_vocabulary_and_rejects_drift(
 }
 
 #[test]
-fn ask_clarification_tool_re_exported() {
+fn ask_clarification_tool_is_the_harness_tool() {
     let tool = AskClarificationTool::new();
     assert_eq!(tool.name(), "ask_user_clarification");
 }

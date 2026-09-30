@@ -25,7 +25,6 @@
 //! `crate::tools` re-exports everything here (`pub use
 //! crate::agent::tools::*;` in `tools/mod.rs`); `tools::ops` registers the
 //! tools into the catalog.
-mod ask_clarification;
 mod delegate;
 mod plan_exit;
 pub mod remember_preference;
@@ -37,7 +36,6 @@ mod run_workflow;
 pub mod save_preference;
 mod todo;
 
-pub use ask_clarification::AskClarificationTool;
 pub use delegate::DelegateTool;
 pub(crate) use delegate::DelegateToolDispatch;
 pub use plan_exit::{PlanExitTool, PLAN_EXIT_MARKER};

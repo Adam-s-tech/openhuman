@@ -7,7 +7,9 @@ use crate::runtime::python::PythonBootstrap;
 use crate::security::{AuditLogger, SecurityPolicy};
 use std::collections::HashMap;
 use std::sync::Arc;
-use tinyagents_harness::tools::{CurrentTimeTool, ResolveTimeTool};
+use tinyagents_harness::tools::{
+    AskClarificationTool, CurrentTimeTool, ResolveTimeTool, WaitLoopTool, WaitTool,
+};
 use tinytools::Tool;
 #[cfg(test)]
 use tinytools::{ToolResult, ToolSpec};
