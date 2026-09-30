@@ -37,7 +37,8 @@ fn repl_tools_are_registered_by_default_with_the_recovery_tool() {
 #[test]
 fn repl_tools_are_absent_whenever_a_handle_cannot_be_produced() {
     let tmp = TempDir::new().unwrap();
-    let off: [(&str, fn(&mut Config)); 4] = [
+    type Flip = fn(&mut Config);
+    let off: [(&str, Flip); 4] = [
         ("compaction off", |c| c.context.compaction_enabled = false),
         ("router off", |c| c.tokenjuice.router_enabled = false),
         ("ccr off", |c| c.tokenjuice.ccr_enabled = false),
