@@ -68,9 +68,9 @@ mod export;
 // `tinyagents_harness::observability::trace_export`.
 #[cfg(test)]
 use tinyagents_harness::observability::trace_export::{trace_session_id, SpanKind, SpanStatus};
-use tinyagents_harness::observability::trace_export::{
-    ExportBrand, RunType, TraceContext, TraceSpan,
-};
+use tinyagents_harness::observability::trace_export::ExportBrand;
+#[cfg(test)]
+use tinyagents_harness::observability::trace_export::{RunType, TraceContext, TraceSpan};
 
 pub use collector::SpanCollector;
 

@@ -26,6 +26,7 @@ pub(crate) use journal_export::journal_push_ready;
 #[cfg(test)]
 pub(crate) use journal_export::push_observations;
 
+#[cfg(test)]
 use tinyagents_harness::observability::trace_export::TraceContext;
 
 #[cfg(test)]
