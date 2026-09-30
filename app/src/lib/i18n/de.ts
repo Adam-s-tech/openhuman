@@ -2462,8 +2462,10 @@ const messages: TranslationMap = {
   'common.skip': 'Überspringen',
   'common.disable': 'Deaktivieren',
   'common.enable': 'Aktivieren',
-  'chat.safetyTimeout':
-    'Keine Antwort vom Agenten nach 2 Minuten. Versuche es erneut oder prüfe deine Verbindung.',
+  'chat.stallWarning.thinking':
+    'Denkt noch nach. Seit 2 Minuten keine neue Ausgabe, aber der Agent arbeitet noch. Drücke Stopp, wenn du abbrechen möchtest.',
+  'chat.stallWarning.working':
+    'Arbeitet noch. Ein Schritt läuft seit über 2 Minuten ohne neue Ausgabe. Drücke Stopp, wenn du abbrechen möchtest.',
   'chat.filter.general': 'Allgemein',
   'chat.filter.meetings': 'Meetings',
   'chat.filter.tasks': 'Aufgaben',

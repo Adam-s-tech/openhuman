@@ -2424,8 +2424,10 @@ const messages: TranslationMap = {
   'common.skip': 'Pomiń',
   'common.disable': 'Wyłącz',
   'common.enable': 'Włącz',
-  'chat.safetyTimeout':
-    'Brak odpowiedzi agenta po 2 minutach. Spróbuj ponownie lub sprawdź połączenie.',
+  'chat.stallWarning.thinking':
+    'Nadal myśli. Brak nowych danych od 2 minut, ale agent nadal pracuje. Naciśnij Zatrzymaj, jeśli chcesz anulować.',
+  'chat.stallWarning.working':
+    'Nadal pracuje. Krok trwa ponad 2 minuty bez nowych danych. Naciśnij Zatrzymaj, jeśli chcesz anulować.',
   'chat.filter.general': 'Ogólne',
   'chat.filter.meetings': 'Spotkania',
   'chat.filter.tasks': 'Zadania',
