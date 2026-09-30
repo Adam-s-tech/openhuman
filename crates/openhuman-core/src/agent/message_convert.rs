@@ -370,7 +370,7 @@ fn parse_native_tool_envelope(text: &str) -> Option<(String, String)> {
 }
 
 /// Inverse of [`ta_call_to_oh_call`]: rebuild a harness [`TaToolCall`] from an
-/// openhuman [`ToolCall`] (whose `arguments` is a serialized JSON string).
+/// openhuman [`NativeToolCall`] (whose `arguments` is a serialized JSON string).
 fn oh_call_to_ta_call(oh: &tinytools_agent::dialect::NativeToolCall) -> TaToolCall {
     TaToolCall {
         id: oh.id.clone(),
@@ -664,7 +664,7 @@ pub(crate) fn messages_to_text_mode_chat(messages: &[Message]) -> Vec<ChatMessag
     out
 }
 
-/// Convert a harness [`TaToolCall`] into an openhuman [`ToolCall`].
+/// Convert a harness [`TaToolCall`] into an openhuman [`NativeToolCall`].
 ///
 /// The harness models arguments as parsed JSON; openhuman carries them as the
 /// raw JSON string the provider emitted, so we re-serialize.
