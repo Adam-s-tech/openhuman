@@ -64,7 +64,8 @@ async fn the_ranker_ranks_through_the_provider_and_keys_its_cache_by_signature()
         .await
         .unwrap();
     assert_eq!(hits[0].key, "SLACK_SEND_MESSAGE");
-    let on_disk: serde_json::Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+    let on_disk: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
     assert_eq!(on_disk["signature"], "provider=bag;model=bag-v1;dims=3");
 }
 
