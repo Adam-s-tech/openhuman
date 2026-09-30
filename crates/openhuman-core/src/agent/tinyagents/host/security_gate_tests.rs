@@ -473,7 +473,12 @@ fn a_refused_approval_is_a_deny_the_model_can_read() {
         let reason = decision
             .denial_reason()
             .expect("a refused approval carries a reason for the model");
-        assert!(reason.starts_with(crate::security::POLICY_DENIED_MARKER));
+        // A policy-class failure pauses the turn before the model can reply.
+        assert_eq!(
+            crate::tools::status::classify(reason, false).class,
+            crate::tools::status::ToolFailureClass::Unknown,
+            "{reason}"
+        );
         assert!(reason.contains("must not be performed"), "{reason}");
         assert!(reason.contains("another way"), "{reason}");
         let lower = reason.to_lowercase();

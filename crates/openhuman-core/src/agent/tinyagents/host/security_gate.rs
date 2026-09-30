@@ -90,7 +90,6 @@ use crate::security::policy::{CommandClass, GateDecision as PolicyGateDecision, 
 use crate::security::prompt_injection::{
     enforce_prompt_input, PromptEnforcementAction, PromptEnforcementContext,
 };
-use crate::security::POLICY_DENIED_MARKER;
 use crate::tools::agent_policy::{ToolPolicyAction, ToolPolicySession};
 use tinytools::{PermissionLevel, Tool};
 
@@ -368,6 +367,12 @@ impl OpenHumanSecurityGate {
 /// refusal reads the same — and rules out other routes explicitly, because
 /// `shell` never prompts while autonomy is disabled (`[autonomy] enabled =
 /// false`, the default) and was used to redo a refused call.
+///
+/// The text carries no `[policy-denied]` marker on purpose. The marker
+/// classifies as a policy failure with a zero recovery budget
+/// (`middleware::repeated_failure`), which pauses the turn before the model can
+/// answer. The model must get this turn to tell the user the action was not
+/// done, as it did with the harness's unmarked fallback text.
 fn decision_for_outcome(tool_name: &str, outcome: GateOutcome) -> GateDecision {
     match outcome {
         GateOutcome::Allow => GateDecision::Prompted { approved: true },
@@ -378,11 +383,11 @@ fn decision_for_outcome(tool_name: &str, outcome: GateOutcome) -> GateDecision {
                 reason = %reason,
                 "[tinyagents::host::security] approval flow declined the tool call"
             );
-            GateDecision::deny(format!(
-                "{POLICY_DENIED_MARKER} This action was refused and must not be performed this \
-                 turn — do not retry this call and do not achieve the same result another way \
-                 (shell, CLI, another tool). Tell the user it was not done."
-            ))
+            GateDecision::deny(
+                "This action was refused and must not be performed this turn — do not retry this \
+                 call and do not achieve the same result another way (shell, CLI, another tool). \
+                 Tell the user it was not done.",
+            )
         }
     }
 }
