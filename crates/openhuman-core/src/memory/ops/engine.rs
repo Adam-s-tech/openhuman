@@ -295,21 +295,29 @@ pub fn classify_engine_message(message: &str) -> String {
     {
         return message.to_string();
     }
+    // The backend's billing code is a verdict on this account wherever it is
+    // quoted, and saying so signs no one out.
     if message.contains("USER_INSUFFICIENT_CREDITS") {
         return format!("{INSUFFICIENT_CREDITS_PREFIX} the memory engine is out of credits");
     }
     // Only the error's own class decides, never a class quoted in its detail.
     let class = memory_error_class(message);
-    let forbidden = match class {
-        Some((class, detail)) => class == "unauthorized: " && is_forbidden(detail),
-        // No class tag: a bare adapter message, whose first status is its own.
-        None => is_forbidden(message),
+    // An auth refusal of the error's own: its class is `unauthorized: `, or it
+    // has no class tag (a bare adapter message, whose first status is its own).
+    let own_auth_detail = match class {
+        Some(("unauthorized: ", detail)) => Some(detail),
+        Some(_) => None,
+        None => Some(message),
     };
-    if forbidden {
+    if own_auth_detail.is_some_and(is_forbidden) {
         return format!("{MEMORY_FORBIDDEN_PREFIX} the memory engine refused this credential");
     }
+    // A lapsed session signs the user out, so the hosted `[UNAUTHORIZED]`
+    // code counts only as the error's own: quoted by an outage (the backend
+    // relaying its upstream's 401 as a 503, say) it is not this user's
+    // session. OpenHuman's own `SESSION_EXPIRED:` marker counts wherever it is.
     if message.contains(SESSION_EXPIRED_PREFIX)
-        || message.contains("[UNAUTHORIZED]")
+        || (own_auth_detail.is_some() && message.contains("[UNAUTHORIZED]"))
         || (message.starts_with("unauthorized:") && message.contains("re-authenticate"))
     {
         return format!("{SESSION_EXPIRED_PREFIX} no TinyHumans session");

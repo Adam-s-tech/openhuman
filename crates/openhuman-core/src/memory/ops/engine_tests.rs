@@ -240,6 +240,36 @@ fn a_class_quoted_in_another_errors_detail_does_not_decide_it() {
 }
 
 #[test]
+fn an_auth_code_quoted_by_another_class_does_not_sign_the_user_out() {
+    // The backend relaying its own upstream's 401 as a 503 is an outage, not
+    // this user's lapsed session.
+    for outage in [
+        "unavailable: upstream returned [UNAUTHORIZED]",
+        "unavailable: [UNAUTHORIZED] memory API memory/recall on host (HTTP 503 Service \
+         Unavailable): memory service token rejected",
+    ] {
+        let classified = classify_engine_message(outage);
+        assert!(
+            classified.starts_with(MEMORY_UNREACHABLE_PREFIX),
+            "{outage} -> {classified}"
+        );
+    }
+    let invalid = "invalid input: upstream said [UNAUTHORIZED]";
+    assert_eq!(classify_engine_message(invalid), invalid);
+    // Two markers count wherever they are quoted: OpenHuman's own
+    // `SESSION_EXPIRED:` (the session is gone, whatever wrapped that) and the
+    // backend's billing code (a verdict on this account).
+    let session = classify_engine_message("backend failed: SESSION_EXPIRED: no TinyHumans session");
+    assert!(session.starts_with(SESSION_EXPIRED_PREFIX), "{session}");
+    let credits =
+        classify_engine_message("backend failed: [USER_INSUFFICIENT_CREDITS] out of credits");
+    assert!(
+        credits.starts_with(INSUFFICIENT_CREDITS_PREFIX),
+        "{credits}"
+    );
+}
+
+#[test]
 fn an_engine_that_cannot_serve_now_is_unreachable() {
     for error in [
         MemoryError::Unavailable("[RATE_LIMITED] memory API memory/recall (HTTP 429)".into()),
