@@ -3905,6 +3905,7 @@ dependencies = [
  "tinyagents-registry",
  "tinyagents-runtime",
  "tinyagents-session",
+ "tinybox-jail",
  "tinybus",
  "tinychannels",
  "tinychannels-bus",
@@ -6292,6 +6293,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "tinybox-jail"
+version = "0.1.8"
+dependencies = [
+ "landlock",
+ "log",
+ "serde",
+ "serde_json",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
 name = "tinybus"
 version = "0.1.2"
 dependencies = [
@@ -6444,8 +6456,10 @@ dependencies = [
 name = "tinyflows-catalog"
 version = "0.1.0"
 dependencies = [
+ "hex",
  "serde",
  "serde_json",
+ "sha2 0.11.0",
  "tinyflows",
  "tokio-util",
  "tracing",
