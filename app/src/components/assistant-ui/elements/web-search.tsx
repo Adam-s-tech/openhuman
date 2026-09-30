@@ -85,27 +85,27 @@ export function WebSearch({
       {shown.length > 0 ? (
         <div data-slot="web-search-results" className="flex flex-col">
           {shown.map(result => {
-          const content = (
-            <>
-              <span className="bg-foreground/[0.06] text-foreground/45 flex size-4 shrink-0 items-center justify-center rounded text-[9px] font-medium">
-                {result.domain.charAt(0).toUpperCase()}
+            const content = (
+              <>
+                <span className="bg-foreground/[0.06] text-foreground/45 flex size-4 shrink-0 items-center justify-center rounded text-[9px] font-medium">
+                  {result.domain.charAt(0).toUpperCase()}
+                </span>
+                <span className="text-foreground/90 min-w-0 flex-1 truncate text-[13.5px]">
+                  {result.title}
+                </span>
+                <span className={cn(mono, 'text-foreground/35 shrink-0')}>{result.domain}</span>
+              </>
+            );
+            const key = `${cycle}-${result.url ?? result.domain}-${result.title}`;
+            return result.url && renderLink ? (
+              <span key={key} data-slot="web-search-result" className="contents">
+                {renderLink({ href: result.url, className: rowClass, children: content })}
               </span>
-              <span className="text-foreground/90 min-w-0 flex-1 truncate text-[13.5px]">
-                {result.title}
-              </span>
-              <span className={cn(mono, 'text-foreground/35 shrink-0')}>{result.domain}</span>
-            </>
-          );
-          const key = `${cycle}-${result.url ?? result.domain}-${result.title}`;
-          return result.url && renderLink ? (
-            <span key={key} data-slot="web-search-result" className="contents">
-              {renderLink({ href: result.url, className: rowClass, children: content })}
-            </span>
-          ) : (
-            <div key={key} data-slot="web-search-result" className={rowClass}>
-              {content}
-            </div>
-          );
+            ) : (
+              <div key={key} data-slot="web-search-result" className={rowClass}>
+                {content}
+              </div>
+            );
           })}
         </div>
       ) : null}
