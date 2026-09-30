@@ -122,10 +122,11 @@ fn admit_refuses_untrusted_external_driver() {
     );
 }
 
+#[cfg(not(feature = "memory-remote"))]
 #[test]
-fn admit_refuses_trusted_external_driver_until_transport_exists() {
+fn admit_refuses_trusted_external_driver_when_memory_remote_is_off() {
     let cfg = external_driver_cfg("trusted");
-    let refusal = admit(&cfg).expect_err("no external transport exists yet");
+    let refusal = admit(&cfg).expect_err("no external transport without memory-remote");
     assert!(
         refusal.reason.contains("transport"),
         "refusal must name the missing transport: {}",
@@ -136,6 +137,79 @@ fn admit_refuses_trusted_external_driver_until_transport_exists() {
         "a trusted driver must not be refused for trust: {}",
         refusal.reason
     );
+}
+
+#[cfg(not(feature = "memory-remote"))]
+#[test]
+fn admit_refuses_the_hosted_engine_when_memory_remote_is_off() {
+    let cfg = MemorySubsystemConfig {
+        driver: "tinyhumans".into(),
+        ..Default::default()
+    };
+    let refusal = admit(&cfg).expect_err("no hosted engine without memory-remote");
+    assert!(
+        refusal.reason.contains("not built in"),
+        "{}",
+        refusal.reason
+    );
+}
+
+#[cfg(feature = "memory-remote")]
+#[test]
+fn admit_admits_a_trusted_external_engine_the_factory_knows() {
+    let (id, class) = admit(&external_driver_cfg("trusted")).expect("trusted supermemory admits");
+    assert_eq!(id, "supermemory");
+    assert_eq!(class, DriverClass::External);
+}
+
+#[cfg(feature = "memory-remote")]
+#[test]
+fn admit_refuses_a_trusted_external_id_the_factory_does_not_know() {
+    let mut cfg = external_driver_cfg("trusted");
+    cfg.driver = "not-an-engine".into();
+    let entry = cfg.drivers.remove("supermemory").unwrap();
+    cfg.drivers.insert("not-an-engine".into(), entry);
+    let refusal = admit(&cfg).expect_err("an id the factory cannot build must be refused");
+    assert!(
+        refusal.reason.contains("not an engine this build can bind"),
+        "{}",
+        refusal.reason
+    );
+    assert!(
+        !refusal.reason.contains("trust_state"),
+        "{}",
+        refusal.reason
+    );
+}
+
+#[cfg(feature = "memory-remote")]
+#[test]
+fn admit_admits_the_hosted_engine_without_a_drivers_entry() {
+    let cfg = MemorySubsystemConfig {
+        driver: "tinyhumans".into(),
+        ..Default::default()
+    };
+    let (id, class) = admit(&cfg).expect("tinyhumans is first-party");
+    assert_eq!(id, "tinyhumans");
+    assert_eq!(class, DriverClass::External);
+}
+
+#[cfg(feature = "memory-remote")]
+#[test]
+fn admit_trusts_the_hosted_engine_implicitly_even_with_an_untrusted_entry() {
+    let mut cfg = external_driver_cfg("untrusted");
+    cfg.driver = "tinyhumans".into();
+    let entry = cfg.drivers.remove("supermemory").unwrap();
+    cfg.drivers.insert("tinyhumans".into(), entry);
+    let (_, class) = admit(&cfg).expect("first-party engines need no trust grant");
+    assert_eq!(class, DriverClass::External);
+}
+
+#[cfg(feature = "memory-remote")]
+#[test]
+fn untrusted_external_engines_stay_refused_with_memory_remote_on() {
+    let refusal = admit(&external_driver_cfg("untrusted")).expect_err("fail closed");
+    assert!(refusal.reason.contains("trust_state"), "{}", refusal.reason);
 }
 
 #[test]
@@ -517,7 +591,7 @@ fn the_module_driver_never_disables_memory() {
 #[test]
 fn a_module_driver_reports_the_null_class_when_the_feature_is_off() {
     let cfg = cfg_with_class("tinymemory", "module");
-    let binding = super::super::build(
+    let binding = crate::memory::binding_build::build(
         std::path::Path::new("/tmp/openhuman-binding-test"),
         "memory",
         &cfg,
@@ -536,7 +610,7 @@ fn a_module_driver_reports_the_module_class_when_the_feature_is_on() {
     // module binding report Null. Construction stays I/O-free, so this needs no
     // runtime and loads nothing.
     let cfg = cfg_with_class("tinymemory", "module");
-    let binding = super::super::build(
+    let binding = crate::memory::binding_build::build(
         std::path::Path::new("/tmp/openhuman-binding-test"),
         "memory",
         &cfg,
