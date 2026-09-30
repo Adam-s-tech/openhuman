@@ -88,7 +88,9 @@ const MemoryDataPanel = ({ embedded = false }: MemoryDataPanelProps = {}) => {
             </div>
           </dl>
         </SettingsSection>
-        <VaultHealthChecklist onToast={addToast} title={t('vaultHealth.setupTitle')} />
+        <MemoryFamilyGate family="tree">
+          <VaultHealthChecklist onToast={addToast} title={t('vaultHealth.setupTitle')} />
+        </MemoryFamilyGate>
         <MemoryWindowControl onError={handleWindowError} onSaved={handleWindowSaved} />
         <MemoryFamilyGate family="tree">
           <MemoryWorkspace onToast={addToast} />
