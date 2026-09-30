@@ -120,12 +120,23 @@ the engine refuses, such as an API key without the memory scope) reads
 `MEMORY_FORBIDDEN:` and never signs the user out, and a timeout, refused
 connection, 429 or 5xx that outlasts the retries reads `MEMORY_UNREACHABLE:`.
 
-Not every engine advertises every capability family. The hosted and CortexDB
-engines have no `documents`, `tree`, `sources` or `graph` families, so the
-document, tree and source RPCs answer a clean "does not support" error on them
-(see the [`memory/driver` README](../../crates/openhuman-core/src/memory/driver/README.md)
-for the full table). Brain's sync panels (activity, history, coding sessions)
-need `sources` and show "Not available" there.
+Not every engine advertises every capability family, and the RPCs of a family
+an engine lacks answer a clean "does not support" error (see the
+[`memory/driver` README](../../crates/openhuman-core/src/memory/driver/README.md)
+for the full table).
+
+- **Hosted engine.** It serves `goals`, `tool_memory`, `documents`, `sources`
+  (the sink connector sync writes to) and `maintenance` (a health report).
+  Connector sync, goals, tool rules and documents work there, and the memory
+  doctor reports the hosted service's health.
+- **Direct CortexDB engine.** It serves none of those.
+- **Neither.** No remote engine serves `tree`, `graph`, `retrieval`,
+  `source_sync` or `coding_sessions`.
+
+Brain's sync panels (activity and history) need `sources`, and its
+coding-sessions card needs `coding_sessions`. Each shows "Not available" on an
+engine without its family, and syncing a local folder source needs
+`source_sync`, so it is refused on hosted memory.
 
 Auto-recall reads the notes a user saved through the mandatory recall on such an
 engine. Hosted CortexDB ranks its recall without scoring it, so its notes cannot

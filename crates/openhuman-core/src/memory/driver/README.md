@@ -47,10 +47,18 @@ and publishes `MemoryDriverChanged`.
 ### What degrades on a remote engine
 
 The remote engines advertise the three mandatory families plus what their
-dialect adds (CortexDB and TinyHumans: document/conversation/learning/event
-ingest and `answer`; Mem0: conversation ingest and graph; Cognee: graph). The
-module-only surfaces (`documents`, `tree`, `sources`, `entities`, `people`,
-`maintenance`, `goals`, `tool_memory`) are absent from those engines. Their RPCs
+dialect adds:
+
+- **CortexDB and TinyHumans:** document, conversation, learning and event
+  ingest, and `answer`.
+- **TinyHumans alone:** `goals`, `tool_memory`, `documents`, `sources` and
+  `maintenance` too (tinymemory's hosted-families spec).
+- **Mem0:** conversation ingest and graph.
+- **Cognee:** graph.
+
+The other module-only surfaces are absent from those engines: `tree`,
+`entities`, `people`, `retrieval`, `source_sync`, `coding_sessions`, and on
+every remote engine but TinyHumans the five above. Their RPCs
 are capability-gated out of the registry when a context is ambient, and answer
 "memory driver does not support the ... family" otherwise. `provider_status`,
 the engine RPCs and the mandatory core/recall RPCs are never gated.
