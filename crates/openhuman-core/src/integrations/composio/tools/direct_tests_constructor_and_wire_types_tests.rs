@@ -28,12 +28,8 @@ async fn direct_client_does_not_forward_credentials_across_redirects() {
     ))
     .await;
 
-    let tool = ComposioTool::new_with_v3_base(
-        "ck_secret_value",
-        None,
-        test_security(),
-        format!("{source}/tools"),
-    );
+    let tool =
+        DirectComposioClient::new_with_v3_base("ck_secret_value", format!("{source}/tools"));
     assert!(tool.list_tool_schemas_v3(&[], None).await.is_err());
     assert!(!redirected_request_seen.load(std::sync::atomic::Ordering::SeqCst));
 }
@@ -67,7 +63,7 @@ fn composio_api_base_url_is_v3() {
 
 #[test]
 fn build_list_tool_schemas_v3_query_always_includes_limit() {
-    let params = ComposioTool::build_list_tool_schemas_v3_query(&[], None);
+    let params = DirectComposioClient::build_list_tool_schemas_v3_query(&[], None);
     assert_eq!(
         params,
         vec![
@@ -79,7 +75,7 @@ fn build_list_tool_schemas_v3_query_always_includes_limit() {
 
 #[test]
 fn build_list_tool_schemas_v3_query_joins_toolkits_as_csv() {
-    let params = ComposioTool::build_list_tool_schemas_v3_query(&["github", "gmail"], None);
+    let params = DirectComposioClient::build_list_tool_schemas_v3_query(&["github", "gmail"], None);
     assert_eq!(
         params,
         vec![
@@ -97,7 +93,7 @@ fn build_list_tool_schemas_v3_query_emits_repeated_tags_params() {
     // A Vec of duplicate ("tags", _) keys is exactly what reqwest's
     // `.query(&params)` serializes into repeated query params.
     let params =
-        ComposioTool::build_list_tool_schemas_v3_query(&["github"], Some(&["stars", "repos"]));
+        DirectComposioClient::build_list_tool_schemas_v3_query(&["github"], Some(&["stars", "repos"]));
     assert_eq!(
         params,
         vec![
@@ -112,7 +108,7 @@ fn build_list_tool_schemas_v3_query_emits_repeated_tags_params() {
 
 #[test]
 fn build_list_tool_schemas_v3_query_tags_without_toolkit_filter() {
-    let params = ComposioTool::build_list_tool_schemas_v3_query(&[], Some(&["readOnlyHint"]));
+    let params = DirectComposioClient::build_list_tool_schemas_v3_query(&[], Some(&["readOnlyHint"]));
     assert_eq!(
         params,
         vec![
@@ -125,7 +121,7 @@ fn build_list_tool_schemas_v3_query_tags_without_toolkit_filter() {
 
 #[test]
 fn build_list_tool_schemas_v3_query_trims_and_drops_blank_entries() {
-    let params = ComposioTool::build_list_tool_schemas_v3_query(
+    let params = DirectComposioClient::build_list_tool_schemas_v3_query(
         &["  github  ", "   "],
         Some(&["  stars  ", "", "   "]),
     );
@@ -143,8 +139,8 @@ fn build_list_tool_schemas_v3_query_trims_and_drops_blank_entries() {
 #[test]
 fn build_list_tool_schemas_v3_query_empty_tags_slice_is_no_filter() {
     // `Some(&[])` and an all-blank slice must both behave like "no tags".
-    let empty = ComposioTool::build_list_tool_schemas_v3_query(&["gmail"], Some(&[]));
-    let blank = ComposioTool::build_list_tool_schemas_v3_query(&["gmail"], Some(&["  "]));
+    let empty = DirectComposioClient::build_list_tool_schemas_v3_query(&["gmail"], Some(&[]));
+    let blank = DirectComposioClient::build_list_tool_schemas_v3_query(&["gmail"], Some(&["  "]));
     let expected = vec![
         ("limit", "200".to_string()),
         ("toolkit_versions", "latest".to_string()),
@@ -160,7 +156,7 @@ fn build_list_tool_schemas_v3_query_pins_toolkit_versions_latest() {
     // 00000000_00 snapshot, so any toolkit published after it (Outlook and
     // every other post-launch toolkit) lists zero tools. `latest` keeps them
     // visible.
-    let params = ComposioTool::build_list_tool_schemas_v3_query(&["outlook"], None);
+    let params = DirectComposioClient::build_list_tool_schemas_v3_query(&["outlook"], None);
     assert!(
         params.contains(&("toolkit_versions", "latest".to_string())),
         "query must pin toolkit_versions=latest; got {params:?}"
@@ -198,7 +194,7 @@ async fn list_tool_schemas_v3_sends_repeated_tags_to_v3_tools_endpoint() {
     );
     let base = start_mock_backend(app).await;
 
-    let tool = ComposioTool::new_with_v3_base("ck_test_direct", None, test_security(), base);
+    let tool = DirectComposioClient::new_with_v3_base("ck_test_direct", None, test_security(), base);
     let items = tool
         .list_tool_schemas_v3(&["github"], Some(&["stars", "repos"]))
         .await
