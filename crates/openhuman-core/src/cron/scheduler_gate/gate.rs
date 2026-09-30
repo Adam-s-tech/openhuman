@@ -13,8 +13,8 @@ use parking_lot::RwLock;
 use tokio::sync::{Notify, OwnedSemaphorePermit, Semaphore};
 
 use crate::config::{Config, SchedulerGateConfig};
-use crate::cron::scheduler_gate::policy::{decide, PauseReason, Policy};
-use crate::cron::scheduler_gate::signals::Signals;
+use crate::cron::scheduler_gate::signals::{self, Signals};
+use tinymemory_api::host::{decide, PauseReason, Policy};
 
 /// Process-wide ceiling on concurrent LLM-bound work.
 ///
@@ -140,7 +140,7 @@ const SAMPLE_INTERVAL: Duration = Duration::from_secs(30);
 pub fn init_global(config: &Config) {
     let cfg = config.scheduler_gate.clone();
     STARTED.call_once(|| {
-        let signals = Signals::sample();
+        let signals = signals::sample();
         let policy = decide(&signals, &cfg);
         log::info!(
             "[scheduler_gate] startup policy={} mode={} on_ac={} charge={:?} cpu={:.1}% server={}",
@@ -163,7 +163,7 @@ pub fn init_global(config: &Config) {
                 tokio::time::sleep(SAMPLE_INTERVAL).await;
                 // Sampling does a brief blocking sleep + sysinfo refresh —
                 // push it off the async runtime.
-                let signals = match tokio::task::spawn_blocking(Signals::sample).await {
+                let signals = match tokio::task::spawn_blocking(signals::sample).await {
                     Ok(s) => s,
                     Err(err) => {
                         log::warn!("[scheduler_gate] sampler join error: {err:#}");
