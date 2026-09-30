@@ -313,15 +313,16 @@ fn the_workflows_pack_is_still_owned_by_the_flow_agents() {
 
 // ── #6302: the MCP and skill hand-offs, and the packs they close ───────────
 
-/// The four hand-offs stay direct tools. See `DELIBERATELY_UNPACKED_HANDOFFS`.
+/// `setup_skills` is a packed hand-off like `build_workflow` and
+/// `manage_tasks`: it rides in the `skills` pack it hands off into, so the
+/// orchestrator reaches it through `use_skill` instead of paying its schema on
+/// every request.
 #[test]
-fn the_mcp_and_skill_hand_offs_are_never_packed() {
-    for name in registry::DELIBERATELY_UNPACKED_HANDOFFS {
-        assert!(
-            registry::pack_for_tool(name).is_none(),
-            "`{name}` is the orchestrator's route into its family and must stay a direct tool"
-        );
-    }
+fn the_skill_install_hand_off_is_packed_in_the_skills_pack() {
+    assert_eq!(
+        registry::pack_for_tool("setup_skills").map(|pack| pack.id),
+        Some("skills")
+    );
 }
 
 /// A pack whose owner this agent can hand off to directly is closed to it
@@ -338,8 +339,11 @@ fn a_direct_hand_off_closes_its_owners_pack_and_nothing_else() {
             tool_description: String::new(),
         })
     };
+    // `hand_off_to_skill_setup` is a hypothetical UNPACKED hand-off to the
+    // skills pack's owner (the real one, `setup_skills`, is packed now; see
+    // `a_packed_hand_off_leaves_its_owners_pack_open`).
     let delegates = vec![
-        delegate("setup_skills", "skill_setup"),
+        delegate("hand_off_to_skill_setup", "skill_setup"),
         delegate("create_image", "image_agent"),
     ];
     let raw = registry_with_all(&[
@@ -353,12 +357,12 @@ fn a_direct_hand_off_closes_its_owners_pack_and_nothing_else() {
         .map(|t| t.as_ref())
         .chain(delegates.iter().map(|t| t.as_ref()))
         .collect();
-    // `setup_skills` is unpacked, so the orchestrator advertises it by
-    // construction; `create_image` is packed.
+    // `hand_off_to_skill_setup` is unpacked, so the orchestrator advertises it
+    // by construction; `create_image` is packed.
     let closed = closed_by_direct_handoff("orchestrator", &tools);
     assert!(
         closed.contains(&"skill_registry_install"),
-        "a raw tool of the pack `setup_skills` hands off to must close: {closed:?}"
+        "a raw tool of the pack an unpacked hand-off leads to must close: {closed:?}"
     );
     assert!(
         !closed.contains(&"media_generate_image"),
@@ -391,6 +395,32 @@ fn a_direct_hand_off_closes_its_owners_pack_and_nothing_else() {
     );
 }
 
+/// The real skill-install hand-off is packed, so it no longer closes the pack:
+/// the `skills` listing offers `setup_skills` beside the raw registry tools,
+/// the shape every other packed hand-off (`build_workflow`, `manage_tasks`)
+/// already has.
+#[test]
+fn a_packed_hand_off_leaves_its_owners_pack_open() {
+    use crate::agent::orchestration::tools::{ArchetypeDelegationTool, DelegationTarget};
+
+    let delegate: Box<dyn tinytools::Tool> = Box::new(ArchetypeDelegationTool {
+        tool_name: "setup_skills".to_string(),
+        agent_id: DelegationTarget("skill_setup".to_string()),
+        tool_description: String::new(),
+    });
+    let raw = registry_with_all(&["skill_registry_install"]);
+    let tools: Vec<&dyn tinytools::Tool> = raw
+        .iter()
+        .map(|t| t.as_ref())
+        .chain(std::iter::once(delegate.as_ref()))
+        .collect();
+    let closed = closed_by_direct_handoff("orchestrator", &tools);
+    assert!(
+        !closed.contains(&"skill_registry_install"),
+        "a packed hand-off must not close its own pack: {closed:?}"
+    );
+}
+
 /// The live session shape, which the rule test above cannot catch.
 ///
 /// This is the regression the first cut shipped (#6302): a `ToolScope::Named`
@@ -412,7 +442,7 @@ fn a_named_scope_session_closes_the_pack_its_visible_list_never_mentions() {
     use crate::tools::agent_policy::ToolPolicyEngine;
 
     let delegate: Box<dyn tinytools::Tool> = Box::new(ArchetypeDelegationTool {
-        tool_name: "setup_skills".to_string(),
+        tool_name: "hand_off_to_skill_setup".to_string(),
         agent_id: DelegationTarget("skill_setup".to_string()),
         tool_description: String::new(),
     });
@@ -450,8 +480,8 @@ fn a_named_scope_session_closes_the_pack_its_visible_list_never_mentions() {
         session
             .decision_for("skill_registry_install")
             .blocks_execution(),
-        "`setup_skills` is unpacked, so the orchestrator advertises it and the \
-         raw registry tool must close — even though `visible` never named it"
+        "an unpacked hand-off is advertised by construction, so the raw \
+         registry tool must close — even though `visible` never named it"
     );
 }
 

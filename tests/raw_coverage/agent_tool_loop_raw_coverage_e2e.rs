@@ -378,6 +378,7 @@ async fn run_bus_turn(
             target_agent_id: Some("orchestrator".to_string()),
             visible_tool_names,
             extra_tools: Vec::new(),
+            deferred_tools: Vec::new(),
             on_progress: None,
             origin: openhuman_core::agent::turn_origin::AgentTurnOrigin::Cli,
         },

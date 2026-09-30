@@ -9,7 +9,9 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use tokio::sync::Mutex;
 
-use super::download::{self, SkillsShRef};
+use tinyskills::SkillsShRef;
+
+use super::download;
 use super::store;
 use super::store::CachedCatalog;
 use super::types::CatalogEntry;
@@ -244,7 +246,13 @@ async fn fetch_catalog_uncached() -> Result<Vec<CatalogEntry>, String> {
         "[skill_registry] parsing catalog"
     );
 
-    let entries: Vec<CatalogEntry> = raw_items.iter().filter_map(parse_hermes_entry).collect();
+    let entries: Vec<CatalogEntry> = {
+        let base = download::download_base_override();
+        raw_items
+            .iter()
+            .filter_map(|item| tinyskills::parse_hermes_entry(item, base.as_deref()))
+            .collect()
+    };
 
     tracing::info!(count = entries.len(), "[skill_registry] catalog indexed");
 
@@ -273,7 +281,7 @@ fn redact_url_for_log(raw: &str) -> String {
 }
 
 pub(crate) fn parse_catalog_json(body: &str) -> Result<Vec<serde_json::Value>, String> {
-    serde_json::from_str(body).map_err(|e| format!("invalid catalog json: {e}"))
+    tinyskills::parse_catalog_json(body).map_err(|e| e.to_string())
 }
 
 /// Search the catalog by query string.
@@ -290,38 +298,9 @@ pub async fn search_catalog(
     );
     // Search/filter must reflect the current catalog — never serve stale.
     let catalog = browse_catalog_fresh().await?;
-    let q = query.to_lowercase();
-
-    let mut filtered: Vec<CatalogEntry> = catalog
-        .into_iter()
-        .filter(|entry| {
-            if let Some(src) = source_filter {
-                if !entry.source.eq_ignore_ascii_case(src) {
-                    return false;
-                }
-            }
-            if let Some(cat) = category_filter {
-                if !entry.category.eq_ignore_ascii_case(cat) {
-                    return false;
-                }
-            }
-            if q.is_empty() {
-                return true;
-            }
-            entry.name.to_lowercase().contains(&q)
-                || entry.description.to_lowercase().contains(&q)
-                || entry.tags.iter().any(|t| t.to_lowercase().contains(&q))
-                || entry.category.to_lowercase().contains(&q)
-                || entry
-                    .author
-                    .as_deref()
-                    .map(|a| a.to_lowercase().contains(&q))
-                    .unwrap_or(false)
-        })
-        .collect();
     // Entries install cannot fetch go last, so find-and-install reaches a
-    // working hit first. The sort is stable: match order is otherwise kept.
-    filtered.sort_by_key(|entry| !entry.has_direct_download());
+    // working hit first (see `tinyskills::filter_catalog`).
+    let filtered = tinyskills::filter_catalog(catalog, query, source_filter, category_filter);
 
     tracing::debug!(
         result_count = filtered.len(),
@@ -385,7 +364,7 @@ pub async fn install_from_catalog(
     // verified one: find where this repo keeps the skill before fetching.
     let url = match entry.source_url.as_deref().and_then(SkillsShRef::parse) {
         Some(skill) if skill.candidate_urls().first() == Some(&entry.download_url) => {
-            skill.resolve().await?
+            download::resolve_skills_sh(&skill).await?
         }
         _ => entry.download_url.clone(),
     };
@@ -414,7 +393,7 @@ pub async fn install_from_catalog(
 
 /// Wall-clock budget for a catalog-driven SKILL.md fetch.
 ///
-/// Deliberately the same 15s as `download::PROBE_TIMEOUT_SECS` — the two bound
+/// Deliberately the same 15s as the skills.sh probe timeout in `download.rs` — the two bound
 /// requests to the same hosts in the same flow, so tuning one without the other
 /// is almost always a mistake. This path used the 60s
 /// `DEFAULT_INSTALL_TIMEOUT_SECS` instead, which is the documented default for
@@ -423,9 +402,6 @@ pub async fn install_from_catalog(
 /// a minute of a disabled button with no reason was the whole of #6409's
 /// reported symptom.
 const CATALOG_INSTALL_TIMEOUT_SECS: u64 = 15;
-
-/// How many alternative ids an install error lists.
-const MAX_SUGGESTED_IDS: usize = 5;
 
 /// Resolve an install request to exactly one catalog entry.
 ///
@@ -436,208 +412,33 @@ pub fn find_catalog_entry<'a>(
     catalog: &'a [CatalogEntry],
     entry_id: &str,
 ) -> Result<&'a CatalogEntry, String> {
-    let entry_id = entry_id.trim();
-    if let Some(entry) = catalog.iter().find(|e| e.id == entry_id) {
-        return Ok(entry);
-    }
-    let named: Vec<&CatalogEntry> = catalog.iter().filter(|e| e.name == entry_id).collect();
-    match named.as_slice() {
-        [entry] => Ok(*entry),
-        [] => {
-            let closest = closest_entry_ids(catalog, entry_id);
+    tinyskills::find_catalog_entry(catalog, entry_id).map_err(|error| match error {
+        tinyskills::CatalogError::NotFound { id, closest } => {
             tracing::debug!(
-                entry_id = %entry_id,
+                entry_id = %id,
                 suggestions = closest.len(),
                 "[skill_registry] install id not in catalog"
             );
-            let hint = if closest.is_empty() {
-                "Use an id returned by skill_registry_search.".to_string()
+            if closest.is_empty() {
+                format!(
+                    "no catalog entry has id '{id}'. Use an id returned by skill_registry_search."
+                )
             } else {
-                format!("Closest ids: {}.", closest.join(", "))
-            };
-            Err(format!("no catalog entry has id '{entry_id}'. {hint}"))
+                format!(
+                    "no catalog entry has id '{id}'. Closest ids: {}.",
+                    closest.join(", ")
+                )
+            }
         }
-        many => Err(format!(
-            "{} catalog entries are named '{entry_id}'; install one by its id, e.g. {}.",
-            many.len(),
-            many.iter()
-                .take(MAX_SUGGESTED_IDS)
-                .map(|e| e.id.as_str())
-                .collect::<Vec<_>>()
-                .join(", ")
-        )),
-    }
-}
-
-/// Ids sharing the most words with `wanted`; installable and shorter ids win ties.
-fn closest_entry_ids(catalog: &[CatalogEntry], wanted: &str) -> Vec<String> {
-    let words: Vec<String> = wanted
-        .split(|c: char| !c.is_alphanumeric())
-        .filter(|w| !w.is_empty())
-        .map(str::to_lowercase)
-        .collect();
-    let mut scored: Vec<(usize, bool, &str)> = catalog
-        .iter()
-        .filter_map(|entry| {
-            let haystack = format!("{} {}", entry.id, entry.name).to_lowercase();
-            let score = words
-                .iter()
-                .filter(|w| haystack.contains(w.as_str()))
-                .count();
-            (score > 0).then_some((score, entry.has_direct_download(), entry.id.as_str()))
-        })
-        .collect();
-    scored.sort_by(|a, b| {
-        b.0.cmp(&a.0)
-            .then(b.1.cmp(&a.1))
-            .then(a.2.len().cmp(&b.2.len()))
-    });
-    scored
-        .into_iter()
-        .take(MAX_SUGGESTED_IDS)
-        .map(|(_, _, id)| id.to_string())
-        .collect()
-}
-
-pub(crate) fn parse_hermes_entry(item: &serde_json::Value) -> Option<CatalogEntry> {
-    let name = item.get("name").and_then(|v| v.as_str())?.to_string();
-
-    let description = item
-        .get("description")
-        .and_then(|v| v.as_str())
-        .unwrap_or("")
-        .to_string();
-
-    let source = item
-        .get("source")
-        .and_then(|v| v.as_str())
-        .unwrap_or("hermes")
-        .to_string();
-
-    let category = item
-        .get("category")
-        .and_then(|v| v.as_str())
-        .unwrap_or("")
-        .to_string();
-
-    let author = item
-        .get("author")
-        .and_then(|v| v.as_str())
-        .map(|s| s.to_string());
-
-    let version = item
-        .get("version")
-        .and_then(|v| v.as_str())
-        .map(|s| s.to_string());
-
-    let license = item
-        .get("license")
-        .and_then(|v| v.as_str())
-        .map(|s| s.to_string());
-
-    let tags = item
-        .get("tags")
-        .and_then(|v| v.as_array())
-        .map(|arr| {
-            arr.iter()
-                .filter_map(|t| t.as_str())
-                .map(str::to_string)
-                .collect()
-        })
-        .unwrap_or_default();
-
-    let platforms = item
-        .get("platforms")
-        .and_then(|v| v.as_array())
-        .map(|arr| {
-            arr.iter()
-                .filter_map(|t| t.as_str())
-                .map(str::to_string)
-                .collect()
-        })
-        .unwrap_or_default();
-
-    let commands = item
-        .get("commands")
-        .and_then(|v| v.as_array())
-        .map(|arr| {
-            arr.iter()
-                .filter_map(|t| t.as_str())
-                .map(str::to_string)
-                .collect()
-        })
-        .unwrap_or_default();
-
-    let env_vars = item
-        .get("envVars")
-        .and_then(|v| v.as_array())
-        .map(|arr| {
-            arr.iter()
-                .filter_map(|t| t.as_str())
-                .map(str::to_string)
-                .collect()
-        })
-        .unwrap_or_default();
-
-    let docs_path = item
-        .get("docsPath")
-        .and_then(|v| v.as_str())
-        .filter(|s| !s.is_empty())
-        .map(|s| s.to_string());
-
-    let source_url = item
-        .get("sourceUrl")
-        .and_then(|v| v.as_str())
-        .filter(|s| !s.is_empty())
-        .map(|s| s.to_string());
-
-    let identifier = item
-        .get("identifier")
-        .and_then(|v| v.as_str())
-        .map(str::trim)
-        .filter(|s| !s.is_empty());
-
-    let download_url = download::derive_download_url(
-        &source,
-        identifier,
-        &name,
-        docs_path.as_deref(),
-        source_url.as_deref(),
-    );
-
-    Some(CatalogEntry {
-        id: catalog_entry_id(&source, identifier, &name),
-        name,
-        description,
-        source,
-        category,
-        author,
-        version,
-        tags,
-        platforms,
-        download_url,
-        source_url,
-        docs_path,
-        commands,
-        env_vars,
-        license,
+        other => other.to_string(),
     })
 }
 
-/// Stable, unique entry id.
-///
-/// Hermes publishes a unique `identifier` per entry. Most are already
-/// source-qualified paths (`skills-sh/o/r/s`, `lobehub/x`, `owner/repo/path`),
-/// but ClawHub's is a bare slug that can equal another source's skill name, so
-/// a bare identifier is prefixed with its source. Bundled and optional Hermes
-/// skills carry no identifier; their names are unique among themselves and
-/// contain no `/`, so they cannot collide with a qualified id.
-fn catalog_entry_id(source: &str, identifier: Option<&str>, name: &str) -> String {
-    match identifier {
-        Some(identifier) if identifier.contains('/') => identifier.to_string(),
-        Some(slug) => format!("{}/{slug}", source.to_ascii_lowercase()),
-        None => name.to_string(),
-    }
+/// Index one raw Hermes catalog item, honouring the download-base test
+/// override (`OPENHUMAN_SKILL_REGISTRY_DOWNLOAD_BASE_URL`).
+pub(crate) fn parse_hermes_entry(item: &serde_json::Value) -> Option<CatalogEntry> {
+    let base = download::download_base_override();
+    tinyskills::parse_hermes_entry(item, base.as_deref())
 }
 
 #[cfg(test)]

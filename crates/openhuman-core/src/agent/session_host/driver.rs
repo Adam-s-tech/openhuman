@@ -32,7 +32,6 @@ pub struct OpenHumanSessionDriver {
     model_name: String,
     temperature: f64,
     max_iterations: usize,
-    max_history_messages: usize,
     model_vision: bool,
     run_queue:
         Option<Arc<tinyagents_harness::run_queue::RunQueue<crate::agent::queued_turn::QueuedTurn>>>,
@@ -50,7 +49,6 @@ impl OpenHumanSessionDriver {
         model_name: String,
         temperature: f64,
         max_iterations: usize,
-        max_history_messages: usize,
         model_vision: bool,
         run_queue: Option<
             Arc<tinyagents_harness::run_queue::RunQueue<crate::agent::queued_turn::QueuedTurn>>,
@@ -66,7 +64,6 @@ impl OpenHumanSessionDriver {
             model_name,
             temperature,
             max_iterations,
-            max_history_messages,
             model_vision,
             run_queue,
             workspace,
@@ -357,7 +354,6 @@ impl SessionDriver<OpenHumanRunContext> for OpenHumanSessionDriver {
             }
             history.push(Message::assistant(output.clone()));
         }
-        trim_history(&mut history, self.max_history_messages);
 
         // This is deliberately an out-of-band observation rather than a
         // second history or transcript.  The runtime only reads it from
@@ -421,26 +417,6 @@ impl SessionDriver<OpenHumanRunContext> for OpenHumanSessionDriver {
             partial: None,
             interrupted: outcome.early_exit_tool.is_some() || outcome.hit_cap,
         })
-    }
-}
-
-/// Preserve the stable system prefix while bounding durable conversational
-/// history.  The runtime owns history replacement, so this must happen before
-/// its successful `DriverOutcome` is committed.
-///
-/// The cut never splits an assistant tool-call turn from its results (#6721):
-/// a history opening on an orphaned `tool` message is rejected by the provider
-/// on every later turn. `find_safe_cutoff_point` moves the cut back to keep the
-/// owning assistant turn (so the bound may be exceeded by one tool group).
-fn trim_history(history: &mut Vec<Message>, max_history_messages: usize) {
-    let prefix_len = system_prefix_len(history);
-    let retained = history.len().saturating_sub(prefix_len);
-    if retained > max_history_messages {
-        let cut = tinyagents_harness::summarization::find_safe_cutoff_point(
-            &history[prefix_len..],
-            retained - max_history_messages,
-        );
-        history.drain(prefix_len..prefix_len + cut);
     }
 }
 

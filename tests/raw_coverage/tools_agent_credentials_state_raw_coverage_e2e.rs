@@ -408,6 +408,7 @@ fn agent_definition(id: &str, max_result_chars: Option<usize>) -> AgentDefinitio
         disallowed_tools: Vec::new(),
         skill_filter: None,
         extra_tools: Vec::new(),
+        deferred_tools: Vec::new(),
         max_iterations: 2,
         iteration_policy: Default::default(),
         max_result_chars,

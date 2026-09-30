@@ -162,7 +162,7 @@ fn schema_is_the_claude_shape() {
     let desc = tool.description();
     assert!(desc.contains("3+ steps"), "missing when-to-use guidance");
     assert!(
-        desc.contains("one `in_progress`"),
+        desc.contains("one item `in_progress`"),
         "missing single-in_progress rule"
     );
     assert!(
