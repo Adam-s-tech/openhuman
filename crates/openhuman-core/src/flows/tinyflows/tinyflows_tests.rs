@@ -23,7 +23,7 @@ use std::sync::Arc;
 
 use serde_json::json;
 use tempfile::TempDir;
-use tinyflows::caps::{CodeLanguage, CodeRunner, HttpClient, StateStore, ToolInvoker};
+use tinyflows::caps::{CodeLanguage, CodeRunner, HttpClient, ToolInvoker};
 use tinyflows::model::{Edge, Node, NodeKind, WorkflowGraph};
 
 use crate::config::Config;
