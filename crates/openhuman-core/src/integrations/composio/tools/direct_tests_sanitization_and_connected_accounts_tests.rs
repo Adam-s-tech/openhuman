@@ -42,89 +42,9 @@ fn sanitize_error_message_replaces_all_sensitive_variants() {
 
 // ── composio_auth_config enabled detection ────────────────────────────────
 
-#[test]
-fn auth_config_enabled_by_flag() {
-    let cfg = ComposioAuthConfig {
-        id: "cfg_x".into(),
-        status: None,
-        enabled: Some(true),
-    };
-    assert!(cfg.is_enabled());
-}
-
-#[test]
-fn auth_config_not_enabled_when_both_missing() {
-    let cfg = ComposioAuthConfig {
-        id: "cfg_x".into(),
-        status: None,
-        enabled: None,
-    };
-    assert!(!cfg.is_enabled());
-}
-
 // ── map_v3_tools_to_actions: item without slug falls back to name ─────────
 
-#[test]
-fn map_v3_tools_uses_name_when_slug_missing() {
-    let items = vec![ComposioV3Tool {
-        slug: None,
-        name: Some("My Tool".into()),
-        description: None,
-        app_name: Some("myapp".into()),
-        toolkit: None,
-        input_parameters: None,
-        output_parameters: None,
-    }];
-    let actions = map_v3_tools_to_actions(items);
-    assert_eq!(actions.len(), 1);
-    assert_eq!(actions[0].name, "My Tool");
-    assert_eq!(actions[0].app_name.as_deref(), Some("myapp"));
-}
-
-#[test]
-fn map_v3_tools_skips_items_without_slug_or_name() {
-    let items = vec![ComposioV3Tool {
-        slug: None,
-        name: None,
-        description: Some("desc".into()),
-        app_name: None,
-        toolkit: None,
-        input_parameters: None,
-        output_parameters: None,
-    }];
-    let actions = map_v3_tools_to_actions(items);
-    assert!(
-        actions.is_empty(),
-        "item with no slug or name should be filtered out"
-    );
-}
-
-#[test]
-fn map_v3_tools_prefers_toolkit_slug_over_app_name() {
-    let items = vec![ComposioV3Tool {
-        slug: Some("tool-slug".into()),
-        name: None,
-        description: None,
-        app_name: Some("fallback-app".into()),
-        toolkit: Some(ComposioToolkitRef {
-            slug: Some("preferred-app".into()),
-            name: None,
-        }),
-        input_parameters: None,
-        output_parameters: None,
-    }];
-    let actions = map_v3_tools_to_actions(items);
-    assert_eq!(actions[0].app_name.as_deref(), Some("preferred-app"));
-}
-
 // ── category ──────────────────────────────────────────────────────────────
-
-#[test]
-fn composio_tool_category_is_skill() {
-    use tinytools::ToolCategory;
-    let tool = ComposioTool::new("key", None, test_security());
-    assert_eq!(tool.category(), ToolCategory::Workflow);
-}
 
 // ── v3 /connected_accounts shape parsing ───────────────────────────
 //
@@ -212,30 +132,30 @@ fn connected_account_accepts_camelcase_created_at() {
 // whitespace so legitimate keys containing spaces are not corrupted.
 
 #[test]
-fn composio_tool_trims_surrounding_whitespace_in_api_key() {
-    let tool = ComposioTool::new(" key123 ", None, test_security());
+fn direct_client_trims_surrounding_whitespace_in_api_key() {
+    let tool = DirectComposioClient::new(" key123 ");
     assert_eq!(tool.api_key, "key123");
 }
 
 #[test]
-fn composio_tool_trims_trailing_newline_in_api_key() {
+fn direct_client_trims_trailing_newline_in_api_key() {
     // The real-world Sentry case: secret store payloads frequently carry a
     // trailing newline (clipboard paste, file read). It must be stripped.
-    let tool = ComposioTool::new("key123\n", None, test_security());
+    let tool = DirectComposioClient::new("key123\n");
     assert_eq!(tool.api_key, "key123");
 }
 
 #[test]
-fn composio_tool_preserves_internal_whitespace_in_api_key() {
+fn direct_client_preserves_internal_whitespace_in_api_key() {
     // Pins the trim-scope: a future refactor must NOT widen this to
     // `replace(' ', "")` or similar — only surrounding whitespace is stripped.
-    let tool = ComposioTool::new("k1 k2", None, test_security());
+    let tool = DirectComposioClient::new("k1 k2");
     assert_eq!(tool.api_key, "k1 k2");
 }
 
 #[test]
-fn composio_tool_accepts_empty_api_key_without_panic() {
-    let tool = ComposioTool::new("", None, test_security());
+fn direct_client_accepts_empty_api_key_without_panic() {
+    let tool = DirectComposioClient::new("");
     assert_eq!(tool.api_key, "");
 }
 

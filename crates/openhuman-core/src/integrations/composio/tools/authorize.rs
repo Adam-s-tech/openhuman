@@ -10,10 +10,12 @@ use super::redact::redact_composio_outcome;
 use crate::config::Config;
 use tinytools::{PermissionLevel, Tool, ToolCategory, ToolResult};
 
-use super::super::client::{create_composio_client, ComposioClientKind};
+use super::super::client::{resolve_composio_route, ComposioRoute};
+use super::super::module_client::{self as connectors, methods};
+use super::super::types::{ComposioAuthorizeRequest, ComposioAuthorizeResponse};
 
 pub struct ComposioAuthorizeTool {
-    /// Held instead of a pre-baked `ComposioClient` so the
+    /// Held instead of a pre-resolved route so the
     /// [`crate::config::ComposioConfig::mode`] toggle is
     /// honoured on every call (#1710).
     config: Arc<Config>,
@@ -89,12 +91,11 @@ impl ComposioAuthorizeTool {
                 )));
             }
         };
-        let client = match create_composio_client(&live_config) {
-            Ok(ComposioClientKind::Backend(client)) => {
+        match resolve_composio_route(&live_config) {
+            Ok(ComposioRoute::Backend) => {
                 tracing::debug!("[composio] authorize.execute: backend variant");
-                client
             }
-            Ok(ComposioClientKind::Direct(_)) => {
+            Ok(ComposioRoute::Direct(_)) => {
                 tracing::info!(
                     toolkit = %toolkit,
                     "[composio-direct] authorize.execute: direct mode active — \
@@ -111,7 +112,17 @@ impl ComposioAuthorizeTool {
                 return Ok(ToolResult::error(format!("composio_authorize failed: {e}")));
             }
         };
-        match client.authorize(&toolkit, None).await {
+        let request = ComposioAuthorizeRequest {
+            toolkit: toolkit.clone(),
+            extra_params: None,
+        };
+        match connectors::call::<_, ComposioAuthorizeResponse>(
+            &live_config,
+            methods::AUTHORIZE,
+            request,
+        )
+        .await
+        {
             Ok(resp) => {
                 crate::core::bus::BUS.publish(
                     crate::core::events::DomainEvent::ComposioConnectionCreated {

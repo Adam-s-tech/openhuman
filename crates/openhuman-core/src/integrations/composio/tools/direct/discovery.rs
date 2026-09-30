@@ -1,90 +1,18 @@
-//! Action/tool listing: `list_actions` (legacy flattened shape, v3-with-v2-fallback)
-//! and `list_tool_schemas_v3` (full v3 schema, used by direct-mode
-//! `composio_list_tools`), plus the wire types they decode into.
+//! Tool-schema listing for the direct route: `list_tool_schemas_v3` (the full
+//! v3 schema, used by the direct-mode tool catalog) plus the wire types it
+//! decodes into.
 
 use super::http_errors::response_error;
-use super::types::ComposioTool;
+use super::types::DirectComposioClient;
 use anyhow::Context;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
-impl ComposioTool {
-    /// List available Composio apps/actions for the authenticated user.
-    ///
-    /// Uses v3 endpoint first and falls back to v2 for compatibility.
-    pub async fn list_actions(
-        &self,
-        app_name: Option<&str>,
-    ) -> anyhow::Result<Vec<ComposioAction>> {
-        match self.list_actions_v3(app_name).await {
-            Ok(items) => Ok(items),
-            Err(v3_err) => {
-                let v2 = self.list_actions_v2(app_name).await;
-                match v2 {
-                    Ok(items) => Ok(items),
-                    Err(v2_err) => anyhow::bail!(
-                        "Composio action listing failed on v3 ({v3_err}) and v2 fallback ({v2_err})"
-                    ),
-                }
-            }
-        }
-    }
-
-    async fn list_actions_v3(&self, app_name: Option<&str>) -> anyhow::Result<Vec<ComposioAction>> {
-        let url = format!("{}/tools", self.base_v3);
-        let mut req = self.client().get(&url).header("x-api-key", &self.api_key);
-
-        // #3932: pin toolkit_versions=latest. Composio v3 otherwise defaults to
-        // the 00000000_00 snapshot, which lists zero tools for any toolkit
-        // published after it (Outlook and every other post-launch toolkit).
-        req = req.query(&[("limit", "200"), ("toolkit_versions", "latest")]);
-        if let Some(app) = app_name.map(str::trim).filter(|app| !app.is_empty()) {
-            req = req.query(&[("toolkits", app), ("toolkit_slug", app)]);
-        }
-
-        let resp = req.send().await?;
-        if !resp.status().is_success() {
-            let err = response_error(resp).await;
-            anyhow::bail!("Composio v3 API error: {err}");
-        }
-
-        let body: ComposioToolsResponse = resp
-            .json()
-            .await
-            .context("Failed to decode Composio v3 tools response")?;
-        Ok(map_v3_tools_to_actions(body.items))
-    }
-
-    async fn list_actions_v2(&self, app_name: Option<&str>) -> anyhow::Result<Vec<ComposioAction>> {
-        let mut url = format!("{}/actions", self.base_v2);
-        if let Some(app) = app_name {
-            url = format!("{url}?appNames={app}");
-        }
-
-        let resp = self
-            .client()
-            .get(&url)
-            .header("x-api-key", &self.api_key)
-            .send()
-            .await?;
-
-        if !resp.status().is_success() {
-            let err = response_error(resp).await;
-            anyhow::bail!("Composio v2 API error: {err}");
-        }
-
-        let body: ComposioActionsResponse = resp
-            .json()
-            .await
-            .context("Failed to decode Composio v2 actions response")?;
-        Ok(body.items)
-    }
-
+impl DirectComposioClient {
     /// Build the query-parameter pairs for the Composio v3 `GET /tools`
     /// listing used by [`Self::list_tool_schemas_v3`].
     ///
     /// `toolkits` is sent as a single comma-joined `toolkits=` param (the
-    /// legacy plural the v3 backend tolerates; cf. `list_actions_v3` which
-    /// sends both the plural and `toolkit_slug` singular forms). `tags` is
+    /// legacy plural the v3 backend tolerates). `tags` is
     /// encoded as **repeated** `tags=` params (`tags=a&tags=b`) — the shape
     /// Composio v3 `/tools` documents for tag filtering ("can be specified
     /// multiple times"), NOT the comma-joined form the backend proxy uses.
@@ -92,7 +20,7 @@ impl ComposioTool {
     /// no `tags` params (treated as no filter).
     ///
     /// Pure (no I/O) so the param shape is unit-testable without a live
-    /// HTTP round trip — mirrors [`Self::build_execute_action_v3_request`].
+    /// HTTP round trip.
     pub(super) fn build_list_tool_schemas_v3_query(
         toolkits: &[&str],
         tags: Option<&[&str]>,
@@ -126,12 +54,8 @@ impl ComposioTool {
     /// List v3 tool definitions for one or more toolkits, preserving the
     /// raw `input_parameters` JSON schema each action carries.
     ///
-    /// Sibling of [`Self::list_actions`] but kept distinct because
-    /// `list_actions` flattens to `Vec<ComposioAction>` (no parameters)
-    /// for the legacy agent-discovery shape, whereas
-    /// `composio_list_tools`'s direct-mode branch needs the full schema
-    /// so the LLM agent can supply valid arguments without a separate
-    /// round trip.
+    /// Preserves the full schema so the LLM agent can supply valid arguments
+    /// without a separate round trip.
     ///
     /// `toolkits` may contain one or many slugs; when non-empty they are
     /// sent as a comma-separated `toolkits=` filter to constrain the v3
@@ -142,8 +66,7 @@ impl ComposioTool {
     /// `tags` narrows the result by Composio action tag (OR semantics —
     /// multiple tags broaden the result). This is the direct-mode (BYO
     /// key) counterpart to the backend proxy's `tags` query param wired
-    /// in [`crate::integrations::composio::client::ComposioClient::list_tools`];
-    /// without it a self-key user's `composio_list_tools(..., tags)`
+    /// in the connector module's proxy route; without it a self-key user's `composio_list_tools(..., tags)`
     /// request would silently drop the tag filter. Blank/empty `tags`
     /// are treated as no filter.
     pub(crate) async fn list_tool_schemas_v3(
@@ -180,33 +103,6 @@ impl ComposioTool {
             .map(ComposioToolSchemaV3::from_v3_tool)
             .collect())
     }
-}
-
-pub(super) fn map_v3_tools_to_actions(items: Vec<ComposioV3Tool>) -> Vec<ComposioAction> {
-    items
-        .into_iter()
-        .filter_map(|item| {
-            let name = item.slug.or(item.name.clone())?;
-            let app_name = item
-                .toolkit
-                .as_ref()
-                .and_then(|toolkit| toolkit.slug.clone().or(toolkit.name.clone()))
-                .or(item.app_name);
-            let description = item.description.or(item.name);
-            Some(ComposioAction {
-                name,
-                app_name,
-                description,
-                enabled: true,
-            })
-        })
-        .collect()
-}
-
-#[derive(Debug, Deserialize)]
-pub(super) struct ComposioActionsResponse {
-    #[serde(default)]
-    pub(super) items: Vec<ComposioAction>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -251,16 +147,6 @@ pub(super) struct ComposioToolkitRef {
     pub(super) slug: Option<String>,
     #[serde(default)]
     pub(super) name: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ComposioAction {
-    pub name: String,
-    #[serde(rename = "appName")]
-    pub app_name: Option<String>,
-    pub description: Option<String>,
-    #[serde(default)]
-    pub enabled: bool,
 }
 
 /// Direct-mode tool definition lifted from Composio v3 `/tools`.

@@ -10,10 +10,12 @@ use super::redact::{redact_and_report, redact_composio_outcome};
 use crate::config::Config;
 use tinytools::{PermissionLevel, Tool, ToolCategory, ToolResult};
 
-use super::super::client::{create_composio_client, direct_list_connections, ComposioClientKind};
+use super::super::client::{direct_list_connections, resolve_composio_route, ComposioRoute};
+use super::super::module_client::{self as connectors, methods};
+use super::super::types::ComposioConnectionsResponse;
 
 pub struct ComposioListConnectionsTool {
-    /// Held instead of a pre-baked `ComposioClient` so the
+    /// Held instead of a pre-resolved route so the
     /// [`crate::config::ComposioConfig::mode`] toggle is
     /// honoured on every call (#1710).
     config: Arc<Config>,
@@ -82,19 +84,21 @@ impl ComposioListConnectionsTool {
                 );
             }
         };
-        let mut resp = match create_composio_client(&live_config) {
-            Ok(ComposioClientKind::Backend(client)) => {
+        let mut resp = match resolve_composio_route(&live_config) {
+            Ok(ComposioRoute::Backend) => {
                 tracing::debug!("[composio] list_connections.execute: backend variant");
-                match client
-                    .list_connections()
-                    .await
-                    .map_err(|e| anyhow::anyhow!("composio_list_connections (backend) failed: {e}"))
+                match connectors::call_bare::<ComposioConnectionsResponse>(
+                    &live_config,
+                    methods::LIST_CONNECTIONS,
+                )
+                .await
+                .map_err(|e| anyhow::anyhow!("composio_list_connections (backend) failed: {e}"))
                 {
                     Ok(resp) => resp,
                     Err(e) => return (live_config, Err(e)),
                 }
             }
-            Ok(ComposioClientKind::Direct(direct)) => {
+            Ok(ComposioRoute::Direct(direct)) => {
                 tracing::debug!("[composio-direct] list_connections.execute: direct variant");
                 match direct_list_connections(&direct).await.map_err(|e| {
                     // [#1166 / Sentry TAURI-RUST-X9] Symmetric error

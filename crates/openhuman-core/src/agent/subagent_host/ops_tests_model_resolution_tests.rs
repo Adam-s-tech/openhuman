@@ -483,7 +483,7 @@ fn direct_mode_user_with_stored_key_passes_signed_in_check() {
     let mut config = crate::config::Config::default();
     config.config_path = tmp.path().join("config.toml");
     // Direct mode + inline API key (the `config.composio.api_key`
-    // fallback path inside `create_composio_client` — equivalent to a
+    // fallback path inside `resolve_composio_route` — equivalent to a
     // stored direct key as far as the probe is concerned).
     config.composio.mode = crate::config::schema::COMPOSIO_MODE_DIRECT.to_string();
     config.composio.api_key = Some("test-direct-key".into());

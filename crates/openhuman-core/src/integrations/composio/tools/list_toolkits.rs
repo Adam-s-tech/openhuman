@@ -10,10 +10,12 @@ use super::redact::redact_composio_outcome;
 use crate::config::Config;
 use tinytools::{PermissionLevel, Tool, ToolCategory, ToolResult};
 
-use super::super::client::{create_composio_client, ComposioClientKind};
+use super::super::client::{resolve_composio_route, ComposioRoute};
+use super::super::module_client::{self as connectors, methods};
+use super::super::types::ComposioToolkitsResponse;
 
 pub struct ComposioListToolkitsTool {
-    /// Held instead of a pre-baked `ComposioClient` so the
+    /// Held instead of a pre-resolved route so the
     /// [`crate::config::ComposioConfig::mode`] toggle is
     /// honoured on every call (see [`ComposioExecuteTool`] doc for the
     /// bug this guards against — #1710).
@@ -84,18 +86,17 @@ impl ComposioListToolkitsTool {
                 );
             }
         };
-        let client = match create_composio_client(&live_config) {
-            Ok(ComposioClientKind::Backend(client)) => {
+        match resolve_composio_route(&live_config) {
+            Ok(ComposioRoute::Backend) => {
                 tracing::debug!("[composio] list_toolkits.execute: backend variant");
-                client
             }
-            Ok(ComposioClientKind::Direct(_)) => {
+            Ok(ComposioRoute::Direct(_)) => {
                 tracing::info!(
                     "[composio-direct] list_toolkits.execute: direct mode active — \
                      returning empty toolkits list. Users manage available toolkits \
                      via app.composio.dev."
                 );
-                let resp = super::super::types::ComposioToolkitsResponse::default();
+                let resp = ComposioToolkitsResponse::default();
                 return (
                     live_config,
                     Ok(ToolResult::success(
@@ -112,7 +113,12 @@ impl ComposioListToolkitsTool {
                 );
             }
         };
-        let outcome = match client.list_toolkits().await {
+        let outcome = match connectors::call_bare::<ComposioToolkitsResponse>(
+            &live_config,
+            methods::LIST_TOOLKITS,
+        )
+        .await
+        {
             Ok(resp) => Ok(ToolResult::success(
                 serde_json::to_string(&resp).unwrap_or_else(|_| "{}".into()),
             )),

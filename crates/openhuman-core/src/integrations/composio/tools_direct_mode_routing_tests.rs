@@ -33,7 +33,7 @@ fn execute_tool_resolves_to_direct_kind_when_mode_is_direct() {
     // breakage. We assert by independently calling the same factory the
     // tool calls per-execute.
     let config = direct_mode_config();
-    let kind = crate::integrations::composio::client::create_composio_client(&config)
+    let kind = crate::integrations::composio::client::resolve_composio_route(&config)
         .expect("direct mode with inline api_key must resolve");
     assert_eq!(
         kind.mode(),
@@ -46,7 +46,7 @@ fn execute_tool_resolves_to_direct_kind_when_mode_is_direct() {
 fn execute_tool_resolves_to_backend_kind_when_mode_is_backend() {
     // Reverse of the above — confirms the backend path still wins when
     // the user is on default (mode = "backend") and a session token is
-    // present. Without the token, `create_composio_client` returns
+    // present. Without the token, `resolve_composio_route` returns
     // Err("no backend session"); store one to get past that gate.
     let tmp = tempfile::tempdir().unwrap();
     let mut config = crate::config::Config::default();
@@ -60,7 +60,7 @@ fn execute_tool_resolves_to_backend_kind_when_mode_is_backend() {
             true,
         )
         .expect("store test session token");
-    let kind = crate::integrations::composio::client::create_composio_client(&config)
+    let kind = crate::integrations::composio::client::resolve_composio_route(&config)
         .expect("backend mode with session token must resolve");
     assert_eq!(
         kind.mode(),
@@ -229,14 +229,14 @@ async fn list_toolkits_in_direct_mode_returns_empty_without_hitting_backend() {
 #[test]
 fn list_connections_in_direct_mode_resolves_to_direct_client_kind() {
     // Verifies the routing property without making a network call:
-    // when mode=direct with an inline api_key, create_composio_client
+    // when mode=direct with an inline api_key, resolve_composio_route
     // returns a Direct variant. The list_connections tool uses the same
     // factory call, so if the factory picks Direct the tool will route
     // to direct_list_connections (not the backend short-circuit).
     // Previously the tool short-circuited to empty-success in direct mode
     // which caused the agent to incorrectly see no connections (#1710).
     let config = direct_mode_config();
-    let kind = crate::integrations::composio::client::create_composio_client(&config)
+    let kind = crate::integrations::composio::client::resolve_composio_route(&config)
         .expect("direct mode with inline api_key must resolve");
     assert_eq!(
         kind.mode(),

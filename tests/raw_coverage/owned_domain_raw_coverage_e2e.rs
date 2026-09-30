@@ -13,7 +13,6 @@ use axum::{Json, Router};
 use serde_json::{json, Map, Value};
 use tempfile::tempdir;
 
-use openhuman_core::integrations::composio::ComposioClient;
 use openhuman_core::config::{
     CapabilityProviderConfig, CapabilityProviderTrustState, Config, McpServerConfig,
 };
@@ -327,88 +326,6 @@ fn owned_domain_config(workspace_root: &std::path::Path) -> Config {
     std::fs::create_dir_all(&config.workspace_dir).expect("workspace dir");
     config
 }
-
- #[tokio::test]
-async fn composio_client_round_trips_backend_paths_and_payload_normalization() {
-    crate::tinyhumans_boot::boot();
-    let (base_url, state) = serve_composio_mock().await;
-    let client = ComposioClient::new(Arc::new(IntegrationClient::new(
-        format!("{base_url}/openai/v1/chat/completions"),
-        "jwt-token".to_string(),
-    )));
-
-    let toolkits = client.list_toolkits().await.expect("toolkits");
-    assert_eq!(toolkits.toolkits, vec!["gmail", "github"]);
-
-    let tools = client
-        .list_tools(
-            Some(&[
-                " gmail ".to_string(),
-                "".to_string(),
-                "github repo".to_string(),
-            ]),
-            Some(&[" mail ".to_string()]),
-        )
-        .await
-        .expect("tools");
-    assert_eq!(tools.tools[0].function.name, "GMAIL_SEND_EMAIL");
-
-    let authorized = client
-        .authorize(
-            " gmail ",
-            Some(json!({
-                "oauth_scopes": "profile https://www.googleapis.com/auth/gmail.readonly"
-            })),
-        )
-        .await
-        .expect("authorize");
-    assert_eq!(authorized.connection_id, "conn_123");
-
-    let triggers = client
-        .list_available_triggers(" gmail ", Some("conn 123"))
-        .await
-        .expect("available triggers");
-    assert_eq!(triggers.triggers[0].slug, "GMAIL_NEW_GMAIL_MESSAGE");
-
-    let deleted = client
-        .delete_connection(" conn_123 ")
-        .await
-        .expect("delete connection");
-    assert!(deleted.deleted);
-    assert_eq!(deleted.memory_chunks_deleted, 2);
-
-    let requests = state.requests.lock().expect("composio requests").clone();
-    assert_eq!(requests[0].3.as_deref(), Some("Bearer jwt-token"));
-    assert!(
-        requests.iter().any(|(_, path, _, _)| path
-            == "/agent-integrations/composio/tools?toolkits=gmail,github%20repo&tags=mail"),
-        "list_tools should trim blanks and URL-encode query values: {requests:?}"
-    );
-    let authorize_body = requests
-        .iter()
-        .find(|(method, path, _, _)| {
-            method == "POST" && path == "/agent-integrations/composio/authorize"
-        })
-        .and_then(|(_, _, body, _)| body.clone())
-        .expect("authorize body");
-    assert_eq!(authorize_body.get("toolkit"), Some(&json!("gmail")));
-    assert_eq!(
-        authorize_body.pointer("/oauth_scopes/0"),
-        Some(&json!("profile"))
-    );
-    assert!(authorize_body["oauth_scopes"]
-        .as_array()
-        .expect("oauth scopes")
-        .iter()
-        .any(|scope| scope == "https://www.googleapis.com/auth/gmail.readonly"));
-    assert!(
-        requests.iter().any(|(method, path, _, _)| {
-            method == "DELETE" && path == "/agent-integrations/composio/connections/conn_123"
-        }),
-        "delete_connection should use DELETE route: {requests:?}"
-    );
-}
-
 
 #[test]
 fn tool_registry_public_apis_cover_entries_diagnostics_and_provider_policy() {
