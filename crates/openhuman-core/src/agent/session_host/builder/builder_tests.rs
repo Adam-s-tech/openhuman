@@ -454,6 +454,7 @@ fn the_recovery_tool_joins_a_belt_only_when_something_can_point_at_it() {
 
 #[test]
 fn the_repl_tools_join_a_belt_only_while_handle_mode_is_active() {
+    use crate::agent::harness::definition::NO_TOOLS_SENTINEL;
     use crate::inference::tokenjuice::REPL_TOOL_NAMES;
     let belt = || std::collections::HashSet::from(["web_fetch".to_string()]);
 

@@ -33,7 +33,8 @@ fn log_body() -> String {
     let rows: String = (0..900)
         .map(|i| format!("row {i}: value {}\n", i * 7))
         .collect();
-    format!("# Report\n{rows}ERROR: needle at the end\n")
+    let tail: String = (900..1000).map(|i| format!("row {i}: value {}\n", i * 7)).collect();
+    format!("# Report\n{rows}ERROR: needle in the middle\n{tail}")
 }
 
 /// Compress `content` in handle mode against `store`, returning the model-facing
