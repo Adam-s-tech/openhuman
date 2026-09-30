@@ -41,7 +41,7 @@ pub fn build(ctx: &PromptContext<'_>) -> Result<String> {
     // A packed install route is already named under "Capabilities not in your
     // tool list"; the skills section names it only when it is on the belt.
     let skill_install =
-        hand_off_route(ctx, "skill_setup").filter(|route| !route.contains(toolpacks::USE_SKILL));
+        hand_off_route(ctx, "skill_setup").filter(|route| !route.contains(tinyagents_harness::tool::packs::USE_SKILL));
     // An empty visibility set is the builder's unfiltered sentinel. Preserve
     // the MCP route for those sessions while suppressing it in gated-off builds.
     // Registered is enough: the orchestrator defers the registry tools
@@ -248,7 +248,10 @@ fn hand_off_route(ctx: &PromptContext<'_>, specialist: &str) -> Option<String> {
     // itself. A filtered belt holding neither the delegate nor `use_skill` has
     // no way to reach the specialist, and naming one anyway is the same "call a
     // tool you do not have" failure this whole block exists to end (#6302).
-    if !ctx.visible_tool_names.contains(toolpacks::USE_SKILL) {
+    if !ctx
+        .visible_tool_names
+        .contains(tinyagents_harness::tool::packs::USE_SKILL)
+    {
         return None;
     }
     toolpacks::pack_for_tool(&tool)

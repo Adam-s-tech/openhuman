@@ -23,7 +23,7 @@ use crate::agent::tinyagents::turn_policy::is_subagent_spawn_or_delegate_tool;
 use crate::agent::tinyagents::use_skill_dispatch::UseSkillDispatch;
 use crate::agent::tools::{DelegateToolDispatch, TodoToolDispatch};
 use crate::memory::agent::CallMemoryAgentDispatch;
-use crate::tools::toolpacks::USE_SKILL;
+use tinyagents_harness::tool::packs::USE_SKILL;
 
 /// Typed-dispatch selection shared by the direct per-turn registration below
 /// and by [`UseSkillDispatch`], which must resolve the SAME live-parent

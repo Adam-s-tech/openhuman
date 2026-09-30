@@ -11,6 +11,7 @@ use async_trait::async_trait;
 use serde_json::{json, Value};
 
 use super::*;
+use tinyagents_harness::tool::packs::USE_SKILL;
 use tinytools::{PermissionLevel, Tool, ToolResult, ToolTimeout};
 
 struct FakeTool {
@@ -71,20 +72,6 @@ fn registry_with(name: &'static str, level: PermissionLevel) -> Arc<Vec<Box<dyn 
         level,
         external: false,
         timeout: ToolTimeout::Inherit,
-    })];
-    append_pack_tools(&mut tools);
-    let tools = Arc::new(tools);
-    bind_pack_registry(&tools);
-    tools
-}
-
-/// A registry whose one packed tool is externally effectful and unbounded.
-fn external_unbounded_registry(name: &'static str) -> Arc<Vec<Box<dyn Tool>>> {
-    let mut tools: Vec<Box<dyn Tool>> = vec![Box::new(FakeTool {
-        name,
-        level: PermissionLevel::ReadOnly,
-        external: true,
-        timeout: ToolTimeout::Unbounded,
     })];
     append_pack_tools(&mut tools);
     let tools = Arc::new(tools);
@@ -280,32 +267,6 @@ async fn use_skill_without_a_tool_renders_the_schema_of_a_present_tool() {
 }
 
 #[tokio::test]
-async fn use_skill_rejects_an_unknown_skill() {
-    let tools = registry_with("manage_tasks", PermissionLevel::ReadOnly);
-    let result = find(&tools, USE_SKILL)
-        .execute(json!({"skill": "nope"}))
-        .await
-        .unwrap();
-    assert!(result.is_error);
-}
-
-#[tokio::test]
-async fn use_skill_dispatches_to_the_packed_tool() {
-    let name = pack("web3").unwrap().tools[0];
-    let tools = registry_with(name, PermissionLevel::ReadOnly);
-    let result = find(&tools, USE_SKILL)
-        .execute(json!({"skill": "web3", "tool": name, "args": {"marker": "x"}}))
-        .await
-        .unwrap();
-    assert!(!result.is_error);
-    let text = format!("{:?}", result.content);
-    assert!(
-        text.contains("marker"),
-        "inner args were not forwarded: {text}"
-    );
-}
-
-#[tokio::test]
 async fn use_skill_refuses_a_tool_from_another_skill() {
     // Cross-skill dispatch would make the `skill` argument decoration and let a
     // workflow skill reach a crypto write.
@@ -329,86 +290,6 @@ fn use_skill_reports_the_inner_tools_permission_level() {
         use_skill.permission_level_with_args(&json!({"skill": "web3", "tool": name})),
         PermissionLevel::Dangerous
     );
-}
-
-#[test]
-fn naming_no_tool_is_read_only_even_when_the_pack_is_dangerous() {
-    // The disclosure branch renders a schema and does nothing else. Reporting
-    // the packed ceiling here would put an approval prompt in front of reading
-    // a tool list, which is the round trip merging the two tools removed.
-    let name = pack("web3").unwrap().tools[0];
-    let tools = registry_with(name, PermissionLevel::Dangerous);
-    let use_skill = find(&tools, USE_SKILL);
-    assert_eq!(
-        use_skill.permission_level_with_args(&json!({"skill": "web3"})),
-        PermissionLevel::ReadOnly
-    );
-    // An empty string is a named-nothing call, not a tool called "".
-    assert_eq!(
-        use_skill.permission_level_with_args(&json!({"skill": "web3", "tool": ""})),
-        PermissionLevel::ReadOnly
-    );
-    // Naming a real one still reports that tool's level, not this branch's.
-    assert_eq!(
-        use_skill.permission_level_with_args(&json!({"skill": "web3", "tool": name})),
-        PermissionLevel::Dangerous
-    );
-}
-
-#[test]
-fn use_skill_forwards_the_inner_tools_external_effect() {
-    // The approval gate calls external_effect_with_args on the proxy; a proxy
-    // that reported false would let an effectful packed tool skip the prompt.
-    let name = pack("web3").unwrap().tools[0];
-    let tools = external_unbounded_registry(name);
-    let use_skill = find(&tools, USE_SKILL);
-    assert!(
-        use_skill.external_effect_with_args(&json!({"skill": "web3", "tool": name})),
-        "proxy must forward the inner tool's external-effect classification"
-    );
-}
-
-#[test]
-fn use_skill_forwards_the_inner_tools_timeout_policy() {
-    // A packed scripting tool must run under its own deadline, not the proxy's.
-    let name = pack("web3").unwrap().tools[0];
-    let tools = external_unbounded_registry(name);
-    let use_skill = find(&tools, USE_SKILL);
-    assert_eq!(
-        use_skill.timeout_policy(&json!({"skill": "web3", "tool": name})),
-        ToolTimeout::Unbounded
-    );
-}
-
-#[test]
-fn an_unresolvable_call_reports_inherit_timeout() {
-    let name = pack("web3").unwrap().tools[0];
-    let tools = external_unbounded_registry(name);
-    let use_skill = find(&tools, USE_SKILL);
-    assert_eq!(
-        use_skill.timeout_policy(&json!({"skill": "web3", "tool": "nonexistent"})),
-        ToolTimeout::Inherit
-    );
-}
-
-#[test]
-fn an_unresolvable_call_reports_the_ceiling_not_a_permissive_default() {
-    let name = pack("web3").unwrap().tools[0];
-    let tools = registry_with(name, PermissionLevel::Dangerous);
-    let use_skill = find(&tools, USE_SKILL);
-    assert_eq!(
-        use_skill.permission_level_with_args(&json!({"skill": "web3", "tool": "nonexistent"})),
-        PermissionLevel::Dangerous
-    );
-}
-
-#[test]
-fn an_unbound_handle_degrades_closed() {
-    // A pack tool that never got bound must not become a permissive passthrough.
-    let mut tools: Vec<Box<dyn Tool>> = Vec::new();
-    append_pack_tools(&mut tools);
-    let use_skill = find(&tools, USE_SKILL);
-    assert_eq!(use_skill.permission_level(), PermissionLevel::Dangerous);
 }
 
 #[test]

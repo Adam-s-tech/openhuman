@@ -33,7 +33,8 @@ use tinytools::{Tool, ToolCallOptions, ToolResult};
 
 use super::harness_tool_registration::typed_dispatch_for;
 use super::host::OpenHumanRunContext;
-use crate::tools::toolpacks::{named_tool, PackRegistryHandle};
+use crate::tools::toolpacks::registry::CATALOG;
+use tinyagents_harness::tool::packs::{named_tool, PackRegistryHandle};
 
 /// Live-parent dispatch for the `use_skill` proxy tool.
 ///
@@ -80,7 +81,7 @@ impl ToolDispatch<(), OpenHumanRunContext> for UseSkillDispatch {
             .zip(named_tool(&arguments))
             .and_then(|(skill, name)| {
                 self.handle
-                    .resolve_registry_for(skill, name)
+                    .resolve_registry_for(&CATALOG, skill, name)
                     .map(|tools| (name.to_string(), tools))
             });
 

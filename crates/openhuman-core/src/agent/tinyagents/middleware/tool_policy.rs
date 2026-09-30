@@ -118,9 +118,9 @@ impl ToolPolicyMiddleware {
     /// the tools in it this session can call, or the pack's route when none.
     pub(crate) fn no_such_pack_tool<'a>(
         &self,
-        pack: &'static crate::tools::toolpacks::ToolPack,
+        pack: &'static tinyagents_harness::tool::packs::ToolPack,
         tool: &'a str,
-    ) -> crate::tools::toolpacks::NoSuchPackTool<'a> {
+    ) -> tinyagents_harness::tool::packs::NoSuchPackTool<'a> {
         let callable = pack
             .tools
             .iter()
@@ -130,7 +130,8 @@ impl ToolPolicyMiddleware {
                     && !self.session.decision_for(name).blocks_execution()
             })
             .collect();
-        crate::tools::toolpacks::NoSuchPackTool {
+        tinyagents_harness::tool::packs::NoSuchPackTool {
+            not_found_marker: crate::tools::status::NOT_FOUND_MARKER,
             skill: pack.id,
             tool,
             callable,
@@ -139,8 +140,11 @@ impl ToolPolicyMiddleware {
     }
 
     /// The route sentence for a pack, resolved against THIS session.
-    pub(crate) fn route_for_pack(&self, pack: &crate::tools::toolpacks::ToolPack) -> String {
-        crate::tools::toolpacks::route_sentence(
+    pub(crate) fn route_for_pack(
+        &self,
+        pack: &tinyagents_harness::tool::packs::ToolPack,
+    ) -> String {
+        tinyagents_harness::tool::packs::route_sentence(
             &self.callable_delegates_for(pack.owners),
             pack.owners,
         )
@@ -157,7 +161,7 @@ impl ToolPolicyMiddleware {
     /// tool named, no `skill` argument, no pack handle), so the call falls
     /// through to the tool's own `execute` unchanged.
     pub(crate) fn render_skill_for_session(&self, call: &TaToolCall) -> Option<TaToolResult> {
-        if crate::tools::toolpacks::named_tool(&call.arguments).is_some() {
+        if tinyagents_harness::tool::packs::named_tool(&call.arguments).is_some() {
             return None;
         }
         let skill = call
@@ -170,7 +174,8 @@ impl ToolPolicyMiddleware {
         let route = crate::tools::toolpacks::pack(skill)
             .map(|pack| self.route_for_pack(pack))
             .unwrap_or_default();
-        let rendered = crate::tools::toolpacks::render_pack_filtered(
+        let rendered = tinyagents_harness::tool::packs::render_pack_filtered(
+            &crate::tools::toolpacks::CATALOG,
             skill,
             handle,
             // The same predicate the gate applies to `use_skill`'s inner tool.
@@ -403,7 +408,7 @@ impl ToolMiddleware<(), crate::agent::tinyagents::host::OpenHumanRunContext>
         // `use_skill` that the session forbids, or that the policy denies or
         // holds for approval, still hand back a full pack listing — the gates
         // would be advisory for this one tool.
-        if call.name == crate::tools::toolpacks::USE_SKILL {
+        if call.name == tinyagents_harness::tool::packs::USE_SKILL {
             if let Some(result) = self.render_skill_for_session(&call) {
                 return Ok(MiddlewareToolOutcome::Result(result));
             }
