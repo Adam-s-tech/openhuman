@@ -4,7 +4,7 @@
 //! could edit would let a caller move a dangerous tool out of the advertised
 //! surface (or back into it) without review. Adding a pack is a source change.
 
-use super::types::ToolPack;
+use tinyagents_harness::tool::packs::{PackCatalog, ToolPack};
 
 /// Every pack this build knows about.
 ///
@@ -448,18 +448,23 @@ pub(crate) const DELIBERATELY_UNPACKED_FLEET_TOOLS: &[&str] = &[
 #[cfg(test)]
 pub(crate) const DELIBERATELY_UNPACKED_HANDOFFS: &[&str] = &["setup_skills"];
 
+/// The lookup surface over [`PACKS`] handed to the generic `use_skill` tool
+/// (`tinyagents_harness::tool::packs`). `NOT_FOUND_MARKER` is the host's status
+/// vocabulary, so a "no such skill / tool" result classifies as `NotFound`.
+pub const CATALOG: PackCatalog = PackCatalog::new(PACKS, crate::tools::status::NOT_FOUND_MARKER);
+
 pub fn pack(id: &str) -> Option<&'static ToolPack> {
-    PACKS.iter().find(|p| p.id == id)
+    CATALOG.pack(id)
 }
 
 /// The pack owning `tool`, if any.
 pub fn pack_for_tool(tool: &str) -> Option<&'static ToolPack> {
-    PACKS.iter().find(|p| p.owns(tool))
+    CATALOG.pack_for_tool(tool)
 }
 
 /// Every packed tool name across all packs.
 pub fn all_packed_tool_names() -> Vec<&'static str> {
-    PACKS.iter().flat_map(|p| p.tools.iter().copied()).collect()
+    CATALOG.all_packed_tool_names()
 }
 
 /// Every packed tool name that applies to `agent_id`.
@@ -468,45 +473,22 @@ pub fn all_packed_tool_names() -> Vec<&'static str> {
 /// [`ToolPack::owners`]. The orchestrator owns the MCP integrations pack so
 /// its small named MCP tool set remains directly callable.
 pub fn packed_tool_names_for_agent(agent_id: &str) -> Vec<&'static str> {
-    PACKS
-        .iter()
-        .filter(|p| !p.is_owner(agent_id))
-        .flat_map(|p| p.tools.iter().copied())
-        .collect()
+    CATALOG.packed_tool_names_for_agent(agent_id)
 }
 
 /// The always-on index: one line per pack, rendered into `use_skill`'s own
 /// description so the model can pick a pack without a round trip.
 pub fn pack_index_markdown() -> String {
-    pack_index_markdown_filtered(&|_| true)
+    CATALOG.pack_index_markdown()
 }
 
 /// The pack index, limited to packs this session can call at least one tool in.
-///
-/// A pack with nothing callable is not an answer to "which skills can I load",
-/// and advertising it costs a round trip: the model loads it, learns it cannot
-/// use it, and comes back. The capability does not disappear — a pack's owners
-/// reach the model through their own `delegate_*` tools, whose `when_to_use`
-/// descriptions are already on the wire and are what the model should call
-/// anyway. Keeping the pack listed here would duplicate that routing on every
-/// single turn.
 pub fn pack_index_markdown_filtered(is_callable: &dyn Fn(&str) -> bool) -> String {
-    let mut out = String::new();
-    for p in PACKS {
-        if !p.tools.iter().any(|t| is_callable(t)) {
-            continue;
-        }
-        out.push_str(&format!("- `{}` — {}\n", p.id, p.summary));
-    }
-    out
+    CATALOG.pack_index_markdown_filtered(is_callable)
 }
 
 /// Pack ids with at least one tool this session can call — the `skill` enum
-/// `load_skill` should actually offer.
+/// `use_skill` should actually offer.
 pub fn callable_pack_ids(is_callable: &dyn Fn(&str) -> bool) -> Vec<&'static str> {
-    PACKS
-        .iter()
-        .filter(|p| p.tools.iter().any(|t| is_callable(t)))
-        .map(|p| p.id)
-        .collect()
+    CATALOG.callable_pack_ids(is_callable)
 }
