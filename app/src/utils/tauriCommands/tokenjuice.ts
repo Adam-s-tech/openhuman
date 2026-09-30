@@ -11,6 +11,10 @@ import { callCoreRpc } from '../../services/coreRpcClient';
 export interface TokenjuiceSettings {
   router_enabled: boolean;
   ccr_enabled: boolean;
+  /** Store large results behind a handle queried with juice_find/extract/summarize. */
+  repl_handle_enabled?: boolean;
+  /** Also write a plain-text copy of each stored original under the workspace. */
+  repl_save_enabled?: boolean;
   ccr_disk_enabled: boolean;
   max_cache_entries: number;
   max_cache_bytes: number;
