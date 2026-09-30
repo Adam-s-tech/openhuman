@@ -379,13 +379,11 @@ pub(crate) fn spawn_progress_bridge(
             || config.observability.agent_tracing.enabled
         {
             use crate::agent::progress_tracing::SpanCollector;
-            use tinyagents_harness::observability::trace_export::{
-                trace_session_id, RunType, TraceContext,
-            };
+            use tinyagents_harness::observability::trace_export::{self as te, RunType, TraceContext};
             // One trace per turn: the trace id is unique per request, while the
             // thread id rides along as the Langfuse `sessionId` so a
             // conversation's per-turn traces still group under one session.
-            let base = trace_session_id(metadata.session_id, &thread_id);
+            let base = te::trace_session_id(metadata.session_id, &thread_id);
             let trace_id = format!("{base}:{request_id}");
             // Attribute the trace to the *real* authenticated user (cached
             // stored credential identity: id, else email) — the transport client

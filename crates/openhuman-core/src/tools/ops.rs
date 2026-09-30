@@ -7,9 +7,7 @@ use crate::runtime::python::PythonBootstrap;
 use crate::security::{AuditLogger, SecurityPolicy};
 use std::collections::HashMap;
 use std::sync::Arc;
-use tinyagents_harness::tools::{
-    AskClarificationTool, CurrentTimeTool, ResolveTimeTool, WaitLoopTool, WaitTool,
-};
+use tinyagents_harness::tools::{self as harness_tools, CurrentTimeTool, ResolveTimeTool};
 use tinytools::Tool;
 #[cfg(test)]
 use tinytools::{ToolResult, ToolSpec};
@@ -195,7 +193,7 @@ pub fn all_tools_with_runtime(
         // Several agent scopes (orchestrator, crypto, markets, scheduler,
         // desktop control) name it, so it must exist in the base
         // registry or none of them can actually ask the user anything.
-        Box::new(AskClarificationTool::new()),
+        Box::new(harness_tools::AskClarificationTool::new()),
         // Read-only project overview (git status, recent commits, top-level
         // tree) rooted at the agent action dir. Named by the orchestrator and
         // planner scopes.
@@ -204,8 +202,8 @@ pub fn all_tools_with_runtime(
         // durable `subagent_session_id` (preferred) or transient `task_id`.
         Box::new(ListSubagentsTool::new()),
         Box::new(SteerSubagentTool::new()),
-        Box::new(WaitTool::new()),
-        Box::new(WaitLoopTool::new()),
+        Box::new(harness_tools::WaitTool::new()),
+        Box::new(harness_tools::WaitLoopTool::new()),
         Box::new(WaitSubagentTool::new()),
         Box::new(CloseSubagentTool::new()),
         Box::new(ContinueSubagentTool::new()),
