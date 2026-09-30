@@ -76,20 +76,15 @@ impl RecordingHandle {
     /// The capture error if the recording itself failed, or the module error if
     /// the audio cannot be prepared. Both are strings the caller surfaces.
     pub async fn stop(mut self, config: &Config) -> Result<RecordingResult, String> {
-        self.stop_flag.store(true, Ordering::SeqCst);
-        debug!("{LOG_PREFIX} stop signal sent");
-
         #[cfg(test)]
         if let Some(finalized) = self.finalized.take() {
             return finalized;
         }
 
-        let raw = match self.result_rx.take() {
-            Some(rx) => rx
-                .await
-                .map_err(|_| "recording task dropped before completing".to_string())??,
-            None => return Err("recording already stopped".to_string()),
+        let Some(inner) = self.inner.take() else {
+            return Err("recording already stopped".to_string());
         };
+        let raw = inner.stop().await?;
         finalize(config, &raw).await
     }
 
@@ -97,8 +92,7 @@ impl RecordingHandle {
     #[cfg(test)]
     pub(crate) fn from_test_result(result: Result<RecordingResult, String>) -> Self {
         Self {
-            stop_flag: Arc::new(AtomicBool::new(false)),
-            result_rx: None,
+            inner: None,
             finalized: Some(result),
         }
     }
@@ -165,3 +159,58 @@ async fn finalize(config: &Config, raw: &RawRecording) -> Result<RecordingResult
     })
 }
 
+/// Start recording from the default microphone.
+///
+/// Returns a `RecordingHandle` that must be `.stop().await`-ed to get
+/// the captured audio. Recording runs on a dedicated OS thread inside
+/// `tinyvoice::capture` because `cpal::Stream` is `!Send` (it must be created
+/// and dropped on the same thread).
+pub fn start_recording() -> Result<RecordingHandle, String> {
+    Ok(RecordingHandle {
+        inner: Some(tinyvoice::capture::start_recording(microphone_permission)?),
+        #[cfg(test)]
+        finalized: None,
+    })
+}
+
+/// List available input devices.
+pub fn list_input_devices() -> Result<Vec<String>, String> {
+    tinyvoice::capture::list_input_devices()
+}
+
+/// The host's microphone-permission policy for a one-shot recording.
+///
+/// Cross-platform pre-check: an undetermined state asks the OS for access (macOS
+/// may show a prompt) and re-checks; a denied state, or one still undetermined
+/// after asking, fails with the platform's explanation.
+fn microphone_permission() -> Result<(), String> {
+    use tinycomputer_accessibility::{
+        detect_microphone_permission, microphone_denied_message, request_microphone_access,
+        PermissionState,
+    };
+
+    let mic_perm = detect_microphone_permission();
+    debug!("{LOG_PREFIX} microphone permission state: {mic_perm:?}");
+
+    match mic_perm {
+        PermissionState::Unknown => {
+            info!("{LOG_PREFIX} microphone permission not yet determined — requesting access");
+            request_microphone_access();
+            // Re-check after request (macOS may have shown a prompt).
+            let updated = detect_microphone_permission();
+            debug!("{LOG_PREFIX} microphone permission after request: {updated:?}");
+            if matches!(updated, PermissionState::Denied | PermissionState::Unknown) {
+                let msg = microphone_denied_message();
+                warn!("{LOG_PREFIX} {msg}");
+                return Err(msg);
+            }
+        }
+        PermissionState::Denied => {
+            let msg = microphone_denied_message();
+            warn!("{LOG_PREFIX} {msg}");
+            return Err(msg);
+        }
+        _ => {} // Granted or Unsupported — proceed normally.
+    }
+    Ok(())
+}
