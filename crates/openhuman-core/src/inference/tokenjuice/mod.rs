@@ -4,6 +4,7 @@ pub mod config_patch;
 pub mod focus;
 pub mod generate;
 pub mod ml;
+pub mod repl_tools;
 pub mod savings;
 pub mod schemas;
 pub mod tools;
@@ -11,6 +12,7 @@ pub mod types;
 
 use tinyjuice_bus::names::methods;
 
+pub use repl_tools::{is_repl_tool, repl_tools, REPL_TOOL_NAMES};
 pub use tools::TokenjuiceRetrieveTool;
 pub use types::{AgentTokenjuiceCompression, CompressorKind, ContentKind};
 
@@ -34,6 +36,24 @@ pub const RECOVERY_TOOL_VISIBLE: &[&str] = &[RETRIEVE_TOOL_NAME];
 
 pub fn is_recovery_tool(name: &str) -> bool {
     RECOVERY_TOOL_NAMES.contains(&name)
+}
+
+/// Whether large results are stored behind a handle (stats, head, handle)
+/// instead of being compressed into one blob, and the REPL tools that query
+/// them are offered to the model. Needs the router, the CCR store the handle
+/// points into, and the compaction switch that lets the module rewrite results
+/// at all.
+pub fn repl_handle_active(config: &crate::config::Config) -> bool {
+    config.context.compaction_enabled
+        && config.tokenjuice.router_enabled
+        && config.tokenjuice.ccr_enabled
+        && config.tokenjuice.repl_handle_enabled
+}
+
+/// Where the module writes a plain-text copy of each stored original when
+/// `[tokenjuice] repl_save_enabled` is on.
+pub fn repl_save_dir(workspace_dir: &std::path::Path) -> std::path::PathBuf {
+    workspace_dir.join(".tokenjuice").join("repl")
 }
 
 pub async fn install_from_config(config: &crate::config::Config) -> Result<(), String> {
@@ -62,6 +82,9 @@ pub async fn install_from_config(config: &crate::config::Config) -> Result<(), S
             llm_summary_enabled: config.context.summarizer_payload_threshold_tokens > 0,
             llm_summary_threshold_tokens: config.context.summarizer_payload_threshold_tokens,
             llm_summary_max_input_tokens: config.context.summarizer_max_payload_tokens,
+            repl_handle: repl_handle_active(config),
+            repl_save_dir: (repl_handle_active(config) && tj.repl_save_enabled)
+                .then(|| repl_save_dir(&config.workspace_dir)),
             ..types::CompressOptions::default()
         },
         max_cache_entries: tj.max_cache_entries,
