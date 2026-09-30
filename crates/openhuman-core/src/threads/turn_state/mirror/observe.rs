@@ -1,19 +1,29 @@
-//! Translating one [`AgentProgress`] event into a [`TurnState`] mutation,
-//! plus the transcript/tool-timeline bookkeeping helpers `observe` relies on.
+//! Translating one [`AgentProgress`] event into a [`TurnState`] mutation.
+//!
+//! The mirror itself (snapshot, flush, caps, transcript bookkeeping,
+//! interrupted-turn finalization) is
+//! `tinyagents_session::turn_state::TurnStateMirror`; this is the host-side
+//! progress projection over it.
 
 use crate::agent::progress::AgentProgress;
 
-use super::caps::{append_capped_transcript_text, cap_persisted_args, cap_persisted_output};
-use super::state::TurnStateMirror;
+use tinyagents_session::turn_state::mirror::caps::{cap_persisted_args, cap_persisted_output};
 use tinyagents_session::turn_state::types::{
     PersistedToolFailure, SubagentActivity, SubagentToolCall, SubagentTranscriptItem,
-    ToolTimelineEntry, ToolTimelineStatus, TranscriptItem, TurnLifecycle, TurnPhase,
+    ToolTimelineEntry, ToolTimelineStatus, TurnLifecycle, TurnPhase, TurnState,
 };
+use tinyagents_session::turn_state::TurnStateMirror;
 
-impl TurnStateMirror {
+/// Host extension of the upstream mirror: fold one [`AgentProgress`] event into
+/// the snapshot.
+pub trait ObserveProgress {
     /// Apply one progress event to the in-memory snapshot. Returns `true`
     /// if the event triggered a disk flush.
-    pub fn observe(&mut self, event: &AgentProgress) -> bool {
+    fn observe(&mut self, event: &AgentProgress) -> bool;
+}
+
+impl ObserveProgress for TurnStateMirror {
+    fn observe(&mut self, event: &AgentProgress) -> bool {
         self.state.updated_at = chrono::Utc::now().to_rfc3339();
         match event {
             AgentProgress::TurnStarted => {
