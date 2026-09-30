@@ -1,5 +1,4 @@
 use super::*;
-use crate::inference::provider::UsageInfo;
 
 #[tokio::test]
 async fn scoped_tool_limits_narrow_restore_and_keep_zero() {
