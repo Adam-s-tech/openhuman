@@ -31,6 +31,10 @@
 //! own `Config`, so they are edited in place. The version guard, the
 //! skip-when-current early return, the write-lock ordering and the
 //! save-even-when-nothing-migrated behaviour are all carried over unchanged.
+//!
+//! The pure decisions (which caps a cap-less row gets, how a scanned
+//! connection is labelled) live in `tinymemory_sources::reconcile`; this file
+//! keeps the host's scan, config file and write lock.
 
 use std::collections::HashSet;
 
@@ -179,7 +183,3 @@ pub async fn apply_composio_source_caps_migration() -> Result<(), String> {
 
     Ok(())
 }
-
-#[cfg(test)]
-#[path = "reconcile_tests.rs"]
-mod tests;
