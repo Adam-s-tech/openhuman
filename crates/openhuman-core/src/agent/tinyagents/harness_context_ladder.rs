@@ -69,13 +69,13 @@ pub(super) fn install_context_ladder(
     let mut compression_mw: Option<Arc<ContextCompressionMiddleware>> = None;
     if let Some(window) = context_window.filter(|w| *w > 0) {
         if autocompact_enabled {
-            let policy = summarize::summarization_policy(window);
+            let policy = tinyagents_harness::summarization::summarization_policy(window);
             // Wrap the LLM-backed summarizer in a fault-tolerant, per-turn-caching
             // adapter (issue #4461): a summarizer failure must no longer abort the
             // turn (warn + circuit-breaker + deterministic trim instead), and an
             // identical re-issued input slice must not re-run the summarizer LLM.
-            let summarizer = summarize::FaultTolerantCachingSummarizer::new(
-                Box::new(summarize::ModelSummarizer::new(summarizer_model, model)),
+            let summarizer = tinyagents_harness::summarization::FaultTolerantCachingSummarizer::new(
+                Box::new(tinyagents_harness::summarization::ModelSummarizer::new(summarizer_model, model)),
                 &policy,
             );
             let mw = Arc::new(ContextCompressionMiddleware::with_summarizer(

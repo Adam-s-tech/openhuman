@@ -54,7 +54,7 @@ fn build_title_request_sends_no_per_request_model_override() {
     // `create_chat_model` (managed backend, Claude Agent SDK, Claude Code,
     // local runtime, BYOK cloud slug). Pinning a concrete managed tier here
     // would fix the managed route and break the other four.
-    let request = crate::threads::title::build_title_request("hi there", "hello back");
+    let request = tinyagents_harness::title::build_title_request("hi there", "hello back");
 
     assert!(
         request.model.is_none(),
@@ -70,7 +70,7 @@ fn build_title_request_carries_the_system_prompt_and_rendered_user_prompt() {
     // satisfied by an empty or malformed request.
     use tinyinference_llm::message::Message;
 
-    let request = crate::threads::title::build_title_request("hi there", "hello back");
+    let request = tinyagents_harness::title::build_title_request("hi there", "hello back");
 
     assert_eq!(request.messages.len(), 2, "system + user");
     assert!(

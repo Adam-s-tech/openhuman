@@ -11,7 +11,7 @@
 //! be the worst outcome this change could have.
 
 use super::*;
-use crate::agent::harness::credentials::scrub_credentials;
+use tinyinference_core::sanitize::scrub_credentials;
 
 /// A magic-link token — exactly the shape QA hit in #6416 — must still be
 /// removed. This is the security half of the contract and comes first.

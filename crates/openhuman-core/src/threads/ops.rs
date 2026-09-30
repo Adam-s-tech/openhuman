@@ -44,7 +44,7 @@ use crate::memory::{
     EmptyRequest, GenerateConversationThreadTitleRequest, PaginationMeta,
 };
 #[cfg(test)]
-use crate::threads::title::{
+use tinyagents_harness::title::{
     is_auto_generated_thread_title, title_from_user_message, THREAD_TITLE_LOG_PREFIX,
 };
 #[cfg(test)]

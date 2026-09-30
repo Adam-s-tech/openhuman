@@ -9,7 +9,7 @@ use crate::memory::conversations;
 use crate::memory::{
     ApiEnvelope, ConversationThreadSummary, GenerateConversationThreadTitleRequest,
 };
-use crate::threads::title::{
+use tinyagents_harness::title::{
     build_title_request, is_auto_generated_thread_title, sanitize_generated_title,
     title_log_fingerprint, THREAD_TITLE_LOG_PREFIX,
 };
