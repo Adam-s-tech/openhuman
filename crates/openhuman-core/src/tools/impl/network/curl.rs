@@ -6,7 +6,6 @@
 //! `http_request.allowed_domains` so there is one allowlist to reason
 //! about.
 
-use tinytools_std::url_guard::{normalize_allowed_domains, validate_url_with_dns_check};
 use crate::security::{CommandClass, GateDecision, SecurityPolicy};
 use async_trait::async_trait;
 use futures_util::StreamExt;
@@ -15,6 +14,7 @@ use std::path::{Component, Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
 use tinytools::{PermissionLevel, Tool, ToolResult};
+use tinytools_std::url_guard::{normalize_allowed_domains, validate_url_with_dns_check};
 use tokio::fs;
 use tokio::io::AsyncWriteExt;
 
@@ -86,7 +86,9 @@ impl CurlTool {
     }
 
     async fn validate_url(&self, raw_url: &str) -> anyhow::Result<String> {
-        validate_url_with_dns_check(raw_url, &self.allowed_domains).await.map(|v| v.url)
+        validate_url_with_dns_check(raw_url, &self.allowed_domains)
+            .await
+            .map(|v| v.url)
     }
 
     fn default_filename_from_url(url: &str) -> String {

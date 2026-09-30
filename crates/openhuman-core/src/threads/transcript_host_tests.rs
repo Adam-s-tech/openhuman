@@ -9,8 +9,10 @@
 use crate::agent::messages::{
     attach_chat_tool_failure_metadata, transcript_message_from_chat, ChatMessage,
 };
-use tinyagents_session::transcript::view::{project_records, project_thread, DisplayItem, ToolCallStatus};
 use tempfile::TempDir;
+use tinyagents_session::transcript::view::{
+    project_records, project_thread, DisplayItem, ToolCallStatus,
+};
 use tinyagents_session::transcript::{self, read_transcript_display};
 
 /// Write a raw JSONL transcript (meta header + `body` lines) for `thread_id`.

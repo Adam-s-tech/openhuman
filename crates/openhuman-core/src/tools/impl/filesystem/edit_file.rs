@@ -6,13 +6,13 @@
 //! exactly once in the file (so the model can't accidentally edit
 //! every match). Set `replace_all` to override.
 
-use tinytools_std::file_state;
 use crate::security::{CommandClass, GateDecision, SecurityPolicy};
 use async_trait::async_trait;
 use serde_json::json;
 use std::sync::Arc;
 use tinytools::ToolRunContext;
 use tinytools::{PermissionLevel, Tool, ToolCallOptions, ToolResult};
+use tinytools_std::file_state;
 
 const MAX_FILE_BYTES: u64 = 5 * 1024 * 1024;
 

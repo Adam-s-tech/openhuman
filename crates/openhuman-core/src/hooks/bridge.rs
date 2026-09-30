@@ -354,7 +354,11 @@ impl PostTurnHook for ConfiguredHookBridge {
                 // lets the entrypoint that owns the conversation decide whether
                 // to start another one — the only layer that knows if there is
                 // still a user attached.
-                tinyagents_runtime::command_hooks::followup::publish(ctx.session_id.clone(), followup).await;
+                tinyagents_runtime::command_hooks::followup::publish(
+                    ctx.session_id.clone(),
+                    followup,
+                )
+                .await;
             }
         }
         Ok(())

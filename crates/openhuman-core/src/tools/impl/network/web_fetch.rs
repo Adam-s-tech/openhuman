@@ -6,7 +6,6 @@
 //! the agent reaches for when researching: returns the response body
 //! as text, capped, with a tiny preamble (status + final URL).
 
-use tinytools_std::url_guard::{normalize_allowed_domains, validate_url_with_dns_check};
 use crate::config::HttpRequestConfig;
 use crate::security::SecurityPolicy;
 use async_trait::async_trait;
@@ -14,6 +13,7 @@ use serde_json::json;
 use std::sync::Arc;
 use std::time::Duration;
 use tinytools::{PermissionLevel, Tool, ToolResult};
+use tinytools_std::url_guard::{normalize_allowed_domains, validate_url_with_dns_check};
 
 pub struct WebFetchTool {
     security: Arc<SecurityPolicy>,

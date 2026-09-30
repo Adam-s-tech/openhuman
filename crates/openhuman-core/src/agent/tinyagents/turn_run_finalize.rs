@@ -39,7 +39,7 @@ pub(super) async fn finalize_turn_outcome(
     bridge: Option<Arc<OpenhumanEventBridge>>,
     early_exit_hook: Option<EarlyExitHook>,
     halt_summary: &HaltSummarySlot,
-    wrap_up_fired: &Option<Arc<FinalCallWrapUpMiddleware>>,
+    wrap_up_fired: &Option<Arc<tinyagents_harness::middleware::FinalCallWrapUpMiddleware>>,
     run_instance_id: u64,
     tool_outcome_sink: &ToolOutcomeSink,
     resolved_route: Option<tinyinference_llm::model::ResolvedModelRoute>,

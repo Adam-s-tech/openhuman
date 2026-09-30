@@ -21,8 +21,8 @@ use tinyagents_harness::events::HarnessRunStatus;
 use tinyagents_harness::ids::{ExecutionStatus, HarnessPhase};
 use tinyagents_harness::observability::HarnessStatusStore;
 
-use tinyagents_session::transcript::import::ops::open_session_stores;
 use crate::agent::tinyagents::journal::FileStatusStore;
+use tinyagents_session::transcript::import::ops::open_session_stores;
 
 /// Error recorded on a run reaped by the startup sweep. Stable + grep-friendly
 /// so an operator (or a test) can tell a reaped run from a genuinely failed one.

@@ -15,6 +15,10 @@ use tinyagents_harness::store::{AppendStore, FileStore, JsonlAppendStore, Store}
 
 use super::live::{dual_write_enabled, shadow_reads_enabled};
 use super::projector::journal_message_from_transcript as project;
+use crate::agent::messages::{
+    attach_chat_tool_failure_metadata, attach_chat_turn_usage_metadata,
+    transcript_message_from_chat, ChatMessage,
+};
 use tinyagents_session::transcript::import::convert::{
     journal_messages as journal_messages_with, sanitize_store_name, stream_name,
 };
@@ -23,10 +27,8 @@ use tinyagents_session::transcript::import::live::{
     ShadowReadOutcome,
 };
 use tinyagents_session::transcript::import::ops::store_root;
-use tinyagents_session::transcript::import::types::{JournalMessage, SessionDescriptor, NS_SESSIONS};
-use crate::agent::messages::{
-    attach_chat_tool_failure_metadata, attach_chat_turn_usage_metadata,
-    transcript_message_from_chat, ChatMessage,
+use tinyagents_session::transcript::import::types::{
+    JournalMessage, SessionDescriptor, NS_SESSIONS,
 };
 use tinyagents_session::transcript::{
     read_transcript, write_transcript, MessageUsage, SessionTranscript, TranscriptMeta,
@@ -37,11 +39,7 @@ fn journal_messages(t: &SessionTranscript) -> Vec<JournalMessage> {
     journal_messages_with(t, project)
 }
 
-async fn write_live_turn(
-    workspace: &Path,
-    key: &str,
-    t: &SessionTranscript,
-) -> anyhow::Result<()> {
+async fn write_live_turn(workspace: &Path, key: &str, t: &SessionTranscript) -> anyhow::Result<()> {
     write_live_turn_with(workspace, key, t, project).await
 }
 
