@@ -9,8 +9,10 @@
 use crate::agent::messages::{
     attach_chat_tool_failure_metadata, transcript_message_from_chat, ChatMessage,
 };
-use tinyagents_session::transcript::view::{project_records, project_thread, DisplayItem, ToolCallStatus};
 use tempfile::TempDir;
+use tinyagents_session::transcript::view::{
+    project_records, project_thread, DisplayItem, ToolCallStatus,
+};
 use tinyagents_session::transcript::{self, read_transcript_display};
 
 /// Write a raw JSONL transcript (meta header + `body` lines) for `thread_id`.
@@ -42,9 +44,9 @@ fn text_dialect_tool_turn_projects_calls_on_their_issuing_row_as_settled() {
     use crate::agent::messages::{ConversationMessage, ToolResultMessage};
     use crate::agent::session_host::OpenHumanTranscriptCodec;
     use crate::agent::tinyagents::host::OpenHumanRunContext;
-    use tinytools_agent::dialect::NativeToolCall;
     use tinyagents_runtime::{ResumeMode, TranscriptCodec, TranscriptTurnOptions};
     use tinyinference_llm::message::Message;
+    use tinytools_agent::dialect::NativeToolCall;
 
     let dir = TempDir::new().unwrap();
 

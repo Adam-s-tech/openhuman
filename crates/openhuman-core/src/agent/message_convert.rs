@@ -31,8 +31,7 @@ use crate::inference::provider::ChatResponse;
 pub(crate) fn dialect_response_from_provider(response: &ChatResponse) -> DialectResponse {
     DialectResponse {
         text: response.text.clone(),
-        tool_calls: response
-            .tool_calls
+        tool_calls: response.tool_calls.clone(),
     }
 }
 
@@ -73,7 +72,7 @@ fn conversation_to_transcript_entry(message: &ConversationMessage) -> Transcript
             extra_metadata,
         } => TranscriptEntry::AssistantToolCalls {
             text: text.clone(),
-            tool_calls: tool_calls
+            tool_calls: tool_calls.clone(),
             reasoning_content: reasoning_content.clone(),
             extra_metadata: extra_metadata.clone(),
         },

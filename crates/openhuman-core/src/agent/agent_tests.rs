@@ -28,13 +28,13 @@ use crate::agent::messages::{ChatMessage, ConversationMessage};
 use crate::agent::session_host::OpenHumanSessionHost;
 use crate::config::AgentConfig;
 use crate::inference::provider::ChatResponse;
-use tinytools_agent::dialect::NativeToolCall;
 use crate::memory::Memory;
 use anyhow::Result;
 use async_trait::async_trait;
 use std::sync::{Arc, Mutex};
 use tinyinference_llm::model::{ChatModel, ModelProfile, ModelRequest, ModelResponse};
 use tinytools::{Tool, ToolResult};
+use tinytools_agent::dialect::NativeToolCall;
 use tinytools_agent::dialect::{NativeDialect, ToolDialect, XmlDialect};
 
 // ═══════════════════════════════════════════════════════════════════════════

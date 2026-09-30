@@ -13,9 +13,9 @@
 //! production build even before the move.
 
 #[cfg(test)]
-use tinytools_agent::dialect::NativeToolCall;
-#[cfg(test)]
 use tinytools::Tool;
+#[cfg(test)]
+use tinytools_agent::dialect::NativeToolCall;
 #[cfg(test)]
 use tinytools_agent::{CallSource, ParsedToolCall};
 
