@@ -42,6 +42,22 @@ fn is_workspace_internal_path_blocks_state_dirs() {
     assert!(policy.is_workspace_internal_path(&ws.join("codegraph")));
 }
 
+/// #5505: `meta.json` names the file an artifact owns, and Download /
+/// `read_artifact_bytes` follow it, so the artifact metadata store is internal
+/// state. The deliverables themselves live in the visible files folder.
+#[test]
+fn is_workspace_internal_path_blocks_artifact_metadata() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let ws = tmp.path().to_path_buf();
+    let policy = SecurityPolicy {
+        workspace_dir: ws.clone(),
+        action_dir: ws.join("action"),
+        ..SecurityPolicy::default()
+    };
+    assert!(policy.is_workspace_internal_path(&ws.join("artifacts").join("abc").join("meta.json")));
+    assert!(!policy.is_workspace_internal_path(&ws.join("action").join("Files").join("deck.pptx")));
+}
+
 #[test]
 fn is_workspace_internal_path_blocks_state_files() {
     let tmp = tempfile::tempdir().expect("tempdir");

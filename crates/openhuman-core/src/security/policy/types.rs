@@ -209,6 +209,11 @@ pub(super) const WORKSPACE_INTERNAL_DIRS: &[&str] = &[
     // A removed relay domain may leave encrypted identity/session state in an
     // upgraded workspace. Keep that legacy directory private.
     "tinyplace",
+    // Artifact metadata (`meta.json` names the file an artifact owns, and
+    // Download / read_artifact_bytes follow it). The deliverables themselves
+    // live in the visible files folder (#5505), so nothing here is an agent
+    // work product.
+    "artifacts",
 ];
 
 /// Files directly under `workspace_dir` that hold secrets or persona config

@@ -401,6 +401,28 @@ pub async fn ensure_agent_dirs(config: &mut Config) {
         action = %redact_home(&action_dir),
         "[startup] workspace (internal state) and action sandbox (tool cwd) directories configured"
     );
+
+    // Agent deliverables are written to the visible files folder (#5505).
+    // Create it up front, and move this account's pre-#5505 artifact files out
+    // of the hidden workspace (idempotent; a no-op once migrated).
+    let files_dir = crate::config::default_files_dir();
+    if let Err(e) = tokio::fs::create_dir_all(&files_dir).await {
+        tracing::warn!(
+            dir = %redact_home(&files_dir),
+            error = %e,
+            "[startup] could not create files folder"
+        );
+    }
+    let report =
+        crate::agent::artifacts::migrate_legacy_artifacts(&config.workspace_dir, &files_dir).await;
+    if report != crate::agent::artifacts::MigrationReport::default() {
+        tracing::info!(
+            moved = report.moved,
+            cleaned = report.cleaned,
+            failed = report.failed,
+            "[startup] moved legacy artifact files into the files folder"
+        );
+    }
 }
 
 /// Ensure `dir` is usable as a process working directory: it must exist (we

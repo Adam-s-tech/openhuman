@@ -234,7 +234,7 @@ describe('downloadArtifact', () => {
     const outcome = await downloadArtifact('art-1', 'fallback-title', 'pptx');
     expect(outcome).toEqual({ ok: true, path: '/Users/me/Downloads/climate-deck.pptx' });
     expect(hoisted.invoke).toHaveBeenCalledWith('download_artifact_to_downloads', {
-      sourcePath: '/workspace/artifacts/art-1/deck.pptx',
+      artifactId: 'art-1',
       filename: 'climate-deck.pptx',
     });
   });
@@ -247,7 +247,7 @@ describe('downloadArtifact', () => {
     hoisted.invoke.mockResolvedValueOnce('/dest/file.pdf');
     await downloadArtifact('art-1', 'caller-fallback', 'pdf');
     expect(hoisted.invoke).toHaveBeenCalledWith('download_artifact_to_downloads', {
-      sourcePath: '/p/file',
+      artifactId: 'art-1',
       filename: 'caller-fallback.pdf',
     });
   });
@@ -257,7 +257,7 @@ describe('downloadArtifact', () => {
     hoisted.invoke.mockResolvedValueOnce('/dest/x');
     await downloadArtifact('art-1', '   ', 'bin');
     expect(hoisted.invoke).toHaveBeenCalledWith('download_artifact_to_downloads', {
-      sourcePath: '/p/file',
+      artifactId: 'art-1',
       filename: 'artifact.bin',
     });
   });
@@ -270,7 +270,7 @@ describe('downloadArtifact', () => {
     hoisted.invoke.mockResolvedValueOnce('/dest/deck.pptx');
     await downloadArtifact('art-1', 'deck', '...pptx');
     expect(hoisted.invoke).toHaveBeenCalledWith('download_artifact_to_downloads', {
-      sourcePath: '/p/file',
+      artifactId: 'art-1',
       filename: 'deck.pptx',
     });
   });
@@ -283,7 +283,7 @@ describe('downloadArtifact', () => {
     hoisted.invoke.mockResolvedValueOnce('/dest/deck.pptx');
     await downloadArtifact('art-1', 'deck.pptx', 'pptx');
     expect(hoisted.invoke).toHaveBeenCalledWith('download_artifact_to_downloads', {
-      sourcePath: '/p/file',
+      artifactId: 'art-1',
       filename: 'deck.pptx',
     });
   });
@@ -296,7 +296,7 @@ describe('downloadArtifact', () => {
     hoisted.invoke.mockResolvedValueOnce('/dest/x');
     await downloadArtifact('art-1', 'DECK.PPTX', 'pptx');
     expect(hoisted.invoke).toHaveBeenCalledWith('download_artifact_to_downloads', {
-      sourcePath: '/p/file',
+      artifactId: 'art-1',
       filename: 'DECK.PPTX',
     });
   });
@@ -311,7 +311,7 @@ describe('downloadArtifact', () => {
     hoisted.invoke.mockResolvedValueOnce('/dest/x');
     await downloadArtifact('art-1', 'deck.pdf', 'pptx');
     expect(hoisted.invoke).toHaveBeenCalledWith('download_artifact_to_downloads', {
-      sourcePath: '/p/file',
+      artifactId: 'art-1',
       filename: 'deck.pdf',
     });
   });
@@ -324,7 +324,7 @@ describe('downloadArtifact', () => {
     hoisted.invoke.mockResolvedValueOnce('/dest/climate-overview.pptx');
     await downloadArtifact('art-1', 'climate-overview', 'pptx');
     expect(hoisted.invoke).toHaveBeenCalledWith('download_artifact_to_downloads', {
-      sourcePath: '/p/file',
+      artifactId: 'art-1',
       filename: 'climate-overview.pptx',
     });
   });
@@ -337,7 +337,7 @@ describe('downloadArtifact', () => {
     hoisted.invoke.mockResolvedValueOnce('/dest/just-a-title');
     await downloadArtifact('art-1', 'just-a-title', '');
     expect(hoisted.invoke).toHaveBeenCalledWith('download_artifact_to_downloads', {
-      sourcePath: '/p/file',
+      artifactId: 'art-1',
       filename: 'just-a-title',
     });
   });
@@ -468,7 +468,7 @@ describe('saveArtifactViaDialog (dialog removed with rfd)', () => {
     const outcome = await saveArtifactViaDialog('a-1', 'Deck', 'pptx');
     expect(outcome).toEqual({ ok: true, path: '/Users/me/Downloads/Deck.pptx' });
     expect(hoisted.invoke).toHaveBeenCalledWith('download_artifact_to_downloads', {
-      sourcePath: '/ws/artifacts/a-1/deck.pptx',
+      artifactId: 'a-1',
       filename: 'Deck.pptx',
     });
     // The removed `rfd` command must never be invoked again.

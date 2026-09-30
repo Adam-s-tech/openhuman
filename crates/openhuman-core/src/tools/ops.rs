@@ -462,15 +462,9 @@ pub fn all_tools_with_runtime(
         // diff, lint and test the working tree in the action sandbox. They
         // were defined but never registered, so the belts naming them held
         // nothing. `Deferred`, so they cost no schema until found.
-        Box::new(ReadDiffTool::new(
-            action_dir.to_path_buf(),
-        )),
-        Box::new(RunLinterTool::new(
-            action_dir.to_path_buf(),
-        )),
-        Box::new(RunTestsTool::new(
-            action_dir.to_path_buf(),
-        )),
+        Box::new(ReadDiffTool::new(action_dir.to_path_buf())),
+        Box::new(RunLinterTool::new(action_dir.to_path_buf())),
+        Box::new(RunTestsTool::new(action_dir.to_path_buf())),
         Box::new(PushoverTool::new(
             security.clone(),
             action_dir.to_path_buf(),
@@ -665,6 +659,7 @@ pub fn all_tools_with_runtime(
     #[cfg(feature = "documents")]
     tools.push(Box::new(PresentationTool::new(
         root_config.workspace_dir.clone(),
+        crate::config::default_files_dir(),
         security.clone(),
     )));
 
@@ -675,6 +670,7 @@ pub fn all_tools_with_runtime(
     #[cfg(feature = "documents")]
     tools.push(Box::new(DocumentTool::new(
         root_config.workspace_dir.clone(),
+        crate::config::default_files_dir(),
         security.clone(),
     )));
 

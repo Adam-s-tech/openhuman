@@ -46,6 +46,8 @@ async fn list_without_thread_filter_returns_all_threads() {
                 kind: ArtifactKind::Document,
                 title: id.to_string(),
                 path: format!("{id}/x.txt"),
+                file: None,
+                file_root: None,
                 size_bytes: 0,
                 status: ArtifactStatus::Ready,
                 created_at: chrono::Utc::now(),
@@ -86,6 +88,8 @@ async fn list_with_thread_filter_returns_only_matching_thread() {
                 kind: ArtifactKind::Document,
                 title: id.to_string(),
                 path: format!("{id}/x.txt"),
+                file: None,
+                file_root: None,
                 size_bytes: 0,
                 status: ArtifactStatus::Ready,
                 created_at: chrono::Utc::now(),
@@ -137,6 +141,8 @@ async fn list_with_thread_filter_unknown_thread_returns_zero() {
             kind: ArtifactKind::Document,
             title: "only".to_string(),
             path: "only/x.txt".to_string(),
+            file: None,
+            file_root: None,
             size_bytes: 0,
             status: ArtifactStatus::Ready,
             created_at: chrono::Utc::now(),
@@ -206,6 +212,8 @@ async fn regenerate_rejects_non_presentation_kind() {
             kind: ArtifactKind::Document,
             title: "notes".to_string(),
             path: "doc-1/notes.txt".to_string(),
+            file: None,
+            file_root: None,
             size_bytes: 0,
             status: ArtifactStatus::Failed,
             created_at: chrono::Utc::now(),
@@ -241,9 +249,15 @@ async fn regenerate_errors_when_args_missing() {
 
     // A presentation artifact with no persisted args.json (e.g. created
     // before #3162) cannot be regenerated.
-    let (meta, _) = create_artifact(tmp.path(), ArtifactKind::Presentation, "Old Deck", "pptx")
-        .await
-        .unwrap();
+    let (meta, _) = create_artifact(
+        tmp.path(),
+        &tmp.path().join("Files"),
+        ArtifactKind::Presentation,
+        "Old Deck",
+        "pptx",
+    )
+    .await
+    .unwrap();
     let err = ai_regenerate(&config, &meta.id, "t", "c")
         .await
         .unwrap_err();
@@ -260,9 +274,15 @@ async fn regenerate_reruns_producer_and_reuses_id() {
     let config = test_config(&tmp);
 
     // Seed a presentation artifact + its persisted creation args.
-    let (meta, _) = create_artifact(tmp.path(), ArtifactKind::Presentation, "Q3 Deck", "pptx")
-        .await
-        .unwrap();
+    let (meta, _) = create_artifact(
+        tmp.path(),
+        &tmp.path().join("Files"),
+        ArtifactKind::Presentation,
+        "Q3 Deck",
+        "pptx",
+    )
+    .await
+    .unwrap();
     let args = serde_json::json!({
         "title": "Q3 Deck",
         "slides": [{ "title": "Intro", "bullets": ["alpha", "beta"] }],
@@ -286,4 +306,60 @@ async fn regenerate_reruns_producer_and_reuses_id() {
     let got = get_artifact(tmp.path(), &meta.id).await.unwrap();
     assert_eq!(got.id, meta.id);
     assert_eq!(got.status, ArtifactStatus::Ready);
+}
+
+// ── #5505: files folder ─────────────────────────────────────────────────────
+
+#[tokio::test]
+async fn get_returns_the_files_folder_path() {
+    use crate::agent::artifacts::store::{create_artifact, finalize_artifact};
+    use crate::agent::artifacts::types::ArtifactKind;
+    let tmp = TempDir::new().unwrap();
+    let config = test_config(&tmp);
+    let files_dir = tmp.path().join("Files");
+    let (meta, path) = create_artifact(
+        tmp.path(),
+        &files_dir,
+        ArtifactKind::Document,
+        "Plan",
+        "docx",
+    )
+    .await
+    .unwrap();
+    std::fs::write(&path, b"plan").unwrap();
+    finalize_artifact(tmp.path(), &meta.id, 4).await.unwrap();
+
+    let value = ai_get_artifact(&config, &meta.id)
+        .await
+        .unwrap()
+        .into_cli_compatible_json()
+        .unwrap();
+
+    assert_eq!(
+        value["absolute_path"],
+        files_dir.join("plan.docx").to_string_lossy().as_ref()
+    );
+}
+
+#[tokio::test]
+async fn get_reports_a_ready_file_removed_outside_openhuman() {
+    use crate::agent::artifacts::store::{create_artifact, finalize_artifact};
+    use crate::agent::artifacts::types::ArtifactKind;
+    let tmp = TempDir::new().unwrap();
+    let config = test_config(&tmp);
+    let (meta, path) = create_artifact(
+        tmp.path(),
+        &tmp.path().join("Files"),
+        ArtifactKind::Document,
+        "Plan",
+        "docx",
+    )
+    .await
+    .unwrap();
+    std::fs::write(&path, b"plan").unwrap();
+    finalize_artifact(tmp.path(), &meta.id, 4).await.unwrap();
+    std::fs::remove_file(&path).unwrap();
+
+    let err = ai_get_artifact(&config, &meta.id).await.unwrap_err();
+    assert!(err.contains("file missing"), "{err}");
 }

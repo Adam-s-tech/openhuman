@@ -1,0 +1,200 @@
+//! Where an artifact's bytes live (#5505).
+//!
+//! An artifact's metadata stays in the hidden, per-account
+//! `<workspace_dir>/artifacts/<id>/`, but the file itself is written to a
+//! visible folder the user can open (`~/OpenHuman/projects/Files` by default,
+//! [`crate::config::default_files_dir`]). Files there are named for people —
+//! `<sanitized-title>.<ext>`, then `<sanitized-title> (2).<ext>` on collision —
+//! and each record carries the absolute `file` it owns plus the `file_root` it
+//! was placed in.
+//!
+//! The folder is shared by every account on the OS user, so a name is claimed
+//! with `create_new` (an atomic "fail if it exists"): two accounts, or two
+//! concurrent generations, can never be handed the same path.
+//!
+//! # The escape guard
+//!
+//! `meta.json` is data, so a record's `file` is checked before anything reads
+//! or copies it: it must be absolute, free of `..`, strictly inside the
+//! record's `file_root` (after resolving symlinks when it exists), and never a
+//! path [`SecurityPolicy::is_always_forbidden`] rejects. That last check is the
+//! same floor the agent's own file tools keep when the autonomy policy is off,
+//! so a hand-edited record cannot reach further than the agent already could.
+//! With the policy on, `artifacts/` is a workspace-internal dir and the agent
+//! cannot edit the record at all.
+
+use std::path::{Component, Path, PathBuf};
+
+use super::store::{artifacts_root, get_artifact};
+use super::types::{ArtifactMeta, ArtifactStatus};
+use crate::security::SecurityPolicy;
+
+/// Collision suffixes tried before falling back to an id-tagged name.
+const MAX_COLLISION_SUFFIX: u32 = 1000;
+
+/// Claim a fresh, human-named file in `files_dir` for `<stem>.<ext>`.
+///
+/// Creates `files_dir` when missing, then creates an empty placeholder with
+/// `create_new` so the name belongs to this caller before any bytes are
+/// generated. Returns the placeholder's absolute path.
+pub(crate) async fn reserve_file(
+    files_dir: &Path,
+    stem: &str,
+    ext: &str,
+    id: &str,
+) -> Result<PathBuf, String> {
+    tokio::fs::create_dir_all(files_dir)
+        .await
+        .map_err(|e| format!("[artifacts] failed to create files folder {files_dir:?}: {e}"))?;
+    let candidates = (1..=MAX_COLLISION_SUFFIX)
+        .map(|n| {
+            if n == 1 {
+                format!("{stem}.{ext}")
+            } else {
+                format!("{stem} ({n}).{ext}")
+            }
+        })
+        .chain(std::iter::once(format!("{stem}-{id}.{ext}")));
+    for name in candidates {
+        let candidate = files_dir.join(&name);
+        match tokio::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&candidate)
+            .await
+        {
+            Ok(_) => {
+                log::debug!("[artifacts] reserve_file: id={id} claimed {name:?}");
+                return Ok(candidate);
+            }
+            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            Err(e) => {
+                return Err(format!(
+                    "[artifacts] failed to reserve {candidate:?} for id={id}: {e}"
+                ))
+            }
+        }
+    }
+    Err(format!(
+        "[artifacts] no free file name for id={id} in {files_dir:?}"
+    ))
+}
+
+/// Resolve the absolute path of a record's bytes, applying the escape guard.
+///
+/// A record with `file` set resolves to it; a legacy record resolves to
+/// `<workspace>/artifacts/<meta.path>`. Does not require the file to exist.
+pub(crate) async fn resolve_file(
+    workspace_dir: &Path,
+    meta: &ArtifactMeta,
+) -> Result<PathBuf, String> {
+    let Some(file) = meta.file.as_deref() else {
+        let root = artifacts_root(workspace_dir).await?;
+        let resolved = root.join(&meta.path);
+        if has_parent_component(Path::new(&meta.path)) || !resolved.starts_with(&root) {
+            return Err(format!(
+                "[artifacts] meta.path {:?} escapes artifacts root for id={}",
+                meta.path, meta.id
+            ));
+        }
+        return Ok(resolved);
+    };
+    let file = PathBuf::from(file);
+    let root = meta
+        .file_root
+        .as_deref()
+        .map(PathBuf::from)
+        .ok_or_else(|| format!("[artifacts] id={} has a file but no file_root", meta.id))?;
+    check_within(&root, &file).map_err(|reason| {
+        format!(
+            "[artifacts] file for id={} rejected by the escape guard: {reason}",
+            meta.id
+        )
+    })?;
+    Ok(file)
+}
+
+fn has_parent_component(path: &Path) -> bool {
+    path.components().any(|c| matches!(c, Component::ParentDir))
+}
+
+/// The escape guard for a recorded `file` against its `file_root`.
+fn check_within(root: &Path, file: &Path) -> Result<(), &'static str> {
+    if !root.is_absolute() || !file.is_absolute() {
+        return Err("path is not absolute");
+    }
+    if has_parent_component(root) || has_parent_component(file) {
+        return Err("path contains '..'");
+    }
+    if file == root || !file.starts_with(root) {
+        return Err("file is outside its files folder");
+    }
+    if SecurityPolicy::is_always_forbidden(file) {
+        return Err("file is in a protected location");
+    }
+    // A symlink inside the folder must not lead out of it.
+    if let (Ok(canon_file), Ok(canon_root)) = (file.canonicalize(), root.canonicalize()) {
+        if !canon_file.starts_with(&canon_root) || SecurityPolicy::is_always_forbidden(&canon_file)
+        {
+            return Err("file resolves outside its files folder");
+        }
+    }
+    Ok(())
+}
+
+/// Resolve a `Ready` artifact's bytes to an existing file.
+///
+/// The one sanctioned id → path lookup for anything that reads or exports the
+/// file (`read_artifact_bytes`, `ai.get_artifact`, the desktop Download
+/// command). Errors when the record is not `Ready`, fails the escape guard, or
+/// its file was moved or deleted outside OpenHuman.
+pub async fn resolve_ready_file(
+    workspace_dir: &Path,
+    artifact_id: &str,
+) -> Result<PathBuf, String> {
+    let meta = get_artifact(workspace_dir, artifact_id).await?;
+    if !matches!(meta.status, ArtifactStatus::Ready) {
+        return Err(format!(
+            "[artifacts] artifact id={artifact_id} is not ready (status={:?})",
+            meta.status
+        ));
+    }
+    let path = resolve_file(workspace_dir, &meta).await?;
+    if !tokio::fs::try_exists(&path).await.unwrap_or(false) {
+        return Err(missing_file_error(artifact_id, &path));
+    }
+    Ok(path)
+}
+
+/// The error for a `Ready` record whose file is gone.
+pub(crate) fn missing_file_error(artifact_id: &str, path: &Path) -> String {
+    format!(
+        "[artifacts] file missing for id={artifact_id}: {} was moved or deleted outside OpenHuman",
+        path.display()
+    )
+}
+
+/// A failed generation must not leave an empty file in the user's files
+/// folder: drop the zero-byte placeholder `create_artifact` reserved. A file
+/// with bytes (e.g. the previous output of a failed regenerate) is kept.
+pub(crate) async fn remove_empty_placeholder(workspace_dir: &Path, meta: &ArtifactMeta) {
+    if meta.file.is_none() {
+        return;
+    }
+    let Ok(path) = resolve_file(workspace_dir, meta).await else {
+        return;
+    };
+    if matches!(tokio::fs::metadata(&path).await, Ok(m) if m.is_file() && m.len() == 0) {
+        match tokio::fs::remove_file(&path).await {
+            Ok(()) => log::debug!("[artifacts] removed empty placeholder for id={}", meta.id),
+            Err(e) => log::warn!(
+                "[artifacts] could not remove empty placeholder for id={}: {e}",
+                meta.id
+            ),
+        }
+    }
+}
+
+#[cfg(test)]
+#[path = "files_tests.rs"]
+mod tests;

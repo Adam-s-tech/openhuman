@@ -79,15 +79,15 @@ pub async fn ai_get_artifact(config: &Config, artifact_id: &str) -> Result<Outco
 
     let meta = store::get_artifact(&config.workspace_dir, artifact_id).await?;
 
-    // Compute absolute path for the caller's convenience.
-    // Guard against a corrupt or adversarial meta.path that escapes the artifacts root.
-    let artifacts_root = config.workspace_dir.join("artifacts");
-    let resolved = artifacts_root.join(&meta.path);
-    if !resolved.starts_with(&artifacts_root) {
-        return Err(format!(
-            "[artifacts] meta.path {:?} escapes artifacts root for id={artifact_id}",
-            meta.path
-        ));
+    // Resolve through the escape guard (#5505): a record's `file` must sit
+    // inside its recorded files folder, a legacy `meta.path` inside the
+    // artifacts root. A Ready record whose file was moved or deleted outside
+    // OpenHuman is an error rather than a path that points at nothing.
+    let resolved = super::files::resolve_file(&config.workspace_dir, &meta).await?;
+    if matches!(meta.status, super::types::ArtifactStatus::Ready)
+        && !tokio::fs::try_exists(&resolved).await.unwrap_or(false)
+    {
+        return Err(super::files::missing_file_error(artifact_id, &resolved));
     }
     let absolute_path = resolved.to_string_lossy().into_owned();
 
@@ -204,8 +204,12 @@ async fn regenerate_presentation(
         &config.workspace_dir,
         &config.action_dir,
     ));
-    let tool =
-        PresentationTool::with_config(config.workspace_dir.clone(), security, config.clone());
+    let tool = PresentationTool::with_config(
+        config.workspace_dir.clone(),
+        crate::config::default_files_dir(),
+        security,
+        config.clone(),
+    );
 
     let chat_ctx = ApprovalChatContext {
         thread_id: thread_id.to_string(),

@@ -19,6 +19,7 @@ fn tools(action_dir: &Path) -> Vec<Box<dyn Tool>> {
         },
         action_dir,
         &action_dir.join("workspace"),
+        &action_dir.join("Files"),
         tinyagents_harness::tinyinference_video::WaitPolicy::new(
             std::time::Duration::from_millis(1),
             std::time::Duration::from_secs(5),
@@ -150,20 +151,21 @@ async fn image_tool_files_each_generated_file_as_an_artifact() {
         .count();
     assert_eq!(staged, 0, "generated file should have been moved");
 
-    // ...and the file now lives under the artifact store, alongside the
-    // `meta.json` record `create_artifact_for_call` writes.
+    // ...the file now lives in the visible files folder (#5505), and only the
+    // `meta.json` record stays in the hidden artifact store.
     let workspace = dir.path().join("workspace");
     let artifact_dir = workspace.join("artifacts").join(artifact_id);
     let entries: Vec<String> = std::fs::read_dir(&artifact_dir)
         .unwrap()
         .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
         .collect();
-    assert!(entries.contains(&"meta.json".to_string()), "{entries:?}");
-    assert_eq!(
-        entries.len(),
-        2,
-        "expected meta.json + the moved media file under {artifact_dir:?}, got {entries:?}"
-    );
+    assert_eq!(entries, vec!["meta.json".to_string()], "{artifact_dir:?}");
+    let filed: Vec<_> = std::fs::read_dir(dir.path().join("Files"))
+        .unwrap()
+        .map(|e| e.unwrap().path())
+        .collect();
+    assert_eq!(filed.len(), 1, "{filed:?}");
+    assert!(std::fs::metadata(&filed[0]).unwrap().len() > 0);
 }
 
 #[tokio::test]

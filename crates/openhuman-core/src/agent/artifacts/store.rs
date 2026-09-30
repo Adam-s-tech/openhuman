@@ -1,9 +1,11 @@
 use std::path::{Path, PathBuf};
 
+use super::files;
 use super::types::{ArtifactMeta, ArtifactStatus};
 
 const ARTIFACTS_SUBDIR: &str = "artifacts";
 const META_FILENAME: &str = "meta.json";
+const META_TMP_FILENAME: &str = "meta.json.tmp";
 /// Sidecar file holding the verbatim producer-tool arguments that
 /// generated the artifact, persisted next to `meta.json` so a failed
 /// card's Retry button can re-dispatch the exact same generation
@@ -113,12 +115,24 @@ pub(crate) async fn save_artifact_meta(
             meta.id
         )
     })?;
-    tokio::fs::write(&meta_path, json).await.map_err(|e| {
+    // Write-then-rename so a crash mid-write never leaves a truncated
+    // meta.json: the migration relies on the record flipping atomically
+    // from the legacy path to the moved file.
+    let tmp_path = artifact_dir.join(META_TMP_FILENAME);
+    tokio::fs::write(&tmp_path, json).await.map_err(|e| {
         format!(
             "[artifacts] failed to write meta.json for id={}: {e}",
             meta.id
         )
     })?;
+    tokio::fs::rename(&tmp_path, &meta_path)
+        .await
+        .map_err(|e| {
+            format!(
+                "[artifacts] failed to commit meta.json for id={}: {e}",
+                meta.id
+            )
+        })?;
     log::debug!("[artifacts] saved meta.json for id={}", meta.id);
     Ok(())
 }
@@ -311,27 +325,17 @@ pub(crate) async fn read_artifact_args(
 /// Read the raw bytes of a finalized artifact's output file.
 ///
 /// Single source of truth for resolving an artifact id → on-disk bytes:
-/// callers (e.g. the presentation image pipeline) must not reconstruct
-/// the `<root>/<id>/<filename>` path scheme themselves. Validates the id,
-/// confirms the resolved path stays under the artifacts root, and refuses
-/// artifacts that are not yet [`ArtifactStatus::Ready`] (a `Pending` /
-/// `Failed` record may have no bytes — or partial bytes — on disk).
+/// callers (e.g. the presentation image pipeline) must not reconstruct the
+/// path themselves. Goes through [`files::resolve_ready_file`], which refuses
+/// records that are not yet [`ArtifactStatus::Ready`] (a `Pending` / `Failed`
+/// record may have no bytes — or partial bytes — on disk), applies the escape
+/// guard, and reports a file removed outside OpenHuman as missing.
 pub async fn read_artifact_bytes(
     workspace_dir: &Path,
     artifact_id: &str,
 ) -> Result<Vec<u8>, String> {
     log::debug!("[artifacts] read_artifact_bytes: id={artifact_id}");
-    let meta = get_artifact(workspace_dir, artifact_id).await?;
-    if !matches!(meta.status, ArtifactStatus::Ready) {
-        return Err(format!(
-            "[artifacts] artifact id={artifact_id} is not ready (status={:?})",
-            meta.status
-        ));
-    }
-    let root = artifacts_root(workspace_dir).await?;
-    // `meta.path` is the store-internal `<id>/<filename>` relative path.
-    let file_path = root.join(&meta.path);
-    assert_within_root(&root, &file_path)?;
+    let file_path = files::resolve_ready_file(workspace_dir, artifact_id).await?;
     let bytes = tokio::fs::read(&file_path)
         .await
         .map_err(|e| format!("[artifacts] failed to read artifact bytes id={artifact_id}: {e}"))?;
@@ -342,13 +346,33 @@ pub async fn read_artifact_bytes(
     Ok(bytes)
 }
 
-/// Delete an artifact directory and all its contents.
+/// Delete an artifact: its file in the files folder, then its metadata
+/// directory. A file already gone, or one the escape guard rejects, is left
+/// alone (logged) and the record is still removed.
 pub(crate) async fn delete_artifact(workspace_dir: &Path, artifact_id: &str) -> Result<(), String> {
     log::debug!("[artifacts] delete_artifact: id={artifact_id}");
     validate_artifact_id(artifact_id)?;
     let root = artifacts_root(workspace_dir).await?;
     let artifact_dir = root.join(artifact_id);
     assert_within_root(&root, &artifact_dir)?;
+    if let Ok(meta) = get_artifact(workspace_dir, artifact_id).await {
+        if meta.file.is_some() {
+            match files::resolve_file(workspace_dir, &meta).await {
+                Ok(file) => match tokio::fs::remove_file(&file).await {
+                    Ok(()) => log::debug!(
+                        "[artifacts] delete_artifact: removed file for id={artifact_id}"
+                    ),
+                    Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+                    Err(e) => {
+                        return Err(format!(
+                            "[artifacts] failed to delete file for id={artifact_id}: {e}"
+                        ))
+                    }
+                },
+                Err(e) => log::warn!("[artifacts] delete_artifact: leaving file in place: {e}"),
+            }
+        }
+    }
     tokio::fs::remove_dir_all(&artifact_dir)
         .await
         .map_err(|e| format!("[artifacts] failed to delete artifact id={artifact_id}: {e}"))?;
@@ -428,11 +452,12 @@ fn sanitize_filename_stem(title: &str) -> String {
 /// bridge silently drops the event for lack of a routing target.
 pub async fn create_artifact(
     workspace_dir: &Path,
+    files_dir: &Path,
     kind: super::types::ArtifactKind,
     title: &str,
     extension: &str,
 ) -> Result<(ArtifactMeta, PathBuf), String> {
-    create_artifact_for_call(workspace_dir, kind, title, extension, None).await
+    create_artifact_for_call(workspace_dir, files_dir, kind, title, extension, None).await
 }
 
 /// As [`create_artifact`], but also records the provider-assigned
@@ -443,6 +468,7 @@ pub async fn create_artifact(
 /// exactly like [`create_artifact`].
 pub async fn create_artifact_for_call(
     workspace_dir: &Path,
+    files_dir: &Path,
     kind: super::types::ArtifactKind,
     title: &str,
     extension: &str,
@@ -474,8 +500,7 @@ pub async fn create_artifact_for_call(
         .filter(|target| !target.trim().is_empty());
     let is_regenerate = reused_id.is_some();
     let id = reused_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
-    let filename = format!("{}.{trimmed_ext}", sanitize_filename_stem(trimmed_title));
-    let relative_path = format!("{id}/{filename}");
+    let stem = sanitize_filename_stem(trimmed_title);
 
     let root = artifacts_root(workspace_dir).await?;
     let artifact_dir = root.join(&id);
@@ -488,7 +513,6 @@ pub async fn create_artifact_for_call(
                 artifact_dir
             )
         })?;
-    let absolute_path = artifact_dir.join(&filename);
 
     // Capture the originating chat thread (if any) at create-time so the
     // panel can repopulate from disk after a redux-persist purge — see
@@ -501,20 +525,46 @@ pub async fn create_artifact_for_call(
     // `created_at` — bumping it to now would reorder the artifact to the
     // top of the `created_at`-sorted list/panel even though it is the same
     // logical artifact (#3162, CodeRabbit). New artifacts always stamp now.
-    let created_at = if is_regenerate {
-        match get_artifact(workspace_dir, &id).await {
-            Ok(prev) => prev.created_at,
-            Err(_) => chrono::Utc::now(),
-        }
+    // A regenerate also overwrites the file it already owns (#5505) rather
+    // than claiming a second name in the files folder.
+    let previous = if is_regenerate {
+        get_artifact(workspace_dir, &id).await.ok()
     } else {
-        chrono::Utc::now()
+        None
     };
+    let created_at = previous
+        .as_ref()
+        .map(|prev| prev.created_at)
+        .unwrap_or_else(chrono::Utc::now);
+    let owned_file = match previous.as_ref().filter(|prev| prev.file.is_some()) {
+        Some(prev) => match files::resolve_file(workspace_dir, prev).await {
+            Ok(path) if tokio::fs::try_exists(&path).await.unwrap_or(false) => prev
+                .file_root
+                .clone()
+                .map(|root| (path, PathBuf::from(root))),
+            _ => None,
+        },
+        None => None,
+    };
+    let (absolute_path, file_root) = match owned_file {
+        Some(pair) => pair,
+        None => (
+            files::reserve_file(files_dir, &stem, trimmed_ext, &id).await?,
+            files_dir.to_path_buf(),
+        ),
+    };
+    let filename = absolute_path
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_else(|| format!("{stem}.{trimmed_ext}"));
 
     let meta = ArtifactMeta {
         id: id.clone(),
         kind,
         title: trimmed_title.to_string(),
-        path: relative_path,
+        path: filename,
+        file: Some(absolute_path.to_string_lossy().into_owned()),
+        file_root: Some(file_root.to_string_lossy().into_owned()),
         size_bytes: 0,
         status: ArtifactStatus::Pending,
         created_at,
@@ -614,6 +664,7 @@ pub async fn fail_artifact(
     meta.status = ArtifactStatus::Failed;
     meta.error = Some(reason.to_string());
     save_artifact_meta(workspace_dir, &meta).await?;
+    files::remove_empty_placeholder(workspace_dir, &meta).await;
     // Log only the size of the reason — it can carry provider stderr
     // / user-derived content, which we don't want flushed verbatim
     // into structured logs. The full payload is still persisted on
