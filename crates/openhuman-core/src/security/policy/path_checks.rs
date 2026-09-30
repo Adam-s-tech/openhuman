@@ -2,7 +2,8 @@ use std::path::{Path, PathBuf};
 
 use super::types::{SecurityPolicy, TrustedAccess, POLICY_BLOCKED_MARKER};
 use super::types::{
-    ARTIFACTS_DIR, ARTIFACT_TOOL_RESULTS_DIR, WORKSPACE_INTERNAL_DIRS, WORKSPACE_INTERNAL_FILES,
+    ACCOUNT_CONFIG_FILE, ARTIFACTS_DIR, ARTIFACT_TOOL_RESULTS_DIR, WORKSPACE_INTERNAL_DIRS,
+    WORKSPACE_INTERNAL_FILES,
 };
 
 impl SecurityPolicy {
@@ -393,6 +394,16 @@ impl SecurityPolicy {
             (Ok(w), Ok(p)) => (w.as_path(), p.as_path()),
             _ => (self.workspace_dir.as_path(), path),
         };
+        // The account config (`<openhuman_dir>/config.toml`, the workspace's
+        // sibling) holds the autonomy policy itself and the files folders the
+        // artifact escape guard trusts (`files_dir_override`,
+        // `files_dir_history`, #5505). A trusted root over the account or data
+        // dir must not let the agent rewrite either.
+        if let Some(account_dir) = ws.parent() {
+            if check_path == account_dir.join(ACCOUNT_CONFIG_FILE) {
+                return true;
+            }
+        }
         if !check_path.starts_with(ws) {
             return false;
         }
