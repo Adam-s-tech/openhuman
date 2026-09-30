@@ -38,13 +38,11 @@ use std::time::Duration;
 use super::types::{ModuleRecord, ModuleState, ModuleStatus};
 use super::{host, registry};
 use crate::config::Config;
+use tinybus::module::platform::host_candidates;
 use tinybus::module::resolution::{
     self, Claim, Resolution, ResolutionState, ResolutionTable, Waited,
 };
-use tinybus::module::platform::host_candidates;
-use tinybus::module::{
-    load_first_admitted, prune_stale_versions, ReleaseAsset, ReleasePlan,
-};
+use tinybus::module::{load_first_admitted, prune_stale_versions, ReleaseAsset, ReleasePlan};
 
 /// Installer-owned, read-only release cache. The desktop host sets this before
 /// starting the embedded core; other hosts continue using the user cache.
@@ -500,7 +498,7 @@ fn status_of(config: &Config, record: &ModuleRecord) -> ModuleStatus {
             ResolutionState::Loading => (ModuleState::Loading, None),
             ResolutionState::Failed(reason) => (ModuleState::Failed, Some(reason)),
             ResolutionState::Unresolved => {
-                let supported = platform::host_candidates()
+                let supported = host_candidates()
                     .iter()
                     .any(|key| record.asset_for(key).is_some());
                 if supported {
