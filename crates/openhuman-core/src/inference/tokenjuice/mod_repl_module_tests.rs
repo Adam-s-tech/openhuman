@@ -54,9 +54,7 @@ async fn a_large_result_becomes_a_handle_the_repl_tools_can_query() {
     assert!(hit.output().contains("needle in the middle"));
 
     let gone = find
-        .execute(
-            serde_json::json!({ "handle": "0123456789abcdef0123456789abcdef", "query": "x" }),
-        )
+        .execute(serde_json::json!({ "handle": "0123456789abcdef0123456789abcdef", "query": "x" }))
         .await
         .unwrap();
     assert!(gone.is_error);
