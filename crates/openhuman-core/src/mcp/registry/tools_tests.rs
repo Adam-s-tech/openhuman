@@ -60,16 +60,15 @@ async fn list_tools_requires_server_id() {
 
 #[tokio::test]
 async fn list_tools_errors_for_unconnected_server() {
-    // A server_id that is not in the live connection map surfaces a
-    // "connect first" hint rather than an empty success.
+    // A server_id that is not installed errors rather than succeeding empty,
+    // and says so rather than claiming it is merely not connected (#6313).
     let err = McpRegistryListToolsTool::new(cfg())
         .execute(json!({ "server_id": "definitely-not-connected-uuid" }))
         .await
         .expect_err("unconnected server must error");
-    assert!(
-        err.to_string().contains("not connected"),
-        "expected connect-first hint, got: {err}"
-    );
+    let err = err.to_string();
+    assert!(err.contains("no installed MCP server"), "{err}");
+    assert!(err.contains("mcp_registry_status"), "{err}");
 }
 
 /// The identity a registry tool presents to the model, captured from the

@@ -410,25 +410,127 @@ pub async fn mcp_clients_status(config: &Config) -> Result<Outcome<Value>, Strin
 
 // ── list_tools ───────────────────────────────────────────────────────────────
 
+/// Who is listing tools, which decides the remedy a refusal names.
+///
+/// The RPC and the agent tool share one implementation but not one surface: a
+/// settings-UI caller can call `mcp_clients_connect`, a model can only call the
+/// tools on its belt. Naming a method the caller cannot reach is an instruction
+/// it cannot follow (#6313).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Caller {
+    /// The `openhuman.mcp_clients_*` RPC surface (settings UI, CLI).
+    Rpc,
+    /// The model, through the `mcp_registry_*` tools on its belt.
+    Agent,
+}
+
+impl Caller {
+    fn connect(self) -> &'static str {
+        match self {
+            Self::Rpc => "mcp_clients_connect",
+            Self::Agent => "mcp_registry_connect",
+        }
+    }
+
+    fn status(self) -> &'static str {
+        match self {
+            Self::Rpc => "mcp_clients_status",
+            Self::Agent => "mcp_registry_status",
+        }
+    }
+}
+
+/// What a `NotConnected` answer for `requested` means, read against every install.
+#[derive(Debug)]
+pub(crate) enum NotConnected {
+    /// `requested` is a registry qualified name installed as this one server:
+    /// list that server's tools instead.
+    Resolved(String),
+    /// A refusal that names what is actually wrong.
+    Refused(String),
+}
+
+/// `tinymcp` answers `NotConnected` for any id without a live connection,
+/// including one that was never installed and a registry qualified name passed
+/// where an install's `server_id` belongs. "Not connected" is true of that
+/// string and false of the server, so read it against the installs.
+pub(crate) fn explain_not_connected(
+    requested: &str,
+    installs: &[tinymcp::ConnStatus],
+    caller: Caller,
+) -> NotConnected {
+    if let Some(install) = installs.iter().find(|s| s.server_id == requested) {
+        return NotConnected::Refused(not_connected_message(install, caller));
+    }
+    let named: Vec<&str> = installs
+        .iter()
+        .filter(|s| s.qualified_name == requested)
+        .map(|s| s.server_id.as_str())
+        .collect();
+    match named.as_slice() {
+        [server_id] => NotConnected::Resolved((*server_id).to_string()),
+        [] => NotConnected::Refused(format!(
+            "no installed MCP server has server_id={requested}; server_id is the install's \
+             identifier, not its registry name — call {} to list installed servers",
+            caller.status()
+        )),
+        several => NotConnected::Refused(format!(
+            "{requested} is a registry name installed as several servers; pass one server_id: {}",
+            several.join(", ")
+        )),
+    }
+}
+
+/// An installed server with no live connection: say where it stands and how to connect it.
+fn not_connected_message(install: &tinymcp::ConnStatus, caller: Caller) -> String {
+    let mut message = format!(
+        "server_id={} is {}; connect it first via {}",
+        install.server_id,
+        install.status.as_str(),
+        caller.connect()
+    );
+    if let Some(error) = &install.last_error {
+        message.push_str(&format!(" (last error: {error})"));
+    }
+    message
+}
+
 pub async fn mcp_clients_list_tools(
     config: &Config,
     server_id: String,
+    caller: Caller,
 ) -> Result<Outcome<Value>, String> {
-    let server_id = require(&server_id, "server_id")?;
+    let mut server_id = require(&server_id, "server_id")?;
+    let registry = resolve(config)?;
+    let registry = registry.dynamic();
 
-    /// What a caller has to do about it either way.
-    fn connect_first(server_id: &str) -> String {
-        format!("server_id={server_id} is not connected; connect it first via mcp_clients_connect")
-    }
-
-    let tools = resolve(config)?
-        .dynamic()
-        .list_tools(&server_id)
-        .await
-        .map_err(|error| {
+    let tools = match registry.list_tools(&server_id).await {
+        Ok(tools) => tools,
+        Err(tinymcp::Error::NotConnected { .. }) => {
+            let installs = registry.status().await.map_err(|error| error.to_string())?;
+            match explain_not_connected(&server_id, &installs, caller) {
+                NotConnected::Resolved(resolved) => {
+                    tracing::debug!(
+                        "[mcp-client] list_tools: {server_id} resolved to server_id={resolved}"
+                    );
+                    // `resolved` came from `installs`, so the lookup always finds it.
+                    let tools = registry.list_tools(&resolved).await.map_err(|error| {
+                        installs
+                            .iter()
+                            .find(|s| s.server_id == resolved)
+                            .map_or_else(|| error.to_string(), |i| not_connected_message(i, caller))
+                    })?;
+                    server_id = resolved;
+                    tools
+                }
+                NotConnected::Refused(message) => return Err(message),
+            }
+        }
+        Err(error) => {
             tracing::debug!("[mcp-client] list_tools ({server_id}) failed: {error}");
-            connect_first(&server_id)
-        })?;
+            return Err(error.to_string());
+        }
+    };
 
     let tools = super::tools_safe_for_agent(&server_id, tools);
     let count = tools.len();

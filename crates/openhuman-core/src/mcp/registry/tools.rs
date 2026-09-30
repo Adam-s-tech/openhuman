@@ -206,7 +206,7 @@ impl Tool for McpRegistryListToolsTool {
     async fn execute(&self, args: serde_json::Value) -> anyhow::Result<ToolResult> {
         let sid = req_str(&args, "server_id")?;
         emit!(
-            ops::mcp_clients_list_tools(&self.config, sid).await,
+            ops::mcp_clients_list_tools(&self.config, sid, ops::Caller::Agent).await,
             "mcp_registry_list_tools"
         )
     }
