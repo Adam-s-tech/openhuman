@@ -17,13 +17,12 @@ fn config_without_docs() -> Config {
 }
 
 /// A declared server with every field set to something distinguishable.
-fn populated_server() -> HostServer {
-    HostServer {
+fn populated_server() -> HostServer { server: tinymcp_bus::McpServerConfig { HostServer {
         name: "weather".into(),
         endpoint: "https://example.test/mcp".into(),
         command: "npx".into(),
         args: vec!["-y".into(), "weather-mcp".into()],
-        env: HashMap::from([("API_KEY".to_string(), "secret".to_string())]),
+        env: [("API_KEY".to_string(), "secret".to_string())].into(),
         cwd: Some("/tmp".into()),
         description: Some("Weather lookups".into()),
         enabled: false,
@@ -33,8 +32,7 @@ fn populated_server() -> HostServer {
         auth: McpAuthConfig::BearerToken { token: "t".into() },
         expose: Default::default(),
         direct_tools: Vec::new(),
-    }
-}
+    }, ..Default::default() }, ..Default::default() }
 
 #[test]
 fn every_field_of_a_declared_server_survives_the_conversion() {
@@ -108,10 +106,9 @@ fn every_credential_kind_converts() {
 
     for (host, expected) in cases {
         let mut config = config_without_docs();
-        config.mcp_client.servers.push(HostServer {
-            auth: host,
-            ..populated_server()
-        });
+        let mut server = populated_server();
+        server.auth = host;
+        config.mcp_client.servers.push(server);
 
         assert_eq!(client_config(&config).servers[0].auth, expected);
     }
@@ -217,11 +214,7 @@ fn a_user_declared_server_of_the_same_name_wins_over_the_seeded_one() {
     // Someone who deliberately pointed that name somewhere else keeps it.
     let mut config = Config::default();
     config.gitbooks.enabled = true;
-    config.mcp_client.servers.push(HostServer {
-        name: GITBOOKS_SERVER_NAME.into(),
-        endpoint: "https://mine.test/mcp".into(),
-        ..HostServer::default()
-    });
+    config.mcp_client.servers.push(HostServer { server: tinymcp_bus::McpServerConfig { name: GITBOOKS_SERVER_NAME.into(), endpoint: "https://mine.test/mcp".into(), ..Default::default() }, ..Default::default() });
 
     let converted = client_config(&config);
     let matching: Vec<_> = converted
@@ -372,12 +365,7 @@ fn a_default_naming_a_workspace_nothing_opened_falls_through_to_the_rule() {
 fn a_credentialed_plaintext_non_loopback_endpoint_is_refused() {
     use crate::config::McpAuthConfig as Auth;
     let mut config = config_without_docs();
-    config.mcp_client.servers.push(HostServer {
-        name: "insecure".into(),
-        endpoint: "http://example.test/mcp".into(),
-        auth: Auth::BearerToken { token: "t".into() },
-        ..HostServer::default()
-    });
+    config.mcp_client.servers.push(HostServer { server: tinymcp_bus::McpServerConfig { name: "insecure".into(), endpoint: "http://example.test/mcp".into(), auth: Auth::BearerToken { token: "t".into() }, ..Default::default() }, ..Default::default() });
 
     let converted = client_config(&config);
     assert!(
@@ -390,15 +378,10 @@ fn a_credentialed_plaintext_non_loopback_endpoint_is_refused() {
 fn a_credentialed_loopback_http_endpoint_is_allowed() {
     use crate::config::McpAuthConfig as Auth;
     let mut config = config_without_docs();
-    config.mcp_client.servers.push(HostServer {
-        name: "local".into(),
-        endpoint: "http://127.0.0.1:9000/mcp".into(),
-        auth: Auth::Header {
+    config.mcp_client.servers.push(HostServer { server: tinymcp_bus::McpServerConfig { name: "local".into(), endpoint: "http://127.0.0.1:9000/mcp".into(), auth: Auth::Header {
             name: "X-Key".into(),
             value: "v".into(),
-        },
-        ..HostServer::default()
-    });
+        }, ..Default::default() }, ..Default::default() });
 
     let converted = client_config(&config);
     assert!(
@@ -411,15 +394,10 @@ fn a_credentialed_loopback_http_endpoint_is_allowed() {
 fn a_credentialed_https_endpoint_is_allowed() {
     use crate::config::McpAuthConfig as Auth;
     let mut config = config_without_docs();
-    config.mcp_client.servers.push(HostServer {
-        name: "remote".into(),
-        endpoint: "https://example.test/mcp".into(),
-        auth: Auth::Basic {
+    config.mcp_client.servers.push(HostServer { server: tinymcp_bus::McpServerConfig { name: "remote".into(), endpoint: "https://example.test/mcp".into(), auth: Auth::Basic {
             username: "u".into(),
             password: "p".into(),
-        },
-        ..HostServer::default()
-    });
+        }, ..Default::default() }, ..Default::default() });
 
     let converted = client_config(&config);
     assert!(
