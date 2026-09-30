@@ -93,7 +93,7 @@ const DRY_RUN_TIMEOUT_SECS: u64 = 30;
 /// [`StepStatus::Error`](tinyflows::observability::StepStatus::Error). Every
 /// such `tool_call` step is collected into `node_errors`
 /// (`{ node_id, error }`, the error text read back out of the run's `output`
-/// state — see [`tool_call_error_message`]) and fails the dry run the same as
+/// state — see `authoring_report::AuthoringReport`) and fails the dry run the same as
 /// a null resolution.
 ///
 /// **Routing-divergence warning (B15's dry-run blind spot):** none of the
@@ -108,7 +108,7 @@ const DRY_RUN_TIMEOUT_SECS: u64 = 30;
 /// [`CapturingObserver`] is collected into `routing_divergence_warnings`
 /// (`{ node_id, condition_node_id, message }`, `condition_node_id` naming the
 /// nearest upstream `condition` node found by walking predecessors — see
-/// [`find_upstream_condition`] — or `null` if none is found). This is a
+/// `tinyflows::diagnostics::nearest_upstream_condition` — or `null` if none is found). This is a
 /// **warning, not a hard reject**: it never flips `ok` to `false` by itself
 /// (an unexercised branch can be entirely intentional), and is surfaced on
 /// both the `ok: true` and `ok: false` result shapes so the caller can
@@ -349,7 +349,7 @@ impl Tool for DryRunWorkflowTool {
         // Each entry is honest about WHY it resolved null: a binding to an
         // upstream Composio `tool_call`'s output is flagged `unverifiable`
         // (the echo mock can't produce real tool output fields) rather than
-        // reported as a plain wiring mistake — see [`build_null_resolution_entry`].
+        // reported as a plain wiring mistake — see `tinyflows::authoring_report::NullResolutionEntry`.
         // The bucketing and advice wording live upstream (`tinyflows::authoring_report`);
         // this tool keeps the mock capabilities, the timeout and the JSON envelope.
         let AuthoringReport {
