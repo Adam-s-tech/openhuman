@@ -1,4 +1,5 @@
 use super::*;
+use openhuman_core::agent::artifacts::FileRoots;
 
 #[test]
 fn sanitize_rejects_path_separators() {
@@ -42,7 +43,9 @@ async fn resolve_source_returns_the_file_in_the_files_folder() {
     let files_dir = temp.path().join("Files");
     let id = ready_artifact(temp.path(), &files_dir).await;
     assert_eq!(
-        resolve_source(temp.path(), &id).await.unwrap(),
+        resolve_source(temp.path(), &FileRoots::new(&files_dir), &id)
+            .await
+            .unwrap(),
         files_dir.join("deck.pptx")
     );
 }
@@ -50,12 +53,24 @@ async fn resolve_source_returns_the_file_in_the_files_folder() {
 #[tokio::test]
 async fn resolve_source_rejects_unknown_ids_and_paths() {
     let temp = tempfile::tempdir().unwrap();
-    assert!(resolve_source(temp.path(), "").await.is_err());
-    assert!(resolve_source(temp.path(), "no-such-artifact")
-        .await
-        .is_err());
+    assert!(
+        resolve_source(temp.path(), &FileRoots::new(temp.path()), "")
+            .await
+            .is_err()
+    );
+    assert!(resolve_source(
+        temp.path(),
+        &FileRoots::new(temp.path()),
+        "no-such-artifact"
+    )
+    .await
+    .is_err());
     // A path is not an id: the store's id validation refuses separators.
-    assert!(resolve_source(temp.path(), "/etc/passwd").await.is_err());
+    assert!(
+        resolve_source(temp.path(), &FileRoots::new(temp.path()), "/etc/passwd")
+            .await
+            .is_err()
+    );
 }
 
 #[tokio::test]
@@ -81,7 +96,47 @@ async fn resolve_source_refuses_a_file_the_store_does_not_vouch_for() {
     let dir = temp.path().join("artifacts").join("tampered");
     std::fs::create_dir_all(&dir).unwrap();
     std::fs::write(dir.join("meta.json"), serde_json::to_vec(&meta).unwrap()).unwrap();
-    assert!(resolve_source(temp.path(), "tampered").await.is_err());
+    assert!(resolve_source(
+        temp.path(),
+        &FileRoots::new(temp.path().join("Files")),
+        "tampered"
+    )
+    .await
+    .is_err());
+}
+
+/// Download-by-id does not take a record's `file_root` on its own say-so: a
+/// record claiming a home-directory root for a private file inside it is
+/// refused because that root is not one of the vouched-for files folders.
+#[tokio::test]
+async fn resolve_source_refuses_a_record_that_claims_its_own_root() {
+    use openhuman_core::agent::artifacts::{ArtifactKind, ArtifactMeta, ArtifactStatus};
+    let temp = tempfile::tempdir().unwrap();
+    let home = temp.path().join("home");
+    std::fs::create_dir_all(&home).unwrap();
+    let private = home.join("private.pdf");
+    std::fs::write(&private, b"private").unwrap();
+    let meta = ArtifactMeta {
+        id: "claims-home".to_string(),
+        kind: ArtifactKind::Other,
+        title: "x".to_string(),
+        path: "private.pdf".to_string(),
+        file: Some(private.to_string_lossy().into_owned()),
+        file_root: Some(home.to_string_lossy().into_owned()),
+        size_bytes: 7,
+        status: ArtifactStatus::Ready,
+        created_at: chrono::Utc::now(),
+        error: None,
+        thread_id: None,
+        tool_call_id: None,
+    };
+    let dir = temp.path().join("artifacts").join("claims-home");
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(dir.join("meta.json"), serde_json::to_vec(&meta).unwrap()).unwrap();
+    let files = FileRoots::new(temp.path().join("Files"));
+    assert!(resolve_source(temp.path(), &files, "claims-home")
+        .await
+        .is_err());
 }
 
 #[tokio::test]

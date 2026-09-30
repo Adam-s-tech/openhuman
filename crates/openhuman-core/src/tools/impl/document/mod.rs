@@ -241,7 +241,13 @@ impl Tool for DocumentTool {
         let bytes = match engine::generate(&input, GENERATION_TIMEOUT).await {
             Ok(bytes) => bytes,
             Err(err) => {
-                let _ = fail_artifact(&self.workspace_dir, &meta.id, &err.to_string()).await;
+                let _ = fail_artifact(
+                    &self.workspace_dir,
+                    &self.files_dir,
+                    &meta.id,
+                    &err.to_string(),
+                )
+                .await;
                 tracing::warn!(
                     target: "document",
                     err = %err,
@@ -257,7 +263,7 @@ impl Tool for DocumentTool {
                 .map(|n| n.to_string_lossy().into_owned())
                 .unwrap_or_default();
             let reason = format!("failed to write generated document ({filename}): {err}");
-            let _ = fail_artifact(&self.workspace_dir, &meta.id, &reason).await;
+            let _ = fail_artifact(&self.workspace_dir, &self.files_dir, &meta.id, &reason).await;
             tracing::warn!(
                 target: "document",
                 err = %err,
@@ -278,7 +284,8 @@ impl Tool for DocumentTool {
                 // stuck `Pending` spinner. Fail-artifact errors are
                 // swallowed — they can only recur if the same ledger backend
                 // is unavailable.
-                let _ = fail_artifact(&self.workspace_dir, &meta.id, &reason).await;
+                let _ =
+                    fail_artifact(&self.workspace_dir, &self.files_dir, &meta.id, &reason).await;
                 tracing::warn!(
                     target: "document",
                     err = %err,

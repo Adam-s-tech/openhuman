@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use super::files;
+use super::files::{self, FileRoots};
 use super::types::{ArtifactMeta, ArtifactStatus};
 
 const ARTIFACTS_SUBDIR: &str = "artifacts";
@@ -332,10 +332,11 @@ pub(crate) async fn read_artifact_args(
 /// guard, and reports a file removed outside OpenHuman as missing.
 pub async fn read_artifact_bytes(
     workspace_dir: &Path,
+    roots: impl Into<FileRoots>,
     artifact_id: &str,
 ) -> Result<Vec<u8>, String> {
     log::debug!("[artifacts] read_artifact_bytes: id={artifact_id}");
-    let file_path = files::resolve_ready_file(workspace_dir, artifact_id).await?;
+    let file_path = files::resolve_ready_file(workspace_dir, &roots.into(), artifact_id).await?;
     let bytes = tokio::fs::read(&file_path)
         .await
         .map_err(|e| format!("[artifacts] failed to read artifact bytes id={artifact_id}: {e}"))?;
@@ -349,7 +350,12 @@ pub async fn read_artifact_bytes(
 /// Delete an artifact: its file in the files folder, then its metadata
 /// directory. A file already gone, or one the escape guard rejects, is left
 /// alone (logged) and the record is still removed.
-pub(crate) async fn delete_artifact(workspace_dir: &Path, artifact_id: &str) -> Result<(), String> {
+pub(crate) async fn delete_artifact(
+    workspace_dir: &Path,
+    roots: impl Into<FileRoots>,
+    artifact_id: &str,
+) -> Result<(), String> {
+    let roots = roots.into();
     log::debug!("[artifacts] delete_artifact: id={artifact_id}");
     validate_artifact_id(artifact_id)?;
     let root = artifacts_root(workspace_dir).await?;
@@ -357,7 +363,7 @@ pub(crate) async fn delete_artifact(workspace_dir: &Path, artifact_id: &str) -> 
     assert_within_root(&root, &artifact_dir)?;
     if let Ok(meta) = get_artifact(workspace_dir, artifact_id).await {
         if meta.file.is_some() {
-            match files::resolve_file(workspace_dir, &meta).await {
+            match files::resolve_file(workspace_dir, &meta, &roots).await {
                 Ok(file) => match tokio::fs::remove_file(&file).await {
                     Ok(()) => log::debug!(
                         "[artifacts] delete_artifact: removed file for id={artifact_id}"
@@ -452,12 +458,12 @@ fn sanitize_filename_stem(title: &str) -> String {
 /// bridge silently drops the event for lack of a routing target.
 pub async fn create_artifact(
     workspace_dir: &Path,
-    files_dir: &Path,
+    files: impl Into<FileRoots>,
     kind: super::types::ArtifactKind,
     title: &str,
     extension: &str,
 ) -> Result<(ArtifactMeta, PathBuf), String> {
-    create_artifact_for_call(workspace_dir, files_dir, kind, title, extension, None).await
+    create_artifact_for_call(workspace_dir, files, kind, title, extension, None).await
 }
 
 /// As [`create_artifact`], but also records the provider-assigned
@@ -468,12 +474,14 @@ pub async fn create_artifact(
 /// exactly like [`create_artifact`].
 pub async fn create_artifact_for_call(
     workspace_dir: &Path,
-    files_dir: &Path,
+    files: impl Into<FileRoots>,
     kind: super::types::ArtifactKind,
     title: &str,
     extension: &str,
     tool_call_id: Option<&str>,
 ) -> Result<(ArtifactMeta, PathBuf), String> {
+    let roots = files.into();
+    let files_dir = roots.current();
     let trimmed_title = title.trim();
     if trimmed_title.is_empty() {
         return Err("[artifacts] create_artifact: title must not be empty".to_string());
@@ -537,7 +545,7 @@ pub async fn create_artifact_for_call(
         .map(|prev| prev.created_at)
         .unwrap_or_else(chrono::Utc::now);
     let owned_file = match previous.as_ref().filter(|prev| prev.file.is_some()) {
-        Some(prev) => match files::resolve_file(workspace_dir, prev).await {
+        Some(prev) => match files::resolve_file(workspace_dir, prev, &roots).await {
             Ok(path) if tokio::fs::try_exists(&path).await.unwrap_or(false) => prev
                 .file_root
                 .clone()
@@ -657,6 +665,7 @@ pub async fn finalize_artifact(
 /// rules as [`finalize_artifact`].
 pub async fn fail_artifact(
     workspace_dir: &Path,
+    roots: impl Into<FileRoots>,
     artifact_id: &str,
     reason: &str,
 ) -> Result<ArtifactMeta, String> {
@@ -664,7 +673,7 @@ pub async fn fail_artifact(
     meta.status = ArtifactStatus::Failed;
     meta.error = Some(reason.to_string());
     save_artifact_meta(workspace_dir, &meta).await?;
-    files::remove_empty_placeholder(workspace_dir, &meta).await;
+    files::remove_empty_placeholder(workspace_dir, &meta, &roots.into()).await;
     // Log only the size of the reason — it can carry provider stderr
     // / user-derived content, which we don't want flushed verbatim
     // into structured logs. The full payload is still persisted on

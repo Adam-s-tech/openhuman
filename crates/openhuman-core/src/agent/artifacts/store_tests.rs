@@ -105,7 +105,9 @@ async fn delete_removes_directory_and_meta() {
     // Confirm it exists
     get_artifact(tmp.path(), "del-id").await.unwrap();
 
-    delete_artifact(tmp.path(), "del-id").await.unwrap();
+    delete_artifact(tmp.path(), tmp.path(), "del-id")
+        .await
+        .unwrap();
 
     // Should now be gone
     let err = get_artifact(tmp.path(), "del-id").await.unwrap_err();
@@ -118,7 +120,7 @@ async fn delete_removes_directory_and_meta() {
 #[tokio::test]
 async fn delete_nonexistent_returns_error() {
     let tmp = TempDir::new().unwrap();
-    let err = delete_artifact(tmp.path(), "nonexistent-id")
+    let err = delete_artifact(tmp.path(), tmp.path(), "nonexistent-id")
         .await
         .unwrap_err();
     assert!(
@@ -449,7 +451,7 @@ async fn fail_artifact_fills_request_id_from_chat_context() {
             )
             .await
             .expect("create_artifact succeeds");
-            fail_artifact(tmp.path(), &meta.id, "boom")
+            fail_artifact(tmp.path(), tmp.path(), &meta.id, "boom")
                 .await
                 .expect("fail_artifact succeeds");
             meta

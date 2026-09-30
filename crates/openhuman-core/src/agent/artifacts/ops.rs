@@ -83,7 +83,8 @@ pub async fn ai_get_artifact(config: &Config, artifact_id: &str) -> Result<Outco
     // inside its recorded files folder, a legacy `meta.path` inside the
     // artifacts root. A Ready record whose file was moved or deleted outside
     // OpenHuman is an error rather than a path that points at nothing.
-    let resolved = super::files::resolve_file(&config.workspace_dir, &meta).await?;
+    let roots = super::files::FileRoots::from_config(config);
+    let resolved = super::files::resolve_file(&config.workspace_dir, &meta, &roots).await?;
     if matches!(meta.status, super::types::ArtifactStatus::Ready)
         && !tokio::fs::try_exists(&resolved).await.unwrap_or(false)
     {
@@ -122,7 +123,12 @@ pub async fn ai_delete_artifact(
         return Err("[artifacts] artifact_id must not be empty".to_string());
     }
 
-    store::delete_artifact(&config.workspace_dir, artifact_id).await?;
+    store::delete_artifact(
+        &config.workspace_dir,
+        super::files::FileRoots::from_config(config),
+        artifact_id,
+    )
+    .await?;
 
     log::debug!("[artifacts] ai_delete_artifact: deleted id={artifact_id}");
     let value = json!({
