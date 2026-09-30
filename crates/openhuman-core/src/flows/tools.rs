@@ -20,7 +20,6 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use serde_json::{json, Value};
-use tinyflows::model::WorkflowGraph;
 
 use crate::config::Config;
 use crate::flows::ops::{build_builder_proposal, validate_and_migrate_graph};
