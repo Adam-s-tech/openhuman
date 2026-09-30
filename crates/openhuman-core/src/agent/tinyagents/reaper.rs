@@ -11,8 +11,6 @@ use std::path::Path;
 use tinyagents_harness::observability::FileStatusStore;
 use tinyagents_session::transcript::import::ops::open_session_stores;
 
-pub(crate) use tinyagents_harness::observability::ORPHAN_REAP_REASON;
-
 /// Reap every run left non-terminal by a previous process, returning the number
 /// of runs moved to `Cancelled`. Best-effort; never blocks boot.
 pub(crate) async fn reap_orphaned_runs(workspace: &Path) -> usize {
