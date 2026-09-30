@@ -234,23 +234,21 @@ pub(super) async fn fetch_connected_integrations_uncached(
             // Best-effort: pull tool schemas via the backend client
             // (definitional source). Failure is non-fatal — we fall
             // back to empty tools and let lazy resolution handle it.
-            let tools = match super::backend_tools::list_backend_tool_schemas(config, &allowlist) {
-                Some(pending) => {
-                    match pending.await {
-                        Ok(resp) => {
-                            tracing::debug!(
-                            count = resp.tools.len(),
-                            "[composio-direct] fetch_connected_integrations: pulled tool schemas from backend (tenant-agnostic definitional source)"
-                        );
-                            resp.tools
-                        }
-                        Err(e) => {
-                            tracing::info!(
-                            "[composio-direct] fetch_connected_integrations: backend list_tools failed (will use lazy fallback at delegation time): {e:#}"
-                        );
-                            Vec::new()
-                        }
-                    }
+            let tools = match super::backend_tools::fetch_backend_tool_schemas(config, &allowlist)
+                .await
+            {
+                Some(Ok(resp)) => {
+                    tracing::debug!(
+                        count = resp.tools.len(),
+                        "[composio-direct] fetch_connected_integrations: pulled tool schemas from backend (tenant-agnostic definitional source)"
+                    );
+                    resp.tools
+                }
+                Some(Err(e)) => {
+                    tracing::info!(
+                        "[composio-direct] fetch_connected_integrations: backend list_tools failed (will use lazy fallback at delegation time): {e:#}"
+                    );
+                    Vec::new()
                 }
                 None => {
                     tracing::info!(
