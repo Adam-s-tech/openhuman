@@ -10,7 +10,7 @@ use crate::agent::progress::AgentProgress;
 use tinyagents_session::turn_state::mirror::caps::{cap_persisted_args, cap_persisted_output};
 use tinyagents_session::turn_state::types::{
     PersistedToolFailure, SubagentActivity, SubagentToolCall, SubagentTranscriptItem,
-    ToolTimelineEntry, ToolTimelineStatus, TurnLifecycle, TurnPhase, TurnState,
+    ToolTimelineEntry, ToolTimelineStatus, TurnLifecycle, TurnPhase,
 };
 use tinyagents_session::turn_state::TurnStateMirror;
 

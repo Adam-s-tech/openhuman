@@ -11,7 +11,6 @@
 //!   redacting writer, since the whole point of `new_artifact_offload` is that
 //!   no call site can construct one without both.
 
-use std::collections::HashSet;
 use std::path::PathBuf;
 use std::sync::Arc;
 
