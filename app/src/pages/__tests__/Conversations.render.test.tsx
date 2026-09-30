@@ -1899,7 +1899,7 @@ describe('Conversations — smoke render (#1123 welcome-lock removal)', () => {
     // Regression for the per-thread dependency scoping: the rearm effect must
     // react only to the SENDING thread's slices. A different thread churning
     // (background triage, another conversation) must not keep the foreground
-    // turn's 120s timer alive — otherwise a truly hung send never fails fast.
+    // turn's 120s timer alive — otherwise a truly silent send never warns.
     vi.useFakeTimers({ shouldAdvanceTime: true });
     try {
       const { textarea, store } = await renderSelectedConversation();
@@ -1936,17 +1936,11 @@ describe('Conversations — smoke render (#1123 welcome-lock removal)', () => {
       });
 
       // Cross the original 120s deadline (80s + 50s = 130s). Because the
-      // unrelated-thread churn did NOT rearm, the safety timer fires: the
-      // pending guard is released and Send re-enables once the user types.
+      // unrelated-thread churn did NOT rearm, the silence warning fires.
       await act(async () => {
         await vi.advanceTimersByTimeAsync(50_000);
       });
-      await act(async () => {
-        setComposerText(textarea, 'retry after timeout');
-      });
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: 'Send message' })).not.toBeDisabled();
-      });
+      expect(await screen.findByTestId('chat-stall-warning')).toBeInTheDocument();
     } finally {
       vi.useRealTimers();
     }
