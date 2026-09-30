@@ -8,8 +8,9 @@
  * event the UI renders. The path here is the one #5729 reports and nothing
  * covers: the completion request never produces a stream at all, so there is
  * no `chat_error` to render and the only feedback the user can get is
- * `armSilenceTimer`'s watchdog (`Conversations.tsx:818-834`) firing
- * `chat.safetyTimeout` — "No response from the agent after 2 minutes."
+ * `armSilenceTimer`'s watchdog (`handleSilence` in `Conversations.tsx`), which
+ * after 2 minutes shows the non-destructive `chat.stallWarning.*` notice (it
+ * no longer tears the turn down; Stop does).
  *
  * # What is asserted, and what is deliberately only characterised
  *

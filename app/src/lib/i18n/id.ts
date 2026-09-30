@@ -2412,7 +2412,10 @@ const messages: TranslationMap = {
   'common.skip': 'Lewati',
   'common.disable': 'Nonaktifkan',
   'common.enable': 'Aktifkan',
-  'chat.safetyTimeout': 'Tidak ada respons dari agen setelah 2 menit. Coba lagi atau cek koneksi.',
+  'chat.stallWarning.thinking':
+    'Masih berpikir. Tidak ada keluaran baru selama 2 menit, tetapi agen masih bekerja. Tekan Berhenti jika ingin membatalkan.',
+  'chat.stallWarning.working':
+    'Masih bekerja. Satu langkah sudah berjalan lebih dari 2 menit tanpa keluaran baru. Tekan Berhenti jika ingin membatalkan.',
   'chat.filter.general': 'Umum',
   'chat.filter.meetings': 'Rapat',
   'chat.filter.tasks': 'Tugas',

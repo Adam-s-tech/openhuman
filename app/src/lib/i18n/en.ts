@@ -2665,8 +2665,10 @@ const en: TranslationMap = {
   'common.enable': 'Enable',
 
   // Chat (additional)
-  'chat.safetyTimeout':
-    'No response from the agent after 2 minutes. Try again or check your connection.',
+  'chat.stallWarning.thinking':
+    'Still thinking. No new output for 2 minutes, but the agent is still working. Press Stop if you want to cancel.',
+  'chat.stallWarning.working':
+    'Still working. A step has run for over 2 minutes with no new output. Press Stop if you want to cancel.',
   'chat.filter.general': 'General',
   'chat.filter.meetings': 'Meetings',
   'chat.filter.tasks': 'Tasks',

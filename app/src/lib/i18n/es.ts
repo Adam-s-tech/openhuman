@@ -2446,8 +2446,10 @@ const messages: TranslationMap = {
   'common.skip': 'Omitir',
   'common.disable': 'Desactivar',
   'common.enable': 'Activar',
-  'chat.safetyTimeout':
-    'Sin respuesta del agente después de 2 minutos. Intenta de nuevo o verifica tu conexión.',
+  'chat.stallWarning.thinking':
+    'Sigue pensando. No hay resultados nuevos desde hace 2 minutos, pero el agente sigue trabajando. Pulsa Detener si quieres cancelar.',
+  'chat.stallWarning.working':
+    'Sigue trabajando. Un paso lleva más de 2 minutos sin resultados nuevos. Pulsa Detener si quieres cancelar.',
   'chat.filter.general': 'General',
   'chat.filter.meetings': 'Reuniones',
   'chat.filter.tasks': 'Tareas',

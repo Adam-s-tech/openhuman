@@ -2364,7 +2364,10 @@ const messages: TranslationMap = {
   'common.skip': '건너뛰기',
   'common.disable': '비활성화',
   'common.enable': '활성화',
-  'chat.safetyTimeout': '2분 후에도 에이전트의 응답이 없습니다. 다시 시도하거나 연결을 확인하세요.',
+  'chat.stallWarning.thinking':
+    '아직 생각 중입니다. 2분 동안 새 출력이 없지만 에이전트는 계속 작업 중입니다. 취소하려면 중지를 누르세요.',
+  'chat.stallWarning.working':
+    '아직 작업 중입니다. 한 단계가 새 출력 없이 2분 넘게 실행되고 있습니다. 취소하려면 중지를 누르세요.',
   'chat.filter.general': '일반',
   'chat.filter.meetings': '회의',
   'chat.filter.tasks': '작업',

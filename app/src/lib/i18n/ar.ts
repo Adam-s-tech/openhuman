@@ -2339,7 +2339,10 @@ const messages: TranslationMap = {
   'common.skip': 'تخطي',
   'common.disable': 'تعطيل',
   'common.enable': 'تفعيل',
-  'chat.safetyTimeout': 'لا استجابة من الوكيل بعد دقيقتين. حاول مرة أخرى أو تحقق من اتصالك.',
+  'chat.stallWarning.thinking':
+    'لا يزال يفكر. لا يوجد ناتج جديد منذ دقيقتين، لكن الوكيل لا يزال يعمل. اضغط إيقاف إذا أردت الإلغاء.',
+  'chat.stallWarning.working':
+    'لا يزال يعمل. خطوة تعمل منذ أكثر من دقيقتين دون ناتج جديد. اضغط إيقاف إذا أردت الإلغاء.',
   'chat.filter.general': 'عام',
   'chat.filter.meetings': 'الاجتماعات',
   'chat.filter.tasks': 'المهام',

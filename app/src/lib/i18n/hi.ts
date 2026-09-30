@@ -2397,8 +2397,10 @@ const messages: TranslationMap = {
   'common.skip': 'स्किप करें',
   'common.disable': 'बंद करें',
   'common.enable': 'चालू करें',
-  'chat.safetyTimeout':
-    '2 मिनट बाद भी एजेंट से कोई जवाब नहीं मिला। दोबारा कोशिश करें या अपना कनेक्शन चेक करें।',
+  'chat.stallWarning.thinking':
+    'अभी भी सोच रहा है। 2 मिनट से कोई नया आउटपुट नहीं आया, लेकिन एजेंट अभी भी काम कर रहा है। रद्द करना हो तो रोकें दबाएँ।',
+  'chat.stallWarning.working':
+    'अभी भी काम कर रहा है। एक चरण बिना किसी नए आउटपुट के 2 मिनट से अधिक समय से चल रहा है। रद्द करना हो तो रोकें दबाएँ।',
   'chat.filter.general': 'सामान्य',
   'chat.filter.meetings': 'मीटिंग',
   'chat.filter.tasks': 'टास्क',

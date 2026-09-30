@@ -2242,7 +2242,10 @@ const messages: TranslationMap = {
   'common.skip': '跳过',
   'common.disable': '禁用',
   'common.enable': '启用',
-  'chat.safetyTimeout': '助手 2 分钟内未响应。请重试或检查你的连接。',
+  'chat.stallWarning.thinking':
+    '仍在思考。已有 2 分钟没有新输出，但助手仍在工作。如需取消，请点击停止。',
+  'chat.stallWarning.working':
+    '仍在工作。某个步骤已运行超过 2 分钟且没有新输出。如需取消，请点击停止。',
   'chat.filter.general': '常规',
   'chat.filter.meetings': '会议',
   'chat.filter.tasks': '任务',

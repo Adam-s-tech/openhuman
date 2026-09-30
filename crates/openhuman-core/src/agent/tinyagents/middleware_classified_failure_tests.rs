@@ -142,6 +142,76 @@ fn uncertain_timeout_requires_reconciliation() {
         super::super::repeated_failure::recovery_policy("web_fetch", "timed out", false),
         Some(("transient", 2))
     );
+    // A killed local command is inspectable, so it gets one recovery attempt.
+    assert_eq!(
+        super::super::repeated_failure::recovery_policy(
+            "shell",
+            "Command timed out after 60s and was killed",
+            false
+        ),
+        Some(("uncertain_side_effect", 1))
+    );
+}
+
+/// Regression: one `whois` loop hitting the 60s shell timeout halted the whole
+/// turn, discarding every earlier result. The first timeout must steer the
+/// model to reconcile and narrow the command; only a second one halts.
+#[tokio::test]
+async fn shell_timeout_nudges_once_then_halts_on_second() {
+    let handle = SteeringHandle::allow_all();
+    let slot = std::sync::Arc::new(std::sync::Mutex::new(None));
+    let mw = RepeatedToolFailureMiddleware::new(handle.clone(), 3, slot.clone());
+    let run = |id: &'static str, command: &'static str| {
+        let mw = &mw;
+        async move {
+            let mut call = TaToolCall::new(id, "shell", serde_json::json!({ "command": command }));
+            mw.before_tool(&mut ctx(), &(), &mut call).await.unwrap();
+            let mut result = failing_result("shell", "Command timed out after 60s and was killed");
+            mw.after_tool(&mut ctx(), &(), &invocation(id, "shell"), &mut result)
+                .await
+                .unwrap();
+        }
+    };
+
+    run("sh-1", "for d in a.io b.io c.io; do whois $d; done").await;
+    assert_eq!(drain_pause_count(&handle), 0, "first timeout must not halt");
+    assert!(slot.lock().unwrap().is_none());
+    let nudges = mw.take_pending_nudges();
+    assert_eq!(nudges.len(), 1, "{nudges:?}");
+    assert!(nudges[0].contains("timed out"), "{nudges:?}");
+    assert!(nudges[0].contains("smaller, bounded"), "{nudges:?}");
+
+    run("sh-2", "whois a.io").await;
+    assert_eq!(drain_pause_count(&handle), 1, "second timeout halts");
+    let summary = slot.lock().unwrap().clone().unwrap();
+    assert!(summary.contains("uncertain_side_effect"), "{summary}");
+    assert!(
+        summary.contains("reconcile its external state"),
+        "{summary}"
+    );
+}
+
+/// A shell success in between clears the ledger, so a later, unrelated timeout
+/// gets its own recovery attempt instead of halting.
+#[tokio::test]
+async fn shell_success_resets_the_timeout_budget() {
+    let handle = SteeringHandle::allow_all();
+    let slot = std::sync::Arc::new(std::sync::Mutex::new(None));
+    let mw = RepeatedToolFailureMiddleware::new(handle.clone(), 3, slot.clone());
+    for (id, ok) in [("t-1", false), ("t-ok", true), ("t-2", false)] {
+        let mut call = TaToolCall::new(id, "shell", serde_json::json!({ "command": id }));
+        mw.before_tool(&mut ctx(), &(), &mut call).await.unwrap();
+        let mut result = if ok {
+            tool_result("shell", "done")
+        } else {
+            failing_result("shell", "Command timed out after 60s and was killed")
+        };
+        mw.after_tool(&mut ctx(), &(), &invocation(id, "shell"), &mut result)
+            .await
+            .unwrap();
+    }
+    assert_eq!(drain_pause_count(&handle), 0);
+    assert!(slot.lock().unwrap().is_none());
 }
 
 #[test]

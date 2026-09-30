@@ -58,6 +58,7 @@ import {
 import { useRegisterAction } from '../../lib/commands/useRegisterAction';
 import { useT } from '../../lib/i18n/I18nContext';
 import { decideApproval } from '../../services/api/approvalApi';
+import { threadApi } from '../../services/api/threadApi';
 import { fetchThreadTokenUsage } from '../../services/api/threadUsageApi';
 import { aiRegenerate, chatCancel, chatSend, useRustChat } from '../../services/chatService';
 import { callCoreRpc } from '../../services/coreRpcClient';
@@ -99,6 +100,10 @@ import { ThreadList } from './threadList/ThreadList';
 
 const CHAT_MODEL_HINT = 'hint:chat';
 const debug = debugFactory('conversations');
+// How long a turn may go without any inference signal (status, stream delta,
+// tool activity, or the core's 20s `inference_heartbeat`) before the chat
+// warns that it has gone quiet. A warning only — see `handleSilence`.
+const SILENCE_WARNING_MS = 120_000;
 
 interface ConversationsProps {
   /**
@@ -513,10 +518,30 @@ const Conversations = ({
   // thread. Per-thread (a Set) so a send to thread B isn't blocked by an
   // in-flight send to thread A.
   const pendingSendsRef = useRef<Set<string>>(new Set());
-  // Per-thread silence timers. Each in-flight turn gets its own 120s safety
-  // timer keyed by thread id, so concurrent turns on different threads don't
-  // share (and clobber) a single timeout.
+  // Per-thread silence timers. Each in-flight turn gets its own 120s watchdog
+  // keyed by thread id, so concurrent turns on different threads don't share
+  // (and clobber) a single timeout.
   const sendingTimeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  // Threads whose turn has gone quiet past the silence window while the core
+  // still reports it running (or cannot say). Drives a warning only — the turn
+  // is never torn down client-side; the Stop button is how the user ends it.
+  const [stalledThreadIds, setStalledThreadIds] = useState<ReadonlySet<string>>(() => new Set());
+  const markThreadStalled = useCallback((threadId: string) => {
+    setStalledThreadIds(prev => {
+      if (prev.has(threadId)) return prev;
+      const next = new Set(prev);
+      next.add(threadId);
+      return next;
+    });
+  }, []);
+  const clearThreadStalled = useCallback((threadId: string) => {
+    setStalledThreadIds(prev => {
+      if (!prev.has(threadId)) return prev;
+      const next = new Set(prev);
+      next.delete(threadId);
+      return next;
+    });
+  }, []);
   // Live for as long as this instance is: flipped in the unmount cleanup so an
   // async continuation cannot schedule a watchdog onto a torn-down page.
   const isMountedRef = useRef(true);
@@ -772,37 +797,68 @@ const Conversations = ({
     // Never schedule onto a torn-down instance. `handleSendMessage` awaits
     // `addMessageLocal` before arming, so an unmount landing inside that await
     // runs the cleanup below — which finds nothing — and the continuation then
-    // schedules a timer no cleanup will ever reach. Nothing can rearm it
-    // either, so it survives to clear shared runtime state for a turn that may
-    // still be live. The send itself is unaffected; only the watchdog is
-    // skipped, which is correct: a page that is gone cannot supervise a turn.
+    // schedules a timer no cleanup will ever reach. The send itself is
+    // unaffected; only the watchdog is skipped, which is correct: a page that
+    // is gone cannot supervise a turn.
     if (!isMountedRef.current) {
       debug(`armSilenceTimer: instance unmounted — not scheduling for ${threadId}`);
       return;
     }
     const timeout = setTimeout(() => {
-      debug(`armSilenceTimer: no inference signal for 120s — clearing runtime (${threadId})`);
-      setSendError(chatSendError('safety_timeout', t('chat.safetyTimeout')));
+      sendingTimeoutsRef.current.delete(threadId);
+      void handleSilence(threadId);
+    }, SILENCE_WARNING_MS);
+    sendingTimeoutsRef.current.set(threadId, timeout);
+  };
+
+  // The silence window elapsed with no inference signal for `threadId`.
+  //
+  // Silence is not failure. A reasoning model can think for minutes without
+  // streaming anything, and a tool (a shell loop, a slow fetch) can run past
+  // two minutes, so the watchdog never cancels or clears a turn on its own —
+  // doing so discarded live, progressing work. It asks the core instead:
+  //
+  // - core says the turn already ended (`completed` / `interrupted`): the
+  //   terminal event was lost (e.g. across a reconnect), so settle the local
+  //   state and reload the thread — nothing is running to discard.
+  // - otherwise (still running, no snapshot, or the lookup failed): keep the
+  //   turn, show a warning, and keep watching. Any later signal clears the
+  //   warning through the rearm effect; Stop remains the way to cancel.
+  const handleSilence = async (threadId: string) => {
+    debug(`silence: no inference signal for ${SILENCE_WARNING_MS}ms — checking core (${threadId})`);
+    // Keep supervising while the lookup is in flight, so a turn that stays
+    // silent gets re-checked every window.
+    armSilenceTimer(threadId);
+    let lifecycle: string | null = null;
+    try {
+      lifecycle = (await threadApi.getTurnState(threadId))?.lifecycle ?? null;
+    } catch (error) {
+      debug(`silence: turn-state lookup failed thread=${threadId} err=%o`, error);
+    }
+    if (!isMountedRef.current) return;
+    const turnEnded =
+      (lifecycle === 'completed' || lifecycle === 'interrupted') &&
+      !pendingSendsRef.current.has(threadId);
+    if (turnEnded) {
+      debug(`silence: core reports ${lifecycle} — terminal event missed, settling ${threadId}`);
+      clearSilenceTimer(threadId);
+      turnSignatureByThreadRef.current.delete(threadId);
+      clearThreadStalled(threadId);
       dispatch(clearRuntimeForThread({ threadId }));
       dispatch(clearThreadInferenceActive(threadId));
-      sendingTimeoutsRef.current.delete(threadId);
-      // Reset so the NEXT send to this thread starts from a clean baseline —
-      // otherwise the rearm effect could read this turn's last signature as a
-      // stale "previous" and mis-handle the next send's first signal.
-      turnSignatureByThreadRef.current.delete(threadId);
-      pendingSendsRef.current.delete(threadId);
-      removePendingSendingThread(threadId);
-    }, 120_000);
-    sendingTimeoutsRef.current.set(threadId, timeout);
+      void dispatch(loadThreadMessages(threadId));
+      return;
+    }
+    debug(`silence: turn still live (lifecycle=${lifecycle ?? 'none'}) — warning only ${threadId}`);
+    markThreadStalled(threadId);
   };
 
   // Drop every silence timer this component owns when it unmounts.
   //
-  // The timer's callback is not inert after teardown: it dispatches
-  // `clearRuntimeForThread` and `clearThreadInferenceActive`, which mutate
-  // shared store state that outlives this component. Left armed, a timer from
-  // a thread the user has navigated away from can wipe the runtime of a turn
-  // that is still legitimately in flight, up to 120s later.
+  // The timer's callback is not inert after teardown: it queries the core and
+  // may dispatch `clearRuntimeForThread` / `clearThreadInferenceActive` into
+  // shared store state that outlives this component. A page that is gone
+  // cannot supervise a turn, so nothing it armed may keep running.
   //
   // Deliberately `[]` — unmount only. Keying this on `selectedThreadId` would
   // clear the timer every time the user switched threads, which is exactly the
@@ -832,7 +888,7 @@ const Conversations = ({
   // Arm only for a turn that is genuinely in flight. A terminal snapshot
   // deletes `inferenceStatusByThread` in the reducer's interrupted/completed
   // branch, so the status check alone already excludes one; the `interrupted`
-  // guard is belt-and-braces, so this cannot start firing `safety_timeout` on a
+  // guard is belt-and-braces, so this cannot start warning about silence on a
   // settled thread if that branch ever changes. (`completed` is not a member of
   // `InferenceTurnLifecycle` — the reducer deletes the key instead of storing a
   // terminal value — so there is no such case to guard.)
@@ -881,7 +937,7 @@ const Conversations = ({
   // turn whose tools run in a child task) bumps `toolTimelineByThread` without
   // necessarily re-emitting a top-level status change, so it must be watched —
   // otherwise a long sub-agent loop
-  // would trip the safety timer mid-run even though the user can see the
+  // would trip the silence warning mid-run even though the user can see the
   // delegated tools firing in the timeline. When the status is cleared
   // (chat_done / chat_error), drop the timer — the completion handlers
   // own UI cleanup.
@@ -915,11 +971,14 @@ const Conversations = ({
       if (status === undefined && previousStatus !== undefined) {
         clearSilenceTimer(threadId);
         turnSignatureByThreadRef.current.delete(threadId);
+        clearThreadStalled(threadId);
         continue;
       }
       const changed = !previous || previous.some((value, index) => value !== current[index]);
       if (!changed) continue;
       turnSignatureByThreadRef.current.set(threadId, current);
+      // Progress resumed: the "gone quiet" warning no longer applies.
+      clearThreadStalled(threadId);
       armSilenceTimer(threadId);
     }
     // armSilenceTimer / clearSilenceTimer are stable (refs + dispatch);
@@ -1144,16 +1203,16 @@ const Conversations = ({
     setAttachments([]);
     setSendError(null);
     setAttachError(null);
-    // Silence timer: fires only if 600s pass without ANY inference progress
-    // (tool call, tool result, iteration start, subagent event, text delta).
-    // The effect below rearms this timer whenever `inferenceStatusByThread`
-    // changes for `sendingThreadId`, so long-running agent turns stay alive
-    // as long as the backend is emitting signals. A truly hung server still
-    // fails fast.
+    // Silence watchdog: fires only if 120s pass without ANY inference signal
+    // (tool call, tool result, iteration start, subagent event, text/thinking
+    // delta, heartbeat). The effect below rearms it on every signal for
+    // `sendingThreadId`. When it fires it warns and reconciles with the core
+    // (`handleSilence`); it never cancels or clears a live turn.
     // Fresh send: clear the previous-status baseline before arming so the
     // first inference signal of this turn isn't misread as a chat-done
     // transition (defined → undefined) left over from the prior turn.
     turnSignatureByThreadRef.current.delete(sendingThreadId);
+    clearThreadStalled(sendingThreadId);
     armSilenceTimer(sendingThreadId);
     dispatch(setToolTimelineForThread({ threadId: sendingThreadId, entries: [] }));
     dispatch(beginInferenceTurn({ threadId: sendingThreadId }));
@@ -1185,6 +1244,7 @@ const Conversations = ({
       // Chat loop errors are emitted via socket events; this catch handles emit-level failures.
       clearSilenceTimer(sendingThreadId);
       turnSignatureByThreadRef.current.delete(sendingThreadId);
+      clearThreadStalled(sendingThreadId);
       const msg = err instanceof Error ? err.message : String(err);
       if (
         msg.toLowerCase().includes('blocked by a security policy') ||
@@ -1336,12 +1396,13 @@ const Conversations = ({
         );
         clearSilenceTimer(threadId);
         turnSignatureByThreadRef.current.delete(threadId);
+        clearThreadStalled(threadId);
         dispatch(clearRuntimeForThread({ threadId }));
         dispatch(clearThreadInferenceActive(threadId));
         return;
       }
     });
-  }, [selectedThreadId, dispatch, clearSilenceTimer]);
+  }, [selectedThreadId, dispatch, clearSilenceTimer, clearThreadStalled]);
 
   handleStopGenerationRef.current = handleStopGeneration;
 
@@ -1659,6 +1720,34 @@ const Conversations = ({
   // voice composer. One definition is the point — a second copy is how they
   // drifted apart before (a rejected send once showed no feedback at all).
 
+  // Shown while the selected thread's live turn has gone quiet past the silence
+  // window. Informational: the turn keeps running and clears this itself on its
+  // next signal. The wording follows the phase so a long think does not read as
+  // a failure.
+  const selectedStalledPhase =
+    selectedThreadId &&
+    stalledThreadIds.has(selectedThreadId) &&
+    (selectedThreadActive ||
+      inferenceStatusByThread[selectedThreadId] !== undefined ||
+      inferenceTurnLifecycleByThread[selectedThreadId] === 'started' ||
+      inferenceTurnLifecycleByThread[selectedThreadId] === 'streaming')
+      ? (inferenceStatusByThread[selectedThreadId]?.phase ?? 'thinking')
+      : null;
+  const stallWarningBanner = selectedStalledPhase ? (
+    <div className="mb-2" role="status">
+      <p
+        className="text-xs text-amber-700"
+        data-testid="chat-stall-warning"
+        data-chat-stall-phase={selectedStalledPhase}>
+        {t(
+          selectedStalledPhase === 'thinking'
+            ? 'chat.stallWarning.thinking'
+            : 'chat.stallWarning.working'
+        )}
+      </p>
+    </div>
+  ) : null;
+
   const sendAdvisoryBanner = sendAdvisory ? (
     <div className="flex items-center justify-between mb-2">
       <p className="text-xs text-amber-700" data-chat-send-advisory>
@@ -1846,6 +1935,7 @@ const Conversations = ({
           transcript: nothing is added to it. Without this the composer simply
           swallowed the message. */}
       {sendErrorBanner}
+      {stallWarningBanner}
       {sendAdvisoryBanner}
       {liveArtifactDeck}
       {/* The core's run queue for this thread; renders nothing while empty. */}

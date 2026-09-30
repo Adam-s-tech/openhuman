@@ -38,9 +38,7 @@ use std::time::Duration;
 use super::types::{ModuleRecord, ModuleState, ModuleStatus};
 use super::{host, platform, registry};
 use crate::config::Config;
-use tinybus::module::resolution::{
-    self, Claim, Resolution, ResolutionState, ResolutionTable, Waited,
-};
+use tinybus::module::resolution::{self, Claim, Resolution, ResolutionState, Waited};
 use tinybus::module::{artifact_dir, prune_stale_versions};
 
 /// Installer-owned, read-only release cache. The desktop host sets this before
