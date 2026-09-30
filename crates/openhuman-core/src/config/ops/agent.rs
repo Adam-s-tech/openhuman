@@ -626,6 +626,7 @@ pub async fn apply_agent_paths_settings(
             "[config][agent_paths] apply files_dir edit (input_len={})",
             trimmed.len()
         );
+        let previous = config.files_dir();
         if trimmed.is_empty() {
             config.files_dir_override = None;
             notes.push("files_dir override cleared (reverted to default)".to_string());
@@ -633,6 +634,11 @@ pub async fn apply_agent_paths_settings(
             let candidate = validate_files_dir(trimmed, config).await?;
             notes.push(format!("files_dir set to {}", candidate.display()));
             config.files_dir_override = Some(candidate);
+        }
+        // Existing artifacts stay where they are, so the folder they were
+        // made in must stay trusted by the artifact escape guard.
+        if previous != config.files_dir() && !config.files_dir_history.contains(&previous) {
+            config.files_dir_history.push(previous);
         }
         config.save().await.map_err(|e| e.to_string())?;
         crate::core::bus::BUS.publish(crate::core::events::DomainEvent::AgentPathsChanged);

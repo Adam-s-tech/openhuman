@@ -51,7 +51,7 @@ pub struct MediaArtifactTool<T: Tool> {
     kind: ArtifactKind,
     workspace_dir: PathBuf,
     /// Visible folder each generated file is moved into (#5505).
-    files_dir: PathBuf,
+    files_dir: crate::agent::artifacts::FileRoots,
 }
 
 impl<T: Tool> MediaArtifactTool<T> {
@@ -63,7 +63,7 @@ impl<T: Tool> MediaArtifactTool<T> {
         inner: T,
         kind: ArtifactKind,
         workspace_dir: impl Into<PathBuf>,
-        files_dir: impl Into<PathBuf>,
+        files_dir: impl Into<crate::agent::artifacts::FileRoots>,
     ) -> Self {
         Self {
             inner,

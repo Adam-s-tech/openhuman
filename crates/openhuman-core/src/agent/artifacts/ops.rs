@@ -212,7 +212,7 @@ async fn regenerate_presentation(
     ));
     let tool = PresentationTool::with_config(
         config.workspace_dir.clone(),
-        config.files_dir(),
+        super::files::FileRoots::from_config(config),
         security,
         config.clone(),
     );

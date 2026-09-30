@@ -80,6 +80,13 @@ pub struct Config {
     /// existing ones keep the folder recorded in their metadata.
     #[serde(default)]
     pub files_dir_override: Option<PathBuf>,
+    /// Files folders used before the current one. Artifacts created there keep
+    /// resolving, because the artifact escape guard trusts only folders the
+    /// core records here (plus the current one and the default), never a
+    /// folder an artifact's own metadata claims. Appended by
+    /// `config.update_agent_paths`.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub files_dir_history: Vec<PathBuf>,
     #[serde(skip)]
     pub config_path: PathBuf,
     /// Per-load snapshot used to remove standalone CLI inference overrides

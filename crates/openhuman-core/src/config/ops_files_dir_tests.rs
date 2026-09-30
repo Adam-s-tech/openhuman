@@ -177,3 +177,52 @@ async fn a_symlinked_route_into_the_data_folder_is_rejected() {
     let err = rejected(&mut cfg, &alias.join("Files").to_string_lossy()).await;
     assert!(err.contains("OpenHuman data folder"), "{err}");
 }
+
+/// Changing the folder affects new files only: a file made in the previous
+/// folder keeps resolving, because that folder is recorded as trusted.
+#[tokio::test]
+async fn files_made_before_a_folder_change_keep_resolving() {
+    use crate::agent::artifacts::store::{create_artifact, finalize_artifact};
+    use crate::agent::artifacts::{ArtifactKind, FileRoots};
+
+    let tmp = tempdir().unwrap();
+    let mut cfg = tmp_config(&tmp);
+    let first = tmp.path().join("First");
+    let second = tmp.path().join("Second");
+    apply_agent_paths_settings(&mut cfg, patch(&first.to_string_lossy()))
+        .await
+        .unwrap();
+    let (meta, path) = create_artifact(
+        &cfg.workspace_dir,
+        FileRoots::from_config(&cfg),
+        ArtifactKind::Document,
+        "Plan",
+        "docx",
+    )
+    .await
+    .unwrap();
+    std::fs::write(&path, b"plan").unwrap();
+    finalize_artifact(&cfg.workspace_dir, &meta.id, 4)
+        .await
+        .unwrap();
+    assert!(path.starts_with(&first));
+
+    apply_agent_paths_settings(&mut cfg, patch(&second.to_string_lossy()))
+        .await
+        .unwrap();
+
+    assert!(
+        cfg.files_dir_history.contains(&first),
+        "{:?}",
+        cfg.files_dir_history
+    );
+    let value = crate::agent::artifacts::ops::ai_get_artifact(&cfg, &meta.id)
+        .await
+        .expect("an artifact from the previous folder still resolves")
+        .into_cli_compatible_json()
+        .unwrap();
+    assert_eq!(
+        value["absolute_path"],
+        serde_json::json!(path.to_string_lossy())
+    );
+}
