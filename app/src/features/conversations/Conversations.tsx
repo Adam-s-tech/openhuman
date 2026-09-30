@@ -100,6 +100,10 @@ import { ThreadList } from './threadList/ThreadList';
 
 const CHAT_MODEL_HINT = 'hint:chat';
 const debug = debugFactory('conversations');
+// How long a turn may go without any inference signal (status, stream delta,
+// tool activity, or the core's 20s `inference_heartbeat`) before the chat
+// warns that it has gone quiet. A warning only — see `handleSilence`.
+const SILENCE_WARNING_MS = 120_000;
 
 interface ConversationsProps {
   /**
@@ -970,11 +974,14 @@ const Conversations = ({
       if (status === undefined && previousStatus !== undefined) {
         clearSilenceTimer(threadId);
         turnSignatureByThreadRef.current.delete(threadId);
+        clearThreadStalled(threadId);
         continue;
       }
       const changed = !previous || previous.some((value, index) => value !== current[index]);
       if (!changed) continue;
       turnSignatureByThreadRef.current.set(threadId, current);
+      // Progress resumed: the "gone quiet" warning no longer applies.
+      clearThreadStalled(threadId);
       armSilenceTimer(threadId);
     }
     // armSilenceTimer / clearSilenceTimer are stable (refs + dispatch);
@@ -1199,16 +1206,16 @@ const Conversations = ({
     setAttachments([]);
     setSendError(null);
     setAttachError(null);
-    // Silence timer: fires only if 600s pass without ANY inference progress
-    // (tool call, tool result, iteration start, subagent event, text delta).
-    // The effect below rearms this timer whenever `inferenceStatusByThread`
-    // changes for `sendingThreadId`, so long-running agent turns stay alive
-    // as long as the backend is emitting signals. A truly hung server still
-    // fails fast.
+    // Silence watchdog: fires only if 120s pass without ANY inference signal
+    // (tool call, tool result, iteration start, subagent event, text/thinking
+    // delta, heartbeat). The effect below rearms it on every signal for
+    // `sendingThreadId`. When it fires it warns and reconciles with the core
+    // (`handleSilence`); it never cancels or clears a live turn.
     // Fresh send: clear the previous-status baseline before arming so the
     // first inference signal of this turn isn't misread as a chat-done
     // transition (defined → undefined) left over from the prior turn.
     turnSignatureByThreadRef.current.delete(sendingThreadId);
+    clearThreadStalled(sendingThreadId);
     armSilenceTimer(sendingThreadId);
     dispatch(setToolTimelineForThread({ threadId: sendingThreadId, entries: [] }));
     dispatch(beginInferenceTurn({ threadId: sendingThreadId }));
@@ -1240,6 +1247,7 @@ const Conversations = ({
       // Chat loop errors are emitted via socket events; this catch handles emit-level failures.
       clearSilenceTimer(sendingThreadId);
       turnSignatureByThreadRef.current.delete(sendingThreadId);
+      clearThreadStalled(sendingThreadId);
       const msg = err instanceof Error ? err.message : String(err);
       if (
         msg.toLowerCase().includes('blocked by a security policy') ||
@@ -1391,12 +1399,13 @@ const Conversations = ({
         );
         clearSilenceTimer(threadId);
         turnSignatureByThreadRef.current.delete(threadId);
+        clearThreadStalled(threadId);
         dispatch(clearRuntimeForThread({ threadId }));
         dispatch(clearThreadInferenceActive(threadId));
         return;
       }
     });
-  }, [selectedThreadId, dispatch, clearSilenceTimer]);
+  }, [selectedThreadId, dispatch, clearSilenceTimer, clearThreadStalled]);
 
   handleStopGenerationRef.current = handleStopGeneration;
 
