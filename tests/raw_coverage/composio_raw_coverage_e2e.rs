@@ -26,7 +26,7 @@ use openhuman_core::integrations::composio::providers::{
     classify_unknown, find_curated, toolkit_from_slug, CuratedTool, ToolScope, UserScopePref,
 };
 use openhuman_core::integrations::composio::tools::{
-    ComposioAction, ComposioAuthorizeTool, ComposioConnectedAccount, ComposioExecuteTool,
+    ComposioAuthorizeTool, ComposioConnectedAccount, ComposioExecuteTool,
     ComposioListConnectionsTool, ComposioListToolkitsTool, ComposioListToolsTool,
 };
 use openhuman_core::integrations::composio::trigger_history::ComposioTriggerHistoryStore;
@@ -44,8 +44,7 @@ use openhuman_core::integrations::composio::{
     all_composio_agent_tools, all_composio_controller_schemas, all_composio_registered_controllers,
     cached_active_integrations, connected_set_hash, connection_identity,
     fetch_connected_integrations, fetch_connected_integrations_status,
-    invalidate_connected_integrations_cache, ComposioActionTool, ComposioClient,
-    FetchConnectedIntegrationsStatus,
+    invalidate_connected_integrations_cache, ComposioActionTool, FetchConnectedIntegrationsStatus,
 };
 use openhuman_core::security::credentials::{
     AuthService, APP_SESSION_PROVIDER, DEFAULT_AUTH_PROFILE_NAME,
@@ -53,7 +52,6 @@ use openhuman_core::security::credentials::{
 
 use openhuman_core::integrations::IntegrationClient;
 use openhuman_core::security::{AutonomyLevel, SecurityPolicy};
-use openhuman_core::tools::ComposioTool;
 use tinytools::{PermissionLevel, Tool, ToolCallOptions, ToolCategory};
 
 static ENV_LOCK: &OnceLock<Mutex<()>> = &crate::SHARED_ENV_LOCK;
