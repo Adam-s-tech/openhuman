@@ -255,7 +255,7 @@ pub(super) fn is_local_provider_unreachable_failure(
 pub(super) fn is_local_provider_no_model_loaded_message(signal: &str) -> bool {
     let lower = signal.to_ascii_lowercase();
     (lower.contains("local inference server") && lower.contains("no model loaded"))
-        || lower.contains("no models loaded")
+        || tinyinference_llm::failure::body_indicates_no_model_loaded(signal)
 }
 
 /// Static, leak-safe actionable alert copy for a permanent cron halt state.
