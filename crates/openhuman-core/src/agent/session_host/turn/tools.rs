@@ -20,64 +20,6 @@ impl OpenHumanSessionHost {
     // Sub-agent context snapshots
     // ─────────────────────────────────────────────────────────────────
 
-    /// Snapshot the parent's runtime so spawned sub-agents can read
-    /// it via the [`harness::PARENT_CONTEXT`] task-local.
-    pub(super) fn build_parent_execution_context(&self) -> harness::ParentExecutionContext {
-        // Prefer an ambient `current_parent()` descriptor so nested subagents
-        // inherit their enclosing workspace. On a root turn the ambient value
-        // is absent, so fall back to this session's own descriptor.
-        let workspace_descriptor = harness::current_parent()
-            .and_then(|parent| parent.workspace_descriptor)
-            .or_else(|| self.workspace_descriptor.clone());
-        if let Some(descriptor) = workspace_descriptor.as_ref() {
-            tracing::debug!(
-                root = %descriptor.root.display(),
-                policy_id = %descriptor.policy_id,
-                "[agent_loop] snapshotting workspace descriptor for parent context (ambient or own)"
-            );
-        }
-        let allowed_subagent_ids = self
-            .resolved_definition()
-            .map(|definition| definition.allowed_subagent_ids().into_iter().collect())
-            .unwrap_or_default();
-
-        harness::ParentExecutionContext {
-            agent_definition_id: self.agent_definition_id.clone(),
-            allowed_subagent_ids,
-            turn_model_source: self.turn_model_source.clone(),
-            all_tools: Arc::clone(&self.tools),
-            // The durable registry's own specs, index for index with
-            // `all_tools` — never the synthesised delegation specs, which a
-            // child holds no instance for and must not see (#4452).
-            all_tool_specs: Arc::clone(&self.durable_tool_specs),
-            visible_tool_names: self
-                .visible_tool_specs
-                .iter()
-                .map(|spec| spec.name.clone())
-                .collect(),
-            visible_tool_specs: Arc::clone(&self.visible_tool_specs),
-            subagent_tool_ceiling_names: self.subagent_tool_ceiling_names.clone(),
-            model_name: self.model_name.clone(),
-            temperature: self.temperature,
-            workspace_dir: self.workspace_dir.clone(),
-            workspace_descriptor,
-            memory: Arc::clone(&self.memory),
-            agent_config: self.config.clone(),
-            workflows: Arc::new(self.workflows.clone()),
-            memory_context: Arc::new(self.last_memory_context.clone()),
-            session_id: self.event_session_id().to_string(),
-            channel: self.event_channel().to_string(),
-            connected_integrations: self.connected_integrations.clone(),
-            tool_call_format: crate::agent::prompts::tool_call_format_from_dialect(
-                self.tool_dispatcher.tool_call_format(),
-            ),
-            session_key: self.session_key.clone(),
-            session_parent_prefix: self.session_parent_prefix.clone(),
-            on_progress: self.on_progress.clone(),
-            run_queue: self.run_queue.clone(),
-        }
-    }
-
     /// The tool sets and callable-name allowlist for one turn.
     ///
     /// Returns `(durable tools, synthesised delegation tools, visible names)`.

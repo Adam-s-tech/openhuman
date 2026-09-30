@@ -191,25 +191,6 @@ impl OpenHumanSessionHost {
         self.runtime_config.is_some()
     }
 
-    /// OpenHuman's [`AgentMemory`](tinyagents_harness::host::AgentMemory)
-    /// capability over this session's memory backend.
-    ///
-    /// Built on demand rather than stored: it is a thin adapter over an `Arc`
-    /// the session already holds, so constructing one is a refcount bump, and
-    /// storing it would create a second handle that could drift from
-    /// `self.memory` if the backend were ever swapped.
-    pub fn host_agent_memory(&self) -> crate::agent::tinyagents::host::OpenHumanAgentMemory {
-        crate::agent::tinyagents::host::OpenHumanAgentMemory::new(self.memory_arc())
-    }
-
-    /// OpenHuman's [`ExperienceStore`](tinyagents_harness::host::ExperienceStore)
-    /// capability over this session's memory backend.
-    pub fn host_experience_store(
-        &self,
-    ) -> crate::agent::tinyagents::host::OpenHumanExperienceStore {
-        crate::agent::tinyagents::host::OpenHumanExperienceStore::new(self.memory_arc())
-    }
-
     /// The agent's working directory.
     pub fn workspace_dir(&self) -> &std::path::Path {
         &self.workspace_dir
@@ -352,23 +333,6 @@ impl OpenHumanSessionHost {
     /// addresses the transcript, and it is stamped into `_meta.session_id`.
     pub fn session_id(&self) -> Option<String> {
         self.session.as_ref().map(|session| session.session_id())
-    }
-
-    /// Every generation of this conversation, oldest first.
-    ///
-    /// A compaction seals a generation and opens the next rather than
-    /// rewriting history, so a long conversation is a chain of transcripts.
-    /// The model sees only the head; this is how a host reads back the whole
-    /// thing. Empty when nothing has been persisted yet.
-    pub fn session_generations(&self) -> Vec<String> {
-        let Some(session) = self.session.as_ref() else {
-            return Vec::new();
-        };
-        self.session_locator()
-            .session_chain(session)
-            .iter()
-            .map(|generation| generation.session_id())
-            .collect()
     }
 
     /// Override the agent definition name used for session transcript

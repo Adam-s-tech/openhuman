@@ -83,14 +83,6 @@ pub(crate) fn cancel_by_task(task_id: &str) -> Option<CancelledSubagent> {
     })
 }
 
-pub(crate) fn cancel_by_session(
-    subagent_session_id: &str,
-    parent_session: &str,
-) -> Option<CancelledSubagent> {
-    let task_id = task_id_for_session(subagent_session_id, parent_session).ok()?;
-    cancel_by_task(&task_id)
-}
-
 pub(crate) fn cancel_by_session_in_workspace(
     subagent_session_id: &str,
     parent_session: &str,

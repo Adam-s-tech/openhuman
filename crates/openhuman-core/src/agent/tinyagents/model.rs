@@ -18,16 +18,6 @@ pub(super) type TurnChatModel = Arc<dyn ChatModel<()>>;
 pub(super) type TierRoutes = Vec<(String, TurnChatModel)>;
 pub(super) type BuiltTurnModels = (TurnChatModel, TierRoutes, TurnChatModel);
 
-/// Convert a crate request into the host's native-role message shape while the
-/// remaining bespoke transports still consume `ChatMessage`.
-pub(crate) fn native_chat_messages(request: &ModelRequest) -> Vec<ChatMessage> {
-    request
-        .messages
-        .iter()
-        .filter_map(crate::agent::message_convert::message_to_native_chat_message)
-        .collect()
-}
-
 /// Build a [`PFormatRegistry`](tinytools_agent::PFormatRegistry)
 /// from the tool schemas advertised on a [`ModelRequest`] (issue #4465).
 ///
@@ -172,15 +162,6 @@ fn response_to_model_response(
         correlation: None,
         resolved_route: None,
     }
-}
-
-/// Convert a native host response into the crate model response shape.
-pub(crate) fn native_model_response(response: &ChatResponse) -> ModelResponse {
-    response_to_model_response(
-        response,
-        &tinytools_agent::PFormatRegistry::default(),
-        false,
-    )
 }
 
 /// Convert a host response while preserving the legacy text-tool fallback for
@@ -333,69 +314,6 @@ pub(crate) fn usage_info_from_response(response: &ModelResponse) -> Option<Usage
         reasoning_tokens: usage.reasoning_tokens,
         charged_amount_usd: meta.charged_amount_usd,
     })
-}
-
-/// Forward one openhuman [`ProviderDelta`]. Visible text, reasoning, and
-/// tool-call **argument** fragments all become harness [`ModelStreamItem`]s (so
-/// the [`OpenhumanEventBridge`](super::OpenhumanEventBridge) mirrors them as
-/// progress deltas from the crate stream alone): text/reasoning as
-/// [`MessageDelta`], and each argument fragment as
-/// [`ModelStreamItem::ToolCallDelta`] correlated by `call_id`. The tool-call
-/// **start** marker now also rides the native stream: with the crate `ToolDelta`
-/// carrying an optional `tool_name` (G2), the call-opening delta is a
-/// `ToolCallDelta` with the name set and empty content, so the
-/// [`OpenhumanEventBridge`](super::OpenhumanEventBridge) records the name and
-/// opens the UI timeline row off the crate stream alone — no out-of-band
-/// forwarder. The model adapter still assembles the final native tool calls from
-/// the `Completed` response (the `StreamAccumulator` treats it as
-/// authoritative), so these fragments are progress-only — the UI can show the
-/// call being composed.
-pub(crate) fn forward_provider_delta(tx: &UnboundedSender<ModelStreamItem>, delta: ProviderDelta) {
-    match delta {
-        ProviderDelta::TextDelta { delta } => {
-            if !delta.is_empty() {
-                let _ = tx.send(ModelStreamItem::MessageDelta(MessageDelta::text(delta)));
-            }
-        }
-        ProviderDelta::ThinkingDelta { delta } => {
-            if !delta.is_empty() {
-                let _ = tx.send(ModelStreamItem::MessageDelta(MessageDelta::reasoning(
-                    delta,
-                )));
-            }
-        }
-        ProviderDelta::ToolCallStart { call_id, tool_name } => {
-            // Call-opening marker: name set, empty content. Rides the native
-            // crate stream (G2) so the bridge can label the call before its
-            // arguments arrive.
-            tracing::trace!(
-                call_id = call_id.as_str(),
-                tool_name = tool_name.as_str(),
-                "[stream] forwarding tool-call start onto crate ToolCallDelta"
-            );
-            let _ = tx.send(ModelStreamItem::ToolCallDelta(ToolDelta {
-                call_id,
-                content: String::new(),
-                tool_name: Some(tool_name),
-                content_index: None,
-            }));
-        }
-        ProviderDelta::ToolCallArgsDelta { call_id, delta } => {
-            if !delta.is_empty() {
-                tracing::trace!(
-                    call_id = call_id.as_str(),
-                    len = delta.len(),
-                    "[stream] forwarding tool-arg fragment onto crate ToolCallDelta"
-                );
-                let _ = tx.send(ModelStreamItem::ToolCallDelta(ToolDelta {
-                    call_id,
-                    content: delta,
-                    tool_name: None,
-                    content_index: None,
-                }));
-            }
-        }
-    }
 }
 
 /// Shared slot that preserves the most recent original provider error.
