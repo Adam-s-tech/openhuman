@@ -7,6 +7,9 @@
 use super::*;
 use std::ffi::OsString;
 
+use crate::memory::api::provider::MemoryProvider;
+use crate::memory::api::tool_memory::{ToolMemoryPriority, ToolMemorySource};
+
 use tempfile::TempDir;
 
 use crate::config::Config;
