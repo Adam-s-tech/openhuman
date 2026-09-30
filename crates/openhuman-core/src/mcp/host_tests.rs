@@ -17,7 +17,9 @@ fn config_without_docs() -> Config {
 }
 
 /// A declared server with every field set to something distinguishable.
-fn populated_server() -> HostServer { server: tinymcp_bus::McpServerConfig { HostServer {
+fn populated_server() -> HostServer {
+    HostServer {
+        server: tinymcp_bus::McpServerConfig {
         name: "weather".into(),
         endpoint: "https://example.test/mcp".into(),
         command: "npx".into(),

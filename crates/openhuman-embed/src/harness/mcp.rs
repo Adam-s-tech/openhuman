@@ -185,7 +185,9 @@ impl McpServer {
     }
 
     /// The underlying config entry.
-    pub(crate) fn into_config(self) -> McpServerConfig { server: tinymcp_bus::McpServerConfig { self.0, ..Default::default() }, ..Default::default() }
+    pub(crate) fn into_config(self) -> McpServerConfig {
+        self.0
+    }
 }
 
 #[cfg(test)]
