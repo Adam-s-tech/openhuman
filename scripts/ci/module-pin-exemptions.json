@@ -39,8 +39,8 @@
     {
       "id": "tinymemory",
       "submodule": "vendor/tinymemory",
-      "expect": "v1.16.2-3-g5e508b5a",
-      "reason": "The pin is v1.16.2 plus only the new pure-library crate tinymemory-conversations (tinymemory#170), which the core links as a Rust path dependency. No module, contract or bus source changes relative to v1.16.2, so the registry's v1.16.2 artifact still matches the contract compiled here. Remove when tinymemory#170 ships in a release and both pins move to it."
+      "expect": "v1.17.0-4-g0c754584",
+      "reason": "The pin is v1.17.0 plus only the new pure-library crate tinymemory-conversations (tinymemory#170), which the core links as a Rust path dependency. git diff v1.17.0..0c754584 adds only that crate and its workspace entry; no module, contract or bus source changes, so the registry's v1.17.0 artifact still matches the contract compiled here. Remove when tinymemory#170 ships in a release and both pins move to it."
     },
     {
       "id": "tinybox",
