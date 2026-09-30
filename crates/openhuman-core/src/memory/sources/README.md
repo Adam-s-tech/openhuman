@@ -55,6 +55,5 @@ re-exported from `schemas::all_registered_controllers`.
 
 `rpc_tests.rs`, `rpc_budget_tests_tests.rs`, `rpc_filter_tests_tests.rs`,
 `rpc_monthly_summary_tests_tests.rs`, `rpc_supported_toolkits_tests_tests.rs`,
-`schemas_tests.rs`, `status_tests.rs`, `sync_tests.rs`, `reconcile_tests.rs`,
-and per-reader tests under `readers/` (`composio_tests.rs`,
-`twitter_tests.rs`).
+`schemas_tests.rs`, `status_tests.rs`, `sync_tests.rs`. The reader and
+reconcile-decision tests live in `tinymemory-sources` with the code.
