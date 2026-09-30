@@ -5521,6 +5521,13 @@ const messages: TranslationMap = {
   'settings.agentAccess.timeout.envOverride':
     "La variabile d'ambiente OPENHUMAN_TOOL_TIMEOUT_SECS sta sovrascrivendo questa impostazione, quindi le modifiche qui non avranno effetto finché non viene rimossa.",
   'settings.agentAccess.grantedFolders': 'Cartelle concesse',
+  'settings.agentAccess.filesFolder.label': 'Cartella dei file',
+  'settings.agentAccess.filesFolder.desc':
+    'Dove vengono salvati i file creati dall’agente, come presentazioni, documenti, immagini e video. La modifica vale per i nuovi file; quelli esistenti restano dove sono.',
+  'settings.agentAccess.filesFolder.save': 'Salva',
+  'settings.agentAccess.filesFolder.reset': 'Usa quella predefinita',
+  'settings.agentAccess.filesFolder.saved': 'Cartella dei file aggiornata',
+  'settings.agentAccess.filesFolder.loadError': 'Impossibile caricare la cartella dei file.',
   'settings.agentAccess.alwaysAllow': 'Strumenti sempre consentiti',
   'settings.agentAccess.alwaysAllowDesc':
     'Gli strumenti che hai contrassegnato come "Consenti sempre" in chat funzionano senza chiedere. Rimuovine uno per ricevere nuovamente la richiesta.',

@@ -5437,6 +5437,13 @@ const messages: TranslationMap = {
   'settings.agentAccess.timeout.envOverride':
     'OPENHUMAN_TOOL_TIMEOUT_SECS এনভায়রনমেন্ট ভেরিয়েবলটি এই সেটিং ওভাররাইড করছে, তাই এটি আনসেট না করা পর্যন্ত এখানে পরিবর্তনের কোনো প্রভাব পড়বে না।',
   'settings.agentAccess.grantedFolders': 'ফোল্ডার',
+  'settings.agentAccess.filesFolder.label': 'ফাইল ফোল্ডার',
+  'settings.agentAccess.filesFolder.desc':
+    'এজেন্ট যে ফাইলগুলো তৈরি করে, যেমন প্রেজেন্টেশন, ডকুমেন্ট, ছবি ও ভিডিও, সেগুলো এখানে সংরক্ষিত হয়। পরিবর্তন শুধু নতুন ফাইলে প্রযোজ্য; পুরোনো ফাইল যেখানে আছে সেখানেই থাকে।',
+  'settings.agentAccess.filesFolder.save': 'সংরক্ষণ করুন',
+  'settings.agentAccess.filesFolder.reset': 'ডিফল্ট ব্যবহার করুন',
+  'settings.agentAccess.filesFolder.saved': 'ফাইল ফোল্ডার আপডেট হয়েছে',
+  'settings.agentAccess.filesFolder.loadError': 'ফাইল ফোল্ডার লোড করা যায়নি।',
   'settings.agentAccess.alwaysAllow': 'সর্বদা অপসারণযোগ্য সরঞ্জাম',
   'settings.agentAccess.alwaysAllowDesc':
     'জিজ্ঞাসা না করে আলাপনের ক্ষেত্রে "সর্বদা" প্রয়োগ করা হবে। পুনরায় লেখার জন্য একটি ফোল্ডার মুছে ফেলা হবে।',

@@ -743,3 +743,53 @@ fn all_tools_excludes_browser_when_disabled() {
     assert!(names.contains(&"pushover"));
     assert!(names.contains(&"proxy_config"));
 }
+
+/// #5505: the producers write into the folder chosen in Settings, not a
+/// hard-coded default. Generation itself needs the tinydocs module, which a
+/// unit test does not have, but the artifact is reserved in the files folder
+/// before generation runs, so its record names the folder either way.
+#[cfg(feature = "documents")]
+#[tokio::test]
+async fn document_tool_writes_into_the_configured_files_folder() {
+    let tmp = TempDir::new().unwrap();
+    let security = Arc::new(SecurityPolicy::default());
+    let browser = BrowserConfig {
+        enabled: false,
+        ..BrowserConfig::default()
+    };
+    let http = crate::config::HttpRequestConfig::default();
+    let mut cfg = test_config(&tmp);
+    let chosen = tmp.path().join("Chosen");
+    cfg.files_dir_override = Some(chosen.clone());
+    let tools = all_tools(
+        Arc::new(Config::default()),
+        &security,
+        AuditLogger::disabled(),
+        &browser,
+        &http,
+        tmp.path(),
+        &HashMap::new(),
+        &cfg,
+    );
+    let tool = tools
+        .iter()
+        .find(|t| t.name() == "generate_document")
+        .expect("generate_document registered");
+
+    let _ = tool
+        .execute(serde_json::json!({
+            "title": "Charter",
+            "sections": [{ "heading": "Overview", "paragraphs": ["In brief."] }]
+        }))
+        .await;
+
+    let (artifacts, _) =
+        crate::agent::artifacts::store::list_artifacts(&cfg.workspace_dir, 0, 10, None)
+            .await
+            .expect("list artifacts");
+    assert_eq!(artifacts.len(), 1, "{artifacts:?}");
+    assert_eq!(
+        artifacts[0].file_root.as_deref(),
+        Some(chosen.to_string_lossy().as_ref())
+    );
+}

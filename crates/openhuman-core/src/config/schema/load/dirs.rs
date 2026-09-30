@@ -102,6 +102,21 @@ pub fn default_files_dir() -> PathBuf {
     default_projects_dir().join(FILES_DIRNAME)
 }
 
+/// Resolve the effective files folder: the persisted override when it is a
+/// non-empty absolute path, else [`default_files_dir`].
+pub fn resolve_files_dir(files_dir_override: &Option<PathBuf>) -> PathBuf {
+    match files_dir_override {
+        Some(dir) if dir.is_absolute() => dir.clone(),
+        Some(_) => {
+            tracing::warn!(
+                "[config] ignoring invalid files_dir_override; expected an absolute path"
+            );
+            default_files_dir()
+        }
+        None => default_files_dir(),
+    }
+}
+
 /// The `OPENHUMAN_ACTION_DIR` env override, when set to a non-empty value.
 ///
 /// Returns `None` when the variable is unset or blank (a common shape from

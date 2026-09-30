@@ -99,7 +99,7 @@ impl DocumentTool {
     pub fn for_config(config: &crate::config::Config, security: Arc<SecurityPolicy>) -> Self {
         Self::new(
             config.workspace_dir.clone(),
-            crate::config::default_files_dir(),
+            config.files_dir(),
             security,
         )
     }

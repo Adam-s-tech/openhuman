@@ -28,6 +28,7 @@ impl Default for Config {
             workspace_dir: openhuman_dir.join("workspace"),
             action_dir: crate::config::default_action_dir(),
             action_dir_override: None,
+            files_dir_override: None,
             config_path: openhuman_dir.join("config.toml"),
             cli_inference_snapshot: None,
             recovered_from_corruption: false,

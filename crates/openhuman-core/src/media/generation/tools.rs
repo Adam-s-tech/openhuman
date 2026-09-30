@@ -54,7 +54,7 @@ pub fn build_media_tools(root_config: &Config, action_dir: &Path) -> Vec<Box<dyn
         generators,
         action_dir,
         &root_config.workspace_dir,
-        &crate::config::default_files_dir(),
+        &root_config.files_dir(),
         WaitPolicy::new(VIDEO_POLL_INTERVAL, VIDEO_WAIT_BUDGET),
     )
 }

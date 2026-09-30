@@ -5151,6 +5151,13 @@ const messages: TranslationMap = {
   'settings.agentAccess.timeout.envOverride':
     '环境变量 OPENHUMAN_TOOL_TIMEOUT_SECS 正在覆盖此设置，因此在取消该变量之前，此处的更改不会生效。',
   'settings.agentAccess.grantedFolders': '已授权文件夹',
+  'settings.agentAccess.filesFolder.label': '文件保存文件夹',
+  'settings.agentAccess.filesFolder.desc':
+    '智能体生成的文件（如演示文稿、文档、图片和视频）保存在这里。更改仅对新文件生效；现有文件保持原位。',
+  'settings.agentAccess.filesFolder.save': '保存',
+  'settings.agentAccess.filesFolder.reset': '使用默认文件夹',
+  'settings.agentAccess.filesFolder.saved': '文件保存文件夹已更新',
+  'settings.agentAccess.filesFolder.loadError': '无法加载文件保存文件夹。',
   'settings.agentAccess.alwaysAllow': '始终允许的工具',
   'settings.agentAccess.alwaysAllowDesc':
     '你在聊天中标记为“始终允许”的工具会直接运行且不再询问。移除后会重新提示。',
