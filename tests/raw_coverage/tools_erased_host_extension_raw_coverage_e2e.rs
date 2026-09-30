@@ -18,14 +18,13 @@
 
 use std::sync::Arc;
 
-use async_trait::async_trait;
-use serde_json::{json, Value};
+use serde_json::json;
 
 use openhuman_core::skills::types::tool_result_from_mcp;
 use openhuman_core::tools::host_extensions::pack_registry_handle;
 use openhuman_core::tools::toolpacks::registry::{CATALOG, PACKS};
 use tinyagents_harness::tool::packs::{PackRegistryHandle, UseSkillTool};
-use tinytools::{PermissionLevel, Tool, ToolResult};
+use tinytools::Tool;
 
 /// A production pack tool's registry handle survives the round trip through
 /// `dyn Any` **as the same handle**, not merely as some handle.
@@ -129,31 +128,4 @@ fn an_mcp_error_result_stays_an_error_through_the_conversion() {
         !ok.is_error,
         "a successful MCP result must not be reported as an error"
     );
-}
-
-// ── fixtures ──────────────────────────────────────────────────────────────
-
-struct PlainTool;
-
-#[async_trait]
-impl Tool for PlainTool {
-    fn name(&self) -> &str {
-        "plain_tool"
-    }
-
-    fn description(&self) -> &str {
-        "A tool that stores nothing on either erased extension."
-    }
-
-    fn parameters_schema(&self) -> Value {
-        json!({"type": "object"})
-    }
-
-    async fn execute(&self, _args: Value) -> anyhow::Result<ToolResult> {
-        Ok(ToolResult::success("ok"))
-    }
-
-    fn permission_level(&self) -> PermissionLevel {
-        PermissionLevel::ReadOnly
-    }
 }
