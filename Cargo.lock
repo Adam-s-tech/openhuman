@@ -3850,7 +3850,6 @@ dependencies = [
  "bytes",
  "chacha20poly1305",
  "chrono",
- "cpal",
  "curve25519-dalek",
  "directories",
  "dirs 6.0.0",
@@ -6945,6 +6944,7 @@ checksum = "fd3ca314f692efd6c868f8408f53fe444634a845f96c028b97d35f6a1f79f0ee"
 name = "tinyvoice"
 version = "0.1.8"
 dependencies = [
+ "cpal",
  "log",
  "parking_lot",
  "rdev",
