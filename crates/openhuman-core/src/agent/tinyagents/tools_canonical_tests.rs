@@ -155,6 +155,7 @@ async fn canonical_adapter_fails_closed_when_the_registered_tool_is_gone() {
         description: "missing".to_string(),
         parameters_schema: serde_json::json!({"type": "object"}),
         early_exit: None,
+        force_deferred: false,
     };
 
     let result = adapter
@@ -241,4 +242,27 @@ fn adapter_advertises_admitted_hidden_tools_and_keeps_deferred_ones_deferred() {
     assert_eq!(exposure("direct"), tinytools::ToolExposure::Direct);
     assert_eq!(exposure("hidden"), tinytools::ToolExposure::Direct);
     assert_eq!(exposure("deferred"), tinytools::ToolExposure::Deferred);
+}
+
+/// A tool the session defers for its own agent (`deferred_tools` →
+/// `OpenHumanRunContext::deferred_tool_names`) registers as `Deferred`, so the
+/// harness keeps it off the wire and indexes it for `tool_search`. Deferral only
+/// subtracts: a forced `Hidden` tool stays `Hidden` instead of becoming
+/// searchable, and an already-`Deferred` tool is unchanged.
+#[test]
+fn session_deferred_adapter_reports_deferred_but_never_surfaces_a_hidden_tool() {
+    let set: Arc<Vec<Box<dyn Tool>>> = Arc::new(vec![
+        Box::new(ExposedTool("direct", tinytools::ToolExposure::Direct)),
+        Box::new(ExposedTool("hidden", tinytools::ToolExposure::Hidden)),
+        Box::new(ExposedTool("deferred", tinytools::ToolExposure::Deferred)),
+    ]);
+    let forced = |name: &str| {
+        CanonicalSharedToolAdapter::for_name(vec![set.clone()], name)
+            .expect("registered")
+            .deferred()
+            .exposure()
+    };
+    assert_eq!(forced("direct"), tinytools::ToolExposure::Deferred);
+    assert_eq!(forced("hidden"), tinytools::ToolExposure::Hidden);
+    assert_eq!(forced("deferred"), tinytools::ToolExposure::Deferred);
 }

@@ -137,6 +137,9 @@ pub(super) fn assemble_turn_harness(
     // The dialect the session composed its prompt for; see
     // `OpenHumanRunContext::tool_dialect`.
     tool_dialect: tinyagents_harness::config::ToolDispatcher,
+    // Session-deferred tools (`OpenHumanRunContext::deferred_tool_names`):
+    // registered as `Deferred` whatever their own exposure says.
+    session_deferred: Arc<HashSet<String>>,
     // Live per-thread Plan/Build mode handle (`agent::tinyagents::run_mode`).
     // `Some` installs `PlanModeMiddleware`, which hides/denies side-effecting
     // tools while the thread is in `RunMode::Plan` — flipped without
@@ -407,6 +410,7 @@ pub(super) fn assemble_turn_harness(
             &early_exit_set,
             early_exit_hook.as_ref(),
             is_subagent_run,
+            &session_deferred,
         );
 
     // SHADOW tool-exposure layer (issue #4249, 01.3 — dynamic exposure). Compose

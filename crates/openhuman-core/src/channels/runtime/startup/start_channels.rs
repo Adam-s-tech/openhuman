@@ -464,34 +464,20 @@ async fn start_channels_inner(mut config: Config) -> Result<()> {
         proactive_sub.active_channel_handle(),
     );
     let _proactive_handle = bus.subscribe(Arc::new(proactive_sub));
-    let _telegram_remote_handle = if channels_by_name.contains_key("telegram") {
-        let handle = bus.subscribe(Arc::new(
-            crate::channels::providers::telegram::TelegramRemoteSubscriber::new(
-                config.workspace_dir.clone(),
-            ),
-        ));
-        tracing::debug!("[telegram-remote] registered TelegramRemoteSubscriber");
-        Some(handle)
-    } else {
-        None
-    };
-    // Sub-issue 2 of #3098: when Telegram is enabled, register the
-    // approval-surface subscriber so `Prompt`-class tool calls actually
-    // get gated for the user instead of silently allowed (the legacy
-    // behavior when `ApprovalChatContext` is unset). The dispatch loop
-    // pairs this by scoping each Telegram turn in an `ApprovalChatContext`
-    // and intercepting `yes`/`no` replies for parked approvals.
-    let _telegram_approval_surface_handle = if channels_by_name.contains_key("telegram") {
-        let handle = bus.subscribe(Arc::new(
-            crate::channels::providers::telegram::TelegramApprovalSurfaceSubscriber::new(
-                Arc::clone(&channels_by_name),
-            ),
-        ));
-        tracing::debug!("[telegram-approval] registered TelegramApprovalSurfaceSubscriber");
-        Some(handle)
-    } else {
-        None
-    };
+    // Remote-control turn state (`/status` shows "in progress") for every
+    // channel with the `remote_control` capability.
+    let _turn_state_handle = bus.subscribe(Arc::new(
+        crate::channels::host::ChannelTurnStateSubscriber::new(config.workspace_dir.clone()),
+    ));
+    // In-chat approvals (sub-issue 2 of #3098) for every channel with the
+    // `chat_approvals` capability: `Prompt`-class tool calls are gated for the
+    // user instead of silently allowed. The dispatch loop pairs this by scoping
+    // each such turn in an `ApprovalChatContext` and intercepting `yes`/`no`
+    // replies for parked approvals.
+    let _approval_surface_handle = bus.subscribe(Arc::new(
+        crate::channels::host::ChannelApprovalSurfaceSubscriber::new(Arc::clone(&channels_by_name)),
+    ));
+    tracing::debug!("[channels] registered turn-state and approval-surface subscribers");
     // Register the tree summarizer event subscriber for observability logging.
     let _tree_summarizer_handle = bus.subscribe(Arc::new(
         crate::memory::tree::tree_runtime::bus::TreeSummarizerEventSubscriber::new(),

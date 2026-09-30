@@ -10,7 +10,7 @@ use tinymemory_api::capabilities::{Capabilities, Capability};
 /// Checked against the registry pin by `the_capability_list_matches_the_pinned_release`,
 /// so bumping the pin without re-reading the list is a red test rather than a
 /// silent over-claim.
-pub(crate) const ARTIFACT_CAPABILITIES_PIN: &str = "1.16.2";
+pub(crate) const ARTIFACT_CAPABILITIES_PIN: &str = "1.17.0";
 
 /// The capability families the **pinned artifact** actually serves.
 ///
@@ -34,6 +34,11 @@ pub(crate) const ARTIFACT_CAPABILITIES_PIN: &str = "1.16.2";
 /// Re-read at `v1.16.2`: `git diff v1.16.1..v1.16.2 --
 /// crates/tinymemory-api/src/capabilities.rs` is empty (the release adds
 /// optional linked-module exports and nested pin bumps), so the advertised
+/// families stay the same.
+/// Re-read at `v1.17.0`: `git diff v1.16.2..v1.17.0 --
+/// crates/tinymemory-api/src/capabilities.rs crates/tinymemory-bus/src/capabilities.rs`
+/// is empty (the release adds the remote-engine factory, the hosted CortexDB
+/// wire and `migrate`, none of which the module serves), so the advertised
 /// families stay the same.
 ///
 /// Read at tag `v1.3.0`. Unchanged from v1.2.0 — the release added members

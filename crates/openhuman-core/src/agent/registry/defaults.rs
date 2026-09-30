@@ -95,6 +95,7 @@ pub fn definition_from_registry_entry(entry: &AgentRegistryEntry) -> AgentDefini
         disallowed_tools: entry.tool_denylist.clone(),
         skill_filter: None,
         extra_tools: Vec::new(),
+        deferred_tools: Vec::new(),
         max_iterations: 8,
         iteration_policy: IterationPolicy::Strict,
         max_result_chars: None,

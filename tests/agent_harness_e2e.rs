@@ -3527,7 +3527,7 @@ fn advertised_tool_names(request: &Value) -> Vec<String> {
 /// Heading of the orchestrator's own `prompt.md`; picks its requests out of a
 /// turn that also carries a specialist's.
 #[cfg(feature = "skills")]
-const ORCHESTRATOR_PROMPT_MARKER: &str = "## How you work";
+const ORCHESTRATOR_PROMPT_MARKER: &str = "## Routing\n\nFirst match wins:";
 
 /// Concatenated system-message text of one captured model request.
 #[cfg(feature = "skills")]

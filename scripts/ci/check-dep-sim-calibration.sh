@@ -74,6 +74,9 @@
 # packages and crate names without changing native builds. See kernel-floor.limits.
 # 283 -> 282 on 2026-09-29: the JSON-RPC split removes openhuman-rpc from the
 # core graph after the TinyMCP v0.3.5 update; native count remains 2.
+# 282 -> 283 on 2026-09-30: TinyChannels supplies the always-on CLI channel
+# and shared runtime helpers through `tinychannels-runtime`; the required
+# workspace package adds one name, no dependency tail or native build. See PR #6782.
 #
 # Called by ci-lite.yml's feature-gate smoke lane and by the lane runner, so the
 # expected count lives here once (plus scripts/kernel-floor.limits).
@@ -81,6 +84,6 @@ set -euo pipefail
 
 cd "$(dirname "$0")/../.."
 
-EXPECTED_NAMES=282
+EXPECTED_NAMES=283
 
 exec python3 scripts/dep-sim.py --cut-nothing --expect-names "${EXPECTED_NAMES}"

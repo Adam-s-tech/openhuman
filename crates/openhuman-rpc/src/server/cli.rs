@@ -10,6 +10,7 @@ use openhuman_core::core::server_launcher::{install_server_launcher, ServeReques
 /// [`run_core_from_args`](openhuman_core::run_core_from_args); later calls are
 /// no-ops.
 pub fn install_cli_server() {
+    crate::http_host::ensure_registered();
     install_server_launcher(launch);
 }
 

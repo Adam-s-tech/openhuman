@@ -155,15 +155,9 @@ pub(crate) struct WorkflowSummary {
 
 impl From<Workflow> for WorkflowSummary {
     fn from(s: Workflow) -> Self {
-        // `id` is the on-disk slug the uninstall RPC resolves against.
-        // Prefer `dir_name`, but fall back to `name` for back-compat on
-        // deserialised `Workflow` values written before `dir_name` existed
-        // (default empty string).
-        let id = if s.dir_name.is_empty() {
-            s.name.clone()
-        } else {
-            s.dir_name.clone()
-        };
+        // `id` is the on-disk slug the uninstall RPC resolves against
+        // (`dir_name`, falling back to `name` for pre-`dir_name` values).
+        let id = s.id().to_string();
         WorkflowSummary {
             id,
             name: s.name,
