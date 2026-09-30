@@ -133,12 +133,26 @@ fn expected_capabilities(id: &str) -> Vec<String> {
         }
         "mem0" => &[C::ConversationIngest, C::Graph],
         "cognee" => &[C::Graph],
-        "cortex" | "tinyhumans" => &[
+        "cortex" => &[
             C::DocumentIngest,
             C::ConversationIngest,
             C::LearningIngest,
             C::EventIngest,
             C::Answer,
+        ],
+        // The direct wire's families, plus the ones only the hosted wire serves
+        // (tinymemory `docs/specs/tinyhumans-hosted-families.md`).
+        "tinyhumans" => &[
+            C::DocumentIngest,
+            C::ConversationIngest,
+            C::LearningIngest,
+            C::EventIngest,
+            C::Answer,
+            C::Goals,
+            C::ToolMemory,
+            C::Documents,
+            C::Sources,
+            C::Maintenance,
         ],
         _ => &[],
     };

@@ -61,6 +61,22 @@ fn every_remote_engine_is_listed_with_at_least_the_mandatory_families() {
     assert!(hosted.hosted);
     assert!(!hosted.needs_key);
     assert!(hosted.capabilities.iter().any(|c| c == "answer"));
+    // The families only the hosted wire serves (tinymemory
+    // `docs/specs/tinyhumans-hosted-families.md`); a direct CortexDB has none.
+    for family in ["goals", "tool_memory", "documents", "sources", "maintenance"] {
+        assert!(
+            hosted.capabilities.iter().any(|c| c == family),
+            "tinyhumans must advertise {family}: {:?}",
+            hosted.capabilities
+        );
+        if let Some(direct) = engines.iter().find(|e| e.id == "cortex") {
+            assert!(
+                !direct.capabilities.iter().any(|c| c == family),
+                "cortex must not advertise {family}: {:?}",
+                direct.capabilities
+            );
+        }
+    }
 }
 
 #[test]

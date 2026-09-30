@@ -435,7 +435,10 @@ export default function Brain() {
                   {activeTab === 'sources' && (
                     <div className="space-y-5 animate-fade-up">
                       <MemoryEngineRow />
-                      <MemoryFamilyGate family="sources">
+                      {/* Coding sessions are a family of their own: an engine
+                      can accept synced items without reading local agent
+                      transcripts (hosted memory does exactly that). */}
+                      <MemoryFamilyGate family="coding_sessions">
                         <CodingSessionsCard onToast={addToast} />
                       </MemoryFamilyGate>
                       <MemoryFamilyGate family="sources">
