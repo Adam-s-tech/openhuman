@@ -171,6 +171,50 @@ fn a_403_is_a_refused_credential_not_an_expired_session() {
 }
 
 #[test]
+fn a_403_counts_only_as_the_unauthorized_errors_own_status() {
+    // Each adapter's rendering of a 403: hosted with the backend's code,
+    // hosted without one (its default code for a 403 is `UNAUTHORIZED`), and
+    // the direct wire. Typed, as text, and behind a caller's context.
+    for refused in [
+        "[FORBIDDEN] memory API memory/recall on host (HTTP 403 Forbidden): API key is \
+         missing the required scope: memory",
+        "[UNAUTHORIZED] memory API memory/recall on host (HTTP 403 Forbidden): Forbidden — \
+         the session expired or the API key was rejected; re-authenticate",
+        "memory API memory/recall on host: the configured credential was rejected (HTTP 403 \
+         Forbidden) — check the API key",
+    ] {
+        let typed = classify_engine_error(&anyhow::Error::new(MemoryError::Unauthorized(
+            refused.into(),
+        )));
+        assert!(typed.starts_with(MEMORY_FORBIDDEN_PREFIX), "{typed}");
+        for text in [
+            format!("unauthorized: {refused}"),
+            format!("memory recall failed: unauthorized: {refused}"),
+        ] {
+            let classified = classify_engine_message(&text);
+            assert!(
+                classified.starts_with(MEMORY_FORBIDDEN_PREFIX),
+                "{text} -> {classified}"
+            );
+        }
+    }
+    // A lapsed session whose body quotes an upstream 403 is still lapsed: the
+    // adapter's own status comes first.
+    let lapsed = "[UNAUTHORIZED] memory API memory/recall on host (HTTP 401 Unauthorized): \
+                  upstream answered (HTTP 403 Forbidden) — the session expired or the API \
+                  key was rejected; re-authenticate";
+    let typed = classify_engine_error(&anyhow::Error::new(MemoryError::Unauthorized(
+        lapsed.into(),
+    )));
+    assert!(typed.starts_with(SESSION_EXPIRED_PREFIX), "{typed}");
+    let text = classify_engine_message(&format!("unauthorized: {lapsed}"));
+    assert!(text.starts_with(SESSION_EXPIRED_PREFIX), "{text}");
+    // Another error class that quotes a 403 is not a refused credential.
+    let other = "invalid input: the upstream answered (HTTP 403 Forbidden)";
+    assert_eq!(classify_engine_message(other), other);
+}
+
+#[test]
 fn an_engine_that_cannot_serve_now_is_unreachable() {
     for error in [
         MemoryError::Unavailable("[RATE_LIMITED] memory API memory/recall (HTTP 429)".into()),

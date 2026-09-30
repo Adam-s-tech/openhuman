@@ -74,6 +74,26 @@ async fn a_credit_refusal_tells_the_model_why_memory_is_empty() {
 }
 
 #[tokio::test]
+async fn a_refusal_block_stays_within_the_guards_recall_budget() {
+    let tight = AutoRecall::new(
+        Scripted::hits(vec![]).with_refused_notes(out_of_credits),
+        true,
+        Some(40),
+    );
+    assert!(tight.block_for(TEA_QUESTION).await.is_none());
+    let roomy = AutoRecall::new(
+        Scripted::hits(vec![]).with_refused_notes(out_of_credits),
+        true,
+        Some(4_000),
+    );
+    let block = roomy
+        .block_for(TEA_QUESTION)
+        .await
+        .expect("a refusal block");
+    assert!(block.contains("out of credits"), "{block}");
+}
+
+#[tokio::test]
 async fn an_unreachable_engine_is_named_not_mistaken_for_an_empty_one() {
     let source = Scripted::hits(vec![]).with_refused_notes(unreachable);
     let lane = AutoRecall::new(source, true, None);

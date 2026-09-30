@@ -119,6 +119,12 @@ fn a_refused_credential_and_an_outage_have_their_own_names() {
     });
 }
 
+/// The handler answers from the host log when the driver keeps no run log
+/// (`SourceSync` is absent), for a driver that serves the `Sources` sink
+/// without owning pipelines. This fixture builds no `CoreContext`, so the
+/// registry's capability gate stays open and the handler is reachable here.
+/// In the app, an engine without `Sources` (hosted among them) has no
+/// `memory_sources.*` methods at all, and Brain gates the panel on that.
 #[test]
 fn sync_history_answers_from_the_host_log_on_an_engine_without_one() {
     run_on_big_stack("hosted-sync-history", || async {

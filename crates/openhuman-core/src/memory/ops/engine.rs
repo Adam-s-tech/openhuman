@@ -236,10 +236,28 @@ pub fn classify_memory_error(error: &crate::memory::api::error::MemoryError) -> 
 }
 
 /// Whether an `Unauthorized` message is a 403: the credential was valid and
-/// refused, as opposed to missing or lapsed. The remote adapters render the
-/// status into the message (`(HTTP 403 Forbidden)`).
+/// refused, as opposed to missing or lapsed. Both remote adapters render the
+/// status they received ahead of any body text, as `(HTTP 403 Forbidden)`, so
+/// only the message's first status counts: a 401 whose body quotes an
+/// upstream 403 is still a lapsed session.
 fn is_forbidden(message: &str) -> bool {
-    message.contains("(HTTP 403")
+    message
+        .find("(HTTP ")
+        .is_some_and(|at| message[at..].starts_with("(HTTP 403 Forbidden)"))
+}
+
+/// The `MemoryError::Unauthorized` rendering inside `message`, from after its
+/// `unauthorized: ` class tag: at the start, or after a caller's `context: `
+/// wrapper. The string path reads a 403 only here, the way the typed path
+/// reads it only in `Unauthorized`.
+fn unauthorized_clause(message: &str) -> Option<&str> {
+    const CLASS: &str = "unauthorized: ";
+    const WRAPPED: &str = ": unauthorized: ";
+    message.strip_prefix(CLASS).or_else(|| {
+        message
+            .find(WRAPPED)
+            .map(|at| &message[at + WRAPPED.len()..])
+    })
 }
 
 /// [`classify_engine_error`] for a failure that is already a string.
@@ -256,7 +274,7 @@ pub fn classify_engine_message(message: &str) -> String {
     if message.contains("USER_INSUFFICIENT_CREDITS") {
         return format!("{INSUFFICIENT_CREDITS_PREFIX} the memory engine is out of credits");
     }
-    if is_forbidden(message) {
+    if unauthorized_clause(message).is_some_and(is_forbidden) {
         return format!("{MEMORY_FORBIDDEN_PREFIX} the memory engine refused this credential");
     }
     if message.contains(SESSION_EXPIRED_PREFIX)

@@ -14,7 +14,7 @@ use crate::memory::ops::engine::{
     MEMORY_UNREACHABLE_PREFIX, SESSION_EXPIRED_PREFIX,
 };
 
-use super::AUTO_RECALL_BANNER;
+use super::{fits_within, AUTO_RECALL_BANNER};
 
 /// Why memory could not be searched for a message.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -77,13 +77,30 @@ impl MemoryRefusal {
 
 /// The block for a lookup that was refused and found nothing else: the usual
 /// banner over one line saying why memory is out of reach.
-pub(crate) fn render_refusal_block(refusal: MemoryRefusal) -> String {
-    format!(
+///
+/// It is held to `recall_max_chars` like any recall block. The reason is one
+/// sentence, so a cap it does not fit whole leaves the block out rather than
+/// cutting it.
+pub(crate) fn render_refusal_block(
+    refusal: MemoryRefusal,
+    recall_max_chars: Option<usize>,
+) -> Option<String> {
+    let block = format!(
         "{AUTO_RECALL_BANNER}\n\nMemory could not be searched for this message: {}. \
          If the user asks about something they saved, say that memory is unavailable \
          and why, rather than that it was never stored.\n\n",
         refusal.reason()
-    )
+    );
+    let chars = block.chars().count();
+    if !fits_within(0, chars, recall_max_chars) {
+        log::debug!(
+            "[auto_recall] refusal block omitted: {chars} chars would exceed \
+             recall_max_chars={recall_max_chars:?} refusal={}",
+            refusal.label()
+        );
+        return None;
+    }
+    Some(block)
 }
 
 #[cfg(test)]

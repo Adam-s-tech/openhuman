@@ -62,11 +62,32 @@ fn an_ordinary_failure_is_not_a_refusal() {
 
 #[test]
 fn the_refusal_block_heads_the_reason_with_the_usual_banner() {
-    let block = render_refusal_block(MemoryRefusal::OutOfCredits);
+    let block = render_refusal_block(MemoryRefusal::OutOfCredits, None).expect("no cap");
     assert!(block.starts_with(AUTO_RECALL_BANNER), "{block}");
     assert!(block.contains("out of credits"), "{block}");
     assert!(
         block.contains("rather than that it was never stored"),
         "{block}"
     );
+}
+
+#[test]
+fn the_refusal_block_is_held_to_the_recall_budget() {
+    for refusal in [
+        MemoryRefusal::OutOfCredits,
+        MemoryRefusal::SessionExpired,
+        MemoryRefusal::Forbidden,
+        MemoryRefusal::Unavailable,
+    ] {
+        let whole = render_refusal_block(refusal, None).expect("no cap");
+        let chars = whole.chars().count();
+        // A cap the block fits exactly keeps it whole.
+        assert_eq!(
+            render_refusal_block(refusal, Some(chars)).as_deref(),
+            Some(whole.as_str())
+        );
+        // One character short leaves it out: a cut reason would mislead.
+        assert_eq!(render_refusal_block(refusal, Some(chars - 1)), None);
+        assert_eq!(render_refusal_block(refusal, Some(0)), None);
+    }
 }

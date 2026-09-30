@@ -257,7 +257,8 @@ impl AutoRecall {
             );
             // A refused lookup is not an empty one: say why, so the answer is
             // "memory is unavailable" rather than "that was never stored".
-            return refusal.map(refusal::render_refusal_block);
+            return refusal
+                .and_then(|refusal| refusal::render_refusal_block(refusal, self.recall_max_chars));
         }
         let block = render_block(&notes.hits, &tree.hits, self.recall_max_chars);
         log::info!(
