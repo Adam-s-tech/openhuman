@@ -504,11 +504,11 @@ impl OpenHumanSessionHost {
             self.deferred_tool_names.clear();
             return;
         }
-        let mut deferred =
-            crate::tools::implementations::meta::deferred_tool_names(self.tools.as_slice());
-        deferred.extend(crate::tools::implementations::meta::deferred_tool_names(
+        let deferred = crate::tools::implementations::meta::deferred_set(
+            self.tools.as_slice(),
             self.synthesized_tools.as_slice(),
-        ));
+            &self.requested_deferred_tools,
+        );
         self.visible_tool_names
             .retain(|name| !deferred.contains(name));
         self.deferred_tool_names = deferred;

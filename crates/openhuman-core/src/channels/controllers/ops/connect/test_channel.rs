@@ -7,7 +7,8 @@ use crate::core::Outcome;
 
 use super::super::super::definitions::{find_channel_definition, ChannelAuthMode};
 use super::super::types::ChannelTestResult;
-use super::email::{build_email_config, verify_email_credentials};
+use tinychannels::controllers::build_email_config;
+use tinychannels::providers::verify_email_credentials;
 
 /// Test a channel connection without persisting credentials.
 pub async fn test_channel(

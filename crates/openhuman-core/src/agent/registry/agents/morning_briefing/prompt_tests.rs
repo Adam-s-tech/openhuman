@@ -56,7 +56,7 @@ fn build_includes_runtime_and_datetime_sections() {
         .nth(1)
         .expect("datetime section must follow its heading");
     assert!(
-        dt.contains("match the actual local hour"),
+        dt.contains("match greetings") && dt.contains("local hour"),
         "datetime section must carry the greeting-grounding rule (#3602); got:\n{dt}"
     );
 }

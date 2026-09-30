@@ -1,7 +1,5 @@
 //! OpenHuman configuration boundary around portable install URL guards.
 
-use super::super::ops_types::WorkflowFrontmatter;
-
 pub const MAX_INSTALL_URL_LEN: usize = tinyskills::MAX_INSTALL_URL_LEN;
 const ALLOW_LOCAL_HTTP_ENV: &str = "OPENHUMAN_SKILL_INSTALL_ALLOW_LOCAL_HTTP";
 
@@ -25,10 +23,6 @@ pub(crate) fn normalize_install_url(raw: &str) -> Result<String, String> {
         }
     }
     tinyskills::normalize_install_url(raw).map_err(|error| error.to_string())
-}
-
-pub(crate) fn derive_install_slug(frontmatter: &WorkflowFrontmatter) -> Result<String, String> {
-    tinyskills::derive_install_slug(frontmatter).map_err(|error| error.to_string())
 }
 
 pub fn validate_install_url(raw: &str) -> Result<(), String> {

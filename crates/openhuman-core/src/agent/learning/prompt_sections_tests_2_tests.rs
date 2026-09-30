@@ -334,7 +334,7 @@ fn memory_write_section_states_the_rule_the_bug_needed() {
     );
     assert!(rendered.contains("## Remembering"), "{rendered}");
     assert!(
-        rendered.contains("Never say saved"),
+        rendered.contains("never say saved"),
         "the instruction must forbid claiming a save that did not happen: {rendered}"
     );
     // Not context-gated: it renders for an empty learned context too.
@@ -375,7 +375,7 @@ fn memory_write_instruction_names_only_the_offered_tools() {
     // Every variant still carries the heading, the rule, and the word ceiling.
     for rendered in [&both, &preferences_only, &facts_only] {
         assert!(rendered.contains("## Remembering"), "{rendered}");
-        assert!(rendered.contains("Never say saved"), "{rendered}");
+        assert!(rendered.contains("never say saved"), "{rendered}");
         let words = rendered.split_whitespace().count();
         assert!(
             words <= 80,
