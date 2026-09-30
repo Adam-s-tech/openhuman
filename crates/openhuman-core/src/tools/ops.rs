@@ -14,10 +14,9 @@ use tinytools::{ToolResult, ToolSpec};
 use tinytools_std::detect_tools::DetectToolsTool;
 use tinytools_std::filesystem::{
     ApplyPatchTool, CsvExportTool, EditFileTool, FileReadTool, FileWriteTool, GitOperationsTool,
-    GlobTool, GrepTool, ListFilesTool, ReadDiffTool, RunLinterTool, RunTestsTool,
-    UpdateMemoryMdTool,
+    GlobTool, GrepTool, ImageInfoTool, ListFilesTool, ReadDiffTool, RunLinterTool, RunTestsTool,
+    UpdateMemoryMdTool, WorkspaceStateTool,
 };
-use tinytools_std::filesystem::{ImageInfoTool, WorkspaceStateTool};
 use tinytools_std::network::{CurlTool, PushoverTool};
 
 pub(crate) use super::capability::tool_capability;

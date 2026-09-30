@@ -20,7 +20,7 @@ use super::*;
 use crate::config::{Config, HttpRequestConfig};
 use crate::security::credentials::{HttpCredential, HttpCredentialsStore};
 use crate::security::{CommandClass, SecurityPolicy};
-use crate::tools::HttpRequestTool;
+use crate::tools::http_request_tool;
 use tinytools::Tool as _;
 
 /// [`HttpClient`] adapter over `HttpRequestTool`
@@ -192,7 +192,7 @@ impl HttpClient for OpenHumanHttp {
             inject_http_credential(&mut request, &cred)?;
         }
 
-        let tool = HttpRequestTool::new(
+        let tool = http_request_tool(
             self.security.clone(),
             self.http_config.allowed_domains.clone(),
             self.http_config.max_response_size,
