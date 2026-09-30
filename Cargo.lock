@@ -4027,7 +4027,6 @@ dependencies = [
  "serde_repr",
  "serde_yaml",
  "sha2 0.10.9",
- "starship-battery",
  "sysinfo 0.33.1",
  "tar",
  "tempfile",
@@ -4070,6 +4069,7 @@ dependencies = [
  "tinymemory-bus",
  "tinymemory-conformance",
  "tinymemory-conversations",
+ "tinymemory-gate",
  "tinymemory-guard",
  "tinymemory-safety",
  "tinymemory-sources",
@@ -7029,6 +7029,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "tinymemory-gate"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "parking_lot",
+ "starship-battery",
+ "sysinfo 0.33.1",
+ "tinymemory-api",
+ "tokio",
+]
+
+[[package]]
 name = "tinymemory-guard"
 version = "0.1.0"
 dependencies = [
@@ -7073,6 +7085,7 @@ dependencies = [
  "async-trait",
  "chrono",
  "futures",
+ "log",
  "regex",
  "reqwest",
  "schemars",

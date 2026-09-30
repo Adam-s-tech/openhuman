@@ -518,11 +518,12 @@ tempfile = "3"
 enigo = { version = "0.3", optional = true }
 arboard = { version = "3", optional = true }
 fs2 = "0.4"
-# Cross-platform battery probe for the scheduler gate. Maintained fork of
-# the abandoned `battery` crate; same `use battery::*;` API surface. Used
-# only by `openhuman::scheduler_gate::signals` to decide when to throttle
-# background LLM work on laptops.
-starship-battery = { version = "0.10", optional = true }
+# The scheduler gate: host power/CPU sampling and the cooperative wait that
+# keeps background LLM work from lagging a laptop. The cross-platform battery
+# probe (`starship-battery`) is its `battery` feature, forwarded by this crate's
+# `scheduler-gate` feature. The process-wide wiring stays in
+# `cron::scheduler_gate`.
+tinymemory-gate = { path = "../../vendor/tinymemory/crates/tinymemory-gate" }
 # Multi-chain wallet signing.
 # - bitcoin: P2WPKH PSBT build/sign/broadcast (includes secp256k1).
 # - ed25519-dalek: Solana transaction signing.
@@ -1250,7 +1251,7 @@ rss-bench = []
 # `tracing` and `tracing-subscriber` are NOT part of this gate and stay always-on.
 file-logging = ["dep:tracing-appender", "dep:tracing-log"]
 
-scheduler-gate = ["dep:starship-battery"]
+scheduler-gate = ["tinymemory-gate/battery"]
 
 
 [lints.rust]
