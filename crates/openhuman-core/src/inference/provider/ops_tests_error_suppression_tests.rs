@@ -506,6 +506,23 @@ mod context_window_exceeded_suppression {
     use super::super::*;
 
     #[test]
+    fn log_helper_runs_without_panicking() {
+        // Covers the demotion log path taken by `api_error` when a
+        // custom provider rejects the user's model/param config. No
+        // tracing subscriber in unit tests, so this is a pure smoke.
+        log_provider_config_rejection(
+            "api_error",
+            "custom_openai",
+            Some("reasoning-v1"),
+            reqwest::StatusCode::BAD_REQUEST,
+        );
+    }
+}
+
+mod context_window_exceeded_suppression {
+    use super::super::*;
+
+    #[test]
     fn classifies_tauri_rust_501_custom_provider_500_body() {
         // TAURI-RUST-501: the custom-provider 500 wire body. The
         // matcher is status-agnostic, so the 500 mis-report is caught
