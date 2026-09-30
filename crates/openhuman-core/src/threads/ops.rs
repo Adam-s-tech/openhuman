@@ -50,4 +50,5 @@ use support::{
     counts, envelope, message_to_record, record_to_message, request_id, run_to_completion,
     thread_to_summary,
 };
+#[cfg(test)]
 use tinyagents_harness::title::{is_auto_generated_thread_title, title_from_user_message};
