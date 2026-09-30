@@ -108,10 +108,11 @@
 //! is the actual enforcement, this paragraph is not.
 
 mod audit;
-/// In-memory provider fakes and guard-wrapping helpers for tests. The drivers
-/// are `tinymemory-conformance`'s; only the host-policy wrapping lives here.
-#[cfg(test)]
-pub(crate) mod in_memory;
+/// Guard-wrapping helpers over `tinymemory-conformance`'s in-memory drivers.
+/// Not `#[cfg(test)]` — the debug-build channel harness and the root
+/// integration targets link the lib without it.
+#[doc(hidden)]
+pub mod in_memory;
 pub mod policy;
 
 #[cfg(test)]

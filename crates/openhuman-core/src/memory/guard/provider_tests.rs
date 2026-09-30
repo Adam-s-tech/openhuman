@@ -6,7 +6,7 @@
 
 use std::sync::Arc;
 
-use crate::memory::api::provider::{MemoryCore, MemoryProvider, MemoryRecall};
+use crate::memory::api::provider::{MemoryCore, MemoryRecall};
 use crate::memory::api::recall::OwnedRecallOpts;
 use crate::memory::api::types::{MemoryCategory, MemoryTaint};
 

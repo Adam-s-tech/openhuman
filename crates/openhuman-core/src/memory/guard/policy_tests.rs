@@ -3,6 +3,7 @@
 use super::*;
 use std::sync::Arc;
 
+use crate::memory::api::types::MemoryTaint;
 use crate::memory::source_scope::with_source_scope;
 use crate::security::live_policy;
 use crate::security::policy::{AutonomyLevel, SecurityPolicy};

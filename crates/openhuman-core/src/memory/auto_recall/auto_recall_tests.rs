@@ -491,7 +491,7 @@ async fn from_guard_honours_the_hooks_switch() {
         auto_recall: false,
         ..Default::default()
     };
-    let policy = crate::memory::guard::GuardPolicy::new(
+    let policy = crate::memory::guard::HostGuardPolicy::new(
         "recording",
         crate::core::subsystem::DriverClass::Embedded,
         hooks,
