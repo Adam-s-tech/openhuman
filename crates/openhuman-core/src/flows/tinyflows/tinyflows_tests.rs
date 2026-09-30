@@ -127,9 +127,7 @@ fn seeded_required_args_contract(
 // ── OpenHumanAgentRunner: routing + request/model mapping (Phase A) ───────────
 
 use super::caps::{
-    build_agent_result, clamp_run_timeout_secs, harness_model_default_override,
-    node_request_to_prompt, resolve_node_model, route_custom_entry_lookup, route_for_agent_ref,
-    structured_output_instruction, AgentRoute,
+    harness_model_default_override, route_custom_entry_lookup, route_for_agent_ref, AgentRoute,
 };
 
 // ── B38 (Gap 2): a custom agent_ref must route to the harness (real tools),
