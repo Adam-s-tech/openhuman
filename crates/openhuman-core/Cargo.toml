@@ -289,6 +289,11 @@ tinymemory-conformance = { path = "../../vendor/tinymemory/crates/tinymemory-con
 # — stay here, behind `memory::guard::HostGuardPolicy`. Only `tinymemory-api`,
 # `async-trait`, `serde_json`, `chrono`, `log` and `tracing`, all already here.
 tinymemory-guard = { path = "../../vendor/tinymemory/crates/tinymemory-guard" }
+# `tinymemory-safety` is the secret and PII scrubber (credential patterns,
+# sensitive-key classifier, checksum-gated multilingual national-ID redaction)
+# that `memory::safety` used to carry a private copy of. `regex`, `serde_json`
+# and `log` only, no engine. The host takes the default (strictest) policy.
+tinymemory-safety = { path = "../../vendor/tinymemory/crates/tinymemory-safety" }
 # `tinymemory-sources` is the source registry, its types and its readers, in a
 # crate of its own. Taken directly rather than through `tinymemory-core`
 # (OpenHuman#5560): `tinymemory_core::sources` is a thin layer over it —
