@@ -168,10 +168,19 @@ const TOOL_TIMEOUT_GRACE_SECS: u64 = 5;
 /// Moved out of the retired legacy `engine::tools` module during the tinyagents
 /// migration (issue #4249); it lives here next to the timeout constants it uses.
 pub fn resolve_tool_deadline(policy: tinytools::ToolTimeout) -> (Option<Duration>, u64) {
+    resolve_tool_deadline_with(policy, tool_execution_timeout_secs())
+}
+
+/// Pure core of [`resolve_tool_deadline`]: the inherited timeout is a parameter
+/// so tests can table-drive it without touching the process-global.
+fn resolve_tool_deadline_with(
+    policy: tinytools::ToolTimeout,
+    inherited_secs: u64,
+) -> (Option<Duration>, u64) {
     use tinytools::ToolTimeout;
     match policy {
         ToolTimeout::Inherit => {
-            let s = tool_execution_timeout_secs();
+            let s = inherited_secs;
             (Some(Duration::from_secs(s)), s)
         }
         ToolTimeout::Millis(req) => {
