@@ -246,18 +246,42 @@ fn is_forbidden(message: &str) -> bool {
         .is_some_and(|at| message[at..].starts_with("(HTTP 403 Forbidden)"))
 }
 
-/// The `MemoryError::Unauthorized` rendering inside `message`, from after its
-/// `unauthorized: ` class tag: at the start, or after a caller's `context: `
-/// wrapper. The string path reads a 403 only here, the way the typed path
-/// reads it only in `Unauthorized`.
-fn unauthorized_clause(message: &str) -> Option<&str> {
-    const CLASS: &str = "unauthorized: ";
-    const WRAPPED: &str = ": unauthorized: ";
-    message.strip_prefix(CLASS).or_else(|| {
-        message
-            .find(WRAPPED)
-            .map(|at| &message[at + WRAPPED.len()..])
-    })
+/// `MemoryError`'s class tags, as its `Display` renders each variant.
+const MEMORY_ERROR_CLASSES: [&str; 12] = [
+    "not found: ",
+    "invalid input: ",
+    "budget exceeded: ",
+    "path escapes workspace: ",
+    "io error: ",
+    "serde error: ",
+    "unsupported capability: ",
+    "unauthorized: ",
+    "unreachable: ",
+    "timed out: ",
+    "unavailable: ",
+    "backend failed: ",
+];
+
+/// The not-now classes: the engine could not be reached or cannot serve yet.
+const NOT_NOW_CLASSES: [&str; 3] = ["unavailable: ", "unreachable: ", "timed out: "];
+
+/// The class of the error `message` renders, with the text after its tag:
+/// the outermost `MemoryError` class tag, at the start or after a caller's
+/// `context: ` wrapper. A tag further in is quoted detail of that error (an
+/// upstream body, say), never its class.
+fn memory_error_class(message: &str) -> Option<(&'static str, &str)> {
+    MEMORY_ERROR_CLASSES
+        .into_iter()
+        .filter_map(|class| {
+            let at = if message.starts_with(class) {
+                0
+            } else {
+                message.find(&format!(": {class}"))? + 2
+            };
+            Some((at, class))
+        })
+        .min_by_key(|&(at, _)| at)
+        .map(|(at, class)| (class, &message[at + class.len()..]))
 }
 
 /// [`classify_engine_error`] for a failure that is already a string.
@@ -274,7 +298,14 @@ pub fn classify_engine_message(message: &str) -> String {
     if message.contains("USER_INSUFFICIENT_CREDITS") {
         return format!("{INSUFFICIENT_CREDITS_PREFIX} the memory engine is out of credits");
     }
-    if unauthorized_clause(message).is_some_and(is_forbidden) {
+    // Only the error's own class decides, never a class quoted in its detail.
+    let class = memory_error_class(message);
+    let forbidden = match class {
+        Some((class, detail)) => class == "unauthorized: " && is_forbidden(detail),
+        // No class tag: a bare adapter message, whose first status is its own.
+        None => is_forbidden(message),
+    };
+    if forbidden {
         return format!("{MEMORY_FORBIDDEN_PREFIX} the memory engine refused this credential");
     }
     if message.contains(SESSION_EXPIRED_PREFIX)
@@ -283,12 +314,7 @@ pub fn classify_engine_message(message: &str) -> String {
     {
         return format!("{SESSION_EXPIRED_PREFIX} no TinyHumans session");
     }
-    // `MemoryError`'s own renderings of the not-now classes, at the start of
-    // the message or after a caller's `context: ` wrapper.
-    if ["unavailable: ", "unreachable: ", "timed out: "]
-        .iter()
-        .any(|class| message.starts_with(class) || message.contains(&format!(": {class}")))
-    {
+    if class.is_some_and(|(class, _)| NOT_NOW_CLASSES.contains(&class)) {
         return format!("{MEMORY_UNREACHABLE_PREFIX} the memory engine is not available right now");
     }
     message.to_string()

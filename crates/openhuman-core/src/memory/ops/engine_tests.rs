@@ -215,6 +215,31 @@ fn a_403_counts_only_as_the_unauthorized_errors_own_status() {
 }
 
 #[test]
+fn a_class_quoted_in_another_errors_detail_does_not_decide_it() {
+    // The outermost class tag is the error's class. A tag quoted in its detail
+    // (an upstream body, say) is not.
+    for quoted in [
+        "invalid input: upstream error: unauthorized: (HTTP 403 Forbidden)",
+        "invalid input: upstream error: unavailable: busy",
+        "not found: upstream error: timed out: after 30s",
+    ] {
+        assert_eq!(classify_engine_message(quoted), quoted);
+    }
+    // A caller's context wrapper is not a class, so the class after it decides.
+    let wrapped = classify_engine_message("memory recall failed: unavailable: busy");
+    assert!(wrapped.starts_with(MEMORY_UNREACHABLE_PREFIX), "{wrapped}");
+    // A bare adapter message has no class tag and its first status is its own,
+    // so a hosted 403 without a backend code still keeps the user signed in.
+    let bare = "[UNAUTHORIZED] memory API memory/recall on host (HTTP 403 Forbidden): \
+                Forbidden — the session expired or the API key was rejected; re-authenticate";
+    let classified = classify_engine_message(bare);
+    assert!(
+        classified.starts_with(MEMORY_FORBIDDEN_PREFIX),
+        "{classified}"
+    );
+}
+
+#[test]
 fn an_engine_that_cannot_serve_now_is_unreachable() {
     for error in [
         MemoryError::Unavailable("[RATE_LIMITED] memory API memory/recall (HTTP 429)".into()),
