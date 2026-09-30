@@ -17,6 +17,8 @@
  *   at once with the settled result, so the floor was only a ~92px hole
  *   under every in-flight search (and a stack of them under parallel
  *   searches). The results list renders only when there is a hit.
+ * - The query pill renders only once there is a query: while the call's
+ *   arguments are still streaming it was an empty search-icon capsule.
  */
 import { cn } from '@/components/assistant-ui/lib/utils';
 import { SearchIcon } from 'lucide-react';
@@ -64,15 +66,17 @@ export function WebSearch({
       data-slot="web-search"
       className={cn('flex w-full max-w-sm flex-col gap-2.5', className)}
       {...props}>
-      <span
-        data-slot="web-search-query"
-        className={cn(
-          field,
-          'text-foreground/70 inline-flex w-fit max-w-full items-center gap-1.5 rounded-full px-3.5 py-2 text-xs'
-        )}>
-        <SearchIcon className="text-foreground/40 size-3 shrink-0" />
-        <span className="truncate">{query}</span>
-      </span>
+      {query.trim() ? (
+        <span
+          data-slot="web-search-query"
+          className={cn(
+            field,
+            'text-foreground/70 inline-flex w-fit max-w-full items-center gap-1.5 rounded-full px-3.5 py-2 text-xs'
+          )}>
+          <SearchIcon className="text-foreground/40 size-3 shrink-0" />
+          <span className="truncate">{query}</span>
+        </span>
+      ) : null}
       <div data-slot="web-search-status" className="text-foreground/45 text-xs">
         {searching ? (
           <ShimmerLabel className="relative inline-block leading-none">
