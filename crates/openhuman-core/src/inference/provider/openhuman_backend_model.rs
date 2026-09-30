@@ -486,6 +486,51 @@ fn project_managed_usage(mut response: ModelResponse) -> ModelResponse {
     response
 }
 
+/// Request-metadata key a caller sets (to `true`) to ask for no reasoning on
+/// a call — see [`without_reasoning`].
+const REASONING_OFF_METADATA_KEY: &str = "openhuman_reasoning_off";
+
+/// Mark `request` as not needing the model to reason first. Provider-neutral:
+/// `ModelRequest.metadata` never reaches the wire, so a BYOK or local provider
+/// ignores it. The managed backend model turns it into `reasoning: { enabled:
+/// false }` ([`apply_reasoning_hint`]), which the backend forwards to OpenRouter
+/// only. For short structured helper calls (follow-up suggestions) reasoning
+/// adds seconds and more tokens than the answer itself, for no quality gain.
+pub(crate) fn without_reasoning(mut request: ModelRequest) -> ModelRequest {
+    if !request.metadata.is_object() {
+        request.metadata = Value::Object(serde_json::Map::new());
+    }
+    if let Some(map) = request.metadata.as_object_mut() {
+        map.insert(REASONING_OFF_METADATA_KEY.to_string(), Value::Bool(true));
+    }
+    request
+}
+
+/// Translate the [`without_reasoning`] hint into the managed backend's wire
+/// field. A `reasoning` object the caller already put in provider options wins.
+fn apply_reasoning_hint(request: ModelRequest) -> ModelRequest {
+    let wants_off = request
+        .metadata
+        .get(REASONING_OFF_METADATA_KEY)
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    if !wants_off || request.provider_options.get("reasoning").is_some() {
+        return request;
+    }
+    let mut options = request.provider_options.clone();
+    if !options.is_object() {
+        options = Value::Object(serde_json::Map::new());
+    }
+    if let Some(map) = options.as_object_mut() {
+        map.insert(
+            "reasoning".to_string(),
+            serde_json::json!({ "enabled": false }),
+        );
+    }
+    log::debug!("[inference][managed] reasoning disabled for this call by request hint");
+    request.with_provider_options(options)
+}
+
 /// Inject this managed model's explicitly owned thread into provider options.
 /// This backend-only wire extension is never inferred from ambient state.
 fn with_thread_id(request: ModelRequest, thread_id: Option<&str>) -> ModelRequest {
@@ -617,7 +662,10 @@ impl ChatModel<()> for OpenHumanBackendModel {
     ) -> tinyinference_llm::Result<ModelResponse> {
         let model = self.build_wire_model()?;
         let response = match model
-            .invoke(state, with_thread_id(request, self.thread_id.as_deref()))
+            .invoke(
+                state,
+                with_thread_id(apply_reasoning_hint(request), self.thread_id.as_deref()),
+            )
             .await
         {
             Ok(response) => response,
@@ -644,7 +692,10 @@ impl ChatModel<()> for OpenHumanBackendModel {
         // on the non-streaming `invoke` path above. Restoring it for streaming
         // needs the crate to preserve the final chunk's raw JSON (tracked upstream).
         match model
-            .stream(state, with_thread_id(request, self.thread_id.as_deref()))
+            .stream(
+                state,
+                with_thread_id(apply_reasoning_hint(request), self.thread_id.as_deref()),
+            )
             .await
         {
             // A failure can also arrive *inside* an HTTP 200 stream as an SSE
