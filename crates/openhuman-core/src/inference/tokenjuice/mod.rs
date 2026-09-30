@@ -511,3 +511,7 @@ mod tests;
 #[cfg(test)]
 #[path = "module_stub_tests.rs"]
 pub(crate) mod module_stub;
+
+#[cfg(test)]
+#[path = "mod_repl_module_tests.rs"]
+mod repl_module_tests;
