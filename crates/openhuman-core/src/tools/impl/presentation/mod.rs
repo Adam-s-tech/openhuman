@@ -95,6 +95,16 @@ impl PresentationTool {
         }
     }
 
+    /// The agent-registry constructor: the artifact metadata goes to
+    /// `config.workspace_dir`, the deck to the files folder (#5505).
+    pub fn for_config(config: &crate::config::Config, security: Arc<SecurityPolicy>) -> Self {
+        Self::new(
+            config.workspace_dir.clone(),
+            crate::config::default_files_dir(),
+            security,
+        )
+    }
+
     /// Construct the tool with an authoritative host config snapshot.
     pub(crate) fn with_config(
         workspace_dir: PathBuf,
