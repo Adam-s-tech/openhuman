@@ -4052,11 +4052,13 @@ version = "0.64.7"
 dependencies = [
  "anyhow",
  "axum",
+ "base64 0.22.1",
  "chrono",
  "futures",
  "log",
  "once_cell",
  "openhuman",
+ "rand 0.10.2",
  "reqwest",
  "sentry",
  "serde",
@@ -4071,6 +4073,8 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "url",
+ "urlencoding",
+ "uuid",
 ]
 
 [[package]]

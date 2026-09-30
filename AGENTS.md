@@ -328,7 +328,10 @@ Additional rules:
   `openhuman_rpc::server::install_cli_server()` before `run_core_from_args`.
   Domain-owned HTTP handlers the router mounts (`inference::http`, the
   dictation WebSocket) stay in their domains behind core's `http-server`
-  feature.
+  feature. The `http_host` static-directory file server lives here too
+  (`openhuman_rpc::http_host`); `install_cli_server()` and
+  `build_core_http_router()` register its `http_host.*` controllers as a core
+  extension, so a host without this crate has no `http_host` surface.
 
 ## Tool, harness, and runtime boundaries
 
