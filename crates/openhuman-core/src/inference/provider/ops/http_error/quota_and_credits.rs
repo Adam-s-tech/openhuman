@@ -84,4 +84,3 @@ pub fn log_provider_quota_exhausted(
          reached (no local lever), not reporting to Sentry"
     );
 }
-
