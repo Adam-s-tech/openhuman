@@ -190,7 +190,7 @@ async fn write_tools_are_blocked_in_read_only_mode_with_the_hard_reject_marker()
         .await
         .unwrap();
     let csv = CsvExportTool::new(gate)
-        .execute(json!({"path": "o.csv", "data": [{"a": 1}]}))
+        .execute(json!({"filename": "o.csv", "data": "[{\"a\": 1}]"}))
         .await
         .unwrap();
 
