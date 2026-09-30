@@ -184,23 +184,9 @@ impl HttpRequestTool {
             .await
             .map_err(|e| format!("x402 payment failed: {e}"))?;
 
-        let record = x402::PaymentRecord {
-            id: uuid::Uuid::new_v4().to_string(),
-            url: payment_result.url.clone(),
-            asset: payment_result.asset.clone(),
-            amount_atomic: payment_result.amount_atomic,
-            amount_display: format!(
-                "{:.6} USDC",
-                payment_result.amount_atomic as f64 / 1_000_000.0
-            ),
-            recipient: payment_result.recipient.clone(),
-            network: payment_result.network.clone(),
-            tx_signature: None,
-            status: x402::PaymentStatus::Pending,
-            timestamp: chrono::Utc::now(),
-            session_id: String::new(),
-        };
-
+        // Stamped with the ledger's session and the active chat thread, exactly as
+        // the `x402_request` tool stamps its own.
+        let record = x402::pending_record(&payment_result);
         let record_id = record.id.clone();
         let _ = x402::store::with_ledger_mut(|l| l.record_payment(record));
 

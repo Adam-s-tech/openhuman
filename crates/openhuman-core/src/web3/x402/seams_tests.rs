@@ -176,3 +176,48 @@ async fn the_signer_reports_a_missing_wallet_for_either_chain() {
 async fn the_payment_builder_is_object_safe_for_the_facade() {
     let _builder: Box<dyn PaymentBuilder> = Box::new(payments());
 }
+
+// ---------------------------------------------------------------------------
+// The thread seam: which chat thread a payment belongs to
+// ---------------------------------------------------------------------------
+
+fn chat_ctx(thread: &str) -> crate::security::approval::ApprovalChatContext {
+    crate::security::approval::ApprovalChatContext {
+        thread_id: format!("thread-{thread}"),
+        client_id: format!("client-{thread}"),
+        request_id: None,
+    }
+}
+
+/// The ledger records a payment's thread from this read. If it stopped reading
+/// `APPROVAL_CHAT_CONTEXT`, every tool payment would silently lose its thread.
+#[tokio::test]
+async fn the_thread_scope_reads_the_approval_chat_context_task_local() {
+    use tinywallet_x402::thread::ThreadScope;
+
+    assert_eq!(
+        TaskLocalThread.current_thread(),
+        None,
+        "outside a chat turn there is no thread"
+    );
+
+    let inside = crate::security::approval::APPROVAL_CHAT_CONTEXT
+        .scope(chat_ctx("a"), async { TaskLocalThread.current_thread() })
+        .await;
+    assert_eq!(inside.as_deref(), Some("thread-a"));
+
+    // Nested scopes answer with the innermost thread, and the outer one is
+    // restored afterwards.
+    let (inner, outer) = crate::security::approval::APPROVAL_CHAT_CONTEXT
+        .scope(chat_ctx("outer"), async {
+            let inner = crate::security::approval::APPROVAL_CHAT_CONTEXT
+                .scope(chat_ctx("inner"), async {
+                    TaskLocalThread.current_thread()
+                })
+                .await;
+            (inner, TaskLocalThread.current_thread())
+        })
+        .await;
+    assert_eq!(inner.as_deref(), Some("thread-inner"));
+    assert_eq!(outer.as_deref(), Some("thread-outer"));
+}

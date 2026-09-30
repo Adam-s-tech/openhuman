@@ -33,10 +33,14 @@
 #[cfg(feature = "web3")]
 pub(crate) mod budget;
 #[cfg(feature = "web3")]
+mod records;
+#[cfg(feature = "web3")]
 mod schemas;
 #[cfg(feature = "web3")]
 pub(crate) mod seams;
 
+#[cfg(feature = "web3")]
+pub use records::pending_record;
 #[cfg(feature = "web3")]
 pub use schemas::all_controller_schemas as all_x402_controller_schemas;
 #[cfg(feature = "web3")]

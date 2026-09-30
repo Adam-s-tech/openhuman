@@ -1,8 +1,9 @@
 use super::*;
 
-// The variables read here are process-global. Serialise these tests so they do
-// not race each other, and restore what they touched.
-static ENDPOINT_ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+// The variables read here are process-global. Serialise these tests (and the
+// ones that repoint every endpoint) so they do not race each other, and restore
+// what they touched.
+use crate::web3::wallet::test_support::RPC_ENV_LOCK as ENDPOINT_ENV_LOCK;
 
 fn with_env<T>(pairs: &[(&str, Option<&str>)], f: impl FnOnce() -> T) -> T {
     let _guard = ENDPOINT_ENV_LOCK
