@@ -451,3 +451,25 @@ fn the_recovery_tool_joins_a_belt_only_when_something_can_point_at_it() {
     config.context.summarizer_payload_threshold_tokens = 0;
     assert!(!super::summarizes_tool_output("orchestrator", &config));
 }
+
+#[test]
+fn the_repl_tools_join_a_belt_only_while_handle_mode_is_active() {
+    use crate::inference::tokenjuice::REPL_TOOL_NAMES;
+    let belt = || std::collections::HashSet::from(["web_fetch".to_string()]);
+
+    let mut inactive = belt();
+    super::ensure_repl_tools_visible(&mut inactive, false);
+    assert!(REPL_TOOL_NAMES.iter().all(|n| !inactive.contains(*n)));
+
+    let mut active = belt();
+    super::ensure_repl_tools_visible(&mut active, true);
+    assert!(REPL_TOOL_NAMES.iter().all(|n| active.contains(*n)));
+
+    // "No filter" and "deliberately no tools" both stay as they were.
+    let mut unfiltered = std::collections::HashSet::new();
+    super::ensure_repl_tools_visible(&mut unfiltered, true);
+    assert!(unfiltered.is_empty());
+    let mut none = std::collections::HashSet::from([NO_TOOLS_SENTINEL.to_string()]);
+    super::ensure_repl_tools_visible(&mut none, true);
+    assert_eq!(none.len(), 1);
+}
