@@ -18,7 +18,7 @@ use std::sync::atomic::{AtomicU16, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Duration;
 
-use axum::extract::{Query, State};
+use axum::extract::{Path as UrlPath, Query, State};
 use axum::http::{header::AUTHORIZATION, HeaderMap, StatusCode};
 use axum::routing::{get, post};
 use axum::{Json, Router};
@@ -125,14 +125,25 @@ pub async fn experience(
         .lock()
         .unwrap()
         .insert(key, (text, id.clone()));
-    state.events.lock().unwrap().push(json!({
+    // The engine keeps the caller's context (labels, `observed_at`) and stamps
+    // its own `recorded_at`; the hosted families look records up by label.
+    let mut context = body["context"].clone();
+    if !context.is_object() {
+        context = json!({});
+    }
+    context["recorded_at"] = json!("2026-09-02T00:00:00Z");
+    let mut event = json!({
         "id": id,
         "scope": body["scope"],
         "modality": body["modality"],
         "wal_offset": offset,
         "content": body["content"],
-        "context": { "recorded_at": "2026-09-02T00:00:00Z" },
-    }));
+        "context": context,
+    });
+    if !body["directives"].is_null() {
+        event["directives"] = body["directives"].clone();
+    }
+    state.events.lock().unwrap().push(event);
     ok(json!({ "event_id": id, "status": "captured", "replayed_from_idempotency": false }))
 }
 
@@ -153,9 +164,24 @@ pub async fn events(
         .get("limit")
         .and_then(|v| v.parse().ok())
         .unwrap_or(50);
+    // The engine splits its label filter on commas and keeps an event carrying
+    // any one of the pieces.
+    let wanted: Vec<String> = params
+        .get("labels")
+        .map(|labels| labels.split(',').map(|l| l.trim().to_string()).collect())
+        .unwrap_or_default();
+    let labelled = |event: &Value| {
+        wanted.is_empty()
+            || event["context"]["labels"].as_array().is_some_and(|labels| {
+                labels
+                    .iter()
+                    .filter_map(Value::as_str)
+                    .any(|label| wanted.iter().any(|w| w == label))
+            })
+    };
     let mut stream = Vec::new();
     for event in state.events.lock().unwrap().iter().rev() {
-        if event["scope"].as_str() == Some(scope.as_str()) {
+        if event["scope"].as_str() == Some(scope.as_str()) && labelled(event) {
             stream.push(event.clone());
             stream.push(event.clone());
         }
@@ -210,17 +236,45 @@ pub async fn scopes(
         .get("limit")
         .and_then(|v| v.parse().ok())
         .unwrap_or(50);
+    // A prefix names a scope and everything under it.
+    let prefix = params.get("prefix").cloned();
     let mut paths: Vec<String> = state
         .events
         .lock()
         .unwrap()
         .iter()
         .filter_map(|e| e["scope"].as_str().map(str::to_string))
+        .filter(|path| {
+            prefix
+                .as_deref()
+                .is_none_or(|p| path == p || path.starts_with(&format!("{p}/")))
+        })
         .collect();
     paths.sort();
     paths.dedup();
     paths.truncate(limit);
     ok(json!({ "items": paths.into_iter().map(|p| json!({ "path": p })).collect::<Vec<_>>() }))
+}
+
+pub async fn event_by_id(
+    State(state): State<Hosted>,
+    headers: HeaderMap,
+    UrlPath(id): UrlPath<String>,
+) -> (StatusCode, Json<Value>) {
+    if let Some(early) = gate(&state, &headers) {
+        return early;
+    }
+    let found = state
+        .events
+        .lock()
+        .unwrap()
+        .iter()
+        .find(|e| e["id"].as_str() == Some(id.as_str()))
+        .cloned();
+    match found {
+        Some(event) => ok(event),
+        None => err(404, "NOT_FOUND"),
+    }
 }
 
 pub async fn forget(
@@ -254,6 +308,7 @@ pub async fn start_hosted() -> (String, Hosted) {
     let app = Router::new()
         .route("/memory/experience", post(experience))
         .route("/memory/events", get(events))
+        .route("/memory/events/{id}", get(event_by_id))
         .route("/memory/recall", post(recall))
         .route("/memory/forget", post(forget))
         .route("/memory/scopes", get(scopes))
