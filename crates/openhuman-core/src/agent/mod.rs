@@ -26,7 +26,6 @@ pub(crate) mod cost;
 pub mod debug;
 pub mod error;
 pub mod experience;
-pub mod file_state;
 pub mod goals;
 pub mod harness;
 pub mod harness_init;

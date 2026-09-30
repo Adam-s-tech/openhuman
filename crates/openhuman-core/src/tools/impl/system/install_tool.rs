@@ -20,7 +20,7 @@ use tinytools::{PermissionLevel, Tool, ToolResult};
 use tokio::process::Command as TokioCommand;
 use tokio::time::timeout;
 
-use super::detect_tools::find_on_path;
+use tinytools_std::detect_tools::find_on_path;
 
 /// Hard cap on an install before it is killed.
 const INSTALL_TIMEOUT_SECS: u64 = 300;

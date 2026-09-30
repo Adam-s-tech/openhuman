@@ -358,7 +358,7 @@ impl NodeExecTool {
                 } else {
                     // Surface exit code + both streams so the agent can diagnose
                     // the failure instead of re-running it (#4095).
-                    Ok(super::command_output::command_failure(
+                    Ok(tinytools_std::command_output::command_failure(
                         output.status.code(),
                         &stdout,
                         &stderr,
@@ -544,8 +544,8 @@ impl NodeExecTool {
                         ))
                     }
                 } else {
-                    super::command_output::command_failure(
-                        super::command_output::sandbox_exit_code(result.exit_code),
+                    tinytools_std::command_output::command_failure(
+                        tinytools_std::command_output::sandbox_exit_code(result.exit_code),
                         &result.stdout,
                         &result.stderr,
                     )
@@ -590,7 +590,7 @@ fn pool_outcome_to_result(
             ToolResult::success(format!("{stdout}\n[stderr]\n{stderr}"))
         }
     } else {
-        super::command_output::command_failure(outcome.exit_code, &stdout, &stderr)
+        tinytools_std::command_output::command_failure(outcome.exit_code, &stdout, &stderr)
     }
 }
 

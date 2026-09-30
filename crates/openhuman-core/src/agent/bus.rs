@@ -32,7 +32,7 @@ use tinytools::Tool;
 
 use super::harness::definition::{AgentDefinitionRegistry, SandboxMode};
 use super::harness::{run_channel_turn_via_graph, with_current_sandbox_mode};
-use crate::agent::file_state::with_file_state_agent_id;
+use tinytools_std::file_state::with_file_state_agent_id;
 
 /// Method name used to dispatch an agentic turn through the native bus.
 pub const AGENT_RUN_TURN_METHOD: &str = "agent.run_turn";

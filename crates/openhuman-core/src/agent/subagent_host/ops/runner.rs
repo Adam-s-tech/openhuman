@@ -10,7 +10,7 @@ use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::Instant;
 
-use crate::agent::file_state::with_file_state_agent_id;
+use tinytools_std::file_state::with_file_state_agent_id;
 use crate::agent::harness::agent_graph::{AgentTurnRequest, AgentTurnUsage};
 use crate::agent::harness::artifact_offload::{
     effective_offload_threshold, extract_artifact_paths, new_artifact_offload,
