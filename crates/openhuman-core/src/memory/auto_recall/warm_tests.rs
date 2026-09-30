@@ -1,7 +1,6 @@
 use super::*;
 use crate::memory::api::error::MemoryError;
 use crate::memory::api::provider::retrieval::RetrievalResponse;
-use crate::memory::api::types::NamespaceMemoryHit;
 use async_trait::async_trait;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
@@ -61,7 +60,7 @@ impl AutoRecallSource for Scripted {
         _namespace: &str,
         _query: &str,
         _limit: usize,
-    ) -> Result<Vec<NamespaceMemoryHit>, MemoryError> {
+    ) -> Result<crate::memory::auto_recall::ScoredNotes, MemoryError> {
         // The warm-up is one tree retrieval: that is what loads the NLP server
         // and the embedder, and the notes leg needs only the second of those.
         panic!("the warm-up must not read the notes namespace");

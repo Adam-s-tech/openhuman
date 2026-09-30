@@ -7410,6 +7410,8 @@ const messages: TranslationMap = {
   'memoryEngine.error.sessionExpired': 'La sessione è scaduta. Accedi di nuovo per continuare.',
   'memoryEngine.error.backendUnavailable':
     'Il servizio di memoria non è disponibile al momento. Riprova tra poco.',
+  'memoryEngine.error.forbidden':
+    'La memoria ha rifiutato le credenziali di questo account. Se usi una chiave API, concedile il permesso memory.',
   'memoryEngine.error.generic':
     'Impossibile cambiare il motore di memoria. Controlla le impostazioni e riprova.',
   'memoryEngine.error.openBilling': 'Apri fatturazione',

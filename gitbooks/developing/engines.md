@@ -115,13 +115,27 @@ most two `export_page` calls of `min(limit*4, 200)` records, and the document li
 scans at most 10 namespaces and returns at most 200 documents with a `truncated`
 flag. The proper fix is a bounded `recent(namespace, limit)` on the tinymemory
 contract, an upstream follow-up. Hosted 402 and 401 errors from ordinary memory
-RPCs read `INSUFFICIENT_CREDITS:` and `SESSION_EXPIRED:` too.
+RPCs read `INSUFFICIENT_CREDITS:` and `SESSION_EXPIRED:` too; a 403 (a credential
+the engine refuses, such as an API key without the memory scope) reads
+`MEMORY_FORBIDDEN:` and never signs the user out, and a timeout, refused
+connection, 429 or 5xx that outlasts the retries reads `MEMORY_UNREACHABLE:`.
 
 Not every engine advertises every capability family. The hosted and CortexDB
 engines have no `documents`, `tree`, `sources` or `graph` families, so the
 document, tree and source RPCs answer a clean "does not support" error on them
 (see the [`memory/driver` README](../../crates/openhuman-core/src/memory/driver/README.md)
-for the full table).
+for the full table). Brain's sync panels (activity, history, coding sessions)
+need `sources` and show "Not available" there.
+
+Auto-recall reads the notes a user saved through the mandatory recall on such an
+engine. Hosted CortexDB ranks its recall without scoring it, so its notes cannot
+be floored on similarity: the lane keeps the engine's first three, behind the
+same gate that decides whether a message needs memory at all. Situational
+preferences and the contradiction check need a scored engine and stay empty
+there. A lookup the engine refuses (out of credits, session not accepted,
+credential refused, unreachable) puts a one-line reason in the recall block
+instead of an empty result, so the model says memory is unavailable rather than
+that something was never stored.
 
 Related pages: [Memory](../features/obsidian-wiki/README.md) and its
 sub-pages for what TinyCortex actually does (memory tree, scoring, retrieval,

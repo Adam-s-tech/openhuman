@@ -7355,6 +7355,8 @@ const messages: TranslationMap = {
   'memoryEngine.error.sessionExpired': 'Сеанс истёк. Войдите снова, чтобы продолжить.',
   'memoryEngine.error.backendUnavailable':
     'Служба памяти сейчас недоступна. Повторите попытку чуть позже.',
+  'memoryEngine.error.forbidden':
+    'Служба памяти отклонила учётные данные этой учётной записи. Если вы используете ключ API, выдайте ему область memory.',
   'memoryEngine.error.generic':
     'Не удалось сменить движок памяти. Проверьте настройки и повторите попытку.',
   'memoryEngine.error.openBilling': 'Открыть оплату',

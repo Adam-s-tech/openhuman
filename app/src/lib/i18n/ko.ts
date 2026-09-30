@@ -7201,6 +7201,8 @@ const messages: TranslationMap = {
   'memoryEngine.error.sessionExpired': '세션이 만료되었습니다. 계속하려면 다시 로그인하세요.',
   'memoryEngine.error.backendUnavailable':
     '메모리 서비스를 지금 사용할 수 없습니다. 잠시 후 다시 시도하세요.',
+  'memoryEngine.error.forbidden':
+    '메모리 서비스가 이 계정의 자격 증명을 거부했습니다. API 키를 사용한다면 memory 범위를 부여하세요.',
   'memoryEngine.error.generic':
     '메모리 엔진을 변경할 수 없습니다. 설정을 확인하고 다시 시도하세요.',
   'memoryEngine.error.openBilling': '결제 열기',

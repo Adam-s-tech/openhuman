@@ -7401,6 +7401,8 @@ const messages: TranslationMap = {
     'Sua sessão expirou. Inicie sessão novamente para continuar.',
   'memoryEngine.error.backendUnavailable':
     'O serviço de memória está indisponível no momento. Tente novamente em instantes.',
+  'memoryEngine.error.forbidden':
+    'A memória recusou a credencial desta conta. Se você usa uma chave de API, conceda a ela o escopo memory.',
   'memoryEngine.error.generic':
     'Não foi possível trocar o mecanismo de memória. Verifique as configurações e tente novamente.',
   'memoryEngine.error.openBilling': 'Abrir faturamento',

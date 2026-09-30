@@ -554,6 +554,20 @@ pub(crate) async fn run_sync_pass(
     // through the years. `None` reads unbounded, as every earlier release did.
     let depth_days = source_sync_depth_days(config, toolkit, connection_id);
 
+    // The sink first, the fetch second. A connector run saves the
+    // connection's cursor as it pages (`tinyconnectors-sync`'s pipeline), so
+    // records fetched for a driver that cannot accept them are never fetched
+    // again: resolving the sink after the call lost every pass's records for
+    // good — on a remote engine without the Sources family, every connection,
+    // every periodic tick.
+    let binding = crate::memory::binding::for_config(config)?;
+    let sink = binding.provider().as_sources().ok_or_else(|| {
+        format!(
+            "the bound memory driver '{}' does not accept source items",
+            binding.driver_id()
+        )
+    })?;
+
     let response = connectors::call_slow::<_, ConnectorSyncResponse>(
         config,
         methods::SYNC,
@@ -590,14 +604,6 @@ pub(crate) async fn run_sync_pass(
             failure,
         });
     }
-
-    let binding = crate::memory::binding::for_config(config)?;
-    let sink = binding.provider().as_sources().ok_or_else(|| {
-        format!(
-            "the bound memory driver '{}' does not accept source items",
-            binding.driver_id()
-        )
-    })?;
 
     // `ConnectorRecord` and memory's `SourceItem` carry the same seven keys —
     // the contract crate asserts that against a literal list, so a drift is a

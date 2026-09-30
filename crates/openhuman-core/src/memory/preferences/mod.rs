@@ -98,9 +98,26 @@ pub(crate) async fn recall_by_vector_over(
         }
         // No retrieval family (a remote engine): the mandatory ranked recall
         // answers, so Lane B still works instead of injecting nothing.
-        None => crate::memory::ops::fallback::recall_hits(provider, namespace, query, limit)
-            .await
-            .map_err(|e| MemoryError::Other(anyhow::anyhow!(e)))?,
+        None => {
+            let ranked =
+                crate::memory::ops::fallback::ranked_recall(provider, namespace, query, limit)
+                    .await?;
+            if !ranked.scored {
+                // An engine that ranks without scoring (hosted CortexDB) gives
+                // every hit 0.0, so no floor can tell a preference that fits
+                // the message from one that does not. Both callers inject into
+                // or judge every turn, where the engine's first hits would be
+                // noise, so this answers nothing — and says so, rather than
+                // reading as "no candidate came close".
+                log::debug!(
+                    "[pref_recall] namespace={namespace} the engine ranks without scores; \
+                     nothing clears a similarity floor elapsed_ms={}",
+                    started.elapsed().as_millis()
+                );
+                return Ok(Vec::new());
+            }
+            ranked.hits
+        }
     };
     // The floor is "tunable against live data", and this line is that data:
     // how close the best candidate came, whether or not it cleared. Keys and

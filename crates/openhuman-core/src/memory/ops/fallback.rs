@@ -128,13 +128,29 @@ pub(crate) async fn namespace_names(guard: &MemoryGuard) -> Result<Vec<String>, 
     Ok(summaries.into_iter().map(|s| s.namespace).collect())
 }
 
-/// Ranked hits via `MemoryRecall::recall`, scoped to `namespace`.
-pub(crate) async fn recall_hits<P: MemoryRecall + ?Sized>(
+/// What [`ranked_recall`] answered: the hits, and whether the engine scored
+/// them.
+pub(crate) struct RankedRecall {
+    /// The engine's hits, in its order.
+    pub(crate) hits: Vec<NamespaceMemoryHit>,
+    /// Whether any hit carried the engine's own score. `false` for an engine
+    /// whose recall is ranked but unscored — hosted CortexDB answers no score
+    /// at all — whose hits [`entry_to_hit`] then reads as 0.0.
+    pub(crate) scored: bool,
+}
+
+/// Ranked hits via `MemoryRecall::recall`, scoped to `namespace`, and whether
+/// the engine scored them.
+///
+/// A caller that floors on similarity has to know the difference: an
+/// unscored engine's 0.0 means "no score", not "irrelevant", and flooring it
+/// drops every hit however well the engine ranked it.
+pub(crate) async fn ranked_recall<P: MemoryRecall + ?Sized>(
     guard: &P,
     namespace: &str,
     query: &str,
     limit: usize,
-) -> Result<Vec<NamespaceMemoryHit>, String> {
+) -> Result<RankedRecall, crate::memory::api::error::MemoryError> {
     log::debug!(
         "[memory:fallback] ranked recall via MemoryRecall::recall namespace={namespace} limit={limit}"
     );
@@ -142,15 +158,30 @@ pub(crate) async fn recall_hits<P: MemoryRecall + ?Sized>(
         namespace: Some(namespace.to_string()),
         ..Default::default()
     };
-    let entries = guard
-        .recall(query, limit, &opts, None)
+    let entries = guard.recall(query, limit, &opts, None).await?;
+    let scored = entries.iter().any(|entry| entry.score.is_some());
+    Ok(RankedRecall {
+        hits: entries
+            .into_iter()
+            .take(limit)
+            .map(|entry| entry_to_hit(entry, namespace))
+            .collect(),
+        scored,
+    })
+}
+
+/// [`ranked_recall`]'s hits alone, with the error as text, for the RPCs that
+/// list them.
+pub(crate) async fn recall_hits<P: MemoryRecall + ?Sized>(
+    guard: &P,
+    namespace: &str,
+    query: &str,
+    limit: usize,
+) -> Result<Vec<NamespaceMemoryHit>, String> {
+    ranked_recall(guard, namespace, query, limit)
         .await
-        .map_err(|error| error.to_string())?;
-    Ok(entries
-        .into_iter()
-        .take(limit)
-        .map(|entry| entry_to_hit(entry, namespace))
-        .collect())
+        .map(|ranked| ranked.hits)
+        .map_err(|error| error.to_string())
 }
 
 /// Read one export record back as an entry (the mandatory driver's payload

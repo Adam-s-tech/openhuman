@@ -3,6 +3,7 @@ import type { MemoryEngineDescriptor } from '../../../utils/tauriCommands/memory
 export type MemoryEngineErrorKind =
   | 'insufficient_credits'
   | 'session_expired'
+  | 'memory_forbidden'
   | 'backend_unavailable'
   | 'other';
 
@@ -11,7 +12,12 @@ export function classifyMemoryEngineError(err: unknown): MemoryEngineErrorKind {
   const message = err instanceof Error ? err.message : String(err ?? '');
   if (message.includes('INSUFFICIENT_CREDITS:')) return 'insufficient_credits';
   if (message.includes('SESSION_EXPIRED:')) return 'session_expired';
-  if (message.includes('BACKEND_UNAVAILABLE:')) return 'backend_unavailable';
+  // A refused credential (an API key without the memory scope): not a lapsed
+  // session, so it must never read as one and sign the user out.
+  if (message.includes('MEMORY_FORBIDDEN:')) return 'memory_forbidden';
+  if (message.includes('BACKEND_UNAVAILABLE:') || message.includes('MEMORY_UNREACHABLE:')) {
+    return 'backend_unavailable';
+  }
   return 'other';
 }
 

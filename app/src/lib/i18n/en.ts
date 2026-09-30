@@ -7588,6 +7588,8 @@ const en: TranslationMap = {
   'memoryEngine.error.sessionExpired': 'Your session expired. Sign in again to continue.',
   'memoryEngine.error.backendUnavailable':
     'The memory service is unavailable right now. Try again shortly.',
+  'memoryEngine.error.forbidden':
+    'Memory refused the credential for this account. If you use an API key, give it the memory scope.',
   'memoryEngine.error.generic':
     'Could not change the memory engine. Check the settings and try again.',
   'memoryEngine.error.openBilling': 'Open billing',

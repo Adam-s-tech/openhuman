@@ -7282,6 +7282,8 @@ const messages: TranslationMap = {
     'আপনার সেশনের মেয়াদ শেষ হয়েছে। চালিয়ে যেতে আবার সাইন ইন করুন।',
   'memoryEngine.error.backendUnavailable':
     'মেমোরি পরিষেবা এখন অনুপলব্ধ। একটু পরে আবার চেষ্টা করুন।',
+  'memoryEngine.error.forbidden':
+    'মেমরি পরিষেবা এই অ্যাকাউন্টের ক্রেডেনশিয়াল প্রত্যাখ্যান করেছে। আপনি API কী ব্যবহার করলে সেটিকে memory স্কোপ দিন।',
   'memoryEngine.error.generic':
     'মেমোরি ইঞ্জিন পরিবর্তন করা যায়নি। সেটিংস পরীক্ষা করে আবার চেষ্টা করুন।',
   'memoryEngine.error.openBilling': 'বিলিং খুলুন',

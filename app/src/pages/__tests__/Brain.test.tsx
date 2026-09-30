@@ -1,10 +1,18 @@
 import { act, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { resetMemoryEngineCacheForTests } from '../../components/intelligence/useMemoryEngineCapabilities';
 import { renderWithProviders } from '../../test/test-utils';
 import Brain from '../Brain';
 
 const graphExportMock = vi.hoisted(() => vi.fn());
+// The bound memory engine, as `MemoryFamilyGate` reads it. Rejected by default,
+// so every gate fails open and the tabs render as they always have.
+const engineMock = vi.hoisted(() => ({ list: vi.fn(), get: vi.fn() }));
+vi.mock('../../utils/tauriCommands/memoryEngine', () => ({
+  memoryEnginesList: (...a: unknown[]) => engineMock.list(...a),
+  memoryEngineGet: (...a: unknown[]) => engineMock.get(...a),
+}));
 // Controllable authenticated identity so we can simulate a logout→login cycle
 // (userId null → set) and assert the graph reloads (#4149).
 const coreAuthRef = vi.hoisted(() => ({ current: 'user-A' as string | null }));
@@ -84,6 +92,9 @@ describe('Brain page', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     coreAuthRef.current = 'user-A';
+    resetMemoryEngineCacheForTests();
+    engineMock.get.mockRejectedValue(new Error('no engine rpc in this test'));
+    engineMock.list.mockRejectedValue(new Error('no engine rpc in this test'));
   });
 
   afterEach(() => {
@@ -184,6 +195,32 @@ describe('Brain page', () => {
     await waitFor(() => {
       expect(screen.getByTestId('brain-sync-history')).toBeInTheDocument();
       expect(screen.getByTestId('brain-sync-audit')).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId('brain-sync-activity')).toBeNull();
+    expect(screen.queryByTestId('brain-sync-activity-card')).toBeNull();
+  });
+
+  // A remote engine without the Sources family (hosted CortexDB) has no
+  // `memory_sources.*` RPCs at all: the sync panels must say so rather than
+  // render and fail.
+  it('shows the sync panels as unavailable on an engine without sources', async () => {
+    graphExportMock.mockResolvedValue(makeGraph(0));
+    engineMock.get.mockResolvedValue({ driver: 'tinyhumans' });
+    engineMock.list.mockResolvedValue({
+      active: 'tinyhumans',
+      engines: [
+        {
+          id: 'tinyhumans',
+          label: 'CortexDB (via TinyHumans)',
+          capabilities: ['core', 'recall', 'portability', 'answer'],
+        },
+      ],
+    });
+    await act(async () => {
+      renderWithProviders(<Brain />, { initialEntries: ['/?tab=sync'] });
+    });
+    await waitFor(() => {
+      expect(screen.getAllByTestId('memory-family-unavailable').length).toBeGreaterThan(0);
     });
     expect(screen.queryByTestId('brain-sync-activity')).toBeNull();
     expect(screen.queryByTestId('brain-sync-activity-card')).toBeNull();

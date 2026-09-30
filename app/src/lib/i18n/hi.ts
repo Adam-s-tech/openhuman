@@ -7284,6 +7284,8 @@ const messages: TranslationMap = {
     'आपका सत्र समाप्त हो गया है। जारी रखने के लिए फिर से साइन इन करें।',
   'memoryEngine.error.backendUnavailable':
     'मेमोरी सेवा अभी उपलब्ध नहीं है। थोड़ी देर बाद फिर कोशिश करें।',
+  'memoryEngine.error.forbidden':
+    'मेमोरी सेवा ने इस खाते का क्रेडेंशियल अस्वीकार कर दिया। यदि आप API कुंजी का उपयोग करते हैं, तो उसे memory स्कोप दें।',
   'memoryEngine.error.generic': 'मेमोरी इंजन बदला नहीं जा सका। सेटिंग जाँचकर फिर कोशिश करें।',
   'memoryEngine.error.openBilling': 'बिलिंग खोलें',
   'memoryEngine.error.signIn': 'साइन इन करें',

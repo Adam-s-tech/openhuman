@@ -7129,6 +7129,8 @@ const messages: TranslationMap = {
     'نفد رصيد OpenHuman لديك. أضف رصيدًا لاستخدام هذا المحرك.',
   'memoryEngine.error.sessionExpired': 'انتهت جلستك. سجّل الدخول مرة أخرى للمتابعة.',
   'memoryEngine.error.backendUnavailable': 'خدمة الذاكرة غير متاحة حاليًا. حاول مرة أخرى بعد قليل.',
+  'memoryEngine.error.forbidden':
+    'رفضت خدمة الذاكرة بيانات اعتماد هذا الحساب. إذا كنت تستخدم مفتاح API، فامنحه نطاق memory.',
   'memoryEngine.error.generic': 'تعذّر تغيير محرك الذاكرة. تحقق من الإعدادات وحاول مرة أخرى.',
   'memoryEngine.error.openBilling': 'فتح الفوترة',
   'memoryEngine.error.signIn': 'تسجيل الدخول',

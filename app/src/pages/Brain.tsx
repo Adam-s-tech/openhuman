@@ -435,7 +435,9 @@ export default function Brain() {
                   {activeTab === 'sources' && (
                     <div className="space-y-5 animate-fade-up">
                       <MemoryEngineRow />
-                      <CodingSessionsCard onToast={addToast} />
+                      <MemoryFamilyGate family="sources">
+                        <CodingSessionsCard onToast={addToast} />
+                      </MemoryFamilyGate>
                       <MemoryFamilyGate family="sources">
                         <MemorySourcesRegistry onToast={addToast} />
                       </MemoryFamilyGate>
@@ -451,16 +453,20 @@ export default function Brain() {
                       </MemoryFamilyGate>
                       {/* openhuman#6257: what is syncing right now, beside the
                       history of what already ran. */}
-                      <Card padded divided={false} data-testid="brain-sync-activity">
-                        <SyncActivityCard />
-                      </Card>
+                      <MemoryFamilyGate family="sources">
+                        <Card padded divided={false} data-testid="brain-sync-activity">
+                          <SyncActivityCard />
+                        </Card>
+                      </MemoryFamilyGate>
                     </div>
                   )}
 
                   {/* Sync → History: the run history as a full-height table. */}
                   {activeTab === 'sync' && syncView === 'history' && (
                     <div className="flex min-h-0 flex-1 flex-col" data-testid="brain-sync-history">
-                      <SyncAuditPanel fill />
+                      <MemoryFamilyGate family="sources">
+                        <SyncAuditPanel fill />
+                      </MemoryFamilyGate>
                     </div>
                   )}
                 </div>

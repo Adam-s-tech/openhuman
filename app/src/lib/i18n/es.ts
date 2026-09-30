@@ -7433,6 +7433,8 @@ const messages: TranslationMap = {
     'Tu sesión ha caducado. Inicia sesión de nuevo para continuar.',
   'memoryEngine.error.backendUnavailable':
     'El servicio de memoria no está disponible en este momento. Inténtalo de nuevo en breve.',
+  'memoryEngine.error.forbidden':
+    'La memoria rechazó la credencial de esta cuenta. Si usas una clave de API, dale el alcance memory.',
   'memoryEngine.error.generic':
     'No se pudo cambiar el motor de memoria. Revisa los ajustes e inténtalo de nuevo.',
   'memoryEngine.error.openBilling': 'Abrir facturación',

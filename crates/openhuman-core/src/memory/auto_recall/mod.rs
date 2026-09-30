@@ -77,11 +77,13 @@
 //! thresholds can be tuned from real logs.
 
 mod gate;
+mod refusal;
 mod source;
 pub mod warm;
 
 pub use gate::{gate_decision, GateDecision};
-pub use source::{AutoRecallSource, GuardSource};
+pub use refusal::MemoryRefusal;
+pub use source::{AutoRecallSource, GuardSource, ScoredNotes};
 
 use crate::agent::harness::memory_context_safety::{
     is_potentially_untrusted, wrap_untrusted_for_agent,
@@ -143,6 +145,16 @@ pub const AUTO_RECALL_NOTES_NAMESPACE: &str = DEFAULT_AGENT_MEMORY_NAMESPACE;
 /// B's `SITUATIONAL_MIN_SIMILARITY`, declared apart so each lane tunes alone.
 /// The `[auto_recall]` line logs the best candidate before the floor.
 pub const AUTO_RECALL_NOTE_MIN_SIMILARITY: f64 = 0.35;
+
+/// How many notes an engine that ranks without scoring contributes (hosted
+/// CortexDB answers no score at all).
+///
+/// With no similarity to floor on, the engine's order is the only relevance
+/// signal, and the gate has already judged the message worth a lookup. So the
+/// first few are kept: enough that a paraphrased question still reaches its
+/// note, few enough that an unrelated one costs a couple of lines rather than
+/// the whole namespace.
+pub const AUTO_RECALL_UNSCORED_NOTES: usize = 3;
 
 /// The lane itself: a retrieval source, the switch, and the budgets.
 pub struct AutoRecall {
@@ -225,17 +237,28 @@ impl AutoRecall {
             self.tree_leg(user_message, reason),
             self.notes_leg(user_message, reason)
         );
-        let notes_top = similarity_label(notes.top);
+        let notes_top = if notes.scored {
+            similarity_label(notes.top)
+        } else {
+            "unscored".to_string()
+        };
+        // Either leg can be refused, and both ask the same engine; the notes
+        // leg's reason is the one a user's saved facts depend on.
+        let refusal = notes.refusal.or(tree.refusal);
         if tree.hits.is_empty() && notes.hits.is_empty() {
             log::info!(
                 "[auto_recall] gate=open reason={reason} hits=0 total={} notes=0 \
-                 notes_top={notes_top} tree_ms={} notes_ms={} elapsed_ms={}",
+                 notes_top={notes_top} refusal={} tree_ms={} notes_ms={} elapsed_ms={}",
                 tree.total,
+                refusal.map_or("none", MemoryRefusal::label),
                 tree.elapsed_ms,
                 notes.elapsed_ms,
                 started.elapsed().as_millis()
             );
-            return None;
+            // A refused lookup is not an empty one: say why, so the answer is
+            // "memory is unavailable" rather than "that was never stored".
+            return refusal
+                .and_then(|refusal| refusal::render_refusal_block(refusal, self.recall_max_chars));
         }
         let block = render_block(&notes.hits, &tree.hits, self.recall_max_chars);
         log::info!(
@@ -269,11 +292,14 @@ impl AutoRecall {
                 leg.total = response.total;
                 leg.hits = select_hits(response.hits);
             }
-            Ok(Err(err)) => log::warn!(
-                "[auto_recall] gate=open reason={reason} tree retrieval failed after {}ms; \
-                 continuing without tree hits: {err}",
-                started.elapsed().as_millis()
-            ),
+            Ok(Err(err)) => {
+                leg.refusal = MemoryRefusal::of(&err);
+                log::warn!(
+                    "[auto_recall] gate=open reason={reason} tree retrieval failed after {}ms; \
+                     continuing without tree hits: {err}",
+                    started.elapsed().as_millis()
+                );
+            }
             Err(_elapsed) => log::warn!(
                 "[auto_recall] gate=open reason={reason} tree retrieval exceeded {:?}; \
                  continuing without tree hits",
@@ -300,15 +326,22 @@ impl AutoRecall {
         )
         .await
         {
-            Ok(Ok(candidates)) => {
-                leg.top = top_similarity(&candidates);
-                leg.hits = select_notes(candidates);
+            Ok(Ok(notes)) if notes.scored => {
+                leg.top = top_similarity(&notes.hits);
+                leg.hits = select_notes(notes.hits);
             }
-            Ok(Err(err)) => log::warn!(
-                "[auto_recall] gate=open reason={reason} notes recall failed after {}ms; \
-                 continuing without notes: {err}",
-                started.elapsed().as_millis()
-            ),
+            Ok(Ok(notes)) => {
+                leg.scored = false;
+                leg.hits = select_unscored_notes(notes.hits);
+            }
+            Ok(Err(err)) => {
+                leg.refusal = MemoryRefusal::of(&err);
+                log::warn!(
+                    "[auto_recall] gate=open reason={reason} notes recall failed after {}ms; \
+                     continuing without notes: {err}",
+                    started.elapsed().as_millis()
+                );
+            }
             Err(_elapsed) => log::warn!(
                 "[auto_recall] gate=open reason={reason} notes recall exceeded {:?}; \
                  continuing without notes",
@@ -327,6 +360,8 @@ struct TreeLeg {
     hits: Vec<RetrievalHit>,
     total: usize,
     elapsed_ms: u128,
+    /// Why the engine refused the lookup, when it said why.
+    refusal: Option<MemoryRefusal>,
 }
 
 /// What the notes leg answered. `top` is the best vector similarity among the
@@ -336,6 +371,10 @@ struct NotesLeg {
     hits: Vec<NamespaceMemoryHit>,
     top: f64,
     elapsed_ms: u128,
+    /// Whether the engine scored its hits; see [`ScoredNotes::scored`].
+    scored: bool,
+    /// Why the engine refused the lookup, when it said why.
+    refusal: Option<MemoryRefusal>,
 }
 
 impl Default for NotesLeg {
@@ -344,6 +383,8 @@ impl Default for NotesLeg {
             hits: Vec::new(),
             top: f64::NEG_INFINITY,
             elapsed_ms: 0,
+            scored: true,
+            refusal: None,
         }
     }
 }
@@ -410,6 +451,16 @@ pub(crate) fn select_notes(mut notes: Vec<NamespaceMemoryHit>) -> Vec<NamespaceM
             .total_cmp(&a.score_breakdown.vector_similarity)
     });
     notes.truncate(AUTO_RECALL_LIMIT);
+    notes
+}
+
+/// The notes an engine that ranks without scoring contributes: its first
+/// [`AUTO_RECALL_UNSCORED_NOTES`] with a body, in its own order. There is no
+/// similarity to floor on — every hit reads 0.0 — so [`select_notes`] would
+/// drop them all however well the engine ranked them.
+pub(crate) fn select_unscored_notes(mut notes: Vec<NamespaceMemoryHit>) -> Vec<NamespaceMemoryHit> {
+    notes.retain(|note| !note.content.trim().is_empty());
+    notes.truncate(AUTO_RECALL_UNSCORED_NOTES);
     notes
 }
 
