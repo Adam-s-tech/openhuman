@@ -304,10 +304,6 @@ name = "observability_wallet_expected_e2e"
 path = "../../tests/observability_wallet_expected_e2e.rs"
 
 [[test]]
-name = "ollama_lifecycle_e2e"
-path = "../../tests/ollama_lifecycle_e2e.rs"
-
-[[test]]
 name = "orchestrator_parallel_fanout_routing"
 path = "../../tests/orchestrator_parallel_fanout_routing.rs"
 

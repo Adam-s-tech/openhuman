@@ -32,7 +32,6 @@ pub(crate) mod graph;
 pub(crate) mod memory_context;
 pub(crate) mod memory_context_safety;
 pub(crate) mod memory_protocol;
-pub(crate) mod required_output;
 pub mod sandbox_context;
 pub(crate) mod spawn_depth_context;
 pub mod task_recency_context;

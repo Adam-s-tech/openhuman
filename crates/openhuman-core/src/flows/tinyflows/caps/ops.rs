@@ -58,7 +58,7 @@ pub(crate) use crate::integrations::composio::catalog::{
 use super::*;
 
 #[cfg(test)]
-pub(crate) use crate::json_schema::{compute_primary_array_path, response_fields_from_schema};
+pub(crate) use crate::json_schema::response_fields_from_schema;
 pub(crate) use crate::json_schema::{missing_required_args, unsupported_arg_names};
 
 /// Parses a `"composio:<toolkit>:<connection_id>"` `connection_ref` (see the

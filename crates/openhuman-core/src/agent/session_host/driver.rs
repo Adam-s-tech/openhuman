@@ -309,13 +309,9 @@ impl SessionDriver<OpenHumanRunContext> for OpenHumanSessionDriver {
             .is_some_and(|reason| reason.starts_with("Stopping after "));
         let required_repair = match required_output.as_ref() {
             Some(contract) if classified_halt => {
-                if !crate::agent::harness::required_output::output_satisfies_contract(
-                    &output, contract,
-                ) {
+                if !tinyagents_harness::config::output_satisfies_contract(&output, contract) {
                     output.push_str("\n\n");
-                    output.push_str(&crate::agent::harness::required_output::synthesize_block(
-                        contract,
-                    ));
+                    output.push_str(&tinyagents_harness::config::synthesize_block(contract));
                     if history
                         .last()
                         .is_some_and(|message| matches!(message, Message::Assistant(_)))

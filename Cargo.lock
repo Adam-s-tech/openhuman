@@ -6272,6 +6272,8 @@ version = "2.1.2"
 dependencies = [
  "async-trait",
  "chrono",
+ "regex",
+ "serde",
  "serde_json",
  "thiserror 2.0.20",
  "tinyagents-harness",
@@ -6520,6 +6522,7 @@ version = "0.3.0"
 dependencies = [
  "anyhow",
  "httpdate",
+ "regex",
  "url",
 ]
 

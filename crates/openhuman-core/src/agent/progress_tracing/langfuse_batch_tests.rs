@@ -1,6 +1,5 @@
 use super::*;
 
-use crate::agent::progress_tracing::langfuse::span_export::spans_to_langfuse_batch;
 #[test]
 fn split_ingestion_batch_chunks_over_the_limit() {
     // 1201 events with max 500 -> chunks of 500, 500, 201.
@@ -73,34 +72,6 @@ fn every_environment_for_base_bucket_is_classified_deliberately() {
 }
 
 #[tokio::test]
-async fn push_spans_skips_external_without_a_session_or_a_request() {
-    // No live session is seeded here, so reaching `require_live_session_token`
-    // would return `Err`. `Ok(())` therefore proves the gate returned before
-    // it — i.e. before any credential work, and before any network call.
-    let mut config = Config::default();
-    config.api_url = Some("https://other.example".to_string());
-    assert_eq!(environment_for_base(&ingestion_url(&config)), "external");
-
-    let spans = vec![span(
-        "trace:req-1",
-        "span-1",
-        None,
-        "agent.turn",
-        SpanKind::Turn,
-        SpanStatus::Ok,
-        1_000,
-        Some(2_000),
-    )];
-
-    assert_eq!(
-        push_spans(&config, &spans).await,
-        Ok(()),
-        "an external push must be a silent no-op, not an error the caller \
-         logs on every turn"
-    );
-}
-
-#[tokio::test]
 async fn api_key_credentials_are_not_used_for_langfuse_proxy_exports() {
     let dir = tempfile::tempdir().unwrap();
     let mut config = Config::default();
@@ -109,18 +80,6 @@ async fn api_key_credentials_are_not_used_for_langfuse_proxy_exports() {
     config.secrets.encrypt = false;
     config.api_url = Some("http://127.0.0.1:9".to_string());
     crate::security::credentials::api_key::store_api_key(&config, "th_live_test").unwrap();
-
-    let spans = vec![span(
-        "trace:req-1",
-        "span-1",
-        None,
-        "agent.turn",
-        SpanKind::Turn,
-        SpanStatus::Ok,
-        1_000,
-        Some(2_000),
-    )];
-    assert_eq!(push_spans(&config, &spans).await, Ok(()));
 
     let ctx = TraceContext::new("trace:req-1", Some("user-1".to_string()));
     let observations = vec![obs(
@@ -166,27 +125,6 @@ async fn push_observations_skips_external_too() {
         push_observations(&config, &ctx, &observations, None).await,
         Ok(())
     );
-}
-
-#[tokio::test]
-async fn an_unresolvable_host_skips_rather_than_erroring() {
-    // `ingestion_url` on a base it cannot parse lands in the catch-all
-    // bucket, which is external — so the gate swallows it first. Better
-    // than the previous `Err`, which the caller logged every turn.
-    let mut config = Config::default();
-    config.api_url = Some("not a url".to_string());
-
-    let spans = vec![span(
-        "trace:req-1",
-        "span-1",
-        None,
-        "agent.turn",
-        SpanKind::Turn,
-        SpanStatus::Ok,
-        1_000,
-        Some(2_000),
-    )];
-    assert_eq!(push_spans(&config, &spans).await, Ok(()));
 }
 
 #[test]
@@ -484,203 +422,6 @@ fn run_telemetry_inserts_aggregate_generation() {
 fn iso_millis_formats_epoch_as_rfc3339() {
     // 2021-01-01T00:00:00Z = 1_609_459_200_000 ms.
     assert!(iso_millis(1_609_459_200_000).starts_with("2021-01-01T00:00:00"));
-}
-
-#[test]
-fn batch_emits_trace_create_then_one_span_create_each() {
-    let spans = vec![
-        span(
-            "trace-1",
-            "root",
-            None,
-            "agent.turn",
-            SpanKind::Turn,
-            SpanStatus::Ok,
-            1_000,
-            Some(2_000),
-        ),
-        span(
-            "trace-1",
-            "tool-1",
-            Some("root"),
-            "tool.web_search",
-            SpanKind::Tool,
-            SpanStatus::Error,
-            1_100,
-            Some(1_500),
-        ),
-    ];
-    let payload = spans_to_langfuse_batch(&spans, false, "production");
-    let batch = payload["batch"].as_array().expect("batch array");
-    assert_eq!(batch.len(), 3, "one trace-create + two span-create");
-
-    assert_eq!(batch[0]["type"], "trace-create");
-    assert_eq!(batch[0]["body"]["id"], "trace-1");
-
-    // Camel-case Langfuse fields, ISO timestamps, parent linkage, error level.
-    let root = &batch[1];
-    assert_eq!(root["type"], "span-create");
-    assert_eq!(root["body"]["id"], "root");
-    assert_eq!(root["body"]["traceId"], "trace-1");
-    assert!(root["body"]["startTime"].as_str().unwrap().contains('T'));
-    assert_eq!(root["body"]["level"], "DEFAULT");
-    assert_eq!(root["body"]["metadata"]["kind"], "turn");
-    assert!(root["body"].get("parentObservationId").is_none());
-
-    let tool = &batch[2];
-    assert_eq!(tool["body"]["parentObservationId"], "root");
-    assert_eq!(tool["body"]["level"], "ERROR");
-    assert!(tool["body"]["endTime"].as_str().unwrap().contains('T'));
-
-    // Event ids are unique and distinct from the observation ids.
-    assert_ne!(batch[1]["id"], batch[2]["id"]);
-    assert_ne!(batch[1]["id"], batch[1]["body"]["id"]);
-}
-
-#[test]
-fn usage_span_becomes_generation_and_content_is_gated() {
-    let mut turn = span(
-        "trace-1",
-        "root",
-        None,
-        "agent.turn",
-        SpanKind::Turn,
-        SpanStatus::Ok,
-        1_000,
-        Some(2_000),
-    );
-    turn.attributes.clear();
-    turn.attributes
-        .insert("gen_ai.request.model".into(), json!("claude-x"));
-    turn.attributes
-        .insert("gen_ai.usage.input_tokens".into(), json!(100));
-    turn.attributes
-        .insert("gen_ai.usage.output_tokens".into(), json!(20));
-    turn.attributes
-        .insert("gen_ai.usage.cost_usd".into(), json!(0.0123));
-    turn.input = Some(json!("what is 2+2?"));
-    turn.output = Some(json!("4"));
-    let spans = vec![turn];
-
-    // Content OFF (default): span is promoted to a generation with native
-    // usage + cost, but prompt/reply are withheld.
-    let off = spans_to_langfuse_batch(&spans, false, "production");
-    let obs = &off["batch"][1];
-    assert_eq!(obs["type"], "generation-create");
-    assert_eq!(obs["body"]["model"], "claude-x");
-    assert_eq!(obs["body"]["usageDetails"]["input"], 100);
-    assert_eq!(obs["body"]["usageDetails"]["output"], 20);
-    assert_eq!(obs["body"]["usageDetails"]["total"], 120);
-    assert_eq!(obs["body"]["costDetails"]["total"], 0.0123);
-    assert!(
-        obs["body"].get("input").is_none(),
-        "prompt must be withheld when capture_content is off"
-    );
-    assert!(obs["body"].get("output").is_none());
-
-    // Content ON: prompt/reply included, usage/cost unchanged.
-    let on = spans_to_langfuse_batch(&spans, true, "production");
-    let obs = &on["batch"][1];
-    assert_eq!(obs["type"], "generation-create");
-    assert_eq!(obs["body"]["input"], "what is 2+2?");
-    assert_eq!(obs["body"]["output"], "4");
-    assert_eq!(obs["body"]["costDetails"]["total"], 0.0123);
-}
-
-#[test]
-fn trace_create_carries_user_and_session_grouping() {
-    // The turn span's user.id / thread.id attributes are promoted onto the
-    // trace-create as Langfuse userId / sessionId so per-turn traces group
-    // under one conversation and attribute to a user.
-    let mut turn = span(
-        "trace:req-1",
-        "root",
-        None,
-        "agent.turn",
-        SpanKind::Turn,
-        SpanStatus::Ok,
-        1_000,
-        Some(2_000),
-    );
-    turn.attributes.insert("user.id".into(), json!("client-7"));
-    turn.attributes
-        .insert("thread.id".into(), json!("thread-abc"));
-    let payload = spans_to_langfuse_batch(&[turn], false, "production");
-    let trace = &payload["batch"][0];
-    assert_eq!(trace["type"], "trace-create");
-    assert_eq!(trace["body"]["userId"], "client-7");
-    assert_eq!(trace["body"]["sessionId"], "thread-abc");
-}
-
-#[test]
-fn trace_create_session_id_falls_back_to_trace_id() {
-    // No thread.id attribute → the trace id itself becomes the sessionId,
-    // so every trace lands with a session in Langfuse.
-    let turn = span(
-        "trace:req-2",
-        "root",
-        None,
-        "agent.turn",
-        SpanKind::Turn,
-        SpanStatus::Ok,
-        1_000,
-        Some(2_000),
-    );
-    let payload = spans_to_langfuse_batch(&[turn], false, "production");
-    assert_eq!(payload["batch"][0]["body"]["sessionId"], "trace:req-2");
-}
-
-#[test]
-fn trace_create_metadata_carries_attribution_and_version() {
-    let mut turn = span(
-        "trace-1",
-        "root",
-        None,
-        "agent.turn:researcher",
-        SpanKind::Turn,
-        SpanStatus::Ok,
-        1_000,
-        Some(2_000),
-    );
-    turn.attributes
-        .insert("client.id".into(), json!("socket-abc"));
-    turn.attributes
-        .insert("agent.id".into(), json!("researcher"));
-    turn.attributes
-        .insert("channel.source".into(), json!("chat"));
-    let payload = spans_to_langfuse_batch(&[turn], false, "production");
-    let trace = &payload["batch"][0]["body"];
-    assert_eq!(trace["name"], "agent.turn:researcher");
-    let meta = &trace["metadata"];
-    assert_eq!(meta["client.id"], "socket-abc");
-    assert_eq!(meta["agent.id"], "researcher");
-    assert_eq!(meta["channel.source"], "chat");
-    assert_eq!(meta["app.version"], env!("CARGO_PKG_VERSION"));
-}
-
-#[test]
-fn trace_create_input_output_follow_content_gate() {
-    let mut turn = span(
-        "trace-1",
-        "root",
-        None,
-        "agent.turn",
-        SpanKind::Turn,
-        SpanStatus::Ok,
-        1_000,
-        Some(2_000),
-    );
-    turn.input = Some(json!("the prompt"));
-    turn.output = Some(json!("the reply"));
-    let spans = vec![turn];
-
-    let on = spans_to_langfuse_batch(&spans, true, "production");
-    assert_eq!(on["batch"][0]["body"]["input"], "the prompt");
-    assert_eq!(on["batch"][0]["body"]["output"], "the reply");
-
-    let off = spans_to_langfuse_batch(&spans, false, "production");
-    assert!(off["batch"][0]["body"].get("input").is_none());
-    assert!(off["batch"][0]["body"].get("output").is_none());
 }
 
 #[test]

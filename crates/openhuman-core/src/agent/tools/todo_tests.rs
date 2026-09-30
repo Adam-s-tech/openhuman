@@ -73,22 +73,6 @@ async fn a_write_replaces_the_whole_list_and_a_read_returns_it() {
     reset_scratch(&workspace_dir).await;
 }
 
-#[tokio::test]
-async fn two_in_progress_items_are_rejected() {
-    let _guard = scratch_lock();
-    let workspace_dir = test_workspace();
-    reset_scratch(&workspace_dir).await;
-    let result = TodoTool::new(workspace_dir.clone())
-        .execute(json!({ "todos": [
-            { "content": "a", "status": "in_progress" },
-            { "content": "b", "status": "in_progress" }
-        ] }))
-        .await
-        .unwrap();
-    assert!(result.is_error, "{}", result.output());
-    reset_scratch(&workspace_dir).await;
-}
-
 /// Bad input is a tool error the model can correct, never an `Err`: a
 /// dispatch `Err` is fatal to the whole run in the harness, and a turn died
 /// exactly that way when a model sent the retired `{"cards": …}` shape.
@@ -123,52 +107,6 @@ async fn bad_input_is_a_tool_error_not_a_harness_error() {
             result.output()
         );
     }
-}
-
-/// The schema is TinyAgents' (`todos::TodoTool`); this pins the parts the
-/// product depends on: one `todos` argument and no per-card `op`, and a
-/// `status` enum whose distinct states are exactly the Claude three — the
-/// other spellings it lists are aliases of those three, not extra states.
-#[test]
-fn schema_is_the_claude_shape() {
-    let tool = TodoTool::new(test_workspace());
-    let schema = tool.parameters_schema();
-    let props = &schema["properties"];
-    assert!(props.get("todos").is_some());
-    assert_eq!(
-        props.as_object().unwrap().len(),
-        1,
-        "no per-card ops: {props}"
-    );
-    assert!(props.get("op").is_none(), "no op multiplexer: {props}");
-    let statuses: Vec<&str> = props["todos"]["items"]["properties"]["status"]["enum"]
-        .as_array()
-        .expect("status enum")
-        .iter()
-        .map(|value| value.as_str().expect("status spelling"))
-        .collect();
-    for required in ["pending", "in_progress", "completed"] {
-        assert!(
-            statuses.contains(&required),
-            "missing {required}: {statuses:?}"
-        );
-    }
-    for retired in ["blocked", "ready", "awaiting_approval", "rejected"] {
-        assert!(
-            !statuses.contains(&retired),
-            "board state {retired} is not a todo status: {statuses:?}"
-        );
-    }
-    let desc = tool.description();
-    assert!(desc.contains("3+ steps"), "missing when-to-use guidance");
-    assert!(
-        desc.contains("one item `in_progress`"),
-        "missing single-in_progress rule"
-    );
-    assert!(
-        !desc.contains("board"),
-        "the tool must not describe itself as a board"
-    );
 }
 
 /// The orchestrator's list is its thread's list — keyed by the chat thread

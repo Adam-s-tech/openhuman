@@ -1,4 +1,3 @@
-#![cfg(any())] // TODO(#6382): migrate this legacy TinyAgents fixture to the hosted public API.
 
 //! RPC-level e2e coverage for `openhuman.billing_*`, `openhuman.cost_*` and
 //! `openhuman.dashboard_model_health`.
@@ -19,6 +18,18 @@ mod support;
 
 use serde_json::{json, Value};
 use support::{assert_error, assert_no_error, error_message, logs, mock_log, peel, Harness};
+
+/// Bind the process-global cost tracker to this test's workspace.
+///
+/// `resolve_tracker` prefers the process-global tracker, which the first core
+/// boot in the binary binds to *its* workspace and later boots leave alone. The
+/// aggregated target runs several harnesses in one process, so without this a
+/// test's answer depends on which test happened to boot first.
+fn bind_cost_tracker(workspace: &std::path::Path, cost: Value) {
+    let cost: openhuman_core::config::CostConfig =
+        serde_json::from_value(cost).expect("cost config");
+    openhuman_core::platform::cost::rebind_global(cost, workspace);
+}
 
 /// Every persisted cost record the seeding helper writes, as one JSONL line.
 fn cost_record_line(id: &str, model: &str, cost_usd: f64, input: u64, output: u64) -> String {
@@ -394,6 +405,19 @@ alert_threshold = 0.9
         0,
     ));
     std::fs::write(state_dir.join("costs.jsonl"), &jsonl).expect("seed costs.jsonl");
+    bind_cost_tracker(
+        &harness.workspace(),
+        json!({
+            "enabled": true,
+            "monthly_limit_usd": 10.0,
+            "dashboard": {
+                "enabled": true,
+                "currency": "USD",
+                "warn_threshold": 0.5,
+                "alert_threshold": 0.9
+            }
+        }),
+    );
 
     // --- cost_get_summary ---------------------------------------------------
     let summary = harness
@@ -610,6 +634,7 @@ async fn cost_controllers_answer_on_a_workspace_with_no_history() {
     crate::tinyhumans_boot::boot();
     let _lock = support::env_lock();
     let harness = Harness::start("", true).await;
+    bind_cost_tracker(&harness.workspace(), json!({}));
 
     let summary = harness
         .call(60, "openhuman.cost_get_summary", json!({}))

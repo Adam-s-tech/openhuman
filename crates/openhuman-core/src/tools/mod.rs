@@ -4,7 +4,6 @@ pub mod generated;
 pub mod host_extensions;
 pub mod ops;
 pub mod orchestrator_tools;
-pub mod policy;
 pub mod registry;
 pub mod schema;
 mod schemas;
@@ -63,7 +62,6 @@ pub use crate::voice::audio_toolkit::tools::*;
 #[cfg(feature = "web3")]
 pub use crate::web3::wallet::tools::*;
 pub use implementations::*;
-pub use policy::{DefaultToolPolicy, PolicyDecision, ToolPolicy};
 #[allow(unused_imports)]
 pub use schema::{CleaningStrategy, SchemaCleanr};
 pub use schemas::{

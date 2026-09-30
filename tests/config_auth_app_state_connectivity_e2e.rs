@@ -65,8 +65,7 @@ use tinybus::EventHandler;
 const TEST_RPC_TOKEN: &str = "worker-a-domain-e2e-token";
 
 static AUTH_INIT: OnceLock<()> = OnceLock::new();
-// This file is both its own integration target AND `#[path]`-included as
-// `base_coverage` by `raw_coverage/config_credentials_raw_coverage_e2e.rs`.
+// This file is its own integration target, and other binaries may `#[path]`-include it.
 // `ENV_LOCK` aliases `crate::SHARED_ENV_LOCK`, which resolves to this file's
 // own static when built standalone (separate process, isolated env) and to the
 // aggregate's shared static when nested into `raw_coverage_all` (so its env
@@ -110,8 +109,7 @@ impl Drop for EnvVarGuard {
     }
 }
 
-// `pub` so binaries that `#[path]`-include this file as a module (e.g.
-// `config_credentials_raw_coverage_e2e.rs` as `base_coverage`) can route their
+// `pub` so binaries that `#[path]`-include this file as a module can route their
 // own env-mutating tests through the SAME lock, serializing all
 // OPENHUMAN_WORKSPACE/BACKEND_URL mutations in the combined binary.
 pub fn env_lock() -> std::sync::MutexGuard<'static, ()> {

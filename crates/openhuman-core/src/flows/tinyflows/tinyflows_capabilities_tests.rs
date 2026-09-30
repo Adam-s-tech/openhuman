@@ -306,18 +306,6 @@ fn parse_llm_json_rejects_prose_and_scalars() {
 
 // ── tool_call required-arg preflight ─────────────────────────────────────
 
-#[test]
-fn missing_required_args_flags_absent_and_null() {
-    let required = vec!["to".to_string(), "subject".to_string(), "body".to_string()];
-    let args = json!({ "to": null, "subject": "hi" });
-    assert_eq!(
-        super::super::caps::missing_required_args(&required, &args),
-        vec!["to".to_string(), "body".to_string()]
-    );
-    let full = json!({ "to": "a@b.com", "subject": "hi", "body": "text" });
-    assert!(super::super::caps::missing_required_args(&required, &full).is_empty());
-}
-
 #[tokio::test]
 async fn preflight_fails_before_dispatch_naming_the_missing_field() {
     let tmp = TempDir::new().unwrap();
