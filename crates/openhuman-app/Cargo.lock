@@ -4245,9 +4245,7 @@ dependencies = [
  "bytes",
  "chacha20poly1305",
  "chrono",
- "chrono-tz",
  "cpal",
- "cron",
  "curve25519-dalek",
  "directories 6.0.0",
  "dirs 6.0.0",
@@ -4298,12 +4296,14 @@ dependencies = [
  "tinybus",
  "tinychannels",
  "tinychannels-bus",
+ "tinycomputer-accessibility",
  "tinycomputer-bus",
  "tinyconnectors-bus",
  "tinydocs-bus",
  "tinyflows",
  "tinyflows-catalog",
  "tinyflows-copilot",
+ "tinyflows-schedule",
  "tinyflows-sqlite",
  "tinyhosts",
  "tinyinference-core",
@@ -7325,6 +7325,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "tinycomputer-accessibility"
+version = "0.7.0"
+dependencies = [
+ "cpal",
+ "log",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "tinycomputer-bus"
 version = "0.7.0"
 dependencies = [
@@ -7386,6 +7396,18 @@ version = "0.1.0"
 dependencies = [
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "tinyflows-schedule"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "chrono-tz",
+ "cron",
+ "serde",
+ "tracing",
 ]
 
 [[package]]

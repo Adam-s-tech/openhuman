@@ -3906,6 +3906,7 @@ dependencies = [
  "tinybus",
  "tinychannels",
  "tinychannels-bus",
+ "tinycomputer-accessibility",
  "tinycomputer-bus",
  "tinyconnectors-bus",
  "tinydocs-bus",
@@ -6407,6 +6408,16 @@ dependencies = [
  "tokio",
  "tokio-util",
  "tracing",
+]
+
+[[package]]
+name = "tinycomputer-accessibility"
+version = "0.7.0"
+dependencies = [
+ "cpal",
+ "log",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
