@@ -147,9 +147,7 @@ pub(super) fn install_context_ladder(
             crate::agent::context::CLEARED_PLACEHOLDER,
         );
         let microcompact = match context_window.filter(|w| *w > 0) {
-            Some(window) => {
-                microcompact.with_token_budget(legacy_max_input_tokens(window).max(1))
-            }
+            Some(window) => microcompact.with_token_budget(legacy_max_input_tokens(window).max(1)),
             None => microcompact,
         };
         // Emit `AgentEvent::Compressed` when a body is cleared. Off by default —

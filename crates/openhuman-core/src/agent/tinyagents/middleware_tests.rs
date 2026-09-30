@@ -1,6 +1,4 @@
 use super::approval::approval_tool_name;
-use super::artifact_index_toc::NO_WINDOW_ALLOWANCE;
-use super::message_trim::{estimate_message_tokens, estimate_text_tokens, IMAGE_MARKER_TOKEN_COST};
 use super::repeated_failure::{is_body_level_failure, user_actionable_escalation};
 use super::tool_output::{
     is_compaction_exempt, is_truncation_exempt, COMPACTION_EXEMPT_TOOLS, SAMPLING_TOOLS,
@@ -335,49 +333,6 @@ fn body_failure_result(name: &str, extra: serde_json::Value) -> TaToolResult {
     tool_result(name, &serde_json::to_string_pretty(&body).unwrap())
 }
 
-// ── RepeatProgressMiddleware / crate SuccessfulRepeatTracker ───────────
-
-fn repeated_success_response(tool: &str, args: serde_json::Value) -> ModelResponse {
-    ModelResponse {
-        message: tinyinference_llm::message::AssistantMessage {
-            id: None,
-            content: vec![ContentBlock::Text("working".to_string())],
-            tool_calls: vec![TaToolCall::new("repeat-1", tool, args)],
-            usage: None,
-            origin: None,
-        },
-        usage: None,
-        finish_reason: Some("tool_calls".to_string()),
-        raw: None,
-        resolved_model: None,
-        continue_turn: None,
-        served_from_cache: false,
-        correlation: None,
-        resolved_route: None,
-    }
-}
-
-async fn run_successful_repeat_cycle(
-    mw: &RepeatProgressMiddleware,
-    tool: &str,
-    args: serde_json::Value,
-    output: &str,
-    error: Option<&str>,
-) {
-    let mut response = repeated_success_response(tool, args);
-    mw.after_model(&mut ctx(), &(), &mut response)
-        .await
-        .unwrap();
-    let mut result = match error {
-        Some(error) => TaToolResult::error(error),
-        None => tool_result(tool, output),
-    };
-    let invocation = ToolInvocationIdentity::new("repeat-1", tool);
-    mw.after_tool(&mut ctx(), &(), &invocation, &mut result)
-        .await
-        .unwrap();
-}
-
 // ── MemoryProtocolMiddleware (issue #4116) ──────────────────────────────
 
 use crate::agent::harness::memory_protocol::MEMORY_PROTOCOL_MARKER;
@@ -478,8 +433,6 @@ mod classified_failure_tests;
 mod loop_guard_tests;
 #[path = "middleware_prompt_cache_tests.rs"]
 mod prompt_cache_tests;
-#[path = "middleware_repeat_progress_tests.rs"]
-mod repeat_progress_tests;
 
 #[path = "middleware_research_budget_tests.rs"]
 mod research_budget_tests;
@@ -490,7 +443,5 @@ mod tool_output_artifact_tests;
 mod tool_output_tests;
 #[path = "middleware_tool_policy_tests.rs"]
 mod tool_policy_tests;
-#[path = "middleware_wrap_up_final_write_tests.rs"]
-mod wrap_up_final_write_tests;
-#[path = "middleware_wrap_up_toc_tests.rs"]
-mod wrap_up_toc_tests;
+#[path = "middleware_memory_and_hooks_tests.rs"]
+mod memory_and_hooks_tests;

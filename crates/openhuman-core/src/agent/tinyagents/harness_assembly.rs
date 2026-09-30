@@ -6,8 +6,9 @@ use std::sync::Arc;
 
 use tinyagents_harness::cache::InMemoryResponseCache;
 use tinyagents_harness::middleware::{
-    plan_mode_middleware, BudgetLimits, BudgetMiddleware, ContextCompressionMiddleware,
-    PromptCacheGuardMiddleware, RunModeHandle, ToolPolicyMiddleware as TaToolPolicyMiddleware,
+    plan_mode_middleware, ArgRecoveryMiddleware, BudgetLimits, BudgetMiddleware,
+    ContextCompressionMiddleware, PromptCacheGuardMiddleware, RepeatProgressMiddleware,
+    RunModeHandle, ToolPolicyMiddleware as TaToolPolicyMiddleware,
 };
 use tinyagents_harness::runtime::AgentHarness;
 use tinyagents_harness::steering::SteeringHandle;
@@ -655,9 +656,7 @@ pub(super) fn assemble_turn_harness(
     // required-field schema is left untouched so the crate's
     // `InvalidArgsPolicy::ReturnToolError` admission path reports the original
     // validation error. It never reaches approval/policy wrappers or the tool.
-    harness.push_middleware(Arc::new(ArgRecoveryMiddleware::new(
-        tool_sets.clone(),
-    )));
+    harness.push_middleware(Arc::new(ArgRecoveryMiddleware::new(tool_sets.clone())));
 
     // Bare packed-tool routing (`before_tool`, #6276): a call that names a
     // withheld packed tool directly becomes the `use_skill` call that reaches
