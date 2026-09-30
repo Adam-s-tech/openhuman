@@ -761,6 +761,12 @@ impl OpenHumanSessionHost {
             &mut visible,
             config.context.compaction_enabled || super::summarizes_tool_output(agent_id, config),
         );
+        // The handle preview names the REPL tools; a curated belt needs them
+        // too, for exactly as long as they are registered.
+        super::ensure_repl_tools_visible(
+            &mut visible,
+            crate::inference::tokenjuice::repl_handle_active(config),
+        );
 
         if let Some(def) = target_def {
             if !def.disallowed_tools.is_empty() {
