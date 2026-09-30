@@ -379,7 +379,7 @@ pub(crate) fn spawn_progress_bridge(
             || config.observability.agent_tracing.enabled
         {
             use crate::agent::progress_tracing::SpanCollector;
-            use tinyagents_harness::observability::trace_export::{self as te, RunType, TraceContext};
+            use tinyagents_harness::observability::trace_export as te;
             // One trace per turn: the trace id is unique per request, while the
             // thread id rides along as the Langfuse `sessionId` so a
             // conversation's per-turn traces still group under one session.
@@ -398,7 +398,7 @@ pub(crate) fn spawn_progress_bridge(
             // Run origin for trace metadata: the request's source tag
             // ("ptt"/"dictation"/"type"/"autonomous"/…), else a
             // plain interactive chat turn.
-            let run_type = RunType::from_source(metadata.source.as_deref());
+            let run_type = te::RunType::from_source(metadata.source.as_deref());
             let channel_source = metadata
                 .source
                 .clone()
@@ -419,7 +419,7 @@ pub(crate) fn spawn_progress_bridge(
                 capture_content,
                 request_id,
             );
-            let mut trace_ctx = TraceContext::new(trace_id, user_id)
+            let mut trace_ctx = te::TraceContext::new(trace_id, user_id)
                 .with_session_group(thread_id.clone())
                 .with_client_id(client_id.clone())
                 .with_channel_source(channel_source)
