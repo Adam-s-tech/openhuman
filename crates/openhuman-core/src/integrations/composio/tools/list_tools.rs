@@ -11,17 +11,20 @@ use super::redact::redact_composio_outcome;
 use crate::config::Config;
 use tinytools::{PermissionLevel, Tool, ToolCallOptions, ToolCategory, ToolResult};
 
-use super::super::client::{create_composio_client, ComposioClientKind};
-use super::super::types::ComposioToolsResponse;
+use super::super::client::{resolve_composio_route, ComposioRoute};
+use super::super::module_client::{self as connectors, methods};
+use super::super::types::{
+    ComposioConnectionsResponse, ComposioListToolsRequest, ComposioToolsResponse,
+};
 use super::visibility::{
     empty_uncurated_toolkits_message, filter_list_tools_response, normalized_scope_toolkits,
     render_tools_markdown, retain_connected_tools,
 };
 
 pub struct ComposioListToolsTool {
-    /// Held instead of a pre-baked `ComposioClient` so the
+    /// Held instead of a pre-resolved route so the
     /// [`crate::config::ComposioConfig::mode`] toggle is
-    /// honoured on every call. Resolving the client per call mirrors
+    /// honoured on every call. Resolving the route per call mirrors
     /// [`crate::integrations::composio::ops::composio_execute`] and avoids
     /// the staged-routing bug (#1710) where a long-lived backend client
     /// would survive a user switch into `direct` mode.
@@ -166,12 +169,11 @@ impl ComposioListToolsTool {
                 );
             }
         };
-        let client = match create_composio_client(&live_config) {
-            Ok(ComposioClientKind::Backend(client)) => {
+        match resolve_composio_route(&live_config) {
+            Ok(ComposioRoute::Backend) => {
                 tracing::debug!("[composio] list_tools.execute: backend variant");
-                client
             }
-            Ok(ComposioClientKind::Direct(_)) => {
+            Ok(ComposioRoute::Direct(_)) => {
                 tracing::info!(
                     "[composio-direct] list_tools.execute: direct mode active — \
                      returning empty tools list. Discovery is delegated to the user's \
@@ -197,9 +199,21 @@ impl ComposioListToolsTool {
             }
         };
 
-        let outcome = match client
-            .list_tools(toolkits.as_deref(), tags.as_deref())
-            .await
+        // The module owns the proxy route's query construction; the scope
+        // preference is applied host-side below (`filter_list_tools_response`)
+        // because it is stored where only the host can read it, so the
+        // module is asked not to apply its own defaults on top.
+        let request = ComposioListToolsRequest {
+            toolkits: toolkits.clone().unwrap_or_default(),
+            tags: tags.clone().unwrap_or_default(),
+            apply_user_scopes: false,
+        };
+        let outcome = match connectors::call::<_, ComposioToolsResponse>(
+            &live_config,
+            methods::LIST_TOOLS,
+            request,
+        )
+        .await
         {
             Ok(mut resp) => {
                 filter_list_tools_response(&live_config, &mut resp).await;
@@ -210,7 +224,12 @@ impl ComposioListToolsTool {
                     // account. Mirrors the same status allowlist used by
                     // composio_list_connections so this view and the
                     // prompt's Delegation Guide stay in sync.
-                    match client.list_connections().await {
+                    match connectors::call_bare::<ComposioConnectionsResponse>(
+                        &live_config,
+                        methods::LIST_CONNECTIONS,
+                    )
+                    .await
+                    {
                         Ok(conns) => {
                             let connected: HashSet<String> = conns
                                 .connections
