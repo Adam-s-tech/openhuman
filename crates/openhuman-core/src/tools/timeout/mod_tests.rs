@@ -149,7 +149,10 @@ fn resolve_tool_deadline_table() {
     for (policy, inherited_secs, expected) in cases {
         // Resolve against the pure helper so the process-global stays untouched.
         let got = resolve_tool_deadline_with(policy, inherited_secs);
-        assert_eq!(got, expected, "policy {policy:?} inherited {inherited_secs}s");
+        assert_eq!(
+            got, expected,
+            "policy {policy:?} inherited {inherited_secs}s"
+        );
     }
 }
 
@@ -174,6 +177,10 @@ fn resolve_effective_table() {
         (3600, None, 3600),
     ];
     for &(config, env, expected) in cases {
-        assert_eq!(resolve_effective(config, env), expected, "config {config} env {env:?}");
+        assert_eq!(
+            resolve_effective(config, env),
+            expected,
+            "config {config} env {env:?}"
+        );
     }
 }

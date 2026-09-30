@@ -54,7 +54,12 @@ fn build_settings(inherited_secs: u64) -> ToolTimeoutSettings {
 static SETTINGS: OnceLock<ToolTimeoutSettings> = OnceLock::new();
 
 fn settings() -> &'static ToolTimeoutSettings {
-    SETTINGS.get_or_init(|| build_settings(resolve_effective(DEFAULT_TIMEOUT_SECS, read_env().as_deref())))
+    SETTINGS.get_or_init(|| {
+        build_settings(resolve_effective(
+            DEFAULT_TIMEOUT_SECS,
+            read_env().as_deref(),
+        ))
+    })
 }
 
 /// Parse a raw env-var value into a bounded timeout.
@@ -104,9 +109,7 @@ pub fn env_override_active() -> bool {
 /// Effective inherited timeout in whole seconds, seeding the global settings
 /// from env/default on first read.
 fn current_secs() -> u64 {
-    settings()
-        .inherited_timeout()
-        .map_or(0, |d| d.as_secs())
+    settings().inherited_timeout().map_or(0, |d| d.as_secs())
 }
 
 /// Push a config-sourced timeout into the runtime. The operator env override,
