@@ -123,6 +123,8 @@ struct OpenHumanTurnToolSurface {
     deferred_tool_names: std::collections::HashSet<String>,
     /// Whether this belt reaches deferred tools at all; fixed at build.
     discovery_enabled: bool,
+    /// The definition's own `deferred_tools`; see `meta::deferred_set`.
+    requested_deferred_tools: Arc<[String]>,
     /// Whether newly connected delegates may enter the visible belt without a
     /// caller explicitly allowing them. A hide/named restriction turns this
     /// off so refresh cannot reopen withdrawn authority.
@@ -191,6 +193,16 @@ impl OpenHumanTurnPrelude {
             surface.event_session_id.clone(),
             surface.event_channel.clone(),
         )
+    }
+
+    /// The session's deferred set for this turn; see
+    /// `OpenHumanRunContext::deferred_tool_names`.
+    fn current_deferred_tool_names(&self) -> std::collections::HashSet<String> {
+        self.tool_surface
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .deferred_tool_names
+            .clone()
     }
 
     fn replace_tool_surface(&self, surface: OpenHumanTurnToolSurface) {
@@ -485,11 +497,11 @@ impl OpenHumanTurnPrelude {
         // a `Deferred` synthesised tool leaves the wire and joins the
         // searchable set, on a belt that opted into discovery.
         if surface.discovery_enabled {
-            let mut deferred =
-                crate::tools::implementations::meta::deferred_tool_names(surface.tools.as_slice());
-            deferred.extend(crate::tools::implementations::meta::deferred_tool_names(
+            let deferred = crate::tools::implementations::meta::deferred_set(
+                surface.tools.as_slice(),
                 synthesized.as_slice(),
-            ));
+                &surface.requested_deferred_tools,
+            );
             surface
                 .visible_tool_names
                 .retain(|name| !deferred.contains(name));
@@ -1525,6 +1537,7 @@ impl OpenHumanSessionHost {
                     visible_tool_names: self.visible_tool_names.clone(),
                     deferred_tool_names: self.deferred_tool_names.clone(),
                     discovery_enabled: self.discovery_enabled,
+                    requested_deferred_tools: self.requested_deferred_tools.clone(),
                     auto_include_new_synthesized_tools: true,
                     synthesized_tool_names: self.synthesized_tool_names.clone(),
                     tool_policy_session: self.tool_policy_session.clone(),
@@ -1671,6 +1684,10 @@ impl OpenHumanSessionHost {
                         middleware.transcript_snapshot = Some(transcript_snapshot);
                         options.run_context.data.context_middleware = Some(middleware);
                         options.run_context.data.current_tools = Some(current_tools);
+                        if !overrides.suppress_tools {
+                            options.run_context.data.deferred_tool_names =
+                                Arc::new(prelude.current_deferred_tool_names());
+                        }
                         options.run_context.data.current_synthesized_tools =
                             Some(current_synthesized_tools);
                         options.run_context.data.tool_policy =
@@ -1895,6 +1912,7 @@ impl OpenHumanSessionHost {
             visible_tool_names: self.visible_tool_names.clone(),
             deferred_tool_names: self.deferred_tool_names.clone(),
             discovery_enabled: self.discovery_enabled,
+            requested_deferred_tools: self.requested_deferred_tools.clone(),
             auto_include_new_synthesized_tools: auto_include_new_synthesized_tools
                 .unwrap_or(prior_auto_include),
             synthesized_tool_names: self.synthesized_tool_names.clone(),

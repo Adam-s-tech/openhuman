@@ -20,6 +20,7 @@ fn def(id: &str, when_to_use: &str, delegate_name: Option<&str>) -> AgentDefinit
         disallowed_tools: vec![],
         skill_filter: None,
         extra_tools: vec![],
+        deferred_tools: Vec::new(),
         max_iterations: 8,
         iteration_policy: Default::default(),
         max_result_chars: None,

@@ -1248,6 +1248,7 @@ fn definition(
         disallowed_tools: vec!["round17_hidden".to_string()],
         skill_filter: None,
         extra_tools: Vec::new(),
+        deferred_tools: Vec::new(),
         max_iterations,
         iteration_policy: Default::default(),
         max_result_chars,
