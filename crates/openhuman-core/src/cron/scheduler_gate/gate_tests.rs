@@ -5,7 +5,7 @@
 //! `available_permits` reads.
 use super::*;
 use std::sync::Mutex;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 use tokio::time::{timeout, Duration as TokioDuration};
 
 static GATE_TEST_LOCK: Mutex<()> = Mutex::new(());
