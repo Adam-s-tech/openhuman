@@ -31,11 +31,6 @@ crates/openhuman-core/src/runtime/client/disabled.rs
 # in this coverage lane, so each fragment's `#[cfg(target_os = "macos")]`
 # definition is intentionally absent. They are exercised by the macOS desktop
 # E2E matrix instead.
-crates/openhuman-core/src/desktop/accessibility/helper/swift_source.rs
-crates/openhuman-core/src/desktop/accessibility/helper/swift_focus.rs
-crates/openhuman-core/src/desktop/accessibility/helper/swift_paste.rs
-crates/openhuman-core/src/desktop/accessibility/helper/swift_ax_actions.rs
-crates/openhuman-core/src/desktop/accessibility/helper/swift_overlay.rs
 # `search/mod.rs` has module declarations and feature-gated re-exports only;
 # executable search behavior is in sibling modules.
 crates/openhuman-core/src/search/mod.rs

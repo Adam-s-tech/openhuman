@@ -66,7 +66,7 @@ fn capture_on_thread(
     tx: tokio::sync::mpsc::Sender<RawChunk>,
     setup_tx: &std::sync::mpsc::SyncSender<Result<CaptureFormat, String>>,
 ) -> Result<(), String> {
-    use crate::desktop::accessibility::{detect_microphone_permission, PermissionState};
+    use tinycomputer_accessibility::{detect_microphone_permission, PermissionState};
     use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
     use cpal::{SampleFormat, StreamConfig};
 

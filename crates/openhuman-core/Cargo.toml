@@ -351,6 +351,13 @@ tinychannels = { version = "0.1", features = ["relay-websocket"], optional = tru
 tinybus = { path = "../../vendor/tinybus/crates/tinybus", default-features = false, features = ["macros", "uds"] }
 tinysearch-bus = { path = "../../vendor/tinysearch/crates/tinysearch-bus" }
 tinycomputer-bus = { path = "../../vendor/tinycomputer/crates/tinycomputer-bus", optional = true }
+# Desktop accessibility middleware, linked as a plain library (not through the
+# tinycomputer module): the voice pipeline needs focus lookup, paste validation,
+# permission checks and the Globe key synchronously and in-process. Deps are
+# serde, serde_json and log; `cpal` only via the `inference` gate. The
+# submodule pin sits on `oh-accessibility-on-v0.7.0` (v0.7.0 + this crate) — see
+# scripts/ci/module-pin-exemptions.json.
+tinycomputer-accessibility = { path = "../../vendor/tinycomputer/crates/tinycomputer-accessibility" }
 # Portable skill metadata, parsing, discovery, and filesystem hardening.
 tinyskills = { path = "../../vendor/tinyskills/crates/tinyskills" }
 serde = { version = "1", features = ["derive"] }
@@ -829,10 +836,10 @@ http-server = ["dep:axum", "tinymcp/server-http"]
 # only (`voice_server.stt_engine`, `voice::factory`) — so `cpal` is all that is
 # left behind the gate. The gate name stays `inference` because it is forwarded
 # by name from `crates/openhuman-app/Cargo.toml`, asserted by `INFERENCE_COMPILED_IN`,
-# and referenced from `desktop::accessibility::permissions`; renaming it buys
+# and referenced from `tinycomputer-accessibility`'s `microphone-probe` feature (forwarded below); renaming it buys
 # nothing and would silently drop the microphone probe from the shipped app if
 # the forwarding list were not updated in lockstep.
-inference = ["dep:cpal"]
+inference = ["dep:cpal", "tinycomputer-accessibility/microphone-probe"]
 # Office-document tools: the `generate_document` and `generate_presentation`
 # agent tools, plus PDF text extraction during multimodal file ingest.
 # Default-ON.

@@ -110,8 +110,8 @@ Canonical mapping of every product feature to its test source(s). Drives gap-fil
 
 | ID    | Feature                           | Layer | Test path(s)                           | Status | Notes                          |
 | ----- | --------------------------------- | ----- | -------------------------------------- | ------ | ------------------------------ |
-| 2.2.1 | Permission Grant Flow             | RU    | `crates/openhuman-core/src/desktop/accessibility/` | 🟡     | Core branch covered; UX manual |
-| 2.2.2 | Permission Denial Handling        | RU    | `crates/openhuman-core/src/desktop/accessibility/` | 🟡     | Same                           |
+| 2.2.1 | Permission Grant Flow             | RU    | `vendor/tinycomputer/crates/tinycomputer-accessibility/` | 🟡     | Core branch covered; UX manual |
+| 2.2.2 | Permission Denial Handling        | RU    | `vendor/tinycomputer/crates/tinycomputer-accessibility/` | 🟡     | Same                           |
 | 2.2.3 | Permission Re-Sync / Refresh      | WD    | _missing_ — tracked #968               | ❌     | App-restart re-sync            |
 | 2.2.4 | Partial Permission State Handling | WD    | _missing_ — tracked #968               | ❌     | macOS-only spec                |
 
