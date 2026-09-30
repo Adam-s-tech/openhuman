@@ -107,6 +107,53 @@ async fn an_uninstalled_id_is_not_reported_as_not_connected() {
     assert!(error.contains("mcp_registry_status"), "{error}");
 }
 
+/// The #6313 case itself: the server is connected, and the caller passes its
+/// registry name. The listing is answered for the install that name resolves
+/// to, under that install's `server_id`.
+///
+/// The server is OpenHuman's own MCP endpoint on an ephemeral loopback port,
+/// so nothing leaves the machine.
+#[cfg(feature = "http-server")]
+#[tokio::test]
+async fn a_qualified_name_lists_the_tools_of_its_connected_install() {
+    let (bound_tx, bound_rx) = tokio::sync::oneshot::channel();
+    let serve = crate::mcp::server::HttpServerConfig {
+        bind_addr: "127.0.0.1:0".parse().unwrap(),
+        auth_token: None,
+    };
+    let server = tokio::spawn(crate::mcp::server::run_http_reporting(
+        serve,
+        Some(bound_tx),
+    ));
+    let endpoint = format!("http://{}/", bound_rx.await.unwrap());
+
+    let workspace = tempfile::tempdir().unwrap();
+    let config = temp_config(&workspace);
+    let registry = resolve(&config).unwrap();
+    let doc = json!({ "mcpServers": { QUALIFIED: { "url": endpoint } } });
+    registry.dynamic().apply_config_doc(&doc).await.unwrap();
+    let server_id = registry.dynamic().status().await.unwrap()[0]
+        .server_id
+        .clone();
+    assert_ne!(server_id, QUALIFIED, "fixture: id and registry name differ");
+    mcp_clients_connect(&config, server_id.clone())
+        .await
+        .unwrap();
+
+    let listed = mcp_clients_list_tools(&config, QUALIFIED.to_string(), Caller::Agent)
+        .await
+        .expect("a connected server's registry name lists its tools");
+    assert_eq!(listed.value["server_id"], json!(server_id));
+    assert!(
+        !listed.value["tools"].as_array().unwrap().is_empty(),
+        "{}",
+        listed.value
+    );
+
+    registry.dynamic().disconnect(&server_id).await.unwrap();
+    server.abort();
+}
+
 #[test]
 fn a_registry_name_installed_twice_is_refused_with_both_ids() {
     let install = |server_id: &str| tinymcp::ConnStatus {
