@@ -7,7 +7,7 @@ use super::*;
 // these, so importing them there would be an unused import in a non-test build.
 use crate::memory::conversations as conversations_store;
 use crate::threads::turn_state::{ClearTurnStateRequest, GetTurnStateRequest};
-use tinyagents_session::turn_state::{self, TurnState};
+use tinyagents_session::turn_state::TurnState;
 use crate::threads::ThreadsError;
 use serde_json::{json, Value};
 use std::ffi::OsString;
