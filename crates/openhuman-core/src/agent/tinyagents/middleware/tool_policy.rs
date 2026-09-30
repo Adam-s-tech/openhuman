@@ -295,22 +295,6 @@ impl ToolPolicyMiddleware {
     }
 }
 
-impl ToolPolicyMiddleware {
-    fn generated_context(
-        &self,
-        name: &str,
-        args: &serde_json::Value,
-    ) -> Option<crate::agent::tool_policy::GeneratedToolRuntimeContext> {
-        self.tool_sets
-            .iter()
-            .flat_map(|set| set.iter())
-            .find(|t| t.name() == name)
-            .and_then(|t| {
-                crate::tools::host_extensions::generated_runtime_context(t.as_ref(), args)
-            })
-    }
-}
-
 #[async_trait]
 impl ToolMiddleware<(), crate::agent::tinyagents::host::OpenHumanRunContext>
     for ToolPolicyMiddleware
@@ -353,11 +337,7 @@ impl ToolMiddleware<(), crate::agent::tinyagents::host::OpenHumanRunContext>
             call.id.clone(),
             1,
         );
-        let mut request =
-            ToolPolicyRequest::new(call.name.clone(), call.arguments.clone(), context);
-        if let Some(generated) = self.generated_context(&call.name, &call.arguments) {
-            request = request.with_generated_tool_context(generated);
-        }
+        let request = ToolPolicyRequest::new(call.name.clone(), call.arguments.clone(), context);
 
         let decision = self.policy.check(&request).await;
         if let Some(reason) = decision.blocking_reason().filter(|_| {
