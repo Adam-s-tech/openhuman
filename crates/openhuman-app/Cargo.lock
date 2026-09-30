@@ -7473,6 +7473,7 @@ dependencies = [
 name = "tinyhosts"
 version = "0.1.10"
 dependencies = [
+ "anyhow",
  "async-trait",
  "base64 0.23.1",
  "hex",
@@ -7482,6 +7483,8 @@ dependencies = [
  "serde_json",
  "sha1 0.11.0",
  "thiserror 2.0.20",
+ "tinytools 0.5.0",
+ "tracing",
 ]
 
 [[package]]
@@ -7698,6 +7701,8 @@ dependencies = [
  "tokio",
  "tokio-stream",
  "tracing",
+ "url",
+ "urlencoding",
  "uuid",
 ]
 
