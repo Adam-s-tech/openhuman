@@ -44,8 +44,8 @@ tested but no production assembly site constructs it today.
   fail the artifact) so further artifact-producing tools follow the same shape.
 - `meta/` sits outside `system/` because it is the model introspecting its own
   tool surface, not a host capability.
-- `system/mod.rs` and `filesystem/mod.rs` each carry a
-  `security_for_tool_context` that grants the run's TinyAgents workspace
+- `system/mod.rs` (`security_for_tool_context`) and `filesystem/gate.rs`
+  (`security_scoped_to_root`, behind `FsGate::scoped_to_workspace`) each grant the run's TinyAgents workspace
   descriptor as `action_dir` plus a `ReadWrite` trusted root on a per-call
   clone of `SecurityPolicy`. They must stay in step; `is_always_forbidden` and
   `is_workspace_internal_path` are evaluated before any trusted-root shortcut.
