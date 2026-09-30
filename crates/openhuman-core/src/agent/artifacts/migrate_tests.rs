@@ -284,3 +284,20 @@ async fn a_crash_after_the_meta_write_is_finished_by_the_next_run() {
         "sidecars are never cleaned"
     );
 }
+
+/// A partial left by an interrupted run whose record has since gone (deleted
+/// between runs) is not overwritten by any later copy; the sweep removes it.
+#[tokio::test]
+async fn an_orphaned_partial_from_an_earlier_run_is_removed() {
+    let tmp = TempDir::new().unwrap();
+    let ws = tmp.path().join("ws");
+    let files_dir = tmp.path().join("Files");
+    std::fs::create_dir_all(&files_dir).unwrap();
+    std::fs::write(files_dir.join(".deleted-record.partial"), b"half a deck").unwrap();
+    legacy(&ws, "a1", "notes.docx", b"notes", ArtifactStatus::Ready).await;
+
+    migrate_legacy_artifacts(&ws, &files_dir).await;
+
+    assert_eq!(partials(&files_dir), 0);
+    assert_eq!(visible(&files_dir), vec!["notes.docx"]);
+}
