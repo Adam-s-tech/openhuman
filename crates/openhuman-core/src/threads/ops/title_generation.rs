@@ -9,13 +9,12 @@ use crate::memory::conversations;
 use crate::memory::{
     ApiEnvelope, ConversationThreadSummary, GenerateConversationThreadTitleRequest,
 };
+use crate::threads::ThreadsError;
+use crate::threads::THREAD_TITLE_LOG_PREFIX;
 use tinyagents_harness::title::{
     build_title_request, is_auto_generated_thread_title, sanitize_generated_title,
     title_log_fingerprint,
 };
-
-const THREAD_TITLE_LOG_PREFIX: &str = "[threads:title]";
-use crate::threads::ThreadsError;
 
 /// Generates a durable thread title from the first user message and assistant reply.
 pub async fn thread_generate_title(

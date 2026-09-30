@@ -17,3 +17,6 @@ pub use schemas::{
     all_registered_controllers as all_threads_registered_controllers,
 };
 pub use welcome_migration::{migrate_welcome_agent_artifacts, WelcomeMigrationResult};
+
+/// Log prefix for thread-title generation (grep-friendly).
+pub(crate) const THREAD_TITLE_LOG_PREFIX: &str = "[threads:title]";

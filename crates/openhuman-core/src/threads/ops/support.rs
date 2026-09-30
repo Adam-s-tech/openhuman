@@ -10,12 +10,11 @@ use crate::memory::conversations::{ConversationMessage, ConversationThread};
 use crate::memory::{
     ApiEnvelope, ApiMeta, ConversationMessageRecord, ConversationThreadSummary, PaginationMeta,
 };
+use crate::threads::THREAD_TITLE_LOG_PREFIX;
 use serde::Serialize;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
-use tinyagents_harness::title::{
-    title_from_user_message, title_log_fingerprint, THREAD_TITLE_LOG_PREFIX,
-};
+use tinyagents_harness::title::{title_from_user_message, title_log_fingerprint};
 
 pub(super) fn request_id() -> String {
     uuid::Uuid::new_v4().to_string()
