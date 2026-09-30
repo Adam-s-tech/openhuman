@@ -49,7 +49,6 @@ pub(super) fn is_loopback_http_base(url: &str) -> bool {
 /// pre-store API-key probe.
 pub struct DirectComposioClient {
     pub(super) api_key: String,
-    pub(super) default_entity_id: String,
     /// Base URL for Composio v3 endpoints (`{base}/tools`). Production
     /// always uses [`COMPOSIO_API_BASE_V3`] via [`DirectComposioClient::new`];
     /// the `#[cfg(test)]` `new_with_v3_base` constructor lets unit tests point
