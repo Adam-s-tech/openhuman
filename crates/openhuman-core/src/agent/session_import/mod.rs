@@ -9,19 +9,13 @@
 //! `openhuman.session_import_run` (`openhuman-core session_import run`). It
 //! is an explicit command, never a boot hook.
 
-mod convert;
 pub mod live;
-pub mod ops;
-mod scan;
+pub mod projector;
 mod schemas;
-pub mod types;
 
 pub use schemas::{
     all_session_import_controller_schemas, all_session_import_registered_controllers,
 };
-pub use types::{ImportOptions, ImportSummary};
 
 #[cfg(test)]
 mod live_tests;
-#[cfg(test)]
-mod ops_tests;
