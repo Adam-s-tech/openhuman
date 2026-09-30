@@ -84,6 +84,21 @@ pub fn repl_tools() -> Vec<Box<dyn Tool>> {
     repl_tools_with(Arc::new(ModuleSource), ReplLimits::default())
 }
 
+/// The REPL tools, or none while large results are not stored behind a handle
+/// (compaction, router, CCR or `repl_handle_enabled` off): without a handle to
+/// name there is nothing to query, and the schemas would be dead weight on
+/// every turn.
+pub fn repl_tools_for(config: &crate::config::Config) -> Vec<Box<dyn Tool>> {
+    if !super::repl_handle_active(config) {
+        return Vec::new();
+    }
+    log::debug!(
+        "[tokenjuice][repl] registering {}",
+        REPL_TOOL_NAMES.join(", ")
+    );
+    repl_tools()
+}
+
 pub(crate) fn repl_tools_with(
     source: Arc<dyn OriginalSource>,
     limits: ReplLimits,

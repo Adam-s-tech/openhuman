@@ -239,9 +239,6 @@ pub fn all_tools_with_runtime(
         // by byte/line range) for a `⟦tj:<hash>⟧` marker from the CCR cache.
         // Supersedes `retrieve_tool_output`; both are kept live during migration.
         Box::new(crate::inference::tokenjuice::TokenjuiceRetrieveTool::new()),
-        // The REPL half of that recovery surface (`juice_find` / `juice_extract`
-        // / `juice_summarize`) is added right after this list, and only while
-        // the handle preview that names them is in effect.
         // Deterministic time-expression → timestamp resolver. `current_time`
         // only returns *now*, leaving the model to do epoch arithmetic by hand
         // (a real incident had an agent compute "24h ago" ~10 months off, then
@@ -655,17 +652,8 @@ pub fn all_tools_with_runtime(
          memory_hybrid_search, memory_store_raw_search, memory_store_raw_chunks, memory_store_kinds"
     );
 
-    // REPL tools over a stored tool result. Registered only while large results
-    // are actually stored behind a handle (compaction on, router + CCR on,
-    // `tokenjuice.repl_handle_enabled`): without a handle to name there is
-    // nothing for them to query, and their schemas would be dead weight on
-    // every turn.
-    if crate::inference::tokenjuice::repl_handle_active(root_config) {
-        tools.extend(crate::inference::tokenjuice::repl_tools());
-        log::debug!(
-            "[tools::ops][tokenjuice] registered juice_find, juice_extract, juice_summarize"
-        );
-    }
+    // `juice_find` / `juice_extract` / `juice_summarize`: only while a handle can name them.
+    tools.extend(crate::inference::tokenjuice::repl_tools_for(root_config));
 
     // Presentation generation (#2778). Native-Rust engine (ppt-rs
     // backed) as of the #2780-follow-up rust-engine refactor — no

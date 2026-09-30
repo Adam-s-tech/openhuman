@@ -12,7 +12,7 @@ pub mod types;
 
 use tinyjuice_bus::names::methods;
 
-pub use repl_tools::{is_repl_tool, repl_tools, REPL_TOOL_NAMES};
+pub use repl_tools::{is_repl_tool, repl_tools, repl_tools_for, REPL_TOOL_NAMES};
 pub use tools::TokenjuiceRetrieveTool;
 pub use types::{AgentTokenjuiceCompression, CompressorKind, ContentKind};
 
