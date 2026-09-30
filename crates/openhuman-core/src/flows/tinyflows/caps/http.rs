@@ -24,7 +24,7 @@ use crate::tools::http_request_tool;
 use tinytools::Tool as _;
 
 /// [`HttpClient`] adapter over `HttpRequestTool`
-/// (`crates/openhuman-core/src/tools/impl/network/http_request.rs`). Allowlist + DNS-rebind
+/// (`tinytools_std::network::HttpRequestTool`, built by `tools/impl/network/host.rs`). Allowlist + DNS-rebind
 /// guard live inside `execute`, so this adapter gets them for free.
 ///
 /// **B2:** also routes through the OpenHuman `ApprovalGate` before dispatch
