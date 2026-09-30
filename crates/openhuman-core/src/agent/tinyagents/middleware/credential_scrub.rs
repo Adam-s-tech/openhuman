@@ -62,7 +62,7 @@ fn redaction_notice(count: usize) -> String {
 /// notice text is well-formed and proving a scrubbed result actually carries
 /// it; only `replace_tool_result_text` plumbing stays untested.
 fn scrub_with_notice(content: &str) -> Option<(String, usize)> {
-    let scrubbed = crate::agent::harness::credentials::scrub_credentials(content);
+    let scrubbed = tinyinference_core::sanitize::scrub_credentials(content);
     if scrubbed == content {
         return None;
     }
@@ -103,7 +103,7 @@ fn scrub_with_notice_for_tool(tool_name: &str, content: &str) -> Option<(String,
         Ok(protected) => protected,
         Err(_) => return scrub_with_notice(content),
     };
-    let scrubbed = crate::agent::harness::credentials::scrub_credentials(&protected);
+    let scrubbed = tinyinference_core::sanitize::scrub_credentials(&protected);
     if scrubbed == protected {
         return None;
     }

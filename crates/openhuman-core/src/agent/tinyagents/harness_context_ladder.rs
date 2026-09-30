@@ -16,7 +16,6 @@ use tinyagents_harness::runtime::AgentHarness;
 use crate::agent::tinyagents::host::OpenHumanRunContext;
 use crate::agent::tinyagents::middleware;
 use crate::agent::tinyagents::model::TurnChatModel;
-use crate::agent::tinyagents::summarize;
 use crate::agent::tinyagents::turn_outcome::ToolOutcomeSink;
 
 /// Push the context ladder onto `harness` and return the two handles the run
@@ -69,13 +68,16 @@ pub(super) fn install_context_ladder(
     let mut compression_mw: Option<Arc<ContextCompressionMiddleware>> = None;
     if let Some(window) = context_window.filter(|w| *w > 0) {
         if autocompact_enabled {
-            let policy = summarize::summarization_policy(window);
+            let policy = tinyagents_harness::summarization::summarization_policy(window);
             // Wrap the LLM-backed summarizer in a fault-tolerant, per-turn-caching
             // adapter (issue #4461): a summarizer failure must no longer abort the
             // turn (warn + circuit-breaker + deterministic trim instead), and an
             // identical re-issued input slice must not re-run the summarizer LLM.
-            let summarizer = summarize::FaultTolerantCachingSummarizer::new(
-                Box::new(summarize::ModelSummarizer::new(summarizer_model, model)),
+            let summarizer = tinyagents_harness::summarization::FaultTolerantCachingSummarizer::new(
+                Box::new(tinyagents_harness::summarization::ModelSummarizer::new(
+                    summarizer_model,
+                    model,
+                )),
                 &policy,
             );
             let mw = Arc::new(ContextCompressionMiddleware::with_summarizer(

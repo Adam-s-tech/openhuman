@@ -92,14 +92,11 @@ pub(super) fn ensure_config_aware_engine_compatible(
 }
 
 /// Runs a raw graph JSON value through migration + deserialization **without**
-/// the structural `validate` step. Splits the two so a caller that wants
-/// *every* structural error (via `tinyflows::validate::validate_all`) can run
-/// validation itself — a pre-validation failure here (unparseable JSON, an
-/// unmigrateable schema) is genuinely a single error, whereas structural
-/// validation can surface many at once.
-pub(crate) fn migrate_and_deserialize_graph(graph_json: Value) -> Result<WorkflowGraph, String> {
-    tinyflows::migrate::deserialize_graph(graph_json)
-}
+/// the structural `validate` step, attributing a deserialization failure to the
+/// member that caused it (`nodes[1]: missing field ...`). The implementation is
+/// `tinyflows::migrate::deserialize_graph`; this alias keeps the host's
+/// call sites (and the authoring tools' error text) unchanged.
+pub(crate) use tinyflows::migrate::deserialize_graph as migrate_and_deserialize_graph;
 
 /// Maps a portable `tinyflows` [`ValidationError`](tinyflows::error::ValidationError)
 /// into the host's structured [`FlowValidationError`], carrying its stable

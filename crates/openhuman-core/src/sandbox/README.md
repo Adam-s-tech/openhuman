@@ -47,8 +47,9 @@ backend, and delegates local OS-level confinement to `cwd_jail`.
   sandboxed tool call uses to run on the host, with an audited reason.
 - `pub mod docker`: Docker-specific container execution (`docker_exec`,
   `docker_backend_handle`, orphan cleanup).
-- `pub mod cwd_jail`: the OS-level path-confinement backend used by `Local`.
-  See [`cwd_jail/README.md`](cwd_jail/README.md).
+- `pub use tinybox_jail as cwd_jail`: the OS-level path-confinement backend
+  used by `Local`, owned by `vendor/tinybox/crates/tinybox-jail` (see its
+  README). This module keeps only the policy of when to jail.
 - `sandbox` RPC namespace (`schemas.rs`): `status`, `resolve_policy`,
   `cleanup_orphans`, `validate_policy`, wired through
   `all_sandbox_registered_controllers()` in

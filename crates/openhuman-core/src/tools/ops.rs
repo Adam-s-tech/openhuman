@@ -11,6 +11,7 @@ use tinyagents_harness::tools::{CurrentTimeTool, ResolveTimeTool};
 use tinytools::Tool;
 #[cfg(test)]
 use tinytools::{ToolResult, ToolSpec};
+use tinytools_std::detect_tools::DetectToolsTool;
 
 pub(crate) use super::capability::tool_capability;
 

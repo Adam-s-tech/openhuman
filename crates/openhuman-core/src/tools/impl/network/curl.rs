@@ -6,7 +6,7 @@
 //! `http_request.allowed_domains` so there is one allowlist to reason
 //! about.
 
-use super::url_guard::{normalize_allowed_domains, validate_url_with_dns_check};
+use tinytools_std::url_guard::{normalize_allowed_domains, validate_url_with_dns_check};
 use crate::security::{CommandClass, GateDecision, SecurityPolicy};
 use async_trait::async_trait;
 use futures_util::StreamExt;

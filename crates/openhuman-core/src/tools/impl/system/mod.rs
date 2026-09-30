@@ -4,7 +4,6 @@
 //! `tools/impl/README.md`; `security_for_tool_context` below is the shared
 //! `SecurityPolicy` resolver that must stay in step with the `filesystem` copy.
 
-mod detect_tools;
 mod insert_sql_record;
 mod install_tool;
 mod lsp;
@@ -25,7 +24,6 @@ use crate::security::policy::{TrustedAccess, TrustedRoot};
 use crate::security::SecurityPolicy;
 use tinytools::ToolRunContext;
 
-pub use detect_tools::DetectToolsTool;
 pub use insert_sql_record::InsertSqlRecordTool;
 pub use install_tool::InstallToolTool;
 pub use lsp::{lsp_capability_enabled, LspTool, LSP_ENABLED_ENV};

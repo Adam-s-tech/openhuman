@@ -35,6 +35,18 @@
       "submodule": "vendor/tinymemory",
       "expect": "v1.16.2-3-g5e508b5a",
       "reason": "The pin is v1.16.2 plus only the new pure-library crate tinymemory-conversations (tinymemory#170), which the core links as a Rust path dependency. No module, contract or bus source changes relative to v1.16.2, so the registry's v1.16.2 artifact still matches the contract compiled here. Remove when tinymemory#170 ships in a release and both pins move to it."
+    },
+    {
+      "id": "tinybox",
+      "submodule": "vendor/tinybox",
+      "expect": "v0.1.8-5-g274653e9",
+      "reason": "The pin is v0.1.8 plus only the new pure-library crate tinybox-jail (tinyhumansai/tinybox#12, branch oh-cwd-jail-on-v0.1.8), which the core links as a Rust path dependency. No module, contract or bus source changes relative to v0.1.8, so the registry's v0.1.8 artifact still matches the contract compiled here. Remove when tinybox#12 ships in a release and both pins move to it."
+    },
+    {
+      "id": "tinyvoice",
+      "submodule": "vendor/tinyvoice",
+      "expect": "v0.1.8-4-gb1afb89f",
+      "reason": "The pin is v0.1.8 plus only the new off-by-default `hotkey` cargo feature of the tinyvoice library crate (tinyhumansai/tinyvoice#16, branch oh-hotkey-on-v0.1.8), which the core links as a Rust path dependency for voice::hotkey. The feature is not enabled in tinyvoice-module and no module, contract or bus source changes relative to v0.1.8, so the registry's v0.1.8 artifact still matches the contract compiled here. Remove when tinyvoice#16 ships in a release and both pins move to it."
     }
   ]
 }

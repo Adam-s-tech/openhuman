@@ -168,7 +168,7 @@ fn default_max_depth() -> u32 {
 /// frequently omit it, leaving those consumers with nothing. When this contract
 /// is set on [`AgentConfig::required_output`], the turn engine validates the
 /// reply and repairs an omitted block before the turn is accepted (see
-/// `tinyagents_harness::config::required_output`), so consumers always get
+/// `tinyagents_harness::config`), so consumers always get
 /// a well-formed block.
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(default)]

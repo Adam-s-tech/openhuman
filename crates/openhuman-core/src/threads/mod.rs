@@ -7,7 +7,6 @@
 pub mod error;
 pub mod ops;
 pub mod schemas;
-pub mod title;
 pub mod transcript_view;
 pub mod turn_state;
 pub mod welcome_migration;
@@ -18,3 +17,6 @@ pub use schemas::{
     all_registered_controllers as all_threads_registered_controllers,
 };
 pub use welcome_migration::{migrate_welcome_agent_artifacts, WelcomeMigrationResult};
+
+/// Log prefix for thread-title generation (grep-friendly).
+pub(crate) const THREAD_TITLE_LOG_PREFIX: &str = "[threads:title]";

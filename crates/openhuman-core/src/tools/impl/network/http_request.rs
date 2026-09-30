@@ -1,4 +1,4 @@
-use super::url_guard::{normalize_allowed_domains, validate_url_with_dns_check};
+use tinytools_std::url_guard::{normalize_allowed_domains, validate_url_with_dns_check};
 use crate::config::HttpRequestConfig;
 use crate::security::{CommandClass, GateDecision, SecurityPolicy};
 use async_trait::async_trait;

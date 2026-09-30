@@ -51,7 +51,6 @@ pub(crate) mod retriever;
 mod routes;
 mod steering_forwarder;
 pub(crate) mod stop_hooks;
-mod summarize;
 pub mod todos;
 pub(crate) mod tools;
 mod topology;

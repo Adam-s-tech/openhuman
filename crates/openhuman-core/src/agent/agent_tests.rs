@@ -345,5 +345,3 @@ mod agent_turn_loop_packed_tool_tests;
 mod agent_turn_loop_tests;
 #[path = "messages_tests.rs"]
 mod messages_tests;
-#[path = "pformat_tests.rs"]
-mod pformat_tests;

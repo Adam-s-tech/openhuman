@@ -33,7 +33,7 @@ credentials, and the keychain. None of these submodules is feature-gated.
 Sandbox note: `docker.rs` / `bubblewrap.rs` / `firejail.rs` / `landlock.rs`
 here wrap a `std::process::Command` per the `Sandbox` trait and are chosen by
 `detect::create_sandbox`. `crates/openhuman-core/src/sandbox/` is a separate,
-newer domain; see `sandbox/cwd_jail/mod.rs`'s rustdoc for why `cwd_jail`
+newer domain; see `vendor/tinybox/crates/tinybox-jail/src/lib.rs`'s rustdoc for why `cwd_jail`
 superseded these backends on macOS (no `bwrap`) and added a Windows
 AppContainer backend. The two domains are not interchangeable.
 

@@ -1,45 +1,6 @@
 use super::*;
 
 #[test]
-fn engine_compatibility_recurses_through_nested_inline_sub_workflows() {
-    let unsafe_child = nested_conditional_fan_in_graph();
-    let middle = json!({
-        "nodes": [
-            { "id": "middle-trigger", "kind": "trigger", "name": "Trigger" },
-            {
-                "id": "inner-child",
-                "kind": "sub_workflow",
-                "name": "Inner child",
-                "config": { "workflow": unsafe_child }
-            }
-        ],
-        "edges": [
-            { "from_node": "middle-trigger", "from_port": "main", "to_node": "inner-child" }
-        ]
-    });
-    let parent = structurally_valid_graph(json!({
-        "nodes": [
-            { "id": "parent-trigger", "kind": "trigger", "name": "Trigger" },
-            {
-                "id": "middle-child",
-                "kind": "sub_workflow",
-                "name": "Middle child",
-                "config": { "workflow": middle }
-            }
-        ],
-        "edges": [
-            { "from_node": "parent-trigger", "from_port": "main", "to_node": "middle-child" }
-        ]
-    }));
-
-    let errors = engine_compatibility_errors(&parent);
-    assert_eq!(errors.len(), 1);
-    assert_eq!(errors[0].code, UNSUPPORTED_NESTED_CONDITIONAL_FAN_IN);
-    assert!(errors[0].message.contains("middle-child"));
-    assert!(errors[0].message.contains("inner-child"));
-}
-
-#[test]
 fn resolver_lookup_rejects_an_incompatible_saved_child() {
     let tmp = TempDir::new().unwrap();
     let config = test_config(&tmp);

@@ -24,7 +24,6 @@ pub mod agent_graph;
 pub mod archivist;
 pub mod artifact_offload;
 pub(crate) mod builtin_definitions;
-pub(crate) mod credentials;
 pub mod definition;
 pub(crate) mod definition_loader;
 pub mod fork_context;

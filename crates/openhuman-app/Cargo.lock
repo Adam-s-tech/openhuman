@@ -4270,7 +4270,6 @@ dependencies = [
  "once_cell",
  "parking_lot",
  "rand 0.10.2",
- "rdev",
  "regex",
  "reqwest 0.12.28",
  "rusqlite",
@@ -4294,6 +4293,7 @@ dependencies = [
  "tinyagents-registry",
  "tinyagents-runtime",
  "tinyagents-session",
+ "tinybox-jail",
  "tinybus",
  "tinychannels",
  "tinychannels-bus",
@@ -4326,6 +4326,8 @@ dependencies = [
  "tinyskills",
  "tinytools 0.4.1",
  "tinytools-agent 0.4.1",
+ "tinytools-std",
+ "tinyvoice",
  "tinyvoice-bus",
  "tinywallet-bus",
  "tinywallet-web3",
@@ -7210,6 +7212,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "tinybox-jail"
+version = "0.1.8"
+dependencies = [
+ "log",
+ "serde",
+ "serde_json",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
 name = "tinybox-ssh"
 version = "0.1.8"
 dependencies = [
@@ -7370,8 +7382,10 @@ dependencies = [
 name = "tinyflows-catalog"
 version = "0.1.0"
 dependencies = [
+ "hex",
  "serde",
  "serde_json",
+ "sha2 0.11.0",
  "tinyflows",
  "tokio-util",
  "tracing",
@@ -7817,10 +7831,37 @@ dependencies = [
 ]
 
 [[package]]
+name = "tinytools-std"
+version = "0.4.1"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "log",
+ "parking_lot",
+ "serde_json",
+ "tinytools 0.4.1",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "tinyvec"
 version = "1.13.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fd3ca314f692efd6c868f8408f53fe444634a845f96c028b97d35f6a1f79f0ee"
+
+[[package]]
+name = "tinyvoice"
+version = "0.1.8"
+dependencies = [
+ "log",
+ "parking_lot",
+ "rdev",
+ "serde",
+ "thiserror 2.0.20",
+ "tinyvoice-bus",
+ "tokio",
+]
 
 [[package]]
 name = "tinyvoice-bus"
