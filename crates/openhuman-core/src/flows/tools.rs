@@ -26,11 +26,6 @@ use crate::config::Config;
 use crate::flows::ops::{build_builder_proposal, validate_and_migrate_graph};
 use tinytools::{PermissionLevel, Tool, ToolResult};
 
-/// Max characters kept for a `config_hint` before truncation, so a long
-/// prompt/expression doesn't blow up the proposal summary sent to the LLM
-/// and rendered in the chat card.
-const MAX_CONFIG_HINT_CHARS: usize = 80;
-
 pub struct ProposeWorkflowTool {
     config: Arc<Config>,
 }

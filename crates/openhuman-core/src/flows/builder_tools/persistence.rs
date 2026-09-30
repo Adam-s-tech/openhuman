@@ -463,7 +463,7 @@ impl Tool for SaveWorkflowTool {
                     let trigger_desc = flow
                         .graph
                         .trigger()
-                        .map(tools::describe_trigger)
+                        .map(tinyflows::summary::describe_trigger)
                         .unwrap_or_else(|| "automatic".to_string());
                     let warning = format!(
                         "WARNING: this flow is ENABLED with an automatic trigger \
