@@ -243,7 +243,7 @@ async fn resume_transitions_fire_the_notify() {
         mode: SchedulerGateMode::Off,
         ..Default::default()
     };
-    let signals = Signals::sample();
+    let signals = signals::sample();
     let policy = decide(&signals, &cfg);
     let _ = STATE.set(Arc::new(RwLock::new(State {
         cfg,

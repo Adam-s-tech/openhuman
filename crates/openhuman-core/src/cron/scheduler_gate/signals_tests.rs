@@ -25,11 +25,11 @@ fn sample_cpu_repeatable() {
     }
 }
 
-/// Full snapshot smoke: `Signals::sample()` returns well-formed values and
+/// Full snapshot smoke: `sample()` returns well-formed values and
 /// never panics through the CPU path.
 #[test]
 fn signals_sample_smoke() {
-    let s = Signals::sample();
+    let s = sample();
     assert!(s.cpu_usage_pct.is_finite());
     assert!((0.0..=100.0).contains(&s.cpu_usage_pct));
     if let Some(charge) = s.battery_charge {
