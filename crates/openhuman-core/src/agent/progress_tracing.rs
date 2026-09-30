@@ -66,11 +66,11 @@ mod export;
 // `TraceSpan`), content truncation, NDJSON serialization, OTLP conversion and
 // Langfuse batch chunking live upstream in
 // `tinyagents_harness::observability::trace_export`.
-#[cfg(test)]
-use tinyagents_harness::observability::trace_export::{SpanKind, SpanStatus};
 use tinyagents_harness::observability::trace_export::ExportBrand;
 #[cfg(test)]
 use tinyagents_harness::observability::trace_export::{RunType, TraceContext, TraceSpan};
+#[cfg(test)]
+use tinyagents_harness::observability::trace_export::{SpanKind, SpanStatus};
 
 pub use collector::SpanCollector;
 

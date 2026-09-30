@@ -55,7 +55,6 @@ use tinyagents_harness::artifacts::ArtifactOffload;
 
 use crate::security::SecurityPolicy;
 
-
 /// Tool a sub-agent must actually hold before the offload contract is worth
 /// rendering. Passed to the crate's
 /// [`render_artifact_offload_contract`](tinyagents_harness::artifacts::render_artifact_offload_contract)

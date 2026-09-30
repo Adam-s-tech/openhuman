@@ -59,9 +59,9 @@ use tinyagents_harness::events::AgentEvent;
 use tinyagents_harness::observability::AgentObservation;
 
 use super::SpanCollector;
-use tinyagents_harness::observability::trace_export::{TraceContext, TraceSpan};
 use crate::agent::progress::AgentProgress;
 use crate::tools::status::classify;
+use tinyagents_harness::observability::trace_export::{TraceContext, TraceSpan};
 
 /// Mutable state threaded across a single run's observations while replaying.
 #[derive(Default)]

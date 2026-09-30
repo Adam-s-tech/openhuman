@@ -514,4 +514,3 @@ async fn existing_error_is_some_behavior_is_unchanged_by_body_level_check() {
         "the third identical error+ok:false result halts, same as a plain error"
     );
 }
-
