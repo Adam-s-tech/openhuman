@@ -5,16 +5,24 @@
 //! shutdown registry, web event bus). [`build_provider_context`] wraps it into
 //! the [`tinychannels::host::ProviderContext`] handed to channel providers.
 //!
+//! [`ChannelApprovalSurfaceSubscriber`] and [`ChannelTurnStateSubscriber`]
+//! bridge OpenHuman events into the provider-independent approval surface and
+//! remote-control turn state; `remote_control` backs `/status`, `/sessions`
+//! and `/new`.
+//!
 //! Ported providers reach host capabilities through this context instead of
 //! calling OpenHuman internals directly — the inversion that lets them live in
 //! the standalone `tinychannels` crate. Lean providers ignore the host.
 
 mod adapters;
+mod channel_events;
+pub(crate) mod remote_control;
 
 pub use adapters::{
     ConfigAllowlistStore, ConversationHistoryStore, CoreApprovalGate, CoreShutdownRegistry,
     InferenceReactionGate, OpenHumanEventSink, VoiceSynthesizer, VoiceTranscriber,
 };
+pub use channel_events::{ChannelApprovalSurfaceSubscriber, ChannelTurnStateSubscriber};
 
 use std::sync::Arc;
 

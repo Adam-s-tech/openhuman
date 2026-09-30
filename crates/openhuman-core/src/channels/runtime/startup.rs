@@ -6,6 +6,7 @@ mod prompt;
 mod relay;
 mod start_channels;
 
+pub(crate) use credentials::{hydrate_channel_credentials, RuntimeProxyClients};
 pub use start_channels::start_channels;
 pub(crate) use start_channels::start_channels_with_session;
 

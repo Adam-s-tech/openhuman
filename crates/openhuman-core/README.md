@@ -33,7 +33,6 @@ contents inside `mod.rs` behind the feature of the same name. See the
 | `flows`* | Saved automation workflows (tinyflows graphs) | [README](src/flows/README.md) |
 | `hooks` | User-authored scripts that observe and gate the agent | [README](src/hooks/README.md) |
 | `hosting`* | Putting a workspace on the internet | [README](src/hosting/README.md) |
-| `http_host`* (feature `http-server`) | Static directory hosting over ad-hoc HTTP listeners | [README](src/http_host/README.md) |
 | `inference` | Unified inference domain | [README](src/inference/README.md) |
 | `integrations` | Agent integration tools | [README](src/integrations/README.md) |
 | `json_schema` | Vendor-neutral JSON Schema and JSON value walking | |

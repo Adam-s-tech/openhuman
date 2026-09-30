@@ -29,6 +29,26 @@ pub enum BackendTransportError {
     /// body when it parsed, otherwise the raw text as a JSON string.
     #[error("http {status}: {body}")]
     Status { status: u16, body: Value },
+    /// `404` on a channel-message route answered by a backend handler: that
+    /// message no longer exists (deleted provider-side or garbage-collected).
+    #[error("http 404: channel message {provider}/{message_id} not found")]
+    ChannelMessageNotFound {
+        /// Channel provider path segment (`telegram`, `discord`, …).
+        provider: String,
+        /// Provider message id from the path.
+        message_id: String,
+    },
+    /// `404` on a channel-message route because the backend has **no such
+    /// route** (no handler matched), not because the message is gone. Today
+    /// this is every `PATCH` edit (#5230): the message still exists and the
+    /// caller must keep its id.
+    #[error("http 404: backend implements no route for channel message {provider}/{message_id}")]
+    ChannelMessageRouteMissing {
+        /// Channel provider path segment.
+        provider: String,
+        /// Provider message id from the path.
+        message_id: String,
+    },
     /// The response carried a `{success:false, ...}` envelope on a 2xx status.
     #[error("backend reported failure: {error}")]
     Envelope {
@@ -56,6 +76,9 @@ impl BackendTransportError {
     pub fn status(&self) -> Option<u16> {
         match self {
             Self::Status { status, .. } => Some(*status),
+            Self::ChannelMessageNotFound { .. } | Self::ChannelMessageRouteMissing { .. } => {
+                Some(404)
+            }
             _ => None,
         }
     }

@@ -15,7 +15,7 @@ async fn x402_pay_twit_sh_for_hal_finney_tweet() {
     let tmp = tempfile::tempdir().unwrap();
     x402::init_ledger(tmp.path(), "test-session");
 
-    let tool = x402::tools::X402RequestTool::new();
+    let tool = x402::request_tool();
     let result = tool
         .execute(json!({
             "url": "https://x402.twit.sh/tweets/by/id?id=1110302988",

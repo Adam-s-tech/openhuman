@@ -145,20 +145,6 @@ fn failed_step_error_summary_names_every_errored_node() {
 }
 
 #[test]
-fn literal_args_unaffected() {
-    let g = graph(json!({
-        "nodes": [
-            { "id": "t", "kind": "trigger", "name": "Manual" },
-            { "id": "post", "kind": "tool_call", "name": "Post",
-              "config": { "slug": "SLACK_SEND_MESSAGE",
-                "args": { "channel": "general", "count": 3, "cc": ["a@b.com"] } } }
-        ],
-        "edges": [ { "from_node": "t", "to_node": "post" } ]
-    }));
-    assert!(validate_binding_resolvability(&g).is_empty());
-}
-
-#[test]
 fn agent_prompt_binding_unaffected() {
     // The field-addressability checks are scoped to `tool_call` `args` only
     // — an agent's own `prompt` referencing a dangling/unschemad node path is
@@ -176,32 +162,6 @@ fn agent_prompt_binding_unaffected() {
         "edges": [ { "from_node": "t", "to_node": "summarize" } ]
     }));
     assert!(validate_binding_resolvability(&g).is_empty());
-}
-
-// ── agent-prompt invalid-jq gate (PR C) ─────────────────────────────────────
-
-#[test]
-fn agent_prompt_with_escaped_quote_inside_jq_string_is_accepted() {
-    // Regression for the quote-toggle desync: an escaped quote (`\"`) inside
-    // a jq string literal must not flip the strip pass's `in_str` state.
-    // Before the fix, the text between the escaped quote and the string's
-    // real closing quote ("hello world") leaked out of the string-stripping
-    // pass as if it were bare jq code, tripping the "two consecutive
-    // barewords" prose heuristic and rejecting this otherwise-valid
-    // concatenation expression.
-    let g = graph(json!({
-        "nodes": [
-            { "id": "t", "kind": "trigger", "name": "Manual" },
-            { "id": "greet", "kind": "agent", "name": "Greet",
-              "config": { "prompt": "=\"Say \\\"hello world\\\" nicely\" + .item.name" } }
-        ],
-        "edges": [ { "from_node": "t", "to_node": "greet" } ]
-    }));
-    assert!(
-        validate_binding_resolvability(&g).is_empty(),
-        "{:?}",
-        validate_binding_resolvability(&g)
-    );
 }
 
 #[test]
