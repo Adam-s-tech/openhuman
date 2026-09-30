@@ -305,6 +305,15 @@ fn test_mcp_server() -> InstalledServer {
     }
 }
 
+fn install_test_mcp_server(config: &Config, server: &InstalledServer) {
+    openhuman_core::mcp::host::for_config(config)
+        .expect("open test MCP host")
+        .dynamic()
+        .store()
+        .insert_server(server)
+        .expect("install test MCP server");
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn tool_registry_rpc_diagnostics_include_denials_and_provider_errors() {
     let _lock = env_lock();
@@ -662,6 +671,7 @@ async fn tool_registry_entries_include_connected_mcp_client_tools() {
         ..Config::default()
     };
     let server = test_mcp_server();
+    install_test_mcp_server(&config, &server);
     let tools = connections::connect(&config, &server)
         .await
         .expect("connect test mcp server");
@@ -676,6 +686,7 @@ async fn tool_registry_entries_include_connected_mcp_client_tools() {
         ..Config::default()
     };
     let other_server = test_mcp_server();
+    install_test_mcp_server(&other_config, &other_server);
     connections::connect(&other_config, &other_server)
         .await
         .expect("connect second test mcp server");

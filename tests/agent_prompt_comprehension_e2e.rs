@@ -910,7 +910,7 @@ fn workflow_builder_reaches_propose_workflow() {
 fn orchestrator_searches_for_and_calls_the_integration_action() {
     run_case(Case {
         agent: "orchestrator",
-        agent_marker: "## How you work",
+        agent_marker: "## Routing\n\nFirst match wins:",
         entry: Entry::WebChat,
         user_message: "Check my Gmail for anything from my landlord.",
         scripted_completions: vec![
@@ -941,7 +941,7 @@ fn orchestrator_searches_for_and_calls_the_integration_action() {
 fn orchestrator_reaches_cron_through_the_scheduling_pack() {
     run_case(Case {
         agent: "orchestrator",
-        agent_marker: "## How you work",
+        agent_marker: "## Routing\n\nFirst match wins:",
         entry: Entry::WebChat,
         user_message: "What reminders do I have scheduled?",
         scripted_completions: vec![
@@ -953,8 +953,11 @@ fn orchestrator_reaches_cron_through_the_scheduling_pack() {
         ],
         must_call: &["use_skill"],
         must_not_call: &["schedule_task"],
-        must_advertise: &["use_skill", "current_time", "resolve_time"],
-        must_not_advertise: &["cron", "schedule_task", "composio_execute"],
+        // `current_time` is deferred for the orchestrator (`deferred_tools`):
+        // every turn carries the date line and `resolve_time` converts, so it
+        // is searchable and callable by name but not advertised.
+        must_advertise: &["use_skill", "resolve_time"],
+        must_not_advertise: &["cron", "schedule_task", "composio_execute", "current_time"],
         advertises_nothing: false,
         max_consecutive_calls_of: None,
         extra_config: "",
@@ -1058,7 +1061,7 @@ fn orchestrator_prompt_names_only_discoverable_delegates() {
         let requests = captured().clone();
         let orchestrator = requests
             .iter()
-            .find(|r| system_text(r).contains("## How you work"))
+            .find(|r| system_text(r).contains("## Routing\n\nFirst match wins:"))
             .expect("no orchestrator request captured");
         let prompt = system_text(orchestrator);
         let belt = advertised_tool_names(orchestrator);

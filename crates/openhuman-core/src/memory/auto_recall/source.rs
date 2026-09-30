@@ -85,12 +85,20 @@ impl AutoRecallSource for GuardSource {
         query: &str,
         limit: usize,
     ) -> Result<Vec<NamespaceMemoryHit>, MemoryError> {
-        // Same degradation as the tree leg: no retrieval family, no notes.
+        // No retrieval family (a remote engine): the notes still come from the
+        // mandatory ranked recall. Only the tree leg has no equivalent.
         let Some(retrieval) = self.guard.as_retrieval() else {
             log::debug!(
-                "[auto_recall] bound driver exposes no retrieval family; no notes to recall"
+                "[auto_recall] bound driver exposes no retrieval family; notes via mandatory recall"
             );
-            return Ok(Vec::new());
+            return crate::memory::ops::fallback::recall_hits(
+                self.guard.as_ref(),
+                namespace,
+                query,
+                limit,
+            )
+            .await
+            .map_err(|e| MemoryError::Other(anyhow::anyhow!(e)));
         };
         // No session to exclude: the notes namespace is never auto-saved per
         // session, and the lane runs before this turn is archived, so there is

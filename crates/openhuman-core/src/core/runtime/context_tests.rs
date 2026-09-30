@@ -4,10 +4,10 @@ use std::path::PathBuf;
 fn ctx(dir: &str) -> Arc<CoreContext> {
     Arc::new(CoreContext {
         host_kind: HostKind::Cli,
-        workspace_binding: RwLock::new(WorkspaceBinding {
+        workspace_binding: RwLock::new(Arc::new(RwLock::new(WorkspaceBinding {
             workspace_dir: Some(PathBuf::from(dir)),
             memory_subsystem: Default::default(),
-        }),
+        }))),
         domains: crate::core::runtime::DomainSet::full(),
         tool_groups: Default::default(),
         embedder_config: None,
@@ -34,10 +34,10 @@ fn ctx(dir: &str) -> Arc<CoreContext> {
 fn ctx_with_config(config: crate::config::Config) -> Arc<CoreContext> {
     Arc::new(CoreContext {
         host_kind: HostKind::Cli,
-        workspace_binding: RwLock::new(WorkspaceBinding {
+        workspace_binding: RwLock::new(Arc::new(RwLock::new(WorkspaceBinding {
             workspace_dir: Some(config.workspace_dir.clone()),
             memory_subsystem: Default::default(),
-        }),
+        }))),
         domains: crate::core::runtime::DomainSet::full(),
         tool_groups: Default::default(),
         embedder_config: Some(config),
@@ -346,10 +346,10 @@ async fn nested_scope_overrides_then_restores() {
 fn degraded_context_rejects_workspace_bound_stores() {
     let ctx = CoreContext {
         host_kind: HostKind::Cli,
-        workspace_binding: RwLock::new(WorkspaceBinding {
+        workspace_binding: RwLock::new(Arc::new(RwLock::new(WorkspaceBinding {
             workspace_dir: None,
             memory_subsystem: Default::default(),
-        }),
+        }))),
         domains: crate::core::runtime::DomainSet::full(),
         tool_groups: Default::default(),
         embedder_config: None,
@@ -397,10 +397,10 @@ fn memory_binding_is_isolated_per_context_workspace() {
     let dir_b = tempfile::tempdir().unwrap();
     let a = Arc::new(CoreContext {
         host_kind: HostKind::Cli,
-        workspace_binding: RwLock::new(WorkspaceBinding {
+        workspace_binding: RwLock::new(Arc::new(RwLock::new(WorkspaceBinding {
             workspace_dir: Some(dir_a.path().to_path_buf()),
             memory_subsystem: Default::default(),
-        }),
+        }))),
         domains: crate::core::runtime::DomainSet::full(),
         tool_groups: Default::default(),
         embedder_config: None,
@@ -409,10 +409,10 @@ fn memory_binding_is_isolated_per_context_workspace() {
     });
     let b = Arc::new(CoreContext {
         host_kind: HostKind::Cli,
-        workspace_binding: RwLock::new(WorkspaceBinding {
+        workspace_binding: RwLock::new(Arc::new(RwLock::new(WorkspaceBinding {
             workspace_dir: Some(dir_b.path().to_path_buf()),
             memory_subsystem: Default::default(),
-        }),
+        }))),
         domains: crate::core::runtime::DomainSet::full(),
         tool_groups: Default::default(),
         embedder_config: None,
@@ -437,10 +437,10 @@ fn rebind_workspace_updates_context_memory_binding() {
     let dir_b = tempfile::tempdir().unwrap();
     let ctx = CoreContext {
         host_kind: HostKind::Cli,
-        workspace_binding: RwLock::new(WorkspaceBinding {
+        workspace_binding: RwLock::new(Arc::new(RwLock::new(WorkspaceBinding {
             workspace_dir: Some(dir_a.path().to_path_buf()),
             memory_subsystem: Default::default(),
-        }),
+        }))),
         domains: crate::core::runtime::DomainSet::full(),
         tool_groups: Default::default(),
         embedder_config: None,
@@ -466,10 +466,10 @@ fn rebind_workspace_refreshes_memory_subsystem_config() {
     let dir_a = tempfile::tempdir().unwrap();
     let ctx = CoreContext {
         host_kind: HostKind::Cli,
-        workspace_binding: RwLock::new(WorkspaceBinding {
+        workspace_binding: RwLock::new(Arc::new(RwLock::new(WorkspaceBinding {
             workspace_dir: Some(dir_a.path().to_path_buf()),
             memory_subsystem: Default::default(),
-        }),
+        }))),
         domains: crate::core::runtime::DomainSet::full(),
         tool_groups: Default::default(),
         embedder_config: None,
@@ -508,10 +508,10 @@ fn failed_bind_never_returns_previous_workspace_binding() {
     let dir_b = tempfile::tempdir().unwrap();
     let a = CoreContext {
         host_kind: HostKind::Cli,
-        workspace_binding: RwLock::new(WorkspaceBinding {
+        workspace_binding: RwLock::new(Arc::new(RwLock::new(WorkspaceBinding {
             workspace_dir: Some(dir_a.path().to_path_buf()),
             memory_subsystem: Default::default(),
-        }),
+        }))),
         domains: crate::core::runtime::DomainSet::full(),
         tool_groups: Default::default(),
         embedder_config: None,
@@ -520,10 +520,10 @@ fn failed_bind_never_returns_previous_workspace_binding() {
     };
     let b = CoreContext {
         host_kind: HostKind::Cli,
-        workspace_binding: RwLock::new(WorkspaceBinding {
+        workspace_binding: RwLock::new(Arc::new(RwLock::new(WorkspaceBinding {
             workspace_dir: Some(dir_b.path().to_path_buf()),
             memory_subsystem: untrusted_external_memory_cfg(),
-        }),
+        }))),
         domains: crate::core::runtime::DomainSet::full(),
         tool_groups: Default::default(),
         embedder_config: None,
@@ -552,10 +552,10 @@ fn failed_bind_never_returns_previous_workspace_binding() {
 fn memory_capabilities_defaults_open_without_a_workspace() {
     let ctx = CoreContext {
         host_kind: HostKind::Cli,
-        workspace_binding: RwLock::new(WorkspaceBinding {
+        workspace_binding: RwLock::new(Arc::new(RwLock::new(WorkspaceBinding {
             workspace_dir: None,
             memory_subsystem: Default::default(),
-        }),
+        }))),
         domains: crate::core::runtime::DomainSet::full(),
         tool_groups: Default::default(),
         embedder_config: None,
@@ -599,5 +599,122 @@ fn capabilities_are_open_under_a_harness_domain_set() {
     assert_eq!(
         ctx.memory_capabilities(),
         tinymemory_api::capabilities::Capabilities::all()
+    );
+}
+
+fn overlay_for(workspace: &str, driver: Option<&str>) -> ContextOverlay {
+    let mut config = crate::config::Config::default();
+    config.workspace_dir = PathBuf::from(workspace);
+    if let Some(driver) = driver {
+        config.subsystems.memory.driver = driver.to_string();
+    }
+    ContextOverlay::new(
+        config,
+        crate::core::runtime::DomainSet::kernel(),
+        crate::tools::toolpacks::ToolGroups::none(),
+    )
+}
+
+#[test]
+fn a_derived_context_without_a_memory_override_follows_the_parents_engine_switch() {
+    let parent = ctx("/tmp/share-ws");
+    let child = parent.derive_with(overlay_for("/tmp/share-ws", None));
+
+    let mut switched = crate::config::schema::MemorySubsystemConfig::default();
+    switched.driver = "null".to_string();
+    parent
+        .set_memory_subsystem(std::path::Path::new("/tmp/share-ws"), switched.clone())
+        .unwrap();
+
+    let child_driver = child
+        .workspace_binding
+        .read()
+        .unwrap()
+        .read()
+        .unwrap()
+        .memory_subsystem
+        .driver
+        .clone();
+    assert_eq!(
+        child_driver, "null",
+        "a rebind must reach the derived context"
+    );
+}
+
+#[test]
+fn a_derived_context_with_its_own_memory_config_keeps_the_override() {
+    let parent = ctx("/tmp/override-ws");
+    let child = parent.derive_with(overlay_for("/tmp/override-ws", Some("null")));
+
+    let mut switched = crate::config::schema::MemorySubsystemConfig::default();
+    switched.driver = "tinymemory".to_string();
+    parent
+        .set_memory_subsystem(std::path::Path::new("/tmp/override-ws"), switched)
+        .unwrap();
+    assert_eq!(
+        child
+            .workspace_binding
+            .read()
+            .unwrap()
+            .read()
+            .unwrap()
+            .memory_subsystem
+            .driver,
+        "null",
+        "a deliberate per-agent memory config is not overwritten by the parent"
+    );
+}
+
+#[test]
+fn a_derived_context_on_another_workspace_is_not_shared() {
+    let parent = ctx("/tmp/parent-only-ws");
+    let child = parent.derive_with(overlay_for("/tmp/child-only-ws", None));
+    let mut switched = crate::config::schema::MemorySubsystemConfig::default();
+    switched.driver = "null".to_string();
+    parent
+        .set_memory_subsystem(std::path::Path::new("/tmp/parent-only-ws"), switched)
+        .unwrap();
+    assert_ne!(
+        child
+            .workspace_binding
+            .read()
+            .unwrap()
+            .read()
+            .unwrap()
+            .memory_subsystem
+            .driver,
+        "null"
+    );
+}
+
+#[test]
+fn a_parent_workspace_rebind_does_not_move_a_derived_context() {
+    let parent = ctx("/tmp/shared-before-rebind");
+    let child = parent.derive_with(overlay_for("/tmp/shared-before-rebind", None));
+    let mut next_memory = crate::config::schema::MemorySubsystemConfig::default();
+    next_memory.driver = "null".to_string();
+
+    parent
+        .rebind_workspace(std::path::Path::new("/tmp/next-user"), next_memory)
+        .unwrap();
+
+    assert_eq!(
+        parent.workspace_dir().unwrap(),
+        PathBuf::from("/tmp/next-user")
+    );
+    assert_eq!(
+        child.workspace_dir().unwrap(),
+        PathBuf::from("/tmp/shared-before-rebind")
+    );
+    assert_eq!(
+        child
+            .workspace_binding
+            .read()
+            .unwrap()
+            .read()
+            .unwrap()
+            .memory_subsystem
+            .driver,
+        "tinycortex"
     );
 }
