@@ -59,6 +59,12 @@
       "submodule": "vendor/tinycomputer",
       "expect": "v0.7.0-1-g8416add3",
       "reason": "The pin is v0.7.0 plus only the new pure-library crate tinycomputer-accessibility (tinycomputer#63, branch oh-accessibility-on-v0.7.0), which the core links as a Rust path dependency for in-process focus, permission and Globe-key queries. No module, contract or bus source changes relative to v0.7.0, so the registry's v0.7.0 artifact still matches the contract compiled here. Remove when tinycomputer#63 ships in a release and both pins move to it."
+    },
+    {
+      "id": "tinyconnectors",
+      "submodule": "vendor/tinyconnectors",
+      "expect": "v0.10.4-10-ge69b1226",
+      "reason": "The pin is v0.10.4 plus only pure-library changes to the tinyconnectors crate (tinyhumansai/tinyconnectors branch w4-connectors, also pushed as oh-w4-connectors-on-v0.10.4): execute::apply_calendar_query_defaults and execute::{apply_window_args, filter_response} (moved from the core, called by the host, never by the module), extra classify tests, and a default-on `module` cargo feature that gates the TinyBus adapter so the core can link the crate with default-features = false and no second copy of tinybus. The shipped module build (default features) and its contract, bus and module source are unchanged, so the registry's artifact still matches the contract compiled here. The registry record stays on v0.10.3; v0.10.3..v0.10.4 changes only the version, Cargo.lock and the tinybus pin (same tinybus commit the core compiles). Remove when the tinyconnectors PR ships in a release and both pins move to it."
     }
   ]
 }
