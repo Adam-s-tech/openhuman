@@ -28,7 +28,7 @@
 //! ## Stable event ids (05.1)
 //!
 //! The run [`EventSink`] is seeded by the caller with
-//! [`EventSink::with_stream_id`]`(run_id)` (see [`mint_run_id`]), so every
+//! [`EventSink::with_stream_id`]`(run_id)` (see `tinyagents_harness::observability::mint_run_id`), so every
 //! persisted observation carries a restart-stable `event_id` of the form
 //! `{run_id}-evt-{offset}`. That is the id a late-attaching replay reader
 //! reconstructs the timeline from — the same `(stream_id, offset)` always mints
@@ -37,11 +37,9 @@
 //!
 //! ## Follow-ups (not in this slice)
 //!
-//! - A replay RPC (`agent.run_events`?) that surfaces [`read_run_events`] /
-//!   [`read_run_status`] to the desktop for mid-run reconnect (05.x).
 //! - Full sub-agent / graph run lineage (`parent_run_id` / `root_run_id`
 //!   threading) — wired in 05.2/05.3. This slice threads `thread_id` (from the
-//!   sub-agent task scope) so [`FileStatusStore::list_by_thread`] answers.
+//!   sub-agent task scope) so `FileStatusStore::list_by_thread` answers.
 //!
 //! [`EventSink::with_stream_id`]: tinyagents_harness::events::EventSink::with_stream_id
 
@@ -49,24 +47,16 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
-use async_trait::async_trait;
 use once_cell::sync::Lazy;
 
-use tinyagents_harness::error::Result as TaResult;
 use tinyagents_harness::events::{EventSink, HarnessRunStatus};
 use tinyagents_harness::ids::{ComponentId, HarnessPhase, RunId, ThreadId};
 use tinyagents_harness::observability::{
-    AgentObservation, FanOutSink, HarnessEventJournal, HarnessStatusStore, JournalSink,
-    RedactingSink, StoreEventJournal,
+    process_env_secrets, AgentObservation, FanOutSink, FileStatusStore, HarnessEventJournal,
+    HarnessStatusStore, JournalSink, RedactingSink, StoreEventJournal,
 };
-use tinyagents_harness::store::{FileStore, Store};
 
 use tinyagents_session::transcript::import::ops::open_session_stores;
-
-/// KV namespace the durable per-run [`HarnessRunStatus`] snapshots live under
-/// (`{workspace}/tinyagents_store/kv/run_status/<run_id>.json`). Slash-free so
-/// it round-trips the crate [`FileStore`] name sanitizer.
-const STATUS_NS: &str = "run_status";
 
 /// Best-effort live request → durable tinyagents journal stream map. The web
 /// progress bridge uses this at turn end to shadow-project spans from the
@@ -170,10 +160,10 @@ impl TurnJournal {
 ///
 /// `run_id` MUST be the same id the caller passed to
 /// [`EventSink::with_stream_id`] when it created `events` (mint it once via
-/// [`mint_run_id`]). That shared id is what makes the persisted `event_id`s the
+/// `tinyagents_harness::observability::mint_run_id`). That shared id is what makes the persisted `event_id`s the
 /// restart-stable `{run_id}-evt-{offset}` a late-attach replay reconstructs the
 /// timeline from. `thread_id` (when known — e.g. the sub-agent task scope)
-/// records the run under a thread so [`FileStatusStore::list_by_thread`] answers.
+/// records the run under a thread so `FileStatusStore::list_by_thread` answers.
 ///
 /// Returns a [`TurnJournal`] handle the caller uses to stamp the terminal
 /// status after the run, or `None` when the store could not be opened (the run
