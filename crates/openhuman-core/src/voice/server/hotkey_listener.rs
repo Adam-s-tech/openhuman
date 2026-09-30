@@ -75,8 +75,8 @@ pub(super) fn start_hotkey_listener(
         // branch above; the rdev listener manages its own lifecycle, so bind it
         // here to keep the shared signature warning-free on non-macOS.
         let _ = server_cancel;
-        let combo = hotkey::parse_hotkey(hotkey_str)?;
-        let (handle, rx) = hotkey::start_listener(combo, mode)?;
+        let combo = hotkey::parse_hotkey(hotkey_str).map_err(|e| e.to_string())?;
+        let (handle, rx) = hotkey::start_listener(combo, mode).map_err(|e| e.to_string())?;
         Ok((HotkeyListenerKind::Rdev(handle), rx))
     }
 }
