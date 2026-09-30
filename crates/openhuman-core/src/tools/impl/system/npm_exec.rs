@@ -350,7 +350,7 @@ impl NpmExecTool {
                 } else {
                     // Surface exit code + both streams so the agent can diagnose
                     // the failure instead of re-running it (#4095).
-                    Ok(tinytools_std::command_output::command_failure(
+                    Ok(tinytools::command_failure(
                         output.status.code(),
                         &stdout,
                         &stderr,
@@ -459,8 +459,8 @@ impl NpmExecTool {
                         ))
                     }
                 } else {
-                    tinytools_std::command_output::command_failure(
-                        tinytools_std::command_output::sandbox_exit_code(result.exit_code),
+                    tinytools::command_failure(
+                        tinytools::sandbox_exit_code(result.exit_code),
                         &result.stdout,
                         &result.stderr,
                     )
