@@ -7,7 +7,6 @@
 
 use super::*;
 use crate::config::Config;
-use tinytools::Tool;
 
 fn config_with(workspace: &std::path::Path, enabled: bool, api_key: &str) -> Config {
     let mut config = Config::default();
