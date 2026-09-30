@@ -100,8 +100,6 @@ new origin wrapper.
 `tinyflows_tests.rs` (capability-seam smoke tests against the real engine;
 note the real `HttpRequestTool` blocks loopback, so HTTP coverage asserts the
 SSRF/allowlist rejections rather than a mock round-trip),
-`checkpoint_compat_tests.rs` (proves the `tinyflows-sqlite` checkpoint store
-stays byte-compatible with the `tinyagents` backend it was ported from),
 `memory_node_e2e_tests.rs` (the `memory` node through the real engine,
 adapter, and on-disk store; kept apart from `tinyflows_tests.rs` because the
 unit tests only exercise error paths against an empty workspace), plus a
