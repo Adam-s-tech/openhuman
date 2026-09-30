@@ -67,7 +67,6 @@ pub mod hooks;
 pub mod hosting;
 pub mod inference;
 pub mod integrations;
-pub mod json_schema;
 pub mod mcp;
 #[cfg(feature = "media")]
 pub mod media;

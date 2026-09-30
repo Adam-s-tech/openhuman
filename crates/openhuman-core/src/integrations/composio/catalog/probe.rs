@@ -10,7 +10,7 @@ use serde_json::Value;
 use super::contract::COMPOSIO_CATALOG_CACHE_TTL;
 use super::contract::{CacheEntry, ToolContract};
 use crate::config::Config;
-use crate::json_schema::compute_primary_array_path_from_value;
+use tinyagents_harness::tool::compute_primary_array_path_from_value;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Real-output probe (systemic tool-contract fix, Part 3 / B12)
