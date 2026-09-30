@@ -88,6 +88,63 @@ impl Drop for WorkspaceEnvGuard {
     }
 }
 
+/// Every environment variable that overrides a wallet endpoint.
+const WALLET_RPC_ENV_VARS: [&str; 9] = [
+    "OPENHUMAN_WALLET_RPC_EVM",
+    "OPENHUMAN_WALLET_RPC_BASE",
+    "OPENHUMAN_WALLET_RPC_ARBITRUM",
+    "OPENHUMAN_WALLET_RPC_OPTIMISM",
+    "OPENHUMAN_WALLET_RPC_POLYGON",
+    "OPENHUMAN_WALLET_RPC_BSC",
+    "OPENHUMAN_WALLET_RPC_BTC",
+    "OPENHUMAN_WALLET_RPC_SOLANA",
+    "OPENHUMAN_WALLET_RPC_TRON",
+];
+
+/// Serialises tests that read or write the wallet endpoint variables, which are
+/// process-global.
+pub(crate) static RPC_ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+/// Points every wallet endpoint at a loopback port nothing listens on, so a
+/// test that reaches a chain fails fast and never leaves the machine. The
+/// previous values are restored on drop.
+pub(crate) struct UnreachableRpcGuard {
+    previous: Vec<(&'static str, Option<std::ffi::OsString>)>,
+    _env_lock: std::sync::MutexGuard<'static, ()>,
+}
+
+impl UnreachableRpcGuard {
+    pub(crate) fn set() -> Self {
+        let env_lock = RPC_ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        // Bind then drop to learn a port that is free, hence refusing.
+        let port = std::net::TcpListener::bind("127.0.0.1:0")
+            .and_then(|listener| listener.local_addr())
+            .map_or(1, |addr| addr.port());
+        let previous = WALLET_RPC_ENV_VARS
+            .iter()
+            .map(|name| (*name, std::env::var_os(name)))
+            .collect();
+        for name in WALLET_RPC_ENV_VARS {
+            std::env::set_var(name, format!("http://127.0.0.1:{port}"));
+        }
+        Self {
+            previous,
+            _env_lock: env_lock,
+        }
+    }
+}
+
+impl Drop for UnreachableRpcGuard {
+    fn drop(&mut self) {
+        for (name, value) in self.previous.drain(..) {
+            match value {
+                Some(v) => std::env::set_var(name, v),
+                None => std::env::remove_var(name),
+            }
+        }
+    }
+}
+
 pub(crate) fn set_workspace_env_for_test(temp: &TempDir) -> WorkspaceEnvGuard {
     WorkspaceEnvGuard::set(temp.path())
 }
