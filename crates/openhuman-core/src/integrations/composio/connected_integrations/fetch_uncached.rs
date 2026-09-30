@@ -23,8 +23,11 @@ use super::fetch::{connectable_toolkit_slugs, resolve_toolkit_description};
 pub(super) async fn fetch_connected_integrations_uncached(
     config: &Config,
 ) -> Option<Vec<ConnectedIntegration>> {
-    use super::super::client::{
-        create_composio_client, direct_list_connections, ComposioClientKind,
+    use super::super::client::{direct_list_connections, resolve_composio_route, ComposioRoute};
+    use super::super::module_client::{self as connectors, methods};
+    use super::super::types::{
+        ComposioConnectionsResponse, ComposioListToolsRequest, ComposioToolkitsResponse,
+        ComposioToolsResponse,
     };
 
     // Route via the mode-aware factory so the chat-agent's
@@ -38,7 +41,7 @@ pub(super) async fn fetch_connected_integrations_uncached(
     // a different set of toolkits). Resolving per call closes the
     // loop: `ComposioConfigChangedSubscriber` invalidates the cache on
     // toggle and the next miss re-populates it from the live tenant.
-    let kind = match create_composio_client(config) {
+    let kind = match resolve_composio_route(config) {
         Ok(kind) => kind,
         Err(e) => {
             tracing::debug!(
@@ -68,11 +71,13 @@ pub(super) async fn fetch_connected_integrations_uncached(
         Vec<super::super::types::ComposioToolSchema>,
         std::collections::HashMap<String, String>,
     ) = match &kind {
-        ComposioClientKind::Backend(client) => {
+        ComposioRoute::Backend => {
             let (allowlist, catalog_descriptions): (
                 Vec<String>,
                 std::collections::HashMap<String, String>,
-            ) = match client.list_toolkits().await {
+            ) = match connectors::call_bare::<ComposioToolkitsResponse>(config, methods::LIST_TOOLKITS)
+                .await
+            {
                 Ok(resp) => {
                     // Index the dynamic catalog's descriptions by lowercased
                     // slug so the prompt builder can prefer them over the
@@ -123,7 +128,12 @@ pub(super) async fn fetch_connected_integrations_uncached(
                 return Some(Vec::new());
             }
 
-            let connections = match client.list_connections().await {
+            let connections = match connectors::call_bare::<ComposioConnectionsResponse>(
+                config,
+                methods::LIST_CONNECTIONS,
+            )
+            .await
+            {
                 Ok(resp) => resp.connections,
                 Err(e) => {
                     tracing::warn!(
@@ -149,9 +159,16 @@ pub(super) async fn fetch_connected_integrations_uncached(
             let tools = if connected_slugs_for_tools.is_empty() {
                 Vec::new()
             } else {
-                match client
-                    .list_tools(Some(&connected_slugs_for_tools), None)
-                    .await
+                match connectors::call::<_, ComposioToolsResponse>(
+                    config,
+                    methods::LIST_TOOLS,
+                    ComposioListToolsRequest {
+                        toolkits: connected_slugs_for_tools.clone(),
+                        tags: Vec::new(),
+                        apply_user_scopes: false,
+                    },
+                )
+                .await
                 {
                     Ok(resp) => resp.tools,
                     Err(e) => {
@@ -165,7 +182,7 @@ pub(super) async fn fetch_connected_integrations_uncached(
 
             (allowlist, connections, tools, catalog_descriptions)
         }
-        ComposioClientKind::Direct(direct) => {
+        ComposioRoute::Direct(direct) => {
             // Direct mode: walk the user's personal Composio tenant
             // for *connection state* (active accounts on their key) —
             // there's no central allowlist in direct mode, so the
@@ -217,9 +234,9 @@ pub(super) async fn fetch_connected_integrations_uncached(
             // Best-effort: pull tool schemas via the backend client
             // (definitional source). Failure is non-fatal — we fall
             // back to empty tools and let lazy resolution handle it.
-            let tools = match super::super::client::build_composio_client(config) {
-                Some(backend_client) => {
-                    match backend_client.list_tools(Some(&allowlist), None).await {
+            let tools = match super::backend_tools::list_backend_tool_schemas(config, &allowlist) {
+                Some(pending) => {
+                    match pending.await {
                         Ok(resp) => {
                             tracing::debug!(
                             count = resp.tools.len(),
