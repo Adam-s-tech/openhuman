@@ -211,6 +211,22 @@ pub(super) fn ensure_recovery_tool_visible(
     }
 }
 
+/// The recovery tool, plus the REPL tools the handle preview names, for a belt.
+pub(super) fn ensure_tinyjuice_tools_visible(
+    visible: &mut std::collections::HashSet<String>,
+    agent_id: &str,
+    config: &crate::config::Config,
+) {
+    ensure_recovery_tool_visible(
+        visible,
+        config.context.compaction_enabled || summarizes_tool_output(agent_id, config),
+    );
+    ensure_repl_tools_visible(
+        visible,
+        crate::inference::tokenjuice::repl_handle_active(config),
+    );
+}
+
 /// Ensure the REPL tools (`juice_find`, `juice_extract`, `juice_summarize`) are
 /// members of a non-empty visibility allowlist while large results are stored
 /// behind a handle. The handle preview names them, so a curated
