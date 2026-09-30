@@ -198,8 +198,9 @@ fn sandbox_read_only_blocks_per_action_admin_call() {
 fn sandbox_unset_leaves_per_action_execute_to_downstream() {
     run_with_big_stack(|| async {
         use crate::config::TEST_ENV_LOCK;
-        let _env_guard = TEST_ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        // Lock order module -> env, matching the ops tests (no inversion).
         let _serialised = super::super::module_client::module_guard().await;
+        let _env_guard = TEST_ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
 
         let tmp = tempfile::tempdir().expect("tempdir");
         let _workspace_guard = WorkspaceEnvGuard::set(tmp.path());
@@ -382,11 +383,12 @@ fn mode_toggle_between_calls_is_observed() {
         // rewriting `OPENHUMAN_WORKSPACE/config.toml` between the two
         // halves while holding `TEST_ENV_LOCK`.
         use crate::config::TEST_ENV_LOCK;
-        let _env_guard = TEST_ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         // The module is one instance per process holding one route, and both
         // halves below reconfigure it. Without this they race any other test
-        // that also points it somewhere.
+        // that also points it somewhere. Taken before `TEST_ENV_LOCK`, the
+        // order the ops tests use, so the two never deadlock.
         let _serialised = super::super::module_client::module_guard().await;
+        let _env_guard = TEST_ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
 
         // ── Backend half ────────────────────────────────────────────
         let tmp_backend = tempfile::tempdir().expect("tempdir backend");
@@ -464,8 +466,9 @@ fn deferred_instance_returns_live_config_for_redaction() {
     run_with_big_stack(|| async {
         use crate::config::TEST_ENV_LOCK;
         use crate::integrations::composio::catalog::{seed_live_catalog_cache, ToolContract};
-        let _env_guard = TEST_ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        // Lock order module -> env, matching the ops tests (no inversion).
         let _serialised = super::super::module_client::module_guard().await;
+        let _env_guard = TEST_ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
 
         let toolkit = "deferredredact";
         let slug = "DEFERREDREDACT_FETCH_ITEMS";
