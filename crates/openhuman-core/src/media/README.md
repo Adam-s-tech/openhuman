@@ -14,9 +14,6 @@ thing the group tags is the `media_*` tool names (`tool_group()` in
   `crates/openhuman-core/src/tools/ops.rs` under `#[cfg(feature = "media")]`.
   The builder returns no tools when `integrations::build_client()` yields no
   `IntegrationClient` for the config.
-- [`image`](image/README.md), image tool contracts scaffold
-  (`image_generation`, `view_image`). Currently unwired (#2997); nothing
-  outside `media/image/` references its types.
 
 ## Gate
 
