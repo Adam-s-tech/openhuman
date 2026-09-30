@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 use tinyagents_harness::ids::TaskId;
 
 use super::registry::{registry, SubagentStatus};
-use super::resolve::{task_id_for_session, task_id_for_session_in_workspace};
+use super::resolve::task_id_for_session_in_workspace;
 use super::task_ledger::record_cancelled;
 
 /// Metadata captured when a sub-agent is cancelled, so the caller can surface

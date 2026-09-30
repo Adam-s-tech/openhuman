@@ -45,8 +45,6 @@
 use std::future::Future;
 use std::sync::Arc;
 
-use serde_json::Value;
-
 use super::super::observability::GraphTracingSink;
 
 use tinyagents_graph::delegation::{

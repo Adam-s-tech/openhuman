@@ -3,16 +3,14 @@
 use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
-use tinyinference_llm::message::{AssistantMessage, ContentBlock, MessageDelta};
+use tinyinference_llm::message::{AssistantMessage, ContentBlock};
 use tinyinference_llm::model::{
     ChatModel, ModelProfile, ModelRequest, ModelResponse, ModelStream, ModelStreamItem,
 };
-use tinyinference_llm::tool::{ToolCall as TaToolCall, ToolDelta};
+use tinyinference_llm::tool::{ToolCall as TaToolCall};
 use tinyinference_llm::usage::Usage;
-use tokio::sync::mpsc::UnboundedSender;
 
-use crate::agent::messages::ChatMessage;
-use crate::inference::provider::{ChatResponse, ProviderDelta, UsageInfo};
+use crate::inference::provider::{ChatResponse, UsageInfo};
 
 pub(super) type TurnChatModel = Arc<dyn ChatModel<()>>;
 pub(super) type TierRoutes = Vec<(String, TurnChatModel)>;

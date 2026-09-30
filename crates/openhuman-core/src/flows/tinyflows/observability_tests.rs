@@ -1,6 +1,4 @@
 use super::*;
-use serde_json::Value;
-use tinyflows::observability::RunStatus;
 
 #[test]
 fn step_status_maps_to_stable_strings() {
