@@ -44,7 +44,7 @@ Keeping the two surfaces in lockstep is enforced by the disabled-build check
 | `always_on.rs` (+ `always_on/processor.rs`, `always_on/capture.rs`, `always_on/lock_watcher.rs`, `always_on/transcribe.rs`) | Phase 2 always-on listening: keeps the mic open continuously and uses VAD to carve utterances instead of gating on a hotkey. Owns the `cpal` stream and thread discipline; everything else (VAD session, resample, energies, WAV encode, wake-word gate, command/intent routing) runs in the `tinyvoice` module. Opt-in (`config.voice_server.always_on_enabled`); pauses while the screen is locked (macOS only; other platforms have no lock signal yet). |
 | `bus.rs` | Publishes `DomainEvent::Voice(VoiceEvent::PttTranscriptCommitted)` via `publish_ptt_transcript_committed`. |
 | `compile_status.rs` | `VOICE_COMPILED_IN`: see the gate section above. |
-| `hotkey.rs` | rdev-based global hotkey listener; `ActivationMode` (Tap/Push), `HotkeyEvent`, `HotkeyCombination`, `parse_hotkey`, `start_listener`. |
+| `hotkey.rs` | Re-export of `tinyvoice::hotkey` (the `tinyvoice` library's off-by-default `hotkey` feature, which owns the `rdev` dependency): `ActivationMode` (Tap/Push), `HotkeyEvent`, `HotkeyCombination`, `parse_hotkey`, `start_listener`. Its tests live in tinyvoice. |
 | `audio_capture.rs` | cpal mic capture → 16 kHz mono WAV bytes; `RecordingHandle`, silence-gate ring buffer, peak-RMS reporting. Delegates framing/resample/energy math to `crate::modules::voice` (the `tinyvoice` module). |
 | `audio_toolkit/` | Podcast generation + email delivery (`audio_toolkit` RPC namespace), gated by the same `voice` feature. See its own [README](audio_toolkit/README.md). |
 | `text_input.rs` | Clipboard-paste text insertion (`insert_text`): writes clipboard then simulates Cmd/Ctrl+V via enigo, restoring prior clipboard. |
@@ -54,7 +54,7 @@ Keeping the two surfaces in lockstep is enforced by the disabled-build check
 | `realtime_harness.rs` (+ `realtime_harness/turn_handler.rs`, `realtime_harness/chat_delivery.rs`, `realtime_harness/agent.rs`, `realtime_harness/prompt.rs`) | `voice:harness` socket turn handler for realtime sessions: runs the local orchestrator agent (same brain as chat/meet) on each turn the backend relays from the ElevenLabs Custom-LLM proxy, streaming `voice:harness:delta` / `:done` / `:error` back. |
 | `stub.rs` | Disabled-voice facade compiled when `voice` is OFF; mirrors the real public surface with no-op / error bodies. |
 | `cli.rs` | `openhuman voice` / `openhuman dictate` subcommand adapter: runs a blocking standalone dictation server (domain-owned, since it blocks forever and doesn't fit the controller registry). |
-| `*_tests.rs` | Sibling test suites wired via `#[path = ...]` (no inline `#[cfg(test)] mod` blocks, since `pnpm rust:layout` rejects them): `always_on_tests.rs`, `audio_capture_tests.rs`, `bus_tests.rs`, `compile_status_tests.rs`, `dictation_listener_tests.rs`, `hotkey_tests.rs`, `ops_tests.rs`, `realtime_harness_tests.rs`, `realtime_tests.rs`, `reply_speech_tests.rs`, `schemas_tests.rs` (wired from `schemas/mod.rs`), `server_tests.rs`, `text_input_tests.rs`, `types_tests.rs`, `factory/factory_tests.rs`, `factory/stt_providers_tests.rs`, `audio_toolkit/ops_tests.rs`. |
+| `*_tests.rs` | Sibling test suites wired via `#[path = ...]` (no inline `#[cfg(test)] mod` blocks, since `pnpm rust:layout` rejects them): `always_on_tests.rs`, `audio_capture_tests.rs`, `bus_tests.rs`, `compile_status_tests.rs`, `dictation_listener_tests.rs`, `ops_tests.rs`, `realtime_harness_tests.rs`, `realtime_tests.rs`, `reply_speech_tests.rs`, `schemas_tests.rs` (wired from `schemas/mod.rs`), `server_tests.rs`, `text_input_tests.rs`, `types_tests.rs`, `factory/factory_tests.rs`, `factory/stt_providers_tests.rs`, `audio_toolkit/ops_tests.rs`. |
 
 ## Public surface
 
@@ -145,7 +145,7 @@ transcription count, rolling recent-transcript buffer for context) behind a
 - `crate::backend` — `BackendClient`, `backend::base_url` (asks the installed transport); `security::credentials::session_support::get_session_token` for backend-proxied reply-speech and the realtime signed-URL bootstrap.
 - `crate::modules::voice` (`tinyvoice`) — see Contract crates above.
 - `crate::core::all` (`ControllerFuture`, `RegisteredController`), `crate::core::{ControllerSchema, FieldSchema, TypeSchema}`, `crate::core::bus::BUS` + `crate::core::events` (event publishing), `crate::core::logging` (CLI run init), and `crate::rpc::RpcOutcome`.
-- External crates: `cpal` (capture), `rdev` (hotkeys), `enigo` + `arboard` (paste insertion), `reqwest` (external provider HTTP + realtime bootstrap), `tokio`/`tokio-util`, `once_cell`.
+- External crates: `cpal` (capture), `tinyvoice` (hotkeys, via its `rdev`-backed `hotkey` feature), `enigo` + `arboard` (paste insertion), `reqwest` (external provider HTTP + realtime bootstrap), `tokio`/`tokio-util`, `once_cell`.
 
 ## Used by
 
