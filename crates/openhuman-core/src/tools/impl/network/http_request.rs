@@ -1,8 +1,8 @@
-use super::url_guard::{normalize_allowed_domains, validate_url_with_dns_check};
 use crate::config::HttpRequestConfig;
 use crate::security::{CommandClass, GateDecision, SecurityPolicy};
 use async_trait::async_trait;
 use tinytools::{PermissionLevel, Tool, ToolResult};
+use tinytools_std::url_guard::{normalize_allowed_domains, validate_url_with_dns_check};
 // Only used by the `web3`-gated x402 402-retry path below.
 #[cfg(feature = "web3")]
 use base64::engine::Engine as _;
@@ -88,7 +88,9 @@ impl HttpRequestTool {
     }
 
     async fn validate_url(&self, raw_url: &str) -> anyhow::Result<String> {
-        validate_url_with_dns_check(raw_url, &self.allowed_domains).await
+        validate_url_with_dns_check(raw_url, &self.allowed_domains)
+            .await
+            .map(|v| v.url)
     }
 
     fn validate_method(&self, method: &str) -> anyhow::Result<reqwest::Method> {
@@ -184,23 +186,9 @@ impl HttpRequestTool {
             .await
             .map_err(|e| format!("x402 payment failed: {e}"))?;
 
-        let record = x402::PaymentRecord {
-            id: uuid::Uuid::new_v4().to_string(),
-            url: payment_result.url.clone(),
-            asset: payment_result.asset.clone(),
-            amount_atomic: payment_result.amount_atomic,
-            amount_display: format!(
-                "{:.6} USDC",
-                payment_result.amount_atomic as f64 / 1_000_000.0
-            ),
-            recipient: payment_result.recipient.clone(),
-            network: payment_result.network.clone(),
-            tx_signature: None,
-            status: x402::PaymentStatus::Pending,
-            timestamp: chrono::Utc::now(),
-            session_id: String::new(),
-        };
-
+        // Stamped with the ledger's session and the active chat thread, exactly as
+        // the `x402_request` tool stamps its own.
+        let record = x402::pending_record(&payment_result);
         let record_id = record.id.clone();
         let _ = x402::store::with_ledger_mut(|l| l.record_payment(record));
 

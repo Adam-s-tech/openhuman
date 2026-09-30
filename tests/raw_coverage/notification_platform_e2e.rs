@@ -1,4 +1,3 @@
-#![cfg(any())] // TODO(#6382): migrate this legacy TinyAgents fixture to the hosted public API.
 
 //! End-to-end coverage for the notification centre and the small platform namespaces that had no
 //! e2e target at all: `notification` (7 uncovered), `health` (2), `doctor` (2), `service`'s
@@ -161,7 +160,8 @@ async fn mock_announcements_latest(
                 "id": "ann-1",
                 "title": "Scheduled maintenance",
                 "body": "The backend is being upgraded.",
-                "severity": "info"
+                "severity": "INFO",
+                "createdAt": "2026-01-01T00:00:00Z"
             }
         }))),
         AnnouncementMode::NotFound => Err((
@@ -1526,7 +1526,7 @@ async fn announcements_get_latest_passes_through_and_folds_404_to_null() {
         result.get("title").and_then(Value::as_str),
         Some("Scheduled maintenance")
     );
-    assert_eq!(result.get("severity").and_then(Value::as_str), Some("info"));
+    assert_eq!(result.get("severity").and_then(Value::as_str), Some("INFO"));
     h.stop();
 
     // ── signed in, backend 404: folded into `null`, not surfaced as an error.

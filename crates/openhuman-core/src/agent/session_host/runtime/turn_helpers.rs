@@ -4,8 +4,8 @@
 use super::super::types::OpenHumanSessionHost;
 use crate::agent::error::AgentError;
 use crate::agent::messages::ConversationMessage;
-use crate::inference::provider::ToolCall;
 use crate::util::truncate_with_ellipsis;
+use tinytools_agent::dialect::NativeToolCall;
 use tinytools_agent::ParsedToolCall;
 
 impl OpenHumanSessionHost {
@@ -107,7 +107,7 @@ impl OpenHumanSessionHost {
         parsed_calls
     }
 
-    /// Converts parsed tool calls into the provider-standard `ToolCall` format.
+    /// Converts parsed tool calls into the provider-standard `NativeToolCall` format.
     ///
     /// If the provider response already contains native tool calls, they are
     /// returned as-is.
@@ -115,7 +115,7 @@ impl OpenHumanSessionHost {
         response: &crate::inference::provider::ChatResponse,
         parsed_calls: &[ParsedToolCall],
         iteration: usize,
-    ) -> Vec<ToolCall> {
+    ) -> Vec<NativeToolCall> {
         if !response.tool_calls.is_empty() {
             return response.tool_calls.clone();
         }
@@ -123,7 +123,7 @@ impl OpenHumanSessionHost {
         parsed_calls
             .iter()
             .enumerate()
-            .map(|(idx, call)| ToolCall {
+            .map(|(idx, call)| NativeToolCall {
                 id: call
                     .id
                     .clone()

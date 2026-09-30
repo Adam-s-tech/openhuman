@@ -42,6 +42,7 @@ const MAX_RPC_BODY_BYTES: usize = 64 * 1024 * 1024;
 /// 2. `rpc_auth_middleware`   — validates `Authorization: Bearer <token>` on protected paths
 /// 3. `http_request_log_middleware` — logs non-RPC HTTP requests with timing
 pub fn build_core_http_router(socketio_enabled: bool) -> Router {
+    crate::http_host::ensure_registered();
     let router = Router::new()
         .route("/", get(root_handler))
         .route("/health", get(health::health_handler))

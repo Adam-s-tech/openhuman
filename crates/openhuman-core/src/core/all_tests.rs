@@ -252,7 +252,7 @@ fn inference_engine_compiled_in_when_feature_on() {
 #[test]
 #[cfg(not(feature = "inference"))]
 fn inference_engine_compiled_out_when_feature_off() {
-    use crate::desktop::accessibility::{detect_microphone_permission, PermissionState};
+    use tinycomputer_accessibility::{detect_microphone_permission, PermissionState};
     assert!(!crate::inference::INFERENCE_COMPILED_IN);
     assert_eq!(
         detect_microphone_permission(),
@@ -1292,33 +1292,6 @@ fn http_server_compiled_out_when_feature_off() {
     assert!(!crate::core::http_server_status::HTTP_SERVER_COMPILED_IN);
 }
 
-/// With `http-server` on, the `http_host` static-directory server registers its
-/// controllers, so the `http_host.*` RPC surface is present in `/schema`.
-#[test]
-#[cfg(feature = "http-server")]
-fn http_host_controllers_registered_when_http_server_on() {
-    let schemas = all_controller_schemas();
-    assert!(
-        schemas.iter().any(|s| s.namespace == "http_host"),
-        "`http_host` controllers must be registered when the `http-server` feature is on"
-    );
-}
-
-/// With `http-server` off, the whole `http_host` axum domain is compiled out and
-/// its controller-registration push in `core::all` is gated in lockstep, so the
-/// `http_host` namespace never enters the registry (unknown-method over `/rpc`,
-/// absent from `/schema`). This is the negative half that proves the gate
-/// removes the surface.
-#[test]
-#[cfg(not(feature = "http-server"))]
-fn http_host_controllers_absent_when_http_server_off() {
-    let schemas = all_controller_schemas();
-    assert!(
-        !schemas.iter().any(|s| s.namespace == "http_host"),
-        "`http_host` controllers must be compiled out when the `http-server` feature is off"
-    );
-}
-
 // ---- DomainGroup ↔ family-directory realignment ----------------------------
 // The reorg (#5328) made `crates/openhuman-core/src/` one directory per family, so the
 // runtime axis can finally name each one instead of sweeping half the surface
@@ -1373,8 +1346,9 @@ fn platform_holds_only_kernel_surfaces() {
         .filter(|g| g.group == DomainGroup::Platform)
         .map(|g| g.controller.schema.namespace)
         .collect();
-    // Namespaces legitimately without a family: platform/, tools/, http_host/,
-    // test_support/. Anything else here is a missed tag.
+    // Namespaces legitimately without a family: platform/, tools/,
+    // test_support/, and the `http_host` extension `openhuman-rpc` registers.
+    // Anything else here is a missed tag.
     for ns in &platform {
         assert!(
             !matches!(
@@ -1758,6 +1732,14 @@ const MEMORY_FUNCTION_CAPABILITY: &[(&str, Option<Capability>)] = &[
     ("learn_all", Some(Capability::Tree)),
     // never gated: this is the RPC that reports the capability set
     ("provider_status", None),
+    // Engine selection and migration controls must remain visible even when
+    // the selected driver lacks optional memory capability families.
+    ("engines_list", None),
+    ("engine_get", None),
+    ("engine_set", None),
+    ("engine_migrate", None),
+    ("engine_migrate_status", None),
+    ("engine_migrate_cancel", None),
     // per-tool learned memory
     ("tool_rule_put", Some(Capability::ToolMemory)),
     ("tool_rule_get", Some(Capability::ToolMemory)),

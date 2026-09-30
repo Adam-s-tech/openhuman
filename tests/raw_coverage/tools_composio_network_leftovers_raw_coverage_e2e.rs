@@ -23,7 +23,7 @@ use openhuman_core::security::SecurityPolicy;
 use tinytools::{Tool, ToolCallOptions};
 use openhuman_core::tools::{
     ComposioAuthorizeTool, ComposioListConnectionsTool, ComposioListToolkitsTool,
-    ComposioListToolsTool, ComposioTool, SpawnSubagentTool};
+    ComposioListToolsTool, SpawnSubagentTool};
 
 static ENV_LOCK: &OnceLock<Mutex<()>> = &crate::SHARED_ENV_LOCK;
 
@@ -337,129 +337,6 @@ async fn round20_composio_ops_cover_authorize_scopes_and_direct_factory_edges() 
             .as_str()
             .unwrap_or_default()
             .contains("gmail.readonly")));
-}
-
-#[tokio::test]
-async fn round20_direct_composio_tool_covers_fallback_sanitizing_and_account_edges() {
-    let _lock = env_lock();
-    let state = MockState::default();
-    let base = start_loopback(
-        Router::new()
-            .fallback(any(composio_direct_handler))
-            .with_state(state.clone()),
-    )
-    .await;
-    let tool = ComposioTool::new_with_base_urls_for_loopback(
-        " ck_round20 ",
-        Some(" entity-round20 "),
-        Arc::new(SecurityPolicy::default()),
-        format!("{base}/api/v2"),
-        format!("{base}/api/v3"),
-    )
-    .expect("loopback direct composio tool");
-
-    let insecure_base_error = match ComposioTool::new_with_base_urls_for_loopback(
-        "ck",
-        None,
-        Arc::new(SecurityPolicy::default()),
-        "http://example.invalid/api/v2".to_string(),
-        format!("{base}/api/v3"),
-    ) {
-        Ok(_) => panic!("non-loopback http refused"),
-        Err(error) => error.to_string(),
-    };
-    assert!(insecure_base_error.contains("loopback HTTP"));
-
-    assert!(!tool.external_effect_with_args(&json!({ "action": "list" })));
-    assert!(!tool.external_effect_with_args(&json!({ "action": "connect" })));
-    assert!(tool.external_effect_with_args(&json!({ "action": "execute" })));
-
-    let actions = tool
-        .list_actions(Some(" gmail "))
-        .await
-        .expect("v3 list actions");
-    assert_eq!(actions.len(), 2);
-
-    let fallback_actions = tool
-        .list_actions(Some("fallback"))
-        .await
-        .expect("v2 action fallback");
-    assert_eq!(fallback_actions[0].name, "FALLBACK_V2");
-
-    let failed_list = tool
-        .list_actions(Some("broken"))
-        .await
-        .expect_err("v3 and v2 list fail")
-        .to_string();
-    assert!(failed_list.contains("v3"));
-    assert!(failed_list.contains("v2 fallback"));
-
-    let exec = tool
-        .execute(json!({
-            "action": "execute",
-            "action_name": "GMAIL_FETCH_EMAILS",
-            "params": { "query": "label:INBOX" },
-            "connected_account_id": "acct-gmail"
-        }))
-        .await
-        .expect("tool execute");
-    assert!(!exec.is_error);
-    assert!(exec.output().contains("msg-round20"));
-
-    let failed_exec = tool
-        .execute_action(
-            "BROKEN_ACTION",
-            json!({ "user_id": "secret-user", "connected_account_id": "secret-account" }),
-            Some("secret-user"),
-            Some("secret-account"),
-        )
-        .await
-        .expect_err("execute failure redacts sensitive field names")
-        .to_string();
-    assert!(failed_exec.contains("[redacted]"));
-    assert!(!failed_exec.contains("connected_account_id"));
-    assert!(!failed_exec.contains("user_id"));
-
-    let missing_auth_config = tool
-        .get_connection_url(Some("missing"), None, "entity-round20")
-        .await
-        .expect_err("missing auth config");
-    assert!(missing_auth_config
-        .to_string()
-        .contains("No auth config found"));
-
-    let connected_accounts = tool
-        .list_connected_accounts()
-        .await
-        .expect("connected accounts");
-    assert_eq!(connected_accounts.len(), 3);
-    assert_eq!(
-        connected_accounts[0].toolkit_slug().as_deref(),
-        Some("gmail")
-    );
-    assert_eq!(
-        connected_accounts[1].toolkit_slug().as_deref(),
-        Some("github")
-    );
-    assert_eq!(
-        connected_accounts[2].toolkit_slug().as_deref(),
-        Some("slack")
-    );
-
-    let requests = state.requests.lock().expect("requests").clone();
-    assert!(requests.iter().all(|request| {
-        request.api_key.as_deref() == Some("ck_round20") || request.path == "/health"
-    }));
-    assert!(requests.iter().any(|request| {
-        request.method == Method::GET
-            && request.path == "/api/v3/tools"
-            && request.query.contains("toolkits=gmail")
-    }));
-    assert!(requests.iter().any(|request| {
-        request.method == Method::POST
-            && request.path == "/api/v3/tools/execute/GMAIL_FETCH_EMAILS"
-            && request.body.pointer("/connected_account_id") == Some(&json!("acct-gmail"))
-    }));
 }
 
 #[tokio::test]

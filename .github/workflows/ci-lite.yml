@@ -678,8 +678,8 @@ jobs:
           # and leave a stale digest that only fails after the download. Both values
           # are the ubuntu-22.04-x86_64 row of `crates/openhuman-core/src/modules/registry.rs`,
           # which is the authoritative pin — copy them from there, never recompute.
-          memory_version="1.16.2"
-          memory_sha256="dd6aed6050e6acdd762583bcc44030f967f56e9022c9cad4b29d935eec4af78c"
+          memory_version="1.17.0"
+          memory_sha256="0b0305bddbee09b3fe9965395fe9d006526f0c0c2ffd777d6e78747b2cfcff35"
           module_root="/opt/openhuman-test-modules/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           memory_dir="$module_root/tinymemory"
           juice_dir="$module_root/tinyjuice"
@@ -719,11 +719,18 @@ jobs:
           echo "TINYSEARCH_TEST_MODULE=$search_dir/libtinysearch.so" \
             >> "$GITHUB_ENV"
 
-      - name: Run TinyJuice host-module regression
+      - name: Run module-gated Rust tests
+        run: bash scripts/ci/run-module-gated-tests.sh
+        env:
+          CARGO_BUILD_JOBS: "1"
+
+      - name: Run ignored TinyJuice tool-output regression
         run: |
-          cargo test --lib --features modules \
-            openhuman::agent::tinyagents::middleware::tests::tool_output_tabulates_a_large_graph_for_a_non_exempt_tool \
-            -- --ignored --exact
+          test_path="agent::tinyagents::middleware::tests::tool_output_tests::compaction_tests::tool_output_tabulates_a_large_graph_for_a_non_exempt_tool"
+          bash scripts/ci-cancel-aware.sh cargo test -p openhuman --lib --features modules -- --ignored --list \
+            | grep -Fx "${test_path}: test"
+          bash scripts/ci-cancel-aware.sh cargo test -p openhuman --lib \
+            --features modules "${test_path}" -- --ignored --exact --test-threads=1
         env:
           CARGO_BUILD_JOBS: "1"
 

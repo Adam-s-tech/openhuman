@@ -15,7 +15,6 @@ use crate::agent::harness::definition::SandboxMode;
 use crate::config::Config;
 use tinytools::{PermissionLevel, Tool, ToolCategory, ToolResult};
 
-use super::super::client::create_composio_client;
 use super::super::ops::load_user_scope_pref;
 use super::super::providers::{toolkit_from_slug, ToolScope};
 use super::visibility::{
@@ -35,8 +34,8 @@ pub struct ComposioExecuteTool {
     /// pre-baked client kept routing executions through
     /// `staging-api.tinyhumans.ai/agent-integrations/composio/execute`
     /// — silently bypassing the direct-mode user's personal Composio
-    /// tenant. Resolving the client per call via
-    /// [`create_composio_client`] keeps dispatch in lockstep with the
+    /// tenant. Resolving the route per call in
+    /// the connector module keeps dispatch in lockstep with the
     /// live config, matching
     /// [`crate::integrations::composio::ops::composio_execute`]. See
     /// issue #1710.
@@ -272,25 +271,15 @@ impl ComposioExecuteTool {
                 );
             }
         };
-        let kind = match create_composio_client(&live_config) {
-            Ok(kind) => kind,
-            Err(e) => {
-                tracing::warn!(error = %e, "[composio] tool execute.execute: factory failed");
-                return (
-                    live_config,
-                    Ok(ToolResult::error(format!("composio_execute failed: {e}"))),
-                );
-            }
-        };
-
         let started = std::time::Instant::now();
-        // Centralized prepare → retry → error-mapping pipeline (#1797),
-        // mode-aware over the backend/direct split (#1710).
-        let res = super::super::execute_dispatch::execute_composio_action_kind(
-            kind,
+        // Egress gate + module call (prepare -> retry -> error mapping run in
+        // the connector module, mode-aware over the backend/direct split
+        // (#1710, #1797)).
+        let res = super::super::execute_dispatch::execute_composio_action(
+            &live_config,
             &tool,
             arguments,
-            &live_config.composio.entity_id,
+            None,
         )
         .await;
         let elapsed_ms = started.elapsed().as_millis() as u64;

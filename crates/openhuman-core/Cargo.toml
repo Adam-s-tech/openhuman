@@ -80,6 +80,10 @@ crate-type = ["rlib"]
 # Optional: exclusive to the default-ON `flows` feature (#4797). A slim build
 # without `flows` drops this crate and its `jaq-*` JSON-query stack entirely.
 tinyflows = { version = "0.8", features = ["mock"], optional = true }
+# Schedule model + pure next-run logic for the `cron::` domain (cron expressions,
+# time zones, active hours, cadence floor). Unconditional: the cron scheduler is
+# not behind the `flows` gate. Runtime, store and config stay in `cron::`.
+tinyflows-schedule = { path = "../../vendor/tinyflows/crates/tinyflows-schedule" }
 # The saved-flow catalog and its SQLite backend, split out of this crate's
 # `flows::` domain so a second host storing workflows does not have to reinvent
 # them. `tinyflows-catalog` is the model (flows, revisions, runs, drafts,
@@ -139,7 +143,14 @@ tinyflows-copilot = { path = "../../vendor/tinyflows/crates/tinyflows-copilot", 
 tinyagents-harness = { path = "../../vendor/tinyagents/crates/tinyagents-harness", features = [
     "sqlite",
     "multimodal",
+    "builtin-tools",
 ] }
+# Per-process directory jail (Landlock / Seatbelt / AppContainer / noop). Owned by
+# tinybox; OpenHuman keeps only the policy of when to jail (`sandbox::ops`).
+tinybox-jail = { path = "../../vendor/tinybox/crates/tinybox-jail" }
+# Quote-aware shell command-string scanners (`tinybox_core::shell::scan`); the
+# classification policy built on them stays in `security::policy`.
+tinybox-core = { path = "../../vendor/tinybox/crates/tinybox-core" }
 tinyagents-definition = { path = "../../vendor/tinyagents/crates/tinyagents-definition" }
 tinyagents-graph = { path = "../../vendor/tinyagents/crates/tinyagents-graph", features = [
     "sqlite",
@@ -171,6 +182,7 @@ tinyinference-voice = { path = "../../vendor/tinyagents/vendor/tinyinference/cra
 # crates. After cloning: `git submodule update --init --recursive vendor/`.
 tinytools = { path = "../../vendor/tinyagents/vendor/tinytools/crates/tinytools" }
 tinytools-agent = { path = "../../vendor/tinyagents/vendor/tinytools/crates/tinytools-agent" }
+tinytools-std = { path = "../../vendor/tinyagents/vendor/tinytools/crates/tinytools-std" }
 # The memory *contract* — value types, the thirteen capability families, the
 # `MemoryProvider` driver trait, and the null reference driver. A direct path
 # dependency rather than a re-export, because `tinycortex::memory` aliases back
@@ -216,12 +228,25 @@ tinytools-agent = { path = "../../vendor/tinyagents/vendor/tinytools/crates/tiny
 #
 # After cloning: `git submodule update --init --recursive vendor/tinyruntime`.
 tinyruntime-bus = { path = "../../vendor/tinyruntime/crates/tinyruntime-bus" }
+#
+# `tinyruntime-pyserver` is the one library crate of that repository the core
+# links: the persistent Python worker (spaCy, Kompress) that
+# `runtime::python_server` hosts. It is a pure library (no bus, no module), so
+# it needs no registry record; it carries only `serde`, `tokio` and `tracing`,
+# which this manifest already has. The pin is the tinyruntime module pin plus
+# the crate itself; see `scripts/ci/module-pin-exemptions.json`.
+tinyruntime-pyserver = { path = "../../vendor/tinyruntime/crates/tinyruntime-pyserver" }
 
 # The `tinymemory` facade is gone: no file in `src/` ever named it. It was
 # kept for driver admission, but `memory::binding::admit` is pure string
 # matching against `MODULE_ID` and refuses `DriverClass::Embedded` outright,
 # so nothing here resolves an engine through the facade's registry.
 tinymemory-api = { path = "../../vendor/tinymemory/crates/tinymemory-api" }
+# The engine factory + migration over every remote engine (deliberately NOT the
+# in-memory `tinycortex` one, which would link the embedded engine), over the same `tinymemory-api`. Optional: only
+# the `memory-remote` gate (remote memory engines: TinyHumans-hosted CortexDB,
+# Supermemory, Mem0, Cognee, CortexDB, AgentMemory) links the HTTP adapter.
+tinymemory = { path = "../../vendor/tinymemory/crates/tinymemory", default-features = false, features = ["factory", "supermemory", "mem0", "cognee", "cortex", "agentmemory", "tinyhumans"], optional = true }
 # tinyconnectors-bus — the OAuth connector wire contract
 # (https://github.com/tinyhumansai/tinyconnectors). Payload types and member
 # names for the connector surface, with no transport and no behaviour: this
@@ -238,6 +263,10 @@ tinyconnectors-bus = { path = "../../vendor/tinyconnectors/crates/tinyconnectors
 # directly (EXTRACT_ENTITIES, EMBED_TEXT, EMBEDDER_SLUG) — prefer compile
 # errors on renaming over MemberNotFound at runtime.
 tinymemory-bus = { path = "../../vendor/tinymemory/crates/tinymemory-bus" }
+# `tinymemory-conversations` is the workspace conversation store (JSONL
+# threads/messages, cross-thread inverted index). A pure library: serde,
+# parking_lot, uuid, chrono, async-trait, sha2. No SQLite/HTTP/engine crate.
+tinymemory-conversations = { path = "../../vendor/tinymemory/crates/tinymemory-conversations" }
 # `tinymemory-sources` is the source registry, its types and its readers, in a
 # crate of its own. Taken directly rather than through `tinymemory-core`
 # (OpenHuman#5560): `tinymemory_core::sources` is a thin layer over it —
@@ -308,6 +337,8 @@ tinymcp-bus = { path = "../../vendor/tinymcp/crates/tinymcp-bus", features = ["s
 # vocabulary is always-on kernel surface. It costs serde/schemars and nothing
 # this build did not already have.
 tinychannels-bus = { version = "0.1", path = "../../vendor/tinychannels/crates/tinychannels-bus" }
+# `CliChannel` (always compiled) and the channel runtime helpers.
+tinychannels-runtime = { version = "0.1", path = "../../vendor/tinychannels/crates/tinychannels-runtime" }
 # The provider stack that IMPLEMENTS that vocabulary — Telegram, Discord,
 # Slack, IMAP, WhatsApp, the relay transport loop. Optional: it owns the
 # `reqwest` / `rusqlite` / `rustls` / `tokio-tungstenite` cohort, which a
@@ -338,6 +369,13 @@ tinychannels = { version = "0.1", features = ["relay-websocket"], optional = tru
 tinybus = { path = "../../vendor/tinybus/crates/tinybus", default-features = false, features = ["macros", "uds"] }
 tinysearch-bus = { path = "../../vendor/tinysearch/crates/tinysearch-bus" }
 tinycomputer-bus = { path = "../../vendor/tinycomputer/crates/tinycomputer-bus", optional = true }
+# Desktop accessibility middleware, linked as a plain library (not through the
+# tinycomputer module): the voice pipeline needs focus lookup, paste validation,
+# permission checks and the Globe key synchronously and in-process. Deps are
+# serde, serde_json and log; `cpal` only via the `inference` gate. The
+# submodule pin sits on `oh-accessibility-on-v0.7.0` (v0.7.0 + this crate) — see
+# scripts/ci/module-pin-exemptions.json.
+tinycomputer-accessibility = { path = "../../vendor/tinycomputer/crates/tinycomputer-accessibility" }
 # Portable skill metadata, parsing, discovery, and filesystem hardening.
 tinyskills = { path = "../../vendor/tinyskills/crates/tinyskills" }
 serde = { version = "1", features = ["derive"] }
@@ -416,7 +454,6 @@ futures = "0.3"
 rusqlite = { version = "=0.40.2", features = ["bundled"] }
 chrono = { version = "0.4", features = ["serde"] }
 iana-time-zone = "0.1"
-cron = "0.12"
 futures-util = "0.3"
 directories = "6"
 toml = "1.0"
@@ -427,7 +464,6 @@ tracing-subscriber = { version = "0.3", default-features = false, features = ["f
 tracing-appender = { version = "0.2", optional = true }
 urlencoding = "2.1"
 thiserror = "2.0"
-chrono-tz = "0.10"
 dotenvy = "0.15"
 regex = "1.10"
 # Multi-pattern fixed-string DFA matcher used by `routing::quality` for
@@ -437,14 +473,13 @@ regex = "1.10"
 # version pin and the import isn't an unstable transitive surface.
 aho-corasick = "1.1"
 walkdir = "2"
-glob = "0.3"
 hostname = "0.4.2"
 rustls = { version = "0.23", default-features = false, features = ["ring"] }
 sysinfo = { version = "0.33", default-features = false, features = ["system"] }
 keyring = { version = "3", features = ["apple-native", "windows-native", "linux-native"] }
 lettre = { version = "0.11.22", default-features = false, features = ["builder", "smtp-transport", "rustls-tls"], optional = true }
 # HTTP server framework for the domain-owned routes (`/v1`, dictation, the MCP
-# HTTP transport, `http_host`). Exclusive to the default-ON `http-server`
+# HTTP transport). Exclusive to the default-ON `http-server`
 # feature (#5048); the JSON-RPC server that mounts them lives in
 # `openhuman-rpc`. See the `http-server` feature note below and
 # `crates/openhuman-core/src/core/http_server_status.rs`.
@@ -453,10 +488,8 @@ sentry = { version = "0.47.0", default-features = false, optional = true, featur
 tokio-stream = { version = "0.1.18", default-features = false, features = ["sync"] }
 url = "2"
 tempfile = "3"
-cpal = { version = "0.15", optional = true }
 enigo = { version = "0.3", optional = true }
 arboard = { version = "3", optional = true }
-rdev = { version = "0.5", optional = true }
 fs2 = "0.4"
 # Cross-platform battery probe for the scheduler gate. Maintained fork of
 # the abandoned `battery` crate; same `use battery::*;` API surface. Used
@@ -469,8 +502,6 @@ starship-battery = { version = "0.10", optional = true }
 # - bs58: Solana base58 addresses + Tron base58check addresses.
 ed25519-dalek = { version = "2", default-features = false, features = ["std", "rand_core"] }
 bs58 = { version = "0.5", default-features = false, features = ["std", "check"] }
-# Solana off-curve check for ATA derivation (find_program_address).
-curve25519-dalek = { version = "4", default-features = false, features = ["alloc"], optional = true }
 
 # The WhatsApp Web provider (and its `whatsapp-rust` / `wacore` / `serde-big-array`
 # stack) now lives in the tinychannels crate; the `whatsapp-web` feature forwards
@@ -519,6 +550,11 @@ tinydocs-bus = { path = "../../vendor/tinydocs/crates/tinydocs-bus", optional = 
 # Optional: exclusive to the `voice` feature — default-OFF, product-ON, the
 # same split as `documents` above.
 tinyvoice-bus = { path = "../../vendor/tinyvoice/crates/tinyvoice-bus", optional = true }
+# The global push-to-talk hotkey listener (`voice::hotkey`) and the `cpal`
+# microphone capture (`voice::audio_capture`, `voice::always_on`) live in the
+# `tinyvoice` library behind its off-by-default `hotkey` and `capture` features (it owns the
+# `rdev` dependency). Linked as a library, not loaded as the module.
+tinyvoice = { path = "../../vendor/tinyvoice/crates/tinyvoice", default-features = false, features = ["hotkey", "capture"], optional = true }
 
 # TinyJuice — the compression wire contract, and nothing else.
 #
@@ -616,6 +652,14 @@ tinyhosts = { path = "../../vendor/tinyhosts", default-features = false, feature
 # derive a known account. Dev-dependency features are not linked into the
 # shipped binary, so that does not undo the shed.
 tinywallet-bus = { path = "../../vendor/tinywallet/crates/tinywallet-bus", default-features = false, features = ["btc", "evm", "solana", "tron", "keccak", "net", "wire", "eip712", "abi", "tx-codec"], optional = true }
+# The x402 payment flow (402 challenge, EVM/Solana payment builders, the
+# spending ledger, the `x402_request` tool), moved out of `web3/x402`. The host
+# keeps signing, proxy policy and RPC controllers and hands them in as seams.
+tinywallet-x402 = { path = "../../vendor/tinywallet/crates/tinywallet-x402", default-features = false, features = ["wire", "pay", "ledger", "tools"], optional = true }
+# The wallet engine and the swap/bridge/dapp service, moved out of `web3/`.
+# The host implements its seams (signer, accounts, RPC endpoints, quote scope,
+# backend) and keeps the controllers, keyring and consent.
+tinywallet-web3 = { path = "../../vendor/tinywallet/crates/tinywallet-web3", default-features = false, features = ["tools"], optional = true }
 
 # secp256k1 signing over the digests the wallet module hands back. Pure Rust,
 # and already in the graph beneath `coins-bip32` (which derives the key being
@@ -634,10 +678,8 @@ tokio-tungstenite = { version = "0.29", default-features = false, features = ["c
 # above. Cargo unions these features with the base rustls decl, so on Windows
 # reqwest carries both backends; Linux/macOS keep rustls only.
 reqwest = { version = "0.12", default-features = false, features = ["native-tls"] }
-# AppContainer / process-jail backend in `openhuman::cwd_jail`.
-# Feature list mirrors the Win32 surface used by cwd_jail/windows.rs:
-# AppContainer profile APIs, ACL editing, STARTUPINFOEXW process spawn,
-# and the GENERIC_* file access masks.
+# Win32 surface for host code (e.g. atomic file replace in turn_state). The
+# AppContainer jail backend lives in `tinybox-jail` with its own windows-sys.
 windows-sys = { version = "0.61", features = [
     "Win32_Foundation",
     "Win32_Security",
@@ -652,9 +694,6 @@ windows-sys = { version = "0.61", features = [
 # macOS / Linux: keep rustls + Mozilla webpki-roots — the historical
 # default. Avoids pulling OpenSSL as a runtime dep on Linux.
 tokio-tungstenite = { version = "0.29", default-features = false, features = ["connect", "handshake", "rustls-tls-webpki-roots"] }
-
-[target.'cfg(target_os = "linux")'.dependencies]
-landlock = { version = "0.4", optional = true }
 
 [dev-dependencies]
 # Turns on `tinyflows-sqlite`'s `test-fixtures` gate for test builds only: the
@@ -760,10 +799,9 @@ proptest = "1"
 # (`modules`: Contrib=ON, Product=ON) and with `scripts/ci/product-features.txt`,
 # which already lists it. This does NOT move the kernel floor: that profile is
 # `--no-default-features --features flows` and never reads this list.
-default = ["media", "skills", "flows", "mcp", "channels", "http-server", "scheduler-gate", "file-logging", "modules"]
+default = ["media", "skills", "flows", "mcp", "channels", "http-server", "scheduler-gate", "file-logging", "modules", "memory-remote"]
 # The core's domain-owned HTTP surfaces (#5048): the `/v1` OpenAI-compatible
-# router (`inference::http`), the ad-hoc static-dir file server
-# (`openhuman::http_host`), the WebSocket dictation handler
+# router (`inference::http`), the WebSocket dictation handler
 # (`voice::streaming`), the `openhuman text-input run` dev server, and the MCP
 # Streamable-HTTP transport (`mcp::server::http`, additionally gated by `mcp`).
 # The JSON-RPC server that mounts them — `/rpc`, auth, CORS, SSE, Socket.IO,
@@ -806,8 +844,9 @@ default = ["media", "skills", "flows", "mcp", "channels", "http-server", "schedu
 # TinyMCP HTTP serving is kept optional with the rest of this server surface.
 # Keep vendor/tinymcp pinned to a revision that defines `server-http`.
 http-server = ["dep:axum", "tinymcp/server-http"]
-# Local audio-device access: the `cpal` capture stack behind voice recording
-# and the accessibility microphone-permission probe. Default-ON. Slim /
+# Local audio-device access: the accessibility microphone-permission probe
+# (which links `cpal`). The capture stack for voice recording itself is the
+# `tinyvoice` library's `capture` feature, enabled by `voice` below. Default-ON. Slim /
 # headless builds opt out via `--no-default-features --features "<explicit list
 # without inference>"`, which drops the exclusive `cpal` dependency; the
 # microphone probe then reports `Unknown`. `voice` requires this gate, so
@@ -819,10 +858,10 @@ http-server = ["dep:axum", "tinymcp/server-http"]
 # only (`voice_server.stt_engine`, `voice::factory`) — so `cpal` is all that is
 # left behind the gate. The gate name stays `inference` because it is forwarded
 # by name from `crates/openhuman-app/Cargo.toml`, asserted by `INFERENCE_COMPILED_IN`,
-# and referenced from `desktop::accessibility::permissions`; renaming it buys
+# and referenced from `tinycomputer-accessibility`'s `microphone-probe` feature (forwarded below); renaming it buys
 # nothing and would silently drop the microphone probe from the shipped app if
 # the forwarding list were not updated in lockstep.
-inference = ["dep:cpal"]
+inference = ["tinycomputer-accessibility/microphone-probe"]
 # Office-document tools: the `generate_document` and `generate_presentation`
 # agent tools, plus PDF text extraction during multimodal file ingest.
 # Default-ON.
@@ -877,9 +916,9 @@ modules = ["tinybus/modules", "dep:tinycomputer-bus"]
 # used to be on that list; WAV framing moved to the `tinyvoice` module, so the
 # crate left this graph entirely rather than merely being gated. Composes with the runtime `DomainSet::voice` flag (#4796): the
 # feature narrows the compile-time surface, `DomainSet` gates it at runtime.
-# Requires `inference` (the cpal capture stack), so enabling `voice` turns
+# Requires `inference` (the microphone-permission probe), so enabling `voice` turns
 # `inference` on transitively.
-# `arboard`/`enigo`/`rdev` join here rather than getting their own gate: their
+# `arboard`/`enigo`/`tinyvoice` (the `rdev` hotkey listener) join here rather than getting their own gate: their
 # only call sites are `voice::text_input` (clipboard + synthetic keystrokes to
 # insert a dictated transcript) and `voice::hotkey` (the global push-to-talk
 # listener), both already `#[cfg(feature = "voice")]`, and nothing outside
@@ -900,7 +939,7 @@ voice = [
     "dep:lettre",
     "dep:arboard",
     "dep:enigo",
-    "dep:rdev",
+    "dep:tinyvoice",
     # `audio_toolkit::ops` delivers generated podcasts through tinychannels'
     # EmailChannel, so the provider — and therefore the implementation crate —
     # has to exist even in a channels-less build. This is the ONE reason a
@@ -913,9 +952,9 @@ voice = [
 # surface, and the x402 machine-payment protocol. Default-ON — the desktop app
 # always ships with the wallet. Slim / headless builds opt out via
 # `--no-default-features --features "<explicit list without web3>"`, which
-# drops the exclusive `bitcoin` (P2WPKH PSBT) + `curve25519-dalek` (Solana
-# off-curve ATA) + `ethers-core` / `ethers-signers` / `coins-bip39` (EVM/mnemonic
-# signing, used by the multi-chain wallet's EVM path) dependencies. Composes
+# drops the exclusive `bitcoin` (P2WPKH PSBT) + `ethers-core` / `ethers-signers`
+# / `coins-bip39` (EVM/mnemonic signing, used by the multi-chain wallet's EVM
+# path) dependencies. Composes
 # with the runtime `DomainSet::Web3` flag (#4796): the feature narrows the
 # compile-time surface, `DomainSet` gates it at runtime.
 # `k256` and `coins-bip39` are gone from this list: nothing in the shipped
@@ -924,11 +963,19 @@ voice = [
 # checks a signature against a fixed vector; `coins-bip39` is gone entirely
 # (the fixtures derive through `tinywallet`'s own copy).
 #
-# `curve25519-dalek` stays: `associated_token_account` needs the off-curve check
-# to derive a Solana ATA, which is address arithmetic rather than signing.
+# `curve25519-dalek` is gone from this list: the Solana off-curve check that
+# derives an Associated Token Account is address arithmetic that now lives in
+# `tinywallet-web3` (and `tinywallet-x402`), which own their own copy.
+# Remote memory engines: bind an External memory driver (`tinyhumans`,
+# `supermemory`, `mem0`, `cognee`, `cortex`, `agentmemory`) through
+# `tinymemory::factory`, plus the `memory.engine*` RPCs and migration. Off, an
+# External driver is refused at admission and the engine RPCs answer with the
+# module engine only.
+memory-remote = ["dep:tinymemory"]
 web3 = [
     "dep:tinywallet-bus",
-    "dep:curve25519-dalek",
+    "dep:tinywallet-x402",
+    "dep:tinywallet-web3",
     "modules",
 ]
 
@@ -1140,7 +1187,9 @@ crash-reporting = ["dep:sentry"]
 # is a compile-surface and architecture win, NOT a dependency win — see the
 # measured note above before claiming otherwise.
 channels = ["dep:tinychannels", "tinychannels/email", "tinychannels/lark"]
-sandbox-landlock = ["dep:landlock"]
+sandbox-landlock = ["tinybox-jail/landlock"]
+# Retained so the feature name still forwards through embed/cli/tinyhumans/app;
+# the legacy bwrap `Command` wrapper it gated was removed (unused).
 sandbox-bubblewrap = []
 landlock = ["sandbox-landlock"]
 # The WhatsApp Web provider now lives in tinychannels; forward to its feature.

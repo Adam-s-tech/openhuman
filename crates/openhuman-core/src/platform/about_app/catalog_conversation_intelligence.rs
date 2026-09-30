@@ -343,6 +343,16 @@ Capability {
         privacy: LOCAL_RAW,
     },
 Capability {
+        id: "intelligence.memory_engine",
+        name: "Memory Engine",
+        domain: "intelligence",
+        category: CapabilityCategory::Intelligence,
+        description: "Choose which engine stores and recalls the assistant's memory: the built-in local TinyCortex (default), CortexDB hosted by TinyHumans (billed in credits, uses your signed-in session), or your own Supermemory, Mem0, Cognee, CortexDB or AgentMemory service. Switching applies immediately without a restart, and existing memories can be copied to the new engine first. Keys live in the OS keychain, never in config. Local-only capabilities such as the memory tree and document store are only available on the local engine.",
+        how_to: "Settings > Memory Engine. Pick an engine, enter its endpoint and key if it needs them, then switch or migrate.",
+        status: CapabilityStatus::Beta,
+        privacy: MEMORY_TO_REMOTE_ENGINE,
+    },
+Capability {
         id: "intelligence.memory_workspace",
         name: "Memory Workspace",
         domain: "intelligence",

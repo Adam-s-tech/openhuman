@@ -1,5 +1,4 @@
-//! Shared harness for the W4 e2e targets (`billing_cost_e2e`, `team_referral_e2e`,
-//! `secrets_devices_e2e`).
+//! Shared harness for the W4 e2e targets (`billing_cost_e2e`).
 //!
 //! Included with `#[path]` rather than living in `tests/*.rs`, so cargo does not
 //! auto-discover it as a fourth test binary. Every helper mirrors the equivalent

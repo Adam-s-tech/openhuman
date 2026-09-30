@@ -119,6 +119,17 @@ struct NormalizedPrompt {
 
 static SPACE_RE: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"\s+").expect("prompt injection normalization space regex"));
+// Exfiltration-intent signal: an extraction verb within three words of the
+// hidden state it targets. A bare mention of "system prompt" anywhere in the
+// text is not intent: meeting transcripts and notes about building agents say
+// it constantly, and the recalled-memory block prepended to a turn carries
+// that text into every later message.
+static EXFILTRATION_INTENT_RE: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(
+        r"\b(reveal|show|print|dump|leak|display|repeat|output|expose)\s+(\S+\s+){0,3}(system\s+prompt|developer\s+instructions|hidden\s+prompt|internal\s+instructions)|\breveal\s+(\S+\s+){0,3}(system|hidden|developer|internal|prompts?|instructions?|rules?|secrets?)\b",
+    )
+    .expect("prompt injection exfiltration intent regex")
+});
 static BASE64_RE: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r"[A-Za-z0-9+/]{24,}={0,2}")
         .expect("prompt injection normalization base64 detection regex")
@@ -147,6 +158,12 @@ static BASE64_RE: Lazy<Regex> = Lazy::new(|| {
 //     "fetch", "return", "output". The remaining verbs ("dump", "leak",
 //     "expose", "exfiltrate", etc.) are rarely used in benign technical
 //     writing and strongly imply adversarial intent.
+//   - override.role_hijack: "you are now" only counts when a role follows it
+//     ("you are now a…", "you are now DAN"), and the DAN branches only count
+//     when "unrestricted"/"no restrictions" sits within two words of "dan".
+//     Bare "you are now" ("you are now done with the doc?") and a colleague
+//     named Dan anywhere in a pasted transcript that also says "unrestricted"
+//     used to score 0.30 on their own.
 static DETECTION_RULES: &[DetectionRule] = &[
     DetectionRule {
         code: "override.ignore_previous",
@@ -158,7 +175,7 @@ static DETECTION_RULES: &[DetectionRule] = &[
         code: "override.role_hijack",
         message: "Attempts to redefine assistant role or policy scope.",
         score: 0.30,
-        pattern: r"(you\s+are\s+now|developer\s+mode|jailbreak|unrestricted\s+mode|(you\s+are|pretend\s+you\s+are|act\s+as)\s+dan\b|(no\s+restrictions|unrestricted)\s+.*\bdan\b|\bdan\b\s+.*(no\s+restrictions|unrestricted))",
+        pattern: r"(you\s+are\s+now\s+(a|an|my|dan|free|unrestricted|unfiltered|uncensored|jailbroken|evil|no\s+longer|not\s+bound)\b|developer\s+mode|jailbreak|unrestricted\s+mode|(you\s+are|pretend\s+you\s+are|act\s+as)\s+dan\b|(no\s+restrictions|unrestricted)\s+(\S+\s+){0,2}dan\b|\bdan\b\s+(\S+\s+){0,2}(no\s+restrictions|unrestricted))",
     },
     DetectionRule {
         code: "exfiltrate.system_prompt",
@@ -298,29 +315,9 @@ fn normalize_prompt(input: &str) -> NormalizedPrompt {
         || collapsed.contains("ignore all previous instructions")
         || compact.contains("ignoreallpreviousinstructions")
         || compact.contains("ignorepreviousinstructions");
-    // Exfiltration-intent signal. Phrases that strongly imply the user is
-    // targeting internal/hidden state fire on their own; the bare word
-    // "reveal" used to fire here too, but that caused false positives on
-    // benign queries like "Can you reveal how to set my api key?" (issue #1940).
-    // Now "reveal" only counts when it co-occurs with a target-state hint.
-    let reveal_target_hints = [
-        "system",
-        "hidden",
-        "developer",
-        "internal",
-        "prompt",
-        "instruction",
-        "rule",
-        "secret",
-    ];
-    let has_exfiltration_intent = collapsed.contains("system prompt")
-        || collapsed.contains("developer instructions")
-        || collapsed.contains("hidden prompt")
-        || collapsed.contains("internal instructions")
-        || (collapsed.contains("reveal")
-            && reveal_target_hints
-                .iter()
-                .any(|hint| collapsed.contains(hint)));
+    // "reveal" alone no longer fires either (issue #1940: "Can you reveal how
+    // to set my api key?"); it needs a hidden-state target right after it.
+    let has_exfiltration_intent = EXFILTRATION_INTENT_RE.is_match(&collapsed);
 
     NormalizedPrompt {
         lowered,

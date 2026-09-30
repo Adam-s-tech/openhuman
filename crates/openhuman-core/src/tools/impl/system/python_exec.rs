@@ -331,7 +331,7 @@ impl PythonExecTool {
                         Ok(ToolResult::success(format!("{stdout}\n[stderr]\n{stderr}")))
                     }
                 } else {
-                    Ok(super::command_output::command_failure(
+                    Ok(tinytools::command_failure(
                         output.status.code(),
                         &stdout,
                         &stderr,
@@ -471,8 +471,8 @@ impl PythonExecTool {
                         ))
                     }
                 } else {
-                    super::command_output::command_failure(
-                        super::command_output::sandbox_exit_code(result.exit_code),
+                    tinytools::command_failure(
+                        tinytools::sandbox_exit_code(result.exit_code),
                         &result.stdout,
                         &result.stderr,
                     )
@@ -515,7 +515,7 @@ fn pool_outcome_to_result(
             ToolResult::success(format!("{stdout}\n[stderr]\n{stderr}"))
         }
     } else {
-        super::command_output::command_failure(outcome.exit_code, &stdout, &stderr)
+        tinytools::command_failure(outcome.exit_code, &stdout, &stderr)
     }
 }
 

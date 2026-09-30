@@ -21,7 +21,7 @@ use super::{
     COMPOSIO_PATH, EMBEDDING_NAME, EMBEDDING_PATH, RUNTIME_NAME, RUNTIME_PATH,
 };
 use crate::config::Config;
-use crate::integrations::composio::client::create_composio_client;
+use crate::integrations::composio::client::resolve_composio_route;
 use serde_json::json;
 use std::path::Path;
 use std::sync::Arc;
@@ -154,7 +154,7 @@ async fn composio_answers_over_the_bus_and_not_only_in_process() {
         .expect("proxy");
 
     let available: bool = proxy.call("IsAvailable", ()).await.expect("IsAvailable");
-    assert_eq!(available, create_composio_client(config.as_ref()).is_ok());
+    assert_eq!(available, resolve_composio_route(config.as_ref()).is_ok());
 }
 
 #[tokio::test]
@@ -171,7 +171,7 @@ async fn is_available_is_the_hosts_own_factory_probe() {
         .expect("IsAvailable never fails");
     assert_eq!(
         answer,
-        json!(create_composio_client(config.as_ref()).is_ok())
+        json!(resolve_composio_route(config.as_ref()).is_ok())
     );
 }
 
@@ -191,7 +191,7 @@ async fn api_key_is_the_hosts_own_credential_store() {
 }
 
 /// `api_key` falls back to `config.composio.api_key` when the credential store
-/// holds nothing, keeping parity with `create_composio_client`'s fallback so
+/// holds nothing, keeping parity with `resolve_composio_route`'s fallback so
 /// `is_available` and `api_key` cannot disagree for a direct-mode user.
 #[tokio::test]
 async fn api_key_falls_back_to_config_key_when_credential_store_is_empty() {

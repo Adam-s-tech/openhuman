@@ -16,12 +16,14 @@ use tinyinference_llm::tool::ToolCall as TaToolCall;
 use tinytools::{ToolPolicy as TaToolPolicy, ToolResult as TaToolResult};
 
 use crate::agent::harness::tool_result_artifacts::{
-    apply_per_result_persistence, artifact_read_target, page_artifact_read, ArtifactRead,
-    ToolResultArtifactStore, TINYAGENTS_TOOL_RESULT_ARTIFACT_STORE,
+    artifact_read_target, page_artifact_read, TINYAGENTS_TOOL_RESULT_ARTIFACT_STORE,
 };
 use crate::agent::tinyagents::payload_summarizer::PayloadSummarizer;
 use crate::inference::tokenjuice::generate::GenerateTicket;
 use crate::inference::tokenjuice::AgentTokenjuiceCompression;
+use tinyagents_harness::artifacts::tool_results::{
+    apply_per_result_persistence, ArtifactRead, ToolResultArtifactStore,
+};
 
 /// TinyJuice's own estimate: `ceil(characters / 4)`, not bytes. Multibyte
 /// content has more bytes than characters, so a byte-based estimate here
@@ -426,7 +428,7 @@ impl Middleware<(), crate::agent::tinyagents::host::OpenHumanRunContext> for Too
             && budget_bytes > 0
             && self.artifact_store.is_some()
             && content.len() > budget_bytes
-            && content.len() as u64 <= crate::tools::FileReadTool::MAX_FILE_SIZE_BYTES)
+            && content.len() as u64 <= tinytools_std::filesystem::FileReadTool::MAX_FILE_SIZE_BYTES)
             .then(|| content.clone());
 
         // 1+2. TinyJuice: the LLM summary stage (when this agent has a

@@ -103,7 +103,7 @@ fn ensure_rpc_auth() {
     // which is what quarantined the managed web-search case (#6387). The
     // aggregate target only DECLARES the module (`raw_coverage_all.rs:40-41`);
     // its doc at `:38` says each suite calls it from its own fixture, and the
-    // siblings that reach the backend do (e.g. `webhooks_ingress_e2e.rs:95`).
+    // siblings that reach the backend do.
     // Idempotent behind a `Once`, so the other suites in this binary calling it
     // too costs nothing.
     crate::tinyhumans_boot::boot();

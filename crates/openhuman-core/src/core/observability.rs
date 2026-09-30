@@ -167,7 +167,7 @@ pub enum ExpectedErrorKind {
     /// /Users/<user>/Documents/<vault>`, observed on
     /// `openhuman@0.56.0`) and preempts the symmetric
     /// `hosted path is not a directory:` shape from
-    /// `crate::http_host::path_utils` once it starts surfacing.
+    /// `openhuman_rpc::http_host::path_utils` once it starts surfacing.
     /// See [`is_filesystem_user_path_invalid_message`] for the polarity
     /// contract — the safety-guard variant in `skills::ops_install`
     /// (`{path} is not a directory — refusing to remove`) is
@@ -655,7 +655,7 @@ pub fn expected_error_kind(message: &str) -> Option<ExpectedErrorKind> {
     // emit; this catches the re-raise. Delegates to the single-source
     // provider matcher so the phrasing can't drift. Runs last so a more
     // specific matcher always wins.
-    if crate::inference::provider::is_context_window_exceeded_message(message) {
+    if tinyinference_llm::failure::is_context_window_exceeded_message(message) {
         return Some(ExpectedErrorKind::ContextWindowExceeded);
     }
     if is_memory_store_breaker_open(&lower) {
@@ -1641,7 +1641,7 @@ fn is_provider_user_state_message(lower: &str) -> bool {
     // in `expected_error_kind`, before this matcher runs, so this arm only ever
     // sees direct-provider TPM rejections. Shared matcher so the wording can't
     // drift.
-    if crate::inference::provider::is_provider_rate_cap_exceeded_message(lower) {
+    if tinyinference_llm::failure::is_provider_rate_cap_exceeded_message(lower) {
         return true;
     }
 
@@ -1891,7 +1891,7 @@ fn is_prompt_injection_blocked_message(lower: &str) -> bool {
 ///   didn't exist or pointed at a file (Sentry TAURI-RUST-4QH). Kept as a
 ///   classifier fixture since the wire shape may recur from other callers.
 /// - `"hosted path is not a directory: <path>"` —
-///   [`crate::http_host::path_utils`] when an HTTP host config
+///   `openhuman_rpc::http_host::path_utils` when an HTTP host config
 ///   references a missing directory. Not yet observed in Sentry but
 ///   shares the same user-input failure mode; preempts a future ID.
 ///
@@ -3199,7 +3199,7 @@ pub fn is_insufficient_credits_message(text: &str) -> bool {
     let body = lower
         .split_once("): ")
         .map_or(lower.as_str(), |(_, body)| body);
-    crate::inference::provider::body_indicates_insufficient_credits(body)
+    tinyinference_llm::failure::body_indicates_insufficient_credits(body)
 }
 
 /// Defense-in-depth `before_send` filter for **insufficient-credits 402**
@@ -3246,7 +3246,7 @@ pub fn is_insufficient_credits_event(event: &sentry::protocol::Event<'_>) -> boo
 /// the emit-site guard and this `before_send` net can't drift. Shared with the
 /// event-level filter [`is_quota_exhausted_event`].
 pub fn is_quota_exhausted_message(text: &str) -> bool {
-    crate::inference::provider::body_indicates_quota_exhausted(text)
+    tinyinference_llm::failure::body_indicates_quota_exhausted(text)
 }
 
 /// Defense-in-depth `before_send` filter for provider **monthly-quota

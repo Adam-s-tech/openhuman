@@ -4,7 +4,7 @@
 //! could edit would let a caller move a dangerous tool out of the advertised
 //! surface (or back into it) without review. Adding a pack is a source change.
 
-use super::types::ToolPack;
+use tinyagents_harness::tool::packs::{PackCatalog, ToolPack};
 
 /// Every pack this build knows about.
 ///
@@ -103,9 +103,10 @@ pub const PACKS: &[ToolPack] = &[
             "mcp_registry_tool_call",
             "mcp_registry_uninstall",
         ],
-        // The orchestrator owns it so the four registry tools on its belt stay
-        // advertised; the catalogue readers are `Deferred` and reached through
-        // `tool_search` or this skill.
+        // The orchestrator owns it so the four registry tools it names are not
+        // withheld; its `deferred_tools` then takes them off its wire, so they
+        // are found through `tool_search` like the catalogue readers (which are
+        // `Deferred` for every agent) and stay callable by name.
         owners: &["orchestrator", "planner"],
         guide: include_str!("guides/mcp.md"),
     },
@@ -145,12 +146,16 @@ pub const PACKS: &[ToolPack] = &[
     },
     ToolPack {
         id: "skills",
-        // The install hand-off (`setup_skills`) is not a member: it is the
-        // orchestrator's direct route into this family. See
-        // `DELIBERATELY_UNPACKED_HANDOFFS`. Running an installed skill is the
-        // orchestrator's own `run_workflow`.
-        summary: "Skills: search installed, browse and install from registries, read resources.",
+        // The install hand-off (`setup_skills`) is a member like the other
+        // packed hand-offs (`build_workflow`, `manage_tasks`): it cost ~270
+        // tokens on every orchestrator request for a family used a few times a
+        // week. Packed, it no longer closes this pack to the orchestrator
+        // (`ops::closed_by_direct_handoff` keys on UNPACKED hand-offs), so the
+        // listing offers the hand-off beside the raw registry tools. Running an
+        // installed skill is the orchestrator's own `run_workflow`.
+        summary: "Skills: install or find agent skills (setup_skills hands the whole request to the installer), browse registries, read resources.",
         tools: &[
+            "setup_skills",
             // In the pack, not outside it. A search tool advertised while the
             // tool it hands off to (`describe_workflow`) stays
             // withheld would cost 748 B on every wildcard agent to produce an id
@@ -427,39 +432,23 @@ pub(crate) const DELIBERATELY_UNPACKED_FLEET_TOOLS: &[&str] = &[
     "spawn_parallel_agents",
 ];
 
-/// The skill hand-offs are deliberately not packed (#6302).
-///
-/// `setup_skills` is the orchestrator's route into the skills family (it once
-/// shared this list with `run_skill`, whose job is now the orchestrator's own
-/// `run_workflow`). Packed, they sat in the same listing as the raw
-/// `skill_registry_*` tools, one `use_skill` round trip
-/// away, and a live account showed the cost: across 11 turns the orchestrator
-/// called the raw tools itself, guessed at tool names, and never handed off.
-/// Handing off is the most common thing it does with these families, so the
-/// `collapsed_delegation.rs` argument applies: frequency of use decides, and
-/// delegation should not pay a round trip.
-///
-/// With a hand-off on the belt, `ops::closed_by_direct_handoff` closes the
-/// owning pack's raw tools to the caller, so the hand-off is its only route.
-/// The other packed hand-offs (`manage_tasks`, `build_workflow`,
-/// `discover_workflows`, `make_presentation`, ...) stay packed: each is its own
-/// token-cost decision, and the same closing rule takes effect for any of them
-/// as soon as it is unpacked and listed here.
-#[cfg(test)]
-pub(crate) const DELIBERATELY_UNPACKED_HANDOFFS: &[&str] = &["setup_skills"];
+/// The lookup surface over [`PACKS`] handed to the generic `use_skill` tool
+/// (`tinyagents_harness::tool::packs`). `NOT_FOUND_MARKER` is the host's status
+/// vocabulary, so a "no such skill / tool" result classifies as `NotFound`.
+pub const CATALOG: PackCatalog = PackCatalog::new(PACKS, crate::tools::status::NOT_FOUND_MARKER);
 
 pub fn pack(id: &str) -> Option<&'static ToolPack> {
-    PACKS.iter().find(|p| p.id == id)
+    CATALOG.pack(id)
 }
 
 /// The pack owning `tool`, if any.
 pub fn pack_for_tool(tool: &str) -> Option<&'static ToolPack> {
-    PACKS.iter().find(|p| p.owns(tool))
+    CATALOG.pack_for_tool(tool)
 }
 
 /// Every packed tool name across all packs.
 pub fn all_packed_tool_names() -> Vec<&'static str> {
-    PACKS.iter().flat_map(|p| p.tools.iter().copied()).collect()
+    CATALOG.all_packed_tool_names()
 }
 
 /// Every packed tool name that applies to `agent_id`.
@@ -468,45 +457,22 @@ pub fn all_packed_tool_names() -> Vec<&'static str> {
 /// [`ToolPack::owners`]. The orchestrator owns the MCP integrations pack so
 /// its small named MCP tool set remains directly callable.
 pub fn packed_tool_names_for_agent(agent_id: &str) -> Vec<&'static str> {
-    PACKS
-        .iter()
-        .filter(|p| !p.is_owner(agent_id))
-        .flat_map(|p| p.tools.iter().copied())
-        .collect()
+    CATALOG.packed_tool_names_for_agent(agent_id)
 }
 
 /// The always-on index: one line per pack, rendered into `use_skill`'s own
 /// description so the model can pick a pack without a round trip.
 pub fn pack_index_markdown() -> String {
-    pack_index_markdown_filtered(&|_| true)
+    CATALOG.pack_index_markdown()
 }
 
 /// The pack index, limited to packs this session can call at least one tool in.
-///
-/// A pack with nothing callable is not an answer to "which skills can I load",
-/// and advertising it costs a round trip: the model loads it, learns it cannot
-/// use it, and comes back. The capability does not disappear — a pack's owners
-/// reach the model through their own `delegate_*` tools, whose `when_to_use`
-/// descriptions are already on the wire and are what the model should call
-/// anyway. Keeping the pack listed here would duplicate that routing on every
-/// single turn.
 pub fn pack_index_markdown_filtered(is_callable: &dyn Fn(&str) -> bool) -> String {
-    let mut out = String::new();
-    for p in PACKS {
-        if !p.tools.iter().any(|t| is_callable(t)) {
-            continue;
-        }
-        out.push_str(&format!("- `{}` — {}\n", p.id, p.summary));
-    }
-    out
+    CATALOG.pack_index_markdown_filtered(is_callable)
 }
 
 /// Pack ids with at least one tool this session can call — the `skill` enum
-/// `load_skill` should actually offer.
+/// `use_skill` should actually offer.
 pub fn callable_pack_ids(is_callable: &dyn Fn(&str) -> bool) -> Vec<&'static str> {
-    PACKS
-        .iter()
-        .filter(|p| p.tools.iter().any(|t| is_callable(t)))
-        .map(|p| p.id)
-        .collect()
+    CATALOG.callable_pack_ids(is_callable)
 }

@@ -37,7 +37,7 @@ impl Tool for StubTool {
 }
 #[test]
 fn structured_tool_call_and_history_helpers_round_trip_expected_shapes() {
-    let tool_calls = vec![ToolCall {
+    let tool_calls = vec![NativeToolCall {
         id: "call-1".into(),
         name: "echo".into(),
         arguments: "{\"value\":\"hello\"}".into(),
@@ -75,20 +75,20 @@ fn structured_tool_call_and_history_helpers_round_trip_expected_shapes() {
 #[test]
 fn build_native_assistant_history_persists_per_call_extra_content() {
     let tool_calls = vec![
-        ToolCall {
+        NativeToolCall {
             id: "call-a".into(),
             name: "shell".into(),
             arguments: "{}".into(),
             extra_content: Some(serde_json::json!({"google":{"thought_signature":"SIG_A"}})),
         },
-        ToolCall {
+        NativeToolCall {
             id: "call-b".into(),
             name: "read".into(),
             arguments: "{}".into(),
             extra_content: Some(serde_json::json!({"google":{"thought_signature":"SIG_B"}})),
         },
         // A call that never had a signature must NOT gain an empty key.
-        ToolCall {
+        NativeToolCall {
             id: "call-c".into(),
             name: "noop".into(),
             arguments: "{}".into(),

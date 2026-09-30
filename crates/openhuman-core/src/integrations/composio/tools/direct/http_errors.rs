@@ -1,6 +1,5 @@
-//! Response-parsing helpers shared by every Composio HTTP call path:
-//! turning a failed `reqwest::Response` into a redacted error string, and
-//! pulling a redirect URL out of a connect-flow JSON body.
+//! Response-parsing helper shared by every direct Composio HTTP call path:
+//! turning a failed `reqwest::Response` into a redacted error string.
 
 pub(super) async fn response_error(resp: reqwest::Response) -> String {
     let status = resp.status();
@@ -49,18 +48,4 @@ pub(super) fn extract_api_error_message(body: &str) -> Option<String> {
                 .and_then(|v| v.as_str())
                 .map(ToString::to_string)
         })
-}
-
-pub(super) fn extract_redirect_url(result: &serde_json::Value) -> Option<String> {
-    result
-        .get("redirect_url")
-        .and_then(|v| v.as_str())
-        .or_else(|| result.get("redirectUrl").and_then(|v| v.as_str()))
-        .or_else(|| {
-            result
-                .get("data")
-                .and_then(|v| v.get("redirect_url"))
-                .and_then(|v| v.as_str())
-        })
-        .map(ToString::to_string)
 }

@@ -73,11 +73,7 @@ fn searchable_text(workflow: &Workflow) -> String {
 }
 
 fn id_of(workflow: &Workflow) -> &str {
-    if workflow.dir_name.is_empty() {
-        &workflow.name
-    } else {
-        &workflow.dir_name
-    }
+    workflow.id()
 }
 
 /// Rank `workflows` against `query`, best first, at most `limit` results.

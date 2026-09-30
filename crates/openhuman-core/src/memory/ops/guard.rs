@@ -48,10 +48,10 @@
 //!   `None` on every production call anyway, so `Config::load_or_init` was
 //!   already the only reachable answer here.
 //!
-//! The fallback binds with [`MemorySubsystemConfig::default`] (driver
-//! `"tinycortex"`, default hook budgets). That is the right default precisely
-//! because it is only reachable with no context: a context always carries the
-//! operator's real `[subsystems.memory]` block and takes the first path.
+//! In production the fallback binds the configured `[subsystems.memory]` block
+//! (so a selected memory engine is honoured with no context, e.g. a bare CLI
+//! call). The test build binds [`MemorySubsystemConfig::default`] (driver
+//! `"tinycortex"`, default hook budgets) over the shared fixture workspace.
 
 use std::sync::Arc;
 
@@ -60,27 +60,34 @@ use crate::core::runtime::context::CoreContext;
 use crate::memory::binding;
 use crate::memory::guard::MemoryGuard;
 
-/// The workspace the pre-boot fallback guards — production build.
+/// The workspace and `[subsystems.memory]` block the pre-boot fallback binds —
+/// production build.
 ///
-/// See the module docs for why the two builds resolve it differently. Two
-/// definitions rather than one body with a `#[cfg]` block inside it: a bare
-/// block in statement position is only the function's value once the *other*
-/// arm has been stripped, which is exactly the kind of thing that compiles in
-/// one build configuration and not the other.
+/// See the module docs for why the two builds resolve the workspace
+/// differently. The subsystem block comes from the same config load, so the
+/// selected memory engine is honoured with no ambient context too (a bare CLI
+/// call, a transport-only router). Two definitions rather than one body with a
+/// `#[cfg]` block inside it: a bare block in statement position is only the
+/// function's value once the *other* arm has been stripped, which is exactly
+/// the kind of thing that compiles in one build configuration and not the other.
 #[cfg(not(test))]
-async fn fallback_workspace_dir() -> Result<std::path::PathBuf, String> {
-    super::helpers::current_workspace_dir().await
+async fn fallback_binding_inputs() -> Result<(std::path::PathBuf, MemorySubsystemConfig), String> {
+    crate::config::schema::Config::load_or_init()
+        .await
+        .map(|config| (config.workspace_dir, config.subsystems.memory))
+        .map_err(|e| format!("load config: {e}"))
 }
 
-/// The workspace the pre-boot fallback guards — test build.
-///
-/// The shared fixture's own path, so a test that seeded through
-/// `shared_memory_test_workspace()` is guaranteed the binding over the store its
-/// fixtures wrote to. `async` to match the production arm; there is nothing to
-/// await.
+/// The same, test build: the shared fixture's own path with the default block,
+/// so a test that seeded through `shared_memory_test_workspace()` is guaranteed
+/// the binding over the store its fixtures wrote to. `async` to match the
+/// production arm; there is nothing to await.
 #[cfg(test)]
-async fn fallback_workspace_dir() -> Result<std::path::PathBuf, String> {
-    Ok(super::test_support::shared_memory_test_workspace())
+async fn fallback_binding_inputs() -> Result<(std::path::PathBuf, MemorySubsystemConfig), String> {
+    Ok((
+        super::test_support::shared_memory_test_workspace(),
+        MemorySubsystemConfig::default(),
+    ))
 }
 
 /// The guarded memory driver for this dispatch.
@@ -101,12 +108,12 @@ pub(crate) async fn active_memory_guard() -> Result<Arc<MemoryGuard>, String> {
         }
     }
 
-    let workspace_dir = fallback_workspace_dir().await?;
+    let (workspace_dir, memory_subsystem) = fallback_binding_inputs().await?;
     log::debug!(
         "[memory:guard] no context binding; guarding workspace={}",
         workspace_dir.display()
     );
-    Ok(binding::for_workspace(&workspace_dir, &MemorySubsystemConfig::default())?.guard())
+    Ok(binding::for_workspace(&workspace_dir, &memory_subsystem)?.guard())
 }
 
 #[cfg(test)]

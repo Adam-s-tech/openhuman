@@ -11,7 +11,7 @@ pub mod store;
 pub mod tools;
 
 pub use tinyagents_graph::goals::{ThreadGoal, ThreadGoalStatus};
-pub use tools::{GoalCompleteTool, GoalGetTool, GoalSetTool};
+pub use tools::goal_tools;
 
 /// Serialize a [`ThreadGoal`] for the `goal` field on `ThreadGoalUpdated` /
 /// `threads.goal_get`. `ThreadGoal` is owned by `tinyagents-graph`, so this is

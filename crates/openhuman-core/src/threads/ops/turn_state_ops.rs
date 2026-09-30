@@ -4,9 +4,10 @@ use super::support::{counts, envelope, workspace_dir};
 use crate::core::Outcome;
 use crate::memory::{ApiEnvelope, EmptyRequest};
 use crate::threads::turn_state::{
-    self, ClearTurnStateRequest, ClearTurnStateResponse, GetTurnStateForRequestRequest,
+    ClearTurnStateRequest, ClearTurnStateResponse, GetTurnStateForRequestRequest,
     GetTurnStateRequest, GetTurnStateResponse, ListTurnStatesResponse,
 };
+use tinyagents_session::turn_state;
 
 /// Returns the persisted in-flight turn snapshot for a thread, if any.
 pub async fn turn_state_get(

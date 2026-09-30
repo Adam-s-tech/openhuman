@@ -55,7 +55,6 @@ mod memory_host;
 pub mod ops;
 pub mod platform;
 pub mod registry;
-mod resolution;
 pub mod runtime;
 pub mod schemas;
 pub mod search;

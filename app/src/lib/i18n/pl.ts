@@ -7350,6 +7350,72 @@ const messages: TranslationMap = {
   'webCallback.description':
     'OpenHuman jest przetwarzanie połączeń zwrotnych i będzie kontynuować automatycznie.',
   'settings.developerMenu.eventLog.column.agent': 'Agent',
+
+  // Memory engine settings panel
+  'memoryEngine.title': 'Silnik pamięci',
+  'memoryEngine.description':
+    'Wybierz, gdzie OpenHuman przechowuje i przywołuje Twoje wspomnienia. Naraz aktywny jest dokładnie jeden silnik.',
+  'memoryEngine.active': 'Aktywny',
+  'memoryEngine.hostedNote': 'Rozliczane z Twoich kredytów OpenHuman.',
+  'memoryEngine.signInRequired': 'Zaloguj się, aby użyć tego silnika.',
+  'memoryEngine.endpoint': 'Punkt końcowy',
+  'memoryEngine.deployment': 'Wdrożenie',
+  'memoryEngine.deployment.cloud': 'Chmura',
+  'memoryEngine.deployment.self_hosted': 'Własny hosting',
+  'memoryEngine.apiKey': 'Klucz API',
+  'memoryEngine.apiKeyOptional': 'Klucz API (opcjonalnie)',
+  'memoryEngine.keySaved': 'Klucz jest zapisany. Zostaw puste, aby go zachować.',
+  'memoryEngine.keySavedPlaceholder': 'Zapisany (ukryty)',
+  'memoryEngine.fallback':
+    'Pamięć jest wstrzymana: {engine} jest niedostępny, więc nic nie jest zapisywane ani przywoływane, dopóki nie wróci. {reason}',
+  'memoryEngine.paused': 'Pamięć jest wstrzymana',
+  'memoryEngine.dialog.cancelMigration': 'Anuluj kopiowanie',
+  'memoryEngine.lastError':
+    'Ostatnie żądanie do silnika pamięci nie powiodło się. Sprawdź ustawienia silnika.',
+  'memoryEngine.switch': 'Przełącz',
+  'memoryEngine.save': 'Zapisz zmiany',
+  'memoryEngine.dialog.title': 'Przełączyć na {engine}?',
+  'memoryEngine.dialog.body': 'Skopiować moje istniejące wspomnienia do nowego silnika?',
+  'memoryEngine.dialog.copySwitch': 'Kopiuj i przełącz',
+  'memoryEngine.dialog.switchOnly': 'Przełącz bez kopiowania',
+  'memoryEngine.dialog.copying': 'Kopiowanie Twoich wspomnień…',
+  'memoryEngine.dialog.progress': 'Skopiowano {copied} z {total}',
+  'memoryEngine.dialog.progressUnknown': 'Skopiowano dotąd wspomnień: {copied}',
+  'memoryEngine.dialog.lacking': 'Nowy silnik nie obsługuje tych funkcji Twojego obecnego silnika:',
+  'memoryEngine.error.insufficientCredits':
+    'Skończyły Ci się kredyty OpenHuman. Dodaj kredyty, aby użyć tego silnika.',
+  'memoryEngine.error.sessionExpired': 'Sesja wygasła. Zaloguj się ponownie, aby kontynuować.',
+  'memoryEngine.error.backendUnavailable':
+    'Usługa pamięci jest teraz niedostępna. Spróbuj ponownie za chwilę.',
+  'memoryEngine.error.generic':
+    'Nie udało się zmienić silnika pamięci. Sprawdź ustawienia i spróbuj ponownie.',
+  'memoryEngine.error.openBilling': 'Otwórz rozliczenia',
+  'memoryEngine.error.signIn': 'Zaloguj się',
+  'memoryEngine.row.label': 'Silnik pamięci:',
+  'memoryEngine.row.change': 'Zmień',
+  'memoryEngine.unavailable': 'Niedostępne w {engine}',
+  'memoryEngine.unavailableHint': 'Zmień silnik pamięci, aby korzystać z tej funkcji.',
+  'memoryEngine.engine.tinymemory.label': 'Lokalny (TinyCortex)',
+  'memoryEngine.engine.tinymemory.description':
+    'Przechowywana na tym urządzeniu za pomocą TinyCortex. Prywatna, bezpłatna i domyślna.',
+  'memoryEngine.engine.tinyhumans.label': 'CortexDB (przez TinyHumans)',
+  'memoryEngine.engine.tinyhumans.description':
+    'CortexDB hostowany przez TinyHumans. Używa Twojego zalogowanego konta, klucz nie jest potrzebny.',
+  'memoryEngine.engine.cortex.label': 'CortexDB (własny klucz)',
+  'memoryEngine.engine.cortex.description':
+    'Twoje własne konto lub instancja CortexDB z Twoim kluczem API.',
+  'memoryEngine.engine.supermemory.label': 'Supermemory',
+  'memoryEngine.engine.supermemory.description':
+    'Pamięć w chmurze Supermemory z Twoim kluczem API.',
+  'memoryEngine.engine.mem0.label': 'Mem0',
+  'memoryEngine.engine.mem0.description':
+    'Warstwa pamięci Mem0, w chmurze lub na własnym serwerze.',
+  'memoryEngine.engine.cognee.label': 'Cognee',
+  'memoryEngine.engine.cognee.description':
+    'Pamięć oparta na grafie wiedzy Cognee, w chmurze lub na własnym serwerze.',
+  'memoryEngine.engine.agentmemory.label': 'AgentMemory',
+  'memoryEngine.engine.agentmemory.description':
+    'Serwer AgentMemory, który uruchamiasz samodzielnie.',
 };
 
 export default messages;

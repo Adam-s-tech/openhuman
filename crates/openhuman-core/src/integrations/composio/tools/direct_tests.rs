@@ -1,11 +1,6 @@
 use super::*;
-use crate::security::{AutonomyLevel, SecurityPolicy};
 
 use serde_json::json;
-use std::sync::Arc;
-fn test_security() -> Arc<SecurityPolicy> {
-    Arc::new(SecurityPolicy::default())
-}
 
 /// Spawn a throwaway axum mock bound to an ephemeral port and return its base
 /// URL. Mirrors `start_mock_backend` in `client_tests.rs` so both HTTP-level

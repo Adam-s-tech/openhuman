@@ -7,9 +7,16 @@ use crate::runtime::python::PythonBootstrap;
 use crate::security::{AuditLogger, SecurityPolicy};
 use std::collections::HashMap;
 use std::sync::Arc;
+use tinyagents_harness::tools::{CurrentTimeTool, ResolveTimeTool};
 use tinytools::Tool;
 #[cfg(test)]
 use tinytools::{ToolResult, ToolSpec};
+use tinytools_std::detect_tools::DetectToolsTool;
+use tinytools_std::filesystem::{
+    ApplyPatchTool, CsvExportTool, EditFileTool, FileReadTool, FileWriteTool, GitOperationsTool,
+    GlobTool, GrepTool, ListFilesTool, ReadDiffTool, RunLinterTool, RunTestsTool,
+    UpdateMemoryMdTool,
+};
 
 pub(crate) use super::capability::tool_capability;
 
@@ -381,19 +388,20 @@ pub fn all_tools_with_runtime(
         // Wallet tools — expose wallet operations to the agent tool-call pipeline
         // so the crypto sub-agent can prepare transfers, check status, etc.
         // Gated with the `web3` feature (the wallet domain is compiled out when
-        // web3 is disabled; the concrete tool types live under `wallet::tools`).
+        // web3 is disabled; the concrete tool types live in `tinywallet-web3`,
+        // re-exported under `wallet::tools`, and run over the process-wide engine).
         #[cfg(feature = "web3")]
-        Box::new(WalletStatusTool::new()),
+        Box::new(WalletStatusTool::new(crate::web3::seams::engine())),
         #[cfg(feature = "web3")]
-        Box::new(WalletChainStatusTool::new()),
+        Box::new(WalletChainStatusTool::new(crate::web3::seams::engine())),
         #[cfg(feature = "web3")]
-        Box::new(WalletPrepareTransferTool::new()),
+        Box::new(WalletPrepareTransferTool::new(crate::web3::seams::engine())),
         #[cfg(feature = "web3")]
-        Box::new(WalletTxStatusTool::new()),
+        Box::new(WalletTxStatusTool::new(crate::web3::seams::engine())),
         #[cfg(feature = "web3")]
-        Box::new(WalletTxReceiptTool::new()),
+        Box::new(WalletTxReceiptTool::new(crate::web3::seams::engine())),
         #[cfg(feature = "web3")]
-        Box::new(WalletLookupTxTool::new()),
+        Box::new(WalletLookupTxTool::new(crate::web3::seams::engine())),
         // The memory surface the model sees. The eleven per-operation tools it
         // dispatches to stay registered as `ToolExposure::Hidden` so a
         // replayed transcript or a saved skill naming `memory_*` still works —
@@ -457,13 +465,13 @@ pub fn all_tools_with_runtime(
         // diff, lint and test the working tree in the action sandbox. They
         // were defined but never registered, so the belts naming them held
         // nothing. `Deferred`, so they cost no schema until found.
-        Box::new(crate::tools::implementations::ReadDiffTool::new(
+        Box::new(ReadDiffTool::new(
             action_dir.to_path_buf(),
         )),
-        Box::new(crate::tools::implementations::RunLinterTool::new(
+        Box::new(RunLinterTool::new(
             action_dir.to_path_buf(),
         )),
-        Box::new(crate::tools::implementations::RunTestsTool::new(
+        Box::new(RunTestsTool::new(
             action_dir.to_path_buf(),
         )),
         Box::new(PushoverTool::new(
@@ -696,18 +704,7 @@ pub fn all_tools_with_runtime(
     // thread is resolved from the ambient `thread_id`, so no thread arg is
     // taken. `goal_get`/`goal_set`/`goal_complete` — pause/resume/budget are
     // system-driven and have no model tool.
-    {
-        let goal_dir = root_config.workspace_dir.clone();
-        tools.push(Box::new(crate::agent::goals::GoalGetTool::new(
-            goal_dir.clone(),
-        )));
-        tools.push(Box::new(crate::agent::goals::GoalSetTool::new(
-            goal_dir.clone(),
-        )));
-        tools.push(Box::new(crate::agent::goals::GoalCompleteTool::new(
-            goal_dir,
-        )));
-    }
+    tools.extend(crate::agent::goals::goal_tools(&root_config.workspace_dir));
 
     #[cfg(feature = "modules")]
     if browser_config.enabled {
@@ -741,7 +738,7 @@ pub fn all_tools_with_runtime(
     // or SPL payment signing, and ledger recording. Gated with the `web3`
     // feature (the x402 domain is compiled out when web3 is disabled).
     #[cfg(feature = "web3")]
-    tools.push(Box::new(crate::web3::x402::tools::X402RequestTool::new()));
+    tools.push(Box::new(crate::web3::x402::request_tool()));
 
     // Coding-harness baseline `web_fetch` (issue #1205) — single-purpose
     // GET-and-read primitive that reuses the same allowed-domains gate

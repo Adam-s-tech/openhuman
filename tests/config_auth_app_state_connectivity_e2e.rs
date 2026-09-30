@@ -65,8 +65,7 @@ use tinybus::EventHandler;
 const TEST_RPC_TOKEN: &str = "worker-a-domain-e2e-token";
 
 static AUTH_INIT: OnceLock<()> = OnceLock::new();
-// This file is both its own integration target AND `#[path]`-included as
-// `base_coverage` by `raw_coverage/config_credentials_raw_coverage_e2e.rs`.
+// This file is its own integration target, and other binaries may `#[path]`-include it.
 // `ENV_LOCK` aliases `crate::SHARED_ENV_LOCK`, which resolves to this file's
 // own static when built standalone (separate process, isolated env) and to the
 // aggregate's shared static when nested into `raw_coverage_all` (so its env
@@ -110,8 +109,7 @@ impl Drop for EnvVarGuard {
     }
 }
 
-// `pub` so binaries that `#[path]`-include this file as a module (e.g.
-// `config_credentials_raw_coverage_e2e.rs` as `base_coverage`) can route their
+// `pub` so binaries that `#[path]`-include this file as a module can route their
 // own env-mutating tests through the SAME lock, serializing all
 // OPENHUMAN_WORKSPACE/BACKEND_URL mutations in the combined binary.
 pub fn env_lock() -> std::sync::MutexGuard<'static, ()> {
@@ -2504,13 +2502,10 @@ async fn credentials_public_ops_cover_service_and_missing_session_error_paths() 
     .expect_err("oauth token fetch without session should fail")
     .contains("no backend session token"));
     assert!(
-        openhuman_core::security::credentials::oauth_fetch_client_key(
-            &config,
-            "0123456789abcdef01234567",
-        )
-        .await
-        .expect_err("client key fetch without session should fail")
-        .contains("session JWT required")
+        oauth::oauth_fetch_client_key(&config, "0123456789abcdef01234567")
+            .await
+            .expect_err("client key fetch without session should fail")
+            .contains("no backend session token")
     );
     assert!(
         oauth::oauth_revoke_integration(&config, "0123456789abcdef01234567")
@@ -3470,7 +3465,7 @@ async fn auth_credentials_controller_paths_round_trip_and_validate_errors() {
         "unsupported channel",
     );
 
-    // `auth_oauth_*` (all but `fetch_client_key`) are served by
+    // `auth_oauth_*` are served by
     // `openhuman-tinyhumans` now: validation first, then the core's
     // credential resolution, whose missing-session wording they report.
     for (id, method, params, needle) in [
@@ -3496,7 +3491,7 @@ async fn auth_credentials_controller_paths_round_trip_and_validate_errors() {
             20_009,
             "openhuman.auth_oauth_fetch_client_key",
             json!({ "integrationId": "abc" }),
-            "session JWT required",
+            "integrationId must be a 24-char hex id",
         ),
         (
             20_010,

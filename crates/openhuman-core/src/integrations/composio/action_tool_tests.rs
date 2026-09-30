@@ -198,8 +198,9 @@ fn sandbox_read_only_blocks_per_action_admin_call() {
 fn sandbox_unset_leaves_per_action_execute_to_downstream() {
     run_with_big_stack(|| async {
         use crate::config::TEST_ENV_LOCK;
-        let _env_guard = TEST_ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        // Lock order module -> env, matching the ops tests (no inversion).
         let _serialised = super::super::module_client::module_guard().await;
+        let _env_guard = TEST_ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
 
         let tmp = tempfile::tempdir().expect("tempdir");
         let _workspace_guard = WorkspaceEnvGuard::set(tmp.path());
@@ -302,7 +303,7 @@ fn contract_gate_surfaces_full_contract_then_proceeds_on_retry() {
 // honoured on the very next per-action execute.
 
 // These two tests assert the *factory routing decision* by mode. They
-// call `create_composio_client(&Config)` directly — the pure routing
+// call `resolve_composio_route(&Config)` directly — the pure routing
 // function — instead of going through `tool.execute()`, which reloads
 // config via `load_config_with_timeout()` (reads `OPENHUMAN_WORKSPACE`)
 // and was therefore subject to a parallel-test env-var race: another
@@ -320,9 +321,9 @@ fn factory_routes_through_backend_when_mode_is_backend() {
     config.config_path = tmp.path().join("config.toml");
     config.workspace_dir = tmp.path().join("workspace");
 
-    // `ComposioClientKind` isn't `Debug`, so match rather than
+    // `ComposioRoute` isn't `Debug`, so match rather than
     // `expect_err` (which would need to format the unexpected `Ok`).
-    let msg = match crate::integrations::composio::client::create_composio_client(&config) {
+    let msg = match crate::integrations::composio::client::resolve_composio_route(&config) {
         Ok(_) => panic!("backend mode with no session must error, but a client resolved"),
         Err(e) => e.to_string(),
     };
@@ -348,12 +349,12 @@ fn factory_routes_through_direct_when_mode_is_direct() {
     // Direct mode + an api key must resolve to the Direct variant —
     // never the backend branch. (Deterministic: pure factory call, no
     // env / reload / await; see the note on the backend test.)
-    let kind = crate::integrations::composio::client::create_composio_client(&config)
+    let kind = crate::integrations::composio::client::resolve_composio_route(&config)
         .expect("direct mode with an api key must resolve");
     assert!(
         matches!(
             kind,
-            crate::integrations::composio::client::ComposioClientKind::Direct(_)
+            crate::integrations::composio::client::ComposioRoute::Direct(_)
         ),
         "direct-mode config must route to the Direct client, not backend"
     );
@@ -382,11 +383,12 @@ fn mode_toggle_between_calls_is_observed() {
         // rewriting `OPENHUMAN_WORKSPACE/config.toml` between the two
         // halves while holding `TEST_ENV_LOCK`.
         use crate::config::TEST_ENV_LOCK;
-        let _env_guard = TEST_ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         // The module is one instance per process holding one route, and both
         // halves below reconfigure it. Without this they race any other test
-        // that also points it somewhere.
+        // that also points it somewhere. Taken before `TEST_ENV_LOCK`, the
+        // order the ops tests use, so the two never deadlock.
         let _serialised = super::super::module_client::module_guard().await;
+        let _env_guard = TEST_ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
 
         // ── Backend half ────────────────────────────────────────────
         let tmp_backend = tempfile::tempdir().expect("tempdir backend");
@@ -464,8 +466,9 @@ fn deferred_instance_returns_live_config_for_redaction() {
     run_with_big_stack(|| async {
         use crate::config::TEST_ENV_LOCK;
         use crate::integrations::composio::catalog::{seed_live_catalog_cache, ToolContract};
-        let _env_guard = TEST_ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        // Lock order module -> env, matching the ops tests (no inversion).
         let _serialised = super::super::module_client::module_guard().await;
+        let _env_guard = TEST_ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
 
         let toolkit = "deferredredact";
         let slug = "DEFERREDREDACT_FETCH_ITEMS";

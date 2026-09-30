@@ -997,6 +997,7 @@ impl OpenHumanSessionHost {
             .tools(tools)
             .synthesized_tools(delegation_tools)
             .visible_tool_names(visible)
+            .deferred_tools(target_def.map_or_else(Vec::new, |d| d.deferred_tools.clone()))
             .memory(memory)
             .auto_recall(Some(auto_recall))
             .tool_dispatcher(tool_dispatcher)

@@ -17,12 +17,12 @@
 //! run. Those instances have no spawn-time config to anchor to and resolve
 //! the live config through the core's read path instead.
 //!
-//! Rather than baking a `ComposioClient` at construction time
+//! Rather than baking a pre-resolved route at construction time
 //! (which would silently bypass a mid-session
 //! [`crate::config::ComposioConfig::mode`] toggle — see
 //! issue #1710), each tool keeps an [`Arc<Config>`] and resolves the
 //! client per call through
-//! [`create_composio_client`] so a user flip from
+//! [`resolve_composio_route`] so a user flip from
 //! `mode = "backend"` to `mode = "direct"` is honoured on the next
 //! tool invocation without restarting the session. Mirrors the agent-
 //! tool migration in
@@ -43,18 +43,18 @@ use tinytools::{PermissionLevel, Tool, ToolCategory, ToolResult};
 
 /// A single Composio action exposed as a first-class tool.
 pub struct ComposioActionTool {
-    /// Held instead of a pre-baked [`super::client::ComposioClient`] so
+    /// Held instead of a pre-baked a pre-resolved route so
     /// the [`crate::config::ComposioConfig::mode`] toggle is
     /// honoured on every invocation.
     ///
-    /// Pre-fix this field was `client: ComposioClient`, which captured
+    /// Pre-fix this field was `client: ComposioClient` (the since-removed in-process client), which captured
     /// the backend-bound handle at sub-agent spawn time. Toggling
     /// `composio.mode = "direct"` mid-session invalidated other caches
     /// but left these per-action tools still routing through
     /// `staging-api.tinyhumans.ai/agent-integrations/composio/execute`
     /// — silently bypassing the direct-mode user's personal Composio
     /// tenant. Resolving the client per call via
-    /// [`create_composio_client`] keeps dispatch in lockstep with the
+    /// [`resolve_composio_route`] keeps dispatch in lockstep with the
     /// live config, matching
     /// [`super::tools::ComposioExecuteTool`]. See issue #1710.
     ///

@@ -37,7 +37,15 @@ pub(crate) async fn bootstrap_core_runtime(
     crate::core::bus::init().await.expect("bus init");
     let agent_enabled = domains.allows(crate::core::all::DomainGroup::Agent);
     if agent_enabled {
-        crate::agent::file_state::init_global();
+        // Host decision: `OPENHUMAN_FILE_STATE_GUARD=0|false|off|no` turns the
+        // cross-agent file-staleness guard off.
+        let guard_disabled = std::env::var("OPENHUMAN_FILE_STATE_GUARD")
+            .map(|v| matches!(v.as_str(), "0" | "false" | "off" | "no"))
+            .unwrap_or(false);
+        if guard_disabled {
+            log::debug!("[file_state] guard disabled via OPENHUMAN_FILE_STATE_GUARD");
+        }
+        tinytools_std::file_state::init_global(!guard_disabled);
     } else {
         log::debug!("[boot] agent file-state coordinator SKIPPED — Agent domain disabled");
     }
@@ -73,7 +81,10 @@ pub(crate) async fn bootstrap_core_runtime(
     // confusing a stale `Streaming` lifecycle for an in-flight turn.
     {
         let now = chrono::Utc::now().to_rfc3339();
-        match crate::threads::turn_state::store::mark_all_interrupted(workspace_dir.clone(), &now) {
+        match tinyagents_session::turn_state::store::mark_all_interrupted(
+            workspace_dir.clone(),
+            &now,
+        ) {
             Ok(0) => {}
             Ok(count) => {
                 log::info!("[runtime] marked {count} stale turn snapshot(s) as interrupted")

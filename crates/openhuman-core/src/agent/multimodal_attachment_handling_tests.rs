@@ -36,41 +36,6 @@ async fn prepare_messages_handles_mixed_image_and_file_markers() {
 }
 
 #[test]
-fn multimodal_file_config_effective_limits_clamp_to_safe_bounds() {
-    let cfg = MultimodalFileConfig {
-        max_files: 999,
-        max_file_size_mb: 999,
-        max_extracted_text_chars: 999_999,
-        allow_remote_fetch: false,
-        allowed_mime_types: vec![],
-    };
-    let (files, size_mb, chars) = cfg.effective_limits();
-    assert_eq!(files, 16);
-    assert_eq!(size_mb, 50);
-    assert_eq!(chars, 200_000);
-
-    let small = MultimodalFileConfig {
-        max_files: 0,
-        max_file_size_mb: 0,
-        max_extracted_text_chars: 0,
-        allow_remote_fetch: false,
-        allowed_mime_types: vec![],
-    };
-    let (files, size_mb, chars) = small.effective_limits();
-    assert_eq!(files, 1);
-    assert_eq!(size_mb, 1);
-    assert_eq!(chars, 1_000);
-}
-
-#[test]
-fn multimodal_file_config_mime_allowlist_is_case_insensitive() {
-    let cfg = MultimodalFileConfig::default();
-    assert!(cfg.is_mime_allowed("application/pdf"));
-    assert!(cfg.is_mime_allowed("APPLICATION/PDF"));
-    assert!(!cfg.is_mime_allowed("application/x-executable"));
-}
-
-#[test]
 fn count_markers_only_inspects_latest_user_message() {
     // Regression: earlier versions summed markers across every user
     // role in history, so an N-turn thread that attached 1 file per

@@ -2,7 +2,7 @@
 //!
 //! Provisions torch + transformers into the runtime python server's venv and
 //! pre-downloads the model so the long-lived server can load it offline at
-//! startup. The actual compression runs inside the shared `server.py` and is
+//! startup. The actual compression runs inside the shared `server.py` (embedded in `tinyruntime-pyserver`) and is
 //! reached via [`request_kompress`] (→ `server::request("kompress.compress")`).
 //!
 //! Two provisioning entry points so the single-venv server can host Kompress
