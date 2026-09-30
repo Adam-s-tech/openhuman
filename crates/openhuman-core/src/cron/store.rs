@@ -88,7 +88,11 @@ pub fn add_agent_job_with_definition(
 
 /// Registers (idempotently) the cron job that fires a flow's `schedule`
 /// trigger; see `tinyflows_sqlite::schedule::add_flow_schedule_job`.
-pub fn add_flow_schedule_job(config: &Config, flow_id: &str, schedule: Schedule) -> Result<CronJob> {
+pub fn add_flow_schedule_job(
+    config: &Config,
+    flow_id: &str,
+    schedule: Schedule,
+) -> Result<CronJob> {
     upstream::add_flow_schedule_job(&opts(config), flow_id, schedule)
 }
 
