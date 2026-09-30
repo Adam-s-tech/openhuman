@@ -140,7 +140,10 @@ impl ToolPolicyMiddleware {
     }
 
     /// The route sentence for a pack, resolved against THIS session.
-    pub(crate) fn route_for_pack(&self, pack: &tinyagents_harness::tool::packs::ToolPack) -> String {
+    pub(crate) fn route_for_pack(
+        &self,
+        pack: &tinyagents_harness::tool::packs::ToolPack,
+    ) -> String {
         tinyagents_harness::tool::packs::route_sentence(
             &self.callable_delegates_for(pack.owners),
             pack.owners,

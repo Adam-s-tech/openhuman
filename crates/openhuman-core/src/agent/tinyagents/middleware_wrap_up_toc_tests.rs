@@ -301,9 +301,7 @@ async fn ctx_with_artifacts_and_config(
     config: RunConfig,
 ) -> RunContext<crate::agent::tinyagents::host::OpenHumanRunContext> {
     use tinyagents_harness::store::StoreRegistry;
-    let index = std::sync::Arc::new(
-        tinyagents_harness::store::InMemoryStore::new(),
-    );
+    let index = std::sync::Arc::new(tinyagents_harness::store::InMemoryStore::new());
     for (call_id, tool, path, bytes) in entries {
         let mut fields = serde_json::Map::new();
         fields.insert("tool".to_string(), (*tool).into());

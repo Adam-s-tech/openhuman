@@ -15,7 +15,6 @@ use tinyagents_registry::{CapabilityRegistry, RegistryDiagnostic, RegistrySnapsh
 use tinyinference_llm::model::CapabilitySet;
 use tokio::sync::mpsc::Sender;
 
-use tinyagents_harness::store::InMemoryStore as ToolResultArtifactIndexStore;
 use crate::agent::progress::AgentProgress;
 use crate::agent::tinyagents::harness_context_ladder::install_context_ladder;
 use crate::agent::tinyagents::harness_tool_registration::register_turn_tools_and_agents;
@@ -32,6 +31,7 @@ use crate::agent::tinyagents::tools::EarlyExitHook;
 use crate::agent::tinyagents::turn_models::TurnModels;
 use crate::agent::tinyagents::turn_outcome::{HaltSummarySlot, ToolOutcomeSink};
 use crate::agent::tinyagents::turn_policy::{run_policy_for, REPEATED_TOOL_FAILURE_THRESHOLD};
+use tinyagents_harness::store::InMemoryStore as ToolResultArtifactIndexStore;
 
 use super::ToolPolicyEnforcement;
 

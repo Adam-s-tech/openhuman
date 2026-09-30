@@ -18,12 +18,12 @@ use tinytools::{ToolPolicy as TaToolPolicy, ToolResult as TaToolResult};
 use crate::agent::harness::tool_result_artifacts::{
     artifact_read_target, page_artifact_read, TINYAGENTS_TOOL_RESULT_ARTIFACT_STORE,
 };
-use tinyagents_harness::artifacts::tool_results::{
-    apply_per_result_persistence, ArtifactRead, ToolResultArtifactStore,
-};
 use crate::agent::tinyagents::payload_summarizer::PayloadSummarizer;
 use crate::inference::tokenjuice::generate::GenerateTicket;
 use crate::inference::tokenjuice::AgentTokenjuiceCompression;
+use tinyagents_harness::artifacts::tool_results::{
+    apply_per_result_persistence, ArtifactRead, ToolResultArtifactStore,
+};
 
 /// TinyJuice's own estimate: `ceil(characters / 4)`, not bytes. Multibyte
 /// content has more bytes than characters, so a byte-based estimate here

@@ -31,7 +31,10 @@ fn the_index_drops_a_pack_this_session_can_call_nothing_in() {
 
     // Only the workflows pack is reachable.
     let workflows = pack("workflows").expect("workflows pack");
-    let kept = tinyagents_harness::tool::packs::scope_use_skill_spec(&CATALOG, &mut spec, &|name| workflows.tools.contains(&name));
+    let kept =
+        tinyagents_harness::tool::packs::scope_use_skill_spec(&CATALOG, &mut spec, &|name| {
+            workflows.tools.contains(&name)
+        });
     assert!(
         kept,
         "workflows is callable, so use_skill stays on the wire"
@@ -57,7 +60,9 @@ fn the_index_drops_a_pack_this_session_can_call_nothing_in() {
 fn the_skill_enum_offers_only_reachable_packs() {
     let mut spec = use_skill_spec();
     let workflows = pack("workflows").expect("workflows pack");
-    tinyagents_harness::tool::packs::scope_use_skill_spec(&CATALOG, &mut spec, &|name| workflows.tools.contains(&name));
+    tinyagents_harness::tool::packs::scope_use_skill_spec(&CATALOG, &mut spec, &|name| {
+        workflows.tools.contains(&name)
+    });
 
     let values = spec
         .parameters
@@ -92,7 +97,9 @@ fn scoping_the_index_only_ever_shrinks_it() {
     let mut spec = use_skill_spec();
     let before = spec.description.len();
     let workflows = pack("workflows").expect("workflows pack");
-    tinyagents_harness::tool::packs::scope_use_skill_spec(&CATALOG, &mut spec, &|name| workflows.tools.contains(&name));
+    tinyagents_harness::tool::packs::scope_use_skill_spec(&CATALOG, &mut spec, &|name| {
+        workflows.tools.contains(&name)
+    });
     assert!(
         spec.description.len() < before,
         "scoped index ({}) must be smaller than the full one ({before})",
@@ -237,7 +244,8 @@ fn a_non_owner_listing_omits_the_tools_the_gate_will_refuse() {
     let handle = crate::tools::host_extensions::pack_registry_handle(find(&tools, USE_SKILL))
         .expect("use_skill carries the pack handle");
 
-    let rendered = tinyagents_harness::tool::packs::render_pack_filtered(&CATALOG, 
+    let rendered = tinyagents_harness::tool::packs::render_pack_filtered(
+        &CATALOG,
         "workflows",
         handle,
         &|name: &str| name != "propose_workflow",
@@ -264,8 +272,14 @@ fn a_listing_with_nothing_callable_names_the_route_out() {
         .expect("use_skill carries the pack handle");
 
     let route = route_sentence(&["build_workflow".to_string()], &["workflow_builder"]);
-    let err = tinyagents_harness::tool::packs::render_pack_filtered(&CATALOG, "workflows", handle, &|_| false, &route)
-        .expect_err("nothing callable must not render a menu");
+    let err = tinyagents_harness::tool::packs::render_pack_filtered(
+        &CATALOG,
+        "workflows",
+        handle,
+        &|_| false,
+        &route,
+    )
+    .expect_err("nothing callable must not render a menu");
 
     assert!(
         err.contains("build_workflow"),

@@ -18,7 +18,6 @@ use tokio::sync::mpsc::Sender;
 
 use crate::agent::harness::definition::SandboxMode;
 use crate::agent::harness::fork_context::{AgentContextPreparedSource, ParentExecutionContext};
-use tinyagents_harness::store::InMemoryStore as ToolResultArtifactIndexStore;
 use crate::agent::progress::AgentProgress;
 use crate::agent::stop_hooks::StopHook;
 use crate::agent::subagent_host::SubagentUsage;
@@ -27,6 +26,7 @@ use crate::agent::tinyagents::{
     turn_outcome::ToolCallOutcome, turn_policy::ToolPolicyEnforcement, TurnContextMiddleware,
 };
 use crate::agent::turn_origin::AgentTurnOrigin;
+use tinyagents_harness::store::InMemoryStore as ToolResultArtifactIndexStore;
 use tinyinference_llm::model::ResolvedModelRoute;
 
 /// Allocate a durable-unique root [`RunConfig`](tinyagents_harness::context::RunConfig).

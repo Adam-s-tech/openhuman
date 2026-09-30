@@ -12,7 +12,10 @@ use tinytools::Tool;
 /// It starts unbound; [`bind_pack_registry`] gives it its view of the registry
 /// once that is behind an `Arc`.
 pub fn append_pack_tools(tools: &mut Vec<Box<dyn Tool>>) {
-    tools.push(Box::new(UseSkillTool::new(PackRegistryHandle::default(), registry::CATALOG)));
+    tools.push(Box::new(UseSkillTool::new(
+        PackRegistryHandle::default(),
+        registry::CATALOG,
+    )));
 }
 
 /// Point the pack tool at the durable registry it lives in.
