@@ -44,10 +44,10 @@ impl VoiceCapability {
     }
 }
 
-// The API-style enums live with the HTTP clients that dispatch on them; the
-// TOML shape (`rename_all = "lowercase"`) and JSON schema are unchanged.
-pub use tinyinference_voice::external_stt::SttApiStyle;
-pub use tinyinference_voice::external_tts::TtsApiStyle;
+// The API-style enums live with the HTTP clients that dispatch on them
+// (`tinyinference_voice::external_{stt,tts}`); the TOML shape (`rename_all = "lowercase"`) and JSON schema are unchanged.
+use tinyinference_voice::external_stt::SttApiStyle;
+use tinyinference_voice::external_tts::TtsApiStyle;
 
 /// Endpoint config for one voice (STT/TTS) provider.
 ///
