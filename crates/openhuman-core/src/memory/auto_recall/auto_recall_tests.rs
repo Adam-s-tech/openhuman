@@ -54,6 +54,10 @@ fn response(hits: Vec<RetrievalHit>) -> RetrievalResponse {
 struct Scripted {
     outcome: Mutex<Result<RetrievalResponse, String>>,
     notes: Mutex<Result<Vec<NamespaceMemoryHit>, String>>,
+    /// Whether the scripted notes carry the engine's scores.
+    notes_scored: Mutex<bool>,
+    /// A typed refusal for the notes leg, instead of a plain failure.
+    notes_refusal: Mutex<Option<fn() -> MemoryError>>,
     delay: Duration,
     notes_delay: Mutex<Duration>,
     calls: AtomicUsize,
@@ -65,6 +69,8 @@ impl Scripted {
         Arc::new(Self {
             outcome: Mutex::new(outcome),
             notes: Mutex::new(Ok(Vec::new())),
+            notes_scored: Mutex::new(true),
+            notes_refusal: Mutex::new(None),
             delay,
             notes_delay: Mutex::new(Duration::ZERO),
             calls: AtomicUsize::new(0),
@@ -87,6 +93,20 @@ impl Scripted {
     /// Scripts the notes leg's answer.
     fn with_notes(self: Arc<Self>, notes: Vec<NamespaceMemoryHit>) -> Arc<Self> {
         *self.notes.lock().unwrap() = Ok(notes);
+        self
+    }
+
+    /// Scripts the notes leg's answer from an engine that ranks without
+    /// scoring: every similarity reads 0.0.
+    fn with_unscored_notes(self: Arc<Self>, notes: Vec<NamespaceMemoryHit>) -> Arc<Self> {
+        *self.notes.lock().unwrap() = Ok(notes);
+        *self.notes_scored.lock().unwrap() = false;
+        self
+    }
+
+    /// Scripts the notes leg to be refused with the error `refusal` makes.
+    fn with_refused_notes(self: Arc<Self>, refusal: fn() -> MemoryError) -> Arc<Self> {
+        *self.notes_refusal.lock().unwrap() = Some(refusal);
         self
     }
 
@@ -133,7 +153,7 @@ impl AutoRecallSource for Scripted {
         namespace: &str,
         _query: &str,
         limit: usize,
-    ) -> Result<Vec<NamespaceMemoryHit>, MemoryError> {
+    ) -> Result<ScoredNotes, MemoryError> {
         self.notes_calls.fetch_add(1, AtomicOrdering::SeqCst);
         // The lane owns both parameters; a fake that accepted anything would
         // let a wrong namespace or page size pass every test.
@@ -143,8 +163,14 @@ impl AutoRecallSource for Scripted {
         if !delay.is_zero() {
             tokio::time::sleep(delay).await;
         }
+        if let Some(refusal) = *self.notes_refusal.lock().unwrap() {
+            return Err(refusal());
+        }
         match &*self.notes.lock().unwrap() {
-            Ok(notes) => Ok(notes.clone()),
+            Ok(notes) => Ok(ScoredNotes {
+                hits: notes.clone(),
+                scored: *self.notes_scored.lock().unwrap(),
+            }),
             Err(message) => Err(MemoryError::Backend(message.clone())),
         }
     }
@@ -518,3 +544,6 @@ async fn from_guard_over_a_driver_without_retrieval_stays_silent() {
 
 #[path = "notes_lane_tests.rs"]
 mod notes_lane_tests;
+
+#[path = "unscored_lane_tests.rs"]
+mod unscored_lane_tests;
