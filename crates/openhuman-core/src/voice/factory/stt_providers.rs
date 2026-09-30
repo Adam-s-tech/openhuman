@@ -13,10 +13,9 @@ use super::super::cloud_transcribe::{
 };
 use super::helpers::base64_decode;
 use super::traits::{SttProvider, SttResult};
-use crate::config::schema::voice_providers::SttApiStyle;
 use crate::config::Config;
 use crate::core::Outcome;
-use tinyinference_voice::external_stt::ExternalSttClient;
+use tinyinference_voice::external_stt::{ExternalSttClient, SttApiStyle};
 
 const LOG_PREFIX: &str = "[voice-factory]";
 

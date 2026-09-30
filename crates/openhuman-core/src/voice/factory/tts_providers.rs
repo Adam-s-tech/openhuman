@@ -6,10 +6,9 @@ use log::debug;
 use super::super::local_speech::{synthesize_piper, PiperOptions};
 use super::super::reply_speech::{synthesize_reply, ReplySpeechOptions};
 use super::traits::TtsProvider;
-use crate::config::schema::voice_providers::TtsApiStyle;
 use crate::config::Config;
 use crate::core::Outcome;
-use tinyinference_voice::external_tts::ExternalTtsClient;
+use tinyinference_voice::external_tts::{ExternalTtsClient, TtsApiStyle};
 use tinyinference_voice::reply::ReplySpeech as ReplySpeechResult;
 
 const LOG_PREFIX: &str = "[voice-factory]";
