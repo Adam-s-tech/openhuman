@@ -325,8 +325,6 @@ async fn flows_update_does_not_force_require_approval_on_readonly_graph() {
     );
 }
 
-// ── graph_has_outbound_side_effect / trigger_is_automatic helper tests ────
-
 #[tokio::test]
 async fn strict_gate_passes_a_valid_graph_and_rejects_a_structurally_invalid_one() {
     let config = Config::default();
