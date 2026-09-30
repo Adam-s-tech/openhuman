@@ -6,12 +6,12 @@ use super::*;
 // Re-imported here rather than through `ops`: `ops` itself no longer names
 // these, so importing them there would be an unused import in a non-test build.
 use crate::memory::conversations as conversations_store;
-use tinyagents_harness::title::{build_title_prompt, THREAD_TITLE_SYSTEM_PROMPT};
 use crate::threads::turn_state::{self, ClearTurnStateRequest, GetTurnStateRequest, TurnState};
 use crate::threads::ThreadsError;
 use serde_json::{json, Value};
 use std::ffi::OsString;
 use std::path::Path;
+use tinyagents_harness::title::{build_title_prompt, THREAD_TITLE_SYSTEM_PROMPT};
 
 struct EnvVarGuard {
     key: &'static str,

@@ -16,7 +16,6 @@ use tinyagents_harness::runtime::AgentHarness;
 use crate::agent::tinyagents::host::OpenHumanRunContext;
 use crate::agent::tinyagents::middleware;
 use crate::agent::tinyagents::model::TurnChatModel;
-use crate::agent::tinyagents::summarize;
 use crate::agent::tinyagents::turn_outcome::ToolOutcomeSink;
 
 /// Push the context ladder onto `harness` and return the two handles the run
@@ -75,7 +74,10 @@ pub(super) fn install_context_ladder(
             // turn (warn + circuit-breaker + deterministic trim instead), and an
             // identical re-issued input slice must not re-run the summarizer LLM.
             let summarizer = tinyagents_harness::summarization::FaultTolerantCachingSummarizer::new(
-                Box::new(tinyagents_harness::summarization::ModelSummarizer::new(summarizer_model, model)),
+                Box::new(tinyagents_harness::summarization::ModelSummarizer::new(
+                    summarizer_model,
+                    model,
+                )),
                 &policy,
             );
             let mw = Arc::new(ContextCompressionMiddleware::with_summarizer(

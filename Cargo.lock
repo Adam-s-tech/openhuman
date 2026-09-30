@@ -3936,6 +3936,7 @@ dependencies = [
  "tinyskills",
  "tinytools 0.4.1",
  "tinytools-agent 0.4.1",
+ "tinytools-std",
  "tinyvoice",
  "tinyvoice-bus",
  "tinywallet",
@@ -6884,6 +6885,20 @@ version = "0.4.1"
 dependencies = [
  "async-trait",
  "tinytools 0.4.1",
+]
+
+[[package]]
+name = "tinytools-std"
+version = "0.4.1"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "log",
+ "parking_lot",
+ "serde_json",
+ "tinytools 0.4.1",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]
