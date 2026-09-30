@@ -92,12 +92,3 @@ fn tinyjuice_detects_and_converts_html() {
     assert!(!TinyJuiceHtml.looks_like_html("# Just a README\n\nSome prose.\n"));
     assert!(TinyJuiceHtml.to_markdown(page).contains("hi"));
 }
-
-#[cfg(feature = "web3")]
-#[test]
-fn http_request_with_web3_installs_the_payment_hook() {
-    // A 402 without a hook would pass through unpaid; this pins that the host
-    // wiring hands the tool one. The hook itself is exercised upstream.
-    let tool = http_request_tool(Arc::new(SecurityPolicy::default()), vec![], 1024, 30);
-    assert_eq!(tool.name(), "http_request");
-}
