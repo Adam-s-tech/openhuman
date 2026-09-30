@@ -31,7 +31,7 @@ pub(crate) use tier::*;
 pub(crate) use tinyflows::caps::mock_schema_aware::*;
 pub(crate) use tinyflows::nodes::integration::agent_prompt::{
     build_agent_result, build_harness_run_prompt, clamp_run_timeout_secs, extract_structured_json,
-    node_request_to_prompt, prepend_system_message, resolve_node_model, resolve_run_timeout_secs,
+    prepend_system_message, resolve_node_model, resolve_run_timeout_secs,
     scale_timeout_for_iteration_cap, structured_output_instruction, structured_output_requested,
 };
 pub(crate) use tools::NATIVE_TOOL_PREFIX;
