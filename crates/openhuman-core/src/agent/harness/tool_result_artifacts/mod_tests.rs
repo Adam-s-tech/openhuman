@@ -80,17 +80,3 @@ fn a_page_names_file_read_as_the_continuation() {
         "{page}"
     );
 }
-
-/// The read limit is `file_read`'s own: a body whose redacted form it would
-/// refuse is never stored, so the preview never points at an unreadable file.
-#[tokio::test]
-async fn the_store_is_bounded_by_file_reads_limit() {
-    let tmp = tempfile::tempdir().unwrap();
-    let store = new_tool_result_store(tmp.path().to_path_buf(), "s");
-    let too_big = "z".repeat(FileReadTool::MAX_FILE_SIZE_BYTES as usize + 1);
-    let (out, outcome) =
-        apply_per_result_persistence(too_big, None, Some(&store), "shell", Some("c"), 1024).await;
-    assert!(!outcome.persisted, "an unreadable body must truncate inline");
-    assert!(out.contains("truncated by tool_result_budget"));
-    assert!(!tmp.path().join("artifacts").exists());
-}

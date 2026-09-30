@@ -15,7 +15,7 @@ use tinyagents_registry::{CapabilityRegistry, RegistryDiagnostic, RegistrySnapsh
 use tinyinference_llm::model::CapabilitySet;
 use tokio::sync::mpsc::Sender;
 
-use crate::agent::harness::tool_result_artifacts::ToolResultArtifactIndexStore;
+use tinyagents_harness::store::InMemoryStore as ToolResultArtifactIndexStore;
 use crate::agent::progress::AgentProgress;
 use crate::agent::tinyagents::harness_context_ladder::install_context_ladder;
 use crate::agent::tinyagents::harness_tool_registration::register_turn_tools_and_agents;

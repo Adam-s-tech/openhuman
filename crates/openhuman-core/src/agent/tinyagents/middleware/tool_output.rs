@@ -16,8 +16,10 @@ use tinyinference_llm::tool::ToolCall as TaToolCall;
 use tinytools::{ToolPolicy as TaToolPolicy, ToolResult as TaToolResult};
 
 use crate::agent::harness::tool_result_artifacts::{
-    apply_per_result_persistence, artifact_read_target, page_artifact_read, ArtifactRead,
-    ToolResultArtifactStore, TINYAGENTS_TOOL_RESULT_ARTIFACT_STORE,
+    artifact_read_target, page_artifact_read, TINYAGENTS_TOOL_RESULT_ARTIFACT_STORE,
+};
+use tinyagents_harness::artifacts::tool_results::{
+    apply_per_result_persistence, ArtifactRead, ToolResultArtifactStore,
 };
 use crate::agent::tinyagents::payload_summarizer::PayloadSummarizer;
 use crate::inference::tokenjuice::generate::GenerateTicket;
