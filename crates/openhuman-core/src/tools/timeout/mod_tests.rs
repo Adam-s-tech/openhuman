@@ -120,3 +120,60 @@ fn env_override_from_rejects_invalid() {
     assert_eq!(env_override_from(Some("3601")), None);
     assert_eq!(env_override_from(Some("120")), Some(120));
 }
+
+/// Table of `(policy, inherited config secs, expected (deadline_ms, budget_secs))`.
+/// Pins `resolve_tool_deadline` so its behaviour is identical whether it is
+/// implemented locally or delegated to the vendored `ToolTimeoutSettings`.
+#[test]
+fn resolve_tool_deadline_table() {
+    use tinytools::ToolTimeout;
+    let ms = |m: u64| Some(Duration::from_millis(m));
+    let cases: Vec<(ToolTimeout, u64, (Option<Duration>, u64))> = vec![
+        // Inherit: the global config value, no grace.
+        (ToolTimeout::Inherit, 120, (ms(120_000), 120)),
+        (ToolTimeout::Inherit, 1, (ms(1_000), 1)),
+        (ToolTimeout::Inherit, 3600, (ms(3_600_000), 3600)),
+        // Unbounded: no deadline, zero budget.
+        (ToolTimeout::Unbounded, 120, (None, 0)),
+        // Millis: rounded UP to whole seconds, clamped, +5s grace on deadline.
+        (ToolTimeout::Millis(0), 120, (ms(6_000), 1)),
+        (ToolTimeout::Millis(1), 120, (ms(6_000), 1)),
+        (ToolTimeout::Millis(1_000), 120, (ms(6_000), 1)),
+        (ToolTimeout::Millis(1_001), 120, (ms(7_000), 2)),
+        (ToolTimeout::Millis(1_500), 120, (ms(7_000), 2)),
+        (ToolTimeout::Millis(30_000), 120, (ms(35_000), 30)),
+        (ToolTimeout::Millis(3_600_000), 120, (ms(3_605_000), 3600)),
+        (ToolTimeout::Millis(3_600_001), 120, (ms(3_605_000), 3600)),
+        (ToolTimeout::Millis(u64::MAX), 120, (ms(3_605_000), 3600)),
+    ];
+    for (policy, inherited_secs, expected) in cases {
+        // Resolve against the pure helper so the process-global stays untouched.
+        let got = resolve_tool_deadline_with(policy, inherited_secs);
+        assert_eq!(got, expected, "policy {policy:?} inherited {inherited_secs}s");
+    }
+}
+
+/// Env / config precedence table for the effective inherited timeout.
+#[test]
+fn resolve_effective_table() {
+    let cases: &[(u64, Option<&str>, u64)] = &[
+        (300, None, 300),
+        (300, Some("600"), 600),
+        (300, Some("1"), 1),
+        (300, Some("3600"), 3600),
+        (300, Some("3601"), 300),
+        (300, Some("0"), 300),
+        (300, Some("-1"), 300),
+        (300, Some(""), 300),
+        (300, Some("abc"), 300),
+        (0, None, DEFAULT_TIMEOUT_SECS),
+        (0, Some("45"), 45),
+        (3601, None, DEFAULT_TIMEOUT_SECS),
+        (u64::MAX, None, DEFAULT_TIMEOUT_SECS),
+        (1, None, 1),
+        (3600, None, 3600),
+    ];
+    for &(config, env, expected) in cases {
+        assert_eq!(resolve_effective(config, env), expected, "config {config} env {env:?}");
+    }
+}
