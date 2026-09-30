@@ -39,7 +39,7 @@
     {
       "id": "tinybox",
       "submodule": "vendor/tinybox",
-      "expect": "v0.1.8-7-ga1b5bf0",
+      "expect": "v0.1.8-7-ga1b5bf0a",
       "reason": "The pin is v0.1.8 plus only pure-library additions: the new crate tinybox-jail (tinyhumansai/tinybox#12) and the new tinybox-core `shell::scan` module (tinyhumansai/tinybox#13), stacked on it (branch oh-w2-tinybox-on-v0.1.8), which the core links as Rust path dependencies. No module, contract or bus source changes relative to v0.1.8, so the registry's v0.1.8 artifact still matches the contract compiled here. Remove when tinybox#12 and #13 ship in a release and both pins move to it."
     },
     {
