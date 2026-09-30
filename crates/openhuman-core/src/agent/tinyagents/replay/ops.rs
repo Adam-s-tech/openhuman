@@ -32,9 +32,9 @@ pub(crate) async fn read_run_status(
     run_id: &str,
 ) -> anyhow::Result<Option<HarnessRunStatus>> {
     let store = FileStatusStore::new(open_session_stores(workspace).kv);
-    replay::read_run_status(&store, run_id).await.map_err(|e| {
-        anyhow::anyhow!("[agent] replay read_run_status failed run_id={run_id}: {e}")
-    })
+    replay::read_run_status(&store, run_id)
+        .await
+        .map_err(|e| anyhow::anyhow!("[agent] replay read_run_status failed run_id={run_id}: {e}"))
 }
 
 /// Active runs, optionally filtered by `thread_id` and/or `root_run_id`.
