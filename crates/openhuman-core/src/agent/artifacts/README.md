@@ -91,9 +91,9 @@ event.
 ## Persistence
 
 - Metadata root `<workspace_dir>/artifacts/`, created on demand by
-  `artifacts_root`. Per account; listed in `WORKSPACE_INTERNAL_DIRS`
-  because `meta.json` names the file Download and `read_artifact_bytes`
-  follow.
+  `artifacts_root`. Per account. Not in `WORKSPACE_INTERNAL_DIRS`: the
+  agent reads its large tool outputs back from `artifacts/tool-results/`,
+  so a record's `file` is bounded by the escape guard instead.
 - `<root>/<id>/meta.json`: pretty-printed `ArtifactMeta`, written
   atomically (temp + rename).
 - `<root>/<id>/args.json`: verbatim producer-tool args, written by the

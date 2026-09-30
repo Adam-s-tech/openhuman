@@ -822,9 +822,8 @@ pub enum DomainEvent {
         /// relative and would otherwise resolve into the wrong
         /// `<workspace>/artifacts/` tree.
         workspace_dir: String,
-        /// The file's name relative to its root: `"deck.pptx"` in the
-        /// visible files folder (#5505), or `"<uuid>/deck.pptx"` under
-        /// `<workspace>/artifacts/` for a legacy record. The absolute path is reachable via
+        /// File name relative to its root (`"deck.pptx"` in the files folder,
+        /// legacy `"<uuid>/deck.pptx"`); the absolute path is reachable via
         /// `ai_get_artifact` so the renderer never needs the
         /// workspace root.
         path: String,

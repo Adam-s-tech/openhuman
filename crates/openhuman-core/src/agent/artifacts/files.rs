@@ -20,8 +20,8 @@
 //! path [`SecurityPolicy::is_always_forbidden`] rejects. That last check is the
 //! same floor the agent's own file tools keep when the autonomy policy is off,
 //! so a hand-edited record cannot reach further than the agent already could.
-//! With the policy on, `artifacts/` is a workspace-internal dir and the agent
-//! cannot edit the record at all.
+//! (`artifacts/` is deliberately not a workspace-internal dir: the agent reads
+//! its own large tool outputs back from `artifacts/tool-results/`.)
 
 use std::path::{Component, Path, PathBuf};
 
