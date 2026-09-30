@@ -8,6 +8,7 @@ use crate::security::{AuditLogger, SecurityPolicy};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tinytools::Tool;
+use tinytools_std::detect_tools::DetectToolsTool;
 #[cfg(test)]
 use tinytools::{ToolResult, ToolSpec};
 
