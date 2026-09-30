@@ -485,7 +485,7 @@ pub async fn stash_image_attachments(message: &str, image_config: &MultimodalCon
         match resolve_image(reference, &images, max_image_bytes, &client).await {
             Ok(data_uri) => {
                 let id = sha256_prefix(data_uri.as_bytes());
-                match write_attachment(&id, &data_uri).await {
+                match stash().write(&id, &data_uri).await {
                     Ok(path) => tracing::debug!(
                         target: "multimodal",
                         id = %id,
