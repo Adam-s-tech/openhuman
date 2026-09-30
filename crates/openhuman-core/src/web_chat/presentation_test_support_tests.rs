@@ -1,5 +1,17 @@
 use crate::memory::agent::memory_loader::MemoryCitation;
 
+pub fn segment_for_delivery_for_test(text: &str) -> Vec<String> {
+    super::segment_for_delivery(text)
+}
+
+pub fn segment_delay_for_test(segment: &str) -> u64 {
+    super::segment_delay(segment)
+}
+
+pub fn is_structured_content_for_test(text: &str) -> bool {
+    super::is_structured_content(text)
+}
+
 pub async fn deliver_response_for_test(
     client_id: &str,
     thread_id: &str,
