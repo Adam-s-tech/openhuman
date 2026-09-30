@@ -108,12 +108,6 @@ impl SpawnSubagentTool {
             .map(|s| s.trim().to_string())
             .filter(|s| !s.is_empty());
 
-        let toolkit_override = args
-            .get("toolkit")
-            .and_then(|v| v.as_str())
-            .map(|s| s.trim().to_string())
-            .filter(|s| !s.is_empty());
-
         // Worker threads are now always created for delegations that may
         // need follow-up (checkpoint + replay for ask_user_clarification).
         // The `dedicated_thread` parameter is accepted but no longer
@@ -321,7 +315,6 @@ impl SpawnSubagentTool {
             .map(|parent| parent.workspace_dir.clone());
         let options = SubagentRunOptions {
             skill_filter_override: None,
-            toolkit_override,
             context,
             model_override,
             task_id: Some(task_id.clone()),

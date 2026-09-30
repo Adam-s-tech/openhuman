@@ -167,7 +167,6 @@ async fn typed_mode_returns_text_through_runner() {
             SubagentRunOptions {
                 workspace_descriptor: None,
                 skill_filter_override: None,
-                toolkit_override: None,
                 context: None,
                 model_override: None,
                 task_id: Some("t1".into()),
@@ -387,7 +386,6 @@ async fn typed_mode_filters_tools_by_skill_filter() {
             SubagentRunOptions {
                 workspace_descriptor: None,
                 skill_filter_override: Some("notion".into()),
-                toolkit_override: None,
                 context: None,
                 model_override: None,
                 task_id: None,

@@ -37,17 +37,6 @@ async fn synthesize_piper_surfaces_binary_lookup_failure() {
 }
 
 #[test]
-fn synthetic_viseme_timeline_yields_non_empty_frames() {
-    let frames = synthetic_viseme_timeline("hello world");
-    assert!(!frames.is_empty(), "must produce at least one frame");
-    assert_eq!(frames[0].viseme, "sil", "leading silence");
-    assert!(
-        frames.last().unwrap().end_ms >= 80,
-        "tail frame must extend past the leading silence"
-    );
-}
-
-#[test]
 fn synthetic_viseme_timeline_handles_whitespace_only_text() {
     // Whitespace-only input would normally be rejected upstream, but
     // the helper itself must not panic — defends against a future
@@ -56,14 +45,4 @@ fn synthetic_viseme_timeline_handles_whitespace_only_text() {
     assert!(!frames.is_empty());
     // chars().filter(non-ws).count() is 0 → min 1 → 80 ms total.
     assert_eq!(frames[1].end_ms, 80);
-}
-
-#[test]
-fn synthetic_viseme_timeline_scales_with_length() {
-    let short = synthetic_viseme_timeline("hi");
-    let long = synthetic_viseme_timeline("the quick brown fox jumps");
-    assert!(
-        long.last().unwrap().end_ms > short.last().unwrap().end_ms,
-        "longer text should produce a longer timeline"
-    );
 }

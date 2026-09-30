@@ -1,5 +1,5 @@
-use super::super::store::TurnStateStore;
-use super::super::types::TurnState;
+use tinyagents_session::turn_state::store::TurnStateStore;
+use tinyagents_session::turn_state::types::TurnState;
 
 /// In-process cursor that keeps the authoritative [`TurnState`] in sync
 /// with the agent loop and writes it through to a [`TurnStateStore`].

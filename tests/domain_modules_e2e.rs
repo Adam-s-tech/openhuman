@@ -19,7 +19,7 @@ use serde_json::{json, Value};
 use tempfile::{tempdir, TempDir};
 
 use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
-use openhuman_core::core::jsonrpc::build_core_http_router;
+use openhuman_rpc::server::build_core_http_router;
 
 const TEST_RPC_TOKEN: &str = "domain-modules-e2e-token";
 
@@ -640,10 +640,10 @@ async fn target_domain_read_paths_round_trip_through_json_rpc_transport() {
 /// `channels.set_default` and `channels.get_default` differ in WIRE SHAPE.
 ///
 /// Nothing else pins this, and the difference is invisible to every helper that
-/// unwraps tolerantly. `set_default_channel` returns `RpcOutcome::single_log(...)`
+/// unwraps tolerantly. `set_default_channel` returns `Outcome::single_log(...)`
 /// (`channels/controllers/ops/connect/status.rs:101-104`), so its payload arrives
 /// ENVELOPED as `{ result, logs }`. `get_default_channel` returns
-/// `RpcOutcome::new(_, vec![])` (`:115`), so its payload arrives BARE. Adding or
+/// `Outcome::new(_, vec![])` (`:115`), so its payload arrives BARE. Adding or
 /// removing a single log line in either handler silently changes what every
 /// caller must parse — the §6 log-envelope rule, on a live pair of methods.
 ///
@@ -735,7 +735,7 @@ async fn cron_update_applies_a_partial_patch_without_clobbering_unset_fields() {
         }),
     )
     .await;
-    // `handle_add` ends in `to_json(RpcOutcome::single_log(job, ...))`, so the
+    // `handle_add` ends in `to_json(Outcome::single_log(job, ...))`, so the
     // CronJob is the payload itself — there is no `job` wrapper key, despite what
     // the declared output schema names.
     let job = payload(&added, "cron_add").clone();
@@ -980,8 +980,9 @@ async fn mcp_clients_read_paths_validate_before_reaching_outward() {
         );
     }
 
-    // `list_tools` against a server that was never connected must say so, and
-    // say what to do. This is the message a user sees most often.
+    // `list_tools` against a server that was never installed must say so, and
+    // say what to do. It is not "not connected": connecting something that is
+    // not installed is advice nobody can follow (#6313).
     let disconnected = rpc(
         &harness.rpc_base,
         45_110,
@@ -995,12 +996,12 @@ async fn mcp_clients_read_paths_validate_before_reaching_outward() {
         .unwrap_or_default()
         .to_string();
     assert!(
-        message.contains("not connected"),
-        "list_tools on a disconnected server must say it is not connected, got: {message}"
+        message.contains("no installed MCP server"),
+        "list_tools on an uninstalled server must say it is not installed, got: {message}"
     );
     assert!(
-        message.contains("mcp_clients_connect"),
-        "the refusal must name the remedy so a caller can act on it, got: {message}"
+        message.contains("mcp_clients_status"),
+        "the refusal must name the RPC remedy so a caller can act on it, got: {message}"
     );
 
     harness.join.abort();

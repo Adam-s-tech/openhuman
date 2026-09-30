@@ -78,8 +78,7 @@ fn json_output_helper_builds_required_json_field() {
 
 #[test]
 fn to_json_wraps_rpc_outcome() {
-    let v =
-        to_json(RpcOutcome::single_log(serde_json::json!({"ok": true}), "l")).expect("serialize");
+    let v = to_json(Outcome::single_log(serde_json::json!({"ok": true}), "l")).expect("serialize");
     assert!(v.get("logs").is_some() || v.get("result").is_some());
 }
 
@@ -219,7 +218,6 @@ fn deserialize_params_parses_local_ai_settings_update() {
     m.insert("model_id".into(), Value::String("local-default".into()));
     m.insert("chat_model_id".into(), Value::String("local-chat".into()));
     m.insert("usage_embeddings".into(), Value::Bool(true));
-    m.insert("usage_subconscious".into(), Value::Bool(false));
 
     let out: LocalAiSettingsUpdate = deserialize_params(m).unwrap();
     assert_eq!(out.runtime_enabled, Some(true));
@@ -232,7 +230,6 @@ fn deserialize_params_parses_local_ai_settings_update() {
     assert_eq!(out.model_id.as_deref(), Some("local-default"));
     assert_eq!(out.chat_model_id.as_deref(), Some("local-chat"));
     assert_eq!(out.usage_embeddings, Some(true));
-    assert_eq!(out.usage_subconscious, Some(false));
 }
 
 #[test]

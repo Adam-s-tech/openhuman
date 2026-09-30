@@ -2,7 +2,7 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 
 use crate::config::rpc as config_rpc;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 use crate::runtime::javascript;
 
 #[derive(Debug, Deserialize, Default)]
@@ -30,7 +30,7 @@ pub(crate) async fn list_tools_handler(
             .map(|tools| tools.len())
             .unwrap_or(0)
     )];
-    RpcOutcome::new(payload, log).into_cli_compatible_json()
+    Outcome::new(payload, log).into_cli_compatible_json()
 }
 
 pub(crate) async fn execute_tool_handler(
@@ -54,5 +54,5 @@ pub(crate) async fn execute_tool_handler(
         payload["tool_name"].as_str().unwrap_or("<unknown>"),
         payload["elapsed_ms"].as_u64().unwrap_or(0)
     )];
-    RpcOutcome::new(payload, log).into_cli_compatible_json()
+    Outcome::new(payload, log).into_cli_compatible_json()
 }

@@ -1,4 +1,5 @@
 use serde_json::{json, Value};
+use tinymcp::ServerToolSpec;
 
 use super::types::{McpToolSpec, DEFAULT_LIMIT, MAX_LIMIT, SEARCH_MAX_RESULTS};
 
@@ -281,11 +282,13 @@ pub fn searxng_tool_spec() -> McpToolSpec {
     }
 }
 
-pub fn list_tools_result_for_config(config: &crate::config::Config) -> Value {
-    list_tools_result_from_specs(tool_specs_for_config(
+/// Every tool this config can serve: the base set plus the search tools with
+/// a usable provider.
+pub fn tool_specs_for_loaded_config(config: &crate::config::Config) -> Vec<McpToolSpec> {
+    tool_specs_for_config(
         config,
         crate::search::providers::backend_credential_available(config),
-    ))
+    )
 }
 
 /// Base tools plus the search tools this config can serve.
@@ -310,20 +313,11 @@ pub fn tool_specs_for_config(
     specs
 }
 
-pub fn list_tools_result_from_specs(specs: Vec<McpToolSpec>) -> Value {
-    let tools = specs
-        .into_iter()
-        .map(|tool| {
-            json!({
-                "name": tool.name,
-                "title": tool.title,
-                "description": tool.description,
-                "inputSchema": tool.input_schema,
-                "annotations": tool.annotations,
-            })
-        })
-        .collect::<Vec<_>>();
-    json!({ "tools": tools })
+/// A catalog entry as `tinymcp` advertises it in `tools/list`.
+pub fn server_tool_spec(spec: &McpToolSpec) -> ServerToolSpec {
+    ServerToolSpec::new(spec.name, spec.description, spec.input_schema.clone())
+        .with_title(spec.title)
+        .with_annotations(spec.annotations.clone())
 }
 
 // ── Schema builder helpers ────────────────────────────────────────────────────

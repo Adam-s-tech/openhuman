@@ -38,8 +38,8 @@ use serde_json::{json, Value};
 use tempfile::{tempdir, TempDir};
 
 use openhuman_core::core::auth::{get_rpc_token, init_rpc_token, CORE_TOKEN_ENV_VAR};
-use openhuman_core::core::jsonrpc::build_core_http_router;
 use openhuman_core::inference::auth_error_registry;
+use openhuman_rpc::server::build_core_http_router;
 
 const TEST_RPC_TOKEN: &str = "inference-provider-auth-e2e-token";
 
@@ -90,7 +90,7 @@ impl Drop for EnvVarGuard {
     }
 }
 
-/// See the note in `sandbox_runtime_platform_e2e.rs`: `core::auth::RPC_TOKEN`
+/// `core::auth::RPC_TOKEN`
 /// is a process-global `OnceLock` and `init_rpc_token` is idempotent, so inside
 /// the aggregated binary the first suite to initialise pins the bearer. Use the
 /// token this process actually validates rather than assuming ours won.

@@ -23,19 +23,16 @@ credentials, and the keychain. None of these submodules is feature-gated.
 | `tools.rs` | `SecurityPolicyInfoTool`, the only LLM-callable surface of this domain (read-only, default-ON); command/path gating itself is enforced in-engine, never as an agent-callable tool |
 | `schemas.rs` | `security.policy_info` RPC controller, registered through `core/all.rs` |
 | `ops.rs` | `security_policy_info_for_config` / `load_and_get_security_policy_info` behind that controller |
-| `detect.rs` | `create_sandbox`, which picks a `Sandbox` backend for the host |
-| `traits.rs` | `Sandbox` trait and `NoopSandbox` |
-| `docker.rs`, `bubblewrap.rs`, `firejail.rs`, `landlock.rs` | Legacy `Command`-wrapping sandbox backends implementing `Sandbox` (see below) |
 | `audit.rs` | Append-only audit log of agent actions |
 | `pairing.rs` | Pairing token / non-loopback bind guard |
 | `core.rs` | `redact()`, 4-char-prefix log redaction (glob re-exported) |
 
-Sandbox note: `docker.rs` / `bubblewrap.rs` / `firejail.rs` / `landlock.rs`
-here wrap a `std::process::Command` per the `Sandbox` trait and are chosen by
-`detect::create_sandbox`. `crates/openhuman-core/src/sandbox/` is a separate,
-newer domain; see `sandbox/cwd_jail/mod.rs`'s rustdoc for why `cwd_jail`
-superseded these backends on macOS (no `bwrap`) and added a Windows
-AppContainer backend. The two domains are not interchangeable.
+Sandbox note: this domain holds no sandbox backends. The legacy `Command`-wrapping
+`Sandbox` trait and its Docker / Bubblewrap / Firejail / Landlock backends had no
+callers and were removed. `crates/openhuman-core/src/sandbox/` picks the backend per
+session and delegates local confinement to `tinybox-jail`
+(`vendor/tinybox/crates/tinybox-jail`). Quote-aware command-string scanning used by
+`policy/policy_command/` is `tinybox_core::shell::scan`.
 
 ## Public surface
 
@@ -46,13 +43,6 @@ AppContainer backend. The two domains are not interchangeable.
   [policy/README.md](policy/README.md).
 - `pub fn validate_path_within_root`, `pub fn openhuman_scratch_dir`,
   `pub fn ensure_openhuman_scratch_dir`, defined in `policy/enforcement.rs`.
-- `pub trait Sandbox` / `pub struct NoopSandbox`, defined in `traits.rs`: a
-  pluggable sandbox abstraction.
-- `pub fn create_sandbox(config: &SecurityConfig) -> Arc<dyn Sandbox>`,
-  defined in `detect.rs`. It honors `config.sandbox.backend` or auto-detects
-  Landlock, Firejail, Bubblewrap, or Docker, falling back to `NoopSandbox`.
-  Landlock and Bubblewrap sit behind the `sandbox-landlock` /
-  `sandbox-bubblewrap` cargo features.
 - `pub use self::keyring::SecretStore`: an encrypted-on-disk secret codec
   whose master key lives in keychain-backed storage.
 - `pub use egress::{emit_external_transfer, enforce_egress, local_only_blocks, local_only_tool_block, DataKind, EgressDescriptor, EgressReason, IdentificationRisk}`;
@@ -72,7 +62,7 @@ AppContainer backend. The two domains are not interchangeable.
   4-char-prefix redaction for logs.
 - `pub use ops as rpc`: `ops.rs`'s `security_policy_info_for_config(&Config)`
   and `load_and_get_security_policy_info()` return
-  `RpcOutcome<serde_json::Value>` and back the `security.policy_info` RPC
+  `Outcome<serde_json::Value>` and back the `security.policy_info` RPC
   function; `tools.rs` exposes the same read to the agent.
 
 ## The policy is off by default
@@ -144,7 +134,7 @@ a feature work:
   `security/approval/gate.rs`'s
   `DEFAULT_APPROVAL_TTL` is 10 minutes and a timed-out park returns `Deny`;
   `approval_gate_boot_decision` (`core/types.rs`, applied in
-  `core/jsonrpc.rs`) always installs the gate for `HostKind::TauriShell` and
+  `core/runtime/bootstrap.rs`) always installs the gate for `HostKind::TauriShell` and
   ignores `OPENHUMAN_APPROVAL_GATE=0` there. Only CLI, Docker, and library
   hosts may opt out.
 

@@ -54,7 +54,7 @@ fn build_title_request_sends_no_per_request_model_override() {
     // `create_chat_model` (managed backend, Claude Agent SDK, Claude Code,
     // local runtime, BYOK cloud slug). Pinning a concrete managed tier here
     // would fix the managed route and break the other four.
-    let request = crate::threads::title::build_title_request("hi there", "hello back");
+    let request = tinyagents_harness::title::build_title_request("hi there", "hello back");
 
     assert!(
         request.model.is_none(),
@@ -70,7 +70,7 @@ fn build_title_request_carries_the_system_prompt_and_rendered_user_prompt() {
     // satisfied by an empty or malformed request.
     use tinyinference_llm::message::Message;
 
-    let request = crate::threads::title::build_title_request("hi there", "hello back");
+    let request = tinyagents_harness::title::build_title_request("hi there", "hello back");
 
     assert_eq!(request.messages.len(), 2, "system + user");
     assert!(
@@ -467,8 +467,10 @@ async fn thread_delete_removes_persisted_turn_state_snapshot() {
         .workspace_dir;
 
     let snapshot = TurnState::started(thread_id, "req-1", 4, "2026-01-01T00:00:00Z");
-    turn_state::store::put(dir.clone(), &snapshot).expect("put snapshot");
-    assert!(turn_state::store::get(dir, thread_id).unwrap().is_some());
+    tinyagents_session::turn_state::store::put(dir.clone(), &snapshot).expect("put snapshot");
+    assert!(tinyagents_session::turn_state::store::get(dir, thread_id)
+        .unwrap()
+        .is_some());
 
     // Queue a finished background sub-agent result for this thread; deleting the
     // thread must discard it so it's never delivered into a dead thread.
@@ -518,7 +520,7 @@ async fn threads_purge_removes_valid_and_corrupted_turn_state_files() {
         .workspace_dir;
 
     let snapshot = TurnState::started("thread-a", "req-1", 4, "2026-01-01T00:00:00Z");
-    turn_state::store::put(dir.clone(), &snapshot).expect("put snapshot");
+    tinyagents_session::turn_state::store::put(dir.clone(), &snapshot).expect("put snapshot");
 
     let turn_state_dir = dir.join("memory").join("conversations").join("turn_states");
     std::fs::create_dir_all(&turn_state_dir).unwrap();

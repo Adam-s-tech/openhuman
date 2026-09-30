@@ -20,7 +20,7 @@
 //! result, channel-less users silently got **no** learning at all.
 //!
 //! [`register_learning_subscribers`] is invoked from the always-on Platform
-//! boot path (`core::jsonrpc::register_domain_subscribers`, the unconditional
+//! boot path (`core::runtime::subscribers::register_domain_subscribers`, the unconditional
 //! `DomainGroup::Platform` block), where the memory client and workspace dir are
 //! already available. Registration is idempotent, so both boot paths (and repeat
 //! calls) install each subscriber exactly once.
@@ -78,6 +78,17 @@ pub fn register_learning_subscribers(workspace_dir: std::path::PathBuf) {
 /// to rebuild against.
 fn memory_is_bindable(workspace_dir: &Path) -> bool {
     use crate::config::schema::MemorySubsystemConfig;
+    // An explicit `driver = "null"` advertises no capabilities at all, which is
+    // how the context reports "memory is off" without exposing the binding.
+    if let Some(ctx) = ambient_context_for(workspace_dir) {
+        if ctx.memory_capabilities().iter().next().is_none() {
+            tracing::warn!(
+                "[learning::startup] memory is disabled for this workspace — learning subscribers will not register"
+            );
+            return false;
+        }
+        return true;
+    }
     match crate::memory::binding::for_workspace(workspace_dir, &MemorySubsystemConfig::default()) {
         Ok(binding) if binding.disables_memory() => {
             tracing::warn!(
@@ -98,6 +109,19 @@ fn memory_is_bindable(workspace_dir: &Path) -> bool {
             false
         }
     }
+}
+
+/// The ambient context serving `workspace_dir`, if any.
+///
+/// It carries the workspace's `[subsystems.memory]` config (including a
+/// memory-engine switch), so learning binds to the engine the user chose rather
+/// than always to the default module. `None` means a bare boot with no context
+/// for this workspace (unit tests), which falls back to the default config.
+fn ambient_context_for(
+    workspace_dir: &Path,
+) -> Option<std::sync::Arc<crate::core::runtime::context::CoreContext>> {
+    crate::core::runtime::context::CoreContext::current()
+        .filter(|ctx| ctx.workspace_dir().ok().as_deref() == Some(workspace_dir))
 }
 
 fn register_email_signature_once<F>(handle_cell: &OnceLock<Option<SubscriptionHandle>>, register: F)
@@ -131,6 +155,15 @@ fn facet_cache_for(
     workspace_dir: &std::path::Path,
 ) -> Option<crate::agent::learning::cache::FacetCache> {
     use crate::config::schema::MemorySubsystemConfig;
+    if let Some(ctx) = ambient_context_for(workspace_dir) {
+        return match ctx.memory() {
+            Ok(guard) => Some(crate::agent::learning::cache::FacetCache::new(guard)),
+            Err(error) => {
+                tracing::warn!("[learning::startup] no memory binding for facet cache: {error}");
+                None
+            }
+        };
+    }
     match crate::memory::binding::for_workspace(workspace_dir, &MemorySubsystemConfig::default()) {
         Ok(binding) => Some(crate::agent::learning::cache::FacetCache::new(
             binding.guard(),

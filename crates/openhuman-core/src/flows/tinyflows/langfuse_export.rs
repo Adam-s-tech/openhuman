@@ -13,7 +13,7 @@
 //! injector additionally stamps `flow_id` on every span for filtering.
 //!
 //! Transport mirrors the agent-turn tracing path
-//! (`agent::progress_tracing::langfuse::push_spans`): the endpoint is derived
+//! (`agent::progress_tracing::otlp::push_spans`): the endpoint is derived
 //! from the **current backend hostname** (`effective_backend_api_url`), auth
 //! is the live OpenHuman session bearer (the backend injects the real
 //! Langfuse keys server-side), the send is capped at 10s, `207 Multi-Status`

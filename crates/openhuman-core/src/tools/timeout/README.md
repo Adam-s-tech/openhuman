@@ -7,12 +7,12 @@ Process-wide wall-clock timeout policy for tool execution (the node/tool runtime
 Highest precedence first:
 
 1. `OPENHUMAN_TOOL_TIMEOUT_SECS` environment variable, an operator override. When set to a valid value (`1..=3600`) it always wins; config pushes are ignored while it is present.
-2. The persisted config value (`[agent].agent_timeout_secs`), pushed in via `set_tool_timeout_secs` at startup (from `core::jsonrpc::register_domain_subscribers`, the always-on core boot path) and on every `config.update_agent_settings` RPC.
+2. The persisted config value (`[agent].agent_timeout_secs`), pushed in via `set_tool_timeout_secs` at startup (from `core::runtime::subscribers::register_domain_subscribers`, the always-on core boot path) and on every `config.update_agent_settings` RPC.
 3. The built-in `DEFAULT_TIMEOUT_SECS` (`120`) default.
 
 ## Responsibilities
 
-- Hold the effective timeout in a process-global `AtomicU64`, seeded lazily from env or default on first read.
+- Hold the effective timeout in a process-global vendored `tinyagents_harness::tool::ToolTimeoutSettings` (atomic inside), seeded lazily from env or default on first read. Deadline/budget resolution (`resolve_tool_deadline`) delegates to that vendor type; env/config parsing stays here.
 - Bound every candidate value to `1..=3600` seconds, falling back to the `120`s default on missing, non-numeric, zero, negative, or out-of-range input.
 - Let the persisted config drive the value at runtime while keeping the operator env var as an always-wins override.
 - Provide the timeout to callers in two shapes: raw seconds (for logging and matching frontend timeouts) and `Duration` (for `tokio::time::timeout`-style wrapping).
@@ -56,7 +56,7 @@ The global timeout governs non-scripting tools only, since a hung network or MCP
 - `crates/openhuman-core/src/tools/impl/system/{shell,node_exec,npm_exec,python_exec}.rs`: scripting tools, unbounded by default, explicit `timeout_secs` via `explicit_call_timeout_*`.
 - `crates/openhuman-core/src/agent/tools/delegate.rs`: bounds the delegated provider chat call with `tool_execution_timeout_secs`.
 - `crates/openhuman-core/src/config/ops/agent.rs`: `apply_agent_settings` calls `set_tool_timeout_secs` after persisting; `get_agent_settings` reports `effective_timeout_secs`/`env_override`.
-- `crates/openhuman-core/src/core/jsonrpc.rs`: `register_domain_subscribers` seeds the runtime value from config on the always-on core boot path, so channel-less or web-chat-only cores get the configured timeout too (#5027).
+- `crates/openhuman-core/src/core/runtime/subscribers.rs`: `register_domain_subscribers` seeds the runtime value from config on the always-on core boot path, so channel-less or web-chat-only cores get the configured timeout too (#5027).
 - `crates/openhuman-core/src/agent/harness/harness_gap_tests.rs`: pins `parse_tool_timeout_secs` default and boundary behavior.
 
 ## Notes and gotchas

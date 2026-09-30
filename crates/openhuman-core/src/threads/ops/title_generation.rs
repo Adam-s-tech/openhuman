@@ -3,22 +3,23 @@
 
 use super::support::{counts, envelope, thread_to_summary, update_thread_with_fallback_title};
 use crate::config::Config;
+use crate::core::Outcome;
 use crate::inference::provider;
 use crate::memory::conversations;
 use crate::memory::{
     ApiEnvelope, ConversationThreadSummary, GenerateConversationThreadTitleRequest,
 };
-use crate::rpc::RpcOutcome;
-use crate::threads::title::{
-    build_title_request, is_auto_generated_thread_title, sanitize_generated_title,
-    title_log_fingerprint, THREAD_TITLE_LOG_PREFIX,
-};
 use crate::threads::ThreadsError;
+use crate::threads::THREAD_TITLE_LOG_PREFIX;
+use tinyagents_harness::title::{
+    build_title_request, is_auto_generated_thread_title, sanitize_generated_title,
+    title_log_fingerprint,
+};
 
 /// Generates a durable thread title from the first user message and assistant reply.
 pub async fn thread_generate_title(
     request: GenerateConversationThreadTitleRequest,
-) -> Result<RpcOutcome<ApiEnvelope<ConversationThreadSummary>>, ThreadsError> {
+) -> Result<Outcome<ApiEnvelope<ConversationThreadSummary>>, ThreadsError> {
     let config = Config::load_or_init()
         .await
         .map_err(|e| format!("load config: {e}"))?;

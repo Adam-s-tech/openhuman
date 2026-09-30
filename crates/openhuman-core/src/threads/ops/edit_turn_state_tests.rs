@@ -7,10 +7,10 @@
 
 use super::*;
 use crate::memory::conversations::{self, run_reply_message_id, ConversationMessage};
-use crate::threads::turn_state::store as turn_state_store;
-use crate::threads::turn_state::types::TurnState;
 use serde_json::json;
 use tempfile::TempDir;
+use tinyagents_session::turn_state::store as turn_state_store;
+use tinyagents_session::turn_state::types::TurnState;
 
 fn turn_state(thread_id: &str, request_id: &str, started_at: &str) -> TurnState {
     TurnState::started(thread_id.to_string(), request_id, 25, started_at)

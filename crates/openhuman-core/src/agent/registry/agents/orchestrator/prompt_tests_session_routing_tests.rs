@@ -67,7 +67,7 @@ fn the_withheld_block_renders_for_a_renamed_session_with_a_filter() {
     // on exactly ONE feature and can ask about it directly, so there is no
     // tool-to-feature mapping here to drift out of date.
     assert!(
-        block.contains("- skill `documents`: `make_presentation`"),
+        block.contains("`documents` (make_presentation"),
         "a packed delegate must render with its route:{}\n{block}",
         if cfg!(feature = "documents") {
             String::new()
@@ -109,12 +109,10 @@ fn prompt_routes_workflow_authoring_to_the_builder_not_use_skill() {
     // The gate is the fix; this pins the prompt so the model is told the route
     // before it discovers the wall.
     assert!(
-        ARCHETYPE.contains("## Scheduling and workflows"),
-        "orchestrator prompt must carry the workflow routing rule"
-    );
-    assert!(
-        ARCHETYPE.contains("spawn the `workflow_builder` agent with `spawn_async_subagent`"),
-        "the rule must name the delegate to call"
+        ARCHETYPE.contains(
+            "Build or edit a workflow: spawn `workflow_builder` with `spawn_async_subagent`"
+        ),
+        "orchestrator prompt must carry the workflow routing rule and name the spawn to make"
     );
 
     // The rule is only true because these are the real names. Asserting the
@@ -182,7 +180,7 @@ fn skill_sections_name_the_hand_off_this_session_can_call() {
     // Listed but held by a pack: name the call that actually reaches it.
     assert_eq!(
         hand_off_route(&ctx, "image_agent").as_deref(),
-        Some("`use_skill { \"skill\": \"media\", \"tool\": \"create_image\" }`")
+        Some("`create_image` (`use_skill` skill `media`)")
     );
     // Not in the orchestrator's allowlist: no route, so name nothing. `planner`
     // is registered for workflow runs but is not a chat delegate.

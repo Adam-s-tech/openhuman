@@ -61,7 +61,7 @@ use tinyagents_harness::observability::{
 };
 use tinyagents_harness::store::{FileStore, Store};
 
-use crate::agent::session_import::ops::open_session_stores;
+use tinyagents_session::transcript::import::ops::open_session_stores;
 
 /// KV namespace the durable per-run [`HarnessRunStatus`] snapshots live under
 /// (`{workspace}/tinyagents_store/kv/run_status/<run_id>.json`). Slash-free so

@@ -55,7 +55,7 @@ impl Drop for WorkspaceEnvGuard {
 
 /// Minimal `Arc<Config>` for the agent-tool constructors. All five
 /// composio agent tools now resolve their client per call through
-/// `create_composio_client(&config)` rather than holding a pre-baked
+/// `resolve_composio_route(&config)` rather than holding a pre-baked
 /// handle, so a `Config` is sufficient to instantiate them.
 ///
 /// Config defaults set `composio.mode = "backend"` and stash a
@@ -112,7 +112,7 @@ fn error_text(result: &ToolResult) -> String {
 //
 // These tests guard the bug-fix where every composio agent tool used
 // to hold a pre-baked backend client. After the fix, all five tools
-// resolve the client through `create_composio_client` per call so the
+// resolve the client through `resolve_composio_route` per call so the
 // live `composio.mode` toggle is honoured. Read-shaped tools
 // (list_toolkits, list_connections, list_tools) short-circuit to an
 // empty response in direct mode mirroring the existing ops.rs
@@ -134,5 +134,9 @@ fn direct_mode_config() -> crate::config::Config {
 
 #[path = "tools_direct_mode_routing_tests.rs"]
 mod direct_mode_routing_tests;
+#[path = "tools_host_credential_tests.rs"]
+mod host_credential_tests;
 #[path = "tools_metadata_and_sandbox_tests.rs"]
 mod metadata_and_sandbox_tests;
+#[path = "tools_redact_tests.rs"]
+mod redact_tests;

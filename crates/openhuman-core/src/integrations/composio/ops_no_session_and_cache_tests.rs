@@ -27,19 +27,6 @@ fn parse_sync_reason_rejects_unknown_values() {
     assert!(parse_sync_reason(Some("")).is_err());
 }
 
-#[test]
-fn resolve_client_errors_without_session() {
-    let tmp = tempfile::tempdir().unwrap();
-    let config = test_config(&tmp);
-    // `ComposioClient` intentionally doesn't implement `Debug` — use a
-    // pattern match instead of `.unwrap_err()`.
-    let Err(err) = resolve_client(&config) else {
-        panic!("expected auth error when no session is stored");
-    };
-    assert!(err.contains("composio unavailable"));
-    assert!(err.contains("TinyHumans API key"));
-}
-
 #[tokio::test]
 async fn composio_list_toolkits_errors_without_session() {
     let _serialised = module_guard().await;
@@ -121,7 +108,7 @@ async fn composio_authorize_errors_without_session() {
         .unwrap_err();
     // Backend mode (default) without a session — the mode-aware factory
     // surfaces "no backend session token" once `composio_authorize`
-    // routes through `create_composio_client`. Accept either the
+    // routes through `resolve_composio_route`. Accept either the
     // legacy `composio unavailable` prefix or the new factory phrasing.
     assert!(
         err.to_lowercase().contains("composio")

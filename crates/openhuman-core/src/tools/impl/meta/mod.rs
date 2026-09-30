@@ -8,11 +8,13 @@
 //! because neither is a capability the host offers the user — it is the model
 //! asking what it is able to do.
 
-pub mod collapse;
 pub mod deferred;
 
-pub use collapse::{
+pub use deferred::{
+    deferred_set, deferred_tool_names, strip_deferred_from_visible, TOOL_SEARCH_NAME,
+};
+pub use tinytools::collapse;
+pub use tinytools::collapse::{
     any_external_effect, args_without_action, merge_action_schemas, resolve, strictest_permission,
     unknown_action_message, CollapsedAction,
 };
-pub use deferred::{deferred_tool_names, strip_deferred_from_visible, TOOL_SEARCH_NAME};

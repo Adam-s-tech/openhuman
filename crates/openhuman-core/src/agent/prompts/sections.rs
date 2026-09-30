@@ -244,10 +244,10 @@ impl PromptSection for IdentitySection {
         // orchestrator: a specialist sub-agent has its own role prompt and
         // must not be told it is the Master Agent.
         //
-        // HEARTBEAT.md used to ride along here. It was the periodic-task list
-        // the subconscious engine read, and that domain was deleted — nothing
-        // consumed the file any more, so every agent but the orchestrator was
-        // paying for an empty template. Its `WORKSPACE_INTERNAL_FILES` entry
+        // HEARTBEAT.md used to ride along here. It was a periodic-task list
+        // for a background loop that has since been removed — nothing consumed
+        // the file any more, so every agent but the orchestrator was paying
+        // for an empty template. Its `WORKSPACE_INTERNAL_FILES` entry
         // deliberately stays, so a file a user still has on disk keeps its
         // not-agent-writable protection.
         let is_orchestrator = !ctx.visible_tool_names.is_empty();
@@ -507,9 +507,7 @@ impl PromptSection for WorkspaceSection {
         // its real working directory at runtime and keep writes/reads there.
         let mut out = String::from(
             "## Workspace\n\n\
-             `pwd` is your working directory: commands and file tools resolve there, and \
-             anything outside it and the scratch space is blocked. Prefer stdout; write a \
-             file only when output is too large. ",
+             Tools resolve in `pwd`; outside it and scratch is blocked. Prefer stdout. ",
         );
         // Only advertise a concrete scratch path when the dir is actually present
         // and safe (real dir, not a symlink) — matching the policy grant in
@@ -523,7 +521,7 @@ impl PromptSection for WorkspaceSection {
         if scratch_granted {
             let _ = write!(
                 out,
-                "Scratch: `{}` or `$TMPDIR`, never a hardcoded `/tmp/<name>`.",
+                "Scratch: `{}` or `$TMPDIR`, never `/tmp/<name>`.",
                 scratch.display()
             );
         } else {
@@ -677,8 +675,7 @@ impl PromptSection for DateTimeSection {
         // learned "good morning" regardless of the actual hour (#3602).
         let mut out = String::from(
             "## Current Date & Time\n\nThe `Current Date & Time:` line on the latest message \
-             is authoritative: before \"good morning\" or \"today\", read it and match the \
-             actual local hour. No tool call is needed for the time.",
+             is authoritative; match greetings and \"today\" to its local hour.",
         );
         // Tool-argument discipline, gated on the agent actually having the
         // `resolve_time` tool. LLMs are unreliable at epoch arithmetic — a
@@ -688,9 +685,7 @@ impl PromptSection for DateTimeSection {
         // than hand-computing) is the fix. Auto-scopes: agents without the
         // tool never see the rule.
         if ctx.tools.iter().any(|t| t.name == "resolve_time") {
-            out.push_str(
-                " Tool date/time arguments come from `resolve_time`, never hand-computed.",
-            );
+            out.push_str(" Time arguments come from `resolve_time`, never hand-computed.");
         }
         Ok(out)
     }

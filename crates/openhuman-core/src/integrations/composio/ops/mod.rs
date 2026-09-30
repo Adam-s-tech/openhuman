@@ -1,7 +1,7 @@
 //! RPC-facing operations for the Composio domain.
 //!
 //! Each `composio_*` function wraps a [`ComposioClient`] call, translates
-//! errors to strings, and returns an [`RpcOutcome`] so the controller
+//! errors to strings, and returns an [`Outcome`] so the controller
 //! schemas can log a user-visible line. The handlers in [`super::schemas`]
 //! call into these.
 //!
@@ -12,7 +12,7 @@
 //!
 //! | Sub-module        | Contents                                                           |
 //! |-------------------|--------------------------------------------------------------------|
-//! | `error_utils`     | `OpResult`, `resolve_client`, `report_composio_op_error`, helpers |
+//! | `error_utils`     | `OpResult`, `report_composio_op_error`, helpers |
 //! | `toolkits`        | `composio_list_toolkits`, `composio_list_capabilities`, ...        |
 //! | `connections`     | `composio_list_connections`, `composio_authorize`, `_delete_...`  |
 //! | `memory_cleanup`  | Memory-cleanup helpers for connection deletion                     |
@@ -114,7 +114,7 @@ pub(crate) use connections::enrich_connections_with_identity;
 #[cfg(test)]
 pub(crate) use error_utils::{
     backend_mode_without_session, classify_composio_failure_tag, direct_mode_without_key,
-    extract_backend_returned_status, resolve_client,
+    extract_backend_returned_status,
 };
 #[cfg(test)]
 pub(crate) use providers_ops::parse_sync_reason;

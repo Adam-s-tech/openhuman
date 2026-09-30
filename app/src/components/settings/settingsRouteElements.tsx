@@ -15,6 +15,7 @@ import FeedbackPanel from './panels/FeedbackPanel';
 import MascotPanel from './panels/MascotPanel';
 import MemoryDataPanel from './panels/MemoryDataPanel';
 import MemoryDebugPanel from './panels/MemoryDebugPanel';
+import MemoryEnginePanel from './panels/MemoryEnginePanel';
 import MigrationPanel from './panels/MigrationPanel';
 import PermissionsPanel from './panels/PermissionsPanel';
 import PersonaPanel from './panels/PersonaPanel';
@@ -115,8 +116,7 @@ export function settingsRouteElements(): ReactNode {
       {/* The Agents list and editor were removed; old links land on Connections → Tools. */}
       <Route path="agents/*" element={<Navigate to="/connections?tab=agent-tools" replace />} />
       <Route path="agent-access" element={wrapSettingsPage(<AgentAccessPanel />)} />
-      {/* Agent activity level (medulla/subconscious background-AI knob) was
-          retired along with medulla/subconscious themselves. The slug
+      {/* The agent activity level (background-AI knob) was retired. The slug
           redirects so any old deep link lands on Connections → Tools rather than falling
           through to the settings index. */}
       <Route
@@ -191,6 +191,7 @@ export function settingsRouteElements(): ReactNode {
           window, vault health, and connected-source controls. */}
       <Route path="memory-data" element={wrapSettingsPage(<MemoryDataPanel />)} />
       <Route path="memory-debug" element={wrapSettingsPage(<MemoryDebugPanel />)} />
+      <Route path="memory-engine" element={wrapSettingsPage(<MemoryEnginePanel />)} />
       <Route path="analysis-views" element={<Navigate to="/brain" replace />} />
       <Route path="intelligence" element={<Navigate to="/brain" replace />} />
       {/* Composio trigger-triage config merged into the Connections Composio page. */}
@@ -212,10 +213,6 @@ export function settingsRouteElements(): ReactNode {
       {/* Composio (API key + routing) moved to Connections → API keys. */}
       <Route path="composio" element={<Navigate to="/connections?tab=composio-key" replace />} />
       {/* Merged Usage & Limits surface (now on Connections) */}
-      <Route
-        path="heartbeat"
-        element={<Navigate to="/connections?tab=usage#background" replace />}
-      />
       <Route
         path="ledger-usage"
         element={<Navigate to="/connections?tab=usage#background" replace />}

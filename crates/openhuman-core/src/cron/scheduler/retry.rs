@@ -259,7 +259,7 @@ pub(super) async fn execute_job_with_retry(
 /// deep-link action even though no chat thread is active.
 pub(super) fn publish_cron_user_error(kind: &str) {
     log::debug!("[cron] action=surface_user_error kind={kind}");
-    crate::web_chat::publish_web_channel_event(crate::core::socketio::WebChannelEvent {
+    crate::web_chat::publish_web_channel_event(crate::web_chat::WebChannelEvent {
         event: "user_error".to_string(),
         client_id: "system".to_string(),
         error_type: Some(kind.to_string()),

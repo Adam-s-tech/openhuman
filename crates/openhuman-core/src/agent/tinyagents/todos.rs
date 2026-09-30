@@ -14,7 +14,7 @@ use std::sync::Arc;
 
 use tinyagents_harness::store::Store;
 
-use crate::agent::session_import::ops::open_session_stores;
+use tinyagents_session::transcript::import::ops::open_session_stores;
 
 /// The `workspace`-scoped store every session's list lives in, keyed by
 /// session/thread id. Opened fresh per call (cheap — `FileStore` just holds a

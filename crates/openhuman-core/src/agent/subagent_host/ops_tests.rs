@@ -19,6 +19,7 @@ fn make_def_named_tools(names: &[&str]) -> AgentDefinition {
         disallowed_tools: vec![],
         skill_filter: None,
         extra_tools: vec![],
+        deferred_tools: Vec::new(),
         max_iterations: 5,
         iteration_policy: Default::default(),
         max_result_chars: None,

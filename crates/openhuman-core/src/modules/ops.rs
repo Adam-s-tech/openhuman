@@ -35,10 +35,13 @@ use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 use std::time::Duration;
 
-use super::resolution::{self, Claim, Resolution, ResolutionState, ResolutionTable, Waited};
 use super::types::{ModuleRecord, ModuleState, ModuleStatus};
 use super::{host, platform, registry};
 use crate::config::Config;
+use tinybus::module::resolution::{
+    self, Claim, Resolution, ResolutionState, ResolutionTable, Waited,
+};
+use tinybus::module::{artifact_dir, prune_stale_versions};
 
 /// Installer-owned, read-only release cache. The desktop host sets this before
 /// starting the embedded core; other hosts continue using the user cache.
@@ -112,7 +115,7 @@ pub async fn ensure_loaded_within(
     let record =
         registry::find(id).ok_or_else(|| LoadError::Failed(format!("unknown module '{id}'")))?;
 
-    let receiver = match resolution::table().claim(id) {
+    let receiver = match resolution::global().claim(id) {
         Claim::Done(Resolution::Ready) => return Ok(()),
         Claim::Done(Resolution::Failed(reason)) => return Err(LoadError::Failed(reason)),
         Claim::Wait(receiver) => receiver,
@@ -121,7 +124,7 @@ pub async fn ensure_loaded_within(
             receiver
         }
     };
-    match ResolutionTable::wait(receiver, within).await {
+    match resolution::global().wait(id, receiver, within).await {
         Waited::Ready => Ok(()),
         Waited::Failed(reason) => Err(LoadError::Failed(reason)),
         Waited::StillLoading => Err(LoadError::StillLoading),
@@ -131,7 +134,7 @@ pub async fn ensure_loaded_within(
 /// The state of `id` as the resolution table reports it, without touching it.
 #[must_use]
 pub fn state_of(id: &str) -> ModuleState {
-    match resolution::table().peek(id) {
+    match resolution::global().peek(id) {
         ResolutionState::Unresolved => ModuleState::Available,
         ResolutionState::Loading => ModuleState::Loading,
         ResolutionState::Ready => ModuleState::Ready,
@@ -163,7 +166,7 @@ async fn start_resolution(
                 Resolution::Failed(reason)
             }
         };
-        resolution::table().complete(id, resolution, sender);
+        resolution::global().complete(id, resolution, sender);
     };
     match host::runtime().await {
         Ok(runtime) => {
@@ -250,7 +253,7 @@ async fn resolve(config: &Config, record: &'static ModuleRecord) -> Result<(), S
     .await;
     match outcome {
         Ok(()) => {
-            prune_stale_versions(&root, record);
+            prune_stale_versions(&root, record.id, record.version);
             Ok(())
         }
         Err(reason) => Err(reason),
@@ -309,7 +312,9 @@ fn load_cached(
     let mut found_bundled = false;
     if let Some(bundled_root) = bundled_root {
         for asset in &assets {
-            let Some(cache_dir) = artifact_dir(bundled_root, record, asset.host_key) else {
+            let Some(cache_dir) =
+                artifact_dir(bundled_root, record.id, record.version, asset.host_key)
+            else {
                 continue;
             };
             if !cache_dir.join(asset.archive).is_file() {
@@ -350,7 +355,8 @@ fn load_cached(
         ));
     }
     for asset in assets {
-        let Some(cache_dir) = artifact_dir(install_root, record, asset.host_key) else {
+        let Some(cache_dir) = artifact_dir(install_root, record.id, record.version, asset.host_key)
+        else {
             last_error =
                 "the module's cache path could not be built from its registry entry".to_string();
             continue;
@@ -403,98 +409,6 @@ fn load_cached(
          process; restart the app to try again",
         record.id
     ))
-}
-
-/// Whether `component` is safe to use as one directory name.
-///
-/// The three values that build a cache path — a module id, its version, and a
-/// host key — are compiled-in `const` data today, so nothing reaches this with
-/// a separator in it. It is checked anyway because of what sits at the end of
-/// the path: [`prune_stale_versions`] calls `remove_dir_all` on what these
-/// build. A registry edit or a future value that carried `..` or a separator
-/// would turn a cache tidy-up into deleting somewhere else entirely, and a
-/// rule that has to hold for a delete is worth stating rather than inferring
-/// from where the data happens to come from today.
-fn is_safe_path_component(component: &str) -> bool {
-    !component.is_empty()
-        && component != "."
-        && component != ".."
-        && !component.contains('/')
-        && !component.contains('\\')
-        && !component.contains('\0')
-        // A leading dot would collide with the `.staging-*` directories a
-        // concurrent download is filling.
-        && !component.starts_with('.')
-}
-
-/// Where one artifact of one module version is cached, when all three
-/// components are usable as directory names.
-///
-/// `None` rather than a sanitised path: a registry entry that cannot name a
-/// directory is a build-time mistake, and quietly rewriting it would hide the
-/// mistake behind a cache that silently never hits.
-fn artifact_dir(install_root: &Path, record: &ModuleRecord, host_key: &str) -> Option<PathBuf> {
-    for component in [record.id, record.version, host_key] {
-        if !is_safe_path_component(component) {
-            log::error!(
-                "[modules] '{}' has a component that cannot name a directory; refusing to build a \
-                 cache path from it",
-                record.id
-            );
-            return None;
-        }
-    }
-    Some(
-        install_root
-            .join(record.id)
-            .join(record.version)
-            .join(host_key),
-    )
-}
-
-/// Remove cached versions of `record` other than the pinned one.
-///
-/// Best-effort and after the fact: a version that is no longer pinned will
-/// never be loaded again, so keeping it only costs disk. Staging directories
-/// are left alone — a concurrent process may be filling one — and every
-/// removal is logged, because a cache that empties itself is worth noticing.
-fn prune_stale_versions(install_root: &Path, record: &ModuleRecord) {
-    // Both sides of the comparison below have to be real directory names, or
-    // "everything that is not the pinned version" is not a set this function
-    // should be handing to `remove_dir_all`.
-    if !is_safe_path_component(record.id) || !is_safe_path_component(record.version) {
-        log::error!(
-            "[modules] refusing to prune '{}': its id or version cannot name a directory",
-            record.id
-        );
-        return;
-    }
-    let module_root = install_root.join(record.id);
-    let Ok(entries) = std::fs::read_dir(&module_root) else {
-        return;
-    };
-    for entry in entries.flatten() {
-        let path = entry.path();
-        let name = entry.file_name();
-        let name = name.to_string_lossy();
-        // `read_dir` never yields `.` or `..`, and the leading-dot skip covers
-        // the staging directories; the guard is here so the delete depends on
-        // this function's own check rather than on that being remembered.
-        if !path.is_dir() || name == record.version || !is_safe_path_component(&name) {
-            continue;
-        }
-        match std::fs::remove_dir_all(&path) {
-            Ok(()) => log::info!(
-                "[modules] removed cached '{}' {name}; {} is pinned",
-                record.id,
-                record.version
-            ),
-            Err(error) => log::warn!(
-                "[modules] could not remove cached '{}' {name}: {error}",
-                record.id
-            ),
-        }
-    }
 }
 
 /// Load a platform library from `path`.
@@ -673,7 +587,7 @@ fn status_of(config: &Config, record: &ModuleRecord) -> ModuleStatus {
             ModuleState::Unsupported,
             Some("modules are disabled in configuration".to_string()),
         ),
-        _ => match resolution::table().peek(record.id) {
+        _ => match resolution::global().peek(record.id) {
             ResolutionState::Ready => (ModuleState::Ready, None),
             ResolutionState::Loading => (ModuleState::Loading, None),
             ResolutionState::Failed(reason) => (ModuleState::Failed, Some(reason)),

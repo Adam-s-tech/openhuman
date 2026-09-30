@@ -1,4 +1,5 @@
 use super::*;
+use tinycomputer_bus::browser::{LocateBy, Locator, Target};
 
 fn session_entry(client: Arc<BrowserClient>, id: SessionId, last_used: Instant) -> ThreadSession {
     let config_fingerprint = browser_session_fingerprint(&client);
@@ -93,6 +94,39 @@ fn direct_actions_use_typed_targets_and_reject_unbounded_inputs() {
     assert!(parse_action(&json!({"action":"click"})).is_err());
     assert!(parse_action(&json!({"action":"scroll","direction":"diagonal"})).is_err());
     assert!(parse_action(&json!({"action":"arbitrary_script"})).is_err());
+}
+
+#[test]
+fn browser_action_parser_covers_supported_direct_and_find_actions() {
+    for args in [
+        json!({"action":"fill","selector":"#email","value":"x"}),
+        json!({"action":"type","text":"hello"}),
+        json!({"action":"get_text","selector":"#title"}),
+        json!({"action":"is_visible","selector":"#title"}),
+        json!({"action":"hover","selector":"#title"}),
+        json!({"action":"press","key":"Enter"}),
+        json!({"action":"scroll","direction":"left","pixels":32}),
+        json!({"action":"wait","text":"Ready","ms":5,"timeout_ms":25}),
+    ] {
+        assert!(parse_action(&args).is_ok(), "{args}");
+    }
+
+    for find_action in ["click", "fill", "text", "hover"] {
+        let mut args = json!({
+            "action":"find", "by":"role", "value":"button", "find_action":find_action
+        });
+        if find_action == "fill" {
+            args["fill_value"] = json!("hello");
+        }
+        assert!(parse_action(&args).is_ok(), "{find_action}");
+    }
+
+    assert!(parse_action(&json!({"action":"scroll","direction":"up","pixels":u64::MAX})).is_ok());
+    assert!(parse_action(
+        &json!({"action":"find","by":"text","value":"Save","find_action":"text"})
+    )
+    .is_ok());
+    assert!(parse_action(&json!({"action":"wait","selector":"#ready"})).is_ok());
 }
 
 #[test]
@@ -365,4 +399,17 @@ fn idle_and_oldest_sessions_are_bounded() {
     let evicted = evict_thread_sessions(&mut sessions, now, false);
     assert_eq!(evicted.len(), 1);
     assert_eq!(evicted[0].id.as_str(), "expired-browser");
+}
+
+#[tokio::test]
+async fn task_rejects_a_malformed_flow_before_the_module() {
+    let client = Arc::new(BrowserClient::new(Arc::new(
+        crate::config::Config::default(),
+    )));
+    let tool = BrowserTool::new(Arc::new(SecurityPolicy::default()), client, 3);
+    let error = tool
+        .run(&json!({"action":"task","goal":"Read the news","flow":{"steps":"not a list"}}))
+        .await
+        .unwrap_err();
+    assert!(error.to_string().contains("Invalid flow"), "{error}");
 }

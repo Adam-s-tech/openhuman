@@ -2,7 +2,7 @@
 
 use crate::backend::BackendClient;
 use crate::config::Config;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 pub use tinyinference_voice::cloud::{CloudTranscribeOptions, CloudTranscribeResult};
 
@@ -11,7 +11,7 @@ pub async fn transcribe_cloud(
     config: &Config,
     audio_base64: &str,
     options: &CloudTranscribeOptions,
-) -> Result<RpcOutcome<CloudTranscribeResult>, String> {
+) -> Result<Outcome<CloudTranscribeResult>, String> {
     // The session JWT or the TinyHumans API key. The vendored client sends it
     // as `Authorization: Bearer`, which the backend accepts for either.
     let credential =
@@ -47,7 +47,7 @@ pub async fn transcribe_cloud(
     )
     .await
     .map_err(|error| classify_transcribe_error(error, is_api_key))?;
-    Ok(RpcOutcome::single_log(
+    Ok(Outcome::single_log(
         result,
         "cloud STT via POST /openai/v1/audio/transcriptions",
     ))

@@ -11,7 +11,7 @@ describe('extractResponseText', () => {
     expect(extractResponseText('hello')).toBe('hello');
   });
 
-  test('handles the { result } envelope from RpcOutcome', () => {
+  test('handles the { result } envelope from Outcome', () => {
     expect(extractResponseText({ result: 'hi', logs: ['x'] })).toBe('hi');
   });
 

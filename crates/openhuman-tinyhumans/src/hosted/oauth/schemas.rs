@@ -4,8 +4,8 @@ use serde_json::{Map, Value};
 
 use openhuman_core::config::rpc as config_rpc;
 use openhuman_core::core::all::{ControllerFuture, RegisteredController};
+use openhuman_core::core::Outcome;
 use openhuman_core::core::{ControllerSchema, FieldSchema, TypeSchema};
-use openhuman_core::rpc::RpcOutcome;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -32,11 +32,18 @@ struct AuthOauthRevokeParams {
     integration_id: String,
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AuthOauthClientKeyParams {
+    integration_id: String,
+}
+
 const FUNCTIONS: &[&str] = &[
     "auth_oauth_connect",
     "auth_oauth_list_integrations",
     "auth_oauth_fetch_integration_tokens",
     "auth_oauth_revoke_integration",
+    "auth_oauth_fetch_client_key",
 ];
 
 pub fn all_oauth_controller_schemas() -> Vec<ControllerSchema> {
@@ -60,6 +67,10 @@ pub fn all_oauth_registered_controllers() -> Vec<RegisteredController> {
         RegisteredController {
             schema: oauth_schemas("auth_oauth_revoke_integration"),
             handler: handle_auth_oauth_revoke_integration,
+        },
+        RegisteredController {
+            schema: oauth_schemas("auth_oauth_fetch_client_key"),
+            handler: handle_auth_oauth_fetch_client_key,
         },
     ]
 }
@@ -102,6 +113,16 @@ pub fn oauth_schemas(function: &str) -> ControllerSchema {
             description: "Revoke OAuth integration.",
             inputs: vec![required_string("integrationId", "Integration id.")],
             outputs: vec![json_output("result", "Integration revoke result.")],
+        },
+        "auth_oauth_fetch_client_key" => ControllerSchema {
+            namespace: "auth",
+            function: "oauth_fetch_client_key",
+            description: "Fetch one-time client key share for an encrypted OAuth integration.",
+            inputs: vec![required_string(
+                "integrationId",
+                "Integration id (24-char hex).",
+            )],
+            outputs: vec![json_output("result", "Client key share payload (base64).")],
         },
         _ => ControllerSchema {
             namespace: "auth",
@@ -168,6 +189,17 @@ fn handle_auth_oauth_revoke_integration(params: Map<String, Value>) -> Controlle
     })
 }
 
+fn handle_auth_oauth_fetch_client_key(params: Map<String, Value>) -> ControllerFuture {
+    Box::pin(async move {
+        let config = config_rpc::load_config_with_timeout().await?;
+        let payload = deserialize_params::<AuthOauthClientKeyParams>(params)?;
+        to_json(
+            crate::hosted::oauth::oauth_fetch_client_key(&config, payload.integration_id.trim())
+                .await?,
+        )
+    })
+}
+
 fn deserialize_params<T: DeserializeOwned>(params: Map<String, Value>) -> Result<T, String> {
     serde_json::from_value(Value::Object(params)).map_err(|e| format!("invalid params: {e}"))
 }
@@ -199,7 +231,7 @@ fn json_output(name: &'static str, comment: &'static str) -> FieldSchema {
     }
 }
 
-fn to_json<T: serde::Serialize>(outcome: RpcOutcome<T>) -> Result<Value, String> {
+fn to_json<T: serde::Serialize>(outcome: Outcome<T>) -> Result<Value, String> {
     outcome.into_cli_compatible_json()
 }
 

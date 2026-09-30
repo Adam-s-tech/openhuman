@@ -112,7 +112,7 @@ fn use_skill_spec_from_registry() -> ToolSpec {
     crate::tools::toolpacks::append_pack_tools(&mut tools);
     let tool = tools
         .iter()
-        .find(|t| t.name() == crate::tools::toolpacks::USE_SKILL)
+        .find(|t| t.name() == tinyagents_harness::tool::packs::USE_SKILL)
         .expect("append_pack_tools registers use_skill");
     ToolSpec {
         name: tool.name().to_string(),
@@ -132,12 +132,12 @@ fn visible_specs_scope_use_skills_index_to_the_session() {
     let visible: std::collections::HashSet<String> = specs.iter().map(|s| s.name.clone()).collect();
     // Reachable: one workflows tool. Everything else in every other pack is
     // denied, exactly like the orchestrator against `system` / `audio`.
-    let session = session_allowing(&["list_workflows", crate::tools::toolpacks::USE_SKILL]);
+    let session = session_allowing(&["run_workflow", tinyagents_harness::tool::packs::USE_SKILL]);
 
     let out = visible_tool_specs_for_policy(&specs, &visible, &session);
     let load = out
         .iter()
-        .find(|s| s.name == crate::tools::toolpacks::USE_SKILL)
+        .find(|s| s.name == tinyagents_harness::tool::packs::USE_SKILL)
         .expect("use_skill is still offered — workflows is reachable");
 
     assert!(
@@ -169,7 +169,7 @@ fn visible_specs_drop_the_pack_tool_when_no_pack_is_reachable() {
     let specs: Vec<std::sync::Arc<ToolSpec>> =
         vec![std::sync::Arc::new(use_skill_spec_from_registry())];
     let visible: std::collections::HashSet<String> = specs.iter().map(|s| s.name.clone()).collect();
-    let session = session_allowing(&[crate::tools::toolpacks::USE_SKILL]);
+    let session = session_allowing(&[tinyagents_harness::tool::packs::USE_SKILL]);
 
     let out = visible_tool_specs_for_policy(&specs, &visible, &session);
     assert!(
@@ -246,12 +246,12 @@ fn a_realistic_withheld_session_keeps_its_packs_advertised() {
     let names: Vec<&str> = out.iter().map(|s| s.name.as_str()).collect();
 
     assert!(
-        names.contains(&crate::tools::toolpacks::USE_SKILL),
+        names.contains(&tinyagents_harness::tool::packs::USE_SKILL),
         "use_skill must survive — the pack it opens is reachable: {names:?}"
     );
     let load = out
         .iter()
-        .find(|s| s.name == crate::tools::toolpacks::USE_SKILL)
+        .find(|s| s.name == tinyagents_harness::tool::packs::USE_SKILL)
         .expect("use_skill spec");
     assert!(
         load.description.contains("`goals`"),
@@ -276,12 +276,12 @@ fn a_realistic_withheld_session_keeps_its_packs_advertised() {
 fn use_skill_survives_a_ceiling_that_excludes_it_when_a_pack_is_still_reachable() {
     // `allowed_tool_names` deliberately omits `USE_SKILL` itself — simulating
     // the real engine having excluded it because *some* packed tool (not
-    // `list_workflows`) exceeded the channel's permission ceiling.
-    let session = session_allowing(&["list_workflows"]);
+    // `run_workflow`) exceeded the channel's permission ceiling.
+    let session = session_allowing(&["run_workflow"]);
     assert!(
         !session
             .allowed_tool_names
-            .contains(crate::tools::toolpacks::USE_SKILL),
+            .contains(tinyagents_harness::tool::packs::USE_SKILL),
         "precondition: use_skill itself is not in the allowlist"
     );
 
@@ -292,7 +292,7 @@ fn use_skill_survives_a_ceiling_that_excludes_it_when_a_pack_is_still_reachable(
     let out = visible_tool_specs_for_policy(&specs, &visible, &session);
     let load = out
         .iter()
-        .find(|s| s.name == crate::tools::toolpacks::USE_SKILL)
+        .find(|s| s.name == tinyagents_harness::tool::packs::USE_SKILL)
         .expect(
             "use_skill must survive even though it is not itself in allowed_tool_names — \
              its listing action is always ReadOnly and the workflows pack is reachable",
@@ -450,4 +450,27 @@ fn the_recovery_tool_joins_a_belt_only_when_something_can_point_at_it() {
     assert!(!super::summarizes_tool_output("researcher", &config));
     config.context.summarizer_payload_threshold_tokens = 0;
     assert!(!super::summarizes_tool_output("orchestrator", &config));
+}
+
+#[test]
+fn the_repl_tools_join_a_belt_only_while_handle_mode_is_active() {
+    use crate::agent::harness::definition::NO_TOOLS_SENTINEL;
+    use crate::inference::tokenjuice::REPL_TOOL_NAMES;
+    let belt = || std::collections::HashSet::from(["web_fetch".to_string()]);
+
+    let mut inactive = belt();
+    super::ensure_repl_tools_visible(&mut inactive, false);
+    assert!(REPL_TOOL_NAMES.iter().all(|n| !inactive.contains(*n)));
+
+    let mut active = belt();
+    super::ensure_repl_tools_visible(&mut active, true);
+    assert!(REPL_TOOL_NAMES.iter().all(|n| active.contains(*n)));
+
+    // "No filter" and "deliberately no tools" both stay as they were.
+    let mut unfiltered = std::collections::HashSet::new();
+    super::ensure_repl_tools_visible(&mut unfiltered, true);
+    assert!(unfiltered.is_empty());
+    let mut none = std::collections::HashSet::from([NO_TOOLS_SENTINEL.to_string()]);
+    super::ensure_repl_tools_visible(&mut none, true);
+    assert_eq!(none.len(), 1);
 }

@@ -19,17 +19,17 @@ use reqwest::StatusCode;
 use serde_json::{json, Value};
 use tempfile::{tempdir, TempDir};
 
-use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
-use openhuman_core::core::jsonrpc::build_core_http_router;
 use openhuman_core::agent::turn_origin::{self, AgentTurnOrigin};
+use openhuman_core::config::Config;
+use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
 use openhuman_core::security::approval::gate::{
     ApprovalChatContext, ApprovalGate, APPROVAL_CHAT_CONTEXT,
 };
 use openhuman_core::security::approval::types::{ExecutionOutcome, GateOutcome};
-use openhuman_core::config::Config;
 use openhuman_core::security::credentials::{
     AuthService, APP_SESSION_PROVIDER, DEFAULT_AUTH_PROFILE_NAME,
 };
+use openhuman_rpc::server::build_core_http_router;
 
 const TEST_RPC_TOKEN: &str = "worker-b-raw-coverage-e2e-token";
 
@@ -103,7 +103,7 @@ fn ensure_rpc_auth() {
     // which is what quarantined the managed web-search case (#6387). The
     // aggregate target only DECLARES the module (`raw_coverage_all.rs:40-41`);
     // its doc at `:38` says each suite calls it from its own fixture, and the
-    // siblings that reach the backend do (e.g. `webhooks_ingress_e2e.rs:95`).
+    // siblings that reach the backend do.
     // Idempotent behind a `Once`, so the other suites in this binary calling it
     // too costs nothing.
     crate::tinyhumans_boot::boot();
@@ -305,8 +305,7 @@ async fn setup() -> TestHarness {
         EnvVarGuard::set("OPENHUMAN_MEMORY_EMBED_MODEL", ""),
     ];
 
-    let _ =
-        openhuman_core::agent::harness::AgentDefinitionRegistry::init_global_builtins();
+    let _ = openhuman_core::agent::harness::AgentDefinitionRegistry::init_global_builtins();
 
     let (addr, rpc_join) = serve_rpc().await;
     TestHarness {

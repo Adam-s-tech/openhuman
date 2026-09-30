@@ -83,7 +83,7 @@ pub(super) async fn repair_required_output(
     progress: Option<&tokio::sync::mpsc::Sender<crate::agent::progress::AgentProgress>>,
     iteration: u32,
 ) -> Option<GroundedClose> {
-    use crate::agent::harness::required_output as required;
+    use tinyagents_harness::config as required;
 
     if required::output_satisfies_contract(reply, contract) {
         return None;

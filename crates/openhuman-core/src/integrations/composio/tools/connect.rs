@@ -8,11 +8,14 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use serde_json::{json, Value};
 
-use crate::config::rpc as config_rpc;
+use super::live_config::live_composio_config;
+use super::redact::redact_composio_outcome;
 use crate::config::Config;
 use tinytools::{PermissionLevel, Tool, ToolCategory, ToolResult};
 
-use super::super::client::{create_composio_client, direct_list_connections, ComposioClientKind};
+use super::super::client::{direct_list_connections, resolve_composio_route, ComposioRoute};
+use super::super::module_client::{self as connectors, methods};
+use super::super::types::{ComposioConnectionsResponse, ComposioToolkitsResponse};
 
 // ── composio_connect (inline approval card, #3993) ──────────────────
 
@@ -95,11 +98,17 @@ pub(super) async fn connection_is_active(config: &Config, toolkit: &str) -> anyh
             .iter()
             .any(|c| c.is_active() && c.normalized_toolkit().eq_ignore_ascii_case(toolkit))
     };
-    match create_composio_client(config)? {
-        ComposioClientKind::Backend(client) => {
-            Ok(active_match(&client.list_connections().await?.connections))
+    match resolve_composio_route(config)? {
+        ComposioRoute::Backend => {
+            let resp = connectors::call_bare::<ComposioConnectionsResponse>(
+                config,
+                methods::LIST_CONNECTIONS,
+            )
+            .await
+            .map_err(anyhow::Error::msg)?;
+            Ok(active_match(&resp.connections))
         }
-        ComposioClientKind::Direct(direct) => Ok(active_match(
+        ComposioRoute::Direct(direct) => Ok(active_match(
             &direct_list_connections(&direct).await?.connections,
         )),
     }
@@ -163,6 +172,13 @@ impl Tool for ComposioConnectTool {
     // the toolkit slug into the card for the inline Connect button. The
     // engine's auto-gate is unconditional and would double-prompt.
     async fn execute(&self, args: Value) -> anyhow::Result<ToolResult> {
+        let outcome = Box::pin(self.execute_unredacted(args)).await;
+        redact_composio_outcome(&self.config, outcome)
+    }
+}
+
+impl ComposioConnectTool {
+    async fn execute_unredacted(&self, args: Value) -> anyhow::Result<ToolResult> {
         let raw_toolkit = args
             .get("toolkit")
             .and_then(|v| v.as_str())
@@ -191,18 +207,14 @@ impl Tool for ComposioConnectTool {
             )));
         }
 
-        // Reload config per call so a mid-session `composio.mode` toggle is
-        // honoured (#1710), then skip the card entirely if the toolkit is
-        // already connected — avoids a flash of a Connect card that would
-        // immediately resolve.
-        let live_config =
-            match config_rpc::reload_config_snapshot_with_timeout(self.config.as_ref()).await {
-                Ok(c) => c,
-                Err(e) => {
-                    tracing::warn!(error = %e, "[composio] connect.execute: load_config failed");
-                    self.config.as_ref().clone()
-                }
-            };
+        // Skip the card when the toolkit is already connected.
+        let live_config = match live_composio_config(self.config.as_ref()).await {
+            Ok(c) => c,
+            Err(e) => {
+                tracing::warn!(error = %e, "[composio] connect.execute: load_config failed");
+                self.config.as_ref().clone()
+            }
+        };
         let already_connected = super::super::fetch_connected_integrations(&live_config)
             .await
             .into_iter()
@@ -222,9 +234,14 @@ impl Tool for ComposioConnectTool {
         // (#3993). This grounds the answer: a backend-allowlisted toolkit gets
         // a card; a genuinely unsupported one gets a clear, listed refusal
         // instead of a card that would fail on Connect.
-        match create_composio_client(&live_config) {
-            Ok(ComposioClientKind::Backend(client)) => {
-                if let Ok(resp) = client.list_toolkits().await {
+        match resolve_composio_route(&live_config) {
+            Ok(ComposioRoute::Backend) => {
+                if let Ok(resp) = connectors::call_bare::<ComposioToolkitsResponse>(
+                    &live_config,
+                    methods::LIST_TOOLKITS,
+                )
+                .await
+                {
                     // Empty allowlist = backend predates the catalog / unknown;
                     // don't block — let the OAuth handoff report support.
                     if !resp.toolkits.is_empty()
@@ -242,7 +259,7 @@ impl Tool for ComposioConnectTool {
                     }
                 }
             }
-            Ok(ComposioClientKind::Direct(_)) => {
+            Ok(ComposioRoute::Direct(_)) => {
                 // Personal-tenant (direct) mode performs OAuth at app.composio.dev,
                 // not via the backend handoff the card drives — so an inline card
                 // can't complete it. Point the user to Settings instead.

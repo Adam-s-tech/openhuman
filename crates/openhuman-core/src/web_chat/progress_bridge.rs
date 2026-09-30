@@ -5,8 +5,9 @@
 
 use serde_json::json;
 
-use crate::core::socketio::{SubagentProgressDetail, WebChannelEvent};
-use crate::threads::turn_state::{TurnStateMirror, TurnStateStore};
+use crate::threads::turn_state::TurnStateMirror;
+use crate::web_chat::{SubagentProgressDetail, WebChannelEvent};
+use tinyagents_session::turn_state::TurnStateStore;
 
 use super::event_bus::publish_web_channel_event;
 use super::types::ChatRequestMetadata;
@@ -146,10 +147,10 @@ fn interim_narration_text(buffer: &str) -> Option<String> {
 /// Current wall-clock time as Unix-epoch milliseconds, used to stamp tracing
 /// spans (issue #3886). Saturates to `0` if the clock is before the epoch.
 ///
-/// `pub(crate)` so `web_chat::event_bus` and `core::socketio` can stamp
+/// `pub(crate)` so `web_chat::event_bus` and `openhuman_rpc::server::socketio` can stamp
 /// `WebChannelEvent.ts` with the same clock instead of keeping a second
 /// epoch-ms helper in step by hand.
-pub(crate) fn unix_epoch_ms() -> u64 {
+pub fn unix_epoch_ms() -> u64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_millis() as u64)
@@ -1181,7 +1182,7 @@ pub(crate) fn spawn_progress_bridge(
                                 thread_id: thread_id.clone(),
                                 request_id: request_id.clone(),
                                 round: Some(iteration),
-                                usage: Some(crate::core::socketio::TurnUsagePayload {
+                                usage: Some(crate::web_chat::TurnUsagePayload {
                                     input_tokens,
                                     output_tokens,
                                     cached_input_tokens,

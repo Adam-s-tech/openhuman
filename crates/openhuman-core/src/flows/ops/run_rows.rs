@@ -256,8 +256,7 @@ pub(super) fn settle_steps(config: &Config, run_id: &str, output: &Value) -> Vec
     tracing::debug!(
         target: "flows",
         run_id,
-        step_count = merged.len(),
-        filled_from_reconstruction = merged.len(),
+        merged_step_count = merged.len(),
         "[flows] settle_steps: merged live-observed steps with post-hoc reconstruction"
     );
     merged

@@ -111,7 +111,7 @@ vision_provider = "ollama:gemma3:4b-it-qat"
 embeddings_provider = "ollama:bge-m3"
 ```
 
-The full set of workload fields is `chat_provider`, `reasoning_provider`, `agentic_provider`, `coding_provider`, `vision_provider`, `memory_provider`, `embeddings_provider`, `heartbeat_provider`, `learning_provider`, and `subconscious_provider`. Any field left unset, blank, or set to `cloud` stays on the default route.
+The full set of workload fields is `chat_provider`, `reasoning_provider`, `agentic_provider`, `coding_provider`, `vision_provider`, `memory_provider`, `embeddings_provider`, and `learning_provider`. Any field left unset, blank, or set to `cloud` stays on the default route.
 
 #### Attaching images in chat needs one more flag
 
@@ -167,8 +167,7 @@ The workload fields are independent, so a common privacy-conscious setup keeps r
 # On-device: everything that runs constantly over personal data
 embeddings_provider = "ollama:bge-m3"
 memory_provider = "ollama:gemma3:1b-it-qat"
-heartbeat_provider = "ollama:gemma3:1b-it-qat"
-subconscious_provider = "ollama:gemma3:1b-it-qat"
+learning_provider = "ollama:gemma3:1b-it-qat"
 
 # Your own key: the turns where quality matters
 chat_provider = "anthropic:claude-sonnet-4"

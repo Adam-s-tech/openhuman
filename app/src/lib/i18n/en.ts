@@ -254,9 +254,6 @@ const en: TranslationMap = {
   'settings.assistant.personality': 'Personality',
   'settings.assistant.voice': 'Voice',
   'settings.assistant.voiceDesc': 'Speech-to-text and text-to-speech settings',
-  'settings.assistant.backgroundActivity': 'Subconscious',
-  'settings.assistant.backgroundActivityDesc':
-    'Control how actively your assistant works in the background',
   'settings.assistant.permissions': 'Permissions',
   'settings.assistant.permissionsDesc': 'Choose what the assistant can do and where it can work',
 
@@ -277,7 +274,7 @@ const en: TranslationMap = {
   'settings.analysisViews.title': 'Analysis views',
   'settings.analysisViews.menuDesc':
     'Memory graph analysis: diagram, centrality, cohesion, associations, freshness, timeline, paths, and namespaces',
-  'settings.tokenUsage.title': 'Token & Cost',
+  'settings.tokenUsage.title': 'Token savings',
   'settings.tokenUsage.menuDesc':
     'Compression settings and how many tokens and dollars they have saved',
   'settings.tokenUsage.saving': 'Saving…',
@@ -876,7 +873,6 @@ const en: TranslationMap = {
   'memory.empty': 'No memories yet. Memories are created automatically as you interact.',
   'memory.tab.memory': 'Memory',
   'memory.tab.memoryTree': 'Memory Tree',
-  'memory.tab.subconscious': 'Subconscious',
   'memory.tab.agentWork': 'Agent Work',
   'memory.tab.agentWorkDescription':
     'A command center for every background agent run: grouped by what needs your input, what is working, and what has finished.',
@@ -1662,7 +1658,6 @@ const en: TranslationMap = {
   'settings.gateway.imageRequired': 'Enter the container image to run.',
   'settings.gateway.binaryRequired': 'Enter the path to openhuman-core on that machine.',
   'settings.gateway.portInvalid': 'The SSH port must be a number.',
-  'settings.heartbeat.title': 'Heartbeat & loops',
   'settings.usage.title': 'Usage',
   'settings.usage.menuDesc': 'Costs, token savings, usage records, and background activity',
   'settings.costDashboard.monthToDate': 'Month to date',
@@ -2673,7 +2668,6 @@ const en: TranslationMap = {
   'chat.safetyTimeout':
     'No response from the agent after 2 minutes. Try again or check your connection.',
   'chat.filter.general': 'General',
-  'chat.filter.subconscious': 'Subconscious',
   'chat.filter.meetings': 'Meetings',
   'chat.filter.tasks': 'Tasks',
   'chat.selectThread': 'Select a thread',
@@ -3024,8 +3018,6 @@ const en: TranslationMap = {
   'reflections.dismiss': 'Dismiss',
   'reflections.viewConversation': 'View',
 
-  // Subconscious mode selector
-
   // WhatsApp
 
   // Sync
@@ -3191,10 +3183,6 @@ const en: TranslationMap = {
   'backend.localDescription':
     'Run models on your own machine using Ollama. Full privacy, requires setup.',
   'backend.ramRecommended': '16GB+ RAM recommended',
-
-  // Subconscious
-
-  // Subconscious triggers (event-driven orchestrator) debug panel
 
   // Actionable
   'actionable.complete': 'Complete',
@@ -4337,14 +4325,6 @@ const en: TranslationMap = {
   'conversations.backgroundTasks.cronSchedCron': 'Cron {expr}',
   'conversations.backgroundTasks.cronSchedEvery': 'Every {duration}',
   'conversations.backgroundTasks.cronSchedAt': 'Once',
-  // Subconscious / heartbeat loop.
-  'conversations.backgroundTasks.subOff': 'Off',
-  'conversations.backgroundTasks.subWorking': 'Working…',
-  'conversations.backgroundTasks.subIdle': 'Idle',
-  'conversations.backgroundTasks.subLastRan': 'Last ran {time}',
-  'conversations.backgroundTasks.subNeverRan': 'Hasn’t run yet',
-  'conversations.backgroundTasks.subTicks': '{count} runs',
-  'conversations.backgroundTasks.subQueued': '{count} queued',
   // Memory syncing / ingestion.
   'conversations.backgroundTasks.memUpToDate': 'All memories up to date',
   'conversations.backgroundTasks.memIngesting': 'Indexing {title}',
@@ -5560,7 +5540,7 @@ const en: TranslationMap = {
   'settings.ai.codexAuthHelper': 'Uses the existing Codex CLI login from ~/.codex/auth.json.',
   'settings.ai.backgroundLoops': 'Background loops',
   'settings.ai.backgroundLoopsDesc':
-    'See what runs without a chat message, pause heartbeat work, and inspect recent credit ledger rows.',
+    'See what runs without a chat message and inspect recent credit ledger rows.',
   'settings.ai.loopMap': 'Loop map',
   'settings.ai.routeLabel': 'route: {route}',
   'settings.ai.on': 'on',
@@ -5683,8 +5663,8 @@ const en: TranslationMap = {
   'settings.ai.perWeek': '{count}/week',
   'settings.ai.perWeekMax': '{count}/week max',
   'settings.ai.perHour': '{amount}/hr',
-  'settings.ai.plannerSyncBreakdown': '{planner} planner + {sync} sync',
   'settings.ai.memoryPollsDetail': '{count} memory polls',
+  'settings.ai.connectionSyncBreakdown': '{sync} connection sync',
   'settings.ai.rowsLeftFormula': 'remaining / avg row = {remaining} / {avgRow}',
   'settings.ai.needSpendRowsToEstimate': 'Need recent spend rows to estimate.',
   'settings.ai.rowsPerBudgetFormula': 'cycle budget / avg row = {budget} / {avgRow}',
@@ -5730,7 +5710,7 @@ const en: TranslationMap = {
     'Models used during direct user interaction, replies, reasoning, agent loops, and coding help.',
   'settings.ai.routing.backgroundTasks': 'Background Tasks',
   'settings.ai.routing.bgTasksDesc':
-    'Models used outside the main conversation flow for summarization, heartbeat, learning, and subconscious evaluation.',
+    'Models used outside the main conversation flow for memory summarization and learning.',
   'settings.ai.routing.workload.chat.label': 'Chat',
   'settings.ai.routing.workload.chat.description':
     'Direct conversational back-and-forth: “Quick” mode in Conversations',
@@ -5759,18 +5739,10 @@ const en: TranslationMap = {
   'settings.ai.routing.workload.memory.description': 'Tree-extracts and consolidations',
   'settings.ai.routing.workload.memory.hint':
     'Recommended: a cheaper summarization model. It should be consistent and compact, but it does not need premium frontier-level reasoning.',
-  'settings.ai.routing.workload.heartbeat.label': 'Heartbeat',
-  'settings.ai.routing.workload.heartbeat.description': 'Background reasoning between user turns',
-  'settings.ai.routing.workload.heartbeat.hint':
-    'Recommended: a cheap, efficient background model. This runs often between turns, so low cost matters more than maximum intelligence.',
   'settings.ai.routing.workload.learning.label': 'Learning · Reflections',
   'settings.ai.routing.workload.learning.description': 'Periodic reflection over recent history',
   'settings.ai.routing.workload.learning.hint':
     'Recommended: a stronger reflective model. This can be mid-cost or premium because it benefits from better synthesis over recent history.',
-  'settings.ai.routing.workload.subconscious.label': 'Subconscious',
-  'settings.ai.routing.workload.subconscious.description': 'Eventfulness scoring + drift checks',
-  'settings.ai.routing.workload.subconscious.hint':
-    'Recommended: a very cheap monitoring model, ideally one that is lightweight and predictable. This is for eventfulness scoring, drift checks, and quiet background evaluation.',
   'settings.ai.routing.addCustomProvider': 'Add Custom Provider',
   'settings.ai.globalModel.title': 'Choose one model for everything',
   'settings.ai.globalModel.desc':
@@ -5781,8 +5753,6 @@ const en: TranslationMap = {
   'settings.ai.globalModel.model': 'Model',
   'settings.ai.globalModel.loadingModels': 'Loading models…',
   'settings.ai.globalModel.enterModelId': 'Enter model id',
-  'settings.ai.globalModel.appliesToAll':
-    'Applies the same provider + model to chat, reasoning, coding, memory, heartbeat, learning, and subconscious. Embeddings are configured separately. Changes save when you click save.',
   'settings.ai.globalModel.saving': 'Saving…',
   'settings.ai.globalModel.saved': 'Saved',
   'settings.ai.workload.noModel': 'No model selected',
@@ -5972,6 +5942,7 @@ const en: TranslationMap = {
   'settings.cron.jobs.resume': 'Resume',
   'settings.cron.jobs.runFinishedAt': '{status} at {time}',
   'settings.cron.jobs.runningNow': 'Running now…',
+  'settings.cron.jobs.runNow': 'Run now',
   'settings.cron.jobs.saving': 'Saving…',
   'settings.cron.jobs.schedule': 'Schedule',
   'settings.cron.jobs.scheduleAt': 'at {time}',
@@ -6176,8 +6147,6 @@ const en: TranslationMap = {
   'settings.developerMenu.eventLog.badge.comp': 'COMP',
   'settings.developerMenu.eventLog.badge.mcp': 'MCP',
   'settings.developerMenu.intelligence.title': 'Intelligence',
-  'settings.developerMenu.intelligence.desc':
-    'Memory workspace, subconscious engine, dreams, and settings',
   'settings.developerMenu.notificationRouting.title': 'Notification Routing',
   'settings.developerMenu.notificationRouting.desc':
     'AI importance scoring and orchestrator escalation for integration alerts',
@@ -7085,7 +7054,6 @@ const en: TranslationMap = {
   'devOptions.menuWebhooksDebugDesc':
     'Inspect runtime webhook registrations and captured request logs',
   'devOptions.menuIntelligence': 'Intelligence',
-  'devOptions.menuIntelligenceDesc': 'Memory workspace, subconscious engine, dreams, and settings',
   'devOptions.menuNotificationRouting': 'Notification Routing',
   'devOptions.menuNotificationRoutingDesc':
     'AI importance scoring and orchestrator escalation for integration alerts',
@@ -7581,6 +7549,68 @@ const en: TranslationMap = {
   'webCallback.title': 'Completing sign-in',
   'webCallback.description':
     'OpenHuman is processing your callback and will continue automatically.',
+
+  // Memory engine settings panel
+  'memoryEngine.title': 'Memory engine',
+  'memoryEngine.description':
+    'Choose where OpenHuman stores and recalls your memories. Exactly one engine is active at a time.',
+  'memoryEngine.active': 'Active',
+  'memoryEngine.hostedNote': 'Billed through your OpenHuman plan or credits.',
+  'memoryEngine.signInRequired': 'Sign in to use this engine.',
+  'memoryEngine.endpoint': 'Endpoint',
+  'memoryEngine.deployment': 'Deployment',
+  'memoryEngine.deployment.cloud': 'Cloud',
+  'memoryEngine.deployment.self_hosted': 'Self-hosted',
+  'memoryEngine.apiKey': 'API key',
+  'memoryEngine.apiKeyOptional': 'API key (optional)',
+  'memoryEngine.keySaved': 'A key is saved. Leave blank to keep it.',
+  'memoryEngine.keySavedPlaceholder': 'Saved (hidden)',
+  'memoryEngine.fallback':
+    'Memory is paused: {engine} is unavailable, so nothing is being saved or recalled until it is back. {reason}',
+  'memoryEngine.paused': 'Memory is paused',
+  'memoryEngine.dialog.cancelMigration': 'Cancel copy',
+  'memoryEngine.lastError': 'The last memory engine request failed. Check the engine settings.',
+  'memoryEngine.switch': 'Switch',
+  'memoryEngine.save': 'Save changes',
+  'memoryEngine.dialog.title': 'Switch to {engine}?',
+  'memoryEngine.dialog.body': 'Copy my existing memories to the new engine?',
+  'memoryEngine.dialog.copySwitch': 'Copy & switch',
+  'memoryEngine.dialog.switchOnly': 'Switch without copying',
+  'memoryEngine.dialog.copying': 'Copying your memories…',
+  'memoryEngine.dialog.progress': 'Copied {copied} of {total}',
+  'memoryEngine.dialog.progressUnknown': 'Copied {copied} memories so far',
+  'memoryEngine.dialog.lacking':
+    'The new engine does not support these features of your current engine:',
+  'memoryEngine.error.insufficientCredits':
+    'You are out of OpenHuman credits. Add credits to use this engine.',
+  'memoryEngine.error.sessionExpired': 'Your session expired. Sign in again to continue.',
+  'memoryEngine.error.backendUnavailable':
+    'The memory service is unavailable right now. Try again shortly.',
+  'memoryEngine.error.generic':
+    'Could not change the memory engine. Check the settings and try again.',
+  'memoryEngine.error.openBilling': 'Open billing',
+  'memoryEngine.error.signIn': 'Sign in',
+  'memoryEngine.row.label': 'Memory engine:',
+  'memoryEngine.row.change': 'Change',
+  'memoryEngine.unavailable': 'Not available with {engine}',
+  'memoryEngine.unavailableHint': 'Switch memory engine to use this feature.',
+  'memoryEngine.engine.tinymemory.label': 'Local (TinyCortex)',
+  'memoryEngine.engine.tinymemory.description':
+    'Stored on this device with TinyCortex. Private, free and the default.',
+  'memoryEngine.engine.tinyhumans.label': 'CortexDB (via TinyHumans)',
+  'memoryEngine.engine.tinyhumans.description':
+    'CortexDB hosted by TinyHumans. Uses your signed-in account, no key needed.',
+  'memoryEngine.engine.cortex.label': 'CortexDB (own key)',
+  'memoryEngine.engine.cortex.description':
+    'Your own CortexDB account or instance, using your API key.',
+  'memoryEngine.engine.supermemory.label': 'Supermemory',
+  'memoryEngine.engine.supermemory.description': 'Supermemory cloud memory, using your API key.',
+  'memoryEngine.engine.mem0.label': 'Mem0',
+  'memoryEngine.engine.mem0.description': 'Mem0 memory layer, cloud or self-hosted.',
+  'memoryEngine.engine.cognee.label': 'Cognee',
+  'memoryEngine.engine.cognee.description': 'Cognee knowledge-graph memory, cloud or self-hosted.',
+  'memoryEngine.engine.agentmemory.label': 'AgentMemory',
+  'memoryEngine.engine.agentmemory.description': 'An AgentMemory server that you run yourself.',
 };
 
 export default en;

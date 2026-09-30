@@ -94,7 +94,6 @@ fn selector(parent_thread_id: &str) -> subagent_sessions::SubagentSessionSelecto
         parent_session: "parent-session".into(),
         parent_thread_id: Some(parent_thread_id.into()),
         agent_id: "researcher".into(),
-        toolkit: None,
         model: None,
         sandbox_mode: "workspace".into(),
         action_root: None,

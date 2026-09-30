@@ -166,7 +166,7 @@ export async function memoryGraphQuery(
     method: 'openhuman.memory_graph_query',
     params: { namespace, subject, predicate },
   });
-  // RpcOutcome wraps with { result, logs } when logs are present — unwrap if needed.
+  // Outcome wraps with { result, logs } when logs are present — unwrap if needed.
   if (Array.isArray(raw)) return raw;
   if (raw && typeof raw === 'object' && 'result' in raw && Array.isArray(raw.result))
     return raw.result;

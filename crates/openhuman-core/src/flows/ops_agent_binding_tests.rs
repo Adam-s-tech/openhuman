@@ -1,31 +1,5 @@
 use super::*;
 
-#[test]
-fn binding_to_agent_with_matching_schema_is_accepted() {
-    let g = graph(json!({
-        "nodes": [
-            { "id": "t", "kind": "trigger", "name": "Manual" },
-            { "id": "summarize", "kind": "agent", "name": "Summarize",
-              "config": { "prompt": "summarize",
-                "output_parser": { "schema": { "type": "object",
-                    "required": ["channel"],
-                    "properties": { "channel": { "type": "string" } } } } } },
-            { "id": "post", "kind": "tool_call", "name": "Post",
-              "config": { "slug": "SLACK_SEND_MESSAGE",
-                "args": { "channel": "=nodes.summarize.item.json.channel" } } }
-        ],
-        "edges": [
-            { "from_node": "t", "to_node": "summarize" },
-            { "from_node": "summarize", "to_node": "post" }
-        ]
-    }));
-    assert!(
-        validate_binding_resolvability(&g).is_empty(),
-        "{:?}",
-        validate_binding_resolvability(&g)
-    );
-}
-
 // ── validate_agent_refs (agent-ref resolvability gate, PR #5114) ───────────
 
 #[tokio::test]

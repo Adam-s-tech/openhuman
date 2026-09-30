@@ -3,7 +3,7 @@ use crate::agent::prompts::IntegrationConnection;
 
 use crate::integrations::composio::module_client::module_guard;
 
-// ── resolve_client / ops auth errors ──────────────────────────
+// ── ops auth errors ──────────────────────────
 
 fn test_config(tmp: &tempfile::TempDir) -> Config {
     let mut c = Config::default();
@@ -272,7 +272,7 @@ fn conn(id: &str, toolkit: &str, status: &str) -> super::super::types::ComposioC
 // where the data is (or isn't) coming from.
 
 /// Set up a config with `composio.mode = "direct"` and a stored
-/// direct-mode API key (so `create_composio_client` succeeds).
+/// direct-mode API key (so `resolve_composio_route` succeeds).
 fn direct_mode_config(tmp: &tempfile::TempDir) -> Config {
     let mut c = Config::default();
     c.workspace_dir = tmp.path().join("workspace");

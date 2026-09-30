@@ -1,7 +1,7 @@
 //! OpenHuman RPC shell for memory synchronization status.
 
 use crate::config::Config;
-use crate::rpc::RpcOutcome;
+use crate::core::Outcome;
 
 use tinymemory_api::provider::sync::{SourceSyncStatus, SyncFreshness};
 
@@ -47,7 +47,7 @@ pub(super) fn into_wire(status: SourceSyncStatus) -> MemorySyncStatus {
     }
 }
 
-pub async fn status_list_rpc(config: &Config) -> Result<RpcOutcome<StatusListResponse>, String> {
+pub async fn status_list_rpc(config: &Config) -> Result<Outcome<StatusListResponse>, String> {
     tracing::debug!("[memory_sync_status][rpc] status_list via the bound driver");
 
     // Degrading a failure to an empty list is inherited behaviour, kept
@@ -79,7 +79,7 @@ pub async fn status_list_rpc(config: &Config) -> Result<RpcOutcome<StatusListRes
         }
     };
 
-    Ok(RpcOutcome::new(StatusListResponse { statuses }, Vec::new()))
+    Ok(Outcome::new(StatusListResponse { statuses }, Vec::new()))
 }
 
 #[cfg(test)]

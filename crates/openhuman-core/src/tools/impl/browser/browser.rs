@@ -1,11 +1,17 @@
 //! Agent-facing browser backed by the TinyComputer module's browser and task members.
+#[path = "browser_lifecycle.rs"]
+mod cleanup;
+#[path = "browser_pending.rs"]
+mod pending;
 #[path = "browser_session_pool.rs"]
 mod session_pool;
-
+#[path = "browser_task_actions.rs"]
+mod task_actions;
 use crate::modules::browser::BrowserClient;
 use crate::security::approval::{ApprovalGate, GateOutcome};
 use crate::security::SecurityPolicy;
 use async_trait::async_trait;
+use pending::{approval_target, needs_host_confirmation, Pending};
 use serde_json::{json, Value};
 use session_pool::{
     browser_session_fingerprint, evict_thread_sessions, requires_rebind, thread_sessions,
@@ -14,89 +20,20 @@ use session_pool::{
 #[cfg(test)]
 use session_pool::{MAX_THREAD_SESSIONS, SESSION_IDLE_TTL};
 use sha2::{Digest, Sha256};
+#[cfg(test)]
+use std::{collections::HashMap, time::Duration};
 use std::{
-    collections::BTreeMap,
     sync::{Arc, Mutex as StdMutex},
     time::Instant,
 };
-#[cfg(test)]
-use std::{collections::HashMap, time::Duration};
+use task_actions::{approve_task_action, parse_action, required, task_inputs};
 use tinycomputer_bus::agent::{ContinueTaskRequest, TaskId, TaskStatus, TaskView};
 use tinycomputer_bus::browser::{
-    Action, DownloadState, DownloadWaitRequest, LocateBy, Locator, NavigateRequest, ReadRequest,
-    ScrollDirection, SessionId, SessionOptions, SnapshotRequest, Target, WaitState,
+    Action, DownloadState, DownloadWaitRequest, NavigateRequest, ReadRequest, SessionId,
+    SessionOptions, SnapshotRequest,
 };
 use tinytools::{Tool, ToolCallOptions, ToolResult, ToolRunContext};
 use tokio::sync::Mutex;
-
-/// A task paused before an irreversible action, waiting for host approval.
-struct Pending {
-    task: TaskId,
-    action: String,
-    target: String,
-    token: String,
-}
-
-impl Pending {
-    fn matches(&self, args: &Value) -> bool {
-        args["token"].as_str() == Some(self.token.as_str())
-    }
-}
-
-fn needs_host_confirmation(action: &Action) -> bool {
-    matches!(
-        action,
-        Action::Click { .. }
-            | Action::DoubleClick { .. }
-            | Action::Fill { .. }
-            | Action::Type { .. }
-            | Action::Press { .. }
-            | Action::Select { .. }
-            | Action::Check { .. }
-    )
-}
-
-fn approval_target(action: &Action) -> (Option<&str>, String) {
-    let target = match action {
-        Action::Click { target, .. }
-        | Action::DoubleClick { target }
-        | Action::Fill { target, .. }
-        | Action::Select { target, .. }
-        | Action::Check { target, .. } => Some(target),
-        Action::Type { target, .. } => target.as_ref(),
-        _ => None,
-    };
-    let preview = |raw: &str| {
-        let cleaned = raw.chars().filter(|c| !c.is_control()).collect::<String>();
-        let mut short = cleaned.chars().take(96).collect::<String>();
-        if cleaned.chars().count() > 96 {
-            short.push('…');
-        }
-        short
-    };
-    match target {
-        Some(Target::Ref { value }) => (Some(value), format!(" @{value}")),
-        Some(Target::Selector { value }) => (None, format!(" CSS selector {:?}", preview(value))),
-        Some(Target::Locator { value }) => {
-            let name = value
-                .name
-                .as_deref()
-                .map(|name| format!(" named {:?}", preview(name)))
-                .unwrap_or_default();
-            (
-                None,
-                format!(
-                    " {:?} locator {:?}{name} (match {}, exact={})",
-                    value.by,
-                    preview(&value.value),
-                    value.index.saturating_add(1),
-                    value.exact
-                ),
-            )
-        }
-        None => (None, String::new()),
-    }
-}
 
 async fn approve_browser_action(
     client: &BrowserClient,
@@ -141,9 +78,7 @@ async fn approve_browser_action(
         &digest_hex[..12]
     );
     let summary = format!("Browser {display_target}");
-    // A digest binds the prompt to the complete action and URL without
-    // persisting form values or sensitive URL query parameters. The bounded
-    // selector/locator preview lets the host review which element is targeted.
+    // Bind action and URL with a digest, and show a bounded selector preview.
     let args = json!({"action": kind, "origin": origin, "target": display_target,
         "target_ref": target_ref, "exact_action_sha256": digest_hex});
     match gate.intercept_forced("browser", &summary, args).await {
@@ -220,9 +155,7 @@ impl BrowserTool {
                 *held = None;
                 *bound = None;
                 *self.pending.lock().await = None;
-                // The previous module session retains its original allowed
-                // origins. Keep its entry until close succeeds so a failed
-                // close is retried before any replacement can open.
+                // Keep its entry until close succeeds; retry before replacement.
                 stale.client.close_session(&stale.id).await?;
                 sessions.remove(&key);
             }
@@ -321,11 +254,19 @@ impl BrowserTool {
             None => self.client.task_origins(),
         };
         let facts = task_inputs(args)?;
+        let flow = match args.get("flow").filter(|flow| !flow.is_null()) {
+            Some(flow) => Some(
+                serde_json::from_value::<tinycomputer_bus::Flow>(flow.clone())
+                    .map_err(|error| anyhow::anyhow!("Invalid flow: {error}"))?,
+            ),
+            None => None,
+        };
         let task = crate::modules::browser_task::BrowserTask {
             goal,
             facts,
             origins,
             max_actions: u32::try_from(self.max_steps).unwrap_or(u32::MAX),
+            flow,
         };
         let view = crate::modules::browser_task::start(self.client.config(), &task)
             .await
@@ -516,136 +457,6 @@ impl BrowserTool {
     }
 }
 
-fn task_inputs(args: &Value) -> anyhow::Result<BTreeMap<String, String>> {
-    args["inputs"].as_object().map_or_else(
-        || Ok(BTreeMap::new()),
-        |inputs| {
-            inputs
-                .iter()
-                .map(|(k, v)| {
-                    Ok((
-                        k.clone(),
-                        v.as_str()
-                            .ok_or_else(|| anyhow::anyhow!("Task input '{k}' must be text"))?
-                            .to_owned(),
-                    ))
-                })
-                .collect()
-        },
-    )
-}
-
-/// Ask the host approval gate about a paused task's exact action. A missing
-/// gate denies: a task never takes an irreversible step unapproved.
-async fn approve_task_action(pending: &Pending) -> anyhow::Result<bool> {
-    let gate = ApprovalGate::try_global().ok_or_else(|| {
-        anyhow::anyhow!("[policy-denied] Browser action needs an interactive host approval gate")
-    })?;
-    let clean = |raw: &str| {
-        let cleaned = raw.chars().filter(|c| !c.is_control()).collect::<String>();
-        let mut short = cleaned.chars().take(160).collect::<String>();
-        if cleaned.chars().count() > 160 {
-            short.push('…');
-        }
-        short
-    };
-    let digest = Sha256::digest(serde_json::to_vec(&json!({
-        "task": pending.task, "action": pending.action, "target": pending.target
-    }))?);
-    let digest_hex = format!("{digest:x}");
-    let summary = format!(
-        "Browser task: {} — {} [action {}]",
-        clean(&pending.action),
-        clean(&pending.target),
-        &digest_hex[..12]
-    );
-    let args = json!({"action": "task_step", "target": summary, "exact_action_sha256": digest_hex});
-    Ok(
-        match gate.intercept_forced("browser", &summary, args).await {
-            GateOutcome::Allow => true,
-            GateOutcome::Deny { reason } => {
-                tracing::debug!(%reason, "[browser] task action denied by host");
-                false
-            }
-        },
-    )
-}
-
-fn required<'a>(args: &'a Value, key: &str) -> anyhow::Result<&'a str> {
-    args.get(key)
-        .and_then(Value::as_str)
-        .filter(|s| !s.trim().is_empty())
-        .ok_or_else(|| anyhow::anyhow!("Missing '{key}' parameter"))
-}
-
-fn parse_action(args: &Value) -> anyhow::Result<Action> {
-    let target = || required(args, "selector").map(Target::parse);
-    Ok(match required(args, "action")? {
-        "click" => Action::Click {
-            target: target()?,
-            new_tab: false,
-        },
-        "fill" => Action::Fill {
-            target: target()?,
-            value: required(args, "value")?.into(),
-        },
-        "type" => Action::Type {
-            target: args["selector"].as_str().map(Target::parse),
-            text: required(args, "text")?.into(),
-            delay_ms: None,
-        },
-        "get_text" => Action::GetText { target: target()? },
-        "is_visible" => Action::IsVisible { target: target()? },
-        "hover" => Action::Hover { target: target()? },
-        "press" => Action::Press {
-            key: required(args, "key")?.into(),
-        },
-        "scroll" => Action::Scroll {
-            direction: match required(args, "direction")? {
-                "up" => ScrollDirection::Up,
-                "down" => ScrollDirection::Down,
-                "left" => ScrollDirection::Left,
-                "right" => ScrollDirection::Right,
-                x => anyhow::bail!("Invalid direction: {x}"),
-            },
-            pixels: args["pixels"].as_u64().and_then(|v| u32::try_from(v).ok()),
-            target: None,
-        },
-        "wait" => Action::WaitFor {
-            target: args["selector"].as_str().map(Target::parse),
-            text: args["text"].as_str().map(str::to_owned),
-            state: WaitState::Visible,
-            ms: args["ms"].as_u64(),
-            timeout_ms: args["timeout_ms"].as_u64(),
-        },
-        "find" => {
-            let by = match required(args, "by")? {
-                "role" => LocateBy::Role,
-                "text" => LocateBy::Text,
-                "label" => LocateBy::Label,
-                "placeholder" => LocateBy::Placeholder,
-                "testid" => LocateBy::TestId,
-                x => anyhow::bail!("Invalid locator: {x}"),
-            };
-            let target = Target::locator(Locator::new(by, required(args, "value")?));
-            match required(args, "find_action")? {
-                "click" => Action::Click {
-                    target,
-                    new_tab: false,
-                },
-                "fill" => Action::Fill {
-                    target,
-                    value: required(args, "fill_value")?.into(),
-                },
-                "text" => Action::GetText { target },
-                "hover" => Action::Hover { target },
-                x => anyhow::bail!("Invalid find action: {x}"),
-            }
-        }
-        x => anyhow::bail!("Unsupported browser action: {x}"),
-    })
-}
-
 #[async_trait]
 impl Tool for BrowserTool {
     fn exposure(&self) -> tinytools::ToolExposure {
@@ -677,14 +488,12 @@ impl Tool for BrowserTool {
     fn parameters_schema(&self) -> Value {
         json!({"type":"object","properties":{
         "action":{"type":"string","enum":["open","snapshot","read_page","click","fill","type","get_text","get_title","get_url","wait","press","hover","scroll","is_visible","find","task","task_continue","task_cancel","confirm_pending","list_downloads","wait_download","close"]},
-        "url":{"type":"string","description":"Starting HTTPS URL for open or an optional starting URL for task"},"selector":{"type":"string"},"value":{"type":"string"},"text":{"type":"string"},"key":{"type":"string"},"direction":{"type":"string"},"pixels":{"type":"integer"},"ms":{"type":"integer"},"timeout_ms":{"type":"integer"},"interactive_only":{"type":"boolean"},"compact":{"type":"boolean"},"depth":{"type":"integer"},"by":{"type":"string"},"find_action":{"type":"string"},"fill_value":{"type":"string"},"goal":{"type":"string"},"inputs":{"type":"object","additionalProperties":{"type":"string"}},"task_id":{"type":"string","description":"Task id returned by task, for task_continue and task_cancel"},"answer":{"type":"string","description":"Free-text answer for a paused task; done after a needs_human pause"},"token":{"type":"string","description":"Token returned with the exact pending action"}
+        "url":{"type":"string","description":"Starting HTTPS URL for open or an optional starting URL for task"},"selector":{"type":"string"},"value":{"type":"string"},"text":{"type":"string"},"key":{"type":"string"},"direction":{"type":"string"},"pixels":{"type":"integer"},"ms":{"type":"integer"},"timeout_ms":{"type":"integer"},"interactive_only":{"type":"boolean"},"compact":{"type":"boolean"},"depth":{"type":"integer"},"by":{"type":"string"},"find_action":{"type":"string"},"fill_value":{"type":"string"},"goal":{"type":"string"},"inputs":{"type":"object","additionalProperties":{"type":"string"}},"task_id":{"type":"string","description":"Task id returned by task, for task_continue and task_cancel"},"flow":{"type":"object","description":"Optional TinyComputer flow ({app, vars, steps}) to run instead of planning one from goal, e.g. a plan saved from an earlier successful run"},"answer":{"type":"string","description":"Free-text answer for a paused task; done after a needs_human pause"},"token":{"type":"string","description":"Token returned with the exact pending action"}
     },"required":["action"]})
     }
     fn external_effect_with_args(&self, args: &Value) -> bool {
-        // Direct mutating actions use the forced gate immediately before
-        // perform, and a task's irreversible step pauses as needs_approval for
-        // confirm_pending. Declaring an outer effect would park the same call
-        // twice and cannot cover the steps chosen inside `task`.
+        // Gate direct mutations before perform; task steps pause for approval.
+        // An outer effect would gate twice without covering task-selected steps.
         let _ = args;
         false
     }
@@ -720,26 +529,6 @@ impl Tool for BrowserTool {
             }
         }
         self.execute(args).await
-    }
-}
-
-impl Drop for BrowserTool {
-    fn drop(&mut self) {
-        if self.thread_key.lock().ok().is_some_and(|key| key.is_some()) {
-            // A later turn in this conversation reuses the module session.
-            // Explicit `close` removes it; module shutdown owns final cleanup.
-            return;
-        }
-        if let Ok(mut held) = self.session.try_lock() {
-            if let Some(id) = held.take() {
-                let client = self.client.clone();
-                if let Ok(runtime) = tokio::runtime::Handle::try_current() {
-                    runtime.spawn(async move {
-                        let _ = client.close_session(&id).await;
-                    });
-                }
-            }
-        }
     }
 }
 

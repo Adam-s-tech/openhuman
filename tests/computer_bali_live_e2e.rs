@@ -26,7 +26,10 @@
 //! ```
 //!
 //! Optional: `COMPUTER_E2E_CHROME` (Chrome executable), `COMPUTER_E2E_HEADLESS=1`,
-//! `COMPUTER_E2E_MINUTES` (default 20), `COMPUTER_E2E_DECISION_MODEL`
+//! `COMPUTER_E2E_TASK_FILE` / `COMPUTER_E2E_FACTS_FILE` / `COMPUTER_E2E_FLOW_FILE`
+//! (replay another saved task, e.g. TinyComputer's Kashmir demo),
+//! `COMPUTER_E2E_MINUTES` (default 20), `COMPUTER_E2E_PLAN=1` (plan instead of
+//! replaying `fixtures/computer/bali/plan.json`), `COMPUTER_E2E_DECISION_MODEL`
 //! (`jev`, `open_jev`, `sage`), `COMPUTER_E2E_OUT` (report directory).
 
 use std::collections::BTreeMap;
@@ -38,6 +41,10 @@ use tinycomputer_bus::agent::{ContinueTaskRequest, TaskStatus, TaskView};
 
 const TASK: &str = include_str!("fixtures/computer/bali/task.md");
 const FACTS: &str = include_str!("fixtures/computer/bali/facts.json");
+/// The flow to replay, adapted from the Kashmir demo's recorded plan. Replaying
+/// a saved flow is how that demo's passing runs were made; set
+/// `COMPUTER_E2E_PLAN=1` to let the planner write a fresh one instead.
+const PLAN: &str = include_str!("fixtures/computer/bali/plan.json");
 const DEFAULT_CHROME: &str = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 
 fn config(workspace: &std::path::Path) -> Config {
@@ -60,6 +67,30 @@ fn config(workspace: &std::path::Path) -> Config {
         _ => DecisionModel::Jev,
     };
     config
+}
+
+/// Print what the task did and every rescue, so a failed live run says why.
+async fn print_report(config: &Config, view: &TaskView) {
+    match browser_task::report(config, view.id.clone()).await {
+        Ok(report) => {
+            for (index, step) in report.steps.iter().enumerate() {
+                println!(
+                    "  step {index}: {}",
+                    serde_json::to_string(step).unwrap_or_default()
+                );
+            }
+            for rescue in &report.rescues {
+                println!(
+                    "  rescue of step {}: {:?} — {} ({})",
+                    rescue.step, rescue.outcome, rescue.reason, rescue.failure
+                );
+            }
+            if report.rescues.is_empty() {
+                println!("  no rescues");
+            }
+        }
+        Err(error) => println!("  report unavailable: {error}"),
+    }
 }
 
 fn summarize(view: &TaskView) -> String {
@@ -88,7 +119,18 @@ async fn books_a_bali_flight_up_to_the_payment_page() {
     }
     let dir = tempfile::tempdir().expect("tempdir");
     let config = config(dir.path());
-    let facts: BTreeMap<String, String> = serde_json::from_str(FACTS).expect("facts");
+    // Overrides let the same harness replay another saved task, such as
+    // TinyComputer's own Kashmir demo, to tell site drift from host bugs.
+    let read = |var: &str, default: &str| {
+        std::env::var(var).map_or_else(
+            |_| default.to_owned(),
+            |path| std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{var}={path}: {e}")),
+        )
+    };
+    let task_text = read("COMPUTER_E2E_TASK_FILE", TASK);
+    let facts_text = read("COMPUTER_E2E_FACTS_FILE", FACTS);
+    let plan_text = read("COMPUTER_E2E_FLOW_FILE", PLAN);
+    let facts: BTreeMap<String, String> = serde_json::from_str(&facts_text).expect("facts");
 
     let status = openhuman_core::modules::computer::status(&config, true).await;
     println!(
@@ -112,10 +154,15 @@ async fn books_a_bali_flight_up_to_the_payment_page() {
     assert!(capabilities.rescue_configured, "no rescue model configured");
 
     let task = BrowserTask {
-        goal: TASK.to_owned(),
+        goal: task_text,
         facts: facts.clone(),
         origins: vec!["https://.google.com".into(), "https://.goindigo.in".into()],
         max_actions: 200,
+        flow: if std::env::var("COMPUTER_E2E_PLAN").is_ok_and(|v| v == "1") {
+            None
+        } else {
+            Some(serde_json::from_str(&plan_text).expect("saved flow"))
+        },
     };
     let minutes = std::env::var("COMPUTER_E2E_MINUTES")
         .ok()
@@ -194,6 +241,7 @@ async fn books_a_bali_flight_up_to_the_payment_page() {
                 ..
             } => {
                 println!("checkpoint at {location}: {reason}\n{summary}");
+                print_report(&config, &view).await;
                 assert!(
                     location.contains("goindigo") || reason.to_lowercase().contains("pay"),
                     "stopped at an unexpected checkpoint: {reason} ({location})"
@@ -209,7 +257,10 @@ async fn books_a_bali_flight_up_to_the_payment_page() {
                 panic!("task needs a person: {reason}");
             }
             TaskStatus::NeedsPlan { .. } => panic!("the planner is not configured"),
-            TaskStatus::Failed { reason, hint, .. } => panic!("task failed: {reason} ({hint})"),
+            TaskStatus::Failed { reason, hint, .. } => {
+                print_report(&config, &view).await;
+                panic!("task failed: {reason} ({hint})")
+            }
             TaskStatus::Cancelled => panic!("task was cancelled"),
         }
     }

@@ -6,19 +6,13 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::inference::provider::ToolCall;
+use tinytools_agent::dialect::NativeToolCall;
 
 const TURN_USAGE_METADATA_KEY: &str = "openhuman_turn_usage";
 const TOOL_FAILURE_METADATA_KEY: &str = "openhuman_tool_failure";
 const REPLAYED_METADATA_KEY: &str = "openhuman_replayed";
 const WRAPPED_VALUE_KEY: &str = "openhuman_wrapped_value";
 const WRAPPED_FLAG: &str = "wrapped";
-
-/// Durable `extra_metadata` key on a text-dialect `[Tool results]` user row:
-/// the call ids whose results in that row failed. The per-result analogue of
-/// the `tool_failure` a native `tool` row carries; written by the session codec
-/// and read by the thread transcript projection.
-pub(crate) const TOOL_RESULT_FAILURES_METADATA_KEY: &str = "openhuman_tool_failures";
 
 fn would_wrap(message: &ChatMessage) -> bool {
     matches!(&message.extra_metadata, Some(value) if !value.is_object())
@@ -324,7 +318,7 @@ pub enum ConversationMessage {
     Chat(ChatMessage),
     AssistantToolCalls {
         text: Option<String>,
-        tool_calls: Vec<ToolCall>,
+        tool_calls: Vec<NativeToolCall>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         reasoning_content: Option<String>,
         #[serde(default, skip_serializing_if = "Option::is_none")]

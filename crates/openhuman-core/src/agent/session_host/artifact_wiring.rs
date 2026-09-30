@@ -6,7 +6,8 @@
 
 use std::path::{Path, PathBuf};
 
-use crate::agent::harness::tool_result_artifacts::ToolResultArtifactStore;
+use crate::agent::harness::tool_result_artifacts::new_tool_result_store;
+use tinyagents_harness::artifacts::tool_results::ToolResultArtifactStore;
 
 /// How long another session's tool-result artifacts survive before a later
 /// session sweeps them.
@@ -34,7 +35,7 @@ const ARTIFACT_RETENTION: std::time::Duration = std::time::Duration::from_secs(2
 ///
 /// The store writes under `<root>/artifacts/tool-results/…` but hands the model
 /// a RELATIVE pointer, which `file_read` later resolves through
-/// `security_for_tool_context` (`tools/impl/filesystem/mod.rs`). That function
+/// `FsGate::scoped_to_workspace` (`tools/impl/filesystem/gate.rs`). That scoping
 /// overwrites `action_dir` with `ctx.workspace().root` whenever the turn carries
 /// a workspace descriptor — and `turn()` sets `context.workspace` from the
 /// host's own descriptor. So on a turn bound to a per-turn workspace, rooting
@@ -68,8 +69,7 @@ pub(super) fn build_artifact_store(
     action_dir: &Path,
     session_key: &str,
 ) -> ToolResultArtifactStore {
-    let store =
-        ToolResultArtifactStore::new(artifact_root(workspace_descriptor, action_dir), session_key);
+    let store = new_tool_result_store(artifact_root(workspace_descriptor, action_dir), session_key);
     match store.prune_stale_sessions(ARTIFACT_RETENTION) {
         Ok(0) => {}
         Ok(removed) => log::debug!(

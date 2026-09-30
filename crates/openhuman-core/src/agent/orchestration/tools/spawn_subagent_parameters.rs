@@ -55,10 +55,6 @@ fn spawn_subagent_parameters_schema() -> serde_json::Value {
                 "type": "string",
                 "description": "Optional exact model id for this spawn only. Keeps the parent provider/routing, but pins the child agent to this model instead of the agent definition's default."
             },
-            "toolkit": {
-                "type": "string",
-                "description": "Optional Composio toolkit slug (e.g. `gmail`, `notion`). Narrows the Connected Integrations section of the sub-agent's prompt to that toolkit."
-            },
             "dedicated_thread": {
                 "type": "boolean",
                 "description": "Legacy compatibility flag. Delegations now always create a persistent worker thread when parent context is available, so this flag no longer gates thread creation."

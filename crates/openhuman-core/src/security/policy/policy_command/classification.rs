@@ -2,9 +2,11 @@
 //! bucket lists, verb-sensitive VCS / package-manager handling, and the
 //! structural "hidden execution" guard for the harness-gated command flow.
 
-use super::quoting::contains_unquoted_background_ampersand;
 use crate::security::policy::policy_command::command_name::is_command_executor;
 use crate::security::policy::types::CommandClass;
+use tinybox_core::shell::scan::{
+    contains_unquoted_background_ampersand, strip_quoted_heredoc_bodies,
+};
 
 /// Provably read-only command bases (cross-platform union). A base **not** in
 /// this set — and not a recognized network/destructive/executor command, nor a
@@ -364,7 +366,7 @@ pub(in crate::security::policy) fn has_hidden_execution(command: &str) -> bool {
     // — the life-scenario `meal-plan` write was blocked because four recipe
     // titles read "Chicken & Spinach". An *unquoted* delimiter is left in place
     // by the helper, because expansion IS live in that body.
-    let command = &super::quoting::strip_quoted_heredoc_bodies(command);
+    let command = &strip_quoted_heredoc_bodies(command);
     // The backtick check is deliberately NOT quote-aware: any backtick in the
     // command string is blocked, even inside a double-quoted literal. Over-
     // blocking is the safe direction here. (By contrast the `&` case below is

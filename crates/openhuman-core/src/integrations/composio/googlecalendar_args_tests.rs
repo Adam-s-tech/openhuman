@@ -32,7 +32,7 @@ fn injects_tz_and_single_events_when_absent() {
 
 #[test]
 fn does_not_overwrite_caller_supplied_time_zone() {
-    // Power-user / heartbeat path may pass an explicit zone that
+    // A power-user / direct call path may pass an explicit zone that
     // differs from the host. We must respect it, not silently swap to
     // host zone — the caller has more context than the host clock.
     let args = apply_calendar_query_defaults(

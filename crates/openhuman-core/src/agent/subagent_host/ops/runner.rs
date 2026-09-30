@@ -10,7 +10,6 @@ use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::Instant;
 
-use crate::agent::file_state::with_file_state_agent_id;
 use crate::agent::harness::agent_graph::{AgentTurnRequest, AgentTurnUsage};
 use crate::agent::harness::artifact_offload::{
     effective_offload_threshold, extract_artifact_paths, new_artifact_offload,
@@ -41,6 +40,7 @@ use crate::inference::provider::AGENT_TURN_MAX_OUTPUT_TOKENS;
 use crate::memory::api::provider::retrieval::{FastRetrieveQuery, RetrievalResponse};
 use crate::memory::source_scope::as_bus_scope;
 use tinytools::{SandboxMode as TinyagentsSandboxMode, ToolSpec, WorkspaceDescriptor};
+use tinytools_std::file_state::with_file_state_agent_id;
 
 use super::prompt::{
     append_artifact_offload_contract, append_subagent_role_contract, dedup_tool_specs_by_name,
@@ -517,7 +517,7 @@ pub(crate) async fn run_subagent_direct(
         // forbids never reaches a user script, and before config load so a
         // denied spawn has no side effects at all.
         if let Err(reason) = crate::hooks::ops::subagent_starting(
-            crate::hooks::context::TurnIdentity {
+            tinyagents_runtime::command_hooks::context::TurnIdentity {
                 conversation_id: Some(parent.session_id.clone()),
                 session_id: Some(parent.session_id.clone()),
                 agent_id: Some(parent.agent_definition_id.clone()),
@@ -780,8 +780,8 @@ async fn offload_outcome_artifacts(
 
     // Offload at the tighter of the global default and this agent's own result
     // cap, so a definition capped below the default (flow_memory_agent at 4 000
-    // chars, context_scout at 5 000) gets its full body on disk instead of
-    // truncated by `apply_max_result_chars` immediately after.
+    // chars) gets its full body on disk instead of truncated by
+    // `apply_max_result_chars` immediately after.
     let threshold =
         effective_offload_threshold(DEFAULT_OFFLOAD_THRESHOLD_BYTES, definition.max_result_chars);
 
@@ -946,7 +946,6 @@ async fn run_typed_mode(
     };
 
     // ── Filter tools per definition + per-spawn override ───────────────
-    let toolkit_filter = options.toolkit_override.as_deref();
     let mut allowed_indices = filter_tool_indices(
         &parent.all_tools,
         &definition.tools,
@@ -1029,19 +1028,12 @@ async fn run_typed_mode(
         definition.omit_memory_md,
     );
 
-    let narrowed_integrations: Vec<crate::agent::prompts::ConnectedIntegration> =
-        match toolkit_filter {
-            Some(tk) => live_integrations
-                .iter()
-                .filter(|ci| ci.connected && ci.toolkit.eq_ignore_ascii_case(tk))
-                .cloned()
-                .collect(),
-            None => live_integrations
-                .iter()
-                .filter(|ci| ci.connected)
-                .cloned()
-                .collect(),
-        };
+    let connected_integrations_for_prompt: Vec<crate::agent::prompts::ConnectedIntegration> =
+        live_integrations
+            .iter()
+            .filter(|ci| ci.connected)
+            .cloned()
+            .collect();
 
     let prompt_tools: Vec<PromptTool<'_>> = allowed_indices
         .iter()
@@ -1097,7 +1089,7 @@ async fn run_typed_mode(
         learned: crate::agent::prompts::LearnedContextData::default(),
         visible_tool_names: &visible_tool_names,
         tool_call_format: prompt_tool_call_format,
-        connected_integrations: &narrowed_integrations,
+        connected_integrations: &connected_integrations_for_prompt,
         connected_identities_md: crate::agent::prompts::render_connected_identities(),
         include_profile: !definition.omit_profile,
         include_memory_md: !definition.omit_memory_md,
@@ -1126,7 +1118,7 @@ async fn run_typed_mode(
                 &archetype_prompt_body,
                 render_options,
                 prompt_tool_call_format,
-                &narrowed_integrations,
+                &connected_integrations_for_prompt,
                 agents_md.global.as_deref(),
                 agents_md.local.as_deref(),
             )

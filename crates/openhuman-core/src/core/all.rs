@@ -82,7 +82,7 @@ impl RegisteredController {
 ///   use for. Those are now `Desktop` and `Hosted` and stay off.
 ///
 /// `Platform` is now what its name says: the kernel surfaces with no family of
-/// their own (`platform/`, `tools/`, `http_host/`, `test_support/`).
+/// their own (`platform/`, `tools/`, `test_support/`).
 ///
 /// When adding a family directory, add the matching variant here, a field on
 /// [`crate::core::runtime::DomainSet`], an arm in `allows()`, and an entry in
@@ -116,8 +116,8 @@ pub enum DomainGroup {
     /// External connectors reached on the user's behalf — Composio, calendar,
     /// file storage, task sources (`integrations/`).
     Integrations,
-    /// Background initiative: scheduled jobs and the subconscious tick loop
-    /// (`cron/`, `subconscious/`). Pairs with `ServiceSet::{cron, heartbeat}`.
+    /// Background initiative: scheduled cron jobs (`cron/`). Pairs with
+    /// `ServiceSet::cron`.
     Automation,
     /// Code-execution substrate: the managed Node/Python runtimes, the worker
     /// pool, and the sandbox/CWD-jail confinement (`runtime/`, `sandbox/`).
@@ -687,15 +687,6 @@ fn build_registered_controllers() -> Vec<GroupedController> {
         &mut controllers,
         DomainGroup::Agent,
         crate::commands::all_commands_registered_controllers(),
-    );
-    // Ad-hoc static directory HTTP hosting for local file sharing / previews.
-    // Gated with the `http-server` feature (#5048): the domain is an axum server,
-    // so a slim build has no `http_host.*` controllers to register.
-    #[cfg(feature = "http-server")]
-    push(
-        &mut controllers,
-        DomainGroup::Platform,
-        crate::http_host::all_http_host_registered_controllers(),
     );
     // Token usage and billing cost tracking
     push(
@@ -1436,7 +1427,7 @@ pub fn schema_for_rpc_method(method: &str) -> Option<ControllerSchema> {
 ///
 /// | entry point | validates in |
 /// | --- | --- |
-/// | HTTP JSON-RPC | `core::jsonrpc` |
+/// | HTTP JSON-RPC | `openhuman_rpc::server` (through `core::invoke`) |
 /// | dynamic dispatch fallback | `core::dispatch::try_registry_dispatch` |
 /// | CLI | `core::cli` |
 /// | MCP read and write tools | `crate::mcp::server::tools::params` |
@@ -1489,18 +1480,19 @@ pub fn validate_params(
 ) -> Result<(), String> {
     for input in &schema.inputs {
         if input.required && !params.contains_key(input.name) {
-            return Err(format!(
-                "missing required param '{}': {}",
-                input.name, input.comment
+            return Err(crate::core::params::missing_required_param_message(
+                input.name,
+                input.comment,
             ));
         }
     }
 
     for key in params.keys() {
         if !schema.inputs.iter().any(|f| f.name == key) {
-            return Err(format!(
-                "unknown param '{}' for {}.{}",
-                key, schema.namespace, schema.function
+            return Err(crate::core::params::unknown_param_message(
+                key,
+                schema.namespace,
+                schema.function,
             ));
         }
     }
@@ -1514,7 +1506,7 @@ pub fn validate_params(
             check_type(value, &input.ty).map_err(|mismatch| {
                 let (expected, got) = match mismatch {
                     TypeMismatch::Kind(expected) => {
-                        (expected.to_string(), json_type_name(value).to_string())
+                        (expected.to_string(), crate::core::params::json_type_name(value).to_string())
                     }
                     TypeMismatch::OutOfRange { min, max, got } => {
                         log::debug!(
@@ -1551,19 +1543,6 @@ enum TypeMismatch {
     ///
     /// [`TypeSchema::BoundedU64`]: crate::core::TypeSchema::BoundedU64
     OutOfRange { min: u64, max: u64, got: u64 },
-}
-
-/// A short, human-readable name for the JSON kind of `value`, used in
-/// `validate_params` type-mismatch errors.
-fn json_type_name(value: &Value) -> &'static str {
-    match value {
-        Value::Null => "null",
-        Value::Bool(_) => "bool",
-        Value::Number(_) => "number",
-        Value::String(_) => "string",
-        Value::Array(_) => "array",
-        Value::Object(_) => "object",
-    }
 }
 
 /// Validate a JSON `value` against a declared [`TypeSchema`].

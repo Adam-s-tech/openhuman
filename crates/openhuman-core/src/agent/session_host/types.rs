@@ -164,6 +164,10 @@ pub struct OpenHumanSessionHost {
     /// Fixed at build; the refresh paths use it to recompute
     /// [`Self::deferred_tool_names`] when the synthesised set changes.
     pub(super) discovery_enabled: bool,
+    /// The agent definition's `deferred_tools`: `Direct` tools this agent
+    /// reaches through `tool_search` instead of its wire. Kept so every
+    /// recompute of [`Self::deferred_tool_names`] applies it again.
+    pub(super) requested_deferred_tools: Arc<[String]>,
     /// Explicit profile/channel ceiling inherited by delegated agents.
     ///
     /// This is deliberately separate from [`Self::visible_tool_names`]: a
@@ -240,7 +244,7 @@ pub struct OpenHumanSessionHost {
     /// necessarily user conversation threads.
     pub(super) thread_id: Option<String>,
     /// Human-readable agent definition name (e.g. `"main"`,
-    /// `"code_executor"`). Used as the `{agent}` component in session
+    /// `"task_manager_agent"`). Used as the `{agent}` component in session
     /// transcript paths: `sessions/DDMMYYYY/{agent}_{index}.md`.
     ///
     /// May be rewritten mid-session by
@@ -506,6 +510,8 @@ pub struct SessionHostBuilder {
     pub(super) synthesized_tools: Option<Vec<Box<dyn Tool>>>,
     /// When set, restricts which tools the main agent sees/calls.
     pub(super) visible_tool_names: Option<std::collections::HashSet<String>>,
+    /// See [`SessionHostBuilder::deferred_tools`].
+    pub(super) deferred_tools: Vec<String>,
     /// Optional explicit profile ceiling for tools delegated agents may inherit.
     /// Channel-policy restrictions are intersected during [`Self::build`].
     pub(super) subagent_tool_ceiling_names: Option<std::collections::HashSet<String>>,

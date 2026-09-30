@@ -27,11 +27,11 @@ mod state;
 pub use state::TurnStateMirror;
 
 #[cfg(test)]
-use super::store::TurnStateStore;
+pub(crate) use caps::MAX_PERSISTED_TRANSCRIPT_ITEM;
 #[cfg(test)]
-use super::types::{
+use tinyagents_session::turn_state::store::TurnStateStore;
+#[cfg(test)]
+use tinyagents_session::turn_state::types::{
     SubagentToolCall, SubagentTranscriptItem, ToolTimelineStatus, TranscriptItem, TurnLifecycle,
     TurnPhase,
 };
-#[cfg(test)]
-pub(crate) use caps::MAX_PERSISTED_TRANSCRIPT_ITEM;

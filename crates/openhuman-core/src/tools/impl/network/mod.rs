@@ -14,7 +14,8 @@ mod http_request;
 // facade.)
 #[cfg(feature = "mcp")]
 mod mcp;
-mod url_guard;
+#[cfg(feature = "mcp")]
+mod mcp_server_tools;
 mod web_fetch;
 
 pub use curl::CurlTool;
@@ -23,12 +24,8 @@ pub use gmail_unsubscribe::GmailUnsubscribeTool;
 pub use http_request::HttpRequestTool;
 #[cfg(feature = "mcp")]
 pub use mcp::{McpCallTool, McpListServersTool, McpListToolsTool};
-/// The SSRF guard the network tools apply, so a host outside this crate can
-/// hold user-supplied URLs to the same rule rather than writing a second one.
-pub use url_guard::{
-    extract_host, extract_port, host_matches_allowlist, is_non_global_v4, is_non_global_v6,
-    is_private_or_local_host, normalize_allowed_domains, normalize_domain, validate_url,
-};
+#[cfg(feature = "mcp")]
+pub use mcp_server_tools::{configured_server_tools, ConfiguredMcpServerTool};
 pub use web_fetch::WebFetchTool;
 
 /// Shared test helper for the network tools' local-only enforcement tests

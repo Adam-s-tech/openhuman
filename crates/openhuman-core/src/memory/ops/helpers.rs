@@ -487,12 +487,13 @@ pub(crate) async fn query_limit_for_request(
         return Ok(requested);
     }
 
-    let raw = guard
-        .as_documents()
-        .ok_or_else(|| "memory driver does not support the documents family".to_string())?
-        .list_documents(Some(&request.namespace))
-        .await
-        .map_err(|error| error.to_string())?;
+    let raw = match guard.as_documents() {
+        Some(documents) => documents
+            .list_documents(Some(&request.namespace))
+            .await
+            .map_err(|error| error.to_string())?,
+        None => super::fallback::document_list(guard, Some(&request.namespace)).await?,
+    };
     let documents = parse_memory_document_summaries(raw)?;
     let total_documents = u32::try_from(documents.len()).unwrap_or(u32::MAX);
     Ok(requested.max(total_documents))

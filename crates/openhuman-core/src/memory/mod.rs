@@ -44,6 +44,9 @@ pub mod api;
 /// how much a block may carry, and the switch are product decisions.
 pub mod auto_recall;
 pub mod binding;
+mod binding_build;
+pub mod binding_rebind;
+pub mod binding_remote;
 pub mod driver;
 pub mod exit;
 pub mod guard;
@@ -75,7 +78,7 @@ pub mod tools;
 
 // Domains that are *mostly* extracted but keep their JSON-RPC surface here.
 // Each of these started as a thin wrapper: `pub use tinymemory_core::
-// <domain>::*;` plus the handler/schema modules that name `RpcOutcome` and
+// <domain>::*;` plus the handler/schema modules that name `Outcome` and
 // `ControllerSchema`. The globs are being deleted as their production
 // consumers drain — `tree`, `tree::health` and `tree::tree` no longer carry
 // one (#5560) — so see the module docs on each for where its split stands.
