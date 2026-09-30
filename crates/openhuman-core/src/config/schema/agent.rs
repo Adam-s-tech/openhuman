@@ -360,7 +360,7 @@ pub struct AgentConfig {
     /// legacy transcript read path (`session/turn/session_io.rs` →
     /// `try_load_session_transcript`), also read the same session back from the
     /// TinyAgents journal (`{workspace}/tinyagents_store/journal`), normalize
-    /// both sides through the importer's `session_import::convert` machinery,
+    /// both sides through the importer's ``tinyagents_session::transcript::import::convert` machinery,
     /// compare, and log any divergence (`[session_shadow_read]`, issue #4249,
     /// sessions 04.2 phase 2).
     ///
