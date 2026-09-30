@@ -1,12 +1,7 @@
 use super::*;
 use crate::config::Config;
 
-use axum::{
-    extract::State,
-    http::StatusCode,
-    routing::get,
-    Json, Router,
-};
+use axum::{extract::State, http::StatusCode, routing::get, Json, Router};
 use serde_json::json;
 use std::sync::atomic::{AtomicUsize, Ordering};
 

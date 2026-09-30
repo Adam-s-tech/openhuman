@@ -75,12 +75,11 @@ async fn list_slack_connections(config: &Config) -> Result<ComposioConnectionsRe
     let kind = resolve_composio_route(config)
         .map_err(|e| format!("[slack_ingest] list_connections: {e}"))?;
     match kind {
-        ComposioRoute::Backend => connectors::call_bare::<ComposioConnectionsResponse>(
-            config,
-            methods::LIST_CONNECTIONS,
-        )
-        .await
-        .map_err(|e| format!("[slack_ingest] list_connections (backend) failed: {e}")),
+        ComposioRoute::Backend => {
+            connectors::call_bare::<ComposioConnectionsResponse>(config, methods::LIST_CONNECTIONS)
+                .await
+                .map_err(|e| format!("[slack_ingest] list_connections (backend) failed: {e}"))
+        }
         ComposioRoute::Direct(direct) => direct_list_connections(&direct)
             .await
             .map_err(|e| format!("[slack_ingest] list_connections (direct) failed: {e:#}")),

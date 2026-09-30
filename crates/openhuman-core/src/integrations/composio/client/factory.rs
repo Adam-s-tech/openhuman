@@ -66,11 +66,8 @@ fn direct_client(
     }
 
     if let Some(urls) = base_urls {
-        let client = DirectComposioClient::new_with_base_urls(
-            api_key,
-            urls.v2.clone(),
-            urls.v3.clone(),
-        )?;
+        let client =
+            DirectComposioClient::new_with_base_urls(api_key, urls.v2.clone(), urls.v3.clone())?;
         return Ok(Arc::new(client));
     }
     #[cfg(debug_assertions)]
@@ -78,8 +75,12 @@ fn direct_client(
         std::env::var("OPENHUMAN_COMPOSIO_DIRECT_BASE_V2").ok(),
         std::env::var("OPENHUMAN_COMPOSIO_DIRECT_BASE_V3").ok(),
     ) {
-        (Some(base_v2), Some(base_v3)) => DirectComposioClient::new_with_base_urls_for_loopback(api_key, base_v2, base_v3)
-        .map_err(|e| anyhow::anyhow!("invalid debug composio direct loopback base override: {e}"))?,
+        (Some(base_v2), Some(base_v3)) => {
+            DirectComposioClient::new_with_base_urls_for_loopback(api_key, base_v2, base_v3)
+                .map_err(|e| {
+                    anyhow::anyhow!("invalid debug composio direct loopback base override: {e}")
+                })?
+        }
         _ => DirectComposioClient::new(api_key),
     };
     #[cfg(not(debug_assertions))]

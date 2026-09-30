@@ -28,8 +28,7 @@ async fn direct_client_does_not_forward_credentials_across_redirects() {
     ))
     .await;
 
-    let tool =
-        DirectComposioClient::new_with_v3_base("ck_secret_value", format!("{source}/tools"));
+    let tool = DirectComposioClient::new_with_v3_base("ck_secret_value", format!("{source}/tools"));
     assert!(tool.list_tool_schemas_v3(&[], None).await.is_err());
     assert!(!redirected_request_seen.load(std::sync::atomic::Ordering::SeqCst));
 }
@@ -92,8 +91,10 @@ fn build_list_tool_schemas_v3_query_emits_repeated_tags_params() {
     // (tags=stars&tags=repos), NOT comma-joined like the backend proxy.
     // A Vec of duplicate ("tags", _) keys is exactly what reqwest's
     // `.query(&params)` serializes into repeated query params.
-    let params =
-        DirectComposioClient::build_list_tool_schemas_v3_query(&["github"], Some(&["stars", "repos"]));
+    let params = DirectComposioClient::build_list_tool_schemas_v3_query(
+        &["github"],
+        Some(&["stars", "repos"]),
+    );
     assert_eq!(
         params,
         vec![
@@ -108,7 +109,8 @@ fn build_list_tool_schemas_v3_query_emits_repeated_tags_params() {
 
 #[test]
 fn build_list_tool_schemas_v3_query_tags_without_toolkit_filter() {
-    let params = DirectComposioClient::build_list_tool_schemas_v3_query(&[], Some(&["readOnlyHint"]));
+    let params =
+        DirectComposioClient::build_list_tool_schemas_v3_query(&[], Some(&["readOnlyHint"]));
     assert_eq!(
         params,
         vec![

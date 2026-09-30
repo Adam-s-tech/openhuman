@@ -6,7 +6,9 @@
 use serde_json::Value;
 
 use crate::config::Config;
-use crate::integrations::composio::client::{direct_list_tools, resolve_composio_route, ComposioRoute};
+use crate::integrations::composio::client::{
+    direct_list_tools, resolve_composio_route, ComposioRoute,
+};
 use crate::integrations::composio::module_client::{self as connectors, methods};
 use crate::integrations::composio::types::{ComposioListToolsRequest, ComposioToolsResponse};
 use crate::json_schema::{compute_primary_array_path, response_fields_from_schema};
@@ -214,10 +216,7 @@ pub(crate) fn seed_live_catalog_cache_expired(toolkit: &str, contracts: Vec<Tool
 ///
 /// Returns `None` on any client-construction or network failure — callers
 /// degrade to "catalog unknown" rather than blocking.
-async fn fetch_raw_toolkit_tools(
-    config: &Config,
-    toolkit: &str,
-) -> Option<ComposioToolsResponse> {
+async fn fetch_raw_toolkit_tools(config: &Config, toolkit: &str) -> Option<ComposioToolsResponse> {
     let kind = resolve_composio_route(config)
         .map_err(|e| {
             tracing::debug!(target: "flows", %toolkit, error = %e, "[flows] live catalog: composio client unavailable — skipping");

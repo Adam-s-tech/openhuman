@@ -75,8 +75,11 @@ pub(super) async fn fetch_connected_integrations_uncached(
             let (allowlist, catalog_descriptions): (
                 Vec<String>,
                 std::collections::HashMap<String, String>,
-            ) = match connectors::call_bare::<ComposioToolkitsResponse>(config, methods::LIST_TOOLKITS)
-                .await
+            ) = match connectors::call_bare::<ComposioToolkitsResponse>(
+                config,
+                methods::LIST_TOOLKITS,
+            )
+            .await
             {
                 Ok(resp) => {
                     // Index the dynamic catalog's descriptions by lowercased

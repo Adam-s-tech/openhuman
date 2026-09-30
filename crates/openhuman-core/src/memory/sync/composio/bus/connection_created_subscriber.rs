@@ -13,8 +13,8 @@ use crate::config::rpc as config_rpc;
 use crate::core::events::DomainEvent;
 use crate::integrations::composio::client::{resolve_composio_route, ComposioRoute};
 use crate::integrations::composio::module_client::{self as connectors, methods};
-use crate::integrations::composio::types::ComposioConnectionsResponse;
 use crate::integrations::composio::ops;
+use crate::integrations::composio::types::ComposioConnectionsResponse;
 use crate::integrations::composio::FetchConnectedIntegrationsStatus;
 
 /// The live config for one toolkit's connection-readiness probe, once it is
@@ -558,8 +558,11 @@ async fn wait_for_connection_active(
     let mut last_status: Option<String> = None;
 
     loop {
-        match connectors::call_bare::<ComposioConnectionsResponse>(config, methods::LIST_CONNECTIONS)
-            .await
+        match connectors::call_bare::<ComposioConnectionsResponse>(
+            config,
+            methods::LIST_CONNECTIONS,
+        )
+        .await
         {
             Ok(resp) => {
                 if let Some(conn) = resp.connections.into_iter().find(|c| c.id == connection_id) {

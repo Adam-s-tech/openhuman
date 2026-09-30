@@ -105,7 +105,6 @@ impl DirectComposioClient {
     }
 }
 
-
 #[derive(Debug, Deserialize)]
 pub(super) struct ComposioToolsResponse {
     #[serde(default)]
