@@ -58,6 +58,7 @@ import {
 import { useRegisterAction } from '../../lib/commands/useRegisterAction';
 import { useT } from '../../lib/i18n/I18nContext';
 import { decideApproval } from '../../services/api/approvalApi';
+import { threadApi } from '../../services/api/threadApi';
 import { fetchThreadTokenUsage } from '../../services/api/threadUsageApi';
 import { aiRegenerate, chatCancel, chatSend, useRustChat } from '../../services/chatService';
 import { callCoreRpc } from '../../services/coreRpcClient';
@@ -513,10 +514,32 @@ const Conversations = ({
   // thread. Per-thread (a Set) so a send to thread B isn't blocked by an
   // in-flight send to thread A.
   const pendingSendsRef = useRef<Set<string>>(new Set());
-  // Per-thread silence timers. Each in-flight turn gets its own 120s safety
-  // timer keyed by thread id, so concurrent turns on different threads don't
-  // share (and clobber) a single timeout.
+  // Per-thread silence timers. Each in-flight turn gets its own 120s watchdog
+  // keyed by thread id, so concurrent turns on different threads don't share
+  // (and clobber) a single timeout.
   const sendingTimeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  // Threads whose turn has gone quiet past the silence window while the core
+  // still reports it running (or cannot say). Drives a warning only — the turn
+  // is never torn down client-side; the Stop button is how the user ends it.
+  const [stalledThreadIds, setStalledThreadIds] = useState<ReadonlySet<string>>(
+    () => new Set()
+  );
+  const markThreadStalled = useCallback((threadId: string) => {
+    setStalledThreadIds(prev => {
+      if (prev.has(threadId)) return prev;
+      const next = new Set(prev);
+      next.add(threadId);
+      return next;
+    });
+  }, []);
+  const clearThreadStalled = useCallback((threadId: string) => {
+    setStalledThreadIds(prev => {
+      if (!prev.has(threadId)) return prev;
+      const next = new Set(prev);
+      next.delete(threadId);
+      return next;
+    });
+  }, []);
   // Live for as long as this instance is: flipped in the unmount cleanup so an
   // async continuation cannot schedule a watchdog onto a torn-down page.
   const isMountedRef = useRef(true);
@@ -772,28 +795,60 @@ const Conversations = ({
     // Never schedule onto a torn-down instance. `handleSendMessage` awaits
     // `addMessageLocal` before arming, so an unmount landing inside that await
     // runs the cleanup below — which finds nothing — and the continuation then
-    // schedules a timer no cleanup will ever reach. Nothing can rearm it
-    // either, so it survives to clear shared runtime state for a turn that may
-    // still be live. The send itself is unaffected; only the watchdog is
-    // skipped, which is correct: a page that is gone cannot supervise a turn.
+    // schedules a timer no cleanup will ever reach. The send itself is
+    // unaffected; only the watchdog is skipped, which is correct: a page that
+    // is gone cannot supervise a turn.
     if (!isMountedRef.current) {
       debug(`armSilenceTimer: instance unmounted — not scheduling for ${threadId}`);
       return;
     }
     const timeout = setTimeout(() => {
-      debug(`armSilenceTimer: no inference signal for 120s — clearing runtime (${threadId})`);
-      setSendError(chatSendError('safety_timeout', t('chat.safetyTimeout')));
+      sendingTimeoutsRef.current.delete(threadId);
+      void handleSilence(threadId);
+    }, SILENCE_WARNING_MS);
+    sendingTimeoutsRef.current.set(threadId, timeout);
+  };
+
+  // The silence window elapsed with no inference signal for `threadId`.
+  //
+  // Silence is not failure. A reasoning model can think for minutes without
+  // streaming anything, and a tool (a shell loop, a slow fetch) can run past
+  // two minutes, so the watchdog never cancels or clears a turn on its own —
+  // doing so discarded live, progressing work. It asks the core instead:
+  //
+  // - core says the turn already ended (`completed` / `interrupted`): the
+  //   terminal event was lost (e.g. across a reconnect), so settle the local
+  //   state and reload the thread — nothing is running to discard.
+  // - otherwise (still running, no snapshot, or the lookup failed): keep the
+  //   turn, show a warning, and keep watching. Any later signal clears the
+  //   warning through the rearm effect; Stop remains the way to cancel.
+  const handleSilence = async (threadId: string) => {
+    debug(`silence: no inference signal for ${SILENCE_WARNING_MS}ms — checking core (${threadId})`);
+    // Keep supervising while the lookup is in flight, so a turn that stays
+    // silent gets re-checked every window.
+    armSilenceTimer(threadId);
+    let lifecycle: string | null = null;
+    try {
+      lifecycle = (await threadApi.getTurnState(threadId))?.lifecycle ?? null;
+    } catch (error) {
+      debug(`silence: turn-state lookup failed thread=${threadId} err=%o`, error);
+    }
+    if (!isMountedRef.current) return;
+    const turnEnded =
+      (lifecycle === 'completed' || lifecycle === 'interrupted') &&
+      !pendingSendsRef.current.has(threadId);
+    if (turnEnded) {
+      debug(`silence: core reports ${lifecycle} — terminal event missed, settling ${threadId}`);
+      clearSilenceTimer(threadId);
+      turnSignatureByThreadRef.current.delete(threadId);
+      clearThreadStalled(threadId);
       dispatch(clearRuntimeForThread({ threadId }));
       dispatch(clearThreadInferenceActive(threadId));
-      sendingTimeoutsRef.current.delete(threadId);
-      // Reset so the NEXT send to this thread starts from a clean baseline —
-      // otherwise the rearm effect could read this turn's last signature as a
-      // stale "previous" and mis-handle the next send's first signal.
-      turnSignatureByThreadRef.current.delete(threadId);
-      pendingSendsRef.current.delete(threadId);
-      removePendingSendingThread(threadId);
-    }, 120_000);
-    sendingTimeoutsRef.current.set(threadId, timeout);
+      void dispatch(loadThreadMessages(threadId));
+      return;
+    }
+    debug(`silence: turn still live (lifecycle=${lifecycle ?? 'none'}) — warning only ${threadId}`);
+    markThreadStalled(threadId);
   };
 
   // Drop every silence timer this component owns when it unmounts.
