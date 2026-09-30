@@ -124,7 +124,7 @@ pub async fn ensure_loaded_within(
             receiver
         }
     };
-    match ResolutionTable::wait(receiver, within).await {
+    match resolution::global().wait(id, receiver, within).await {
         Waited::Ready => Ok(()),
         Waited::Failed(reason) => Err(LoadError::Failed(reason)),
         Waited::StillLoading => Err(LoadError::StillLoading),
