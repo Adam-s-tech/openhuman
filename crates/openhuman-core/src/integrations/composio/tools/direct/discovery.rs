@@ -12,8 +12,7 @@ impl DirectComposioClient {
     /// listing used by [`Self::list_tool_schemas_v3`].
     ///
     /// `toolkits` is sent as a single comma-joined `toolkits=` param (the
-    /// legacy plural the v3 backend tolerates; cf. `list_actions_v3` which
-    /// sends both the plural and `toolkit_slug` singular forms). `tags` is
+    /// legacy plural the v3 backend tolerates). `tags` is
     /// encoded as **repeated** `tags=` params (`tags=a&tags=b`) — the shape
     /// Composio v3 `/tools` documents for tag filtering ("can be specified
     /// multiple times"), NOT the comma-joined form the backend proxy uses.
@@ -21,7 +20,7 @@ impl DirectComposioClient {
     /// no `tags` params (treated as no filter).
     ///
     /// Pure (no I/O) so the param shape is unit-testable without a live
-    /// HTTP round trip — mirrors [`Self::build_execute_action_v3_request`].
+    /// HTTP round trip.
     pub(super) fn build_list_tool_schemas_v3_query(
         toolkits: &[&str],
         tags: Option<&[&str]>,
@@ -55,12 +54,8 @@ impl DirectComposioClient {
     /// List v3 tool definitions for one or more toolkits, preserving the
     /// raw `input_parameters` JSON schema each action carries.
     ///
-    /// Sibling of [`Self::list_actions`] but kept distinct because
-    /// `list_actions` flattens to `Vec<ComposioAction>` (no parameters)
-    /// for the legacy agent-discovery shape, whereas
-    /// `composio_list_tools`'s direct-mode branch needs the full schema
-    /// so the LLM agent can supply valid arguments without a separate
-    /// round trip.
+    /// Preserves the full schema so the LLM agent can supply valid arguments
+    /// without a separate round trip.
     ///
     /// `toolkits` may contain one or many slugs; when non-empty they are
     /// sent as a comma-separated `toolkits=` filter to constrain the v3
@@ -71,8 +66,7 @@ impl DirectComposioClient {
     /// `tags` narrows the result by Composio action tag (OR semantics —
     /// multiple tags broaden the result). This is the direct-mode (BYO
     /// key) counterpart to the backend proxy's `tags` query param wired
-    /// in [`crate::integrations::composio::client::ComposioClient::list_tools`];
-    /// without it a self-key user's `composio_list_tools(..., tags)`
+    /// in the connector module's proxy route; without it a self-key user's `composio_list_tools(..., tags)`
     /// request would silently drop the tag filter. Blank/empty `tags`
     /// are treated as no filter.
     pub(crate) async fn list_tool_schemas_v3(

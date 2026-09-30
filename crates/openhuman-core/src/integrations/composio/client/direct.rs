@@ -1,15 +1,14 @@
-//! Direct-mode response reshapers: `direct_list_connections`, and `direct_list_tools`. Mirror the
-//! backend-proxied [`super::connections::ComposioClient`] methods but call
-//! Composio's v3 API directly (via a bound [`crate::tools::DirectComposioClient`])
-//! and reshape the v3 response into the same envelope types, so downstream
-//! callers in `ops.rs` / `tools.rs` don't have to branch on mode.
+//! Direct-mode response reshapers: `direct_list_connections`, and `direct_list_tools`.
+//! Call Composio's v3 API directly (via a bound [`crate::tools::DirectComposioClient`])
+//! and reshape the v3 response into the canonical envelope types, so downstream
+//! callers don't have to branch on mode.
 
 use std::sync::Arc;
 
 use super::super::direct_auth;
 use super::super::types::{ComposioConnection, ComposioConnectionsResponse, ComposioToolsResponse};
 
-/// Direct-mode counterpart to [`ComposioClient::list_connections`].
+/// Direct-mode connection listing.
 ///
 /// Calls Composio v3 `/connected_accounts` (via
 /// [`crate::tools::DirectComposioClient::list_connected_accounts`])
@@ -95,7 +94,7 @@ pub async fn direct_list_connections(
     Ok(ComposioConnectionsResponse { connections })
 }
 
-/// Direct-mode counterpart to [`ComposioClient::list_tools`]. Calls
+/// Direct-mode tool listing. Calls
 /// Composio v3 `/tools?toolkits=<csv>&tags=<a>&tags=<b>` via
 /// [`crate::tools::DirectComposioClient::list_tool_schemas_v3`] and
 /// reshapes each item into the same [`ComposioToolSchema`] envelope the

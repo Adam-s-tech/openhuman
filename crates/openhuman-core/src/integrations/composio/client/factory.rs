@@ -51,15 +51,13 @@ impl ComposioRoute {
 }
 
 pub(crate) fn create_direct_client_for_api_key(
-    config: &crate::config::Config,
     api_key: &str,
 ) -> anyhow::Result<Arc<DirectComposioClient>> {
-    direct_client(api_key, config.composio.entity_id.as_str(), None)
+    direct_client(api_key, None)
 }
 
 fn direct_client(
     api_key: &str,
-    entity_id: &str,
     base_urls: Option<&crate::config::ComposioDirectBaseUrls>,
 ) -> anyhow::Result<Arc<DirectComposioClient>> {
     let api_key = api_key.trim();
@@ -70,7 +68,6 @@ fn direct_client(
     if let Some(urls) = base_urls {
         let client = DirectComposioClient::new_with_base_urls(
             api_key,
-            Some(entity_id),
             urls.v2.clone(),
             urls.v3.clone(),
         )?;
@@ -81,17 +78,12 @@ fn direct_client(
         std::env::var("OPENHUMAN_COMPOSIO_DIRECT_BASE_V2").ok(),
         std::env::var("OPENHUMAN_COMPOSIO_DIRECT_BASE_V3").ok(),
     ) {
-        (Some(base_v2), Some(base_v3)) => DirectComposioClient::new_with_base_urls_for_loopback(
-            api_key,
-            Some(entity_id),
-            base_v2,
-            base_v3,
-        )
+        (Some(base_v2), Some(base_v3)) => DirectComposioClient::new_with_base_urls_for_loopback(api_key, base_v2, base_v3)
         .map_err(|e| anyhow::anyhow!("invalid debug composio direct loopback base override: {e}"))?,
-        _ => DirectComposioClient::new(api_key, Some(entity_id)),
+        _ => DirectComposioClient::new(api_key),
     };
     #[cfg(not(debug_assertions))]
-    let client = DirectComposioClient::new(api_key, Some(entity_id));
+    let client = DirectComposioClient::new(api_key);
     Ok(Arc::new(client))
 }
 
@@ -115,7 +107,7 @@ fn direct_client(
 /// in `config.toml` fails loud instead of silently downgrading.
 pub fn resolve_composio_route(config: &crate::config::Config) -> anyhow::Result<ComposioRoute> {
     if let Some(pinned) = config.composio.host_credential.as_ref() {
-        let client = direct_client(pinned.api_key(), pinned.entity(), pinned.direct_base_urls())?;
+        let client = direct_client(pinned.api_key(), pinned.direct_base_urls())?;
         tracing::debug!("[composio-factory] resolved host-pinned direct variant (key redacted)");
         return Ok(ComposioRoute::Direct(client));
     }
@@ -158,7 +150,7 @@ pub fn resolve_composio_route(config: &crate::config::Config) -> anyhow::Result<
                     )
                 })?;
 
-            let client = create_direct_client_for_api_key(config, &api_key)?;
+            let client = create_direct_client_for_api_key(&api_key)?;
             tracing::debug!(
                 key_len = api_key.len(),
                 "[composio-factory] resolved direct variant (key redacted)"
