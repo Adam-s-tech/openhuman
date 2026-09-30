@@ -3869,7 +3869,6 @@ dependencies = [
  "iana-time-zone",
  "k256",
  "keyring",
- "landlock",
  "lettre",
  "libc",
  "log",
@@ -3901,6 +3900,7 @@ dependencies = [
  "tinyagents-registry",
  "tinyagents-runtime",
  "tinyagents-session",
+ "tinybox-core",
  "tinybox-jail",
  "tinybus",
  "tinychannels",
@@ -6300,6 +6300,15 @@ dependencies = [
  "serde_json",
  "tinyagents-harness",
  "tracing",
+]
+
+[[package]]
+name = "tinybox-core"
+version = "0.1.8"
+dependencies = [
+ "async-trait",
+ "serde",
+ "thiserror 2.0.20",
 ]
 
 [[package]]

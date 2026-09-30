@@ -1,7 +1,7 @@
 ---
 description: >-
-  Trust boundary for the autonomous core - autonomy / risk policy, pluggable
-  sandbox backends (Docker, Bubblewrap, Firejail, Landlock, Noop), audit log,
+  Trust boundary for the autonomous core - autonomy / risk policy, the
+  policy that decides when to sandbox (mechanism lives in tinybox), audit log,
   encrypted secret store, public-bind / pairing guard, and the redact() helper.
 icon: shield-halved
 ---
@@ -24,32 +24,15 @@ This module is the place to look first when asking "is this agent action allowed
 | `SecurityPolicy`                                                                                                              | `policy/types.rs` (path checks in `policy/path_checks.rs`, command classification in `policy/command_checks.rs`, gating in `policy/enforcement.rs`) | Assembles runtime policy from `AutonomyConfig` + workspace dir.         |
 | `AutonomyLevel` (`Supervised` / `SemiAutonomous` / `Autonomous`)                                                              | `policy/types.rs` | Three-step autonomy ladder.                                             |
 | `CommandRiskLevel`, `ToolOperation`, `ActionTracker`                                                                          | `policy/types.rs` | Risk classification + per-session counting.                             |
-| `Sandbox` trait, `NoopSandbox`                                                                                                | `traits.rs`  | The pluggable sandbox abstraction; every backend implements `Sandbox`.  |
-| `create_sandbox(&SecurityConfig) -> Arc<dyn Sandbox>`                                                                         | `detect.rs`  | Picks the best backend available on the host at runtime.                |
-| `pub mod docker / bubblewrap / firejail / landlock`                                                                           | (siblings)   | Per-backend implementations of `Sandbox`.                               |
 | `SecretStore`                                                                                                                 | `keyring/encrypted_store.rs` (`secrets.rs` re-exports it) | OS-keychain / encrypted-file secret persistence with round-trip helpers. |
 | `AuditLogger`, `AuditEventType`, `AuditEvent`, `Actor`, `Action`, `ExecutionResult`, `SecurityContext`, `CommandExecutionLog` | `audit.rs`   | Append-only audit trail.                                                |
 | `PairingGuard`, `constant_time_eq`, `is_public_bind`                                                                          | `pairing.rs` (`PairingGuard` and `constant_time_eq` are re-exported from `tinychannels_bus::security`) | Pairing-token check before binding the RPC server publicly.             |
 | `redact(value: &str) -> String`                                                                                               | `core.rs`    | Uniform 4-char-prefix redaction for logs.                               |
 | `security_policy_info_for_config(&Config) -> Outcome<serde_json::Value>`                                                    | `ops.rs`     | RPC handler for the doctor / settings UI.                               |
 
-## Sandbox backend selection
+## Sandboxing
 
-`detect::create_sandbox` walks a preference list and returns the **first available** backend on the host. The exact order is encoded in `detect.rs`; in practice it favours the strongest available isolation:
-
-```text
-                ┌──────────────┐
-SecurityConfig ─►│ create_sandbox│
-                └──────┬───────┘
-                       │ probes
-                       ├─► Docker      (best isolation; needs daemon)
-                       ├─► Bubblewrap  (Linux user-namespace sandbox)
-                       ├─► Firejail    (Linux setuid sandbox)
-                       ├─► Landlock    (Linux LSM; in-process)
-                       └─► Noop        (last resort; logs only)
-```
-
-The agent never sees the choice; it just calls into `Sandbox::run(...)` and the active backend handles the rest. Every backend lives in a sibling file (`docker.rs`, `bubblewrap.rs`, `firejail.rs`, `landlock.rs`); the noop fallback is in `traits.rs`.
+This module no longer carries sandbox backends. The old `Sandbox` trait, `NoopSandbox`, `create_sandbox` and the Docker / Bubblewrap / Firejail / Landlock `Command` wrappers had no callers and were removed. Per-session sandbox selection lives in `crates/openhuman-core/src/sandbox/`, which delegates local OS confinement to `tinybox-jail` (vendored tinybox) and keeps its own `docker run` executor. Shell-string scanning used by command classification is `tinybox_core::shell::scan`; the classification rules stay here.
 
 ## Autonomy ladder
 
@@ -80,9 +63,6 @@ All of this only applies when the autonomy policy is turned on. Per `AGENTS.md`,
 | Path                                                          | Role                                                                      |
 | ------------------------------------------------------------- | ------------------------------------------------------------------------- |
 | `policy/` (`mod.rs`, `types.rs`, `path_checks.rs`, `command_checks.rs`, `enforcement.rs`, `policy_command*.rs`, `policy_tests*.rs`, `proptest_tests.rs`) | `SecurityPolicy`, `AutonomyLevel`, risk classification, path and command checks, action tracking. |
-| `traits.rs`                                                   | `Sandbox` trait + `NoopSandbox` fallback.                                 |
-| `detect.rs`                                                   | `create_sandbox`: best-available-backend selection.                       |
-| `docker.rs` / `bubblewrap.rs` / `firejail.rs` / `landlock.rs` | Per-backend `Sandbox` implementations.                                    |
 | `core.rs`, `core_tests.rs`                                    | `redact()` + small shared helpers.                                        |
 | `audit.rs`                                                    | Append-only audit log types.                                              |
 | `secrets.rs`, `keyring/`                                      | `SecretStore` (implemented in `keyring/encrypted_store.rs`) + round-trip tests. |
@@ -94,7 +74,6 @@ All of this only applies when the autonomy policy is turned on. Per `AGENTS.md`,
 ## Calls into
 
 - `crates/openhuman-core/src/config/`: `SecurityConfig`, `AutonomyConfig` for policy + sandbox selection.
-- OS-level sandbox tools: `docker`, `bwrap`, `firejail`, Landlock syscalls (per backend).
 - Workspace filesystem, for the audit log and secret store.
 
 ## Called by
@@ -110,7 +89,6 @@ All of this only applies when the autonomy policy is turned on. Per `AGENTS.md`,
 
 - Unit: `pairing_tests.rs`, `policy/policy_tests*.rs`, `policy/proptest_tests.rs`, `keyring/encrypted_store_tests*.rs`.
 - `core_tests.rs` covers `redact()`.
-- Sandbox-backend smoke tests: `docker_tests.rs`, `bubblewrap_tests.rs`, `firejail_tests.rs`, `landlock_tests.rs`, `detect_tests.rs`.
 
 ## Related
 

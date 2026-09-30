@@ -4293,6 +4293,7 @@ dependencies = [
  "tinyagents-registry",
  "tinyagents-runtime",
  "tinyagents-session",
+ "tinybox-core",
  "tinybox-jail",
  "tinybus",
  "tinychannels",
