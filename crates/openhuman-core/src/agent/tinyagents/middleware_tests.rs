@@ -14,8 +14,8 @@ use async_trait::async_trait;
 
 use tinyagents_harness::middleware::{AgentRun, BudgetTracker, Middleware, ToolInvocationIdentity};
 use tinyagents_harness::steering::{SteeringCommand, SteeringHandle};
-use tinyinference_llm::message::{ContentBlock, Message as TaMessage};
-use tinyinference_llm::model::{ModelResponse, SegmentRole};
+use tinyinference_llm::message::Message as TaMessage;
+use tinyinference_llm::model::SegmentRole;
 use tinyinference_llm::tool::{ToolCall as TaToolCall, ToolSchema};
 use tinytools::{ToolPolicy as TaToolPolicy, ToolResult as TaToolResult};
 
@@ -23,9 +23,6 @@ use crate::agent::context::CLEARED_PLACEHOLDER;
 use crate::agent::tinyagents::payload_summarizer::PayloadSummarizer;
 use crate::inference::tokenjuice::AgentTokenjuiceCompression;
 use tinyagents_harness::context::{RunConfig, RunContext};
-use tinyagents_harness::no_progress::{
-    DEFAULT_REPEAT_CALL_THRESHOLD, DEFAULT_REPEAT_OUTPUT_THRESHOLD,
-};
 use tinyinference_llm::model::ModelRequest;
 use tinytools::Tool;
 
