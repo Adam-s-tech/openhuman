@@ -98,7 +98,7 @@ async fn handle_round_trip_find_summarize_and_extract() {
         assert!(preview.contains(name), "footer must name {name}");
     }
     assert!(
-        !preview.contains("needle at the end"),
+        !preview.contains("needle in the middle"),
         "the needle must be behind the handle, not in the preview"
     );
 
@@ -109,7 +109,7 @@ async fn handle_round_trip_find_summarize_and_extract() {
         .await
         .unwrap();
     assert!(!found.is_error, "{}", result_text(&found));
-    assert!(result_text(&found).contains("needle at the end"));
+    assert!(result_text(&found).contains("needle in the middle"));
 
     let by_grep = tools[tool(&tools, "juice_find")]
         .execute(json!({ "handle": handle, "query": "^row 899:", "mode": "grep" }))
