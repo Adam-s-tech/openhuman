@@ -59,6 +59,12 @@
       "submodule": "vendor/tinycomputer",
       "expect": "v0.7.0-1-g8416add3",
       "reason": "The pin is v0.7.0 plus only the new pure-library crate tinycomputer-accessibility (tinycomputer#63, branch oh-accessibility-on-v0.7.0), which the core links as a Rust path dependency for in-process focus, permission and Globe-key queries. No module, contract or bus source changes relative to v0.7.0, so the registry's v0.7.0 artifact still matches the contract compiled here. Remove when tinycomputer#63 ships in a release and both pins move to it."
+    },
+    {
+      "id": "tinyhosts",
+      "submodule": "vendor/tinyhosts",
+      "expect": "v0.1.10-9-ge041ad00",
+      "reason": "The registry artifact stays on the verified v0.1.9 release. The gitlink was already at v0.1.10 on main (pre-existing drift) and now adds only the library-only, off-by-default `tools` feature (tinyhumansai/tinyhosts#16) that the core links for the hosting_* agent tools; the module cdylib is unaffected. Remove when a tinyhosts release containing #16 is pinned in the registry with digests from its checksum.toml."
     }
   ]
 }
