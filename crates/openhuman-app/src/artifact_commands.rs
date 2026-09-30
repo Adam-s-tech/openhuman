@@ -29,12 +29,16 @@ use std::path::{Path, PathBuf};
 
 /// Resolve an artifact id to the file the core's artifact store vouches for,
 /// in the given workspace. Isolated from config loading for unit testing.
-async fn resolve_source(workspace_dir: &Path, artifact_id: &str) -> Result<PathBuf, String> {
+async fn resolve_source(
+    workspace_dir: &Path,
+    roots: &openhuman_core::agent::artifacts::FileRoots,
+    artifact_id: &str,
+) -> Result<PathBuf, String> {
     let artifact_id = artifact_id.trim();
     if artifact_id.is_empty() {
         return Err("artifact_id must not be empty".to_string());
     }
-    openhuman_core::agent::artifacts::resolve_ready_file(workspace_dir, artifact_id).await
+    openhuman_core::agent::artifacts::resolve_ready_file(workspace_dir, roots, artifact_id).await
 }
 
 /// Copy `source` to `dest`, returning the byte count. Isolated so it is
@@ -59,7 +63,8 @@ pub async fn download_artifact_to_downloads(
         return Err("artifact_id must not be empty".to_string());
     }
     let config = openhuman_core::config::rpc::load_config_with_timeout().await?;
-    let source = resolve_source(&config.workspace_dir, &artifact_id).await?;
+    let roots = openhuman_core::agent::artifacts::FileRoots::from_config(&config);
+    let source = resolve_source(&config.workspace_dir, &roots, &artifact_id).await?;
     if filename.trim().is_empty() {
         return Err("filename must not be empty".to_string());
     }

@@ -98,7 +98,10 @@ async fn moves_a_legacy_file_into_the_files_folder() {
         Some(files_dir.to_string_lossy().as_ref())
     );
     assert_eq!(meta.path, "q3-deck.pptx");
-    assert_eq!(read_artifact_bytes(&ws, "a1").await.unwrap(), b"deck bytes");
+    assert_eq!(
+        read_artifact_bytes(&ws, &files_dir, "a1").await.unwrap(),
+        b"deck bytes"
+    );
     assert!(
         !legacy_path(&ws, "a1", "q3-deck.pptx").exists(),
         "legacy bytes removed"
@@ -121,7 +124,10 @@ async fn running_twice_changes_nothing() {
 
     assert_eq!(second, MigrationReport::default());
     assert_eq!(visible(&files_dir), vec!["notes.docx"]);
-    assert_eq!(read_artifact_bytes(&ws, "a1").await.unwrap(), b"notes");
+    assert_eq!(
+        read_artifact_bytes(&ws, &files_dir, "a1").await.unwrap(),
+        b"notes"
+    );
 }
 
 #[tokio::test]
@@ -167,7 +173,7 @@ async fn a_name_already_in_the_folder_is_never_overwritten() {
         "report (2).txt"
     );
     assert_eq!(
-        read_artifact_bytes(&ws, "a1").await.unwrap(),
+        read_artifact_bytes(&ws, &files_dir, "a1").await.unwrap(),
         b"agent report"
     );
 }
@@ -202,11 +208,11 @@ async fn two_accounts_migrate_into_the_shared_folder_without_clobbering() {
 
     assert_eq!(visible(&files_dir), vec!["budget (2).xlsx", "budget.xlsx"]);
     assert_eq!(
-        read_artifact_bytes(&ws_a, "a1").await.unwrap(),
+        read_artifact_bytes(&ws_a, &files_dir, "a1").await.unwrap(),
         b"a's budget"
     );
     assert_eq!(
-        read_artifact_bytes(&ws_b, "b1").await.unwrap(),
+        read_artifact_bytes(&ws_b, &files_dir, "b1").await.unwrap(),
         b"b's budget"
     );
     let (listed, total) = list_artifacts(&ws_b, 0, 50, None).await.unwrap();
@@ -224,14 +230,20 @@ async fn a_crash_after_the_copy_leaves_the_record_intact_and_is_redone() {
 
     migrate_with(&ws, &files_dir, Some(CrashAfter::Copy)).await;
     assert!(get_artifact(&ws, "a1").await.unwrap().file.is_none());
-    assert_eq!(read_artifact_bytes(&ws, "a1").await.unwrap(), b"deck");
+    assert_eq!(
+        read_artifact_bytes(&ws, &files_dir, "a1").await.unwrap(),
+        b"deck"
+    );
     assert_eq!(partials(&files_dir), 1);
 
     let report = migrate_legacy_artifacts(&ws, &files_dir).await;
     assert_eq!(report.moved, 1);
     assert_eq!(partials(&files_dir), 0, "the stale partial is removed");
     assert_eq!(visible(&files_dir), vec!["deck.pptx"]);
-    assert_eq!(read_artifact_bytes(&ws, "a1").await.unwrap(), b"deck");
+    assert_eq!(
+        read_artifact_bytes(&ws, &files_dir, "a1").await.unwrap(),
+        b"deck"
+    );
 }
 
 #[tokio::test]
@@ -243,12 +255,18 @@ async fn a_crash_after_the_rename_loses_nothing_and_leaves_at_most_one_duplicate
 
     migrate_with(&ws, &files_dir, Some(CrashAfter::Rename)).await;
     assert!(get_artifact(&ws, "a1").await.unwrap().file.is_none());
-    assert_eq!(read_artifact_bytes(&ws, "a1").await.unwrap(), b"deck");
+    assert_eq!(
+        read_artifact_bytes(&ws, &files_dir, "a1").await.unwrap(),
+        b"deck"
+    );
 
     migrate_legacy_artifacts(&ws, &files_dir).await;
     let meta = get_artifact(&ws, "a1").await.unwrap();
     assert!(meta.file.is_some());
-    assert_eq!(read_artifact_bytes(&ws, "a1").await.unwrap(), b"deck");
+    assert_eq!(
+        read_artifact_bytes(&ws, &files_dir, "a1").await.unwrap(),
+        b"deck"
+    );
     assert!(visible(&files_dir).len() <= 2);
     assert!(!legacy_path(&ws, "a1", "deck.pptx").exists());
 }
@@ -266,7 +284,10 @@ async fn a_crash_after_the_meta_write_is_finished_by_the_next_run() {
         legacy_path(&ws, "a1", "deck.pptx").exists(),
         "legacy copy not yet removed"
     );
-    assert_eq!(read_artifact_bytes(&ws, "a1").await.unwrap(), b"deck");
+    assert_eq!(
+        read_artifact_bytes(&ws, &files_dir, "a1").await.unwrap(),
+        b"deck"
+    );
 
     let report = migrate_legacy_artifacts(&ws, &files_dir).await;
     assert_eq!(

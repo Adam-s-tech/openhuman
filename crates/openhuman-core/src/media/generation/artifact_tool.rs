@@ -170,13 +170,14 @@ impl<T: Tool> MediaArtifactTool<T> {
                         }
                     }
                     Err(err) => {
-                        let _ = fail_artifact(&self.workspace_dir, &meta.id, &err).await;
+                        let _ = fail_artifact(&self.workspace_dir, &self.files_dir, &meta.id, &err)
+                            .await;
                         set_artifact_error(entry, &err);
                     }
                 }
             }
             Err(err) => {
-                let _ = fail_artifact(&self.workspace_dir, &meta.id, &err).await;
+                let _ = fail_artifact(&self.workspace_dir, &self.files_dir, &meta.id, &err).await;
                 tracing::warn!(
                     target: "media_generation",
                     err = %err,

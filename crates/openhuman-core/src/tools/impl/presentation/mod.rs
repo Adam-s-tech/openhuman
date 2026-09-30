@@ -301,7 +301,13 @@ impl Tool for PresentationTool {
         {
             Ok(bytes) => bytes,
             Err(err) => {
-                let _ = fail_artifact(&self.workspace_dir, &meta.id, &err.to_string()).await;
+                let _ = fail_artifact(
+                    &self.workspace_dir,
+                    &self.files_dir,
+                    &meta.id,
+                    &err.to_string(),
+                )
+                .await;
                 tracing::warn!(
                     target: "presentation",
                     err = %err,
@@ -317,7 +323,7 @@ impl Tool for PresentationTool {
                 .map(|n| n.to_string_lossy().into_owned())
                 .unwrap_or_default();
             let reason = format!("failed to write generated deck ({filename}): {err}");
-            let _ = fail_artifact(&self.workspace_dir, &meta.id, &reason).await;
+            let _ = fail_artifact(&self.workspace_dir, &self.files_dir, &meta.id, &reason).await;
             tracing::warn!(
                 target: "presentation",
                 err = %err,
@@ -339,7 +345,8 @@ impl Tool for PresentationTool {
                 // errors are swallowed — they can only happen if the same
                 // ledger backend is unavailable, in which case nothing we
                 // do here will help.
-                let _ = fail_artifact(&self.workspace_dir, &meta.id, &reason).await;
+                let _ =
+                    fail_artifact(&self.workspace_dir, &self.files_dir, &meta.id, &reason).await;
                 tracing::warn!(
                     target: "presentation",
                     err = %err,
@@ -424,7 +431,7 @@ impl PresentationTool {
     async fn resolve_one_image(&self, image: &SlideImage) -> Result<ResolvedSlideImage, String> {
         let bytes = match &image.source {
             SlideImageSource::Artifact { artifact_id } => {
-                read_artifact_bytes(&self.workspace_dir, artifact_id)
+                read_artifact_bytes(&self.workspace_dir, &self.files_dir, artifact_id)
                     .await
                     .map_err(|e| format!("artifact {artifact_id} unreadable: {e}"))?
             }

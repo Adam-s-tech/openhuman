@@ -15,8 +15,10 @@
 //! # The escape guard
 //!
 //! `meta.json` is data, so a record's `file` is checked before anything reads
-//! or copies it: it must be absolute, free of `..`, strictly inside the
-//! record's `file_root` (after resolving symlinks when it exists), and never a
+//! or copies it. Its `file_root` counts only when it is one of the folders the
+//! core vouches for ([`FileRoots`], built by the caller or from config — never
+//! taken from the record), and the file must be absolute, free of `..`,
+//! strictly inside that root (after resolving symlinks when it exists), and never a
 //! path [`SecurityPolicy::is_always_forbidden`] rejects. That last check is the
 //! same floor the agent's own file tools keep when the autonomy policy is off,
 //! so a hand-edited record cannot reach further than the agent already could.
@@ -28,6 +30,80 @@ use std::path::{Component, Path, PathBuf};
 use super::store::{artifacts_root, get_artifact};
 use super::types::{ArtifactMeta, ArtifactStatus};
 use crate::security::SecurityPolicy;
+
+/// The files folders the core vouches for: where new files go, plus every
+/// folder an existing record may legitimately point into. A record's
+/// `file_root` is honoured only when it matches one of these, so a
+/// hand-edited `meta.json` cannot widen what Download and
+/// `read_artifact_bytes` will serve.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FileRoots {
+    current: PathBuf,
+    trusted: Vec<PathBuf>,
+}
+
+impl FileRoots {
+    /// New files go to `current`, which is also the only trusted folder.
+    pub fn new(current: impl Into<PathBuf>) -> Self {
+        let current = current.into();
+        Self {
+            trusted: vec![current.clone()],
+            current,
+        }
+    }
+
+    /// Also trust `folders` for existing records.
+    pub fn with_trusted(mut self, folders: impl IntoIterator<Item = PathBuf>) -> Self {
+        for folder in folders {
+            if !self.trusted.contains(&folder) {
+                self.trusted.push(folder);
+            }
+        }
+        self
+    }
+
+    /// The folders for this host config.
+    pub fn from_config(_config: &crate::config::Config) -> Self {
+        Self::new(crate::config::default_files_dir())
+    }
+
+    /// Where new files are written.
+    pub fn current(&self) -> &Path {
+        &self.current
+    }
+
+    /// Whether `root` is one of the vouched-for folders, compared canonically
+    /// where the paths exist.
+    fn trusts(&self, root: &Path) -> bool {
+        let canon = |p: &Path| p.canonicalize().unwrap_or_else(|_| p.to_path_buf());
+        let root = canon(root);
+        self.trusted.iter().any(|t| canon(t) == root)
+    }
+}
+
+impl From<PathBuf> for FileRoots {
+    fn from(current: PathBuf) -> Self {
+        Self::new(current)
+    }
+}
+
+impl From<&PathBuf> for FileRoots {
+    fn from(current: &PathBuf) -> Self {
+        Self::new(current.clone())
+    }
+}
+
+impl From<&Path> for FileRoots {
+    fn from(current: &Path) -> Self {
+        Self::new(current.to_path_buf())
+    }
+}
+
+impl From<&FileRoots> for FileRoots {
+    fn from(roots: &FileRoots) -> Self {
+        roots.clone()
+    }
+}
 
 /// Collision suffixes tried before falling back to an id-tagged name.
 const MAX_COLLISION_SUFFIX: u32 = 1000;
@@ -87,6 +163,7 @@ pub(crate) async fn reserve_file(
 pub(crate) async fn resolve_file(
     workspace_dir: &Path,
     meta: &ArtifactMeta,
+    roots: &FileRoots,
 ) -> Result<PathBuf, String> {
     let Some(file) = meta.file.as_deref() else {
         let root = artifacts_root(workspace_dir).await?;
@@ -105,6 +182,12 @@ pub(crate) async fn resolve_file(
         .as_deref()
         .map(PathBuf::from)
         .ok_or_else(|| format!("[artifacts] id={} has a file but no file_root", meta.id))?;
+    if !roots.trusts(&root) {
+        return Err(format!(
+            "[artifacts] file for id={} rejected by the escape guard: its folder is not a files folder",
+            meta.id
+        ));
+    }
     check_within(&root, &file).map_err(|reason| {
         format!(
             "[artifacts] file for id={} rejected by the escape guard: {reason}",
@@ -164,6 +247,7 @@ fn check_within(root: &Path, file: &Path) -> Result<(), &'static str> {
 /// its file was moved or deleted outside OpenHuman.
 pub async fn resolve_ready_file(
     workspace_dir: &Path,
+    roots: &FileRoots,
     artifact_id: &str,
 ) -> Result<PathBuf, String> {
     let meta = get_artifact(workspace_dir, artifact_id).await?;
@@ -173,7 +257,7 @@ pub async fn resolve_ready_file(
             meta.status
         ));
     }
-    let path = resolve_file(workspace_dir, &meta).await?;
+    let path = resolve_file(workspace_dir, &meta, roots).await?;
     if !tokio::fs::try_exists(&path).await.unwrap_or(false) {
         return Err(missing_file_error(artifact_id, &path));
     }
@@ -191,11 +275,15 @@ pub(crate) fn missing_file_error(artifact_id: &str, path: &Path) -> String {
 /// A failed generation must not leave an empty file in the user's files
 /// folder: drop the zero-byte placeholder `create_artifact` reserved. A file
 /// with bytes (e.g. the previous output of a failed regenerate) is kept.
-pub(crate) async fn remove_empty_placeholder(workspace_dir: &Path, meta: &ArtifactMeta) {
+pub(crate) async fn remove_empty_placeholder(
+    workspace_dir: &Path,
+    meta: &ArtifactMeta,
+    roots: &FileRoots,
+) {
     if meta.file.is_none() {
         return;
     }
-    let Ok(path) = resolve_file(workspace_dir, meta).await else {
+    let Ok(path) = resolve_file(workspace_dir, meta, roots).await else {
         return;
     };
     if matches!(tokio::fs::metadata(&path).await, Ok(m) if m.is_file() && m.len() == 0) {

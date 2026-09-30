@@ -107,11 +107,15 @@ async fn a_repeated_title_gets_a_numbered_name_instead_of_overwriting() {
     assert_eq!(first.path, "report.txt");
     assert_eq!(second.path, "report (2).txt");
     assert_eq!(
-        read_artifact_bytes(tmp.path(), &first.id).await.unwrap(),
+        read_artifact_bytes(tmp.path(), &files_dir, &first.id)
+            .await
+            .unwrap(),
         b"one"
     );
     assert_eq!(
-        read_artifact_bytes(tmp.path(), &second.id).await.unwrap(),
+        read_artifact_bytes(tmp.path(), &files_dir, &second.id)
+            .await
+            .unwrap(),
         b"two"
     );
 }
@@ -131,11 +135,11 @@ async fn two_accounts_share_the_files_folder_without_clobbering_or_leaking() {
 
     assert_ne!(a.file, b.file);
     assert_eq!(
-        read_artifact_bytes(&ws_a, &a.id).await.unwrap(),
+        read_artifact_bytes(&ws_a, &files_dir, &a.id).await.unwrap(),
         b"account a"
     );
     assert_eq!(
-        read_artifact_bytes(&ws_b, &b.id).await.unwrap(),
+        read_artifact_bytes(&ws_b, &files_dir, &b.id).await.unwrap(),
         b"account b"
     );
 
@@ -189,7 +193,7 @@ async fn a_failed_generation_leaves_no_empty_file_behind() {
     .unwrap();
     assert!(path.is_file());
 
-    fail_artifact(tmp.path(), &meta.id, "engine exploded")
+    fail_artifact(tmp.path(), &files_dir, &meta.id, "engine exploded")
         .await
         .unwrap();
 
@@ -203,7 +207,9 @@ async fn delete_removes_the_file_and_the_record() {
     let meta = create_ready(tmp.path(), &files_dir, "Gone", b"bye").await;
     let file = PathBuf::from(meta.file.clone().unwrap());
 
-    delete_artifact(tmp.path(), &meta.id).await.unwrap();
+    delete_artifact(tmp.path(), &files_dir, &meta.id)
+        .await
+        .unwrap();
 
     assert!(!file.exists());
     assert!(!tmp.path().join("artifacts").join(&meta.id).exists());
@@ -216,9 +222,13 @@ async fn a_file_removed_outside_openhuman_is_reported_missing() {
     let meta = create_ready(tmp.path(), &files_dir, "Moved", b"abc").await;
     std::fs::remove_file(meta.file.as_deref().unwrap()).unwrap();
 
-    let err = read_artifact_bytes(tmp.path(), &meta.id).await.unwrap_err();
+    let err = read_artifact_bytes(tmp.path(), &files_dir, &meta.id)
+        .await
+        .unwrap_err();
     assert!(err.contains("file missing"), "{err}");
-    let err = resolve_ready_file(tmp.path(), &meta.id).await.unwrap_err();
+    let err = resolve_ready_file(tmp.path(), &FileRoots::new(&files_dir), &meta.id)
+        .await
+        .unwrap_err();
     assert!(err.contains("file missing"), "{err}");
 }
 
@@ -227,7 +237,10 @@ async fn tampered(workspace: &Path, file: &Path, file_root: &Path) -> String {
     meta.file = Some(file.to_string_lossy().into_owned());
     meta.file_root = Some(file_root.to_string_lossy().into_owned());
     save_artifact_meta(workspace, &meta).await.unwrap();
-    read_artifact_bytes(workspace, "tampered")
+    // Trust the record's own root here so these cases exercise the checks
+    // *within* a root; `a_record_pointing_outside_the_files_folders_is_refused`
+    // covers a root the core does not vouch for.
+    read_artifact_bytes(workspace, file_root, "tampered")
         .await
         .unwrap_err()
 }
@@ -284,7 +297,9 @@ async fn a_legacy_record_still_resolves_under_the_workspace() {
     std::fs::write(tmp.path().join("artifacts/legacy-1/old.txt"), b"old").unwrap();
 
     assert_eq!(
-        read_artifact_bytes(tmp.path(), "legacy-1").await.unwrap(),
+        read_artifact_bytes(tmp.path(), tmp.path(), "legacy-1")
+            .await
+            .unwrap(),
         b"old"
     );
 }
@@ -299,7 +314,7 @@ async fn a_legacy_path_with_parent_components_is_rejected() {
     let meta = legacy_meta("legacy-2", "../../secret.txt");
     save_artifact_meta(&workspace, &meta).await.unwrap();
 
-    let err = read_artifact_bytes(&workspace, "legacy-2")
+    let err = read_artifact_bytes(&workspace, tmp.path(), "legacy-2")
         .await
         .unwrap_err();
     assert!(err.contains("escapes artifacts root"), "{err}");
@@ -359,4 +374,54 @@ async fn a_recorded_file_that_does_not_exist_reads_as_missing() {
 
     let err = tampered(tmp.path(), &files_dir.join("gone.txt"), &files_dir).await;
     assert!(err.contains("file missing"), "{err}");
+}
+
+/// The record's `file_root` is not trusted on its own say-so: a record that
+/// claims a home-directory root and points at a private file inside it passes
+/// every within-root check, and is still refused because that root is not one
+/// of the folders the core vouches for.
+#[tokio::test]
+async fn a_record_pointing_outside_the_files_folders_is_refused() {
+    let tmp = TempDir::new().unwrap();
+    let files_dir = tmp.path().join("Files");
+    std::fs::create_dir_all(&files_dir).unwrap();
+    let home = tmp.path().join("home");
+    let private = home.join("Documents").join("private.pdf");
+    std::fs::create_dir_all(private.parent().unwrap()).unwrap();
+    std::fs::write(&private, b"private").unwrap();
+
+    let mut meta = legacy_meta("claims-home", "private.pdf");
+    meta.file = Some(private.to_string_lossy().into_owned());
+    meta.file_root = Some(home.to_string_lossy().into_owned());
+    save_artifact_meta(tmp.path(), &meta).await.unwrap();
+
+    let err = read_artifact_bytes(tmp.path(), &files_dir, "claims-home")
+        .await
+        .unwrap_err();
+    assert!(err.contains("not a files folder"), "{err}");
+    let err = resolve_ready_file(tmp.path(), &FileRoots::new(&files_dir), "claims-home")
+        .await
+        .unwrap_err();
+    assert!(err.contains("not a files folder"), "{err}");
+}
+
+/// A folder the user moved away from stays trusted for the records made there.
+#[tokio::test]
+async fn a_previously_trusted_folder_still_resolves() {
+    let tmp = TempDir::new().unwrap();
+    let old = tmp.path().join("Old");
+    let meta = create_ready(tmp.path(), &old, "Kept", b"kept").await;
+
+    let roots = FileRoots::new(tmp.path().join("New")).with_trusted([old.clone()]);
+    assert_eq!(
+        read_artifact_bytes(tmp.path(), &roots, &meta.id)
+            .await
+            .unwrap(),
+        b"kept"
+    );
+    // Without the old folder in the trusted set, the same record is refused.
+    let err = read_artifact_bytes(tmp.path(), tmp.path().join("New"), &meta.id)
+        .await
+        .unwrap_err();
+    assert!(err.contains("not a files folder"), "{err}");
 }

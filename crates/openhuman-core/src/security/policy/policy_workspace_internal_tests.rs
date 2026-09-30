@@ -91,6 +91,47 @@ fn is_path_string_allowed_blocks_workspace_internal() {
     );
 }
 
+/// #5505: an artifact's `meta.json` / `args.json` name the file Download and
+/// `read_artifact_bytes` follow, so the agent's file tools must not write them
+/// even through a trusted root that reaches the workspace, while the
+/// `artifacts/tool-results/` read-back stays reachable.
+#[tokio::test]
+async fn artifact_metadata_is_internal_but_tool_results_are_not() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let ws = tmp.path().join("workspace");
+    let record = ws.join("artifacts").join("abc");
+    let results = ws.join("artifacts").join("tool-results").join("s1");
+    std::fs::create_dir_all(&record).expect("create record dir");
+    std::fs::create_dir_all(&results).expect("create tool-results dir");
+    std::fs::write(record.join("meta.json"), "{}").expect("write meta");
+    std::fs::write(results.join("call-1.txt"), "output").expect("write result");
+    let policy = SecurityPolicy {
+        workspace_dir: ws.clone(),
+        action_dir: ws.clone(),
+        workspace_only: false,
+        trusted_roots: vec![TrustedRoot {
+            path: ws.to_string_lossy().into_owned(),
+            access: TrustedAccess::ReadWrite,
+        }],
+        ..SecurityPolicy::default()
+    };
+
+    let meta = record.join("meta.json");
+    assert!(!policy.is_path_string_allowed(&meta.to_string_lossy()));
+    assert!(policy.validate_path(&meta.to_string_lossy()).await.is_err());
+    assert!(policy
+        .validate_parent_path(&record.join("args.json").to_string_lossy())
+        .await
+        .is_err());
+
+    let result = results.join("call-1.txt");
+    assert!(policy.is_path_string_allowed(&result.to_string_lossy()));
+    assert!(policy
+        .validate_path(&result.to_string_lossy())
+        .await
+        .is_ok());
+}
+
 #[tokio::test]
 async fn trusted_root_cannot_expose_workspace_internal_state() {
     let tmp = tempfile::tempdir().expect("tempdir");

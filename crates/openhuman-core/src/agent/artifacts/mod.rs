@@ -6,7 +6,7 @@ pub mod store;
 pub mod tools;
 pub mod types;
 
-pub use files::resolve_ready_file;
+pub use files::{resolve_ready_file, FileRoots};
 pub use migrate::{migrate_legacy_artifacts, MigrationReport};
 pub use schemas::{
     all_controller_schemas as all_artifacts_controller_schemas,
