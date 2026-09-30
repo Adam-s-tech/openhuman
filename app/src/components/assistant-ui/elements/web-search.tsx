@@ -12,7 +12,11 @@
  *   so the host decides how an external link opens. A result's `url` is
  *   provider-supplied, so the host must only pass vetted http(s) URLs.
  * - Result keys include the URL: two hits often share a domain.
- * - The empty-results floor (`min-h`) applies only while hits are expected.
+ * - No empty-results floor. Upstream reserves `min-h-[5.75rem]` while
+ *   searching because its hits stream in one by one; here they arrive all
+ *   at once with the settled result, so the floor was only a ~92px hole
+ *   under every in-flight search (and a stack of them under parallel
+ *   searches). The results list renders only when there is a hit.
  */
 import { cn } from '@/components/assistant-ui/lib/utils';
 import { SearchIcon } from 'lucide-react';
@@ -54,6 +58,7 @@ export function WebSearch({
   statusLabel: string;
   renderLink?: (props: { href: string; className: string; children: ReactNode }) => ReactNode;
 }) {
+  const shown = take(results, visibleResults);
   return (
     <div
       data-slot="web-search"
@@ -77,8 +82,9 @@ export function WebSearch({
           <span className="fade-in animate-in duration-300">{statusLabel}</span>
         )}
       </div>
-      <div className={cn('flex flex-col', searching && 'min-h-[5.75rem]')}>
-        {take(results, visibleResults).map(result => {
+      {shown.length > 0 ? (
+        <div data-slot="web-search-results" className="flex flex-col">
+          {shown.map(result => {
           const content = (
             <>
               <span className="bg-foreground/[0.06] text-foreground/45 flex size-4 shrink-0 items-center justify-center rounded text-[9px] font-medium">
@@ -100,8 +106,9 @@ export function WebSearch({
               {content}
             </div>
           );
-        })}
-      </div>
+          })}
+        </div>
+      ) : null}
     </div>
   );
 }
