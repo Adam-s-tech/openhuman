@@ -186,7 +186,7 @@ impl GuardPolicy {
     /// So the guard takes the tier half only, via
     /// [`SecurityPolicy::enforce_write_tier`]. That is the same shape the ~15
     /// acting tools which gate on bare `can_act()` already use
-    /// (`tools/impl/filesystem/file_write.rs`,
+    /// (`tinytools_std::filesystem::FileWriteTool`,
     /// `tools/impl/system/python_exec.rs`, `cron/scheduler.rs`, …). Budget
     /// accounting stays where it is denominated: at the tool boundary.
     ///

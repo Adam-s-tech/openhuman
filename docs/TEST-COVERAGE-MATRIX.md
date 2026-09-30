@@ -261,9 +261,9 @@ End-to-end coverage of the agent harness via the web-chat RPC surface against an
 
 | ID    | Feature                      | Layer | Test path(s)                                                                                           | Status | Notes                                                                |
 | ----- | ---------------------------- | ----- | ------------------------------------------------------------------------------------------------------ | ------ | -------------------------------------------------------------------- |
-| 6.1.1 | File Read Access             | RU+WD | `crates/openhuman-core/src/tools/impl/filesystem/file_read.rs`, `app/test/e2e/specs/tool-filesystem-flow.spec.ts`  | ✅     | Was 🟡 — WDIO drives memory_read_file + asserts via Node fs. Byte `offset` paging (continues a paged artifact read, #6284): `file_read_tests.rs::file_read_offset_continues_from_the_given_byte` |
-| 6.1.2 | File Write Access            | RU+WD | `crates/openhuman-core/src/tools/impl/filesystem/file_write.rs`, `app/test/e2e/specs/tool-filesystem-flow.spec.ts` | ✅     | Was 🟡 — WDIO drives memory_write_file + asserts bytes match on disk |
-| 6.1.3 | Path Restriction Enforcement | RU+WD | `crates/openhuman-core/src/tools/impl/filesystem/file_read.rs`, `app/test/e2e/specs/tool-filesystem-flow.spec.ts`  | ✅     | Was 🟡 — WDIO asserts traversal + absolute-path denial envelope      |
+| 6.1.1 | File Read Access             | RU+WD | `vendor/tinyagents/vendor/tinytools/crates/tinytools-std/src/filesystem/file_read/mod.rs`, `app/test/e2e/specs/tool-filesystem-flow.spec.ts`  | ✅     | Was 🟡 — WDIO drives memory_read_file + asserts via Node fs. Byte `offset` paging (continues a paged artifact read, #6284): `file_read/test.rs::file_read_offset_continues_from_the_given_byte` (tinytools-std) |
+| 6.1.2 | File Write Access            | RU+WD | `vendor/tinyagents/vendor/tinytools/crates/tinytools-std/src/filesystem/file_write/mod.rs`, `app/test/e2e/specs/tool-filesystem-flow.spec.ts` | ✅     | Was 🟡 — WDIO drives memory_write_file + asserts bytes match on disk |
+| 6.1.3 | Path Restriction Enforcement | RU+WD | `crates/openhuman-core/src/tools/impl/filesystem/gate_tests.rs`, `app/test/e2e/specs/tool-filesystem-flow.spec.ts`  | ✅     | Was 🟡 — WDIO asserts traversal + absolute-path denial envelope      |
 
 ### 6.2 Shell & Git
 
@@ -271,8 +271,8 @@ End-to-end coverage of the agent harness via the web-chat RPC surface against an
 | ----- | ---------------------------- | ----- | --------------------------------------------------------------------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------ |
 | 6.2.1 | Shell Command Execution      | RU+WD | `crates/openhuman-core/src/tools/impl/system/shell.rs`, `app/test/e2e/specs/tool-shell-git-flow.spec.ts`                    | ✅     | Was 🟡 — WDIO asserts agent runtime + the shell-bearing agent registry contract (the orchestrator since `tools_agent` was removed); full LLM path tracked #68 |
 | 6.2.2 | Command Restriction Handling | RU+WD | `crates/openhuman-core/src/security/policy/policy_tests.rs` (+ `policy_injection_tests.rs`), `app/test/e2e/specs/tool-shell-git-flow.spec.ts`                      | ✅     | Was 🟡 — WDIO locks denial envelope shape `{ ok:false, error }` consumed by the React UI         |
-| 6.2.3 | Git Read Operations          | RU+WD | `crates/openhuman-core/src/tools/impl/filesystem/git_operations_tests.rs`, `app/test/e2e/specs/tool-shell-git-flow.spec.ts` | ✅     | Was 🟡 — WDIO seeds a fixture repo in OPENHUMAN_WORKSPACE and asserts read ops succeed           |
-| 6.2.4 | Git Write Operations         | RU+WD | `crates/openhuman-core/src/tools/impl/filesystem/git_operations_tests.rs`, `app/test/e2e/specs/tool-shell-git-flow.spec.ts` | ✅     | Was 🟡 — WDIO commits into the same fixture and asserts log advances                             |
+| 6.2.3 | Git Read Operations          | RU+WD | `vendor/tinyagents/vendor/tinytools/crates/tinytools-std/src/filesystem/git_operations/test.rs`, `app/test/e2e/specs/tool-shell-git-flow.spec.ts` | ✅     | Was 🟡 — WDIO seeds a fixture repo in OPENHUMAN_WORKSPACE and asserts read ops succeed           |
+| 6.2.4 | Git Write Operations         | RU+WD | `vendor/tinyagents/vendor/tinytools/crates/tinytools-std/src/filesystem/git_operations/test.rs`, `app/test/e2e/specs/tool-shell-git-flow.spec.ts` | ✅     | Was 🟡 — WDIO commits into the same fixture and asserts log advances                             |
 
 ### 6.3 Sub-agent Orchestration
 

@@ -43,7 +43,7 @@ pub use workspace_state::WorkspaceStateTool;
 /// Clone `security` and scope it to the run's workspace descriptor, if any.
 ///
 /// The process-tool counterpart of
-/// [`super::filesystem::security_for_tool_context`], and it must stay in step
+/// `tools/impl/filesystem/gate.rs` (`security_scoped_to_root`), and it must stay in step
 /// with it: the descriptor's root becomes both the relative-path resolution
 /// root (`action_dir`) **and** a `ReadWrite` trusted root. The grant is the
 /// load-bearing half — `action_dir` only decides where a relative path lands,
