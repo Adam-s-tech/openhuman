@@ -1,7 +1,7 @@
 //! Embed the OpenHuman core as a library — no HTTP, no background services.
 //!
 //! Demonstrates the pluggable-core API: build a fully-initialized core with
-//! [`ServiceSet::none`] (no ports bound, no cron/channels/heartbeat) AND
+//! [`ServiceSet::none`] (no ports bound, no cron/channels/login-gated services) AND
 //! [`DomainSet::harness`] (only the agent + memory + threads + config + security
 //! domain families are live — the gate families flows/skills/mcp/meet/channels/
 //! web3/voice/media and the catch-all `platform` are off, so their controllers

@@ -318,8 +318,8 @@ fn tier_transition_rejects_reasoning_to_reasoning() {
 
 #[test]
 fn tier_transition_allows_upward_reasoning_to_chat() {
-    // Upward delegation is intentionally legal: the `subconscious` reasoner
-    // hands follow-ups back to the `orchestrator` chat agent. Only same-tier
+    // Upward delegation is intentionally legal: a reasoning agent may hand
+    // follow-ups back to the `orchestrator` chat agent. Only same-tier
     // and worker-as-parent hops are forbidden.
     assert!(validate_tier_transition(AgentTier::Reasoning, AgentTier::Chat).is_ok());
 }

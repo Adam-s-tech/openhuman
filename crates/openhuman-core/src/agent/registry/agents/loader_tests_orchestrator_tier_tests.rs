@@ -192,14 +192,14 @@ fn other_builtins_default_to_worker_tier() {
     for def in load_builtins().unwrap() {
         if matches!(
             def.id.as_str(),
-            "orchestrator" | "planner" | "subconscious" | "flow_discovery"
+            "orchestrator" | "planner" | "flow_discovery"
         ) {
             continue;
         }
         assert_eq!(
             def.agent_tier,
             AgentTier::Worker,
-            "{} should default to worker tier (only orchestrator/planner/subconscious/flow_discovery are non-worker today)",
+            "{} should default to worker tier (only orchestrator/planner/flow_discovery are non-worker today)",
             def.id
         );
     }

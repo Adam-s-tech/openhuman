@@ -42,10 +42,13 @@ function makeTree(script) {
   const log = path.join(root, "calls.log");
   const mockStarted = path.join(root, "mock-started");
   fs.mkdirSync(path.join(root, "app", "scripts"), { recursive: true });
-  fs.copyFileSync(
-    path.join(repoRoot, "app", "scripts", script),
-    path.join(root, "app", "scripts", script),
-  );
+  // Both scripts source the shared port helper (#5918).
+  for (const file of [script, "e2e-ports.sh"]) {
+    fs.copyFileSync(
+      path.join(repoRoot, "app", "scripts", file),
+      path.join(root, "app", "scripts", file),
+    );
+  }
   fs.mkdirSync(path.join(root, "scripts"), { recursive: true });
   fs.copyFileSync(
     path.join(repoRoot, "scripts", "load-dotenv.sh"),

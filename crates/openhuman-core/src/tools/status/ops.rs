@@ -70,7 +70,7 @@ fn classify_class(error_text: &str, timed_out: bool) -> ToolFailureClass {
     }
     //    `POLICY_DENIED_MARKER` — a this-turn denial: the user answered "no" at
     //    the approval prompt, the prompt's channel dropped, the origin was
-    //    subconscious-tainted, or the prompt's TTL expired. All are
+    //    unlabelled, or the prompt's TTL expired. All are
     //    non-retryable refusals (UserDeclined), split only by copy: a TTL
     //    expiry reads "approval expired", an explicit refusal reads "declined".
     if text.contains(crate::security::POLICY_DENIED_MARKER) {

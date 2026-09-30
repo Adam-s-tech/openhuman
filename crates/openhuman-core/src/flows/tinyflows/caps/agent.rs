@@ -33,7 +33,7 @@ use crate::inference::provider::{is_raw_passthrough_model, role_for_model_tier};
 ///    complete tool loop. The definition's `ToolScope` / `sandbox_mode` /
 ///    `max_iterations` govern the turn, so an agent node gains its curated
 ///    toolset with no graph change. This is the same harness pattern
-///    `flows_build` / `flows_discover` / cron / subconscious use, so "every node
+///    `flows_build` / `flows_discover` / cron use, so "every node
 ///    is a tinyagents graph" still holds: `run_single` itself routes through the
 ///    default agent graph, i.e. a nested tinyagents graph (the agent turn) inside
 ///    the flow's tinyagents graph.
@@ -475,7 +475,7 @@ impl OpenHumanAgentRunner {
     ///
     /// **Synchronous only (B40 / Gap 4).** A flow `agent` node runs here with
     /// no explicit chat thread on its run context. If the
-    /// agent it runs is a delegating agent (orchestrator/subconscious) and
+    /// agent it runs is a delegating agent (e.g. the orchestrator) and
     /// calls `spawn_async_subagent` directly, the tool now refuses (see the
     /// `parent_thread_id.is_none()` guard in
     /// `agent_orchestration::tools::spawn_async_subagent`) rather than

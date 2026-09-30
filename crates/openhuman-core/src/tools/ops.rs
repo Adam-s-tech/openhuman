@@ -378,19 +378,20 @@ pub fn all_tools_with_runtime(
         // Wallet tools — expose wallet operations to the agent tool-call pipeline
         // so the crypto sub-agent can prepare transfers, check status, etc.
         // Gated with the `web3` feature (the wallet domain is compiled out when
-        // web3 is disabled; the concrete tool types live under `wallet::tools`).
+        // web3 is disabled; the concrete tool types live in `tinywallet-web3`,
+        // re-exported under `wallet::tools`, and run over the process-wide engine).
         #[cfg(feature = "web3")]
-        Box::new(WalletStatusTool::new()),
+        Box::new(WalletStatusTool::new(crate::web3::seams::engine())),
         #[cfg(feature = "web3")]
-        Box::new(WalletChainStatusTool::new()),
+        Box::new(WalletChainStatusTool::new(crate::web3::seams::engine())),
         #[cfg(feature = "web3")]
-        Box::new(WalletPrepareTransferTool::new()),
+        Box::new(WalletPrepareTransferTool::new(crate::web3::seams::engine())),
         #[cfg(feature = "web3")]
-        Box::new(WalletTxStatusTool::new()),
+        Box::new(WalletTxStatusTool::new(crate::web3::seams::engine())),
         #[cfg(feature = "web3")]
-        Box::new(WalletTxReceiptTool::new()),
+        Box::new(WalletTxReceiptTool::new(crate::web3::seams::engine())),
         #[cfg(feature = "web3")]
-        Box::new(WalletLookupTxTool::new()),
+        Box::new(WalletLookupTxTool::new(crate::web3::seams::engine())),
         // The memory surface the model sees. The eleven per-operation tools it
         // dispatches to stay registered as `ToolExposure::Hidden` so a
         // replayed transcript or a saved skill naming `memory_*` still works —
@@ -728,7 +729,7 @@ pub fn all_tools_with_runtime(
     // or SPL payment signing, and ledger recording. Gated with the `web3`
     // feature (the x402 domain is compiled out when web3 is disabled).
     #[cfg(feature = "web3")]
-    tools.push(Box::new(crate::web3::x402::tools::X402RequestTool::new()));
+    tools.push(Box::new(crate::web3::x402::request_tool()));
 
     // Coding-harness baseline `web_fetch` (issue #1205) — single-purpose
     // GET-and-read primitive that reuses the same allowed-domains gate
@@ -994,25 +995,21 @@ pub fn all_tools_with_runtime(
         } else {
             tracing::debug!("[integrations] twilio disabled — skipping");
         }
-
-        // Composio — backend-proxied 1000+ OAuth integrations. Registers
-        // five agent tools (list_toolkits, list_connections, authorize,
-        // list_tools, execute) when the composio toggle is on. See
-        // `crates/openhuman-core/src/integrations/composio/tools.rs` for per-tool details.
-        let composio_tools = crate::integrations::composio::all_composio_agent_tools(root_config);
-        if !composio_tools.is_empty() {
-            tracing::debug!(
-                count = composio_tools.len(),
-                "[integrations] registered composio tools"
-            );
-            tools.extend(composio_tools);
-        } else {
-            tracing::debug!("[integrations] composio disabled — skipping");
-        }
     } else {
         tracing::debug!(
             "[integrations] build_client returned None — integration tools not registered"
         );
+    }
+
+    let composio_tools = crate::integrations::composio::all_composio_agent_tools(root_config);
+    if composio_tools.is_empty() {
+        tracing::debug!("[integrations] composio unavailable — skipping");
+    } else {
+        tracing::debug!(
+            count = composio_tools.len(),
+            "[integrations] registered composio tools"
+        );
+        tools.extend(composio_tools);
     }
 
     // Coding-harness `lsp` tool (issue #1205) — capability-gated by the
@@ -1177,7 +1174,7 @@ fn tool_group(name: &str) -> crate::core::all::DomainGroup {
         "audio_generate_and_email_podcast",
     ];
     // Threads: thread_* / todo_* handled by prefix below; these are the extras.
-    // Subconscious monitor + proactive-notify tools (Automation family).
+    // Monitor + proactive-notify tools (Automation family).
     const MONITORS: &[&str] = &[
         "monitor",
         "monitor_list",
@@ -1282,7 +1279,7 @@ fn tool_group(name: &str) -> crate::core::all::DomainGroup {
     // leak the #4808 review flagged. Keep these in
     // lockstep with the `push(...)` tags in `core::all`.
     //
-    // Automation: scheduled jobs (`cron_*`) plus the subconscious monitor +
+    // Automation: scheduled jobs (`cron_*`) plus the monitor +
     // proactive-notify surface.
     if name.starts_with("cron_") || name == "schedule" || MONITORS.contains(&name) {
         return DomainGroup::Automation;

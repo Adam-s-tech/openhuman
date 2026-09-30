@@ -8,11 +8,16 @@
 //! `bootstrap_core_runtime` path calls [`init_global`] at startup, and any
 //! later call is a no-op. Callers that run before bootstrap (e.g. unit
 //! tests) see `None` from [`try_global`] and skip recording — never a panic.
+//!
+//! The tracker is bound to one workspace. Signing in or out switches the
+//! active workspace (`users/local` <-> `users/<id>`), so the credential path
+//! calls [`rebind_global`] to move it; otherwise usage recorded after login
+//! would keep landing in the pre-login ledger.
 
 use std::path::Path;
 use std::sync::Arc;
 
-use once_cell::sync::OnceCell;
+use parking_lot::RwLock;
 
 use crate::config::CostConfig;
 use crate::inference::provider::types::UsageInfo;
@@ -20,7 +25,7 @@ use crate::inference::provider::types::UsageInfo;
 use super::tracker::CostTracker;
 use super::types::{CostSource, TokenUsage};
 
-static GLOBAL_TRACKER: OnceCell<Arc<CostTracker>> = OnceCell::new();
+static GLOBAL_TRACKER: RwLock<Option<Arc<CostTracker>>> = RwLock::new(None);
 
 /// Initialise the global cost tracker. Idempotent — subsequent calls are
 /// no-ops and the original tracker is preserved. Logs (but does not panic)
@@ -35,29 +40,14 @@ static GLOBAL_TRACKER: OnceCell<Arc<CostTracker>> = OnceCell::new();
 /// workspace so the default-on behaviour shows up in startup logs for
 /// existing deployments that omit the `[cost]` block.
 pub fn init_global(config: CostConfig, workspace_dir: &Path) {
-    if GLOBAL_TRACKER.get().is_some() {
+    if GLOBAL_TRACKER.read().is_some() {
         return;
     }
     let cost_enabled = config.enabled;
     match CostTracker::new(config, workspace_dir) {
-        Ok(tracker) => match GLOBAL_TRACKER.set(Arc::new(tracker)) {
-            Ok(()) => {
-                log::info!(
-                    "[cost] global CostTracker initialised at workspace {} (cost.enabled={}, \
-                     dashboard telemetry always-on). Set cost.dashboard.enabled=false in \
-                     config.toml to hide the panel.",
-                    workspace_dir.display(),
-                    cost_enabled
-                );
-                if !cost_enabled {
-                    log::warn!(
-                        "[cost] cost.enabled=false: dashboard telemetry will still append to \
-                         costs.jsonl. Set cost.dashboard.enabled=false to disable the panel; \
-                         the JSONL is local and never leaves the workspace."
-                    );
-                }
-            }
-            Err(_) => {
+        Ok(tracker) => {
+            let mut slot = GLOBAL_TRACKER.write();
+            if slot.is_some() {
                 // Another caller won a concurrent init race; the original
                 // tracker is kept. Avoid logging a misleading "initialised"
                 // line — the winner already did so.
@@ -65,8 +55,25 @@ pub fn init_global(config: CostConfig, workspace_dir: &Path) {
                     "[cost] global CostTracker already initialised by another caller; \
                      discarding duplicate instance"
                 );
+                return;
             }
-        },
+            *slot = Some(Arc::new(tracker));
+            drop(slot);
+            log::info!(
+                "[cost] global CostTracker initialised at workspace {} (cost.enabled={}, \
+                 dashboard telemetry always-on). Set cost.dashboard.enabled=false in \
+                 config.toml to hide the panel.",
+                workspace_dir.display(),
+                cost_enabled
+            );
+            if !cost_enabled {
+                log::warn!(
+                    "[cost] cost.enabled=false: dashboard telemetry will still append to \
+                     costs.jsonl. Set cost.dashboard.enabled=false to disable the panel; \
+                     the JSONL is local and never leaves the workspace."
+                );
+            }
+        }
         Err(err) => {
             log::warn!(
                 "[cost] failed to initialise global CostTracker at {}: {err} \
@@ -77,11 +84,50 @@ pub fn init_global(config: CostConfig, workspace_dir: &Path) {
     }
 }
 
+/// Point the global tracker at `workspace_dir` when it is bound elsewhere.
+///
+/// Called when the active workspace changes (sign-in, sign-out). A no-op when
+/// the tracker already serves `workspace_dir`. Old ledgers are not migrated:
+/// each workspace keeps its own `costs.jsonl`. The session-scoped in-memory
+/// figures start over with the new tracker. A failed construction keeps the
+/// previous tracker rather than leaving the process with none.
+pub fn rebind_global(config: CostConfig, workspace_dir: &Path) {
+    if let Some(current) = try_global() {
+        if current.workspace_dir() == workspace_dir {
+            log::debug!(
+                "[cost] rebind_global: tracker already bound to workspace {}",
+                workspace_dir.display()
+            );
+            return;
+        }
+    }
+    match CostTracker::new(config, workspace_dir) {
+        Ok(tracker) => {
+            let previous = GLOBAL_TRACKER.write().replace(Arc::new(tracker));
+            log::info!(
+                "[cost] global CostTracker rebound from workspace {} to {}",
+                previous
+                    .as_ref()
+                    .map(|t| t.workspace_dir().display().to_string())
+                    .unwrap_or_else(|| "<unbound>".to_string()),
+                workspace_dir.display()
+            );
+        }
+        Err(err) => {
+            log::warn!(
+                "[cost] failed to rebind global CostTracker to {}: {err}; keeping the \
+                 previous tracker",
+                workspace_dir.display()
+            );
+        }
+    }
+}
+
 /// Fetch the global tracker if it has been initialised. Returns `None`
 /// before bootstrap or after an init failure — callers must treat the
 /// absence as a soft no-op.
 pub fn try_global() -> Option<Arc<CostTracker>> {
-    GLOBAL_TRACKER.get().cloned()
+    GLOBAL_TRACKER.read().clone()
 }
 
 /// Convenience hook used by the agent turn loop: translates a provider

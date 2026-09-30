@@ -237,7 +237,7 @@ fn packed_names_are_withheld_and_replaced() {
         .into_iter()
         .collect();
 
-    strip_packed_from_visible(&mut visible, "orchestrator");
+    strip_packed_from_visible(&mut visible, "unrelated_agent");
 
     assert!(!visible.contains(sample), "packed tool stayed advertised");
     assert!(visible.contains("shell"), "unpacked tool was dropped");

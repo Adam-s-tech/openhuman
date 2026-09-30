@@ -57,7 +57,7 @@ pub const PACKS: &[ToolPack] = &[
             "list_agent_definitions",
             "list_connectable_toolkits",
         ],
-        owners: &["workflow_builder", "flow_discovery"],
+        owners: &["orchestrator", "workflow_builder", "flow_discovery"],
         guide: "",
     },
     ToolPack {

@@ -31,9 +31,8 @@ pub struct AutonomySettingsPatch {
     pub max_actions_per_hour: Option<u32>,
     /// "Always allow" allowlist — tool names the gate skips prompting for.
     pub auto_approve: Option<Vec<String>>,
-    /// Blanket "auto-approve everything" bypass. `SubconsciousTainted` and
-    /// `Unknown` origins are still denied by the gate regardless of this
-    /// setting.
+    /// Blanket "auto-approve everything" bypass. `Unknown` origins are still
+    /// denied by the gate regardless of this setting.
     pub auto_approve_all: Option<bool>,
 }
 

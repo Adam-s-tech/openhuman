@@ -484,7 +484,7 @@ Direct rendered submodules under `vendor/`:
 | `tinysearch` | Web-search module, provider dispatch, tool declarations, and execution behind its TinyBus contract. |
 | `tinyskills` | Host-independent skill/workflow bundle parsing, discovery, scope resolution, resource inventory, and safe reads. OpenHuman owns trust and execution policy. |
 | `tinyvoice` | Host-agnostic voice primitives such as audio framing, VAD, wake-word gating, routing, and STT hallucination detection. |
-| `tinywallet` | Pure multi-chain wallet primitives such as address formats, validation, and encoding conversions; no key custody or transaction broadcast. |
+| `tinywallet` | Multi-chain wallet: `tinywallet-crypto` (address, asset, chain, `rpc::Transport`, tx codec), `tinywallet-x402` (x402 wire, payment, spending ledger, `x402_request` tool), `tinywallet-web3` (wallet engine, per-chain build/sign/broadcast flows, swap/bridge/dapp quotes, agent tools) behind host seams (`WalletSigner`, `PaymentSigner`, `WalletAccounts`, `RpcEndpoints`, `QuoteScope`, `Web3Backend`, `ProxyPolicy`), and the loadable `tinywallet-module` that derives keys and signs. OpenHuman keeps keyring, consent, credentials, config, controllers and the seam impls under `web3/`. |
 | `motosan-ai-oauth` | Provider-agnostic PKCE OAuth login and token-refresh primitives. |
 
 Some rendered submodules are shared dependencies nested inside those projects,
@@ -516,7 +516,7 @@ method constants, request and response types, and its contract version.
 | `tinyvoice-bus` | `voice` |
 | `tinyjuice-bus` | inference kernel |
 | `tinyruntime-bus` | runtime clients |
-| `tinywallet-bus` | `web3` |
+| `tinywallet-bus` | `web3` (contract; the chain primitives are in `tinywallet-crypto`) |
 | `tinymcp-bus` | `mcp` |
 | `tinychannels-bus` | channel vocabulary |
 | `tinyconnectors-bus` | OAuth connector (Composio) wire contract; called through `integrations/composio/module_client.rs` |
@@ -594,8 +594,12 @@ ProductIdentity}`).
 client (`BackendClient`, renamed from `BackendOAuthClient`) and error
 classification. Authenticated `BackendClient` requests go through
 `authed_json`, whose private `finish_authed_json` classifies transient
-transport failures and maps 401/404 responses to typed `BackendApiError`
-variants; `IntegrationClient::map_transport_error`
+transport failures and maps 401s and the transport's typed channel-message
+404s (`ChannelMessageNotFound` / `ChannelMessageRouteMissing`) to typed
+`BackendApiError` variants. What a backend response *means* is decided in
+the transport (`tinyhumans_sdk::classify`, applied by
+`openhuman-tinyhumans`'s `map_sdk_error`), never by reading bodies in the
+core; the recovery stays in the core. `IntegrationClient::map_transport_error`
 (`crates/openhuman-core/src/integrations/client/errors.rs`) plays the same
 role for integrations. Route new backend calls through those helpers instead
 of matching `BackendTransportError` by hand.

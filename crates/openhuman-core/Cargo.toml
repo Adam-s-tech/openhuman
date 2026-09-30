@@ -308,6 +308,8 @@ tinymcp-bus = { path = "../../vendor/tinymcp/crates/tinymcp-bus", features = ["s
 # vocabulary is always-on kernel surface. It costs serde/schemars and nothing
 # this build did not already have.
 tinychannels-bus = { version = "0.1", path = "../../vendor/tinychannels/crates/tinychannels-bus" }
+# `CliChannel` (always compiled) and the channel runtime helpers.
+tinychannels-runtime = { version = "0.1", path = "../../vendor/tinychannels/crates/tinychannels-runtime" }
 # The provider stack that IMPLEMENTS that vocabulary — Telegram, Discord,
 # Slack, IMAP, WhatsApp, the relay transport loop. Optional: it owns the
 # `reqwest` / `rusqlite` / `rustls` / `tokio-tungstenite` cohort, which a
@@ -469,8 +471,6 @@ starship-battery = { version = "0.10", optional = true }
 # - bs58: Solana base58 addresses + Tron base58check addresses.
 ed25519-dalek = { version = "2", default-features = false, features = ["std", "rand_core"] }
 bs58 = { version = "0.5", default-features = false, features = ["std", "check"] }
-# Solana off-curve check for ATA derivation (find_program_address).
-curve25519-dalek = { version = "4", default-features = false, features = ["alloc"], optional = true }
 
 # The WhatsApp Web provider (and its `whatsapp-rust` / `wacore` / `serde-big-array`
 # stack) now lives in the tinychannels crate; the `whatsapp-web` feature forwards
@@ -609,6 +609,14 @@ tinyhosts = { path = "../../vendor/tinyhosts", default-features = false, feature
 # derive a known account. Dev-dependency features are not linked into the
 # shipped binary, so that does not undo the shed.
 tinywallet-bus = { path = "../../vendor/tinywallet/crates/tinywallet-bus", default-features = false, features = ["btc", "evm", "solana", "tron", "keccak", "net", "wire", "eip712", "abi", "tx-codec"], optional = true }
+# The x402 payment flow (402 challenge, EVM/Solana payment builders, the
+# spending ledger, the `x402_request` tool), moved out of `web3/x402`. The host
+# keeps signing, proxy policy and RPC controllers and hands them in as seams.
+tinywallet-x402 = { path = "../../vendor/tinywallet/crates/tinywallet-x402", default-features = false, features = ["wire", "pay", "ledger", "tools"], optional = true }
+# The wallet engine and the swap/bridge/dapp service, moved out of `web3/`.
+# The host implements its seams (signer, accounts, RPC endpoints, quote scope,
+# backend) and keeps the controllers, keyring and consent.
+tinywallet-web3 = { path = "../../vendor/tinywallet/crates/tinywallet-web3", default-features = false, features = ["tools"], optional = true }
 
 # secp256k1 signing over the digests the wallet module hands back. Pure Rust,
 # and already in the graph beneath `coins-bip32` (which derives the key being
@@ -785,7 +793,7 @@ default = ["media", "skills", "flows", "mcp", "channels", "http-server", "schedu
 #
 # TYPE CARVE-OUT (see AGENTS.md): `memory::diff::types` stays compiled in BOTH
 # builds. It re-exports tinycortex's `serde`-only diff wire types, which the
-# always-on subconscious memory profile renders into prompts; a stub copy would
+# always-on memory profile renders into prompts; a stub copy would
 # be a second definition of one serde shape, free to drift. tinycortex makes the
 # same split — its `memory::diff::{types,source}` are ungated, and only the
 # git-touching `ledger`/`DiffEngine` half sits behind `git-diff`.
@@ -794,8 +802,10 @@ default = ["media", "skills", "flows", "mcp", "channels", "http-server", "schedu
 # `/schema`; the `memory_diff` agent tool is absent from the tool list; the
 # embedded driver stops advertising `Capability::Diff` and `as_diff()` returns
 # `None`; and the three `ops` entry points always-on code calls return a
-# build-fact error, so a post-sync snapshot or a subconscious diff is logged and
+# build-fact error, so a post-sync snapshot or diff is logged and
 # skipped rather than silently reported as "nothing changed".
+# TinyMCP HTTP serving is kept optional with the rest of this server surface.
+# Keep vendor/tinymcp pinned to a revision that defines `server-http`.
 http-server = ["dep:axum", "tinymcp/server-http"]
 # Local audio-device access: the `cpal` capture stack behind voice recording
 # and the accessibility microphone-permission probe. Default-ON. Slim /
@@ -904,9 +914,9 @@ voice = [
 # surface, and the x402 machine-payment protocol. Default-ON — the desktop app
 # always ships with the wallet. Slim / headless builds opt out via
 # `--no-default-features --features "<explicit list without web3>"`, which
-# drops the exclusive `bitcoin` (P2WPKH PSBT) + `curve25519-dalek` (Solana
-# off-curve ATA) + `ethers-core` / `ethers-signers` / `coins-bip39` (EVM/mnemonic
-# signing, used by the multi-chain wallet's EVM path) dependencies. Composes
+# drops the exclusive `bitcoin` (P2WPKH PSBT) + `ethers-core` / `ethers-signers`
+# / `coins-bip39` (EVM/mnemonic signing, used by the multi-chain wallet's EVM
+# path) dependencies. Composes
 # with the runtime `DomainSet::Web3` flag (#4796): the feature narrows the
 # compile-time surface, `DomainSet` gates it at runtime.
 # `k256` and `coins-bip39` are gone from this list: nothing in the shipped
@@ -915,11 +925,13 @@ voice = [
 # checks a signature against a fixed vector; `coins-bip39` is gone entirely
 # (the fixtures derive through `tinywallet`'s own copy).
 #
-# `curve25519-dalek` stays: `associated_token_account` needs the off-curve check
-# to derive a Solana ATA, which is address arithmetic rather than signing.
+# `curve25519-dalek` is gone from this list: the Solana off-curve check that
+# derives an Associated Token Account is address arithmetic that now lives in
+# `tinywallet-web3` (and `tinywallet-x402`), which own their own copy.
 web3 = [
     "dep:tinywallet-bus",
-    "dep:curve25519-dalek",
+    "dep:tinywallet-x402",
+    "dep:tinywallet-web3",
     "modules",
 ]
 

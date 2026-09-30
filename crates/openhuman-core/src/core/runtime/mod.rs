@@ -3,7 +3,7 @@
 //!
 //! This module is the seam that separates *initialization* (workspace-bound
 //! store setup — [`context`]) from *background services* (cron, channels,
-//! heartbeat, update scheduler — [`services`]) so alternate hosts can compose
+//! login-gated services, update scheduler — [`services`]) so alternate hosts can compose
 //! them without going through the monolithic `run_server_inner`. See the
 //! pluggable-core work (`core::runtime::builder`, `core::runtime::context`) for
 //! the builder/context split this module composes.

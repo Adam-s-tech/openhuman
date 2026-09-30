@@ -72,7 +72,9 @@ pub const EVENTS_INTERFACE: &str = "ai.tinyhumans.openhuman.Events";
 /// (`request_id`), the new `ThreadTodosChanged` and `ThreadRunModeChanged`
 /// variants. All additions are optional/defaulted, so an older subscriber
 /// keeps parsing what a newer publisher emits.
-pub const EVENTS_VERSION: Version = Version::new(1, 5, 0);
+/// `1.6.0` retired `SubconsciousTriggerProcessed`, which nothing published
+/// after the background-reasoning engine was removed.
+pub const EVENTS_VERSION: Version = Version::new(1, 6, 0);
 
 /// The bus. Initialised once by [`init`]; safe to touch before that.
 pub static BUS: OnceBus<DomainEvent> = OnceBus::new();

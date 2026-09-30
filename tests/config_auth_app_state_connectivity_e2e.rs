@@ -728,9 +728,7 @@ encrypt = false
     config.coding_provider = Some("ollama:code-local".into());
     config.memory_provider = Some("ollama:memory-local".into());
     config.embeddings_provider = Some("ollama:embed-local".into());
-    config.heartbeat_provider = Some("ollama:heartbeat-local".into());
     config.learning_provider = Some("ollama:learning-local".into());
-    config.subconscious_provider = Some("ollama:subconscious-local".into());
     assert_eq!(
         config.workload_local_model("chat").as_deref(),
         Some("chat-local")
@@ -743,9 +741,7 @@ encrypt = false
     assert!(config.workload_uses_local("coding"));
     assert!(config.workload_uses_local("memory"));
     assert!(config.workload_uses_local("embeddings"));
-    assert!(config.workload_uses_local("heartbeat"));
     assert!(config.workload_uses_local("learning"));
-    assert!(config.workload_uses_local("subconscious"));
     assert!(!config.workload_uses_local("unknown"));
     config.output_language = Some("fr".into());
     assert!(config
@@ -2508,13 +2504,10 @@ async fn credentials_public_ops_cover_service_and_missing_session_error_paths() 
     .expect_err("oauth token fetch without session should fail")
     .contains("no backend session token"));
     assert!(
-        openhuman_core::security::credentials::oauth_fetch_client_key(
-            &config,
-            "0123456789abcdef01234567",
-        )
-        .await
-        .expect_err("client key fetch without session should fail")
-        .contains("session JWT required")
+        oauth::oauth_fetch_client_key(&config, "0123456789abcdef01234567")
+            .await
+            .expect_err("client key fetch without session should fail")
+            .contains("no backend session token")
     );
     assert!(
         oauth::oauth_revoke_integration(&config, "0123456789abcdef01234567")
@@ -2710,9 +2703,7 @@ async fn config_controller_mutations_round_trip_over_json_rpc() {
             "coding_provider": "worker-a-cloud:code",
             "memory_provider": "worker-a-cloud:memory",
             "embeddings_provider": "worker-a-cloud:embeddings",
-            "heartbeat_provider": "worker-a-cloud:heartbeat",
-            "learning_provider": "worker-a-cloud:learning",
-            "subconscious_provider": "worker-a-cloud:subconscious"
+            "learning_provider": "worker-a-cloud:learning"
         }),
     )
     .await;
@@ -2836,9 +2827,7 @@ async fn config_controller_mutations_round_trip_over_json_rpc() {
                 "model_id": "llama3",
                 "chat_model_id": "llama3",
                 "usage_embeddings": false,
-                "usage_heartbeat": false,
-                "usage_learning_reflection": false,
-                "usage_subconscious": false
+                "usage_learning_reflection": false
             }),
         ),
         (
@@ -3478,7 +3467,7 @@ async fn auth_credentials_controller_paths_round_trip_and_validate_errors() {
         "unsupported channel",
     );
 
-    // `auth_oauth_*` (all but `fetch_client_key`) are served by
+    // `auth_oauth_*` are served by
     // `openhuman-tinyhumans` now: validation first, then the core's
     // credential resolution, whose missing-session wording they report.
     for (id, method, params, needle) in [
@@ -3504,7 +3493,7 @@ async fn auth_credentials_controller_paths_round_trip_and_validate_errors() {
             20_009,
             "openhuman.auth_oauth_fetch_client_key",
             json!({ "integrationId": "abc" }),
-            "session JWT required",
+            "integrationId must be a 24-char hex id",
         ),
         (
             20_010,

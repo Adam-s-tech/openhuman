@@ -69,9 +69,7 @@ pub(super) struct ModelSettingsUpdate {
     pub(super) vision_provider: Option<String>,
     pub(super) memory_provider: Option<String>,
     pub(super) embeddings_provider: Option<String>,
-    pub(super) heartbeat_provider: Option<String>,
     pub(super) learning_provider: Option<String>,
-    pub(super) subconscious_provider: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -135,9 +133,7 @@ pub(super) struct LocalAiSettingsUpdate {
     pub(super) model_id: Option<String>,
     pub(super) chat_model_id: Option<String>,
     pub(super) usage_embeddings: Option<bool>,
-    pub(super) usage_heartbeat: Option<bool>,
     pub(super) usage_learning_reflection: Option<bool>,
-    pub(super) usage_subconscious: Option<bool>,
     pub(super) api_key: Option<String>,
 }
 
@@ -215,9 +211,8 @@ pub(super) struct AutonomySettingsUpdate {
     /// Replaces the "Always allow" allowlist wholesale — tool names the agent
     /// may run without an approval prompt. Empty list clears it.
     pub(super) auto_approve: Option<Vec<String>>,
-    /// Blanket "auto-approve everything" bypass. `SubconsciousTainted` and
-    /// `Unknown` origins are still denied by the gate regardless of this
-    /// setting.
+    /// Blanket "auto-approve everything" bypass. `Unknown` origins are still
+    /// denied by the gate regardless of this setting.
     pub(super) auto_approve_all: Option<bool>,
 }
 
