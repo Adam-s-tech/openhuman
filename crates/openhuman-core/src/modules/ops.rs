@@ -251,7 +251,7 @@ async fn resolve(config: &Config, record: &'static ModuleRecord) -> Result<(), S
     .await;
     match outcome {
         Ok(()) => {
-            prune_stale_versions(&root, record);
+            prune_stale_versions(&root, record.id, record.version);
             Ok(())
         }
         Err(reason) => Err(reason),
@@ -310,7 +310,7 @@ fn load_cached(
     let mut found_bundled = false;
     if let Some(bundled_root) = bundled_root {
         for asset in &assets {
-            let Some(cache_dir) = artifact_dir(bundled_root, record, asset.host_key) else {
+            let Some(cache_dir) = artifact_dir(bundled_root, record.id, record.version, asset.host_key) else {
                 continue;
             };
             if !cache_dir.join(asset.archive).is_file() {
@@ -351,7 +351,7 @@ fn load_cached(
         ));
     }
     for asset in assets {
-        let Some(cache_dir) = artifact_dir(install_root, record, asset.host_key) else {
+        let Some(cache_dir) = artifact_dir(install_root, record.id, record.version, asset.host_key) else {
             last_error =
                 "the module's cache path could not be built from its registry entry".to_string();
             continue;

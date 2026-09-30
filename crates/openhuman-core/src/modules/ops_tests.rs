@@ -263,8 +263,8 @@ async fn a_bounded_wait_with_nothing_cached_and_downloads_off_fails_rather_than_
     // left behind by one of those would be answered from cache before this
     // config is ever consulted, so clear it first and again at the end rather
     // than depending on which tests ran before this one.
-    let table = crate::modules::resolution::table();
-    table.reset_for_test("tinydocs");
+    let table = tinybus::module::resolution::global();
+    table.forget("tinydocs");
 
     // Nothing to download from, nothing cached: the resolution settles at once,
     // so a bounded caller gets the terminal reason, never `StillLoading`.
@@ -283,7 +283,7 @@ async fn a_bounded_wait_with_nothing_cached_and_downloads_off_fails_rather_than_
         .into_iter()
         .find(|status| status.id == "tinydocs")
         .expect("tinydocs is a registry entry");
-    table.reset_for_test("tinydocs");
+    table.forget("tinydocs");
 
     match &outcome {
         Ok(()) => {
