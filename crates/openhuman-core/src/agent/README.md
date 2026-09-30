@@ -92,7 +92,7 @@ Flat files: `bus.rs` (`agent.run_turn` native request handler), `context_breakdo
 invocation budget for one awaited turn without changing the agent's persistent
 configuration. Zero permits no tool invocations. The adapter applies the limit
 to both run policy and run configuration, including parallel calls counted by
-TinyAgents. `with_stop_hooks_and_tool_limit` combines it with stop hooks.
+TinyAgents.
 
 Nested scopes take the smaller limit; `None` preserves an enclosing limit.
 Exiting or dropping the future restores the caller's scope, and concurrent

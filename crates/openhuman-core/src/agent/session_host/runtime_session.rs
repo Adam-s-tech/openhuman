@@ -743,9 +743,6 @@ impl OpenHumanTurnPrelude {
             self.tool_dispatcher.tool_call_format(),
         )
         .harness_dispatcher();
-        run_context
-            .stop_hooks
-            .extend(crate::agent::stop_hooks::current_stop_hooks());
         self.context
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
