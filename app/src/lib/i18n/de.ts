@@ -7480,6 +7480,8 @@ const messages: TranslationMap = {
     'Deine Sitzung ist abgelaufen. Melde dich erneut an, um fortzufahren.',
   'memoryEngine.error.backendUnavailable':
     'Der Speicherdienst ist derzeit nicht erreichbar. Versuche es gleich noch einmal.',
+  'memoryEngine.error.forbidden':
+    'Der Speicher hat die Anmeldedaten dieses Kontos abgelehnt. Wenn du einen API-Schlüssel verwendest, gib ihm den Bereich memory.',
   'memoryEngine.error.generic':
     'Die Speicher-Engine konnte nicht geändert werden. Prüfe die Einstellungen und versuche es erneut.',
   'memoryEngine.error.openBilling': 'Abrechnung öffnen',

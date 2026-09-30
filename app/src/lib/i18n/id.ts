@@ -7329,6 +7329,8 @@ const messages: TranslationMap = {
   'memoryEngine.error.sessionExpired': 'Sesi Anda berakhir. Masuk lagi untuk melanjutkan.',
   'memoryEngine.error.backendUnavailable':
     'Layanan memori sedang tidak tersedia. Coba lagi sebentar lagi.',
+  'memoryEngine.error.forbidden':
+    'Layanan memori menolak kredensial akun ini. Jika Anda memakai kunci API, berikan cakupan memory padanya.',
   'memoryEngine.error.generic':
     'Tidak dapat mengubah mesin memori. Periksa pengaturan lalu coba lagi.',
   'memoryEngine.error.openBilling': 'Buka penagihan',

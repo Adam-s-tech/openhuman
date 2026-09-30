@@ -155,6 +155,44 @@ fn unauthorized_becomes_session_expired() {
 }
 
 #[test]
+fn a_403_is_a_refused_credential_not_an_expired_session() {
+    // An API key without the memory scope is a backend 403. `SESSION_EXPIRED:`
+    // would make the app sign the user out; the credential is valid, just not
+    // allowed here.
+    let refused = "[FORBIDDEN] memory API memory/recall on host (HTTP 403 Forbidden): API key \
+                   is missing the required scope: memory — the session expired or the API \
+                   key was rejected; re-authenticate";
+    let error = anyhow::Error::new(MemoryError::Unauthorized(refused.into()));
+    let typed = classify_engine_error(&error);
+    assert!(typed.starts_with(MEMORY_FORBIDDEN_PREFIX), "{typed}");
+    let text = classify_engine_message(&format!("unauthorized: {refused}"));
+    assert!(text.starts_with(MEMORY_FORBIDDEN_PREFIX), "{text}");
+    assert!(!text.contains(SESSION_EXPIRED_PREFIX), "{text}");
+}
+
+#[test]
+fn an_engine_that_cannot_serve_now_is_unreachable() {
+    for error in [
+        MemoryError::Unavailable("[RATE_LIMITED] memory API memory/recall (HTTP 429)".into()),
+        MemoryError::Unreachable("memory API request to host: could not connect".into()),
+        MemoryError::Timeout("memory API request to host: timed out".into()),
+    ] {
+        let rendered = error.to_string();
+        let typed = classify_engine_error(&anyhow::Error::new(error));
+        assert!(typed.starts_with(MEMORY_UNREACHABLE_PREFIX), "{typed}");
+        let text = classify_engine_message(&rendered);
+        assert!(
+            text.starts_with(MEMORY_UNREACHABLE_PREFIX),
+            "{rendered} -> {text}"
+        );
+    }
+    assert_eq!(
+        classify_engine_message("MEMORY_UNREACHABLE: already classified"),
+        "MEMORY_UNREACHABLE: already classified"
+    );
+}
+
+#[test]
 fn backend_unavailable_and_prefixed_messages_pass_through() {
     let unavailable = format!(
         "{} no backend transport installed",

@@ -6903,6 +6903,8 @@ const messages: TranslationMap = {
   'memoryEngine.error.insufficientCredits': '你的 OpenHuman 额度已用完。请充值后再使用此引擎。',
   'memoryEngine.error.sessionExpired': '会话已过期。请重新登录以继续。',
   'memoryEngine.error.backendUnavailable': '记忆服务暂时不可用，请稍后重试。',
+  'memoryEngine.error.forbidden':
+    '记忆服务拒绝了此账户的凭据。如果使用 API 密钥，请为其授予 memory 权限范围。',
   'memoryEngine.error.generic': '无法更改记忆引擎。请检查设置后重试。',
   'memoryEngine.error.openBilling': '打开账单',
   'memoryEngine.error.signIn': '登录',

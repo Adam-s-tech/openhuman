@@ -7389,6 +7389,8 @@ const messages: TranslationMap = {
   'memoryEngine.error.sessionExpired': 'Sesja wygasła. Zaloguj się ponownie, aby kontynuować.',
   'memoryEngine.error.backendUnavailable':
     'Usługa pamięci jest teraz niedostępna. Spróbuj ponownie za chwilę.',
+  'memoryEngine.error.forbidden':
+    'Usługa pamięci odrzuciła dane uwierzytelniające tego konta. Jeśli używasz klucza API, nadaj mu zakres memory.',
   'memoryEngine.error.generic':
     'Nie udało się zmienić silnika pamięci. Sprawdź ustawienia i spróbuj ponownie.',
   'memoryEngine.error.openBilling': 'Otwórz rozliczenia',
