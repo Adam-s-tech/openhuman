@@ -7,10 +7,7 @@
 
 use std::sync::Arc;
 
-use serde_json::Value;
-use tinytools_std::network::{
-    HtmlExtractor, HttpLimits, HttpRequestTool, NetGate, WebFetchTool,
-};
+use tinytools_std::network::{HtmlExtractor, HttpLimits, HttpRequestTool, NetGate, WebFetchTool};
 
 use crate::config::HttpRequestConfig;
 use crate::inference::tokenjuice::focus::{summary_focus_property, SUMMARY_FOCUS_ARG};

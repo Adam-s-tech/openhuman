@@ -64,7 +64,8 @@ fn local_only_privacy_mode_refuses_with_the_policy_blocked_marker() {
 
 #[test]
 fn standard_privacy_mode_lets_the_request_through() {
-    let _mode = crate::security::live_policy::test_privacy_scope(crate::config::PrivacyMode::Standard);
+    let _mode =
+        crate::security::live_policy::test_privacy_scope(crate::config::PrivacyMode::Standard);
     assert!(NetGate::local_only_block(&SecurityPolicy::default(), "example.com").is_none());
 }
 
@@ -102,8 +103,16 @@ async fn http_request_is_blocked_under_local_only_privacy_mode() {
         .await
         .unwrap();
     assert!(result.is_error);
-    assert!(result.output().contains("[policy-blocked]"), "got: {}", result.output());
-    assert!(result.output().contains("Local-only"), "got: {}", result.output());
+    assert!(
+        result.output().contains("[policy-blocked]"),
+        "got: {}",
+        result.output()
+    );
+    assert!(
+        result.output().contains("Local-only"),
+        "got: {}",
+        result.output()
+    );
 }
 
 #[tokio::test]
@@ -134,15 +143,26 @@ async fn web_fetch_and_curl_are_blocked_under_local_only_privacy_mode() {
             .unwrap(),
     ] {
         assert!(result.is_error);
-        assert!(result.output().contains("[policy-blocked]"), "got: {}", result.output());
-        assert!(result.output().contains("Local-only"), "got: {}", result.output());
+        assert!(
+            result.output().contains("[policy-blocked]"),
+            "got: {}",
+            result.output()
+        );
+        assert!(
+            result.output().contains("Local-only"),
+            "got: {}",
+            result.output()
+        );
     }
 }
 
 #[tokio::test]
 async fn pushover_honours_read_only_and_the_rate_limit() {
     let read_only = PushoverTool::new(policy(AutonomyLevel::ReadOnly, 100), "/tmp".into());
-    let result = read_only.execute(json!({"message": "hello"})).await.unwrap();
+    let result = read_only
+        .execute(json!({"message": "hello"}))
+        .await
+        .unwrap();
     assert!(result.is_error);
     assert!(result.output().contains("read-only"));
 
