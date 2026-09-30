@@ -280,6 +280,13 @@ path = "../../tests/memory_engine_migrate_e2e.rs"
 required-features = ["modules", "memory-remote"]
 
 [[test]]
+# The memory surface on the hosted engine: auto-recall, refusals, the error
+# vocabulary and the families it does not serve (openhuman#6718).
+name = "memory_hosted_surface_e2e"
+path = "../../tests/memory_hosted_surface_e2e.rs"
+required-features = ["modules", "memory-remote"]
+
+[[test]]
 name = "memory_roundtrip_e2e"
 path = "../../tests/memory_roundtrip_e2e.rs"
 
