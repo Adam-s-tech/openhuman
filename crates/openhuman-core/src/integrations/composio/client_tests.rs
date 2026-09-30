@@ -307,7 +307,7 @@ async fn direct_list_tools_forwards_tags_and_reshapes_v3_envelope() {
     let base = start_mock_backend(app).await;
     let tool = direct_tool_for_mock(base);
 
-    let resp = super::super::direct_list_tools(
+    let resp = super::direct_list_tools(
         &tool,
         &["github".to_string()],
         Some(&["stars".to_string(), "repos".to_string()]),

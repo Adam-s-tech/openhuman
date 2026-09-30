@@ -8,7 +8,7 @@ use serde_json::{json, Value};
 use tinytools::Tool;
 
 use crate::config::{ComposioHostCredential, Config};
-use crate::integrations::composio::client::{create_composio_client, ComposioClientKind};
+use crate::integrations::composio::client::{resolve_composio_route, ComposioRoute};
 use crate::integrations::composio::connected_integrations::{
     cache_key, composio_cache_test_lock, CachedIntegrations, INTEGRATIONS_CACHE,
 };
@@ -95,9 +95,9 @@ fn pinned(base: &Config, key: &str, entity: &str, mock: Option<&str>) -> Config 
 }
 
 fn direct_key_fingerprint(config: &Config) -> u64 {
-    match create_composio_client(config).expect("pinned credential resolves") {
-        ComposioClientKind::Direct(tool) => tool.auth_key_fingerprint(),
-        ComposioClientKind::Backend(_) => panic!("a pinned credential must resolve direct"),
+    match resolve_composio_route(config).expect("pinned credential resolves") {
+        ComposioRoute::Direct(tool) => tool.auth_key_fingerprint(),
+        ComposioRoute::Backend => panic!("a pinned credential must resolve direct"),
     }
 }
 
