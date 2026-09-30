@@ -317,6 +317,7 @@ async fn composio_connected_integrations_public_helpers_handle_empty_auth_and_id
 
 #[tokio::test]
 async fn composio_ops_mode_is_local_and_trigger_history_reflects_module_archive_availability() {
+    let _module = crate::CONNECTOR_MODULE_LOCK.lock().await;
     crate::tinyhumans_boot::boot();
     let dir = tempdir().expect("tempdir");
     let mut config = Config {
@@ -404,6 +405,7 @@ fn composio_action_tool_metadata_is_stable_without_network_execution() {
 
 #[tokio::test]
 async fn composio_action_tool_execute_reports_missing_route_without_network() {
+    let _module = crate::CONNECTOR_MODULE_LOCK.lock().await;
     crate::tinyhumans_boot::boot();
     let tmp = tempfile::tempdir().expect("temp config directory");
     let mut config = Config::default();
@@ -759,6 +761,7 @@ async fn composio_call(controller: &RegisteredController, params: Value) -> Resu
 
 #[tokio::test]
 async fn composio_agent_tools_cover_metadata_missing_params_and_scope_helpers() {
+    let _module = crate::CONNECTOR_MODULE_LOCK.lock().await;
     crate::tinyhumans_boot::boot();
     let dir = tempdir().expect("tempdir");
     let config = Config {
@@ -895,6 +898,7 @@ async fn composio_agent_tools_cover_metadata_missing_params_and_scope_helpers() 
 
 #[tokio::test]
 async fn composio_agent_tools_direct_mode_take_local_branches_without_backend() {
+    let _module = crate::CONNECTOR_MODULE_LOCK.lock().await;
     crate::tinyhumans_boot::boot();
     let dir = tempdir().expect("tempdir");
     let mut config = Config {
