@@ -13,8 +13,8 @@ use parking_lot::RwLock;
 use tokio::sync::{Notify, OwnedSemaphorePermit, Semaphore};
 
 use crate::config::{Config, SchedulerGateConfig};
-use tinymemory_api::host::{decide, PauseReason, Policy};
 use crate::cron::scheduler_gate::signals::{self, Signals};
+use tinymemory_api::host::{decide, PauseReason, Policy};
 
 /// Process-wide ceiling on concurrent LLM-bound work.
 ///
