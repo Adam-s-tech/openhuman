@@ -277,10 +277,6 @@ impl Tool for DryRunWorkflowTool {
             inner: caps.tools.clone(),
         });
 
-        // Which node ids are `tool_call` nodes — the null-resolution check
-        // below is scoped to just these (see the struct doc: a null in an
-        // `agent`'s prompt is not execution-breaking the way a null tool arg
-        // is, so only `tool_call` diagnostics fail the dry run).
         let observer = Arc::new(CapturingObserver::default());
         let observer_dyn: Arc<dyn tinyflows::observability::RunObserver> = observer.clone();
         let run = tinyflows::engine::run_with_observer(&compiled, input, &caps, &observer_dyn);
@@ -342,14 +338,6 @@ impl Tool for DryRunWorkflowTool {
             }
         };
 
-        // Collect every null-resolved `=`-expression that landed on a
-        // `tool_call` node's `args.*` config path — the class of binding
-        // mistake that "builds" (compiles, dry-runs against echo mocks) but
-        // does nothing at runtime because the wired field never had a value.
-        // Each entry is honest about WHY it resolved null: a binding to an
-        // upstream Composio `tool_call`'s output is flagged `unverifiable`
-        // (the echo mock can't produce real tool output fields) rather than
-        // reported as a plain wiring mistake — see `tinyflows::authoring_report::NullResolutionEntry`.
         // The bucketing and advice wording live upstream (`tinyflows::authoring_report`);
         // this tool keeps the mock capabilities, the timeout and the JSON envelope.
         let AuthoringReport {

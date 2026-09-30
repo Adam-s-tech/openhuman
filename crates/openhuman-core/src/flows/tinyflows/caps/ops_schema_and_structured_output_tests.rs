@@ -92,4 +92,3 @@ fn crate_model_response_preserves_flow_completion_contract() {
 }
 
 // ── build_agent_result improvements (issue #5151) ────────────────────
-

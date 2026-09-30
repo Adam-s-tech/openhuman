@@ -18,9 +18,9 @@ use tinyflows::error::{EngineError, Result};
 
 use super::*;
 use crate::agent::messages::ChatMessage;
-use tinyflows::nodes::integration::agent_prompt;
 use crate::config::Config;
 use crate::inference::provider::{is_raw_passthrough_model, UsageInfo};
+use tinyflows::nodes::integration::agent_prompt;
 
 /// [`agent_prompt::build_completion_messages`] mapped onto the host's
 /// [`ChatMessage`] type.
