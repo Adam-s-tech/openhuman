@@ -1726,12 +1726,10 @@ describe('Conversations — smoke render (#1123 welcome-lock removal)', () => {
       // timer at the 80s mark, so the silence timer is now at 80s of
       // its fresh 120s budget and has NOT fired — the thread therefore
       // shows no silence warning.
-      // We assert the active flag directly rather than the Send button:
-      // a streaming thread now keeps the composer open for follow-up
-      // queueing, so Send is intentionally enabled here.
       await act(async () => {
         await vi.advanceTimersByTimeAsync(80_000);
       });
+      expect(screen.queryByTestId('chat-stall-warning')).toBeNull();
       expect(store!.getState().thread.activeThreadIds[thread.id]).toBe(true);
     } finally {
       vi.useRealTimers();
