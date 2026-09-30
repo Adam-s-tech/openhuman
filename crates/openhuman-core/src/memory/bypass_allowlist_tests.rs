@@ -196,7 +196,7 @@ const ALLOWED: &[(&str, &str, &str)] = &[
         "the process-global slot itself; it is what global::client hands out",
     ),
     (
-        "crates/openhuman-core/src/memory/guard/families/ingest_and_tree.rs",
+        "vendor/tinymemory/crates/tinymemory-guard/src/families/ingest_and_tree.rs",
         ".get_document(",
         "the guard's own documents decorator forwarding to the inner family",
     ),
