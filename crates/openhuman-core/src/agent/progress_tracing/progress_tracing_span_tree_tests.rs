@@ -1,8 +1,8 @@
 use super::*;
 
 use crate::agent::progress_tracing::export::export_spans;
-use crate::agent::progress_tracing::serialize::spans_to_ndjson;
-use crate::agent::progress_tracing::types::SpanKind;
+use tinyagents_harness::observability::trace_export::serialize::{spans_to_ndjson, SpanEnvelope};
+use tinyagents_harness::observability::trace_export::SpanKind;
 // ── config ────────────────────────────────────────────────────────────────
 
 #[test]
@@ -468,7 +468,7 @@ fn no_user_attribution_omits_user_id() {
 #[test]
 fn ndjson_otel_emits_one_line_per_span() {
     let spans = one_turn_spans();
-    let out = spans_to_ndjson(AgentTracingBackend::Otel, &spans);
+    let out = spans_to_ndjson(SpanEnvelope::Otel, &spans);
     assert_eq!(out.lines().count(), spans.len());
     // Bare OTel span body has the fields directly.
     let first: serde_json::Value = serde_json::from_str(out.lines().next().unwrap()).unwrap();
@@ -479,7 +479,7 @@ fn ndjson_otel_emits_one_line_per_span() {
 #[test]
 fn ndjson_langfuse_wraps_each_span_in_an_observation_envelope() {
     let spans = one_turn_spans();
-    let out = spans_to_ndjson(AgentTracingBackend::Langfuse, &spans);
+    let out = spans_to_ndjson(SpanEnvelope::Langfuse, &spans);
     let first: serde_json::Value = serde_json::from_str(out.lines().next().unwrap()).unwrap();
     assert_eq!(first["type"], serde_json::json!("span-create"));
     assert_eq!(first["body"]["trace_id"], serde_json::json!("sess-42"));
@@ -487,7 +487,7 @@ fn ndjson_langfuse_wraps_each_span_in_an_observation_envelope() {
 
 #[test]
 fn ndjson_empty_for_empty_slice() {
-    assert!(spans_to_ndjson(AgentTracingBackend::Otel, &[]).is_empty());
+    assert!(spans_to_ndjson(SpanEnvelope::Otel, &[]).is_empty());
 }
 
 #[test]

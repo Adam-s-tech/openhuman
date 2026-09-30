@@ -378,8 +378,9 @@ pub(crate) fn spawn_progress_bridge(
         let mut span_collector = if config.observability.share_usage_data
             || config.observability.agent_tracing.enabled
         {
-            use crate::agent::progress_tracing::{
-                trace_session_id, RunType, SpanCollector, TraceContext,
+            use crate::agent::progress_tracing::SpanCollector;
+            use tinyagents_harness::observability::trace_export::{
+                trace_session_id, RunType, TraceContext,
             };
             // One trace per turn: the trace id is unique per request, while the
             // thread id rides along as the Langfuse `sessionId` so a

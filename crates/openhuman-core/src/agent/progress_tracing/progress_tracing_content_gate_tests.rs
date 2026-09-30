@@ -1,5 +1,5 @@
 use super::*;
-use crate::agent::progress_tracing::serialize::{capture_model_content, MAX_MODEL_CONTENT_CHARS};
+use tinyagents_harness::observability::trace_export::serialize::{capture_model_content, MAX_MODEL_CONTENT_CHARS};
 
 #[test]
 fn subagent_content_is_withheld_when_capture_off() {
