@@ -366,8 +366,8 @@ impl OpenHumanSecurityGate {
 ///
 /// A refusal is a `Deny` whose text names no human and no timeout — every
 /// refusal reads the same — and rules out other routes explicitly, because
-/// `shell` never prompts below the full tier and was used to redo a refused
-/// call.
+/// `shell` never prompts while autonomy is disabled (`[autonomy] enabled =
+/// false`, the default) and was used to redo a refused call.
 fn decision_for_outcome(tool_name: &str, outcome: GateOutcome) -> GateDecision {
     match outcome {
         GateOutcome::Allow => GateDecision::Prompted { approved: true },
