@@ -6878,6 +6878,7 @@ version = "0.3.0"
 dependencies = [
  "base64 0.23.1",
  "reqwest",
+ "schemars",
  "serde",
  "serde_json",
  "tinyinference-core",
