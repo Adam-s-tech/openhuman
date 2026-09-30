@@ -29,7 +29,9 @@ mod quota_and_credits;
 // (mirrors the pre-split `include!`-shared scope).
 use crate::inference::provider::openhuman_backend_model;
 use tinyinference_core::sanitize::sanitize_api_error;
-use tinyinference_llm::failure::{body_indicates_quota_exhausted, is_context_window_exceeded_message};
+use tinyinference_llm::failure::{
+    body_indicates_quota_exhausted, is_context_window_exceeded_message,
+};
 
 pub use auth_failure::{
     is_backend_auth_failure, is_byo_provider_auth_failure_http,
