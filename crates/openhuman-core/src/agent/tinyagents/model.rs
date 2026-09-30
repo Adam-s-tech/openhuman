@@ -7,7 +7,7 @@ use tinyinference_llm::message::{AssistantMessage, ContentBlock};
 use tinyinference_llm::model::{
     ChatModel, ModelProfile, ModelRequest, ModelResponse, ModelStream, ModelStreamItem,
 };
-use tinyinference_llm::tool::{ToolCall as TaToolCall};
+use tinyinference_llm::tool::ToolCall as TaToolCall;
 use tinyinference_llm::usage::Usage;
 
 use crate::inference::provider::{ChatResponse, UsageInfo};

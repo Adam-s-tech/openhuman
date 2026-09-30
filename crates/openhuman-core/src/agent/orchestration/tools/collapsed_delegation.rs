@@ -130,7 +130,6 @@ impl CollapsedDelegationTool {
                 .collect(),
         )
     }
-
 }
 
 fn build_description(targets: &[DelegateTarget]) -> String {
