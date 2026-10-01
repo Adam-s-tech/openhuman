@@ -29,6 +29,9 @@ use tokio::task::AbortHandle;
 #[path = "running_subagents_steering_tests.rs"]
 mod steering_tests;
 
+#[path = "running_subagents_wire_tests.rs"]
+mod wire_tests;
+
 /// Serializes every test that touches the global [`REGISTRY`]. We reuse the
 /// crate-wide `TEST_ENV_LOCK` (rather than a module-local mutex) because the
 /// destructive `cancel_all` path is also reachable from the `threads::ops`
