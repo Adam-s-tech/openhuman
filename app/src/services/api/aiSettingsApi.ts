@@ -28,7 +28,6 @@ import {
   type ModelRegistryEntry,
   type ModelSettingsUpdate,
   openhumanGetClientConfig,
-  openhumanUpdateLocalAiSettings,
   openhumanUpdateModelSettings,
 } from '../../utils/tauriCommands/config';
 import {
