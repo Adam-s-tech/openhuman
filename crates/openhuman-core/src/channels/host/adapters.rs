@@ -12,9 +12,8 @@ use async_trait::async_trait;
 use parking_lot::Mutex;
 use tinychannels::host::{
     AllowlistStore, ApprovalDecision, ApprovalGate, ConversationMessage, ConversationStore,
-    EventSink, LifecycleRegistry, ShutdownHook,
-    SpeechRequest, SpeechResult, SpeechSynthesizer, Transcriber, TranscriptionRequest,
-    TranscriptionResult,
+    EventSink, LifecycleRegistry, ShutdownHook, SpeechRequest, SpeechResult, SpeechSynthesizer,
+    Transcriber, TranscriptionRequest, TranscriptionResult,
 };
 
 use crate::config::Config;

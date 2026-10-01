@@ -3,8 +3,7 @@
 use super::*;
 use std::sync::Arc;
 use tinychannels::host::{
-    ApprovalDecision, ApprovalGate, ConversationMessage, ConversationStore, EventSink,
-    Transcriber,
+    ApprovalDecision, ApprovalGate, ConversationMessage, ConversationStore, EventSink, Transcriber,
 };
 
 use crate::config::Config;

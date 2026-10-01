@@ -247,7 +247,6 @@ async fn worker_b_schema_catalog_exposes_all_controller_methods() {
         "openhuman.inference_prompt",
         "openhuman.inference_vision_prompt",
         "openhuman.inference_test_provider_model",
-        "openhuman.inference_should_react",
         "openhuman.inference_analyze_sentiment",
         "openhuman.agent_chat",
         "openhuman.agent_chat_simple",
