@@ -61,7 +61,7 @@ impl Drop for LiveStack {
 async fn live_stack() -> LiveStack {
     let home = tempdir().expect("tempdir");
     let guards = vec![
-        EnvVarGuard::set("HOME", &home.path().to_string_lossy()),
+        EnvVarGuard::set_to_path("HOME", home.path()),
         EnvVarGuard::set(CORE_TOKEN_ENV_VAR, TEST_RPC_TOKEN),
         EnvVarGuard::set("OPENHUMAN_KEYRING_BACKEND", "file"),
     ];
