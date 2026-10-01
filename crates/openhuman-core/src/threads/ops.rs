@@ -41,7 +41,7 @@ use crate::memory::conversations::{
 #[cfg(test)]
 use crate::memory::{
     AppendConversationMessageRequest, ConversationMessageRecord, DeleteConversationThreadRequest,
-    EmptyRequest, GenerateConversationThreadTitleRequest, PaginationMeta,
+    EmptyRequest, GenerateConversationThreadTitleRequest,
 };
 #[cfg(test)]
 use crate::threads::THREAD_TITLE_LOG_PREFIX;
