@@ -74,11 +74,11 @@ fn text_dialect_tool_turn_projects_calls_on_their_issuing_row_as_settled() {
         TranscriptEntry::ToolResults(vec![
             ToolResultEntry {
                 tool_call_id: "call_web_search_1".into(),
-                content: "Search results for: rust async traits".into(),
+                content: "Search results for: rust async traits".into(), trusted_verbatim: false,
             },
             ToolResultEntry {
                 tool_call_id: "call_file_read_1".into(),
-                content: "unknown tool `file_read`".into(),
+                content: "unknown tool `file_read`".into(), trusted_verbatim: false,
             },
         ]),
         TranscriptEntry::Chat(TranscriptMessage::assistant("Here is what I found.")),

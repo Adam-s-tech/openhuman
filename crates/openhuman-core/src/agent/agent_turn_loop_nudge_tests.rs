@@ -217,7 +217,7 @@ fn committed_rows_mentioning_nudge(history: &[TranscriptEntry]) -> Vec<String> {
         .iter()
         .filter_map(|m| match m {
             TranscriptEntry::Chat(chat) if chat.content.contains(NUDGE) => {
-                Some(format!("{}: {}", chat.role, chat.content))
+                Some(format!("{}: {}", chat.role.as_str(), chat.content))
             }
             _ => None,
         })

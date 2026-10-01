@@ -247,7 +247,7 @@ fn mirrored_tool_results_are_hidden_from_the_worker_thread_chat() {
             },
             TranscriptEntry::ToolResults(vec![tinytools_agent::dialect::ToolResultEntry {
                 tool_call_id: "call-1".to_string(),
-                content: RAW.to_string(),
+                content: RAW.to_string(), trusted_verbatim: false,
             }]),
         ],
         Some("Here is your week."),

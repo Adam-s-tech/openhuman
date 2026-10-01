@@ -600,7 +600,7 @@ fn builder_tool_result(
     use tinytools_agent::dialect::{ToolResultEntry, TranscriptEntry};
     TranscriptEntry::ToolResults(vec![ToolResultEntry {
         tool_call_id: call_id.to_string(),
-        content: content.to_string(),
+        content: content.to_string(), trusted_verbatim: false,
     }])
 }
 

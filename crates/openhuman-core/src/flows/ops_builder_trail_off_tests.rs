@@ -175,7 +175,7 @@ fn extract_workflow_proposal_survives_large_graph() {
 
     let history = vec![TranscriptEntry::ToolResults(vec![ToolResultEntry {
         tool_call_id: "call-1".to_string(),
-        content: payload_str,
+        content: payload_str, trusted_verbatim: false,
     }])];
 
     let proposal = extract_workflow_proposal(&history).expect("proposal should be extractable");
@@ -199,11 +199,11 @@ fn extract_workflow_proposal_returns_the_latest_of_multiple_results() {
     let history = vec![
         TranscriptEntry::ToolResults(vec![ToolResultEntry {
             tool_call_id: "call-1".to_string(),
-            content: first.to_string(),
+            content: first.to_string(), trusted_verbatim: false,
         }]),
         TranscriptEntry::ToolResults(vec![ToolResultEntry {
             tool_call_id: "call-2".to_string(),
-            content: second.to_string(),
+            content: second.to_string(), trusted_verbatim: false,
         }]),
     ];
 
