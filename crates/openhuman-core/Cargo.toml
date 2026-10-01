@@ -267,6 +267,28 @@ tinymemory-bus = { path = "../../vendor/tinymemory/crates/tinymemory-bus" }
 # threads/messages, cross-thread inverted index). A pure library: serde,
 # parking_lot, uuid, chrono, async-trait, sha2. No SQLite/HTTP/engine crate.
 tinymemory-conversations = { path = "../../vendor/tinymemory/crates/tinymemory-conversations" }
+# The fake memory drivers the host's tests bind in place of an in-process engine
+# (openhuman#6161): `RecordingProvider` serves every optional family, so a
+# handler that asks for one by accessor gets `Some`; `InMemoryProvider` retains
+# and substring-recalls; `FixedRecallProvider` answers a constant recall. A
+# regular dependency, not a dev-dependency, because `memory::guard::in_memory`
+# is `pub` and compiled into the lib: the debug-build channel harness
+# (`channels::runtime::test_support`, used by root integration targets that link
+# the lib without `cfg(test)`) builds its guards through it.
+#
+# It costs this manifest nothing. The crate is `publish = false` and reached by
+# path like `tinymemory-api`, and its only dependencies are `tinymemory-api`,
+# `async-trait`, `serde_json` and `anyhow` — all already in the product graph.
+# By construction it cannot pull an engine back in: `tinymemory-conformance`
+# refuses to depend on `tinymemory-core`, and its CI asserts that.
+tinymemory-conformance = { path = "../../vendor/tinymemory/crates/tinymemory-conformance" }
+# `tinymemory-guard` is the policy decorator over any `MemoryProvider`
+# (`GuardedProvider<P: GuardPolicy>`): the seven-step enforcement chain and the
+# per-family decorators. The facts it consults — the live `SecurityPolicy` tier,
+# the task-local source scope, the sanitizer, egress disclosure, the audit event
+# — stay here, behind `memory::guard::HostGuardPolicy`. Only `tinymemory-api`,
+# `async-trait`, `serde_json`, `chrono`, `log` and `tracing`, all already here.
+tinymemory-guard = { path = "../../vendor/tinymemory/crates/tinymemory-guard" }
 # `tinymemory-sources` is the source registry, its types and its readers, in a
 # crate of its own. Taken directly rather than through `tinymemory-core`
 # (OpenHuman#5560): `tinymemory_core::sources` is a thin layer over it —
@@ -708,19 +730,6 @@ tinyflows-sqlite = { path = "../../vendor/tinyflows/crates/tinyflows-sqlite", fe
 # `key` here does not put the derivation stack back into the product.
 tinywallet = { path = "../../vendor/tinywallet", default-features = false, features = ["key", "btc", "evm", "solana", "tron"] }
 k256 = { version = "0.13", default-features = false, features = ["std", "ecdsa"] }
-# The fake memory driver the host's own tests bind, in place of an in-process
-# engine (openhuman#6161). It serves every optional family, so a handler that
-# asks for one by accessor gets `Some` rather than taking the `None` arm as
-# "unsupported" — which is the whole reason the fixture used to construct a real
-# `TinycortexProvider`.
-#
-# It costs this manifest nothing. The crate is `publish = false` and reached by
-# path like `tinymemory-api`, and its only dependencies are `tinymemory-api`,
-# `async-trait`, `serde_json` and `anyhow` — all already in the product graph.
-# By construction it cannot pull an engine back in: `tinymemory-conformance`
-# refuses to depend on `tinymemory-core`, and its CI asserts that, because a
-# conformance suite that reached an engine could not prove interchangeability.
-tinymemory-conformance = { path = "../../vendor/tinymemory/crates/tinymemory-conformance" }
 # `agent_orchestration::tools::tools_e2e_tests` (a #[cfg(test)] LIB module)
 # initialises it; the bins that used to share it live in `crates/openhuman-cli`.
 env_logger = "0.11"
