@@ -55,7 +55,7 @@ ollama pull bge-m3             # memory embeddings (1024 dimensions)
 
 In LM Studio, download the model in LM Studio and load it. For MLX or another server, start it with the model you want served.
 
-See [Local models & bring your own key](../features/model-routing/local-and-byok-models.md#2-know-what-each-model-supports) for which models can do chat, vision, and embeddings.
+See [Local models & bring your own key](../features/model-routing/local-and-byok-models.md) for which models can do chat, vision, and embeddings.
 
 ### 3. Add the endpoint as a provider
 
