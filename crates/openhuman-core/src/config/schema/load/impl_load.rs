@@ -501,7 +501,7 @@ impl Config {
                     "[config] Config file already renamed by read recovery; \
                      persisting recovered config"
                 );
-                if let Err(e) = config.save().await {
+                if let Err(e) = Box::pin(config.save()).await {
                     tracing::warn!(
                         path = %config.config_path.display(),
                         error = %e,
@@ -517,7 +517,7 @@ impl Config {
                             dst = %corrupted_path.display(),
                             "[config] Renamed corrupted config; persisting recovered config"
                         );
-                        if let Err(e) = config.save().await {
+                        if let Err(e) = Box::pin(config.save()).await {
                             tracing::warn!(
                                 path = %config.config_path.display(),
                                 error = %e,
@@ -554,7 +554,7 @@ impl Config {
             // insecure ciphertext stops living on disk (audit C8). A save
             // failure is non-fatal -- the config is still usable in memory
             // and migration will be retried on the next startup.
-            if let Err(e) = config.save().await {
+            if let Err(e) = Box::pin(config.save()).await {
                 log::warn!(
                     "[security][config] failed to persist enc: -> enc2: secret migration; \
                          will retry on next startup: {e}"
@@ -583,7 +583,7 @@ impl Config {
         // was made. Seed before the first `save` so the entry is on disk
         // from the very first write rather than on some later one.
         crate::config::migrations::seed_new_workspace(&mut config);
-        config.save().await?;
+        Box::pin(config.save()).await?;
 
         #[cfg(unix)]
         {
@@ -633,7 +633,8 @@ impl Config {
         // However, we still use `read_config_with_recovery_or_default` to handle the
         // non-UTF-8 case: a corrupted file is renamed to `.corrupted.<ts>` so the next
         // authoritative load can create a fresh config.
-        let (raw, _read_was_recovered) = read_config_with_recovery_or_default(&config_path).await?;
+        let (raw, _read_was_recovered) =
+            Box::pin(read_config_with_recovery_or_default(&config_path)).await?;
         let (mut config, _was_corrupted) = parse_config_with_recovery(&config_path, &raw).await;
         config.config_path = config_path;
         config.workspace_dir = workspace_dir;
@@ -679,7 +680,8 @@ impl Config {
             );
         }
 
-        let (raw, read_was_recovered) = read_config_with_recovery_or_default(&config_path).await?;
+        let (raw, read_was_recovered) =
+            Box::pin(read_config_with_recovery_or_default(&config_path)).await?;
         let (mut config, config_was_corrupted) = if read_was_recovered && raw.is_empty() {
             (Config::default(), true)
         } else {
