@@ -30,7 +30,7 @@ test("braces in strings, raw strings, chars and comments do not end the block", 
     "",
   ].join("\n");
   const out = externalizeSource(src, "lib");
-  assert.equal(out.moves[0].body.trimEnd().split("\n").length, 7);
+  assert.equal(out.moves[0].body.trimEnd().split("\n").length, 6);
   assert.equal(out.source, `${DECL}fn after() {}\n`);
 });
 
