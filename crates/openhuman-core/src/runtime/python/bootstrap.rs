@@ -4,15 +4,6 @@
 //! pipeline. Both now live in the `tinyruntime` module, which does the same work
 //! for every language, so what is left is the adapter that turns a module answer
 //! into the [`ResolvedPython`] this core's callers already name.
-//!
-//! # What still happens here
-//!
-//! [`spawn_stdio`](PythonBootstrap::spawn_stdio) launches a long-lived Python
-//! child of this process — the runtime Python server, and the stdio MCP servers.
-//! That is deliberately *not* the module's pooled execution: those children
-//! outlive a single job, speak their own protocols, and are owned by the
-//! subsystem that started them. The module resolves the interpreter; this core
-//! decides what to run with it.
 
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
