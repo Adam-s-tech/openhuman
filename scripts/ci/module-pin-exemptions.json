@@ -9,56 +9,20 @@
     "is a deliberate edit to this file, which is a reviewable diff.",
     "",
     "Delete an entry the moment the pins are reconciled. An exemption that has",
-    "stopped being true fails the gate too — `expect` must still match."
+    "stopped being true fails the gate too \u2014 `expect` must still match."
   ],
   "exemptions": [
     {
-      "id": "tinymcp",
-      "submodule": "vendor/tinymcp",
-      "expect": "v0.3.5-113-g74e8b109",
-      "reason": "The main-branch TinyMCP submodule pin includes upstream changes after PR #30, while no matching tinymcp module release and digest have been published, plus tinymcp#33 (branch w4-mcp-hosts): the optional library-only `tools` additions `tinymcp::tools::{SecretScrubber, McpListServersTool, McpListToolsTool, McpCallTool}`, which the core links as a Rust path dependency and which the loadable module artifact does not build (the feature is off for the cdylib). Keep the registry artifact pinned to the verified v0.3.5 release and remove this exact source/artifact drift exemption when a matching release and digest are available."
-    },
-    {
-      "id": "tinyruntime",
-      "submodule": "vendor/tinyruntime",
-      "expect": "v0.2.7-6-g1be38d24",
-      "reason": "The pin is v0.2.7 plus only the new pure-library crate tinyruntime-pyserver (tinyhumansai/tinyruntime#19, branch oh-pyserver-on-v0.2.7), which the core links as a Rust path dependency for runtime::python_server. No module, contract or bus source changes relative to v0.2.7, so the registry's artifact still matches the contract compiled here. Remove when tinyruntime#19 ships in a release and both pins move to it."
-    },
-    {
       "id": "tinyruntime-nodejs",
       "submodule": "vendor/tinyruntime",
-      "expect": "v0.2.7-6-g1be38d24",
-      "reason": "The provider is published independently at v0.2.3 while the shared source pin is tinyruntime v0.2.7. v0.2.3 was built against tinyruntime 09f9646 (v0.2.4-5); git diff 09f9646..v0.2.7 changes no crate source (only CI, toolchain, versions, Cargo.lock and the tinybus pin), and the tinybus module ABI is revision 1 on both. Registry retains its matching published v0.2.3 provider artifact. The shared source pin additionally carries tinyruntime-pyserver: The pin is v0.2.7 plus only the new pure-library crate tinyruntime-pyserver (tinyhumansai/tinyruntime#19, branch oh-pyserver-on-v0.2.7), which the core links as a Rust path dependency for runtime::python_server. No module, contract or bus source changes relative to v0.2.7, so the registry's artifact still matches the contract compiled here. Remove when tinyruntime#19 ships in a release and both pins move to it."
+      "expect": "v0.2.8",
+      "reason": "The provider is published from its own repository (tinyhumansai/tinyruntime-nodejs) on its own version line, v0.2.3, while the shared source pin is tinyruntime v0.2.8. v0.2.3 was built against tinyruntime 09f9646 (v0.2.4-5); git diff 09f9646..v0.2.8 touches no module, contract or bus source (only the new pure-library crate tinyruntime-pyserver, CI, toolchain, versions, Cargo.lock and the tinybus pin), and the tinybus module ABI is revision 1 on both. The provider repository's main only adds opt-in static-linkage code that the cdylib release does not use. Remove when the provider is re-released against tinyruntime v0.2.8 and the gate compares the provider's own pin."
     },
     {
       "id": "tinyruntime-python",
       "submodule": "vendor/tinyruntime",
-      "expect": "v0.2.7-6-g1be38d24",
-      "reason": "The provider is published independently at v0.2.3 while the shared source pin is tinyruntime v0.2.7. v0.2.3 was built against tinyruntime 09f9646 (v0.2.4-5); git diff 09f9646..v0.2.7 changes no crate source (only CI, toolchain, versions, Cargo.lock and the tinybus pin), and the tinybus module ABI is revision 1 on both. Registry retains its matching published v0.2.3 provider artifact. The shared source pin additionally carries tinyruntime-pyserver: The pin is v0.2.7 plus only the new pure-library crate tinyruntime-pyserver (tinyhumansai/tinyruntime#19, branch oh-pyserver-on-v0.2.7), which the core links as a Rust path dependency for runtime::python_server. No module, contract or bus source changes relative to v0.2.7, so the registry's artifact still matches the contract compiled here. Remove when tinyruntime#19 ships in a release and both pins move to it."
-    },
-    {
-      "id": "tinybox",
-      "submodule": "vendor/tinybox",
-      "expect": "v0.1.10-5-g4dbf9e04",
-      "reason": "The submodule pin is tinybox main (v0.1.10, already ahead of the registry's v0.1.8 record, which this change does not touch) plus only pure-library additions to tinybox-docker: the `OneShot`/`DockerCli` one-shot `docker run --rm` API (tinyhumansai/tinybox#17, branch w5-docker-oneshot), which the core links as a Rust path dependency for `sandbox::docker`. No module, contract or bus source changes relative to v0.1.10, so the registry's v0.1.8 artifact still matches the contract compiled here. Remove when tinybox#17 ships in a release and both pins move to it."
-    },
-    {
-      "id": "tinyvoice",
-      "submodule": "vendor/tinyvoice",
-      "expect": "v0.1.8-14-geb8b8730",
-      "reason": "The pin is v0.1.8 plus only the new off-by-default `hotkey` (tinyhumansai/tinyvoice#16, branch oh-hotkey-on-v0.1.8) and `capture` (tinyhumansai/tinyvoice#17, branch oh-capture-on-v0.1.8, stacked on the hotkey pin) cargo features of the tinyvoice library crate, which the core links as a Rust path dependency for voice::hotkey, voice::audio_capture and voice::always_on. Neither feature is enabled in tinyvoice-module and no module, contract or bus source changes relative to v0.1.8, so the registry's v0.1.8 artifact still matches the contract compiled here. Remove when tinyvoice#16 and #17 ship in a release and both pins move to it."
-    },
-    {
-      "id": "tinycomputer",
-      "submodule": "vendor/tinycomputer",
-      "expect": "v0.7.0-72-gc2f5adb1",
-      "reason": "The pin is main after tinycomputer#63 (tinycomputer-accessibility, which the core links as a Rust path dependency; 71 commits past v0.7.0) plus only the new off-by-default `paste` feature of tinycomputer-accessibility (tinyhumansai/tinycomputer#65, branch w4-tinycomputer-paste: arboard + enigo clipboard-paste text insertion for voice dictation). No module, contract or bus source changes that the registry's v0.7.0 artifact does not already cover. Remove when tinycomputer#63 and #65 ship in a release and both pins move to it."
-    },
-    {
-      "id": "tinyhosts",
-      "submodule": "vendor/tinyhosts",
-      "expect": "v0.1.10-9-ge041ad00",
-      "reason": "The registry artifact stays on the verified v0.1.9 release. The gitlink was already at v0.1.10 on main (pre-existing drift) and now adds only the library-only, off-by-default `tools` feature (tinyhumansai/tinyhosts#16) that the core links for the hosting_* agent tools; the module cdylib is unaffected. Remove when a tinyhosts release containing #16 is pinned in the registry with digests from its checksum.toml."
+      "expect": "v0.2.8",
+      "reason": "The provider is published from its own repository (tinyhumansai/tinyruntime-python) on its own version line, v0.2.3, while the shared source pin is tinyruntime v0.2.8. v0.2.3 was built against tinyruntime 09f9646 (v0.2.4-5); git diff 09f9646..v0.2.8 touches no module, contract or bus source (only the new pure-library crate tinyruntime-pyserver, CI, toolchain, versions, Cargo.lock and the tinybus pin), and the tinybus module ABI is revision 1 on both. The provider repository's main only adds opt-in static-linkage code that the cdylib release does not use. Remove when the provider is re-released against tinyruntime v0.2.8 and the gate compares the provider's own pin."
     }
   ]
 }
