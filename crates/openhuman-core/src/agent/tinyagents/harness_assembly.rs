@@ -8,7 +8,7 @@ use tinyagents_harness::cache::InMemoryResponseCache;
 use tinyagents_harness::middleware::{
     plan_mode_middleware, ArgRecoveryMiddleware, BudgetLimits, BudgetMiddleware,
     ContextCompressionMiddleware, PromptCacheGuardMiddleware, RepeatProgressMiddleware,
-    RunModeHandle, ToolPolicyMiddleware as TaToolPolicyMiddleware,
+    ApprovalGateMiddleware, RunModeHandle, ToolPolicyMiddleware as TaToolPolicyMiddleware,
 };
 use tinyagents_harness::runtime::AgentHarness;
 use tinyagents_harness::steering::SteeringHandle;
@@ -610,8 +610,9 @@ pub(super) fn assemble_turn_harness(
     // an approved call records a terminal audit row. Replaces the inline approval
     // block that used to live in the legacy tool adapter.
     if !hosted_security_gate {
-        harness.push_tool_middleware(Arc::new(middleware::ApprovalSecurityMiddleware::new(
-            tool_sets.clone(),
+        harness.push_tool_middleware(Arc::new(ApprovalGateMiddleware::new(
+            "approval_security",
+            Arc::new(middleware::ApprovalSecurityMiddleware::new(tool_sets.clone())),
         )));
     }
 
