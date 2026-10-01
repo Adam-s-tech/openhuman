@@ -7,11 +7,10 @@
 //! the `thread_*` tool family; the op below still backs the RPC surface.
 //! against that on-disk data under a per-test temp `OPENHUMAN_WORKSPACE`.
 //!
-//! Run with: `cargo test --test transcript_search_e2e`
+//! Run with: `cargo test -p openhuman-cli --test in_process_all transcript_search_e2e`
 
-use crate::env_guard::EnvVarGuard;
+use crate::env_guard::{env_lock, EnvVarGuard};
 use std::path::Path;
-use std::sync::OnceLock;
 
 use serde_json::json;
 use tempfile::tempdir;
@@ -21,17 +20,7 @@ use openhuman_core::memory::conversations::{
 };
 use openhuman_core::threads::ops::transcript_search;
 
-// ── Env isolation (mirrors tests/memory_roundtrip_e2e.rs) ────────────────────
-
-/// Serialises tests: `HOME` + `OPENHUMAN_WORKSPACE` are process-global.
-static ENV_LOCK: OnceLock<tokio::sync::Mutex<()>> = OnceLock::new();
-
-async fn env_lock() -> tokio::sync::MutexGuard<'static, ()> {
-    ENV_LOCK
-        .get_or_init(|| tokio::sync::Mutex::new(()))
-        .lock()
-        .await
-}
+// ── Env isolation ────────────────────
 
 // ── Fixture helpers ──────────────────────────────────────────────────────────
 
