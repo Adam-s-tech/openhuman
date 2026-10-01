@@ -2028,8 +2028,9 @@ fn report_expected_message(kind: ExpectedErrorKind, message: &str, domain: &str,
             );
         }
         ExpectedErrorKind::LocalAiBinaryMissing => {
-            // User-state condition: the piper or Ollama binary
-            // isn't installed on this host. The error message itself is
+            // User-state condition: the piper binary (used for local
+            // TTS) isn't installed on this host. OpenHuman never installs
+            // it, nor any local model runtime. The error message itself is
             // the user-facing instruction ("Set PIPER_BIN or install
             // piper.") — Sentry has nothing to act on, since we can't
             // install the binary for them. OPENHUMAN-TAURI-9N is the

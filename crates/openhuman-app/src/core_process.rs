@@ -703,12 +703,13 @@ impl CoreProcessHandle {
     ///
     /// The moment is sized from what that teardown is allowed to take, so the
     /// abort below never lands in the middle of it: the memory exit budget
-    /// (`EXIT_BUDGET`, every driver and the hook registry on one deadline),
-    /// the ollama cleanup after it in `CoreRuntime::exit_cleanup` (2 s), and half a second
-    /// for the drain itself. Typical quits finish in milliseconds; the budget
-    /// is only what a wedged store or daemon may cost.
+    /// (`EXIT_BUDGET`, every driver and the hook registry on one deadline)
+    /// plus half a second for the drain itself. There is no local-runtime
+    /// cleanup after it: OpenHuman never spawns Ollama / LM Studio / MLX.
+    /// Typical quits finish in milliseconds; the budget is only what a wedged
+    /// store may cost.
     async fn drain_task_briefly(&self) {
-        const AFTER_MEMORY: Duration = Duration::from_millis(2_500);
+        const AFTER_MEMORY: Duration = Duration::from_millis(500);
         let budget = openhuman_core::memory::exit::EXIT_BUDGET + AFTER_MEMORY;
         let mut task_guard = self.task.lock().await;
         let Some(task) = task_guard.as_mut() else {
