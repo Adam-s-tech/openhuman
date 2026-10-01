@@ -12,8 +12,6 @@ use once_cell::sync::Lazy;
 use serde::de::DeserializeOwned;
 use serde_json::{json, Value};
 
-use super::endpoints::rpc_url_for_chain;
-use super::ops::WalletChain;
 
 const LOG_PREFIX: &str = "[wallet::rpc]";
 
