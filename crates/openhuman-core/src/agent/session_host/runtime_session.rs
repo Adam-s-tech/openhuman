@@ -1725,10 +1725,8 @@ impl OpenHumanSessionHost {
                             .history
                             .iter()
                             .rev()
-                            .find_map(|message| match message {
-                                Message::User(_) => Some(user_text_with_markers(message)),
-                                _ => None,
-                            })
+                            .find(|message| matches!(message, Message::User(_)))
+                            .map(user_text_with_markers)
                             .unwrap_or_default();
                         let sidecar = receipt
                             .options
