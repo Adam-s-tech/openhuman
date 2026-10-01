@@ -6,9 +6,9 @@ use std::sync::Arc;
 
 use tinyagents_harness::cache::InMemoryResponseCache;
 use tinyagents_harness::middleware::{
-    plan_mode_middleware, ArgRecoveryMiddleware, BudgetLimits, BudgetMiddleware,
-    ContextCompressionMiddleware, PromptCacheGuardMiddleware, RepeatProgressMiddleware,
-    ApprovalGateMiddleware, RunModeHandle, ToolPolicyMiddleware as TaToolPolicyMiddleware,
+    plan_mode_middleware, ApprovalGateMiddleware, ArgRecoveryMiddleware, BudgetLimits,
+    BudgetMiddleware, ContextCompressionMiddleware, PromptCacheGuardMiddleware,
+    RepeatProgressMiddleware, RunModeHandle, ToolPolicyMiddleware as TaToolPolicyMiddleware,
 };
 use tinyagents_harness::runtime::AgentHarness;
 use tinyagents_harness::steering::SteeringHandle;
@@ -612,7 +612,9 @@ pub(super) fn assemble_turn_harness(
     if !hosted_security_gate {
         harness.push_tool_middleware(Arc::new(ApprovalGateMiddleware::new(
             "approval_security",
-            Arc::new(middleware::ApprovalSecurityMiddleware::new(tool_sets.clone())),
+            Arc::new(middleware::ApprovalSecurityMiddleware::new(
+                tool_sets.clone(),
+            )),
         )));
     }
 

@@ -62,10 +62,7 @@ impl ToolCallPolicy<OpenHumanRunContext> for SessionToolPolicy {
         call: &TaToolCall,
     ) -> PolicyDecision {
         use crate::agent::tool_policy::{ToolCallContext, ToolPolicyRequest};
-        let decision = self
-            .gate
-            .check(ctx, &call, desktop_approval_disabled)
-            .await;
+        let decision = self.gate.check(ctx, &call, desktop_approval_disabled).await;
         let policy_name = self.gate.policy_name();
         if let Some(reason) = decision.blocking_reason() {
             let blocked_action = match &decision {
