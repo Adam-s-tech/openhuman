@@ -18,17 +18,16 @@ use serde_json::{json, Value};
 use tempfile::{tempdir, TempDir};
 
 use openhuman_core::config::schema::{
-    AuditConfig, CapabilityProviderConfig,
-    CapabilityProviderTrustState, DashboardConfig,
+    AuditConfig, CapabilityProviderConfig, CapabilityProviderTrustState, DashboardConfig,
     DingTalkConfig, DiscordConfig, EventStreamConfig, IrcConfig, LarkConfig, MatrixConfig,
-    MemoryConfig, ModelHealthConfig, ProxyScope, QQConfig, ResourceLimitsConfig, SandboxConfig, SecurityConfig, SlackConfig,
-    TelegramConfig, WebhookConfig, WhatsAppConfig,
+    MemoryConfig, ModelHealthConfig, ProxyScope, QQConfig, ResourceLimitsConfig, SandboxConfig,
+    SecurityConfig, SlackConfig, TelegramConfig, WebhookConfig, WhatsAppConfig,
 };
 use openhuman_core::config::settings_cli::{settings_section_json, ConfigSnapshotFields};
 use openhuman_core::config::{
-    clear_active_user, default_projects_dir, pre_login_user_dir,
-    read_active_user_id, user_openhuman_dir, write_active_user_id, Config, DaemonConfig, DictationActivationMode, LlmBackend,
-    ReflectionSource, UpdateRestartStrategy,
+    clear_active_user, default_projects_dir, pre_login_user_dir, read_active_user_id,
+    user_openhuman_dir, write_active_user_id, Config, DaemonConfig, DictationActivationMode,
+    LlmBackend, ReflectionSource, UpdateRestartStrategy,
 };
 use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
 use openhuman_core::core::events::DomainEvent;

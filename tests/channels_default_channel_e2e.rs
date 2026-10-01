@@ -255,23 +255,6 @@ async fn rpc(base: &str, id: i64, method: &str, params: Value) -> Value {
         .unwrap_or_else(|err| panic!("json for {method}: {err}"))
 }
 
-fn ok<'a>(value: &'a Value, context: &str) -> &'a Value {
-    if let Some(error) = value.get("error") {
-        panic!("{context}: unexpected JSON-RPC error: {error}");
-    }
-    value
-        .get("result")
-        .unwrap_or_else(|| panic!("{context}: missing result: {value}"))
-}
-
-fn payload<'a>(value: &'a Value, context: &str) -> &'a Value {
-    let outer = ok(value, context);
-    outer
-        .get("data")
-        .or_else(|| outer.get("result"))
-        .unwrap_or(outer)
-}
-
 async fn set_default(harness: &Harness, id: i64, channel: &str) -> Value {
     rpc(
         &harness.rpc_base,

@@ -2289,7 +2289,6 @@ mod streaming_support {
         usage.cache_read_tokens = 2;
         ModelResponse::assistant(text).with_usage(usage)
     }
-
 }
 
 // ─── Per-model-call wall-clock ceiling (#5766 / PR #5767) ────────────────────
