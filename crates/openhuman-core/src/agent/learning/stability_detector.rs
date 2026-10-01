@@ -558,3 +558,7 @@ pub(crate) use helpers::*;
 #[cfg(test)]
 #[path = "stability_detector_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "stability_detector_tests_2_tests.rs"]
+mod tests_rebuild_time;
