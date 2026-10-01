@@ -52,7 +52,14 @@ runner behind both surfaces.
    `web_errors::classify_inference_error` into the user-facing `chat_error`
    (budget-exhausted, non-retryable rate limit, fallback-chain-exhausted, turn
    timeout, and so on) and decides via `sentry_suppression_reason` whether it
-   pages.
+   pages. The event carries `message` (finished English copy, unchanged for
+   older UIs, the CLI, the TUI and embedders) plus `copy_key`
+   (`chat_error.<class>`, one per row of `inference/failure_copy/table.rs`) and
+   `copy_params` (`retry_after_secs`, `provider`, `detail`); the app renders
+   the key in the user's locale (`app/src/lib/chatErrorCopy.ts`) and falls back
+   to `message` for an unknown or missing key. Loop-guard halt summaries are
+   not `chat_error` events (they become the turn's reply text), so they carry
+   no key.
 
 Host-authored turns, meaning background-delivery notices
 (`agent::orchestration::background_delivery`) and goal continuations

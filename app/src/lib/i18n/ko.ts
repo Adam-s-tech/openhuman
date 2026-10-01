@@ -5285,6 +5285,65 @@ const messages: TranslationMap = {
   'memoryEngine.engine.cognee.description': 'Cognee 지식 그래프 메모리, 클라우드 또는 자체 호스팅.',
   'memoryEngine.engine.agentmemory.label': 'AgentMemory',
   'memoryEngine.engine.agentmemory.description': '직접 실행하는 AgentMemory 서버.',
+
+  // Chat failure copy: localized render of chat_error.message, keyed by chat_error.copy_key
+  'chat_error.codex_session_expired':
+    'Codex 세션이 만료되었습니다. 설정 → 통합에서 다시 연결해 주세요.',
+  'chat_error.session_expired': 'OpenHuman 세션이 만료되었습니다. 계속하려면 다시 로그인해 주세요.',
+  'chat_error.action_budget':
+    'OpenHuman의 시간당 작업 한도에 도달했습니다. 이는 AI 제공업체가 아니라 로컬 안전 한도입니다. 한도는 서서히 회복되므로 이 스레드에서 계속 대화할 수 있으며, 도구를 많이 쓰는 단계는 한도가 채워지는 대로 재개됩니다.',
+  'chat_error.max_iterations':
+    '에이전트가 한 턴에서 허용된 최대 도구 단계 수를 실행했지만 끝내지 못했습니다. 보통 도구가 계속 실패했다는 뜻입니다(웹 가져오기의 요청 한도인 경우가 많습니다). 한도가 풀리면 이 스레드에서 같은 질문을 다시 시도할 수 있습니다.',
+  'chat_error.turn_timeout':
+    '이 턴이 제한 시간을 넘겨 끝나지 않아 멈춰 있지 않도록 중단되었습니다. 보통 도구 호출이나 위임된 하위 에이전트가 멈췄다는 뜻입니다. 이 스레드에서 질문을 다시 시도할 수 있습니다.',
+  'chat_error.empty_response':
+    '모델이 빈 응답을 반환했습니다. 다시 시도해 주세요. 계속되면 다른 모델을 사용하거나 연결 → API 키 → LLM에서 설정을 확인해 주세요.',
+  'chat_error.chat_template_rejected':
+    '이 모델의 채팅 템플릿이 요청을 거부했습니다. 모델, 온도, API 키의 문제가 아닙니다. 기본 도구 호출을 지원하지 않는 로컬 모델은 자체 채팅 템플릿으로 구동되며, 일부 템플릿은 도구 단계의 메시지 형식을 거부합니다. 새 채팅을 시작해 기록을 초기화하거나 연결 → API 키 → LLM에서 기본 도구를 지원하는 모델을 선택해 주세요.',
+  'chat_error.rate_limited':
+    'AI 제공업체가 요청 속도를 제한하고 있습니다. 스레드 차단이 아니라 제공업체의 일시적인 한도입니다. 이 스레드에서 다시 시도할 수 있습니다.',
+  'chat_error.rate_limited_billing':
+    'AI 제공업체가 결제 또는 요금제 문제로 요청을 거부하고 있습니다(크레딧 소진, 요금제 한도 또는 사용할 수 없는 모델). 다시 시도해도 해결되지 않습니다. 설정을(를) 열어 충전하거나 요금제를 올리거나 다른 모델을 선택해 주세요.',
+  'chat_error.managed_rate_limited':
+    'AI 제공업체가 요청 속도를 제한하고 있습니다. 이 스레드에서 다시 시도할 수 있습니다.',
+  'chat_error.timeout': '요청 시간이 초과되었습니다. 연결을 확인하고 다시 시도해 주세요.',
+  'chat_error.auth_error':
+    'AI 제공업체와의 인증에 문제가 있습니다. 설정에서 API 키를 확인해 주세요.',
+  'chat_error.budget_exhausted':
+    '크레딧이 소진되어 지금은 관리형(클라우드) 모델을 실행할 수 없습니다. 크레딧을 충전하거나 요금제를 선택해 계속할 수 있습니다. 또는 Ollama 같은 로컬 모델을 켰다면 연결 → API 키 → LLM에서 라우팅을 "자체 모델 사용"(으)로 바꿔 주세요.',
+  'chat_error.managed_budget_exhausted':
+    "크레딧이 소진되었습니다. 충전하거나 설정에서 '자체 모델 사용'(으)로 전환해 주세요.",
+  'chat_error.provider_unavailable':
+    'AI 제공업체를 일시적으로 사용할 수 없습니다. 나중에 다시 시도해 주세요.',
+  'chat_error.managed_unavailable':
+    'AI 서비스를 일시적으로 사용할 수 없습니다. 저희에게 알림이 전달되었습니다. 잠시 후 다시 시도해 주세요.',
+  'chat_error.payload_too_large':
+    '메시지 또는 첨부 파일이 이 모델에 비해 너무 큽니다. 줄이거나 첨부 파일을 제거하거나 새 스레드를 시작해 주세요.',
+  'chat_error.context_overflow': '대화가 너무 깁니다. 새 채팅을 시작해 주세요.',
+  'chat_error.model_config_rejected':
+    'AI 제공업체가 요청의 모델 또는 온도 설정을 거부했습니다. 설정 → LLM에서 모델과 라우팅을 확인해 주세요.',
+  'chat_error.model_unavailable':
+    '선택한 모델을 제공업체에서 사용할 수 없습니다. 모델 설정을 확인해 주세요.',
+  'chat_error.capability_unsupported':
+    '이 모델은 이미지를 처리할 수 없습니다. 첨부 파일을 제거하거나 연결 → API 키 → LLM에서 비전을 지원하는 모델로 전환해 주세요.',
+  'chat_error.malformed_history':
+    '이 대화에 일시적인 문제가 있었으며 해결했습니다. 메시지를 다시 보내 주세요.',
+  'chat_error.request_rejected':
+    'AI 제공업체가 요청을 거부했습니다. 보통 모델 또는 매개변수가 맞지 않아서입니다. 연결 → API 키 → LLM에서 다른 모델을 시도해 보세요.',
+  'chat_error.managed_request_rejected':
+    '요청이 거부되었습니다. 보통 모델 또는 매개변수가 맞지 않아서입니다. 연결 → API 키 → LLM에서 다른 모델을 시도해 보세요.',
+  'chat_error.managed_malformed_request':
+    '이 메시지에 문제가 생겼습니다. 표현을 바꿔 보시고, 계속되면 새 스레드를 시작해 주세요.',
+  'chat_error.network':
+    '응답 도중 AI 서비스와의 연결이 끊겼습니다. 보통 절전 모드 해제나 네트워크 변경 때문입니다. 다시 시도해 주세요.',
+  'chat_error.inference': '문제가 발생했습니다. 다시 시도해 주세요.',
+  'chat_error.managed_internal':
+    '문제가 발생했습니다. 저희에게 알림이 전달되었습니다. 다시 시도해 주세요.',
+  'chat_error.retryHint.immediately': '바로 다시 시도할 수 있습니다.',
+  'chat_error.retryHint.oneSecond': '1초 후에 다시 시도해 주세요.',
+  'chat_error.retryHint.seconds': '{n}초 후에 다시 시도해 주세요.',
+  'chat_error.retryHint.aboutMinute': '약 1분 후에 다시 시도해 주세요.',
+  'chat_error.retryHint.aboutMinutes': '약 {n}분 후에 다시 시도해 주세요.',
 };
 
 export default messages;

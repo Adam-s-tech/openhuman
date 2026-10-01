@@ -48,7 +48,7 @@ pub(super) fn classify_by_backend_error_code(
         provider,
     );
 
-    use super::classify::{classified, classified_plain};
+    use super::classify::{classified, classified_plain, copy_params};
     use crate::inference::failure_copy::{failure_copy, FailureClass as C};
 
     let classified = match code {
@@ -56,6 +56,7 @@ pub(super) fn classify_by_backend_error_code(
             let retry_secs = parse_retry_after_secs(err);
             ClassifiedError {
                 retry_after_ms: retry_secs.map(|s| s.saturating_mul(1000)),
+                copy_params: copy_params(provider.as_deref(), retry_secs, None),
                 ..classified(
                     C::ManagedRateLimited,
                     format!(

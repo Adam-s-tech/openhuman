@@ -8,11 +8,11 @@ use super::retry::{is_non_retryable_rate_limit_text, retry_after_hint};
 use super::timeout::is_turn_timeout_error;
 use crate::inference::failure_copy::{failure_copy, FailureClass};
 use tinyinference_llm::failure::{
-    extract_provider_name, is_auth_error_text, is_codex_token_expired_text,
-    is_connection_dropped_text, is_context_length_text, is_empty_provider_response_text,
-    is_fallback_chain_exhausted, is_malformed_tool_history_text, is_model_unavailable_text,
-    is_payment_required_text, is_provider_request_rejected_text, is_rate_limit_text,
-    is_server_error_text, is_timeout_text, is_transient_unavailability_text,
+    extract_provider_error_detail, extract_provider_name, is_auth_error_text,
+    is_codex_token_expired_text, is_connection_dropped_text, is_context_length_text,
+    is_empty_provider_response_text, is_fallback_chain_exhausted, is_malformed_tool_history_text,
+    is_model_unavailable_text, is_payment_required_text, is_provider_request_rejected_text,
+    is_rate_limit_text, is_server_error_text, is_timeout_text, is_transient_unavailability_text,
     is_vision_unsupported_text, parse_retry_after_secs, with_provider_detail,
 };
 
@@ -67,6 +67,33 @@ pub(crate) struct ClassifiedError {
     /// can't tell from the error string alone — the FE should treat it
     /// as "unknown, don't promise a fallback".
     pub(crate) fallback_available: Option<bool>,
+    /// Stable i18n key of the table row (`chat_error.<class>`), sent as
+    /// `copy_key` so the frontend can render `message` in the user's locale.
+    pub(crate) copy_key: &'static str,
+    /// Values the translated copy needs, sent as `copy_params`:
+    /// `retry_after_secs` (the countdown sentence), `provider`, and `detail`
+    /// (the sanitized provider error quoted under the copy). `None` when the
+    /// row has none.
+    pub(crate) copy_params: Option<serde_json::Value>,
+}
+
+/// Build the `copy_params` object; `None` when every value is absent.
+pub(super) fn copy_params(
+    provider: Option<&str>,
+    retry_after_secs: Option<u64>,
+    detail: Option<String>,
+) -> Option<serde_json::Value> {
+    let mut params = serde_json::Map::new();
+    if let Some(secs) = retry_after_secs {
+        params.insert("retry_after_secs".to_string(), secs.into());
+    }
+    if let Some(provider) = provider {
+        params.insert("provider".to_string(), provider.into());
+    }
+    if let Some(detail) = detail {
+        params.insert("detail".to_string(), detail.into());
+    }
+    (!params.is_empty()).then_some(serde_json::Value::Object(params))
 }
 
 /// Build the envelope for `class` from the copy table. `message` is the row's
@@ -84,8 +111,10 @@ pub(super) fn classified(
         source: row.source,
         retryable: row.retryable,
         retry_after_ms: None,
+        copy_params: copy_params(provider.as_deref(), None, None),
         provider,
         fallback_available,
+        copy_key: row.key,
     }
 }
 
@@ -97,7 +126,14 @@ fn classified_with_detail(
     fallback_available: Option<bool>,
 ) -> ClassifiedError {
     let message = with_provider_detail(failure_copy(class).copy, err);
-    classified(class, message, provider, fallback_available)
+    ClassifiedError {
+        copy_params: copy_params(
+            provider.as_deref(),
+            None,
+            extract_provider_error_detail(err),
+        ),
+        ..classified(class, message, provider, fallback_available)
+    }
 }
 
 /// [`classified`] with the row's copy verbatim.
@@ -224,6 +260,11 @@ pub(crate) fn classify_inference_error(err: &str) -> ClassifiedError {
         };
         ClassifiedError {
             retry_after_ms: retry_secs.map(|s| s.saturating_mul(1000)),
+            copy_params: copy_params(
+                provider.as_deref(),
+                retry_secs.filter(|_| !non_retryable),
+                extract_provider_error_detail(err),
+            ),
             ..classified(
                 class,
                 with_provider_detail(summary.as_str(), err),

@@ -202,6 +202,8 @@ impl EventHandler<DomainEvent> for ProactiveMessageSubscriber {
             error_retry_after_ms: None,
             error_provider: None,
             error_fallback_available: None,
+            copy_key: None,
+            copy_params: None,
             tool_name: None,
             skill_id: None,
             args: None,
