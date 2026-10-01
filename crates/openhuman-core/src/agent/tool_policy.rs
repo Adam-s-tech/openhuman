@@ -126,43 +126,11 @@ fn redact_for_debug(value: &str) -> String {
 }
 
 /// Decision returned by a [`ToolPolicy`].
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ToolPolicyDecision {
-    Allow,
-    /// The policy requires an approval handoff before execution.
-    ///
-    /// Session execution currently treats this as fail-closed through
-    /// [`ToolPolicyDecision::blocking_reason`]. Callers that can prompt for
-    /// approval may branch on this variant and retry after approval is granted.
-    RequireApproval {
-        reason: String,
-    },
-    Deny {
-        reason: String,
-    },
-}
-
-impl ToolPolicyDecision {
-    pub fn require_approval(reason: impl Into<String>) -> Self {
-        Self::RequireApproval {
-            reason: reason.into(),
-        }
-    }
-
-    pub fn deny(reason: impl Into<String>) -> Self {
-        Self::Deny {
-            reason: reason.into(),
-        }
-    }
-
-    /// Reason used by fail-closed executors that cannot complete approvals inline.
-    pub fn blocking_reason(&self) -> Option<&str> {
-        match self {
-            Self::Allow => None,
-            Self::RequireApproval { reason } | Self::Deny { reason } => Some(reason.as_str()),
-        }
-    }
-}
+///
+/// The vocabulary (allow / deny / require approval) is owned by the harness
+/// (`tinyagents_harness::middleware::PolicyDecision`); this alias keeps the
+/// host-facing name.
+pub type ToolPolicyDecision = tinyagents_harness::middleware::PolicyDecision;
 
 /// Policy middleware invoked before an agent executes a tool.
 #[async_trait]
