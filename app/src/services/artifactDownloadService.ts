@@ -1,11 +1,14 @@
 /**
  * Artifact export service (#2779).
  *
- * All paths first resolve the artifact's absolute on-disk path + meta
- * via the `openhuman.ai_get_artifact` core RPC, then hand a source path
- * + filename hint to the `download_artifact_to_downloads` Tauri command,
- * which copies into the user's Downloads directory with a non-colliding
- * name and returns the dest path so the UI can offer "Reveal in Finder".
+ * All paths first resolve the artifact's meta via the
+ * `openhuman.ai_get_artifact` core RPC (which also reports a file moved or
+ * deleted outside OpenHuman), then hand the artifact id + filename hint to
+ * the `download_artifact_to_downloads` Tauri command. The shell resolves the
+ * id through the core's artifact store itself — it never trusts a
+ * renderer-supplied path (#5505) — copies into the user's Downloads directory
+ * with a non-colliding name, and returns the dest path so the UI can offer
+ * "Reveal in Finder".
  *
  * {@link saveArtifactViaDialog} is kept as the name its callers use, but
  * the native Save-As dialog behind it was removed with the shell's `rfd`
@@ -247,7 +250,7 @@ export async function downloadArtifact(
 
   try {
     const dest = await invoke<string>('download_artifact_to_downloads', {
-      sourcePath: resolved.sourcePath,
+      artifactId,
       filename: resolved.filename,
     });
     return { ok: true, path: dest };

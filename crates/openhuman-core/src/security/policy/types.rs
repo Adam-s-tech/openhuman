@@ -190,6 +190,13 @@ pub(super) const WORKSPACE_INTERNAL_DIRS: &[&str] = &[
     "tinyplace",
 ];
 
+/// The artifact store under `workspace_dir`. Its per-artifact directories are
+/// internal state (see `is_workspace_internal_path`); only
+/// [`ARTIFACT_TOOL_RESULTS_DIR`] inside it stays agent-readable.
+pub(super) const ARTIFACTS_DIR: &str = "artifacts";
+/// Where oversized tool outputs are persisted for the agent to read back.
+pub(super) const ARTIFACT_TOOL_RESULTS_DIR: &str = "tool-results";
+
 /// Files directly under `workspace_dir` that hold secrets or persona config
 /// and must not be writable by agent tools.
 pub(super) const WORKSPACE_INTERNAL_FILES: &[&str] = &[

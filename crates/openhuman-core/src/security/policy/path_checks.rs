@@ -1,7 +1,9 @@
 use std::path::{Path, PathBuf};
 
 use super::types::{SecurityPolicy, TrustedAccess, POLICY_BLOCKED_MARKER};
-use super::types::{WORKSPACE_INTERNAL_DIRS, WORKSPACE_INTERNAL_FILES};
+use super::types::{
+    ARTIFACTS_DIR, ARTIFACT_TOOL_RESULTS_DIR, WORKSPACE_INTERNAL_DIRS, WORKSPACE_INTERNAL_FILES,
+};
 
 impl SecurityPolicy {
     /// Expand a leading `~/` to the user's home directory. Delegates to
@@ -413,6 +415,18 @@ impl SecurityPolicy {
                 })
         {
             return true;
+        }
+        // Artifact metadata (#5505): `artifacts/<id>/meta.json` names the file
+        // an artifact owns and Download / `read_artifact_bytes` follow it, so
+        // every per-artifact directory is internal state. `artifacts/tool-
+        // results/` is not: the agent reads its own large tool outputs back
+        // from there.
+        if component == ARTIFACTS_DIR {
+            if let Some(std::path::Component::Normal(second)) = relative.components().nth(1) {
+                if second != ARTIFACT_TOOL_RESULTS_DIR {
+                    return true;
+                }
+            }
         }
         // Check single-file entries (only if the relative path is exactly one component)
         if relative.components().count() == 1
