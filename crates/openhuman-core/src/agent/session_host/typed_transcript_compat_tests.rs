@@ -166,6 +166,73 @@ fn an_old_session_continued_by_this_binary_reloads_identically() {
     });
 }
 
+/// A live turn whose text carries a ready `[IMAGE:..]` marker persists the
+/// image as a typed `user_parts` row (not a text marker), a fresh process
+/// resumes the same model history, and the legacy `[IMAGE:]` text rows of the
+/// corpus (`image_user`) keep resuming to their golden.
+#[test]
+fn a_live_image_turn_persists_typed_image_parts_and_resumes_identically() {
+    run_async(async {
+        let root = tempfile::tempdir().expect("tempdir");
+        let thread = thread_id("live_image");
+        let mut host = build_host(
+            root.path(),
+            model(
+                vec![response(
+                    vec![ContentBlock::Text("saw it".into())],
+                    Vec::new(),
+                )],
+                true,
+            ),
+            true,
+            &thread,
+        );
+        let stem = host.session_id().expect("session id");
+        let png = "data:image/png;base64,iVBORw0KGgo=";
+        host.turn(&format!("look [IMAGE:{png}] please"))
+            .await
+            .expect("turn");
+        let history = serde_json::to_value(
+            host.runtime_session
+                .as_ref()
+                .expect("runtime session")
+                .history(),
+        )
+        .expect("history");
+        drop(host);
+
+        let path = stem_path(root.path(), &stem);
+        let raw = std::fs::read_to_string(&path).expect("transcript");
+        let user_line = message_lines(&raw)
+            .into_iter()
+            .find(|line| line["shape"] == "user_parts")
+            .expect("the image turn is a typed user_parts row");
+        assert!(!user_line["content"].as_str().unwrap().contains("[IMAGE:"));
+        assert_eq!(user_line["parts"][1]["type"], "image");
+        assert_eq!(user_line["parts"][1]["url"], png);
+        assert!(!raw.contains("[IMAGE:"), "no text marker is persisted");
+
+        let mut second = build_host(
+            root.path(),
+            model(vec![ModelResponse::assistant("unused")], true),
+            true,
+            &thread,
+        );
+        assert!(second.resume_bound_session().await.expect("resume"));
+        assert_eq!(
+            serde_json::to_value(
+                second
+                    .runtime_session
+                    .as_ref()
+                    .expect("runtime session")
+                    .history()
+            )
+            .expect("history"),
+            history
+        );
+    });
+}
+
 /// The host's own message bridge sees the same model messages whether a row
 /// was stored as a string envelope or as typed fields, for every shape
 /// (including an inline image, which the live flow only produces on a
