@@ -16,8 +16,6 @@
 //! ride along only while `observability.agent_tracing.capture_content` is on;
 //! disabling that flag withholds content and leaves metadata-only export.
 
-use std::time::Duration;
-
 mod environment;
 mod journal_export;
 
