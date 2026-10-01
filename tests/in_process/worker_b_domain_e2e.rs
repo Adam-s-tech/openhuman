@@ -5,113 +5,13 @@
 //! deterministic controller paths. External-service paths are asserted at
 //! validation/config boundaries so the suite stays hermetic.
 
-use std::net::SocketAddr;
-use std::path::Path;
-use std::sync::{Mutex, OnceLock};
-use std::time::Duration;
+use crate::env_guard::env_lock;
+use crate::env_guard::EnvVarGuard;
+use crate::rpc_harness::serve_rpc;
+use crate::rpc_harness::{ok, payload, rpc, schema, write_min_config};
 
-use axum::http::header::AUTHORIZATION;
-use reqwest::StatusCode;
 use serde_json::{json, Value};
 use tempfile::{tempdir, TempDir};
-
-use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
-use openhuman_rpc::server::build_core_http_router;
-
-const TEST_RPC_TOKEN: &str = "worker-b-domain-e2e-token";
-
-static AUTH_INIT: OnceLock<()> = OnceLock::new();
-static ENV_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
-
-struct EnvVarGuard {
-    key: &'static str,
-    old: Option<String>,
-}
-
-impl EnvVarGuard {
-    fn set_to_path(key: &'static str, path: &Path) -> Self {
-        let old = std::env::var(key).ok();
-        std::env::set_var(key, path.as_os_str());
-        Self { key, old }
-    }
-
-    fn set(key: &'static str, value: &str) -> Self {
-        let old = std::env::var(key).ok();
-        std::env::set_var(key, value);
-        Self { key, old }
-    }
-
-    fn unset(key: &'static str) -> Self {
-        let old = std::env::var(key).ok();
-        std::env::remove_var(key);
-        Self { key, old }
-    }
-}
-
-impl Drop for EnvVarGuard {
-    fn drop(&mut self) {
-        match &self.old {
-            Some(value) => std::env::set_var(self.key, value),
-            None => std::env::remove_var(self.key),
-        }
-    }
-}
-
-fn env_lock() -> std::sync::MutexGuard<'static, ()> {
-    let mutex = ENV_LOCK.get_or_init(|| Mutex::new(()));
-    match mutex.lock() {
-        Ok(guard) => guard,
-        Err(poisoned) => poisoned.into_inner(),
-    }
-}
-
-fn ensure_rpc_auth() {
-    AUTH_INIT.get_or_init(|| {
-        std::env::set_var(CORE_TOKEN_ENV_VAR, TEST_RPC_TOKEN);
-        let token_dir = std::env::temp_dir().join("openhuman-worker-b-domain-e2e-auth");
-        init_rpc_token(&token_dir).expect("init rpc auth token");
-    });
-}
-
-async fn serve_rpc() -> (
-    SocketAddr,
-    tokio::task::JoinHandle<Result<(), std::io::Error>>,
-) {
-    ensure_rpc_auth();
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
-        .await
-        .expect("bind rpc listener");
-    let addr = listener.local_addr().expect("rpc listener addr");
-    let router = build_core_http_router(false);
-    let join = tokio::spawn(async move { axum::serve(listener, router).await });
-    (addr, join)
-}
-
-fn write_min_config(openhuman_dir: &Path) {
-    std::fs::create_dir_all(openhuman_dir).expect("create .openhuman");
-    let cfg = r#"api_url = "http://127.0.0.1:9"
-default_model = "e2e-model"
-default_temperature = 0.2
-
-[secrets]
-encrypt = false
-
-[local_ai]
-enabled = false
-
-[memory]
-provider = "none"
-embedding_provider = "none"
-embedding_model = "none"
-embedding_dimensions = 0
-
-[memory_tree]
-embedding_strict = false
-"#;
-    std::fs::write(openhuman_dir.join("config.toml"), cfg).expect("write config.toml");
-    let _: openhuman_core::config::Config =
-        toml::from_str(cfg).expect("test config must match schema");
-}
 
 struct TestHarness {
     _tmp: TempDir,
@@ -151,63 +51,10 @@ async fn setup() -> TestHarness {
     }
 }
 
-async fn schema(rpc_base: &str) -> Value {
-    let url = format!("{}/schema", rpc_base.trim_end_matches('/'));
-    reqwest::get(&url)
-        .await
-        .unwrap_or_else(|err| panic!("GET {url}: {err}"))
-        .json::<Value>()
-        .await
-        .expect("schema json")
-}
-
-async fn rpc(rpc_base: &str, id: i64, method: &str, params: Value) -> Value {
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(30))
-        .build()
-        .expect("client");
-    let url = format!("{}/rpc", rpc_base.trim_end_matches('/'));
-    let response = client
-        .post(&url)
-        .header(AUTHORIZATION, format!("Bearer {TEST_RPC_TOKEN}"))
-        .json(&json!({
-            "jsonrpc": "2.0",
-            "id": id,
-            "method": method,
-            "params": params,
-        }))
-        .send()
-        .await
-        .unwrap_or_else(|err| panic!("POST {url} {method}: {err}"));
-    assert_eq!(
-        response.status(),
-        StatusCode::OK,
-        "HTTP transport should accept {method}"
-    );
-    response
-        .json::<Value>()
-        .await
-        .unwrap_or_else(|err| panic!("json for {method}: {err}"))
-}
-
-fn ok<'a>(value: &'a Value, context: &str) -> &'a Value {
-    if let Some(error) = value.get("error") {
-        panic!("{context}: unexpected JSON-RPC error: {error}");
-    }
-    value
-        .get("result")
-        .unwrap_or_else(|| panic!("{context}: missing result: {value}"))
-}
-
 fn err<'a>(value: &'a Value, context: &str) -> &'a Value {
     value
         .get("error")
         .unwrap_or_else(|| panic!("{context}: expected JSON-RPC error, got: {value}"))
-}
-
-fn payload<'a>(value: &'a Value, context: &str) -> &'a Value {
-    let result = ok(value, context);
-    result.get("result").unwrap_or(result)
 }
 
 fn error_message<'a>(value: &'a Value, context: &str) -> &'a str {

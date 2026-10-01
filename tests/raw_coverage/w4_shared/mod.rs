@@ -18,6 +18,7 @@
 //!    initialised first. `rpc_token()` below asks for whatever is actually
 //!    active. See `~/tinyhuman/bugs/e2e-wave-raw-coverage-shared-rpc-token.md`.
 
+use crate::env_guard::EnvVarGuard;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
@@ -74,40 +75,6 @@ fn rpc_token() -> &'static str {
             .expect("init_rpc_token must leave a token in place")
             .to_string()
     })
-}
-
-pub struct EnvVarGuard {
-    key: &'static str,
-    old: Option<String>,
-}
-
-impl EnvVarGuard {
-    pub fn set_to_path(key: &'static str, path: &Path) -> Self {
-        let old = std::env::var(key).ok();
-        std::env::set_var(key, path.as_os_str());
-        Self { key, old }
-    }
-
-    pub fn set(key: &'static str, value: &str) -> Self {
-        let old = std::env::var(key).ok();
-        std::env::set_var(key, value);
-        Self { key, old }
-    }
-
-    pub fn unset(key: &'static str) -> Self {
-        let old = std::env::var(key).ok();
-        std::env::remove_var(key);
-        Self { key, old }
-    }
-}
-
-impl Drop for EnvVarGuard {
-    fn drop(&mut self) {
-        match &self.old {
-            Some(v) => std::env::set_var(self.key, v),
-            None => std::env::remove_var(self.key),
-        }
-    }
 }
 
 pub async fn serve_on_ephemeral(

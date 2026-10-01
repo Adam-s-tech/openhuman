@@ -114,7 +114,7 @@ turn lifecycle are in `../session_host/`; `run_subagent`,
   beside each sub-module (`tool_result_artifacts/mod_tests.rs`,
   `artifact_offload/artifact_offload_tests.rs`,
   `archivist/{lifecycle,recap,resummarise}_tests.rs`).
-- Integration: `tests/agent_harness_public.rs`, `tests/agent_harness_e2e.rs`.
+- Integration: `tests/in_process/agent_harness_public.rs`, `tests/agent_harness_e2e.rs`.
 
 ## Notes / gotchas
 

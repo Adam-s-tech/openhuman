@@ -477,4 +477,3 @@ async fn composio_call(controller: &RegisteredController, params: Value) -> Resu
     let params = params.as_object().cloned().unwrap_or_default();
     (controller.handler)(params).await
 }
-

@@ -20,7 +20,7 @@
 //!   proves the handler wiring but never touches JSON-RPC dispatch or the
 //!   `serde` layer that builds `GraphUpsertParams` / `GraphQueryParams` from a
 //!   wire payload.
-//! * `tests/worker_c_modules_e2e.rs` names `openhuman.memory_graph_upsert` and
+//! * `tests/in_process/worker_c_modules_e2e.rs` names `openhuman.memory_graph_upsert` and
 //!   `openhuman.memory_graph_query` in a 68-method loop that calls each with
 //!   `json!({})` and asserts `assert_rpc_completed`. That helper tolerates an
 //!   error response as long as it is not `unknown method:`, which is the
@@ -56,7 +56,7 @@
 //! # Running it
 //!
 //! ```text
-//! cargo test -p openhuman-cli --features modules --test memory_graph_roundtrip_e2e
+//! cargo test -p openhuman-cli --features modules --test in_process_all
 //! ```
 //!
 //! **`--features modules` is required.** `openhuman-cli`'s `modules` feature is
@@ -73,22 +73,18 @@
 //! A large stack is also needed — `RUST_MIN_STACK=67108864` — because
 //! publishing the policy touches deeply nested config types.
 
+use crate::env_guard::env_lock;
+use crate::env_guard::EnvVarGuard;
+use crate::rpc_auth::ensure_rpc_auth;
+use crate::rpc_harness::{ok, rpc};
 use std::path::Path;
-use std::sync::{Arc, Mutex, OnceLock};
-use std::time::Duration;
+use std::sync::{Arc, OnceLock};
 
-use axum::http::header::AUTHORIZATION;
-use reqwest::StatusCode;
 use serde_json::{json, Value};
 use tempfile::{tempdir, TempDir};
 
-use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
 use openhuman_rpc::server::build_core_http_router;
 
-const TEST_RPC_TOKEN: &str = "memory-graph-roundtrip-e2e-token";
-
-static AUTH_INIT: OnceLock<()> = OnceLock::new();
-static ENV_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
 static MEMORY_SEAMS_INIT: OnceLock<()> = OnceLock::new();
 /// One tempdir shared by every test in this target.
 ///
@@ -100,54 +96,6 @@ static MEMORY_SEAMS_INIT: OnceLock<()> = OnceLock::new();
 static TEST_ROOT: OnceLock<TempDir> = OnceLock::new();
 
 // ── Env isolation ────────────────────────────────────────────────────
-
-struct EnvVarGuard {
-    key: &'static str,
-    old: Option<String>,
-}
-
-impl EnvVarGuard {
-    fn set_to_path(key: &'static str, path: &Path) -> Self {
-        let old = std::env::var(key).ok();
-        // SAFETY: every caller holds `env_lock()`, which serialises the
-        // process-global env mutations this type performs.
-        unsafe { std::env::set_var(key, path.as_os_str()) };
-        Self { key, old }
-    }
-
-    fn set(key: &'static str, value: &str) -> Self {
-        let old = std::env::var(key).ok();
-        // SAFETY: see `set_to_path`.
-        unsafe { std::env::set_var(key, value) };
-        Self { key, old }
-    }
-
-    fn unset(key: &'static str) -> Self {
-        let old = std::env::var(key).ok();
-        // SAFETY: see `set_to_path`.
-        unsafe { std::env::remove_var(key) };
-        Self { key, old }
-    }
-}
-
-impl Drop for EnvVarGuard {
-    fn drop(&mut self) {
-        match &self.old {
-            // SAFETY: teardown runs inside the same `env_lock()` critical
-            // section as setup.
-            Some(value) => unsafe { std::env::set_var(self.key, value) },
-            // SAFETY: see above.
-            None => unsafe { std::env::remove_var(self.key) },
-        }
-    }
-}
-
-fn env_lock() -> std::sync::MutexGuard<'static, ()> {
-    match ENV_LOCK.get_or_init(|| Mutex::new(())).lock() {
-        Ok(guard) => guard,
-        Err(poisoned) => poisoned.into_inner(),
-    }
-}
 
 fn test_root() -> &'static TempDir {
     TEST_ROOT.get_or_init(|| tempdir().expect("memory graph roundtrip tempdir"))
@@ -180,15 +128,6 @@ fn ensure_memory_seams(workspace: &Path) {
             .expect("spawn memory graph seam installer")
             .join()
             .expect("memory graph seam installer panicked");
-    });
-}
-
-fn ensure_rpc_auth() {
-    AUTH_INIT.get_or_init(|| {
-        // SAFETY: runs once, behind a `OnceLock`, before any server starts.
-        unsafe { std::env::set_var(CORE_TOKEN_ENV_VAR, TEST_RPC_TOKEN) };
-        let token_dir = std::env::temp_dir().join("openhuman-memory-graph-roundtrip-e2e-auth");
-        init_rpc_token(&token_dir).expect("init rpc auth token");
     });
 }
 
@@ -266,46 +205,6 @@ async fn setup() -> Harness {
         _guards: guards,
         join,
     }
-}
-
-async fn rpc(base: &str, id: i64, method: &str, params: Value) -> Value {
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(30))
-        .build()
-        .expect("client");
-    let url = format!("{}/rpc", base.trim_end_matches('/'));
-    let response = client
-        .post(&url)
-        .header(AUTHORIZATION, format!("Bearer {TEST_RPC_TOKEN}"))
-        .json(&json!({
-            "jsonrpc": "2.0",
-            "id": id,
-            "method": method,
-            "params": params,
-        }))
-        .send()
-        .await
-        .unwrap_or_else(|err| panic!("POST {url} {method}: {err}"));
-    assert_eq!(
-        response.status(),
-        StatusCode::OK,
-        "HTTP transport should accept {method}"
-    );
-    response
-        .json::<Value>()
-        .await
-        .unwrap_or_else(|err| panic!("json for {method}: {err}"))
-}
-
-/// Unwrap a JSON-RPC result, failing with the error body rather than a bare
-/// `None` so a driver-level refusal names itself.
-fn ok<'a>(value: &'a Value, context: &str) -> &'a Value {
-    if let Some(error) = value.get("error") {
-        panic!("{context}: unexpected JSON-RPC error: {error}");
-    }
-    value
-        .get("result")
-        .unwrap_or_else(|| panic!("{context}: missing result: {value}"))
 }
 
 /// Controllers wrap their payload in `{data|result}`; unwrap one level if present.

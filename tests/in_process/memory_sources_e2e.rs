@@ -4,128 +4,26 @@
 //! exercises the full user flow: add source → list → list_items →
 //! read_item → ingest into memory tree → verify chunks indexed.
 //!
-//! Run with: `cargo test --test memory_sources_e2e`
+//! Run with: `cargo test -p openhuman-cli --test in_process_all`
 
-#[path = "support/memory_module.rs"]
-mod memory_module;
-
+use crate::env_guard::env_lock;
+use crate::env_guard::EnvVarGuard;
+use crate::memory_rpc::{ok, serve, write_config};
+use crate::rpc_auth::rpc_token;
 use std::path::Path;
-use std::sync::{Arc, Mutex, OnceLock};
+use std::sync::OnceLock;
 use std::time::Duration;
 
 use axum::http::header::AUTHORIZATION;
 use serde_json::{json, Value};
 use tempfile::tempdir;
 
-use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
-use openhuman_rpc::server::build_core_http_router;
-
-const TEST_RPC_TOKEN: &str = "memory-sources-e2e-token";
-static AUTH_INIT: OnceLock<()> = OnceLock::new();
-static ENV_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
-static MEMORY_SEAMS_INIT: OnceLock<()> = OnceLock::new();
 static TEST_HOME: OnceLock<tempfile::TempDir> = OnceLock::new();
-
-fn env_lock() -> std::sync::MutexGuard<'static, ()> {
-    let mutex = ENV_LOCK.get_or_init(|| Mutex::new(()));
-    match mutex.lock() {
-        Ok(guard) => guard,
-        Err(poisoned) => poisoned.into_inner(),
-    }
-}
-
-fn ensure_rpc_auth() {
-    AUTH_INIT.get_or_init(|| {
-        unsafe { std::env::set_var(CORE_TOKEN_ENV_VAR, TEST_RPC_TOKEN) };
-        let token_dir = std::env::temp_dir().join("openhuman-memory-sources-e2e-auth");
-        init_rpc_token(&token_dir).expect("init rpc auth");
-    });
-}
-
-/// The transport-only JSON-RPC router does not create a core runtime context,
-/// so memory-backed routes need their host seams installed explicitly.
-fn ensure_memory_seams() {
-    MEMORY_SEAMS_INIT.get_or_init(|| {
-        std::thread::Builder::new()
-            .name("memory-sources-e2e-seams".to_string())
-            .stack_size(8 * 1024 * 1024)
-            .spawn(|| {
-                let config = Arc::new(openhuman_core::config::Config::default());
-                #[cfg(feature = "modules")]
-                openhuman_core::modules::memory::set_modules_policy(config);
-            })
-            .expect("spawn memory sources seam installer")
-            .join()
-            .expect("memory sources seam installer panicked");
-    });
-}
 
 fn test_home() -> &'static Path {
     TEST_HOME
         .get_or_init(|| tempdir().expect("memory sources tempdir"))
         .path()
-}
-
-struct EnvVarGuard {
-    key: &'static str,
-    old: Option<String>,
-}
-
-impl EnvVarGuard {
-    fn set_to_path(key: &'static str, path: &Path) -> Self {
-        let old = std::env::var(key).ok();
-        unsafe { std::env::set_var(key, path.as_os_str()) };
-        Self { key, old }
-    }
-
-    fn unset(key: &'static str) -> Self {
-        let old = std::env::var(key).ok();
-        unsafe { std::env::remove_var(key) };
-        Self { key, old }
-    }
-}
-
-impl Drop for EnvVarGuard {
-    fn drop(&mut self) {
-        match &self.old {
-            Some(v) => unsafe { std::env::set_var(self.key, v) },
-            None => unsafe { std::env::remove_var(self.key) },
-        }
-    }
-}
-
-fn write_config(dir: &Path) {
-    std::fs::create_dir_all(dir).expect("mkdir");
-    let cfg = r#"
-default_model = "e2e-mock-model"
-default_temperature = 0.7
-
-[secrets]
-encrypt = false
-
-[memory_tree]
-embedding_strict = false
-"#;
-    std::fs::write(dir.join("config.toml"), cfg).expect("write config");
-
-    let user_dir = dir.join("users").join("local");
-    std::fs::create_dir_all(&user_dir).expect("mkdir user dir");
-    std::fs::write(user_dir.join("config.toml"), cfg).expect("write user config");
-}
-
-async fn serve() -> (String, tokio::task::JoinHandle<Result<(), std::io::Error>>) {
-    ensure_memory_seams();
-    ensure_rpc_auth();
-    // Every flow here reaches the memory module; wait out its load so a test
-    // running in its own process does not race it (tests/support/memory_module.rs).
-    memory_module::settle().await;
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
-        .await
-        .expect("bind");
-    let addr = listener.local_addr().expect("addr");
-    let handle =
-        tokio::spawn(async move { axum::serve(listener, build_core_http_router(false)).await });
-    (format!("http://{addr}"), handle)
 }
 
 async fn rpc(base: &str, id: i64, method: &str, params: Value) -> Value {
@@ -142,7 +40,7 @@ async fn rpc(base: &str, id: i64, method: &str, params: Value) -> Value {
     let url = format!("{}/rpc", base.trim_end_matches('/'));
     let resp = client
         .post(&url)
-        .header(AUTHORIZATION, format!("Bearer {TEST_RPC_TOKEN}"))
+        .header(AUTHORIZATION, format!("Bearer {}", rpc_token()))
         .json(&body)
         .send()
         .await
@@ -155,21 +53,6 @@ async fn rpc(base: &str, id: i64, method: &str, params: Value) -> Value {
     resp.json::<Value>()
         .await
         .unwrap_or_else(|e| panic!("json parse for {method}: {e}"))
-}
-
-fn ok(v: &Value, ctx: &str) -> Value {
-    if let Some(err) = v.get("error") {
-        panic!("{ctx}: JSON-RPC error: {err}");
-    }
-    let outer = v
-        .get("result")
-        .unwrap_or_else(|| panic!("{ctx}: missing result: {v}"));
-    // Outcome wraps the payload under an inner "result" key alongside "logs".
-    if let Some(inner) = outer.get("result") {
-        inner.clone()
-    } else {
-        outer.clone()
-    }
 }
 
 // ── Tests ─────────────────────────────────────────────────────────
@@ -519,10 +402,10 @@ async fn memory_sources_validation_rejects_bad_input() {
 /// outbound GitHub access doesn't fail on rate limits or transient
 /// network blips. `#[ignore]`d so it reports as ignored rather than passing
 /// without asserting. Run locally with:
-///   cargo test -p openhuman-cli --test memory_sources_e2e \
+///   cargo test -p openhuman-cli --test in_process_all \
 ///     memory_sources_github_repo_activity_flow -- --ignored
 #[tokio::test]
-#[ignore = "needs outbound network to GitHub (kelseyhightower/nocode via the gh CLI / GitHub API); not run in CI. Run: cargo test -p openhuman-cli --test memory_sources_e2e memory_sources_github_repo_activity_flow -- --ignored"]
+#[ignore = "needs outbound network to GitHub (kelseyhightower/nocode via the gh CLI / GitHub API); not run in CI. Run: cargo test -p openhuman-cli --test in_process_all memory_sources_github_repo_activity_flow -- --ignored"]
 async fn memory_sources_github_repo_activity_flow() {
     let _guard = env_lock();
     let home = test_home();

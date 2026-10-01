@@ -5,6 +5,8 @@
 //! direct public API calls cover persistence/redaction/provider branches that
 //! are otherwise only indirectly reachable from the controllers.
 
+use crate::env_guard::EnvVarGuard;
+use crate::rpc_harness::{error_message, payload};
 use std::path::Path;
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant};
@@ -23,52 +25,17 @@ use openhuman_core::security::approval::gate::{
     ApprovalChatContext, ApprovalGate, APPROVAL_CHAT_CONTEXT,
 };
 use openhuman_core::security::approval::{
-    all_approval_controller_schemas, all_approval_registered_controllers, ExecutionOutcome, GateOutcome,
+    all_approval_controller_schemas, all_approval_registered_controllers, ExecutionOutcome,
+    GateOutcome,
 };
 use openhuman_core::security::{live_policy, SecurityPolicy};
-use openhuman_core::tools::registry::{
-    denials, registry_entries, registry_entries_for_config,
-};
+use openhuman_core::tools::registry::{denials, registry_entries, registry_entries_for_config};
 use openhuman_rpc::server::build_core_http_router;
 
 const TEST_RPC_TOKEN: &str = "tool-registry-approval-raw-e2e-token";
 
 static AUTH_INIT: OnceLock<()> = OnceLock::new();
 static ENV_LOCK: &OnceLock<Mutex<()>> = &crate::SHARED_ENV_LOCK;
-
-struct EnvVarGuard {
-    key: &'static str,
-    old: Option<String>,
-}
-
-impl EnvVarGuard {
-    fn set_to_path(key: &'static str, path: &Path) -> Self {
-        let old = std::env::var(key).ok();
-        std::env::set_var(key, path.as_os_str());
-        Self { key, old }
-    }
-
-    fn set(key: &'static str, value: &str) -> Self {
-        let old = std::env::var(key).ok();
-        std::env::set_var(key, value);
-        Self { key, old }
-    }
-
-    fn unset(key: &'static str) -> Self {
-        let old = std::env::var(key).ok();
-        std::env::remove_var(key);
-        Self { key, old }
-    }
-}
-
-impl Drop for EnvVarGuard {
-    fn drop(&mut self) {
-        match &self.old {
-            Some(value) => std::env::set_var(self.key, value),
-            None => std::env::remove_var(self.key),
-        }
-    }
-}
 
 struct TestHarness {
     _tmp: TempDir,
@@ -220,28 +187,6 @@ async fn rpc(rpc_base: &str, id: i64, method: &str, params: Value) -> Value {
         .json::<Value>()
         .await
         .unwrap_or_else(|err| panic!("json for {method}: {err}"))
-}
-
-fn ok<'a>(value: &'a Value, context: &str) -> &'a Value {
-    if let Some(error) = value.get("error") {
-        panic!("{context}: unexpected JSON-RPC error: {error}");
-    }
-    value
-        .get("result")
-        .unwrap_or_else(|| panic!("{context}: missing result: {value}"))
-}
-
-fn payload<'a>(value: &'a Value, context: &str) -> &'a Value {
-    let result = ok(value, context);
-    result.get("result").unwrap_or(result)
-}
-
-fn error_message<'a>(value: &'a Value, context: &str) -> &'a str {
-    value
-        .get("error")
-        .and_then(|error| error.get("message"))
-        .and_then(Value::as_str)
-        .unwrap_or_else(|| panic!("{context}: error missing message: {value}"))
 }
 
 fn test_mcp_server() -> InstalledServer {
