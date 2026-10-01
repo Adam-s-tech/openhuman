@@ -136,14 +136,6 @@ async fn telegram_media(
     )
 }
 
-impl EnvVarGuard {
-    fn unset(key: &'static str) -> Self {
-        let prior = std::env::var(key).ok();
-        std::env::remove_var(key);
-        Self { key, prior }
-    }
-}
-
 fn env_lock() -> std::sync::MutexGuard<'static, ()> {
     static LOCK: &std::sync::OnceLock<std::sync::Mutex<()>> = &crate::SHARED_ENV_LOCK;
     LOCK.get_or_init(|| std::sync::Mutex::new(()))
