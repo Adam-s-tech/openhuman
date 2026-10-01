@@ -19,6 +19,7 @@ use tinyinference_llm::message::{
 };
 use tinyinference_llm::tool::ToolCall as TaToolCall;
 use tinytools_agent::dialect::{
+    encode_assistant_envelope, encode_tool_envelope, parse_assistant_envelope, parse_tool_envelope,
     DialectMessage, DialectResponse, DialectRole, ToolDialect, ToolResultEntry, TranscriptEntry,
 };
 
@@ -157,8 +158,9 @@ pub(crate) fn chat_message_to_message(msg: &TranscriptMessage) -> Message {
                 .as_ref()
                 .and_then(|meta| meta.get(REASONING_EXT_KEY))
                 .and_then(serde_json::Value::as_str);
-            if let Some((inner, tool_calls)) = parse_native_assistant_envelope(&text) {
-                let mut content = vec![ContentBlock::Text(inner)];
+            if let Some(envelope) = parse_assistant_envelope(&text) {
+                let tool_calls = envelope.tool_calls.iter().map(oh_call_to_ta_call).collect();
+                let mut content = vec![ContentBlock::Text(envelope.content)];
                 content.extend(reasoning_content_block(reasoning));
                 Message::Assistant(AssistantMessage {
                     id: msg.id.clone(),
@@ -182,7 +184,7 @@ pub(crate) fn chat_message_to_message(msg: &TranscriptMessage) -> Message {
         "tool" => {
             // Prefer the envelope's `tool_call_id` (the native seed shape); fall
             // back to the message id, then an empty id for a bare tool message.
-            let (tool_call_id, content) = parse_native_tool_envelope(&text)
+            let (tool_call_id, content) = parse_tool_envelope(&text)
                 .unwrap_or_else(|| (msg.id.clone().unwrap_or_default(), text.clone()));
             Message::Tool(ToolMessage {
                 tool_call_id,
@@ -296,46 +298,6 @@ fn data_uri_mime(reference: &str) -> Option<String> {
     let rest = reference.strip_prefix("data:")?;
     let mime = rest.split([';', ',']).next()?.trim();
     (!mime.is_empty()).then(|| mime.to_string())
-}
-
-/// Parse a native assistant tool-call envelope (`{ "content", "tool_calls" }`, as
-/// [`NativeDialect::to_provider_messages`] emits) back into its inner
-/// visible text and structured [`TaToolCall`]s. Returns `None` when `text` is not
-/// such an envelope (plain assistant prose), so the caller can fall back to text.
-fn parse_native_assistant_envelope(text: &str) -> Option<(String, Vec<TaToolCall>)> {
-    let value: serde_json::Value = serde_json::from_str(text).ok()?;
-    let obj = value.as_object()?;
-    let calls_val = obj.get("tool_calls")?;
-    // Require a non-empty, parseable tool-call array so ordinary JSON-looking
-    // assistant prose isn't misread as a tool round.
-    if calls_val.as_array().is_none_or(|a| a.is_empty()) {
-        return None;
-    }
-    let oh_calls: Vec<tinytools_agent::dialect::NativeToolCall> =
-        serde_json::from_value(calls_val.clone()).ok()?;
-    if oh_calls.is_empty() {
-        return None;
-    }
-    let inner = obj
-        .get("content")
-        .and_then(|c| c.as_str())
-        .unwrap_or_default()
-        .to_string();
-    Some((inner, oh_calls.iter().map(oh_call_to_ta_call).collect()))
-}
-
-/// Parse a native tool-result envelope (`{ "tool_call_id", "content" }`) back into
-/// its correlation id and payload. Returns `None` for a bare tool message.
-fn parse_native_tool_envelope(text: &str) -> Option<(String, String)> {
-    let value: serde_json::Value = serde_json::from_str(text).ok()?;
-    let obj = value.as_object()?;
-    let id = obj.get("tool_call_id")?.as_str()?.to_string();
-    let content = obj
-        .get("content")
-        .and_then(|c| c.as_str())
-        .unwrap_or_default()
-        .to_string();
-    Some((id, content))
 }
 
 /// Inverse of [`ta_call_to_oh_call`]: rebuild a harness [`TaToolCall`] from an
@@ -457,11 +419,11 @@ pub(crate) fn message_to_native_chat_message(msg: &Message) -> Option<Transcript
         Message::User(_) => TranscriptMessage::user(native_user_content(msg)),
         Message::Assistant(a) if !a.tool_calls.is_empty() => {
             let tool_calls: Vec<_> = a.tool_calls.iter().map(ta_call_to_oh_call).collect();
-            let payload = serde_json::json!({
-                "content": msg.text(),
-                "tool_calls": tool_calls,
-            });
-            let mut cm = TranscriptMessage::assistant(payload.to_string());
+            let mut cm = TranscriptMessage::assistant(encode_assistant_envelope(
+                Some(&msg.text()),
+                &tool_calls,
+                None,
+            ));
             cm.extra_metadata = reasoning_extra_metadata(&a.content);
             cm
         }
@@ -471,11 +433,8 @@ pub(crate) fn message_to_native_chat_message(msg: &Message) -> Option<Transcript
             cm
         }
         Message::Tool(t) => {
-            let payload = serde_json::json!({
-                "tool_call_id": t.tool_call_id,
-                "content": msg.text(),
-            });
-            let mut cm = TranscriptMessage::tool(payload.to_string());
+            let mut cm =
+                TranscriptMessage::tool(encode_tool_envelope(&t.tool_call_id, &msg.text()));
             cm.id = Some(t.tool_call_id.clone());
             cm
         }
