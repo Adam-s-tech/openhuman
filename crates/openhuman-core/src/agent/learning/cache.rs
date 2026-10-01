@@ -83,8 +83,8 @@ impl FacetCache {
     /// the workspace's context and only a new resolution sees the new engine
     /// (`memory::binding_rebind`). Each call goes through the context serving
     /// the workspace when there is one, so it follows a switch. Without one it
-    /// takes the binding cached for the workspace, which a switch replaces, and
-    /// only with nothing cached the binding for `memory`, the workspace's own
+    /// resolves the config the workspace is bound under now, which a switch
+    /// replaces, and only with nothing bound `memory`, the workspace's own
     /// `[subsystems.memory]`. That is the case at boot, before the context
     /// exists, where the default config would bind the local engine whatever
     /// the user chose.
@@ -186,22 +186,17 @@ impl FacetCache {
 /// The guarded driver serving `dir` now.
 ///
 /// Through the context that serves the workspace when there is one, which an
-/// engine switch re-points. Else through the binding cached for the workspace,
-/// which a switch replaces: `memory` was the config when the cache was built,
-/// and binding it again after a switch would rebuild the evicted engine. Only
-/// with nothing cached, as at boot before the first binding, does `memory`
-/// itself decide.
+/// engine switch re-points. Else through the config the workspace is bound
+/// under now, which a switch replaces: `memory` was the config when the cache
+/// was built, and binding it again after a switch would rebuild the evicted
+/// engine. Only with nothing bound, as at boot before the first binding, does
+/// `memory` itself decide (`memory::binding::current_for`).
 fn workspace_guard(dir: &Path, memory: &MemorySubsystemConfig) -> anyhow::Result<Arc<MemoryGuard>> {
     let context = crate::core::runtime::context::CoreContext::current()
         .filter(|ctx| ctx.workspace_dir().ok().as_deref() == Some(dir));
     let guard = match context {
         Some(ctx) => ctx.memory(),
-        None => match crate::memory::binding::current_for(dir) {
-            Some(binding) => Ok(binding.guard()),
-            None => {
-                crate::memory::binding::for_workspace(dir, memory).map(|binding| binding.guard())
-            }
-        },
+        None => crate::memory::binding::current_for(dir, memory).map(|binding| binding.guard()),
     };
     guard.map_err(|error| anyhow::anyhow!("no memory binding for the facet cache: {error}"))
 }

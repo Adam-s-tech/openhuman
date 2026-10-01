@@ -1,4 +1,5 @@
-//! In-process engine switch: [`rebind`].
+//! In-process engine switch, [`rebind`], and the binding a workspace resolves
+//! to after one, [`current_for`].
 //!
 //! Split from [`crate::memory::binding`] to keep that file within the layout
 //! limit; it owns no state of its own and works on the binding cache there.
@@ -11,34 +12,47 @@ use crate::core::subsystem::DriverClass;
 
 use super::binding::{for_workspace, MemoryBinding, BINDINGS};
 
-/// The binding `workspace_dir`'s shared memory tree resolves to now, when the
-/// cache can tell.
-///
-/// A switch ([`rebind`]) evicts every other binding of the workspace and binds
-/// the new engine, so after one the cache holds a single binding for it: the
-/// current one. Before any switch that is the one boot bound. `None` when
-/// nothing is cached for the workspace, or when bindings under more than one
-/// config are cached and none of them can be told current.
+/// The binding `workspace_dir`'s shared memory tree resolves to now.
 ///
 /// For a caller holding a config from earlier, which may name an engine
 /// switched away from since: binding that config again would rebuild the
-/// evicted driver.
-pub fn current_for(workspace_dir: &Path) -> Option<Arc<MemoryBinding>> {
+/// evicted driver. A switch ([`rebind`]) evicts every other binding of the
+/// workspace and binds the new engine, so after one the cache holds a single
+/// binding for it, under the config switched to. Before any switch that is the
+/// one boot bound. That config is resolved again through [`for_workspace`]
+/// rather than the cached binding returned, so a transient fallback is retried
+/// once its backoff has passed. `cfg` decides only when nothing is cached for
+/// the workspace, or when bindings under more than one config are cached and
+/// none of them can be told current.
+///
+/// # Errors
+///
+/// As [`for_workspace`].
+pub fn current_for(
+    workspace_dir: &Path,
+    cfg: &MemorySubsystemConfig,
+) -> Result<Arc<MemoryBinding>, String> {
+    let bound = bound_config(workspace_dir);
+    for_workspace(workspace_dir, bound.as_ref().unwrap_or(cfg))
+}
+
+/// The config of the one binding cached for `workspace_dir`'s shared tree.
+fn bound_config(workspace_dir: &Path) -> Option<MemorySubsystemConfig> {
     let cache = BINDINGS.get()?;
     let map = cache.read().ok()?;
-    let mut bound = map
-        .iter()
-        .filter(|((dir, subdir, _), _)| dir == workspace_dir && subdir == "memory")
-        .map(|(_, binding)| binding);
-    let current = bound.next()?;
-    if bound.next().is_some() {
+    let mut configs = map
+        .keys()
+        .filter(|(dir, subdir, _)| dir == workspace_dir && subdir == "memory")
+        .map(|(_, _, cfg)| cfg);
+    let bound = configs.next()?.clone();
+    if configs.next().is_some() {
         log::debug!(
             "[memory:binding] workspace={} has bindings under more than one config; none is current",
             workspace_dir.display()
         );
         return None;
     }
-    Some(Arc::clone(current))
+    Some(bound)
 }
 
 /// Switch a workspace to `new_cfg` in process: evict the bindings the switch
