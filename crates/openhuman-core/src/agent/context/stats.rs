@@ -7,7 +7,7 @@
 
 use std::sync::{Arc, Mutex};
 
-use crate::inference::provider::UsageInfo;
+use crate::inference::provider::BilledUsage;
 
 use super::session_memory::{SessionMemoryConfig, SessionMemoryState};
 
@@ -36,11 +36,11 @@ impl ContextStatsState {
         }
     }
 
-    pub(crate) fn record_usage(&mut self, usage: &UsageInfo) {
+    pub(crate) fn record_usage(&mut self, usage: &BilledUsage) {
         self.last_input_tokens = usage.input_tokens;
         self.last_output_tokens = usage.output_tokens;
-        if usage.context_window > 0 {
-            self.context_window = usage.context_window;
+        if usage.context_window() > 0 {
+            self.context_window = usage.context_window();
         }
         let total = usage.input_tokens + usage.output_tokens;
         if let Ok(mut sm) = self.session_memory.lock() {
