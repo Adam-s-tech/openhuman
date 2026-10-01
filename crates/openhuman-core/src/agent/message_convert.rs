@@ -22,8 +22,8 @@ use tinytools_agent::dialect::{
     DialectMessage, DialectResponse, DialectRole, ToolDialect, ToolResultEntry, TranscriptEntry,
 };
 
-use tinyagents_session::transcript::TranscriptMessage;
 use crate::inference::provider::ChatResponse;
+use tinyagents_session::transcript::TranscriptMessage;
 
 /// Convert the host provider response at its boundary into the canonical
 /// dialect input. The dialect crate owns all parsing after this field-wise map.
@@ -392,8 +392,9 @@ fn native_user_content(msg: &Message) -> String {
 /// native tool calling (e.g. the orchestrator's `spawn_parallel_agents` →
 /// synthesis hop).
 ///
-/// Returns `None` for [`Message::Custom`], which is never provider input; see
-/// [`message_to_chat_message`].
+/// Returns `None` for [`Message::Custom`]: that variant is a host-side
+/// out-of-band record (compaction marker, label, audit note) that the harness
+/// never sends to a provider, so it must not leak into the next request.
 pub(crate) fn message_to_native_chat_message(msg: &Message) -> Option<TranscriptMessage> {
     Some(match msg {
         Message::System(_) => TranscriptMessage::system(msg.text()),
@@ -429,49 +430,62 @@ pub(crate) fn message_to_native_chat_message(msg: &Message) -> Option<Transcript
     })
 }
 
-/// Convert a harness transcript into the **typed** [`ConversationMessage`] shape
-/// the chat session persists, preserving assistant tool-call structure
-/// (`AssistantToolCalls`) and tool results (`ToolResults`) — unlike
-/// [`messages_to_history`], which flattens tool calls to text.
+/// Convert a harness transcript into typed dialect entries, preserving
+/// assistant tool-call structure (`AssistantToolCalls`) and tool results
+/// (`ToolResults`) instead of flattening tool calls to text.
 ///
 /// Consecutive `Tool` messages are coalesced into one `ToolResults` batch (the
 /// shape a single assistant tool-call round produces), matching the legacy
 /// `turn_engine_adapter` persistence.
-pub(crate) fn messages_to_conversation(messages: &[Message]) -> Vec<ConversationMessage> {
-    let mut out: Vec<ConversationMessage> = Vec::new();
-    let mut pending: Vec<ToolResultMessage> = Vec::new();
+pub(crate) fn messages_to_conversation(messages: &[Message]) -> Vec<TranscriptEntry> {
+    let mut out: Vec<TranscriptEntry> = Vec::new();
+    let mut pending: Vec<ToolResultEntry> = Vec::new();
 
-    fn flush(out: &mut Vec<ConversationMessage>, pending: &mut Vec<ToolResultMessage>) {
+    fn flush(out: &mut Vec<TranscriptEntry>, pending: &mut Vec<ToolResultEntry>) {
         if !pending.is_empty() {
-            out.push(ConversationMessage::ToolResults(std::mem::take(pending)));
+            out.push(TranscriptEntry::ToolResults(std::mem::take(pending)));
         }
+    }
+    fn chat(
+        role: DialectRole,
+        content: String,
+        extra_metadata: Option<serde_json::Value>,
+    ) -> TranscriptEntry {
+        TranscriptEntry::Chat(DialectMessage {
+            role,
+            content,
+            extra_metadata,
+        })
     }
 
     for msg in messages {
         match msg {
             Message::Tool(t) => {
-                pending.push(ToolResultMessage {
+                pending.push(ToolResultEntry {
                     tool_call_id: t.tool_call_id.clone(),
                     content: msg.text(),
+                    trusted_verbatim: false,
                 });
             }
             Message::System(_) => {
                 flush(&mut out, &mut pending);
-                out.push(ConversationMessage::Chat(TranscriptMessage::system(msg.text())));
+                out.push(chat(DialectRole::System, msg.text(), None));
             }
             Message::User(_) => {
                 flush(&mut out, &mut pending);
-                out.push(ConversationMessage::Chat(TranscriptMessage::user(msg.text())));
+                out.push(chat(DialectRole::User, msg.text(), None));
             }
             Message::Assistant(a) => {
                 flush(&mut out, &mut pending);
                 if a.tool_calls.is_empty() {
-                    let mut chat = TranscriptMessage::assistant(msg.text());
-                    chat.extra_metadata = reasoning_extra_metadata(&a.content);
-                    out.push(ConversationMessage::Chat(chat));
+                    out.push(chat(
+                        DialectRole::Assistant,
+                        msg.text(),
+                        reasoning_extra_metadata(&a.content),
+                    ));
                 } else {
                     let text = msg.text();
-                    out.push(ConversationMessage::AssistantToolCalls {
+                    out.push(TranscriptEntry::AssistantToolCalls {
                         text: (!text.is_empty()).then_some(text),
                         tool_calls: a.tool_calls.iter().map(ta_call_to_oh_call).collect(),
                         reasoning_content: reasoning_from_content(&a.content),

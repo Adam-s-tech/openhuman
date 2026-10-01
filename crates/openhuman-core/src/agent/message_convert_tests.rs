@@ -127,7 +127,8 @@ fn non_data_image_marker_is_kept_as_text() {
 // preserves the original (untrimmed) content.
 #[test]
 fn plain_user_text_stays_a_single_text_block() {
-    let Message::User(user) = chat_message_to_message(&TranscriptMessage::user("  hi there  ")) else {
+    let Message::User(user) = chat_message_to_message(&TranscriptMessage::user("  hi there  "))
+    else {
         panic!("user role must map to a user message");
     };
     assert_eq!(user.content.len(), 1);
