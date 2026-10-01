@@ -3507,8 +3507,6 @@ const messages: TranslationMap = {
   'conversations.tools.runTests.done': 'Pengujian dijalankan',
   'conversations.tools.analyzeCode.active': 'Menganalisis kode',
   'conversations.tools.analyzeCode.done': 'Kode dianalisis',
-  'conversations.tools.insertRecord.active': 'Menambahkan catatan',
-  'conversations.tools.insertRecord.done': 'Catatan ditambahkan',
   'conversations.tools.runCommand.active': 'Menjalankan perintah',
   'conversations.tools.runCommand.done': 'Perintah dijalankan',
   'conversations.tools.runCode.active': 'Menjalankan kode',

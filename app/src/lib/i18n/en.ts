@@ -3921,8 +3921,6 @@ const en: TranslationMap = {
   'conversations.tools.runTests.done': 'Ran tests',
   'conversations.tools.analyzeCode.active': 'Analyzing code',
   'conversations.tools.analyzeCode.done': 'Analyzed code',
-  'conversations.tools.insertRecord.active': 'Inserting record',
-  'conversations.tools.insertRecord.done': 'Inserted record',
   'conversations.tools.runCommand.active': 'Running command',
   'conversations.tools.runCommand.done': 'Ran command',
   'conversations.tools.runCode.active': 'Running code',
