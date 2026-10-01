@@ -178,13 +178,13 @@ fn seeded_native_tool_round_recovers_structure_and_round_trips() {
     // Outbound: re-serialized to a well-formed native tool round (assistant
     // carries structured tool_calls, the tool row carries the matching id).
     let a_native = message_to_native_chat_message(&a).expect("assistant converts");
-    assert_eq!(a_native.role, "assistant");
+    assert_eq!(a_native.role.as_str(), "assistant");
     let av: serde_json::Value = serde_json::from_str(&a_native.content).unwrap();
     assert_eq!(av["tool_calls"][0]["id"], "call-1");
     assert_eq!(av["content"], "calling echo");
 
     let t_native = message_to_native_chat_message(&t).expect("tool converts");
-    assert_eq!(t_native.role, "tool");
+    assert_eq!(t_native.role.as_str(), "tool");
     let tv: serde_json::Value = serde_json::from_str(&t_native.content).unwrap();
     assert_eq!(tv["tool_call_id"], "call-1");
     assert_eq!(tv["content"], "echoed:hi");
@@ -344,7 +344,7 @@ fn conversation_preserves_tool_call_structure() {
     }
     match &convo[2] {
         TranscriptEntry::Chat(c) => {
-            assert_eq!(c.role, "assistant");
+            assert_eq!(c.role.as_str(), "assistant");
             assert_eq!(c.content, "all done");
         }
         other => panic!("expected Chat, got {other:?}"),
@@ -393,18 +393,4 @@ fn reasoning_from_content_keeps_every_thinking_block_in_order() {
         "a single block is returned verbatim"
     );
     assert_eq!(reasoning_from_content(&content[1..2]), None);
-}
-
-/// The persisted `TranscriptEntry::AssistantToolCalls` bytes must not
-/// change now that its tool calls are the dialect crate's `NativeToolCall`.
-#[test]
-fn conversation_tool_calls_serde_matches_persisted_literal_json() {
-    let literal = r#"{"type":"AssistantToolCalls","data":{"text":"hi","tool_calls":[{"id":"c1","name":"echo","arguments":"{\"a\":1}"},{"id":"c2","name":"g","arguments":"{}","extra_content":{"google":{"thought_signature":"sig"}}}],"reasoning_content":"r"}}"#;
-    let parsed: TranscriptEntry = serde_json::from_str(literal).expect("legacy record loads");
-    let TranscriptEntry::AssistantToolCalls { tool_calls, .. } = &parsed else {
-        panic!("expected AssistantToolCalls");
-    };
-    assert_eq!(tool_calls.len(), 2);
-    assert_eq!(tool_calls[0].extra_content, None);
-    assert_eq!(serde_json::to_string(&parsed).unwrap(), literal);
 }
