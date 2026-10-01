@@ -228,7 +228,7 @@ fn place_fixture(root: &Path, scenario: &Scenario, stem: &str, variant: &str) {
                 fixture(&format!("{name}{variant}.jsonl")),
                 stem_path(root, stem),
             )
-                .expect("copy head fixture");
+            .expect("copy head fixture");
         }
         Layout::Chain => {
             std::fs::copy(fixture(&format!("{name}.g0.jsonl")), stem_path(root, stem))
