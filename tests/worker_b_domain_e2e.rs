@@ -132,7 +132,6 @@ async fn setup() -> TestHarness {
         EnvVarGuard::unset("BACKEND_URL"),
         EnvVarGuard::unset("VITE_BACKEND_URL"),
         EnvVarGuard::unset("OPENHUMAN_API_URL"),
-        EnvVarGuard::unset("OPENHUMAN_LOCAL_AI_TIER"),
         EnvVarGuard::unset("OPENHUMAN_LM_STUDIO_BASE_URL"),
         EnvVarGuard::unset("LM_STUDIO_BASE_URL"),
         EnvVarGuard::set("OPENHUMAN_KEYRING_BACKEND", "file"),
@@ -235,9 +234,6 @@ async fn worker_b_schema_catalog_exposes_all_controller_methods() {
         "openhuman.inference_update_model_settings",
         "openhuman.inference_update_local_settings",
         "openhuman.inference_list_models",
-        "openhuman.inference_device_profile",
-        "openhuman.inference_presets",
-        "openhuman.inference_apply_preset",
         "openhuman.inference_diagnostics",
         "openhuman.inference_openai_oauth_start",
         "openhuman.inference_openai_oauth_complete",
@@ -371,11 +367,6 @@ async fn inference_settings_oauth_and_validation_paths_are_reachable() {
             "provider",
         ),
         (
-            "openhuman.inference_apply_preset",
-            json!({ "tier": "not-a-tier" }),
-            "invalid tier",
-        ),
-        (
             "openhuman.inference_openai_oauth_complete",
             json!({ "callback_url": "http://localhost/callback?state=missing&code=nope" }),
             "no pending oauth session",
@@ -404,8 +395,6 @@ async fn inference_settings_oauth_and_validation_paths_are_reachable() {
 
     for (idx, method) in [
         "openhuman.inference_status",
-        "openhuman.inference_device_profile",
-        "openhuman.inference_presets",
         "openhuman.inference_diagnostics",
         "openhuman.inference_openai_oauth_status",
         "openhuman.inference_openai_oauth_disconnect",
