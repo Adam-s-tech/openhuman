@@ -31,13 +31,3 @@ impl Default for SocketState {
         }
     }
 }
-
-/// MCP error structure
-#[allow(dead_code)]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct McpError {
-    pub code: i32,
-    pub message: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub data: Option<serde_json::Value>,
-}
