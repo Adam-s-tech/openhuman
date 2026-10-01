@@ -4103,8 +4103,8 @@ dependencies = [
  "tinyruntime-pyserver",
  "tinysearch-bus",
  "tinyskills",
- "tinytools 0.5.0",
- "tinytools-agent 0.5.0",
+ "tinytools",
+ "tinytools-agent",
  "tinytools-std",
  "tinyvoice",
  "tinyvoice-bus",
@@ -4178,8 +4178,8 @@ dependencies = [
  "tinymcp",
  "tinymcp-bus",
  "tinymemory-api",
- "tinytools 0.5.0",
- "tinytools-agent 0.5.0",
+ "tinytools",
+ "tinytools-agent",
  "tinytools-jev",
  "tokio",
  "tokio-stream",
@@ -4269,7 +4269,7 @@ dependencies = [
  "tinychannels-bus",
  "tinyhumans-sdk",
  "tinyjevclient",
- "tinytools 0.5.0",
+ "tinytools",
  "tinytools-jev",
  "tokio",
  "tracing",
@@ -6375,7 +6375,7 @@ dependencies = [
  "serde_json",
  "tinyagents-harness",
  "tinyinference-llm",
- "tinytools 0.5.0",
+ "tinytools",
  "tokio",
  "tracing",
 ]
@@ -6407,8 +6407,8 @@ dependencies = [
  "tinyinference-image",
  "tinyinference-llm",
  "tinyinference-video",
- "tinytools 0.5.0",
- "tinytools-agent 0.5.0",
+ "tinytools",
+ "tinytools-agent",
  "tokio",
  "tracing",
  "uuid",
@@ -6431,7 +6431,7 @@ dependencies = [
  "tinyagents-runtime",
  "tinyagents-session",
  "tinyinference-llm",
- "tinytools 0.5.0",
+ "tinytools",
  "tokio",
  "uuid",
 ]
@@ -6447,7 +6447,7 @@ dependencies = [
  "tinyagents-definition",
  "tinyagents-harness",
  "tinyinference-llm",
- "tinytools 0.5.0",
+ "tinytools",
 ]
 
 [[package]]
@@ -6463,7 +6463,7 @@ dependencies = [
  "tinyagents-harness",
  "tinyagents-session",
  "tinyinference-llm",
- "tinytools 0.5.0",
+ "tinytools",
  "tokio",
  "tracing",
 ]
@@ -6486,7 +6486,7 @@ dependencies = [
  "tempfile",
  "thiserror 2.0.20",
  "tinyagents-harness",
- "tinytools-agent 0.5.0",
+ "tinytools-agent",
  "tokio",
  "tracing",
 ]
@@ -6783,7 +6783,7 @@ dependencies = [
  "serde_json",
  "sha1 0.11.0",
  "thiserror 2.0.20",
- "tinytools 0.5.0",
+ "tinytools",
  "tracing",
 ]
 
@@ -6858,7 +6858,7 @@ dependencies = [
  "sha2 0.11.0",
  "thiserror 2.0.20",
  "tinyinference-core",
- "tinytools-agent 0.3.0",
+ "tinytools-agent",
  "tokio",
  "tracing",
 ]
@@ -6957,7 +6957,7 @@ dependencies = [
  "sha2 0.11.0",
  "thiserror 2.0.20",
  "tinyjuice-bus",
- "tinytools 0.5.0",
+ "tinytools",
  "tokio",
  "unicode-segmentation",
  "unicode-width",
@@ -6990,7 +6990,7 @@ dependencies = [
  "sha2 0.11.0",
  "thiserror 2.0.20",
  "tinymcp-bus",
- "tinytools 0.5.0",
+ "tinytools",
  "tokio",
  "tokio-stream",
  "tracing",
@@ -7164,7 +7164,7 @@ dependencies = [
  "serde_json",
  "tinyinference-embeddings",
  "tinymemory-api",
- "tinytools 0.5.0",
+ "tinytools",
 ]
 
 [[package]]
@@ -7220,17 +7220,6 @@ dependencies = [
 
 [[package]]
 name = "tinytools"
-version = "0.3.0"
-source = "git+https://github.com/tinyhumansai/tinytools?rev=a5d04a7f3af0abc1dd748f87f94871b36ae9fe71#a5d04a7f3af0abc1dd748f87f94871b36ae9fe71"
-dependencies = [
- "anyhow",
- "async-trait",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "tinytools"
 version = "0.5.0"
 dependencies = [
  "anyhow",
@@ -7241,23 +7230,12 @@ dependencies = [
 
 [[package]]
 name = "tinytools-agent"
-version = "0.3.0"
-source = "git+https://github.com/tinyhumansai/tinytools?rev=a5d04a7f3af0abc1dd748f87f94871b36ae9fe71#a5d04a7f3af0abc1dd748f87f94871b36ae9fe71"
-dependencies = [
- "regex",
- "serde",
- "serde_json",
- "tinytools 0.3.0",
-]
-
-[[package]]
-name = "tinytools-agent"
 version = "0.5.0"
 dependencies = [
  "regex",
  "serde",
  "serde_json",
- "tinytools 0.5.0",
+ "tinytools",
 ]
 
 [[package]]
@@ -7265,7 +7243,7 @@ name = "tinytools-jev"
 version = "0.5.0"
 dependencies = [
  "async-trait",
- "tinytools 0.5.0",
+ "tinytools",
 ]
 
 [[package]]
@@ -7286,7 +7264,7 @@ dependencies = [
  "rustix",
  "serde_json",
  "sha2 0.10.9",
- "tinytools 0.5.0",
+ "tinytools",
  "tokio",
  "tracing",
  "walkdir",
@@ -7376,7 +7354,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2 0.11.0",
- "tinytools 0.5.0",
+ "tinytools",
  "tinywallet-bus",
  "tinywallet-crypto",
  "tinywallet-x402",
@@ -7400,7 +7378,7 @@ dependencies = [
  "sha2 0.11.0",
  "sha3 0.12.0",
  "thiserror 2.0.20",
- "tinytools 0.5.0",
+ "tinytools",
  "tinywallet-crypto",
  "uuid",
 ]
