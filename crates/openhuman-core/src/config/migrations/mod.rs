@@ -384,7 +384,7 @@ pub async fn run_pending(config: &mut Config) {
             let base = tinyinference_local::ollama::ollama_base_url_from_override(
                 config.local_ai.base_url.as_deref(),
             );
-            migrate_legacy_embedding_provider::local_ollama_reachable(&base).await
+            Box::pin(migrate_legacy_embedding_provider::local_ollama_reachable(&base)).await
         } else {
             false
         };
