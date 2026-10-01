@@ -24,7 +24,7 @@
 //! `permission_level_with_args` resolves the member's own level from the
 //! action; the argument-free `permission_level` reports the strictest any
 //! member requires, so an argument-less caller over-restricts rather than
-//! under-. See `tools::implementations::meta::collapse`.
+//! under-. See `tinytools::collapse`.
 //!
 //! **Pre-existing, and left alone:** this family declares one level between
 //! them. Neither `memory_store` nor `memory_forget` overrides

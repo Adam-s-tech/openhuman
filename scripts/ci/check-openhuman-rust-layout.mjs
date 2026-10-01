@@ -44,7 +44,7 @@ const LEGACY_LIMIT_ENTRIES = [
   // state moved to tinyagents-runtime; this remaining composition is split in
   // a follow-up without reintroducing an old harness/session exception.
   ["crates/openhuman-core/src/agent/session_host/builder/factory.rs", 1212],
-  ["crates/openhuman-core/src/agent/subagent_host/lifecycle.rs", 1313],
+  ["crates/openhuman-core/src/agent/subagent_host/lifecycle.rs", 1309],
   ["crates/openhuman-core/src/agent/subagent_host/ops/runner.rs", 1427],
   ["crates/openhuman-core/src/tools/ops.rs", 1322],
   ["crates/openhuman-core/src/web_chat/progress_bridge.rs", 1304],
@@ -54,7 +54,7 @@ const LEGACY_LIMIT_ENTRIES = [
   // `core/` was pruned from the line limit by name until these pins; its
   // oversized files are pinned at the size they had when enforcement began.
   ["crates/openhuman-core/src/core/all.rs", 1840],
-  ["crates/openhuman-core/src/core/all_tests.rs", 2709],
+  ["crates/openhuman-core/src/core/all_tests.rs", 2608],
   ["crates/openhuman-core/src/core/cli.rs", 803],
   ["crates/openhuman-core/src/core/events.rs", 2005],
   ["crates/openhuman-core/src/core/events_tests.rs", 1062],
