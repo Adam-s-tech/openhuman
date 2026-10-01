@@ -329,21 +329,21 @@ fn conversation_preserves_tool_call_structure() {
     let convo = messages_to_conversation(suffix);
     assert_eq!(convo.len(), 3);
     match &convo[0] {
-        ConversationMessage::AssistantToolCalls { tool_calls, .. } => {
+        TranscriptEntry::AssistantToolCalls { tool_calls, .. } => {
             assert_eq!(tool_calls[0].name, "echo");
             assert_eq!(tool_calls[0].id, "c1");
         }
         other => panic!("expected AssistantToolCalls, got {other:?}"),
     }
     match &convo[1] {
-        ConversationMessage::ToolResults(results) => {
+        TranscriptEntry::ToolResults(results) => {
             assert_eq!(results[0].tool_call_id, "c1");
             assert_eq!(results[0].content, "echoed:hi");
         }
         other => panic!("expected ToolResults, got {other:?}"),
     }
     match &convo[2] {
-        ConversationMessage::Chat(c) => {
+        TranscriptEntry::Chat(c) => {
             assert_eq!(c.role, "assistant");
             assert_eq!(c.content, "all done");
         }
@@ -395,13 +395,13 @@ fn reasoning_from_content_keeps_every_thinking_block_in_order() {
     assert_eq!(reasoning_from_content(&content[1..2]), None);
 }
 
-/// The persisted `ConversationMessage::AssistantToolCalls` bytes must not
+/// The persisted `TranscriptEntry::AssistantToolCalls` bytes must not
 /// change now that its tool calls are the dialect crate's `NativeToolCall`.
 #[test]
 fn conversation_tool_calls_serde_matches_persisted_literal_json() {
     let literal = r#"{"type":"AssistantToolCalls","data":{"text":"hi","tool_calls":[{"id":"c1","name":"echo","arguments":"{\"a\":1}"},{"id":"c2","name":"g","arguments":"{}","extra_content":{"google":{"thought_signature":"sig"}}}],"reasoning_content":"r"}}"#;
-    let parsed: ConversationMessage = serde_json::from_str(literal).expect("legacy record loads");
-    let ConversationMessage::AssistantToolCalls { tool_calls, .. } = &parsed else {
+    let parsed: TranscriptEntry = serde_json::from_str(literal).expect("legacy record loads");
+    let TranscriptEntry::AssistantToolCalls { tool_calls, .. } = &parsed else {
         panic!("expected AssistantToolCalls");
     };
     assert_eq!(tool_calls.len(), 2);

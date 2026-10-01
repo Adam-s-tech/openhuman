@@ -98,7 +98,7 @@ fn nudge_count(messages: &[Message]) -> usize {
 async fn run_turn(
     script: Vec<ChatResponse>,
     tools: Vec<Box<dyn Tool>>,
-) -> (Vec<Vec<Message>>, Vec<ConversationMessage>) {
+) -> (Vec<Vec<Message>>, Vec<TranscriptEntry>) {
     let (requests, history, _tmp) = run_turn_failing_from(script, tools, None).await;
     (requests, history)
 }
@@ -109,7 +109,7 @@ async fn run_turn_failing_from(
     fail_from_call: Option<usize>,
 ) -> (
     Vec<Vec<Message>>,
-    Vec<ConversationMessage>,
+    Vec<TranscriptEntry>,
     tempfile::TempDir,
 ) {
     let provider = Arc::new(RecordingProvider {
@@ -129,11 +129,11 @@ async fn run_turn_failing_from(
 }
 
 /// No system row may follow the first conversational row of committed history.
-fn committed_system_rows_past_prefix(history: &[ConversationMessage]) -> Vec<String> {
+fn committed_system_rows_past_prefix(history: &[TranscriptEntry]) -> Vec<String> {
     history
         .iter()
         .filter_map(|m| match m {
-            ConversationMessage::Chat(chat) => Some(chat),
+            TranscriptEntry::Chat(chat) => Some(chat),
             _ => None,
         })
         .skip_while(|chat| chat.role == "system")
@@ -161,10 +161,10 @@ async fn validation_nudge_reaches_the_retry_but_is_not_committed() {
     assert!(
         history.iter().any(|m| matches!(
             m,
-            ConversationMessage::Chat(chat) if chat.role == "tool" && chat.content.contains("422")
+            TranscriptEntry::Chat(chat) if chat.role == "tool" && chat.content.contains("422")
         )) || history
             .iter()
-            .any(|m| matches!(m, ConversationMessage::ToolResults(r) if r.iter().any(|r| r.content.contains("422")))),
+            .any(|m| matches!(m, TranscriptEntry::ToolResults(r) if r.iter().any(|r| r.content.contains("422")))),
         "the validation failure must be part of the committed turn"
     );
     assert_eq!(
@@ -212,11 +212,11 @@ async fn a_second_validation_failure_rearms_the_nudge() {
 /// Committed rows carrying the nudge text in any role. A failed turn renders
 /// its unanswered request into the failure note as text (#6281), so a leak can
 /// arrive inside an assistant row, not only as a system row.
-fn committed_rows_mentioning_nudge(history: &[ConversationMessage]) -> Vec<String> {
+fn committed_rows_mentioning_nudge(history: &[TranscriptEntry]) -> Vec<String> {
     history
         .iter()
         .filter_map(|m| match m {
-            ConversationMessage::Chat(chat) if chat.content.contains(NUDGE) => {
+            TranscriptEntry::Chat(chat) if chat.content.contains(NUDGE) => {
                 Some(format!("{}: {}", chat.role, chat.content))
             }
             _ => None,

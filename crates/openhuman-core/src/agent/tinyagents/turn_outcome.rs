@@ -2,7 +2,7 @@
 //! sinks middleware write into to build it.
 
 use tinyagents_session::transcript::TranscriptMessage;
-use crate::agent::messages::{ConversationMessage};
+use tinytools_agent::dialect::TranscriptEntry;
 use tinyinference_llm::model::ResolvedModelRoute;
 
 /// The outcome of a turn driven on the `tinyagents` harness.
@@ -20,7 +20,7 @@ pub(crate) struct TinyagentsTurnOutcome {
     /// The **typed** messages this turn appended (after the user turn):
     /// `AssistantToolCalls` / `ToolResults` / final assistant `Chat`. The chat
     /// session persists these to keep structured tool-call history fidelity.
-    pub conversation: Vec<ConversationMessage>,
+    pub conversation: Vec<TranscriptEntry>,
     /// Number of model calls the loop made.
     pub model_calls: usize,
     /// Number of tool calls the loop made.

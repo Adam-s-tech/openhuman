@@ -15,7 +15,7 @@ use super::{
     fingerprint_diff, CheckedOutSession, CheckoutPolicy,
 };
 use tinyagents_session::transcript::TranscriptMessage;
-use crate::agent::messages::{ConversationMessage};
+use tinytools_agent::dialect::TranscriptEntry;
 use crate::agent::OpenHumanSessionHost;
 use crate::config::Config;
 use crate::web_chat::ops::{key_for, THREAD_SESSIONS};
@@ -77,11 +77,11 @@ fn write_thread_transcript(workspace_dir: &Path, stem: &str, thread_id: &str, ro
     write_transcript(&path, &messages, &meta, None).unwrap();
 }
 
-fn prose(history: &[ConversationMessage]) -> Vec<String> {
+fn prose(history: &[TranscriptEntry]) -> Vec<String> {
     history
         .iter()
         .filter_map(|message| match message {
-            ConversationMessage::Chat(chat) => Some(chat.content.clone()),
+            TranscriptEntry::Chat(chat) => Some(chat.content.clone()),
             _ => None,
         })
         .collect()

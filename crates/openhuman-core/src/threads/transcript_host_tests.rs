@@ -40,7 +40,7 @@ fn write_raw(workspace: &std::path::Path, stem: &str, thread_id: &str, body: &[&
 /// them as cancelled).
 #[test]
 fn text_dialect_tool_turn_projects_calls_on_their_issuing_row_as_settled() {
-    use crate::agent::messages::{ConversationMessage, ToolResultMessage};
+    use tinytools_agent::dialect::{ToolResultEntry, TranscriptEntry};
     use crate::agent::session_host::OpenHumanTranscriptCodec;
     use crate::agent::tinyagents::host::OpenHumanRunContext;
     use tinyagents_runtime::{ResumeMode, TranscriptCodec, TranscriptTurnOptions};
@@ -52,7 +52,7 @@ fn text_dialect_tool_turn_projects_calls_on_their_issuing_row_as_settled() {
     // What the session driver persists for a text dialect: the conversation
     // rendered through the dialect's replay form.
     let conversation = vec![
-        ConversationMessage::AssistantToolCalls {
+        TranscriptEntry::AssistantToolCalls {
             text: None,
             tool_calls: vec![
                 NativeToolCall {
@@ -71,17 +71,17 @@ fn text_dialect_tool_turn_projects_calls_on_their_issuing_row_as_settled() {
             reasoning_content: None,
             extra_metadata: None,
         },
-        ConversationMessage::ToolResults(vec![
-            ToolResultMessage {
+        TranscriptEntry::ToolResults(vec![
+            ToolResultEntry {
                 tool_call_id: "call_web_search_1".into(),
                 content: "Search results for: rust async traits".into(),
             },
-            ToolResultMessage {
+            ToolResultEntry {
                 tool_call_id: "call_file_read_1".into(),
                 content: "unknown tool `file_read`".into(),
             },
         ]),
-        ConversationMessage::Chat(TranscriptMessage::assistant("Here is what I found.")),
+        TranscriptEntry::Chat(TranscriptMessage::assistant("Here is what I found.")),
     ];
     let rendered = crate::agent::message_convert::provider_messages_from_conversation(
         &tinytools_agent::dialect::XmlDialect,

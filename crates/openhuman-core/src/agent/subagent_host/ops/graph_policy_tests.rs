@@ -227,14 +227,14 @@ fn mirrored_tool_results_are_hidden_from_the_worker_thread_chat() {
 
     const RAW: &str = "{\"events\":[{\"title\":\"raw tool output the human never typed\"}]}";
 
-    // The typed path (`ConversationMessage::ToolResults`), used on a normal run.
+    // The typed path (`TranscriptEntry::ToolResults`), used on a normal run.
     mirror_worker_thread(
         &dir,
         "worker-typed",
         "researcher",
         "task-1",
         &[
-            ConversationMessage::AssistantToolCalls {
+            TranscriptEntry::AssistantToolCalls {
                 text: Some("checking the calendar".to_string()),
                 tool_calls: vec![tinytools_agent::dialect::NativeToolCall {
                     id: "call-1".to_string(),
@@ -245,7 +245,7 @@ fn mirrored_tool_results_are_hidden_from_the_worker_thread_chat() {
                 reasoning_content: None,
                 extra_metadata: None,
             },
-            ConversationMessage::ToolResults(vec![crate::agent::messages::ToolResultMessage {
+            TranscriptEntry::ToolResults(vec![tinytools_agent::dialect::ToolResultEntry {
                 tool_call_id: "call-1".to_string(),
                 content: RAW.to_string(),
             }]),

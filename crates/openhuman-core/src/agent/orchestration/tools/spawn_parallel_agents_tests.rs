@@ -4,7 +4,7 @@ use crate::agent::harness::definition::{
     AgentDefinition, AgentTier, DefinitionSource, ModelSpec, PromptSource, SandboxMode, ToolScope,
 };
 use crate::agent::harness::fork_context::{with_parent_context, ParentExecutionContext};
-use crate::agent::messages::ConversationMessage;
+use tinytools_agent::dialect::TranscriptEntry;
 use crate::agent::orchestration::spawn_parallel_graph::{
     prepare_spawn_parallel_tasks_from_defs, ParallelTaskRejectionKind, SpawnParallelTaskPreflight,
     WorkerDispatchMode,
@@ -612,7 +612,7 @@ async fn agent_turn_runs_long_parallel_subagent_flow_with_many_nested_tool_calls
 
     for message in history {
         match message {
-            ConversationMessage::AssistantToolCalls { tool_calls, .. } => {
+            TranscriptEntry::AssistantToolCalls { tool_calls, .. } => {
                 if tool_calls
                     .iter()
                     .any(|call| call.name == "spawn_parallel_agents")
@@ -620,7 +620,7 @@ async fn agent_turn_runs_long_parallel_subagent_flow_with_many_nested_tool_calls
                     saw_parallel_call = true;
                 }
             }
-            ConversationMessage::ToolResults(results) => {
+            TranscriptEntry::ToolResults(results) => {
                 for result in results {
                     if !result.content.contains("\"parallel_agents\"") {
                         continue;
@@ -645,12 +645,12 @@ async fn agent_turn_runs_long_parallel_subagent_flow_with_many_nested_tool_calls
                     }
                 }
             }
-            ConversationMessage::Chat(message) if message.role == "assistant" => {
+            TranscriptEntry::Chat(message) if message.role == "assistant" => {
                 if message.content.contains("spawn_parallel_agents") {
                     saw_parallel_call = true;
                 }
             }
-            ConversationMessage::Chat(message) if message.role == "tool" => {
+            TranscriptEntry::Chat(message) if message.role == "tool" => {
                 let content = serde_json::from_str::<serde_json::Value>(&message.content)
                     .ok()
                     .and_then(|envelope| {

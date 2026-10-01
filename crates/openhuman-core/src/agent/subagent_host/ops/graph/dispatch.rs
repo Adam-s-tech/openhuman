@@ -7,7 +7,7 @@ use std::collections::HashSet;
 use std::sync::Arc;
 
 use tinyagents_session::transcript::TranscriptMessage;
-use crate::agent::messages::{ConversationMessage};
+use tinytools_agent::dialect::TranscriptEntry;
 use crate::agent::progress::AgentProgress;
 use crate::agent::subagent_host::types::SubagentRunError;
 use crate::agent::tinyagents::{run_turn_via_tinyagents_shared, SubagentScope};
@@ -587,7 +587,7 @@ fn map_tinyagents_subagent_error(err: anyhow::Error) -> SubagentRunError {
 /// `after_tool` — is marked `failed`, so the summary no longer tells the model
 /// every call succeeded.
 fn build_cap_digest(
-    conversation: &[ConversationMessage],
+    conversation: &[TranscriptEntry],
     tool_outcomes: &[crate::agent::tinyagents::ToolCallOutcome],
 ) -> String {
     use std::collections::HashMap;
@@ -596,7 +596,7 @@ fn build_cap_digest(
     // call_id -> tool name, from this turn's assistant tool-call rounds.
     let mut names: HashMap<&str, &str> = HashMap::new();
     for msg in conversation {
-        if let ConversationMessage::AssistantToolCalls { tool_calls, .. } = msg {
+        if let TranscriptEntry::AssistantToolCalls { tool_calls, .. } = msg {
             for call in tool_calls {
                 names.insert(call.id.as_str(), call.name.as_str());
             }
@@ -611,7 +611,7 @@ fn build_cap_digest(
 
     let mut out = String::new();
     for msg in conversation {
-        if let ConversationMessage::ToolResults(results) = msg {
+        if let TranscriptEntry::ToolResults(results) = msg {
             for r in results {
                 let name = names
                     .get(r.tool_call_id.as_str())

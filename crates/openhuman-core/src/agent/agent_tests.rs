@@ -18,14 +18,14 @@
 //!  13. Multi-tool batch in a single response
 //!  14. System prompt generation & tool instructions
 //!  15. Context enrichment from memory loader
-//!  16. ConversationMessage serialization round-trip
+//!  16. TranscriptEntry serialization round-trip
 //!  17. Tool call with stringified JSON arguments
 //!  18. Conversation history fidelity (tool call → tool result → assistant)
 //!  19. Builder validation (missing required fields)
 //!  20. Idempotent system prompt insertion
 
 use tinyagents_session::transcript::TranscriptMessage;
-use crate::agent::messages::{ConversationMessage};
+use tinytools_agent::dialect::TranscriptEntry;
 use crate::agent::session_host::OpenHumanSessionHost;
 use crate::config::AgentConfig;
 use crate::inference::provider::ChatResponse;
