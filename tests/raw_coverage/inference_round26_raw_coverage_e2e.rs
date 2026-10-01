@@ -82,7 +82,7 @@ fn __shared_env_lock() -> std::sync::MutexGuard<'static, ()> {
 }
 
  #[tokio::test]
-async fn local_service_covers_mocked_bootstrap_assets_diagnostics_and_embed() {
+async fn local_service_covers_mocked_bootstrap_diagnostics_and_embed() {
     let _env_lock = __shared_env_lock();
     let tmp = tempdir().expect("tempdir");
     let fake_bin_dir = tmp.path().join("fake-bin");
@@ -105,48 +105,29 @@ async fn local_service_covers_mocked_bootstrap_assets_diagnostics_and_embed() {
     config.local_ai.chat_model_id = "gemma3:1b-it-qat".to_string();
     config.local_ai.model_id = "gemma3:1b-it-qat".to_string();
     config.local_ai.embedding_model_id = "bge-m3".to_string();
-    config.local_ai.preload_embedding_model = true;
-    config.local_ai.preload_tts_voice = false;
-    config.local_ai.tts_download_url = Some(format!("{base}/asset/tts"));
 
     let runtime = openhuman_core::inference::local_runtime_config(&config);
     let service = LocalAiService::new(&runtime);
     service.bootstrap(&runtime).await;
     let status = service.status();
     assert_eq!(status.state, "ready");
-    assert_eq!(status.embedding_state, "ready");
+    // Embeddings are served on demand by the user's runtime; bootstrap only
+    // probes the endpoint and never preloads or pulls the model.
+    assert_eq!(status.embedding_state, "idle");
     assert_eq!(status.provider, "ollama");
     assert_eq!(
         status.model_path.as_deref(),
         Some("ollama://gemma3:1b-it-qat")
     );
 
-    let assets = service.assets_status(&runtime).await.expect("assets status");
-    assert_eq!(assets.chat.state, "ready");
-    assert_eq!(assets.embedding.state, "ready");
-    assert_eq!(assets.vision.state, "disabled");
-    assert!(
-        matches!(assets.tts.state.as_str(), "ondemand" | "ready"),
-        "tts state should be on-demand or already resolved, got {}",
-        assets.tts.state
-    );
-    assert!(assets.ollama_available);
-
-    let progress = service
-        .downloads_progress(&runtime)
-        .await
-        .expect("downloads progress");
-    assert_eq!(progress.chat.state, "ready");
-    assert_eq!(progress.embedding.state, "ready");
-
     let diagnostics = service.diagnostics(&runtime).await.expect("diagnostics");
     assert_eq!(diagnostics["ollama_running"], true);
     assert_eq!(diagnostics["expected"]["chat_found"], true);
     assert_eq!(diagnostics["expected"]["embedding_found"], true);
-    assert!(diagnostics["ollama_binary_path"]
-        .as_str()
-        .unwrap()
-        .contains("ollama"));
+    assert!(
+        diagnostics.get("ollama_binary_path").is_none(),
+        "OpenHuman no longer locates or manages an Ollama binary"
+    );
     assert_eq!(
         diagnostics["installed_models"]
             .as_array()
@@ -171,6 +152,10 @@ async fn local_service_covers_mocked_bootstrap_assets_diagnostics_and_embed() {
     assert_eq!(embedded.vectors.len(), 2);
 
     let seen = state.requests.lock().expect("requests");
+    assert!(
+        !seen.iter().any(|req| req.path == "/api/pull"),
+        "OpenHuman must never pull a model; the user does"
+    );
     assert!(seen.iter().any(|req| req.path == "/api/show"
         && req
             .body
@@ -194,8 +179,6 @@ async fn serve_mock() -> (String, MockState) {
         .route("/api/show", post(ollama_show))
         .route("/api/pull", post(ollama_pull))
         .route("/api/embed", post(ollama_embed))
-        .route("/asset/stt", get(asset_bytes))
-        .route("/asset/tts", get(asset_bytes))
         .with_state(state.clone());
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
         .await
@@ -329,13 +312,6 @@ async fn ollama_embed(
         "model": "bge-m3",
         "embeddings": [vec![0.1; 1024], vec![0.2; 1024]]
     }))
-}
-
-async fn asset_bytes() -> impl IntoResponse {
-    Response::builder()
-        .status(StatusCode::OK)
-        .body(Body::from(vec![7u8; 1024]))
-        .expect("asset response")
 }
 
 fn sse_response(body: String) -> Response<Body> {
