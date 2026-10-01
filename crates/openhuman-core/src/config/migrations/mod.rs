@@ -109,7 +109,7 @@ pub async fn run_pending(config: &mut Config) {
             Ok(Ok(stats)) => {
                 let previous_version = config.schema_version;
                 config.schema_version = 1;
-                if let Err(err) = Box::pin(config.save()).await {
+                if let Err(err) = config.save().await {
                     // Roll the in-memory version back so a subsequent
                     // `load_or_init` (or future migration) doesn't believe
                     // we've already crossed this gate when disk still
@@ -157,7 +157,7 @@ pub async fn run_pending(config: &mut Config) {
             Ok(stats) => {
                 let previous_version = config.schema_version;
                 config.schema_version = 2;
-                if let Err(err) = Box::pin(config.save()).await {
+                if let Err(err) = config.save().await {
                     config.schema_version = previous_version;
                     log::warn!(
                         "[migrations] unify_ai_provider_settings ran but config.save failed: \
@@ -192,7 +192,7 @@ pub async fn run_pending(config: &mut Config) {
             Ok(stats) => {
                 let previous_version = config.schema_version;
                 config.schema_version = 3;
-                if let Err(err) = Box::pin(config.save()).await {
+                if let Err(err) = config.save().await {
                     config.schema_version = previous_version;
                     log::warn!(
                         "[migrations] retire_chat_v1_model ran but config.save failed: \
@@ -228,7 +228,7 @@ pub async fn run_pending(config: &mut Config) {
             Ok(stats) => {
                 let previous_version = config.schema_version;
                 config.schema_version = 4;
-                if let Err(err) = Box::pin(config.save()).await {
+                if let Err(err) = config.save().await {
                     config.schema_version = previous_version;
                     log::warn!(
                         "[migrations] expand_autonomy_defaults ran but config.save failed: \
@@ -264,7 +264,7 @@ pub async fn run_pending(config: &mut Config) {
             Ok(stats) => {
                 let previous_version = config.schema_version;
                 config.schema_version = 5;
-                if let Err(err) = Box::pin(config.save()).await {
+                if let Err(err) = config.save().await {
                     config.schema_version = previous_version;
                     log::warn!(
                         "[migrations] remove_write_auto_approve ran but config.save failed: \
@@ -347,7 +347,7 @@ pub async fn run_pending(config: &mut Config) {
         if all_ok {
             let previous_version = config.schema_version;
             config.schema_version = 6;
-            if let Err(err) = Box::pin(config.save()).await {
+            if let Err(err) = config.save().await {
                 config.schema_version = previous_version;
                 log::warn!(
                     "[migrations] 5->6 migrations ran but config.save failed: {err:#} — \
@@ -384,7 +384,7 @@ pub async fn run_pending(config: &mut Config) {
             let base = tinyinference_local::ollama::ollama_base_url_from_override(
                 config.local_ai.base_url.as_deref(),
             );
-            Box::pin(migrate_legacy_embedding_provider::local_ollama_reachable(&base)).await
+            migrate_legacy_embedding_provider::local_ollama_reachable(&base).await
         } else {
             false
         };
@@ -392,7 +392,7 @@ pub async fn run_pending(config: &mut Config) {
             Ok(stats) => {
                 let previous_version = config.schema_version;
                 config.schema_version = 7;
-                if let Err(err) = Box::pin(config.save()).await {
+                if let Err(err) = config.save().await {
                     config.schema_version = previous_version;
                     log::warn!(
                         "[migrations] migrate_legacy_embedding_provider ran but config.save \
@@ -434,7 +434,7 @@ pub async fn run_pending(config: &mut Config) {
             Ok(stats) => {
                 let previous_version = config.schema_version;
                 config.schema_version = 8;
-                if let Err(err) = Box::pin(config.save()).await {
+                if let Err(err) = config.save().await {
                     // Roll back BOTH the version and the mutated `default_model`
                     // so a failed save doesn't leave `load_or_init` returning a
                     // half-migrated in-memory config; next launch retries.
@@ -473,7 +473,7 @@ pub async fn run_pending(config: &mut Config) {
             Ok(stats) => {
                 let previous_version = config.schema_version;
                 config.schema_version = 9;
-                if let Err(err) = Box::pin(config.save()).await {
+                if let Err(err) = config.save().await {
                     // Roll back BOTH the version and the flag so a failed save
                     // doesn't leave `load_or_init` returning a half-migrated
                     // in-memory config; next launch retries.
@@ -516,7 +516,7 @@ pub async fn run_pending(config: &mut Config) {
             Ok(stats) => {
                 let previous_version = config.schema_version;
                 config.schema_version = 10;
-                if let Err(err) = Box::pin(config.save()).await {
+                if let Err(err) = config.save().await {
                     // Roll back BOTH the version and the rewritten fields so a
                     // failed save doesn't leave `load_or_init` returning a
                     // half-migrated in-memory config; next launch retries.
@@ -575,7 +575,7 @@ pub async fn run_pending(config: &mut Config) {
         let previous_version = config.schema_version;
         let seeded = stats.cloud_providers_seeded;
         config.schema_version = 11;
-        if let Err(err) = Box::pin(config.save()).await {
+        if let Err(err) = config.save().await {
             // Roll back BOTH the version and the seeded entries: leaving them
             // in memory would hand `load_or_init` a config whose providers are
             // not on disk, and the next launch would seed a second copy.
@@ -608,7 +608,7 @@ pub async fn run_pending(config: &mut Config) {
     if config.schema_version == 11 {
         let previous_version = config.schema_version;
         config.schema_version = 12;
-        if let Err(err) = Box::pin(config.save()).await {
+        if let Err(err) = config.save().await {
             config.schema_version = previous_version;
             log::warn!("[migrations] schema_version 12 save failed: {err:#}");
             return;
@@ -627,7 +627,7 @@ pub async fn run_pending(config: &mut Config) {
             Ok(stats) => {
                 let previous_version = config.schema_version;
                 config.schema_version = 13;
-                if let Err(err) = Box::pin(config.save()).await {
+                if let Err(err) = config.save().await {
                     *config = snapshot;
                     log::warn!(
                         "[migrations] retire_managed_tier_slugs ran but config.save failed: \
