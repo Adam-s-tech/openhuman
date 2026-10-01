@@ -51,5 +51,5 @@ fn dump_cases() {
             c.error_type, c.source, c.retryable, c.retry_after_ms, c.provider, c.fallback_available, c.message
         ));
     }
-    std::fs::write(concat!(env!("CARGO_MANIFEST_DIR"), "/../../../dump.txt"), out).unwrap();
+    std::fs::write(concat!(env!("CARGO_MANIFEST_DIR"), "/../../dump.txt"), out).unwrap();
 }
