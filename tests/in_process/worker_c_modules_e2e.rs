@@ -347,8 +347,11 @@ async fn channels_remaining_controller_paths_validate_without_live_services() {
 
     // The managed-bot link flows need a TinyHumans account, so they are served
     // by `openhuman-tinyhumans` (`hosted::channel_link`) and registered only
-    // when `openhuman_tinyhumans::install` runs. This harness boots the core
-    // alone, so they must be absent — same wire names, no core fallback.
+    // when `openhuman_tinyhumans::install` runs. Without it they must be absent
+    // — same wire names, no core fallback. `in_process_all` shares one process
+    // with suites that do boot the transport, so once it is installed the
+    // methods are legitimately present and answer for the missing session.
+    let hosted_layer_installed = crate::tinyhumans_boot::is_booted();
     for (id, method) in [
         (50, "openhuman.channels_telegram_login_start"),
         (51, "openhuman.channels_discord_link_start"),
@@ -360,10 +363,17 @@ async fn channels_remaining_controller_paths_validate_without_live_services() {
             .pointer("/error/message")
             .and_then(Value::as_str)
             .unwrap_or_default();
-        assert!(
-            message.contains("unknown method"),
-            "{method} must be absent from a core without the hosted layer: {response}"
-        );
+        if hosted_layer_installed {
+            assert!(
+                !message.contains("unknown method"),
+                "{method} must be served once the hosted layer is installed: {response}"
+            );
+        } else {
+            assert!(
+                message.contains("unknown method"),
+                "{method} must be absent from a core without the hosted layer: {response}"
+            );
+        }
     }
 }
 
