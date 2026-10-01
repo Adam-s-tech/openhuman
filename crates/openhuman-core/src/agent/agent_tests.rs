@@ -24,7 +24,6 @@
 //!  19. Builder validation (missing required fields)
 //!  20. Idempotent system prompt insertion
 
-use tinyagents_session::transcript::TranscriptMessage;
 use tinytools_agent::dialect::TranscriptEntry;
 use crate::agent::session_host::OpenHumanSessionHost;
 use crate::config::AgentConfig;
