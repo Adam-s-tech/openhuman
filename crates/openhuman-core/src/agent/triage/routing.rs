@@ -11,8 +11,6 @@
 
 use std::sync::Arc;
 
-use anyhow::Context;
-
 use crate::config::Config;
 use crate::inference::provider::{self, INFERENCE_BACKEND_ID};
 

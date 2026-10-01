@@ -9,15 +9,13 @@ use std::collections::BTreeMap;
 use anyhow::Result;
 use serde_json::json;
 use tinyagents_orchestration::workflow::{
-    validate_agents, validate_structure, DefinitionError, WorkflowDefinition,
-    WorkflowDefinitionListResponse, WorkflowPhase,
+    WorkflowDefinition, WorkflowDefinitionListResponse, WorkflowPhase,
 };
 use tinyagents_session::run_ledger::{
     get_workflow_run, list_workflow_runs, WorkflowRun, WorkflowRunListRequest,
     WorkflowRunListResponse,
 };
 
-use crate::agent::harness::definition::AgentDefinitionRegistry;
 use crate::config::Config;
 
 pub const PARALLEL_RESEARCH_ID: &str = "parallel_research_cross_check";

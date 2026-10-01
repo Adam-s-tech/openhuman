@@ -1,9 +1,7 @@
-use crate::agent::messages::ChatMessage;
 /// Token usage returned by a provider. Defined in the contract crate because
 /// the extracted memory subsystem threads it out of summarisation runs; every
 /// existing `inference::provider::UsageInfo` path keeps naming this one type.
 pub use tinymemory_api::host::UsageInfo;
-use tinytools::ToolSpec;
 use tinytools_agent::dialect::NativeToolCall;
 
 /// An LLM response that may contain text, tool calls, or both.

@@ -37,7 +37,7 @@
 //! explicit, validated working directory. It does not inherit ambient git
 //! configuration that could redirect operations elsewhere.
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use tinyagents_harness::workspace::{GitWorktreeBaseRef, GitWorktreeIsolation, WorkspaceIsolation};
 use tinytools::{SandboxMode, WorkspaceDescriptor};
