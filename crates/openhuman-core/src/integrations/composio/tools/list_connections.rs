@@ -100,7 +100,7 @@ impl ComposioListConnectionsTool {
             }
             Ok(ComposioRoute::Direct(direct)) => {
                 tracing::debug!("[composio-direct] list_connections.execute: direct variant");
-                match direct_list_connections(&direct).await.map_err(|e| {
+                match direct_list_connections(&live_config, &direct).await.map_err(|e| {
                     // [#1166 / Sentry TAURI-RUST-X9] Symmetric error
                     // routing with `ops.rs::composio_list_connections`.
                     // The agent-tool path can also fire 401s when a
