@@ -299,6 +299,7 @@ pub(crate) async fn flows_build_with_extra_hidden_tools(
     // staring at the original silent/status-only text.
     let runtime_history = agent.history();
     let proposal = extract_workflow_proposal(&runtime_history);
+    for e in &runtime_history { eprintln!("DBG-HIST {}", format!("{e:?}").chars().take(1500).collect::<String>()); }
 
     // A user-cancelled turn settles here, clean and separate from the
     // error/trail-off paths below: `finalize_flow_stream` gets an `Ok(...)` (a
