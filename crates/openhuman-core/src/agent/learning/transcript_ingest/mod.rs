@@ -89,14 +89,9 @@ pub async fn ingest_session_transcript(
     let thread_id = transcript.meta.thread_id.clone();
     let now = chrono::Utc::now().to_rfc3339();
 
-    let messages: Vec<_> = transcript
-        .messages
-        .iter()
-        .cloned()
-        .map(crate::agent::messages::chat_message_from_transcript)
-        .collect();
+    let messages = &transcript.messages;
     let extracted = extract::extract_candidates(
-        &messages,
+        messages,
         &extract::Provenance {
             thread_id: thread_id.clone(),
             transcript_path: path_display.clone(),
@@ -106,7 +101,7 @@ pub async fn ingest_session_transcript(
     );
 
     let reflections = extract::extract_reflections(
-        &messages,
+        messages,
         &extract::Provenance {
             thread_id: thread_id.clone(),
             transcript_path: path_display.clone(),

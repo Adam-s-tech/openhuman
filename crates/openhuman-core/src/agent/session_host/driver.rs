@@ -13,11 +13,11 @@ use async_trait::async_trait;
 use tinyagents_runtime::{
     DriverFailure, DriverOutcome, DriverRequest, RuntimeError, SessionDriver, TranscriptPartial,
 };
+use tinyagents_session::transcript::TranscriptMessage;
 use tinyinference_llm::message::Message;
 use tinytools_agent::dialect::ToolDialect;
 
 use crate::agent::{
-    messages::ChatMessage,
     session_host::turn::graph::{self, ChatTurnGraph},
     tinyagents::{host::OpenHumanHostBase, host::OpenHumanRunContext, TurnModelSource},
 };
@@ -144,7 +144,7 @@ impl SessionDriver<OpenHumanRunContext> for OpenHumanSessionDriver {
             )
             .map_err(driver_error)?;
 
-        let mut messages: Vec<ChatMessage> = request
+        let mut messages: Vec<TranscriptMessage> = request
             .history
             .iter()
             .filter_map(crate::agent::message_convert::message_to_native_chat_message)

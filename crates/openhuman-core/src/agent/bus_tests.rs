@@ -10,8 +10,8 @@ fn test_request() -> AgentTurnRequest {
     AgentTurnRequest {
         turn_model_source: crate::agent::tinyagents::TurnModelSource::from_model(model),
         history: vec![
-            ChatMessage::system("you are a test bot"),
-            ChatMessage::user("hello"),
+            TranscriptMessage::system("you are a test bot"),
+            TranscriptMessage::user("hello"),
         ],
         tools_registry: Arc::new(Vec::new()),
         provider_name: "fake-provider".into(),

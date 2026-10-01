@@ -31,7 +31,7 @@ const LEGACY_LIMIT_ENTRIES = [
   // change in `subagent_sessions`.
   [
     "crates/openhuman-core/src/agent/orchestration/tools/spawn_async_subagent_execute.rs",
-    800,
+    799,
   ],
   // `spawn_subagent_tool_impl.rs` had its entry DELETED, not lowered: the
   // parameter schema moved to `spawn_subagent_parameters.rs` and the file is

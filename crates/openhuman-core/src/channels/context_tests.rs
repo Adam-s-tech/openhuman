@@ -106,10 +106,12 @@ fn clear_and_compact_sender_history_update_cached_messages() {
     let ctx = runtime_context();
     let sender = "discord_alice_reply_thread:thread-1";
     let mut history = Vec::new();
-    history.push(crate::agent::messages::ChatMessage::user("short"));
-    history.extend(
-        (0..20).map(|idx| crate::agent::messages::ChatMessage::assistant("x".repeat(700 + idx))),
-    );
+    history.push(tinyagents_session::transcript::TranscriptMessage::user(
+        "short",
+    ));
+    history.extend((0..20).map(|idx| {
+        tinyagents_session::transcript::TranscriptMessage::assistant("x".repeat(700 + idx))
+    }));
     ctx.conversation_histories
         .lock()
         .unwrap()
