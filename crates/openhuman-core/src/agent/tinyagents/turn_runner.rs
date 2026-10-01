@@ -441,7 +441,7 @@ async fn run_turn_via_tinyagents_inner(
     // with it (`with_stream_id`), so every persisted observation's `event_id` is
     // the restart-stable `{run_id}-evt-{offset}` a late-attach replay
     // reconstructs the timeline from (05.1). The same id keys the journal + status.
-    let journal_run_id = journal::mint_run_id();
+    let journal_run_id = tinyagents_harness::observability::mint_run_id();
     if let Some(scope) = &subagent_scope {
         if let Some(slot) = &scope.journal_run_id {
             *slot
@@ -595,7 +595,7 @@ async fn run_turn_via_tinyagents_inner(
             steering_forwarder::forward_collects(&queue, &handle, &steer_thread_label).await;
         }
         ctx = ctx.with_steering(handle.clone());
-        Some(steering_forwarder::SteeringForwarderGuard::new(
+        Some(steering_forwarder::arm_guard(
             handle,
             run_queue,
             registry_task_id,
