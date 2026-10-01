@@ -13,7 +13,7 @@
       "user": {
         "content": [
           {
-            "text": "Current Date & Time: 2026-10-01 09:05:15 Asia/Kuwait (+03:00, UTC+03:00), Thursday\n\none"
+            "text": "Current Date & Time: 2026-10-01 09:17:45 Asia/Kuwait (+03:00, UTC+03:00), Thursday\n\none"
           }
         ]
       }
@@ -32,7 +32,7 @@
       "user": {
         "content": [
           {
-            "text": "Current Date & Time: 2026-10-01 09:05:15 Asia/Kuwait (+03:00, UTC+03:00), Thursday\n\ntwo"
+            "text": "Current Date & Time: 2026-10-01 09:17:45 Asia/Kuwait (+03:00, UTC+03:00), Thursday\n\ntwo"
           }
         ]
       }
@@ -59,7 +59,7 @@
       "role": "system"
     },
     {
-      "content": "Current Date & Time: 2026-10-01 09:05:15 Asia/Kuwait (+03:00, UTC+03:00), Thursday\n\none",
+      "content": "Current Date & Time: 2026-10-01 09:17:45 Asia/Kuwait (+03:00, UTC+03:00), Thursday\n\none",
       "extra_metadata": {
         "openhuman_replayed": {
           "request_id": null
@@ -72,12 +72,26 @@
       "extra_metadata": {
         "openhuman_replayed": {
           "request_id": null
+        },
+        "openhuman_turn_usage": {
+          "iteration": 1,
+          "model": "",
+          "provider": "",
+          "tool_calls": [],
+          "ts": "2026-10-01T06:17:45.762382535+00:00",
+          "usage": {
+            "cached_input": 100,
+            "context_window": 0,
+            "cost_usd": 0.000015948,
+            "input": 120,
+            "output": 30
+          }
         }
       },
       "role": "assistant"
     },
     {
-      "content": "Current Date & Time: 2026-10-01 09:05:15 Asia/Kuwait (+03:00, UTC+03:00), Thursday\n\ntwo",
+      "content": "Current Date & Time: 2026-10-01 09:17:45 Asia/Kuwait (+03:00, UTC+03:00), Thursday\n\ntwo",
       "extra_metadata": {
         "openhuman_replayed": {
           "request_id": null
@@ -90,6 +104,20 @@
       "extra_metadata": {
         "openhuman_replayed": {
           "request_id": null
+        },
+        "openhuman_turn_usage": {
+          "iteration": 1,
+          "model": "",
+          "provider": "",
+          "tool_calls": [],
+          "ts": "2026-10-01T06:17:45.790957654+00:00",
+          "usage": {
+            "cached_input": 100,
+            "context_window": 0,
+            "cost_usd": 0.000015948,
+            "input": 120,
+            "output": 30
+          }
         }
       },
       "role": "assistant"

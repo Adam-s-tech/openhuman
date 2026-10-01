@@ -13,7 +13,7 @@
       "user": {
         "content": [
           {
-            "text": "Current Date & Time: 2026-10-01 09:05:16 Asia/Kuwait (+03:00, UTC+03:00), Thursday\n\nlook"
+            "text": "Current Date & Time: 2026-10-01 09:17:46 Asia/Kuwait (+03:00, UTC+03:00), Thursday\n\nlook"
           },
           {
             "image": {
@@ -49,7 +49,7 @@
       "role": "system"
     },
     {
-      "content": "Current Date & Time: 2026-10-01 09:05:16 Asia/Kuwait (+03:00, UTC+03:00), Thursday\n\nlook [IMAGE:data:image/png;base64,iVBORw0KGgo=] please",
+      "content": "Current Date & Time: 2026-10-01 09:17:46 Asia/Kuwait (+03:00, UTC+03:00), Thursday\n\nlook [IMAGE:data:image/png;base64,iVBORw0KGgo=] please",
       "extra_metadata": {
         "openhuman_replayed": {
           "request_id": null
@@ -62,6 +62,20 @@
       "extra_metadata": {
         "openhuman_replayed": {
           "request_id": null
+        },
+        "openhuman_turn_usage": {
+          "iteration": 1,
+          "model": "",
+          "provider": "",
+          "tool_calls": [],
+          "ts": "2026-10-01T06:17:46.507702767+00:00",
+          "usage": {
+            "cached_input": 100,
+            "context_window": 0,
+            "cost_usd": 0.000015948,
+            "input": 120,
+            "output": 30
+          }
         }
       },
       "role": "assistant"
