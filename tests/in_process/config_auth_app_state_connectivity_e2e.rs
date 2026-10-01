@@ -2031,9 +2031,6 @@ async fn worker_a_controller_schemas_are_fully_exposed() {
         "openhuman.inference_update_model_settings",
         "openhuman.inference_update_local_settings",
         "openhuman.inference_list_models",
-        "openhuman.inference_device_profile",
-        "openhuman.inference_presets",
-        "openhuman.inference_apply_preset",
         "openhuman.inference_diagnostics",
         "openhuman.inference_openai_oauth_start",
         "openhuman.inference_openai_oauth_complete",
@@ -2064,7 +2061,10 @@ async fn worker_a_controller_schemas_are_fully_exposed() {
         "openhuman.approval_list_recent_decisions",
         "openhuman.approval_decide",
     ] {
-        if !advertised.iter().any(|method| method == expected) { eprintln!("MISSING {expected}"); }
+        assert!(
+            advertised.iter().any(|method| method == expected),
+            "schema catalog must expose {expected}"
+        );
     }
 
     let unknown_app_state = app_state_schemas("missing");

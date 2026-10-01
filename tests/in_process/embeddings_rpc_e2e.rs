@@ -782,21 +782,13 @@ async fn embeddings_update_settings_rejects_endpoint_with_no_embeddings_api() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn legacy_alias_inference_embed_resolves() {
+async fn removed_legacy_alias_inference_embed_is_unknown() {
     let _lock = env_lock();
     let (rpc_base, _tmp, _guards, _join) = setup_embeddings_test().await;
 
-    // Set provider to none so the embed call itself doesn't fail on missing keys.
-    let _ = post_json_rpc(
-        &rpc_base,
-        50,
-        "openhuman.embeddings_update_settings",
-        json!({ "provider": "none", "confirm_wipe": true }),
-    )
-    .await;
-
-    // Call via the legacy alias — must NOT return an "unknown method" JSON-RPC
-    // error; the alias table must rewrite it to openhuman.embeddings_embed.
+    // The `openhuman.inference_embed` alias was removed (bfeab2f655); the
+    // canonical method is `openhuman.embeddings_embed`. A caller still on the
+    // old name must get "method not found", not a silent reroute.
     let resp = post_json_rpc(
         &rpc_base,
         51,
@@ -804,22 +796,13 @@ async fn legacy_alias_inference_embed_resolves() {
         json!({ "inputs": [] }),
     )
     .await;
-
-    // If the alias resolution failed we'd get a JSON-RPC error with code -32601.
-    if let Some(err) = resp.get("error") {
-        let code = err.get("code").and_then(Value::as_i64).unwrap_or(0);
-        assert_ne!(
-            code, -32601,
-            "legacy alias openhuman.inference_embed resolved to 'method not found' — alias table may be broken: {err}"
-        );
-    }
-
-    // The resolved call should succeed (no JSON-RPC error) and return a result.
-    let result = assert_no_rpc_error(&resp, "legacy inference_embed alias");
-    let inner = result.get("result").unwrap_or(result);
+    let message = resp
+        .pointer("/error/message")
+        .and_then(Value::as_str)
+        .unwrap_or_default();
     assert!(
-        inner.get("vectors").is_some() || inner.get("count").is_some(),
-        "legacy alias should resolve to embeddings_embed and return vector data: {inner}"
+        message.contains("unknown method"),
+        "the removed inference_embed alias must stay unknown: {resp}"
     );
 }
 
