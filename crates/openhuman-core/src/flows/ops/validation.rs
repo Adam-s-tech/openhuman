@@ -125,87 +125,13 @@ pub(super) fn referenced_workflow_compatibility_errors(
     config: &Config,
     graph: &WorkflowGraph,
 ) -> Vec<String> {
-    // Descend as deep as the root graph declared it may nest, for the same
-    // reason as the inline walk above.
-    let max_depth = max_sub_workflow_depth(graph);
-    let mut pending = vec![(graph.clone(), 0_u64, Vec::<String>::new())];
-    // Record the shallowest visit, not just whether an id was seen. The same
-    // child can be referenced by multiple branches; a deep DFS visit must not
-    // suppress a later shallower visit that has more depth budget remaining.
-    let mut visited_depths = std::collections::HashMap::<String, u64>::new();
-
-    while let Some((current, depth, path)) = pending.pop() {
-        if depth >= max_depth {
-            continue;
-        }
-
-        for node in &current.nodes {
-            if node.kind != NodeKind::SubWorkflow {
-                continue;
-            }
-
-            let mut child_path = path.clone();
-            child_path.push(node.id.clone());
-
-            let inline = node.config.get("workflow");
-            let configured_workflow_id = node
-                .config
-                .get("workflow_id")
-                .and_then(Value::as_str)
-                .map(str::trim)
-                .filter(|id| !id.is_empty());
-            // Structural validation requires exactly one source and runs before
-            // this helper. Retain that precedence defensively if a future caller
-            // passes an invalid graph directly: do not inspect either source as
-            // though TinyFlows could choose between them at runtime.
-            if inline.is_some() && configured_workflow_id.is_some() {
-                continue;
-            }
-
-            if let Some(inline) = inline {
-                if let Ok(child) = serde_json::from_value::<WorkflowGraph>(inline.clone()) {
-                    pending.push((child, depth + 1, child_path.clone()));
-                }
-                continue;
-            }
-
-            let Some(workflow_id) = configured_workflow_id.filter(|id| !id.starts_with('=')) else {
-                continue;
-            };
-            let child_depth = depth + 1;
-            if visited_depths
-                .get(workflow_id)
-                .is_some_and(|seen_depth| *seen_depth <= child_depth)
-            {
-                continue;
-            }
-            visited_depths.insert(workflow_id.to_string(), child_depth);
-
-            let Ok(Some(child)) = load_flow_graph(config, workflow_id) else {
-                continue;
-            };
-            // Thread the root's remaining depth budget through, not the
-            // child's own cap — see `engine_compatibility_errors_with_max_depth`'s
-            // doc comment.
-            let remaining_depth = max_depth.saturating_sub(child_depth);
-            if let Some(error) = engine_compatibility_errors_with_max_depth(&child, remaining_depth)
-                .into_iter()
-                .next()
-            {
-                return vec![format!(
-                    "Sub_workflow path '{}' references workflow_id '{}' with an unsupported \
-                     engine topology: {}: {}",
-                    child_path.join(" -> "),
-                    workflow_id,
-                    error.code,
-                    error.message
-                )];
-            }
-            pending.push((child, child_depth, child_path));
-        }
-    }
-
-    Vec::new()
+    // The walk (depth budget, cycle/depth bookkeeping, error text) is
+    // `tinyflows::compat`'s; only the saved-workflow lookup is the host's. A
+    // missing flow or a store failure resolves to `None` and keeps its runtime
+    // diagnostic.
+    tinyflows::compat::referenced_workflow_errors(graph, &|workflow_id| {
+        load_flow_graph(config, workflow_id).ok().flatten()
+    })
 }
 
 /// Returns the complete engine-topology gate for a graph in its host context.

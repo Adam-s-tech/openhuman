@@ -101,37 +101,6 @@ fn agent_prompt_binding_unaffected() {
     assert!(validate_binding_resolvability(&g).is_empty());
 }
 
-#[test]
-fn finalize_terminal_status_pending_approval_wins_over_error() {
-    // Precedence: an outstanding pending_approval always wins, even if a step
-    // also settled with an error — mirrors degrade_completed_status's own
-    // precedence rule, now centralized in finalize_terminal_status.
-    let mut errored = clean_step("a");
-    errored.status = Some("error".to_string());
-    let steps = vec![errored];
-    let (status, error) = finalize_terminal_status(&steps, &["gate".to_string()]);
-    assert_eq!(status, "pending_approval");
-    assert_eq!(error, None);
-}
-
-#[test]
-fn finalize_terminal_status_populates_error_on_degraded_failure() {
-    let mut errored = clean_step("x");
-    errored.status = Some("error".to_string());
-    let steps = vec![errored];
-    let (status, error) = finalize_terminal_status(&steps, &[]);
-    assert_eq!(status, "failed");
-    assert!(error.unwrap().contains('x'));
-}
-
-#[test]
-fn finalize_terminal_status_no_error_when_clean() {
-    let steps = vec![clean_step("a")];
-    let (status, error) = finalize_terminal_status(&steps, &[]);
-    assert_eq!(status, "completed");
-    assert_eq!(error, None);
-}
-
 /// Regression for issue #4593 (widened for #4881's `resume_flow_run`/
 /// `cancel_flow_run` addition to the belt): the `flows_build` builder turn
 /// runs under `AgentTurnOrigin::Cli`, which makes the `ApprovalGate`

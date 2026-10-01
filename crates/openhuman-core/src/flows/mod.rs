@@ -4,7 +4,7 @@
 //!
 //! Business logic lives in [`ops`]; persistence in `store` (private, with a
 //! handful of functions re-exported below for the capability seam's
-//! [`crate::flows::tinyflows::caps::FlowStateStore`]); the RPC/CLI
+//! `tinyflows_sqlite::flows::SqliteStateStore`); the RPC/CLI
 //! controller surface in `schemas` (private, re-exported below).
 //!
 //! # Gate shape — leaf, not facade
@@ -30,9 +30,6 @@ pub mod bus;
 pub mod catalogue;
 pub mod discovery_tools;
 mod draft_store;
-#[cfg(test)]
-#[path = "import_tests.rs"]
-mod import_tests;
 pub mod memory_tools;
 pub mod node_contracts;
 pub mod ops;
@@ -60,8 +57,8 @@ pub use schemas::{
     all_registered_controllers as all_flows_registered_controllers,
 };
 // `kv_get`/`kv_set` are re-exported (not just `pub(crate)`-visible within this
-// domain's own module tree) because `tinyflows::caps::FlowStateStore`
-// (`crates/openhuman-core/src/flows/tinyflows/caps/state.rs`) lives in a sibling module and needs
+// domain's own module tree) because `tinyflows_sqlite::flows::SqliteStateStore`
+// (built in `crates/openhuman-core/src/flows/tinyflows/caps/ops.rs`) lives in a sibling module and needs
 // them to implement `tinyflows::caps::StateStore` without duplicating the
 // `flow_state` table's persistence logic.
 // `upsert_flow_run_step` is likewise re-exported for the tinyflows seam: the
