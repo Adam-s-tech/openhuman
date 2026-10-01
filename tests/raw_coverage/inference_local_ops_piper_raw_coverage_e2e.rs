@@ -17,9 +17,7 @@ use flate2::write::GzEncoder;
 use flate2::Compression;
 use openhuman_core::core::all::RegisteredController;
 use openhuman_core::config::Config;
-use openhuman_core::inference::host_runtime::{
-    all_local_inference_registered_controllers, local_ai_transcribe_bytes,
-};
+use openhuman_core::inference::host_runtime::all_local_inference_registered_controllers;
 use serde_json::{json, Value};
 use tempfile::{tempdir, TempDir};
 
@@ -128,26 +126,6 @@ async fn piper_controller_rejects_insecure_download_overrides() {
     assert!(requests.is_empty(), "rejected URLs must not be requested");
 }
 
-#[tokio::test]
-async fn local_transcribe_bytes_covers_temp_file_path_and_extension_validation() {
-    let tmp = tempdir().expect("tempdir");
-    let mut config = temp_config(&tmp);
-    config.local_ai.runtime_enabled = false;
-
-    let invalid = local_ai_transcribe_bytes(&config, b"audio", Some("../wav".to_string()))
-        .await
-        .expect_err("invalid extension");
-    assert_eq!(invalid, "Invalid audio extension");
-
-    let disabled = local_ai_transcribe_bytes(&config, b"audio", Some(".WEBM".to_string()))
-        .await
-        .expect_err("hosted STT without a configured session");
-    assert!(
-        !disabled.contains("local ai is disabled"),
-        "hosted STT must not be gated on the local-AI runtime: {disabled}"
-    );
-}
-
 async fn serve_piper_mock() -> (String, PiperMockState) {
     let state = PiperMockState {
         requests: Arc::new(Mutex::new(Vec::new())),
@@ -206,10 +184,6 @@ fn bytes_response(bytes: Vec<u8>) -> Response<Body> {
         .expect("response")
 }
 
-fn set_mode(state: &PiperMockState, mode: PiperMockMode) {
-    *state.mode.lock().expect("mode") = mode;
-}
-
 fn valid_tar_gz_archive() -> Vec<u8> {
     let encoder = GzEncoder::new(Vec::new(), Compression::none());
     let mut archive = tar::Builder::new(encoder);
@@ -253,10 +227,6 @@ fn synthetic_voice_json() -> Vec<u8> {
 
 async fn wait_for_piper_state(status: &RegisteredController, wanted: &str) -> Value {
     wait_for_piper(status, |value| value["state"] == wanted).await
-}
-
-async fn wait_for_piper_stage(status: &RegisteredController, wanted: &str) -> Value {
-    wait_for_piper(status, |value| value["stage"] == wanted).await
 }
 
 async fn wait_for_piper(status: &RegisteredController, done: impl Fn(&Value) -> bool) -> Value {

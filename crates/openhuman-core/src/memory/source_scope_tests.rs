@@ -87,3 +87,51 @@ async fn chunk_gate_empty_allowlist_blocks_tagged_sources_only() {
     })
     .await;
 }
+
+// `as_bus_scope` renders the task-local scope for the memory module's bus
+// argument. `None` means unrestricted; `Some(empty)` denies every
+// source-attributed item. Collapsing one onto the other inverts the policy.
+
+#[tokio::test]
+async fn unrestricted_recall_renders_as_no_scope_not_an_empty_allowlist() {
+    assert!(as_bus_scope().is_none());
+
+    with_source_scope(None, async {
+        assert!(as_bus_scope().is_none());
+    })
+    .await;
+}
+
+#[tokio::test]
+async fn an_empty_allowlist_renders_as_a_scope_that_denies_every_source() {
+    with_source_scope(Some(vec![]), async {
+        let scope = as_bus_scope().expect("an empty allowlist is a restriction");
+        assert!(scope.is_empty());
+        assert!(!scope.allows_source_id("mem_src:anything:item-1"));
+    })
+    .await;
+}
+
+#[tokio::test]
+async fn the_allowlist_crosses_the_bus_and_matches_by_the_drivers_rule() {
+    let allowed = vec!["gmail:work".to_string(), "src-abc".to_string()];
+
+    with_source_scope(Some(allowed.clone()), async {
+        let scope = as_bus_scope().expect("a non-empty allowlist must render as Some");
+
+        let carried: std::collections::HashSet<&str> =
+            scope.allow.iter().map(String::as_str).collect();
+        assert_eq!(
+            carried,
+            allowed
+                .iter()
+                .map(String::as_str)
+                .collect::<std::collections::HashSet<_>>()
+        );
+
+        assert!(scope.allows_source_id("src-abc"));
+        assert!(scope.allows_source_id("mem_src:src-abc:item-1"));
+        assert!(!scope.allows_source_id("src-xyz"));
+    })
+    .await;
+}
