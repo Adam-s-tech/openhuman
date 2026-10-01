@@ -9,6 +9,7 @@
 //!
 //! Run with: `cargo test --test transcript_search_e2e`
 
+use crate::env_guard::EnvVarGuard;
 use std::path::Path;
 use std::sync::OnceLock;
 
@@ -21,31 +22,6 @@ use openhuman_core::memory::conversations::{
 use openhuman_core::threads::ops::transcript_search;
 
 // ── Env isolation (mirrors tests/memory_roundtrip_e2e.rs) ────────────────────
-
-struct EnvVarGuard {
-    key: &'static str,
-    old: Option<String>,
-}
-
-impl EnvVarGuard {
-    fn set_to_path(key: &'static str, path: &Path) -> Self {
-        let old = std::env::var(key).ok();
-        // SAFETY: only used in tests that first acquire env_lock(), which
-        // serializes process-global env mutations.
-        unsafe { std::env::set_var(key, path.as_os_str()) };
-        Self { key, old }
-    }
-}
-
-impl Drop for EnvVarGuard {
-    fn drop(&mut self) {
-        match &self.old {
-            // SAFETY: teardown runs under the same env_lock() critical section.
-            Some(v) => unsafe { std::env::set_var(self.key, v) },
-            None => unsafe { std::env::remove_var(self.key) },
-        }
-    }
-}
 
 /// Serialises tests: `HOME` + `OPENHUMAN_WORKSPACE` are process-global.
 static ENV_LOCK: OnceLock<tokio::sync::Mutex<()>> = OnceLock::new();
@@ -138,7 +114,7 @@ fn seed_workspace(workspace: &Path) -> ConversationStore {
 /// scopes the hit to the thread that actually contains it.
 #[tokio::test]
 async fn transcript_search_op_finds_message_in_prior_thread() {
-    let _lock = env_lock().await;
+    let _lock = env_lock();
     let tmp = tempdir().expect("tempdir");
     let _home = EnvVarGuard::set_to_path("HOME", tmp.path());
     let workspace = tmp.path().join("workspace");
@@ -169,7 +145,7 @@ async fn transcript_search_op_finds_message_in_prior_thread() {
 /// orchestrator can use to omit the active chat it already has in hand.
 #[tokio::test]
 async fn transcript_search_op_honours_exclude_thread() {
-    let _lock = env_lock().await;
+    let _lock = env_lock();
     let tmp = tempdir().expect("tempdir");
     let _home = EnvVarGuard::set_to_path("HOME", tmp.path());
     let workspace = tmp.path().join("workspace");
@@ -190,7 +166,7 @@ async fn transcript_search_op_honours_exclude_thread() {
 /// A query that matches nothing returns no hits (not an error).
 #[tokio::test]
 async fn transcript_search_op_returns_empty_on_no_match() {
-    let _lock = env_lock().await;
+    let _lock = env_lock();
     let tmp = tempdir().expect("tempdir");
     let _home = EnvVarGuard::set_to_path("HOME", tmp.path());
     let workspace = tmp.path().join("workspace");
