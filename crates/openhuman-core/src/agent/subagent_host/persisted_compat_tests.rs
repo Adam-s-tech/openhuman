@@ -12,7 +12,7 @@ use std::path::{Path, PathBuf};
 use serde_json::Value;
 
 use crate::agent::message_convert::history_to_messages;
-use crate::agent::orchestration::subagent_sessions::types::DurableSubagentSession;
+use crate::agent::orchestration::subagent_sessions::DurableSubagentSession;
 use crate::agent::subagent_host::SubagentCheckpointData;
 
 fn fixture(name: &str) -> PathBuf {
