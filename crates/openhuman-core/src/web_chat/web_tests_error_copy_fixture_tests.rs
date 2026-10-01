@@ -74,9 +74,15 @@ fn every_failure_class_keeps_its_exact_copy_and_wire_values() {
         assert_eq!(got.error_type, *error_type, "{case}: error_type");
         assert_eq!(got.source, *source, "{case}: source");
         assert_eq!(got.retryable, *retryable, "{case}: retryable");
-        assert_eq!(got.retry_after_ms, *retry_after_ms, "{case}: retry_after_ms");
+        assert_eq!(
+            got.retry_after_ms, *retry_after_ms,
+            "{case}: retry_after_ms"
+        );
         assert_eq!(got.provider.as_deref(), *provider, "{case}: provider");
-        assert_eq!(got.fallback_available, *fallback, "{case}: fallback_available");
+        assert_eq!(
+            got.fallback_available, *fallback,
+            "{case}: fallback_available"
+        );
         assert_eq!(got.message, *message, "{case}: message");
     }
 }
@@ -99,10 +105,22 @@ fn standalone_copy_accessors_are_unchanged() {
         super::super::web_errors::retry_after_hint(Some(0)),
         " You can retry immediately."
     );
-    assert_eq!(super::super::web_errors::retry_after_hint(Some(1)), " Try again in 1 second.");
-    assert_eq!(super::super::web_errors::retry_after_hint(Some(45)), " Try again in 45 seconds.");
-    assert_eq!(super::super::web_errors::retry_after_hint(Some(90)), " Try again in about 2 minutes.");
-    assert_eq!(super::super::web_errors::retry_after_hint(Some(60 * 60)), " Try again in about 60 minutes.");
+    assert_eq!(
+        super::super::web_errors::retry_after_hint(Some(1)),
+        " Try again in 1 second."
+    );
+    assert_eq!(
+        super::super::web_errors::retry_after_hint(Some(45)),
+        " Try again in 45 seconds."
+    );
+    assert_eq!(
+        super::super::web_errors::retry_after_hint(Some(90)),
+        " Try again in about 2 minutes."
+    );
+    assert_eq!(
+        super::super::web_errors::retry_after_hint(Some(60 * 60)),
+        " Try again in about 60 minutes."
+    );
     assert_eq!(super::super::web_errors::retry_after_hint(None), "");
 }
 
@@ -276,8 +294,12 @@ fn loop_guard_halt_summaries_are_byte_identical() {
         user_actionable_escalation("gmail", "Gmail is not connected").as_deref(),
         Some("I can't continue without your input: the `gmail` action needs a service that isn't connected. Gmail is not connected\n\nConnect it (Connections), then tell me to retry \u{2014} or tell me how you'd like to proceed instead.")
     );
-    assert_eq!(user_actionable_escalation("gmail", "insufficient scope"), None);
+    assert_eq!(
+        user_actionable_escalation("gmail", "insufficient scope"),
+        None
+    );
     let long = "x".repeat(700);
-    let summary = terminal_inference_halt_summary(TerminalInferenceFailure::BudgetExhausted, "t", &long);
+    let summary =
+        terminal_inference_halt_summary(TerminalInferenceFailure::BudgetExhausted, "t", &long);
     assert!(summary.ends_with(&format!("{}\n\u{2026} [truncated]", "x".repeat(600))));
 }

@@ -48,8 +48,8 @@ pub(super) fn classify_by_backend_error_code(
         provider,
     );
 
-    use crate::inference::failure_copy::{failure_copy, FailureClass as C};
     use super::classify::{classified, classified_plain};
+    use crate::inference::failure_copy::{failure_copy, FailureClass as C};
 
     let classified = match code {
         BackendErrorCode::RateLimited => {

@@ -5,6 +5,7 @@
 use super::backend_error_code::classify_by_backend_error_code;
 use super::budget::{is_action_budget_exhausted, is_inference_budget_exceeded_error};
 use super::retry::{is_non_retryable_rate_limit_text, retry_after_hint};
+use super::timeout::is_turn_timeout_error;
 use crate::inference::failure_copy::{failure_copy, FailureClass};
 use tinyinference_llm::failure::{
     extract_provider_name, is_auth_error_text, is_codex_token_expired_text,
@@ -14,7 +15,6 @@ use tinyinference_llm::failure::{
     is_server_error_text, is_timeout_text, is_transient_unavailability_text,
     is_vision_unsupported_text, parse_retry_after_secs, with_provider_detail,
 };
-use super::timeout::is_turn_timeout_error;
 
 /// Structured chat-error envelope produced by [`classify_inference_error`].
 ///
@@ -155,7 +155,11 @@ pub(crate) fn classify_inference_error(err: &str) -> ClassifiedError {
         // "authentication token is expired", which the broader "session
         // expired" test would also match. Requires "codex" so a generic
         // provider `token_expired` is not misread as a Codex failure.
-        classified_plain(C::CodexSessionExpired, Some("openai_codex".to_string()), None)
+        classified_plain(
+            C::CodexSessionExpired,
+            Some("openai_codex".to_string()),
+            None,
+        )
     } else if crate::core::observability::is_session_expired_message(err) {
         // The OpenHuman app-session JWT expired. There is NO client-side
         // refresh — recovery is an interactive re-auth — so non-retryable, and
@@ -204,7 +208,10 @@ pub(crate) fn classify_inference_error(err: &str) -> ClassifiedError {
         // non-retryable so the FE can hide "Retry" and route to billing.
         let non_retryable = is_non_retryable_rate_limit_text(&lower);
         let (class, summary) = if non_retryable {
-            (C::RateLimitedBilling, failure_copy(C::RateLimitedBilling).copy.to_string())
+            (
+                C::RateLimitedBilling,
+                failure_copy(C::RateLimitedBilling).copy.to_string(),
+            )
         } else {
             (
                 C::RateLimited,

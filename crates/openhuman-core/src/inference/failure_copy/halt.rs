@@ -4,7 +4,9 @@
 //! summaries. Thresholds and the repeat-call exemption stay with the guards in
 //! `agent::tinyagents::middleware::loop_guards`.
 
-use tinyinference_providers::{BudgetMatch, is_budget_message, is_provider_config_rejection_message};
+use tinyinference_providers::{
+    is_budget_message, is_provider_config_rejection_message, BudgetMatch,
+};
 
 /// Clamp the last-error text embedded in a circuit-breaker halt summary so a huge
 /// tool error (already capped at 1MB upstream) can't blow up the agent's result.
@@ -128,7 +130,6 @@ pub(crate) fn recoverable_no_progress_halt_summary(
     )
 }
 
-
 /// Recognise a **user-actionable** blocker in a failing tool result — one only
 /// the user can clear — and phrase the halt as a direct ask instead of the
 /// crate's generic "the goal looks unreachable in this environment, report this
@@ -169,4 +170,3 @@ pub(crate) fn user_actionable_escalation(tool: &str, error: &str) -> Option<Stri
         crate::util::truncate_with_ellipsis(error, 400),
     ))
 }
-
