@@ -94,7 +94,7 @@ fn project_managed_usage_recovers_charged_and_cached() {
         usage.charged_amount_usd
     );
     assert_eq!(usage.cached_input_tokens, 128, "cached tokens backfilled");
-    assert_eq!(usage.context_window, 200_000);
+    assert_eq!(usage.context_window(), 200_000);
     assert_eq!(usage.input_tokens, 1000);
     assert_eq!(usage.output_tokens, 50);
 }
@@ -140,7 +140,11 @@ fn project_managed_usage_is_noop_without_envelope() {
         .is_none());
     let usage = usage_info_from_response(&projected).expect("usage present");
     assert_eq!(usage.charged_amount_usd, 0.0);
-    assert_eq!(usage.cached_input_tokens, 3, "crate cached count preserved");
+    assert_eq!(
+        usage.cached_input_tokens(),
+        3,
+        "crate cached count preserved"
+    );
 }
 
 // ── probe_readiness (B45 — flows provider-connectivity author gate) ────
