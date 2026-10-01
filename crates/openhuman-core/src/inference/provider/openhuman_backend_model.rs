@@ -416,76 +416,6 @@ fn resolve_model(model: &str) -> String {
     }
 }
 
-/// The subset of the managed backend's `openhuman` response envelope the crate
-/// `Usage`/`ModelResponse` can't carry — billing + cache tokens — so it can be
-/// re-projected for the host cost bridge.
-#[derive(Debug, Default, serde::Deserialize)]
-struct ManagedEnvelope {
-    #[serde(default)]
-    usage: Option<ManagedEnvelopeUsage>,
-    #[serde(default)]
-    billing: Option<ManagedEnvelopeBilling>,
-}
-
-#[derive(Debug, Default, serde::Deserialize)]
-struct ManagedEnvelopeUsage {
-    #[serde(default)]
-    cached_input_tokens: Option<u64>,
-    #[serde(default)]
-    context_window: Option<u64>,
-}
-
-#[derive(Debug, Default, serde::Deserialize)]
-struct ManagedEnvelopeBilling {
-    #[serde(default)]
-    charged_amount_usd: f64,
-}
-
-/// Re-project the managed `openhuman.{billing,usage}` envelope — which the crate
-/// `OpenAiModel` leaves only on `ModelResponse.raw` — into the metadata the host
-/// cost bridge reads: `openhuman_usage_meta` (charged USD + context window) plus a
-/// crate `Usage.cache_read_tokens` reconciliation when the crate missed the
-/// envelope's cached count. Parity with the legacy model-adapter path's
-/// `usage_info_from_response`; without it the crate-native managed turn reports
-/// `$0` charged and drops backend-reported cached tokens.
-fn project_managed_usage(mut response: ModelResponse) -> ModelResponse {
-    let envelope: ManagedEnvelope = response
-        .raw
-        .as_ref()
-        .and_then(|raw| raw.get("openhuman"))
-        .and_then(|oh| serde_json::from_value(oh.clone()).ok())
-        .unwrap_or_default();
-
-    let charged_amount_usd = envelope
-        .billing
-        .map(|b| b.charged_amount_usd)
-        .unwrap_or(0.0);
-    let context_window = envelope
-        .usage
-        .as_ref()
-        .and_then(|u| u.context_window)
-        .unwrap_or(0);
-
-    // The `openhuman.usage` cached count is authoritative (the legacy `extract_usage`
-    // preferred it over the standard block); backfill it when the crate's standard
-    // parse produced none.
-    if let (Some(usage), Some(cached)) = (
-        response.usage.as_mut(),
-        envelope.usage.as_ref().and_then(|u| u.cached_input_tokens),
-    ) {
-        if usage.cache_read_tokens == 0 {
-            usage.cache_read_tokens = cached;
-        }
-    }
-
-    response.raw = crate::agent::tinyagents::model::merge_openhuman_usage_meta(
-        response.raw,
-        charged_amount_usd,
-        context_window,
-    );
-    response
-}
-
 /// Request-metadata key a caller sets (to `true`) to ask for no reasoning on
 /// a call — see [`without_reasoning`].
 const REASONING_OFF_METADATA_KEY: &str = "openhuman_reasoning_off";
@@ -753,6 +683,10 @@ fn managed_inference_http_client() -> reqwest::Client {
         })
         .clone()
 }
+
+#[path = "openhuman_backend_model_usage.rs"]
+mod usage;
+use usage::project_managed_usage;
 
 #[cfg(test)]
 #[path = "openhuman_backend_model_tests.rs"]
