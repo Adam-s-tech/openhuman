@@ -616,3 +616,19 @@ async fn process_channel_message_hardens_against_relative_path_markers() {
     assert_eq!(observed.max_files, 0);
     assert!(!observed.allow_remote_fetch);
 }
+
+#[tokio::test]
+async fn dispatch_replies_with_timeout_notice_when_handler_exceeds_deadline() {
+    let timed_out = run_dispatch_harness(DispatchHarnessOptions {
+        channel_name: "email".to_string(),
+        content: "force timeout".to_string(),
+        handler_delay_ms: 1_200,
+        timeout_secs: 1,
+        ..Default::default()
+    })
+    .await;
+    assert!(timed_out
+        .sends
+        .iter()
+        .any(|send| send.content.contains("Request timed out")));
+}

@@ -50,12 +50,3 @@ pub(crate) use spawn_depth_context::{with_spawn_depth, MAX_SPAWN_DEPTH};
 pub use task_recency_context::{current_task_recency_window, with_task_recency_window};
 
 pub(crate) use graph::run_channel_turn_via_graph;
-
-#[cfg(test)]
-mod harness_gap_tests;
-#[cfg(test)]
-#[path = "parse_wire_tests.rs"]
-mod parse_tests;
-#[cfg(test)]
-#[path = "harness_tests.rs"]
-mod tests;

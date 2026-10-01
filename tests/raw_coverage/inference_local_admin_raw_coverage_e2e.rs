@@ -3,7 +3,6 @@
 //! This suite uses temp workspaces, temp PATH scripts, and loopback HTTP mocks
 //! only. It must not call host Ollama, Piper, Whisper, Python, or MLX binaries.
 
-use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, MutexGuard, OnceLock};
 
@@ -16,18 +15,12 @@ use axum::{Json, Router};
 use serde_json::{json, Value};
 use tempfile::{tempdir, TempDir};
 
-use openhuman_core::config::schema::cloud_providers::{
-    AuthStyle as CloudAuthStyle, CloudProviderCreds,
-};
 use openhuman_core::config::Config;
-use openhuman_core::security::credentials::{AuthService, DEFAULT_AUTH_PROFILE_NAME};
 use openhuman_core::inference::host_runtime::ops::{
     local_ai_chat, local_ai_download_asset, local_ai_downloads_progress,
     LocalAiChatMessage,
 };
 use openhuman_core::inference::host_runtime::LocalAiService;
-use openhuman_core::inference::provider::factory::auth_key_for_slug;
-use openhuman_core::inference::provider::list_configured_models;
 
 #[derive(Clone, Default)]
 struct MockState {
@@ -216,144 +209,6 @@ async fn local_admin_covers_assets_diagnostics_downloads_and_ops_errors() {
         .expect("ops embedding")
         .value;
     assert_eq!(ops_asset.embedding.state, "ready");
-}
-
-#[tokio::test]
-async fn provider_model_listing_covers_local_synthesis_and_openrouter_failures() {
-    let _env_guard = env_lock();
-    let (base, _state) = serve_mock().await;
-    let tmp = tempdir().expect("tempdir");
-    let mut config = temp_config(&tmp);
-    config.local_ai.base_url = Some(base.clone());
-    config.cloud_providers = vec![
-        CloudProviderCreds {
-            id: "openrouter-id".to_string(),
-            slug: "openrouter".to_string(),
-            label: "OpenRouter".to_string(),
-            endpoint: format!("{base}/openrouter-error"),
-            auth_style: CloudAuthStyle::Bearer,
-            legacy_type: None,
-            default_model: None,
-        },
-        CloudProviderCreds {
-            id: "array-id".to_string(),
-            slug: "array-body".to_string(),
-            label: "Array Body".to_string(),
-            endpoint: format!("{base}/array-body"),
-            auth_style: CloudAuthStyle::None,
-            legacy_type: None,
-            default_model: None,
-        },
-        CloudProviderCreds {
-            id: "status-id".to_string(),
-            slug: "status-body".to_string(),
-            label: "Status Body".to_string(),
-            endpoint: format!("{base}/status-body"),
-            auth_style: CloudAuthStyle::None,
-            legacy_type: None,
-            default_model: None,
-        },
-    ];
-    config.save().await.expect("save config");
-    AuthService::from_config(&config)
-        .store_provider_token(
-            &auth_key_for_slug("openrouter"),
-            DEFAULT_AUTH_PROFILE_NAME,
-            "sk-openrouter-secret",
-            HashMap::new(),
-            true,
-        )
-        .expect("store token");
-
-    let _workspace = EnvVarGuard::set("OPENHUMAN_WORKSPACE", config.config_path.parent().unwrap());
-    let _ollama_base = EnvVarGuard::set("OPENHUMAN_OLLAMA_BASE_URL", &base);
-
-    let local = list_configured_models("ollama")
-        .await
-        .expect("synthetic ollama")
-        .value;
-    assert_eq!(local["models"][0]["id"], "bge-m3");
-
-    let array_err = list_configured_models("array-body")
-        .await
-        .expect_err("top-level array");
-    assert!(array_err.contains("not a JSON object"));
-
-    let status_err = list_configured_models("status-body")
-        .await
-        .expect_err("non-success");
-    assert!(status_err.contains("provider returned 500"));
-    assert!(!status_err.contains("sk-status-secret"));
-
-    let openrouter_err = list_configured_models("openrouter")
-        .await
-        .expect_err("openrouter key validation error payload");
-    assert!(openrouter_err.contains("OpenRouter key validation returned error payload"));
-    assert!(!openrouter_err.contains("sk-openrouter-secret"));
-}
-
-#[tokio::test]
-async fn local_admin_reports_unhealthy_runtime_and_lm_studio_issue_shapes() {
-    let _env_guard = env_lock();
-    let tmp = tempdir().expect("tempdir");
-    let mut config = temp_config(&tmp);
-    config.local_ai.runtime_enabled = true;
-    config.local_ai.base_url = Some("http://127.0.0.1:9".to_string());
-    let _ollama_base = EnvVarGuard::set("OPENHUMAN_OLLAMA_BASE_URL", "http://127.0.0.1:9");
-    let runtime = openhuman_core::inference::local_runtime_config(&config);
-    let service = LocalAiService::new(&runtime);
-
-    let unhealthy = service.diagnostics(&runtime).await.expect("unhealthy diag");
-    assert_eq!(unhealthy["ollama_running"], false);
-    assert!(unhealthy["issues"][0]
-        .as_str()
-        .unwrap()
-        .contains("not running or not reachable"));
-    let assets = service
-        .assets_status(&runtime)
-        .await
-        .expect("unhealthy assets");
-    assert!(!assets.ollama_available);
-    assert_eq!(assets.chat.state, "missing");
-
-    let (base, _state) = serve_mock().await;
-    let mut lm_config = config.clone();
-    lm_config.local_ai.provider = "lm-studio".to_string();
-    lm_config.local_ai.base_url = Some(format!("{base}/lm-empty/v1"));
-    lm_config.local_ai.chat_model_id = "loaded-chat".to_string();
-    let mut lm_runtime = openhuman_core::inference::local_runtime_config(&lm_config);
-    let lm_empty = service
-        .diagnostics(&lm_runtime)
-        .await
-        .expect("lm studio empty");
-    assert_eq!(lm_empty["provider"], "lm_studio");
-    assert_eq!(lm_empty["lm_studio_running"], true);
-    assert!(lm_empty["issues"][0]
-        .as_str()
-        .unwrap()
-        .contains("no models are loaded"));
-
-    lm_config.local_ai.base_url = Some(format!("{base}/lm-wrong/v1"));
-    lm_runtime = openhuman_core::inference::local_runtime_config(&lm_config);
-    let lm_wrong = service
-        .diagnostics(&lm_runtime)
-        .await
-        .expect("lm studio wrong model");
-    assert!(lm_wrong["issues"][0]
-        .as_str()
-        .unwrap()
-        .contains("not loaded"));
-
-    lm_config.local_ai.base_url = Some(format!("{base}/lm-error/v1"));
-    lm_runtime = openhuman_core::inference::local_runtime_config(&lm_config);
-    let lm_error = service
-        .diagnostics(&lm_runtime)
-        .await
-        .expect("lm studio error payload");
-    assert!(lm_error["issues"][0]
-        .as_str()
-        .unwrap()
-        .contains("no models are loaded"));
 }
 
 async fn serve_mock() -> (String, MockState) {

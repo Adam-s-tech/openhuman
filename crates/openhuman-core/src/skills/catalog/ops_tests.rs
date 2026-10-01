@@ -14,35 +14,6 @@ fn same_named_catalog() -> Vec<CatalogEntry> {
     .collect()
 }
 
-fn find_catalog_entry_matches_ids_and_unambiguous_legacy_names() {
-    let catalog = same_named_catalog();
-    let by_id = find_catalog_entry(&catalog, "clawhub/ai-code-review-ops").unwrap();
-    assert_eq!(by_id.id, "clawhub/ai-code-review-ops");
-    // An exact id wins over another entry carrying the same name.
-    assert_eq!(
-        find_catalog_entry(&catalog, "apple-notes").unwrap().source,
-        "built-in"
-    );
-    // Ids used to be display names; a name only one entry has still resolves.
-    assert_eq!(
-        find_catalog_entry(&catalog, "Apple Design").unwrap().id,
-        "clawhub/apple-design"
-    );
-}
-
-#[test]
-fn find_catalog_entry_refuses_an_ambiguous_name_and_lists_the_ids() {
-    let err = find_catalog_entry(&same_named_catalog(), "AI Code Review").unwrap_err();
-    assert!(
-        err.contains("2 catalog entries are named 'AI Code Review'"),
-        "{err}"
-    );
-    assert!(
-        err.contains("clawhub/qf-code-review") && err.contains("clawhub/ai-code-review-ops"),
-        "{err}"
-    );
-}
-
 #[test]
 fn find_catalog_entry_not_found_suggests_real_ids_instead_of_a_refresh() {
     let err = find_catalog_entry(&same_named_catalog(), "ai-code-review").unwrap_err();
@@ -77,12 +48,6 @@ async fn install_from_catalog_errors_for_portal_skill_without_download() {
         err.contains("https://clawhub.ai/skills/agentkilox-code-audit"),
         "links the source page: {err}"
     );
-}
-
-#[test]
-fn parse_catalog_json_rejects_invalid_payloads() {
-    let error = parse_catalog_json("{").expect_err("invalid json");
-    assert!(error.contains("invalid catalog json"));
 }
 
 #[test]

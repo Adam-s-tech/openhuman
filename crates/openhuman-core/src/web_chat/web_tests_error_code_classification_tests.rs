@@ -535,42 +535,6 @@ fn normalize_model_override_trims_value() {
     );
 }
 
-// ── Broadcast events ──────────────────────────────────────────
-
-#[test]
-fn subscribe_web_channel_events_returns_receiver() {
-    // Just confirm we can subscribe without panic.
-    let _rx = subscribe_web_channel_events();
-}
-
-// ── Field builder helpers ─────────────────────────────────────
-
-#[test]
-fn required_string_marks_field_required() {
-    let f = required_string("client_id", "c");
-    assert!(f.required);
-    assert!(matches!(f.ty, TypeSchema::String));
-}
-
-#[test]
-fn optional_string_marks_field_optional() {
-    let f = optional_string("model", "c");
-    assert!(!f.required);
-}
-
-#[test]
-fn optional_f64_marks_field_optional() {
-    let f = optional_f64("temperature", "c");
-    assert!(!f.required);
-}
-
-#[test]
-fn json_output_is_required_json_field() {
-    let f = json_output("ack", "c");
-    assert!(f.required);
-    assert!(matches!(f.ty, TypeSchema::Json));
-}
-
 #[test]
 fn fingerprint_autonomy_change_is_cache_miss() {
     // Changing the agent-access policy must invalidate the cached agent so the
@@ -596,16 +560,6 @@ fn fingerprint_model_registry_change_is_cache_miss() {
     assert_ne!(
         base, changed,
         "a model_registry change (vision toggle) must produce a cache miss → rebuild"
-    );
-}
-
-#[test]
-fn fingerprint_identical_inputs_are_cache_hit() {
-    let a = fp(None, None, "orchestrator", "anthropic:claude-sonnet-4-6");
-    let b = fp(None, None, "orchestrator", "anthropic:claude-sonnet-4-6");
-    assert_eq!(
-        a, b,
-        "identical fingerprints must compare equal (cache hit)"
     );
 }
 

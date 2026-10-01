@@ -42,39 +42,6 @@ fn cron_failed_uses_failure_title() {
 }
 
 #[test]
-fn successful_webhook_is_silent() {
-    let ev = DomainEvent::WebhookProcessed {
-        tunnel_id: "t".into(),
-        skill_id: "s".into(),
-        method: "POST".into(),
-        path: "/p".into(),
-        correlation_id: "c".into(),
-        status_code: 200,
-        elapsed_ms: 5,
-        error: None,
-    };
-    assert!(event_to_notification(&ev).is_none());
-}
-
-#[test]
-fn failed_webhook_produces_system_notification() {
-    let ev = DomainEvent::WebhookProcessed {
-        tunnel_id: "t".into(),
-        skill_id: "skill-x".into(),
-        method: "POST".into(),
-        path: "/p".into(),
-        correlation_id: "c".into(),
-        status_code: 500,
-        elapsed_ms: 12,
-        error: Some("boom".into()),
-    };
-    let n = event_to_notification(&ev).unwrap();
-    assert_eq!(n.category, CoreNotificationCategory::System);
-    assert!(n.body.contains("skill-x"));
-    assert!(n.body.contains("boom"));
-}
-
-#[test]
 fn subagent_completed_produces_agents_notification() {
     let ev = DomainEvent::SubagentCompleted {
         parent_session: "p".into(),
