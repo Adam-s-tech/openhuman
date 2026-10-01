@@ -4,7 +4,8 @@ use super::*;
 use serde_json::json;
 
 const EPOCH_MS: &str = "1727712000000";
-const ORDER_ID: &str = "4929001234567899";
+// Luhn-valid 13-digit epoch-ms values: the shape that used to be redacted.
+const LUHN_EPOCH_MS: [&str; 2] = ["1727712000006", "1727712000014"];
 
 #[test]
 fn luhn_fixtures_are_valid_where_expected() {
@@ -25,15 +26,13 @@ fn luhn_fixtures_are_valid_where_expected() {
         sum % 10 == 0
     }
     assert!(luhn("4111111111111111") && luhn("5555555555554444"));
-    // A Luhn-valid 13-digit timestamp-shaped value without a card prefix.
-    assert!(luhn("1727712000008"));
-    assert!(luhn("1234567890123452") || !luhn(ORDER_ID) || luhn(ORDER_ID));
+    assert!(LUHN_EPOCH_MS.iter().all(|t| luhn(t)));
+    assert!(luhn("1234567890123452") && luhn("9999999999999995"));
 }
 
 #[test]
 fn epoch_ms_timestamp_is_not_redacted() {
-    // 1727712000008 is Luhn-valid and 13 digits, the shape that used to be eaten.
-    for ts in [EPOCH_MS, "1727712000008"] {
+    for ts in [EPOCH_MS, LUHN_EPOCH_MS[0], LUHN_EPOCH_MS[1]] {
         let text = format!("created_at: {ts}");
         let out = sanitize_text(&text);
         assert_eq!(out.value, text, "timestamp {ts} was corrupted");
@@ -78,5 +77,7 @@ fn luhn_valid_run_next_to_card_keyword_is_redacted() {
 fn pii_redactor_uses_the_host_policy() {
     let ts = format!("t={EPOCH_MS}");
     assert_eq!(pii::redact_pii(&ts).value, ts);
-    assert!(!pii::redact_pii("4111111111111111").value.contains("4111111111111111"));
+    assert!(!pii::redact_pii("4111111111111111")
+        .value
+        .contains("4111111111111111"));
 }
