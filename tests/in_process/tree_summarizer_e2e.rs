@@ -20,10 +20,10 @@
 //!
 //! Run with: `cargo test -p openhuman-cli --test in_process_all`
 
+use crate::memory_rpc::{serve, write_config};
 use crate::env_guard::EnvVarGuard;
 use crate::env_guard::env_lock;
-use crate::memory_module;
-use crate::rpc_auth::{ensure_rpc_auth, rpc_token};
+use crate::rpc_auth::rpc_token;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 use std::time::Duration;
@@ -33,82 +33,15 @@ use chrono::{DateTime, SecondsFormat, TimeZone, Utc};
 use serde_json::{json, Value};
 use tempfile::TempDir;
 
-use openhuman_rpc::server::build_core_http_router;
 
 const NAMESPACE: &str = "tree-summarizer-e2e";
 
-static MEMORY_SEAMS_INIT: OnceLock<()> = OnceLock::new();
 static TEST_HOME: OnceLock<TempDir> = OnceLock::new();
 
 fn test_home() -> &'static Path {
     TEST_HOME
         .get_or_init(|| tempfile::tempdir().expect("tree summarizer tempdir"))
         .path()
-}
-
-/// Publish the module host policy for this process.
-///
-/// `tree_summarizer_ingest` reaches the loaded tinymemory module through
-/// `tree_guard`, and without this every call fails with "the module host policy
-/// was never published ... call modules::memory::set_modules_policy during
-/// boot". Installed on its own 8 MB thread for the same reason the sibling
-/// suites do: the policy build recurses deeper than a default test stack.
-///
-/// The `#[cfg(feature = "modules")]` body is evaluated against **openhuman-cli**'s
-/// features, not the core's. `openhuman-cli`'s own `modules` flag is OFF in its
-/// default set even though `openhuman-core/modules` is on transitively, so a
-/// bare `cargo test -p openhuman-cli --test in_process_all` compiles this
-/// to a no-op and every test here fails on the message above. Run it the way
-/// `scripts/test-rust-e2e.sh` does:
-///
-///     RUST_MIN_STACK=67108864 cargo test -p openhuman-cli \
-///       --features "$(bash scripts/ci/product-features.sh)" \
-///       --test in_process_all
-fn ensure_memory_seams() {
-    MEMORY_SEAMS_INIT.get_or_init(|| {
-        std::thread::Builder::new()
-            .name("tree-summarizer-e2e-seams".to_string())
-            .stack_size(8 * 1024 * 1024)
-            .spawn(|| {
-                let config = std::sync::Arc::new(openhuman_core::config::Config::default());
-                #[cfg(feature = "modules")]
-                openhuman_core::modules::memory::set_modules_policy(config);
-            })
-            .expect("spawn tree summarizer seam installer")
-            .join()
-            .expect("tree summarizer seam installer panicked");
-    });
-}
-
-fn write_config(dir: &Path) {
-    std::fs::create_dir_all(dir).expect("mkdir openhuman home");
-    let cfg = r#"
-default_model = "e2e-mock-model"
-default_temperature = 0.7
-
-[secrets]
-encrypt = false
-
-[memory_tree]
-embedding_strict = false
-"#;
-    std::fs::write(dir.join("config.toml"), cfg).expect("write config");
-    let user_dir = dir.join("users").join("local");
-    std::fs::create_dir_all(&user_dir).expect("mkdir user dir");
-    std::fs::write(user_dir.join("config.toml"), cfg).expect("write user config");
-}
-
-async fn serve() -> (String, tokio::task::JoinHandle<Result<(), std::io::Error>>) {
-    ensure_memory_seams();
-    ensure_rpc_auth();
-    memory_module::settle().await;
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
-        .await
-        .expect("bind");
-    let addr = listener.local_addr().expect("addr");
-    let handle =
-        tokio::spawn(async move { axum::serve(listener, build_core_http_router(false)).await });
-    (format!("http://{addr}"), handle)
 }
 
 async fn rpc(base: &str, id: i64, method: &str, params: Value) -> Value {

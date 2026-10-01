@@ -29,6 +29,8 @@
 pub mod env_guard;
 #[path = "support/memory_module.rs"]
 pub mod memory_module;
+#[path = "support/memory_rpc.rs"]
+pub mod memory_rpc;
 #[path = "support/noop_memory.rs"]
 pub mod noop_memory;
 #[path = "support/rpc_auth.rs"]

@@ -24,10 +24,10 @@
 //! cross-method invariant that IS reachable and says so in a comment, rather
 //! than asserting `0 == 0` and calling it coverage.
 
+use crate::memory_rpc::{ok, serve, write_config};
 use crate::env_guard::EnvVarGuard;
 use crate::env_guard::env_lock;
-use crate::memory_module;
-use crate::rpc_auth::{ensure_rpc_auth, rpc_token};
+use crate::rpc_auth::rpc_token;
 use std::path::Path;
 use std::sync::{Arc, OnceLock};
 use std::time::Duration;
@@ -36,7 +36,6 @@ use axum::http::header::AUTHORIZATION;
 use serde_json::{json, Value};
 use tempfile::tempdir;
 
-use openhuman_rpc::server::build_core_http_router;
 
 static MEMORY_SEAMS_INIT: OnceLock<()> = OnceLock::new();
 static TEST_HOME: OnceLock<tempfile::TempDir> = OnceLock::new();
@@ -66,40 +65,6 @@ fn test_home() -> &'static Path {
         .path()
 }
 
-fn write_config(dir: &Path) {
-    std::fs::create_dir_all(dir).expect("mkdir");
-    let cfg = r#"
-default_model = "e2e-mock-model"
-default_temperature = 0.7
-
-[secrets]
-encrypt = false
-
-[memory_tree]
-embedding_strict = false
-"#;
-    std::fs::write(dir.join("config.toml"), cfg).expect("write config");
-
-    let user_dir = dir.join("users").join("local");
-    std::fs::create_dir_all(&user_dir).expect("mkdir user dir");
-    std::fs::write(user_dir.join("config.toml"), cfg).expect("write user config");
-}
-
-async fn serve() -> (String, tokio::task::JoinHandle<Result<(), std::io::Error>>) {
-    ensure_memory_seams();
-    ensure_rpc_auth();
-    // Every flow here reaches the memory module; wait out its load so a test
-    // running in its own process does not race it (tests/support/memory_module.rs).
-    memory_module::settle().await;
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
-        .await
-        .expect("bind");
-    let addr = listener.local_addr().expect("addr");
-    let handle =
-        tokio::spawn(async move { axum::serve(listener, build_core_http_router(false)).await });
-    (format!("http://{addr}"), handle)
-}
-
 async fn rpc(base: &str, id: i64, method: &str, params: Value) -> Value {
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(30))
@@ -127,21 +92,6 @@ async fn rpc(base: &str, id: i64, method: &str, params: Value) -> Value {
     resp.json::<Value>()
         .await
         .unwrap_or_else(|e| panic!("json parse for {method}: {e}"))
-}
-
-fn ok(v: &Value, ctx: &str) -> Value {
-    if let Some(err) = v.get("error") {
-        panic!("{ctx}: JSON-RPC error: {err}");
-    }
-    let outer = v
-        .get("result")
-        .unwrap_or_else(|| panic!("{ctx}: missing result: {v}"));
-    // Outcome wraps the payload under an inner "result" key alongside "logs".
-    if let Some(inner) = outer.get("result") {
-        inner.clone()
-    } else {
-        outer.clone()
-    }
 }
 
 // ── Tests ──────────────────────────────────

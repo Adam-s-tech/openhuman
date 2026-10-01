@@ -25,7 +25,7 @@ use std::path::Path;
 use std::sync::{Mutex, OnceLock};
 use std::time::Duration;
 
-use axum::http::{header::AUTHORIZATION, HeaderMap};
+use axum::http::header::AUTHORIZATION;
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use futures_util::StreamExt;
