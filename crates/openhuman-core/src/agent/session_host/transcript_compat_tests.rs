@@ -43,13 +43,13 @@ enum Layout {
     Legacy,
 }
 
-struct Scenario {
-    name: &'static str,
-    native: bool,
+pub(super) struct Scenario {
+    pub(super) name: &'static str,
+    pub(super) native: bool,
     layout: Layout,
 }
 
-static SCENARIOS: &[Scenario] = &[
+pub(super) static SCENARIOS: &[Scenario] = &[
     Scenario {
         name: "plain",
         native: true,
@@ -87,11 +87,11 @@ static SCENARIOS: &[Scenario] = &[
     },
 ];
 
-fn thread_id(name: &str) -> String {
+pub(super) fn thread_id(name: &str) -> String {
     format!("compat-{name}")
 }
 
-fn fixture(name: &str) -> PathBuf {
+pub(super) fn fixture(name: &str) -> PathBuf {
     Path::new(FIXTURE_DIR).join(name)
 }
 
@@ -135,7 +135,7 @@ fn tools() -> Vec<Box<dyn tinytools::Tool>> {
     vec![Box::new(EchoTool), Box::new(BoomTool)]
 }
 
-fn call(id: &str, name: &str, arguments: Value) -> ToolCall {
+pub(super) fn call(id: &str, name: &str, arguments: Value) -> ToolCall {
     ToolCall {
         id: id.into(),
         name: name.into(),
@@ -144,7 +144,7 @@ fn call(id: &str, name: &str, arguments: Value) -> ToolCall {
     }
 }
 
-fn response(blocks: Vec<ContentBlock>, tool_calls: Vec<ToolCall>) -> ModelResponse {
+pub(super) fn response(blocks: Vec<ContentBlock>, tool_calls: Vec<ToolCall>) -> ModelResponse {
     let mut out = ModelResponse::assistant("");
     out.message = AssistantMessage {
         id: None,
@@ -163,14 +163,14 @@ fn response(blocks: Vec<ContentBlock>, tool_calls: Vec<ToolCall>) -> ModelRespon
     })
 }
 
-fn model(responses: Vec<ModelResponse>, native: bool) -> Arc<ScriptedModel> {
+pub(super) fn model(responses: Vec<ModelResponse>, native: bool) -> Arc<ScriptedModel> {
     Arc::new(ScriptedModel::new(responses).with_profile(ModelProfile {
         tool_calling: native,
         ..Default::default()
     }))
 }
 
-fn build_host(
+pub(super) fn build_host(
     root: &Path,
     model: Arc<ScriptedModel>,
     native: bool,
@@ -193,7 +193,7 @@ fn build_host(
     host
 }
 
-fn run_async<F: std::future::Future<Output = ()> + Send + 'static>(future: F) {
+pub(super) fn run_async<F: std::future::Future<Output = ()> + Send + 'static>(future: F) {
     std::thread::Builder::new()
         .stack_size(crate::core::runtime::AGENT_WORKER_STACK_BYTES)
         .spawn(move || {
@@ -212,16 +212,22 @@ fn session_raw(root: &Path) -> PathBuf {
     root.join("workspace").join("session_raw")
 }
 
-fn stem_path(root: &Path, stem: &str) -> PathBuf {
+pub(super) fn stem_path(root: &Path, stem: &str) -> PathBuf {
     resolve_keyed_transcript_path(&root.join("workspace"), stem).expect("keyed path")
 }
 
 /// Place a scenario's committed files where the resume path looks for them.
-fn place_fixture(root: &Path, scenario: &Scenario, stem: &str) {
+/// `variant` selects an alternate on-disk generation of a head fixture
+/// (`""` the committed legacy capture, `".typed"` the same rows re-written in
+/// the typed row form).
+fn place_fixture(root: &Path, scenario: &Scenario, stem: &str, variant: &str) {
     let name = scenario.name;
     match scenario.layout {
         Layout::Head => {
-            std::fs::copy(fixture(&format!("{name}.jsonl")), stem_path(root, stem))
+            std::fs::copy(
+                fixture(&format!("{name}{variant}.jsonl")),
+                stem_path(root, stem),
+            )
                 .expect("copy head fixture");
         }
         Layout::Chain => {
@@ -272,6 +278,11 @@ fn normalize_clock(value: &mut Value) {
 
 /// Everything the model and the journal observe after resuming a scenario.
 async fn snapshot(scenario: &'static Scenario) -> Value {
+    snapshot_with(scenario, "").await
+}
+
+/// [`snapshot`] over the `variant` generation of the scenario's head fixture.
+pub(super) async fn snapshot_with(scenario: &'static Scenario, variant: &str) -> Value {
     let root = tempfile::tempdir().expect("tempdir");
     let next = model(
         vec![ModelResponse::assistant("next reply")],
@@ -284,7 +295,7 @@ async fn snapshot(scenario: &'static Scenario) -> Value {
         &thread_id(scenario.name),
     );
     let stem = host.session_id().expect("bound session id");
-    place_fixture(root.path(), scenario, &stem);
+    place_fixture(root.path(), scenario, &stem, variant);
 
     assert!(
         host.resume_bound_session().await.expect("resume"),
@@ -337,7 +348,7 @@ async fn snapshot(scenario: &'static Scenario) -> Value {
     })
 }
 
-fn golden(name: &str) -> Value {
+pub(super) fn golden(name: &str) -> Value {
     let raw = std::fs::read_to_string(fixture(&format!("{name}.golden.json")))
         .unwrap_or_else(|error| panic!("golden for {name}: {error}"));
     serde_json::from_str(&raw).expect("golden json")
