@@ -400,7 +400,15 @@ async fn capture_turns(name: &str, native: bool, responses: Vec<ModelResponse>, 
 
 async fn capture_all() {
     std::fs::create_dir_all(FIXTURE_DIR).expect("fixture dir");
-    let text = |s: &str| response(vec![ContentBlock::Text(s.into())], Vec::new());
+    let usage = || tinyinference_llm::usage::Usage {
+        input_tokens: 120,
+        output_tokens: 30,
+        total_tokens: 150,
+        cache_read_tokens: 100,
+        ..Default::default()
+    };
+    let text =
+        |s: &str| response(vec![ContentBlock::Text(s.into())], Vec::new()).with_usage(usage());
 
     capture_turns(
         "plain",
