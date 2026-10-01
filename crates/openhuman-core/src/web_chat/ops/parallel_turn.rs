@@ -166,6 +166,8 @@ pub(crate) async fn spawn_parallel_turn(
                         error_retry_after_ms: classified.retry_after_ms,
                         error_provider: classified.provider,
                         error_fallback_available: classified.fallback_available,
+                        copy_key: Some(classified.copy_key.to_string()),
+                        copy_params: classified.copy_params,
                         ..Default::default()
                     });
                 }
