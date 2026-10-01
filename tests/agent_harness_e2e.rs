@@ -3708,20 +3708,24 @@ async fn orchestrator_hands_skill_installs_to_skill_setup_through_the_skills_pac
     stack.shutdown();
 }
 
-/// With `setup_skills` on its belt, the orchestrator cannot install a skill
-/// itself through `use_skill`: the gate refuses the raw tool and names the
-/// hand-off even once the user has approved the call, and nothing lands on disk.
+/// Since #6787 `setup_skills` is a member of the `skills` pack, and a packed
+/// hand-off no longer closes its pack to the orchestrator
+/// (`closed_by_direct_handoff` keys on UNPACKED hand-offs), so the raw
+/// `skill_registry_install` is reachable through `use_skill`. What guards it
+/// is the approval gate: an install raised through `use_skill` is a real
+/// approval prompt (`UseSkillTool` reports its inner tool's permission level),
+/// and a call the user denies installs nothing.
 #[cfg(feature = "skills")]
 #[test]
-fn orchestrator_cannot_install_a_skill_through_the_raw_registry_tool() {
+fn orchestrator_raw_skill_install_through_use_skill_needs_approval() {
     run_on_agent_stack(
-        "orchestrator_cannot_install_a_skill_through_the_raw_registry_tool",
-        orchestrator_cannot_install_a_skill_through_the_raw_registry_tool_inner,
+        "orchestrator_raw_skill_install_through_use_skill_needs_approval",
+        orchestrator_raw_skill_install_through_use_skill_needs_approval_inner,
     );
 }
 
 #[cfg(feature = "skills")]
-async fn orchestrator_cannot_install_a_skill_through_the_raw_registry_tool_inner() {
+async fn orchestrator_raw_skill_install_through_use_skill_needs_approval_inner() {
     let _lock = env_lock();
     let _ttl = EnvVarGuard::set("OPENHUMAN_APPROVAL_TTL_SECS", "120");
     ensure_approval_gate().await;
@@ -3747,7 +3751,7 @@ async fn orchestrator_cannot_install_a_skill_through_the_raw_registry_tool_inner
             "skill_registry_install",
             json!({ "entry_id": REGISTRY_SKILL_ID }),
         ),
-        text_completion("I could not install it myself."),
+        text_completion("The install was not approved."),
     ]);
     let stack = boot_stack().await;
     let mut events = spawn_sse_collector(format!(
@@ -3766,9 +3770,8 @@ async fn orchestrator_cannot_install_a_skill_through_the_raw_registry_tool_inner
 
     // `use_skill` reports its INNER tool's permission level
     // (`UseSkillTool::permission_level_with_args`), so an install raises a real
-    // approval prompt: the approval middleware is pushed before the policy one
-    // and so wraps outside it. Approve it. The guarantee under test is stronger
-    // for it — the raw registry tool stays refused even after the user says yes.
+    // approval prompt. Deny it: the guarantee under test is that the raw
+    // registry tool does not run without the user's say-so.
     let approval = wait_for_event(&mut events, "approval_request", Duration::from_secs(60)).await;
     let request_id = approval
         .pointer("/data/request_id")
@@ -3780,29 +3783,19 @@ async fn orchestrator_cannot_install_a_skill_through_the_raw_registry_tool_inner
         &stack.rpc_base,
         921,
         "openhuman.approval_decide",
-        json!({ "request_id": request_id, "decision": "approve_once" }),
+        json!({ "request_id": request_id, "decision": "deny" }),
     )
     .await;
-    assert_no_jsonrpc_error(&decide, "approval_decide approve");
+    assert_no_jsonrpc_error(&decide, "approval_decide deny");
 
     let done = wait_for_terminal(&mut events, Duration::from_secs(60)).await;
     let requests = with_captured(|c| c.clone());
     assert_eq!(
         done.get("event").and_then(Value::as_str),
         Some("chat_done"),
-        "the refused-install turn must finish: {done}"
+        "the denied-install turn must finish: {done}"
     );
-    let result = tool_result_text(&requests, "skill_registry_install").unwrap_or_else(|| {
-        panic!(
-            "no tool result for skill_registry_install; requests: {}",
-            serde_json::to_string_pretty(&requests).unwrap_or_default()
-        )
-    });
-    assert!(
-        result.contains("not allowed in the current session") && result.contains("`setup_skills`"),
-        "the orchestrator reached `skill_registry_install` through use_skill instead of being \
-         sent to `setup_skills`: {result}"
-    );
+    assert_model_saw_the_refusal(&requests);
     let installed = stack
         ._tmp
         .path()
@@ -3811,7 +3804,7 @@ async fn orchestrator_cannot_install_a_skill_through_the_raw_registry_tool_inner
         .join("SKILL.md");
     assert!(
         !installed.exists(),
-        "a refused install still wrote {installed:?}"
+        "a denied install still wrote {installed:?}"
     );
 
     registry_join.abort();
@@ -4081,14 +4074,25 @@ async fn orchestrator_advertises_direct_mcp_tools_inner() {
     assert_eq!(done.get("event").and_then(Value::as_str), Some("chat_done"));
     let requests = with_captured(|c| c.clone());
     let belt = advertised_tool_names(requests.first().expect("model request"));
-    for required in [
-        "mcp_registry_status",
-        "mcp_registry_list_tools",
-        "mcp_registry_tool_call",
-    ] {
+    // #6787: the orchestrator defers the four `mcp_registry_*` tools
+    // (`deferred_tools` in its agent.toml). They stay registered and callable
+    // by name, and are found through `tool_search`, but they are off its wire;
+    // `use_skill` (the `mcp` pack) and `tool_search` are the way in.
+    for required in ["tool_search", "use_skill"] {
         assert!(
             belt.iter().any(|name| name == required),
             "missing {required}: {belt:?}"
+        );
+    }
+    for deferred in [
+        "mcp_registry_status",
+        "mcp_registry_list_tools",
+        "mcp_registry_connect",
+        "mcp_registry_tool_call",
+    ] {
+        assert!(
+            !belt.iter().any(|name| name == deferred),
+            "{deferred} is deferred for the orchestrator and must stay off its wire: {belt:?}"
         );
     }
     assert!(!belt.iter().any(|name| name == "use_mcp_server"));
