@@ -10,7 +10,6 @@ use super::migrate::{
 };
 use super::secrets::{decrypt_config_secrets, encrypt_config_secrets};
 use anyhow::{Context, Result};
-use std::collections::HashSet;
 use std::path::Path;
 use std::sync::{Mutex, OnceLock};
 use tokio::fs::{self, OpenOptions};

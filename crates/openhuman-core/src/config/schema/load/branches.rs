@@ -12,7 +12,7 @@ use super::migrate::{
     migrate_cloud_provider_slugs, migrate_legacy_inference_url, migrate_search_settings,
 };
 use super::secrets::decrypt_config_secrets;
-use anyhow::{Context, Result};
+use anyhow::Result;
 use std::collections::HashSet;
 use std::sync::{Mutex, OnceLock};
 use tokio::fs;
