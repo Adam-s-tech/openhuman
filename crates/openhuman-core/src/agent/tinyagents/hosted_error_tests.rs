@@ -1,5 +1,4 @@
 use super::*;
-use crate::web_chat::web_errors::is_turn_timeout_error;
 
 fn hosted(kind: HostedErrorKind, bound: Option<TimeoutBound>) -> HostedError {
     HostedError {
@@ -19,24 +18,24 @@ fn a_per_call_timeout_names_the_per_model_call_bound() {
     assert!(matches!(err, TinyAgentsError::Timeout(_)));
     let text = err.to_string();
     assert_eq!(
-        crate::web_chat::timeout_bound_tag(&text),
-        "per_model_call",
-        "{text}"
+        TurnTimeoutBound::from_message(&text),
+        Some(TurnTimeoutBound::PerModelCall)
     );
-    assert!(is_turn_timeout_error(&text), "user-facing class unchanged");
 }
 
 #[test]
 fn a_run_budget_timeout_names_the_run_bound() {
     let text = run_error_from_hosted(hosted(HostedErrorKind::Timeout, Some(TimeoutBound::Run)))
         .to_string();
-    assert_eq!(crate::web_chat::timeout_bound_tag(&text), "run_remaining");
-    assert!(is_turn_timeout_error(&text));
+    assert_eq!(
+        TurnTimeoutBound::from_message(&text),
+        Some(TurnTimeoutBound::RunRemaining)
+    );
 }
 
 #[test]
 fn a_non_timeout_failure_is_converted_as_before() {
     let err = run_error_from_hosted(hosted(HostedErrorKind::Provider, None));
     assert!(matches!(err, TinyAgentsError::Model(_)));
-    assert_eq!(crate::web_chat::timeout_bound_tag(&err.to_string()), "none");
+    assert_eq!(TurnTimeoutBound::from_message(&err.to_string()), None);
 }

@@ -26,7 +26,7 @@ pub(super) fn turn_timeout_bound(bound: TimeoutBound) -> TurnTimeoutBound {
 ///
 /// Identical to `TinyAgentsError::from(error)` except that a timeout names the
 /// bound that fired. It stays a terminal `Timeout`, as before.
-pub(super) fn run_error_from_hosted(error: HostedError) -> TinyAgentsError {
+pub(crate) fn run_error_from_hosted(error: HostedError) -> TinyAgentsError {
     let bound = match (error.kind, error.timeout_bound) {
         (HostedErrorKind::Timeout, Some(bound)) => Some(turn_timeout_bound(bound)),
         _ => None,
