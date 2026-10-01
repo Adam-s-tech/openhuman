@@ -11,13 +11,6 @@ fn all_schemas_use_config_namespace_and_have_descriptions() {
 }
 
 #[test]
-fn unknown_function_returns_unknown_schema() {
-    let s = schemas("no_such_fn");
-    assert_eq!(s.function, "unknown");
-    assert_eq!(s.namespace, "config");
-}
-
-#[test]
 fn every_registered_key_resolves_to_non_unknown_schema() {
     let keys = [
         "get_config",

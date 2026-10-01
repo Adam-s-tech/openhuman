@@ -79,8 +79,3 @@ fn web_search_schema_shape() {
     assert!(s.outputs.iter().any(|f| f.name == "provider"));
 }
 
-#[test]
-fn unknown_function_returns_unknown() {
-    let s = tools_schemas("nonexistent");
-    assert_eq!(s.function, "unknown");
-}

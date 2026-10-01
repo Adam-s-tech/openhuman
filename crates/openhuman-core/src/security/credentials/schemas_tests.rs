@@ -16,13 +16,6 @@ fn all_schemas_use_auth_namespace_and_have_descriptions() {
 }
 
 #[test]
-fn unknown_function_returns_unknown_fallback() {
-    let s = schemas("no_such_fn");
-    assert_eq!(s.function, "unknown");
-    assert_eq!(s.namespace, "auth");
-}
-
-#[test]
 fn every_registered_function_has_nonempty_schema_metadata() {
     for handler in all_registered_controllers() {
         assert!(

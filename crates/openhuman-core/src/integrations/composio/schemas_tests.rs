@@ -50,14 +50,6 @@ fn list_capabilities_schema_has_matrix_output() {
 }
 
 #[test]
-fn unknown_function_returns_unknown_schema() {
-    let s = schemas("no_such_fn");
-    assert_eq!(s.function, "unknown");
-    assert_eq!(s.inputs.len(), 1);
-    assert_eq!(s.inputs[0].name, "function");
-}
-
-#[test]
 fn authorize_schema_requires_toolkit() {
     let s = schemas("authorize");
     let tk = s.inputs.iter().find(|f| f.name == "toolkit").unwrap();

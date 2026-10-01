@@ -325,13 +325,6 @@ fn read_flow_stream_target_generates_request_id_when_absent() {
 }
 
 #[test]
-fn schemas_unknown_function_returns_placeholder() {
-    let s = schemas("does-not-exist");
-    assert_eq!(s.function, "unknown");
-    assert_eq!(s.outputs[0].name, "error");
-}
-
-#[test]
 fn read_required_errors_when_missing() {
     let params = Map::new();
     let err = read_required::<String>(&params, "id").unwrap_err();

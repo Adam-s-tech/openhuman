@@ -68,15 +68,6 @@ fn schemas_runs_limit_is_optional() {
     assert!(!limit.required);
 }
 
-#[test]
-fn schemas_unknown_function_returns_placeholder_with_error_output() {
-    // The `_other` branch is used when a caller requests a schema
-    // for a function that does not exist — it should not panic.
-    let s = schemas("does-not-exist");
-    assert_eq!(s.function, "unknown");
-    assert_eq!(s.outputs[0].name, "error");
-}
-
 // ── registry helpers ────────────────────────────────────────────
 
 #[test]

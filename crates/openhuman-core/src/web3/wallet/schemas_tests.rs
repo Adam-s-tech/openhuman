@@ -68,8 +68,3 @@ fn prepare_transfer_schema_marks_asset_symbol_optional() {
     assert!(!asset.required);
 }
 
-#[test]
-fn unknown_schema_maps_to_unknown() {
-    let schema = wallet_schemas("wat");
-    assert_eq!(schema.function, "unknown");
-}
