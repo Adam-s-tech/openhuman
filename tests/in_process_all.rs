@@ -33,6 +33,8 @@ pub mod memory_module;
 pub mod noop_memory;
 #[path = "support/rpc_auth.rs"]
 pub mod rpc_auth;
+#[path = "support/rpc_harness.rs"]
+pub mod rpc_harness;
 #[path = "support/tinyhumans_boot.rs"]
 pub mod tinyhumans_boot;
 

@@ -27,7 +27,7 @@
 //! Env is process-global and every aggregated suite shares one process, so
 //! each case takes the **crate-wide** [`env_lock`] for its whole body.
 
-use crate::rpc_harness::{ok, payload};
+use crate::rpc_harness::payload;
 use crate::env_guard::EnvVarGuard;
 use std::net::SocketAddr;
 use std::path::Path;

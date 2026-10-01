@@ -5,7 +5,6 @@
 //! no real network, keychain, or backend session is required.
 
 use crate::env_guard::EnvVarGuard;
-use std::path::Path;
 use std::sync::{Arc, Mutex, OnceLock};
 
 use axum::body::to_bytes;

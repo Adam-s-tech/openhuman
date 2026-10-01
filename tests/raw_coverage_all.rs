@@ -15,7 +15,7 @@
 // binary can read as dead once every file shares one crate root here (e.g. a
 // helper only reached by a `#[cfg]`-gated test). These are coverage suites, not
 // production code, so silence the noise rather than churn 76 files.
-#![allow(dead_code, unused_imports)]
+#![allow(dead_code)]
 
 use std::sync::{Mutex, OnceLock};
 
@@ -53,5 +53,10 @@ pub mod tinyhumans_boot;
 /// lock: suites hold [`SHARED_ENV_LOCK`] through their own `env_lock()`.
 #[path = "support/env_guard.rs"]
 pub mod env_guard;
+/// The RPC bearer and JSON-RPC helpers some suites share (see `support/`).
+#[path = "support/rpc_auth.rs"]
+pub mod rpc_auth;
+#[path = "support/rpc_harness.rs"]
+pub mod rpc_harness;
 
 include!(concat!(env!("OUT_DIR"), "/raw_coverage_mods.rs"));

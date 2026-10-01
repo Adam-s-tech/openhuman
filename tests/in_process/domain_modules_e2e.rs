@@ -5,35 +5,15 @@
 //! exercises cheap read/status handlers through HTTP. Mutating or networked
 //! domain behavior remains covered by the focused `*_e2e.rs` suites.
 
+use crate::rpc_harness::{serve_rpc};
 use crate::rpc_harness::{ok, payload, rpc, schema, write_min_config};
 use crate::env_guard::EnvVarGuard;
 use crate::env_guard::env_lock;
 use crate::memory_module;
-use crate::rpc_auth::{ensure_rpc_auth, rpc_token};
-use std::net::SocketAddr;
-use std::path::Path;
-use std::time::Duration;
 
-use axum::http::header::AUTHORIZATION;
-use reqwest::StatusCode;
 use serde_json::{json, Value};
 use tempfile::{tempdir, TempDir};
 
-use openhuman_rpc::server::build_core_http_router;
-
-async fn serve_rpc() -> (
-    SocketAddr,
-    tokio::task::JoinHandle<Result<(), std::io::Error>>,
-) {
-    ensure_rpc_auth();
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
-        .await
-        .expect("bind rpc listener");
-    let addr = listener.local_addr().expect("rpc listener addr");
-    let router = build_core_http_router(false);
-    let join = tokio::spawn(async move { axum::serve(listener, router).await });
-    (addr, join)
-}
 
 struct TestHarness {
     _tmp: TempDir,

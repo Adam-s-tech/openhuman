@@ -5,7 +5,7 @@
 //! direct public API calls cover persistence/redaction/provider branches that
 //! are otherwise only indirectly reachable from the controllers.
 
-use crate::rpc_harness::{error_message, ok, payload};
+use crate::rpc_harness::{error_message, payload};
 use crate::env_guard::EnvVarGuard;
 use std::path::Path;
 use std::sync::{Arc, Mutex, OnceLock};

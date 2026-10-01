@@ -20,7 +20,7 @@
 //! JSON-RPC router (`build_core_http_router`) and asserted on, so the number the
 //! gate reports and the coverage that exists are the same thing.
 
-use crate::rpc_harness::{error_message, ok, payload};
+use crate::rpc_harness::{error_message, payload};
 use crate::env_guard::EnvVarGuard;
 use crate::env_guard::env_lock;
 use crate::rpc_auth::{ensure_rpc_auth, rpc_token};

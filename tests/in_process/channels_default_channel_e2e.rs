@@ -52,13 +52,10 @@
 use crate::rpc_harness::{rpc};
 use crate::env_guard::EnvVarGuard;
 use crate::env_guard::env_lock;
-use crate::rpc_auth::{ensure_rpc_auth, rpc_token};
+use crate::rpc_auth::ensure_rpc_auth;
 use std::path::Path;
 use std::sync::{Arc, RwLock};
-use std::time::Duration;
 
-use axum::http::header::AUTHORIZATION;
-use reqwest::StatusCode;
 use serde_json::{json, Value};
 use tempfile::{tempdir, TempDir};
 

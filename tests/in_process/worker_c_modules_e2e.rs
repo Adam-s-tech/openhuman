@@ -7,16 +7,14 @@
 use crate::rpc_harness::{ok, rpc};
 use crate::env_guard::EnvVarGuard;
 use crate::env_guard::env_lock;
-use crate::rpc_auth::{ensure_rpc_auth, rpc_token};
+use crate::rpc_auth::ensure_rpc_auth;
 use std::path::Path;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
-use std::time::Duration;
 
 use axum::extract::State;
-use axum::http::header::{AUTHORIZATION, CONTENT_TYPE};
+use axum::http::header::CONTENT_TYPE;
 use axum::{response::Html, routing::get, Json, Router};
-use reqwest::StatusCode;
 use serde_json::{json, Value};
 use tempfile::{tempdir, TempDir};
 

@@ -3,7 +3,7 @@
 
 use crate::rpc_harness::{ok, payload, rpc, schema};
 use crate::env_guard::{env_lock, EnvVarGuard};
-use crate::rpc_auth::{ensure_rpc_auth, rpc_token};
+use crate::rpc_auth::ensure_rpc_auth;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::sync::{
@@ -16,7 +16,6 @@ use axum::extract::{Path as AxumPath, State};
 use axum::http::{header::AUTHORIZATION, HeaderMap};
 use axum::routing::{delete, get, post};
 use axum::{Json, Router};
-use reqwest::StatusCode;
 use serde_json::{json, Value};
 use tempfile::{tempdir, TempDir};
 
