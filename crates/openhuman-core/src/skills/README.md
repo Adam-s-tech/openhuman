@@ -72,7 +72,7 @@ Plus the sub-domain namespaces: `skill_registry.*` (`browse`, `search`, `sources
 
 - `tinytools`: supplies the shared `ToolResult`/`ToolContent` shape directly.
 - `crates/openhuman-core/src/agent/harness/fork_context.rs`: fork context propagates injected skills.
-- `crates/openhuman-core/src/agent/session_host/turn/context.rs` and `.../turn/tools.rs`: the per-turn `workflows` list handed to `PromptContext`; `refresh_workflows` reloads it from the workspace when a `WorkflowsChanged` event is drained.
+- `crates/openhuman-core/src/agent/session_host/turn/context.rs` and `.../turn/tools.rs`: the per-turn `workflows` list handed to `PromptContext`.
 - `crates/openhuman-core/src/agent/tools/run_workflow.rs`: the separate `run_workflow`/`AwaitWorkflowTool` launch path.
 - `crates/openhuman-core/src/core/all.rs`: controller registry wiring for `skills`, `skill_registry`, and `skill_runtime`.
 
@@ -82,7 +82,6 @@ Behavior tests live beside their modules as `*_tests.rs` (for example `ops_tests
 
 `e2e_plumbing_tests.rs` and `e2e_run_tests.rs` are mock-LLM end-to-end tests: plumbing (create then registry round-trip, an orchestrator turn calling `list_workflows`/`run_workflow`, `await_run_outcome` polling) and run execution (`spawn_workflow_run_background` through a terminal `DONE` to `await_run_outcome`, marked `#[ignore]` and run serially because they set the process-global `OPENHUMAN_WORKSPACE`).
 
-Catalog refresh in a live session (`refresh_workflows`) is covered by `crates/openhuman-core/src/agent/session_host/session_builder_and_listener_tests.rs`.
 
 ## Notes
 
