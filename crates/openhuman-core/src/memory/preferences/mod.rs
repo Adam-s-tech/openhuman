@@ -92,9 +92,21 @@ pub(crate) async fn recall_by_vector_over(
     let started = std::time::Instant::now();
     let hits = match provider.as_retrieval() {
         Some(retrieval) => {
-            retrieval
+            let hits = retrieval
                 .recall_namespace_scored(namespace, query, limit, None)
-                .await?
+                .await?;
+            if crate::memory::ops::fallback::rank_only(&hits) {
+                // A retrieval family that ranks without measuring similarity
+                // (hosted CortexDB) is the unscored engine below under another
+                // name, and gets the same answer for the same reason.
+                log::debug!(
+                    "[pref_recall] namespace={namespace} retrieval ranks without similarity; \
+                     nothing clears a similarity floor elapsed_ms={}",
+                    started.elapsed().as_millis()
+                );
+                return Ok(Vec::new());
+            }
+            hits
         }
         // No retrieval family (a remote engine): the mandatory ranked recall
         // answers, so Lane B still works instead of injecting nothing.

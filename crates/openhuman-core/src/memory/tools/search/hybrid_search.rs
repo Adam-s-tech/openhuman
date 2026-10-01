@@ -287,11 +287,23 @@ impl Tool for MemoryHybridSearchTool {
             return Ok(ToolResult::success("No results found."));
         }
 
+        // A driver that ranks without measuring any signal (hosted CortexDB)
+        // leaves nothing to re-weight: its order is the ranking, and a weighted
+        // sum of zeros would report no results at all.
+        let ranked = crate::memory::ops::fallback::rank_only(&hits);
+        if ranked {
+            log::debug!(
+                "[tool][memory_hybrid_search] driver ranks without signals; keeping its order"
+            );
+        }
         // Re-score using the selected weight profile
         let mut rescored: Vec<(usize, f64)> = hits
             .iter()
             .enumerate()
             .map(|(i, hit)| {
+                if ranked {
+                    return (i, hit.score);
+                }
                 let bd = &hit.score_breakdown;
                 let score = hybrid_final_score(
                     &profile,
@@ -314,8 +326,14 @@ impl Tool for MemoryHybridSearchTool {
             parsed.mode,
         );
 
-        for (hit_idx, score) in &rescored {
+        for (position, (hit_idx, score)) in rescored.iter().enumerate() {
             let hit = &hits[*hit_idx];
+            // A rank is not a relevance, so it is not shown as a percentage.
+            let mark = if ranked {
+                format!("#{}", position + 1)
+            } else {
+                format!("{:.0}%", score * 100.0)
+            };
             let preview: String = hit.content.chars().take(200).collect();
             let truncated = if hit.content.chars().count() > 200 {
                 "..."
@@ -324,8 +342,8 @@ impl Tool for MemoryHybridSearchTool {
             };
             let _ = writeln!(
                 output,
-                "- [{:.0}%] [{}] {}: {}{}",
-                score * 100.0,
+                "- [{}] [{}] {}: {}{}",
+                mark,
                 kind_label(&hit.kind),
                 hit.key,
                 preview,
