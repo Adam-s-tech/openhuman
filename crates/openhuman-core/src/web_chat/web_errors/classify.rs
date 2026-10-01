@@ -7,16 +7,12 @@ use super::budget::{
     generic_inference_error_user_message, inference_budget_exceeded_user_message,
     is_action_budget_exhausted, is_inference_budget_exceeded_error,
 };
-use super::provider_detail::{
-    extract_provider_name, is_fallback_chain_exhausted, with_provider_detail,
-};
-use super::response_predicates::{
-    is_connection_dropped_text, is_empty_provider_response_text, is_malformed_tool_history_text,
-    is_provider_request_rejected_text, is_transient_unavailability_text,
-    malformed_history_user_message,
-};
-use super::retry::{
-    is_non_retryable_rate_limit_text, parse_retry_after_secs_from_str, retry_after_hint,
+use super::response_predicates::malformed_history_user_message;
+use super::retry::{is_non_retryable_rate_limit_text, retry_after_hint};
+use tinyinference_llm::failure::{
+    extract_provider_name, is_connection_dropped_text, is_empty_provider_response_text,
+    is_fallback_chain_exhausted, is_malformed_tool_history_text, is_provider_request_rejected_text,
+    is_transient_unavailability_text, parse_retry_after_secs, with_provider_detail,
 };
 use super::timeout::is_turn_timeout_error;
 
@@ -292,7 +288,7 @@ pub(crate) fn classify_inference_error(err: &str) -> ClassifiedError {
             fallback_available,
         }
     } else if lower.contains("rate limit") || lower.contains("429") {
-        let retry_secs = parse_retry_after_secs_from_str(err);
+        let retry_secs = parse_retry_after_secs(err);
         // Non-retryable business 429s ("plan does not include", balance
         // exhausted, known provider business codes like Z.AI 1311/1113)
         // also surface here — mark them non-retryable so the FE can hide
