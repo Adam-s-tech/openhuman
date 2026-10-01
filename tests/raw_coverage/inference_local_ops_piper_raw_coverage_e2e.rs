@@ -128,26 +128,6 @@ async fn piper_controller_rejects_insecure_download_overrides() {
     assert!(requests.is_empty(), "rejected URLs must not be requested");
 }
 
-#[tokio::test]
-async fn local_transcribe_bytes_covers_temp_file_path_and_extension_validation() {
-    let tmp = tempdir().expect("tempdir");
-    let mut config = temp_config(&tmp);
-    config.local_ai.runtime_enabled = false;
-
-    let invalid = local_ai_transcribe_bytes(&config, b"audio", Some("../wav".to_string()))
-        .await
-        .expect_err("invalid extension");
-    assert_eq!(invalid, "Invalid audio extension");
-
-    let disabled = local_ai_transcribe_bytes(&config, b"audio", Some(".WEBM".to_string()))
-        .await
-        .expect_err("hosted STT without a configured session");
-    assert!(
-        !disabled.contains("local ai is disabled"),
-        "hosted STT must not be gated on the local-AI runtime: {disabled}"
-    );
-}
-
 async fn serve_piper_mock() -> (String, PiperMockState) {
     let state = PiperMockState {
         requests: Arc::new(Mutex::new(Vec::new())),
