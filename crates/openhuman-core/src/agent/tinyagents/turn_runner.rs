@@ -46,9 +46,6 @@ use turn_runner_hosted::{root_hosted_harness, PrecomposedRootContext};
 #[cfg(test)]
 #[path = "turn_runner_tests.rs"]
 mod tests;
-#[cfg(test)]
-#[path = "turn_runner_thin.rs"]
-mod thin;
 
 /// Drive a turn through the tinyagents harness over the routes' **shared**,
 /// `Arc`-owned tool registry sets (`Arc<Vec<Box<dyn Tool>>>`), advertising
