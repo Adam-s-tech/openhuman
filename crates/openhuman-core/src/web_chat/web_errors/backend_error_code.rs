@@ -3,8 +3,9 @@
 //! [`classify_inference_error`](super::classify::classify_inference_error).
 
 use super::classify::ClassifiedError;
-use super::response_predicates::{is_malformed_tool_history_text, malformed_history_user_message};
-use super::retry::{parse_retry_after_secs_from_str, retry_after_hint};
+use super::response_predicates::malformed_history_user_message;
+use super::retry::retry_after_hint;
+use tinyinference_llm::failure::{is_malformed_tool_history_text, parse_retry_after_secs};
 
 /// Classify a managed-backend error by its stable `errorCode` (#870).
 ///
@@ -50,7 +51,7 @@ pub(super) fn classify_by_backend_error_code(
 
     let classified = match code {
         BackendErrorCode::RateLimited => {
-            let retry_secs = parse_retry_after_secs_from_str(err);
+            let retry_secs = parse_retry_after_secs(err);
             ClassifiedError {
                 error_type: "rate_limited",
                 message: format!(
