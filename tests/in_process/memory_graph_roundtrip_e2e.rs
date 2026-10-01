@@ -73,10 +73,10 @@
 //! A large stack is also needed — `RUST_MIN_STACK=67108864` — because
 //! publishing the policy touches deeply nested config types.
 
-use crate::rpc_harness::{ok, rpc};
-use crate::env_guard::EnvVarGuard;
 use crate::env_guard::env_lock;
+use crate::env_guard::EnvVarGuard;
 use crate::rpc_auth::ensure_rpc_auth;
+use crate::rpc_harness::{ok, rpc};
 use std::path::Path;
 use std::sync::{Arc, OnceLock};
 

@@ -20,7 +20,6 @@ use openhuman_core::memory::conversations::{
 };
 use openhuman_core::threads::ops::transcript_search;
 
-
 // ── Fixture helpers ──────────────────────────────────────────────────────────
 
 fn thread(id: &str, title: &str) -> CreateConversationThread {

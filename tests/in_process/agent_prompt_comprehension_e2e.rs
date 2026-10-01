@@ -16,10 +16,12 @@
 //! `env_lock()` across `.await` on purpose, as there.
 #![allow(clippy::await_holding_lock)]
 
-use crate::scripted_stack::{assert_no_jsonrpc_error, current_user, lock_or_recover, text_completion, tool_calls_completion};
+use crate::env_guard::env_lock_with_file_keyring as env_lock;
 use crate::env_guard::EnvVarGuard;
 use crate::rpc_auth::{ensure_rpc_auth, rpc_token};
-use crate::env_guard::env_lock_with_file_keyring as env_lock;
+use crate::scripted_stack::{
+    assert_no_jsonrpc_error, current_user, lock_or_recover, text_completion, tool_calls_completion,
+};
 use std::net::SocketAddr;
 use std::path::Path;
 use std::sync::{Mutex, OnceLock};
@@ -34,7 +36,6 @@ use tempfile::tempdir;
 
 use openhuman_core::agent::harness::AgentDefinitionRegistry;
 use openhuman_rpc::server::build_core_http_router;
-
 
 // ─── Env serialization ──────────────────────────────────────────────────────
 

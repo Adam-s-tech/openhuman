@@ -16,9 +16,7 @@ use tempfile::{tempdir, TempDir};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
-use openhuman_core::platform::connectivity::rpc::{
-    pick_listen_port_for_host, PickListenPortError,
-};
+use openhuman_core::platform::connectivity::rpc::{pick_listen_port_for_host, PickListenPortError};
 use openhuman_rpc::server::build_core_http_router;
 
 const TEST_RPC_TOKEN: &str = "connectivity-raw-coverage-e2e-token";
@@ -273,4 +271,3 @@ async fn pick_listen_port_identifies_ipv6_openhuman_listener_when_supported() {
         other => panic!("expected IPv6 takeover error, got {other:?}"),
     }
 }
-

@@ -5,8 +5,8 @@
 //! direct public API calls cover persistence/redaction/provider branches that
 //! are otherwise only indirectly reachable from the controllers.
 
-use crate::rpc_harness::{error_message, payload};
 use crate::env_guard::EnvVarGuard;
+use crate::rpc_harness::{error_message, payload};
 use std::path::Path;
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant};
@@ -25,12 +25,11 @@ use openhuman_core::security::approval::gate::{
     ApprovalChatContext, ApprovalGate, APPROVAL_CHAT_CONTEXT,
 };
 use openhuman_core::security::approval::{
-    all_approval_controller_schemas, all_approval_registered_controllers, ExecutionOutcome, GateOutcome,
+    all_approval_controller_schemas, all_approval_registered_controllers, ExecutionOutcome,
+    GateOutcome,
 };
 use openhuman_core::security::{live_policy, SecurityPolicy};
-use openhuman_core::tools::registry::{
-    denials, registry_entries, registry_entries_for_config,
-};
+use openhuman_core::tools::registry::{denials, registry_entries, registry_entries_for_config};
 use openhuman_rpc::server::build_core_http_router;
 
 const TEST_RPC_TOKEN: &str = "tool-registry-approval-raw-e2e-token";

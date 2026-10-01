@@ -6,10 +6,10 @@
 //! The test uses a local fixture catalog and local SKILL.md download URL so CI
 //! does not depend on the live Hermes API.
 
-use openhuman_core::core::auth::CORE_TOKEN_ENV_VAR;
-use crate::env_guard::EnvVarGuard;
 use crate::env_guard::env_lock_with_file_keyring as env_lock;
+use crate::env_guard::EnvVarGuard;
 use crate::rpc_auth::{ensure_rpc_auth, rpc_token};
+use openhuman_core::core::auth::CORE_TOKEN_ENV_VAR;
 use std::net::SocketAddr;
 use std::time::Duration;
 
@@ -26,7 +26,6 @@ use openhuman_rpc::server::build_core_http_router;
 // ── One-time auth init ─────────────────────────────────────────────────────
 
 // ── Env lock (process-global env vars must not race) ──────────────────────
-
 
 // ── EnvVarGuard ───────────────────────────────────────────────────────────
 

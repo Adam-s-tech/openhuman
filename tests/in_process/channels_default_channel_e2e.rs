@@ -49,10 +49,10 @@
 //!
 //! Run with: `cargo test -p openhuman-cli --test in_process_all`
 
-use crate::rpc_harness::{rpc};
-use crate::env_guard::EnvVarGuard;
 use crate::env_guard::env_lock;
+use crate::env_guard::EnvVarGuard;
 use crate::rpc_auth::ensure_rpc_auth;
+use crate::rpc_harness::rpc;
 use std::path::Path;
 use std::sync::{Arc, RwLock};
 

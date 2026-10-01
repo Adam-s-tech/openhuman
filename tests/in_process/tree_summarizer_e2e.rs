@@ -20,9 +20,9 @@
 //!
 //! Run with: `cargo test -p openhuman-cli --test in_process_all`
 
-use crate::memory_rpc::{serve, write_config};
-use crate::env_guard::EnvVarGuard;
 use crate::env_guard::env_lock;
+use crate::env_guard::EnvVarGuard;
+use crate::memory_rpc::{serve, write_config};
 use crate::rpc_auth::rpc_token;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
@@ -32,7 +32,6 @@ use axum::http::header::AUTHORIZATION;
 use chrono::{DateTime, SecondsFormat, TimeZone, Utc};
 use serde_json::{json, Value};
 use tempfile::TempDir;
-
 
 const NAMESPACE: &str = "tree-summarizer-e2e";
 

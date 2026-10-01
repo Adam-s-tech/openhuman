@@ -5,14 +5,13 @@
 //! deterministic controller paths. External-service paths are asserted at
 //! validation/config boundaries so the suite stays hermetic.
 
-use crate::rpc_harness::{serve_rpc};
-use crate::rpc_harness::{ok, payload, rpc, schema, write_min_config};
-use crate::env_guard::EnvVarGuard;
 use crate::env_guard::env_lock;
+use crate::env_guard::EnvVarGuard;
+use crate::rpc_harness::serve_rpc;
+use crate::rpc_harness::{ok, payload, rpc, schema, write_min_config};
 
 use serde_json::{json, Value};
 use tempfile::{tempdir, TempDir};
-
 
 struct TestHarness {
     _tmp: TempDir,

@@ -4,10 +4,10 @@
 //! composio / threads slice and drives the real HTTP JSON-RPC router against
 //! an isolated workspace. It avoids live network calls.
 
-use crate::rpc_harness::{ok, rpc};
-use crate::env_guard::EnvVarGuard;
 use crate::env_guard::env_lock;
+use crate::env_guard::EnvVarGuard;
 use crate::rpc_auth::ensure_rpc_auth;
+use crate::rpc_harness::{ok, rpc};
 use std::path::Path;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;

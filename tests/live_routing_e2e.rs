@@ -15,8 +15,8 @@
 mod env_guard;
 #[path = "support/scripted_stack.rs"]
 mod scripted_stack;
-use scripted_stack::{assert_no_jsonrpc_error};
 use env_guard::EnvVarGuard;
+use scripted_stack::assert_no_jsonrpc_error;
 use std::path::Path;
 use std::sync::{Mutex, OnceLock};
 use std::time::Duration;

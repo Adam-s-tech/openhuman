@@ -22,10 +22,10 @@ use openhuman_core::config::schema::cloud_providers::{
     AuthStyle as CloudAuthStyle, CloudProviderCreds,
 };
 use openhuman_core::config::Config;
-use openhuman_core::security::credentials::{AuthService, DEFAULT_AUTH_PROFILE_NAME};
 use openhuman_core::inference::host_runtime::LocalAiService;
 use openhuman_core::inference::provider::factory::auth_key_for_slug;
 use openhuman_core::inference::provider::list_configured_models;
+use openhuman_core::security::credentials::{AuthService, DEFAULT_AUTH_PROFILE_NAME};
 
 #[derive(Clone, Default)]
 struct MockState {

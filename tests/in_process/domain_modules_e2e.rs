@@ -5,15 +5,14 @@
 //! exercises cheap read/status handlers through HTTP. Mutating or networked
 //! domain behavior remains covered by the focused `*_e2e.rs` suites.
 
-use crate::rpc_harness::{serve_rpc};
-use crate::rpc_harness::{ok, payload, rpc, schema, write_min_config};
-use crate::env_guard::EnvVarGuard;
 use crate::env_guard::env_lock;
+use crate::env_guard::EnvVarGuard;
 use crate::memory_module;
+use crate::rpc_harness::serve_rpc;
+use crate::rpc_harness::{ok, payload, rpc, schema, write_min_config};
 
 use serde_json::{json, Value};
 use tempfile::{tempdir, TempDir};
-
 
 struct TestHarness {
     _tmp: TempDir,

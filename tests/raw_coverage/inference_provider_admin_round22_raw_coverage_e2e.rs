@@ -23,14 +23,14 @@ use openhuman_core::config::schema::cloud_providers::{
     AuthStyle as CloudAuthStyle, CloudProviderCreds,
 };
 use openhuman_core::config::Config;
-use openhuman_core::security::credentials::{
-    AuthService, APP_SESSION_PROVIDER, DEFAULT_AUTH_PROFILE_NAME,
-};
 use openhuman_core::inference::host_runtime::LocalAiService;
 use openhuman_core::inference::provider::factory::{
     auth_key_for_slug, create_chat_model_from_string_with_model_id,
 };
 use openhuman_core::inference::provider::list_configured_models;
+use openhuman_core::security::credentials::{
+    AuthService, APP_SESSION_PROVIDER, DEFAULT_AUTH_PROFILE_NAME,
+};
 
 #[derive(Clone, Default)]
 struct MockState {
@@ -188,13 +188,9 @@ async fn factory_covers_legacy_api_key_scoping_and_abstract_model_errors() {
     .expect("store app session");
     let _workspace = EnvVarGuard::set("OPENHUMAN_WORKSPACE", config.config_path.parent().unwrap());
 
-    let (legacy, legacy_model) = create_chat_model_from_string_with_model_id(
-        "chat",
-        "legacy:requested-model",
-        &config,
-        0.4,
-    )
-    .expect("legacy direct model");
+    let (legacy, legacy_model) =
+        create_chat_model_from_string_with_model_id("chat", "legacy:requested-model", &config, 0.4)
+            .expect("legacy direct model");
     assert_eq!(legacy_model, "requested-model");
     let legacy_response = legacy
         .invoke(
@@ -203,18 +199,11 @@ async fn factory_covers_legacy_api_key_scoping_and_abstract_model_errors() {
         )
         .await
         .expect("legacy chat");
-    assert_eq!(
-        legacy_response.text(),
-        "legacy direct ok"
-    );
+    assert_eq!(legacy_response.text(), "legacy direct ok");
 
-    let (other, other_model) = create_chat_model_from_string_with_model_id(
-        "chat",
-        "other:other-model",
-        &config,
-        0.4,
-    )
-    .expect("other model");
+    let (other, other_model) =
+        create_chat_model_from_string_with_model_id("chat", "other:other-model", &config, 0.4)
+            .expect("other model");
     let other_text = other
         .invoke(
             &(),
@@ -230,9 +219,9 @@ async fn factory_covers_legacy_api_key_scoping_and_abstract_model_errors() {
         &config,
         0.4,
     ) {
-            Ok(_) => panic!("expected abstract tier error"),
-            Err(err) => err,
-        };
+        Ok(_) => panic!("expected abstract tier error"),
+        Err(err) => err,
+    };
     assert!(abstract_err
         .to_string()
         .contains("has no concrete default_model configured"));

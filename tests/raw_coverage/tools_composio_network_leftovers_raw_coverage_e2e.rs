@@ -14,15 +14,15 @@ use axum::{Json, Router};
 use serde_json::{json, Value};
 use tempfile::{Builder, TempDir};
 
-use openhuman_core::integrations::composio::ops::{composio_authorize, composio_list_tools};
 use openhuman_core::config::Config;
+use openhuman_core::integrations::composio::ops::{composio_authorize, composio_list_tools};
 use openhuman_core::security::credentials::{
     AuthService, APP_SESSION_PROVIDER, DEFAULT_AUTH_PROFILE_NAME,
 };
-use tinytools::{Tool, ToolCallOptions};
 use openhuman_core::tools::{
-    ComposioListConnectionsTool, ComposioListToolkitsTool,
-    ComposioListToolsTool};
+    ComposioListConnectionsTool, ComposioListToolkitsTool, ComposioListToolsTool,
+};
+use tinytools::{Tool, ToolCallOptions};
 
 static ENV_LOCK: &OnceLock<Mutex<()>> = &crate::SHARED_ENV_LOCK;
 
@@ -63,7 +63,6 @@ fn tempdir() -> TempDir {
 }
 
 async fn setup_config() -> Harness {
-
     crate::tinyhumans_boot::boot();
     let tmp = tempdir();
     let root = tmp.path().join("openhuman");
@@ -395,4 +394,3 @@ fn fail(status: StatusCode, error: &str) -> Response {
     )
         .into_response()
 }
-

@@ -19,7 +19,8 @@ static TOKEN: OnceLock<String> = OnceLock::new();
 /// Initialise the core's RPC token subsystem once and return the live token.
 pub fn rpc_token() -> &'static str {
     TOKEN.get_or_init(|| {
-        let dir = std::env::temp_dir().join(format!("openhuman-e2e-rpc-auth-{}", std::process::id()));
+        let dir =
+            std::env::temp_dir().join(format!("openhuman-e2e-rpc-auth-{}", std::process::id()));
         std::fs::create_dir_all(&dir).expect("create the rpc token dir");
         openhuman_core::core::auth::init_rpc_token(&dir).expect("init the core rpc auth token");
         openhuman_core::core::auth::get_rpc_token()

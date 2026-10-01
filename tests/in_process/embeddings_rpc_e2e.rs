@@ -7,8 +7,8 @@
 //!
 //! Run with: `cargo test -p openhuman-cli --test in_process_all`
 
-use crate::env_guard::EnvVarGuard;
 use crate::env_guard::env_lock;
+use crate::env_guard::EnvVarGuard;
 use crate::rpc_auth::{ensure_rpc_auth, rpc_token};
 use std::net::SocketAddr;
 use std::path::Path;

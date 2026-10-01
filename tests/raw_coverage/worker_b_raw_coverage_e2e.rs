@@ -5,8 +5,8 @@
 //! to drive implementation branches that the controller reachability tests only
 //! touch at validation boundaries.
 
-use crate::rpc_harness::{error_message, ok, payload};
 use crate::env_guard::EnvVarGuard;
+use crate::rpc_harness::{error_message, ok, payload};
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::path::Path;
@@ -458,7 +458,9 @@ async fn tools_web_answer_uses_managed_gemini_grounding_and_returns_citations() 
     .await;
     let settings = payload(&settings, "config_update_search_settings");
     assert_eq!(
-        settings.pointer("/effective_roles/answer/0").and_then(Value::as_str),
+        settings
+            .pointer("/effective_roles/answer/0")
+            .and_then(Value::as_str),
         Some("gemini"),
         "managed Gemini should serve the answer role: {settings}"
     );
@@ -471,7 +473,10 @@ async fn tools_web_answer_uses_managed_gemini_grounding_and_returns_citations() 
     )
     .await;
     let answer = payload(&answer, "tools_web_answer");
-    assert_eq!(answer.get("provider").and_then(Value::as_str), Some("Gemini"));
+    assert_eq!(
+        answer.get("provider").and_then(Value::as_str),
+        Some("Gemini")
+    );
     assert_eq!(answer.get("role").and_then(Value::as_str), Some("answer"));
     assert!(answer
         .get("answer")
@@ -532,7 +537,9 @@ async fn tools_web_search_success_path_uses_backend_session_and_shapes_results()
     .await;
     let settings = payload(&settings, "config_update_search_settings");
     assert_eq!(
-        settings.pointer("/effective_roles/search/0").and_then(Value::as_str),
+        settings
+            .pointer("/effective_roles/search/0")
+            .and_then(Value::as_str),
         Some("exa"),
         "managed Exa should serve the search role once signed in: {settings}"
     );
@@ -570,7 +577,10 @@ async fn tools_web_search_success_path_uses_backend_session_and_shapes_results()
         body.pointer("/searchQueries/0").and_then(Value::as_str),
         Some("worker b raw coverage")
     );
-    assert!(body.get("mode").is_none(), "backend Exa rejects `mode`: {body}");
+    assert!(
+        body.get("mode").is_none(),
+        "backend Exa rejects `mode`: {body}"
+    );
 
     harness.rpc_join.abort();
     mock.join.abort();

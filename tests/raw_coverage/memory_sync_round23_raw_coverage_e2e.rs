@@ -66,14 +66,12 @@ static ENV_LOCK: &OnceLock<Mutex<()>> = &crate::SHARED_ENV_LOCK;
 static MEMORY_SEAMS_INIT: OnceLock<()> = OnceLock::new();
 
 fn ensure_memory_seams() {
-
     crate::tinyhumans_boot::boot();
     MEMORY_SEAMS_INIT.get_or_init(|| {
         std::thread::Builder::new()
             .name("memory-sync-round23-raw-coverage-seams".to_string())
             .stack_size(8 * 1024 * 1024)
-            .spawn(|| {
-            })
+            .spawn(|| {})
             .expect("spawn round23 memory sync seam installer")
             .join()
             .expect("round23 memory sync seam installer panicked");
@@ -145,4 +143,3 @@ async fn composio_get_user_profile_refuses_cleanly_without_a_loaded_module() {
         "unexpected error: {error}"
     );
 }
-

@@ -16,6 +16,7 @@ use axum::{Json, Router};
 use serde_json::{json, Value};
 use tempfile::{Builder, TempDir};
 
+use openhuman_core::config::Config;
 use openhuman_core::integrations::composio::ops::{
     cached_active_integrations, composio_authorize, composio_execute, composio_list_connections,
     composio_list_toolkits, composio_list_tools, fetch_connected_integrations_status,
@@ -23,9 +24,8 @@ use openhuman_core::integrations::composio::ops::{
 use openhuman_core::integrations::composio::{
     invalidate_connected_integrations_cache, FetchConnectedIntegrationsStatus,
 };
-use openhuman_core::config::Config;
+use openhuman_core::tools::ComposioListToolsTool;
 use tinytools::{Tool, ToolCallOptions};
-use openhuman_core::tools::{ComposioListToolsTool};
 
 static ENV_LOCK: &OnceLock<Mutex<()>> = &crate::SHARED_ENV_LOCK;
 
@@ -57,7 +57,6 @@ fn env_lock() -> std::sync::MutexGuard<'static, ()> {
 }
 
 async fn setup_direct_config(base: &str) -> Harness {
-
     crate::tinyhumans_boot::boot();
     std::fs::create_dir_all("target").expect("target dir");
     let tmp = Builder::new()

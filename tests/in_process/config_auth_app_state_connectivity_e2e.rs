@@ -1,9 +1,9 @@
 //! Focused JSON-RPC E2E coverage for config, auth/credentials, app_state,
 //! and connectivity controller surfaces.
 
-use crate::rpc_harness::{ok, payload, rpc, schema};
 use crate::env_guard::{env_lock, EnvVarGuard};
 use crate::rpc_auth::ensure_rpc_auth;
+use crate::rpc_harness::{ok, payload, rpc, schema};
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::sync::{
@@ -22,8 +22,8 @@ use tempfile::{tempdir, TempDir};
 use openhuman_core::config::schema::{
     AuditConfig, CapabilityProviderConfig, CapabilityProviderTrustState, DashboardConfig,
     DingTalkConfig, DiscordConfig, EventStreamConfig, IrcConfig, LarkConfig, MatrixConfig,
-    MemoryConfig, ModelHealthConfig, ProxyConfig, ProxyScope, QQConfig, ResourceLimitsConfig, SandboxConfig,
-    SecurityConfig, SlackConfig, TelegramConfig, WebhookConfig, WhatsAppConfig,
+    MemoryConfig, ModelHealthConfig, ProxyConfig, ProxyScope, QQConfig, ResourceLimitsConfig,
+    SandboxConfig, SecurityConfig, SlackConfig, TelegramConfig, WebhookConfig, WhatsAppConfig,
 };
 use openhuman_core::config::{
     clear_active_user, default_projects_dir, pre_login_user_dir, read_active_user_id,

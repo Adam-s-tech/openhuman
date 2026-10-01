@@ -20,14 +20,14 @@ use openhuman_core::config::schema::cloud_providers::{
     AuthStyle as CloudAuthStyle, CloudProviderCreds,
 };
 use openhuman_core::config::Config;
-use openhuman_core::security::credentials::{
-    AuthService, APP_SESSION_PROVIDER, DEFAULT_AUTH_PROFILE_NAME,
-};
 use openhuman_core::inference::host_runtime::LocalAiService;
 use openhuman_core::inference::provider::factory::{
     auth_key_for_slug, create_chat_model_from_string_with_model_id, provider_for_role,
 };
 use openhuman_core::inference::provider::list_configured_models;
+use openhuman_core::security::credentials::{
+    AuthService, APP_SESSION_PROVIDER, DEFAULT_AUTH_PROFILE_NAME,
+};
 
 #[derive(Clone, Default)]
 struct MockState {
@@ -45,7 +45,7 @@ fn __shared_env_lock() -> std::sync::MutexGuard<'static, ()> {
         .unwrap_or_else(|poisoned| poisoned.into_inner())
 }
 
- #[tokio::test]
+#[tokio::test]
 async fn provider_factory_and_model_listing_cover_cloud_local_and_invalid_shapes() {
     let _env_lock = __shared_env_lock();
     let (base, _state) = serve_mock().await;
@@ -139,32 +139,27 @@ async fn provider_factory_and_model_listing_cover_cloud_local_and_invalid_shapes
     assert_eq!(provider_for_role("chat", &config), "custom:demo-chat@0.4");
     // #6109: an unset route no longer borrows a sibling's BYOK provider; with no
     // `primary_cloud` configured it falls through to the managed backend.
-    assert_eq!(
-        provider_for_role("reasoning", &config),
-        "openhuman"
-    );
+    assert_eq!(provider_for_role("reasoning", &config), "openhuman");
 
     let (_provider, model) =
         create_chat_model_from_string_with_model_id("chat", "custom:demo-chat@0.4", &config, 0.7)
             .expect("cloud model");
     assert_eq!(model, "demo-chat");
 
-    let (_local_provider, local_model) =
-        create_chat_model_from_string_with_model_id(
-            "chat",
-            "ollama:gemma3:1b-it-qat@0.1",
-            &config,
-            0.7,
-        )
-        .expect("ollama model");
+    let (_local_provider, local_model) = create_chat_model_from_string_with_model_id(
+        "chat",
+        "ollama:gemma3:1b-it-qat@0.1",
+        &config,
+        0.7,
+    )
+    .expect("ollama model");
     assert_eq!(local_model, "gemma3:1b-it-qat");
 
-    let empty_model = match create_chat_model_from_string_with_model_id(
-        "chat", "ollama:", &config, 0.7,
-    ) {
-        Ok(_) => panic!("expected empty model error"),
-        Err(err) => err,
-    };
+    let empty_model =
+        match create_chat_model_from_string_with_model_id("chat", "ollama:", &config, 0.7) {
+            Ok(_) => panic!("expected empty model error"),
+            Err(err) => err,
+        };
     assert!(empty_model.to_string().contains("empty model"));
 
     let listed = list_configured_models("custom")
