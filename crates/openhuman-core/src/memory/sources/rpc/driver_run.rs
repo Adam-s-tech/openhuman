@@ -21,7 +21,11 @@ use crate::memory::sources::types::MemorySourceEntry;
 
 /// The trigger a user-started driver run reports under — the word the engine's
 /// `sync_source` used for the Sync button.
-const TRIGGER: &str = "manual";
+pub(in crate::memory::sources) const MANUAL: &str = "manual";
+
+/// The trigger a scheduled driver run reports under — the word the periodic
+/// Composio loop uses for its runs.
+pub(in crate::memory::sources) const PERIODIC: &str = "periodic";
 
 /// The scope a history row names for `entry`: the rule the engine's periodic
 /// writer applies (URL, then toolkit, then the id), so a source's manual and
@@ -34,15 +38,16 @@ pub(super) fn history_scope(entry: &MemorySourceEntry) -> String {
         .unwrap_or_else(|| entry.id.clone())
 }
 
-/// The stage event for one driver-backed source.
+/// The stage event for one driver-backed source, under `trigger`.
 pub(super) fn stage_event(
+    trigger: &str,
     source_id: &str,
     kind: &str,
     stage: &str,
     detail: Option<String>,
 ) -> DomainEvent {
     DomainEvent::MemorySyncStageChanged {
-        trigger: TRIGGER.to_string(),
+        trigger: trigger.to_string(),
         stage: stage.to_string(),
         provider: Some(kind.to_string()),
         // The row id here too, as the engine's `sync_source` sent it: the app
@@ -54,12 +59,16 @@ pub(super) fn stage_event(
     }
 }
 
-/// A stage publisher for one source, on the process bus.
-pub(super) fn bus_stage_publisher(source_id: &str, kind: &str) -> impl Fn(&str, Option<String>) {
+/// A stage publisher for one source, on the process bus, under `trigger`.
+pub(in crate::memory::sources) fn bus_stage_publisher(
+    trigger: &'static str,
+    source_id: &str,
+    kind: &str,
+) -> impl Fn(&str, Option<String>) {
     let source_id = source_id.to_string();
     let kind = kind.to_string();
     move |stage, detail| {
-        crate::core::bus::BUS.publish(stage_event(&source_id, &kind, stage, detail));
+        crate::core::bus::BUS.publish(stage_event(trigger, &source_id, &kind, stage, detail));
     }
 }
 
@@ -73,7 +82,7 @@ pub(super) fn bus_stage_publisher(source_id: &str, kind: &str) -> impl Fn(&str, 
 /// The row is written before the terminal stage is published, on purpose: the
 /// history panel refetches when that stage arrives, and a row written after it
 /// would miss that read.
-pub(super) async fn run_recorded<Run, Fut, Describe, Publish>(
+pub(in crate::memory::sources) async fn run_recorded<Run, Fut, Describe, Publish>(
     config: &Config,
     source_id: &str,
     entry: Option<&MemorySourceEntry>,

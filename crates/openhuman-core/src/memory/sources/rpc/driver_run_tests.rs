@@ -196,6 +196,7 @@ fn the_history_scope_prefers_the_url_then_the_toolkit_then_the_id() {
 #[test]
 fn the_stage_event_names_the_source_for_the_row_indicator() {
     match stage_event(
+        MANUAL,
         "src_ev",
         "folder",
         "completed",
