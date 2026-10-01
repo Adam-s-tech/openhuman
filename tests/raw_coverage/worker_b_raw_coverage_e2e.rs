@@ -488,7 +488,10 @@ async fn inference_provider_success_paths_use_mock_models_and_chat() {
 #[tokio::test]
 async fn tools_web_answer_uses_managed_gemini_grounding_and_returns_citations() {
     if std::env::var_os("TINYSEARCH_TEST_MODULE").is_none() {
-        eprintln!("skipping: TINYSEARCH_TEST_MODULE is not set");
+        eprintln!(
+            "SKIPPED (not run, not asserted): TINYSEARCH_TEST_MODULE is not set. Build vendor/tinysearch \
+             and export TINYSEARCH_TEST_MODULE=<path to libtinysearch>, or use scripts/test-rust-with-mock.sh"
+        );
         return;
     }
     let _lock = env_lock();
@@ -559,7 +562,10 @@ async fn tools_web_search_success_path_uses_backend_session_and_shapes_results()
     // The search RPC runs through the TinySearch module; CI and
     // scripts/test-rust-with-mock.sh build it and export its path.
     if std::env::var_os("TINYSEARCH_TEST_MODULE").is_none() {
-        eprintln!("skipping: TINYSEARCH_TEST_MODULE is not set");
+        eprintln!(
+            "SKIPPED (not run, not asserted): TINYSEARCH_TEST_MODULE is not set. Build vendor/tinysearch \
+             and export TINYSEARCH_TEST_MODULE=<path to libtinysearch>, or use scripts/test-rust-with-mock.sh"
+        );
         return;
     }
     let _lock = env_lock();

@@ -40,6 +40,11 @@ async fn off_profile_is_an_exact_pass_through_without_loading_the_module() {
 #[tokio::test]
 async fn the_module_calls_back_for_a_summary_written_for_the_focus() {
     if std::env::var_os("TINYJUICE_TEST_MODULE").is_none() {
+        eprintln!(
+            "SKIPPED (not run, not asserted): TINYJUICE_TEST_MODULE is not set. Build \
+             vendor/tinyjuice and export TINYJUICE_TEST_MODULE=<path to libtinyjuice_module>, \
+             or use scripts/test-rust-with-mock.sh"
+        );
         return;
     }
     let seen = std::sync::Arc::new(std::sync::Mutex::new(None::<types::GenerateRequest>));
