@@ -78,7 +78,7 @@ fn no_proxy_entries_travel_with_the_proxy_only() {
     let config = with_proxy(with, || module_transport(HTTPS_BASE)).unwrap();
     assert_eq!(
         config.no_proxy,
-        ["10.0.0.0/8", ".internal", "localhost"],
+        [".internal", "10.0.0.0/8", "localhost"],
         "normalised: split, trimmed, sorted"
     );
 
