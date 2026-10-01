@@ -54,6 +54,7 @@ pub fn build_media_tools(root_config: &Config, action_dir: &Path) -> Vec<Box<dyn
         generators,
         action_dir,
         &root_config.workspace_dir,
+        &crate::config::default_files_dir(),
         WaitPolicy::new(VIDEO_POLL_INTERVAL, VIDEO_WAIT_BUDGET),
     )
 }
@@ -65,6 +66,7 @@ pub fn media_tools_from(
     generators: MediaGenerators,
     action_dir: &Path,
     workspace_dir: &Path,
+    files_dir: &Path,
     video_wait: WaitPolicy,
 ) -> Vec<Box<dyn Tool>> {
     let MediaGenerators { image, video } = generators;
@@ -79,6 +81,7 @@ pub fn media_tools_from(
                 .with_category(ToolCategory::Workflow),
             ArtifactKind::Image,
             workspace_dir.to_path_buf(),
+            files_dir.to_path_buf(),
         )),
         Box::new(MediaArtifactTool::new(
             GenerateVideoTool::new(Arc::clone(&video), output)
@@ -89,6 +92,7 @@ pub fn media_tools_from(
                 .with_wait_policy(video_wait),
             ArtifactKind::Video,
             workspace_dir.to_path_buf(),
+            files_dir.to_path_buf(),
         )),
         Box::new(MediaListModelsTool { image, video }),
     ];

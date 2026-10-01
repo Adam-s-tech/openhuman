@@ -91,6 +91,17 @@ pub fn default_projects_dir() -> PathBuf {
         .join("projects")
 }
 
+/// Name of the visible folder, under the projects home, that holds the files
+/// the agent delivers (decks, documents, generated media) — see #5505.
+pub const FILES_DIRNAME: &str = "Files";
+
+/// Where agent deliverables are written by default: `~/OpenHuman/projects/Files`.
+/// Only the bytes live here; each artifact's metadata stays in the hidden,
+/// per-account `<workspace_dir>/artifacts/<id>/`.
+pub fn default_files_dir() -> PathBuf {
+    default_projects_dir().join(FILES_DIRNAME)
+}
+
 /// The `OPENHUMAN_ACTION_DIR` env override, when set to a non-empty value.
 ///
 /// Returns `None` when the variable is unset or blank (a common shape from
