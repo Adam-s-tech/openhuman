@@ -628,3 +628,30 @@ fn timeout_bound_tag_separates_the_two_harness_ceilings() {
         "a non-timeout error must not carry a timeout bound"
     );
 }
+
+/// The hosted path sanitizes the harness's timeout text, so the bound reaches
+/// the Sentry tag through the typed `HostedError::timeout_bound` field. The
+/// user-facing class must stay `turn_timeout` for both bounds.
+#[test]
+fn hosted_timeout_bound_reaches_the_sentry_tag_and_keeps_the_user_class() {
+    use tinyagents_harness::runtime::{HostedError, HostedErrorKind, TimeoutBound};
+
+    for (bound, tag) in [
+        (TimeoutBound::PerModelCall, "per_model_call"),
+        (TimeoutBound::Run, "run_remaining"),
+    ] {
+        let hosted = HostedError {
+            kind: HostedErrorKind::Timeout,
+            message: "hosted agent invocation timed out".to_string(),
+            timeout_bound: Some(bound),
+            run: None,
+        };
+        let err = crate::agent::tinyagents::hosted_error::run_error_from_hosted(hosted);
+        let flattened = format!("run_chat_task failed error=tinyagents harness run failed: {err}");
+        assert_eq!(super::super::ops::timeout_bound_tag(&flattened), tag);
+        assert_eq!(
+            super::super::web_errors::classify_inference_error(&flattened).error_type,
+            "turn_timeout"
+        );
+    }
+}
