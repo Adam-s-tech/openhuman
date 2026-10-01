@@ -143,6 +143,22 @@ pub(crate) async fn parse_config_with_recovery(
     config_path: &Path,
     contents: &str,
 ) -> (Config, bool) {
+    let (config, recovered) = Box::pin(parse_config_boxed(config_path, contents)).await;
+    (*config, recovered)
+}
+
+/// A freshly defaulted [`Config`] on the heap. Building it in a sync frame of
+/// its own keeps the (large, in an unoptimised build) temporaries off the
+/// async callers' poll frames (#6379).
+#[inline(never)]
+fn default_config_boxed() -> Box<Config> {
+    Box::new(Config::default())
+}
+
+/// [`parse_config_with_recovery`] with the config kept behind a `Box`, so the
+/// async chain that threads it through (load, recover, migrate, save) moves a
+/// pointer instead of an ~8 KB value per hop.
+async fn parse_config_boxed(config_path: &Path, contents: &str) -> (Box<Config>, bool) {
     let parse_err = match parse_toml_off_worker(contents.to_string()).await {
         Ok(config) => {
             tracing::debug!(
@@ -198,11 +214,11 @@ pub(crate) async fn parse_config_with_recovery(
         );
     }
 
-    (Config::default(), true)
+    (default_config_boxed(), true)
 }
 
-async fn parse_toml_off_worker(contents: String) -> Result<Config, String> {
-    match tokio::task::spawn_blocking(move || toml::from_str::<Config>(&contents)).await {
+async fn parse_toml_off_worker(contents: String) -> Result<Box<Config>, String> {
+    match tokio::task::spawn_blocking(move || toml::from_str::<Config>(&contents).map(Box::new)).await {
         Ok(Ok(config)) => Ok(config),
         Ok(Err(parse_err)) => Err(parse_err.to_string()),
         Err(join_err) => Err(format!("blocking-pool parse join failed: {join_err}")),
@@ -423,9 +439,9 @@ impl Config {
         // their `Option::None` / `vec![]` / `false` values) instead of
         // the richer `Default` impl (issue #5167).
         let (mut config, config_was_corrupted) = if read_was_recovered && contents.is_empty() {
-            (Config::default(), true)
+            (default_config_boxed(), true)
         } else {
-            Box::pin(parse_config_with_recovery(&config_path, &contents)).await
+            Box::pin(parse_config_boxed(&config_path, &contents)).await
         };
 
         // If the read itself was recovered (non-UTF-8 file renamed, backup
