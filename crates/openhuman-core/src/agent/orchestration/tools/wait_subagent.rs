@@ -9,7 +9,9 @@ use std::time::Duration;
 
 use crate::agent::harness::fork_context::ParentExecutionContext;
 use crate::agent::orchestration::running_subagents;
-use tinyagents_orchestration::subagent::{DetachedSubagentStatus, WaitError, WaitOutcome};
+use tinyagents_orchestration::subagent::{
+    DetachedSubagentStatus, SubagentResumeRef, WaitError, WaitOutcome,
+};
 use async_trait::async_trait;
 use serde_json::json;
 use std::sync::Arc;
@@ -366,7 +368,7 @@ impl WaitSubagentTool {
 
 /// Render a timeout/running wait response with a structured status payload.
 fn format_running_wait_message(
-    reference: Option<&running_subagents::SubagentResumeRef>,
+    reference: Option<&SubagentResumeRef>,
     task_id: &str,
     timeout_secs: u64,
 ) -> String {
@@ -387,7 +389,7 @@ fn format_running_wait_message(
 
 /// Build the machine-readable wait status block returned to the orchestrator.
 fn wait_status_payload(
-    reference: Option<&running_subagents::SubagentResumeRef>,
+    reference: Option<&SubagentResumeRef>,
     task_id: &str,
     status: &str,
     iterations: Option<usize>,

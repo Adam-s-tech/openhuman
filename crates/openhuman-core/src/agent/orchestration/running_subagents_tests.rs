@@ -1,7 +1,7 @@
-use super::cancel::FinishedOutcome;
+use tinyagents_orchestration::subagent::FinishedOutcome;
 use super::*;
 use crate::agent::orchestration::fleet_tools::FleetToolSet;
-use crate::agent::orchestration::running_subagents::registry::DETACHED_LEDGER_TIMEOUT_MS;
+use tinyagents_orchestration::subagent::{DetachedSubagentStatus, WaitError, DETACHED_LEDGER_TIMEOUT_MS};
 use crate::agent::orchestration::running_subagents::resolve::resume_ref_for_task;
 use crate::agent::orchestration::running_subagents::resolve::task_id_for_session;
 use crate::agent::orchestration::running_subagents::roster::snapshot_for_parent;

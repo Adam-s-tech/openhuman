@@ -163,12 +163,12 @@ impl SteerSubagentTool {
                 &parent.workspace_dir,
             ) {
                 Ok(id) => id,
-                Err(running_subagents::WaitError::Unknown) => {
+                Err(tinyagents_orchestration::subagent::WaitError::Unknown) => {
                     return Ok(ToolResult::error(format!(
                         "steer_subagent: no running sub-agent with subagent_session_id `{subagent_session_id}`."
                     )));
                 }
-                Err(running_subagents::WaitError::NotOwned) => {
+                Err(tinyagents_orchestration::subagent::WaitError::NotOwned) => {
                     return Ok(ToolResult::error(format!(
                         "steer_subagent: sub-agent session `{subagent_session_id}` was not started by this agent."
                     )));

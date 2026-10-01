@@ -4,7 +4,8 @@
 //! the bytes; they must not change when the generic logic moves upstream.
 
 use super::*;
-use crate::agent::orchestration::running_subagents::cancel::FinishedOutcome;
+use tinyagents_orchestration::subagent::WaitError;
+use tinyagents_orchestration::subagent::FinishedOutcome;
 use crate::agent::orchestration::running_subagents::roster::snapshot_for_parent;
 use crate::agent::orchestration::running_subagents::task_ledger::task_store_for_workspace;
 use tinyagents_graph::orchestration::{
