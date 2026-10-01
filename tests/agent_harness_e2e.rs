@@ -2283,7 +2283,6 @@ mod streaming_support {
 
     impl ScriptedProvider {
         fn pop_response(&self) -> tinyinference_llm::Result<ModelResponse> {
-            eprintln!("DBG pop_response remaining={}", self.responses.lock().unwrap().len());
             self.responses
                 .lock()
                 .unwrap()
@@ -2312,10 +2311,19 @@ mod streaming_support {
             _state: &(),
             _request: ModelRequest,
         ) -> tinyinference_llm::Result<ModelStream> {
-            eprintln!("DBG stream msgs={}", _request.messages.len());
             let response = self.pop_response()?;
             let mut items = vec![ModelStreamItem::Started];
-            items.extend(self.stream_events.iter().cloned());
+            // A real provider streams tool-call fragments only for a response
+            // that carries tool calls. The hosted harness treats those
+            // fragments as authoritative for dispatch (the terminal response's
+            // tool calls are rebuilt from them: `invoke_model_streaming_once`
+            // in tinyagents-harness `agent_loop/model_call.rs`), so replaying
+            // them ahead of a text-only final answer describes a stream no
+            // provider produces and re-dispatches the call on every
+            // iteration until the repeat guard stops the turn.
+            if !response.message.tool_calls.is_empty() {
+                items.extend(self.stream_events.iter().cloned());
+            }
             items.push(ModelStreamItem::Completed(response));
             Ok(ModelStream::new(Box::pin(futures::stream::iter(items))))
         }
