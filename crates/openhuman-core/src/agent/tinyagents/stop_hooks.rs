@@ -30,7 +30,7 @@ use tinyinference_llm::model::ModelResponse;
 
 use crate::agent::cost::TurnCost;
 use crate::agent::stop_hooks::{StopDecision, StopHook, TurnState};
-use crate::inference::provider::UsageInfo;
+use crate::inference::provider::BilledUsage;
 
 /// Fires openhuman [`StopHook`]s after each model call and pauses the run when
 /// any hook votes to stop.
@@ -101,15 +101,10 @@ where
             if let Some(usage) = &response.usage {
                 cost.add_call(
                     &self.model,
-                    &UsageInfo {
-                        input_tokens: usage.input_tokens,
-                        output_tokens: usage.output_tokens,
-                        context_window: 0,
-                        cached_input_tokens: usage.cache_read_tokens,
-                        cache_creation_tokens: usage.cache_creation_tokens,
-                        reasoning_tokens: usage.reasoning_tokens,
-                        charged_amount_usd: 0.0,
-                    },
+                    &BilledUsage::from_counts(usage.input_tokens, usage.output_tokens)
+                        .with_cached_input_tokens(usage.cache_read_tokens)
+                        .with_cache_creation_tokens(usage.cache_creation_tokens)
+                        .with_reasoning_tokens(usage.reasoning_tokens),
                 );
             }
             cost.clone()

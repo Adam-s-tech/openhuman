@@ -19,7 +19,7 @@ use tinyflows::error::{EngineError, Result};
 use super::*;
 use crate::agent::messages::ChatMessage;
 use crate::config::Config;
-use crate::inference::provider::{is_raw_passthrough_model, UsageInfo};
+use crate::inference::provider::{is_raw_passthrough_model, BilledUsage};
 use tinyflows::nodes::integration::agent_prompt;
 
 /// [`agent_prompt::build_completion_messages`] mapped onto the host's
@@ -36,17 +36,17 @@ pub(crate) fn build_completion_messages(request: &Value) -> Vec<ChatMessage> {
         .collect()
 }
 
-/// Maps a `UsageInfo` (not `Serialize`) into a JSON value field-by-field, so
+/// Maps a `BilledUsage` (not `Serialize`) into a JSON value field-by-field, so
 /// [`OpenHumanLlm::complete`] can surface it in its response `Value` without
 /// requiring an upstream `Serialize` impl change.
-pub(crate) fn usage_to_json(usage: &Option<UsageInfo>) -> Value {
+pub(crate) fn usage_to_json(usage: &Option<BilledUsage>) -> Value {
     match usage {
         None => Value::Null,
         Some(u) => json!({
             "input_tokens": u.input_tokens,
             "output_tokens": u.output_tokens,
-            "context_window": u.context_window,
-            "cached_input_tokens": u.cached_input_tokens,
+            "context_window": u.context_window(),
+            "cached_input_tokens": u.cached_input_tokens(),
             "cache_creation_tokens": u.cache_creation_tokens,
             "reasoning_tokens": u.reasoning_tokens,
             "charged_amount_usd": u.charged_amount_usd,
@@ -94,3 +94,7 @@ pub(crate) fn resolve_completion_model(node_model: Option<&str>, resolved_model:
         _ => resolved_model,
     }
 }
+
+#[cfg(test)]
+#[path = "prompt_tests.rs"]
+mod tests;

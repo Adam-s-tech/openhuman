@@ -396,7 +396,7 @@ pub(in super::super) async fn run_subagent_via_graph(
                     // transcript meta / cost dashboard.
                     usage.input_tokens += u.input_tokens;
                     usage.output_tokens += u.output_tokens;
-                    usage.cached_input_tokens += u.cached_input_tokens;
+                    usage.cached_input_tokens += u.cached_input_tokens();
                     let call_cost =
                         if u.charged_amount_usd.is_finite() && u.charged_amount_usd > 0.0 {
                             u.charged_amount_usd
@@ -405,27 +405,27 @@ pub(in super::super) async fn run_subagent_via_graph(
                                 model,
                                 u.input_tokens,
                                 u.output_tokens,
-                                u.cached_input_tokens,
+                                u.cached_input_tokens(),
                             )
                         };
                     usage.charged_amount_usd += call_cost;
                     crate::platform::cost::record_provider_usage(
                         model,
-                        &crate::inference::provider::UsageInfo {
-                            input_tokens: u.input_tokens,
-                            output_tokens: u.output_tokens,
-                            context_window: u.context_window,
-                            cached_input_tokens: u.cached_input_tokens,
-                            cache_creation_tokens: u.cache_creation_tokens,
-                            reasoning_tokens: u.reasoning_tokens,
-                            charged_amount_usd: call_cost,
-                        },
+                        &crate::inference::provider::BilledUsage::from_counts(
+                            u.input_tokens,
+                            u.output_tokens,
+                        )
+                        .with_context_window(u.context_window())
+                        .with_cached_input_tokens(u.cached_input_tokens())
+                        .with_cache_creation_tokens(u.cache_creation_tokens)
+                        .with_reasoning_tokens(u.reasoning_tokens)
+                        .with_charged_usd(call_cost),
                     );
                     tracing::debug!(
                         agent_id,
                         input_tokens = u.input_tokens,
                         output_tokens = u.output_tokens,
-                        cached_input_tokens = u.cached_input_tokens,
+                        cached_input_tokens = u.cached_input_tokens(),
                         call_cost,
                         "[subagent] cap-hit summary call folded + priced + recorded into cost tracker (#4467, item 2)"
                     );
