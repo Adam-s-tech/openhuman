@@ -9,6 +9,7 @@
 
 use super::*;
 use crate::agent::triage::evaluator::{classify_error, ArmError};
+use crate::web_chat::WebChannelEvent;
 use regex::Regex;
 
 /// `(case, input, error_type, source, retryable, retry_after_ms, provider,
