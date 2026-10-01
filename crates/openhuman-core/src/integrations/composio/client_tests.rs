@@ -1,5 +1,6 @@
 use super::*;
 use crate::config::Config;
+use crate::integrations::composio::module_client::module_guard;
 
 use axum::{extract::State, http::StatusCode, routing::get, Json, Router};
 use serde_json::json;
@@ -356,4 +357,210 @@ async fn pricing_for_config_short_circuits_in_direct_mode() {
     assert!(pricing.integrations.google_places.is_none());
     assert!(pricing.integrations.parallel.is_none());
     assert!(pricing.integrations.tinyfish.is_none());
+}
+
+// ── failure messages stay byte-identical to the pre-module client ─────────
+
+#[tokio::test]
+async fn http_failures_keep_their_user_facing_messages() {
+    let _module = module_guard().await;
+    let tmp = tempfile::tempdir().unwrap();
+    let config = module_test_config(&tmp);
+    let app = Router::new()
+        .route(
+            "/connected_accounts",
+            get(|| async {
+                (
+                    StatusCode::UNAUTHORIZED,
+                    Json(json!({"error": {"message": "Invalid API key"}})),
+                )
+            }),
+        )
+        .route(
+            "/tools",
+            get(|| async { (StatusCode::INTERNAL_SERVER_ERROR, "") }),
+        );
+    let tool = direct_tool_for_mock_with_key(
+        start_mock_backend(app).await,
+        "ck_test_direct_message_fixture",
+    );
+    let _auth_guard = DirectAuthFailureGuard::for_tool(&tool);
+
+    let err = direct_list_connections(&config, &tool).await.unwrap_err();
+    assert_eq!(
+        format!("{err:#}"),
+        "Composio v3 connected_accounts failed: HTTP 401: Invalid API key"
+    );
+    let err = direct_list_tools(&config, &tool, &[], None)
+        .await
+        .unwrap_err();
+    assert_eq!(
+        format!("{err:#}"),
+        "Composio v3 list_tool_schemas: HTTP 500"
+    );
+}
+
+#[tokio::test]
+async fn connections_come_back_without_route_lifted_identity() {
+    let _module = module_guard().await;
+    let tmp = tempfile::tempdir().unwrap();
+    let config = module_test_config(&tmp);
+    let app = Router::new().route(
+        "/connected_accounts",
+        get(|| async {
+            Json(json!({"items": [
+                {"id": " ca_1 ", "toolkit": "gmail", "status": "ACTIVE", "email": "a@b.c"},
+                {"id": "  ", "toolkit": "slack", "status": "ACTIVE"}
+            ]}))
+        }),
+    );
+    let tool = direct_tool_for_mock_with_key(start_mock_backend(app).await, "ck_test_identity");
+    let _auth_guard = DirectAuthFailureGuard::for_tool(&tool);
+    let connections = direct_list_connections(&config, &tool)
+        .await
+        .unwrap()
+        .connections;
+    assert_eq!(connections.len(), 1, "blank id dropped");
+    assert_eq!(connections[0].id, "ca_1");
+    // Identity is the host's to enrich from cached profiles.
+    assert!(connections[0].account_email.is_none());
+}
+
+#[tokio::test]
+async fn direct_reads_do_not_forward_credentials_across_redirects() {
+    let _module = module_guard().await;
+    let tmp = tempfile::tempdir().unwrap();
+    let config = module_test_config(&tmp);
+    let redirected_request_seen = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let observed = redirected_request_seen.clone();
+    let destination = start_mock_backend(Router::new().route(
+        "/tools",
+        get(move || {
+            let observed = observed.clone();
+            async move {
+                observed.store(true, Ordering::SeqCst);
+                Json(json!({"items": []}))
+            }
+        }),
+    ))
+    .await;
+    let redirect = format!("{destination}/tools");
+    let source = start_mock_backend(Router::new().route(
+        "/tools",
+        get(move || {
+            let redirect = redirect.clone();
+            async move { axum::response::Redirect::temporary(&redirect) }
+        }),
+    ))
+    .await;
+
+    let tool = direct_tool_for_mock_with_key(source, "ck_secret_value");
+    assert!(direct_list_tools(&config, &tool, &[], None).await.is_err());
+    assert!(!redirected_request_seen.load(Ordering::SeqCst));
+}
+
+// ── the host's proxy policy reaches the module ────────────────────────────
+
+/// A CONNECT proxy on loopback that tunnels to whatever it is asked for and
+/// reports each CONNECT request line it saw.
+fn connect_proxy() -> (String, std::sync::mpsc::Receiver<String>) {
+    use std::io::{BufRead, BufReader, Write};
+    use std::net::{TcpListener, TcpStream};
+
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = listener.local_addr().unwrap().port();
+    let (sender, receiver) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        for stream in listener.incoming() {
+            let Ok(mut client) = stream else { return };
+            let mut reader = BufReader::new(client.try_clone().unwrap());
+            let mut line = String::new();
+            if reader.read_line(&mut line).unwrap_or(0) == 0 {
+                continue;
+            }
+            loop {
+                let mut header = String::new();
+                if reader.read_line(&mut header).unwrap_or(0) == 0 || header == "\r\n" {
+                    break;
+                }
+            }
+            let _ = sender.send(line.clone());
+            let Some(target) = line
+                .strip_prefix("CONNECT ")
+                .and_then(|rest| rest.split(' ').next())
+            else {
+                continue;
+            };
+            let Ok(upstream) = TcpStream::connect(target) else {
+                let _ = client.write_all(b"HTTP/1.1 502 Bad Gateway\r\n\r\n");
+                continue;
+            };
+            let _ = client.write_all(b"HTTP/1.1 200 Connection established\r\n\r\n");
+            let (mut client_read, mut upstream_write) =
+                (client.try_clone().unwrap(), upstream.try_clone().unwrap());
+            std::thread::spawn(move || {
+                let _ = std::io::copy(&mut client_read, &mut upstream_write);
+            });
+            let mut upstream_read = upstream;
+            let _ = std::io::copy(&mut upstream_read, &mut client);
+        }
+    });
+    (format!("http://127.0.0.1:{port}"), receiver)
+}
+
+#[tokio::test]
+async fn direct_reads_go_through_the_hosts_runtime_proxy() {
+    use crate::config::schema::{ProxyConfig, ProxyScope};
+    use crate::config::{runtime_proxy_config, set_runtime_proxy_config};
+
+    let _module = module_guard().await;
+    let _env = crate::config::TEST_ENV_LOCK
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
+    let tmp = tempfile::tempdir().unwrap();
+    let config = module_test_config(&tmp);
+    let (proxy, proxied) = connect_proxy();
+    let hits = Arc::new(AtomicUsize::new(0));
+    let app = Router::new()
+        .route(
+            "/connected_accounts",
+            get(|State(hits): State<Arc<AtomicUsize>>| async move {
+                hits.fetch_add(1, Ordering::SeqCst);
+                Json(json!({"items": [{"id": "ca_p", "toolkit": "gmail", "status": "ACTIVE"}]}))
+            }),
+        )
+        .with_state(hits.clone());
+    let base = start_mock_backend(app).await;
+    let tool = direct_tool_for_mock_with_key(base.clone(), "ck_test_proxy");
+    let _auth_guard = DirectAuthFailureGuard::for_tool(&tool);
+
+    let previous = runtime_proxy_config();
+    set_runtime_proxy_config(ProxyConfig {
+        enabled: true,
+        http_proxy: Some(proxy.clone()),
+        scope: ProxyScope::OpenHuman,
+        ..ProxyConfig::default()
+    });
+    let through = direct_list_connections(&config, &tool).await;
+    // A destination on the no-proxy list is called directly even with a proxy.
+    set_runtime_proxy_config(ProxyConfig {
+        enabled: true,
+        http_proxy: Some(proxy),
+        no_proxy: vec!["127.0.0.1".into()],
+        scope: ProxyScope::OpenHuman,
+        ..ProxyConfig::default()
+    });
+    let bypassed_proxied_before = proxied.try_iter().count();
+    let bypassed = direct_list_connections(&config, &tool).await;
+    let bypassed_proxied = proxied.try_iter().count();
+    set_runtime_proxy_config(previous);
+
+    assert_eq!(through.unwrap().connections[0].id, "ca_p");
+    assert_eq!(
+        bypassed_proxied_before, 1,
+        "the first read must have been tunnelled by the proxy"
+    );
+    assert!(bypassed.is_ok());
+    assert_eq!(bypassed_proxied, 0, "a no_proxy destination skips the proxy");
+    assert_eq!(hits.load(Ordering::SeqCst), 2, "both reads reached Composio");
 }
