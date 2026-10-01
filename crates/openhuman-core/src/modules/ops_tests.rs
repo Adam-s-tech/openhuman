@@ -14,7 +14,7 @@ fn test_bundled_record() -> &'static crate::modules::types::ModuleRecord {
     use crate::modules::types::{LoadPolicy, ModuleRecord, PlatformAsset};
 
     let host_key = Box::leak(
-        crate::modules::platform::host_candidates()[0]
+        tinybus::module::platform::host_candidates()[0]
             .clone()
             .into_boxed_str(),
     );

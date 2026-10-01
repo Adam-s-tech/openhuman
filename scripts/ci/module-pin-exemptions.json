@@ -45,8 +45,8 @@
     {
       "id": "tinybox",
       "submodule": "vendor/tinybox",
-      "expect": "v0.1.8-7-ga1b5bf0a",
-      "reason": "The pin is v0.1.8 plus only pure-library additions: the new crate tinybox-jail (tinyhumansai/tinybox#12) and the new tinybox-core `shell::scan` module (tinyhumansai/tinybox#13), stacked on it (branch oh-w2-tinybox-on-v0.1.8), which the core links as Rust path dependencies. No module, contract or bus source changes relative to v0.1.8, so the registry's v0.1.8 artifact still matches the contract compiled here. Remove when tinybox#12 and #13 ship in a release and both pins move to it."
+      "expect": "v0.1.9-3-g94357795",
+      "reason": "The submodule pin is v0.1.9 (already ahead of the registry's v0.1.8 record, which this change does not touch) plus only pure-library additions to tinybox-core: the `shell::classify`, `shell::executor` and `shell::env_guard` modules (tinyhumansai/tinybox#16, branch w4-tinybox-classify), which the core links as a Rust path dependency for `security::policy`. No module, contract or bus source changes relative to v0.1.9, so the registry's v0.1.8 artifact still matches the contract compiled here. Remove when tinybox#16 ships in a release and both pins move to it."
     },
     {
       "id": "tinyvoice",
@@ -57,14 +57,20 @@
     {
       "id": "tinycomputer",
       "submodule": "vendor/tinycomputer",
-      "expect": "v0.7.0-1-g8416add3",
-      "reason": "The pin is v0.7.0 plus only the new pure-library crate tinycomputer-accessibility (tinycomputer#63, branch oh-accessibility-on-v0.7.0), which the core links as a Rust path dependency for in-process focus, permission and Globe-key queries. No module, contract or bus source changes relative to v0.7.0, so the registry's v0.7.0 artifact still matches the contract compiled here. Remove when tinycomputer#63 ships in a release and both pins move to it."
+      "expect": "v0.7.0-72-gc2f5adb1",
+      "reason": "The pin is main after tinycomputer#63 (tinycomputer-accessibility, which the core links as a Rust path dependency; 71 commits past v0.7.0) plus only the new off-by-default `paste` feature of tinycomputer-accessibility (tinyhumansai/tinycomputer#65, branch w4-tinycomputer-paste: arboard + enigo clipboard-paste text insertion for voice dictation). No module, contract or bus source changes that the registry's v0.7.0 artifact does not already cover. Remove when tinycomputer#63 and #65 ship in a release and both pins move to it."
     },
     {
-      "id": "tinyconnectors",
-      "submodule": "vendor/tinyconnectors",
-      "expect": "v0.10.4-10-ge69b1226",
-      "reason": "The pin is v0.10.4 plus only pure-library changes to the tinyconnectors crate (tinyhumansai/tinyconnectors branch w4-connectors, also pushed as oh-w4-connectors-on-v0.10.4): execute::apply_calendar_query_defaults and execute::{apply_window_args, filter_response} (moved from the core, called by the host, never by the module), extra classify tests, and a default-on `module` cargo feature that gates the TinyBus adapter so the core can link the crate with default-features = false and no second copy of tinybus. The shipped module build (default features) and its contract, bus and module source are unchanged, so the registry's artifact still matches the contract compiled here. The registry record stays on v0.10.3; v0.10.3..v0.10.4 changes only the version, Cargo.lock and the tinybus pin (same tinybus commit the core compiles). Remove when the tinyconnectors PR ships in a release and both pins move to it."
+      "id": "tinyjuice",
+      "submodule": "vendor/tinyjuice",
+      "expect": "v0.4.0-3-g3261203d",
+      "reason": "The pin is v0.4.0 plus only the new pure-library `host` module of the tinyjuice crate (tinyhumansai/tinyjuice#50, branch w4-tinyjuice-host-seams: summary_focus helpers, the turn-bound MlHost.Generate ticket registry behind the `host` feature, and the retrieve_tool_output tool behind `tinytools`), which the core links as a Rust path dependency. No module, contract or bus source changes relative to v0.4.0, so the registry's v0.4.0 artifact still matches the contract compiled here. Remove when tinyjuice#50 ships in a release and both pins move to it."
+    },
+    {
+      "id": "tinychannels",
+      "submodule": "vendor/tinychannels",
+      "expect": "v0.1.6-1-g5e289427",
+      "reason": "The pin is v0.1.6 (already ahead of the registry's v0.1.5 record, which this change does not touch) plus only the context-window overflow matcher fix in tinychannels-bus (tinyhumansai/tinychannels#42, branch w4-tinychannels-context-overflow), a pure function change with an unchanged signature and no wire/contract type change. The registry's v0.1.5 artifact does not include this library-side fix and the host does not depend on module runtime behaviour for it. Remove when tinychannels#42 ships in a release and both pins move to it."
     }
   ]
 }
