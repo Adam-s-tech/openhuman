@@ -7,7 +7,9 @@ use std::path::{Path, PathBuf};
 
 use tinyagents_harness::ids::TaskId;
 
-use super::registry::{registry, SubagentStatus};
+use tinyagents_orchestration::subagent::FinishedOutcome;
+
+use super::registry::registry;
 use super::resolve::task_id_for_session_in_workspace;
 use super::task_ledger::record_cancelled;
 
@@ -28,23 +30,6 @@ pub(crate) struct CancelledSubagent {
     pub(crate) already_finished: Option<FinishedOutcome>,
 }
 
-/// The terminal outcome of a run that finished before its cancel arrived.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum FinishedOutcome {
-    Completed,
-    Failed,
-}
-
-impl FinishedOutcome {
-    /// Wire name in the `subagent_cancel` answer (`outcome`).
-    pub(crate) fn as_str(self) -> &'static str {
-        match self {
-            Self::Completed => "completed",
-            Self::Failed => "failed",
-        }
-    }
-}
-
 /// Abort and drop the sub-agent with `task_id`, returning its metadata so the
 /// caller can deliver a "cancelled" notice into the parent chat. Returns `None`
 /// if no such sub-agent is registered (already finished, or unknown id).
@@ -55,11 +40,7 @@ impl FinishedOutcome {
 pub(crate) fn cancel_by_task(task_id: &str) -> Option<CancelledSubagent> {
     let cancelled = registry().cancel_trusted(&TaskId::new(task_id)).ok()?;
     // `AwaitingUser` is paused, not finished: cancelling it is a real cancel.
-    let already_finished = match cancelled.status {
-        SubagentStatus::Completed { .. } => Some(FinishedOutcome::Completed),
-        SubagentStatus::Failed { .. } => Some(FinishedOutcome::Failed),
-        SubagentStatus::Running | SubagentStatus::AwaitingUser { .. } => None,
-    };
+    let already_finished = cancelled.status.finished_outcome();
     let metadata = cancelled.metadata;
     if already_finished.is_none() {
         record_cancelled(&metadata.workspace_dir, task_id);
