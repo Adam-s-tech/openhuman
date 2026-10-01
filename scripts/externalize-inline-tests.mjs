@@ -21,7 +21,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const SKIPPED_DIRS = new Set(["tests", "benches", "examples", "target"]);
+const SKIPPED_DIRS = new Set(["tests", "benches", "examples", "target", "docs"]);
 const TEST_FILE_NAMES = new Set(["tests.rs", "test.rs"]);
 const CFG_TEST_ATTR = /^#\[cfg\(.*\btest\b.*\)\]$/;
 const CFG_NOT_TEST = /\bnot\(\s*test\s*\)/;
