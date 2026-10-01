@@ -3552,25 +3552,32 @@ fn use_skill_offers_pack(request: &Value, pack: &str) -> bool {
 }
 
 /// One scripted turn in which the orchestrator hands a request to a specialist
-/// by calling `hand_off` directly.
+/// by calling `hand_off` through the `use_skill` tool pack `pack`.
+///
+/// `setup_skills` is a member of the `skills` pack (#6787: it cost ~270 tokens
+/// on every orchestrator request for a family used a few times a week), so the
+/// orchestrator reaches it as `use_skill { skill: "skills", tool: "setup_skills" }`.
 ///
 /// Three things must hold, all read from the captured model requests:
-/// * the orchestrator's own request advertises `hand_off` (it is not packed) and
-///   no raw `skill_registry_*` tool;
+/// * the orchestrator's own request offers the pack and does not advertise
+///   `hand_off` or any raw `skill_registry_*` tool on the wire;
 /// * the hand-off call returned a result (`tool_result_text` panics on
 ///   `unknown tool`);
 /// * a later request came from the specialist, recognised by a tool only its
 ///   belt carries.
-async fn assert_hand_off_reaches_specialist(
+#[cfg(feature = "skills")]
+async fn assert_packed_hand_off_reaches_specialist(
     stack: &Stack,
     events: &mut tokio::sync::mpsc::UnboundedReceiver<Value>,
     rpc_id: i64,
     client_id: &str,
+    pack: &str,
     hand_off: &str,
     specialist_only_tools: &[&str],
 ) {
     reset_script(vec![
-        tool_call_completion(
+        packed_tool_call_completion(
+            pack,
             hand_off,
             json!({ "prompt": format!("Handle this through {hand_off}"), "blocking": true }),
         ),
@@ -3600,9 +3607,13 @@ async fn assert_hand_off_reaches_specialist(
         .unwrap_or_else(|| panic!("no model request for the `{hand_off}` turn"));
     let belt = advertised_tool_names(orchestrator);
     assert!(
-        belt.iter().any(|name| name == hand_off),
-        "the orchestrator must advertise `{hand_off}` directly, not behind a tool pack; \
-         it advertised {belt:?}"
+        belt.iter().any(|name| name == "use_skill") && use_skill_offers_pack(orchestrator, pack),
+        "the orchestrator must offer the `{pack}` pack through use_skill so it can reach \
+         `{hand_off}`; it advertised {belt:?}"
+    );
+    assert!(
+        !belt.iter().any(|name| name == hand_off),
+        "`{hand_off}` is packed (#6787), not a direct tool on the orchestrator's wire: {belt:?}"
     );
     let raw: Vec<&String> = belt
         .iter()
@@ -3628,20 +3639,21 @@ async fn assert_hand_off_reaches_specialist(
     );
 }
 
-/// Skill installs reach `skill_setup` through its hand-off, called directly;
-/// running an installed skill is the orchestrator's own `run_workflow`, not a
-/// hand-off to a retired `skill_executor` (`run_skill`).
+/// Skill installs reach `skill_setup` through its `setup_skills` hand-off,
+/// which is a member of the `skills` tool pack (#6787) and so is called through
+/// `use_skill`; running an installed skill is the orchestrator's own
+/// `run_workflow`, not a hand-off to a retired `skill_executor` (`run_skill`).
 #[cfg(feature = "skills")]
 #[test]
-fn orchestrator_hands_skill_installs_to_skill_setup_directly() {
+fn orchestrator_hands_skill_installs_to_skill_setup_through_the_skills_pack() {
     run_on_agent_stack(
-        "orchestrator_hands_skill_installs_to_skill_setup_directly",
-        orchestrator_hands_skill_installs_to_skill_setup_directly_inner,
+        "orchestrator_hands_skill_installs_to_skill_setup_through_the_skills_pack",
+        orchestrator_hands_skill_installs_to_skill_setup_through_the_skills_pack_inner,
     );
 }
 
 #[cfg(feature = "skills")]
-async fn orchestrator_hands_skill_installs_to_skill_setup_directly_inner() {
+async fn orchestrator_hands_skill_installs_to_skill_setup_through_the_skills_pack_inner() {
     let _lock = env_lock();
     reset_script(Vec::new());
     let stack = boot_stack().await;
@@ -3650,11 +3662,12 @@ async fn orchestrator_hands_skill_installs_to_skill_setup_directly_inner() {
         stack.rpc_base
     ))
     .await;
-    assert_hand_off_reaches_specialist(
+    assert_packed_hand_off_reaches_specialist(
         &stack,
         &mut events,
         910,
         "harness-skill-handoff",
+        "skills",
         "setup_skills",
         &[
             "skill_registry_install",
