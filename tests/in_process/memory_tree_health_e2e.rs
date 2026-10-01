@@ -24,7 +24,7 @@
 //! cross-method invariant that IS reachable and says so in a comment, rather
 //! than asserting `0 == 0` and calling it coverage.
 
-use crate::memory_rpc::{ok, serve, write_config};
+use crate::memory_rpc::{ensure_memory_seams, ok, serve, write_config};
 use crate::env_guard::EnvVarGuard;
 use crate::env_guard::env_lock;
 use crate::rpc_auth::rpc_token;
@@ -37,27 +37,7 @@ use serde_json::{json, Value};
 use tempfile::tempdir;
 
 
-static MEMORY_SEAMS_INIT: OnceLock<()> = OnceLock::new();
 static TEST_HOME: OnceLock<tempfile::TempDir> = OnceLock::new();
-
-/// The transport-only JSON-RPC router does not create a core runtime context,
-/// so memory-backed routes need their host seams installed explicitly.
-fn ensure_memory_seams() {
-    MEMORY_SEAMS_INIT.get_or_init(|| {
-        std::thread::Builder::new()
-            .name("memory-tree-health-e2e-seams".to_string())
-            .stack_size(8 * 1024 * 1024)
-            .spawn(|| {
-                #[cfg(feature = "modules")]
-                openhuman_core::modules::memory::set_modules_policy(Arc::new(
-                    openhuman_core::config::Config::default(),
-                ));
-            })
-            .expect("spawn memory tree health seam installer")
-            .join()
-            .expect("memory tree health seam installer panicked");
-    });
-}
 
 fn test_home() -> &'static Path {
     TEST_HOME
