@@ -1,19 +1,19 @@
 //! End-to-end tests for `openhuman::sandbox::cwd_jail`.
 //!
-//! Each test goes through the public surface only — `Jail`, `spawn`,
-//! `JailRegistry`, `default_backend` — and (where the platform allows it)
-//! actually exercises the OS sandbox by trying to do something it should
-//! be blocked from doing.
+//! Each test goes through the public surface only (`Jail`, `spawn`) and
+//! actually exercises the OS sandbox by trying to do something it should be
+//! blocked from doing. Registry, backend-selection and builder semantics are
+//! covered by `vendor/tinybox/crates/tinybox-jail` unit tests.
 //!
 //! Platform breakdown:
-//! - **Common** (all OSes): registry CRUD + spawn via `NoopBackend`, jail
-//!   builder semantics. Runs in every CI matrix slot.
 //! - **Linux**: `target_os = "linux"` gate exercises Landlock by spawning
 //!   `/bin/sh` and trying to write outside the jail.
 //! - **macOS**: same shape, exercises Seatbelt via `/usr/bin/touch`.
 //! - **Windows**: AppContainer integration is marked `#[ignore]` until
 //!   the raw-`HANDLE` → `Child` bridge lands (see TODO in
 //!   `crates/openhuman-core/src/cwd_jail/windows.rs`).
+
+#![allow(dead_code, unused_imports)]
 
 use std::fs;
 use std::path::PathBuf;
@@ -25,9 +25,7 @@ use std::process::{Command, Stdio};
     target_os = "windows"
 ))]
 use openhuman_core::sandbox::cwd_jail::spawn;
-use openhuman_core::sandbox::cwd_jail::{
-    default_backend, spawn_with, Jail, JailRegistry, NoopBackend,
-};
+use openhuman_core::sandbox::cwd_jail::Jail;
 
 fn unique_tempdir(tag: &str) -> PathBuf {
     let p = std::env::temp_dir().join(format!(
@@ -215,16 +213,4 @@ fn windows_appcontainer_blocks_write_outside_root() {
     let err = spawn(&jail, cmd).unwrap_err();
     assert_eq!(err.kind(), std::io::ErrorKind::Unsupported);
     fs::remove_dir_all(&root).ok();
-}
-
-// ── Helpers ─────────────────────────────────────────────────────────
-
-fn noop_exit_zero_cmd() -> Command {
-    if cfg!(windows) {
-        let mut c = Command::new("cmd");
-        c.args(["/C", "exit"]);
-        c
-    } else {
-        Command::new("true")
-    }
 }
