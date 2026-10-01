@@ -4,3 +4,4 @@
 {"role":"assistant","content":"alpha","provider":"","model":"","usage":{"input":120,"output":30,"cached_input":100,"context_window":0,"cost_usd":0.000015948},"iteration":1,"ts":"2026-10-01T06:17:45.762382535+00:00"}
 {"role":"user","content":"Current Date & Time: 2026-10-01 09:17:45 Asia/Kuwait (+03:00, UTC+03:00), Thursday\n\ntwo"}
 {"role":"assistant","content":"beta","provider":"","model":"","usage":{"input":120,"output":30,"cached_input":100,"context_window":0,"cost_usd":0.000015948},"iteration":1,"ts":"2026-10-01T06:17:45.790957654+00:00"}
+{"kind":"tools","tools":[{"description":"always fails","name":"boom","parameters":{"type":"object"}},{"description":"echoes","name":"echo","parameters":{"properties":{"q":{"type":"string"}},"type":"object"}}],"ts":"2026-10-01T09:11:32.591695897+00:00"}

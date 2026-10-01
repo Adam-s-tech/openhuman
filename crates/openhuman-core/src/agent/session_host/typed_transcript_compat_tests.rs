@@ -169,6 +169,63 @@ fn an_old_session_continued_by_this_binary_reloads_identically() {
     });
 }
 
+/// The host's own message bridge sees the same model messages whether a row
+/// was stored as a string envelope or as typed fields, for every shape
+/// (including an inline image, which the live flow only produces on a
+/// provider-bound row).
+#[test]
+fn typed_and_legacy_rows_bridge_to_identical_model_messages() {
+    use crate::agent::message_convert::{history_to_messages, message_to_native_chat_message};
+    use tinyinference_llm::message::{
+        AssistantMessage, ContentBlock, ImageRef, Message, ToolMessage, UserMessage,
+    };
+
+    let messages = vec![
+        Message::User(UserMessage {
+            content: vec![
+                ContentBlock::Text("see ".into()),
+                ContentBlock::Image(ImageRef {
+                    url: "data:image/png;base64,AAAA".into(),
+                    mime_type: Some("image/png".into()),
+                }),
+            ],
+        }),
+        Message::Assistant(AssistantMessage {
+            id: None,
+            content: vec![ContentBlock::Text("calling".into())],
+            tool_calls: vec![call("c1", "echo", json!({"q": "x"}))],
+            usage: None,
+            origin: None,
+        }),
+        Message::Tool(ToolMessage {
+            tool_call_id: "c1".into(),
+            content: vec![ContentBlock::Text("echo:x".into())],
+            trusted_verbatim: false,
+            artifact: None,
+        }),
+    ];
+    let rows: Vec<_> = messages
+        .iter()
+        .filter_map(message_to_native_chat_message)
+        .collect();
+    let dir = tempfile::tempdir().expect("tempdir");
+    let path = dir.path().join("typed.jsonl");
+    let transcript = read_transcript(&fixture("plain.jsonl")).expect("meta source");
+    write_transcript(&path, &rows, &transcript.meta, None).expect("write");
+    let raw = std::fs::read_to_string(&path).expect("raw");
+    let shapes: Vec<_> = message_lines(&raw)
+        .iter()
+        .map(|line| line["shape"].as_str().unwrap_or("").to_string())
+        .collect();
+    assert_eq!(shapes, ["user_parts", "assistant_calls", "tool_result"]);
+    let read = read_transcript(&path).expect("read").messages;
+    assert_eq!(read.len(), rows.len());
+    for (read, written) in read.iter().zip(&rows) {
+        assert_eq!(read.content, written.content);
+    }
+    assert_eq!(history_to_messages(&read), history_to_messages(&rows));
+}
+
 #[test]
 #[ignore = "re-derives the committed .typed fixtures; run deliberately (OH_REGEN_SESSION_COMPAT=1)"]
 fn regenerate_typed_session_compat() {
