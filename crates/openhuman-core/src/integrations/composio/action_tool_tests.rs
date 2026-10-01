@@ -394,7 +394,7 @@ fn mode_toggle_between_calls_is_observed() {
 
         // ── Direct half ─────────────────────────────────────────────
         let tmp_direct = tempfile::tempdir().expect("tempdir direct");
-        EnvVarGuard::set_current(tmp_direct.path());
+        std::env::set_var("OPENHUMAN_WORKSPACE", tmp_direct.path());
         let mut direct_config = Config::default();
         direct_config.config_path = tmp_direct.path().join("config.toml");
         direct_config.workspace_dir = tmp_direct.path().join("workspace");
