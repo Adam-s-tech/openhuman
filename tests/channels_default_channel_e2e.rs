@@ -40,9 +40,10 @@
 //! non-vacuity control is asserting the handle reads `None` *before* the call —
 //! without it, "still unset afterwards" would look like a pass.
 //!
-//! So this target asserts everything reachable from the RPC surface — the round
-//! trip across the wire, persistence, canonicalisation, the documented `"web"`
-//! fallback — plus the live-apply half that is the actual #3712 regression.
+//! So this target asserts the persistence and live-apply halves over the wire.
+//! The op-level round trip, canonicalisation and `"web"` fallback live in
+//! `channels/controllers/ops_connect_status_tests.rs`, and the get/set wire
+//! shapes in `domain_modules_e2e`.
 //!
 //! No network: `api_url` points at a closed port.
 //!
