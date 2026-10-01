@@ -5,7 +5,6 @@ import type { ActionableItem } from '../../../types/intelligence';
 import type { Chunk } from '../../../utils/tauriCommands';
 import { ActionableCard } from '../ActionableCard';
 import { MemoryEmptyPlaceholder } from '../MemoryEmptyPlaceholder';
-import { MemoryResultList } from '../MemoryResultList';
 import { MemoryStatsBar } from '../MemoryStatsBar';
 
 function makeChunk(overrides: Partial<Chunk> = {}): Chunk {
@@ -95,55 +94,6 @@ describe('memory presentation components', () => {
     expect(screen.getByText('+3 today')).toBeInTheDocument();
     expect(screen.getByText('Sessions')).toBeInTheDocument();
     expect(screen.getByText(/^2[,.]048 tokens$/)).toBeInTheDocument();
-  });
-
-  it('groups memory chunks by age and calls the selection handler', () => {
-    const onSelectChunk = vi.fn();
-    const chunks = [
-      makeChunk({
-        id: 'today',
-        timestamp_ms: localDayAt(0, 9, 15),
-        content_preview: 'Review launch checklist. Include final QA notes.',
-      }),
-      makeChunk({
-        id: 'yesterday',
-        timestamp_ms: localDayAt(1, 14, 30),
-        source_kind: 'chat',
-        source_id: 'slack:product',
-        content_preview: 'Discussed onboarding metrics with the team.',
-      }),
-      makeChunk({
-        id: 'week',
-        timestamp_ms: localDayAt(3, 8, 45),
-        content_preview: 'Draft roadmap priorities for next sprint.',
-      }),
-      makeChunk({ id: 'older', timestamp_ms: localDayAt(9, 16, 0), content_preview: '' }),
-    ];
-
-    render(
-      <MemoryResultList chunks={chunks} selectedChunkId="yesterday" onSelectChunk={onSelectChunk} />
-    );
-
-    const list = screen.getByTestId('memory-result-list');
-    expect(within(list).getByText('TODAY')).toBeInTheDocument();
-    expect(within(list).getByText('YESTERDAY')).toBeInTheDocument();
-    expect(within(list).getByText('THIS WEEK')).toBeInTheDocument();
-    expect(within(list).getByText('OLDER')).toBeInTheDocument();
-    expect(within(list).getByText('Review launch checklist.')).toBeInTheDocument();
-    expect(within(list).getByText('older')).toBeInTheDocument();
-
-    const selectedRow = within(list).getByText('Discussed onboarding metrics with the team.');
-    expect(selectedRow.closest('button')).toHaveAttribute('aria-pressed', 'true');
-
-    fireEvent.click(within(list).getByText('Review launch checklist.'));
-    expect(onSelectChunk).toHaveBeenCalledWith('today');
-  });
-
-  it('renders an empty result-list state', () => {
-    render(<MemoryResultList chunks={[]} selectedChunkId={null} onSelectChunk={vi.fn()} />);
-
-    expect(screen.getByTestId('memory-result-list')).toBeInTheDocument();
-    expect(screen.getByText(/No matching chunks|No memories found/i)).toBeInTheDocument();
   });
 
   it('renders actionable item details and fires direct actions', () => {

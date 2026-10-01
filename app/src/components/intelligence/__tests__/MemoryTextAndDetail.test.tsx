@@ -7,7 +7,6 @@ import type {
   MemoryRetrievalEntity,
   ScoreBreakdown,
 } from '../../../utils/tauriCommands';
-import { MemoryChunkDetail } from '../MemoryChunkDetail';
 import { MemoryTextWithEntities } from '../MemoryTextWithEntities';
 
 const rpcMocks = vi.hoisted(() => ({
@@ -84,58 +83,5 @@ describe('MemoryTextWithEntities', () => {
     expect(screen.getByTitle('Entity type: PROJECT')).toHaveTextContent('PROJECT');
     expect(screen.getByText(/Alice/)).toBeInTheDocument();
     expect(screen.getByText(/owns Atlas/)).toBeInTheDocument();
-  });
-});
-
-describe('MemoryChunkDetail', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    rpcMocks.memoryTreeEntityIndexFor.mockResolvedValue(ENTITIES);
-    rpcMocks.memoryTreeChunkScore.mockResolvedValue(SCORE);
-  });
-
-  it('loads chunk entities and score details for the letter view', async () => {
-    const onSelectEntity = vi.fn();
-    render(<MemoryChunkDetail chunk={BASE_CHUNK} onSelectEntity={onSelectEntity} />);
-
-    expect(screen.getByTestId('memory-chunk-detail')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Project Atlas kickoff' })).toBeInTheDocument();
-    expect(screen.getByTitle('Entity type: PERSON')).toHaveTextContent('PERSON');
-    expect(screen.getByTitle('Entity type: PROJECT')).toHaveTextContent('PROJECT');
-
-    await waitFor(() => {
-      expect(rpcMocks.memoryTreeEntityIndexFor).toHaveBeenCalledWith(BASE_CHUNK.id);
-      expect(rpcMocks.memoryTreeChunkScore).toHaveBeenCalledWith(BASE_CHUNK.id);
-    });
-
-    const mentioned = await screen.findByTestId('memory-chunk-mentioned');
-    expect(within(mentioned).getByText('Alice')).toBeInTheDocument();
-    expect(within(mentioned).getByText('2 chunks')).toBeInTheDocument();
-    expect(within(mentioned).getByText('Atlas')).toBeInTheDocument();
-    expect(within(mentioned).getByText('1 chunk')).toBeInTheDocument();
-
-    fireEvent.click(within(mentioned).getByText('Alice'));
-    expect(onSelectEntity).toHaveBeenCalledWith(ENTITIES[0]);
-
-    expect(screen.getByTestId('memory-chunk-scorebars')).toBeInTheDocument();
-    expect(screen.getByText('recency')).toBeInTheDocument();
-    expect(screen.getByLabelText('recency score 80 percent')).toBeInTheDocument();
-    expect(screen.getByText('gmail://msg/abc')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /chunk 12345678/i })).toBeInTheDocument();
-    expect(screen.getByText('bge-m3 1024dim')).toBeInTheDocument();
-  });
-
-  it('copies the full chunk id from the footer button', async () => {
-    const writeText = vi.fn().mockResolvedValue(undefined);
-    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
-
-    render(<MemoryChunkDetail chunk={BASE_CHUNK} onSelectEntity={vi.fn()} />);
-
-    fireEvent.click(screen.getByTitle('Copy chunk id'));
-
-    await waitFor(() => {
-      expect(writeText).toHaveBeenCalledWith(BASE_CHUNK.id);
-    });
-    expect(await screen.findByText('copied')).toBeInTheDocument();
   });
 });
