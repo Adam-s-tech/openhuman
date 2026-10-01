@@ -33,7 +33,6 @@ impl PoolLang {
             Self::Python => Language::python(),
         }
     }
-
 }
 
 /// The result of running one job on a pooled worker.

@@ -143,7 +143,6 @@ impl OpenHumanBudgetGate {
     fn attributed_model(&self) -> String {
         self.last_model.read().clone()
     }
-
 }
 
 #[async_trait]

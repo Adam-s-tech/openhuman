@@ -15,9 +15,7 @@ use std::sync::{Arc, Mutex};
 
 use crate::config::Config;
 use crate::core::Outcome;
-use crate::security::devices::crypto::{
-    base64url_encode, DeviceKeypair, TunnelCipher,
-};
+use crate::security::devices::crypto::{base64url_encode, DeviceKeypair, TunnelCipher};
 use crate::security::devices::store;
 use crate::security::devices::tunnel_client;
 use crate::security::devices::types::{

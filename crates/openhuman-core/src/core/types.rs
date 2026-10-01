@@ -28,7 +28,6 @@ impl InvocationResult {
             logs: vec![],
         })
     }
-
 }
 
 /// Formats an [`InvocationResult`] into its standard JSON-RPC format.

@@ -149,7 +149,6 @@ impl AuditEvent {
         });
         self
     }
-
 }
 
 /// Audit logger

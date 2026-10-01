@@ -446,7 +446,10 @@ pub fn all_tools_with_runtime(
         Box::new(ReadDiffTool::new(action_dir.to_path_buf())),
         Box::new(RunLinterTool::new(action_dir.to_path_buf())),
         Box::new(RunTestsTool::new(action_dir.to_path_buf())),
-        Box::new(PushoverTool::new(security.clone(), action_dir.to_path_buf())),
+        Box::new(PushoverTool::new(
+            security.clone(),
+            action_dir.to_path_buf(),
+        )),
         // Audio-toolkit podcast tools — gated with the `voice` feature (they
         // live in the `audio_toolkit` domain, which is compiled out when voice
         // is disabled).

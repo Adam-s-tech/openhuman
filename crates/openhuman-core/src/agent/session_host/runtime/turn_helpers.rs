@@ -88,5 +88,4 @@ impl OpenHumanSessionHost {
             .join(" ");
         truncate_with_ellipsis(&scrubbed, Self::EVENT_ERROR_MAX_CHARS)
     }
-
 }

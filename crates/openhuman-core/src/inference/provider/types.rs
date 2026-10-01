@@ -24,9 +24,7 @@ pub struct ChatResponse {
     pub reasoning_content: Option<String>,
 }
 
-impl ChatResponse {
-
-}
+impl ChatResponse {}
 
 /// A fine-grained streaming event emitted by a provider while serving a
 /// `chat()` call. Providers that support SSE/streaming forward these to

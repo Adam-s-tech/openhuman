@@ -99,7 +99,6 @@ impl DeviceKeypair {
     pub fn private_bytes(&self) -> [u8; 32] {
         self.private.to_bytes()
     }
-
 }
 
 // ---------------------------------------------------------------------------

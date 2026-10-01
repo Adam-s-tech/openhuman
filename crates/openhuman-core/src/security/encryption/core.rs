@@ -84,7 +84,6 @@ impl EncryptionKey {
             .decrypt(nonce, payload.ciphertext.as_ref())
             .map_err(|e| format!("Decryption failed: {e}"))
     }
-
 }
 
 /// Get the path to the OpenHuman data directory.

@@ -9,7 +9,6 @@ use crate::tools::agent_policy::render_tool_policy_boundary;
 use anyhow::Result;
 
 impl OpenHumanSessionHost {
-
     /// Builds the system prompt for the current turn, including tool
     /// instructions and learned context.
     pub fn build_system_prompt(&self, learned: LearnedContextData) -> Result<String> {
