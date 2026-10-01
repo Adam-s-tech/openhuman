@@ -49,4 +49,9 @@ pub static CONNECTOR_MODULE_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::c
 #[path = "support/tinyhumans_boot.rs"]
 pub mod tinyhumans_boot;
 
+/// The shared `EnvVarGuard` (set / unset one var, restore on drop). It does not
+/// lock: suites hold [`SHARED_ENV_LOCK`] through their own `env_lock()`.
+#[path = "support/env_guard.rs"]
+pub mod env_guard;
+
 include!(concat!(env!("OUT_DIR"), "/raw_coverage_mods.rs"));
