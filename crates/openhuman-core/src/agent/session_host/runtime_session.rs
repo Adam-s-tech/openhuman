@@ -1324,45 +1324,12 @@ impl OpenHumanSessionHost {
         context.workspace = self.workspace_descriptor.clone();
         let cancellation = context.cancellation.clone();
         let root_config = context.root_run_config("openhuman-session");
-        // `suppress_transcript_autoload` must decide the resume mode HERE, before
-        // the explicit identity-keyed resume below runs. `begin_turn_resume`
-        // applies the same override later, inside the lifecycle's resume hook,
-        // which is too late for a thread-bound session: `runtime.resume` has
-        // already loaded the thread's own transcript into the history by then,
-        // so the override suppressed nothing (#6377).
-        let suppress_transcript_autoload = self
-            .runtime_state
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .pending_turn_overrides
-            .suppress_transcript_autoload;
-        if suppress_transcript_autoload {
-            tracing::debug!(
-                thread_id = ?self.thread_id,
-                "[session_host] transcript autoload suppressed for this turn"
-            );
-        }
         let options = TurnOptions {
             request_id: crate::agent::turn_origin::current_request_id(),
             thread_id: self.thread_id.clone(),
             stream: self.on_progress.is_some(),
             session: self.session.clone(),
-            resume: if suppress_transcript_autoload {
-                ResumeMode::Never
-            } else if self.session.is_some() {
-                // Exact, identity-keyed resume. Unlike `LatestForAgent` it
-                // cannot splice a different thread's transcript into this
-                // turn, and the file it reads is the file the turn appends to.
-                ResumeMode::Session
-            } else if self
-                .runtime_session
-                .as_ref()
-                .is_some_and(|session| session.history().is_empty())
-            {
-                ResumeMode::LatestForAgent
-            } else {
-                ResumeMode::Never
-            },
+            resume: self.turn_resume_mode(),
             cancellation,
             run_context: context.into_tinyagents(root_config),
         };

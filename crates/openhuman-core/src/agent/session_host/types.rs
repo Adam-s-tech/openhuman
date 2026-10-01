@@ -63,6 +63,31 @@ pub struct TurnOverrides {
     pub suppress_transcript_autoload: bool,
 }
 
+impl OpenHumanSessionHost {
+    /// Whether the next turn carries `suppress_transcript_autoload`.
+    ///
+    /// `turn()` reads it to pick the resume mode BEFORE its explicit
+    /// identity-keyed resume runs. `begin_turn_resume` applies the same override
+    /// later, inside the lifecycle's resume hook, which is too late for a
+    /// thread-bound session: that resume has already loaded the thread's own
+    /// transcript into the history, so the override suppressed nothing (#6377).
+    pub(super) fn transcript_autoload_suppressed(&self) -> bool {
+        let suppressed = self
+            .runtime_state
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .pending_turn_overrides
+            .suppress_transcript_autoload;
+        if suppressed {
+            tracing::debug!(
+                thread_id = ?self.thread_id,
+                "[session_host] transcript autoload suppressed for this turn"
+            );
+        }
+        suppressed
+    }
+}
+
 /// An autonomous or semi-autonomous AI agent.
 ///
 /// The `OpenHumanSessionHost` is the central component that manages conversation state,
