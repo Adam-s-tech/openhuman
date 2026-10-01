@@ -8,6 +8,12 @@ mod memory_module;
 #[path = "support/tinyhumans_boot.rs"]
 mod tinyhumans_boot;
 
+#[path = "support/env_guard.rs"]
+mod env_guard;
+#[path = "support/scripted_stack.rs"]
+mod scripted_stack;
+use env_guard::EnvVarGuard;
+use scripted_stack::assert_no_jsonrpc_error;
 use std::collections::VecDeque;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
@@ -32,40 +38,6 @@ use openhuman_rpc::server::build_core_http_router;
 
 const TEST_RPC_TOKEN: &str = "json-rpc-e2e-local-token";
 static JSON_RPC_AUTH_INIT: OnceLock<()> = OnceLock::new();
-
-struct EnvVarGuard {
-    key: &'static str,
-    old: Option<String>,
-}
-
-impl EnvVarGuard {
-    fn set_to_path(key: &'static str, path: &Path) -> Self {
-        let old = std::env::var(key).ok();
-        std::env::set_var(key, path.as_os_str());
-        Self { key, old }
-    }
-
-    fn set(key: &'static str, value: &str) -> Self {
-        let old = std::env::var(key).ok();
-        std::env::set_var(key, value);
-        Self { key, old }
-    }
-
-    fn unset(key: &'static str) -> Self {
-        let old = std::env::var(key).ok();
-        std::env::remove_var(key);
-        Self { key, old }
-    }
-}
-
-impl Drop for EnvVarGuard {
-    fn drop(&mut self) {
-        match &self.old {
-            Some(v) => std::env::set_var(self.key, v),
-            None => std::env::remove_var(self.key),
-        }
-    }
-}
 
 /// Serializes tests in this binary: `HOME` / `OPENHUMAN_WORKSPACE` / backend URL overrides are
 /// process-global, so parallel tests would clobber each other and hit the wrong `config.toml` or
@@ -1120,14 +1092,6 @@ async fn encrypt_test_mnemonic() -> String {
     .await
     .expect("encrypt test mnemonic")
     .value
-}
-
-fn assert_no_jsonrpc_error<'a>(v: &'a Value, context: &str) -> &'a Value {
-    if let Some(err) = v.get("error") {
-        panic!("{context}: JSON-RPC error: {err}");
-    }
-    v.get("result")
-        .unwrap_or_else(|| panic!("{context}: missing result: {v}"))
 }
 
 fn assert_jsonrpc_error<'a>(v: &'a Value, context: &str) -> &'a Value {
@@ -3541,7 +3505,6 @@ async fn json_rpc_workflow_run_definitions_and_runs_roundtrip() {
 }
 
 #[tokio::test]
-#[ignore = "TODO(#6380): agent_team_message_member answers `unknown member: member-...` for ids returned by agent_team_create; run: cargo test -p openhuman-cli --features <product> --test json_rpc_e2e json_rpc_agent_team_coordination_roundtrip -- --ignored"]
 async fn json_rpc_agent_team_coordination_roundtrip() {
     let _env_lock = json_rpc_e2e_env_lock();
     let tmp = tempdir().expect("tempdir");
@@ -3774,35 +3737,8 @@ async fn json_rpc_agent_team_coordination_roundtrip() {
         Some("completed")
     );
 
-    // Shut alice down → member stopped (her task A is already done, so nothing
-    // is released back to the queue).
-    let shutdown_alice = post_json_rpc(
-        &rpc_base,
-        9362,
-        "openhuman.agent_team_shutdown_member",
-        json!({ "teamId": team_id, "memberId": alice_id }),
-    )
-    .await;
-    let shutdown_alice_outer =
-        assert_no_jsonrpc_error(&shutdown_alice, "agent_team_shutdown_member alice");
-    assert_eq!(
-        shutdown_alice_outer
-            .get("result")
-            .and_then(|r| r.get("member"))
-            .and_then(|m| m.get("memberStatus"))
-            .and_then(serde_json::Value::as_str),
-        Some("stopped")
-    );
-    assert_eq!(
-        shutdown_alice_outer
-            .get("result")
-            .and_then(|r| r.get("releasedTaskIds"))
-            .and_then(serde_json::Value::as_array)
-            .map(|ids| ids.len()),
-        Some(0)
-    );
-
-    // Message bob from alice, then list messages.
+    // Message bob from alice (still live), then list messages. The shutdown
+    // below must come after: a stopped member cannot send or receive.
     let message = post_json_rpc(
         &rpc_base,
         9347,
@@ -3831,6 +3767,57 @@ async fn json_rpc_agent_team_coordination_roundtrip() {
             .and_then(serde_json::Value::as_array)
             .map(|m| m.len()),
         Some(1)
+    );
+
+    // Shut alice down → member stopped (her task A is already done, so nothing
+    // is released back to the queue).
+    let shutdown_alice = post_json_rpc(
+        &rpc_base,
+        9362,
+        "openhuman.agent_team_shutdown_member",
+        json!({ "teamId": team_id, "memberId": alice_id }),
+    )
+    .await;
+    let shutdown_alice_outer =
+        assert_no_jsonrpc_error(&shutdown_alice, "agent_team_shutdown_member alice");
+    assert_eq!(
+        shutdown_alice_outer
+            .get("result")
+            .and_then(|r| r.get("member"))
+            .and_then(|m| m.get("memberStatus"))
+            .and_then(serde_json::Value::as_str),
+        Some("stopped")
+    );
+    assert_eq!(
+        shutdown_alice_outer
+            .get("result")
+            .and_then(|r| r.get("releasedTaskIds"))
+            .and_then(serde_json::Value::as_array)
+            .map(|ids| ids.len()),
+        Some(0)
+    );
+
+    // A stopped member is no longer part of the live roster, so it can neither
+    // send nor receive team messages (`TeamService::ensure_member`).
+    let message_from_stopped = post_json_rpc(
+        &rpc_base,
+        9363,
+        "openhuman.agent_team_message_member",
+        json!({
+            "teamId": team_id,
+            "fromMemberId": alice_id,
+            "toMemberId": bob_id,
+            "content": "sent after shutdown"
+        }),
+    )
+    .await;
+    let stopped_err = assert_jsonrpc_error(
+        &message_from_stopped,
+        "agent_team_message_member from stopped member",
+    );
+    assert!(
+        stopped_err.to_string().contains("unknown member"),
+        "stopped member must be rejected: {stopped_err}"
     );
 
     // Get the team — 2 members, 2 tasks.
@@ -10973,7 +10960,6 @@ fn opus_sonnet_demo_graph() -> Value {
 /// agent-node run drive the full harness (deep async stacks).
 #[cfg(feature = "flows")]
 #[test]
-#[ignore = "TODO(#6381): flows_build returns proposal=null (the scripted propose_workflow completion is never consumed); run: cargo test -p openhuman-cli --features <product> --test json_rpc_e2e json_rpc_flows_full_arc_discover_build_create_run -- --ignored"]
 fn json_rpc_flows_full_arc_discover_build_create_run() {
     run_json_rpc_e2e_on_agent_stack(
         "json_rpc_flows_full_arc_discover_build_create_run",
@@ -11110,7 +11096,7 @@ async fn json_rpc_flows_full_arc_discover_build_create_run_inner() {
     let proposal = build_out
         .get("proposal")
         .filter(|p| !p.is_null())
-        .expect("flows_build returns a non-null proposal");
+        .unwrap_or_else(|| panic!("flows_build returns a non-null proposal: {build_out}"));
     assert_eq!(
         proposal.get("type").and_then(Value::as_str),
         Some("workflow_proposal")

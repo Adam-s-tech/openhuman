@@ -215,6 +215,24 @@ run_raw_coverage_modules() {
   done < <(raw_coverage_modules)
 }
 
+in_process_modules() {
+  find tests/in_process -maxdepth 1 -type f -name '*.rs' -print |
+    sed -e 's#^tests/in_process/##' -e 's#\.rs$##' |
+    sort
+}
+
+run_in_process_modules() {
+  # ~20 former `tests/*.rs` targets now share the `in_process_all` binary. Run
+  # each module in its own cargo process so the process-global RPC bearer,
+  # backend transport and module singletons stay per suite, as they were.
+  while IFS= read -r module; do
+    [ -n "$module" ] || continue
+    echo "[test-rust-with-mock] in-process module: ${module}"
+    TINYCONNECTORS_TEST_MODULE="${TINYCONNECTORS_TEST_MODULE:-$connectors_module}" \
+      cargo_test --test in_process_all -- "${module}::" "$@"
+  done < <(in_process_modules)
+}
+
 run_json_rpc_e2e() {
   # The JSON-RPC E2E binary intentionally changes process-global environment
   # and runtime configuration. Run each case in a fresh test process so a
@@ -255,6 +273,8 @@ run_full_suite() {
       # each generated module filter in its own cargo process so local
       # `pnpm test:rust` preserves the same process-global isolation as CI.
       run_raw_coverage_modules "$@"
+    elif [ "$target" = "in_process_all" ]; then
+      run_in_process_modules "$@"
     elif [ "$target" = "json_rpc_e2e" ]; then
       run_json_rpc_e2e "$@"
     else
@@ -275,6 +295,12 @@ elif [ "$#" -ge 2 ] && [ "$1" = "--test" ] && [ "$2" = "raw_coverage_all" ]; the
     shift
   fi
   run_raw_coverage_modules "$@"
+elif [ "$#" -ge 2 ] && [ "$1" = "--test" ] && [ "$2" = "in_process_all" ]; then
+  shift 2
+  if [ "${1:-}" = "--" ]; then
+    shift
+  fi
+  run_in_process_modules "$@"
 elif [ "$#" -ge 2 ] && [ "$1" = "--test" ] && [ "$2" = "json_rpc_e2e" ]; then
   shift 2
   if [ "${1:-}" = "--" ]; then

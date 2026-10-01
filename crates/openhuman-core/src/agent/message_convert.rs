@@ -560,6 +560,32 @@ pub(crate) fn messages_to_conversation(messages: &[Message]) -> Vec<TranscriptEn
     out
 }
 
+/// Presentation projection of a runtime session's messages, as returned by
+/// `OpenHumanSessionHost::history`.
+///
+/// [`messages_to_conversation`] keeps native tool-call structure
+/// (`AssistantToolCalls`, coalesced `ToolResults`). A text dialect (xml,
+/// pformat, code) has no native tool messages: the session records each round's
+/// results as one `[Tool results]` user row, so that replay frame is read back
+/// into a `ToolResults` entry as well. Callers such as the flows builder
+/// (`extract_workflow_proposal`) and the trail-off backstop match the
+/// `ToolResults` variant, which stays unreachable if every message is flattened
+/// into `TranscriptEntry::Chat`.
+pub(crate) fn messages_to_history_projection(messages: &[Message]) -> Vec<TranscriptEntry> {
+    messages_to_conversation(messages)
+        .into_iter()
+        .map(|entry| match entry {
+            TranscriptEntry::Chat(message) if message.role == DialectRole::User => {
+                match tinytools_agent::dialect::parse_replayed_results(&message.content) {
+                    Some(results) => TranscriptEntry::ToolResults(results),
+                    None => TranscriptEntry::Chat(message),
+                }
+            }
+            other => other,
+        })
+        .collect()
+}
+
 /// The suffix of `messages` produced *after* the most recent user turn — i.e.
 /// the assistant/tool messages a single turn appended. Robust to front-trimming
 /// middleware (which drops old messages but keeps the current user turn).

@@ -5468,6 +5468,67 @@ const messages: TranslationMap = {
   'memoryEngine.engine.agentmemory.label': 'AgentMemory',
   'memoryEngine.engine.agentmemory.description':
     'Un serveur AgentMemory que vous exécutez vous-même.',
+
+  // Chat failure copy: localized render of chat_error.message, keyed by chat_error.copy_key
+  'chat_error.codex_session_expired':
+    'Votre session Codex a expiré. Reconnectez-la dans Paramètres → Intégrations.',
+  'chat_error.session_expired':
+    'Votre session OpenHuman a expiré. Veuillez vous reconnecter pour continuer.',
+  'chat_error.action_budget':
+    "Vous avez atteint le quota horaire d'actions d'OpenHuman. C'est une limite de sécurité locale, pas celle de votre fournisseur d'IA. La fenêtre se libère progressivement ; vous pouvez continuer à discuter dans ce fil et les étapes riches en outils reprendront à mesure que le quota se reconstitue.",
+  'chat_error.max_iterations':
+    "L'agent a exécuté le nombre maximal d'étapes d'outils pour un tour sans terminer. Cela signifie généralement qu'un outil a continué d'échouer (souvent à cause d'une limite de débit sur une récupération web). Vous pouvez reposer la même question dans ce fil une fois la limite levée.",
+  'chat_error.turn_timeout':
+    "Ce tour a dépassé son budget de temps sans se terminer et a été arrêté pour ne pas se bloquer. Cela signifie généralement qu'un appel d'outil ou un sous-agent délégué est resté bloqué. Vous pouvez reposer votre question dans ce fil.",
+  'chat_error.empty_response':
+    'Le modèle a renvoyé une réponse vide. Veuillez réessayer. Si cela persiste, essayez un autre modèle ou vérifiez sa configuration dans Connexions → Clés API → LLM.',
+  'chat_error.chat_template_rejected':
+    "Le modèle de conversation de ce modèle a rejeté la requête. Ce n'est pas le modèle, la température ou votre clé API qui est en cause. Les modèles locaux sans appel d'outils natif passent par leur propre modèle de conversation, et certains refusent la forme du message d'une étape d'outil. Démarrez une nouvelle conversation pour réinitialiser l'historique, ou choisissez un modèle avec prise en charge native des outils dans Connexions → Clés API → LLM.",
+  'chat_error.rate_limited':
+    "Votre fournisseur d'IA limite le débit des requêtes. C'est une limite temporaire côté fournisseur, pas un blocage du fil. Vous pouvez réessayer dans ce fil.",
+  'chat_error.rate_limited_billing':
+    "Votre fournisseur d'IA rejette les requêtes pour des raisons de facturation ou d'offre (crédits épuisés, limite de l'offre ou modèle indisponible). Réessayer n'y changera rien. Ouvrez Paramètres pour recharger, changer d'offre ou choisir un autre modèle.",
+  'chat_error.managed_rate_limited':
+    "Votre fournisseur d'IA limite le débit des requêtes. Vous pouvez réessayer dans ce fil.",
+  'chat_error.timeout': 'La requête a expiré. Vérifiez votre connexion et réessayez.',
+  'chat_error.auth_error':
+    "Un problème d'authentification est survenu avec le fournisseur d'IA. Vérifiez votre clé API dans les paramètres.",
+  'chat_error.budget_exhausted':
+    "Vous n'avez plus de crédits, je ne peux donc pas exécuter le modèle géré (cloud) pour le moment. Vous pouvez recharger vos crédits ou choisir une offre pour continuer. Ou, si vous avez activé un modèle local comme Ollama, basculez le routage sur « Utilisez vos propres modèles » dans Connexions → Clés API → LLM.",
+  'chat_error.managed_budget_exhausted':
+    "Vous n'avez plus de crédits. Rechargez ou passez à « Utilisez vos propres modèles » dans Paramètres.",
+  'chat_error.provider_unavailable':
+    "Le fournisseur d'IA est temporairement indisponible. Veuillez réessayer plus tard.",
+  'chat_error.managed_unavailable':
+    "Le service d'IA est temporairement indisponible. Nous avons été prévenus. Veuillez réessayer dans un instant.",
+  'chat_error.payload_too_large':
+    'Votre message ou votre pièce jointe est trop volumineux pour ce modèle. Raccourcissez-le ou retirez la pièce jointe, ou démarrez un nouveau fil.',
+  'chat_error.context_overflow':
+    'La conversation est trop longue. Veuillez démarrer une nouvelle conversation.',
+  'chat_error.model_config_rejected':
+    "Votre fournisseur d'IA a rejeté le modèle ou la température de la requête. Vérifiez votre modèle et le routage dans Paramètres → LLM.",
+  'chat_error.model_unavailable':
+    "Le modèle sélectionné n'est pas disponible chez votre fournisseur. Vérifiez les paramètres du modèle.",
+  'chat_error.capability_unsupported':
+    'Ce modèle ne peut pas traiter les images. Retirez la pièce jointe ou passez à un modèle compatible avec la vision dans Connexions → Clés API → LLM.',
+  'chat_error.malformed_history':
+    "Un problème temporaire est survenu dans cette conversation. Nous l'avons corrigé. Veuillez renvoyer votre message.",
+  'chat_error.request_rejected':
+    "Le fournisseur d'IA a rejeté la requête. C'est généralement dû à une incompatibilité de modèle ou de paramètres. Essayez un autre modèle dans Connexions → Clés API → LLM.",
+  'chat_error.managed_request_rejected':
+    "La requête a été rejetée. C'est généralement dû à une incompatibilité de modèle ou de paramètres. Essayez un autre modèle dans Connexions → Clés API → LLM.",
+  'chat_error.managed_malformed_request':
+    'Un problème est survenu avec ce message. Essayez de le reformuler, ou démarrez un nouveau fil si cela persiste.',
+  'chat_error.network':
+    "La connexion au service d'IA s'est interrompue pendant la réponse, généralement après une mise en veille ou un changement de réseau. Veuillez réessayer.",
+  'chat_error.inference': 'Un problème est survenu. Veuillez réessayer.',
+  'chat_error.managed_internal':
+    'Un problème est survenu. Nous avons été prévenus. Veuillez réessayer.',
+  'chat_error.retryHint.immediately': 'Vous pouvez réessayer immédiatement.',
+  'chat_error.retryHint.oneSecond': 'Réessayez dans 1 seconde.',
+  'chat_error.retryHint.seconds': 'Réessayez dans {n} secondes.',
+  'chat_error.retryHint.aboutMinute': 'Réessayez dans environ 1 minute.',
+  'chat_error.retryHint.aboutMinutes': 'Réessayez dans environ {n} minutes.',
 };
 
 export default messages;

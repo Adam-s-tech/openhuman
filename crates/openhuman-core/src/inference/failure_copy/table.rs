@@ -10,6 +10,10 @@
 /// `retryable`) and what the user reads (`copy`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct FailureCopy {
+    /// Stable i18n key (`chat_error.<class>`), one per row. Sent as
+    /// `copy_key` on the `chat_error` event so the frontend can render the
+    /// copy in the user's locale; `copy` stays the English fallback.
+    pub(crate) key: &'static str,
     /// Stable `error_type` wire token of the `chat_error` event.
     pub(crate) error_type: &'static str,
     /// Where the limit originated (`provider`, `openhuman_budget`,
@@ -60,8 +64,9 @@ pub(crate) enum FailureClass {
 pub(crate) fn failure_copy(class: FailureClass) -> &'static FailureCopy {
     use FailureClass::*;
     macro_rules! row {
-        ($ty:expr, $src:expr, $retry:expr, $copy:expr) => {{
+        ($key:expr, $ty:expr, $src:expr, $retry:expr, $copy:expr) => {{
             static ROW: FailureCopy = FailureCopy {
+                key: $key,
                 error_type: $ty,
                 source: $src,
                 retryable: $retry,
@@ -72,6 +77,7 @@ pub(crate) fn failure_copy(class: FailureClass) -> &'static FailureCopy {
     }
     match class {
         CodexSessionExpired => row!(
+            "chat_error.codex_session_expired",
             "provider_error",
             "auth",
             false,
@@ -79,6 +85,7 @@ pub(crate) fn failure_copy(class: FailureClass) -> &'static FailureCopy {
                  Settings → Integrations."
         ),
         SessionExpired => row!(
+            "chat_error.session_expired",
             "session_expired",
             "auth",
             false,
@@ -86,6 +93,7 @@ pub(crate) fn failure_copy(class: FailureClass) -> &'static FailureCopy {
                  Please sign in again to continue."
         ),
         ActionBudget => row!(
+            "chat_error.action_budget",
             "action_budget_exceeded",
             "openhuman_budget",
             true,
@@ -94,6 +102,7 @@ pub(crate) fn failure_copy(class: FailureClass) -> &'static FailureCopy {
                  this thread and tool-heavy steps will resume as the budget refills."
         ),
         MaxIterations => row!(
+            "chat_error.max_iterations",
             "max_iterations",
             "agent_loop",
             true,
@@ -103,6 +112,7 @@ pub(crate) fn failure_copy(class: FailureClass) -> &'static FailureCopy {
                  underlying limit clears."
         ),
         TurnTimeout => row!(
+            "chat_error.turn_timeout",
             "turn_timeout",
             "agent_loop",
             true,
@@ -111,6 +121,7 @@ pub(crate) fn failure_copy(class: FailureClass) -> &'static FailureCopy {
                  delegated sub-agent stalled. You can retry your question in this thread."
         ),
         EmptyResponse => row!(
+            "chat_error.empty_response",
             "empty_response",
             "agent_loop",
             true,
@@ -118,6 +129,7 @@ pub(crate) fn failure_copy(class: FailureClass) -> &'static FailureCopy {
                  try a different model or check its setup in Connections → API keys → LLM."
         ),
         ChatTemplateRejected => row!(
+            "chat_error.chat_template_rejected",
             "chat_template_rejected",
             "provider",
             true,
@@ -128,6 +140,7 @@ pub(crate) fn failure_copy(class: FailureClass) -> &'static FailureCopy {
                  pick a model with native tool support in Connections → API keys → LLM."
         ),
         RateLimited => row!(
+            "chat_error.rate_limited",
             "rate_limited",
             "provider",
             true,
@@ -135,6 +148,7 @@ pub(crate) fn failure_copy(class: FailureClass) -> &'static FailureCopy {
                  limit, not a thread-level block — you can retry in this thread."
         ),
         RateLimitedBilling => row!(
+            "chat_error.rate_limited_billing",
             "rate_limited",
             "provider",
             false,
@@ -144,18 +158,21 @@ pub(crate) fn failure_copy(class: FailureClass) -> &'static FailureCopy {
              different model."
         ),
         ManagedRateLimited => row!(
+            "chat_error.managed_rate_limited",
             "rate_limited",
             "provider",
             true,
             "Your AI provider is rate-limiting requests. You can retry in this thread."
         ),
         Timeout => row!(
+            "chat_error.timeout",
             "timeout",
             "transport",
             true,
             "The request timed out. Please check your connection and try again."
         ),
         AuthError => row!(
+            "chat_error.auth_error",
             "auth_error",
             "config",
             false,
@@ -164,6 +181,7 @@ pub(crate) fn failure_copy(class: FailureClass) -> &'static FailureCopy {
         // Source is `provider` instead when the 402 carries a non-OpenHuman
         // provider envelope; the classifier applies that override.
         BudgetExhausted => row!(
+            "chat_error.budget_exhausted",
             "budget_exhausted",
             "openhuman_billing",
             false,
@@ -172,6 +190,7 @@ pub(crate) fn failure_copy(class: FailureClass) -> &'static FailureCopy {
      local model like Ollama, switch routing to \"Use Your Own Models\" in Connections → API keys → LLM."
         ),
         ManagedBudgetExhausted => row!(
+            "chat_error.managed_budget_exhausted",
             "budget_exhausted",
             "openhuman_billing",
             false,
@@ -179,12 +198,14 @@ pub(crate) fn failure_copy(class: FailureClass) -> &'static FailureCopy {
                  in Settings."
         ),
         ProviderUnavailable => row!(
+            "chat_error.provider_unavailable",
             "provider_error",
             "provider",
             true,
             "The AI provider is temporarily unavailable. Please try again later."
         ),
         ManagedUnavailable => row!(
+            "chat_error.managed_unavailable",
             "provider_error",
             "provider",
             true,
@@ -192,6 +213,7 @@ pub(crate) fn failure_copy(class: FailureClass) -> &'static FailureCopy {
                      Please try again shortly."
         ),
         PayloadTooLarge => row!(
+            "chat_error.payload_too_large",
             "payload_too_large",
             "config",
             false,
@@ -199,12 +221,14 @@ pub(crate) fn failure_copy(class: FailureClass) -> &'static FailureCopy {
                  or remove the attachment — or start a new thread."
         ),
         ContextOverflow => row!(
+            "chat_error.context_overflow",
             "context_overflow",
             "config",
             false,
             "The conversation is too long. Please start a new chat."
         ),
         ModelConfigRejected => row!(
+            "chat_error.model_config_rejected",
             "model_unavailable",
             "config",
             false,
@@ -212,12 +236,14 @@ pub(crate) fn failure_copy(class: FailureClass) -> &'static FailureCopy {
                  Check your model and routing in Settings → LLM."
         ),
         ModelUnavailable => row!(
+            "chat_error.model_unavailable",
             "model_unavailable",
             "config",
             false,
             "The selected model isn't available on your provider. Check your model settings."
         ),
         CapabilityUnsupported => row!(
+            "chat_error.capability_unsupported",
             "capability_unsupported",
             "config",
             false,
@@ -228,6 +254,7 @@ pub(crate) fn failure_copy(class: FailureClass) -> &'static FailureCopy {
         // offending warm session by the time this is shown, so "send it
         // again" is literally true.
         MalformedHistory => row!(
+            "chat_error.malformed_history",
             "provider_request_rejected",
             "provider",
             true,
@@ -235,6 +262,7 @@ pub(crate) fn failure_copy(class: FailureClass) -> &'static FailureCopy {
      Please send your message again."
         ),
         RequestRejected => row!(
+            "chat_error.request_rejected",
             "provider_request_rejected",
             "provider",
             false,
@@ -242,6 +270,7 @@ pub(crate) fn failure_copy(class: FailureClass) -> &'static FailureCopy {
                  parameter incompatibility. Try a different model in Connections → API keys → LLM."
         ),
         ManagedRequestRejected => row!(
+            "chat_error.managed_request_rejected",
             "provider_request_rejected",
             "provider",
             false,
@@ -249,6 +278,7 @@ pub(crate) fn failure_copy(class: FailureClass) -> &'static FailureCopy {
                          mismatch. Try a different model in Connections → API keys → LLM."
         ),
         ManagedMalformedRequest => row!(
+            "chat_error.managed_malformed_request",
             "provider_request_rejected",
             "provider",
             false,
@@ -256,6 +286,7 @@ pub(crate) fn failure_copy(class: FailureClass) -> &'static FailureCopy {
                          or start a new thread if it keeps happening."
         ),
         Network => row!(
+            "chat_error.network",
             "network",
             "transport",
             true,
@@ -263,12 +294,14 @@ pub(crate) fn failure_copy(class: FailureClass) -> &'static FailureCopy {
                  sleep/wake or network change. Please try again."
         ),
         Inference => row!(
+            "chat_error.inference",
             "inference",
             "provider",
             true,
             "Something went wrong. Please try again."
         ),
         ManagedInternal => row!(
+            "chat_error.managed_internal",
             "inference",
             "provider",
             true,

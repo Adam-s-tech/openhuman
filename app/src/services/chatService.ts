@@ -8,6 +8,7 @@
  */
 import debug from 'debug';
 
+import type { ChatErrorCopyParams } from '../lib/chatErrorCopy';
 import { callCoreRpc } from './coreRpcClient';
 import { socketService } from './socketService';
 
@@ -203,6 +204,14 @@ export interface ChatErrorEvent {
    */
   client_id?: string;
   message: string;
+  /**
+   * Stable i18n key of the core's failure-copy table row behind `message`
+   * (`chat_error.<class>`). Absent on error types without a table row.
+   * Render with `chatErrorCopyText`, which falls back to `message`.
+   */
+  copy_key?: string;
+  /** Values the translated copy needs (retry-after seconds, provider, detail). */
+  copy_params?: ChatErrorCopyParams;
   error_type:
     | 'network'
     | 'timeout'

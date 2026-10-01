@@ -4,6 +4,7 @@
 //! only. It must not call host Ollama, MLX, Python, Whisper, Piper, models, or
 //! download endpoints, and OpenHuman itself must not launch any of them.
 
+use crate::env_guard::EnvVarGuard;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, OnceLock};
@@ -16,17 +17,15 @@ use axum::response::IntoResponse;
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use futures_util::{SinkExt, StreamExt};
-use openhuman_core::core::types::AppState;
 use openhuman_core::config::schema::cloud_providers::{
     AuthStyle as CloudAuthStyle, CloudProviderCreds,
 };
 use openhuman_core::config::Config;
+use openhuman_core::core::types::AppState;
+use openhuman_core::inference::host_runtime::{local_ai_status, LocalAiService};
+use openhuman_core::inference::http;
 use openhuman_core::security::credentials::{
     AuthService, APP_SESSION_PROVIDER, DEFAULT_AUTH_PROFILE_NAME,
-};
-use openhuman_core::inference::http;
-use openhuman_core::inference::host_runtime::{
-    local_ai_status, LocalAiService,
 };
 use openhuman_core::voice::streaming::handle_dictation_ws;
 use serde_json::{json, Value};
@@ -36,42 +35,6 @@ use tokio_tungstenite::tungstenite::Message as WsMessage;
 #[derive(Clone, Default)]
 struct MockState {
     requests: Arc<Mutex<Vec<(String, Value)>>>,
-}
-
-struct EnvVarGuard {
-    key: &'static str,
-    previous: Option<std::ffi::OsString>,
-}
-
-impl EnvVarGuard {
-    fn set(key: &'static str, value: impl AsRef<std::ffi::OsStr>) -> Self {
-        let previous = std::env::var_os(key);
-        // SAFETY: mutation is serialized by `env_lock()` (see below).
-        unsafe { std::env::set_var(key, value) };
-        Self { key, previous }
-    }
-
-    fn unset(key: &'static str) -> Self {
-        let previous = std::env::var_os(key);
-        // SAFETY: mutation is serialized by `env_lock()` (see below).
-        unsafe { std::env::remove_var(key) };
-        Self { key, previous }
-    }
-}
-
-impl Drop for EnvVarGuard {
-    fn drop(&mut self) {
-        match &self.previous {
-            Some(value) => {
-                // SAFETY: mutation is serialized by `env_lock()` (see below).
-                unsafe { std::env::set_var(self.key, value) }
-            }
-            None => {
-                // SAFETY: mutation is serialized by `env_lock()` (see below).
-                unsafe { std::env::remove_var(self.key) }
-            }
-        }
-    }
 }
 
 /// Serializes the whole suite's process-global env access.

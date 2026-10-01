@@ -394,3 +394,66 @@ fn reasoning_from_content_keeps_every_thinking_block_in_order() {
     );
     assert_eq!(reasoning_from_content(&content[1..2]), None);
 }
+
+// The flows builder reads a proposal out of `ToolResults` entries. A text
+// dialect records a round's results as one `[Tool results]` user row, so the
+// history projection must read that replay frame back as `ToolResults` rather
+// than leaving it as an opaque user `Chat` (the proposal was lost this way).
+#[test]
+fn history_projection_reads_text_dialect_replay_frame_as_tool_results() {
+    let messages = vec![
+        Message::user("build me a flow"),
+        Message::user(
+            "[Tool results]\n<tool_result id=\"call_1\">\n{\"type\":\"workflow_proposal\"}\n</tool_result>\n",
+        ),
+        Message::user("plain follow-up that merely mentions [Tool results]"),
+    ];
+
+    let projected = messages_to_history_projection(&messages);
+    assert_eq!(projected.len(), 3);
+    assert!(matches!(&projected[0], TranscriptEntry::Chat(_)));
+    match &projected[1] {
+        TranscriptEntry::ToolResults(results) => {
+            assert_eq!(results.len(), 1);
+            assert_eq!(results[0].tool_call_id, "call_1");
+            assert_eq!(results[0].content, "{\"type\":\"workflow_proposal\"}");
+        }
+        other => panic!("expected ToolResults, got {other:?}"),
+    }
+    assert!(matches!(&projected[2], TranscriptEntry::Chat(_)));
+}
+
+// Native tool rounds keep their structure instead of being flattened to chat.
+#[test]
+fn history_projection_keeps_native_tool_round_structure() {
+    let messages = vec![
+        Message::user("go"),
+        Message::Assistant(AssistantMessage {
+            id: None,
+            content: vec![],
+            tool_calls: vec![TaToolCall {
+                id: "c1".into(),
+                name: "echo".into(),
+                arguments: serde_json::json!({}),
+                invalid: None,
+            }],
+            usage: None,
+            origin: None,
+        }),
+        Message::Tool(ToolMessage {
+            tool_call_id: "c1".into(),
+            content: vec![ContentBlock::Text("ok".into())],
+            trusted_verbatim: false,
+            artifact: None,
+        }),
+    ];
+    let projected = messages_to_history_projection(&messages);
+    assert!(matches!(
+        projected.as_slice(),
+        [
+            TranscriptEntry::Chat(_),
+            TranscriptEntry::AssistantToolCalls { .. },
+            TranscriptEntry::ToolResults(_)
+        ]
+    ));
+}

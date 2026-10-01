@@ -5488,6 +5488,67 @@ const messages: TranslationMap = {
     'Cognee-Wissensgraph-Speicher, in der Cloud oder selbst gehostet.',
   'memoryEngine.engine.agentmemory.label': 'AgentMemory',
   'memoryEngine.engine.agentmemory.description': 'Ein AgentMemory-Server, den du selbst betreibst.',
+
+  // Chat failure copy: localized render of chat_error.message, keyed by chat_error.copy_key
+  'chat_error.codex_session_expired':
+    'Deine Codex-Sitzung ist abgelaufen. Verbinde sie bitte erneut unter Einstellungen → Integrationen.',
+  'chat_error.session_expired':
+    'Deine OpenHuman-Sitzung ist abgelaufen. Bitte melde dich erneut an, um fortzufahren.',
+  'chat_error.action_budget':
+    'Du hast das stündliche Aktionslimit von OpenHuman erreicht. Das ist eine lokale Sicherheitsgrenze, nicht die deines KI-Anbieters. Das Limit baut sich allmählich ab; du kannst in diesem Thread weiterchatten, und werkzeugintensive Schritte laufen wieder an, sobald sich das Limit auffüllt.',
+  'chat_error.max_iterations':
+    'Der Agent hat die maximale Anzahl an Werkzeugschritten für einen Durchlauf ausgeführt, ohne fertig zu werden. Das bedeutet meist, dass ein Werkzeug immer wieder fehlgeschlagen ist (oft wegen eines Ratenlimits bei einem Webabruf). Du kannst dieselbe Frage in diesem Thread erneut stellen, sobald das Limit aufgehoben ist.',
+  'chat_error.turn_timeout':
+    'Dieser Durchlauf hat sein Zeitbudget überschritten, ohne fertig zu werden, und wurde gestoppt, damit er nicht hängt. Das bedeutet meist, dass ein Werkzeugaufruf oder ein delegierter Subagent steckengeblieben ist. Du kannst deine Frage in diesem Thread erneut stellen.',
+  'chat_error.empty_response':
+    'Das Modell hat eine leere Antwort geliefert. Bitte versuche es erneut. Wenn das weiter passiert, probiere ein anderes Modell aus oder prüfe die Einrichtung unter Verbindungen → API-Schlüssel → LLM.',
+  'chat_error.chat_template_rejected':
+    'Die Chatvorlage dieses Modells hat die Anfrage abgelehnt. Es liegt nicht am Modell, an der Temperatur oder an deinem API-Schlüssel. Lokale Modelle ohne native Werkzeugaufrufe laufen über ihre eigene Chatvorlage, und manche Vorlagen verweigern die Nachrichtenform eines Werkzeugschritts. Starte einen neuen Chat, um den Verlauf zurückzusetzen, oder wähle ein Modell mit nativer Werkzeugunterstützung unter Verbindungen → API-Schlüssel → LLM.',
+  'chat_error.rate_limited':
+    'Dein KI-Anbieter begrenzt die Anfragen. Das ist ein vorübergehendes Limit beim Anbieter, keine Sperre des Threads. Du kannst es in diesem Thread erneut versuchen.',
+  'chat_error.rate_limited_billing':
+    'Dein KI-Anbieter lehnt Anfragen aus Abrechnungs- oder Tarifgründen ab (keine Credits mehr, Tariflimit oder nicht verfügbares Modell). Ein erneuter Versuch hilft nicht. Öffne Einstellungen, um aufzuladen, deinen Tarif zu erweitern oder ein anderes Modell zu wählen.',
+  'chat_error.managed_rate_limited':
+    'Dein KI-Anbieter begrenzt die Anfragen. Du kannst es in diesem Thread erneut versuchen.',
+  'chat_error.timeout':
+    'Die Anfrage hat das Zeitlimit überschritten. Bitte prüfe deine Verbindung und versuche es erneut.',
+  'chat_error.auth_error':
+    'Es gibt ein Authentifizierungsproblem mit dem KI-Anbieter. Bitte prüfe deinen API-Schlüssel in den Einstellungen.',
+  'chat_error.budget_exhausted':
+    'Du hast keine Credits mehr, deshalb kann ich das verwaltete (Cloud-)Modell gerade nicht ausführen. Du kannst Credits aufladen oder einen Tarif wählen, um fortzufahren. Oder stelle das Routing, falls du ein lokales Modell wie Ollama aktiviert hast, unter Verbindungen → API-Schlüssel → LLM auf „Verwenden Sie Ihre eigenen Modelle“ um.',
+  'chat_error.managed_budget_exhausted':
+    'Du hast keine Credits mehr. Lade auf oder wechsle in Einstellungen zu „Verwenden Sie Ihre eigenen Modelle“.',
+  'chat_error.provider_unavailable':
+    'Der KI-Anbieter ist vorübergehend nicht verfügbar. Bitte versuche es später erneut.',
+  'chat_error.managed_unavailable':
+    'Der KI-Dienst ist vorübergehend nicht verfügbar. Wir wurden benachrichtigt. Bitte versuche es gleich noch einmal.',
+  'chat_error.payload_too_large':
+    'Deine Nachricht oder dein Anhang ist für dieses Modell zu groß. Kürze sie oder entferne den Anhang, oder starte einen neuen Thread.',
+  'chat_error.context_overflow': 'Die Unterhaltung ist zu lang. Bitte starte einen neuen Chat.',
+  'chat_error.model_config_rejected':
+    'Dein KI-Anbieter hat das Modell oder die Temperatur der Anfrage abgelehnt. Prüfe dein Modell und das Routing unter Einstellungen → LLM.',
+  'chat_error.model_unavailable':
+    'Das ausgewählte Modell ist bei deinem Anbieter nicht verfügbar. Prüfe deine Modelleinstellungen.',
+  'chat_error.capability_unsupported':
+    'Dieses Modell kann keine Bilder verarbeiten. Entferne den Anhang oder wechsle unter Verbindungen → API-Schlüssel → LLM zu einem Modell mit Bildunterstützung.',
+  'chat_error.malformed_history':
+    'In dieser Unterhaltung ist ein vorübergehender Fehler aufgetreten. Wir haben ihn behoben. Bitte sende deine Nachricht erneut.',
+  'chat_error.request_rejected':
+    'Der KI-Anbieter hat die Anfrage abgelehnt. Meist liegt eine Inkompatibilität von Modell oder Parametern vor. Probiere unter Verbindungen → API-Schlüssel → LLM ein anderes Modell aus.',
+  'chat_error.managed_request_rejected':
+    'Die Anfrage wurde abgelehnt. Meist passen Modell und Parameter nicht zusammen. Probiere unter Verbindungen → API-Schlüssel → LLM ein anderes Modell aus.',
+  'chat_error.managed_malformed_request':
+    'Mit dieser Nachricht ist etwas schiefgelaufen. Formuliere sie um, oder starte einen neuen Thread, falls es weiter passiert.',
+  'chat_error.network':
+    'Die Verbindung zum KI-Dienst ist mitten in der Antwort abgebrochen, meist nach Ruhezustand oder Netzwerkwechsel. Bitte versuche es erneut.',
+  'chat_error.inference': 'Etwas ist schiefgelaufen. Bitte versuche es erneut.',
+  'chat_error.managed_internal':
+    'Etwas ist schiefgelaufen. Wir wurden benachrichtigt. Bitte versuche es erneut.',
+  'chat_error.retryHint.immediately': 'Du kannst es sofort erneut versuchen.',
+  'chat_error.retryHint.oneSecond': 'Versuche es in 1 Sekunde erneut.',
+  'chat_error.retryHint.seconds': 'Versuche es in {n} Sekunden erneut.',
+  'chat_error.retryHint.aboutMinute': 'Versuche es in etwa 1 Minute erneut.',
+  'chat_error.retryHint.aboutMinutes': 'Versuche es in etwa {n} Minuten erneut.',
 };
 
 export default messages;

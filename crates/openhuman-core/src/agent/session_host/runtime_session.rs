@@ -1329,20 +1329,7 @@ impl OpenHumanSessionHost {
             thread_id: self.thread_id.clone(),
             stream: self.on_progress.is_some(),
             session: self.session.clone(),
-            resume: if self.session.is_some() {
-                // Exact, identity-keyed resume. Unlike `LatestForAgent` it
-                // cannot splice a different thread's transcript into this
-                // turn, and the file it reads is the file the turn appends to.
-                ResumeMode::Session
-            } else if self
-                .runtime_session
-                .as_ref()
-                .is_some_and(|session| session.history().is_empty())
-            {
-                ResumeMode::LatestForAgent
-            } else {
-                ResumeMode::Never
-            },
+            resume: self.turn_resume_mode(),
             cancellation,
             run_context: context.into_tinyagents(root_config),
         };

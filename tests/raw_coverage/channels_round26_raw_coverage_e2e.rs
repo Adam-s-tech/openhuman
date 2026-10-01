@@ -5,6 +5,7 @@
 //!
 //! Yuanbao biz-codec cases live in `vendor/tinychannels` (`yuanbao/proto_biz.rs`).
 
+use crate::env_guard::EnvVarGuard;
 use axum::{
     body::Bytes,
     extract::State,
@@ -135,37 +136,6 @@ async fn telegram_media(
     )
 }
 
-struct EnvGuard {
-    key: &'static str,
-    prior: Option<String>,
-}
-
-impl EnvGuard {
-    fn set(key: &'static str, value: String) -> Self {
-        let prior = std::env::var(key).ok();
-        std::env::set_var(key, value);
-        Self { key, prior }
-    }
-}
-
-impl Drop for EnvGuard {
-    fn drop(&mut self) {
-        if let Some(value) = self.prior.take() {
-            std::env::set_var(self.key, value);
-        } else {
-            std::env::remove_var(self.key);
-        }
-    }
-}
-
-impl EnvGuard {
-    fn unset(key: &'static str) -> Self {
-        let prior = std::env::var(key).ok();
-        std::env::remove_var(key);
-        Self { key, prior }
-    }
-}
-
 fn env_lock() -> std::sync::MutexGuard<'static, ()> {
     static LOCK: &std::sync::OnceLock<std::sync::Mutex<()>> = &crate::SHARED_ENV_LOCK;
     LOCK.get_or_init(|| std::sync::Mutex::new(()))
@@ -177,8 +147,8 @@ fn env_lock() -> std::sync::MutexGuard<'static, ()> {
 async fn telegram_loopback_covers_reaction_text_fallback_and_media_send_paths() {
     let _env = env_lock();
     let (base, state) = spawn_telegram_mock().await;
-    let _guard = EnvGuard::set("OPENHUMAN_TELEGRAM_BOT_API_BASE", base);
-    let _legacy_guard = EnvGuard::unset("OPENHUMAN_TELEGRAM_API_BASE");
+    let _guard = EnvVarGuard::set("OPENHUMAN_TELEGRAM_BOT_API_BASE", base);
+    let _legacy_guard = EnvVarGuard::unset("OPENHUMAN_TELEGRAM_API_BASE");
     let channel = TelegramChannel::new("round26".to_string(), vec!["alice".to_string()], false);
 
     channel

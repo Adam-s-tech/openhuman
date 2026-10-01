@@ -11,6 +11,12 @@
 //! OPENHUMAN_LIVE_USER_ID="<user-id>" \
 //! cargo test --test live_routing_e2e -- --ignored --nocapture
 
+#[path = "support/env_guard.rs"]
+mod env_guard;
+#[path = "support/scripted_stack.rs"]
+mod scripted_stack;
+use env_guard::EnvVarGuard;
+use scripted_stack::assert_no_jsonrpc_error;
 use std::path::Path;
 use std::sync::{Mutex, OnceLock};
 use std::time::Duration;
@@ -26,33 +32,6 @@ use openhuman_rpc::server::build_core_http_router;
 static LIVE_E2E_ENV_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
 static LIVE_RPC_AUTH_INIT: OnceLock<()> = OnceLock::new();
 const TEST_RPC_TOKEN: &str = "live-routing-e2e-local-token";
-
-struct EnvVarGuard {
-    key: &'static str,
-    old: Option<String>,
-}
-
-impl EnvVarGuard {
-    fn set_to_path(key: &'static str, path: &Path) -> Self {
-        let old = std::env::var(key).ok();
-        // SAFETY: EnvVarGuard is only used in tests that first acquire
-        // live_e2e_env_lock(), which serializes process-global env mutations.
-        unsafe { std::env::set_var(key, path.as_os_str()) };
-        Self { key, old }
-    }
-}
-
-impl Drop for EnvVarGuard {
-    fn drop(&mut self) {
-        match &self.old {
-            // SAFETY: See EnvVarGuard::set_to_path; teardown runs under the same
-            // live_e2e_env_lock() critical section as setup.
-            Some(v) => unsafe { std::env::set_var(self.key, v) },
-            // SAFETY: Guarded by live_e2e_env_lock(), preventing concurrent env access.
-            None => unsafe { std::env::remove_var(self.key) },
-        }
-    }
-}
 
 fn live_e2e_env_lock() -> std::sync::MutexGuard<'static, ()> {
     let mutex = LIVE_E2E_ENV_LOCK.get_or_init(|| Mutex::new(()));
@@ -159,14 +138,6 @@ async fn read_sse_event_by_types(events_url: &str, target_events: &[&str]) -> Va
         }
     }
     panic!("SSE stream ended before receiving any target event: {target_events:?}");
-}
-
-fn assert_no_jsonrpc_error<'a>(v: &'a Value, context: &str) -> &'a Value {
-    if let Some(err) = v.get("error") {
-        panic!("{context}: JSON-RPC error: {err}");
-    }
-    v.get("result")
-        .unwrap_or_else(|| panic!("{context}: missing result: {v}"))
 }
 
 async fn serve_rpc() -> (std::net::SocketAddr, tokio::task::JoinHandle<()>) {

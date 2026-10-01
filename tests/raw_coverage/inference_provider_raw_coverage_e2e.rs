@@ -3,6 +3,7 @@
 //! These tests use only loopback HTTP mocks and temp workspaces. They do not
 //! require real Ollama, LM Studio, Piper, Whisper, Python, or model binaries.
 
+use crate::env_guard::EnvVarGuard;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
@@ -19,52 +20,22 @@ use openhuman_core::config::schema::cloud_providers::{
     AuthStyle as CloudAuthStyle, CloudProviderCreds,
 };
 use openhuman_core::config::Config;
-use openhuman_core::security::credentials::{
-    AuthService, APP_SESSION_PROVIDER, DEFAULT_AUTH_PROFILE_NAME,
-};
 use openhuman_core::inference::host_runtime::LocalAiService;
 use openhuman_core::inference::provider::factory::{
     auth_key_for_slug, create_chat_model_from_string_with_model_id, provider_for_role,
 };
 use openhuman_core::inference::provider::list_configured_models;
-use tinyinference_core::sanitize::sanitize_api_error;
+use openhuman_core::security::credentials::{
+    AuthService, APP_SESSION_PROVIDER, DEFAULT_AUTH_PROFILE_NAME,
+};
 
 #[derive(Clone, Default)]
 struct MockState {
     requests: Arc<Mutex<Vec<(String, Option<String>, Value)>>>,
 }
 
-struct EnvVarGuard {
-    key: &'static str,
-    previous: Option<String>,
-}
-
-impl EnvVarGuard {
-    fn set(key: &'static str, value: impl AsRef<std::ffi::OsStr>) -> Self {
-        let previous = std::env::var(key).ok();
-        // SAFETY: this test binary is run with --test-threads=1 in validation.
-        unsafe { std::env::set_var(key, value) };
-        Self { key, previous }
-    }
-}
-
-impl Drop for EnvVarGuard {
-    fn drop(&mut self) {
-        match &self.previous {
-            Some(value) => {
-                // SAFETY: this test binary is run with --test-threads=1 in validation.
-                unsafe { std::env::set_var(self.key, value) }
-            }
-            None => {
-                // SAFETY: this test binary is run with --test-threads=1 in validation.
-                unsafe { std::env::remove_var(self.key) }
-            }
-        }
-    }
-}
-
 // Serialize env mutation against every other aggregated suite via the
-// single crate-wide SHARED_ENV_LOCK (these tests use an `EnvGuard` struct
+// single crate-wide SHARED_ENV_LOCK (these tests use an `EnvVarGuard` struct
 // that does not itself hold a lock). Poison is recovered so a panic
 // elsewhere cannot wedge the suite.
 fn __shared_env_lock() -> std::sync::MutexGuard<'static, ()> {
@@ -74,7 +45,7 @@ fn __shared_env_lock() -> std::sync::MutexGuard<'static, ()> {
         .unwrap_or_else(|poisoned| poisoned.into_inner())
 }
 
- #[tokio::test]
+#[tokio::test]
 async fn provider_factory_and_model_listing_cover_cloud_local_and_invalid_shapes() {
     let _env_lock = __shared_env_lock();
     let (base, _state) = serve_mock().await;
@@ -168,32 +139,27 @@ async fn provider_factory_and_model_listing_cover_cloud_local_and_invalid_shapes
     assert_eq!(provider_for_role("chat", &config), "custom:demo-chat@0.4");
     // #6109: an unset route no longer borrows a sibling's BYOK provider; with no
     // `primary_cloud` configured it falls through to the managed backend.
-    assert_eq!(
-        provider_for_role("reasoning", &config),
-        "openhuman"
-    );
+    assert_eq!(provider_for_role("reasoning", &config), "openhuman");
 
     let (_provider, model) =
         create_chat_model_from_string_with_model_id("chat", "custom:demo-chat@0.4", &config, 0.7)
             .expect("cloud model");
     assert_eq!(model, "demo-chat");
 
-    let (_local_provider, local_model) =
-        create_chat_model_from_string_with_model_id(
-            "chat",
-            "ollama:gemma3:1b-it-qat@0.1",
-            &config,
-            0.7,
-        )
-        .expect("ollama model");
+    let (_local_provider, local_model) = create_chat_model_from_string_with_model_id(
+        "chat",
+        "ollama:gemma3:1b-it-qat@0.1",
+        &config,
+        0.7,
+    )
+    .expect("ollama model");
     assert_eq!(local_model, "gemma3:1b-it-qat");
 
-    let empty_model = match create_chat_model_from_string_with_model_id(
-        "chat", "ollama:", &config, 0.7,
-    ) {
-        Ok(_) => panic!("expected empty model error"),
-        Err(err) => err,
-    };
+    let empty_model =
+        match create_chat_model_from_string_with_model_id("chat", "ollama:", &config, 0.7) {
+            Ok(_) => panic!("expected empty model error"),
+            Err(err) => err,
+        };
     assert!(empty_model.to_string().contains("empty model"));
 
     let listed = list_configured_models("custom")
