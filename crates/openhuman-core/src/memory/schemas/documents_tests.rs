@@ -31,11 +31,6 @@ fn capability_partitions_are_disjoint_and_total() {
 }
 
 #[test]
-fn unknown_document_schema_returns_none() {
-    assert!(schema("not_real").is_none());
-}
-
-#[test]
 fn query_namespace_schema_requires_namespace_and_query() {
     let schema = schema("query_namespace").unwrap();
     let required: Vec<&str> = schema

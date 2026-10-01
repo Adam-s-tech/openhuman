@@ -57,7 +57,6 @@ The global timeout governs non-scripting tools only, since a hung network or MCP
 - `crates/openhuman-core/src/agent/tools/delegate.rs`: bounds the delegated provider chat call with `tool_execution_timeout_secs`.
 - `crates/openhuman-core/src/config/ops/agent.rs`: `apply_agent_settings` calls `set_tool_timeout_secs` after persisting; `get_agent_settings` reports `effective_timeout_secs`/`env_override`.
 - `crates/openhuman-core/src/core/runtime/subscribers.rs`: `register_domain_subscribers` seeds the runtime value from config on the always-on core boot path, so channel-less or web-chat-only cores get the configured timeout too (#5027).
-- `crates/openhuman-core/src/agent/harness/harness_gap_tests.rs`: pins `parse_tool_timeout_secs` default and boundary behavior.
 
 ## Notes and gotchas
 

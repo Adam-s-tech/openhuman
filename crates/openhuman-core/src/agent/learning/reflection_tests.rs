@@ -1,85 +1,8 @@
 use super::*;
 use crate::agent::hooks::{ToolCallRecord, TurnContext};
-use crate::memory::{Memory, MemoryCategory, MemoryEntry};
-use async_trait::async_trait;
-use parking_lot::Mutex;
-use std::collections::HashMap;
+use crate::memory::test_support::RetainingMemory;
+use crate::memory::{Memory, MemoryCategory};
 use std::sync::Arc;
-
-#[derive(Default)]
-struct MockMemory {
-    entries: Mutex<HashMap<String, MemoryEntry>>,
-}
-
-#[async_trait]
-impl Memory for MockMemory {
-    fn name(&self) -> &str {
-        "mock"
-    }
-
-    async fn store(
-        &self,
-        namespace: &str,
-        key: &str,
-        content: &str,
-        category: MemoryCategory,
-        session_id: Option<&str>,
-    ) -> anyhow::Result<()> {
-        self.entries.lock().insert(
-            key.to_string(),
-            MemoryEntry {
-                id: key.to_string(),
-                key: key.to_string(),
-                content: content.to_string(),
-                namespace: Some(namespace.to_string()),
-                category,
-                timestamp: "now".into(),
-                session_id: session_id.map(str::to_string),
-                score: None,
-                taint: Default::default(),
-            },
-        );
-        Ok(())
-    }
-
-    async fn recall(
-        &self,
-        _query: &str,
-        _limit: usize,
-        _opts: crate::memory::RecallOpts<'_>,
-    ) -> anyhow::Result<Vec<MemoryEntry>> {
-        Ok(Vec::new())
-    }
-
-    async fn get(&self, _namespace: &str, key: &str) -> anyhow::Result<Option<MemoryEntry>> {
-        Ok(self.entries.lock().get(key).cloned())
-    }
-
-    async fn list(
-        &self,
-        _namespace: Option<&str>,
-        _category: Option<&MemoryCategory>,
-        _session_id: Option<&str>,
-    ) -> anyhow::Result<Vec<MemoryEntry>> {
-        Ok(self.entries.lock().values().cloned().collect())
-    }
-
-    async fn forget(&self, _namespace: &str, key: &str) -> anyhow::Result<bool> {
-        Ok(self.entries.lock().remove(key).is_some())
-    }
-
-    async fn namespace_summaries(&self) -> anyhow::Result<Vec<crate::memory::NamespaceSummary>> {
-        Ok(Vec::new())
-    }
-
-    async fn count(&self) -> anyhow::Result<usize> {
-        Ok(self.entries.lock().len())
-    }
-
-    async fn health_check(&self) -> bool {
-        true
-    }
-}
 
 fn reflection_config() -> LearningConfig {
     LearningConfig {
@@ -145,7 +68,7 @@ fn slugify_produces_clean_keys() {
 
 #[test]
 fn should_reflect_requires_learning_and_complexity() {
-    let memory: Arc<dyn Memory> = Arc::new(MockMemory::default());
+    let memory: Arc<dyn Memory> = Arc::new(RetainingMemory::default());
     let hook = ReflectionHook::new(
         reflection_config(),
         Arc::new(Config::default()),
@@ -159,7 +82,7 @@ fn should_reflect_requires_learning_and_complexity() {
     let hook = ReflectionHook::new(
         disabled,
         Arc::new(Config::default()),
-        Arc::new(MockMemory::default()),
+        Arc::new(RetainingMemory::default()),
         None,
     );
     assert!(!hook.should_reflect(&reflective_turn()));
@@ -170,7 +93,7 @@ fn should_reflect_requires_learning_and_complexity() {
     let hook = ReflectionHook::new(
         reflection_config(),
         Arc::new(Config::default()),
-        Arc::new(MockMemory::default()),
+        Arc::new(RetainingMemory::default()),
         None,
     );
     assert!(!hook.should_reflect(&simple));
@@ -178,7 +101,7 @@ fn should_reflect_requires_learning_and_complexity() {
 
 #[test]
 fn build_reflection_prompt_includes_tool_calls_and_truncation() {
-    let memory: Arc<dyn Memory> = Arc::new(MockMemory::default());
+    let memory: Arc<dyn Memory> = Arc::new(RetainingMemory::default());
     let hook = ReflectionHook::new(
         reflection_config(),
         Arc::new(Config::default()),
@@ -203,7 +126,7 @@ fn build_reflection_prompt_includes_tool_calls_and_truncation() {
 
 #[test]
 fn build_reflection_prompt_includes_output_language_directive() {
-    let memory: Arc<dyn Memory> = Arc::new(MockMemory::default());
+    let memory: Arc<dyn Memory> = Arc::new(RetainingMemory::default());
     let mut config = Config::default();
     config.output_language = Some("zh-CN".into());
     let hook = ReflectionHook::new(reflection_config(), Arc::new(config), memory, None);
@@ -219,7 +142,7 @@ fn session_key_and_counter_management_work() {
     let hook = ReflectionHook::new(
         reflection_config(),
         Arc::new(Config::default()),
-        Arc::new(MockMemory::default()),
+        Arc::new(RetainingMemory::default()),
         None,
     );
 
@@ -238,7 +161,7 @@ fn session_key_and_counter_management_work() {
 
 #[tokio::test]
 async fn store_reflection_persists_all_categories() {
-    let memory_impl = Arc::new(MockMemory::default());
+    let memory_impl = Arc::new(RetainingMemory::default());
     let memory: Arc<dyn Memory> = memory_impl.clone();
     let hook = ReflectionHook::new(
         reflection_config(),
@@ -262,7 +185,13 @@ async fn store_reflection_persists_all_categories() {
     .await
     .unwrap();
 
-    let keys: Vec<String> = memory_impl.entries.lock().keys().cloned().collect();
+    let keys: Vec<String> = memory_impl
+        .list(None, None, None)
+        .await
+        .unwrap()
+        .into_iter()
+        .map(|e| e.key)
+        .collect();
     assert!(keys.iter().any(|key| key.starts_with("obs/")));
     assert!(keys.iter().any(|key| key == "pat/pattern_a"));
     assert!(keys.iter().any(|key| key == "pref/pref_a"));
@@ -277,7 +206,7 @@ async fn store_reflection_persists_every_pattern_and_pref_concurrently() {
     // Regression guard for the `join_all` batching: every independent
     // pattern / preference write must land regardless of completion order
     // (the old code awaited them one at a time).
-    let memory_impl = Arc::new(MockMemory::default());
+    let memory_impl = Arc::new(RetainingMemory::default());
     let memory: Arc<dyn Memory> = memory_impl.clone();
     let hook = ReflectionHook::new(
         reflection_config(),
@@ -299,7 +228,13 @@ async fn store_reflection_persists_every_pattern_and_pref_concurrently() {
     .await
     .unwrap();
 
-    let keys: Vec<String> = memory_impl.entries.lock().keys().cloned().collect();
+    let keys: Vec<String> = memory_impl
+        .list(None, None, None)
+        .await
+        .unwrap()
+        .into_iter()
+        .map(|e| e.key)
+        .collect();
     for expected in [
         "pat/pattern_one",
         "pat/pattern_two",
@@ -321,7 +256,7 @@ async fn store_reflection_persists_every_pattern_and_pref_concurrently() {
 
 #[tokio::test]
 async fn persist_reflection_writes_to_dedicated_namespace_and_category() {
-    let memory_impl = Arc::new(MockMemory::default());
+    let memory_impl = Arc::new(RetainingMemory::default());
     let memory: Arc<dyn Memory> = memory_impl.clone();
     let hook = ReflectionHook::new(
         reflection_config(),
@@ -334,9 +269,9 @@ async fn persist_reflection_writes_to_dedicated_namespace_and_category() {
         .await
         .unwrap();
 
-    let entries = memory_impl.entries.lock();
+    let entries = memory_impl.list(None, None, None).await.unwrap();
     let reflection = entries
-        .values()
+        .iter()
         .find(|e| e.key.starts_with("ref/"))
         .expect("reflection entry");
     assert_eq!(reflection.namespace.as_deref(), Some(REFLECTIONS_NAMESPACE));
@@ -353,7 +288,7 @@ async fn on_turn_complete_dedupes_reflections_across_heuristic_and_llm_paths() {
     // `user_reflections` array repeats the same sentence the heuristic
     // would also lift out of the user message.
 
-    let memory_impl = Arc::new(MockMemory::default());
+    let memory_impl = Arc::new(RetainingMemory::default());
     let memory: Arc<dyn Memory> = memory_impl.clone();
     let stub_model = Arc::new(tinyagents_harness::testkit::ScriptedModel::replies(vec![
         r#"{"observations":[],"patterns":[],"user_preferences":[],
@@ -382,9 +317,10 @@ async fn on_turn_complete_dedupes_reflections_across_heuristic_and_llm_paths() {
     hook.on_turn_complete(&turn).await.unwrap();
 
     let ref_count = memory_impl
-        .entries
-        .lock()
-        .values()
+        .list(None, None, None)
+        .await
+        .unwrap()
+        .iter()
         .filter(|e| e.key.starts_with("ref/"))
         .count();
     assert_eq!(
@@ -435,7 +371,7 @@ fn extract_reflection_cues_dedupes_identical_sentences() {
 
 #[tokio::test]
 async fn on_turn_complete_persists_heuristic_reflection_even_when_complexity_low() {
-    let memory_impl = Arc::new(MockMemory::default());
+    let memory_impl = Arc::new(RetainingMemory::default());
     let memory: Arc<dyn Memory> = memory_impl.clone();
     // Pin the source to local + threshold high so the LLM path is
     // skipped and we observe ONLY the heuristic capture.
@@ -458,7 +394,13 @@ async fn on_turn_complete_persists_heuristic_reflection_even_when_complexity_low
     // even without a provider — only the heuristic should write.
     hook.on_turn_complete(&turn).await.unwrap();
 
-    let keys: Vec<String> = memory_impl.entries.lock().keys().cloned().collect();
+    let keys: Vec<String> = memory_impl
+        .list(None, None, None)
+        .await
+        .unwrap()
+        .into_iter()
+        .map(|e| e.key)
+        .collect();
     assert!(
         keys.iter().any(|k| k.starts_with("ref/")),
         "heuristic capture should persist a reflection without LLM round-trip"
@@ -467,7 +409,7 @@ async fn on_turn_complete_persists_heuristic_reflection_even_when_complexity_low
 
 #[tokio::test]
 async fn on_turn_complete_rolls_back_counter_when_reflection_call_fails() {
-    let memory: Arc<dyn Memory> = Arc::new(MockMemory::default());
+    let memory: Arc<dyn Memory> = Arc::new(RetainingMemory::default());
     let hook = ReflectionHook::new(
         reflection_config(),
         Arc::new(Config::default()),
@@ -492,7 +434,7 @@ async fn on_turn_complete_rolls_back_counter_when_reflection_call_fails() {
 async fn on_turn_complete_emits_candidates_to_buffer_for_heuristic_cues() {
     use crate::agent::learning::candidate::{self, FacetClass};
 
-    let memory: Arc<dyn Memory> = Arc::new(MockMemory::default());
+    let memory: Arc<dyn Memory> = Arc::new(RetainingMemory::default());
     // Use local reflection source with complexity gated high so only the heuristic
     // fast-path runs (no LLM round-trip needed).
     let mut cfg = reflection_config();
@@ -532,7 +474,7 @@ async fn on_turn_complete_emits_candidates_to_buffer_for_heuristic_cues() {
 async fn on_turn_complete_emits_style_candidates_from_llm_preferences() {
     use crate::agent::learning::candidate::{self, FacetClass};
 
-    let memory: Arc<dyn Memory> = Arc::new(MockMemory::default());
+    let memory: Arc<dyn Memory> = Arc::new(RetainingMemory::default());
     let stub_model = Arc::new(tinyagents_harness::testkit::ScriptedModel::replies(vec![
         r#"{"observations":[],"patterns":[],"user_preferences":["verbosity=terse"],"user_reflections":[]}"#,
     ]));

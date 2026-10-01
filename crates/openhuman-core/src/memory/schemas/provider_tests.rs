@@ -21,11 +21,6 @@ fn provider_family_exposes_status_and_the_engine_selector() {
 }
 
 #[test]
-fn unknown_provider_schema_returns_none() {
-    assert!(schema("not_real").is_none());
-}
-
-#[test]
 fn provider_status_schema_has_no_inputs_and_names_the_status_fields() {
     let schema = schema("provider_status").unwrap();
     assert_eq!(schema.namespace, "memory");

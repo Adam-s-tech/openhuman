@@ -1,68 +1,10 @@
 use super::*;
 use crate::agent::prompts::LearnedContextData;
-use crate::memory::{Memory, MemoryCategory, MemoryEntry};
+use crate::memory::test_support::NoopMemory;
 use async_trait::async_trait;
 use std::collections::HashSet;
 use std::path::Path;
 use std::sync::Arc;
-
-struct NoopMemory;
-
-#[async_trait]
-impl Memory for NoopMemory {
-    fn name(&self) -> &str {
-        "noop"
-    }
-
-    async fn store(
-        &self,
-        _namespace: &str,
-        _key: &str,
-        _content: &str,
-        _category: MemoryCategory,
-        _session_id: Option<&str>,
-    ) -> anyhow::Result<()> {
-        Ok(())
-    }
-
-    async fn recall(
-        &self,
-        _query: &str,
-        _limit: usize,
-        _opts: crate::memory::RecallOpts<'_>,
-    ) -> anyhow::Result<Vec<MemoryEntry>> {
-        Ok(Vec::new())
-    }
-
-    async fn get(&self, _namespace: &str, _key: &str) -> anyhow::Result<Option<MemoryEntry>> {
-        Ok(None)
-    }
-
-    async fn list(
-        &self,
-        _namespace: Option<&str>,
-        _category: Option<&MemoryCategory>,
-        _session_id: Option<&str>,
-    ) -> anyhow::Result<Vec<MemoryEntry>> {
-        Ok(Vec::new())
-    }
-
-    async fn forget(&self, _namespace: &str, _key: &str) -> anyhow::Result<bool> {
-        Ok(false)
-    }
-
-    async fn namespace_summaries(&self) -> anyhow::Result<Vec<crate::memory::NamespaceSummary>> {
-        Ok(Vec::new())
-    }
-
-    async fn count(&self) -> anyhow::Result<usize> {
-        Ok(0)
-    }
-
-    async fn health_check(&self) -> bool {
-        true
-    }
-}
 
 fn prompt_context(learned: LearnedContextData) -> PromptContext<'static> {
     let visible_tool_names = Box::leak(Box::new(HashSet::new()));
