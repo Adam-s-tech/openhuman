@@ -1,6 +1,9 @@
 use crate::config::schema::{CapabilityProviderConfig, CapabilityProviderTrustState, Config};
 
-use super::CapabilityProviderRegistry;
+use super::{
+    capability_provider_by_id, is_capability_provider_trusted_enabled, list_capability_providers,
+    normalize_capability_provider_id, CapabilityProviderRegistry,
+};
 
 fn config_with(providers: Vec<CapabilityProviderConfig>) -> Config {
     Config {
@@ -143,5 +146,8 @@ fn blank_display_name_falls_back_to_normalized_id_and_lookups_normalize() {
             .id,
         "team-tools"
     );
-    assert!(is_capability_provider_trusted_enabled(&config, "team tools"));
+    assert!(is_capability_provider_trusted_enabled(
+        &config,
+        "team tools"
+    ));
 }
