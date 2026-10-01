@@ -126,7 +126,8 @@ function testFileName(stem, modName) {
   return `${stem}_${modName}_tests.rs`;
 }
 
-function dedent(body, bodyStart, code) {
+function dedent(body, bodyStart, code, strip) {
+  const pad = " ".repeat(strip);
   let offset = bodyStart;
   return body
     .split("\n")
@@ -134,18 +135,24 @@ function dedent(body, bodyStart, code) {
       const inCode = code[offset] === 1;
       offset += line.length + 1;
       if (!inCode) return line;
-      if (line.startsWith("    ")) return line.slice(4);
-      return line.startsWith("\t") ? line.slice(1) : line;
+      if (line.startsWith(pad)) return line.slice(strip);
+      return strip === 4 && line.startsWith("\t") ? line.slice(1) : line;
     })
     .join("\n");
 }
 
+// Crate roots and `mod.rs` own their directory; any other file `foo.rs` owns `foo/`.
+const MOD_RS_STEMS = new Set(["mod", "lib", "main"]);
+
 /**
- * Externalize every top-level inline test module in `src`.
+ * Externalize every inline test module in `src`.
  *
  * `stem` is the source file's name without `.rs`; `taken` holds sibling file
- * names that already exist. Returns the rewritten source, the moved bodies
- * (`{ name, fileName, body, line }`) and `skipped` modules that need a human.
+ * names that already exist. A module nested in other inline modules (the
+ * `mod imp { ... }` wrapper around platform code) gets a `#[path]` that climbs
+ * out of the directories those modules imply. Returns the rewritten source,
+ * the moved bodies (`{ name, fileName, body, line }`) and `skipped` modules
+ * that need a human.
  */
 export function externalizeSource(src, stem, taken = new Set()) {
   const code = codeMask(src);
@@ -172,10 +179,17 @@ export function externalizeSource(src, stem, taken = new Set()) {
   const skipped = [];
   const edits = [];
   const regions = [];
-  const nested = [];
   const used = new Set(taken);
 
-  for (const m of skel.matchAll(MOD_OPEN)) {
+  const inlineMods = [...skel.matchAll(MOD_OPEN)].map((m) => {
+    const open = m.index + m[0].length - 1;
+    return { m, open, close: matchBrace(skel, open) };
+  });
+  const enclosing = (index) => inlineMods.filter((o) => o.open < index && o.close > index);
+
+  // Collect the test modules first, then move the top-level ones before the nested.
+  const candidates = [];
+  for (const { m, open, close } of inlineMods) {
     const line = lineOf(m.index);
     // Walk up over the attributes and comments that belong to this `mod`,
     // joining a multi-line attribute into one logical entry for the cfg check.
@@ -199,16 +213,21 @@ export function externalizeSource(src, stem, taken = new Set()) {
         break;
       }
     }
-    const isTest = logical.some((a) => CFG_TEST_ATTR.test(a) && !CFG_NOT_TEST.test(a));
-    if (!isTest) continue;
-    if (m[1] !== "") {
-      nested.push({ index: m.index, line: line + 1, name: m[3] });
+    if (logical.some((a) => CFG_TEST_ATTR.test(a) && !CFG_NOT_TEST.test(a))) {
+      candidates.push({ m, open, close, line, attrs, first });
+    }
+  }
+  candidates.sort((a, b) => (a.m[1] === "" ? 0 : 1) - (b.m[1] === "" ? 0 : 1) || a.m.index - b.m.index);
+
+  for (const { m, open, close, line, attrs, first } of candidates) {
+    const indent = m[1];
+    if (regions.some(([from, to]) => m.index > from && m.index < to)) continue;
+    const reject = (reason) => skipped.push({ line: line + 1, reason: `\`mod ${m[3]}\`: ${reason}` });
+    const chain = enclosing(m.index);
+    if (indent !== "" && (indent.length !== 4 * chain.length || chain.some((o) => o.close < 0))) {
+      reject("nested somewhere other than directly inside inline modules; move it by hand");
       continue;
     }
-
-    const open = m.index + m[0].length - 1;
-    const close = matchBrace(skel, open);
-    const reject = (reason) => skipped.push({ line: line + 1, reason: `\`mod ${m[3]}\`: ${reason}` });
     if (close < 0) {
       reject("unbalanced braces");
       continue;
@@ -242,9 +261,10 @@ export function externalizeSource(src, stem, taken = new Set()) {
     }
     used.add(fileName);
 
-    let body = dedent(src.slice(bodyStart, closeLineStart), bodyStart, code).replace(/^\n+/, "");
+    const climb = chain.length === 0 ? 0 : chain.length + (MOD_RS_STEMS.has(stem) ? 0 : 1);
+    let body = dedent(src.slice(bodyStart, closeLineStart), bodyStart, code, indent.length + 4).replace(/^\n+/, "");
     body = `${body.replace(/\s+$/, "")}\n`;
-    const declaration = [...attrs, `#[path = "${fileName}"]`, `${m[2]};`].join("\n");
+    const declaration = [...attrs, `${indent}#[path = "${"../".repeat(climb)}${fileName}"]`, `${indent}${m[2]};`].join("\n");
     edits.push({
       start: lineStarts[first],
       end: closeEol < src.length ? closeEol + 1 : closeEol,
@@ -252,11 +272,6 @@ export function externalizeSource(src, stem, taken = new Set()) {
     });
     regions.push([m.index, close]);
     moves.push({ name: m[3], fileName, body, line: line + 1 });
-  }
-
-  for (const n of nested) {
-    if (regions.some(([from, to]) => n.index > from && n.index < to)) continue;
-    skipped.push({ line: n.line, reason: `indented \`mod ${n.name}\` is nested; move it by hand` });
   }
 
   let out = src;
