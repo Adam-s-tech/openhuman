@@ -1,7 +1,7 @@
 use crate::memory::test_support::NoopMemory;
 use super::*;
 use crate::agent::prompts::LearnedContextData;
-use crate::memory::{Memory, MemoryCategory, MemoryEntry};
+use crate::memory::{Memory};
 use async_trait::async_trait;
 use std::collections::HashSet;
 use std::path::Path;

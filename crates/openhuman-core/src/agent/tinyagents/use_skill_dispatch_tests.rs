@@ -19,7 +19,6 @@ use crate::agent::harness::definition::AgentDefinitionRegistry;
 use crate::agent::harness::ParentExecutionContext;
 use crate::agent::prompts::ToolCallFormat;
 use crate::agent::tinyagents::tools::CanonicalSharedToolAdapter;
-use crate::memory::{Memory, MemoryCategory, MemoryEntry, NamespaceSummary, RecallOpts};
 use async_trait::async_trait;
 use serde_json::json;
 use std::path::Path;

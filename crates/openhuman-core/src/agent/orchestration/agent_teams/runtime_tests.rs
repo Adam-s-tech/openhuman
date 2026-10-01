@@ -19,7 +19,6 @@ use crate::agent::harness::definition::AgentDefinitionRegistry;
 use crate::agent::harness::fork_context::{with_parent_context, ParentExecutionContext};
 use crate::agent::prompts::ToolCallFormat;
 use crate::config::{AgentConfig, Config};
-use crate::memory::{Memory, MemoryCategory, MemoryEntry, NamespaceSummary, RecallOpts};
 use tinyagents_orchestration::teams::{SessionTeamLedger, TeamService};
 use tinyagents_session::run_ledger::{
     self, AgentTeamMemberStatus, AgentTeamMemberUpsert, AgentTeamStatus, AgentTeamTaskStatus,

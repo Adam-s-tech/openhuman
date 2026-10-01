@@ -1,10 +1,7 @@
 use crate::memory::test_support::RetainingMemory;
 use super::*;
 use crate::agent::hooks::{ToolCallRecord, TurnContext};
-use crate::memory::{Memory, MemoryCategory, MemoryEntry};
-use async_trait::async_trait;
-use parking_lot::Mutex;
-use std::collections::HashMap;
+use crate::memory::{Memory, MemoryCategory};
 use std::sync::Arc;
 
 fn reflection_config() -> LearningConfig {

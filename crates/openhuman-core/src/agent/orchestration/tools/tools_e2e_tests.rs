@@ -5,7 +5,7 @@ use crate::agent::harness::{with_parent_context, ParentExecutionContext};
 use crate::agent::messages::ChatMessage;
 use crate::agent::prompts::{ConnectedIntegration, ToolCallFormat};
 use crate::memory::conversations;
-use crate::memory::{Memory, MemoryCategory, MemoryEntry, NamespaceSummary, RecallOpts};
+use crate::memory::{Memory};
 use async_trait::async_trait;
 use parking_lot::Mutex;
 use serde_json::json;

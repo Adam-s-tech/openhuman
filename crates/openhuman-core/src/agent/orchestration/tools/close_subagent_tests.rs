@@ -3,7 +3,6 @@ use super::*;
 use crate::agent::harness::fork_context::ParentExecutionContext;
 use crate::agent::prompts::ToolCallFormat;
 use crate::config::AgentConfig;
-use crate::memory::{Memory, MemoryCategory, MemoryEntry, NamespaceSummary, RecallOpts};
 use std::collections::HashSet;
 use std::path::Path;
 use std::sync::Arc;
