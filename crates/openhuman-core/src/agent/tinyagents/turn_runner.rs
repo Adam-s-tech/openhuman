@@ -641,41 +641,26 @@ async fn run_turn_via_tinyagents_inner(
         .with_replayed_prefix(request_base_len.saturating_sub(1)) // #6710: only the new input is screened
         .with_runtime(InvocationRuntime::new(harness));
         let state = ();
-        if streaming {
-            let stream = root_hosted_harness()
-                .invoke_agent_stream(invocation, &state)
-                .await;
-            match stream {
-                Ok(mut stream) => {
-                    let mut terminal = None;
-                    while let Some(item) = stream.next().await {
-                        match item {
-                            AgentStreamItem::Event(_) => {}
-                            AgentStreamItem::Completed(run) => {
-                                terminal = Some(Ok(*run));
-                                break;
-                            }
-                            AgentStreamItem::Failed { error, .. } => {
-                                terminal =
-                                    Some(Err(tinyagents_harness::TinyAgentsError::Model(error)));
-                                break;
-                            }
-                        }
-                    }
-                    terminal.unwrap_or_else(|| {
-                        Err(tinyagents_harness::TinyAgentsError::Model(
-                            "hosted agent stream ended without terminal run".to_string(),
-                        ))
-                    })
-                }
-                Err(error) => Err(error),
-            }
+        // Both surfaces return the harness's typed `HostedError`, so a timeout,
+        // a limit and a provider failure keep their kind through the turn error
+        // and `web_errors` can classify them (#6375). Draining
+        // `invoke_agent_stream` instead would collapse every failure to one
+        // sanitized string. Streaming still drives every model call through
+        // `ChatModel::stream`; this path reads only the terminal run.
+        let hosted = root_hosted_harness();
+        let outcome = if streaming {
+            hosted.invoke_agent_streaming(invocation, &state).await
         } else {
-            root_hosted_harness()
-                .invoke_agent(invocation, &state)
-                .await
-                .map_err(|error| tinyagents_harness::TinyAgentsError::Model(error.to_string()))
-        }
+            hosted.invoke_agent(invocation, &state).await
+        };
+        outcome.map_err(|error| {
+            tracing::debug!(
+                kind = ?error.kind,
+                streaming,
+                "[tinyagents] hosted root turn failed; keeping the typed kind"
+            );
+            tinyagents_harness::TinyAgentsError::from(error)
+        })
     } else if streaming {
         let mut stream = Box::pin(harness.invoke_stream_in_context(&(), ctx, input));
         let mut terminal = None;
