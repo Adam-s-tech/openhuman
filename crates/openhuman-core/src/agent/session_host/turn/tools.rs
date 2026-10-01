@@ -1,7 +1,6 @@
 //! Tool execution and Composio delegation refresh.
 
 use super::super::types::OpenHumanSessionHost;
-use super::newly_connected_slugs;
 use crate::agent::progress::AgentProgress;
 
 use std::sync::Arc;
