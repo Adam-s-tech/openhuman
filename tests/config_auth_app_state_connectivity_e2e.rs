@@ -33,12 +33,8 @@ use openhuman_core::config::{
 use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
 use openhuman_core::core::events::DomainEvent;
 use openhuman_core::desktop::app_state::app_state_schemas;
-use openhuman_core::platform::connectivity::{
-    };
 use openhuman_core::security::credentials::bus::SessionExpiredSubscriber;
 use openhuman_core::security::credentials::profiles::{AuthProfile, AuthProfilesStore, TokenSet};
-use openhuman_core::security::credentials::session_support::{
-    };
 use openhuman_core::security::credentials::{
     clear_composio_api_key, decrypt_secret, encrypt_secret, get_composio_api_key,
     list_provider_credentials_by_prefix, normalize_provider, rpc_store_composio_api_key,

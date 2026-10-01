@@ -1,8 +1,8 @@
 //! Inference provider end-to-end tests using wiremock.
 //!
-//! Non-streaming request/response, auth-header and temperature wire behavior of
-//! `OpenAiModel` is covered in tinyinference-llm (`providers/openai/wire_test.rs`);
-//! the streaming test below drives the SSE path over a real wiremock socket.
+//! Non-streaming request/response, auth-header, temperature and SSE streaming
+//! behavior of `OpenAiModel` is covered in tinyinference-llm
+//! (`providers/openai/{wire_test,test}.rs`).
 //!
 //! The `/v1/chat/completions` and `/v1/models` HTTP endpoint tests verify the
 //! full axum router layer (auth middleware + provider routing) end-to-end.
@@ -16,14 +16,9 @@ use axum::http::{header, Method, Request, StatusCode};
 use serde_json::{json, Value};
 use tempfile::tempdir;
 use tower::ServiceExt;
-use wiremock::matchers::{method, path};
-use wiremock::{Mock, MockServer, ResponseTemplate};
 
 use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
 use openhuman_rpc::server::build_core_http_router;
-use tinyinference_llm::message::Message;
-use tinyinference_llm::model::{ChatModel, ModelRequest, ModelStreamItem};
-use tinyinference_llm::providers::openai::{AuthStyle, OpenAiModel};
 
 // ── Environment serialisation lock ───────────────────────────────────────────
 //
@@ -54,13 +49,6 @@ fn ensure_rpc_auth() {
         // file must remain readable for all subsequent auth checks.
         std::mem::forget(tmp);
     });
-}
-
-fn openai_model(provider: &str, endpoint: &str, api_key: &str, auth: AuthStyle) -> OpenAiModel {
-    OpenAiModel::new(api_key)
-        .with_provider(provider)
-        .with_base_url(endpoint)
-        .with_auth_style(auth)
 }
 
 // ── Helper: build an env-isolated Config pointing at tempdir ─────────────────
