@@ -251,19 +251,16 @@ impl OpenHumanSessionHost {
     /// or mutable `TranscriptEntry` accumulator in the host would recreate
     /// the session state now owned by `tinyagents_runtime::Session`.
     pub fn history(&self) -> Vec<TranscriptEntry> {
+        // `messages_to_conversation` keeps the tool-call structure
+        // (`AssistantToolCalls`) and coalesces tool messages into
+        // `ToolResults` batches. Callers such as the flows builder
+        // (`extract_workflow_proposal`), the trail-off backstop and
+        // `count_iterations` match those variants, so flattening every message
+        // into `TranscriptEntry::Chat` made them unreachable.
         self.runtime_session
             .as_ref()
             .map(|session| {
-                session
-                    .history()
-                    .iter()
-                    .filter_map(crate::agent::message_convert::message_to_native_chat_message)
-                    .map(|row| {
-                        TranscriptEntry::Chat(
-                            crate::agent::message_convert::row_to_dialect_message(row),
-                        )
-                    })
-                    .collect()
+                crate::agent::message_convert::messages_to_conversation(session.history())
             })
             .unwrap_or_default()
     }
