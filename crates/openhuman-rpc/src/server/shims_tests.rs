@@ -1,7 +1,4 @@
 use std::ffi::OsString;
-use std::time::Duration;
-
-use tokio_util::sync::CancellationToken;
 
 use crate::server::testing::EnvVarGuard;
 
