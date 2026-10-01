@@ -338,7 +338,8 @@ impl OpenHumanDefinitionRegistry {
                     if let (Some(config), Some(registered)) =
                         (self.config.as_deref(), self.registered_tools.as_deref())
                     {
-                        for name in crate::inference::tokenjuice::companion_tool_names(&def.id, config)
+                        for name in
+                            crate::inference::tokenjuice::companion_tool_names(&def.id, config)
                         {
                             if registered.iter().any(|r| r == name) {
                                 names.push(name.to_string());

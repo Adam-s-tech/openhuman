@@ -64,10 +64,7 @@ pub fn summarizes_tool_output(agent_id: &str, config: &crate::config::Config) ->
 /// advertised in the prompt and the tool declarations yet answered as an
 /// unknown tool at dispatch, so the model burns its failure budget on a tool it
 /// was told to call.
-pub fn companion_tool_names(
-    agent_id: &str,
-    config: &crate::config::Config,
-) -> Vec<&'static str> {
+pub fn companion_tool_names(agent_id: &str, config: &crate::config::Config) -> Vec<&'static str> {
     let mut names: Vec<&'static str> = Vec::new();
     if config.context.compaction_enabled || summarizes_tool_output(agent_id, config) {
         names.extend(RECOVERY_TOOL_VISIBLE.iter().copied());
