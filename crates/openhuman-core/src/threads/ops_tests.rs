@@ -13,28 +13,7 @@ use std::ffi::OsString;
 use std::path::Path;
 use tinyagents_harness::title::{build_title_prompt, THREAD_TITLE_SYSTEM_PROMPT};
 use tinyagents_session::turn_state::TurnState;
-
-struct EnvVarGuard {
-    key: &'static str,
-    old: Option<OsString>,
-}
-
-impl EnvVarGuard {
-    fn set_to_path(key: &'static str, value: &Path) -> Self {
-        let old = std::env::var_os(key);
-        std::env::set_var(key, value.as_os_str());
-        Self { key, old }
-    }
-}
-
-impl Drop for EnvVarGuard {
-    fn drop(&mut self) {
-        match &self.old {
-            Some(value) => std::env::set_var(self.key, value),
-            None => std::env::remove_var(self.key),
-        }
-    }
-}
+use crate::config::test_env::EnvVarGuard;
 
 // ── thread_to_summary / message_to_record / record_to_message ─
 

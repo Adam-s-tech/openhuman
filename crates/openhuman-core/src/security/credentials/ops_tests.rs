@@ -12,36 +12,7 @@ use base64::Engine;
 use serde_json::json;
 use tempfile::TempDir;
 use tokio::net::TcpListener;
-
-struct EnvVarGuard {
-    key: &'static str,
-    previous: Option<std::ffi::OsString>,
-}
-
-impl EnvVarGuard {
-    fn set_to_path(key: &'static str, path: &std::path::Path) -> Self {
-        let previous = std::env::var_os(key);
-        unsafe { std::env::set_var(key, path) };
-        Self { key, previous }
-    }
-
-    fn set(key: &'static str, value: &str) -> Self {
-        let previous = std::env::var_os(key);
-        unsafe { std::env::set_var(key, value) };
-        Self { key, previous }
-    }
-}
-
-impl Drop for EnvVarGuard {
-    fn drop(&mut self) {
-        unsafe {
-            match self.previous.take() {
-                Some(value) => std::env::set_var(self.key, value),
-                None => std::env::remove_var(self.key),
-            }
-        }
-    }
-}
+use crate::config::test_env::EnvVarGuard;
 
 fn test_config(tmp: &TempDir) -> Config {
     let config = Config {

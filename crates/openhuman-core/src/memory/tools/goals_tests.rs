@@ -17,33 +17,7 @@ use tempfile::TempDir;
 
 use crate::config::TEST_ENV_LOCK;
 use tinytools::Tool;
-
-struct WorkspaceEnvGuard {
-    _lock: std::sync::MutexGuard<'static, ()>,
-    previous: Option<OsString>,
-}
-
-impl WorkspaceEnvGuard {
-    fn set(path: &std::path::Path) -> Self {
-        let lock = TEST_ENV_LOCK.lock().unwrap_or_else(|err| err.into_inner());
-        let previous = std::env::var_os("OPENHUMAN_WORKSPACE");
-        std::env::set_var("OPENHUMAN_WORKSPACE", path);
-        Self {
-            _lock: lock,
-            previous,
-        }
-    }
-}
-
-impl Drop for WorkspaceEnvGuard {
-    fn drop(&mut self) {
-        if let Some(previous) = self.previous.as_ref() {
-            std::env::set_var("OPENHUMAN_WORKSPACE", previous);
-        } else {
-            std::env::remove_var("OPENHUMAN_WORKSPACE");
-        }
-    }
-}
+use crate::config::test_env::EnvVarGuard;
 
 /// Reset the shared goals document, and say why that has to happen at all.
 ///
@@ -70,7 +44,7 @@ async fn reset_shared_goals() {
 async fn add_then_list_reflects_change() {
     let _serial = crate::memory::ops::GLOBAL_MEMORY_TEST_LOCK.lock().await;
     let tmp = TempDir::new().expect("tempdir");
-    let _workspace = WorkspaceEnvGuard::set(tmp.path());
+    let _workspace = EnvVarGuard::workspace(tmp.path());
     reset_shared_goals().await;
 
     let goals = GoalsTool::new(tmp.path().to_path_buf());
@@ -88,7 +62,7 @@ async fn add_then_list_reflects_change() {
 async fn edit_and_delete_unknown_id_error() {
     let _serial = crate::memory::ops::GLOBAL_MEMORY_TEST_LOCK.lock().await;
     let tmp = TempDir::new().expect("tempdir");
-    let _workspace = WorkspaceEnvGuard::set(tmp.path());
+    let _workspace = EnvVarGuard::workspace(tmp.path());
     reset_shared_goals().await;
 
     let goals = GoalsTool::new(tmp.path().to_path_buf());
@@ -112,7 +86,7 @@ async fn edit_and_delete_unknown_id_error() {
 async fn add_refuses_pii_bearing_text_with_the_specific_reason() {
     let _serial = crate::memory::ops::GLOBAL_MEMORY_TEST_LOCK.lock().await;
     let tmp = TempDir::new().expect("tempdir");
-    let _workspace = WorkspaceEnvGuard::set(tmp.path());
+    let _workspace = EnvVarGuard::workspace(tmp.path());
     reset_shared_goals().await;
 
     let add = GoalsTool::new(tmp.path().to_path_buf());

@@ -4,32 +4,7 @@ use tempfile::TempDir;
 
 use super::*;
 use crate::config::TEST_ENV_LOCK;
-
-struct WorkspaceEnvGuard {
-    previous: Option<OsString>,
-}
-
-impl WorkspaceEnvGuard {
-    fn set(path: &std::path::Path) -> Self {
-        let previous = std::env::var_os("OPENHUMAN_WORKSPACE");
-        unsafe {
-            std::env::set_var("OPENHUMAN_WORKSPACE", path);
-        }
-        Self { previous }
-    }
-}
-
-impl Drop for WorkspaceEnvGuard {
-    fn drop(&mut self) {
-        unsafe {
-            if let Some(previous) = self.previous.take() {
-                std::env::set_var("OPENHUMAN_WORKSPACE", previous);
-            } else {
-                std::env::remove_var("OPENHUMAN_WORKSPACE");
-            }
-        }
-    }
-}
+use crate::config::test_env::EnvVarGuard;
 
 #[tokio::test]
 async fn write_read_and_list_memory_files_roundtrip() {
@@ -37,7 +12,7 @@ async fn write_read_and_list_memory_files_roundtrip() {
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());
     let tmp = TempDir::new().expect("tempdir");
-    let _workspace = WorkspaceEnvGuard::set(tmp.path());
+    let _workspace = EnvVarGuard::workspace_unlocked(tmp.path());
 
     let write = ai_write_memory_file(WriteMemoryFileRequest {
         relative_path: "notes/today.md".to_string(),
@@ -92,7 +67,7 @@ async fn list_memory_files_skips_internal_sqlite_artifacts() {
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());
     let tmp = TempDir::new().expect("tempdir");
-    let _workspace = WorkspaceEnvGuard::set(tmp.path());
+    let _workspace = EnvVarGuard::workspace_unlocked(tmp.path());
 
     let memory_root = super::super::helpers::resolve_existing_memory_path("")
         .await
@@ -126,7 +101,7 @@ async fn list_memory_files_rejects_non_directory_target() {
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());
     let tmp = TempDir::new().expect("tempdir");
-    let _workspace = WorkspaceEnvGuard::set(tmp.path());
+    let _workspace = EnvVarGuard::workspace_unlocked(tmp.path());
 
     tokio::fs::create_dir_all(tmp.path().join("memory"))
         .await
@@ -152,7 +127,7 @@ async fn read_and_write_memory_files_reject_path_traversal() {
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());
     let tmp = TempDir::new().expect("tempdir");
-    let _workspace = WorkspaceEnvGuard::set(tmp.path());
+    let _workspace = EnvVarGuard::workspace_unlocked(tmp.path());
 
     let write_err = ai_write_memory_file(WriteMemoryFileRequest {
         relative_path: "../secrets.txt".to_string(),
@@ -176,7 +151,7 @@ async fn list_and_read_memory_files_reject_absolute_paths() {
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());
     let tmp = TempDir::new().expect("tempdir");
-    let _workspace = WorkspaceEnvGuard::set(tmp.path());
+    let _workspace = EnvVarGuard::workspace_unlocked(tmp.path());
 
     let list_err = ai_list_memory_files(ListMemoryFilesRequest {
         relative_dir: "/tmp".to_string(),
@@ -207,7 +182,7 @@ async fn read_memory_file_surfaces_missing_file_error() {
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());
     let tmp = TempDir::new().expect("tempdir");
-    let _workspace = WorkspaceEnvGuard::set(tmp.path());
+    let _workspace = EnvVarGuard::workspace_unlocked(tmp.path());
 
     let err = ai_read_memory_file(ReadMemoryFileRequest {
         relative_path: "missing.md".to_string(),
@@ -226,7 +201,7 @@ async fn read_memory_file_surfaces_invalid_utf8_error() {
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());
     let tmp = TempDir::new().expect("tempdir");
-    let _workspace = WorkspaceEnvGuard::set(tmp.path());
+    let _workspace = EnvVarGuard::workspace_unlocked(tmp.path());
 
     let memory_root = super::super::helpers::resolve_existing_memory_path("")
         .await
@@ -252,7 +227,7 @@ async fn write_memory_file_rejects_symlink_targets() {
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());
     let tmp = TempDir::new().expect("tempdir");
-    let _workspace = WorkspaceEnvGuard::set(tmp.path());
+    let _workspace = EnvVarGuard::workspace_unlocked(tmp.path());
 
     let memory_root = super::super::helpers::resolve_existing_memory_path("")
         .await
@@ -281,7 +256,7 @@ async fn list_memory_files_skips_symlink_entries() {
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());
     let tmp = TempDir::new().expect("tempdir");
-    let _workspace = WorkspaceEnvGuard::set(tmp.path());
+    let _workspace = EnvVarGuard::workspace_unlocked(tmp.path());
 
     let memory_root = super::super::helpers::resolve_existing_memory_path("")
         .await
