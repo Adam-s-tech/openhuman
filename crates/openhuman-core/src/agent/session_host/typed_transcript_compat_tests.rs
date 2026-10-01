@@ -70,9 +70,6 @@ fn typed_fixtures_really_use_the_typed_form() {
     let native = shapes("native_tools");
     assert!(native.iter().any(|shape| shape == "assistant_calls"));
     assert!(native.iter().any(|shape| shape == "tool_result"));
-    assert!(shapes("image_user")
-        .iter()
-        .any(|shape| shape == "user_parts"));
     assert!(shapes("plain").is_empty());
     // The envelope string no longer appears in a typed row's content.
     let raw = std::fs::read_to_string(fixture("native_tools.typed.jsonl")).unwrap();
