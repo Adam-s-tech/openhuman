@@ -349,11 +349,9 @@ pub async fn prepare_messages_for_provider(
         let content =
             mm::compose_multimodal_message(&cleaned_text, &normalized_image_refs, &file_payloads);
         normalized_messages.push(TranscriptMessage {
-            id: message.id.clone(),
-            role: message.role.clone(),
             content,
-            extra_metadata: message.extra_metadata.clone(),
             cache_breakpoints: Vec::new(),
+            ..message.clone()
         });
     }
 
@@ -561,11 +559,9 @@ pub fn rehydrate_image_placeholders(messages: &[TranscriptMessage]) -> Vec<Trans
                 return m.clone();
             }
             TranscriptMessage {
-                id: m.id.clone(),
-                role: m.role.clone(),
                 content: markers::rehydrate_placeholders_in_text(&m.content, &index),
-                extra_metadata: m.extra_metadata.clone(),
                 cache_breakpoints: Vec::new(),
+                ..m.clone()
             }
         })
         .collect()
