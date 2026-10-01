@@ -523,8 +523,8 @@ fn catalog_how_to_uses_connections_nav_not_legacy_settings_paths() {
 /// the React router. That tie is cross-language and belongs to a VU or PW case.
 /// This is the part that can be pinned from Rust — that no `local_ai` entry
 /// names a panel title this repo no longer contains.
-/// OpenHuman no longer downloads local models, installs Piper or a managed
-/// Python runtime for local AI: the user runs their own runtime. The catalog
+/// OpenHuman no longer downloads local models or installs Piper: the user
+/// runs their own runtime. The catalog
 /// must not advertise those capabilities.
 #[test]
 fn local_ai_catalog_does_not_advertise_model_downloads_or_installers() {
@@ -532,7 +532,6 @@ fn local_ai_catalog_does_not_advertise_model_downloads_or_installers() {
         "local_ai.download_model",
         "local_ai.manage_model_assets",
         "local_ai.piper_installer",
-        "local_ai.python_runtime_installer",
     ] {
         assert!(lookup(removed).is_none(), "`{removed}` is still advertised");
     }
