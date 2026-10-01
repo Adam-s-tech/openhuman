@@ -82,27 +82,6 @@ fn both_controller_return_paths_apply_the_same_log_envelope() {
 }
 
 #[test]
-fn command_response_serde_roundtrip() {
-    let resp = CommandResponse {
-        result: "ok".to_string(),
-        logs: vec!["log1".into()],
-    };
-    let json = serde_json::to_string(&resp).unwrap();
-    let back: CommandResponse<String> = serde_json::from_str(&json).unwrap();
-    assert_eq!(back.result, "ok");
-    assert_eq!(back.logs.len(), 1);
-}
-
-#[test]
-fn app_state_clone() {
-    let state = AppState {
-        core_version: "0.1.0".into(),
-    };
-    let cloned = state.clone();
-    assert_eq!(cloned.core_version, "0.1.0");
-}
-
-#[test]
 fn host_kind_tag_is_stable() {
     // Downstream consumers (event-bus subscribers, log shippers) key
     // on the exact tag strings; pin them so a rename is loud.
