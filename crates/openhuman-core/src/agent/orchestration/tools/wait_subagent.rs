@@ -9,7 +9,7 @@ use std::time::Duration;
 
 use crate::agent::harness::fork_context::ParentExecutionContext;
 use crate::agent::orchestration::running_subagents::{
-    self, SubagentStatus, WaitError, WaitOutcome,
+    self, DetachedSubagentStatus, WaitError, WaitOutcome,
 };
 use async_trait::async_trait;
 use serde_json::json;
@@ -229,7 +229,7 @@ impl WaitSubagentTool {
         )
         .await
         {
-            Ok(WaitOutcome::Terminal(SubagentStatus::Completed { output, iterations })) => {
+            Ok(WaitOutcome::Terminal(DetachedSubagentStatus::Completed { output, iterations })) => {
                 log::debug!(
                     "[wait_subagent] outcome=completed task_id={} iterations={}",
                     resolved_task_id,
@@ -259,7 +259,7 @@ impl WaitSubagentTool {
                     serde_json::to_string(&status).unwrap_or_else(|_| "{}".to_string())
                 )))
             }
-            Ok(WaitOutcome::Terminal(SubagentStatus::AwaitingUser { question })) => {
+            Ok(WaitOutcome::Terminal(DetachedSubagentStatus::AwaitingUser { question })) => {
                 log::debug!(
                     "[wait_subagent] outcome=awaiting_user task_id={} question_chars={}",
                     resolved_task_id,
@@ -299,7 +299,7 @@ impl WaitSubagentTool {
                 }
                 Ok(ToolResult::success(message))
             }
-            Ok(WaitOutcome::Terminal(SubagentStatus::Failed { error })) => {
+            Ok(WaitOutcome::Terminal(DetachedSubagentStatus::Failed { error })) => {
                 log::debug!(
                     "[wait_subagent] outcome=failed task_id={} error={}",
                     resolved_task_id,
@@ -320,7 +320,7 @@ impl WaitSubagentTool {
                 )))
             }
             // `Running` is never terminal; treat defensively as a timeout-style result.
-            Ok(WaitOutcome::Terminal(SubagentStatus::Running)) => {
+            Ok(WaitOutcome::Terminal(DetachedSubagentStatus::Running)) => {
                 log::debug!(
                     "[wait_subagent] outcome=running task_id={} timeout_secs={}",
                     resolved_task_id,

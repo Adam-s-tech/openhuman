@@ -29,7 +29,7 @@ async fn steer_pushes_into_the_subagent_queue() {
     .unwrap();
     assert_eq!(rq.status().await.collects, 1);
 
-    let _ = tx.send(SubagentStatus::Completed {
+    let _ = tx.send(DetachedSubagentStatus::Completed {
         output: "done".into(),
         iterations: 1,
     });
@@ -66,7 +66,7 @@ async fn steer_prefers_registered_tinyagents_handle() {
     }
 
     let _ = shared_steering_registry().deregister(&task_id);
-    let _ = tx.send(SubagentStatus::Completed {
+    let _ = tx.send(DetachedSubagentStatus::Completed {
         output: "done".into(),
         iterations: 1,
     });
@@ -103,7 +103,7 @@ async fn steer_directive_delivers_control_flow_via_background_policy() {
     assert_eq!(commands[1], SteeringCommand::Cancel);
 
     let _ = shared_steering_registry().deregister(&task_id);
-    let _ = tx.send(SubagentStatus::Completed {
+    let _ = tx.send(DetachedSubagentStatus::Completed {
         output: "done".into(),
         iterations: 1,
     });
@@ -137,7 +137,7 @@ async fn steer_directive_refuses_kinds_the_policy_rejects() {
     assert_eq!(commands, vec![SteeringCommand::Pause]);
 
     let _ = shared_steering_registry().deregister(&task_id);
-    let _ = tx.send(SubagentStatus::Completed {
+    let _ = tx.send(DetachedSubagentStatus::Completed {
         output: "done".into(),
         iterations: 1,
     });
@@ -166,7 +166,7 @@ async fn steer_directive_enforces_ownership_and_registration() {
         Err(SteerDirectiveError::NoRegisteredHandle)
     );
 
-    let _ = tx.send(SubagentStatus::Completed {
+    let _ = tx.send(DetachedSubagentStatus::Completed {
         output: "done".into(),
         iterations: 1,
     });
@@ -207,7 +207,7 @@ async fn steer_after_terminal_is_rejected() {
     let _guard = test_guard();
     let rq = run_queue();
     let tx = register_test("task-term", "session-A", rq);
-    let _ = tx.send(SubagentStatus::Failed {
+    let _ = tx.send(DetachedSubagentStatus::Failed {
         error: "boom".into(),
     });
 

@@ -8,7 +8,7 @@ use super::subagent_abort_report::AbortReport;
 use crate::agent::harness::definition::AgentDefinitionRegistry;
 use crate::agent::messages::ChatMessage;
 use crate::agent::orchestration::fleet_tools::FleetToolSet;
-use crate::agent::orchestration::running_subagents::{self, SubagentStatus};
+use crate::agent::orchestration::running_subagents::{self, DetachedSubagentStatus};
 use crate::agent::orchestration::subagent_sessions::{
     self, DurableSubagentStatus, SubagentSessionSelector, SubagentSessionStore,
     SubagentSessionUpsert,

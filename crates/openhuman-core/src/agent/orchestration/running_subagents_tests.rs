@@ -75,7 +75,7 @@ fn register_test(
     task_id: &str,
     parent_session: &str,
     rq: Arc<RunQueue<QueuedTurn>>,
-) -> watch::Sender<SubagentStatus> {
+) -> watch::Sender<DetachedSubagentStatus> {
     register_test_with_thread(task_id, parent_session, None, rq)
 }
 
@@ -86,7 +86,7 @@ fn register_test_with_thread(
     parent_session: &str,
     parent_thread_id: Option<&str>,
     rq: Arc<RunQueue<QueuedTurn>>,
-) -> watch::Sender<SubagentStatus> {
+) -> watch::Sender<DetachedSubagentStatus> {
     let (tx, rx) = status_channel();
     register(
         task_id.into(),
@@ -121,7 +121,7 @@ async fn task_store_records_spawn_complete_and_cancel() {
     );
 
     // Publish a terminal status → the watcher mirrors Completed into the store.
-    tx.send(SubagentStatus::Completed {
+    tx.send(DetachedSubagentStatus::Completed {
         output: "done".into(),
         iterations: 2,
     })
@@ -181,7 +181,7 @@ async fn task_id_for_session_enforces_parent_ownership() {
         task_id_for_session("subsess-1", "session-other"),
         Err(WaitError::NotOwned)
     ));
-    let _ = tx.send(SubagentStatus::Completed {
+    let _ = tx.send(DetachedSubagentStatus::Completed {
         output: "done".into(),
         iterations: 1,
     });
@@ -233,7 +233,7 @@ async fn snapshot_and_block_scope_to_parent_and_reflect_live_status() {
     );
 
     // `b` pauses awaiting the user; `a` stays running.
-    tx_b.send(SubagentStatus::AwaitingUser {
+    tx_b.send(DetachedSubagentStatus::AwaitingUser {
         question: "which repo?".into(),
     })
     .unwrap();
@@ -344,11 +344,11 @@ async fn snapshot_and_block_scope_to_parent_and_reflect_live_status() {
         .is_none());
     }
 
-    let _ = tx_a.send(SubagentStatus::Completed {
+    let _ = tx_a.send(DetachedSubagentStatus::Completed {
         output: "x".into(),
         iterations: 1,
     });
-    let _ = tx_other.send(SubagentStatus::Completed {
+    let _ = tx_other.send(DetachedSubagentStatus::Completed {
         output: "x".into(),
         iterations: 1,
     });
@@ -386,7 +386,7 @@ async fn resume_ref_for_task_includes_resume_fields_and_enforces_ownership() {
         Err(WaitError::NotOwned)
     ));
 
-    let _ = tx.send(SubagentStatus::Completed {
+    let _ = tx.send(DetachedSubagentStatus::Completed {
         output: "done".into(),
         iterations: 1,
     });
@@ -409,7 +409,7 @@ async fn task_id_for_session_prefers_live_task_over_terminal_task() {
         dummy_abort(),
         old_rx,
     );
-    let _ = old_tx.send(SubagentStatus::Completed {
+    let _ = old_tx.send(DetachedSubagentStatus::Completed {
         output: "old".into(),
         iterations: 1,
     });
@@ -442,7 +442,7 @@ async fn wait_returns_completion_once_published() {
     let tx = register_test("task-wait", "session-A", rq);
 
     tokio::spawn(async move {
-        let _ = tx.send(SubagentStatus::Completed {
+        let _ = tx.send(DetachedSubagentStatus::Completed {
             output: "the answer".into(),
             iterations: 3,
         });
@@ -454,7 +454,7 @@ async fn wait_returns_completion_once_published() {
         .await
         .expect("wait should resolve");
     match outcome {
-        WaitOutcome::Terminal(SubagentStatus::Completed { output, iterations }) => {
+        WaitOutcome::Terminal(DetachedSubagentStatus::Completed { output, iterations }) => {
             assert_eq!(output, "the answer");
             assert_eq!(iterations, 3);
         }
@@ -479,7 +479,7 @@ async fn wait_times_out_and_leaves_entry_intact() {
         .expect("wait should resolve");
     assert!(matches!(
         outcome,
-        WaitOutcome::TimedOut(SubagentStatus::Running)
+        WaitOutcome::TimedOut(DetachedSubagentStatus::Running)
     ));
 
     // still steerable after a timed-out wait
@@ -576,7 +576,7 @@ async fn cancel_by_task_flags_a_run_that_already_finished() {
     let cases = [
         (
             "task-cbt-done",
-            SubagentStatus::Completed {
+            DetachedSubagentStatus::Completed {
                 output: "ok".into(),
                 iterations: 6,
             },
@@ -584,14 +584,14 @@ async fn cancel_by_task_flags_a_run_that_already_finished() {
         ),
         (
             "task-cbt-failed",
-            SubagentStatus::Failed {
+            DetachedSubagentStatus::Failed {
                 error: "boom".into(),
             },
             Some(FinishedOutcome::Failed),
         ),
         (
             "task-cbt-paused",
-            SubagentStatus::AwaitingUser {
+            DetachedSubagentStatus::AwaitingUser {
                 question: "which?".into(),
             },
             None,

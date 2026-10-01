@@ -57,7 +57,7 @@ fn field(out: &Value, name: &str) -> Option<Value> {
 #[tokio::test]
 async fn cancel_of_a_finished_run_reports_its_outcome_and_rewrites_nothing() {
     use crate::agent::orchestration::running_subagents::{
-        register, status_channel, SubagentStatus,
+        register, status_channel, DetachedSubagentStatus,
     };
     use crate::agent::orchestration::subagent_sessions::SubagentSessionStore;
     use std::sync::Arc;
@@ -76,7 +76,7 @@ async fn cancel_of_a_finished_run_reports_its_outcome_and_rewrites_nothing() {
     for (task_id, status, outcome) in [
         (
             "sub-rpc-done",
-            SubagentStatus::Completed {
+            DetachedSubagentStatus::Completed {
                 output: "ok".into(),
                 iterations: 1,
             },
@@ -84,7 +84,7 @@ async fn cancel_of_a_finished_run_reports_its_outcome_and_rewrites_nothing() {
         ),
         (
             "sub-rpc-failed",
-            SubagentStatus::Failed {
+            DetachedSubagentStatus::Failed {
                 error: "boom".into(),
             },
             "failed",

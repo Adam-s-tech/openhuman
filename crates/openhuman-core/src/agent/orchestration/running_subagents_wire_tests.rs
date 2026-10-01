@@ -50,17 +50,17 @@ async fn roster_status_labels_are_literal() {
     for (id, tx) in &senders {
         match *id {
             "wire-done" => tx
-                .send(SubagentStatus::Completed {
+                .send(DetachedSubagentStatus::Completed {
                     output: "o".into(),
                     iterations: 1,
                 })
                 .unwrap(),
             "wire-await" => tx
-                .send(SubagentStatus::AwaitingUser {
+                .send(DetachedSubagentStatus::AwaitingUser {
                     question: "q".into(),
                 })
                 .unwrap(),
-            "wire-fail" => tx.send(SubagentStatus::Failed { error: "e".into() }).unwrap(),
+            "wire-fail" => tx.send(DetachedSubagentStatus::Failed { error: "e".into() }).unwrap(),
             _ => {}
         }
     }
