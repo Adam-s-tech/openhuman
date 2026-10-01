@@ -39,8 +39,8 @@
     {
       "id": "tinymemory",
       "submodule": "vendor/tinymemory",
-      "expect": "v1.17.0-6-gea7dee88",
-      "reason": "The pin is v1.17.0 plus pure-library additions only: the new crate tinymemory-conversations (tinymemory#170) and the pure `host::scheduler_gate_decide` module in tinymemory-api (tinymemory#172: the `decide` function and the plain-data `Signals` snapshot beside `SchedulerGateConfig`/`Policy`), stacked on it (branch oh-scheduler-gate-decide-on-v1.17.0). The core links both as Rust path dependencies. No module, contract or bus source changes, so the registry's v1.17.0 artifact still matches the contract compiled here. Remove when tinymemory#170 and #172 ship in a release and both pins move to it."
+      "expect": "v1.18.0-17-g2ad4c128",
+      "reason": "The pin is tinymemory main (v1.18.0 plus tinymemory#170 conversations and #172 scheduler_gate_decide) plus pure-library additions only: the new crate tinymemory-guard (GuardedProvider<P: GuardPolicy>) and conformance seeds (FixedRecallProvider, InMemoryProvider::len, RecordingProvider::with_session_turns/with_pending_segments), tinymemory#173 (branch w4-memory-guard). The core links them as Rust path dependencies. No module, contract or bus source changes, so the registry's v1.17.0 artifact still matches the contract compiled here. Remove when #170, #172 and #173 ship in a release and both pins move to it."
     },
     {
       "id": "tinybox",

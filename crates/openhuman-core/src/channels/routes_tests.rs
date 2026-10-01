@@ -121,7 +121,7 @@ fn runtime_context(workspace_dir: PathBuf) -> ChannelRuntimeContext {
         channels_by_name: Arc::new(HashMap::new()),
         turn_model_source: Some(crate::agent::tinyagents::TurnModelSource::from_model(model)),
         default_provider: Arc::new("openai".into()),
-        memory: crate::memory::guard::in_memory::FixedRecallProvider::guarded(Vec::new()),
+        memory: crate::memory::guard::in_memory::guarded_fixed_recall(Vec::new()),
         tools_registry: Arc::new(vec![Box::new(DummyTool) as Box<dyn Tool>]),
         system_prompt: crate::channels::ChannelSystemPrompt::fixed("prompt"),
         model: Arc::new("reasoning-v1".into()),

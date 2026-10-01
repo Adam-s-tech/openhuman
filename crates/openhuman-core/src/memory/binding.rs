@@ -44,7 +44,7 @@ use crate::memory::api::capabilities::Capabilities;
 use crate::memory::api::health::MemoryHealth;
 use crate::memory::api::provider::MemoryProvider;
 use crate::memory::api::CONTRACT_VERSION;
-use crate::memory::guard::{GuardPolicy, MemoryGuard};
+use crate::memory::guard::{HostGuardPolicy, MemoryGuard};
 #[cfg(not(feature = "modules"))]
 use tinymemory_api::null::NullMemoryProvider;
 use tinymemory_api::null::NULL_DRIVER_ID;
@@ -417,7 +417,7 @@ pub(super) fn bind_provider(
     let capabilities = provider.capabilities();
     let guard = Arc::new(MemoryGuard::new(
         Arc::clone(&provider),
-        Arc::new(GuardPolicy::new(
+        Arc::new(HostGuardPolicy::new(
             driver_id.clone(),
             class,
             crate::config::schema::MemoryHooksConfig::default(),
