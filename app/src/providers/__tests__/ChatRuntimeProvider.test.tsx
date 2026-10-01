@@ -461,6 +461,62 @@ describe('ChatRuntimeProvider — dedupe, proactive resolution, mid-turn invaria
       expect(store.getState().chatRuntime.parallelRequestThreads['branch-error']).toBeUndefined();
     });
 
+    describe('chat_error copy_key rendering', () => {
+      const failParallel = (
+        requestId: string,
+        extra: { copy_key?: string; copy_params?: Record<string, unknown> }
+      ) => {
+        const listeners = renderProvider();
+        act(() => {
+          store.dispatch(registerParallelRequest({ threadId: 't-copy', requestId }));
+          listeners.onError?.({
+            thread_id: 't-copy',
+            request_id: requestId,
+            message: 'core english message',
+            error_type: 'rate_limited',
+            round: 0,
+            ...extra,
+          });
+        });
+      };
+
+      it('renders a known copy_key from the locale table with its params', async () => {
+        failParallel('copy-known', {
+          copy_key: 'chat_error.rate_limited',
+          copy_params: { retry_after_secs: 30, detail: 'quota hit' },
+        });
+        await waitFor(() =>
+          expect(threadApi.appendMessage).toHaveBeenCalledWith(
+            't-copy',
+            expect.objectContaining({
+              content:
+                "Your AI provider is rate-limiting requests. This is a transient upstream limit, not a thread-level block. You can retry in this thread. Try again in 30 seconds.\n\n> quota hit",
+            })
+          )
+        );
+      });
+
+      it('falls back to message for an unknown copy_key', async () => {
+        failParallel('copy-unknown', { copy_key: 'chat_error.from_a_newer_core' });
+        await waitFor(() =>
+          expect(threadApi.appendMessage).toHaveBeenCalledWith(
+            't-copy',
+            expect.objectContaining({ content: 'core english message' })
+          )
+        );
+      });
+
+      it('falls back to message when copy_key is missing', async () => {
+        failParallel('copy-missing', {});
+        await waitFor(() =>
+          expect(threadApi.appendMessage).toHaveBeenCalledWith(
+            't-copy',
+            expect.objectContaining({ content: 'core english message' })
+          )
+        );
+      });
+    });
+
     it('bumps the heartbeat counter only for the primary turn, never a parallel branch (#4282)', () => {
       const listeners = renderProvider();
 
