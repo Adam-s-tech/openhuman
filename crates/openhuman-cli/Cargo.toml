@@ -374,7 +374,6 @@ tinycomputer-bus = { path = "../../vendor/tinycomputer/crates/tinycomputer-bus" 
 # `default-features = false` keeps actix out of the graph (see the core manifest).
 sentry = { version = "0.47.0", default-features = false, features = ["test"] }
 base64 = "0.22"
-filetime = "0.2"
 flate2 = "1"
 futures-util = "0.3"
 hex = "0.4"
