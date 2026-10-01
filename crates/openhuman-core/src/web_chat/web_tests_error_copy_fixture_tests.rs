@@ -66,7 +66,7 @@ const EXPECTED: &[(
 
 #[test]
 fn every_failure_class_keeps_its_exact_copy_and_wire_values() {
-    assert_eq!(EXPECTED.len(), 36, "fixture row count drifted");
+    assert_eq!(EXPECTED.len(), 37, "fixture row count drifted");
     for (case, input, error_type, source, retryable, retry_after_ms, provider, fallback, message) in
         EXPECTED
     {
