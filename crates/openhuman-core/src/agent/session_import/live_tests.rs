@@ -16,7 +16,6 @@ use tinyagents_harness::store::{AppendStore, FileStore, JsonlAppendStore, Store}
 use super::live::{dual_write_enabled, shadow_reads_enabled};
 use super::projector::journal_message_from_transcript as project;
 use tinyagents_session::transcript::TranscriptMessage;
-use crate::agent::messages::{attach_chat_tool_failure_metadata, attach_chat_turn_usage_metadata, transcript_message_from_chat};
 use tinyagents_session::transcript::import::convert::{
     journal_messages as journal_messages_with, sanitize_store_name, stream_name,
 };
@@ -49,10 +48,8 @@ async fn shadow_read_compare(
     shadow_read_compare_with(workspace, key, t, project).await
 }
 
-fn durable_messages(
-    messages: &[TranscriptMessage],
-) -> Vec<tinyagents_session::transcript::TranscriptMessage> {
-    messages.iter().map(transcript_message_from_chat).collect()
+fn durable_messages(messages: &[TranscriptMessage]) -> Vec<TranscriptMessage> {
+    messages.to_vec()
 }
 
 /// A transcript meta header matching the importer's `native` fixture shape.
@@ -113,7 +110,10 @@ fn turn_usage() -> TurnUsage {
 /// marker round-trips.
 fn rich_base_messages() -> Vec<TranscriptMessage> {
     let mut failed_tool = TranscriptMessage::tool("read_file failed: boom");
-    attach_chat_tool_failure_metadata(&mut failed_tool, Some("boom"));
+    failed_tool.tool_failure = Some(tinyagents_session::transcript::ToolFailure {
+        failed: true,
+        detail: Some("boom".into()),
+    });
     vec![
         TranscriptMessage::system("you are the orchestrator"),
         TranscriptMessage::user("read the file"),
@@ -336,7 +336,7 @@ async fn in_memory_store_reconstruction_diverges_from_legacy_on_sidecar_metadata
         .iter()
         .rposition(|m| m.role == "assistant")
         .expect("assistant message present");
-    attach_chat_turn_usage_metadata(&mut live_messages[last_assistant], &usage);
+    live_messages[last_assistant].turn_usage = Some(usage.clone());
     let reconstructed = SessionTranscript {
         tools: None,
         meta: meta.clone(),
