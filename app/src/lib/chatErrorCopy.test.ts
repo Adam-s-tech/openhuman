@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { chatErrorCopyText } from './chatErrorCopy';
@@ -65,9 +66,9 @@ describe('chatErrorCopyText', () => {
   });
 
   it('has an English string for every key in the core failure-copy table', () => {
-    const tablePath = new URL(
-      '../../../crates/openhuman-core/src/inference/failure_copy/table.rs',
-      import.meta.url
+    const tablePath = resolve(
+      process.cwd(),
+      '../crates/openhuman-core/src/inference/failure_copy/table.rs'
     );
     const keys = [...readFileSync(tablePath, 'utf8').matchAll(/"(chat_error\.[a-z_]+)"/g)].map(
       m => m[1]
