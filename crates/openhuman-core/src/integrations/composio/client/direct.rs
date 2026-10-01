@@ -1,22 +1,62 @@
 //! Direct-mode reads: `direct_list_connections` and `direct_list_tools`.
 //!
-//! The v3 requests and their reshaping into the canonical envelopes are the
-//! connector module's `DirectRoute`, driven in-process over the host transport
-//! on a bound [`crate::tools::DirectComposioClient`]. What stays here is host
-//! policy: the process-wide invalid-key gate (`direct_auth`) and its
-//! user-facing messages.
+//! The v3 requests and their reshaping into the canonical envelopes run in the
+//! connector module, reached over the bus with `ListConnectionsDirect` and
+//! `ListToolsDirect`. Those members carry the credential on the request, so the
+//! module's configured route is untouched and nothing is persisted (which is
+//! also how `composio.set_api_key` checks a key before storing it).
+//!
+//! What stays here is host policy: the process-wide invalid-key gate
+//! (`direct_auth`) and its user-facing messages, the host's proxy and TLS policy
+//! (handed to the module with the credential, see `network`), and the identity
+//! fields the host fills in itself.
 
 use std::sync::Arc;
 
+use tinyconnectors_bus::{
+    methods, ComposioDirectConnectionsRequest, ComposioDirectToolsRequest,
+};
+
 use super::super::direct_auth;
+use super::super::module_client;
 use super::super::types::{ComposioConnectionsResponse, ComposioToolsResponse};
+use super::DirectCredential;
+
+/// `ListConnectionsDirect`, with the member failure peeled down to the message
+/// the user is shown.
+async fn module_list_connections(
+    config: &crate::config::Config,
+    direct: &DirectCredential,
+) -> anyhow::Result<ComposioConnectionsResponse> {
+    let request = ComposioDirectConnectionsRequest {
+        credential: direct.module_credential(),
+    };
+    let mut response: ComposioConnectionsResponse =
+        module_client::call_stateless(config, methods::LIST_CONNECTIONS_DIRECT, request)
+            .await
+            .map_err(|error| {
+                anyhow::anyhow!(module_client::member_failure_message(
+                    methods::LIST_CONNECTIONS_DIRECT,
+                    &error
+                ))
+            })?;
+    // Identity fields are the host's to fill (`enrich_connections_with_identity`
+    // from cached profile data); the module also lifts them from the v3 row.
+    for connection in &mut response.connections {
+        connection.account_email = None;
+        connection.workspace = None;
+        connection.username = None;
+    }
+    Ok(response)
+}
 
 /// Direct-mode connection listing (Composio v3 `/connected_accounts`), gated
 /// by the host's invalid-key breaker. Rows come back as canonical
 /// [`ComposioConnection`](super::super::types::ComposioConnection)s; a malformed
 /// row is kept with empty fields and reads as inactive (fail-safe).
 pub async fn direct_list_connections(
-    direct: &Arc<crate::tools::DirectComposioClient>,
+    config: &crate::config::Config,
+    direct: &Arc<DirectCredential>,
 ) -> anyhow::Result<ComposioConnectionsResponse> {
     tracing::debug!("[composio-direct] list_connections: GET v3 /connected_accounts");
     let key_id = direct.auth_key_fingerprint();
@@ -28,7 +68,7 @@ pub async fn direct_list_connections(
         anyhow::bail!("{error}");
     }
 
-    let response = match direct.list_connections().await {
+    let response = match module_list_connections(config, direct).await {
         Ok(response) => {
             direct_auth::record_direct_auth_success(key_id);
             response
@@ -64,7 +104,7 @@ pub async fn direct_list_connections(
     Ok(response)
 }
 
-/// Direct-mode tool listing. Calls Composio v3 `/tools` (the route sends
+/// Direct-mode tool listing. Calls Composio v3 `/tools` through the module (it sends
 /// `limit=200`, `toolkit_versions=latest`, `toolkits=<csv>` and repeated
 /// `tags=`) and returns the same `ComposioToolSchema` envelope the
 /// backend-proxied path returns.
@@ -94,7 +134,8 @@ pub async fn direct_list_connections(
 /// which this function never applies itself; the filter is layered on by
 /// its `composio_list_tools` caller, not baked in here.
 pub(crate) async fn direct_list_tools(
-    direct: &Arc<crate::tools::DirectComposioClient>,
+    config: &crate::config::Config,
+    direct: &Arc<DirectCredential>,
     toolkits: &[String],
     tags: Option<&[String]>,
 ) -> anyhow::Result<ComposioToolsResponse> {
@@ -103,7 +144,20 @@ pub(crate) async fn direct_list_tools(
         tags = tags.map(<[String]>::len).unwrap_or(0),
         "[composio-direct] list_tools: GET v3 /tools"
     );
-    let response = direct.list_tools(toolkits, tags.unwrap_or(&[])).await?;
+    let request = ComposioDirectToolsRequest {
+        credential: direct.module_credential(),
+        toolkits: toolkits.to_vec(),
+        tags: tags.unwrap_or(&[]).to_vec(),
+    };
+    let response: ComposioToolsResponse =
+        module_client::call_stateless(config, methods::LIST_TOOLS_DIRECT, request)
+            .await
+            .map_err(|error| {
+                anyhow::anyhow!(module_client::member_failure_message(
+                    methods::LIST_TOOLS_DIRECT,
+                    &error
+                ))
+            })?;
     tracing::debug!(
         count = response.tools.len(),
         "[composio-direct] list_tools: mapped v3 tool schemas"
