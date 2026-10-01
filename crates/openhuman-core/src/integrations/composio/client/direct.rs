@@ -13,12 +13,10 @@
 
 use std::sync::Arc;
 
-use tinyconnectors_bus::{
-    methods, ComposioDirectConnectionsRequest, ComposioDirectToolsRequest,
-};
+use tinyconnectors_bus::{ComposioDirectConnectionsRequest, ComposioDirectToolsRequest};
 
 use super::super::direct_auth;
-use super::super::module_client;
+use super::super::module_client::{self, methods};
 use super::super::types::{ComposioConnectionsResponse, ComposioToolsResponse};
 use super::DirectCredential;
 
