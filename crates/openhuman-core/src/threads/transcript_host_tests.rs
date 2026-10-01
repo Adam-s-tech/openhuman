@@ -81,7 +81,7 @@ fn text_dialect_tool_turn_projects_calls_on_their_issuing_row_as_settled() {
                 content: "unknown tool `file_read`".into(), trusted_verbatim: false,
             },
         ]),
-        TranscriptEntry::Chat(TranscriptMessage::assistant("Here is what I found.")),
+        TranscriptEntry::Chat(crate::agent::message_convert::row_to_dialect_message(TranscriptMessage::assistant("Here is what I found."))),
     ];
     let rendered = crate::agent::message_convert::provider_messages_from_conversation(
         &tinytools_agent::dialect::XmlDialect,
