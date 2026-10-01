@@ -57,7 +57,7 @@
 //! run_chat_task → Agent::turn → execute_tools → <delegation tool>`)
 //! without standing up an HTTP + Socket.IO stack. We drive the production
 //! path from `run_subagent` downward — i.e. everything below a delegation
-//! tool's `execute` — on a production-sized tokio worker (`AGENT_WORKER_STACK_BYTES`) stack.
+//! tool's `execute` — on a small tokio worker stack (`SUBAGENT_TOWER_STACK_BYTES`).
 //!
 //! **Caveat — what this test does and does not catch.** Because the
 //! upper ~30 frames are missing, the bare path here fits in 2 MB even
@@ -89,10 +89,9 @@
 //!
 //! ## Setup
 //!
-//!   * fresh tokio multi-thread runtime, `thread_stack_size(AGENT_WORKER_STACK_BYTES)`
-//!     (the production setting on every agent-hosting runtime), so the test
-//!     runs in the same stack budget production does — anything larger would
-//!     let dormant regressions hide for longer,
+//!   * fresh tokio multi-thread runtime, `thread_stack_size(SUBAGENT_TOWER_STACK_BYTES)`
+//!     (3 MiB, well under the 16 MiB production `AGENT_WORKER_STACK_BYTES`), so
+//!     frame growth in the tower is caught long before it threatens production,
 //!   * `OPENHUMAN_WORKSPACE` pointed at a tempdir with a representative
 //!     `config.toml` so the TOML parser does real work,
 //!   * `run_subagent(critic)` exactly like a delegation tool
@@ -115,7 +114,6 @@ use openhuman_core::agent::harness::{with_parent_context, ParentExecutionContext
 use openhuman_core::agent::prompts::ToolCallFormat;
 use openhuman_core::agent::subagent_host::{run_subagent, SubagentRunOptions};
 use openhuman_core::config::AgentConfig;
-use openhuman_core::core::runtime::AGENT_WORKER_STACK_BYTES;
 use openhuman_core::memory::{Memory, MemoryCategory, MemoryEntry, NamespaceSummary, RecallOpts};
 use parking_lot::Mutex;
 use serde_json::json;
@@ -124,6 +122,18 @@ use tempfile::tempdir;
 use tinyinference_llm::message::AssistantMessage;
 use tinyinference_llm::model::{ChatModel, ModelProfile, ModelRequest, ModelResponse};
 use tinyinference_llm::tool::ToolCall;
+
+/// Worker stack for this guard: 3 MiB, deliberately far below the production
+/// `AGENT_WORKER_STACK_BYTES` (16 MiB, which stays the real budget).
+///
+/// Measured in an unoptimised build (#6379): before the async-frame work the
+/// sub-agent tower (`run_subagent` → `run_subagent_direct` → config load →
+/// `Config::save`) needed between 3.5 and 4 MiB; it overflowed at 3 MiB. It
+/// now peaks near 1.6 MiB (passes at 1664 KiB, overflows at 1536 KiB). 3 MiB
+/// leaves ~85% headroom for unrelated growth while still failing on the old
+/// frames, so a handler that re-inlines a large future or `Config` copy into
+/// this chain trips here long before it could threaten the 16 MiB budget.
+const SUBAGENT_TOWER_STACK_BYTES: usize = 3 * 1024 * 1024;
 
 // ── env serialisation (config-rs reads process env) ──────────────────
 
@@ -291,11 +301,11 @@ impl Memory for StubMemory {
 ///
 /// `#[test]` (not `#[tokio::test]`) so the worker stack size is set
 /// explicitly. The work runs via `tokio::spawn` so the assertion is
-/// performed on a production-sized worker rather than on `block_on`'s driver
+/// performed on a small worker rather than on `block_on`'s driver
 /// thread (which inherits the much larger cargo-test main-thread stack
 /// and would hide stack-budget regressions).
 #[test]
-fn composio_list_tools_via_subagent_runs_on_production_worker_stack() {
+fn composio_list_tools_via_subagent_runs_on_small_worker_stack() {
     // Serialise env mutation across the test binary (other tests may
     // poke OPENHUMAN_WORKSPACE concurrently).
     let _env = env_lock();
@@ -308,16 +318,15 @@ fn composio_list_tools_via_subagent_runs_on_production_worker_stack() {
         tmp.path().to_str().expect("tempdir path utf-8"),
     );
 
-    // Production worker stack: every runtime that can host an agent turn (the
-    // desktop host, `openhuman-core run`, `agent_cli`, embedders) sets
-    // `AGENT_WORKER_STACK_BYTES`. The SIGBUS in crahs.log happened on a default
-    // ~2 MB worker (`Stack 302648000-302850000`) before that was applied
-    // everywhere, and a debug-build agent tower no longer fits in 2 MB at all
-    // (each async frame is 100+ KB unoptimised; #6379), so the guard runs on the
-    // real production budget and trips if the tower outgrows it.
+    // Every runtime that can host an agent turn (the desktop host,
+    // `openhuman-core run`, `agent_cli`, embedders) sets
+    // `AGENT_WORKER_STACK_BYTES` (16 MiB). The SIGBUS in crahs.log happened on a
+    // default ~2 MB worker before that was applied everywhere. This guard runs
+    // on a much smaller stack (see `SUBAGENT_TOWER_STACK_BYTES`) so frame growth
+    // in the tower is caught early, while production keeps its 16 MiB budget.
     let rt = tokio::runtime::Builder::new_multi_thread()
         .worker_threads(2)
-        .thread_stack_size(std::env::var("STACK_KB").ok().and_then(|v| v.parse::<usize>().ok()).map(|k| k*1024).unwrap_or(AGENT_WORKER_STACK_BYTES))
+        .thread_stack_size(SUBAGENT_TOWER_STACK_BYTES)
         .enable_all()
         .build()
         .expect("build runtime");
@@ -325,7 +334,7 @@ fn composio_list_tools_via_subagent_runs_on_production_worker_stack() {
     // The actual work has to be on a worker thread, not the
     // `block_on` driver thread (which inherits the OS test-runner stack
     // and is much larger). Spawn → join to force the closure onto a
-    // production-sized worker.
+    // small worker.
     rt.block_on(async {
         tokio::spawn(drive_subagent())
             .await
@@ -397,22 +406,4 @@ async fn drive_subagent() {
         .await
     })
     .await;
-}
-
-#[test]
-fn zz_sizes() {
-    use openhuman_core::agent::harness::definition::AgentDefinition;
-    eprintln!("SIZE Config {}", std::mem::size_of::<openhuman_core::config::Config>());
-    eprintln!("SIZE AgentDefinition {}", std::mem::size_of::<AgentDefinition>());
-    eprintln!("SIZE SubagentRunOptions {}", std::mem::size_of::<SubagentRunOptions>());
-    eprintln!("SIZE ParentExecutionContext {}", std::mem::size_of::<ParentExecutionContext>());
-    let def: &AgentDefinition = unsafe { &*std::ptr::NonNull::dangling().as_ptr() };
-    let f = run_subagent(def, "x", SubagentRunOptions::default());
-    eprintln!("SIZE run_subagent future {}", std::mem::size_of_val(&f));
-    std::mem::forget(f);
-    let c = openhuman_core::config::Config::default();
-    let f3 = c.save();
-    eprintln!("SIZE save future {}", std::mem::size_of_val(&f3));
-    let f2 = openhuman_core::config::Config::load_or_init();
-    eprintln!("SIZE load_or_init future {}", std::mem::size_of_val(&f2));
 }
