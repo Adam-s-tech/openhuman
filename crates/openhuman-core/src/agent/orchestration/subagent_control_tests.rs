@@ -56,12 +56,11 @@ fn field(out: &Value, name: &str) -> Option<Value> {
 /// user". A failed run must come back `failed`, never as a success.
 #[tokio::test]
 async fn cancel_of_a_finished_run_reports_its_outcome_and_rewrites_nothing() {
-    use crate::agent::orchestration::running_subagents::{
-        register, status_channel, SubagentStatus,
-    };
+    use crate::agent::orchestration::running_subagents::{register, status_channel};
     use crate::agent::orchestration::subagent_sessions::SubagentSessionStore;
     use std::sync::Arc;
     use tinyagents_harness::run_queue::RunQueue;
+    use tinyagents_orchestration::subagent::DetachedSubagentStatus;
 
     let _lock = crate::config::TEST_ENV_LOCK
         .lock()
@@ -76,7 +75,7 @@ async fn cancel_of_a_finished_run_reports_its_outcome_and_rewrites_nothing() {
     for (task_id, status, outcome) in [
         (
             "sub-rpc-done",
-            SubagentStatus::Completed {
+            DetachedSubagentStatus::Completed {
                 output: "ok".into(),
                 iterations: 1,
             },
@@ -84,7 +83,7 @@ async fn cancel_of_a_finished_run_reports_its_outcome_and_rewrites_nothing() {
         ),
         (
             "sub-rpc-failed",
-            SubagentStatus::Failed {
+            DetachedSubagentStatus::Failed {
                 error: "boom".into(),
             },
             "failed",

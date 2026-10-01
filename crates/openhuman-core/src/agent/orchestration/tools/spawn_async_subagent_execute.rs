@@ -459,7 +459,7 @@ impl SpawnAsyncSubagentTool {
                                         err
                                     );
                                 }
-                                let _ = status_tx.send(SubagentStatus::Completed {
+                                let _ = status_tx.send(DetachedSubagentStatus::Completed {
                                     output: outcome.output.clone(),
                                     iterations: outcome.iterations,
                                 });
@@ -544,7 +544,7 @@ impl SpawnAsyncSubagentTool {
                              Partial progress:\n{}",
                                     outcome.output
                                 );
-                                let _ = status_tx.send(SubagentStatus::Completed {
+                                let _ = status_tx.send(DetachedSubagentStatus::Completed {
                                     output: framed.clone(),
                                     iterations: outcome.iterations,
                                 });
@@ -614,7 +614,7 @@ impl SpawnAsyncSubagentTool {
                                         err
                                     );
                                 }
-                                let _ = status_tx.send(SubagentStatus::Failed {
+                                let _ = status_tx.send(DetachedSubagentStatus::Failed {
                                     error: error.clone(),
                                 });
                                 crate::agent::orchestration::background_completions::record_failure(
@@ -660,7 +660,7 @@ impl SpawnAsyncSubagentTool {
                                         err
                                     );
                                 }
-                                let _ = status_tx.send(SubagentStatus::AwaitingUser {
+                                let _ = status_tx.send(DetachedSubagentStatus::AwaitingUser {
                                     question: question.clone(),
                                 });
                                 // #4896: a detached child that pauses for input won't
@@ -715,7 +715,7 @@ impl SpawnAsyncSubagentTool {
                                 store_err
                             );
                         }
-                        let _ = status_tx.send(SubagentStatus::Failed {
+                        let _ = status_tx.send(DetachedSubagentStatus::Failed {
                             error: error.clone(),
                         });
                         // #4896: a detached child that errors previously only
