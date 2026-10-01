@@ -98,6 +98,10 @@ async fn start_channels_inner(mut config: Config) -> Result<()> {
     // is intentionally cheap and the loop body no-ops when there are
     // no connections.
     crate::integrations::composio::start_periodic_sync();
+    // The folder, GitHub, RSS and web sources a driver without a source
+    // pipeline of its own (hosted memory) needs refreshed; each tick checks the
+    // driver bound at that moment.
+    crate::memory::sources::start_hosted_periodic_sync();
     // Task-sources: subscribe to Composio connection-created events for
     // one-shot fetches, and spawn the periodic poll that pulls work from
     // configured external sources onto the agent's todo board.

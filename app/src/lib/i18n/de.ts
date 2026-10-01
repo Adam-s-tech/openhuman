@@ -3579,8 +3579,6 @@ const messages: TranslationMap = {
   'conversations.tools.runTests.done': 'Tests ausgeführt',
   'conversations.tools.analyzeCode.active': 'Code wird analysiert',
   'conversations.tools.analyzeCode.done': 'Code analysiert',
-  'conversations.tools.insertRecord.active': 'Datensatz wird eingefügt',
-  'conversations.tools.insertRecord.done': 'Datensatz eingefügt',
   'conversations.tools.runCommand.active': 'Befehl wird ausgeführt',
   'conversations.tools.runCommand.done': 'Befehl ausgeführt',
   'conversations.tools.runCode.active': 'Code wird ausgeführt',
@@ -5577,6 +5575,15 @@ const messages: TranslationMap = {
   'settings.agentAccess.timeout.envOverride':
     'Die Umgebungsvariable OPENHUMAN_TOOL_TIMEOUT_SECS überschreibt diese Einstellung, daher haben Änderungen hier keine Wirkung, bis sie entfernt wird.',
   'settings.agentAccess.grantedFolders': 'Erteilte Ordner',
+  'settings.agentAccess.filesFolder.label': 'Dateiordner',
+  'settings.agentAccess.filesFolder.desc':
+    'Hier speichert der Agent die Dateien, die er erstellt, etwa Präsentationen, Dokumente, Bilder und Videos. Eine Änderung gilt für neue Dateien; vorhandene Dateien bleiben, wo sie sind.',
+  'settings.agentAccess.filesFolder.save': 'Speichern',
+  'settings.agentAccess.filesFolder.reset': 'Standard verwenden',
+  'settings.agentAccess.filesFolder.saved': 'Dateiordner aktualisiert',
+  'settings.agentAccess.filesFolder.loadError': 'Der Dateiordner konnte nicht geladen werden.',
+  'settings.agentAccess.filesFolder.open': 'Im Ordner anzeigen',
+  'settings.agentAccess.filesFolder.openError': 'Der Dateiordner konnte nicht geöffnet werden.',
   'settings.agentAccess.alwaysAllow': 'Immer erlaubte Werkzeuge',
   'settings.agentAccess.alwaysAllowDesc':
     'Tools, die Sie im Chatlauf ohne zu fragen als "Immer zulassen" markiert haben. Entfernen Sie eine, um erneut aufgefordert zu werden.',
@@ -6589,6 +6596,8 @@ const messages: TranslationMap = {
     'Das Artefakt konnte nicht aufgelöst werden. Bitte erneut versuchen.',
   'chat.files.error.download_failed': 'Download fehlgeschlagen. Bitte erneut versuchen.',
   'chat.files.error.delete_failed': 'Datei konnte nicht gelöscht werden. Bitte erneut versuchen.',
+  'chat.files.error.reveal_failed':
+    'Die Datei konnte nicht angezeigt werden. Sie wurde möglicherweise außerhalb von OpenHuman verschoben oder gelöscht.',
   'memory.tab.council': 'Council',
   'activity.tabs.automations': 'Automatisierungen',
   'activity.tabs.automationsDescription':

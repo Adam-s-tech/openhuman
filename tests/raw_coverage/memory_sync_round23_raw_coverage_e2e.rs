@@ -53,18 +53,13 @@
 use std::collections::HashMap;
 use std::sync::{Mutex, OnceLock};
 
-use serde_json::{json, Value};
 use tempfile::TempDir;
 
 use openhuman_core::config::Config;
-use openhuman_core::integrations::composio::identity_store::{
-    delete_connected_identity_facets, load_connected_identities, persist_provider_profile,
-};
 use openhuman_core::integrations::composio::ops::composio_get_user_profile;
 use openhuman_core::security::credentials::{
     AuthService, APP_SESSION_PROVIDER, DEFAULT_AUTH_PROFILE_NAME,
 };
-use tinymemory_api::composio::{render_connected_identities_section, ProviderUserProfile};
 
 static ENV_LOCK: &OnceLock<Mutex<()>> = &crate::SHARED_ENV_LOCK;
 static MEMORY_SEAMS_INIT: OnceLock<()> = OnceLock::new();

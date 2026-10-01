@@ -50,7 +50,6 @@ fn count_markers_only_inspects_latest_user_message() {
         TranscriptMessage::user("now just one [FILE:/tmp/e.txt]".to_string()),
     ];
     assert_eq!(count_file_markers(&history), 1);
-    assert!(contains_file_markers(&history));
 
     let history_no_new_files = vec![
         TranscriptMessage::user("[FILE:/tmp/a.txt] [FILE:/tmp/b.txt]".to_string()),
@@ -58,7 +57,6 @@ fn count_markers_only_inspects_latest_user_message() {
         TranscriptMessage::user("no attachments this turn".to_string()),
     ];
     assert_eq!(count_file_markers(&history_no_new_files), 0);
-    assert!(!contains_file_markers(&history_no_new_files));
 
     // Same semantics for the image counter.
     let image_history = vec![

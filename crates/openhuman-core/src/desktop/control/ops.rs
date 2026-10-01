@@ -180,8 +180,21 @@ fn permission(data: &serde_json::Value, field: &str) -> String {
         .and_then(serde_json::Value::as_str)
         .unwrap_or("unknown");
     match raw {
-        "granted" | "denied" | "not_required" => raw.to_owned(),
+        "granted" | "denied" | "not_required" | "unknown" => raw.to_owned(),
         _ => "unknown".to_owned(),
+    }
+}
+
+/// On platforms without a per-app permission model for the given kind (e.g.
+/// Windows has no macOS-style Accessibility or Screen Recording toggle),
+/// treat an `unknown` report from the module as `not_required` so the UI
+/// does not show a misleading "Not determined" state or send the user to
+/// a generic settings page that has no relevant toggle.
+pub(super) fn normalize_permission_for_platform(state: &str, platform: &str) -> String {
+    if platform == "windows" && state == "unknown" {
+        "not_required".to_owned()
+    } else {
+        state.to_owned()
     }
 }
 
@@ -222,8 +235,14 @@ where
         match permissions().await {
             Ok(response) if response.ok => {
                 if let Some(data) = response.data.as_ref() {
-                    result.accessibility = permission(data, "accessibility");
-                    result.screen_recording = permission(data, "screen_recording");
+                    result.accessibility = normalize_permission_for_platform(
+                        &permission(data, "accessibility"),
+                        result.platform,
+                    );
+                    result.screen_recording = normalize_permission_for_platform(
+                        &permission(data, "screen_recording"),
+                        result.platform,
+                    );
                 }
                 result.module_state = "ready".to_owned();
             }
@@ -289,13 +308,17 @@ where
             }
         }
     };
-    if permissions
+    let accessibility_state = permissions
         .data
         .as_ref()
-        .map(|data| permission(data, "accessibility"))
-        .as_deref()
-        != Some("granted")
-    {
+        .map(|data| {
+            normalize_permission_for_platform(
+                &permission(data, "accessibility"),
+                std::env::consts::OS,
+            )
+        })
+        .unwrap_or_else(|| "unknown".to_owned());
+    if accessibility_state != "granted" && accessibility_state != "not_required" {
         return DesktopProbe {
             ok: false,
             app_count: None,

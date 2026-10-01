@@ -172,7 +172,6 @@ export const EXACT_TOOL_SPECS: Record<string, ToolSpec> = {
   run_linter: spec('runLinter', ListChecksIcon, 'code'),
   run_tests: spec('runTests', ListChecksIcon, 'code'),
   lsp: spec('analyzeCode', CodeIcon, 'code', { chip: chip.path() }),
-  insert_sql_record: spec('insertRecord', DatabaseIcon, 'system', { chip: chip.text('table') }),
 
   // ── Shell and system ────────────────────────────────────────────────────
   shell: spec('runCommand', SquareTerminalIcon, 'shell', { chip: chip.command(), body: 'shell' }),

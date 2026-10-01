@@ -226,21 +226,26 @@ fn engine_set_binds_the_hosted_engine_without_a_restart_and_switches_back() {
             "graph must be gated with the stable error: {message}"
         );
 
-        // An unsupported family degrades to a clean error, not a panic.
+        // The hosted engine serves documents (tinymemory's hosted-families
+        // spec): a titled document round-trips beside the stored note.
         let doc = fx
             .call(
                 "openhuman.memory_doc_put",
                 json!({
-                    "namespace": NS, "key": "k", "title": "t", "content": "c",
+                    "namespace": NS, "key": "k", "title": "A title", "content": "c",
                     "source_type": "doc", "priority": "medium", "tags": [],
                     "metadata": null, "category": "core"
                 }),
             )
             .await;
+        result_of(&doc, "doc_put on the hosted engine");
+        let v = fx
+            .call("openhuman.memory_doc_list", json!({ "namespace": NS }))
+            .await;
+        let docs = result_of(&v, "doc_list after doc_put on hosted");
         assert!(
-            error_message(&doc, "doc_put on the hosted engine")
-                .contains("memory driver does not support the documents family"),
-            "doc_put must name the missing family: {doc}"
+            docs.to_string().contains("A title") && docs.to_string().contains("engine-note"),
+            "doc_list must list the titled document and the stored note: {docs}"
         );
 
         // And back to the module, live.

@@ -316,7 +316,7 @@ all consumers import the owner directly, not that behavior is dropped.
 | `artifact_offload/` | Split | Move size/chunk/handoff policy mechanics to harness; keep action-dir authorization and OpenHuman artifact store callbacks. |
 | `run_queue/` | `tinyagents-harness::run_queue` | Delete the OpenHuman copy/facade after parity tests and direct imports. |
 | `tool_result_artifacts/` | Keep host store | OpenHuman action-dir artifact persistence implementing the upstream artifact callback/store seam. |
-| `credentials.rs`, `memory_context.rs`, `memory_context_safety.rs` | Keep host policy/adapters | Feed explicit context/capability requests; move only host-free formatting/traversal helpers. |
+| `credentials.rs`, `memory_context_safety.rs` | Keep host policy/adapters | Feed explicit context/capability requests; move only host-free formatting/traversal helpers. |
 | `fork_context.rs`, `sandbox_context.rs`, `spawn_depth_context.rs`, `task_recency_context.rs` | explicit `RunContext`/child context | Delete task-local shells. |
 | `subagent_runner/` | Delete | The complete legacy tree is replaced by direct `agent/subagent_host` adapters over `tinyagents-orchestration::subagent`; generic lifecycle ordering, coalescing and mutually exclusive persistence are upstream. |
 | `subagent_host/` | Keep host adapter | OpenHuman implements `SubagentPlanner`, `SubagentExecutor` and `SubagentPersistence`: definitions, policy, provider/model selection, tool narrowing, workspace/security, progress, artifacts and durable product checkpoint/session projection remain host-owned. |

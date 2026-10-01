@@ -3507,8 +3507,6 @@ const messages: TranslationMap = {
   'conversations.tools.runTests.done': 'Pengujian dijalankan',
   'conversations.tools.analyzeCode.active': 'Menganalisis kode',
   'conversations.tools.analyzeCode.done': 'Kode dianalisis',
-  'conversations.tools.insertRecord.active': 'Menambahkan catatan',
-  'conversations.tools.insertRecord.done': 'Catatan ditambahkan',
   'conversations.tools.runCommand.active': 'Menjalankan perintah',
   'conversations.tools.runCommand.done': 'Perintah dijalankan',
   'conversations.tools.runCode.active': 'Menjalankan kode',
@@ -5474,6 +5472,15 @@ const messages: TranslationMap = {
   'settings.agentAccess.timeout.envOverride':
     'Variabel lingkungan OPENHUMAN_TOOL_TIMEOUT_SECS menggantikan pengaturan ini, sehingga perubahan di sini tidak berpengaruh hingga variabel tersebut dihapus.',
   'settings.agentAccess.grantedFolders': 'Folder yang diberikan',
+  'settings.agentAccess.filesFolder.label': 'Folder file',
+  'settings.agentAccess.filesFolder.desc':
+    'Tempat menyimpan file yang dibuat agen, seperti presentasi, dokumen, gambar, dan video. Perubahan berlaku untuk file baru; file yang sudah ada tetap di tempatnya.',
+  'settings.agentAccess.filesFolder.save': 'Simpan',
+  'settings.agentAccess.filesFolder.reset': 'Gunakan bawaan',
+  'settings.agentAccess.filesFolder.saved': 'Folder file diperbarui',
+  'settings.agentAccess.filesFolder.loadError': 'Folder file tidak dapat dimuat.',
+  'settings.agentAccess.filesFolder.open': 'Tampilkan di folder',
+  'settings.agentAccess.filesFolder.openError': 'Folder file tidak dapat dibuka.',
   'settings.agentAccess.alwaysAllow': 'Selalu-diperbolehkan alat',
   'settings.agentAccess.alwaysAllowDesc':
     'Perkakas yang Anda tandai "Always allow" dalam run percakapan tanpa bertanya. Hapus satu yang akan diminta lagi.',
@@ -6466,6 +6473,8 @@ const messages: TranslationMap = {
   'chat.files.error.resolve_failed': 'Tidak dapat memuat artefak. Coba lagi.',
   'chat.files.error.download_failed': 'Unduhan gagal. Coba lagi.',
   'chat.files.error.delete_failed': 'Tidak bisa menghapus file. Coba lagi.',
+  'chat.files.error.reveal_failed':
+    'File tidak dapat ditampilkan. File mungkin telah dipindahkan atau dihapus di luar OpenHuman.',
   'memory.tab.council': 'Council',
   'activity.tabs.automations': 'Otomatisasi',
   'activity.tabs.automationsDescription':

@@ -62,7 +62,7 @@ Copy the **entire** data folder from the old machine to the same location on the
 
 Copy the whole folder rather than cherry-picking. It keeps memory, persona, config, and history consistent with each other.
 
-The data folder holds config and memory but **not** the files the agent created or edited in its action sandbox. Also copy your **projects/action folder**, by default `~/OpenHuman/projects` (or wherever you pointed the action directory). Otherwise those project files stay behind on the old PC.
+The data folder holds config and memory but **not** the files the agent created or edited in its action sandbox. Also copy your **projects/action folder**, by default `~/OpenHuman/projects` (or wherever you pointed the action directory). Otherwise those project files stay behind on the old PC. That folder also holds `Files` (`~/OpenHuman/projects/Files`), where the decks, documents and generated images and videos the agent delivers are saved.
 
 {% hint style="warning" %}
 Copy it somewhere secure. This folder contains your personal memory in readable form. Treat the transfer like moving personal documents.

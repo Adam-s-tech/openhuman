@@ -524,15 +524,6 @@ fn optional_f64(name: &'static str, comment: &'static str) -> FieldSchema {
     }
 }
 
-fn optional_u64(name: &'static str, comment: &'static str) -> FieldSchema {
-    FieldSchema {
-        name,
-        ty: TypeSchema::Option(Box::new(TypeSchema::U64)),
-        comment,
-        required: false,
-    }
-}
-
 fn json_output(name: &'static str, comment: &'static str) -> FieldSchema {
     FieldSchema {
         name,

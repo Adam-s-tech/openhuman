@@ -3545,8 +3545,6 @@ const messages: TranslationMap = {
   'conversations.tools.runTests.done': 'Test eseguiti',
   'conversations.tools.analyzeCode.active': 'Analisi del codice',
   'conversations.tools.analyzeCode.done': 'Codice analizzato',
-  'conversations.tools.insertRecord.active': 'Inserimento del record',
-  'conversations.tools.insertRecord.done': 'Record inserito',
   'conversations.tools.runCommand.active': 'Esecuzione del comando',
   'conversations.tools.runCommand.done': 'Comando eseguito',
   'conversations.tools.runCode.active': 'Esecuzione del codice',
@@ -5523,6 +5521,15 @@ const messages: TranslationMap = {
   'settings.agentAccess.timeout.envOverride':
     "La variabile d'ambiente OPENHUMAN_TOOL_TIMEOUT_SECS sta sovrascrivendo questa impostazione, quindi le modifiche qui non avranno effetto finché non viene rimossa.",
   'settings.agentAccess.grantedFolders': 'Cartelle concesse',
+  'settings.agentAccess.filesFolder.label': 'Cartella dei file',
+  'settings.agentAccess.filesFolder.desc':
+    'Dove vengono salvati i file creati dall’agente, come presentazioni, documenti, immagini e video. La modifica vale per i nuovi file; quelli esistenti restano dove sono.',
+  'settings.agentAccess.filesFolder.save': 'Salva',
+  'settings.agentAccess.filesFolder.reset': 'Usa quella predefinita',
+  'settings.agentAccess.filesFolder.saved': 'Cartella dei file aggiornata',
+  'settings.agentAccess.filesFolder.loadError': 'Impossibile caricare la cartella dei file.',
+  'settings.agentAccess.filesFolder.open': 'Mostra nella cartella',
+  'settings.agentAccess.filesFolder.openError': 'Impossibile aprire la cartella dei file.',
   'settings.agentAccess.alwaysAllow': 'Strumenti sempre consentiti',
   'settings.agentAccess.alwaysAllowDesc':
     'Gli strumenti che hai contrassegnato come "Consenti sempre" in chat funzionano senza chiedere. Rimuovine uno per ricevere nuovamente la richiesta.',
@@ -6534,6 +6541,8 @@ const messages: TranslationMap = {
   'chat.files.error.resolve_failed': 'Impossibile risolvere l’artefatto. Riprova.',
   'chat.files.error.download_failed': 'Download non riuscito. Riprova.',
   'chat.files.error.delete_failed': 'Impossibile eliminare il file. Riprova.',
+  'chat.files.error.reveal_failed':
+    'Impossibile mostrare il file. Potrebbe essere stato spostato o eliminato al di fuori di OpenHuman.',
   'memory.tab.council': 'Council',
   'activity.tabs.automations': 'Automazioni',
   'activity.tabs.automationsDescription':

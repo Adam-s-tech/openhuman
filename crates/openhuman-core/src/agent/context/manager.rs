@@ -240,22 +240,6 @@ impl ContextManager {
         self.default_prompt_builder.build_tiered(ctx)
     }
 
-    /// Assemble the system prompt via a caller-supplied builder.
-    ///
-    /// Sub-agents pass `SystemPromptBuilder::for_subagent(...)` and
-    /// channels pass `with_defaults()` chained with a
-    /// `ChannelCapabilitiesSection`. Either way the builder itself
-    /// lives in [`super::prompt`] — no caller needs to know how
-    /// sections are composed internally.
-    pub fn build_system_prompt_with(
-        &self,
-        builder: &SystemPromptBuilder,
-        ctx: &PromptContext<'_>,
-    ) -> Result<String> {
-        let prompt = builder.build(ctx)?;
-        Ok(prompt)
-    }
-
     // ─── Observability ─────────────────────────────────────────────
 
     /// Read-only snapshot of the current budget state.

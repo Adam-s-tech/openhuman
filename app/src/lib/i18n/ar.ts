@@ -3407,8 +3407,6 @@ const messages: TranslationMap = {
   'conversations.tools.runTests.done': 'تم تشغيل الاختبارات',
   'conversations.tools.analyzeCode.active': 'جارٍ تحليل الكود',
   'conversations.tools.analyzeCode.done': 'تم تحليل الكود',
-  'conversations.tools.insertRecord.active': 'جارٍ إدراج سجل',
-  'conversations.tools.insertRecord.done': 'تم إدراج السجل',
   'conversations.tools.runCommand.active': 'جارٍ تشغيل الأمر',
   'conversations.tools.runCommand.done': 'تم تشغيل الأمر',
   'conversations.tools.runCode.active': 'جارٍ تشغيل الكود',
@@ -5322,6 +5320,15 @@ const messages: TranslationMap = {
   'settings.agentAccess.timeout.envOverride':
     'متغير البيئة OPENHUMAN_TOOL_TIMEOUT_SECS يتجاوز هذا الإعداد، لذا لن يكون للتغييرات هنا أي تأثير حتى يتم إلغاء ضبطه.',
   'settings.agentAccess.grantedFolders': 'الملفات الممنوحة',
+  'settings.agentAccess.filesFolder.label': 'مجلد الملفات',
+  'settings.agentAccess.filesFolder.desc':
+    'المكان الذي تُحفظ فيه الملفات التي ينشئها الوكيل، مثل العروض التقديمية والمستندات والصور ومقاطع الفيديو. يسري التغيير على الملفات الجديدة؛ وتبقى الملفات الحالية في مكانها.',
+  'settings.agentAccess.filesFolder.save': 'حفظ',
+  'settings.agentAccess.filesFolder.reset': 'استخدام الافتراضي',
+  'settings.agentAccess.filesFolder.saved': 'تم تحديث مجلد الملفات',
+  'settings.agentAccess.filesFolder.loadError': 'تعذّر تحميل مجلد الملفات.',
+  'settings.agentAccess.filesFolder.open': 'إظهار في المجلد',
+  'settings.agentAccess.filesFolder.openError': 'تعذّر فتح مجلد الملفات.',
   'settings.agentAccess.alwaysAllow': 'الأدوات المتدنية دائما',
   'settings.agentAccess.alwaysAllowDesc':
     'الأدوات التي وضعت علامة "الطرق تسمح" في الدردشة دون أن تسأل. أزيلي واحدة ليتم دفعها مجدداً',
@@ -6290,6 +6297,7 @@ const messages: TranslationMap = {
   'chat.files.error.resolve_failed': 'تعذّر تحديد الملف. حاول مرة أخرى.',
   'chat.files.error.download_failed': 'فشل التنزيل. حاول مرة أخرى.',
   'chat.files.error.delete_failed': 'تعذّر حذف الملف. حاول مرة أخرى.',
+  'chat.files.error.reveal_failed': 'تعذّر عرض الملف. ربما نُقل أو حُذف خارج OpenHuman.',
   'memory.tab.council': 'Council',
   'activity.tabs.automations': 'أتمتة',
   'activity.tabs.automationsDescription':

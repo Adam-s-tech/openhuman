@@ -3570,8 +3570,6 @@ const messages: TranslationMap = {
   'conversations.tools.runTests.done': 'Tests exécutés',
   'conversations.tools.analyzeCode.active': 'Analyse du code',
   'conversations.tools.analyzeCode.done': 'Code analysé',
-  'conversations.tools.insertRecord.active': "Insertion de l'enregistrement",
-  'conversations.tools.insertRecord.done': 'Enregistrement inséré',
   'conversations.tools.runCommand.active': 'Exécution de la commande',
   'conversations.tools.runCommand.done': 'Commande exécutée',
   'conversations.tools.runCode.active': 'Exécution du code',
@@ -5557,6 +5555,15 @@ const messages: TranslationMap = {
   'settings.agentAccess.timeout.envOverride':
     "La variable d'environnement OPENHUMAN_TOOL_TIMEOUT_SECS remplace ce paramètre ; les modifications effectuées ici n'auront donc aucun effet tant qu'elle n'est pas supprimée.",
   'settings.agentAccess.grantedFolders': 'Dossiers accordés',
+  'settings.agentAccess.filesFolder.label': 'Dossier des fichiers',
+  'settings.agentAccess.filesFolder.desc':
+    'Emplacement où sont enregistrés les fichiers créés par l’agent, comme les présentations, documents, images et vidéos. Une modification s’applique aux nouveaux fichiers ; les fichiers existants restent où ils sont.',
+  'settings.agentAccess.filesFolder.save': 'Enregistrer',
+  'settings.agentAccess.filesFolder.reset': 'Utiliser le dossier par défaut',
+  'settings.agentAccess.filesFolder.saved': 'Dossier des fichiers mis à jour',
+  'settings.agentAccess.filesFolder.loadError': 'Impossible de charger le dossier des fichiers.',
+  'settings.agentAccess.filesFolder.open': 'Afficher dans le dossier',
+  'settings.agentAccess.filesFolder.openError': 'Impossible d’ouvrir le dossier des fichiers.',
   'settings.agentAccess.alwaysAllow': 'Outils toujours autorisés',
   'settings.agentAccess.alwaysAllowDesc':
     "Les outils que vous avez marqués « Toujours autoriser » dans le chat s'exécutent sans demander. Supprimez-en un pour être invité à nouveau.",
@@ -6577,6 +6584,8 @@ const messages: TranslationMap = {
   'chat.files.error.resolve_failed': 'Impossible de résoudre l’artefact. Réessayez.',
   'chat.files.error.download_failed': 'Échec du téléchargement. Réessayez.',
   'chat.files.error.delete_failed': 'Impossible de supprimer le fichier. Réessayez.',
+  'chat.files.error.reveal_failed':
+    'Impossible d’afficher le fichier. Il a peut-être été déplacé ou supprimé en dehors d’OpenHuman.',
   'memory.tab.council': 'Council',
   'activity.tabs.automations': 'Automatisations',
   'activity.tabs.automationsDescription':

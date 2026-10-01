@@ -627,7 +627,6 @@ The harness shell lives under `crates/openhuman-core/src/agent/`, with the tinya
 | `hooks.rs` / `stop_hooks.rs`             | Post-turn and mid-turn hook surfaces.                                                                         |
 | `cost.rs`                                | Per-turn USD/token accounting.                                                                                |
 | `progress.rs`                            | Real-time progress events to the UI.                                                                          |
-| `harness/memory_context.rs`              | Memory-Tree context injection per user message.                                                               |
 
 ## Agent state graphs (`agent_graph`): HISTORICAL (removed)
 

@@ -22,12 +22,10 @@ use openhuman_core::config::Config;
 use openhuman_core::security::credentials::{
     AuthService, APP_SESSION_PROVIDER, DEFAULT_AUTH_PROFILE_NAME,
 };
-use openhuman_core::inference::host_runtime::LocalAiService;
 use openhuman_core::inference::provider::factory::{
     auth_key_for_slug, create_chat_model_from_string_with_model_id, provider_for_role,
 };
 use openhuman_core::inference::provider::list_configured_models;
-use tinyinference_core::sanitize::sanitize_api_error;
 
 #[derive(Clone, Default)]
 struct MockState {
@@ -203,12 +201,6 @@ async fn provider_factory_and_model_listing_cover_cloud_local_and_invalid_shapes
     assert_eq!(listed["models"][0]["id"], "demo-chat");
     assert_eq!(listed["models"][1]["context_window"], 8192);
 
-    let local_listed = list_configured_models("ollama")
-        .await
-        .expect("synthetic ollama list")
-        .value;
-    assert_eq!(local_listed["models"][0]["id"], "demo-chat");
-
     // PR #2959 reverted the list_models 404 suppression: a 404 from /models
     // now surfaces as a real error instead of a synthetic `unsupported: true`
     // success, so the failure fires to Sentry for a root-cause fix.
@@ -219,12 +211,6 @@ async fn provider_factory_and_model_listing_cover_cloud_local_and_invalid_shapes
         missing_err.contains("provider returned 404"),
         "404 list_models error should surface the status: {missing_err:?}"
     );
-
-    let openrouter = list_configured_models("openrouter")
-        .await
-        .expect("openrouter key validation and list")
-        .value;
-    assert_eq!(openrouter["models"][0]["owned_by"], "test-suite");
 
     for provider_id in ["html", "wrong-data", "error-payload", ""] {
         let err = list_configured_models(provider_id)
@@ -237,86 +223,6 @@ async fn provider_factory_and_model_listing_cover_cloud_local_and_invalid_shapes
                 || err.contains("parse JSON")
         );
     }
-}
-
-#[tokio::test]
-async fn local_service_public_inference_assets_and_shutdown_use_loopback_ollama() {
-    let _env_lock = __shared_env_lock();
-    let (base, _state) = serve_mock().await;
-    let _ollama_env = EnvVarGuard::set("OPENHUMAN_OLLAMA_BASE_URL", &base);
-    let tmp = tempdir().expect("tempdir");
-    let mut config = temp_config(&tmp);
-    config.local_ai.runtime_enabled = true;
-    config.local_ai.base_url = Some(base);
-    config.local_ai.chat_model_id = "gemma3:1b-it-qat".to_string();
-    config.local_ai.vision_model_id = "llava:mock".to_string();
-    config.local_ai.embedding_model_id = "bge-m3".to_string();
-    config.local_ai.preload_embedding_model = true;
-    config.local_ai.preload_vision_model = false;
-    config.local_ai.preload_stt_model = false;
-    config.local_ai.preload_tts_voice = false;
-
-    let runtime = openhuman_core::inference::local_runtime_config(&config);
-    let service = LocalAiService::new(&runtime);
-    let prompt = service
-        .prompt(&runtime, "Say hi", Some(8), true)
-        .await
-        .expect("prompt");
-    assert_eq!(prompt, "chat:gemma3:1b-it-qat");
-
-    let summarized = service
-        .summarize(&runtime, "one two three", Some(16))
-        .await
-        .expect("summarize");
-    assert_eq!(summarized, "chat:gemma3:1b-it-qat");
-
-    let completion = service
-        .inline_complete_interactive(
-            &runtime,
-            "OpenHuman is",
-            "concise",
-            Some("short"),
-            &["OpenHuman is useful".to_string()],
-            Some(6),
-        )
-        .await
-        .expect("inline");
-    assert_eq!(completion, "chat:gemma3:1b-it-qat");
-
-    let assets = service.assets_status(&runtime).await.expect("assets");
-    assert!(assets.ollama_available);
-    assert_eq!(assets.chat.state, "ready");
-    assert_eq!(assets.embedding.state, "ready");
-    assert!(matches!(
-        assets.tts.state.as_str(),
-        "ready" | "ondemand" | "missing"
-    ));
-
-    let diagnostics = service.diagnostics(&runtime).await.expect("diagnostics");
-    assert_eq!(diagnostics["ollama_running"], true);
-    assert_eq!(diagnostics["expected"]["chat_found"], true);
-    assert!(
-        diagnostics["installed_models"]
-            .as_array()
-            .expect("installed_models")
-            .len()
-            >= 4
-    );
-
-    let progress = service.downloads_progress(&runtime).await.expect("progress");
-    assert_eq!(progress.chat.id, "gemma3:1b-it-qat");
-    assert_eq!(progress.embedding.id, "bge-m3");
-
-    let disabled_config = Config::default();
-    let disabled_runtime = openhuman_core::inference::local_runtime_config(&disabled_config);
-    let disabled_err = service
-        .prompt(&disabled_runtime, "disabled", None, false)
-        .await
-        .expect_err("disabled prompt");
-    assert_eq!(disabled_err, "local ai is disabled");
-
-    service.shutdown_owned_ollama(&runtime).await;
-    assert!(!service.has_owned_ollama());
 }
 
 fn temp_config(tmp: &TempDir) -> Config {

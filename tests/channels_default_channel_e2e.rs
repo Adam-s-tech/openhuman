@@ -40,9 +40,10 @@
 //! non-vacuity control is asserting the handle reads `None` *before* the call —
 //! without it, "still unset afterwards" would look like a pass.
 //!
-//! So this target asserts everything reachable from the RPC surface — the round
-//! trip across the wire, persistence, canonicalisation, the documented `"web"`
-//! fallback — plus the live-apply half that is the actual #3712 regression.
+//! So this target asserts the persistence and live-apply halves over the wire.
+//! The op-level round trip, canonicalisation and `"web"` fallback live in
+//! `channels/controllers/ops_connect_status_tests.rs`, and the get/set wire
+//! shapes in `domain_modules_e2e`.
 //!
 //! No network: `api_url` points at a closed port.
 //!
@@ -254,31 +255,6 @@ async fn rpc(base: &str, id: i64, method: &str, params: Value) -> Value {
         .unwrap_or_else(|err| panic!("json for {method}: {err}"))
 }
 
-fn ok<'a>(value: &'a Value, context: &str) -> &'a Value {
-    if let Some(error) = value.get("error") {
-        panic!("{context}: unexpected JSON-RPC error: {error}");
-    }
-    value
-        .get("result")
-        .unwrap_or_else(|| panic!("{context}: missing result: {value}"))
-}
-
-fn payload<'a>(value: &'a Value, context: &str) -> &'a Value {
-    let outer = ok(value, context);
-    outer
-        .get("data")
-        .or_else(|| outer.get("result"))
-        .unwrap_or(outer)
-}
-
-fn active_channel(value: &Value, context: &str) -> String {
-    payload(value, context)
-        .get("active_channel")
-        .and_then(Value::as_str)
-        .unwrap_or_else(|| panic!("{context}: payload has no string `active_channel`: {value}"))
-        .to_string()
-}
-
 async fn set_default(harness: &Harness, id: i64, channel: &str) -> Value {
     rpc(
         &harness.rpc_base,
@@ -289,42 +265,7 @@ async fn set_default(harness: &Harness, id: i64, channel: &str) -> Value {
     .await
 }
 
-async fn get_default(harness: &Harness, id: i64) -> Value {
-    rpc(
-        &harness.rpc_base,
-        id,
-        "openhuman.channels_get_default",
-        json!({}),
-    )
-    .await
-}
-
 // ── Tests ────────────────────────────────────────────────────────────
-
-/// The round trip the four existing specs use as setup and never assert.
-///
-/// `channels_get_default` is read back over the wire rather than out of the
-/// config file on purpose: reading the file would prove persistence but not
-/// that the getter serves it, and the getter is the half the UI calls.
-#[tokio::test]
-async fn set_default_then_get_default_returns_the_chosen_channel() {
-    let _lock = env_lock();
-    let harness = setup().await;
-
-    let set = set_default(&harness, 1, "telegram").await;
-    assert_eq!(
-        active_channel(&set, "channels_set_default"),
-        "telegram",
-        "channels_set_default should echo back the channel it just set"
-    );
-
-    let got = get_default(&harness, 2).await;
-    assert_eq!(
-        active_channel(&got, "channels_get_default"),
-        "telegram",
-        "channels_get_default should return the channel channels_set_default just stored"
-    );
-}
 
 /// The switch must survive as a *persisted* choice, not just an in-memory one.
 ///
@@ -374,29 +315,6 @@ async fn set_default_persists_the_choice_to_config_on_disk() {
     );
 }
 
-/// Canonicalisation: the handler lower-cases before storing
-/// (`schemas.rs:332`), so a mixed-case switch from the UI must not produce a
-/// default that no comparison downstream matches.
-#[tokio::test]
-async fn set_default_canonicalises_channel_case() {
-    let _lock = env_lock();
-    let harness = setup().await;
-
-    let set = set_default(&harness, 1, "TeleGram").await;
-    assert_eq!(
-        active_channel(&set, "channels_set_default(TeleGram)"),
-        "telegram",
-        "channels_set_default should canonicalise the channel to lower case before storing it"
-    );
-
-    let got = get_default(&harness, 2).await;
-    assert_eq!(
-        active_channel(&got, "channels_get_default"),
-        "telegram",
-        "channels_get_default should return the canonicalised form, not the caller's casing"
-    );
-}
-
 /// #3712 — the live-apply half, and the one that a config-only test cannot see.
 ///
 /// `set_default_channel` (`ops/connect/status.rs:92-99`) does two things: it
@@ -436,21 +354,5 @@ async fn set_default_applies_to_the_live_proactive_handle() {
         "channels_set_default persisted the choice but did not update the live proactive \
          routing handle, so proactive messages keep going to the old channel until the \
          process restarts (#3712)"
-    );
-}
-
-/// The documented fallback. `handle_get_default` (`schemas.rs:348`) ends in
-/// `.unwrap_or_else(|| "web".to_string())`, so a fresh install answers `web`
-/// rather than erroring or returning null — the UI renders this value directly.
-#[tokio::test]
-async fn get_default_falls_back_to_web_before_anything_is_set() {
-    let _lock = env_lock();
-    let harness = setup().await;
-
-    let got = get_default(&harness, 1).await;
-    assert_eq!(
-        active_channel(&got, "channels_get_default(fresh)"),
-        "web",
-        "a fresh install should report `web` as the default messaging channel"
     );
 }

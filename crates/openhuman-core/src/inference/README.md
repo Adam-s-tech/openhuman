@@ -38,7 +38,7 @@ compatibility aliases in `crates/openhuman-core/src/core/legacy_aliases.rs`.
 | `config/ops/local_ai_presets.rs`                                                  | OpenHuman `LocalAiConfig` mapping for `tinyinference_local::presets`; reusable tiers, recommendations, and preset data live upstream.                                                                                                             |
 | `paths.rs`                                                                        | Host-owned on-disk model artifact paths. Completion and sentiment parsing live in `tinyinference`. |
 | `local/`                                                                          | Local runtime manager (was `local_ai/`). See `local/README.md`.                                                                                                                                                                                    |
-| `local/core.rs`                                                                   | `LocalAiService` singleton (`global`/`try_global`), `model_artifact_path`.                                                                                                                                                                         |
+| `local/core.rs`                                                                   | `LocalAiService` singleton (`global`/`try_global`).                                                                                                                                                                                                   |
 | `local/ops.rs` + `local/ops/` (`runtime_ops.rs`, `chat.rs`, `agent_chat.rs`, `turn_guards.rs`)                                       | Local RPC entrypoints (`local_ai_status/prompt/summarize/vision_prompt/embed`); re-exported as `local::rpc`.                                                                                                      |
 | `local/schemas.rs`                                                                | Local-runtime `inference.*` controller schemas + handlers.                                                                                                                                                                                         |
 | `tinyinference_local`                                                            | Ollama/LM Studio wire types, URL handling, model requirements, runtime profiles, provider selection, process flags, spawn-marker persistence, Ollama installation, and Piper binary/voice installation. |
@@ -73,7 +73,7 @@ From `mod.rs` re-exports:
 - `local::all_local_inference_controller_schemas` / `local::all_local_inference_registered_controllers` (legacy export names; registered schemas are in the `inference` namespace)
 - `rpc` (alias for `ops`) and `all_inference_controller_schemas` / `all_inference_registered_controllers`
 
-Provider-layer (via `provider::`): `ChatRequest`, `ChatResponse`, `ProviderDelta`, `ToolCall`, `UsageInfo`, `create_chat_model*`, `provider_for_role`, `BYOK_INCOMPLETE_SENTINEL`, `OpenHumanBackendModel`, plus error classifiers. Local runtime: `local::{global, try_global}` → `Arc<LocalAiService>`.
+Provider-layer (via `provider::`): `ChatResponse`, `ProviderDelta`, `ToolCall`, `UsageInfo`, `create_chat_model*`, `provider_for_role`, `BYOK_INCOMPLETE_SENTINEL`, `OpenHumanBackendModel`, plus error classifiers. Local runtime: `local::{global, try_global}` → `Arc<LocalAiService>`.
 
 ## RPC / controllers
 
@@ -95,7 +95,7 @@ Also exposes a non-RPC HTTP router (`http::router()`) nested at `/v1` by `crates
 
 - `openai_oauth/store.rs` persists OAuth tokens via the credentials auth-profile store (`AuthProfilesStore`, `auth-profiles.json`, encrypted at rest) under profile key `provider:openai` / profile `oauth`.
 - `LocalAiService` holds in-process runtime state (status, owned `ollama serve` child) via the `local::global` `OnceCell` singleton, process-lifetime, not durably persisted.
-- Model artifacts live under `<root>/models/local-ai/` (`local/core.rs::model_artifact_path`); OpenHuman selects the Piper root and passes it to `tinyinference_local::piper::PiperInstall`.
+- Model artifacts live under `<root>/models/local-ai/`; OpenHuman selects the Piper root and passes it to `tinyinference_local::piper::PiperInstall`.
 - Routing/provider/local settings persisted through `config` (no dedicated `store.rs`).
 
 ## Dependencies

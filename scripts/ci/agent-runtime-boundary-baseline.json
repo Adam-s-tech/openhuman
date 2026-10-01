@@ -100,13 +100,6 @@
   {
     "rule": "openhuman-task-local",
     "path": "crates/openhuman-core/src/agent/harness/fork_context.rs",
-    "line": 181,
-    "text": "pub static AGENT_CONTEXT_PREPARED_SOURCES: Arc<Vec<AgentContextPreparedSource>>;",
-    "occurrence": 1
-  },
-  {
-    "rule": "openhuman-task-local",
-    "path": "crates/openhuman-core/src/agent/harness/fork_context.rs",
     "line": 188,
     "text": "pub fn current_parent() -> Option<ParentExecutionContext> {",
     "occurrence": 1
@@ -124,27 +117,6 @@
     "line": 200,
     "text": "PARENT_CONTEXT.scope(ctx, Box::pin(future)).await",
     "occurrence": 1
-  },
-  {
-    "rule": "openhuman-task-local",
-    "path": "crates/openhuman-core/src/agent/harness/fork_context.rs",
-    "line": 205,
-    "text": "pub fn current_agent_context_prepared_sources() -> Vec<AgentContextPreparedSource> {",
-    "occurrence": 1
-  },
-  {
-    "rule": "openhuman-task-local",
-    "path": "crates/openhuman-core/src/agent/harness/fork_context.rs",
-    "line": 206,
-    "text": "AGENT_CONTEXT_PREPARED_SOURCES",
-    "occurrence": 1
-  },
-  {
-    "rule": "openhuman-task-local",
-    "path": "crates/openhuman-core/src/agent/harness/fork_context.rs",
-    "line": 223,
-    "text": "AGENT_CONTEXT_PREPARED_SOURCES",
-    "occurrence": 2
   },
   {
     "rule": "openhuman-task-local",

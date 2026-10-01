@@ -3921,8 +3921,6 @@ const en: TranslationMap = {
   'conversations.tools.runTests.done': 'Ran tests',
   'conversations.tools.analyzeCode.active': 'Analyzing code',
   'conversations.tools.analyzeCode.done': 'Analyzed code',
-  'conversations.tools.insertRecord.active': 'Inserting record',
-  'conversations.tools.insertRecord.done': 'Inserted record',
   'conversations.tools.runCommand.active': 'Running command',
   'conversations.tools.runCommand.done': 'Ran command',
   'conversations.tools.runCode.active': 'Running code',
@@ -6236,6 +6234,15 @@ const en: TranslationMap = {
   'settings.agentAccess.group.fileSystem': 'File system',
   'settings.agentAccess.group.limits': 'Limits',
   'settings.agentAccess.grantedFolders': 'Granted folders',
+  'settings.agentAccess.filesFolder.label': 'Files folder',
+  'settings.agentAccess.filesFolder.desc':
+    'Where the files the agent makes, like decks, documents, images and videos, are saved. A change applies to new files; existing files stay where they are.',
+  'settings.agentAccess.filesFolder.save': 'Save',
+  'settings.agentAccess.filesFolder.reset': 'Use default',
+  'settings.agentAccess.filesFolder.saved': 'Files folder updated',
+  'settings.agentAccess.filesFolder.loadError': 'Could not load the files folder.',
+  'settings.agentAccess.filesFolder.open': 'Show in folder',
+  'settings.agentAccess.filesFolder.openError': 'Couldn’t open the files folder.',
   'settings.agentAccess.alwaysAllow': 'Always-allowed tools',
   'settings.agentAccess.alwaysAllowDesc':
     'Tools you marked "Always allow" in chat run without asking. Remove one to be prompted again.',
@@ -7293,6 +7300,8 @@ const en: TranslationMap = {
   'chat.files.error.resolve_failed': 'Couldn’t resolve the artifact. Please try again.',
   'chat.files.error.download_failed': 'Download failed. Please try again.',
   'chat.files.error.delete_failed': 'Couldn’t delete the file. Please try again.',
+  'chat.files.error.reveal_failed':
+    'Couldn’t show the file. It may have been moved or deleted outside OpenHuman.',
 
   // First-run initialization (harness_init)
   'harnessInit.title': 'Setting things up',

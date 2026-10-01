@@ -4,9 +4,9 @@ use super::{
     channel_web_queue_status, classify_inference_error, drain_queued_turns_for_test,
     event_session_id_for, generic_inference_error_user_message,
     in_flight_entries_for_test, inference_budget_exceeded_user_message,
-    is_inference_budget_exceeded_error, json_output, key_for, locale_reply_directive,
-    normalize_model_override, optional_f64, optional_string, parallel_in_flight_entries_for_test,
-    provider_role_for_model_override, required_string, schemas, sentry_suppression_reason,
+    is_inference_budget_exceeded_error, key_for, locale_reply_directive,
+    normalize_model_override, parallel_in_flight_entries_for_test,
+    provider_role_for_model_override, schemas, sentry_suppression_reason,
     set_test_forced_run_chat_task_error, set_test_run_chat_task_block, start_chat,
     subscribe_web_channel_events, ChatRequestMetadata, ClassifiedError, StartChatError,
     TestRunChatTaskBlock, WebChatParams,
@@ -119,6 +119,8 @@ async fn wait_for_parallel<F: Fn(&[(String, String)]) -> bool>(pred: F) -> Vec<(
     .expect("parallel in-flight condition not met before timeout")
 }
 
+#[path = "web_tests_cancel_scoping_tests.rs"]
+mod cancel_scoping_tests;
 #[path = "web_tests_error_code_classification_tests.rs"]
 mod error_code_classification_tests;
 #[path = "web_tests_queue_acceptance_tests.rs"]

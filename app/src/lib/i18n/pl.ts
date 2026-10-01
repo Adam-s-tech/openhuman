@@ -3527,8 +3527,6 @@ const messages: TranslationMap = {
   'conversations.tools.runTests.done': 'Uruchomiono testy',
   'conversations.tools.analyzeCode.active': 'Analizowanie kodu',
   'conversations.tools.analyzeCode.done': 'Przeanalizowano kod',
-  'conversations.tools.insertRecord.active': 'Wstawianie rekordu',
-  'conversations.tools.insertRecord.done': 'Wstawiono rekord',
   'conversations.tools.runCommand.active': 'Wykonywanie polecenia',
   'conversations.tools.runCommand.done': 'Wykonano polecenie',
   'conversations.tools.runCode.active': 'Wykonywanie kodu',
@@ -5517,6 +5515,15 @@ const messages: TranslationMap = {
   'settings.agentAccess.timeout.envOverride':
     'Zmienna środowiskowa OPENHUMAN_TOOL_TIMEOUT_SECS zastępuje to ustawienie, więc zmiany tutaj nie odniosą skutku, dopóki nie zostanie ona usunięta.',
   'settings.agentAccess.grantedFolders': 'Przyznane foldery',
+  'settings.agentAccess.filesFolder.label': 'Folder plików',
+  'settings.agentAccess.filesFolder.desc':
+    'Miejsce, w którym zapisywane są pliki tworzone przez agenta, takie jak prezentacje, dokumenty, obrazy i filmy. Zmiana dotyczy nowych plików; istniejące pliki pozostają na miejscu.',
+  'settings.agentAccess.filesFolder.save': 'Zapisz',
+  'settings.agentAccess.filesFolder.reset': 'Użyj domyślnego',
+  'settings.agentAccess.filesFolder.saved': 'Zaktualizowano folder plików',
+  'settings.agentAccess.filesFolder.loadError': 'Nie udało się wczytać folderu plików.',
+  'settings.agentAccess.filesFolder.open': 'Pokaż w folderze',
+  'settings.agentAccess.filesFolder.openError': 'Nie udało się otworzyć folderu plików.',
   'settings.agentAccess.alwaysAllow': 'Zawsze dozwolone narzędzia',
   'settings.agentAccess.alwaysAllowDesc':
     'Narzędzia oznaczone w czacie jako „Zawsze zezwalaj” działają bez pytania. Usuń narzędzie, aby znów wymagało potwierdzenia.',
@@ -6577,6 +6584,8 @@ const messages: TranslationMap = {
     'Nie udało się odnaleźć artefaktu. Prosimy spróbować ponownie.',
   'chat.files.error.download_failed': 'Pobieranie nie powiodło się. Prosimy spróbować ponownie.',
   'chat.files.error.delete_failed': 'Nie udało się usunąć pliku. Prosimy spróbować ponownie.',
+  'chat.files.error.reveal_failed':
+    'Nie udało się pokazać pliku. Mógł zostać przeniesiony lub usunięty poza OpenHuman.',
 
   'harnessInit.title': 'Trwa konfiguracja',
 

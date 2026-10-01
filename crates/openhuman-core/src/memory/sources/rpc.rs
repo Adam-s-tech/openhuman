@@ -60,7 +60,7 @@
 mod apply_all;
 mod coding_sessions;
 mod cost_reporting;
-mod driver_run;
+pub(in crate::memory::sources) mod driver_run;
 mod registry_crud;
 mod source_sync;
 mod status_toolkits;

@@ -3482,8 +3482,6 @@ const messages: TranslationMap = {
   'conversations.tools.runTests.done': 'টেস্ট চালানো হয়েছে',
   'conversations.tools.analyzeCode.active': 'কোড বিশ্লেষণ করা হচ্ছে',
   'conversations.tools.analyzeCode.done': 'কোড বিশ্লেষণ করা হয়েছে',
-  'conversations.tools.insertRecord.active': 'রেকর্ড যোগ করা হচ্ছে',
-  'conversations.tools.insertRecord.done': 'রেকর্ড যোগ করা হয়েছে',
   'conversations.tools.runCommand.active': 'কমান্ড চালানো হচ্ছে',
   'conversations.tools.runCommand.done': 'কমান্ড চালানো হয়েছে',
   'conversations.tools.runCode.active': 'কোড চালানো হচ্ছে',
@@ -5439,6 +5437,15 @@ const messages: TranslationMap = {
   'settings.agentAccess.timeout.envOverride':
     'OPENHUMAN_TOOL_TIMEOUT_SECS এনভায়রনমেন্ট ভেরিয়েবলটি এই সেটিং ওভাররাইড করছে, তাই এটি আনসেট না করা পর্যন্ত এখানে পরিবর্তনের কোনো প্রভাব পড়বে না।',
   'settings.agentAccess.grantedFolders': 'ফোল্ডার',
+  'settings.agentAccess.filesFolder.label': 'ফাইল ফোল্ডার',
+  'settings.agentAccess.filesFolder.desc':
+    'এজেন্ট যে ফাইলগুলো তৈরি করে, যেমন প্রেজেন্টেশন, ডকুমেন্ট, ছবি ও ভিডিও, সেগুলো এখানে সংরক্ষিত হয়। পরিবর্তন শুধু নতুন ফাইলে প্রযোজ্য; পুরোনো ফাইল যেখানে আছে সেখানেই থাকে।',
+  'settings.agentAccess.filesFolder.save': 'সংরক্ষণ করুন',
+  'settings.agentAccess.filesFolder.reset': 'ডিফল্ট ব্যবহার করুন',
+  'settings.agentAccess.filesFolder.saved': 'ফাইল ফোল্ডার আপডেট হয়েছে',
+  'settings.agentAccess.filesFolder.loadError': 'ফাইল ফোল্ডার লোড করা যায়নি।',
+  'settings.agentAccess.filesFolder.open': 'ফোল্ডারে দেখান',
+  'settings.agentAccess.filesFolder.openError': 'ফাইল ফোল্ডার খোলা যায়নি।',
   'settings.agentAccess.alwaysAllow': 'সর্বদা অপসারণযোগ্য সরঞ্জাম',
   'settings.agentAccess.alwaysAllowDesc':
     'জিজ্ঞাসা না করে আলাপনের ক্ষেত্রে "সর্বদা" প্রয়োগ করা হবে। পুনরায় লেখার জন্য একটি ফোল্ডার মুছে ফেলা হবে।',
@@ -6430,6 +6437,8 @@ const messages: TranslationMap = {
   'chat.files.error.resolve_failed': 'আর্টিফ্যাক্ট সমাধান করা যায়নি। আবার চেষ্টা করুন।',
   'chat.files.error.download_failed': 'ডাউনলোড ব্যর্থ হয়েছে। আবার চেষ্টা করুন।',
   'chat.files.error.delete_failed': 'ফাইল মোছা যায়নি। আবার চেষ্টা করুন।',
+  'chat.files.error.reveal_failed':
+    'ফাইলটি দেখানো যায়নি। এটি হয়তো OpenHuman-এর বাইরে সরানো বা মুছে ফেলা হয়েছে।',
   'memory.tab.council': 'Council',
   'activity.tabs.automations': 'অটোমেশন',
   'activity.tabs.automationsDescription':

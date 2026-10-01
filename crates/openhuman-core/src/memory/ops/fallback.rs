@@ -65,7 +65,9 @@ pub(crate) fn classify_for_engine(external: bool, message: String) -> String {
 pub(crate) fn classify_rpc_error(message: String) -> String {
     let external = crate::core::runtime::context::CoreContext::current()
         .and_then(|ctx| ctx.memory().ok())
-        .is_none_or(|guard| guard.policy().class() == crate::core::subsystem::DriverClass::External);
+        .is_none_or(|guard| {
+            guard.policy().class() == crate::core::subsystem::DriverClass::External
+        });
     classify_for_engine(external, message)
 }
 
@@ -126,6 +128,29 @@ pub(crate) async fn namespace_names(guard: &MemoryGuard) -> Result<Vec<String>, 
         .await
         .map_err(|error| error.to_string())?;
     Ok(summaries.into_iter().map(|s| s.namespace).collect())
+}
+
+/// Whether `hits` were ranked without anything measured: each has a positive
+/// final score and no signal at all — no similarity, keyword, graph, episodic
+/// or freshness.
+///
+/// That is the mark a driver ranking without scoring leaves (hosted CortexDB's
+/// retrieval family scores a hit by its rank and reports no signal), and a
+/// weighted sum of signals cannot produce it, so an engine that scores is
+/// never read as one. A similarity floor cannot tell such hits apart, so a
+/// caller treats them as it treats [`ranked_recall`]'s unscored ones. An empty
+/// list is not rank-only: there is nothing to keep either way.
+pub(crate) fn rank_only(hits: &[NamespaceMemoryHit]) -> bool {
+    !hits.is_empty()
+        && hits.iter().all(|hit| {
+            let signals = &hit.score_breakdown;
+            signals.final_score > 0.0
+                && signals.vector_similarity == 0.0
+                && signals.keyword_relevance == 0.0
+                && signals.graph_relevance == 0.0
+                && signals.episodic_relevance == 0.0
+                && signals.freshness == 0.0
+        })
 }
 
 /// What [`ranked_recall`] answered: the hits, and whether the engine scored

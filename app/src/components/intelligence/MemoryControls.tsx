@@ -14,6 +14,11 @@
  *
  * The parent owns the graph fetch: every mutation (and Refresh) calls
  * `onRefresh()` so the caller re-pulls the graph on its own cadence.
+ *
+ * Everything but Refresh works on the engine's local chunk store and summary
+ * tree, so it shows only for an engine with `chunks`. Hosted memory draws its
+ * graph from the server's understanding and keeps no such store: it gets
+ * Refresh alone.
  */
 import { useCallback, useState } from 'react';
 
@@ -29,6 +34,7 @@ import ChipTabs from '../layout/ChipTabs';
 import Button from '../ui/Button';
 import Separator from '../ui/Separator';
 import { ObsidianVaultSection } from './ObsidianVaultSection';
+import { useMemoryEngine } from './useMemoryEngineCapabilities';
 
 interface MemoryControlsProps {
   mode: GraphMode;
@@ -48,6 +54,10 @@ export function MemoryControls({
   contentRootAbs,
 }: MemoryControlsProps) {
   const { t } = useT();
+  // Fails open, like the family gate: while the engine is unknown, every
+  // control shows.
+  const { capabilities } = useMemoryEngine();
+  const localStore = !capabilities || capabilities.has('chunks');
   const [building, setBuilding] = useState(false);
   const [wiping, setWiping] = useState(false);
   const [resetting, setResetting] = useState(false);
@@ -161,35 +171,39 @@ export function MemoryControls({
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-3" data-testid="memory-actions">
-      <ModeToggle mode={mode} onChange={onModeChange} />
+      {localStore ? <ModeToggle mode={mode} onChange={onModeChange} /> : <span />}
 
       <div className="flex flex-wrap items-center gap-2">
-        {/* Destructive actions — muted, set apart behind a divider. */}
-        <Button
-          variant="secondary"
-          tone="danger"
-          size="sm"
-          onClick={handleWipe}
-          disabled={busy}
-          data-testid="memory-wipe-all"
-          className="text-content-muted border-line"
-          leadingIcon={wiping ? <Spinner /> : <TrashIcon />}
-          title={t('workspace.wipeTitle')}>
-          {wiping ? t('workspace.resetting') : t('workspace.resetMemory')}
-        </Button>
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={handleResetTree}
-          disabled={busy}
-          data-testid="memory-reset-tree"
-          className="text-content-muted border-line hover:border-amber-300 hover:bg-amber-50 hover:text-amber-700 dark:hover:border-amber-500/30 dark:hover:bg-amber-500/10 dark:hover:text-amber-300"
-          leadingIcon={resetting ? <Spinner /> : <RefreshIcon />}
-          title={t('workspace.resetTreeTitle')}>
-          {resetting ? t('workspace.rebuilding') : t('workspace.resetMemoryTree')}
-        </Button>
+        {localStore ? (
+          <>
+            {/* Destructive actions — muted, set apart behind a divider. */}
+            <Button
+              variant="secondary"
+              tone="danger"
+              size="sm"
+              onClick={handleWipe}
+              disabled={busy}
+              data-testid="memory-wipe-all"
+              className="text-content-muted border-line"
+              leadingIcon={wiping ? <Spinner /> : <TrashIcon />}
+              title={t('workspace.wipeTitle')}>
+              {wiping ? t('workspace.resetting') : t('workspace.resetMemory')}
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleResetTree}
+              disabled={busy}
+              data-testid="memory-reset-tree"
+              className="text-content-muted border-line hover:border-amber-300 hover:bg-amber-50 hover:text-amber-700 dark:hover:border-amber-500/30 dark:hover:bg-amber-500/10 dark:hover:text-amber-300"
+              leadingIcon={resetting ? <Spinner /> : <RefreshIcon />}
+              title={t('workspace.resetTreeTitle')}>
+              {resetting ? t('workspace.rebuilding') : t('workspace.resetMemoryTree')}
+            </Button>
 
-        <Separator orientation="vertical" className="mx-1 h-5 self-center bg-surface-strong" />
+            <Separator orientation="vertical" className="mx-1 h-5 self-center bg-surface-strong" />
+          </>
+        ) : null}
 
         {/* Secondary actions — quiet ghost buttons. */}
         <Button
@@ -203,20 +217,22 @@ export function MemoryControls({
           title={t('common.refresh')}>
           {t('common.refresh')}
         </Button>
-        {contentRootAbs ? (
+        {localStore && contentRootAbs ? (
           <ObsidianVaultSection contentRootAbs={contentRootAbs} onToast={onToast} />
         ) : null}
 
         {/* Primary action. */}
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={handleBuildTrees}
-          disabled={building}
-          data-testid="memory-build-trees"
-          leadingIcon={building ? <Spinner /> : <BrainIcon />}>
-          {building ? t('workspace.building') : t('workspace.buildSummaryTrees')}
-        </Button>
+        {localStore ? (
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={handleBuildTrees}
+            disabled={building}
+            data-testid="memory-build-trees"
+            leadingIcon={building ? <Spinner /> : <BrainIcon />}>
+            {building ? t('workspace.building') : t('workspace.buildSummaryTrees')}
+          </Button>
+        ) : null}
       </div>
     </div>
   );

@@ -12,7 +12,6 @@ use axum::response::{IntoResponse, Response};
 use axum::routing::any;
 use axum::{Json, Router};
 use serde_json::{json, Value};
-use tempfile::tempdir;
 
 use openhuman_core::integrations::composio::client::direct_list_connections;
 use openhuman_core::tools::DirectComposioClient;
