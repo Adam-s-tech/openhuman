@@ -242,6 +242,27 @@ fn to_json<T: serde::Serialize>(value: &T) -> Value {
     serde_json::to_value(value).expect("serialize")
 }
 
+/// The host stamps the wall clock onto each new user turn; replace it so the
+/// next-request capture is stable. Rows already on disk carry a literal clock
+/// and are unaffected by this.
+fn normalize_clock(value: &mut Value) {
+    const MARK: &str = "Current Date & Time: ";
+    match value {
+        Value::String(text) => {
+            while let Some(start) = text.find(MARK) {
+                let end = text[start..].find('\n').map_or(text.len(), |n| start + n);
+                if text[start..end].ends_with("<clock>") {
+                    break;
+                }
+                text.replace_range(start..end, &format!("{MARK}<clock>"));
+            }
+        }
+        Value::Array(items) => items.iter_mut().for_each(normalize_clock),
+        Value::Object(map) => map.values_mut().for_each(normalize_clock),
+        _ => {}
+    }
+}
+
 /// Everything the model and the journal observe after resuming a scenario.
 async fn snapshot(scenario: &'static Scenario) -> Value {
     let root = tempfile::tempdir().expect("tempdir");
@@ -298,12 +319,14 @@ async fn snapshot(scenario: &'static Scenario) -> Value {
         .messages
         .clone();
 
+    let mut next_request = to_json(&request);
+    normalize_clock(&mut next_request);
     json!({
         "history": history,
         "prefix": prefix,
         "recorded_tools": recorded_tools,
         "journal": journal,
-        "next_request": to_json(&request),
+        "next_request": next_request,
     })
 }
 
