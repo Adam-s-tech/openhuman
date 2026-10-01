@@ -2283,6 +2283,7 @@ mod streaming_support {
 
     impl ScriptedProvider {
         fn pop_response(&self) -> tinyinference_llm::Result<ModelResponse> {
+            eprintln!("DBG pop_response remaining={}", self.responses.lock().unwrap().len());
             self.responses
                 .lock()
                 .unwrap()
@@ -2311,6 +2312,7 @@ mod streaming_support {
             _state: &(),
             _request: ModelRequest,
         ) -> tinyinference_llm::Result<ModelStream> {
+            eprintln!("DBG stream msgs={}", _request.messages.len());
             let response = self.pop_response()?;
             let mut items = vec![ModelStreamItem::Started];
             items.extend(self.stream_events.iter().cloned());
