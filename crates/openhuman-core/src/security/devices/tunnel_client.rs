@@ -122,14 +122,6 @@ pub struct TunnelFrame {
     pub payload: String,
 }
 
-/// Outbound `tunnel:frame` emit payload.
-#[derive(Debug, Serialize)]
-struct TunnelFrameEmit<'a> {
-    #[serde(rename = "channelId")]
-    channel_id: &'a str,
-    payload: &'a str,
-}
-
 // ---------------------------------------------------------------------------
 // Tunnel operations
 // ---------------------------------------------------------------------------

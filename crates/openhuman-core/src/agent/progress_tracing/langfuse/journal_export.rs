@@ -20,21 +20,6 @@ use crate::security::credentials::session_support::direct_backend_credential;
 
 use super::{environment_for_base, ingestion_url, skip_push, LOG_TARGET, PUSH_TIMEOUT};
 
-/// Project the run-ledger aggregate onto the upstream run-total shape.
-fn run_totals(telemetry: &RunTelemetry) -> RunTotals {
-    RunTotals {
-        run_id: telemetry.run_id.clone(),
-        input_tokens: telemetry.input_tokens,
-        output_tokens: telemetry.output_tokens,
-        cached_input_tokens: telemetry.cached_input_tokens,
-        cost_usd: telemetry.cost_usd,
-        tool_count: telemetry.tool_count,
-        model: telemetry.model.clone(),
-        provider: telemetry.provider.clone(),
-        error: telemetry.error.clone(),
-    }
-}
-
 /// Push durable journal observations through the tinyagents crate Langfuse
 /// exporter. The journal is already redacted before persistence, and this
 /// exporter additionally strips model/tool payloads unless `capture_content`

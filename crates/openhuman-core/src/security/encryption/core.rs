@@ -111,20 +111,6 @@ pub fn get_data_dir() -> Result<PathBuf, String> {
     Ok(data_dir)
 }
 
-/// Get the path to the encryption key file under the env-aware OpenHuman root
-/// (for example `~/.openhuman/encryption.key` or `~/.openhuman-staging/encryption.key`).
-fn get_key_file_path() -> Result<PathBuf, String> {
-    Ok(get_data_dir()?.join("encryption.key"))
-}
-
-/// Key file stores the salt; the actual key is derived at runtime from password.
-#[derive(Serialize, Deserialize)]
-struct KeyFile {
-    salt: Vec<u8>,
-    /// Version for future key rotation
-    version: u32,
-}
-
 #[cfg(test)]
 #[path = "core_tests.rs"]
 mod tests;
