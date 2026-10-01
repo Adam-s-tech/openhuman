@@ -57,20 +57,6 @@ fn a_timed_out_reply_stays_timed_out_through_the_adaptation() {
 }
 
 #[test]
-fn each_pool_language_round_trips_through_its_bus_language() {
-    for lang in [PoolLang::Node, PoolLang::Python] {
-        assert_eq!(PoolLang::from_language(&lang.language()), Some(lang));
-    }
-}
-
-#[test]
-fn an_unfamiliar_language_is_skipped_rather_than_guessed() {
-    // The module routes whatever its own configuration routes; a status surface
-    // should skip an entry this build has no pool concept for.
-    assert_eq!(PoolLang::from_language(&Language::new("ruby")), None);
-}
-
-#[test]
 fn settings_disable_idle_reaping_on_zero() {
     let cfg = RuntimePoolLangConfig {
         enabled: Some(true),

@@ -131,17 +131,6 @@ pub(crate) enum SteerDirectiveError {
     PolicyRejected,
 }
 
-pub(crate) fn steer_directive_error_from_registry(
-    error: DetachedTaskRegistryError,
-) -> SteerDirectiveError {
-    match error {
-        DetachedTaskRegistryError::NotOwned => SteerDirectiveError::NotOwned,
-        DetachedTaskRegistryError::AlreadyDone => SteerDirectiveError::AlreadyDone,
-        DetachedTaskRegistryError::NoSteeringHandle => SteerDirectiveError::NoRegisteredHandle,
-        _ => SteerDirectiveError::Unknown,
-    }
-}
-
 /// Inject a message into a running sub-agent. Prefer the crate-native
 /// TinyAgents steering registry when the child run has registered its live
 /// handle, and fall back to the OpenHuman `RunQueue` compatibility path.

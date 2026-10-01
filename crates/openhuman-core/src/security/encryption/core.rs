@@ -85,19 +85,6 @@ impl EncryptionKey {
             .map_err(|e| format!("Decryption failed: {e}"))
     }
 
-    /// Encrypt a string and return base64-encoded JSON payload.
-    pub fn encrypt_string(&self, plaintext: &str) -> Result<String, String> {
-        let payload = self.encrypt(plaintext.as_bytes())?;
-        serde_json::to_string(&payload).map_err(|e| format!("Serialization failed: {e}"))
-    }
-
-    /// Decrypt a base64-encoded JSON payload back to a string.
-    pub fn decrypt_string(&self, encrypted_json: &str) -> Result<String, String> {
-        let payload: EncryptedPayload =
-            serde_json::from_str(encrypted_json).map_err(|e| format!("Deserialization: {e}"))?;
-        let plaintext = self.decrypt(&payload)?;
-        String::from_utf8(plaintext).map_err(|e| format!("UTF-8 decode: {e}"))
-    }
 }
 
 /// Get the path to the OpenHuman data directory.

@@ -133,21 +133,6 @@ impl AuditEvent {
         self
     }
 
-    /// Set action metadata for a generated tool execution.
-    pub fn with_generated_tool_action(mut self, entry: GeneratedToolExecutionLog<'_>) -> Self {
-        self.action = Some(Action {
-            command: Some(entry.tool_name.to_string()),
-            risk_level: Some(entry.risk_level.to_string()),
-            approved: entry.approved,
-            allowed: entry.allowed,
-            provider_id: Some(entry.provider_id.to_string()),
-            capability_id: Some(entry.capability_id.to_string()),
-            policy_decision: Some(entry.policy_decision.to_string()),
-            approval_id: entry.approval_id.map(str::to_string),
-        });
-        self
-    }
-
     /// Set the result
     pub fn with_result(
         mut self,

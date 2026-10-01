@@ -153,33 +153,6 @@ pub(super) async fn proxy(_config: &crate::config::Config) -> Result<tinybus::Pr
     Err("native modules are not compiled into this build".to_string())
 }
 
-/// Compact tool output using an already-resolved runtime config when available.
-///
-/// Agent turns must not reload configuration from the middle of a deep tool
-/// call stack: startup owns migrations, while a turn only needs the snapshot it
-/// was constructed with.
-pub async fn compact_output_with_config(
-    content: String,
-    tool_name: &str,
-    enabled: bool,
-    profile: AgentTokenjuiceCompression,
-    runtime_config: Option<&std::sync::Arc<crate::config::Config>>,
-) -> String {
-    compact_tool_output(ToolOutputCompaction {
-        content,
-        tool_name,
-        enabled,
-        profile,
-        runtime_config,
-        arguments: None,
-        focus: None,
-        context_token: None,
-        scope: None,
-    })
-    .await
-    .text
-}
-
 /// Everything the module considers about one tool result.
 pub struct ToolOutputCompaction<'a> {
     pub content: String,

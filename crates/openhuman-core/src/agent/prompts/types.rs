@@ -26,20 +26,6 @@ pub(crate) const BOOTSTRAP_MAX_CHARS: usize = 20_000;
 /// grown.
 pub(crate) const USER_FILE_MAX_CHARS: usize = 2_000;
 
-/// Per-namespace cap when injecting tree summarizer root summaries into
-/// the prompt. ~8 000 chars ≈ 2 000 tokens — that's the floor the user
-/// asked for ("at least 2000 tokens of user memory") for a single
-/// namespace, and matches what the tree summarizer's `Day` level
-/// already enforces upstream.
-///
-/// **Note**: this constant matches the `Balanced` preset of
-/// [`crate::config::schema::agent::MemoryContextWindow`] —
-/// the live agent harness now resolves the per-namespace cap from that
-/// preset (see `AgentConfig::resolved_memory_limits`). The constant is
-/// kept as the documented baseline for prompt-section authors.
-#[allow(dead_code)]
-pub(crate) const USER_MEMORY_PER_NAMESPACE_MAX_CHARS: usize = 8_000;
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Learned context (pre-fetched, not blocking)
 // ─────────────────────────────────────────────────────────────────────────────

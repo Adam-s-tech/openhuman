@@ -353,17 +353,6 @@ impl OpenHumanSessionHost {
         true
     }
 
-    /// Test-only: inject a specific skill-events receiver (e.g. one whose
-    /// sender has been dropped) so `drain_skill_events`' `Closed` arm is
-    /// reachable without the global bus singleton.
-    #[cfg(test)]
-    pub(in super::super) fn set_skill_events_rx_for_test(
-        &mut self,
-        rx: tinybus::events::EventReceiver<crate::core::events::DomainEvent>,
-    ) {
-        self.skill_events_rx = Some(rx);
-    }
-
     /// Re-synthesise `delegate_*` tools for the orchestrator's `subagents`
     /// declaration using the live `connected_integrations` slice, and
     /// reconcile the resulting set into `self.synthesized_tools` /
