@@ -50,16 +50,6 @@ enum RpcCallError {
     Rpc(String),
 }
 
-/// JSON-RPC POST against a chain's default/override endpoint.
-///
-pub async fn rpc_call<T: DeserializeOwned>(
-    chain: WalletChain,
-    method: &str,
-    params: Value,
-) -> Result<T, String> {
-    rpc_call_to(&rpc_url_for_chain(chain), method, params).await
-}
-
 pub async fn rpc_call_to<T: DeserializeOwned>(
     url: &str,
     method: &str,
