@@ -28,20 +28,11 @@ pub(crate) fn turn_timeout_error_message(secs: u64) -> String {
 /// wall-clock deadline`, so both wall-clock phrasings are anchored here. This
 /// routes the loop's graceful budget-exhaustion terminal event to the dedicated
 /// `turn_timeout` copy instead of the generic catch-all.
-///
-/// The per-model-call ceiling (`RunLimits::max_model_call_ms`) is anchored by
-/// its own phrase. The harness raises it as `TinyAgentsError::CallTimeout`
-/// (retryable), which renders `call timed out: model call for run `..`
-/// exceeded its per-model-call ceiling (.. ms)` — it no longer carries the
-/// `run timed out:` prefix the run-budget `Timeout` has, so without this anchor
-/// a wedged call that exhausts its retries falls through to the generic
-/// `inference` bucket instead of `turn_timeout` (#6375).
 pub(crate) fn is_turn_timeout_error(err: &str) -> bool {
     err.contains(TURN_TIMEOUT_MARKER)
         || err.contains("run timed out:")
         || err.contains("exceeded its remaining wall-clock budget")
         || err.contains("exceeded its wall-clock deadline")
-        || err.contains("exceeded its per-model-call ceiling")
 }
 
 /// True when `err` is the **outer** web-turn backstop firing —
