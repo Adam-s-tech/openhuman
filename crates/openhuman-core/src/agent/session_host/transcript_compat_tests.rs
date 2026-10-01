@@ -153,7 +153,14 @@ fn response(blocks: Vec<ContentBlock>, tool_calls: Vec<ToolCall>) -> ModelRespon
         usage: None,
         origin: None,
     };
-    out
+    // Non-zero usage so the durable row carries a `turn_usage` record.
+    out.with_usage(tinyinference_llm::usage::Usage {
+        input_tokens: 120,
+        output_tokens: 30,
+        total_tokens: 150,
+        cache_read_tokens: 100,
+        ..Default::default()
+    })
 }
 
 fn model(responses: Vec<ModelResponse>, native: bool) -> Arc<ScriptedModel> {
@@ -400,15 +407,7 @@ async fn capture_turns(name: &str, native: bool, responses: Vec<ModelResponse>, 
 
 async fn capture_all() {
     std::fs::create_dir_all(FIXTURE_DIR).expect("fixture dir");
-    let usage = || tinyinference_llm::usage::Usage {
-        input_tokens: 120,
-        output_tokens: 30,
-        total_tokens: 150,
-        cache_read_tokens: 100,
-        ..Default::default()
-    };
-    let text =
-        |s: &str| response(vec![ContentBlock::Text(s.into())], Vec::new()).with_usage(usage());
+    let text = |s: &str| response(vec![ContentBlock::Text(s.into())], Vec::new());
 
     capture_turns(
         "plain",
