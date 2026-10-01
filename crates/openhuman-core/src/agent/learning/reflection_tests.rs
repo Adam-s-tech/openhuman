@@ -269,9 +269,9 @@ async fn persist_reflection_writes_to_dedicated_namespace_and_category() {
         .await
         .unwrap();
 
-    let entries = memory_impl.entries.lock();
+    let entries = memory_impl.list(None, None, None).await.unwrap();
     let reflection = entries
-        .values()
+        .iter()
         .find(|e| e.key.starts_with("ref/"))
         .expect("reflection entry");
     assert_eq!(reflection.namespace.as_deref(), Some(REFLECTIONS_NAMESPACE));
