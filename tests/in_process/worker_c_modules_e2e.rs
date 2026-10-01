@@ -4,6 +4,7 @@
 //! composio / threads slice and drives the real HTTP JSON-RPC router against
 //! an isolated workspace. It avoids live network calls.
 
+use crate::rpc_harness::{ok, rpc};
 use crate::env_guard::EnvVarGuard;
 use crate::env_guard::env_lock;
 use crate::rpc_auth::{ensure_rpc_auth, rpc_token};
@@ -95,44 +96,6 @@ async fn setup() -> Harness {
         _guards: guards,
         join,
     }
-}
-
-async fn rpc(base: &str, id: i64, method: &str, params: Value) -> Value {
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(30))
-        .build()
-        .expect("client");
-    let url = format!("{}/rpc", base.trim_end_matches('/'));
-    let response = client
-        .post(&url)
-        .header(AUTHORIZATION, format!("Bearer {}", rpc_token()))
-        .json(&json!({
-            "jsonrpc": "2.0",
-            "id": id,
-            "method": method,
-            "params": params,
-        }))
-        .send()
-        .await
-        .unwrap_or_else(|err| panic!("POST {url} {method}: {err}"));
-    assert_eq!(
-        response.status(),
-        StatusCode::OK,
-        "HTTP transport should accept {method}"
-    );
-    response
-        .json::<Value>()
-        .await
-        .unwrap_or_else(|err| panic!("json for {method}: {err}"))
-}
-
-fn ok<'a>(value: &'a Value, context: &str) -> &'a Value {
-    if let Some(error) = value.get("error") {
-        panic!("{context}: unexpected JSON-RPC error: {error}");
-    }
-    value
-        .get("result")
-        .unwrap_or_else(|| panic!("{context}: missing result: {value}"))
 }
 
 fn payload<'a>(value: &'a Value, context: &str) -> &'a Value {

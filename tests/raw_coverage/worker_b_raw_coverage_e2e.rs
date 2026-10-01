@@ -5,6 +5,7 @@
 //! to drive implementation branches that the controller reachability tests only
 //! touch at validation boundaries.
 
+use crate::rpc_harness::{error_message, ok, payload};
 use crate::env_guard::EnvVarGuard;
 use std::collections::HashMap;
 use std::net::SocketAddr;
@@ -309,28 +310,6 @@ async fn rpc(rpc_base: &str, id: i64, method: &str, params: Value) -> Value {
         .json::<Value>()
         .await
         .unwrap_or_else(|err| panic!("json for {method}: {err}"))
-}
-
-fn ok<'a>(value: &'a Value, context: &str) -> &'a Value {
-    if let Some(error) = value.get("error") {
-        panic!("{context}: unexpected JSON-RPC error: {error}");
-    }
-    value
-        .get("result")
-        .unwrap_or_else(|| panic!("{context}: missing result: {value}"))
-}
-
-fn payload<'a>(value: &'a Value, context: &str) -> &'a Value {
-    let result = ok(value, context);
-    result.get("result").unwrap_or(result)
-}
-
-fn error_message<'a>(value: &'a Value, context: &str) -> &'a str {
-    value
-        .get("error")
-        .and_then(|error| error.get("message"))
-        .and_then(Value::as_str)
-        .unwrap_or_else(|| panic!("{context}: error missing message: {value}"))
 }
 
 async fn configure_mock_provider(rpc_base: &str, mock_base: &str) {

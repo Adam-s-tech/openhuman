@@ -1,6 +1,7 @@
 //! Focused JSON-RPC E2E coverage for config, auth/credentials, app_state,
 //! and connectivity controller surfaces.
 
+use crate::rpc_harness::{ok, payload, rpc, schema};
 use crate::env_guard::{env_lock, EnvVarGuard};
 use crate::rpc_auth::{ensure_rpc_auth, rpc_token};
 use std::net::SocketAddr;
@@ -300,63 +301,10 @@ async fn setup() -> TestHarness {
     }
 }
 
-async fn schema(rpc_base: &str) -> Value {
-    let url = format!("{}/schema", rpc_base.trim_end_matches('/'));
-    reqwest::get(&url)
-        .await
-        .unwrap_or_else(|err| panic!("GET {url}: {err}"))
-        .json::<Value>()
-        .await
-        .expect("schema json")
-}
-
-async fn rpc(rpc_base: &str, id: i64, method: &str, params: Value) -> Value {
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(30))
-        .build()
-        .expect("client");
-    let url = format!("{}/rpc", rpc_base.trim_end_matches('/'));
-    let response = client
-        .post(&url)
-        .header(AUTHORIZATION, format!("Bearer {}", rpc_token()))
-        .json(&json!({
-            "jsonrpc": "2.0",
-            "id": id,
-            "method": method,
-            "params": params,
-        }))
-        .send()
-        .await
-        .unwrap_or_else(|err| panic!("POST {url} {method}: {err}"));
-    assert_eq!(
-        response.status(),
-        StatusCode::OK,
-        "HTTP transport should accept {method}"
-    );
-    response
-        .json::<Value>()
-        .await
-        .unwrap_or_else(|err| panic!("json for {method}: {err}"))
-}
-
-fn ok<'a>(value: &'a Value, context: &str) -> &'a Value {
-    if let Some(error) = value.get("error") {
-        panic!("{context}: unexpected JSON-RPC error: {error}");
-    }
-    value
-        .get("result")
-        .unwrap_or_else(|| panic!("{context}: missing result: {value}"))
-}
-
 fn err<'a>(value: &'a Value, context: &str) -> &'a Value {
     value
         .get("error")
         .unwrap_or_else(|| panic!("{context}: expected JSON-RPC error, got: {value}"))
-}
-
-fn payload<'a>(value: &'a Value, context: &str) -> &'a Value {
-    let result = ok(value, context);
-    result.get("result").unwrap_or(result)
 }
 
 fn assert_error_contains(value: &Value, context: &str, needle: &str) {

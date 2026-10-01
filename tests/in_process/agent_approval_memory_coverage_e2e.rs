@@ -20,6 +20,7 @@
 //! JSON-RPC router (`build_core_http_router`) and asserted on, so the number the
 //! gate reports and the coverage that exists are the same thing.
 
+use crate::rpc_harness::{error_message, ok, payload};
 use crate::env_guard::EnvVarGuard;
 use crate::env_guard::env_lock;
 use crate::rpc_auth::{ensure_rpc_auth, rpc_token};
@@ -141,32 +142,6 @@ async fn rpc(rpc_base: &str, id: i64, method: &str, params: Value) -> Value {
         .json::<Value>()
         .await
         .unwrap_or_else(|err| panic!("json for {method}: {err}"))
-}
-
-fn ok<'a>(value: &'a Value, context: &str) -> &'a Value {
-    if let Some(error) = value.get("error") {
-        panic!("{context}: unexpected JSON-RPC error: {error}");
-    }
-    value
-        .get("result")
-        .unwrap_or_else(|| panic!("{context}: missing result: {value}"))
-}
-
-/// Peel the conditional `Outcome` envelope. A handler that emits no log
-/// lines returns the bare value; one that emits any returns
-/// `{ result, logs }`. Both shapes are valid for the same method, so every
-/// consumer has to tolerate both — see `crates/openhuman-rpc/src/mod.rs`.
-fn payload<'a>(value: &'a Value, context: &str) -> &'a Value {
-    let result = ok(value, context);
-    result.get("result").unwrap_or(result)
-}
-
-fn error_message<'a>(value: &'a Value, context: &str) -> &'a str {
-    value
-        .get("error")
-        .and_then(|error| error.get("message"))
-        .and_then(Value::as_str)
-        .unwrap_or_else(|| panic!("{context}: error missing message: {value}"))
 }
 
 // ---------------------------------------------------------------------------

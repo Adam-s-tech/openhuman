@@ -27,6 +27,7 @@
 //! Env is process-global and every aggregated suite shares one process, so
 //! each case takes the **crate-wide** [`env_lock`] for its whole body.
 
+use crate::rpc_harness::{ok, payload};
 use crate::env_guard::EnvVarGuard;
 use std::net::SocketAddr;
 use std::path::Path;
@@ -206,15 +207,6 @@ async fn setup(extra: &str) -> TestHarness {
     }
 }
 
-fn ok<'a>(value: &'a Value, context: &str) -> &'a Value {
-    if let Some(error) = value.get("error") {
-        panic!("{context}: unexpected JSON-RPC error: {error}");
-    }
-    value
-        .get("result")
-        .unwrap_or_else(|| panic!("{context}: missing result: {value}"))
-}
-
 fn err_message(value: &Value, context: &str) -> String {
     let error = value
         .get("error")
@@ -224,11 +216,6 @@ fn err_message(value: &Value, context: &str) -> String {
         .and_then(Value::as_str)
         .unwrap_or_else(|| panic!("{context}: error without message: {error}"))
         .to_string()
-}
-
-fn payload<'a>(value: &'a Value, context: &str) -> &'a Value {
-    let result = ok(value, context);
-    result.get("result").unwrap_or(result)
 }
 
 /// Write an executable stub `claude` and return its path. `body` is a POSIX

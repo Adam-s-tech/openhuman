@@ -5,6 +5,7 @@
 //! exercises cheap read/status handlers through HTTP. Mutating or networked
 //! domain behavior remains covered by the focused `*_e2e.rs` suites.
 
+use crate::rpc_harness::{ok, payload, rpc, schema, write_min_config};
 use crate::env_guard::EnvVarGuard;
 use crate::env_guard::env_lock;
 use crate::memory_module;
@@ -32,32 +33,6 @@ async fn serve_rpc() -> (
     let router = build_core_http_router(false);
     let join = tokio::spawn(async move { axum::serve(listener, router).await });
     (addr, join)
-}
-
-fn write_min_config(openhuman_dir: &Path) {
-    std::fs::create_dir_all(openhuman_dir).expect("create .openhuman");
-    let cfg = r#"api_url = "http://127.0.0.1:9"
-default_model = "e2e-model"
-default_temperature = 0.2
-
-[secrets]
-encrypt = false
-
-[local_ai]
-enabled = false
-
-[memory]
-provider = "none"
-embedding_provider = "none"
-embedding_model = "none"
-embedding_dimensions = 0
-
-[memory_tree]
-embedding_strict = false
-"#;
-    std::fs::write(openhuman_dir.join("config.toml"), cfg).expect("write config.toml");
-    let _: openhuman_core::config::Config =
-        toml::from_str(cfg).expect("test config must match schema");
 }
 
 struct TestHarness {
@@ -110,54 +85,6 @@ async fn setup() -> TestHarness {
     }
 }
 
-async fn schema(rpc_base: &str) -> Value {
-    let url = format!("{}/schema", rpc_base.trim_end_matches('/'));
-    reqwest::get(&url)
-        .await
-        .unwrap_or_else(|err| panic!("GET {url}: {err}"))
-        .json::<Value>()
-        .await
-        .expect("schema json")
-}
-
-async fn rpc(rpc_base: &str, id: i64, method: &str, params: Value) -> Value {
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(30))
-        .build()
-        .expect("client");
-    let url = format!("{}/rpc", rpc_base.trim_end_matches('/'));
-    let response = client
-        .post(&url)
-        .header(AUTHORIZATION, format!("Bearer {}", rpc_token()))
-        .json(&json!({
-            "jsonrpc": "2.0",
-            "id": id,
-            "method": method,
-            "params": params,
-        }))
-        .send()
-        .await
-        .unwrap_or_else(|err| panic!("POST {url} {method}: {err}"));
-    assert_eq!(
-        response.status(),
-        StatusCode::OK,
-        "HTTP transport should accept {method}"
-    );
-    response
-        .json::<Value>()
-        .await
-        .unwrap_or_else(|err| panic!("json for {method}: {err}"))
-}
-
-fn ok<'a>(value: &'a Value, context: &str) -> &'a Value {
-    if let Some(error) = value.get("error") {
-        panic!("{context}: unexpected JSON-RPC error: {error}");
-    }
-    value
-        .get("result")
-        .unwrap_or_else(|| panic!("{context}: missing result: {value}"))
-}
-
 fn err<'a>(value: &'a Value, context: &str) -> &'a Value {
     value
         .get("error")
@@ -168,11 +95,6 @@ fn data<'a>(value: &'a Value, context: &str) -> &'a Value {
     ok(value, context)
         .get("data")
         .unwrap_or_else(|| panic!("{context}: missing data envelope: {value}"))
-}
-
-fn payload<'a>(value: &'a Value, context: &str) -> &'a Value {
-    let result = ok(value, context);
-    result.get("result").unwrap_or(result)
 }
 
 fn schema_methods(value: &Value) -> Vec<(String, String, String)> {
