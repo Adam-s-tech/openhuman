@@ -1,11 +1,11 @@
 # tinyagents
 
-The adapter seam between OpenHuman and the vendored [`tinyagents`](../../../../../vendor/tinyagents/) crate family (issue #4249). Every agent turn runs on the crate's `AgentHarness` loop; this module bridges OpenHuman's `Provider`, `Tool`, and `ChatMessage` types onto the crate's `ChatModel`, `Tool`, and `Message` traits, assembles the per-turn harness, and enforces OpenHuman-specific policy (approval, tool scope, budgets, credential scrubbing, compaction) as harness middleware on the way in and out. The chat, channel/CLI, and sub-agent routes all enter through one function, `run_turn_via_tinyagents_shared`, so they cannot drift from each other.
+The adapter seam between OpenHuman and the vendored [`tinyagents`](../../../../../vendor/tinyagents/) crate family (issue #4249). Every agent turn runs on the crate's `AgentHarness` loop; this module bridges OpenHuman's `Provider`, `Tool`, and `TranscriptMessage` row types onto the crate's `ChatModel`, `Tool`, and `Message` traits, assembles the per-turn harness, and enforces OpenHuman-specific policy (approval, tool scope, budgets, credential scrubbing, compaction) as harness middleware on the way in and out. The chat, channel/CLI, and sub-agent routes all enter through one function, `run_turn_via_tinyagents_shared`, so they cannot drift from each other.
 
 ## Responsibilities
 
 - Assemble a per-turn harness (`assemble_turn_harness` in `harness_assembly.rs`): register the turn's `ChatModel`s, every shared tool, and the full middleware stack, then drive it via `AgentHarness::invoke_stream_in_context` (`turn_runner.rs`).
-- Convert between OpenHuman and crate types: tiered `ChatModel` bundles from `(role, config)` (`turn_models.rs`, `model.rs`), direct TinyTools/TinyInference tool declarations at their consumers, and `ChatMessage`/`ConversationMessage` to and from the crate's `Message` via `crate::agent::message_convert`.
+- Convert between OpenHuman and crate types: tiered `ChatModel` bundles from `(role, config)` (`turn_models.rs`, `model.rs`), direct TinyTools/TinyInference tool declarations at their consumers, and `TranscriptMessage`/`TranscriptEntry` to and from the crate's `Message` via `crate::agent::message_convert`.
 - Enforce cross-cutting policy as harness middleware: approval/security gating, tool policy and CLI/RPC-only denial, cost budgets, context compaction/summarization, credential scrubbing, malformed-argument recovery, and the repeated-tool-failure circuit breaker (`middleware*.rs`).
 - Route workloads to model tiers and record the resolved provider/model for audit (`routes.rs`, canonical TinyInference response metadata).
 - Let TinyAgents stop repetitive visible model streams in its agent loop; the OpenHuman session driver turns `GenerationStalled` into a bounded partial containing completed tool evidence.
@@ -95,7 +95,7 @@ Responses project the crate's own `AgentObservation` and `HarnessRunStatus` serd
 ## Dependencies
 
 - The vendored crates under `vendor/tinyagents/`: `tinyagents-harness`, `tinyagents-graph`, `tinyagents-registry`, plus `tinyinference` and `tinytools` from `vendor/tinyagents/vendor/`, all declared as path dependencies in `crates/openhuman-core/Cargo.toml`. Per AGENTS.md, use this vendored copy; a second path to the same crates creates incompatible Rust types.
-- `crate::agent::message_convert` for `ChatMessage` to/from crate `Message` conversion.
+- `crate::agent::message_convert` for `TranscriptMessage` to/from crate `Message` conversion.
 - `crate::agent::harness::{run_queue, tool_result_artifacts}` and `crate::agent::{messages, progress, stop_hooks, cost, hooks, subagent_host}`: the OpenHuman-side turn plumbing this seam plugs into.
 - `crate::tools`: the canonical `tinytools::Tool` trait resolved by `CanonicalSharedToolAdapter`, and `tools::registry::denials` for recording policy blocks.
 - `crate::platform::cost`: the global cost tracker fed by `observability/event_bridge.rs` and `turn_outcome.rs`.

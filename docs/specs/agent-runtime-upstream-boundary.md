@@ -40,10 +40,13 @@ transition period in which both paths compile.
 
 ### Keep in OpenHuman
 
-- `ChatMessage`, `ConversationMessage`, and other durable OpenHuman transcript
-  wire types. Conversion to/from `tinyinference_llm::message::Message` occurs
-  only at legacy disk/import/export boundaries; live turns use crate-native
-  messages.
+- The `{role, content}` wire adapter for the two host-owned files that embed
+  message rows (`agent::messages::history_wire`: the durable sub-agent session
+  store and the sub-agent pause checkpoint). There is no host message type: the
+  row is `tinyagents_session::transcript::TranscriptMessage`, typed dialect
+  entries are `tinytools_agent::dialect::TranscriptEntry`, and conversion to/from
+  `tinyinference_llm::message::Message` stays at the transcript codec boundary;
+  live turns use crate-native messages.
 - Security policy, approval, origin/taint rules, action-directory enforcement,
   workspace guards, credential handling, and sandbox selection.
 - OpenHuman configuration, tier selection, provider credentials, provider

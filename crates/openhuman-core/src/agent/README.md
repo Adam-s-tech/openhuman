@@ -11,7 +11,7 @@ Multi-agent orchestration domain. Owns the LLM tool-calling loop, sub-agent disp
 - `tinytools_agent::dialect::ToolDialect` / `tinytools_agent::ParsedToolCall` / `tinytools_agent::dialect::ToolOutcome`: canonical tool-call vocabulary; `message_convert.rs` performs only concrete durable/provider conversions.
 - `pub mod triage` (`run_triage`, `apply_decision`, `TriggerEnvelope`, `TriageDecision`, `TriageAction`, in `triage/mod.rs`): classifies external triggers and escalates to sub-agents.
 - `pub mod prompts::SystemPromptBuilder` (`prompts/`): system-prompt section composer.
-- `pub struct ChatMessage` / `pub enum ConversationMessage` / `pub struct ToolResultMessage` (`messages.rs`): transcript wire types; `inference/provider/types.rs::ChatRequest` borrows `&[ChatMessage]` from here.
+- `messages.rs` (`history_wire`): the `{role, content}` serde adapter for host-owned files that embed message rows (durable sub-agent sessions, pause checkpoints). Rows are `tinyagents_session::transcript::TranscriptMessage`; typed tool-call history is `tinytools_agent::dialect::TranscriptEntry`; `inference/provider/types.rs::ChatRequest` borrows `&[TranscriptMessage]`.
 - `pub fn bus::register_agent_handlers` (`bus.rs`): registers the `agent.run_turn` native request handler (`AgentTurnRequest` -> `AgentTurnResponse`) on `BUS.native()`; called from `channels/runtime/startup/start_channels.rs`.
 - Built-in archetypes live in `crates/openhuman-core/src/agent/registry/agents/`; this module stays focused on harness/runtime behavior.
 - RPC `agent.{chat, chat_simple, server_status, list_definitions, get_definition, reload_definitions, triage_evaluate, graph_topologies, registry_snapshot}`: `schemas.rs`.
