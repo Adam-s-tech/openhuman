@@ -258,6 +258,14 @@ tinymemory = { path = "../../vendor/tinymemory/crates/tinymemory", default-featu
 # both could. That is what this dependency fixes — one definition, owned by the
 # crate that produces the shapes.
 tinyconnectors-bus = { path = "../../vendor/tinyconnectors/crates/tinyconnectors-bus" }
+# tinyconnectors — the connector module's implementation crate, linked as a
+# plain Rust library (never as the loaded module) for its pure, host-agnostic
+# helpers: failure classification, action-argument preparation, the daily
+# trigger archive, calendar defaults and the task-recency window.
+# `default-features = false` drops the `module` feature, so no TinyBus adapter or
+# ABI export is compiled into the host (and no second copy of `tinybus` enters
+# the graph). Live connector calls still go over the bus to the loaded module.
+tinyconnectors = { path = "../../vendor/tinyconnectors/crates/tinyconnectors", default-features = false }
 # tinymemory-bus is the wire contract (method names, ABI). Normally transitive
 # through tinymemory-api, but modules/memory.rs names the method constants
 # directly (EXTRACT_ENTITIES, EMBED_TEXT, EMBEDDER_SLUG) — prefer compile
