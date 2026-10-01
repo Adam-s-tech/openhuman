@@ -49,8 +49,6 @@ mod tests;
 #[cfg(test)]
 #[path = "turn_runner_thin.rs"]
 mod thin;
-#[cfg(test)]
-pub(crate) use thin::run_turn_via_tinyagents;
 
 /// Drive a turn through the tinyagents harness over the routes' **shared**,
 /// `Arc`-owned tool registry sets (`Arc<Vec<Box<dyn Tool>>>`), advertising

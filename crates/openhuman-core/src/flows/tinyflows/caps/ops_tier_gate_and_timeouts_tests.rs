@@ -1,4 +1,5 @@
 use super::*;
+use tinyflows::nodes::integration::agent_prompt::scale_timeout_for_iteration_cap;
 use tinyagents_harness::tool::response_fields_from_schema;
 
 /// The tier gate an `http_request` (Network-class) node calls: BLOCKED under

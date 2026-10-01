@@ -14,11 +14,10 @@ use std::sync::Arc;
 
 use crate::config::schema::MemoryHooksConfig;
 use crate::core::subsystem::DriverClass;
-use crate::memory::api::provider::types::ExportRecord;
 use crate::memory::api::provider::MemoryProvider;
 use crate::memory::api::types::{
     MemoryCategory, MemoryEntry, MemoryItemKind, MemoryTaint, NamespaceDocumentInput,
-    NamespaceMemoryHit, NamespaceSummary, RetrievalScoreBreakdown,
+    NamespaceMemoryHit, RetrievalScoreBreakdown,
 };
 use crate::memory::guard::{HostGuardPolicy, MemoryGuard};
 
