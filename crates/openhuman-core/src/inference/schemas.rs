@@ -42,9 +42,6 @@ pub fn all_controller_schemas() -> Vec<ControllerSchema> {
         schemas("update_local_settings"),
         schemas("list_models"),
         schemas("provider_auth_errors"),
-        schemas("device_profile"),
-        schemas("presets"),
-        schemas("apply_preset"),
         schemas("diagnostics"),
         schemas("openai_oauth_start"),
         schemas("openai_oauth_complete"),
@@ -92,18 +89,6 @@ pub fn all_registered_controllers() -> Vec<RegisteredController> {
         RegisteredController {
             schema: schemas("provider_auth_errors"),
             handler: handle_inference_provider_auth_errors,
-        },
-        RegisteredController {
-            schema: schemas("device_profile"),
-            handler: handle_inference_device_profile,
-        },
-        RegisteredController {
-            schema: schemas("presets"),
-            handler: handle_inference_presets,
-        },
-        RegisteredController {
-            schema: schemas("apply_preset"),
-            handler: handle_inference_apply_preset,
         },
         RegisteredController {
             schema: schemas("diagnostics"),

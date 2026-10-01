@@ -1,8 +1,10 @@
 //! Round 16 raw/E2E coverage for inference local-admin branches.
 //!
 //! This suite uses temp workspaces, temp PATH scripts, and loopback HTTP mocks
-//! only. It must not call host Ollama, Piper, Whisper, Python, or MLX binaries.
+//! only. It must not call host Ollama, Piper, Whisper, Python, or MLX binaries,
+//! and asserts that OpenHuman itself never launches one either.
 
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, MutexGuard, OnceLock};
 
@@ -15,12 +17,14 @@ use axum::{Json, Router};
 use serde_json::{json, Value};
 use tempfile::{tempdir, TempDir};
 
-use openhuman_core::config::Config;
-use openhuman_core::inference::host_runtime::ops::{
-    local_ai_chat, local_ai_download_asset, local_ai_downloads_progress,
-    LocalAiChatMessage,
+use openhuman_core::config::schema::cloud_providers::{
+    AuthStyle as CloudAuthStyle, CloudProviderCreds,
 };
+use openhuman_core::config::Config;
+use openhuman_core::security::credentials::{AuthService, DEFAULT_AUTH_PROFILE_NAME};
 use openhuman_core::inference::host_runtime::LocalAiService;
+use openhuman_core::inference::provider::factory::auth_key_for_slug;
+use openhuman_core::inference::provider::list_configured_models;
 
 #[derive(Clone, Default)]
 struct MockState {
@@ -80,8 +84,8 @@ fn env_lock() -> MutexGuard<'static, ()> {
         .unwrap_or_else(|poisoned| poisoned.into_inner())
 }
 
- #[tokio::test]
-async fn local_admin_covers_assets_diagnostics_downloads_and_ops_errors() {
+#[tokio::test]
+async fn local_admin_covers_diagnostics_and_endpoint_probe_without_spawning() {
     let _env_guard = env_lock();
     let (base, state) = serve_mock().await;
     let tmp = tempdir().expect("tempdir");
@@ -92,18 +96,14 @@ async fn local_admin_covers_assets_diagnostics_downloads_and_ops_errors() {
     config.local_ai.chat_model_id = "gemma3n:e4b-it-q8_0".to_string();
     config.local_ai.embedding_model_id = "bge-m3".to_string();
     config.local_ai.vision_model_id = "missing-vision".to_string();
-    config.local_ai.selected_tier = Some("custom".to_string());
-    config.local_ai.preload_vision_model = true;
-    config.local_ai.preload_embedding_model = true;
-    config.local_ai.preload_stt_model = false;
-    config.local_ai.preload_tts_voice = false;
     config.local_ai.tts_voice_id = "round16-voice".to_string();
-    config.local_ai.tts_download_url = Some(format!("{base}/asset/tts"));
-    config.local_ai.tts_config_download_url = Some(format!("{base}/asset/tts-config-fails"));
-    config.local_ai.stt_download_url = None;
 
+    // Every runtime binary on PATH is a stub that leaves a marker if run.
+    // OpenHuman never launches a local runtime, so none may appear.
     let scripts = tempdir().expect("scripts");
-    write_stub_script(scripts.path(), "ollama", "#!/bin/sh\nexit 42\n");
+    let spawn_marker = scripts.path().join("spawned.marker");
+    let marker_script = format!("#!/bin/sh\ntouch '{}'\nexit 42\n", spawn_marker.display());
+    write_stub_script(scripts.path(), "ollama", &marker_script);
     write_stub_script(scripts.path(), "python", "#!/bin/sh\nexit 42\n");
     write_stub_script(scripts.path(), "python3", "#!/bin/sh\nexit 42\n");
     write_stub_script(scripts.path(), "mlx_lm.generate", "#!/bin/sh\nexit 42\n");
@@ -130,85 +130,161 @@ async fn local_admin_covers_assets_diagnostics_downloads_and_ops_errors() {
         .iter()
         .any(|issue| issue.as_str().unwrap().contains("gemma3n:e4b-it-q8_0")));
 
-    let assets = service.assets_status(&runtime).await.expect("assets");
-    assert!(assets.ollama_available);
-    assert_eq!(assets.chat.state, "missing");
-    assert_eq!(assets.vision.state, "missing");
-    assert_eq!(assets.embedding.state, "ready");
-    assert_eq!(assets.tts.state, "ondemand");
+    // Bootstrap is now a read-only endpoint probe: the mock answers
+    // `/api/tags`, so the runtime is `ready` even though the chat model is
+    // missing (the user pulls it themselves).
+    service.bootstrap(&runtime).await;
+    let status = service.status();
+    assert_eq!(status.state, "ready");
+    assert_eq!(status.chat_model_id, "gemma3n:e4b-it-q8_0");
+    assert!(
+        !state
+            .requests
+            .lock()
+            .expect("requests")
+            .iter()
+            .any(|(path, _, _)| path.contains("pull")),
+        "bootstrap must never pull a model"
+    );
+    assert!(
+        !spawn_marker.exists(),
+        "bootstrap must never launch a runtime binary"
+    );
+}
 
-    let unknown = service
-        .download_asset(&runtime, " nope ")
+#[tokio::test]
+async fn provider_model_listing_covers_local_synthesis_and_openrouter_failures() {
+    let _env_guard = env_lock();
+    let (base, _state) = serve_mock().await;
+    let tmp = tempdir().expect("tempdir");
+    let mut config = temp_config(&tmp);
+    config.local_ai.base_url = Some(base.clone());
+    config.cloud_providers = vec![
+        CloudProviderCreds {
+            id: "openrouter-id".to_string(),
+            slug: "openrouter".to_string(),
+            label: "OpenRouter".to_string(),
+            endpoint: format!("{base}/openrouter-error"),
+            auth_style: CloudAuthStyle::Bearer,
+            legacy_type: None,
+            default_model: None,
+        },
+        CloudProviderCreds {
+            id: "array-id".to_string(),
+            slug: "array-body".to_string(),
+            label: "Array Body".to_string(),
+            endpoint: format!("{base}/array-body"),
+            auth_style: CloudAuthStyle::None,
+            legacy_type: None,
+            default_model: None,
+        },
+        CloudProviderCreds {
+            id: "status-id".to_string(),
+            slug: "status-body".to_string(),
+            label: "Status Body".to_string(),
+            endpoint: format!("{base}/status-body"),
+            auth_style: CloudAuthStyle::None,
+            legacy_type: None,
+            default_model: None,
+        },
+    ];
+    config.save().await.expect("save config");
+    AuthService::from_config(&config)
+        .store_provider_token(
+            &auth_key_for_slug("openrouter"),
+            DEFAULT_AUTH_PROFILE_NAME,
+            "sk-openrouter-secret",
+            HashMap::new(),
+            true,
+        )
+        .expect("store token");
+
+    let _workspace = EnvVarGuard::set("OPENHUMAN_WORKSPACE", config.config_path.parent().unwrap());
+    let _ollama_base = EnvVarGuard::set("OPENHUMAN_OLLAMA_BASE_URL", &base);
+
+    let local = list_configured_models("ollama")
         .await
-        .expect_err("unknown asset");
-    assert!(unknown.contains("Unknown capability"));
+        .expect("synthetic ollama")
+        .value;
+    assert_eq!(local["models"][0]["id"], "bge-m3");
 
-    let after_tts = service
-        .download_asset(&runtime, "tts")
+    let array_err = list_configured_models("array-body")
         .await
-        .expect("tts download succeeds even if sidecar url fails");
-    assert_eq!(after_tts.tts.state, "ready");
-    let progress = service.downloads_progress(&runtime).await.expect("progress");
-    assert_eq!(progress.tts.state, "ready");
-    assert_eq!(progress.warning, Some("Downloading tts asset".to_string()));
+        .expect_err("top-level array");
+    assert!(array_err.contains("not a JSON object"));
 
-    let after_chat = service
-        .download_asset(&runtime, "chat")
+    let status_err = list_configured_models("status-body")
         .await
-        .expect("ollama pull chat model");
-    assert_eq!(after_chat.chat.state, "ready");
-    assert!(state
-        .ollama_models
-        .lock()
-        .expect("models")
-        .iter()
-        .any(|m| m == "gemma3n:e4b-it-q8_0"));
+        .expect_err("non-success");
+    assert!(status_err.contains("provider returned 500"));
+    assert!(!status_err.contains("sk-status-secret"));
 
+    let openrouter_err = list_configured_models("openrouter")
+        .await
+        .expect_err("openrouter key validation error payload");
+    assert!(openrouter_err.contains("OpenRouter key validation returned error payload"));
+    assert!(!openrouter_err.contains("sk-openrouter-secret"));
+}
+
+#[tokio::test]
+async fn local_admin_reports_unhealthy_runtime_and_lm_studio_issue_shapes() {
+    let _env_guard = env_lock();
+    let tmp = tempdir().expect("tempdir");
+    let mut config = temp_config(&tmp);
+    config.local_ai.runtime_enabled = true;
+    config.local_ai.opt_in_confirmed = true;
+    config.local_ai.base_url = Some("http://127.0.0.1:9".to_string());
+    let _ollama_base = EnvVarGuard::set("OPENHUMAN_OLLAMA_BASE_URL", "http://127.0.0.1:9");
+    let runtime = openhuman_core::inference::local_runtime_config(&config);
+    let service = LocalAiService::new(&runtime);
+
+    let unhealthy = service.diagnostics(&runtime).await.expect("unhealthy diag");
+    assert_eq!(unhealthy["ollama_running"], false);
+    assert!(unhealthy["issues"][0]
+        .as_str()
+        .unwrap()
+        .contains("not running or not reachable"));
+    service.bootstrap(&runtime).await;
+    assert_eq!(service.status().state, "unreachable");
+
+    let (base, _state) = serve_mock().await;
     let mut lm_config = config.clone();
-    lm_config.local_ai.provider = "lmstudio".to_string();
-    let lm_runtime = openhuman_core::inference::local_runtime_config(&lm_config);
-    let lm_err = service
-        .download_asset(&lm_runtime, "chat")
+    lm_config.local_ai.provider = "lm-studio".to_string();
+    lm_config.local_ai.base_url = Some(format!("{base}/lm-empty/v1"));
+    lm_config.local_ai.chat_model_id = "loaded-chat".to_string();
+    let mut lm_runtime = openhuman_core::inference::local_runtime_config(&lm_config);
+    let lm_empty = service
+        .diagnostics(&lm_runtime)
         .await
-        .expect_err("lm studio owns chat downloads");
-    assert!(lm_err.contains("LM Studio manages"));
+        .expect("lm studio empty");
+    assert_eq!(lm_empty["provider"], "lm_studio");
+    assert_eq!(lm_empty["lm_studio_running"], true);
+    assert!(lm_empty["issues"][0]
+        .as_str()
+        .unwrap()
+        .contains("no models are loaded"));
 
-    let mut disabled_config = config.clone();
-    disabled_config.local_ai.runtime_enabled = false;
-    let disabled_runtime = openhuman_core::inference::local_runtime_config(&disabled_config);
-    let disabled_err = service
-        .download_asset(&disabled_runtime, "embedding")
+    lm_config.local_ai.base_url = Some(format!("{base}/lm-wrong/v1"));
+    lm_runtime = openhuman_core::inference::local_runtime_config(&lm_config);
+    let lm_wrong = service
+        .diagnostics(&lm_runtime)
         .await
-        .expect_err("disabled");
-    assert_eq!(disabled_err, "local ai is disabled");
+        .expect("lm studio wrong model");
+    assert!(lm_wrong["issues"][0]
+        .as_str()
+        .unwrap()
+        .contains("not loaded"));
 
-    let empty_chat = local_ai_chat(&config, vec![], None)
+    lm_config.local_ai.base_url = Some(format!("{base}/lm-error/v1"));
+    lm_runtime = openhuman_core::inference::local_runtime_config(&lm_config);
+    let lm_error = service
+        .diagnostics(&lm_runtime)
         .await
-        .expect_err("empty chat");
-    assert_eq!(empty_chat, "messages must not be empty");
-    let bad_role = local_ai_chat(
-        &config,
-        vec![LocalAiChatMessage {
-            role: "moderator".to_string(),
-            content: "hello".to_string(),
-        }],
-        None,
-    )
-    .await
-    .expect_err("bad role");
-    assert!(bad_role.contains("unsupported message role"));
-
-    let ops_progress = local_ai_downloads_progress(&config)
-        .await
-        .expect("ops progress")
-        .value;
-    assert_eq!(ops_progress.chat.id, "gemma3n:e4b-it-q8_0");
-
-    let ops_asset = local_ai_download_asset(&config, "embedding")
-        .await
-        .expect("ops embedding")
-        .value;
-    assert_eq!(ops_asset.embedding.state, "ready");
+        .expect("lm studio error payload");
+    assert!(lm_error["issues"][0]
+        .as_str()
+        .unwrap()
+        .contains("no models are loaded"));
 }
 
 async fn serve_mock() -> (String, MockState) {
@@ -228,11 +304,9 @@ async fn serve_mock() -> (String, MockState) {
         .route("/lm-error/v1/models", get(error_payload_models))
         .route("/api/tags", get(ollama_tags))
         .route("/api/show", post(ollama_show))
-        .route("/api/pull", post(ollama_pull))
+        .route("/api/pull", post(ollama_pull_recorded))
         .route("/api/generate", post(ollama_generate))
         .route("/api/chat", post(ollama_chat))
-        .route("/asset/tts", get(asset_tts))
-        .route("/asset/tts-config-fails", get(asset_tts_config_fails))
         .with_state(state.clone());
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
         .await
@@ -390,25 +464,15 @@ async fn ollama_show(Json(body): Json<Value>) -> impl IntoResponse {
     .into_response()
 }
 
-async fn ollama_pull(State(state): State<MockState>, Json(body): Json<Value>) -> impl IntoResponse {
-    let name = body["name"]
-        .as_str()
-        .unwrap_or("gemma3n:e4b-it-q8_0")
-        .to_string();
-    state.ollama_models.lock().expect("models").push(name);
-    let body = [
-        json!({"status":"pulling manifest"}).to_string(),
-        json!({"status":"downloading","digest":"sha256:a","total":100,"completed":40}).to_string(),
-        json!({"status":"downloading","digest":"sha256:a","total":100,"completed":100}).to_string(),
-        json!({"status":"success"}).to_string(),
-    ]
-    .join("\n")
-        + "\n";
-    Response::builder()
-        .status(StatusCode::OK)
-        .header(header::CONTENT_TYPE, "application/x-ndjson")
-        .body(Body::from(body))
-        .expect("pull response")
+/// Records any pull attempt so tests can assert none happens: OpenHuman no
+/// longer pulls models, the user does.
+async fn ollama_pull_recorded(
+    State(state): State<MockState>,
+    headers: HeaderMap,
+    Json(body): Json<Value>,
+) -> impl IntoResponse {
+    remember(&state, "/api/pull", &headers, body);
+    StatusCode::GONE
 }
 
 async fn ollama_generate() -> impl IntoResponse {
@@ -427,18 +491,6 @@ async fn ollama_chat() -> impl IntoResponse {
         "message": { "role": "assistant", "content": "chat generated" },
         "done": true
     }))
-}
-
-async fn asset_tts() -> impl IntoResponse {
-    Response::builder()
-        .status(StatusCode::OK)
-        .header(header::CONTENT_LENGTH, "13")
-        .body(Body::from("voice-bytes!!"))
-        .expect("asset")
-}
-
-async fn asset_tts_config_fails() -> impl IntoResponse {
-    (StatusCode::INTERNAL_SERVER_ERROR, "sidecar failed")
 }
 
 fn remember(state: &MockState, path: &str, headers: &HeaderMap, body: Value) {

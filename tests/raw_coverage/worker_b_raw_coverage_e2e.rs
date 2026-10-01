@@ -296,7 +296,6 @@ async fn setup() -> TestHarness {
         EnvVarGuard::unset("BACKEND_URL"),
         EnvVarGuard::unset("VITE_BACKEND_URL"),
         EnvVarGuard::unset("OPENHUMAN_API_URL"),
-        EnvVarGuard::unset("OPENHUMAN_LOCAL_AI_TIER"),
         EnvVarGuard::unset("OPENHUMAN_LM_STUDIO_BASE_URL"),
         EnvVarGuard::unset("LM_STUDIO_BASE_URL"),
         EnvVarGuard::set("OPENHUMAN_KEYRING_BACKEND", "file"),

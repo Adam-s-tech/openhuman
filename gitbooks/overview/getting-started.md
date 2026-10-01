@@ -19,7 +19,7 @@ OpenHuman is open source under the GNU GPL3 license. The codebase is at [github.
 
 ## System requirements
 
-OpenHuman runs on **macOS, Windows and Linux** desktops. 4 GB+ RAM is recommended; 16 GB+ if you intend to ingest very large mailboxes or repos, or run a [local model](../features/model-routing/local-ai.md) on the same machine.
+OpenHuman runs on **macOS, Windows and Linux** desktops. 4 GB+ RAM is recommended; 16 GB+ if you intend to ingest very large mailboxes or repos, or run a [local model](../features/model-routing/local-ai.md) on the same machine (you install the runtime, such as Ollama, and pull the models yourself).
 
 ### Permissions
 

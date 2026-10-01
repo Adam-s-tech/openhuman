@@ -19,10 +19,13 @@ Supported routes:
 
 - **Managed (TinyHumans)**: the default. Access to the OpenRouter model
   catalogue with no key to manage.
-- **Local**: Ollama or LM Studio, set under `[local_ai]` with
-  `provider = "ollama"` or `"lm_studio"`, plus MLX on macOS.
+- **Local**: a runtime the user installs and runs (Ollama, LM Studio, MLX,
+  OMLX), addressed as `ollama:<model>`, `lmstudio:<model>`, `mlx:<model>` or
+  `omlx:<model>`, with the endpoint in `[local_ai] base_url`. OpenHuman does
+  not install the runtime or download models; the user pulls them.
 - **A local OpenAI-compatible endpoint**: any server that speaks the OpenAI
-  chat API, registered with its own slug and endpoint.
+  chat API, as `local-openai:<model>` or registered with its own slug and
+  endpoint.
 - **Claude Code / Claude Agent SDK**: a provider slug that shells out to an
   installed Claude Code CLI instead of calling a hosted API.
 - **26 BYOK slugs**, each shipped with a preset endpoint so only a key is
@@ -34,8 +37,8 @@ Supported routes:
 
 Provider definitions live under `crates/openhuman-core/src/inference/provider/`
 (`factory.rs` resolves a `<slug>:<model>` string to a client; `types.rs` holds
-the provider shapes). Full setup, the local-model capability table, and RAM
-tier presets are in [Local models & bring your own
+the provider shapes). Full setup and the local-model capability table are
+in [Local models & bring your own
 key](../features/model-routing/local-and-byok-models.md); routing behavior
 and fallback order are in [Automatic Model
 Routing](../features/model-routing/README.md).
@@ -51,7 +54,8 @@ per-workload override), independent of the chat provider:
 - **Voyage**: direct Voyage AI API with your own key.
 - **OpenAI**: cloud embeddings via the OpenAI API.
 - **Cohere**: the Cohere embed API with your own key.
-- **Ollama**: a local model, `bge-m3` recommended. The Memory Tree's on-disk
+- **Ollama**: a local model the user has pulled, `bge-m3` recommended
+  (`ollama pull bge-m3`). The Memory Tree's on-disk
   vector format is fixed at 1024 dimensions, so a smaller embedding model
   (`all-minilm`, 384 dimensions, or `nomic-embed-text`, 768) fails the
   dimension check at embed time.

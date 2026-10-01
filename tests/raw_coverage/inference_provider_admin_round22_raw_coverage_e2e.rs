@@ -5,6 +5,7 @@
 //! whisper, piper, local AI binaries, models, or downloads.
 
 use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, OnceLock};
 
 use axum::extract::State;
@@ -24,6 +25,7 @@ use openhuman_core::config::Config;
 use openhuman_core::security::credentials::{
     AuthService, APP_SESSION_PROVIDER, DEFAULT_AUTH_PROFILE_NAME,
 };
+use openhuman_core::inference::host_runtime::LocalAiService;
 use openhuman_core::inference::provider::factory::{
     auth_key_for_slug, create_chat_model_from_string_with_model_id,
 };
@@ -52,6 +54,13 @@ impl EnvVarGuard {
         let previous = std::env::var_os(key);
         // SAFETY: this integration test is validated with --test-threads=1.
         unsafe { std::env::set_var(key, value) };
+        Self { key, previous }
+    }
+
+    fn unset(key: &'static str) -> Self {
+        let previous = std::env::var_os(key);
+        // SAFETY: this integration test is validated with --test-threads=1.
+        unsafe { std::env::remove_var(key) };
         Self { key, previous }
     }
 }
@@ -277,6 +286,73 @@ async fn factory_covers_legacy_api_key_scoping_and_abstract_model_errors() {
                 .is_some_and(|auth| auth.contains("sk-legacy-direct"))));
 }
 
+#[tokio::test]
+async fn local_admin_covers_diagnostics_errors_and_probe_with_fake_bins() {
+    let _env = env_lock();
+    let (base, _state) = serve_mock().await;
+    let tmp = tempdir().expect("tempdir");
+    let mut config = temp_config(&tmp);
+    config.local_ai.runtime_enabled = true;
+    config.local_ai.opt_in_confirmed = true;
+    config.local_ai.base_url = Some(base.clone());
+    config.local_ai.chat_model_id = "gemma3n:e4b-it-q8_0".to_string();
+    config.local_ai.embedding_model_id = "all-minilm:latest".to_string();
+    config.local_ai.stt_model_id = "round22-stt".to_string();
+    config.local_ai.tts_voice_id = "round22-voice".to_string();
+
+    let scripts = tempdir().expect("scripts");
+    let ollama = write_stub_script(&scripts, "ollama", "#!/bin/sh\nprintf 'fake ollama\\n'\n");
+    write_stub_script(&scripts, "python", "#!/bin/sh\nexit 42\n");
+    write_stub_script(&scripts, "python3", "#!/bin/sh\nexit 42\n");
+    write_stub_script(&scripts, "mlx_lm.generate", "#!/bin/sh\nexit 42\n");
+    write_stub_script(&scripts, "piper", "#!/bin/sh\nexit 42\n");
+
+    let _path = EnvVarGuard::set("PATH", scripts.path());
+    let _workspace = EnvVarGuard::set("OPENHUMAN_WORKSPACE", config.config_path.parent().unwrap());
+    let _ollama_base = EnvVarGuard::set("OPENHUMAN_OLLAMA_BASE_URL", &base);
+    let _ollama_bin = EnvVarGuard::set("OLLAMA_BIN", &ollama);
+    let _piper_bin = EnvVarGuard::unset("PIPER_BIN");
+    let _whisper_bin = EnvVarGuard::unset("WHISPER_BIN");
+
+    let runtime = openhuman_core::inference::local_runtime_config(&config);
+    let service = LocalAiService::new(&runtime);
+    let diag = service.diagnostics(&runtime).await.expect("diagnostics");
+    assert_eq!(diag["ollama_running"], true);
+    let issues = diag["issues"].as_array().expect("issues");
+    assert!(issues.iter().any(|issue| issue
+        .as_str()
+        .unwrap()
+        .contains("Chat model `gemma3n:e4b-it-q8_0`")));
+    assert!(issues.iter().any(|issue| issue
+        .as_str()
+        .unwrap()
+        .contains("Embedding model `all-minilm:latest`")));
+
+    let mut tags_500 = config.clone();
+    tags_500.local_ai.base_url = Some(format!("{base}/tags-500"));
+    let tags_500_runtime = openhuman_core::inference::local_runtime_config(&tags_500);
+    let diag_500 = service
+        .diagnostics(&tags_500_runtime)
+        .await
+        .expect("500 diagnostics");
+    assert_eq!(diag_500["ollama_running"], false);
+    assert!(diag_500["issues"][0]
+        .as_str()
+        .unwrap()
+        .contains("not running or not reachable"));
+
+    // Missing models are reported, never pulled: bootstrap stays a read-only
+    // probe of the reachable endpoint.
+    service.bootstrap(&runtime).await;
+    assert_eq!(service.status().state, "ready");
+    service.bootstrap(&tags_500_runtime).await;
+    assert_eq!(
+        service.status().state,
+        "ready",
+        "a ready status is kept until reset_to_idle"
+    );
+}
+
 async fn serve_mock() -> (String, MockState) {
     let state = MockState::default();
     let app = Router::new()
@@ -458,3 +534,19 @@ fn temp_config(tmp: &TempDir) -> Config {
     config
 }
 
+fn write_stub_script(tmp: &TempDir, name: &str, body: &str) -> PathBuf {
+    let path = tmp.path().join(name);
+    std::fs::write(&path, body).expect("write stub");
+    make_executable(&path);
+    path
+}
+
+fn make_executable(path: &Path) {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let mut perms = std::fs::metadata(path).expect("metadata").permissions();
+        perms.set_mode(0o755);
+        std::fs::set_permissions(path, perms).expect("chmod");
+    }
+}

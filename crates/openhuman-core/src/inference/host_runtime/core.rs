@@ -13,15 +13,6 @@ pub fn global(config: &Config) -> Arc<LocalAiService> {
         .clone()
 }
 
-/// Like [`global`] but returns `None` instead of initialising the singleton.
-///
-/// Useful from shutdown paths where lazy-creating the service just to call a
-/// no-op cleanup would be wasteful — if local AI was never used in this
-/// process, there's nothing to clean up.
-pub fn try_global() -> Option<Arc<LocalAiService>> {
-    LOCAL_AI.get().cloned()
-}
-
 #[cfg(test)]
 #[path = "core_tests.rs"]
 mod tests;

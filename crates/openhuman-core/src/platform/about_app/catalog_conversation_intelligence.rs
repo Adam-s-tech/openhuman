@@ -512,9 +512,9 @@ Capability {
              managed cloud (default, Voyage-backed via api.tinyhumans.ai), OpenAI, \
              Cohere, local Ollama, or a custom OpenAI-compatible endpoint. API keys \
              are stored encrypted via the local keyring under `embeddings:<slug>`; \
-             model name and embedding dimensions are tunable per provider. The \
-             legacy `inference_embed` RPC is aliased to `embeddings_embed` so \
-             existing callers continue to work.",
+             model name and embedding dimensions are tunable per provider. A \
+             local Ollama model must already be pulled (`ollama pull bge-m3`); \
+             OpenHuman does not download it.",
         how_to: "Connections → API keys → Embeddings",
         status: CapabilityStatus::Beta,
         // Privacy depends on the selected provider — see
