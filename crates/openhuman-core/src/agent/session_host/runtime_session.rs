@@ -1369,7 +1369,9 @@ impl OpenHumanSessionHost {
             .as_mut()
             .expect("runtime session initialized")
             .turn(
-                SessionTurnRequest::new(Message::user(user_message)),
+                SessionTurnRequest::new(crate::agent::message_convert::user_message_from_text(
+                    user_message,
+                )),
                 options,
             )
             .await
@@ -1605,7 +1607,8 @@ impl OpenHumanSessionHost {
                             .lock()
                             .unwrap_or_else(std::sync::PoisonError::into_inner)
                             .context_window = context_window;
-                        let original_user_message = request.input.text();
+                        let original_user_message =
+                            crate::agent::message_convert::user_text_with_markers(&request.input);
                         prelude.begin_user_effects(
                             &mut state
                                 .lock()
@@ -1625,7 +1628,7 @@ impl OpenHumanSessionHost {
                                 &mut options.run_context.data,
                             )
                             .await;
-                        request.input = Message::user(enriched);
+                        request.input = crate::agent::message_convert::user_message_from_text(&enriched);
                         let mut preparation = prelude
                             .prepare(!view.resumed && view.history.is_empty())
                             .await
@@ -1725,7 +1728,9 @@ impl OpenHumanSessionHost {
                             .iter()
                             .rev()
                             .find_map(|message| match message {
-                                Message::User(_) => Some(message.text()),
+                                Message::User(_) => Some(
+                                    crate::agent::message_convert::user_text_with_markers(message),
+                                ),
                                 _ => None,
                             })
                             .unwrap_or_default();
