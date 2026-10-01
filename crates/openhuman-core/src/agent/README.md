@@ -4,14 +4,14 @@ Multi-agent orchestration domain. Owns the LLM tool-calling loop, sub-agent disp
 
 ## Public surface
 
-- `pub struct OpenHumanSessionHost` / `pub struct SessionHostBuilder` / `pub struct TurnOverrides` (`session_host/types.rs`, re-exported from `agent`): top-level conversation runtime, the entry point for any chat turn. Constructors live in `session_host/builder/factory.rs`; `run_single` / `run_interactive` in `session_host/runtime/run_loop.rs`. The `builder/`, `runtime/`, and `turn/` submodules are private.
+- `pub struct OpenHumanSessionHost` / `pub struct SessionHostBuilder` / `pub struct TurnOverrides` (`session_host/types.rs`, re-exported from `agent`): top-level conversation runtime, the entry point for any chat turn. Constructors live in `session_host/builder/factory.rs`; `run_single` in `session_host/runtime/run_loop.rs`. The `builder/`, `runtime/`, and `turn/` submodules are private.
 - `pub fn run_subagent` / `pub struct SubagentRunOptions` / `pub enum SubagentRunError` (`subagent_host/`): OpenHuman policy adapters around the neutral TinyAgents sub-agent lifecycle.
 - `pub struct AgentDefinition` / `pub struct AgentDefinitionRegistry` / `pub enum SandboxMode` / `pub enum ToolScope` (`harness/definition/`: `agent_definition.rs`, `registry.rs`, `source.rs`, `tier.rs`, `execution_spec.rs`, `prompt_source.rs`, `subagents.rs`): sub-agent archetypes loaded from built-ins and workspace TOML.
 - `pub mod harness::fork_context`: task-local parent context for KV-cache reuse.
 - `tinytools_agent::dialect::ToolDialect` / `tinytools_agent::ParsedToolCall` / `tinytools_agent::dialect::ToolOutcome`: canonical tool-call vocabulary; `message_convert.rs` performs only concrete durable/provider conversions.
 - `pub mod triage` (`run_triage`, `apply_decision`, `TriggerEnvelope`, `TriageDecision`, `TriageAction`, in `triage/mod.rs`): classifies external triggers and escalates to sub-agents.
 - `pub mod prompts::SystemPromptBuilder` (`prompts/`): system-prompt section composer.
-- `pub struct ChatMessage` / `pub enum ConversationMessage` / `pub struct ToolResultMessage` (`messages.rs`): transcript wire types; `inference/provider/types.rs::ChatRequest` borrows `&[ChatMessage]` from here.
+- `pub struct ChatMessage` / `pub enum ConversationMessage` / `pub struct ToolResultMessage` (`messages.rs`): transcript wire types.
 - `pub fn bus::register_agent_handlers` (`bus.rs`): registers the `agent.run_turn` native request handler (`AgentTurnRequest` -> `AgentTurnResponse`) on `BUS.native()`; called from `channels/runtime/startup/start_channels.rs`.
 - Built-in archetypes live in `crates/openhuman-core/src/agent/registry/agents/`; this module stays focused on harness/runtime behavior.
 - RPC `agent.{chat, chat_simple, server_status, list_definitions, get_definition, reload_definitions, triage_evaluate, graph_topologies, registry_snapshot}`: `schemas.rs`.
@@ -56,7 +56,7 @@ Flat files: `bus.rs` (`agent.run_turn` native request handler), `context_breakdo
 
 - `crates/openhuman-core/src/inference/provider/`: `factory::{provider_for_role, create_chat_model_with_model_id}` build the crate-native `ChatModel`s that `tinyagents::TurnModelSource` runs each turn against; `ChatResponse` / `ToolCall` / `UsageInfo` DTOs cross this boundary. There is no `Provider` trait; the harness names crate model types only.
 - `crates/openhuman-core/src/tools/`: `Tool` / `ToolSpec` execution surface invoked from the tool loop.
-- `crates/openhuman-core/src/memory/`: episodic indexing + memory-loader context injection (`harness/memory_context.rs`).
+- `crates/openhuman-core/src/memory/`: episodic indexing.
 - `crates/openhuman-core/src/inference/local/`: `agent_chat` / `agent_chat_simple` execution backend.
 - `crates/openhuman-core/src/config/`: runtime config load via `config::rpc::load_config_with_timeout` (`config::rpc` is `pub use ops as rpc`).
 - `crates/openhuman-core/src/core/bus.rs` (`BUS.publish`/`BUS.subscribe`/`BUS.native()`) and `crates/openhuman-core/src/core/events.rs` (`DomainEvent`): emits `AgentTurnStarted` / `AgentTurnCompleted` / `AgentError`, `AgentOrchestration*`, and `TriggerEvaluated`; subscribers live in `orchestration/{background_delivery,run_ledger_finalize}.rs` and `learning/`, not in `agent/bus.rs`.

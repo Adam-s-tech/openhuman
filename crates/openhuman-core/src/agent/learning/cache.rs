@@ -207,11 +207,6 @@ pub async fn reset_non_pinned(cache: &FacetCache) -> anyhow::Result<(usize, usiz
     Ok((deleted, pinned_preserved))
 }
 
-/// Build a full key from a class and a suffix (e.g. `(Style, "verbosity")` → `"style/verbosity"`).
-pub fn key_with_class(class: FacetClass, suffix: &str) -> String {
-    format!("{}/{suffix}", class_prefix(class))
-}
-
 /// Return the canonical key prefix for a [`FacetClass`].
 pub fn class_prefix(class: FacetClass) -> &'static str {
     match class {

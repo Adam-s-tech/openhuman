@@ -119,12 +119,6 @@ impl From<StartChatError> for String {
     }
 }
 
-/// Whether `msg` is the [`GUARDRAIL_ERROR_PREFIX`] sentinel — mirrors
-/// [`crate::core::observability::is_backend_unavailable_message`].
-pub fn is_guardrail_error_message(msg: &str) -> bool {
-    msg.starts_with(GUARDRAIL_ERROR_PREFIX)
-}
-
 fn prompt_guard_user_message(action: PromptEnforcementAction) -> &'static str {
     match action {
         PromptEnforcementAction::Allow => "Message accepted.",

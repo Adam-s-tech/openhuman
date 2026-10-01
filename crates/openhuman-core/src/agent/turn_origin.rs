@@ -347,35 +347,6 @@ where
     tokio::spawn(propagate(fut))
 }
 
-/// `tokio::spawn` for work that must deliberately **not** carry the caller's
-/// origin, naming why.
-///
-/// Dropping the origin is sometimes right — a detached background job that is
-/// not a continuation of the caller's turn should not inherit that turn's
-/// authority. The problem is that a bare `tokio::spawn` looks identical whether
-/// the author decided that or simply did not think about it, so a reviewer
-/// cannot tell a deliberate choice from a regression.
-///
-/// This is a plain `tokio::spawn` — the behaviour is the same — but the name and
-/// the `reason` make the choice explicit at the call site and greppable across
-/// the tree. The reason is emitted at `trace` so a live process can be asked
-/// which spawns dropped their label.
-///
-/// Prefer [`spawn`] unless the work genuinely is not a continuation of the
-/// caller's turn.
-pub fn spawn_unlabelled<F>(reason: &'static str, fut: F) -> tokio::task::JoinHandle<F::Output>
-where
-    F: std::future::Future + Send + 'static,
-    F::Output: Send + 'static,
-{
-    tracing::trace!(
-        reason,
-        parent_origin = ?current().as_ref().map(AgentTurnOrigin::class),
-        "[turn_origin] spawning without the caller's origin"
-    );
-    tokio::spawn(fut)
-}
-
 /// Read the ambient web-chat `request_id` for the current turn, when one was
 /// scoped by an [`AgentTurnOrigin::WebChat`] entry point. `None` for every
 /// other origin (channel / cron / CLI / sub-agent) and outside any scope —

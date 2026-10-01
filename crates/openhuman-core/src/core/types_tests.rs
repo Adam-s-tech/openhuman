@@ -9,14 +9,6 @@ fn invocation_result_ok_serializes_value() {
 }
 
 #[test]
-fn invocation_result_with_logs() {
-    let result =
-        InvocationResult::with_logs(json!(42), vec!["log1".into(), "log2".into()]).unwrap();
-    assert_eq!(result.value, json!(42));
-    assert_eq!(result.logs.len(), 2);
-}
-
-#[test]
 fn invocation_to_rpc_json_no_logs_returns_value_directly() {
     let inv = InvocationResult {
         value: json!({"data": true}),

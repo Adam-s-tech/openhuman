@@ -213,22 +213,12 @@ pub fn count_image_markers(messages: &[ChatMessage]) -> usize {
         .unwrap_or(0)
 }
 
-/// Whether the latest user message carries any image marker.
-pub fn contains_image_markers(messages: &[ChatMessage]) -> bool {
-    count_image_markers(messages) > 0
-}
-
 /// Count `[FILE:…]` markers in the **latest** user message only — same
 /// per-turn semantics as [`count_image_markers`].
 pub fn count_file_markers(messages: &[ChatMessage]) -> usize {
     latest_user_message(messages)
         .map(|m| markers::parse_file_markers(&m.content).1.len())
         .unwrap_or(0)
-}
-
-/// Whether the latest user message carries any file marker.
-pub fn contains_file_markers(messages: &[ChatMessage]) -> bool {
-    count_file_markers(messages) > 0
 }
 
 fn latest_user_message(messages: &[ChatMessage]) -> Option<&ChatMessage> {
@@ -615,18 +605,6 @@ fn attachments_dir() -> PathBuf {
 /// are this host's policy.
 fn stash() -> AttachmentStash {
     AttachmentStash::new(attachments_dir(), ATTACHMENTS_MAX_BYTES, ATTACHMENTS_TTL)
-}
-
-/// Return the canonical path when `path` resolves inside the managed stash.
-/// Callers should use this returned path for subsequent reads so the checked
-/// path, rather than an attacker-controlled spelling, is what gets opened.
-pub fn managed_attachment_path(path: &str) -> Option<PathBuf> {
-    stash().managed_path(path)
-}
-
-#[cfg(test)]
-pub(crate) fn managed_attachments_dir_for_tests() -> PathBuf {
-    attachments_dir()
 }
 
 /// Per-user fallback attachments dir used only when [`init_attachments_dir`]

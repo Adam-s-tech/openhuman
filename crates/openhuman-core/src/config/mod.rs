@@ -14,7 +14,6 @@ pub mod migrations;
 pub mod ops;
 pub mod schema;
 mod schemas;
-pub mod settings_cli;
 pub mod tools;
 pub mod workspace;
 pub mod workspace_handle;

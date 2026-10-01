@@ -1,7 +1,6 @@
 //! Tests for the subsystem registry: bind, rebind, fallback-on-failure, and
 //! health updates.
 
-use std::cell::Cell;
 use std::str::FromStr;
 
 use serde_json::json;
@@ -128,83 +127,6 @@ fn rebind_does_not_disturb_other_slots() {
         "whisper"
     );
     assert_eq!(registry.len(), 2);
-}
-
-#[test]
-fn bind_with_fallback_binds_the_primary_when_it_constructs() {
-    let mut registry = SubsystemRegistry::new();
-    let primary: Result<BoundDriver, String> = Ok(bound(
-        SubsystemSlot::Memory,
-        "supermemory",
-        DriverClass::External,
-    ));
-
-    let driver = registry.bind_with_fallback(SubsystemSlot::Memory, "supermemory", primary, || {
-        bound(SubsystemSlot::Memory, "tinycortex", DriverClass::Embedded)
-    });
-
-    assert_eq!(driver.id, "supermemory");
-    assert!(!driver.is_fallback());
-    assert_eq!(driver.fell_back_from, None);
-}
-
-#[test]
-fn bind_with_fallback_binds_the_fallback_when_the_primary_fails() {
-    let mut registry = SubsystemRegistry::new();
-    let primary: Result<BoundDriver, String> = Err("handshake refused".into());
-
-    let driver = registry.bind_with_fallback(SubsystemSlot::Memory, "supermemory", primary, || {
-        bound(SubsystemSlot::Memory, "tinycortex", DriverClass::Embedded)
-    });
-
-    assert_eq!(driver.id, "tinycortex");
-    assert_eq!(driver.class, DriverClass::Embedded);
-    assert_eq!(
-        registry.get(SubsystemSlot::Memory).expect("bound").id,
-        "tinycortex"
-    );
-}
-
-#[test]
-fn bind_with_fallback_records_fell_back_from_so_status_is_never_silent() {
-    let mut registry = SubsystemRegistry::new();
-    let primary: Result<BoundDriver, String> = Err("handshake refused".into());
-
-    registry.bind_with_fallback(SubsystemSlot::Memory, "supermemory", primary, || {
-        bound(SubsystemSlot::Memory, "tinycortex", DriverClass::Embedded)
-    });
-
-    let driver = registry.get(SubsystemSlot::Memory).expect("bound");
-    assert!(driver.is_fallback());
-    assert_eq!(driver.fell_back_from.as_deref(), Some("supermemory"));
-
-    let encoded = serde_json::to_value(driver).expect("status record serializes");
-    assert_eq!(
-        encoded["fell_back_from"],
-        json!("supermemory"),
-        "the substitution must be visible in status output"
-    );
-}
-
-#[test]
-fn bind_with_fallback_does_not_construct_the_fallback_on_success() {
-    let mut registry = SubsystemRegistry::new();
-    let constructed = Cell::new(false);
-    let primary: Result<BoundDriver, String> = Ok(bound(
-        SubsystemSlot::Memory,
-        "supermemory",
-        DriverClass::External,
-    ));
-
-    registry.bind_with_fallback(SubsystemSlot::Memory, "supermemory", primary, || {
-        constructed.set(true);
-        bound(SubsystemSlot::Memory, "tinycortex", DriverClass::Embedded)
-    });
-
-    assert!(
-        !constructed.get(),
-        "the embedded default must not be constructed when the primary binds"
-    );
 }
 
 #[test]

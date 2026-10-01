@@ -3450,8 +3450,6 @@ const messages: TranslationMap = {
   'conversations.tools.runTests.done': '테스트 실행함',
   'conversations.tools.analyzeCode.active': '코드 분석 중',
   'conversations.tools.analyzeCode.done': '코드 분석함',
-  'conversations.tools.insertRecord.active': '레코드 추가 중',
-  'conversations.tools.insertRecord.done': '레코드 추가함',
   'conversations.tools.runCommand.active': '명령 실행 중',
   'conversations.tools.runCommand.done': '명령 실행함',
   'conversations.tools.runCode.active': '코드 실행 중',

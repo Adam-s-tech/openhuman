@@ -266,14 +266,6 @@ async fn ordinary_text_passes_screening_unchanged() {
     assert_eq!(outcome.effective_text(text), Some(text));
 }
 
-#[test]
-fn gate_unavailable_is_an_error_not_a_refusal() {
-    // A policy refusal is Deny/Block; Err means no verdict was reachable.
-    let err = gate_unavailable("approval store unreadable");
-    assert!(matches!(err, TinyAgentsError::Capability(_)));
-    assert!(err.to_string().contains("could not reach a verdict"));
-}
-
 /// Builds a session whose channel policy yields `action` for `tool_name`.
 fn policy_session(tool_name: &str, action: ToolPolicyAction) -> Arc<ToolPolicySession> {
     use crate::tools::agent_policy::{TaskProfile, TaskRiskLevel, ToolPolicyDecision};

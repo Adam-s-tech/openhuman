@@ -141,39 +141,3 @@ fn tool_request() -> ModelRequest {
         ..Default::default()
     }
 }
-
-#[test]
-fn prompt_guided_response_uses_tinyagents_xml_parser() {
-    let response = prompt_guided_text_response(
-        r#"Checking.<tool_call>{"name":"lookup","arguments":{"id":7}}</tool_call>"#.to_string(),
-        &tool_request(),
-    );
-
-    assert_eq!(response.text(), "Checking.");
-    assert_eq!(response.message.tool_calls.len(), 1);
-    assert!(
-        !response.message.tool_calls[0].id.is_empty(),
-        "the upstream parser assigns the tool-call ID"
-    );
-    assert_eq!(response.message.tool_calls[0].name, "lookup");
-    assert_eq!(
-        response.message.tool_calls[0].arguments,
-        serde_json::json!({"id": 7})
-    );
-}
-
-#[test]
-fn prompt_guided_response_keeps_legacy_pformat_fallback() {
-    let response = prompt_guided_text_response(
-        "<tool_call>lookup[0|7|1|needle]</tool_call>".to_string(),
-        &tool_request(),
-    );
-
-    assert_eq!(response.text(), "");
-    assert_eq!(response.message.tool_calls.len(), 1);
-    assert_eq!(response.message.tool_calls[0].name, "lookup");
-    assert_eq!(
-        response.message.tool_calls[0].arguments,
-        serde_json::json!({"id": 7, "query": "needle"})
-    );
-}

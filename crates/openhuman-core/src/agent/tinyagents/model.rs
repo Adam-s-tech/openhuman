@@ -177,34 +177,6 @@ pub(crate) fn native_model_response_for_request(
     )
 }
 
-/// Normalize a completed prompt-guided response for a crate-native model.
-///
-/// TinyAgents owns the generic prompt protocol and XML tool-call grammar. The
-/// host keeps a temporary second pass for its legacy P-Format prompts until
-/// those prompts are migrated (migration plan WP1/WP4).
-pub(crate) fn prompt_guided_text_response(text: String, request: &ModelRequest) -> ModelResponse {
-    if request.tools.is_empty() {
-        return ModelResponse::assistant(text);
-    }
-
-    let response = tinyinference_llm::prompt_tools::recover_tool_calls(
-        ModelResponse::assistant(text.clone()),
-        &request.tools,
-    );
-    if !response.message.tool_calls.is_empty() {
-        return response;
-    }
-
-    response_to_model_response(
-        &ChatResponse {
-            text: Some(text),
-            ..Default::default()
-        },
-        &pformat_registry_from_request(request),
-        true,
-    )
-}
-
 /// JSON key under which the model adapter stashes the provider-reported
 /// billing/context metadata that the crate [`Usage`] has no field for
 /// (gap G1). Consumed by [`usage_info_from_response`].

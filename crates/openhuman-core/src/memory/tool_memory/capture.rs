@@ -223,16 +223,6 @@ impl PostTurnHook for ToolMemoryCaptureHook {
     }
 }
 
-/// Helper: emit a [`ToolMemoryRule`] preview without flooding logs with
-/// raw user prose.
-fn truncate_for_log(body: &str) -> String {
-    let mut out: String = body.chars().take(80).collect();
-    if body.chars().count() > 80 {
-        out.push('…');
-    }
-    out
-}
-
 /// Best-effort match between a user edict and a tool that ran in the
 /// turn. We look for the tool name appearing as a word in the edict;
 /// when several match, the first call's tool wins.
