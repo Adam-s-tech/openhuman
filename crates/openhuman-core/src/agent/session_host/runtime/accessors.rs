@@ -3,12 +3,12 @@
 //! (which rebuilds the tool policy snapshot on every change).
 
 use super::super::types::{OpenHumanSessionHost, SessionHostBuilder};
-use crate::agent::messages::ConversationMessage;
 use crate::memory::Memory;
 use crate::tools::agent_policy::ToolPolicyEngine;
 use std::collections::HashSet;
 use std::sync::Arc;
 use tinytools::{Tool, ToolSpec};
+use tinytools_agent::dialect::TranscriptEntry;
 
 impl OpenHumanSessionHost {
     // ─────────────────────────────────────────────────────────────────
@@ -248,9 +248,9 @@ impl OpenHumanSessionHost {
     /// Returns a presentation projection of the runtime-owned history.
     ///
     /// This intentionally returns an owned value: retaining a second borrowed
-    /// or mutable `ConversationMessage` accumulator in the host would recreate
+    /// or mutable `TranscriptEntry` accumulator in the host would recreate
     /// the session state now owned by `tinyagents_runtime::Session`.
-    pub fn history(&self) -> Vec<ConversationMessage> {
+    pub fn history(&self) -> Vec<TranscriptEntry> {
         self.runtime_session
             .as_ref()
             .map(|session| {
@@ -258,7 +258,11 @@ impl OpenHumanSessionHost {
                     .history()
                     .iter()
                     .filter_map(crate::agent::message_convert::message_to_native_chat_message)
-                    .map(ConversationMessage::Chat)
+                    .map(|row| {
+                        TranscriptEntry::Chat(
+                            crate::agent::message_convert::row_to_dialect_message(row),
+                        )
+                    })
                     .collect()
             })
             .unwrap_or_default()

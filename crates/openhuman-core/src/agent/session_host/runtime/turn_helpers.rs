@@ -3,8 +3,8 @@
 
 use super::super::types::OpenHumanSessionHost;
 use crate::agent::error::AgentError;
-use crate::agent::messages::ConversationMessage;
 use crate::util::truncate_with_ellipsis;
+use tinytools_agent::dialect::TranscriptEntry;
 
 impl OpenHumanSessionHost {
     const EVENT_ERROR_MAX_CHARS: usize = 256;
@@ -13,21 +13,19 @@ impl OpenHumanSessionHost {
     // Static helpers for turn parsing + telemetry
     // ─────────────────────────────────────────────────────────────────
 
-    pub(in crate::agent::session_host) fn count_iterations(
-        messages: &[ConversationMessage],
-    ) -> usize {
+    pub(in crate::agent::session_host) fn count_iterations(messages: &[TranscriptEntry]) -> usize {
         messages
             .iter()
-            .filter(|message| matches!(message, ConversationMessage::AssistantToolCalls { .. }))
+            .filter(|message| matches!(message, TranscriptEntry::AssistantToolCalls { .. }))
             .count()
             + 1
     }
 
-    fn conversation_message_eq(left: &ConversationMessage, right: &ConversationMessage) -> bool {
-        serde_json::to_string(left).ok() == serde_json::to_string(right).ok()
+    fn conversation_message_eq(left: &TranscriptEntry, right: &TranscriptEntry) -> bool {
+        left == right
     }
 
-    fn message_slice_eq(left: &[ConversationMessage], right: &[ConversationMessage]) -> bool {
+    fn message_slice_eq(left: &[TranscriptEntry], right: &[TranscriptEntry]) -> bool {
         left.len() == right.len()
             && left
                 .iter()
@@ -36,9 +34,9 @@ impl OpenHumanSessionHost {
     }
 
     pub(in crate::agent::session_host) fn new_entries_for_turn<'a>(
-        history_snapshot: &[ConversationMessage],
-        current_history: &'a [ConversationMessage],
-    ) -> &'a [ConversationMessage] {
+        history_snapshot: &[TranscriptEntry],
+        current_history: &'a [TranscriptEntry],
+    ) -> &'a [TranscriptEntry] {
         let common_prefix_len = history_snapshot
             .iter()
             .zip(current_history.iter())

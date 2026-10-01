@@ -6,14 +6,15 @@ use crate::agent::subagent_host::ops::checkpoint;
 use std::collections::HashSet;
 use std::sync::Arc;
 
-use crate::agent::messages::{ChatMessage, ConversationMessage};
 use crate::agent::progress::AgentProgress;
 use crate::agent::subagent_host::types::SubagentRunError;
 use crate::agent::tinyagents::{run_turn_via_tinyagents_shared, SubagentScope};
 use crate::inference::tokenjuice::AgentTokenjuiceCompression;
 use tinyagents_harness::run_queue::RunQueue;
+use tinyagents_session::transcript::TranscriptMessage;
 use tinytools::WorkspaceDescriptor;
 use tinytools::{Tool, ToolSpec};
+use tinytools_agent::dialect::TranscriptEntry;
 
 use super::transcript::persist_subagent_transcript;
 use super::worker_mirror::mirror_worker_thread;
@@ -36,7 +37,7 @@ pub(in super::super) async fn run_subagent_via_graph(
     source: crate::agent::tinyagents::TurnModelSource,
     model: &str,
     temperature: f64,
-    history: &mut Vec<ChatMessage>,
+    history: &mut Vec<TranscriptMessage>,
     parent_tools: Arc<Vec<Box<dyn Tool>>>,
     dynamic_tools: Vec<Box<dyn Tool>>,
     specs: Vec<ToolSpec>,
@@ -446,13 +447,13 @@ pub(in super::super) async fn run_subagent_via_graph(
     // persisted transcript reflects the actual final state, not the pre-checkpoint
     // history. `history` already carries this turn's typed suffix.
     let transcript_history;
-    let history_for_transcript: &[ChatMessage] = if (outcome.hit_cap
+    let history_for_transcript: &[TranscriptMessage] = if (outcome.hit_cap
         || outcome.early_exit_tool.is_some())
         && !outcome.text.trim().is_empty()
     {
         transcript_history = {
             let mut messages = history.clone();
-            messages.push(ChatMessage::assistant(outcome.text.clone()));
+            messages.push(TranscriptMessage::assistant(outcome.text.clone()));
             messages
         };
         &transcript_history
@@ -586,7 +587,7 @@ fn map_tinyagents_subagent_error(err: anyhow::Error) -> SubagentRunError {
 /// `after_tool` — is marked `failed`, so the summary no longer tells the model
 /// every call succeeded.
 fn build_cap_digest(
-    conversation: &[ConversationMessage],
+    conversation: &[TranscriptEntry],
     tool_outcomes: &[crate::agent::tinyagents::ToolCallOutcome],
 ) -> String {
     use std::collections::HashMap;
@@ -595,7 +596,7 @@ fn build_cap_digest(
     // call_id -> tool name, from this turn's assistant tool-call rounds.
     let mut names: HashMap<&str, &str> = HashMap::new();
     for msg in conversation {
-        if let ConversationMessage::AssistantToolCalls { tool_calls, .. } = msg {
+        if let TranscriptEntry::AssistantToolCalls { tool_calls, .. } = msg {
             for call in tool_calls {
                 names.insert(call.id.as_str(), call.name.as_str());
             }
@@ -610,7 +611,7 @@ fn build_cap_digest(
 
     let mut out = String::new();
     for msg in conversation {
-        if let ConversationMessage::ToolResults(results) = msg {
+        if let TranscriptEntry::ToolResults(results) = msg {
             for r in results {
                 let name = names
                     .get(r.tool_call_id.as_str())

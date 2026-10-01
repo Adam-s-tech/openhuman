@@ -1,7 +1,6 @@
 use super::{ArchetypeDelegationTool, DelegationTarget, SpawnSubagentTool, SpawnWorkerThreadTool};
 use crate::agent::harness::definition::AgentDefinitionRegistry;
 use crate::agent::harness::{with_parent_context, ParentExecutionContext};
-use crate::agent::messages::ChatMessage;
 use crate::agent::prompts::{ConnectedIntegration, ToolCallFormat};
 use crate::memory::conversations;
 use crate::memory::test_support::NoopMemory;
@@ -11,6 +10,7 @@ use serde_json::json;
 use std::path::Path;
 use std::sync::Arc;
 use tinyagents_harness::context::RunConfig;
+use tinyagents_session::transcript::TranscriptMessage;
 use tinyinference_llm::message::Message;
 use tinyinference_llm::model::{ChatModel, ModelProfile, ModelRequest, ModelResponse};
 use tinytools::Tool;
@@ -249,8 +249,8 @@ async fn continue_subagent_resumes_idle_durable_session_e2e() {
         "sub-earlier-task",
         &crate::agent::subagent_host::SubagentRunStatus::Completed,
         vec![
-            ChatMessage::user("original task from an earlier turn"),
-            ChatMessage::assistant("earlier proposal result"),
+            TranscriptMessage::user("original task from an earlier turn"),
+            TranscriptMessage::assistant("earlier proposal result"),
         ],
     )
     .expect("mark idle with history");

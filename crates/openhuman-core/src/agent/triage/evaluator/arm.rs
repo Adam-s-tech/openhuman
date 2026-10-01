@@ -9,12 +9,12 @@ use anyhow::anyhow;
 
 use crate::agent::bus::{AgentTurnRequest, AgentTurnResponse, AGENT_RUN_TURN_METHOD};
 use crate::agent::harness::AgentDefinitionRegistry;
-use crate::agent::messages::ChatMessage;
 use crate::config::MultimodalConfig;
 use crate::core::bus::BUS;
 use crate::inference::provider::error_classify::{
     is_rate_limited, is_upstream_unhealthy, parse_retry_after_ms,
 };
+use tinyagents_session::transcript::TranscriptMessage;
 use tinybus::NativeRequestError;
 use tinyinference_providers::{is_budget_message, BudgetMatch};
 
@@ -99,8 +99,8 @@ pub(super) async fn try_arm(
     })?;
     let user_message = render_user_message(envelope);
     let history = vec![
-        ChatMessage::system(&system_prompt),
-        ChatMessage::user(&user_message),
+        TranscriptMessage::system(&system_prompt),
+        TranscriptMessage::user(&user_message),
     ];
 
     let request = AgentTurnRequest {

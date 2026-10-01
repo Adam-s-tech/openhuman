@@ -331,7 +331,7 @@ impl SpawnAsyncSubagentTool {
             .as_ref()
             .and_then(|session| session.latest_history.clone())
             .map(|mut history| {
-                history.push(ChatMessage::user(follow_up_prompt.clone()));
+                history.push(TranscriptMessage::user(follow_up_prompt.clone()));
                 history
             });
 
@@ -419,7 +419,7 @@ impl SpawnAsyncSubagentTool {
             crate::agent::turn_workspace::propagate(async move {
                 let options = SubagentRunOptions {
                     skill_filter_override: None,
-                            context,
+                    context,
                     model_override,
                     task_id: Some(background_task_id.clone()),
                     thread_id: Some(background_thread_id),
@@ -688,8 +688,7 @@ impl SpawnAsyncSubagentTool {
                                             agent_id: outcome.agent_id,
                                             task_id: outcome.task_id,
                                             question: question.clone(),
-                                            worker_thread_id: background_worker_thread_id
-                                                .clone(),
+                                            worker_thread_id: background_worker_thread_id.clone(),
                                             checkpoint_path: checkpoint
                                                 .as_ref()
                                                 .map(|path| path.to_string_lossy().to_string()),

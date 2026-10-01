@@ -18,13 +18,12 @@
 //!  13. Multi-tool batch in a single response
 //!  14. System prompt generation & tool instructions
 //!  15. Context enrichment from memory loader
-//!  16. ConversationMessage serialization round-trip
+//!  16. TranscriptEntry serialization round-trip
 //!  17. Tool call with stringified JSON arguments
 //!  18. Conversation history fidelity (tool call → tool result → assistant)
 //!  19. Builder validation (missing required fields)
 //!  20. Idempotent system prompt insertion
 
-use crate::agent::messages::{ChatMessage, ConversationMessage};
 use crate::agent::session_host::OpenHumanSessionHost;
 use crate::config::AgentConfig;
 use crate::inference::provider::ChatResponse;
@@ -35,6 +34,7 @@ use std::sync::{Arc, Mutex};
 use tinyinference_llm::model::{ChatModel, ModelProfile, ModelRequest, ModelResponse};
 use tinytools::{Tool, ToolResult};
 use tinytools_agent::dialect::NativeToolCall;
+use tinytools_agent::dialect::TranscriptEntry;
 use tinytools_agent::dialect::{NativeDialect, ToolDialect, XmlDialect};
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -344,5 +344,3 @@ mod agent_turn_loop_nudge_tests;
 mod agent_turn_loop_packed_tool_tests;
 #[path = "agent_turn_loop_tests.rs"]
 mod agent_turn_loop_tests;
-#[path = "messages_tests.rs"]
-mod messages_tests;

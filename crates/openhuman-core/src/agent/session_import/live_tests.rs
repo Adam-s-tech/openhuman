@@ -15,10 +15,6 @@ use tinyagents_harness::store::{AppendStore, JsonlAppendStore};
 
 use super::live::{dual_write_enabled, shadow_reads_enabled};
 use super::projector::journal_message_from_transcript as project;
-use crate::agent::messages::{
-    attach_chat_tool_failure_metadata, attach_chat_turn_usage_metadata,
-    transcript_message_from_chat, ChatMessage,
-};
 use tinyagents_session::transcript::import::convert::journal_messages as journal_messages_with;
 use tinyagents_session::transcript::import::live::{
     shadow_read_compare as shadow_read_compare_with, write_live_turn as write_live_turn_with,
@@ -26,6 +22,7 @@ use tinyagents_session::transcript::import::live::{
 };
 use tinyagents_session::transcript::import::ops::store_root;
 use tinyagents_session::transcript::import::types::JournalMessage;
+use tinyagents_session::transcript::TranscriptMessage;
 use tinyagents_session::transcript::{
     read_transcript, write_transcript, MessageUsage, SessionTranscript, TranscriptMeta,
     TranscriptToolCall, TurnUsage,
@@ -47,10 +44,8 @@ async fn shadow_read_compare(
     shadow_read_compare_with(workspace, key, t, project).await
 }
 
-fn durable_messages(
-    messages: &[ChatMessage],
-) -> Vec<tinyagents_session::transcript::TranscriptMessage> {
-    messages.iter().map(transcript_message_from_chat).collect()
+fn durable_messages(messages: &[TranscriptMessage]) -> Vec<TranscriptMessage> {
+    messages.to_vec()
 }
 
 /// A transcript meta header matching the importer's `native` fixture shape.
@@ -109,15 +104,18 @@ fn turn_usage() -> TurnUsage {
 /// the tool-failure marker onto the line's top-level `failure`/`failure_detail`
 /// fields, and since #6282 the read-back restores it to `extra_metadata`, so the
 /// marker round-trips.
-fn rich_base_messages() -> Vec<ChatMessage> {
-    let mut failed_tool = ChatMessage::tool("read_file failed: boom");
-    attach_chat_tool_failure_metadata(&mut failed_tool, Some("boom"));
+fn rich_base_messages() -> Vec<TranscriptMessage> {
+    let mut failed_tool = TranscriptMessage::tool("read_file failed: boom");
+    failed_tool.tool_failure = Some(tinyagents_session::transcript::ToolFailure {
+        failed: true,
+        detail: Some("boom".into()),
+    });
     vec![
-        ChatMessage::system("you are the orchestrator"),
-        ChatMessage::user("read the file"),
-        ChatMessage::assistant("calling read_file"),
+        TranscriptMessage::system("you are the orchestrator"),
+        TranscriptMessage::user("read the file"),
+        TranscriptMessage::assistant("calling read_file"),
         failed_tool,
-        ChatMessage::assistant("done"),
+        TranscriptMessage::assistant("done"),
     ]
 }
 
@@ -262,7 +260,7 @@ async fn in_memory_store_reconstruction_diverges_from_legacy_on_sidecar_metadata
         .iter()
         .rposition(|m| m.role == "assistant")
         .expect("assistant message present");
-    attach_chat_turn_usage_metadata(&mut live_messages[last_assistant], &usage);
+    live_messages[last_assistant].turn_usage = Some(usage.clone());
     let reconstructed = SessionTranscript {
         tools: None,
         meta: meta.clone(),

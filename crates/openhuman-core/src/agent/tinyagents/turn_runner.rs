@@ -17,7 +17,6 @@ use tinyagents_registry::DiagnosticSeverity;
 
 use crate::agent::harness::tool_result_artifacts::TINYAGENTS_TOOL_RESULT_ARTIFACT_STORE;
 use crate::agent::harness::MAX_SPAWN_DEPTH;
-use crate::agent::messages::ChatMessage;
 use crate::agent::tinyagents::harness_assembly::{assemble_turn_harness, AssembledTurnHarness};
 use crate::agent::tinyagents::host::steering::shared_steering_registry;
 use crate::agent::tinyagents::host::OpenHumanRunContext;
@@ -31,6 +30,7 @@ use crate::agent::tinyagents::turn_run_finalize::finalize_turn_outcome;
 use crate::agent::tinyagents::{journal, routes, steering_forwarder};
 use tinyagents_harness::ids::TaskId;
 use tinyagents_harness::run_queue::RunQueue;
+use tinyagents_session::transcript::TranscriptMessage;
 
 use super::ToolPolicyEnforcement;
 
@@ -86,7 +86,7 @@ pub(crate) async fn run_turn_via_tinyagents_shared(
     turn_models: TurnModels,
     provider_id: String,
     model: &str,
-    history: Vec<ChatMessage>,
+    history: Vec<TranscriptMessage>,
     tool_sets: Vec<Arc<Vec<Box<dyn tinytools::Tool>>>>,
     allowed: Option<HashSet<String>>,
     max_iterations: usize,
@@ -147,7 +147,7 @@ pub(crate) async fn run_root_turn_via_hosted_agent(
     turn_models: TurnModels,
     provider_id: String,
     model: &str,
-    history: Vec<ChatMessage>,
+    history: Vec<TranscriptMessage>,
     tool_sets: Vec<Arc<Vec<Box<dyn tinytools::Tool>>>>,
     allowed: Option<HashSet<String>>,
     max_iterations: usize,
@@ -190,7 +190,7 @@ async fn run_turn_via_tinyagents_inner(
     turn_models: TurnModels,
     provider_id: String,
     model: &str,
-    history: Vec<ChatMessage>,
+    history: Vec<TranscriptMessage>,
     tool_sets: Vec<Arc<Vec<Box<dyn tinytools::Tool>>>>,
     allowed: Option<HashSet<String>>,
     max_iterations: usize,

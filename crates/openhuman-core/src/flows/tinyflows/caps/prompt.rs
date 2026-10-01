@@ -4,7 +4,7 @@
 //! The pure request/reply handling (the `input_context` carrier, structured
 //! output steering, tolerant JSON extraction) lives in
 //! `tinyflows::nodes::integration::agent_prompt`; this file keeps the host
-//! mapping of its neutral messages onto [`ChatMessage`], usage projection and
+//! mapping of its neutral messages onto [`TranscriptMessage`], usage projection and
 //! model pinning.
 
 #![allow(unused_imports)]
@@ -17,21 +17,21 @@ use tinyflows::caps::*;
 use tinyflows::error::{EngineError, Result};
 
 use super::*;
-use crate::agent::messages::ChatMessage;
 use crate::config::Config;
 use crate::inference::provider::{is_raw_passthrough_model, BilledUsage};
+use tinyagents_session::transcript::TranscriptMessage;
 use tinyflows::nodes::integration::agent_prompt;
 
 /// [`agent_prompt::build_completion_messages`] mapped onto the host's
-/// [`ChatMessage`] type.
-pub(crate) fn build_completion_messages(request: &Value) -> Vec<ChatMessage> {
+/// [`TranscriptMessage`] type.
+pub(crate) fn build_completion_messages(request: &Value) -> Vec<TranscriptMessage> {
     agent_prompt::build_completion_messages(request)
         .into_iter()
         .map(|m| match m.role {
-            "system" => ChatMessage::system(m.content),
-            "assistant" => ChatMessage::assistant(m.content),
-            "tool" => ChatMessage::tool(m.content),
-            _ => ChatMessage::user(m.content),
+            "system" => TranscriptMessage::system(m.content),
+            "assistant" => TranscriptMessage::assistant(m.content),
+            "tool" => TranscriptMessage::tool(m.content),
+            _ => TranscriptMessage::user(m.content),
         })
         .collect()
 }
