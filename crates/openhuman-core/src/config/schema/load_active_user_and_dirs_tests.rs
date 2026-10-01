@@ -98,11 +98,15 @@ fn user_openhuman_dir_builds_correct_path() {
 }
 
 #[tokio::test]
-// Races on `OPENHUMAN_WORKSPACE` env var with other tests holding
-// `TEST_ENV_LOCK` — passes in isolation, intermittently fails in parallel.
-// Runs reliably with `--ignored --test-threads=1`. See PR #1524.
-#[ignore = "flaky in parallel cargo test; OPENHUMAN_WORKSPACE env-var race — see PR #1524"]
+#[allow(clippy::await_holding_lock)]
 async fn resolve_dirs_uses_active_user_when_present() {
+    // `resolve_runtime_config_dirs` reads `OPENHUMAN_WORKSPACE`; hold the shared
+    // env lock and clear it so a sibling test's override cannot leak in.
+    let _env_guard = crate::config::TEST_ENV_LOCK
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
+    let prior_workspace = std::env::var_os("OPENHUMAN_WORKSPACE");
+    std::env::remove_var("OPENHUMAN_WORKSPACE");
     let tmp = tempfile::tempdir().unwrap();
     let root = tmp.path();
     let default_workspace = root.join("workspace");
@@ -126,6 +130,10 @@ async fn resolve_dirs_uses_active_user_when_present() {
     assert_eq!(oh_dir, expected_user_dir);
     assert_eq!(ws_dir, expected_user_dir.join("workspace"));
     assert_eq!(source, ConfigResolutionSource::ActiveUser);
+
+    if let Some(value) = prior_workspace {
+        std::env::set_var("OPENHUMAN_WORKSPACE", value);
+    }
 }
 
 #[test]

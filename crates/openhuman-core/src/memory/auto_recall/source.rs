@@ -33,13 +33,35 @@ pub trait AutoRecallSource: Send + Sync {
     ) -> Result<RetrievalResponse, MemoryError>;
 
     /// The driver's scored recall over `namespace` for `query`: at most `limit`
-    /// hits, each carrying the vector similarity the lane floors on.
+    /// hits, each carrying the vector similarity the lane floors on — or, for
+    /// an engine that ranks without scoring, the hits in its order with
+    /// [`ScoredNotes::scored`] false.
     async fn recall_namespace_scored(
         &self,
         namespace: &str,
         query: &str,
         limit: usize,
-    ) -> Result<Vec<NamespaceMemoryHit>, MemoryError>;
+    ) -> Result<ScoredNotes, MemoryError>;
+}
+
+/// What a notes recall answered, and whether its similarities are scores.
+#[derive(Debug)]
+pub struct ScoredNotes {
+    /// The hits, most relevant first.
+    pub hits: Vec<NamespaceMemoryHit>,
+    /// Whether each hit's `vector_similarity` is the engine's own score.
+    /// `false` for an engine whose recall is ranked but carries no similarity
+    /// (hosted CortexDB, with or without its retrieval family): its hits read
+    /// 0.0, and flooring on that would drop every one of them however well
+    /// the engine ranked it.
+    pub scored: bool,
+}
+
+impl ScoredNotes {
+    /// Hits whose similarities are the engine's scores.
+    pub fn scored(hits: Vec<NamespaceMemoryHit>) -> Self {
+        Self { hits, scored: true }
+    }
 }
 
 /// The production source: the session's bound driver, behind its guard.
@@ -84,27 +106,42 @@ impl AutoRecallSource for GuardSource {
         namespace: &str,
         query: &str,
         limit: usize,
-    ) -> Result<Vec<NamespaceMemoryHit>, MemoryError> {
+    ) -> Result<ScoredNotes, MemoryError> {
         // No retrieval family (a remote engine): the notes still come from the
-        // mandatory ranked recall. Only the tree leg has no equivalent.
+        // mandatory ranked recall. Only the tree leg has no equivalent. The
+        // error stays typed so the lane can tell a credit or session refusal
+        // from an outage.
         let Some(retrieval) = self.guard.as_retrieval() else {
             log::debug!(
                 "[auto_recall] bound driver exposes no retrieval family; notes via mandatory recall"
             );
-            return crate::memory::ops::fallback::recall_hits(
+            let ranked = crate::memory::ops::fallback::ranked_recall(
                 self.guard.as_ref(),
                 namespace,
                 query,
                 limit,
             )
-            .await
-            .map_err(|e| MemoryError::Other(anyhow::anyhow!(e)));
+            .await?;
+            return Ok(ScoredNotes {
+                hits: ranked.hits,
+                scored: ranked.scored,
+            });
         };
         // No session to exclude: the notes namespace is never auto-saved per
         // session, and the lane runs before this turn is archived, so there is
         // no self-echo for the engine's exclusion to catch.
-        retrieval
+        let hits = retrieval
             .recall_namespace_scored(namespace, query, limit, None)
-            .await
+            .await?;
+        // A retrieval family can rank without measuring similarity (hosted
+        // CortexDB scores by rank): its hits are unscored notes, not misses.
+        let scored = !crate::memory::ops::fallback::rank_only(&hits);
+        if !scored {
+            log::debug!(
+                "[auto_recall] retrieval ranks without similarity; notes kept in rank order hits={}",
+                hits.len()
+            );
+        }
+        Ok(ScoredNotes { hits, scored })
     }
 }

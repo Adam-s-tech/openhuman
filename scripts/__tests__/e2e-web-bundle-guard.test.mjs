@@ -25,6 +25,7 @@ const repoRoot = path.join(
   "..",
 );
 const MARKER = "openhuman-e2e-bundle.marker";
+const BUNDLE_INPUTS = ["src/App.tsx", "public/favicon.ico", "index.html", "vite.config.ts"];
 
 function writeExecutable(file, body) {
   fs.mkdirSync(path.dirname(file), { recursive: true });
@@ -48,6 +49,14 @@ function makeTree(script) {
       path.join(repoRoot, "app", "scripts", file),
       path.join(root, "app", "scripts", file),
     );
+  }
+  // e2e-web-session.sh checks these paths before starting the mock or core.
+  // The fixture needs the same bundle inputs as the port-guard tests so this
+  // suite reaches the guard under test instead of failing on its test tree.
+  for (const rel of BUNDLE_INPUTS) {
+    const file = path.join(root, "app", rel);
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, "");
   }
   fs.mkdirSync(path.join(root, "scripts"), { recursive: true });
   fs.copyFileSync(

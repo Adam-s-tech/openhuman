@@ -173,12 +173,6 @@ tokio::task_local! {
     /// tool invocation that happens outside an agent turn (e.g. CLI/RPC
     /// direct tool calls); `spawn_subagent` rejects in that case.
     pub static PARENT_CONTEXT: ParentExecutionContext;
-
-    /// Context-preparation sources that already ran for this parent turn,
-    /// so downstream code can tell the harness has already prepared context
-    /// and avoid gathering it a second time.
-    ///
-    pub static AGENT_CONTEXT_PREPARED_SOURCES: Arc<Vec<AgentContextPreparedSource>>;
 }
 
 /// Returns a clone of the current parent execution context, if one is set.
@@ -198,29 +192,4 @@ where
     // rather than the whole nested turn generator — see the measurements on
     // the explicit usage ledger on `OpenHumanRunContext`.
     PARENT_CONTEXT.scope(ctx, Box::pin(future)).await
-}
-
-/// Returns the one-shot context-preparation sources that have already run for
-/// the current parent turn (a snapshot of the live list).
-pub fn current_agent_context_prepared_sources() -> Vec<AgentContextPreparedSource> {
-    AGENT_CONTEXT_PREPARED_SOURCES
-        .try_with(|sources| sources.as_ref().clone())
-        .unwrap_or_default()
-}
-
-/// Run `future` with the current turn's already-prepared context sources
-/// installed.
-pub async fn with_agent_context_prepared_sources<F, R>(
-    sources: Vec<AgentContextPreparedSource>,
-    future: F,
-) -> R
-where
-    F: std::future::Future<Output = R>,
-{
-    // Box before `scope` so only a pointer moves into the task-local frame
-    // rather than the whole nested turn generator — see the measurements on
-    // the explicit usage ledger on `OpenHumanRunContext`.
-    AGENT_CONTEXT_PREPARED_SOURCES
-        .scope(Arc::new(sources), Box::pin(future))
-        .await
 }

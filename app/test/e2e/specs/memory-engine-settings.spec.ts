@@ -52,9 +52,7 @@ describe('Memory engine settings panel (real UI flow)', () => {
     const endpoint = await browser.$('#memory-engine-supermemory-endpoint');
     await endpoint.waitForExist({ timeout: 10_000 });
     await browser.execute(() => {
-      const el = document.querySelector<HTMLInputElement>(
-        '#memory-engine-supermemory-endpoint'
-      );
+      const el = document.querySelector<HTMLInputElement>('#memory-engine-supermemory-endpoint');
       if (!el) return;
       const setter = Object.getOwnPropertyDescriptor(
         window.HTMLInputElement.prototype,

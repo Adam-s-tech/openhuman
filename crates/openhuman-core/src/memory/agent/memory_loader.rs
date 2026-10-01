@@ -1,16 +1,6 @@
 use crate::memory::Memory;
 use serde::{Deserialize, Serialize};
 
-/// Maximum number of `[Prior conversations]` lines surfaced into the prompt
-/// at the start of a fresh chat. Tight cap on purpose: this block is meant
-/// to recover continuity for high-importance facts, not to dump session
-/// history into context. See issue #1399.
-const PRIOR_CONVERSATION_LIMIT: usize = 3;
-/// Only the importance prefix `high.` survives into the prompt block.
-/// Medium/low entries stay queryable via the on-demand memory tool but
-/// do not auto-pollute every fresh chat.
-const PRIOR_CONVERSATION_KEY_PREFIX: &str = "high.";
-
 /// Canonical header for the `[Cross-chat context]` block injected on
 /// every turn that has FTS-surfaced hits from other threads.
 ///

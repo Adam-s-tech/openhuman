@@ -16,6 +16,7 @@ use tinyagents_session::transcript::TranscriptMeta;
 use tinyinference_llm::message::Message;
 
 use crate::agent::{
+    message_convert::{user_message_from_text, user_text_with_markers},
     session_host::{
         driver::OpenHumanSessionDriver, OpenHumanSessionHooks, OpenHumanTranscriptCodec,
     },
@@ -743,9 +744,6 @@ impl OpenHumanTurnPrelude {
             self.tool_dispatcher.tool_call_format(),
         )
         .harness_dispatcher();
-        run_context
-            .stop_hooks
-            .extend(crate::agent::stop_hooks::current_stop_hooks());
         self.context
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
@@ -1327,25 +1325,12 @@ impl OpenHumanSessionHost {
         context.workspace = self.workspace_descriptor.clone();
         let cancellation = context.cancellation.clone();
         let root_config = context.root_run_config("openhuman-session");
-        let mut options = TurnOptions {
+        let options = TurnOptions {
             request_id: crate::agent::turn_origin::current_request_id(),
             thread_id: self.thread_id.clone(),
             stream: self.on_progress.is_some(),
             session: self.session.clone(),
-            resume: if self.session.is_some() {
-                // Exact, identity-keyed resume. Unlike `LatestForAgent` it
-                // cannot splice a different thread's transcript into this
-                // turn, and the file it reads is the file the turn appends to.
-                ResumeMode::Session
-            } else if self
-                .runtime_session
-                .as_ref()
-                .is_some_and(|session| session.history().is_empty())
-            {
-                ResumeMode::LatestForAgent
-            } else {
-                ResumeMode::Never
-            },
+            resume: self.turn_resume_mode(),
             cancellation,
             run_context: context.into_tinyagents(root_config),
         };
@@ -1380,23 +1365,12 @@ impl OpenHumanSessionHost {
                 }
             }
         }
-        // Resume restores the exact leading prompt messages from the durable
-        // transcript. Carry their count to the cache stamper: a later System
-        // compaction summary may be adjacent, but is not a frozen prompt tier.
-        let runtime = self
-            .runtime_session
-            .as_ref()
-            .expect("runtime session initialized");
-        let frozen_prefix_len = runtime.prefix_snapshot().messages().len();
-        if frozen_prefix_len > 0 || !runtime.history().is_empty() {
-            options.run_context.data.cacheable_system_prefix_len = Some(frozen_prefix_len);
-        }
         let outcome = self
             .runtime_session
             .as_mut()
             .expect("runtime session initialized")
             .turn(
-                SessionTurnRequest::new(Message::user(user_message)),
+                SessionTurnRequest::new(user_message_from_text(user_message)),
                 options,
             )
             .await
@@ -1632,7 +1606,7 @@ impl OpenHumanSessionHost {
                             .lock()
                             .unwrap_or_else(std::sync::PoisonError::into_inner)
                             .context_window = context_window;
-                        let original_user_message = request.input.text();
+                        let original_user_message = user_text_with_markers(&request.input);
                         prelude.begin_user_effects(
                             &mut state
                                 .lock()
@@ -1652,7 +1626,7 @@ impl OpenHumanSessionHost {
                                 &mut options.run_context.data,
                             )
                             .await;
-                        request.input = Message::user(enriched);
+                        request.input = user_message_from_text(&enriched);
                         let mut preparation = prelude
                             .prepare(!view.resumed && view.history.is_empty())
                             .await
@@ -1751,10 +1725,8 @@ impl OpenHumanSessionHost {
                             .history
                             .iter()
                             .rev()
-                            .find_map(|message| match message {
-                                Message::User(_) => Some(message.text()),
-                                _ => None,
-                            })
+                            .find(|message| matches!(message, Message::User(_)))
+                            .map(user_text_with_markers)
                             .unwrap_or_default();
                         let sidecar = receipt
                             .options

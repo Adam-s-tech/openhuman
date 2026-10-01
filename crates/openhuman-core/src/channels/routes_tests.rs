@@ -1,5 +1,4 @@
 use super::*;
-use crate::agent::messages::ChatMessage;
 use crate::channels::context::{ChannelRuntimeContext, RouteSelectionMap, TurnModelSourceCacheMap};
 use crate::channels::host::ChannelTurnStateSubscriber;
 use crate::channels::traits::ChannelMessage;
@@ -9,6 +8,7 @@ use async_trait::async_trait;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
+use tinyagents_session::transcript::TranscriptMessage;
 use tinybus::EventHandler;
 use tinytools::{Tool, ToolResult};
 
@@ -121,7 +121,7 @@ fn runtime_context(workspace_dir: PathBuf) -> ChannelRuntimeContext {
         channels_by_name: Arc::new(HashMap::new()),
         turn_model_source: Some(crate::agent::tinyagents::TurnModelSource::from_model(model)),
         default_provider: Arc::new("openai".into()),
-        memory: crate::memory::guard::in_memory::FixedRecallProvider::guarded(Vec::new()),
+        memory: crate::memory::guard::in_memory::guarded_fixed_recall(Vec::new()),
         tools_registry: Arc::new(vec![Box::new(DummyTool) as Box<dyn Tool>]),
         system_prompt: crate::channels::ChannelSystemPrompt::fixed("prompt"),
         model: Arc::new("reasoning-v1".into()),
@@ -331,10 +331,10 @@ async fn handle_runtime_command_unknown_provider_sends_helpful_error() {
 async fn handle_runtime_command_set_model_clears_sender_history_and_persists_route_override() {
     let ctx = runtime_context(PathBuf::from("/tmp"));
     let key = "telegram_alice_room";
-    ctx.conversation_histories
-        .lock()
-        .unwrap()
-        .insert(key.to_string(), vec![ChatMessage::user("old history")]);
+    ctx.conversation_histories.lock().unwrap().insert(
+        key.to_string(),
+        vec![TranscriptMessage::user("old history")],
+    );
     let channel_impl = Arc::new(RecordingChannel::default());
     let channel: Arc<dyn Channel> = channel_impl.clone();
     let msg = ChannelMessage {
@@ -476,7 +476,7 @@ async fn handle_runtime_command_telegram_new_status_and_sessions_round_trip() {
 
     ctx.conversation_histories.lock().unwrap().insert(
         sender_key.to_string(),
-        vec![ChatMessage::user("old history")],
+        vec![TranscriptMessage::user("old history")],
     );
 
     let new_msg = ChannelMessage {
@@ -496,10 +496,10 @@ async fn handle_runtime_command_telegram_new_status_and_sessions_round_trip() {
         .get(sender_key)
         .is_none());
 
-    ctx.conversation_histories
-        .lock()
-        .unwrap()
-        .insert(sender_key.to_string(), vec![ChatMessage::user("after new")]);
+    ctx.conversation_histories.lock().unwrap().insert(
+        sender_key.to_string(),
+        vec![TranscriptMessage::user("after new")],
+    );
     set_route_selection(
         &ctx,
         sender_key,

@@ -822,8 +822,8 @@ pub enum DomainEvent {
         /// relative and would otherwise resolve into the wrong
         /// `<workspace>/artifacts/` tree.
         workspace_dir: String,
-        /// Relative path under `<workspace>/artifacts/`, e.g.
-        /// `"<uuid>/deck.pptx"`. The absolute path is reachable via
+        /// File name relative to its root (`"deck.pptx"` in the files folder,
+        /// legacy `"<uuid>/deck.pptx"`); the absolute path is reachable via
         /// `ai_get_artifact` so the renderer never needs the
         /// workspace root.
         path: String,
@@ -888,8 +888,8 @@ pub enum DomainEvent {
         /// Absolute workspace root the artifact belongs to — see
         /// [`Self::ArtifactReady::workspace_dir`] for rationale.
         workspace_dir: String,
-        /// Relative path under `<workspace>/artifacts/` where the file
-        /// *will* land. The frontend uses it to render a stable card key
+        /// The name, relative to the visible files folder (#5505), the file
+        /// *will* land under. The frontend uses it to render a stable card key
         /// so subsequent `ArtifactReady` can swap the same surface in
         /// place without flicker.
         path: String,

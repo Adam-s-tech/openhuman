@@ -88,7 +88,10 @@ const MemoryDataPanel = ({ embedded = false }: MemoryDataPanelProps = {}) => {
             </div>
           </dl>
         </SettingsSection>
-        <VaultHealthChecklist onToast={addToast} title={t('vaultHealth.setupTitle')} />
+        {/* The vault is the local chunk store's files: hosted memory has none. */}
+        <MemoryFamilyGate family="chunks">
+          <VaultHealthChecklist onToast={addToast} title={t('vaultHealth.setupTitle')} />
+        </MemoryFamilyGate>
         <MemoryWindowControl onError={handleWindowError} onSaved={handleWindowSaved} />
         <MemoryFamilyGate family="tree">
           <MemoryWorkspace onToast={addToast} />

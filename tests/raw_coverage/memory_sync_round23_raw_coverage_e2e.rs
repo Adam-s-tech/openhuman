@@ -50,34 +50,28 @@
 //! assertions are gone from this test as a result; see the src-side gap note
 //! in the migration report.
 
+use crate::env_guard::EnvVarGuard;
 use std::collections::HashMap;
 use std::sync::{Mutex, OnceLock};
 
-use serde_json::{json, Value};
 use tempfile::TempDir;
 
 use openhuman_core::config::Config;
-use openhuman_core::integrations::composio::identity_store::{
-    delete_connected_identity_facets, load_connected_identities, persist_provider_profile,
-};
 use openhuman_core::integrations::composio::ops::composio_get_user_profile;
 use openhuman_core::security::credentials::{
     AuthService, APP_SESSION_PROVIDER, DEFAULT_AUTH_PROFILE_NAME,
 };
-use tinymemory_api::composio::{render_connected_identities_section, ProviderUserProfile};
 
 static ENV_LOCK: &OnceLock<Mutex<()>> = &crate::SHARED_ENV_LOCK;
 static MEMORY_SEAMS_INIT: OnceLock<()> = OnceLock::new();
 
 fn ensure_memory_seams() {
-
     crate::tinyhumans_boot::boot();
     MEMORY_SEAMS_INIT.get_or_init(|| {
         std::thread::Builder::new()
             .name("memory-sync-round23-raw-coverage-seams".to_string())
             .stack_size(8 * 1024 * 1024)
-            .spawn(|| {
-            })
+            .spawn(|| {})
             .expect("spawn round23 memory sync seam installer")
             .join()
             .expect("round23 memory sync seam installer panicked");
@@ -89,39 +83,6 @@ fn env_lock() -> std::sync::MutexGuard<'static, ()> {
         .get_or_init(|| Mutex::new(()))
         .lock()
         .unwrap_or_else(|e| e.into_inner())
-}
-
-struct EnvGuard {
-    key: &'static str,
-    old: Option<String>,
-}
-
-impl EnvGuard {
-    fn set(key: &'static str, value: impl Into<String>) -> Self {
-        let old = std::env::var(key).ok();
-        unsafe { std::env::set_var(key, value.into()) };
-        Self { key, old }
-    }
-
-    fn set_path(key: &'static str, value: &std::path::Path) -> Self {
-        Self::set(key, value.to_string_lossy().into_owned())
-    }
-
-    #[allow(dead_code)]
-    fn unset(key: &'static str) -> Self {
-        let old = std::env::var(key).ok();
-        unsafe { std::env::remove_var(key) };
-        Self { key, old }
-    }
-}
-
-impl Drop for EnvGuard {
-    fn drop(&mut self) {
-        match &self.old {
-            Some(value) => unsafe { std::env::set_var(self.key, value) },
-            None => unsafe { std::env::remove_var(self.key) },
-        }
-    }
 }
 
 fn config_in(tmp: &TempDir) -> Config {
@@ -167,8 +128,8 @@ fn store_session(config: &Config) {
 async fn composio_get_user_profile_refuses_cleanly_without_a_loaded_module() {
     let _guard = env_lock();
     let tmp = TempDir::new().expect("tempdir");
-    let _workspace = EnvGuard::set_path("OPENHUMAN_WORKSPACE", tmp.path());
-    let _home = EnvGuard::set_path("HOME", tmp.path());
+    let _workspace = EnvVarGuard::set_path("OPENHUMAN_WORKSPACE", tmp.path());
+    let _home = EnvVarGuard::set_path("HOME", tmp.path());
 
     let mut config = config_in(&tmp);
     config.modules.enabled = false;
@@ -182,4 +143,3 @@ async fn composio_get_user_profile_refuses_cleanly_without_a_loaded_module() {
         "unexpected error: {error}"
     );
 }
-

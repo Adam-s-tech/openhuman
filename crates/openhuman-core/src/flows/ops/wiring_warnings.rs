@@ -11,7 +11,8 @@ use super::*;
 /// Composio schema). Best-effort like the runtime preflight — no schema, no
 /// warning, never a block.
 pub(crate) async fn graph_wiring_warnings(config: &Config, graph: &WorkflowGraph) -> Vec<String> {
-    use crate::flows::tinyflows::caps::{composio_required_args, missing_required_args};
+    use crate::flows::tinyflows::caps::composio_required_args;
+    use tinyagents_harness::tool::missing_required_args;
 
     let mut warnings = Vec::new();
     for node in &graph.nodes {

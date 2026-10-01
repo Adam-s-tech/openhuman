@@ -11,6 +11,14 @@
 //! a false positive here — the lock IS the serialization mechanism.
 #![allow(clippy::await_holding_lock)]
 
+#[path = "support/env_guard.rs"]
+mod env_guard;
+#[path = "support/scripted_stack.rs"]
+mod scripted_stack;
+use env_guard::EnvVarGuard;
+use scripted_stack::{
+    assert_no_jsonrpc_error, current_user, lock_or_recover, text_completion, tool_calls_completion,
+};
 use std::net::SocketAddr;
 use std::path::Path;
 use std::sync::{Mutex, OnceLock};
@@ -62,40 +70,6 @@ fn env_lock() -> std::sync::MutexGuard<'static, ()> {
     }
 }
 
-struct EnvVarGuard {
-    key: &'static str,
-    old: Option<String>,
-}
-
-impl EnvVarGuard {
-    fn set_to_path(key: &'static str, path: &Path) -> Self {
-        let old = std::env::var(key).ok();
-        std::env::set_var(key, path.as_os_str());
-        Self { key, old }
-    }
-
-    fn set(key: &'static str, value: &str) -> Self {
-        let old = std::env::var(key).ok();
-        std::env::set_var(key, value);
-        Self { key, old }
-    }
-
-    fn unset(key: &'static str) -> Self {
-        let old = std::env::var(key).ok();
-        std::env::remove_var(key);
-        Self { key, old }
-    }
-}
-
-impl Drop for EnvVarGuard {
-    fn drop(&mut self) {
-        match &self.old {
-            Some(v) => std::env::set_var(self.key, v),
-            None => std::env::remove_var(self.key),
-        }
-    }
-}
-
 // ─── Scripted upstream ──────────────────────────────────────────────────────
 //
 // Queue entries are JSON objects:
@@ -132,31 +106,12 @@ fn reset_script(responses: Vec<Value>) {
     with_captured(|c| c.clear());
 }
 
-fn text_completion(content: &str) -> Value {
-    json!({ "content": content })
-}
-
 fn tool_call_completion(name: &str, arguments: Value) -> Value {
     json!({ "content": "", "toolCalls": [{
         "id": format!("call_{name}"),
         "name": name,
         "arguments": arguments.to_string(),
     }]})
-}
-
-/// A completion carrying several tool calls in ONE assistant message.
-///
-/// Fan-out is now several `spawn_async_subagent` calls "issued together"
-/// (orchestrator `prompt.md`), which on the wire is one message with several
-/// entries in `toolCalls` — not several messages. [`tool_call_completion`]
-/// cannot express that, and scripting them as separate completions would test
-/// the serial shape the fan-out guidance exists to prevent.
-fn tool_calls_completion(calls: &[(&str, Value)]) -> Value {
-    json!({ "content": "", "toolCalls": calls.iter().map(|(name, arguments)| json!({
-        "id": format!("call_{name}_{}", arguments.to_string().len()),
-        "name": name,
-        "arguments": arguments.to_string(),
-    })).collect::<Vec<_>>() })
 }
 
 fn error_completion(status: u16, message: &str) -> Value {
@@ -260,13 +215,6 @@ fn canary_barrier() -> &'static Mutex<Vec<String>> {
 
 fn canary_in_flight() -> &'static Mutex<std::collections::HashSet<String>> {
     CANARY_IN_FLIGHT.get_or_init(|| Mutex::new(std::collections::HashSet::new()))
-}
-
-fn lock_or_recover<T>(m: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
-    match m.lock() {
-        Ok(g) => g,
-        Err(p) => p.into_inner(),
-    }
 }
 
 /// Arms the barrier for `canaries` and clears any previous state.
@@ -462,10 +410,6 @@ fn completion_response(streaming: bool, message: Value) -> axum::response::Respo
         .into_response()
 }
 
-async fn current_user(_headers: HeaderMap) -> Json<Value> {
-    Json(json!({ "success": true, "data": { "_id": "e2e-user-1", "username": "e2e" } }))
-}
-
 fn scripted_upstream_router() -> Router {
     Router::new()
         .route("/settings", get(current_user))
@@ -525,14 +469,6 @@ async fn post_json_rpc(rpc_base: &str, id: i64, method: &str, params: Value) -> 
     resp.json::<Value>()
         .await
         .unwrap_or_else(|e| panic!("json for {method}: {e}"))
-}
-
-fn assert_no_jsonrpc_error<'a>(v: &'a Value, context: &str) -> &'a Value {
-    if let Some(err) = v.get("error") {
-        panic!("{context}: JSON-RPC error: {err}");
-    }
-    v.get("result")
-        .unwrap_or_else(|| panic!("{context}: missing result: {v}"))
 }
 
 /// `extra_config` is appended verbatim (whole TOML tables, e.g. `[autonomy]`).
@@ -823,48 +759,6 @@ async fn send_web_chat(
 }
 
 // ─── Tests ───────────────────────────────────────────────────────────────────
-
-/// Smoke: a single scripted text response flows through the full RPC stack.
-#[test]
-fn scripted_stack_smoke() {
-    run_on_agent_stack("scripted_stack_smoke", scripted_stack_smoke_inner);
-}
-
-async fn scripted_stack_smoke_inner() {
-    let _lock = env_lock();
-    reset_script(vec![text_completion("CANARY_SMOKE_3471")]);
-    let stack = boot_stack().await;
-
-    let mut events =
-        spawn_sse_collector(format!("{}/events?client_id=harness-smoke", stack.rpc_base)).await;
-    send_web_chat(
-        &stack.rpc_base,
-        100,
-        "harness-smoke",
-        "thread-smoke",
-        "hello",
-    )
-    .await;
-
-    let done = wait_for_terminal(&mut events, Duration::from_secs(60)).await;
-    assert_eq!(
-        done.get("event").and_then(Value::as_str),
-        Some("chat_done"),
-        "expected chat_done, got: {done}"
-    );
-    // chat_done shape (verified against json_rpc_e2e.rs:1833-1841):
-    // { "event": "chat_done", "thread_id": "...", "full_response": "..." }
-    let full_response = done
-        .get("full_response")
-        .and_then(Value::as_str)
-        .unwrap_or_else(|| panic!("chat_done missing 'full_response' field; actual event: {done}"));
-    assert!(
-        full_response.contains("CANARY_SMOKE_3471"),
-        "full_response missing canary: {done}"
-    );
-
-    stack.shutdown();
-}
 
 // ─── Large-stack thread wrapper (mirrors json_rpc_e2e.rs:81-101) ────────────
 
@@ -1168,7 +1062,6 @@ async fn subagent_delegation_happy_path_inner() {
 /// A delegated request whose specialist needs clarification surfaces its question in turn 1,
 /// then preserves that question in the context used to answer turn 2.
 #[test]
-#[ignore = "TODO(#6375): hosted TinyAgents continuation is replaying the prior clarification"]
 fn delegated_clarification_flow() {
     run_on_agent_stack(
         "delegated_clarification_flow",
@@ -1409,7 +1302,7 @@ enabled = true
 
     // NOTE: We intentionally do NOT call register_approval_surface_subscriber() here.
     // That function uses an OnceLock so it only registers once per process. If it fires
-    // on an early test's tokio runtime (e.g. approval_gate_installed_after_ensure), the
+    // on an early test's tokio runtime (e.g. an early approval test), the
     // background task is tied to that runtime and dies when it drops. Subsequent tests
     // then have no bridge and never see the approval_request SSE event.
     //
@@ -1446,28 +1339,6 @@ fn pre_create_for_approval(home: &Path, filename: &str) -> std::path::PathBuf {
     std::fs::write(&target, b"placeholder for approval gate test")
         .unwrap_or_else(|e| panic!("pre-create {target:?}: {e}"));
     target
-}
-
-// ─── 5.1 ensure_approval_gate helper ─────────────────────────────────────────
-
-/// Sanity: ensure_approval_gate installs the gate and ApprovalGate::try_global
-/// returns Some after the call. OnceLock means subsequent calls are no-ops.
-#[test]
-fn approval_gate_installed_after_ensure() {
-    run_on_agent_stack(
-        "approval_gate_installed_after_ensure",
-        approval_gate_installed_after_ensure_inner,
-    );
-}
-
-async fn approval_gate_installed_after_ensure_inner() {
-    let _lock = env_lock();
-    use openhuman_core::security::approval::ApprovalGate;
-    ensure_approval_gate().await;
-    assert!(
-        ApprovalGate::try_global().is_some(),
-        "ApprovalGate::try_global() must return Some after ensure_approval_gate()"
-    );
 }
 
 // ─── 5.2 approval_gate_approve_flow ──────────────────────────────────────────
@@ -2313,6 +2184,9 @@ async fn multi_hop_delegation_chain_inner() {
 
 mod streaming_support {
     use async_trait::async_trait;
+    use openhuman_core::agent::harness::definition::{
+        AgentDefinition, AgentDefinitionRegistry, ToolScope as DefinitionToolScope,
+    };
     use openhuman_core::agent::OpenHumanSessionHost;
     use openhuman_core::config::{AgentConfig, ContextConfig};
     use openhuman_core::memory::Memory;
@@ -2375,7 +2249,17 @@ mod streaming_support {
         ) -> tinyinference_llm::Result<ModelStream> {
             let response = self.pop_response()?;
             let mut items = vec![ModelStreamItem::Started];
-            items.extend(self.stream_events.iter().cloned());
+            // A real provider streams tool-call fragments only for a response
+            // that carries tool calls. The hosted harness treats those
+            // fragments as authoritative for dispatch (the terminal response's
+            // tool calls are rebuilt from them: `invoke_model_streaming_once`
+            // in tinyagents-harness `agent_loop/model_call.rs`), so replaying
+            // them ahead of a text-only final answer describes a stream no
+            // provider produces and re-dispatches the call on every
+            // iteration until the repeat guard stops the turn.
+            if !response.message.tool_calls.is_empty() {
+                items.extend(self.stream_events.iter().cloned());
+            }
             items.push(ModelStreamItem::Completed(response));
             Ok(ModelStream::new(Box::pin(futures::stream::iter(items))))
         }
@@ -2499,6 +2383,21 @@ mod streaming_support {
         Arc::new(NoMemory)
     }
 
+    /// The session's own hosted root authority. Every session turn resolves its
+    /// agent id against the host catalogue; `agent_definition_name` only stamps
+    /// an id, so a fixture-only name needs a definition behind it (#6377/#6375).
+    /// `Wildcard` keeps the authority from narrowing the belt under test.
+    fn stream_definition() -> Arc<AgentDefinition> {
+        let mut def = AgentDefinitionRegistry::builtins_only()
+            .get("orchestrator")
+            .cloned()
+            .expect("built-in orchestrator definition");
+        def.id = "round17/orchestrator".to_string();
+        def.tools = DefinitionToolScope::Wildcard;
+        def.disallowed_tools.clear();
+        Arc::new(def)
+    }
+
     pub fn agent_with_s(
         provider: Arc<dyn ChatModel<()>>,
         tools: Vec<Box<dyn Tool>>,
@@ -2513,6 +2412,7 @@ mod streaming_support {
             .workspace_dir(workspace_path)
             .event_context("stream-accum-session", "stream-accum-channel")
             .agent_definition_name("round17/orchestrator")
+            .agent_definition(stream_definition())
             .config(config)
             .context_config(ContextConfig::default())
             .auto_save(true)
@@ -2629,7 +2529,6 @@ mod streaming_support {
 ///   4. ToolCallCompleted fires with tool_name == "echo_tool" and success == true.
 ///   5. Final answer is "stream final".
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-#[ignore = "TODO(#6375): hosted TinyAgents streaming failures are redacted at the host boundary"]
 async fn streaming_tool_call_accumulation() {
     use openhuman_core::agent::progress::AgentProgress;
     use std::sync::Mutex;
@@ -2769,9 +2668,8 @@ async fn streaming_tool_call_accumulation() {
     // → AgentProgress::ToolCallArgsDelta{tool_name: "", delta, ...}.
     // ModelStreamItem::ToolCallDelta → AgentProgress::ToolCallArgsDelta{tool_name: "echo_tool", delta: ""}.
     // Filter to iteration 1 only (tool-call dispatch iteration).
-    // ScriptedProvider fires stream_events on every chat() call, so iteration 2
-    // (the final-text response) also emits the same delta sequence — we want
-    // only the iteration that carried the actual tool call.
+    // ScriptedProvider replays stream_events only for the response that carries
+    // the tool call, so only iteration 1 emits deltas; the filter pins that.
     let arg_deltas: Vec<_> = all_progress
         .iter()
         .filter(|ev| {
@@ -3117,10 +3015,10 @@ async fn provider_sse_tool_args_accumulation() {
 
 /// A wedged model call is cut off by the PER-CALL ceiling, not by the turn
 /// deadline: with a 2s per-call ceiling under a 600s turn deadline, an upstream
-/// that never answers in time must terminate the turn in seconds, and the
-/// terminal event must name the per-call bound.
+/// that never answers in time must end the turn as a `turn_timeout` once its
+/// retries (each also cut at the ceiling) are spent, long before the 600s turn
+/// deadline.
 #[test]
-#[ignore = "TODO(#6375): hosted TinyAgents loses the typed per-model-call timeout"]
 fn model_call_ceiling_bounds_a_wedged_call_below_the_turn_deadline() {
     run_on_agent_stack(
         "model_call_ceiling",
@@ -3194,16 +3092,30 @@ async fn model_call_ceiling_bounds_a_wedged_call_below_the_turn_deadline_inner()
     // THE assertion, and the one that distinguishes the two ceilings. The
     // upstream holds every reply for 25s. Bounded only by the turn's remainder
     // — the pre-#5767 behaviour — that stall completes well inside the 600s
-    // budget and the turn SUCCEEDS. Only a per-call ceiling can stop it at ~2s.
-    // Measured: 2.4s with the ceiling wired, 25.5s with it reverted.
-    // 8s, not a looser bound: the ceiling under test is 2s, so anything up to
-    // ~4x it still fails while leaving room for boot and SSE delivery. A 15s
-    // bound would also admit an implementation that ignored
-    // `OPENHUMAN_MODEL_CALL_TIMEOUT_SECS` and used a fixed 10s ceiling.
+    // budget and the turn SUCCEEDS with `chat_done`; only a per-call ceiling
+    // can end it in `chat_error`, which the assertions above already pinned.
+    //
+    // A per-call timeout is a retryable `CallTimeout` ("this one call wedged",
+    // tinyagents `retry::is_retryable`), and the turn policy retries a
+    // retryable call on a 5-attempt schedule with 3/6/12/24s backoff (#6413). So
+    // the turn does NOT end at ~2s any more: each of the attempts is cut at the
+    // 2s ceiling and the turn fails after the last one, about 10s of ceilings
+    // plus 34-56s of backoff. Pin that shape rather than a latency from before
+    // the retry schedule existed:
+    //  * the ceiling cut the FIRST attempt (the call was retried at all — it
+    //    would have returned at 25s otherwise);
+    //  * no attempt was allowed to run its full 25s stall, so the whole turn
+    //    is far shorter than even two un-bounded attempts would take.
+    let upstream_calls = with_captured(|c| c.len());
     assert!(
-        elapsed < Duration::from_secs(8),
-        "the turn must be cut off by the 2s per-call ceiling, not by the 25s \
-         upstream stall completing under the 600s turn deadline; took {elapsed:?}"
+        upstream_calls >= 2,
+        "the 2s per-call ceiling must cut the wedged call and the harness must retry it; \
+         saw {upstream_calls} upstream call(s)"
+    );
+    assert!(
+        elapsed < Duration::from_secs(90),
+        "every attempt must be cut off by the 2s per-call ceiling, not left to run out the 25s \
+         stall; the retry schedule alone is about 45s, but the turn took {elapsed:?}"
     );
 
     // Deliberately NOT asserted: that the event names *which* ceiling fired.
@@ -3336,7 +3248,6 @@ async fn serve_skill_registry_fixture() -> (
 // and fail instead of being skipped.
 #[cfg(feature = "skills")]
 #[test]
-#[ignore = "TODO(#6370): delegated registry specialists are unavailable in the TinyAgents hosted runtime"]
 fn agent_installs_a_registry_skill_then_runs_it() {
     run_on_agent_stack(
         "agent_installs_a_registry_skill_then_runs_it",

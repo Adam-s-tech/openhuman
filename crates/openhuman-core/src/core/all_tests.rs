@@ -196,9 +196,17 @@ fn all_registered_controllers_is_nonempty() {
 
 #[test]
 fn all_controller_schemas_matches_registered_count() {
-    let schemas = all_controller_schemas();
-    let controllers = all_registered_controllers();
-    assert_eq!(schemas.len(), controllers.len());
+    // Take one registry snapshot: extensions may register concurrently between
+    // two public lookups, so comparing separate snapshots is racy.
+    let view = registry_view();
+    let caps = crate::core::runtime::context::CoreContext::current_memory_capabilities();
+    let visible: Vec<_> = view
+        .iter()
+        .filter(|g| group_allowed(g.group) && capability_allowed_in(caps, g.capability))
+        .collect();
+    let schemas = visible.iter().map(|g| &g.controller.schema).count();
+    let controllers = visible.len();
+    assert_eq!(schemas, controllers);
 }
 
 /// With the `voice` feature on (the default), the voice + audio_toolkit
@@ -864,12 +872,17 @@ fn every_registered_controller_has_matching_declared_schema() {
     // Global invariant: the registry is consistent by construction.
     // This test re-asserts the contract to catch drift.
     use std::collections::BTreeSet;
+    // The `ext_*` namespaces are registered by the extension tests running
+    // concurrently in this process; ignore them so the two snapshots cannot
+    // straddle a registration.
     let registered: BTreeSet<String> = all_registered_controllers()
         .into_iter()
+        .filter(|c| !c.schema.namespace.starts_with("ext_"))
         .map(|c| format!("{}.{}", c.schema.namespace, c.schema.function))
         .collect();
     let declared: BTreeSet<String> = all_controller_schemas()
         .into_iter()
+        .filter(|s| !s.namespace.starts_with("ext_"))
         .map(|s| format!("{}.{}", s.namespace, s.function))
         .collect();
     assert_eq!(
@@ -899,45 +912,6 @@ fn subsystems_namespace_is_registered_under_platform() {
     assert_eq!(
         group_for_namespace("subsystems"),
         Some(DomainGroup::Platform)
-    );
-}
-
-#[test]
-fn full_registration_is_byte_identical() {
-    // With no ambient CoreContext (⇒ full, no filter), the public
-    // `all_registered_controllers()` must equal the raw grouped registry — same
-    // length AND same rpc-method-name sequence IN ORDER. This is the DoD (1)
-    // proof that wrapping every entry in a `GroupedController` + filtering by the
-    // ambient DomainSet changes neither the membership nor the ordering of the
-    // full() surface.
-    //
-    // The baseline is the raw `registry()` view rather than a checked-in method
-    // snapshot (a #4808 review suggestion): `all_registered_controllers()` and
-    // `registry()` are DIFFERENT code paths — the former exercises the ambient
-    // filter (`group_allowed`) and re-collects, the latter is the unfiltered
-    // source — so this asserts the filter is an order-preserving identity under
-    // full(). A frozen snapshot would instead ossify the controller list and
-    // force churn on every legitimate new controller; git history is the
-    // authoritative pre-#4796 baseline for "did the raw list itself change".
-    let filtered_methods: Vec<String> = all_registered_controllers()
-        .iter()
-        .map(|c| c.rpc_method_name())
-        .collect();
-    let raw_methods: Vec<String> = registry_view()
-        .iter()
-        .map(|g| g.controller.rpc_method_name())
-        .collect();
-
-    assert_eq!(
-        filtered_methods.len(),
-        raw_methods.len(),
-        "unfiltered all_registered_controllers() must equal raw registry length"
-    );
-    // Ordered comparison — NOT sorted. A reordering (or a drop/add) under full()
-    // would change dispatch/schema iteration order and must fail here.
-    assert_eq!(
-        filtered_methods, raw_methods,
-        "unfiltered rpc-method sequence must be byte-identical (order + membership) to the raw registry"
     );
 }
 
@@ -1863,6 +1837,10 @@ fn every_capability_family_is_accounted_for_in_the_rpc_surface() {
             | Capability::LearningIngest
             | Capability::EventIngest
             | Capability::Answer => false,
+            // The engine switch reaches it through `memory.engine_migrate`,
+            // which copies whatever both engines serve; no controller is
+            // gated on it.
+            Capability::EpisodicPortability => false,
             // Folded into `Tree`: the tree registry's ~25 methods span tree,
             // entities, graph and maintenance and are tagged as ONE family.
             // See the push site in `all.rs` for why that trade was chosen.
@@ -2513,197 +2491,11 @@ fn javascript_controllers_absent_when_feature_off() {
     );
 }
 
-// ---- memory_diff removal ---------------------------------------------------
+#[path = "all_extensions_tests.rs"]
+mod extensions_tests;
 
-/// The `memory_diff` controllers were deleted along with the `memory-git`
-/// feature, and must stay gone — while the rest of the memory surface stays.
-///
-/// `memory` is asserted present in the same test on purpose: the removal took
-/// the git ledger, not the memory domain. Splitting that into a separate test
-/// would let one pass while the other silently regressed. This replaces the
-/// `{registered_when_feature_on,absent_when_feature_off}` pair that pinned the
-/// gate while it existed.
-#[test]
-fn memory_diff_controllers_are_gone_and_memory_survives() {
-    let namespaces: Vec<&str> = all_controller_schemas()
-        .iter()
-        .map(|s| s.namespace)
-        .collect();
-    assert!(
-        !namespaces.contains(&"memory_diff"),
-        "`memory_diff` was removed and must not be registered, got: {namespaces:?}"
-    );
-    assert!(
-        namespaces.contains(&"memory"),
-        "removing the git ledger must not remove the memory domain"
-    );
-}
+#[path = "all_removed_tests.rs"]
+mod removed_tests;
 
-// ---- session_db removal (#6082) --------------------------------------------
-
-/// The six read-only `session_db` controllers were removed in #6082: they
-/// queried a session index that nothing in `src/` ever writes (permanently
-/// empty in production, no frontend consumer). The three `run_ledger`
-/// controllers live in the same module and read a table that *is* written
-/// (from `web_chat::progress_bridge` and `agent::progress_tracing`), so they
-/// must stay fully registered.
-///
-/// `run_ledger` is asserted present in the same test on purpose: the removal
-/// took the dead read surface, not the run-ledger domain. Splitting that into a
-/// separate test would let one pass while the other silently regressed.
-#[test]
-fn session_db_controllers_are_gone_and_run_ledger_survives() {
-    let methods: Vec<String> = all_controller_schemas()
-        .iter()
-        .map(rpc_method_name)
-        .collect();
-
-    for removed in [
-        "openhuman.session_db_list",
-        "openhuman.session_db_get",
-        "openhuman.session_db_search",
-        "openhuman.session_db_get_messages",
-        "openhuman.session_db_get_tool_calls",
-        "openhuman.session_db_get_children",
-    ] {
-        assert!(
-            !methods.contains(&removed.to_string()),
-            "removed session_db controller `{removed}` must be absent \
-             (unknown-method over /rpc, omitted from /schema), got: {methods:?}"
-        );
-    }
-
-    for kept in [
-        "openhuman.run_ledger_list",
-        "openhuman.run_ledger_get",
-        "openhuman.run_ledger_events",
-    ] {
-        assert!(
-            methods.contains(&kept.to_string()),
-            "run_ledger controller `{kept}` must stay registered — removing the \
-             dead session_db read surface must not touch the run ledger"
-        );
-    }
-
-    let namespaces: Vec<&str> = all_controller_schemas()
-        .iter()
-        .map(|s| s.namespace)
-        .collect();
-    assert!(
-        !namespaces.contains(&"session_db"),
-        "the `session_db` namespace was removed and must not be registered, got: {namespaces:?}"
-    );
-}
-
-// ── Controller extensions (crates above the core) ──────────────────────────
-
-fn ext_controller(namespace: &'static str, function: &'static str) -> RegisteredController {
-    fn handler(_params: Map<String, serde_json::Value>) -> ControllerFuture {
-        Box::pin(async { Ok(serde_json::json!({"ext": true})) })
-    }
-    RegisteredController {
-        schema: schema(namespace, function, vec![]),
-        handler,
-    }
-}
-
-/// An extension's controllers are first-class for every lookup: schema,
-/// dispatch, method routing, capability facts and the namespace description.
-#[tokio::test]
-async fn registry_extension_is_visible_to_every_lookup_and_dispatches() {
-    register_controller_extension(ControllerExtension {
-        group: DomainGroup::Hosted,
-        controllers: vec![ext_controller("ext_probe", "ping")],
-        namespaces: &[("ext_probe", "Registry extension probe.")],
-    })
-    .expect("register extension");
-
-    assert_eq!(
-        rpc_method_from_parts("ext_probe", "ping").as_deref(),
-        Some("openhuman.ext_probe_ping")
-    );
-    assert_eq!(capability_for_parts("ext_probe", "ping"), Some(None));
-    assert_eq!(
-        capability_for_rpc_method("openhuman.ext_probe_ping"),
-        Some(None)
-    );
-    assert!(schema_for_rpc_method("openhuman.ext_probe_ping").is_some());
-    assert!(all_controller_schemas()
-        .iter()
-        .any(|s| s.namespace == "ext_probe" && s.function == "ping"));
-    assert_eq!(
-        namespace_description("ext_probe"),
-        Some("Registry extension probe.")
-    );
-
-    let result = try_invoke_registered_rpc("openhuman.ext_probe_ping", Map::new())
-        .await
-        .expect("extension method is dispatchable")
-        .expect("handler succeeds");
-    assert_eq!(result, serde_json::json!({"ext": true}));
-}
-
-/// Re-registering the identical set is a no-op; a *colliding* set (a built-in
-/// method) is refused by the same drift guard the boot registry passes.
-#[test]
-fn registry_extension_is_idempotent_and_refuses_collisions() {
-    let ext = || ControllerExtension {
-        group: DomainGroup::Hosted,
-        controllers: vec![ext_controller("ext_idem", "once")],
-        namespaces: &[("ext_idem", "Idempotency probe.")],
-    };
-    register_controller_extension(ext()).expect("first registration");
-    register_controller_extension(ext()).expect("identical re-registration is a no-op");
-    let count = {
-        let view = registry_view();
-        view.iter()
-            .filter(|g| g.controller.schema.namespace == "ext_idem")
-            .count()
-    };
-    assert_eq!(count, 1, "no duplicate rows after re-registration");
-
-    // `memory.list_files`-style collision with a built-in: pick any built-in.
-    let builtin = registry()
-        .first()
-        .expect("built-in registry is non-empty")
-        .controller
-        .schema
-        .clone();
-    let err = register_controller_extension(ControllerExtension {
-        group: DomainGroup::Hosted,
-        controllers: vec![ext_controller(builtin.namespace, builtin.function)],
-        namespaces: &[],
-    })
-    .expect_err("shadowing a built-in method must be refused");
-    assert!(err.contains("duplicate"), "{err}");
-}
-
-/// The ambient `DomainSet` gates extension controllers through their group,
-/// exactly like built-ins: with `hosted: false` the method is unknown.
-#[tokio::test]
-async fn registry_extension_is_gated_by_its_domain_group() {
-    register_controller_extension(ControllerExtension {
-        group: DomainGroup::Hosted,
-        controllers: vec![ext_controller("ext_gate", "ping")],
-        namespaces: &[],
-    })
-    .expect("register extension");
-
-    let mut domains = DomainSet::full();
-    domains.hosted = false;
-    let ctx = CoreContext::for_test(domains, None, None);
-    let hidden = CoreContext::scope(ctx, async {
-        (
-            try_invoke_registered_rpc("openhuman.ext_gate_ping", Map::new())
-                .await
-                .is_none(),
-            schema_for_rpc_method("openhuman.ext_gate_ping").is_none(),
-        )
-    })
-    .await;
-    assert_eq!(
-        hidden,
-        (true, true),
-        "hosted: false must hide the extension"
-    );
-}
+#[path = "all_registry_tests.rs"]
+mod registry_tests;

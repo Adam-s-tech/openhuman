@@ -6,9 +6,9 @@ use std::sync::Arc;
 
 use tinyagents_harness::cache::InMemoryResponseCache;
 use tinyagents_harness::middleware::{
-    plan_mode_middleware, ArgRecoveryMiddleware, BudgetLimits, BudgetMiddleware,
-    ContextCompressionMiddleware, PromptCacheGuardMiddleware, RepeatProgressMiddleware,
-    RunModeHandle, ToolPolicyMiddleware as TaToolPolicyMiddleware,
+    plan_mode_middleware, ApprovalGateMiddleware, ArgRecoveryMiddleware, BudgetLimits,
+    BudgetMiddleware, ContextCompressionMiddleware, PromptCacheGuardMiddleware,
+    RepeatProgressMiddleware, RunModeHandle, ToolPolicyMiddleware as TaToolPolicyMiddleware,
 };
 use tinyagents_harness::runtime::AgentHarness;
 use tinyagents_harness::steering::SteeringHandle;
@@ -56,7 +56,7 @@ pub(super) struct AssembledTurnHarness {
     ///
     /// Real success + a user-facing failure + timing onto `ToolCallCompleted`.
     pub(super) failure_map: ToolFailureMap,
-    /// Shared FIFO carry of per-call provider `UsageInfo` (charged USD + context
+    /// Shared FIFO carry of per-call provider `BilledUsage` (charged USD + context
     /// window): the model adapter pushes, the event bridge pops when recording
     /// usage — restores charged-USD precedence on the tinyagents path (#4467).
     pub(super) provider_usage_carry: ProviderUsageCarry,
@@ -202,7 +202,7 @@ pub(super) fn assemble_turn_harness(
     // tool-call start (the crate `ToolDelta` carries none), the bridge reads it
     // to label the argument fragments now streamed via `MessageDelta.tool_call`.
     let tool_names: ToolNameMap = Arc::default();
-    // Shared FIFO carry of per-call provider `UsageInfo`: `UsageCarryMiddleware`
+    // Shared FIFO carry of per-call provider `BilledUsage`: `UsageCarryMiddleware`
     // pushes each response's usage (charged USD + context window +
     // cache-creation/reasoning tokens, read off the response via G1), the event
     // bridge pops it when recording that call's usage (#4467, item 1). The carry
@@ -250,7 +250,7 @@ pub(super) fn assemble_turn_harness(
     }
 
     // Cost usage capture (issue #4249, Phase 5): feed the event bridge's usage
-    // carry from a wrap-model middleware that reads the full `UsageInfo` off each
+    // carry from a wrap-model middleware that reads the full `BilledUsage` off each
     // response, instead of every `native model adapter` pushing it. Installed
     // unconditionally — usage flows on every turn — and shares the same carry the
     // bridge drains on `UsageRecorded`.
@@ -361,9 +361,9 @@ pub(super) fn assemble_turn_harness(
     let can_update_index = allowed
         .as_ref()
         .is_none_or(|names| names.contains("update_memory_md"));
-    harness.push_middleware(Arc::new(
-        middleware::MemoryProtocolMiddleware::with_index_update_tool(can_update_index),
-    ));
+    harness.push_middleware(Arc::new(middleware::memory_protocol_middleware(
+        can_update_index,
+    )));
 
     // Repeated-failure circuit breaker: pause the run when a tool returns the same
     // error `REPEATED_TOOL_FAILURE_THRESHOLD` times in a row, so a deterministic
@@ -449,17 +449,13 @@ pub(super) fn assemble_turn_harness(
         ),
     ));
 
-    // Prompt-cache prefix protection (issue #4249, 03.2). First declare the turn's
-    // stable prefix (system prompt + tool schemas) as `PromptSegment`s, then let
-    // the crate `PromptCacheGuardMiddleware` diff the cacheable prefix across model
-    // calls and record a `CacheLayoutEvent` when volatile content busts it.
-    // `before_model` hooks run in registration order, so the segment stamper must
-    // precede the guard; both run before the context middlewares below (they only
-    // touch the volatile tail / tool bodies, never the stable prefix). The guard is
-    // returned so the run loop can drain its events into the observability bridge —
-    // the crate-native replacement for the deleted `CacheAlignMiddleware` warn-log
-    // (C3: the warn-only shadow is gone; this guard is the sole owner).
-    harness.push_middleware(Arc::new(middleware::PromptCacheSegmentMiddleware));
+    // Prompt-cache prefix protection (issue #4249, 03.2). The vendor loop owns
+    // the stable-prefix layout (`PromptSegment`s built from the session's frozen
+    // system prefix, `frozen_system_prefix_len`); the crate
+    // `PromptCacheGuardMiddleware` diffs the cacheable prefix across model calls
+    // and records a `CacheLayoutEvent` when volatile content busts it. The guard
+    // is returned so the run loop can drain its events into the observability
+    // bridge.
     let prompt_cache_guard = Arc::new(PromptCacheGuardMiddleware::new());
     harness.push_middleware(prompt_cache_guard.clone());
 
@@ -610,8 +606,11 @@ pub(super) fn assemble_turn_harness(
     // an approved call records a terminal audit row. Replaces the inline approval
     // block that used to live in the legacy tool adapter.
     if !hosted_security_gate {
-        harness.push_tool_middleware(Arc::new(middleware::ApprovalSecurityMiddleware::new(
-            tool_sets.clone(),
+        harness.push_tool_middleware(Arc::new(ApprovalGateMiddleware::new(
+            "approval_security",
+            Arc::new(middleware::ApprovalSecurityMiddleware::new(
+                tool_sets.clone(),
+            )),
         )));
     }
 

@@ -30,7 +30,7 @@ use super::session_memory::SessionMemoryConfig;
 use super::stats::{ContextStatsState, SessionMemoryHandle};
 use crate::agent::prompts::{PromptContext, SystemPromptBuilder};
 use crate::config::ContextConfig;
-use crate::inference::provider::UsageInfo;
+use crate::inference::provider::BilledUsage;
 use anyhow::Result;
 
 /// Read-only snapshot of per-session context state. Returned by
@@ -159,9 +159,9 @@ impl ContextManager {
 
     // ─── Budget tracking ──────────────────────────────────────────
 
-    /// Feed the latest provider [`UsageInfo`] into utilisation stats and the
+    /// Feed the latest provider [`BilledUsage`] into utilisation stats and the
     /// session-memory state.
-    pub fn record_usage(&mut self, usage: &UsageInfo) {
+    pub fn record_usage(&mut self, usage: &BilledUsage) {
         self.stats_state.record_usage(usage);
     }
 
@@ -238,22 +238,6 @@ impl ContextManager {
         ctx: &PromptContext<'_>,
     ) -> Result<crate::agent::prompts::TieredPrompt> {
         self.default_prompt_builder.build_tiered(ctx)
-    }
-
-    /// Assemble the system prompt via a caller-supplied builder.
-    ///
-    /// Sub-agents pass `SystemPromptBuilder::for_subagent(...)` and
-    /// channels pass `with_defaults()` chained with a
-    /// `ChannelCapabilitiesSection`. Either way the builder itself
-    /// lives in [`super::prompt`] — no caller needs to know how
-    /// sections are composed internally.
-    pub fn build_system_prompt_with(
-        &self,
-        builder: &SystemPromptBuilder,
-        ctx: &PromptContext<'_>,
-    ) -> Result<String> {
-        let prompt = builder.build(ctx)?;
-        Ok(prompt)
     }
 
     // ─── Observability ─────────────────────────────────────────────

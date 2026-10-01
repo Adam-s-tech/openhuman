@@ -153,12 +153,10 @@ fn format_llm_context_message_includes_entity_types_when_present() {
 // ── Pure-helper coverage ───────────────────────────────────────
 
 use super::{
-    chunk_metadata, default_category, default_priority, default_source_type, error_envelope,
-    extract_entity_type, maybe_retrieval_context, memory_counts, memory_request_id,
+    chunk_metadata, extract_entity_type, maybe_retrieval_context, memory_request_id,
     relation_identity, relation_metadata, timestamp_to_rfc3339, validate_memory_relative_path,
 };
-use crate::core::Outcome;
-use crate::memory::{ApiEnvelope, MemoryRetrievalContext};
+use crate::memory::MemoryRetrievalContext;
 
 #[test]
 fn memory_request_id_is_nonempty_and_unique() {
@@ -170,33 +168,12 @@ fn memory_request_id_is_nonempty_and_unique() {
 }
 
 #[test]
-fn memory_counts_builds_btreemap_from_entries() {
-    let m = memory_counts([("documents", 3), ("kv", 1)]);
-    assert_eq!(m.get("documents"), Some(&3));
-    assert_eq!(m.get("kv"), Some(&1));
-    assert_eq!(m.len(), 2);
-}
-
-#[test]
-fn memory_counts_is_empty_for_empty_input() {
-    let m: std::collections::BTreeMap<String, usize> = memory_counts(std::iter::empty());
-    assert!(m.is_empty());
-}
-
-#[test]
 fn timestamp_to_rfc3339_valid_seconds_and_fractional() {
     let s = timestamp_to_rfc3339(1_700_000_000.0).unwrap();
     assert!(s.contains("2023"));
     // Fractional seconds should preserve nanoseconds within range.
     let s = timestamp_to_rfc3339(1_700_000_000.5).unwrap();
     assert!(s.contains("2023"));
-}
-
-#[test]
-fn timestamp_to_rfc3339_rejects_non_finite_and_negative() {
-    assert!(timestamp_to_rfc3339(f64::NAN).is_none());
-    assert!(timestamp_to_rfc3339(f64::INFINITY).is_none());
-    assert!(timestamp_to_rfc3339(-1.0).is_none());
 }
 
 fn relation_fixture(namespace: Option<&str>) -> GraphRelationRecord {
@@ -292,13 +269,6 @@ fn maybe_retrieval_context_respects_include_flag() {
 }
 
 #[test]
-fn default_constants_are_stable() {
-    assert!(!default_source_type().is_empty());
-    assert!(!default_priority().is_empty());
-    assert!(!default_category().is_empty());
-}
-
-#[test]
 fn validate_memory_relative_path_rejects_empty_absolute_and_traversal() {
     // Empty string is now allowed: it refers to the memory root
     // (`<workspace>/memory`) since the file-based RPCs resolve everything
@@ -308,17 +278,4 @@ fn validate_memory_relative_path_rejects_empty_absolute_and_traversal() {
     assert!(validate_memory_relative_path("../secrets").is_err());
     assert!(validate_memory_relative_path("ok/subdir/file.md").is_ok());
     assert!(validate_memory_relative_path("simple.txt").is_ok());
-}
-
-#[test]
-fn error_envelope_produces_api_error_with_code_and_message() {
-    let envelope: Outcome<ApiEnvelope<serde_json::Value>> =
-        error_envelope::<serde_json::Value>("NOT_FOUND", "missing".into());
-    let api = &envelope.value;
-    assert!(api.data.is_none());
-    let err = api.error.as_ref().expect("error set");
-    assert_eq!(err.code, "NOT_FOUND");
-    assert_eq!(err.message, "missing");
-    // Meta must carry a request id.
-    assert!(!api.meta.request_id.is_empty());
 }

@@ -32,7 +32,6 @@
 //!   without linking the browser engine into the core.
 //! - [`wallet`] — the host half of the `tinywallet` module, which builds and
 //!   assembles transactions while the signing key stays in this process.
-//! - [`platform`] — which published artifact belongs to this host.
 //! - [`host`] — the module broker, connection and loader.
 //! - [`ops`] — resolving, loading, and reporting status.
 //! - [`runtime`] — calling `tinyruntime`: resolving a language runtime and
@@ -53,7 +52,6 @@ pub mod host;
 pub mod memory;
 mod memory_host;
 pub mod ops;
-pub mod platform;
 pub mod registry;
 pub mod runtime;
 pub mod schemas;

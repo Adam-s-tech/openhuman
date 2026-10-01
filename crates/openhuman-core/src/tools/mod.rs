@@ -1,11 +1,9 @@
 pub mod agent_policy;
 mod capability;
-pub mod generated;
 pub mod host_extensions;
 pub mod ops;
 pub mod orchestrator_tools;
 pub mod registry;
-pub mod schema;
 mod schemas;
 pub mod status;
 pub mod timeout;
@@ -62,8 +60,6 @@ pub use crate::voice::audio_toolkit::tools::*;
 #[cfg(feature = "web3")]
 pub use crate::web3::wallet::tools::*;
 pub use implementations::*;
-#[allow(unused_imports)]
-pub use schema::{CleaningStrategy, SchemaCleanr};
 pub use schemas::{
     all_controller_schemas as all_tools_controller_schemas,
     all_registered_controllers as all_tools_registered_controllers,

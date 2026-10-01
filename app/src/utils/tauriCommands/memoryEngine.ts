@@ -47,6 +47,27 @@ export interface MemoryEngineTarget {
 
 export type MemoryEngineMigrateState = 'running' | 'done' | 'failed' | 'cancelled';
 
+/** What a migration copies, in the order it copies it. */
+export type MemoryEngineMigrateStep =
+  | 'records'
+  | 'documents'
+  | 'goals'
+  | 'profile'
+  | 'episodic'
+  | 'content';
+
+/** What one step after the stored memories did, once the copy finished. */
+export interface MemoryEngineMigrateStepStatus {
+  step: Exclude<MemoryEngineMigrateStep, 'records'>;
+  /** Why the step did not run; null when it ran. */
+  skipped_because: string | null;
+  read: number;
+  written: number;
+  unchanged: number;
+  failed: number;
+  errors: string[];
+}
+
 export interface MemoryEngineMigrateStatus {
   state: MemoryEngineMigrateState;
   copied: number;
@@ -54,6 +75,14 @@ export interface MemoryEngineMigrateStatus {
   error: string | null;
   /** Caveat on a finished job (writes made while the copy ran); absent otherwise. */
   note?: string | null;
+  /** The step under way, or the last one once the copy ended. */
+  step?: MemoryEngineMigrateStep | null;
+  /** Items the step under way has read so far. */
+  step_read?: number;
+  /** Items the step under way has written so far. */
+  step_written?: number;
+  /** What each step after the stored memories did, once the copy finished. */
+  steps?: MemoryEngineMigrateStepStatus[];
 }
 
 export async function memoryEnginesList(): Promise<MemoryEnginesList> {
@@ -71,11 +100,18 @@ export async function memoryEngineSet(target: MemoryEngineTarget): Promise<Memor
   });
 }
 
-/** Copies every memory from the active engine into `to`, then switches to it. */
-export async function memoryEngineMigrate(to: MemoryEngineTarget): Promise<{ job_id: string }> {
+/**
+ * Copies every memory from the active engine into `to`, then switches to it.
+ * `replayContent` re-sends ingested content so the new engine rebuilds its
+ * summaries; it defaults to true.
+ */
+export async function memoryEngineMigrate(
+  to: MemoryEngineTarget,
+  options: { replayContent?: boolean } = {}
+): Promise<{ job_id: string }> {
   return await callCoreRpc<{ job_id: string }>({
     method: CORE_RPC_METHODS.memoryEngineMigrate,
-    params: { to },
+    params: { to, replay_content: options.replayContent ?? true },
   });
 }
 

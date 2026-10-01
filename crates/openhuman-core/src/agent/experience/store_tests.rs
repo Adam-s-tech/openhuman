@@ -110,3 +110,40 @@ async fn retrieve_ignores_dismissed_records() {
 
     assert!(hits.is_empty());
 }
+
+// A Luhn-valid 13-digit epoch-millisecond value: the shape the old strict
+// scrubber rewrote to `[REDACTED_PII_*]` (#5209). The host policy is
+// corroborated since #6855, so the plain JSON must survive it.
+const LUHN_EPOCH_MS: i64 = 1727712000006;
+
+#[tokio::test]
+async fn timestamps_survive_the_host_scrubber_in_the_stored_json() {
+    let (store, memory) = fresh_store();
+    let mut experience = sample_experience("exp_ts", "search docs", vec!["grep"], vec![], 0.5);
+    experience.created_at_ms = LUHN_EPOCH_MS;
+    store.put(experience).await.unwrap();
+
+    let stored = memory
+        .entries
+        .lock()
+        .get(&(
+            AGENT_EXPERIENCE_NAMESPACE.into(),
+            "experience/exp_ts".into(),
+        ))
+        .map(|entry| entry.content.clone())
+        .expect("stored");
+    assert!(stored.starts_with('{'), "stored as plain JSON: {stored}");
+    let scrubbed = crate::memory::safety::sanitize_text(&stored).value;
+    assert_eq!(scrubbed, stored, "scrubber must leave timestamps alone");
+    let parsed = decode_experience_payload(&scrubbed).unwrap();
+    assert_eq!(parsed.created_at_ms, LUHN_EPOCH_MS);
+}
+
+#[test]
+fn legacy_base64_payload_still_decodes() {
+    let experience = sample_experience("exp_old", "search docs", vec!["grep"], vec![], 0.5);
+    let json = serde_json::to_string(&experience).unwrap();
+    let wrapped = base64::engine::general_purpose::STANDARD.encode(json.as_bytes());
+    assert_eq!(decode_experience_payload(&wrapped).unwrap().id, "exp_old");
+    assert_eq!(decode_experience_payload(&json).unwrap().id, "exp_old");
+}

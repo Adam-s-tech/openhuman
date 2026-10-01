@@ -47,11 +47,6 @@ use tinyflows::model::{NodeKind, TriggerKind, WorkflowGraph};
 pub(crate) use tinyflows_catalog::graph_policy::{
     enforce_side_effect_approval, graph_has_actionable_nodes, trigger_is_automatic,
 };
-// Reached only by this module's own tests, which assert the host resolves the
-// predicate the two save rules are built on — `enforce_side_effect_approval`
-// is what production calls.
-#[cfg(test)]
-pub(crate) use tinyflows_catalog::graph_policy::graph_has_outbound_side_effect;
 use tokio_util::sync::CancellationToken;
 
 use crate::agent::turn_origin::{with_origin, AgentTurnOrigin, TrustedAutomationSource};

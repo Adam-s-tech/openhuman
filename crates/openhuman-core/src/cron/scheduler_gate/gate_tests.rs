@@ -33,12 +33,10 @@ async fn wait_for_capacity_returns_permit_when_gate_uninit() {
 }
 
 #[tokio::test]
-// Wake-on-permit-drop timing test: under heavy parallel cargo-test load
-// the 1s timeout occasionally fires before the spawned waiter is polled
-// even though the tokio Semaphore wake is reliable in isolation. The
-// behaviour under test is exercised by `semaphore_size_is_one` plus
-// production code paths; this test only adds a timing assertion.
-#[ignore = "flaky timing under full-suite load — see PR #1524"]
+// Wake-on-permit-drop test. The only wall-clock bound is a generous
+// 30s liveness timeout (a hang guard, not a timing assertion), so scheduler
+// jitter under full-suite load cannot flip it; the "must have waited" check
+// compares against a 40ms sleep that strictly precedes the release.
 async fn second_waiter_blocks_until_first_drops() {
     let _g = lock();
     let first = wait_for_capacity().await.expect("first permit");
@@ -57,7 +55,7 @@ async fn second_waiter_blocks_until_first_drops() {
 
     // Release the first permit; the second should resolve.
     drop(first);
-    let (elapsed, second) = timeout(TokioDuration::from_secs(1), handle)
+    let (elapsed, second) = timeout(TokioDuration::from_secs(30), handle)
         .await
         .unwrap()
         .unwrap();
@@ -243,13 +241,8 @@ async fn resume_transitions_fire_the_notify() {
         mode: SchedulerGateMode::Off,
         ..Default::default()
     };
-    let signals = signals::sample();
-    let policy = decide(&signals, &cfg);
-    let _ = STATE.set(Arc::new(RwLock::new(State {
-        cfg,
-        signals,
-        policy,
-    })));
+    let signals = tinymemory_gate::sample(&SIGNAL_ENV);
+    let _ = STATE.set(Arc::new(RwLock::new(GateCore::new(cfg, signals))));
 
     // --- update_config: Paused -> running fires the notify ---
     let waiter = resume_notify();

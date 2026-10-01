@@ -196,40 +196,6 @@ impl SubsystemRegistry {
         previous
     }
 
-    /// Binds `primary` if it constructed; otherwise logs the failure loudly and
-    /// binds the driver `fallback` produces, tagging it with the id that failed
-    /// so status can show the substitution (kernel.md §3.7).
-    ///
-    /// `fallback` is `FnOnce` so the embedded default is not constructed at all
-    /// when the primary succeeds.
-    pub fn bind_with_fallback<E, F>(
-        &mut self,
-        slot: SubsystemSlot,
-        attempted_driver_id: &str,
-        primary: Result<BoundDriver, E>,
-        fallback: F,
-    ) -> &BoundDriver
-    where
-        E: std::fmt::Display,
-        F: FnOnce() -> BoundDriver,
-    {
-        match primary {
-            Ok(driver) => {
-                self.bind(driver);
-            }
-            Err(err) => {
-                let mut driver = fallback();
-                log::warn!(
-                    "[subsystem] {slot} driver '{attempted_driver_id}' failed to bind: {err}; falling back to '{}'",
-                    driver.id
-                );
-                driver.fell_back_from = Some(attempted_driver_id.to_string());
-                self.bind(driver);
-            }
-        }
-        &self.slots[&slot]
-    }
-
     /// The driver bound to `slot`, if any.
     pub fn get(&self, slot: SubsystemSlot) -> Option<&BoundDriver> {
         self.slots.get(&slot)

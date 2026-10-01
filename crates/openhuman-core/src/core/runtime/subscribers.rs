@@ -190,7 +190,7 @@ pub(super) fn register_domain_subscribers(
         // so they observe a real policy on their first iteration (otherwise they
         // fall back to `Policy::Normal` and miss the initial throttle decision on
         // battery-powered hosts).
-        crate::cron::scheduler_gate::init_global(&config);
+        crate::cron::scheduler_gate::init_global(config.scheduler_gate.clone());
 
         // A headless host (Docker / VPS / CI) has no interactive login; it
         // hands the core a credential through the environment instead. The
@@ -330,8 +330,13 @@ pub(super) fn register_domain_subscribers(
             // when no channel is configured — silently dropping ALL learning for
             // channel-less users (#5003). `agent::learning` is an Agent-family
             // domain; it sat on the Platform boot path only because `learning`
-            // used to be a top-level directory. Idempotent.
-            crate::agent::learning::startup::register_learning_subscribers(workspace_dir.clone());
+            // used to be a top-level directory. Idempotent. The memory block
+            // goes along because this runs before the workspace's context is
+            // installed, and learning must bind the engine the user chose.
+            crate::agent::learning::startup::register_learning_subscribers(
+                workspace_dir.clone(),
+                config.subsystems.memory.clone(),
+            );
         }
     } else {
         log::debug!("[event_bus] learning subscribers SKIPPED — Agent domain disabled");

@@ -44,13 +44,10 @@ use std::sync::Arc;
 /// [`MemoryGuard`](crate::memory::guard::MemoryGuard) truncates
 /// `store` content at `capture_max_chars`, which
 /// `MemoryHooksConfig::default()` sets to **500**. An `AgentExperience` is
-/// stored as base64 of its serialized JSON — precisely so the free-text
-/// scrubber cannot rewrite a Luhn-valid millisecond timestamp and corrupt the
-/// payload (#5209) — and truncated base64 does not decode, so the record would
-/// silently vanish on read. That is the same class of bug #5209 fixed, so the
-/// pre-#5560 behaviour is preserved exactly: no policy layer between this store
-/// and the driver. The store runs the full scrubber over its own free-text
-/// fields before serialization (`store::redact_experience`), which is what
+/// stored as its serialized JSON, and truncated JSON does not parse, so the
+/// record would silently vanish on read. So the pre-#5560 behaviour is
+/// preserved exactly: no policy layer between this store and the driver. The store runs the full
+/// scrubber over its own free-text fields before serialization (`store::redact_experience`), which is what
 /// keeps that safe rather than merely unguarded.
 ///
 /// # Home

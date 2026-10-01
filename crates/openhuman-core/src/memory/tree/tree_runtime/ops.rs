@@ -350,38 +350,6 @@ pub(crate) fn create_provider(
     .map_err(|e| format!("tree summarizer: failed to build cloud provider: {e:#}"))
 }
 
-/// Whether a summarization provider can be resolved for "Build Summary Trees"
-/// under the current config — the single source of truth the memory doctor
-/// reuses so its `summary_tree` stage matches the runtime path (#002 FR-007).
-///
-/// Routes through [`create_provider`] (the SAME resolver the runtime uses):
-/// - local AI enabled ⇒ available (local Ollama path).
-/// - local AI off + `memory_tree.cloud_summarization_opt_in = true` ⇒
-///   available iff the configured summarization-role provider resolves.
-/// - local AI off + opt-in `false` (default) ⇒ unavailable — explicit
-///   consent required before routing workspace memory summaries to a cloud
-///   provider. Enable via the `memory_tree.cloud_summarization_opt_in` setting.
-///
-/// The provider built for the `Ok` check is dropped — construction is cheap
-/// (no network) and confirming by build beats guessing.
-pub fn summarizer_available(config: &Config) -> (bool, &'static str) {
-    let local = config.local_ai.runtime_enabled;
-    match create_provider(config) {
-        Ok(_) if local => (
-            true,
-            "local AI enabled — Build Summary Trees runs on the local model",
-        ),
-        Ok(_) => (
-            true,
-            "local AI off — Build Summary Trees runs on the configured cloud provider",
-        ),
-        Err(_) => (
-            false,
-            "no summarization provider available — enable local AI, or opt in to cloud summarization (memory_tree.cloud_summarization_opt_in) with a provider set in Connections → API keys → LLM",
-        ),
-    }
-}
-
 #[cfg(test)]
 #[path = "ops_tests.rs"]
 mod tests;

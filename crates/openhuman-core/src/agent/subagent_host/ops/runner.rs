@@ -548,7 +548,7 @@ pub(crate) async fn run_subagent_direct(
         // Deliberately placed *after* `tier_gate_decision`: `load_or_init` can
         // initialize config on first run, and a spawn the tier gate rejects
         // should not have that side effect.
-        let loaded_config: LoadedConfig = crate::config::Config::load_or_init()
+        let loaded_config: LoadedConfig = Box::pin(crate::config::Config::load_or_init())
             .await
             .map(std::sync::Arc::new)
             .map_err(|e| e.to_string());
@@ -561,13 +561,13 @@ pub(crate) async fn run_subagent_direct(
         // to the full sub-agent when the fast path is disabled/errs/finds
         // nothing (the empty/degraded case is handled by #4655).
         if definition.id == AGENT_MEMORY_ID {
-            if let Some(outcome) = try_deterministic_memory_retrieval(
+            if let Some(outcome) = Box::pin(try_deterministic_memory_retrieval(
                 task_prompt,
                 definition,
                 &task_id,
                 started,
                 &loaded_config,
-            )
+            ))
             .await
             {
                 // The fast path completes a real delegation and returns here,
@@ -630,7 +630,7 @@ pub(crate) async fn run_subagent_direct(
                 "[subagent_host] worktree-isolated worker: descriptor will route acting-tool CWD"
             );
         }
-        let run_result = with_spawn_depth(attempted_depth, async {
+        let run_result = Box::pin(with_spawn_depth(attempted_depth, async {
             with_file_state_agent_id(task_id.clone(), async {
                 with_current_sandbox_mode(definition.sandbox_mode, async {
                     Box::pin(run_typed_mode(
@@ -646,7 +646,7 @@ pub(crate) async fn run_subagent_direct(
                 .await
             })
             .await
-        })
+        }))
         .await;
 
         // Feed this delegation's wall-clock into the turn's running maximum,
@@ -685,7 +685,7 @@ pub(crate) async fn run_subagent_direct(
         // an abstract and the full-fidelity body survives on disk instead of
         // being cut. A refused or failed offload is soft: the inline payload
         // continues on to the cap and the summarizer detour exactly as before.
-        offload_outcome_artifacts(&mut outcome, definition, &options, &task_id).await;
+        Box::pin(offload_outcome_artifacts(&mut outcome, definition, &options, &task_id)).await;
 
         // Truncate result to the definition's cap if set (shared with the
         // deterministic memory fast path via `apply_max_result_chars`).
@@ -1149,7 +1149,7 @@ async fn run_typed_mode(
     if let Some(ref ctx) = options.context {
         context_parts.push(ctx);
     }
-    let mut history: Vec<crate::agent::messages::ChatMessage> =
+    let mut history: Vec<tinyagents_session::transcript::TranscriptMessage> =
         if let Some(ref initial) = options.initial_history {
             tracing::info!(
                 agent_id = %definition.id,
@@ -1165,8 +1165,8 @@ async fn run_typed_mode(
                 format!("[Context]\n{}\n\n{task_prompt}", context_parts.join("\n\n"))
             };
             vec![
-                crate::agent::messages::ChatMessage::system(system_prompt),
-                crate::agent::messages::ChatMessage::user(user_message),
+                tinyagents_session::transcript::TranscriptMessage::system(system_prompt),
+                tinyagents_session::transcript::TranscriptMessage::user(user_message),
             ]
         };
 

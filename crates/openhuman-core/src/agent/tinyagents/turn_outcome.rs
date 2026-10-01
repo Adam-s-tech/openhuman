@@ -1,8 +1,9 @@
 //! The outcome type a `tinyagents`-driven turn produces, plus the shared
 //! sinks middleware write into to build it.
 
-use crate::agent::messages::{ChatMessage, ConversationMessage};
+use tinyagents_session::transcript::TranscriptMessage;
 use tinyinference_llm::model::ResolvedModelRoute;
+use tinytools_agent::dialect::TranscriptEntry;
 
 /// The outcome of a turn driven on the `tinyagents` harness.
 #[derive(Debug, Clone)]
@@ -15,11 +16,11 @@ pub(crate) struct TinyagentsTurnOutcome {
     pub resolved_route: Option<ResolvedModelRoute>,
     /// The full transcript, converted back to openhuman messages (flat — tool
     /// calls rendered as text).
-    pub history: Vec<ChatMessage>,
+    pub history: Vec<TranscriptMessage>,
     /// The **typed** messages this turn appended (after the user turn):
     /// `AssistantToolCalls` / `ToolResults` / final assistant `Chat`. The chat
     /// session persists these to keep structured tool-call history fidelity.
-    pub conversation: Vec<ConversationMessage>,
+    pub conversation: Vec<TranscriptEntry>,
     /// Number of model calls the loop made.
     pub model_calls: usize,
     /// Number of tool calls the loop made.
@@ -134,15 +135,9 @@ pub(crate) fn record_unobserved_turn_usage(
     );
     crate::platform::cost::record_provider_usage(
         model,
-        &crate::inference::provider::UsageInfo {
-            input_tokens,
-            output_tokens,
-            context_window: 0,
-            cached_input_tokens,
-            cache_creation_tokens: 0,
-            reasoning_tokens: 0,
-            charged_amount_usd,
-        },
+        &crate::inference::provider::BilledUsage::from_counts(input_tokens, output_tokens)
+            .with_cached_input_tokens(cached_input_tokens)
+            .with_charged_usd(charged_amount_usd),
     );
     true
 }

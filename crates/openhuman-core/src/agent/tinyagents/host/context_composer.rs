@@ -176,36 +176,6 @@ impl OpenHumanContextComposer {
         self
     }
 
-    /// Pins how the tool catalogue renders.
-    pub fn with_tool_call_format(mut self, format: ToolCallFormat) -> Self {
-        self.tool_call_format = format;
-        self
-    }
-
-    /// Attaches a pre-fetched connected-integration snapshot.
-    pub fn with_connected_integrations(mut self, integrations: Vec<ConnectedIntegration>) -> Self {
-        self.connected_integrations = integrations;
-        self
-    }
-
-    /// Attaches a pre-fetched learned-context snapshot — see the TODO on
-    /// [`Self::learned`].
-    pub fn with_learned_context(mut self, learned: LearnedContextData) -> Self {
-        self.learned = learned;
-        self
-    }
-
-    /// Replaces the section chain, e.g. with
-    /// `SystemPromptBuilder::for_subagent(..)`.
-    ///
-    /// Exposed because sub-agent prompts are a different chain, not a
-    /// different composer: the crate hands this seam an opaque `agent_id` and
-    /// cannot tell us which chain applies.
-    pub fn with_builder(mut self, builder: SystemPromptBuilder) -> Self {
-        self.builder = builder;
-        self
-    }
-
     /// Loads the two AGENTS.md layers, honouring the `agents_md_enabled` gate.
     ///
     /// Split out so the gate has exactly one enforcement point and the tests

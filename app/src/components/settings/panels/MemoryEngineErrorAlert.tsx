@@ -12,9 +12,11 @@ export function useMemoryEngineErrorText(): (kind: MemoryEngineErrorKind) => str
       ? t('memoryEngine.error.insufficientCredits')
       : kind === 'session_expired'
         ? t('memoryEngine.error.sessionExpired')
-        : kind === 'backend_unavailable'
-          ? t('memoryEngine.error.backendUnavailable')
-          : t('memoryEngine.error.generic');
+        : kind === 'memory_forbidden'
+          ? t('memoryEngine.error.forbidden')
+          : kind === 'backend_unavailable'
+            ? t('memoryEngine.error.backendUnavailable')
+            : t('memoryEngine.error.generic');
 }
 
 interface MemoryEngineErrorAlertProps {

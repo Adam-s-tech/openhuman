@@ -24,6 +24,7 @@ import SettingsTabbedPage from '../components/settings/layout/SettingsTabbedPage
 import MemoryEngineErrorAlert from '../components/settings/panels/MemoryEngineErrorAlert';
 import { classifyMemoryEngineError } from '../components/settings/panels/memoryEngineUtils';
 import { Alert, AlertDescription, Card } from '../components/ui';
+import { CenteredLoadingState } from '../components/ui/LoadingState';
 import { useT } from '../lib/i18n/I18nContext';
 import { useCoreState } from '../providers/CoreStateProvider';
 import type { ToastNotification } from '../types/intelligence';
@@ -421,7 +422,17 @@ export default function Brain() {
                           />
                         ) : error !== null ? (
                           <MemoryEngineErrorAlert error={error} fallbackText={t('brain.error')} />
-                        ) : null}
+                        ) : (
+                          // The first load can take seconds — a hosted engine
+                          // builds the graph from its derived layers — and an
+                          // empty canvas meanwhile reads as a broken page.
+                          <div role="status" data-testid="brain-graph-loading">
+                            <CenteredLoadingState
+                              label={t('workspace.loadingGraph')}
+                              className="h-[640px] rounded-lg border border-line-subtle bg-surface-muted/40"
+                            />
+                          </div>
+                        )}
                       </div>
                     </MemoryFamilyGate>
                   )}
@@ -435,7 +446,12 @@ export default function Brain() {
                   {activeTab === 'sources' && (
                     <div className="space-y-5 animate-fade-up">
                       <MemoryEngineRow />
-                      <CodingSessionsCard onToast={addToast} />
+                      {/* Coding sessions are a family of their own: an engine
+                      can accept synced items without reading local agent
+                      transcripts (hosted memory does exactly that). */}
+                      <MemoryFamilyGate family="coding_sessions">
+                        <CodingSessionsCard onToast={addToast} />
+                      </MemoryFamilyGate>
                       <MemoryFamilyGate family="sources">
                         <MemorySourcesRegistry onToast={addToast} />
                       </MemoryFamilyGate>
@@ -444,23 +460,31 @@ export default function Brain() {
 
                   {activeTab === 'sync' && syncView === 'status' && (
                     <div className="space-y-5 animate-fade-up">
+                      {/* The ingest pipeline's status is the local chunk store's:
+                      hosted memory draws a tree but keeps no such store. */}
                       <MemoryFamilyGate family="tree">
-                        <Card padded divided={false}>
-                          <MemoryTreeStatusPanel onToast={addToast} />
-                        </Card>
+                        <MemoryFamilyGate family="chunks">
+                          <Card padded divided={false}>
+                            <MemoryTreeStatusPanel onToast={addToast} />
+                          </Card>
+                        </MemoryFamilyGate>
                       </MemoryFamilyGate>
                       {/* openhuman#6257: what is syncing right now, beside the
                       history of what already ran. */}
-                      <Card padded divided={false} data-testid="brain-sync-activity">
-                        <SyncActivityCard />
-                      </Card>
+                      <MemoryFamilyGate family="sources">
+                        <Card padded divided={false} data-testid="brain-sync-activity">
+                          <SyncActivityCard />
+                        </Card>
+                      </MemoryFamilyGate>
                     </div>
                   )}
 
                   {/* Sync → History: the run history as a full-height table. */}
                   {activeTab === 'sync' && syncView === 'history' && (
                     <div className="flex min-h-0 flex-1 flex-col" data-testid="brain-sync-history">
-                      <SyncAuditPanel fill />
+                      <MemoryFamilyGate family="sources">
+                        <SyncAuditPanel fill />
+                      </MemoryFamilyGate>
                     </div>
                   )}
                 </div>

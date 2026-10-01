@@ -205,12 +205,6 @@ impl OpenHumanAgentMemory {
         self
     }
 
-    /// Overrides the relevance floor handed to `RecallOpts::min_score`.
-    pub fn with_min_score(mut self, min_score: f64) -> Self {
-        self.min_score = min_score;
-        self
-    }
-
     /// Allows recall to reach conversational hits from other sessions.
     ///
     /// Off by default. This is the widest scope decision the adapter can make,

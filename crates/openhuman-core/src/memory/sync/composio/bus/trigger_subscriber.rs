@@ -103,7 +103,7 @@ impl EventHandler<DomainEvent> for ComposioTriggerSubscriber {
             let payload_owned = payload.clone();
 
             match tokio::task::spawn_blocking(move || {
-                store.record_trigger(
+                store.record(
                     &toolkit_owned,
                     &trigger_owned,
                     &metadata_id_owned,

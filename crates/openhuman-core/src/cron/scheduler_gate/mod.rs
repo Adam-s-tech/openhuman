@@ -22,14 +22,11 @@
 //! caller resumes the moment the user toggles the gate back on.
 
 pub mod gate;
-pub mod signals;
 
 pub use gate::{
-    current_policy, current_signals, init_global, is_signed_out, set_signed_out, wait_for_capacity,
-    LlmPermit,
+    current_policy, init_global, is_signed_out, set_signed_out, wait_for_capacity, LlmPermit,
 };
-pub use signals::Signals;
-pub use tinymemory_api::host::{PauseReason, Policy};
+pub use gate::{PauseReason, Policy, Signals};
 
 #[cfg(test)]
 pub(crate) use gate::SignedOutTestGuard;

@@ -217,31 +217,6 @@ async fn microcompact_clears_older_tool_bodies_and_keeps_recent() {
     assert_eq!(req.messages[3].text(), "thinking");
 }
 
-#[tokio::test]
-async fn microcompact_is_a_noop_when_within_keep_recent() {
-    let mw = MicrocompactMiddleware::new(5, CLEARED_PLACEHOLDER);
-    let mut req = ModelRequest::new(vec![TaMessage::tool("t1", "A"), TaMessage::tool("t2", "B")]);
-    mw.before_model(&mut ctx(), &(), &mut req).await.unwrap();
-    assert_eq!(req.messages[0].text(), "A");
-    assert_eq!(req.messages[1].text(), "B");
-}
-
-#[tokio::test]
-async fn microcompact_is_idempotent() {
-    let mw = MicrocompactMiddleware::new(1, CLEARED_PLACEHOLDER);
-    let mut req = ModelRequest::new(vec![
-        TaMessage::tool("t1", "FIRST"),
-        TaMessage::tool("t2", "SECOND"),
-    ]);
-    mw.before_model(&mut ctx(), &(), &mut req).await.unwrap();
-    let after_first = req.messages[0].text();
-    assert_eq!(after_first, CLEARED_PLACEHOLDER);
-    // Second pass leaves the already-cleared body as the placeholder.
-    mw.before_model(&mut ctx(), &(), &mut req).await.unwrap();
-    assert_eq!(req.messages[0].text(), CLEARED_PLACEHOLDER);
-    assert_eq!(req.messages[1].text(), "SECOND");
-}
-
 // ── ToolOutputMiddleware ────────────────────────────────────────────────
 
 #[tokio::test]

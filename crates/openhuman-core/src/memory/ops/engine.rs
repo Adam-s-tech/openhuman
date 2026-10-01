@@ -27,6 +27,14 @@ const LOG_PREFIX: &str = "[memory:engine]";
 pub const INSUFFICIENT_CREDITS_PREFIX: &str = "INSUFFICIENT_CREDITS:";
 /// Error prefix for "no valid TinyHumans session".
 pub const SESSION_EXPIRED_PREFIX: &str = "SESSION_EXPIRED:";
+/// Error prefix for "the engine refused this credential" (HTTP 403 — for
+/// example an API key without the memory scope). Deliberately not
+/// [`SESSION_EXPIRED_PREFIX`]: the app reads that one as a lapsed sign-in and
+/// signs the user out, which a refused key is not.
+pub const MEMORY_FORBIDDEN_PREFIX: &str = "MEMORY_FORBIDDEN:";
+/// Error prefix for "the engine cannot be reached or cannot serve right now"
+/// (a timeout, a refused connection, a 429 or a 5xx that outlasted retries).
+pub const MEMORY_UNREACHABLE_PREFIX: &str = "MEMORY_UNREACHABLE:";
 
 /// One selectable engine, as `memory.engines_list` reports it.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -125,12 +133,35 @@ fn expected_capabilities(id: &str) -> Vec<String> {
         }
         "mem0" => &[C::ConversationIngest, C::Graph],
         "cognee" => &[C::Graph],
-        "cortex" | "tinyhumans" => &[
+        "cortex" => &[
             C::DocumentIngest,
             C::ConversationIngest,
             C::LearningIngest,
             C::EventIngest,
             C::Answer,
+        ],
+        // The direct wire's families, plus the ones only the hosted wire serves
+        // (tinymemory `docs/specs/tinyhumans-hosted-families.md`).
+        "tinyhumans" => &[
+            C::DocumentIngest,
+            C::ConversationIngest,
+            C::LearningIngest,
+            C::EventIngest,
+            C::Answer,
+            C::Goals,
+            C::ToolMemory,
+            C::Documents,
+            C::Sources,
+            C::Maintenance,
+            C::Retrieval,
+            C::Ingest,
+            C::Profile,
+            C::Episodic,
+            // tinymemory v1.21.0 (#178): the hosted adapter serves episodic
+            // export/import alongside `Episodic`.
+            C::EpisodicPortability,
+            C::Scoring,
+            C::Tree,
         ],
         _ => &[],
     };
@@ -188,32 +219,92 @@ fn normalized_driver(config: &Config) -> String {
 }
 
 /// Map an engine-layer failure to the RPC error vocabulary the UI keys on:
-/// `INSUFFICIENT_CREDITS:`, `SESSION_EXPIRED:` or `BACKEND_UNAVAILABLE:`, else
-/// the message as is (already scrubbed of keys and endpoints by the engine
-/// layer).
+/// `INSUFFICIENT_CREDITS:`, `SESSION_EXPIRED:`, `MEMORY_FORBIDDEN:`,
+/// `MEMORY_UNREACHABLE:` or `BACKEND_UNAVAILABLE:`, else the message as is
+/// (already scrubbed of keys and endpoints by the engine layer).
 #[must_use]
 pub fn classify_engine_error(error: &anyhow::Error) -> String {
     use crate::memory::api::error::MemoryError;
-    if let Some(me) = error.downcast_ref::<MemoryError>() {
-        match me {
-            // The hosted backend's 402 carries a `[USER_INSUFFICIENT_CREDITS]`
-            // message prefix (`tinymemory_remote::hosted`).
-            MemoryError::BudgetExceeded(message)
-                if message
-                    .trim_start()
-                    .starts_with("[USER_INSUFFICIENT_CREDITS]") =>
-            {
-                return format!(
-                    "{INSUFFICIENT_CREDITS_PREFIX} the memory engine is out of credits"
-                );
-            }
-            MemoryError::Unauthorized(_) => {
-                return format!("{SESSION_EXPIRED_PREFIX} the memory engine rejected the session");
-            }
-            _ => {}
-        }
+    match error.downcast_ref::<MemoryError>() {
+        Some(typed) => classify_memory_error(typed),
+        None => classify_engine_message(&format!("{error:#}")),
     }
-    classify_engine_message(&format!("{error:#}"))
+}
+
+/// [`classify_engine_error`] for a typed memory error.
+#[must_use]
+pub fn classify_memory_error(error: &crate::memory::api::error::MemoryError) -> String {
+    use crate::memory::api::error::MemoryError;
+    match error {
+        // The hosted backend's 402 carries a `[USER_INSUFFICIENT_CREDITS]`
+        // message prefix (`tinymemory_remote::hosted`).
+        MemoryError::BudgetExceeded(message)
+            if message
+                .trim_start()
+                .starts_with("[USER_INSUFFICIENT_CREDITS]") =>
+        {
+            format!("{INSUFFICIENT_CREDITS_PREFIX} the memory engine is out of credits")
+        }
+        MemoryError::Unauthorized(message) if is_forbidden(message) => {
+            format!("{MEMORY_FORBIDDEN_PREFIX} the memory engine refused this credential")
+        }
+        MemoryError::Unauthorized(_) => {
+            format!("{SESSION_EXPIRED_PREFIX} the memory engine rejected the session")
+        }
+        MemoryError::Unavailable(_) | MemoryError::Unreachable(_) | MemoryError::Timeout(_) => {
+            format!("{MEMORY_UNREACHABLE_PREFIX} the memory engine is not available right now")
+        }
+        other => classify_engine_message(&other.to_string()),
+    }
+}
+
+/// Whether an `Unauthorized` message is a 403: the credential was valid and
+/// refused, as opposed to missing or lapsed. Both remote adapters render the
+/// status they received ahead of any body text, as `(HTTP 403 Forbidden)`, so
+/// only the message's first status counts: a 401 whose body quotes an
+/// upstream 403 is still a lapsed session.
+fn is_forbidden(message: &str) -> bool {
+    message
+        .find("(HTTP ")
+        .is_some_and(|at| message[at..].starts_with("(HTTP 403 Forbidden)"))
+}
+
+/// `MemoryError`'s class tags, as its `Display` renders each variant.
+const MEMORY_ERROR_CLASSES: [&str; 12] = [
+    "not found: ",
+    "invalid input: ",
+    "budget exceeded: ",
+    "path escapes workspace: ",
+    "io error: ",
+    "serde error: ",
+    "unsupported capability: ",
+    "unauthorized: ",
+    "unreachable: ",
+    "timed out: ",
+    "unavailable: ",
+    "backend failed: ",
+];
+
+/// The not-now classes: the engine could not be reached or cannot serve yet.
+const NOT_NOW_CLASSES: [&str; 3] = ["unavailable: ", "unreachable: ", "timed out: "];
+
+/// The class of the error `message` renders, with the text after its tag:
+/// the outermost `MemoryError` class tag, at the start or after a caller's
+/// `context: ` wrapper. A tag further in is quoted detail of that error (an
+/// upstream body, say), never its class.
+fn memory_error_class(message: &str) -> Option<(&'static str, &str)> {
+    MEMORY_ERROR_CLASSES
+        .into_iter()
+        .filter_map(|class| {
+            let at = if message.starts_with(class) {
+                0
+            } else {
+                message.find(&format!(": {class}"))? + 2
+            };
+            Some((at, class))
+        })
+        .min_by_key(|&(at, _)| at)
+        .map(|(at, class)| (class, &message[at + class.len()..]))
 }
 
 /// [`classify_engine_error`] for a failure that is already a string.
@@ -222,17 +313,40 @@ pub fn classify_engine_message(message: &str) -> String {
     if message.contains(crate::core::observability::BACKEND_UNAVAILABLE_PREFIX)
         || message.starts_with(SESSION_EXPIRED_PREFIX)
         || message.starts_with(INSUFFICIENT_CREDITS_PREFIX)
+        || message.starts_with(MEMORY_FORBIDDEN_PREFIX)
+        || message.starts_with(MEMORY_UNREACHABLE_PREFIX)
     {
         return message.to_string();
     }
+    // The backend's billing code is a verdict on this account wherever it is
+    // quoted, and saying so signs no one out.
     if message.contains("USER_INSUFFICIENT_CREDITS") {
         return format!("{INSUFFICIENT_CREDITS_PREFIX} the memory engine is out of credits");
     }
+    // Only the error's own class decides, never a class quoted in its detail.
+    let class = memory_error_class(message);
+    // An auth refusal of the error's own: its class is `unauthorized: `, or it
+    // has no class tag (a bare adapter message, whose first status is its own).
+    let own_auth_detail = match class {
+        Some(("unauthorized: ", detail)) => Some(detail),
+        Some(_) => None,
+        None => Some(message),
+    };
+    if own_auth_detail.is_some_and(is_forbidden) {
+        return format!("{MEMORY_FORBIDDEN_PREFIX} the memory engine refused this credential");
+    }
+    // A lapsed session signs the user out, so the hosted `[UNAUTHORIZED]`
+    // code counts only as the error's own: quoted by an outage (the backend
+    // relaying its upstream's 401 as a 503, say) it is not this user's
+    // session. OpenHuman's own `SESSION_EXPIRED:` marker counts wherever it is.
     if message.contains(SESSION_EXPIRED_PREFIX)
-        || message.contains("[UNAUTHORIZED]")
+        || (own_auth_detail.is_some() && message.contains("[UNAUTHORIZED]"))
         || (message.starts_with("unauthorized:") && message.contains("re-authenticate"))
     {
         return format!("{SESSION_EXPIRED_PREFIX} no TinyHumans session");
+    }
+    if class.is_some_and(|(class, _)| NOT_NOW_CLASSES.contains(&class)) {
+        return format!("{MEMORY_UNREACHABLE_PREFIX} the memory engine is not available right now");
     }
     message.to_string()
 }

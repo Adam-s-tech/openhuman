@@ -1,11 +1,11 @@
 //! Shared channel runtime state and memory helpers.
 
-use crate::agent::messages::ChatMessage;
 use crate::agent::tinyagents::TurnModelSource;
 use crate::util::truncate_with_ellipsis;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
+use tinyagents_session::transcript::TranscriptMessage;
 use tinytools::Tool;
 
 pub(crate) use tinychannels::context::{
@@ -21,7 +21,7 @@ pub(crate) use tinychannels::context::{
 pub(crate) use tinychannels::context::MIN_CHANNEL_MESSAGE_TIMEOUT_SECS;
 
 /// Per-sender conversation history for channel messages.
-pub(crate) type ConversationHistoryMap = Arc<Mutex<HashMap<String, Vec<ChatMessage>>>>;
+pub(crate) type ConversationHistoryMap = Arc<Mutex<HashMap<String, Vec<TranscriptMessage>>>>;
 
 pub(crate) type TurnModelSourceCacheMap = Arc<Mutex<HashMap<String, TurnModelSource>>>;
 pub(crate) type RouteSelectionMap = Arc<Mutex<HashMap<String, ChannelRouteSelection>>>;

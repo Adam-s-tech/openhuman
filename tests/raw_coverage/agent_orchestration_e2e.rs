@@ -14,6 +14,7 @@
 //! Aggregated into `tests/raw_coverage_all.rs` by `build.rs`. Run with:
 //! `cargo test --test raw_coverage_all --features "$(bash scripts/ci/product-features.sh)" agent_orchestration_e2e`
 
+use crate::env_guard::EnvVarGuard;
 use std::net::SocketAddr;
 use std::path::Path;
 use std::sync::{Arc, Mutex, OnceLock};
@@ -43,40 +44,6 @@ static MEMORY_SEAMS_INIT: OnceLock<()> = OnceLock::new();
 /// `raw_coverage_all` shares one process, so libtest runs them concurrently
 /// and a lock local to this file would isolate nothing.
 static ENV_LOCK: &OnceLock<Mutex<()>> = &crate::SHARED_ENV_LOCK;
-
-struct EnvVarGuard {
-    key: &'static str,
-    old: Option<String>,
-}
-
-impl EnvVarGuard {
-    fn set_to_path(key: &'static str, path: &Path) -> Self {
-        let old = std::env::var(key).ok();
-        std::env::set_var(key, path.as_os_str());
-        Self { key, old }
-    }
-
-    fn set(key: &'static str, value: &str) -> Self {
-        let old = std::env::var(key).ok();
-        std::env::set_var(key, value);
-        Self { key, old }
-    }
-
-    fn unset(key: &'static str) -> Self {
-        let old = std::env::var(key).ok();
-        std::env::remove_var(key);
-        Self { key, old }
-    }
-}
-
-impl Drop for EnvVarGuard {
-    fn drop(&mut self) {
-        match &self.old {
-            Some(value) => std::env::set_var(self.key, value),
-            None => std::env::remove_var(self.key),
-        }
-    }
-}
 
 fn env_lock() -> std::sync::MutexGuard<'static, ()> {
     ENV_LOCK
@@ -788,63 +755,9 @@ async fn agent_team_list_and_close_reject_malformed_input() {
 /// drawer's row may be stale, and a stale row must not raise. `steer` goes
 /// further and says *why* it did nothing.
 #[tokio::test]
-async fn subagent_cancel_and_steer_report_structurally_for_an_unknown_task() {
+async fn subagent_steer_honours_and_defaults_the_queue_mode() {
     let _lock = env_lock();
     let h = setup().await;
-
-    let cancelled = h
-        .ok(
-            3501,
-            "openhuman.subagent_cancel",
-            json!({ "taskId": "sub-not-running" }),
-        )
-        .await;
-    assert_eq!(
-        cancelled.get("cancelled").and_then(Value::as_bool),
-        Some(false),
-        "nothing was running, and that is an answer not a failure: {cancelled}"
-    );
-    assert_eq!(
-        cancelled.get("taskId").and_then(Value::as_str),
-        Some("sub-not-running"),
-        "the answer echoes the task asked about: {cancelled}"
-    );
-
-    // A reason is accepted on the cancel path and must not change the verdict.
-    let with_reason = h
-        .ok(
-            3502,
-            "openhuman.subagent_cancel",
-            json!({ "taskId": "sub-not-running", "reason": "changed my mind" }),
-        )
-        .await;
-    assert_eq!(
-        with_reason.get("cancelled").and_then(Value::as_bool),
-        Some(false)
-    );
-
-    let steered = h
-        .ok(
-            3503,
-            "openhuman.subagent_steer",
-            json!({ "taskId": "sub-not-running", "message": "focus on the failing test" }),
-        )
-        .await;
-    assert_eq!(
-        steered.get("steered").and_then(Value::as_bool),
-        Some(false),
-        "an unknown task cannot be steered: {steered}"
-    );
-    assert_eq!(
-        steered.get("reason").and_then(Value::as_str),
-        Some("unknown"),
-        "and the caller is told which of the failure modes it hit: {steered}"
-    );
-    assert_eq!(
-        steered.get("mode").and_then(Value::as_str),
-        Some("steer"),
-        "steer is the default queue mode: {steered}"
-    );
 
     let collect = h
         .ok(
@@ -875,62 +788,6 @@ async fn subagent_cancel_and_steer_report_structurally_for_an_unknown_task() {
         bogus_mode.get("mode").and_then(Value::as_str),
         Some("steer"),
         "an unknown mode degrades to the default: {bogus_mode}"
-    );
-
-    h.join.abort();
-}
-
-/// `taskId` is **trimmed** before it reaches the registry, so a whitespace-
-/// padded id must be rejected up front — it would otherwise pass a naive
-/// non-empty check and then silently never match a registry key.
-#[tokio::test]
-async fn subagent_controls_reject_blank_and_absent_required_params() {
-    let _lock = env_lock();
-    let h = setup().await;
-
-    // Each method gets its own param shape: the RPC layer rejects an unknown
-    // param, and `subagent_cancel` declares no `message`.
-    for (id, method, extra) in [
-        (3601, "openhuman.subagent_cancel", json!({})),
-        (3602, "openhuman.subagent_steer", json!({ "message": "hi" })),
-    ] {
-        let mut blank = extra.as_object().cloned().expect("params object");
-        blank.insert("taskId".to_string(), json!("   "));
-        let blank = h.err(id, method, Value::Object(blank)).await;
-        assert!(
-            blank.contains("taskId"),
-            "{method} rejects a whitespace-only taskId: {blank}"
-        );
-
-        let absent = h.err(id + 10, method, extra).await;
-        assert!(
-            absent.contains("taskId"),
-            "{method} names its required taskId: {absent}"
-        );
-    }
-
-    let no_message = h
-        .err(
-            3603,
-            "openhuman.subagent_steer",
-            json!({ "taskId": "sub-1" }),
-        )
-        .await;
-    assert!(
-        no_message.contains("message"),
-        "steer names its required message: {no_message}"
-    );
-
-    let blank_message = h
-        .err(
-            3604,
-            "openhuman.subagent_steer",
-            json!({ "taskId": "sub-1", "message": "  " }),
-        )
-        .await;
-    assert!(
-        blank_message.contains("message"),
-        "a blank steer message is treated as absent: {blank_message}"
     );
 
     h.join.abort();

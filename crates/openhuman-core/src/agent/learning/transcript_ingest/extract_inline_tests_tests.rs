@@ -19,7 +19,7 @@ fn skips_short_filler() {
 
 #[test]
 fn extracts_user_preference_as_high() {
-    let msgs = vec![ChatMessage::user(
+    let msgs = vec![TranscriptMessage::user(
         "I prefer Postgres over MySQL for new services.",
     )];
     let cands = extract_candidates(&msgs, &prov());
@@ -31,7 +31,7 @@ fn extracts_user_preference_as_high() {
 
 #[test]
 fn does_not_extract_preference_from_assistant() {
-    let msgs = vec![ChatMessage::assistant(
+    let msgs = vec![TranscriptMessage::assistant(
         "You said earlier that I prefer Postgres for these.",
     )];
     let cands = extract_candidates(&msgs, &prov());
@@ -45,8 +45,8 @@ fn does_not_extract_preference_from_assistant() {
 #[test]
 fn extracts_decision_from_either_side() {
     let msgs = vec![
-        ChatMessage::user("Let's go with Postgres for the metadata store."),
-        ChatMessage::assistant("Sure, going with Postgres."),
+        TranscriptMessage::user("Let's go with Postgres for the metadata store."),
+        TranscriptMessage::assistant("Sure, going with Postgres."),
     ];
     let cands = extract_candidates(&msgs, &prov());
     let decisions: Vec<_> = cands
@@ -61,7 +61,7 @@ fn extracts_decision_from_either_side() {
 
 #[test]
 fn extracts_unresolved_task() {
-    let msgs = vec![ChatMessage::user(
+    let msgs = vec![TranscriptMessage::user(
         "Still need to migrate the old auth service before Friday.",
     )];
     let cands = extract_candidates(&msgs, &prov());
@@ -73,9 +73,9 @@ fn extracts_unresolved_task() {
 #[test]
 fn captures_reflection_with_provenance_indices() {
     let msgs = vec![
-        ChatMessage::user("Hello, can you help with the deploy?"),
-        ChatMessage::assistant("Sure, what's broken?"),
-        ChatMessage::user(
+        TranscriptMessage::user("Hello, can you help with the deploy?"),
+        TranscriptMessage::assistant("Sure, what's broken?"),
+        TranscriptMessage::user(
             "I realized our staging cluster is the bottleneck — \
              next time let's pre-warm it.",
         ),

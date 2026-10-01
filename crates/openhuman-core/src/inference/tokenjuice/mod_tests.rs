@@ -7,32 +7,6 @@ fn recovery_tool_aliases_remain_stable() {
     assert!(!is_recovery_tool("shell"));
 }
 
-#[tokio::test]
-async fn disabled_compaction_is_an_exact_pass_through_without_loading_the_module() {
-    let content = "exact tool output".to_string();
-    let output = compact_output_with_policy(
-        content.clone(),
-        "shell",
-        false,
-        AgentTokenjuiceCompression::Full,
-    )
-    .await;
-    assert_eq!(output, content);
-}
-
-#[tokio::test]
-async fn off_profile_is_an_exact_pass_through_without_loading_the_module() {
-    let content = "exact tool output".to_string();
-    let output = compact_output_with_policy(
-        content.clone(),
-        "shell",
-        true,
-        AgentTokenjuiceCompression::Off,
-    )
-    .await;
-    assert_eq!(output, content);
-}
-
 /// The whole summary path over the real bus: `CompactWith` into the module,
 /// `MlHost.Generate` back out to a registered call, the summary back in.
 /// Runs where CI builds the module (`TINYJUICE_TEST_MODULE`); skipped
@@ -40,6 +14,11 @@ async fn off_profile_is_an_exact_pass_through_without_loading_the_module() {
 #[tokio::test]
 async fn the_module_calls_back_for_a_summary_written_for_the_focus() {
     if std::env::var_os("TINYJUICE_TEST_MODULE").is_none() {
+        eprintln!(
+            "SKIPPED (not run, not asserted): TINYJUICE_TEST_MODULE is not set. Build \
+             vendor/tinyjuice and export TINYJUICE_TEST_MODULE=<path to libtinyjuice_module>, \
+             or use scripts/test-rust-with-mock.sh"
+        );
         return;
     }
     let seen = std::sync::Arc::new(std::sync::Mutex::new(None::<types::GenerateRequest>));

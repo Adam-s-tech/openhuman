@@ -89,15 +89,6 @@ pub fn current_source_scope() -> Option<HashSet<String>> {
     SOURCE_SCOPE.try_with(|v| v.clone()).ok().flatten()
 }
 
-/// Whether `scope` is recallable under the ambient allowlist. `true` when there
-/// is no active scope (unrestricted) or when the scope is explicitly allowed.
-pub fn scope_allowed(scope: &str) -> bool {
-    match current_source_scope() {
-        None => true,
-        Some(set) => set.contains(scope),
-    }
-}
-
 /// Render the ambient scope in the vocabulary a `MemoryProvider` call takes.
 ///
 /// This is the whole point of keeping the task-local host-side: the ambient

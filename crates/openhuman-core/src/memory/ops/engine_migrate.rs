@@ -1,11 +1,21 @@
 //! `memory.engine_migrate` / `memory.engine_migrate_status` — copy everything
 //! from the active engine into another, then switch to it.
 //!
-//! The copy is `tinymemory::migrate::copy`: engine-neutral, at-least-once and
-//! non-destructive (the source keeps its data, and the target skips records it
-//! recognises), so a failed or repeated migration is safe and the previous
-//! engine stays usable. The switch is committed only after the copy finished
-//! with no failed records; on any failure the active engine is untouched.
+//! The copy is `tinymemory::migrate::copy_all`: the keyed records, then each
+//! family both engines serve — document details, goals, the learned profile,
+//! the conversation history — and, when the caller asks, the ingested content,
+//! re-sent raw so the new engine rebuilds its summary tree. It is engine-neutral,
+//! at-least-once and non-destructive (the source keeps its data, and the target
+//! skips what it already holds), so a failed or repeated migration is safe and
+//! the previous engine stays usable. The switch is committed only after the copy
+//! finished with nothing failed; on any failure the active engine is untouched.
+//! Re-sent content is the exception: it stays in the previous engine and the
+//! sync that produced it can bring it again, so a piece the new engine refuses
+//! is reported in the job's note rather than holding the switch back.
+//!
+//! The host decides what the replay leaves out. A target the host syncs sources
+//! into itself gets every reader-based source again from scratch (see
+//! `memory::sources::hosted_sync`), so their chunks are not re-sent.
 //!
 //! Jobs live in an in-process map (one at a time). They do not survive a
 //! restart: an interrupted migration is simply run again.
@@ -47,6 +57,41 @@ const MAX_FINISHED_JOBS: usize = 16;
 #[derive(Clone, Deserialize)]
 pub struct MigrateParams {
     pub to: EngineTargetParams,
+    /// Whether to re-send ingested content so the new engine rebuilds its
+    /// summary tree from it. Hosted memory bills for the content it reads
+    /// again, which is why it is a choice. Defaults to `true`.
+    #[serde(default = "replay_by_default")]
+    pub replay_content: bool,
+}
+
+fn replay_by_default() -> bool {
+    true
+}
+
+/// The prefix of a reader-based source's chunk ids, `mem_src:<source>:<item>`
+/// (see `tinymemory_api::sync_events::extract_mem_src_id`).
+const READER_SOURCE_PREFIX: &str = "mem_src:";
+
+/// What a copy carries beyond the keyed records, as the host decides it.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+struct CopyChoices {
+    replay_content: bool,
+    skip_source_prefixes: Vec<String>,
+}
+
+/// The choices for a copy into a target: one the host syncs sources into
+/// itself (`host_synced`) gets every reader-based source again from scratch,
+/// so the replay leaves those out rather than send them twice.
+fn copy_choices(replay_content: bool, host_synced: bool) -> CopyChoices {
+    let skip_source_prefixes = if host_synced {
+        vec![READER_SOURCE_PREFIX.to_string()]
+    } else {
+        Vec::new()
+    };
+    CopyChoices {
+        replay_content,
+        skip_source_prefixes,
+    }
 }
 
 /// Parameters of `memory.engine_migrate_cancel`.
@@ -100,6 +145,33 @@ pub struct MigrateStatus {
     /// A caveat on a finished job (see the module docs on writes during the
     /// copy); `None` otherwise.
     pub note: Option<String>,
+    /// The step under way — `records`, `documents`, `goals`, `profile`,
+    /// `episodic` or `content` — or the last one once the copy ended. `None`
+    /// before the first step reports.
+    pub step: Option<String>,
+    /// Items the step under way has read so far.
+    pub step_read: usize,
+    /// Items the step under way has written so far.
+    pub step_written: usize,
+    /// What each step after the records did, once the copy finished.
+    pub steps: Vec<MigrateStepStatus>,
+}
+
+/// What one step after the keyed records did.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MigrateStepStatus {
+    /// `documents`, `goals`, `profile`, `episodic` or `content`.
+    pub step: String,
+    /// Why the step did not run — an engine does not serve what it needs, or
+    /// the caller chose not to re-send content. `None` when it ran.
+    pub skipped_because: Option<String>,
+    pub read: usize,
+    pub written: usize,
+    /// Items the new engine already held as the old one has them.
+    pub unchanged: usize,
+    pub failed: usize,
+    /// Why items failed, naming them and never their content; at most 20.
+    pub errors: Vec<String>,
 }
 
 /// Cancel signals of the jobs in [`JOBS`].
@@ -167,6 +239,10 @@ fn start_job() -> Result<String, String> {
             total: None,
             error: None,
             note: None,
+            step: None,
+            step_read: 0,
+            step_written: 0,
+            steps: Vec::new(),
         },
     );
     cancels().insert(
@@ -186,22 +262,57 @@ struct CopyReport {
     skipped: usize,
     failed: usize,
     errors: Vec<String>,
+    steps: Vec<MigrateStepStatus>,
+}
+
+/// One progress report from the copy: the step under way and its counts.
+#[derive(Clone, Copy, Debug)]
+struct CopyTick {
+    step: &'static str,
+    read: usize,
+    written: usize,
 }
 
 #[cfg(feature = "memory-remote")]
 async fn run_copy(
     source: &dyn crate::memory::api::provider::MemoryProvider,
     target: &dyn crate::memory::api::provider::MemoryProvider,
-    on_progress: impl FnMut(usize),
+    choices: &CopyChoices,
+    on_progress: impl FnMut(CopyTick),
 ) -> anyhow::Result<CopyReport> {
     let mut on_progress = on_progress;
-    let report = tinymemory::migrate::copy(source, target, |p| on_progress(p.records)).await?;
+    let options = tinymemory::migrate::CopyOptions {
+        replay_content: choices.replay_content,
+        skip_source_prefixes: choices.skip_source_prefixes.clone(),
+        ..tinymemory::migrate::CopyOptions::default()
+    };
+    let report = tinymemory::migrate::copy_all(source, target, &options, |p| {
+        on_progress(CopyTick {
+            step: p.step.as_str(),
+            read: p.read,
+            written: p.written,
+        });
+    })
+    .await?;
     Ok(CopyReport {
-        records: report.records,
-        imported: report.imported,
-        skipped: report.skipped,
-        failed: report.failed,
-        errors: report.errors,
+        records: report.records.records,
+        imported: report.records.imported,
+        skipped: report.records.skipped,
+        failed: report.records.failed,
+        errors: report.records.errors,
+        steps: report
+            .steps
+            .into_iter()
+            .map(|step| MigrateStepStatus {
+                step: step.step.as_str().to_string(),
+                skipped_because: step.skipped_because,
+                read: step.read,
+                written: step.written,
+                unchanged: step.unchanged,
+                failed: step.failed,
+                errors: step.errors,
+            })
+            .collect(),
     })
 }
 
@@ -209,9 +320,34 @@ async fn run_copy(
 async fn run_copy(
     _source: &dyn crate::memory::api::provider::MemoryProvider,
     _target: &dyn crate::memory::api::provider::MemoryProvider,
-    _on_progress: impl FnMut(usize),
+    _choices: &CopyChoices,
+    _on_progress: impl FnMut(CopyTick),
 ) -> anyhow::Result<CopyReport> {
     anyhow::bail!("memory engine migration is not compiled into this build")
+}
+
+/// The step whose failures hold the switch back, if any: every step but the
+/// content replay, which only re-sends what the previous engine keeps.
+fn blocking_failure(steps: &[MigrateStepStatus]) -> Option<&MigrateStepStatus> {
+    steps
+        .iter()
+        .find(|step| step.step != "content" && step.failed > 0)
+}
+
+/// The caveats on a finished copy: writes made while it ran, and re-sent
+/// content the new engine refused.
+fn finished_note(steps: &[MigrateStepStatus]) -> String {
+    let mut note = WRITES_DURING_COPY_NOTE.to_string();
+    if let Some(content) = steps
+        .iter()
+        .find(|step| step.step == "content" && step.failed > 0)
+    {
+        note.push_str(&format!(
+            " {} pieces of synced content could not be re-sent; the previous engine still holds them, and their next sync can bring them again.",
+            content.failed
+        ));
+    }
+    note
 }
 
 /// How the copy phase ended.
@@ -228,6 +364,7 @@ async fn run_job<F, Fut>(
     job_id: String,
     source: Arc<dyn crate::memory::api::provider::MemoryProvider>,
     target: Arc<dyn crate::memory::api::provider::MemoryProvider>,
+    choices: CopyChoices,
     timeout: Duration,
     commit: F,
 ) where
@@ -239,8 +376,18 @@ async fn run_job<F, Fut>(
         .map(|slot| Arc::clone(&slot.notify))
         .unwrap_or_default();
     let progress_id = job_id.clone();
-    let copy = run_copy(source.as_ref(), target.as_ref(), move |records| {
-        update_job(&progress_id, |j| j.copied = records);
+    let copy = run_copy(source.as_ref(), target.as_ref(), &choices, move |tick| {
+        update_job(&progress_id, |j| {
+            if j.step.as_deref() != Some(tick.step) {
+                log::info!("{LOG_PREFIX} job={progress_id} step={} started", tick.step);
+            }
+            if tick.step == "records" {
+                j.copied = tick.read;
+            }
+            j.step = Some(tick.step.to_string());
+            j.step_read = tick.read;
+            j.step_written = tick.written;
+        });
     });
     // Dropping the copy future on cancel/timeout stops it at its next await,
     // i.e. between export/import pages.
@@ -275,6 +422,30 @@ async fn run_job<F, Fut>(
             );
         }
         CopyEnd::Finished(Ok(report)) => {
+            let steps = report.steps.clone();
+            update_job(&job_id, |j| j.steps = steps);
+            for step in &report.steps {
+                log::info!(
+                    "{LOG_PREFIX} job={job_id} step={} read={} written={} unchanged={} failed={} skipped_because={:?}",
+                    step.step,
+                    step.read,
+                    step.written,
+                    step.unchanged,
+                    step.failed,
+                    step.skipped_because
+                );
+            }
+            if let Some(step) = blocking_failure(&report.steps) {
+                let first = step.errors.first().map_or("", String::as_str);
+                fail_job(
+                    &job_id,
+                    classify_engine_message(&format!(
+                        "{} of {} {} items could not be copied; the active engine was not changed. {first}",
+                        step.failed, step.read, step.step
+                    )),
+                );
+                return;
+            }
             // The copy is past its cancellation point. Removing the signal
             // makes concurrent cancel requests report `cancelled: false`.
             if cancels().remove(&job_id).is_some_and(|slot| slot.requested) {
@@ -290,9 +461,10 @@ async fn run_job<F, Fut>(
                         report.imported,
                         report.skipped
                     );
+                    let note = finished_note(&report.steps);
                     update_job(&job_id, |j| {
                         j.state = "done".to_string();
-                        j.note = Some(WRITES_DURING_COPY_NOTE.to_string());
+                        j.note = Some(note);
                     });
                 }
                 Err(error) => fail_job(&job_id, classify_engine_message(&error)),
@@ -311,6 +483,7 @@ fn spawn_job<F, Fut>(
     job_id: String,
     source: Arc<dyn crate::memory::api::provider::MemoryProvider>,
     target: Arc<dyn crate::memory::api::provider::MemoryProvider>,
+    choices: CopyChoices,
     timeout: Duration,
     commit: F,
 ) where
@@ -319,7 +492,7 @@ fn spawn_job<F, Fut>(
 {
     let worker_id = job_id.clone();
     let worker = tokio::spawn(CoreContext::propagate(run_job(
-        worker_id, source, target, timeout, commit,
+        worker_id, source, target, choices, timeout, commit,
     )));
     tokio::spawn(async move {
         if let Err(join_error) = worker.await {
@@ -365,16 +538,23 @@ pub async fn memory_engine_migrate(
         let _switch = SWITCH_LOCK.lock().await;
         start_job()?
     };
+    let choices = copy_choices(
+        params.replay_content,
+        crate::memory::sources::hosted_sync::host_synced(target.as_ref()),
+    );
     log::info!(
-        "{LOG_PREFIX} job={job_id} started source='{}' target='{}'",
+        "{LOG_PREFIX} job={job_id} started source='{}' target='{}' replay_content={} skip_sources={:?}",
         source_binding.driver_id(),
-        prepared.id
+        prepared.id,
+        choices.replay_content,
+        choices.skip_source_prefixes
     );
 
     spawn_job(
         job_id.clone(),
         source,
         target,
+        choices,
         migrate_timeout(),
         move || async move { commit_engine(&prepared).await.map(|_| ()) },
     );

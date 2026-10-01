@@ -167,6 +167,39 @@ mod transient_bind {
         );
     }
 
+    /// A caller holding a stale config resolves the engine the workspace is
+    /// bound to, and through `for_workspace`: an expired fallback is retried,
+    /// never served as it was cached.
+    #[tokio::test]
+    async fn the_current_binding_retries_an_expired_fallback() {
+        let dir = tempfile::tempdir().unwrap();
+        let cfg = bad_credential_cfg();
+        let key = (dir.path().to_path_buf(), "memory".to_string(), cfg.clone());
+        let expired = Arc::new(
+            crate::memory::binding_build::build(dir.path(), "memory", &cfg)
+                .retry_after(std::time::Duration::ZERO),
+        );
+        BINDINGS
+            .get_or_init(Default::default)
+            .write()
+            .unwrap()
+            .insert(key, Arc::clone(&expired));
+        let stale = MemorySubsystemConfig {
+            driver: "null".into(),
+            ..Default::default()
+        };
+        let current = current_for(dir.path(), &stale).unwrap();
+        assert_eq!(
+            current.fallback().unwrap().configured_driver,
+            "supermemory",
+            "the engine the workspace is bound to, not the caller's"
+        );
+        assert!(
+            !Arc::ptr_eq(&expired, &current),
+            "an expired fallback is rebuilt"
+        );
+    }
+
     #[tokio::test]
     async fn an_admission_refusal_is_not_transient() {
         let dir = tempfile::tempdir().unwrap();

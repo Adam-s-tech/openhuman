@@ -13,6 +13,7 @@ import type {
 } from '../../../utils/tauriCommands/memoryEngine';
 import { resetMemoryEngineCacheForTests } from '../../intelligence/useMemoryEngineCapabilities';
 import MemoryEnginePanel, {
+  copyCompletion,
   MIGRATE_JOB_STORAGE_KEY,
   MIGRATE_POLL_INTERVAL_MS,
 } from './MemoryEnginePanel';
@@ -209,11 +210,10 @@ describe('MemoryEnginePanel', () => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
     });
-    expect(hoisted.migrate).toHaveBeenCalledWith({
-      driver: 'mem0',
-      endpoint: 'https://api.mem0.ai',
-      deployment: 'cloud',
-    });
+    expect(hoisted.migrate).toHaveBeenCalledWith(
+      { driver: 'mem0', endpoint: 'https://api.mem0.ai', deployment: 'cloud' },
+      { replayContent: true }
+    );
     expect(screen.getByTestId('memory-engine-progress')).toBeInTheDocument();
 
     await act(async () => {
@@ -370,5 +370,201 @@ describe('MemoryEnginePanel', () => {
     fireEvent.click(screen.getByTestId('memory-engine-switch'));
     fireEvent.click(await screen.findByTestId('memory-engine-copy-switch'));
     await waitFor(() => expect(hoisted.storage.get(MIGRATE_JOB_STORAGE_KEY)).toContain('job-p'));
+    expect(JSON.parse(hoisted.storage.get(MIGRATE_JOB_STORAGE_KEY) ?? '{}')).toEqual({
+      jobId: 'job-p',
+      driver: 'mem0',
+      replayContent: true,
+    });
+  });
+
+  test('a resumed migration keeps the replay choice it was started with', async () => {
+    vi.useFakeTimers();
+    hoisted.storage.set(
+      MIGRATE_JOB_STORAGE_KEY,
+      JSON.stringify({ jobId: 'job-o', driver: 'mem0', replayContent: false })
+    );
+    const skippedContent = {
+      step: 'content',
+      skipped_because: 'the caller chose not to re-send content',
+      read: 0,
+      written: 0,
+      unchanged: 0,
+      failed: 0,
+      errors: [],
+    };
+    hoisted.status
+      .mockResolvedValueOnce({ state: 'running', copied: 1, total: null, error: null })
+      .mockResolvedValue({
+        state: 'done',
+        copied: 1,
+        total: null,
+        error: null,
+        steps: [skippedContent],
+      });
+    renderWithProviders(<MemoryEnginePanel />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(screen.getByTestId('memory-engine-progress')).toBeInTheDocument();
+    hoisted.get.mockResolvedValue(state({ driver: 'mem0', endpoint: 'https://api.mem0.ai' }));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(MIGRATE_POLL_INTERVAL_MS);
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(
+      screen.queryByTestId('memory-engine-left-behind'),
+      'content the user chose not to re-send is not reported as left behind'
+    ).not.toBeInTheDocument();
+  });
+
+  test('the copy can leave synced content behind, and the hint shows for hosted engines', async () => {
+    vi.useFakeTimers();
+    hoisted.migrate.mockResolvedValue({ job_id: 'job-h' });
+    hoisted.status.mockResolvedValue({ state: 'running', copied: 0, total: null, error: null });
+    renderWithProviders(<MemoryEnginePanel />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    pick('tinyhumans');
+    fireEvent.click(screen.getByTestId('memory-engine-switch'));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    const dialog = screen.getByTestId('memory-engine-switch-dialog');
+    expect(dialog).toHaveTextContent('conversation history');
+    expect(dialog).toHaveTextContent('OpenHuman credits');
+    const replay = screen.getByTestId('memory-engine-replay-content');
+    expect(replay).toBeChecked();
+    fireEvent.click(replay);
+    expect(replay).not.toBeChecked();
+    fireEvent.click(screen.getByTestId('memory-engine-copy-switch'));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(hoisted.migrate).toHaveBeenCalledWith(
+      { driver: 'tinyhumans' },
+      { replayContent: false }
+    );
+  });
+
+  test('the progress line names the step under way', async () => {
+    vi.useFakeTimers();
+    hoisted.migrate.mockResolvedValue({ job_id: 'job-s' });
+    hoisted.status.mockResolvedValue({
+      state: 'running',
+      copied: 12,
+      total: null,
+      error: null,
+      step: 'episodic',
+      step_read: 40,
+      step_written: 38,
+      steps: [],
+    });
+    renderWithProviders(<MemoryEnginePanel />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    pick('mem0');
+    fireEvent.click(screen.getByTestId('memory-engine-switch'));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    fireEvent.click(screen.getByTestId('memory-engine-copy-switch'));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(MIGRATE_POLL_INTERVAL_MS);
+    });
+    expect(screen.getByTestId('memory-engine-progress-line')).toHaveTextContent(
+      'Copying conversation history… 40 copied so far'
+    );
+  });
+
+  test('after the switch, what the new engine could not take is named', async () => {
+    vi.useFakeTimers();
+    hoisted.migrate.mockResolvedValue({ job_id: 'job-l' });
+    const skipped = (step: string) => ({
+      step,
+      skipped_because: 'the target does not serve it',
+      read: 0,
+      written: 0,
+      unchanged: 0,
+      failed: 0,
+      errors: [],
+    });
+    hoisted.status.mockResolvedValue({
+      state: 'done',
+      copied: 4,
+      total: null,
+      error: null,
+      steps: [
+        skipped('goals'),
+        skipped('profile'),
+        { ...skipped('content'), skipped_because: null, read: 5, written: 3, failed: 2 },
+      ],
+    });
+    renderWithProviders(<MemoryEnginePanel />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    pick('mem0');
+    fireEvent.click(screen.getByTestId('memory-engine-switch'));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    hoisted.get.mockResolvedValue(state({ driver: 'mem0', endpoint: 'https://api.mem0.ai' }));
+    fireEvent.click(screen.getByTestId('memory-engine-copy-switch'));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(MIGRATE_POLL_INTERVAL_MS);
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(screen.getByTestId('memory-engine-left-behind')).toHaveTextContent(
+      'goals, learned profile'
+    );
+    expect(screen.getByTestId('memory-engine-content-refused')).toHaveTextContent('(2)');
+  });
+});
+
+describe('copyCompletion', () => {
+  const step = (name: 'content' | 'goals', skipped: string | null, failed = 0) => ({
+    step: name,
+    skipped_because: skipped,
+    read: 0,
+    written: 0,
+    unchanged: 0,
+    failed,
+    errors: [],
+  });
+  const done = (steps: ReturnType<typeof step>[]) => ({
+    state: 'done' as const,
+    copied: 0,
+    total: null,
+    error: null,
+    steps,
+  });
+
+  test('content the user chose not to re-send is not left behind', () => {
+    const status = done([
+      step('content', 'the caller chose not to re-send content'),
+      step('goals', null),
+    ]);
+    expect(copyCompletion(status, false)).toEqual({ leftBehind: [], refused: 0 });
+    expect(copyCompletion(status, true)).toEqual({ leftBehind: ['content'], refused: 0 });
+  });
+
+  test('content the new engine refused is counted', () => {
+    const status = done([
+      step('goals', 'the target does not serve goals'),
+      step('content', null, 3),
+    ]);
+    expect(copyCompletion(status, true)).toEqual({ leftBehind: ['goals'], refused: 3 });
   });
 });

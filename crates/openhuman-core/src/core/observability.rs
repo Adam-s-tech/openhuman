@@ -641,7 +641,7 @@ pub fn expected_error_kind(message: &str) -> Option<ExpectedErrorKind> {
     if is_local_ai_capability_unavailable_message(&lower) {
         return Some(ExpectedErrorKind::LocalAiCapabilityUnavailable);
     }
-    if crate::backend::classify::is_budget_exhausted_message(message) {
+    if tinyinference_providers::is_budget_exhausted_message(message) {
         return Some(ExpectedErrorKind::BudgetExhausted);
     }
     if is_backend_unavailable_message(message) {
@@ -2028,8 +2028,8 @@ fn report_expected_message(kind: ExpectedErrorKind, message: &str, domain: &str,
             );
         }
         ExpectedErrorKind::LocalAiBinaryMissing => {
-            // User-state condition: the piper or Ollama binary
-            // isn't installed on this host. The error message itself is
+            // User-state condition: the piper binary (local TTS) isn't
+            // installed on this host; OpenHuman never installs it. The error message itself is
             // the user-facing instruction ("Set PIPER_BIN or install
             // piper.") — Sentry has nothing to act on, since we can't
             // install the binary for them. OPENHUMAN-TAURI-9N is the
@@ -3411,7 +3411,7 @@ fn event_contains_budget_exhausted_message(event: &sentry::protocol::Event<'_>) 
     if event
         .message
         .as_deref()
-        .is_some_and(crate::backend::classify::is_budget_exhausted_message)
+        .is_some_and(tinyinference_providers::is_budget_exhausted_message)
     {
         return true;
     }
@@ -3420,7 +3420,7 @@ fn event_contains_budget_exhausted_message(event: &sentry::protocol::Event<'_>) 
         exception
             .value
             .as_deref()
-            .is_some_and(crate::backend::classify::is_budget_exhausted_message)
+            .is_some_and(tinyinference_providers::is_budget_exhausted_message)
     })
 }
 

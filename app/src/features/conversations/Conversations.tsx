@@ -1219,9 +1219,9 @@ const Conversations = ({
     dispatch(markThreadInferenceActive(sendingThreadId));
 
     // ── Cloud socket path ─────────────────────────────────────────────────────
-    // Always route primary chat through the cloud backend via socket.
-    // Local model (Ollama) is used only for supplementary features
-    // (auto-react, autocomplete, etc.) — never as a primary chat path.
+    // Primary chat goes through the core over the socket; the core picks the
+    // routed provider (managed cloud, BYOK, or a user-run local endpoint such
+    // as Ollama configured under Connections → LLM).
     try {
       await chatSend({
         threadId: sendingThreadId,

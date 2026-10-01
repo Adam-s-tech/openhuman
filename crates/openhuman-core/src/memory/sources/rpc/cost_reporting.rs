@@ -49,17 +49,22 @@ pub async fn sync_audit_log_rpc() -> Result<Outcome<SyncAuditLogResponse>, Strin
     tracing::debug!("[memory_sources] sync_audit_log_rpc: entry");
     let config = config_rpc::load_config_with_timeout().await?;
     let binding = crate::memory::binding::for_config(&config)?;
-    let Some(sync) = binding.provider().as_source_sync() else {
-        return Err(unserved(&binding, "source sync", "sync_audit_log"));
-    };
 
     // `None` = the driver's own cap. A caller cannot raise it by asking for
     // more, so passing a number here would only be this host inventing a
     // ceiling the driver then clamps anyway.
-    let driver_entries = sync
-        .sync_audit_log(None)
-        .await
-        .map_err(|error| format!("sync audit log: {error}"))?;
+    //
+    // A driver that schedules no syncs of its own keeps no audit log, and the
+    // host's log is then the whole history — every run this host drove.
+    // Refusing would hide those runs behind the driver's absence, which is
+    // what a remote engine showed: an error where Sync History should be.
+    let driver_entries = match binding.provider().as_source_sync() {
+        Some(sync) => sync
+            .sync_audit_log(None)
+            .await
+            .map_err(|error| format!("sync audit log: {error}"))?,
+        None => Vec::new(),
+    };
     let host_entries = run_history::read_runs(&config.workspace_dir, run_history::KEEP_ROWS)
         .map_err(|error| format!("sync run log: {error}"))?;
     let (driver_rows, host_rows) = (driver_entries.len(), host_entries.len());
@@ -115,8 +120,11 @@ pub async fn estimate_sync_cost_rpc(
         return Err(unserved(&binding, "source sync", "estimate_sync_cost"));
     };
 
-    let reader = readers::reader_for(&source.kind);
-    let items = reader.list_items(&source, &config).await?;
+    let reader = readers::reader_for_request(&source.kind);
+    let items = reader
+        .list_items(&source, &config.workspace_dir)
+        .await
+        .map_err(|error| error.to_string())?;
 
     let item_count = items.len() as u32;
     // estimated_tokens includes both input (500/item) and output (100/item)

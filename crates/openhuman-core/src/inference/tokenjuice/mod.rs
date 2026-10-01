@@ -1,8 +1,7 @@
 //! OpenHuman host adapter for the separately released TinyJuice module.
 
 pub mod config_patch;
-pub mod focus;
-pub mod generate;
+pub use tinyjuice::host::{focus, generate};
 pub mod ml;
 pub mod repl_tools;
 pub mod savings;
@@ -152,42 +151,6 @@ pub(super) async fn proxy(config: &crate::config::Config) -> Result<tinybus::Pro
 #[cfg(not(feature = "modules"))]
 pub(super) async fn proxy(_config: &crate::config::Config) -> Result<tinybus::Proxy, String> {
     Err("native modules are not compiled into this build".to_string())
-}
-
-pub async fn compact_output_with_policy(
-    content: String,
-    tool_name: &str,
-    enabled: bool,
-    profile: AgentTokenjuiceCompression,
-) -> String {
-    compact_output_with_config(content, tool_name, enabled, profile, None).await
-}
-
-/// Compact tool output using an already-resolved runtime config when available.
-///
-/// Agent turns must not reload configuration from the middle of a deep tool
-/// call stack: startup owns migrations, while a turn only needs the snapshot it
-/// was constructed with.
-pub async fn compact_output_with_config(
-    content: String,
-    tool_name: &str,
-    enabled: bool,
-    profile: AgentTokenjuiceCompression,
-    runtime_config: Option<&std::sync::Arc<crate::config::Config>>,
-) -> String {
-    compact_tool_output(ToolOutputCompaction {
-        content,
-        tool_name,
-        enabled,
-        profile,
-        runtime_config,
-        arguments: None,
-        focus: None,
-        context_token: None,
-        scope: None,
-    })
-    .await
-    .text
 }
 
 /// Everything the module considers about one tool result.
@@ -498,10 +461,6 @@ pub async fn cache_stats() -> Result<types::CacheStats, String> {
 
 pub fn all_tokenjuice_registered_controllers() -> Vec<crate::core::all::RegisteredController> {
     schemas::all_registered_controllers()
-}
-
-pub fn all_tokenjuice_controller_schemas() -> Vec<crate::core::ControllerSchema> {
-    schemas::all_controller_schemas()
 }
 
 #[cfg(test)]

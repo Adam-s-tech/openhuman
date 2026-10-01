@@ -157,14 +157,3 @@ fn the_model_name_falls_back_to_the_crate_default() {
     let pinned = OpenHumanContextComposer::new(config_in(dir.path())).with_model_name("haiku");
     assert_eq!(pinned.model_name, "haiku");
 }
-
-#[tokio::test]
-async fn usable_as_a_trait_object() {
-    // Pins object safety — the harness stores this as
-    // `Arc<dyn ContextComposer>`, so a non-dyn-safe impl would only fail
-    // at the wiring site, not here.
-    let dir = tempfile::tempdir().expect("tempdir");
-    let composer: Arc<dyn ContextComposer> =
-        Arc::new(OpenHumanContextComposer::new(config_in(dir.path())));
-    assert!(composer.compose_system_prompt(&request()).await.is_ok());
-}

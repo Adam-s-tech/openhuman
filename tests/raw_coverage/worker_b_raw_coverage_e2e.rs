@@ -5,6 +5,8 @@
 //! to drive implementation branches that the controller reachability tests only
 //! touch at validation boundaries.
 
+use crate::env_guard::EnvVarGuard;
+use crate::rpc_harness::{error_message, ok, payload};
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::path::Path;
@@ -39,40 +41,6 @@ static ENV_LOCK: &OnceLock<Mutex<()>> = &crate::SHARED_ENV_LOCK;
 #[derive(Clone, Default)]
 struct MockState {
     requests: Arc<Mutex<Vec<Value>>>,
-}
-
-struct EnvVarGuard {
-    key: &'static str,
-    old: Option<String>,
-}
-
-impl EnvVarGuard {
-    fn set_to_path(key: &'static str, path: &Path) -> Self {
-        let old = std::env::var(key).ok();
-        std::env::set_var(key, path.as_os_str());
-        Self { key, old }
-    }
-
-    fn set(key: &'static str, value: &str) -> Self {
-        let old = std::env::var(key).ok();
-        std::env::set_var(key, value);
-        Self { key, old }
-    }
-
-    fn unset(key: &'static str) -> Self {
-        let old = std::env::var(key).ok();
-        std::env::remove_var(key);
-        Self { key, old }
-    }
-}
-
-impl Drop for EnvVarGuard {
-    fn drop(&mut self) {
-        match &self.old {
-            Some(value) => std::env::set_var(self.key, value),
-            None => std::env::remove_var(self.key),
-        }
-    }
 }
 
 struct TestHarness {
@@ -296,7 +264,6 @@ async fn setup() -> TestHarness {
         EnvVarGuard::unset("BACKEND_URL"),
         EnvVarGuard::unset("VITE_BACKEND_URL"),
         EnvVarGuard::unset("OPENHUMAN_API_URL"),
-        EnvVarGuard::unset("OPENHUMAN_LOCAL_AI_TIER"),
         EnvVarGuard::unset("OPENHUMAN_LM_STUDIO_BASE_URL"),
         EnvVarGuard::unset("LM_STUDIO_BASE_URL"),
         EnvVarGuard::set("OPENHUMAN_KEYRING_BACKEND", "file"),
@@ -343,28 +310,6 @@ async fn rpc(rpc_base: &str, id: i64, method: &str, params: Value) -> Value {
         .json::<Value>()
         .await
         .unwrap_or_else(|err| panic!("json for {method}: {err}"))
-}
-
-fn ok<'a>(value: &'a Value, context: &str) -> &'a Value {
-    if let Some(error) = value.get("error") {
-        panic!("{context}: unexpected JSON-RPC error: {error}");
-    }
-    value
-        .get("result")
-        .unwrap_or_else(|| panic!("{context}: missing result: {value}"))
-}
-
-fn payload<'a>(value: &'a Value, context: &str) -> &'a Value {
-    let result = ok(value, context);
-    result.get("result").unwrap_or(result)
-}
-
-fn error_message<'a>(value: &'a Value, context: &str) -> &'a str {
-    value
-        .get("error")
-        .and_then(|error| error.get("message"))
-        .and_then(Value::as_str)
-        .unwrap_or_else(|| panic!("{context}: error missing message: {value}"))
 }
 
 async fn configure_mock_provider(rpc_base: &str, mock_base: &str) {
@@ -488,7 +433,10 @@ async fn inference_provider_success_paths_use_mock_models_and_chat() {
 #[tokio::test]
 async fn tools_web_answer_uses_managed_gemini_grounding_and_returns_citations() {
     if std::env::var_os("TINYSEARCH_TEST_MODULE").is_none() {
-        eprintln!("skipping: TINYSEARCH_TEST_MODULE is not set");
+        eprintln!(
+            "SKIPPED (not run, not asserted): TINYSEARCH_TEST_MODULE is not set. Build vendor/tinysearch \
+             and export TINYSEARCH_TEST_MODULE=<path to libtinysearch>, or use scripts/test-rust-with-mock.sh"
+        );
         return;
     }
     let _lock = env_lock();
@@ -510,7 +458,9 @@ async fn tools_web_answer_uses_managed_gemini_grounding_and_returns_citations() 
     .await;
     let settings = payload(&settings, "config_update_search_settings");
     assert_eq!(
-        settings.pointer("/effective_roles/answer/0").and_then(Value::as_str),
+        settings
+            .pointer("/effective_roles/answer/0")
+            .and_then(Value::as_str),
         Some("gemini"),
         "managed Gemini should serve the answer role: {settings}"
     );
@@ -523,7 +473,10 @@ async fn tools_web_answer_uses_managed_gemini_grounding_and_returns_citations() 
     )
     .await;
     let answer = payload(&answer, "tools_web_answer");
-    assert_eq!(answer.get("provider").and_then(Value::as_str), Some("Gemini"));
+    assert_eq!(
+        answer.get("provider").and_then(Value::as_str),
+        Some("Gemini")
+    );
     assert_eq!(answer.get("role").and_then(Value::as_str), Some("answer"));
     assert!(answer
         .get("answer")
@@ -559,7 +512,10 @@ async fn tools_web_search_success_path_uses_backend_session_and_shapes_results()
     // The search RPC runs through the TinySearch module; CI and
     // scripts/test-rust-with-mock.sh build it and export its path.
     if std::env::var_os("TINYSEARCH_TEST_MODULE").is_none() {
-        eprintln!("skipping: TINYSEARCH_TEST_MODULE is not set");
+        eprintln!(
+            "SKIPPED (not run, not asserted): TINYSEARCH_TEST_MODULE is not set. Build vendor/tinysearch \
+             and export TINYSEARCH_TEST_MODULE=<path to libtinysearch>, or use scripts/test-rust-with-mock.sh"
+        );
         return;
     }
     let _lock = env_lock();
@@ -581,7 +537,9 @@ async fn tools_web_search_success_path_uses_backend_session_and_shapes_results()
     .await;
     let settings = payload(&settings, "config_update_search_settings");
     assert_eq!(
-        settings.pointer("/effective_roles/search/0").and_then(Value::as_str),
+        settings
+            .pointer("/effective_roles/search/0")
+            .and_then(Value::as_str),
         Some("exa"),
         "managed Exa should serve the search role once signed in: {settings}"
     );
@@ -619,7 +577,10 @@ async fn tools_web_search_success_path_uses_backend_session_and_shapes_results()
         body.pointer("/searchQueries/0").and_then(Value::as_str),
         Some("worker b raw coverage")
     );
-    assert!(body.get("mode").is_none(), "backend Exa rejects `mode`: {body}");
+    assert!(
+        body.get("mode").is_none(),
+        "backend Exa rejects `mode`: {body}"
+    );
 
     harness.rpc_join.abort();
     mock.join.abort();

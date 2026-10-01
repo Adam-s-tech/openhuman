@@ -416,76 +416,6 @@ fn resolve_model(model: &str) -> String {
     }
 }
 
-/// The subset of the managed backend's `openhuman` response envelope the crate
-/// `Usage`/`ModelResponse` can't carry — billing + cache tokens — so it can be
-/// re-projected for the host cost bridge.
-#[derive(Debug, Default, serde::Deserialize)]
-struct ManagedEnvelope {
-    #[serde(default)]
-    usage: Option<ManagedEnvelopeUsage>,
-    #[serde(default)]
-    billing: Option<ManagedEnvelopeBilling>,
-}
-
-#[derive(Debug, Default, serde::Deserialize)]
-struct ManagedEnvelopeUsage {
-    #[serde(default)]
-    cached_input_tokens: Option<u64>,
-    #[serde(default)]
-    context_window: Option<u64>,
-}
-
-#[derive(Debug, Default, serde::Deserialize)]
-struct ManagedEnvelopeBilling {
-    #[serde(default)]
-    charged_amount_usd: f64,
-}
-
-/// Re-project the managed `openhuman.{billing,usage}` envelope — which the crate
-/// `OpenAiModel` leaves only on `ModelResponse.raw` — into the metadata the host
-/// cost bridge reads: `openhuman_usage_meta` (charged USD + context window) plus a
-/// crate `Usage.cache_read_tokens` reconciliation when the crate missed the
-/// envelope's cached count. Parity with the legacy model-adapter path's
-/// `usage_info_from_response`; without it the crate-native managed turn reports
-/// `$0` charged and drops backend-reported cached tokens.
-fn project_managed_usage(mut response: ModelResponse) -> ModelResponse {
-    let envelope: ManagedEnvelope = response
-        .raw
-        .as_ref()
-        .and_then(|raw| raw.get("openhuman"))
-        .and_then(|oh| serde_json::from_value(oh.clone()).ok())
-        .unwrap_or_default();
-
-    let charged_amount_usd = envelope
-        .billing
-        .map(|b| b.charged_amount_usd)
-        .unwrap_or(0.0);
-    let context_window = envelope
-        .usage
-        .as_ref()
-        .and_then(|u| u.context_window)
-        .unwrap_or(0);
-
-    // The `openhuman.usage` cached count is authoritative (the legacy `extract_usage`
-    // preferred it over the standard block); backfill it when the crate's standard
-    // parse produced none.
-    if let (Some(usage), Some(cached)) = (
-        response.usage.as_mut(),
-        envelope.usage.as_ref().and_then(|u| u.cached_input_tokens),
-    ) {
-        if usage.cache_read_tokens == 0 {
-            usage.cache_read_tokens = cached;
-        }
-    }
-
-    response.raw = crate::agent::tinyagents::model::merge_openhuman_usage_meta(
-        response.raw,
-        charged_amount_usd,
-        context_window,
-    );
-    response
-}
-
 /// Request-metadata key a caller sets (to `true`) to ask for no reasoning on
 /// a call — see [`without_reasoning`].
 const REASONING_OFF_METADATA_KEY: &str = "openhuman_reasoning_off";
@@ -638,80 +568,8 @@ fn observe_in_band_failure(item: &ModelStreamItem) {
     }
 }
 
-#[async_trait]
-impl ChatModel<()> for OpenHumanBackendModel {
-    fn profile(&self) -> Option<&ModelProfile> {
-        Some(&self.profile)
-    }
-
-    /// Identity for harness response-cache scoping: the backend base URL and
-    /// the default tier/model. The session JWT is deliberately absent — it
-    /// rotates, and a key derived from it would never hit twice — and the
-    /// backend resolves the tier per account anyway, so two accounts sharing
-    /// a cache would need their own namespace, not a credential in the key.
-    fn cache_identity(&self) -> Option<String> {
-        self.base_url()
-            .ok()
-            .map(|base| format!("openhuman:{base}:{}", self.default_model))
-    }
-
-    async fn invoke(
-        &self,
-        state: &(),
-        request: ModelRequest,
-    ) -> tinyinference_llm::Result<ModelResponse> {
-        let model = self.build_wire_model()?;
-        let response = match model
-            .invoke(
-                state,
-                with_thread_id(apply_reasoning_hint(request), self.thread_id.as_deref()),
-            )
-            .await
-        {
-            Ok(response) => response,
-            Err(e) => {
-                log_managed_dispatch_error(&e, "invoke");
-                maybe_publish_session_expired(&e, "invoke");
-                return Err(e);
-            }
-        };
-        Ok(project_managed_usage(response))
-    }
-
-    async fn stream(
-        &self,
-        state: &(),
-        request: ModelRequest,
-    ) -> tinyinference_llm::Result<ModelStream> {
-        let model = self.build_wire_model()?;
-        // NOTE (streaming billing parity): the crate SSE parser sets `raw: None`
-        // on the terminal `Completed` response, so the `openhuman.billing` envelope
-        // is not available to `project_managed_usage` here — a streaming managed
-        // turn's charged USD falls back to the catalog cost estimate (token counts
-        // survive via `UsageDelta`). The authoritative charged amount is recovered
-        // on the non-streaming `invoke` path above. Restoring it for streaming
-        // needs the crate to preserve the final chunk's raw JSON (tracked upstream).
-        match model
-            .stream(
-                state,
-                with_thread_id(apply_reasoning_hint(request), self.thread_id.as_deref()),
-            )
-            .await
-        {
-            // A failure can also arrive *inside* an HTTP 200 stream as an SSE
-            // `{"error":…}` payload; it never reaches the `Err` arm (#6724).
-            Ok(stream) => Ok(stream.map_items(|item| {
-                observe_in_band_failure(&item);
-                item
-            })),
-            Err(e) => {
-                log_managed_dispatch_error(&e, "stream");
-                maybe_publish_session_expired(&e, "stream");
-                Err(e)
-            }
-        }
-    }
-}
+#[path = "openhuman_backend_model_calls.rs"]
+mod calls;
 
 /// Connect timeout for the shared managed-inference client; matches the
 /// adapter's own default.
@@ -754,6 +612,14 @@ fn managed_inference_http_client() -> reqwest::Client {
         .clone()
 }
 
+#[path = "openhuman_backend_model_usage.rs"]
+mod usage;
+use usage::project_managed_usage;
+
 #[cfg(test)]
 #[path = "openhuman_backend_model_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "openhuman_backend_model_usage_tests.rs"]
+mod usage_tests;

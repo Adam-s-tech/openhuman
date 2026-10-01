@@ -91,6 +91,32 @@ pub fn default_projects_dir() -> PathBuf {
         .join("projects")
 }
 
+/// Name of the visible folder, under the projects home, that holds the files
+/// the agent delivers (decks, documents, generated media) — see #5505.
+pub const FILES_DIRNAME: &str = "Files";
+
+/// Where agent deliverables are written by default: `~/OpenHuman/projects/Files`.
+/// Only the bytes live here; each artifact's metadata stays in the hidden,
+/// per-account `<workspace_dir>/artifacts/<id>/`.
+pub fn default_files_dir() -> PathBuf {
+    default_projects_dir().join(FILES_DIRNAME)
+}
+
+/// Resolve the effective files folder: the persisted override when it is a
+/// non-empty absolute path, else [`default_files_dir`].
+pub fn resolve_files_dir(files_dir_override: &Option<PathBuf>) -> PathBuf {
+    match files_dir_override {
+        Some(dir) if dir.is_absolute() => dir.clone(),
+        Some(_) => {
+            tracing::warn!(
+                "[config] ignoring invalid files_dir_override; expected an absolute path"
+            );
+            default_files_dir()
+        }
+        None => default_files_dir(),
+    }
+}
+
 /// The `OPENHUMAN_ACTION_DIR` env override, when set to a non-empty value.
 ///
 /// Returns `None` when the variable is unset or blank (a common shape from
@@ -186,76 +212,6 @@ async fn load_persisted_workspace_dirs(
         default_config_dir.join(parsed_dir)
     };
     Ok(Some((config_dir.clone(), config_dir.join("workspace"))))
-}
-
-pub(crate) async fn persist_active_workspace_config_dir(config_dir: &Path) -> Result<()> {
-    let default_config_dir = default_config_dir()?;
-    let state_path = active_workspace_state_path(&default_config_dir);
-
-    // Before the write, not after: this marker is one of the inputs the
-    // resolver reads, so from here until the next resolve the cached answer
-    // is no longer known to be current — including if the write below fails
-    // partway. Clearing early costs one resolve; clearing late leaves a
-    // window in which a stale workspace reads as active.
-    super::active_workspace::invalidate_active_workspace();
-
-    if config_dir == default_config_dir {
-        if state_path.exists() {
-            fs::remove_file(&state_path).await.with_context(|| {
-                format!(
-                    "Failed to clear active workspace marker: {}",
-                    state_path.display()
-                )
-            })?;
-            // Again, now that the marker is actually gone — same race as the
-            // write branch below.
-            super::active_workspace::invalidate_active_workspace();
-        }
-        return Ok(());
-    }
-
-    fs::create_dir_all(&default_config_dir)
-        .await
-        .with_context(|| {
-            format!(
-                "Failed to create default config directory: {}",
-                default_config_dir.display()
-            )
-        })?;
-
-    let state = ActiveWorkspaceState {
-        config_dir: config_dir.to_string_lossy().into_owned(),
-    };
-    let serialized =
-        toml::to_string_pretty(&state).context("Failed to serialize active workspace marker")?;
-
-    let temp_path = default_config_dir.join(format!(
-        ".{ACTIVE_WORKSPACE_STATE_FILE}.tmp-{}",
-        uuid::Uuid::new_v4()
-    ));
-    fs::write(&temp_path, serialized).await.with_context(|| {
-        format!(
-            "Failed to write temporary active workspace marker: {}",
-            temp_path.display()
-        )
-    })?;
-
-    if let Err(error) = fs::rename(&temp_path, &state_path).await {
-        let _ = fs::remove_file(&temp_path).await;
-        anyhow::bail!(
-            "Failed to atomically persist active workspace marker {}: {error}",
-            state_path.display()
-        );
-    }
-
-    // Again, now that the marker on disk actually says the new workspace. The
-    // pre-write clear alone leaves a window in which a racing resolver reads
-    // the *old* marker and refills the cache with the workspace being switched
-    // away from. Before the directory sync, not after: the rename is what
-    // changed the answer, and a sync failure must not skip this.
-    super::active_workspace::invalidate_active_workspace();
-    super::sync_directory(&default_config_dir).await?;
-    Ok(())
 }
 
 pub(crate) fn resolve_config_dir_for_workspace(workspace_dir: &Path) -> (PathBuf, PathBuf) {

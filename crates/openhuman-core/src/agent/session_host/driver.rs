@@ -13,11 +13,11 @@ use async_trait::async_trait;
 use tinyagents_runtime::{
     DriverFailure, DriverOutcome, DriverRequest, RuntimeError, SessionDriver, TranscriptPartial,
 };
+use tinyagents_session::transcript::TranscriptMessage;
 use tinyinference_llm::message::Message;
 use tinytools_agent::dialect::ToolDialect;
 
 use crate::agent::{
-    messages::ChatMessage,
     session_host::turn::graph::{self, ChatTurnGraph},
     tinyagents::{host::OpenHumanHostBase, host::OpenHumanRunContext, TurnModelSource},
 };
@@ -128,7 +128,7 @@ impl SessionDriver<OpenHumanRunContext> for OpenHumanSessionDriver {
             .iter()
             .rev()
             .find(|message| matches!(message, Message::User(_)))
-            .map(Message::text)
+            .map(crate::agent::message_convert::user_text_with_markers)
             .unwrap_or_default();
         let context_window = self
             .turn_model_source
@@ -144,7 +144,7 @@ impl SessionDriver<OpenHumanRunContext> for OpenHumanSessionDriver {
             )
             .map_err(driver_error)?;
 
-        let mut messages: Vec<ChatMessage> = request
+        let mut messages: Vec<TranscriptMessage> = request
             .history
             .iter()
             .filter_map(crate::agent::message_convert::message_to_native_chat_message)
@@ -517,15 +517,11 @@ fn driver_error_with_snapshot(
                 .unwrap_or(fallback_model);
             crate::agent::cost::estimate_call_cost_usd(
                 pricing_model,
-                &crate::inference::provider::UsageInfo {
-                    input_tokens: guard.input_tokens,
-                    output_tokens: guard.output_tokens,
-                    context_window: 0,
-                    cached_input_tokens: guard.cached_input_tokens,
-                    cache_creation_tokens: 0,
-                    reasoning_tokens: 0,
-                    charged_amount_usd: 0.0,
-                },
+                &crate::inference::provider::BilledUsage::from_counts(
+                    guard.input_tokens,
+                    guard.output_tokens,
+                )
+                .with_cached_input_tokens(guard.cached_input_tokens),
             )
         };
         observed.duration = Some(elapsed);

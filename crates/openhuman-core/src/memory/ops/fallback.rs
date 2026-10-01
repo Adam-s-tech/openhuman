@@ -65,7 +65,9 @@ pub(crate) fn classify_for_engine(external: bool, message: String) -> String {
 pub(crate) fn classify_rpc_error(message: String) -> String {
     let external = crate::core::runtime::context::CoreContext::current()
         .and_then(|ctx| ctx.memory().ok())
-        .is_none_or(|guard| guard.class() == crate::core::subsystem::DriverClass::External);
+        .is_none_or(|guard| {
+            guard.policy().class() == crate::core::subsystem::DriverClass::External
+        });
     classify_for_engine(external, message)
 }
 
@@ -128,13 +130,52 @@ pub(crate) async fn namespace_names(guard: &MemoryGuard) -> Result<Vec<String>, 
     Ok(summaries.into_iter().map(|s| s.namespace).collect())
 }
 
-/// Ranked hits via `MemoryRecall::recall`, scoped to `namespace`.
-pub(crate) async fn recall_hits<P: MemoryRecall + ?Sized>(
+/// Whether `hits` were ranked without anything measured: each has a positive
+/// final score and no signal at all — no similarity, keyword, graph, episodic
+/// or freshness.
+///
+/// That is the mark a driver ranking without scoring leaves (hosted CortexDB's
+/// retrieval family scores a hit by its rank and reports no signal), and a
+/// weighted sum of signals cannot produce it, so an engine that scores is
+/// never read as one. A similarity floor cannot tell such hits apart, so a
+/// caller treats them as it treats [`ranked_recall`]'s unscored ones. An empty
+/// list is not rank-only: there is nothing to keep either way.
+pub(crate) fn rank_only(hits: &[NamespaceMemoryHit]) -> bool {
+    !hits.is_empty()
+        && hits.iter().all(|hit| {
+            let signals = &hit.score_breakdown;
+            signals.final_score > 0.0
+                && signals.vector_similarity == 0.0
+                && signals.keyword_relevance == 0.0
+                && signals.graph_relevance == 0.0
+                && signals.episodic_relevance == 0.0
+                && signals.freshness == 0.0
+        })
+}
+
+/// What [`ranked_recall`] answered: the hits, and whether the engine scored
+/// them.
+pub(crate) struct RankedRecall {
+    /// The engine's hits, in its order.
+    pub(crate) hits: Vec<NamespaceMemoryHit>,
+    /// Whether any hit carried the engine's own score. `false` for an engine
+    /// whose recall is ranked but unscored — hosted CortexDB answers no score
+    /// at all — whose hits [`entry_to_hit`] then reads as 0.0.
+    pub(crate) scored: bool,
+}
+
+/// Ranked hits via `MemoryRecall::recall`, scoped to `namespace`, and whether
+/// the engine scored them.
+///
+/// A caller that floors on similarity has to know the difference: an
+/// unscored engine's 0.0 means "no score", not "irrelevant", and flooring it
+/// drops every hit however well the engine ranked it.
+pub(crate) async fn ranked_recall<P: MemoryRecall + ?Sized>(
     guard: &P,
     namespace: &str,
     query: &str,
     limit: usize,
-) -> Result<Vec<NamespaceMemoryHit>, String> {
+) -> Result<RankedRecall, crate::memory::api::error::MemoryError> {
     log::debug!(
         "[memory:fallback] ranked recall via MemoryRecall::recall namespace={namespace} limit={limit}"
     );
@@ -142,15 +183,30 @@ pub(crate) async fn recall_hits<P: MemoryRecall + ?Sized>(
         namespace: Some(namespace.to_string()),
         ..Default::default()
     };
-    let entries = guard
-        .recall(query, limit, &opts, None)
+    let entries = guard.recall(query, limit, &opts, None).await?;
+    let scored = entries.iter().any(|entry| entry.score.is_some());
+    Ok(RankedRecall {
+        hits: entries
+            .into_iter()
+            .take(limit)
+            .map(|entry| entry_to_hit(entry, namespace))
+            .collect(),
+        scored,
+    })
+}
+
+/// [`ranked_recall`]'s hits alone, with the error as text, for the RPCs that
+/// list them.
+pub(crate) async fn recall_hits<P: MemoryRecall + ?Sized>(
+    guard: &P,
+    namespace: &str,
+    query: &str,
+    limit: usize,
+) -> Result<Vec<NamespaceMemoryHit>, String> {
+    ranked_recall(guard, namespace, query, limit)
         .await
-        .map_err(|error| error.to_string())?;
-    Ok(entries
-        .into_iter()
-        .take(limit)
-        .map(|entry| entry_to_hit(entry, namespace))
-        .collect())
+        .map(|ranked| ranked.hits)
+        .map_err(|error| error.to_string())
 }
 
 /// Read one export record back as an entry (the mandatory driver's payload

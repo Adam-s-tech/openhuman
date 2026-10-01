@@ -155,20 +155,6 @@ async fn wipe_memory_tree(config: &Config) -> Result<MemoryTreeResetSummary, Str
     })
 }
 
-/// Convenience helper for handlers that prefer a raw JSON envelope.
-#[allow(dead_code)]
-pub async fn reset_json() -> Result<serde_json::Value, String> {
-    let outcome = reset().await?;
-    Ok(json!({
-        "removed_cron_jobs": outcome.value.cron_jobs_removed,
-        "memory_tree_rows_deleted": outcome.value.memory_tree_rows_deleted,
-        "memory_tree_dirs_removed": outcome.value.memory_tree_dirs_removed,
-        "memory_tree_sync_state_cleared": outcome.value.memory_tree_sync_state_cleared,
-        "previously_onboarded": outcome.value.onboarding_was_completed,
-        "previously_authenticated": outcome.value.api_key_was_set,
-    }))
-}
-
 #[cfg(test)]
 #[path = "rpc_tests.rs"]
 mod tests;

@@ -146,28 +146,6 @@ pub(crate) enum DispatchMode {
     Blocking,
 }
 
-pub(crate) async fn dispatch_subagent(
-    agent_id: &str,
-    tool_name: &str,
-    prompt: &str,
-    model_override: Option<&str>,
-    tool_context: Option<&dyn ToolRunContext>,
-    mode: DispatchMode,
-    run_context: crate::agent::tinyagents::host::OpenHumanRunContext,
-) -> anyhow::Result<ToolResult> {
-    dispatch_subagent_with_live_parent(
-        agent_id,
-        tool_name,
-        prompt,
-        model_override,
-        tool_context,
-        mode,
-        run_context,
-        None,
-    )
-    .await
-}
-
 /// Dispatch one inline child against the caller's actual TinyAgents parent
 /// when the typed tool boundary has one. Standalone callers retain the
 /// explicit-carrier fallback above because no live parent exists for them.
