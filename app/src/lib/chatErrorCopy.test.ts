@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 import { chatErrorCopyText } from './chatErrorCopy';
@@ -61,5 +62,18 @@ describe('chatErrorCopyText', () => {
 
   it('falls back to message when there is no key', () => {
     expect(chatErrorCopyText({ message: 'english' }, t)).toBe('english');
+  });
+
+  it('has an English string for every key in the core failure-copy table', () => {
+    const tablePath = new URL(
+      '../../../crates/openhuman-core/src/inference/failure_copy/table.rs',
+      import.meta.url
+    );
+    const keys = [...readFileSync(tablePath, 'utf8').matchAll(/"(chat_error\.[a-z_]+)"/g)].map(
+      m => m[1]
+    );
+    expect(keys.length).toBeGreaterThanOrEqual(28);
+    const missing = keys.filter(key => !(key in (en as Record<string, string>)));
+    expect(missing).toEqual([]);
   });
 });
