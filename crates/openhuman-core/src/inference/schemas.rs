@@ -55,7 +55,6 @@ pub fn all_controller_schemas() -> Vec<ControllerSchema> {
         schemas("prompt"),
         schemas("vision_prompt"),
         schemas("test_provider_model"),
-        schemas("should_react"),
         schemas("analyze_sentiment"),
         schemas("claude_code_status"),
         schemas("claude_code_auth_status"),
@@ -145,10 +144,6 @@ pub fn all_registered_controllers() -> Vec<RegisteredController> {
         RegisteredController {
             schema: schemas("test_provider_model"),
             handler: handle_inference_test_provider_model,
-        },
-        RegisteredController {
-            schema: schemas("should_react"),
-            handler: handle_inference_should_react,
         },
         RegisteredController {
             schema: schemas("analyze_sentiment"),
