@@ -195,6 +195,11 @@ pub(crate) fn cancel_all() -> Vec<String> {
     thread_ids
 }
 
+#[cfg(test)]
+pub(crate) fn prune(task_id: &str) {
+    let _ = registry().cancel_trusted(&TaskId::new(task_id));
+}
+
 pub(crate) fn now_ms() -> u64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
