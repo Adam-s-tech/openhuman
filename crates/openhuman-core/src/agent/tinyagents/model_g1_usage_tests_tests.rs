@@ -35,8 +35,8 @@ fn usage_round_trips_charged_usd_and_all_token_breakdowns() {
     let recovered = usage_info_from_response(&model_response).expect("usage info");
     assert_eq!(recovered.input_tokens, 100);
     assert_eq!(recovered.output_tokens, 20);
-    assert_eq!(recovered.context_window, 128_000);
-    assert_eq!(recovered.cached_input_tokens, 40);
+    assert_eq!(recovered.context_window(), 128_000);
+    assert_eq!(recovered.cached_input_tokens(), 40);
     assert_eq!(recovered.cache_creation_tokens, 10);
     assert_eq!(recovered.reasoning_tokens, 7);
     assert!((recovered.charged_amount_usd - 0.0123).abs() < 1e-9);
@@ -57,7 +57,7 @@ fn no_billing_metadata_leaves_raw_clean() {
     );
     let recovered = usage_info_from_response(&model_response).expect("usage info");
     assert_eq!(recovered.charged_amount_usd, 0.0);
-    assert_eq!(recovered.context_window, 0);
+    assert_eq!(recovered.context_window(), 0);
     assert_eq!(recovered.input_tokens, 5);
 }
 
@@ -164,4 +164,45 @@ fn prompt_guided_response_keeps_legacy_pformat_fallback() {
         response.message.tool_calls[0].arguments,
         serde_json::json!({"id": 7, "query": "needle"})
     );
+}
+
+/// Wire shape of the billing/context metadata stashed in `ModelResponse.raw`:
+/// a literal-JSON pin so the key and field names cannot drift, and a response
+/// written by the current release (with the old key set) still reconstructs.
+#[test]
+fn usage_meta_raw_wire_shape_is_stable_and_old_payloads_load() {
+    let chat = ChatResponse {
+        text: Some("hi".to_string()),
+        tool_calls: Vec::new(),
+        usage: Some(
+            BilledUsage::from_counts(100, 20)
+                .with_context_window(128_000)
+                .with_charged_usd(0.0123),
+        ),
+        reasoning_content: None,
+    };
+    let written = response_to_model_response(&chat, &empty_registry(), false);
+    assert_eq!(
+        written.raw,
+        Some(serde_json::json!({
+            "openhuman_usage_meta": {"charged_amount_usd": 0.0123, "context_window": 128000}
+        }))
+    );
+
+    let mut old = response_to_model_response(
+        &ChatResponse {
+            text: Some("x".into()),
+            usage: Some(BilledUsage::from_counts(7, 2)),
+            ..Default::default()
+        },
+        &empty_registry(),
+        false,
+    );
+    old.raw = Some(serde_json::json!({
+        "openhuman_usage_meta": {"charged_amount_usd": 0.5, "context_window": 32000}
+    }));
+    let recovered = usage_info_from_response(&old).expect("usage");
+    assert_eq!(recovered.charged_amount_usd, 0.5);
+    assert_eq!(recovered.context_window(), 32_000);
+    assert_eq!(recovered.input_tokens, 7);
 }

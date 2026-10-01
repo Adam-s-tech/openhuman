@@ -213,3 +213,40 @@ fn rebind_global_moves_recording_to_the_new_workspace() {
 
     *GLOBAL_TRACKER.write() = previous;
 }
+
+/// Persisted cost rows are `TokenUsage`/`CostRecord` JSON lines. Pin the exact
+/// serialized key set produced from a provider usage record, and prove a row
+/// written by the current release (literal JSON) still deserializes.
+#[test]
+fn token_usage_row_shape_is_stable_and_old_rows_load() {
+    let usage = BilledUsage::from_counts(1000, 500)
+        .with_cached_input_tokens(400)
+        .with_cache_creation_tokens(30)
+        .with_reasoning_tokens(7)
+        .with_charged_usd(0.0123);
+    let row = build_token_usage("m/x", &usage).unwrap();
+    let mut value = serde_json::to_value(&row).unwrap();
+    let obj = value.as_object_mut().unwrap();
+    obj.remove("timestamp").expect("timestamp key present");
+    assert_eq!(
+        value,
+        serde_json::json!({
+            "model": "m/x",
+            "input_tokens": 1000,
+            "output_tokens": 500,
+            "total_tokens": 1500,
+            "cached_input_tokens": 400,
+            "cache_creation_tokens": 30,
+            "reasoning_tokens": 7,
+            "cost_usd": 0.0123,
+            "cost_source": "provider_charged",
+            "run_id": null,
+            "root_run_id": null
+        })
+    );
+
+    let old = r#"{"model":"m/x","input_tokens":10,"output_tokens":5,"total_tokens":15,"cost_usd":0.25,"timestamp":"2026-01-02T03:04:05Z"}"#;
+    let parsed: TokenUsage = serde_json::from_str(old).expect("old row loads");
+    assert_eq!(parsed.input_tokens, 10);
+    assert_eq!(parsed.cost_usd, 0.25);
+}
