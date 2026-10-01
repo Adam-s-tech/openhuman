@@ -5539,6 +5539,8 @@ const messages: TranslationMap = {
   'settings.agentAccess.filesFolder.reset': 'Usar la predeterminada',
   'settings.agentAccess.filesFolder.saved': 'Carpeta de archivos actualizada',
   'settings.agentAccess.filesFolder.loadError': 'No se pudo cargar la carpeta de archivos.',
+  'settings.agentAccess.filesFolder.open': 'Mostrar en la carpeta',
+  'settings.agentAccess.filesFolder.openError': 'No se pudo abrir la carpeta de archivos.',
   'settings.agentAccess.alwaysAllow': 'Herramientas siempre permitidas',
   'settings.agentAccess.alwaysAllowDesc':
     'Las herramientas que marcaste como "Permitir siempre" en el chat se ejecutan sin pedir permiso. Elimina una para que se te pregunte nuevamente.',
@@ -6559,6 +6561,8 @@ const messages: TranslationMap = {
   'chat.files.error.resolve_failed': 'No se pudo resolver el artefacto. Inténtalo de nuevo.',
   'chat.files.error.download_failed': 'La descarga falló. Inténtalo de nuevo.',
   'chat.files.error.delete_failed': 'No se pudo eliminar el archivo. Inténtalo de nuevo.',
+  'chat.files.error.reveal_failed':
+    'No se pudo mostrar el archivo. Puede que se haya movido o eliminado fuera de OpenHuman.',
   'memory.tab.council': 'Council',
   'activity.tabs.automations': 'Automatizaciones',
   'activity.tabs.automationsDescription':

@@ -2,6 +2,7 @@ import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { renderWithProviders } from '../../../../test/test-utils';
+import { revealPath } from '../../../../utils/openUrl';
 import {
   type AgentPaths,
   openhumanGetAgentPaths,
@@ -15,6 +16,8 @@ vi.mock('../../../../utils/tauriCommands', async () => {
   );
   return { ...actual, openhumanGetAgentPaths: vi.fn(), openhumanUpdateAgentPaths: vi.fn() };
 });
+
+vi.mock('../../../../utils/openUrl', () => ({ revealPath: vi.fn() }));
 
 const DEFAULT = '/home/u/OpenHuman/projects/Files';
 
@@ -112,5 +115,29 @@ describe('FilesFolderSection', () => {
     renderWithProviders(<FilesFolderSection />);
     expect(await screen.findByText('Could not load the files folder.')).toBeInTheDocument();
     expect(input()).toBeDisabled();
+  });
+
+  it('Show in folder opens the configured folder', async () => {
+    mockGet.mockResolvedValue({
+      result: paths({ files_dir: '/data/Mine', files_dir_source: 'override' }),
+      logs: [],
+    });
+    vi.mocked(revealPath).mockResolvedValueOnce(undefined);
+    renderWithProviders(<FilesFolderSection />);
+    await waitFor(() => expect(input().value).toBe('/data/Mine'));
+
+    fireEvent.click(screen.getByTestId('files-folder-open'));
+
+    await waitFor(() => expect(revealPath).toHaveBeenCalledWith('/data/Mine'));
+  });
+
+  it('says so when the folder cannot be opened', async () => {
+    vi.mocked(revealPath).mockRejectedValueOnce(new Error('no file manager'));
+    renderWithProviders(<FilesFolderSection />);
+    await waitFor(() => expect(input().value).toBe(DEFAULT));
+
+    fireEvent.click(screen.getByTestId('files-folder-open'));
+
+    expect(await screen.findByText('Couldn’t open the files folder.')).toBeInTheDocument();
   });
 });

@@ -5524,6 +5524,8 @@ const messages: TranslationMap = {
   'settings.agentAccess.filesFolder.reset': 'Użyj domyślnego',
   'settings.agentAccess.filesFolder.saved': 'Zaktualizowano folder plików',
   'settings.agentAccess.filesFolder.loadError': 'Nie udało się wczytać folderu plików.',
+  'settings.agentAccess.filesFolder.open': 'Pokaż w folderze',
+  'settings.agentAccess.filesFolder.openError': 'Nie udało się otworzyć folderu plików.',
   'settings.agentAccess.alwaysAllow': 'Zawsze dozwolone narzędzia',
   'settings.agentAccess.alwaysAllowDesc':
     'Narzędzia oznaczone w czacie jako „Zawsze zezwalaj” działają bez pytania. Usuń narzędzie, aby znów wymagało potwierdzenia.',
@@ -6584,6 +6586,8 @@ const messages: TranslationMap = {
     'Nie udało się odnaleźć artefaktu. Prosimy spróbować ponownie.',
   'chat.files.error.download_failed': 'Pobieranie nie powiodło się. Prosimy spróbować ponownie.',
   'chat.files.error.delete_failed': 'Nie udało się usunąć pliku. Prosimy spróbować ponownie.',
+  'chat.files.error.reveal_failed':
+    'Nie udało się pokazać pliku. Mógł zostać przeniesiony lub usunięty poza OpenHuman.',
 
   'harnessInit.title': 'Trwa konfiguracja',
 

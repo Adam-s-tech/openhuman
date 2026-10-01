@@ -5389,6 +5389,8 @@ const messages: TranslationMap = {
   'settings.agentAccess.filesFolder.reset': '기본값 사용',
   'settings.agentAccess.filesFolder.saved': '파일 폴더가 업데이트되었습니다',
   'settings.agentAccess.filesFolder.loadError': '파일 폴더를 불러올 수 없습니다.',
+  'settings.agentAccess.filesFolder.open': '폴더에서 보기',
+  'settings.agentAccess.filesFolder.openError': '파일 폴더를 열 수 없습니다.',
   'settings.agentAccess.alwaysAllow': '항상 허용된 도구',
   'settings.agentAccess.alwaysAllowDesc':
     '채팅에서 "항상 허용"으로 표시한 도구는 확인 없이 실행됩니다. 다시 확인을 받으려면 항목을 제거하세요.',
@@ -6366,6 +6368,8 @@ const messages: TranslationMap = {
   'chat.files.error.resolve_failed': '아티팩트를 해석할 수 없습니다. 다시 시도해주세요.',
   'chat.files.error.download_failed': '다운로드에 실패했습니다. 다시 시도해주세요.',
   'chat.files.error.delete_failed': '파일을 삭제하지 못했습니다. 다시 시도해주세요.',
+  'chat.files.error.reveal_failed':
+    '파일을 표시할 수 없습니다. OpenHuman 외부에서 이동되었거나 삭제되었을 수 있습니다.',
   'memory.tab.council': 'Council',
   'activity.tabs.automations': '자동화',
   'activity.tabs.automationsDescription':

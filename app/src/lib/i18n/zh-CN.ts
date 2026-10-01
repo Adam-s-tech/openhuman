@@ -5161,6 +5161,8 @@ const messages: TranslationMap = {
   'settings.agentAccess.filesFolder.reset': '使用默认文件夹',
   'settings.agentAccess.filesFolder.saved': '文件保存文件夹已更新',
   'settings.agentAccess.filesFolder.loadError': '无法加载文件保存文件夹。',
+  'settings.agentAccess.filesFolder.open': '在文件夹中显示',
+  'settings.agentAccess.filesFolder.openError': '无法打开文件保存文件夹。',
   'settings.agentAccess.alwaysAllow': '始终允许的工具',
   'settings.agentAccess.alwaysAllowDesc':
     '你在聊天中标记为“始终允许”的工具会直接运行且不再询问。移除后会重新提示。',
@@ -6095,6 +6097,7 @@ const messages: TranslationMap = {
   'chat.files.error.resolve_failed': '无法解析 artifact。请重试。',
   'chat.files.error.download_failed': '下载失败。请重试。',
   'chat.files.error.delete_failed': '无法删除文件。请重试。',
+  'chat.files.error.reveal_failed': '无法显示该文件。它可能已在 OpenHuman 之外被移动或删除。',
   'memory.tab.council': 'Council',
   'activity.tabs.automations': '自动化',
   'activity.tabs.automationsDescription': '可复用、可运行的流程：目标及达成目标的步骤。',

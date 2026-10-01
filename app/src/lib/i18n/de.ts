@@ -5584,6 +5584,8 @@ const messages: TranslationMap = {
   'settings.agentAccess.filesFolder.reset': 'Standard verwenden',
   'settings.agentAccess.filesFolder.saved': 'Dateiordner aktualisiert',
   'settings.agentAccess.filesFolder.loadError': 'Der Dateiordner konnte nicht geladen werden.',
+  'settings.agentAccess.filesFolder.open': 'Im Ordner anzeigen',
+  'settings.agentAccess.filesFolder.openError': 'Der Dateiordner konnte nicht geöffnet werden.',
   'settings.agentAccess.alwaysAllow': 'Immer erlaubte Werkzeuge',
   'settings.agentAccess.alwaysAllowDesc':
     'Tools, die Sie im Chatlauf ohne zu fragen als "Immer zulassen" markiert haben. Entfernen Sie eine, um erneut aufgefordert zu werden.',
@@ -6596,6 +6598,8 @@ const messages: TranslationMap = {
     'Das Artefakt konnte nicht aufgelöst werden. Bitte erneut versuchen.',
   'chat.files.error.download_failed': 'Download fehlgeschlagen. Bitte erneut versuchen.',
   'chat.files.error.delete_failed': 'Datei konnte nicht gelöscht werden. Bitte erneut versuchen.',
+  'chat.files.error.reveal_failed':
+    'Die Datei konnte nicht angezeigt werden. Sie wurde möglicherweise außerhalb von OpenHuman verschoben oder gelöscht.',
   'memory.tab.council': 'Council',
   'activity.tabs.automations': 'Automatisierungen',
   'activity.tabs.automationsDescription':
