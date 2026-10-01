@@ -62,18 +62,13 @@ pub async fn local_ai_should_react(
     );
 
     let runtime = crate::inference::local_runtime_config(config);
-    // A reaction decorates a reply that is waiting to be delivered, so it may
-    // only use the local model when the gate would admit it *now*. Waiting
-    // here (`wait_for_capacity`) parks forever while background AI is paused
-    // and, with it, the reply's `chat_done`.
-    let Some(_permit) = crate::cron::scheduler_gate::try_capacity_now() else {
-        tracing::debug!("[local_ai:should_react] scheduler gate has no capacity now, skipping");
+    let Some(_permit) = crate::cron::scheduler_gate::wait_for_capacity().await else {
         return Ok(Outcome::single_log(
             ReactionDecision {
                 should_react: false,
                 emoji: None,
             },
-            "local inference unavailable right now",
+            "local inference paused while signed out",
         ));
     };
     let output = service.prompt(&runtime, &prompt, Some(8), true).await;

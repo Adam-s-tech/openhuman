@@ -84,10 +84,8 @@ pub(crate) async fn deliver_response(
     // but the interactive web surface must not cut or reformat model output.
     let segments = [full_response.to_string()];
 
-    // The reaction is decoration; the reply is not. Bound the wait so nothing
-    // the reaction does (a cold local model, a paused scheduler gate) can hold
-    // back storing and announcing the reply.
-    let reaction_emoji = bounded_reaction(reaction_handle, REACTION_BUDGET, request_id).await;
+    // Await the reaction result (should already be done or nearly done).
+    let reaction_emoji = reaction_handle.await.unwrap_or(None);
 
     if segments.len() <= 1 {
         // Store the answer before announcing it. Ordering is the whole point:
@@ -356,34 +354,6 @@ fn publish_chat_done(
 }
 
 // ── Reactions ────────────────────────────────────────────────────────────────
-
-/// Longest a reply waits for its emoji reaction before it is delivered without
-/// one. Delivery used to await the reaction unbounded, and a reaction parked
-/// on a paused scheduler gate left every reply undelivered: no `chat_done`, no
-/// stored row, and a "Thinking..." indicator that never cleared.
-const REACTION_BUDGET: std::time::Duration = std::time::Duration::from_secs(2);
-
-/// Await the spawned reaction for at most `budget`, aborting it on expiry.
-///
-/// Returns the emoji when the reaction finished in time, `None` when it
-/// declined, failed, panicked or ran out of time.
-async fn bounded_reaction(
-    mut handle: tokio::task::JoinHandle<Option<String>>,
-    budget: std::time::Duration,
-    request_id: &str,
-) -> Option<String> {
-    match tokio::time::timeout(budget, &mut handle).await {
-        Ok(joined) => joined.unwrap_or(None),
-        Err(_) => {
-            handle.abort();
-            log::warn!(
-                "[web-channel] reaction did not finish within {}ms; delivering without it request_id={request_id}",
-                budget.as_millis()
-            );
-            None
-        }
-    }
-}
 
 /// Ask the local model for an emoji reaction to the user's message.
 /// Returns `None` if the local model is unavailable or decides no reaction.

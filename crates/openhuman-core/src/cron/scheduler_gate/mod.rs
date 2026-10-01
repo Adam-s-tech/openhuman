@@ -25,8 +25,8 @@ pub mod gate;
 pub mod signals;
 
 pub use gate::{
-    current_policy, current_signals, init_global, is_signed_out, set_signed_out, try_capacity_now,
-    wait_for_capacity, LlmPermit,
+    current_policy, current_signals, init_global, is_signed_out, set_signed_out, wait_for_capacity,
+    LlmPermit,
 };
 pub use signals::Signals;
 pub use tinymemory_api::host::{PauseReason, Policy};

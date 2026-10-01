@@ -463,45 +463,6 @@ pub async fn wait_for_capacity() -> Option<LlmPermit> {
     }
 }
 
-/// Non-blocking sibling of [`wait_for_capacity`] for **best-effort** work that
-/// sits on an interactive path and must never stall it.
-///
-/// Returns a permit only when the gate would admit work right now: the policy
-/// is `Aggressive`/`Normal` and the LLM slot is free. A `Throttled` or
-/// `Paused` gate, or a slot held by background work, answers `None` at once —
-/// the caller skips its optional step instead of queueing behind the gate.
-///
-/// `wait_for_capacity` is the wrong primitive for such callers: in `Paused`
-/// (the user turned background AI off, or the session is signed out) it polls
-/// until the policy changes, which can be never. The web channel's emoji
-/// reaction waited there and held back every reply's delivery (`chat_done`
-/// and the stored row) for as long as background AI stayed off.
-pub fn try_capacity_now() -> Option<LlmPermit> {
-    try_capacity_for(current_policy())
-}
-
-fn try_capacity_for(policy: Policy) -> Option<LlmPermit> {
-    match policy {
-        Policy::Aggressive | Policy::Normal => {
-            let permit = llm_permits()
-                .try_acquire_owned()
-                .ok()
-                .map(|p| LlmPermit { _permit: p });
-            if permit.is_none() {
-                log::debug!("[scheduler_gate] try_capacity_now: llm slot busy — skipping");
-            }
-            permit
-        }
-        Policy::Throttled | Policy::Paused { .. } => {
-            log::debug!(
-                "[scheduler_gate] try_capacity_now: policy={} — skipping",
-                policy.as_str()
-            );
-            None
-        }
-    }
-}
-
 async fn acquire_llm_permit_inner() -> Option<LlmPermit> {
     let sem = llm_permits();
     match sem.acquire_owned().await {
