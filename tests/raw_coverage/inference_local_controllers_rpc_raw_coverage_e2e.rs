@@ -45,6 +45,7 @@
 //! serialization mechanism, the same reasoning as `tests/agent_harness_e2e.rs:8-12`.
 #![allow(clippy::await_holding_lock)]
 
+use crate::env_guard::EnvVarGuard;
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 
@@ -61,39 +62,6 @@ fn env_lock() -> std::sync::MutexGuard<'static, ()> {
         .get_or_init(|| Mutex::new(()))
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner())
-}
-
-struct EnvVarGuard {
-    key: &'static str,
-    previous: Option<std::ffi::OsString>,
-}
-
-impl EnvVarGuard {
-    fn set(key: &'static str, value: impl AsRef<std::ffi::OsStr>) -> Self {
-        let previous = std::env::var_os(key);
-        // SAFETY: every test here holds `env_lock()`, so no other aggregated
-        // suite mutates the environment concurrently.
-        unsafe { std::env::set_var(key, value) };
-        Self { key, previous }
-    }
-
-    fn unset(key: &'static str) -> Self {
-        let previous = std::env::var_os(key);
-        // SAFETY: as above.
-        unsafe { std::env::remove_var(key) };
-        Self { key, previous }
-    }
-}
-
-impl Drop for EnvVarGuard {
-    fn drop(&mut self) {
-        match &self.previous {
-            // SAFETY: as above.
-            Some(value) => unsafe { std::env::set_var(self.key, value) },
-            // SAFETY: as above.
-            None => unsafe { std::env::remove_var(self.key) },
-        }
-    }
 }
 
 /// Point the Ollama health probe at a closed loopback port and clear the

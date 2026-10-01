@@ -19,6 +19,9 @@
 //!   OPENHUMAN_LIVE_USER_ID="<user-id>" \
 //!   cargo test --test live_flows_demo_e2e -- --ignored --nocapture
 
+#[path = "support/env_guard.rs"]
+mod env_guard;
+use env_guard::EnvVarGuard;
 use std::path::Path;
 use std::sync::{Mutex, OnceLock};
 use std::time::Duration;
@@ -32,31 +35,6 @@ use openhuman_rpc::server::build_core_http_router;
 static LIVE_E2E_ENV_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
 static LIVE_RPC_AUTH_INIT: OnceLock<()> = OnceLock::new();
 const TEST_RPC_TOKEN: &str = "live-flows-demo-e2e-local-token";
-
-struct EnvVarGuard {
-    key: &'static str,
-    old: Option<String>,
-}
-
-impl EnvVarGuard {
-    fn set_to_path(key: &'static str, path: &Path) -> Self {
-        let old = std::env::var(key).ok();
-        // SAFETY: EnvVarGuard is only used after acquiring live_e2e_env_lock(),
-        // which serializes process-global env mutations.
-        unsafe { std::env::set_var(key, path.as_os_str()) };
-        Self { key, old }
-    }
-}
-
-impl Drop for EnvVarGuard {
-    fn drop(&mut self) {
-        match &self.old {
-            // SAFETY: See set_to_path; teardown runs under the same lock.
-            Some(v) => unsafe { std::env::set_var(self.key, v) },
-            None => unsafe { std::env::remove_var(self.key) },
-        }
-    }
-}
 
 fn live_e2e_env_lock() -> std::sync::MutexGuard<'static, ()> {
     let mutex = LIVE_E2E_ENV_LOCK.get_or_init(|| Mutex::new(()));

@@ -3,6 +3,7 @@
 //! These tests use only loopback HTTP mocks and temp workspaces. They do not
 //! require real Ollama, LM Studio, Piper, Whisper, Python, or model binaries.
 
+use crate::env_guard::EnvVarGuard;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
@@ -34,37 +35,8 @@ struct MockState {
     requests: Arc<Mutex<Vec<(String, Option<String>, Value)>>>,
 }
 
-struct EnvVarGuard {
-    key: &'static str,
-    previous: Option<String>,
-}
-
-impl EnvVarGuard {
-    fn set(key: &'static str, value: impl AsRef<std::ffi::OsStr>) -> Self {
-        let previous = std::env::var(key).ok();
-        // SAFETY: this test binary is run with --test-threads=1 in validation.
-        unsafe { std::env::set_var(key, value) };
-        Self { key, previous }
-    }
-}
-
-impl Drop for EnvVarGuard {
-    fn drop(&mut self) {
-        match &self.previous {
-            Some(value) => {
-                // SAFETY: this test binary is run with --test-threads=1 in validation.
-                unsafe { std::env::set_var(self.key, value) }
-            }
-            None => {
-                // SAFETY: this test binary is run with --test-threads=1 in validation.
-                unsafe { std::env::remove_var(self.key) }
-            }
-        }
-    }
-}
-
 // Serialize env mutation against every other aggregated suite via the
-// single crate-wide SHARED_ENV_LOCK (these tests use an `EnvGuard` struct
+// single crate-wide SHARED_ENV_LOCK (these tests use an `EnvVarGuard` struct
 // that does not itself hold a lock). Poison is recovered so a panic
 // elsewhere cannot wedge the suite.
 fn __shared_env_lock() -> std::sync::MutexGuard<'static, ()> {

@@ -4,6 +4,7 @@
 //! and temp PATH binaries. This suite must not invoke real Ollama, MLX, Python,
 //! whisper, piper, local AI binaries, models, or downloads.
 
+use crate::env_guard::EnvVarGuard;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, OnceLock};
@@ -42,42 +43,6 @@ struct SeenRequest {
     auth: Option<String>,
     user_agent: Option<String>,
     body: Value,
-}
-
-struct EnvVarGuard {
-    key: &'static str,
-    previous: Option<std::ffi::OsString>,
-}
-
-impl EnvVarGuard {
-    fn set(key: &'static str, value: impl AsRef<std::ffi::OsStr>) -> Self {
-        let previous = std::env::var_os(key);
-        // SAFETY: this integration test is validated with --test-threads=1.
-        unsafe { std::env::set_var(key, value) };
-        Self { key, previous }
-    }
-
-    fn unset(key: &'static str) -> Self {
-        let previous = std::env::var_os(key);
-        // SAFETY: this integration test is validated with --test-threads=1.
-        unsafe { std::env::remove_var(key) };
-        Self { key, previous }
-    }
-}
-
-impl Drop for EnvVarGuard {
-    fn drop(&mut self) {
-        match &self.previous {
-            Some(value) => {
-                // SAFETY: mutation is serialized by `env_lock()` (see below).
-                unsafe { std::env::set_var(self.key, value) }
-            }
-            None => {
-                // SAFETY: mutation is serialized by `env_lock()` (see below).
-                unsafe { std::env::remove_var(self.key) }
-            }
-        }
-    }
 }
 
 /// Serializes the whole suite's process-global env access.

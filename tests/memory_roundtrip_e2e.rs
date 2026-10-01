@@ -36,6 +36,9 @@
 //! `scripts/test-rust-e2e.sh` supplies both; a bare
 //! `cargo test --test memory_roundtrip_e2e` supplies neither.
 
+#[path = "support/env_guard.rs"]
+mod env_guard;
+use env_guard::EnvVarGuard;
 use std::path::Path;
 use std::sync::{Arc, Mutex, OnceLock};
 
@@ -48,33 +51,6 @@ use openhuman_core::memory::ops::{
 use openhuman_core::memory::rpc_models::{RecallContextRequest, RecallMemoriesRequest};
 
 // ── Env isolation ────────────────────────────────────────────────────
-
-struct EnvVarGuard {
-    key: &'static str,
-    old: Option<String>,
-}
-
-impl EnvVarGuard {
-    fn set_to_path(key: &'static str, path: &Path) -> Self {
-        let old = std::env::var(key).ok();
-        // SAFETY: EnvVarGuard is only used in tests that first acquire
-        // env_lock(), which serializes process-global env mutations.
-        unsafe { std::env::set_var(key, path.as_os_str()) };
-        Self { key, old }
-    }
-}
-
-impl Drop for EnvVarGuard {
-    fn drop(&mut self) {
-        match &self.old {
-            // SAFETY: See EnvVarGuard::set_to_path; teardown runs under the same
-            // env_lock() critical section as setup.
-            Some(v) => unsafe { std::env::set_var(self.key, v) },
-            // SAFETY: Guarded by env_lock(), preventing concurrent env access.
-            None => unsafe { std::env::remove_var(self.key) },
-        }
-    }
-}
 
 /// Serialises tests: `HOME` + `OPENHUMAN_WORKSPACE` are process-global.
 static ENV_LOCK: OnceLock<Mutex<()>> = OnceLock::new();

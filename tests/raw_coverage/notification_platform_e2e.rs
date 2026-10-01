@@ -17,6 +17,7 @@
 //!   ~/tinyhuman/ci-slot.sh cargo test --test raw_coverage_all \
 //!       --features "$(bash scripts/ci/product-features.sh)" notification_platform
 
+use crate::env_guard::EnvVarGuard;
 use std::net::SocketAddr;
 use std::path::Path;
 use std::sync::{Arc, Mutex, OnceLock};
@@ -73,34 +74,6 @@ fn rpc_bearer() -> &'static str {
 fn ensure_rpc_auth() {
     crate::tinyhumans_boot::boot();
     let _ = rpc_bearer();
-}
-
-struct EnvGuard {
-    key: &'static str,
-    prev: Option<String>,
-}
-
-impl EnvGuard {
-    fn set_to_path(key: &'static str, path: &Path) -> Self {
-        let prev = std::env::var(key).ok();
-        std::env::set_var(key, path.as_os_str());
-        Self { key, prev }
-    }
-
-    fn unset(key: &'static str) -> Self {
-        let prev = std::env::var(key).ok();
-        std::env::remove_var(key);
-        Self { key, prev }
-    }
-}
-
-impl Drop for EnvGuard {
-    fn drop(&mut self) {
-        match &self.prev {
-            Some(v) => std::env::set_var(self.key, v),
-            None => std::env::remove_var(self.key),
-        }
-    }
 }
 
 // ── mock backend ─────────────────────────────────────────────────────────────
@@ -286,10 +259,10 @@ struct Harness {
     openhuman_home: std::path::PathBuf,
     mock_join: tokio::task::JoinHandle<()>,
     rpc_join: tokio::task::JoinHandle<()>,
-    _home: EnvGuard,
-    _ws: EnvGuard,
-    _backend: EnvGuard,
-    _vite: EnvGuard,
+    _home: EnvVarGuard,
+    _ws: EnvVarGuard,
+    _backend: EnvVarGuard,
+    _vite: EnvVarGuard,
     _tmp: tempfile::TempDir,
 }
 
@@ -298,10 +271,10 @@ impl Harness {
         let tmp = tempdir().expect("tempdir");
         let home = tmp.path().to_path_buf();
         let openhuman_home = home.join(".openhuman");
-        let _home = EnvGuard::set_to_path("HOME", &home);
-        let _ws = EnvGuard::unset("OPENHUMAN_WORKSPACE");
-        let _backend = EnvGuard::unset("BACKEND_URL");
-        let _vite = EnvGuard::unset("VITE_BACKEND_URL");
+        let _home = EnvVarGuard::set_to_path("HOME", &home);
+        let _ws = EnvVarGuard::unset("OPENHUMAN_WORKSPACE");
+        let _backend = EnvVarGuard::unset("BACKEND_URL");
+        let _vite = EnvVarGuard::unset("VITE_BACKEND_URL");
 
         let (mock_addr, mock_join) = serve_ephemeral(mock_backend_router(state)).await;
         write_test_config(&openhuman_home, &format!("http://{mock_addr}"));
