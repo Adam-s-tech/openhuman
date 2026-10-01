@@ -2313,7 +2313,9 @@ async fn multi_hop_delegation_chain_inner() {
 
 mod streaming_support {
     use async_trait::async_trait;
-    use openhuman_core::agent::harness::{AgentDefinition, AgentDefinitionRegistry, ToolScope};
+    use openhuman_core::agent::harness::definition::{
+        AgentDefinition, AgentDefinitionRegistry, ToolScope as DefinitionToolScope,
+    };
     use openhuman_core::agent::OpenHumanSessionHost;
     use openhuman_core::config::{AgentConfig, ContextConfig};
     use openhuman_core::memory::Memory;
@@ -2510,7 +2512,7 @@ mod streaming_support {
             .cloned()
             .expect("built-in orchestrator definition");
         def.id = "round17/orchestrator".to_string();
-        def.tools = ToolScope::Wildcard;
+        def.tools = DefinitionToolScope::Wildcard;
         def.disallowed_tools.clear();
         Arc::new(def)
     }
