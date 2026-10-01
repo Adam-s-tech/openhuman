@@ -80,12 +80,6 @@ const DIAGNOSTICS_TO_BACKEND: Option<CapabilityPrivacy> = Some(CapabilityPrivacy
     destinations: &["OpenHuman backend"],
 });
 
-const MODEL_DOWNLOAD: Option<CapabilityPrivacy> = Some(CapabilityPrivacy {
-    leaves_device: true,
-    data_kind: PrivacyDataKind::Metadata,
-    destinations: &["Hugging Face"],
-});
-
 // Self-update flows talk to GitHub Releases directly, not the OpenHuman
 // backend. The outbound payload is metadata only (release list query for
 // `update.check`, asset download URL request for `update.apply`) so

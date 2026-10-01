@@ -7627,6 +7627,9 @@ async fn about_app_rpc_list_lookup_and_search() {
         "expected large capability catalog, got: {list_result}"
     );
     assert!(capabilities.iter().any(|capability| {
+        capability.get("id").and_then(Value::as_str) == Some("local_ai.configure_provider")
+    }));
+    assert!(!capabilities.iter().any(|capability| {
         capability.get("id").and_then(Value::as_str) == Some("local_ai.download_model")
     }));
 
