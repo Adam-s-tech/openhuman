@@ -138,7 +138,7 @@ test("renames legacy test files and repoints their declarations with #[path]", (
     ["src/config/mod.rs", "#[cfg(test)]\nmod test;\nmod types;\n"],
     ["src/config/test.rs", "use super::*;\n"],
     ["src/foo.rs", "pub fn f() {}\n\n#[cfg(test)]\nmod foo_test;\n"],
-    ["src/foo_test.rs", "use super::*;\n"],
+    ["src/foo/foo_test.rs", "use super::*;\n"],
     ["src/bar.rs", '#[cfg(test)]\n#[path = "bar/x_test.rs"]\nmod x;\n'],
     ["src/bar/x_test.rs", "use super::*;\n"],
     ["src/lib.rs", "mod config;\nmod foo;\nmod bar;\n"],
@@ -146,10 +146,10 @@ test("renames legacy test files and repoints their declarations with #[path]", (
   const plan = planLegacyRenames(sources);
   assert.deepEqual(
     plan.renames.map((r) => `${r.from}->${r.to}`).sort(),
-    ["src/bar/x_test.rs->src/bar/x_tests.rs", "src/config/test.rs->src/config/mod_tests.rs", "src/foo_test.rs->src/foo_tests.rs"],
+    ["src/bar/x_test.rs->src/bar/x_tests.rs", "src/config/test.rs->src/config/mod_tests.rs", "src/foo/foo_test.rs->src/foo/foo_tests.rs"],
   );
   assert.equal(plan.edits.get("src/config/mod.rs"), '#[cfg(test)]\n#[path = "mod_tests.rs"]\nmod test;\nmod types;\n');
-  assert.match(plan.edits.get("src/foo.rs"), /#\[path = "foo_tests.rs"\]\nmod foo_test;/);
+  assert.match(plan.edits.get("src/foo.rs"), /#\[path = "foo\/foo_tests.rs"\]\nmod foo_test;/);
   assert.match(plan.edits.get("src/bar.rs"), /#\[path = "bar\/x_tests.rs"\]\nmod x;/);
   assert.deepEqual(plan.manual, []);
 });
