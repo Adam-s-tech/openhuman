@@ -47,10 +47,27 @@ describe('Memory engine settings panel (real UI flow)', () => {
   it('gates Switch until the selected engine has what it needs', async function () {
     this.timeout(60_000);
     await clickTestId('memory-engine-radio-supermemory', 10_000);
-    // The key field is a password input; without one the switch stays disabled.
+    // Supermemory's key is optional; its endpoint is required. Leave the
+    // endpoint blank to verify the gate that the core advertises for it.
+    const endpoint = await browser.$('#memory-engine-supermemory-endpoint');
+    await endpoint.waitForExist({ timeout: 10_000 });
+    await browser.execute(() => {
+      const el = document.querySelector<HTMLInputElement>(
+        '#memory-engine-supermemory-endpoint'
+      );
+      if (!el) return;
+      const setter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        'value'
+      )?.set;
+      if (setter) setter.call(el, '');
+      else el.value = '';
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    });
     const sw = await waitForTestId('memory-engine-switch', 10_000);
     expect(await sw.isEnabled()).toBe(false);
-    expect(await textExists('API key')).toBe(true);
+    expect(await textExists('Endpoint')).toBe(true);
   });
 
   it('keeps the local engine as the oracle-visible active engine', async () => {
