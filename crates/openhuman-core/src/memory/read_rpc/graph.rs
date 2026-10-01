@@ -462,16 +462,6 @@ fn document_label(child_id: &str) -> String {
     }
 }
 
-#[allow(dead_code)]
-pub(super) fn source_id_to_scope(source_id: &str) -> String {
-    let parts: Vec<&str> = source_id.splitn(3, ':').collect();
-    if parts.len() >= 2 {
-        format!("{}:{}", parts[0], parts[1])
-    } else {
-        source_id.to_string()
-    }
-}
-
 // ── collect_contacts_graph ───────────────────────────────────────────────
 
 async fn collect_contacts_graph(cfg: &Config) -> Result<(Vec<GraphNode>, Vec<GraphEdge>), String> {

@@ -208,7 +208,6 @@ impl EventHandler<DomainEvent> for ProactiveMessageSubscriber {
             output: None,
             success: Some(true),
             round: None,
-            reaction_emoji: None,
             segment_index: None,
             segment_total: None,
             delta: None,

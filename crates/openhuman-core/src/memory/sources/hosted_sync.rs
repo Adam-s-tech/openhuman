@@ -122,7 +122,7 @@ pub(crate) async fn run(
         )));
     };
     let listed = reader
-        .list_items(entry, config)
+        .list_items(entry, &config.workspace_dir)
         .await
         .map_err(|error| MemoryError::Backend(format!("listing source '{}': {error}", entry.id)))?;
     let total = listed.len();
@@ -143,7 +143,10 @@ pub(crate) async fn run(
     let mut batch: Vec<SinkItem> = Vec::with_capacity(BATCH);
     let mut outcome = SyncRunOutcome::default();
     for item in items {
-        let content = match reader.read_item(entry, &item.id, config).await {
+        let content = match reader
+            .read_item(entry, &item.id, &config.workspace_dir)
+            .await
+        {
             Ok(content) => content,
             Err(error) => {
                 unreadable += 1;

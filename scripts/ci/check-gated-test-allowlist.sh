@@ -36,7 +36,6 @@ core/invoke_tests.rs
 core/legacy_aliases_tests.rs
 core/runtime/services.rs
 core/runtime/subscribers.rs
-flows/mod.rs
 mcp/server/resources.rs
 mcp/server/mod.rs
 mcp/server/tools/mod.rs
@@ -44,7 +43,7 @@ platform/socket/event_handlers.rs
 skills/bundled/mod.rs
 skills/mod.rs
 skills/search.rs
-tools/impl/network/http_request.rs
+tools/impl/network/host.rs
 tools/ops.rs
 tools/ops_tests.rs
 tools/ops_tests_capability_gating_tests.rs

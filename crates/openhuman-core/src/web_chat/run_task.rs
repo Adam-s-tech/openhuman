@@ -19,9 +19,9 @@ use super::session::{
 };
 use super::types::{ChatRequestMetadata, WebChatTaskResult};
 use super::web_errors::{
-    inference_budget_exceeded_user_message, is_empty_provider_response_text,
-    is_inference_budget_exceeded_error,
+    inference_budget_exceeded_user_message, is_inference_budget_exceeded_error,
 };
+use tinyinference_llm::failure::is_empty_provider_response_text;
 
 #[cfg(any(test, debug_assertions))]
 use super::ops::TEST_FORCED_RUN_CHAT_TASK_ERROR;

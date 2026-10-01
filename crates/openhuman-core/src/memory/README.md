@@ -21,8 +21,9 @@ What stays here, per that split:
   + prompt), and the consolidated `memory_query` agent tool in
   [`query/`](query/) (it came back from the extracted crate because the
   engine crate cannot name the `Tool` trait).
-- Guard: [`guard/`](guard/), the taint/scope/budget policy gate over
-  every provider call.
+- Guard: [`guard/`](guard/), the host half of the taint/scope/budget policy
+  gate over every provider call (`HostGuardPolicy`, the `MemoryGuard` alias).
+  The decorator itself is `tinymemory-guard`'s `GuardedProvider`.
 - Driver binding: [`binding.rs`](binding.rs) (`memory::binding::for_config`,
   the workspace-keyed driver binding the Layer rules below reference) and
   [`driver/`](driver/), which provider backs a workspace. The built-in driver
@@ -44,8 +45,9 @@ What stays here, per that split:
   the engine's:
   - [`auto_recall/`](auto_recall/): Lane C, the gated, bounded pre-turn
     recall of facts about the user (#6040).
-  - [`safety.rs`](safety.rs): the host-side secret/PII scrubbers applied to
-    anything this host persists or hands on.
+  - [`safety.rs`](safety.rs): the host's import path for the shared
+    `tinymemory-safety` secret/PII scrubbers, applied to anything this host
+    persists or hands on (default, strictest policy).
   - [`source_scope.rs`](source_scope.rs): the host-side per-turn
     memory-source allowlist.
   - [`obsidian_registry.rs`](obsidian_registry.rs): is the memory content

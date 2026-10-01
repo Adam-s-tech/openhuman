@@ -9,7 +9,7 @@ use std::sync::Arc;
 
 use openhuman_core::channels::host::build_channel_host;
 use openhuman_core::config::Config;
-use tinychannels::host::{ApprovalDecision, ConversationMessage, ReactionQuery};
+use tinychannels::host::{ApprovalDecision, ConversationMessage};
 
 /// A config pinned to a throwaway workspace with the local runtime disabled,
 /// so filesystem-backed capabilities are isolated and inference is short-circuited.
@@ -27,7 +27,7 @@ fn host_advertises_the_wired_capability_set() {
     assert!(caps.lifecycle);
     assert!(caps.stt);
     assert!(caps.tts);
-    assert!(caps.reaction_gate);
+    assert!(!caps.reaction_gate);
     assert!(caps.approvals);
     assert!(caps.conversation_store);
     assert!(caps.event_sink);
@@ -73,21 +73,12 @@ async fn conversation_store_roundtrips_through_the_boundary() {
     assert_eq!(history[1].content, "pong");
 }
 
-#[tokio::test]
-async fn reaction_gate_short_circuits_when_runtime_disabled() {
+#[test]
+fn host_offers_no_reaction_gate() {
     let dir = tempfile::tempdir().expect("tempdir");
     let host = build_channel_host(Arc::new(test_config(dir.path())));
-    let gate = host.reactions().expect("reaction gate present");
-
-    let decision = gate
-        .should_react(ReactionQuery {
-            message: "hello there".into(),
-            channel_type: "web".into(),
-        })
-        .await
-        .expect("should_react ok");
-    assert!(!decision.should_react);
-    assert!(decision.emoji.is_none());
+    assert!(host.reactions().is_none());
+    assert!(!host.capabilities().reaction_gate);
 }
 
 #[test]

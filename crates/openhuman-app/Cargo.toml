@@ -6,7 +6,7 @@
 
 [package]
 name = "openhuman-app"
-version = "0.64.9"
+version = "0.64.10"
 description = "OpenHuman - AI-powered Super Assistant"
 authors = ["OpenHuman"]
 edition = "2021"
@@ -320,6 +320,7 @@ e2e-test-support = ["openhuman_core/e2e-test-support"]
 # workspace carries; the key has no `.git` suffix, matching the dep URL.
 [patch."https://github.com/tinyhumansai/tinymemory"]
 tinymemory-api = { path = "../../vendor/tinymemory/crates/tinymemory-api" }
+tinymemory-safety = { path = "../../vendor/tinymemory/crates/tinymemory-safety" }
 
 [patch."https://github.com/tinyhumansai/tinytools"]
 # tinymcp's `tools` feature names tinytools by git rev so it can be built on its

@@ -63,8 +63,8 @@ layer.
    a developer's `modules.overrides` (or a `*_TEST_MODULE` env var), the
    module search path (`OPENHUMAN_MODULE_PATH`, then platform data dirs), then
    the release cache.
-4. `platform::host_candidates()` picks the ordered list of artifact keys this
-   host can run; `ops::load_cached` tries each until one is admitted.
+4. `tinybus::module::platform::host_candidates()` picks the ordered list of artifact keys this
+   host can run; `ops::load_cached` hands them to `tinybus::module::load_first_admitted`, which tries each until one is admitted.
 5. The release cache (`tinybus::module::CachedRelease`) downloads if
    `modules.allow_download`, fetches the release's own `checksum.toml`, checks
    it against the digest pinned in `registry.rs`, hashes the archive, extracts,

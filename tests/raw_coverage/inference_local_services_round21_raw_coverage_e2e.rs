@@ -17,7 +17,7 @@ use openhuman_core::core::all::RegisteredController;
 use openhuman_core::config::Config;
 use openhuman_core::inference::host_runtime::ops::{
     local_ai_assets_status, local_ai_chat, local_ai_download_asset, local_ai_downloads_progress,
-    local_ai_prompt, local_ai_should_react, local_ai_transcribe, local_ai_transcribe_bytes,
+    local_ai_prompt, local_ai_transcribe, local_ai_transcribe_bytes,
     LocalAiChatMessage,
 };
 use openhuman_core::inference::host_runtime::{
@@ -213,13 +213,6 @@ async fn local_services_cover_mocked_inference_assets_speech_and_ops_entry_point
     .expect_err("bad chat role");
     assert!(rejected.contains("unsupported message role"));
 
-    let reaction = local_ai_should_react(&config, "great work", "discord")
-        .await
-        .expect("reaction")
-        .value;
-    assert!(reaction.should_react);
-    assert_eq!(reaction.emoji.as_deref(), Some("⭐"));
-
     assert_eq!(
         local_ai_downloads_progress(&config)
             .await
@@ -340,9 +333,7 @@ async fn ollama_chat_completions(
         .find(|message| message["role"] == "user")
         .and_then(|message| message["content"].as_str())
         .unwrap_or_default();
-    let response = if prompt.contains("single emoji character") {
-        "⭐".to_string()
-    } else if system.contains("inline text completion") {
+    let response = if system.contains("inline text completion") {
         "adds tests".to_string()
     } else if prompt == "chat please" {
         "chat generated".to_string()

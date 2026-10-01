@@ -330,38 +330,6 @@ fn body_failure_result(name: &str, extra: serde_json::Value) -> TaToolResult {
     tool_result(name, &serde_json::to_string_pretty(&body).unwrap())
 }
 
-// ── MemoryProtocolMiddleware (issue #4116) ──────────────────────────────
-
-use crate::agent::harness::memory_protocol::MEMORY_PROTOCOL_MARKER;
-
-/// Drive one full tool cycle through the middleware: `before_tool` (captures
-/// the arguments the result won't carry) then `after_tool`, correlated by a
-/// shared call id. Returns the (possibly annotated) result.
-async fn run_cycle(
-    mw: &MemoryProtocolMiddleware,
-    name: &str,
-    args: serde_json::Value,
-    content: &str,
-    error: Option<&str>,
-) -> TaToolResult {
-    let mut call = TaToolCall {
-        id: "c1".into(),
-        name: name.into(),
-        arguments: args,
-        invalid: None,
-    };
-    mw.before_tool(&mut ctx(), &(), &mut call).await.unwrap();
-    let mut result = match error {
-        Some(error) => TaToolResult::error(error),
-        None => tool_result(name, content),
-    };
-    let invocation = ToolInvocationIdentity::new("c1", name);
-    mw.after_tool(&mut ctx(), &(), &invocation, &mut result)
-        .await
-        .unwrap();
-    result
-}
-
 // ── EmbedderToolHooksMiddleware ──────────────────────────────────────────
 
 /// Records lifecycle notifications for a test hook, optionally vetoing every

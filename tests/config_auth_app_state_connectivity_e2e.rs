@@ -24,8 +24,7 @@ use openhuman_core::config::schema::{
     DingTalkConfig, DiscordConfig, EventStreamConfig, IrcConfig, LarkConfig, MatrixConfig,
     MemoryConfig, MemoryContextWindow, ModelHealthConfig, OrchestratorModelConfig, ProxyConfig,
     ProxyScope, QQConfig, ResourceLimitsConfig, SandboxConfig, SecurityConfig, SlackConfig,
-    SttApiStyle, TelegramConfig, TtsApiStyle, VoiceCapability, VoiceProviderCreds, WebhookConfig,
-    WhatsAppConfig,
+    TelegramConfig, VoiceCapability, VoiceProviderCreds, WebhookConfig, WhatsAppConfig,
 };
 use openhuman_core::config::settings_cli::{settings_section_json, ConfigSnapshotFields};
 use openhuman_core::config::{
@@ -61,6 +60,8 @@ use openhuman_tinyhumans::backend::url::{
     DEFAULT_STAGING_API_BASE_URL, OPENHUMAN_INFERENCE_PATH, VITE_APP_ENV_VAR,
 };
 use tinybus::EventHandler;
+use tinyinference_voice::external_stt::SttApiStyle;
+use tinyinference_voice::external_tts::TtsApiStyle;
 
 const TEST_RPC_TOKEN: &str = "worker-a-domain-e2e-token";
 

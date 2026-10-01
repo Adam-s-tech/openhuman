@@ -1,6 +1,6 @@
 use super::*;
 
-use crate::agent::progress_tracing::types::SpanKind;
+use tinyagents_harness::observability::trace_export::SpanKind;
 // ── identity / attribution / content capture ───────────────────────────────
 
 #[test]

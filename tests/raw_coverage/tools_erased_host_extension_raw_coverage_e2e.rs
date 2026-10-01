@@ -7,32 +7,24 @@
 //! `openhuman::tools::traits`.
 //!
 //! That trade is invisible to the compiler in one direction. A producer that
-//! stores a different concrete type still builds; the `downcast_ref` /
-//! `downcast` in the reader simply returns `None`, and every consumer treats
-//! `None` as "this tool has no such context". For
-//! `generated_runtime_context` that consumer is
-//! `agent::tinyagents::middleware::generated_context`, which feeds
-//! `tool_policy::GeneratedToolRuntimeContext` — so a silent `None` means the
-//! provider / capability / risk rules for a generated tool are simply not
-//! applied.
+//! stores a different concrete type still builds; the `downcast_ref` in the
+//! reader simply returns `None`, and every consumer treats `None` as "this
+//! tool has no such context".
 //!
 //! Every assertion that existed on this seam — in the e2e lane
 //! (`tools_approval_channels_raw_coverage_e2e.rs`) and in the unit lane
 //! (`tools/traits_tests.rs`) — asserts `is_none()`. The failure mode and the
 //! only tested state were the same value. These tests assert the `Some` side.
 
-use std::any::Any;
 use std::sync::Arc;
 
-use async_trait::async_trait;
-use serde_json::{json, Value};
+use serde_json::json;
 
 use openhuman_core::agent::tool_policy::{GeneratedToolRuntimeContext, GeneratedToolRuntimeRisk};
-use openhuman_core::skills::types::tool_result_from_mcp;
 use openhuman_core::tools::host_extensions::{generated_runtime_context, pack_registry_handle};
 use openhuman_core::tools::toolpacks::registry::{CATALOG, PACKS};
 use tinyagents_harness::tool::packs::{PackRegistryHandle, UseSkillTool};
-use tinytools::{PermissionLevel, Tool, ToolResult};
+use tinytools::Tool;
 
 /// A production pack tool's registry handle survives the round trip through
 /// `dyn Any` **as the same handle**, not merely as some handle.
@@ -128,42 +120,6 @@ fn a_generated_tools_runtime_context_reads_back_with_its_policy_fields() {
     );
     assert_eq!(context.source_digest.as_deref(), Some("sha256:abc"));
     assert_eq!(context.approval_id.as_deref(), Some("approval-1"));
-}
-
-/// The MCP → host result conversion keeps the error flag the right way round.
-///
-/// #5841 turned this from a `From` impl into the free function
-/// `skills::types::tool_result_from_mcp`, because `ToolResult` became a foreign
-/// type and the orphan rule forbade the impl. The PR's own note gives the
-/// reason it stays written exactly once: spelled out at each of its three call
-/// sites, it would be three chances to get the error flag backwards. Nothing
-/// asserted the orientation.
-#[test]
-fn an_mcp_error_result_stays_an_error_through_the_conversion() {
-    let failed = tool_result_from_mcp(tinymcp_bus::McpToolResult {
-        content: vec![tinymcp_bus::McpToolContent::Text {
-            text: "server refused".to_string(),
-        }],
-        is_error: true,
-        ..Default::default()
-    });
-    assert!(
-        failed.is_error,
-        "an MCP result flagged as an error must stay an error; inverting this \
-         reports a failed tool call to the model as a success"
-    );
-
-    let ok = tool_result_from_mcp(tinymcp_bus::McpToolResult {
-        content: vec![tinymcp_bus::McpToolContent::Text {
-            text: "done".to_string(),
-        }],
-        is_error: false,
-        ..Default::default()
-    });
-    assert!(
-        !ok.is_error,
-        "a successful MCP result must not be reported as an error"
-    );
 }
 
 // ── fixtures ──────────────────────────────────────────────────────────────

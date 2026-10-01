@@ -7,16 +7,17 @@ use crate::runtime::python::PythonBootstrap;
 use crate::security::{AuditLogger, SecurityPolicy};
 use std::collections::HashMap;
 use std::sync::Arc;
-use tinyagents_harness::tools::{CurrentTimeTool, ResolveTimeTool};
+use tinyagents_harness::tools::{self as harness_tools, CurrentTimeTool, ResolveTimeTool};
 use tinytools::Tool;
 #[cfg(test)]
 use tinytools::{ToolResult, ToolSpec};
 use tinytools_std::detect_tools::DetectToolsTool;
 use tinytools_std::filesystem::{
     ApplyPatchTool, CsvExportTool, EditFileTool, FileReadTool, FileWriteTool, GitOperationsTool,
-    GlobTool, GrepTool, ListFilesTool, ReadDiffTool, RunLinterTool, RunTestsTool,
-    UpdateMemoryMdTool,
+    GlobTool, GrepTool, ImageInfoTool, ListFilesTool, ReadDiffTool, RunLinterTool, RunTestsTool,
+    UpdateMemoryMdTool, WorkspaceStateTool,
 };
+use tinytools_std::network::{CurlTool, PushoverTool};
 
 pub(crate) use super::capability::tool_capability;
 
@@ -192,7 +193,7 @@ pub fn all_tools_with_runtime(
         // Several agent scopes (orchestrator, crypto, markets, scheduler,
         // desktop control) name it, so it must exist in the base
         // registry or none of them can actually ask the user anything.
-        Box::new(AskClarificationTool::new()),
+        Box::new(harness_tools::AskClarificationTool::new()),
         // Read-only project overview (git status, recent commits, top-level
         // tree) rooted at the agent action dir. Named by the orchestrator and
         // planner scopes.
@@ -201,8 +202,8 @@ pub fn all_tools_with_runtime(
         // durable `subagent_session_id` (preferred) or transient `task_id`.
         Box::new(ListSubagentsTool::new()),
         Box::new(SteerSubagentTool::new()),
-        Box::new(WaitTool::new()),
-        Box::new(WaitLoopTool::new()),
+        Box::new(harness_tools::WaitTool::new()),
+        Box::new(harness_tools::WaitLoopTool::new()),
         Box::new(WaitSubagentTool::new()),
         Box::new(CloseSubagentTool::new()),
         Box::new(ContinueSubagentTool::new()),
@@ -234,7 +235,7 @@ pub fn all_tools_with_runtime(
         // Reversibility for native tool-output compaction (Stage 1a): when a
         // large result is compacted with a `retrieve_tool_output("<hash>")`
         // marker, this hands the original back from the CCR store on demand.
-        Box::new(RetrieveToolOutputTool::new()),
+        Box::new(retrieve_tool_output_tool()),
         // TokenJuice 2.0 content-router retrieval: fetches the original (full or
         // by byte/line range) for a `⟦tj:<hash>⟧` marker from the CCR cache.
         // Supersedes `retrieve_tool_output`; both are kept live during migration.
@@ -431,15 +432,15 @@ pub fn all_tools_with_runtime(
         // anti_preferences) that persona ingestion builds but nothing
         // previously surfaced to the agent loop.
         Box::new(MemoryFlavourTool::new(config.clone())),
-        Box::new(MemoryQueryTool),
+        Box::new(MemoryQueryTool::default()),
         // memory_search tools — vector search, chunk context, hybrid search,
         // and previously unregistered raw store tools.
-        Box::new(MemoryVectorSearchTool),
-        Box::new(MemoryChunkContextTool),
-        Box::new(MemoryHybridSearchTool),
-        Box::new(MemoryStoreRawSearchTool),
-        Box::new(MemoryStoreRawChunksTool),
-        Box::new(MemoryStoreKindsTool),
+        Box::new(MemoryVectorSearchTool::default()),
+        Box::new(MemoryChunkContextTool::default()),
+        Box::new(MemoryHybridSearchTool::default()),
+        Box::new(MemoryStoreRawSearchTool::default()),
+        Box::new(MemoryStoreRawChunksTool::default()),
+        Box::new(MemoryStoreKindsTool::default()),
         // Explicit user-preference pinning — always registered so the model
         // can save user-stated preferences regardless of whether the full
         // inference-based learning subsystem is enabled.  The preference
@@ -465,10 +466,7 @@ pub fn all_tools_with_runtime(
         Box::new(ReadDiffTool::new(action_dir.to_path_buf())),
         Box::new(RunLinterTool::new(action_dir.to_path_buf())),
         Box::new(RunTestsTool::new(action_dir.to_path_buf())),
-        Box::new(PushoverTool::new(
-            security.clone(),
-            action_dir.to_path_buf(),
-        )),
+        Box::new(PushoverTool::new(security.clone(), action_dir.to_path_buf())),
         // Audio-toolkit podcast tools — gated with the `voice` feature (they
         // live in the `audio_toolkit` domain, which is compiled out when voice
         // is disabled).
@@ -710,7 +708,7 @@ pub fn all_tools_with_runtime(
     // + `security` still gate which hosts are reachable; there is no
     // enable flag because every session needs basic HTTP as a baseline
     // capability.
-    tools.push(Box::new(HttpRequestTool::new(
+    tools.push(Box::new(http_request_tool(
         security.clone(),
         http_config.allowed_domains.clone(),
         http_config.max_response_size,
@@ -728,7 +726,7 @@ pub fn all_tools_with_runtime(
     // GET-and-read primitive that reuses the same allowed-domains gate
     // as `http_request`. Use this for docs/READMEs; reach for
     // `http_request` only when you need richer HTTP semantics.
-    tools.push(Box::new(WebFetchTool::new(
+    tools.push(Box::new(web_fetch_tool(
         security.clone(),
         http_config.allowed_domains.clone(),
         Some(http_config.max_response_size),
@@ -800,7 +798,7 @@ pub fn all_tools_with_runtime(
         if !mcp_registry.is_empty() {
             tools.push(Box::new(McpListServersTool::new(Arc::clone(&mcp_registry))));
             tools.push(Box::new(McpListToolsTool::new(Arc::clone(&mcp_registry))));
-            tools.push(Box::new(McpCallTool::new(
+            tools.push(Box::new(mcp_call_tool(
                 Arc::clone(&mcp_registry),
                 security.clone(),
             )));

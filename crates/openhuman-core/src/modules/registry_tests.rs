@@ -1,5 +1,5 @@
 use super::{find, ALL};
-use crate::modules::platform::candidates_for;
+use tinybus::module::platform::candidates_for;
 
 #[test]
 fn tinycomputer_registry_matches_bus_contract_and_published_release() {

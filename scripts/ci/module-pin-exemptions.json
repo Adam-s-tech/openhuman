@@ -15,8 +15,8 @@
     {
       "id": "tinymcp",
       "submodule": "vendor/tinymcp",
-      "expect": "v0.3.5-97-gd2feb798",
-      "reason": "The main-branch TinyMCP submodule pin includes upstream changes after PR #30, while no matching tinymcp module release and digest have been published. Keep the registry artifact pinned to the verified v0.3.5 release and remove this exact source/artifact drift exemption when a matching release and digest are available."
+      "expect": "v0.3.5-113-g74e8b109",
+      "reason": "The main-branch TinyMCP submodule pin includes upstream changes after PR #30, while no matching tinymcp module release and digest have been published, plus tinymcp#33 (branch w4-mcp-hosts): the optional library-only `tools` additions `tinymcp::tools::{SecretScrubber, McpListServersTool, McpListToolsTool, McpCallTool}`, which the core links as a Rust path dependency and which the loadable module artifact does not build (the feature is off for the cdylib). Keep the registry artifact pinned to the verified v0.3.5 release and remove this exact source/artifact drift exemption when a matching release and digest are available."
     },
     {
       "id": "tinyruntime",
@@ -39,14 +39,14 @@
     {
       "id": "tinymemory",
       "submodule": "vendor/tinymemory",
-      "expect": "v1.17.0-6-gea7dee88",
-      "reason": "The pin is v1.17.0 plus pure-library additions only: the new crate tinymemory-conversations (tinymemory#170) and the pure `host::scheduler_gate_decide` module in tinymemory-api (tinymemory#172: the `decide` function and the plain-data `Signals` snapshot beside `SchedulerGateConfig`/`Policy`), stacked on it (branch oh-scheduler-gate-decide-on-v1.17.0). The core links both as Rust path dependencies. No module, contract or bus source changes, so the registry's v1.17.0 artifact still matches the contract compiled here. Remove when tinymemory#170 and #172 ship in a release and both pins move to it."
+      "expect": "v1.18.0-52-g0f5af00c",
+      "reason": "The pin is tinymemory main (v1.18.0 plus tinymemory#170 conversations and #172 scheduler_gate_decide) plus pure-library additions only: the new crate tinymemory-guard (GuardedProvider<P: GuardPolicy>) and conformance seeds (FixedRecallProvider, InMemoryProvider::len, RecordingProvider::with_session_turns/with_pending_segments), tinymemory#173 (branch w4-memory-guard); then tinymemory#174 (branch w4-memory-rest, stacked on #173): the new crates tinymemory-safety, tinymemory-tools, tinymemory-gate and tinymemory-import, the composio/twitter readers, reader_for_request and the pure reconcile decisions in tinymemory-sources, and tinymemory-core re-exporting those readers instead of carrying adapters (its nested tinycortex is bumped to tinycortex#178, which delegates store::safety to tinymemory-safety). The core links them as Rust path dependencies. No module, contract or bus source changes, so the registry's v1.17.0 artifact still matches the contract compiled here. Remove when #170, #172, #173 and #174 ship in a release and both pins move to it."
     },
     {
       "id": "tinybox",
       "submodule": "vendor/tinybox",
-      "expect": "v0.1.8-7-ga1b5bf0a",
-      "reason": "The pin is v0.1.8 plus only pure-library additions: the new crate tinybox-jail (tinyhumansai/tinybox#12) and the new tinybox-core `shell::scan` module (tinyhumansai/tinybox#13), stacked on it (branch oh-w2-tinybox-on-v0.1.8), which the core links as Rust path dependencies. No module, contract or bus source changes relative to v0.1.8, so the registry's v0.1.8 artifact still matches the contract compiled here. Remove when tinybox#12 and #13 ship in a release and both pins move to it."
+      "expect": "v0.1.9-3-g94357795",
+      "reason": "The submodule pin is v0.1.9 (already ahead of the registry's v0.1.8 record, which this change does not touch) plus only pure-library additions to tinybox-core: the `shell::classify`, `shell::executor` and `shell::env_guard` modules (tinyhumansai/tinybox#16, branch w4-tinybox-classify), which the core links as a Rust path dependency for `security::policy`. No module, contract or bus source changes relative to v0.1.9, so the registry's v0.1.8 artifact still matches the contract compiled here. Remove when tinybox#16 ships in a release and both pins move to it."
     },
     {
       "id": "tinyvoice",
@@ -57,8 +57,14 @@
     {
       "id": "tinycomputer",
       "submodule": "vendor/tinycomputer",
-      "expect": "v0.7.0-1-g8416add3",
-      "reason": "The pin is v0.7.0 plus only the new pure-library crate tinycomputer-accessibility (tinycomputer#63, branch oh-accessibility-on-v0.7.0), which the core links as a Rust path dependency for in-process focus, permission and Globe-key queries. No module, contract or bus source changes relative to v0.7.0, so the registry's v0.7.0 artifact still matches the contract compiled here. Remove when tinycomputer#63 ships in a release and both pins move to it."
+      "expect": "v0.7.0-72-gc2f5adb1",
+      "reason": "The pin is main after tinycomputer#63 (tinycomputer-accessibility, which the core links as a Rust path dependency; 71 commits past v0.7.0) plus only the new off-by-default `paste` feature of tinycomputer-accessibility (tinyhumansai/tinycomputer#65, branch w4-tinycomputer-paste: arboard + enigo clipboard-paste text insertion for voice dictation). No module, contract or bus source changes that the registry's v0.7.0 artifact does not already cover. Remove when tinycomputer#63 and #65 ship in a release and both pins move to it."
+    },
+    {
+      "id": "tinyhosts",
+      "submodule": "vendor/tinyhosts",
+      "expect": "v0.1.10-9-ge041ad00",
+      "reason": "The registry artifact stays on the verified v0.1.9 release. The gitlink was already at v0.1.10 on main (pre-existing drift) and now adds only the library-only, off-by-default `tools` feature (tinyhumansai/tinyhosts#16) that the core links for the hosting_* agent tools; the module cdylib is unaffected. Remove when a tinyhosts release containing #16 is pinned in the registry with digests from its checksum.toml."
     }
   ]
 }

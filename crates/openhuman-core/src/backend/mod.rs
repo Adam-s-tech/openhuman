@@ -15,15 +15,12 @@
 //!   [`flatten_authed_error`], the chokepoint that turns them into the
 //!   `SESSION_EXPIRED:` / `API_KEY_REJECTED:` / `BACKEND_UNAVAILABLE:`
 //!   sentinels `core::observability` classifies.
-//! - [`classify`] — backend budget-exhaustion body classification shared by
-//!   inference, the agent loop, the scheduler and web chat.
 //!
 //! A core with no transport installed runs agents, memory, tools and RPC as
 //! normal; every backend-touching call answers
 //! [`BackendApiError::BackendUnavailable`] / `BACKEND_UNAVAILABLE:`, and the
 //! URL helpers here return [`BackendTransportError::Unavailable`].
 
-pub mod classify;
 pub mod client;
 pub mod transport;
 

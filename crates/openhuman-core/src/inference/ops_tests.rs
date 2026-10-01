@@ -133,16 +133,6 @@ fn inference_test_provider_model_keeps_unexpected_errors_reportable() {
 }
 
 #[tokio::test]
-async fn inference_should_react_short_circuits_for_empty_message() {
-    let (config, _tmp) = disabled_config();
-    let outcome = inference_should_react(&config, "   ", "web")
-        .await
-        .expect("reaction decision");
-    assert!(!outcome.value.should_react);
-    assert!(outcome.value.emoji.is_none());
-}
-
-#[tokio::test]
 async fn inference_analyze_sentiment_handles_empty_message() {
     let (config, _tmp) = disabled_config();
     let outcome = inference_analyze_sentiment(&config, "   ")

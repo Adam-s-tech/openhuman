@@ -5,7 +5,6 @@ use crate::config::rpc as config_rpc;
 use crate::config::Config;
 use crate::core::Outcome;
 use crate::inference::host_runtime as local_runtime;
-use crate::inference::host_runtime::ops::ReactionDecision;
 use crate::inference::provider as providers;
 use crate::inference::{LocalAiEmbeddingResult, LocalAiStatus};
 use serde_json::{json, Value};
@@ -211,26 +210,6 @@ pub async fn inference_test_provider_model(
                 );
             }
         }
-    }
-    result
-}
-
-pub async fn inference_should_react(
-    config: &Config,
-    message: &str,
-    channel_type: &str,
-) -> Result<Outcome<ReactionDecision>, String> {
-    debug!(
-        message_len = message.len(),
-        channel_type, "{LOG_PREFIX} should_react:start"
-    );
-    let result = local_runtime::rpc::local_ai_should_react(config, message, channel_type).await;
-    match &result {
-        Ok(outcome) => debug!(
-            should_react = outcome.value.should_react,
-            "{LOG_PREFIX} should_react:ok"
-        ),
-        Err(err) => warn!(error = %err, "{LOG_PREFIX} should_react:error"),
     }
     result
 }

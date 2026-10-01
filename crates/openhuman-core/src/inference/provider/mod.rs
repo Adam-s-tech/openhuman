@@ -13,7 +13,6 @@ pub(crate) mod openai_codex;
 /// Crate-native managed OpenHuman backend as a host `ChatModel` (issue #4727).
 pub mod openhuman_backend_model;
 pub mod ops;
-pub mod schemas;
 pub mod types;
 
 #[allow(unused_imports)]

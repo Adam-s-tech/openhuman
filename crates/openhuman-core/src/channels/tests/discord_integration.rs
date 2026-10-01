@@ -109,7 +109,7 @@ fn make_discord_ctx(
         channels_by_name: Arc::new(channels),
         turn_model_source: Some(crate::agent::tinyagents::TurnModelSource::from_model(model)),
         default_provider: Arc::new("test-provider".to_string()),
-        memory: crate::memory::guard::in_memory::FixedRecallProvider::guarded(Vec::new()),
+        memory: crate::memory::guard::in_memory::guarded_fixed_recall(Vec::new()),
         tools_registry: Arc::new(vec![]),
         system_prompt: crate::channels::ChannelSystemPrompt::fixed("test-system-prompt"),
         model: Arc::new("test-model".to_string()),

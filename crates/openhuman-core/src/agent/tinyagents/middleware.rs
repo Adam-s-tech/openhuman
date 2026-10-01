@@ -47,7 +47,7 @@ pub(crate) use cost_budget::CostBudgetMiddleware;
 pub(crate) use credential_scrub::credential_scrub_middleware;
 pub(crate) use embedder_hooks::EmbedderToolHooksMiddleware;
 pub(crate) use loop_guards::is_repeat_call_exempt;
-pub use memory_protocol::MemoryProtocolMiddleware;
+pub use memory_protocol::memory_protocol_middleware;
 pub(crate) use packed_tool_route::PackedToolRouteMiddleware;
 pub(crate) use prompt_cache::PromptCacheSegmentMiddleware;
 pub(crate) use repeated_failure::RepeatedToolFailureMiddleware;

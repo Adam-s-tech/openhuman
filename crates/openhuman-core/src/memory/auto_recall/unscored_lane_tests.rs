@@ -1,6 +1,6 @@
 use super::*;
 use crate::memory::api::types::{MemoryCategory, MemoryEntry};
-use crate::memory::guard::in_memory::FixedRecallProvider;
+use crate::memory::guard::in_memory::guarded_fixed_recall;
 
 // The lane against remote engines (openhuman#6718): an engine that ranks its
 // recall without scoring it, and an engine that refuses the lookup. Fixtures
@@ -136,7 +136,7 @@ fn remote_entry(key: &str, content: &str) -> MemoryEntry {
 async fn from_guard_keeps_an_unscored_engines_notes() {
     // No retrieval family: the notes come from the mandatory ranked recall,
     // whose entries carry no score (hosted CortexDB).
-    let guard = FixedRecallProvider::guarded(vec![
+    let guard = guarded_fixed_recall(vec![
         remote_entry("favourite_tea_oolong", TEA_NOTE),
         remote_entry("rent", "Rent is due on the 5th."),
     ]);

@@ -6,8 +6,6 @@ mod command_checks;
 mod enforcement;
 mod path_checks;
 
-mod policy_command;
-
 mod types;
 
 pub use enforcement::validate_path_within_root;

@@ -1,7 +1,7 @@
 use super::*;
 
 #[test]
-fn single_bubble_delivery_emits_one_unsegmented_chat_done_without_reaction() {
+fn single_bubble_delivery_emits_one_unsegmented_chat_done() {
     let mut rx = crate::web_chat::subscribe_web_channel_events();
     // Prose `deliver_response` WOULD split into several `chat_segment` bubbles
     // (long, multi-paragraph, no fences) — the shape a background delivery turn
@@ -35,7 +35,6 @@ fn single_bubble_delivery_emits_one_unsegmented_chat_done_without_reaction() {
     assert_eq!(done.full_response.as_deref(), Some(text));
     assert_eq!(done.segment_total, None);
     assert_eq!(done.segment_index, None);
-    assert_eq!(done.reaction_emoji, None);
     assert!(done.usage.is_none());
 }
 

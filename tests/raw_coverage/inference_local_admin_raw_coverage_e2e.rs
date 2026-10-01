@@ -22,7 +22,7 @@ use openhuman_core::config::schema::cloud_providers::{
 use openhuman_core::config::Config;
 use openhuman_core::security::credentials::{AuthService, DEFAULT_AUTH_PROFILE_NAME};
 use openhuman_core::inference::host_runtime::ops::{
-    local_ai_chat, local_ai_download_asset, local_ai_downloads_progress, local_ai_should_react,
+    local_ai_chat, local_ai_download_asset, local_ai_downloads_progress,
     LocalAiChatMessage,
 };
 use openhuman_core::inference::host_runtime::LocalAiService;
@@ -204,13 +204,6 @@ async fn local_admin_covers_assets_diagnostics_downloads_and_ops_errors() {
     .await
     .expect_err("bad role");
     assert!(bad_role.contains("unsupported message role"));
-
-    let reaction = local_ai_should_react(&config, "", "discord")
-        .await
-        .expect("empty reaction")
-        .value;
-    assert!(!reaction.should_react);
-    assert!(reaction.emoji.is_none());
 
     let ops_progress = local_ai_downloads_progress(&config)
         .await

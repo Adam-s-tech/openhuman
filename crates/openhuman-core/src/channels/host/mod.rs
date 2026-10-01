@@ -20,7 +20,7 @@ pub(crate) mod remote_control;
 
 pub use adapters::{
     ConfigAllowlistStore, ConversationHistoryStore, CoreApprovalGate, CoreShutdownRegistry,
-    InferenceReactionGate, OpenHumanEventSink, VoiceSynthesizer, VoiceTranscriber,
+    OpenHumanEventSink, VoiceSynthesizer, VoiceTranscriber,
 };
 pub use channel_events::{ChannelApprovalSurfaceSubscriber, ChannelTurnStateSubscriber};
 
@@ -34,10 +34,11 @@ use crate::config::Config;
 /// Assemble the full OpenHuman [`ChannelHost`] from a config snapshot.
 ///
 /// Wires every capability OpenHuman can back today: lifecycle (shutdown),
-/// STT, TTS, reaction gate, approval-reply parsing, conversation history, and
-/// the web-channel event sink. Capabilities OpenHuman cannot yet express
-/// portably (turn dispatch, run ledger, pairing) are simply left unset — a
-/// provider that needs one degrades gracefully.
+/// STT, TTS, approval-reply parsing, conversation history, and the
+/// web-channel event sink. Capabilities OpenHuman cannot yet express portably
+/// (turn dispatch, run ledger, pairing) are simply left unset — a provider
+/// that needs one degrades gracefully. Emoji reactions are deliberately unset:
+/// the local-model reaction gate was removed, so providers never react.
 pub fn build_channel_host(config: Arc<Config>) -> Arc<dyn ChannelHost> {
     ChannelHostBuilder::new()
         .lifecycle(Arc::new(CoreShutdownRegistry))
@@ -45,9 +46,6 @@ pub fn build_channel_host(config: Arc<Config>) -> Arc<dyn ChannelHost> {
             config: Arc::clone(&config),
         }))
         .synthesizer(Arc::new(VoiceSynthesizer {
-            config: Arc::clone(&config),
-        }))
-        .reactions(Arc::new(InferenceReactionGate {
             config: Arc::clone(&config),
         }))
         .approvals(Arc::new(CoreApprovalGate))
