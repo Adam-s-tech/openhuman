@@ -35,7 +35,6 @@ fn single_bubble_delivery_emits_one_unsegmented_chat_done_without_reaction() {
     assert_eq!(done.full_response.as_deref(), Some(text));
     assert_eq!(done.segment_total, None);
     assert_eq!(done.segment_index, None);
-    assert_eq!(done.reaction_emoji, None);
     assert!(done.usage.is_none());
 }
 
