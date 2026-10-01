@@ -6604,8 +6604,13 @@ async fn json_rpc_inference_status_reports_unreachable_without_spawning_a_runtim
     let mut last = Value::Null;
     let mut state = String::new();
     for attempt in 0..50 {
-        let status = post_json_rpc(&rpc_base, 31 + attempt, "openhuman.inference_status", json!({}))
-            .await;
+        let status = post_json_rpc(
+            &rpc_base,
+            31 + attempt,
+            "openhuman.inference_status",
+            json!({}),
+        )
+        .await;
         let result = assert_no_jsonrpc_error(&status, "inference_status");
         let payload = result.get("result").unwrap_or(result).clone();
         state = payload
@@ -6620,7 +6625,10 @@ async fn json_rpc_inference_status_reports_unreachable_without_spawning_a_runtim
         tokio::time::sleep(Duration::from_millis(100)).await;
     }
     assert_eq!(state, "unreachable", "status never settled: {last}");
-    assert_eq!(last.get("error_category").and_then(Value::as_str), Some("server"));
+    assert_eq!(
+        last.get("error_category").and_then(Value::as_str),
+        Some("server")
+    );
     assert!(
         last.get("warning")
             .and_then(Value::as_str)
@@ -6632,8 +6640,16 @@ async fn json_rpc_inference_status_reports_unreachable_without_spawning_a_runtim
         last.get("chat_model_id").and_then(Value::as_str),
         Some("llama3.1:8b")
     );
-    for removed in ["download_progress", "downloaded_bytes", "total_bytes", "quantization"] {
-        assert!(last.get(removed).is_none(), "`{removed}` left on status: {last}");
+    for removed in [
+        "download_progress",
+        "downloaded_bytes",
+        "total_bytes",
+        "quantization",
+    ] {
+        assert!(
+            last.get(removed).is_none(),
+            "`{removed}` left on status: {last}"
+        );
     }
     assert!(
         !spawn_marker.exists(),

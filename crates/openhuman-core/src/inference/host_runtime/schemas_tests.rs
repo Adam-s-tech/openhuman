@@ -59,7 +59,10 @@ fn download_and_installer_controllers_are_not_registered() {
         "install_piper",
         "piper_install_status",
     ] {
-        assert!(!functions.contains(&removed), "`{removed}` still registered");
+        assert!(
+            !functions.contains(&removed),
+            "`{removed}` still registered"
+        );
         assert_eq!(schemas(removed).function, "unknown");
     }
 }
