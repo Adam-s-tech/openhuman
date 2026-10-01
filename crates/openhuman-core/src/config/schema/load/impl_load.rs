@@ -601,7 +601,7 @@ impl Config {
             "Config loaded"
         );
         Box::pin(crate::config::migrations::run_pending(&mut config)).await;
-        Ok(config)
+        Ok(*config)
     }
 
     /// Load config from the default user paths, bypassing the
