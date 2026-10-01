@@ -2,7 +2,7 @@
 //! matching the legacy `SubagentObserver`.
 
 use tinyagents_session::transcript::TranscriptMessage;
-use crate::agent::messages::{ConversationMessage};
+use tinytools_agent::dialect::{DialectRole, TranscriptEntry};
 
 /// Append a worker-thread [`StoredMessage`](crate::memory::conversations::ConversationMessage)
 /// with the restored legacy [`SubagentObserver`] metadata (#4466): `scope`,
@@ -74,7 +74,7 @@ pub(super) fn mirror_worker_thread(
     thread_id: &str,
     agent_id: &str,
     task_id: &str,
-    conversation: &[ConversationMessage],
+    conversation: &[TranscriptEntry],
     extra_final: Option<&str>,
 ) {
     use std::collections::HashMap;
@@ -82,7 +82,7 @@ pub(super) fn mirror_worker_thread(
     // call_id -> tool name, so each tool result records the tool it came from.
     let mut names: HashMap<&str, &str> = HashMap::new();
     for msg in conversation {
-        if let ConversationMessage::AssistantToolCalls { tool_calls, .. } = msg {
+        if let TranscriptEntry::AssistantToolCalls { tool_calls, .. } = msg {
             for call in tool_calls {
                 names.insert(call.id.as_str(), call.name.as_str());
             }
@@ -92,7 +92,7 @@ pub(super) fn mirror_worker_thread(
     let mut iteration: u64 = 0;
     for msg in conversation {
         match msg {
-            ConversationMessage::AssistantToolCalls {
+            TranscriptEntry::AssistantToolCalls {
                 text, tool_calls, ..
             } => {
                 iteration += 1;
@@ -114,7 +114,7 @@ pub(super) fn mirror_worker_thread(
                     );
                 }
             }
-            ConversationMessage::ToolResults(results) => {
+            TranscriptEntry::ToolResults(results) => {
                 for r in results {
                     let tool_name = names
                         .get(r.tool_call_id.as_str())
@@ -136,8 +136,8 @@ pub(super) fn mirror_worker_thread(
                     );
                 }
             }
-            ConversationMessage::Chat(c)
-                if c.role == "assistant" && !c.content.trim().is_empty() =>
+            TranscriptEntry::Chat(c)
+                if c.role == DialectRole::Assistant && !c.content.trim().is_empty() =>
             {
                 iteration += 1;
                 append_worker_message(
