@@ -280,3 +280,4 @@ async fn telegram_loopback_covers_reaction_text_fallback_and_media_send_paths() 
     assert!(multipart[0].1.contains("round26.txt"));
     assert_eq!(multipart[1].0, "sendPhoto");
     assert!(multipart[1].1.contains("round26.png"));
+}
