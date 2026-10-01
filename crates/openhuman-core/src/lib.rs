@@ -50,7 +50,7 @@
 #![recursion_limit = "256"]
 // These modules define the public API surface for agent features.
 // Many types/functions are intended for future use or integration with the frontend.
-#![allow(dead_code)]
+#![warn(dead_code)]
 
 pub mod agent;
 pub mod backend;
