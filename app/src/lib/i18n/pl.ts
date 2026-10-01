@@ -5413,39 +5413,63 @@ const messages: TranslationMap = {
     'Serwer AgentMemory, który uruchamiasz samodzielnie.',
 
   // Chat failure copy: localized render of chat_error.message, keyed by chat_error.copy_key
-  'chat_error.codex_session_expired': "Twoja sesja Codex wygasła. Połącz ją ponownie w Ustawienia → Integracje.",
-  'chat_error.session_expired': "Twoja sesja OpenHuman wygasła. Zaloguj się ponownie, aby kontynuować.",
-  'chat_error.action_budget': "Osiągnięto godzinny limit akcji OpenHuman. To lokalny limit bezpieczeństwa, a nie limit Twojego dostawcy AI. Limit odnawia się stopniowo; możesz dalej rozmawiać w tym wątku, a kroki intensywnie korzystające z narzędzi wznowią się w miarę odnawiania limitu.",
-  'chat_error.max_iterations': "Agent wykonał maksymalną liczbę kroków z narzędziami w jednej turze i nie zakończył jej. Zwykle oznacza to, że narzędzie wciąż zawodziło (często z powodu limitu zapytań przy pobieraniu strony). Gdy limit ustąpi, możesz ponowić to samo pytanie w tym wątku.",
-  'chat_error.turn_timeout': "Ta tura przekroczyła limit czasu bez zakończenia i została zatrzymana, aby się nie zawiesić. Zwykle oznacza to, że zawiesiło się wywołanie narzędzia lub delegowany podagent. Możesz ponowić pytanie w tym wątku.",
-  'chat_error.empty_response': "Model zwrócił pustą odpowiedź. Spróbuj ponownie. Jeśli to się powtarza, wypróbuj inny model lub sprawdź jego konfigurację w Połączenia → Klucze API → LLM.",
-  'chat_error.chat_template_rejected': "Szablon czatu tego modelu odrzucił żądanie. Nie chodzi o model, temperaturę ani Twój klucz API. Modele lokalne bez natywnego wywoływania narzędzi działają przez własny szablon czatu, a niektóre szablony odrzucają kształt wiadomości kroku z narzędziem. Rozpocznij nowy czat, aby zresetować historię, albo wybierz model z natywną obsługą narzędzi w Połączenia → Klucze API → LLM.",
-  'chat_error.rate_limited': "Twój dostawca AI ogranicza liczbę zapytań. To chwilowy limit po stronie dostawcy, a nie blokada wątku. Możesz spróbować ponownie w tym wątku.",
-  'chat_error.rate_limited_billing': "Twój dostawca AI odrzuca zapytania z powodów rozliczeniowych lub związanych z planem (brak środków, limit planu lub niedostępny model). Ponawianie nie pomoże. Otwórz Ustawienia, aby doładować konto, zmienić plan lub wybrać inny model.",
-  'chat_error.managed_rate_limited': "Twój dostawca AI ogranicza liczbę zapytań. Możesz spróbować ponownie w tym wątku.",
-  'chat_error.timeout': "Upłynął limit czasu żądania. Sprawdź połączenie i spróbuj ponownie.",
-  'chat_error.auth_error': "Wystąpił problem z uwierzytelnianiem u dostawcy AI. Sprawdź swój klucz API w ustawieniach.",
-  'chat_error.budget_exhausted': "Skończyły Ci się środki, więc nie mogę teraz uruchomić zarządzanego modelu (w chmurze). Możesz doładować środki lub wybrać plan, aby kontynuować. Albo, jeśli włączono model lokalny, taki jak Ollama, przełącz routing na „Użyj własnych modeli” w Połączenia → Klucze API → LLM.",
-  'chat_error.managed_budget_exhausted': "Skończyły Ci się środki. Doładuj konto lub przełącz na „Użyj własnych modeli” w Ustawienia.",
-  'chat_error.provider_unavailable': "Dostawca AI jest chwilowo niedostępny. Spróbuj ponownie później.",
-  'chat_error.managed_unavailable': "Usługa AI jest chwilowo niedostępna. Zostaliśmy powiadomieni. Spróbuj ponownie za chwilę.",
-  'chat_error.payload_too_large': "Twoja wiadomość lub załącznik jest za duży dla tego modelu. Skróć go lub usuń załącznik albo rozpocznij nowy wątek.",
-  'chat_error.context_overflow': "Rozmowa jest za długa. Rozpocznij nowy czat.",
-  'chat_error.model_config_rejected': "Twój dostawca AI odrzucił model lub temperaturę w żądaniu. Sprawdź model i routing w Ustawienia → LLM.",
-  'chat_error.model_unavailable': "Wybrany model nie jest dostępny u Twojego dostawcy. Sprawdź ustawienia modelu.",
-  'chat_error.capability_unsupported': "Ten model nie przetwarza obrazów. Usuń załącznik lub przełącz się na model obsługujący obrazy w Połączenia → Klucze API → LLM.",
-  'chat_error.malformed_history': "W tej rozmowie wystąpiła chwilowa usterka. Naprawiliśmy ją. Wyślij wiadomość ponownie.",
-  'chat_error.request_rejected': "Dostawca AI odrzucił żądanie. Zwykle oznacza to niezgodność modelu lub parametrów. Spróbuj innego modelu w Połączenia → Klucze API → LLM.",
-  'chat_error.managed_request_rejected': "Żądanie zostało odrzucone. Zwykle oznacza to niezgodność modelu lub parametrów. Spróbuj innego modelu w Połączenia → Klucze API → LLM.",
-  'chat_error.managed_malformed_request': "Coś poszło nie tak z tą wiadomością. Spróbuj ją przeformułować albo rozpocznij nowy wątek, jeśli problem się powtarza.",
-  'chat_error.network': "Połączenie z usługą AI zostało przerwane w trakcie odpowiedzi, zwykle po uśpieniu urządzenia lub zmianie sieci. Spróbuj ponownie.",
-  'chat_error.inference': "Coś poszło nie tak. Spróbuj ponownie.",
-  'chat_error.managed_internal': "Coś poszło nie tak. Zostaliśmy powiadomieni. Spróbuj ponownie.",
-  'chat_error.retryHint.immediately': "Możesz spróbować ponownie od razu.",
-  'chat_error.retryHint.oneSecond': "Spróbuj ponownie za 1 sekundę.",
-  'chat_error.retryHint.seconds': "Spróbuj ponownie za {n} s.",
-  'chat_error.retryHint.aboutMinute': "Spróbuj ponownie za około 1 minutę.",
-  'chat_error.retryHint.aboutMinutes': "Spróbuj ponownie za około {n} min.",
+  'chat_error.codex_session_expired':
+    'Twoja sesja Codex wygasła. Połącz ją ponownie w Ustawienia → Integracje.',
+  'chat_error.session_expired':
+    'Twoja sesja OpenHuman wygasła. Zaloguj się ponownie, aby kontynuować.',
+  'chat_error.action_budget':
+    'Osiągnięto godzinny limit akcji OpenHuman. To lokalny limit bezpieczeństwa, a nie limit Twojego dostawcy AI. Limit odnawia się stopniowo; możesz dalej rozmawiać w tym wątku, a kroki intensywnie korzystające z narzędzi wznowią się w miarę odnawiania limitu.',
+  'chat_error.max_iterations':
+    'Agent wykonał maksymalną liczbę kroków z narzędziami w jednej turze i nie zakończył jej. Zwykle oznacza to, że narzędzie wciąż zawodziło (często z powodu limitu zapytań przy pobieraniu strony). Gdy limit ustąpi, możesz ponowić to samo pytanie w tym wątku.',
+  'chat_error.turn_timeout':
+    'Ta tura przekroczyła limit czasu bez zakończenia i została zatrzymana, aby się nie zawiesić. Zwykle oznacza to, że zawiesiło się wywołanie narzędzia lub delegowany podagent. Możesz ponowić pytanie w tym wątku.',
+  'chat_error.empty_response':
+    'Model zwrócił pustą odpowiedź. Spróbuj ponownie. Jeśli to się powtarza, wypróbuj inny model lub sprawdź jego konfigurację w Połączenia → Klucze API → LLM.',
+  'chat_error.chat_template_rejected':
+    'Szablon czatu tego modelu odrzucił żądanie. Nie chodzi o model, temperaturę ani Twój klucz API. Modele lokalne bez natywnego wywoływania narzędzi działają przez własny szablon czatu, a niektóre szablony odrzucają kształt wiadomości kroku z narzędziem. Rozpocznij nowy czat, aby zresetować historię, albo wybierz model z natywną obsługą narzędzi w Połączenia → Klucze API → LLM.',
+  'chat_error.rate_limited':
+    'Twój dostawca AI ogranicza liczbę zapytań. To chwilowy limit po stronie dostawcy, a nie blokada wątku. Możesz spróbować ponownie w tym wątku.',
+  'chat_error.rate_limited_billing':
+    'Twój dostawca AI odrzuca zapytania z powodów rozliczeniowych lub związanych z planem (brak środków, limit planu lub niedostępny model). Ponawianie nie pomoże. Otwórz Ustawienia, aby doładować konto, zmienić plan lub wybrać inny model.',
+  'chat_error.managed_rate_limited':
+    'Twój dostawca AI ogranicza liczbę zapytań. Możesz spróbować ponownie w tym wątku.',
+  'chat_error.timeout': 'Upłynął limit czasu żądania. Sprawdź połączenie i spróbuj ponownie.',
+  'chat_error.auth_error':
+    'Wystąpił problem z uwierzytelnianiem u dostawcy AI. Sprawdź swój klucz API w ustawieniach.',
+  'chat_error.budget_exhausted':
+    'Skończyły Ci się środki, więc nie mogę teraz uruchomić zarządzanego modelu (w chmurze). Możesz doładować środki lub wybrać plan, aby kontynuować. Albo, jeśli włączono model lokalny, taki jak Ollama, przełącz routing na „Użyj własnych modeli” w Połączenia → Klucze API → LLM.',
+  'chat_error.managed_budget_exhausted':
+    'Skończyły Ci się środki. Doładuj konto lub przełącz na „Użyj własnych modeli” w Ustawienia.',
+  'chat_error.provider_unavailable':
+    'Dostawca AI jest chwilowo niedostępny. Spróbuj ponownie później.',
+  'chat_error.managed_unavailable':
+    'Usługa AI jest chwilowo niedostępna. Zostaliśmy powiadomieni. Spróbuj ponownie za chwilę.',
+  'chat_error.payload_too_large':
+    'Twoja wiadomość lub załącznik jest za duży dla tego modelu. Skróć go lub usuń załącznik albo rozpocznij nowy wątek.',
+  'chat_error.context_overflow': 'Rozmowa jest za długa. Rozpocznij nowy czat.',
+  'chat_error.model_config_rejected':
+    'Twój dostawca AI odrzucił model lub temperaturę w żądaniu. Sprawdź model i routing w Ustawienia → LLM.',
+  'chat_error.model_unavailable':
+    'Wybrany model nie jest dostępny u Twojego dostawcy. Sprawdź ustawienia modelu.',
+  'chat_error.capability_unsupported':
+    'Ten model nie przetwarza obrazów. Usuń załącznik lub przełącz się na model obsługujący obrazy w Połączenia → Klucze API → LLM.',
+  'chat_error.malformed_history':
+    'W tej rozmowie wystąpiła chwilowa usterka. Naprawiliśmy ją. Wyślij wiadomość ponownie.',
+  'chat_error.request_rejected':
+    'Dostawca AI odrzucił żądanie. Zwykle oznacza to niezgodność modelu lub parametrów. Spróbuj innego modelu w Połączenia → Klucze API → LLM.',
+  'chat_error.managed_request_rejected':
+    'Żądanie zostało odrzucone. Zwykle oznacza to niezgodność modelu lub parametrów. Spróbuj innego modelu w Połączenia → Klucze API → LLM.',
+  'chat_error.managed_malformed_request':
+    'Coś poszło nie tak z tą wiadomością. Spróbuj ją przeformułować albo rozpocznij nowy wątek, jeśli problem się powtarza.',
+  'chat_error.network':
+    'Połączenie z usługą AI zostało przerwane w trakcie odpowiedzi, zwykle po uśpieniu urządzenia lub zmianie sieci. Spróbuj ponownie.',
+  'chat_error.inference': 'Coś poszło nie tak. Spróbuj ponownie.',
+  'chat_error.managed_internal': 'Coś poszło nie tak. Zostaliśmy powiadomieni. Spróbuj ponownie.',
+  'chat_error.retryHint.immediately': 'Możesz spróbować ponownie od razu.',
+  'chat_error.retryHint.oneSecond': 'Spróbuj ponownie za 1 sekundę.',
+  'chat_error.retryHint.seconds': 'Spróbuj ponownie za {n} s.',
+  'chat_error.retryHint.aboutMinute': 'Spróbuj ponownie za około 1 minutę.',
+  'chat_error.retryHint.aboutMinutes': 'Spróbuj ponownie za około {n} min.',
 };
 
 export default messages;

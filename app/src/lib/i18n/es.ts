@@ -5446,39 +5446,64 @@ const messages: TranslationMap = {
   'memoryEngine.engine.agentmemory.description': 'Un servidor AgentMemory que ejecutas tú mismo.',
 
   // Chat failure copy: localized render of chat_error.message, keyed by chat_error.copy_key
-  'chat_error.codex_session_expired': "Tu sesión de Codex ha caducado. Vuelve a conectarla en Configuración → Integraciones.",
-  'chat_error.session_expired': "Tu sesión de OpenHuman ha caducado. Inicia sesión de nuevo para continuar.",
-  'chat_error.action_budget': "Has alcanzado el límite de acciones por hora de OpenHuman. Es un tope de seguridad local, no de tu proveedor de IA. La ventana se recupera poco a poco; puedes seguir chateando en este hilo y los pasos que usan muchas herramientas se reanudarán a medida que se reponga el límite.",
-  'chat_error.max_iterations': "El agente ejecutó el número máximo de pasos de herramientas en un turno sin terminar. Normalmente significa que una herramienta siguió fallando (a menudo por un límite de solicitudes en una descarga web). Puedes repetir la misma pregunta en este hilo cuando se levante el límite.",
-  'chat_error.turn_timeout': "Este turno superó su límite de tiempo sin terminar y se detuvo para que no se quedara colgado. Normalmente significa que una llamada a una herramienta o un subagente delegado se atascó. Puedes repetir tu pregunta en este hilo.",
-  'chat_error.empty_response': "El modelo devolvió una respuesta vacía. Inténtalo de nuevo. Si sigue ocurriendo, prueba con otro modelo o revisa su configuración en Conexiones → Claves de API → LLM.",
-  'chat_error.chat_template_rejected': "La plantilla de chat de este modelo rechazó la solicitud. No es culpa del modelo, de la temperatura ni de tu clave de API. Los modelos locales sin llamadas nativas a herramientas funcionan con su propia plantilla de chat, y algunas plantillas rechazan la forma del mensaje de un paso de herramienta. Inicia un chat nuevo para restablecer el historial, o elige un modelo con compatibilidad nativa con herramientas en Conexiones → Claves de API → LLM.",
-  'chat_error.rate_limited': "Tu proveedor de IA está limitando las solicitudes. Es un límite temporal del proveedor, no un bloqueo del hilo. Puedes volver a intentarlo en este hilo.",
-  'chat_error.rate_limited_billing': "Tu proveedor de IA rechaza las solicitudes por motivos de facturación o de plan (sin créditos, límite del plan o modelo no disponible). Reintentar no ayudará. Abre Configuración para recargar, mejorar tu plan o elegir otro modelo.",
-  'chat_error.managed_rate_limited': "Tu proveedor de IA está limitando las solicitudes. Puedes volver a intentarlo en este hilo.",
-  'chat_error.timeout': "La solicitud agotó el tiempo de espera. Comprueba tu conexión e inténtalo de nuevo.",
-  'chat_error.auth_error': "Hay un problema de autenticación con el proveedor de IA. Comprueba tu clave de API en la configuración.",
-  'chat_error.budget_exhausted': "Te has quedado sin créditos, así que ahora mismo no puedo ejecutar el modelo administrado (en la nube). Puedes recargar créditos o elegir un plan para continuar. O bien, si has activado un modelo local como Ollama, cambia el enrutamiento a \"Utilice sus propios modelos\" en Conexiones → Claves de API → LLM.",
-  'chat_error.managed_budget_exhausted': "Te has quedado sin créditos. Recarga o cambia a 'Utilice sus propios modelos' en Configuración.",
-  'chat_error.provider_unavailable': "El proveedor de IA no está disponible temporalmente. Inténtalo de nuevo más tarde.",
-  'chat_error.managed_unavailable': "El servicio de IA no está disponible temporalmente. Ya nos han avisado. Inténtalo de nuevo en breve.",
-  'chat_error.payload_too_large': "Tu mensaje o archivo adjunto es demasiado grande para este modelo. Acórtalo o quita el adjunto, o inicia un hilo nuevo.",
-  'chat_error.context_overflow': "La conversación es demasiado larga. Inicia un chat nuevo.",
-  'chat_error.model_config_rejected': "Tu proveedor de IA rechazó el modelo o la temperatura de la solicitud. Revisa tu modelo y el enrutamiento en Configuración → LLM.",
-  'chat_error.model_unavailable': "El modelo seleccionado no está disponible en tu proveedor. Revisa la configuración del modelo.",
-  'chat_error.capability_unsupported': "Este modelo no puede procesar imágenes. Quita el adjunto o cambia a un modelo con visión en Conexiones → Claves de API → LLM.",
-  'chat_error.malformed_history': "Hubo un fallo temporal en esta conversación. Ya lo hemos corregido. Envía tu mensaje de nuevo.",
-  'chat_error.request_rejected': "El proveedor de IA rechazó la solicitud. Normalmente se debe a una incompatibilidad de modelo o de parámetros. Prueba con otro modelo en Conexiones → Claves de API → LLM.",
-  'chat_error.managed_request_rejected': "Se rechazó la solicitud. Normalmente se debe a una incompatibilidad de modelo o de parámetros. Prueba con otro modelo en Conexiones → Claves de API → LLM.",
-  'chat_error.managed_malformed_request': "Algo salió mal con este mensaje. Prueba a reformularlo o inicia un hilo nuevo si sigue ocurriendo.",
-  'chat_error.network': "La conexión con el servicio de IA se interrumpió durante la respuesta, normalmente por una suspensión o un cambio de red. Inténtalo de nuevo.",
-  'chat_error.inference': "Algo salió mal. Inténtalo de nuevo.",
-  'chat_error.managed_internal': "Algo salió mal. Ya nos han avisado. Inténtalo de nuevo.",
-  'chat_error.retryHint.immediately': "Puedes reintentar de inmediato.",
-  'chat_error.retryHint.oneSecond': "Inténtalo de nuevo en 1 segundo.",
-  'chat_error.retryHint.seconds': "Inténtalo de nuevo en {n} segundos.",
-  'chat_error.retryHint.aboutMinute': "Inténtalo de nuevo en aproximadamente 1 minuto.",
-  'chat_error.retryHint.aboutMinutes': "Inténtalo de nuevo en aproximadamente {n} minutos.",
+  'chat_error.codex_session_expired':
+    'Tu sesión de Codex ha caducado. Vuelve a conectarla en Configuración → Integraciones.',
+  'chat_error.session_expired':
+    'Tu sesión de OpenHuman ha caducado. Inicia sesión de nuevo para continuar.',
+  'chat_error.action_budget':
+    'Has alcanzado el límite de acciones por hora de OpenHuman. Es un tope de seguridad local, no de tu proveedor de IA. La ventana se recupera poco a poco; puedes seguir chateando en este hilo y los pasos que usan muchas herramientas se reanudarán a medida que se reponga el límite.',
+  'chat_error.max_iterations':
+    'El agente ejecutó el número máximo de pasos de herramientas en un turno sin terminar. Normalmente significa que una herramienta siguió fallando (a menudo por un límite de solicitudes en una descarga web). Puedes repetir la misma pregunta en este hilo cuando se levante el límite.',
+  'chat_error.turn_timeout':
+    'Este turno superó su límite de tiempo sin terminar y se detuvo para que no se quedara colgado. Normalmente significa que una llamada a una herramienta o un subagente delegado se atascó. Puedes repetir tu pregunta en este hilo.',
+  'chat_error.empty_response':
+    'El modelo devolvió una respuesta vacía. Inténtalo de nuevo. Si sigue ocurriendo, prueba con otro modelo o revisa su configuración en Conexiones → Claves de API → LLM.',
+  'chat_error.chat_template_rejected':
+    'La plantilla de chat de este modelo rechazó la solicitud. No es culpa del modelo, de la temperatura ni de tu clave de API. Los modelos locales sin llamadas nativas a herramientas funcionan con su propia plantilla de chat, y algunas plantillas rechazan la forma del mensaje de un paso de herramienta. Inicia un chat nuevo para restablecer el historial, o elige un modelo con compatibilidad nativa con herramientas en Conexiones → Claves de API → LLM.',
+  'chat_error.rate_limited':
+    'Tu proveedor de IA está limitando las solicitudes. Es un límite temporal del proveedor, no un bloqueo del hilo. Puedes volver a intentarlo en este hilo.',
+  'chat_error.rate_limited_billing':
+    'Tu proveedor de IA rechaza las solicitudes por motivos de facturación o de plan (sin créditos, límite del plan o modelo no disponible). Reintentar no ayudará. Abre Configuración para recargar, mejorar tu plan o elegir otro modelo.',
+  'chat_error.managed_rate_limited':
+    'Tu proveedor de IA está limitando las solicitudes. Puedes volver a intentarlo en este hilo.',
+  'chat_error.timeout':
+    'La solicitud agotó el tiempo de espera. Comprueba tu conexión e inténtalo de nuevo.',
+  'chat_error.auth_error':
+    'Hay un problema de autenticación con el proveedor de IA. Comprueba tu clave de API en la configuración.',
+  'chat_error.budget_exhausted':
+    'Te has quedado sin créditos, así que ahora mismo no puedo ejecutar el modelo administrado (en la nube). Puedes recargar créditos o elegir un plan para continuar. O bien, si has activado un modelo local como Ollama, cambia el enrutamiento a "Utilice sus propios modelos" en Conexiones → Claves de API → LLM.',
+  'chat_error.managed_budget_exhausted':
+    "Te has quedado sin créditos. Recarga o cambia a 'Utilice sus propios modelos' en Configuración.",
+  'chat_error.provider_unavailable':
+    'El proveedor de IA no está disponible temporalmente. Inténtalo de nuevo más tarde.',
+  'chat_error.managed_unavailable':
+    'El servicio de IA no está disponible temporalmente. Ya nos han avisado. Inténtalo de nuevo en breve.',
+  'chat_error.payload_too_large':
+    'Tu mensaje o archivo adjunto es demasiado grande para este modelo. Acórtalo o quita el adjunto, o inicia un hilo nuevo.',
+  'chat_error.context_overflow': 'La conversación es demasiado larga. Inicia un chat nuevo.',
+  'chat_error.model_config_rejected':
+    'Tu proveedor de IA rechazó el modelo o la temperatura de la solicitud. Revisa tu modelo y el enrutamiento en Configuración → LLM.',
+  'chat_error.model_unavailable':
+    'El modelo seleccionado no está disponible en tu proveedor. Revisa la configuración del modelo.',
+  'chat_error.capability_unsupported':
+    'Este modelo no puede procesar imágenes. Quita el adjunto o cambia a un modelo con visión en Conexiones → Claves de API → LLM.',
+  'chat_error.malformed_history':
+    'Hubo un fallo temporal en esta conversación. Ya lo hemos corregido. Envía tu mensaje de nuevo.',
+  'chat_error.request_rejected':
+    'El proveedor de IA rechazó la solicitud. Normalmente se debe a una incompatibilidad de modelo o de parámetros. Prueba con otro modelo en Conexiones → Claves de API → LLM.',
+  'chat_error.managed_request_rejected':
+    'Se rechazó la solicitud. Normalmente se debe a una incompatibilidad de modelo o de parámetros. Prueba con otro modelo en Conexiones → Claves de API → LLM.',
+  'chat_error.managed_malformed_request':
+    'Algo salió mal con este mensaje. Prueba a reformularlo o inicia un hilo nuevo si sigue ocurriendo.',
+  'chat_error.network':
+    'La conexión con el servicio de IA se interrumpió durante la respuesta, normalmente por una suspensión o un cambio de red. Inténtalo de nuevo.',
+  'chat_error.inference': 'Algo salió mal. Inténtalo de nuevo.',
+  'chat_error.managed_internal': 'Algo salió mal. Ya nos han avisado. Inténtalo de nuevo.',
+  'chat_error.retryHint.immediately': 'Puedes reintentar de inmediato.',
+  'chat_error.retryHint.oneSecond': 'Inténtalo de nuevo en 1 segundo.',
+  'chat_error.retryHint.seconds': 'Inténtalo de nuevo en {n} segundos.',
+  'chat_error.retryHint.aboutMinute': 'Inténtalo de nuevo en aproximadamente 1 minuto.',
+  'chat_error.retryHint.aboutMinutes': 'Inténtalo de nuevo en aproximadamente {n} minutos.',
 };
 
 export default messages;

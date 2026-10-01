@@ -490,7 +490,7 @@ describe('ChatRuntimeProvider — dedupe, proactive resolution, mid-turn invaria
             't-copy',
             expect.objectContaining({
               content:
-                "Your AI provider is rate-limiting requests. This is a transient upstream limit, not a thread-level block. You can retry in this thread. Try again in 30 seconds.\n\n> quota hit",
+                'Your AI provider is rate-limiting requests. This is a transient upstream limit, not a thread-level block. You can retry in this thread. Try again in 30 seconds.\n\n> quota hit',
             })
           )
         );

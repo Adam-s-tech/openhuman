@@ -5641,39 +5641,63 @@ const en: TranslationMap = {
   'memoryEngine.engine.agentmemory.description': 'An AgentMemory server that you run yourself.',
 
   // Chat failure copy: localized render of chat_error.message, keyed by chat_error.copy_key
-  'chat_error.codex_session_expired': "Your Codex session has expired. Please reconnect it in Settings → Integrations.",
-  'chat_error.session_expired': "Your OpenHuman session has expired. Please sign in again to continue.",
-  'chat_error.action_budget': "You've hit OpenHuman's per-hour action budget. This is a local safety cap, not your AI provider. The window decays gradually; you can keep chatting in this thread and tool-heavy steps will resume as the budget refills.",
-  'chat_error.max_iterations': "The agent ran the maximum number of tool steps for one turn without finishing. This usually means a tool kept failing (often a rate limit on a web fetch). You can retry the same question in this thread once the underlying limit clears.",
-  'chat_error.turn_timeout': "This turn ran past its time budget without finishing and was stopped so it wouldn't hang. This usually means a tool call or a delegated sub-agent stalled. You can retry your question in this thread.",
-  'chat_error.empty_response': "The model returned an empty response. Please retry. If it keeps happening, try a different model or check its setup in Connections → API keys → LLM.",
-  'chat_error.chat_template_rejected': "This model's chat template rejected the request. It isn't the model, the temperature, or your API key. Local models without native tool calling are driven through their own chat template, and some templates refuse the message shape of a tool step. Start a new chat to reset the history, or pick a model with native tool support in Connections → API keys → LLM.",
-  'chat_error.rate_limited': "Your AI provider is rate-limiting requests. This is a transient upstream limit, not a thread-level block. You can retry in this thread.",
-  'chat_error.rate_limited_billing': "Your AI provider is rejecting requests for billing or plan reasons (out of credits, plan limit, or unavailable model). Retrying won't help. Open Settings to top up, upgrade your plan, or pick a different model.",
-  'chat_error.managed_rate_limited': "Your AI provider is rate-limiting requests. You can retry in this thread.",
-  'chat_error.timeout': "The request timed out. Please check your connection and try again.",
-  'chat_error.auth_error': "There's an authentication issue with the AI provider. Please check your API key in settings.",
-  'chat_error.budget_exhausted': "You're out of credits, so I can't run the managed (cloud) model right now. You can top up your credits or pick a plan to continue. Or, if you've enabled a local model like Ollama, switch routing to \"Use Your Own Models\" in Connections → API keys → LLM.",
-  'chat_error.managed_budget_exhausted': "You're out of credits. Top up, or switch to 'Use Your Own Models' in Settings.",
-  'chat_error.provider_unavailable': "The AI provider is temporarily unavailable. Please try again later.",
-  'chat_error.managed_unavailable': "The AI service is temporarily unavailable. We've been notified. Please try again shortly.",
-  'chat_error.payload_too_large': "Your message or attachment is too large for this model. Shorten it or remove the attachment, or start a new thread.",
-  'chat_error.context_overflow': "The conversation is too long. Please start a new chat.",
-  'chat_error.model_config_rejected': "Your AI provider rejected the request's model or temperature setting. Check your model and routing in Settings → LLM.",
-  'chat_error.model_unavailable': "The selected model isn't available on your provider. Check your model settings.",
-  'chat_error.capability_unsupported': "This model can't process images. Remove the attachment or switch to a vision-capable model in Connections → API keys → LLM.",
-  'chat_error.malformed_history': "We hit a temporary glitch in this conversation. We've cleared it. Please send your message again.",
-  'chat_error.request_rejected': "The AI provider rejected the request. This is usually a model or parameter incompatibility. Try a different model in Connections → API keys → LLM.",
-  'chat_error.managed_request_rejected': "The request was rejected. This is usually a model or parameter mismatch. Try a different model in Connections → API keys → LLM.",
-  'chat_error.managed_malformed_request': "Something went wrong with this message. Try rephrasing it, or start a new thread if it keeps happening.",
-  'chat_error.network': "The connection to the AI service dropped mid-response. This is usually a sleep/wake or network change. Please try again.",
-  'chat_error.inference': "Something went wrong. Please try again.",
+  'chat_error.codex_session_expired':
+    'Your Codex session has expired. Please reconnect it in Settings → Integrations.',
+  'chat_error.session_expired':
+    'Your OpenHuman session has expired. Please sign in again to continue.',
+  'chat_error.action_budget':
+    "You've hit OpenHuman's per-hour action budget. This is a local safety cap, not your AI provider. The window decays gradually; you can keep chatting in this thread and tool-heavy steps will resume as the budget refills.",
+  'chat_error.max_iterations':
+    'The agent ran the maximum number of tool steps for one turn without finishing. This usually means a tool kept failing (often a rate limit on a web fetch). You can retry the same question in this thread once the underlying limit clears.',
+  'chat_error.turn_timeout':
+    "This turn ran past its time budget without finishing and was stopped so it wouldn't hang. This usually means a tool call or a delegated sub-agent stalled. You can retry your question in this thread.",
+  'chat_error.empty_response':
+    'The model returned an empty response. Please retry. If it keeps happening, try a different model or check its setup in Connections → API keys → LLM.',
+  'chat_error.chat_template_rejected':
+    "This model's chat template rejected the request. It isn't the model, the temperature, or your API key. Local models without native tool calling are driven through their own chat template, and some templates refuse the message shape of a tool step. Start a new chat to reset the history, or pick a model with native tool support in Connections → API keys → LLM.",
+  'chat_error.rate_limited':
+    'Your AI provider is rate-limiting requests. This is a transient upstream limit, not a thread-level block. You can retry in this thread.',
+  'chat_error.rate_limited_billing':
+    "Your AI provider is rejecting requests for billing or plan reasons (out of credits, plan limit, or unavailable model). Retrying won't help. Open Settings to top up, upgrade your plan, or pick a different model.",
+  'chat_error.managed_rate_limited':
+    'Your AI provider is rate-limiting requests. You can retry in this thread.',
+  'chat_error.timeout': 'The request timed out. Please check your connection and try again.',
+  'chat_error.auth_error':
+    "There's an authentication issue with the AI provider. Please check your API key in settings.",
+  'chat_error.budget_exhausted':
+    "You're out of credits, so I can't run the managed (cloud) model right now. You can top up your credits or pick a plan to continue. Or, if you've enabled a local model like Ollama, switch routing to \"Use Your Own Models\" in Connections → API keys → LLM.",
+  'chat_error.managed_budget_exhausted':
+    "You're out of credits. Top up, or switch to 'Use Your Own Models' in Settings.",
+  'chat_error.provider_unavailable':
+    'The AI provider is temporarily unavailable. Please try again later.',
+  'chat_error.managed_unavailable':
+    "The AI service is temporarily unavailable. We've been notified. Please try again shortly.",
+  'chat_error.payload_too_large':
+    'Your message or attachment is too large for this model. Shorten it or remove the attachment, or start a new thread.',
+  'chat_error.context_overflow': 'The conversation is too long. Please start a new chat.',
+  'chat_error.model_config_rejected':
+    "Your AI provider rejected the request's model or temperature setting. Check your model and routing in Settings → LLM.",
+  'chat_error.model_unavailable':
+    "The selected model isn't available on your provider. Check your model settings.",
+  'chat_error.capability_unsupported':
+    "This model can't process images. Remove the attachment or switch to a vision-capable model in Connections → API keys → LLM.",
+  'chat_error.malformed_history':
+    "We hit a temporary glitch in this conversation. We've cleared it. Please send your message again.",
+  'chat_error.request_rejected':
+    'The AI provider rejected the request. This is usually a model or parameter incompatibility. Try a different model in Connections → API keys → LLM.',
+  'chat_error.managed_request_rejected':
+    'The request was rejected. This is usually a model or parameter mismatch. Try a different model in Connections → API keys → LLM.',
+  'chat_error.managed_malformed_request':
+    'Something went wrong with this message. Try rephrasing it, or start a new thread if it keeps happening.',
+  'chat_error.network':
+    'The connection to the AI service dropped mid-response. This is usually a sleep/wake or network change. Please try again.',
+  'chat_error.inference': 'Something went wrong. Please try again.',
   'chat_error.managed_internal': "Something went wrong. We've been notified. Please try again.",
-  'chat_error.retryHint.immediately': "You can retry immediately.",
-  'chat_error.retryHint.oneSecond': "Try again in 1 second.",
-  'chat_error.retryHint.seconds': "Try again in {n} seconds.",
-  'chat_error.retryHint.aboutMinute': "Try again in about 1 minute.",
-  'chat_error.retryHint.aboutMinutes': "Try again in about {n} minutes.",
+  'chat_error.retryHint.immediately': 'You can retry immediately.',
+  'chat_error.retryHint.oneSecond': 'Try again in 1 second.',
+  'chat_error.retryHint.seconds': 'Try again in {n} seconds.',
+  'chat_error.retryHint.aboutMinute': 'Try again in about 1 minute.',
+  'chat_error.retryHint.aboutMinutes': 'Try again in about {n} minutes.',
 };
 
 export default en;

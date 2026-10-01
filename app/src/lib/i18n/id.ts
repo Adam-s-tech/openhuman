@@ -5372,39 +5372,63 @@ const messages: TranslationMap = {
   'memoryEngine.engine.agentmemory.description': 'Server AgentMemory yang Anda jalankan sendiri.',
 
   // Chat failure copy: localized render of chat_error.message, keyed by chat_error.copy_key
-  'chat_error.codex_session_expired': "Sesi Codex Anda telah kedaluwarsa. Hubungkan kembali di Pengaturan → Integrasi.",
-  'chat_error.session_expired': "Sesi OpenHuman Anda telah kedaluwarsa. Silakan masuk lagi untuk melanjutkan.",
-  'chat_error.action_budget': "Anda telah mencapai batas aksi per jam OpenHuman. Ini adalah batas keamanan lokal, bukan dari penyedia AI Anda. Batas ini pulih secara bertahap; Anda tetap bisa mengobrol di utas ini dan langkah yang banyak memakai alat akan berlanjut seiring batas terisi kembali.",
-  'chat_error.max_iterations': "Agen sudah menjalankan jumlah langkah alat maksimum dalam satu giliran tanpa selesai. Biasanya ini berarti sebuah alat terus gagal (sering karena batas laju pada pengambilan web). Anda dapat mengulang pertanyaan yang sama di utas ini setelah batasnya pulih.",
-  'chat_error.turn_timeout': "Giliran ini melewati batas waktunya tanpa selesai dan dihentikan agar tidak menggantung. Biasanya ini berarti panggilan alat atau sub-agen yang didelegasikan macet. Anda dapat mengulang pertanyaan Anda di utas ini.",
-  'chat_error.empty_response': "Model mengembalikan respons kosong. Silakan coba lagi. Jika terus terjadi, coba model lain atau periksa pengaturannya di Koneksi → Kunci API → LLM.",
-  'chat_error.chat_template_rejected': "Templat obrolan model ini menolak permintaan. Ini bukan masalah model, suhu, atau kunci API Anda. Model lokal tanpa pemanggilan alat bawaan dijalankan lewat templat obrolannya sendiri, dan beberapa templat menolak bentuk pesan langkah alat. Mulai obrolan baru untuk mengatur ulang riwayat, atau pilih model dengan dukungan alat bawaan di Koneksi → Kunci API → LLM.",
-  'chat_error.rate_limited': "Penyedia AI Anda membatasi laju permintaan. Ini batas sementara dari penyedia, bukan pemblokiran utas. Anda dapat mencoba lagi di utas ini.",
-  'chat_error.rate_limited_billing': "Penyedia AI Anda menolak permintaan karena alasan penagihan atau paket (kredit habis, batas paket, atau model tidak tersedia). Mencoba lagi tidak akan membantu. Buka Pengaturan untuk mengisi ulang, meningkatkan paket, atau memilih model lain.",
-  'chat_error.managed_rate_limited': "Penyedia AI Anda membatasi laju permintaan. Anda dapat mencoba lagi di utas ini.",
-  'chat_error.timeout': "Permintaan habis waktu. Periksa koneksi Anda lalu coba lagi.",
-  'chat_error.auth_error': "Ada masalah autentikasi dengan penyedia AI. Periksa kunci API Anda di pengaturan.",
-  'chat_error.budget_exhausted': "Kredit Anda habis, jadi saya tidak bisa menjalankan model terkelola (cloud) saat ini. Anda dapat mengisi ulang kredit atau memilih paket untuk melanjutkan. Atau, jika Anda mengaktifkan model lokal seperti Ollama, ubah perutean ke \"Gunakan Model Anda Sendiri\" di Koneksi → Kunci API → LLM.",
-  'chat_error.managed_budget_exhausted': "Kredit Anda habis. Isi ulang, atau beralih ke 'Gunakan Model Anda Sendiri' di Pengaturan.",
-  'chat_error.provider_unavailable': "Penyedia AI sedang tidak tersedia untuk sementara. Silakan coba lagi nanti.",
-  'chat_error.managed_unavailable': "Layanan AI sedang tidak tersedia untuk sementara. Kami sudah diberi tahu. Silakan coba lagi sebentar lagi.",
-  'chat_error.payload_too_large': "Pesan atau lampiran Anda terlalu besar untuk model ini. Persingkat atau hapus lampiran, atau mulai utas baru.",
-  'chat_error.context_overflow': "Percakapan terlalu panjang. Silakan mulai obrolan baru.",
-  'chat_error.model_config_rejected': "Penyedia AI Anda menolak model atau suhu pada permintaan. Periksa model dan perutean Anda di Pengaturan → LLM.",
-  'chat_error.model_unavailable': "Model yang dipilih tidak tersedia di penyedia Anda. Periksa pengaturan model Anda.",
-  'chat_error.capability_unsupported': "Model ini tidak dapat memproses gambar. Hapus lampiran atau beralih ke model yang mendukung visi di Koneksi → Kunci API → LLM.",
-  'chat_error.malformed_history': "Terjadi gangguan sementara pada percakapan ini. Sudah kami bereskan. Silakan kirim ulang pesan Anda.",
-  'chat_error.request_rejected': "Penyedia AI menolak permintaan. Biasanya ini karena model atau parameter tidak cocok. Coba model lain di Koneksi → Kunci API → LLM.",
-  'chat_error.managed_request_rejected': "Permintaan ditolak. Biasanya ini karena model atau parameter tidak cocok. Coba model lain di Koneksi → Kunci API → LLM.",
-  'chat_error.managed_malformed_request': "Ada yang salah dengan pesan ini. Coba susun ulang kalimatnya, atau mulai utas baru jika terus terjadi.",
-  'chat_error.network': "Koneksi ke layanan AI terputus di tengah respons, biasanya karena perangkat tidur atau jaringan berubah. Silakan coba lagi.",
-  'chat_error.inference': "Terjadi kesalahan. Silakan coba lagi.",
-  'chat_error.managed_internal': "Terjadi kesalahan. Kami sudah diberi tahu. Silakan coba lagi.",
-  'chat_error.retryHint.immediately': "Anda dapat mencoba lagi sekarang.",
-  'chat_error.retryHint.oneSecond': "Coba lagi dalam 1 detik.",
-  'chat_error.retryHint.seconds': "Coba lagi dalam {n} detik.",
-  'chat_error.retryHint.aboutMinute': "Coba lagi dalam sekitar 1 menit.",
-  'chat_error.retryHint.aboutMinutes': "Coba lagi dalam sekitar {n} menit.",
+  'chat_error.codex_session_expired':
+    'Sesi Codex Anda telah kedaluwarsa. Hubungkan kembali di Pengaturan → Integrasi.',
+  'chat_error.session_expired':
+    'Sesi OpenHuman Anda telah kedaluwarsa. Silakan masuk lagi untuk melanjutkan.',
+  'chat_error.action_budget':
+    'Anda telah mencapai batas aksi per jam OpenHuman. Ini adalah batas keamanan lokal, bukan dari penyedia AI Anda. Batas ini pulih secara bertahap; Anda tetap bisa mengobrol di utas ini dan langkah yang banyak memakai alat akan berlanjut seiring batas terisi kembali.',
+  'chat_error.max_iterations':
+    'Agen sudah menjalankan jumlah langkah alat maksimum dalam satu giliran tanpa selesai. Biasanya ini berarti sebuah alat terus gagal (sering karena batas laju pada pengambilan web). Anda dapat mengulang pertanyaan yang sama di utas ini setelah batasnya pulih.',
+  'chat_error.turn_timeout':
+    'Giliran ini melewati batas waktunya tanpa selesai dan dihentikan agar tidak menggantung. Biasanya ini berarti panggilan alat atau sub-agen yang didelegasikan macet. Anda dapat mengulang pertanyaan Anda di utas ini.',
+  'chat_error.empty_response':
+    'Model mengembalikan respons kosong. Silakan coba lagi. Jika terus terjadi, coba model lain atau periksa pengaturannya di Koneksi → Kunci API → LLM.',
+  'chat_error.chat_template_rejected':
+    'Templat obrolan model ini menolak permintaan. Ini bukan masalah model, suhu, atau kunci API Anda. Model lokal tanpa pemanggilan alat bawaan dijalankan lewat templat obrolannya sendiri, dan beberapa templat menolak bentuk pesan langkah alat. Mulai obrolan baru untuk mengatur ulang riwayat, atau pilih model dengan dukungan alat bawaan di Koneksi → Kunci API → LLM.',
+  'chat_error.rate_limited':
+    'Penyedia AI Anda membatasi laju permintaan. Ini batas sementara dari penyedia, bukan pemblokiran utas. Anda dapat mencoba lagi di utas ini.',
+  'chat_error.rate_limited_billing':
+    'Penyedia AI Anda menolak permintaan karena alasan penagihan atau paket (kredit habis, batas paket, atau model tidak tersedia). Mencoba lagi tidak akan membantu. Buka Pengaturan untuk mengisi ulang, meningkatkan paket, atau memilih model lain.',
+  'chat_error.managed_rate_limited':
+    'Penyedia AI Anda membatasi laju permintaan. Anda dapat mencoba lagi di utas ini.',
+  'chat_error.timeout': 'Permintaan habis waktu. Periksa koneksi Anda lalu coba lagi.',
+  'chat_error.auth_error':
+    'Ada masalah autentikasi dengan penyedia AI. Periksa kunci API Anda di pengaturan.',
+  'chat_error.budget_exhausted':
+    'Kredit Anda habis, jadi saya tidak bisa menjalankan model terkelola (cloud) saat ini. Anda dapat mengisi ulang kredit atau memilih paket untuk melanjutkan. Atau, jika Anda mengaktifkan model lokal seperti Ollama, ubah perutean ke "Gunakan Model Anda Sendiri" di Koneksi → Kunci API → LLM.',
+  'chat_error.managed_budget_exhausted':
+    "Kredit Anda habis. Isi ulang, atau beralih ke 'Gunakan Model Anda Sendiri' di Pengaturan.",
+  'chat_error.provider_unavailable':
+    'Penyedia AI sedang tidak tersedia untuk sementara. Silakan coba lagi nanti.',
+  'chat_error.managed_unavailable':
+    'Layanan AI sedang tidak tersedia untuk sementara. Kami sudah diberi tahu. Silakan coba lagi sebentar lagi.',
+  'chat_error.payload_too_large':
+    'Pesan atau lampiran Anda terlalu besar untuk model ini. Persingkat atau hapus lampiran, atau mulai utas baru.',
+  'chat_error.context_overflow': 'Percakapan terlalu panjang. Silakan mulai obrolan baru.',
+  'chat_error.model_config_rejected':
+    'Penyedia AI Anda menolak model atau suhu pada permintaan. Periksa model dan perutean Anda di Pengaturan → LLM.',
+  'chat_error.model_unavailable':
+    'Model yang dipilih tidak tersedia di penyedia Anda. Periksa pengaturan model Anda.',
+  'chat_error.capability_unsupported':
+    'Model ini tidak dapat memproses gambar. Hapus lampiran atau beralih ke model yang mendukung visi di Koneksi → Kunci API → LLM.',
+  'chat_error.malformed_history':
+    'Terjadi gangguan sementara pada percakapan ini. Sudah kami bereskan. Silakan kirim ulang pesan Anda.',
+  'chat_error.request_rejected':
+    'Penyedia AI menolak permintaan. Biasanya ini karena model atau parameter tidak cocok. Coba model lain di Koneksi → Kunci API → LLM.',
+  'chat_error.managed_request_rejected':
+    'Permintaan ditolak. Biasanya ini karena model atau parameter tidak cocok. Coba model lain di Koneksi → Kunci API → LLM.',
+  'chat_error.managed_malformed_request':
+    'Ada yang salah dengan pesan ini. Coba susun ulang kalimatnya, atau mulai utas baru jika terus terjadi.',
+  'chat_error.network':
+    'Koneksi ke layanan AI terputus di tengah respons, biasanya karena perangkat tidur atau jaringan berubah. Silakan coba lagi.',
+  'chat_error.inference': 'Terjadi kesalahan. Silakan coba lagi.',
+  'chat_error.managed_internal': 'Terjadi kesalahan. Kami sudah diberi tahu. Silakan coba lagi.',
+  'chat_error.retryHint.immediately': 'Anda dapat mencoba lagi sekarang.',
+  'chat_error.retryHint.oneSecond': 'Coba lagi dalam 1 detik.',
+  'chat_error.retryHint.seconds': 'Coba lagi dalam {n} detik.',
+  'chat_error.retryHint.aboutMinute': 'Coba lagi dalam sekitar 1 menit.',
+  'chat_error.retryHint.aboutMinutes': 'Coba lagi dalam sekitar {n} menit.',
 };
 
 export default messages;

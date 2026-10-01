@@ -5044,39 +5044,55 @@ const messages: TranslationMap = {
   'memoryEngine.engine.agentmemory.description': '由你自己运行的 AgentMemory 服务器。',
 
   // Chat failure copy: localized render of chat_error.message, keyed by chat_error.copy_key
-  'chat_error.codex_session_expired': "你的 Codex 会话已过期。请在 设置 → 集成 中重新连接。",
-  'chat_error.session_expired': "你的 OpenHuman 会话已过期。请重新登录以继续。",
-  'chat_error.action_budget': "你已达到 OpenHuman 的每小时操作上限。这是本地安全限制，并非来自你的 AI 提供商。额度会逐步恢复；你可以继续在此对话中聊天，大量使用工具的步骤会随着额度恢复而继续。",
-  'chat_error.max_iterations': "智能体在一轮中已执行最大数量的工具步骤，但仍未完成。这通常意味着某个工具一直失败（常见原因是网页抓取触发了速率限制）。限制解除后，你可以在此对话中重试同一个问题。",
-  'chat_error.turn_timeout': "这一轮超出了时间预算仍未完成，已被停止以免卡住。这通常意味着某次工具调用或被委派的子智能体停滞了。你可以在此对话中重试你的问题。",
-  'chat_error.empty_response': "模型返回了空响应。请重试。如果持续出现，请尝试其他模型，或在 连接 → API 密钥 → 语言模型 中检查其设置。",
-  'chat_error.chat_template_rejected': "该模型的聊天模板拒绝了此请求。问题不在模型、温度或你的 API 密钥。不支持原生工具调用的本地模型通过自己的聊天模板运行，部分模板会拒绝工具步骤的消息格式。请新建聊天以重置历史记录，或在 连接 → API 密钥 → 语言模型 中选择原生支持工具的模型。",
-  'chat_error.rate_limited': "你的 AI 提供商正在限制请求速率。这是提供商的临时限制，并非对话被封锁。你可以在此对话中重试。",
-  'chat_error.rate_limited_billing': "你的 AI 提供商因账单或套餐原因拒绝了请求（额度用尽、套餐限制或模型不可用）。重试无济于事。请打开 设置 充值、升级套餐或选择其他模型。",
-  'chat_error.managed_rate_limited': "你的 AI 提供商正在限制请求速率。你可以在此对话中重试。",
-  'chat_error.timeout': "请求超时。请检查网络连接后重试。",
-  'chat_error.auth_error': "AI 提供商的身份验证出现问题。请在设置中检查你的 API 密钥。",
-  'chat_error.budget_exhausted': "你的额度已用完，所以我现在无法运行托管（云端）模型。你可以充值或选择套餐以继续。或者，如果你已启用 Ollama 等本地模型，请在 连接 → API 密钥 → 语言模型 中将路由切换为“使用您自己的模型”。",
-  'chat_error.managed_budget_exhausted': "你的额度已用完。请充值，或在 设置 中切换为“使用您自己的模型”。",
-  'chat_error.provider_unavailable': "AI 提供商暂时不可用。请稍后再试。",
-  'chat_error.managed_unavailable': "AI 服务暂时不可用。我们已收到通知。请稍后再试。",
-  'chat_error.payload_too_large': "你的消息或附件对该模型来说太大了。请缩短内容或移除附件，或新建对话。",
-  'chat_error.context_overflow': "对话过长。请新建聊天。",
-  'chat_error.model_config_rejected': "你的 AI 提供商拒绝了请求中的模型或温度设置。请在 设置 → 语言模型 中检查模型和路由。",
-  'chat_error.model_unavailable': "所选模型在你的提供商处不可用。请检查模型设置。",
-  'chat_error.capability_unsupported': "该模型无法处理图片。请移除附件，或在 连接 → API 密钥 → 语言模型 中切换到支持视觉的模型。",
-  'chat_error.malformed_history': "此对话出现了临时故障，我们已将其清除。请重新发送你的消息。",
-  'chat_error.request_rejected': "AI 提供商拒绝了请求。这通常是模型或参数不兼容所致。请在 连接 → API 密钥 → 语言模型 中尝试其他模型。",
-  'chat_error.managed_request_rejected': "请求被拒绝。这通常是模型或参数不匹配所致。请在 连接 → API 密钥 → 语言模型 中尝试其他模型。",
-  'chat_error.managed_malformed_request': "这条消息出了问题。请换种说法重试，如果问题持续，请新建对话。",
-  'chat_error.network': "与 AI 服务的连接在响应过程中中断，通常是由休眠唤醒或网络切换引起。请重试。",
-  'chat_error.inference': "出了点问题。请重试。",
-  'chat_error.managed_internal': "出了点问题。我们已收到通知。请重试。",
-  'chat_error.retryHint.immediately': "你可以立即重试。",
-  'chat_error.retryHint.oneSecond': "请 1 秒后重试。",
-  'chat_error.retryHint.seconds': "请 {n} 秒后重试。",
-  'chat_error.retryHint.aboutMinute': "请约 1 分钟后重试。",
-  'chat_error.retryHint.aboutMinutes': "请约 {n} 分钟后重试。",
+  'chat_error.codex_session_expired': '你的 Codex 会话已过期。请在 设置 → 集成 中重新连接。',
+  'chat_error.session_expired': '你的 OpenHuman 会话已过期。请重新登录以继续。',
+  'chat_error.action_budget':
+    '你已达到 OpenHuman 的每小时操作上限。这是本地安全限制，并非来自你的 AI 提供商。额度会逐步恢复；你可以继续在此对话中聊天，大量使用工具的步骤会随着额度恢复而继续。',
+  'chat_error.max_iterations':
+    '智能体在一轮中已执行最大数量的工具步骤，但仍未完成。这通常意味着某个工具一直失败（常见原因是网页抓取触发了速率限制）。限制解除后，你可以在此对话中重试同一个问题。',
+  'chat_error.turn_timeout':
+    '这一轮超出了时间预算仍未完成，已被停止以免卡住。这通常意味着某次工具调用或被委派的子智能体停滞了。你可以在此对话中重试你的问题。',
+  'chat_error.empty_response':
+    '模型返回了空响应。请重试。如果持续出现，请尝试其他模型，或在 连接 → API 密钥 → 语言模型 中检查其设置。',
+  'chat_error.chat_template_rejected':
+    '该模型的聊天模板拒绝了此请求。问题不在模型、温度或你的 API 密钥。不支持原生工具调用的本地模型通过自己的聊天模板运行，部分模板会拒绝工具步骤的消息格式。请新建聊天以重置历史记录，或在 连接 → API 密钥 → 语言模型 中选择原生支持工具的模型。',
+  'chat_error.rate_limited':
+    '你的 AI 提供商正在限制请求速率。这是提供商的临时限制，并非对话被封锁。你可以在此对话中重试。',
+  'chat_error.rate_limited_billing':
+    '你的 AI 提供商因账单或套餐原因拒绝了请求（额度用尽、套餐限制或模型不可用）。重试无济于事。请打开 设置 充值、升级套餐或选择其他模型。',
+  'chat_error.managed_rate_limited': '你的 AI 提供商正在限制请求速率。你可以在此对话中重试。',
+  'chat_error.timeout': '请求超时。请检查网络连接后重试。',
+  'chat_error.auth_error': 'AI 提供商的身份验证出现问题。请在设置中检查你的 API 密钥。',
+  'chat_error.budget_exhausted':
+    '你的额度已用完，所以我现在无法运行托管（云端）模型。你可以充值或选择套餐以继续。或者，如果你已启用 Ollama 等本地模型，请在 连接 → API 密钥 → 语言模型 中将路由切换为“使用您自己的模型”。',
+  'chat_error.managed_budget_exhausted':
+    '你的额度已用完。请充值，或在 设置 中切换为“使用您自己的模型”。',
+  'chat_error.provider_unavailable': 'AI 提供商暂时不可用。请稍后再试。',
+  'chat_error.managed_unavailable': 'AI 服务暂时不可用。我们已收到通知。请稍后再试。',
+  'chat_error.payload_too_large':
+    '你的消息或附件对该模型来说太大了。请缩短内容或移除附件，或新建对话。',
+  'chat_error.context_overflow': '对话过长。请新建聊天。',
+  'chat_error.model_config_rejected':
+    '你的 AI 提供商拒绝了请求中的模型或温度设置。请在 设置 → 语言模型 中检查模型和路由。',
+  'chat_error.model_unavailable': '所选模型在你的提供商处不可用。请检查模型设置。',
+  'chat_error.capability_unsupported':
+    '该模型无法处理图片。请移除附件，或在 连接 → API 密钥 → 语言模型 中切换到支持视觉的模型。',
+  'chat_error.malformed_history': '此对话出现了临时故障，我们已将其清除。请重新发送你的消息。',
+  'chat_error.request_rejected':
+    'AI 提供商拒绝了请求。这通常是模型或参数不兼容所致。请在 连接 → API 密钥 → 语言模型 中尝试其他模型。',
+  'chat_error.managed_request_rejected':
+    '请求被拒绝。这通常是模型或参数不匹配所致。请在 连接 → API 密钥 → 语言模型 中尝试其他模型。',
+  'chat_error.managed_malformed_request':
+    '这条消息出了问题。请换种说法重试，如果问题持续，请新建对话。',
+  'chat_error.network':
+    '与 AI 服务的连接在响应过程中中断，通常是由休眠唤醒或网络切换引起。请重试。',
+  'chat_error.inference': '出了点问题。请重试。',
+  'chat_error.managed_internal': '出了点问题。我们已收到通知。请重试。',
+  'chat_error.retryHint.immediately': '你可以立即重试。',
+  'chat_error.retryHint.oneSecond': '请 1 秒后重试。',
+  'chat_error.retryHint.seconds': '请 {n} 秒后重试。',
+  'chat_error.retryHint.aboutMinute': '请约 1 分钟后重试。',
+  'chat_error.retryHint.aboutMinutes': '请约 {n} 分钟后重试。',
 };
 
 export default messages;

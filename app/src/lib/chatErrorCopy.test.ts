@@ -11,9 +11,9 @@ const t = (key: string, fallback?: string) => table[key] ?? fallback ?? key;
 
 describe('chatErrorCopyText', () => {
   it('renders a known key from the translation table', () => {
-    expect(
-      chatErrorCopyText({ message: 'english', copy_key: 'chat_error.timeout' }, t)
-    ).toBe('LOCALIZED timeout');
+    expect(chatErrorCopyText({ message: 'english', copy_key: 'chat_error.timeout' }, t)).toBe(
+      'LOCALIZED timeout'
+    );
   });
 
   it('appends the retry hint and the quoted provider detail', () => {
