@@ -13,10 +13,10 @@
 mod halt;
 mod table;
 
+#[cfg(test)]
+pub(crate) use halt::TerminalInferenceFailure;
 pub(crate) use halt::{
     recoverable_identical_halt_summary, recoverable_no_progress_halt_summary,
     terminal_inference_failure_kind, terminal_inference_halt_summary, user_actionable_escalation,
 };
-#[cfg(test)]
-pub(crate) use halt::TerminalInferenceFailure;
 pub(crate) use table::{failure_copy, FailureClass};

@@ -55,8 +55,13 @@ async fn shutdown_token_stops_axum_listener_within_timeout() {
     let shutdown_token = CancellationToken::new();
     let server_token = shutdown_token.clone();
     let server = tokio::spawn(async move {
-        openhuman_rpc::server::run_server_embedded(Some("127.0.0.1"), Some(port), false, server_token)
-            .await
+        openhuman_rpc::server::run_server_embedded(
+            Some("127.0.0.1"),
+            Some(port),
+            false,
+            server_token,
+        )
+        .await
     });
 
     wait_until_port(port, true).await;
