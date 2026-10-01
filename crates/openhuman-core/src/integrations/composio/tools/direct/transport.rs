@@ -14,8 +14,8 @@ use tinyconnectors::client::{DirectRoute, Route, Transport};
 use tinyconnectors::Error as ConnectorError;
 
 use super::http_errors::response_error;
-use crate::integrations::composio::types::{ComposioConnectionsResponse, ComposioToolsResponse};
 use super::types::DirectComposioClient;
+use crate::integrations::composio::types::{ComposioConnectionsResponse, ComposioToolsResponse};
 
 /// Failure label per request path, matching the messages the host has always
 /// produced (and the `[composio-direct]` observability anchors match on).
