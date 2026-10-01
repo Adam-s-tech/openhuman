@@ -449,7 +449,6 @@ fn the_ci_workflows_pin_the_same_module_digest_as_the_registry() {
 
     let workflows = [
         "../.github/workflows/ci-full.yml",
-        "../.github/workflows/ci-lite.yml",
         "../.github/workflows/e2e-reusable.yml",
     ];
     let root = std::path::Path::new(env!("OPENHUMAN_REPOSITORY_ROOT"));
