@@ -4,7 +4,7 @@
 //! exercises the full user flow: add source → list → list_items →
 //! read_item → ingest into memory tree → verify chunks indexed.
 //!
-//! Run with: `cargo test -p openhuman-cli --test in_process_all memory_sources_e2e`
+//! Run with: `cargo test -p openhuman-cli --test in_process_all`
 
 use crate::env_guard::EnvVarGuard;
 use crate::env_guard::env_lock;
@@ -472,10 +472,10 @@ async fn memory_sources_validation_rejects_bad_input() {
 /// outbound GitHub access doesn't fail on rate limits or transient
 /// network blips. `#[ignore]`d so it reports as ignored rather than passing
 /// without asserting. Run locally with:
-///   cargo test -p openhuman-cli --test memory_sources_e2e \
+///   cargo test -p openhuman-cli --test in_process_all \
 ///     memory_sources_github_repo_activity_flow -- --ignored
 #[tokio::test]
-#[ignore = "needs outbound network to GitHub (kelseyhightower/nocode via the gh CLI / GitHub API); not run in CI. Run: cargo test -p openhuman-cli --test memory_sources_e2e memory_sources_github_repo_activity_flow -- --ignored"]
+#[ignore = "needs outbound network to GitHub (kelseyhightower/nocode via the gh CLI / GitHub API); not run in CI. Run: cargo test -p openhuman-cli --test in_process_all memory_sources_github_repo_activity_flow -- --ignored"]
 async fn memory_sources_github_repo_activity_flow() {
     let _guard = env_lock();
     let home = test_home();

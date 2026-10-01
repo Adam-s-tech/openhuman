@@ -7,7 +7,7 @@
 //! the `thread_*` tool family; the op below still backs the RPC surface.
 //! against that on-disk data under a per-test temp `OPENHUMAN_WORKSPACE`.
 //!
-//! Run with: `cargo test -p openhuman-cli --test in_process_all transcript_search_e2e`
+//! Run with: `cargo test -p openhuman-cli --test in_process_all`
 
 use crate::env_guard::{env_lock, EnvVarGuard};
 use std::path::Path;

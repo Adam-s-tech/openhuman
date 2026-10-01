@@ -5,7 +5,7 @@
 //! OpenAI / Cohere calls are made — tests either use the "none" noop provider
 //! or assert error shapes from providers that require live credentials.
 //!
-//! Run with: `cargo test -p openhuman-cli --test in_process_all embeddings_rpc_e2e`
+//! Run with: `cargo test -p openhuman-cli --test in_process_all`
 
 use crate::env_guard::EnvVarGuard;
 use crate::env_guard::env_lock;

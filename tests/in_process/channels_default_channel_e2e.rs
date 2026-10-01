@@ -47,7 +47,7 @@
 //!
 //! No network: `api_url` points at a closed port.
 //!
-//! Run with: `cargo test -p openhuman-cli --test channels_default_channel_e2e`
+//! Run with: `cargo test -p openhuman-cli --test in_process_all`
 
 use crate::env_guard::EnvVarGuard;
 use crate::env_guard::env_lock;

@@ -18,7 +18,7 @@
 //! dedupe decision keyed on that echo drifts silently. Nothing catches it
 //! today.
 //!
-//! Run with: `cargo test -p openhuman-cli --test tree_summarizer_e2e`
+//! Run with: `cargo test -p openhuman-cli --test in_process_all`
 
 use crate::env_guard::EnvVarGuard;
 use crate::env_guard::env_lock;
@@ -57,13 +57,13 @@ fn test_home() -> &'static Path {
 /// The `#[cfg(feature = "modules")]` body is evaluated against **openhuman-cli**'s
 /// features, not the core's. `openhuman-cli`'s own `modules` flag is OFF in its
 /// default set even though `openhuman-core/modules` is on transitively, so a
-/// bare `cargo test -p openhuman-cli --test tree_summarizer_e2e` compiles this
+/// bare `cargo test -p openhuman-cli --test in_process_all` compiles this
 /// to a no-op and every test here fails on the message above. Run it the way
 /// `scripts/test-rust-e2e.sh` does:
 ///
 ///     RUST_MIN_STACK=67108864 cargo test -p openhuman-cli \
 ///       --features "$(bash scripts/ci/product-features.sh)" \
-///       --test tree_summarizer_e2e
+///       --test in_process_all
 fn ensure_memory_seams() {
     MEMORY_SEAMS_INIT.get_or_init(|| {
         std::thread::Builder::new()

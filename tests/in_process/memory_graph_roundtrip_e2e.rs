@@ -20,7 +20,7 @@
 //!   proves the handler wiring but never touches JSON-RPC dispatch or the
 //!   `serde` layer that builds `GraphUpsertParams` / `GraphQueryParams` from a
 //!   wire payload.
-//! * `tests/worker_c_modules_e2e.rs` names `openhuman.memory_graph_upsert` and
+//! * `tests/in_process/worker_c_modules_e2e.rs` names `openhuman.memory_graph_upsert` and
 //!   `openhuman.memory_graph_query` in a 68-method loop that calls each with
 //!   `json!({})` and asserts `assert_rpc_completed`. That helper tolerates an
 //!   error response as long as it is not `unknown method:`, which is the
@@ -56,7 +56,7 @@
 //! # Running it
 //!
 //! ```text
-//! cargo test -p openhuman-cli --features modules --test memory_graph_roundtrip_e2e
+//! cargo test -p openhuman-cli --features modules --test in_process_all
 //! ```
 //!
 //! **`--features modules` is required.** `openhuman-cli`'s `modules` feature is

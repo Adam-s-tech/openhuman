@@ -590,14 +590,14 @@ async fn target_domain_read_paths_round_trip_through_json_rpc_transport() {
 /// caller must parse — the §6 log-envelope rule, on a live pair of methods.
 ///
 /// The reason this needs its own case: the tolerant `payload()` helper here, and
-/// the equivalent in `tests/channels_default_channel_e2e.rs`, both unwrap an
+/// the equivalent in `tests/in_process/channels_default_channel_e2e.rs`, both unwrap an
 /// inner `result` when present and fall through when not. That is the right
 /// behaviour for a caller and it is exactly what makes the flip undetectable —
 /// every other test in both suites would keep passing if either handler's
 /// envelope inverted. So this case reads the RAW JSON-RPC result rather than the
 /// unwrapped payload.
 ///
-/// **Scope:** wire shape only. `tests/channels_default_channel_e2e.rs` owns the
+/// **Scope:** wire shape only. `tests/in_process/channels_default_channel_e2e.rs` owns the
 /// round trip, on-disk persistence, canonicalisation, the `"web"` fallback, and
 /// — since the split agreed with its author — the live-apply assertion
 /// (`set_default_applies_to_the_live_proactive_handle`). Nothing here duplicates
