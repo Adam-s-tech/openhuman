@@ -1,7 +1,7 @@
 //! Request-scoped web-chat cancellation (#4760): a stale scoped cancel for a
 //! superseded request must not tear down the newer in-flight turn.
 
-use super::*;
+use crate::web_chat::cancel_should_target;
 
 #[test]
 fn unscoped_cancel_always_targets_the_in_flight_turn() {
