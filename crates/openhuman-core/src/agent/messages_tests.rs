@@ -1,21 +1,50 @@
 use super::*;
 
+#[derive(Serialize, Deserialize)]
+struct Holder {
+    #[serde(with = "history_wire")]
+    rows: Vec<TranscriptMessage>,
+    #[serde(default, with = "history_wire::option")]
+    maybe: Option<Vec<TranscriptMessage>>,
+}
+
 #[test]
-fn transcript_adapter_round_trips_cache_breakpoints() {
-    let original = TranscriptMessage {
-        id: Some("message-1".to_string()),
-        role: "system".to_string(),
-        content: "system prompt".to_string(),
-        extra_metadata: None,
-        cache_breakpoints: vec![3, 7],
+fn history_wire_writes_only_role_and_content() {
+    let mut row = TranscriptMessage::tool("{\"tool_call_id\":\"c1\",\"content\":\"ok\"}");
+    row.id = Some("c1".into());
+    row.cache_breakpoints = vec![3, 7];
+    row.extra_metadata = Some(serde_json::json!({"reasoning_content": "why"}));
+    let holder = Holder {
+        rows: vec![row],
+        maybe: None,
     };
+    assert_eq!(
+        serde_json::to_value(&holder).unwrap(),
+        serde_json::json!({
+            "rows": [{"role": "tool", "content": "{\"tool_call_id\":\"c1\",\"content\":\"ok\"}"}],
+            "maybe": null,
+        })
+    );
+}
 
-    let durable = crate::agent::messages::transcript_message_from_chat(&original);
-    assert_eq!(durable.cache_breakpoints, vec![3, 7]);
+#[test]
+fn history_wire_reads_bare_and_full_rows() {
+    let holder: Holder = serde_json::from_value(serde_json::json!({
+        "rows": [
+            {"role": "user", "content": "hi"},
+            {"id": "m1", "role": "system", "content": "s", "cache_breakpoints": [3, 7]},
+        ],
+        "maybe": [{"role": "assistant", "content": "a"}],
+    }))
+    .unwrap();
+    assert_eq!(holder.rows[0], TranscriptMessage::user("hi"));
+    assert_eq!(holder.rows[1].id.as_deref(), Some("m1"));
+    assert_eq!(holder.rows[1].cache_breakpoints, vec![3, 7]);
+    assert_eq!(holder.maybe, Some(vec![TranscriptMessage::assistant("a")]));
+}
 
-    let restored = crate::agent::messages::chat_message_from_transcript(durable);
-    assert_eq!(restored.id, original.id);
-    assert_eq!(restored.role, original.role);
-    assert_eq!(restored.content, original.content);
-    assert_eq!(restored.cache_breakpoints, original.cache_breakpoints);
+#[test]
+fn history_wire_option_defaults_to_none_when_absent() {
+    let holder: Holder = serde_json::from_value(serde_json::json!({"rows": []})).unwrap();
+    assert!(holder.rows.is_empty() && holder.maybe.is_none());
 }
