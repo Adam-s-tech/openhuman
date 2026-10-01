@@ -24,9 +24,8 @@
 pub mod gate;
 
 pub use gate::{
-    current_policy, current_signals, init_global, is_signed_out, set_signed_out, wait_for_capacity,
-    LlmPermit,
-};
+    current_policy, init_global, is_signed_out, set_signed_out, wait_for_capacity,
+    LlmPermit};
 pub use gate::{PauseReason, Policy, Signals};
 
 #[cfg(test)]

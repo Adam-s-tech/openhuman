@@ -17,11 +17,9 @@ mod subagent;
 mod workspace_files;
 
 pub use section_renderers::{
-    current_datetime_line, memory_date_label, render_agents_md, render_ambient_environment,
-    render_datetime, render_grounding, render_identity, render_runtime, render_safety,
-    render_tools, render_user_files, render_user_identity, render_user_memory,
-    render_user_reflections, render_workspace,
-};
+    current_datetime_line, memory_date_label, render_ambient_environment,
+    render_datetime, render_identity, render_runtime, render_safety,
+    render_tools, render_user_files, render_user_identity, render_user_reflections, render_workspace};
 pub(crate) use subagent::harness_json_tool_prompt;
 pub use subagent::{render_subagent_system_prompt, render_subagent_system_prompt_with_format};
 pub(crate) use workspace_files::write_agents_md_blocks;

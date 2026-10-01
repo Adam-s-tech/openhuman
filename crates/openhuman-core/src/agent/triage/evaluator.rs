@@ -40,7 +40,7 @@ pub(crate) use chain::begin_outage_attempt;
 pub(crate) use chain::record_outage;
 #[cfg(test)]
 pub(crate) use chain::run_triage_with_arms_for_test_with_state;
-pub use chain::{run_triage, run_triage_with_arms};
+pub use chain::{run_triage};
 pub use outcome::{TriageOutcome, TriageResolutionPath, TriageRun};
 
 #[cfg(test)]
