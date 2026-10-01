@@ -171,7 +171,7 @@ E2E_PORT_BASE=31000 pnpm --filter openhuman-app test:e2e:web
 
 ### Push / PR checks
 
-The default pull-request gate is `.github/workflows/ci-lite.yml` (quick lane: quality checks plus complete unit-test suites for each changed area). E2E suites do not run on PRs to `main`. The full E2E matrix (Rust mock-backend, Playwright web, desktop on Linux/macOS/Windows) runs in `.github/workflows/ci-full.yml` on PRs targeting the `release` branch and on every push to it.
+The default pull-request gate is `.github/workflows/ci-fast.yml` (quality checks plus complete unit-test suites for changed areas). E2E suites do not run on PRs to `main`. The full E2E matrix (Rust mock-backend, Playwright web, desktop on Linux/macOS/Windows) runs in `.github/workflows/ci-full.yml` on PRs targeting the `release` branch and on every push to it.
 
 macOS and Windows desktop E2E do not run on pushes or PRs. `.github/workflows/e2e.yml` is a manually dispatched workflow whose `run_macos` / `run_windows` inputs default to `false` until #5485 lands a native driver for each platform; someone has to opt in explicitly to get cross-platform desktop signal before promotion.
 
