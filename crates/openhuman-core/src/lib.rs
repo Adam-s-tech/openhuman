@@ -48,9 +48,6 @@
 // depth of 128 (E0275). Raising the limit is the standard remedy for deep async
 // type recursion and costs nothing at runtime.
 #![recursion_limit = "256"]
-// These modules define the public API surface for agent features.
-// Many types/functions are intended for future use or integration with the frontend.
-#![allow(dead_code)]
 
 pub mod agent;
 pub mod backend;
