@@ -37,50 +37,6 @@ impl PythonLaunchSpec {
     }
 }
 
-pub fn spawn_stdio_process(
-    resolved: &ResolvedPython,
-    spec: &PythonLaunchSpec,
-) -> Result<tokio::process::Child> {
-    let mut cmd = tokio::process::Command::new(&resolved.python_bin);
-    if spec.unbuffered {
-        cmd.arg("-u");
-    }
-    cmd.arg(&spec.script_path);
-    cmd.args(&spec.args);
-    if let Some(cwd) = spec.cwd.as_ref() {
-        cmd.current_dir(cwd);
-    }
-    for (key, value) in &spec.env {
-        cmd.env(key, value);
-    }
-    cmd.stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .kill_on_drop(true);
-    // Suppress the Windows conhost flash. This process is (re)spawned on every
-    // launch to run the runtime python server, so without CREATE_NO_WINDOW a
-    // CMD window blinks up each time the app starts (GH-4814).
-    tinyinference_local::process::apply_no_window(&mut cmd);
-
-    let child = cmd.spawn().with_context(|| {
-        format!(
-            "failed to spawn python process `{}` for script {}",
-            resolved.python_bin.display(),
-            spec.script_path.display()
-        )
-    })?;
-
-    tracing::info!(
-        python_bin = %resolved.python_bin.display(),
-        script = %spec.script_path.display(),
-        arg_count = spec.args.len(),
-        cwd = spec.cwd.as_ref().map(|p| p.display().to_string()),
-        "[runtime_python::process] spawned stdio python child"
-    );
-
-    Ok(child)
-}
-
 #[cfg(test)]
 #[path = "process_tests.rs"]
 mod tests;

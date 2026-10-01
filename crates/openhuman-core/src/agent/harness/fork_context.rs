@@ -174,11 +174,6 @@ tokio::task_local! {
     /// direct tool calls); `spawn_subagent` rejects in that case.
     pub static PARENT_CONTEXT: ParentExecutionContext;
 
-    /// Context-preparation sources that already ran for this parent turn,
-    /// so downstream code can tell the harness has already prepared context
-    /// and avoid gathering it a second time.
-    ///
-    pub static AGENT_CONTEXT_PREPARED_SOURCES: Arc<Vec<AgentContextPreparedSource>>;
 }
 
 /// Returns a clone of the current parent execution context, if one is set.

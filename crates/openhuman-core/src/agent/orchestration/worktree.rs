@@ -178,17 +178,6 @@ impl WorkspaceIsolation for OpenHumanWorktreeIsolation {
     }
 }
 
-/// Rejection from [`enforce_workspace_path`].
-///
-/// Separate from `GitWorktreeError` (which is TinyAgents' git-plumbing error)
-/// because this gate is about OpenHuman's descriptor policy, not about git.
-#[derive(Debug, thiserror::Error)]
-pub enum WorkspacePathError {
-    /// The path escaped every root the descriptor allows.
-    #[error("path is outside the allowed workspace roots: {0}")]
-    OutsideWorkspace(PathBuf),
-}
-
 #[cfg(test)]
 #[path = "worktree_tests.rs"]
 mod tests;
