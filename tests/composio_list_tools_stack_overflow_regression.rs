@@ -294,7 +294,7 @@ impl Memory for StubMemory {
 /// thread (which inherits the much larger cargo-test main-thread stack
 /// and would hide stack-budget regressions).
 #[test]
-#[ignore = "TODO(#6379): hosted TinyAgents delegation exceeds the production worker stack budget"]
+#[ignore = "TODO(#6379): aborts the whole process (tokio-rt-worker stack overflow on the 2 MiB production worker) in run_subagent(integrations_agent) -> composio_list_tools; run alone: RUST_MIN_STACK=16777216 cargo test -p openhuman-cli --features <product> --test composio_list_tools_stack_overflow_regression -- --ignored"]
 fn composio_list_tools_via_subagent_runs_on_production_worker_stack() {
     // Serialise env mutation across the test binary (other tests may
     // poke OPENHUMAN_WORKSPACE concurrently).
