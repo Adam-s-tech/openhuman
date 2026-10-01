@@ -19,7 +19,8 @@ static GLOBAL_TRIGGER_HISTORY: OnceLock<Arc<TriggerArchive>> = OnceLock::new();
 pub fn init_global(workspace_dir: PathBuf) -> Result<(), String> {
     let state_dir = workspace_dir.join("state");
     let archive = Arc::new(
-        TriggerArchive::open(&state_dir).map_err(|error| format!("[composio][history] {error}"))?,
+        TriggerArchive::open(&state_dir)
+            .map_err(|error| format!("[composio][history] {error}"))?,
     );
     let installed = GLOBAL_TRIGGER_HISTORY.get_or_init(|| archive.clone());
     if installed.archive_dir() == archive.archive_dir() {
