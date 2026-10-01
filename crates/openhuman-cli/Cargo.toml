@@ -153,16 +153,19 @@ path = "../../tests/raw_coverage_all.rs"
 # gate's `tinychannels/email`) and the local inference download service.
 required-features = ["voice", "inference"]
 
-
+[[test]]
+# ~20 former `tests/*.rs` targets folded into one binary (one link of the
+# `openhuman` rlib instead of ~20): `tests/in_process/*.rs`, globbed by the
+# root `build.rs`. No `required-features` — these suites exercise gate-free
+# surfaces, so they run in the default contributor build too. Suites that need
+# a process of their own stay separate targets.
+[[test]]
+name = "in_process_all"
+path = "../../tests/in_process_all.rs"
 
 [[test]]
 name = "agent_harness_e2e"
 path = "../../tests/agent_harness_e2e.rs"
-
-
-
-
-
 
 [[test]]
 name = "cli_model_overrides_e2e"
@@ -172,12 +175,9 @@ path = "../../tests/cli_model_overrides_e2e.rs"
 name = "cli_sigpipe"
 path = "../../tests/cli_sigpipe.rs"
 
-
 [[test]]
 name = "cwd_jail_e2e"
 path = "../../tests/cwd_jail_e2e.rs"
-
-
 
 [[test]]
 name = "inference_provider_e2e"
@@ -216,7 +216,6 @@ name = "media_generation_e2e"
 path = "../../tests/media_generation_e2e.rs"
 required-features = ["media"]
 
-
 [[test]]
 # Memory-engine selection over JSON-RPC against a hosted-CortexDB double.
 name = "memory_engine_e2e"
@@ -241,22 +240,13 @@ required-features = ["modules", "memory-remote"]
 name = "memory_roundtrip_e2e"
 path = "../../tests/memory_roundtrip_e2e.rs"
 
-
-
-
 [[test]]
 name = "observability_wallet_expected_e2e"
 path = "../../tests/observability_wallet_expected_e2e.rs"
 
-
-
-
 [[test]]
 name = "skills_mcp_registry_live"
 path = "../../tests/skills_mcp_registry_live.rs"
-
-
-
 
 [[example]]
 name = "embed_headless"
@@ -273,7 +263,6 @@ path = "../../examples/run_memory_doctor.rs"
 [[example]]
 name = "run_memory_reconcile"
 path = "../../examples/run_memory_reconcile.rs"
-
 
 [dependencies]
 # Direct core access: every test and bin names `openhuman_core::` paths.
