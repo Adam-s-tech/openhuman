@@ -24,12 +24,12 @@
 //! cross-method invariant that IS reachable and says so in a comment, rather
 //! than asserting `0 == 0` and calling it coverage.
 
-use crate::memory_rpc::{ensure_memory_seams, ok, serve, write_config};
+use crate::memory_rpc::{ok, serve, write_config};
 use crate::env_guard::EnvVarGuard;
 use crate::env_guard::env_lock;
 use crate::rpc_auth::rpc_token;
 use std::path::Path;
-use std::sync::{Arc, OnceLock};
+use std::sync::OnceLock;
 use std::time::Duration;
 
 use axum::http::header::AUTHORIZATION;
