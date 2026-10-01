@@ -206,9 +206,7 @@ describe('pickVisemeCode', () => {
 
 describe('pickConversationAckFace', () => {
   it('maps deterministic response text cues', () => {
-    expect(
-      pickConversationAckFace({ full_response: 'All set, this is fixed.' })
-    ).toBe('happy');
+    expect(pickConversationAckFace({ full_response: 'All set, this is fixed.' })).toBe('happy');
     expect(
       pickConversationAckFace({
         full_response: 'I need more detail to clarify which workspace you mean.',
@@ -223,9 +221,7 @@ describe('pickConversationAckFace', () => {
 
   it('maps proud text cues', () => {
     expect(
-      pickConversationAckFace({
-        full_response: 'Successfully completed all tasks done!',
-      })
+      pickConversationAckFace({ full_response: 'Successfully completed all tasks done!' })
     ).toBe('proud');
   });
 
@@ -247,16 +243,12 @@ describe('pickConversationAckFace', () => {
 
   it('concerned takes priority over cautious when both patterns match', () => {
     expect(
-      pickConversationAckFace({
-        full_response: 'Sorry, this failed. Make sure you try again.',
-      })
+      pickConversationAckFace({ full_response: 'Sorry, this failed. Make sure you try again.' })
     ).toBe('concerned');
   });
 
   it('returns null when there is no strong cue', () => {
-    expect(
-      pickConversationAckFace({ full_response: 'Here is the summary.' })
-    ).toBeNull();
+    expect(pickConversationAckFace({ full_response: 'Here is the summary.' })).toBeNull();
   });
 
   it('returns null when the response text is missing', () => {
