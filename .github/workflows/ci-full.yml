@@ -323,6 +323,11 @@ jobs:
           set -euo pipefail
           tar -xzf e2e-playwright-linux.tar.gz
           cp -a repo/app/dist-web app/
+          # This bundle is built in a separate checkout (or restored from the
+          # exact source-hash cache above). Its marker mtime predates this
+          # job's fresh checkout, so refresh it after restoring the artifact;
+          # the content-addressed key proves the bundle matches these inputs.
+          touch app/dist-web/openhuman-e2e-bundle.marker
           mkdir -p target
           cp -a repo/target/. target/
           rm -rf repo e2e-playwright-linux.tar.gz

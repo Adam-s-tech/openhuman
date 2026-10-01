@@ -197,6 +197,20 @@ test("the session accepts a marked bundle and proceeds past the guard", () => {
   }
 });
 
+test("CI Full refreshes the E2E marker after restoring its content-keyed artifact", () => {
+  const workflow = fs.readFileSync(
+    path.join(repoRoot, ".github/workflows/ci-full.yml"),
+    "utf8",
+  );
+  const restoreStep = workflow.match(
+    /- name: Restore Playwright E2E artifact([\s\S]*?)(?=\n      - name: |\n    [a-zA-Z_-]+:|$)/,
+  )?.[1];
+
+  assert.ok(restoreStep, "CI Full must keep a Playwright artifact restore step");
+  assert.match(restoreStep, /cp -a repo\/app\/dist-web app\//);
+  assert.match(restoreStep, /touch app\/dist-web\/openhuman-e2e-bundle\.marker/);
+});
+
 test("e2e-web-build.sh marks the bundle it builds, recording the E2E settings", () => {
   const tree = makeTree("e2e-web-build.sh");
   try {
