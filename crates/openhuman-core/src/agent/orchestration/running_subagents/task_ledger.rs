@@ -90,7 +90,7 @@ pub(crate) fn record_spawned(
     parent_thread_id: Option<&str>,
 ) {
     let workspace = workspace_dir.display().to_string();
-    ledger_spawned(
+    if let Err(err) = ledger_spawned(
         task_store_for_workspace(workspace_dir).as_ref(),
         &SpawnedSubagent {
             task_id,
@@ -101,7 +101,11 @@ pub(crate) fn record_spawned(
             workspace_dir: &workspace,
             parent_thread_id,
         },
-    );
+    ) {
+        log::debug!(
+            "[running_subagents] spawn ledger insert ignored task_id={task_id} error={err}"
+        );
+    }
 }
 
 /// Record a cancellation (`CancelRequested` → `Cancelled`) for `task_id`.
