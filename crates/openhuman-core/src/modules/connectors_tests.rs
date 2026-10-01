@@ -106,7 +106,9 @@ fn direct_mode_hands_the_module_the_hosts_proxy_policy() {
         enabled: true,
         https_proxy: Some("http://127.0.0.1:3128".into()),
         no_proxy: vec!["localhost".into()],
-        scope: ProxyScope::OpenHuman,
+        // Scoped to Composio so no other test's loopback request is proxied.
+        scope: ProxyScope::Services,
+        services: vec!["tool.composio".into()],
         ..ProxyConfig::default()
     });
     let proxied = module_config(&config).expect("resolves");

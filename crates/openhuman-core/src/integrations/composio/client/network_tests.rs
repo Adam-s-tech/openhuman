@@ -25,7 +25,10 @@ fn proxy(all: Option<&str>, http: Option<&str>, https: Option<&str>) -> ProxyCon
         all_proxy: all.map(str::to_string),
         http_proxy: http.map(str::to_string),
         https_proxy: https.map(str::to_string),
-        scope: ProxyScope::OpenHuman,
+        // Scoped to Composio so that, while this process-global setting is
+        // installed, no other test's loopback request is proxied.
+        scope: ProxyScope::Services,
+        services: vec!["tool.composio".into()],
         ..ProxyConfig::default()
     }
 }
