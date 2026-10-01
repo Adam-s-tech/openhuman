@@ -339,6 +339,47 @@ pub(crate) fn history_to_messages(history: &[TranscriptMessage]) -> Vec<Message>
     history.iter().map(chat_message_to_message).collect()
 }
 
+/// Convert a harness [`Message`] back into a flat [`TranscriptMessage`] row.
+///
+/// Assistant tool calls are flattened to their text (the loop already executed
+/// them and appended `Tool` result messages), and a tool message preserves its
+/// correlation id on [`TranscriptMessage::id`] so downstream persistence keeps it.
+///
+/// Returns `None` for [`Message::Custom`]: that variant is a host-side
+/// out-of-band record (compaction marker, label, audit note) that the harness
+/// never sends to a provider, and a flat history *is* provider input, so
+/// carrying it across would leak it into the next request.
+pub(crate) fn message_to_chat_message(msg: &Message) -> Option<TranscriptMessage> {
+    Some(match msg {
+        Message::System(_) => TranscriptMessage::system(msg.text()),
+        Message::User(_) => TranscriptMessage::user(msg.text()),
+        Message::Assistant(a) => {
+            let mut cm = TranscriptMessage::assistant(msg.text());
+            cm.extra_metadata = reasoning_extra_metadata(&a.content);
+            cm
+        }
+        Message::Tool(t) => {
+            let mut cm = TranscriptMessage::tool(msg.text());
+            cm.id = Some(t.tool_call_id.clone());
+            cm
+        }
+        Message::Custom(c) => {
+            log::trace!("[message_convert] dropping custom message kind={}", c.kind);
+            return None;
+        }
+    })
+}
+
+/// Convert a harness transcript back into flat history rows.
+///
+/// [`Message::Custom`] records are dropped; see [`message_to_chat_message`].
+pub(crate) fn messages_to_history(messages: &[Message]) -> Vec<TranscriptMessage> {
+    messages
+        .iter()
+        .filter_map(message_to_chat_message)
+        .collect()
+}
+
 /// Serialize a user [`Message`]'s content blocks back into a single string for a
 /// native provider request, **preserving image attachments** as inline
 /// `[IMAGE:<url>]` markers. This is the inverse of [`user_content_blocks`]: the
