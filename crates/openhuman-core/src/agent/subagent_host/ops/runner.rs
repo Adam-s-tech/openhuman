@@ -548,8 +548,7 @@ pub(crate) async fn run_subagent_direct(
         // Deliberately placed *after* `tier_gate_decision`: `load_or_init` can
         // initialize config on first run, and a spawn the tier gate rejects
         // should not have that side effect.
-        // Boxed: the load future is ~50 KB and an unoptimised build keeps every
-        // awaited future inline in this frame (#6379).
+        // Boxed to keep the load future off this poll frame (#6379).
         let loaded_config: LoadedConfig = Box::pin(crate::config::Config::load_or_init())
             .await
             .map(std::sync::Arc::new)

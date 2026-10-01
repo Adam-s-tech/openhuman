@@ -293,8 +293,7 @@ impl Config {
         let config_path = openhuman_dir.join("config.toml");
 
         if resolution_source == ConfigResolutionSource::DefaultConfigDir && !config_path.exists() {
-            let mut config =
-                pre_login_config_boxed(config_path.clone(), workspace_dir.clone(), env);
+            let config = pre_login_config_boxed(config_path.clone(), workspace_dir.clone(), env);
 
             tracing::debug!(
                 path = %config.config_path.display(),

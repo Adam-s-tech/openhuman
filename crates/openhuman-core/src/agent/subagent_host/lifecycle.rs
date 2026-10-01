@@ -58,9 +58,7 @@ pub async fn run_subagent_with_parent(
     input: impl Into<String>,
     options: SubagentRunOptions,
 ) -> Result<SubagentRunOutcome, SubagentRunError> {
-    // Boxed at every level of the host lifecycle: an unoptimised build keeps each
-    // awaited future inline in its caller's poll frame, so an unboxed chain
-    // multiplies the ~60 KB nested state machine per level (#6379).
+    // Boxed so the nested lifecycle futures stay off this poll frame (#6379).
     Box::pin(OpenHumanSubagentHost::new(definition, options).run(parent, input.into())).await
 }
 
@@ -75,13 +73,7 @@ pub async fn run_subagent(
     let mut root_data = root_context_from_options(&options);
     let root_config = root_data.root_run_config("subagent-host");
     let root = root_data.into_tinyagents(root_config);
-    Box::pin(run_subagent_with_parent(
-        &root,
-        definition.clone(),
-        input,
-        options,
-    ))
-    .await
+    run_subagent_with_parent(&root, definition.clone(), input, options).await
 }
 
 /// Resume a durable lifecycle with its recovered original task key.  The fresh
