@@ -10,10 +10,11 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use tinyconnectors::client::{DirectRoute, Transport};
+use tinyconnectors::client::{DirectRoute, Route, Transport};
 use tinyconnectors::Error as ConnectorError;
 
 use super::http_errors::response_error;
+use crate::integrations::composio::types::{ComposioConnectionsResponse, ComposioToolsResponse};
 use super::types::DirectComposioClient;
 
 /// Failure label per request path, matching the messages the host has always
@@ -56,10 +57,40 @@ impl DirectComposioClient {
 ///
 /// The route wraps transport failures as `request to <path> failed: <msg>`;
 /// users have only ever seen `<msg>`.
-pub(crate) fn route_error(error: ConnectorError) -> anyhow::Error {
+fn route_error(error: ConnectorError) -> anyhow::Error {
     match error {
         ConnectorError::Transport { message, .. } => anyhow::anyhow!(message),
         other => anyhow::anyhow!(other.to_string()),
+    }
+}
+
+impl DirectComposioClient {
+    /// `GET /connected_accounts` through the module's direct route, reshaped
+    /// into canonical connections.
+    pub(crate) async fn list_connections(
+        self: &Arc<Self>,
+    ) -> anyhow::Result<ComposioConnectionsResponse> {
+        let mut response = self.route().list_connections().await.map_err(route_error)?;
+        // Identity fields are the host's to fill (`enrich_connections_with_identity`
+        // from cached profile data); the route also lifts them from the v3 row.
+        for connection in &mut response.connections {
+            connection.account_email = None;
+            connection.workspace = None;
+            connection.username = None;
+        }
+        Ok(response)
+    }
+
+    /// `GET /tools` through the module's direct route.
+    pub(crate) async fn list_tools(
+        self: &Arc<Self>,
+        toolkits: &[String],
+        tags: &[String],
+    ) -> anyhow::Result<ComposioToolsResponse> {
+        self.route()
+            .list_tools(toolkits, tags)
+            .await
+            .map_err(route_error)
     }
 }
 
@@ -88,7 +119,10 @@ impl Transport for DirectComposioClient {
         }
 
         resp.json::<serde_json::Value>().await.map_err(|e| {
-            transport_error(path, format!("{}: {e}", decode_label(path)))
+            transport_error(
+                path,
+                format!("{}: {:#}", decode_label(path), anyhow::Error::from(e)),
+            )
         })
     }
 

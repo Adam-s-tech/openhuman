@@ -6,7 +6,7 @@
 use std::sync::Arc;
 
 use super::super::direct_auth;
-use super::super::types::{ComposioConnection, ComposioConnectionsResponse, ComposioToolsResponse};
+use super::super::types::{ComposioConnectionsResponse, ComposioToolsResponse};
 
 /// Direct-mode connection listing.
 ///
@@ -35,10 +35,10 @@ pub async fn direct_list_connections(
         anyhow::bail!("{error}");
     }
 
-    let items = match direct.list_connected_accounts().await {
-        Ok(items) => {
+    let response = match direct.list_connections().await {
+        Ok(response) => {
             direct_auth::record_direct_auth_success(key_id);
-            items
+            response
         }
         Err(error) => {
             let rendered = format!("{error:#}");
@@ -64,34 +64,11 @@ pub async fn direct_list_connections(
             return Err(error);
         }
     };
-    let connections: Vec<ComposioConnection> = items
-        .into_iter()
-        .filter_map(|item| {
-            let id = item.id.trim().to_string();
-            if id.is_empty() {
-                return None;
-            }
-            let toolkit = item.toolkit_slug().unwrap_or_default();
-            let status = item.status.clone().unwrap_or_default();
-            Some(ComposioConnection {
-                id,
-                toolkit,
-                status,
-                created_at: item.created_at.clone(),
-                // Identity fields are populated by
-                // `enrich_connections_with_identity` in ops.rs after
-                // the full list is fetched, using cached profile data.
-                account_email: None,
-                workspace: None,
-                username: None,
-            })
-        })
-        .collect();
     tracing::debug!(
-        count = connections.len(),
+        count = response.connections.len(),
         "[composio-direct] list_connections: mapped v3 connected accounts"
     );
-    Ok(ComposioConnectionsResponse { connections })
+    Ok(response)
 }
 
 /// Direct-mode tool listing. Calls
@@ -129,32 +106,15 @@ pub(crate) async fn direct_list_tools(
     toolkits: &[String],
     tags: Option<&[String]>,
 ) -> anyhow::Result<ComposioToolsResponse> {
-    let toolkit_refs: Vec<&str> = toolkits.iter().map(|s| s.as_str()).collect();
-    let tag_refs: Option<Vec<&str>> = tags.map(|t| t.iter().map(|s| s.as_str()).collect());
     tracing::debug!(
-        toolkits = toolkit_refs.len(),
-        tags = tag_refs.as_ref().map(Vec::len).unwrap_or(0),
+        toolkits = toolkits.len(),
+        tags = tags.map(<[String]>::len).unwrap_or(0),
         "[composio-direct] list_tools: GET v3 /tools"
     );
-    let items = direct
-        .list_tool_schemas_v3(&toolkit_refs, tag_refs.as_deref())
-        .await?;
-    let tools: Vec<super::super::types::ComposioToolSchema> = items
-        .into_iter()
-        .filter(|item| !item.slug.is_empty())
-        .map(|item| super::super::types::ComposioToolSchema {
-            kind: "function".to_string(),
-            function: super::super::types::ComposioToolFunction {
-                name: item.slug,
-                description: item.description,
-                parameters: item.input_parameters,
-                output_parameters: item.output_parameters,
-            },
-        })
-        .collect();
+    let response = direct.list_tools(toolkits, tags.unwrap_or(&[])).await?;
     tracing::debug!(
-        count = tools.len(),
+        count = response.tools.len(),
         "[composio-direct] list_tools: mapped v3 tool schemas"
     );
-    Ok(ComposioToolsResponse { tools })
+    Ok(response)
 }
