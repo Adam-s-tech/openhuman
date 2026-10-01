@@ -398,3 +398,18 @@ async fn drive_subagent() {
     })
     .await;
 }
+
+#[test]
+fn zz_sizes() {
+    use openhuman_core::agent::harness::definition::AgentDefinition;
+    eprintln!("SIZE Config {}", std::mem::size_of::<openhuman_core::config::Config>());
+    eprintln!("SIZE AgentDefinition {}", std::mem::size_of::<AgentDefinition>());
+    eprintln!("SIZE SubagentRunOptions {}", std::mem::size_of::<SubagentRunOptions>());
+    eprintln!("SIZE ParentExecutionContext {}", std::mem::size_of::<ParentExecutionContext>());
+    let def: &AgentDefinition = unsafe { &*std::ptr::NonNull::dangling().as_ptr() };
+    let f = run_subagent(def, "x", SubagentRunOptions::default());
+    eprintln!("SIZE run_subagent future {}", std::mem::size_of_val(&f));
+    std::mem::forget(f);
+    let f2 = openhuman_core::config::Config::load_or_init();
+    eprintln!("SIZE load_or_init future {}", std::mem::size_of_val(&f2));
+}
