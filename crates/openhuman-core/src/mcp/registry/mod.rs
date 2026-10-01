@@ -345,20 +345,6 @@ pub mod connections {
     }
 }
 
-/// The registry's own store, for the callers that reach it directly.
-///
-/// The store itself moved to `tinymcp`. What is left here is the one entry
-/// point outside this module that named it: an end-to-end test seeds the
-/// upstream response cache so it can exercise an install without reaching a
-/// real catalog. Keeping the spelling means that test needs no edit, and the
-/// signature is the one it already calls.
-#[cfg(feature = "mcp")]
-pub mod store {
-    use crate::config::Config;
-    use crate::mcp::host;
-
-}
-
 /// Bringing installed servers up at startup.
 #[cfg(feature = "mcp")]
 pub mod boot {

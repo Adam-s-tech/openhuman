@@ -14,8 +14,7 @@ use tinyagents_runtime::command_hooks::context::{
     build_input, set_host_context, HostContext, TurnIdentity,
 };
 use tinyagents_runtime::command_hooks::types::{
-    CompactPayload, HookEvent, HookPayload, PromptPayload, SessionPayload, SubagentPayload,
-    TextPayload,
+    HookEvent, HookPayload, PromptPayload, SubagentPayload,
 };
 
 /// Bring the hook system up: resolve host facts, read every `hooks.json`, and

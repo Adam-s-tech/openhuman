@@ -5,8 +5,6 @@ use super::super::types::OpenHumanSessionHost;
 use crate::agent::error::AgentError;
 use crate::agent::messages::ConversationMessage;
 use crate::util::truncate_with_ellipsis;
-use tinytools_agent::dialect::NativeToolCall;
-use tinytools_agent::ParsedToolCall;
 
 impl OpenHumanSessionHost {
     const EVENT_ERROR_MAX_CHARS: usize = 256;

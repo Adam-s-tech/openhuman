@@ -5,8 +5,6 @@
 //! Without this subscriber a login would only reach it on the next search
 //! call, and a logout would leave the old credential in the module until then.
 
-use std::sync::Arc;
-
 use async_trait::async_trait;
 use tinybus::EventHandler;
 

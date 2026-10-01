@@ -1,5 +1,3 @@
-use crate::agent::messages::ChatMessage;
-
 /// Instruction appended (as a synthetic user turn) to the provider
 /// messages when a turn hits the tool-call iteration cap. Asks the model
 /// to wrap up with a resumable checkpoint instead of letting the turn die.
