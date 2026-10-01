@@ -49,6 +49,35 @@ pub fn repl_handle_active(config: &crate::config::Config) -> bool {
         && config.tokenjuice.repl_handle_enabled
 }
 
+/// Whether TinyJuice may summarize this agent's tool output. Only the
+/// orchestrator gets a summary model, and a zero threshold turns it off.
+pub fn summarizes_tool_output(agent_id: &str, config: &crate::config::Config) -> bool {
+    agent_id == "orchestrator" && config.context.summarizer_payload_threshold_tokens > 0
+}
+
+/// The TinyJuice tools a compacted result can point the model at: the CCR
+/// recovery tool while anything can hand out a `⟦tj:…⟧` marker or a summary
+/// footer, plus the REPL tools while results are stored behind a handle.
+///
+/// This is the single list both the session's visible-tool set and the harness
+/// allowlist are built from. A name in the former but not the latter is
+/// advertised in the prompt and the tool declarations yet answered as an
+/// unknown tool at dispatch, so the model burns its failure budget on a tool it
+/// was told to call.
+pub fn companion_tool_names(
+    agent_id: &str,
+    config: &crate::config::Config,
+) -> Vec<&'static str> {
+    let mut names: Vec<&'static str> = Vec::new();
+    if config.context.compaction_enabled || summarizes_tool_output(agent_id, config) {
+        names.extend(RECOVERY_TOOL_VISIBLE.iter().copied());
+    }
+    if repl_handle_active(config) {
+        names.extend(REPL_TOOL_NAMES.iter().copied());
+    }
+    names
+}
+
 /// Where the module writes a plain-text copy of each stored original when
 /// `[tokenjuice] repl_save_enabled` is on.
 pub fn repl_save_dir(workspace_dir: &std::path::Path) -> std::path::PathBuf {
