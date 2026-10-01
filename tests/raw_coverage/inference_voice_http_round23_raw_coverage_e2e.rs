@@ -5,7 +5,6 @@
 //! download endpoints.
 
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, OnceLock};
 
 use axum::body::Body;
@@ -25,9 +24,6 @@ use openhuman_core::security::credentials::{
     AuthService, APP_SESSION_PROVIDER, DEFAULT_AUTH_PROFILE_NAME,
 };
 use openhuman_core::inference::http;
-use openhuman_core::inference::host_runtime::{
-    local_ai_assets_status, local_ai_downloads_progress, LocalAiService,
-};
 use openhuman_core::voice::streaming::handle_dictation_ws;
 use serde_json::{json, Value};
 use tempfile::{tempdir, TempDir};
@@ -48,13 +44,6 @@ impl EnvVarGuard {
         let previous = std::env::var_os(key);
         // SAFETY: mutation is serialized by `env_lock()` (see below).
         unsafe { std::env::set_var(key, value) };
-        Self { key, previous }
-    }
-
-    fn unset(key: &'static str) -> Self {
-        let previous = std::env::var_os(key);
-        // SAFETY: mutation is serialized by `env_lock()` (see below).
-        unsafe { std::env::remove_var(key) };
         Self { key, previous }
     }
 }

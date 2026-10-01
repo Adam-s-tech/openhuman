@@ -5,12 +5,6 @@
 
 use std::sync::{Arc, Mutex, OnceLock};
 
-use axum::body::to_bytes;
-use axum::extract::{Request, State};
-use axum::http::{Method, StatusCode};
-use axum::response::{IntoResponse, Response};
-use axum::routing::any;
-use axum::{Json, Router};
 use serde_json::{json, Value};
 use tempfile::tempdir;
 
@@ -18,36 +12,14 @@ use openhuman_core::agent::prompts::ConnectedIntegration;
 use openhuman_core::config::Config;
 use openhuman_core::core::all::RegisteredController;
 use openhuman_core::integrations::composio::client::{resolve_composio_route, ComposioRoute};
-use openhuman_core::integrations::composio::providers::{
-    classify_unknown, find_curated, toolkit_from_slug, CuratedTool, ToolScope, UserScopePref,
-};
-use openhuman_core::integrations::composio::tools::{
-    ComposioAuthorizeTool, ComposioConnectedAccount, ComposioExecuteTool,
-    ComposioListConnectionsTool, ComposioListToolkitsTool, ComposioListToolsTool,
-};
-use openhuman_core::integrations::composio::types::{
-    ComposioActiveTrigger, ComposioActiveTriggersResponse, ComposioAgentReadyToolkitsResponse,
-    ComposioAuthorizeResponse, ComposioAvailableTrigger, ComposioAvailableTriggerRepo,
-    ComposioAvailableTriggersResponse, ComposioCapabilitiesResponse, ComposioCapability,
-    ComposioConnection, ComposioConnectionsResponse, ComposioCreateTriggerResponse,
-    ComposioDeleteResponse, ComposioDisableTriggerResponse, ComposioEnableTriggerResponse,
-    ComposioExecuteResponse, ComposioGithubRepo, ComposioGithubReposResponse, ComposioToolFunction,
-    ComposioToolSchema, ComposioToolkitsResponse, ComposioToolsResponse, ComposioTriggerEvent,
-    ComposioTriggerHistoryEntry, ComposioTriggerHistoryResult, ComposioTriggerMetadata,
-};
 use openhuman_core::integrations::composio::{
-    all_composio_agent_tools, all_composio_controller_schemas, all_composio_registered_controllers,
+    all_composio_controller_schemas, all_composio_registered_controllers,
     cached_active_integrations, connected_set_hash, connection_identity,
     fetch_connected_integrations, fetch_connected_integrations_status,
     invalidate_connected_integrations_cache, ComposioActionTool, FetchConnectedIntegrationsStatus,
 };
-use openhuman_core::security::credentials::{
-    AuthService, APP_SESSION_PROVIDER, DEFAULT_AUTH_PROFILE_NAME,
-};
 
-use openhuman_core::integrations::IntegrationClient;
-use openhuman_core::security::{AutonomyLevel, SecurityPolicy};
-use tinytools::{PermissionLevel, Tool, ToolCallOptions, ToolCategory};
+use tinytools::Tool;
 
 static ENV_LOCK: &OnceLock<Mutex<()>> = &crate::SHARED_ENV_LOCK;
 

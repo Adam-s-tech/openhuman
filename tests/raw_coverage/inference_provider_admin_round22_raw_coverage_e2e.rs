@@ -5,7 +5,6 @@
 //! whisper, piper, local AI binaries, models, or downloads.
 
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, OnceLock};
 
 use axum::extract::State;
@@ -25,7 +24,6 @@ use openhuman_core::config::Config;
 use openhuman_core::security::credentials::{
     AuthService, APP_SESSION_PROVIDER, DEFAULT_AUTH_PROFILE_NAME,
 };
-use openhuman_core::inference::host_runtime::LocalAiService;
 use openhuman_core::inference::provider::factory::{
     auth_key_for_slug, create_chat_model_from_string_with_model_id,
 };
@@ -54,13 +52,6 @@ impl EnvVarGuard {
         let previous = std::env::var_os(key);
         // SAFETY: this integration test is validated with --test-threads=1.
         unsafe { std::env::set_var(key, value) };
-        Self { key, previous }
-    }
-
-    fn unset(key: &'static str) -> Self {
-        let previous = std::env::var_os(key);
-        // SAFETY: this integration test is validated with --test-threads=1.
-        unsafe { std::env::remove_var(key) };
         Self { key, previous }
     }
 }

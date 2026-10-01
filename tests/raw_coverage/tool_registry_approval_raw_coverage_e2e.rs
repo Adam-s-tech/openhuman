@@ -5,37 +5,29 @@
 //! direct public API calls cover persistence/redaction/provider branches that
 //! are otherwise only indirectly reachable from the controllers.
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
 use axum::http::header::AUTHORIZATION;
 use reqwest::StatusCode;
-use rusqlite::{params, Connection};
 use serde_json::{json, Map, Value};
 use tempfile::{tempdir, TempDir};
 
 use openhuman_core::agent::turn_origin::{self, AgentTurnOrigin};
-use openhuman_core::config::schema::{CapabilityProviderConfig, CapabilityProviderTrustState};
 use openhuman_core::config::Config;
 use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
 use openhuman_core::mcp::registry::connections;
 use openhuman_core::mcp::registry::types::{CommandKind, InstalledServer, Transport};
 use openhuman_core::security::approval::gate::{
-    parse_approval_reply, ApprovalChatContext, ApprovalGate, APPROVAL_CHAT_CONTEXT,
+    ApprovalChatContext, ApprovalGate, APPROVAL_CHAT_CONTEXT,
 };
-use openhuman_core::security::approval::store as approval_store;
 use openhuman_core::security::approval::{
-    all_approval_controller_schemas, all_approval_registered_controllers, redact_args,
-    summarize_action, ApprovalDecision, ExecutionOutcome, GateOutcome, PendingApproval,
+    all_approval_controller_schemas, all_approval_registered_controllers, ExecutionOutcome, GateOutcome,
 };
 use openhuman_core::security::{live_policy, SecurityPolicy};
 use openhuman_core::tools::registry::{
-    all_tool_registry_controller_schemas, all_tool_registry_registered_controllers,
-    capability_provider_by_id, capability_provider_diagnostics, capability_provider_registry,
-    denials, get_tool, is_capability_provider_trusted_enabled, list_capability_providers,
-    list_tools, normalize_capability_provider_id, registry_entries, registry_entries_for_config,
-    CapabilityProviderRegistryError,
+    denials, registry_entries, registry_entries_for_config,
 };
 use openhuman_rpc::server::build_core_http_router;
 

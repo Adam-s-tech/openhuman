@@ -5,9 +5,9 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::sync::{Arc, Mutex, OnceLock};
 
-use axum::body::{to_bytes, Bytes};
+use axum::body::to_bytes;
 use axum::extract::{Request, State};
-use axum::http::{HeaderMap, Method, StatusCode, Uri};
+use axum::http::{Method, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::routing::any;
 use axum::{Json, Router};
@@ -19,11 +19,10 @@ use openhuman_core::config::Config;
 use openhuman_core::security::credentials::{
     AuthService, APP_SESSION_PROVIDER, DEFAULT_AUTH_PROFILE_NAME,
 };
-use openhuman_core::security::SecurityPolicy;
 use tinytools::{Tool, ToolCallOptions};
 use openhuman_core::tools::{
-    ComposioAuthorizeTool, ComposioListConnectionsTool, ComposioListToolkitsTool,
-    ComposioListToolsTool, SpawnSubagentTool};
+    ComposioListConnectionsTool, ComposioListToolkitsTool,
+    ComposioListToolsTool};
 
 static ENV_LOCK: &OnceLock<Mutex<()>> = &crate::SHARED_ENV_LOCK;
 

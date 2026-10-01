@@ -3,7 +3,6 @@
 //! This suite uses temp workspaces, temp PATH scripts, and loopback HTTP mocks
 //! only. It must not call host Ollama, Piper, Whisper, Python, or MLX binaries.
 
-use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, MutexGuard, OnceLock};
 
@@ -16,18 +15,12 @@ use axum::{Json, Router};
 use serde_json::{json, Value};
 use tempfile::{tempdir, TempDir};
 
-use openhuman_core::config::schema::cloud_providers::{
-    AuthStyle as CloudAuthStyle, CloudProviderCreds,
-};
 use openhuman_core::config::Config;
-use openhuman_core::security::credentials::{AuthService, DEFAULT_AUTH_PROFILE_NAME};
 use openhuman_core::inference::host_runtime::ops::{
     local_ai_chat, local_ai_download_asset, local_ai_downloads_progress,
     LocalAiChatMessage,
 };
 use openhuman_core::inference::host_runtime::LocalAiService;
-use openhuman_core::inference::provider::factory::auth_key_for_slug;
-use openhuman_core::inference::provider::list_configured_models;
 
 #[derive(Clone, Default)]
 struct MockState {
