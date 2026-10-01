@@ -1,4 +1,4 @@
-//! Inference provider end-to-end tests using wiremock.
+//! Inference HTTP endpoint end-to-end tests.
 //!
 //! Non-streaming request/response, auth-header, temperature and SSE streaming
 //! behavior of `OpenAiModel` is covered in tinyinference-llm
