@@ -10,7 +10,7 @@ use tinymemory_api::capabilities::{Capabilities, Capability};
 /// Checked against the registry pin by `the_capability_list_matches_the_pinned_release`,
 /// so bumping the pin without re-reading the list is a red test rather than a
 /// silent over-claim.
-pub(crate) const ARTIFACT_CAPABILITIES_PIN: &str = "1.20.0";
+pub(crate) const ARTIFACT_CAPABILITIES_PIN: &str = "1.21.0";
 
 /// The capability families the **pinned artifact** actually serves.
 ///
@@ -46,6 +46,9 @@ pub(crate) const ARTIFACT_CAPABILITIES_PIN: &str = "1.20.0";
 /// crates, and v1.20.0 adds the hosted families on the TinyHumans wire and
 /// the optional `TreeSummary::preview` (contract 4.2); none of that is a family
 /// the module serves, so the advertised families stay the same.
+/// Re-read at `v1.21.0`: the capability diff adds one family,
+/// `EpisodicPortability` (tinymemory#178), which the module serves; it is
+/// listed below.
 ///
 /// Read at tag `v1.3.0`. Unchanged from v1.2.0 — the release added members
 /// within existing families (`retry_failed`, the diagnostics trio,
@@ -136,6 +139,11 @@ pub(crate) const ARTIFACT_CAPABILITIES: &[Capability] = &[
     Capability::LearningIngest,
     Capability::EventIngest,
     Capability::Answer,
+    // Arrived in v1.21.0 (tinymemory#178): `ExportEpisodic` / `ImportEpisodic`,
+    // which the module serves from both engines and `ModuleMemoryProvider`
+    // forwards through `as_episodic_portability`. `git diff v1.20.0..v1.21.0 --
+    // crates/tinymemory-bus/src/capabilities.rs` adds exactly this family.
+    Capability::EpisodicPortability,
 ];
 
 /// Escape hatch for a locally-built module.
