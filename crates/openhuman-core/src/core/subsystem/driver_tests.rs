@@ -198,11 +198,12 @@ fn every_memory_contract_capability_string_maps_into_driver_capabilities() {
     // and Profile, then 18 with Episodic, then 20 when tinymemory v1.7.0 added
     // SourceSync and CodingSessions, then 21 with v1.13.2 adding Scoring,
     // then 26 with v1.13.7's typed-ingestion round (Document/Conversation/
-    // Learning/Event ingest and Answer). The assertion above is the
+    // Learning/Event ingest and Answer), then 27 with v1.21.0's
+    // EpisodicPortability. The assertion above is the
     // load-bearing one: it says the mapping is lossless, which is what makes
     // the kernel's opaque-string set able to carry the contract without
     // knowing what a memory capability is.
-    assert_eq!(caps.len(), 26);
+    assert_eq!(caps.len(), 27);
     assert!(
         caps.contains("tool_memory"),
         "the one non-identity snake_case family must survive"

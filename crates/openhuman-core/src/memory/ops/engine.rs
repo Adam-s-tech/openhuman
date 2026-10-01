@@ -157,6 +157,9 @@ fn expected_capabilities(id: &str) -> Vec<String> {
             C::Ingest,
             C::Profile,
             C::Episodic,
+            // tinymemory v1.21.0 (#178): the hosted adapter serves episodic
+            // export/import alongside `Episodic`.
+            C::EpisodicPortability,
             C::Scoring,
             C::Tree,
         ],
