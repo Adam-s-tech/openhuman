@@ -150,9 +150,9 @@ const MOD_RS_STEMS = new Set(["mod", "lib", "main"]);
  * `stem` is the source file's name without `.rs`; `taken` holds sibling file
  * names that already exist. A module nested in other inline modules (the
  * `mod imp { ... }` wrapper around platform code) gets a `#[path]` that climbs
- * out of the directories those modules imply. \`subdir\` puts the test files in
- * a subdirectory of the source file's own, which a crate root in \`src/bin/\`
- * needs: Cargo would build any \`.rs\` file placed directly there as a binary.
+ * out of the directories those modules imply. `subdir` puts the test files in
+ * a subdirectory of the source file's own, which a crate root in `src/bin/`
+ * needs: Cargo would build any `.rs` file placed directly there as a binary.
  * Returns the rewritten source,
  * the moved bodies (`{ name, fileName, body, line }`) and `skipped` modules
  * that need a human.
@@ -258,7 +258,7 @@ export function externalizeSource(src, stem, taken = new Set(), { subdir = "" } 
       continue;
     }
     let fileName = testFileName(stem, m[3]);
-    // Two wrappers can each hold a \`tests\`; the second is named after its wrapper.
+    // Two wrappers can each hold a `tests`; the second is named after its wrapper.
     if (used.has(fileName) && chain.length > 0) {
       fileName = testFileName(`${stem}_${chain[chain.length - 1].m[3]}`, m[3]);
     }
@@ -268,9 +268,15 @@ export function externalizeSource(src, stem, taken = new Set(), { subdir = "" } 
     }
     used.add(fileName);
 
+    // Where rustc looks for the file: beside the source file, or, inside inline
+    // modules, in the directories those modules imply (`foo/imp/` for `foo.rs`).
+    // The directories must hold the file: a `..` through a missing one does not resolve.
     const ownsDir = MOD_RS_STEMS.has(stem) || subdir !== "";
-    const climb = chain.length === 0 ? 0 : chain.length + (ownsDir ? 0 : 1);
-    const prefix = `${"../".repeat(climb)}${subdir ? `${subdir}/` : ""}`;
+    const relDir =
+      chain.length === 0
+        ? subdir
+        : [...(ownsDir ? [] : [stem]), ...chain.map((o) => o.m[3])].join("/");
+    const prefix = chain.length === 0 && subdir ? `${subdir}/` : "";
     let body = dedent(src.slice(bodyStart, closeLineStart), bodyStart, code, indent.length + 4).replace(/^\n+/, "");
     body = `${body.replace(/\s+$/, "")}\n`;
     const declaration = [...attrs, `${indent}#[path = "${prefix}${fileName}"]`, `${indent}${m[2]};`].join("\n");
@@ -280,7 +286,7 @@ export function externalizeSource(src, stem, taken = new Set(), { subdir = "" } 
       text: `${declaration}\n`,
     });
     regions.push([m.index, close]);
-    moves.push({ name: m[3], fileName, body, line: line + 1 });
+    moves.push({ name: m[3], fileName, relDir, body, line: line + 1 });
   }
 
   let out = src;
@@ -357,8 +363,7 @@ function run(roots, { write, fmt }) {
       const stem = base.replace(/\.rs$/, "");
       // A file directly in `src/bin/` is a binary; its tests need a directory of their own.
       const isBinRoot = path.basename(dir) === "bin" && path.basename(path.dirname(dir)) === "src";
-      const outDir = isBinRoot ? path.join(dir, stem) : dir;
-      const taken = new Set(fs.existsSync(outDir) ? fs.readdirSync(outDir) : []);
+      const taken = new Set(fs.readdirSync(dir));
       const result = externalizeSource(src, stem, taken, { subdir: isBinRoot ? stem : "" });
       for (const s of result.skipped) {
         manual += 1;
@@ -368,9 +373,10 @@ function run(roots, { write, fmt }) {
       moved += result.moves.length;
       if (write) {
         for (const move of result.moves) {
-          fs.mkdirSync(outDir, { recursive: true });
-          fs.writeFileSync(path.join(outDir, move.fileName), move.body);
-          written.push(path.join(outDir, move.fileName));
+          const target = path.join(dir, move.relDir, move.fileName);
+          fs.mkdirSync(path.dirname(target), { recursive: true });
+          fs.writeFileSync(target, move.body);
+          written.push(target);
         }
         fs.writeFileSync(file, result.source);
       } else {
