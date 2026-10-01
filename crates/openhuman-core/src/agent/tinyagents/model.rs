@@ -10,7 +10,7 @@ use tinyinference_llm::model::{
 use tinyinference_llm::tool::ToolCall as TaToolCall;
 use tinyinference_llm::usage::Usage;
 
-use crate::inference::provider::{ChatResponse, BilledUsage};
+use crate::inference::provider::{BilledUsage, ChatResponse};
 
 pub(super) type TurnChatModel = Arc<dyn ChatModel<()>>;
 pub(super) type TierRoutes = Vec<(String, TurnChatModel)>;
@@ -303,7 +303,14 @@ pub(crate) fn usage_info_from_response(response: &ModelResponse) -> Option<Bille
             .and_then(serde_json::Value::as_f64)
             .unwrap_or_default();
     }
-    Some(BilledUsage::from_counts(usage.input_tokens, usage.output_tokens).with_context_window(meta.context_window).with_cached_input_tokens(usage.cache_read_tokens).with_cache_creation_tokens(usage.cache_creation_tokens).with_reasoning_tokens(usage.reasoning_tokens).with_charged_usd(meta.charged_amount_usd))
+    Some(
+        BilledUsage::from_counts(usage.input_tokens, usage.output_tokens)
+            .with_context_window(meta.context_window)
+            .with_cached_input_tokens(usage.cache_read_tokens)
+            .with_cache_creation_tokens(usage.cache_creation_tokens)
+            .with_reasoning_tokens(usage.reasoning_tokens)
+            .with_charged_usd(meta.charged_amount_usd),
+    )
 }
 
 /// Shared slot that preserves the most recent original provider error.

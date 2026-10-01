@@ -134,7 +134,9 @@ pub(crate) fn record_unobserved_turn_usage(
     );
     crate::platform::cost::record_provider_usage(
         model,
-        &crate::inference::provider::BilledUsage::from_counts(input_tokens, output_tokens).with_cached_input_tokens(cached_input_tokens).with_charged_usd(charged_amount_usd),
+        &crate::inference::provider::BilledUsage::from_counts(input_tokens, output_tokens)
+            .with_cached_input_tokens(cached_input_tokens)
+            .with_charged_usd(charged_amount_usd),
     );
     true
 }

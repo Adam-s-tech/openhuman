@@ -437,7 +437,12 @@ impl OpenhumanEventBridge {
 
         // Feed the authoritative global cost tracker (same call the legacy
         // observer made), so the wallet/cost surfaces stay accurate.
-        let usage_info = BilledUsage::from_counts(usage.input_tokens, usage.output_tokens).with_context_window(context_window).with_cached_input_tokens(usage.cache_read_tokens).with_cache_creation_tokens(cache_creation_tokens).with_reasoning_tokens(reasoning_tokens).with_charged_usd(call_cost);
+        let usage_info = BilledUsage::from_counts(usage.input_tokens, usage.output_tokens)
+            .with_context_window(context_window)
+            .with_cached_input_tokens(usage.cache_read_tokens)
+            .with_cache_creation_tokens(cache_creation_tokens)
+            .with_reasoning_tokens(reasoning_tokens)
+            .with_charged_usd(call_cost);
         if reasoning_tokens > 0 || cache_creation_tokens > 0 {
             log::debug!(
                 "[cost] recording reasoning/cache-creation tokens model={} reasoning_tokens={} cache_creation_tokens={}",
@@ -476,7 +481,10 @@ impl OpenhumanEventBridge {
     pub(super) fn estimate_call_cost(model: &str, usage: &Usage) -> f64 {
         crate::agent::cost::estimate_call_cost_usd(
             model,
-            &BilledUsage::from_counts(usage.input_tokens, usage.output_tokens).with_cached_input_tokens(usage.cache_read_tokens).with_cache_creation_tokens(usage.cache_creation_tokens).with_reasoning_tokens(usage.reasoning_tokens),
+            &BilledUsage::from_counts(usage.input_tokens, usage.output_tokens)
+                .with_cached_input_tokens(usage.cache_read_tokens)
+                .with_cache_creation_tokens(usage.cache_creation_tokens)
+                .with_reasoning_tokens(usage.reasoning_tokens),
         )
     }
 }

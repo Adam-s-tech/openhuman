@@ -1,7 +1,9 @@
 use super::*;
 
 fn usage(input: u64, output: u64, cached: u64, charged: f64) -> BilledUsage {
-    BilledUsage::from_counts(input, output).with_cached_input_tokens(cached).with_charged_usd(charged)
+    BilledUsage::from_counts(input, output)
+        .with_cached_input_tokens(cached)
+        .with_charged_usd(charged)
 }
 
 const FLASH: &str = crate::config::MODEL_MANAGED_DEFAULT;

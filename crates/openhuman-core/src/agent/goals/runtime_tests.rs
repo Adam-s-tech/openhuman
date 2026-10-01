@@ -4,10 +4,7 @@ use crate::inference::provider::BilledUsage;
 
 fn cost_with_tokens(input: u64, output: u64) -> TurnCost {
     let mut tc = TurnCost::new();
-    tc.add_call(
-        "agentic-v1",
-        &BilledUsage::from_counts(input, output),
-    );
+    tc.add_call("agentic-v1", &BilledUsage::from_counts(input, output));
     tc
 }
 

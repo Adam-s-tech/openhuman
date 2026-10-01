@@ -94,3 +94,7 @@ pub(crate) fn resolve_completion_model(node_model: Option<&str>, resolved_model:
         _ => resolved_model,
     }
 }
+
+#[cfg(test)]
+#[path = "prompt_tests.rs"]
+mod tests;
