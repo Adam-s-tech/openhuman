@@ -171,47 +171,6 @@ impl OpenHumanSessionHost {
         }
     }
 
-    /// Drain pending [`crate::core::events::DomainEvent::WorkflowsChanged`]
-    /// events. Returns `true` when at least one was observed (or the listener
-    /// lagged) and the caller should re-scan the installed skill set via
-    /// [`Self::refresh_workflows`]. Mirror of
-    /// [`Self::drain_composio_integrations_changed_events`].
-    pub(in super::super) fn drain_skill_events(&mut self) -> bool {
-        self.ensure_skill_events_listener();
-        let Some(rx) = self.skill_events_rx.as_mut() else {
-            return false;
-        };
-        use tinybus::TryRecvError;
-
-        let mut saw_signal = false;
-        let mut closed = false;
-        loop {
-            match rx.try_recv() {
-                Ok(crate::core::events::DomainEvent::WorkflowsChanged { reason }) => {
-                    saw_signal = true;
-                    log::info!("[agent_loop] received installed-skills changed event ({reason})");
-                }
-                Ok(_) => {}
-                Err(TryRecvError::Empty) => break,
-                Err(TryRecvError::Lagged(skipped)) => {
-                    saw_signal = true;
-                    log::warn!(
-                        "[agent_loop] installed-skills listener lagged by {} event(s); forcing catalogue re-check",
-                        skipped
-                    );
-                }
-                Err(TryRecvError::Closed) => {
-                    closed = true;
-                    break;
-                }
-            }
-        }
-        if closed {
-            self.skill_events_rx = None;
-        }
-        saw_signal
-    }
-
     /// Reconcile the session's delegation schema against the latest cached
     /// integrations snapshot. Returns `true` only when a refresh applied.
     pub(super) fn refresh_delegation_tools_from_cached_integrations(

@@ -228,22 +228,6 @@ pub struct CommandExecutionLog<'a> {
     pub duration_ms: u64,
 }
 
-/// Structured generated tool execution details for audit correlation.
-#[derive(Debug, Clone)]
-pub struct GeneratedToolExecutionLog<'a> {
-    pub channel: &'a str,
-    pub tool_name: &'a str,
-    pub provider_id: &'a str,
-    pub capability_id: &'a str,
-    pub risk_level: &'a str,
-    pub policy_decision: &'a str,
-    pub approval_id: Option<&'a str>,
-    pub approved: bool,
-    pub allowed: bool,
-    pub success: bool,
-    pub duration_ms: u64,
-}
-
 impl AuditLogger {
     /// Build a disabled `Arc<AuditLogger>` for tests and contexts that need a
     /// handle but should not write to disk. The `enabled = false` flag

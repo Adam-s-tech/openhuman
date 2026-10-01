@@ -112,25 +112,6 @@ impl SteeringDirective {
     }
 }
 
-/// Why a crate-native steering directive could not be delivered.
-#[derive(Debug, PartialEq, Eq)]
-pub(crate) enum SteerDirectiveError {
-    /// No such sub-agent — never existed, or already finished and pruned.
-    Unknown,
-    /// The caller's `parent_session` does not own this sub-agent.
-    NotOwned,
-    /// The sub-agent already reached a terminal status.
-    AlreadyDone,
-    /// The sub-agent has no live crate-native `SteeringHandle` registered
-    /// (e.g. a legacy `RunQueue`-only run), so control-flow steering that has no
-    /// `RunQueue` lane cannot be delivered.
-    NoRegisteredHandle,
-    /// The run's `SteeringPolicy` does not permit this directive's command
-    /// kind. Enqueuing it anyway would abort the run with
-    /// `TinyAgentsError::Steering`, so we refuse up front.
-    PolicyRejected,
-}
-
 /// Inject a message into a running sub-agent. Prefer the crate-native
 /// TinyAgents steering registry when the child run has registered its live
 /// handle, and fall back to the OpenHuman `RunQueue` compatibility path.
