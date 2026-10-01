@@ -213,6 +213,12 @@ jobs:
               sort
           }
 
+          in_process_modules() {
+            find tests/in_process -maxdepth 1 -type f -name '*.rs' -print |
+              sed -e 's#^tests/in_process/##' -e 's#\.rs$##' |
+              sort
+          }
+
           # This lane tests THE PRODUCT, so it must select the product's gates.
           # `[features] default` is the CONTRIBUTOR set now and omits voice,
           # web3, documents, meet, contacts, inference and crash-reporting.
@@ -250,6 +256,15 @@ jobs:
                 echo "[test-reusable] raw coverage module: ${module}"
                 bash scripts/ci-cancel-aware.sh cargo test -p openhuman-cli --features "${CLI_FEATURES}" --test "${target}" -- "${module}::" --test-threads=1
               done < <(raw_coverage_modules)
+            elif [ "${target}" = "in_process_all" ]; then
+              # ~20 former tests/*.rs targets share one binary now. Keep one
+              # process per module, as before, so the process-global RPC
+              # bearer, backend transport and module singletons stay per suite.
+              while IFS= read -r module; do
+                [ -n "${module}" ] || continue
+                echo "[test-reusable] in-process module: ${module}"
+                bash scripts/ci-cancel-aware.sh cargo test -p openhuman-cli --features "${CLI_FEATURES}" --test "${target}" -- "${module}::"
+              done < <(in_process_modules)
             elif [ "${target}" = "json_rpc_e2e" ]; then
               # JSON-RPC E2E cases change process-global provider routes and
               # environment. A single parallel libtest process lets one case
