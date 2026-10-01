@@ -45,6 +45,9 @@ pub struct HostedState {
     pub force_status: AtomicU16,
     /// Milliseconds every `experience` write is delayed by (0 = none).
     pub delay_ms: AtomicU64,
+    /// What `GET /memory/{facts,beliefs,understanding}` answers, by
+    /// `(layer, scope)`.
+    pub layers: Mutex<std::collections::HashMap<(String, String), Vec<Value>>>,
 }
 
 pub type Hosted = Arc<HostedState>;
@@ -201,12 +204,37 @@ pub async fn recall(
     }
     let scope = body["scope"].as_str().unwrap_or_default();
     let query = body["query"].as_str().unwrap_or_default().to_lowercase();
+    // `descend` recalls the scope and everything under it.
+    let descend = body["view"].as_str() == Some("descend");
+    // A metadata label filter keeps an event carrying any one of the labels.
+    let wanted: Vec<&str> = body
+        .pointer("/filters/metadata/labels")
+        .and_then(Value::as_array)
+        .map(|labels| labels.iter().filter_map(Value::as_str).collect())
+        .unwrap_or_default();
+    let budget = body
+        .pointer("/budgets/per_layer_limits/events")
+        .and_then(Value::as_u64)
+        .map_or(usize::MAX, |limit| limit as usize);
     let hits: Vec<Value> = state
         .events
         .lock()
         .unwrap()
         .iter()
-        .filter(|e| e["scope"].as_str() == Some(scope))
+        .filter(|e| {
+            e["scope"].as_str().is_some_and(|held| {
+                held == scope || (descend && held.starts_with(&format!("{scope}/")))
+            })
+        })
+        .filter(|e| {
+            wanted.is_empty()
+                || e["context"]["labels"].as_array().is_some_and(|labels| {
+                    labels
+                        .iter()
+                        .filter_map(Value::as_str)
+                        .any(|label| wanted.contains(&label))
+                })
+        })
         .filter(|e| {
             query.is_empty()
                 || e["content"]["text"]
@@ -220,6 +248,7 @@ pub async fn recall(
             }
             hit
         })
+        .take(budget)
         .collect();
     ok(json!({ "pack_id": "pack_test", "layers": { "events": hits } }))
 }
@@ -303,6 +332,33 @@ pub async fn forget(
     ok(json!({ "deleted": { "events": deleted }, "requested": ids.len(), "matched": deleted }))
 }
 
+/// One page of a derived layer: everything seeded for the scope, in one page.
+pub async fn layer(
+    State(state): State<Hosted>,
+    headers: HeaderMap,
+    uri: axum::http::Uri,
+    Query(params): Query<std::collections::BTreeMap<String, String>>,
+) -> (StatusCode, Json<Value>) {
+    if let Some(early) = gate(&state, &headers) {
+        return early;
+    }
+    let name = uri
+        .path()
+        .rsplit('/')
+        .next()
+        .unwrap_or_default()
+        .to_string();
+    let scope = params.get("scope").cloned().unwrap_or_default();
+    let items = state
+        .layers
+        .lock()
+        .unwrap()
+        .get(&(name, scope))
+        .cloned()
+        .unwrap_or_default();
+    ok(json!({ "items": items, "has_more": false }))
+}
+
 pub async fn start_hosted() -> (String, Hosted) {
     let state: Hosted = Arc::new(HostedState::default());
     let app = Router::new()
@@ -312,6 +368,9 @@ pub async fn start_hosted() -> (String, Hosted) {
         .route("/memory/recall", post(recall))
         .route("/memory/forget", post(forget))
         .route("/memory/scopes", get(scopes))
+        .route("/memory/facts", get(layer))
+        .route("/memory/beliefs", get(layer))
+        .route("/memory/understanding", get(layer))
         .with_state(state.clone());
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let addr: SocketAddr = listener.local_addr().unwrap();

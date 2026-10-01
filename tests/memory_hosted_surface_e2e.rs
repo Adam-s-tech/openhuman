@@ -5,10 +5,14 @@
 //! `memory_graph_roundtrip_e2e`, `memory_tree_health_e2e`) run on the local
 //! module, whose engine serves every family. The hosted engine serves the
 //! mandatory families, ingestion and answers, and goals, tool rules, documents,
-//! the source sink and maintenance (tinymemory's hosted-families spec); this
-//! suite holds it to what that means for a user: what it serves works, what it
-//! does not serve answers a clean refusal rather than failing some other way,
-//! auto-recall reaches the notes a user saved, and a refused lookup says why.
+//! the source sink, maintenance, retrieval, ingest, profile, episodic memory,
+//! scoring and a tree drawn from the server's understanding (tinymemory's
+//! hosted-families spec); local sources are synced by the host through its
+//! sink. This suite holds it to what that means for a user: what it serves
+//! works, what it does not serve answers a clean refusal rather than failing
+//! some other way, auto-recall reaches the notes a user saved, a refused lookup
+//! says why, the Brain graph draws what the server understood, and a synced
+//! folder reaches hosted memory.
 //!
 //! ```text
 //! RUST_MIN_STACK=67108864 cargo test -p openhuman-cli \
@@ -134,6 +138,101 @@ fn sync_history_answers_from_the_host_log_on_an_engine_without_one() {
             .await;
         let history = result_of(&v, "sync_audit_log on hosted");
         assert!(history["entries"].is_array(), "{history}");
+        unbind(&fx).await;
+    });
+}
+
+/// The Brain graph on hosted memory is the server's understanding: a fact it
+/// derived from the user's notes is a node labelled by what it says, under
+/// the namespace it came from, named for what that holds.
+#[test]
+fn the_hosted_engine_draws_the_brain_graph_from_its_understanding() {
+    run_on_big_stack("hosted-graph", || async {
+        let fx = Fixture::new().await;
+        bind_hosted(&fx).await;
+        fx.hosted.layers.lock().unwrap().insert(
+            ("facts".to_string(), "tm:global".to_string()),
+            vec![json!({
+                "id": "fact_tea",
+                "scope": "tm:global",
+                "subject": { "type": "entity", "id": "ent_user", "name": "User" },
+                "predicate": "prefers",
+                "object": { "type": "literal", "datatype": "string", "value": "oolong tea" },
+                "supports": [],
+                "confidence": 0.9,
+                "valid_from": "2026-09-01T00:00:00Z",
+                "recorded_from": "2026-09-01T00:00:00Z",
+            })],
+        );
+        let v = fx
+            .call(
+                "openhuman.memory_tree_graph_export",
+                json!({ "mode": "tree" }),
+            )
+            .await;
+        let graph = result_of(&v, "graph export on hosted");
+        let labels: Vec<&str> = graph["nodes"]
+            .as_array()
+            .expect("nodes")
+            .iter()
+            .filter_map(|node| node["label"].as_str())
+            .collect();
+        assert!(labels.contains(&"User prefers oolong tea"), "{graph}");
+        assert!(
+            labels.contains(&"Memory"),
+            "the global namespace reads as what it holds: {graph}"
+        );
+        unbind(&fx).await;
+    });
+}
+
+/// A folder source on hosted memory is read by the host and sent through the
+/// engine's sink, and the run lands in Sync History like any other.
+#[test]
+fn a_local_folder_syncs_into_hosted_memory() {
+    run_on_big_stack("hosted-folder-sync", || async {
+        let fx = Fixture::new().await;
+        bind_hosted(&fx).await;
+        let folder = fx._tmp.path().join("notes");
+        std::fs::create_dir_all(&folder).expect("folder");
+        std::fs::write(folder.join("tea.md"), "# Tea\n\nOolong, always.").expect("note");
+        let v = fx
+            .call(
+                "openhuman.memory_sources_add",
+                json!({
+                    "kind": "folder",
+                    "label": "Notes",
+                    "enabled": true,
+                    "path": folder.to_string_lossy(),
+                }),
+            )
+            .await;
+        let source_id = result_of(&v, "add a folder source")["source"]["id"]
+            .as_str()
+            .expect("a source id")
+            .to_string();
+        let v = fx
+            .call(
+                "openhuman.memory_sources_sync",
+                json!({ "source_id": source_id }),
+            )
+            .await;
+        result_of(&v, "sync a folder on hosted");
+        let synced = fx.hosted.events.lock().unwrap().iter().any(|event| {
+            event["scope"] == "tm:sources/tm:documents"
+                && event["content"]["text"]
+                    .as_str()
+                    .is_some_and(|text| text.contains("Oolong, always."))
+        });
+        assert!(synced, "the note reaches the hosted documents namespace");
+        let v = fx
+            .call("openhuman.memory_sources_sync_audit_log", json!({}))
+            .await;
+        let history = result_of(&v, "sync history after a hosted folder sync");
+        assert!(
+            history["entries"].to_string().contains(&source_id),
+            "{history}"
+        );
         unbind(&fx).await;
     });
 }
