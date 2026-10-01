@@ -60,6 +60,7 @@ import { fileURLToPath } from "node:url";
 import {
   checkPinMapCoverage,
   classifyPin,
+  classifyProviderPin,
   expandRustIncludes,
   parseAllList,
   parseArtifactCapabilitiesPin,
@@ -73,9 +74,11 @@ const ROOT = resolve(process.argv[2] ?? join(HERE, "..", ".."));
 // Record id -> the submodule that is the source of truth for its version.
 //
 // `submodule: null` means "this record has no submodule of its own", and needs a
-// reason. It is NOT an exemption from drift — the two runtime providers below
-// ship out of the tinyruntime release, so they are checked against
-// `vendor/tinyruntime` via `sharesWith`.
+// reason. It is NOT an exemption from drift. The two runtime providers below are
+// released from their own repositories on their own version line, so their
+// version cannot equal a submodule tag; `provider` instead checks them against
+// scripts/ci/module-provider-pins.json (their release, and the commit of
+// `builtAgainst` that release was built from, which must be the host's pin).
 const PIN_MAP = {
   tinysearch: { submodule: "vendor/tinysearch" },
   tinycomputer: { submodule: "vendor/tinycomputer" },
@@ -95,13 +98,15 @@ const PIN_MAP = {
   tinyhosts: { submodule: "vendor/tinyhosts" },
   "tinyruntime-nodejs": {
     submodule: null,
-    sharesWith: "vendor/tinyruntime",
-    reason: "published from the tinyruntime release; no repository of its own",
+    provider: { builtAgainst: "vendor/tinyruntime" },
+    reason:
+      "released from tinyhumansai/tinyruntime-nodejs on its own version line; checked via module-provider-pins.json",
   },
   "tinyruntime-python": {
     submodule: null,
-    sharesWith: "vendor/tinyruntime",
-    reason: "published from the tinyruntime release; no repository of its own",
+    provider: { builtAgainst: "vendor/tinyruntime" },
+    reason:
+      "released from tinyhumansai/tinyruntime-python on its own version line; checked via module-provider-pins.json",
   },
 };
 
@@ -266,9 +271,37 @@ function describeCached(path) {
   return describeCache.get(path);
 }
 
+function headCommit(submodulePath) {
+  describeCached(submodulePath); // fails closed when it is not checked out
+  return mustRun(
+    "git",
+    ["rev-parse", "HEAD"],
+    join(ROOT, submodulePath),
+    `rev-parse ${submodulePath}`,
+  );
+}
+
+const providerLocks = JSON.parse(
+  readOrDie(join(HERE, "module-provider-pins.json"), "provider pins"),
+).providers;
+
 for (const rec of active) {
   const entry = PIN_MAP[rec.id];
   if (!entry) continue; // already reported above
+  if (entry.provider) {
+    const lock = providerLocks[rec.id];
+    const src = entry.provider.builtAgainst;
+    const verdict = classifyProviderPin({
+      id: rec.id,
+      version: rec.version,
+      releaseUrl: rec.releaseUrl,
+      lock,
+      sourceSubmodule: src,
+      sourceHead: headCommit(src),
+    });
+    if (!verdict.ok) fail(verdict.message);
+    continue;
+  }
   const path = entry.submodule ?? entry.sharesWith;
   if (!path) {
     fail(`PIN_MAP["${rec.id}"] has neither submodule nor sharesWith`);
