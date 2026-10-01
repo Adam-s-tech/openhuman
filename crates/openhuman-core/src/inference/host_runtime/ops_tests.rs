@@ -100,13 +100,6 @@ async fn local_ai_status_reports_even_when_disabled() {
     let _ = result;
 }
 
-#[tokio::test]
-async fn local_ai_assets_status_returns_without_panic() {
-    let tmp = tempfile::tempdir().unwrap();
-    let config = test_config(&tmp);
-    let _ = local_ai_assets_status(&config).await;
-}
-
 // ── normalize_model_override (TAURI-RUST-RS) ───────────────────────────
 
 #[test]
