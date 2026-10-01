@@ -864,12 +864,17 @@ fn every_registered_controller_has_matching_declared_schema() {
     // Global invariant: the registry is consistent by construction.
     // This test re-asserts the contract to catch drift.
     use std::collections::BTreeSet;
+    // The `ext_*` namespaces are registered by the extension tests running
+    // concurrently in this process; ignore them so the two snapshots cannot
+    // straddle a registration.
     let registered: BTreeSet<String> = all_registered_controllers()
         .into_iter()
+        .filter(|c| !c.schema.namespace.starts_with("ext_"))
         .map(|c| format!("{}.{}", c.schema.namespace, c.schema.function))
         .collect();
     let declared: BTreeSet<String> = all_controller_schemas()
         .into_iter()
+        .filter(|s| !s.namespace.starts_with("ext_"))
         .map(|s| format!("{}.{}", s.namespace, s.function))
         .collect();
     assert_eq!(
