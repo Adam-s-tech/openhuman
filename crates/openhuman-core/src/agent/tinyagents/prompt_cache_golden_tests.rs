@@ -172,6 +172,14 @@ fn scenarios() -> Vec<Scenario> {
             dialect: Auto,
         },
         Scenario {
+            name: "resumed_zero_prefix_no_system_messages",
+            input: vec![Message::user("go")],
+            frozen: Some(0),
+            with_tools: false,
+            tool_loop: false,
+            dialect: Auto,
+        },
+        Scenario {
             name: "subagent_fresh_context",
             input: vec![Message::system("sub-agent prompt"), Message::user("task")],
             frozen: None,
