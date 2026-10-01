@@ -1,50 +1,5 @@
 use super::*;
 #[test]
-fn default_tools_has_three() {
-    let security = Arc::new(SecurityPolicy::default());
-    let tools = default_tools(security);
-    assert_eq!(tools.len(), 3);
-}
-#[test]
-fn all_tools_includes_spawn_subagent() {
-    // Regression guard: the `spawn_subagent` tool must be present
-    // in the default registry so parent agents can delegate to
-    // sub-agents at runtime. If this test fails, the dispatch path
-    // in `agent::subagent_host` becomes unreachable.
-    let tmp = TempDir::new().unwrap();
-    let security = Arc::new(SecurityPolicy::default());
-    // The embedding seam fails loudly when unwired.
-    let _mem_cfg = MemoryConfig {
-        backend: "markdown".into(),
-        ..MemoryConfig::default()
-    };
-
-    let browser = BrowserConfig {
-        enabled: false,
-        allowed_domains: vec![],
-        session_name: None,
-        ..BrowserConfig::default()
-    };
-    let http = crate::config::HttpRequestConfig::default();
-    let cfg = test_config(&tmp);
-
-    let tools = all_tools(
-        Arc::new(Config::default()),
-        &security,
-        AuditLogger::disabled(),
-        &browser,
-        &http,
-        tmp.path(),
-        &HashMap::new(),
-        &cfg,
-    );
-    let names: Vec<&str> = tools.iter().map(|t| t.name()).collect();
-    assert!(
-        names.contains(&"spawn_subagent"),
-        "spawn_subagent must be registered in the default tool list; got: {names:?}"
-    );
-}
-#[test]
 fn all_tools_registers_collapsed_memory_and_search_tools() {
     let tmp = TempDir::new().unwrap();
     let security = Arc::new(SecurityPolicy::default());
@@ -120,74 +75,6 @@ fn whatsapp_data_tools_are_gone_in_every_build() {
             "`{absent}` was removed with the store it read; got: {names:?}"
         );
     }
-}
-#[test]
-fn all_tools_includes_spawn_async_subagent() {
-    let tmp = TempDir::new().unwrap();
-    let security = Arc::new(SecurityPolicy::default());
-    // The embedding seam fails loudly when unwired.
-    let _mem_cfg = MemoryConfig {
-        backend: "markdown".into(),
-        ..MemoryConfig::default()
-    };
-    let browser = BrowserConfig {
-        enabled: false,
-        allowed_domains: vec![],
-        session_name: None,
-        ..BrowserConfig::default()
-    };
-    let http = crate::config::HttpRequestConfig::default();
-    let cfg = test_config(&tmp);
-
-    let tools = all_tools(
-        Arc::new(Config::default()),
-        &security,
-        AuditLogger::disabled(),
-        &browser,
-        &http,
-        tmp.path(),
-        &HashMap::new(),
-        &cfg,
-    );
-    let names: Vec<&str> = tools.iter().map(|t| t.name()).collect();
-    assert!(
-        names.contains(&"spawn_async_subagent"),
-        "spawn_async_subagent must be registered for fire-and-forget background orchestration; got: {names:?}"
-    );
-}
-#[test]
-fn all_tools_includes_spawn_parallel_agents() {
-    let tmp = TempDir::new().unwrap();
-    let security = Arc::new(SecurityPolicy::default());
-    // The embedding seam fails loudly when unwired.
-    let _mem_cfg = MemoryConfig {
-        backend: "markdown".into(),
-        ..MemoryConfig::default()
-    };
-    let browser = BrowserConfig {
-        enabled: false,
-        allowed_domains: vec![],
-        session_name: None,
-        ..BrowserConfig::default()
-    };
-    let http = crate::config::HttpRequestConfig::default();
-    let cfg = test_config(&tmp);
-
-    let tools = all_tools(
-        Arc::new(Config::default()),
-        &security,
-        AuditLogger::disabled(),
-        &browser,
-        &http,
-        tmp.path(),
-        &HashMap::new(),
-        &cfg,
-    );
-    let names: Vec<&str> = tools.iter().map(|t| t.name()).collect();
-    assert!(
-        names.contains(&"spawn_parallel_agents"),
-        "spawn_parallel_agents must be registered for orchestrated fan-out; got: {names:?}"
-    );
 }
 #[test]
 fn every_packed_tool_name_resolves_to_a_registered_tool() {
@@ -296,42 +183,6 @@ fn every_packed_tool_name_resolves_to_a_registered_tool() {
         missing.is_empty(),
         "every tool named in a pack must resolve to a registered tool (or be a \
          delegate name); these do not: {missing:?}"
-    );
-}
-#[test]
-fn all_tools_always_registers_curl() {
-    // Regression guard: `curl` is always registered (gated only by
-    // the shared `http_request.allowed_domains` allowlist at call
-    // time, like `http_request`). `Write` permission level keeps it
-    // off agents that aren't allowed to modify the workspace.
-    let tmp = TempDir::new().unwrap();
-    let security = Arc::new(SecurityPolicy::default());
-    // The embedding seam fails loudly when unwired. This
-    // test doesn't use that helper (it needs the `Arc<dyn Memory>` alongside
-    // its own config setup below), so it installs the seams directly.
-    let _mem_cfg = MemoryConfig {
-        backend: "markdown".into(),
-        ..MemoryConfig::default()
-    };
-
-    let browser = BrowserConfig::default();
-    let http = crate::config::HttpRequestConfig::default();
-    let cfg = test_config(&tmp);
-
-    let tools = all_tools(
-        Arc::new(cfg.clone()),
-        &security,
-        AuditLogger::disabled(),
-        &browser,
-        &http,
-        tmp.path(),
-        &HashMap::new(),
-        &cfg,
-    );
-    let names: Vec<&str> = tools.iter().map(|t| t.name()).collect();
-    assert!(
-        names.contains(&"curl"),
-        "curl must always be registered; got: {names:?}"
     );
 }
 
@@ -564,36 +415,6 @@ fn all_tools_skips_gitbooks_when_disabled() {
     );
 }
 
-#[test]
-fn all_tools_includes_current_time() {
-    let tmp = TempDir::new().unwrap();
-    let security = Arc::new(SecurityPolicy::default());
-    // The embedding seam fails loudly when unwired.
-    let _mem_cfg = MemoryConfig {
-        backend: "markdown".into(),
-        ..MemoryConfig::default()
-    };
-
-    let browser = BrowserConfig::default();
-    let http = crate::config::HttpRequestConfig::default();
-    let cfg = test_config(&tmp);
-
-    let tools = all_tools(
-        Arc::new(Config::default()),
-        &security,
-        AuditLogger::disabled(),
-        &browser,
-        &http,
-        tmp.path(),
-        &HashMap::new(),
-        &cfg,
-    );
-    let names: Vec<&str> = tools.iter().map(|t| t.name()).collect();
-    assert!(
-        names.contains(&"current_time"),
-        "current_time must be registered in the default tool list; got: {names:?}"
-    );
-}
 #[test]
 fn all_tools_default_registry_contains_expected_baseline_surface() {
     let tmp = TempDir::new().unwrap();

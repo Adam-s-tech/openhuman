@@ -10,7 +10,7 @@ use std::sync::Arc;
 use tinyagents_harness::tools::{self as harness_tools, CurrentTimeTool, ResolveTimeTool};
 use tinytools::Tool;
 #[cfg(test)]
-use tinytools::{ToolResult, ToolSpec};
+use tinytools::ToolResult;
 use tinytools_std::detect_tools::DetectToolsTool;
 use tinytools_std::filesystem::{
     ApplyPatchTool, CsvExportTool, EditFileTool, FileReadTool, FileWriteTool, GitOperationsTool,

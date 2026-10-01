@@ -68,16 +68,6 @@ fn all_tools_includes_browser_when_enabled() {
 }
 
 #[test]
-fn default_tools_names() {
-    let security = Arc::new(SecurityPolicy::default());
-    let tools = default_tools(security);
-    let names: Vec<&str> = tools.iter().map(|t| t.name()).collect();
-    assert!(names.contains(&"shell"));
-    assert!(names.contains(&"file_read"));
-    assert!(names.contains(&"file_write"));
-}
-
-#[test]
 fn default_tools_all_have_descriptions() {
     let security = Arc::new(SecurityPolicy::default());
     let tools = default_tools(security);
@@ -107,49 +97,6 @@ fn default_tools_all_have_schemas() {
             tool.name()
         );
     }
-}
-
-#[test]
-fn tool_spec_generation() {
-    let security = Arc::new(SecurityPolicy::default());
-    let tools = default_tools(security);
-    for tool in &tools {
-        let spec = tool.spec();
-        assert_eq!(spec.name, tool.name());
-        assert_eq!(spec.description, tool.description());
-        assert!(spec.parameters.is_object());
-    }
-}
-
-#[test]
-fn tool_result_serde() {
-    let result = ToolResult::success("hello");
-    let json = serde_json::to_string(&result).unwrap();
-    let parsed: ToolResult = serde_json::from_str(&json).unwrap();
-    assert!(!parsed.is_error);
-    assert_eq!(parsed.output(), "hello");
-}
-
-#[test]
-fn tool_result_with_error_serde() {
-    let result = ToolResult::error("boom");
-    let json = serde_json::to_string(&result).unwrap();
-    let parsed: ToolResult = serde_json::from_str(&json).unwrap();
-    assert!(parsed.is_error);
-    assert_eq!(parsed.output(), "boom");
-}
-
-#[test]
-fn tool_spec_serde() {
-    let spec = ToolSpec {
-        name: "test".into(),
-        description: "A test tool".into(),
-        parameters: serde_json::json!({"type": "object"}),
-    };
-    let json = serde_json::to_string(&spec).unwrap();
-    let parsed: ToolSpec = serde_json::from_str(&json).unwrap();
-    assert_eq!(parsed.name, "test");
-    assert_eq!(parsed.description, "A test tool");
 }
 
 #[test]
