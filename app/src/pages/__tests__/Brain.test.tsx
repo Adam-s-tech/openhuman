@@ -226,6 +226,49 @@ describe('Brain page', () => {
     expect(screen.queryByTestId('brain-sync-activity-card')).toBeNull();
   });
 
+  // Hosted memory serves a tree — the server's understanding — but keeps no
+  // local chunk store: the graph draws, and the ingest pipeline's status panel
+  // says it is not available rather than reading a store that is not there.
+  const hostedWithTree = () => {
+    engineMock.get.mockResolvedValue({ driver: 'tinyhumans' });
+    engineMock.list.mockResolvedValue({
+      active: 'tinyhumans',
+      engines: [
+        {
+          id: 'tinyhumans',
+          label: 'CortexDB (via TinyHumans)',
+          capabilities: ['core', 'recall', 'portability', 'sources', 'retrieval', 'tree'],
+        },
+      ],
+    });
+  };
+
+  it('draws the graph on hosted memory', async () => {
+    graphExportMock.mockResolvedValue(makeGraph(2));
+    hostedWithTree();
+    await act(async () => {
+      renderWithProviders(<Brain />, { initialEntries: ['/?tab=graph'] });
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId('memory-graph')).toHaveTextContent('nodes:2');
+    });
+  });
+
+  it('gates the local pipeline status on hosted memory', async () => {
+    graphExportMock.mockResolvedValue(makeGraph(0));
+    hostedWithTree();
+    await act(async () => {
+      renderWithProviders(<Brain />, { initialEntries: ['/?tab=sync'] });
+    });
+    await waitFor(() => {
+      const gated = screen
+        .getAllByTestId('memory-family-unavailable')
+        .map(node => node.getAttribute('data-family'));
+      expect(gated).toContain('chunks');
+    });
+    expect(screen.queryByTestId('brain-sync')).toBeNull();
+  });
+
   // Hosted memory accepts synced items but reads no local agent transcripts:
   // the sources registry renders, the coding-sessions card says it is not
   // available instead of calling an RPC the engine refuses.
