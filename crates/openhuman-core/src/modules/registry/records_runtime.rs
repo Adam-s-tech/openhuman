@@ -98,7 +98,7 @@ pub(crate) const TINYRUNTIME: ModuleRecord = ModuleRecord {
 /// Lazy, and loaded by the same call that loads the router: a language is only
 /// worth its `dlopen` when something asks for that language.
 ///
-/// Released alongside the router and pinned the same way — see [`TINYRUNTIME`].
+/// Released from its own repository (own version line) against the router's source pin; see scripts/ci/module-provider-pins.json.
 pub(crate) const TINYRUNTIME_NODEJS: ModuleRecord = ModuleRecord {
     id: "tinyruntime-nodejs",
     description: "Node.js runtime provider for tinyruntime",
@@ -171,7 +171,7 @@ pub(crate) const TINYRUNTIME_NODEJS: ModuleRecord = ModuleRecord {
 /// Answers which host interpreters count, which standalone build to install, and
 /// what a warm Python worker is. It installs nothing itself.
 ///
-/// Released alongside the router and pinned the same way — see [`TINYRUNTIME`].
+/// Released from its own repository (own version line) against the router's source pin; see scripts/ci/module-provider-pins.json.
 pub(crate) const TINYRUNTIME_PYTHON: ModuleRecord = ModuleRecord {
     id: "tinyruntime-python",
     description: "Python runtime provider for tinyruntime",
