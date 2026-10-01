@@ -80,6 +80,7 @@ async fn bound_driver_status_reports_id_class_contract_and_capabilities() {
             "documents",
             "entities",
             "episodic",
+            "episodic_portability",
             "event_ingest",
             "goals",
             "graph",
