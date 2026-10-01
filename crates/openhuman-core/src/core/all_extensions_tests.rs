@@ -1,6 +1,5 @@
 use serde_json::Map;
 
-use super::tests::schema;
 use super::*;
 
 // ── Controller extensions (crates above the core) ──────────────────────────

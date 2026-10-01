@@ -3,7 +3,7 @@ use serde_json::Map;
 use super::*;
 use crate::core::{ControllerSchema, FieldSchema, TypeSchema};
 
-pub(super) fn schema(
+fn schema(
     namespace: &'static str,
     function: &'static str,
     inputs: Vec<FieldSchema>,
@@ -2598,3 +2598,6 @@ fn session_db_controllers_are_gone_and_run_ledger_survives() {
         "the `session_db` namespace was removed and must not be registered, got: {namespaces:?}"
     );
 }
+
+#[path = "all_extensions_tests.rs"]
+mod extensions_tests;

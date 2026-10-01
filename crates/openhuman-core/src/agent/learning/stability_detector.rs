@@ -31,11 +31,9 @@
 //! rows by stability. Excess Active rows are demoted to Provisional. A cross-class
 //! overflow pool holds up to `BUDGET_OVERFLOW` extra Provisional rows.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, OnceLock, PoisonError};
-
-use fs2::FileExt;
+use std::sync::{Arc, PoisonError};
 
 use crate::agent::learning::cache::FacetCache;
 use crate::agent::learning::candidate::{self, CueFamily, FacetClass, LearningCandidate};

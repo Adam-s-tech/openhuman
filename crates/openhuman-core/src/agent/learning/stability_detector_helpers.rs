@@ -9,11 +9,9 @@ use std::sync::{Arc, OnceLock, PoisonError};
 use fs2::FileExt;
 
 use crate::agent::learning::candidate::{self, CueFamily, FacetClass, LearningCandidate};
-use tinymemory_api::provider::{FacetState, FacetType, ProfileFacet, UserState};
+use tinymemory_api::provider::{FacetState, ProfileFacet, UserState};
 
-use super::{
-    class_budget, half_life, stability, RebuildState, TAU_EVICT, TAU_PROMOTE, TAU_PROVISIONAL,
-};
+use super::{half_life, RebuildState, TAU_EVICT, TAU_PROMOTE, TAU_PROVISIONAL};
 
 // ── The rebuild time ──────────────────────────────────────────────────────────
 
