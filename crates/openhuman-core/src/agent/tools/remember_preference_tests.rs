@@ -119,79 +119,30 @@ fn schema_has_required_fields() {
 #[tokio::test]
 #[ignore = "needs a built tinymemory module (OPENHUMAN_MODULE_PATH) and its own process: \
 the tool resolves the bound driver rather than being handed a memory handle"]
-async fn missing_class_returns_error() {
+async fn invalid_arguments_return_a_tool_error_naming_the_problem() {
+    let cases = [
+        (json!({"key": "timezone", "value": "IST"}), "class"),
+        (
+            json!({"class": "bogus", "key": "timezone", "value": "IST"}),
+            "invalid class",
+        ),
+        (json!({"class": "style", "value": "terse"}), "key"),
+        (
+            json!({"class": "style", "key": "   ", "value": "terse"}),
+            "key cannot be empty",
+        ),
+        (
+            json!({"class": "style", "key": "my pref", "value": "terse"}),
+            "invalid characters",
+        ),
+        (json!({"class": "tooling", "key": "pkg_mgr"}), "value"),
+    ];
     let tool = RememberPreferenceTool::new(test_security());
-    let result = tool
-        .execute(json!({"key": "timezone", "value": "IST"}))
-        .await
-        .unwrap();
-    assert!(result.is_error);
-    assert!(result.output().contains("class"));
-}
-
-#[tokio::test]
-#[ignore = "needs a built tinymemory module (OPENHUMAN_MODULE_PATH) and its own process: \
-the tool resolves the bound driver rather than being handed a memory handle"]
-async fn invalid_class_returns_error() {
-    let tool = RememberPreferenceTool::new(test_security());
-    let result = tool
-        .execute(json!({"class": "bogus", "key": "timezone", "value": "IST"}))
-        .await
-        .unwrap();
-    assert!(result.is_error);
-    assert!(result.output().contains("invalid class"));
-}
-
-#[tokio::test]
-#[ignore = "needs a built tinymemory module (OPENHUMAN_MODULE_PATH) and its own process: \
-the tool resolves the bound driver rather than being handed a memory handle"]
-async fn missing_key_returns_error() {
-    let tool = RememberPreferenceTool::new(test_security());
-    let result = tool
-        .execute(json!({"class": "style", "value": "terse"}))
-        .await
-        .unwrap();
-    assert!(result.is_error);
-    assert!(result.output().contains("key"));
-}
-
-#[tokio::test]
-#[ignore = "needs a built tinymemory module (OPENHUMAN_MODULE_PATH) and its own process: \
-the tool resolves the bound driver rather than being handed a memory handle"]
-async fn empty_key_returns_error() {
-    let tool = RememberPreferenceTool::new(test_security());
-    let result = tool
-        .execute(json!({"class": "style", "key": "   ", "value": "terse"}))
-        .await
-        .unwrap();
-    assert!(result.is_error);
-    assert!(result.output().contains("key cannot be empty"));
-}
-
-#[tokio::test]
-#[ignore = "needs a built tinymemory module (OPENHUMAN_MODULE_PATH) and its own process: \
-the tool resolves the bound driver rather than being handed a memory handle"]
-async fn key_with_spaces_returns_error() {
-    let tool = RememberPreferenceTool::new(test_security());
-    let result = tool
-        .execute(json!({"class": "style", "key": "my pref", "value": "terse"}))
-        .await
-        .unwrap();
-    assert!(result.is_error);
-    assert!(result.output().contains("invalid characters"));
-}
-
-#[tokio::test]
-#[ignore = "needs a built tinymemory module (OPENHUMAN_MODULE_PATH) and its own process: \
-the tool resolves the bound driver rather than being handed a memory handle"]
-async fn missing_value_returns_error() {
-    let tool = RememberPreferenceTool::new(test_security());
-    let result = tool
-        .execute(json!({"class": "tooling", "key": "pkg_mgr"}))
-        .await
-        .unwrap();
-    assert!(result.is_error);
-    assert!(result.output().contains("value"));
+    for (args, expected) in cases {
+        let result = tool.execute(args.clone()).await.unwrap();
+        assert!(result.is_error, "{args}");
+        assert!(result.output().contains(expected), "{args}: {}", result.output());
+    }
 }
 
 // ── Successful upsert ───────────────────────────────────────────────────
