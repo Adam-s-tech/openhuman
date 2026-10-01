@@ -645,12 +645,12 @@ async fn agent_turn_runs_long_parallel_subagent_flow_with_many_nested_tool_calls
                     }
                 }
             }
-            TranscriptEntry::Chat(message) if message.role == "assistant" => {
+            TranscriptEntry::Chat(message) if message.role.as_str() == "assistant" => {
                 if message.content.contains("spawn_parallel_agents") {
                     saw_parallel_call = true;
                 }
             }
-            TranscriptEntry::Chat(message) if message.role == "tool" => {
+            TranscriptEntry::Chat(message) if message.role.as_str() == "tool" => {
                 let content = serde_json::from_str::<serde_json::Value>(&message.content)
                     .ok()
                     .and_then(|envelope| {

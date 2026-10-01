@@ -143,7 +143,7 @@ fn text_dialect_tool_turn_projects_calls_on_their_issuing_row_as_settled() {
         .unwrap();
     let failed_result = rows
         .iter()
-        .find(|row| row.role == "user" && row.content.starts_with("[Tool results]"))
+        .find(|row| row.role.as_str() == "user" && row.content.starts_with("[Tool results]"))
         .expect("text dialect result row");
     assert_eq!(
         failed_result
@@ -184,7 +184,7 @@ fn text_dialect_tool_turn_projects_calls_on_their_issuing_row_as_settled() {
     let assistants: Vec<_> = persisted
         .messages
         .iter()
-        .filter(|m| m.role == "assistant")
+        .filter(|m| m.role.as_str() == "assistant")
         .collect();
     assert_eq!(assistants.len(), 2);
     let issued: Vec<String> = assistants[0]
@@ -374,7 +374,7 @@ fn tool_failure_metadata_round_trips_write_to_display_line() {
         .records
         .iter()
         .find_map(|r| match r {
-            transcript::DisplayRecord::Message(m) if m.message.role == "tool" => Some(m),
+            transcript::DisplayRecord::Message(m) if m.message.role.as_str() == "tool" => Some(m),
             _ => None,
         })
         .expect("tool display message present");

@@ -136,8 +136,8 @@ fn committed_system_rows_past_prefix(history: &[TranscriptEntry]) -> Vec<String>
             TranscriptEntry::Chat(chat) => Some(chat),
             _ => None,
         })
-        .skip_while(|chat| chat.role == "system")
-        .filter(|chat| chat.role == "system")
+        .skip_while(|chat| chat.role.as_str() == "system")
+        .filter(|chat| chat.role.as_str() == "system")
         .map(|chat| chat.content.clone())
         .collect()
 }
@@ -161,7 +161,7 @@ async fn validation_nudge_reaches_the_retry_but_is_not_committed() {
     assert!(
         history.iter().any(|m| matches!(
             m,
-            TranscriptEntry::Chat(chat) if chat.role == "tool" && chat.content.contains("422")
+            TranscriptEntry::Chat(chat) if chat.role.as_str() == "tool" && chat.content.contains("422")
         )) || history
             .iter()
             .any(|m| matches!(m, TranscriptEntry::ToolResults(r) if r.iter().any(|r| r.content.contains("422")))),

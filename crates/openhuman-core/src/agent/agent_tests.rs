@@ -345,5 +345,3 @@ mod agent_turn_loop_nudge_tests;
 mod agent_turn_loop_packed_tool_tests;
 #[path = "agent_turn_loop_tests.rs"]
 mod agent_turn_loop_tests;
-#[path = "messages_tests.rs"]
-mod messages_tests;

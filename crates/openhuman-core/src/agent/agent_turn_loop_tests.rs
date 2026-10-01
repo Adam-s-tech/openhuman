@@ -137,7 +137,7 @@ async fn turn_emits_checkpoint_at_max_iterations() {
         matches!(
             agent.history().last(),
             Some(TranscriptEntry::Chat(msg))
-                if msg.role == "assistant" && msg.content.contains("tool-call limit")
+                if msg.role.as_str() == "assistant" && msg.content.contains("tool-call limit")
         ),
         "history should end on the assistant checkpoint, got: {:?}",
         agent.history().last()
@@ -178,7 +178,7 @@ async fn turn_handles_unknown_tool_gracefully() {
             .iter()
             .any(|r| r.content.contains("unknown tool") && r.content.contains("nonexistent_tool")),
         TranscriptEntry::Chat(message) => {
-            message.role == "tool"
+            message.role.as_str() == "tool"
                 && message.content.contains("unknown tool")
                 && message.content.contains("nonexistent_tool")
         }
@@ -286,7 +286,7 @@ async fn history_is_not_trimmed_by_message_count() {
 
     let history = agent.history();
     // System prompt should always be preserved.
-    assert!(matches!(&history[0], TranscriptEntry::Chat(c) if c.role == "system"));
+    assert!(matches!(&history[0], TranscriptEntry::Chat(c) if c.role.as_str() == "system"));
     // Every turn's user message is still there, and the first one still opens
     // the conversation right after the system prompt.
     assert!(
@@ -297,7 +297,7 @@ async fn history_is_not_trimmed_by_message_count() {
     let first_user = history
         .iter()
         .find_map(|m| match m {
-            TranscriptEntry::Chat(c) if c.role == "user" => Some(c.content.clone()),
+            TranscriptEntry::Chat(c) if c.role.as_str() == "user" => Some(c.content.clone()),
             _ => None,
         })
         .expect("a user message");
@@ -521,7 +521,7 @@ async fn turn_preserves_text_alongside_tool_calls() {
     // that accompanied the tool call (the unified tinyagents representation
     // keeps the preface text on the tool-call turn).
     let has_intermediate = agent.history().iter().any(|msg| match msg {
-        TranscriptEntry::Chat(c) => c.role == "assistant" && c.content.contains("Let me check"),
+        TranscriptEntry::Chat(c) => c.role.as_str() == "assistant" && c.content.contains("Let me check"),
         TranscriptEntry::AssistantToolCalls { text, .. } => {
             text.as_deref().is_some_and(|t| t.contains("Let me check"))
         }
@@ -607,7 +607,7 @@ async fn e2e_native_loop_executes_text_fallback_tool_calls_and_persists_history(
             .iter()
             .any(|call| call.name == "echo" && call.arguments.contains("from-fallback")),
         TranscriptEntry::Chat(message)
-            if message.role == "assistant"
+            if message.role.as_str() == "assistant"
                 && message.content.contains("\"tool_calls\"")
                 && message.content.contains("\"echo\"") =>
         {
@@ -620,7 +620,7 @@ async fn e2e_native_loop_executes_text_fallback_tool_calls_and_persists_history(
             .iter()
             .any(|result| result.content.contains("from-fallback")),
         TranscriptEntry::Chat(message) => {
-            message.role == "tool" && message.content.contains("from-fallback")
+            message.role.as_str() == "tool" && message.content.contains("from-fallback")
         }
         _ => false,
     });
@@ -648,7 +648,7 @@ async fn system_prompt_injected_on_first_turn() {
     // First message should be the system prompt
     let first = &agent.history()[0];
     assert!(
-        matches!(first, TranscriptEntry::Chat(c) if c.role == "system"),
+        matches!(first, TranscriptEntry::Chat(c) if c.role.as_str() == "system"),
         "First history entry should be system prompt"
     );
 }
