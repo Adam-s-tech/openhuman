@@ -5,7 +5,7 @@
 use tinyagents_graph::orchestration::DetachedTaskRegistryError;
 use tinyagents_harness::ids::TaskId;
 use tinyagents_harness::run_queue::QueueLane;
-use tinyagents_harness::steering::{SteeringCommand, SteeringCommandKind};
+use tinyagents_harness::steering::SteeringCommand;
 use tinyinference_llm::message::Message as TaMessage;
 
 use super::cancel::now_ms;
