@@ -325,7 +325,7 @@ fn composio_list_tools_via_subagent_runs_on_production_worker_stack() {
     // The actual work has to be on a worker thread, not the
     // `block_on` driver thread (which inherits the OS test-runner stack
     // and is much larger). Spawn → join to force the closure onto a
-    // 2 MB worker.
+    // production-sized worker.
     rt.block_on(async {
         tokio::spawn(drive_subagent())
             .await
