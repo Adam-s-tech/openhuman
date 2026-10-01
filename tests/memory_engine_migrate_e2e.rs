@@ -50,9 +50,8 @@ fn engine_migrate_copies_the_module_into_the_hosted_engine_then_switches() {
                     .is_some_and(|t| t.contains("canary fact carried across engines"))),
             "the migrated record must exist in the hosted engine"
         );
-        // Past the keyed records, every step reports, in order. The pinned
-        // module serves documents, goals and the profile, so those ran; what it
-        // does not serve is named rather than failed.
+        // Past the keyed records, every step reports, in order, and none
+        // fails.
         let steps = status["steps"].as_array().expect("steps");
         let names: Vec<&str> = steps.iter().filter_map(|s| s["step"].as_str()).collect();
         assert_eq!(
@@ -63,6 +62,14 @@ fn engine_migrate_copies_the_module_into_the_hosted_engine_then_switches() {
         for step in steps {
             assert_eq!(step["failed"], 0, "{step}");
         }
+        // The pinned module serves `EpisodicPortability` and hosted memory
+        // takes it, so the conversation history step runs over the bus rather
+        // than being skipped.
+        let episodic = &steps[3];
+        assert!(
+            episodic["skipped_because"].is_null(),
+            "the conversation history step must run: {episodic}"
+        );
         let documents = &steps[0];
         assert!(documents["skipped_because"].is_null(), "{documents}");
         assert!(

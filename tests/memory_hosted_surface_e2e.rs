@@ -237,6 +237,80 @@ fn a_local_folder_syncs_into_hosted_memory() {
     });
 }
 
+/// Adds `folder` as a folder source and answers its id.
+async fn add_folder(fx: &Fixture, folder: &std::path::Path) -> String {
+    let v = fx
+        .call(
+            "openhuman.memory_sources_add",
+            json!({
+                "kind": "folder",
+                "label": "Notes",
+                "enabled": true,
+                "path": folder.to_string_lossy(),
+            }),
+        )
+        .await;
+    result_of(&v, "add a folder source")["source"]["id"]
+        .as_str()
+        .expect("a source id")
+        .to_string()
+}
+
+/// Whether the hosted double holds an event whose text contains `needle`.
+fn hosted_holds(fx: &Fixture, needle: &str) -> bool {
+    fx.hosted.events.lock().unwrap().iter().any(|event| {
+        event["content"]["text"]
+            .as_str()
+            .is_some_and(|text| text.contains(needle))
+    })
+}
+
+/// A file deleted from a host-synced folder is forgotten from hosted memory
+/// on the next sync, by the id the sink answered for it. A walk that finds
+/// the folder empty forgets nothing and keeps the record, so a later walk
+/// still can.
+#[test]
+fn a_file_deleted_from_a_synced_folder_is_forgotten_from_hosted_memory() {
+    run_on_big_stack("hosted-folder-delete", || async {
+        let fx = Fixture::new().await;
+        bind_hosted(&fx).await;
+        let folder = fx._tmp.path().join("deletes");
+        std::fs::create_dir_all(&folder).expect("folder");
+        std::fs::write(folder.join("tea.md"), "# Tea\n\nOolong, always.").expect("tea");
+        std::fs::write(folder.join("coffee.md"), "# Coffee\n\nNever before noon.").expect("coffee");
+        let source_id = add_folder(&fx, &folder).await;
+        let sync = || {
+            fx.call(
+                "openhuman.memory_sources_sync",
+                json!({ "source_id": source_id }),
+            )
+        };
+        result_of(&sync().await, "first sync");
+        assert!(hosted_holds(&fx, "Never before noon."), "coffee is synced");
+
+        let tea = std::fs::read_to_string(folder.join("tea.md")).expect("read tea");
+        std::fs::remove_file(folder.join("tea.md")).expect("hide tea");
+        std::fs::remove_file(folder.join("coffee.md")).expect("delete coffee");
+        result_of(&sync().await, "sync over an empty folder");
+        assert!(
+            hosted_holds(&fx, "Never before noon."),
+            "an empty walk forgets nothing"
+        );
+
+        std::fs::write(folder.join("tea.md"), tea).expect("tea is back");
+        result_of(&sync().await, "sync after the delete");
+        assert!(
+            !hosted_holds(&fx, "Never before noon."),
+            "the deleted file is forgotten by its stored id"
+        );
+        assert!(
+            hosted_holds(&fx, "Oolong, always."),
+            "the file still there stays"
+        );
+        unbind(&fx).await;
+    });
+}
+
 /// The first `documentId` anywhere in `value`.
 fn document_id(value: &serde_json::Value) -> Option<String> {
     match value {

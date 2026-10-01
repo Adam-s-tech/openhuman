@@ -10,7 +10,7 @@ use tinymemory_api::capabilities::{Capabilities, Capability};
 /// Checked against the registry pin by `the_capability_list_matches_the_pinned_release`,
 /// so bumping the pin without re-reading the list is a red test rather than a
 /// silent over-claim.
-pub(crate) const ARTIFACT_CAPABILITIES_PIN: &str = "1.21.0";
+pub(crate) const ARTIFACT_CAPABILITIES_PIN: &str = "1.21.1";
 
 /// The capability families the **pinned artifact** actually serves.
 ///
@@ -51,6 +51,11 @@ pub(crate) const ARTIFACT_CAPABILITIES_PIN: &str = "1.21.0";
 /// `ExportEpisodic` and `ImportEpisodic` members (wire slots 144 and 145) and
 /// [`ModuleMemoryProvider`] forwards, so it is advertised below in the same
 /// change, the way `Episodic` arrived with `as_episodic`.
+/// Re-read at `v1.21.1`: `git diff v1.21.0..v1.21.1 --
+/// crates/tinymemory-api/src/capabilities.rs crates/tinymemory-bus/src/capabilities.rs
+/// crates/tinymemory-bus/src/names.rs` is empty. The release fixes the hosted
+/// wire's episodic import (tinymemory#179), which the module does not serve,
+/// so the advertised families stay the same.
 ///
 /// Read at tag `v1.3.0`. Unchanged from v1.2.0 — the release added members
 /// within existing families (`retry_failed`, the diagnostics trio,
