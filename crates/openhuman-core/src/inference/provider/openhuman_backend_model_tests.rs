@@ -49,7 +49,6 @@ fn resolve_model_normalizes_blank_and_trims_non_empty_values() {
     assert_eq!(resolve_model("hint:reasoning"), "hint:reasoning");
 }
 
-
 // ── probe_readiness (B45 — flows provider-connectivity author gate) ────
 
 #[test]

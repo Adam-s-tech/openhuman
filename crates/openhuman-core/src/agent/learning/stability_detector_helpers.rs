@@ -11,7 +11,9 @@ use fs2::FileExt;
 use crate::agent::learning::candidate::{self, CueFamily, FacetClass, LearningCandidate};
 use tinymemory_api::provider::{FacetState, FacetType, ProfileFacet, UserState};
 
-use super::{class_budget, half_life, stability, RebuildState, TAU_EVICT, TAU_PROMOTE, TAU_PROVISIONAL};
+use super::{
+    class_budget, half_life, stability, RebuildState, TAU_EVICT, TAU_PROMOTE, TAU_PROVISIONAL,
+};
 
 // ── The rebuild time ──────────────────────────────────────────────────────────
 
@@ -172,7 +174,10 @@ pub(super) fn aggregate_stability(
 }
 
 /// Determine the dominant cue family (highest weight).
-pub(super) fn dominant_cue(cands: &[LearningCandidate], _existing: Option<&ProfileFacet>) -> CueFamily {
+pub(super) fn dominant_cue(
+    cands: &[LearningCandidate],
+    _existing: Option<&ProfileFacet>,
+) -> CueFamily {
     cands
         .iter()
         .max_by(|a, b| {
@@ -200,7 +205,9 @@ pub(super) fn dominant_cue(cands: &[LearningCandidate], _existing: Option<&Profi
 /// domain knowledge, not engine storage, and belongs host-side with the rest of
 /// the learning subsystem. Tracked as stage 4 in
 /// `docs/specs/2026-08-13-memory-module-port.md`.
-pub(super) fn evidence_to_contract(refs: &[candidate::EvidenceRef]) -> Vec<tinymemory_api::host::EvidenceRef> {
+pub(super) fn evidence_to_contract(
+    refs: &[candidate::EvidenceRef],
+) -> Vec<tinymemory_api::host::EvidenceRef> {
     refs.iter()
         .filter_map(|r| {
             serde_json::to_value(r)
@@ -245,7 +252,10 @@ pub(super) fn merge_evidence_refs(
 }
 
 /// Total evidence count from candidates + existing row.
-pub(super) fn total_evidence_count(cands: &[LearningCandidate], existing: Option<&ProfileFacet>) -> u32 {
+pub(super) fn total_evidence_count(
+    cands: &[LearningCandidate],
+    existing: Option<&ProfileFacet>,
+) -> u32 {
     let from_existing = existing.map(|f| f.evidence_count as u32).unwrap_or(0);
     from_existing + cands.len() as u32
 }
@@ -306,4 +316,3 @@ pub(super) fn state_from_stability(score: f64, user_state: UserState) -> FacetSt
 pub(super) fn class_prefix(class: FacetClass) -> &'static str {
     crate::agent::learning::cache::class_prefix(class)
 }
-

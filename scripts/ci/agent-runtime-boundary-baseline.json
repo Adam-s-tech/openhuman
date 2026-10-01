@@ -751,21 +751,21 @@
   {
     "rule": "openhuman-task-local",
     "path": "crates/openhuman-core/src/inference/provider/openhuman_backend_model.rs",
-    "line": 536,
+    "line": 466,
     "text": "fn with_thread_id(request: ModelRequest, thread_id: Option<&str>) -> ModelRequest {",
     "occurrence": 1
   },
   {
     "rule": "openhuman-task-local",
     "path": "crates/openhuman-core/src/inference/provider/openhuman_backend_model.rs",
-    "line": 667,
+    "line": 597,
     "text": "with_thread_id(apply_reasoning_hint(request), self.thread_id.as_deref()),",
     "occurrence": 1
   },
   {
     "rule": "openhuman-task-local",
     "path": "crates/openhuman-core/src/inference/provider/openhuman_backend_model.rs",
-    "line": 697,
+    "line": 627,
     "text": "with_thread_id(apply_reasoning_hint(request), self.thread_id.as_deref()),",
     "occurrence": 2
   },
@@ -1075,20 +1075,6 @@
     "path": "crates/openhuman-core/src/skills/types.rs",
     "line": 7,
     "text": "pub use tinytools::{ToolContent, ToolResult};",
-    "occurrence": 1
-  },
-  {
-    "rule": "openhuman-upstream-reexport",
-    "path": "crates/openhuman-core/src/tools/impl/meta/mod.rs",
-    "line": 16,
-    "text": "pub use tinytools::collapse;",
-    "occurrence": 1
-  },
-  {
-    "rule": "openhuman-upstream-reexport",
-    "path": "crates/openhuman-core/src/tools/impl/meta/mod.rs",
-    "line": 17,
-    "text": "pub use tinytools::collapse::{",
     "occurrence": 1
   },
   {
