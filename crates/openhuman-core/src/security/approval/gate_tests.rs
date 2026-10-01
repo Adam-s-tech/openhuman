@@ -1,5 +1,6 @@
 use super::*;
 use tempfile::TempDir;
+use crate::config::test_env::EnvVarGuard;
 
 /// TTL for the tests that assert the *timeout* path — the only ones that
 /// need a park to expire while the test is still running.
