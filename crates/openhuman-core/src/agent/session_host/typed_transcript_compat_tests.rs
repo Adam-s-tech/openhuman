@@ -162,7 +162,7 @@ fn an_old_session_continued_by_this_binary_reloads_identically() {
         assert!(transcript
             .messages
             .iter()
-            .any(|row| row.content.contains("call_new")));
+            .any(|row| row.tool_calls.iter().any(|call| call.id == "call_new")));
     });
 }
 
