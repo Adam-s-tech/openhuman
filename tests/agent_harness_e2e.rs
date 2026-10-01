@@ -15,8 +15,10 @@
 mod env_guard;
 #[path = "support/scripted_stack.rs"]
 mod scripted_stack;
-use scripted_stack::{assert_no_jsonrpc_error, current_user, lock_or_recover, text_completion, tool_calls_completion};
 use env_guard::EnvVarGuard;
+use scripted_stack::{
+    assert_no_jsonrpc_error, current_user, lock_or_recover, text_completion, tool_calls_completion,
+};
 use std::net::SocketAddr;
 use std::path::Path;
 use std::sync::{Mutex, OnceLock};
