@@ -7286,6 +7286,20 @@ const messages: TranslationMap = {
   'memoryEngine.dialog.copying': 'आपकी यादें कॉपी हो रही हैं…',
   'memoryEngine.dialog.progress': '{total} में से {copied} कॉपी हुईं',
   'memoryEngine.dialog.progressUnknown': 'अब तक {copied} यादें कॉपी हुईं',
+  'memoryEngine.dialog.copies':
+    'आपकी यादें, दस्तावेज़ों के शीर्षक और टैग, लक्ष्य, सीखी गई प्रोफ़ाइल और बातचीत का इतिहास कॉपी करता है।',
+  'memoryEngine.dialog.replayContent':
+    'सिंक की गई सामग्री भी दोबारा भेजें ताकि नया इंजन अपने सारांश फिर से बनाए',
+  'memoryEngine.dialog.replayContentHint': 'सामग्री दोबारा पढ़ने में OpenHuman क्रेडिट लगते हैं।',
+  'memoryEngine.dialog.stepProgress': '{step} कॉपी हो रहा है… अब तक {count}',
+  'memoryEngine.step.records': 'यादें',
+  'memoryEngine.step.documents': 'दस्तावेज़ों के शीर्षक और टैग',
+  'memoryEngine.step.goals': 'लक्ष्य',
+  'memoryEngine.step.profile': 'सीखी गई प्रोफ़ाइल',
+  'memoryEngine.step.episodic': 'बातचीत का इतिहास',
+  'memoryEngine.step.content': 'सिंक की गई सामग्री',
+  'memoryEngine.notCopied':
+    'स्विच हो गया। नया इंजन इनका समर्थन नहीं करता, इसलिए ये कॉपी नहीं हुए: {items}।',
   'memoryEngine.dialog.lacking': 'नया इंजन आपके मौजूदा इंजन की इन सुविधाओं का समर्थन नहीं करता:',
   'memoryEngine.error.insufficientCredits':
     'आपके OpenHuman क्रेडिट खत्म हो गए हैं। इस इंजन का उपयोग करने के लिए क्रेडिट जोड़ें।',

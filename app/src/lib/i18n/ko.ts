@@ -7204,6 +7204,20 @@ const messages: TranslationMap = {
   'memoryEngine.dialog.copying': '기억을 복사하는 중…',
   'memoryEngine.dialog.progress': '{total}개 중 {copied}개 복사됨',
   'memoryEngine.dialog.progressUnknown': '지금까지 기억 {copied}개 복사됨',
+  'memoryEngine.dialog.copies':
+    '기억, 문서 제목과 태그, 목표, 학습된 프로필, 대화 기록을 복사합니다.',
+  'memoryEngine.dialog.replayContent':
+    '동기화된 콘텐츠도 다시 보내 새 엔진이 요약을 다시 만들도록 하기',
+  'memoryEngine.dialog.replayContentHint': '콘텐츠를 다시 읽는 데 OpenHuman 크레딧이 사용됩니다.',
+  'memoryEngine.dialog.stepProgress': '{step} 복사 중… 지금까지 {count}개',
+  'memoryEngine.step.records': '기억',
+  'memoryEngine.step.documents': '문서 제목과 태그',
+  'memoryEngine.step.goals': '목표',
+  'memoryEngine.step.profile': '학습된 프로필',
+  'memoryEngine.step.episodic': '대화 기록',
+  'memoryEngine.step.content': '동기화된 콘텐츠',
+  'memoryEngine.notCopied':
+    '전환했습니다. 새 엔진이 다음 항목을 지원하지 않아 복사하지 않았습니다: {items}.',
   'memoryEngine.dialog.lacking': '새 엔진은 현재 엔진의 다음 기능을 지원하지 않습니다:',
   'memoryEngine.error.insufficientCredits':
     'OpenHuman 크레딧이 모두 소진되었습니다. 이 엔진을 사용하려면 크레딧을 추가하세요.',

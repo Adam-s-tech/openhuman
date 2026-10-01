@@ -7358,6 +7358,21 @@ const messages: TranslationMap = {
   'memoryEngine.dialog.copying': 'Копирование ваших воспоминаний…',
   'memoryEngine.dialog.progress': 'Скопировано {copied} из {total}',
   'memoryEngine.dialog.progressUnknown': 'Скопировано воспоминаний: {copied}',
+  'memoryEngine.dialog.copies':
+    'Копирует ваши воспоминания, названия и теги документов, цели, изученный профиль и историю разговоров.',
+  'memoryEngine.dialog.replayContent':
+    'Также заново отправить синхронизированные материалы, чтобы новый движок пересобрал свои сводки',
+  'memoryEngine.dialog.replayContentHint':
+    'Повторное чтение материалов расходует кредиты OpenHuman.',
+  'memoryEngine.dialog.stepProgress': 'Копирование: {step}… пока {count}',
+  'memoryEngine.step.records': 'воспоминания',
+  'memoryEngine.step.documents': 'названия и теги документов',
+  'memoryEngine.step.goals': 'цели',
+  'memoryEngine.step.profile': 'изученный профиль',
+  'memoryEngine.step.episodic': 'история разговоров',
+  'memoryEngine.step.content': 'синхронизированные материалы',
+  'memoryEngine.notCopied':
+    'Переключено. Новый движок не поддерживает следующее, поэтому это не скопировано: {items}.',
   'memoryEngine.dialog.lacking': 'Новый движок не поддерживает эти функции вашего текущего движка:',
   'memoryEngine.error.insufficientCredits':
     'Кредиты OpenHuman закончились. Пополните кредиты, чтобы использовать этот движок.',

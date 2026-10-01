@@ -170,13 +170,21 @@ pub(super) fn schema(function: &str) -> Option<ControllerSchema> {
         "engine_migrate" => ControllerSchema {
             namespace: "memory",
             function: "engine_migrate",
-            description: "Copy every memory from the active engine into another, then switch to it. Returns a job id; poll engine_migrate_status.",
-            inputs: vec![field(
-                "to",
-                TypeSchema::Json,
-                "The target engine: { driver, endpoint?, deployment?, api_key? }.",
-                true,
-            )],
+            description: "Copy every memory from the active engine into another, then switch to it: the stored memories, document titles and tags, goals, the learned profile, the conversation history and, unless replay_content is false, the ingested content, re-sent so the new engine rebuilds its summaries. Returns a job id; poll engine_migrate_status.",
+            inputs: vec![
+                field(
+                    "to",
+                    TypeSchema::Json,
+                    "The target engine: { driver, endpoint?, deployment?, api_key? }.",
+                    true,
+                ),
+                field(
+                    "replay_content",
+                    TypeSchema::Bool,
+                    "Re-send ingested content so the new engine rebuilds its summary tree; hosted memory bills for the content it reads again. Default true.",
+                    false,
+                ),
+            ],
             outputs: vec![field("job_id", TypeSchema::String, "Migration job id.", true)],
         },
         "engine_migrate_status" => ControllerSchema {
@@ -185,10 +193,15 @@ pub(super) fn schema(function: &str) -> Option<ControllerSchema> {
             description: "Progress of an engine migration job.",
             inputs: vec![field("job_id", TypeSchema::String, "Id returned by engine_migrate.", true)],
             outputs: vec![
-                field("state", TypeSchema::String, "running | done | failed.", true),
+                field("state", TypeSchema::String, "running | done | failed | cancelled.", true),
                 field("copied", TypeSchema::U64, "Records copied so far.", true),
                 field("total", TypeSchema::Option(Box::new(TypeSchema::U64)), "Total records when known; null otherwise.", false),
                 field("error", opt_string(), "Failure reason; null unless failed.", false),
+                field("note", opt_string(), "Caveat on a finished job; null otherwise.", false),
+                field("step", opt_string(), "The step under way, or the last one: records | documents | goals | profile | episodic | content.", false),
+                field("step_read", TypeSchema::U64, "Items the step under way has read.", true),
+                field("step_written", TypeSchema::U64, "Items the step under way has written.", true),
+                field("steps", TypeSchema::Json, "What each step after the records did, once the copy finished: [{ step, skipped_because, read, written, unchanged, failed, errors }].", true),
             ],
         },
         "engine_migrate_cancel" => ControllerSchema {

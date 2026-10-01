@@ -7283,6 +7283,20 @@ const messages: TranslationMap = {
   'memoryEngine.dialog.copying': 'আপনার স্মৃতি কপি হচ্ছে…',
   'memoryEngine.dialog.progress': '{total}টির মধ্যে {copied}টি কপি হয়েছে',
   'memoryEngine.dialog.progressUnknown': 'এখন পর্যন্ত {copied}টি স্মৃতি কপি হয়েছে',
+  'memoryEngine.dialog.copies':
+    'আপনার স্মৃতি, ডকুমেন্টের শিরোনাম ও ট্যাগ, লক্ষ্য, শেখা প্রোফাইল এবং কথোপকথনের ইতিহাস কপি করে।',
+  'memoryEngine.dialog.replayContent':
+    'সিঙ্ক করা কনটেন্টও আবার পাঠান, যাতে নতুন ইঞ্জিন তার সারাংশ নতুন করে তৈরি করে',
+  'memoryEngine.dialog.replayContentHint': 'কনটেন্ট আবার পড়তে OpenHuman ক্রেডিট খরচ হয়।',
+  'memoryEngine.dialog.stepProgress': '{step} কপি হচ্ছে… এখন পর্যন্ত {count}',
+  'memoryEngine.step.records': 'স্মৃতি',
+  'memoryEngine.step.documents': 'ডকুমেন্টের শিরোনাম ও ট্যাগ',
+  'memoryEngine.step.goals': 'লক্ষ্য',
+  'memoryEngine.step.profile': 'শেখা প্রোফাইল',
+  'memoryEngine.step.episodic': 'কথোপকথনের ইতিহাস',
+  'memoryEngine.step.content': 'সিঙ্ক করা কনটেন্ট',
+  'memoryEngine.notCopied':
+    'পরিবর্তন হয়েছে। নতুন ইঞ্জিন এগুলো সমর্থন করে না, তাই কপি করা হয়নি: {items}।',
   'memoryEngine.dialog.lacking':
     'নতুন ইঞ্জিন আপনার বর্তমান ইঞ্জিনের এই বৈশিষ্ট্যগুলো সমর্থন করে না:',
   'memoryEngine.error.insufficientCredits':
