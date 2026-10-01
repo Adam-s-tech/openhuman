@@ -14,7 +14,8 @@ use tinyagents_runtime::command_hooks::context::{
     build_input, set_host_context, HostContext, TurnIdentity,
 };
 use tinyagents_runtime::command_hooks::types::{
-    HookEvent, HookPayload, PromptPayload, SubagentPayload,
+    CompactPayload, HookEvent, HookPayload, PromptPayload, SessionPayload, SubagentPayload,
+    TextPayload,
 };
 
 /// Bring the hook system up: resolve host facts, read every `hooks.json`, and
@@ -64,6 +65,51 @@ fn workspace_roots(config: &crate::config::schema::Config) -> Vec<PathBuf> {
         }
     }
     roots
+}
+
+/// Fire `sessionStart`, returning context the caller should append to the
+/// session's system prompt.
+pub async fn session_started(identity: TurnIdentity, entrypoint: Option<String>) -> Option<String> {
+    let engine = super::host::engine();
+    if !engine.has_hooks(HookEvent::SessionStart).await {
+        return None;
+    }
+    let input = build_input(
+        HookEvent::SessionStart,
+        identity,
+        HookPayload::Session(SessionPayload {
+            entrypoint,
+            reason: None,
+            duration_ms: None,
+        }),
+    );
+    engine
+        .dispatch(HookEvent::SessionStart, input)
+        .await
+        .output
+        .additional_context
+}
+
+/// Fire `sessionEnd` and release everything scoped to the session.
+pub async fn session_ended(identity: TurnIdentity, reason: &str, duration_ms: Option<u64>) {
+    let engine = super::host::engine();
+    let session_id = identity.session_id.clone();
+    if engine.has_hooks(HookEvent::SessionEnd).await {
+        let input = build_input(
+            HookEvent::SessionEnd,
+            identity,
+            HookPayload::Session(SessionPayload {
+                entrypoint: None,
+                reason: Some(reason.to_string()),
+                duration_ms,
+            }),
+        );
+        engine.dispatch(HookEvent::SessionEnd, input).await;
+    }
+    if let Some(session_id) = session_id {
+        engine.forget_session(&session_id).await;
+        tinyagents_runtime::command_hooks::followup::forget(&session_id).await;
+    }
 }
 
 /// The verdict on a submitted prompt.
@@ -118,6 +164,33 @@ pub async fn prompt_submitted(
     }
 }
 
+/// Fire `preCompact`, returning a message for the user if a hook set one.
+pub async fn pre_compact(
+    identity: TurnIdentity,
+    trigger: &str,
+    context_usage_percent: Option<f64>,
+    message_count: Option<usize>,
+) -> Option<String> {
+    let engine = super::host::engine();
+    if !engine.has_hooks(HookEvent::PreCompact).await {
+        return None;
+    }
+    let input = build_input(
+        HookEvent::PreCompact,
+        identity,
+        HookPayload::Compact(CompactPayload {
+            trigger: trigger.to_string(),
+            context_usage_percent,
+            message_count,
+        }),
+    );
+    engine
+        .dispatch(HookEvent::PreCompact, input)
+        .await
+        .output
+        .user_message
+}
+
 /// Fire `subagentStart`. `Err` carries the reason the child must not run.
 pub async fn subagent_starting(
     identity: TurnIdentity,
@@ -144,4 +217,52 @@ pub async fn subagent_starting(
         Some(reason) => Err(reason.to_string()),
         None => Ok(()),
     }
+}
+
+/// Fire `subagentStop`, returning a follow-up the parent may act on.
+pub async fn subagent_stopped(
+    identity: TurnIdentity,
+    subagent_type: &str,
+    task: &str,
+    status: &str,
+    duration_ms: Option<u64>,
+) -> Option<String> {
+    let engine = super::host::engine();
+    if !engine.has_hooks(HookEvent::SubagentStop).await {
+        return None;
+    }
+    let input = build_input(
+        HookEvent::SubagentStop,
+        identity.clone(),
+        HookPayload::Subagent(SubagentPayload {
+            subagent_type: subagent_type.to_string(),
+            task: task.to_string(),
+            parent_conversation_id: identity.conversation_id,
+            status: Some(status.to_string()),
+            duration_ms,
+        }),
+    );
+    engine
+        .dispatch(HookEvent::SubagentStop, input)
+        .await
+        .output
+        .followup_message
+}
+
+/// Fire `afterAgentThought`. Observational, so this returns as soon as the
+/// hooks are scheduled.
+pub async fn agent_thought(identity: TurnIdentity, text: &str, duration_ms: Option<u64>) {
+    let engine = super::host::engine();
+    if !engine.has_hooks(HookEvent::AfterAgentThought).await {
+        return;
+    }
+    let input = build_input(
+        HookEvent::AfterAgentThought,
+        identity,
+        HookPayload::Text(TextPayload {
+            text: text.to_string(),
+            duration_ms,
+        }),
+    );
+    engine.dispatch(HookEvent::AfterAgentThought, input).await;
 }
