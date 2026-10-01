@@ -54,7 +54,7 @@ fn real_card_test_numbers_are_redacted() {
     for card in ["4111111111111111", "5555555555554444"] {
         let out = sanitize_text(&format!("pay with {card} now"));
         assert!(!out.value.contains(card), "{card} survived: {}", out.value);
-        assert!(out.changed());
+        assert!(out.report.changed());
     }
 }
 
