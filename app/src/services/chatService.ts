@@ -8,6 +8,7 @@
  */
 import debug from 'debug';
 
+import type { ChatErrorCopyParams } from '../lib/chatErrorCopy';
 import { callCoreRpc } from './coreRpcClient';
 import { socketService } from './socketService';
 

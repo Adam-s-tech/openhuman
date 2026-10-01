@@ -385,6 +385,13 @@ function chatTurnUsagePayload(event: ChatDoneEvent): {
 
 const ChatRuntimeProvider = ({ children }: { children: React.ReactNode }) => {
   const dispatch = useAppDispatch();
+  // Latest translator for the long-lived socket handlers below: a failed turn's
+  // copy is rendered in the locale active when the error arrives.
+  const { t } = useT();
+  const tRef = useRef(t);
+  useEffect(() => {
+    tRef.current = t;
+  }, [t]);
   const { refetch: refetchSnapshot } = useRefetchSnapshotOnTurnEnd();
   const socketStatus = useAppSelector(selectSocketStatus);
   // The core's run queue (`queue_item_*`) → `queueSlice` → the composer queue.
@@ -1833,7 +1840,7 @@ const ChatRuntimeProvider = ({ children }: { children: React.ReactNode }) => {
               segmentDeliveriesRef.current,
               segmentDeliveryKey(event.thread_id, event.request_id)
             );
-            const errorContent = event.message || '';
+            const errorContent = chatErrorCopyText(event, tRef.current) || '';
             void dispatch(
               addInferenceResponse({
                 content: errorContent,
@@ -1882,7 +1889,7 @@ const ChatRuntimeProvider = ({ children }: { children: React.ReactNode }) => {
           // surfacing it tells the user *why* the turn failed instead of a blanket apology.
           // An empty message still becomes an error-status row; assistant-ui
           // supplies its own fallback in the error card.
-          const errorContent = event.message || '';
+          const errorContent = chatErrorCopyText(event, tRef.current) || '';
           // A core-owned failure carries a deterministic id, so dedupe on that
           // rather than on the text. Two runs can fail with byte-identical
           // content — the same upstream provider message, or the generic
