@@ -2023,6 +2023,60 @@ async fn worker_a_controller_schemas_are_fully_exposed() {
         );
     }
 
+    // Inference/agent/tools/approval methods must also be advertised.
+    let advertised: Vec<String> = schema
+        .get("methods")
+        .and_then(Value::as_array)
+        .expect("schema methods array")
+        .iter()
+        .filter_map(|method| method.get("method").and_then(Value::as_str))
+        .map(str::to_string)
+        .collect();
+    for expected in [
+        "openhuman.inference_status",
+        "openhuman.inference_get_client_config",
+        "openhuman.inference_update_model_settings",
+        "openhuman.inference_update_local_settings",
+        "openhuman.inference_list_models",
+        "openhuman.inference_device_profile",
+        "openhuman.inference_presets",
+        "openhuman.inference_apply_preset",
+        "openhuman.inference_diagnostics",
+        "openhuman.inference_openai_oauth_start",
+        "openhuman.inference_openai_oauth_complete",
+        "openhuman.inference_openai_oauth_status",
+        "openhuman.inference_openai_oauth_disconnect",
+        "openhuman.inference_summarize",
+        "openhuman.inference_prompt",
+        "openhuman.inference_vision_prompt",
+        "openhuman.inference_test_provider_model",
+        "openhuman.inference_analyze_sentiment",
+        "openhuman.agent_chat",
+        "openhuman.agent_chat_simple",
+        "openhuman.agent_server_status",
+        "openhuman.agent_list_definitions",
+        "openhuman.agent_get_definition",
+        "openhuman.agent_reload_definitions",
+        "openhuman.agent_triage_evaluate",
+        "openhuman.tools_composio_execute",
+        "openhuman.tools_web_search",
+        "openhuman.tools_web_answer",
+        "openhuman.tools_web_contents",
+        "openhuman.tools_searxng_search",
+        "openhuman.tools_apify_linkedin_scrape",
+        "openhuman.tool_registry_list",
+        "openhuman.tool_registry_get",
+        "openhuman.tool_registry_diagnostics",
+        "openhuman.approval_list_pending",
+        "openhuman.approval_list_recent_decisions",
+        "openhuman.approval_decide",
+    ] {
+        assert!(
+            advertised.iter().any(|method| method == expected),
+            "schema catalog must expose {expected}"
+        );
+    }
+
     let unknown_app_state = app_state_schemas("missing");
     assert_eq!(unknown_app_state.namespace, "app_state");
     assert_eq!(unknown_app_state.function, "unknown");
