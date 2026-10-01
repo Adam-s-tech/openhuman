@@ -17,9 +17,9 @@ use tinyflows::caps::*;
 use tinyflows::error::{EngineError, Result};
 
 use super::*;
-use tinyagents_session::transcript::TranscriptMessage;
 use crate::config::Config;
 use crate::inference::provider::{is_raw_passthrough_model, UsageInfo};
+use tinyagents_session::transcript::TranscriptMessage;
 use tinyflows::nodes::integration::agent_prompt;
 
 /// [`agent_prompt::build_completion_messages`] mapped onto the host's

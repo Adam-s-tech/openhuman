@@ -6,7 +6,6 @@
 
 use super::subagent_abort_report::AbortReport;
 use crate::agent::harness::definition::AgentDefinitionRegistry;
-use tinyagents_session::transcript::TranscriptMessage;
 use crate::agent::orchestration::fleet_tools::FleetToolSet;
 use crate::agent::orchestration::running_subagents::{self, SubagentStatus};
 use crate::agent::orchestration::subagent_sessions::{
@@ -24,6 +23,7 @@ use std::sync::Arc;
 use tinyagents_harness::context::{RunConfig, RunContext};
 use tinyagents_harness::run_queue::RunQueue;
 use tinyagents_harness::tool::{ToolDispatch, ToolExecutionContext};
+use tinyagents_session::transcript::TranscriptMessage;
 use tinytools::ToolRunContext;
 use tinytools::{PermissionLevel, Tool, ToolCallOptions, ToolResult};
 

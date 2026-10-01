@@ -1,11 +1,11 @@
 //! Shared channel runtime state and memory helpers.
 
-use tinyagents_session::transcript::TranscriptMessage;
 use crate::agent::tinyagents::TurnModelSource;
 use crate::util::truncate_with_ellipsis;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
+use tinyagents_session::transcript::TranscriptMessage;
 use tinytools::Tool;
 
 pub(crate) use tinychannels::context::{

@@ -17,7 +17,6 @@ use tinyagents_registry::DiagnosticSeverity;
 
 use crate::agent::harness::tool_result_artifacts::TINYAGENTS_TOOL_RESULT_ARTIFACT_STORE;
 use crate::agent::harness::MAX_SPAWN_DEPTH;
-use tinyagents_session::transcript::TranscriptMessage;
 use crate::agent::tinyagents::harness_assembly::{assemble_turn_harness, AssembledTurnHarness};
 use crate::agent::tinyagents::host::steering::shared_steering_registry;
 use crate::agent::tinyagents::host::OpenHumanRunContext;
@@ -31,6 +30,7 @@ use crate::agent::tinyagents::turn_run_finalize::finalize_turn_outcome;
 use crate::agent::tinyagents::{journal, routes, steering_forwarder};
 use tinyagents_harness::ids::TaskId;
 use tinyagents_harness::run_queue::RunQueue;
+use tinyagents_session::transcript::TranscriptMessage;
 
 use super::ToolPolicyEnforcement;
 

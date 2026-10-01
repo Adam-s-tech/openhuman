@@ -1,10 +1,10 @@
 use anyhow::Result;
-use tinyagents_session::transcript::TranscriptMessage;
 use openhuman_core::agent::multimodal::{
     contains_image_markers, count_image_markers, extract_ollama_image_payload, parse_image_markers,
     prepare_messages_for_provider,
 };
 use openhuman_core::config::{MultimodalConfig, MultimodalFileConfig};
+use tinyagents_session::transcript::TranscriptMessage;
 
 #[test]
 fn marker_helpers_cover_mixed_content_and_payload_extraction() {
@@ -100,7 +100,9 @@ async fn prepare_messages_rejects_invalid_data_uri_forms() {
         .to_string()
         .contains("only base64 data URIs are supported"));
 
-    let invalid_mime = vec![TranscriptMessage::user("bad [IMAGE:data:text/plain;base64,YQ==]")];
+    let invalid_mime = vec![TranscriptMessage::user(
+        "bad [IMAGE:data:text/plain;base64,YQ==]",
+    )];
     let err = prepare_messages_for_provider(
         &invalid_mime,
         &MultimodalConfig::default(),
@@ -110,7 +112,9 @@ async fn prepare_messages_rejects_invalid_data_uri_forms() {
     .expect_err("unsupported mime should fail");
     assert!(err.to_string().contains("MIME type is not allowed"));
 
-    let invalid_base64 = vec![TranscriptMessage::user("bad [IMAGE:data:image/png;base64,%%%]")];
+    let invalid_base64 = vec![TranscriptMessage::user(
+        "bad [IMAGE:data:image/png;base64,%%%]",
+    )];
     let err = prepare_messages_for_provider(
         &invalid_base64,
         &MultimodalConfig::default(),

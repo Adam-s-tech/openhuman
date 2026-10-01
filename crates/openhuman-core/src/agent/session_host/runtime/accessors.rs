@@ -3,12 +3,12 @@
 //! (which rebuilds the tool policy snapshot on every change).
 
 use super::super::types::{OpenHumanSessionHost, SessionHostBuilder};
-use tinytools_agent::dialect::TranscriptEntry;
 use crate::memory::Memory;
 use crate::tools::agent_policy::ToolPolicyEngine;
 use std::collections::HashSet;
 use std::sync::Arc;
 use tinytools::{Tool, ToolSpec};
+use tinytools_agent::dialect::TranscriptEntry;
 
 impl OpenHumanSessionHost {
     // ─────────────────────────────────────────────────────────────────
@@ -288,7 +288,9 @@ impl OpenHumanSessionHost {
                     .iter()
                     .filter_map(crate::agent::message_convert::message_to_native_chat_message)
                     .map(|row| {
-                        TranscriptEntry::Chat(crate::agent::message_convert::row_to_dialect_message(row))
+                        TranscriptEntry::Chat(
+                            crate::agent::message_convert::row_to_dialect_message(row),
+                        )
                     })
                     .collect()
             })

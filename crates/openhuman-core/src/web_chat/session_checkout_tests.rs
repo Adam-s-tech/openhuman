@@ -14,12 +14,12 @@ use super::{
     checkin_session_agent, checkin_session_agent_if_vacant, checkout_session_agent,
     fingerprint_diff, CheckedOutSession, CheckoutPolicy,
 };
-use tinyagents_session::transcript::TranscriptMessage;
-use tinytools_agent::dialect::TranscriptEntry;
 use crate::agent::OpenHumanSessionHost;
 use crate::config::Config;
 use crate::web_chat::ops::{key_for, THREAD_SESSIONS};
 use crate::web_chat::types::SessionCacheFingerprint;
+use tinyagents_session::transcript::TranscriptMessage;
+use tinytools_agent::dialect::TranscriptEntry;
 
 fn test_config(tmp: &tempfile::TempDir) -> Config {
     let config = Config {

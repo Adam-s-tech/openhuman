@@ -35,10 +35,10 @@ use std::time::Duration;
 use async_trait::async_trait;
 use reqwest::Client;
 
-use tinyagents_session::transcript::TranscriptMessage;
 use crate::config::{
     build_runtime_proxy_client_with_timeouts, MultimodalConfig, MultimodalFileConfig,
 };
+use tinyagents_session::transcript::TranscriptMessage;
 
 use tinyagents_harness::multimodal::{
     self as mm,

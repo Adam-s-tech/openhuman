@@ -265,7 +265,9 @@ fn extract_workflow_proposal_finds_last_proposal_tool_result() {
     let history = vec![
         TranscriptMessage::user("build me a workflow"),
         TranscriptMessage::tool(r#"{"type":"something_else","x":1}"#),
-        TranscriptMessage::tool(r#"{"type":"workflow_proposal","persisted":false,"name":"Old Draft"}"#),
+        TranscriptMessage::tool(
+            r#"{"type":"workflow_proposal","persisted":false,"name":"Old Draft"}"#,
+        ),
         TranscriptMessage::assistant("revising…"),
         TranscriptMessage::tool(
             r#"{"type":"workflow_proposal","persisted":false,"name":"Daily X Trending Email"}"#,

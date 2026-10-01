@@ -521,7 +521,9 @@ async fn turn_preserves_text_alongside_tool_calls() {
     // that accompanied the tool call (the unified tinyagents representation
     // keeps the preface text on the tool-call turn).
     let has_intermediate = agent.history().iter().any(|msg| match msg {
-        TranscriptEntry::Chat(c) => c.role.as_str() == "assistant" && c.content.contains("Let me check"),
+        TranscriptEntry::Chat(c) => {
+            c.role.as_str() == "assistant" && c.content.contains("Let me check")
+        }
         TranscriptEntry::AssistantToolCalls { text, .. } => {
             text.as_deref().is_some_and(|t| t.contains("Let me check"))
         }

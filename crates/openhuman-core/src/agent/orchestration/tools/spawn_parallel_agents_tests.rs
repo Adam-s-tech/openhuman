@@ -4,7 +4,6 @@ use crate::agent::harness::definition::{
     AgentDefinition, AgentTier, DefinitionSource, ModelSpec, PromptSource, SandboxMode, ToolScope,
 };
 use crate::agent::harness::fork_context::{with_parent_context, ParentExecutionContext};
-use tinytools_agent::dialect::TranscriptEntry;
 use crate::agent::orchestration::spawn_parallel_graph::{
     prepare_spawn_parallel_tasks_from_defs, ParallelTaskRejectionKind, SpawnParallelTaskPreflight,
     WorkerDispatchMode,
@@ -29,6 +28,7 @@ use tinyinference_llm::tool::ToolCall;
 use tinytools::ToolTimeout;
 use tinytools::{PermissionLevel, Tool, ToolResult};
 use tinytools_agent::dialect::NativeDialect;
+use tinytools_agent::dialect::TranscriptEntry;
 use tokio::time::{sleep, timeout, Duration};
 
 const PARENT_PROMPT_CANARY: &str = "parallel-fanout-e2e-canary";

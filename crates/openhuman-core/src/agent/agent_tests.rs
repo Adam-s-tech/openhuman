@@ -24,7 +24,6 @@
 //!  19. Builder validation (missing required fields)
 //!  20. Idempotent system prompt insertion
 
-use tinytools_agent::dialect::TranscriptEntry;
 use crate::agent::session_host::OpenHumanSessionHost;
 use crate::config::AgentConfig;
 use crate::inference::provider::ChatResponse;
@@ -35,6 +34,7 @@ use std::sync::{Arc, Mutex};
 use tinyinference_llm::model::{ChatModel, ModelProfile, ModelRequest, ModelResponse};
 use tinytools::{Tool, ToolResult};
 use tinytools_agent::dialect::NativeToolCall;
+use tinytools_agent::dialect::TranscriptEntry;
 use tinytools_agent::dialect::{NativeDialect, ToolDialect, XmlDialect};
 
 // ═══════════════════════════════════════════════════════════════════════════

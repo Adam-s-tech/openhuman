@@ -1,8 +1,8 @@
 //! Persisting a sub-agent turn's (or a failed run's) raw transcript to
 //! `session_raw`, mirroring the removed `SubagentObserver::persist_transcript`.
 
-use tinyagents_session::transcript::TranscriptMessage;
 use crate::agent::subagent_host::types::SubagentRunError;
+use tinyagents_session::transcript::TranscriptMessage;
 
 use super::dispatch::AggregatedUsage;
 use super::worker_mirror::mirror_worker_thread_from_history;

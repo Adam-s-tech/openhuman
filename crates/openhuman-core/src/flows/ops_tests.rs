@@ -578,8 +578,8 @@ fn readonly_graph() -> Value {
 // ─────────────────────────────────────────────────────────────────────────────
 
 fn builder_tool_call(id: &str, name: &str) -> tinytools_agent::dialect::TranscriptEntry {
-    use tinytools_agent::dialect::TranscriptEntry;
     use tinytools_agent::dialect::NativeToolCall;
+    use tinytools_agent::dialect::TranscriptEntry;
     TranscriptEntry::AssistantToolCalls {
         text: None,
         tool_calls: vec![NativeToolCall {
@@ -593,14 +593,12 @@ fn builder_tool_call(id: &str, name: &str) -> tinytools_agent::dialect::Transcri
     }
 }
 
-fn builder_tool_result(
-    call_id: &str,
-    content: &str,
-) -> tinytools_agent::dialect::TranscriptEntry {
+fn builder_tool_result(call_id: &str, content: &str) -> tinytools_agent::dialect::TranscriptEntry {
     use tinytools_agent::dialect::{ToolResultEntry, TranscriptEntry};
     TranscriptEntry::ToolResults(vec![ToolResultEntry {
         tool_call_id: call_id.to_string(),
-        content: content.to_string(), trusted_verbatim: false,
+        content: content.to_string(),
+        trusted_verbatim: false,
     }])
 }
 

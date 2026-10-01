@@ -1,16 +1,14 @@
 use super::*;
-use tinyagents_session::transcript::TranscriptMessage;
 use std::fs;
 use std::path::Path;
 use tempfile::TempDir;
+use tinyagents_session::transcript::TranscriptMessage;
 use tinyagents_session::transcript::{read_transcript, write_transcript, TranscriptMeta};
 
 fn durable_messages(
     messages: impl IntoIterator<Item = TranscriptMessage>,
 ) -> Vec<tinyagents_session::transcript::TranscriptMessage> {
-    messages
-        .into_iter()
-        .collect()
+    messages.into_iter().collect()
 }
 
 /// Simulate a v3 user config: narrow allowed_commands, narrow auto_approve,

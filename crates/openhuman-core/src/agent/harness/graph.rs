@@ -32,11 +32,11 @@ use std::sync::Arc;
 use anyhow::Result;
 use tokio::sync::mpsc::Sender;
 
-use tinyagents_session::transcript::TranscriptMessage;
 use crate::agent::progress::AgentProgress;
 use crate::agent::tinyagents::run_turn_via_tinyagents_shared;
 use crate::agent::tinyagents::TurnModelSource;
 use crate::config::{MultimodalConfig, MultimodalFileConfig};
+use tinyagents_session::transcript::TranscriptMessage;
 use tinytools::Tool;
 
 /// Drive a channel/CLI turn on the graph engine. Returns the explicit turn

@@ -6,9 +6,9 @@ use super::super::context::{
 };
 use super::super::traits;
 use super::common::DummyModel;
-use tinyagents_session::transcript::TranscriptMessage;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
+use tinyagents_session::transcript::TranscriptMessage;
 
 #[test]
 fn effective_channel_message_timeout_secs_clamps_to_minimum() {
@@ -63,9 +63,9 @@ fn compact_sender_history_keeps_recent_truncated_messages() {
 
     let ctx = ChannelRuntimeContext {
         channels_by_name: Arc::new(HashMap::new()),
-        turn_model_source: Some(crate::agent::tinyagents::TurnModelSource::from_model(Arc::new(
-            DummyModel,
-        ))),
+        turn_model_source: Some(crate::agent::tinyagents::TurnModelSource::from_model(
+            Arc::new(DummyModel),
+        )),
         default_provider: Arc::new("test-provider".to_string()),
         memory: Arc::new(super::common::NoopMemory),
         tools_registry: Arc::new(vec![]),
@@ -84,8 +84,7 @@ fn compact_sender_history_keeps_recent_truncated_messages() {
         multimodal: crate::config::MultimodalConfig::default(),
         multimodal_files: crate::config::MultimodalFileConfig::default(),
         config: None,
-        provider_runtime_options:
-            crate::inference::provider::ProviderRuntimeOptions::default(),
+        provider_runtime_options: crate::inference::provider::ProviderRuntimeOptions::default(),
         workspace_dir: Arc::new(std::env::temp_dir()),
         message_timeout_secs: CHANNEL_MESSAGE_TIMEOUT_SECS,
     };

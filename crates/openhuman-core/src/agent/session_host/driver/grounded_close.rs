@@ -7,8 +7,8 @@
 //! its usage in a sidecar; it never owns transcript history or persistence.
 
 use futures::StreamExt;
-use tinyinference_llm::model::{ModelRequest, ModelStreamItem};
 use tinyagents_session::transcript::TranscriptMessage;
+use tinyinference_llm::model::{ModelRequest, ModelStreamItem};
 use tinytools_agent::dialect::ToolDialect;
 
 use crate::agent::{

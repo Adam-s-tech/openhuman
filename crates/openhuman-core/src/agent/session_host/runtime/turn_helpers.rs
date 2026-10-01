@@ -3,9 +3,9 @@
 
 use super::super::types::OpenHumanSessionHost;
 use crate::agent::error::AgentError;
-use tinytools_agent::dialect::TranscriptEntry;
 use crate::util::truncate_with_ellipsis;
 use tinytools_agent::dialect::NativeToolCall;
+use tinytools_agent::dialect::TranscriptEntry;
 use tinytools_agent::ParsedToolCall;
 
 impl OpenHumanSessionHost {
@@ -15,9 +15,7 @@ impl OpenHumanSessionHost {
     // Static helpers for turn parsing + telemetry
     // ─────────────────────────────────────────────────────────────────
 
-    pub(in crate::agent::session_host) fn count_iterations(
-        messages: &[TranscriptEntry],
-    ) -> usize {
+    pub(in crate::agent::session_host) fn count_iterations(messages: &[TranscriptEntry]) -> usize {
         messages
             .iter()
             .filter(|message| matches!(message, TranscriptEntry::AssistantToolCalls { .. }))

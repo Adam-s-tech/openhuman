@@ -14,12 +14,12 @@ use axum::response::IntoResponse;
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use openhuman_core::config::Config;
-use tinyagents_session::transcript::TranscriptMessage;
 use openhuman_core::inference::host_runtime::LocalAiService;
 use openhuman_core::inference::provider::types::{ChatRequest, ProviderDelta};
-use tinytools::ToolSpec;
 use serde_json::{json, Value};
 use tempfile::{tempdir, TempDir};
+use tinyagents_session::transcript::TranscriptMessage;
+use tinytools::ToolSpec;
 
 #[derive(Clone, Default)]
 struct MockState {
@@ -81,7 +81,7 @@ fn __shared_env_lock() -> std::sync::MutexGuard<'static, ()> {
         .unwrap_or_else(|poisoned| poisoned.into_inner())
 }
 
- #[tokio::test]
+#[tokio::test]
 async fn local_service_covers_mocked_bootstrap_assets_diagnostics_and_embed() {
     let _env_lock = __shared_env_lock();
     let tmp = tempdir().expect("tempdir");
@@ -121,7 +121,10 @@ async fn local_service_covers_mocked_bootstrap_assets_diagnostics_and_embed() {
         Some("ollama://gemma3:1b-it-qat")
     );
 
-    let assets = service.assets_status(&runtime).await.expect("assets status");
+    let assets = service
+        .assets_status(&runtime)
+        .await
+        .expect("assets status");
     assert_eq!(assets.chat.state, "ready");
     assert_eq!(assets.embedding.state, "ready");
     assert_eq!(assets.vision.state, "disabled");

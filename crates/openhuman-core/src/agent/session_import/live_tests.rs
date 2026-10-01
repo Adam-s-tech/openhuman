@@ -15,7 +15,6 @@ use tinyagents_harness::store::{AppendStore, FileStore, JsonlAppendStore, Store}
 
 use super::live::{dual_write_enabled, shadow_reads_enabled};
 use super::projector::journal_message_from_transcript as project;
-use tinyagents_session::transcript::TranscriptMessage;
 use tinyagents_session::transcript::import::convert::{
     journal_messages as journal_messages_with, sanitize_store_name, stream_name,
 };
@@ -27,6 +26,7 @@ use tinyagents_session::transcript::import::ops::store_root;
 use tinyagents_session::transcript::import::types::{
     JournalMessage, SessionDescriptor, NS_SESSIONS,
 };
+use tinyagents_session::transcript::TranscriptMessage;
 use tinyagents_session::transcript::{
     read_transcript, write_transcript, MessageUsage, SessionTranscript, TranscriptMeta,
     TranscriptToolCall, TurnUsage,
@@ -145,7 +145,10 @@ async fn live_dual_write_matches_legacy_jsonl_render() {
     // A user turn + an assistant turn. The base messages carry no usage
     // metadata: the legacy writer embeds it from its `turn_usage` argument,
     // exactly as `persist_session_transcript` does in production.
-    let base_messages = vec![TranscriptMessage::user("hi"), TranscriptMessage::assistant("done")];
+    let base_messages = vec![
+        TranscriptMessage::user("hi"),
+        TranscriptMessage::assistant("done"),
+    ];
     let meta = meta("t-root");
     let usage = turn_usage();
 
@@ -376,7 +379,10 @@ async fn shadow_read_unavailable_and_divergence() {
     let legacy = SessionTranscript {
         tools: None,
         meta: meta.clone(),
-        messages: durable_messages(&[TranscriptMessage::user("hi"), TranscriptMessage::assistant("done")]),
+        messages: durable_messages(&[
+            TranscriptMessage::user("hi"),
+            TranscriptMessage::assistant("done"),
+        ]),
     };
     assert_eq!(
         shadow_read_compare(ws.path(), stem, &legacy).await,
@@ -487,7 +493,10 @@ async fn shadow_read_matches_across_the_legacy_date_grouped_layout() {
     std::fs::create_dir_all(&dated_dir).expect("create legacy dated dir");
     let jsonl_path = dated_dir.join(format!("{stem}.jsonl"));
 
-    let base_messages = vec![TranscriptMessage::user("hi"), TranscriptMessage::assistant("done")];
+    let base_messages = vec![
+        TranscriptMessage::user("hi"),
+        TranscriptMessage::assistant("done"),
+    ];
     let meta = meta("t-root");
     let usage = turn_usage();
 

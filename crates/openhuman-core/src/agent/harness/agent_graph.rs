@@ -25,11 +25,11 @@ use std::sync::Arc;
 use tinytools::WorkspaceDescriptor;
 use tokio::sync::mpsc::Sender;
 
-use tinyagents_session::transcript::TranscriptMessage;
 use crate::agent::progress::AgentProgress;
 use crate::agent::subagent_host::SubagentRunError;
 use crate::agent::tinyagents::TurnModelSource;
 use tinyagents_harness::run_queue::RunQueue;
+use tinyagents_session::transcript::TranscriptMessage;
 use tinytools::{Tool, ToolSpec};
 
 /// The assembled inputs for one sub-agent turn, handed to a custom

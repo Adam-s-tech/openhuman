@@ -107,11 +107,7 @@ async fn run_turn_failing_from(
     script: Vec<ChatResponse>,
     tools: Vec<Box<dyn Tool>>,
     fail_from_call: Option<usize>,
-) -> (
-    Vec<Vec<Message>>,
-    Vec<TranscriptEntry>,
-    tempfile::TempDir,
-) {
+) -> (Vec<Vec<Message>>, Vec<TranscriptEntry>, tempfile::TempDir) {
     let provider = Arc::new(RecordingProvider {
         responses: Mutex::new(script),
         requests: Mutex::new(Vec::new()),

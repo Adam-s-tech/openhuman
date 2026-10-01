@@ -20,7 +20,6 @@ use std::sync::Arc;
 
 use tokio::sync::mpsc;
 
-use tinyagents_session::transcript::TranscriptMessage;
 use crate::agent::progress::AgentProgress;
 use crate::agent::turn_origin::{self, AgentTurnOrigin};
 use crate::config::MultimodalConfig;
@@ -28,6 +27,7 @@ use crate::core::bus::BUS;
 use crate::security::prompt_injection::{
     enforce_prompt_input, PromptEnforcementAction, PromptEnforcementContext,
 };
+use tinyagents_session::transcript::TranscriptMessage;
 use tinytools::Tool;
 
 use super::harness::definition::{AgentDefinitionRegistry, SandboxMode};

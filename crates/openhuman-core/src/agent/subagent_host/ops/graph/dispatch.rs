@@ -6,15 +6,15 @@ use crate::agent::subagent_host::ops::checkpoint;
 use std::collections::HashSet;
 use std::sync::Arc;
 
-use tinyagents_session::transcript::TranscriptMessage;
-use tinytools_agent::dialect::TranscriptEntry;
 use crate::agent::progress::AgentProgress;
 use crate::agent::subagent_host::types::SubagentRunError;
 use crate::agent::tinyagents::{run_turn_via_tinyagents_shared, SubagentScope};
 use crate::inference::tokenjuice::AgentTokenjuiceCompression;
 use tinyagents_harness::run_queue::RunQueue;
+use tinyagents_session::transcript::TranscriptMessage;
 use tinytools::WorkspaceDescriptor;
 use tinytools::{Tool, ToolSpec};
+use tinytools_agent::dialect::TranscriptEntry;
 
 use super::transcript::persist_subagent_transcript;
 use super::worker_mirror::mirror_worker_thread;

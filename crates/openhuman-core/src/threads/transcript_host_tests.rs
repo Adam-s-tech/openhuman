@@ -6,11 +6,11 @@
 //! session codec and writer, and transcripts written before calls rode their
 //! issuing row.
 
-use tinyagents_session::transcript::TranscriptMessage;
 use tempfile::TempDir;
 use tinyagents_session::transcript::view::{
     project_records, project_thread, DisplayItem, ToolCallStatus,
 };
+use tinyagents_session::transcript::TranscriptMessage;
 use tinyagents_session::transcript::{self, read_transcript_display};
 
 /// Write a raw JSONL transcript (meta header + `body` lines) for `thread_id`.
@@ -39,12 +39,12 @@ fn write_raw(workspace: &std::path::Path, stem: &str, thread_id: &str, body: &[&
 /// them as cancelled).
 #[test]
 fn text_dialect_tool_turn_projects_calls_on_their_issuing_row_as_settled() {
-    use tinytools_agent::dialect::{ToolResultEntry, TranscriptEntry};
     use crate::agent::session_host::OpenHumanTranscriptCodec;
     use crate::agent::tinyagents::host::OpenHumanRunContext;
     use tinyagents_runtime::{ResumeMode, TranscriptCodec, TranscriptTurnOptions};
     use tinyinference_llm::message::Message;
     use tinytools_agent::dialect::NativeToolCall;
+    use tinytools_agent::dialect::{ToolResultEntry, TranscriptEntry};
 
     let dir = TempDir::new().unwrap();
 
@@ -73,14 +73,18 @@ fn text_dialect_tool_turn_projects_calls_on_their_issuing_row_as_settled() {
         TranscriptEntry::ToolResults(vec![
             ToolResultEntry {
                 tool_call_id: "call_web_search_1".into(),
-                content: "Search results for: rust async traits".into(), trusted_verbatim: false,
+                content: "Search results for: rust async traits".into(),
+                trusted_verbatim: false,
             },
             ToolResultEntry {
                 tool_call_id: "call_file_read_1".into(),
-                content: "unknown tool `file_read`".into(), trusted_verbatim: false,
+                content: "unknown tool `file_read`".into(),
+                trusted_verbatim: false,
             },
         ]),
-        TranscriptEntry::Chat(crate::agent::message_convert::row_to_dialect_message(TranscriptMessage::assistant("Here is what I found."))),
+        TranscriptEntry::Chat(crate::agent::message_convert::row_to_dialect_message(
+            TranscriptMessage::assistant("Here is what I found."),
+        )),
     ];
     let rendered = crate::agent::message_convert::provider_messages_from_conversation(
         &tinytools_agent::dialect::XmlDialect,

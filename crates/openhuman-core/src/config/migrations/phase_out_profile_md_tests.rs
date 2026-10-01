@@ -1,15 +1,13 @@
 use super::*;
-use tinyagents_session::transcript::TranscriptMessage;
 use std::fs;
 use tempfile::TempDir;
+use tinyagents_session::transcript::TranscriptMessage;
 use tinyagents_session::transcript::{read_transcript, write_transcript, TranscriptMeta};
 
 fn durable_messages(
     messages: impl IntoIterator<Item = TranscriptMessage>,
 ) -> Vec<tinyagents_session::transcript::TranscriptMessage> {
-    messages
-        .into_iter()
-        .collect()
+    messages.into_iter().collect()
 }
 
 fn meta() -> TranscriptMeta {
@@ -161,11 +159,9 @@ fn sanitize_only_touches_first_system_message() {
     // Add a later user message that also mentions PROFILE.md — it must
     // survive the migration unchanged.
     let mut session = read_transcript(&path).unwrap();
-    session
-        .messages
-        .push(TranscriptMessage::user(
-            "Could you show me what was in ### PROFILE.md earlier?",
-        ));
+    session.messages.push(TranscriptMessage::user(
+        "Could you show me what was in ### PROFILE.md earlier?",
+    ));
     write_transcript(&path, &session.messages, &session.meta, None).unwrap();
 
     let mutated = process_transcript(&path).unwrap();

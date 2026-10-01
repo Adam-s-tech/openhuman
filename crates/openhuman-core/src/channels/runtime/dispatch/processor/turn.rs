@@ -3,7 +3,6 @@
 //! delivering the draft/final reply.
 
 use crate::agent::bus::{AgentTurnRequest, AgentTurnResponse, AGENT_RUN_TURN_METHOD};
-use tinyagents_session::transcript::TranscriptMessage;
 use crate::agent::progress::AgentProgress;
 use crate::channels::context::{
     build_memory_context, compact_sender_history, conversation_history_key,
@@ -19,6 +18,7 @@ use crate::core::events::DomainEvent;
 use crate::util::truncate_with_ellipsis;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
+use tinyagents_session::transcript::TranscriptMessage;
 use tinybus::NativeRequestError;
 use tinymemory_api::provider::MemoryCore as _;
 use tokio_util::sync::CancellationToken;

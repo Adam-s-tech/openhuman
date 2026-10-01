@@ -4,20 +4,18 @@
 //! end-to-end without a SQLite/vector backend.
 
 use super::*;
-use tinyagents_session::transcript::TranscriptMessage;
 use crate::memory::{Memory, MemoryCategory, MemoryEntry, NamespaceSummary, RecallOpts};
 use async_trait::async_trait;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Mutex;
+use tinyagents_session::transcript::TranscriptMessage;
 use tinyagents_session::transcript::{SessionTranscript, TranscriptMeta};
 
 fn durable_messages(
     messages: impl IntoIterator<Item = TranscriptMessage>,
 ) -> Vec<tinyagents_session::transcript::TranscriptMessage> {
-    messages
-        .into_iter()
-        .collect()
+    messages.into_iter().collect()
 }
 
 /// Tiny in-memory `Memory` implementation good enough to drive the
@@ -207,7 +205,9 @@ async fn ingest_extracts_high_importance_preference_with_provenance() {
         messages: durable_messages([
             TranscriptMessage::user("hi"),
             TranscriptMessage::assistant("hello"),
-            TranscriptMessage::user("I prefer Postgres over MySQL for any new metadata service we ship."),
+            TranscriptMessage::user(
+                "I prefer Postgres over MySQL for any new metadata service we ship.",
+            ),
             TranscriptMessage::user("Still need to migrate the auth service before Friday."),
         ]),
     };

@@ -2,8 +2,8 @@
 //! sinks middleware write into to build it.
 
 use tinyagents_session::transcript::TranscriptMessage;
-use tinytools_agent::dialect::TranscriptEntry;
 use tinyinference_llm::model::ResolvedModelRoute;
+use tinytools_agent::dialect::TranscriptEntry;
 
 /// The outcome of a turn driven on the `tinyagents` harness.
 #[derive(Debug, Clone)]

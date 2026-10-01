@@ -13,8 +13,8 @@ use async_trait::async_trait;
 use tinyagents_runtime::{
     DriverFailure, DriverOutcome, DriverRequest, RuntimeError, SessionDriver, TranscriptPartial,
 };
-use tinyinference_llm::message::Message;
 use tinyagents_session::transcript::TranscriptMessage;
+use tinyinference_llm::message::Message;
 use tinytools_agent::dialect::ToolDialect;
 
 use crate::agent::{
