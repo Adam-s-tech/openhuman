@@ -106,11 +106,6 @@ export interface LocalAiTtsResult {
   voice_id: string;
 }
 
-export interface ReactionDecision {
-  should_react: boolean;
-  emoji: string | null;
-}
-
 export interface SentimentResult {
   emotion: string;
   valence: string;
@@ -317,20 +312,6 @@ export async function openhumanLocalAiTts(
   return await callCoreRpc<CommandResponse<LocalAiTtsResult>>({
     method: 'openhuman.inference_tts',
     params: { text, output_path: outputPath },
-  });
-}
-
-/**
- * Ask the configured inference provider whether the assistant should react to
- * a user message with an emoji.
- */
-export async function openhumanLocalAiShouldReact(
-  message: string,
-  channelType: string
-): Promise<CommandResponse<ReactionDecision>> {
-  return await callCoreRpc<CommandResponse<ReactionDecision>>({
-    method: 'openhuman.inference_should_react',
-    params: { message, channel_type: channelType },
   });
 }
 

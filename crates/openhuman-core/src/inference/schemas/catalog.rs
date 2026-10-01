@@ -219,16 +219,6 @@ pub fn schemas(function: &str) -> ControllerSchema {
             ],
             outputs: vec![json_output("reply", "Assistant reply text.")],
         },
-        "should_react" => ControllerSchema {
-            namespace: "inference",
-            function: "should_react",
-            description: "Ask the inference provider whether the assistant should add an emoji reaction to a user message, based on channel type.",
-            inputs: vec![
-                required_string("message", "User message content to evaluate."),
-                required_string("channel_type", "Channel type: web, telegram, discord, slack, etc."),
-            ],
-            outputs: vec![json_output("decision", "Reaction decision: {should_react, emoji}.")],
-        },
         "analyze_sentiment" => ControllerSchema {
             namespace: "inference",
             function: "analyze_sentiment",
