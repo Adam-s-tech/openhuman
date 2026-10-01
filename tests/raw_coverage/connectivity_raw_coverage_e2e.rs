@@ -580,7 +580,7 @@ async fn pick_listen_port_identifies_ipv6_openhuman_listener_when_supported() {
     let Some(probe) =
         try_spawn_probe_listener_on("::1", "200 OK", r#"{"name":"openhuman","ok":true}"#).await
     else {
-        eprintln!("IPv6 loopback unavailable; skipping IPv6 connectivity probe coverage");
+        eprintln!("SKIPPED (not run, not asserted): IPv6 loopback ::1 is unavailable on this host");
         return;
     };
 
