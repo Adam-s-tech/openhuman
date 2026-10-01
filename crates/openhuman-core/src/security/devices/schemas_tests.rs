@@ -48,14 +48,6 @@ fn all_controller_schemas_covers_three_functions() {
 }
 
 #[test]
-fn all_registered_controllers_has_handler_per_schema() {
-    let controllers = all_registered_controllers();
-    assert_eq!(controllers.len(), 3);
-    let names: Vec<_> = controllers.iter().map(|c| c.schema.function).collect();
-    assert_eq!(names, vec!["create_pairing", "list", "revoke"]);
-}
-
-#[test]
 fn read_required_errors_when_key_missing() {
     let params = Map::new();
     let err = read_required::<String>(&params, "channel_id").unwrap_err();

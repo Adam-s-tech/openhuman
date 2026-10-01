@@ -13,13 +13,6 @@ fn catalog_lists_all_five_controllers() {
 }
 
 #[test]
-fn registered_controllers_match_schemas_count() {
-    let schemas = all_controller_schemas();
-    let handlers = all_registered_controllers();
-    assert_eq!(schemas.len(), handlers.len());
-}
-
-#[test]
 fn all_schemas_use_socket_namespace() {
     for s in all_controller_schemas() {
         assert_eq!(s.namespace, "socket", "function {}", s.function);

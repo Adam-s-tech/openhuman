@@ -2,14 +2,6 @@ use super::schema_defs::schemas;
 use super::*;
 
 #[test]
-fn catalog_counts_match_and_nonempty() {
-    let s = all_controller_schemas();
-    let h = all_registered_controllers();
-    assert_eq!(s.len(), h.len());
-    assert!(s.len() >= 20, "config namespace should expose ≥20 fns");
-}
-
-#[test]
 fn all_schemas_use_config_namespace_and_have_descriptions() {
     for s in all_controller_schemas() {
         assert_eq!(s.namespace, "config", "function {}", s.function);

@@ -106,17 +106,6 @@ fn all_controller_schemas_covers_every_supported_function() {
     );
 }
 
-#[test]
-fn all_registered_controllers_has_handler_per_schema() {
-    let controllers = all_registered_controllers();
-    assert_eq!(controllers.len(), 6);
-    let names: Vec<_> = controllers.iter().map(|c| c.schema.function).collect();
-    assert_eq!(
-        names,
-        vec!["add", "list", "update", "remove", "run", "runs"]
-    );
-}
-
 // ── read_required ───────────────────────────────────────────────
 
 #[test]

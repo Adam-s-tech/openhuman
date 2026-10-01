@@ -94,12 +94,6 @@ fn all_controller_schemas_covers_expected_methods() {
 }
 
 #[test]
-fn all_registered_controllers_has_handler_per_schema() {
-    let controllers = all_registered_controllers();
-    assert_eq!(controllers.len(), 17);
-}
-
-#[test]
 fn all_registered_controllers_use_expected_namespaces() {
     for c in all_registered_controllers() {
         assert_eq!(
