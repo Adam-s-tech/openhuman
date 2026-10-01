@@ -107,7 +107,12 @@ async fn run(s: &Scenario) -> Value {
 
 fn scenarios() -> Vec<Scenario> {
     use tinyagents_harness::config::ToolDispatcher::{Auto, Python};
-    let sys2 = || vec![Message::system("stable+context"), Message::system("volatile tier")];
+    let sys2 = || {
+        vec![
+            Message::system("stable+context"),
+            Message::system("volatile tier"),
+        ]
+    };
     vec![
         Scenario {
             name: "first_turn_with_tools",
