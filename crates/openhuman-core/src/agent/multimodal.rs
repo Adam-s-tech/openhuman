@@ -38,7 +38,7 @@ use reqwest::Client;
 use crate::config::{
     build_runtime_proxy_client_with_timeouts, MultimodalConfig, MultimodalFileConfig,
 };
-use tinyagents_session::transcript::TranscriptMessage;
+use tinyagents_session::transcript::{TranscriptMessage, TranscriptPart};
 
 use tinyagents_harness::multimodal::{
     self as mm,
@@ -530,9 +530,18 @@ pub fn extract_image_placeholders_in_text(text: &str) -> Vec<String> {
 
 /// True if any message carries an `[Image: … #att:<id>]` sidecar placeholder.
 pub fn has_image_placeholders(messages: &[TranscriptMessage]) -> bool {
-    messages
-        .iter()
-        .any(|m| markers::text_has_image_placeholders(&m.content))
+    messages.iter().any(row_has_image_placeholders)
+}
+
+/// Whether a row's text (its `content`, or any text part of a user row with
+/// typed image parts) carries a sidecar placeholder.
+fn row_has_image_placeholders(row: &TranscriptMessage) -> bool {
+    markers::text_has_image_placeholders(&row.content)
+        || row.parts.as_deref().is_some_and(|parts| {
+            parts.iter().any(|part| {
+                matches!(part, TranscriptPart::Text { text } if markers::text_has_image_placeholders(text))
+            })
+        })
 }
 
 /// Rehydrate `[Image: … #att:<id>]` placeholders back into inline
@@ -545,11 +554,22 @@ pub fn rehydrate_image_placeholders(messages: &[TranscriptMessage]) -> Vec<Trans
     messages
         .iter()
         .map(|m| {
-            if !markers::text_has_image_placeholders(&m.content) {
+            if !row_has_image_placeholders(m) {
                 return m.clone();
             }
             TranscriptMessage {
                 content: markers::rehydrate_placeholders_in_text(&m.content, &index),
+                parts: m.parts.as_ref().map(|parts| {
+                    parts
+                        .iter()
+                        .map(|part| match part {
+                            TranscriptPart::Text { text } => TranscriptPart::Text {
+                                text: markers::rehydrate_placeholders_in_text(text, &index),
+                            },
+                            image => image.clone(),
+                        })
+                        .collect()
+                }),
                 cache_breakpoints: Vec::new(),
                 ..m.clone()
             }

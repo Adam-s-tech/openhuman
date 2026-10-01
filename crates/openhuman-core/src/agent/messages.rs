@@ -14,6 +14,12 @@
 //! [`history_wire`] keeps writing exactly that shape, so a binary of either
 //! generation reads what the other wrote, and reads any row shape (the
 //! vendor row is a superset whose extra fields default).
+//!
+//! The in-memory row is typed (tool calls, call ids and image parts are
+//! fields, `content` is plain text), but these files stay the flat string
+//! pairs they always were: a write rebuilds the established string form
+//! (`legacy_content`: the native envelope for a tool round, `[IMAGE:<url>]`
+//! markers for image parts) and a read lifts it back into the typed row.
 
 use serde::ser::SerializeSeq;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -25,6 +31,23 @@ struct WireRow<'a> {
     content: &'a str,
 }
 
+/// The flat `content` string a typed row is stored as. Image parts use the
+/// host's own `[IMAGE:<url>]` marker (which both generations read), not the
+/// private native-wire marker.
+fn wire_content(row: &TranscriptMessage) -> String {
+    if row.parts.is_some() {
+        row.display_content()
+    } else {
+        row.legacy_content()
+    }
+}
+
+/// A deserialized row with any string-encoded structure lifted into the typed
+/// fields.
+fn lifted(row: TranscriptMessage) -> TranscriptMessage {
+    row.normalized()
+}
+
 fn serialize_rows<S: Serializer>(
     rows: &[TranscriptMessage],
     serializer: S,
@@ -33,7 +56,7 @@ fn serialize_rows<S: Serializer>(
     for row in rows {
         seq.serialize_element(&WireRow {
             role: &row.role,
-            content: &row.content,
+            content: &wire_content(row),
         })?;
     }
     seq.end()
@@ -53,7 +76,10 @@ pub mod history_wire {
     pub fn deserialize<'de, D: Deserializer<'de>>(
         deserializer: D,
     ) -> Result<Vec<TranscriptMessage>, D::Error> {
-        Vec::<TranscriptMessage>::deserialize(deserializer)
+        Ok(Vec::<TranscriptMessage>::deserialize(deserializer)?
+            .into_iter()
+            .map(lifted)
+            .collect())
     }
 
     /// The same contract for an `Option<Vec<TranscriptMessage>>` field.
@@ -73,7 +99,8 @@ pub mod history_wire {
         pub fn deserialize<'de, D: Deserializer<'de>>(
             deserializer: D,
         ) -> Result<Option<Vec<TranscriptMessage>>, D::Error> {
-            Option::<Vec<TranscriptMessage>>::deserialize(deserializer)
+            Ok(Option::<Vec<TranscriptMessage>>::deserialize(deserializer)?
+                .map(|rows| rows.into_iter().map(lifted).collect()))
         }
     }
 }
