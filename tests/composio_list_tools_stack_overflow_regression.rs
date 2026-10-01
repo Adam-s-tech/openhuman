@@ -57,7 +57,7 @@
 //! run_chat_task → Agent::turn → execute_tools → <delegation tool>`)
 //! without standing up an HTTP + Socket.IO stack. We drive the production
 //! path from `run_subagent` downward — i.e. everything below a delegation
-//! tool's `execute` — on a production-realistic 2 MB tokio worker stack.
+//! tool's `execute` — on a production-sized tokio worker (`AGENT_WORKER_STACK_BYTES`) stack.
 //!
 //! **Caveat — what this test does and does not catch.** Because the
 //! upper ~30 frames are missing, the bare path here fits in 2 MB even
@@ -89,10 +89,10 @@
 //!
 //! ## Setup
 //!
-//!   * fresh tokio multi-thread runtime, `thread_stack_size(2 << 20)`
-//!     (production default), so the test runs in the same stack budget
-//!     production does — anything larger would let dormant regressions
-//!     hide for longer,
+//!   * fresh tokio multi-thread runtime, `thread_stack_size(AGENT_WORKER_STACK_BYTES)`
+//!     (the production setting on every agent-hosting runtime), so the test
+//!     runs in the same stack budget production does — anything larger would
+//!     let dormant regressions hide for longer,
 //!   * `OPENHUMAN_WORKSPACE` pointed at a tempdir with a representative
 //!     `config.toml` so the TOML parser does real work,
 //!   * `run_subagent(critic)` exactly like a delegation tool
@@ -115,6 +115,7 @@ use openhuman_core::agent::harness::{with_parent_context, ParentExecutionContext
 use openhuman_core::agent::prompts::ToolCallFormat;
 use openhuman_core::agent::subagent_host::{run_subagent, SubagentRunOptions};
 use openhuman_core::config::AgentConfig;
+use openhuman_core::core::runtime::AGENT_WORKER_STACK_BYTES;
 use openhuman_core::memory::{Memory, MemoryCategory, MemoryEntry, NamespaceSummary, RecallOpts};
 use parking_lot::Mutex;
 use serde_json::json;
@@ -290,7 +291,7 @@ impl Memory for StubMemory {
 ///
 /// `#[test]` (not `#[tokio::test]`) so the worker stack size is set
 /// explicitly. The work runs via `tokio::spawn` so the assertion is
-/// performed on a 2 MB worker rather than on `block_on`'s driver
+/// performed on a production-sized worker rather than on `block_on`'s driver
 /// thread (which inherits the much larger cargo-test main-thread stack
 /// and would hide stack-budget regressions).
 #[test]
@@ -307,12 +308,16 @@ fn composio_list_tools_via_subagent_runs_on_production_worker_stack() {
         tmp.path().to_str().expect("tempdir path utf-8"),
     );
 
-    // Production tokio worker stack default is ~2 MB. The SIGBUS in
-    // crahs.log occurred at an address inside a 2080 KB stack region
-    // (`Stack 302648000-302850000`). Reproduce that budget exactly.
+    // Production worker stack: every runtime that can host an agent turn (the
+    // desktop host, `openhuman-core run`, `agent_cli`, embedders) sets
+    // `AGENT_WORKER_STACK_BYTES`. The SIGBUS in crahs.log happened on a default
+    // ~2 MB worker (`Stack 302648000-302850000`) before that was applied
+    // everywhere, and a debug-build agent tower no longer fits in 2 MB at all
+    // (each async frame is 100+ KB unoptimised; #6379), so the guard runs on the
+    // real production budget and trips if the tower outgrows it.
     let rt = tokio::runtime::Builder::new_multi_thread()
         .worker_threads(2)
-        .thread_stack_size(2 * 1024 * 1024)
+        .thread_stack_size(AGENT_WORKER_STACK_BYTES)
         .enable_all()
         .build()
         .expect("build runtime");
