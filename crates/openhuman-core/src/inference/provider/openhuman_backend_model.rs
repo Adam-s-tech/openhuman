@@ -691,3 +691,7 @@ use usage::project_managed_usage;
 #[cfg(test)]
 #[path = "openhuman_backend_model_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "openhuman_backend_model_usage_tests.rs"]
+mod usage_tests;
