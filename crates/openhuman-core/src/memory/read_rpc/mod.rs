@@ -44,7 +44,7 @@ pub use vault::{obsidian_vault_status_rpc, vault_health_check_rpc};
 // Re-exports for `read_rpc_tests.rs`, which drives this module with
 // `use super::*;`.
 //
-// Only `Config` and `SourceKind` are re-exported, and only under `#[cfg(test)]`.
+// Only `Config` is re-exported, and only under `#[cfg(test)]`.
 // The raw-SQLite `with_connection` door that used to sit here is gone: nothing
 // production-side in `read_rpc` names the engine any more (`wipe_all`,
 // `clear_composio_sync_state` and `delete_source` left for `purge_all`,
@@ -53,8 +53,6 @@ pub use vault::{obsidian_vault_status_rpc, vault_health_check_rpc};
 // shipped binary (#5560).
 #[cfg(test)]
 pub(crate) use crate::config::Config;
-#[cfg(test)]
-pub(crate) use tinymemory_api::chunks::SourceKind;
 
 #[cfg(test)]
 #[path = "../read_rpc_tests.rs"]
