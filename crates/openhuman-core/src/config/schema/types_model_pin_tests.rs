@@ -156,3 +156,25 @@ fn workload_local_model_trims_and_only_honours_ollama_providers() {
     config.chat_provider = Some("ollama:   ".into());
     assert_eq!(config.workload_local_model("chat"), None);
 }
+
+#[test]
+fn default_temperature_unsupported_models_suppress_reasoning_families_only() {
+    use tinyinference_llm::model::effective_temperature;
+
+    let config = Config::default();
+    let unsupported = &config.temperature_unsupported_models;
+    for model in ["gpt-4o-mini", "claude-3-sonnet"] {
+        assert_eq!(
+            effective_temperature(model, Some(0.7), None, unsupported),
+            Some(0.7),
+            "{model} keeps its temperature"
+        );
+    }
+    for model in ["o1-preview", "o3-mini", "o4-turbo", "gpt-5-turbo"] {
+        assert_eq!(
+            effective_temperature(model, Some(0.7), None, unsupported),
+            None,
+            "{model} must have temperature suppressed"
+        );
+    }
+}

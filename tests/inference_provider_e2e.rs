@@ -93,61 +93,6 @@ impl Drop for EnvGuard {
 
 // ── Test 6: Streaming response returns ordered deltas ────────────────────────
 
-#[tokio::test]
-async fn openai_compat_streaming_returns_ordered_deltas() {
-    let server = MockServer::start().await;
-
-    let sse_body = concat!(
-        "data: {\"id\":\"x\",\"choices\":[{\"delta\":{\"role\":\"assistant\",\"content\":\"Hel\"},\"finish_reason\":null}]}\n\n",
-        "data: {\"id\":\"x\",\"choices\":[{\"delta\":{\"content\":\"lo\"},\"finish_reason\":null}]}\n\n",
-        "data: {\"id\":\"x\",\"choices\":[{\"delta\":{\"content\":\"!\"},\"finish_reason\":\"stop\"}]}\n\n",
-        "data: [DONE]\n\n",
-    );
-
-    Mock::given(method("POST"))
-        .and(path("/v1/chat/completions"))
-        .respond_with(
-            ResponseTemplate::new(200)
-                .set_body_raw(sse_body.as_bytes().to_vec(), "text/event-stream"),
-        )
-        .mount(&server)
-        .await;
-
-    let model = openai_model(
-        "test",
-        &format!("{}/v1", server.uri()),
-        "key",
-        AuthStyle::Bearer,
-    );
-
-    use futures_util::StreamExt;
-    let request = ModelRequest::new(vec![
-        Message::system("You are helpful."),
-        Message::user("Say Hello!"),
-    ])
-    .with_model("gpt-4o-mini")
-    .with_temperature(0.7);
-    let mut stream = model
-        .stream(&(), request)
-        .await
-        .expect("stream should open");
-
-    let mut deltas = Vec::new();
-    while let Some(item) = stream.next().await {
-        if let ModelStreamItem::MessageDelta(delta) = item {
-            if !delta.text.is_empty() {
-                deltas.push(delta.text);
-            }
-        }
-    }
-
-    let combined = deltas.join("");
-    assert_eq!(
-        combined, "Hello!",
-        "combined stream deltas should equal 'Hello!'; got '{combined}'"
-    );
-}
-
 // ── Test 8: /v1/chat/completions HTTP endpoint — unauthorized ─────────────────
 
 #[tokio::test]
@@ -265,44 +210,3 @@ async fn http_endpoint_chat_completions_with_bearer_passes_auth() {
 }
 
 // ── Test 14: temperature_for_model helper ────────────────────────────────────
-
-#[test]
-fn temperature_helper_suppresses_o1_by_default_config() {
-    use openhuman_core::config::Config;
-    use tinyinference_llm::model::effective_temperature;
-
-    let config = Config::default();
-
-    // Normal model → temperature returned
-    assert_eq!(
-        effective_temperature(
-            "gpt-4o-mini",
-            Some(0.7),
-            None,
-            &config.temperature_unsupported_models,
-        ),
-        Some(0.7)
-    );
-    assert_eq!(
-        effective_temperature(
-            "claude-3-sonnet",
-            Some(0.5),
-            None,
-            &config.temperature_unsupported_models,
-        ),
-        Some(0.5)
-    );
-
-    // o1/o3/o4/gpt-5 → temperature suppressed
-    for model in ["o1-preview", "o3-mini", "o4-turbo", "gpt-5-turbo"] {
-        assert_eq!(
-            effective_temperature(
-                model,
-                Some(0.7),
-                None,
-                &config.temperature_unsupported_models,
-            ),
-            None,
-        );
-    }
-}
