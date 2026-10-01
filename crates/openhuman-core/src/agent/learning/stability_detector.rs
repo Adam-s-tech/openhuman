@@ -204,7 +204,7 @@ pub const REBUILD_STATE_FILE: &str = "state/learning/rebuild.json";
 
 /// The time of a workspace's last rebuild, as [`REBUILD_STATE_FILE`] holds it.
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
-struct RebuildState {
+pub(super) struct RebuildState {
     last_rebuild_at: f64,
 }
 
