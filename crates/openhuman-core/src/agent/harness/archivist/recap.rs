@@ -349,6 +349,14 @@ impl ArchivistHook {
                              heuristic fallback segment={segment_id} elapsed_ms={elapsed_ms}"
                         );
                     }
+                    // A driver with a tree but no model to fold with (hosted
+                    // memory) says so: the heuristic recap is its answer.
+                    Err(e @ crate::memory::api::error::MemoryError::Unsupported { .. }) => {
+                        tracing::debug!(
+                            "[archivist] summarize_entries: driver has no summariser — \
+                             heuristic fallback segment={segment_id}: {e}"
+                        );
+                    }
                     Err(e) => {
                         tracing::warn!(
                             "[archivist] summarize_entries: LLM recap failed (non-fatal) \

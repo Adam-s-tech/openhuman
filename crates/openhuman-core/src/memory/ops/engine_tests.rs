@@ -61,6 +61,62 @@ fn every_remote_engine_is_listed_with_at_least_the_mandatory_families() {
     assert!(hosted.hosted);
     assert!(!hosted.needs_key);
     assert!(hosted.capabilities.iter().any(|c| c == "answer"));
+    // The families only the hosted wire serves (tinymemory
+    // `docs/specs/tinyhumans-hosted-families.md`); a direct CortexDB has none.
+    for family in [
+        "goals",
+        "tool_memory",
+        "documents",
+        "sources",
+        "maintenance",
+        "retrieval",
+        "ingest",
+        "profile",
+        "episodic",
+        "scoring",
+        "tree",
+    ] {
+        assert!(
+            hosted.capabilities.iter().any(|c| c == family),
+            "tinyhumans must advertise {family}: {:?}",
+            hosted.capabilities
+        );
+        if let Some(direct) = engines.iter().find(|e| e.id == "cortex") {
+            assert!(
+                !direct.capabilities.iter().any(|c| c == family),
+                "cortex must not advertise {family}: {:?}",
+                direct.capabilities
+            );
+        }
+    }
+}
+
+/// The hosted row mirrors what the hosted driver advertises when it binds: the
+/// UI offers a family only when the driver serves it. Hosted memory keeps no
+/// local chunk store, which is what keeps the local-engine controls hidden.
+#[cfg(feature = "memory-remote")]
+#[test]
+fn the_hosted_row_mirrors_what_the_hosted_driver_advertises() {
+    use tinymemory::factory::{build_provider, EngineConfig, EngineCredential};
+    let provider = build_provider(
+        "tinyhumans",
+        &EngineConfig {
+            endpoint: Some("http://127.0.0.1:9".to_string()),
+            deployment: None,
+        },
+        EngineCredential::Static("tiny_live_test".to_string()),
+    )
+    .expect("the hosted driver builds without a request");
+    let mut advertised: Vec<String> = provider
+        .capabilities()
+        .iter()
+        .map(|c| c.as_str().to_string())
+        .collect();
+    let mut row = expected_capabilities("tinyhumans");
+    advertised.sort();
+    row.sort();
+    assert_eq!(row, advertised);
+    assert!(!row.iter().any(|c| c == "chunks"), "{row:?}");
 }
 
 #[test]
@@ -236,6 +292,36 @@ fn a_class_quoted_in_another_errors_detail_does_not_decide_it() {
     assert!(
         classified.starts_with(MEMORY_FORBIDDEN_PREFIX),
         "{classified}"
+    );
+}
+
+#[test]
+fn an_auth_code_quoted_by_another_class_does_not_sign_the_user_out() {
+    // The backend relaying its own upstream's 401 as a 503 is an outage, not
+    // this user's lapsed session.
+    for outage in [
+        "unavailable: upstream returned [UNAUTHORIZED]",
+        "unavailable: [UNAUTHORIZED] memory API memory/recall on host (HTTP 503 Service \
+         Unavailable): memory service token rejected",
+    ] {
+        let classified = classify_engine_message(outage);
+        assert!(
+            classified.starts_with(MEMORY_UNREACHABLE_PREFIX),
+            "{outage} -> {classified}"
+        );
+    }
+    let invalid = "invalid input: upstream said [UNAUTHORIZED]";
+    assert_eq!(classify_engine_message(invalid), invalid);
+    // Two markers count wherever they are quoted: OpenHuman's own
+    // `SESSION_EXPIRED:` (the session is gone, whatever wrapped that) and the
+    // backend's billing code (a verdict on this account).
+    let session = classify_engine_message("backend failed: SESSION_EXPIRED: no TinyHumans session");
+    assert!(session.starts_with(SESSION_EXPIRED_PREFIX), "{session}");
+    let credits =
+        classify_engine_message("backend failed: [USER_INSUFFICIENT_CREDITS] out of credits");
+    assert!(
+        credits.starts_with(INSUFFICIENT_CREDITS_PREFIX),
+        "{credits}"
     );
 }
 
