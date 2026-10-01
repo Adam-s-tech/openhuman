@@ -8,7 +8,7 @@ use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::sync::{
     atomic::{AtomicUsize, Ordering},
-    Arc, Mutex, OnceLock,
+    Arc,
 };
 use std::time::Duration;
 

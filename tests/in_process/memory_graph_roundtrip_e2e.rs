@@ -77,7 +77,7 @@ use crate::env_guard::EnvVarGuard;
 use crate::env_guard::env_lock;
 use crate::rpc_auth::{ensure_rpc_auth, rpc_token};
 use std::path::Path;
-use std::sync::{Arc, Mutex, OnceLock};
+use std::sync::{Arc, OnceLock};
 use std::time::Duration;
 
 use axum::http::header::AUTHORIZATION;

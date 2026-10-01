@@ -17,6 +17,7 @@
 #![allow(clippy::await_holding_lock)]
 
 use crate::env_guard::EnvVarGuard;
+use crate::rpc_auth::{ensure_rpc_auth, rpc_token};
 use crate::env_guard::env_lock_with_file_keyring as env_lock;
 use std::net::SocketAddr;
 use std::path::Path;
@@ -33,7 +34,6 @@ use tempfile::tempdir;
 use openhuman_core::agent::harness::AgentDefinitionRegistry;
 use openhuman_rpc::server::build_core_http_router;
 
-const TEST_RPC_TOKEN: &str = "json-rpc-e2e-local-token";
 
 // ─── Env serialization ──────────────────────────────────────────────────────
 
@@ -326,13 +326,7 @@ async fn serve_on_ephemeral(
     SocketAddr,
     tokio::task::JoinHandle<Result<(), std::io::Error>>,
 ) {
-    static AUTH_INIT: OnceLock<()> = OnceLock::new();
-    AUTH_INIT.get_or_init(|| {
-        // SAFETY: runs exactly once via OnceLock before concurrent env reads occur.
-        unsafe { std::env::set_var(CORE_TOKEN_ENV_VAR, TEST_RPC_TOKEN) };
-        let token_dir = std::env::temp_dir().join("openhuman-prompt-comprehension-e2e-auth");
-        init_rpc_token(&token_dir).expect("init rpc auth token");
-    });
+    ensure_rpc_auth();
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
         .await
         .expect("bind");
@@ -350,7 +344,7 @@ async fn post_json_rpc(rpc_base: &str, id: i64, method: &str, params: Value) -> 
     let url = format!("{}/rpc", rpc_base.trim_end_matches('/'));
     let resp = client
         .post(&url)
-        .header(AUTHORIZATION, format!("Bearer {TEST_RPC_TOKEN}"))
+        .header(AUTHORIZATION, format!("Bearer {}", rpc_token()))
         .json(&body)
         .send()
         .await
@@ -421,7 +415,7 @@ fn spawn_sse_collector(
             .expect("client");
         let resp = client
             .get(&events_url)
-            .header(AUTHORIZATION, format!("Bearer {TEST_RPC_TOKEN}"))
+            .header(AUTHORIZATION, format!("Bearer {}", rpc_token()))
             .send()
             .await
             .unwrap_or_else(|e| panic!("GET {events_url}: {e}"));

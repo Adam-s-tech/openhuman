@@ -25,7 +25,7 @@ use crate::env_guard::env_lock;
 use crate::memory_module;
 use crate::rpc_auth::{ensure_rpc_auth, rpc_token};
 use std::path::{Path, PathBuf};
-use std::sync::{Mutex, OnceLock};
+use std::sync::OnceLock;
 use std::time::Duration;
 
 use axum::http::header::AUTHORIZATION;

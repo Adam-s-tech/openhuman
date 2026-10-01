@@ -9,7 +9,7 @@ use crate::env_guard::env_lock;
 use crate::rpc_auth::{ensure_rpc_auth, rpc_token};
 use std::path::Path;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::{Arc, Mutex, OnceLock};
+use std::sync::Arc;
 use std::time::Duration;
 
 use axum::extract::State;

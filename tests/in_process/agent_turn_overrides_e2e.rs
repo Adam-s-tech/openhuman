@@ -31,7 +31,7 @@ use crate::noop_memory;
 use async_trait::async_trait;
 use std::collections::VecDeque;
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex, OnceLock};
+use std::sync::{Arc, Mutex};
 use tempfile::TempDir;
 
 use openhuman_core::agent::goals::{runtime as goal_runtime, store as goal_store};

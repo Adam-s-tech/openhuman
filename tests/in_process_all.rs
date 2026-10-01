@@ -23,7 +23,7 @@
 //! Suites that need a process of their own (global `OnceCell`s, a real
 //! keyring, binary spawning) stay separate `[[test]]` targets.
 
-#![allow(dead_code, unused_imports)]
+#![allow(dead_code)]
 
 #[path = "support/env_guard.rs"]
 pub mod env_guard;

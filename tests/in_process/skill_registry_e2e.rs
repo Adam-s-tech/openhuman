@@ -6,12 +6,11 @@
 //! The test uses a local fixture catalog and local SKILL.md download URL so CI
 //! does not depend on the live Hermes API.
 
+use openhuman_core::core::auth::CORE_TOKEN_ENV_VAR;
 use crate::env_guard::EnvVarGuard;
 use crate::env_guard::env_lock_with_file_keyring as env_lock;
 use crate::rpc_auth::{ensure_rpc_auth, rpc_token};
 use std::net::SocketAddr;
-use std::path::Path;
-use std::sync::{Mutex, OnceLock};
 use std::time::Duration;
 
 use axum::http::header::AUTHORIZATION;
