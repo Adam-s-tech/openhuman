@@ -16,8 +16,7 @@
 //! Lock order across the crate is `module_guard` -> cache lock ->
 //! `TEST_ENV_LOCK`: take this guard last. The lock is released only after
 //! every variable has been restored (field order below), so the next test
-//! never observes a half-restored environment. Nothing here reads `unsafe`
-//! Holding the lock (here or by hand) is the
+//! never observes a half-restored environment.
 
 use std::ffi::{OsStr, OsString};
 use std::path::Path;
