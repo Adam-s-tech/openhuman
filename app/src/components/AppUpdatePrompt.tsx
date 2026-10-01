@@ -10,7 +10,7 @@
  * point they can choose "Restart now" or "Later". Errors and the active
  * install/restart flow also surface visually.
  *
- * Visual conventions mirror `LocalAIDownloadSnackbar` — bottom-right portal,
+ * Visual conventions: bottom-right portal,
  * stone-900 panel, primary gradient progress bar.
  */
 import { useCallback, useRef, useState } from 'react';
