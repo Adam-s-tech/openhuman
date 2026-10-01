@@ -18,35 +18,27 @@ use serde_json::{json, Value};
 use tempfile::{tempdir, TempDir};
 
 use openhuman_core::config::schema::{
-    generate_provider_id, generate_voice_provider_id, is_slug_reserved, is_voice_slug_reserved,
-    migrate_legacy_fields, AuditConfig, AuthStyle, CapabilityProviderConfig,
-    CapabilityProviderTrustState, CloudProviderCreds, CloudProviderType, DashboardConfig,
+    AuditConfig, CapabilityProviderConfig,
+    CapabilityProviderTrustState, DashboardConfig,
     DingTalkConfig, DiscordConfig, EventStreamConfig, IrcConfig, LarkConfig, MatrixConfig,
-    MemoryConfig, MemoryContextWindow, ModelHealthConfig, OrchestratorModelConfig, ProxyConfig,
-    ProxyScope, QQConfig, ResourceLimitsConfig, SandboxConfig, SecurityConfig, SlackConfig,
-    TelegramConfig, VoiceCapability, VoiceProviderCreds, WebhookConfig, WhatsAppConfig,
+    MemoryConfig, ModelHealthConfig, ProxyScope, QQConfig, ResourceLimitsConfig, SandboxConfig, SecurityConfig, SlackConfig,
+    TelegramConfig, WebhookConfig, WhatsAppConfig,
 };
 use openhuman_core::config::settings_cli::{settings_section_json, ConfigSnapshotFields};
 use openhuman_core::config::{
-    clear_active_user, default_projects_dir, output_language_directive, pre_login_user_dir,
-    read_active_user_id, user_openhuman_dir, write_active_user_id, AgentConfig, ChannelsConfig,
-    Config, DaemonConfig, DelegateAgentConfig, DictationActivationMode, LlmBackend,
-    ReflectionSource, TeamModelConfig, UpdateRestartStrategy,
+    clear_active_user, default_projects_dir, pre_login_user_dir,
+    read_active_user_id, user_openhuman_dir, write_active_user_id, Config, DaemonConfig, DictationActivationMode, LlmBackend,
+    ReflectionSource, UpdateRestartStrategy,
 };
 use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
 use openhuman_core::core::events::DomainEvent;
 use openhuman_core::desktop::app_state::app_state_schemas;
 use openhuman_core::platform::connectivity::{
-    all_connectivity_controller_schemas, all_connectivity_registered_controllers,
-    connectivity_controller_schema,
-};
+    };
 use openhuman_core::security::credentials::bus::SessionExpiredSubscriber;
 use openhuman_core::security::credentials::profiles::{AuthProfile, AuthProfilesStore, TokenSet};
 use openhuman_core::security::credentials::session_support::{
-    build_session_state, get_session_token, is_local_session_token, load_app_session_profile,
-    parse_fields_value, profile_name_or_default, session_state_from_profile,
-    session_token_from_profile, summarize_auth_profile,
-};
+    };
 use openhuman_core::security::credentials::{
     clear_composio_api_key, decrypt_secret, encrypt_secret, get_composio_api_key,
     list_provider_credentials_by_prefix, normalize_provider, rpc_store_composio_api_key,
@@ -60,8 +52,6 @@ use openhuman_tinyhumans::backend::url::{
     DEFAULT_STAGING_API_BASE_URL, OPENHUMAN_INFERENCE_PATH, VITE_APP_ENV_VAR,
 };
 use tinybus::EventHandler;
-use tinyinference_voice::external_stt::SttApiStyle;
-use tinyinference_voice::external_tts::TtsApiStyle;
 
 const TEST_RPC_TOKEN: &str = "worker-a-domain-e2e-token";
 
