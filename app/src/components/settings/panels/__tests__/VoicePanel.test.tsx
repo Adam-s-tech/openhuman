@@ -658,7 +658,9 @@ describe('VoicePanel', () => {
     await waitFor(() =>
       expect(vi.mocked(openhumanVoiceStatus).mock.calls.length).toBeGreaterThan(callsBefore)
     );
-    await waitFor(() => expect(screen.getByTestId('voice-piper-status')).toHaveTextContent(/^Piper found$/));
+    await waitFor(() =>
+      expect(screen.getByTestId('voice-piper-status')).toHaveTextContent(/^Piper found$/)
+    );
     expect(screen.getByRole('button', { name: /^Enable$/i })).not.toBeDisabled();
   });
 

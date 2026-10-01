@@ -379,7 +379,6 @@ const VoicePanel = ({ embedded = false, scrollable = true }: VoicePanelProps = {
   // gender, and locale-default toggle all live in `mascotSlice`; this
   // panel only handles Piper / dictation now.
 
-
   // Piper is user-supplied: OpenHuman never downloads the binary or its
   // voices. Readiness is whatever `voice_status` resolves — a `piper` binary
   // (PATH or PIPER_BIN) plus the selected voice's .onnx file. After the user
