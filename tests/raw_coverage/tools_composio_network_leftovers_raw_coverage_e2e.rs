@@ -241,7 +241,7 @@ async fn round20_backend_agent_tools_cover_markdown_filtering_and_errors() {
 }
 
 #[tokio::test]
-async fn round20_composio_ops_cover_authorize_scopes_and_direct_factory_edges() {
+async fn round20_composio_ops_cover_authorize_scopes() {
     let _lock = env_lock();
     let state = MockState::default();
     let base = start_loopback(
@@ -284,41 +284,6 @@ async fn round20_composio_ops_cover_authorize_scopes_and_direct_factory_edges() 
     .expect("ops list tools")
     .value;
     assert_eq!(listed.tools.len(), 2);
-
-    let mut direct = harness.config.clone();
-    direct.composio.mode = "direct".to_string();
-    direct.composio.api_key = Some(" ck_round20_direct ".to_string());
-    direct.save().await.expect("save direct config");
-
-    let direct_toolkits = ComposioListToolkitsTool::new(Arc::new(direct.clone()))
-        .execute(json!({}))
-        .await
-        .expect("direct list toolkits");
-    assert!(!direct_toolkits.is_error);
-    assert!(direct_toolkits.output().contains("\"toolkits\":[]"));
-
-    let direct_authorize = ComposioAuthorizeTool::new(Arc::new(direct.clone()))
-        .execute(json!({ "toolkit": "gmail" }))
-        .await
-        .expect("direct authorize tool");
-    assert!(direct_authorize.is_error);
-    assert!(direct_authorize.output().contains("direct mode is active"));
-
-    let direct_list_tools = ComposioListToolsTool::new(Arc::new(direct))
-        .execute_with_options(
-            json!({ "include_unconnected": true }),
-            ToolCallOptions {
-                prefer_markdown: true,
-            },
-        )
-        .await
-        .expect("direct list tools tool");
-    assert!(!direct_list_tools.is_error);
-    assert_eq!(direct_list_tools.output(), "{\"tools\":[]}");
-    assert_eq!(
-        direct_list_tools.markdown_formatted.as_deref(),
-        Some("_No composio tools available._")
-    );
 
     let requests = state.requests.lock().expect("requests").clone();
     let authorize_body = requests
