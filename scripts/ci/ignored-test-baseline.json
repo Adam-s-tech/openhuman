@@ -1,9 +1,9 @@
 {
   "openhuman-app": 5,
   "openhuman-cli": 0,
-  "openhuman-core": 40,
+  "openhuman-core": 38,
   "openhuman-embed": 0,
-  "openhuman-rpc": 1,
+  "openhuman-rpc": 0,
   "openhuman-tinyhumans": 0,
   "openhuman-tui": 0,
   "tests": 22

@@ -8,6 +8,11 @@ use super::*;
 #[tokio::test]
 async fn a_large_result_becomes_a_handle_the_repl_tools_can_query() {
     if std::env::var_os("TINYJUICE_TEST_MODULE").is_none() {
+        eprintln!(
+            "SKIPPED (not run, not asserted): TINYJUICE_TEST_MODULE is not set. Build \
+             vendor/tinyjuice and export TINYJUICE_TEST_MODULE=<path to libtinyjuice_module>, \
+             or use scripts/test-rust-with-mock.sh"
+        );
         return;
     }
     let rows: String = (0..1200)
