@@ -150,11 +150,14 @@ const MOD_RS_STEMS = new Set(["mod", "lib", "main"]);
  * `stem` is the source file's name without `.rs`; `taken` holds sibling file
  * names that already exist. A module nested in other inline modules (the
  * `mod imp { ... }` wrapper around platform code) gets a `#[path]` that climbs
- * out of the directories those modules imply. Returns the rewritten source,
+ * out of the directories those modules imply. \`subdir\` puts the test files in
+ * a subdirectory of the source file's own, which a crate root in \`src/bin/\`
+ * needs: Cargo would build any \`.rs\` file placed directly there as a binary.
+ * Returns the rewritten source,
  * the moved bodies (`{ name, fileName, body, line }`) and `skipped` modules
  * that need a human.
  */
-export function externalizeSource(src, stem, taken = new Set()) {
+export function externalizeSource(src, stem, taken = new Set(), { subdir = "" } = {}) {
   const code = codeMask(src);
   const skel = skeleton(src, code);
   const lines = src.split("\n");
@@ -265,10 +268,12 @@ export function externalizeSource(src, stem, taken = new Set()) {
     }
     used.add(fileName);
 
-    const climb = chain.length === 0 ? 0 : chain.length + (MOD_RS_STEMS.has(stem) ? 0 : 1);
+    const ownsDir = MOD_RS_STEMS.has(stem) || subdir !== "";
+    const climb = chain.length === 0 ? 0 : chain.length + (ownsDir ? 0 : 1);
+    const prefix = `${"../".repeat(climb)}${subdir ? `${subdir}/` : ""}`;
     let body = dedent(src.slice(bodyStart, closeLineStart), bodyStart, code, indent.length + 4).replace(/^\n+/, "");
     body = `${body.replace(/\s+$/, "")}\n`;
-    const declaration = [...attrs, `${indent}#[path = "${"../".repeat(climb)}${fileName}"]`, `${indent}${m[2]};`].join("\n");
+    const declaration = [...attrs, `${indent}#[path = "${prefix}${fileName}"]`, `${indent}${m[2]};`].join("\n");
     edits.push({
       start: lineStarts[first],
       end: closeEol < src.length ? closeEol + 1 : closeEol,
@@ -349,8 +354,12 @@ function run(roots, { write, fmt }) {
         continue;
       }
       const dir = path.dirname(file);
-      const taken = new Set(fs.readdirSync(dir));
-      const result = externalizeSource(src, base.replace(/\.rs$/, ""), taken);
+      const stem = base.replace(/\.rs$/, "");
+      // A file directly in `src/bin/` is a binary; its tests need a directory of their own.
+      const isBinRoot = path.basename(dir) === "bin" && path.basename(path.dirname(dir)) === "src";
+      const outDir = isBinRoot ? path.join(dir, stem) : dir;
+      const taken = new Set(fs.existsSync(outDir) ? fs.readdirSync(outDir) : []);
+      const result = externalizeSource(src, stem, taken, { subdir: isBinRoot ? stem : "" });
       for (const s of result.skipped) {
         manual += 1;
         console.log(`manual ${rel}:${s.line}: ${s.reason}`);
@@ -359,8 +368,9 @@ function run(roots, { write, fmt }) {
       moved += result.moves.length;
       if (write) {
         for (const move of result.moves) {
-          fs.writeFileSync(path.join(dir, move.fileName), move.body);
-          written.push(path.join(dir, move.fileName));
+          fs.mkdirSync(outDir, { recursive: true });
+          fs.writeFileSync(path.join(outDir, move.fileName), move.body);
+          written.push(path.join(outDir, move.fileName));
         }
         fs.writeFileSync(file, result.source);
       } else {

@@ -95,6 +95,14 @@ test("names a second nested module after its wrapper when the file name is taken
   assert.deepEqual(out.skipped, []);
 });
 
+test("puts a bin crate root's tests in a subdirectory Cargo will not build as a binary", () => {
+  const src = "fn main() {}\n\n#[cfg(test)]\nmod tests {\n    fn a() {}\n}\n";
+  const out = externalizeSource(src, "tool", new Set(), { subdir: "tool" });
+  assert.match(out.source, /#\[path = "tool\/tool_tests.rs"\]\nmod tests;/);
+  const nested = "mod imp {\n    #[cfg(test)]\n    mod tests {\n        fn a() {}\n    }\n}\n";
+  assert.match(externalizeSource(nested, "tool", new Set(), { subdir: "tool" }).source, /#\[path = "..\/tool\/tool_tests.rs"\]/);
+});
+
 test("reports a test module nested inside a function instead of moving it", () => {
   const src = "fn f() {\n    #[cfg(test)]\n    mod tests {\n        fn a() {}\n    }\n}\n";
   const out = externalizeSource(src, "lib");
