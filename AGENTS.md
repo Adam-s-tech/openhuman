@@ -364,7 +364,7 @@ sandboxing, timeouts, and progress events.
   number of independently configured agents on it (`AgentSpec`: provider,
   access, `action_dir`, MCP servers, skills, prompt, tool scope, sandbox).
   `Harness` is the one-agent shorthand over the same two types. Agent turns
-  dispatch natively (`inference::local::ops::agent_chat_for`) under the
+  dispatch natively (`inference::host_runtime::ops::agent_chat_for`) under the
   agent's own `CoreContext` (`CoreContext::derive_with`); other facade calls
   go through `CoreRuntime::invoke`.
 - Set `config_path` with `workspace_dir`, and set a turn origin with its access
