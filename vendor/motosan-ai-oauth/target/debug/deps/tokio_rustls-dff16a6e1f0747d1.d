@@ -1,0 +1,9 @@
+/home/enamakel/work/openhuman/worktrees/tests-to-files/vendor/motosan-ai-oauth/target/debug/deps/tokio_rustls-dff16a6e1f0747d1.d: /home/enamakel/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-rustls-0.26.6/src/lib.rs /home/enamakel/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-rustls-0.26.6/src/client.rs /home/enamakel/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-rustls-0.26.6/src/common/mod.rs /home/enamakel/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-rustls-0.26.6/src/common/handshake.rs /home/enamakel/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-rustls-0.26.6/src/server.rs
+
+/home/enamakel/work/openhuman/worktrees/tests-to-files/vendor/motosan-ai-oauth/target/debug/deps/libtokio_rustls-dff16a6e1f0747d1.rmeta: /home/enamakel/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-rustls-0.26.6/src/lib.rs /home/enamakel/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-rustls-0.26.6/src/client.rs /home/enamakel/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-rustls-0.26.6/src/common/mod.rs /home/enamakel/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-rustls-0.26.6/src/common/handshake.rs /home/enamakel/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-rustls-0.26.6/src/server.rs
+
+/home/enamakel/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-rustls-0.26.6/src/lib.rs:
+/home/enamakel/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-rustls-0.26.6/src/client.rs:
+/home/enamakel/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-rustls-0.26.6/src/common/mod.rs:
+/home/enamakel/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-rustls-0.26.6/src/common/handshake.rs:
+/home/enamakel/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-rustls-0.26.6/src/server.rs:

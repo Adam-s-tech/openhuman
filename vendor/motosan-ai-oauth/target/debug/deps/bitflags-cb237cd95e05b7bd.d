@@ -1,0 +1,11 @@
+/home/enamakel/work/openhuman/worktrees/backend-to-tinyhumans/vendor/tinyhumans-sdk/target/debug/deps/bitflags-cb237cd95e05b7bd.d: /home/enamakel/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.13.2/src/lib.rs /home/enamakel/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.13.2/src/iter.rs /home/enamakel/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.13.2/src/parser.rs /home/enamakel/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.13.2/src/traits.rs /home/enamakel/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.13.2/src/public.rs /home/enamakel/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.13.2/src/internal.rs /home/enamakel/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.13.2/src/external.rs
+
+/home/enamakel/work/openhuman/worktrees/backend-to-tinyhumans/vendor/tinyhumans-sdk/target/debug/deps/libbitflags-cb237cd95e05b7bd.rmeta: /home/enamakel/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.13.2/src/lib.rs /home/enamakel/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.13.2/src/iter.rs /home/enamakel/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.13.2/src/parser.rs /home/enamakel/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.13.2/src/traits.rs /home/enamakel/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.13.2/src/public.rs /home/enamakel/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.13.2/src/internal.rs /home/enamakel/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.13.2/src/external.rs
+
+/home/enamakel/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.13.2/src/lib.rs:
+/home/enamakel/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.13.2/src/iter.rs:
+/home/enamakel/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.13.2/src/parser.rs:
+/home/enamakel/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.13.2/src/traits.rs:
+/home/enamakel/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.13.2/src/public.rs:
+/home/enamakel/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.13.2/src/internal.rs:
+/home/enamakel/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-2.13.2/src/external.rs:

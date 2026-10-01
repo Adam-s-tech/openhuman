@@ -136,7 +136,8 @@ coverage must be at least 80 percent.
   `#[cfg(test)]` and `#[path = "<module>_tests.rs"]` above `mod tests;`. The file
   starts with `use super::*;` and carries no `#[cfg(test)]` of its own. Never name
   one `test.rs`, `tests.rs` or `<module>_test.rs`, and never write an inline
-  `#[cfg(test)] mod tests { ... }` (`pnpm rust:layout` fails on both). The same
+  `#[cfg(test)] mod tests { ... }` (`pnpm rust:layout` fails on an inline module
+  and on `test.rs`/`tests.rs`; it does not yet catch `<module>_test.rs`). The same
   rule binds every `vendor/` submodule: `node scripts/externalize-inline-tests.mjs
   <repo-root> --write` converts one mechanically, and a crate root directly in
   `src/bin/` keeps its tests in `src/bin/<stem>/` because Cargo builds any `.rs`
