@@ -32,6 +32,10 @@
 //! overflow pool holds up to `BUDGET_OVERFLOW` extra Provisional rows.
 
 use std::collections::{HashMap, HashSet};
+use std::path::{Path, PathBuf};
+use std::sync::{Arc, OnceLock, PoisonError};
+
+use fs2::FileExt;
 
 use crate::agent::learning::cache::FacetCache;
 use crate::agent::learning::candidate::{self, CueFamily, FacetClass, LearningCandidate};
@@ -171,7 +175,8 @@ pub struct RebuildOutcome {
 pub struct StabilityDetector {
     pub(crate) cache: FacetCache,
     pub(crate) buffer: &'static candidate::Buffer,
-    /// When the previous rebuild in this process finished.
+    /// When the previous rebuild finished: this detector's, or, when
+    /// persisted, a later one by another detector over the same workspace.
     ///
     /// A facet's stability counts time since its last reinforcement, read from
     /// `last_seen_at`, which every rebuild used to refresh by writing every
@@ -183,6 +188,24 @@ pub struct StabilityDetector {
     /// How far a score may move before its row is written again. A field so a
     /// test can compare against a detector that writes every row every cycle.
     pub(crate) rewrite_tolerance: f64,
+    /// Where `last_rebuild_at` is kept between processes, when set (see
+    /// [`Self::persisted_in`]).
+    pub(crate) state_path: Option<PathBuf>,
+    /// Held for the length of a rebuild, so rebuilds over the same facets run
+    /// one at a time: this detector's periodic and event-driven ones, and,
+    /// once [`Self::persisted_in`], those of every detector over the workspace
+    /// in this process. Each then starts from the facets and the rebuild time
+    /// the one before it left, rather than racing it and overwriting its rows.
+    pub(crate) rebuild_turn: Arc<tokio::sync::Mutex<()>>,
+}
+
+/// Where a workspace keeps the time of its last rebuild.
+pub const REBUILD_STATE_FILE: &str = "state/learning/rebuild.json";
+
+/// The time of a workspace's last rebuild, as [`REBUILD_STATE_FILE`] holds it.
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+struct RebuildState {
+    last_rebuild_at: f64,
 }
 
 impl StabilityDetector {
@@ -195,6 +218,75 @@ impl StabilityDetector {
             buffer: candidate::global(),
             last_rebuild_at: std::sync::Mutex::new(None),
             rewrite_tolerance: REWRITE_TOLERANCE,
+            state_path: None,
+            rebuild_turn: Arc::default(),
+        }
+    }
+
+    /// Keeps the time of the last rebuild in `workspace_dir`
+    /// ([`REBUILD_STATE_FILE`]), and starts each rebuild from the one stored
+    /// there.
+    ///
+    /// A row a rebuild skipped can keep an old `last_seen_at` for weeks — a
+    /// low-confidence row moves less than the tolerance per cycle — while the
+    /// rebuild time stands in for its reinforcement. A detector that started
+    /// without that time, after a restart or for a one-off rebuild, would read
+    /// those weeks as decay all at once and could demote or evict a facet an
+    /// uninterrupted detector keeps. Every detector over a workspace's facets
+    /// therefore reads and writes the same stored time, and reads it again at
+    /// each rebuild: the scheduled detector lives on beside the one-off ones
+    /// the tool and the RPC build, and must count from their rebuilds too.
+    /// Rebuilds over the workspace in this process also take turns (see
+    /// `rebuild_turn`).
+    ///
+    /// A missing or unreadable file is a detector with no previous rebuild:
+    /// the first one reads reinforcement from the rows alone, as before.
+    #[must_use]
+    pub fn persisted_in(mut self, workspace_dir: &Path) -> Self {
+        let workspace =
+            std::fs::canonicalize(workspace_dir).unwrap_or_else(|_| workspace_dir.to_path_buf());
+        self.rebuild_turn = workspace_turn(&workspace);
+        self.state_path = Some(workspace_dir.join(REBUILD_STATE_FILE));
+        self
+    }
+
+    /// When the facets were last rebuilt: by this detector, or, when
+    /// persisted, later by another one over the workspace.
+    fn previous_rebuild(&self) -> Option<f64> {
+        let stored = self.state_path.as_deref().and_then(read_rebuild_time);
+        let mut held = self
+            .last_rebuild_at
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner);
+        tracing::debug!(
+            held = ?*held,
+            stored = ?stored,
+            "[learning::stability] previous rebuild"
+        );
+        *held = later(*held, stored);
+        *held
+    }
+
+    /// Records `at` as the last rebuild, in memory and, when persisted, on
+    /// disk; neither moves back to an earlier time. A write that fails is
+    /// logged: the next rebuild records again.
+    fn record_rebuild(&self, at: f64) {
+        let at = {
+            let mut held = self
+                .last_rebuild_at
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner);
+            *held = later(*held, Some(at));
+            held.unwrap_or(at)
+        };
+        let Some(path) = &self.state_path else {
+            return;
+        };
+        if let Err(error) = store_rebuild_time(path, at) {
+            tracing::warn!(
+                path = %path.display(),
+                "[learning::stability] could not record the rebuild time: {error}"
+            );
         }
     }
 
@@ -211,6 +303,7 @@ impl StabilityDetector {
     ///
     /// Async since the facet store moved behind the memory driver.
     pub async fn rebuild(&self, now: f64) -> anyhow::Result<RebuildOutcome> {
+        let turn = self.rebuild_turn.lock().await;
         tracing::debug!("[learning::stability] rebuild starting at t={now:.0}");
 
         // Step 1 — drain buffer.
@@ -222,10 +315,7 @@ impl StabilityDetector {
 
         // The previous rebuild's time stands in for the refresh a skipped
         // write did not make (see `last_rebuild_at`).
-        let refreshed_at = *self
-            .last_rebuild_at
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        let refreshed_at = self.previous_rebuild();
 
         // Step 2 — load existing facets.
         let existing_facets = self.cache.list_all().await?;
@@ -437,10 +527,8 @@ impl StabilityDetector {
             "[learning::stability] rebuild added={added} evicted={evicted} kept={kept} total={total_size}"
         );
 
-        *self
-            .last_rebuild_at
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(now);
+        self.record_rebuild(now);
+        drop(turn);
 
         // Step 8 — publish CacheRebuilt event.
         BUS.publish(DomainEvent::CacheRebuilt {
@@ -457,6 +545,68 @@ impl StabilityDetector {
             kept,
             total_size,
         })
+    }
+}
+
+// ── The rebuild time ──────────────────────────────────────────────────────────
+
+/// The turn rebuilds over `workspace` take, shared by every detector persisted
+/// there in this process.
+fn workspace_turn(workspace: &Path) -> Arc<tokio::sync::Mutex<()>> {
+    static TURNS: OnceLock<std::sync::Mutex<HashMap<PathBuf, Arc<tokio::sync::Mutex<()>>>>> =
+        OnceLock::new();
+    TURNS
+        .get_or_init(Default::default)
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner)
+        .entry(workspace.to_path_buf())
+        .or_default()
+        .clone()
+}
+
+/// The rebuild time stored at `path`, if there is a readable one.
+fn read_rebuild_time(path: &Path) -> Option<f64> {
+    std::fs::read(path)
+        .ok()
+        .and_then(|bytes| serde_json::from_slice::<RebuildState>(&bytes).ok())
+        .map(|state| state.last_rebuild_at)
+}
+
+/// Stores `at` at `path` as the last rebuild, unless a later one is there.
+///
+/// Writers in every process take turns on a lock file beside it, held from
+/// the read through the rename: two rebuilds that finish together then
+/// neither interleave their writes nor leave the earlier time standing. The
+/// lock sits on its own file because the rename replaces the state file. A
+/// reader takes no lock, and sees the whole previous file or the whole new
+/// one.
+fn store_rebuild_time(path: &Path, at: f64) -> std::io::Result<()> {
+    if let Some(dir) = path.parent() {
+        std::fs::create_dir_all(dir)?;
+    }
+    let lock = std::fs::OpenOptions::new()
+        .create(true)
+        .read(true)
+        .write(true)
+        .truncate(false)
+        .open(path.with_extension("json.lock"))?;
+    lock.lock_exclusive()?;
+    let at = read_rebuild_time(path).map_or(at, |stored| stored.max(at));
+    let tmp = path.with_extension("json.tmp");
+    std::fs::write(
+        &tmp,
+        serde_json::to_vec(&RebuildState {
+            last_rebuild_at: at,
+        })?,
+    )?;
+    std::fs::rename(&tmp, path)
+}
+
+/// The later of two times, either of which may be unknown.
+fn later(a: Option<f64>, b: Option<f64>) -> Option<f64> {
+    match (a, b) {
+        (Some(a), Some(b)) => Some(a.max(b)),
+        (a, b) => a.or(b),
     }
 }
 
