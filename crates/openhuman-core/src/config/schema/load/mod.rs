@@ -1,5 +1,6 @@
 //! Config load/save and environment variable overrides.
 
+mod branches;
 mod active_workspace;
 mod dirs;
 mod env;
