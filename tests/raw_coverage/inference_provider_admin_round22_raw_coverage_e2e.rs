@@ -287,7 +287,7 @@ async fn factory_covers_legacy_api_key_scoping_and_abstract_model_errors() {
 }
 
 #[tokio::test]
-async fn local_admin_covers_diagnostics_errors_assets_status_and_shutdown_with_fake_bins() {
+async fn local_admin_covers_diagnostics_errors_and_probe_with_fake_bins() {
     let _env = env_lock();
     let (base, _state) = serve_mock().await;
     let tmp = tempdir().expect("tempdir");
@@ -297,10 +297,6 @@ async fn local_admin_covers_diagnostics_errors_assets_status_and_shutdown_with_f
     config.local_ai.base_url = Some(base.clone());
     config.local_ai.chat_model_id = "gemma3n:e4b-it-q8_0".to_string();
     config.local_ai.embedding_model_id = "all-minilm:latest".to_string();
-    config.local_ai.selected_tier = Some("custom".to_string());
-    config.local_ai.preload_embedding_model = true;
-    config.local_ai.preload_stt_model = true;
-    config.local_ai.preload_tts_voice = true;
     config.local_ai.stt_model_id = "round22-stt".to_string();
     config.local_ai.tts_voice_id = "round22-voice".to_string();
 
@@ -345,21 +341,16 @@ async fn local_admin_covers_diagnostics_errors_assets_status_and_shutdown_with_f
         .unwrap()
         .contains("not running or not reachable"));
 
-    let assets = service.assets_status(&runtime).await.expect("assets status");
-    assert!(assets.ollama_available);
-    assert_eq!(assets.chat.state, "missing");
-    assert_eq!(assets.embedding.state, "missing");
-    assert_ne!(assets.tts.state, "ready");
-
-    let child = tokio::process::Command::new("/bin/sh")
-        .arg("-c")
-        .arg("sleep 30")
-        .spawn()
-        .expect("spawn fake owned ollama child");
-    service.inject_owned_ollama(child);
-    assert!(service.has_owned_ollama());
-    service.shutdown_owned_ollama(&runtime).await;
-    assert!(!service.has_owned_ollama());
+    // Missing models are reported, never pulled: bootstrap stays a read-only
+    // probe of the reachable endpoint.
+    service.bootstrap(&runtime).await;
+    assert_eq!(service.status().state, "ready");
+    service.bootstrap(&tags_500_runtime).await;
+    assert_eq!(
+        service.status().state,
+        "ready",
+        "a ready status is kept until reset_to_idle"
+    );
 }
 
 async fn serve_mock() -> (String, MockState) {
