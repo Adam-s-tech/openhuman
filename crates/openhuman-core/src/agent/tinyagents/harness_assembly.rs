@@ -449,17 +449,13 @@ pub(super) fn assemble_turn_harness(
         ),
     ));
 
-    // Prompt-cache prefix protection (issue #4249, 03.2). First declare the turn's
-    // stable prefix (system prompt + tool schemas) as `PromptSegment`s, then let
-    // the crate `PromptCacheGuardMiddleware` diff the cacheable prefix across model
-    // calls and record a `CacheLayoutEvent` when volatile content busts it.
-    // `before_model` hooks run in registration order, so the segment stamper must
-    // precede the guard; both run before the context middlewares below (they only
-    // touch the volatile tail / tool bodies, never the stable prefix). The guard is
-    // returned so the run loop can drain its events into the observability bridge —
-    // the crate-native replacement for the deleted `CacheAlignMiddleware` warn-log
-    // (C3: the warn-only shadow is gone; this guard is the sole owner).
-    harness.push_middleware(Arc::new(middleware::PromptCacheSegmentMiddleware));
+    // Prompt-cache prefix protection (issue #4249, 03.2). The vendor loop owns
+    // the stable-prefix layout (`PromptSegment`s built from the session's frozen
+    // system prefix, `frozen_system_prefix_len`); the crate
+    // `PromptCacheGuardMiddleware` diffs the cacheable prefix across model calls
+    // and records a `CacheLayoutEvent` when volatile content busts it. The guard
+    // is returned so the run loop can drain its events into the observability
+    // bridge.
     let prompt_cache_guard = Arc::new(PromptCacheGuardMiddleware::new());
     harness.push_middleware(prompt_cache_guard.clone());
 
