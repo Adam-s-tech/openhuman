@@ -303,6 +303,7 @@ async fn serve_mock() -> (String, MockState) {
         .route("/lm-error/v1/models", get(error_payload_models))
         .route("/api/tags", get(ollama_tags))
         .route("/api/show", post(ollama_show))
+        .route("/api/pull", post(ollama_pull_recorded))
         .route("/api/generate", post(ollama_generate))
         .route("/api/chat", post(ollama_chat))
         .with_state(state.clone());
@@ -460,6 +461,17 @@ async fn ollama_show(Json(body): Json<Value>) -> impl IntoResponse {
         }
     }))
     .into_response()
+}
+
+/// Records any pull attempt so tests can assert none happens: OpenHuman no
+/// longer pulls models, the user does.
+async fn ollama_pull_recorded(
+    State(state): State<MockState>,
+    headers: HeaderMap,
+    Json(body): Json<Value>,
+) -> impl IntoResponse {
+    remember(&state, "/api/pull", &headers, body);
+    StatusCode::GONE
 }
 
 async fn ollama_generate() -> impl IntoResponse {
