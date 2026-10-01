@@ -93,7 +93,7 @@ fn project_managed_usage_recovers_charged_and_cached() {
         "charged={}",
         usage.charged_amount_usd
     );
-    assert_eq!(usage.cached_input_tokens, 128, "cached tokens backfilled");
+    assert_eq!(usage.cached_input_tokens(), 128, "cached tokens backfilled");
     assert_eq!(usage.context_window(), 200_000);
     assert_eq!(usage.input_tokens, 1000);
     assert_eq!(usage.output_tokens, 50);
