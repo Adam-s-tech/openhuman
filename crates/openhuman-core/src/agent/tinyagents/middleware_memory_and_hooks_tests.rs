@@ -109,10 +109,13 @@ async fn openhuman_spec_drives_the_upstream_memory_protocol() {
         arguments: json!({}),
         invalid: None,
     };
-    mw.before_tool(&mut ctx(), &(), &mut call).await.unwrap();
+    // One run context for both hooks: the middleware keys its protocol state
+    // by run instance, so `before_tool` and `after_tool` must see the same run.
+    let mut run_ctx = ctx();
+    mw.before_tool(&mut run_ctx, &(), &mut call).await.unwrap();
     let mut result = TaToolResult::success("stored");
     mw.after_tool(
-        &mut ctx(),
+        &mut run_ctx,
         &(),
         &ToolInvocationIdentity::new("c1", "memory_store"),
         &mut result,
