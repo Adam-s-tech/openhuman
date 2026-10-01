@@ -303,7 +303,6 @@ fn publish_chat_done(
         output: None,
         success: None,
         round: None,
-        reaction_emoji,
         segment_index: None,
         segment_total: None,
         delta: None,
