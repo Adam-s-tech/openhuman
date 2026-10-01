@@ -271,30 +271,12 @@ fn payload<'a>(value: &'a Value, context: &str) -> &'a Value {
         .unwrap_or(outer)
 }
 
-fn active_channel(value: &Value, context: &str) -> String {
-    payload(value, context)
-        .get("active_channel")
-        .and_then(Value::as_str)
-        .unwrap_or_else(|| panic!("{context}: payload has no string `active_channel`: {value}"))
-        .to_string()
-}
-
 async fn set_default(harness: &Harness, id: i64, channel: &str) -> Value {
     rpc(
         &harness.rpc_base,
         id,
         "openhuman.channels_set_default",
         json!({ "channel": channel }),
-    )
-    .await
-}
-
-async fn get_default(harness: &Harness, id: i64) -> Value {
-    rpc(
-        &harness.rpc_base,
-        id,
-        "openhuman.channels_get_default",
-        json!({}),
     )
     .await
 }
