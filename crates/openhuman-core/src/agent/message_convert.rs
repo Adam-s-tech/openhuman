@@ -47,6 +47,21 @@ pub(crate) fn provider_messages_from_conversation(
         .collect()
 }
 
+/// A flat row as the dialect's chat entry: the typed role, the body and the
+/// passthrough metadata; the row's other fields have no dialect counterpart.
+pub(crate) fn row_to_dialect_message(row: TranscriptMessage) -> DialectMessage {
+    DialectMessage {
+        role: match row.role.as_str() {
+            "system" => DialectRole::System,
+            "assistant" => DialectRole::Assistant,
+            "tool" => DialectRole::Tool,
+            _ => DialectRole::User,
+        },
+        content: row.content,
+        extra_metadata: row.extra_metadata,
+    }
+}
+
 fn dialect_message_to_row(message: DialectMessage) -> TranscriptMessage {
     let mut row = TranscriptMessage::new(message.role.as_str(), message.content);
     row.extra_metadata = message.extra_metadata;

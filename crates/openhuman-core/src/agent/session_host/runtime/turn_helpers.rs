@@ -26,7 +26,7 @@ impl OpenHumanSessionHost {
     }
 
     fn conversation_message_eq(left: &TranscriptEntry, right: &TranscriptEntry) -> bool {
-        serde_json::to_string(left).ok() == serde_json::to_string(right).ok()
+        left == right
     }
 
     fn message_slice_eq(left: &[TranscriptEntry], right: &[TranscriptEntry]) -> bool {

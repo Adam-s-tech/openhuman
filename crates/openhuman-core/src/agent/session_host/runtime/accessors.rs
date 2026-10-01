@@ -287,7 +287,9 @@ impl OpenHumanSessionHost {
                     .history()
                     .iter()
                     .filter_map(crate::agent::message_convert::message_to_native_chat_message)
-                    .map(TranscriptEntry::Chat)
+                    .map(|row| {
+                        TranscriptEntry::Chat(crate::agent::message_convert::row_to_dialect_message(row))
+                    })
                     .collect()
             })
             .unwrap_or_default()

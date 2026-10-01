@@ -52,7 +52,6 @@ pub(super) use dispatch::{run_subagent_via_graph, AggregatedUsage};
 // `dispatch.rs` / `transcript.rs` / `worker_mirror.rs`).
 #[cfg(test)]
 use tinyagents_session::transcript::TranscriptMessage;
-use tinytools_agent::dialect::TranscriptEntry;
 #[cfg(test)]
 use crate::agent::progress::AgentProgress;
 #[cfg(test)]
