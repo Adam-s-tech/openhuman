@@ -1,30 +1,31 @@
-//! Persistence-boundary conversions between OpenHuman transcript records and
-//! TinyAgents' rich [`Message`]/[`TaToolCall`] types.
+//! Conversions between OpenHuman's transcript rows and TinyAgents' rich
+//! [`Message`]/[`TaToolCall`] types.
 //!
-//! The two sides model the same concepts with different shapes:
-//!
-//! - openhuman `TranscriptMessage` is `{ role: String, content: String }` — tool
-//!   calls and tool-result correlation ids are not first-class fields; the
-//!   legacy loop threads them through provider-native encoding instead.
-//! - `tinyagents::harness::message::Message` is a typed enum
-//!   (`System`/`User`/`Assistant`/`Tool`) whose `Assistant` arm carries
-//!   structured `tool_calls` and whose `Tool` arm carries a `tool_call_id`.
+//! The row ([`TranscriptMessage`]) is typed: `content` is plain text, a native
+//! assistant tool round lives in `tool_calls`, a tool result carries its
+//! `tool_call_id`, and a user turn with pictures carries ordered `parts`. The
+//! harness [`Message`] is a typed enum (`System`/`User`/`Assistant`/`Tool`)
+//! whose `Assistant` arm carries structured `tool_calls` and whose `Tool` arm
+//! carries a `tool_call_id`. The two map onto each other field for field; there
+//! is no string envelope in between (the legacy envelope and image-marker forms
+//! are lifted into the typed row when a transcript is read, and rebuilt only by
+//! the compatibility adapters in [`crate::agent::messages`] and the journal
+//! projector).
 //!
 //! These helpers bridge the seed history into the harness and the harness'
 //! resulting transcript back out, so a turn can run on the `tinyagents`
-//! agent-loop while callers keep speaking openhuman's `TranscriptMessage` vocabulary.
+//! agent-loop while callers keep speaking the row vocabulary.
 
 use tinyinference_llm::message::{
     AssistantMessage, ContentBlock, ImageRef, Message, SystemMessage, ToolMessage, UserMessage,
 };
 use tinyinference_llm::tool::ToolCall as TaToolCall;
 use tinytools_agent::dialect::{
-    encode_assistant_envelope, encode_tool_envelope, parse_assistant_envelope, parse_tool_envelope,
     DialectMessage, DialectResponse, DialectRole, ToolDialect, ToolResultEntry, TranscriptEntry,
 };
 
 use crate::inference::provider::ChatResponse;
-use tinyagents_session::transcript::TranscriptMessage;
+use tinyagents_session::transcript::{TranscriptMessage, TranscriptPart, TranscriptToolCall};
 
 /// Convert the host provider response at its boundary into the canonical
 /// dialect input. The dialect crate owns all parsing after this field-wise map.
@@ -36,19 +37,20 @@ pub(crate) fn dialect_response_from_provider(response: &ChatResponse) -> Dialect
 }
 
 /// Replay typed conversation entries through a canonical dialect and return
-/// the provider's message rows.
+/// the provider's typed rows (a native tool round keeps its calls and call ids
+/// in fields, never packed into `content`).
 pub(crate) fn provider_messages_from_conversation(
     dialect: &dyn ToolDialect,
     history: &[TranscriptEntry],
 ) -> Vec<TranscriptMessage> {
     dialect
-        .to_provider_messages(history)
+        .to_typed_messages(history)
         .into_iter()
         .map(dialect_message_to_row)
         .collect()
 }
 
-/// A flat row as the dialect's chat entry: the typed role, the body and the
+/// A row as the dialect's chat entry: the typed role, the body and the
 /// passthrough metadata; the row's other fields have no dialect counterpart.
 pub(crate) fn row_to_dialect_message(row: TranscriptMessage) -> DialectMessage {
     DialectMessage {
@@ -60,12 +62,17 @@ pub(crate) fn row_to_dialect_message(row: TranscriptMessage) -> DialectMessage {
         },
         content: row.content,
         extra_metadata: row.extra_metadata,
+        tool_calls: row.tool_calls.into_iter().map(Into::into).collect(),
+        tool_call_id: row.tool_call_id,
+        reasoning_content: None,
     }
 }
 
 fn dialect_message_to_row(message: DialectMessage) -> TranscriptMessage {
     let mut row = TranscriptMessage::new(message.role.as_str(), message.content);
     row.extra_metadata = message.extra_metadata;
+    row.tool_calls = message.tool_calls.into_iter().map(Into::into).collect();
+    row.tool_call_id = message.tool_call_id;
     row
 }
 
