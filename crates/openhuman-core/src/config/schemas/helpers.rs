@@ -237,6 +237,10 @@ pub(super) struct AgentPathsUpdate {
     /// New absolute action sandbox path. Empty string clears the override;
     /// omitted leaves it unchanged. Validated server-side.
     pub(super) action_dir: Option<String>,
+    /// New absolute folder for agent deliverables (#5505). Empty string
+    /// clears the override; omitted leaves it unchanged.
+    #[serde(default)]
+    pub(super) files_dir: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]

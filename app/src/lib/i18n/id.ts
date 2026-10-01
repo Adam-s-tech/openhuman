@@ -5474,6 +5474,13 @@ const messages: TranslationMap = {
   'settings.agentAccess.timeout.envOverride':
     'Variabel lingkungan OPENHUMAN_TOOL_TIMEOUT_SECS menggantikan pengaturan ini, sehingga perubahan di sini tidak berpengaruh hingga variabel tersebut dihapus.',
   'settings.agentAccess.grantedFolders': 'Folder yang diberikan',
+  'settings.agentAccess.filesFolder.label': 'Folder file',
+  'settings.agentAccess.filesFolder.desc':
+    'Tempat menyimpan file yang dibuat agen, seperti presentasi, dokumen, gambar, dan video. Perubahan berlaku untuk file baru; file yang sudah ada tetap di tempatnya.',
+  'settings.agentAccess.filesFolder.save': 'Simpan',
+  'settings.agentAccess.filesFolder.reset': 'Gunakan bawaan',
+  'settings.agentAccess.filesFolder.saved': 'Folder file diperbarui',
+  'settings.agentAccess.filesFolder.loadError': 'Folder file tidak dapat dimuat.',
   'settings.agentAccess.alwaysAllow': 'Selalu-diperbolehkan alat',
   'settings.agentAccess.alwaysAllowDesc':
     'Perkakas yang Anda tandai "Always allow" dalam run percakapan tanpa bertanya. Hapus satu yang akan diminta lagi.',

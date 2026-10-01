@@ -5557,6 +5557,13 @@ const messages: TranslationMap = {
   'settings.agentAccess.timeout.envOverride':
     "La variable d'environnement OPENHUMAN_TOOL_TIMEOUT_SECS remplace ce paramètre ; les modifications effectuées ici n'auront donc aucun effet tant qu'elle n'est pas supprimée.",
   'settings.agentAccess.grantedFolders': 'Dossiers accordés',
+  'settings.agentAccess.filesFolder.label': 'Dossier des fichiers',
+  'settings.agentAccess.filesFolder.desc':
+    'Emplacement où sont enregistrés les fichiers créés par l’agent, comme les présentations, documents, images et vidéos. Une modification s’applique aux nouveaux fichiers ; les fichiers existants restent où ils sont.',
+  'settings.agentAccess.filesFolder.save': 'Enregistrer',
+  'settings.agentAccess.filesFolder.reset': 'Utiliser le dossier par défaut',
+  'settings.agentAccess.filesFolder.saved': 'Dossier des fichiers mis à jour',
+  'settings.agentAccess.filesFolder.loadError': 'Impossible de charger le dossier des fichiers.',
   'settings.agentAccess.alwaysAllow': 'Outils toujours autorisés',
   'settings.agentAccess.alwaysAllowDesc':
     "Les outils que vous avez marqués « Toujours autoriser » dans le chat s'exécutent sans demander. Supprimez-en un pour être invité à nouveau.",

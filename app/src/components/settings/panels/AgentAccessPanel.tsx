@@ -25,6 +25,7 @@ import {
 import { useSettingsNavigation } from '../hooks/useSettingsNavigation';
 import SettingsPanel from '../layout/SettingsPanel';
 import AutonomyRateLimitSection from './AutonomyPanel';
+import FilesFolderSection from './FilesFolderSection';
 
 // Installs are always *available* but never silent: every `install_tool` call
 // is routed through the approval gate, so the user is asked to Approve/Deny
@@ -336,6 +337,8 @@ const AgentAccessPanel = () => {
 
           {/* ── File system: where the agent may read and write ─────────── */}
           <Card title={t('settings.agentAccess.group.fileSystem')}>
+            <FilesFolderSection />
+
             <Field
               htmlFor="switch-workspace-only"
               label={t('settings.agentAccess.confine.label')}
