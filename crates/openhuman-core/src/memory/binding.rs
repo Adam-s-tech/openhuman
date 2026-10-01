@@ -596,7 +596,7 @@ pub(crate) fn install_for_test(
         .insert(key, binding);
 }
 
-pub use super::binding_rebind::rebind;
+pub use super::binding_rebind::{current_for, rebind};
 
 /// The bound memory driver for the workspace a whole [`Config`] names.
 ///

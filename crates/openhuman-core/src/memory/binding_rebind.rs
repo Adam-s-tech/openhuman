@@ -11,6 +11,36 @@ use crate::core::subsystem::DriverClass;
 
 use super::binding::{for_workspace, MemoryBinding, BINDINGS};
 
+/// The binding `workspace_dir`'s shared memory tree resolves to now, when the
+/// cache can tell.
+///
+/// A switch ([`rebind`]) evicts every other binding of the workspace and binds
+/// the new engine, so after one the cache holds a single binding for it: the
+/// current one. Before any switch that is the one boot bound. `None` when
+/// nothing is cached for the workspace, or when bindings under more than one
+/// config are cached and none of them can be told current.
+///
+/// For a caller holding a config from earlier, which may name an engine
+/// switched away from since: binding that config again would rebuild the
+/// evicted driver.
+pub fn current_for(workspace_dir: &Path) -> Option<Arc<MemoryBinding>> {
+    let cache = BINDINGS.get()?;
+    let map = cache.read().ok()?;
+    let mut bound = map
+        .iter()
+        .filter(|((dir, subdir, _), _)| dir == workspace_dir && subdir == "memory")
+        .map(|(_, binding)| binding);
+    let current = bound.next()?;
+    if bound.next().is_some() {
+        log::debug!(
+            "[memory:binding] workspace={} has bindings under more than one config; none is current",
+            workspace_dir.display()
+        );
+        return None;
+    }
+    Some(Arc::clone(current))
+}
+
 /// Switch a workspace to `new_cfg` in process: evict the bindings the switch
 /// invalidates, re-point every context that serves the workspace, bind the new
 /// driver and announce it.

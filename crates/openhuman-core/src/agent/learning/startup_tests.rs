@@ -202,3 +202,36 @@ async fn a_long_lived_facet_cache_reads_the_engine_the_workspace_has_now() {
         "a cache built before the switch must reach the engine bound after it"
     );
 }
+
+/// With no context serving the workspace, a switch still reaches the cache:
+/// it takes the binding the switch left, not the config it was built with,
+/// which would bind the engine switched away from again.
+#[tokio::test]
+async fn a_long_lived_facet_cache_follows_a_switch_made_without_a_context() {
+    let tmp = test_workspace();
+    let before = MemorySubsystemConfig {
+        driver: "null".into(),
+        ..MemorySubsystemConfig::default()
+    };
+    let first = Arc::new(RecordingProvider::new());
+    crate::memory::binding::install_for_test(tmp.path(), &before, first.clone());
+    let cache = facet_cache_for(tmp.path(), &before);
+    cache
+        .list_all()
+        .await
+        .expect("facets through the engine bound at first");
+    assert!(reached_profile(&first));
+
+    let after = chosen_engine();
+    let second = Arc::new(RecordingProvider::new());
+    crate::memory::binding::install_for_test(tmp.path(), &after, second.clone());
+    crate::memory::binding::rebind(tmp.path(), &before.driver, &after).expect("switch");
+    cache
+        .list_all()
+        .await
+        .expect("facets through the engine switched to");
+    assert!(
+        reached_profile(&second),
+        "the cache must follow the switch, not rebind the config it was built with"
+    );
+}
