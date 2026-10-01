@@ -9,7 +9,6 @@
 //!   so every chain's signer derives a deterministic address.
 //! - Sample addresses corresponding to that mnemonic (one per chain).
 
-
 use once_cell::sync::Lazy;
 use parking_lot::Mutex;
 use tempfile::TempDir;

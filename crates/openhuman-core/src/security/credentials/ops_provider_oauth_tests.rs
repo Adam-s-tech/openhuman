@@ -493,8 +493,7 @@ async fn start_login_gated_services_completes_with_all_services_disabled() {
     // by default (they leak across the parallel test run); opt this one test
     // back in so it actually drives the concurrent spawn/await path it guards.
     // Only presence is checked, so the value (a temp path) is irrelevant.
-    let _run_services =
-        EnvVarGuard::set("OPENHUMAN_RUN_LOGIN_GATED_SERVICES_IN_TEST", tmp.path());
+    let _run_services = EnvVarGuard::set("OPENHUMAN_RUN_LOGIN_GATED_SERVICES_IN_TEST", tmp.path());
 
     let mut config = Config::default();
     // Every service is disabled so each `start_if_enabled` is a no-op: the test
