@@ -360,6 +360,9 @@ fn every_committed_transcript_resumes_to_the_recorded_model_view() {
         run_async(async move {
             let got = snapshot(scenario).await;
             let want = golden(scenario.name);
+            if let Ok(dir) = std::env::var("OH_DUMP") {
+                std::fs::write(format!("{dir}/{}.got.json", scenario.name), serde_json::to_string_pretty(&got).unwrap()).unwrap();
+            }
             assert_eq!(
                 got, want,
                 "{}: resumed model view drifted from the committed golden",
