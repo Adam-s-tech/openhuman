@@ -48,6 +48,11 @@ fn default_root_dir_name() -> &'static str {
     }
 }
 
+#[cfg(test)]
+pub(crate) fn default_root_dir_name_pub() -> &'static str {
+    default_root_dir_name()
+}
+
 /// Returns the root openhuman directory (`~/.openhuman`), independent of any
 /// per-user scoping.  Used to locate `active_user.toml` and the shared
 /// `users/` tree.
