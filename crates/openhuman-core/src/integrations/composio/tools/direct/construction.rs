@@ -60,7 +60,7 @@ impl DirectComposioClient {
     /// unit tests can point the direct `/tools` request — including the
     /// `tags` filter — at a local mock instead of `backend.composio.dev`.
     ///
-    /// `#[cfg(test)]`-gated on purpose: `list_tool_schemas_v3` attaches the
+    /// `#[cfg(test)]`-gated on purpose: the transport attaches the
     /// `x-api-key` header to whatever `base_v3` holds, so the only way to
     /// reach the v3 endpoint in production is [`Self::new`], which always
     /// uses the HTTPS [`COMPOSIO_API_BASE_V3`] const. An injectable base must

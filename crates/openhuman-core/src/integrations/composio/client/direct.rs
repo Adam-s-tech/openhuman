@@ -1,27 +1,20 @@
-//! Direct-mode response reshapers: `direct_list_connections`, and `direct_list_tools`.
-//! Call Composio's v3 API directly (via a bound [`crate::tools::DirectComposioClient`])
-//! and reshape the v3 response into the canonical envelope types, so downstream
-//! callers don't have to branch on mode.
+//! Direct-mode reads: `direct_list_connections` and `direct_list_tools`.
+//!
+//! The v3 requests and their reshaping into the canonical envelopes are the
+//! connector module's `DirectRoute`, driven in-process over the host transport
+//! on a bound [`crate::tools::DirectComposioClient`]. What stays here is host
+//! policy: the process-wide invalid-key gate (`direct_auth`) and its
+//! user-facing messages.
 
 use std::sync::Arc;
 
 use super::super::direct_auth;
-use super::super::types::{ComposioConnection, ComposioConnectionsResponse, ComposioToolsResponse};
+use super::super::types::{ComposioConnectionsResponse, ComposioToolsResponse};
 
-/// Direct-mode connection listing.
-///
-/// Calls Composio v3 `/connected_accounts` (via
-/// [`crate::tools::DirectComposioClient::list_connected_accounts`])
-/// and maps each item to the canonical [`ComposioConnection`] so the
-/// existing frontend type contract and the 5 s UI poll keep working
-/// unchanged.
-///
-/// Toolkit slug, status, and `created_at` are extracted defensively —
-/// missing or unparseable fields fall back to empty strings / `None`
-/// rather than dropping the row. The status filter applied downstream
-/// (`ComposioConnection::is_active`) treats empty status as inactive,
-/// so a malformed row will simply not be presented as connected — the
-/// fail-safe shape the user expects.
+/// Direct-mode connection listing (Composio v3 `/connected_accounts`), gated
+/// by the host's invalid-key breaker. Rows come back as canonical
+/// [`ComposioConnection`](super::super::types::ComposioConnection)s; a malformed
+/// row is kept with empty fields and reads as inactive (fail-safe).
 pub async fn direct_list_connections(
     direct: &Arc<crate::tools::DirectComposioClient>,
 ) -> anyhow::Result<ComposioConnectionsResponse> {
@@ -35,10 +28,10 @@ pub async fn direct_list_connections(
         anyhow::bail!("{error}");
     }
 
-    let items = match direct.list_connected_accounts().await {
-        Ok(items) => {
+    let response = match direct.list_connections().await {
+        Ok(response) => {
             direct_auth::record_direct_auth_success(key_id);
-            items
+            response
         }
         Err(error) => {
             let rendered = format!("{error:#}");
@@ -64,40 +57,16 @@ pub async fn direct_list_connections(
             return Err(error);
         }
     };
-    let connections: Vec<ComposioConnection> = items
-        .into_iter()
-        .filter_map(|item| {
-            let id = item.id.trim().to_string();
-            if id.is_empty() {
-                return None;
-            }
-            let toolkit = item.toolkit_slug().unwrap_or_default();
-            let status = item.status.clone().unwrap_or_default();
-            Some(ComposioConnection {
-                id,
-                toolkit,
-                status,
-                created_at: item.created_at.clone(),
-                // Identity fields are populated by
-                // `enrich_connections_with_identity` in ops.rs after
-                // the full list is fetched, using cached profile data.
-                account_email: None,
-                workspace: None,
-                username: None,
-            })
-        })
-        .collect();
     tracing::debug!(
-        count = connections.len(),
+        count = response.connections.len(),
         "[composio-direct] list_connections: mapped v3 connected accounts"
     );
-    Ok(ComposioConnectionsResponse { connections })
+    Ok(response)
 }
 
-/// Direct-mode tool listing. Calls
-/// Composio v3 `/tools?toolkits=<csv>&tags=<a>&tags=<b>` via
-/// [`crate::tools::DirectComposioClient::list_tool_schemas_v3`] and
-/// reshapes each item into the same [`ComposioToolSchema`] envelope the
+/// Direct-mode tool listing. Calls Composio v3 `/tools` (the route sends
+/// `limit=200`, `toolkit_versions=latest`, `toolkits=<csv>` and repeated
+/// `tags=`) and returns the same `ComposioToolSchema` envelope the
 /// backend-proxied path returns.
 ///
 /// `toolkits` may be empty (full direct-tenant catalogue) or scoped to
@@ -129,32 +98,15 @@ pub(crate) async fn direct_list_tools(
     toolkits: &[String],
     tags: Option<&[String]>,
 ) -> anyhow::Result<ComposioToolsResponse> {
-    let toolkit_refs: Vec<&str> = toolkits.iter().map(|s| s.as_str()).collect();
-    let tag_refs: Option<Vec<&str>> = tags.map(|t| t.iter().map(|s| s.as_str()).collect());
     tracing::debug!(
-        toolkits = toolkit_refs.len(),
-        tags = tag_refs.as_ref().map(Vec::len).unwrap_or(0),
+        toolkits = toolkits.len(),
+        tags = tags.map(<[String]>::len).unwrap_or(0),
         "[composio-direct] list_tools: GET v3 /tools"
     );
-    let items = direct
-        .list_tool_schemas_v3(&toolkit_refs, tag_refs.as_deref())
-        .await?;
-    let tools: Vec<super::super::types::ComposioToolSchema> = items
-        .into_iter()
-        .filter(|item| !item.slug.is_empty())
-        .map(|item| super::super::types::ComposioToolSchema {
-            kind: "function".to_string(),
-            function: super::super::types::ComposioToolFunction {
-                name: item.slug,
-                description: item.description,
-                parameters: item.input_parameters,
-                output_parameters: item.output_parameters,
-            },
-        })
-        .collect();
+    let response = direct.list_tools(toolkits, tags.unwrap_or(&[])).await?;
     tracing::debug!(
-        count = tools.len(),
+        count = response.tools.len(),
         "[composio-direct] list_tools: mapped v3 tool schemas"
     );
-    Ok(ComposioToolsResponse { tools })
+    Ok(response)
 }

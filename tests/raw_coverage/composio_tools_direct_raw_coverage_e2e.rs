@@ -46,16 +46,6 @@ async fn direct_composio_client_uses_loopback_for_connected_accounts() {
         .expect("loopback direct client"),
     );
 
-    let accounts = tool
-        .list_connected_accounts()
-        .await
-        .expect("connected accounts");
-    assert_eq!(accounts.len(), 4);
-    assert_eq!(accounts[0].toolkit_slug().as_deref(), Some("gmail"));
-    assert_eq!(accounts[1].toolkit_slug().as_deref(), Some("github"));
-    assert_eq!(accounts[2].toolkit_slug().as_deref(), Some("slack"));
-    assert_eq!(accounts[3].toolkit_slug(), None);
-
     let mapped = direct_list_connections(&tool)
         .await
         .expect("mapped connected accounts");
@@ -64,6 +54,16 @@ async fn direct_composio_client_uses_loopback_for_connected_accounts() {
         .connections
         .iter()
         .any(|conn| conn.id == "acct-github" && conn.toolkit == "github"));
+    // Slug extraction: padded string, nested object, `appName` fallback, and a
+    // row with no recognizable slug is kept with an empty toolkit.
+    let toolkits: Vec<&str> = mapped
+        .connections
+        .iter()
+        .map(|c| c.toolkit.as_str())
+        .collect();
+    assert_eq!(toolkits[..2], ["gmail", "github"]);
+    assert_eq!(toolkits[2], "slack");
+    assert_eq!(toolkits[3], "");
 
     let requests = state.requests.lock().expect("requests").clone();
     assert!(requests.iter().all(|request| {
