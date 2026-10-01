@@ -20,6 +20,9 @@
 //! JSON-RPC router (`build_core_http_router`) and asserted on, so the number the
 //! gate reports and the coverage that exists are the same thing.
 
+use crate::env_guard::EnvVarGuard;
+use crate::env_guard::env_lock;
+use crate::rpc_auth::{ensure_rpc_auth, rpc_token};
 use std::path::Path;
 use std::sync::{Mutex, OnceLock};
 use std::time::Duration;
@@ -29,74 +32,13 @@ use reqwest::StatusCode;
 use serde_json::{json, Value};
 use tempfile::{tempdir, TempDir};
 
-use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
 use openhuman_rpc::server::build_core_http_router;
-
-const TEST_RPC_TOKEN: &str = "agent-approval-memory-coverage-e2e-token";
-
-static ENV_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
-static AUTH_INIT: OnceLock<()> = OnceLock::new();
-
-fn env_lock() -> std::sync::MutexGuard<'static, ()> {
-    ENV_LOCK
-        .get_or_init(|| Mutex::new(()))
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner())
-}
-
-/// Restores an environment variable to its prior value on drop so a harness
-/// cannot leak `HOME` into a sibling test in the same binary.
-struct EnvVarGuard {
-    key: String,
-    previous: Option<String>,
-}
-
-impl EnvVarGuard {
-    fn set(key: &str, value: &str) -> Self {
-        let previous = std::env::var(key).ok();
-        std::env::set_var(key, value);
-        Self {
-            key: key.to_string(),
-            previous,
-        }
-    }
-
-    fn set_to_path(key: &str, value: &Path) -> Self {
-        Self::set(key, &value.to_string_lossy())
-    }
-
-    fn unset(key: &str) -> Self {
-        let previous = std::env::var(key).ok();
-        std::env::remove_var(key);
-        Self {
-            key: key.to_string(),
-            previous,
-        }
-    }
-}
-
-impl Drop for EnvVarGuard {
-    fn drop(&mut self) {
-        match self.previous.take() {
-            Some(value) => std::env::set_var(&self.key, value),
-            None => std::env::remove_var(&self.key),
-        }
-    }
-}
 
 struct TestHarness {
     _tmp: TempDir,
     _guards: Vec<EnvVarGuard>,
     rpc_base: String,
     _rpc_join: tokio::task::JoinHandle<Result<(), std::io::Error>>,
-}
-
-fn ensure_rpc_auth() {
-    AUTH_INIT.get_or_init(|| {
-        std::env::set_var(CORE_TOKEN_ENV_VAR, TEST_RPC_TOKEN);
-        let token_dir = std::env::temp_dir().join("openhuman-agent-approval-memory-e2e-auth");
-        init_rpc_token(&token_dir).expect("init rpc auth token");
-    });
 }
 
 async fn serve_rpc() -> (
@@ -185,7 +127,7 @@ async fn rpc(rpc_base: &str, id: i64, method: &str, params: Value) -> Value {
     let url = format!("{}/rpc", rpc_base.trim_end_matches('/'));
     let response = client
         .post(&url)
-        .header(AUTHORIZATION, format!("Bearer {TEST_RPC_TOKEN}"))
+        .header(AUTHORIZATION, format!("Bearer {rpc_token()}"))
         .json(&json!({
             "jsonrpc": "2.0",
             "id": id,

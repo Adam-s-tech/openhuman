@@ -7,6 +7,9 @@
 //!
 //! Run with: `cargo test --test embeddings_rpc_e2e`
 
+use crate::env_guard::EnvVarGuard;
+use crate::env_guard::env_lock;
+use crate::rpc_auth::{ensure_rpc_auth, rpc_token};
 use std::net::SocketAddr;
 use std::path::Path;
 use std::sync::{Arc, Mutex, OnceLock};
@@ -19,74 +22,11 @@ use axum::{Json, Router};
 use serde_json::{json, Value};
 use tempfile::tempdir;
 
-use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
 use openhuman_rpc::server::build_core_http_router;
 
 // ── Auth / token setup ────────────────────────────────────────────────────────
 
-const TEST_RPC_TOKEN: &str = "embeddings-e2e-test-token";
-static E2E_AUTH_INIT: OnceLock<()> = OnceLock::new();
-
-/// Serialises tests: env-var mutations (`HOME`, `OPENHUMAN_WORKSPACE`,
-/// `OPENHUMAN_APP_ENV`) are process-global. The OnceLock+Mutex pattern mirrors
-/// `json_rpc_e2e.rs` so tests don't race each other.
-static EMBEDDINGS_E2E_ENV_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
-
-fn embeddings_e2e_env_lock() -> std::sync::MutexGuard<'static, ()> {
-    let mutex = EMBEDDINGS_E2E_ENV_LOCK.get_or_init(|| Mutex::new(()));
-    match mutex.lock() {
-        Ok(guard) => guard,
-        Err(poisoned) => poisoned.into_inner(),
-    }
-}
-
-fn ensure_test_rpc_auth() {
-    E2E_AUTH_INIT.get_or_init(|| {
-        // SAFETY: runs exactly once inside OnceLock before any concurrent env
-        // reads occur. Rust 1.81+ requires unsafe for set_var in multi-threaded
-        // contexts; the OnceLock guard limits the mutation to a single call.
-        unsafe { std::env::set_var(CORE_TOKEN_ENV_VAR, TEST_RPC_TOKEN) };
-        let token_dir = std::env::temp_dir().join("openhuman-embeddings-e2e-auth");
-        init_rpc_token(&token_dir).expect("init rpc auth token for embeddings_rpc_e2e");
-    });
-}
-
 // ── Env-var guard (RAII restore) ──────────────────────────────────────────────
-
-struct EnvVarGuard {
-    key: &'static str,
-    old: Option<String>,
-}
-
-impl EnvVarGuard {
-    fn set_to_path(key: &'static str, path: &Path) -> Self {
-        let old = std::env::var(key).ok();
-        unsafe { std::env::set_var(key, path.as_os_str()) };
-        Self { key, old }
-    }
-
-    #[allow(dead_code)]
-    fn set(key: &'static str, value: &str) -> Self {
-        let old = std::env::var(key).ok();
-        unsafe { std::env::set_var(key, value) };
-        Self { key, old }
-    }
-
-    fn unset(key: &'static str) -> Self {
-        let old = std::env::var(key).ok();
-        unsafe { std::env::remove_var(key) };
-        Self { key, old }
-    }
-}
-
-impl Drop for EnvVarGuard {
-    fn drop(&mut self) {
-        match &self.old {
-            Some(v) => unsafe { std::env::set_var(self.key, v) },
-            None => unsafe { std::env::remove_var(self.key) },
-        }
-    }
-}
 
 // ── Minimal config writer ─────────────────────────────────────────────────────
 
@@ -109,7 +49,7 @@ async fn serve_on_ephemeral() -> (
     SocketAddr,
     tokio::task::JoinHandle<Result<(), std::io::Error>>,
 ) {
-    ensure_test_rpc_auth();
+    ensure_rpc_auth();
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
         .await
         .expect("bind ephemeral port");
@@ -207,7 +147,7 @@ async fn post_json_rpc(rpc_base: &str, id: i64, method: &str, params: Value) -> 
     let url = format!("{}/rpc", rpc_base.trim_end_matches('/'));
     let resp = client
         .post(&url)
-        .header(AUTHORIZATION, format!("Bearer {TEST_RPC_TOKEN}"))
+        .header(AUTHORIZATION, format!("Bearer {rpc_token()}"))
         .json(&body)
         .send()
         .await
@@ -311,7 +251,7 @@ async fn setup_embeddings_test() -> (
 
 #[tokio::test(flavor = "multi_thread")]
 async fn embeddings_get_settings_returns_catalog() {
-    let _lock = embeddings_e2e_env_lock();
+    let _lock = env_lock();
     let (rpc_base, _tmp, _guards, _join) = setup_embeddings_test().await;
 
     let resp = post_json_rpc(&rpc_base, 1, "openhuman.embeddings_get_settings", json!({})).await;
@@ -402,7 +342,7 @@ async fn embeddings_get_settings_returns_catalog() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn embeddings_update_settings_switches_provider() {
-    let _lock = embeddings_e2e_env_lock();
+    let _lock = env_lock();
     let (rpc_base, _tmp, _guards, _join) = setup_embeddings_test().await;
 
     // Switch to "none" (noop) which has 0 dimensions — dimension change from
@@ -437,7 +377,7 @@ async fn embeddings_update_settings_switches_provider() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn embeddings_update_settings_dimension_change_requires_wipe() {
-    let _lock = embeddings_e2e_env_lock();
+    let _lock = env_lock();
     let (rpc_base, _tmp, _guards, _join) = setup_embeddings_test().await;
 
     // First set provider to voyage (a provider that supports multiple dims)
@@ -495,7 +435,7 @@ async fn embeddings_update_settings_dimension_change_requires_wipe() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn embeddings_set_and_clear_api_key() {
-    let _lock = embeddings_e2e_env_lock();
+    let _lock = env_lock();
     let (rpc_base, _tmp, _guards, _join) = setup_embeddings_test().await;
 
     // Store a key for voyage
@@ -581,7 +521,7 @@ async fn embeddings_set_and_clear_api_key() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn embeddings_test_connection_with_none_provider() {
-    let _lock = embeddings_e2e_env_lock();
+    let _lock = env_lock();
     let (rpc_base, _tmp, _guards, _join) = setup_embeddings_test().await;
 
     // Switch to "none" so test_connection uses the noop provider (no network).
@@ -619,7 +559,7 @@ async fn embeddings_test_connection_with_none_provider() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn embeddings_embed_with_none_returns_empty_vectors() {
-    let _lock = embeddings_e2e_env_lock();
+    let _lock = env_lock();
     let (rpc_base, _tmp, _guards, _join) = setup_embeddings_test().await;
 
     // Switch to noop so embed() doesn't require network.
@@ -661,7 +601,7 @@ async fn embeddings_embed_with_none_returns_empty_vectors() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn embeddings_embed_with_custom_openai_endpoint_round_trips_vectors_and_api_key() {
-    let _lock = embeddings_e2e_env_lock();
+    let _lock = env_lock();
     let (rpc_base, _tmp, _guards, _join) = setup_embeddings_test().await;
     let (mock_base, mock_state, mock_join) = serve_mock_embeddings().await;
 
@@ -781,7 +721,7 @@ async fn serve_mock_embeddings_no_api(
 /// the 404-on-every-re-embed Sentry flood can never be configured.
 #[tokio::test(flavor = "multi_thread")]
 async fn embeddings_update_settings_rejects_endpoint_with_no_embeddings_api() {
-    let _lock = embeddings_e2e_env_lock();
+    let _lock = env_lock();
     let (rpc_base, _tmp, _guards, _join) = setup_embeddings_test().await;
     let (mock_base, mock_join) = serve_mock_embeddings_no_api().await;
 
@@ -843,7 +783,7 @@ async fn embeddings_update_settings_rejects_endpoint_with_no_embeddings_api() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn legacy_alias_inference_embed_resolves() {
-    let _lock = embeddings_e2e_env_lock();
+    let _lock = env_lock();
     let (rpc_base, _tmp, _guards, _join) = setup_embeddings_test().await;
 
     // Set provider to none so the embed call itself doesn't fail on missing keys.
@@ -903,7 +843,7 @@ async fn legacy_alias_inference_embed_resolves() {
 /// what keeps the live embed path's length guard from rejecting later embeds.
 #[tokio::test(flavor = "multi_thread")]
 async fn embeddings_update_settings_adopts_custom_endpoint_native_dimension() {
-    let _lock = embeddings_e2e_env_lock();
+    let _lock = env_lock();
     let (rpc_base, _tmp, _guards, _join) = setup_embeddings_test().await;
     let (mock_base, _mock_state, mock_join) = serve_mock_embeddings().await;
 
@@ -964,7 +904,7 @@ async fn embeddings_update_settings_adopts_custom_endpoint_native_dimension() {
 /// field to reopen the populated form after a reload in Disabled mode.
 #[tokio::test(flavor = "multi_thread")]
 async fn embeddings_get_settings_returns_retained_custom_profile_while_disabled() {
-    let _lock = embeddings_e2e_env_lock();
+    let _lock = env_lock();
     let (rpc_base, tmp, _guards, _join) = setup_embeddings_test().await;
     for config_path in [
         tmp.path().join(".openhuman").join("config.toml"),
@@ -1028,7 +968,7 @@ embedding_dimensions = 2048
 
 #[tokio::test(flavor = "multi_thread")]
 async fn embeddings_controllers_reject_missing_required_params() {
-    let _lock = embeddings_e2e_env_lock();
+    let _lock = env_lock();
     let (rpc_base, _tmp, _guards, _join) = setup_embeddings_test().await;
 
     for (id, method) in [

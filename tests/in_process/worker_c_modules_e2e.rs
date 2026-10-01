@@ -4,6 +4,9 @@
 //! composio / threads slice and drives the real HTTP JSON-RPC router against
 //! an isolated workspace. It avoids live network calls.
 
+use crate::env_guard::EnvVarGuard;
+use crate::env_guard::env_lock;
+use crate::rpc_auth::{ensure_rpc_auth, rpc_token};
 use std::path::Path;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
@@ -16,48 +19,8 @@ use reqwest::StatusCode;
 use serde_json::{json, Value};
 use tempfile::{tempdir, TempDir};
 
-use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
 use openhuman_core::core::dispatch::UNKNOWN_METHOD_PREFIX;
 use openhuman_rpc::server::build_core_http_router;
-
-const TEST_RPC_TOKEN: &str = "worker-c-modules-e2e-token";
-
-static AUTH_INIT: OnceLock<()> = OnceLock::new();
-static ENV_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
-
-struct EnvVarGuard {
-    key: &'static str,
-    old: Option<String>,
-}
-
-impl EnvVarGuard {
-    fn set_to_path(key: &'static str, path: &Path) -> Self {
-        let old = std::env::var(key).ok();
-        unsafe { std::env::set_var(key, path.as_os_str()) };
-        Self { key, old }
-    }
-
-    fn set(key: &'static str, value: &str) -> Self {
-        let old = std::env::var(key).ok();
-        unsafe { std::env::set_var(key, value) };
-        Self { key, old }
-    }
-
-    fn unset(key: &'static str) -> Self {
-        let old = std::env::var(key).ok();
-        unsafe { std::env::remove_var(key) };
-        Self { key, old }
-    }
-}
-
-impl Drop for EnvVarGuard {
-    fn drop(&mut self) {
-        match &self.old {
-            Some(value) => unsafe { std::env::set_var(self.key, value) },
-            None => unsafe { std::env::remove_var(self.key) },
-        }
-    }
-}
 
 struct Harness {
     rpc_base: String,
@@ -70,22 +33,6 @@ impl Drop for Harness {
     fn drop(&mut self) {
         self.join.abort();
     }
-}
-
-fn env_lock() -> std::sync::MutexGuard<'static, ()> {
-    let mutex = ENV_LOCK.get_or_init(|| Mutex::new(()));
-    match mutex.lock() {
-        Ok(guard) => guard,
-        Err(poisoned) => poisoned.into_inner(),
-    }
-}
-
-fn ensure_rpc_auth() {
-    AUTH_INIT.get_or_init(|| {
-        unsafe { std::env::set_var(CORE_TOKEN_ENV_VAR, TEST_RPC_TOKEN) };
-        let token_dir = std::env::temp_dir().join("openhuman-worker-c-e2e-auth");
-        init_rpc_token(&token_dir).expect("init rpc auth token");
-    });
 }
 
 fn write_config(openhuman_dir: &Path) {
@@ -158,7 +105,7 @@ async fn rpc(base: &str, id: i64, method: &str, params: Value) -> Value {
     let url = format!("{}/rpc", base.trim_end_matches('/'));
     let response = client
         .post(&url)
-        .header(AUTHORIZATION, format!("Bearer {TEST_RPC_TOKEN}"))
+        .header(AUTHORIZATION, format!("Bearer {rpc_token()}"))
         .json(&json!({
             "jsonrpc": "2.0",
             "id": id,

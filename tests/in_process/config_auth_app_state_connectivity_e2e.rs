@@ -1,6 +1,9 @@
 //! Focused JSON-RPC E2E coverage for config, auth/credentials, app_state,
 //! and connectivity controller surfaces.
 
+use crate::env_guard::EnvVarGuard;
+use crate::env_guard::env_lock;
+use crate::rpc_auth::{ensure_rpc_auth, rpc_token};
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::sync::{
@@ -28,7 +31,6 @@ use openhuman_core::config::{
     user_openhuman_dir, write_active_user_id, Config, DaemonConfig, DictationActivationMode,
     LlmBackend, ReflectionSource, UpdateRestartStrategy,
 };
-use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
 use openhuman_core::core::events::DomainEvent;
 use openhuman_core::desktop::app_state::app_state_schemas;
 use openhuman_core::security::credentials::bus::SessionExpiredSubscriber;
@@ -46,78 +48,6 @@ use openhuman_tinyhumans::backend::url::{
     DEFAULT_STAGING_API_BASE_URL, OPENHUMAN_INFERENCE_PATH, VITE_APP_ENV_VAR,
 };
 use tinybus::EventHandler;
-
-const TEST_RPC_TOKEN: &str = "worker-a-domain-e2e-token";
-
-static AUTH_INIT: OnceLock<()> = OnceLock::new();
-// This file is its own integration target, and other binaries may `#[path]`-include it.
-// `ENV_LOCK` aliases `crate::SHARED_ENV_LOCK`, which resolves to this file's
-// own static when built standalone (separate process, isolated env) and to the
-// aggregate's shared static when nested into `raw_coverage_all` (so its env
-// mutations serialize against every other aggregated suite). The nested copy of
-// this static is simply unused.
-#[allow(dead_code)]
-pub static SHARED_ENV_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
-static ENV_LOCK: &OnceLock<Mutex<()>> = &crate::SHARED_ENV_LOCK;
-
-struct EnvVarGuard {
-    key: &'static str,
-    old: Option<String>,
-}
-
-impl EnvVarGuard {
-    fn set(key: &'static str, value: &str) -> Self {
-        let old = std::env::var(key).ok();
-        std::env::set_var(key, value);
-        Self { key, old }
-    }
-
-    fn set_to_path(key: &'static str, path: &Path) -> Self {
-        let old = std::env::var(key).ok();
-        std::env::set_var(key, path.as_os_str());
-        Self { key, old }
-    }
-
-    fn unset(key: &'static str) -> Self {
-        let old = std::env::var(key).ok();
-        std::env::remove_var(key);
-        Self { key, old }
-    }
-}
-
-impl Drop for EnvVarGuard {
-    fn drop(&mut self) {
-        match &self.old {
-            Some(value) => std::env::set_var(self.key, value),
-            None => std::env::remove_var(self.key),
-        }
-    }
-}
-
-// `pub` so binaries that `#[path]`-include this file as a module can route their
-// own env-mutating tests through the SAME lock, serializing all
-// OPENHUMAN_WORKSPACE/BACKEND_URL mutations in the combined binary.
-pub fn env_lock() -> std::sync::MutexGuard<'static, ()> {
-    let mutex = ENV_LOCK.get_or_init(|| Mutex::new(()));
-    match mutex.lock() {
-        Ok(guard) => guard,
-        Err(poisoned) => poisoned.into_inner(),
-    }
-}
-
-fn ensure_rpc_auth() {
-    AUTH_INIT.get_or_init(|| {
-        // The core carries no backend client; the `auth_*` remote paths below
-        // reach the mock backend through the `openhuman-tinyhumans` transport.
-        // Inline (not via `tests/support/`) because this file is also
-        // `#[path]`-included into `raw_coverage_all`.
-        openhuman_tinyhumans::install(openhuman_tinyhumans::InstallOptions::default())
-            .expect("install the TinyHumans backend transport");
-        std::env::set_var(CORE_TOKEN_ENV_VAR, TEST_RPC_TOKEN);
-        let token_dir = std::env::temp_dir().join("openhuman-worker-a-e2e-auth");
-        init_rpc_token(&token_dir).expect("init rpc auth token");
-    });
-}
 
 async fn serve_rpc() -> (
     SocketAddr,
@@ -386,7 +316,7 @@ async fn rpc(rpc_base: &str, id: i64, method: &str, params: Value) -> Value {
     let url = format!("{}/rpc", rpc_base.trim_end_matches('/'));
     let response = client
         .post(&url)
-        .header(AUTHORIZATION, format!("Bearer {TEST_RPC_TOKEN}"))
+        .header(AUTHORIZATION, format!("Bearer {rpc_token()}"))
         .json(&json!({
             "jsonrpc": "2.0",
             "id": id,

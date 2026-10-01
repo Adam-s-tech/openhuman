@@ -6,9 +6,10 @@
 //!
 //! Run with: `cargo test --test memory_sources_e2e`
 
-#[path = "support/memory_module.rs"]
-mod memory_module;
-
+use crate::env_guard::EnvVarGuard;
+use crate::env_guard::env_lock;
+use crate::memory_module;
+use crate::rpc_auth::{ensure_rpc_auth, rpc_token};
 use std::path::Path;
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Duration;
@@ -17,30 +18,10 @@ use axum::http::header::AUTHORIZATION;
 use serde_json::{json, Value};
 use tempfile::tempdir;
 
-use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
 use openhuman_rpc::server::build_core_http_router;
 
-const TEST_RPC_TOKEN: &str = "memory-sources-e2e-token";
-static AUTH_INIT: OnceLock<()> = OnceLock::new();
-static ENV_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
 static MEMORY_SEAMS_INIT: OnceLock<()> = OnceLock::new();
 static TEST_HOME: OnceLock<tempfile::TempDir> = OnceLock::new();
-
-fn env_lock() -> std::sync::MutexGuard<'static, ()> {
-    let mutex = ENV_LOCK.get_or_init(|| Mutex::new(()));
-    match mutex.lock() {
-        Ok(guard) => guard,
-        Err(poisoned) => poisoned.into_inner(),
-    }
-}
-
-fn ensure_rpc_auth() {
-    AUTH_INIT.get_or_init(|| {
-        unsafe { std::env::set_var(CORE_TOKEN_ENV_VAR, TEST_RPC_TOKEN) };
-        let token_dir = std::env::temp_dir().join("openhuman-memory-sources-e2e-auth");
-        init_rpc_token(&token_dir).expect("init rpc auth");
-    });
-}
 
 /// The transport-only JSON-RPC router does not create a core runtime context,
 /// so memory-backed routes need their host seams installed explicitly.
@@ -64,34 +45,6 @@ fn test_home() -> &'static Path {
     TEST_HOME
         .get_or_init(|| tempdir().expect("memory sources tempdir"))
         .path()
-}
-
-struct EnvVarGuard {
-    key: &'static str,
-    old: Option<String>,
-}
-
-impl EnvVarGuard {
-    fn set_to_path(key: &'static str, path: &Path) -> Self {
-        let old = std::env::var(key).ok();
-        unsafe { std::env::set_var(key, path.as_os_str()) };
-        Self { key, old }
-    }
-
-    fn unset(key: &'static str) -> Self {
-        let old = std::env::var(key).ok();
-        unsafe { std::env::remove_var(key) };
-        Self { key, old }
-    }
-}
-
-impl Drop for EnvVarGuard {
-    fn drop(&mut self) {
-        match &self.old {
-            Some(v) => unsafe { std::env::set_var(self.key, v) },
-            None => unsafe { std::env::remove_var(self.key) },
-        }
-    }
 }
 
 fn write_config(dir: &Path) {
@@ -142,7 +95,7 @@ async fn rpc(base: &str, id: i64, method: &str, params: Value) -> Value {
     let url = format!("{}/rpc", base.trim_end_matches('/'));
     let resp = client
         .post(&url)
-        .header(AUTHORIZATION, format!("Bearer {TEST_RPC_TOKEN}"))
+        .header(AUTHORIZATION, format!("Bearer {rpc_token()}"))
         .json(&body)
         .send()
         .await

@@ -16,6 +16,8 @@
 //! `env_lock()` across `.await` on purpose, as there.
 #![allow(clippy::await_holding_lock)]
 
+use crate::env_guard::EnvVarGuard;
+use crate::env_guard::env_lock_with_file_keyring as env_lock;
 use std::net::SocketAddr;
 use std::path::Path;
 use std::sync::{Mutex, OnceLock};
@@ -29,58 +31,13 @@ use serde_json::{json, Value};
 use tempfile::tempdir;
 
 use openhuman_core::agent::harness::AgentDefinitionRegistry;
-use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
 use openhuman_rpc::server::build_core_http_router;
 
 const TEST_RPC_TOKEN: &str = "json-rpc-e2e-local-token";
 
 // ─── Env serialization ──────────────────────────────────────────────────────
 
-static ENV_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
-static KEYRING_INIT: OnceLock<()> = OnceLock::new();
 static AGENT_DEF_REGISTRY_INIT: OnceLock<()> = OnceLock::new();
-
-fn env_lock() -> std::sync::MutexGuard<'static, ()> {
-    KEYRING_INIT.get_or_init(|| unsafe {
-        std::env::set_var("OPENHUMAN_KEYRING_BACKEND", "file");
-    });
-    match ENV_LOCK.get_or_init(|| Mutex::new(())).lock() {
-        Ok(guard) => guard,
-        Err(poisoned) => poisoned.into_inner(),
-    }
-}
-
-struct EnvVarGuard {
-    key: &'static str,
-    old: Option<String>,
-}
-
-impl EnvVarGuard {
-    fn set_to_path(key: &'static str, path: &Path) -> Self {
-        let old = std::env::var(key).ok();
-        unsafe {
-            std::env::set_var(key, path.as_os_str());
-        }
-        Self { key, old }
-    }
-
-    fn unset(key: &'static str) -> Self {
-        let old = std::env::var(key).ok();
-        unsafe {
-            std::env::remove_var(key);
-        }
-        Self { key, old }
-    }
-}
-
-impl Drop for EnvVarGuard {
-    fn drop(&mut self) {
-        match &self.old {
-            Some(v) => unsafe { std::env::set_var(self.key, v) },
-            None => unsafe { std::env::remove_var(self.key) },
-        }
-    }
-}
 
 // ─── Scripted upstream ──────────────────────────────────────────────────────
 

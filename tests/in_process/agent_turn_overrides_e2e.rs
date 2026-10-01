@@ -25,9 +25,9 @@
 //! positive here.
 #![allow(clippy::await_holding_lock)]
 
-#[path = "support/noop_memory.rs"]
-mod noop_memory;
-
+use crate::env_guard::EnvVarGuard;
+use crate::env_guard::env_lock;
+use crate::noop_memory;
 use async_trait::async_trait;
 use std::collections::VecDeque;
 use std::path::PathBuf;
@@ -49,37 +49,6 @@ use tinytools::{PermissionLevel, Tool, ToolContent, ToolResult, ToolScope as Run
 use tinytools_agent::dialect::{NativeDialect, XmlDialect};
 
 // ─── Harness ────────────────────────────────────────────────────────────────
-
-struct EnvGuard {
-    key: &'static str,
-    previous: Option<std::ffi::OsString>,
-}
-
-impl EnvGuard {
-    fn set_path(key: &'static str, value: &std::path::Path) -> Self {
-        let previous = std::env::var_os(key);
-        unsafe { std::env::set_var(key, value) };
-        Self { key, previous }
-    }
-}
-
-impl Drop for EnvGuard {
-    fn drop(&mut self) {
-        match self.previous.take() {
-            Some(value) => unsafe { std::env::set_var(self.key, value) },
-            None => unsafe { std::env::remove_var(self.key) },
-        }
-    }
-}
-
-static ENV_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
-
-fn env_lock() -> std::sync::MutexGuard<'static, ()> {
-    ENV_LOCK
-        .get_or_init(|| Mutex::new(()))
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner())
-}
 
 /// The agent turn loop needs the wide worker stack the product gives it.
 fn run_on_agent_stack<F, Fut>(name: &str, future_factory: F)
@@ -336,7 +305,7 @@ async fn suppress_active_goal_keeps_the_thread_goal_out_of_the_prompt_inner() {
 
     {
         // CONTROL — without the override the goal reaches the prompt.
-        let control_guard = EnvGuard::set_path("OPENHUMAN_WORKSPACE", &control_workspace);
+        let control_guard = EnvVarGuard::set_path("OPENHUMAN_WORKSPACE", &control_workspace);
         goal_store::set(&control_workspace, THREAD, OBJECTIVE, None)
             .await
             .expect("seed an active thread goal for the control");
@@ -361,7 +330,7 @@ async fn suppress_active_goal_keeps_the_thread_goal_out_of_the_prompt_inner() {
 
         // SUPPRESSED — a goal seeded identically, in a workspace no other agent
         // has ever written a transcript into, must not appear.
-        let _workspace_guard = EnvGuard::set_path("OPENHUMAN_WORKSPACE", &workspace_path);
+        let _workspace_guard = EnvVarGuard::set_path("OPENHUMAN_WORKSPACE", &workspace_path);
         goal_store::set(&workspace_path, THREAD, OBJECTIVE, None)
             .await
             .expect("seed an active thread goal for the measured agent");
@@ -422,7 +391,7 @@ fn suppress_transcript_autoload_does_not_replay_a_prior_threads_transcript() {
 async fn suppress_transcript_autoload_does_not_replay_a_prior_threads_transcript_inner() {
     let _env = env_lock();
     let (_temp, workspace_path) = workspace("suppress-transcript-autoload");
-    let _workspace_guard = EnvGuard::set_path("OPENHUMAN_WORKSPACE", &workspace_path);
+    let _workspace_guard = EnvVarGuard::set_path("OPENHUMAN_WORKSPACE", &workspace_path);
 
     const PRIOR_MARKER: &str = "turn-overrides-prior-thread-secret-topic";
     // Two ids, so the run enacts #1725's actual shape: a host that has re-bound
@@ -536,7 +505,7 @@ fn turn_overrides_apply_to_exactly_one_turn_and_then_reset() {
 async fn turn_overrides_apply_to_exactly_one_turn_and_then_reset_inner() {
     let _env = env_lock();
     let (_temp, workspace_path) = workspace("overrides-reset");
-    let _workspace_guard = EnvGuard::set_path("OPENHUMAN_WORKSPACE", &workspace_path);
+    let _workspace_guard = EnvVarGuard::set_path("OPENHUMAN_WORKSPACE", &workspace_path);
 
     let model = ScriptedModel::new(vec![text("suppressed reply"), text("restored reply")]);
     let mut agent = agent_with(
@@ -607,7 +576,7 @@ async fn thread_goal_complete_and_clear_stop_the_goal_reaching_later_turns_inner
 
     {
         // CONTROL — an Active goal reaches a turn.
-        let control_guard = EnvGuard::set_path("OPENHUMAN_WORKSPACE", &control_workspace);
+        let control_guard = EnvVarGuard::set_path("OPENHUMAN_WORKSPACE", &control_workspace);
         goal_store::set(&control_workspace, THREAD, OBJECTIVE, None)
             .await
             .expect("seed an active thread goal for the control");
@@ -629,7 +598,7 @@ async fn thread_goal_complete_and_clear_stop_the_goal_reaching_later_turns_inner
 
         // MEASURED — seed the same goal in a pristine workspace, settle it via
         // the API under test, then run the only turn that workspace ever sees.
-        let _workspace_guard = EnvGuard::set_path("OPENHUMAN_WORKSPACE", &workspace_path);
+        let _workspace_guard = EnvVarGuard::set_path("OPENHUMAN_WORKSPACE", &workspace_path);
         goal_store::set(&workspace_path, THREAD, OBJECTIVE, None)
             .await
             .expect("seed an active thread goal for the measured agent");

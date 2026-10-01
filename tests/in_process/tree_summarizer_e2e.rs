@@ -20,9 +20,10 @@
 //!
 //! Run with: `cargo test -p openhuman-cli --test tree_summarizer_e2e`
 
-#[path = "support/memory_module.rs"]
-mod memory_module;
-
+use crate::env_guard::EnvVarGuard;
+use crate::env_guard::env_lock;
+use crate::memory_module;
+use crate::rpc_auth::{ensure_rpc_auth, rpc_token};
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 use std::time::Duration;
@@ -32,61 +33,17 @@ use chrono::{DateTime, SecondsFormat, TimeZone, Utc};
 use serde_json::{json, Value};
 use tempfile::TempDir;
 
-use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
 use openhuman_rpc::server::build_core_http_router;
 
-const TEST_RPC_TOKEN: &str = "tree-summarizer-e2e-token";
 const NAMESPACE: &str = "tree-summarizer-e2e";
 
-static AUTH_INIT: OnceLock<()> = OnceLock::new();
 static MEMORY_SEAMS_INIT: OnceLock<()> = OnceLock::new();
-static ENV_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
 static TEST_HOME: OnceLock<TempDir> = OnceLock::new();
-
-fn env_lock() -> std::sync::MutexGuard<'static, ()> {
-    match ENV_LOCK.get_or_init(|| Mutex::new(())).lock() {
-        Ok(guard) => guard,
-        Err(poisoned) => poisoned.into_inner(),
-    }
-}
 
 fn test_home() -> &'static Path {
     TEST_HOME
         .get_or_init(|| tempfile::tempdir().expect("tree summarizer tempdir"))
         .path()
-}
-
-struct EnvVarGuard {
-    key: &'static str,
-    old: Option<String>,
-}
-
-impl EnvVarGuard {
-    fn set_to_path(key: &'static str, path: &Path) -> Self {
-        let old = std::env::var(key).ok();
-        // SAFETY: every caller holds env_lock() for the whole of setup and
-        // teardown, so these process-global mutations are serialised.
-        unsafe { std::env::set_var(key, path.as_os_str()) };
-        Self { key, old }
-    }
-
-    fn unset(key: &'static str) -> Self {
-        let old = std::env::var(key).ok();
-        // SAFETY: see set_to_path.
-        unsafe { std::env::remove_var(key) };
-        Self { key, old }
-    }
-}
-
-impl Drop for EnvVarGuard {
-    fn drop(&mut self) {
-        match &self.old {
-            // SAFETY: see EnvVarGuard::set_to_path.
-            Some(value) => unsafe { std::env::set_var(self.key, value) },
-            // SAFETY: see EnvVarGuard::set_to_path.
-            None => unsafe { std::env::remove_var(self.key) },
-        }
-    }
 }
 
 /// Publish the module host policy for this process.
@@ -120,16 +77,6 @@ fn ensure_memory_seams() {
             .expect("spawn tree summarizer seam installer")
             .join()
             .expect("tree summarizer seam installer panicked");
-    });
-}
-
-fn ensure_rpc_auth() {
-    AUTH_INIT.get_or_init(|| {
-        // SAFETY: called once, under env_lock() via the test body.
-        unsafe { std::env::set_var(CORE_TOKEN_ENV_VAR, TEST_RPC_TOKEN) };
-        let token_dir = std::env::temp_dir().join("openhuman-tree-summarizer-e2e-auth");
-        std::fs::create_dir_all(&token_dir).expect("mkdir token dir");
-        init_rpc_token(&token_dir).expect("init rpc token");
     });
 }
 
@@ -172,7 +119,7 @@ async fn rpc(base: &str, id: i64, method: &str, params: Value) -> Value {
     let url = format!("{}/rpc", base.trim_end_matches('/'));
     let resp = client
         .post(&url)
-        .header(AUTHORIZATION, format!("Bearer {TEST_RPC_TOKEN}"))
+        .header(AUTHORIZATION, format!("Bearer {rpc_token()}"))
         .json(&json!({ "jsonrpc": "2.0", "id": id, "method": method, "params": params }))
         .send()
         .await
