@@ -3541,7 +3541,7 @@ async fn json_rpc_workflow_run_definitions_and_runs_roundtrip() {
 }
 
 #[tokio::test]
-#[ignore = "TODO(#6380): hosted TinyAgents loses agent-team member persistence"]
+#[ignore = "TODO(#6380): agent_team_message_member answers `unknown member: member-...` for ids returned by agent_team_create; run: cargo test -p openhuman-cli --features <product> --test json_rpc_e2e json_rpc_agent_team_coordination_roundtrip -- --ignored"]
 async fn json_rpc_agent_team_coordination_roundtrip() {
     let _env_lock = json_rpc_e2e_env_lock();
     let tmp = tempdir().expect("tempdir");
@@ -10973,7 +10973,7 @@ fn opus_sonnet_demo_graph() -> Value {
 /// agent-node run drive the full harness (deep async stacks).
 #[cfg(feature = "flows")]
 #[test]
-#[ignore = "TODO(#6381): hosted TinyAgents builder drops the workflow proposal"]
+#[ignore = "TODO(#6381): flows_build returns proposal=null (the scripted propose_workflow completion is never consumed); run: cargo test -p openhuman-cli --features <product> --test json_rpc_e2e json_rpc_flows_full_arc_discover_build_create_run -- --ignored"]
 fn json_rpc_flows_full_arc_discover_build_create_run() {
     run_json_rpc_e2e_on_agent_stack(
         "json_rpc_flows_full_arc_discover_build_create_run",

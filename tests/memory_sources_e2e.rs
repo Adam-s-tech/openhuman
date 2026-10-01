@@ -515,19 +515,15 @@ async fn memory_sources_validation_rejects_bad_input() {
 ///
 /// Requires network + `gh` CLI (or unauthenticated GitHub API access).
 /// The test targets a small, stable public repo so API responses are
-/// predictable. Gated behind `OPENHUMAN_E2E_NETWORK=1` so CI without
+/// predictable. Kept out of the default run so CI without
 /// outbound GitHub access doesn't fail on rate limits or transient
-/// network blips. Run locally with:
-///   OPENHUMAN_E2E_NETWORK=1 cargo test --test memory_sources_e2e \
-///     memory_sources_github_repo_activity_flow
+/// network blips. `#[ignore]`d so it reports as ignored rather than passing
+/// without asserting. Run locally with:
+///   cargo test -p openhuman-cli --test memory_sources_e2e \
+///     memory_sources_github_repo_activity_flow -- --ignored
 #[tokio::test]
+#[ignore = "needs outbound network to GitHub (kelseyhightower/nocode via the gh CLI / GitHub API); not run in CI. Run: cargo test -p openhuman-cli --test memory_sources_e2e memory_sources_github_repo_activity_flow -- --ignored"]
 async fn memory_sources_github_repo_activity_flow() {
-    if std::env::var("OPENHUMAN_E2E_NETWORK").ok().as_deref() != Some("1") {
-        eprintln!(
-            "skipping memory_sources_github_repo_activity_flow — set OPENHUMAN_E2E_NETWORK=1 to enable"
-        );
-        return;
-    }
     let _guard = env_lock();
     let home = test_home();
     let openhuman_home = home.join(".openhuman");

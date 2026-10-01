@@ -436,13 +436,10 @@ async fn approval_preauthorize_flow_rejects_malformed_params_over_the_wire() {
 // The approval gate's classification contract (openhuman#5862)
 // ---------------------------------------------------------------------------
 
-/// **This test reproduces openhuman#5862 and FAILS on `main` today. That is its
-/// purpose.** It is `#[ignore]`d so it does not turn the shared lane red;
-/// run it with `cargo test --test agent_approval_memory_coverage_e2e -- --ignored`.
-/// Un-ignore it when #5863 (or an equivalent fix) lands — at that point it
-/// becomes the regression guard.
+/// Regression guard for openhuman#5862 (Composio write tools bypassed the
+/// approval gate). Reverting the classification fix makes this fail.
 ///
-/// # What is broken
+/// # What was broken
 ///
 /// `ApprovalSecurityMiddleware` decides whether to park a call on exactly one
 /// predicate — `Tool::external_effect_with_args`
@@ -482,8 +479,6 @@ async fn approval_preauthorize_flow_rejects_malformed_params_over_the_wire() {
 /// without a network round-trip, and it cannot pass vacuously: it reads the
 /// same method the middleware reads.
 #[test]
-#[ignore = "reproduces openhuman#5862: Composio write tools bypass the approval gate; \
-            un-ignore when #5863 or an equivalent classification fix lands"]
 fn composio_write_tools_declare_an_external_effect_so_the_approval_gate_parks_them() {
     use std::sync::Arc;
 

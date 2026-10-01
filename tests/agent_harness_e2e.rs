@@ -1126,7 +1126,6 @@ async fn subagent_delegation_happy_path_inner() {
 /// A delegated request whose specialist needs clarification surfaces its question in turn 1,
 /// then preserves that question in the context used to answer turn 2.
 #[test]
-#[ignore = "TODO(#6375): hosted TinyAgents continuation is replaying the prior clarification"]
 fn delegated_clarification_flow() {
     run_on_agent_stack(
         "delegated_clarification_flow",
@@ -2301,7 +2300,7 @@ mod streaming_support {
 /// that never answers in time must terminate the turn in seconds, and the
 /// terminal event must name the per-call bound.
 #[test]
-#[ignore = "TODO(#6375): hosted TinyAgents loses the typed per-model-call timeout"]
+#[ignore = "TODO(#6375): web chat reports a per-model-call timeout (2s ceiling) as chat_error error_type=inference (retryable, provider) instead of turn_timeout; run: RUST_MIN_STACK=16777216 cargo test -p openhuman-cli --features <product> --test agent_harness_e2e model_call_ceiling -- --ignored"]
 fn model_call_ceiling_bounds_a_wedged_call_below_the_turn_deadline() {
     run_on_agent_stack(
         "model_call_ceiling",
@@ -2517,7 +2516,6 @@ async fn serve_skill_registry_fixture() -> (
 // and fail instead of being skipped.
 #[cfg(feature = "skills")]
 #[test]
-#[ignore = "TODO(#6370): delegated registry specialists are unavailable in the TinyAgents hosted runtime"]
 fn agent_installs_a_registry_skill_then_runs_it() {
     run_on_agent_stack(
         "agent_installs_a_registry_skill_then_runs_it",
