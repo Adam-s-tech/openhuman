@@ -278,9 +278,7 @@ describe('safeInvoke (tauriCommands/common)', () => {
   // `{ message }` object instead of letting a `TypeError` escape. That shape
   // is not a `TypeError`, so the classifier must recognise it by message or
   // every `instanceof IpcUnavailableError` degradation branch goes dead.
-  it.each([
-    'IPC postMessage interface is unavailable on this platform',
-  ])(
+  it.each(['IPC postMessage interface is unavailable on this platform'])(
     'classifies the guarded IPC-unavailable rejection %j as IpcUnavailableError',
     async message => {
       coreInvokeMock.mockRejectedValue({ message });

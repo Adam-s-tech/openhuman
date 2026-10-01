@@ -166,8 +166,7 @@ function looksLikePostMessageThrow(err: unknown): boolean {
  * keep getting `IpcUnavailableError` and their graceful-degradation branches
  * keep firing.
  */
-const IPC_UNAVAILABLE_MESSAGE_PATTERN =
-  /IPC postMessage interface is unavailable/;
+const IPC_UNAVAILABLE_MESSAGE_PATTERN = /IPC postMessage interface is unavailable/;
 
 function looksLikeGuardedIpcUnavailable(err: unknown): boolean {
   if (err === null || err === undefined) return false;
