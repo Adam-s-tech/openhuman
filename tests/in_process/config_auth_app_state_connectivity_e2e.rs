@@ -1,8 +1,7 @@
 //! Focused JSON-RPC E2E coverage for config, auth/credentials, app_state,
 //! and connectivity controller surfaces.
 
-use crate::env_guard::EnvVarGuard;
-use crate::env_guard::env_lock;
+use crate::env_guard::{env_lock, EnvVarGuard};
 use crate::rpc_auth::{ensure_rpc_auth, rpc_token};
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
@@ -53,6 +52,9 @@ async fn serve_rpc() -> (
     SocketAddr,
     tokio::task::JoinHandle<Result<(), std::io::Error>>,
 ) {
+    // The core carries no backend client; the `auth_*` remote paths below reach
+    // the mock backend through the `openhuman-tinyhumans` transport.
+    crate::tinyhumans_boot::boot();
     ensure_rpc_auth();
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
         .await
