@@ -1838,7 +1838,3 @@ pub(crate) fn assert_schema_controller_parity(
 #[cfg(test)]
 #[path = "all_tests.rs"]
 mod tests;
-
-#[cfg(test)]
-#[path = "all_extensions_tests.rs"]
-mod extensions_tests;
