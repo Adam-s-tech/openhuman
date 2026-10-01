@@ -8,9 +8,10 @@
 //! Provider adapters are pure functions of that request, so identical requests
 //! render byte-identical `cache_control` placement.
 //!
-//! The fixture was captured from the host `PromptCacheSegmentMiddleware`
-//! before it was deleted in favour of the vendor loop owning the frozen
-//! prefix; it must not change. Regenerate (only on a deliberate, reviewed
+//! The fixture was captured with the former host
+//! `PromptCacheSegmentMiddleware` installed (and the host-side frozen-prefix
+//! field set); it was then deleted because the vendor loop already owns the
+//! frozen prefix, and the fixture must not change. Regenerate (only on a deliberate, reviewed
 //! contract change) with `UPDATE_PROMPT_CACHE_GOLDEN=1`.
 
 use std::sync::Arc;
