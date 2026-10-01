@@ -77,6 +77,11 @@
 # 282 -> 283 on 2026-09-30: TinyChannels supplies the always-on CLI channel
 # and shared runtime helpers through `tinychannels-runtime`; the required
 # workspace package adds one name, no dependency tail or native build. See PR #6782.
+# 283 -> 299 on 2026-10-01: the refreshed first-party module workspaces add
+# required crates and their transitive dependencies to the flows profile. The
+# measured graph has 316 packages / 299 names and still 2 native builds; the
+# kernel-floor history lists the contributing modules and explains the measured
+# increase.
 #
 # Called by ci-lite.yml's feature-gate smoke lane and by the lane runner, so the
 # expected count lives here once (plus scripts/kernel-floor.limits).
@@ -84,6 +89,6 @@ set -euo pipefail
 
 cd "$(dirname "$0")/../.."
 
-EXPECTED_NAMES=283
+EXPECTED_NAMES=299
 
 exec python3 scripts/dep-sim.py --cut-nothing --expect-names "${EXPECTED_NAMES}"

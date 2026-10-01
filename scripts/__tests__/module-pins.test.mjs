@@ -170,13 +170,13 @@ test("finds ARTIFACT_CAPABILITIES_PIN and the workflow memory blocks", () => {
   const memSrc = readMemory();
   assert.match(parseArtifactCapabilitiesPin(memSrc), /^\d+\.\d+\.\d+$/);
   const wf = readFileSync(
-    join(REPO_ROOT, ".github/workflows/ci-lite.yml"),
+    join(REPO_ROOT, ".github/workflows/ci-full.yml"),
     "utf8",
   );
   const blocks = parseWorkflowMemoryBlocks(wf);
   assert.ok(
     blocks.versions.length > 0,
-    "ci-lite.yml has no memory_version block",
+    "ci-full.yml has no memory_version block",
   );
   assert.equal(
     blocks.versions.length,
@@ -355,7 +355,7 @@ test("an unparseable registry fails the gate instead of passing", () => {
     "crates/openhuman-core/src/modules/memory.rs":
       'pub(crate) const ARTIFACT_CAPABILITIES_PIN: &str = "9.9.9";\n',
     ".github/workflows/ci-full.yml": MINIMAL_WORKFLOW,
-    ".github/workflows/ci-lite.yml": MINIMAL_WORKFLOW,
+    ".github/workflows/e2e-reusable.yml": MINIMAL_WORKFLOW,
     ".github/workflows/e2e-reusable.yml": MINIMAL_WORKFLOW,
   });
   try {
@@ -378,7 +378,7 @@ test("an unparseable registry fails the gate instead of passing", () => {
 
 test("a missing registry file fails the gate instead of passing", () => {
   const root = fixtureRoot({
-    ".github/workflows/ci-lite.yml": MINIMAL_WORKFLOW,
+    ".github/workflows/e2e-reusable.yml": MINIMAL_WORKFLOW,
   });
   try {
     const r = run(PINS_CLI, [root]);
@@ -411,7 +411,7 @@ test("records with no checked-out submodule fail the gate instead of being skipp
     "crates/openhuman-core/src/modules/memory.rs":
       'pub(crate) const ARTIFACT_CAPABILITIES_PIN: &str = "1.12.0";\n',
     ".github/workflows/ci-full.yml": MINIMAL_WORKFLOW,
-    ".github/workflows/ci-lite.yml": MINIMAL_WORKFLOW,
+    ".github/workflows/e2e-reusable.yml": MINIMAL_WORKFLOW,
     ".github/workflows/e2e-reusable.yml": MINIMAL_WORKFLOW,
   });
   try {

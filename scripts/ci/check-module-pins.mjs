@@ -327,7 +327,6 @@ if (!memRec) {
 
   const WORKFLOWS = [
     ".github/workflows/ci-full.yml",
-    ".github/workflows/ci-lite.yml",
     ".github/workflows/e2e-reusable.yml",
   ];
   let sawAnyBlock = false;
