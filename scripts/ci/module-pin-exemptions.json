@@ -15,8 +15,8 @@
     {
       "id": "tinymcp",
       "submodule": "vendor/tinymcp",
-      "expect": "v0.3.5-97-gd2feb798",
-      "reason": "The main-branch TinyMCP submodule pin includes upstream changes after PR #30, while no matching tinymcp module release and digest have been published. Keep the registry artifact pinned to the verified v0.3.5 release and remove this exact source/artifact drift exemption when a matching release and digest are available."
+      "expect": "v0.3.5-113-g74e8b109",
+      "reason": "The main-branch TinyMCP submodule pin includes upstream changes after PR #30, while no matching tinymcp module release and digest have been published, plus tinymcp#33 (branch w4-mcp-hosts): the optional library-only `tools` additions `tinymcp::tools::{SecretScrubber, McpListServersTool, McpListToolsTool, McpCallTool}`, which the core links as a Rust path dependency and which the loadable module artifact does not build (the feature is off for the cdylib). Keep the registry artifact pinned to the verified v0.3.5 release and remove this exact source/artifact drift exemption when a matching release and digest are available."
     },
     {
       "id": "tinyruntime",
@@ -61,16 +61,10 @@
       "reason": "The pin is main after tinycomputer#63 (tinycomputer-accessibility, which the core links as a Rust path dependency; 71 commits past v0.7.0) plus only the new off-by-default `paste` feature of tinycomputer-accessibility (tinyhumansai/tinycomputer#65, branch w4-tinycomputer-paste: arboard + enigo clipboard-paste text insertion for voice dictation). No module, contract or bus source changes that the registry's v0.7.0 artifact does not already cover. Remove when tinycomputer#63 and #65 ship in a release and both pins move to it."
     },
     {
-      "id": "tinyjuice",
-      "submodule": "vendor/tinyjuice",
-      "expect": "v0.4.0-3-g3261203d",
-      "reason": "The pin is v0.4.0 plus only the new pure-library `host` module of the tinyjuice crate (tinyhumansai/tinyjuice#50, branch w4-tinyjuice-host-seams: summary_focus helpers, the turn-bound MlHost.Generate ticket registry behind the `host` feature, and the retrieve_tool_output tool behind `tinytools`), which the core links as a Rust path dependency. No module, contract or bus source changes relative to v0.4.0, so the registry's v0.4.0 artifact still matches the contract compiled here. Remove when tinyjuice#50 ships in a release and both pins move to it."
-    },
-    {
-      "id": "tinychannels",
-      "submodule": "vendor/tinychannels",
-      "expect": "v0.1.6-1-g5e289427",
-      "reason": "The pin is v0.1.6 (already ahead of the registry's v0.1.5 record, which this change does not touch) plus only the context-window overflow matcher fix in tinychannels-bus (tinyhumansai/tinychannels#42, branch w4-tinychannels-context-overflow), a pure function change with an unchanged signature and no wire/contract type change. The registry's v0.1.5 artifact does not include this library-side fix and the host does not depend on module runtime behaviour for it. Remove when tinychannels#42 ships in a release and both pins move to it."
+      "id": "tinyhosts",
+      "submodule": "vendor/tinyhosts",
+      "expect": "v0.1.10-9-ge041ad00",
+      "reason": "The registry artifact stays on the verified v0.1.9 release. The gitlink was already at v0.1.10 on main (pre-existing drift) and now adds only the library-only, off-by-default `tools` feature (tinyhumansai/tinyhosts#16) that the core links for the hosting_* agent tools; the module cdylib is unaffected. Remove when a tinyhosts release containing #16 is pinned in the registry with digests from its checksum.toml."
     }
   ]
 }
