@@ -1393,6 +1393,13 @@
     "occurrence": 1
   },
   {
+    "rule": "tinyagents-tool-calling-facade",
+    "path": "vendor/tinyagents/crates/tinyagents-session/src/transcript/types.rs",
+    "line": 5,
+    "text": "use tinytools_agent::dialect::{",
+    "occurrence": 1
+  },
+  {
     "rule": "tinyagents-upstream-reexport",
     "path": "vendor/tinyagents/crates/tinyagents-graph/src/lib.rs",
     "line": 47,
