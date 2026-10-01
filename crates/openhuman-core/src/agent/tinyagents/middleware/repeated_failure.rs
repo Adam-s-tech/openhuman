@@ -184,47 +184,6 @@ impl RepeatedToolFailureMiddleware {
     }
 }
 
-/// Recognise a **user-actionable** blocker in a failing tool result — one only
-/// the user can clear — and phrase the halt as a direct ask instead of the
-/// crate's generic "the goal looks unreachable in this environment, report this
-/// back" summary (issue #4092). Today that's a missing service connection (the
-/// issue's canonical example: acting on a service that isn't connected). Such a
-/// failure will never self-resolve by retrying, and the fix is the user's, so
-/// escalate with a concrete next step instead of looping or reporting a generic
-/// dead-end. Returns `None` for failures that are not user-actionable, leaving
-/// the crate's summary in place.
-pub(crate) fn user_actionable_escalation(tool: &str, error: &str) -> Option<String> {
-    let lower = error.to_lowercase();
-    let permission_or_scope_failure = lower.contains("[composio:error:insufficient_scope]")
-        || lower.contains("[composio:error:trigger_permission]")
-        || lower.contains("insufficient scope")
-        || lower.contains("insufficient authentication scopes")
-        || lower.contains("insufficient permissions")
-        || lower.contains("missing required permissions")
-        || lower.contains("permission to manage triggers");
-    if permission_or_scope_failure {
-        return None;
-    }
-    // Keep this narrow: some scope/permission failures legitimately tell the
-    // user to reconnect in Connections, but they are not missing connections.
-    let missing_connection = lower.contains("[composio:error:composio_platform]")
-        || lower.contains("not connected")
-        || lower.contains("isn't connected")
-        || lower.contains("is not connected")
-        || lower.contains("not enabled")
-        || lower.contains("token revoked")
-        || lower.contains("connection error, try to authenticate");
-    if !missing_connection {
-        return None;
-    }
-    Some(format!(
-        "I can't continue without your input: the `{tool}` action needs a service that isn't \
-         connected. {}\n\nConnect it (Connections), then tell me to retry — or \
-         tell me how you'd like to proceed instead.",
-        crate::util::truncate_with_ellipsis(error, 400),
-    ))
-}
-
 /// A stable, bounded fingerprint of a tool call's arguments for the identical-
 /// repeat signature (hashed so a huge payload doesn't bloat the map/comparison).
 fn args_fingerprint(arguments: &serde_json::Value) -> String {
