@@ -76,12 +76,23 @@ test("leaves cfg(not(test)) and plain inline modules alone", () => {
   assert.equal(out.source, src);
 });
 
-test("reports a nested inline test module instead of moving it", () => {
-  const src = "mod outer {\n    #[cfg(test)]\n    mod tests {\n        fn a() {}\n    }\n}\n";
+test("moves a module nested in an inline wrapper and climbs out of its directories", () => {
+  const src = "#[cfg(target_os = \"macos\")]\nmod imp {\n    fn a() {}\n\n    #[cfg(test)]\n    mod tests {\n        use super::*;\n\n        #[test]\n        fn t() {}\n    }\n}\n";
+  const plain = externalizeSource(src, "cf_type");
+  assert.equal(plain.moves[0].fileName, "cf_type_tests.rs");
+  assert.equal(plain.moves[0].body, "use super::*;\n\n#[test]\nfn t() {}\n");
+  assert.match(plain.source, /    #\[cfg\(test\)\]\n    #\[path = "..\/..\/cf_type_tests.rs"\]\n    mod tests;\n}\n$/);
+  assert.deepEqual(plain.skipped, []);
+  // A `mod.rs` or crate root owns its directory, so it climbs one level less.
+  assert.match(externalizeSource(src, "mod").source, /#\[path = "..\/mod_tests.rs"\]/);
+});
+
+test("reports a test module nested inside a function instead of moving it", () => {
+  const src = "fn f() {\n    #[cfg(test)]\n    mod tests {\n        fn a() {}\n    }\n}\n";
   const out = externalizeSource(src, "lib");
   assert.equal(out.moves.length, 0);
   assert.equal(out.skipped.length, 1);
-  assert.match(out.skipped[0].reason, /nested/);
+  assert.match(out.skipped[0].reason, /nested somewhere other than/);
 });
 
 test("refuses a body that declares out-of-line modules", () => {
