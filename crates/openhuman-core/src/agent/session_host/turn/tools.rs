@@ -353,37 +353,6 @@ impl OpenHumanSessionHost {
         true
     }
 
-    /// Test-only: installed-skill ids currently in the catalogue snapshot
-    /// (`dir_name`, falling back to `name`). Lets `refresh_workflows` tests
-    /// assert through a method instead of touching private fields.
-    #[cfg(test)]
-    pub(in super::super) fn test_workflow_ids(&self) -> Vec<String> {
-        self.workflows
-            .iter()
-            .map(|w| {
-                if w.dir_name.is_empty() {
-                    w.name.clone()
-                } else {
-                    w.dir_name.clone()
-                }
-            })
-            .collect()
-    }
-
-    /// Test-only: skill ids parked for the next-turn `[skills update]`
-    /// announcement by `refresh_workflows`.
-    #[cfg(test)]
-    pub(in super::super) fn test_pending_skill_announcement(&self) -> &[String] {
-        &self.pending_skill_announcement
-    }
-
-    /// Test-only: skill ids parked for the next-turn `[skills retracted]`
-    /// retraction note by `refresh_workflows`.
-    #[cfg(test)]
-    pub(in super::super) fn test_pending_skill_retraction(&self) -> &[String] {
-        &self.pending_skill_retraction
-    }
-
     /// Test-only: inject a specific skill-events receiver (e.g. one whose
     /// sender has been dropped) so `drain_skill_events`' `Closed` arm is
     /// reachable without the global bus singleton.
@@ -393,25 +362,6 @@ impl OpenHumanSessionHost {
         rx: tinybus::events::EventReceiver<crate::core::events::DomainEvent>,
     ) {
         self.skill_events_rx = Some(rx);
-    }
-
-    /// Test-only: whether the skill-events listener is currently armed.
-    #[cfg(test)]
-    pub(in super::super) fn has_skill_events_rx(&self) -> bool {
-        self.skill_events_rx.is_some()
-    }
-
-    /// Test-only: inject a specific composio-integrations receiver so the
-    /// drain path can be exercised against an isolated bus instead of the
-    /// global singleton (which other parallel tests publish into, racing the
-    /// "drained after one pass" assertion). Mirror of
-    /// [`Self::set_skill_events_rx_for_test`].
-    #[cfg(test)]
-    pub(in super::super) fn set_composio_integrations_rx_for_test(
-        &mut self,
-        rx: tinybus::events::EventReceiver<crate::core::events::DomainEvent>,
-    ) {
-        self.composio_integrations_rx = Some(rx);
     }
 
     /// Re-synthesise `delegate_*` tools for the orchestrator's `subagents`

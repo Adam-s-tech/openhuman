@@ -617,18 +617,6 @@ fn stash() -> AttachmentStash {
     AttachmentStash::new(attachments_dir(), ATTACHMENTS_MAX_BYTES, ATTACHMENTS_TTL)
 }
 
-/// Return the canonical path when `path` resolves inside the managed stash.
-/// Callers should use this returned path for subsequent reads so the checked
-/// path, rather than an attacker-controlled spelling, is what gets opened.
-pub fn managed_attachment_path(path: &str) -> Option<PathBuf> {
-    stash().managed_path(path)
-}
-
-#[cfg(test)]
-pub(crate) fn managed_attachments_dir_for_tests() -> PathBuf {
-    attachments_dir()
-}
-
 /// Per-user fallback attachments dir used only when [`init_attachments_dir`]
 /// was never called. Uses the OS user cache dir (e.g. `~/Library/Caches/…`,
 /// `~/.cache/…`) so persisted image bytes aren't dropped into a world-readable

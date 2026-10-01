@@ -135,13 +135,6 @@ impl OpenHumanSessionHost {
         &self.tool_policy_session
     }
 
-    #[cfg(test)]
-    pub(crate) fn subagent_tool_ceiling_names_for_test(
-        &self,
-    ) -> &std::collections::HashSet<String> {
-        &self.subagent_tool_ceiling_names
-    }
-
     /// Borrow the agent's memory backing store as an `Arc`.
     pub fn memory_arc(&self) -> Arc<dyn Memory> {
         Arc::clone(&self.memory)

@@ -27,15 +27,7 @@ pub struct ChatResponse {
 }
 
 impl ChatResponse {
-    /// True when the LLM wants to invoke at least one tool.
-    pub fn has_tool_calls(&self) -> bool {
-        !self.tool_calls.is_empty()
-    }
 
-    /// Convenience: return text content or empty string.
-    pub fn text_or_empty(&self) -> &str {
-        self.text.as_deref().unwrap_or("")
-    }
 }
 
 /// A fine-grained streaming event emitted by a provider while serving a
@@ -109,23 +101,4 @@ pub struct ChatRequest<'a> {
     /// low-balance BYO user who could easily afford the few thousand tokens
     /// the turn actually needs (TAURI-RUST-C62).
     pub max_tokens: Option<u32>,
-}
-
-/// Errors that can occur during streaming.
-#[derive(Debug, thiserror::Error)]
-pub enum StreamError {
-    #[error("HTTP error: {0}")]
-    Http(reqwest::Error),
-
-    #[error("JSON parse error: {0}")]
-    Json(serde_json::Error),
-
-    #[error("Invalid SSE format: {0}")]
-    InvalidSse(String),
-
-    #[error("Provider error: {0}")]
-    Provider(String),
-
-    #[error("IO error: {0}")]
-    Io(#[from] std::io::Error),
 }

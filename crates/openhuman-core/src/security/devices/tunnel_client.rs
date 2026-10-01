@@ -17,12 +17,6 @@ use crate::platform::socket::global_socket_manager;
 // Wire types
 // ---------------------------------------------------------------------------
 
-/// Payload emitted as `tunnel:register` to the backend.
-#[derive(Debug, Serialize)]
-pub struct TunnelRegisterPayload {
-    pub role: String, // always "core"
-}
-
 /// Response from the `tunnel:register` ACK callback.
 ///
 /// The backend sends **camelCase**: backend PR #709 introduced
@@ -109,14 +103,6 @@ where
                 .ok_or_else(|| D::Error::custom(format!("pairingExpiresAt out of range: {millis}")))
         }
     }
-}
-
-/// Payload emitted as `tunnel:connect` to join a channel.
-#[derive(Debug, Serialize)]
-pub struct TunnelConnectPayload {
-    #[serde(rename = "channelId")]
-    pub channel_id: String,
-    pub role: String, // "core" or "client"
 }
 
 /// Inbound `tunnel:peer-status` event payload.

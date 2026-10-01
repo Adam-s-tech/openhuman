@@ -48,16 +48,6 @@ impl EventHandler<DomainEvent> for CredentialRefreshSubscriber {
     }
 }
 
-/// Register the subscriber on the process bus. Called once at startup.
-pub fn register_credential_refresh_subscriber() {
-    match crate::core::bus::BUS.subscribe(Arc::new(CredentialRefreshSubscriber)) {
-        Some(handle) => std::mem::forget(handle),
-        None => tracing::warn!(
-            "[search][bus] failed to register credential refresh — bus not initialized"
-        ),
-    }
-}
-
 #[cfg(test)]
 #[path = "bus_tests.rs"]
 mod tests;

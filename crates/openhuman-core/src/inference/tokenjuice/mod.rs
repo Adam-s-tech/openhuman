@@ -499,10 +499,6 @@ pub fn all_tokenjuice_registered_controllers() -> Vec<crate::core::all::Register
     schemas::all_registered_controllers()
 }
 
-pub fn all_tokenjuice_controller_schemas() -> Vec<crate::core::ControllerSchema> {
-    schemas::all_controller_schemas()
-}
-
 #[cfg(test)]
 #[path = "mod_tests.rs"]
 mod tests;

@@ -138,49 +138,6 @@ struct KeyFile {
     version: u32,
 }
 
-/// Initialize encryption with a password. Creates key file if needed.
-pub async fn ai_init_encryption(password: String) -> Result<bool, String> {
-    let key_path = get_key_file_path()?;
-
-    if key_path.exists() {
-        // Key file exists, verify password works by loading it
-        let content =
-            std::fs::read_to_string(&key_path).map_err(|e| format!("Read key file: {e}"))?;
-        let key_file: KeyFile =
-            serde_json::from_str(&content).map_err(|e| format!("Parse key file: {e}"))?;
-        let _key = EncryptionKey::derive(&password, &key_file.salt)?;
-        Ok(true)
-    } else {
-        // Create new key file with random salt
-        let salt = EncryptionKey::generate_salt();
-        let key_file = KeyFile { salt, version: 1 };
-        let content =
-            serde_json::to_string_pretty(&key_file).map_err(|e| format!("Serialize: {e}"))?;
-        std::fs::write(&key_path, content).map_err(|e| format!("Write key file: {e}"))?;
-        Ok(true)
-    }
-}
-
-/// Encrypt a string value using the password-derived key.
-pub async fn ai_encrypt(password: String, plaintext: String) -> Result<String, String> {
-    let key_path = get_key_file_path()?;
-    let content = std::fs::read_to_string(&key_path).map_err(|e| format!("Read key: {e}"))?;
-    let key_file: KeyFile =
-        serde_json::from_str(&content).map_err(|e| format!("Parse key: {e}"))?;
-    let key = EncryptionKey::derive(&password, &key_file.salt)?;
-    key.encrypt_string(&plaintext)
-}
-
-/// Decrypt a string value using the password-derived key.
-pub async fn ai_decrypt(password: String, encrypted: String) -> Result<String, String> {
-    let key_path = get_key_file_path()?;
-    let content = std::fs::read_to_string(&key_path).map_err(|e| format!("Read key: {e}"))?;
-    let key_file: KeyFile =
-        serde_json::from_str(&content).map_err(|e| format!("Parse key: {e}"))?;
-    let key = EncryptionKey::derive(&password, &key_file.salt)?;
-    key.decrypt_string(&encrypted)
-}
-
 #[cfg(test)]
 #[path = "core_tests.rs"]
 mod tests;

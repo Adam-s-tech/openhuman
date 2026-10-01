@@ -138,11 +138,6 @@ pub fn tool_execution_timeout_secs() -> u64 {
     current_secs()
 }
 
-/// Effective timeout as a [`Duration`] for `tokio::time::timeout`-style callers.
-pub fn tool_execution_timeout_duration() -> Duration {
-    Duration::from_secs(current_secs())
-}
-
 /// Resolve an **explicit** per-call timeout request for a tool that is
 /// otherwise unbounded (the scripting tools: `shell`, `node_exec`, `npm_exec`).
 ///

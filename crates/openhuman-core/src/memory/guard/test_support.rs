@@ -47,17 +47,6 @@ pub fn external_policy(trust_state: &str) -> HostGuardPolicy {
     )
 }
 
-/// An [`ExportRecord`] fixture.
-pub fn export_record(taint: MemoryTaint) -> ExportRecord {
-    ExportRecord {
-        kind: "entry".into(),
-        id: "r1".into(),
-        namespace: Some("ns".into()),
-        taint,
-        payload: serde_json::Value::Null,
-    }
-}
-
 /// A guard over a fresh recording provider, plus a handle on that provider.
 pub fn guarded(policy: HostGuardPolicy) -> (Arc<RecordingProvider>, MemoryGuard) {
     guarded_with(RecordingProvider::new(), policy)
@@ -106,15 +95,6 @@ pub fn document(content: &str, taint: MemoryTaint) -> NamespaceDocumentInput {
         session_id: None,
         document_id: None,
         taint,
-    }
-}
-
-/// A [`NamespaceSummary`] fixture.
-pub fn namespace_summary(namespace: &str, count: usize) -> NamespaceSummary {
-    NamespaceSummary {
-        namespace: namespace.into(),
-        count,
-        last_updated: None,
     }
 }
 

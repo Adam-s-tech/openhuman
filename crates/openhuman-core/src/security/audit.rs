@@ -165,11 +165,6 @@ impl AuditEvent {
         self
     }
 
-    /// Set security context
-    pub fn with_security(mut self, sandbox_backend: Option<String>) -> Self {
-        self.security.sandbox_backend = sandbox_backend;
-        self
-    }
 }
 
 /// Audit logger
@@ -353,29 +348,6 @@ impl AuditLogger {
             .with_result(entry.success, None, entry.duration_ms, None);
 
         self.log(&event)
-    }
-
-    /// Backward-compatible helper to log a command execution event.
-    #[allow(clippy::too_many_arguments)]
-    pub fn log_command(
-        &self,
-        channel: &str,
-        command: &str,
-        risk_level: &str,
-        approved: bool,
-        allowed: bool,
-        success: bool,
-        duration_ms: u64,
-    ) -> Result<()> {
-        self.log_command_event(CommandExecutionLog {
-            channel,
-            command,
-            risk_level,
-            approved,
-            allowed,
-            success,
-            duration_ms,
-        })
     }
 
     /// Rotate log if it exceeds max size

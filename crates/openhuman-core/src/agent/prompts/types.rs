@@ -40,14 +40,6 @@ pub(crate) const USER_FILE_MAX_CHARS: usize = 2_000;
 #[allow(dead_code)]
 pub(crate) const USER_MEMORY_PER_NAMESPACE_MAX_CHARS: usize = 8_000;
 
-/// Hard ceiling across all namespaces, so a workspace with 30 namespaces
-/// doesn't burn the entire context window. ~32 000 chars ≈ 8 000 tokens.
-///
-/// **Note**: same Balanced-preset baseline relationship as
-/// `USER_MEMORY_PER_NAMESPACE_MAX_CHARS` — see its rustdoc.
-#[allow(dead_code)]
-pub(crate) const USER_MEMORY_TOTAL_MAX_CHARS: usize = 32_000;
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Learned context (pre-fetched, not blocking)
 // ─────────────────────────────────────────────────────────────────────────────
