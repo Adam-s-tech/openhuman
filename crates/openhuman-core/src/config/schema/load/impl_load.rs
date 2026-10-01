@@ -309,7 +309,39 @@ impl Config {
             .await
             .context("Failed to create workspace directory")?;
 
+        // Each branch is its own boxed future. An unoptimised build gives every
+        // `Config` temporary its own stack slot, so folding all three branches
+        // into this one state machine made the poll frame ~440 KB and stacked
+        // on top of the whole agent tower (#6379).
         if config_path.exists() {
+            Box::pin(Self::load_existing_config(
+                openhuman_dir,
+                workspace_dir,
+                config_path,
+                resolution_source,
+                env,
+            ))
+            .await
+        } else {
+            Box::pin(Self::init_new_config(
+                workspace_dir,
+                config_path,
+                resolution_source,
+                env,
+            ))
+            .await
+        }
+    }
+
+    /// The branch of [`Self::load_or_init_with_env_lookup`] for a `config.toml`
+    /// that exists on disk.
+    async fn load_existing_config(
+        openhuman_dir: std::path::PathBuf,
+        workspace_dir: std::path::PathBuf,
+        config_path: std::path::PathBuf,
+        resolution_source: ConfigResolutionSource,
+        env: &(dyn EnvLookup + Send + Sync),
+    ) -> Result<Self> {
             #[cfg(unix)]
             {
                 use std::{
@@ -394,7 +426,7 @@ impl Config {
             let (mut config, config_was_corrupted) = if read_was_recovered && contents.is_empty() {
                 (Config::default(), true)
             } else {
-                parse_config_with_recovery(&config_path, &contents).await
+                Box::pin(parse_config_with_recovery(&config_path, &contents)).await
             };
 
             // If the read itself was recovered (non-UTF-8 file renamed, backup
@@ -469,7 +501,7 @@ impl Config {
                 recovered = config_was_corrupted,
                 "Config loaded"
             );
-            crate::config::migrations::run_pending(&mut config).await;
+            Box::pin(crate::config::migrations::run_pending(&mut config)).await;
             let migrated_legacy_secrets = decrypt_config_secrets(&mut config, &openhuman_dir)?;
             if migrated_legacy_secrets {
                 // One-time forced migration: a legacy `enc:` (XOR) secret was
@@ -485,7 +517,17 @@ impl Config {
                 }
             }
             Ok(config)
-        } else {
+        Ok(config)
+    }
+
+    /// The branch of [`Self::load_or_init_with_env_lookup`] that creates and
+    /// persists a fresh config.
+    async fn init_new_config(
+        workspace_dir: std::path::PathBuf,
+        config_path: std::path::PathBuf,
+        resolution_source: ConfigResolutionSource,
+        env: &(dyn EnvLookup + Send + Sync),
+    ) -> Result<Self> {
             let mut config = Config {
                 config_path: config_path.clone(),
                 workspace_dir,
@@ -520,9 +562,9 @@ impl Config {
                 initialized = true,
                 "Config loaded"
             );
-            crate::config::migrations::run_pending(&mut config).await;
+            Box::pin(crate::config::migrations::run_pending(&mut config)).await;
             Ok(config)
-        }
+        Ok(config)
     }
 
     /// Load config from the default user paths, bypassing the
@@ -623,7 +665,7 @@ impl Config {
             );
         }
 
-        crate::config::migrations::run_pending(&mut config).await;
+        Box::pin(crate::config::migrations::run_pending(&mut config)).await;
         Ok(config)
     }
 
