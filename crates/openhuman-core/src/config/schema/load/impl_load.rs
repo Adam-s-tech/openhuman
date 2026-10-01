@@ -501,7 +501,7 @@ impl Config {
                     "[config] Config file already renamed by read recovery; \
                      persisting recovered config"
                 );
-                if let Err(e) = Box::pin(config.save()).await {
+                if let Err(e) = config.save().await {
                     tracing::warn!(
                         path = %config.config_path.display(),
                         error = %e,
@@ -517,7 +517,7 @@ impl Config {
                             dst = %corrupted_path.display(),
                             "[config] Renamed corrupted config; persisting recovered config"
                         );
-                        if let Err(e) = Box::pin(config.save()).await {
+                        if let Err(e) = config.save().await {
                             tracing::warn!(
                                 path = %config.config_path.display(),
                                 error = %e,
@@ -554,7 +554,7 @@ impl Config {
             // insecure ciphertext stops living on disk (audit C8). A save
             // failure is non-fatal -- the config is still usable in memory
             // and migration will be retried on the next startup.
-            if let Err(e) = Box::pin(config.save()).await {
+            if let Err(e) = config.save().await {
                 log::warn!(
                     "[security][config] failed to persist enc: -> enc2: secret migration; \
                          will retry on next startup: {e}"
@@ -583,7 +583,7 @@ impl Config {
         // was made. Seed before the first `save` so the entry is on disk
         // from the very first write rather than on some later one.
         crate::config::migrations::seed_new_workspace(&mut config);
-        Box::pin(config.save()).await?;
+        config.save().await?;
 
         #[cfg(unix)]
         {
@@ -709,6 +709,15 @@ impl Config {
     }
 
     pub async fn save(&self) -> Result<()> {
+        // A thin shim: the real body's future is ~25 KB, and `save` is awaited
+        // from ~15 places in the load and migration paths. An unoptimised build
+        // gives each of those await sites its own copy of the callee's future in
+        // the caller's poll frame (`migrations::run_pending` alone was ~350 KB),
+        // so the shim keeps every such copy at pointer size (#6379).
+        Box::pin(self.save_inner()).await
+    }
+
+    async fn save_inner(&self) -> Result<()> {
         let mut config_to_save = self.clone();
         super::super::cli_overrides::restore_persisted_inference_fields(&mut config_to_save);
         encrypt_config_secrets(&mut config_to_save)?;
