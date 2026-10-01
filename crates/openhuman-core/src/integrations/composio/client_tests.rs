@@ -538,7 +538,10 @@ async fn direct_reads_go_through_the_hosts_runtime_proxy() {
     set_runtime_proxy_config(ProxyConfig {
         enabled: true,
         http_proxy: Some(proxy.clone()),
-        scope: ProxyScope::OpenHuman,
+        // Only Composio's traffic: the runtime proxy is process-global, and
+        // every other test's loopback requests must stay direct meanwhile.
+        scope: ProxyScope::Services,
+        services: vec!["tool.composio".into()],
         ..ProxyConfig::default()
     });
     let through = direct_list_connections(&config, &tool).await;
@@ -547,7 +550,8 @@ async fn direct_reads_go_through_the_hosts_runtime_proxy() {
         enabled: true,
         http_proxy: Some(proxy),
         no_proxy: vec!["127.0.0.1".into()],
-        scope: ProxyScope::OpenHuman,
+        scope: ProxyScope::Services,
+        services: vec!["tool.composio".into()],
         ..ProxyConfig::default()
     });
     let bypassed_proxied_before = proxied.try_iter().count();
