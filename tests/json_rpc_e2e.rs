@@ -3541,7 +3541,6 @@ async fn json_rpc_workflow_run_definitions_and_runs_roundtrip() {
 }
 
 #[tokio::test]
-#[ignore = "TODO(#6380): agent_team_message_member answers `unknown member: member-...` for ids returned by agent_team_create; run: cargo test -p openhuman-cli --features <product> --test json_rpc_e2e json_rpc_agent_team_coordination_roundtrip -- --ignored"]
 async fn json_rpc_agent_team_coordination_roundtrip() {
     let _env_lock = json_rpc_e2e_env_lock();
     let tmp = tempdir().expect("tempdir");
@@ -3774,35 +3773,8 @@ async fn json_rpc_agent_team_coordination_roundtrip() {
         Some("completed")
     );
 
-    // Shut alice down → member stopped (her task A is already done, so nothing
-    // is released back to the queue).
-    let shutdown_alice = post_json_rpc(
-        &rpc_base,
-        9362,
-        "openhuman.agent_team_shutdown_member",
-        json!({ "teamId": team_id, "memberId": alice_id }),
-    )
-    .await;
-    let shutdown_alice_outer =
-        assert_no_jsonrpc_error(&shutdown_alice, "agent_team_shutdown_member alice");
-    assert_eq!(
-        shutdown_alice_outer
-            .get("result")
-            .and_then(|r| r.get("member"))
-            .and_then(|m| m.get("memberStatus"))
-            .and_then(serde_json::Value::as_str),
-        Some("stopped")
-    );
-    assert_eq!(
-        shutdown_alice_outer
-            .get("result")
-            .and_then(|r| r.get("releasedTaskIds"))
-            .and_then(serde_json::Value::as_array)
-            .map(|ids| ids.len()),
-        Some(0)
-    );
-
-    // Message bob from alice, then list messages.
+    // Message bob from alice (still live), then list messages. The shutdown
+    // below must come after: a stopped member cannot send or receive.
     let message = post_json_rpc(
         &rpc_base,
         9347,
@@ -3831,6 +3803,57 @@ async fn json_rpc_agent_team_coordination_roundtrip() {
             .and_then(serde_json::Value::as_array)
             .map(|m| m.len()),
         Some(1)
+    );
+
+    // Shut alice down → member stopped (her task A is already done, so nothing
+    // is released back to the queue).
+    let shutdown_alice = post_json_rpc(
+        &rpc_base,
+        9362,
+        "openhuman.agent_team_shutdown_member",
+        json!({ "teamId": team_id, "memberId": alice_id }),
+    )
+    .await;
+    let shutdown_alice_outer =
+        assert_no_jsonrpc_error(&shutdown_alice, "agent_team_shutdown_member alice");
+    assert_eq!(
+        shutdown_alice_outer
+            .get("result")
+            .and_then(|r| r.get("member"))
+            .and_then(|m| m.get("memberStatus"))
+            .and_then(serde_json::Value::as_str),
+        Some("stopped")
+    );
+    assert_eq!(
+        shutdown_alice_outer
+            .get("result")
+            .and_then(|r| r.get("releasedTaskIds"))
+            .and_then(serde_json::Value::as_array)
+            .map(|ids| ids.len()),
+        Some(0)
+    );
+
+    // A stopped member is no longer part of the live roster, so it can neither
+    // send nor receive team messages (`TeamService::ensure_member`).
+    let message_from_stopped = post_json_rpc(
+        &rpc_base,
+        9363,
+        "openhuman.agent_team_message_member",
+        json!({
+            "teamId": team_id,
+            "fromMemberId": alice_id,
+            "toMemberId": bob_id,
+            "content": "sent after shutdown"
+        }),
+    )
+    .await;
+    let stopped_err = assert_jsonrpc_error(
+        &message_from_stopped,
+        "agent_team_message_member from stopped member",
+    );
+    assert!(
+        stopped_err.to_string().contains("unknown member"),
+        "stopped member must be rejected: {stopped_err}"
     );
 
     // Get the team — 2 members, 2 tasks.
@@ -11110,7 +11133,7 @@ async fn json_rpc_flows_full_arc_discover_build_create_run_inner() {
     let proposal = build_out
         .get("proposal")
         .filter(|p| !p.is_null())
-        .expect("flows_build returns a non-null proposal");
+        .unwrap_or_else(|| panic!("flows_build returns a non-null proposal: {build_out}"));
     assert_eq!(
         proposal.get("type").and_then(Value::as_str),
         Some("workflow_proposal")

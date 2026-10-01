@@ -267,7 +267,7 @@ impl OpenHumanSessionHost {
                     .into_iter()
                     .map(|entry| match entry {
                         TranscriptEntry::Chat(message)
-                            if message.role == tinytools_agent::dialect::Role::User =>
+                            if message.role == tinytools_agent::dialect::DialectRole::User =>
                         {
                             match parse_replayed_results(&message.content) {
                                 Some(results) => TranscriptEntry::ToolResults(results),
