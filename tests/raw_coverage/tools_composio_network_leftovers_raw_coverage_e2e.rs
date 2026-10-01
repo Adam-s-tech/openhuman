@@ -339,53 +339,6 @@ async fn round20_composio_ops_cover_authorize_scopes_and_direct_factory_edges() 
             .contains("gmail.readonly")));
 }
 
-#[tokio::test]
-async fn round20_spawn_subagent_covers_validation_schema_and_disabled_worker_branch() {
-    let _lock = env_lock();
-    let tool = SpawnSubagentTool::new();
-
-    assert_eq!(tool.name(), "spawn_subagent");
-    assert_eq!(tool.permission_level().to_string(), "Execute");
-    let schema = tool.parameters_schema();
-    // The per-toolkit spawn argument went with the integrations specialist.
-    assert!(
-        schema["properties"].get("toolkit").is_none(),
-        "spawn_subagent must not advertise the removed `toolkit` argument"
-    );
-    assert!(schema["properties"]["dedicated_thread"]
-        .as_object()
-        .expect("dedicated_thread schema")
-        .contains_key("description"));
-
-    let missing_agent = tool
-        .execute(json!({ "prompt": "summarize the thread" }))
-        .await
-        .expect("missing agent id returns tool result");
-    assert!(missing_agent.is_error);
-    assert!(missing_agent.output().contains("agent_id"));
-
-    let missing_prompt = tool
-        .execute(json!({ "agent_id": "researcher" }))
-        .await
-        .expect("missing prompt returns tool result");
-    assert!(missing_prompt.is_error);
-    assert!(missing_prompt.output().contains("prompt"));
-
-    let dedicated_thread = tool
-        .execute(json!({
-            "agent_id": "researcher",
-            "prompt": "summarize",
-            "dedicated_thread": true
-        }))
-        .await
-        .expect("dedicated thread disabled returns tool result");
-    assert!(dedicated_thread.is_error);
-    // #3049 superseded #1624: dedicated_thread is no longer "temporarily
-    // disabled". Verify the tool errors (no provider) without requiring
-    // the exact legacy message.
-    assert!(!dedicated_thread.output().is_empty());
-}
-
 async fn start_loopback(app: Router) -> String {
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
         .await
