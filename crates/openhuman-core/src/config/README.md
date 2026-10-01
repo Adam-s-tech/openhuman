@@ -1,6 +1,6 @@
 # Config
 
-Authoritative TOML-backed configuration layer. Owns the `Config` schema (every domain section: agent, channels, memory, autonomy, voice, scheduler, observability, etc.), env-variable overrides, the per-user openhuman directory layout, runtime proxy settings, the daemon descriptor, and the settings CLI. About 870 files under `crates/openhuman-core/src/` reference `crate::config`; almost every other domain reads `Config` here.
+Authoritative TOML-backed configuration layer. Owns the `Config` schema (every domain section: agent, channels, memory, autonomy, voice, scheduler, observability, etc.), env-variable overrides, the per-user openhuman directory layout, runtime proxy settings, the daemon descriptor. About 870 files under `crates/openhuman-core/src/` reference `crate::config`; almost every other domain reads `Config` here.
 
 ## Layout
 
