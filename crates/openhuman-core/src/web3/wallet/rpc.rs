@@ -3,15 +3,13 @@
 //! JSON-RPC is used for EVM and Solana. REST is used for BTC (Esplora) and
 //! Tron (TronGrid). Both honor an `OPENHUMAN_WALLET_RPC_<CHAIN>` env override
 //! so tests can point everything at an axum mock. The wallet engine reaches
-//! these through [`super::transport::OpenHumanTransport`]; `rpc_call` is also
-//! used directly by the x402 payment helpers.
+//! these through [`super::transport::OpenHumanTransport`].
 
 use std::time::Duration;
 
 use once_cell::sync::Lazy;
 use serde::de::DeserializeOwned;
 use serde_json::{json, Value};
-
 
 const LOG_PREFIX: &str = "[wallet::rpc]";
 
