@@ -4079,18 +4079,19 @@ async fn declare_and_connect_registry_echo_server(rpc_base: &str, first_rpc_id: 
     server_id
 }
 
-/// The orchestrator advertises MCP discovery and invocation without a hand-off.
+/// The orchestrator reaches MCP discovery and invocation without a hand-off, but
+/// the registry tools are deferred (off its wire), not advertised (#6787).
 #[cfg(feature = "mcp")]
 #[test]
-fn orchestrator_advertises_direct_mcp_tools() {
+fn orchestrator_defers_its_mcp_registry_tools_without_a_hand_off() {
     run_on_agent_stack(
-        "orchestrator_advertises_direct_mcp_tools",
-        orchestrator_advertises_direct_mcp_tools_inner,
+        "orchestrator_defers_its_mcp_registry_tools_without_a_hand_off",
+        orchestrator_defers_its_mcp_registry_tools_without_a_hand_off_inner,
     );
 }
 
 #[cfg(feature = "mcp")]
-async fn orchestrator_advertises_direct_mcp_tools_inner() {
+async fn orchestrator_defers_its_mcp_registry_tools_without_a_hand_off_inner() {
     let _lock = env_lock();
     reset_script(Vec::new());
     let stack = boot_stack().await;
