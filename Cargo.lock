@@ -4061,6 +4061,7 @@ dependencies = [
  "tinyagents-runtime",
  "tinyagents-session",
  "tinybox-core",
+ "tinybox-docker",
  "tinybox-jail",
  "tinybus",
  "tinychannels",
@@ -6497,6 +6498,15 @@ dependencies = [
  "async-trait",
  "serde",
  "thiserror 2.0.20",
+]
+
+[[package]]
+name = "tinybox-docker"
+version = "0.1.10"
+dependencies = [
+ "async-trait",
+ "tinybox-core",
+ "tokio",
 ]
 
 [[package]]
