@@ -87,12 +87,19 @@ async fn engine_run_drives_trigger_to_http_request_through_the_real_seam() {
 
 // ── Code adapter ──────────────────────────────────────────────────────────
 
-/// Requires `node` on `PATH`. Ignored by default (per the B1 test plan);
-/// run explicitly with `cargo test -- --ignored` on a host with Node
-/// installed.
+/// Requires `node` on `PATH` (the code node runs the host's Node under the
+/// sandbox). Runs by default; on a host without Node it prints a `SKIPPED`
+/// line instead of failing.
 #[tokio::test]
-#[ignore = "requires a `node` binary on PATH"]
 async fn code_adapter_javascript_passthrough_round_trips_json() {
+    if std::process::Command::new("node")
+        .arg("--version")
+        .output()
+        .is_err()
+    {
+        eprintln!("SKIPPED (not run, not asserted): no `node` binary on PATH");
+        return;
+    }
     let tmp = TempDir::new().unwrap();
     let config = test_config(&tmp);
     let security = Arc::new(SecurityPolicy::from_config(

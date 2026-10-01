@@ -92,6 +92,78 @@ async fn fold_through_driver(
     tree.summarise(inputs, context).await
 }
 
+/// The role a host-side fold builds its model for — the one
+/// `lifecycle::with_config` probes when it decides `summariser_available`.
+const HOST_RECAP_ROLE: &str = "summarization";
+
+/// What a host-side fold asks of its model.
+const HOST_RECAP_PROMPT: &str = "\
+You write the recap of one stretch of a conversation between a user and their assistant. \
+Write two to four sentences, in the language of the conversation, saying what it was about, \
+what was decided or done, and what was left open. Plain prose: no headings, no lists. \
+Use only what the transcript says.";
+
+/// The transcript a host-side fold reads: one `role: text` paragraph per turn,
+/// oldest first, keeping the newest turns that fit in `max_chars`.
+pub(super) fn transcript(entries: &[&EpisodicTurn], max_chars: usize) -> String {
+    let mut kept = Vec::new();
+    let mut used = 0usize;
+    for entry in entries.iter().rev() {
+        let text = entry.content.trim();
+        if text.is_empty() {
+            continue;
+        }
+        let paragraph = format!("{}: {text}", entry.role);
+        used = used.saturating_add(paragraph.len() + 2);
+        if used > max_chars && !kept.is_empty() {
+            break;
+        }
+        kept.push(paragraph);
+    }
+    kept.reverse();
+    kept.join("\n\n")
+}
+
+/// Folds a segment's turns with the host's own summarisation model.
+///
+/// For a driver with no model to fold with: hosted memory answers `summarise`
+/// with `Unsupported`, and a recap that never comes leaves every hosted segment
+/// closed and unsummarised, so nothing that reads segment summaries ever sees
+/// one. The host already holds a model for this role — the probe that set
+/// `summariser_available` built it — so it folds here instead, over the same
+/// turns and within the same input budget. The prose goes where the
+/// conversation itself already went: the host's chat provider.
+pub(super) async fn fold_with_host_model(
+    config: &crate::config::Config,
+    entries: &[&EpisodicTurn],
+) -> anyhow::Result<String> {
+    use tinyinference_llm::message::Message;
+    use tinyinference_llm::model::ModelRequest;
+
+    let max_chars = (INPUT_TOKEN_BUDGET - SUMMARY_OVERHEAD_RESERVE_TOKENS) as usize * 4;
+    let transcript = transcript(entries, max_chars);
+    if transcript.is_empty() {
+        return Ok(String::new());
+    }
+    let (model, model_id) =
+        crate::inference::provider::create_chat_model_with_model_id(HOST_RECAP_ROLE, config, 0.3)?;
+    tracing::debug!(
+        "[archivist] host recap fold model={model_id} chars={}",
+        transcript.len()
+    );
+    let recap = model
+        .invoke(
+            &(),
+            ModelRequest::new(vec![
+                Message::system(HOST_RECAP_PROMPT),
+                Message::user(transcript),
+            ]),
+        )
+        .await?
+        .text();
+    Ok(recap.trim().to_string())
+}
+
 /// An episodic entry paired with the stable identity exposed by its backing
 /// store. The md archivist uses a per-session sequence while the legacy FTS5
 /// store uses a row id.
@@ -287,9 +359,8 @@ impl ArchivistHook {
             if let Some(ref config) = self.config {
                 // The `Some` gate stays because it is the one this function
                 // has always had: no config, no LLM recap, heuristic bookend
-                // instead. Nothing reads the config now that every build folds
-                // through the driver.
-                let _ = config;
+                // instead. The config is what a host-side fold builds its
+                // model from, when the driver has none (see below).
                 tracing::debug!(
                     "[archivist] summarize_entries: LLM recap segment={segment_id} entries={}",
                     entries.len()
@@ -348,6 +419,44 @@ impl ArchivistHook {
                             "[archivist] summarize_entries: LLM returned empty — \
                              heuristic fallback segment={segment_id} elapsed_ms={elapsed_ms}"
                         );
+                    }
+                    // A driver with a tree but no model to fold with (hosted
+                    // memory) says so; the host folds with its own model.
+                    Err(e @ crate::memory::api::error::MemoryError::Unsupported { .. }) => {
+                        tracing::debug!(
+                            "[archivist] summarize_entries: driver has no summariser — \
+                             folding with the host model segment={segment_id}: {e}"
+                        );
+                        let started = std::time::Instant::now();
+                        match tokio::time::timeout(
+                            RECAP_DEADLINE,
+                            fold_with_host_model(config, entries),
+                        )
+                        .await
+                        {
+                            Ok(Ok(recap)) if !recap.is_empty() => {
+                                tracing::debug!(
+                                    "[archivist] summarize_entries: host recap ok \
+                                     segment={segment_id} chars={} elapsed_ms={}",
+                                    recap.len(),
+                                    started.elapsed().as_millis()
+                                );
+                                return (recap, true);
+                            }
+                            Ok(Ok(_)) => tracing::debug!(
+                                "[archivist] summarize_entries: host recap empty — \
+                                 heuristic fallback segment={segment_id}"
+                            ),
+                            Ok(Err(error)) => tracing::warn!(
+                                "[archivist] summarize_entries: host recap failed \
+                                 (non-fatal) segment={segment_id}: {error} — heuristic fallback"
+                            ),
+                            Err(_) => tracing::warn!(
+                                "[archivist] summarize_entries: host recap exceeded {:?} — \
+                                 segment={segment_id} left unsummarised",
+                                RECAP_DEADLINE
+                            ),
+                        }
                     }
                     Err(e) => {
                         tracing::warn!(

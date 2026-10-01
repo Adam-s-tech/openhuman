@@ -511,6 +511,27 @@ async fn from_guard_asks_the_notes_namespace_through_the_retrieval_family() {
     );
 }
 
+/// Hosted CortexDB's retrieval family ranks its notes and reports no signal:
+/// they are kept in the engine's order, as an unscored engine's are, rather
+/// than all dropped by the similarity floor.
+#[tokio::test]
+async fn from_guard_keeps_a_rank_only_drivers_notes_in_its_order() {
+    let ranked = |key: &str, content: &str, rank: f64| {
+        let mut hit = namespace_hit("global", key, content, 0.0);
+        hit.score = rank;
+        hit.score_breakdown.final_score = rank;
+        hit
+    };
+    let provider = RecordingProvider::new().with_namespace_hits(vec![
+        ranked("favourite_tea_oolong", TEA_NOTE, 1.0),
+        ranked("rent", "Rent is due on the 5th.", 0.9),
+    ]);
+    let (_provider, guard) = guarded_with(provider, embedded_policy());
+    let lane = AutoRecall::from_guard(Arc::new(guard));
+    let block = lane.block_for(TEA_QUESTION).await.expect("a block");
+    assert!(block.contains(TEA_NOTE), "{block}");
+}
+
 #[tokio::test]
 async fn from_guard_honours_the_hooks_switch() {
     let hooks = crate::config::schema::MemoryHooksConfig {

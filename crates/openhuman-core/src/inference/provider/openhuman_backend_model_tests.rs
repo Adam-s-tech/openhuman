@@ -50,7 +50,7 @@ fn resolve_model_normalizes_blank_and_trims_non_empty_values() {
 }
 
 /// The managed `openhuman.{billing,usage}` envelope on `raw` must re-project
-/// into the host `UsageInfo` the cost bridge reads — charged USD, cached
+/// into the host `BilledUsage` the cost bridge reads — charged USD, cached
 /// tokens, and context window — exactly as the legacy legacy model-adapter path did.
 #[test]
 fn project_managed_usage_recovers_charged_and_cached() {
@@ -93,8 +93,8 @@ fn project_managed_usage_recovers_charged_and_cached() {
         "charged={}",
         usage.charged_amount_usd
     );
-    assert_eq!(usage.cached_input_tokens, 128, "cached tokens backfilled");
-    assert_eq!(usage.context_window, 200_000);
+    assert_eq!(usage.cached_input_tokens(), 128, "cached tokens backfilled");
+    assert_eq!(usage.context_window(), 200_000);
     assert_eq!(usage.input_tokens, 1000);
     assert_eq!(usage.output_tokens, 50);
 }
@@ -140,7 +140,7 @@ fn project_managed_usage_is_noop_without_envelope() {
         .is_none());
     let usage = usage_info_from_response(&projected).expect("usage present");
     assert_eq!(usage.charged_amount_usd, 0.0);
-    assert_eq!(usage.cached_input_tokens, 3, "crate cached count preserved");
+    assert_eq!(usage.cache_read_tokens, 3, "crate cached preserved");
 }
 
 // ── probe_readiness (B45 — flows provider-connectivity author gate) ────

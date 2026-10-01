@@ -479,7 +479,7 @@ export interface ArtifactReadyEvent {
    * wrong `<workspace>/artifacts/` tree after a workspace switch.
    */
   workspace_dir: string;
-  /** Relative path under `<workspace>/artifacts/`, e.g. `<uuid>/deck.pptx`. */
+  /** File name relative to its root: `deck.pptx` in the visible files folder, or `<uuid>/deck.pptx` for a legacy record. */
   path: string;
   /** Final on-disk size in bytes. */
   size_bytes: number;
@@ -527,7 +527,7 @@ export interface ArtifactPendingEvent {
   title: string;
   /** Absolute workspace root — see {@link ArtifactReadyEvent.workspace_dir}. */
   workspace_dir: string;
-  /** Relative path under `<workspace>/artifacts/`, e.g. `<uuid>/deck.pptx`. */
+  /** File name relative to its root: `deck.pptx` in the visible files folder, or `<uuid>/deck.pptx` for a legacy record. */
   path: string;
   /** See {@link ArtifactReadyEvent.tool_call_id}. */
   tool_call_id?: string;

@@ -195,7 +195,7 @@ pub(crate) fn cancel_all() -> Vec<String> {
     thread_ids
 }
 
-#[allow(dead_code)]
+#[cfg(test)]
 pub(crate) fn prune(task_id: &str) {
     let _ = registry().cancel_trusted(&TaskId::new(task_id));
 }

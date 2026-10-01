@@ -10,7 +10,7 @@ use tinymemory_api::capabilities::{Capabilities, Capability};
 /// Checked against the registry pin by `the_capability_list_matches_the_pinned_release`,
 /// so bumping the pin without re-reading the list is a red test rather than a
 /// silent over-claim.
-pub(crate) const ARTIFACT_CAPABILITIES_PIN: &str = "1.17.0";
+pub(crate) const ARTIFACT_CAPABILITIES_PIN: &str = "1.20.0";
 
 /// The capability families the **pinned artifact** actually serves.
 ///
@@ -40,6 +40,12 @@ pub(crate) const ARTIFACT_CAPABILITIES_PIN: &str = "1.17.0";
 /// is empty (the release adds the remote-engine factory, the hosted CortexDB
 /// wire and `migrate`, none of which the module serves), so the advertised
 /// families stay the same.
+/// Re-read at `v1.20.0`: `git diff v1.17.0..v1.20.0 --
+/// crates/tinymemory-api/src/capabilities.rs crates/tinymemory-bus/src/capabilities.rs`
+/// is empty. v1.18.0 and v1.19.0 moved host-side memory code into library
+/// crates, and v1.20.0 adds the hosted families on the TinyHumans wire and
+/// the optional `TreeSummary::preview` (contract 4.2); none of that is a family
+/// the module serves, so the advertised families stay the same.
 ///
 /// Read at tag `v1.3.0`. Unchanged from v1.2.0 — the release added members
 /// within existing families (`retry_failed`, the diagnostics trio,

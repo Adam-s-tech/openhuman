@@ -101,7 +101,7 @@ Scoring also produces vectors. The embedder in [`score/embed/`](https://github.c
 The active embedder is selected by `build_embedder_from_config` ([`embed/factory.rs`](https://github.com/tinyhumansai/tinymemory/blob/1d6b997874a06600ba0c4922708b5613497c9ffe/crates/tinymemory-core/src/tree/score/embed/factory.rs)) walking a resolution ladder, identical for read and write paths:
 
 1. **Explicit Ollama override** (`memory_tree.embedding_endpoint` + `embedding_model`) - power users / E2E rigs.
-2. **Local Ollama** via the unified `embeddings` workload setting - the "Memory embeddings" checkbox in [Local AI](../model-routing/local-ai.md) Settings.
+2. **Local Ollama** via the unified `embeddings` workload setting (`embeddings_provider = "ollama:<model>"`, or Ollama chosen under **Connections → Embeddings**). See [Local AI](../model-routing/local-ai.md); you pull the model yourself.
 3. **User-configured OpenAI-compatible** endpoint (`OpenAiCompatEmbedder`, e.g. LM Studio).
 4. **Managed cloud** (`CloudEmbedder`, OpenHuman backend / Voyage) - the default once logged in.
 5. **No provider** - the read path falls back to `InertEmbedder` (zero vectors) so retrieval still runs; the write path returns `None`, skips embedding, and flags `semantic_recall` degraded so the chunk can be re-embedded later.

@@ -1,6 +1,6 @@
 import { useT } from '../../../lib/i18n/I18nContext';
 import type { MemoryEngineMigrateStatus } from '../../../utils/tauriCommands/memoryEngine';
-import { Button, ModalShell, Progress } from '../../ui';
+import { Button, Checkbox, ModalShell, Progress } from '../../ui';
 
 interface MemoryEngineSwitchDialogProps {
   targetLabel: string;
@@ -9,6 +9,11 @@ interface MemoryEngineSwitchDialogProps {
   /** Set once "Copy & switch" started; swaps the choices for a progress view. */
   migration: MemoryEngineMigrateStatus | null;
   busy: boolean;
+  /** Whether the target bills for what it reads (TinyHumans memory). */
+  hosted: boolean;
+  /** Re-send synced content with the copy, so the new engine rebuilds its summaries. */
+  replayContent: boolean;
+  onReplayContentChange: (next: boolean) => void;
   onCopy: () => void;
   onSkipCopy: () => void;
   onCancel: () => void;
@@ -22,6 +27,9 @@ export default function MemoryEngineSwitchDialog({
   lacking,
   migration,
   busy,
+  hosted,
+  replayContent,
+  onReplayContentChange,
   onCopy,
   onSkipCopy,
   onCancel,
@@ -91,20 +99,43 @@ export default function MemoryEngineSwitchDialog({
           <div data-testid="memory-engine-progress" className="space-y-2">
             <p>{t('memoryEngine.dialog.copying')}</p>
             <Progress value={percent} aria-label={t('memoryEngine.dialog.copying')} />
-            <p className="text-xs text-content-muted">
-              {migration.total !== null
-                ? t('memoryEngine.dialog.progress')
-                    .replace('{copied}', String(migration.copied))
-                    .replace('{total}', String(migration.total))
-                : t('memoryEngine.dialog.progressUnknown').replace(
-                    '{copied}',
-                    String(migration.copied)
-                  )}
+            <p className="text-xs text-content-muted" data-testid="memory-engine-progress-line">
+              {migration.step && migration.step !== 'records'
+                ? t('memoryEngine.dialog.stepProgress')
+                    .replace('{step}', t(`memoryEngine.step.${migration.step}`))
+                    .replace('{count}', String(migration.step_read ?? 0))
+                : migration.total !== null
+                  ? t('memoryEngine.dialog.progress')
+                      .replace('{copied}', String(migration.copied))
+                      .replace('{total}', String(migration.total))
+                  : t('memoryEngine.dialog.progressUnknown').replace(
+                      '{copied}',
+                      String(migration.copied)
+                    )}
             </p>
           </div>
         ) : (
           <>
             <p>{t('memoryEngine.dialog.body')}</p>
+            <p className="text-xs text-content-muted">{t('memoryEngine.dialog.copies')}</p>
+            <label className="flex items-start gap-2" htmlFor="memory-engine-replay-content">
+              <Checkbox
+                id="memory-engine-replay-content"
+                data-testid="memory-engine-replay-content"
+                checked={replayContent}
+                disabled={busy}
+                onCheckedChange={onReplayContentChange}
+                className="mt-0.5"
+              />
+              <span>
+                <span className="text-content">{t('memoryEngine.dialog.replayContent')}</span>
+                {hosted ? (
+                  <span className="block text-xs text-content-muted">
+                    {t('memoryEngine.dialog.replayContentHint')}
+                  </span>
+                ) : null}
+              </span>
+            </label>
             {lacking.length > 0 ? (
               <div data-testid="memory-engine-lacking">
                 <p className="font-medium text-content">{t('memoryEngine.dialog.lacking')}</p>

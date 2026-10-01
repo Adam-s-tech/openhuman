@@ -117,6 +117,10 @@ name = "cost_cap_removed"
 path = "../../tests/cost_cap_removed.rs"
 
 [[test]]
+name = "embedded_server_shutdown_e2e"
+path = "../../tests/embedded_server_shutdown_e2e.rs"
+
+[[test]]
 name = "observability_smoke"
 path = "../../tests/observability_smoke.rs"
 # The `is_*_event` Sentry filters are all `#[cfg(feature = "crash-reporting")]`.
@@ -170,10 +174,6 @@ name = "agent_harness_public"
 path = "../../tests/agent_harness_public.rs"
 
 [[test]]
-name = "agent_multimodal_public"
-path = "../../tests/agent_multimodal_public.rs"
-
-[[test]]
 name = "agent_turn_overrides_e2e"
 path = "../../tests/agent_turn_overrides_e2e.rs"
 
@@ -186,20 +186,12 @@ name = "channels_default_channel_e2e"
 path = "../../tests/channels_default_channel_e2e.rs"
 
 [[test]]
-name = "channels_host_boundary_e2e"
-path = "../../tests/channels_host_boundary_e2e.rs"
-
-[[test]]
 name = "cli_model_overrides_e2e"
 path = "../../tests/cli_model_overrides_e2e.rs"
 
 [[test]]
 name = "cli_sigpipe"
 path = "../../tests/cli_sigpipe.rs"
-
-[[test]]
-name = "composio_list_tools_stack_overflow_regression"
-path = "../../tests/composio_list_tools_stack_overflow_regression.rs"
 
 [[test]]
 name = "config_auth_app_state_connectivity_e2e"
@@ -228,14 +220,6 @@ path = "../../tests/keyring_secretstore_e2e.rs"
 [[test]]
 name = "keyring_secretstore_fresh_e2e"
 path = "../../tests/keyring_secretstore_fresh_e2e.rs"
-
-[[test]]
-name = "learning_phase4_integration_test"
-path = "../../tests/learning_phase4_integration_test.rs"
-
-[[test]]
-name = "linux_cef_deb_runtime_e2e"
-path = "../../tests/linux_cef_deb_runtime_e2e.rs"
 
 [[test]]
 name = "live_flows_demo_e2e"
@@ -327,10 +311,6 @@ name = "transcript_search_e2e"
 path = "../../tests/transcript_search_e2e.rs"
 
 [[test]]
-name = "web_cancel_request_scoping"
-path = "../../tests/web_cancel_request_scoping.rs"
-
-[[test]]
 name = "worker_b_domain_e2e"
 path = "../../tests/worker_b_domain_e2e.rs"
 
@@ -359,7 +339,6 @@ path = "../../examples/run_memory_reconcile.rs"
 # Direct core access: every test and bin names `openhuman_core::` paths.
 # `default-features = false` so the gates below are the only ones on.
 openhuman-core = { path = "../openhuman-core", package = "openhuman", default-features = false }
-openhuman-embed = { path = "../openhuman-embed", default-features = false }
 openhuman-tinyhumans = { path = "../openhuman-tinyhumans", default-features = false }
 openhuman-rpc = { workspace = true, features = ["server"] }
 anyhow = "1.0"
@@ -398,7 +377,6 @@ tinycomputer-bus = { path = "../../vendor/tinycomputer/crates/tinycomputer-bus" 
 # `default-features = false` keeps actix out of the graph (see the core manifest).
 sentry = { version = "0.47.0", default-features = false, features = ["test"] }
 base64 = "0.22"
-filetime = "0.2"
 flate2 = "1"
 futures-util = "0.3"
 hex = "0.4"
@@ -406,8 +384,6 @@ lettre = { version = "0.11.22", default-features = false, features = ["builder",
 parking_lot = "0.12"
 rusqlite = { version = "=0.40.2", features = ["bundled"] }
 sha2 = "0.10"
-# `ollama_lifecycle_e2e` checks the spawned runtime child is really gone.
-sysinfo = { version = "0.33", default-features = false, features = ["system"] }
 tar = "0.4"
 tinyagents-harness = { path = "../../vendor/tinyagents/crates/tinyagents-harness", features = ["sqlite", "multimodal"] }
 tinyagents-session = { path = "../../vendor/tinyagents/crates/tinyagents-session" }
@@ -423,6 +399,7 @@ tinytools-agent = { path = "../../vendor/tinyagents/vendor/tinytools/crates/tiny
 tokio = { version = "1", features = ["full", "test-util"] }
 tokio-stream = { version = "0.1.18", default-features = false, features = ["sync"] }
 tokio-tungstenite = { version = "0.29", default-features = false, features = ["connect", "handshake", "rustls-tls-webpki-roots"] }
+tokio-util = { version = "0.7", features = ["rt", "io"] }
 tower = { version = "0.5", default-features = false }
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 url = "2"
@@ -453,8 +430,6 @@ skills = ["openhuman-core/skills", "openhuman-tinyhumans/skills"]
 mcp = ["openhuman-core/mcp", "openhuman-tinyhumans/mcp"]
 channels = ["openhuman-core/channels", "openhuman-tinyhumans/channels"]
 sandbox-landlock = ["openhuman-core/sandbox-landlock", "openhuman-tinyhumans/sandbox-landlock"]
-sandbox-bubblewrap = ["openhuman-core/sandbox-bubblewrap", "openhuman-tinyhumans/sandbox-bubblewrap"]
-landlock = ["openhuman-core/landlock"]
 whatsapp-web = ["openhuman-core/whatsapp-web", "openhuman-tinyhumans/whatsapp-web"]
 e2e-test-support = ["openhuman-core/e2e-test-support"]
 rss-bench = ["openhuman-core/rss-bench"]

@@ -50,9 +50,10 @@ pub struct ScoredNotes {
     /// The hits, most relevant first.
     pub hits: Vec<NamespaceMemoryHit>,
     /// Whether each hit's `vector_similarity` is the engine's own score.
-    /// `false` for an engine whose recall is ranked but carries no score
-    /// (hosted CortexDB): its hits read 0.0, and flooring on that would drop
-    /// every one of them however well the engine ranked it.
+    /// `false` for an engine whose recall is ranked but carries no similarity
+    /// (hosted CortexDB, with or without its retrieval family): its hits read
+    /// 0.0, and flooring on that would drop every one of them however well
+    /// the engine ranked it.
     pub scored: bool,
 }
 
@@ -129,9 +130,18 @@ impl AutoRecallSource for GuardSource {
         // No session to exclude: the notes namespace is never auto-saved per
         // session, and the lane runs before this turn is archived, so there is
         // no self-echo for the engine's exclusion to catch.
-        retrieval
+        let hits = retrieval
             .recall_namespace_scored(namespace, query, limit, None)
-            .await
-            .map(ScoredNotes::scored)
+            .await?;
+        // A retrieval family can rank without measuring similarity (hosted
+        // CortexDB scores by rank): its hits are unscored notes, not misses.
+        let scored = !crate::memory::ops::fallback::rank_only(&hits);
+        if !scored {
+            log::debug!(
+                "[auto_recall] retrieval ranks without similarity; notes kept in rank order hits={}",
+                hits.len()
+            );
+        }
+        Ok(ScoredNotes { hits, scored })
     }
 }

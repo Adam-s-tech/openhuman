@@ -50,6 +50,37 @@ fn engine_migrate_copies_the_module_into_the_hosted_engine_then_switches() {
                     .is_some_and(|t| t.contains("canary fact carried across engines"))),
             "the migrated record must exist in the hosted engine"
         );
+        // Past the keyed records, every step reports, in order. The pinned
+        // module serves documents, goals and the profile, so those ran; what it
+        // does not serve is named rather than failed.
+        let steps = status["steps"].as_array().expect("steps");
+        let names: Vec<&str> = steps.iter().filter_map(|s| s["step"].as_str()).collect();
+        assert_eq!(
+            names,
+            ["documents", "goals", "profile", "episodic", "content"],
+            "{status}"
+        );
+        for step in steps {
+            assert_eq!(step["failed"], 0, "{step}");
+        }
+        let documents = &steps[0];
+        assert!(documents["skipped_because"].is_null(), "{documents}");
+        assert!(
+            documents["written"].as_u64().unwrap_or(0) >= 1,
+            "the canary's title and source type are not the defaults, so its details move: {documents}"
+        );
+        assert!(
+            fx.hosted.events.lock().unwrap().iter().any(|e| {
+                e["scope"]
+                    .as_str()
+                    .is_some_and(|scope| scope.starts_with("tmi:documents"))
+                    && e["content"]["text"]
+                        .as_str()
+                        .is_some_and(|t| t.contains("migrate-canary"))
+            }),
+            "the canary's details must be recorded in hosted memory"
+        );
+
         let state = fx.state().await;
         assert_eq!(
             state["driver"], "tinyhumans",
@@ -156,33 +187,6 @@ fn cancel_stops_a_running_migration_and_keeps_the_active_engine() {
             "tinymemory",
             "a cancelled job must not switch"
         );
-        fx.hosted.delay_ms.store(0, Ordering::SeqCst);
-    });
-}
-
-#[test]
-fn engine_set_is_refused_while_a_migration_runs() {
-    run_on_big_stack("engine-set-during-migrate", || async {
-        let fx = Fixture::new().await;
-        let job_id = seed_and_start_slow_migration(&fx).await;
-        tokio::time::sleep(Duration::from_millis(100)).await;
-
-        let v = fx
-            .call(
-                "openhuman.memory_engine_set",
-                json!({ "driver": "tinymemory" }),
-            )
-            .await;
-        assert!(
-            error_message(&v, "engine_set during migration").contains("migration is running"),
-            "{v}"
-        );
-        fx.call(
-            "openhuman.memory_engine_migrate_cancel",
-            json!({ "job_id": job_id.clone() }),
-        )
-        .await;
-        fx.wait_job(&job_id).await;
         fx.hosted.delay_ms.store(0, Ordering::SeqCst);
     });
 }

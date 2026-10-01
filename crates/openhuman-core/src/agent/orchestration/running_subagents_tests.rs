@@ -5,14 +5,9 @@ use crate::agent::orchestration::running_subagents::registry::DETACHED_LEDGER_TI
 use crate::agent::orchestration::running_subagents::resolve::resume_ref_for_task;
 use crate::agent::orchestration::running_subagents::resolve::task_id_for_session;
 use crate::agent::orchestration::running_subagents::roster::snapshot_for_parent;
-use crate::agent::orchestration::running_subagents::steering::steer_directive;
-use crate::agent::orchestration::running_subagents::steering::SteerDirectiveError;
-use crate::agent::orchestration::running_subagents::steering::SteeringDirective;
 use crate::agent::orchestration::running_subagents::wait::wait;
 use crate::agent::queued_turn::QueuedTurn;
-use crate::agent::tinyagents::host::steering::{
-    openhuman_steering_handle, shared_steering_registry, SteeringRunClass,
-};
+use crate::agent::tinyagents::host::steering::shared_steering_registry;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::MutexGuard;
@@ -20,9 +15,7 @@ use std::time::Duration;
 use tinyagents_graph::orchestration::OrchestrationTaskStatus;
 use tinyagents_harness::ids::TaskId;
 use tinyagents_harness::run_queue::{QueueLane, RunQueue};
-use tinyagents_harness::steering::{
-    SteeringCommand, SteeringCommandKind, SteeringHandle, SteeringPolicy,
-};
+use tinyagents_harness::steering::{SteeringCommand, SteeringHandle};
 use tokio::sync::watch;
 use tokio::task::AbortHandle;
 

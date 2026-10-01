@@ -46,8 +46,6 @@ const OnboardingLayout = () => {
       await setOnboardingTasks({
         accessibilityPermissionGranted:
           snapshot.localState.onboardingTasks?.accessibilityPermissionGranted ?? false,
-        localModelConsentGiven: false,
-        localModelDownloadStarted: false,
         enabledTools,
         connectedSources: draft.connectedSources,
         updatedAtMs: Date.now(),

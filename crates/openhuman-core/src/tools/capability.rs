@@ -33,10 +33,9 @@
 /// wrong default is worse than no rule. Hence enumeration plus two narrow
 /// prefix rules, backed by the drift guard.
 ///
-/// ## Honesty clause — two assignments still run ahead of the plumbing:
+/// ## Honesty clause — one assignment still runs ahead of the plumbing:
 /// `tool_stats` reads the legacy `Arc<dyn Memory>` + `tool_tracker`, not
-/// `MemoryToolMemory`; `memory_diff` reads `memory::diff::ops`, not
-/// `MemoryDiff`. Filtering both on the driver's advertised set is still the
+/// `MemoryToolMemory`. Filtering it on the driver's advertised set is still the
 /// correct M5 behaviour: §3.3 contracts what the *model is told exists*, so
 /// the later re-point onto `MemoryGuard` must not change the advertised
 /// surface, and `None` to dodge the mismatch would bake the wrong contract in.
@@ -80,7 +79,6 @@ pub(crate) fn tool_capability(name: &str) -> Option<tinymemory_api::capabilities
         // Free-text search over the canonical *entity* index
         // (`memory::tree::retrieval::search::search_entities`).
         "memory_store_raw_search" => Capability::Entities,
-        "memory_diff" => Capability::Diff,
         "memory_doctor" => Capability::Maintenance,
         "tool_stats" => Capability::ToolMemory,
 

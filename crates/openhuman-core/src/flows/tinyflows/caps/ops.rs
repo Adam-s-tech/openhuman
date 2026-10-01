@@ -415,10 +415,7 @@ pub(crate) async fn preflight_composio_args(
     // (1) Static rules — the same validation the Composio dispatch runs, hoisted
     // ahead of it. Only the `Err` matters here; the normalized arguments it
     // returns are recomputed (and used) at dispatch.
-    if let Err(e) = tinyconnectors::execute::prepare_execute_arguments(
-        slug,
-        Some(args.clone()),
-    ) {
+    if let Err(e) = tinyconnectors::execute::prepare_execute_arguments(slug, Some(args.clone())) {
         tracing::warn!(target: "flows", %slug, error = %e, "[flows] preflight: static arg rule rejected the call — failing before dispatch");
         return Err(EngineError::Capability(format!("tool_call `{slug}`: {e}")));
     }

@@ -1025,3 +1025,21 @@ embedding_dimensions = 2048
         Some(2048)
     );
 }
+
+#[tokio::test(flavor = "multi_thread")]
+async fn embeddings_controllers_reject_missing_required_params() {
+    let _lock = embeddings_e2e_env_lock();
+    let (rpc_base, _tmp, _guards, _join) = setup_embeddings_test().await;
+
+    for (id, method) in [
+        (40, "openhuman.embeddings_set_api_key"),
+        (41, "openhuman.embeddings_clear_api_key"),
+        (42, "openhuman.embeddings_embed"),
+    ] {
+        let resp = post_json_rpc(&rpc_base, id, method, json!({})).await;
+        assert!(
+            resp.get("error").is_some(),
+            "{method} should reject missing required params: {resp}"
+        );
+    }
+}

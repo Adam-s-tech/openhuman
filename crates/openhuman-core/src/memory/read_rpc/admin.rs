@@ -540,6 +540,9 @@ pub async fn delete_source_rpc(
         })
         .await
         .map_err(|e| format!("delete_source: {e}"))?;
+    // A host-synced source's record of what it sent would otherwise skip the
+    // items just forgotten on its next sync.
+    crate::memory::sources::hosted_sync::forget_state(config, &source_id);
 
     let resp = DeleteSourceResponse {
         // `deleted` is true if we removed chunks OR cleaned a stale orphaned

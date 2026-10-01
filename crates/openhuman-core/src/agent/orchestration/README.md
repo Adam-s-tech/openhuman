@@ -135,7 +135,7 @@ name:
   `Deferred` tools on the orchestrator's own belt, found through
   `tool_search` and called directly (`tools/orchestrator_tools.rs`).
 
-`dispatch.rs` (`dispatch_subagent`, the shared spawn path every tool above
+`dispatch.rs` (the shared spawn path every tool above
 calls), `awaiting_user.rs` (the awaiting-user envelope), and
 `worker_thread.rs` (worker thread creation) are `pub(crate)` helpers, not
 tools. Live harness registrations use typed `ToolDispatch<(),

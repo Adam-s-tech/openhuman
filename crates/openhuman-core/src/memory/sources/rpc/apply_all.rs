@@ -108,6 +108,12 @@ pub async fn apply_all_in_rpc() -> Result<Outcome<AllInResponse>, String> {
     // the family reports the refusal as its own per-source error, which is
     // exactly what this sweep aggregates.
     let source_sync = binding.provider().as_source_sync();
+    // A driver that keeps what it is sent and runs no source pipeline (hosted
+    // memory) is synced by the host through its sink instead.
+    let host_sink = binding
+        .provider()
+        .as_sources()
+        .filter(|_| crate::memory::sources::hosted_sync::host_synced(binding.provider().as_ref()));
     let config_ref = &config;
     let driver_id = binding.driver_id();
 
@@ -134,18 +140,35 @@ pub async fn apply_all_in_rpc() -> Result<Outcome<AllInResponse>, String> {
             .await
             .map(|_| ()),
             SyncDispatch::Driver => {
+                let publish = super::driver_run::bus_stage_publisher(
+                    super::driver_run::MANUAL,
+                    &source.id,
+                    source.kind.as_str(),
+                );
+                // The same start, finish and history row as the Sync button
+                // (openhuman#6257), whichever side runs the sync.
+                if let Some(sink) = host_sink {
+                    return super::driver_run::run_recorded(
+                        config_ref,
+                        &source.id,
+                        Some(&source),
+                        || crate::memory::sources::hosted_sync::run(config_ref, &source, sink),
+                        |error| error.to_string(),
+                        publish,
+                    )
+                    .await
+                    .map(|_| ());
+                }
                 let sync = source_sync.ok_or_else(|| {
                     format!("the bound memory driver '{driver_id}' does not serve source sync")
                 })?;
-                // The same start, finish and history row as the Sync button
-                // (openhuman#6257).
                 super::driver_run::run_recorded(
                     config_ref,
                     &source.id,
                     Some(&source),
                     || sync.run_source_sync(&source.id),
                     |error| error.to_string(),
-                    super::driver_run::bus_stage_publisher(&source.id, source.kind.as_str()),
+                    publish,
                 )
                 .await
                 .map(|_| ())

@@ -428,8 +428,6 @@ tinycomputer-accessibility = { path = "../../vendor/tinycomputer/crates/tinycomp
 tinyskills = { path = "../../vendor/tinyskills/crates/tinyskills" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-serde_repr = "0.1"
-serde_yaml = "0.9"
 # (Removed `html2md` dep. dhat-rs profiling on real Gmail inboxes
 # showed `html2md::walk` and `html2md::tables::handle` allocating
 # ~894 MB peak heap on a 10 KB HTML input from Otter.ai-style emails
@@ -533,7 +531,6 @@ lettre = { version = "0.11.22", default-features = false, features = ["builder",
 # `crates/openhuman-core/src/core/http_server_status.rs`.
 axum = { version = "0.8", default-features = false, features = ["http1", "json", "tokio", "query", "ws", "macros"], optional = true }
 sentry = { version = "0.47.0", default-features = false, optional = true, features = ["backtrace", "contexts", "panic", "tracing", "debug-images", "httpdate"] }
-tokio-stream = { version = "0.1.18", default-features = false, features = ["sync"] }
 url = "2"
 tempfile = "3"
 fs2 = "0.4"
@@ -543,12 +540,6 @@ fs2 = "0.4"
 # `scheduler-gate` feature. The process-wide wiring stays in
 # `cron::scheduler_gate`.
 tinymemory-gate = { path = "../../vendor/tinymemory/crates/tinymemory-gate" }
-# Multi-chain wallet signing.
-# - bitcoin: P2WPKH PSBT build/sign/broadcast (includes secp256k1).
-# - ed25519-dalek: Solana transaction signing.
-# - bs58: Solana base58 addresses + Tron base58check addresses.
-ed25519-dalek = { version = "2", default-features = false, features = ["std", "rand_core"] }
-bs58 = { version = "0.5", default-features = false, features = ["std", "check"] }
 
 # The WhatsApp Web provider (and its `whatsapp-rust` / `wacore` / `serde-big-array`
 # stack) now lives in the tinychannels crate; the `whatsapp-web` feature forwards
@@ -708,11 +699,6 @@ tinywallet-x402 = { path = "../../vendor/tinywallet/crates/tinywallet-x402", def
 # backend) and keeps the controllers, keyring and consent.
 tinywallet-web3 = { path = "../../vendor/tinywallet/crates/tinywallet-web3", default-features = false, features = ["tools"], optional = true }
 
-# secp256k1 signing over the digests the wallet module hands back. Pure Rust,
-# and already in the graph beneath `coins-bip32` (which derives the key being
-# used, via tinywallet's `key` gate), so naming it directly costs nothing and
-# is what lets `bitcoin` go.
-k256 = { version = "0.13", default-features = false, features = ["std", "ecdsa"], optional = true }
 
 [target.'cfg(windows)'.dependencies]
 # Windows: tokio-tungstenite uses native-tls (schannel) so wss://
@@ -754,7 +740,6 @@ tinyflows-sqlite = { path = "../../vendor/tinyflows/crates/tinyflows-sqlite", fe
 # does not link dev-dependency features into the shipped binary, so enabling
 # `key` here does not put the derivation stack back into the product.
 tinywallet = { path = "../../vendor/tinywallet", default-features = false, features = ["key", "btc", "evm", "solana", "tron"] }
-k256 = { version = "0.13", default-features = false, features = ["std", "ecdsa"] }
 # `agent_orchestration::tools::tools_e2e_tests` (a #[cfg(test)] LIB module)
 # initialises it; the bins that used to share it live in `crates/openhuman-cli`.
 env_logger = "0.11"
@@ -779,8 +764,6 @@ axum = { version = "0.8", default-features = false, features = ["http1", "json",
 tower = { version = "0.5", default-features = false }
 # Mock HTTP server for provider E2E tests (inference_provider_e2e).
 wiremock = "0.6"
-# Used in json_rpc_e2e to backdate mtime on stale lock files.
-filetime = "0.2"
 # `test-util` enables tokio's paused virtual clock (`start_paused`,
 # `time::advance`) so the #4270 inference-heartbeat tests assert the periodic
 # beat without real-time waits. Test-only — the runtime feature set in
@@ -850,31 +833,6 @@ default = ["media", "skills", "flows", "mcp", "channels", "http-server", "schedu
 # stay compiled in BOTH builds, since ~10 always-on domains construct them.
 # Likewise `inference::http::types` and `EXTERNAL_OPENAI_COMPAT_PROVIDER` stay
 # compiled for the server's auth policy.
-# Git-backed memory diff: snapshots as commits, checkpoints as tags, read
-# markers as refs, diffs as git tree diffs (`openhuman::memory::diff`), plus the
-# git-backed wiki content format in `memory::store::content::wiki_git`.
-# Default-OFF, product-ON.
-#
-# The most expensive gate in the tree by native-build cost: it turns on
-# tinycortex's `git-diff`/`wiki-git`, which carry `git2` with vendored libgit2,
-# so turning it off drops `git2` + `libgit2-sys` + `libz-sys` and takes the
-# kernel profile from 5 native C builds to 3. The cohort enters the graph
-# through tinycortex only — this crate declares no `git2` of its own (see the
-# note where it used to sit in `[dependencies]`).
-#
-# TYPE CARVE-OUT (see AGENTS.md): `memory::diff::types` stays compiled in BOTH
-# builds. It re-exports tinycortex's `serde`-only diff wire types, which the
-# always-on memory profile renders into prompts; a stub copy would
-# be a second definition of one serde shape, free to drift. tinycortex makes the
-# same split — its `memory::diff::{types,source}` are ungated, and only the
-# git-touching `ledger`/`DiffEngine` half sits behind `git-diff`.
-#
-# Off-state: the `memory_diff` RPC namespace is unknown-method and absent from
-# `/schema`; the `memory_diff` agent tool is absent from the tool list; the
-# embedded driver stops advertising `Capability::Diff` and `as_diff()` returns
-# `None`; and the three `ops` entry points always-on code calls return a
-# build-fact error, so a post-sync snapshot or diff is logged and
-# skipped rather than silently reported as "nothing changed".
 # TinyMCP HTTP serving is kept optional with the rest of this server surface.
 # Keep vendor/tinymcp pinned to a revision that defines `server-http`.
 http-server = ["dep:axum", "tinymcp/server-http"]
@@ -994,8 +952,7 @@ voice = [
 # compile-time surface, `DomainSet` gates it at runtime.
 # `k256` and `coins-bip39` are gone from this list: nothing in the shipped
 # binary derives a key or signs with secp256k1 any more — the wallet module
-# does both. `k256` remains under [dev-dependencies], where a test fixture
-# checks a signature against a fixed vector; `coins-bip39` is gone entirely
+# does both. `k256` is gone entirely; `coins-bip39` is gone entirely
 # (the fixtures derive through `tinywallet`'s own copy).
 #
 # `curve25519-dalek` is gone from this list: the Solana off-curve check that
@@ -1223,10 +1180,6 @@ crash-reporting = ["dep:sentry"]
 # measured note above before claiming otherwise.
 channels = ["dep:tinychannels", "tinychannels/email", "tinychannels/lark"]
 sandbox-landlock = ["tinybox-jail/landlock"]
-# Retained so the feature name still forwards through embed/cli/tinyhumans/app;
-# the legacy bwrap `Command` wrapper it gated was removed (unused).
-sandbox-bubblewrap = []
-landlock = ["sandbox-landlock"]
 # The WhatsApp Web provider now lives in tinychannels; forward to its feature.
 # It is a refinement INSIDE the `channels` gate — enabling it pulls in the whole
 # channels domain (the provider re-exports live under `channels/providers/`).

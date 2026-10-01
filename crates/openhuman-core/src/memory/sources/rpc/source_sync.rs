@@ -155,30 +155,57 @@ pub async fn sync_rpc(req: SyncRequest) -> Result<Outcome<SyncResponse>, String>
             ));
         }
     }
-    // Resolved after the composio branch on purpose: the connector-backed
-    // dispatch above needs `as_sources`, not `as_source_sync`, and a driver
-    // serving the former without the latter must not fail a composio sync on
-    // a capability it never uses (review finding on #5932).
-    let sync = binding.provider().as_source_sync().ok_or_else(|| {
-        format!(
-            "the bound memory driver '{}' does not serve source sync",
-            binding.driver_id()
-        )
-    })?;
-    // `run_source_sync` reports neither the run's start nor its finish and
-    // writes no history row; `run_recorded` owns all three (openhuman#6257).
     let kind = host_entry
         .as_ref()
         .map_or("unknown", |entry| entry.kind.as_str());
-    super::driver_run::run_recorded(
-        &config,
-        &req.source_id,
-        host_entry.as_ref(),
-        || sync.run_source_sync(&req.source_id),
-        |error| describe_source_sync_failure(&req.source_id, host_entry.is_some(), error),
-        super::driver_run::bus_stage_publisher(&req.source_id, kind),
-    )
-    .await?;
+    let publish =
+        super::driver_run::bus_stage_publisher(super::driver_run::MANUAL, &req.source_id, kind);
+    let provider = binding.provider();
+    if crate::memory::sources::hosted_sync::host_synced(provider.as_ref()) {
+        // A driver that keeps what it is sent and runs no source pipeline of
+        // its own (hosted memory): the host reads the source and sends the
+        // items through the driver's sink, recorded like any other run.
+        let entry = host_entry
+            .as_ref()
+            .ok_or_else(|| format!("unknown memory source '{}'", req.source_id))?;
+        let sink = provider.as_sources().ok_or_else(|| {
+            format!(
+                "the bound memory driver '{}' does not accept source items",
+                binding.driver_id()
+            )
+        })?;
+        super::driver_run::run_recorded(
+            &config,
+            &req.source_id,
+            Some(entry),
+            || crate::memory::sources::hosted_sync::run(&config, entry, sink),
+            |error| error.to_string(),
+            publish,
+        )
+        .await?;
+    } else {
+        // Resolved after the composio branch on purpose: the connector-backed
+        // dispatch above needs `as_sources`, not `as_source_sync`, and a driver
+        // serving the former without the latter must not fail a composio sync
+        // on a capability it never uses (review finding on #5932).
+        let sync = provider.as_source_sync().ok_or_else(|| {
+            format!(
+                "the bound memory driver '{}' does not serve source sync",
+                binding.driver_id()
+            )
+        })?;
+        // `run_source_sync` reports neither the run's start nor its finish and
+        // writes no history row; `run_recorded` owns all three (openhuman#6257).
+        super::driver_run::run_recorded(
+            &config,
+            &req.source_id,
+            host_entry.as_ref(),
+            || sync.run_source_sync(&req.source_id),
+            |error| describe_source_sync_failure(&req.source_id, host_entry.is_some(), error),
+            publish,
+        )
+        .await?;
+    }
 
     Ok(Outcome::new(
         SyncResponse {

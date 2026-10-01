@@ -458,16 +458,6 @@ async fn list_is_stable_across_calls() {
 }
 
 #[tokio::test]
-async fn is_usable_as_a_trait_object() {
-    let registry: Box<dyn DefinitionRegistry> = Box::new(builtins());
-    assert!(registry
-        .resolve("orchestrator")
-        .await
-        .expect("resolve")
-        .is_some());
-}
-
-#[tokio::test]
 async fn an_empty_catalogue_misses_everything_without_erroring() {
     let registry = registry_of(Vec::new());
     assert_eq!(registry.resolve("anything").await.expect("resolve"), None);

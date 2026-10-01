@@ -283,61 +283,7 @@ fn make_parent(
 }
 
 fn noop_memory() -> Arc<dyn crate::memory::Memory> {
-    struct NoopMemory;
-    #[async_trait]
-    impl crate::memory::Memory for NoopMemory {
-        async fn store(
-            &self,
-            _namespace: &str,
-            _key: &str,
-            _content: &str,
-            _category: crate::memory::MemoryCategory,
-            _session_id: Option<&str>,
-        ) -> anyhow::Result<()> {
-            Ok(())
-        }
-        async fn recall(
-            &self,
-            _query: &str,
-            _limit: usize,
-            _opts: crate::memory::RecallOpts<'_>,
-        ) -> anyhow::Result<Vec<crate::memory::MemoryEntry>> {
-            Ok(vec![])
-        }
-        async fn get(
-            &self,
-            _namespace: &str,
-            _key: &str,
-        ) -> anyhow::Result<Option<crate::memory::MemoryEntry>> {
-            Ok(None)
-        }
-        async fn list(
-            &self,
-            _namespace: Option<&str>,
-            _category: Option<&crate::memory::MemoryCategory>,
-            _session_id: Option<&str>,
-        ) -> anyhow::Result<Vec<crate::memory::MemoryEntry>> {
-            Ok(vec![])
-        }
-        async fn forget(&self, _namespace: &str, _key: &str) -> anyhow::Result<bool> {
-            Ok(true)
-        }
-        async fn namespace_summaries(
-            &self,
-        ) -> anyhow::Result<Vec<crate::memory::NamespaceSummary>> {
-            Ok(vec![])
-        }
-        async fn count(&self) -> anyhow::Result<usize> {
-            Ok(0)
-        }
-        async fn health_check(&self) -> bool {
-            true
-        }
-        fn name(&self) -> &str {
-            "noop"
-        }
-    }
-    Arc::new(NoopMemory)
+    crate::memory::test_support::noop_memory()
 }
 
 // ── Runtime spawn-hierarchy (tier) gate (issue #4098) ───────────────────────

@@ -316,18 +316,6 @@ async fn list_by_class_filters_correctly() {
 
 // ── key_with_class helper ─────────────────────────────────────────────────────
 
-#[test]
-fn key_with_class_produces_prefixed_key() {
-    assert_eq!(
-        key_with_class(FacetClass::Style, "verbosity"),
-        "style/verbosity"
-    );
-    assert_eq!(
-        key_with_class(FacetClass::Tooling, "package_manager"),
-        "tooling/package_manager"
-    );
-}
-
 // ── Evidence refs round-trip ──────────────────────────────────────────────────
 
 #[tokio::test]

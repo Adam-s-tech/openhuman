@@ -1863,6 +1863,10 @@ fn every_capability_family_is_accounted_for_in_the_rpc_surface() {
             | Capability::LearningIngest
             | Capability::EventIngest
             | Capability::Answer => false,
+            // The engine switch reaches it through `memory.engine_migrate`,
+            // which copies whatever both engines serve; no controller is
+            // gated on it.
+            Capability::EpisodicPortability => false,
             // Folded into `Tree`: the tree registry's ~25 methods span tree,
             // entities, graph and maintenance and are tagged as ONE family.
             // See the push site in `all.rs` for why that trade was chosen.

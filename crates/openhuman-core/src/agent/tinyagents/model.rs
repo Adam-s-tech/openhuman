@@ -10,7 +10,7 @@ use tinyinference_llm::model::{
 use tinyinference_llm::tool::ToolCall as TaToolCall;
 use tinyinference_llm::usage::Usage;
 
-use crate::inference::provider::{ChatResponse, UsageInfo};
+use crate::inference::provider::{BilledUsage, ChatResponse};
 
 pub(super) type TurnChatModel = Arc<dyn ChatModel<()>>;
 pub(super) type TierRoutes = Vec<(String, TurnChatModel)>;
@@ -118,7 +118,7 @@ fn response_to_model_response(
         // reasoning tokens all have crate homes as of tinyagents 1.7. `Usage::new`
         // seeds input/output/total; set the detail fields on top.
         let mut usage = Usage::new(u.input_tokens, u.output_tokens);
-        usage.cache_read_tokens = u.cached_input_tokens;
+        usage.cache_read_tokens = u.cached_input_tokens();
         usage.cache_creation_tokens = u.cache_creation_tokens;
         usage.reasoning_tokens = u.reasoning_tokens;
         if u.charged_amount_usd.is_finite() && u.charged_amount_usd > 0.0 {
@@ -126,8 +126,8 @@ fn response_to_model_response(
                 (u.charged_amount_usd * 1_000_000.0).round() as i64,
             ));
         }
-        if u.context_window > 0 {
-            usage.context_window_tokens = Some(u.context_window);
+        if u.context_window() > 0 {
+            usage.context_window_tokens = Some(u.context_window());
         }
         usage
     });
@@ -177,47 +177,19 @@ pub(crate) fn native_model_response_for_request(
     )
 }
 
-/// Normalize a completed prompt-guided response for a crate-native model.
-///
-/// TinyAgents owns the generic prompt protocol and XML tool-call grammar. The
-/// host keeps a temporary second pass for its legacy P-Format prompts until
-/// those prompts are migrated (migration plan WP1/WP4).
-pub(crate) fn prompt_guided_text_response(text: String, request: &ModelRequest) -> ModelResponse {
-    if request.tools.is_empty() {
-        return ModelResponse::assistant(text);
-    }
-
-    let response = tinyinference_llm::prompt_tools::recover_tool_calls(
-        ModelResponse::assistant(text.clone()),
-        &request.tools,
-    );
-    if !response.message.tool_calls.is_empty() {
-        return response;
-    }
-
-    response_to_model_response(
-        &ChatResponse {
-            text: Some(text),
-            ..Default::default()
-        },
-        &pformat_registry_from_request(request),
-        true,
-    )
-}
-
 /// JSON key under which the model adapter stashes the provider-reported
 /// billing/context metadata that the crate [`Usage`] has no field for
 /// (gap G1). Consumed by [`usage_info_from_response`].
 const OPENHUMAN_USAGE_META_KEY: &str = "openhuman_usage_meta";
 
-/// The two host [`UsageInfo`] fields with no crate [`Usage`] home, ferried
+/// The two host [`BilledUsage`] fields with no crate [`Usage`] home, ferried
 /// through [`ModelResponse::raw`] so a standalone `invoke` stays usage-faithful.
 #[derive(Debug, Clone, Copy, Default, serde::Serialize, serde::Deserialize)]
 struct OpenhumanUsageMeta {
-    /// Provider-charged amount in USD (`UsageInfo::charged_amount_usd`).
+    /// Provider-charged amount in USD (`BilledUsage::charged_amount_usd`).
     #[serde(default)]
     charged_amount_usd: f64,
-    /// Model context window in tokens (`UsageInfo::context_window`).
+    /// Model context window in tokens (`BilledUsage::context_window`).
     #[serde(default)]
     context_window: u64,
 }
@@ -225,14 +197,14 @@ struct OpenhumanUsageMeta {
 /// Build the `ModelResponse.raw` value carrying charged-USD + context-window
 /// metadata, or `None` when the provider reported neither (so responses from
 /// providers that don't surface billing stay `raw: None`).
-fn openhuman_usage_meta_raw(usage: Option<&UsageInfo>) -> Option<serde_json::Value> {
+fn openhuman_usage_meta_raw(usage: Option<&BilledUsage>) -> Option<serde_json::Value> {
     let u = usage?;
-    if u.charged_amount_usd <= 0.0 && u.context_window == 0 {
+    if u.charged_amount_usd <= 0.0 && u.context_window() == 0 {
         return None;
     }
     let meta = OpenhumanUsageMeta {
         charged_amount_usd: u.charged_amount_usd,
-        context_window: u.context_window,
+        context_window: u.context_window(),
     };
     Some(serde_json::json!({ OPENHUMAN_USAGE_META_KEY: meta }))
 }
@@ -278,7 +250,7 @@ pub(crate) fn merge_openhuman_usage_meta(
     }
 }
 
-/// Reconstruct a host [`UsageInfo`] from a crate [`ModelResponse`], recovering
+/// Reconstruct a host [`BilledUsage`] from a crate [`ModelResponse`], recovering
 /// the provider-charged USD + context window the adapter stashed in
 /// [`ModelResponse::raw`] (gap G1). Returns `None` when the response carried no
 /// usage at all.
@@ -287,7 +259,7 @@ pub(crate) fn merge_openhuman_usage_meta(
 /// the legacy chat response onto `Arc<dyn ChatModel>`
 /// (`invoke` → `ModelResponse`): the full host usage record — real token
 /// counts *and* backend-charged USD — survives the crossing.
-pub(crate) fn usage_info_from_response(response: &ModelResponse) -> Option<UsageInfo> {
+pub(crate) fn usage_info_from_response(response: &ModelResponse) -> Option<BilledUsage> {
     let usage = response.usage.as_ref()?;
     let mut meta = response
         .raw
@@ -303,15 +275,14 @@ pub(crate) fn usage_info_from_response(response: &ModelResponse) -> Option<Usage
             .and_then(serde_json::Value::as_f64)
             .unwrap_or_default();
     }
-    Some(UsageInfo {
-        input_tokens: usage.input_tokens,
-        output_tokens: usage.output_tokens,
-        context_window: meta.context_window,
-        cached_input_tokens: usage.cache_read_tokens,
-        cache_creation_tokens: usage.cache_creation_tokens,
-        reasoning_tokens: usage.reasoning_tokens,
-        charged_amount_usd: meta.charged_amount_usd,
-    })
+    Some(
+        BilledUsage::from_counts(usage.input_tokens, usage.output_tokens)
+            .with_context_window(meta.context_window)
+            .with_cached_input_tokens(usage.cache_read_tokens)
+            .with_cache_creation_tokens(usage.cache_creation_tokens)
+            .with_reasoning_tokens(usage.reasoning_tokens)
+            .with_charged_usd(meta.charged_amount_usd),
+    )
 }
 
 /// Shared slot that preserves the most recent original provider error.

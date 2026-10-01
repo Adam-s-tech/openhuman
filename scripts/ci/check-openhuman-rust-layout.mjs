@@ -36,7 +36,6 @@ const LEGACY_LIMIT_ENTRIES = [
   // `spawn_subagent_tool_impl.rs` had its entry DELETED, not lowered: the
   // parameter schema moved to `spawn_subagent_parameters.rs` and the file is
   // under the general 750 limit, so it needs no exception at all.
-  ["crates/openhuman-core/src/agent/multimodal.rs", 656],
   // The session-todo integration added transcript metadata construction to
   // this already-exempt composition seam. Keep its allowance exact.
   ["crates/openhuman-core/src/agent/session_host/runtime_session.rs", 1979],
@@ -47,7 +46,7 @@ const LEGACY_LIMIT_ENTRIES = [
   ["crates/openhuman-core/src/agent/session_host/builder/factory.rs", 1212],
   ["crates/openhuman-core/src/agent/subagent_host/lifecycle.rs", 1313],
   ["crates/openhuman-core/src/agent/subagent_host/ops/runner.rs", 1427],
-  ["crates/openhuman-core/src/tools/ops.rs", 1339],
+  ["crates/openhuman-core/src/tools/ops.rs", 1322],
   ["crates/openhuman-core/src/web_chat/progress_bridge.rs", 1304],
   // These established external test modules grew with upstream coverage. Pin
   // their current sizes while follow-up work separates their test concerns.
@@ -60,7 +59,7 @@ const LEGACY_LIMIT_ENTRIES = [
   ["crates/openhuman-core/src/core/events.rs", 2005],
   ["crates/openhuman-core/src/core/events_tests.rs", 1062],
   ["crates/openhuman-core/src/core/observability.rs", 3631],
-  ["crates/openhuman-core/src/core/runtime/builder.rs", 841],
+  ["crates/openhuman-core/src/core/runtime/builder.rs", 825],
   ["crates/openhuman-core/src/core/runtime/context.rs", 1024],
 ];
 const LEGACY_LIMITS = new Map(LEGACY_LIMIT_ENTRIES);

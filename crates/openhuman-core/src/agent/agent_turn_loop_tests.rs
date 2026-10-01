@@ -195,53 +195,29 @@ async fn turn_handles_unknown_tool_gracefully() {
 // ═══════════════════════════════════════════════════════════════════════════
 
 #[tokio::test]
-async fn turn_recovers_from_tool_failure() {
-    let provider = Arc::new(ScriptedProvider::new(vec![
-        tool_response(vec![NativeToolCall {
-            id: "tc1".into(),
-            name: "fail".into(),
-            arguments: "{}".into(),
-            extra_content: None,
-        }]),
-        text_response("Tool failed but I recovered"),
-    ]));
+async fn turn_recovers_from_tool_failure_and_tool_error() {
+    let cases: [(&str, Box<dyn Tool>); 2] = [
+        ("fail", Box::new(FailingTool)),
+        ("panicker", Box::new(PanickingTool)),
+    ];
+    for (tool_name, tool) in cases {
+        let provider = Arc::new(ScriptedProvider::new(vec![
+            tool_response(vec![NativeToolCall {
+                id: "tc1".into(),
+                name: tool_name.into(),
+                arguments: "{}".into(),
+                extra_content: None,
+            }]),
+            text_response("I recovered"),
+        ]));
+        let (mut agent, _tmp) = build_agent_with(provider, vec![tool], Box::new(NativeDialect));
 
-    let (mut agent, _tmp) = build_agent_with(
-        provider,
-        vec![Box::new(FailingTool)],
-        Box::new(NativeDialect),
-    );
-
-    let response = agent.turn("try failing tool").await.unwrap();
-    assert!(
-        !response.is_empty(),
-        "Expected non-empty response after tool failure recovery"
-    );
-}
-
-#[tokio::test]
-async fn turn_recovers_from_tool_error() {
-    let provider = Arc::new(ScriptedProvider::new(vec![
-        tool_response(vec![NativeToolCall {
-            id: "tc1".into(),
-            name: "panicker".into(),
-            arguments: "{}".into(),
-            extra_content: None,
-        }]),
-        text_response("I recovered from the error"),
-    ]));
-
-    let (mut agent, _tmp) = build_agent_with(
-        provider,
-        vec![Box::new(PanickingTool)],
-        Box::new(NativeDialect),
-    );
-
-    let response = agent.turn("try panicking").await.unwrap();
-    assert!(
-        !response.is_empty(),
-        "Expected non-empty response after tool error recovery"
-    );
+        let response = agent.turn("try the tool").await.unwrap();
+        assert!(
+            !response.is_empty(),
+            "Expected non-empty response after {tool_name} recovery"
+        );
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -422,68 +398,37 @@ async fn xml_dispatcher_does_not_send_tool_specs() {
 // ═══════════════════════════════════════════════════════════════════════════
 
 #[tokio::test]
-async fn turn_errors_on_empty_text_response() {
+async fn turn_errors_on_empty_or_null_text_response() {
     // A completion with no text *and* no tool calls is never a valid final
-    // answer. The old behaviour returned `Ok("")`, which rendered as a blank
-    // reply and silently wedged the thread; now it surfaces as a visible
-    // error the user can retry on (bug-report-2026-05-26 A1). The harness
-    // retries an empty completion once (43660e6ef), so both attempts are
-    // scripted empty — a single one leaves the retry to the provider's
-    // default "done" reply and tests the retry instead of the error.
-    let empty = || ChatResponse {
-        text: Some(String::new()),
-        tool_calls: vec![],
-        usage: None,
-        reasoning_content: None,
-    };
-    let provider = Arc::new(ScriptedProvider::new(vec![empty(), empty()]));
-    let script = Arc::clone(&provider);
+    // answer: it must surface as a visible error the user can retry on rather
+    // than a blank reply (bug-report-2026-05-26 A1). The harness retries an
+    // empty completion once, so both attempts are scripted empty.
+    for text in [Some(String::new()), None] {
+        let empty = || ChatResponse {
+            text: text.clone(),
+            tool_calls: vec![],
+            usage: None,
+            reasoning_content: None,
+        };
+        let provider = Arc::new(ScriptedProvider::new(vec![empty(), empty()]));
+        let script = Arc::clone(&provider);
 
-    let (mut agent, _tmp) = build_agent_with(provider, vec![], Box::new(NativeDialect));
+        let (mut agent, _tmp) = build_agent_with(provider, vec![], Box::new(NativeDialect));
 
-    let reply = agent
-        .turn("hi")
-        .await
-        .expect_err("an empty provider response must error");
-    // Both attempts were made: the original and the one retry.
-    assert_eq!(
-        script.calls.load(std::sync::atomic::Ordering::SeqCst),
-        2,
-        "the empty completion must be retried exactly once before erroring"
-    );
-    assert!(
-        reply.to_string().contains("empty response"),
-        "expected a deterministic empty-response close, got: {reply}"
-    );
-}
-
-#[tokio::test]
-async fn turn_errors_on_none_text_response() {
-    // Both attempts: the harness retries an empty completion once.
-    let none = || ChatResponse {
-        text: None,
-        tool_calls: vec![],
-        usage: None,
-        reasoning_content: None,
-    };
-    let provider = Arc::new(ScriptedProvider::new(vec![none(), none()]));
-    let script = Arc::clone(&provider);
-
-    let (mut agent, _tmp) = build_agent_with(provider, vec![], Box::new(NativeDialect));
-
-    let reply = agent
-        .turn("hi")
-        .await
-        .expect_err("a null-text provider response must error");
-    assert_eq!(
-        script.calls.load(std::sync::atomic::Ordering::SeqCst),
-        2,
-        "the empty completion must be retried exactly once before erroring"
-    );
-    assert!(
-        reply.to_string().contains("empty response"),
-        "expected a deterministic empty-response close, got: {reply}"
-    );
+        let reply = agent
+            .turn("hi")
+            .await
+            .expect_err("an empty provider response must error");
+        assert_eq!(
+            script.calls.load(std::sync::atomic::Ordering::SeqCst),
+            2,
+            "the empty completion must be retried exactly once before erroring ({text:?})"
+        );
+        assert!(
+            reply.to_string().contains("empty response"),
+            "expected a deterministic empty-response close ({text:?}), got: {reply}"
+        );
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

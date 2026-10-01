@@ -56,7 +56,7 @@ pub(super) struct AssembledTurnHarness {
     ///
     /// Real success + a user-facing failure + timing onto `ToolCallCompleted`.
     pub(super) failure_map: ToolFailureMap,
-    /// Shared FIFO carry of per-call provider `UsageInfo` (charged USD + context
+    /// Shared FIFO carry of per-call provider `BilledUsage` (charged USD + context
     /// window): the model adapter pushes, the event bridge pops when recording
     /// usage — restores charged-USD precedence on the tinyagents path (#4467).
     pub(super) provider_usage_carry: ProviderUsageCarry,
@@ -202,7 +202,7 @@ pub(super) fn assemble_turn_harness(
     // tool-call start (the crate `ToolDelta` carries none), the bridge reads it
     // to label the argument fragments now streamed via `MessageDelta.tool_call`.
     let tool_names: ToolNameMap = Arc::default();
-    // Shared FIFO carry of per-call provider `UsageInfo`: `UsageCarryMiddleware`
+    // Shared FIFO carry of per-call provider `BilledUsage`: `UsageCarryMiddleware`
     // pushes each response's usage (charged USD + context window +
     // cache-creation/reasoning tokens, read off the response via G1), the event
     // bridge pops it when recording that call's usage (#4467, item 1). The carry
@@ -250,7 +250,7 @@ pub(super) fn assemble_turn_harness(
     }
 
     // Cost usage capture (issue #4249, Phase 5): feed the event bridge's usage
-    // carry from a wrap-model middleware that reads the full `UsageInfo` off each
+    // carry from a wrap-model middleware that reads the full `BilledUsage` off each
     // response, instead of every `native model adapter` pushing it. Installed
     // unconditionally — usage flows on every turn — and shares the same carry the
     // bridge drains on `UsageRecorded`.

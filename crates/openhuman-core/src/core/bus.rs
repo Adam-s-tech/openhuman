@@ -143,25 +143,6 @@ pub async fn init() -> tinybus::Result<()> {
     Ok(())
 }
 
-/// Initialise against a broker already listening on a socket.
-///
-/// Used when integrations run out of process: the kernel joins their bus rather
-/// than standing up its own. `address` is the broker's socket path.
-#[cfg(unix)]
-pub async fn init_over_socket(address: impl AsRef<std::path::Path>) -> tinybus::Result<()> {
-    let transport = tinybus::transport::unix::UnixTransport::connect(address.as_ref()).await?;
-    BUS.init_over(Box::new(transport), config()).await?;
-    if let Err(e) = BUS.announce(&manifest()).await {
-        tracing::warn!(error = %e, "[bus] could not announce the peer manifest");
-    }
-    tracing::info!(
-        address = %address.as_ref().display(),
-        events_version = %EVENTS_VERSION,
-        "[bus] initialised against a shared broker"
-    );
-    Ok(())
-}
-
 /// Logs every event at `debug`. Ported from the bus that was replaced.
 ///
 /// Registered once at startup by the channel runtime. It subscribes to every

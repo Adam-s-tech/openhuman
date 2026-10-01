@@ -1,6 +1,6 @@
 //! Per-turn cost accounting for an agent's tool-call loop.
 //!
-//! Each provider response carries an optional [`UsageInfo`] block with
+//! Each provider response carries an optional [`BilledUsage`] block with
 //! `input_tokens`, `output_tokens`, `cached_input_tokens`, and an
 //! authoritative `charged_amount_usd` populated by the OpenHuman
 //! backend. [`TurnCost`] sums those across every provider call inside a
@@ -22,7 +22,7 @@
 //! older cost records estimate sanely. Every other model — catalog ids the
 //! user pins, BYOK vendor models — is priced from the vendor catalog.
 
-use crate::inference::provider::UsageInfo;
+use crate::inference::provider::BilledUsage;
 
 /// Per-million-token rates for a single model tier.
 ///
@@ -101,9 +101,9 @@ pub(crate) fn lookup_pricing(model: &str) -> ModelPricing {
 
 /// Estimate the USD cost of a single provider call from its token
 /// usage. Used as a fallback when `charged_amount_usd` is missing.
-pub fn estimate_call_cost_usd(model: &str, usage: &UsageInfo) -> f64 {
+pub fn estimate_call_cost_usd(model: &str, usage: &BilledUsage) -> f64 {
     let pricing = lookup_pricing(model);
-    let cached = usage.cached_input_tokens;
+    let cached = usage.cached_input_tokens();
     let standard_input = usage.input_tokens.saturating_sub(cached);
     let m = 1_000_000.0_f64;
     (standard_input as f64) / m * pricing.input_per_mtok_usd
@@ -115,7 +115,7 @@ pub fn estimate_call_cost_usd(model: &str, usage: &UsageInfo) -> f64 {
 ///
 /// Backend-reported `charged_amount_usd` wins whenever it's > 0;
 /// otherwise we fall back to [`estimate_call_cost_usd`].
-pub fn call_cost_usd(model: &str, usage: &UsageInfo) -> f64 {
+pub fn call_cost_usd(model: &str, usage: &BilledUsage) -> f64 {
     if usage.charged_amount_usd > 0.0 {
         usage.charged_amount_usd
     } else {
@@ -146,12 +146,12 @@ impl TurnCost {
     }
 
     /// Fold a single provider call's usage into the running totals.
-    pub fn add_call(&mut self, model: &str, usage: &UsageInfo) {
+    pub fn add_call(&mut self, model: &str, usage: &BilledUsage) {
         self.input_tokens = self.input_tokens.saturating_add(usage.input_tokens);
         self.output_tokens = self.output_tokens.saturating_add(usage.output_tokens);
         self.cached_input_tokens = self
             .cached_input_tokens
-            .saturating_add(usage.cached_input_tokens);
+            .saturating_add(usage.cached_input_tokens());
         if usage.charged_amount_usd > 0.0 {
             self.charged_usd += usage.charged_amount_usd;
         } else {

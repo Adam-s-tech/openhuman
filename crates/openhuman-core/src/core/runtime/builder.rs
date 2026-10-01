@@ -781,28 +781,12 @@ impl CoreRuntime {
     /// jobs, and releasing them is a write to the store, so it has to happen
     /// while the store is still open and before anything else on the way out
     /// (tinymemory#133). Bounded inside, on one shared deadline: a wedged
-    /// store costs at most that budget, never the exit. Then any `ollama
-    /// serve` openhuman itself spawned is stopped (no-op when externally
-    /// managed), bounded so a wedged Ollama can't hold up shutdown.
+    /// store costs at most that budget, never the exit. There is no local
+    /// model runtime to stop: the user runs Ollama / LM Studio / MLX
+    /// themselves and OpenHuman never spawns it.
     pub async fn exit_cleanup(&self) {
         crate::memory::exit::shutdown_for_exit().await;
-
-        if let Some(svc) = crate::inference::host_runtime::try_global() {
-            let cfg = crate::config::Config::load_or_init()
-                .await
-                .unwrap_or_default();
-            let runtime = crate::inference::local_runtime_config(&cfg);
-            log::info!("[core] shutdown: cleaning up openhuman-owned ollama if any");
-            let shutdown_fut = svc.shutdown_owned_ollama(&runtime);
-            if tokio::time::timeout(std::time::Duration::from_secs(2), shutdown_fut)
-                .await
-                .is_err()
-            {
-                log::warn!(
-                    "[core] shutdown: ollama cleanup exceeded 2s budget; proceeding with exit"
-                );
-            }
-        }
+        log::debug!("[core] shutdown: exit cleanup done (no owned local runtime to stop)");
     }
 
     /// Spawn each selected background service.
