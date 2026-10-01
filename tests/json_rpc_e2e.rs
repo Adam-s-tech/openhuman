@@ -12,7 +12,7 @@ mod tinyhumans_boot;
 mod env_guard;
 #[path = "support/scripted_stack.rs"]
 mod scripted_stack;
-use scripted_stack::{assert_no_jsonrpc_error};
+use scripted_stack::assert_no_jsonrpc_error;
 use env_guard::EnvVarGuard;
 use std::collections::VecDeque;
 use std::net::SocketAddr;
