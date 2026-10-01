@@ -396,8 +396,6 @@ mod approval_guard_tests;
 mod classified_failure_tests;
 #[path = "middleware_loop_guard_tests.rs"]
 mod loop_guard_tests;
-#[path = "middleware_prompt_cache_tests.rs"]
-mod prompt_cache_tests;
 
 #[path = "middleware_research_budget_tests.rs"]
 mod research_budget_tests;

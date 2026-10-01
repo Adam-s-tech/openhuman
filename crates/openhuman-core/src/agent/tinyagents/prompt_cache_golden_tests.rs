@@ -87,14 +87,12 @@ async fn run(s: &Scenario) -> Value {
     let mut policy = run_policy_for(8, false);
     policy.tool_dialect = s.dialect;
     harness.with_policy(policy);
-    harness.push_middleware(Arc::new(super::middleware::PromptCacheSegmentMiddleware)); // BEFORE-ONLY
     harness.push_middleware(Arc::new(PromptCacheGuardMiddleware::new()));
 
     let host = OpenHumanRunContext::new().with_tool_dialect(s.dialect);
     let mut ctx = host.into_tinyagents(RunConfig::new("golden"));
     if let Some(frozen) = s.frozen {
         ctx = ctx.with_frozen_system_prefix_len(frozen);
-        ctx.data.cacheable_system_prefix_len = Some(frozen); // BEFORE-ONLY
     }
     harness
         .invoke_in_context(&(), ctx, s.input.clone())
