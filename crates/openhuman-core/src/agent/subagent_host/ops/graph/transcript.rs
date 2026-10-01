@@ -103,13 +103,7 @@ pub(super) fn persist_subagent_transcript(
         thread_id: thread_id.map(str::to_owned),
         task_id: Some(task_id.to_string()),
     };
-    let durable_history: Vec<_> = history
-        .iter()
-        .map(crate::agent::messages::transcript_message_from_chat)
-        .collect();
-    if let Err(err) =
-        transcript::write_transcript(&path, &durable_history, &meta, Some(&turn_usage))
-    {
+    if let Err(err) = transcript::write_transcript(&path, history, &meta, Some(&turn_usage)) {
         tracing::debug!(
             agent_id,
             error = %err,
