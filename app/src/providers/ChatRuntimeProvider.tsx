@@ -9,6 +9,8 @@ import {
   createSkillToolChainLatencyTracker,
   SKILL_TOOL_CHAIN_TARGET_MS,
 } from '../lib/ai/skillToolChainLatency';
+import { chatErrorCopyText } from '../lib/chatErrorCopy';
+import { useT } from '../lib/i18n/I18nContext';
 import { classifyReplyDeliveryFailure } from '../lib/userErrors/classify';
 import { ingestRuntimeErrorSignal } from '../lib/userErrors/report';
 import { maybeParseWorkflowProposalTool } from '../lib/workflows/workflowProposal';
