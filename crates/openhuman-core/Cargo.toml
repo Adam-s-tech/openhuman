@@ -779,8 +779,6 @@ axum = { version = "0.8", default-features = false, features = ["http1", "json",
 tower = { version = "0.5", default-features = false }
 # Mock HTTP server for provider E2E tests (inference_provider_e2e).
 wiremock = "0.6"
-# Used in json_rpc_e2e to backdate mtime on stale lock files.
-filetime = "0.2"
 # `test-util` enables tokio's paused virtual clock (`start_paused`,
 # `time::advance`) so the #4270 inference-heartbeat tests assert the periodic
 # beat without real-time waits. Test-only — the runtime feature set in

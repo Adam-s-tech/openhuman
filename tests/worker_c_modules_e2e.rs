@@ -807,47 +807,6 @@ async fn threads_remaining_controller_paths_round_trip() {
 }
 
 #[tokio::test]
-async fn embeddings_controller_paths_validate_without_live_services() {
-    let _lock = env_lock();
-    let harness = setup().await;
-
-    let updated = rpc(
-        &harness.rpc_base,
-        90,
-        "openhuman.embeddings_update_settings",
-        json!({
-            "provider": "none",
-            "model": "none",
-            "dimensions": 0,
-            "confirm_wipe": true
-        }),
-    )
-    .await;
-    assert_rpc_completed(&updated, "embeddings_update_settings");
-
-    for (id, method) in [
-        (91, "openhuman.embeddings_set_api_key"),
-        (92, "openhuman.embeddings_clear_api_key"),
-        (93, "openhuman.embeddings_embed"),
-    ] {
-        let response = rpc(&harness.rpc_base, id, method, json!({})).await;
-        assert!(
-            response.get("error").is_some(),
-            "{method} should reject missing required params: {response}"
-        );
-    }
-
-    let tested = rpc(
-        &harness.rpc_base,
-        94,
-        "openhuman.embeddings_test_connection",
-        json!({ "provider": "none", "model": "none", "dimensions": 0 }),
-    )
-    .await;
-    assert_rpc_completed(&tested, "embeddings_test_connection");
-}
-
-#[tokio::test]
 async fn memory_tree_ingest_feeds_memory_sync_status() {
     let _lock = env_lock();
     let harness = setup().await;

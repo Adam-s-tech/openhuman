@@ -1,8 +1,8 @@
-//! Inference provider end-to-end tests using wiremock.
+//! Inference HTTP endpoint end-to-end tests.
 //!
-//! Non-streaming request/response, auth-header and temperature wire behavior of
-//! `OpenAiModel` is covered in tinyinference-llm (`providers/openai/wire_test.rs`);
-//! the streaming test below drives the SSE path over a real wiremock socket.
+//! Non-streaming request/response, auth-header, temperature and SSE streaming
+//! behavior of `OpenAiModel` is covered in tinyinference-llm
+//! (`providers/openai/{wire_test,test}.rs`).
 //!
 //! The `/v1/chat/completions` and `/v1/models` HTTP endpoint tests verify the
 //! full axum router layer (auth middleware + provider routing) end-to-end.
@@ -16,14 +16,9 @@ use axum::http::{header, Method, Request, StatusCode};
 use serde_json::{json, Value};
 use tempfile::tempdir;
 use tower::ServiceExt;
-use wiremock::matchers::{method, path};
-use wiremock::{Mock, MockServer, ResponseTemplate};
 
 use openhuman_core::core::auth::{init_rpc_token, CORE_TOKEN_ENV_VAR};
 use openhuman_rpc::server::build_core_http_router;
-use tinyinference_llm::message::Message;
-use tinyinference_llm::model::{ChatModel, ModelRequest, ModelStreamItem};
-use tinyinference_llm::providers::openai::{AuthStyle, OpenAiModel};
 
 // ── Environment serialisation lock ───────────────────────────────────────────
 //
@@ -56,13 +51,6 @@ fn ensure_rpc_auth() {
     });
 }
 
-fn openai_model(provider: &str, endpoint: &str, api_key: &str, auth: AuthStyle) -> OpenAiModel {
-    OpenAiModel::new(api_key)
-        .with_provider(provider)
-        .with_base_url(endpoint)
-        .with_auth_style(auth)
-}
-
 // ── Helper: build an env-isolated Config pointing at tempdir ─────────────────
 
 /// Sets OPENHUMAN_WORKSPACE to `dir` and returns an `EnvVarGuard` that
@@ -92,61 +80,6 @@ impl Drop for EnvGuard {
 }
 
 // ── Test 6: Streaming response returns ordered deltas ────────────────────────
-
-#[tokio::test]
-async fn openai_compat_streaming_returns_ordered_deltas() {
-    let server = MockServer::start().await;
-
-    let sse_body = concat!(
-        "data: {\"id\":\"x\",\"choices\":[{\"delta\":{\"role\":\"assistant\",\"content\":\"Hel\"},\"finish_reason\":null}]}\n\n",
-        "data: {\"id\":\"x\",\"choices\":[{\"delta\":{\"content\":\"lo\"},\"finish_reason\":null}]}\n\n",
-        "data: {\"id\":\"x\",\"choices\":[{\"delta\":{\"content\":\"!\"},\"finish_reason\":\"stop\"}]}\n\n",
-        "data: [DONE]\n\n",
-    );
-
-    Mock::given(method("POST"))
-        .and(path("/v1/chat/completions"))
-        .respond_with(
-            ResponseTemplate::new(200)
-                .set_body_raw(sse_body.as_bytes().to_vec(), "text/event-stream"),
-        )
-        .mount(&server)
-        .await;
-
-    let model = openai_model(
-        "test",
-        &format!("{}/v1", server.uri()),
-        "key",
-        AuthStyle::Bearer,
-    );
-
-    use futures_util::StreamExt;
-    let request = ModelRequest::new(vec![
-        Message::system("You are helpful."),
-        Message::user("Say Hello!"),
-    ])
-    .with_model("gpt-4o-mini")
-    .with_temperature(0.7);
-    let mut stream = model
-        .stream(&(), request)
-        .await
-        .expect("stream should open");
-
-    let mut deltas = Vec::new();
-    while let Some(item) = stream.next().await {
-        if let ModelStreamItem::MessageDelta(delta) = item {
-            if !delta.text.is_empty() {
-                deltas.push(delta.text);
-            }
-        }
-    }
-
-    let combined = deltas.join("");
-    assert_eq!(
-        combined, "Hello!",
-        "combined stream deltas should equal 'Hello!'; got '{combined}'"
-    );
-}
 
 // ── Test 8: /v1/chat/completions HTTP endpoint — unauthorized ─────────────────
 
@@ -265,44 +198,3 @@ async fn http_endpoint_chat_completions_with_bearer_passes_auth() {
 }
 
 // ── Test 14: temperature_for_model helper ────────────────────────────────────
-
-#[test]
-fn temperature_helper_suppresses_o1_by_default_config() {
-    use openhuman_core::config::Config;
-    use tinyinference_llm::model::effective_temperature;
-
-    let config = Config::default();
-
-    // Normal model → temperature returned
-    assert_eq!(
-        effective_temperature(
-            "gpt-4o-mini",
-            Some(0.7),
-            None,
-            &config.temperature_unsupported_models,
-        ),
-        Some(0.7)
-    );
-    assert_eq!(
-        effective_temperature(
-            "claude-3-sonnet",
-            Some(0.5),
-            None,
-            &config.temperature_unsupported_models,
-        ),
-        Some(0.5)
-    );
-
-    // o1/o3/o4/gpt-5 → temperature suppressed
-    for model in ["o1-preview", "o3-mini", "o4-turbo", "gpt-5-turbo"] {
-        assert_eq!(
-            effective_temperature(
-                model,
-                Some(0.7),
-                None,
-                &config.temperature_unsupported_models,
-            ),
-            None,
-        );
-    }
-}

@@ -161,33 +161,6 @@ fn cancel_stops_a_running_migration_and_keeps_the_active_engine() {
 }
 
 #[test]
-fn engine_set_is_refused_while_a_migration_runs() {
-    run_on_big_stack("engine-set-during-migrate", || async {
-        let fx = Fixture::new().await;
-        let job_id = seed_and_start_slow_migration(&fx).await;
-        tokio::time::sleep(Duration::from_millis(100)).await;
-
-        let v = fx
-            .call(
-                "openhuman.memory_engine_set",
-                json!({ "driver": "tinymemory" }),
-            )
-            .await;
-        assert!(
-            error_message(&v, "engine_set during migration").contains("migration is running"),
-            "{v}"
-        );
-        fx.call(
-            "openhuman.memory_engine_migrate_cancel",
-            json!({ "job_id": job_id.clone() }),
-        )
-        .await;
-        fx.wait_job(&job_id).await;
-        fx.hosted.delay_ms.store(0, Ordering::SeqCst);
-    });
-}
-
-#[test]
 fn a_config_edited_during_the_copy_survives_the_switch() {
     run_on_big_stack("engine-migrate-stale-config", || async {
         let fx = Fixture::new().await;

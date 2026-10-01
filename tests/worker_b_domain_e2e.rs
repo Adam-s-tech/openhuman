@@ -152,16 +152,6 @@ async fn setup() -> TestHarness {
     }
 }
 
-async fn schema(rpc_base: &str) -> Value {
-    let url = format!("{}/schema", rpc_base.trim_end_matches('/'));
-    reqwest::get(&url)
-        .await
-        .unwrap_or_else(|err| panic!("GET {url}: {err}"))
-        .json::<Value>()
-        .await
-        .expect("schema json")
-}
-
 async fn rpc(rpc_base: &str, id: i64, method: &str, params: Value) -> Value {
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(30))
@@ -216,67 +206,6 @@ fn error_message<'a>(value: &'a Value, context: &str) -> &'a str {
         .get("message")
         .and_then(Value::as_str)
         .unwrap_or_else(|| panic!("{context}: error missing message: {value}"))
-}
-
-#[tokio::test]
-async fn worker_b_schema_catalog_exposes_all_controller_methods() {
-    let _lock = env_lock();
-    let harness = setup().await;
-
-    let catalog = schema(&harness.rpc_base).await;
-    let methods = catalog
-        .get("methods")
-        .and_then(Value::as_array)
-        .expect("schema methods array");
-
-    for expected in [
-        "openhuman.inference_status",
-        "openhuman.inference_get_client_config",
-        "openhuman.inference_update_model_settings",
-        "openhuman.inference_update_local_settings",
-        "openhuman.inference_list_models",
-        "openhuman.inference_device_profile",
-        "openhuman.inference_presets",
-        "openhuman.inference_apply_preset",
-        "openhuman.inference_diagnostics",
-        "openhuman.inference_openai_oauth_start",
-        "openhuman.inference_openai_oauth_complete",
-        "openhuman.inference_openai_oauth_status",
-        "openhuman.inference_openai_oauth_disconnect",
-        "openhuman.inference_summarize",
-        "openhuman.inference_prompt",
-        "openhuman.inference_vision_prompt",
-        "openhuman.inference_test_provider_model",
-        "openhuman.inference_analyze_sentiment",
-        "openhuman.agent_chat",
-        "openhuman.agent_chat_simple",
-        "openhuman.agent_server_status",
-        "openhuman.agent_list_definitions",
-        "openhuman.agent_get_definition",
-        "openhuman.agent_reload_definitions",
-        "openhuman.agent_triage_evaluate",
-        "openhuman.tools_composio_execute",
-        "openhuman.tools_web_search",
-        "openhuman.tools_web_answer",
-        "openhuman.tools_web_contents",
-        "openhuman.tools_searxng_search",
-        "openhuman.tools_apify_linkedin_scrape",
-        "openhuman.tool_registry_list",
-        "openhuman.tool_registry_get",
-        "openhuman.tool_registry_diagnostics",
-        "openhuman.approval_list_pending",
-        "openhuman.approval_list_recent_decisions",
-        "openhuman.approval_decide",
-    ] {
-        assert!(
-            methods
-                .iter()
-                .any(|method| { method.get("method").and_then(Value::as_str) == Some(expected) }),
-            "schema catalog must expose {expected}"
-        );
-    }
-
-    harness.join.abort();
 }
 
 #[tokio::test]

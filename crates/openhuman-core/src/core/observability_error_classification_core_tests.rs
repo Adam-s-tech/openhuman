@@ -236,6 +236,8 @@ fn wallet_demotion_does_not_swallow_real_wallet_failures() {
         "no wallet account derived for chain 'solana'",
         "wallet is not responding",
         "failed to decrypt wallet mnemonic",
+        "wallet signing failed: invalid nonce",
+        "self_identity key_status: wallet is configured but the key is corrupt",
     ] {
         assert_ne!(
             expected_error_kind(msg),
