@@ -3407,8 +3407,6 @@ const messages: TranslationMap = {
   'conversations.tools.runTests.done': 'تم تشغيل الاختبارات',
   'conversations.tools.analyzeCode.active': 'جارٍ تحليل الكود',
   'conversations.tools.analyzeCode.done': 'تم تحليل الكود',
-  'conversations.tools.insertRecord.active': 'جارٍ إدراج سجل',
-  'conversations.tools.insertRecord.done': 'تم إدراج السجل',
   'conversations.tools.runCommand.active': 'جارٍ تشغيل الأمر',
   'conversations.tools.runCommand.done': 'تم تشغيل الأمر',
   'conversations.tools.runCode.active': 'جارٍ تشغيل الكود',

@@ -3288,8 +3288,6 @@ const messages: TranslationMap = {
   'conversations.tools.runTests.done': '已运行测试',
   'conversations.tools.analyzeCode.active': '正在分析代码',
   'conversations.tools.analyzeCode.done': '已分析代码',
-  'conversations.tools.insertRecord.active': '正在插入记录',
-  'conversations.tools.insertRecord.done': '已插入记录',
   'conversations.tools.runCommand.active': '正在运行命令',
   'conversations.tools.runCommand.done': '已运行命令',
   'conversations.tools.runCode.active': '正在运行代码',

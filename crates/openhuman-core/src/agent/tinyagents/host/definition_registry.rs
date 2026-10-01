@@ -192,23 +192,6 @@ impl OpenHumanDefinitionRegistry {
         }
     }
 
-    /// Adapts the process-wide registry, or `None` when
-    /// [`AgentDefinitionRegistry::init_global`] has not run yet.
-    ///
-    /// Returning `Option` rather than lazily initialising keeps boot ordering
-    /// the host's decision: silently building a builtins-only registry here
-    /// would mask a missing workspace-override load.
-    pub fn from_global() -> Option<Self> {
-        AgentDefinitionRegistry::global().map(|registry| Self {
-            registry: RegistryHandle::Global(registry),
-            config: None,
-            registered_tools: None,
-            deferred_tools: None,
-            session_delegation_tools: None,
-            session_definition: None,
-        })
-    }
-
     /// Adapts a freshly-built builtins-only registry (no workspace scan).
     pub fn builtins_only() -> Self {
         Self::new(Arc::new(AgentDefinitionRegistry::builtins_only()))

@@ -3510,8 +3510,6 @@ const messages: TranslationMap = {
   'conversations.tools.runTests.done': 'Тесты выполнены',
   'conversations.tools.analyzeCode.active': 'Анализ кода',
   'conversations.tools.analyzeCode.done': 'Код проанализирован',
-  'conversations.tools.insertRecord.active': 'Добавление записи',
-  'conversations.tools.insertRecord.done': 'Запись добавлена',
   'conversations.tools.runCommand.active': 'Выполнение команды',
   'conversations.tools.runCommand.done': 'Команда выполнена',
   'conversations.tools.runCode.active': 'Выполнение кода',

@@ -14,11 +14,10 @@ use std::sync::Arc;
 
 use crate::config::schema::MemoryHooksConfig;
 use crate::core::subsystem::DriverClass;
-use crate::memory::api::provider::types::ExportRecord;
 use crate::memory::api::provider::MemoryProvider;
 use crate::memory::api::types::{
     MemoryCategory, MemoryEntry, MemoryItemKind, MemoryTaint, NamespaceDocumentInput,
-    NamespaceMemoryHit, NamespaceSummary, RetrievalScoreBreakdown,
+    NamespaceMemoryHit, RetrievalScoreBreakdown,
 };
 use crate::memory::guard::{HostGuardPolicy, MemoryGuard};
 
@@ -45,17 +44,6 @@ pub fn external_policy(trust_state: &str) -> HostGuardPolicy {
         MemoryHooksConfig::default(),
         trust_state,
     )
-}
-
-/// An [`ExportRecord`] fixture.
-pub fn export_record(taint: MemoryTaint) -> ExportRecord {
-    ExportRecord {
-        kind: "entry".into(),
-        id: "r1".into(),
-        namespace: Some("ns".into()),
-        taint,
-        payload: serde_json::Value::Null,
-    }
 }
 
 /// A guard over a fresh recording provider, plus a handle on that provider.
@@ -106,15 +94,6 @@ pub fn document(content: &str, taint: MemoryTaint) -> NamespaceDocumentInput {
         session_id: None,
         document_id: None,
         taint,
-    }
-}
-
-/// A [`NamespaceSummary`] fixture.
-pub fn namespace_summary(namespace: &str, count: usize) -> NamespaceSummary {
-    NamespaceSummary {
-        namespace: namespace.into(),
-        count,
-        last_updated: None,
     }
 }
 

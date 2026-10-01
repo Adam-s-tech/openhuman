@@ -48,9 +48,6 @@ fn field_builder_helpers_are_correct_shape() {
     let o = optional_string("k", "c");
     assert!(!o.required);
 
-    let ou = optional_u64("k", "c");
-    assert!(!ou.required);
-
     let j = json_output("result", "c");
     assert!(j.required);
     assert!(matches!(j.ty, TypeSchema::Json));

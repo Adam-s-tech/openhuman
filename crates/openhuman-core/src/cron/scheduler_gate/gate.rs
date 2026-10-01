@@ -290,16 +290,6 @@ impl Drop for SignedOutTestGuard {
     }
 }
 
-/// Most recent sampled signals, or a neutral default if the sampler hasn't run.
-pub fn current_signals() -> Signals {
-    STATE.get().map(|s| s.read().signals()).unwrap_or(Signals {
-        on_ac_power: true,
-        battery_charge: None,
-        cpu_usage_pct: 0.0,
-        server_mode: false,
-    })
-}
-
 /// Cooperatively block a caller until the host is ready for LLM-bound
 /// work, then hand back an [`LlmPermit`] that holds a slot in the global
 /// LLM semaphore.

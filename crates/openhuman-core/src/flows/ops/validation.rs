@@ -33,29 +33,6 @@ pub(crate) fn engine_compatibility_errors(
         .collect()
 }
 
-/// Same walk, with the inline-nesting budget passed in rather than recomputed.
-///
-/// [`referenced_workflow_compatibility_errors`] needs this: a saved child
-/// reached partway through the root's referenced-workflow chain must still be
-/// checked to the *remaining* depth the root allows. The engine's runtime depth
-/// counter is one budget shared across the whole inline-plus-referenced chain,
-/// so a fan-in the child's own cap would not reach can still be reached from
-/// the root.
-pub(crate) fn engine_compatibility_errors_with_max_depth(
-    graph: &WorkflowGraph,
-    max_depth: u64,
-) -> Vec<crate::flows::FlowValidationError> {
-    tinyflows::compat::errors_with_max_depth(graph, max_depth)
-        .into_iter()
-        .map(to_compat_validation_error)
-        .collect()
-}
-
-/// The nesting cap `graph` declares on its trigger, or the engine default.
-pub(crate) fn max_sub_workflow_depth(graph: &WorkflowGraph) -> u64 {
-    tinyflows::compat::max_sub_workflow_depth(graph)
-}
-
 // The refusal code is `tinyflows::compat`'s, re-exported at `ops::` scope
 // because this module's tests assert on it by name — which is the point of a
 // stable code, and what keeps a rename upstream a compile error here rather

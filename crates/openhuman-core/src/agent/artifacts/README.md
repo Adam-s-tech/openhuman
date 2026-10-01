@@ -144,6 +144,4 @@ event.
 - `create_artifact` rejects empty titles/extensions and extensions
   containing `/`, `\`, or `.`. Filename stems are lowercased ASCII
   `[a-z0-9_-]`, capped at 80 chars, fallback `artifact`.
-- `store.rs` keeps a dead-code `_assert_status_used` helper so
-  `ArtifactStatus` is referenced outside tests.
 - Log prefix is `[artifacts]` (`[tool][artifacts]` in `tools.rs`).

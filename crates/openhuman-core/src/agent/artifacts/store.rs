@@ -387,8 +387,6 @@ pub(crate) async fn delete_artifact(
 }
 
 // Mark a status as unused — referenced only in tests via the store
-#[allow(dead_code)]
-fn _assert_status_used(_: ArtifactStatus) {}
 
 /// Maximum length of a sanitized artifact filename stem. Keeps the
 /// rendered filename short enough to round-trip on every filesystem

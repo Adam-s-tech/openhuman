@@ -3579,8 +3579,6 @@ const messages: TranslationMap = {
   'conversations.tools.runTests.done': 'Tests ausgeführt',
   'conversations.tools.analyzeCode.active': 'Code wird analysiert',
   'conversations.tools.analyzeCode.done': 'Code analysiert',
-  'conversations.tools.insertRecord.active': 'Datensatz wird eingefügt',
-  'conversations.tools.insertRecord.done': 'Datensatz eingefügt',
   'conversations.tools.runCommand.active': 'Befehl wird ausgeführt',
   'conversations.tools.runCommand.done': 'Befehl ausgeführt',
   'conversations.tools.runCode.active': 'Code wird ausgeführt',

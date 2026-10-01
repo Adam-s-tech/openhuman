@@ -74,24 +74,6 @@ impl ShellTool {
         }
     }
 
-    /// Same as `new` but attaches a managed Node.js bootstrap for transparent
-    /// `PATH` injection. The bootstrap is consulted via `try_cached()` on each
-    /// invocation, so calling a non-node shell command never forces a download.
-    pub fn with_node_bootstrap(
-        security: Arc<SecurityPolicy>,
-        runtime: Arc<dyn RuntimeAdapter>,
-        audit: Arc<AuditLogger>,
-        bootstrap: Arc<NodeBootstrap>,
-    ) -> Self {
-        Self {
-            security,
-            runtime,
-            audit,
-            node_bootstrap: Some(bootstrap),
-            python_bootstrap: None,
-        }
-    }
-
     /// Attach managed language runtimes used by shell-invoked skills. Node is
     /// injected only after a dedicated node/npm tool resolved it; Python is
     /// resolved lazily for python/pip commands because shell is currently the

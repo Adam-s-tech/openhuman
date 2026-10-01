@@ -20,10 +20,9 @@ use tempfile::{tempdir, TempDir};
 use openhuman_core::config::schema::{
     AuditConfig, CapabilityProviderConfig, CapabilityProviderTrustState, DashboardConfig,
     DingTalkConfig, DiscordConfig, EventStreamConfig, IrcConfig, LarkConfig, MatrixConfig,
-    MemoryConfig, ModelHealthConfig, ProxyScope, QQConfig, ResourceLimitsConfig, SandboxConfig,
+    MemoryConfig, ModelHealthConfig, ProxyConfig, ProxyScope, QQConfig, ResourceLimitsConfig, SandboxConfig,
     SecurityConfig, SlackConfig, TelegramConfig, WebhookConfig, WhatsAppConfig,
 };
-use openhuman_core::config::settings_cli::{settings_section_json, ConfigSnapshotFields};
 use openhuman_core::config::{
     clear_active_user, default_projects_dir, pre_login_user_dir, read_active_user_id,
     user_openhuman_dir, write_active_user_id, Config, DaemonConfig, DictationActivationMode,
@@ -697,63 +696,140 @@ fn config_active_user_and_daemon_public_helpers_cover_path_branches() {
 }
 
 #[test]
-fn config_settings_cli_sections_project_snapshots_and_missing_fields() {
-    let snap = ConfigSnapshotFields {
-        config: json!({
-            "api_url": "https://api.example.test",
-            "default_model": "worker-a-model",
-            "default_temperature": 0.42,
-            "memory": { "provider": "sqlite", "auto_save": true },
-            "runtime": { "kind": "native", "reasoning_enabled": true },
-            "browser": { "allow_all": false }
-        }),
-        workspace_dir: "/tmp/openhuman-worker-a/workspace".to_string(),
-        config_path: "/tmp/openhuman-worker-a/config.toml".to_string(),
+fn config_proxy_public_paths_normalize_validate_and_apply_scope() {
+    let _lock = env_lock();
+    let _http = EnvVarGuard::unset("HTTP_PROXY");
+    let _https = EnvVarGuard::unset("HTTPS_PROXY");
+    let _all = EnvVarGuard::unset("ALL_PROXY");
+    let _no = EnvVarGuard::unset("NO_PROXY");
+    let _http_lower = EnvVarGuard::unset("http_proxy");
+    let _https_lower = EnvVarGuard::unset("https_proxy");
+    let _all_lower = EnvVarGuard::unset("all_proxy");
+    let _no_lower = EnvVarGuard::unset("no_proxy");
+
+    assert!(ProxyConfig::supported_service_keys()
+        .iter()
+        .any(|key| *key == "memory.embeddings"));
+    assert!(ProxyConfig::supported_service_selectors()
+        .iter()
+        .any(|selector| *selector == "tool.*"));
+
+    let services = ProxyConfig {
+        enabled: true,
+        http_proxy: Some(" http://proxy.example:8080 ".into()),
+        https_proxy: Some("https://secure-proxy.example".into()),
+        all_proxy: None,
+        no_proxy: vec![" localhost, 127.0.0.1 ".into(), "example.test".into()],
+        scope: ProxyScope::Services,
+        services: vec![
+            " Tool.* ".into(),
+            "tool.browser".into(),
+            "memory.embeddings".into(),
+        ],
     };
-
-    let model = settings_section_json("model", &snap, vec!["loaded".to_string()]);
-    assert_eq!(model.pointer("/result/section"), Some(&json!("model")));
+    services.validate().expect("valid services proxy");
     assert_eq!(
-        model.pointer("/result/settings/default_model"),
-        Some(&json!("worker-a-model"))
+        services.normalized_services(),
+        vec!["memory.embeddings", "tool.*", "tool.browser"]
     );
     assert_eq!(
-        model.pointer("/result/workspace_dir"),
-        Some(&json!("/tmp/openhuman-worker-a/workspace"))
+        services.normalized_no_proxy(),
+        vec!["127.0.0.1", "example.test", "localhost"]
     );
-    assert_eq!(model.pointer("/logs/0"), Some(&json!("loaded")));
+    assert!(services.should_apply_to_service("tool.http_request"));
+    assert!(services.should_apply_to_service("memory.embeddings"));
+    assert!(!services.should_apply_to_service("provider.openai"));
+    assert!(!services.should_apply_to_service("   "));
+    let _client = services
+        .apply_to_reqwest_builder(reqwest::Client::builder(), "tool.browser")
+        .build()
+        .expect("proxied client builds");
 
-    for (section, pointer, expected) in [
-        ("memory", "/result/settings/provider", json!("sqlite")),
-        ("runtime", "/result/settings/kind", json!("native")),
-        ("browser", "/result/settings/allow_all", json!(false)),
+    let env_scope = ProxyConfig {
+        enabled: true,
+        scope: ProxyScope::Environment,
+        all_proxy: Some("socks5h://proxy.example:1080".into()),
+        ..ProxyConfig::default()
+    };
+    env_scope.validate().expect("valid env proxy");
+    assert!(!env_scope.should_apply_to_service("tool.browser"));
+    env_scope.apply_to_process_env();
+    assert_eq!(
+        std::env::var("ALL_PROXY").as_deref(),
+        Ok("socks5h://proxy.example:1080")
+    );
+    assert_eq!(
+        std::env::var("all_proxy").as_deref(),
+        Ok("socks5h://proxy.example:1080")
+    );
+    assert!(std::env::var("NO_PROXY").is_err());
+
+    ProxyConfig::clear_process_env();
+    assert!(std::env::var("ALL_PROXY").is_err());
+    assert!(std::env::var("all_proxy").is_err());
+
+    let openhuman_scope = ProxyConfig {
+        enabled: true,
+        scope: ProxyScope::OpenHuman,
+        http_proxy: Some("https://proxy.example".into()),
+        no_proxy: vec![" local.test ".into()],
+        ..ProxyConfig::default()
+    };
+    assert!(openhuman_scope.has_any_proxy_url());
+    assert!(openhuman_scope.should_apply_to_service("provider.openai"));
+    assert_eq!(openhuman_scope.normalized_no_proxy(), vec!["local.test"]);
+    openhuman_scope.apply_to_process_env();
+    assert_eq!(
+        std::env::var("HTTP_PROXY").as_deref(),
+        Ok("https://proxy.example")
+    );
+    assert_eq!(std::env::var("NO_PROXY").as_deref(), Ok("local.test"));
+    ProxyConfig::clear_process_env();
+
+    for mut invalid in [
+        ProxyConfig {
+            enabled: true,
+            http_proxy: Some("ftp://proxy.example".into()),
+            ..ProxyConfig::default()
+        },
+        ProxyConfig {
+            enabled: true,
+            scope: ProxyScope::Services,
+            services: vec![],
+            http_proxy: Some("http://proxy.example".into()),
+            ..ProxyConfig::default()
+        },
+        ProxyConfig {
+            enabled: true,
+            http_proxy: None,
+            https_proxy: None,
+            all_proxy: None,
+            ..ProxyConfig::default()
+        },
+        ProxyConfig {
+            enabled: false,
+            services: vec!["unknown.service".into()],
+            ..ProxyConfig::default()
+        },
     ] {
-        let value = settings_section_json(section, &snap, vec![]);
-        assert_eq!(value.pointer(pointer), Some(&expected), "{section}");
+        assert!(
+            invalid.validate().is_err(),
+            "invalid proxy config should fail: {invalid:?}"
+        );
+        invalid.enabled = false;
     }
 
-    let unknown = settings_section_json("unknown", &snap, vec![]);
-    assert!(unknown
-        .pointer("/result/settings")
-        .is_some_and(Value::is_null));
-
-    let missing = ConfigSnapshotFields {
-        config: json!({ "default_model": "partial-model" }),
-        workspace_dir: "/tmp/ws".to_string(),
-        config_path: "/tmp/cfg.toml".to_string(),
-    };
-    let missing_model = settings_section_json("model", &missing, vec![]);
-    assert_eq!(
-        missing_model.pointer("/result/settings/default_model"),
-        Some(&json!("partial-model"))
+    openhuman_core::config::set_runtime_proxy_config(services.clone());
+    assert!(openhuman_core::config::runtime_proxy_config().should_apply_to_service("tool.browser"));
+    let _cached = openhuman_core::config::build_runtime_proxy_client("tool.browser");
+    let _cached_again = openhuman_core::config::build_runtime_proxy_client("tool.browser");
+    let _timeout_client =
+        openhuman_core::config::build_runtime_proxy_client_with_timeouts("memory.embeddings", 1, 1);
+    let _builder = openhuman_core::config::apply_runtime_proxy_to_builder(
+        reqwest::Client::builder(),
+        "tool.http_request",
     );
-    assert!(missing_model
-        .pointer("/result/settings/api_url")
-        .is_some_and(Value::is_null));
-    let missing_memory = settings_section_json("memory", &missing, vec![]);
-    assert!(missing_memory
-        .pointer("/result/settings")
-        .is_some_and(Value::is_null));
+    openhuman_core::config::set_runtime_proxy_config(ProxyConfig::default());
 }
 
 #[test]
