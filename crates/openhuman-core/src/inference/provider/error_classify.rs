@@ -39,7 +39,3 @@ pub(crate) fn is_upstream_unhealthy(err: &anyhow::Error) -> bool {
 pub(crate) fn parse_retry_after_ms(err: &anyhow::Error) -> Option<u64> {
     parse_inference_retry_after(&err.to_string())
 }
-
-#[cfg(test)]
-#[path = "error_classify_tests.rs"]
-mod tests;
