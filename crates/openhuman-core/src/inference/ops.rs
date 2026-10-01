@@ -278,7 +278,23 @@ pub async fn inference_update_local_settings(
     debug!("{LOG_PREFIX} update_local_settings:start");
     let result = config_rpc::load_and_apply_local_ai_settings(update).await;
     match &result {
-        Ok(_) => debug!("{LOG_PREFIX} update_local_settings:ok"),
+        Ok(_) => {
+            debug!("{LOG_PREFIX} update_local_settings:ok");
+            // The endpoint, provider or models may have changed: drop the
+            // cached probe verdict so the next status poll re-probes the
+            // user's runtime instead of reporting the old endpoint's state.
+            match config_rpc::load_config_with_timeout().await {
+                Ok(config) => {
+                    let runtime = crate::inference::local_runtime_config(&config);
+                    local_runtime::global(&config).reset_to_idle(&runtime);
+                    debug!("{LOG_PREFIX} update_local_settings:probe_reset");
+                }
+                Err(err) => warn!(
+                    error = %err,
+                    "{LOG_PREFIX} update_local_settings:probe_reset_skipped (config reload failed)"
+                ),
+            }
+        }
         Err(err) => warn!(error = %err, "{LOG_PREFIX} update_local_settings:error"),
     }
     result
