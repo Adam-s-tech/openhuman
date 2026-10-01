@@ -241,32 +241,6 @@ fn user_text_with_ready_markers_is_stored_as_typed_image_parts() {
     }
 }
 
-/// The session driver's provider-bound row keeps the established request
-/// bytes: image parts flatten to the private text marker.
-#[test]
-fn provider_bound_rows_flatten_image_parts_to_the_private_marker() {
-    let msg = Message::User(UserMessage {
-        content: vec![
-            ContentBlock::Text("see [OH_IMAGE:x] ".into()),
-            ContentBlock::Image(ImageRef {
-                url: "data:image/png;base64,AAAA".into(),
-                mime_type: Some("image/png".into()),
-            }),
-        ],
-    });
-    let row = message_to_provider_chat_message(&msg).expect("row");
-    assert!(row.parts.is_none());
-    assert_eq!(
-        row.content,
-        "see [OH_IMAGE_LITERAL:x] [OH_IMAGE:data:image/png;base64,AAAA]"
-    );
-    // The persisted row stays typed.
-    assert!(message_to_native_chat_message(&msg)
-        .expect("row")
-        .parts
-        .is_some());
-}
-
 #[test]
 fn plain_assistant_prose_is_not_misread_as_a_tool_round() {
     let a = chat_message_to_message(&TranscriptMessage::assistant("just a normal reply"));

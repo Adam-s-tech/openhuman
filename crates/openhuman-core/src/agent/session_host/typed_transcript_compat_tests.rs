@@ -269,22 +269,27 @@ async fn live_image_request_blocks() -> Vec<ContentBlock> {
         .expect("user message in the request")
 }
 
-/// Pins the bug the provider-bound flatten caused: the image reached a
-/// vision-capable provider as the literal private marker text, not an image.
+/// A live image turn reaches a vision-capable provider as a real image
+/// content block (it used to arrive as the literal private marker text). The
+/// vendor providers serialize that block for both OpenAI-compatible
+/// (`image_url` part) and Anthropic (`image` source) requests.
 #[test]
-fn live_image_turn_request_carries_the_marker_as_literal_text() {
+fn live_image_turn_request_carries_a_real_image_block() {
     run_async(async {
         let blocks = live_image_request_blocks().await;
         assert!(
-            !blocks
-                .iter()
-                .any(|block| matches!(block, ContentBlock::Image(_))),
+            blocks.iter().any(|block| matches!(
+                block,
+                ContentBlock::Image(image)
+                    if image.url == "data:image/png;base64,iVBORw0KGgo="
+                        && image.mime_type.as_deref() == Some("image/png")
+            )),
             "{blocks:?}"
         );
         assert!(
-            blocks.iter().any(|block| matches!(
+            !blocks.iter().any(|block| matches!(
                 block,
-                ContentBlock::Text(text) if text.contains("[OH_IMAGE:data:image/png;base64,iVBORw0KGgo=]")
+                ContentBlock::Text(text) if text.contains("OH_IMAGE")
             )),
             "{blocks:?}"
         );
