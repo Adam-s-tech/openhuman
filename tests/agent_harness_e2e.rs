@@ -1367,7 +1367,7 @@ enabled = true
 
     // NOTE: We intentionally do NOT call register_approval_surface_subscriber() here.
     // That function uses an OnceLock so it only registers once per process. If it fires
-    // on an early test's tokio runtime (e.g. approval_gate_installed_after_ensure), the
+    // on an early test's tokio runtime (e.g. an early approval test), the
     // background task is tied to that runtime and dies when it drops. Subsequent tests
     // then have no bridge and never see the approval_request SSE event.
     //
@@ -1405,8 +1405,6 @@ fn pre_create_for_approval(home: &Path, filename: &str) -> std::path::PathBuf {
         .unwrap_or_else(|e| panic!("pre-create {target:?}: {e}"));
     target
 }
-
-// ─── 5.1 ensure_approval_gate helper ─────────────────────────────────────────
 
 // ─── 5.2 approval_gate_approve_flow ──────────────────────────────────────────
 //
