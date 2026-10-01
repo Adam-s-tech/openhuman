@@ -87,6 +87,14 @@ test("moves a module nested in an inline wrapper and climbs out of its directori
   assert.match(externalizeSource(src, "mod").source, /#\[path = "..\/mod_tests.rs"\]/);
 });
 
+test("names a second nested module after its wrapper when the file name is taken", () => {
+  const block = (wrapper) =>
+    `mod ${wrapper} {\n    #[cfg(test)]\n    mod tests {\n        fn a() {}\n    }\n}\n`;
+  const out = externalizeSource(`${block("imp")}\n${block("raise")}`, "ops");
+  assert.deepEqual(out.moves.map((m) => m.fileName), ["ops_tests.rs", "ops_raise_tests.rs"]);
+  assert.deepEqual(out.skipped, []);
+});
+
 test("reports a test module nested inside a function instead of moving it", () => {
   const src = "fn f() {\n    #[cfg(test)]\n    mod tests {\n        fn a() {}\n    }\n}\n";
   const out = externalizeSource(src, "lib");

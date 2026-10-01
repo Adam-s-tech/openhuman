@@ -254,7 +254,11 @@ export function externalizeSource(src, stem, taken = new Set()) {
       reject("declares out-of-line modules whose paths would shift");
       continue;
     }
-    const fileName = testFileName(stem, m[3]);
+    let fileName = testFileName(stem, m[3]);
+    // Two wrappers can each hold a \`tests\`; the second is named after its wrapper.
+    if (used.has(fileName) && chain.length > 0) {
+      fileName = testFileName(`${stem}_${chain[chain.length - 1].m[3]}`, m[3]);
+    }
     if (used.has(fileName)) {
       reject(`${fileName} already exists`);
       continue;
