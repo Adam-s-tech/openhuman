@@ -71,31 +71,10 @@ pub enum CommandRiskLevel {
     High,
 }
 
-/// Coarse permission bucket the harness approval gate keys on.
-///
-/// Classification is **fail-closed**: a command that is not provably read-only
-/// (and not a recognized network/destructive command) is treated as at least
-/// [`CommandClass::Write`]. Across multiple shell segments the **highest** class
-/// wins (so `ls | curl …` is `Network`). Variants are ordered low→high so
-/// [`Ord`] / [`Iterator::max`] compose them directly.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum CommandClass {
-    /// Provably read-only / observational (curated safe-read allowlist).
-    Read,
-    /// State-changing but not inherently catastrophic — the fail-closed default
-    /// for anything not recognized as read/network/destructive.
-    Write,
-    /// Reaches the network (curl/wget/ssh/scp/…). Always prompts, every tier.
-    Network,
-    /// Installs an OS / language package (system package manager, or a *global*
-    /// npm/pnpm/yarn/cargo/pip install). Always-ask in every acting tier,
-    /// including Full — mirrors the dedicated `install_tool` gate so shell
-    /// installs can't slip past it. Project-local installs are ordinary `Write`.
-    Install,
-    /// Catastrophic / irreversible / privilege-escalating / system-control.
-    /// Always prompts, even in Full.
-    Destructive,
-}
+/// Coarse permission bucket the harness approval gate keys on. Defined with the
+/// classifier in `tinybox_core::shell::classify`; re-exported here so host
+/// callers keep their path.
+pub use tinybox_core::shell::classify::CommandClass;
 
 /// What the harness should do with an acting tool call of a given
 /// [`CommandClass`] under the session's [`AutonomyLevel`]. Computed by

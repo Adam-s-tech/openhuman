@@ -27,7 +27,7 @@ pub use node_exec::NodeExecTool;
 pub use npm_exec::NpmExecTool;
 pub use proxy_config::ProxyConfigTool;
 pub use python_exec::PythonExecTool;
-pub use retrieve_tool_output::RetrieveToolOutputTool;
+pub use retrieve_tool_output::{retrieve_tool_output_tool, RetrieveToolOutputTool};
 pub use schedule::ScheduleTool;
 pub use shell::ShellTool;
 pub use tool_stats::ToolStatsTool;

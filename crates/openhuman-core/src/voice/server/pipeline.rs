@@ -13,7 +13,7 @@ use tokio::sync::Mutex;
 use crate::config::Config;
 use crate::modules::voice::{is_hallucinated, HallucinationMode};
 use crate::voice::audio_capture::RecordingHandle;
-use crate::voice::text_input;
+use tinycomputer_accessibility::paste as text_input;
 #[cfg(target_os = "macos")]
 use tinycomputer_accessibility as accessibility;
 

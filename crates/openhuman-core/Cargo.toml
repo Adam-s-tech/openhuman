@@ -520,8 +520,6 @@ sentry = { version = "0.47.0", default-features = false, optional = true, featur
 tokio-stream = { version = "0.1.18", default-features = false, features = ["sync"] }
 url = "2"
 tempfile = "3"
-enigo = { version = "0.3", optional = true }
-arboard = { version = "3", optional = true }
 fs2 = "0.4"
 # Cross-platform battery probe for the scheduler gate. Maintained fork of
 # the abandoned `battery` crate; same `use battery::*;` API surface. Used
@@ -633,7 +631,7 @@ tinyjuice-bus = { path = "../../vendor/tinyjuice/crates/tinyjuice-bus" }
 # there is still exactly one `tinytools` package and one `Tool` trait. The CCR
 # store those ops read lives in the module, so the host wraps the tools and
 # feeds them each original over the bus: see `inference/tokenjuice/repl_tools.rs`.
-tinyjuice = { path = "../../vendor/tinyjuice", default-features = false, features = ["tinytools"] }
+tinyjuice = { path = "../../vendor/tinyjuice", default-features = false, features = ["tinytools", "host"] }
 
 # TinyHosts — the unified hosting API: one `Host` trait over a hosting provider,
 # and the `launch` flow that puts a Next.js application, its database, its
@@ -937,8 +935,8 @@ modules = ["tinybus/modules", "dep:tinycomputer-bus"]
 # feature narrows the compile-time surface, `DomainSet` gates it at runtime.
 # Requires `inference` (the microphone-permission probe), so enabling `voice` turns
 # `inference` on transitively.
-# `arboard`/`enigo`/`tinyvoice` (the `rdev` hotkey listener) join here rather than getting their own gate: their
-# only call sites are `voice::text_input` (clipboard + synthetic keystrokes to
+# `arboard`/`enigo` (now behind `tinycomputer-accessibility/paste`) and `tinyvoice` (the `rdev` hotkey listener) join here rather than getting their own gate: their
+# only call sites are `tinycomputer_accessibility::paste` (clipboard + synthetic keystrokes to
 # insert a dictated transcript) and `voice::hotkey` (the global push-to-talk
 # listener), both already `#[cfg(feature = "voice")]`, and nothing outside
 # `voice/` reaches them. Worth 17 crates — the largest single shed in the wave —
@@ -956,8 +954,9 @@ voice = [
     # only — `serde` and nothing else.
     "dep:tinyvoice-bus",
     "dep:lettre",
-    "dep:arboard",
-    "dep:enigo",
+    # `voice::server` inserts dictated text through `tinycomputer_accessibility::paste`
+    # (clipboard + synthetic keystrokes: `arboard`/`enigo` live behind that feature).
+    "tinycomputer-accessibility/paste",
     "dep:tinyvoice",
     # `audio_toolkit::ops` delivers generated podcasts through tinychannels'
     # EmailChannel, so the provider — and therefore the implementation crate —

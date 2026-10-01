@@ -1928,7 +1928,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -2689,7 +2689,7 @@ dependencies = [
  "js-sys",
  "log",
  "wasm-bindgen",
- "windows-core 0.62.2",
+ "windows-core 0.58.0",
 ]
 
 [[package]]
@@ -4021,7 +4021,6 @@ dependencies = [
  "aes-gcm",
  "aho-corasick",
  "anyhow",
- "arboard",
  "argon2",
  "async-trait",
  "axum",
@@ -4034,7 +4033,6 @@ dependencies = [
  "dirs 6.0.0",
  "dotenvy",
  "ed25519-dalek",
- "enigo",
  "env_logger",
  "filetime",
  "flate2",
@@ -4814,7 +4812,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b570b25f7617e43d59005d0990ccb79e950a423952cea19671b7a876da390adf"
 dependencies = [
  "anyhow",
- "itertools 0.14.0",
+ "itertools 0.13.0",
  "proc-macro2",
  "quote",
  "syn 2.0.119",
@@ -4900,7 +4898,7 @@ dependencies = [
  "once_cell",
  "socket2",
  "tracing",
- "windows-sys 0.52.0",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -5373,7 +5371,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.52.0",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -6212,10 +6210,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.3.4",
+ "getrandom 0.4.3",
  "once_cell",
  "rustix",
- "windows-sys 0.52.0",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -6533,7 +6531,7 @@ dependencies = [
 
 [[package]]
 name = "tinybox-core"
-version = "0.1.9"
+version = "0.1.10"
 dependencies = [
  "async-trait",
  "serde",
@@ -6542,7 +6540,7 @@ dependencies = [
 
 [[package]]
 name = "tinybox-jail"
-version = "0.1.9"
+version = "0.1.10"
 dependencies = [
  "landlock",
  "log",
@@ -6582,7 +6580,7 @@ dependencies = [
 
 [[package]]
 name = "tinychannels"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "anyhow",
  "async-imap",
@@ -6628,7 +6626,7 @@ dependencies = [
 
 [[package]]
 name = "tinychannels-bus"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -6649,7 +6647,7 @@ dependencies = [
 
 [[package]]
 name = "tinychannels-runtime"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -6663,9 +6661,11 @@ dependencies = [
 
 [[package]]
 name = "tinycomputer-accessibility"
-version = "0.7.0"
+version = "0.9.0"
 dependencies = [
+ "arboard",
  "cpal",
+ "enigo",
  "log",
  "serde",
  "serde_json",
@@ -6674,7 +6674,7 @@ dependencies = [
 
 [[package]]
 name = "tinycomputer-bus"
-version = "0.7.0"
+version = "0.9.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -6974,7 +6974,7 @@ dependencies = [
 
 [[package]]
 name = "tinyjuice"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -6995,11 +6995,12 @@ dependencies = [
  "tokio",
  "unicode-segmentation",
  "unicode-width",
+ "uuid",
 ]
 
 [[package]]
 name = "tinyjuice-bus"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -8441,7 +8442,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.52.0",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]

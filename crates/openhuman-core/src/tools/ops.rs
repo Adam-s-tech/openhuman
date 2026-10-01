@@ -235,7 +235,7 @@ pub fn all_tools_with_runtime(
         // Reversibility for native tool-output compaction (Stage 1a): when a
         // large result is compacted with a `retrieve_tool_output("<hash>")`
         // marker, this hands the original back from the CCR store on demand.
-        Box::new(RetrieveToolOutputTool::new()),
+        Box::new(retrieve_tool_output_tool()),
         // TokenJuice 2.0 content-router retrieval: fetches the original (full or
         // by byte/line range) for a `⟦tj:<hash>⟧` marker from the CCR cache.
         // Supersedes `retrieve_tool_output`; both are kept live during migration.
