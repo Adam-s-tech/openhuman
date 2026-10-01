@@ -636,7 +636,7 @@ describe('VoicePanel', () => {
     await screen.findByTestId('voice-provider-key-modal');
 
     expect(screen.getByTestId('voice-piper-self-install-hint')).toHaveTextContent(/PIPER_BIN/);
-    expect(screen.getByTestId('voice-piper-status')).toHaveTextContent(/not found/i);
+    expect(screen.getByTestId('voice-piper-status')).toHaveTextContent(/^Piper not found$/);
     expect(screen.queryByRole('button', { name: /install locally/i })).not.toBeInTheDocument();
   });
 
@@ -658,7 +658,7 @@ describe('VoicePanel', () => {
     await waitFor(() =>
       expect(vi.mocked(openhumanVoiceStatus).mock.calls.length).toBeGreaterThan(callsBefore)
     );
-    await waitFor(() => expect(screen.getByTestId('voice-piper-status')).toHaveTextContent(/found/i));
+    await waitFor(() => expect(screen.getByTestId('voice-piper-status')).toHaveTextContent(/^Piper found$/));
     expect(screen.getByRole('button', { name: /^Enable$/i })).not.toBeDisabled();
   });
 
