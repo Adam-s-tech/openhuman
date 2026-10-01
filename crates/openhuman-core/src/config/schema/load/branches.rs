@@ -7,9 +7,7 @@
 use super::super::Config;
 use super::dirs::{default_action_dir, resolve_action_dir, ConfigResolutionSource};
 use super::env::EnvLookup;
-use super::impl_load::{
-    parse_config_boxed, read_config_with_recovery_or_default,
-};
+use super::impl_load::{parse_config_boxed, read_config_with_recovery_or_default};
 use super::migrate::{
     migrate_cloud_provider_slugs, migrate_legacy_inference_url, migrate_search_settings,
 };

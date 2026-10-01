@@ -1,4 +1,5 @@
 use super::super::Config;
+use super::branches::default_config_boxed;
 use super::dirs::{
     default_action_dir, default_config_and_workspace_dirs, resolve_action_dir,
     resolve_config_dirs_ignoring_env, resolve_runtime_config_dirs_with, ConfigResolutionSource,
@@ -14,7 +15,6 @@ use std::path::Path;
 use std::sync::{Mutex, OnceLock};
 use tokio::fs::{self, OpenOptions};
 use tokio::io::AsyncWriteExt;
-
 
 /// Guards the "corrupted config read, resetting to defaults" warning so it
 /// fires at most once per process lifetime. Without this, a permanently
@@ -33,7 +33,9 @@ static WARNED_CONFIG_READ_FAILURE: OnceLock<Mutex<bool>> = OnceLock::new();
 ///
 /// Rate-limits the warning to at most one per process lifetime so a
 /// permanently corrupted file does not flood telemetry (#5167).
-pub(super) async fn read_config_with_recovery_or_default(config_path: &Path) -> Result<(String, bool)> {
+pub(super) async fn read_config_with_recovery_or_default(
+    config_path: &Path,
+) -> Result<(String, bool)> {
     let reads = || async {
         match fs::read_to_string(config_path).await {
             Ok(contents) => Ok(contents),
