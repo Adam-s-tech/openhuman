@@ -186,6 +186,7 @@ async fn media_tools_deliver_images_and_videos_through_the_backend_proxy() {
         generators,
         &action_dir,
         &config.workspace_dir,
+        openhuman_core::agent::artifacts::FileRoots::from_config(&config),
         WaitPolicy::new(Duration::from_millis(5), Duration::from_secs(20)),
     );
 
