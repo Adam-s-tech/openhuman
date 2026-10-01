@@ -26,6 +26,7 @@ pub mod artifact_offload;
 pub(crate) mod builtin_definitions;
 pub mod definition;
 pub(crate) mod definition_loader;
+pub(crate) mod memory_context_safety;
 pub mod fork_context;
 pub(crate) mod graph;
 pub mod sandbox_context;
