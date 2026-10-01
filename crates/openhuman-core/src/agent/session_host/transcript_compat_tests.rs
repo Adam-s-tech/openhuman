@@ -336,10 +336,10 @@ fn copy_session(root: &Path, stem: &str, dest: &Path) {
     std::fs::copy(stem_path(root, stem), dest).expect("capture transcript");
 }
 
-fn legacy_meta(thread: &str, created: &str) -> TranscriptMeta {
+fn legacy_meta(thread: &str, agent: &str, created: &str) -> TranscriptMeta {
     TranscriptMeta {
-        agent_name: "orchestrator".into(),
-        agent_id: Some("orchestrator".into()),
+        agent_name: agent.into(),
+        agent_id: Some(agent.into()),
         agent_type: None,
         dispatcher: "native".into(),
         provider: None,
@@ -504,6 +504,9 @@ async fn capture_all() {
     {
         let root = tempfile::tempdir().expect("tempdir");
         let thread = thread_id("legacy_adopted");
+        let agent = build_host(root.path(), model(Vec::new(), true), true, &thread)
+            .agent_definition_id
+            .clone();
         let rows = |n: usize| {
             vec![
                 TranscriptMessage::new("system", "legacy system prompt"),
@@ -517,8 +520,13 @@ async fn capture_all() {
             if index == 2 {
                 messages.remove(0);
             }
-            write_transcript(&path, &messages, &legacy_meta(&thread, created), None)
-                .expect("legacy root");
+            write_transcript(
+                &path,
+                &messages,
+                &legacy_meta(&thread, &agent, created),
+                None,
+            )
+            .expect("legacy root");
             copy_session(
                 root.path(),
                 &format!("170000000{index}_orchestrator"),
