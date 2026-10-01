@@ -51,23 +51,28 @@ dialect adds:
 
 - **CortexDB and TinyHumans:** document, conversation, learning and event
   ingest, and `answer`.
-- **TinyHumans alone:** `goals`, `tool_memory`, `documents`, `sources` and
-  `maintenance` too (tinymemory's hosted-families spec).
+- **TinyHumans alone:** `goals`, `tool_memory`, `documents`, `sources`,
+  `maintenance`, `retrieval`, `ingest`, `profile`, `episodic`, `scoring` and
+  `tree` too (tinymemory's hosted-families spec).
 - **Mem0:** conversation ingest and graph.
 - **Cognee:** graph.
 
-The other module-only surfaces are absent from those engines: `tree`,
-`entities`, `people`, `retrieval`, `source_sync`, `coding_sessions`, and on
-every remote engine but TinyHumans the five above. Their RPCs
+The other module-only surfaces are absent from those engines: `chunks`,
+`entities`, `people`, `source_sync`, `coding_sessions`, and on every remote
+engine but TinyHumans the families above. For an engine with a sink and no
+`source_sync` (TinyHumans), the host syncs local sources itself
+(`memory/sources/hosted_sync.rs`). Their RPCs
 are capability-gated out of the registry when a context is ambient, and answer
 "memory driver does not support the ... family" otherwise. `provider_status`,
 the engine RPCs and the mandatory core/recall RPCs are never gated.
 
-Two host lanes read the mandatory recall on such an engine, and an engine that
-ranks without scoring (hosted CortexDB) changes what they can do. Auto-recall's
-notes leg keeps the engine's first `AUTO_RECALL_UNSCORED_NOTES` hits instead of
-flooring similarities that all read 0.0 (`memory/auto_recall`), and a refused
-lookup puts its reason in the block (`auto_recall/refusal.rs`). Situational
+Two host lanes read namespace recall, and an engine that ranks without scoring
+(hosted CortexDB) changes what they can do, whether it answers through the
+mandatory recall or its retrieval family (whose hits carry a rank and no
+signal: `memory/ops/fallback.rs::rank_only`). Auto-recall's notes leg keeps the
+engine's first `AUTO_RECALL_UNSCORED_NOTES` hits instead of flooring
+similarities that all read 0.0 (`memory/auto_recall`), and a refused lookup
+puts its reason in the block (`auto_recall/refusal.rs`). Situational
 preferences and the contradiction check (`memory/preferences`) cannot judge
 relevance without a score and answer nothing. A connector sync resolves the
 Sources sink before it asks the connector for pages, because the connector
