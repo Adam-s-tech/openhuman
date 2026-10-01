@@ -23,8 +23,6 @@ mod journal_export;
 
 pub(crate) use environment::{environment_for_base, ingestion_url, skip_push};
 pub(crate) use journal_export::journal_push_ready;
-#[cfg(test)]
-pub(crate) use journal_export::push_observations;
 
 #[cfg(test)]
 use tinyagents_harness::observability::trace_export::TraceContext;
