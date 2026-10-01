@@ -24,6 +24,7 @@ import SettingsTabbedPage from '../components/settings/layout/SettingsTabbedPage
 import MemoryEngineErrorAlert from '../components/settings/panels/MemoryEngineErrorAlert';
 import { classifyMemoryEngineError } from '../components/settings/panels/memoryEngineUtils';
 import { Alert, AlertDescription, Card } from '../components/ui';
+import { CenteredLoadingState } from '../components/ui/LoadingState';
 import { useT } from '../lib/i18n/I18nContext';
 import { useCoreState } from '../providers/CoreStateProvider';
 import type { ToastNotification } from '../types/intelligence';
@@ -421,7 +422,17 @@ export default function Brain() {
                           />
                         ) : error !== null ? (
                           <MemoryEngineErrorAlert error={error} fallbackText={t('brain.error')} />
-                        ) : null}
+                        ) : (
+                          // The first load can take seconds — a hosted engine
+                          // builds the graph from its derived layers — and an
+                          // empty canvas meanwhile reads as a broken page.
+                          <div role="status" data-testid="brain-graph-loading">
+                            <CenteredLoadingState
+                              label={t('workspace.loadingGraph')}
+                              className="h-[640px] rounded-lg border border-line-subtle bg-surface-muted/40"
+                            />
+                          </div>
+                        )}
                       </div>
                     </MemoryFamilyGate>
                   )}
