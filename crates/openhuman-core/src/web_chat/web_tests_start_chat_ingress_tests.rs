@@ -541,6 +541,9 @@ fn classify_inference_error_harness_wall_clock_timeout_is_turn_timeout() {
         "run timed out: model call for run `abc123` exceeded its remaining wall-clock budget (600000 ms)",
         "run timed out: tool call for run `abc123` exceeded its remaining wall-clock budget (12345 ms)",
         "run `abc123` exceeded its wall-clock deadline",
+        // A wedged call bounded by the per-model-call ceiling is a retryable
+        // `CallTimeout`, rendered with the `call timed out:` prefix (#6375).
+        "call timed out: model call for run `abc123` exceeded its per-model-call ceiling (2000 ms)",
     ] {
         let ClassifiedError {
             error_type: category,

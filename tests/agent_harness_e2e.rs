@@ -3082,7 +3082,6 @@ async fn provider_sse_tool_args_accumulation() {
 /// that never answers in time must terminate the turn in seconds, and the
 /// terminal event must name the per-call bound.
 #[test]
-#[ignore = "TODO(#6375): web chat reports a per-model-call timeout (2s ceiling) as chat_error error_type=inference (retryable, provider) instead of turn_timeout; run: RUST_MIN_STACK=16777216 cargo test -p openhuman-cli --features <product> --test agent_harness_e2e model_call_ceiling -- --ignored"]
 fn model_call_ceiling_bounds_a_wedged_call_below_the_turn_deadline() {
     run_on_agent_stack(
         "model_call_ceiling",
