@@ -116,8 +116,6 @@ const ToolsPanel = ({ embedded = false, bare = false }: ToolsPanelProps = {}) =>
 
       await setOnboardingTasks({
         accessibilityPermissionGranted: onboardingTasks?.accessibilityPermissionGranted ?? false,
-        localModelConsentGiven: onboardingTasks?.localModelConsentGiven ?? false,
-        localModelDownloadStarted: onboardingTasks?.localModelDownloadStarted ?? false,
         enabledTools,
         connectedSources: onboardingTasks?.connectedSources ?? [],
         updatedAtMs: Date.now(),

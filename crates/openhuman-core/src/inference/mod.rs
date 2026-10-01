@@ -1,7 +1,10 @@
 //! OpenHuman inference integration domain.
 //!
 //! TinyInference owns reusable model/provider behavior. This module owns the
-//! product-facing configuration, policy, process lifecycle, and RPC seams:
+//! product-facing configuration, policy, and RPC seams. The local runtime
+//! (Ollama, LM Studio, MLX, OMLX, any OpenAI-compatible server) is installed,
+//! started, and stocked with models by the user; OpenHuman only talks to the
+//! configured endpoint and never downloads models or manages that process:
 //! - `host_runtime/` — OpenHuman policy, RPC, and speech bindings around
 //!                     `tinyinference-local`
 //! - `provider/` — native chat models, cloud/local routing, auth and errors
@@ -41,15 +44,24 @@ pub use host_runtime::all_local_inference_controller_schemas;
 pub use host_runtime::all_local_inference_registered_controllers;
 pub use model_context::context_window_for_model;
 pub use tinyinference_local::status::{
-    LocalAiAssetStatus, LocalAiAssetsStatus, LocalAiDownloadProgressItem, LocalAiDownloadsProgress,
     LocalAiEmbeddingResult, LocalAiSpeechResult, LocalAiStatus, LocalAiTtsResult,
 };
 
-/// Builds the TinyInference disabled snapshot from OpenHuman's configured tier.
+/// Wire label for the local vision mode: `"ondemand"` when a vision model is
+/// configured, `"disabled"` otherwise. Mirrors TinyInference's own label: the
+/// user's runtime serves the model on demand; OpenHuman never preloads or
+/// pulls it.
+pub fn local_vision_mode(config: &crate::config::Config) -> &'static str {
+    if config.local_ai.vision_model_id.trim().is_empty() {
+        "disabled"
+    } else {
+        "ondemand"
+    }
+}
+
+/// Builds the TinyInference disabled snapshot from OpenHuman's configuration.
 pub fn disabled_local_ai_status(config: &crate::config::Config) -> LocalAiStatus {
-    let vision_mode =
-        crate::config::ops::local_ai_presets::vision_mode_for_config(&config.local_ai);
-    LocalAiStatus::disabled(config, &format!("{vision_mode:?}"))
+    LocalAiStatus::disabled(config, local_vision_mode(config))
 }
 
 /// Projects OpenHuman configuration into TinyInference's local-runtime input.
@@ -68,20 +80,9 @@ pub fn local_runtime_config(
             vision_model_id: local.vision_model_id.clone(),
             embedding_model_id: local.embedding_model_id.clone(),
             stt_model_id: local.stt_model_id.clone(),
-            stt_download_url: local.stt_download_url.clone(),
             tts_voice_id: local.tts_voice_id.clone(),
-            tts_download_url: local.tts_download_url.clone(),
-            tts_config_download_url: local.tts_config_download_url.clone(),
-            quantization: local.quantization.clone(),
-            preload_vision_model: local.preload_vision_model,
-            preload_embedding_model: local.preload_embedding_model,
-            preload_stt_model: local.preload_stt_model,
-            preload_tts_voice: local.preload_tts_voice,
-            download_url: local.download_url.clone(),
             autosummary_debounce_ms: local.autosummary_debounce_ms,
-            selected_tier: local.selected_tier.clone(),
             opt_in_confirmed: local.opt_in_confirmed,
-            ollama_binary_path: local.ollama_binary_path.clone(),
             num_ctx: local.num_ctx,
         },
         workspace_dir: config.workspace_dir.clone(),
@@ -113,9 +114,6 @@ impl tinyinference_local::models::LocalModelConfig for crate::config::Config {
     }
     fn local_tts_voice_id(&self) -> &str {
         &self.local_ai.tts_voice_id
-    }
-    fn local_quantization(&self) -> &str {
-        &self.local_ai.quantization
     }
 }
 

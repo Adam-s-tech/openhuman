@@ -530,7 +530,8 @@ export const SETTINGS_ROUTE_REGISTRY: SettingsRegistryEntry[] = [
   // dev-workflow (the cron-based GitHub dev-automation panel) was retired —
   // superseded by first-level Workflows (/flows) and the skills workflow runner.
   // Composio trigger-triage config merged into the Connections Composio page.
-  // Agent Chat + Local Model Debug are now chips on the Connections → LLM page.
+  // Agent Chat is a chip on the Connections → LLM page; the retired
+  // local-model-debug slug redirects there (settingsRouteElements.tsx).
   // skills-runner moved to Connections → Skills → Runner; the slug redirects.
   // The dev-only "Build / version info" alias was removed: it opened the same
   // About page, so dev builds listed two sidebar entries for one page. About's

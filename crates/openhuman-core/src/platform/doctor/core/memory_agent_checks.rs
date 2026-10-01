@@ -217,7 +217,8 @@ pub(super) fn check_embedding_model_health(config: &Config, items: &mut Vec<Diag
             cat,
             format!(
                 "embedding model `{model}` is NOT installed on Ollama at {base_url}. \
-                 Run: ollama pull {model}"
+                 Run: ollama pull {model}  (OpenHuman does not download models; pull it \
+                 in your own Ollama)"
             ),
         ));
     }

@@ -31,16 +31,6 @@ async fn local_ai_vision_prompt_errors_when_disabled() {
 }
 
 #[tokio::test]
-async fn local_ai_embed_errors_when_disabled() {
-    let tmp = tempfile::tempdir().unwrap();
-    let config = test_config(&tmp);
-    let err = local_ai_embed(&config, &["text".to_string()])
-        .await
-        .unwrap_err();
-    assert!(err.contains("local ai is disabled"));
-}
-
-#[tokio::test]
 async fn local_ai_summarize_errors_when_disabled() {
     let tmp = tempfile::tempdir().unwrap();
     let config = test_config(&tmp);
@@ -108,13 +98,6 @@ async fn local_ai_status_reports_even_when_disabled() {
     let result = local_ai_status(&config).await;
     // Either Ok with a state payload or an error; we just ensure no panic.
     let _ = result;
-}
-
-#[tokio::test]
-async fn local_ai_assets_status_returns_without_panic() {
-    let tmp = tempfile::tempdir().unwrap();
-    let config = test_config(&tmp);
-    let _ = local_ai_assets_status(&config).await;
 }
 
 // ── normalize_model_override (TAURI-RUST-RS) ───────────────────────────

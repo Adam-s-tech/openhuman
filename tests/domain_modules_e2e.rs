@@ -262,6 +262,69 @@ fn schema_methods(value: &Value) -> Vec<(String, String, String)> {
 }
 
 #[tokio::test]
+async fn target_domain_schemas_are_exposed_over_http_schema_catalog() {
+    let _lock = env_lock();
+    let harness = setup().await;
+
+    let schema = schema(&harness.rpc_base).await;
+    let methods = schema_methods(&schema);
+
+    for namespace in [
+        "config",
+        "auth",
+        "app_state",
+        "connectivity",
+        "inference",
+        "agent",
+        "tools",
+        "tool_registry",
+        "approval",
+        "memory",
+        "memory_tree",
+        "memory_sync",
+        "memory_sources",
+        "embeddings",
+        "channels",
+        "composio",
+        "threads",
+    ] {
+        assert!(
+            methods.iter().any(|(ns, _, _)| ns == namespace),
+            "schema catalog must expose namespace {namespace}"
+        );
+    }
+
+    for method in [
+        "openhuman.config_get",
+        "openhuman.auth_get_state",
+        "openhuman.app_state_snapshot",
+        "openhuman.connectivity_diag",
+        "openhuman.inference_provider_auth_errors",
+        "openhuman.agent_server_status",
+        "openhuman.tools_web_search",
+        "openhuman.tool_registry_list",
+        "openhuman.approval_list_pending",
+        "openhuman.memory_ingestion_status",
+        "openhuman.memory_tree_pipeline_status",
+        "openhuman.memory_sync_status_list",
+        "openhuman.memory_sources_list",
+        "openhuman.embeddings_get_settings",
+        "openhuman.channels_list",
+        "openhuman.composio_get_mode",
+        "openhuman.threads_list",
+    ] {
+        assert!(
+            methods
+                .iter()
+                .any(|(_, _, rpc_method)| rpc_method == method),
+            "schema catalog must expose {method}"
+        );
+    }
+
+    harness.join.abort();
+}
+
+#[tokio::test]
 async fn config_agent_tools_and_threads_mutation_paths_round_trip() {
     let _lock = env_lock();
     let harness = setup().await;
@@ -527,7 +590,7 @@ async fn target_domain_read_paths_round_trip_through_json_rpc_transport() {
         ("openhuman.auth_get_state", json!({})),
         ("openhuman.app_state_snapshot", json!({})),
         ("openhuman.connectivity_diag", json!({})),
-        ("openhuman.inference_presets", json!({})),
+        ("openhuman.inference_provider_auth_errors", json!({})),
         ("openhuman.agent_server_status", json!({})),
         ("openhuman.tool_registry_list", json!({})),
         ("openhuman.approval_list_pending", json!({})),
