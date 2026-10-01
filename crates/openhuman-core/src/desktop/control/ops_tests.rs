@@ -278,7 +278,10 @@ async fn probe_passes_when_accessibility_is_not_required() {
         ))
     })
     .await;
-    assert!(result.ok, "probe should pass when accessibility is not_required");
+    assert!(
+        result.ok,
+        "probe should pass when accessibility is not_required"
+    );
     assert_eq!(result.app_count, Some(1));
     assert!(result.reason.is_none());
 }
