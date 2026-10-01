@@ -80,7 +80,6 @@ pub(crate) fn tool_capability(name: &str) -> Option<tinymemory_api::capabilities
         // Free-text search over the canonical *entity* index
         // (`memory::tree::retrieval::search::search_entities`).
         "memory_store_raw_search" => Capability::Entities,
-        "memory_diff" => Capability::Diff,
         "memory_doctor" => Capability::Maintenance,
         "tool_stats" => Capability::ToolMemory,
 
